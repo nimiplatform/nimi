@@ -246,6 +246,7 @@ export default function HealthMetricDetailPage() {
         {hasCaptureProtocol && captureOpen ? (
           <HealthCaptureModal
             open
+            hideSidebar
             childId={activeChild.childId}
             childBirthDate={activeChild.birthDate}
             initialGroupId={metric.groupId}

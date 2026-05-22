@@ -22,6 +22,7 @@ import {
   NumberStepper,
   OverlayShell,
   OVERLAY_SHELL_SIZE_WIDTH,
+  PillTabs,
   Popover,
   PopoverContent,
   ProgressIndicator,
@@ -258,6 +259,30 @@ test('shared control and feedback primitives render canonical slots', () => {
   expect(hasClass(html, 'nimi-action-menu__item--danger')).toBe(true);
   expect(hasClass(html, 'nimi-field-shell')).toBe(true);
   expect(html).toMatch(/aria-describedby/);
+});
+
+test('pill tabs render sliding-indicator slots, radiogroup roles, and active state', () => {
+  const html = renderToStaticMarkup(
+    <PillTabs
+      ariaLabel="Section"
+      size="sm"
+      value="orthodontic"
+      onValueChange={() => {}}
+      items={[
+        { value: 'history', label: '口腔记录' },
+        { value: 'orthodontic', label: '正畸治疗' },
+      ]}
+    />,
+  );
+
+  expect(hasClass(html, 'nimi-pill-tabs')).toBe(true);
+  expect(hasClass(html, 'nimi-pill-tabs__indicator')).toBe(true);
+  expect(hasClass(html, 'nimi-pill-tabs__tab')).toBe(true);
+  expect(hasClass(html, 'nimi-pill-tabs__tab--active')).toBe(true);
+  expect(html).toMatch(/role="radiogroup"/);
+  expect(html).toMatch(/role="radio"/);
+  expect(html).toMatch(/aria-checked="true"/);
+  expect(html).toMatch(/正畸治疗/);
 });
 
 test('surface material transparency downgrade is deterministic', () => {

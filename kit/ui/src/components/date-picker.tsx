@@ -1,8 +1,7 @@
-import '@nimiplatform/nimi-kit/ui';
 /**
- * ProfileDatePicker — shared date picker component.
- * Extracted from sleep-page.tsx's proven DatePickerInput implementation
- * which uses scroll-based DrumColumn for reliable Tauri WebView support.
+ * DatePicker — shared calendar date field.
+ * Uses a scroll-based DrumColumn for the month/year wheel so it stays
+ * reliable inside Tauri WebView.
  */
 import { forwardRef, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
@@ -58,7 +57,7 @@ function startOfCalendarMonth(date: Date): Date {
   return first;
 }
 
-/* ── DrumColumn (scroll-based, proven in sleep-page) ── */
+/* ── DrumColumn (scroll-based) ── */
 
 function DrumColumn({ items, selected, onSelect, label, itemHeight = ITEM_H, visibleRows = VISIBLE_ROWS, renderValue = (v: number) => String(v) }: {
   items: number[];
@@ -126,7 +125,7 @@ function DrumColumn({ items, selected, onSelect, label, itemHeight = ITEM_H, vis
     <div className="flex-1 relative" aria-label={label}>
       <div className="absolute inset-x-0 top-0 z-10 pointer-events-none bg-[linear-gradient(to_bottom,var(--nimi-surface-overlay),transparent)]" style={{ height: itemHeight * 2 }} />
       <div className="absolute inset-x-0 bottom-0 z-10 pointer-events-none bg-[linear-gradient(to_top,var(--nimi-surface-overlay),transparent)]" style={{ height: itemHeight * 2 }} />
-      <div ref={colRef} className="time-picker-col overflow-y-auto"
+      <div ref={colRef} className="nimi-date-picker-scroll overflow-y-auto"
         onScroll={handleScroll} onWheel={handleWheel}
         style={{ height: panelHeight, scrollSnapType: 'y mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {Array.from({ length: padRows }).map((_, i) => <div key={`pad-t-${i}`} style={{ height: itemHeight }} />)}
@@ -205,7 +204,7 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, {
   const top = Math.min(pos.top, window.innerHeight - 380);
 
   return (
-    <div ref={ref} className="parentos-profile-date-picker-panel fixed z-[120] rounded-2xl overflow-hidden border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-3 shadow-[var(--nimi-elevation-floating)]"
+    <div ref={ref} className="nimi-date-picker-panel fixed z-[120] rounded-2xl overflow-hidden border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-3 shadow-[var(--nimi-elevation-floating)]"
       onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
       style={{
         left, top, width: pos.width,
@@ -323,9 +322,9 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, {
   );
 });
 
-/* ── ProfileDatePicker (public API) ── */
+/* ── DatePicker (public API) ── */
 
-export function ProfileDatePicker({
+export function DatePicker({
   value, onChange, className = '', style, size = 'normal', allowClear = false, maxDate, autoOpenNonce,
 }: {
   value: string;

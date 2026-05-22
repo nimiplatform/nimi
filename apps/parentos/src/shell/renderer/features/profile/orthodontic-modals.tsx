@@ -1,6 +1,5 @@
-import { Button, cn, SelectField, Surface, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, cn, DatePicker, SelectField, Surface, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { useMemo, useState, type ReactNode } from 'react';
-import { ProfileDatePicker } from './profile-date-picker.js';
 import {
   insertOrthodonticAppliance,
   insertOrthodonticCase,
@@ -52,9 +51,8 @@ import {
 } from './health-record-modal-shell.js';
 
 const NUMBER_INPUT_CLASS = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
-// ProfileDatePicker is an app-local domain component (not a kit primitive). Per the user's
-// authorization, the DateField invalid visual is preserved via consumer-side className —
-// the danger token + ring matches the new kit field danger-tone visual contract from Phase 1.
+// The date field invalid-state visual is applied consumer-side via className —
+// the danger token + ring matches the kit field danger-tone visual contract.
 const DANGER_DATE_FIELD_CLASS = 'border-[var(--nimi-status-danger)] ring-[length:var(--nimi-focus-ring-width)] ring-[var(--nimi-status-danger)]';
 
 function ModalSuccessNote({ children }: { children: ReactNode }) {
@@ -525,7 +523,7 @@ export function ApplianceFormModal({
             label="开始日期"
             error={dateIsBeforeBirth ? '开始日期不能早于孩子出生日。' : undefined}
           >
-            <ProfileDatePicker
+            <DatePicker
               value={startedAt}
               onChange={setStartedAt}
               className={cn('h-12', dateIsBeforeBirth && DANGER_DATE_FIELD_CLASS)}

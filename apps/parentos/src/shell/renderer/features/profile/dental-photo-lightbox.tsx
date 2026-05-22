@@ -101,7 +101,7 @@ export function DentalPhotoLightbox({ photos, index, onChange, onClose }: Props)
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[9999] flex animate-[dentalLightboxFadeIn_160ms_ease] items-center justify-center bg-[var(--nimi-scrim-modal)] backdrop-blur-[var(--nimi-backdrop-blur-thin)] nimi-material-glass-thin"
+      className="fixed inset-0 z-[9999] flex animate-[dentalLightboxFadeIn_160ms_ease] items-center justify-center bg-[var(--nimi-scrim-modal)]"
       onClick={onClose}
     >
       <style>{`@keyframes dentalLightboxFadeIn { from { opacity: 0; } to { opacity: 1; } }`}</style>

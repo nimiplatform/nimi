@@ -219,7 +219,7 @@ follow-up settings, and source/context cards. They must not create local metric
 truth or independent structured health-record write paths. Any structured
 health-record write from a detail surface must route through PO-CAPT, or through
 an explicitly retained owner contract for non-folded stateful domains such as
-vaccines, milestones, allergies, and orthodontic entities.
+vaccines, milestones, allergies, posture assessments, and orthodontic entities.
 
 See also `growth-curve-detail-contract.md#PO-GROWTH-DETAIL-001` for the
 `/profile/growth` detail-surface contract; that contract consumes

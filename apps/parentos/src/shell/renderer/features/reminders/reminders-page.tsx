@@ -22,6 +22,7 @@ import {
 import { REMINDER_RULES } from '../../knowledge-base/index.js';
 import { FrequencyModal } from './frequency-modal.js';
 import { ReminderExplainDrawer } from './reminder-explain-drawer.js';
+import { domainDetailRoute } from './reminder-detail-route.js';
 import {
   applyReminderAction,
   canMarkNotApplicable,
@@ -86,10 +87,10 @@ function primaryAction(reminder: ActiveReminder): ReminderPrimaryAction {
   if (reminder.kind === 'consult') {
     return { label: '问问 AI 顾问', to: `/advisor?reminderRuleId=${encodeURIComponent(reminder.rule.ruleId)}&repeatIndex=${reminder.repeatIndex}` };
   }
-  if (reminder.rule.domain === 'vaccine') return { label: '记录疫苗', to: '/profile' };
+  if (reminder.rule.domain === 'vaccine') return { label: '记录疫苗', to: domainDetailRoute(reminder.rule.domain) };
   if (isRecordDataReminder(reminder)) return { label: '记录数据', kind: 'capture' };
-  if (reminder.rule.domain === 'growth') return { label: '记录数据', to: '/profile' };
-  return { label: reminder.rule.actionType === 'go_hospital' ? '查看详情' : '查看档案', to: '/profile' };
+  if (reminder.rule.domain === 'growth') return { label: '记录数据', to: domainDetailRoute(reminder.rule.domain) };
+  return { label: reminder.rule.actionType === 'go_hospital' ? '查看详情' : '查看档案', to: domainDetailRoute(reminder.rule.domain) };
 }
 
 function statusLabel(reminder: ActiveReminder) {

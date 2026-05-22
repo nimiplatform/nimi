@@ -433,7 +433,7 @@ export function TurnInput(props: TurnInputProps = {}) {
       {showEmojiPicker && (
         <div
           ref={emojiPickerRef}
-          className="absolute bottom-full left-0 mb-2 ml-4 w-[320px] rounded-2xl bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden z-50"
+          className="absolute bottom-full left-0 mb-2 ml-4 w-[392px] rounded-2xl bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden z-50"
         >
           {/* Emoji categories tabs with pagination */}
           <div className="relative border-b border-gray-100">
@@ -474,14 +474,14 @@ export function TurnInput(props: TurnInputProps = {}) {
           </div>
 
           {/* Emoji grid */}
-          <ScrollArea className="max-h-[260px]" viewportClassName="max-h-[260px]" contentClassName="p-3">
+          <ScrollArea className="max-h-[300px]" viewportClassName="max-h-[300px]" contentClassName="p-3">
             <div className="grid grid-cols-8 gap-1">
               {activeCategory.emojis.map((emoji, index) => (
                 <button
                   key={`${emoji}-${index}`}
                   type="button"
                   onClick={() => insertEmoji(emoji)}
-                  className="flex items-center justify-center h-8 w-8 text-xl hover:bg-gray-100 rounded-lg transition-colors"
+                  className="flex items-center justify-center h-[42px] w-[42px] text-2xl hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   {emoji}
                 </button>

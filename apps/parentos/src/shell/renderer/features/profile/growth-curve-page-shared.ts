@@ -1,4 +1,4 @@
-import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
+import { GROWTH_STANDARDS, REMINDER_RULES } from '../../knowledge-base/index.js';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
 import type { WHOLMSDataset } from './who-lms-loader.js';
@@ -27,6 +27,25 @@ export const METRIC_CARDS: Array<{
 
 export const OTHER_TYPE_IDS = [] as const;
 export const CARD_TYPE_IDS = new Set(METRIC_CARDS.map((card) => card.typeId));
+
+/**
+ * The child's age-active growth re-check reminder rule id — the single
+ * admitted `domain: growth`, `actionType: record_data` rule whose `triggerAge`
+ * window contains `ageMonths` (PO-GROWTH-DETAIL-006). Returns `null` when no
+ * growth record_data rule covers the age, which disables the next-check
+ * `更改` CTA per PO-GROWTH-DETAIL-009.
+ */
+export function resolveGrowthRecheckRuleId(ageMonths: number): string | null {
+  const matches = REMINDER_RULES.filter(
+    (candidate) =>
+      candidate.domain === 'growth' &&
+      candidate.actionType === 'record_data' &&
+      ageMonths >= candidate.triggerAge.startMonths &&
+      (candidate.triggerAge.endMonths === -1 || ageMonths <= candidate.triggerAge.endMonths),
+  );
+  const rule = matches.sort((a, b) => b.triggerAge.startMonths - a.triggerAge.startMonths)[0];
+  return rule?.ruleId ?? null;
+}
 
 export interface MergedPoint {
   age: number;
@@ -148,7 +167,7 @@ export function getPercentileHint(
   if (refs.p50 != null && value >= refs.p50) return { text: '处于同龄中等偏上水平', color: '#22c55e' };
   if (refs.p25 != null && value >= refs.p25) return { text: '处于同龄平均水平', color: '#475569' };
   if (refs.p10 != null && value >= refs.p10) return { text: '偏低，建议关注', color: '#f59e0b' };
-  if (refs.p3 != null && value >= refs.p3) return { text: '明显偏低，建议咨询专业人士', color: '#ef4444' };
+  if (refs.p3 != null && value >= refs.p3) return { text: '明显偏低', color: '#ef4444' };
   if (refs.p3 != null) return { text: '低于同龄 97% 的孩子，建议就医评估', color: '#ef4444' };
   return null;
 }

@@ -279,6 +279,44 @@ workflows must not depend on `ortho-start` for modeling treatment state.
 
 Legacy-stitched caseIds use the deterministic form `legacy-ortho-case-{childId}` (one per child with historical `ortho-start` rows). This is an admitted exception to the ULID convention in PO-ORTHO-002 and guarantees idempotent migration replay. All other caseIds must be ULID.
 
+### PO-ORTHO-006a Aligner-Context Decoration on Clinical Timelines
+
+When an orthodontic clinical event (`ortho-*` row in `health_record_events`) is
+rendered in a timeline surface — the unified dental timeline OR the orthodontic
+journey timeline (`clinical-event` entries) — the renderer MUST decorate it with
+a derived "第 X 副牙套·第 Y/Z 天" badge when — and only when — a `clear-aligner`
+appliance's `[startedAt, endedAt]` window covers the event's `eventDate`.
+
+The decoration is a pure render-time projection over data the renderer already
+holds. It is computed as:
+
+- appliance = the `clear-aligner` appliance whose `startedAt <= eventDate` and
+  (`endedAt` is null or `eventDate <= endedAt`); on overlap the latest-started
+  appliance wins (e.g. a refinement series).
+- aligner index `X` = the `alignerIndex` of the latest `aligner-change` checkin
+  for that appliance with `checkinDate <= eventDate`, or `1` when no such
+  checkin exists (still on the first tray since `startedAt`).
+- day `Y` = whole calendar days from the cycle anchor to `eventDate`, plus 1
+  (the anchor day is day 1). The anchor is the qualifying `aligner-change`
+  `checkinDate`, or `appliance.startedAt` when none qualifies.
+- cycle length `Z` = the appliance's `daysPerAligner`; omitted from the badge
+  (rendered as "第 Y 天") when `daysPerAligner` is null.
+
+Invariants:
+
+- The decoration persists nothing and writes nothing. It is a read-only
+  projection recomputed on each render.
+- On the unified dental timeline it does NOT introduce an `orthodontic_checkins`
+  row as a timeline entry — the PO-ORTHO-001 invariant ("Checkins do NOT appear
+  in the dental clinical timeline") is intact; only a checkin's derived
+  `alignerIndex` is read to label an already-present `health_record_events`
+  row. The orthodontic journey timeline separately renders `aligner-change`
+  checkins as their own entries, which is its admitted purpose (PO-ORTHO-001)
+  and is unaffected by this decoration.
+- It is absent for non-`clear-aligner` cases and for events dated outside any
+  `clear-aligner` appliance window (e.g. pre-treatment assessments, or events
+  after the appliance ended). Absence is the correct state, never a fail-close.
+
 ## PO-ORTHO-007 Protocol Catalog Binding
 
 `orthodontic-protocols.yaml` is the single authority home for orthodontic

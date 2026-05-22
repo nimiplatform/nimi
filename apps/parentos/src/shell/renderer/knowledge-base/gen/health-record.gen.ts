@@ -3,9 +3,9 @@
 
 
 export type HealthMetricGroupId = 'growth' | 'vision' | 'fitness' | 'sleep' | 'outdoor' | 'vaccine' | 'dental' | 'medical' | 'development';
-export type HealthMetricId = 'growth.height' | 'growth.weight' | 'growth.head_circumference' | 'growth.bmi' | 'vision.left_visual_acuity' | 'vision.right_visual_acuity' | 'vision.left_axial_length' | 'vision.right_axial_length' | 'vision.left_iop' | 'vision.right_iop' | 'fitness.run_50m' | 'fitness.vital_capacity' | 'fitness.run_800m' | 'fitness.run_1000m' | 'fitness.run_50x8' | 'fitness.sit_and_reach' | 'fitness.standing_long_jump' | 'fitness.sit_ups' | 'fitness.pull_ups' | 'fitness.rope_skipping' | 'fitness.run_10m_shuttle' | 'fitness.tennis_ball_throw' | 'fitness.double_foot_jump' | 'fitness.balance_beam' | 'fitness.foot_arch_status' | 'development.tanner_breast_stage' | 'development.tanner_genital_stage' | 'development.tanner_pubic_hair_stage' | 'development.bone_age_years' | 'development.body_fat_percentage' | 'sleep.duration_minutes' | 'outdoor.weekly_goal_minutes' | 'outdoor.activity_minutes' | 'vaccine.administration' | 'dental.event' | 'medical.event' | 'development.milestone';
+export type HealthMetricId = 'growth.height' | 'growth.weight' | 'growth.head_circumference' | 'growth.bmi' | 'vision.left_visual_acuity' | 'vision.right_visual_acuity' | 'vision.left_axial_length' | 'vision.right_axial_length' | 'vision.left_iop' | 'vision.right_iop' | 'fitness.run_50m' | 'fitness.vital_capacity' | 'fitness.run_800m' | 'fitness.run_1000m' | 'fitness.run_50x8' | 'fitness.sit_and_reach' | 'fitness.standing_long_jump' | 'fitness.sit_ups' | 'fitness.pull_ups' | 'fitness.rope_skipping' | 'fitness.run_10m_shuttle' | 'fitness.tennis_ball_throw' | 'fitness.double_foot_jump' | 'fitness.balance_beam' | 'fitness.foot_arch_status' | 'fitness.activity_category' | 'fitness.activity_duration' | 'fitness.activity_distance' | 'fitness.activity_intensity' | 'development.tanner_breast_stage' | 'development.tanner_genital_stage' | 'development.tanner_pubic_hair_stage' | 'development.bone_age_years' | 'development.body_fat_percentage' | 'sleep.duration_minutes' | 'outdoor.weekly_goal_minutes' | 'outdoor.activity_minutes' | 'vaccine.administration' | 'dental.event' | 'medical.event' | 'development.milestone';
 export type HealthEvaluationPolicyId = 'growth.percentile-band' | 'growth.bmi-percentile-band' | 'vision.age-reference-band' | 'vision.axial-reference-band' | 'vision.iop-reference-band' | 'fitness.standard-grade' | 'development.tanner-stage-reference' | 'sleep.age-reference-band' | 'outdoor.goal-presence' | 'outdoor.goal-progress' | 'vaccine.rule-completion' | 'dental.event-severity' | 'medical.result-projection' | 'development.catalog-window';
-export type HealthCaptureProtocolId = 'growth-infant-monthly' | 'growth-child-quarterly' | 'growth-school-biannual' | 'vision-basic' | 'vision-full-exam' | 'fitness-school-assessment' | 'tanner-female-self-assessment' | 'tanner-male-self-assessment' | 'development-auxiliary-measurement' | 'outdoor-goal' | 'outdoor-activity' | 'sleep-night' | 'vaccine-administration' | 'dental-event' | 'medical-event' | 'milestone-achievement';
+export type HealthCaptureProtocolId = 'growth-infant-monthly' | 'growth-child-quarterly' | 'growth-school-biannual' | 'vision-basic' | 'vision-full-exam' | 'fitness-school-assessment' | 'fitness-sport-activity' | 'tanner-female-self-assessment' | 'tanner-male-self-assessment' | 'development-auxiliary-measurement' | 'outdoor-goal' | 'outdoor-activity' | 'sleep-night' | 'vaccine-administration' | 'dental-event' | 'medical-event' | 'milestone-achievement';
 export type HealthRecordDataRuleId = 'PO-REM-OUTD-001' | 'PO-REM-OUTD-002' | 'PO-REM-GRO-001' | 'PO-REM-GRO-002' | 'PO-REM-GRO-003' | 'PO-REM-FIT-001' | 'PO-REM-FIT-002' | 'PO-REM-TAN-001' | 'PO-REM-TAN-002';
 
 export type HealthValueShape = 'number' | 'enum' | 'boolean' | 'text' | 'date' | 'duration' | 'composite' | 'event';
@@ -751,6 +751,94 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
     "safetyClass": "descriptive",
     "applicableAgeRange": {
       "startMonths": 36,
+      "endMonths": 216
+    },
+    "applicableSex": "both"
+  },
+  {
+    "metricId": "fitness.activity_category",
+    "groupId": "fitness",
+    "displayName": "Sport activity category",
+    "valueShape": "enum",
+    "valueCardinality": "single",
+    "recordKind": "assessment",
+    "captureProtocolIds": [
+      "fitness-sport-activity"
+    ],
+    "detailRoute": "/profile/fitness",
+    "sourceSupport": [
+      "manual"
+    ],
+    "safetyClass": "no_evaluation",
+    "applicableAgeRange": {
+      "startMonths": 24,
+      "endMonths": 216
+    },
+    "applicableSex": "both"
+  },
+  {
+    "metricId": "fitness.activity_duration",
+    "groupId": "fitness",
+    "displayName": "Sport activity duration",
+    "unit": "min",
+    "precision": 0,
+    "valueShape": "duration",
+    "valueCardinality": "single",
+    "recordKind": "assessment",
+    "captureProtocolIds": [
+      "fitness-sport-activity"
+    ],
+    "detailRoute": "/profile/fitness",
+    "sourceSupport": [
+      "manual"
+    ],
+    "safetyClass": "no_evaluation",
+    "applicableAgeRange": {
+      "startMonths": 24,
+      "endMonths": 216
+    },
+    "applicableSex": "both"
+  },
+  {
+    "metricId": "fitness.activity_distance",
+    "groupId": "fitness",
+    "displayName": "Sport activity distance",
+    "unit": "m",
+    "precision": 0,
+    "valueShape": "number",
+    "valueCardinality": "single",
+    "recordKind": "assessment",
+    "captureProtocolIds": [
+      "fitness-sport-activity"
+    ],
+    "detailRoute": "/profile/fitness",
+    "sourceSupport": [
+      "manual"
+    ],
+    "safetyClass": "no_evaluation",
+    "applicableAgeRange": {
+      "startMonths": 24,
+      "endMonths": 216
+    },
+    "applicableSex": "both"
+  },
+  {
+    "metricId": "fitness.activity_intensity",
+    "groupId": "fitness",
+    "displayName": "Sport activity intensity",
+    "valueShape": "enum",
+    "valueCardinality": "single",
+    "recordKind": "assessment",
+    "captureProtocolIds": [
+      "fitness-sport-activity"
+    ],
+    "detailRoute": "/profile/fitness",
+    "sourceSupport": [
+      "manual"
+    ],
+    "safetyClass": "no_evaluation",
+    "applicableAgeRange": {
+      "startMonths": 24,
       "endMonths": 216
     },
     "applicableSex": "both"
@@ -1620,6 +1708,33 @@ export const HEALTH_CAPTURE_PROTOCOLS: readonly HealthCaptureProtocol[] = [
     "completionPolicy": "At least one admitted fitness metric must be recorded in the event."
   },
   {
+    "protocolId": "fitness-sport-activity",
+    "groupId": "fitness",
+    "displayName": "Sport activity log",
+    "modeSupport": [
+      "manual"
+    ],
+    "metricIds": [
+      "fitness.activity_category",
+      "fitness.activity_duration",
+      "fitness.activity_distance",
+      "fitness.activity_intensity"
+    ],
+    "requiredMetricIds": [
+      "fitness.activity_category",
+      "fitness.activity_duration"
+    ],
+    "optionalMetricIds": [
+      "fitness.activity_distance",
+      "fitness.activity_intensity"
+    ],
+    "sourceSupport": [
+      "manual"
+    ],
+    "storageTarget": "health_record_event",
+    "completionPolicy": "A sport activity event must record a category and a duration."
+  },
+  {
     "protocolId": "tanner-female-self-assessment",
     "groupId": "development",
     "displayName": "Female Tanner self-assessment",
@@ -1966,7 +2081,7 @@ export const HEALTH_REMINDER_CAPTURE_TARGETS: readonly HealthReminderCaptureTarg
     "completionPolicy": "Complete only after one male Tanner self-assessment event persists genital stage and pubic hair stage for the target child."
   }
 ] ;
-export const HEALTH_METRIC_IDS = ["growth.height","growth.weight","growth.head_circumference","growth.bmi","vision.left_visual_acuity","vision.right_visual_acuity","vision.left_axial_length","vision.right_axial_length","vision.left_iop","vision.right_iop","fitness.run_50m","fitness.vital_capacity","fitness.run_800m","fitness.run_1000m","fitness.run_50x8","fitness.sit_and_reach","fitness.standing_long_jump","fitness.sit_ups","fitness.pull_ups","fitness.rope_skipping","fitness.run_10m_shuttle","fitness.tennis_ball_throw","fitness.double_foot_jump","fitness.balance_beam","fitness.foot_arch_status","development.tanner_breast_stage","development.tanner_genital_stage","development.tanner_pubic_hair_stage","development.bone_age_years","development.body_fat_percentage","sleep.duration_minutes","outdoor.weekly_goal_minutes","outdoor.activity_minutes","vaccine.administration","dental.event","medical.event","development.milestone"] as const;
-export const HEALTH_CAPTURE_PROTOCOL_IDS = ["growth-infant-monthly","growth-child-quarterly","growth-school-biannual","vision-basic","vision-full-exam","fitness-school-assessment","tanner-female-self-assessment","tanner-male-self-assessment","development-auxiliary-measurement","outdoor-goal","outdoor-activity","sleep-night","vaccine-administration","dental-event","medical-event","milestone-achievement"] as const;
+export const HEALTH_METRIC_IDS = ["growth.height","growth.weight","growth.head_circumference","growth.bmi","vision.left_visual_acuity","vision.right_visual_acuity","vision.left_axial_length","vision.right_axial_length","vision.left_iop","vision.right_iop","fitness.run_50m","fitness.vital_capacity","fitness.run_800m","fitness.run_1000m","fitness.run_50x8","fitness.sit_and_reach","fitness.standing_long_jump","fitness.sit_ups","fitness.pull_ups","fitness.rope_skipping","fitness.run_10m_shuttle","fitness.tennis_ball_throw","fitness.double_foot_jump","fitness.balance_beam","fitness.foot_arch_status","fitness.activity_category","fitness.activity_duration","fitness.activity_distance","fitness.activity_intensity","development.tanner_breast_stage","development.tanner_genital_stage","development.tanner_pubic_hair_stage","development.bone_age_years","development.body_fat_percentage","sleep.duration_minutes","outdoor.weekly_goal_minutes","outdoor.activity_minutes","vaccine.administration","dental.event","medical.event","development.milestone"] as const;
+export const HEALTH_CAPTURE_PROTOCOL_IDS = ["growth-infant-monthly","growth-child-quarterly","growth-school-biannual","vision-basic","vision-full-exam","fitness-school-assessment","fitness-sport-activity","tanner-female-self-assessment","tanner-male-self-assessment","development-auxiliary-measurement","outdoor-goal","outdoor-activity","sleep-night","vaccine-administration","dental-event","medical-event","milestone-achievement"] as const;
 export const HEALTH_EVALUATION_POLICY_IDS = ["growth.percentile-band","growth.bmi-percentile-band","vision.age-reference-band","vision.axial-reference-band","vision.iop-reference-band","fitness.standard-grade","development.tanner-stage-reference","sleep.age-reference-band","outdoor.goal-presence","outdoor.goal-progress","vaccine.rule-completion","dental.event-severity","medical.result-projection","development.catalog-window"] as const;
 export const HEALTH_RECORD_DATA_RULE_IDS = ["PO-REM-OUTD-001","PO-REM-OUTD-002","PO-REM-GRO-001","PO-REM-GRO-002","PO-REM-GRO-003","PO-REM-FIT-001","PO-REM-FIT-002","PO-REM-TAN-001","PO-REM-TAN-002"] as const;

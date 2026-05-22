@@ -19,6 +19,7 @@ import { DentalCaptureContent } from './dental-capture-form.js';
 import { hasMilestoneCandidatesForAge } from './milestone-capture-form.js';
 import { TannerCaptureContent } from './tanner-assessment-form.js';
 import { PostureCaptureContent } from './posture-capture-form.js';
+import { VaccineCaptureContent } from './vaccine-capture-form.js';
 import { Button } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore } from '../../app-shell/app-store.js';
 import {
@@ -46,6 +47,14 @@ interface HealthCaptureModalProps {
    * contract.md, local-storage.yaml).
    */
   linkedReminder?: LinkedHealthRecordReminder | null;
+  /**
+   * When set, the left domain sidebar is hidden and the modal is locked to
+   * `initialGroupId`. Detail pages (`/profile/*`) open the modal this way so
+   * their "添加" button shows only the relevant domain's capture form — the
+   * same right-pane form as the `/profile` 添加健康数据 modal, without the
+   * domain switcher.
+   */
+  hideSidebar?: boolean;
   onClose: () => void;
   onSaved?: (result: SaveHealthRecordCaptureResult) => void;
 }
@@ -60,6 +69,7 @@ const GROUP_SIZE: Record<string, HealthModalSize> = {
   growth: 'M',
   sleep: 'M',
   outdoor: 'M',
+  vaccine: 'M',
   fitness: 'L',
   posture: 'L',
   vision: 'XL',
@@ -74,6 +84,7 @@ const GROUP_EMOJI: Record<string, string> = {
   growth: '📏',
   sleep: '🌙',
   outdoor: '☀️',
+  vaccine: '💉',
   fitness: '🏃',
   posture: '🧍',
   vision: '👁️',
@@ -89,14 +100,21 @@ const SIDEBAR_GROUP_ORDER: readonly string[] = [
   'sleep',
   'outdoor',
   'vision',
+  'vaccine',
   'dental',
   'medical',
   'development',
 ];
 
-/** Sidebar entries that are not spec-derived `HEALTH_METRIC_GROUPS` entries. */
+/**
+ * Sidebar entries that are not spec-derived `HEALTH_METRIC_GROUPS` capture
+ * options. `vaccine` is a retained-owner stateful domain
+ * (health-record-console-contract.md#PO-HREC-007) — it writes to
+ * `vaccine_records`, so it has no `health_record_events` capture protocol.
+ */
 const VIRTUAL_SIDEBAR_ITEMS: ReadonlyArray<{ id: string; emoji: string; label: string }> = [
   { id: 'posture', emoji: '🧍', label: '体态' },
+  { id: 'vaccine', emoji: '💉', label: '疫苗' },
 ];
 
 function sortOptionsForSidebar<T extends { group: { groupId: string } }>(options: readonly T[]): T[] {
@@ -118,6 +136,7 @@ function SidebarHealthCaptureModal({
   initialGroupId,
   initialMetricId,
   linkedReminder,
+  hideSidebar,
   onClose,
   onSaved,
 }: HealthCaptureModalProps) {
@@ -126,7 +145,9 @@ function SidebarHealthCaptureModal({
   const isUnder6 = ageMonths <= 72;
   const options = useMemo(() => sortOptionsForSidebar(getHealthRecordEventCaptureProtocolOptions()), []);
   const [selectedGroupId, setSelectedGroupId] = useState(() => {
-    if (initialGroupId && options.some((option) => option.group.groupId === initialGroupId)) {
+    const isOption = options.some((option) => option.group.groupId === initialGroupId);
+    const isVirtual = VIRTUAL_SIDEBAR_ITEMS.some((item) => item.id === initialGroupId);
+    if (initialGroupId && (isOption || isVirtual)) {
       return initialGroupId;
     }
     return options[0]?.group.groupId ?? 'growth';
@@ -278,6 +299,15 @@ function SidebarHealthCaptureModal({
         />
       );
     }
+    if (selectedGroupId === 'vaccine') {
+      return (
+        <VaccineCaptureContent
+          child={{ childId, birthDate: childBirthDate }}
+          onSaved={handleSavedFromGroup}
+          onClose={onClose}
+        />
+      );
+    }
     return <ComingSoonPanel onClose={onClose} />;
   };
 
@@ -289,21 +319,23 @@ function SidebarHealthCaptureModal({
       size={size}
       onClose={onClose}
       sidebar={
-        <HealthRecordSidebar
-          items={sidebarItems}
-          selected={selectedGroupId}
-          onSelect={setSelectedGroupId}
-          footer={
-            smartInput.onUpload ? (
-              <SmartInputButton
-                loading={smartInput.loading}
-                error={smartInput.error}
-                imageName={smartInput.imageName}
-                onUpload={smartInput.onUpload}
-              />
-            ) : null
-          }
-        />
+        hideSidebar ? undefined : (
+          <HealthRecordSidebar
+            items={sidebarItems}
+            selected={selectedGroupId}
+            onSelect={setSelectedGroupId}
+            footer={
+              smartInput.onUpload ? (
+                <SmartInputButton
+                  loading={smartInput.loading}
+                  error={smartInput.error}
+                  imageName={smartInput.imageName}
+                  onUpload={smartInput.onUpload}
+                />
+              ) : null
+            }
+          />
+        )
       }
     >
       {renderContent()}

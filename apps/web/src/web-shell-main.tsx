@@ -1,9 +1,11 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { NimiThemeProvider, applyNimiThemeAttributes } from '@nimiplatform/nimi-kit/ui';
 import { installBundledImportMetaEnv } from './import-meta-env.js';
 import './web-styles.css';
 
 installBundledImportMetaEnv(import.meta.env);
+applyNimiThemeAttributes({ scheme: 'light', accentPack: 'nimi-accent' });
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -18,7 +20,9 @@ async function bootstrapWebShell(): Promise<void> {
 
   createRoot(mountElement).render(
     <React.StrictMode>
-      <WebShellApp />
+      <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light">
+        <WebShellApp />
+      </NimiThemeProvider>
     </React.StrictMode>,
   );
 }

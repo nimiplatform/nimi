@@ -72,6 +72,7 @@ export function JournalPageCapture(props: {
   monthlyEntryCount: number;
   totalEntryCount: number;
   keepsakeEntryCount: number;
+  childPronoun: '他' | '她';
 }) {
   return (
     <>
@@ -86,7 +87,7 @@ export function JournalPageCapture(props: {
           </h1>
           <NimiText as="p" role="body" className="mt-3 text-[14px] leading-relaxed">
             <span className="font-semibold text-[var(--nimi-text-primary)]">不评判，只观察。</span>
-            <span className="text-[var(--nimi-text-muted)]">每一条都是他长大后回望自己的一扇小窗。</span>
+            <span className="text-[var(--nimi-text-muted)]">每一条都是{props.childPronoun}长大后回望自己的一扇小窗。</span>
           </NimiText>
         </div>
         <dl className="flex shrink-0 items-end gap-7">
@@ -202,7 +203,7 @@ export function JournalPageCapture(props: {
                 ref={props.textareaRef}
                 value={props.textContent}
                 onChange={(event) => props.onTextContentChange(event.target.value)}
-                placeholder={props.guidedContext || props.observationFocus ? '参考上面的引导问题，记录你观察到的情况...' : '他刚刚做了什么？说了什么？如果遇到了困难，他是如何解决的...'}
+                placeholder={props.guidedContext || props.observationFocus ? '参考上面的引导问题，记录你观察到的情况...' : `${props.childPronoun}刚刚做了什么？说了什么？如果遇到了困难，${props.childPronoun}是如何解决的...`}
                 tone="quiet"
                 className="w-full border-0 bg-transparent px-5 py-0 text-[14px] leading-relaxed focus-within:border-transparent focus-within:ring-0"
                 textareaClassName="min-h-[120px] resize-none px-0 pt-6 pb-3"

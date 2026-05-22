@@ -365,16 +365,6 @@ modules:
     scheme_support: [ light, dark ]
     default_scheme: light
     accent_pack: nimi-accent
-  - id: parentos.features.profile.growth_curve_add_record_modal
-    app: parentos
-    module: apps/parentos/src/shell/renderer/features/profile/growth-curve-add-record-modal.tsx
-    families: [ surface, overlay, action, status ]
-    testid_required: false
-    exception_policy: none
-    source_rule: P-DESIGN-020
-    scheme_support: [ light, dark ]
-    default_scheme: light
-    accent_pack: nimi-accent
   - id: parentos.features.profile.growth_curve_chart_panel
     app: parentos
     module: apps/parentos/src/shell/renderer/features/profile/growth-curve-chart-panel.tsx
@@ -399,16 +389,6 @@ modules:
     app: parentos
     module: apps/parentos/src/shell/renderer/features/profile/growth-curve-history-table.tsx
     families: [ surface, action, status, scroll_area ]
-    testid_required: false
-    exception_policy: none
-    source_rule: P-DESIGN-020
-    scheme_support: [ light, dark ]
-    default_scheme: light
-    accent_pack: nimi-accent
-  - id: parentos.features.profile.growth_curve_ocr_panel
-    app: parentos
-    module: apps/parentos/src/shell/renderer/features/profile/growth-curve-ocr-panel.tsx
-    families: [ surface, action, status ]
     testid_required: false
     exception_policy: none
     source_rule: P-DESIGN-020
@@ -728,16 +708,6 @@ modules:
     scheme_support: [ light, dark ]
     default_scheme: light
     accent_pack: nimi-accent
-  - id: parentos.features.profile.profile_date_picker
-    app: parentos
-    module: apps/parentos/src/shell/renderer/features/profile/profile-date-picker.tsx
-    families: [ surface, overlay, field, action ]
-    testid_required: false
-    exception_policy: none
-    source_rule: P-DESIGN-020
-    scheme_support: [ light, dark ]
-    default_scheme: light
-    accent_pack: nimi-accent
   - id: parentos.features.profile.generic_metric_detail_shell
     app: parentos
     module: apps/parentos/src/shell/renderer/features/profile/_shared/generic-metric-detail-shell.tsx
@@ -761,16 +731,6 @@ modules:
   - id: parentos.features.profile.profile_detail_shell
     app: parentos
     module: apps/parentos/src/shell/renderer/features/profile/_shared/profile-detail-shell.tsx
-    families: [ surface, action ]
-    testid_required: false
-    exception_policy: none
-    source_rule: P-DESIGN-020
-    scheme_support: [ light, dark ]
-    default_scheme: light
-    accent_pack: nimi-accent
-  - id: parentos.features.profile.profile_page_glance
-    app: parentos
-    module: apps/parentos/src/shell/renderer/features/profile/profile-page-glance.tsx
     families: [ surface, action ]
     testid_required: false
     exception_policy: none

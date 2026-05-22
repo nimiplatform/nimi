@@ -34,6 +34,30 @@ function progressBarClassName(progress: number, review: ReviewStatusPiece[]): st
 
 const PREVIEW_LIMIT = 3;
 
+// Sport-activity metrics (category/duration/distance/intensity) are sub-fields
+// of a single `fitness-sport-activity` log event, not individually tracked
+// metrics. They collapse into one "日常运动" action row rather than rendering
+// one bare row each.
+const SPORT_ACTIVITY_PROTOCOL_ID = 'fitness-sport-activity';
+
+function isSportActivityMetric(metric: HealthMetricSnapshot['metric']): boolean {
+  return metric.captureProtocolIds.includes(SPORT_ACTIVITY_PROTOCOL_ID);
+}
+
+// Detail surfaces whose page carries an internal metric/chart tab. For these
+// the card deep-links the clicked metric via ?metric=<metricId> so the page
+// opens on that metric's tab instead of its default. routes.yaml admits the
+// query param for both /profile/growth and /profile/vision.
+const METRIC_DEEP_LINK_ROUTES = new Set(['/profile/growth', '/profile/vision']);
+
+function metricDetailRoute(metric: HealthMetricSnapshot['metric']): string {
+  const route = metric.detailRoute ?? '/profile';
+  if (METRIC_DEEP_LINK_ROUTES.has(route)) {
+    return `${route}?metric=${encodeURIComponent(metric.metricId)}`;
+  }
+  return route;
+}
+
 export interface ProfileGroupCardProps {
   group: HealthGroupSnapshot;
   onCapture?: (groupId: string, metricId?: HealthMetricId) => void;
@@ -43,9 +67,12 @@ export function ProfileGroupCard({ group, onCapture }: ProfileGroupCardProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const visibleMetrics = group.metrics.filter(
-    (snapshot) => snapshot.metric.sourceSupport.includes('manual') || snapshot.latestValue,
+    (snapshot) =>
+      !isSportActivityMetric(snapshot.metric) &&
+      (snapshot.metric.sourceSupport.includes('manual') || snapshot.latestValue),
   );
-  if (visibleMetrics.length === 0) return null;
+  const hasSportActivityRow = group.metrics.some((snapshot) => isSportActivityMetric(snapshot.metric));
+  if (visibleMetrics.length === 0 && !hasSportActivityRow) return null;
 
   const recordedMetrics = visibleMetrics.filter((snapshot) => snapshot.latestValue != null);
   const recordedCount = recordedMetrics.length;
@@ -60,7 +87,7 @@ export function ProfileGroupCard({ group, onCapture }: ProfileGroupCardProps) {
     .map((snapshot) => metricLabel(snapshot.metric, t))
     .join(t('Profile.group.metricSeparator', { defaultValue: '、' }));
   const reviewStatus = computeReviewStatus(visibleMetrics);
-  const groupRoute = visibleMetrics[0]?.metric.detailRoute ?? '/profile';
+  const groupRoute = visibleMetrics[0]?.metric.detailRoute ?? group.metrics[0]?.metric.detailRoute ?? '/profile';
 
   return (
     <Surface
@@ -118,6 +145,7 @@ export function ProfileGroupCard({ group, onCapture }: ProfileGroupCardProps) {
           metrics={visibleMetrics}
           groupRoute={groupRoute}
           groupId={group.group.groupId}
+          showSportActivityRow={hasSportActivityRow}
           onCapture={onCapture}
         />
       ) : previewMetrics.length > 0 ? (
@@ -139,11 +167,13 @@ function ExpandedRows({
   metrics,
   groupRoute,
   groupId,
+  showSportActivityRow,
   onCapture,
 }: {
   metrics: readonly HealthMetricSnapshot[];
   groupRoute: string;
   groupId: string;
+  showSportActivityRow?: boolean;
   onCapture?: (groupId: string, metricId?: HealthMetricId) => void;
 }) {
   const { t } = useTranslation();
@@ -157,6 +187,9 @@ function ExpandedRows({
             onCapture={onCapture ? () => onCapture(groupId, snapshot.metric.metricId) : undefined}
           />
         ))}
+        {showSportActivityRow ? (
+          <SportActivityRow onCapture={onCapture ? () => onCapture(groupId) : undefined} />
+        ) : null}
       </ul>
       <div className="mt-3 flex items-center justify-end px-3">
         <Link
@@ -173,7 +206,7 @@ function ExpandedRows({
 
 function ExpandedRow({ snapshot, onCapture }: { snapshot: HealthMetricSnapshot; onCapture?: () => void }) {
   const { t } = useTranslation();
-  const route = snapshot.metric.detailRoute ?? '/profile';
+  const route = metricDetailRoute(snapshot.metric);
   const hasValue = snapshot.latestValue != null;
   const parts = hasValue
     ? formatMetricSnapshotValueParts(snapshot, t)
@@ -239,9 +272,38 @@ function ExpandedRow({ snapshot, onCapture }: { snapshot: HealthMetricSnapshot; 
   );
 }
 
+// Open-ended "log a sport activity" entry — opens the fitness capture modal on
+// its 日常运动 tab. Unlike a national-standard metric it is not a checklist
+// item, so it carries no value/date and stays out of the X/Y progress count.
+function SportActivityRow({ onCapture }: { onCapture?: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onCapture}
+        className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
+      >
+        <div className="min-w-0">
+          <p className="truncate text-[14px] font-medium text-[var(--nimi-text-primary)]">
+            {t('Profile.fitness.sportActivityLabel', { defaultValue: '日常运动' })}
+          </p>
+          <p className="truncate text-[12px] text-[var(--nimi-text-muted)]">
+            {t('Profile.fitness.sportActivityHint', { defaultValue: '跑步、游泳、球类等运动量记录' })}
+          </p>
+        </div>
+        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--nimi-action-primary-bg)] px-3 py-1 text-[12px] font-semibold text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)]">
+          <Plus size={12} />
+          {t('Profile.group.record', { defaultValue: '记录' })}
+        </span>
+      </button>
+    </li>
+  );
+}
+
 function PreviewTile({ snapshot }: { snapshot: HealthMetricSnapshot }) {
   const { t } = useTranslation();
-  const route = snapshot.metric.detailRoute ?? '/profile';
+  const route = metricDetailRoute(snapshot.metric);
   const value = formatMetricSnapshotValue(snapshot, t);
   const date = formatDate(snapshot.latestEvent?.effectiveDate, t);
   return (

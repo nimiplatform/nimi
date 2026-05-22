@@ -1,4 +1,4 @@
-import { Button, DashedAddButton, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DashedAddButton, DatePicker, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useState, useEffect, useMemo } from 'react';
 import { computeAgeMonthsAt, useAppStore } from '../../app-shell/app-store.js';
 import { convertFileSrc } from '@tauri-apps/api/core';
@@ -14,7 +14,6 @@ import {
   readImageFileAsDataUrl,
   type OCRMeasurementCandidate,
 } from './checkup-ocr.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
 import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
 import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
 
@@ -387,7 +386,7 @@ export default function ReportUploadPage() {
                   <span className="text-[12px] w-12 text-[var(--nimi-text-muted)]">{info.unit}</span>
                   {/* Date */}
                   <div onClick={(e) => e.stopPropagation()}>
-                    <ProfileDatePicker
+                    <DatePicker
                       value={c.measuredAt}
                       onChange={(nextDate) => updateCandidate(i, 'measuredAt', nextDate)}
                       className="text-[13px]"

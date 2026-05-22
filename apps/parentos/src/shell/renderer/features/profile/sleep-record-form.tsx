@@ -19,9 +19,8 @@ import {
   TIER_DEFAULTS,
   unpackNotes,
 } from './sleep-page-shared.js';
-import { Button, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DatePicker, TextField } from '@nimiplatform/nimi-kit/ui';
 import { AppSelect } from '../../app-shell/app-select.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
 import {
   FormField,
   FormGrid,
@@ -126,7 +125,7 @@ export function SleepFormContent({ child, initialRecord, onSaved, onClose }: Sle
         <div className="space-y-5">
           <FormGrid cols={3}>
             <FormField label="日期">
-              <ProfileDatePicker value={formSleepDate} onChange={setFormSleepDate} className="h-12" />
+              <DatePicker value={formSleepDate} onChange={setFormSleepDate} className="h-12" />
             </FormField>
             <FormField label="入睡时间">
               <TimePickerInput value={formBedtime} onChange={setFormBedtime} icon={Moon} />

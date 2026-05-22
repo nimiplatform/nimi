@@ -5,10 +5,7 @@ import { useAppStore } from '../../app-shell/app-store.js';
 import { getCustomTodos } from '../../bridge/sqlite-bridge.js';
 import type { CustomTodoRow } from '../../bridge/sqlite-bridge.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
-import {
-  CustomTodoComposer,
-  CustomTodoInlineList,
-} from '../timeline/timeline-custom-todos.js';
+import { ReminderPanelSurface } from '../timeline/reminder-panel-controller.js';
 
 const DRAWER_WIDTH = 360;
 
@@ -19,18 +16,13 @@ export function ProfileTodoDrawer() {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [todos, setTodos] = useState<CustomTodoRow[]>([]);
-  const [optimisticTodo, setOptimisticTodo] = useState<CustomTodoRow | null>(null);
-  const [animatedTodoId, setAnimatedTodoId] = useState<string | null>(null);
 
-  const todoList = useMemo(() => {
-    if (!optimisticTodo) return todos;
-    if (todos.some((todo) => todo.todoId === optimisticTodo.todoId)) return todos;
-    return [optimisticTodo, ...todos];
-  }, [todos, optimisticTodo]);
-
+  // The floating-button badge + drawer subtitle count pending personal todos.
+  // The drawer body itself reuses the dashboard 待办事项 panel, which loads its
+  // own data; this lightweight fetch only feeds the glanceable count.
   const pendingCount = useMemo(
-    () => todoList.filter((todo) => !todo.completedAt).length,
-    [todoList],
+    () => todos.filter((todo) => !todo.completedAt).length,
+    [todos],
   );
 
   const loadTodos = useCallback(async () => {
@@ -49,18 +41,6 @@ export function ProfileTodoDrawer() {
   useEffect(() => {
     void loadTodos();
   }, [loadTodos]);
-
-  useEffect(() => {
-    if (!optimisticTodo) return;
-    if (!todos.some((todo) => todo.todoId === optimisticTodo.todoId)) return;
-    setOptimisticTodo(null);
-  }, [todos, optimisticTodo]);
-
-  useEffect(() => {
-    if (!animatedTodoId) return;
-    const timer = window.setTimeout(() => setAnimatedTodoId(null), 420);
-    return () => window.clearTimeout(timer);
-  }, [animatedTodoId]);
 
   useEffect(() => {
     if (!open) return;
@@ -158,28 +138,8 @@ export function ProfileTodoDrawer() {
               </div>
             </div>
 
-            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pt-4">
-              <div className="mb-2 px-1">
-                <CustomTodoComposer
-                  childId={child.childId}
-                  onChanged={() => { void loadTodos(); }}
-                  onAdded={(todo) => {
-                    setOptimisticTodo(todo);
-                    setAnimatedTodoId(todo.todoId);
-                  }}
-                />
-                {todoList.length === 0 ? (
-                  <p className="px-6 py-10 text-center text-[14px] text-[var(--nimi-text-muted)]">
-                    还没有待办，添加一条开始吧
-                  </p>
-                ) : (
-                  <CustomTodoInlineList
-                    todos={todoList}
-                    onChanged={() => { void loadTodos(); }}
-                    animatedTodoId={animatedTodoId}
-                  />
-                )}
-              </div>
+            <div className="flex min-h-0 flex-1 flex-col">
+              <ReminderPanelSurface child={child} />
             </div>
           </aside>
         </>

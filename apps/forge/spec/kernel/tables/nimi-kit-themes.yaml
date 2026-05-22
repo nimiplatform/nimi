@@ -5,12 +5,12 @@ packs:
     pack_kind: accent
     source_rule: P-DESIGN-002
     values:
-      surface.active: "#e8f8f1"
+      surface.active: rgba(78,204,163,0.16)
       action.primary_bg: "#4ECCA3"
       action.primary_bg_hover: "#3DBB96"
       action.primary_text: "#ffffff"
       action.ghost_hover: rgba(78,204,163,0.10)
-      sidebar.item_active: "#e8f8f1"
+      sidebar.item_active: rgba(78,204,163,0.16)
       sidebar.item_hover: rgba(78,204,163,0.08)
       field.focus: "#4ECCA3"
       focus.ring_color: rgba(78,204,163,0.28)

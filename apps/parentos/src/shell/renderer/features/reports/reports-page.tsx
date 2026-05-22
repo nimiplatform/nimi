@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, NimiText, StatusBadge, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DatePicker, NimiText, StatusBadge, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { ArrowRight, ChevronDown, Eye, Pencil, Star } from 'lucide-react';
-import { ProfileDatePicker } from '../profile/profile-date-picker.js';
 import { useAppStore } from '../../app-shell/app-store.js';
 import {
   getAllergyRecords, getDentalRecords, getFitnessAssessments, getGrowthReports,
@@ -457,8 +456,8 @@ export default function ReportsPage() {
               ))}</div>
             </div>
             <div className="flex gap-3 mb-4">
-              <div className="flex-1"><label className="report-date-label">开始日期</label><ProfileDatePicker value={periodStart} onChange={(v) => handleDateChange('start', v)} size="small" /></div>
-              <div className="flex-1"><label className="report-date-label">结束日期</label><ProfileDatePicker value={periodEnd} onChange={(v) => handleDateChange('end', v)} size="small" /></div>
+              <div className="flex-1"><label className="report-date-label">开始日期</label><DatePicker value={periodStart} onChange={(v) => handleDateChange('start', v)} size="small" /></div>
+              <div className="flex-1"><label className="report-date-label">结束日期</label><DatePicker value={periodEnd} onChange={(v) => handleDateChange('end', v)} size="small" /></div>
             </div>
             <Button onClick={() => void handleGenerate()} disabled={generateState === 'saving'}
               fullWidth tone="primary" className="report-generate-button">

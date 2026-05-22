@@ -1,4 +1,4 @@
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface, Tooltip as KitTooltip, cn } from '@nimiplatform/nimi-kit/ui';
 import { Link } from 'react-router-dom';
 import {
   Area,
@@ -20,6 +20,7 @@ import {
   buildMergedChartData,
   computeChartYDomain,
   formatAgeLabel,
+  getGrowthStandardTooltip,
   getPercentileHint,
   type GrowthMetricDefinition,
   type MergedPoint,
@@ -32,6 +33,7 @@ type GrowthCurveChartPanelProps = {
   whoDataset: WHOLMSDataset | null;
   canShowWhoLines: boolean;
   growthStandard: GrowthStandard;
+  onSelectGrowthStandard: (standard: GrowthStandard) => void;
   measurements: MeasurementRow[];
   ageMonths: number;
 };
@@ -69,22 +71,75 @@ export function GrowthCurveChartPanel({
   whoDataset,
   canShowWhoLines,
   growthStandard,
+  onSelectGrowthStandard,
   measurements,
   ageMonths,
 }: GrowthCurveChartPanelProps) {
   const standardLabel = GROWTH_STANDARD_LABELS[growthStandard];
-  const referenceNote = whoDataset
-    ? (canShowWhoLines
-        ? `${standardLabel}百分位参考线（P3-P97）已加载。`
-        : `当前年龄超出${standardLabel}百分位参考线覆盖范围，仅显示已记录数据。`)
+  const referenceNote = whoDataset && !canShowWhoLines
+    ? `当前年龄超出${standardLabel}百分位参考线覆盖范围，仅显示已记录数据。`
     : null;
 
-  const colors = growthBandPalette(growthStandard);
-  const userColor = growthMetricStroke(selectedType);
+  const colors = growthBandPalette();
+  const userColor = growthMetricStroke();
+
+  const chartAges = chartData.map((point) => point.age);
+  const spanYears = chartAges.length >= 2
+    ? (Math.max(...chartAges) - Math.min(...chartAges)) / 12
+    : 0;
 
   return (
     <>
       <Surface tone="card" material="glass-regular" elevation="raised" padding="none" className="mb-6 rounded-3xl p-5">
+        <div className="mb-4 flex items-center" data-testid="growth-curve-standard-toggle">
+          <Surface
+            tone="panel"
+            elevation="base"
+            padding="none"
+            className="relative flex rounded-full p-0.5"
+          >
+            {/* Sliding active-segment indicator. Equal-width segments let the
+                thumb translate exactly one segment (translate-x-full). */}
+            <span
+              aria-hidden="true"
+              className={cn(
+                'pointer-events-none absolute inset-y-0.5 left-0.5 z-0 w-[calc(50%-0.125rem)] rounded-full',
+                'bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)]',
+                'transition-transform duration-[var(--nimi-motion-slow)] ease-out',
+                growthStandard === 'who' ? 'translate-x-full' : 'translate-x-0',
+              )}
+            />
+            {(['china', 'who'] as const).map((standard) => {
+              const isActive = growthStandard === standard;
+              return (
+                <KitTooltip
+                  key={standard}
+                  className="relative z-10 flex-1"
+                  content={<span className="whitespace-pre-line">{getGrowthStandardTooltip(standard)}</span>}
+                  contentClassName="w-[280px] p-3 text-[13px] leading-relaxed"
+                >
+                  <button
+                    type="button"
+                    onClick={() => onSelectGrowthStandard(standard)}
+                    className={cn(
+                      'flex w-full min-h-0 items-center justify-center gap-1 whitespace-nowrap rounded-full px-3 py-1 text-[13px]',
+                      'transition-colors duration-[var(--nimi-motion-fast)]',
+                      isActive
+                        ? 'font-medium text-[var(--nimi-text-primary)]'
+                        : 'text-[var(--nimi-text-secondary)]',
+                    )}
+                  >
+                    {GROWTH_STANDARD_LABELS[standard]}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="opacity-50">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 16v-4M12 8h.01" />
+                    </svg>
+                  </button>
+                </KitTooltip>
+              );
+            })}
+          </Surface>
+        </div>
         {chartData.length === 0 ? (
           <div className="p-8 text-center">
             <span className="text-[24px]">📏</span>
@@ -175,34 +230,35 @@ export function GrowthCurveChartPanel({
 
                   {hasBands ? (
                     <>
-                      <Area type="monotone" dataKey="p97" stroke="none" fill={colors.outer} isAnimationActive={false} connectNulls />
+                      <Area type="monotone" dataKey="p97" stroke="none" fill={colors.band} fillOpacity={0.09} isAnimationActive={false} connectNulls />
                       <Area type="monotone" dataKey="p3" stroke="none" fill={'var(--nimi-surface-card)'} isAnimationActive={false} connectNulls />
-                      <Area type="monotone" dataKey="p90" stroke="none" fill={colors.inner} isAnimationActive={false} connectNulls />
+                      <Area type="monotone" dataKey="p90" stroke="none" fill={colors.band} fillOpacity={0.09} isAnimationActive={false} connectNulls />
                       <Area type="monotone" dataKey="p10" stroke="none" fill={'var(--nimi-surface-card)'} isAnimationActive={false} connectNulls />
                     </>
                   ) : null}
 
                   {[
-                    { key: 'p97', label: '97%', width: 0.8, dash: '3 4', color: colors.far },
-                    { key: 'p90', label: '90%', width: 0.8, dash: '3 4', color: colors.edge },
-                    { key: 'p50', label: '50%', width: 1.5, dash: '5 4', color: colors.median },
-                    { key: 'p10', label: '10%', width: 0.8, dash: '3 4', color: colors.edge },
-                    { key: 'p3', label: '3%', width: 0.8, dash: '3 4', color: colors.far },
+                    { key: 'p97', label: '97%', width: 1.5, dash: '5 4', opacity: 0.5 },
+                    { key: 'p90', label: '90%', width: 1.5, dash: '5 4', opacity: 0.78 },
+                    { key: 'p50', label: '50%', width: 2, dash: '6 4', opacity: 1 },
+                    { key: 'p10', label: '10%', width: 1.5, dash: '5 4', opacity: 0.78 },
+                    { key: 'p3', label: '3%', width: 1.5, dash: '5 4', opacity: 0.5 },
                   ].map((line) => (
                     <Line
                       key={line.key}
                       type="monotone"
                       dataKey={line.key}
-                      stroke={line.color}
+                      stroke={colors.line}
                       strokeWidth={line.width}
                       strokeDasharray={line.dash}
+                      strokeOpacity={line.opacity}
                       dot={false}
                       activeDot={false}
                       isAnimationActive={false}
                       connectNulls
                       label={({ x, y, index, value }: { x: number; y: number; index: number; value: unknown }) =>
                         value != null && index === merged.length - 1
-                          ? <text x={x + 5} y={y} dy={3} fontSize={8} fill={line.color} fontWeight={line.key === 'p50' ? 600 : 400} opacity={0.85}>{line.label}</text>
+                          ? <text x={x + 5} y={y} dy={3} fontSize={8} fill={colors.line} fontWeight={line.key === 'p50' ? 600 : 400} opacity={0.85}>{line.label}</text>
                           : <g />}
                     />
                   ))}
@@ -221,91 +277,16 @@ export function GrowthCurveChartPanel({
                     stroke={userColor}
                     strokeWidth={2.5}
                     dot={(props: unknown) => {
-                      const { cx, cy, value, index, payload } = props as {
+                      const { cx, cy, value } = props as {
                         cx: number;
                         cy: number;
                         value: unknown;
-                        index: number;
-                        payload: MergedPoint;
                       };
                       if (value == null || typeof cx !== 'number' || typeof cy !== 'number') return <g />;
-                      const userPoints = merged.filter((point) => point.value != null);
-                      const lastUserPoint = userPoints[userPoints.length - 1];
-                      const isLastUserPoint = lastUserPoint != null && payload?.age === lastUserPoint.age;
-                      const dot = (
+                      return (
                         <g>
                           <circle cx={cx} cy={cy} r={6} fill={userColor} opacity={0.12} />
                           <circle cx={cx} cy={cy} r={3.5} fill="var(--nimi-surface-card)" stroke={userColor} strokeWidth={2} />
-                        </g>
-                      );
-                      if (!isLastUserPoint) return dot;
-                      const pct = getPercentileHint(value as number, {
-                        p3: payload?.p3,
-                        p10: payload?.p10,
-                        p25: payload?.p25,
-                        p50: payload?.p50,
-                        p75: payload?.p75,
-                        p90: payload?.p90,
-                        p97: payload?.p97,
-                      });
-                      const ageLabel = formatAgeLabel(payload?.age ?? 0);
-                      const dateLabel = payload?.date ? ` · ${payload.date}` : '';
-                      const lineOne = `${ageLabel}${dateLabel}`;
-                      const lineTwo = `${value} ${typeInfo?.unit ?? ''}${pct ? ` · ${pct.text}` : ''}`;
-                      // Auto-flip left/up to stay inside chart viewport.
-                      const flipUp = cy < 60;
-                      const flipLeft = cx > 220; // chart inner width ~ 320-360px
-                      const calloutW = 168;
-                      const calloutH = 44;
-                      const padX = 10;
-                      const padY = 14;
-                      const calloutX = flipLeft ? cx - calloutW - padX : cx + padX;
-                      const calloutY = flipUp ? cy + padY : cy - calloutH - padY;
-                      const pointerX = flipLeft ? cx - padX + 2 : cx + padX - 2;
-                      const pointerY = flipUp ? cy + padY : cy - padY;
-                      void index; // referenced for prop-typing; logic uses payload identity
-                      return (
-                        <g>
-                          {dot}
-                          <g pointerEvents="none">
-                            <line
-                              x1={cx}
-                              y1={cy}
-                              x2={pointerX}
-                              y2={pointerY}
-                              stroke="var(--nimi-text-primary)"
-                              strokeWidth={1}
-                              opacity={0.55}
-                            />
-                            <rect
-                              x={calloutX}
-                              y={calloutY}
-                              rx={8}
-                              ry={8}
-                              width={calloutW}
-                              height={calloutH}
-                              fill="var(--nimi-text-primary)"
-                              opacity={0.92}
-                            />
-                            <text
-                              x={calloutX + 10}
-                              y={calloutY + 16}
-                              fontSize={11}
-                              fill="var(--nimi-surface-card)"
-                              opacity={0.75}
-                            >
-                              {lineOne}
-                            </text>
-                            <text
-                              x={calloutX + 10}
-                              y={calloutY + 32}
-                              fontSize={12}
-                              fontWeight={600}
-                              fill="var(--nimi-surface-card)"
-                            >
-                              {lineTwo}
-                            </text>
-                          </g>
                         </g>
                       );
                     }}
@@ -326,15 +307,23 @@ export function GrowthCurveChartPanel({
             );
           })()
         )}
-      </Surface>
 
-      {referenceNote ? (
-        <div
-          className="mb-4 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2 text-[13px] text-[var(--nimi-text-muted)]"
-        >
-          {referenceNote}
-        </div>
-      ) : null}
+        {referenceNote || chartData.length > 0 ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {referenceNote ? (
+              <span className="text-[13px] text-[var(--nimi-text-muted)]">{referenceNote}</span>
+            ) : null}
+            {chartData.length > 0 ? (
+              <span
+                className="ml-auto text-[13px] text-[var(--nimi-text-muted)]"
+                data-testid="growth-curve-sample-span"
+              >
+                样本 {chartData.length} 条 · 时间跨度 {spanYears.toFixed(1)} 年
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+      </Surface>
 
       {selectedType === 'height' ? (
         (() => {
@@ -381,36 +370,22 @@ export function GrowthCurveChartPanel({
   );
 }
 
-function growthMetricStroke(selectedType: string): string {
-  if (selectedType === 'weight') return 'var(--nimi-status-success)';
-  if (selectedType === 'head-circumference') return 'var(--nimi-status-warning)';
-  if (selectedType === 'bmi') return 'var(--nimi-status-info)';
+// The child's own measured series is the page's green "life line". It reads
+// the same life-energy green for every metric so the growth signal stays
+// consistent regardless of which tab is active.
+function growthMetricStroke(): string {
   return 'var(--nimi-action-primary-bg)';
 }
 
-function growthBandPalette(growthStandard: GrowthStandard): {
-  outer: string;
-  inner: string;
-  median: string;
-  edge: string;
-  far: string;
-} {
-  if (growthStandard === 'china') {
-    return {
-      outer: 'color-mix(in_srgb,var(--nimi-status-warning)_8%,transparent)',
-      inner: 'color-mix(in_srgb,var(--nimi-status-danger)_6%,transparent)',
-      median: 'var(--nimi-status-danger)',
-      edge: 'var(--nimi-status-warning)',
-      far: 'color-mix(in_srgb,var(--nimi-status-warning)_68%,var(--nimi-text-muted))',
-    };
-  }
-  return {
-    outer: 'color-mix(in_srgb,var(--nimi-status-info)_8%,transparent)',
-    inner: 'color-mix(in_srgb,var(--nimi-status-info)_6%,transparent)',
-    median: 'var(--nimi-status-info)',
-    edge: 'color-mix(in_srgb,var(--nimi-status-info)_72%,var(--nimi-action-primary-bg))',
-    far: 'color-mix(in_srgb,var(--nimi-status-info)_52%,var(--nimi-text-muted))',
-  };
+// Percentile reference bands + lines are the analytical layer behind the green
+// life line — the blue-violet analysis accent. These strings are consumed as
+// raw SVG `fill` / `stroke` attributes: only plain `var()` tokens are used
+// (`color-mix()` does not resolve as a raw SVG paint value in the WebView).
+// The P50 / P10–P90 / P3–P97 visual hierarchy comes from stroke width +
+// opacity, applied on the chart elements — not from hue.
+function growthBandPalette(): { band: string; line: string } {
+  const accent = 'var(--nimi-color-indigo)';
+  return { band: accent, line: accent };
 }
 
 function percentileHintClassName(text: string): string {

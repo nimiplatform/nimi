@@ -1,4 +1,4 @@
-import { Button } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import type { CSSProperties } from 'react';
 /**
  * Row of per-appliance "next action" cards for the hero appliances in the
@@ -57,18 +57,21 @@ export function ApplianceNextActionRow({
       }}
     >
       {rowItems.map(({ appliance, action }) => {
-        // Background tint is derived from the appliance identity via a local
-        // CSS variable. Keeping the colour value out of the Tailwind arbitrary
-        // class avoids extractor drift while preserving the governed visual
-        // source in `appliance-identity`.
+        // The card uses the plain card surface so it reads as a sibling of
+        // the review card beside it; the appliance identity colour is exposed
+        // via a local CSS variable for the status dot only.
         const identity = applianceIdentity(appliance.applianceType);
         const identityStyle = {
           '--appliance-identity': identity.solid,
         } as CSSProperties;
         return (
-          <div
+          <Surface
             key={appliance.applianceId}
-            className="flex items-center gap-3.5 rounded-2xl bg-[color-mix(in_srgb,var(--appliance-identity)_12%,var(--nimi-surface-card))] px-[18px] py-3.5"
+            tone="card"
+            material="solid"
+            elevation="base"
+            padding="none"
+            className="flex items-center gap-3.5 px-[18px] py-3.5"
             style={identityStyle}
           >
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -100,7 +103,7 @@ export function ApplianceNextActionRow({
             >
               {action.actionLabel}
             </Button>
-          </div>
+          </Surface>
         );
       })}
     </div>

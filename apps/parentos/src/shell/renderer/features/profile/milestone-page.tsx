@@ -1,4 +1,10 @@
-import { Button, OverlayShell, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DatePicker, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import {
+  HealthRecordModalShell,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+} from './health-record-modal-shell.js';
 import { useState, useEffect, useMemo } from 'react';
 import { useAppStore, computeAgeMonths, formatAge } from '../../app-shell/app-store.js';
 import { MILESTONE_CATALOG } from '../../knowledge-base/index.js';
@@ -11,7 +17,6 @@ import { AISummaryCard } from './ai-summary-card.js';
 import { readImageFileAsDataUrl } from './checkup-ocr.js';
 import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
 import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
 
 /* ── domain config ───────────────────────────────────────── */
 
@@ -129,48 +134,36 @@ function RecordModal({ milestone, record, childId, ageMonths, onSave, onClose }:
   const dm = DOMAIN_MAP.get(milestone.domain as MilestoneDomain);
 
   return (
-    <OverlayShell
-      open
-      kind="dialog"
-      onClose={onClose}
-      panelClassName="w-[420px] rounded-3xl"
-      title={
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-[20px]">{dm?.emoji ?? '🎯'}</span>
-            <h2 className="text-[16px] font-bold text-[var(--nimi-text-primary)]">{milestone.title}</h2>
+    <HealthRecordModalShell open size="S" onClose={onClose}>
+      <ModalHeader title={milestone.title} icon={dm?.emoji ?? '🎯'} onClose={onClose} />
+      <ModalContent>
+        <div className="space-y-4">
+          <p className="text-[14px] text-[var(--nimi-text-muted)]">{milestone.description}</p>
+          <div>
+            <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">达成日期</label>
+            <DatePicker value={date} onChange={setDate} />
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-muted)]">✕</button>
+          <div>
+            <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">记录小故事 ✏️</label>
+            <TextareaField value={notes} onChange={(e) => setNotes(e.target.value)}
+              placeholder="例如：第一次找到藏起来的球，开心地咯咯笑..."
+              className="w-full" rows={3} />
+          </div>
+          <div>
+            <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">添加照片 📷</label>
+            <input type="file" accept="image/*" className="text-[14px]"
+              onChange={(e) => void handlePhoto(e.target.files?.[0] ?? null)} />
+            {photoPreview && <img src={photoPreview} alt="" className="mt-2 h-24 rounded-2xl object-cover" />}
+          </div>
         </div>
-      }
-      contentClassName="space-y-4"
-      footer={
-        <div className="flex items-center justify-end gap-2">
-          <Button onClick={onClose} tone="ghost" size="md">取消</Button>
-          <Button onClick={() => void handleSave()} disabled={saving} tone="primary" size="md">
-            {saving ? '保存中...' : '✅ 记录达成'}
-          </Button>
-        </div>
-      }
-    >
-      <p className="text-[14px] text-[var(--nimi-text-muted)]">{milestone.description}</p>
-      <div>
-        <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">达成日期</label>
-        <ProfileDatePicker value={date} onChange={setDate} />
-      </div>
-      <div>
-        <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">记录小故事 ✏️</label>
-        <TextareaField value={notes} onChange={(e) => setNotes(e.target.value)}
-          placeholder="例如：第一次找到藏起来的球，开心地咯咯笑..."
-          className="w-full" rows={3} />
-      </div>
-      <div>
-        <label className="text-[13px] mb-1 block text-[var(--nimi-text-muted)]">添加照片 📷</label>
-        <input type="file" accept="image/*" className="text-[14px]"
-          onChange={(e) => void handlePhoto(e.target.files?.[0] ?? null)} />
-        {photoPreview && <img src={photoPreview} alt="" className="mt-2 h-24 rounded-2xl object-cover" />}
-      </div>
-    </OverlayShell>
+      </ModalContent>
+      <ModalFooter>
+        <Button onClick={onClose} tone="ghost" size="md">取消</Button>
+        <Button onClick={() => void handleSave()} disabled={saving} tone="primary" size="md">
+          {saving ? '保存中...' : '记录达成'}
+        </Button>
+      </ModalFooter>
+    </HealthRecordModalShell>
   );
 }
 

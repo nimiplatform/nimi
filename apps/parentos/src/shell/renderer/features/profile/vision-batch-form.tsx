@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { deleteMeasurement, insertMeasurement, updateMeasurement } from '../../bridge/sqlite-bridge.js';
@@ -12,8 +12,7 @@ import {
   EYE_SET, FORM_SECTIONS, PUPIL_OPTIONS, getPickerConfig,
   type VisionRecord,
 } from './vision-data.js';
-import { Button, TextField } from '@nimiplatform/nimi-kit/ui';
-import { ProfileDatePicker } from './profile-date-picker.js';
+import { Button, DatePicker, TextField } from '@nimiplatform/nimi-kit/ui';
 import {
   ChipGroup,
   type ChipOption,
@@ -280,7 +279,6 @@ type VisionBatchFormProps = {
   onSave: () => void;
   onClose: () => void;
   initialRecord?: VisionRecord;
-  ocrDraft?: OCRMeasurementCandidate[] | null;
 };
 
 export function BatchForm(props: VisionBatchFormProps) {
@@ -294,7 +292,7 @@ export function BatchForm(props: VisionBatchFormProps) {
 const SCREEN_TIME_OPTIONS = ['0-1小时', '2-3小时', '4-5小时', '6小时以上'] as const;
 const OUTDOOR_TIME_OPTIONS = ['0-1小时', '2-3小时', '4-5小时', '5小时以上'] as const;
 
-export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, initialRecord, ocrDraft }: VisionBatchFormProps) {
+export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, initialRecord }: VisionBatchFormProps) {
   const { t } = useTranslation();
   const initVals: Record<string, string> = {};
   if (initialRecord) { for (const [k, v] of initialRecord.data) initVals[k] = String(v); }
@@ -350,11 +348,6 @@ export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, in
       return next;
     });
   }, [t]);
-
-  useEffect(() => {
-    if (!ocrDraft || ocrDraft.length === 0) return;
-    applyOCRMeasurements(ocrDraft);
-  }, [applyOCRMeasurements, ocrDraft]);
 
   const joinNoteParts = (...parts: Array<string | null | undefined>) => {
     const seen = new Set<string>();
@@ -479,9 +472,8 @@ export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, in
       className="inline-flex h-9 items-center gap-1.5 rounded-[12px] px-3 text-[13px] font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
       style={{ background: 'var(--nimi-action-primary-bg)' }}
     >
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-        <path d="M7 8h4M7 12h10M7 16h6" />
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10" />
       </svg>
       {ocrBusy ? t('Profile.rich.vision.recognizing') : t('Profile.rich.vision.smartRecognize')}
     </button>
@@ -501,7 +493,7 @@ export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, in
 
           <FormGrid cols={2}>
             <FormField label={t('Profile.rich.visionBatch.examDate')} required>
-              <ProfileDatePicker value={date} onChange={setDate} className="h-12" />
+              <DatePicker value={date} onChange={setDate} className="h-12" />
             </FormField>
             <FormField label={t('Profile.rich.visionBatch.pupilStatus')}>
               <ChipGroup options={pupilChips} value={pupil} onChange={setPupil} layout="fill" clearable />

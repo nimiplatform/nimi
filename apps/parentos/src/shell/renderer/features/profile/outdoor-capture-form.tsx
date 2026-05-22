@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Button, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DatePicker, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { insertOutdoorRecord } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import type { LinkedHealthRecordReminder } from './health-capture-orchestrator.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
 import {
   ChipGroup,
   FormField,
@@ -70,7 +69,7 @@ export function OutdoorCaptureContent({ child, onSaved, onClose, linkedReminder 
       <ModalContent>
         <div className="space-y-5">
           <FormField label="活动日期">
-            <ProfileDatePicker value={activityDate} onChange={setActivityDate} className="h-12" />
+            <DatePicker value={activityDate} onChange={setActivityDate} className="h-12" />
           </FormField>
 
           <FormField label="时长（分钟）">

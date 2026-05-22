@@ -88,13 +88,14 @@ describe('health-record-domain', () => {
           unit: 'kg',
         }),
       ],
-      nowIso: '2026-02-15T00:00:00.000Z',
+      nowIso: '2026-01-20T00:00:00.000Z',
     });
 
     const growth = snapshot.groups.find((group) => group.group.groupId === 'growth');
     const height = growth?.metrics.find((item) => item.metric.metricId === 'growth.height');
     const bmi = growth?.metrics.find((item) => item.metric.metricId === 'growth.bmi');
-    expect(height?.nextRecordAt).toBe('2026-04-01');
+    // growth.age-cadence is a uniform monthly cadence: 2026-01-01 + 1 month.
+    expect(height?.nextRecordAt).toBe('2026-02-01');
     expect(height?.freshness).toBe('fresh');
     expect(bmi?.latestValue?.valueNumber).toBe(16);
     expect(bmi?.latestValue?.recordKind).toBe('derived');
@@ -159,7 +160,7 @@ describe('health-record-domain', () => {
           unit: 'cm',
         }),
       ],
-      nowIso: '2026-02-15T00:00:00.000Z',
+      nowIso: '2026-01-20T00:00:00.000Z',
       sex: 'male',
     });
     const height = snapshot.groups
@@ -184,7 +185,7 @@ describe('health-record-domain', () => {
           unit: 'cm',
         }),
       ],
-      nowIso: '2026-02-15T00:00:00.000Z',
+      nowIso: '2026-01-20T00:00:00.000Z',
       sex: 'male',
     });
     const height = snapshot.groups
@@ -209,7 +210,7 @@ describe('health-record-domain', () => {
           unit: 'cm',
         }),
       ],
-      nowIso: '2026-02-15T00:00:00.000Z',
+      nowIso: '2026-01-20T00:00:00.000Z',
     });
     const height = snapshot.groups
       .find((group) => group.group.groupId === 'growth')
@@ -236,7 +237,7 @@ describe('health-record-domain', () => {
           createdAt: '2026-01-01T09:00:00.000Z',
         },
       ],
-      nowIso: '2026-02-15T00:00:00.000Z',
+      nowIso: '2026-01-20T00:00:00.000Z',
       sex: 'male',
     });
     const height = snapshot.groups
@@ -267,7 +268,7 @@ describe('health-record-domain', () => {
             unit: 'cm',
           }),
         ],
-        nowIso: '2026-02-15T00:00:00.000Z',
+        nowIso: '2026-01-20T00:00:00.000Z',
         sex: 'male',
       });
       const height = snapshot.groups
@@ -301,7 +302,7 @@ describe('health-record-domain', () => {
             unit: 'cm',
           }),
         ],
-        nowIso: '2026-02-15T00:00:00.000Z',
+        nowIso: '2026-01-20T00:00:00.000Z',
         sex: 'male',
       });
       const height = snapshot.groups
@@ -325,7 +326,7 @@ describe('health-record-domain', () => {
         value({ valueId: 'height-1', metricId: 'growth.height', valueNumber: 88, unit: 'cm' }),
         value({ valueId: 'weight-1', metricId: 'growth.weight', valueNumber: 13, unit: 'kg' }),
       ],
-      nowIso: '2026-02-15T00:00:00.000Z',
+      nowIso: '2026-01-20T00:00:00.000Z',
       sex: 'male',
     });
     const bmi = snapshot.groups

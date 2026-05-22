@@ -42,6 +42,22 @@ packs:
       status.warning: "#d97706"
       status.danger: "#dc2626"
       status.info: "#2563eb"
+      status.neutral.soft_bg: color-mix(in srgb, var(--nimi-status-neutral) 14%, transparent)
+      status.neutral.soft_border: color-mix(in srgb, var(--nimi-status-neutral) 26%, transparent)
+      status.neutral.soft_text: var(--nimi-status-neutral)
+      status.success.soft_bg: color-mix(in srgb, var(--nimi-status-success) 15%, transparent)
+      status.success.soft_border: color-mix(in srgb, var(--nimi-status-success) 26%, transparent)
+      status.success.soft_text: var(--nimi-status-success)
+      status.warning.soft_bg: color-mix(in srgb, var(--nimi-status-warning) 15%, transparent)
+      status.warning.soft_border: color-mix(in srgb, var(--nimi-status-warning) 26%, transparent)
+      status.warning.soft_text: var(--nimi-status-warning)
+      status.danger.soft_bg: color-mix(in srgb, var(--nimi-status-danger) 15%, transparent)
+      status.danger.soft_border: color-mix(in srgb, var(--nimi-status-danger) 26%, transparent)
+      status.danger.soft_text: var(--nimi-status-danger)
+      status.info.soft_bg: color-mix(in srgb, var(--nimi-status-info) 15%, transparent)
+      status.info.soft_border: color-mix(in srgb, var(--nimi-status-info) 26%, transparent)
+      status.info.soft_text: var(--nimi-status-info)
+      color.indigo: "#6366f1"
       radius.sm: 8px
       radius.md: 12px
       radius.lg: 16px
@@ -203,6 +219,22 @@ packs:
       status.warning: "#fbbf24"
       status.danger: "#f87171"
       status.info: "#60a5fa"
+      status.neutral.soft_bg: color-mix(in srgb, var(--nimi-status-neutral) 16%, transparent)
+      status.neutral.soft_border: color-mix(in srgb, var(--nimi-status-neutral) 28%, transparent)
+      status.neutral.soft_text: var(--nimi-status-neutral)
+      status.success.soft_bg: color-mix(in srgb, var(--nimi-status-success) 16%, transparent)
+      status.success.soft_border: color-mix(in srgb, var(--nimi-status-success) 28%, transparent)
+      status.success.soft_text: var(--nimi-status-success)
+      status.warning.soft_bg: color-mix(in srgb, var(--nimi-status-warning) 16%, transparent)
+      status.warning.soft_border: color-mix(in srgb, var(--nimi-status-warning) 28%, transparent)
+      status.warning.soft_text: var(--nimi-status-warning)
+      status.danger.soft_bg: color-mix(in srgb, var(--nimi-status-danger) 16%, transparent)
+      status.danger.soft_border: color-mix(in srgb, var(--nimi-status-danger) 28%, transparent)
+      status.danger.soft_text: var(--nimi-status-danger)
+      status.info.soft_bg: color-mix(in srgb, var(--nimi-status-info) 16%, transparent)
+      status.info.soft_border: color-mix(in srgb, var(--nimi-status-info) 28%, transparent)
+      status.info.soft_text: var(--nimi-status-info)
+      color.indigo: "#818cf8"
       radius.sm: 8px
       radius.md: 12px
       radius.lg: 16px
@@ -333,12 +365,12 @@ packs:
     pack_kind: accent
     source_rule: P-DESIGN-002
     values:
-      surface.active: "#e8f8f1"
+      surface.active: rgba(78,204,163,0.16)
       action.primary_bg: "#4ECCA3"
       action.primary_bg_hover: "#3DBB96"
       action.primary_text: "#ffffff"
       action.ghost_hover: rgba(78,204,163,0.10)
-      sidebar.item_active: "#e8f8f1"
+      sidebar.item_active: rgba(78,204,163,0.16)
       sidebar.item_hover: rgba(78,204,163,0.08)
       field.focus: "#4ECCA3"
       focus.ring_color: rgba(78,204,163,0.28)

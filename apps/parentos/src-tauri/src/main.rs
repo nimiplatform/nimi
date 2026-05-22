@@ -280,6 +280,7 @@ fn main() {
             sqlite::queries::insert_fitness_assessment,
             sqlite::queries::get_fitness_assessments,
             sqlite::queries::delete_fitness_assessment,
+            sqlite::queries::delete_fitness_event,
             // Outdoor Records
             sqlite::queries::insert_outdoor_record,
             sqlite::queries::update_outdoor_record,
@@ -287,6 +288,9 @@ fn main() {
             sqlite::queries::get_outdoor_records,
             sqlite::queries::get_outdoor_goal,
             sqlite::queries::set_outdoor_goal,
+            // Posture Assessments (PO-PROF-019)
+            sqlite::queries::insert_posture_assessment,
+            sqlite::queries::get_posture_assessments,
             // Health Record Capture
             sqlite::queries::save_health_record_capture,
             sqlite::queries::get_health_record_events,

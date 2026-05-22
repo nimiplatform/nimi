@@ -44,6 +44,22 @@ entries:
   - status.warning
   - status.danger
   - status.info
+  - status.neutral.soft_bg
+  - status.neutral.soft_border
+  - status.neutral.soft_text
+  - status.success.soft_bg
+  - status.success.soft_border
+  - status.success.soft_text
+  - status.warning.soft_bg
+  - status.warning.soft_border
+  - status.warning.soft_text
+  - status.danger.soft_bg
+  - status.danger.soft_border
+  - status.danger.soft_text
+  - status.info.soft_bg
+  - status.info.soft_border
+  - status.info.soft_text
+  - color.indigo
   - radius.sm
   - radius.md
   - radius.lg
@@ -496,6 +512,134 @@ tokens:
     css_var: --nimi-status-info
     ts_token: info
     primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.neutral.soft_bg
+    category: status
+    semantic_name: Status neutral soft background
+    css_var: --nimi-status-neutral-soft-bg
+    ts_token: neutralSoftBg
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.neutral.soft_border
+    category: status
+    semantic_name: Status neutral soft border
+    css_var: --nimi-status-neutral-soft-border
+    ts_token: neutralSoftBorder
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.neutral.soft_text
+    category: status
+    semantic_name: Status neutral soft text
+    css_var: --nimi-status-neutral-soft-text
+    ts_token: neutralSoftText
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.success.soft_bg
+    category: status
+    semantic_name: Status success soft background
+    css_var: --nimi-status-success-soft-bg
+    ts_token: successSoftBg
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.success.soft_border
+    category: status
+    semantic_name: Status success soft border
+    css_var: --nimi-status-success-soft-border
+    ts_token: successSoftBorder
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.success.soft_text
+    category: status
+    semantic_name: Status success soft text
+    css_var: --nimi-status-success-soft-text
+    ts_token: successSoftText
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.warning.soft_bg
+    category: status
+    semantic_name: Status warning soft background
+    css_var: --nimi-status-warning-soft-bg
+    ts_token: warningSoftBg
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.warning.soft_border
+    category: status
+    semantic_name: Status warning soft border
+    css_var: --nimi-status-warning-soft-border
+    ts_token: warningSoftBorder
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.warning.soft_text
+    category: status
+    semantic_name: Status warning soft text
+    css_var: --nimi-status-warning-soft-text
+    ts_token: warningSoftText
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.danger.soft_bg
+    category: status
+    semantic_name: Status danger soft background
+    css_var: --nimi-status-danger-soft-bg
+    ts_token: dangerSoftBg
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.danger.soft_border
+    category: status
+    semantic_name: Status danger soft border
+    css_var: --nimi-status-danger-soft-border
+    ts_token: dangerSoftBorder
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.danger.soft_text
+    category: status
+    semantic_name: Status danger soft text
+    css_var: --nimi-status-danger-soft-text
+    ts_token: dangerSoftText
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.info.soft_bg
+    category: status
+    semantic_name: Status info soft background
+    css_var: --nimi-status-info-soft-bg
+    ts_token: infoSoftBg
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.info.soft_border
+    category: status
+    semantic_name: Status info soft border
+    css_var: --nimi-status-info-soft-border
+    ts_token: infoSoftBorder
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.info.soft_text
+    category: status
+    semantic_name: Status info soft text
+    css_var: --nimi-status-info-soft-text
+    ts_token: infoSoftText
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: color.indigo
+    category: action
+    semantic_name: Fixed indigo companion color
+    css_var: --nimi-color-indigo
+    ts_token: indigo
+    primitive_family: action
     source_rule: P-DESIGN-003
     theme_layer: foundation
   - id: radius.sm

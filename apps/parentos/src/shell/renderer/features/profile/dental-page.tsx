@@ -1,4 +1,4 @@
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { PillTabs } from '@nimiplatform/nimi-kit/ui';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
@@ -67,34 +67,16 @@ function TabNav({
   activeTab: DentalTab;
   onChange: (tab: DentalTab) => void;
 }) {
-  const tabs: Array<{ key: DentalTab; label: string }> = [
-    { key: 'history', label: '口腔记录' },
-    { key: 'orthodontic', label: '正畸治疗' },
-  ];
   return (
-    <Surface
-      tone="card"
-      material="glass-regular"
-      elevation="base"
-      padding="none"
-      className="inline-flex w-fit rounded-full p-1"
-    >
-      {tabs.map((tab) => {
-        const active = activeTab === tab.key;
-        return (
-          <Button
-            key={tab.key}
-            type="button"
-            onClick={() => onChange(tab.key)}
-            tone={active ? 'primary' : 'ghost'}
-            size="sm"
-            className="rounded-full whitespace-nowrap"
-            aria-pressed={active}
-          >
-            {tab.label}
-          </Button>
-        );
-      })}
-    </Surface>
+    <PillTabs
+      ariaLabel="口腔档案分区"
+      size="sm"
+      value={activeTab}
+      onValueChange={(next) => onChange(next as DentalTab)}
+      items={[
+        { value: 'history', label: '口腔记录' },
+        { value: 'orthodontic', label: '正畸治疗' },
+      ]}
+    />
   );
 }

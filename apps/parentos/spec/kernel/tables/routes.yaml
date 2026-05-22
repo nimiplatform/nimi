@@ -60,7 +60,7 @@ routes:
     surfaceKind: health-record-domain-detail
     displayName: "视力档案"
     feature: profile
-    description: "视力、验光、眼轴和眼健康记录。"
+    description: "视力、验光、眼轴和眼健康记录；通过 ?metric=<healthMetricId> 由 /profile 健康记录控制台的指标卡片深链激活对应趋势图序列（消费 health-metric-registry.yaml 中已登记的 vision.* 指标 id）。"
     parent: /profile
     routeKind: detail
     authority: health-record-console-contract.md
@@ -114,7 +114,7 @@ routes:
     parent: /profile
     routeKind: detail
     authority: profile-contract.md
-    summarySource: null
+    summarySource: posture_assessments
 
   - path: /profile/tanner
     surfaceKind: health-record-domain-detail

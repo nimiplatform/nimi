@@ -12,11 +12,13 @@ import { convertFileSrc } from '@tauri-apps/api/core';
 import type {
   AttachmentRow,
   DentalRecordRow,
+  OrthodonticApplianceRow,
+  OrthodonticCheckinRow,
   OrthodonticJourney,
   OrthodonticJourneyEntry,
 } from '../../bridge/sqlite-bridge.js';
 import { formatDateLabel } from '../journal/journal-page-helpers.js';
-import { formatHours } from './orthodontic-derive.js';
+import { deriveAlignerContextForDate, formatAlignerContext, formatHours } from './orthodontic-derive.js';
 import {
   DentalPhotoLightbox,
   type DentalPhotoLightboxItem,
@@ -37,6 +39,12 @@ interface Props {
    */
   orthoDentalRecords: DentalRecordRow[];
   attachmentMap: Map<string, AttachmentRow[]>;
+  /**
+   * Case appliances + their aligner-change checkins, used to derive the
+   * PO-ORTHO-006a "第 X 副牙套·第 Y/Z 天" decoration on `clinical-event` cards.
+   */
+  appliances: OrthodonticApplianceRow[];
+  checkins: OrthodonticCheckinRow[];
   /**
    * Per-card actions for clinical-event entries (the only kind backed by a
    * mutable dental_records row). Non-clinical-event entries don't surface
@@ -66,6 +74,8 @@ export function OrthodonticJourneyTimeline({
   loading,
   orthoDentalRecords,
   attachmentMap,
+  appliances,
+  checkins,
   onAskAiAboutRecord,
   onEditRecord,
   onDeleteRecord,
@@ -86,7 +96,7 @@ export function OrthodonticJourneyTimeline({
       };
     }
     const pastCards: JourneyCardData[] = journey.past
-      .map((e) => projectEntry(e, false, recordById, attachmentMap))
+      .map((e) => projectEntry(e, false, recordById, attachmentMap, appliances, checkins))
       .filter((c): c is JourneyCardData => c !== null);
     // Collapse repeatable future projections. Multiple active appliances each
     // emit their own `next-clinical-review` row (one per appliance ×
@@ -95,7 +105,7 @@ export function OrthodonticJourneyTimeline({
     // earliest occurrence per kind so the future column reads as a clean
     // forward roadmap, not a per-appliance audit log.
     const futureCards: JourneyCardData[] = collapseRepeatableFutures(journey.future)
-      .map((e) => projectEntry(e, true, recordById, attachmentMap))
+      .map((e) => projectEntry(e, true, recordById, attachmentMap, appliances, checkins))
       .filter((c): c is JourneyCardData => c !== null);
     return {
       pastByDate: groupByDate(pastCards),
@@ -107,7 +117,7 @@ export function OrthodonticJourneyTimeline({
       pastDates: sortedDates(pastCards, 'desc'),
       futureDates: sortedDates(futureCards, 'desc'),
     };
-  }, [journey, recordById, attachmentMap]);
+  }, [journey, recordById, attachmentMap, appliances, checkins]);
 
   const [lightboxState, setLightboxState] = useState<
     { photos: DentalPhotoLightboxItem[]; index: number } | null
@@ -262,6 +272,11 @@ function JourneyCard({
             }}
           >
             <span>{card.title}</span>
+            {card.alignerBadge && (
+              <StatusBadge tone="info" className="px-2 py-0.5 text-[10px] font-medium">
+                {card.alignerBadge}
+              </StatusBadge>
+            )}
             {card.isFuture && <FutureBadge />}
           </div>
           {card.subtitle && (
@@ -420,6 +435,8 @@ interface JourneyCardData {
   photos: DentalPhotoLightboxItem[] | null;
   /** Backing record for clinical-event cards — enables AI/edit/delete actions. */
   record: DentalRecordRow | null;
+  /** PO-ORTHO-006a "第 X 副牙套·第 Y/Z 天" decoration; null when not applicable. */
+  alignerBadge: string | null;
 }
 
 function projectEntry(
@@ -427,6 +444,8 @@ function projectEntry(
   isFuture: boolean,
   recordById: Map<string, DentalRecordRow>,
   attachmentMap: Map<string, AttachmentRow[]>,
+  appliances: OrthodonticApplianceRow[],
+  checkins: OrthodonticCheckinRow[],
 ): JourneyCardData | null {
   const occurredAt = entryTime(entry);
   const date = occurredAt.slice(0, 10);
@@ -438,6 +457,7 @@ function projectEntry(
     content: null,
     subtitle: null,
     record: null,
+    alignerBadge: null,
   } satisfies Partial<JourneyCardData>;
   switch (entry.kind) {
     case 'case-started':
@@ -502,6 +522,13 @@ function projectEntry(
           filePath: a.filePath,
           fileName: a.fileName,
         }));
+      // PO-ORTHO-006a: decorate the clinical event with its aligner context
+      // when a clear-aligner appliance window covers the event date.
+      const alignerContext = deriveAlignerContextForDate({
+        appliances,
+        checkins,
+        eventDate: date,
+      });
       return {
         ...base,
         id: `clinical-event-${entry.recordId}`,
@@ -512,6 +539,7 @@ function projectEntry(
         content: entry.notes ?? record?.notes ?? null,
         photos: photos.length > 0 ? photos : null,
         record: record ?? null,
+        alignerBadge: alignerContext ? formatAlignerContext(alignerContext) : null,
       };
     }
     case 'unwear-interval':

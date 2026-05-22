@@ -143,7 +143,7 @@ export function buildHealthRecordSnapshot(input: {
         const latestValue = latestByMetric.get(metric.metricId) ?? null;
         const latestEvent = latestValue ? eventById.get(latestValue.eventId) ?? null : null;
         const freshnessResolution = latestEvent
-          ? resolveNextRecordAt(metric.freshnessPolicyRef, latestEvent.effectiveDate, input.ageMonths)
+          ? resolveNextRecordAt(metric.freshnessPolicyRef, latestEvent.effectiveDate)
           : { nextRecordAt: null, unresolvedPolicyRef: null };
         const freshness = computeFreshness(
           latestValue,
@@ -718,7 +718,6 @@ function computeFreshness(
 function resolveNextRecordAt(
   freshnessPolicyRef: string | undefined,
   effectiveDate: string,
-  ageMonths: number,
 ): { nextRecordAt: string | null; unresolvedPolicyRef: string | null } {
   if (!freshnessPolicyRef) return { nextRecordAt: null, unresolvedPolicyRef: null };
   if (freshnessPolicyRef === 'sleep.daily-optional') return { nextRecordAt: addDays(effectiveDate, 1), unresolvedPolicyRef: null };
@@ -732,19 +731,18 @@ function resolveNextRecordAt(
     return { nextRecordAt: null, unresolvedPolicyRef: null };
   }
 
-  const months = freshnessMonthsForPolicy(freshnessPolicyRef, ageMonths);
+  const months = freshnessMonthsForPolicy(freshnessPolicyRef);
   return months == null
     ? { nextRecordAt: null, unresolvedPolicyRef: freshnessPolicyRef }
     : { nextRecordAt: addMonths(effectiveDate, months), unresolvedPolicyRef: null };
 }
 
-function freshnessMonthsForPolicy(freshnessPolicyRef: string, ageMonths: number) {
+function freshnessMonthsForPolicy(freshnessPolicyRef: string) {
   switch (freshnessPolicyRef) {
     case 'growth.age-cadence':
     case 'growth.derived-from-height-weight':
-      if (ageMonths < 12) return 1;
-      if (ageMonths < 36) return 3;
-      return 6;
+      // Height / weight (and derived BMI) use a uniform monthly cadence.
+      return 1;
     case 'vision.six-month-cadence':
     case 'vision.exam-cadence':
     case 'development.puberty-six-month-cadence':

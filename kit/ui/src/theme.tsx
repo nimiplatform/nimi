@@ -19,6 +19,26 @@ type NimiThemeProviderProps = {
 
 const ALL_ACCENT_CLASSES = ACCENT_PACK_IDS.map((accentPack) => `nimi-theme-accent--${accentPack}`);
 
+export function applyNimiThemeAttributes({
+  scheme,
+  accentPack,
+}: {
+  scheme: NimiThemeScheme;
+  accentPack: NimiAccentPack;
+}) {
+  if (typeof document === 'undefined') {
+    return;
+  }
+  const html = document.documentElement;
+  html.dataset.nimiScheme = scheme;
+  html.dataset.nimiAccent = accentPack;
+  html.classList.toggle('dark', scheme === 'dark');
+  for (const cls of ALL_ACCENT_CLASSES) {
+    html.classList.remove(cls);
+  }
+  html.classList.add(`nimi-theme-accent--${accentPack}`);
+}
+
 export function NimiThemeProvider({
   scheme,
   defaultScheme = 'light',
@@ -32,16 +52,10 @@ export function NimiThemeProvider({
     if (typeof document === 'undefined') {
       return;
     }
-    const html = document.documentElement;
-    html.dataset.nimiScheme = activeScheme;
-    html.dataset.nimiAccent = accentPack;
-    html.classList.toggle('dark', activeScheme === 'dark');
-    for (const cls of ALL_ACCENT_CLASSES) {
-      html.classList.remove(cls);
-    }
-    html.classList.add(`nimi-theme-accent--${accentPack}`);
+    applyNimiThemeAttributes({ scheme: activeScheme, accentPack });
 
     return () => {
+      const html = document.documentElement;
       html.classList.remove('dark');
       html.classList.remove(`nimi-theme-accent--${accentPack}`);
       if (html.dataset.nimiAccent === accentPack) {

@@ -1,4 +1,10 @@
-import { Button, OverlayShell, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
+import {
+  HealthRecordModalShell,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+} from '../profile/health-record-modal-shell.js';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../../app-shell/app-store.js';
@@ -527,89 +533,68 @@ function RecordModal({
   };
 
   return (
-    <OverlayShell
-      open
-      kind="dialog"
-      onClose={onClose}
-      panelClassName="w-80 rounded-2xl"
-      title={
-        <h3 className="text-[16px] font-semibold text-[var(--nimi-text-primary)]">
-          {isEditing ? '编辑记录' : '记录户外活动'}
-        </h3>
-      }
-      footer={
-        <div className="flex items-center justify-between">
-          {isEditing && onDelete ? (
+    <HealthRecordModalShell open size="S" onClose={onClose}>
+      <ModalHeader
+        title={isEditing ? '编辑记录' : '记录户外活动'}
+        icon="☀️"
+        onClose={onClose}
+      />
+      <ModalContent>
+        {/* Date */}
+        <label className="mb-1 block text-[13px] text-[var(--nimi-text-muted)]">日期</label>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="mb-4 w-full rounded-xl border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 py-2 text-[14px] text-[var(--nimi-field-text)]"
+          max={fmtDate(new Date())}
+        />
+
+        {/* Duration */}
+        <label className="mb-1 block text-[13px] text-[var(--nimi-text-muted)]">时长（分钟）</label>
+        <div className="mb-2 flex gap-2">
+          {DURATION_PRESETS.map((preset) => (
             <Button
-              onClick={onDelete}
-              tone="danger"
+              key={preset}
+              onClick={() => setMinutes(String(preset))}
+              tone={minutes === String(preset) ? 'primary' : 'secondary'}
               size="sm"
             >
-              删除
+              {preset}
             </Button>
-          ) : <span />}
-          <div className="flex gap-3">
-            <Button
-              onClick={onClose}
-              tone="ghost"
-              size="sm"
-            >
-              取消
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={!canSave || saving}
-              tone="primary"
-              size="sm"
-            >
-              {saving ? '保存中…' : '保存'}
-            </Button>
-          </div>
+          ))}
         </div>
-      }
-    >
-      {/* Date */}
-      <label className="mb-1 block text-[13px] text-[var(--nimi-text-muted)]">日期</label>
-      <input
-        type="date"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-        className="mb-4 w-full rounded-xl border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 py-2 text-[14px] text-[var(--nimi-field-text)]"
-        max={fmtDate(new Date())}
-      />
+        <TextField
+          type="number"
+          value={minutes}
+          onChange={(e) => setMinutes(e.target.value)}
+          placeholder="自定义分钟数"
+          className="mb-4 w-full"
+          min={1}
+        />
 
-      {/* Duration */}
-      <label className="mb-1 block text-[13px] text-[var(--nimi-text-muted)]">时长（分钟）</label>
-      <div className="mb-2 flex gap-2">
-        {DURATION_PRESETS.map((preset) => (
-          <Button
-            key={preset}
-            onClick={() => setMinutes(String(preset))}
-            tone={minutes === String(preset) ? 'primary' : 'secondary'}
-            size="sm"
-          >
-            {preset}
-          </Button>
-        ))}
-      </div>
-      <TextField
-        type="number"
-        value={minutes}
-        onChange={(e) => setMinutes(e.target.value)}
-        placeholder="自定义分钟数"
-        className="mb-4 w-full"
-        min={1}
-      />
-
-      {/* Note */}
-      <label className="mb-1 block text-[13px] text-[var(--nimi-text-muted)]">备注（可选）</label>
-      <TextField
-        type="text"
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="例：小区公园散步"
-        className="mb-1 w-full"
-      />
-    </OverlayShell>
+        {/* Note */}
+        <label className="mb-1 block text-[13px] text-[var(--nimi-text-muted)]">备注（可选）</label>
+        <TextField
+          type="text"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="例：小区公园散步"
+          className="mb-1 w-full"
+        />
+      </ModalContent>
+      <ModalFooter
+        leading={
+          isEditing && onDelete ? (
+            <Button onClick={onDelete} tone="danger" size="md">删除</Button>
+          ) : null
+        }
+      >
+        <Button onClick={onClose} tone="ghost" size="md">取消</Button>
+        <Button onClick={handleSave} disabled={!canSave || saving} tone="primary" size="md">
+          {saving ? '保存中…' : '保存'}
+        </Button>
+      </ModalFooter>
+    </HealthRecordModalShell>
   );
 }

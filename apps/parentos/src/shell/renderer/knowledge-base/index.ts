@@ -54,7 +54,7 @@ export type {
   GrowthMilestoneTriggerCondition,
   GrowthMilestoneThresholdCrossedTrigger,
   GrowthMilestonePercentileShiftTrigger,
-  GrowthMilestoneMeasurementDensityTrigger,
+  GrowthMilestoneRelativeChangeTrigger,
 } from './gen/growth-milestone-rules.gen.js';
 
 export {

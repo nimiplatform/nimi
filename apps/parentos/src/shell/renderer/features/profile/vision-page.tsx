@@ -1,32 +1,42 @@
-import { Button, Timeline, TimelineGroup } from '@nimiplatform/nimi-kit/ui';
+import { Button, Timeline, TimelineDivider, TimelineGroup } from '@nimiplatform/nimi-kit/ui';
 /**
  * Vision archive page — timeline-document view.
  *
  * Layout (top→bottom):
  *   profile header → AI summary → glance chips → trend chart → exam timeline
- *   (vertical-rail dot list with expandable details, including early screenings)
- *   → next steps → footer.
+ *   (collapsed-by-default accordion; expands to a date-grouped vertical-rail
+ *   timeline carrying both past exams and the projected next-visit, with the
+ *   reminder-cadence editor folded in) → footer.
  *
  * Quantitative exams come from `growth_measurements` (grouped by date), early
  * screenings come from `medical_events` rows whose notes start with `vision:`.
  * Both streams are merged into a single ExamView list via `buildExamViews`.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { computeAgeMonths, useAppStore } from '../../app-shell/app-store.js';
-import { deleteMeasurement, getMeasurements, getMedicalEvents } from '../../bridge/sqlite-bridge.js';
-import type { MeasurementRow, MedicalEventRow } from '../../bridge/sqlite-bridge.js';
+import {
+  deleteMeasurement,
+  getMeasurements,
+  getMedicalEvents,
+  getVisionFollowupSettings,
+} from '../../bridge/sqlite-bridge.js';
+import type {
+  MeasurementRow,
+  MedicalEventRow,
+  VisionFollowupSettings,
+} from '../../bridge/sqlite-bridge.js';
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { NoActiveChildPlaceholder } from './_shared/no-active-child-placeholder.js';
 import { ProfileDetailShell } from './_shared/profile-detail-shell.js';
-import { readImageFileAsDataUrl, analyzeCheckupSheetOCR } from './checkup-ocr.js';
-import type { OCRMeasurementCandidate } from './checkup-ocr.js';
 import {
   EYE_SET,
   buildExamViews, computeGlanceMetrics, deriveMeasurementExamKind, findLatestFullRecord,
   groupByDate,
+  type ExamView,
   type VisionRecord,
 } from './vision-data.js';
 import { BatchForm } from './vision-batch-form.js';
@@ -34,10 +44,11 @@ import { VisionGuide } from './vision-guide.js';
 import { OutdoorSummaryCard } from './outdoor-summary-card.js';
 import {
   EARLY_SCREENING_MAX_AGE_MONTHS,
-  RECENT_EXAM_COUNT,
+  NextStepsEditor,
+  NextVisitCard,
+  resolveNextVisit,
   ScreeningModal,
   SourcesTooltip,
-  NextStepsCard,
   TrendChartCard,
 } from './vision-page-components.js';
 import {
@@ -45,39 +56,51 @@ import {
   EmptyTimelineCard,
   ExamTimelineCard,
   GlanceChip,
-  OlderRecordsToggle,
-  SectionLabel,
 } from './vision-page-cards.js';
+import { OrthodonticDetailsSection } from './orthodontic-details-section.js';
+import { formatDateLabel } from '../journal/journal-page-helpers.js';
 
 /* ── Page ────────────────────────────────────────────────────────── */
+
+// Deep link from the /profile group card: ?metric=<healthMetricId> opens the
+// matching trend-chart series. Maps each canonical vision metric id to its
+// chart `GrowthTypeId`; an absent or unrecognized param keeps the default.
+const METRIC_ID_TO_CHART_TYPE: Record<string, GrowthTypeId> = {
+  'vision.left_visual_acuity': 'vision-left',
+  'vision.right_visual_acuity': 'vision-right',
+  'vision.left_axial_length': 'axial-length-left',
+  'vision.right_axial_length': 'axial-length-right',
+  'vision.left_iop': 'iop-left',
+  'vision.right_iop': 'iop-right',
+};
 
 export default function VisionPage() {
   const { t } = useTranslation();
   const { activeChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
 
+  const [searchParams] = useSearchParams();
   const [measurements, setMeasurements] = useState<MeasurementRow[]>([]);
   const [medicalEvents, setMedicalEvents] = useState<MedicalEventRow[]>([]);
-  const [chartType, setChartType] = useState<GrowthTypeId>('axial-length-right');
+  const [chartType, setChartType] = useState<GrowthTypeId>(
+    () => METRIC_ID_TO_CHART_TYPE[searchParams.get('metric') ?? ''] ?? 'axial-length-right',
+  );
 
   const [showForm, setShowForm] = useState(false);
   const [editingRecord, setEditingRecord] = useState<VisionRecord | null>(null);
   const [showGuide, setShowGuide] = useState(false);
   const [showScreeningModal, setShowScreeningModal] = useState(false);
   const [openExamId, setOpenExamId] = useState<string | null>(null);
-  const [showAllOlder, setShowAllOlder] = useState(false);
   const [showAgeFilter, setShowAgeFilter] = useState(false);
   const [selectedAge, setSelectedAge] = useState<number | null>(null);
-
-  const [ocrScanning, setOcrScanning] = useState(false);
-  const [ocrDraft, setOCRDraft] = useState<OCRMeasurementCandidate[] | null>(null);
-  const [ocrError, setOCRError] = useState<string | null>(null);
-  const ocrInputRef = useRef<HTMLInputElement>(null);
+  const [followupSettings, setFollowupSettings] = useState<VisionFollowupSettings | null>(null);
+  const [showReminderEditor, setShowReminderEditor] = useState(false);
 
   const reload = () => {
     if (!activeChildId) return;
     getMeasurements(activeChildId).then(setMeasurements).catch(catchLog('vision', 'action:load-measurements-failed'));
     getMedicalEvents(activeChildId).then(setMedicalEvents).catch(catchLog('vision', 'action:load-medical-events-failed'));
+    getVisionFollowupSettings(activeChildId).then(setFollowupSettings).catch(catchLog('vision', 'action:load-followup-settings-failed'));
   };
 
   useEffect(() => {
@@ -86,11 +109,6 @@ export default function VisionPage() {
 
   const records = useMemo(() => groupByDate(measurements), [measurements]);
   const exams = useMemo(() => buildExamViews(records, medicalEvents), [records, medicalEvents]);
-
-  // Auto-open the latest exam on first load.
-  useEffect(() => {
-    if (openExamId == null && exams.length > 0) setOpenExamId(exams[0]!.id);
-  }, [exams.length === 0 ? null : exams[0]?.id]);
 
   const filteredExams = useMemo(() => {
     if (selectedAge == null || !child) return exams;
@@ -101,8 +119,17 @@ export default function VisionPage() {
     });
   }, [exams, selectedAge, child]);
 
-  const recentExams = filteredExams.slice(0, RECENT_EXAM_COUNT);
-  const olderExams = filteredExams.slice(RECENT_EXAM_COUNT);
+  // Date-grouped exams — one TimelineGroup per calendar date, matching the
+  // orthodontic 正畸记录 timeline layout (date header carries the date label).
+  const examDateGroups = useMemo(() => {
+    const groups: { date: string; exams: ExamView[] }[] = [];
+    for (const e of filteredExams) {
+      const last = groups[groups.length - 1];
+      if (last && last.date === e.date) last.exams.push(e);
+      else groups.push({ date: e.date, exams: [e] });
+    }
+    return groups;
+  }, [filteredExams]);
 
   const latestFullRecord = useMemo(() => findLatestFullRecord(records), [records]);
   const glanceMetrics = useMemo(() => computeGlanceMetrics(latestFullRecord), [latestFullRecord]);
@@ -112,6 +139,15 @@ export default function VisionPage() {
   const latestBiometricDate = useMemo(
     () => exams.find((e) => e.kind === 'full' || e.kind === 'biometric')?.date ?? null,
     [exams],
+  );
+
+  // Projected next visit — rendered as a "future" entry at the top of the
+  // exam timeline (above the 今天 divider), mirroring the orthodontic
+  // 正畸记录 timeline.
+  const today = useMemo(() => new Date(), []);
+  const nextVisit = useMemo(
+    () => resolveNextVisit(latestBiometricDate, followupSettings),
+    [latestBiometricDate, followupSettings],
   );
 
   // Latest values for AI context (computed before the !child early return so
@@ -150,33 +186,8 @@ export default function VisionPage() {
   const supportsQuantitative = ageMonths >= 36;
 
   const openManualForm = () => {
-    setOCRDraft(null);
-    setOCRError(null);
     setEditingRecord(null);
     setShowForm(true);
-  };
-
-  const handleVisionOCRUpload = async (file: File | null) => {
-    if (!file) return;
-    setOcrScanning(true);
-    setOCRError(null);
-    try {
-      const dataUrl = await readImageFileAsDataUrl(file);
-      const result = await analyzeCheckupSheetOCR({ imageUrl: dataUrl });
-      const eyeMeasurements = result.measurements.filter((measurement) => EYE_SET.has(measurement.typeId));
-      if (eyeMeasurements.length === 0) {
-        setOCRError(t('Profile.rich.vision.ocrNoData'));
-        return;
-      }
-      setEditingRecord(null);
-      setOCRDraft(eyeMeasurements);
-      setShowForm(true);
-    } catch (error) {
-      setOCRError(error instanceof Error ? error.message : t('Profile.rich.vision.ocrFailed'));
-    } finally {
-      setOcrScanning(false);
-      if (ocrInputRef.current) ocrInputRef.current.value = '';
-    }
   };
 
   return (
@@ -198,18 +209,6 @@ export default function VisionPage() {
                 <circle cx="12" cy="12" r="10" /><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3M12 17h.01" />
               </svg>
               {t('Profile.rich.vision.recordGuide')}
-            </button>
-          )}
-          {supportsQuantitative && (
-            <button
-              onClick={() => ocrInputRef.current?.click()}
-              disabled={ocrScanning}
-              className="group relative flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-[color-mix(in_srgb,var(--nimi-status-info)_20%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] px-3 py-1.5 text-[12px] font-medium text-[var(--nimi-text-secondary)] transition-all disabled:opacity-50"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
-              </svg>
-              {ocrScanning ? t('Profile.rich.vision.recognizing') : t('Profile.rich.vision.smartRecognize')}
             </button>
           )}
           {supportsScreening && (
@@ -237,32 +236,7 @@ export default function VisionPage() {
           )}
         </>
       }
-    >
-      {/* OCR file input + error */}
-      <input
-        ref={ocrInputRef}
-        type="file"
-        accept="image/*"
-        aria-label="vision-ocr-file"
-        className="hidden"
-        onChange={(event) => void handleVisionOCRUpload(event.target.files?.[0] ?? null)}
-      />
-      {ocrError && (
-        <div
-          className="mb-4 rounded-2xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-4 py-3 text-[13px] text-[var(--nimi-status-danger)]"
-          data-testid="vision-ocr-error"
-        >
-          {ocrError}
-        </div>
-      )}
-
-      {showGuide && <VisionGuide onClose={() => setShowGuide(false)} />}
-
-      <div className="flex flex-col gap-5">
-        {/* Outdoor cross-link */}
-        <OutdoorSummaryCard childId={child.childId} />
-
-        {/* AI Summary */}
+      aiSummary={
         <AISummaryCard
           domain="vision"
           childName={child.displayName}
@@ -280,6 +254,13 @@ export default function VisionPage() {
             return lines.join('\n');
           })()}
         />
+      }
+    >
+      {showGuide && <VisionGuide onClose={() => setShowGuide(false)} />}
+
+      <div className="flex flex-col gap-5">
+        {/* Outdoor cross-link */}
+        <OutdoorSummaryCard childId={child.childId} />
 
         {/* At-a-glance chips */}
         {latestFullRecord && (
@@ -295,6 +276,7 @@ export default function VisionPage() {
           <TrendChartCard
             measurements={trendPoints}
             chartType={chartType}
+            gender={child.gender}
             onChartTypeChange={setChartType}
           />
         )}
@@ -308,10 +290,7 @@ export default function VisionPage() {
             onClose={() => {
               setShowForm(false);
               setEditingRecord(null);
-              setOCRDraft(null);
-              setOCRError(null);
             }}
-            ocrDraft={ocrDraft}
             initialRecord={editingRecord ?? undefined}
           />
         )}
@@ -327,36 +306,60 @@ export default function VisionPage() {
           />
         )}
 
-        {/* Exam timeline */}
-        <div>
-          <SectionLabel
-            right={
-              exams.length > 0 ? (
-                <button
-                  onClick={() => setShowAgeFilter((s) => !s)}
-                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border-0 px-2.5 py-1 text-[11px] transition-all ${showAgeFilter ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]' : 'bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-secondary)]'}`}
-                >
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 6h18M7 12h10M11 18h2" />
-                  </svg>
-                  {selectedAge != null ? t('Profile.rich.vision.ageFilter', { age: selectedAge }) : t('Profile.rich.vision.ageFilterDefault')}
-                  {selectedAge != null && (
-                    <span
-                      onClick={(e) => { e.stopPropagation(); setSelectedAge(null); }}
-                      className="ml-0.5 opacity-70 text-[13px] leading-none"
-                    >
-                      ×
-                    </span>
-                  )}
-                </button>
-              ) : undefined
-            }
-          >
-            {t('Profile.rich.vision.timelineTitle')}
-            <span className="ml-2 text-[10px] font-normal normal-case tracking-normal text-[var(--nimi-text-muted)]">
-              {t('Profile.rich.vision.examCount', { count: exams.length })}
-            </span>
-          </SectionLabel>
+        {/* Exam timeline — collapsed by default; expands to the full
+            date-grouped list, matching the orthodontic 正畸记录 timeline. */}
+        <OrthodonticDetailsSection
+          title={t('Profile.rich.vision.timelineTitle')}
+          count={t('Profile.rich.vision.examCount', { count: exams.length })}
+        >
+          {exams.length > 0 && (
+            <div className="mb-3 flex justify-end gap-2">
+              <button
+                onClick={() => setShowReminderEditor((s) => !s)}
+                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border-0 px-2.5 py-1 text-[11px] transition-all ${showReminderEditor ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]' : 'bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-secondary)]'}`}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6 1.65 1.65 0 0010 3.09V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.13.31.2.65.2 1v.09a2 2 0 010 4H20" />
+                </svg>
+                {t('Profile.rich.vision.reminderSettings')}
+              </button>
+              <button
+                onClick={() => setShowAgeFilter((s) => !s)}
+                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border-0 px-2.5 py-1 text-[11px] transition-all ${showAgeFilter ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]' : 'bg-[var(--nimi-action-ghost-hover)] text-[var(--nimi-text-secondary)]'}`}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18M7 12h10M11 18h2" />
+                </svg>
+                {selectedAge != null
+                  ? t('Profile.rich.vision.ageFilter', { age: selectedAge })
+                  : t('Profile.rich.vision.ageFilterDefault')}
+                {selectedAge != null && (
+                  <span
+                    onClick={(e) => { e.stopPropagation(); setSelectedAge(null); }}
+                    className="ml-0.5 opacity-70 text-[13px] leading-none"
+                  >
+                    ×
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
+
+          {showReminderEditor && (
+            <div className="mb-3">
+              <NextStepsEditor
+                childId={child.childId}
+                latestExamDate={latestBiometricDate}
+                settings={followupSettings}
+                onClose={() => setShowReminderEditor(false)}
+                onSaved={(next) => {
+                  setFollowupSettings(next);
+                  setShowReminderEditor(false);
+                }}
+              />
+            </div>
+          )}
 
           {showAgeFilter && (
             <AgeFilter
@@ -366,12 +369,9 @@ export default function VisionPage() {
               onPick={setSelectedAge}
               activeExamId={openExamId}
               onExamClick={(id) => {
-                const idx = exams.findIndex((e) => e.id === id);
-                if (idx < 0) return;
-                if (idx >= RECENT_EXAM_COUNT) setShowAllOlder(true);
                 setOpenExamId(id);
-                // Defer to next frame so the older list (if just expanded)
-                // and the open-state re-render have committed before we scroll.
+                // Defer to next frame so the open-state re-render has
+                // committed before we scroll.
                 requestAnimationFrame(() => {
                   const el = document.querySelector<HTMLElement>(`[data-exam-id="${id}"]`);
                   el?.scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -384,28 +384,37 @@ export default function VisionPage() {
             <EmptyTimelineCard message={supportsQuantitative ? t('Profile.rich.vision.emptyTimelineFull') : t('Profile.rich.vision.emptyTimeline')} />
           ) : (
             <Timeline>
-              {recentExams.map((e, i) => {
-                const isLatest = i === 0 && filteredExams[0]?.id === e.id;
-                const isLastVisible =
-                  i === recentExams.length - 1 && olderExams.length === 0;
-                return (
-                  <TimelineGroup
-                    key={e.id}
-                    variant="past"
-                    tone={isLatest ? 'success' : 'neutral'}
-                    isLast={isLastVisible}
-                  >
+              {nextVisit && (
+                <TimelineGroup
+                  variant="future"
+                  date={formatDateLabel(nextVisit.visitDate)}
+                  secondaryLabel="1 条"
+                >
+                  <NextVisitCard resolved={nextVisit} today={today} />
+                </TimelineGroup>
+              )}
+
+              {nextVisit && examDateGroups.length > 0 && <TimelineDivider label="今天" />}
+
+              {examDateGroups.map((group, gi) => (
+                <TimelineGroup
+                  key={group.date}
+                  variant="past"
+                  tone={gi === 0 ? 'success' : 'neutral'}
+                  date={formatDateLabel(group.date)}
+                  secondaryLabel={`${group.exams.length} 条`}
+                  isLast={gi === examDateGroups.length - 1}
+                >
+                  {group.exams.map((e) => (
                     <ExamTimelineCard
+                      key={e.id}
                       exam={e}
-                      prev={recentExams[i + 1] ?? olderExams[0]}
                       gender={child.gender}
-                      isLatest={isLatest}
+                      isLatest={e.id === filteredExams[0]?.id}
                       isOpen={openExamId === e.id}
                       onToggle={() => setOpenExamId(openExamId === e.id ? null : e.id)}
                       onEdit={e.source === 'measurement' && e.record ? () => {
                         const rec = e.record!;
-                        setOCRDraft(null);
-                        setOCRError(null);
                         setEditingRecord(rec);
                         setShowForm(true);
                         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -414,54 +423,12 @@ export default function VisionPage() {
                         void handleDeleteRecord(e.record!);
                       } : undefined}
                     />
-                  </TimelineGroup>
-                );
-              })}
-
-              {olderExams.length > 0 && (
-                <div className="mb-6">
-                  <OlderRecordsToggle
-                    count={olderExams.length}
-                    expanded={showAllOlder}
-                    onToggle={() => setShowAllOlder((s) => !s)}
-                  />
-                </div>
-              )}
-
-              {showAllOlder && olderExams.map((e, i) => (
-                <TimelineGroup
-                  key={e.id}
-                  variant="past"
-                  tone="neutral"
-                  isLast={i === olderExams.length - 1}
-                >
-                  <ExamTimelineCard
-                    exam={e}
-                    prev={olderExams[i + 1]}
-                    gender={child.gender}
-                    isLatest={false}
-                    isOpen={openExamId === e.id}
-                    onToggle={() => setOpenExamId(openExamId === e.id ? null : e.id)}
-                    onEdit={e.source === 'measurement' && e.record ? () => {
-                      const rec = e.record!;
-                      setOCRDraft(null);
-                      setOCRError(null);
-                      setEditingRecord(rec);
-                      setShowForm(true);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    } : undefined}
-                    onDelete={e.source === 'measurement' && e.record ? () => {
-                      void handleDeleteRecord(e.record!);
-                    } : undefined}
-                  />
+                  ))}
                 </TimelineGroup>
               ))}
             </Timeline>
           )}
-        </div>
-
-        {/* Next steps */}
-        <NextStepsCard childId={child.childId} latestBiometricDate={latestBiometricDate} />
+        </OrthodonticDetailsSection>
 
         {/* Footer */}
         <div

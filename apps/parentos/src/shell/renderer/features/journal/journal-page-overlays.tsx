@@ -22,13 +22,13 @@ export function EmojiPickerPortal({
   onClose: () => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ left: number; bottom: number } | null>(null);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
 
   useEffect(() => {
     const btn = anchorRef.current;
     if (!btn) return;
     const r = btn.getBoundingClientRect();
-    setPos({ left: Math.max(4, r.left), bottom: window.innerHeight - r.top + 6 });
+    setPos({ left: Math.max(4, r.left), top: r.bottom + 6 });
   }, [anchorRef]);
 
   useEffect(() => {
@@ -44,17 +44,17 @@ export function EmojiPickerPortal({
 
   if (!pos) return null;
 
-  const panelWidth = 290;
-  const panelHeight = 260;
+  const panelWidth = 364;
+  const panelHeight = 300;
   const left = Math.min(pos.left, window.innerWidth - panelWidth - 8);
-  const bottom = Math.min(pos.bottom, window.innerHeight - panelHeight - 8);
+  const top = Math.max(8, Math.min(pos.top, window.innerHeight - panelHeight - 8));
 
   return (
     <div
       ref={panelRef}
       className="parentos-portal-frame fixed z-50"
       style={{
-        '--parentos-portal-bottom': `${bottom}px`,
+        '--parentos-portal-top': `${top}px`,
         '--parentos-portal-height': `${panelHeight}px`,
         '--parentos-portal-left': `${left}px`,
         '--parentos-portal-width': `${panelWidth}px`,
@@ -68,7 +68,7 @@ export function EmojiPickerPortal({
               onClick={() => onCategoryChange(cat.key)}
               title={cat.label}
               className={cn(
-                'flex h-7 w-7 items-center justify-center parentos-radius-sm text-[16px] transition-colors',
+                'flex h-8 w-8 items-center justify-center parentos-radius-sm text-[18px] transition-colors',
                 category === cat.key ? 'bg-[var(--nimi-surface-active)]' : 'hover:bg-[var(--nimi-action-ghost-hover)]',
               )}
             >
@@ -82,7 +82,7 @@ export function EmojiPickerPortal({
               <button
                 key={`${emoji}-${index}`}
                 onClick={() => onSelect(emoji)}
-                className="flex h-[34px] w-[34px] items-center justify-center parentos-radius-sm text-[18px] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
+                className="flex h-[42px] w-[42px] items-center justify-center parentos-radius-sm text-[24px] transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
               >
                 {emoji}
               </button>

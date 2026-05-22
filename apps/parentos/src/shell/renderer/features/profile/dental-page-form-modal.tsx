@@ -1,8 +1,7 @@
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { Button, cn, DashedAddButton, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, cn, DashedAddButton, DatePicker, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import type { AttachmentRow } from '../../bridge/sqlite-bridge.js';
 import type { ReactNode } from 'react';
-import { ProfileDatePicker } from './profile-date-picker.js';
 import {
   ChipGroup,
   type ChipOption,
@@ -98,7 +97,7 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
         <div className="space-y-5">
           <FormGrid cols={2}>
             <FormField label="就诊日期">
-              <ProfileDatePicker value={props.formEventDate} onChange={props.setFormEventDate} className="h-12" />
+              <DatePicker value={props.formEventDate} onChange={props.setFormEventDate} className="h-12" />
             </FormField>
             <FormField label="医院/诊所">
               <TextField

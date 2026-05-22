@@ -203,6 +203,8 @@
         "backToProfile": "返回档案",
         "addChildFirst": "请先添加孩子",
         "addRecord": "添加记录",
+        "aiAnalysis": "AI 分析",
+        "collapseAnalysis": "收起分析",
         "save": "保存",
         "saving": "保存中...",
         "cancel": "取消",

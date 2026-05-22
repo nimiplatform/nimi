@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { Button, Surface, TextField, SelectField, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, DatePicker, Surface, TextField, SelectField, cn } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore, type NurtureMode } from '../../app-shell/app-store.js';
 import { createChild, createFamily, deleteChild, getChildren, updateChild } from '../../bridge/sqlite-bridge.js';
 import { saveChildAvatar } from '../../bridge/child-avatar-bridge.js';
@@ -9,7 +9,6 @@ import { mapChildRow } from '../../bridge/mappers.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { fileToBase64 } from '../journal/journal-page-helpers.js';
 import { AvatarCropModal } from './avatar-crop-modal.js';
-import { ProfileDatePicker } from '../profile/profile-date-picker.js';
 import { ChildAvatar } from '../../shared/child-avatar.js';
 
 /** Convert a local filesystem path to a Tauri 2 asset URL */
@@ -390,7 +389,7 @@ export default function ChildrenSettingsPage() {
               </div>
               <div>
                 <label className="mb-1.5 block text-[13px] text-[var(--nimi-text-muted)]">出生日期 *</label>
-                <ProfileDatePicker value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })}
+                <DatePicker value={form.birthDate} onChange={(v) => setForm({ ...form, birthDate: v })}
                   maxDate={new Date().toISOString().slice(0, 10)} size="small" />
               </div>
               <div>

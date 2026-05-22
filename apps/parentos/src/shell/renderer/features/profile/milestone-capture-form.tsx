@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Button, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DatePicker, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { saveAttachment, upsertMilestoneRecord } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { MILESTONE_CATALOG } from '../../knowledge-base/index.js';
 import type { MilestoneDomain } from '../../knowledge-base/gen/milestone-catalog.gen.js';
 import { PhotoGrid, type PendingPhoto } from './photo-grid.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
 import {
   ChipGroup,
   type ChipOption,
@@ -210,7 +209,7 @@ export function MilestoneCaptureContent({ child, ageMonths, onSaved, onClose, he
           {milestone ? (
             <>
               <FormField label="达成日期">
-                <ProfileDatePicker value={date} onChange={setDate} className="h-12" />
+                <DatePicker value={date} onChange={setDate} className="h-12" />
               </FormField>
 
               <FormField label="记录小故事">

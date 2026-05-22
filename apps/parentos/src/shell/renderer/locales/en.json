@@ -203,6 +203,8 @@
         "backToProfile": "Back to profile",
         "addChildFirst": "Please add a child profile first",
         "addRecord": "Add record",
+        "aiAnalysis": "AI analysis",
+        "collapseAnalysis": "Hide analysis",
         "save": "Save",
         "saving": "Saving...",
         "cancel": "Cancel",

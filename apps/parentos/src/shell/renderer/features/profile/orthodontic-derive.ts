@@ -166,6 +166,77 @@ export function findLatestAlignerChange(
   };
 }
 
+// ── Aligner-context decoration (PO-ORTHO-006a) ──────────────────────────
+
+export interface AlignerContext {
+  /** 1-based tray index worn on the queried date. */
+  alignerIndex: number;
+  /** 1-based day within that tray; the anchor day (change/start) is day 1. */
+  dayInTray: number;
+  /** Prescribed wear days per tray, or null when the appliance has none set. */
+  daysPerAligner: number | null;
+}
+
+/**
+ * Derives the "第 X 副牙套·第 Y/Z 天" decoration for an orthodontic clinical
+ * event rendered in the dental timeline (PO-ORTHO-006a). Returns null unless a
+ * `clear-aligner` appliance window covers `eventDate` — so non-clear-aligner
+ * cases and events dated outside any aligner window carry no aligner context.
+ *
+ * `eventDate` is a date-only `yyyy-mm-dd` string (dental records are
+ * date-granular); all comparisons run on the UTC-midnight calendar date.
+ */
+export function deriveAlignerContextForDate(params: {
+  appliances: OrthodonticApplianceRow[];
+  checkins: OrthodonticCheckinRow[];
+  eventDate: string;
+}): AlignerContext | null {
+  const { appliances, checkins, eventDate } = params;
+  const dateOnly = eventDate.slice(0, 10);
+
+  // Clear-aligner appliance whose [startedAt, endedAt] window covers the date.
+  // On overlap (e.g. a refinement series) the latest-started appliance wins.
+  const covering = appliances
+    .filter(
+      (a) =>
+        a.applianceType === 'clear-aligner' &&
+        a.startedAt.slice(0, 10) <= dateOnly &&
+        (a.endedAt === null || dateOnly <= a.endedAt.slice(0, 10)),
+    )
+    .sort((a, b) => a.startedAt.localeCompare(b.startedAt));
+  const appliance = covering[covering.length - 1];
+  if (!appliance) return null;
+
+  // Latest aligner-change on or before the date anchors the current tray;
+  // before the first change the parent is still on tray 1 since startedAt.
+  const priorChanges = checkins
+    .filter(
+      (c) =>
+        c.checkinType === 'aligner-change' &&
+        c.applianceId === appliance.applianceId &&
+        c.checkinDate.slice(0, 10) <= dateOnly,
+    )
+    .map((c) => ({ row: c, at: c.checkinAt ?? ymdToIsoMidnight(c.checkinDate) }))
+    .sort((a, b) => a.at.localeCompare(b.at));
+  const latest = priorChanges.length > 0 ? priorChanges[priorChanges.length - 1]!.row : null;
+
+  const anchorYmd = latest ? latest.checkinDate.slice(0, 10) : appliance.startedAt.slice(0, 10);
+  const alignerIndex =
+    latest && latest.alignerIndex !== null && latest.alignerIndex > 0 ? latest.alignerIndex : 1;
+  const elapsedDays = Math.max(
+    0,
+    Math.round((parseIso(ymdToIsoMidnight(dateOnly)) - parseIso(ymdToIsoMidnight(anchorYmd))) / DAY_MS),
+  );
+
+  return { alignerIndex, dayInTray: elapsedDays + 1, daysPerAligner: appliance.daysPerAligner };
+}
+
+/** Formats an `AlignerContext` as the PO-ORTHO-006a badge text. */
+export function formatAlignerContext(ctx: AlignerContext): string {
+  const day = ctx.daysPerAligner !== null ? `${ctx.dayInTray}/${ctx.daysPerAligner}` : `${ctx.dayInTray}`;
+  return `第${ctx.alignerIndex}副牙套·第${day}天`;
+}
+
 // ── Cycle progress (PO-ORTHO-008) ───────────────────────────────────────
 
 export interface CycleProgress {
