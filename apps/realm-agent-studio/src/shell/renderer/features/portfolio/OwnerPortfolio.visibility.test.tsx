@@ -278,6 +278,31 @@ vi.mock('./portfolio-client.js', async (importOriginal) => {
         rawText: '{"worldview":"Layered world, Runtime proposed.","contentStyle":"Warm and concise."}',
       },
     })),
+    proposeReviewedPostCopy: vi.fn(async () => ({
+      ok: true,
+      source: 'Runtime runtime.ai.text.generate',
+      candidate: true,
+      truthWrite: false,
+      submitted: {
+        model: 'configured-post-model',
+        input: 'post copy intent',
+      },
+      runtime: {
+        traceId: 'trace-post-copy-ui',
+      },
+      proposal: {
+        source: 'Runtime runtime.ai.text.generate',
+        candidate: true,
+        truthWrite: false,
+        draftPatch: {
+          caption: 'Mira shares a Runtime-assisted post.',
+          tagsText: 'artifact, studio',
+        },
+        changedPostKeys: ['caption', 'tagsText'],
+        rationale: 'Runtime drafted an agent-authored post candidate.',
+        rawText: '{"caption":"Mira shares a Runtime-assisted post.","tagsText":"artifact, studio"}',
+      },
+    })),
     updateReviewedOwnerAgentSettings: vi.fn(async () => ({
       ok: true,
       source: 'Realm MeService.updateMyRealmAgentSettings',
@@ -787,6 +812,68 @@ describe('OwnerPortfolio visibility settings UI', () => {
     }));
     expect(document.body.textContent).toContain('Public profile binding remains deferred');
     expect(document.body.textContent).toContain('Identity Resource upload');
+  });
+
+  it('applies Runtime post copy as editable draft fields before publish', async () => {
+    await renderOwnerPortfolio();
+    await openWorkspace('Posts', 'Creative post candidate');
+
+    await changeField(
+      findFieldByPlaceholder<HTMLTextAreaElement>('Describe the post copy you want'),
+      'Draft a short agent-authored update.',
+    );
+    const proposeButton = await waitForButtonEnabled('Ask Runtime for post copy');
+    await act(async () => {
+      proposeButton.click();
+    });
+
+    await waitForText('Runtime drafted an agent-authored post candidate.');
+    expect(portfolioClient.proposeReviewedPostCopy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'agent-1',
+      }),
+      expect.objectContaining({
+        caption: '',
+      }),
+      'Draft a short agent-authored update.',
+    );
+
+    await act(async () => {
+      findButtonByText('Apply post copy').click();
+    });
+
+    expect(findFieldByPlaceholder<HTMLTextAreaElement>('Draft caption for human review').value).toBe('Mira shares a Runtime-assisted post.');
+    expect(findFieldByPlaceholder<HTMLInputElement>('artifact, studio, release-note').value).toBe('artifact, studio');
+    expect(document.body.textContent).toContain('Runtime copy is candidate material only.');
+    expect(findButtonByText('Publish to Realm').disabled).toBe(true);
+  });
+
+  it('saves one app-local schedule and keeps execution foreground-only until due', async () => {
+    await renderOwnerPortfolio();
+    await openWorkspace('Schedule', 'Local schedule candidate');
+
+    await changeField(findFieldByPlaceholder<HTMLTextAreaElement>('Draft caption for human review'), 'Scheduled local post');
+    await checkAllHumanReviewBoxes();
+    const dateField = document.querySelector('input[type="date"]');
+    const timeField = document.querySelector('input[type="time"]');
+    if (!(dateField instanceof HTMLInputElement) || !(timeField instanceof HTMLInputElement)) {
+      throw new Error('Schedule date/time fields not found');
+    }
+    await changeField(dateField, '2099-05-22');
+    await changeField(timeField, '09:30');
+
+    await act(async () => {
+      findButtonByText('Preview local schedule').click();
+    });
+    await waitForText('2099-05-22T09:30');
+    await act(async () => {
+      findButtonByText('Save local schedule').click();
+    });
+
+    await waitForText('Saved local schedule for 2099-05-22T09:30.');
+    expect(findButtonByText('Publish due schedule').disabled).toBe(true);
+    expect(document.body.textContent).toContain('foreground when due');
+    expect(document.body.textContent).toContain('Realm publish is the only public success state');
   });
 
   it('creates a reviewed text Resource and fills the post attachment envelope', async () => {

@@ -26,7 +26,14 @@ import {
   type SelectableRealmWorld,
   type SelectedWorldPreview,
 } from './create-agent-draft.js';
-import type { CandidatePostPayload } from './post-draft.js';
+import {
+  POST_COPY_ASSISTANCE_SOURCE,
+  buildRuntimePostCopyPrompt,
+  normalizeRuntimePostCopyProposal,
+  type CandidatePostPayload,
+  type LocalPostDraftInput,
+  type RuntimePostCopyProposal,
+} from './post-draft.js';
 import {
   VISUAL_IMAGE_GENERATION_SOURCE,
   VOICE_DEMO_SYNTHESIS_SOURCE,
@@ -426,6 +433,34 @@ export type RuntimeOwnerSettingsProposalResult =
       | 'runtime-settings-proposal-transport-unavailable'
       | 'runtime-settings-proposal-failed'
       | 'runtime-settings-proposal-invalid-output';
+    message: string;
+    submitted: TextGenerateInput | null;
+  };
+
+export type RuntimePostCopyProposalResult =
+  | {
+    ok: true;
+    source: typeof POST_COPY_ASSISTANCE_SOURCE;
+    candidate: true;
+    truthWrite: false;
+    proposal: RuntimePostCopyProposal;
+    submitted: TextGenerateInput;
+    runtime: {
+      traceId?: string;
+      modelResolved?: string;
+      finishReason?: string;
+    };
+  }
+  | {
+    ok: false;
+    source: typeof POST_COPY_ASSISTANCE_SOURCE;
+    candidate: false;
+    truthWrite: false;
+    failure:
+      | 'runtime-post-copy-payload-invalid'
+      | 'runtime-post-copy-transport-unavailable'
+      | 'runtime-post-copy-failed'
+      | 'runtime-post-copy-invalid-output';
     message: string;
     submitted: TextGenerateInput | null;
   };
@@ -1244,6 +1279,14 @@ function resolveRuntimeSettingsProposalModel(): string {
   ).trim();
 }
 
+function resolveRuntimePostCopyModel(): string {
+  return String(
+    import.meta.env.VITE_RUNTIME_POST_COPY_MODEL
+    || import.meta.env.VITE_RUNTIME_TEXT_MODEL
+    || '',
+  ).trim();
+}
+
 export async function proposeReviewedOwnerAgentSettings(
   agentId: string,
   draft: OwnerAgentSettingsDraft,
@@ -1316,6 +1359,84 @@ export async function proposeReviewedOwnerAgentSettings(
       candidate: false,
       truthWrite: false,
       failure: 'runtime-settings-proposal-failed',
+      message: `Runtime runtime.ai.text.generate failed: ${error instanceof Error ? error.message : 'runtime transport call failed.'}`,
+      submitted: built.payload,
+    };
+  }
+}
+
+export async function proposeReviewedPostCopy(
+  agent: OwnerPortfolioAgentDetail,
+  draft: LocalPostDraftInput,
+  intent: string,
+  runtime?: RuntimeTextClient | null,
+): Promise<RuntimePostCopyProposalResult> {
+  const built = buildRuntimePostCopyPrompt({
+    agent,
+    draft,
+    intent,
+    model: resolveRuntimePostCopyModel(),
+  });
+  if (!built.ok) {
+    return {
+      ok: false,
+      source: POST_COPY_ASSISTANCE_SOURCE,
+      candidate: false,
+      truthWrite: false,
+      failure: 'runtime-post-copy-payload-invalid',
+      message: built.errors.join('; ') || 'Runtime post copy payload invalid.',
+      submitted: null,
+    };
+  }
+
+  const runtimeClient = runtime === undefined ? await createStudioRuntimeClient() : runtime;
+  if (!runtimeClient) {
+    return {
+      ok: false,
+      source: POST_COPY_ASSISTANCE_SOURCE,
+      candidate: false,
+      truthWrite: false,
+      failure: 'runtime-post-copy-transport-unavailable',
+      message: 'Runtime runtime.ai.text.generate runtime transport unavailable: Tauri IPC runtime transport is required.',
+      submitted: built.payload,
+    };
+  }
+
+  try {
+    const output = await runtimeClient.ai.text.generate(built.payload);
+    try {
+      const proposal = normalizeRuntimePostCopyProposal(output.text, draft);
+      return {
+        ok: true,
+        source: POST_COPY_ASSISTANCE_SOURCE,
+        candidate: true,
+        truthWrite: false,
+        proposal,
+        submitted: built.payload,
+        runtime: {
+          ...(output.trace?.traceId ? { traceId: output.trace.traceId } : {}),
+          ...(output.trace?.modelResolved ? { modelResolved: output.trace.modelResolved } : {}),
+          ...(output.finishReason ? { finishReason: String(output.finishReason) } : {}),
+        },
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        source: POST_COPY_ASSISTANCE_SOURCE,
+        candidate: false,
+        truthWrite: false,
+        failure: 'runtime-post-copy-invalid-output',
+        message: error instanceof Error ? error.message : 'Runtime post copy output invalid.',
+        submitted: built.payload,
+      };
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      source: POST_COPY_ASSISTANCE_SOURCE,
+      candidate: false,
+      truthWrite: false,
+      failure: 'runtime-post-copy-failed',
       message: `Runtime runtime.ai.text.generate failed: ${error instanceof Error ? error.message : 'runtime transport call failed.'}`,
       submitted: built.payload,
     };

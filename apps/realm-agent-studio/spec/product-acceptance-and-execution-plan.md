@@ -52,8 +52,8 @@ acceptance. Acceptance requires the whole owner workflow to be coherent:
 | A4 Owner portfolio and create | Portfolio list/filter/sort, create flow, handle preflight, OASIS/default world selection, selected-world preview, create confirmation, and post-create opening behavior are product-complete. Public draft fields are not silently dropped. | W3 closed. Portfolio/create/detail owner surfaces are complete for the admitted first-version scope; public bio is preserved as a post-create settings continuation instead of being silently submitted or dropped. |
 | A5 Settings and rule-of-truth | Settings flow is natural-language-first plus structured fields, AI proposal/review where useful, field-to-layer clarity, human review, owner settings save, and no raw world-scoped `AgentRule` CRUD. | W4 closed. Runtime-assisted settings proposals are candidate-only, apply to visible fields for owner review, and save only through owner-scoped `MeService.updateMyRealmAgentSettings`. |
 | A6 Creative identity assets | Avatar, profile cover/background, visual candidates, upload/generation, local history, owner review, public write success, and deferred public asset paths are clearly separated. App-local history is durable enough for the desktop product shape. | W5 closed for admitted surfaces. Avatar URL remains the only owner-reviewed public profile asset write; Runtime image candidates, identity Resource upload, voice-demo candidates, and app-local creative history are candidate-only. Profile cover/background and Resource-to-Agent binding publication remain explicitly deferred pending owner-scoped Realm ingress. |
-| A7 Agent-authored posts | Owner can draft from agent voice, use AI assistance, attach canonical media, human-review, publish through Realm, and create a single local schedule that is actually persisted/executable or explicitly not admitted. | Partial. Realm publish and attachments exist. AI post assistance and real app-local scheduling are not complete. |
-| A8 Runtime AI consumption | Runtime AI support covers setting rewrite/proposal, visual/image generation candidates when available, post copy, voice demo, and source-backed suggestions through SDK surfaces. Runtime output remains candidate material until owner review. | Partial. W4 closes the settings proposal subset through `runtime.ai.text.generate`; W5 closes the visual image candidate subset through `media.image.generate` and keeps voice demo candidate-only. Post-copy remains W6. |
+| A7 Agent-authored posts | Owner can draft from agent voice, use AI assistance, attach canonical media, human-review, publish through Realm, and create a single local schedule that is actually persisted/executable or explicitly not admitted. | W6 closed for admitted surfaces. Post copy assistance is candidate-only, attachment and publish paths use Realm canonical services, and one app-local schedule is persisted per agent with foreground due execution. Realm publish success is claimed only after `PostsService.createPost` returns canonical post identity. |
+| A8 Runtime AI consumption | Runtime AI support covers setting rewrite/proposal, visual/image generation candidates when available, post copy, voice demo, and source-backed suggestions through SDK surfaces. Runtime output remains candidate material until owner review. | Partial. W4 closes settings proposals, W5 closes visual image candidates and voice demo candidate behavior, and W6 closes post-copy assistance through `runtime.ai.text.generate`. Source-backed portfolio suggestions remain final/deferred audit scope. |
 | A9 Failure and recovery | Every failure state preserves valid local work, names the unavailable source/capability in product terms, avoids pseudo-success, and gives a valid next action. | Partial. Fail-closed exists in many client paths; UI recovery is not yet product-wide. |
 | A10 Verification evidence | Final closeout includes desktop-shell smoke, renderer screenshot only as secondary evidence, unit/integration tests, boundary checks, spec governance, no app REST bypass, no first-party SDK misuse, and acceptance matrix results per gate. | Not accepted. Current evidence covers renderer tests/build/boundary checks only. |
 
@@ -75,11 +75,12 @@ P1 gaps:
 - `OwnerPortfolio.tsx` and `portfolio-client.ts` are too broad for sustained
   product iteration. Their size is a symptom of mixed workflow ownership, not a
   cosmetic refactor issue.
-- AI support is still incomplete for posts and source-backed suggestions. W4
-  closed setting rewrite/proposal, and W5 closed image/visual candidate
-  generation as candidate-only Runtime output.
-- Local post scheduling is only a preview candidate. It is not a durable desktop
-  schedule with execution semantics.
+- AI support is still incomplete for source-backed portfolio suggestions. W4
+  closed setting rewrite/proposal, W5 closed image/visual candidate generation,
+  and W6 closed post-copy assistance as candidate-only Runtime output.
+- Local post scheduling is a single persisted app-local schedule with foreground
+  due execution after W6. It is not a recurring queue, campaign calendar, or
+  Realm scheduling layer.
 - Local creative asset history is app-local desktop storage after W5. It is not
   cross-device public truth.
 - Create flow collects public bio as a local preview but does not persist it as
@@ -112,7 +113,7 @@ P2 gaps:
 | W3 Owner portfolio/create/detail completion | closed | W2 | Finish owner list/filter/sort, create, world selection, post-create flow, detail state, friendCount, source failures, and owner-only boundaries. | A4 and relevant A9 cases passed for portfolio/create/detail. |
 | W4 Settings and AI proposal workflow | closed | W3 | Natural-language setting edits, Runtime-assisted proposal/rewrite, structured field review, owner settings save, no raw rule CRUD. | A5 and A8 settings subset passed. |
 | W5 Creative identity and media workflow | closed | W3 | Avatar/profile cover strategy, visual/image candidates, upload, local durable history, clear blocked/deferred public asset publishing. | A6 and A8 visual subset passed for admitted surfaces; blocked Realm profile/binding publication is explicitly deferred. |
-| W6 Agent post and local schedule | candidate | W3 | Agent-authored post composer, AI copy assistance, attachments, human review, publish, and real app-local single schedule. | A7 and schedule failure/recovery pass. |
+| W6 Agent post and local schedule | closed | W3 | Agent-authored post composer, AI copy assistance, attachments, human review, publish, and real app-local single schedule. | A7 and A8 post-copy subset passed. App-local schedule is persisted and foreground-executable when due. |
 | W7 Final acceptance hardening | candidate | W4, W5, W6 | Run complete acceptance matrix, desktop smoke, renderer screenshot, spec/boundary checks, copy pass, release-risk audit. | A0-A10 pass or carry explicit deferred Realm-surface blockers. |
 
 Wave ordering follows `.nimi/methodology/wave-dag-policy.yaml`: upstream owner
@@ -333,3 +334,43 @@ W5 closed on 2026-05-22 with:
 W5 closure does not claim post copy assistance, durable executable schedule, or
 final product acceptance. W6 remains responsible for agent-authored posts and
 local schedule workflow.
+
+## W6 Closure Evidence
+
+W6 closed on 2026-05-22 with:
+
+- Runtime post-copy assistance uses SDK `runtime.ai.text.generate` with configured
+  `VITE_RUNTIME_POST_COPY_MODEL` or `VITE_RUNTIME_TEXT_MODEL`. Runtime output is
+  candidate material only, applies into editable caption/tag fields, and clears
+  human review before publish.
+- Post publishing still uses only `PostsService.createPost` with `CreatePostDto`
+  fields `attachments`, `caption`, and `tags`. Studio does not submit
+  caller-owned `worldId`, `authorId`, post id, schedule id, queue, campaign, or
+  recurrence fields.
+- Media attachments remain canonical attachment envelopes over READY/readable
+  Resource/Asset/Bundle targets. Text and media Resource helpers remain separate
+  from public profile asset publication.
+- The Local Schedule workspace persists one app-local schedule per agent in
+  desktop local storage. The schedule is foreground-executable only when due and
+  clears only after Realm publish succeeds. Local scheduling is not Realm schedule
+  truth and is not public post success.
+- Failure handling preserves draft/schedule state for Runtime unavailability,
+  invalid AI output, invalid local schedule times, and Realm publish failures.
+- Tests cover post-copy prompt construction, proposal normalization/rejection,
+  SDK `runtime.ai.text.generate` use, fail-closed missing post-copy model config,
+  UI post-copy application, single local schedule persistence, due-state
+  execution gating, and existing publish/attachment boundaries.
+- `pnpm --filter @nimiplatform/realm-agent-studio typecheck` passed.
+- `pnpm --filter @nimiplatform/realm-agent-studio test` passed with 10 files and
+  136 tests.
+- `pnpm --filter @nimiplatform/realm-agent-studio build:renderer` passed with
+  the existing chunk warnings still carried to W7 risk audit.
+- `pnpm check:no-app-realm-rest-bypass` passed.
+- `pnpm check:no-first-party-sdk-client-construction` passed.
+- `pnpm exec nimicoding validate-spec-governance --profile nimi --scope
+  apps/realm-agent-studio` passed.
+- `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope
+  spec-human-doc --check` passed.
+
+W6 closure does not claim final product acceptance. W7 remains responsible for
+complete A0-A10 hardening, desktop smoke, copy pass, and release-risk audit.

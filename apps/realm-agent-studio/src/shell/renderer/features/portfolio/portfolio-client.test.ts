@@ -27,6 +27,7 @@ import {
   normalizeFinalizedDirectMediaResource,
   normalizeRuntimeProjectionSummary,
   listReadyPostAttachmentResources,
+  proposeReviewedPostCopy,
   proposeReviewedOwnerAgentSettings,
   projectAgentRuntimeContextSummary,
   publishReviewedPostDraft,
@@ -1558,6 +1559,96 @@ describe('owner portfolio client', () => {
     expect(input).toEqual(candidatePayload.realmCreatePost);
     expect(collectKeys(input).has('agentRef')).toBe(false);
     expect(collectKeys(input).has('review')).toBe(false);
+  });
+
+  it('uses Runtime text.generate for candidate post copy only', async () => {
+    vi.stubEnv('VITE_RUNTIME_POST_COPY_MODEL', 'configured-post-model');
+    const generatePostCopy = vi.fn(async (_input: unknown) => ({
+      text: JSON.stringify({
+        caption: 'Mira shares a concise artifact update.',
+        tagsText: ['artifact', 'studio'],
+        rationale: 'Owner asked for a concise update.',
+      }),
+      finishReason: 'stop' as const,
+      usage: { inputTokens: 1, outputTokens: 1 },
+      trace: { traceId: 'trace-post-copy', modelResolved: 'configured-post-model' },
+    }));
+    const runtime = {
+      ai: {
+        text: {
+          generate: generatePostCopy,
+        },
+      },
+    };
+
+    const result = await proposeReviewedPostCopy(ownerAgentDetail(), {
+      caption: '',
+      tagsText: '',
+      humanReviewed: false,
+      attachmentEnabled: false,
+      attachmentTargetType: 'RESOURCE',
+      attachmentTargetId: '',
+    }, 'Draft a short launch post.', runtime);
+    const submittedPayload = generatePostCopy.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
+
+    expect(generatePostCopy).toHaveBeenCalledTimes(1);
+    expect(submittedPayload).toMatchObject({
+      model: 'configured-post-model',
+      metadata: {
+        domain: 'realm-agent-studio.post-copy',
+      },
+    });
+    expect(collectKeys(submittedPayload).has('provider')).toBe(false);
+    expect(String(submittedPayload?.input || '')).not.toContain('LocalAgent');
+    expect(String(submittedPayload?.input || '')).not.toContain('worldId');
+    expect(result).toMatchObject({
+      ok: true,
+      source: 'Runtime runtime.ai.text.generate',
+      candidate: true,
+      truthWrite: false,
+      proposal: {
+        draftPatch: {
+          caption: 'Mira shares a concise artifact update.',
+          tagsText: 'artifact, studio',
+        },
+      },
+      runtime: {
+        traceId: 'trace-post-copy',
+      },
+    });
+    vi.unstubAllEnvs();
+  });
+
+  it('fails closed for Runtime post copy when model config is missing', async () => {
+    vi.stubEnv('VITE_RUNTIME_POST_COPY_MODEL', '');
+    vi.stubEnv('VITE_RUNTIME_TEXT_MODEL', '');
+    const runtime = {
+      ai: {
+        text: {
+          generate: vi.fn(),
+        },
+      },
+    };
+
+    const result = await proposeReviewedPostCopy(ownerAgentDetail(), {
+      caption: '',
+      tagsText: '',
+      humanReviewed: false,
+      attachmentEnabled: false,
+      attachmentTargetType: 'RESOURCE',
+      attachmentTargetId: '',
+    }, 'Draft a short launch post.', runtime);
+
+    expect(runtime.ai.text.generate).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ok: false,
+      source: 'Runtime runtime.ai.text.generate',
+      candidate: false,
+      truthWrite: false,
+      failure: 'runtime-post-copy-payload-invalid',
+      message: 'Runtime runtime.ai.text.generate model config missing',
+    });
+    vi.unstubAllEnvs();
   });
 
   it('calls Runtime media.image.generate for visual candidates only', async () => {

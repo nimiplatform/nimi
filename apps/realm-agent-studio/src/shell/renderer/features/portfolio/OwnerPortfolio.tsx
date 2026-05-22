@@ -21,6 +21,7 @@ import {
   createReviewedPostTextResource,
   listReadyPostAttachmentResources,
   projectAgentRuntimeContextSummary,
+  proposeReviewedPostCopy,
   proposeReviewedOwnerAgentSettings,
   publishReviewedPostDraft,
   selectReviewedAgentAvatarUrl,
@@ -41,6 +42,7 @@ import {
   type RealmPostPublishResult,
   type RealmTextResourceCreateResult,
   type RuntimeVisualImageGenerationResult,
+  type RuntimePostCopyProposalResult,
   type RuntimeVoiceDemoSynthesisResult,
   type RuntimeProjectionSummaryResult,
   type RuntimeOwnerSettingsProposalResult,
@@ -50,6 +52,7 @@ import {
 } from './portfolio-client.js';
 import {
   ATTACHMENT_TARGET_TYPES,
+  applyRuntimePostCopyProposal,
   buildLocalPostScheduleCandidate,
   validateLocalPostDraft,
   type AttachmentTargetType,
@@ -58,6 +61,13 @@ import {
   type LocalPostScheduleInput,
   type LocalPostDraftInput,
 } from './post-draft.js';
+import {
+  clearLocalPostSchedule,
+  isLocalPostScheduleDue,
+  loadLocalPostSchedule,
+  saveLocalPostSchedule,
+  type LocalPostScheduleRecord,
+} from './local-post-schedule-store.js';
 import {
   RAW_RULE_REVIEW_DEFERRED_REASON,
   applyRuntimeOwnerSettingsProposal,
@@ -1451,6 +1461,9 @@ function createEmptyLocalPostScheduleInput(): LocalPostScheduleInput {
 
 function CreativePostWorkspace({ agent, mode }: { agent: OwnerPortfolioAgentDetail; mode: 'posts' | 'schedule' }) {
   const [draft, setDraft] = useState<LocalPostDraftInput>(() => createEmptyPostDraft());
+  const [postCopyIntent, setPostCopyIntent] = useState('');
+  const [postCopyResult, setPostCopyResult] = useState<RuntimePostCopyProposalResult | null>(null);
+  const [isProposingPostCopy, setIsProposingPostCopy] = useState(false);
   const [payloadPreview, setPayloadPreview] = useState<CandidatePostPayload | null>(null);
   const [publishResult, setPublishResult] = useState<RealmPostPublishResult | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -1465,6 +1478,9 @@ function CreativePostWorkspace({ agent, mode }: { agent: OwnerPortfolioAgentDeta
   const [isUploadingMediaResource, setIsUploadingMediaResource] = useState(false);
   const [scheduleInput, setScheduleInput] = useState<LocalPostScheduleInput>(() => createEmptyLocalPostScheduleInput());
   const [schedulePreview, setSchedulePreview] = useState<LocalPostScheduleCandidate | null>(null);
+  const [savedSchedule, setSavedSchedule] = useState<LocalPostScheduleRecord | null>(null);
+  const [schedulePublishResult, setSchedulePublishResult] = useState<RealmPostPublishResult | null>(null);
+  const [isPublishingSchedule, setIsPublishingSchedule] = useState(false);
   const [scheduleErrors, setScheduleErrors] = useState<string[]>([]);
   const [assetCandidates, setAssetCandidates] = useState<LocalCreativeAssetCandidate[]>([]);
   const validation = validateLocalPostDraft(draft, agent);
@@ -1473,6 +1489,9 @@ function CreativePostWorkspace({ agent, mode }: { agent: OwnerPortfolioAgentDeta
 
   useEffect(() => {
     setDraft(createEmptyPostDraft());
+    setPostCopyIntent('');
+    setPostCopyResult(null);
+    setIsProposingPostCopy(false);
     setPayloadPreview(null);
     setPublishResult(null);
     setIsPublishing(false);
@@ -1487,6 +1506,9 @@ function CreativePostWorkspace({ agent, mode }: { agent: OwnerPortfolioAgentDeta
     setIsUploadingMediaResource(false);
     setScheduleInput(createEmptyLocalPostScheduleInput());
     setSchedulePreview(null);
+    setSavedSchedule(loadLocalPostSchedule(agent.id));
+    setSchedulePublishResult(null);
+    setIsPublishingSchedule(false);
     setScheduleErrors([]);
     setAssetCandidates([]);
   }, [agent.id]);
@@ -1496,16 +1518,67 @@ function CreativePostWorkspace({ agent, mode }: { agent: OwnerPortfolioAgentDeta
     setPayloadPreview(null);
     setPublishResult(null);
     setTextResourceResult(null);
+    setPostCopyResult(null);
     setResourceListStatus(null);
     setMediaUploadResult(null);
     setSchedulePreview(null);
+    setSchedulePublishResult(null);
     setScheduleErrors([]);
   }
 
   function updateScheduleInput(patch: Partial<LocalPostScheduleInput>) {
     setScheduleInput((current) => ({ ...current, ...patch }));
     setSchedulePreview(null);
+    setSchedulePublishResult(null);
     setScheduleErrors([]);
+  }
+
+  async function requestPostCopyProposal() {
+    setIsProposingPostCopy(true);
+    setPostCopyResult(null);
+    try {
+      const result = await proposeReviewedPostCopy(agent, draft, postCopyIntent);
+      setPostCopyResult(result);
+    } finally {
+      setIsProposingPostCopy(false);
+    }
+  }
+
+  function applyPostCopyProposal() {
+    if (!postCopyResult?.ok) {
+      return;
+    }
+    setDraft((current) => applyRuntimePostCopyProposal(current, postCopyResult.proposal));
+    setPayloadPreview(null);
+    setPublishResult(null);
+    setSchedulePreview(null);
+    setSchedulePublishResult(null);
+  }
+
+  function saveScheduleCandidate() {
+    if (!schedulePreview) {
+      return;
+    }
+    setSavedSchedule(saveLocalPostSchedule(agent.id, schedulePreview));
+    setSchedulePublishResult(null);
+  }
+
+  async function publishSavedSchedule() {
+    if (!savedSchedule || !isLocalPostScheduleDue(savedSchedule)) {
+      return;
+    }
+    setIsPublishingSchedule(true);
+    setSchedulePublishResult(null);
+    try {
+      const result = await publishReviewedPostDraft(savedSchedule.candidate.postCandidate);
+      setSchedulePublishResult(result);
+      if (result.ok) {
+        clearLocalPostSchedule(agent.id);
+        setSavedSchedule(null);
+      }
+    } finally {
+      setIsPublishingSchedule(false);
+    }
   }
 
   function addLocalAssetCandidate() {
@@ -1649,6 +1722,71 @@ function CreativePostWorkspace({ agent, mode }: { agent: OwnerPortfolioAgentDeta
           </p>
 
           <div className="mt-4 grid gap-4">
+            {!isScheduleWorkspace ? <Surface tone="card" padding="md">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium">Runtime post copy</div>
+                  <div className="mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+                    Draft caption and tags as editable candidate text. Human review is still required before publish.
+                  </div>
+                </div>
+                <StatusBadge tone="info">AI candidate</StatusBadge>
+              </div>
+              <FieldShell label="Post copy intent" message="Describe the agent-authored post you want.">
+                <TextareaField
+                  value={postCopyIntent}
+                  placeholder="Describe the post copy you want"
+                  onChange={(event) => {
+                    setPostCopyIntent(event.currentTarget.value);
+                    setPostCopyResult(null);
+                  }}
+                />
+              </FieldShell>
+              <div className="mt-3 flex flex-wrap gap-3">
+                <Button
+                  tone="secondary"
+                  disabled={!postCopyIntent.trim() || isProposingPostCopy}
+                  loading={isProposingPostCopy}
+                  onClick={() => void requestPostCopyProposal()}
+                >
+                  Ask Runtime for post copy
+                </Button>
+              </div>
+              {postCopyResult ? (
+                <Surface tone="panel" padding="md" className="mt-3">
+                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium">Post copy proposal</div>
+                      <div className="ras-break-anywhere mt-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
+                        {postCopyResult.ok ? postCopyResult.proposal.rationale : postCopyResult.message}
+                      </div>
+                    </div>
+                    <StatusBadge tone={postCopyResult.ok ? 'info' : 'danger'}>
+                      {postCopyResult.ok ? 'candidate' : 'unavailable'}
+                    </StatusBadge>
+                  </div>
+                  {postCopyResult.ok ? (
+                    <>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {postCopyResult.proposal.changedPostKeys.map((key) => (
+                          <StatusBadge key={key} tone="neutral">{key}</StatusBadge>
+                        ))}
+                      </div>
+                      <InlineAlert tone="info" className="mt-3">
+                        Runtime copy is candidate material only. Apply it, review the post, then publish through Realm.
+                      </InlineAlert>
+                      <div className="mt-3">
+                        <Button onClick={applyPostCopyProposal}>Apply post copy</Button>
+                      </div>
+                    </>
+                  ) : (
+                    <InlineAlert tone="danger" className="mt-3">
+                      Draft fields were preserved. Edit manually or retry after Runtime text generation is available.
+                    </InlineAlert>
+                  )}
+                </Surface>
+              ) : null}
+            </Surface> : null}
             <FieldShell label="Caption" message="Post text written from the agent's voice.">
               <TextareaField
                 value={draft.caption}
@@ -1956,9 +2094,35 @@ function CreativePostWorkspace({ agent, mode }: { agent: OwnerPortfolioAgentDeta
                   Preview local schedule
                 </Button>
               </div>
+              <div className="mt-3 flex flex-wrap gap-3">
+                <Button disabled={!schedulePreview} onClick={saveScheduleCandidate}>
+                  Save local schedule
+                </Button>
+                <Button
+                  disabled={!savedSchedule || !isLocalPostScheduleDue(savedSchedule) || isPublishingSchedule}
+                  loading={isPublishingSchedule}
+                  onClick={() => void publishSavedSchedule()}
+                >
+                  Publish due schedule
+                </Button>
+              </div>
+              {savedSchedule ? (
+                <InlineAlert tone={isLocalPostScheduleDue(savedSchedule) ? 'info' : 'success'} className="mt-3">
+                  {isLocalPostScheduleDue(savedSchedule)
+                    ? 'Saved local schedule is due. Publish due schedule will call Realm Create Post now.'
+                    : `Saved local schedule for ${savedSchedule.localRunAt}. It will be executable here when due.`}
+                </InlineAlert>
+              ) : null}
+              {schedulePublishResult ? (
+                <InlineAlert tone={schedulePublishResult.ok ? 'success' : 'danger'} className="mt-3">
+                  {schedulePublishResult.ok
+                    ? 'Due local schedule published through Realm and cleared from local storage.'
+                    : schedulePublishResult.message}
+                </InlineAlert>
+              ) : null}
               <TechnicalReviewDetails title="Local schedule payload">
                 <pre className="ras-json-preview m-0 min-h-28 overflow-auto rounded-[var(--nimi-radius-field)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3 text-xs">
-                  {schedulePreview ? JSON.stringify(schedulePreview, null, 2) : 'No local schedule preview yet.'}
+                  {schedulePreview ? JSON.stringify(schedulePreview, null, 2) : savedSchedule ? JSON.stringify(savedSchedule, null, 2) : 'No local schedule preview yet.'}
                 </pre>
               </TechnicalReviewDetails>
             </Surface> : null}
@@ -1973,7 +2137,7 @@ function CreativePostWorkspace({ agent, mode }: { agent: OwnerPortfolioAgentDeta
             <Surface tone="card" padding="md">
               <div className="font-medium">No automated queue is created</div>
               <p className="m-0 mt-2 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-muted)]">
-                This workspace preserves a reviewed local scheduled candidate and keeps Realm publish as the only public success state.
+                This workspace stores one reviewed local scheduled candidate on this device. It executes only in the foreground when due, and Realm publish is the only public success state.
               </p>
             </Surface>
           ) : assetCandidates.length === 0 ? (

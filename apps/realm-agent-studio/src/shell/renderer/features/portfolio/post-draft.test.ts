@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { OwnerPortfolioAgentDetail } from './portfolio-data.js';
 import {
+  applyRuntimePostCopyProposal,
   buildLocalPostScheduleCandidate,
+  buildRuntimePostCopyPrompt,
   normalizeLocalPostDraft,
   normalizeLocalPostScheduleInput,
+  normalizeRuntimePostCopyProposal,
   validateLocalPostDraft,
   type CandidatePostPayload,
   type LocalPostDraftInput,
@@ -182,6 +185,56 @@ describe('local post draft validation', () => {
 });
 
 describe('app-local post schedule candidate', () => {
+  it('builds Runtime post copy prompt from owner intent without private state', () => {
+    const result = buildRuntimePostCopyPrompt({
+      agent,
+      draft: baseInput,
+      intent: 'Announce the new artifact pass.',
+      model: 'configured-text-model',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.payload).toMatchObject({
+      model: 'configured-text-model',
+      metadata: {
+        domain: 'realm-agent-studio.post-copy',
+      },
+    });
+    expect(String(result.payload?.input || '')).not.toContain('LocalAgent');
+    expect(String(result.payload?.input || '')).not.toContain('worldId');
+  });
+
+  it('normalizes Runtime post copy proposal into editable draft fields', () => {
+    const proposal = normalizeRuntimePostCopyProposal(JSON.stringify({
+      caption: 'Mira opens a new artifact pass for builders.',
+      tagsText: ['artifact', 'studio'],
+      rationale: 'Matches the requested announcement.',
+    }), baseInput);
+
+    expect(proposal).toMatchObject({
+      source: 'Runtime runtime.ai.text.generate',
+      candidate: true,
+      truthWrite: false,
+      draftPatch: {
+        caption: 'Mira opens a new artifact pass for builders.',
+        tagsText: 'artifact, studio',
+      },
+      changedPostKeys: ['caption', 'tagsText'],
+    });
+    expect(applyRuntimePostCopyProposal(baseInput, proposal)).toMatchObject({
+      caption: 'Mira opens a new artifact pass for builders.',
+      tagsText: 'artifact, studio',
+      humanReviewed: false,
+    });
+  });
+
+  it('rejects Runtime post copy proposals with forbidden post truth fields', () => {
+    expect(() => normalizeRuntimePostCopyProposal(JSON.stringify({
+      caption: 'publish me',
+      worldId: 'world-forbidden',
+    }), baseInput)).toThrow('forbidden worldId');
+  });
+
   it('normalizes local date and time input', () => {
     expect(normalizeLocalPostScheduleInput({
       localDate: ' 2026-05-22 ',
