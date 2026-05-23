@@ -342,6 +342,10 @@ export async function setProductFirstRunSetupState(_input: {
   unsupportedDesktopRuntime('First-run setup state is only available in desktop runtime');
 }
 
+export async function prepareProductFirstRunLocalAiReady(): Promise<ProductControlRecordProjection> {
+  unsupportedDesktopRuntime('First-run local AI readiness preparation is only available in desktop runtime');
+}
+
 export async function admitProductReadyForUse(): Promise<ProductControlRecordProjection> {
   unsupportedDesktopRuntime('First-run readiness admission is only available in desktop runtime');
 }
@@ -482,6 +486,7 @@ export const desktopBridge = {
   selectProductDataRoot,
   setProductFirstRunInstallLevel,
   setProductFirstRunSetupState,
+  prepareProductFirstRunLocalAiReady,
   admitProductReadyForUse,
   loadAuthSession,
   proxyHttp,

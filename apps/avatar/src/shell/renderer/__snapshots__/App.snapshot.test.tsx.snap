@@ -21,7 +21,7 @@ exports[`Avatar shell visual snapshots > degraded surface — relaunch pending (
       class="avatar-degraded-surface__banner"
     >
       <span
-        class="nimi-status-badge inline-flex items-center gap-1.5 rounded-full text-xs font-medium nimi-status-badge--danger bg-[color-mix(in_srgb,var(--nimi-status-danger)_15%,transparent)] text-[var(--nimi-status-danger)] nimi-status-badge--soft px-2.5 py-0.5 avatar-degraded-surface__badge avatar-degraded-surface__badge--error"
+        class="nimi-status-badge inline-flex items-center gap-1.5 rounded-full text-xs font-medium nimi-status-badge--danger bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger-soft-text)] nimi-status-badge--soft px-2.5 py-0.5 avatar-degraded-surface__badge avatar-degraded-surface__badge--error"
       >
         Surface unavailable
       </span>
@@ -106,7 +106,7 @@ exports[`Avatar shell visual snapshots > degraded surface — runtime unavailabl
       class="avatar-degraded-surface__banner"
     >
       <span
-        class="nimi-status-badge inline-flex items-center gap-1.5 rounded-full text-xs font-medium nimi-status-badge--warning bg-[color-mix(in_srgb,var(--nimi-status-warning)_15%,transparent)] text-[var(--nimi-status-warning)] nimi-status-badge--soft px-2.5 py-0.5 avatar-degraded-surface__badge avatar-degraded-surface__badge--degraded"
+        class="nimi-status-badge inline-flex items-center gap-1.5 rounded-full text-xs font-medium nimi-status-badge--warning bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)] nimi-status-badge--soft px-2.5 py-0.5 avatar-degraded-surface__badge avatar-degraded-surface__badge--degraded"
       >
         Runtime unavailable
       </span>
