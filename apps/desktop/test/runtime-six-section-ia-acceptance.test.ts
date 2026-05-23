@@ -48,6 +48,7 @@ const environmentPageSource = readRuntimeConfigSource('runtime-config-page-envir
 const advancedPageSource = readRuntimeConfigSource('runtime-config-page-advanced.tsx');
 const overviewPageSource = readRuntimeConfigSource('runtime-config-page-overview.tsx');
 const profilesPageSource = readRuntimeConfigSource('runtime-config-page-profiles.tsx');
+const profilesLibraryPanelSource = readRuntimeConfigSource('runtime-config-profile-library-panel.tsx');
 const cloudPageSource = readRuntimeConfigSource('runtime-config-page-cloud.tsx');
 const runtimeDepsPageSource = readRuntimeConfigSource('runtime-config-page-runtime.tsx');
 
@@ -250,8 +251,8 @@ test('ordinary task 2: see the active Default Profile for new scopes (Profiles)'
 });
 
 test('ordinary task 3: import / edit / restore / export profiles (Profiles)', () => {
-  assert.match(profilesPageSource, /runtime-profiles-account-library/);
-  assert.match(profilesPageSource, /runtime-profiles-create/);
+  assert.match(profilesLibraryPanelSource, /runtime-profiles-account-library/);
+  assert.match(profilesLibraryPanelSource, /runtime-profiles-create/);
   assert.match(profilesPageSource, /runtime-profiles-import/);
   assert.match(profilesPageSource, /runtime-profiles-export/);
   assert.match(profilesPageSource, /runtime-profiles-factory-restore/);

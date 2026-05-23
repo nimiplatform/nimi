@@ -354,6 +354,9 @@ pub fn bridge_error(code: &str, message: &str) -> String {
 pub fn bridge_status_error(status: Status) -> String {
     let structured = parse_structured_status_payload(status.message());
     let retryable_transport_cancel = is_retryable_transport_cancel(&status, structured.as_ref());
+    let status_message = sanitize_error_message(status.message());
+    let retryable_unknown_transport =
+        status.code() == Code::Unknown && status_message.to_ascii_lowercase().contains("transport error");
     let structured_reason = structured
         .as_ref()
         .map(|value| value.reason_code.trim().to_string())
@@ -369,7 +372,7 @@ pub fn bridge_status_error(status: Status) -> String {
         String::new()
     };
     let reason_code = normalize_reason_code(reason_input.as_str());
-    let fallback_reason_code = if retryable_transport_cancel {
+    let fallback_reason_code = if retryable_transport_cancel || retryable_unknown_transport {
         "RUNTIME_GRPC_UNAVAILABLE".to_string()
     } else {
         format!("RUNTIME_GRPC_{}", grpc_code_reason_suffix(status.code()))
@@ -382,7 +385,8 @@ pub fn bridge_status_error(status: Status) -> String {
     let retryable_by_status = matches!(
         status.code(),
         Code::Unavailable | Code::DeadlineExceeded | Code::ResourceExhausted | Code::Aborted
-    ) || retryable_transport_cancel;
+    ) || retryable_transport_cancel
+        || retryable_unknown_transport;
     let retryable = structured
         .as_ref()
         .and_then(|value| value.retryable)
@@ -408,7 +412,7 @@ pub fn bridge_status_error(status: Status) -> String {
         .as_ref()
         .map(|value| value.message.trim().to_string())
         .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| sanitize_error_message(status.message()));
+        .unwrap_or(status_message);
 
     encode(RuntimeBridgeErrorPayload {
         reason_code: normalized_reason_code,

@@ -12,6 +12,7 @@ import {
   assertAppAIScopeRef,
   computeAIConfigDiff,
   computeAIConfigVersion,
+  createBuiltInChatAIScopeRef,
   createEmptyAIConfig,
   ensureAppFirstLaunchAIConfig as ensureAppFirstLaunchAIConfig_sdk,
   validateAIProfile,
@@ -216,6 +217,22 @@ export async function initializeBuiltInChatScopeFromProductControl(
   }
   commitConfig(builtInConfig);
   return true;
+}
+
+let builtInChatScopeInitializationInFlight: Promise<void> | null = null;
+
+export function initializeBuiltInChatScopesFromProductControl(): Promise<void> {
+  if (builtInChatScopeInitializationInFlight) {
+    return builtInChatScopeInitializationInFlight;
+  }
+  builtInChatScopeInitializationInFlight = Promise.all([
+    initializeBuiltInChatScopeFromProductControl(createBuiltInChatAIScopeRef('nimi')),
+    initializeBuiltInChatScopeFromProductControl(createBuiltInChatAIScopeRef('agent')),
+  ]).then(() => undefined)
+    .finally(() => {
+      builtInChatScopeInitializationInFlight = null;
+    });
+  return builtInChatScopeInitializationInFlight;
 }
 
 // ---------------------------------------------------------------------------

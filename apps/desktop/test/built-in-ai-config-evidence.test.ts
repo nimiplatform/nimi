@@ -7,6 +7,17 @@ const desktopAiConfigLibrarySource = readFileSync(
   resolve(import.meta.dirname, '../src-tauri/src/desktop_ai_config_library.rs'),
   'utf8',
 );
+const desktopAiConfigLibraryDir = resolve(
+  import.meta.dirname,
+  '../src-tauri/src/desktop_ai_config_library',
+);
+const desktopAiConfigLibraryModuleSource = [
+  desktopAiConfigLibrarySource,
+  ...readdirSync(desktopAiConfigLibraryDir)
+    .filter((name) => name.endsWith('.rs'))
+    .sort()
+    .map((name) => readFileSync(resolve(desktopAiConfigLibraryDir, name), 'utf8')),
+].join('\n');
 const desktopProductControlDir = resolve(
   import.meta.dirname,
   '../src-tauri/src/desktop_product_control',
@@ -36,6 +47,20 @@ const productControlSchemaSource = readFileSync(
   ),
   'utf8',
 );
+const rendererRuntimeSliceSource = readFileSync(
+  resolve(
+    import.meta.dirname,
+    '../src/shell/renderer/app-shell/providers/runtime-slice.ts',
+  ),
+  'utf8',
+);
+const rendererRuntimeBootstrapSource = readFileSync(
+  resolve(
+    import.meta.dirname,
+    '../src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts',
+  ),
+  'utf8',
+);
 
 test('built-in AIConfig owner is the Desktop host AIConfig service module and is registered', () => {
   assert.match(mainSource, /mod desktop_ai_config_library;/);
@@ -56,7 +81,7 @@ test('built-in AIConfig evidence binds all five required_projection fields (D-AI
     /pub writer_identity: String,/,
     /pub committed_at: String,/,
   ]) {
-    assert.match(desktopAiConfigLibrarySource, field);
+    assert.match(desktopAiConfigLibraryModuleSource, field);
   }
 });
 
@@ -77,22 +102,17 @@ test('built-in AIConfig only admits the two canonical P-AISC-006 feature scopes'
 
 test('built-in AIConfig fails closed on generic scope, string-only ref, and partial set', () => {
   // generic / merged feature scope is rejected.
-  assert.match(desktopAiConfigLibrarySource, /must be the feature shape, not a generic app scope/);
-  // string-only / caller-provided refs are rejected.
-  assert.match(
-    desktopAiConfigLibrarySource,
-    /built-in AIConfig ref is caller-provided, stale, or string-only/,
-  );
-  // a partial one-of-two set is rejected.
-  assert.match(
-    desktopAiConfigLibrarySource,
-    /requires exactly \{\} refs for both canonical chat scopes/,
-  );
+  assert.match(desktopAiConfigLibraryModuleSource, /must be the feature shape, not a generic app scope/);
+  // string-only refs and partial one-of-two sets are rejected at the admission seams.
+  assert.match(desktopProductControlSource, /string-only ref/);
+  assert.match(desktopProductControlSource, /recorded set is partial/);
+  assert.match(desktopAiConfigLibraryModuleSource, /string_only_and_missing_refs_fail_closed/);
+  assert.match(desktopAiConfigLibraryModuleSource, /partial_one_of_two_built_in_set_fails_closed/);
   // Text/STT/TTS bindings come from Runtime baseline evidence; no capability
   // binding is invented when the runtime baseline omits its consumer.
-  assert.match(desktopAiConfigLibrarySource, /runtime_capability_bindings_from_baseline_ref/);
-  assert.match(desktopAiConfigLibrarySource, /AUDIO_SYNTHESIZE_CAPABILITY/);
-  assert.match(desktopAiConfigLibrarySource, /AUDIO_TRANSCRIBE_CAPABILITY/);
+  assert.match(desktopAiConfigLibraryModuleSource, /runtime_capability_bindings_from_baseline_ref/);
+  assert.match(desktopAiConfigLibraryModuleSource, /AUDIO_SYNTHESIZE_CAPABILITY/);
+  assert.match(desktopAiConfigLibraryModuleSource, /AUDIO_TRANSCRIBE_CAPABILITY/);
 });
 
 test('built-in AIConfig apply is atomic (D-AIPC-005) via temp-file then rename', () => {
@@ -137,4 +157,32 @@ test('product-control schema keeps builtInAiConfigRefs owned by the Desktop host
   ]) {
     assert.match(productControlSchemaSource, projection);
   }
+});
+
+test('built-in AIConfig renderer init waits for Runtime account projection and product readiness', () => {
+  assert.doesNotMatch(
+    rendererRuntimeSliceSource,
+    /initializeBuiltInChatScopeFromProductControl|createBuiltInChatAIScopeRef/,
+    'runtime slice construction must not call Runtime-owned built-in AIConfig init before account projection exists',
+  );
+  const accountProjectionIndex = rendererRuntimeBootstrapSource.indexOf('const accountProjection = accountStatus.accountProjection;');
+  const productGateIndex = rendererRuntimeBootstrapSource.indexOf('initializeBuiltInChatScopesAfterReadyAdmission(flowId)');
+  const initIndex = rendererRuntimeBootstrapSource.indexOf('initializeBuiltInChatScopesFromProductControl()');
+  const watcherIndex = rendererRuntimeBootstrapSource.indexOf('startAuthStateWatcher();');
+  assert.ok(accountProjectionIndex !== -1, 'Runtime account projection must be read');
+  assert.ok(productGateIndex !== -1, 'bootstrap must gate built-in AIConfig init through product readiness');
+  assert.ok(initIndex !== -1, 'built-in AIConfig init must run from bootstrap');
+  assert.ok(watcherIndex !== -1, 'auth watcher must still start');
+  assert.ok(
+    accountProjectionIndex < productGateIndex,
+    'built-in AIConfig product gate must wait until Runtime account projection exists',
+  );
+  assert.ok(
+    productGateIndex < watcherIndex,
+    'initial built-in AIConfig init should finish or defer before auth watcher startup',
+  );
+  assert.match(rendererRuntimeBootstrapSource, /if \(projection\.state !== 'ready_for_use'\) \{[\s\S]*return;/);
+  assert.match(rendererRuntimeBootstrapSource, /message: 'phase:built-in-ai-config:init-skipped-product-not-ready'/);
+  assert.match(rendererRuntimeBootstrapSource, /if \(accountProjection\?\.accountId\) \{[\s\S]*initializeBuiltInChatScopesAfterReadyAdmission\(flowId\)/);
+  assert.match(rendererRuntimeBootstrapSource, /message: 'phase:built-in-ai-config:init-deferred'/);
 });

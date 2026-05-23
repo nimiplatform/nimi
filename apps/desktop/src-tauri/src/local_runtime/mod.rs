@@ -10,8 +10,6 @@ mod download_manager;
 mod engine_host;
 #[cfg(test)]
 mod engine_pack;
-#[cfg(test)]
-mod engine_pack_download;
 mod hf_source;
 mod import_validator;
 mod model_index;

@@ -258,9 +258,8 @@ function useDesktopOrdinaryShellAdmission(authStatus: 'bootstrapping' | 'anonymo
         if (cancelled) return;
         const next: DesktopOrdinaryShellAdmission = projection.state === 'ready_for_use' ? 'ready' : 'not-ready';
         setAdmission(next);
-        if (next !== 'ready') {
-          timer = window.setTimeout(refresh, 1500);
-        }
+        // The first-run gate owns ongoing projection refresh and calls onReadyForUse
+        // when setup completes. Avoid a parent-shell poll loop while setup is visible.
       } catch {
         if (!cancelled) {
           setAdmission('not-ready');

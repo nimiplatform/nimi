@@ -113,12 +113,14 @@ test('Wave 7: first-run finalization requests admission and routes on the projec
   assert.doesNotMatch(finalizationSource, /selectProductDataRoot|setProductFirstRunInstallLevel/);
 });
 
-test('Wave 7: workflow mounts the finalization branch only at local_ai_ready', () => {
+test('Wave 7: workflow mounts the finalization branch only after local AI evidence is ready', () => {
   // The redesigned 3-phase wizard folds the four progress states into the
   // Setup phase. The backend-admission FirstRunFinalization surface is still
   // mounted only at `local_ai_ready` — never earlier, never on a renderer
   // shortcut.
-  assert.match(workflowSource, /state === 'local_ai_ready' && projection \? \(\s*<FirstRunFinalization/);
+  assert.match(workflowSource, /materializationReadyForFinalization/);
+  assert.match(workflowSource, /state === 'local_ai_ready' \|\| materializationReadyForFinalization/);
+  assert.match(workflowSource, /<FirstRunFinalization projection=\{projection\}/);
   // The Setup-phase checklist projects the real materialization progression
   // and folds `local_ai_ready` as the active `finalize` sub-step rather than
   // re-rendering raw materialization rows.

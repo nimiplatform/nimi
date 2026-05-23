@@ -26,6 +26,8 @@ function readSource(relativePath: string): string {
 
 const storageSource = readSource('src/shell/renderer/app-shell/providers/desktop-ai-config-storage.ts');
 const serviceSource = readSource('src/shell/renderer/app-shell/providers/desktop-ai-config-service.ts');
+const subscriptionSource = readSource('src/shell/renderer/app-shell/providers/desktop-ai-config-subscriptions.ts');
+const snapshotStoreSource = readSource('src/shell/renderer/app-shell/providers/desktop-ai-config-snapshot-store.ts');
 const runtimeSliceSource = readSource('src/shell/renderer/app-shell/providers/runtime-slice.ts');
 const activeScopeSource = readSource('src/shell/renderer/features/chat/chat-shared-active-ai-config-scope.ts');
 
@@ -78,9 +80,10 @@ test('multi-scope: shared Desktop host service listScopes returns real scope ref
 
 test('multi-scope: shared Desktop host service subscribe is scoped (S-AICONF-006)', () => {
   // Subscription keyed by scope
-  assert.match(serviceSource, /scopeKey: scopeKey\(scopeRef\)/);
+  assert.match(serviceSource, /configSubscriptions\.subscribe\(scopeKey\(scopeRef\), callback\)/);
+  assert.match(subscriptionSource, /subscriptions\.set\(id, \{ scopeKey, callback \}\)/);
   // Notification filters by scope key
-  assert.match(serviceSource, /if \(sub\.scopeKey === key\)/);
+  assert.match(subscriptionSource, /if \(sub\.scopeKey === key\)/);
 });
 
 test('multi-scope: runtime-slice dynamically checks the mode-aware active chat scope for store sync', () => {
@@ -96,7 +99,7 @@ test('multi-scope: runtime-slice dynamically checks the mode-aware active chat s
 
 test('multi-scope: snapshot getLatest is scope-keyed', () => {
   // byScopeKey map tracks latest per scope
-  assert.match(serviceSource, /byScopeKey\.set\(scopeKey\(snapshot\.scopeRef\), snapshot\)/);
+  assert.match(snapshotStoreSource, /byScopeKey\.set\(scopeKey\(snapshot\.scopeRef\), snapshot\)/);
   assert.match(serviceSource, /byScopeKey\.get\(scopeKey\(scopeRef\)\)/);
 });
 

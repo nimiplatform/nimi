@@ -195,13 +195,19 @@ function statusFor(
 ): FirstRunMaterializationStatus {
   if (missingDependencyFamilies.length > 0 || dependencies.length === 0) return 'blocked';
   if (dependencies.some(({ dependency, job }) =>
-    normalizeState(dependency.state) === 'unsupported' || normalizeState(job?.state) === 'unsupported',
+    !dependencyReady(dependency)
+    && (normalizeState(dependency.state) === 'unsupported' || normalizeState(job?.state) === 'unsupported'),
   )) return 'unsupported';
   if (dependencies.some(({ dependency, job }) =>
-    normalizeState(dependency.state) === 'repair_required' || normalizeState(job?.state) === 'repair_required',
+    !dependencyReady(dependency)
+    && (normalizeState(dependency.state) === 'repair_required' || normalizeState(job?.state) === 'repair_required'),
   )) return 'repair_required';
-  if (dependencies.some(({ job }) => normalizeState(job?.state) === 'failed')) return 'failed';
-  if (dependencies.some(({ job }) => normalizeState(job?.state) === 'cancelled')) return 'cancelled';
+  if (dependencies.some(({ dependency, job }) =>
+    !dependencyReady(dependency) && normalizeState(job?.state) === 'failed',
+  )) return 'failed';
+  if (dependencies.some(({ dependency, job }) =>
+    !dependencyReady(dependency) && normalizeState(job?.state) === 'cancelled',
+  )) return 'cancelled';
   if (dependencies.some(({ dependency, job }) =>
     !dependencyReady(dependency) && dependencyNeedsConfirmation(dependency) && !job,
   )) return 'needs_confirmation';
@@ -229,7 +235,80 @@ export function shouldResumeConfirmedFirstRunMaterialization(
   if (projection.status !== 'needs_confirmation') return false;
   return productState === 'local_ai_profile_selected_assets_missing'
     || productState === 'local_ai_profile_selected_environment_not_ready'
-    || productState === 'local_ai_assets_downloaded_environment_not_ready';
+    || productState === 'local_ai_assets_downloaded_environment_not_ready'
+    || productState === 'local_ai_ready';
+}
+
+function isConfirmedFirstRunSetupState(productState: ProductControlState): boolean {
+  return productState === 'local_ai_profile_selected_assets_missing'
+    || productState === 'local_ai_profile_selected_environment_not_ready'
+    || productState === 'local_ai_assets_downloaded_environment_not_ready'
+    || productState === 'local_ai_ready';
+}
+
+function dependencyInMaterializationScope(
+  dependency: LocalRuntimeEnvironmentPlanDependency,
+  profileDependencyFamilies: readonly string[],
+): boolean {
+  if (dependency.required) return true;
+  return profileDependencyFamilies.includes(dependency.dependencyFamily);
+}
+
+function isAutoRecoverableMaterializationFailure(job: LocalRuntimeEnvironmentDependencyJob): boolean {
+  const family = normalizeState(job.dependencyFamily);
+  const state = normalizeState(job.state);
+  if (state !== 'failed' && state !== 'cancelled') return false;
+  if (!job.retryable) return false;
+  const detail = normalizeState(job.failureDetail);
+  const interrupted = detail.includes('local_environment_dependency_job_interrupted')
+    || detail.includes('unexpected eof')
+    || detail.includes('client.timeout')
+    || detail.includes('context deadline exceeded')
+    || detail.includes('connection reset')
+    || detail.includes('connection refused')
+    || detail.includes('broken pipe')
+    || detail.includes('tls handshake timeout')
+    || detail.includes('timeout while reading body');
+  if (family === 'model.asset' || family === 'model.companion-asset') return interrupted;
+  if (
+    family === 'python.runtime'
+    || family === 'python.venv'
+    || family === 'python.package-set'
+    || family === 'python.torch-wheel'
+  ) {
+    return interrupted
+      || detail.includes('no virtual environment or system python installation found')
+      || detail.includes('system cannot find the path specified')
+      || detail.includes('cannot find the path specified')
+      || detail.includes('no such file or directory')
+      || detail.includes('waiting for lock on uv cache');
+  }
+  return false;
+}
+
+export function retryableInterruptedFirstRunMaterializationJobs(
+  productState: ProductControlState,
+  projection: FirstRunMaterializationProjection,
+): readonly LocalRuntimeEnvironmentDependencyJob[] {
+  if (!isConfirmedFirstRunSetupState(productState)) return [];
+  if (projection.status !== 'failed' && projection.status !== 'cancelled') return [];
+  return projection.dependencies
+    .filter(({ dependency }) => !dependencyReady(dependency))
+    .map(({ job }) => job)
+    .filter((job): job is LocalRuntimeEnvironmentDependencyJob =>
+      job !== null && isAutoRecoverableMaterializationFailure(job));
+}
+
+export function repairableConfirmedFirstRunMaterializationDependencies(
+  productState: ProductControlState,
+  projection: FirstRunMaterializationProjection,
+): readonly FirstRunMaterializationDependencyProjection[] {
+  if (!isConfirmedFirstRunSetupState(productState)) return [];
+  if (projection.status !== 'repair_required') return [];
+  return projection.dependencies.filter(({ dependency, job }) =>
+    !dependencyReady(dependency)
+    && (normalizeState(dependency.state) === 'repair_required'
+    || normalizeState(job?.state) === 'repair_required'));
 }
 
 function reasonForStatus(
@@ -270,7 +349,7 @@ export async function resolveFirstRunMaterializationProjection(
   const dependencyByKey = new Map<string, FirstRunMaterializationDependencyProjection>();
   for (const plan of plans) {
     for (const dependency of plan.dependencies) {
-      if (!dependency.required || !requiredFamilies.includes(dependency.dependencyFamily)) continue;
+      if (!dependencyInMaterializationScope(dependency, requiredFamilies)) continue;
       dependencyByKey.set(`${dependency.environmentKey}:${dependency.dependencyFamily}:${dependency.dependencyId}`, {
         packId: plan.packId,
         dependency,

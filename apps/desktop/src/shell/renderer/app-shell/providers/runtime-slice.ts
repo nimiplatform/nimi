@@ -9,11 +9,10 @@ import {
 import {
   bindDesktopAIConfigAppStore,
   getDesktopAIConfigService,
-  initializeBuiltInChatScopeFromProductControl,
 } from './desktop-ai-config-service';
 import { getActiveScope } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
 import { bindProjectionRefreshToSurface } from '@renderer/features/chat/conversation-capability-projection';
-import { applyAIProfileToConfig, createBuiltInChatAIScopeRef } from '@nimiplatform/sdk/mod';
+import { applyAIProfileToConfig } from '@nimiplatform/sdk/mod';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 
 const ROUTE_RELATED_RUNTIME_FIELD_KEYS = new Set([
@@ -68,13 +67,6 @@ export function createRuntimeSlice(set: AppStoreSet): RuntimeSlice {
   });
   // S-AICONF-006: surface subscription drives projection refresh centrally.
   bindProjectionRefreshToSurface();
-  void Promise.all([
-    initializeBuiltInChatScopeFromProductControl(createBuiltInChatAIScopeRef('nimi')),
-    initializeBuiltInChatScopeFromProductControl(createBuiltInChatAIScopeRef('agent')),
-  ]).catch(() => {
-    // First-run / repair gates own product-control errors; startup keeps the
-    // existing empty or user-edited AIConfig projection until those gates pass.
-  });
 
   return {
     runtimeDefaults: null,

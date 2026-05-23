@@ -217,9 +217,9 @@ test('renderer evidence: continuing from the Local AI phase records the install 
   assert.match(markup, /data-testid="first-run-step-local-ai" data-active="true"/);
   assert.match(productControlWorkflowSource, /setProductFirstRunInstallLevel/);
   assert.match(productControlWorkflowSource, /startFirstRunMaterialization/);
-  assert.match(productControlWorkflowSource, /prepareProductFirstRunLocalAiReady/);
   assert.match(productControlWorkflowSource, /await projectMaterialization\(next, afterLevel\.state\)/);
-  assert.match(productControlWorkflowSource, /next\.productState === 'local_ai_ready'[\s\S]*?prepareProductFirstRunLocalAiReady/);
+  assert.doesNotMatch(productControlWorkflowSource, /next\.productState === 'local_ai_ready'[\s\S]*?prepareProductFirstRunLocalAiReady/);
+  assert.match(productControlWorkflowSource, /materializationReadyForFinalization/);
   assert.doesNotMatch(productControlWorkflowSource, /markProductReadyForUse/);
 });
 
@@ -461,6 +461,76 @@ test('first-run materialization derives Runtime job requests from selected AIPro
   );
   assert.deepEqual(new Set(planInstallLevels), new Set(['minimal']));
   assert.equal(FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE, 'first-run');
+});
+
+test('first-run materialization includes Runtime-required platform dependencies outside static profile refs', async () => {
+  const profile = PLATFORM_AI_PROFILE_FACTORY_ROWS.find((row) => row.alias === 'local-speech-ready');
+  assert.ok(profile);
+  assert.equal((profile.dependencyFamilyRefs as readonly string[]).includes('accelerator.cuda.runtime'), false);
+  const calls: Array<{ dependencyFamily: string; dependencyId: string }> = [];
+  const runtime: FirstRunMaterializationInput['runtime'] = {
+    async resolveEnvironmentPlan(payload) {
+      const dependencies = profile.dependencyFamilyRefs.map((family, index) =>
+        dependency(family, `${payload.packId}:${family}:${index}`),
+      );
+      if (payload.packId === 'local-text') {
+        dependencies.push(dependency('accelerator.cuda.runtime', 'nvidia-cuda-user-space-runtime', {
+          required: true,
+          environmentKey: 'accelerator.cuda.runtime:nvidia-cuda-user-space-runtime',
+        }));
+      }
+      return {
+        planId: `plan:${payload.packId}`,
+        packId: payload.packId,
+        productLabel: payload.packId,
+        hostProfileId: 'windows-amd64-nvidia-cuda',
+        platformTuple: 'windows/amd64',
+        runtimeDataRoot: payload.runtimeDataRoot,
+        consumerScope: payload.consumerScope,
+        state: 'needs_confirmation',
+        dependencies,
+      };
+    },
+    async listEnvironmentDependencyJobs() {
+      return [];
+    },
+    async startEnvironmentDependencyJob(payload) {
+      calls.push(payload);
+      return {
+        jobId: `job:${payload.dependencyId}`,
+        environmentKey: payload.environmentKey,
+        dependencyFamily: payload.dependencyFamily,
+        dependencyId: payload.dependencyId,
+        state: 'queued',
+        sourceKind: payload.sourceKind,
+        retryable: true,
+        bytesReceived: 0,
+        bytesTotal: 0,
+        percent: 0,
+        speedBytesPerSec: 0,
+        etaSeconds: 0,
+      };
+    },
+    async cancelEnvironmentDependencyJob() {
+      throw new Error('not used');
+    },
+    async retryEnvironmentDependencyJob() {
+      throw new Error('not used');
+    },
+    async repairEnvironmentDependency() {
+      throw new Error('not used');
+    },
+  };
+
+  await startFirstRunMaterialization({
+    profile,
+    runtime,
+    runtimeDataRoot: '/tmp/nimi-data-explicit',
+    installLevel: 'minimal',
+    confirmed: true,
+  });
+
+  assert.ok(calls.some((call) => call.dependencyFamily === 'accelerator.cuda.runtime'));
 });
 
 test('first-run materialization does not treat selected or candidate dependency states as ready', async () => {

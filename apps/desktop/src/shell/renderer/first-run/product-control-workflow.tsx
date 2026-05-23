@@ -9,8 +9,10 @@ import { selectFactoryAIProfileForFirstRun, type FirstRunInstallLevel } from './
 import {
   cancelFirstRunMaterializationJob,
   repairFirstRunMaterializationDependency,
+  repairableConfirmedFirstRunMaterializationDependencies,
   resolveFirstRunMaterializationProjection,
   retryFirstRunMaterializationJob,
+  retryableInterruptedFirstRunMaterializationJobs,
   shouldResumeConfirmedFirstRunMaterialization,
   startFirstRunMaterialization,
   type FirstRunMaterializationDependencyProjection,
@@ -92,8 +94,9 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   const [materialization, setMaterialization] = useState<FirstRunMaterializationProjection | null>(null);
   const [deviceProfile, setDeviceProfile] = useState<LocalRuntimeDeviceProfile | null>(null);
   const [deviceScanSettled, setDeviceScanSettled] = useState(false);
-  const preparingLocalAiReadyRef = useRef(false);
   const resumingMaterializationRef = useRef(false);
+  const autoRepairAttemptedKeysRef = useRef<Set<string>>(new Set());
+  const autoRetryAttemptedKeysRef = useRef<Set<string>>(new Set());
 
   const busy = pendingAction !== null;
 
@@ -119,6 +122,11 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   const selectedDataRoot = projection?.record?.dataRoot?.path ?? null;
 
   const screen = firstRunScreenForState(state);
+
+  useEffect(() => {
+    autoRepairAttemptedKeysRef.current.clear();
+    autoRetryAttemptedKeysRef.current.clear();
+  }, [selectedPlan?.alias, selectedDataRoot, selectedInstallLevel]);
 
   // Sync the picked path to the recorded data root whenever the projection
   // changes. A projection without a recorded data root (the Storage phase)
@@ -194,18 +202,6 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   const projectMaterialization = useCallback(
     async (next: FirstRunMaterializationProjection, observedProductState?: ProductControlState): Promise<void> => {
       setMaterialization(next);
-      if (next.productState === 'local_ai_ready') {
-        if (preparingLocalAiReadyRef.current) return;
-        preparingLocalAiReadyRef.current = true;
-        setPendingAction('local-ai-ready');
-        try {
-          notifyProjectionChange(await desktopBridge.prepareProductFirstRunLocalAiReady());
-        } finally {
-          preparingLocalAiReadyRef.current = false;
-          setPendingAction(null);
-        }
-        return;
-      }
       if (
         next.productState !== observedProductState
         && canPersistSetupState(next.productState)
@@ -221,17 +217,16 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     [notifyProjectionChange],
   );
 
-  // Runtime materialization observer. Active only while the Setup phase is
-  // presenting Runtime-evidence progress. At `local_ai_ready` the
-  // materialization phase is complete and finalization takes over; before an
-  // install level is chosen there is nothing to observe.
+  // Runtime materialization observer. Active while setup/finalization can still
+  // need Runtime-evidence progress. Even at `local_ai_ready`, a platform-dynamic
+  // dependency projection may discover a missing Runtime prerequisite and move
+  // the product record back to Setup before finalization retries.
   useEffect(() => {
     if (
       !selectedPlan
       || !selectedDataRoot
       || state === 'ai_environment_unconfigured'
       || state === 'data_root_selected'
-      || state === 'local_ai_ready'
     ) {
       setMaterialization(null);
       return;
@@ -265,6 +260,98 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
             });
             if (!disposed) {
               await projectMaterialization(resumed, observedProductState);
+            }
+          } finally {
+            resumingMaterializationRef.current = false;
+            if (!disposed) setPendingAction(null);
+          }
+          return;
+        }
+        const retryableInterruptedJobs = retryableInterruptedFirstRunMaterializationJobs(
+          observedProductState,
+          next,
+        ).filter((job) => {
+          const key = [
+            job.environmentKey,
+            job.dependencyFamily,
+            job.dependencyId,
+            job.failureDetail || job.state,
+          ].join('|');
+          if (autoRetryAttemptedKeysRef.current.has(key)) return false;
+          autoRetryAttemptedKeysRef.current.add(key);
+          return true;
+        });
+        if (retryableInterruptedJobs.length > 0) {
+          if (resumingMaterializationRef.current) {
+            await projectMaterialization(next, observedProductState);
+            return;
+          }
+          resumingMaterializationRef.current = true;
+          setPendingAction('resume-materialization');
+          try {
+            await Promise.all(retryableInterruptedJobs.map((job) =>
+              retryFirstRunMaterializationJob({
+                profile: observedPlan,
+                runtimeDataRoot: observedDataRoot,
+                installLevel: observedInstallLevel,
+                jobId: job.jobId,
+                confirmed: true,
+              }),
+            ));
+            const resumed = await resolveFirstRunMaterializationProjection({
+              profile: observedPlan,
+              runtimeDataRoot: observedDataRoot,
+              installLevel: observedInstallLevel,
+            });
+            if (!disposed) {
+              await projectMaterialization(resumed, observedProductState);
+            }
+          } finally {
+            resumingMaterializationRef.current = false;
+            if (!disposed) setPendingAction(null);
+          }
+          return;
+        }
+        const repairableDependencies = repairableConfirmedFirstRunMaterializationDependencies(
+          observedProductState,
+          next,
+        ).filter(({ dependency }) => {
+          const key = [
+            dependency.environmentKey,
+            dependency.dependencyFamily,
+            dependency.dependencyId,
+            dependency.reasonCode || '',
+            dependency.detail || '',
+          ].join('|');
+          if (autoRepairAttemptedKeysRef.current.has(key)) return false;
+          autoRepairAttemptedKeysRef.current.add(key);
+          return true;
+        });
+        if (repairableDependencies.length > 0) {
+          if (resumingMaterializationRef.current) {
+            await projectMaterialization(next, observedProductState);
+            return;
+          }
+          resumingMaterializationRef.current = true;
+          setPendingAction('resume-materialization');
+          try {
+            await Promise.all(repairableDependencies.map(({ dependency }) =>
+              repairFirstRunMaterializationDependency({
+                profile: observedPlan,
+                runtimeDataRoot: observedDataRoot,
+                installLevel: observedInstallLevel,
+                dependency,
+                confirmed: true,
+                reasonCode: dependency.reasonCode ?? next.reason,
+              }),
+            ));
+            const repaired = await resolveFirstRunMaterializationProjection({
+              profile: observedPlan,
+              runtimeDataRoot: observedDataRoot,
+              installLevel: observedInstallLevel,
+            });
+            if (!disposed) {
+              await projectMaterialization(repaired, observedProductState);
             }
           } finally {
             resumingMaterializationRef.current = false;
@@ -616,6 +703,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     [state, materialization],
   );
   const deviceSummary = useMemo(() => projectDeviceSummary(deviceProfile), [deviceProfile]);
+  const materializationReadyForFinalization = materialization?.productState === 'local_ai_ready';
 
   function renderScreen(): ReactElement {
     if (screen.kind === 'terminal') {
@@ -680,7 +768,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
             onCancel: (item) => void cancelSetupStep(item),
           }}
         />
-        {state === 'local_ai_ready' && projection ? (
+        {(state === 'local_ai_ready' || materializationReadyForFinalization) && projection ? (
           <FirstRunFinalization projection={projection} onProjectionChange={notifyProjectionChange} />
         ) : null}
       </div>

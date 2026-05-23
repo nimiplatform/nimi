@@ -7,6 +7,10 @@ const sourcePath = path.join(
   import.meta.dirname,
   '../src/shell/renderer/features/runtime-config/runtime-config-page-profiles.tsx',
 );
+const libraryPanelPath = path.join(
+  import.meta.dirname,
+  '../src/shell/renderer/features/runtime-config/runtime-config-profile-library-panel.tsx',
+);
 
 // T2.4: the Profiles section converges onto the Nimi Kit AI Config component.
 // Profile apply is preview-gated (D-AIPC-014 / S-AICONF-008) through the kit
@@ -41,8 +45,9 @@ test('profile section retires the bespoke profile editor', () => {
 
 test('profile section exposes the file-backed library actions and factory restore', () => {
   const source = readFileSync(sourcePath, 'utf8');
-  assert.match(source, /runtime-profiles-account-library/);
-  assert.match(source, /runtime-profiles-create/);
+  const libraryPanelSource = readFileSync(libraryPanelPath, 'utf8');
+  assert.match(libraryPanelSource, /runtime-profiles-account-library/);
+  assert.match(libraryPanelSource, /runtime-profiles-create/);
   assert.match(source, /runtime-profiles-import/);
   assert.match(source, /runtime-profiles-export/);
   assert.match(source, /runtime-profiles-factory-restore/);

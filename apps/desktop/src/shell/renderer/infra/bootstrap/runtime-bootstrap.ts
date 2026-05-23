@@ -31,6 +31,7 @@ import { createProxyFetch } from '@renderer/infra/bridge/proxy-fetch';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { initializeBuiltInChatScopesFromProductControl } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { getOfflineCoordinator } from '@runtime/offline';
 import {
   ensureCoreWorldDataCapabilitiesRegistered,
@@ -228,6 +229,23 @@ async function teardownBootstrapState(): Promise<void> {
   resetRuntimeHostState();
   clearInternalModSdkHost();
   clearPlatformClient();
+}
+
+async function initializeBuiltInChatScopesAfterReadyAdmission(flowId: string): Promise<void> {
+  const projection = await desktopBridge.getProductControlRecord();
+  if (projection.state !== 'ready_for_use') {
+    logRendererEvent({
+      level: 'info',
+      area: 'renderer-bootstrap',
+      message: 'phase:built-in-ai-config:init-skipped-product-not-ready',
+      flowId,
+      details: {
+        productState: projection.state,
+      },
+    });
+    return;
+  }
+  await initializeBuiltInChatScopesFromProductControl();
 }
 
 export function bootstrapRuntime(): Promise<void> {
@@ -534,6 +552,22 @@ export function bootstrapRuntime(): Promise<void> {
           level: 'warn',
           area: 'renderer-bootstrap',
           message: 'phase:account-profile:hydrate-deferred',
+          flowId,
+          details: {
+            accountId: accountProjection.accountId,
+            error: safeErrorMessage(error),
+          },
+        });
+      });
+      await withBootstrapStepTimeout(
+        'built-in chat AIConfig init',
+        initializeBuiltInChatScopesAfterReadyAdmission(flowId),
+        NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
+      ).catch((error) => {
+        logRendererEvent({
+          level: 'warn',
+          area: 'renderer-bootstrap',
+          message: 'phase:built-in-ai-config:init-deferred',
           flowId,
           details: {
             accountId: accountProjection.accountId,

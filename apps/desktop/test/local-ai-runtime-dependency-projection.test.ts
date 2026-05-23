@@ -53,6 +53,8 @@ test('local model center setup CTA projects shared dependency resolver truth at 
   assert.match(installedSectionSource, /dependency\.state === 'needs_confirmation'/);
   assert.match(installedSectionSource, /dependency\.confirmationRequired === true/);
   assert.match(installedSectionSource, /cudaModelWaitingForSetup/);
+  assert.match(installedSectionSource, /Optional local GPU acceleration/);
+  assert.doesNotMatch(installedSectionSource, /Nimi needs one local CUDA runtime package before local models can use GPU acceleration/);
   assert.doesNotMatch(installedSectionSource, /sharedRuntimeDependencyDetail/);
   assert.doesNotMatch(installedSectionSource, /dependency\.message \|\| props\.sharedRuntimeDependency/);
   assert.doesNotMatch(installedSectionSource, /materializable_requires_confirmation/);

@@ -4,32 +4,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
-use super::engine_pack_download::download_and_prepare_bundle;
-
 const LLAMA_ENGINE_PACK_SUBDIR: &str = "engine-packs/llama-cpp";
-pub(super) const GITHUB_RELEASE_API: &str =
-    "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest";
 const BUNDLE_MANIFEST_FILE_NAME: &str = "bundle-manifest.json";
 
 #[derive(Debug, Clone)]
 pub struct EnginePackBootstrapResult {
     pub binary_path: String,
-    pub downloaded: bool,
-    pub source_url: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-pub(super) struct GithubReleasePayload {
-    #[serde(default)]
-    pub(super) assets: Vec<GithubReleaseAsset>,
-}
-
-#[derive(Debug, Deserialize)]
-pub(super) struct GithubReleaseAsset {
-    #[serde(default)]
-    pub(super) name: String,
-    #[serde(default)]
-    pub(super) browser_download_url: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -79,17 +59,6 @@ fn cache_bundle_dir_path() -> Result<PathBuf, String> {
     Ok(runtime_root
         .join(LLAMA_ENGINE_PACK_SUBDIR)
         .join(platform_id()))
-}
-
-fn ensure_cache_bundle_dir() -> Result<PathBuf, String> {
-    let cache_dir = cache_bundle_dir_path()?;
-    fs::create_dir_all(&cache_dir).map_err(|error| {
-        format!(
-            "LOCAL_AI_ENGINE_PACK_CACHE_DIR_FAILED: failed to create cache directory ({}): {error}",
-            cache_dir.display()
-        )
-    })?;
-    Ok(cache_dir)
 }
 
 fn bundle_manifest_path(bundle_dir: &Path) -> PathBuf {
@@ -481,27 +450,6 @@ fn env_override_binary_path() -> Option<String> {
     normalize_non_empty(std::env::var("NIMI_LLAMA_CPP_BIN").ok().as_deref())
 }
 
-pub(super) fn env_download_url() -> Option<String> {
-    normalize_non_empty(std::env::var("NIMI_LLAMA_CPP_PACK_URL").ok().as_deref())
-}
-
-pub(super) fn env_expected_sha256() -> Option<String> {
-    normalize_non_empty(std::env::var("NIMI_LLAMA_CPP_PACK_SHA256").ok().as_deref()).map(|value| {
-        value
-            .to_ascii_lowercase()
-            .trim_start_matches("sha256:")
-            .to_string()
-    })
-}
-
-pub(super) fn github_user_agent() -> String {
-    std::env::var("NIMI_LOCAL_AI_HF_USER_AGENT")
-        .ok()
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "nimi-desktop/0.1 local-ai-runtime".to_string())
-}
-
 #[cfg(unix)]
 pub(super) fn ensure_executable(path: &Path) -> Result<(), String> {
     use std::os::unix::fs::PermissionsExt;
@@ -537,47 +485,30 @@ pub fn ensure_llama_cpp_binary() -> Result<EnginePackBootstrapResult, String> {
         }
         return Ok(EnginePackBootstrapResult {
             binary_path: path.to_string_lossy().to_string(),
-            downloaded: false,
-            source_url: None,
         });
     }
 
-    let cache_dir = ensure_cache_bundle_dir()?;
     match resolve_existing_llama_cpp_binary() {
         Ok(Some(binary_path)) => {
-            return Ok(EnginePackBootstrapResult {
-                binary_path,
-                downloaded: false,
-                source_url: None,
-            });
+            return Ok(EnginePackBootstrapResult { binary_path });
         }
         Ok(None) => {}
-        Err(_) => {
-            remove_path_if_exists(&cache_dir)?;
-            fs::create_dir_all(&cache_dir).map_err(|error| {
-                format!(
-                    "LOCAL_AI_ENGINE_PACK_CACHE_DIR_FAILED: failed to recreate cache directory ({}): {error}",
-                    cache_dir.display()
-                )
-            })?;
-        }
+        Err(error) => return Err(error),
     }
 
-    let (binary_path, source_url) = download_and_prepare_bundle(cache_dir.as_path())?;
-    Ok(EnginePackBootstrapResult {
-        binary_path: binary_path.to_string_lossy().to_string(),
-        downloaded: true,
-        source_url: Some(source_url),
-    })
+    Err(
+        "LOCAL_AI_ENGINE_PACK_MATERIALIZATION_DISABLED: llama.cpp package materialization is owned by Runtime local environment dependency jobs; resolve the first-run local environment plan and start the llama.cpp.package dependency job"
+            .to_string(),
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
         binary_name, bundle_manifest_path, cache_bundle_dir_path, collect_bundle_runtime_files,
-        copy_bundle_to_cache, now_nanos, resolve_existing_llama_cpp_binary, write_bundle_manifest,
+        copy_bundle_to_cache, ensure_llama_cpp_binary, now_nanos,
+        resolve_existing_llama_cpp_binary, write_bundle_manifest,
     };
-    use crate::local_runtime::engine_pack_download::asset_score;
     use crate::test_support::test_guard;
     use std::fs;
     use std::path::PathBuf;
@@ -586,17 +517,6 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("nimi-engine-pack-{label}-{}", now_nanos()));
         fs::create_dir_all(&dir).expect("create temp test dir");
         dir
-    }
-
-    #[test]
-    fn asset_scoring_prefers_llama_server_name() {
-        let binary_asset = format!("llama-server-{}", std::env::consts::OS);
-        let archive_asset = format!(
-            "llama-{}-{}.zip",
-            std::env::consts::OS,
-            std::env::consts::ARCH
-        );
-        assert!(asset_score(binary_asset.as_str()) > asset_score(archive_asset.as_str()));
     }
 
     #[test]
@@ -683,6 +603,25 @@ mod tests {
             resolved.as_deref(),
             Some(cache_dir.join(binary_name()).to_string_lossy().as_ref())
         );
+
+        let _ = fs::remove_dir_all(runtime_root);
+        std::env::remove_var("NIMI_LOCAL_AI_RUNTIME_ROOT");
+    }
+
+    #[test]
+    fn ensure_binary_fails_closed_without_existing_first_run_dependency() {
+        let _guard = test_guard();
+        let runtime_root = temp_dir("runtime-root-missing");
+        std::env::set_var(
+            "NIMI_LOCAL_AI_RUNTIME_ROOT",
+            runtime_root.display().to_string(),
+        );
+        std::env::remove_var("NIMI_LLAMA_CPP_BIN");
+
+        let error = ensure_llama_cpp_binary()
+            .expect_err("missing llama.cpp package must not trigger desktop materialization");
+        assert!(error.contains("LOCAL_AI_ENGINE_PACK_MATERIALIZATION_DISABLED"));
+        assert!(error.contains("llama.cpp.package"));
 
         let _ = fs::remove_dir_all(runtime_root);
         std::env::remove_var("NIMI_LOCAL_AI_RUNTIME_ROOT");

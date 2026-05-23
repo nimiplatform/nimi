@@ -354,7 +354,9 @@ mod tests {
         let health = check_engine_health(&model);
         assert_eq!(health.status, LocalAiAssetStatus::Installed);
         assert!(
-            health.detail.contains("start required")
+            health
+                .detail
+                .contains("first-run dependency setup required")
                 || health.detail.to_ascii_lowercase().contains("llama.cpp")
         );
     }
@@ -375,7 +377,12 @@ mod tests {
         let model = model_fixture("llama", LocalAiAssetStatus::Installed);
         let health = check_engine_health(&model);
         assert_eq!(health.status, LocalAiAssetStatus::Installed);
-        assert!(health.detail.contains("start required") || health.detail.contains("not started"));
+        assert!(
+            health
+                .detail
+                .contains("first-run dependency setup required")
+                || health.detail.contains("not started")
+        );
     }
 
     #[test]

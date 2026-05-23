@@ -522,30 +522,61 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
     let selected_factory_ref = first_run_factory_profile_ref(&install_level);
     let data_root_ref = data_root.display().to_string();
 
-    let baseline_response: crate::runtime_bridge::generated::MintRuntimeBaselineReadinessResponse =
-        runtime_bridge_unary_decode(
-            "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
-            crate::runtime_bridge::generated::MintRuntimeBaselineReadinessRequest {
-                selected_local_factory_ai_profile_ref: selected_factory_ref.clone(),
-                install_level: install_level.clone(),
-                runtime_data_root_or_data_root_ref: data_root_ref.clone(),
-                host_profile: Some(host_profile.clone()),
-                baseline_consumers: Vec::new(),
-            },
-            Some(60_000),
-        )
-        .await?;
-    if baseline_response.state.trim() != "ready" {
-        return Err(format!(
-            "runtimeBaselineRef mint failed (state={}, reason={}): {}",
-            baseline_response.state.trim(),
-            baseline_response.reason_code.trim(),
-            baseline_response.detail.trim()
-        ));
-    }
-    let baseline_ref = baseline_response.r#ref.clone().ok_or_else(|| {
-        "Runtime baseline readiness response did not include runtimeBaselineRef".to_string()
-    })?;
+    let existing_runtime_baseline_ref = record
+        .first_run
+        .runtime_baseline_ref
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string);
+    let baseline_ref = if let Some(existing_ref) = existing_runtime_baseline_ref {
+        let response: crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessResponse =
+            runtime_bridge_unary_decode(
+                "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
+                crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessRequest {
+                    runtime_baseline_ref: existing_ref,
+                    host_profile: Some(host_profile.clone()),
+                },
+                Some(60_000),
+            )
+            .await?;
+        if response.state.trim() != "ready" {
+            return Err(format!(
+                "runtimeBaselineRef resolve failed (state={}, reason={}): {}",
+                response.state.trim(),
+                response.reason_code.trim(),
+                response.detail.trim()
+            ));
+        }
+        response.r#ref.ok_or_else(|| {
+            "Runtime baseline readiness response did not include runtimeBaselineRef".to_string()
+        })?
+    } else {
+        let response: crate::runtime_bridge::generated::MintRuntimeBaselineReadinessResponse =
+            runtime_bridge_unary_decode(
+                "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
+                crate::runtime_bridge::generated::MintRuntimeBaselineReadinessRequest {
+                    selected_local_factory_ai_profile_ref: selected_factory_ref.clone(),
+                    install_level: install_level.clone(),
+                    runtime_data_root_or_data_root_ref: data_root_ref.clone(),
+                    host_profile: Some(host_profile.clone()),
+                    baseline_consumers: Vec::new(),
+                },
+                Some(60_000),
+            )
+            .await?;
+        if response.state.trim() != "ready" {
+            return Err(format!(
+                "runtimeBaselineRef mint failed (state={}, reason={}): {}",
+                response.state.trim(),
+                response.reason_code.trim(),
+                response.detail.trim()
+            ));
+        }
+        response.r#ref.ok_or_else(|| {
+            "Runtime baseline readiness response did not include runtimeBaselineRef".to_string()
+        })?
+    };
     let runtime_baseline_ref = Some(baseline_ref.runtime_baseline_ref.trim().to_string())
         .filter(|value| !value.is_empty())
         .ok_or_else(|| {
@@ -562,41 +593,85 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
         &install_level,
         &baseline_bindings,
     )?;
+    record.first_run.runtime_baseline_ref = Some(runtime_baseline_ref.clone());
+    record.first_run.built_in_ai_config_refs = evidence_set.refs();
+    write_record(&control_path, &record)?;
     let recommended_capabilities = recommended_first_run_capabilities(factory_row, &install_level);
 
-    let execution_response: crate::runtime_bridge::generated::MintFirstRunExecutionEvidenceResponse =
-        runtime_bridge_unary_decode(
-            "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
-            crate::runtime_bridge::generated::MintFirstRunExecutionEvidenceRequest {
-                runtime_baseline_ref: runtime_baseline_ref.clone(),
-                selected_local_factory_ai_profile_ref: selected_factory_ref,
-                install_level: install_level.clone(),
-                data_root_ref: data_root_ref.clone(),
-                host_profile: Some(host_profile),
-                recommended_capabilities,
-                submit_scheduling_evaluated: false,
-            },
-            Some(120_000),
-        )
-        .await?;
     let expected_execution_state =
         product_control_state_wire_value(ProductControlState::LocalAiReady)?;
-    if execution_response.state.trim() != expected_execution_state.as_str() {
-        return Err(format!(
-            "executionEvidenceRef mint failed (state={}, reason={}): {}",
-            execution_response.state.trim(),
-            execution_response.reason_code.trim(),
-            execution_response.detail.trim()
-        ));
-    }
-    let execution_evidence_ref = execution_response
-        .r#ref
-        .as_ref()
-        .map(|value| value.execution_evidence_ref.trim().to_string())
+    let existing_execution_evidence_ref = record
+        .first_run
+        .execution_evidence_ref
+        .as_deref()
+        .map(str::trim)
         .filter(|value| !value.is_empty())
-        .ok_or_else(|| {
-            "Runtime execution evidence response did not include executionEvidenceRef".to_string()
-        })?;
+        .map(str::to_string);
+    let execution_evidence_ref = if let Some(existing_ref) = existing_execution_evidence_ref {
+        let response: crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceResponse =
+            runtime_bridge_unary_decode(
+                "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence",
+                crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceRequest {
+                    execution_evidence_ref: existing_ref,
+                    expected_runtime_baseline_ref: runtime_baseline_ref.clone(),
+                    expected_data_root_ref: data_root_ref.clone(),
+                    expected_install_level: install_level.clone(),
+                    host_profile: Some(host_profile.clone()),
+                },
+                Some(60_000),
+            )
+            .await?;
+        if response.state.trim() != expected_execution_state.as_str() {
+            return Err(format!(
+                "executionEvidenceRef resolve failed (state={}, reason={}): {}",
+                response.state.trim(),
+                response.reason_code.trim(),
+                response.detail.trim()
+            ));
+        }
+        response
+            .r#ref
+            .as_ref()
+            .map(|value| value.execution_evidence_ref.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| {
+                "Runtime execution evidence response did not include executionEvidenceRef"
+                    .to_string()
+            })?
+    } else {
+        let response: crate::runtime_bridge::generated::MintFirstRunExecutionEvidenceResponse =
+            runtime_bridge_unary_decode(
+                "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
+                crate::runtime_bridge::generated::MintFirstRunExecutionEvidenceRequest {
+                    runtime_baseline_ref: runtime_baseline_ref.clone(),
+                    selected_local_factory_ai_profile_ref: selected_factory_ref,
+                    install_level: install_level.clone(),
+                    data_root_ref: data_root_ref.clone(),
+                    host_profile: Some(host_profile),
+                    recommended_capabilities,
+                    submit_scheduling_evaluated: false,
+                },
+                Some(120_000),
+            )
+            .await?;
+        if response.state.trim() != expected_execution_state.as_str() {
+            return Err(format!(
+                "executionEvidenceRef mint failed (state={}, reason={}): {}",
+                response.state.trim(),
+                response.reason_code.trim(),
+                response.detail.trim()
+            ));
+        }
+        response
+            .r#ref
+            .as_ref()
+            .map(|value| value.execution_evidence_ref.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| {
+                "Runtime execution evidence response did not include executionEvidenceRef"
+                    .to_string()
+            })?
+    };
 
     record.first_run.runtime_baseline_ref = Some(runtime_baseline_ref);
     record.first_run.built_in_ai_config_refs = evidence_set.refs();

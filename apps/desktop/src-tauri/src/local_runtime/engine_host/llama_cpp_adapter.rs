@@ -485,8 +485,9 @@ impl EngineAdapter for LlamaCppProcessAdapter {
                         },
                         Ok(None) => EngineHealthResult {
                             healthy: true,
-                            detail: "llama.cpp engine pack missing; start required to bootstrap"
-                                .to_string(),
+                            detail:
+                                "llama.cpp engine pack missing; first-run dependency setup required"
+                                    .to_string(),
                             status: LocalAiAssetStatus::Installed,
                         },
                         Err(error) => EngineHealthResult {

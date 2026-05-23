@@ -27,6 +27,7 @@ export function FirstRunFinalization(props: FirstRunFinalizationProps): ReactEle
   const [status, setStatus] = useState<FinalizationStatus>('requesting');
   const [error, setError] = useState<string | null>(props.projection.error ?? null);
   const inFlightRef = useRef(false);
+  const autoRequestedRef = useRef(false);
   const firstRun = props.projection.record?.firstRun;
   const hasFinalizationRefs = Boolean(
     firstRun?.accountDefaultProfileRef
@@ -73,6 +74,8 @@ export function FirstRunFinalization(props: FirstRunFinalizationProps): ReactEle
   // Request admission once on entry into `local_ai_ready`. The backend is the
   // only authority that may admit `ready_for_use`; the renderer only requests.
   useEffect(() => {
+    if (autoRequestedRef.current) return;
+    autoRequestedRef.current = true;
     void requestAdmission();
   }, [requestAdmission]);
 

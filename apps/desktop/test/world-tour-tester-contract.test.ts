@@ -48,30 +48,32 @@ test('world tour panel keeps world.generate submit flow and launch-only desktop 
   assert.doesNotMatch(source, /result:\s*'passed',\s*error:\s*'',\s*output:\s*world/);
 });
 
-test('dedicated world tour viewer route owns Spark renderer lifecycle', () => {
-  const source = readRendererFile('features/tester/world-tour-viewer-route.tsx');
-  assert.match(source, /SparkRenderer/);
-  assert.match(source, /OrbitControls/);
-  assert.match(source, /GLTFLoader/);
-  assert.match(source, /Fit Scene/);
-  assert.match(source, /Reset View/);
-  assert.match(source, /Save Current View/);
-  assert.match(source, /Pilot Target/);
-  assert.match(source, /dblclick/);
-  assert.match(source, /save_world_tour_viewer_preset/);
-  assert.match(source, /claim_world_tour_viewer_launch/);
-  assert.match(source, /launchToken/);
-  assert.match(source, /Tester-owned desktop launch token/);
-  assert.doesNotMatch(source, /resolve_world_tour_fixture/);
-  assert.match(source, /Booting world tour viewer/);
-  assert.match(source, /writeWorldTourRenderAcceptance/);
-  assert.match(source, /hasVerifiedSpzIntegrity/);
-  assert.match(source, /digest\/provenance/);
-  assert.match(source, /status:\s*'passed'/);
-  assert.match(source, /status:\s*'failed'/);
-  assert.match(source, /const WORLD_TOUR_UPRIGHT_QUATERNION = new THREE\.Quaternion\(1,\s*0,\s*0,\s*0\)/);
-  assert.doesNotMatch(source, /splat\.quaternion\.copy\(WORLD_TOUR_UPRIGHT_QUATERNION\)/);
-  assert.doesNotMatch(source, /Ground Lock/);
+test('dedicated world tour viewer route and canvas own Spark renderer lifecycle', () => {
+  const routeSource = readRendererFile('features/tester/world-tour-viewer-route.tsx');
+  const canvasSource = readRendererFile('features/tester/world-tour-viewer-canvas.tsx');
+  assert.match(routeSource, /WorldTourViewerCanvas/);
+  assert.match(routeSource, /claim_world_tour_viewer_launch/);
+  assert.match(routeSource, /launchToken/);
+  assert.match(routeSource, /Tester-owned desktop launch token/);
+  assert.doesNotMatch(routeSource, /resolve_world_tour_fixture/);
+  assert.match(canvasSource, /SparkRenderer/);
+  assert.match(canvasSource, /OrbitControls/);
+  assert.match(canvasSource, /GLTFLoader/);
+  assert.match(canvasSource, /Fit Scene/);
+  assert.match(canvasSource, /Reset View/);
+  assert.match(canvasSource, /Save Current View/);
+  assert.match(canvasSource, /Pilot Target/);
+  assert.match(canvasSource, /dblclick/);
+  assert.match(canvasSource, /save_world_tour_viewer_preset/);
+  assert.match(canvasSource, /Booting world tour viewer/);
+  assert.match(canvasSource, /writeWorldTourRenderAcceptance/);
+  assert.match(canvasSource, /hasVerifiedSpzIntegrity/);
+  assert.match(canvasSource, /digest\/provenance/);
+  assert.match(canvasSource, /status:\s*'passed'/);
+  assert.match(canvasSource, /status:\s*'failed'/);
+  assert.match(canvasSource, /const WORLD_TOUR_UPRIGHT_QUATERNION = new THREE\.Quaternion\(1,\s*0,\s*0,\s*0\)/);
+  assert.doesNotMatch(canvasSource, /splat\.quaternion\.copy\(WORLD_TOUR_UPRIGHT_QUATERNION\)/);
+  assert.doesNotMatch(canvasSource, /Ground Lock/);
 });
 
 test('app routes admit the dedicated world tour viewer route', () => {
