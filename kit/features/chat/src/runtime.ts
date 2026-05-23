@@ -1,19 +1,19 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
 import {
   useCallback,
   useEffect,
   useRef,
   useState,
 } from 'react';
-import type {
-  Runtime,
-  TextGenerateInput,
-  TextGenerateOutput,
-  TextMessage,
-  TextStreamInput,
-  TextStreamPart,
-} from '@nimiplatform/sdk/runtime';
-import type { NimiError } from '@nimiplatform/sdk/types';
+import {
+  getPlatformClient,
+  type Runtime,
+  type TextGenerateInput,
+  type TextGenerateOutput,
+  type TextMessage,
+  type TextStreamInput,
+  type TextStreamPart,
+  type NimiError,
+} from '@nimiplatform/nimi-kit/core/sdk-contract';
 import type { ChatComposerAdapter, ChatComposerSubmitInput } from './types.js';
 export type {
   SimpleAiConversationProviderOptions,

@@ -1,5 +1,5 @@
 import type { TauriOAuthBridge } from '@nimiplatform/nimi-kit/core/oauth';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/nimi-kit/core/sdk-contract';
 
 type AuthTokensDto = RealmModel<'AuthTokensDto'>;
 type OAuthLoginResultDto = RealmModel<'OAuthLoginResultDto'>;

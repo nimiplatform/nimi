@@ -1,5 +1,4 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import { getPlatformClient, type RealmModel } from '@nimiplatform/nimi-kit/core/sdk-contract';
 import { useMemo } from 'react';
 import {
   normalizeCommerceGiftCatalog,

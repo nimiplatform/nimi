@@ -1,6 +1,5 @@
 import type { FormEvent } from 'react';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { OAuthLoginState } from '@nimiplatform/sdk/realm';
+import { OAuthLoginState, type RealmModel } from '@nimiplatform/nimi-kit/core/sdk-contract';
 import {
   startSocialOauth,
   type SocialOauthProvider,

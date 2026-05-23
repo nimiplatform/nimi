@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { AIConfig } from '@nimiplatform/sdk/mod';
+import type { AIConfig } from '@nimiplatform/nimi-kit/core/sdk-contract';
 import {
   CANONICAL_CAPABILITY_CATALOG_BY_ID,
   type CanonicalCapabilityDescriptor,

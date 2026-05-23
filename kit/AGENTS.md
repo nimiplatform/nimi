@@ -22,3 +22,28 @@
 ## Verification Commands
 - `pnpm --filter @nimiplatform/nimi-kit build && pnpm --filter @nimiplatform/nimi-kit test`
 - `pnpm check:nimi-kit && pnpm exec nimicoding validate-spec-governance --profile nimi --scope platform-consistency && pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope platform --check`
+## Semver Discipline
+- v0.1.0 is the initial public publish; the public surface is the 58 entries in `kit/package.json#exports` (54 wave-a inventory + 4 wave-b additions: `./ui/glass`, `./ui/motion`, `./ui/a11y`, `./core/sdk-contract`).
+- The kit remains in a pre-1.0 iteration phase until an explicit 1.0.0 readiness decision is made.
+- Every change to a public export MUST be classified before merge.
+  - **Patch**: compatible fix only; no public API change and no observable behavior change for valid inputs.
+  - **Minor**: new public export, type-signature widening (e.g. new optional prop, union-arm addition on input), new optional generic parameter, or breaking change during 0.x.
+  - **Major**: reserved for an explicit 1.0.0 readiness decision, or for post-1.0 breaking changes such as export removal, export rename, type-signature narrowing, breaking behavior change, or observable re-exported SDK shape change.
+- Every breaking 0.x minor MUST ship with a migration note in `kit/CHANGELOG.md` describing the before/after import or call shape.
+- **Directional SDK alignment**: `@nimiplatform/nimi-kit` tracks `@nimiplatform/sdk` compatibility during the 0.x phase, but a kit 1.0.0 release is not automatic. When SDK reaches 1.0.0, kit must make an explicit 1.0.0 readiness decision.
+- Experimental exports may break in a 0.x minor bump but MUST still document the change in `CHANGELOG.md`.
+## Counting Vocabulary
+When auditing SDK consumption or any cross-module coupling, keep three distinct counts:
+- **importing-file count**: number of consumer files that contain at least one matching import. Counts files, not statements.
+- **import-statement count**: number of `from '<target>'` statements across the codebase. Two imports from one file count as two.
+- **export-statement count**: number of `export` declarations in a single re-export boundary file (e.g. `kit/core/src/sdk-contract.ts`).
+Each count answers a different question. Do not conflate them: a wave-a inventory line saying "28 unique import sites" is import-statement count, not importing-file count.
+## Cross-Feature Edges
+Admitted one-way feature compositions for the v0.1.0 initial public surface:
+- `chat → avatar`: chat consumes avatar headless surface from 2 importing files.
+  - `kit/features/chat/src/types.ts:2` imports `AvatarPresentationProfile` from `@nimiplatform/nimi-kit/features/avatar/headless`.
+  - `kit/features/chat/src/components/canonical-character-rail.tsx:8` imports `AvatarStage` and helpers from `@nimiplatform/nimi-kit/features/avatar`.
+- `model-config → model-picker`: documented one-way composition for catalog binding reuse.
+New cross-feature edges require explicit admission here; reverse edges (avatar → chat, model-picker → model-config) are forbidden.
+## SDK Single-Boundary
+All static imports from `@nimiplatform/sdk*` inside kit non-test code route through `kit/core/src/sdk-contract.ts`. The single admitted dynamic-import path (`kit/features/chat/src/runtime/orchestration.ts:199`) targets `@nimiplatform/nimi-kit/core/sdk-contract`. New SDK consumption inside kit MUST add a re-export to `sdk-contract.ts` rather than importing `@nimiplatform/sdk*` directly. App consumers remain free to import `@nimiplatform/sdk` directly.

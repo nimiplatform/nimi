@@ -1,10 +1,10 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
 import { useCallback, useState } from 'react';
 import {
+  getPlatformClient,
   ScenarioJobStatus,
   type Runtime,
   type ScenarioJobSubmitInput,
-} from '@nimiplatform/sdk/runtime';
+} from '@nimiplatform/nimi-kit/core/sdk-contract';
 import { useGenerationPanel, type UseGenerationPanelResult } from './hooks/use-generation-panel.js';
 import type { GenerationRunItem } from './types.js';
 export type RuntimeGenerationSubmitRequest = ScenarioJobSubmitInput;

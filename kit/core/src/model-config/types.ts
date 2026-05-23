@@ -16,8 +16,8 @@ import type {
   AIProfilePreviewResult,
   AIProfileRef,
   AIScopeRef,
-} from '@nimiplatform/sdk/mod';
-import type { SpeechVoiceReference } from '@nimiplatform/sdk/runtime';
+  SpeechVoiceReference,
+} from '@nimiplatform/nimi-kit/core/sdk-contract';
 import type {
   CanonicalCapabilityDescriptor,
 } from '@nimiplatform/nimi-kit/core/runtime-capabilities';

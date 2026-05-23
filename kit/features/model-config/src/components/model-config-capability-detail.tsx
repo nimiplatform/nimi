@@ -9,7 +9,7 @@ import type {
   CapabilityItemOverride,
   SharedAIConfigService,
 } from '@nimiplatform/nimi-kit/core/model-config';
-import type { AIConfig } from '@nimiplatform/sdk/mod';
+import type { AIConfig } from '@nimiplatform/nimi-kit/core/sdk-contract';
 import {
   DEFAULT_AUDIO_SYNTHESIZE_PARAMS,
   DEFAULT_AUDIO_TRANSCRIBE_PARAMS,
@@ -34,7 +34,7 @@ import type {
   VideoParamsState,
   VoiceWorkflowParamsState,
 } from '../types.js';
-import type { SpeechVoiceReference } from '@nimiplatform/sdk/runtime';
+import type { SpeechVoiceReference } from '@nimiplatform/nimi-kit/core/sdk-contract';
 import { CapabilityModelCard } from './capability-model-card.js';
 import {
   TextGenerateParamsEditor,

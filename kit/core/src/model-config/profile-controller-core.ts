@@ -17,7 +17,7 @@ import type {
   AIProfileApplyResult,
   AIProfilePreviewResult,
   AIProfileRef,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/nimi-kit/core/sdk-contract';
 import type {
   ModelConfigDiffRow,
   ModelConfigPreviewState,

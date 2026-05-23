@@ -1,8 +1,9 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
 import {
   asNimiError,
   CatalogModelSource,
+  getPlatformClient,
   ModelCatalogProviderSource,
+  ReasonCode,
   Runtime,
   type CatalogModelDetail,
   type CatalogOverlayWarning,
@@ -14,8 +15,7 @@ import {
   type CatalogModelWorkflowBinding,
   type CatalogModelSummary,
   type ModelCatalogProviderEntry,
-} from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+} from '@nimiplatform/nimi-kit/core/sdk-contract';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useModelPicker, type UseModelPickerOptions, type UseModelPickerResult } from './headless.js';
 import type { ModelCatalogAdapter } from './types.js';

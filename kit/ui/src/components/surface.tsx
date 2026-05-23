@@ -1,6 +1,7 @@
 import { createElement, type ComponentPropsWithoutRef, type ElementType, type ReactNode } from 'react';
 import { cva } from 'class-variance-authority';
 import { cn, type SurfaceElevation, type SurfaceMaterial, type SurfaceMaterialTransparency, type SurfaceTone } from '../design-tokens.js';
+import { downgradeSurfaceMaterial } from '../glass/material.js';
 
 type SurfacePadding = 'none' | 'sm' | 'md' | 'lg';
 
@@ -50,17 +51,10 @@ export const surfaceVariants = cva(
   },
 );
 
-export function downgradeSurfaceMaterial(
-  material: SurfaceMaterial,
-  transparency: SurfaceMaterialTransparency = 'default',
-): SurfaceMaterial {
-  if (transparency === 'solid') return 'solid';
-  if (transparency !== 'reduced') return material;
-  if (material === 'glass-chrome') return 'glass-thick';
-  if (material === 'glass-thick') return 'glass-regular';
-  if (material === 'glass-regular') return 'glass-thin';
-  return material;
-}
+// `downgradeSurfaceMaterial` moved to `../glass/material.ts` (wave-b
+// fork F6 glass-primitive carve-out). Re-exported here so the public
+// `kit/ui` barrel preserves the pre-wave-b export shape.
+export { downgradeSurfaceMaterial } from '../glass/material.js';
 
 type SurfaceProps<T extends ElementType = 'div'> = {
   as?: T;

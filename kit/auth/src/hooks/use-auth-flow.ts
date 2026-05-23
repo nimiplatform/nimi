@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/nimi-kit/core/sdk-contract';
 import { toErrorMessage } from '../logic/oauth-helpers.js';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 import type { AuthView, EmbeddedAuthStage } from '../types/auth-types.js';

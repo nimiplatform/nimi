@@ -2,6 +2,7 @@ import React, { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 're
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn, type ActionSize, type ActionTone } from '../design-tokens.js';
+import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 
 export const buttonVariants = cva(
   'nimi-action inline-flex max-w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
@@ -78,6 +79,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       disabled={asChild ? undefined : isDisabled}
       className={cn(
         buttonVariants({ tone, size }),
+        FOCUS_RING_CLASS_NAME,
         active && 'nimi-action--active bg-[var(--nimi-surface-active)]',
         loading && 'nimi-action--loading cursor-wait',
         fullWidth && 'w-full',
@@ -113,6 +115,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       type={asChild ? undefined : type}
       className={cn(
         buttonVariants({ tone, size }),
+        FOCUS_RING_CLASS_NAME,
         'nimi-action--icon aspect-square px-0',
         active && 'nimi-action--active bg-[var(--nimi-surface-active)]',
         className,

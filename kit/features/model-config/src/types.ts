@@ -1,5 +1,5 @@
 import type { RouteModelPickerDataProvider } from '@nimiplatform/nimi-kit/features/model-picker';
-import type { SpeechVoiceReference } from '@nimiplatform/sdk/runtime';
+import type { SpeechVoiceReference } from '@nimiplatform/nimi-kit/core/sdk-contract';
 import type { ReactNode } from 'react';
 
 export type ModelConfigRouteBinding = {

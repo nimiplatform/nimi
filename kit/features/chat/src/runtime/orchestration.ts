@@ -3,7 +3,7 @@ import type {
   TextMessage,
   TextStreamInput,
   TextStreamPart,
-} from '@nimiplatform/sdk/runtime';
+} from '@nimiplatform/nimi-kit/core/sdk-contract';
 import type {
   ConversationOrchestrationProvider,
   ConversationRuntimeAdapter,
@@ -196,7 +196,7 @@ export function createSimpleAiConversationProvider(
 export function createSdkConversationRuntimeAdapter(runtime?: Runtime): ConversationRuntimeAdapter {
   const runtimeClient = runtime
     ? Promise.resolve(runtime)
-    : import('@nimiplatform/sdk').then((mod) => mod.getPlatformClient().runtime);
+    : import('@nimiplatform/nimi-kit/core/sdk-contract').then((mod) => mod.getPlatformClient().runtime);
   return {
     async streamText(request) {
       const resolvedRuntimeClient = await runtimeClient;
