@@ -167,6 +167,94 @@ func TestAppendEngineCrashAuditIncludesStructuredFields(t *testing.T) {
 	}
 }
 
+func writeManagedLlamaBootstrapState(t *testing.T, localStatePath string, localModelsPath string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Join(localModelsPath, "resolved", "nimi", "local-import-qwen3-4b-q4-k-m"), 0o755); err != nil {
+		t.Fatalf("create model dir: %v", err)
+	}
+	entryPath := filepath.Join(localModelsPath, "resolved", "nimi", "local-import-qwen3-4b-q4-k-m", "Qwen3-4B-Q4_K_M.gguf")
+	if err := os.WriteFile(entryPath, []byte("GGUFtest"), 0o644); err != nil {
+		t.Fatalf("write model entry: %v", err)
+	}
+	manifestPath := filepath.Join(localModelsPath, "resolved", "nimi", "local-import-qwen3-4b-q4-k-m", "asset.manifest.json")
+	manifestRaw, err := json.Marshal(map[string]any{
+		"model_id":         "local-import/Qwen3-4B-Q4_K_M",
+		"logical_model_id": "nimi/local-import-qwen3-4b-q4-k-m",
+		"engine":           "llama",
+		"entry":            "Qwen3-4B-Q4_K_M.gguf",
+		"capabilities":     []string{"chat"},
+		"integrity_mode":   "local_unverified",
+	})
+	if err != nil {
+		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, manifestRaw, 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	stateRaw, err := json.Marshal(map[string]any{
+		"schemaVersion": 2,
+		"savedAt":       now,
+		"assets": []map[string]any{{
+			"localAssetId":      "01KMWJ7Z76YY5QA4QJ35M5ECXM",
+			"assetId":           "local/local-import/Qwen3-4B-Q4_K_M",
+			"kind":              int32(runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT),
+			"capabilities":      []string{"chat"},
+			"engine":            "llama",
+			"entry":             "Qwen3-4B-Q4_K_M.gguf",
+			"sourceRepo":        "file://" + filepath.ToSlash(manifestPath),
+			"sourceRevision":    "local",
+			"endpoint":          "http://127.0.0.1:1234/v1",
+			"status":            1,
+			"installedAt":       now,
+			"updatedAt":         now,
+			"healthDetail":      "managed local model ready (not started)",
+			"engineRuntimeMode": 1,
+			"logicalModelId":    "nimi/local-import-qwen3-4b-q4-k-m",
+		}},
+		"services":  []map[string]any{},
+		"transfers": []map[string]any{},
+		"audits":    []map[string]any{},
+	})
+	if err != nil {
+		t.Fatalf("marshal local state: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(localStatePath), 0o755); err != nil {
+		t.Fatalf("create local state dir: %v", err)
+	}
+	if err := os.WriteFile(localStatePath, stateRaw, 0o600); err != nil {
+		t.Fatalf("write local state: %v", err)
+	}
+}
+
+func writeEngineRegistryEntry(t *testing.T, environmentsRoot string, engineName string, version string) {
+	t.Helper()
+	binaryPath := filepath.Join(environmentsRoot, engineName, version, "test-engine-binary")
+	if err := os.MkdirAll(filepath.Dir(binaryPath), 0o755); err != nil {
+		t.Fatalf("create engine binary dir: %v", err)
+	}
+	if err := os.WriteFile(binaryPath, []byte("engine-binary"), 0o755); err != nil {
+		t.Fatalf("write engine binary: %v", err)
+	}
+	registryRaw, err := json.Marshal([]map[string]any{{
+		"engine":       engineName,
+		"version":      version,
+		"binary_path":  binaryPath,
+		"sha256":       "test-sha256",
+		"platform":     "test",
+		"installed_at": time.Now().UTC().Format(time.RFC3339),
+	}})
+	if err != nil {
+		t.Fatalf("marshal engine registry: %v", err)
+	}
+	if err := os.MkdirAll(environmentsRoot, 0o755); err != nil {
+		t.Fatalf("create environments root: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(environmentsRoot, "registry.json"), registryRaw, 0o600); err != nil {
+		t.Fatalf("write engine registry: %v", err)
+	}
+}
+
 func TestStartSupervisedEnginesDefersAutoManagedLlamaWithoutRuntimePreset(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	homeDir := t.TempDir()
@@ -224,71 +312,92 @@ func TestStartSupervisedEnginesDefersAutoManagedLlamaWithoutRuntimePreset(t *tes
 	}
 }
 
-func TestStartSupervisedEnginesBootstrapsManagedLlamaControlPlaneFromState(t *testing.T) {
+func TestStartSupervisedEnginesDefersManagedLlamaWhenEnginePackageMissing(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	homeDir := t.TempDir()
 	setDaemonTestHome(t, homeDir)
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "none")
 	if err := os.MkdirAll(filepath.Join(homeDir, ".nimi", "runtime"), 0o755); err != nil {
 		t.Fatalf("create test runtime dir: %v", err)
 	}
 
 	localStatePath := filepath.Join(homeDir, ".nimi", "runtime", "local-state.json")
 	localModelsPath := filepath.Join(homeDir, ".nimi", "data", "models")
-	if err := os.MkdirAll(filepath.Join(localModelsPath, "resolved", "nimi", "local-import-qwen3-4b-q4-k-m"), 0o755); err != nil {
-		t.Fatalf("create model dir: %v", err)
+	writeManagedLlamaBootstrapState(t, localStatePath, localModelsPath)
+
+	cfg := config.Config{
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		LocalStatePath:       localStatePath,
+		LocalModelsPath:      localModelsPath,
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
+		EngineLlamaEnabled:   false,
+		EngineLlamaPort:      1234,
+		EngineLlamaVersion:   "b8575",
 	}
-	entryPath := filepath.Join(localModelsPath, "resolved", "nimi", "local-import-qwen3-4b-q4-k-m", "Qwen3-4B-Q4_K_M.gguf")
-	if err := os.WriteFile(entryPath, []byte("GGUFtest"), 0o644); err != nil {
-		t.Fatalf("write model entry: %v", err)
-	}
-	manifestPath := filepath.Join(localModelsPath, "resolved", "nimi", "local-import-qwen3-4b-q4-k-m", "asset.manifest.json")
-	manifestRaw, err := json.Marshal(map[string]any{
-		"model_id":         "local-import/Qwen3-4B-Q4_K_M",
-		"logical_model_id": "nimi/local-import-qwen3-4b-q4-k-m",
-		"engine":           "llama",
-		"entry":            "Qwen3-4B-Q4_K_M.gguf",
-		"capabilities":     []string{"chat"},
-		"integrity_mode":   "local_unverified",
-	})
+	daemon, err := New(cfg, logger, "test")
 	if err != nil {
-		t.Fatalf("marshal manifest: %v", err)
+		t.Fatalf("create daemon: %v", err)
 	}
-	if err := os.WriteFile(manifestPath, manifestRaw, 0o644); err != nil {
-		t.Fatalf("write manifest: %v", err)
+	closeDaemonForTest(t, daemon)
+	svc := daemon.grpc.LocalService()
+	if svc == nil {
+		t.Fatalf("expected local service")
 	}
-	stateRaw, err := json.Marshal(map[string]any{
-		"schemaVersion": 2,
-		"savedAt":       time.Now().UTC().Format(time.RFC3339Nano),
-		"assets": []map[string]any{{
-			"localAssetId":      "01KMWJ7Z76YY5QA4QJ35M5ECXM",
-			"assetId":           "local/local-import/Qwen3-4B-Q4_K_M",
-			"kind":              int32(runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT),
-			"capabilities":      []string{"chat"},
-			"engine":            "llama",
-			"entry":             "Qwen3-4B-Q4_K_M.gguf",
-			"sourceRepo":        "file://" + filepath.ToSlash(manifestPath),
-			"sourceRevision":    "local",
-			"endpoint":          "http://127.0.0.1:1234/v1",
-			"status":            1,
-			"installedAt":       time.Now().UTC().Format(time.RFC3339Nano),
-			"updatedAt":         time.Now().UTC().Format(time.RFC3339Nano),
-			"healthDetail":      "managed local model ready (not started)",
-			"engineRuntimeMode": 1,
-			"logicalModelId":    "nimi/local-import-qwen3-4b-q4-k-m",
-		}},
-		"services":  []map[string]any{},
-		"transfers": []map[string]any{},
-		"audits":    []map[string]any{},
-	})
-	if err != nil {
-		t.Fatalf("marshal local state: %v", err)
+	t.Cleanup(func() { svc.Close() })
+	daemon.auditStore = auditlog.New(64, 64)
+	daemon.aiHealth = providerhealth.New()
+	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), engine.ManagedRoots{
+			Environments: filepath.Join(homeDir, ".nimi", "data", "runtime", "environments"),
+			Dependencies: filepath.Join(homeDir, ".nimi", "data", "runtime", "dependencies"),
+		}, nil)
 	}
-	if err := os.MkdirAll(filepath.Dir(localStatePath), 0o755); err != nil {
-		t.Fatalf("create local state dir: %v", err)
+	calls := make([]engine.EngineKind, 0, 1)
+	var callsMu sync.Mutex
+	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
+		callsMu.Lock()
+		calls = append(calls, kind)
+		callsMu.Unlock()
+		return nil
 	}
-	if err := os.WriteFile(localStatePath, stateRaw, 0o600); err != nil {
-		t.Fatalf("write local state: %v", err)
+
+	daemon.startSupervisedEngines(context.Background())
+
+	if len(calls) != 0 {
+		t.Fatalf("missing llama.cpp package must defer daemon bootstrap, got calls=%v", calls)
 	}
+	if snapshot := daemon.state.Snapshot(); snapshot.Status == health.StatusDegraded {
+		t.Fatalf("missing first-run engine package must not degrade Runtime core readiness: %s", snapshot.Reason)
+	}
+	if managedEndpoint := svc.ManagedLlamaEndpoint(); managedEndpoint != "" {
+		t.Fatalf("missing first-run engine package must not expose managed llama endpoint, got %q", managedEndpoint)
+	}
+	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
+	if _, err := os.Stat(configPath); err != nil {
+		t.Fatalf("expected managed llama router config to be generated for later setup state: %v", err)
+	}
+}
+
+func TestStartSupervisedEnginesBootstrapsManagedLlamaControlPlaneFromStateWhenEnginePackageReady(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	homeDir := t.TempDir()
+	setDaemonTestHome(t, homeDir)
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "none")
+	if err := os.MkdirAll(filepath.Join(homeDir, ".nimi", "runtime"), 0o755); err != nil {
+		t.Fatalf("create test runtime dir: %v", err)
+	}
+
+	localStatePath := filepath.Join(homeDir, ".nimi", "runtime", "local-state.json")
+	localModelsPath := filepath.Join(homeDir, ".nimi", "data", "models")
+	writeManagedLlamaBootstrapState(t, localStatePath, localModelsPath)
+	engineRoots := engine.ManagedRoots{
+		Environments: filepath.Join(homeDir, ".nimi", "data", "runtime", "environments"),
+		Dependencies: filepath.Join(homeDir, ".nimi", "data", "runtime", "dependencies"),
+	}
+	writeEngineRegistryEntry(t, engineRoots.Environments, "llama", "b8575")
 
 	cfg := config.Config{
 		GRPCAddr:             "127.0.0.1:0",
@@ -316,7 +425,7 @@ func TestStartSupervisedEnginesBootstrapsManagedLlamaControlPlaneFromState(t *te
 	daemon.auditStore = store
 	daemon.aiHealth = providerhealth.New()
 	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
-		return &engine.Manager{}, nil
+		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), engineRoots, nil)
 	}
 	calls := make([]engine.EngineKind, 0, 1)
 	var callsMu sync.Mutex

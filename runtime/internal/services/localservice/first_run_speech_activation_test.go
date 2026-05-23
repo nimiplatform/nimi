@@ -34,7 +34,7 @@ func TestSelectedSpeechPackageSetSourceRequiresDriverEvidenceAndSkipsLegacyAggre
 		},
 		ActivationEnvDelta: nil,
 	}))
-	svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+	splitRecord := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily: localEnvironmentFamilyPythonPackageSet,
 		DependencyID:     "local-speech-qwen3-tts.package-set",
 		EnvironmentKey:   "python.package-set|local-speech-qwen3-tts.package-set|host|darwin/arm64|root",
@@ -50,7 +50,9 @@ func TestSelectedSpeechPackageSetSourceRequiresDriverEvidenceAndSkipsLegacyAggre
 		ActivationEnvDelta: []string{
 			envKey + "='python' '" + driverScript + "'",
 		},
-	}))
+	})
+	writeSelectedSourceLocalArtifactsForTest(t, splitRecord)
+	svc.upsertLocalEnvironmentSelectedSourceRecord(splitRecord)
 
 	record, ok, detail := svc.selectedSpeechPackageSetSourceForConsumer(consumer, envKey, engine.SpeechQwen3TTSDriverPath)
 	if !ok {
@@ -96,6 +98,57 @@ func TestEnsureFirstRunSpeechEngineReadyRequiresHealthyStatus(t *testing.T) {
 	}
 }
 
+func TestEnsureFirstRunSpeechEngineReadyFailsBeforeStartWhenPackageSetArtifactsMissing(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+
+	mgr := &mockEngineManager{status: &EngineInfo{
+		Engine: "speech",
+		Status: "healthy",
+	}}
+	svc.SetEngineManager(mgr)
+	svc.localModelsPath = filepath.Join(t.TempDir(), "models")
+
+	ttsRoot := filepath.Join(t.TempDir(), "speech", "0.1.0-qwen3-tts")
+	asrRoot := filepath.Join(t.TempDir(), "speech", "0.1.0-qwen3-asr")
+	upsertVerifiedSpeechPackageSetForTest(t, svc, "speech.qwen3-asr.python", "local-speech-qwen3-asr.package-set", asrRoot, "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD", engine.SpeechQwen3ASRDriverPath)
+
+	driverScript := engine.SpeechQwen3TTSDriverPath(ttsRoot)
+	svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		DependencyFamily: localEnvironmentFamilyPythonPackageSet,
+		DependencyID:     "local-speech-qwen3-tts.package-set",
+		EnvironmentKey:   "python.package-set|local-speech-qwen3-tts.package-set|host|darwin/arm64|root",
+		SourceKind:       localEnvironmentSourceManaged,
+		CanonicalRoot:    ttsRoot,
+		SelectedConsumers: []string{
+			"speech.qwen3-tts.python",
+		},
+		VerifiedArtifacts: []string{
+			filepath.Join(ttsRoot, "bin", "python"),
+			driverScript,
+		},
+		ActivationEnvDelta: []string{
+			"NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD='python' '" + driverScript + "'",
+		},
+	}))
+
+	err := svc.ensureFirstRunSpeechEngineReady(context.Background(), runtimeBaselineReadinessRecord{
+		ActivationReadyResponses: []runtimeBaselineActivationConsumerEvidence{
+			{ConsumerID: "speech.qwen3-asr.python"},
+			{ConsumerID: "speech.qwen3-tts.python"},
+		},
+	})
+	if err == nil {
+		t.Fatalf("expected missing speech package-set artifacts to fail before engine start")
+	}
+	if !strings.Contains(err.Error(), "fails local artifact verification") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if mgr.startConfigCalls != 0 {
+		t.Fatalf("expected StartEngineWithConfig to be skipped, got %d calls", mgr.startConfigCalls)
+	}
+}
+
 func upsertVerifiedSpeechPackageSetForTest(
 	t *testing.T,
 	svc *Service,
@@ -107,7 +160,7 @@ func upsertVerifiedSpeechPackageSetForTest(
 ) {
 	t.Helper()
 	driverScript := driverPath(root)
-	svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+	record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily: localEnvironmentFamilyPythonPackageSet,
 		DependencyID:     dependencyID,
 		EnvironmentKey:   "python.package-set|" + dependencyID + "|host|darwin/arm64|root",
@@ -123,5 +176,7 @@ func upsertVerifiedSpeechPackageSetForTest(
 		ActivationEnvDelta: []string{
 			envKey + "='python' '" + driverScript + "'",
 		},
-	}))
+	})
+	writeSelectedSourceLocalArtifactsForTest(t, record)
+	svc.upsertLocalEnvironmentSelectedSourceRecord(record)
 }

@@ -79,8 +79,10 @@ type Options struct {
 	// waits N*RetryBackoff. 0 disables the wait.
 	RetryBackoff time.Duration
 	// IsTransient classifies a transport/stream error as transient (worth a
-	// retry) or not. nil means "never transient". Context cancellation, 4xx,
-	// hash mismatch and oversize are handled by the core and never routed here.
+	// retry) or not. nil means "never transient". Caller context cancellation,
+	// 4xx, hash mismatch and oversize are handled by the core and never routed
+	// here. Client/read timeouts whose caller ctx is still alive are routed here
+	// so callers can resume long downloads after a socket timeout.
 	IsTransient func(err error) bool
 	// Progress is the optional progress callback.
 	Progress ProgressFunc
@@ -111,7 +113,7 @@ type Result struct {
 //     download from byte 0.
 //   - Non-transient failures (4xx, oversize, hash mismatch) fail closed
 //     immediately and discard the partial.
-//   - A cancelled ctx aborts immediately with no further retry.
+//   - A cancelled caller ctx aborts immediately with no further retry.
 func Download(ctx context.Context, opts Options) (Result, error) {
 	if strings.TrimSpace(opts.URL) == "" {
 		return Result{}, fmt.Errorf("filedownload: URL is required")
@@ -150,12 +152,15 @@ func Download(ctx context.Context, opts Options) (Result, error) {
 			break
 		}
 
-		// Context cancellation aborts immediately — no retry, no resume.
+		// Caller context cancellation aborts immediately — no retry, no
+		// resume. A timeout produced by the injected HTTP client while the
+		// caller ctx is still alive is a transport error; let IsTransient decide
+		// whether it should resume.
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			removePartial(partialPath)
 			return Result{}, ctxErr
 		}
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		if errors.Is(err, context.Canceled) {
 			removePartial(partialPath)
 			return Result{}, err
 		}

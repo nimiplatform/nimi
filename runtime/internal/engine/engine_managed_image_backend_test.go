@@ -360,7 +360,11 @@ func TestEnsureManagedImageBackendRequiresMaterializerWithoutInstalling(t *testi
 		BackendName: "stablediffusion-ggml",
 		Address:     "127.0.0.1:50052",
 	})
-	if !errors.Is(err, ErrManagedImageBackendMaterializationRequired) {
+	if currentGOOS() == "windows" && strings.EqualFold(detectLocalGPUVendor(), "nvidia") {
+		if err == nil || !strings.Contains(err.Error(), "shared accelerator dependency") {
+			t.Fatalf("expected shared accelerator dependency gate, got %v", err)
+		}
+	} else if !errors.Is(err, ErrManagedImageBackendMaterializationRequired) {
 		t.Fatalf("expected materialization-required error, got %v", err)
 	}
 	if _, statErr := os.Stat(backendsPath); !os.IsNotExist(statErr) {

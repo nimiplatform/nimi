@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -65,6 +67,51 @@ func TestCheckManagedSupervisedLlamaHealthProjectsUnloadedModelCold(t *testing.T
 	}
 }
 
+func TestCheckManagedSupervisedLlamaHealthProjectsStoppedWorkerCold(t *testing.T) {
+	probeCalls := 0
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		probeCalls++
+		return endpointProbeResult{
+			healthy:   false,
+			responded: false,
+			detail:    "probe request failed: connection refused",
+			probeURL:  endpoint,
+		}
+	})
+	svc.SetEngineManager(&mockEngineManager{statusErr: fmt.Errorf("engine llama not started")})
+	model := addManagedLlamaAssetForTest(
+		t,
+		svc,
+		"asset_alpha",
+		"local/alpha-model",
+		"nimi/alpha-model",
+		"alpha.gguf",
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED,
+	)
+
+	health, err := svc.checkManagedSupervisedLlamaHealth(context.Background(), model)
+	if err != nil {
+		t.Fatalf("checkManagedSupervisedLlamaHealth: %v", err)
+	}
+	if probeCalls != 0 {
+		t.Fatalf("stopped worker health should project cold without probing, got %d probe calls", probeCalls)
+	}
+	if got := health.GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("health status = %v, want ACTIVE", got)
+	}
+	stored := svc.modelByID(model.GetLocalAssetId())
+	if stored == nil {
+		t.Fatal("expected stored asset")
+	}
+	if got := stored.GetWarmState(); got != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
+		t.Fatalf("warm_state = %v, want COLD", got)
+	}
+	if got := stored.GetHealthDetail(); got != managedLocalModelColdDetail() {
+		t.Fatalf("health detail = %q, want cold detail", got)
+	}
+}
+
 func TestCheckManagedSupervisedLlamaHealthFailClosesWhenEndpointDoesNotRespond(t *testing.T) {
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
@@ -74,6 +121,7 @@ func TestCheckManagedSupervisedLlamaHealthFailClosesWhenEndpointDoesNotRespond(t
 			probeURL:  endpoint,
 		}
 	})
+	svc.SetEngineManager(&mockEngineManager{})
 	model := addManagedLlamaAssetForTest(
 		t,
 		svc,
@@ -132,6 +180,7 @@ func TestRecoverySweepSkipsFailedManagedLlamaBeforeProbeInterval(t *testing.T) {
 		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 		runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
 	)
+	svc.setCurrentManagedLlamaLoadedLocalAssetID(model.GetLocalAssetId())
 
 	svc.runRecoverySweep(context.Background())
 	if probeCalls != 1 {
@@ -195,6 +244,49 @@ func TestAcquireLocalAssetLeaseStartsExplicitManagedLlamaTarget(t *testing.T) {
 	}
 	if got := svc.currentManagedLlamaLoadedLocalAssetID(); got != beta.GetLocalAssetId() {
 		t.Fatalf("loaded local asset id = %q, want %q", got, beta.GetLocalAssetId())
+	}
+}
+
+func TestAcquireLocalAssetLeaseFailsClosedWhenLlamaPackageMissing(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe should not run before llama package readiness",
+			probeURL:  endpoint,
+			models:    []string{"beta-model"},
+		}
+	})
+	roots := engine.ManagedRoots{
+		Environments: t.TempDir(),
+		Dependencies: t.TempDir(),
+	}
+	mgr, err := engine.NewManager(nil, roots, nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	svc.SetEngineManager(engine.NewServiceAdapter(mgr))
+	svc.SetManagedLlamaRegistrationConfig(svc.localModelsPath, svc.managedLlamaModelsConfigPath, true)
+	beta := addManagedLlamaAssetForTest(
+		t,
+		svc,
+		"asset_beta",
+		"local/beta-model",
+		"nimi/beta-model",
+		"beta.gguf",
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD,
+	)
+	recordManagedLlamaWarmKeyForTest(t, svc, beta, defaultLocalEndpoint)
+
+	err = svc.AcquireLocalAssetLease(context.Background(), beta.GetLocalAssetId(), "text_generate_request")
+	assertGRPCCode(t, err, "AcquireLocalAssetLease(missing_llama_package)", codes.FailedPrecondition)
+	assertGRPCReasonCode(t, err, "AcquireLocalAssetLease(missing_llama_package)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	if !strings.Contains(err.Error(), "local environment dependency") {
+		t.Fatalf("expected local environment dependency detail, got %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(roots.Environments, "llama")); !os.IsNotExist(statErr) {
+		t.Fatalf("AcquireLocalAssetLease created llama package directory or unexpected stat error: %v", statErr)
 	}
 }
 

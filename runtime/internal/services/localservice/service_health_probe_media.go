@@ -35,6 +35,9 @@ func (s *Service) bootstrapAssetExecutionEngineIfManaged(ctx context.Context, mo
 		}
 		return fmt.Errorf("%s managed mode is unavailable on this host", strings.TrimSpace(engineName))
 	}
+	if strings.EqualFold(engineName, "speech") {
+		return s.startConfiguredManagedSpeechEngine(ctx, mgr, port)
+	}
 	if strings.EqualFold(engineName, "media") &&
 		isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind()) {
 		selection := canonicalSupervisedImageSelectionForLocalAsset(model, collectDeviceProfile())

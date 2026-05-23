@@ -22,6 +22,7 @@ var (
 	localRuntimeLookPath     = exec.LookPath
 	localRuntimeCommand      = exec.CommandContext
 	localRuntimeStat         = os.Stat
+	localRuntimeProbeRAM     = probeRAM
 	localRuntimeProgramFiles = func() string {
 		value := strings.TrimSpace(os.Getenv("ProgramFiles"))
 		if value == "" {
@@ -56,7 +57,7 @@ func collectDeviceProfile(extraPorts ...int32) *runtimev1.LocalDeviceProfile {
 		})
 	}
 
-	totalRAM, availableRAM := probeRAM()
+	totalRAM, availableRAM := localRuntimeProbeRAM()
 
 	return &runtimev1.LocalDeviceProfile{
 		Os:                localRuntimeGOOS,
@@ -110,8 +111,8 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 		output, runErr := localRuntimeCommand(ctx, "sysctl", "-n", "machdep.cpu.brand_string").Output()
 		model := strings.TrimSpace(string(output))
 		if runErr == nil || model != "" {
-			// K-DEV-002: Apple unified memory — VRAM = host RAM.
-			totalRAM, availRAM := probeRAM()
+			// K-DEV-002: Apple unified memory means VRAM = host RAM.
+			totalRAM, availRAM := localRuntimeProbeRAM()
 			return gpuProbeCapabilities{
 				profile: &runtimev1.LocalGpuProfile{
 					Available:          true,

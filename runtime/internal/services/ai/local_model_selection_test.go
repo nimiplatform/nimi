@@ -150,6 +150,58 @@ func TestExecuteFirstRunLocalBaselinePreparesRecoveredSpeechAsset(t *testing.T) 
 	}
 }
 
+func TestExecuteFirstRunLocalBaselineAcquiresLeaseBeforeTextExecution(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/chat/completions" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"stop","message":{"content":"ready"}}],"usage":{"prompt_tokens":1,"completion_tokens":1}}`))
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{AllowLoopbackEndpoint: true})
+	active := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "asset-chat",
+		AssetId:      "local.chat.gemma-4-e2b-it.q8-0",
+		Engine:       "llama",
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		WarmState:    runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD,
+		Endpoint:     server.URL + "/v1",
+		Capabilities: []string{"text.generate"},
+	}
+	lister := &fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{active},
+		}},
+	}
+	svc.localModel = lister
+
+	result, err := svc.ExecuteFirstRunLocalBaseline(context.Background(), FirstRunLocalExecutionRequest{
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ModelID:      active.GetAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("execute first-run text baseline: %v", err)
+	}
+	if result.RoutePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		t.Fatalf("route policy = %s, want local", result.RoutePolicy)
+	}
+	expected := []string{
+		"acquire:asset-chat:first_run_local_baseline",
+		"release:asset-chat:first_run_local_baseline_cleanup",
+	}
+	if len(lister.leaseCalls) != len(expected) {
+		t.Fatalf("lease calls = %#v, want %#v", lister.leaseCalls, expected)
+	}
+	for i, want := range expected {
+		if lister.leaseCalls[i] != want {
+			t.Fatalf("lease call[%d] = %q, want %q (all calls %#v)", i, lister.leaseCalls[i], want, lister.leaseCalls)
+		}
+	}
+}
+
 func TestExecuteFirstRunLocalBaselineUsesSpeechExecutionTimeout(t *testing.T) {
 	var capturedExtensions map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

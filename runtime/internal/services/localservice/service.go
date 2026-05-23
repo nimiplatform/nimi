@@ -27,7 +27,6 @@ const (
 // Defined here to avoid a hard import cycle with the engine package.
 type EngineManager interface {
 	ListEngines() []EngineInfo
-	EnsureEngine(ctx context.Context, engine string, version string) error
 	EnsureEngineBinaryDependency(ctx context.Context, engine string, version string) (engine.EngineBinaryDependencyStatus, error)
 	EnsureUVToolDependency(ctx context.Context) (engine.UVToolDependencyStatus, error)
 	EnsurePythonRuntimeDependency(ctx context.Context, uvPath string, engine string, version string, pythonVersion string) (engine.PythonRuntimeDependencyStatus, error)

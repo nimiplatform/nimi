@@ -87,7 +87,9 @@ func markRuntimeBaselineConsumerReady(t *testing.T, svc *Service, runtimeDataRoo
 				record.ActivationEnvDelta = []string{"NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD='python' '" + driverScript + "'"}
 			}
 		}
-		svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(record))
+		record = verifiedSelectedSourceRecordForTest(record)
+		writeSelectedSourceLocalArtifactsForTest(t, record)
+		svc.upsertLocalEnvironmentSelectedSourceRecord(record)
 	}
 }
 
@@ -396,6 +398,57 @@ func TestRuntimeBaselineReadinessResolveFailsClosedWhenDependencyNoLongerReady(t
 	}
 	if resolved.RuntimeBaselineRef != "" {
 		t.Fatalf("stale-ref resolve returned a record: %q", resolved.RuntimeBaselineRef)
+	}
+}
+
+func TestRuntimeBaselineReadinessResolveFailsClosedWhenSelectedSourceArtifactDisappears(t *testing.T) {
+	svc, runtimeDataRoot := newRuntimeBaselineTestService(t)
+	defer func() { svc.Close() }()
+	markRuntimeBaselineMinimalReady(t, svc, runtimeDataRoot, runtimeBaselineCPUProfile())
+	record, state, _, _ := svc.mintRuntimeBaselineReadiness(runtimeBaselineMintRequest(runtimeDataRoot))
+	if state != runtimeBaselineStateReady {
+		t.Fatalf("mint state = %q, want ready", state)
+	}
+
+	var removed string
+	for _, response := range record.ActivationReadyResponses {
+		for _, dep := range response.Dependencies {
+			if dep.DependencyFamily != localEnvironmentFamilyPythonPackageSet {
+				continue
+			}
+			source, ok := svc.localEnvironmentSelectedSourceRecord(dep.EnvironmentKey)
+			if !ok {
+				t.Fatalf("missing selected source record for %s", dep.EnvironmentKey)
+			}
+			for _, artifact := range source.VerifiedArtifacts {
+				if strings.Contains(artifact, "=") {
+					continue
+				}
+				removed = artifact
+				break
+			}
+			break
+		}
+		if removed != "" {
+			break
+		}
+	}
+	if removed == "" {
+		t.Fatal("did not find package-set artifact to remove")
+	}
+	if err := os.Remove(removed); err != nil {
+		t.Fatalf("remove selected source artifact %q: %v", removed, err)
+	}
+
+	resolved, rState, rReason, detail := svc.resolveRuntimeBaselineReadiness(record.RuntimeBaselineRef, runtimeBaselineCPUProfile())
+	if rState != runtimeBaselineStateRepairRequired {
+		t.Fatalf("resolve state = %q reason=%q detail=%q, want repair_required", rState, rReason, detail)
+	}
+	if !strings.Contains(detail, "LOCAL_ENVIRONMENT_SELECTED_SOURCE_ARTIFACT_MISSING") {
+		t.Fatalf("resolve detail = %q, want missing artifact reason", detail)
+	}
+	if resolved.RuntimeBaselineRef != "" {
+		t.Fatalf("stale-artifact resolve returned a record: %q", resolved.RuntimeBaselineRef)
 	}
 }
 

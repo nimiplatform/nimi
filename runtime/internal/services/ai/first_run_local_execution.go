@@ -85,7 +85,9 @@ func (s *Service) ExecuteFirstRunLocalBaseline(ctx context.Context, req FirstRun
 	// selector down the local path so a cloud preferred-route alias on the
 	// asset id can never silently route this baseline proof to cloud.
 	localModelID := "local/" + strings.TrimPrefix(modelID, "local/")
-	if _, err := s.prepareLocalModelExecutionPlan(ctx, localModelID, nil, scenarioModalFromType(req.ScenarioType), nil); err != nil {
+	modal := scenarioModalFromType(req.ScenarioType)
+	localPlan, err := s.prepareLocalModelExecutionPlan(ctx, localModelID, nil, modal, nil)
+	if err != nil {
 		return FirstRunLocalExecutionResult{}, err
 	}
 
@@ -107,6 +109,12 @@ func (s *Service) ExecuteFirstRunLocalBaseline(ctx context.Context, req FirstRun
 	}
 	routeDecision := runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 	modelResolved := localBackend.ResolveModelID(localModelID)
+
+	releaseLease, err := s.acquireSelectedLocalModelLeaseWithPlan(ctx, localPlan, localModelID, nil, modal, "first_run_local_baseline")
+	if err != nil {
+		return FirstRunLocalExecutionResult{}, err
+	}
+	defer releaseLease()
 
 	traceID := ulid.Make().String()
 	if err := s.runFirstRunLocalBaselineScenario(ctx, req.ScenarioType, localBackend, modelResolved); err != nil {

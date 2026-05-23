@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -53,6 +54,36 @@ func TestNewManager(t *testing.T) {
 	}
 	if mgr.logger == nil {
 		t.Fatal("expected NewManager to install a default logger when nil is provided")
+	}
+}
+
+func TestEnsureEngineLlamaDoesNotMaterializeMissingDependency(t *testing.T) {
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+
+	_, err = mgr.EnsureEngine(context.Background(), DefaultLlamaConfig())
+	if !errors.Is(err, ErrEngineBinaryDependencyNotReady) {
+		t.Fatalf("EnsureEngine should fail closed without materializing llama dependency, got %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(mgr.baseDir, string(EngineLlama))); !os.IsNotExist(statErr) {
+		t.Fatalf("EnsureEngine created llama package directory or unexpected stat error: %v", statErr)
+	}
+}
+
+func TestStartEngineLlamaRequiresMaterializedDependency(t *testing.T) {
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+
+	err = mgr.StartEngine(context.Background(), DefaultLlamaConfig())
+	if !errors.Is(err, ErrEngineBinaryDependencyNotReady) {
+		t.Fatalf("StartEngine should require materialized llama dependency, got %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(mgr.baseDir, string(EngineLlama))); !os.IsNotExist(statErr) {
+		t.Fatalf("StartEngine created llama package directory or unexpected stat error: %v", statErr)
 	}
 }
 

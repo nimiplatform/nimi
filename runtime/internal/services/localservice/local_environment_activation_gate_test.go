@@ -265,15 +265,31 @@ func markLocalEnvironmentPlanReadyForTest(t *testing.T, svc *Service, req localE
 		if dep.DependencyFamily == localEnvironmentFamilyPythonRuntime || dep.DependencyFamily == localEnvironmentFamilyPythonUV {
 			sourceKind = localEnvironmentSourceSystem
 		}
-		svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		canonicalName := strings.NewReplacer(".", "-", ":", "-", "/", "-", "\\", "-").Replace(dep.DependencyID)
+		record := localEnvironmentSelectedSourceRecordState{
 			DependencyFamily:  dep.DependencyFamily,
 			DependencyID:      dep.DependencyID,
 			EnvironmentKey:    dep.EnvironmentKey,
 			SourceKind:        sourceKind,
-			CanonicalRoot:     filepath.Join(t.TempDir(), strings.ReplaceAll(dep.DependencyID, ".", "-")),
+			CanonicalRoot:     filepath.Join(t.TempDir(), canonicalName),
 			SelectedConsumers: []string{req.ConsumerID},
 			AuditReasonCode:   "test_ready",
-		}))
+		}
+		if dep.DependencyFamily == localEnvironmentFamilyPythonPackageSet {
+			switch req.ConsumerID {
+			case "speech.qwen3-tts.python":
+				driverScript := engine.SpeechQwen3TTSDriverPath(record.CanonicalRoot)
+				record.VerifiedArtifacts = []string{filepath.Join(record.CanonicalRoot, "bin", "python"), driverScript}
+				record.ActivationEnvDelta = []string{"NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD='python' '" + driverScript + "'"}
+			case "speech.qwen3-asr.python":
+				driverScript := engine.SpeechQwen3ASRDriverPath(record.CanonicalRoot)
+				record.VerifiedArtifacts = []string{filepath.Join(record.CanonicalRoot, "bin", "python"), driverScript}
+				record.ActivationEnvDelta = []string{"NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD='python' '" + driverScript + "'"}
+			}
+		}
+		record = verifiedSelectedSourceRecordForTest(record)
+		writeSelectedSourceLocalArtifactsForTest(t, record)
+		svc.upsertLocalEnvironmentSelectedSourceRecord(record)
 	}
 	return plan.Dependencies
 }

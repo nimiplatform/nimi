@@ -15,6 +15,12 @@ import (
 
 var ErrManagedImageBackendMaterializationRequired = errors.New("managed image backend package materialization requires local environment dependency confirmation")
 
+// ErrEngineBinaryDependencyNotReady is returned when a managed engine package
+// has not been admitted by the local environment dependency state machine. It
+// is intentionally not repaired here: first network/heavy materialization must
+// run through Runtime local environment job control.
+var ErrEngineBinaryDependencyNotReady = errors.New("engine binary dependency is not ready: local environment dependency confirmation required")
+
 // ErrManagedRootUnresolved is returned when the engine manager is constructed
 // without a usable K-CFG-018 data-plane root. Managed engine/dependency
 // materialization fails closed rather than falling back to a home-directory
@@ -213,21 +219,34 @@ func (m *Manager) applySpeechPaths(cfg EngineConfig) EngineConfig {
 	return cfg
 }
 
-// EnsureEngine ensures the engine binary is available.
-// Llama downloads if not in registry.
-// Media provisions its managed Python environment on demand.
+// EnsureEngine verifies the engine binary/environment is available.
+// Llama is read-only here: first materialization is owned by
+// EnsureEngineBinaryDependency, which is called by local environment jobs.
 func (m *Manager) EnsureEngine(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
 	cfg = m.applyLlamaPaths(cfg)
 	cfg = m.applySpeechPaths(cfg)
 	switch cfg.Kind {
 	case EngineLlama:
-		return m.ensureLlama(ctx, cfg)
+		return m.requireLlamaBinaryDependency(cfg)
 	case EngineMedia:
 		return ensureMedia(ctx, m.baseDir, cfg)
 	case EngineSpeech:
 		return ensureSpeech(ctx, m.baseDir, cfg)
 	default:
 		return cfg, fmt.Errorf("unknown engine kind: %s", cfg.Kind)
+	}
+}
+
+// RequireEngineBinaryDependency verifies that a native engine package has
+// already been materialized and recorded. It never downloads or repairs.
+func (m *Manager) RequireEngineBinaryDependency(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
+	_ = ctx
+	cfg = m.applyLlamaPaths(cfg)
+	switch cfg.Kind {
+	case EngineLlama:
+		return m.requireLlamaBinaryDependency(cfg)
+	default:
+		return cfg, fmt.Errorf("engine binary dependency readiness is not admitted for %s", cfg.Kind)
 	}
 }
 
@@ -318,11 +337,50 @@ func (m *Manager) ensureLlama(ctx context.Context, cfg EngineConfig) (EngineConf
 	return cfg, nil
 }
 
+func (m *Manager) requireLlamaBinaryDependency(cfg EngineConfig) (EngineConfig, error) {
+	if strings.TrimSpace(cfg.Version) == "" {
+		cfg.Version = DefaultLlamaConfig().Version
+	}
+	preferredAssetName, preferredAssetErr := preferredLlamaAssetNameForCurrentHost(cfg.Version)
+	if m.registry == nil {
+		return cfg, fmt.Errorf("%w: llama.cpp.package registry unavailable", ErrEngineBinaryDependencyNotReady)
+	}
+	entry := m.registry.Get(EngineLlama, cfg.Version)
+	if entry == nil {
+		detail := "state=needs_confirmation; dependency_family=native-engine-package.llama; dependency_id=llama.cpp.package; first_network_materialization_requires_confirmation=true"
+		if preferredAssetErr != nil {
+			detail = detail + "; preferred_asset_error=" + preferredAssetErr.Error()
+		} else {
+			detail = detail + "; preferred_asset=" + preferredAssetName
+		}
+		return cfg, fmt.Errorf("%w: %s", ErrEngineBinaryDependencyNotReady, detail)
+	}
+	if preferredAssetErr == nil && llamaRegistryEntryRequiresReplacement(entry, preferredAssetName) {
+		return cfg, fmt.Errorf("%w: state=needs_confirmation; dependency_family=native-engine-package.llama; dependency_id=llama.cpp.package; registered_asset=%s; preferred_asset=%s", ErrEngineBinaryDependencyNotReady, strings.TrimSpace(entry.AssetName), preferredAssetName)
+	}
+	binaryPath := strings.TrimSpace(entry.BinaryPath)
+	if binaryPath == "" {
+		return cfg, fmt.Errorf("%w: state=repair_required; dependency_family=native-engine-package.llama; dependency_id=llama.cpp.package; registry entry missing binary path", ErrEngineBinaryDependencyNotReady)
+	}
+	if _, err := os.Stat(binaryPath); err != nil {
+		return cfg, fmt.Errorf("%w: state=repair_required; dependency_family=native-engine-package.llama; dependency_id=llama.cpp.package; binary_path=%s; stat_error=%v", ErrEngineBinaryDependencyNotReady, binaryPath, err)
+	}
+	cfg.BinaryPath = binaryPath
+	return cfg, nil
+}
+
 // StartEngine starts the engine with the given configuration.
 func (m *Manager) StartEngine(ctx context.Context, cfg EngineConfig) error {
 	cfg = m.applyLlamaPaths(cfg)
 	cfg = m.applySpeechPaths(cfg)
 	cfg.SupervisedRoot = m.baseDir
+	if cfg.Kind == EngineLlama {
+		var err error
+		cfg, err = m.requireLlamaBinaryDependency(cfg)
+		if err != nil {
+			return err
+		}
+	}
 	if err := m.beginEngineStart(cfg.Kind); err != nil {
 		return err
 	}

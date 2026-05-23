@@ -295,8 +295,8 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
 		}, nil
 	}
-	// Prerequisite ordering (runtime authority): wait for uv, venv, and — for a
-	// cuda consumer — the CUDA runtime, rather than failing closed under
+	// Prerequisite ordering (runtime authority): wait for uv, venv, and, for a
+	// cuda consumer, the CUDA runtime, rather than failing closed under
 	// concurrent unordered desktop Start calls.
 	uvRecord, ok := s.waitForSelectedSourceForFamilyAndConsumer(ctx, localEnvironmentFamilyPythonUV, consumer)
 	if !ok {
@@ -351,7 +351,7 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 		"selected_uv_record":   strings.TrimSpace(uvRecord.RecordID),
 		"selected_venv_record": strings.TrimSpace(venvRecord.RecordID),
 	}
-	if cudaRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyCUDA, consumer); ok {
+	if cudaRecord, ok, _ := s.readySelectedSourceForFamilyAndConsumer(localEnvironmentFamilyCUDA, consumer); ok {
 		hashes["selected_cuda_record"] = strings.TrimSpace(cudaRecord.RecordID)
 	}
 	compatibilityEvidence := []string{

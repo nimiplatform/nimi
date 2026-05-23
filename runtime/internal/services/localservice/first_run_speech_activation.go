@@ -26,31 +26,8 @@ func (s *Service) ensureFirstRunSpeechEngineReady(ctx context.Context, baseline 
 	if mgr == nil {
 		return fmt.Errorf("runtime engine manager unavailable")
 	}
-	ttsRecord, ok, detail := s.selectedSpeechPackageSetSourceForConsumer(
-		"speech.qwen3-tts.python",
-		"NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD",
-		engine.SpeechQwen3TTSDriverPath,
-	)
-	if !ok {
-		return fmt.Errorf("qwen3_tts python.package-set selected source missing: %s", detail)
-	}
-	asrRecord, ok, detail := s.selectedSpeechPackageSetSourceForConsumer(
-		"speech.qwen3-asr.python",
-		"NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD",
-		engine.SpeechQwen3ASRDriverPath,
-	)
-	if !ok {
-		return fmt.Errorf("qwen3_asr python.package-set selected source missing: %s", detail)
-	}
-	cfg := engine.DefaultSpeechConfig()
-	cfg.ModelsPath = s.resolvedLocalModelsPath()
-	cfg.SpeechQwen3TTSPackageSetRoot = strings.TrimSpace(ttsRecord.CanonicalRoot)
-	cfg.SpeechQwen3ASRPackageSetRoot = strings.TrimSpace(asrRecord.CanonicalRoot)
-	if err := mgr.StartEngineWithConfig(ctx, cfg); err != nil {
-		lower := strings.ToLower(strings.TrimSpace(err.Error()))
-		if !strings.Contains(lower, "already running") {
-			return err
-		}
+	if err := s.startConfiguredManagedSpeechEngine(ctx, mgr, 0); err != nil {
+		return err
 	}
 	info, err := mgr.EngineStatus("speech")
 	if err != nil {
@@ -62,6 +39,53 @@ func (s *Service) ensureFirstRunSpeechEngineReady(ctx context.Context, baseline 
 			detail = " endpoint=" + detail
 		}
 		return fmt.Errorf("speech engine not healthy after activation: status=%s%s", strings.TrimSpace(info.Status), detail)
+	}
+	return nil
+}
+
+func (s *Service) configuredManagedSpeechEngineConfig(port int) (engine.EngineConfig, error) {
+	ttsRecord, ok, detail := s.selectedSpeechPackageSetSourceForConsumer(
+		"speech.qwen3-tts.python",
+		"NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD",
+		engine.SpeechQwen3TTSDriverPath,
+	)
+	if !ok {
+		return engine.EngineConfig{}, fmt.Errorf("qwen3_tts python.package-set selected source missing: %s", detail)
+	}
+	asrRecord, ok, detail := s.selectedSpeechPackageSetSourceForConsumer(
+		"speech.qwen3-asr.python",
+		"NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD",
+		engine.SpeechQwen3ASRDriverPath,
+	)
+	if !ok {
+		return engine.EngineConfig{}, fmt.Errorf("qwen3_asr python.package-set selected source missing: %s", detail)
+	}
+	cfg := engine.DefaultSpeechConfig()
+	if port > 0 {
+		cfg.Port = port
+	}
+	cfg.ModelsPath = s.resolvedLocalModelsPath()
+	cfg.SpeechQwen3TTSPackageSetRoot = strings.TrimSpace(ttsRecord.CanonicalRoot)
+	cfg.SpeechQwen3ASRPackageSetRoot = strings.TrimSpace(asrRecord.CanonicalRoot)
+	return cfg, nil
+}
+
+func (s *Service) startConfiguredManagedSpeechEngine(ctx context.Context, mgr EngineManager, port int) error {
+	if mgr == nil {
+		return fmt.Errorf("runtime engine manager unavailable")
+	}
+	cfg, err := s.configuredManagedSpeechEngineConfig(port)
+	if err != nil {
+		return err
+	}
+	if managedEngineAlreadyBound(mgr, "speech", cfg.Port) {
+		return nil
+	}
+	if err := mgr.StartEngineWithConfig(ctx, cfg); err != nil {
+		lower := strings.ToLower(strings.TrimSpace(err.Error()))
+		if !strings.Contains(lower, "already running") {
+			return err
+		}
 	}
 	return nil
 }
@@ -98,6 +122,10 @@ func (s *Service) selectedSpeechPackageSetSourceForConsumer(consumer string, env
 		}
 		if err := validateLocalEnvironmentSelectedSourceRecord(record); err != nil {
 			lastDetail = "selected source record fails verification: " + err.Error()
+			continue
+		}
+		if err := validateLocalEnvironmentSelectedSourceLocalArtifacts(record); err != nil {
+			lastDetail = "selected source record fails local artifact verification: " + err.Error()
 			continue
 		}
 		root := strings.TrimSpace(record.CanonicalRoot)

@@ -3,6 +3,10 @@ package localservice
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -385,6 +389,95 @@ func validateLocalEnvironmentSelectedSourceRecord(record localEnvironmentSelecte
 	}
 }
 
+func validateLocalEnvironmentSelectedSourceLocalArtifacts(record localEnvironmentSelectedSourceRecordState) error {
+	checks := localEnvironmentSelectedSourceLocalArtifactChecks(record)
+	for _, check := range checks {
+		info, err := os.Stat(check.Path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf("LOCAL_ENVIRONMENT_SELECTED_SOURCE_ARTIFACT_MISSING path=%s", check.Path)
+			}
+			return fmt.Errorf("LOCAL_ENVIRONMENT_SELECTED_SOURCE_ARTIFACT_UNREADABLE path=%s: %w", check.Path, err)
+		}
+		if check.RequireDirectory && !info.IsDir() {
+			return fmt.Errorf("LOCAL_ENVIRONMENT_SELECTED_SOURCE_ARTIFACT_NOT_DIRECTORY path=%s", check.Path)
+		}
+	}
+	return nil
+}
+
+type localEnvironmentSelectedSourceLocalArtifactCheck struct {
+	Path             string
+	RequireDirectory bool
+}
+
+func localEnvironmentSelectedSourceLocalArtifactChecks(record localEnvironmentSelectedSourceRecordState) []localEnvironmentSelectedSourceLocalArtifactCheck {
+	root := strings.TrimSpace(record.CanonicalRoot)
+	if root == "" {
+		return nil
+	}
+	checks := make([]localEnvironmentSelectedSourceLocalArtifactCheck, 0, 1+len(record.VerifiedArtifacts))
+	rootIsLocal := filepath.IsAbs(root)
+	rootIsDirectory := localEnvironmentSelectedSourceCanonicalRootIsDirectory(record.DependencyFamily)
+	if rootIsLocal {
+		checks = append(checks, localEnvironmentSelectedSourceLocalArtifactCheck{
+			Path:             root,
+			RequireDirectory: rootIsDirectory,
+		})
+	}
+	for _, artifact := range normalizeStringSlice(record.VerifiedArtifacts) {
+		path := localEnvironmentSelectedSourceArtifactLocalPath(root, rootIsDirectory, artifact)
+		if path == "" {
+			continue
+		}
+		if stringSliceContainsLocalArtifactCheck(checks, path) {
+			continue
+		}
+		checks = append(checks, localEnvironmentSelectedSourceLocalArtifactCheck{Path: path})
+	}
+	return checks
+}
+
+func localEnvironmentSelectedSourceArtifactLocalPath(root string, rootIsDirectory bool, artifact string) string {
+	trimmed := strings.TrimSpace(artifact)
+	if trimmed == "" || strings.Contains(trimmed, "=") {
+		return ""
+	}
+	if filepath.IsAbs(trimmed) {
+		return trimmed
+	}
+	if filepath.IsAbs(root) && rootIsDirectory {
+		return filepath.Join(root, filepath.FromSlash(trimmed))
+	}
+	return ""
+}
+
+func localEnvironmentSelectedSourceCanonicalRootIsDirectory(family string) bool {
+	switch strings.TrimSpace(family) {
+	case localEnvironmentFamilyCUDA,
+		localEnvironmentFamilyNativeSDCPP,
+		localEnvironmentFamilyPythonVenv,
+		localEnvironmentFamilyPythonPackageSet,
+		localEnvironmentFamilyPythonTorchWheel:
+		return true
+	default:
+		return false
+	}
+}
+
+func stringSliceContainsLocalArtifactCheck(checks []localEnvironmentSelectedSourceLocalArtifactCheck, path string) bool {
+	trimmed := strings.TrimSpace(path)
+	if trimmed == "" {
+		return true
+	}
+	for _, check := range checks {
+		if strings.EqualFold(strings.TrimSpace(check.Path), trimmed) {
+			return true
+		}
+	}
+	return false
+}
+
 func localEnvironmentSourceManifestRef(job localEnvironmentDependencyJobState, result localEnvironmentDependencyJobResult) string {
 	family := strings.TrimSpace(job.DependencyFamily)
 	base := localEnvironmentSourceManifestFamilyRef(family)
@@ -639,14 +732,15 @@ func (s *Service) prerequisiteWaitTimeout() time.Duration {
 }
 
 // waitForSelectedSourceForFamilyAndConsumer blocks until the prerequisite
-// family's selected-source record exists for the consumer (i.e. its upstream
-// dependency job has reached ready_managed and promoted a record), the job ctx
-// is cancelled, or the bounded wait elapses. It returns the resolved record on
-// success. A concurrent unordered Start from the desktop therefore converges
-// correctly: the dependent executor parks here while the prerequisite job's own
-// background goroutine drives it to ready_managed.
+// family's selected-source record both exists and still verifies for the
+// consumer (repair state clear, evidence complete, local artifacts present),
+// the job ctx is cancelled, or the bounded wait elapses. A concurrent unordered
+// Start from the desktop therefore converges correctly: the dependent executor
+// parks here while the prerequisite job's own background goroutine drives it to
+// ready_managed, but stale / repair-required records are never consumed as
+// readiness.
 func (s *Service) waitForSelectedSourceForFamilyAndConsumer(ctx context.Context, family string, consumer string) (localEnvironmentSelectedSourceRecordState, bool) {
-	if record, ok := s.selectedSourceForFamilyAndConsumer(family, consumer); ok {
+	if record, ok, _ := s.readySelectedSourceForFamilyAndConsumer(family, consumer); ok {
 		return record, true
 	}
 	deadline := time.NewTimer(s.prerequisiteWaitTimeout())
@@ -660,11 +754,66 @@ func (s *Service) waitForSelectedSourceForFamilyAndConsumer(ctx context.Context,
 		case <-deadline.C:
 			return localEnvironmentSelectedSourceRecordState{}, false
 		case <-ticker.C:
-			if record, ok := s.selectedSourceForFamilyAndConsumer(family, consumer); ok {
+			if record, ok, _ := s.readySelectedSourceForFamilyAndConsumer(family, consumer); ok {
 				return record, true
 			}
 		}
 	}
+}
+
+func (s *Service) readySelectedSourceForFamilyAndConsumer(family string, consumer string) (localEnvironmentSelectedSourceRecordState, bool, string) {
+	candidates := s.selectedSourceCandidatesForFamilyAndConsumer(family, consumer)
+	if len(candidates) == 0 {
+		return localEnvironmentSelectedSourceRecordState{}, false, "no selected source record for consumer"
+	}
+	lastDetail := "no selected source record satisfies readiness"
+	for _, record := range candidates {
+		if isLocalEnvironmentRepairActive(record.RepairState) {
+			lastDetail = "selected source record is under repair"
+			continue
+		}
+		if err := validateLocalEnvironmentSelectedSourceRecord(record); err != nil {
+			lastDetail = "selected source record fails verification: " + err.Error()
+			continue
+		}
+		if err := validateLocalEnvironmentSelectedSourceLocalArtifacts(record); err != nil {
+			lastDetail = "selected source record fails local artifact verification: " + err.Error()
+			continue
+		}
+		return record, true, ""
+	}
+	return localEnvironmentSelectedSourceRecordState{}, false, lastDetail
+}
+
+func (s *Service) selectedSourceCandidatesForFamilyAndConsumer(family string, consumer string) []localEnvironmentSelectedSourceRecordState {
+	trimmedFamily := strings.TrimSpace(family)
+	trimmedConsumer := strings.TrimSpace(consumer)
+	s.mu.RLock()
+	candidates := make([]localEnvironmentSelectedSourceRecordState, 0)
+	for _, record := range s.localEnvironmentSelectedSources {
+		if record.DependencyFamily != trimmedFamily {
+			continue
+		}
+		if trimmedConsumer != "" && !stringSliceContains(record.SelectedConsumers, trimmedConsumer) {
+			continue
+		}
+		candidates = append(candidates, record)
+	}
+	s.mu.RUnlock()
+	sort.SliceStable(candidates, func(left, right int) bool {
+		leftVerified := strings.TrimSpace(candidates[left].LastVerifiedAt)
+		rightVerified := strings.TrimSpace(candidates[right].LastVerifiedAt)
+		if leftVerified != rightVerified {
+			return leftVerified > rightVerified
+		}
+		leftSelected := strings.TrimSpace(candidates[left].SelectedAt)
+		rightSelected := strings.TrimSpace(candidates[right].SelectedAt)
+		if leftSelected != rightSelected {
+			return leftSelected > rightSelected
+		}
+		return strings.TrimSpace(candidates[left].RecordID) > strings.TrimSpace(candidates[right].RecordID)
+	})
+	return candidates
 }
 
 // failOrphanedLocalEnvironmentDependencyJobsLocked is the crash-recovery seam.

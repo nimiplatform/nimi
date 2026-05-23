@@ -107,6 +107,9 @@ func (a *ServiceAdapter) StartEngine(ctx context.Context, engineName string, por
 
 func (a *ServiceAdapter) StartEngineWithConfig(ctx context.Context, cfg EngineConfig) error {
 	cfg = a.mgr.applyLlamaPaths(cfg)
+	if cfg.Kind == EngineLlama {
+		return a.mgr.StartEngine(ctx, cfg)
+	}
 	ensured, err := a.mgr.EnsureEngine(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("ensure engine before start: %w", err)

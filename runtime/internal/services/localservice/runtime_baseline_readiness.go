@@ -337,9 +337,9 @@ func (s *Service) resolveRuntimeBaselineActivationSet(req runtimeBaselineResolve
 // dependency into durable baseline evidence. It fails closed when the
 // dependency is not actually `ready_system`/`ready_managed`, when it lacks a
 // backing selected source record, or when that record lacks materialization /
-// system-source verification evidence. File existence, process liveness, and
-// route health are never consulted here — only the durable selected source
-// record produced by activation.
+// system-source verification evidence. Local artifact existence is rechecked
+// before evidence minting; process liveness and route health remain outside
+// this step.
 func (s *Service) runtimeBaselineDependencyEvidence(dep localEnvironmentPlanDependency) (runtimeBaselineActivationDependencyEvidence, string, string) {
 	state := strings.TrimSpace(dep.State)
 	if state != localEnvironmentStateReadySystem && state != localEnvironmentStateReadyManaged {
@@ -359,6 +359,10 @@ func (s *Service) runtimeBaselineDependencyEvidence(dep localEnvironmentPlanDepe
 	if err := validateLocalEnvironmentSelectedSourceRecord(record); err != nil {
 		return runtimeBaselineActivationDependencyEvidence{}, runtimeBaselineReasonRepairRequired,
 			"selected source record fails verification: " + err.Error()
+	}
+	if err := validateLocalEnvironmentSelectedSourceLocalArtifacts(record); err != nil {
+		return runtimeBaselineActivationDependencyEvidence{}, runtimeBaselineReasonRepairRequired,
+			"selected source record fails local artifact verification: " + err.Error()
 	}
 	// Materialization terminal evidence or system-source verification
 	// evidence: the durable selected source record's verification evidence

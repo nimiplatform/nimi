@@ -29,9 +29,10 @@ const (
 	localArtifactDownloadTimeout      = 30 * time.Minute
 	localArtifactDownloadMaxBodyBytes = 64 << 30
 	// localModelDownloadMaxAttempts bounds the automatic retry-with-backoff loop
-	// for a single managed model file. The first attempt plus a small number of
-	// retries; after exhaustion the job fails closed, retryable, as today.
-	localModelDownloadMaxAttempts = 4
+	// for a single managed model file. Multi-GB first-run downloads should feel
+	// like a launcher download manager: transient network drops keep resuming in
+	// the background for a long window before the job finally fails closed.
+	localModelDownloadMaxAttempts = 64
 	// localModelDownloadRetryBackoff is the base backoff between transient
 	// retries; the loop applies an exponential-ish multiple per attempt.
 	localModelDownloadRetryBackoff = 2 * time.Second

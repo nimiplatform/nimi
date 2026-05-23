@@ -3,6 +3,7 @@ package localservice
 import (
 	"log/slog"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -24,6 +25,7 @@ func TestLocalEnvironmentServiceConstructionDoesNotResolveLocalCompute(t *testin
 func TestResolveLocalEnvironmentPlanIncludesPythonManagedFamilies(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
+	svc.SetEngineManager(&mockEngineManager{})
 
 	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:           "local-image-python",
@@ -91,6 +93,69 @@ func TestResolveLocalEnvironmentPlanIncludesTextAndOptionalCUDA(t *testing.T) {
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyNativeLlama)
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyModelAsset)
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyCUDA)
+}
+
+func TestResolveLocalEnvironmentPlanPromotesFirstRunNvidiaCUDAToRequired(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	svc.SetEngineManager(&mockEngineManager{})
+
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-text",
+		ConsumerScope:   "first-run",
+		HostProfile:     localEnvironmentNvidiaProfile(),
+		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+		AssetID:         "text/test-model",
+	})
+
+	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
+	if !dep.Required {
+		t.Fatalf("Windows NVIDIA first-run llama plan must require CUDA runtime dependency: %+v", dep)
+	}
+	if dep.State != localEnvironmentStateNeedsConfirmation {
+		t.Fatalf("CUDA dependency state = %q, want needs_confirmation: %+v", dep.State, dep)
+	}
+	if !dep.ConfirmationRequired {
+		t.Fatalf("CUDA dependency must require first-run materialization confirmation: %+v", dep)
+	}
+}
+
+func TestResolveLocalEnvironmentPlanKeepsCPUConsumerCUDAOptional(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	svc.SetEngineManager(&mockEngineManager{})
+
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-text",
+		ConsumerScope:   "llama.cpp.cpu",
+		HostProfile:     localEnvironmentNvidiaProfile(),
+		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+		AssetID:         "text/test-model",
+	})
+
+	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
+	if dep.Required {
+		t.Fatalf("explicit CPU llama consumer must not require CUDA runtime dependency: %+v", dep)
+	}
+}
+
+func TestResolveLocalEnvironmentPlanRequiresCUDAForCUDAConsumer(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	svc.SetEngineManager(&mockEngineManager{})
+
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-text",
+		ConsumerScope:   "llama.cpp.cuda",
+		HostProfile:     localEnvironmentNvidiaProfile(),
+		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+		AssetID:         "text/test-model",
+	})
+
+	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
+	if !dep.Required {
+		t.Fatalf("CUDA llama consumer must require CUDA runtime dependency: %+v", dep)
+	}
 }
 
 func TestResolveLocalEnvironmentPlanRequiresMaterializerForReadyManagedCUDAProjection(t *testing.T) {
@@ -181,13 +246,15 @@ func TestResolveLocalEnvironmentPlanRestoresReadySelectedSourceRecord(t *testing
 		RuntimeDataRoot: runtimeDataRoot,
 	})
 	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeLlama)
-	svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+	record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily: dep.DependencyFamily,
 		DependencyID:     dep.DependencyID,
 		EnvironmentKey:   dep.EnvironmentKey,
 		SourceKind:       localEnvironmentSourceManaged,
 		CanonicalRoot:    filepath.Join(runtimeDataRoot, "engines", "llama"),
-	}))
+	})
+	writeSelectedSourceLocalArtifactsForTest(t, record)
+	svc.upsertLocalEnvironmentSelectedSourceRecord(record)
 	svc.Close()
 
 	restored, err := New(slog.Default(), nil, statePath, 10, runtimeDataRoot)
@@ -207,6 +274,68 @@ func TestResolveLocalEnvironmentPlanRestoresReadySelectedSourceRecord(t *testing
 	}
 	if restoredDep.SelectedSourceRecordID == "" {
 		t.Fatalf("expected selected source record id in restored projection")
+	}
+}
+
+func TestResolveLocalEnvironmentPlanDemotesSelectedSourceWithMissingLocalArtifact(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+
+	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
+	profile := runtimeBaselineCPUProfile()
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-speech",
+		ConsumerScope:   "speech.qwen3-tts.python",
+		HostProfile:     profile,
+		RuntimeDataRoot: runtimeDataRoot,
+		AssetID:         "speech/test-tts-model",
+	})
+	var packageDep localEnvironmentPlanDependency
+	for _, dep := range plan.Dependencies {
+		if dep.DependencyFamily == localEnvironmentFamilyPythonPackageSet && dep.DependencyID == "local-speech-qwen3-tts.package-set" {
+			packageDep = dep
+			break
+		}
+	}
+	if packageDep.DependencyID == "" {
+		t.Fatalf("missing split tts package-set dependency in plan: %+v", plan)
+	}
+	root := filepath.Join(runtimeDataRoot, "speech", "0.1.0-qwen3-tts")
+	driverScript := engine.SpeechQwen3TTSDriverPath(root)
+	svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		DependencyFamily: packageDep.DependencyFamily,
+		DependencyID:     packageDep.DependencyID,
+		EnvironmentKey:   packageDep.EnvironmentKey,
+		SourceKind:       localEnvironmentSourceManaged,
+		CanonicalRoot:    root,
+		SelectedConsumers: []string{
+			"speech.qwen3-tts.python",
+		},
+		VerifiedArtifacts: []string{
+			filepath.Join(root, "bin", "python"),
+			driverScript,
+		},
+		ActivationEnvDelta: []string{
+			"NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD='python' '" + driverScript + "'",
+		},
+	}))
+
+	repairPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-speech",
+		ConsumerScope:   "speech.qwen3-tts.python",
+		HostProfile:     profile,
+		RuntimeDataRoot: runtimeDataRoot,
+		AssetID:         "speech/test-tts-model",
+	})
+	repairDep := findLocalEnvironmentDependency(t, repairPlan, localEnvironmentFamilyPythonPackageSet)
+	if repairDep.State != localEnvironmentStateRepairRequired {
+		t.Fatalf("package-set state = %q, want repair_required: %+v", repairDep.State, repairDep)
+	}
+	if !strings.Contains(repairDep.Detail, "LOCAL_ENVIRONMENT_SELECTED_SOURCE_ARTIFACT_MISSING") {
+		t.Fatalf("repair detail = %q, want missing artifact reason", repairDep.Detail)
+	}
+	if repairPlan.State != localEnvironmentStateRepairRequired {
+		t.Fatalf("plan state = %q, want repair_required", repairPlan.State)
 	}
 }
 

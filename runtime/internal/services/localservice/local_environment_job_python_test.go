@@ -2,12 +2,26 @@ package localservice
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
+
+func upsertReadyPythonPrerequisiteForTest(t *testing.T, svc *Service, record localEnvironmentSelectedSourceRecordState) localEnvironmentSelectedSourceRecordState {
+	t.Helper()
+	switch record.DependencyFamily {
+	case localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet, localEnvironmentFamilyPythonTorchWheel, localEnvironmentFamilyCUDA:
+		record.CanonicalRoot = t.TempDir()
+	default:
+		record.CanonicalRoot = filepath.Join(t.TempDir(), "artifact.exe")
+	}
+	record = verifiedSelectedSourceRecordForTest(record)
+	writeSelectedSourceLocalArtifactsForTest(t, record)
+	return svc.upsertLocalEnvironmentSelectedSourceRecord(record)
+}
 
 func TestStartPythonRuntimeDependencyJobRequiresSelectedUVRecord(t *testing.T) {
 	svc := newTestService(t)
@@ -33,7 +47,7 @@ func TestStartPythonRuntimeDependencyJobRequiresSelectedUVRecord(t *testing.T) {
 
 func TestStartPythonRuntimeDependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
 	svc := newTestService(t)
-	uvRecord := svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+	uvRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonUV,
 		DependencyID:      "uv",
 		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|media.diffusers.cuda",
@@ -84,7 +98,7 @@ func TestStartPythonRuntimeDependencyJobPromotesVerifiedSelectedSource(t *testin
 func TestStartPythonVenvDependencyJobRequiresSelectedPythonRuntimeRecord(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
-	svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonUV,
 		DependencyID:      "uv",
 		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|media.diffusers.cuda",
@@ -113,7 +127,7 @@ func TestStartPythonVenvDependencyJobRequiresSelectedPythonRuntimeRecord(t *test
 
 func TestStartPythonVenvDependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
 	svc := newTestService(t)
-	uvRecord := svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+	uvRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonUV,
 		DependencyID:      "uv",
 		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|media.diffusers.cuda",
@@ -123,7 +137,7 @@ func TestStartPythonVenvDependencyJobPromotesVerifiedSelectedSource(t *testing.T
 		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
 		SelectedConsumers: []string{"media.diffusers.cuda"},
 	})
-	runtimeRecord := svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+	runtimeRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonRuntime,
 		DependencyID:      "python.runtime",
 		EnvironmentKey:    "python.runtime|python.runtime|host|windows/amd64|root|media.diffusers.cuda",
@@ -180,7 +194,7 @@ func TestStartPythonVenvDependencyJobPromotesVerifiedSelectedSource(t *testing.T
 func TestStartPythonPackageSetDependencyJobRequiresSelectedVenvRecord(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
-	svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonUV,
 		DependencyID:      "uv",
 		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|speech.qwen3-tts.python",
@@ -209,7 +223,7 @@ func TestStartPythonPackageSetDependencyJobRequiresSelectedVenvRecord(t *testing
 
 func TestStartPythonPackageSetDependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
 	svc := newTestService(t)
-	uvRecord := svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+	uvRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonUV,
 		DependencyID:      "uv",
 		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|speech.qwen3-tts.python",
@@ -219,7 +233,7 @@ func TestStartPythonPackageSetDependencyJobPromotesVerifiedSelectedSource(t *tes
 		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
 		SelectedConsumers: []string{"speech.qwen3-tts.python"},
 	})
-	venvRecord := svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+	venvRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonVenv,
 		DependencyID:      "local-speech-qwen3-tts.venv",
 		EnvironmentKey:    "python.venv|local-speech-qwen3-tts.venv|host|windows/amd64|root",
@@ -287,10 +301,73 @@ func TestStartPythonPackageSetDependencyJobPromotesVerifiedSelectedSource(t *tes
 	}
 }
 
+func TestPythonPackageSetWaitsForVerifiedVenvInsteadOfStaleRepairRecord(t *testing.T) {
+	svc := newTestService(t)
+	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyPythonUV,
+		DependencyID:      "uv",
+		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|speech.qwen3-tts.python",
+		SourceKind:        localEnvironmentSourceManaged,
+		SelectedConsumers: []string{"speech.qwen3-tts.python"},
+	})
+	svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyPythonVenv,
+		DependencyID:      "local-speech-qwen3-tts.venv",
+		EnvironmentKey:    "python.venv|local-speech-qwen3-tts.venv|host|windows/amd64|stale-root",
+		SourceKind:        localEnvironmentSourceManaged,
+		CanonicalRoot:     filepath.Join(t.TempDir(), "missing-venv"),
+		VerifiedArtifacts: []string{"Scripts/python.exe"},
+		SelectedConsumers: []string{"speech.qwen3-tts.python"},
+		RepairState:       localEnvironmentRepairRequired,
+	}))
+	venvRoot := t.TempDir()
+	svc.SetEngineManager(&mockEngineManager{
+		pythonPackageSetStatus: &engine.PythonPackageSetDependencyStatus{
+			PackageSetID:           "speech-qwen3-tts-python-core",
+			LockHash:               "9a9307c48e6d92fb600d63a330c126e93c8625978b753534e65926353b85a58e",
+			VenvRoot:               venvRoot,
+			InterpreterPath:        filepath.Join(venvRoot, "Scripts", "python.exe"),
+			UVExecutable:           filepath.Join(t.TempDir(), "uv.exe"),
+			InstalledDistributions: []string{"qwen-tts==0.1.0"},
+			ImportProbes:           []string{"qwen_tts"},
+			Detail:                 "Runtime-managed Python package set verified from declared lock manifest",
+		},
+	})
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "python.package-set|local-speech-qwen3-tts.package-set|host|windows/amd64|root",
+		DependencyFamily: localEnvironmentFamilyPythonPackageSet,
+		DependencyId:     "local-speech-qwen3-tts.package-set",
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+	readyVenvRecord := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyPythonVenv,
+		DependencyID:      "local-speech-qwen3-tts.venv",
+		EnvironmentKey:    "python.venv|local-speech-qwen3-tts.venv|host|windows/amd64|ready-root",
+		SourceKind:        localEnvironmentSourceManaged,
+		CanonicalRoot:     venvRoot,
+		VerifiedArtifacts: []string{filepath.Join(venvRoot, "Scripts", "python.exe")},
+		SelectedConsumers: []string{"speech.qwen3-tts.python"},
+	})
+	writeSelectedSourceLocalArtifactsForTest(t, readyVenvRecord)
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		svc.upsertLocalEnvironmentSelectedSourceRecord(readyVenvRecord)
+	}()
+
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("job state = %q, want ready_managed after verified venv appears", job.GetState())
+	}
+}
+
 func TestStartPythonTorchWheelDependencyJobRequiresCUDARecordForCUDAConsumer(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
-	svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonUV,
 		DependencyID:      "uv",
 		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|media.diffusers.cuda",
@@ -300,7 +377,7 @@ func TestStartPythonTorchWheelDependencyJobRequiresCUDARecordForCUDAConsumer(t *
 		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
 		SelectedConsumers: []string{"media.diffusers.cuda"},
 	})
-	svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonVenv,
 		DependencyID:      "local-image-python.venv",
 		EnvironmentKey:    "python.venv|local-image-python.venv|host|windows/amd64|root|media.diffusers.cuda",
@@ -329,7 +406,7 @@ func TestStartPythonTorchWheelDependencyJobRequiresCUDARecordForCUDAConsumer(t *
 
 func TestStartPythonTorchWheelDependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
 	svc := newTestService(t)
-	uvRecord := svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+	uvRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonUV,
 		DependencyID:      "uv",
 		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|media.diffusers.cuda",
@@ -339,7 +416,7 @@ func TestStartPythonTorchWheelDependencyJobPromotesVerifiedSelectedSource(t *tes
 		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
 		SelectedConsumers: []string{"media.diffusers.cuda"},
 	})
-	venvRecord := svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+	venvRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonVenv,
 		DependencyID:      "local-image-python.venv",
 		EnvironmentKey:    "python.venv|local-image-python.venv|host|windows/amd64|root|media.diffusers.cuda",
@@ -349,7 +426,7 @@ func TestStartPythonTorchWheelDependencyJobPromotesVerifiedSelectedSource(t *tes
 		VerifiedArtifacts: []string{`C:\nimi\engines\media\0.1.0\Scripts\python.exe`},
 		SelectedConsumers: []string{"media.diffusers.cuda"},
 	})
-	cudaRecord := svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+	cudaRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyCUDA,
 		DependencyID:      cudaUserSpaceRuntimeDependencyID,
 		EnvironmentKey:    "accelerator.cuda.runtime|nvidia-cuda-user-space-runtime|host|windows/amd64|root|media.diffusers.cuda",
@@ -511,17 +588,18 @@ func TestStartModelCompanionDependencyJobPromotesVerifiedSelectedSource(t *testi
 		engine:       "media",
 		entry:        "vae.safetensors",
 	})
-	writeLocalEnvironmentAssetEntryForTest(t, svc, parent, "verified-parent")
+	parentEntryPath := writeLocalEnvironmentAssetEntryForTest(t, svc, parent, "verified-parent")
 	writeLocalEnvironmentAssetEntryForTest(t, svc, companion, "verified-companion")
-	parentRecord := svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+	parentRecord := svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyModelAsset,
 		DependencyID:      "asset-id:" + parent.GetAssetId(),
 		EnvironmentKey:    "model.asset|asset-id:" + parent.GetAssetId() + "|host|windows/amd64|root",
 		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     "parent-root",
+		CanonicalRoot:     parentEntryPath,
+		VerifiedArtifacts: []string{parentEntryPath},
 		Hashes:            map[string]string{"local_asset_id": parent.GetLocalAssetId()},
 		SelectedConsumers: []string{"media.diffusers.cpu"},
-	})
+	}))
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   "model.companion-asset|asset-id:" + companion.GetAssetId() + "|parent-asset-id:" + parent.GetAssetId() + "|host|windows/amd64|root",

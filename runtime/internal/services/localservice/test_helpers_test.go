@@ -97,6 +97,27 @@ func verifiedSelectedSourceRecordForTest(record localEnvironmentSelectedSourceRe
 	return record
 }
 
+func writeSelectedSourceLocalArtifactsForTest(t *testing.T, record localEnvironmentSelectedSourceRecordState) {
+	t.Helper()
+	for _, check := range localEnvironmentSelectedSourceLocalArtifactChecks(record) {
+		if check.Path == "" {
+			continue
+		}
+		if check.RequireDirectory {
+			if err := os.MkdirAll(check.Path, 0o755); err != nil {
+				t.Fatalf("mkdir selected source artifact dir %q: %v", check.Path, err)
+			}
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(check.Path), 0o755); err != nil {
+			t.Fatalf("mkdir selected source artifact parent %q: %v", check.Path, err)
+		}
+		if err := os.WriteFile(check.Path, []byte("test artifact"), 0o644); err != nil {
+			t.Fatalf("write selected source artifact %q: %v", check.Path, err)
+		}
+	}
+}
+
 func writeManagedBundleFilesForTest(t *testing.T, svc *Service, model *runtimev1.LocalAssetRecord, declaredFiles []string, files map[string][]byte) string {
 	t.Helper()
 	if model == nil {

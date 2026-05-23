@@ -689,6 +689,9 @@ func (s *Service) bootstrapEngineIfManaged(ctx context.Context, engine string, m
 		}
 		return fmt.Errorf("%s managed mode is unavailable on this host", strings.TrimSpace(engine))
 	}
+	if strings.EqualFold(engine, "speech") {
+		return s.startConfiguredManagedSpeechEngine(ctx, mgr, port)
+	}
 	if err := mgr.StartEngine(ctx, strings.ToLower(strings.TrimSpace(engine)), port, ""); err != nil {
 		lower := strings.ToLower(strings.TrimSpace(err.Error()))
 		if strings.Contains(lower, "already running") {

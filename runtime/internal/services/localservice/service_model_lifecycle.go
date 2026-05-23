@@ -62,6 +62,21 @@ func (s *Service) StartLocalAsset(ctx context.Context, req *runtimev1.StartLocal
 		s.markLocalAssetUsed(localModelID, "start_local_asset")
 		return &runtimev1.StartLocalAssetResponse{Asset: s.modelByID(localModelID)}, nil
 	}
+	if isManagedSupervisedSpeechModel(current, s.modelRuntimeMode(localModelID)) {
+		if _, err := s.checkManagedSupervisedSpeechHealth(ctx, current); err != nil {
+			return nil, err
+		}
+		latest := s.modelByID(localModelID)
+		if latest == nil {
+			return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+				ActionHint: "install_or_select_existing_local_model",
+			})
+		}
+		if latest.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+			s.markLocalAssetUsed(localModelID, "start_local_asset")
+		}
+		return &runtimev1.StartLocalAssetResponse{Asset: latest}, nil
+	}
 
 	profile := collectDeviceProfile()
 	warnings := startupCompatibilityWarningsForAsset(
@@ -443,6 +458,28 @@ func (s *Service) checkManagedSupervisedLlamaHealth(ctx context.Context, model *
 	registration := s.managedLlamaRegistrationForModel(model)
 	if strings.TrimSpace(registration.Problem) != "" {
 		return s.setManagedSupervisedLlamaUnhealthy(model, managedLocalModelRegistrationFailureDetail(registration.Problem))
+	}
+
+	currentLoaded := s.currentManagedLlamaLoadedLocalAssetID()
+	if currentLoaded == "" {
+		mgr := s.engineManagerOrNil()
+		if mgr == nil {
+			return s.setManagedSupervisedLlamaUnhealthy(model, "managed llama engine manager unavailable")
+		}
+		if _, hasEngine := managedLlamaEngineInfo(mgr); !hasEngine {
+			s.resetModelRecovery(localModelID)
+			coldModel, err := s.updateModelAvailabilityAndWarmState(
+				localModelID,
+				runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD,
+				managedLocalModelColdDetail(),
+				true,
+			)
+			if err != nil {
+				return nil, err
+			}
+			return modelHealth(coldModel), nil
+		}
 	}
 
 	endpoint := s.effectiveLocalModelEndpoint(model)

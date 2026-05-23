@@ -120,11 +120,15 @@ func setLocalRuntimeProbeHooksForTest(
 	})
 }
 
-func shellCommandForTest(ctx context.Context, script string) *exec.Cmd {
+func textOutputCommandForTest(ctx context.Context, text string) *exec.Cmd {
 	if runtime.GOOS == "windows" {
-		return exec.CommandContext(ctx, "cmd", "/c", script)
+		cmd := exec.CommandContext(ctx, "powershell", "-NoProfile", "-Command", "[Console]::Out.WriteLine($env:NIMI_TEST_OUTPUT)")
+		cmd.Env = append(os.Environ(), "NIMI_TEST_OUTPUT="+text)
+		return cmd
 	}
-	return exec.CommandContext(ctx, "sh", "-c", script)
+	cmd := exec.CommandContext(ctx, "sh", "-c", "printf '%s\n' \"$NIMI_TEST_OUTPUT\"")
+	cmd.Env = append(os.Environ(), "NIMI_TEST_OUTPUT="+text)
+	return cmd
 }
 
 func setNvidiaGPUProbeForTest(t *testing.T, cudaReady bool) {
@@ -144,7 +148,7 @@ func setNvidiaGPUProbeForTest(t *testing.T, cudaReady bool) {
 		},
 		func(ctx context.Context, name string, args ...string) *exec.Cmd {
 			if name == "nvidia-smi" {
-				return shellCommandForTest(ctx, "printf 'NVIDIA RTX 4090, 24576, 20000\\n'")
+				return textOutputCommandForTest(ctx, "NVIDIA RTX 4090, 24576, 20000")
 			}
 			return exec.CommandContext(ctx, name, args...)
 		},
@@ -177,7 +181,7 @@ func setManagedImageHostForTest(t *testing.T, chip string) {
 		},
 		func(ctx context.Context, name string, args ...string) *exec.Cmd {
 			if name == "sysctl" && len(args) == 2 && args[0] == "-n" && args[1] == "machdep.cpu.brand_string" {
-				return shellCommandForTest(ctx, "printf '%s\\n' "+shellQuoteForTest(chip))
+				return textOutputCommandForTest(ctx, chip)
 			}
 			return exec.CommandContext(ctx, name, args...)
 		},
@@ -185,10 +189,6 @@ func setManagedImageHostForTest(t *testing.T, chip string) {
 			return nil, os.ErrNotExist
 		},
 	)
-}
-
-func shellQuoteForTest(value string) string {
-	return "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
 }
 
 func mustImportManagedImageAssetForTest(t *testing.T, svc *Service, logicalModelID string) *runtimev1.LocalAssetRecord {

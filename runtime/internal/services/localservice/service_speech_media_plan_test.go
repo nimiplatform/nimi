@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"google.golang.org/grpc/codes"
 )
 
@@ -423,6 +425,77 @@ func TestStartLocalModelSpeechSupervisedUsesManagedSpeechEndpoint(t *testing.T) 
 	}
 }
 
+func TestStartLocalModelSpeechSupervisedStartsConfiguredSpeechEngine(t *testing.T) {
+	probedEndpoints := make([]string, 0, 1)
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		probedEndpoints = append(probedEndpoints, endpoint)
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe succeeded",
+			probeURL:  endpoint,
+			models:    []string{"speech/kokoro-tts-model"},
+			modelCaps: map[string][]string{
+				"speech/kokoro-tts-model": {"audio.synthesize"},
+			},
+		}
+	})
+	mgr := &mockEngineManager{}
+	svc.SetEngineManager(mgr)
+	svc.SetManagedSpeechEndpoint("http://127.0.0.1:18330/v1")
+
+	ttsRoot := filepath.Join(t.TempDir(), "speech", "0.1.0-qwen3-tts")
+	asrRoot := filepath.Join(t.TempDir(), "speech", "0.1.0-qwen3-asr")
+	upsertVerifiedSpeechPackageSetForTest(t, svc, "speech.qwen3-tts.python", "local-speech-qwen3-tts.package-set", ttsRoot, "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD", engine.SpeechQwen3TTSDriverPath)
+	upsertVerifiedSpeechPackageSetForTest(t, svc, "speech.qwen3-asr.python", "local-speech-qwen3-asr.package-set", asrRoot, "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD", engine.SpeechQwen3ASRDriverPath)
+
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/kokoro-tts-model",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+		files:        []string{"model.onnx", "voices.json"},
+	})
+	writeManagedBundleFilesForTest(t, svc, installed, []string{"model.onnx", "voices.json"}, map[string][]byte{
+		"model.onnx":  []byte("fake-onnx"),
+		"voices.json": []byte(`{"voices":["af"]}`),
+	})
+
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("start supervised speech model: %v", err)
+	}
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("speech supervised model status = %s", started.GetAsset().GetStatus())
+	}
+	if mgr.startCalls != 0 {
+		t.Fatalf("speech managed bootstrap must not use generic StartEngine, got %d calls", mgr.startCalls)
+	}
+	if mgr.startConfigCalls != 1 {
+		t.Fatalf("expected one configured speech engine start, got %d", mgr.startConfigCalls)
+	}
+	if got := mgr.lastStartConfig.Kind; got != engine.EngineSpeech {
+		t.Fatalf("configured engine kind = %s, want speech", got)
+	}
+	if got := mgr.lastStartConfig.Port; got != 18330 {
+		t.Fatalf("configured speech port = %d, want 18330", got)
+	}
+	if got := mgr.lastStartConfig.ModelsPath; got != svc.resolvedLocalModelsPath() {
+		t.Fatalf("configured speech models path = %q, want %q", got, svc.resolvedLocalModelsPath())
+	}
+	if got := mgr.lastStartConfig.SpeechQwen3TTSPackageSetRoot; got != ttsRoot {
+		t.Fatalf("configured tts package-set root = %q, want %q", got, ttsRoot)
+	}
+	if got := mgr.lastStartConfig.SpeechQwen3ASRPackageSetRoot; got != asrRoot {
+		t.Fatalf("configured asr package-set root = %q, want %q", got, asrRoot)
+	}
+	if len(probedEndpoints) != 1 || probedEndpoints[0] != "http://127.0.0.1:18330/v1" {
+		t.Fatalf("unexpected speech probe endpoints: %#v", probedEndpoints)
+	}
+}
+
 func TestStartLocalModelSpeechSupervisedFailsClosedWhenManagedBundleFileMissing(t *testing.T) {
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
@@ -514,7 +587,7 @@ func TestStartLocalModelSpeechSupervisedSkipsWarmExecutionOnStart(t *testing.T) 
 	if started.GetAsset().GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
 		t.Fatalf("speech supervised model warm_state = %s", started.GetAsset().GetWarmState())
 	}
-	if started.GetAsset().GetHealthDetail() != "model active" {
+	if started.GetAsset().GetHealthDetail() != managedLocalModelColdDetail() {
 		t.Fatalf("unexpected health detail: %q", started.GetAsset().GetHealthDetail())
 	}
 }
@@ -568,7 +641,7 @@ func TestStartLocalModelSpeechSupervisedFailsClosedWhenVoicesFileInvalid(t *test
 	if started.GetAsset().GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
 		t.Fatalf("speech supervised invalid voices warm_state = %s", started.GetAsset().GetWarmState())
 	}
-	if started.GetAsset().GetHealthDetail() != "model active" {
+	if started.GetAsset().GetHealthDetail() != managedLocalModelColdDetail() {
 		t.Fatalf("unexpected invalid voices detail: %q", started.GetAsset().GetHealthDetail())
 	}
 }

@@ -1,11 +1,13 @@
 package filedownload
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -245,6 +247,66 @@ func TestDownloadContextCancellationAborts(t *testing.T) {
 	assertNoPartial(t, destPath)
 }
 
+// TestDownloadRetriesClientReadTimeout covers the long-download path where the
+// injected HTTP client times out while reading the response body. That error is
+// context.DeadlineExceeded-shaped, but the caller ctx is still alive, so the
+// core must treat it as a transport timeout and allow the caller's transient
+// classifier to resume from the partial.
+func TestDownloadRetriesClientReadTimeout(t *testing.T) {
+	payload := []byte(strings.Repeat("client-timeout-resume-payload\n", 4096))
+	prefixLen := 2048
+	var requests int32
+	client := &http.Client{
+		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			attempt := atomic.AddInt32(&requests, 1)
+			if attempt == 1 {
+				return &http.Response{
+					StatusCode:    http.StatusOK,
+					Status:        "200 OK",
+					Header:        make(http.Header),
+					Body:          &timeoutAfterPrefixBody{chunk: payload[:prefixLen]},
+					ContentLength: int64(len(payload)),
+					Request:       r,
+				}, nil
+			}
+			if got, want := r.Header.Get("Range"), "bytes="+strconv.Itoa(prefixLen)+"-"; got != want {
+				t.Errorf("Range header = %q, want %q", got, want)
+			}
+			header := make(http.Header)
+			header.Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", prefixLen, len(payload)-1, len(payload)))
+			return &http.Response{
+				StatusCode:    http.StatusPartialContent,
+				Status:        "206 Partial Content",
+				Header:        header,
+				Body:          io.NopCloser(bytes.NewReader(payload[prefixLen:])),
+				ContentLength: int64(len(payload) - prefixLen),
+				Request:       r,
+			}, nil
+		}),
+	}
+
+	destPath := filepath.Join(t.TempDir(), "model.bin")
+	result, err := Download(context.Background(), Options{
+		URL:          "https://example.invalid/model.bin",
+		DestPath:     destPath,
+		Client:       client,
+		MaxAttempts:  2,
+		RetryBackoff: time.Millisecond,
+		IsTransient:  func(err error) bool { return errors.Is(err, context.DeadlineExceeded) },
+	})
+	if err != nil {
+		t.Fatalf("Download: %v", err)
+	}
+	if !result.Resumed {
+		t.Fatal("expected client timeout retry to resume from the partial")
+	}
+	if got := atomic.LoadInt32(&requests); got != 2 {
+		t.Fatalf("expected exactly two requests, got %d", got)
+	}
+	assertFileContents(t, destPath, payload)
+	assertNoPartial(t, destPath)
+}
+
 // TestDownloadFailsClosedOn4xx asserts a 4xx is non-transient: it fails closed
 // without a retry.
 func TestDownloadFailsClosedOn4xx(t *testing.T) {
@@ -378,4 +440,27 @@ func assertNoPartial(t *testing.T, destPath string) {
 	if _, err := os.Stat(destPath + ".download"); !os.IsNotExist(err) {
 		t.Fatalf("expected no .download partial residue, stat err=%v", err)
 	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
+}
+
+type timeoutAfterPrefixBody struct {
+	chunk []byte
+	sent  bool
+}
+
+func (b *timeoutAfterPrefixBody) Read(p []byte) (int, error) {
+	if !b.sent {
+		b.sent = true
+		return copy(p, b.chunk), nil
+	}
+	return 0, context.DeadlineExceeded
+}
+
+func (b *timeoutAfterPrefixBody) Close() error {
+	return nil
 }

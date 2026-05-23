@@ -2,8 +2,10 @@ package localservice
 
 import (
 	"context"
+	"errors"
 	"strings"
 
+	runtimeengine "github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 
@@ -48,20 +50,19 @@ func (s *Service) ListEngines(_ context.Context, _ *runtimev1.ListEnginesRequest
 }
 
 func (s *Service) EnsureEngine(ctx context.Context, req *runtimev1.EnsureEngineRequest) (*runtimev1.EnsureEngineResponse, error) {
+	_ = ctx
 	engine := strings.TrimSpace(req.GetEngine())
 	if engine == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	mgr, err := s.getEngineManager()
-	if err != nil {
-		return nil, err
-	}
-	version := strings.TrimSpace(req.GetVersion())
-	if err := mgr.EnsureEngine(ctx, engine, version); err != nil {
-		return nil, mapEngineManagerError(engine, "ensure", err)
-	}
-	info, _ := mgr.EngineStatus(engine)
-	return &runtimev1.EnsureEngineResponse{Engine: engineInfoToProto(info)}, nil
+	return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+		Message:    "engine package materialization is owned by local environment dependency jobs",
+		ActionHint: "resolve_local_environment_plan_and_start_dependency_job",
+		Metadata: map[string]string{
+			"engine": engine,
+			"detail": "EnsureEngine no longer performs materialization; use StartLocalEnvironmentDependencyJob for native engine packages",
+		},
+	})
 }
 
 func (s *Service) StartEngine(ctx context.Context, req *runtimev1.StartEngineRequest) (*runtimev1.StartEngineResponse, error) {
@@ -138,6 +139,18 @@ func mapEngineManagerError(engine string, operation string, err error) error {
 		return grpcerr.WithReasonCodeOptions(codes.AlreadyExists, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    "engine already running",
 			ActionHint: "query_engine_status_before_start",
+			Metadata: map[string]string{
+				"detail": raw,
+			},
+		})
+	}
+
+	if errors.Is(err, runtimeengine.ErrEngineBinaryDependencyNotReady) ||
+		strings.Contains(lower, "local environment dependency") ||
+		strings.Contains(lower, "llama.cpp.package") {
+		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    "engine package is not ready",
+			ActionHint: "resolve_local_environment_plan_and_start_dependency_job",
 			Metadata: map[string]string{
 				"detail": raw,
 			},

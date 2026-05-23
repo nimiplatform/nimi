@@ -185,10 +185,7 @@ func runPythonDriverResolveModelRefExpectFailure(t *testing.T, name string, scri
 
 func runPythonDriverResolveModelRefCommand(t *testing.T, name string, script string, request string, fallback string) (string, error) {
 	t.Helper()
-	python, err := exec.LookPath("python3")
-	if err != nil {
-		t.Skip("python3 not available")
-	}
+	python, pythonArgs := testPythonCommand(t)
 	driverPath := filepath.Join(t.TempDir(), name)
 	if err := os.WriteFile(driverPath, []byte(script), 0o755); err != nil {
 		t.Fatalf("write driver script: %v", err)
@@ -200,17 +197,15 @@ func runPythonDriverResolveModelRefCommand(t *testing.T, name string, script str
 		"spec.loader.exec_module(mod)",
 		"print(mod.resolve_model_ref(json.loads(sys.argv[2]), sys.argv[3]))",
 	}, "\n")
-	cmd := exec.Command(python, "-c", code, driverPath, request, fallback)
+	args := appendPythonArgs(pythonArgs, "-c", code, driverPath, request, fallback)
+	cmd := exec.Command(python, args...)
 	output, runErr := cmd.CombinedOutput()
 	return string(output), runErr
 }
 
 func runPythonASRDriverFakeTranscribe(t *testing.T, request map[string]any, expectFailure bool) map[string]any {
 	t.Helper()
-	python, err := exec.LookPath("python3")
-	if err != nil {
-		t.Skip("python3 not available")
-	}
+	python, pythonArgs := testPythonCommand(t)
 	tempDir := t.TempDir()
 	audioPath := filepath.Join(tempDir, "probe.wav")
 	if err := os.WriteFile(audioPath, []byte("audio-bytes"), 0o644); err != nil {
@@ -240,7 +235,8 @@ func runPythonASRDriverFakeTranscribe(t *testing.T, request map[string]any, expe
 		"    print(json.dumps({'error': str(error)}))",
 		"    sys.exit(2)",
 	}, "\n")
-	cmd := exec.Command(python, "-c", code, driverPath, string(requestPayload))
+	args := appendPythonArgs(pythonArgs, "-c", code, driverPath, string(requestPayload))
+	cmd := exec.Command(python, args...)
 	output, runErr := cmd.CombinedOutput()
 	if expectFailure {
 		if runErr == nil {
@@ -254,6 +250,35 @@ func runPythonASRDriverFakeTranscribe(t *testing.T, request map[string]any, expe
 		t.Fatalf("unmarshal fake ASR response %q: %v", strings.TrimSpace(string(output)), err)
 	}
 	return response
+}
+
+func testPythonCommand(t *testing.T) (string, []string) {
+	t.Helper()
+	candidates := []struct {
+		name string
+		args []string
+	}{
+		{name: "python3"},
+		{name: "python"},
+		{name: "py", args: []string{"-3"}},
+	}
+	for _, candidate := range candidates {
+		path, err := exec.LookPath(candidate.name)
+		if err != nil {
+			continue
+		}
+		args := appendPythonArgs(candidate.args, "-c", "import sys; sys.exit(0)")
+		if err := exec.Command(path, args...).Run(); err == nil {
+			return path, candidate.args
+		}
+	}
+	t.Skip("usable Python 3 not available")
+	return "", nil
+}
+
+func appendPythonArgs(prefix []string, args ...string) []string {
+	output := append([]string{}, prefix...)
+	return append(output, args...)
 }
 
 func TestEnsureSpeechRefreshesRuntimeOwnedSpeechScripts(t *testing.T) {

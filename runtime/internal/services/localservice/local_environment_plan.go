@@ -170,15 +170,16 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, true, hostState, platformTuple, runtimeDataRoot, consumerScope, req))
 	}
 	for _, family := range def.OptionalDependencyFamilies {
+		required := localEnvironmentOptionalDependencyRequiredForConsumer(def, family, hostState, consumerScope)
 		if resolved, ok := modelResolution[family]; ok {
 			dependencies = append(dependencies, resolved...)
 			continue
 		}
-		if resolved, ok := s.resolveExpandedLocalEnvironmentDependencies(def, family, false, hostState, platformTuple, runtimeDataRoot, consumerScope, req); ok {
+		if resolved, ok := s.resolveExpandedLocalEnvironmentDependencies(def, family, required, hostState, platformTuple, runtimeDataRoot, consumerScope, req); ok {
 			dependencies = append(dependencies, resolved...)
 			continue
 		}
-		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, false, hostState, platformTuple, runtimeDataRoot, consumerScope, req))
+		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, required, hostState, platformTuple, runtimeDataRoot, consumerScope, req))
 	}
 
 	state := localEnvironmentStateReadyManaged
@@ -259,6 +260,12 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 			dep.Detail = err.Error()
 			return dep
 		}
+		if err := validateLocalEnvironmentSelectedSourceLocalArtifacts(record); err != nil {
+			dep.State = localEnvironmentStateRepairRequired
+			dep.ReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED"
+			dep.Detail = err.Error()
+			return dep
+		}
 		switch strings.TrimSpace(record.RepairState) {
 		case localEnvironmentRepairRequired, localEnvironmentRepairRunning, localEnvironmentRepairFailed:
 			dep.State = localEnvironmentStateRepairRequired
@@ -310,6 +317,37 @@ func localSpeechPlanConsumers(consumerScope string) []string {
 		return []string{"speech.qwen3-tts.python"}
 	default:
 		return []string{"speech.qwen3-asr.python", "speech.qwen3-tts.python"}
+	}
+}
+
+func localEnvironmentOptionalDependencyRequiredForConsumer(def localComputePackDefinition, family string, hostState localEnvironmentHostProfileState, consumerScope string) bool {
+	if family != localEnvironmentFamilyCUDA {
+		return false
+	}
+	scope := strings.TrimSpace(consumerScope)
+	if localEnvironmentCUDAConsumerScopeRequiresRuntime(scope) {
+		return true
+	}
+	return def.PackID == "local-text" &&
+		localEnvironmentHostSupportsCUDA(hostState) &&
+		localEnvironmentFirstRunConsumerScope(scope)
+}
+
+func localEnvironmentCUDAConsumerScopeRequiresRuntime(consumerScope string) bool {
+	switch strings.TrimSpace(consumerScope) {
+	case "llama.cpp.cuda", stableDiffusionCUDAConsumerID, "media.diffusers.cuda", "media.video-python.cuda":
+		return true
+	default:
+		return false
+	}
+}
+
+func localEnvironmentFirstRunConsumerScope(consumerScope string) bool {
+	switch strings.TrimSpace(consumerScope) {
+	case "first-run", "desktop.first-run":
+		return true
+	default:
+		return false
 	}
 }
 

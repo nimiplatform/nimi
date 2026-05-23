@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -78,7 +79,7 @@ func (s *Service) executeModelCompanionEnvironmentDependencyJob(ctx context.Cont
 	// job ctx) for the parent rather than failing closed with a hard
 	// PREREQUISITE_MISSING. A genuinely absent parent still fails closed once
 	// the bounded wait elapses.
-	parentRecord, ok := s.selectedModelAssetSourceForAssetID(parentAssetID)
+	parentRecord, ok := s.readySelectedModelAssetSourceForAssetID(parentAssetID)
 	if !ok || strings.TrimSpace(parentRecord.RecordID) == "" {
 		parentRecord, ok = s.waitForSelectedModelAssetSourceForAssetID(ctx, parentAssetID)
 	}
@@ -472,7 +473,7 @@ func companionParentAssetIDFromDependencyID(dependencyID string) string {
 // bounded prerequisite wait elapses. It lets a model.companion-asset job that
 // races ahead of its parent model.asset job converge instead of failing closed.
 func (s *Service) waitForSelectedModelAssetSourceForAssetID(ctx context.Context, assetID string) (localEnvironmentSelectedSourceRecordState, bool) {
-	if record, ok := s.selectedModelAssetSourceForAssetID(assetID); ok {
+	if record, ok := s.readySelectedModelAssetSourceForAssetID(assetID); ok {
 		return record, true
 	}
 	deadline := time.NewTimer(s.prerequisiteWaitTimeout())
@@ -486,11 +487,56 @@ func (s *Service) waitForSelectedModelAssetSourceForAssetID(ctx context.Context,
 		case <-deadline.C:
 			return localEnvironmentSelectedSourceRecordState{}, false
 		case <-ticker.C:
-			if record, ok := s.selectedModelAssetSourceForAssetID(assetID); ok {
+			if record, ok := s.readySelectedModelAssetSourceForAssetID(assetID); ok {
 				return record, true
 			}
 		}
 	}
+}
+
+func (s *Service) readySelectedModelAssetSourceForAssetID(assetID string) (localEnvironmentSelectedSourceRecordState, bool) {
+	candidates := s.selectedModelAssetSourceCandidatesForAssetID(assetID)
+	for _, record := range candidates {
+		if isLocalEnvironmentRepairActive(record.RepairState) {
+			continue
+		}
+		if err := validateLocalEnvironmentSelectedSourceRecord(record); err != nil {
+			continue
+		}
+		if err := validateLocalEnvironmentSelectedSourceLocalArtifacts(record); err != nil {
+			continue
+		}
+		return record, true
+	}
+	return localEnvironmentSelectedSourceRecordState{}, false
+}
+
+func (s *Service) selectedModelAssetSourceCandidatesForAssetID(assetID string) []localEnvironmentSelectedSourceRecordState {
+	trimmedAssetID := strings.TrimSpace(assetID)
+	if trimmedAssetID == "" {
+		return nil
+	}
+	s.mu.RLock()
+	candidates := make([]localEnvironmentSelectedSourceRecordState, 0)
+	for _, record := range s.localEnvironmentSelectedSources {
+		if record.DependencyFamily != localEnvironmentFamilyModelAsset {
+			continue
+		}
+		if strings.TrimSpace(record.DependencyID) != "asset-id:"+trimmedAssetID {
+			continue
+		}
+		candidates = append(candidates, record)
+	}
+	s.mu.RUnlock()
+	sort.SliceStable(candidates, func(left, right int) bool {
+		leftVerified := strings.TrimSpace(candidates[left].LastVerifiedAt)
+		rightVerified := strings.TrimSpace(candidates[right].LastVerifiedAt)
+		if leftVerified != rightVerified {
+			return leftVerified > rightVerified
+		}
+		return strings.TrimSpace(candidates[left].RecordID) > strings.TrimSpace(candidates[right].RecordID)
+	})
+	return candidates
 }
 
 func (s *Service) selectedModelAssetSourceForAssetID(assetID string) (localEnvironmentSelectedSourceRecordState, bool) {

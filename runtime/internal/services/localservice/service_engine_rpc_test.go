@@ -357,21 +357,13 @@ func assertNoGRPCReasonCode(t *testing.T, err error, rpc string) {
 
 // --- Engine RPC success/error tests ---
 
-func TestEngineRPCEnsureEngineSuccess(t *testing.T) {
+func TestEngineRPCEnsureEngineFailsClosedToLocalEnvironmentJobControl(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetEngineManager(&mockEngineManager{})
 
-	resp, err := svc.EnsureEngine(context.Background(), &runtimev1.EnsureEngineRequest{Engine: "llama"})
-	if err != nil {
-		t.Fatalf("EnsureEngine: %v", err)
-	}
-	desc := resp.GetEngine()
-	if desc.GetEngine() != "llama" {
-		t.Errorf("expected engine llama, got %s", desc.GetEngine())
-	}
-	if desc.GetVersion() != engine.DefaultLlamaConfig().Version {
-		t.Errorf("expected version %s, got %s", engine.DefaultLlamaConfig().Version, desc.GetVersion())
-	}
+	_, err := svc.EnsureEngine(context.Background(), &runtimev1.EnsureEngineRequest{Engine: "llama"})
+	assertGRPCCode(t, err, "EnsureEngine", codes.FailedPrecondition)
+	assertGRPCReasonCode(t, err, "EnsureEngine", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 }
 
 func TestEngineRPCStartEngineSuccess(t *testing.T) {
@@ -415,28 +407,6 @@ func TestEngineRPCGetEngineStatusNotFound(t *testing.T) {
 	assertGRPCCode(t, err, "GetEngineStatus(not_found)", codes.NotFound)
 }
 
-func TestEngineRPCEnsureEngineError(t *testing.T) {
-	svc := newTestService(t)
-	svc.SetEngineManager(&mockEngineManager{
-		ensureErr: fmt.Errorf("download failed"),
-	})
-
-	_, err := svc.EnsureEngine(context.Background(), &runtimev1.EnsureEngineRequest{Engine: "llama"})
-	assertGRPCCode(t, err, "EnsureEngine(error)", codes.Internal)
-	assertGRPCReasonCode(t, err, "EnsureEngine(error)", runtimev1.ReasonCode_AI_LOCAL_DOWNLOAD_FAILED)
-}
-
-func TestEngineRPCEnsureSpeechEngineErrorUsesSpeechEnvFailureReason(t *testing.T) {
-	svc := newTestService(t)
-	svc.SetEngineManager(&mockEngineManager{
-		ensureErr: fmt.Errorf("install speech dependencies: download failed"),
-	})
-
-	_, err := svc.EnsureEngine(context.Background(), &runtimev1.EnsureEngineRequest{Engine: "speech"})
-	assertGRPCCode(t, err, "EnsureEngine(speech_error)", codes.FailedPrecondition)
-	assertGRPCReasonCode(t, err, "EnsureEngine(speech_error)", runtimev1.ReasonCode_AI_LOCAL_SPEECH_ENV_INIT_FAILED)
-}
-
 func TestEngineRPCStartSpeechEnginePreflightBlockedUsesSpeechReason(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetEngineManager(&mockEngineManager{
@@ -459,15 +429,15 @@ func TestEngineRPCStartSpeechEngineHostFailureUsesSpeechReason(t *testing.T) {
 	assertGRPCReasonCode(t, err, "StartEngine(speech_host_failure)", runtimev1.ReasonCode_AI_LOCAL_SPEECH_HOST_INIT_FAILED)
 }
 
-func TestEngineRPCEnsureEngineHashMismatch(t *testing.T) {
+func TestEngineRPCStartEngineDependencyNotReadyPointsToLocalEnvironmentJobControl(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetEngineManager(&mockEngineManager{
-		ensureErr: fmt.Errorf("engine binary hash mismatch"),
+		startErr: engine.ErrEngineBinaryDependencyNotReady,
 	})
 
-	_, err := svc.EnsureEngine(context.Background(), &runtimev1.EnsureEngineRequest{Engine: "llama"})
-	assertGRPCCode(t, err, "EnsureEngine(hash_mismatch)", codes.DataLoss)
-	assertGRPCReasonCode(t, err, "EnsureEngine(hash_mismatch)", runtimev1.ReasonCode_AI_LOCAL_DOWNLOAD_HASH_MISMATCH)
+	_, err := svc.StartEngine(context.Background(), &runtimev1.StartEngineRequest{Engine: "llama"})
+	assertGRPCCode(t, err, "StartEngine(dependency_not_ready)", codes.FailedPrecondition)
+	assertGRPCReasonCode(t, err, "StartEngine(dependency_not_ready)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 }
 
 func TestLocalManagementRPCsReturnStructuredModelIDErrors(t *testing.T) {

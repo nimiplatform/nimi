@@ -487,6 +487,23 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			}
 		}
 		if effectiveManagedLlama && !skipLlamaBootstrap {
+			cfg := engine.DefaultLlamaConfig()
+			if strings.TrimSpace(d.cfg.EngineLlamaVersion) != "" {
+				cfg.Version = d.cfg.EngineLlamaVersion
+			}
+			if _, err := mgr.RequireEngineBinaryDependency(ctx, cfg); err != nil {
+				if errors.Is(err, engine.ErrEngineBinaryDependencyNotReady) {
+					d.logger.Info("managed llama bootstrap deferred; local environment dependency is not ready",
+						"detail", err.Error(),
+					)
+					skipLlamaBootstrap = true
+				} else {
+					d.recordManagedLlamaBootstrapFailure(fmt.Sprintf("verify managed llama engine package: %v", err))
+					skipLlamaBootstrap = true
+				}
+			}
+		}
+		if effectiveManagedLlama && !skipLlamaBootstrap {
 			svc.SetManagedLlamaEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineLlamaPort))
 		} else {
 			svc.SetManagedLlamaEndpoint("")

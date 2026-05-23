@@ -75,11 +75,13 @@ func TestHostProfileOrCollectedSelfCollectsWhenRequestOmitsProfile(t *testing.T)
 	originalGOARCH := localRuntimeGOARCH
 	originalLookPath := localRuntimeLookPath
 	originalCommand := localRuntimeCommand
+	originalProbeRAM := localRuntimeProbeRAM
 	t.Cleanup(func() {
 		localRuntimeGOOS = originalGOOS
 		localRuntimeGOARCH = originalGOARCH
 		localRuntimeLookPath = originalLookPath
 		localRuntimeCommand = originalCommand
+		localRuntimeProbeRAM = originalProbeRAM
 	})
 
 	shellName := "sh"
@@ -95,6 +97,9 @@ func TestHostProfileOrCollectedSelfCollectsWhenRequestOmitsProfile(t *testing.T)
 	localRuntimeGOARCH = "arm64"
 	localRuntimeLookPath = func(string) (string, error) { return "", exec.ErrNotFound }
 	const memBytes = int64(128) << 30
+	localRuntimeProbeRAM = func() (int64, int64) {
+		return memBytes, int64(16) << 30
+	}
 	localRuntimeCommand = func(ctx context.Context, name string, args ...string) *exec.Cmd {
 		echo := func(value string) *exec.Cmd {
 			return exec.CommandContext(ctx, shellName, shellArgs("echo "+value)...)
