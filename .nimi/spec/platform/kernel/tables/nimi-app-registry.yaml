@@ -41,6 +41,7 @@ app_schema:
     - ordinary_visibility
     - release_descriptor_ref
     - install_storage_policy_ref
+    - source_repo_url
     - admission_status
     - source_rule
   enums:
@@ -110,6 +111,7 @@ apps:
     ordinary_visibility: hidden-internal
     release_descriptor_ref: nimi.avatar.bundled-with-nimi
     install_storage_policy_ref: nimi-data-app-roots
+    source_repo_url: null
     admission_status: gated_by_avatar_master_gate
     source_rule: P-NAPP-011
 
@@ -150,6 +152,7 @@ apps:
     ordinary_visibility: ordinary-visible
     release_descriptor_ref: nimi.parentos.bundled-with-nimi
     install_storage_policy_ref: nimi-data-app-roots
+    source_repo_url: null
     admission_status: admitted
     source_rule: P-NAPP-011
 
@@ -196,6 +199,7 @@ apps:
     ordinary_visibility: developer-only
     release_descriptor_ref: nimi.tester.bundled-with-nimi
     install_storage_policy_ref: nimi-data-app-roots
+    source_repo_url: null
     admission_status: admitted
     source_rule: P-NAPP-016
 
@@ -235,5 +239,6 @@ apps:
     ordinary_visibility: developer-only
     release_descriptor_ref: nimi.realm-agent-studio.bundled-with-nimi
     install_storage_policy_ref: nimi-data-app-roots
+    source_repo_url: null
     admission_status: admitted
     source_rule: P-NAPP-017

@@ -143,18 +143,51 @@ third_party_descriptor_floor:
     - descriptor_id
     - app_id
     - version
+    - publisher.github_namespace
+    - publisher.namespace_kind
+    - publisher.identity_assurance
+    - publisher.verified_domain
+    - publisher.kyc_verification_ref
     - source.kind
     - source.ref
     - artifact.locator
     - artifact.sha256
     - artifact.size
+    - artifact.size.download
+    - artifact.size.installed
+    - artifact.size.user_data
+    - artifact.size.cache
+    - artifact.size.shared_deps
     - artifact.signature_or_provenance_ref
+    - artifact_mirror_ref
+    - mirror_license_cleared
+    - build_assurance
+    - dependency_assurance
+    - platform_signing_assurance
+    - platform_signing_assurance.macos_notarization
+    - platform_signing_assurance.macos_developer_id_subject
+    - platform_signing_assurance.windows_code_signing
+    - platform_signing_assurance.installer_signature
+    - platform_signing_assurance.entitlements_ref
+    - platform_signing_assurance.signing_subject
     - runtime.package_kind
     - runtime.entry_ref
     - runtime.sandbox_ref
     - permissions_ref
     - storage_policy_ref
+    - update_channel_ref
+    - rollback_eligibility
     - review.admission_path
+    - review.decision
+    - review.adjudicator_kind
+    - review.adjudicator_ref
+    - review.decided_at
+    - support.diagnostics_bundle_fields
+    - support.redaction_rules
+    - support.user_visible_issue_categories
+    - support.escalation_path
+    - support.kill_switch_visibility
+    - support.recovery_instructions
   allowed_source_kinds:
     - github-release
     - github-commit
@@ -167,6 +200,8 @@ third_party_descriptor_floor:
     - direct_npx
     - direct_clone_build_run
     - arbitrary_install_script_as_product_truth
+  forbidden_third_party_build_assurance:
+    - checksum-pinned
   verification:
     before_unpack_register_execute: sha256_must_match_descriptor
     mismatch: fail_closed_no_install_no_execution

@@ -34,6 +34,7 @@ entries:
   - P-PERM-008
   - P-PERM-009
   - P-PERM-010
+  - P-PERM-011
 rules:
   - rule_id: P-PERM-001
     evidence_refs:
@@ -85,3 +86,8 @@ rules:
       - platform_kernel_consistency
     evidence_requirement: structural_required
     evidence_scope_note: structural only; cross-kernel backend retention enforcement is recorded in `authority-supersession-map.md` and verified by Realm / Runtime / Cognition kernel consistency checks
+  - rule_id: P-PERM-011
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; app-local-drafts qualifier semantics enforcement is `P-NAPP-027` storage posture admission and Runtime `K-APP-018` file-API surface consumer validation

@@ -32,6 +32,8 @@ entries:
   - S-PERM-006
   - S-PERM-007
   - S-PERM-008
+  - S-PERM-009
+  - S-PERM-010
 rules:
   - rule_id: S-PERM-001
     evidence_refs:
@@ -64,4 +66,14 @@ rules:
   - rule_id: S-PERM-008
     evidence_refs:
       - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-PERM-009
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Cross-app access flow-shape stub admits no live behavior; the cross_app_access_deferred typed reason fail-closes any premature consumer. Implementation evidence lands with the future cross-app access live-behavior topic.
+    evidence_requirement: required
+  - rule_id: S-PERM-010
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Anti-target rule explicitly forbidding review-evidence accessor admission in S-PERM; the review-evidence accessor is admitted in S-APP-015. No behavior; structural placement guard only.
     evidence_requirement: required

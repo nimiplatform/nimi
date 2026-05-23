@@ -40,6 +40,20 @@ entries:
   - P-NAPP-014
   - P-NAPP-015
   - P-NAPP-016
+  - P-NAPP-017
+  - P-NAPP-018
+  - P-NAPP-019
+  - P-NAPP-020
+  - P-NAPP-021
+  - P-NAPP-022
+  - P-NAPP-023
+  - P-NAPP-024
+  - P-NAPP-025
+  - P-NAPP-026
+  - P-NAPP-027
+  - P-NAPP-028
+  - P-NAPP-029
+  - P-NAPP-030
   - P-MOEX-001
   - P-MOEX-002
   - P-MOEX-003
@@ -130,6 +144,76 @@ rules:
       - canonical_capability_catalog_gate
     evidence_requirement: structural_required
     evidence_scope_note: structural only; developer-only Tester App admission is enforced by registry/descriptor cross-table validation and SDK ordinary projection filtering
+  - rule_id: P-NAPP-017
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; developer-only Realm Agent Studio admission is enforced by `tables/nimi-app-registry.yaml` and `tables/nimi-app-release-descriptors.yaml` cross-table consumer validation
+  - rule_id: P-NAPP-018
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; third-party release descriptor shape enforcement is `tables/nimi-app-release-descriptors.yaml` consumer validation and SDK install descriptor verification consumer validation
+  - rule_id: P-NAPP-019
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; no-collapsed sizes/dates/versions enforcement is downstream Apps registry/install/storage child topic consumer validation
+  - rule_id: P-NAPP-020
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; publisher identity required-fields enforcement is `tables/nimi-app-release-descriptors.yaml` consumer validation and downstream review-tool consumer validation
+  - rule_id: P-NAPP-021
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; identity assurance enum and KYC deferral enforcement is downstream review-tool consumer validation
+  - rule_id: P-NAPP-022
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; artifact mirror ref and mirror license clearance enforcement is downstream Apps registry/install/storage child topic consumer validation
+  - rule_id: P-NAPP-023
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; third-party build assurance exclusion enforcement is downstream review-tool consumer validation
+  - rule_id: P-NAPP-024
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; platform signing assurance subfields enforcement is downstream Apps registry/install/storage child topic consumer validation
+  - rule_id: P-NAPP-025
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; review decision schema enforcement is `P-AUDIT-006` review-evidence shape consumer validation and SDK `S-APP-015` review-evidence accessor consumer validation
+  - rule_id: P-NAPP-026
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; support manifest required-fields enforcement is downstream review-tool consumer validation
+  - rule_id: P-NAPP-027
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; storage posture admission enforcement is `P-PERM-011` app-local-drafts qualifier and Runtime `K-APP-018` file-API surface consumer validation
+  - rule_id: P-NAPP-028
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; app-owned OS storage disclosure enforcement is downstream review-tool consumer validation and SDK projection consumer validation
+  - rule_id: P-NAPP-029
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; source repository visibility enforcement is downstream review-tool consumer validation
+  - rule_id: P-NAPP-030
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; listing closure field set enforcement is downstream review-tool consumer validation and SDK projection consumer validation
   - rule_id: P-MOEX-001
     evidence_refs:
       - platform_kernel_consistency

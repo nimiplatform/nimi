@@ -351,3 +351,393 @@ audit / permission / spend 事件，也不得改变 `K-APP-014` 的 durable-data
 > `proto/runtime/v1/app.proto` 物化随后续 app-launch 实现 wave 落地；本规则
 > 是其 normative 契约面。`OpenApp` 不承载 app-to-app message broker 语义，
 > 与 `SendAppMessage` / `SubscribeAppMessages` 语义独立（对齐 `K-APP-001`）。
+
+## K-APP-018 Runtime-Mediated File-API Surface And Path Enforcement
+
+**Background fact (grep-evidence).** `K-APP-001` at this file lines
+5–21 admits the `RuntimeAppService` "方法固定为" enumeration as exactly
+nine methods: `SendAppMessage`, `SubscribeAppMessages`, `InstallApp`,
+`UninstallApp`, `GetAppInstallJob`, `ListAppInstallJobs`,
+`WatchAppInstallJobEvents`, `UpdateApp`, `HealthRepairApp`. **None of
+those nine methods is a file-API method.** `K-APP-018` therefore
+admits a NEW Runtime-mediated file-API surface; it does NOT inherit a
+pre-existing file-API surface from `K-APP-001` or any other admitted
+`K-APP-*` rule.
+
+`MUST` (surface admission — packet-time-frozen method set).
+`RuntimeAppService` admits a Runtime-mediated file-API method set
+scoped to the Nimi-mediated `app-local-drafts` qualifier (`P-PERM-011`
+on the Platform side; `P-NAPP-027` `nimi-mediated-default` storage
+posture). The admitted method set is exactly the following five
+methods, frozen as part of this rule:
+
+1. `ReadAppLocalDraftFile` — read bytes from a file under the calling
+   app's Nimi-owned data root. Request carries the calling app's
+   `app_id` (resolved from the authenticated `RuntimeAuthService`
+   session per `K-APP-005` 应用认证), a relative `path` under the
+   calling app's data root, and an optional byte `range`. Reply carries
+   the `bytes` payload, the resolved typed `qualifier`
+   (`app-local-drafts`), and a fail-closed `reason_code` /
+   `failure_detail` on the unhappy path.
+2. `WriteAppLocalDraftFile` — write bytes to a file under the calling
+   app's Nimi-owned data root. Request carries `app_id`, relative
+   `path`, the `bytes` payload, and a typed `mode` enum
+   (`overwrite` / `create-new` / `append`). Reply carries the typed
+   write outcome and a fail-closed `reason_code` /
+   `failure_detail` on the unhappy path. The 64 KB per-message size
+   cap from `K-APP-005` 消息大小限制 does not apply to file payloads
+   on this surface; chunking strategy is a transport-level concern
+   below the contract, not a re-introduction of `K-APP-005` 's
+   messaging-payload cap.
+3. `ListAppLocalDraftDir` — list directory entries under the calling
+   app's Nimi-owned data root. Request carries `app_id` and a
+   relative `path`. Reply carries a typed list of
+   `{name, kind, size, modified_at}` entries plus a fail-closed
+   `reason_code` / `failure_detail` on the unhappy path.
+4. `DeleteAppLocalDraftFile` — delete a file or empty directory under
+   the calling app's Nimi-owned data root. Request carries `app_id`
+   and a relative `path`. Reply carries the typed delete outcome and a
+   fail-closed `reason_code` / `failure_detail`. Recursive directory
+   deletion outside the typed `data/` / `cache/` / `tmp/` subtree is
+   out of scope of this admission and remains rejected via
+   `out_of_data_root` (below).
+5. `MoveAppLocalDraftFile` — move/rename a file under the calling
+   app's Nimi-owned data root. Request carries `app_id`, relative
+   `source_path`, and relative `destination_path`. Both paths MUST
+   resolve under the same calling app's data root; the destination
+   path leaving the calling app's root is a fail-closed
+   `out_of_data_root`. Reply carries the typed move outcome and a
+   fail-closed `reason_code` / `failure_detail`.
+
+**Amendment-clause to `K-APP-001`.** The five methods above extend
+`K-APP-001` "方法固定为" enumeration at lines 5–21 of this file. The
+extension is admitted INSIDE `K-APP-018`; `K-APP-001` 's rule body
+remains unchanged. Future Runtime-mediated file-API method admissions
+are subject to a separate admitting rule and do NOT enter
+`RuntimeAppService` 's admitted method set by implication of this
+clause.
+
+`MUST` (path-enforcement invariant). Every method in the file-API set
+admitted above MUST fail closed with typed reason `out_of_data_root`
+when the resolved path leaves the calling app's
+`<nimi_data>/apps/<app_id>/` root or enters another app's root
+`<nimi_data>/apps/<other_app_id>/`. The escape modes covered by this
+invariant include — non-exhaustively — parent traversal segments
+(`..`) that escape the root, absolute paths that resolve outside the
+root, symbolic-link traversal that crosses out of the root, and any
+heuristic "close-enough" resolution that maps an escaping path to a
+permitted neighbor inside the root. Path-enforcement applies to the
+admitted five-method set; future surface extensions are subject to
+their own admitting rule and do not inherit this invariant by
+omission.
+
+`MUST` (cross-references). `K-APP-018` cross-references `P-NAPP-027`
+(Platform-side storage-posture admission; the Nimi-mediated data root
+tree this surface resolves against) and `P-PERM-011` (Platform-side
+qualifier semantics for `file.read.scoped` / `file.write.scoped` with
+`qualifier: app-local-drafts`). The Runtime-side enforcement of the
+qualifier semantics is THIS rule; the Platform-side admission of the
+qualifier and root binding is `P-PERM-011`. The two rules are
+intentionally parallel; neither redefines the other.
+
+**Deferral acknowledgement (not admitted here).** Cross-app file
+access — a method call from app A resolving into
+`<nimi_data>/apps/<other_app_id>/` belonging to app B — remains
+deferred to a future sub-topic via the `P-PERM-006` cross-app
+authorization flow with explicit user confirmation at access time.
+This rule does NOT admit cross-app file access; every cross-app path
+attempt on the admitted five-method surface fails closed with
+`out_of_data_root` until that future sub-topic admits the typed
+cross-app flow shape on this surface.
+
+`MUST NOT`. The Runtime-mediated file-API surface MUST NOT silently
+remap an escaping path to a permitted neighbor inside the root. The
+fail-closed behavior is `out_of_data_root`, not a remapped success.
+The five admitted methods MUST NOT extend their reach to
+`storage_policy_ref.kind: app-owned-os-storage` admissions
+(`P-NAPP-027` / `P-NAPP-028`); on app-owned-os-storage admissions the
+app uses OS-level file IO directly, and `K-APP-018` 's surface does
+not mediate that path. Surface MUST NOT collapse the five typed
+methods into a generic "file op" call; each method is an admitted
+contract face.
+
+## K-APP-019 AppHealth Typed Diagnostic Projection
+
+`MUST` (eight typed diagnostic dimensions). The `AppHealth` typed
+projection MUST report exactly eight typed diagnostic dimensions, each
+producing a typed sub-state:
+
+| Dimension | Typed sub-states |
+|---|---|
+| `integrity` | `ok` / `digest_mismatch` / `signature_unverified` / `provenance_unverified` / `mirror_unreachable` |
+| `runtime` | `ok` / `registration_missing` / `lifecycle_supervisor_failed` / `dependency_unready` |
+| `nimi_api_permissions` | `ok` / `scope_missing` / `scope_revoked` / `scope_expired` |
+| `storage` | `ok` / `root_missing` / `migration_pending` / `os_storage_disclosure_missing` |
+| `publisher_disclosed_network` | `ok` / `disclosure_missing` / `disclosure_mismatch` |
+| `data` | `ok` / `app_data_corrupt` / `cache_corrupt` |
+| `review` | `approved` / `revision-requested` / `rejected` / `kill-switched` |
+| `response` | `ok` / `forced_update_required` / `rollback_available` / `publisher_suspended` / `report_received` / `kill_switch_active` |
+
+The eight dimension names (`integrity`, `runtime`,
+`nimi_api_permissions`, `storage`, `publisher_disclosed_network`,
+`data`, `review`, `response`) are exactly the eight names the parent
+topic 's wave-3 health surface enumerates. Each dimension produces
+exactly one typed sub-state per `AppHealth` projection emission; the
+sub-state vocabulary above is the admitted enum for that dimension.
+
+**Disambiguation from `P-NAPP-008`.** `P-NAPP-008` at
+`.nimi/spec/platform/kernel/nimi-app-admission-contract.md:103-118`
+admits the typed `health_repair_projection` set of eight overall
+**STATES** the app can be in:
+
+- `unavailable`
+- `setup-required`
+- `needs-confirmation`
+- `in-progress`
+- `failed`
+- `unsupported`
+- `repair-required`
+- `stale-projection`
+
+`K-APP-019` admits eight typed **DIMENSIONS** (the orthogonal
+evaluation surfaces above). The two "eights" are different in
+semantics: `P-NAPP-008` 's eight are mutually-exclusive overall
+states; `K-APP-019` 's eight are orthogonal dimensions each emitting
+its own sub-state per projection emission. The overall `P-NAPP-008`
+state is **DERIVED** from the eight dimensions' sub-states per the
+lookup table below. The two eights MUST NOT be conflated; consumers
+MUST NOT pick one as a substitute for the other.
+
+`MUST` (derivation table — dimensions to overall states). The
+derivation from `K-APP-019` 's eight diagnostic dimensions to
+`P-NAPP-008` 's eight overall states is admitted as a typed lookup
+table inside this rule body. The table is the canonical mapping;
+free-form interpretation by the projection layer is forbidden.
+
+Reading the table: each row enumerates one `(dimension, sub-state)`
+pair and the `P-NAPP-008` overall state it raises. Where one
+`(dimension, sub-state)` row raises multiple overall states (e.g. the
+`review` dimension 's `kill-switched` sub-state independently
+contributes to both `unavailable` and `repair-required` overall-state
+candidacy), all raised states are listed; the projection layer
+resolves the final overall state by precedence
+`unavailable > repair-required > failed > setup-required >
+needs-confirmation > in-progress > unsupported > stale-projection`,
+admitted as part of this table.
+
+| Dimension | Sub-state | Raised overall state(s) |
+|---|---|---|
+| `integrity` | `ok` | (none — clears integrity contribution) |
+| `integrity` | `digest_mismatch` | `failed` |
+| `integrity` | `signature_unverified` | `failed` |
+| `integrity` | `provenance_unverified` | `failed` |
+| `integrity` | `mirror_unreachable` | `stale-projection` |
+| `runtime` | `ok` | (none) |
+| `runtime` | `registration_missing` | `setup-required` |
+| `runtime` | `lifecycle_supervisor_failed` | `failed` |
+| `runtime` | `dependency_unready` | `setup-required` |
+| `nimi_api_permissions` | `ok` | (none) |
+| `nimi_api_permissions` | `scope_missing` | `needs-confirmation` |
+| `nimi_api_permissions` | `scope_revoked` | `repair-required` |
+| `nimi_api_permissions` | `scope_expired` | `repair-required` |
+| `storage` | `ok` | (none) |
+| `storage` | `root_missing` | `repair-required` |
+| `storage` | `migration_pending` | `in-progress` |
+| `storage` | `os_storage_disclosure_missing` | `unsupported` |
+| `publisher_disclosed_network` | `ok` | (none) |
+| `publisher_disclosed_network` | `disclosure_missing` | `unsupported` |
+| `publisher_disclosed_network` | `disclosure_mismatch` | `unsupported` |
+| `data` | `ok` | (none) |
+| `data` | `app_data_corrupt` | `repair-required` |
+| `data` | `cache_corrupt` | `repair-required` |
+| `review` | `approved` | (none) |
+| `review` | `revision-requested` | `needs-confirmation` |
+| `review` | `rejected` | `unavailable` |
+| `review` | `kill-switched` | `unavailable` |
+| `response` | `ok` | (none) |
+| `response` | `forced_update_required` | `unavailable` |
+| `response` | `rollback_available` | `repair-required` |
+| `response` | `publisher_suspended` | `unavailable` |
+| `response` | `report_received` | `needs-confirmation` |
+| `response` | `kill_switch_active` | `unavailable` |
+
+When all eight dimensions report `ok` (or the no-raise sub-states
+above), the projection layer emits no `P-NAPP-008` raised state. The
+`P-NAPP-008` overall state in this case is the absence-of-degraded
+projection ("the app is OK on the eight admitted dimensions"); this
+absence is the typed default and is not itself one of `P-NAPP-008` 's
+admitted degraded states.
+
+**Carry-forward from wave-A2 typed-reason reuse note.** The wave-A2
+typed reason `os_storage_disclosure_missing` (`P-NAPP-028` at
+`.nimi/spec/platform/kernel/nimi-app-admission-contract.md` MUST NOT
+clause) covers both "missing under app-owned-os-storage" and
+"populated under nimi-mediated-default" admission-time invariants.
+`K-APP-019` 's `storage` dimension surfaces the same typed reason at
+projection time for the app-owned-os-storage branch; the projection
+layer MUST surface a differentiated user message between
+"disclosure missing" and "disclosure cross-populated" cases using
+typed message text (the typed reason itself is shared by admission
+intent — this rule does not invent a new typed reason in wave-C).
+
+`MUST NOT`. `K-APP-019` MUST NOT redefine `P-NAPP-008` 's overall
+state set; this rule cross-references `P-NAPP-008` and admits the
+derivation table only. `K-APP-019` MUST NOT collapse the eight typed
+dimensions into a single "health" sub-state; each dimension is
+independently emitted. The projection layer MUST NOT infer an
+overall state outside the derivation table 's enumeration; free-form
+"close enough" derivation is forbidden.
+
+## K-APP-020 AppResponseState Typed Projection
+
+`MUST` (typed fields). The `AppResponseState` typed projection MUST
+surface exactly the following typed fields:
+
+| Field | Type | Semantics |
+|---|---|---|
+| `kill_switch_active` | bool | projects from `P-ECO-004` `kill-switched` review-state — true when the app 's admitted descriptor 's `review.decision` (`P-NAPP-025`) or the registry row 's runtime kill-switch posture resolves to `kill-switched` |
+| `forced_update_required` | bool | true when the parent topic containment-and-response forced-update / remediation mechanism has been engaged and a remediated version is required before next launch |
+| `rollback_available` | bool | true when a previous admitted release descriptor remains eligible per the descriptor 's `rollback_eligibility` (`P-NAPP-018`) and is materializable |
+| `publisher_suspended` | bool | true when the publisher namespace is under suspension per the parent topic containment-and-response publisher-suspension mechanism |
+| `report_received` | uint32 (typed-counted) | typed monotonic counter of post-release community reports received against this descriptor; `0` is "no report"; a non-zero count indicates the community report route has delivered at least one report and is the support-UX entry into report-driven detection |
+
+Apps consume this projection. The Apps surface MUST NOT compute these
+typed fields from raw data (raw review-state polling, raw descriptor
+diffing, raw publisher-status fetches); Runtime owns the projection
+and Apps reads it as typed truth.
+
+`MUST` (cross-references). `K-APP-020` cross-references `P-ECO-004`
+(`kill-switched` review-state at
+`.nimi/spec/platform/kernel/nimi-ecosystem-contract.md:48-67`; the
+projection 's `kill_switch_active` is the runtime-side projection of
+that admitted state) and the parent topic containment-and-response
+mechanisms (kill-switch, forced-update, rollback, publisher-
+suspension, community-report route) at
+`.nimi/topics/ongoing/2026-05-22-nimi-apps-third-party-distribution-and-admission/containment-and-response.md`.
+`K-APP-020` does NOT redefine any `P-ECO-004` state or any parent
+topic containment-and-response mechanism; it projects them.
+
+`MUST NOT`. `K-APP-020` MUST NOT extend the five-field set above
+under this rule; the typed field set is closed at wave-C admission.
+A new response-state field is a separate authority-bearing
+admission event. `K-APP-020` MUST NOT silently coerce one typed
+field 's value from another (e.g. inferring
+`forced_update_required: true` from `kill_switch_active: true`); the
+five fields are orthogonal projections. The Apps surface MUST NOT
+read raw P-ECO / containment-and-response state directly to compute
+these fields; the projection seam is `K-APP-020`.
+
+## K-APP-021 Support Next-Action Mapping
+
+`MUST` (closed ten-token next-action enum). Every typed degraded
+`AppHealth` state (`K-APP-019`) and every degraded `AppResponseState`
+(`K-APP-020`) MUST map to a typed next-action token. The admitted
+token enum is exactly the following ten values, closed at this
+admission:
+
+1. `request_permission`
+2. `repair_runtime_materialization`
+3. `reinstall_descriptor`
+4. `rollback`
+5. `clear_cache`
+6. `export_diagnostics`
+7. `contact_publisher`
+8. `stop_kill_switched`
+9. `stop_rejected`
+10. `await_forced_update`
+
+The enum is closed. Extending the enum beyond ten values, or
+contracting it below ten values, is a separate authority-bearing
+admission event.
+
+**Disambiguation from `K-APP-016`.** `K-APP-016`
+`HealthRepairApp` at this file lines 293–307 admits an RPC with
+exactly four typed action tokens: `cancel`, `retry`, `repair`,
+`reinstall`. `K-APP-021` 's ten next-action tokens are NOT a
+superset, subset, or rename of `K-APP-016` 's four RPC action
+tokens. The two enums are different in domain:
+
+- `K-APP-016` 's four tokens are RPC ACTIONS the caller invokes
+  against `RuntimeAppService` to drive a lifecycle job; the typed
+  enum lives at the gRPC surface.
+- `K-APP-021` 's ten tokens are UX NEXT-ACTION PROJECTIONS the
+  Support surface displays so the user knows what to do next; the
+  typed enum lives at the projection surface. Some `K-APP-021`
+  tokens map onto a `K-APP-016` action invocation
+  (`repair_runtime_materialization` ultimately drives a
+  `K-APP-016` `repair`; `reinstall_descriptor` ultimately drives a
+  `K-APP-016` `reinstall`); others do not (`request_permission`,
+  `rollback`, `clear_cache`, `export_diagnostics`,
+  `contact_publisher`, `stop_kill_switched`, `stop_rejected`,
+  `await_forced_update` are not `K-APP-016` actions). The two
+  enums MUST NOT be conflated; the projection layer MUST NOT
+  rewrite a `K-APP-021` token into a `K-APP-016` token without
+  going through the action-binding semantics above.
+
+`MUST` (state-to-action mapping table). The mapping from
+`{AppHealth degraded state × AppResponseState flag}` to the ten
+next-action tokens is admitted as a typed lookup table inside this
+rule body. Free-form UX inference of next-action is forbidden; the
+Support surface consumes this table.
+
+Reading the table: rows are keyed on either a `K-APP-019` `(dimension,
+sub-state)` row or a `K-APP-020` typed-flag value. Where a row 's
+condition holds simultaneously with another row 's condition, the
+projection layer resolves the final next-action by precedence
+`stop_kill_switched > stop_rejected > await_forced_update > rollback >
+request_permission > repair_runtime_materialization >
+reinstall_descriptor > clear_cache > export_diagnostics >
+contact_publisher`, admitted as part of this table.
+
+| Source (dimension/sub-state OR response field) | Next-action token |
+|---|---|
+| `review` = `kill-switched` OR `AppResponseState.kill_switch_active` = true | `stop_kill_switched` |
+| `review` = `rejected` | `stop_rejected` |
+| `AppResponseState.forced_update_required` = true | `await_forced_update` |
+| `AppResponseState.rollback_available` = true (when surfaced for a degraded condition that rollback resolves) | `rollback` |
+| `nimi_api_permissions` = `scope_missing` | `request_permission` |
+| `nimi_api_permissions` = `scope_revoked` | `request_permission` |
+| `nimi_api_permissions` = `scope_expired` | `request_permission` |
+| `runtime` = `registration_missing` | `repair_runtime_materialization` |
+| `runtime` = `lifecycle_supervisor_failed` | `repair_runtime_materialization` |
+| `runtime` = `dependency_unready` | `repair_runtime_materialization` |
+| `storage` = `root_missing` | `repair_runtime_materialization` |
+| `storage` = `migration_pending` | `repair_runtime_materialization` |
+| `data` = `app_data_corrupt` | `reinstall_descriptor` |
+| `integrity` = `digest_mismatch` | `reinstall_descriptor` |
+| `integrity` = `signature_unverified` | `reinstall_descriptor` |
+| `integrity` = `provenance_unverified` | `reinstall_descriptor` |
+| `integrity` = `mirror_unreachable` | `export_diagnostics` |
+| `data` = `cache_corrupt` | `clear_cache` |
+| `storage` = `os_storage_disclosure_missing` | `export_diagnostics` |
+| `publisher_disclosed_network` = `disclosure_missing` | `contact_publisher` |
+| `publisher_disclosed_network` = `disclosure_mismatch` | `contact_publisher` |
+| `AppResponseState.publisher_suspended` = true | `contact_publisher` |
+| `AppResponseState.report_received` non-zero | `export_diagnostics` |
+| `review` = `revision-requested` | `contact_publisher` |
+
+The table covers every degraded condition admitted by `K-APP-019`
+and every typed-flag condition admitted by `K-APP-020` that maps to a
+support next-action. Conditions whose admitted sub-state is the
+`ok` / `approved` / `(none)` no-raise case do not map to a
+next-action token — there is no next-action to project when the app
+is on the happy path of that dimension.
+
+`MUST` (cross-references). `K-APP-021` cross-references `K-APP-016`
+(the four-token RPC action enum from which `K-APP-021` is explicitly
+distinct), `K-APP-019` (the eight diagnostic dimensions whose typed
+sub-states the table reads from), and `K-APP-020` (the typed response
+fields the table reads from).
+
+`MUST NOT`. `K-APP-021` MUST NOT extend the ten-token next-action
+enum under this rule. `K-APP-021` MUST NOT silently rewrite a token
+to a `K-APP-016` RPC action token without going through the binding
+semantics in the disambiguation clause above. The Support surface
+MUST NOT skip the mapping table and infer a next-action from prose;
+the typed table is the contract face.
+
+> 实现注记：`K-APP-018` 五方法的 `proto/runtime/v1/app.proto` 物化与
+> `K-APP-019` / `K-APP-020` typed projection 物化随后续 Runtime app
+> 实现 wave 落地；本组规则是其 normative 契约面。`K-APP-019` derivation
+> table 与 `K-APP-021` state-to-action mapping table 是 packet-time
+> frozen，不接受 free-form 投影层重新解释。

@@ -42,6 +42,10 @@ entries:
   - K-APP-015
   - K-APP-016
   - K-APP-017
+  - K-APP-018
+  - K-APP-019
+  - K-APP-020
+  - K-APP-021
   - K-CONN-001
   - K-CONN-002
   - K-CONN-003
@@ -216,6 +220,30 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-APP-018
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime-mediated file-API surface and path enforcement boundary; executable owner-side file-API
+      implementation is deferred to downstream Runtime app messaging implementation.
+    evidence_requirement: required
+  - rule_id: K-APP-019
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: AppHealth typed diagnostic projection boundary; executable owner-side projection implementation
+      is deferred to downstream Runtime app messaging implementation.
+    evidence_requirement: required
+  - rule_id: K-APP-020
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: AppResponseState typed projection boundary; executable owner-side projection implementation is
+      deferred to downstream Runtime app messaging implementation.
+    evidence_requirement: required
+  - rule_id: K-APP-021
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Support next-action mapping boundary; executable owner-side mapping implementation is deferred
+      to downstream Runtime app messaging implementation.
     evidence_requirement: required
   - rule_id: K-CONN-001
     evidence_refs:

@@ -37,6 +37,8 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `GOV` | Governance contract | `governance-contract.md` |
 | `RELG` | Release gate contract (operational refinement of `P-GOV-003/011/021/023`) | `release-gate-contract.md` |
 | `MIG` | Local config migration and repair contract | `local-config-migration-contract.md` |
+| `AUDIT` | Nimi App audit pipeline contract | `nimi-app-audit-pipeline-contract.md` |
+| `DEV` | Nimi App developer workflow contract | `nimi-app-developer-workflow-contract.md` |
 
 ## Numbering Convention
 
@@ -70,6 +72,8 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | 240–249 | Nimi first-party migration authority |
 | 250–259 | Nimi ecosystem authority (third-party / world-game / engine-seam / economy / no-Steam-copy) |
 | 260–269 | Local config migration / repair authority (`~/.nimi` cross-file `schemaVersion`, repair routing, `nimi_data` migration flow) |
+| 270–279 | Nimi App audit pipeline authority (publish-to-admission gate sequence, typed evidence-class composition, AI-audit triage-and-evidence-only posture, solo-reviewer classification within `P-ECO-004` bounds, `nimi audit` non-gate posture, review-evidence shape) |
+| 280–289 | Nimi App developer workflow authority (developer repo layout, ordered developer workflow step sequence, developer-side `nimi audit` dry-run, immutable submission, PR-based admission workflow obligations consuming `P-NAPP-013`) |
 
 ## Document Ownership Matrix
 
@@ -100,6 +104,8 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `governance-contract.md` | `P-GOV-*` | License matrix, release gates, governance tasks |
 | `release-gate-contract.md` | `P-RELG-*` | Release-gate registry authority, projection-only execution surfaces (preflight, lint chain, CI step blocks), evidence JSON shape, verdict semantics, drift gate self-bootstrap |
 | `local-config-migration-contract.md` | `P-MIG-*` | `~/.nimi` cross-file config migration and repair authority: governed config file family, mandatory `schemaVersion`, fail-closed read, shared migration framework (ordered registry, backup, atomic rewrite, idempotent replay), repair routing for unknown version and broken pointer, no-data-orphaning invariant, `nimi_data` directory ownership authority, `nimi_data` migration flow, destructive cleanup confirmation; aligns with but does not redefine Runtime `K-CFG-014..016` |
+| `nimi-app-audit-pipeline-contract.md` | `P-AUDIT-*` | Nimi App audit pipeline authority: publish-to-admission gate sequence (`submit → preflight → audit → review → admit`), typed audit-pipeline composition by evidence classes (`malicious-package-scanner`, `known-vuln-scanner`, `sast`, `repository-posture-scorer`, `malware-reputation-scanner`, `ai-audit`; swappable adapter slots, no vendor names), AI-audit triage-and-evidence-only posture with `ai_only_review` and `self_attested_scan` forbidden shortcuts, solo-reviewer MANUAL/AUTOMATED classification within `P-ECO-004` already-admitted bounds (lever weakens no admitted rule; `nimi-verified-partner` `review-manual-full` floor invariant; `nimi-community` lever-driven; `nimi-first-party` out of scope), developer-side `nimi audit` dry-run non-gate posture (forward-references `P-DEV-003`), review-evidence shape (`audit_evidence_ref`, `ai_audit_model_ref` mandatory when ai-audit in scope, `scanner_results_ref`) cross-referencing `P-NAPP-025` review-decision schema without redefinition; review-state transition audit-event obligation (`P-AUDIT-007`; every transition between admitted `P-ECO-004` review states emits a typed audit event recording `from_state`, `to_state`, `transition_cause`, `decided_at`, `adjudicator_ref`; `P-ECO-004` state-set and tier-to-adjudicator authority preserved, `P-AUDIT-007` admits the state-transition audit-event obligation only) |
+| `nimi-app-developer-workflow-contract.md` | `P-DEV-*` | Nimi App developer workflow authority: developer repository layout (`nimi.app.yaml` as submitted-manifest input only, `LICENSE`, `SECURITY.md`, `README.md`, `AGENTS.md` per `nimi-coding` governance, release artifact + attestation) with `developer_repo_layout_incomplete` typed fail reason, ordered developer workflow step sequence (`pack → validate → local-audit-dry-run → submit → review-evidence → CI-build → release-promotion`; per-step required-truth + forbidden-shortcut; `developer_workflow_sequence_violation` typed fail reason; no hosted developer portal substrate), developer-side `nimi audit` dry-run-only command (mutual cross-reference to `P-AUDIT-005`; closes the wave-b forward reference), immutable submission (protected immutable tag OR reviewed commit SHA; mutable branch and unprotected mutable tag forbidden with typed fail reason `mutable_submission_artifact`; consistent with `tables/nimi-app-release-descriptors.yaml` `third_party_descriptor_floor.forbidden_install_inputs`), PR-based admission workflow obligations consuming `P-NAPP-013` admission-path mechanism without redefinition (developer-side identity, source reference per `P-DEV-004`, dry-run audit per `P-DEV-003`, manifest input per `P-DEV-001`) |
 
 ## Structured Fact Sources
 

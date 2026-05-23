@@ -20,12 +20,22 @@ tier_schema:
     - permission_ceiling_ref
     - review_posture_ref
     - kill_switch_ref
+    - identity_assurance_required
+    - source_repo_visibility_required
     - source_rule
   enums:
     tier_id:
       - nimi-first-party
       - nimi-verified-partner
       - nimi-community
+    identity_assurance_required:
+      - unconstrained
+      - pseudonymous
+      - domain-verified
+      - identity-verified
+    source_repo_visibility_required:
+      - unconstrained
+      - public
 
 tiers:
   - tier_id: nimi-first-party
@@ -34,6 +44,8 @@ tiers:
     permission_ceiling_ref: permission-ceiling-first-party-full
     review_posture_ref: review-internal
     kill_switch_ref: kill-switch-coordinated
+    identity_assurance_required: unconstrained
+    source_repo_visibility_required: unconstrained
     source_rule: P-NAPP-004
 
   - tier_id: nimi-verified-partner
@@ -42,6 +54,8 @@ tiers:
     permission_ceiling_ref: permission-ceiling-verified-partner-curated
     review_posture_ref: review-manual-full
     kill_switch_ref: kill-switch-coordinated
+    identity_assurance_required: domain-verified
+    source_repo_visibility_required: public
     source_rule: P-NAPP-004
 
   - tier_id: nimi-community
@@ -50,4 +64,6 @@ tiers:
     permission_ceiling_ref: permission-ceiling-community-narrow
     review_posture_ref: review-automated-with-manual-kill-switch
     kill_switch_ref: kill-switch-immediate
+    identity_assurance_required: pseudonymous
+    source_repo_visibility_required: public
     source_rule: P-NAPP-004
