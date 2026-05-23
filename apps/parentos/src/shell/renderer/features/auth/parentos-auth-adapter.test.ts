@@ -26,7 +26,7 @@ const mockGetAccountSessionStatus = vi.fn();
 const mockBeginLogin = vi.fn();
 const mockCompleteLogin = vi.fn();
 const mockLogout = vi.fn();
-const mockEnsureBootstrap = vi.fn(async () => undefined);
+const mockEnsureRuntimeClient = vi.fn(async () => undefined);
 
 vi.mock('../../bridge/index.js', () => ({
   parentosTauriOAuthBridge: { openExternalUrl: vi.fn() },
@@ -36,7 +36,7 @@ vi.mock('../../infra/parentos-bootstrap.js', async () => {
   const actual = await import('../../infra/parentos-bootstrap.js');
   return {
     ...actual,
-    ensureParentOSBootstrapReady: mockEnsureBootstrap,
+    ensureParentOSRuntimeClientReady: mockEnsureRuntimeClient,
   };
 });
 
@@ -99,7 +99,7 @@ describe('parentos-auth-adapter (PO-SHELL-008)', () => {
 
     const user = await loadCurrentUser();
 
-    expect(mockEnsureBootstrap).toHaveBeenCalledTimes(1);
+    expect(mockEnsureRuntimeClient).toHaveBeenCalledTimes(1);
     expect(mockGetAccountSessionStatus).toHaveBeenCalledWith({ caller: PARENTOS_CALLER });
     expect(user).toEqual({ id: 'acct-7', displayName: 'Seven' });
   });

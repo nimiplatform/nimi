@@ -273,17 +273,46 @@ func TestRegisterAppChecksNimiAppRegistryProjection(t *testing.T) {
 	svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalog())
 
 	parentResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:        "app.nimi.parentos",
-		ModeManifest: validFullAppModeManifest(),
+		AppId:         "app.nimi.parentos",
+		AppInstanceId: "app.nimi.parentos.local-first-party",
+		DeviceId:      "local-first-party-device",
+		ModeManifest:  validFullAppModeManifest(),
 	})
 	if err != nil {
 		t.Fatalf("register parentos: %v", err)
 	}
-	if parentResp.GetAccepted() {
-		t.Fatalf("expected admitted ParentOS row to fail closed until descriptor install is verified")
+	if !parentResp.GetAccepted() {
+		t.Fatalf("expected admitted ParentOS runtime-account consumer to register, reason=%v", parentResp.GetReasonCode())
 	}
-	if parentResp.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
+	if parentResp.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
 		t.Fatalf("unexpected ParentOS reason code: %v", parentResp.GetReasonCode())
+	}
+
+	parentRuntimeSessionResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:         "app.nimi.parentos",
+		AppInstanceId: "app.nimi.parentos.platform-runtime-session",
+		DeviceId:      "platform-runtime-session",
+		ModeManifest:  validFullAppModeManifest(),
+	})
+	if err != nil {
+		t.Fatalf("register parentos platform runtime session: %v", err)
+	}
+	if !parentRuntimeSessionResp.GetAccepted() {
+		t.Fatalf("expected admitted ParentOS platform runtime session to register, reason=%v", parentRuntimeSessionResp.GetReasonCode())
+	}
+
+	genericParentResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:        "app.nimi.parentos",
+		ModeManifest: validFullAppModeManifest(),
+	})
+	if err != nil {
+		t.Fatalf("register generic parentos: %v", err)
+	}
+	if genericParentResp.GetAccepted() {
+		t.Fatalf("generic ParentOS app registration must still fail closed until descriptor install is verified")
+	}
+	if genericParentResp.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
+		t.Fatalf("unexpected generic ParentOS reason code: %v", genericParentResp.GetReasonCode())
 	}
 
 	avatarResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{

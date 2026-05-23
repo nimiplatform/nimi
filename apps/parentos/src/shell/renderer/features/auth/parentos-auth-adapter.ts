@@ -2,7 +2,7 @@ import type { AuthPlatformAdapter } from '@nimiplatform/nimi-kit/auth';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { parentosTauriOAuthBridge } from '../../bridge/index.js';
 import {
-  ensureParentOSBootstrapReady,
+  ensureParentOSRuntimeClientReady,
   loadParentOSRuntimeAccountUser,
   parentosRuntimeAccountCaller,
   type ParentOSAuthUser,
@@ -20,12 +20,12 @@ function unsupported<T>(): Promise<T> {
 }
 
 export async function loadCurrentUser(): Promise<ParentOSAuthUser | null> {
-  await ensureParentOSBootstrapReady();
+  await ensureParentOSRuntimeClientReady();
   return loadParentOSRuntimeAccountUser(getPlatformClient().runtime);
 }
 
 export async function logoutParentOSRuntimeAccount(): Promise<void> {
-  await ensureParentOSBootstrapReady();
+  await ensureParentOSRuntimeClientReady();
   await getPlatformClient().runtime.account.logout({
     caller: parentosRuntimeAccountCaller,
     reason: 'parentos_logout',
@@ -79,7 +79,7 @@ export function createParentOSDesktopBrowserAuthAdapter(): AuthPlatformAdapter {
 export function createParentOSRuntimeAccountBrowserBroker() {
   return {
     begin: async (input: { callbackUrl: string; baseUrl?: string; timeoutMs: number }) => {
-      await ensureParentOSBootstrapReady();
+      await ensureParentOSRuntimeClientReady();
       const response = await getPlatformClient().runtime.account.beginLogin({
         caller: parentosRuntimeAccountCaller,
         redirectUri: input.callbackUrl,
@@ -114,7 +114,7 @@ export function createParentOSRuntimeAccountBrowserBroker() {
       nonce: string;
       callbackUrl: string;
     }) => {
-      await ensureParentOSBootstrapReady();
+      await ensureParentOSRuntimeClientReady();
       // R-OAUTH / K-ACCSVC-008: code-only proof envelope; runtime owns the
       // token exchange and refresh-token custody.
       const response = await getPlatformClient().runtime.account.completeLogin({

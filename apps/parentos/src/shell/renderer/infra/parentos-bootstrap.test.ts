@@ -23,6 +23,7 @@ import {
 const getRuntimeDefaultsMock = vi.fn();
 const createLocalFirstPartyRuntimePlatformClientMock = vi.fn();
 const clearPlatformClientMock = vi.fn();
+const getPlatformClientMock = vi.fn();
 const dbInitMock = vi.fn();
 const getAppSettingMock = vi.fn();
 const getChildMock = vi.fn();
@@ -32,6 +33,7 @@ const loadPersistedParentosAIConfigMock = vi.fn();
 const mapChildRowMock = vi.fn();
 const getAccountSessionStatusMock = vi.fn();
 const runtimeReadyMock = vi.fn();
+let currentPlatformClientMock: unknown = null;
 
 vi.mock('../bridge/parentos-runtime-defaults.js', () => ({
   getParentOSRuntimeDefaults: getRuntimeDefaultsMock,
@@ -40,6 +42,7 @@ vi.mock('../bridge/parentos-runtime-defaults.js', () => ({
 vi.mock('@nimiplatform/sdk', () => ({
   createLocalFirstPartyRuntimePlatformClient: createLocalFirstPartyRuntimePlatformClientMock,
   clearPlatformClient: clearPlatformClientMock,
+  getPlatformClient: getPlatformClientMock,
 }));
 
 vi.mock('../bridge/sqlite-bridge.js', () => ({
@@ -60,6 +63,7 @@ vi.mock('../features/settings/parentos-ai-config.js', () => ({
 
 let useAppStore: typeof import('../app-shell/app-store.js').useAppStore;
 let runParentOSBootstrap: typeof import('./parentos-bootstrap.js').runParentOSBootstrap;
+let ensureParentOSRuntimeClientReady: typeof import('./parentos-bootstrap.js').ensureParentOSRuntimeClientReady;
 let syncParentOSLocalDataScope: typeof import('./parentos-bootstrap.js').syncParentOSLocalDataScope;
 let parentosRuntimeAccountCaller: typeof import('./parentos-bootstrap.js').parentosRuntimeAccountCaller;
 
@@ -88,13 +92,16 @@ describe('parentos-bootstrap (PO-SHELL-001 / PO-SHELL-008)', () => {
     ({ useAppStore } = await import('../app-shell/app-store.js'));
     ({
       runParentOSBootstrap,
+      ensureParentOSRuntimeClientReady,
       syncParentOSLocalDataScope,
       parentosRuntimeAccountCaller,
     } = await import('./parentos-bootstrap.js'));
 
+    currentPlatformClientMock = null;
     getRuntimeDefaultsMock.mockReset();
     createLocalFirstPartyRuntimePlatformClientMock.mockReset();
     clearPlatformClientMock.mockReset();
+    getPlatformClientMock.mockReset();
     dbInitMock.mockReset();
     getAppSettingMock.mockReset();
     getChildMock.mockReset();
@@ -121,9 +128,19 @@ describe('parentos-bootstrap (PO-SHELL-001 / PO-SHELL-008)', () => {
       realm: { realmBaseUrl: 'https://realm.test', accessToken: '' },
       runtime: { sandboxRoot: '', materialRoot: '', defaultUploadPath: '' },
     });
-    createLocalFirstPartyRuntimePlatformClientMock.mockImplementation(async () =>
-      buildPlatformClientMock(),
-    );
+    clearPlatformClientMock.mockImplementation(() => {
+      currentPlatformClientMock = null;
+    });
+    getPlatformClientMock.mockImplementation(() => {
+      if (!currentPlatformClientMock) {
+        throw new Error('platform client is not ready; call createPlatformClient() first');
+      }
+      return currentPlatformClientMock;
+    });
+    createLocalFirstPartyRuntimePlatformClientMock.mockImplementation(async () => {
+      currentPlatformClientMock = buildPlatformClientMock();
+      return currentPlatformClientMock;
+    });
     runtimeReadyMock.mockResolvedValue(undefined);
     loadPersistedParentosAIConfigMock.mockResolvedValue(null);
     getAppSettingMock.mockResolvedValue('');
@@ -218,6 +235,83 @@ describe('parentos-bootstrap (PO-SHELL-001 / PO-SHELL-008)', () => {
     expect(useAppStore.getState().bootstrapReady).toBe(true);
     expect(useAppStore.getState().auth.status).toBe('unauthenticated');
     expect(dbInitMock).toHaveBeenCalledWith(null);
+  });
+
+  it('proceeds to the anonymous local scope when runtime client registration is rejected', async () => {
+    createLocalFirstPartyRuntimePlatformClientMock.mockRejectedValue(
+      new Error('local first-party Runtime account caller registration rejected: 100'),
+    );
+
+    await runParentOSBootstrap();
+
+    expect(useAppStore.getState().bootstrapReady).toBe(true);
+    expect(useAppStore.getState().bootstrapError).toBe(null);
+    expect(useAppStore.getState().auth.status).toBe('unauthenticated');
+    expect(getAccountSessionStatusMock).not.toHaveBeenCalled();
+    expect(runtimeReadyMock).not.toHaveBeenCalled();
+    expect(dbInitMock).toHaveBeenCalledWith(null);
+  });
+
+  it('retries runtime client registration when login needs a platform client after anonymous bootstrap', async () => {
+    createLocalFirstPartyRuntimePlatformClientMock
+      .mockRejectedValueOnce(new Error('local first-party Runtime account caller registration rejected: 100'))
+      .mockImplementationOnce(async () => {
+        currentPlatformClientMock = buildPlatformClientMock();
+        return currentPlatformClientMock;
+      });
+    getAccountSessionStatusMock.mockResolvedValue({
+      state: AccountSessionState.ANONYMOUS,
+      accountProjection: null,
+    });
+
+    await runParentOSBootstrap();
+
+    expect(useAppStore.getState().bootstrapReady).toBe(true);
+    expect(getAccountSessionStatusMock).not.toHaveBeenCalled();
+    expect(createLocalFirstPartyRuntimePlatformClientMock).toHaveBeenCalledTimes(1);
+
+    await ensureParentOSRuntimeClientReady();
+
+    expect(useAppStore.getState().bootstrapReady).toBe(true);
+    expect(createLocalFirstPartyRuntimePlatformClientMock).toHaveBeenCalledTimes(2);
+    expect(getAccountSessionStatusMock).toHaveBeenCalledWith({
+      caller: parentosRuntimeAccountCaller,
+    });
+    expect(dbInitMock).toHaveBeenLastCalledWith(null);
+  });
+
+  it('keeps the shell ready while retrying runtime client registration for login', async () => {
+    createLocalFirstPartyRuntimePlatformClientMock.mockRejectedValueOnce(
+      new Error('local first-party Runtime account caller registration rejected: 100'),
+    );
+
+    await runParentOSBootstrap();
+    expect(useAppStore.getState().bootstrapReady).toBe(true);
+
+    let resolveRetry!: () => void;
+    const retryStarted = new Promise<void>((resolve) => {
+      createLocalFirstPartyRuntimePlatformClientMock.mockImplementationOnce(async () => {
+        currentPlatformClientMock = buildPlatformClientMock();
+        resolve();
+        await new Promise<void>((retryResolve) => {
+          resolveRetry = retryResolve;
+        });
+        return currentPlatformClientMock;
+      });
+    });
+    getAccountSessionStatusMock.mockResolvedValue({
+      state: AccountSessionState.ANONYMOUS,
+      accountProjection: null,
+    });
+
+    const retry = ensureParentOSRuntimeClientReady();
+    await retryStarted;
+
+    expect(useAppStore.getState().bootstrapReady).toBe(true);
+
+    resolveRetry();
+    await retry;
+    expect(useAppStore.getState().bootstrapReady).toBe(true);
   });
 
   // -------------------------------------------------------------------------

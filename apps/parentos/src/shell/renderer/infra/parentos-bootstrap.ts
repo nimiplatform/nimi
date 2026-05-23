@@ -1,6 +1,7 @@
 import {
   clearPlatformClient,
   createLocalFirstPartyRuntimePlatformClient,
+  getPlatformClient,
   type PlatformClient,
 } from '@nimiplatform/sdk';
 import {
@@ -73,9 +74,12 @@ export async function loadParentOSRuntimeAccountUser(
   return normalizeParentOSAccountProjection(response.accountProjection);
 }
 
-export async function runParentOSBootstrap(): Promise<void> {
-  if (bootstrapPromise) {
+export async function runParentOSBootstrap(options: { force?: boolean } = {}): Promise<void> {
+  if (bootstrapPromise && !options.force) {
     return bootstrapPromise;
+  }
+  if (options.force) {
+    bootstrapPromise = null;
   }
   bootstrapPromise = doRunParentOSBootstrap().finally(() => {
     if (!useAppStore.getState().bootstrapReady) {
@@ -94,6 +98,27 @@ export async function ensureParentOSBootstrapReady(): Promise<void> {
   const next = useAppStore.getState();
   if (!next.bootstrapReady) {
     throw new Error(next.bootstrapError || 'ParentOS bootstrap did not complete');
+  }
+}
+
+function hasParentOSPlatformClient(): boolean {
+  try {
+    getPlatformClient();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function ensureParentOSRuntimeClientReady(): Promise<void> {
+  await ensureParentOSBootstrapReady();
+  if (hasParentOSPlatformClient()) {
+    return;
+  }
+
+  await runParentOSBootstrap({ force: true });
+  if (!hasParentOSPlatformClient()) {
+    throw new Error('ParentOS runtime platform client is unavailable after bootstrap retry');
   }
 }
 
@@ -178,22 +203,34 @@ async function doRunParentOSBootstrap(): Promise<void> {
     // Step 2: Construct the local-first-party-runtime platform client. The
     // SDK helper type-rejects accessToken / refreshToken / sessionStore inputs.
     clearPlatformClient();
-    const { runtime } = await buildParentOSPlatformClient(runtimeDefaults.realm.realmBaseUrl);
-
-    // Step 3: Resolve the current account from runtime projection. Anonymous /
-    // unavailable / errors must NOT fail bootstrap (PO-SHELL-001) — ParentOS
-    // opens against the anonymous local scope and waits for runtime broker
-    // login to switch.
-    const runtimeAccountUser = await loadParentOSRuntimeAccountUser(runtime).catch((error) => {
+    const platformClient = await buildParentOSPlatformClient(runtimeDefaults.realm.realmBaseUrl).catch((error) => {
       logRendererEvent({
         level: 'warn',
-        area: 'parentos-bootstrap.account',
-        message: 'action:runtime-account-projection-unavailable',
+        area: 'parentos-bootstrap.runtime-client',
+        message: 'action:runtime-platform-client-unavailable',
         flowId,
         details: { error: describeError(error) },
       });
       return null;
     });
+    const runtime = platformClient?.runtime ?? null;
+
+    // Step 3: Resolve the current account from runtime projection. Anonymous /
+    // unavailable / errors must NOT fail bootstrap (PO-SHELL-001) — ParentOS
+    // opens against the anonymous local scope and waits for runtime broker
+    // login to switch.
+    const runtimeAccountUser = runtime
+      ? await loadParentOSRuntimeAccountUser(runtime).catch((error) => {
+          logRendererEvent({
+            level: 'warn',
+            area: 'parentos-bootstrap.account',
+            message: 'action:runtime-account-projection-unavailable',
+            flowId,
+            details: { error: describeError(error) },
+          });
+          return null;
+        })
+      : null;
     if (runtimeAccountUser) {
       store.setAuthSession(runtimeAccountUser);
     } else {
@@ -215,16 +252,18 @@ async function doRunParentOSBootstrap(): Promise<void> {
 
     // Step 5: Runtime SDK readiness (non-blocking — core surfaces work without
     // runtime extras).
-    try {
-      await runtime.ready();
-    } catch (error) {
-      logRendererEvent({
-        level: 'warn',
-        area: 'bootstrap.runtime',
-        message: 'action:runtime-ready-nonblocking-failed',
-        flowId,
-        details: { error: describeError(error) },
-      });
+    if (runtime) {
+      try {
+        await runtime.ready();
+      } catch (error) {
+        logRendererEvent({
+          level: 'warn',
+          area: 'bootstrap.runtime',
+          message: 'action:runtime-ready-nonblocking-failed',
+          flowId,
+          details: { error: describeError(error) },
+        });
+      }
     }
 
     store.setBootstrapReady(true);

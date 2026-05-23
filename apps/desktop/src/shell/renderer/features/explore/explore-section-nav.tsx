@@ -104,26 +104,22 @@ export function ExploreSectionNav({
               data-mod-tab-interactive="true"
               onClick={() => onSelect(id)}
               className={variant === 'topbar'
-                ? 'inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-[15px] font-semibold transition-[background-color,color,box-shadow,border-color]'
+                ? `inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-[15px] transition-[color,transform,font-weight] duration-200 ease-out hover:-translate-y-0.5 hover:text-[color:var(--nimi-accent)] active:translate-y-0 active:scale-95 ${isActive ? 'font-bold text-[color:var(--nimi-accent)]' : 'font-semibold text-[color:var(--nimi-fg-2)]'}`
                 : 'inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors'}
               style={{
                 fontFamily: 'var(--nimi-font-sans)',
-                background: isActive
-                  ? (variant === 'topbar'
-                    ? 'color-mix(in srgb, var(--nimi-accent) 12%, white 88%)'
-                    : 'var(--nimi-accent)')
-                  : 'transparent',
-                color: isActive
-                  ? (variant === 'topbar' ? 'var(--nimi-accent)' : 'var(--nimi-accent-onAccent)')
-                  : 'var(--nimi-fg-2)',
-                border: isActive
-                  ? (variant === 'topbar'
-                    ? '1px solid color-mix(in srgb, var(--nimi-accent) 10%, white 70%)'
-                    : '1px solid color-mix(in srgb, var(--nimi-accent) 80%, transparent)')
-                  : '1px solid transparent',
-                boxShadow: isActive && variant === 'topbar'
-                  ? '0 14px 34px rgba(78,204,163,0.10)'
-                  : undefined,
+                background: variant === 'topbar'
+                  ? 'transparent'
+                  : (isActive ? 'var(--nimi-accent)' : 'transparent'),
+                color: variant === 'topbar'
+                  ? undefined
+                  : (isActive ? 'var(--nimi-accent-onAccent)' : 'var(--nimi-fg-2)'),
+                border: variant === 'topbar'
+                  ? '1px solid transparent'
+                  : (isActive
+                    ? '1px solid color-mix(in srgb, var(--nimi-accent) 80%, transparent)'
+                    : '1px solid transparent'),
+                boxShadow: undefined,
               }}
             >
               <span aria-hidden className="shrink-0">{meta.icon}</span>

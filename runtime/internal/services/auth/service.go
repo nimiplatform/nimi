@@ -155,7 +155,7 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 			ReasonCode: reasonCode,
 		}, nil
 	}
-	if reasonCode, eligibilityReason, ok := s.checkNimiAppRegistryEligibility(appID); !ok {
+	if reasonCode, eligibilityReason, ok := s.checkNimiAppRegistryEligibility(req); !ok {
 		s.emitAuditWithPayload(ctx, "RegisterApp", appID, "", reasonCode, map[string]any{
 			"eligibility_reason": eligibilityReason,
 			"registry_app_id":    normalizeNimiAppRegistryID(appID),
@@ -213,7 +213,8 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 	}, nil
 }
 
-func (s *Service) checkNimiAppRegistryEligibility(appID string) (runtimev1.ReasonCode, string, bool) {
+func (s *Service) checkNimiAppRegistryEligibility(req *runtimev1.RegisterAppRequest) (runtimev1.ReasonCode, string, bool) {
+	appID := strings.TrimSpace(req.GetAppId())
 	registryAppID := normalizeNimiAppRegistryID(appID)
 	if !isPlatformGovernedNimiAppID(registryAppID) {
 		return runtimev1.ReasonCode_ACTION_EXECUTED, "", true
@@ -231,7 +232,28 @@ func (s *Service) checkNimiAppRegistryEligibility(appID string) (runtimev1.Reaso
 	if eligibility.Eligible {
 		return runtimev1.ReasonCode_ACTION_EXECUTED, eligibility.Reason, true
 	}
+	if eligibility.Reason == string(appregistrycatalog.EligibilityReasonInstallRequired) &&
+		isParentOSRuntimeAccountConsumerRegistration(req) {
+		return runtimev1.ReasonCode_ACTION_EXECUTED, "parentos-runtime-account-consumer", true
+	}
 	return mapNimiAppEligibilityReason(eligibility.Reason), eligibility.Reason, false
+}
+
+func isParentOSRuntimeAccountConsumerRegistration(req *runtimev1.RegisterAppRequest) bool {
+	appID := strings.TrimSpace(req.GetAppId())
+	instanceID := strings.TrimSpace(req.GetAppInstanceId())
+	deviceID := strings.TrimSpace(req.GetDeviceId())
+	if appID != "app.nimi.parentos" {
+		return false
+	}
+	switch instanceID {
+	case "app.nimi.parentos.local-first-party":
+		return deviceID == "local-first-party-device"
+	case "app.nimi.parentos.platform-runtime-session":
+		return deviceID == "platform-runtime-session"
+	default:
+		return false
+	}
 }
 
 func (s *Service) checkFirstPartyMigrationGate(appID string) (runtimev1.ReasonCode, string, bool) {
