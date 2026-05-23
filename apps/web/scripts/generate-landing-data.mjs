@@ -7,7 +7,7 @@
 
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 
@@ -95,8 +95,12 @@ function quoteString(value) {
   return JSON.stringify(value);
 }
 
+function repoRelativePath(path) {
+  return relative(REPO_ROOT, path).replace(/\\/g, '/');
+}
+
 function formatHeader(sourcePath, sourceHash) {
-  const relPath = sourcePath.replace(REPO_ROOT + '/', '');
+  const relPath = repoRelativePath(sourcePath);
   return `/**
  * @generated
  * Source: ${relPath}
@@ -114,7 +118,7 @@ function formatHeaderMulti(sources) {
     ' * Sources:',
   ];
   for (const { path, sha256 } of sources) {
-    const relPath = path.replace(REPO_ROOT + '/', '');
+    const relPath = repoRelativePath(path);
     lines.push(` *   ${relPath}`);
     lines.push(` *     sha256: ${sha256}`);
   }
@@ -400,9 +404,9 @@ function main() {
     `generate-landing-data: wrote ${catalogResult.count} ADMITTED_PROVIDERS, ` +
       `${capResult.count} PROVIDER_CAPABILITIES, ${capResult.capabilityCount} distinct capabilities\n`,
   );
-  process.stdout.write(`  -> ${ADMITTED_PROVIDERS_OUT.replace(REPO_ROOT + '/', '')}\n`);
-  process.stdout.write(`  -> ${PROVIDER_CAPABILITIES_OUT.replace(REPO_ROOT + '/', '')}\n`);
-  process.stdout.write(`  -> ${INDEX_OUT.replace(REPO_ROOT + '/', '')}\n`);
+  process.stdout.write(`  -> ${repoRelativePath(ADMITTED_PROVIDERS_OUT)}\n`);
+  process.stdout.write(`  -> ${repoRelativePath(PROVIDER_CAPABILITIES_OUT)}\n`);
+  process.stdout.write(`  -> ${repoRelativePath(INDEX_OUT)}\n`);
 }
 
 main();

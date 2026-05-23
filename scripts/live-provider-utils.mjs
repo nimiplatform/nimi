@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
 
 export const CAPABILITY_INTERFACE_ORDER = [
@@ -538,5 +539,5 @@ export function mapDefinitionsToObject(definitions) {
 }
 
 export function resolveRepoRoot(scriptImportMetaUrl) {
-  return path.resolve(path.dirname(new URL(scriptImportMetaUrl).pathname), '..');
+  return path.resolve(path.dirname(fileURLToPath(scriptImportMetaUrl)), '..');
 }
