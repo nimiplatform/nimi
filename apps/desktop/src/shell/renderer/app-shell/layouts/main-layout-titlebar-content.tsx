@@ -39,18 +39,20 @@ export function MainLayoutTitlebarContent(props: MainLayoutTitlebarContentProps)
 
   if (props.activeTab === 'explore') {
     return (
-      <div className="flex min-w-0 items-center gap-5">
+      <div className="flex h-full min-w-0 items-center">
         <ExploreSectionNav
           active={props.exploreActiveSection}
           onSelect={props.onExploreSectionChange}
           variant="topbar"
         />
-        <div className="ml-auto w-[min(32vw,500px)] min-w-[280px]">
-          <ExploreSearchField
-            value={props.exploreSearchText}
-            onChange={props.onExploreSearchTextChange}
-            placeholder={t('Explore.searchPlaceholder', { defaultValue: 'Search agents by name/handle...' })}
-          />
+        <div className="flex min-w-0 flex-1 items-center justify-center px-4">
+          <div className="w-full min-w-[260px] max-w-[500px]">
+            <ExploreSearchField
+              value={props.exploreSearchText}
+              onChange={props.onExploreSearchTextChange}
+              placeholder={t('Explore.searchPlaceholder', { defaultValue: 'Search agents by name/handle...' })}
+            />
+          </div>
         </div>
       </div>
     );

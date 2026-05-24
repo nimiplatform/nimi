@@ -137,8 +137,9 @@ test('Home presents feed scope controls in the shell header', () => {
   assert.doesNotMatch(homeViewSource, /Home\.pageTitle/);
   assert.match(homeFeedControlsSource, /HOME_FEED_SCOPES\.map\(\(scope\) =>/);
   assert.match(homeFeedControlsSource, /<button[\s\S]*key=\{scope\}[\s\S]*onClick=\{\(\) => onSelect\(scope\)\}/);
-  assert.match(homeFeedControlsSource, /function HomeFeedScopeIcon/);
-  assert.match(homeFeedControlsSource, /<HomeFeedScopeIcon scope=\{scope\} \/>/);
+  // Visual contract: Home tabs adopt explore-style text-only treatment: no icon glyph, no pill background.
+  assert.doesNotMatch(homeFeedControlsSource, /function HomeFeedScopeIcon/);
+  assert.doesNotMatch(homeFeedControlsSource, /<HomeFeedScopeIcon /);
   assert.doesNotMatch(homeFeedControlsSource, /DOT_TONE_BY_SCOPE/);
   assert.match(mainLayoutViewSource, /<MainLayoutTitlebarContent/);
   assert.match(mainLayoutTitlebarContentSource, /props\.activeTab === 'home'/);

@@ -85,10 +85,10 @@ export function ExploreSectionNav({
 }) {
   const { t } = useTranslation();
   const nav = (
-    <div className={variant === 'topbar' ? 'flex min-w-0 items-center gap-3' : 'flex flex-wrap items-center gap-2'}>
+    <div className={variant === 'topbar' ? 'flex min-w-0 items-center gap-8' : 'flex flex-wrap items-center gap-2'}>
       <nav
         aria-label={t('Explore.sectionNavLabel', { defaultValue: 'Explore sections' })}
-        className={variant === 'topbar' ? 'flex min-w-0 items-center gap-3' : 'flex min-w-0 flex-wrap gap-1.5'}
+        className={variant === 'topbar' ? 'flex min-w-0 items-center gap-8' : 'flex min-w-0 flex-wrap gap-1.5'}
         data-testid="explore-section-nav"
       >
         {EXPLORE_SECTION_IDS.map((id) => {
@@ -104,7 +104,7 @@ export function ExploreSectionNav({
               data-mod-tab-interactive="true"
               onClick={() => onSelect(id)}
               className={variant === 'topbar'
-                ? `inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-[15px] transition-[color,transform,font-weight] duration-200 ease-out hover:-translate-y-0.5 hover:text-[color:var(--nimi-accent)] active:translate-y-0 active:scale-95 ${isActive ? 'font-bold text-[color:var(--nimi-accent)]' : 'font-semibold text-[color:var(--nimi-fg-2)]'}`
+                ? `inline-flex h-10 items-center text-[15px] transition-colors duration-200 ease-out hover:text-[color:var(--nimi-fg-1)] ${isActive ? 'font-semibold text-[color:var(--nimi-accent)]' : 'font-medium text-[color:var(--nimi-fg-2)]'}`
                 : 'inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors'}
               style={{
                 fontFamily: 'var(--nimi-font-sans)',
@@ -115,14 +115,16 @@ export function ExploreSectionNav({
                   ? undefined
                   : (isActive ? 'var(--nimi-accent-onAccent)' : 'var(--nimi-fg-2)'),
                 border: variant === 'topbar'
-                  ? '1px solid transparent'
+                  ? undefined
                   : (isActive
                     ? '1px solid color-mix(in srgb, var(--nimi-accent) 80%, transparent)'
                     : '1px solid transparent'),
                 boxShadow: undefined,
               }}
             >
-              <span aria-hidden className="shrink-0">{meta.icon}</span>
+              {variant === 'topbar' ? null : (
+                <span aria-hidden className="shrink-0">{meta.icon}</span>
+              )}
               {t(meta.labelKey)}
             </button>
           );
@@ -164,16 +166,16 @@ export function ExploreSearchField({
   const { t } = useTranslation();
   return (
     <div
-      className="group relative flex h-10 items-center rounded-2xl border border-[color-mix(in_srgb,var(--nimi-border-subtle)_68%,white)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_72%,white)] px-4 shadow-[0_14px_34px_rgba(15,23,42,0.05)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+      className="group relative mx-auto flex h-11 w-full max-w-[480px] items-center rounded-xl border border-white/60 bg-white/45 pl-4 pr-3 shadow-[0_2px_10px_rgba(0,0,0,0.02)] backdrop-blur-[16px] transition-all duration-200 focus-within:border-white/90 focus-within:bg-white/70 focus-within:shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
       data-testid="explore-search-field"
       data-mod-tab-interactive="true"
     >
-      <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[color:var(--nimi-fg-3)] transition-colors group-focus-within:text-[color:var(--nimi-accent)]">
+      <span className="pointer-events-none mr-3 text-[color:var(--nimi-fg-3)] transition-colors group-focus-within:text-[color:var(--nimi-accent)]">
         {ICON_SEARCH}
       </span>
       <input
         type="search"
-        className="w-full bg-transparent py-2 pl-8 pr-1 text-sm font-medium text-[color:var(--nimi-fg-1)] outline-none placeholder:text-[color:var(--nimi-fg-3)] focus:ring-0"
+        className="min-w-0 flex-1 bg-transparent text-sm font-medium text-[color:var(--nimi-fg-1)] outline-none placeholder:text-[color:var(--nimi-fg-3)] focus:ring-0"
         style={{ fontFamily: 'var(--nimi-font-sans)' }}
         placeholder={placeholder ?? t('Explore.searchPlaceholder', { defaultValue: 'Search worlds, agents, posts...' })}
         value={value}

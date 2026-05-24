@@ -16,36 +16,6 @@ function scopeLabelDefault(scope: PostFeedScope): string {
   return 'Agent';
 }
 
-function HomeFeedScopeIcon({ scope }: { scope: PostFeedScope }) {
-  if (scope === 'personal') {
-    return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M20 21a8 8 0 0 0-16 0" />
-        <circle cx="12" cy="7" r="4" />
-      </svg>
-    );
-  }
-  if (scope === 'friends') {
-    return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M16 21a6 6 0 0 0-12 0" />
-        <circle cx="10" cy="8" r="4" />
-        <path d="M22 21a5 5 0 0 0-4-4.9" />
-        <path d="M16 4.1a4 4 0 0 1 0 7.8" />
-      </svg>
-    );
-  }
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 8V4" />
-      <rect x="5" y="8" width="14" height="10" rx="4" />
-      <path d="M9 13h.01" />
-      <path d="M15 13h.01" />
-      <path d="M9 21h6" />
-    </svg>
-  );
-}
-
 export function HomeFeedScopeNav({
   active,
   onSelect,
@@ -57,7 +27,7 @@ export function HomeFeedScopeNav({
   return (
     <nav
       aria-label={t('Home.feedScopeSelectorLabel', { defaultValue: 'Feed scope' })}
-      className="flex min-w-0 items-center gap-3"
+      className="flex min-w-0 items-center gap-8"
       data-testid="home-feed-scope-nav"
     >
       {HOME_FEED_SCOPES.map((scope) => {
@@ -71,22 +41,14 @@ export function HomeFeedScopeNav({
             data-testid={`home-feed-scope-tab-${scope}`}
             data-mod-tab-interactive="true"
             onClick={() => onSelect(scope)}
-            className="inline-flex h-10 items-center gap-2 rounded-2xl px-4 text-[15px] font-semibold transition-[background-color,color,box-shadow,border-color]"
+            className={`inline-flex h-10 items-center text-[15px] transition-colors duration-200 ease-out hover:text-[color:var(--nimi-fg-1)] ${selected ? 'font-semibold text-[color:var(--nimi-accent)]' : 'font-medium text-[color:var(--nimi-fg-2)]'}`}
             style={{
               fontFamily: 'var(--nimi-font-sans)',
-              background: selected
-                ? 'color-mix(in srgb, var(--nimi-accent) 12%, white 88%)'
-                : 'transparent',
-              color: selected ? 'var(--nimi-accent)' : 'var(--nimi-fg-2)',
-              border: selected
-                ? '1px solid color-mix(in srgb, var(--nimi-accent) 10%, white 70%)'
-                : '1px solid transparent',
-              boxShadow: selected ? '0 14px 34px rgba(78,204,163,0.10)' : undefined,
+              background: 'transparent',
+              border: 'none',
+              boxShadow: undefined,
             }}
           >
-            <span aria-hidden className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
-              <HomeFeedScopeIcon scope={scope} />
-            </span>
             {t(`Home.feedScopeHeaderLabels.${scope}`, { defaultValue: scopeLabelDefault(scope) })}
           </button>
         );
