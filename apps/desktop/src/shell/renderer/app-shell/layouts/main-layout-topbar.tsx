@@ -4,9 +4,13 @@ import { Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   SHELL_CHROME_ACTION_CELL_CLASS,
-  SHELL_CHROME_METRIC_CELL_CLASS,
-  SHELL_CHROME_METRIC_GROUP_CLASS,
 } from './shell-chrome-classes';
+
+const SHELL_TOPBAR_ASSET_CELL_CLASS =
+  'flex items-center gap-1.5 rounded-md px-1 text-sm font-semibold text-[color:var(--nimi-fg-1)] transition-colors hover:text-[color:var(--nimi-accent)]';
+
+const SHELL_TOPBAR_GHOST_ICON_CLASS =
+  'relative flex h-9 w-9 items-center justify-center rounded-full text-[color:var(--nimi-fg-2)] transition-colors hover:text-[color:var(--nimi-fg-1)]';
 
 type MainLayoutTopBarProps = {
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
@@ -61,7 +65,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
             {props.titlebarContent}
           </div>
         ) : null}
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-7">
           {anonymousMode ? (
             <div className="flex items-center gap-2">
               {props.activeTab !== 'chat' ? (
@@ -117,76 +121,78 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
             </div>
           ) : (
             <>
-              <div className={SHELL_CHROME_METRIC_GROUP_CLASS}>
-                <Tooltip content="Spark" className="h-7">
-                  <button
-                    type="button"
-                    data-mod-tab-interactive="true"
-                    onClick={props.onOpenWallet}
-                    className={SHELL_CHROME_METRIC_CELL_CLASS}
-                    aria-label={t('Common.openWalletSpark')}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="url(#sparkGradient)" className="drop-shadow-sm">
-                      <defs>
-                        <linearGradient id="sparkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#fbbf24" />
-                          <stop offset="50%" stopColor="#f59e0b" />
-                          <stop offset="100%" stopColor="#d97706" />
-                        </linearGradient>
-                      </defs>
-                      <path d="M13 2L3 14h9l-1 8 10-12h-7z" />
-                    </svg>
-                    <span>{props.balancesPending ? '--' : formatMetricValue(props.sparkBalance)}</span>
-                  </button>
-                </Tooltip>
-                <Tooltip content="Gem" className="h-7">
-                  <button
-                    type="button"
-                    data-mod-tab-interactive="true"
-                    onClick={props.onOpenWallet}
-                    className={SHELL_CHROME_METRIC_CELL_CLASS}
-                    aria-label={t('Common.openWalletGem')}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="url(#gemGradient)" className="drop-shadow-sm">
-                      <defs>
-                        <linearGradient id="gemGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#a78bfa" />
-                          <stop offset="50%" stopColor="#8b5cf6" />
-                          <stop offset="100%" stopColor="#7c3aed" />
-                        </linearGradient>
-                      </defs>
-                      <path d="M6 3h12l4 6-10 13L2 9z" />
-                    </svg>
-                    <span>{props.balancesPending ? '--' : formatMetricValue(props.gemBalance)}</span>
-                  </button>
-                </Tooltip>
-              </div>
+              <Tooltip content="Spark" className="h-9">
+                <button
+                  type="button"
+                  data-mod-tab-interactive="true"
+                  onClick={props.onOpenWallet}
+                  className={SHELL_TOPBAR_ASSET_CELL_CLASS}
+                  aria-label={t('Common.openWalletSpark')}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="url(#sparkGradient)" className="drop-shadow-sm">
+                    <defs>
+                      <linearGradient id="sparkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#fbbf24" />
+                        <stop offset="50%" stopColor="#f59e0b" />
+                        <stop offset="100%" stopColor="#d97706" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M13 2L3 14h9l-1 8 10-12h-7z" />
+                  </svg>
+                  <span>{props.balancesPending ? '--' : formatMetricValue(props.sparkBalance)}</span>
+                </button>
+              </Tooltip>
+              <Tooltip content="Gem" className="h-9">
+                <button
+                  type="button"
+                  data-mod-tab-interactive="true"
+                  onClick={props.onOpenWallet}
+                  className={SHELL_TOPBAR_ASSET_CELL_CLASS}
+                  aria-label={t('Common.openWalletGem')}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="url(#gemGradient)" className="drop-shadow-sm">
+                    <defs>
+                      <linearGradient id="gemGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#a78bfa" />
+                        <stop offset="50%" stopColor="#8b5cf6" />
+                        <stop offset="100%" stopColor="#7c3aed" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M6 3h12l4 6-10 13L2 9z" />
+                  </svg>
+                  <span>{props.balancesPending ? '--' : formatMetricValue(props.gemBalance)}</span>
+                </button>
+              </Tooltip>
               <Tooltip content={t('Navigation.notifications')} className="h-9">
                 <button
                   type="button"
                   data-mod-tab-interactive="true"
                   onClick={props.onOpenNotifications}
-                  className={SHELL_CHROME_ACTION_CELL_CLASS}
+                  className={SHELL_TOPBAR_GHOST_ICON_CLASS}
                   aria-label={t('Common.openNotifications')}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                     <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                   </svg>
                   {props.unreadCount > 0 ? (
-                    <span className="absolute -right-0.5 -top-0.5 flex min-w-[16px] items-center justify-center rounded-full border border-white bg-red-500 px-1 text-[10px] leading-[16px] text-white">
-                      {unreadBadge}
-                    </span>
+                    props.unreadCount > 1 ? (
+                      <span className="absolute -right-1 -top-1 flex min-w-[16px] items-center justify-center rounded-full border-2 border-[color:var(--nimi-surface-canvas)] bg-red-500 px-1 text-[10px] leading-[14px] text-white">
+                        {unreadBadge}
+                      </span>
+                    ) : (
+                      <span className="absolute right-1 top-1.5 h-2 w-2 rounded-full border-2 border-[color:var(--nimi-surface-canvas)] bg-red-500" />
+                    )
                   ) : null}
                 </button>
               </Tooltip>
-              <Tooltip content={t('Common.openAccountMenu')} placement="top" className="h-10">
-                <div ref={props.settingsTriggerRef} className="mr-2 flex h-10 items-center">
+              <Tooltip content={t('Common.openAccountMenu')} placement="top" className="h-9">
+                <div ref={props.settingsTriggerRef} className="flex h-9 items-center">
                   <button
                     type="button"
                     data-mod-tab-interactive="true"
                     onClick={props.onToggleSettingsMenu}
-                    className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-transparent p-0 text-[var(--nimi-text-primary)] transition-transform duration-150 hover:scale-[1.03]"
+                    className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-black/5 bg-white p-0 text-[var(--nimi-text-primary)] shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-transform duration-150 hover:scale-[1.03]"
                     aria-label={t('Common.openAccountMenu')}
                     aria-expanded={props.settingsMenuOpen}
                   >

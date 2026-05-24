@@ -33,13 +33,14 @@ test('shell chrome retune: shell chrome classes tighten radius scale', () => {
 test('shell chrome retune: nav, home launcher, account menu, and tooltips consume the tighter shell scale', () => {
   assert.match(mainLayoutViewSource, /SidebarTooltipButton[\s\S]*SHELL_CHROME_INTERACTIVE_RADIUS_CLASS/);
   assert.match(mainLayoutSettingsMenuSource, /<Surface[\s\S]*tone="overlay"[\s\S]*material="glass-thick"[\s\S]*SHELL_CHROME_OVERLAY_CLASS/);
-  assert.match(mainLayoutViewSource, /avatarNode[\s\S]*sizeClassName="h-10 w-10"/u);
+  assert.match(mainLayoutViewSource, /avatarNode[\s\S]*sizeClassName="h-9 w-9"/u);
   assert.match(mainLayoutSettingsMenuSource, /SHELL_CHROME_MENU_ITEM_BASE_CLASS/);
   assert.match(mainLayoutTopbarSource, /SHELL_CHROME_ACTION_CELL_CLASS/);
-  assert.match(mainLayoutTopbarSource, /SHELL_CHROME_METRIC_CELL_CLASS/);
+  assert.match(mainLayoutTopbarSource, /SHELL_TOPBAR_ASSET_CELL_CLASS/);
+  assert.match(mainLayoutTopbarSource, /SHELL_TOPBAR_GHOST_ICON_CLASS/);
   assert.doesNotMatch(mainLayoutTopbarSource, /openAccountMenu[\s\S]*SHELL_CHROME_ACTION_CELL_CLASS/u);
-  assert.match(mainLayoutTopbarSource, /openAccountMenu[\s\S]*className="mr-2 flex h-10 items-center"/u);
-  assert.match(mainLayoutTopbarSource, /openAccountMenu[\s\S]*className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-transparent p-0 text-\[var\(--nimi-text-primary\)\] transition-transform duration-150 hover:scale-\[1\.03\]"/u);
+  assert.match(mainLayoutTopbarSource, /openAccountMenu[\s\S]*className="flex h-9 items-center"/u);
+  assert.match(mainLayoutTopbarSource, /openAccountMenu[\s\S]*className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-black\/5 bg-white p-0 text-\[var\(--nimi-text-primary\)\] shadow-\[0_2px_8px_rgba\(0,0,0,0\.04\)\] transition-transform duration-150 hover:scale-\[1\.03\]"/u);
   assert.match(navConfigSource, /SHELL_CHROME_INTERACTIVE_RADIUS_CLASS/);
   assert.match(navConfigSource, /SHELL_CHROME_TOOLTIP_CLASS/);
   assert.match(sidebarTooltipSource, /SHELL_CHROME_TOOLTIP_CLASS/);

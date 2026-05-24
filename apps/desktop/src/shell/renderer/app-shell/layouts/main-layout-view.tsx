@@ -343,7 +343,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       imageUrl={props.userAvatarUrl}
       name={props.displayName}
       kind="human"
-      sizeClassName="h-10 w-10"
+      sizeClassName="h-9 w-9"
       className="shrink-0"
       textClassName="text-xs"
     />

@@ -6,12 +6,6 @@ export const SHELL_CHROME_OVERLAY_CLASS =
 
 export const SHELL_CHROME_INTERACTIVE_RADIUS_CLASS = 'rounded-xl';
 
-export const SHELL_CHROME_METRIC_GROUP_CLASS =
-  'flex h-9 items-center rounded-full border border-[var(--nimi-material-glass-thin-border)] bg-[var(--nimi-material-glass-thin-bg)] px-1 nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] shadow-[var(--nimi-elevation-base)]';
-
-export const SHELL_CHROME_METRIC_CELL_CLASS =
-  'flex h-7 min-w-[56px] items-center justify-center gap-1 rounded-full px-2.5 text-xs font-semibold text-[var(--nimi-text-primary)] transition hover:bg-[var(--nimi-action-ghost-hover)]';
-
 export const SHELL_CHROME_ACTION_CELL_CLASS =
   'relative flex h-9 w-9 items-center justify-center rounded-full border border-[var(--nimi-material-glass-thin-border)] bg-[var(--nimi-material-glass-thin-bg)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)] nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] transition hover:bg-[var(--nimi-action-ghost-hover)]';
 
