@@ -91,6 +91,12 @@ jobs:
         with:
           toolchain: stable
 
+      - name: Install Linux Tauri system dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
       - name: Verify nimi-shell-tauri crate version and metadata
         run: |
           set -euo pipefail
