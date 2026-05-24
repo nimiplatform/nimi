@@ -4,6 +4,11 @@
   "license": "Apache-2.0",
   "type": "module",
   "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nimiplatform/nimi",
+    "directory": "dev-tools"
+  },
   "publishConfig": {
     "access": "public",
     "provenance": true

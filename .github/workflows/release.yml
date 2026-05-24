@@ -205,6 +205,12 @@ jobs:
           if (pkg.publishConfig?.provenance !== true) {
             throw new Error('@nimiplatform/sdk publishConfig.provenance must be true');
           }
+          if (pkg.repository?.url !== 'https://github.com/nimiplatform/nimi') {
+            throw new Error('@nimiplatform/sdk repository.url must match provenance repository');
+          }
+          if (pkg.repository?.directory !== 'sdk') {
+            throw new Error('@nimiplatform/sdk repository.directory must be sdk');
+          }
           NODE
 
       # >>> nimi-release-gate-projection: release-target-sdk-static-checks >>>

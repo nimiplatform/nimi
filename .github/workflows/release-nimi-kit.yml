@@ -127,6 +127,12 @@ jobs:
           if (pkg.publishConfig?.provenance !== true) {
             throw new Error('@nimiplatform/nimi-kit publishConfig.provenance must be true');
           }
+          if (pkg.repository?.url !== 'https://github.com/nimiplatform/nimi') {
+            throw new Error('@nimiplatform/nimi-kit repository.url must match provenance repository');
+          }
+          if (pkg.repository?.directory !== 'kit') {
+            throw new Error('@nimiplatform/nimi-kit repository.directory must be kit');
+          }
           if (!Array.isArray(pkg.files) || !pkg.files.includes('README.md')) {
             throw new Error('@nimiplatform/nimi-kit package files must include README.md');
           }

@@ -127,6 +127,12 @@ jobs:
           if (pkg.publishConfig?.provenance !== true) {
             throw new Error('@nimiplatform/dev-tools publishConfig.provenance must be true');
           }
+          if (pkg.repository?.url !== 'https://github.com/nimiplatform/nimi') {
+            throw new Error('@nimiplatform/dev-tools repository.url must match provenance repository');
+          }
+          if (pkg.repository?.directory !== 'dev-tools') {
+            throw new Error('@nimiplatform/dev-tools repository.directory must be dev-tools');
+          }
           if (pkg.bin?.['nimi-app'] !== './bin/nimi-app.mjs') {
             throw new Error('@nimiplatform/dev-tools must expose the nimi-app CLI');
           }
