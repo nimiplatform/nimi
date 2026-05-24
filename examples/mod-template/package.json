@@ -9,7 +9,7 @@
     "pack": "node ../../dev-tools/bin/nimi-mod.mjs pack"
   },
   "dependencies": {
-    "@nimiplatform/sdk": "^0.5.7",
+    "@nimiplatform/sdk": "^0.5.14",
     "react": "^19.1.0"
   },
   "devDependencies": {

@@ -1,27 +1,63 @@
 #!/usr/bin/env node
 
 import process from 'node:process';
-import { createApp } from '../lib/index.mjs';
+import { createApp, doctorAppScaffold, updateAppScaffold } from '../lib/index.mjs';
 
 function parseArgs(argv) {
   const [command = '', ...rest] = argv;
   let dir = '';
-  let template = '';
+  let profile = '';
+  let appId = '';
+  let title = '';
+  let packageName = '';
+  let author = '';
+  let json = false;
   for (let index = 0; index < rest.length; index += 1) {
     if (rest[index] === '--dir') {
       dir = String(rest[index + 1] || '').trim();
       index += 1;
       continue;
     }
-    if (rest[index] === '--template') {
-      template = String(rest[index + 1] || '').trim();
+    if (rest[index] === '--profile') {
+      profile = String(rest[index + 1] || '').trim();
       index += 1;
+      continue;
     }
+    if (rest[index] === '--app-id') {
+      appId = String(rest[index + 1] || '').trim();
+      index += 1;
+      continue;
+    }
+    if (rest[index] === '--title') {
+      title = String(rest[index + 1] || '').trim();
+      index += 1;
+      continue;
+    }
+    if (rest[index] === '--package-name') {
+      packageName = String(rest[index + 1] || '').trim();
+      index += 1;
+      continue;
+    }
+    if (rest[index] === '--author') {
+      author = String(rest[index + 1] || '').trim();
+      index += 1;
+      continue;
+    }
+    if (rest[index] === '--json') {
+      json = true;
+      continue;
+    }
+    throw new Error(`Unknown option: ${rest[index]}`);
   }
   return {
     command: String(command || '').trim(),
     dir,
-    template,
+    profile,
+    appId,
+    title,
+    packageName,
+    author,
+    json,
   };
 }
 
@@ -29,14 +65,16 @@ function printUsage() {
   process.stdout.write(
     [
       'Usage:',
-      '  nimi-app create [--dir path] [--template basic|vercel-ai]',
+      '  nimi-app create [--dir path] [--profile standalone|workspace-app] [--app-id id] [--title title] [--package-name name] [--author author]',
+      '  nimi-app doctor [--dir path] [--json]',
+      '  nimi-app update [--dir path] [--json]',
       '',
     ].join('\n'),
   );
 }
 
 try {
-  const { command, dir, template } = parseArgs(process.argv.slice(2));
+  const { command, dir, profile, appId, title, packageName, author, json } = parseArgs(process.argv.slice(2));
   if (!command || command === '--help' || command === '-h') {
     printUsage();
     process.exit(0);
@@ -45,7 +83,23 @@ try {
     case 'create':
       createApp(process.cwd(), {
         dir,
-        template,
+        profile,
+        appId,
+        title,
+        packageName,
+        author,
+      });
+      break;
+    case 'doctor':
+      doctorAppScaffold(process.cwd(), {
+        dir,
+        json,
+      });
+      break;
+    case 'update':
+      updateAppScaffold(process.cwd(), {
+        dir,
+        json,
       });
       break;
     default:

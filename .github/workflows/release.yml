@@ -202,6 +202,31 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Verify SDK package version and metadata
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+
+          const pkg = JSON.parse(readFileSync('sdk/package.json', 'utf8'));
+          const expectedVersion = process.env.RELEASE_VERSION;
+          if (pkg.name !== '@nimiplatform/sdk') {
+            throw new Error(`unexpected SDK package name: ${pkg.name}`);
+          }
+          if (pkg.version !== expectedVersion) {
+            throw new Error(`sdk/package.json version ${pkg.version} does not match release ${expectedVersion}`);
+          }
+          if (pkg.private !== false) {
+            throw new Error('@nimiplatform/sdk must remain public');
+          }
+          if (pkg.publishConfig?.access !== 'public') {
+            throw new Error('@nimiplatform/sdk publishConfig.access must be public');
+          }
+          if (pkg.publishConfig?.provenance !== true) {
+            throw new Error('@nimiplatform/sdk publishConfig.provenance must be true');
+          }
+          NODE
+
       # >>> nimi-release-gate-projection: release-target-sdk-static-checks >>>
       - name: gate.sdk.build
         run: pnpm build:sdk
@@ -219,34 +244,35 @@ jobs:
         run: pnpm check:package-license-matrix
       # <<< nimi-release-gate-projection: release-target-sdk-static-checks <<<
 
-      - name: Publish npm author packages (or dry-run)
+      - name: Check duplicate SDK npm version
         run: |
           set -euo pipefail
-
-          packages=(
-            "@nimiplatform/sdk"
-            "@nimiplatform/dev-tools"
-          )
-
-          if [[ "${PUBLISH}" == "true" ]]; then
-            if [[ -z "${NPM_TOKEN:-}" ]]; then
-              echo "NPM_TOKEN is required for SDK publish" >&2
+          if npm view "@nimiplatform/sdk@${RELEASE_VERSION}" version >/dev/null 2>&1; then
+            if [[ "${PUBLISH}" == "true" ]]; then
+              echo "@nimiplatform/sdk@${RELEASE_VERSION} already exists on npm" >&2
               exit 1
             fi
-            npm_config="${NPM_CONFIG_USERCONFIG:-${HOME}/.npmrc}"
-            mkdir -p "$(dirname "${npm_config}")"
-            printf '//registry.npmjs.org/:_authToken=%s\n' "${NPM_TOKEN}" > "${npm_config}"
-            export NODE_AUTH_TOKEN="${NPM_TOKEN}"
+            echo "@nimiplatform/sdk@${RELEASE_VERSION} already exists on npm; dry-run mode will not publish"
+          else
+            echo "@nimiplatform/sdk@${RELEASE_VERSION} is not published on npm"
           fi
 
-          for pkg in "${packages[@]}"; do
-            echo "publishing ${pkg} (publish=${PUBLISH})"
-            if [[ "${PUBLISH}" == "true" ]]; then
-              pnpm --filter "${pkg}" publish --access public --no-git-checks --provenance
-            else
-              pnpm --filter "${pkg}" publish --access public --no-git-checks --dry-run
-            fi
-          done
+      - name: SDK npm publish dry-run
+        run: pnpm --filter @nimiplatform/sdk publish --access public --no-git-checks --dry-run
+
+      - name: Publish SDK to npm
+        if: env.PUBLISH == 'true'
+        run: |
+          set -euo pipefail
+          if [[ -z "${NPM_TOKEN:-}" ]]; then
+            echo "NPM_TOKEN is required for SDK publish" >&2
+            exit 1
+          fi
+          npm_config="${NPM_CONFIG_USERCONFIG:-${HOME}/.npmrc}"
+          mkdir -p "$(dirname "${npm_config}")"
+          printf '//registry.npmjs.org/:_authToken=%s\n' "${NPM_TOKEN}" > "${npm_config}"
+          export NODE_AUTH_TOKEN="${NPM_TOKEN}"
+          pnpm --filter @nimiplatform/sdk publish --access public --no-git-checks --provenance
 
   release-proto:
     needs:

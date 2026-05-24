@@ -1,0 +1,54 @@
+# nimi-shell-tauri
+
+Shared Rust/Tauri host glue for Nimi apps.
+
+This crate owns app-agnostic shell behavior only:
+
+- runtime bridge commands and stream lifecycle;
+- daemon status, start, stop, restart, and config commands;
+- runtime defaults;
+- renderer diagnostic logging;
+- auth-session command boundary;
+- fenced OAuth helper commands;
+- desktop path resolution helpers.
+
+It does not own app business logic, a host-loaded plugin model, Realm login, or
+generated app token exchange. Apps keep product commands in their own
+`src-tauri` crate and register them separately.
+
+## Package Boundary
+
+The public crate name is `nimi-shell-tauri`, imported from Rust as
+`nimi_shell_tauri`. The initial version is `0.1.0`.
+
+Workspace apps may consume it with a path dependency:
+
+```toml
+nimi-shell-tauri = { path = "../../../kit/shell/tauri" }
+```
+
+Standalone apps consume the published crate after publication is performed by a
+human release owner.
+
+## Command Registration
+
+Apps may keep explicit `tauri::generate_handler!` registration for narrow
+command sets, or use one of the scoped macros when the app wants that exact
+shared shell set plus app-local commands:
+
+```rust
+tauri::Builder::default()
+    .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_oauth_runtime_bridge_handler![
+        app_local_command,
+    ]);
+```
+
+Available macros:
+
+- `nimi_shell_tauri_runtime_bridge_handler!`
+- `nimi_shell_tauri_oauth_runtime_bridge_handler!`
+- `nimi_shell_tauri_auth_oauth_runtime_bridge_handler!`
+
+The command catalog is also exposed through
+`nimi_shell_tauri::command_registration` for tests, audits, and apps that need
+to keep registration fully explicit.

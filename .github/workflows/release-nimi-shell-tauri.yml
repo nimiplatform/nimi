@@ -1,0 +1,152 @@
+name: release-nimi-shell-tauri
+
+on:
+  push:
+    tags:
+      - nimi-shell-tauri/v*
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semver version already present in kit/shell/tauri/Cargo.toml, for example 0.1.0 or v0.1.0
+        required: true
+        type: string
+      publish:
+        description: Publish nimi-shell-tauri to crates.io. false runs the dry-run release gate only.
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-nimi-shell-tauri-${{ github.ref_name || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      version_plain: ${{ steps.resolve.outputs.version_plain }}
+      publish: ${{ steps.resolve.outputs.publish }}
+    steps:
+      - name: Resolve nimi-shell-tauri release version
+        id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
+        run: |
+          set -euo pipefail
+
+          semver_regex='^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$'
+
+          if [[ "${EVENT_NAME}" == "push" ]]; then
+            case "${REF_NAME}" in
+              nimi-shell-tauri/v*)
+                version="${REF_NAME#nimi-shell-tauri/}"
+                publish="true"
+                ;;
+              *)
+                echo "unsupported nimi-shell-tauri tag format: ${REF_NAME}" >&2
+                exit 1
+                ;;
+            esac
+          else
+            version="${INPUT_VERSION}"
+            if [[ "${version}" != v* ]]; then
+              version="v${version}"
+            fi
+            publish="${INPUT_PUBLISH}"
+          fi
+
+          if ! [[ "${version}" =~ ${semver_regex} ]]; then
+            echo "invalid semver version: ${version}" >&2
+            exit 1
+          fi
+
+          {
+            echo "version=${version}"
+            echo "version_plain=${version#v}"
+            echo "publish=${publish}"
+          } >> "${GITHUB_OUTPUT}"
+
+  release:
+    needs: resolve
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ needs.resolve.outputs.version_plain }}
+      PUBLISH: ${{ needs.resolve.outputs.publish }}
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - name: Verify nimi-shell-tauri crate version and metadata
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+
+          const manifest = readFileSync('kit/shell/tauri/Cargo.toml', 'utf8');
+          function field(name) {
+            return manifest.match(new RegExp(`^${name} = "([^"]+)"`, 'm'))?.[1] ?? '';
+          }
+          const expectedVersion = process.env.RELEASE_VERSION;
+          if (field('name') !== 'nimi-shell-tauri') {
+            throw new Error(`unexpected crate name: ${field('name')}`);
+          }
+          if (field('version') !== expectedVersion) {
+            throw new Error(`kit/shell/tauri/Cargo.toml version ${field('version')} does not match release ${expectedVersion}`);
+          }
+          if (field('license') !== 'MIT') {
+            throw new Error('nimi-shell-tauri must declare MIT license metadata');
+          }
+          if (field('repository') !== 'https://github.com/nimiplatform/nimi') {
+            throw new Error('nimi-shell-tauri repository metadata mismatch');
+          }
+          if (field('readme') !== 'README.md') {
+            throw new Error('nimi-shell-tauri readme metadata mismatch');
+          }
+          if (/^publish = false$/m.test(manifest)) {
+            throw new Error('nimi-shell-tauri must not disable publication');
+          }
+          NODE
+
+      - name: Test nimi-shell-tauri
+        run: cargo test --manifest-path kit/shell/tauri/Cargo.toml --locked
+
+      - name: Check duplicate crates.io version
+        run: |
+          set -euo pipefail
+          if curl --fail --silent --show-error "https://crates.io/api/v1/crates/nimi-shell-tauri/${RELEASE_VERSION}" >/dev/null 2>&1; then
+            if [[ "${PUBLISH}" == "true" ]]; then
+              echo "nimi-shell-tauri ${RELEASE_VERSION} already exists on crates.io" >&2
+              exit 1
+            fi
+            echo "nimi-shell-tauri ${RELEASE_VERSION} already exists on crates.io; dry-run mode will not publish"
+          else
+            echo "nimi-shell-tauri ${RELEASE_VERSION} is not published on crates.io"
+          fi
+
+      - name: Cargo publish dry-run
+        run: cargo publish --dry-run --manifest-path kit/shell/tauri/Cargo.toml --allow-dirty
+
+      - name: Publish nimi-shell-tauri to crates.io
+        if: env.PUBLISH == 'true'
+        run: |
+          set -euo pipefail
+          if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+            echo "CARGO_REGISTRY_TOKEN is required for nimi-shell-tauri publish" >&2
+            exit 1
+          fi
+          cargo publish --manifest-path kit/shell/tauri/Cargo.toml --allow-dirty --token "${CARGO_REGISTRY_TOKEN}"

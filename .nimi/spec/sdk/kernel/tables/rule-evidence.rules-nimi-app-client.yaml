@@ -39,6 +39,7 @@ entries:
   - S-APP-013
   - S-APP-014
   - S-APP-015
+  - S-APP-016
 rules:
   - rule_id: S-APP-001
     evidence_refs:
@@ -106,4 +107,9 @@ rules:
     evidence_refs:
       - sdk_kernel_consistency
     note: Review-evidence accessor cross-references P-NAPP-025 review decision schema and P-AUDIT-006 review-evidence shape without redefining either. Implementation evidence lands with SDK review-evidence accessor tests.
+    evidence_requirement: required
+  - rule_id: S-APP-016
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Generated-app Runtime platform client auth helper admits exact exported names and the local-first-party / third-party-nimi-app / dev-standalone mode split. Implementation evidence lands with SDK helper and generated scaffold auth tests.
     evidence_requirement: required

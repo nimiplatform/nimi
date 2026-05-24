@@ -226,7 +226,7 @@ fn write_oauth_callback_page(stream: &mut std::net::TcpStream, success: bool) {
 }
 
 const DESKTOP_OAUTH_RESULT_PAGE_TEMPLATE: &str =
-    include_str!("../../../auth/src/logic/native-oauth-result-page.template.html");
+    include_str!("native-oauth-result-page.template.html");
 
 fn render_oauth_callback_page(success: bool) -> String {
     if success {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * SDK version check — unified single package mode.
+ * SDK version check — independently published package mode.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -142,24 +142,6 @@ async function main() {
         );
       }
     }
-  }
-
-  // Check all packages have the same major.minor version (patch can differ)
-  const versions = [...packageVersions.entries()].map(([name, { version }]) => ({
-    name,
-    version,
-    majorMinor: parseMajorMinor(version),
-  }));
-  const majorMinorSet = new Set(versions.map((v) => v.majorMinor));
-  if (majorMinorSet.size > 1) {
-    const details = versions.map((v) => `  ${v.name}: ${v.version}`).join('\n');
-    violations.push(`SDK packages have inconsistent major.minor versions:\n${details}`);
-  }
-
-  const exactVersionSet = new Set(versions.map((v) => v.version));
-  if (exactVersionSet.size > 1) {
-    const details = versions.map((v) => `  ${v.name}: ${v.version}`).join('\n');
-    violations.push(`npm author release-set packages must share the exact same version:\n${details}`);
   }
 
   // Check required fields

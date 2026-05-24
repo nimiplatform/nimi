@@ -4,11 +4,11 @@ use serde::Serialize;
 use serde_json::Value;
 use reqwest::Url;
 
-use nimi_kit_shell_tauri::desktop_paths;
-use nimi_kit_shell_tauri::oauth_commands;
-use nimi_kit_shell_tauri::runtime_bridge;
-use nimi_kit_shell_tauri::runtime_defaults as defaults;
-use nimi_kit_shell_tauri::session_logging;
+use nimi_shell_tauri::desktop_paths;
+use nimi_shell_tauri::oauth_commands;
+use nimi_shell_tauri::runtime_bridge;
+use nimi_shell_tauri::runtime_defaults as defaults;
+use nimi_shell_tauri::session_logging;
 
 const GAMMA_API_BASE: &str = "https://gamma-api.polymarket.com";
 const CLOB_API_BASE: &str = "https://clob.polymarket.com";

@@ -1,5 +1,5 @@
 import * as esbuild from 'esbuild';
-import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -8,14 +8,22 @@ import { createHash } from 'node:crypto';
 import { parse as parseYaml } from 'yaml';
 import { createReleaseManifest } from './release-manifest.mjs';
 import { createAppScaffold } from './app-scaffold.mjs';
+import { doctorApp, updateApp } from './app-doctor-update.mjs';
 
-const SDK_VERSION = '^0.5.7';
+const SDK_VERSION = '^0.5.14';
 const DEV_TOOLS_VERSION = '^0.5.7';
+const NIMI_KIT_VERSION = '^0.1.0';
 const REACT_VERSION = '^19.1.0';
+const REACT_DOM_VERSION = '^19.1.0';
 const TYPESCRIPT_VERSION = '^5.9.3';
 const TSX_VERSION = '^4.21.0';
 const NODE_TYPES_VERSION = '^24.10.1';
 const REACT_TYPES_VERSION = '^19.2.14';
+const REACT_DOM_TYPES_VERSION = '^19.2.3';
+const VITE_VERSION = '^7.2.4';
+const VITE_REACT_PLUGIN_VERSION = '^5.1.1';
+const TAURI_API_VERSION = '^2.9.1';
+const NIMI_SHELL_TAURI_VERSION = '0.1.0';
 const AI_SDK_VERSION = '^6.0.85';
 const DEFAULT_DESKTOP_VERSION = '0.1.0';
 const DEFAULT_HOOK_API_VERSION = 'v1';
@@ -257,13 +265,18 @@ function ensureDirEmptyOrMissing(targetDir) {
   if (!existsSync(targetDir)) {
     return;
   }
-  const probe = spawnSync('find', [targetDir, '-mindepth', '1', '-maxdepth', '1'], {
-    stdio: ['ignore', 'pipe', 'ignore'],
-  });
-  const output = String(probe.stdout || '').trim();
-  if (output) {
-    throw new Error(`Refusing to scaffold into non-empty directory: ${targetDir}`);
+  const stat = statSync(targetDir);
+  if (!stat.isDirectory()) {
+    throw new Error(`Refusing to scaffold into non-directory path: ${targetDir}`);
   }
+  const entries = readdirSync(targetDir);
+  if (entries.length === 0) {
+    return;
+  }
+  if (entries.length === 1 && entries[0] === '.git' && statSync(path.join(targetDir, '.git')).isDirectory()) {
+    return;
+  }
+  throw new Error(`Refusing to scaffold into non-empty directory: ${targetDir}`);
 }
 
 function writeJSONFile(targetPath, value) {
@@ -274,7 +287,7 @@ function createFileTree(baseDir, files) {
   for (const file of files) {
     const targetPath = path.join(baseDir, file.path);
     mkdirSync(path.dirname(targetPath), { recursive: true });
-    writeFileSync(targetPath, file.content, 'utf8');
+    writeFileSync(targetPath, file.content);
   }
 }
 
@@ -731,17 +744,49 @@ export function createMod(cwd, options = {}) {
 }
 
 export function createApp(cwd, options = {}) {
+  const appOptions = {
+    dir: options.dir,
+    profile: options.profile,
+    appId: options.appId,
+    name: options.name,
+    title: options.title,
+    packageName: options.packageName,
+    author: options.author,
+  };
   createAppScaffold({
     cwd,
-    options,
-    versions: {
-      sdkVersion: SDK_VERSION,
-      aiSdkVersion: AI_SDK_VERSION,
-      tsxVersion: TSX_VERSION,
-      typescriptVersion: TYPESCRIPT_VERSION,
-    },
+    options: appOptions,
+    versions: appScaffoldVersions(),
     createFileTree,
     ensureDirEmptyOrMissing,
     mkdirSync,
   });
+}
+
+function appScaffoldVersions() {
+  return {
+    sdkVersion: SDK_VERSION,
+    devToolsVersion: DEV_TOOLS_VERSION,
+    aiSdkVersion: AI_SDK_VERSION,
+    nimiKitVersion: NIMI_KIT_VERSION,
+    reactVersion: REACT_VERSION,
+    reactDomVersion: REACT_DOM_VERSION,
+    tsxVersion: TSX_VERSION,
+    typescriptVersion: TYPESCRIPT_VERSION,
+    nodeTypesVersion: NODE_TYPES_VERSION,
+    reactTypesVersion: REACT_TYPES_VERSION,
+    reactDomTypesVersion: REACT_DOM_TYPES_VERSION,
+    viteVersion: VITE_VERSION,
+    viteReactPluginVersion: VITE_REACT_PLUGIN_VERSION,
+    tauriApiVersion: TAURI_API_VERSION,
+    nimiShellTauriVersion: NIMI_SHELL_TAURI_VERSION,
+  };
+}
+
+export function doctorAppScaffold(cwd, options = {}) {
+  return doctorApp(cwd, options, appScaffoldVersions());
+}
+
+export function updateAppScaffold(cwd, options = {}) {
+  return updateApp(cwd, options, appScaffoldVersions());
 }

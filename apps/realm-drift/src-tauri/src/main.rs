@@ -10,11 +10,11 @@ mod marble_commands;
 // custody; the bridge import is intentionally absent. RD-SHELL-009 wires the
 // kit OAuth commands so the renderer's `driftTauriOAuthBridge` can drive the
 // desktop-browser broker login flow (PKCE S256 via runtime BeginLogin).
-use nimi_kit_shell_tauri::desktop_paths;
-use nimi_kit_shell_tauri::oauth_commands;
-use nimi_kit_shell_tauri::runtime_bridge;
-use nimi_kit_shell_tauri::runtime_defaults as defaults;
-use nimi_kit_shell_tauri::session_logging;
+use nimi_shell_tauri::desktop_paths;
+use nimi_shell_tauri::oauth_commands;
+use nimi_shell_tauri::runtime_bridge;
+use nimi_shell_tauri::runtime_defaults as defaults;
+use nimi_shell_tauri::session_logging;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]

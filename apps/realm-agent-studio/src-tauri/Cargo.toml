@@ -12,7 +12,7 @@ tauri-build = { version = "2", features = [] }
 dotenvy = "0.15"
 serde = { version = "1", features = ["derive"] }
 tauri = { version = "2", features = ["protocol-asset"] }
-nimi-kit-shell-tauri = { path = "../../../kit/shell/tauri" }
+nimi-shell-tauri = { path = "../../../kit/shell/tauri" }
 
 [dev-dependencies]
 tempfile = "3"

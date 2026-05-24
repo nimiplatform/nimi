@@ -10,5 +10,13 @@ export {
   unstable_attachPlatformWorldEvolutionSelectorReadProvider,
 } from './platform-client.js';
 export type { PlatformClient, PlatformClientInput, PlatformAuthSessionStore } from './platform-client.js';
+export { createNimiAppRuntimePlatformClient } from './nimi-app-runtime-platform-client.js';
+export type {
+  NimiAppRuntimePlatformClientInput,
+  NimiAppAuthMode,
+  NimiAppAuthProjection,
+  NimiAppAuthUnavailable,
+  NimiAppDeveloperSession,
+} from './nimi-app-runtime-platform-client.js';
 export { withRealmContextLock } from './realm/context-lock.js';
 export type { RealmContextInput } from './realm/context-lock.js';

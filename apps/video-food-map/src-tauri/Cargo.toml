@@ -21,4 +21,4 @@ serde_json = "1"
 tauri = { version = "2", features = [] }
 url = "2"
 webbrowser = "1"
-nimi-kit-shell-tauri = { path = "../../../kit/shell/tauri" }
+nimi-shell-tauri = { path = "../../../kit/shell/tauri" }

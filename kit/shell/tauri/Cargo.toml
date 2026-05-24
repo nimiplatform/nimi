@@ -1,9 +1,11 @@
 [package]
-name = "nimi-kit-shell-tauri"
+name = "nimi-shell-tauri"
 version = "0.1.0"
 edition = "2021"
 description = "Shared Tauri host glue for Nimi apps — runtime bridge, daemon lifecycle, session logging, auth/oauth commands, runtime defaults."
-publish = false
+license = "MIT"
+repository = "https://github.com/nimiplatform/nimi"
+readme = "README.md"
 
 [dependencies]
 tauri = "2"

@@ -3,11 +3,11 @@ use crate::{
     chat_agent_store, chat_ai_store, desktop_agent_center_store, desktop_release, desktop_updates,
     external_agent_gateway, local_runtime, menu_bar_shell, runtime_bridge, runtime_mod,
 };
-use nimi_kit_shell_tauri::runtime_bridge::RuntimeBridgeHostHooks;
+use nimi_shell_tauri::runtime_bridge::RuntimeBridgeHostHooks;
 use std::sync::Arc;
 
 fn install_shared_runtime_bridge_hooks() {
-    let _ = nimi_kit_shell_tauri::runtime_bridge::set_runtime_bridge_host_hooks(
+    let _ = nimi_shell_tauri::runtime_bridge::set_runtime_bridge_host_hooks(
         RuntimeBridgeHostHooks {
             status_override: Some(Arc::new(|| {
                 crate::desktop_e2e_fixture::runtime_bridge_status_override()

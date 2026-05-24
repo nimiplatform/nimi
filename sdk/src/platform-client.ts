@@ -350,6 +350,14 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
   const authMode = input.authMode || 'web-cloud';
   const tokenValue = normalizeText(input.accessToken);
   const sessionStore = input.sessionStore ?? null;
+  const explicitRuntimeAppSession = input.runtimeAppSession
+    && normalizeText(input.runtimeAppSession.sessionId)
+    && normalizeText(input.runtimeAppSession.sessionToken)
+    ? {
+        sessionId: normalizeText(input.runtimeAppSession.sessionId),
+        sessionToken: normalizeText(input.runtimeAppSession.sessionToken),
+      }
+    : null;
   const realmBaseUrl = resolvePlatformRealmBaseUrl(input.realmBaseUrl);
   const isLocalFirstPartyRuntime = authMode === 'local-first-party-runtime';
 
@@ -359,6 +367,7 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
     || input.refreshTokenProvider
     || input.subjectUserIdProvider
     || sessionStore
+    || explicitRuntimeAppSession
   )) {
     throw createNimiError({
       message: 'local first-party Runtime mode rejects app-owned token, refresh, subject, and session store inputs',
@@ -453,6 +462,9 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
   });
 
   const runtimeAppSessionProvider = async () => {
+    if (explicitRuntimeAppSession) {
+      return explicitRuntimeAppSession;
+    }
     const subjectUserId = normalizeText(await runtimeSubjectUserIdProvider());
     if (!subjectUserId) {
       runtimeSessionCache = null;
@@ -593,6 +605,7 @@ export function createLocalFirstPartyRuntimePlatformClient(
     | 'refreshTokenProvider'
     | 'subjectUserIdProvider'
     | 'sessionStore'
+    | 'runtimeAppSession'
     | 'allowAnonymousRealm'
   >,
 ): Promise<PlatformClient> {

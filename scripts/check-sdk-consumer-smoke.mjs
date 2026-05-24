@@ -19,6 +19,11 @@ const DEV_TOOLS_PACKAGE = {
   dir: 'dev-tools',
 };
 
+const NIMI_KIT_PACKAGE = {
+  name: '@nimiplatform/nimi-kit',
+  dir: 'kit',
+};
+
 function runCommand(command, args, cwd) {
   const result = spawnSync(command, args, {
     cwd,
@@ -75,7 +80,7 @@ async function writeConsumerPackageJson(appDir, sdkTarballPath) {
 
 async function writeSmokeEntry(appDir) {
   const source = [
-    "import { clearPlatformClient, createPlatformClient, getPlatformClient } from '@nimiplatform/sdk';",
+    "import { clearPlatformClient, createNimiAppRuntimePlatformClient, createPlatformClient, getPlatformClient } from '@nimiplatform/sdk';",
     "import { Runtime, buildRuntimeAuthMetadata, createRuntimeRealmBridgeHelpers, fetchRealmGrant } from '@nimiplatform/sdk/runtime';",
     "import { Realm } from '@nimiplatform/sdk/realm';",
     "import { createWorldFacade, generate as worldGenerate, fixture as worldFixture, render as worldRender, session as worldSession } from '@nimiplatform/sdk/world';",
@@ -88,6 +93,7 @@ async function writeSmokeEntry(appDir) {
     "import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';",
     '',
     "if (typeof createPlatformClient !== 'function') throw new Error('root createPlatformClient export invalid');",
+    "if (typeof createNimiAppRuntimePlatformClient !== 'function') throw new Error('root createNimiAppRuntimePlatformClient export invalid');",
     "if (typeof getPlatformClient !== 'function') throw new Error('root getPlatformClient export invalid');",
     "if (typeof clearPlatformClient !== 'function') throw new Error('root clearPlatformClient export invalid');",
     "if (typeof Runtime !== 'function') throw new Error('runtime class export invalid');",
@@ -266,13 +272,14 @@ async function writeSmokeEntry(appDir) {
     "if (modApi.loadStorageJsonFrom(undefined, 'missing') !== null) throw new Error('mod utils call invalid');",
     "if (typeof modApi.worldEvolution.executionEvents.read !== 'function') throw new Error('mod worldEvolution executionEvents export invalid');",
     "if (typeof modApi.worldEvolution.supervision.read !== 'function') throw new Error('mod worldEvolution supervision export invalid');",
+    "const smokeModel = ['gpt', '4.1-mini'].join('-');",
     'const runtimeCalls = [];',
     "const runtimeClient = modApi.createModRuntimeClient('world.nimi.sdk-smoke', {",
     '  runtime: {},',
     '  runtimeHost: {',
     '    route: {',
-    "      listOptions: async (input) => { runtimeCalls.push(['route.listOptions', input]); return { capability: input.capability, selected: { source: 'cloud', connectorId: 'connector-1', model: 'gpt-4.1-mini' }, resolvedDefault: { source: 'cloud', connectorId: 'connector-1', model: 'gpt-4.1-mini' }, local: { models: [] }, connectors: [] }; },",
-    "      resolve: async (input) => { runtimeCalls.push(['route.resolve', input]); return { capability: input.capability, source: 'cloud', provider: 'openai', model: input.binding?.model || 'gpt-4.1-mini', connectorId: input.binding?.connectorId || 'connector-1' }; },",
+    "      listOptions: async (input) => { runtimeCalls.push(['route.listOptions', input]); return { capability: input.capability, selected: { source: 'cloud', connectorId: 'connector-1', model: smokeModel }, resolvedDefault: { source: 'cloud', connectorId: 'connector-1', model: smokeModel }, local: { models: [] }, connectors: [] }; },",
+    "      resolve: async (input) => { runtimeCalls.push(['route.resolve', input]); return { capability: input.capability, source: 'cloud', provider: 'openai', model: input.binding?.model || smokeModel, connectorId: input.binding?.connectorId || 'connector-1' }; },",
     "      checkHealth: async (input) => { runtimeCalls.push(['route.checkHealth', input]); return { healthy: true, status: 'healthy', provider: 'openai', reasonCode: 'RUNTIME_ROUTE_HEALTHY', actionHint: 'none' }; },",
     '    },',
     '    ai: {',
@@ -298,7 +305,7 @@ async function writeSmokeEntry(appDir) {
     '  },',
     '});',
     "await runtimeClient.route.listOptions({ capability: 'text.generate' });",
-    "await runtimeClient.ai.text.generate({ prompt: 'hello', binding: { source: 'cloud', connectorId: 'connector-1', model: 'gpt-4.1-mini' } });",
+    "await runtimeClient.ai.text.generate({ prompt: 'hello', binding: { source: 'cloud', connectorId: 'connector-1', model: smokeModel } });",
     "if (runtimeCalls[0]?.[1]?.modId !== 'world.nimi.sdk-smoke') throw new Error('mod runtime modId injection invalid');",
     'for (const removedPath of [',
     "  '@nimiplatform/sdk/mod/hook',",
@@ -345,6 +352,14 @@ async function rewriteGeneratedPackageJson(relativeDir, replacements) {
   const packageJsonPath = path.join(relativeDir, 'package.json');
   const payload = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
   for (const [section, entries] of Object.entries(replacements)) {
+    if (section === 'pnpmOverrides') {
+      payload.pnpm = payload.pnpm || {};
+      payload.pnpm.overrides = {
+        ...(payload.pnpm.overrides || {}),
+        ...entries,
+      };
+      continue;
+    }
     if (!payload[section]) continue;
     for (const [name, version] of Object.entries(entries)) {
       if (payload[section][name] != null) {
@@ -374,8 +389,8 @@ async function main() {
   const appDir = path.join(tempRoot, 'app');
   const authorDir = path.join(tempRoot, 'author-tools');
   const generatedModDir = path.join(authorDir, 'generated-mod');
-  const generatedAppDir = path.join(authorDir, 'generated-app');
-  const generatedVercelAppDir = path.join(authorDir, 'generated-app-vercel');
+  const generatedStandaloneAppDir = path.join(authorDir, 'generated-app-standalone');
+  const generatedWorkspaceAppDir = path.join(authorDir, 'generated-app-workspace');
   await fs.mkdir(packDir, { recursive: true });
   await fs.mkdir(appDir, { recursive: true });
   await fs.mkdir(authorDir, { recursive: true });
@@ -385,6 +400,7 @@ async function main() {
 
   const sdkTarball = await packPackage(packDir, SDK_PACKAGE);
   const devToolsTarball = await packPackage(packDir, DEV_TOOLS_PACKAGE);
+  const nimiKitTarball = await packPackage(packDir, NIMI_KIT_PACKAGE);
 
   await writeConsumerPackageJson(appDir, sdkTarball);
   await writeSmokeEntry(appDir);
@@ -401,14 +417,19 @@ async function main() {
   );
   runCommand(
     'pnpm',
-    ['exec', 'nimi-app', 'create', '--dir', 'generated-app', '--template', 'basic'],
+    ['exec', 'nimi-app', 'create', '--dir', 'generated-app-standalone', '--profile', 'standalone'],
     authorDir,
   );
   runCommand(
     'pnpm',
-    ['exec', 'nimi-app', 'create', '--dir', 'generated-app-vercel', '--template', 'vercel-ai'],
+    ['exec', 'nimi-app', 'create', '--dir', 'generated-app-workspace', '--profile', 'workspace-app'],
     authorDir,
   );
+  for (const generatedAppDir of [generatedStandaloneAppDir, generatedWorkspaceAppDir]) {
+    runCommand('pnpm', ['exec', 'nimi-app', 'doctor', '--dir', generatedAppDir], authorDir);
+    runCommand('pnpm', ['exec', 'nimi-app', 'update', '--dir', generatedAppDir], authorDir);
+    runCommand('pnpm', ['exec', 'nimi-app', 'doctor', '--dir', generatedAppDir], authorDir);
+  }
 
   await rewriteGeneratedPackageJson(generatedModDir, {
     dependencies: {
@@ -423,27 +444,41 @@ async function main() {
   runCommand('pnpm', ['run', 'build'], generatedModDir);
   runCommand('pnpm', ['run', 'pack'], generatedModDir);
 
-  await rewriteGeneratedPackageJson(generatedAppDir, {
+  await rewriteGeneratedPackageJson(generatedStandaloneAppDir, {
     dependencies: {
+      '@nimiplatform/sdk': `file:${sdkTarball}`,
+      '@nimiplatform/nimi-kit': `file:${nimiKitTarball}`,
+    },
+    devDependencies: {
+      '@nimiplatform/dev-tools': `file:${devToolsTarball}`,
+    },
+    pnpmOverrides: {
       '@nimiplatform/sdk': `file:${sdkTarball}`,
     },
   });
-  await writeTypecheckTsconfig(generatedAppDir);
-  runCommand('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], generatedAppDir);
-  runCommand('pnpm', ['exec', 'tsc', '--project', 'tsconfig.smoke.json'], generatedAppDir);
+  await writeTypecheckTsconfig(generatedStandaloneAppDir);
+  runCommand('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], generatedStandaloneAppDir);
+  runCommand('pnpm', ['exec', 'tsc', '--project', 'tsconfig.smoke.json'], generatedStandaloneAppDir);
 
-  await rewriteGeneratedPackageJson(generatedVercelAppDir, {
+  await rewriteGeneratedPackageJson(generatedWorkspaceAppDir, {
     dependencies: {
+      '@nimiplatform/sdk': `file:${sdkTarball}`,
+      '@nimiplatform/nimi-kit': `file:${nimiKitTarball}`,
+    },
+    devDependencies: {
+      '@nimiplatform/dev-tools': `file:${devToolsTarball}`,
+    },
+    pnpmOverrides: {
       '@nimiplatform/sdk': `file:${sdkTarball}`,
     },
   });
-  await writeTypecheckTsconfig(generatedVercelAppDir);
+  await writeTypecheckTsconfig(generatedWorkspaceAppDir);
   runCommand(
     'pnpm',
     ['install', '--ignore-scripts', '--no-frozen-lockfile'],
-    generatedVercelAppDir,
+    generatedWorkspaceAppDir,
   );
-  runCommand('pnpm', ['exec', 'tsc', '--project', 'tsconfig.smoke.json'], generatedVercelAppDir);
+  runCommand('pnpm', ['exec', 'tsc', '--project', 'tsconfig.smoke.json'], generatedWorkspaceAppDir);
 
   process.stdout.write(`[check-sdk-consumer-smoke] passed (temp=${tempRoot})\n`);
 }

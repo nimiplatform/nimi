@@ -44,11 +44,15 @@ cloud 首次使用必须基于 machine-scoped provider credentials；public clou
 
 ## K-CLI-009 Author App Scaffold Contract
 
-app author scaffolding 不属于 `nimi` runtime public onboarding surface；author-facing app scaffold 的 one-shot 入口必须是 `pnpm dlx @nimiplatform/dev-tools nimi-app create`，且产出的 `basic` 模板走 `Runtime.generate()` ergonomic path，`vercel-ai` 模板走 `createNimiAiProvider({ runtime })` 集成路径。
+app author scaffolding 不属于 `nimi` runtime public onboarding surface。Author-facing app scaffolding is governed by Platform `P-SCAF-*` and its admitted `nimi-app create|doctor|update` command family.
+
+Runtime CLI does not own scaffold templates, template names, generated build profiles, submitted manifests, pack / publish workflow, public admission, or generated app auth helper shape.
 
 ## K-CLI-009a Runtime / Author Tooling Boundary
 
-`nimi` public CLI 不承载 author-side scaffolding、build、dev、doctor、pack 或 publish flow。`nimi mod` 仅负责 installed mod management；mod / app 作者入口必须分别收敛到 `pnpm dlx @nimiplatform/dev-tools nimi-mod` 与 `pnpm dlx @nimiplatform/dev-tools nimi-app`。
+`nimi` public CLI 不承载 author-side scaffolding、build、dev、doctor、pack 或 publish flow。`nimi mod` 仅负责 installed mod management；mod / app 作者入口必须分别收敛到 `pnpm dlx @nimiplatform/dev-tools nimi-mod` 与 Platform-governed `nimi-app create|doctor|update`.
+
+Runtime may point developers to the app-authoring tooling, but it must not own scaffold templates, build profiles, pack, publish, admission, local audit semantics, or scaffold doctor/update semantics.
 
 ## K-CLI-010 Version Contract
 

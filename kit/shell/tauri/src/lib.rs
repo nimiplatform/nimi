@@ -1,4 +1,4 @@
-// nimi-kit-shell-tauri: Shared Tauri host glue for Nimi apps
+// nimi-shell-tauri: Shared Tauri host glue for Nimi apps
 //
 // Single shared owner for app-agnostic Rust/Tauri host glue:
 // - runtime_bridge: gRPC-over-IPC bridge (channel pool, codec, unary/stream, daemon manager)
@@ -9,6 +9,7 @@
 // - desktop_paths: nimi directory resolution
 
 pub mod auth_session_commands;
+pub mod command_registration;
 pub mod desktop_paths;
 pub mod oauth_commands;
 pub mod runtime_bridge;

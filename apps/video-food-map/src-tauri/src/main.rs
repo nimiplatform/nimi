@@ -8,8 +8,8 @@ mod script_runner;
 mod settings;
 
 // Shared modules from kit/shell/tauri crate
-pub use nimi_kit_shell_tauri::desktop_paths;
-use nimi_kit_shell_tauri::session_logging;
+pub use nimi_shell_tauri::desktop_paths;
+use nimi_shell_tauri::session_logging;
 
 use serde::Serialize;
 use std::env;

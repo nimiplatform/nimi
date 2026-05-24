@@ -6,11 +6,11 @@ use serde::Serialize;
 // SJ-SHELL-011: ShiJi MUST NOT expose the kit shared desktop auth-session
 // bridge (`auth_session_load/save/clear`). RuntimeAccountService owns token
 // custody; the bridge import is intentionally absent.
-use nimi_kit_shell_tauri::desktop_paths;
-use nimi_kit_shell_tauri::oauth_commands;
-use nimi_kit_shell_tauri::runtime_bridge;
-use nimi_kit_shell_tauri::runtime_defaults as defaults;
-use nimi_kit_shell_tauri::session_logging;
+use nimi_shell_tauri::desktop_paths;
+use nimi_shell_tauri::oauth_commands;
+use nimi_shell_tauri::runtime_bridge;
+use nimi_shell_tauri::runtime_defaults as defaults;
+use nimi_shell_tauri::session_logging;
 
 // App-local modules
 mod parent_pin;

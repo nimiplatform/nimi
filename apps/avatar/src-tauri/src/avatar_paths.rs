@@ -34,7 +34,7 @@ pub(crate) fn resolve_avatar_nimi_data_dir() -> Result<PathBuf, String> {
     let env_value = std::env::var(NIMI_DATA_ROOT_ENV).ok();
     let path = match resolve_env_nimi_data_root(env_value.as_deref())? {
         Some(path) => path,
-        None => nimi_kit_shell_tauri::desktop_paths::resolve_nimi_data_dir()?,
+        None => nimi_shell_tauri::desktop_paths::resolve_nimi_data_dir()?,
     };
     fs::create_dir_all(&path).map_err(|error| {
         format!(

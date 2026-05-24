@@ -8,7 +8,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const appsRoot = path.join(repoRoot, 'apps');
 
-const MAIN_WIRING_PATTERN = /use\s+nimi_kit_shell_tauri::runtime_defaults\s+as\s+defaults\s*;/;
+const MAIN_WIRING_PATTERN = /use\s+nimi_shell_tauri::runtime_defaults\s+as\s+defaults\s*;/;
 
 async function exists(targetPath) {
   try {
@@ -46,7 +46,7 @@ async function main() {
   if (violations.length > 0) {
     process.stderr.write('shared runtime_defaults duplicate check failed:\n');
     for (const violation of violations) {
-      process.stderr.write(`- ${violation} must be deleted because the app already wires nimi_kit_shell_tauri::runtime_defaults\n`);
+      process.stderr.write(`- ${violation} must be deleted because the app already wires nimi_shell_tauri::runtime_defaults\n`);
     }
     process.exitCode = 1;
     return;

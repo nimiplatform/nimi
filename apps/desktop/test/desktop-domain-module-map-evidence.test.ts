@@ -97,7 +97,7 @@ test('Desktop runtime bridge commands resolve through the shared Tauri shell aut
   const mainSource = readRepo('apps/desktop/src-tauri/src/main.rs');
 
   assert.match(bridgeIpcSpec, /kit\/shell\/tauri\/\*\*/);
-  assert.match(mainSource, /use nimi_kit_shell_tauri::runtime_bridge;/);
+  assert.match(mainSource, /use nimi_shell_tauri::runtime_bridge;/);
   assert.doesNotMatch(mainSource, /\bmod runtime_bridge\b/);
   assert.deepEqual(listRepoFiles('apps/desktop/src-tauri/src/runtime_bridge'), []);
   assertRepoFile('kit/shell/tauri/src/runtime_bridge/mod.rs');

@@ -1,0 +1,169 @@
+name: release-nimi-kit
+
+on:
+  push:
+    tags:
+      - nimi-kit/v*
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semver version already present in kit/package.json, for example 0.1.0 or v0.1.0
+        required: true
+        type: string
+      publish:
+        description: Publish @nimiplatform/nimi-kit to npm. false runs the dry-run release gate only.
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-nimi-kit-${{ github.ref_name || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      version_plain: ${{ steps.resolve.outputs.version_plain }}
+      publish: ${{ steps.resolve.outputs.publish }}
+    steps:
+      - name: Resolve nimi-kit release version
+        id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
+        run: |
+          set -euo pipefail
+
+          semver_regex='^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$'
+
+          if [[ "${EVENT_NAME}" == "push" ]]; then
+            case "${REF_NAME}" in
+              nimi-kit/v*)
+                version="${REF_NAME#nimi-kit/}"
+                publish="true"
+                ;;
+              *)
+                echo "unsupported nimi-kit tag format: ${REF_NAME}" >&2
+                exit 1
+                ;;
+            esac
+          else
+            version="${INPUT_VERSION}"
+            if [[ "${version}" != v* ]]; then
+              version="v${version}"
+            fi
+            publish="${INPUT_PUBLISH}"
+          fi
+
+          if ! [[ "${version}" =~ ${semver_regex} ]]; then
+            echo "invalid semver version: ${version}" >&2
+            exit 1
+          fi
+
+          {
+            echo "version=${version}"
+            echo "version_plain=${version#v}"
+            echo "publish=${publish}"
+          } >> "${GITHUB_OUTPUT}"
+
+  release:
+    needs: resolve
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_VERSION: ${{ needs.resolve.outputs.version_plain }}
+      PUBLISH: ${{ needs.resolve.outputs.publish }}
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Verify nimi-kit package version and metadata
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+
+          const pkg = JSON.parse(readFileSync('kit/package.json', 'utf8'));
+          const expectedVersion = process.env.RELEASE_VERSION;
+          if (pkg.name !== '@nimiplatform/nimi-kit') {
+            throw new Error(`unexpected kit package name: ${pkg.name}`);
+          }
+          if (pkg.version !== expectedVersion) {
+            throw new Error(`kit/package.json version ${pkg.version} does not match release ${expectedVersion}`);
+          }
+          if (pkg.private !== false) {
+            throw new Error('@nimiplatform/nimi-kit must remain public');
+          }
+          if (pkg.publishConfig?.access !== 'public') {
+            throw new Error('@nimiplatform/nimi-kit publishConfig.access must be public');
+          }
+          if (pkg.publishConfig?.provenance !== true) {
+            throw new Error('@nimiplatform/nimi-kit publishConfig.provenance must be true');
+          }
+          if (!Array.isArray(pkg.files) || !pkg.files.includes('README.md')) {
+            throw new Error('@nimiplatform/nimi-kit package files must include README.md');
+          }
+          NODE
+
+      - name: Build nimi-kit
+        run: pnpm --filter @nimiplatform/nimi-kit build
+
+      - name: Test nimi-kit
+        run: pnpm --filter @nimiplatform/nimi-kit test
+
+      - name: Check duplicate nimi-kit npm version
+        run: |
+          set -euo pipefail
+          if npm view "@nimiplatform/nimi-kit@${RELEASE_VERSION}" version >/dev/null 2>&1; then
+            if [[ "${PUBLISH}" == "true" ]]; then
+              echo "@nimiplatform/nimi-kit@${RELEASE_VERSION} already exists on npm" >&2
+              exit 1
+            fi
+            echo "@nimiplatform/nimi-kit@${RELEASE_VERSION} already exists on npm; dry-run mode will not publish"
+          else
+            echo "@nimiplatform/nimi-kit@${RELEASE_VERSION} is not published on npm"
+          fi
+
+      - name: Nimi-kit npm publish dry-run
+        run: pnpm --filter @nimiplatform/nimi-kit publish --access public --no-git-checks --dry-run
+
+      - name: Publish nimi-kit to npm
+        if: env.PUBLISH == 'true'
+        run: |
+          set -euo pipefail
+          if [[ -z "${NPM_TOKEN:-}" ]]; then
+            echo "NPM_TOKEN is required for @nimiplatform/nimi-kit publish" >&2
+            exit 1
+          fi
+          npm_config="${NPM_CONFIG_USERCONFIG:-${HOME}/.npmrc}"
+          mkdir -p "$(dirname "${npm_config}")"
+          printf '//registry.npmjs.org/:_authToken=%s\n' "${NPM_TOKEN}" > "${npm_config}"
+          export NODE_AUTH_TOKEN="${NPM_TOKEN}"
+          pnpm --filter @nimiplatform/nimi-kit publish --access public --no-git-checks --provenance

@@ -29,8 +29,8 @@ pub(crate) use avatar_visual_commands::{
 pub(crate) use avatar_visual_commands::{
     resolve_runtime_dir, scan_handler_dir, validated_avatar_visual_path,
 };
-use nimi_kit_shell_tauri::runtime_bridge;
-use nimi_kit_shell_tauri::runtime_defaults as defaults;
+use nimi_shell_tauri::runtime_bridge;
+use nimi_shell_tauri::runtime_defaults as defaults;
 use serde::Serialize;
 use serde_json::json;
 #[cfg(test)]

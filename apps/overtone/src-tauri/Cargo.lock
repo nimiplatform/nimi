@@ -2170,7 +2170,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 
 [[package]]
-name = "nimi-kit-shell-tauri"
+name = "nimi-shell-tauri"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",
@@ -2202,7 +2202,7 @@ dependencies = [
  "base64 0.22.1",
  "dirs",
  "futures-util",
- "nimi-kit-shell-tauri",
+ "nimi-shell-tauri",
  "prost",
  "prost-types",
  "protoc-bin-vendored",

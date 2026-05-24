@@ -20,16 +20,25 @@ Install for app authoring:
 
 ```bash
 pnpm add -D @nimiplatform/dev-tools
-pnpm add @nimiplatform/sdk
+pnpm add @nimiplatform/sdk @nimiplatform/nimi-kit
 ```
 
-Until `@nimiplatform/sdk` is published, external `pnpm install` for scaffolded app repos will not succeed. The scaffold shape is still the intended public output.
+`nimi-app create` emits Tauri app-authoring scaffolds. Generated pack,
+validate, and local-audit outputs are pre-submission self-checks only; public
+Nimi App admission remains an upstream Platform review outcome.
+`nimi-app doctor` verifies scaffold lock, managed glue, package-owned
+projections, and boundary wording in a developer source checkout. `nimi-app
+update` refreshes scaffold-managed glue and package-owned projections while
+preserving app-owned product code.
 
 Commands:
 
 ```bash
 pnpm dlx @nimiplatform/dev-tools nimi-mod create
-pnpm dlx @nimiplatform/dev-tools nimi-app create
+pnpm dlx @nimiplatform/dev-tools nimi-app create --profile standalone
+pnpm dlx @nimiplatform/dev-tools nimi-app create --profile workspace-app
+pnpm dlx @nimiplatform/dev-tools nimi-app doctor --dir path/to/app
+pnpm dlx @nimiplatform/dev-tools nimi-app update --dir path/to/app
 nimi-mod build
 nimi-mod dev
 nimi-mod doctor
@@ -59,7 +68,11 @@ Reserved `nimi-app`-only release fields:
 
 Those three fields are only valid when `NIMI_MOD_PACKAGE_TYPE=nimi-app`.
 
-`nimi-mod` is for mod-author workflows. `nimi-app` currently exposes only `create`.
+`nimi-mod` is for mod-author workflows. `nimi-app` exposes developer
+app-authoring `create`, `doctor`, and `update` commands with the `standalone`
+and `workspace-app` profiles. These commands do not create public admission,
+permission grants, registry visibility, release descriptors, or installed-app
+update truth.
 
 Suggested mod repo scripts:
 

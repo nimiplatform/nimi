@@ -116,7 +116,7 @@ modules:
     kind: infra
     surface_level: infra
     adapter_contract: none
-    description: Shared Tauri host glue — runtime bridge, daemon lifecycle, session logging, auth/oauth commands, runtime defaults. Delivered as a Rust crate (non-npm) within the single kit authority.
+    description: Shared Tauri host glue — runtime bridge, daemon lifecycle, session logging, auth/oauth commands, runtime defaults. Delivered as the public Rust crate nimi-shell-tauri for standalone apps and as a Cargo path dependency for workspace apps, within the single kit authority.
     dependencies: []
     peer_dependencies: []
     exports: []
@@ -126,7 +126,11 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-041
-    notes: Non-npm Rust crate. Apps consume via Cargo path dependency, not subpath import. No package.json exports.
+    public_crate_name: nimi-shell-tauri
+    standalone_dependency: published_crate_after_wave_1_api_publication
+    workspace_dependency: cargo_path_dependency
+    wave_0_implementation_rename: none
+    notes: Non-npm Rust crate. Standalone apps consume the public delivery crate name nimi-shell-tauri after Wave 1 admits API/publication mechanics; workspace apps consume via Cargo path dependency. No package.json exports. Wave 0 does not rename implementation files, package manifests, crate source, package exports, or the kit.shell.tauri authority id.
   - id: kit.shell.renderer
     subpath: /shell/renderer
     kind: infra
