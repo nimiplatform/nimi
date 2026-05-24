@@ -60,6 +60,12 @@ func TestLoadAppliesGeminiDefaultBaseURLWhenCanonicalKeyPresent(t *testing.T) {
 	if got := strings.TrimSpace(ResolveProviderAPIKey(target)); got != "canonical-key" {
 		t.Fatalf("gemini key mismatch: %q", got)
 	}
+	if got := strings.TrimSpace(target.APIKeyEnv); got != "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY" {
+		t.Fatalf("gemini key env mismatch: %q", got)
+	}
+	if got := strings.TrimSpace(target.APIKey); got != "" {
+		t.Fatalf("env-only provider must not retain resolved key material in config target: %q", got)
+	}
 	if got := strings.TrimSpace(target.BaseURL); got != defaultCloudGeminiBaseURL {
 		t.Fatalf("gemini default base mismatch: %q", got)
 	}
@@ -80,6 +86,12 @@ func TestLoadAppliesCatalogDefaultBaseURLForRegistryProvider(t *testing.T) {
 	}
 	if got := strings.TrimSpace(ResolveProviderAPIKey(target)); got != "deepseek-key" {
 		t.Fatalf("deepseek key mismatch: %q", got)
+	}
+	if got := strings.TrimSpace(target.APIKeyEnv); got != "NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY" {
+		t.Fatalf("deepseek key env mismatch: %q", got)
+	}
+	if got := strings.TrimSpace(target.APIKey); got != "" {
+		t.Fatalf("env-only provider must not retain resolved key material in config target: %q", got)
 	}
 	if got := strings.TrimSpace(target.BaseURL); got != "https://api.deepseek.com/v1" {
 		t.Fatalf("deepseek default base mismatch: %q", got)

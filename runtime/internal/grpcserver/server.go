@@ -509,10 +509,11 @@ func buildCloudConnectorDefs(cfg config.Config) []connectorservice.CloudConnecto
 		}
 		label := "Cloud " + capitalizeFirst(canonical)
 		defs = append(defs, connectorservice.CloudConnectorDef{
-			Provider: canonical,
-			Endpoint: endpoint,
-			APIKey:   apiKey,
-			Label:    label,
+			Provider:  canonical,
+			Endpoint:  endpoint,
+			APIKey:    apiKey,
+			APIKeyEnv: strings.TrimSpace(target.APIKeyEnv),
+			Label:     label,
 		})
 	}
 	return defs

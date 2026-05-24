@@ -9,37 +9,22 @@ on:
 permissions:
   contents: read
 
-env:
-  NIMI_MODS_REF: 931311bcc79ce93195e539da793a05579ee66194 # pragma: allowlist secret
-
 jobs:
   live-smoke-gate:
     if: startsWith(github.ref, 'refs/tags/runtime/v')
     runs-on: ubuntu-latest
     env:
-      NIMI_MODS_LIVE: '1'
       NIMI_LIVE_GEMINI_API_KEY: ${{ secrets.NIMI_LIVE_GEMINI_API_KEY }}
       NIMI_LIVE_GEMINI_MODEL_ID: ${{ vars.NIMI_LIVE_GEMINI_MODEL_ID || 'gemini-3-flash-preview' }}
-      NIMI_LIVE_ALIBABA_BASE_URL: ${{ vars.NIMI_LIVE_ALIBABA_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1' }}
-      NIMI_LIVE_ALIBABA_API_KEY: ${{ secrets.NIMI_LIVE_ALIBABA_API_KEY }}
-      NIMI_LIVE_ALIBABA_CHAT_MODEL_ID: ${{ vars.NIMI_LIVE_ALIBABA_CHAT_MODEL_ID || 'alibaba/qwen-turbo' }}
-      NIMI_LIVE_DASHSCOPE_BASE_URL: ${{ vars.NIMI_LIVE_ALIBABA_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1' }}
-      NIMI_LIVE_DASHSCOPE_API_KEY: ${{ secrets.NIMI_LIVE_ALIBABA_API_KEY }}
+      NIMI_LIVE_DASHSCOPE_BASE_URL: ${{ vars.NIMI_LIVE_DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1' }}
+      NIMI_LIVE_DASHSCOPE_API_KEY: ${{ secrets.NIMI_LIVE_DASHSCOPE_API_KEY }}
+      NIMI_LIVE_DASHSCOPE_MODEL_ID: ${{ vars.NIMI_LIVE_DASHSCOPE_MODEL_ID || 'qwen3-max' }}
       NIMI_LIVE_GOLD_SUBJECT_USER_ID: ${{ vars.NIMI_LIVE_GOLD_SUBJECT_USER_ID || 'gold-user' }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-
-      - name: Checkout nimi-mods (pinned external repo)
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: nimiplatform/nimi-mods
-          token: ${{ secrets.NIMI_MODS_REPO_TOKEN || github.token }}
-          ref: ${{ env.NIMI_MODS_REF }}
-          path: nimi-mods
-          fetch-depth: 1
 
       - name: Setup pnpm
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
@@ -60,9 +45,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
-
-      - name: Install nimi-mods dependencies
-        run: pnpm --dir nimi-mods install --no-frozen-lockfile
 
       # >>> nimi-release-gate-projection: live-smoke-checks >>>
       - name: gate.live.live2d-companion-timeline-acceptance

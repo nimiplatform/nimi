@@ -98,6 +98,29 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 	}
 }
 
+func TestBuildCloudConnectorDefsPreservesEnvCredentialSource(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY", "dashscope-env-key")
+	cfg := config.Config{
+		Providers: map[string]config.RuntimeFileTarget{
+			"dashscope": {
+				BaseURL:   "https://dashscope.aliyuncs.com/compatible-mode/v1",
+				APIKeyEnv: "NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY",
+			},
+		},
+	}
+
+	defs := buildCloudConnectorDefs(cfg)
+	if len(defs) != 1 {
+		t.Fatalf("expected one cloud connector def, got %d", len(defs))
+	}
+	if defs[0].APIKey != "dashscope-env-key" {
+		t.Fatalf("api key mismatch: %q", defs[0].APIKey)
+	}
+	if defs[0].APIKeyEnv != "NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY" {
+		t.Fatalf("api key env mismatch: %q", defs[0].APIKeyEnv)
+	}
+}
+
 func TestLoadNimiAppRegistryCatalog(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "nimi-app-registry.yaml")

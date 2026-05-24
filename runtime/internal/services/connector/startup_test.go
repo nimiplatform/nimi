@@ -1,6 +1,7 @@
 package connector
 
 import (
+	"errors"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -236,6 +237,99 @@ func TestEnsureCloudConnectorsFromConfig_CredentialStored(t *testing.T) {
 	}
 	if apiKey != "sk-test" {
 		t.Fatalf("expected stored credential, got %q", apiKey)
+	}
+}
+
+func TestEnsureCloudConnectorsFromConfig_EnvBackedCredentialDoesNotUseSecureStore(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY", "dashscope-env-key")
+	store := newConnectorStore(t.TempDir(), failingSecretStore{err: errors.New("secure store unavailable")})
+
+	defs := []CloudConnectorDef{
+		{
+			Provider:  "dashscope",
+			Endpoint:  "https://dashscope.aliyuncs.com/compatible-mode/v1",
+			APIKey:    "dashscope-env-key",
+			APIKeyEnv: "NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY",
+			Label:     "Cloud DashScope",
+		},
+	}
+	if err := EnsureCloudConnectorsFromConfig(store, defs); err != nil {
+		t.Fatalf("create env-backed connector: %v", err)
+	}
+
+	connectorID := SystemCloudConnectorID("dashscope")
+	rec, found, err := store.Get(connectorID)
+	if err != nil || !found {
+		t.Fatalf("get env-backed connector: found=%v err=%v", found, err)
+	}
+	if rec.CredentialEnv != "NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY" {
+		t.Fatalf("credential env mismatch: got=%q", rec.CredentialEnv)
+	}
+	if !rec.HasCredential {
+		t.Fatal("env-backed connector should report credential present while env is set")
+	}
+	key, err := store.LoadCredential(connectorID)
+	if err != nil {
+		t.Fatalf("LoadCredential should resolve from env without secure store: %v", err)
+	}
+	if key != "dashscope-env-key" {
+		t.Fatalf("env credential mismatch: got=%q", key)
+	}
+
+	t.Setenv("NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY", "dashscope-env-key-rotated")
+	defs[0].APIKey = "dashscope-env-key-rotated"
+	if err := EnsureCloudConnectorsFromConfig(store, defs); err != nil {
+		t.Fatalf("rotate env-backed connector: %v", err)
+	}
+	key, err = store.LoadCredential(connectorID)
+	if err != nil {
+		t.Fatalf("LoadCredential after env rotation: %v", err)
+	}
+	if key != "dashscope-env-key-rotated" {
+		t.Fatalf("rotated env credential mismatch: got=%q", key)
+	}
+}
+
+func TestReconcileStartup_EnvBackedCredentialDoesNotUseSecureStore(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY", "dashscope-env-key")
+	store := newConnectorStore(t.TempDir(), failingSecretStore{err: errors.New("secure store unavailable")})
+	connectorID := SystemCloudConnectorID("dashscope")
+	if _, err := store.Create(ConnectorRecord{
+		ConnectorID:   connectorID,
+		Kind:          runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:     runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
+		OwnerID:       "system",
+		Provider:      "dashscope",
+		Endpoint:      "https://dashscope.aliyuncs.com/compatible-mode/v1",
+		Label:         "Cloud DashScope",
+		Status:        runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+		AuthKind:      runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY,
+		CredentialEnv: "NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY",
+	}, ""); err != nil {
+		t.Fatalf("create env-backed connector: %v", err)
+	}
+
+	if err := store.ReconcileStartup(); err != nil {
+		t.Fatalf("reconcile with env credential: %v", err)
+	}
+	rec, found, err := store.Get(connectorID)
+	if err != nil || !found {
+		t.Fatalf("get reconciled env-backed connector: found=%v err=%v", found, err)
+	}
+	if !rec.HasCredential {
+		t.Fatal("reconcile should keep env-backed credential present while env is set")
+	}
+
+	t.Setenv("NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY", "")
+	if err := store.ReconcileStartup(); err != nil {
+		t.Fatalf("reconcile with missing env credential: %v", err)
+	}
+	rec, found, err = store.Get(connectorID)
+	if err != nil || !found {
+		t.Fatalf("get reconciled missing-env connector: found=%v err=%v", found, err)
+	}
+	if rec.HasCredential {
+		t.Fatal("reconcile should mark env-backed credential missing when env is empty")
 	}
 }
 

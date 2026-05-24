@@ -409,21 +409,19 @@ gates:
     experimental: false
 
   - id: gate.desktop.mods-smoke
-    description: Desktop mods smoke test against all admitted mods.
+    description: Desktop mods smoke test paused outside product release path pending mod cleanup.
     command: pnpm check:desktop-mods-smoke
     runner: pnpm
-    tiers: [release, release-target:desktop]
-    targets: [desktop, mods]
+    tiers: [release, release-target:mods]
+    targets: [mods]
     timeout_seconds: 600
     requires_binaries: [pnpm]
-    requires_external_repo: [nimi-mods]
-    blocker_semantics:
-      on_external_repo_unavailable: blocked
     evidence:
       shape: command_exit
     p_relg_anchors: [P-RELG-001, P-RELG-006]
     parent_p_gov_anchors: [P-GOV-003, P-GOV-011]
-    experimental: false
+    experimental: true
+    notes: Product runtime/desktop release gates no longer depend on the external mods repo; dev-tools/mod cleanup owns reactivation.
 
   - id: gate.desktop.e2e-smoke
     description: Desktop E2E smoke test (Linux/Windows CI only; macOS uses manual smoke).
@@ -482,23 +480,19 @@ gates:
     experimental: false
 
   - id: gate.desktop.env-mods-root
-    description: Desktop release-time env validation for NIMI_MODS_ROOT.
+    description: Legacy desktop mods env validation paused outside product release path.
     command: pnpm --filter @nimiplatform/desktop run env:check:mods-root
     runner: pnpm
-    tiers: [release, release-target:desktop]
-    targets: [desktop]
+    tiers: [release, release-target:mods]
+    targets: [mods]
     timeout_seconds: 60
     requires_binaries: [pnpm]
-    requires_env: [NIMI_MODS_ROOT, NIMI_RUNTIME_MODS_DIR]
-    requires_external_repo: [nimi-mods]
-    blocker_semantics:
-      on_env_missing: blocked
-      on_external_repo_unavailable: blocked
     evidence:
       shape: command_exit
     p_relg_anchors: [P-RELG-001, P-RELG-006]
     parent_p_gov_anchors: [P-GOV-003, P-GOV-011]
-    experimental: false
+    experimental: true
+    notes: Product runtime/desktop release gates no longer provide external mods env; dev-tools/mod cleanup owns reactivation.
 
   - id: gate.desktop.version-sync
     description: Desktop version sync verification.
@@ -720,21 +714,19 @@ gates:
     experimental: false
 
   # =====================================================================
-  # owner: live (live-tier gates; require secrets + nimi-mods checkout)
+  # owner: live (live-tier gates; release-blocking only for runtime/desktop)
   # =====================================================================
   - id: gate.live.provider-invariants
     description: Live provider invariants validation (model id stability, capability declarations, fallback hardcut).
     command: pnpm check:live-provider-invariants
     runner: pnpm
     tiers: [release, live]
-    targets: [runtime, sdk, desktop]
+    targets: [runtime, desktop]
     timeout_seconds: 600
     requires_binaries: [pnpm]
-    requires_secrets: [NIMI_LIVE_GEMINI_API_KEY, NIMI_LIVE_ALIBABA_API_KEY]
-    requires_external_repo: [nimi-mods]
+    requires_secrets: [NIMI_LIVE_GEMINI_API_KEY, NIMI_LIVE_DASHSCOPE_API_KEY]
     blocker_semantics:
       on_secrets_missing: blocked
-      on_external_repo_unavailable: blocked
     evidence:
       shape: command_exit
     p_relg_anchors: [P-RELG-001, P-RELG-006]
@@ -746,14 +738,12 @@ gates:
     command: pnpm check:live-smoke-gate --require-release
     runner: pnpm
     tiers: [release, live]
-    targets: [runtime, sdk, desktop]
+    targets: [runtime, desktop]
     timeout_seconds: 1800
     requires_binaries: [pnpm]
-    requires_secrets: [NIMI_LIVE_GEMINI_API_KEY, NIMI_LIVE_ALIBABA_API_KEY]
-    requires_external_repo: [nimi-mods]
+    requires_secrets: [NIMI_LIVE_GEMINI_API_KEY, NIMI_LIVE_DASHSCOPE_API_KEY]
     blocker_semantics:
       on_secrets_missing: blocked
-      on_external_repo_unavailable: blocked
     evidence:
       shape: command_exit
     prerequisites: [gate.live.test-matrix]
@@ -780,7 +770,7 @@ gates:
     command: pnpm check:live2d-companion-timeline-acceptance
     runner: pnpm
     tiers: [release, live]
-    targets: [sdk, desktop]
+    targets: [desktop]
     timeout_seconds: 300
     requires_binaries: [pnpm]
     evidence:
@@ -794,14 +784,12 @@ gates:
     command: node scripts/run-live-test-matrix.mjs
     runner: node
     tiers: [release, live, nightly]
-    targets: [any]
+    targets: [runtime, desktop]
     timeout_seconds: 3600
     requires_binaries: [node]
-    requires_secrets: [NIMI_LIVE_GEMINI_API_KEY, NIMI_LIVE_ALIBABA_API_KEY]
-    requires_external_repo: [nimi-mods]
+    requires_secrets: [NIMI_LIVE_GEMINI_API_KEY, NIMI_LIVE_DASHSCOPE_API_KEY]
     blocker_semantics:
       on_secrets_missing: blocked
-      on_external_repo_unavailable: blocked
     evidence:
       shape: command_exit
     prerequisites: [gate.live.live2d-companion-timeline-acceptance, gate.live.provider-invariants]

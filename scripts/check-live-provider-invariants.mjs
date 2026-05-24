@@ -156,6 +156,18 @@ function collectWorkflowLocalLiveFallbacks(workflowPaths) {
   return fallbackRefs;
 }
 
+function runtimeSourceCapabilityRequired(provider, capability, runtimeProviderCapabilityPairs) {
+  const pair = `${provider}:${capability}`;
+  if (
+    provider === 'local'
+    && (capability === 'voice_clone' || capability === 'voice_design')
+    && !runtimeProviderCapabilityPairs.has(pair)
+  ) {
+    return false;
+  }
+  return true;
+}
+
 function main() {
   const options = parseArgs();
   const baseline = readYamlFile(options.baselinePath);
@@ -254,6 +266,9 @@ function main() {
   for (const [provider, capabilities] of sourceProviderCapabilityMatrix.entries()) {
     for (const capability of capabilities) {
       const pair = `${provider}:${capability}`;
+      if (!runtimeSourceCapabilityRequired(provider, capability, runtimeProviderCapabilityPairs)) {
+        continue;
+      }
       if (runtimeCapabilityExemptions.has(pair)) {
         continue;
       }

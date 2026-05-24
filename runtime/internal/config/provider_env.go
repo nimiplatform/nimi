@@ -53,7 +53,8 @@ func resolveCloudProviders(fileTargets map[string]RuntimeFileTarget) map[string]
 			resolvedBase = strings.TrimSpace(target.BaseURL)
 		}
 
-		resolvedAPIKey := resolveProviderAPIKeyWithBinding(target, binding.apiKeyKey)
+		resolvedAPIKey, resolvedAPIKeyEnv := resolveProviderAPIKeyWithBindingSource(target, binding.apiKeyKey)
+		declaredAPIKeyEnv := strings.TrimSpace(target.APIKeyEnv)
 		if resolvedBase == "" && resolvedAPIKey == "" && strings.TrimSpace(target.DefaultModel) == "" {
 			continue
 		}
@@ -62,8 +63,16 @@ func resolveCloudProviders(fileTargets map[string]RuntimeFileTarget) map[string]
 		}
 
 		target.BaseURL = resolvedBase
-		target.APIKey = resolvedAPIKey
-		target.APIKeyEnv = ""
+		if resolvedAPIKeyEnv != "" {
+			target.APIKey = ""
+			target.APIKeyEnv = resolvedAPIKeyEnv
+		} else if declaredAPIKeyEnv != "" && resolvedAPIKey == "" {
+			target.APIKey = ""
+			target.APIKeyEnv = declaredAPIKeyEnv
+		} else {
+			target.APIKey = resolvedAPIKey
+			target.APIKeyEnv = ""
+		}
 		resolved[binding.canonicalID] = target
 	}
 
@@ -97,17 +106,22 @@ func ResolveProviderAPIKey(target RuntimeFileTarget) string {
 }
 
 func resolveProviderAPIKeyWithBinding(target RuntimeFileTarget, fallbackEnvKey string) string {
+	value, _ := resolveProviderAPIKeyWithBindingSource(target, fallbackEnvKey)
+	return value
+}
+
+func resolveProviderAPIKeyWithBindingSource(target RuntimeFileTarget, fallbackEnvKey string) (string, string) {
 	if envRef := strings.TrimSpace(target.APIKeyEnv); envRef != "" {
 		if value := strings.TrimSpace(os.Getenv(envRef)); value != "" {
-			return value
+			return value, envRef
 		}
 	}
 	if fallbackEnvKey != "" {
 		if value := strings.TrimSpace(os.Getenv(fallbackEnvKey)); value != "" {
-			return value
+			return value, fallbackEnvKey
 		}
 	}
-	return strings.TrimSpace(target.APIKey)
+	return strings.TrimSpace(target.APIKey), ""
 }
 
 // NormalizeProviderName strips non-alphanumeric characters and lowercases.

@@ -196,6 +196,12 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 	if got := ResolveProviderAPIKey(target); got != "gemini-from-env" {
 		t.Fatalf("gemini key mismatch: %q", got)
 	}
+	if got := strings.TrimSpace(target.APIKeyEnv); got != "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY" {
+		t.Fatalf("gemini key env mismatch: %q", got)
+	}
+	if got := strings.TrimSpace(target.APIKey); got != "" {
+		t.Fatalf("env-backed provider must not retain resolved key material in config target: %q", got)
+	}
 	if got := strings.TrimSpace(target.BaseURL); got != defaultCloudGeminiBaseURL {
 		t.Fatalf("gemini base mismatch: %q", got)
 	}
@@ -471,6 +477,12 @@ func TestLoadEnvOverridesConfigFile(t *testing.T) {
 	}
 	if got := strings.TrimSpace(ResolveProviderAPIKey(target)); got != "env-key" {
 		t.Fatalf("gemini key should keep env override: %q", got)
+	}
+	if got := strings.TrimSpace(target.APIKeyEnv); got != "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY" {
+		t.Fatalf("gemini key env should keep env override source: %q", got)
+	}
+	if got := strings.TrimSpace(target.APIKey); got != "" {
+		t.Fatalf("env override must not persist resolved key material in config target: %q", got)
 	}
 }
 

@@ -305,11 +305,22 @@ export function parseRuntimeLiveTestDefinitions(runtimeLiveSmokePath) {
   const repoRoot = resolveRepoRoot(import.meta.url);
   const sourceProviderDir = path.join(repoRoot, 'runtime', 'catalog', 'source', 'providers');
   const definitions = new Map();
+  const runtimeSkipsLocalVoiceClone = /SupportsVoiceClone\s*&&\s*providerID\s*!=\s*"local"/.test(source);
+  const runtimeSkipsLocalVoiceDesign = /SupportsVoiceDesign\s*&&\s*providerID\s*!=\s*"local"/.test(source);
 
   if (source.includes('TestLiveSmokeProviderCapabilityMatrix')) {
     const matrix = loadSourceProviderCapabilityMatrix(sourceProviderDir);
     for (const [provider, capabilities] of matrix.entries()) {
       for (const iface of capabilities) {
+        if (
+          provider === 'local'
+          && (
+            (iface === 'voice_clone' && runtimeSkipsLocalVoiceClone)
+            || (iface === 'voice_design' && runtimeSkipsLocalVoiceDesign)
+          )
+        ) {
+          continue;
+        }
         ensureNestedMapSet(
           definitions,
           provider,

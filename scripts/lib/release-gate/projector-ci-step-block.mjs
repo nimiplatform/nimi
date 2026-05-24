@@ -57,7 +57,7 @@ export const PROJECTION_KEY_CATALOG = {
     description: 'release.yml release-desktop pre-bundle gates',
     tierFilter: 'release-target:desktop',
     targetFilter: 'desktop',
-    includeIdSubstrings: ['version-sync', 'release-sync', 'updater-artifacts', 'env-mods-root', 'runtime-release-signing'],
+    includeIdSubstrings: ['version-sync', 'release-sync', 'updater-artifacts', 'runtime-release-signing'],
     intersectFilter: true,
   },
   'release-target-proto-checks': {

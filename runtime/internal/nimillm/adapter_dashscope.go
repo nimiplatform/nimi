@@ -143,7 +143,7 @@ func ExecuteAlibabaNative(
 			submitPayload["content"] = content
 		}
 		submitResp := map[string]any{}
-		if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
+		if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp, dashScopeAsyncTaskHeaders()); err != nil {
 			return nil, nil, "", err
 		}
 		providerJobID := ExtractTaskIDFromAdapterPayload(AdapterAlibabaNative, submitResp)
@@ -295,6 +295,7 @@ func ExecuteDashScopeTranscribe(
 			"role": "system",
 			"content": []map[string]any{
 				{
+					"type": "text",
 					"text": systemMessage,
 				},
 			},
@@ -353,6 +354,12 @@ func ExecuteDashScopeTranscribe(
 	artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), artifactMeta)
 	ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
 	return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
+}
+
+func dashScopeAsyncTaskHeaders() map[string]string {
+	return map[string]string{
+		"X-DashScope-Async": "enable",
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -491,9 +498,7 @@ func buildAlibabaImageSubmitRequest(
 		if len(scenarioExtensions) > 0 {
 			payload["extensions"] = scenarioExtensions
 		}
-		return submitPath, queryPathTemplate, payload, map[string]string{
-			"X-DashScope-Async": "enable",
-		}
+		return submitPath, queryPathTemplate, payload, dashScopeAsyncTaskHeaders()
 	case dashScopeImageRequestContractAsyncText2Image:
 		input := map[string]any{
 			"prompt": strings.TrimSpace(spec.GetPrompt()),
@@ -524,9 +529,7 @@ func buildAlibabaImageSubmitRequest(
 		if len(scenarioExtensions) > 0 {
 			payload["extensions"] = scenarioExtensions
 		}
-		return submitPath, queryPathTemplate, payload, map[string]string{
-			"X-DashScope-Async": "enable",
-		}
+		return submitPath, queryPathTemplate, payload, dashScopeAsyncTaskHeaders()
 	default:
 		// qwen-image-2.0 / z-image / flux image generation follows the
 		// synchronous multimodal contract, while wan stays on async tasks.

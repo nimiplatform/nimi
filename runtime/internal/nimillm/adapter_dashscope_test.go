@@ -227,6 +227,9 @@ func TestExecuteDashScopeTranscribeUsesCompatibleChatPath(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected system text item map, got=%T", systemContent[0])
 	}
+	if got := strings.TrimSpace(ValueAsString(systemText["type"])); got != "text" {
+		t.Fatalf("expected system text item type=text, got=%q", got)
+	}
 	if got := strings.TrimSpace(ValueAsString(systemText["text"])); !strings.Contains(got, "Domain terms: Nimi Realm") {
 		t.Fatalf("expected system text context, got=%q", got)
 	}
@@ -491,6 +494,109 @@ func TestExecuteAlibabaNativeImageWan26UsesAsyncImageGenerationContract(t *testi
 	}
 	if got := string(artifacts[0].GetBytes()); got != "wan-image-bytes" {
 		t.Fatalf("unexpected image bytes: %q", got)
+	}
+}
+
+func TestExecuteAlibabaNativeVideoUsesAsyncTaskContract(t *testing.T) {
+	var capturedPayload map[string]any
+	var capturedAsyncHeader string
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services/aigc/video-generation/video-synthesis":
+			capturedAsyncHeader = strings.TrimSpace(r.Header.Get("X-DashScope-Async"))
+			_ = json.NewDecoder(r.Body).Decode(&capturedPayload)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"output": map[string]any{
+					"task_id":     "wan-video-task-1",
+					"task_status": "PENDING",
+				},
+			})
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/tasks/wan-video-task-1":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"output": map[string]any{
+					"task_id":     "wan-video-task-1",
+					"task_status": "SUCCEEDED",
+					"video_url":   server.URL + "/artifact.mp4",
+				},
+			})
+		case r.Method == http.MethodGet && r.URL.Path == "/artifact.mp4":
+			w.Header().Set("Content-Type", "video/mp4")
+			_, _ = w.Write([]byte("wan-video-bytes"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer func() { server.Close() }()
+
+	artifacts, _, providerJobID, err := ExecuteAlibabaNative(
+		context.Background(),
+		MediaAdapterConfig{
+			BaseURL:               server.URL + "/compatible-mode/v1",
+			AllowLoopbackEndpoint: true,
+			APIKey:                "test-api-key",
+		},
+		noopGeminiJobUpdater{},
+		"job-video-test",
+		&runtimev1.SubmitScenarioJobRequest{
+			ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+			Spec: &runtimev1.ScenarioSpec{
+				Spec: &runtimev1.ScenarioSpec_VideoGenerate{
+					VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
+						Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
+						Content: []*runtimev1.VideoContentItem{
+							{
+								Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+								Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+								Text: "A short cinematic sunrise shot.",
+							},
+						},
+						Options: &runtimev1.VideoGenerationOptions{
+							DurationSec: 4,
+							Resolution:  "720p",
+						},
+					},
+				},
+			},
+		},
+		"wan2.7-t2v",
+	)
+	if err != nil {
+		t.Fatalf("ExecuteAlibabaNative video failed: %v", err)
+	}
+	if providerJobID != "wan-video-task-1" {
+		t.Fatalf("unexpected providerJobID: %q", providerJobID)
+	}
+	if capturedAsyncHeader != "enable" {
+		t.Fatalf("expected X-DashScope-Async enable, got=%q", capturedAsyncHeader)
+	}
+	if got := strings.TrimSpace(toString(capturedPayload["model"])); got != "wan2.7-t2v" {
+		t.Fatalf("expected wan2.7-t2v model, got=%q", got)
+	}
+	input, ok := capturedPayload["input"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected input payload, got=%T", capturedPayload["input"])
+	}
+	if got := strings.TrimSpace(toString(input["prompt"])); got != "A short cinematic sunrise shot." {
+		t.Fatalf("unexpected input prompt: %q", got)
+	}
+	parameters, ok := capturedPayload["parameters"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected parameters payload, got=%T", capturedPayload["parameters"])
+	}
+	if got, ok := parameters["duration_sec"].(float64); !ok || got != 4 {
+		t.Fatalf("unexpected duration_sec: %#v", parameters["duration_sec"])
+	}
+	if got := strings.TrimSpace(toString(parameters["resolution"])); got != "720p" {
+		t.Fatalf("unexpected resolution: %q", got)
+	}
+	if len(artifacts) != 1 {
+		t.Fatalf("expected one video artifact, got=%d", len(artifacts))
+	}
+	if got := string(artifacts[0].GetBytes()); got != "wan-video-bytes" {
+		t.Fatalf("unexpected video bytes: %q", got)
 	}
 }
 
