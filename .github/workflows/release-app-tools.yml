@@ -206,7 +206,15 @@ jobs:
 
           npm view "@nimiplatform/sdk@${sdk_version}" version >/dev/null
           npm view "@nimiplatform/kit@${kit_version}" version >/dev/null
-          curl --fail --silent --show-error "https://crates.io/api/v1/crates/nimi-shell-tauri/${shell_version}" >/dev/null
+          crate_index="$(curl --fail --silent --show-error https://index.crates.io/ni/mi/nimi-shell-tauri)"
+          CRATE_INDEX="${crate_index}" SHELL_VERSION="${shell_version}" node --input-type=module <<'NODE'
+          const entries = process.env.CRATE_INDEX.trim().split('\n').map((line) => JSON.parse(line));
+          const expected = process.env.SHELL_VERSION;
+          const match = entries.find((entry) => entry.vers === expected && entry.yanked !== true);
+          if (!match) {
+            throw new Error(`nimi-shell-tauri ${expected} is not visible in the crates.io sparse index`);
+          }
+          NODE
 
       - name: App-tools npm publish dry-run
         run: pnpm --filter @nimiplatform/app-tools publish --access public --no-git-checks --dry-run
