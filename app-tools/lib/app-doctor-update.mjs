@@ -210,6 +210,8 @@ function buildForbiddenPatterns() {
     ['stale Runtime shell API', new RegExp(runtimeBridgeName)],
     ['retired template flag', new RegExp(retiredFlag.replace('-', '\\-'))],
     ['retired template builder', new RegExp(retiredBuilders)],
+    ['retired kit package name', /@nimiplatform\/nimi-kit/],
+    ['retired developer tools package name', /@nimiplatform\/dev-tools/],
     ['retired profile switch branch', new RegExp(`case\\s+['"](?:${retiredProfiles.join('|')})['"]`)],
     ['retired submitted profile', new RegExp(`(?:profile|template):\\s*(?:${retiredProfiles.join('|')})\\b`)],
     ['retired vercel profile remnant', new RegExp(retiredProfiles[1])],
@@ -270,6 +272,20 @@ function assertSemanticMarkers(targetDir) {
   }
   if (/admitted|descriptor_role:\s*release|grant(ed)?_permissions/i.test(manifest)) {
     throw new Error('Submitted manifest contains admission or grant wording');
+  }
+
+  const submission = readFileSync(path.join(targetDir, '.nimi/admission/submission.yaml'), 'utf8');
+  for (const marker of [
+    'submission_role: developer-submitted-input',
+    'dev_shell_command: pnpm dev:shell',
+    'admission_truth: platform-owned-after-review',
+  ]) {
+    if (!submission.includes(marker)) {
+      throw new Error(`Admission submission marker missing: ${marker}`);
+    }
+  }
+  if (/admitted|descriptor_role:\s*release|grant(ed)?_permissions/i.test(submission)) {
+    throw new Error('Admission submission contains admission or grant wording');
   }
 
   const buildProfile = readFileSync(path.join(targetDir, '.nimi/config/build-profile.yaml'), 'utf8');

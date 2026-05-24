@@ -23,6 +23,7 @@ const versions = {
   viteVersion: '7.0.0',
   viteReactPluginVersion: '5.0.0',
   tauriApiVersion: '2.0.0',
+  tauriCliVersion: '2.0.0-cli',
   nimiShellTauriVersion: '0.1.0',
   typescriptVersion: '5.0.0',
 };
@@ -110,10 +111,17 @@ test('standalone scaffold generates industrial Nimi App Tauri profile', () => {
   const generated = scaffold('standalone');
   try {
     const packageJson = JSON.parse(generated.read('package.json'));
+    assert.equal(packageJson.private, false);
+    assert.equal(packageJson.publishConfig.access, 'public');
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], versions.sdkVersion);
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], versions.kitVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], versions.appToolsVersion);
+    assert.equal(packageJson.devDependencies['@tauri-apps/cli'], versions.tauriCliVersion);
+    assert.equal(packageJson.scripts.dev, 'pnpm run dev:renderer');
+    assert.equal(packageJson.scripts['dev:renderer'], 'vite --host 127.0.0.1 --port 1420 --strictPort');
+    assert.equal(packageJson.scripts['dev:shell'], 'tauri dev');
     assert.equal(packageJson.scripts.typecheck, 'tsc --noEmit');
+    assert.equal(packageJson.scripts.pack, 'pnpm run build && node scripts/pack.mjs');
     assert.equal(packageJson.scripts.doctor, 'nimi-app doctor');
     assert.equal(packageJson.scripts.update, 'nimi-app update');
     assert.equal(Object.hasOwn(packageJson, 'author'), false);
@@ -123,12 +131,16 @@ test('standalone scaffold generates industrial Nimi App Tauri profile', () => {
     assert.equal(lock.managedFileTaxonomy.appOwnedProductCode[0], 'src/shell/routes/product-area.tsx');
     assert.equal(lock.managedFileHashes['src/shell/auth/auth-gate.tsx'].class, 'scaffold-managed glue');
     assert.equal(lock.dependencyMatrix.npm['@nimiplatform/sdk'], versions.sdkVersion);
+    assert.equal(lock.dependencyMatrix.npm['@tauri-apps/cli'], versions.tauriCliVersion);
     assert.match(generated.read('src-tauri/Cargo.toml'), /nimi-shell-tauri = "0\.1\.0"/);
     assert.match(generated.read('src-tauri/src/main.rs'), /nimi_shell_tauri::nimi_shell_tauri_runtime_bridge_handler!\[\]/);
     assert.equal(generated.read('src-tauri/src/main.rs').includes(['runtime', 'bridge', 'plugin'].join('_')), false);
     assertTauriIconSupport(generated);
     assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /createNimiAppRuntimePlatformClient/);
     assert.match(generated.read('nimi.app.yaml'), /manifest_role: submitted-input/);
+    assert.match(generated.read('.nimi/admission/submission.yaml'), /submission_role: developer-submitted-input/);
+    assert.match(generated.read('.nimi/admission/submission.yaml'), /dev_shell_command: pnpm dev:shell/);
+    assert.match(generated.read('.nimi/admission/submission.yaml'), /admission_truth: platform-owned-after-review/);
     const buildProfile = generated.read('.nimi/config/build-profile.yaml');
     assert.match(buildProfile, /build_profile_ref: tauri-pnpm-vite/);
     assert.match(buildProfile, /lockfile_path: pnpm-lock\.yaml/);
@@ -140,6 +152,8 @@ test('standalone scaffold generates industrial Nimi App Tauri profile', () => {
     assert.doesNotMatch(ci, /cache: pnpm/);
     assert.match(generated.read('.gitignore'), /^dist\/$/m);
     assert.match(generated.read('README.md'), /pre-submission self-checks only/);
+    assert.match(generated.read('README.md'), /pnpm dev:shell/);
+    assert.match(generated.read('ADMISSION.md'), /developer-submitted listing request/);
   } finally {
     generated.cleanup();
   }
@@ -395,6 +409,19 @@ test('doctor fails closed on missing lock and stale generated anti-targets', () 
     assert.match(result.stderr, /Forbidden scaffold remnants detected/);
   } finally {
     stale.cleanup();
+  }
+
+  const stalePackages = cliScaffold('standalone');
+  try {
+    writeFileSync(
+      path.join(stalePackages.target, 'src/shell/routes/product-area.tsx'),
+      "import { Surface } from '@nimiplatform/nimi-kit/ui';\nexport const stale = Surface;\n",
+    );
+    const result = runNimiApp(['doctor', '--dir', stalePackages.target], stalePackages.tempRoot);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /retired kit package name/);
+  } finally {
+    stalePackages.cleanup();
   }
 
   const inconsistentLockfile = cliScaffold('standalone');

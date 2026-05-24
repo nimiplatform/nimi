@@ -4,7 +4,7 @@ import { createAppScaffold } from './app-scaffold.mjs';
 import { doctorApp, updateApp } from './app-doctor-update.mjs';
 
 const SDK_VERSION = '^0.5.15';
-const APP_TOOLS_VERSION = '^0.1.1';
+const APP_TOOLS_VERSION = '^0.1.2';
 const KIT_VERSION = '^0.1.0';
 const REACT_VERSION = '^19.1.0';
 const REACT_DOM_VERSION = '^19.1.0';
@@ -16,6 +16,7 @@ const REACT_DOM_TYPES_VERSION = '^19.2.3';
 const VITE_VERSION = '^7.2.4';
 const VITE_REACT_PLUGIN_VERSION = '^5.1.1';
 const TAURI_API_VERSION = '^2.9.1';
+const TAURI_CLI_VERSION = '^2.11.2';
 const NIMI_SHELL_TAURI_VERSION = '0.1.0';
 const AI_SDK_VERSION = '^6.0.85';
 
@@ -61,6 +62,7 @@ function appScaffoldVersions() {
     viteVersion: VITE_VERSION,
     viteReactPluginVersion: VITE_REACT_PLUGIN_VERSION,
     tauriApiVersion: TAURI_API_VERSION,
+    tauriCliVersion: TAURI_CLI_VERSION,
     nimiShellTauriVersion: NIMI_SHELL_TAURI_VERSION,
   };
 }

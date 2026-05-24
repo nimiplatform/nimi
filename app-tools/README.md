@@ -10,8 +10,9 @@ pnpm dlx @nimiplatform/app-tools nimi-app update --dir path/to/app
 
 `nimi-app create` emits a publishable Tauri app-authoring scaffold. The
 generated project is designed to install its own dependencies with
-`pnpm install`, run local checks, produce a pre-submission package artifact,
-and remain directly usable without hand-editing scaffold-managed glue.
+`pnpm install`, run with `pnpm dev:shell`, run local checks, produce a
+developer-submitted Nimi listing packet, and remain directly usable without
+hand-editing scaffold-managed glue.
 
 `nimi-app doctor` verifies scaffold lock state, managed glue, package-owned
 projections, dependency alignment, and forbidden shortcut patterns in a source
