@@ -53,6 +53,49 @@ test('synthetic 2-row registry + synthetic single-fence workflow → expected bo
   assert.ok(!updated.includes('- name: old'));
 });
 
+test('projection orders gates by prerequisites before id tie-break', () => {
+  setup();
+  const regPath = createRegistry({
+    gates: [
+      {
+        id: 'gate.live.smoke-gate',
+        command: 'echo smoke',
+        tiers: ['live'],
+        targets: ['any'],
+        prerequisites: ['gate.live.test-matrix'],
+      },
+      {
+        id: 'gate.live.test-matrix',
+        command: 'echo matrix',
+        tiers: ['live'],
+        targets: ['any'],
+        prerequisites: ['gate.live.provider-invariants'],
+      },
+      {
+        id: 'gate.live.provider-invariants',
+        command: 'echo provider',
+        tiers: ['live'],
+        targets: ['any'],
+      },
+    ],
+  });
+  const wfPath = createWorkflow([
+    '      # >>> nimi-release-gate-projection: live-smoke-checks >>>',
+    '      # <<< nimi-release-gate-projection: live-smoke-checks <<<',
+  ].join('\n'));
+
+  const res = runGenerator(['--registry-path', regPath, '--workflow-path', wfPath]);
+  assert.equal(res.status, 0, res.stderr);
+
+  const updated = fs.readFileSync(wfPath, 'utf8');
+  const providerIdx = updated.indexOf('- name: gate.live.provider-invariants');
+  const matrixIdx = updated.indexOf('- name: gate.live.test-matrix');
+  const smokeIdx = updated.indexOf('- name: gate.live.smoke-gate');
+  assert.ok(providerIdx !== -1);
+  assert.ok(matrixIdx > providerIdx);
+  assert.ok(smokeIdx > matrixIdx);
+});
+
 test('indentation preservation (4-space)', () => {
   setup();
   const regPath = createRegistry({

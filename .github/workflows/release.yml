@@ -154,10 +154,10 @@ jobs:
         run: pnpm check:live2d-companion-timeline-acceptance
       - name: gate.live.provider-invariants
         run: pnpm check:live-provider-invariants
-      - name: gate.live.smoke-gate
-        run: pnpm check:live-smoke-gate --require-release
       - name: gate.live.test-matrix
         run: node scripts/run-live-test-matrix.mjs
+      - name: gate.live.smoke-gate
+        run: pnpm check:live-smoke-gate --require-release
       # <<< nimi-release-gate-projection: live-smoke-checks <<<
 
       - name: Upload live smoke coverage

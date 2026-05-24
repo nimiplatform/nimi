@@ -150,8 +150,7 @@ export function projectCiStepBlock(registry, projectionKey, opts = {}) {
     );
   }
 
-  // Stable order
-  candidates.sort((a, b) => a.id.localeCompare(b.id));
+  candidates = topoSortCandidates(candidates);
 
   // Render each gate as a step
   const pad = ' '.repeat(indent);
@@ -185,4 +184,60 @@ export function composeFence(registry, projectionKey, opts = {}) {
 export const _internal = {
   FENCE_HEAD,
   FENCE_TAIL,
+  topoSortCandidates,
 };
+
+function topoSortCandidates(candidates) {
+  const byId = new Map(candidates.map((gate) => [gate.id, gate]));
+  const dependenciesById = new Map();
+  const dependentsById = new Map();
+  const ready = [];
+
+  for (const gate of candidates) {
+    const dependencies = (Array.isArray(gate.prerequisites) ? gate.prerequisites : [])
+      .filter((id) => byId.has(id))
+      .sort((a, b) => a.localeCompare(b));
+    dependenciesById.set(gate.id, new Set(dependencies));
+    if (dependencies.length === 0) {
+      ready.push(gate.id);
+    }
+    for (const dependency of dependencies) {
+      if (!dependentsById.has(dependency)) {
+        dependentsById.set(dependency, []);
+      }
+      dependentsById.get(dependency).push(gate.id);
+    }
+  }
+
+  ready.sort((a, b) => a.localeCompare(b));
+  for (const dependents of dependentsById.values()) {
+    dependents.sort((a, b) => a.localeCompare(b));
+  }
+
+  const ordered = [];
+  while (ready.length > 0) {
+    const id = ready.shift();
+    ordered.push(byId.get(id));
+
+    for (const dependent of dependentsById.get(id) ?? []) {
+      const dependencies = dependenciesById.get(dependent);
+      dependencies.delete(id);
+      if (dependencies.size === 0) {
+        ready.push(dependent);
+        ready.sort((a, b) => a.localeCompare(b));
+      }
+    }
+  }
+
+  if (ordered.length !== candidates.length) {
+    const cycleIds = candidates
+      .map((gate) => gate.id)
+      .filter((id) => !ordered.some((gate) => gate.id === id))
+      .sort((a, b) => a.localeCompare(b));
+    throw new Error(
+      `projectCiStepBlock: prerequisite cycle in projection candidates: ${cycleIds.join(', ')}`
+    );
+  }
+
+  return ordered;
+}

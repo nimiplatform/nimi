@@ -756,6 +756,7 @@ gates:
       on_external_repo_unavailable: blocked
     evidence:
       shape: command_exit
+    prerequisites: [gate.live.test-matrix]
     p_relg_anchors: [P-RELG-001, P-RELG-006]
     parent_p_gov_anchors: [P-GOV-011]
     experimental: false
@@ -803,6 +804,7 @@ gates:
       on_external_repo_unavailable: blocked
     evidence:
       shape: command_exit
+    prerequisites: [gate.live.live2d-companion-timeline-acceptance, gate.live.provider-invariants]
     p_relg_anchors: [P-RELG-001, P-RELG-006]
     parent_p_gov_anchors: [P-GOV-011]
     experimental: false
