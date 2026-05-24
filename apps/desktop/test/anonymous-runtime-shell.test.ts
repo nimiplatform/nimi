@@ -21,7 +21,13 @@ test('Gate 7 ready entry: desktop router gates root ordinary shell', () => {
   assert.match(appRoutesSource, /const isDesktopShell = flags\.mode === 'desktop';/);
   assert.match(appRoutesSource, /{isDesktopShell \? \(/);
   assert.match(appRoutesSource, /function DesktopOrdinaryShellGate/);
-  assert.match(appRoutesSource, /authStatus !== 'authenticated'[\s\S]*<Navigate to="\/login" replace \/>/);
+  // Wave 1 route-admission single-point: the gate routes the anonymous
+  // renderer to /login via an imperative navigate inside an effect rather
+  // than render-time `<Navigate>`. Render-time `<Navigate>` re-fires
+  // history.replaceState on every gate re-render (react-router uses a
+  // no-deps effect), which is what tripped the Electron throttle when
+  // paired with LoginPage's reverse-Navigate.
+  assert.match(appRoutesSource, /if \(authStatus === 'anonymous'\) \{\s*navigate\('\/login', \{ replace: true \}\);/);
   assert.match(appRoutesSource, /projection\.state === 'ready_for_use'/);
   assert.ok(appRoutesSource.includes('<Route path="/" element={<DesktopOrdinaryShellGate />} />'));
   assert.match(appRoutesSource, /path="\/login"/);

@@ -45,8 +45,13 @@ const firstRunGatePanelSource = readFileSync(
 
 test('Gate 7: Desktop root route is guarded by auth and product ready_for_use', () => {
   assert.match(appRoutesSource, /function DesktopOrdinaryShellGate/);
-  assert.ok(appRoutesSource.includes("authStatus !== 'authenticated'"));
-  assert.ok(appRoutesSource.includes('<Navigate to="/login" replace />'));
+  // Wave 1 route-admission single-point: the gate hands the anonymous
+  // renderer to /login via an imperative navigate inside an effect. The
+  // wildcard fallback `<Route path="*" element={<Navigate to="/login" .../>}>`
+  // for web mode still uses render-time Navigate (one-shot on unmatched
+  // path; no loop), so a plain literal scan is no longer sufficient — pin
+  // the actual root admission code path instead.
+  assert.match(appRoutesSource, /if \(authStatus === 'anonymous'\) \{\s*navigate\('\/login', \{ replace: true \}\);/);
   assert.match(appRoutesSource, /desktopBridge\.getProductControlRecord\(\)/);
   assert.match(appRoutesSource, /projection\.state === 'ready_for_use'/);
   assert.ok(appRoutesSource.includes('<Route path="/" element={<DesktopOrdinaryShellGate />} />'));
@@ -68,10 +73,39 @@ test('Gate 7: logged-out Desktop login no longer exposes back-to-chat or Runtime
 });
 
 test('Gate 7: ordinary shell admission stays gated strictly on backend ready_for_use', () => {
-  // useDesktopOrdinaryShellAdmission must not relax to any non-ready_for_use
-  // projection. ready_for_use is the only state that mounts ReadyDesktopShell.
-  assert.match(appRoutesSource, /projection\.state === 'ready_for_use' \? 'ready' : 'not-ready'/);
+  // Wave 1 route-admission single-point: `useDesktopOrdinaryShellAdmission`
+  // returns a five-value verdict (`checking | requesting-admission |
+  // admission-failed | first-run | ready`). `getProductControlRecord` only
+  // reads the persisted projection — it does NOT re-run the backend
+  // admission, so a persisted `not_logged_in` would never clear without an
+  // explicit `admitProductReadyForUse` request. The hook makes that request
+  // once on observing `not_logged_in` and routes on the backend's verdict;
+  // the renderer never mints `ready_for_use` (P-COLD-016). The behavioural
+  // invariant is unchanged — only `ready_for_use` produces the `ready`
+  // verdict; the Wave 8 self-contained test below (deriveOrdinaryShellAdmission
+  // across all 12 spec states) pins the invariant; this assertion pins the
+  // source-level ready-only mapping.
+  assert.match(appRoutesSource, /projection\.state === 'ready_for_use'\s*\)\s*\{\s*setAdmission\('ready'\)/);
   assert.doesNotMatch(appRoutesSource, /state === 'local_ai_ready'\s*\?\s*'ready'/);
+  // The safety valve against a stale persisted `not_logged_in` is an
+  // explicit `admitProductReadyForUse` request — the only path that can
+  // advance the file's state.
+  assert.match(appRoutesSource, /desktopBridge\.admitProductReadyForUse\(\)/);
+  // The hook must NOT clear renderer auth on divergence; doing so masked
+  // the real bug and surprised the user with an unexplained sign-out. The
+  // user-facing `admission-failed` surface exposes a `Sign out` button that
+  // owns the explicit logout decision instead. Slice the hook body out of
+  // the source first so a `clearAuthSession()` call inside the sign-out
+  // button handler doesn't false-trigger this assertion.
+  const hookMatch = appRoutesSource.match(
+    /function useDesktopOrdinaryShellAdmission[\s\S]*?\n\}\n/,
+  );
+  assert.ok(hookMatch, 'useDesktopOrdinaryShellAdmission must be declared as a top-level function');
+  assert.doesNotMatch(
+    hookMatch[0],
+    /clearAuthSession\b/,
+    'admission hook must not auto-clear renderer auth on divergence',
+  );
 });
 
 test('Gate 7: first-run ready projection signals the ordinary shell admission gate', () => {
@@ -181,8 +215,10 @@ function installRendererStateOnlyEnvironment(fabricatedReadyState: unknown): { r
 }
 
 test('Wave 8: a fabricated renderer/localStorage ready_for_use never mounts ReadyDesktopShell', async () => {
-  // The derivation rule under test must be the one shipped in source.
-  assert.match(appRoutesSource, /projection\.state === 'ready_for_use' \? 'ready' : 'not-ready'/);
+  // The derivation rule under test must be the one shipped in source. Wave 1
+  // expanded the ternary into an if/else over four verdicts, but
+  // `ready_for_use` remains the only state that produces `'ready'`.
+  assert.match(appRoutesSource, /projection\.state === 'ready_for_use'\s*\)\s*\{\s*setAdmission\('ready'\)/);
 
   const fabricatedReadyProjection = {
     path: '',
@@ -265,4 +301,37 @@ test('Gate 7: anonymous E2E and macOS smoke reject ordinary chat shell', () => {
   assert.doesNotMatch(anonymousE2eSource, /await waitForTestId\(E2E_IDS\.panel\('chat'\)\)/);
   assert.match(smokeScenarioSource, /verify-anonymous-main-shell-absent/);
   assert.match(smokeScenarioSource, /verify-anonymous-chat-panel-absent/);
+});
+
+test('Wave 1 route-admission single-point: LoginPage and ProductControlWorkflow never render <Navigate>', () => {
+  // Regression guard for the dueling-guards loop that tripped Electron's
+  // history.replaceState() > 100 / 10s throttle right after OAuth success.
+  // Root cause: renderer-store auth.status and Tauri product-control are two
+  // independent RuntimeAccountService observers with no happens-before
+  // contract; the post-login divergence window had LoginPage rendering
+  // <Navigate to="/"> while FirstRunGate rendered <Navigate to="/login">,
+  // ping-ponging the URL until the browser throttle threw SecurityError.
+  // Fix: route decisions live only at AppRoutes top-level. LoginPage and
+  // ProductControlWorkflow may render UI but must never import Navigate
+  // (importing it is the precondition for rendering it; banning the import
+  // is the strongest, comment-immune guard).
+  assert.doesNotMatch(
+    loginPageSource,
+    /import\s*\{[^}]*\bNavigate\b[^}]*\}\s*from\s*'react-router-dom'/,
+    'LoginPage must not import Navigate from react-router-dom; AppRoutes owns the /login -> / handoff via a single effect',
+  );
+  assert.doesNotMatch(
+    workflowSource,
+    /import\s*\{[^}]*\bNavigate\b[^}]*\}\s*from\s*'react-router-dom'/,
+    'ProductControlWorkflow must not import Navigate from react-router-dom; not_logged_in is intercepted by AppRoutes admission gate',
+  );
+  // The defensive surface for the not-logged-in terminal screen renders an
+  // inert placeholder (so a leak past the admission gate fails closed to a
+  // loading state rather than a route loop).
+  assert.match(workflowSource, /first-run-screen-reconciling/);
+  // AppRoutes' single post-login handoff is an imperative navigate inside
+  // an effect (fires once per authStatus/location transition) — not a
+  // render-time <Navigate> in LoginPage.
+  assert.match(appRoutesSource, /authStatus === 'authenticated' && location\.pathname === '\/login'/);
+  assert.match(appRoutesSource, /navigate\('\/', \{ replace: true \}\)/);
 });

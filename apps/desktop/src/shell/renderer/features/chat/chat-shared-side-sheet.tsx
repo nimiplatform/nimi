@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ScrollArea, cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import { DesktopIconToggleAction } from '@renderer/components/action';
 import { DesktopCardSurface } from '@renderer/components/surface';
@@ -103,14 +103,14 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
             onClick={props.onClose}
           />
         </div>
-        <ScrollArea
+        <div
           className={cn(
-            'min-h-0 flex-1 [&>[data-radix-scroll-area-viewport]>div]:!block',
+            'min-h-0 flex-1 overflow-y-auto overscroll-contain',
             props.bodyClassName,
           )}
         >
           {props.children}
-        </ScrollArea>
+        </div>
         {props.footer ? (
           <div className="border-t border-white/70 px-4 py-3">
             {props.footer}

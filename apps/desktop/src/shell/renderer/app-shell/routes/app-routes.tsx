@@ -1,11 +1,13 @@
 import { Suspense, lazy, useRef, useState, useEffect, type ReactNode, type MouseEvent } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { AmbientBackground, ProgressIndicator, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { desktopBridge } from '@renderer/bridge';
+import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { logoutAndClearSession } from '@renderer/features/auth/logout';
 
 const LoginPage = lazy(async () => {
   const mod = await import('@renderer/features/auth/login-page');
@@ -239,10 +241,45 @@ function BootstrapErrorScreen({ message }: { message: string }) {
   );
 }
 
-type DesktopOrdinaryShellAdmission = 'checking' | 'not-ready' | 'ready';
+// Wave 1 of the route-admission single-point refactor: route decisions live
+// at AppRoutes top-level only (LoginPage and ProductControlWorkflow never
+// render `<Navigate>`). Pre-Wave-1 had those two surfaces racing each other
+// and tripping Electron's `history.replaceState() > 100 / 10s` throttle.
+//
+// `desktopBridge.getProductControlRecord()` returns the persisted projection
+// of `~/.nimi/nimi.json` — it does NOT re-run the backend admission. When
+// the file's last write was `not_logged_in` (e.g. a previous session ended
+// in failure), repeated reads will keep reporting `not_logged_in` forever;
+// the only way to advance the file's state is the backend admission op
+// `admitProductReadyForUse`, which is the sole writer of `ready_for_use`
+// per P-COLD-016. So when we observe `not_logged_in` while the renderer
+// store says authenticated, we request a fresh admission (the backend
+// re-verifies all evidence including the runtime account session) and route
+// on whatever state the backend returns:
+//
+//  - `ready_for_use`     → `ready`, mounts the ordinary shell
+//  - `not_logged_in`     → `admission-failed`, surfaces the failure
+//  - any other state     → `first-run`, hands off to the wizard
+//
+// Wave 8 behavioural invariant unchanged: only `ready_for_use` produces
+// `ready`. Renderer never mints `ready_for_use`; it only requests admission.
+type DesktopOrdinaryShellAdmission =
+  | 'checking'
+  | 'requesting-admission'
+  | 'admission-failed'
+  | 'first-run'
+  | 'ready';
 
-function useDesktopOrdinaryShellAdmission(authStatus: 'bootstrapping' | 'anonymous' | 'authenticated'): DesktopOrdinaryShellAdmission {
+type DesktopOrdinaryShellAdmissionHandle = {
+  readonly admission: DesktopOrdinaryShellAdmission;
+  readonly retry: () => void;
+};
+
+function useDesktopOrdinaryShellAdmission(
+  authStatus: 'bootstrapping' | 'anonymous' | 'authenticated',
+): DesktopOrdinaryShellAdmissionHandle {
   const [admission, setAdmission] = useState<DesktopOrdinaryShellAdmission>('checking');
+  const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
     if (authStatus !== 'authenticated') {
@@ -250,35 +287,71 @@ function useDesktopOrdinaryShellAdmission(authStatus: 'bootstrapping' | 'anonymo
       return;
     }
     let cancelled = false;
-    let timer: number | null = null;
+    let admissionRequested = false;
 
-    const refresh = async () => {
-      try {
-        const projection = await desktopBridge.getProductControlRecord();
-        if (cancelled) return;
-        const next: DesktopOrdinaryShellAdmission = projection.state === 'ready_for_use' ? 'ready' : 'not-ready';
-        setAdmission(next);
-        // The first-run gate owns ongoing projection refresh and calls onReadyForUse
-        // when setup completes. Avoid a parent-shell poll loop while setup is visible.
-      } catch {
-        if (!cancelled) {
-          setAdmission('not-ready');
-          timer = window.setTimeout(refresh, 1500);
-        }
+    const projectVerdict = (projection: { state: string }) => {
+      if (cancelled) return;
+      if (projection.state === 'ready_for_use') {
+        setAdmission('ready');
+        return;
       }
+      if (projection.state === 'not_logged_in') {
+        // Only happens when the persisted record's last write was a failed
+        // admission. The renderer cannot rescue this by reading harder; it
+        // must request a fresh backend admission once. If the admission
+        // result is still `not_logged_in`, the failure is real and we
+        // surface it to the user.
+        if (admissionRequested) {
+          logRendererEvent({
+            level: 'warn',
+            area: 'shell',
+            message: 'route-admission:backend-admission-returned-not-logged-in',
+            details: { productControlState: projection.state },
+          });
+          setAdmission('admission-failed');
+          return;
+        }
+        admissionRequested = true;
+        setAdmission('requesting-admission');
+        void desktopBridge.admitProductReadyForUse()
+          .then((next) => {
+            projectVerdict(next);
+          })
+          .catch((error) => {
+            if (cancelled) return;
+            logRendererEvent({
+              level: 'warn',
+              area: 'shell',
+              message: 'route-admission:admit-ready-for-use-failed',
+              details: {
+                error: error instanceof Error ? error.message : String(error),
+              },
+            });
+            setAdmission('admission-failed');
+          });
+        return;
+      }
+      // Any other state is genuine first-run setup work. The first-run gate
+      // owns ongoing projection refresh and calls onReadyForUse when setup
+      // completes; avoid a parent-shell poll loop while setup is visible.
+      setAdmission('first-run');
     };
 
     setAdmission('checking');
-    void refresh();
+    void desktopBridge.getProductControlRecord()
+      .then(projectVerdict)
+      .catch(() => {
+        if (!cancelled) setAdmission('first-run');
+      });
     return () => {
       cancelled = true;
-      if (timer !== null) {
-        window.clearTimeout(timer);
-      }
     };
-  }, [authStatus]);
+  }, [authStatus, retryToken]);
 
-  return admission;
+  return {
+    admission,
+    retry: () => setRetryToken((token) => token + 1),
+  };
 }
 
 function DesktopFirstRunGate(props: { readonly onReadyForUse: () => void }) {
@@ -308,8 +381,10 @@ function ReadyDesktopShell() {
 
 function DesktopOrdinaryShellGate() {
   const authStatus = useAppStore((state) => state.auth.status);
-  const observedAdmission = useDesktopOrdinaryShellAdmission(authStatus);
+  const clearAuthSession = useAppStore((state) => state.clearAuthSession);
+  const { admission: observedAdmission, retry: retryAdmission } = useDesktopOrdinaryShellAdmission(authStatus);
   const [firstRunReady, setFirstRunReady] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (authStatus !== 'authenticated') {
@@ -317,24 +392,87 @@ function DesktopOrdinaryShellGate() {
     }
   }, [authStatus]);
 
+  // Single root admission: unauthenticated renderer-store routes to /login
+  // via an imperative navigate inside an effect. Rendering `<Navigate>` here
+  // would re-fire history.replaceState on every gate re-render (react-router's
+  // <Navigate> uses a no-deps effect), which is precisely what tripped the
+  // pre-Wave-1 throttle when paired with LoginPage's reverse-Navigate.
+  useEffect(() => {
+    if (authStatus === 'anonymous') {
+      navigate('/login', { replace: true });
+    }
+  }, [authStatus, navigate]);
+
   const admission: DesktopOrdinaryShellAdmission = firstRunReady ? 'ready' : observedAdmission;
 
-  if (authStatus === 'bootstrapping') {
+  if (authStatus === 'bootstrapping' || authStatus === 'anonymous') {
     return <LoadingScreen />;
   }
-  if (authStatus !== 'authenticated') {
-    return <Navigate to="/login" replace />;
-  }
-  if (admission === 'checking') {
+  if (admission === 'checking' || admission === 'requesting-admission') {
     return <LoadingScreen />;
   }
-  if (admission !== 'ready') {
+  if (admission === 'admission-failed') {
+    return (
+      <DesktopAdmissionFailedScreen
+        onRetry={retryAdmission}
+        onSignOut={() => {
+          // logoutAndClearSession is the canonical desktop sign-out path: it
+          // calls runtime.account.logout (so runtime-side session is revoked),
+          // clears the persisted access token, kills in-flight streams, and
+          // clears the React Query cache — in addition to clearAuthSession.
+          // A bare clearAuthSession() would leave the runtime session intact,
+          // so the admission-failed surface looks unresponsive.
+          void logoutAndClearSession({ clearAuthSession });
+        }}
+      />
+    );
+  }
+  if (admission === 'first-run') {
     return <DesktopFirstRunGate onReadyForUse={() => setFirstRunReady(true)} />;
   }
   return (
     <Suspense fallback={<LoadingScreen />}>
       <ReadyDesktopShell />
     </Suspense>
+  );
+}
+
+function DesktopAdmissionFailedScreen(props: {
+  readonly onRetry: () => void;
+  readonly onSignOut: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <SharedStatusShell
+      eyebrow="Nimi Runtime"
+      title={t('Bootstrap.admissionFailedTitle', { defaultValue: 'Sign-in did not reach the local runtime' })}
+      description={t('Bootstrap.admissionFailedDescription', {
+        defaultValue:
+          'Your account is signed in to the realm, but the local Nimi runtime has not received the session. This usually clears with a retry; if it does not, sign out and sign in again.',
+      })}
+    >
+      <div
+        data-testid="desktop-admission-failed"
+        className="mt-8 flex w-full max-w-[18rem] flex-col gap-3"
+      >
+        <button
+          type="button"
+          data-testid="desktop-admission-failed-retry"
+          onClick={props.onRetry}
+          className="inline-flex h-10 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] px-4 text-sm font-semibold text-[var(--nimi-action-primary-fg)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)]"
+        >
+          {t('Bootstrap.admissionFailedRetry', { defaultValue: 'Retry' })}
+        </button>
+        <button
+          type="button"
+          data-testid="desktop-admission-failed-sign-out"
+          onClick={props.onSignOut}
+          className="inline-flex h-10 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 text-sm font-semibold text-[var(--nimi-text-primary)] transition-colors hover:bg-[var(--nimi-surface-active)]"
+        >
+          {t('Bootstrap.admissionFailedSignOut', { defaultValue: 'Sign out' })}
+        </button>
+      </div>
+    </SharedStatusShell>
   );
 }
 
@@ -345,6 +483,20 @@ export function AppRoutes() {
   const bootstrapError = useAppStore((state) => state.bootstrapError);
   const authStatus = useAppStore((state) => state.auth.status);
   const isDesktopShell = flags.mode === 'desktop';
+
+  // Single post-login handoff: the user-agent leaves /login exactly once when
+  // the renderer-store flips to authenticated. Doing this here (instead of
+  // inside LoginPage via `<Navigate to="/">`) keeps LoginPage out of the route
+  // decision graph, so a transient renderer/product-control divergence can't
+  // bounce the location between `/login` and `/` and trip the
+  // history.replaceState throttle.
+  const navigate = useNavigate();
+  const location = useLocation();
+  useEffect(() => {
+    if (authStatus === 'authenticated' && location.pathname === '/login') {
+      navigate('/', { replace: true });
+    }
+  }, [authStatus, location.pathname, navigate]);
 
   if (!standaloneWorldTour && flags.mode !== 'web' && !bootstrapReady && !bootstrapError) {
     return <LoadingScreen />;

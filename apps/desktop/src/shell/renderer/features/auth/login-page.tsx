@@ -1,5 +1,4 @@
 import { Suspense, lazy } from 'react';
-import { Navigate } from 'react-router-dom';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { continueOauthNextIfPresent } from './oauth-next-continuation';
@@ -27,15 +26,16 @@ export function LoginPage() {
       const continued = continueOauthNextIfPresent(window.location.search);
       if (continued) {
         // window.location.assign issued — render nothing while the browser
-        // navigates away. Falling through to <Navigate to="/"> would cause
-        // a flicker but is not a correctness issue.
+        // navigates away.
         return null;
       }
     }
-    // Wave C: the legacy `?desktop_callback=` web-relay flow is gone — the
-    // realm OAuth authority 302-redirects directly to the desktop loopback,
-    // so a web-shell that's already authenticated can always go home.
-    return <Navigate to="/" replace />;
+    // Wave 1 route-admission single-point: LoginPage no longer self-redirects
+    // when authStatus flips. AppRoutes owns the post-login `/login -> /`
+    // handoff via a single useEffect, so a transient renderer/product-control
+    // divergence can't drive `<Navigate>` in this component and trip the
+    // history.replaceState throttle.
+    return null;
   }
 
   return (

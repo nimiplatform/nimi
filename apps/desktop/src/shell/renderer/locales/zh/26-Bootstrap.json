@@ -6,5 +6,9 @@
   "runtimeInitTimeout": "运行时初始化超时，请检查桌面桥接与后端连接。",
   "startFailedPrefix": "启动失败",
   "startFailedTitle": "启动失败",
-  "rendererEntryFailed": "渲染器入口在应用外壳可用前失败。"
+  "rendererEntryFailed": "渲染器入口在应用外壳可用前失败。",
+  "admissionFailedTitle": "登录未同步到本地运行时",
+  "admissionFailedDescription": "你的账号已在 realm 端登录，但本地 Nimi 运行时尚未收到该会话。通常重试即可恢复；若仍失败，请退出后重新登录。",
+  "admissionFailedRetry": "重试",
+  "admissionFailedSignOut": "退出登录"
 }

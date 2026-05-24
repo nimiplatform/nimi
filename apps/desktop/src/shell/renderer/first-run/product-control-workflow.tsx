@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate } from 'react-router-dom';
+import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { loadPlatformAIProfileFactoryRows } from '../../../runtime/platform-catalog/index.js';
 import { localRuntime, type LocalRuntimeDeviceProfile } from '../../../runtime/local-runtime/index.js';
 import { desktopBridge, type ProductControlRecordProjection, type ProductControlState } from '@renderer/bridge';
@@ -77,6 +77,37 @@ function canPersistSetupState(
     || state === 'local_ai_assets_downloaded_environment_not_ready'
     || state === 'repair_required'
     || state === 'blocked'
+  );
+}
+
+/**
+ * Defensive surface for the `not_logged_in` terminal screen that AppRoutes'
+ * admission gate is expected to intercept upstream. If a regression ever lets
+ * `not_logged_in` reach FirstRunGate, this renders an inert "reconciling…"
+ * placeholder and logs once per mount — instead of a render-time `<Navigate>`
+ * that would loop with LoginPage and trip the history.replaceState throttle.
+ */
+function FirstRunReconcilingScreen(props: { readonly productState: ProductControlState }): ReactElement {
+  const { t } = useTranslation();
+  useEffect(() => {
+    logRendererEvent({
+      level: 'warn',
+      area: 'first-run',
+      message: 'first-run-gate:not-logged-in-leaked-past-admission',
+      details: {
+        productState: props.productState,
+      },
+    });
+  }, [props.productState]);
+  return (
+    <div
+      data-testid="first-run-screen-reconciling"
+      data-product-state={props.productState}
+      className="flex flex-col items-center gap-3 text-center text-sm text-[var(--nimi-text-secondary)]"
+    >
+      <span aria-hidden className="h-2.5 w-2.5 animate-pulse rounded-full bg-[var(--nimi-action-primary-bg)]" />
+      <span>{t('FirstRun.reconcilingAuth', { defaultValue: 'Reconciling sign-in state…' })}</span>
+    </div>
   );
 }
 
@@ -708,7 +739,14 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   function renderScreen(): ReactElement {
     if (screen.kind === 'terminal') {
       if (screen.screen === 'login') {
-        return <Navigate to="/login" replace />;
+        // Wave 1 route-admission single-point: `not_logged_in` is intercepted
+        // by AppRoutes' useDesktopOrdinaryShellAdmission before FirstRunGate
+        // ever mounts, so this branch is unreachable in normal operation. We
+        // keep a defensive inert surface (no `<Navigate>`) so a regression
+        // that leaks `not_logged_in` past the admission gate fails closed to
+        // a loading screen — not a render-time history.replaceState loop that
+        // crashes the renderer.
+        return <FirstRunReconcilingScreen productState={state} />;
       }
       if (screen.screen === 'repair') {
         return (

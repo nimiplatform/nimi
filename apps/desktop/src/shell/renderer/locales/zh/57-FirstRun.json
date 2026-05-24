@@ -74,6 +74,7 @@
   },
   "finalizationTitle": "正在收尾",
   "finalizationRetry": "重试收尾",
+  "reconcilingAuth": "正在同步登录状态…",
   "states": {
     "not_logged_in": {
       "title": "登录后即可使用 Nimi。",

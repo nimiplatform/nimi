@@ -153,7 +153,11 @@ test('login page no longer preserves authenticated web shell for desktop callbac
   assert.doesNotMatch(loginPageSource, /hasDesktopCallbackRequestInLocation/);
   assert.match(loginPageSource, /if \(authStatus === 'authenticated'\) \{/);
   assert.match(loginPageSource, /continueOauthNextIfPresent\(window\.location\.search\)/);
-  assert.match(loginPageSource, /return <Navigate to="\/" replace \/>;/);
+  assert.doesNotMatch(
+    loginPageSource,
+    /import\s*\{[^}]*\bNavigate\b[^}]*\}\s*from\s*'react-router-dom'/,
+  );
+  assert.match(loginPageSource, /return null;/);
 });
 
 // The Wave A2 hard-cut deleted handleConfirmDesktopAuthorization and the

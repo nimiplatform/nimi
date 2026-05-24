@@ -24,9 +24,17 @@ import type { ProductControlState } from '@renderer/bridge';
 export type FirstRunPhase = 'storage' | 'local-ai' | 'setup';
 
 /**
- * The off-happy-path terminal screens. `login` hands `not_logged_in` back to
- * the auth surface; `ready` is the brief confirmation shown for
- * `ready_for_use` before the shell auto-continues to Chat.
+ * The off-happy-path terminal screens. `ready` is the brief confirmation shown
+ * for `ready_for_use` before the shell auto-continues to Chat.
+ *
+ * `login` is the spec-canonical projection for `not_logged_in` and is
+ * preserved here for fidelity with `tables/first-run-state-machine.yaml`. As
+ * of Wave 1 route-admission single-point, `not_logged_in` is intercepted by
+ * the AppRoutes admission gate (`useDesktopOrdinaryShellAdmission`) before
+ * `FirstRunGatePanel` ever mounts, so `ProductControlWorkflow` renders an
+ * inert "reconciling…" defensive surface for this screen rather than a
+ * `<Navigate to="/login">`. Driving the route from inside the wizard caused
+ * the pre-Wave-1 dueling-guards loop with `LoginPage`.
  */
 export type FirstRunTerminalScreen = 'login' | 'repair' | 'blocked' | 'ready';
 

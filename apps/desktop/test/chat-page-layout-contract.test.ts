@@ -39,6 +39,8 @@ test('chat page uses transient side sheets; agent mode keeps the scene backgroun
   assert.match(chatSideSheetSource, /sheetKey === 'settings'/);
   assert.match(chatSideSheetSource, /w-\[min\(500px,calc\(100vw-96px\)\)\]/);
   assert.match(chatSideSheetSource, /w-\[min\(340px,calc\(100vw-96px\)\)\]/);
+  assert.match(chatSideSheetSource, /overflow-y-auto/);
+  assert.doesNotMatch(chatSideSheetSource, /ScrollArea/u);
   assert.match(chatNimiSheetSource, /ChatSideSheet/);
   assert.doesNotMatch(chatNimiSheetSource, /Assistant status/u);
   assert.match(chatHumanModeSource, /ChatSideSheet/);

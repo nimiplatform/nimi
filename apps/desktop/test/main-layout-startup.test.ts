@@ -121,7 +121,7 @@ test('markdown, model config, and SDK barrels do not block default chat import',
   assert.match(CHAT_NIMI_PRESENTATION_SOURCE, /const ChatSettingsPanel = lazy\(async \(\) => \{/);
   assert.doesNotMatch(CHAT_NIMI_PRESENTATION_SOURCE, /import \{ ChatSettingsPanel \} from '\.\/chat-shared-settings-panel'/);
   assert.doesNotMatch(KIT_RUNTIME_ORCHESTRATION_SOURCE, /import \{ getPlatformClient \} from '@nimiplatform\/sdk'/);
-  assert.match(KIT_RUNTIME_ORCHESTRATION_SOURCE, /import\('@nimiplatform\/sdk'\)/);
+  assert.match(KIT_RUNTIME_ORCHESTRATION_SOURCE, /import\('@nimiplatform\/nimi-kit\/core\/sdk-contract'\)/);
 });
 
 test('human and agent mode chunks do not synchronously import settings or chat barrels', () => {

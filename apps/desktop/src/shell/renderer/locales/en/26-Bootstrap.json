@@ -6,5 +6,9 @@
   "runtimeInitTimeout": "Runtime initialization timed out. Please check desktop bridge and backend connection.",
   "startFailedPrefix": "Startup failed",
   "startFailedTitle": "Startup failed",
-  "rendererEntryFailed": "Renderer entry failed before the app shell became available."
+  "rendererEntryFailed": "Renderer entry failed before the app shell became available.",
+  "admissionFailedTitle": "Sign-in did not reach the local runtime",
+  "admissionFailedDescription": "Your account is signed in to the realm, but the local Nimi runtime has not received the session. This usually clears with a retry; if it does not, sign out and sign in again.",
+  "admissionFailedRetry": "Retry",
+  "admissionFailedSignOut": "Sign out"
 }
