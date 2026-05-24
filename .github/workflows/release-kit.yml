@@ -162,6 +162,9 @@ jobs:
       - name: Build kit
         run: pnpm --filter @nimiplatform/kit build
 
+      - name: Check kit dist package
+        run: node scripts/check-kit-package-dist.mjs
+
       - name: Test kit
         run: pnpm --filter @nimiplatform/kit test
 

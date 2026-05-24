@@ -35,11 +35,9 @@ function resolveModuleSourceDir(modulePath) {
   }
 
   const exportKey = `./${modulePath}`;
-  const exportTarget = typeof packageExportsMap[exportKey] === 'string'
-    ? String(packageExportsMap[exportKey]).trim()
-    : '';
+  const exportTarget = resolvePackageExportTarget(packageExportsMap[exportKey]);
   if (exportTarget) {
-    const absTarget = path.join(kitRoot, exportTarget.replace(/^\.\//, ''));
+    const absTarget = path.join(kitRoot, packageExportTargetToSourceTarget(exportTarget).replace(/^\.\//, ''));
     if (fs.existsSync(absTarget)) {
       const stat = fs.statSync(absTarget);
       return {
@@ -53,6 +51,58 @@ function resolveModuleSourceDir(modulePath) {
     absDir: directDir,
     direct: false,
   };
+}
+
+function resolvePackageExportTarget(value) {
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+  if (value && typeof value === 'object') {
+    for (const condition of ['import', 'default', 'types']) {
+      if (typeof value[condition] === 'string') {
+        return value[condition].trim();
+      }
+    }
+  }
+  return '';
+}
+
+function packageExportTargetToSourceTarget(exportTarget) {
+  const normalized = String(exportTarget || '').trim();
+  if (!normalized.startsWith('./dist/')) {
+    return normalized;
+  }
+
+  const sourceCandidates = [];
+  const distRelative = normalized
+    .replace(/^\.\//, '')
+    .replace(/^dist\//, '')
+    .replace(/\.d\.ts$/u, '')
+    .replace(/\.js$/u, '')
+    .replace(/\.css$/u, '.css');
+
+  if (distRelative.startsWith('features/')) {
+    const parts = distRelative.split('/');
+    sourceCandidates.push(`./${parts.slice(0, 2).join('/')}/src/${parts.slice(2).join('/')}`);
+  } else if (distRelative.startsWith('shell/renderer/')) {
+    sourceCandidates.push(`./shell/renderer/src/${distRelative.replace(/^shell\/renderer\//u, '')}`);
+  } else if (distRelative.startsWith('telemetry/')) {
+    sourceCandidates.push(`./telemetry/src/${distRelative.replace(/^telemetry\//u, '')}`);
+  } else {
+    const [root, ...rest] = distRelative.split('/');
+    sourceCandidates.push(`./${root}/src/${rest.join('/')}`);
+  }
+
+  for (const candidate of sourceCandidates) {
+    for (const extension of ['', '.ts', '.tsx', '.css']) {
+      const withExtension = candidate.endsWith('.css') ? candidate : `${candidate}${extension}`;
+      if (fs.existsSync(path.join(kitRoot, withExtension.replace(/^\.\//, '')))) {
+        return withExtension;
+      }
+    }
+  }
+
+  return normalized;
 }
 
 function listFilesRecursively(dir, predicate) {
@@ -286,13 +336,14 @@ for (const absPath of featureReadmePaths) {
 }
 
 for (const [exportKey, target] of Object.entries(packageExportsMap)) {
-  const exportPath = String(target || '').trim();
+  const exportPath = resolvePackageExportTarget(target);
   if (!exportPath) {
     fail(`kit/package.json: export ${exportKey} must have a non-empty target`);
     continue;
   }
-  const absTarget = path.join(kitRoot, exportPath.replace(/^\.\//, ''));
-  expect(fs.existsSync(absTarget), `kit/package.json: export ${exportKey} points to missing target ${exportPath}`);
+  const sourceExportPath = packageExportTargetToSourceTarget(exportPath);
+  const absTarget = path.join(kitRoot, sourceExportPath.replace(/^\.\//, ''));
+  expect(fs.existsSync(absTarget), `kit/package.json: export ${exportKey} points to missing source target ${sourceExportPath}`);
 
   const isKitSurfaceExport =
     exportKey.startsWith('./ui')

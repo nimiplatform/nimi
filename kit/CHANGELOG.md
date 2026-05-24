@@ -7,6 +7,16 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 with the pre-1.0 discipline documented in `kit/AGENTS.md` §Semver
 Discipline.
 
+## [0.1.1] - 2026-05-24
+
+### Fixed
+
+- Hardened npm package publishing so public subpath exports resolve to
+  compiled `dist` JavaScript and declaration files instead of raw
+  `src/**/*.ts` / `src/**/*.tsx` source files.
+- Added a dist package guard that fails when package exports point outside
+  `dist`, leak source paths, or reference missing build outputs.
+
 ## [0.1.0] - 2026-05-23
 
 Initial public publish for the ST-L1-2 standardization work.
@@ -78,4 +88,5 @@ unpublished workspace paths should update to the npm package name
 `@nimiplatform/kit` and keep `@nimiplatform/sdk` aligned with the
 compatible pre-1.0 range selected by their app.
 
+[0.1.1]: ./
 [0.1.0]: ./

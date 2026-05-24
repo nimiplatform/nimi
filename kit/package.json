@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/kit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "MIT",
   "private": false,
   "repository": {
@@ -17,81 +17,279 @@
     "CHANGELOG.md",
     "README.md",
     "auth/README.md",
-    "auth/src/**",
     "core/README.md",
-    "core/src/**",
     "features/*/README.md",
-    "features/*/src/**",
-    "shell/renderer/src/**",
+    "shell/renderer/README.md",
     "telemetry/README.md",
-    "telemetry/src/**",
     "ui/README.md",
-    "ui/src/**"
+    "dist/**"
   ],
   "type": "module",
   "exports": {
-    "./ui": "./ui/src/index.ts",
-    "./ui/glass": "./ui/src/glass/index.ts",
-    "./ui/motion": "./ui/src/motion/index.ts",
-    "./ui/a11y": "./ui/src/a11y/index.ts",
-    "./ui/styles.css": "./ui/src/styles.css",
-    "./ui/themes/light.css": "./ui/src/themes/light.css",
-    "./ui/themes/dark.css": "./ui/src/themes/dark.css",
-    "./ui/themes/nimi-accent.css": "./ui/src/themes/nimi-accent.css",
-    "./ui/themes/forge-accent.css": "./ui/src/themes/forge-accent.css",
-    "./ui/themes/overtone-accent.css": "./ui/src/themes/overtone-accent.css",
-    "./ui/themes/video-food-map-accent.css": "./ui/src/themes/video-food-map-accent.css",
-    "./auth": "./auth/src/index.ts",
-    "./auth/styles.css": "./auth/src/styles.css",
-    "./auth/native-oauth-result-page": "./auth/src/logic/native-oauth-result-page.ts",
-    "./core/shell-mode": "./core/src/shell-mode.ts",
-    "./core/oauth": "./core/src/oauth/index.ts",
-    "./core/runtime-capabilities": "./core/src/runtime-capabilities/index.ts",
-    "./core/model-config": "./core/src/model-config/index.ts",
-    "./core/character-card": "./core/src/character-card/index.ts",
-    "./core/sdk-contract": "./core/src/sdk-contract.ts",
-    "./shell/renderer/bridge": "./shell/renderer/src/bridge/index.ts",
-    "./shell/renderer/bootstrap": "./shell/renderer/src/bootstrap/index.ts",
-    "./telemetry": "./telemetry/src/telemetry/index.ts",
-    "./telemetry/error-boundary": "./telemetry/src/error-boundary/index.ts",
-    "./features/chat": "./features/chat/src/index.ts",
-    "./features/chat/headless": "./features/chat/src/headless.ts",
-    "./features/chat/realm": "./features/chat/src/realm.ts",
-    "./features/chat/runtime": "./features/chat/src/runtime.ts",
-    "./features/chat/ui": "./features/chat/src/ui.ts",
-    "./features/chat/types": "./features/chat/src/types.ts",
-    "./features/chat/components/canonical-composer": "./features/chat/src/components/canonical-composer.tsx",
-    "./features/chat/components/canonical-conversation-shell": "./features/chat/src/components/canonical-conversation-shell.tsx",
-    "./features/chat/components/canonical-drawer-section": "./features/chat/src/components/canonical-drawer-section.tsx",
-    "./features/chat/components/canonical-runtime-inspect-sidebar": "./features/chat/src/components/canonical-runtime-inspect-sidebar.tsx",
-    "./features/chat/components/canonical-stage-panel": "./features/chat/src/components/canonical-stage-panel.tsx",
-    "./features/chat/components/canonical-transcript-view": "./features/chat/src/components/canonical-transcript-view.tsx",
-    "./features/chat/components/chat-stream-status": "./features/chat/src/components/chat-stream-status.tsx",
-    "./features/avatar": "./features/avatar/src/index.ts",
-    "./features/avatar/headless": "./features/avatar/src/headless.ts",
-    "./features/avatar/ui": "./features/avatar/src/ui.ts",
-    "./features/avatar/runtime": "./features/avatar/src/runtime.ts",
-    "./features/avatar/vrm": "./features/avatar/src/vrm.tsx",
-    "./features/avatar/live2d": "./features/avatar/src/live2d.tsx",
-    "./features/model-picker": "./features/model-picker/src/index.ts",
-    "./features/model-picker/headless": "./features/model-picker/src/headless.ts",
-    "./features/model-picker/ui": "./features/model-picker/src/ui.ts",
-    "./features/model-picker/runtime": "./features/model-picker/src/runtime.ts",
-    "./features/generation": "./features/generation/src/index.ts",
-    "./features/generation/headless": "./features/generation/src/headless.ts",
-    "./features/generation/ui": "./features/generation/src/ui.ts",
-    "./features/generation/runtime": "./features/generation/src/runtime.ts",
-    "./features/commerce": "./features/commerce/src/index.ts",
-    "./features/commerce/headless": "./features/commerce/src/headless.ts",
-    "./features/commerce/ui": "./features/commerce/src/ui.ts",
-    "./features/commerce/realm": "./features/commerce/src/realm.ts",
-    "./features/model-config": "./features/model-config/src/index.ts",
-    "./features/model-config/headless": "./features/model-config/src/headless.ts",
-    "./features/model-config/ui": "./features/model-config/src/ui.ts"
+    "./ui": {
+      "types": "./dist/ui/index.d.ts",
+      "import": "./dist/ui/index.js",
+      "default": "./dist/ui/index.js"
+    },
+    "./ui/glass": {
+      "types": "./dist/ui/glass/index.d.ts",
+      "import": "./dist/ui/glass/index.js",
+      "default": "./dist/ui/glass/index.js"
+    },
+    "./ui/motion": {
+      "types": "./dist/ui/motion/index.d.ts",
+      "import": "./dist/ui/motion/index.js",
+      "default": "./dist/ui/motion/index.js"
+    },
+    "./ui/a11y": {
+      "types": "./dist/ui/a11y/index.d.ts",
+      "import": "./dist/ui/a11y/index.js",
+      "default": "./dist/ui/a11y/index.js"
+    },
+    "./ui/styles.css": "./dist/ui/styles.css",
+    "./ui/themes/light.css": "./dist/ui/themes/light.css",
+    "./ui/themes/dark.css": "./dist/ui/themes/dark.css",
+    "./ui/themes/nimi-accent.css": "./dist/ui/themes/nimi-accent.css",
+    "./ui/themes/forge-accent.css": "./dist/ui/themes/forge-accent.css",
+    "./ui/themes/overtone-accent.css": "./dist/ui/themes/overtone-accent.css",
+    "./ui/themes/video-food-map-accent.css": "./dist/ui/themes/video-food-map-accent.css",
+    "./auth": {
+      "types": "./dist/auth/index.d.ts",
+      "import": "./dist/auth/index.js",
+      "default": "./dist/auth/index.js"
+    },
+    "./auth/styles.css": "./dist/auth/styles.css",
+    "./auth/native-oauth-result-page": {
+      "types": "./dist/auth/logic/native-oauth-result-page.d.ts",
+      "import": "./dist/auth/logic/native-oauth-result-page.js",
+      "default": "./dist/auth/logic/native-oauth-result-page.js"
+    },
+    "./core/shell-mode": {
+      "types": "./dist/core/shell-mode.d.ts",
+      "import": "./dist/core/shell-mode.js",
+      "default": "./dist/core/shell-mode.js"
+    },
+    "./core/oauth": {
+      "types": "./dist/core/oauth/index.d.ts",
+      "import": "./dist/core/oauth/index.js",
+      "default": "./dist/core/oauth/index.js"
+    },
+    "./core/runtime-capabilities": {
+      "types": "./dist/core/runtime-capabilities/index.d.ts",
+      "import": "./dist/core/runtime-capabilities/index.js",
+      "default": "./dist/core/runtime-capabilities/index.js"
+    },
+    "./core/model-config": {
+      "types": "./dist/core/model-config/index.d.ts",
+      "import": "./dist/core/model-config/index.js",
+      "default": "./dist/core/model-config/index.js"
+    },
+    "./core/character-card": {
+      "types": "./dist/core/character-card/index.d.ts",
+      "import": "./dist/core/character-card/index.js",
+      "default": "./dist/core/character-card/index.js"
+    },
+    "./core/sdk-contract": {
+      "types": "./dist/core/sdk-contract.d.ts",
+      "import": "./dist/core/sdk-contract.js",
+      "default": "./dist/core/sdk-contract.js"
+    },
+    "./shell/renderer/bridge": {
+      "types": "./dist/shell/renderer/bridge/index.d.ts",
+      "import": "./dist/shell/renderer/bridge/index.js",
+      "default": "./dist/shell/renderer/bridge/index.js"
+    },
+    "./shell/renderer/bootstrap": {
+      "types": "./dist/shell/renderer/bootstrap/index.d.ts",
+      "import": "./dist/shell/renderer/bootstrap/index.js",
+      "default": "./dist/shell/renderer/bootstrap/index.js"
+    },
+    "./telemetry": {
+      "types": "./dist/telemetry/telemetry/index.d.ts",
+      "import": "./dist/telemetry/telemetry/index.js",
+      "default": "./dist/telemetry/telemetry/index.js"
+    },
+    "./telemetry/error-boundary": {
+      "types": "./dist/telemetry/error-boundary/index.d.ts",
+      "import": "./dist/telemetry/error-boundary/index.js",
+      "default": "./dist/telemetry/error-boundary/index.js"
+    },
+    "./features/chat": {
+      "types": "./dist/features/chat/index.d.ts",
+      "import": "./dist/features/chat/index.js",
+      "default": "./dist/features/chat/index.js"
+    },
+    "./features/chat/headless": {
+      "types": "./dist/features/chat/headless.d.ts",
+      "import": "./dist/features/chat/headless.js",
+      "default": "./dist/features/chat/headless.js"
+    },
+    "./features/chat/realm": {
+      "types": "./dist/features/chat/realm.d.ts",
+      "import": "./dist/features/chat/realm.js",
+      "default": "./dist/features/chat/realm.js"
+    },
+    "./features/chat/runtime": {
+      "types": "./dist/features/chat/runtime.d.ts",
+      "import": "./dist/features/chat/runtime.js",
+      "default": "./dist/features/chat/runtime.js"
+    },
+    "./features/chat/ui": {
+      "types": "./dist/features/chat/ui.d.ts",
+      "import": "./dist/features/chat/ui.js",
+      "default": "./dist/features/chat/ui.js"
+    },
+    "./features/chat/types": {
+      "types": "./dist/features/chat/types.d.ts",
+      "import": "./dist/features/chat/types.js",
+      "default": "./dist/features/chat/types.js"
+    },
+    "./features/chat/components/canonical-composer": {
+      "types": "./dist/features/chat/components/canonical-composer.d.ts",
+      "import": "./dist/features/chat/components/canonical-composer.js",
+      "default": "./dist/features/chat/components/canonical-composer.js"
+    },
+    "./features/chat/components/canonical-conversation-shell": {
+      "types": "./dist/features/chat/components/canonical-conversation-shell.d.ts",
+      "import": "./dist/features/chat/components/canonical-conversation-shell.js",
+      "default": "./dist/features/chat/components/canonical-conversation-shell.js"
+    },
+    "./features/chat/components/canonical-drawer-section": {
+      "types": "./dist/features/chat/components/canonical-drawer-section.d.ts",
+      "import": "./dist/features/chat/components/canonical-drawer-section.js",
+      "default": "./dist/features/chat/components/canonical-drawer-section.js"
+    },
+    "./features/chat/components/canonical-runtime-inspect-sidebar": {
+      "types": "./dist/features/chat/components/canonical-runtime-inspect-sidebar.d.ts",
+      "import": "./dist/features/chat/components/canonical-runtime-inspect-sidebar.js",
+      "default": "./dist/features/chat/components/canonical-runtime-inspect-sidebar.js"
+    },
+    "./features/chat/components/canonical-stage-panel": {
+      "types": "./dist/features/chat/components/canonical-stage-panel.d.ts",
+      "import": "./dist/features/chat/components/canonical-stage-panel.js",
+      "default": "./dist/features/chat/components/canonical-stage-panel.js"
+    },
+    "./features/chat/components/canonical-transcript-view": {
+      "types": "./dist/features/chat/components/canonical-transcript-view.d.ts",
+      "import": "./dist/features/chat/components/canonical-transcript-view.js",
+      "default": "./dist/features/chat/components/canonical-transcript-view.js"
+    },
+    "./features/chat/components/chat-stream-status": {
+      "types": "./dist/features/chat/components/chat-stream-status.d.ts",
+      "import": "./dist/features/chat/components/chat-stream-status.js",
+      "default": "./dist/features/chat/components/chat-stream-status.js"
+    },
+    "./features/avatar": {
+      "types": "./dist/features/avatar/index.d.ts",
+      "import": "./dist/features/avatar/index.js",
+      "default": "./dist/features/avatar/index.js"
+    },
+    "./features/avatar/headless": {
+      "types": "./dist/features/avatar/headless.d.ts",
+      "import": "./dist/features/avatar/headless.js",
+      "default": "./dist/features/avatar/headless.js"
+    },
+    "./features/avatar/ui": {
+      "types": "./dist/features/avatar/ui.d.ts",
+      "import": "./dist/features/avatar/ui.js",
+      "default": "./dist/features/avatar/ui.js"
+    },
+    "./features/avatar/runtime": {
+      "types": "./dist/features/avatar/runtime.d.ts",
+      "import": "./dist/features/avatar/runtime.js",
+      "default": "./dist/features/avatar/runtime.js"
+    },
+    "./features/avatar/vrm": {
+      "types": "./dist/features/avatar/vrm.d.ts",
+      "import": "./dist/features/avatar/vrm.js",
+      "default": "./dist/features/avatar/vrm.js"
+    },
+    "./features/avatar/live2d": {
+      "types": "./dist/features/avatar/live2d.d.ts",
+      "import": "./dist/features/avatar/live2d.js",
+      "default": "./dist/features/avatar/live2d.js"
+    },
+    "./features/model-picker": {
+      "types": "./dist/features/model-picker/index.d.ts",
+      "import": "./dist/features/model-picker/index.js",
+      "default": "./dist/features/model-picker/index.js"
+    },
+    "./features/model-picker/headless": {
+      "types": "./dist/features/model-picker/headless.d.ts",
+      "import": "./dist/features/model-picker/headless.js",
+      "default": "./dist/features/model-picker/headless.js"
+    },
+    "./features/model-picker/ui": {
+      "types": "./dist/features/model-picker/ui.d.ts",
+      "import": "./dist/features/model-picker/ui.js",
+      "default": "./dist/features/model-picker/ui.js"
+    },
+    "./features/model-picker/runtime": {
+      "types": "./dist/features/model-picker/runtime.d.ts",
+      "import": "./dist/features/model-picker/runtime.js",
+      "default": "./dist/features/model-picker/runtime.js"
+    },
+    "./features/generation": {
+      "types": "./dist/features/generation/index.d.ts",
+      "import": "./dist/features/generation/index.js",
+      "default": "./dist/features/generation/index.js"
+    },
+    "./features/generation/headless": {
+      "types": "./dist/features/generation/headless.d.ts",
+      "import": "./dist/features/generation/headless.js",
+      "default": "./dist/features/generation/headless.js"
+    },
+    "./features/generation/ui": {
+      "types": "./dist/features/generation/ui.d.ts",
+      "import": "./dist/features/generation/ui.js",
+      "default": "./dist/features/generation/ui.js"
+    },
+    "./features/generation/runtime": {
+      "types": "./dist/features/generation/runtime.d.ts",
+      "import": "./dist/features/generation/runtime.js",
+      "default": "./dist/features/generation/runtime.js"
+    },
+    "./features/commerce": {
+      "types": "./dist/features/commerce/index.d.ts",
+      "import": "./dist/features/commerce/index.js",
+      "default": "./dist/features/commerce/index.js"
+    },
+    "./features/commerce/headless": {
+      "types": "./dist/features/commerce/headless.d.ts",
+      "import": "./dist/features/commerce/headless.js",
+      "default": "./dist/features/commerce/headless.js"
+    },
+    "./features/commerce/ui": {
+      "types": "./dist/features/commerce/ui.d.ts",
+      "import": "./dist/features/commerce/ui.js",
+      "default": "./dist/features/commerce/ui.js"
+    },
+    "./features/commerce/realm": {
+      "types": "./dist/features/commerce/realm.d.ts",
+      "import": "./dist/features/commerce/realm.js",
+      "default": "./dist/features/commerce/realm.js"
+    },
+    "./features/model-config": {
+      "types": "./dist/features/model-config/index.d.ts",
+      "import": "./dist/features/model-config/index.js",
+      "default": "./dist/features/model-config/index.js"
+    },
+    "./features/model-config/headless": {
+      "types": "./dist/features/model-config/headless.d.ts",
+      "import": "./dist/features/model-config/headless.js",
+      "default": "./dist/features/model-config/headless.js"
+    },
+    "./features/model-config/ui": {
+      "types": "./dist/features/model-config/ui.d.ts",
+      "import": "./dist/features/model-config/ui.js",
+      "default": "./dist/features/model-config/ui.js"
+    }
   },
   "scripts": {
-    "build": "tsc --noEmit -p tsconfig.json",
-    "lint": "tsc --noEmit -p tsconfig.json",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json && node scripts/normalize-dist-layout.mjs && node scripts/copy-dist-assets.mjs",
+    "prepack": "pnpm run build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "pnpm run typecheck",
     "test": "vitest run --config ui/vitest.config.ts"
   },
   "dependencies": {
