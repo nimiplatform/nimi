@@ -8,7 +8,7 @@
 // saveHealthRecordCapture (canonical-API) per
 // apps/parentos/spec/kernel/tables/local-storage.yaml#growth_measurement_canonical_migration.
 import { useState } from 'react';
-import { Button, cn, DatePicker, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, cn, DatePicker, TextField, TextareaField } from '@nimiplatform/kit/ui';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { saveAttachment, saveHealthRecordCapture } from '../../bridge/sqlite-bridge.js';
 import type { SaveHealthRecordCaptureInput } from '../../bridge/sqlite-bridge.js';

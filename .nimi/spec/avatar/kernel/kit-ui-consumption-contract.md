@@ -1,6 +1,6 @@
 # Avatar Kit UI Consumption Contract
 
-> Authority: Avatar-local consumption of `@nimiplatform/nimi-kit`.
+> Authority: Avatar-local consumption of `@nimiplatform/kit`.
 > Upstream foundation: `.nimi/spec/platform/kernel/design-pattern-contract.md`.
 
 ## K-NAV-KIT-UI-001 — Local Ownership
@@ -13,10 +13,10 @@ Platform design authority may define shared primitives, token taxonomy, material
 
 Avatar shell entrypoints consume:
 
-- `@nimiplatform/nimi-kit/ui/styles.css`
-- `@nimiplatform/nimi-kit/ui/themes/light.css`
-- `@nimiplatform/nimi-kit/ui/themes/dark.css`
-- `@nimiplatform/nimi-kit/ui/themes/nimi-accent.css`
+- `@nimiplatform/kit/ui/styles.css`
+- `@nimiplatform/kit/ui/themes/light.css`
+- `@nimiplatform/kit/ui/themes/dark.css`
+- `@nimiplatform/kit/ui/themes/nimi-accent.css`
 
 Avatar does not own an app-specific accent pack in this contract. It uses the shared `nimi-accent` pack unless a later Avatar-local spec change admits an Avatar accent pack under `.nimi/spec/avatar/kernel/tables/nimi-kit-themes.yaml`.
 

@@ -4,7 +4,7 @@ import {
   StatusBadge,
   Surface,
   TextareaField,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import { GiftStatusBadge } from './gift-status-badge.js';
 import type {
   CommerceGiftParty,

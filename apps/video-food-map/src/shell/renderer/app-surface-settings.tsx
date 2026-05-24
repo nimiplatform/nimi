@@ -1,4 +1,4 @@
-import { Button, SelectField, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, SelectField, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import type { DiningPreferenceCategoryId } from '@renderer/data/preferences.js';
 import type {
   VideoFoodMapRouteSetting,

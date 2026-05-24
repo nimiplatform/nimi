@@ -9,11 +9,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { asNimiError } from '@nimiplatform/sdk/runtime';
 import {
   createReadyConversationSetupState,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import {
   type CanonicalMessageAccessorySlot,
   ConversationOrchestrationRegistry,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';

@@ -1,4 +1,4 @@
-import { StatusBadge, Surface, Timeline, TimelineGroup } from '@nimiplatform/nimi-kit/ui';
+import { StatusBadge, Surface, Timeline, TimelineGroup } from '@nimiplatform/kit/ui';
 import type { TannerAssessmentRow } from '../../bridge/sqlite-bridge.js';
 import type { StageDesc } from './tanner-page-shared.js';
 import { ASSESSED_BY_LABELS, PUBIC_HAIR_STAGES, fmtAge } from './tanner-page-shared.js';

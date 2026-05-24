@@ -4,7 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import { Float, Sparkles } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { VRMExpressionPresetName, VRMHumanBoneName, type VRM } from '@pixiv/three-vrm';
-import type { AvatarVrmViewportComponentProps } from '@nimiplatform/nimi-kit/features/avatar/vrm';
+import type { AvatarVrmViewportComponentProps } from '@nimiplatform/kit/features/avatar/vrm';
 
 import {
   resolveChatAgentAvatarVrmExpressionWeights,

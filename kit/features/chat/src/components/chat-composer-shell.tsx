@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 
 export type ChatComposerShellProps = {
   children: ReactNode;

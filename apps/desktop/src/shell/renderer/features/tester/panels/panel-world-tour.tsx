@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, SelectField, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, SelectField, Surface, TextareaField, TextField } from '@nimiplatform/kit/ui';
 import { createModRuntimeClient } from '@nimiplatform/sdk/mod';
 import {
   createInspectWorldRenderPlan,

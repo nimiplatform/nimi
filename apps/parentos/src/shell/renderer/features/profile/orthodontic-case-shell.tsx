@@ -11,7 +11,7 @@
  * a single "primary" one (PO-ORTHO-003a).
  */
 import { useEffect, useRef, useState } from 'react';
-import { Button, IconButton, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, Surface } from '@nimiplatform/kit/ui';
 import {
   deleteOrthodonticCase,
   type OrthodonticCaseRow,

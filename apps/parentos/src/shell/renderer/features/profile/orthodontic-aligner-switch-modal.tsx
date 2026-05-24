@@ -1,4 +1,4 @@
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 /**
  * Records a clear-aligner switch to the next tray (PO-ORTHO-005
  * `aligner-change` checkin). Opened from a clear-aligner card's "换下一副"

@@ -1,4 +1,4 @@
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   readOrthodonticPhotoBlob,

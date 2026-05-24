@@ -2,9 +2,9 @@
 // (.nimi/spec/desktop/kernel/tables/renderer-design-surfaces.yaml, D-SHELL-030).
 // No runtime consumer today; chat modes use `chat-shared-side-sheet.tsx` instead.
 import type { ReactNode } from 'react';
-import { Tooltip } from '@nimiplatform/nimi-kit/ui';
+import { Tooltip } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
-import type { ConversationCharacterData, ConversationTargetSummary } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationCharacterData, ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { DesktopIconToggleAction } from '@renderer/components/action';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ChatRightColumn, ChatRightColumnCard, ChatRightColumnCardTitle } from './chat-shared-right-column-primitives';

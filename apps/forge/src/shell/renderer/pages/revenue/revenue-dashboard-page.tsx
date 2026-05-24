@@ -7,7 +7,7 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import {
   ForgePage,
   ForgePageHeader,

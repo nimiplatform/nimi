@@ -42,7 +42,7 @@ vi.mock('./forge-runtime-host.js', () => ({
   registerForgeModSdkHost: registerForgeModSdkHostMock,
 }));
 
-vi.mock('@nimiplatform/nimi-kit/telemetry', () => ({
+vi.mock('@nimiplatform/kit/telemetry', () => ({
   logRendererEvent: vi.fn(),
 }));
 

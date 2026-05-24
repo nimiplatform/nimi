@@ -21,9 +21,9 @@ import {
   type LookdevWorldStylePack,
 } from './types.js';
 
-vi.mock('@nimiplatform/nimi-kit/ui', async () => {
-  const actual = await vi.importActual<typeof import('@nimiplatform/nimi-kit/ui')>(
-    '@nimiplatform/nimi-kit/ui',
+vi.mock('@nimiplatform/kit/ui', async () => {
+  const actual = await vi.importActual<typeof import('@nimiplatform/kit/ui')>(
+    '@nimiplatform/kit/ui',
   );
   return {
     ...actual,
@@ -35,7 +35,7 @@ vi.mock('@nimiplatform/nimi-kit/ui', async () => {
       onChange,
       id,
       ...rest
-    }: import('@nimiplatform/nimi-kit/ui').SelectFieldProps) => (
+    }: import('@nimiplatform/kit/ui').SelectFieldProps) => (
       <select
         id={id}
         aria-label={rest['aria-label']}

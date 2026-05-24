@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { SelectField, Surface, cn } from '@nimiplatform/nimi-kit/ui';
+import { SelectField, Surface, cn } from '@nimiplatform/kit/ui';
 import { useAppStore, type NurtureMode } from '../../app-shell/app-store.js';
 import { NURTURE_MODES, REMINDER_DOMAINS } from '../../knowledge-base/index.js';
 import { updateChild } from '../../bridge/sqlite-bridge.js';

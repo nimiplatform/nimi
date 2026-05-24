@@ -3,7 +3,7 @@
 
 export type {
   HookCapabilityKey,
-} from '@nimiplatform/nimi-kit/core/runtime-capabilities';
+} from '@nimiplatform/kit/core/runtime-capabilities';
 // HookSourceType and TurnHookPoint are exported from ./types.ts to avoid
 // duplicate-export conflict in the barrel index.
 
@@ -30,4 +30,4 @@ export {
   DEFAULT_TURN_HOOK_POINTS,
   DEFAULT_UI_SLOTS,
   DEFAULT_SOURCE_ALLOWLIST,
-} from '@nimiplatform/nimi-kit/core/runtime-capabilities';
+} from '@nimiplatform/kit/core/runtime-capabilities';

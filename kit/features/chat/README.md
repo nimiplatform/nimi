@@ -22,11 +22,11 @@ The kit canonical shell is the UI truth source for shared chat surfaces. Desktop
 Authoritative parity fixtures live in `kit/features/chat/test/conversation-shell-ui.test.tsx`. Any shell change must update that fixture set or prove it does not affect the matrix above.
 
 ## Public Surfaces
-- `@nimiplatform/nimi-kit/features/chat`
-- `@nimiplatform/nimi-kit/features/chat/headless`
-- `@nimiplatform/nimi-kit/features/chat/realm`
-- `@nimiplatform/nimi-kit/features/chat/ui`
-- `@nimiplatform/nimi-kit/features/chat/runtime`
+- `@nimiplatform/kit/features/chat`
+- `@nimiplatform/kit/features/chat/headless`
+- `@nimiplatform/kit/features/chat/realm`
+- `@nimiplatform/kit/features/chat/ui`
+- `@nimiplatform/kit/features/chat/runtime`
 - Current surfaces:
   - `headless`: active for unified `AI / Human / Agent` conversation contracts, target-first shell adapters, and shared composer helpers
   - `ui`: active
@@ -75,5 +75,5 @@ Authoritative parity fixtures live in `kit/features/chat/test/conversation-shell
   Uses `chat/realm`, `chat/headless`, and `chat/ui` for human chat thread shell, timeline, and send orchestration.
 
 ## Verification
-- `pnpm --filter @nimiplatform/nimi-kit test`
+- `pnpm --filter @nimiplatform/kit test`
 - `pnpm check:nimi-kit`

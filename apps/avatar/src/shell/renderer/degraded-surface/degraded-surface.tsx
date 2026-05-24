@@ -9,7 +9,7 @@
 // keys declared in .nimi/spec/avatar/kernel/tables/i18n-keys.yaml.
 
 import { useTranslation } from '../i18n/index.js';
-import { Button, StatusBadge, Surface, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, StatusBadge, Surface, cn } from '@nimiplatform/kit/ui';
 import { reloadAvatarShell } from '../shell-reload.js';
 import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
 import type { CompositionDerivation } from '../app-shell/composition-state.js';

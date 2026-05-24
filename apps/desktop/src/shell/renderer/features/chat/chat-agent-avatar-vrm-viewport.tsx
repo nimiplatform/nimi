@@ -3,8 +3,8 @@ import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import { VRMLoaderPlugin, VRMUtils, type VRM } from '@pixiv/three-vrm';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import type { AvatarVrmViewportComponentProps } from '@nimiplatform/nimi-kit/features/avatar/vrm';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import type { AvatarVrmViewportComponentProps } from '@nimiplatform/kit/features/avatar/vrm';
+import { cn } from '@nimiplatform/kit/ui';
 import {
   parseDesktopAgentAvatarAssetRef,
   type DesktopAgentAvatarAssetRef,

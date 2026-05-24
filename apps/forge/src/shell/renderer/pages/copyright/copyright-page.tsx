@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface, TextField } from '@nimiplatform/kit/ui';
 import {
   ForgePage,
   ForgePageHeader,

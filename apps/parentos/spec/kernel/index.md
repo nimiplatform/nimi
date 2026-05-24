@@ -14,7 +14,7 @@ Normative surfaces:
 - `capture-orchestrator-contract.md` for the unified add-data modal, typed capture intent, protocol-driven fields, save transaction, and reminder-linked completion
 - `growth-curve-detail-contract.md` for the `/profile/growth` detail surface projection, Add CTA prop threading into PO-CAPT, next-check reminder branch selection, history export, and milestone derivation consumption
 - `profile-contract.md` for child profile and health-record surfaces
-- `kit-ui-consumption-contract.md` for ParentOS-specific `@nimiplatform/nimi-kit/ui` adoption, app-owned composition boundaries, and renderer design hard gates
+- `kit-ui-consumption-contract.md` for ParentOS-specific `@nimiplatform/kit/ui` adoption, app-owned composition boundaries, and renderer design hard gates
 - `journal-contract.md` for journaling, voice capture, and closed-set tag suggestion
 - `advisor-contract.md` for advisor chat, report generation, and AI boundary rules
 - `knowledge-asset-contract.md` for knowledge asset manifests, section semantics, provenance, schema validation, generated projections, and runtime consumption boundaries
@@ -27,7 +27,7 @@ Normative surfaces:
 - `tables/growth-milestone-rules.yaml` for admitted growth milestone-event derivation rules (threshold-crossed) consumed by `growth-curve-detail-contract.md`
 - `tables/reference-data-assets.yaml` for the admitted knowledge asset registry
 - `tables/dashboard-task-catalog.yaml` for the dashboard task orchestration catalog consumed by `timeline-contract.md#PO-TIME-010`
-- `tables/nimi-kit-adoption.yaml` for concrete ParentOS governed renderer modules consuming `@nimiplatform/nimi-kit/ui`
+- `tables/nimi-kit-adoption.yaml` for concrete ParentOS governed renderer modules consuming `@nimiplatform/kit/ui`
 - `tables/nimi-kit-compositions.yaml` for retained ParentOS app-owned compositions that must not become parallel primitive authority
 - `tables/renderer-design-overlays.yaml` for governed ParentOS dialog/drawer overlay registration, target provider, migration wave, and controlled exception posture
 

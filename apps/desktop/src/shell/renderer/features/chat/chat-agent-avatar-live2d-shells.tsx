@@ -1,4 +1,4 @@
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 
 export function Live2dLoadingShell({ label, transparent = false }: { label: string; transparent?: boolean }) {

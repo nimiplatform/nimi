@@ -4,7 +4,7 @@ import {
   type AgentPresentationBackendKind,
   type SetAgentPresentationProfileRequest,
 } from '@nimiplatform/sdk/runtime';
-import type { AvatarPresentationProfile } from '@nimiplatform/nimi-kit/features/avatar/headless';
+import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 import { normalizeRuntimeError, normalizeText } from './runtime-agent-inspect-projection';
 
 type RuntimeClient = ReturnType<typeof getPlatformClient>['runtime'];

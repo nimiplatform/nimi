@@ -1,5 +1,5 @@
 import type { PostFeedScope } from '@runtime/data-sync';
-import { Tooltip } from '@nimiplatform/nimi-kit/ui';
+import { Tooltip } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 
 /**

@@ -1,4 +1,4 @@
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {

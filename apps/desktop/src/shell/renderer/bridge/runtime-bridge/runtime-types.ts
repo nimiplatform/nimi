@@ -4,7 +4,7 @@ export type {
   RealmDefaults,
   RuntimeExecutionDefaults,
   RuntimeDefaults,
-} from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+} from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type DesktopReleaseInfo = {
   desktopVersion: string;

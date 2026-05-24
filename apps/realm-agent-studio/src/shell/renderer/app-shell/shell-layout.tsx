@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
-import { AmbientBackground, Button, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { AmbientBackground, Button, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import { useStudioSession } from './studio-session.js';
 
 export type StudioWorkspace = 'portfolio' | 'create' | 'detail' | 'settings' | 'assets' | 'posts' | 'schedule';

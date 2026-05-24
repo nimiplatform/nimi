@@ -10,7 +10,7 @@ import {
   persistedDraftHasContent,
 } from '../src/shell/renderer/features/world/create-agent/realm-agent-creation-draft';
 import { mapCharacterCardToDraft } from '../src/shell/renderer/features/world/create-agent/character-card-draft-mapper';
-import type { TavernCardV2 } from '@nimiplatform/nimi-kit/core/character-card';
+import type { TavernCardV2 } from '@nimiplatform/kit/core/character-card';
 
 // Minimal in-memory localStorage so the persistence helpers exercise their
 // real code path under `tsx --test` (which has no DOM storage).

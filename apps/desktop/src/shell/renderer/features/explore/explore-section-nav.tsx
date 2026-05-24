@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 
 // Canonical Explore section catalog. Fact source:
 // .nimi/spec/desktop/kernel/tables/explore-sections.yaml (D-EXPL-002).

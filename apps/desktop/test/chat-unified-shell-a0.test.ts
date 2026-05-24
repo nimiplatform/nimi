@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createReadyConversationSetupState } from '@nimiplatform/nimi-kit/features/chat/headless';
+import { createReadyConversationSetupState } from '@nimiplatform/kit/features/chat/headless';
 import { createUiSlice } from '../src/shell/renderer/app-shell/providers/ui-slice';
 import type {
   AppStoreSet,

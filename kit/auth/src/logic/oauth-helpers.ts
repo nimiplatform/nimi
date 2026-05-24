@@ -1,4 +1,4 @@
-import { readBundledEnv } from '@nimiplatform/nimi-kit/core/shell-mode';
+import { readBundledEnv } from '@nimiplatform/kit/core/shell-mode';
 
 export const readEnv = readBundledEnv;
 

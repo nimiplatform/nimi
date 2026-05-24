@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 import { confirmDialog } from '@renderer/bridge/runtime-bridge/ui';
 import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-navigation-events';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';

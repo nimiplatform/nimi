@@ -1,5 +1,5 @@
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { Button, cn, DashedAddButton, DatePicker, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, cn, DashedAddButton, DatePicker, TextField, TextareaField } from '@nimiplatform/kit/ui';
 import type { AttachmentRow } from '../../bridge/sqlite-bridge.js';
 import type { ReactNode } from 'react';
 import {

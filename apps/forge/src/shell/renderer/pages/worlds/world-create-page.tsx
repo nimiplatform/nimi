@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { CreateWorkbench } from '@world-engine/ui/create/create-workbench.js';
 import { useWorldCommitActions } from '@renderer/hooks/use-world-commit-actions.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';

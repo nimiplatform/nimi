@@ -5,7 +5,7 @@ import {
   matchConversationTurnEvent,
   type ConversationTurnError,
   type ConversationTurnEvent,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import {
   type ChatAiMessageRecord,
   type ChatAiThreadBundle,

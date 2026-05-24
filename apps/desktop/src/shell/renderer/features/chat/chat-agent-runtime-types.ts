@@ -1,5 +1,5 @@
-import type { ConversationRuntimeTextMessage } from '@nimiplatform/nimi-kit/features/chat/headless';
-import type { ConversationTurnHistoryMessage } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationRuntimeTextMessage } from '@nimiplatform/kit/features/chat/headless';
+import type { ConversationTurnHistoryMessage } from '@nimiplatform/kit/features/chat/headless';
 import type {
   buildRuntimeCallOptions,
   buildRuntimeRequestMetadata,

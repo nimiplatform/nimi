@@ -38,7 +38,7 @@
     "vitest": "^4.1.7"
   },
   "dependencies": {
-    "@nimiplatform/nimi-kit": "workspace:*",
+    "@nimiplatform/kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
     "@pixiv/three-vrm": "^3.5.3",
     "@pixiv/three-vrm-animation": "^3.5.3",

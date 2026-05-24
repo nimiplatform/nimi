@@ -24,7 +24,7 @@ import {
   type RuntimeAgentInspectEventSummary,
   type RuntimeAgentInspectSnapshot,
 } from '@renderer/infra/runtime-agent-inspect';
-import type { AvatarPresentationProfile } from '@nimiplatform/nimi-kit/features/avatar/headless';
+import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 
 type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
 

@@ -1,6 +1,6 @@
 import { memo, useCallback, useLayoutEffect, useMemo, useRef, type ReactNode, type RefObject, type UIEvent } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 import type {
   CanonicalMessageAccessorySlot,
   CanonicalMessageAvatarSlot,

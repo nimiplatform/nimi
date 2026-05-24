@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 import { describeRealmAgentPrimaryAction } from '@renderer/features/explore/realm-agent-friend-state';
 import type { AgentDetailData } from './agent-detail-model.js';
 import { getStateBadgeColor } from './agent-detail-model.js';

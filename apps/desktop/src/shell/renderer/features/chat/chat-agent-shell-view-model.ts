@@ -2,7 +2,7 @@ import type {
   ConversationCanonicalMessage,
   ConversationMessageViewModel,
   ConversationTargetSummary,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadSummary,

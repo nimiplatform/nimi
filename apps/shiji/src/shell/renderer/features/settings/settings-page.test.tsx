@@ -18,11 +18,11 @@ vi.mock('./parent-mode-panel.js', () => ({
   ParentModePanel: () => <div data-testid="parent-mode-panel" />,
 }));
 
-vi.mock('@nimiplatform/nimi-kit/features/model-picker/ui', () => ({
+vi.mock('@nimiplatform/kit/features/model-picker/ui', () => ({
   RuntimeModelPickerPanel: (props: unknown) => runtimeModelPickerPanelMock(props),
 }));
 
-vi.mock('@nimiplatform/nimi-kit/features/model-picker/runtime', () => ({
+vi.mock('@nimiplatform/kit/features/model-picker/runtime', () => ({
   useRuntimeModelPickerPanel: (options: unknown) => useRuntimeModelPickerPanelMock(options),
 }));
 

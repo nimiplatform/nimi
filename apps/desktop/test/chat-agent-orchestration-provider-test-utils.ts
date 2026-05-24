@@ -4,7 +4,7 @@ import test from 'node:test';
 import type {
   ConversationRuntimeTextStreamPart,
   ConversationTurnInput,
-} from '@nimiplatform/nimi-kit/features/chat';
+} from '@nimiplatform/kit/features/chat';
 import { parseAgentLocalProjectionCommitInput } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-parsers.js';
 import type {
   AgentLocalCommitTurnResult,

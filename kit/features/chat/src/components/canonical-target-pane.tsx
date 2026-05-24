@@ -7,7 +7,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 import type {
   ConversationSourceFilter,
   ConversationSourceKind,

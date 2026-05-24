@@ -5,10 +5,10 @@ import {
   scenarioJobStatusLabel,
   scenarioJobStatusToGenerationStatus,
   useRuntimeGenerationPanel,
-} from '@nimiplatform/nimi-kit/features/generation/runtime';
+} from '@nimiplatform/kit/features/generation/runtime';
 import {
   RuntimeGenerationPanel,
-} from '@nimiplatform/nimi-kit/features/generation/ui';
+} from '@nimiplatform/kit/features/generation/ui';
 import { useAppStore, type SongTake } from '@renderer/app-shell/providers/app-store.js';
 import { OtInput, OtToggle, OtTagInput, OtAccordionSection } from './ui-primitives.js';
 

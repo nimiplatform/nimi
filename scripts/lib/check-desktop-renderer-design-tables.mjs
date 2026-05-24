@@ -199,7 +199,7 @@ export function checkRendererDesignTables(fail) {
       continue;
     }
     const overlaySource = fs.readFileSync(overlayModulePath, 'utf8');
-    if (!/(?:components\/overlay\.js|\.\/overlay\.js|@nimiplatform\/nimi-ui|@nimiplatform\/nimi-kit\/ui)/.test(overlaySource)) {
+    if (!/(?:components\/overlay\.js|\.\/overlay\.js|@nimiplatform\/nimi-ui|@nimiplatform\/kit\/ui)/.test(overlaySource)) {
       fail(`${overlaysPath} overlay ${id} module must import shared overlay authority: ${module}`);
     }
     if (typeof item?.testid_required !== 'boolean') {

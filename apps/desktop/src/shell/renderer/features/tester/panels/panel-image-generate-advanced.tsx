@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, TextareaField, TextField } from '@nimiplatform/kit/ui';
 import {
   IMAGE_WORKFLOW_PRESET_SELECTIONS,
   type ImageResponseFormatMode,

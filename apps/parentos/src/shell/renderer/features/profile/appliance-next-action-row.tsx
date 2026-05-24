@@ -1,4 +1,4 @@
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import type { CSSProperties } from 'react';
 /**
  * Row of per-appliance "next action" cards for the hero appliances in the

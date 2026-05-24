@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from 'react';
 import { DesktopCardSurface } from '@renderer/components/surface';
-import { CanonicalRuntimeInspectSidebar } from '@nimiplatform/nimi-kit/features/chat/components/canonical-runtime-inspect-sidebar';
+import { CanonicalRuntimeInspectSidebar } from '@nimiplatform/kit/features/chat/components/canonical-runtime-inspect-sidebar';
 import {
   type CanonicalRuntimeInspectPanelKey,
   type CanonicalRuntimeInspectSectionData,
   type CanonicalRuntimeInspectStatusChip,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 
 export type ChatRuntimeInspectContentProps = {
   title?: string;

@@ -1,7 +1,7 @@
 import type {
   ConversationRuntimeTextMessage,
   ConversationTurnHistoryMessage,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import type { TextMessageContentPart } from '@nimiplatform/sdk/runtime';
 import type {
   AgentLocalBeatModality,

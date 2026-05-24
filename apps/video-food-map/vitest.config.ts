@@ -19,9 +19,9 @@ export default defineConfig({
       { find: 'react', replacement: path.resolve(__dirname, 'node_modules/react/index.js') },
       { find: 'scheduler', replacement: path.resolve(__dirname, 'node_modules/scheduler/index.js') },
       { find: '@renderer', replacement: path.resolve(__dirname, 'src/shell/renderer') },
-      { find: '@nimiplatform/nimi-kit/ui', replacement: path.resolve(__dirname, '../../kit/ui/src') },
-      { find: '@nimiplatform/nimi-kit/telemetry/error-boundary', replacement: path.resolve(__dirname, '../../kit/telemetry/src/error-boundary/index.ts') },
-      { find: '@nimiplatform/nimi-kit/telemetry', replacement: path.resolve(__dirname, '../../kit/telemetry/src/telemetry/index.ts') },
+      { find: '@nimiplatform/kit/ui', replacement: path.resolve(__dirname, '../../kit/ui/src') },
+      { find: '@nimiplatform/kit/telemetry/error-boundary', replacement: path.resolve(__dirname, '../../kit/telemetry/src/error-boundary/index.ts') },
+      { find: '@nimiplatform/kit/telemetry', replacement: path.resolve(__dirname, '../../kit/telemetry/src/telemetry/index.ts') },
     ],
   },
 });

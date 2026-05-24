@@ -4,7 +4,7 @@ import {
   Surface,
   StatusBadge as KitStatusBadge,
   cn,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import {
   CAPABILITIES_V11,
   type CapabilityV11,

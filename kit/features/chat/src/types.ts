@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { AvatarPresentationProfile } from '@nimiplatform/nimi-kit/features/avatar/headless';
+import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 
 export const CONVERSATION_MODES = ['ai', 'human', 'agent', 'group'] as const;
 export type ConversationMode = (typeof CONVERSATION_MODES)[number];

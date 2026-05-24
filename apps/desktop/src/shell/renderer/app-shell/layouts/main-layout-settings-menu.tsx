@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { SHELL_CHROME_MENU_ITEM_BASE_CLASS, SHELL_CHROME_OVERLAY_CLASS } from './shell-chrome-classes';
 import { renderShellNavIcon } from './navigation-config';

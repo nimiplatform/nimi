@@ -1,4 +1,4 @@
-import { Button } from '@nimiplatform/nimi-kit/ui';
+import { Button } from '@nimiplatform/kit/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { getMedicalEvents } from '../../bridge/sqlite-bridge.js';

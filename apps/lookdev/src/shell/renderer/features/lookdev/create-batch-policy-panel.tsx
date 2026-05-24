@@ -1,4 +1,4 @@
-import { Button, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, TextField } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 
 type CreateBatchPolicyPanelProps = {

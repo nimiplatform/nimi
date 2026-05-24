@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Button, StatusBadge } from '@nimiplatform/nimi-kit/ui';
+import { Button, StatusBadge } from '@nimiplatform/kit/ui';
 import { useRuntimeReadiness } from '@renderer/hooks/use-runtime-readiness.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { changeLocale, getCurrentLocale, getLocaleLabel, SUPPORTED_LOCALES, type SupportedLocale } from '@renderer/i18n/index.js';

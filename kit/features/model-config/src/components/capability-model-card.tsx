@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Tooltip } from '@nimiplatform/nimi-kit/ui';
-import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
-import { ModelPickerModal, ModelSelectorTrigger } from '@nimiplatform/nimi-kit/features/model-picker/ui';
+import { Tooltip } from '@nimiplatform/kit/ui';
+import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
+import { ModelPickerModal, ModelSelectorTrigger } from '@nimiplatform/kit/features/model-picker/ui';
 import { bindingToPickerSelection, pickerSelectionToBinding } from '../binding-helpers.js';
 import type { CapabilityModelCardProps, ModelConfigCapabilityStatus } from '../types.js';
 import { DisabledConfigNote } from './config-section.js';

@@ -1,4 +1,4 @@
-import type { AuthPlatformAdapter } from '@nimiplatform/nimi-kit/auth';
+import type { AuthPlatformAdapter } from '@nimiplatform/kit/auth';
 import {
   loadMomentRuntimeAccountUser,
 } from '@renderer/infra/bootstrap/moment-runtime-account.js';

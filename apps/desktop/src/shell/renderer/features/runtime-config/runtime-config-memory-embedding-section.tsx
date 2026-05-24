@@ -4,7 +4,7 @@ import {
   createDefaultAIScopeRef,
   type MemoryEmbeddingConfig,
 } from '@nimiplatform/sdk/mod';
-import { Surface, cn } from '@nimiplatform/nimi-kit/ui';
+import { Surface, cn } from '@nimiplatform/kit/ui';
 import { getDesktopMemoryEmbeddingConfigService } from '@renderer/app-shell/providers/desktop-memory-embedding-config-service';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';

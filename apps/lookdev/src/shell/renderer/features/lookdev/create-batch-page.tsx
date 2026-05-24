@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getPlatformClient } from '@nimiplatform/sdk';
-import { Button, SelectField, TextField, type SelectFieldOption } from '@nimiplatform/nimi-kit/ui';
+import { Button, SelectField, TextField, type SelectFieldOption } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { getLookdevAgentAuthoringContext, listLookdevAgents, listLookdevWorldAgents, listLookdevWorlds } from '@renderer/data/lookdev-data-client.js';
 import type { LookdevAgentRecord } from '@renderer/data/lookdev-data-client.js';

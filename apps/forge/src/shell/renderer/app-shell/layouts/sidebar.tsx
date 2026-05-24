@@ -10,7 +10,7 @@ import {
   SidebarSection,
   SidebarShell,
   Surface,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 
 type ForgeNavItem = {

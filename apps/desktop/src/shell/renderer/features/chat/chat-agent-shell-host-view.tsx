@@ -3,7 +3,7 @@ import type {
   CanonicalMessageAccessorySlot,
   CanonicalMessageContentSlot,
   ConversationTargetSummary,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import type { AgentFooterViewState } from './chat-agent-shell-footer-state';
 
@@ -32,7 +32,7 @@ export function resolveAgentConversationHostView(input: {
   transcriptContentPaddingBottomClassName?: string;
   renderMessageContent: CanonicalMessageContentSlot;
   renderMessageAccessory?: CanonicalMessageAccessorySlot;
-  onMessageContextMenu?: (message: import('@nimiplatform/nimi-kit/features/chat/headless').ConversationCanonicalMessage, event: MouseEvent<HTMLDivElement>) => void;
+  onMessageContextMenu?: (message: import('@nimiplatform/kit/features/chat/headless').ConversationCanonicalMessage, event: MouseEvent<HTMLDivElement>) => void;
   onStopGenerating?: () => void;
 }): AgentConversationHostView {
   return {

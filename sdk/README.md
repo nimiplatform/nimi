@@ -1,30 +1,80 @@
-# sdk
+# @nimiplatform/sdk
 
-SDK 已完成单包收敛：
+TypeScript SDK for Nimi apps and integrations.
 
-- 物理包仅保留 `sdk`
-- 对外仅发布 `@nimiplatform/sdk`
-- 根入口 `@nimiplatform/sdk` 作为 app 级组合面
-- 能力通过稳定子路径暴露：`@nimiplatform/sdk/*`
+`@nimiplatform/sdk` provides the public client surface for Realm services,
+local Runtime access, Nimi App runtime projection, shared SDK types, scope
+helpers, and the Vercel AI SDK provider adapter. Product authority remains in
+`.nimi/spec/**`; this package is the typed application boundary for consumers.
+
+## Install
+
+```bash
+pnpm add @nimiplatform/sdk
+```
+
+## Quick Start
+
+Use the root package for app-level composition:
+
+```ts
+import { createPlatformClient } from '@nimiplatform/sdk';
+
+const platform = createPlatformClient({
+  realm: { baseUrl: 'https://api.nimi.ai' },
+  runtime: { endpoint: 'http://127.0.0.1:7345' },
+});
+```
+
+Generated third-party Nimi App scaffolds use the app-runtime projection helper:
+
+```ts
+import { createNimiAppRuntimePlatformClient } from '@nimiplatform/sdk';
+
+const projection = await createNimiAppRuntimePlatformClient({
+  mode: 'third-party-nimi-app',
+  appId: 'my-nimi-app',
+});
+```
 
 ## Public Subpaths
 
-- `@nimiplatform/sdk` — app-level composition entry (`createPlatformClient`)
+- `@nimiplatform/sdk` — app-level composition entry
+- `@nimiplatform/sdk/app` — Nimi App auth and runtime projection types
 - `@nimiplatform/sdk/realm` — Realm cloud state integration
-- `@nimiplatform/sdk/runtime` — Runtime core (Node/gRPC transport)
-- `@nimiplatform/sdk/runtime/browser` — Runtime browser transport (Tauri IPC / HTTP)
-- `@nimiplatform/sdk/types` — Shared type definitions
-- `@nimiplatform/sdk/scope` — Scope and capability management
+- `@nimiplatform/sdk/runtime` — Runtime Node/gRPC transport
+- `@nimiplatform/sdk/runtime/browser` — Runtime browser transport
+- `@nimiplatform/sdk/types` — shared type definitions
+- `@nimiplatform/sdk/scope` — scope and capability helpers
 - `@nimiplatform/sdk/ai-provider` — Vercel AI SDK provider adapter
-- `@nimiplatform/sdk/mod` — Mod system entry
-- `@nimiplatform/sdk/mod/shell` — Mod shell utilities
-- `@nimiplatform/sdk/mod/lifecycle` — Mod lifecycle hooks
-- `@nimiplatform/sdk/mod/storage` — Mod storage system
+- `@nimiplatform/sdk/world` — world-facing SDK types and helpers
 
-## Guardrails
+## Runtime Example
 
-- 禁止 legacy 包导入（`sdk-realm/sdk-runtime/sdk-types/mod-sdk/ai-provider`）
-- 禁止 `@nimiplatform/sdk/realm/core|models|services|generated` 深层导入
-- 第一方 app/docs/examples 默认使用 `createPlatformClient()`，子路径仅在 low-level escape hatch 或 domain-specific 语境下直接使用
-- `reasonCode` 必须使用 `ReasonCode` 常量
-- TypeScript 统一 `strict + noImplicitAny`
+```ts
+import { createRuntimeClient } from '@nimiplatform/sdk/runtime';
+
+const runtime = createRuntimeClient({
+  endpoint: 'http://127.0.0.1:7345',
+});
+
+const result = await runtime.ai.text.generate({
+  prompt: 'Write a one sentence greeting from Nimi.',
+});
+```
+
+## Package Boundaries
+
+- Use `createPlatformClient()` for app-level composition.
+- Use `createNimiAppRuntimePlatformClient()` in third-party Nimi App
+  scaffolds that need the admitted Runtime app projection.
+- Use subpath imports only when a consumer intentionally targets a narrower
+  Realm, Runtime, scope, app, or provider surface.
+- Do not import generated or private deep paths.
+
+## Verification
+
+```bash
+pnpm --filter @nimiplatform/sdk build
+pnpm --filter @nimiplatform/sdk test
+```

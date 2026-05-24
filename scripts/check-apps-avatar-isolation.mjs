@@ -4,7 +4,7 @@
 //
 // Policy:
 //   apps/avatar/src/** must NOT import:
-//     - @nimiplatform/nimi-kit/features/avatar (any subpath)
+//     - @nimiplatform/kit/features/avatar (any subpath)
 //     - apps/desktop/, apps/web/, apps/forge/, apps/realm-drift/,
 //       apps/install-gateway/, apps/overtone/ (any subpath)
 //     - _external/ (any subpath; reference-only)
@@ -30,10 +30,10 @@ const VENDORED_DIR = path.join(ROOT, 'apps', 'avatar', 'vendored');
 // each entry: { test: (specifier: string) => boolean, label: string }
 const BANNED = [
   {
-    label: '@nimiplatform/nimi-kit/features/avatar',
+    label: '@nimiplatform/kit/features/avatar',
     test: (s) =>
-      s === '@nimiplatform/nimi-kit/features/avatar' ||
-      s.startsWith('@nimiplatform/nimi-kit/features/avatar/'),
+      s === '@nimiplatform/kit/features/avatar' ||
+      s.startsWith('@nimiplatform/kit/features/avatar/'),
   },
   {
     label: 'cross-app: apps/desktop',

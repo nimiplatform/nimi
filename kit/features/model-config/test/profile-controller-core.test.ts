@@ -3,7 +3,7 @@ import {
   createModelConfigProfileControllerCore,
   type SharedAIConfigService,
   type UserProfilesSource,
-} from '@nimiplatform/nimi-kit/core/model-config';
+} from '@nimiplatform/kit/core/model-config';
 import type {
   AIConfig,
   AIProfile,

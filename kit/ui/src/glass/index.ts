@@ -1,5 +1,5 @@
 /**
- * `@nimiplatform/nimi-kit/ui/glass`
+ * `@nimiplatform/kit/ui/glass`
  *
  * Glass material primitive contract carve-out (wave-b fork F6).
  *
@@ -11,7 +11,7 @@
  *
  * Consumption rules (kit/ui/AGENTS.md hard boundary):
  *   - Glass is consumed only via `<Surface material="...">` from
- *     `@nimiplatform/nimi-kit/ui` or the 5-tier marker class names
+ *     `@nimiplatform/kit/ui` or the 5-tier marker class names
  *     emitted by `surfaceVariants` (`nimi-material-glass-thin` etc.).
  *   - No inline `rgba(...)` material fills, no inline
  *     `backdrop-filter`, no hand-picked `backdrop-blur-[Npx]` arbitrary

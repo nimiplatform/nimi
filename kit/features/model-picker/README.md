@@ -4,10 +4,10 @@
 Reusable browse-and-select surface for runtime model catalogs with shared filtering, grouping, and details.
 
 ## Public Surfaces
-- `@nimiplatform/nimi-kit/features/model-picker`
-- `@nimiplatform/nimi-kit/features/model-picker/headless`
-- `@nimiplatform/nimi-kit/features/model-picker/ui`
-- `@nimiplatform/nimi-kit/features/model-picker/runtime`
+- `@nimiplatform/kit/features/model-picker`
+- `@nimiplatform/kit/features/model-picker/headless`
+- `@nimiplatform/kit/features/model-picker/ui`
+- `@nimiplatform/kit/features/model-picker/runtime`
 - Current surfaces:
   - `headless`: active
   - `ui`: active
@@ -37,5 +37,5 @@ Reusable browse-and-select surface for runtime model catalogs with shared filter
   Uses `model-picker/headless` and `model-picker/ui` for route-level model selection over relay-discovered local/cloud model lists.
 
 ## Verification
-- `pnpm --filter @nimiplatform/nimi-kit test`
+- `pnpm --filter @nimiplatform/kit test`
 - `pnpm check:nimi-kit`

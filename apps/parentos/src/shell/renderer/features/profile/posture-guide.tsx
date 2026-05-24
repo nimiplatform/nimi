@@ -1,4 +1,4 @@
-import { Button, IconButton, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, Surface } from '@nimiplatform/kit/ui';
 import { useState } from 'react';
 
 /* ── Guide data ── */

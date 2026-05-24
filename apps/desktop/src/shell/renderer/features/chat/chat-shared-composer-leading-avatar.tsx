@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/nimi-kit/ui';
+import { Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';

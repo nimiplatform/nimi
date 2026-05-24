@@ -1,4 +1,4 @@
-import { ScrollArea, SelectField, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, SelectField, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import type { ImportRecord, VenueRecord, VideoFoodMapSnapshot } from '@renderer/data/types.js';
 import type { ReviewFilter } from '@renderer/data/filter.js';
 

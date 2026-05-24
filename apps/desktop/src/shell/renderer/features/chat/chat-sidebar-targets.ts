@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { ConversationTargetSummary } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {

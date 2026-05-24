@@ -1,5 +1,5 @@
 import type { MouseEventHandler } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 
 export type ChatComposerResizeHandleProps = {
   onMouseDown?: MouseEventHandler<HTMLDivElement>;

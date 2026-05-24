@@ -43,7 +43,7 @@ vi.mock('@nimiplatform/sdk', () => ({
   clearPlatformClient: clearPlatformClientMock,
 }));
 
-vi.mock('@nimiplatform/nimi-kit/telemetry', () => ({
+vi.mock('@nimiplatform/kit/telemetry', () => ({
   logRendererEvent: vi.fn(),
 }));
 

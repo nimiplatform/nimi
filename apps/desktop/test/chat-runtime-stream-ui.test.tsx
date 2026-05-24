@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { ConversationCanonicalMessage } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
 
 async function loadRuntimeImageMessageContent() {
   Object.defineProperty(globalThis, 'React', {

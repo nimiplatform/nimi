@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { StatusBadge } from '@nimiplatform/nimi-kit/ui';
+import { StatusBadge } from '@nimiplatform/kit/ui';
 import type { ImportRecord, VenueRecord } from '@renderer/data/types.js';
 
 import type { SurfaceId } from './app-helpers.js';

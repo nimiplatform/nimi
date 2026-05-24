@@ -3,7 +3,7 @@
  */
 
 import type { ReactNode } from 'react';
-import { ScrollArea, Surface, Button, cn } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, Surface, Button, cn } from '@nimiplatform/kit/ui';
 
 /* ------------------------------------------------------------------ */
 /*  ForgePage — scrollable page with max-width container               */

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   RuntimeModelPickerPanel,
-} from '@nimiplatform/nimi-kit/features/model-picker/ui';
+} from '@nimiplatform/kit/features/model-picker/ui';
 import {
   useRuntimeModelPickerPanel,
-} from '@nimiplatform/nimi-kit/features/model-picker/runtime';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/features/model-picker/runtime';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 import { Button, Card, Input, RuntimeSelect } from './runtime-config-primitives';
 import { RuntimePageShell } from './runtime-config-page-shell';
 import {

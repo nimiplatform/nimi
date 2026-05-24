@@ -3,11 +3,11 @@ import {
   selectEnabledDescriptors,
   summarizeAiModelAggregate,
   type CapabilityEvaluation,
-} from '@nimiplatform/nimi-kit/core/model-config';
+} from '@nimiplatform/kit/core/model-config';
 import {
   CANONICAL_CAPABILITY_CATALOG_BY_ID,
   type CanonicalCapabilityDescriptor,
-} from '@nimiplatform/nimi-kit/core/runtime-capabilities';
+} from '@nimiplatform/kit/core/runtime-capabilities';
 
 function evaluation(capabilityId: string, overrides: Partial<CapabilityEvaluation> = {}): CapabilityEvaluation {
   const descriptor = CANONICAL_CAPABILITY_CATALOG_BY_ID[capabilityId] as CanonicalCapabilityDescriptor;

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import type { UseGenerationPanelResult } from '../hooks/use-generation-panel.js';
 import type { GenerationRunItem } from '../types.js';
 import { GenerationStatusList } from './generation-status-list.js';

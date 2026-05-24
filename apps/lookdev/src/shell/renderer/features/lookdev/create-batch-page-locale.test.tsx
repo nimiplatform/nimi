@@ -9,11 +9,11 @@ import CreateBatchPage from './create-batch-page.js';
 import { useLookdevStore } from './lookdev-store.js';
 import { type LookdevWorldStylePack, type LookdevPortraitBrief } from './types.js';
 
-vi.mock('@nimiplatform/nimi-kit/ui', async () => {
-  const actual = await vi.importActual<typeof import('@nimiplatform/nimi-kit/ui')>('@nimiplatform/nimi-kit/ui');
+vi.mock('@nimiplatform/kit/ui', async () => {
+  const actual = await vi.importActual<typeof import('@nimiplatform/kit/ui')>('@nimiplatform/kit/ui');
   return {
     ...actual,
-    SelectField: ({ options, value, placeholder, onValueChange, onChange, id, ...rest }: import('@nimiplatform/nimi-kit/ui').SelectFieldProps) => (
+    SelectField: ({ options, value, placeholder, onValueChange, onChange, id, ...rest }: import('@nimiplatform/kit/ui').SelectFieldProps) => (
       <select
         id={id}
         aria-label={rest['aria-label']}

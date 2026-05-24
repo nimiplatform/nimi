@@ -5,28 +5,28 @@ import {
   ModelConfigCapabilityDetail,
   ProfileConfigSection,
   SectionGroupHeader,
-} from '@nimiplatform/nimi-kit/features/model-config';
+} from '@nimiplatform/kit/features/model-config';
 import {
   CANONICAL_CAPABILITY_CATALOG_BY_ID,
   type CanonicalCapabilityDescriptor,
   type CanonicalCapabilitySectionId,
-} from '@nimiplatform/nimi-kit/core/runtime-capabilities';
+} from '@nimiplatform/kit/core/runtime-capabilities';
 import {
   selectEnabledDescriptors,
   summarizeAiModelAggregate,
   type AppModelConfigSurface,
   type CapabilityEvaluation,
   type ModelConfigStatusTone,
-} from '@nimiplatform/nimi-kit/core/model-config';
-import type { ModelConfigProfileController } from '@nimiplatform/nimi-kit/features/model-config';
-import { ScrollArea, Surface, cn } from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/core/model-config';
+import type { ModelConfigProfileController } from '@nimiplatform/kit/features/model-config';
+import { ScrollArea, Surface, cn } from '@nimiplatform/kit/ui';
 import { DesktopIconToggleAction } from '@renderer/components/action';
 import { useTesterModelConfigController } from './tester-model-config-hook';
 import type { CapabilityState, ImageWorkflowDraftState } from './tester-types.js';
 import { TesterChatSectionBody } from './panels/panel-chat-settings.js';
 import { TesterImageSectionBody } from './panels/panel-image-settings.js';
 import { TesterVideoSectionBody } from './panels/panel-video-settings.js';
-import type { VideoParamsState } from '@nimiplatform/nimi-kit/features/model-config';
+import type { VideoParamsState } from '@nimiplatform/kit/features/model-config';
 
 const SECTION_ORDER: ReadonlyArray<CanonicalCapabilitySectionId> = [
   'chat',

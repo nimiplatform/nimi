@@ -1,5 +1,5 @@
 /**
- * `@nimiplatform/nimi-kit/ui/a11y`
+ * `@nimiplatform/kit/ui/a11y`
  *
  * Accessibility primitives + helpers (wave-b fork F1 lift-the-bar).
  *

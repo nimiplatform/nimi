@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, IconButton, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 
 export interface ObservationFocusData {
   dimensionId: string;

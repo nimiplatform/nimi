@@ -103,10 +103,10 @@ pnpm run check:desktop-mods-smoke
 
 It validates the runtime mods directory, installed manifest/entry integrity, and zero-bundle desktop discovery behavior.
 
-## Kit (@nimiplatform/nimi-kit)
+## Kit (@nimiplatform/kit)
 
 ```bash
-pnpm --filter @nimiplatform/nimi-kit test
+pnpm --filter @nimiplatform/kit test
 ```
 
 Kit tests cover foundation modules (ui, core, telemetry), auth flows, and feature modules (chat, model-picker, generation, commerce).

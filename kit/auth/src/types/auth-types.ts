@@ -3,7 +3,7 @@ import type {
   MouseEvent as ReactMouseEvent,
   ReactNode,
 } from 'react';
-import type { TauriOAuthBridge } from '@nimiplatform/nimi-kit/core/oauth';
+import type { TauriOAuthBridge } from '@nimiplatform/kit/core/oauth';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { IconButton, Surface } from '@nimiplatform/nimi-kit/ui';
+import { IconButton, Surface } from '@nimiplatform/kit/ui';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 

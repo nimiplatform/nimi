@@ -6,7 +6,7 @@ import {
   SettingsSectionTitle as KitSettingsSectionTitle,
   StatusBadge as KitStatusBadge,
   cn,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import { DesktopCardSurface } from '@renderer/components/surface';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 

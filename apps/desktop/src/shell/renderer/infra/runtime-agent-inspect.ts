@@ -4,7 +4,7 @@ import {
   createRuntimeProtectedScopeHelper,
   MemoryCanonicalClass,
 } from '@nimiplatform/sdk/runtime';
-import type { AvatarPresentationProfile } from '@nimiplatform/nimi-kit/features/avatar/headless';
+import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 import {
   formatAutonomyMode,
   formatEventType,

@@ -10,7 +10,7 @@ import { addConnectorToState, removeSelectedConnector, replaceConnectorsInState,
 import { formatRuntimeConfigErrorBanner } from './runtime-config-connector-error';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { Card as PrimitiveCard, RuntimeSelect, StatusBadge, renderModelChips } from './runtime-config-primitives';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 import { RuntimePageShell } from './runtime-config-page-shell';
 import { SectionTitle as SharedSectionTitle } from '@renderer/features/settings/settings-layout-components';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';

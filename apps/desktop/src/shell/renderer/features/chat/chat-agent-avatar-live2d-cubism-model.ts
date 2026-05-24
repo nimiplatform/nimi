@@ -4,7 +4,7 @@ import {
   resolveAvatarLive2dMotionSelection,
   resolveAvatarLive2dRenderMotionPose,
   type AvatarLive2dMotionSelection,
-} from '@nimiplatform/nimi-kit/features/avatar/live2d';
+} from '@nimiplatform/kit/features/avatar/live2d';
 import type {
   CubismModelHandle,
   CubismModelSettingShape,

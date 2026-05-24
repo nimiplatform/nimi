@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 
 type LegalSection = {
   title: string;

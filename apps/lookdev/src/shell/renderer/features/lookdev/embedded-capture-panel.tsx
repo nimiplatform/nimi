@@ -1,4 +1,4 @@
-import { Button, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, TextField, TextareaField } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import type { LookdevCaptureState } from './types.js';
 

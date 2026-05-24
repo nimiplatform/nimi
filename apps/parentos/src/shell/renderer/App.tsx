@@ -1,7 +1,7 @@
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { I18nextProvider } from 'react-i18next';
-import { TooltipProvider } from '@nimiplatform/nimi-kit/ui';
+import { TooltipProvider } from '@nimiplatform/kit/ui';
 import { i18n } from './i18n/index.js';
 import { AppRoutes } from './app-shell/routes.js';
 import { ShellLayout } from './app-shell/shell-layout.js';

@@ -6,7 +6,7 @@
 
 import type {
   CanonicalCapabilityDescriptor,
-} from '@nimiplatform/nimi-kit/core/runtime-capabilities';
+} from '@nimiplatform/kit/core/runtime-capabilities';
 import type {
   AggregateCountsLabels,
   AggregateSummary,

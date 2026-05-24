@@ -1,4 +1,4 @@
-export * from '@nimiplatform/nimi-kit/ui';
+export * from '@nimiplatform/kit/ui';
 
 export type StateTone = 'selected' | 'danger';
 

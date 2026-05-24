@@ -1,4 +1,4 @@
-import { Button, Timeline, TimelineDivider, TimelineGroup } from '@nimiplatform/nimi-kit/ui';
+import { Button, Timeline, TimelineDivider, TimelineGroup } from '@nimiplatform/kit/ui';
 /**
  * Vision archive page — timeline-document view.
  *

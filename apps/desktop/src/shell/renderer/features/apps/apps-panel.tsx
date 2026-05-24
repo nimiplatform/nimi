@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ConfirmDialog, ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
+import { ConfirmDialog, ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useAppsPanelController } from './apps-panel-controller.js';
 import { AppsDetailView } from './apps-detail-view.js';
 import { AppsPanelView } from './apps-panel-view.js';

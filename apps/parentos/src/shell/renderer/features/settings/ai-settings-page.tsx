@@ -6,8 +6,8 @@ import {
   defaultModelConfigProfileCopy,
   useModelConfigProfileController,
   type AppModelConfigSurface,
-} from '@nimiplatform/nimi-kit/features/model-config';
-import { Surface, buttonVariants, cn } from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/features/model-config';
+import { Surface, buttonVariants, cn } from '@nimiplatform/kit/ui';
 import { applyAIProfileToConfig, type AIConfig } from '@nimiplatform/sdk/mod';
 import { PARENTOS_AI_SCOPE_REF } from './parentos-ai-config.js';
 import { getParentosAIConfigService } from './parentos-ai-config-service.js';

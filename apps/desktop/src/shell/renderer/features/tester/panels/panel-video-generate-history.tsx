@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 import type { VideoGenerationRecord } from '../tester-types.js';
 import { RawJsonSection } from '../tester-diagnostics.js';
 import { EMPTY_VIDEO_ICON, TRASH_ICON, X_ICON, formatRelativeTime, modeShortLabel } from './panel-video-generate-shared.js';

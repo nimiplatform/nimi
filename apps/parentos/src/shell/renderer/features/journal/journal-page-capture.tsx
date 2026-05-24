@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import type { RefObject } from 'react';
-import { Button, IconButton, NimiText, Surface, TextareaField, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, NimiText, Surface, TextareaField, cn } from '@nimiplatform/kit/ui';
 import { PhotoBar } from './journal-sub-components.js';
 import { VoiceIdleEntry, VoiceRecordingPanel, VoicePreviewPanel } from './journal-voice-card.js';
 import type { VoiceRecordingSession } from './voice-observation-recorder.js';

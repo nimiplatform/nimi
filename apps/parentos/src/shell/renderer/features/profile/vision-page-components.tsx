@@ -1,4 +1,4 @@
-import { Button, cn, DatePicker, StatusBadge, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, cn, DatePicker, StatusBadge, Surface, TextField } from '@nimiplatform/kit/ui';
 import {
   HealthRecordModalShell,
   ModalContent,

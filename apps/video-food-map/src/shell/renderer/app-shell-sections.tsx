@@ -8,7 +8,7 @@ import {
   SidebarShell,
   StatusBadge,
   Surface,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import type { ReviewFilter } from '@renderer/data/filter.js';
 import type { UserLocation } from '@renderer/data/nearby.js';
 import type { CreatorSyncRecord, ImportRecord, VenueRecord, VideoFoodMapSettings, VideoFoodMapSnapshot } from '@renderer/data/types.js';

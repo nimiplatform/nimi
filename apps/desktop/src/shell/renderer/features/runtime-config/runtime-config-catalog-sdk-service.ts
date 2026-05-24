@@ -14,7 +14,7 @@ import {
   type CatalogWorkflowModel,
   type ModelCatalogProviderEntry,
 } from '@nimiplatform/sdk/runtime';
-import { runtimeModelCatalogService } from '@nimiplatform/nimi-kit/features/model-picker/runtime';
+import { runtimeModelCatalogService } from '@nimiplatform/kit/features/model-picker/runtime';
 
 type JsonObject = Record<string, unknown>;
 type JsonValue = unknown;

@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import type { TFunction } from 'i18next';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 import { MAX_CAPTION_LENGTH, type Location, type SelectedAttachmentRef, type SelectedFile } from './create-post-modal-helpers.js';
 
 type CreatePostModalHeaderProps = {

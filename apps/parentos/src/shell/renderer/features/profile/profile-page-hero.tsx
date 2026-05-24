@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Pencil, Plus } from 'lucide-react';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { ChildAvatar } from '../../shared/child-avatar.js';
 import { formatAgeText } from './health-record-display.js';
 

@@ -1,4 +1,4 @@
-import { isWebShellMode } from '@nimiplatform/nimi-kit/core/shell-mode';
+import { isWebShellMode } from '@nimiplatform/kit/core/shell-mode';
 import { resolveSessionExpiry } from './shared-desktop-auth-session.js';
 
 export const WEB_AUTH_SESSION_KEY = 'nimi.web.auth.session.v1';

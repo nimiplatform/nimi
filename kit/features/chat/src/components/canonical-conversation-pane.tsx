@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 import type { ConversationCharacterData, ConversationTargetSummary, ConversationViewMode } from '../types.js';
 import { resolveConversationThemeBackgroundStyle } from './conversation-theme-background.js';
 

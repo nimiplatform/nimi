@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, ProgressIndicator } from '@nimiplatform/nimi-kit/ui';
+import { Button, ProgressIndicator } from '@nimiplatform/kit/ui';
 import type { TrustTierId } from '@nimiplatform/sdk/app';
 import {
   actionPlanForCardState,

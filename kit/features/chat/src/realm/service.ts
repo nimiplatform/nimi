@@ -1,4 +1,4 @@
-import { getPlatformClient } from '@nimiplatform/nimi-kit/core/sdk-contract';
+import { getPlatformClient } from '@nimiplatform/kit/core/sdk-contract';
 import { useEffect, useMemo, useRef } from 'react';
 import {
   useChatComposer,

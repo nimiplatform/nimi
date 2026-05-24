@@ -8,7 +8,7 @@ import {
   localizeAuthError,
   toErrorMessage,
   validateDesktopCallbackState,
-} from '@nimiplatform/nimi-kit/auth';
+} from '@nimiplatform/kit/auth';
 import { REMEMBER_LOGIN_KEY, loadRememberedLogin, saveRememberedLogin } from '../../../kit/auth/src/logic/remember-login.js';
 import {
   WEB_AUTH_SESSION_KEY,

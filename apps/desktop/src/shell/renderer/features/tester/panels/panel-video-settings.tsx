@@ -6,14 +6,14 @@ import {
   type ModelConfigCapabilityItem,
   type ModelConfigRouteBinding,
   type VideoParamsState,
-} from '@nimiplatform/nimi-kit/features/model-config';
+} from '@nimiplatform/kit/features/model-config';
 import {
   CANONICAL_CAPABILITY_CATALOG_BY_ID,
-} from '@nimiplatform/nimi-kit/core/runtime-capabilities';
-import type { RouteModelPickerDataProvider } from '@nimiplatform/nimi-kit/features/model-picker';
+} from '@nimiplatform/kit/core/runtime-capabilities';
+import type { RouteModelPickerDataProvider } from '@nimiplatform/kit/features/model-picker';
 import type {
   AppModelConfigSurface,
-} from '@nimiplatform/nimi-kit/core/model-config';
+} from '@nimiplatform/kit/core/model-config';
 
 export type TesterVideoSectionBodyProps = {
   params: VideoParamsState;

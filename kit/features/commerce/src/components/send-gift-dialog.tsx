@@ -5,7 +5,7 @@ import {
   OverlayShell,
   StatusBadge,
   TextareaField,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import type { CommerceGiftRecipient } from '../types.js';
 import type { UseSendGiftDialogResult } from '../hooks/use-send-gift-dialog.js';
 

@@ -1,4 +1,4 @@
-import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
+import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
 import type { ModelConfigRouteBinding } from './types.js';
 
 function normalizeText(value: unknown): string {

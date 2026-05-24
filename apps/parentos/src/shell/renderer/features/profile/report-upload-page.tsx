@@ -1,4 +1,4 @@
-import { Button, DashedAddButton, DatePicker, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DashedAddButton, DatePicker, Surface, TextField } from '@nimiplatform/kit/ui';
 import { useState, useEffect, useMemo } from 'react';
 import { computeAgeMonthsAt, useAppStore } from '../../app-shell/app-store.js';
 import { convertFileSrc } from '@tauri-apps/api/core';

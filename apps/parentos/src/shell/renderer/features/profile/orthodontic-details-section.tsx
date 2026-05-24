@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Surface, cn } from '@nimiplatform/nimi-kit/ui';
+import { Surface, cn } from '@nimiplatform/kit/ui';
 
 interface Props {
   title: string;

@@ -12,7 +12,7 @@
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Button, ProgressIndicator } from '@nimiplatform/nimi-kit/ui';
+import { Button, ProgressIndicator } from '@nimiplatform/kit/ui';
 import {
   AlertIcon,
   CheckCircleFilledIcon,

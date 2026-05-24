@@ -4,7 +4,7 @@ import {
   ScenarioJobStatus,
   type Runtime,
   type ScenarioJobSubmitInput,
-} from '@nimiplatform/nimi-kit/core/sdk-contract';
+} from '@nimiplatform/kit/core/sdk-contract';
 import { useGenerationPanel, type UseGenerationPanelResult } from './hooks/use-generation-panel.js';
 import type { GenerationRunItem } from './types.js';
 export type RuntimeGenerationSubmitRequest = ScenarioJobSubmitInput;

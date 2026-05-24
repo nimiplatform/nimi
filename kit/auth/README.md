@@ -4,9 +4,9 @@
 Cross-app authentication feature module for sign-in UI, flows, adapters, storage, and callback helpers.
 
 ## Public Surfaces
-- `@nimiplatform/nimi-kit/auth`
-- `@nimiplatform/nimi-kit/auth/styles.css`
-- `@nimiplatform/nimi-kit/auth/native-oauth-result-page`
+- `@nimiplatform/kit/auth`
+- `@nimiplatform/kit/auth/styles.css`
+- `@nimiplatform/kit/auth/native-oauth-result-page`
 - Current surfaces:
   - `headless`: active
   - `ui`: active
@@ -30,5 +30,5 @@ Cross-app authentication feature module for sign-in UI, flows, adapters, storage
 - `web`
 
 ## Verification
-- `pnpm --filter @nimiplatform/nimi-kit build`
+- `pnpm --filter @nimiplatform/kit build`
 - `pnpm check:nimi-kit`

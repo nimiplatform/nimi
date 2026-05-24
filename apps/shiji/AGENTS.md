@@ -8,7 +8,7 @@
 - All runtime access goes through `@nimiplatform/sdk/runtime`; all realm access goes through `@nimiplatform/sdk/realm`.
 - App production code must use generated Realm services or typed data clients. Do not add `realm.raw.request`, `realm.unsafeRaw.request`, ad hoc `/api/` fetches, or fake success stubs for missing backend contracts.
 - Rust owns transport and daemon lifecycle only. No business logic on the Rust side.
-- OAuth flows go through `@nimiplatform/nimi-kit/core/oauth` and Rust `oauth_commands`.
+- OAuth flows go through `@nimiplatform/kit/core/oauth` and Rust `oauth_commands`.
 - Do not add direct HTTP/gRPC calls or hardcoded provider/model lists.
 - Dialogue engine logic lives in `src/shell/renderer/engine/`. Do not scatter pipeline logic across feature components.
 - SQLite schema changes must be documented in `spec/kernel/tables/` before implementation.

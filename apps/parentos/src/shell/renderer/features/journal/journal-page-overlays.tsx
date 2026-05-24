@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
-import { Button, DialogTitle, IconButton, OverlayShell, StatusBadge, Surface, TextField, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, DialogTitle, IconButton, OverlayShell, StatusBadge, Surface, TextField, cn } from '@nimiplatform/kit/ui';
 import type { JournalEntryRow } from '../../bridge/sqlite-bridge.js';
 import {
   EMOJI_CATEGORIES,

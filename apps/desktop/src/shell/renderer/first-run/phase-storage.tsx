@@ -9,7 +9,7 @@
 
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@nimiplatform/nimi-kit/ui';
+import { Button } from '@nimiplatform/kit/ui';
 import { FolderIcon } from './first-run-icons.js';
 
 type PhaseStorageProps = {

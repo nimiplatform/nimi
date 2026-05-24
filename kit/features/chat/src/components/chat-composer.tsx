@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState, type ReactNode, type CompositionEvent } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 import { useChatComposer, type UseChatComposerOptions } from '../hooks/use-chat-composer.js';
 import type {
   ChatComposerAttachmentsSlot,

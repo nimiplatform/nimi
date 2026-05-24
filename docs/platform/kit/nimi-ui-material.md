@@ -43,7 +43,7 @@ additions.
 
 | Rule | Required |
 | --- | --- |
-| Consume material via `<Surface material="...">` primitive in `@nimiplatform/nimi-kit/ui`, OR equivalent `data-nimi-material="<tier>"` marker class | Yes |
+| Consume material via `<Surface material="...">` primitive in `@nimiplatform/kit/ui`, OR equivalent `data-nimi-material="<tier>"` marker class | Yes |
 | Inline `rgba(...)` material background fills | Forbidden |
 | Inline `backdrop-filter` declarations | Forbidden |
 | Hand-picked `backdrop-blur-*` Tailwind named tokens outside kit-emitted utility classes | Forbidden |
@@ -151,7 +151,7 @@ turns a design system into per-app sprawl.
 | 5-tier taxonomy + tokens | `P-DESIGN-022` (this contract) |
 | Token catalog | `tables/nimi-ui-tokens.yaml` |
 | Theme values | `tables/nimi-ui-themes.yaml` |
-| `<Surface>` primitive | `@nimiplatform/nimi-kit/ui` |
+| `<Surface>` primitive | `@nimiplatform/kit/ui` |
 | Perf-downgrade interface | This contract (spec-level) |
 | Runtime perf-downgrade implementation | Consumer responsibility (separate) |
 

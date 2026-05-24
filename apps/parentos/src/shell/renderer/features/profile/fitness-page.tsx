@@ -1,4 +1,4 @@
-import { Button, IconButton, Surface, Timeline, TimelineGroup } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, Surface, Timeline, TimelineGroup } from '@nimiplatform/kit/ui';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';

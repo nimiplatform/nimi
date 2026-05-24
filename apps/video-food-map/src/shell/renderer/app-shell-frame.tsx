@@ -1,5 +1,5 @@
 import type { MouseEvent, ReactNode } from 'react';
-import { AmbientBackground, Button, SearchField, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { AmbientBackground, Button, SearchField, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 
 import type { SurfaceId } from './app-helpers.js';
 import { SURFACES } from './app-surface-shared.js';

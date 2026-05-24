@@ -5,14 +5,14 @@ import {
   CapabilityModelCard,
   type ModelConfigCapabilityItem,
   type ModelConfigRouteBinding,
-} from '@nimiplatform/nimi-kit/features/model-config';
+} from '@nimiplatform/kit/features/model-config';
 import {
   CANONICAL_CAPABILITY_CATALOG_BY_ID,
-} from '@nimiplatform/nimi-kit/core/runtime-capabilities';
-import type { RouteModelPickerDataProvider } from '@nimiplatform/nimi-kit/features/model-picker';
+} from '@nimiplatform/kit/core/runtime-capabilities';
+import type { RouteModelPickerDataProvider } from '@nimiplatform/kit/features/model-picker';
 import type {
   AppModelConfigSurface,
-} from '@nimiplatform/nimi-kit/core/model-config';
+} from '@nimiplatform/kit/core/model-config';
 import type { CapabilityState, ImageWorkflowDraftState } from '../tester-types.js';
 import { ImageInspectorBody } from './panel-image-inspector.js';
 

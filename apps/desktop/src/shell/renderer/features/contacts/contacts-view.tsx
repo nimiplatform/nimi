@@ -5,7 +5,7 @@ import {
   ScrollArea,
   Surface,
   Tooltip,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import {
   SidebarHeader,
   SidebarResizeHandle,

@@ -100,9 +100,9 @@ test('contacts friend requests view does not carry an unused React default impor
 });
 
 test('home and notification surfaces import shared design primitives from nimi-kit directly', () => {
-  assert.match(homeViewSource, /@nimiplatform\/nimi-kit\/ui/);
-  assert.match(notificationPanelSource, /@nimiplatform\/nimi-kit\/ui/);
-  assert.match(notificationRejectDialogSource, /@nimiplatform\/nimi-kit\/ui/);
+  assert.match(homeViewSource, /@nimiplatform\/kit\/ui/);
+  assert.match(notificationPanelSource, /@nimiplatform\/kit\/ui/);
+  assert.match(notificationRejectDialogSource, /@nimiplatform\/kit\/ui/);
 });
 
 test('design governance tables register secondary profile and overlay consumers explicitly, including the admitted shared profile detail hero/shell split', () => {
@@ -126,11 +126,11 @@ test('design governance tables register secondary profile and overlay consumers 
 });
 
 test('governed secondary overlays import shared nimi-kit overlay surfaces directly', () => {
-  assert.match(sendGiftModalSource, /@nimiplatform\/nimi-kit\/features\/commerce\/ui/);
-  assert.match(createPostModalSource, /@nimiplatform\/nimi-kit\/ui/);
-  assert.match(createPostModalPanelsSource, /@nimiplatform\/nimi-kit\/ui/);
-  assert.match(contactDetailProfileModalSource, /@nimiplatform\/nimi-kit\/ui/);
-  assert.match(giftsTabSource, /@nimiplatform\/nimi-kit\/ui/);
+  assert.match(sendGiftModalSource, /@nimiplatform\/kit\/features\/commerce\/ui/);
+  assert.match(createPostModalSource, /@nimiplatform\/kit\/ui/);
+  assert.match(createPostModalPanelsSource, /@nimiplatform\/kit\/ui/);
+  assert.match(contactDetailProfileModalSource, /@nimiplatform\/kit\/ui/);
+  assert.match(giftsTabSource, /@nimiplatform\/kit\/ui/);
 });
 
 test('governed roots and overlays expose stable testability hooks', () => {

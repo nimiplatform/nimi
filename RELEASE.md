@@ -3,20 +3,26 @@
 ## Versioning
 
 All components follow semantic versioning (`major.minor.patch`).
-Current public phase is `0.x` (pre-1.0 strict contract hardening):
+Current public phase is `0.x` (pre-1.0 contract hardening):
 
-- **major**: Breaking changes
-- **minor**: New features (backward compatible)
+- **major**: Reserved for 1.0+ breaking changes
+- **minor**: New features; in `0.x`, minor bumps may include breaking changes under SemVer pre-1.0 rules
 - **patch**: Bug fixes
 
-The SDK, Dev Tools, Runtime, and Proto versions must be aligned within the same `major.minor`. The npm author release set (`@nimiplatform/sdk` + `@nimiplatform/dev-tools`) uses the same exact `major.minor.patch`. Cross-version combinations are unsupported (strict-only).
+The SDK, Kit, App Tools, Runtime, Proto, and shell crate publish independently.
+Each package declares its own supported dependency ranges. Cross-package
+lockstep is a directional release planning intent only, not a tag or versioning
+requirement.
 
 ## Release Targets
 
 | Component | Registry | Format |
 |-----------|----------|--------|
 | runtime | GitHub Releases | Multi-platform binary (GoReleaser) |
-| sdk | npm (`@nimiplatform/*`) | `@nimiplatform/sdk` + `@nimiplatform/dev-tools` |
+| sdk | npm | `@nimiplatform/sdk` |
+| kit | npm | `@nimiplatform/kit` |
+| app-tools | npm | `@nimiplatform/app-tools` |
+| nimi-shell-tauri | crates.io | `nimi-shell-tauri` |
 | proto | buf.build (`nimiplatform`) | Proto schema |
 | desktop | GitHub Releases | macOS / Windows / Linux installers |
 | mods catalog (future repo) | GitHub Pages / static hosting | `index/v1/*.json` static registry |
@@ -71,10 +77,21 @@ pnpm proto:drift-check
 
 Runtime 版本不通过仓库内 `version.go` 固化，直接由 Git tag `runtime/v<major>.<minor>.<patch>` 推导。
 
-SDK 发布前必须更新并对齐以下版本号（`sdk/vX.Y.Z` 与 npm author release set 严格一致）：
+SDK 发布前必须更新：
 
 - `sdk/package.json`
-- `dev-tools/package.json`
+
+Kit 发布前必须更新：
+
+- `kit/package.json`
+
+App Tools 发布前必须更新：
+
+- `app-tools/package.json`
+
+Nimi shell Tauri crate 发布前必须更新：
+
+- `kit/shell/tauri/Cargo.toml`
 
 Desktop 发布前必须更新并对齐以下版本号（`desktop/vX.Y.Z` 与配置严格一致）：
 
@@ -98,6 +115,15 @@ git push origin runtime/v0.x.x
 git tag sdk/v0.x.x
 git push origin sdk/v0.x.x
 
+git tag nimi-shell-tauri/v0.x.x
+git push origin nimi-shell-tauri/v0.x.x
+
+git tag kit/v0.x.x
+git push origin kit/v0.x.x
+
+git tag app-tools/v0.x.x
+git push origin app-tools/v0.x.x
+
 git tag proto/v0.x.x
 git push origin proto/v0.x.x
 
@@ -108,13 +134,17 @@ git push origin desktop/v0.x.x
 对应工作流行为：
 
 - `runtime/v*` -> `.github/workflows/release-runtime.yml`（GoReleaser 多平台二进制）
-- `sdk/v*` -> `.github/workflows/release.yml` `release-sdk` job（发布 `@nimiplatform/sdk` 与 `@nimiplatform/dev-tools`）
+- `sdk/v*` -> `.github/workflows/release.yml` `release-sdk` job（发布 `@nimiplatform/sdk`）
+- `nimi-shell-tauri/v*` -> `.github/workflows/release-nimi-shell-tauri.yml`（发布 `nimi-shell-tauri` crate）
+- `kit/v*` -> `.github/workflows/release-kit.yml`（发布 `@nimiplatform/kit`）
+- `app-tools/v*` -> `.github/workflows/release-app-tools.yml`（发布 `@nimiplatform/app-tools`）
 - `proto/v*` -> `.github/workflows/release.yml` `release-proto` job（`buf push`）
 - `desktop/v*` -> `.github/workflows/release.yml` `release-desktop` job（Tauri 多平台构建并上传到 GitHub Release）
 
 必需 secrets：
 
 - `NPM_TOKEN`（npm author package 发布）
+- `CARGO_REGISTRY_TOKEN`（crates.io crate 发布）
 - `BUF_TOKEN`（Proto 发布）
 
 必需权限（workflow/job permissions）：
@@ -177,10 +207,11 @@ official mod package / catalog publish：
 ### 5. Post-release
 
 - Verify npm packages: `npm view @nimiplatform/sdk version`
-- Verify npm packages: `npm view @nimiplatform/dev-tools version`
+- Verify npm packages: `npm view @nimiplatform/kit version`
+- Verify npm packages: `npm view @nimiplatform/app-tools version`
+- Verify crates.io package: `cargo search nimi-shell-tauri --limit 1`
 - Verify one-shot author entrypoints:
-  - `pnpm dlx @nimiplatform/dev-tools nimi-mod --help`
-  - `pnpm dlx @nimiplatform/dev-tools nimi-app --help`
+  - `pnpm dlx @nimiplatform/app-tools nimi-app --help`
 - Verify proto module on buf.build
 - Verify runtime binaries on GitHub Releases
 - Verify desktop bundles on GitHub Releases

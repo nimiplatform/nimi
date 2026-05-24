@@ -3,7 +3,7 @@
  */
 
 import type { ReactNode } from 'react';
-import { Surface, Avatar, cn } from '@nimiplatform/nimi-kit/ui';
+import { Surface, Avatar, cn } from '@nimiplatform/kit/ui';
 
 /* ------------------------------------------------------------------ */
 /*  ForgeListCard — interactive list row with actions                   */

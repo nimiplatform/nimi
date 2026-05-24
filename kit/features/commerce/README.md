@@ -4,10 +4,10 @@
 Reusable commerce capability module for gifting and lightweight transactional dialogs.
 
 ## Public Surfaces
-- `@nimiplatform/nimi-kit/features/commerce`
-- `@nimiplatform/nimi-kit/features/commerce/headless`
-- `@nimiplatform/nimi-kit/features/commerce/ui`
-- `@nimiplatform/nimi-kit/features/commerce/realm`
+- `@nimiplatform/kit/features/commerce`
+- `@nimiplatform/kit/features/commerce/headless`
+- `@nimiplatform/kit/features/commerce/ui`
+- `@nimiplatform/kit/features/commerce/realm`
 - Current surfaces:
   - `headless`: active
   - `ui`: active
@@ -38,6 +38,6 @@ Reusable commerce capability module for gifting and lightweight transactional di
   Planned consumer only. No active web surface is implemented in this iteration.
 
 ## Verification
-- `pnpm --filter @nimiplatform/nimi-kit test`
+- `pnpm --filter @nimiplatform/kit test`
 - `pnpm --filter @nimiplatform/desktop build`
 - `pnpm check:nimi-kit`

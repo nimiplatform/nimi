@@ -20,7 +20,7 @@ import { hasMilestoneCandidatesForAge } from './milestone-capture-form.js';
 import { TannerCaptureContent } from './tanner-assessment-form.js';
 import { PostureCaptureContent } from './posture-capture-form.js';
 import { VaccineCaptureContent } from './vaccine-capture-form.js';
-import { Button } from '@nimiplatform/nimi-kit/ui';
+import { Button } from '@nimiplatform/kit/ui';
 import { useAppStore } from '../../app-shell/app-store.js';
 import {
   ChipGroup,

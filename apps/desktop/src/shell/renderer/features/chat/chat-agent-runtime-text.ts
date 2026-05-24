@@ -35,7 +35,7 @@ import {
   requireValue,
   resolveExecutionSlice,
 } from './chat-agent-runtime-shared';
-import type { ConversationRuntimeTextMessage } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationRuntimeTextMessage } from '@nimiplatform/kit/features/chat/headless';
 import type { AgentRuntimeResolvedBinding } from './chat-agent-runtime-types';
 
 function toSdkTextMessage(message: ConversationRuntimeTextMessage): TextMessage {

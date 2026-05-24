@@ -25,13 +25,13 @@ import type { AIConfig, AIProfile } from '@nimiplatform/sdk/mod';
 import { applyAIProfileToConfig, validateAIProfile } from '@nimiplatform/sdk/mod';
 import {
   CANONICAL_CAPABILITY_CATALOG,
-} from '@nimiplatform/nimi-kit/core/runtime-capabilities';
-import type { AppModelConfigSurface } from '@nimiplatform/nimi-kit/features/model-config';
+} from '@nimiplatform/kit/core/runtime-capabilities';
+import type { AppModelConfigSurface } from '@nimiplatform/kit/features/model-config';
 import {
   ModelConfigAiModelHub,
   defaultModelConfigProfileCopy,
   useModelConfigProfileController,
-} from '@nimiplatform/nimi-kit/features/model-config';
+} from '@nimiplatform/kit/features/model-config';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service.js';
 import { getAccountDefaultProfileForScopeInit } from '@renderer/bridge/runtime-bridge/product-control.js';

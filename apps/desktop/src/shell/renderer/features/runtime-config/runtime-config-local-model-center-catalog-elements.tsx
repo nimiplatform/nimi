@@ -1,4 +1,4 @@
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 import type {
   GgufVariantDescriptor,
   LocalRuntimeAssetRecord,

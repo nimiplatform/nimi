@@ -2,7 +2,7 @@
  * Character Card V2 → RealmAgent creation draft mapper (T5-3).
  *
  * The Character Card V2 parse + validation is the admitted shared kit surface
- * `@nimiplatform/nimi-kit/core/character-card` — the same parser Forge's heavy
+ * `@nimiplatform/kit/core/character-card` — the same parser Forge's heavy
  * import workbench uses. This module is the lightweight-creation projection:
  * it maps a parsed card onto the flat D-EXPL-009 creation field set rather than
  * Forge's rich 4-layer AgentRule structure.
@@ -15,7 +15,7 @@
 import {
   parseCharacterCardV2,
   type TavernCardV2,
-} from '@nimiplatform/nimi-kit/core/character-card';
+} from '@nimiplatform/kit/core/character-card';
 import {
   createEmptyDraft,
   type RealmAgentCreationDraft,

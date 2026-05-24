@@ -14,13 +14,13 @@ const SDK_PACKAGE = {
   dir: 'sdk',
 };
 
-const DEV_TOOLS_PACKAGE = {
-  name: '@nimiplatform/dev-tools',
-  dir: 'dev-tools',
+const APP_TOOLS_PACKAGE = {
+  name: '@nimiplatform/app-tools',
+  dir: 'app-tools',
 };
 
-const NIMI_KIT_PACKAGE = {
-  name: '@nimiplatform/nimi-kit',
+const KIT_PACKAGE = {
+  name: '@nimiplatform/kit',
   dir: 'kit',
 };
 
@@ -334,14 +334,14 @@ async function writeSmokeEntry(appDir) {
   await fs.writeFile(path.join(appDir, 'index.mjs'), source);
 }
 
-async function writeAuthorToolsPackageJson(appDir, devToolsTarballPath) {
+async function writeAuthorToolsPackageJson(appDir, appToolsTarballPath) {
   const payload = {
     name: 'nimi-author-tools-smoke',
     version: '0.0.0',
     private: true,
     type: 'module',
     devDependencies: {
-      '@nimiplatform/dev-tools': `file:${devToolsTarballPath}`,
+      '@nimiplatform/app-tools': `file:${appToolsTarballPath}`,
     },
   };
 
@@ -388,7 +388,6 @@ async function main() {
   const packDir = path.join(tempRoot, 'packs');
   const appDir = path.join(tempRoot, 'app');
   const authorDir = path.join(tempRoot, 'author-tools');
-  const generatedModDir = path.join(authorDir, 'generated-mod');
   const generatedStandaloneAppDir = path.join(authorDir, 'generated-app-standalone');
   const generatedWorkspaceAppDir = path.join(authorDir, 'generated-app-workspace');
   await fs.mkdir(packDir, { recursive: true });
@@ -399,8 +398,8 @@ async function main() {
   runCommand('pnpm', ['--filter', SDK_PACKAGE.name, 'build'], repoRoot);
 
   const sdkTarball = await packPackage(packDir, SDK_PACKAGE);
-  const devToolsTarball = await packPackage(packDir, DEV_TOOLS_PACKAGE);
-  const nimiKitTarball = await packPackage(packDir, NIMI_KIT_PACKAGE);
+  const appToolsTarball = await packPackage(packDir, APP_TOOLS_PACKAGE);
+  const kitTarball = await packPackage(packDir, KIT_PACKAGE);
 
   await writeConsumerPackageJson(appDir, sdkTarball);
   await writeSmokeEntry(appDir);
@@ -408,13 +407,8 @@ async function main() {
   runCommand('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], appDir);
   runCommand('node', ['index.mjs'], appDir);
 
-  await writeAuthorToolsPackageJson(authorDir, devToolsTarball);
+  await writeAuthorToolsPackageJson(authorDir, appToolsTarball);
   runCommand('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], authorDir);
-  runCommand(
-    'pnpm',
-    ['exec', 'nimi-mod', 'create', '--dir', 'generated-mod', '--name', 'Smoke Mod'],
-    authorDir,
-  );
   runCommand(
     'pnpm',
     ['exec', 'nimi-app', 'create', '--dir', 'generated-app-standalone', '--profile', 'standalone'],
@@ -431,26 +425,13 @@ async function main() {
     runCommand('pnpm', ['exec', 'nimi-app', 'doctor', '--dir', generatedAppDir], authorDir);
   }
 
-  await rewriteGeneratedPackageJson(generatedModDir, {
-    dependencies: {
-      '@nimiplatform/sdk': `file:${sdkTarball}`,
-    },
-    devDependencies: {
-      '@nimiplatform/dev-tools': `file:${devToolsTarball}`,
-    },
-  });
-  runCommand('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], generatedModDir);
-  runCommand('pnpm', ['run', 'doctor'], generatedModDir);
-  runCommand('pnpm', ['run', 'build'], generatedModDir);
-  runCommand('pnpm', ['run', 'pack'], generatedModDir);
-
   await rewriteGeneratedPackageJson(generatedStandaloneAppDir, {
     dependencies: {
       '@nimiplatform/sdk': `file:${sdkTarball}`,
-      '@nimiplatform/nimi-kit': `file:${nimiKitTarball}`,
+      '@nimiplatform/kit': `file:${kitTarball}`,
     },
     devDependencies: {
-      '@nimiplatform/dev-tools': `file:${devToolsTarball}`,
+      '@nimiplatform/app-tools': `file:${appToolsTarball}`,
     },
     pnpmOverrides: {
       '@nimiplatform/sdk': `file:${sdkTarball}`,
@@ -463,10 +444,10 @@ async function main() {
   await rewriteGeneratedPackageJson(generatedWorkspaceAppDir, {
     dependencies: {
       '@nimiplatform/sdk': `file:${sdkTarball}`,
-      '@nimiplatform/nimi-kit': `file:${nimiKitTarball}`,
+      '@nimiplatform/kit': `file:${kitTarball}`,
     },
     devDependencies: {
-      '@nimiplatform/dev-tools': `file:${devToolsTarball}`,
+      '@nimiplatform/app-tools': `file:${appToolsTarball}`,
     },
     pnpmOverrides: {
       '@nimiplatform/sdk': `file:${sdkTarball}`,

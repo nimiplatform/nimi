@@ -1,8 +1,8 @@
 import { Suspense, lazy, useRef, useState, useEffect, type ReactNode, type MouseEvent } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
-import { AmbientBackground, ProgressIndicator, Surface } from '@nimiplatform/nimi-kit/ui';
+import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
+import { AmbientBackground, ProgressIndicator, Surface } from '@nimiplatform/kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { desktopBridge } from '@renderer/bridge';

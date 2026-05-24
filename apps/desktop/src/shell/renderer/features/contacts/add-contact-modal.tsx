@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, IconButton } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton } from '@nimiplatform/kit/ui';
 import { OverlayShell } from '@renderer/components/overlay/index.js';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';

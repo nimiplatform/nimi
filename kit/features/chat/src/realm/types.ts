@@ -1,4 +1,4 @@
-import type { RealmServiceRegistry } from '@nimiplatform/nimi-kit/core/sdk-contract';
+import type { RealmServiceRegistry } from '@nimiplatform/kit/core/sdk-contract';
 import type { UseChatComposerOptions } from '../headless.js';
 import type {
   RealmMessageViewDto,

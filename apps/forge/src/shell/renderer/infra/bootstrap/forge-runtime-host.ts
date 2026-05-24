@@ -13,7 +13,7 @@
 
 import { setModSdkHost } from '@nimiplatform/sdk/mod';
 import { getPlatformClient } from '@nimiplatform/sdk';
-import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type {
   RuntimeCanonicalCapability,
   RuntimeRouteOptionsSnapshot,

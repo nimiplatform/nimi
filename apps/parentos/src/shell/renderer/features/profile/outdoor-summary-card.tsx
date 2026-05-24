@@ -1,4 +1,4 @@
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getOutdoorGoal, getOutdoorRecords, type OutdoorRecordRow } from '../../bridge/sqlite-bridge.js';

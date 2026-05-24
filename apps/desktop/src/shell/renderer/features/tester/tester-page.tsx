@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AIConfig, RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
-import type { CanonicalCapabilitySectionId } from '@nimiplatform/nimi-kit/core/runtime-capabilities';
-import { ScrollArea, IconButton, Surface } from '@nimiplatform/nimi-kit/ui';
+import type { CanonicalCapabilitySectionId } from '@nimiplatform/kit/core/runtime-capabilities';
+import { ScrollArea, IconButton, Surface } from '@nimiplatform/kit/ui';
 import {
   DEFAULT_AUDIO_SYNTHESIZE_PARAMS,
   parseAudioSynthesizeParams,
-} from '@nimiplatform/nimi-kit/features/model-config';
+} from '@nimiplatform/kit/features/model-config';
 import {
   SidebarAffordanceChevron,
   SidebarHeader,

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 import type { ConversationSetupAction, ConversationSetupState } from '../types.js';
 
 export type ConversationSetupPanelProps = {

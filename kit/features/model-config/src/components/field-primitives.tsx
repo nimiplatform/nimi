@@ -8,7 +8,7 @@ import {
   Toggle,
   Tooltip,
   cn,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 
 const FIELD_HEIGHT = 'min-h-[var(--nimi-sizing-field-md-height)]';
 

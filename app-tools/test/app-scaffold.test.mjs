@@ -13,8 +13,8 @@ const nimiAppBinPath = path.join(testDir, '..', 'bin', 'nimi-app.mjs');
 
 const versions = {
   sdkVersion: '0.0.0-sdk',
-  devToolsVersion: '0.0.0-dev-tools',
-  nimiKitVersion: '0.0.0-kit',
+  appToolsVersion: '0.0.0-app-tools',
+  kitVersion: '0.0.0-kit',
   reactVersion: '19.0.0',
   reactDomVersion: '19.0.0',
   nodeTypesVersion: '24.0.0',
@@ -111,8 +111,8 @@ test('standalone scaffold generates industrial Nimi App Tauri profile', () => {
   try {
     const packageJson = JSON.parse(generated.read('package.json'));
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], versions.sdkVersion);
-    assert.equal(packageJson.dependencies['@nimiplatform/nimi-kit'], versions.nimiKitVersion);
-    assert.equal(packageJson.devDependencies['@nimiplatform/dev-tools'], versions.devToolsVersion);
+    assert.equal(packageJson.dependencies['@nimiplatform/kit'], versions.kitVersion);
+    assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], versions.appToolsVersion);
     assert.equal(packageJson.scripts.doctor, 'nimi-app doctor');
     assert.equal(packageJson.scripts.update, 'nimi-app update');
     assert.equal(Object.hasOwn(packageJson, 'author'), false);
@@ -149,8 +149,8 @@ test('default CLI standalone scaffold uses current public SDK version source', (
   try {
     const packageJson = JSON.parse(generated.read('package.json'));
     const lock = JSON.parse(generated.read('.nimi/scaffold.lock.json'));
-    assert.equal(packageJson.dependencies['@nimiplatform/sdk'], '^0.5.14');
-    assert.equal(lock.dependencyMatrix.npm['@nimiplatform/sdk'], '^0.5.14');
+    assert.equal(packageJson.dependencies['@nimiplatform/sdk'], '^0.5.15');
+    assert.equal(lock.dependencyMatrix.npm['@nimiplatform/sdk'], '^0.5.15');
   } finally {
     generated.cleanup();
   }
@@ -161,8 +161,8 @@ test('workspace-app scaffold uses workspace package and Cargo path dependencies'
   try {
     const packageJson = JSON.parse(generated.read('package.json'));
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], 'workspace:*');
-    assert.equal(packageJson.dependencies['@nimiplatform/nimi-kit'], 'workspace:*');
-    assert.equal(packageJson.devDependencies['@nimiplatform/dev-tools'], 'workspace:*');
+    assert.equal(packageJson.dependencies['@nimiplatform/kit'], 'workspace:*');
+    assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], 'workspace:*');
     assert.match(generated.read('src-tauri/Cargo.toml'), /nimi-shell-tauri = \{ path = "\.\.\/\.\.\/\.\.\/kit\/shell\/tauri" \}/);
     assert.match(generated.read('src-tauri/src/main.rs'), /invoke_handler\(nimi_shell_tauri::nimi_shell_tauri_runtime_bridge_handler!\[\]\)/);
     assert.equal(generated.read('src-tauri/src/main.rs').includes(['runtime', 'bridge', 'plugin'].join('_')), false);
@@ -351,7 +351,7 @@ test('doctor fails closed on managed drift and update preserves app-owned produc
 
     const productPath = path.join(generated.target, 'src/shell/routes/product-area.tsx');
     const productEdit = [
-      "import { Surface } from '@nimiplatform/nimi-kit/ui';",
+      "import { Surface } from '@nimiplatform/kit/ui';",
       '',
       'export function ProductArea() {',
       '  return <Surface className="product-area"><h1>Developer owned edit</h1></Surface>;',

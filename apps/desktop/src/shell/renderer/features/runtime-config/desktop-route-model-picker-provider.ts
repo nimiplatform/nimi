@@ -1,7 +1,7 @@
 import {
   createSnapshotRouteDataProvider,
   type RouteModelPickerDataProvider,
-} from '@nimiplatform/nimi-kit/features/model-picker';
+} from '@nimiplatform/kit/features/model-picker';
 import { loadDesktopRouteOptions } from './desktop-route-options-service';
 
 const providerCache = new Map<string, RouteModelPickerDataProvider | null>();

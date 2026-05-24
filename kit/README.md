@@ -1,6 +1,6 @@
-# @nimiplatform/nimi-kit
+# @nimiplatform/kit
 
-The product-grade cross-app toolkit for Nimi apps. `@nimiplatform/nimi-kit`
+The product-grade cross-app toolkit for Nimi apps. `@nimiplatform/kit`
 packages the shared UI primitives, auth flows, telemetry, shell glue, and
 feature modules that every Nimi consumer needs, so app authors do not have
 to rebuild baseline styling, interaction shells, or platform wiring. The kit
@@ -10,7 +10,7 @@ contracts; canonical semantics remain in `.nimi/spec/platform/kernel/**`.
 ## Installation
 
 ```bash
-pnpm add @nimiplatform/nimi-kit
+pnpm add @nimiplatform/kit
 ```
 
 The kit depends on `@nimiplatform/sdk`. During the 0.x phase, SDK
@@ -19,7 +19,7 @@ required; `react-dom` and `react-i18next` are optional peers.
 
 ## Version Policy
 
-`@nimiplatform/nimi-kit` publishes first at `0.1.0` and remains in a
+`@nimiplatform/kit` publishes first at `0.1.0` and remains in a
 pre-1.0 iteration phase. Under semver, `0.x.y` minor bumps may include
 breaking changes while the public surface matures. Breaking 0.x minor
 bumps still require migration notes in `CHANGELOG.md`.
@@ -37,6 +37,15 @@ semantics before then.
 
 Semver classification rules are documented in detail in `kit/AGENTS.md`
 under "Semver Discipline".
+
+## Reuse First
+
+Before building app-local UI, shell glue, auth flows, telemetry, model
+configuration, chat, avatar, generation, commerce, or runtime-bound
+adapter code, check this README, the target module README, and
+`.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`. Reuse an
+existing `@nimiplatform/kit` export when it covers the baseline behavior;
+extend the kit surface first when the missing behavior is cross-app.
 
 ## v0.1.0 Initial Public Surface
 
@@ -64,19 +73,19 @@ The complete inventory is enumerated in
 ### UI primitives
 
 ```ts
-import { Button, IconButton, cn } from '@nimiplatform/nimi-kit/ui';
-import { GlassSurface, glassMaterial } from '@nimiplatform/nimi-kit/ui/glass';
-import { usePrefersReducedMotion, MOTION_TIMING } from '@nimiplatform/nimi-kit/ui/motion';
-import { FOCUS_RING_CLASS_NAME, VisuallyHidden } from '@nimiplatform/nimi-kit/ui/a11y';
+import { Button, IconButton, cn } from '@nimiplatform/kit/ui';
+import { GlassSurface, glassMaterial } from '@nimiplatform/kit/ui/glass';
+import { usePrefersReducedMotion, MOTION_TIMING } from '@nimiplatform/kit/ui/motion';
+import { FOCUS_RING_CLASS_NAME, VisuallyHidden } from '@nimiplatform/kit/ui/a11y';
 ```
 
 ### Themes
 
 ```css
-@import '@nimiplatform/nimi-kit/ui/styles.css';
-@import '@nimiplatform/nimi-kit/ui/themes/light.css';
+@import '@nimiplatform/kit/ui/styles.css';
+@import '@nimiplatform/kit/ui/themes/light.css';
 /* swap or layer accent themes */
-@import '@nimiplatform/nimi-kit/ui/themes/nimi-accent.css';
+@import '@nimiplatform/kit/ui/themes/nimi-accent.css';
 ```
 
 Available themes: `light`, `dark`, `nimi-accent`, `forge-accent`,
@@ -86,17 +95,17 @@ from `.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml`.
 ### Auth
 
 ```ts
-import { useAuthFlow, AuthEmailFlow } from '@nimiplatform/nimi-kit/auth';
-import '@nimiplatform/nimi-kit/auth/styles.css';
+import { useAuthFlow, AuthEmailFlow } from '@nimiplatform/kit/auth';
+import '@nimiplatform/kit/auth/styles.css';
 ```
 
 ### Core
 
 ```ts
-import { ShellMode } from '@nimiplatform/nimi-kit/core/shell-mode';
-import { OAuthShellContract } from '@nimiplatform/nimi-kit/core/oauth';
-import { classifyCapability } from '@nimiplatform/nimi-kit/core/runtime-capabilities';
-import { parseCharacterCard } from '@nimiplatform/nimi-kit/core/character-card';
+import { ShellMode } from '@nimiplatform/kit/core/shell-mode';
+import { OAuthShellContract } from '@nimiplatform/kit/core/oauth';
+import { classifyCapability } from '@nimiplatform/kit/core/runtime-capabilities';
+import { parseCharacterCard } from '@nimiplatform/kit/core/character-card';
 ```
 
 `./core/*` modules are React-free and renderer/runtime-safe.
@@ -104,28 +113,28 @@ import { parseCharacterCard } from '@nimiplatform/nimi-kit/core/character-card';
 ### Renderer shell
 
 ```ts
-import { invokeTauri } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
-import { bootstrapAuthSession } from '@nimiplatform/nimi-kit/shell/renderer/bootstrap';
+import { invokeTauri } from '@nimiplatform/kit/shell/renderer/bridge';
+import { bootstrapAuthSession } from '@nimiplatform/kit/shell/renderer/bootstrap';
 ```
 
 ### Telemetry
 
 ```ts
-import { emitTelemetry, traceSession } from '@nimiplatform/nimi-kit/telemetry';
-import { ShellErrorBoundary } from '@nimiplatform/nimi-kit/telemetry/error-boundary';
+import { emitTelemetry, traceSession } from '@nimiplatform/kit/telemetry';
+import { ShellErrorBoundary } from '@nimiplatform/kit/telemetry/error-boundary';
 ```
 
 ### Features
 
 ```ts
-import { useRuntimeChatSession } from '@nimiplatform/nimi-kit/features/chat/runtime';
-import { useRealmChatComposer } from '@nimiplatform/nimi-kit/features/chat/realm';
-import { CanonicalConversationShell } from '@nimiplatform/nimi-kit/features/chat/components/canonical-conversation-shell';
-import { AvatarStage } from '@nimiplatform/nimi-kit/features/avatar';
-import { RuntimeModelPickerPanel } from '@nimiplatform/nimi-kit/features/model-picker/ui';
-import { useRuntimeGenerationPanel } from '@nimiplatform/nimi-kit/features/generation/runtime';
-import { useRealmSendGiftDialog } from '@nimiplatform/nimi-kit/features/commerce/realm';
-import { ModelConfigPanel } from '@nimiplatform/nimi-kit/features/model-config/ui';
+import { useRuntimeChatSession } from '@nimiplatform/kit/features/chat/runtime';
+import { useRealmChatComposer } from '@nimiplatform/kit/features/chat/realm';
+import { CanonicalConversationShell } from '@nimiplatform/kit/features/chat/components/canonical-conversation-shell';
+import { AvatarStage } from '@nimiplatform/kit/features/avatar';
+import { RuntimeModelPickerPanel } from '@nimiplatform/kit/features/model-picker/ui';
+import { useRuntimeGenerationPanel } from '@nimiplatform/kit/features/generation/runtime';
+import { useRealmSendGiftDialog } from '@nimiplatform/kit/features/commerce/realm';
+import { ModelConfigPanel } from '@nimiplatform/kit/features/model-config/ui';
 ```
 
 Each feature exposes the four-surface taxonomy where applicable:
@@ -139,7 +148,7 @@ Each feature exposes the four-surface taxonomy where applicable:
 
 Every kit consumption of `@nimiplatform/sdk*` routes through one file:
 `./core/sdk-contract`. If you need an SDK type or value inside kit code,
-import it from `@nimiplatform/nimi-kit/core/sdk-contract` (kit-internal)
+import it from `@nimiplatform/kit/core/sdk-contract` (kit-internal)
 rather than `@nimiplatform/sdk`. App consumers should continue importing
 directly from `@nimiplatform/sdk` — the single-boundary rule applies
 inside kit only.
@@ -151,7 +160,7 @@ documents the admitted dynamic-import escape hatch used by
 
 ## Accessibility
 
-`@nimiplatform/nimi-kit/ui/a11y` ships the kit's accessibility primitives:
+`@nimiplatform/kit/ui/a11y` ships the kit's accessibility primitives:
 
 - `FOCUS_RING_CLASS_NAME` is applied to `Button` and `IconButton` by
   default, providing a keyboard-visible focus ring that meets WCAG 2.1
@@ -160,7 +169,7 @@ documents the admitted dynamic-import escape hatch used by
   available to assistive tech.
 - `useFocusTrap` enforces modal focus containment.
 
-`@nimiplatform/nimi-kit/ui/motion` ships:
+`@nimiplatform/kit/ui/motion` ships:
 
 - `usePrefersReducedMotion()` — SSR-safe hook that respects
   `prefers-reduced-motion: reduce`.
@@ -185,7 +194,7 @@ vocabulary for SDK-coupling audits, and verification commands.
 ## Verification
 
 ```bash
-pnpm --filter @nimiplatform/nimi-kit build
-pnpm --filter @nimiplatform/nimi-kit test
+pnpm --filter @nimiplatform/kit build
+pnpm --filter @nimiplatform/kit test
 pnpm check:nimi-kit
 ```

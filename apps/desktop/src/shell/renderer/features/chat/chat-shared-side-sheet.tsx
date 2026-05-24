@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { DesktopIconToggleAction } from '@renderer/components/action';
 import { DesktopCardSurface } from '@renderer/components/surface';

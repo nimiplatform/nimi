@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { CAPABILITIES_V11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { desktopBridge } from '@renderer/bridge';
-import { Surface, StatusBadge as KitStatusBadge, Tooltip, cn } from '@nimiplatform/nimi-kit/ui';
+import { Surface, StatusBadge as KitStatusBadge, Tooltip, cn } from '@nimiplatform/kit/ui';
 import { formatLocaleDateTime } from '@renderer/i18n';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import { RuntimeHealthSection } from './runtime-config-runtime-health-section.js';

@@ -50,7 +50,7 @@ Runtime CLI does not own scaffold templates, template names, generated build pro
 
 ## K-CLI-009a Runtime / Author Tooling Boundary
 
-`nimi` public CLI 不承载 author-side scaffolding、build、dev、doctor、pack 或 publish flow。`nimi mod` 仅负责 installed mod management；mod / app 作者入口必须分别收敛到 `pnpm dlx @nimiplatform/dev-tools nimi-mod` 与 Platform-governed `nimi-app create|doctor|update`.
+`nimi` public CLI 不承载 author-side scaffolding、build、dev、doctor、pack 或 publish flow。App 作者入口必须收敛到 `pnpm dlx @nimiplatform/app-tools nimi-app create|doctor|update` 与 Platform-governed scaffold semantics.
 
 Runtime may point developers to the app-authoring tooling, but it must not own scaffold templates, build profiles, pack, publish, admission, local audit semantics, or scaffold doctor/update semantics.
 

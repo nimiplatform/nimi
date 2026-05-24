@@ -43,7 +43,7 @@ The primary user is a **creator / content producer** who wants to:
 | State management | Zustand |
 | Data fetching | TanStack Query |
 | SDK | `@nimiplatform/sdk/runtime` + `@nimiplatform/sdk/realm` |
-| Kit core | `@nimiplatform/nimi-kit/core/*` |
+| Kit core | `@nimiplatform/kit/core/*` |
 
 Asset Market follows the same SDK-first shell pattern used by Forge:
 

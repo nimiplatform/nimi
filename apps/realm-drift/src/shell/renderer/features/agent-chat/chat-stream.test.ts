@@ -5,7 +5,7 @@ import type { RuntimeDefaults } from '@renderer/bridge';
 
 const mockStreamPlatformChatResponse = vi.fn();
 
-vi.mock('@nimiplatform/nimi-kit/features/chat/runtime', () => ({
+vi.mock('@nimiplatform/kit/features/chat/runtime', () => ({
   streamPlatformChatResponse: (...args: unknown[]) => mockStreamPlatformChatResponse(...args),
 }));
 

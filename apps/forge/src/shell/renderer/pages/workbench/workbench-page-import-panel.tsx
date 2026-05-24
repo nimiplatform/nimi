@@ -1,4 +1,4 @@
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { ForgeEmptyState } from '@renderer/components/page-layout.js';
 import { ForgeListCard } from '@renderer/components/card-list.js';
 import type { WorkbenchPageSnapshot, WorkbenchPanel } from './workbench-page-shared.js';

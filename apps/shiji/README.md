@@ -24,7 +24,7 @@
 | 前端 | React 19 + Vite 7 + Tailwind 4 |
 | 状态管理 | Zustand 5 + TanStack Query 5 |
 | 路由 | React Router 7 (HashRouter) |
-| UI 基础 | @nimiplatform/nimi-kit |
+| UI 基础 | @nimiplatform/kit |
 | 平台接入 | @nimiplatform/sdk (runtime + realm) |
 | 持久化 | SQLite (via Tauri) |
 | 国际化 | i18next |

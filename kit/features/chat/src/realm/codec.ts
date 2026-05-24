@@ -1,4 +1,4 @@
-import type { RealmModel } from '@nimiplatform/nimi-kit/core/sdk-contract';
+import type { RealmModel } from '@nimiplatform/kit/core/sdk-contract';
 
 export type RealmSendMessageInputDto = RealmModel<'SendMessageInputDto'>;
 export type RealmMessageViewDto = RealmModel<'MessageViewDto'>;

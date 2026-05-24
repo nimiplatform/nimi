@@ -1,4 +1,4 @@
-import { Button, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, TextField, TextareaField } from '@nimiplatform/kit/ui';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LookdevWorldStylePack, LookdevWorldStyleSession } from './types.js';

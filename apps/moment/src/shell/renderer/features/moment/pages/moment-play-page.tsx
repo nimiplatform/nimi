@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { Button } from '@nimiplatform/nimi-kit/ui';
+import { Button } from '@nimiplatform/kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { MOMENT_MAX_BEATS, continueMoment, deriveMomentPlayState, deriveMomentRelationState } from '@renderer/features/moment/moment-engine.js';
 import { useMomentStore } from '@renderer/features/moment/moment-store.js';

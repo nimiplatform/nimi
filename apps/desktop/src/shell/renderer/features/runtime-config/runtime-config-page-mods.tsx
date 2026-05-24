@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import type { LocalRuntimeProfileResolutionPlan } from '@runtime/local-runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel, RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';

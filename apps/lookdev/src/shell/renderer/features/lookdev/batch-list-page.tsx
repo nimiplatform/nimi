@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
   StatusBadge,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';

@@ -3,7 +3,7 @@
 ## Scope
 
 - Applies to `kit/ui/**`.
-- `@nimiplatform/nimi-kit/ui` is the cross-app design authority (tokens,
+- `@nimiplatform/kit/ui` is the cross-app design authority (tokens,
   primitives, themes, generated visual contracts).
 - Submodules: `components/`, `design-tokens.ts`, `tokens.ts`,
   `theme.tsx`, `styles.css`, `themes/`, `generated/`, `lib/`, `types/`.
@@ -15,7 +15,7 @@
   not fork parallel tokens, parallel primitives, or hand-author theme
   values.
 - App packages (`apps/**`) must consume `kit/ui` through
-  `@nimiplatform/nimi-kit/ui` and must not recreate the same baseline
+  `@nimiplatform/kit/ui` and must not recreate the same baseline
   Surface/Button/Field shells locally once the kit surface exists.
 - Hand-authored CSS rule bodies in `styles.css` must not target class
   names declared as slots or class_groups in
@@ -64,7 +64,7 @@
 ## Verification Commands
 
 - `pnpm generate:nimi-ui-lib` (after token/theme yaml edits)
-- `pnpm --filter @nimiplatform/nimi-kit build && pnpm --filter @nimiplatform/nimi-kit test`
+- `pnpm --filter @nimiplatform/kit build && pnpm --filter @nimiplatform/kit test`
 - `pnpm check:nimi-ui-pattern`
 - `pnpm check:nimi-ui-lib-drift`
 - `pnpm check:nimi-kit`

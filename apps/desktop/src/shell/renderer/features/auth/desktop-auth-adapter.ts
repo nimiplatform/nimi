@@ -3,9 +3,9 @@ import {
   persistAuthSessionMetadata,
   resolveSessionExpiry,
   type AuthPlatformAdapter,
-} from '@nimiplatform/nimi-kit/auth';
-import type { TauriOAuthBridge } from '@nimiplatform/nimi-kit/core/oauth';
-import { isWebShellMode } from '@nimiplatform/nimi-kit/core/shell-mode';
+} from '@nimiplatform/kit/auth';
+import type { TauriOAuthBridge } from '@nimiplatform/kit/core/oauth';
+import { isWebShellMode } from '@nimiplatform/kit/core/shell-mode';
 import { OAuthProvider, type RealmModel } from '@nimiplatform/sdk/realm';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/browser';

@@ -1,4 +1,4 @@
-import { Button } from '@nimiplatform/nimi-kit/ui';
+import { Button } from '@nimiplatform/kit/ui';
 import { WorldRuleTruthPanel } from './world-rule-truth-panel.js';
 
 type WorldMaintainHeaderProps = {

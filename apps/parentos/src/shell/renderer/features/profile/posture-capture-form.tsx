@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { Button, DashedAddButton, DatePicker, StatusBadge, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DashedAddButton, DatePicker, StatusBadge, TextField, TextareaField } from '@nimiplatform/kit/ui';
 import { useRef, useState } from 'react';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertPostureAssessment } from '../../bridge/sqlite-bridge.js';

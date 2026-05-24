@@ -3,11 +3,11 @@ import type {
   AvatarVrmExpressionWeights,
   AvatarVrmViewportRenderInput,
   AvatarVrmViewportState,
-} from '@nimiplatform/nimi-kit/features/avatar/vrm';
+} from '@nimiplatform/kit/features/avatar/vrm';
 import {
   resolveAvatarVrmExpressionWeights,
   resolveAvatarVrmViewportState,
-} from '@nimiplatform/nimi-kit/features/avatar/vrm';
+} from '@nimiplatform/kit/features/avatar/vrm';
 import { convertTauriFileSrc, hasTauriRuntime } from '@runtime/tauri-api';
 import type { ChatAgentAvatarAttentionState } from './chat-agent-avatar-attention-state';
 

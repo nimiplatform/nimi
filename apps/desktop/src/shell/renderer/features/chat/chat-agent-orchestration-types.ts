@@ -5,7 +5,7 @@ import type {
   ConversationRuntimeTextStreamPart,
   ConversationRuntimeUsage,
   ConversationTurnError,
-} from '@nimiplatform/nimi-kit/features/chat';
+} from '@nimiplatform/kit/features/chat';
 import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import type {

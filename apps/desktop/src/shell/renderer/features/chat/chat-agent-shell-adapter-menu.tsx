@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { ConversationCanonicalMessage } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
 import type { TFunction } from 'i18next';
 import { shouldDismissFloatingMenu } from './chat-shared-floating-menu';
 

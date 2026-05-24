@@ -1,4 +1,4 @@
-import type { TauriOAuthBridge } from '@nimiplatform/nimi-kit/core/oauth';
+import type { TauriOAuthBridge } from '@nimiplatform/kit/core/oauth';
 import { DESKTOP_CALLBACK_TIMEOUT_MS } from './oauth-helpers.js';
 import { createDesktopCallbackRedirectUri } from './desktop-callback-helpers.js';
 import { AUTH_COPY } from './auth-copy.js';

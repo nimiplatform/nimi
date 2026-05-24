@@ -3,12 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 import { SlotHost } from '@renderer/mod-ui/host/slot-host';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
-import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
-import { useChatComposer } from '@nimiplatform/nimi-kit/features/chat/headless';
-import { createRealmChatComposerAdapter } from '@nimiplatform/nimi-kit/features/chat/realm';
+import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
+import { useChatComposer } from '@nimiplatform/kit/features/chat/headless';
+import { createRealmChatComposerAdapter } from '@nimiplatform/kit/features/chat/realm';
 import { MessageType } from '@nimiplatform/sdk/realm';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import {

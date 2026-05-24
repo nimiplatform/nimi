@@ -32,8 +32,8 @@ import {
 } from '../../src/shell/renderer/features/chat/chat-agent-shell-view-model.js';
 import { resolveAgentConversationHostView } from '../../src/shell/renderer/features/chat/chat-agent-shell-host-view.js';
 import { resolveAgentConversationHostSnapshot } from '../../src/shell/renderer/features/chat/chat-agent-shell-host-snapshot.js';
-import type { CanonicalMessageContentSlot, ConversationMessageViewModel } from '@nimiplatform/nimi-kit/features/chat/headless';
-import type { ConversationTurnEvent } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { CanonicalMessageContentSlot, ConversationMessageViewModel } from '@nimiplatform/kit/features/chat/headless';
+import type { ConversationTurnEvent } from '@nimiplatform/kit/features/chat/headless';
 
 export type AgentHostHarnessState = {
   bundles: Record<string, AgentLocalThreadBundle | null>;

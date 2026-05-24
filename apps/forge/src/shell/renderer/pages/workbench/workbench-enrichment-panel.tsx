@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { ForgeEmptyState } from '@renderer/components/page-layout.js';
 import { ForgeEntityAvatar } from '@renderer/components/card-list.js';

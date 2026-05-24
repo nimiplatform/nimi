@@ -1,5 +1,5 @@
 /**
- * `@nimiplatform/nimi-kit/core/character-card`
+ * `@nimiplatform/kit/core/character-card`
  *
  * Single admitted Character Card V2 parse surface. Forge's heavy import
  * workbench and Desktop's lightweight RealmAgent creation both consume this

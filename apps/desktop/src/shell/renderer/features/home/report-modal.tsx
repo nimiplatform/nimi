@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { ReportReason } from '@nimiplatform/sdk/realm';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 
 type PostDto = RealmModel<'PostDto'>;
 

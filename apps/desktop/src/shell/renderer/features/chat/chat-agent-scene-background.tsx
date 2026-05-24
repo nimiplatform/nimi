@@ -1,5 +1,5 @@
-import { cn } from '@nimiplatform/nimi-kit/ui';
-import type { ConversationCharacterData } from '@nimiplatform/nimi-kit/features/chat/headless';
+import { cn } from '@nimiplatform/kit/ui';
+import type { ConversationCharacterData } from '@nimiplatform/kit/features/chat/headless';
 
 export type ChatAgentSceneBackgroundProps = {
   characterData?: ConversationCharacterData | null;

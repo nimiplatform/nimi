@@ -1,4 +1,4 @@
-import { Button, DialogTitle, OverlayShell, SelectField, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DialogTitle, OverlayShell, SelectField, Surface, TextareaField, TextField } from '@nimiplatform/kit/ui';
 import type { ReactNode } from 'react';
 
 /* ── Primitives ────────────────────────────────────────── */

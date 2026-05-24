@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Tooltip, cn } from '@nimiplatform/nimi-kit/ui';
+import { Tooltip, cn } from '@nimiplatform/kit/ui';
 import type { ExternalAgentTokenRecord } from '@runtime/external-agent';
 
 export type TokenMode = 'delegated' | 'autonomous';

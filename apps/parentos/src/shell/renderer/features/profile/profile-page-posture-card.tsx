@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, PersonStanding } from 'lucide-react';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 import { getPostureAssessments, type PostureAssessmentRow } from '../../bridge/sqlite-bridge.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 

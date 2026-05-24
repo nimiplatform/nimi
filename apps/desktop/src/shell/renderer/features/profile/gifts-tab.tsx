@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { OverlayShell, ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { OverlayShell, ScrollArea } from '@nimiplatform/kit/ui';
 import { DesktopCompactAction } from '@renderer/components/action';
 import { DesktopCardSurface } from '@renderer/components/surface';
 import { i18n } from '@renderer/i18n';

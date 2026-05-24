@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { FieldShell, StatusBadge, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { FieldShell, StatusBadge, Surface, TextareaField, TextField } from '@nimiplatform/kit/ui';
 import type { OwnerPortfolioAgent, OwnerPortfolioAgentDetail, SettingField } from './portfolio-data.js';
 
 export function TechnicalReviewDetails({ title, children }: { title: string; children: ReactNode }) {

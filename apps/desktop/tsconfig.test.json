@@ -8,11 +8,11 @@
       "@renderer/*": ["src/shell/renderer/*"],
       "@nimiplatform/sdk": ["../../sdk/src/index.ts"],
       "@nimiplatform/sdk/*": ["../../sdk/src/*"],
-      "@nimiplatform/nimi-kit/ui": ["../../kit/ui/src/index.ts"],
-      "@nimiplatform/nimi-kit/ui/*": ["../../kit/ui/src/*"],
-      "@nimiplatform/nimi-kit/auth": ["../../kit/auth/src/index.ts"],
-      "@nimiplatform/nimi-kit/auth/*": ["../../kit/auth/src/*"],
-      "@nimiplatform/nimi-kit/core/*": ["../../kit/core/src/*"]
+      "@nimiplatform/kit/ui": ["../../kit/ui/src/index.ts"],
+      "@nimiplatform/kit/ui/*": ["../../kit/ui/src/*"],
+      "@nimiplatform/kit/auth": ["../../kit/auth/src/index.ts"],
+      "@nimiplatform/kit/auth/*": ["../../kit/auth/src/*"],
+      "@nimiplatform/kit/core/*": ["../../kit/core/src/*"]
     }
   }
 }

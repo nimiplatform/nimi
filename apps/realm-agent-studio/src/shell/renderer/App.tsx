@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { NimiThemeProvider, TooltipProvider } from '@nimiplatform/nimi-kit/ui';
+import { NimiThemeProvider, TooltipProvider } from '@nimiplatform/kit/ui';
 import { AuthProvider } from './app-shell/auth-provider.js';
 import { ShellLayout, type StudioWorkspace } from './app-shell/shell-layout.js';
 import { OwnerPortfolio } from './features/portfolio/OwnerPortfolio.js';

@@ -1,4 +1,4 @@
-import { Button, cn, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, cn, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import type { OrthodonticPhotoAngle, OrthodonticPhotoAttachmentRow, OrthodonticPhotoSessionBundle } from '../../bridge/sqlite-bridge.js';
 import { usePhotoBlob } from './orthodontic-teeth-selfies-compare.js';
 import { CapsLabel, formatThumbLabel } from './orthodontic-teeth-selfies-shared.js';

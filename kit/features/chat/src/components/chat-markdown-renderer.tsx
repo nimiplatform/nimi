@@ -2,7 +2,7 @@ import { createElement, useCallback, useMemo, useState, type ComponentPropsWitho
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Components } from 'react-markdown';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 
 export type ChatMarkdownRendererProps = {
   content: string;

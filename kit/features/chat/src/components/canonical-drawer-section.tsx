@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Surface, Tooltip } from '@nimiplatform/nimi-kit/ui';
+import { Surface, Tooltip } from '@nimiplatform/kit/ui';
 
 export type CanonicalDrawerSectionProps = {
   title: string;

@@ -44,8 +44,8 @@ vi.mock('../../app-shell/app-select.js', () => ({
   ),
 }));
 
-vi.mock('@nimiplatform/nimi-kit/ui', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@nimiplatform/nimi-kit/ui')>()),
+vi.mock('@nimiplatform/kit/ui', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@nimiplatform/kit/ui')>()),
   DatePicker: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
     <input type="date" value={value} onChange={(event) => onChange(event.target.value)} />
   ),

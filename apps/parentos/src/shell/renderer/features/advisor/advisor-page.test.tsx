@@ -223,7 +223,7 @@ const {
   getPlatformClientMock: vi.fn(),
 }));
 
-vi.mock('@nimiplatform/nimi-kit/features/chat/ui', () => {
+vi.mock('@nimiplatform/kit/features/chat/ui', () => {
   /** Minimal markdown renderer that converts **bold** and - list items. */
   function SimpleMd({ content }: { content: string }) {
     const lines = content.split('\n');
@@ -265,7 +265,7 @@ vi.mock('@nimiplatform/nimi-kit/features/chat/ui', () => {
   };
 });
 
-vi.mock('@nimiplatform/nimi-kit/ui', () => ({
+vi.mock('@nimiplatform/kit/ui', () => ({
   Button: ({
     children,
     leadingIcon,

@@ -19,7 +19,7 @@ export default defineConfig(() => {
       dedupe: ['react', 'react-dom', 'scheduler'],
       alias: [
         { find: '@renderer', replacement: path.resolve(__dirname, 'src/shell/renderer') },
-        { find: '@nimiplatform/nimi-kit/ui', replacement: path.resolve(__dirname, '../../kit/ui/src') },
+        { find: '@nimiplatform/kit/ui', replacement: path.resolve(__dirname, '../../kit/ui/src') },
         { find: '@nimiplatform/sdk/realm', replacement: path.resolve(__dirname, '../../sdk/src/realm/index.ts') },
       ],
     },

@@ -1,4 +1,4 @@
-import type { RealmSendMessageInputDto } from '@nimiplatform/nimi-kit/features/chat/realm';
+import type { RealmSendMessageInputDto } from '@nimiplatform/kit/features/chat/realm';
 
 type UnknownRecord = Record<string, unknown>;
 

@@ -1,7 +1,7 @@
 import {
   createReadyConversationSetupState,
   type ConversationSetupState,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import type {
   RuntimeRouteBinding,
   RuntimeRouteModelProfile,

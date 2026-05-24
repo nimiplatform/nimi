@@ -11,8 +11,8 @@ import {
   TextareaField as KitTextareaField,
   SelectField as KitSelectField,
   Toggle,
-} from '@nimiplatform/nimi-kit/ui';
-import type { SelectFieldOption } from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
+import type { SelectFieldOption } from '@nimiplatform/kit/ui';
 
 /* ------------------------------------------------------------------ */
 /*  LabeledTextField                                                  */

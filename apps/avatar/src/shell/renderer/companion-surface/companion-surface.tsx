@@ -6,7 +6,7 @@
 // no cross-anchor messages, no trigger-toggle gating.
 
 import { useCallback, type ChangeEvent, type FormEvent, type KeyboardEvent, type RefObject } from 'react';
-import { Button, IconButton, Surface, TextareaField, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, Surface, TextareaField, cn } from '@nimiplatform/kit/ui';
 import { useTranslation } from '../i18n/index.js';
 import {
   beginCompanionSubmit,

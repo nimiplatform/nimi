@@ -20,7 +20,7 @@ export {
   parseRuntimeBridgeDaemonStatus,
   hasTauriRuntime,
   invokeTauri,
-} from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+} from '@nimiplatform/kit/shell/renderer/bridge';
 export type {
   RuntimeDefaults,
   RealmDefaults,
@@ -29,13 +29,13 @@ export type {
   JsonValue,
   JsonObject,
   JsonPrimitive,
-} from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+} from '@nimiplatform/kit/shell/renderer/bridge';
 
 import {
   createTauriOAuthBridge,
   getRuntimeDefaults as getKitRuntimeDefaults,
   type RuntimeDefaults,
-} from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+} from '@nimiplatform/kit/shell/renderer/bridge';
 export const forgeTauriOAuthBridge = createTauriOAuthBridge();
 
 export async function getRuntimeDefaults(): Promise<RuntimeDefaults> {

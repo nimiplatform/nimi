@@ -1,4 +1,4 @@
-import { Button, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import type { ImportRecord, MapPoint, VenueRecord } from '@renderer/data/types.js';
 
 import { InfoPill, formatCommentTime, formatSelectedModelLabel, resolveVenueStatus } from './app-surface-shared.js';

@@ -5,7 +5,7 @@ export {
   BridgeError,
   hasTauriRuntime,
   invokeTauri,
-} from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+} from '@nimiplatform/kit/shell/renderer/bridge';
 export type {
   JsonValue,
-} from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+} from '@nimiplatform/kit/shell/renderer/bridge';

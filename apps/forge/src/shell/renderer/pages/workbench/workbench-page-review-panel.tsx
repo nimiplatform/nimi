@@ -1,4 +1,4 @@
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { ForgeEmptyState } from '@renderer/components/page-layout.js';
 import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
 import { LabeledTextField, LabeledTextareaField } from '@renderer/components/form-fields.js';

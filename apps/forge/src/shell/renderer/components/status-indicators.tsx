@@ -2,8 +2,8 @@
  * Forge Status Indicators — maps domain statuses to kit StatusBadge tones.
  */
 
-import { StatusBadge } from '@nimiplatform/nimi-kit/ui';
-import type { StatusTone } from '@nimiplatform/nimi-kit/ui';
+import { StatusBadge } from '@nimiplatform/kit/ui';
+import type { StatusTone } from '@nimiplatform/kit/ui';
 
 /* ------------------------------------------------------------------ */
 /*  Status → Tone mapping tables                                       */

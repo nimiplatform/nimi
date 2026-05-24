@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { NimiThemeProvider } from '@nimiplatform/nimi-kit/ui';
+import { NimiThemeProvider } from '@nimiplatform/kit/ui';
 import App from './App';
 import './styles.css';
 

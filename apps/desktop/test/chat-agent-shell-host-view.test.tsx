@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
-import type { ConversationCanonicalMessage, ConversationTargetSummary } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationCanonicalMessage, ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { resolveAgentConversationHostView } from '../src/shell/renderer/features/chat/chat-agent-shell-host-view.js';
 
 function targetSummaries(): ConversationTargetSummary[] {

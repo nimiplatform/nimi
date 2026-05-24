@@ -1,4 +1,4 @@
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { type PediatricDrug, PEDIATRIC_DRUGS, matchDrugs } from './pediatric-drugs.js';

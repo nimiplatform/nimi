@@ -4,12 +4,12 @@
 Reusable agent avatar surface for runtime-backed presentation profiles and surface-local interaction state.
 
 ## Public Surfaces
-- `@nimiplatform/nimi-kit/features/avatar`
-- `@nimiplatform/nimi-kit/features/avatar/headless`
-- `@nimiplatform/nimi-kit/features/avatar/ui`
-- `@nimiplatform/nimi-kit/features/avatar/runtime`
-- `@nimiplatform/nimi-kit/features/avatar/vrm`
-- `@nimiplatform/nimi-kit/features/avatar/live2d`
+- `@nimiplatform/kit/features/avatar`
+- `@nimiplatform/kit/features/avatar/headless`
+- `@nimiplatform/kit/features/avatar/ui`
+- `@nimiplatform/kit/features/avatar/runtime`
+- `@nimiplatform/kit/features/avatar/vrm`
+- `@nimiplatform/kit/features/avatar/live2d`
 - Current surfaces:
   - `headless`: admitted for normalized presentation and transient interaction contracts
   - `ui`: admitted for the default avatar stage shell
@@ -49,5 +49,5 @@ Reusable agent avatar surface for runtime-backed presentation profiles and surfa
   Planned first-party consumer for shared avatar presentation surfaces without desktop-specific shell semantics.
 
 ## Verification
-- `pnpm --filter @nimiplatform/nimi-kit lint`
+- `pnpm --filter @nimiplatform/kit lint`
 - `pnpm check:nimi-kit`

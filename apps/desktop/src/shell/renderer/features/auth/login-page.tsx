@@ -1,6 +1,6 @@
 import { Suspense, lazy } from 'react';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
+import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { continueOauthNextIfPresent } from './oauth-next-continuation';
 
 const WebAuthMenu = lazy(async () => {

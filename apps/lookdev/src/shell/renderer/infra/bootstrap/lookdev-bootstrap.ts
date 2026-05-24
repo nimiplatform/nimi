@@ -12,7 +12,7 @@ import {
 import type { Runtime } from '@nimiplatform/sdk/runtime';
 import { getRuntimeDefaults, getDaemonStatus } from '@renderer/bridge';
 import { useAppStore, type AuthUser } from '@renderer/app-shell/providers/app-store.js';
-import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 
 // LD-SHELL-010 / LD-SHELL-011: Lookdev admitted as local-first-party Runtime
 // account / session consumer. Caller fixed; runtime owns refresh-token

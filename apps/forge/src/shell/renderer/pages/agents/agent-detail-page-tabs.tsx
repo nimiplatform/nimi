@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
-import { RuntimeChatPanel } from '@nimiplatform/nimi-kit/features/chat/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
+import { RuntimeChatPanel } from '@nimiplatform/kit/features/chat/ui';
 import {
   useRuntimeChatSession,
   type RuntimeChatSessionMessage,
-} from '@nimiplatform/nimi-kit/features/chat/runtime';
+} from '@nimiplatform/kit/features/chat/runtime';
 import type { JsonObject } from '@renderer/bridge';
 import {
   DNA_PRIMARY_TYPES,

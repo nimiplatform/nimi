@@ -1,13 +1,13 @@
 import type {
   AvatarLive2dViewportRenderInput,
   AvatarLive2dViewportState,
-} from '@nimiplatform/nimi-kit/features/avatar/live2d';
+} from '@nimiplatform/kit/features/avatar/live2d';
 import {
   resolveAvatarLive2dViewportState,
   resolvePreferredLive2dIdleMotionGroup,
   resolvePreferredLive2dSpeechMotionGroup,
-} from '@nimiplatform/nimi-kit/features/avatar/live2d';
-import { formatAvatarVrmAssetLabel } from '@nimiplatform/nimi-kit/features/avatar/vrm';
+} from '@nimiplatform/kit/features/avatar/live2d';
+import { formatAvatarVrmAssetLabel } from '@nimiplatform/kit/features/avatar/vrm';
 import type {
   DesktopAgentAvatarResourceAssetPayload,
   DesktopAgentAvatarResourceRecord,

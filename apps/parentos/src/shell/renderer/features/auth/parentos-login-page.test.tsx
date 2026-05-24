@@ -6,7 +6,7 @@ import { useAppStore } from '../../app-shell/app-store.js';
 
 const desktopShellAuthPageSpy = vi.fn();
 
-vi.mock('@nimiplatform/nimi-kit/auth', () => ({
+vi.mock('@nimiplatform/kit/auth', () => ({
   DesktopShellAuthPage: (props: unknown) => {
     desktopShellAuthPageSpy(props);
     return <div data-testid="desktop-shell-auth-page" />;

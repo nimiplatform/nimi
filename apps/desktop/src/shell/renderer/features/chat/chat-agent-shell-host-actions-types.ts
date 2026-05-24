@@ -1,7 +1,7 @@
 import type { MutableRefObject } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
-import type { ConversationTurnEvent } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationTurnEvent } from '@nimiplatform/kit/features/chat/headless';
 import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadBundle,

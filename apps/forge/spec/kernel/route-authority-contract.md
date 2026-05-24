@@ -119,7 +119,7 @@ Speech storage constraints:
 
 ## FG-ROUTE-005: Route Picker Provider
 
-Forge settings route picker must use `createSnapshotRouteDataProvider` from `@nimiplatform/nimi-kit/features/model-picker`.
+Forge settings route picker must use `createSnapshotRouteDataProvider` from `@nimiplatform/kit/features/model-picker`.
 
 | Property | Value |
 |----------|-------|

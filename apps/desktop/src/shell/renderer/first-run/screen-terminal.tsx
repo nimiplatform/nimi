@@ -14,7 +14,7 @@
 
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@nimiplatform/nimi-kit/ui';
+import { Button } from '@nimiplatform/kit/ui';
 import { SupportDegradedEntry } from '../features/support/support-degraded-entry.js';
 import { AlertIcon, CheckCircleFilledIcon, WrenchIcon } from './first-run-icons.js';
 

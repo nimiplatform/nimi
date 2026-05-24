@@ -1,4 +1,4 @@
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 
 export type ModelSelectorTriggerProps = {
   source: 'local' | 'cloud' | null;

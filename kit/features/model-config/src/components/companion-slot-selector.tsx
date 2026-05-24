@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import type { CompanionSlotDef, LocalAssetEntry } from '../types.js';
 import { filterAssetsByKind } from '../constants.js';
 import { FieldRow } from './field-primitives.js';
-import { SelectField } from '@nimiplatform/nimi-kit/ui';
+import { SelectField } from '@nimiplatform/kit/ui';
 
 const NONE_SENTINEL = '__none__';
 

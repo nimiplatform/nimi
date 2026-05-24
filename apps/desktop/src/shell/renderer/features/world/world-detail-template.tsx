@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 import { CreateAgentDrawer, type CreateAgentConfirmInput } from './create-agent-drawer';
 import {
   OASIS_WORLD_DETAIL_COMPOSITION,

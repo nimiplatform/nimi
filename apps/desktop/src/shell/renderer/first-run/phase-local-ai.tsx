@@ -10,7 +10,7 @@
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Button } from '@nimiplatform/nimi-kit/ui';
+import { Button } from '@nimiplatform/kit/ui';
 import type { FirstRunInstallLevel } from './install-level-policy.js';
 import type {
   FirstRunCapabilityHighlightId,

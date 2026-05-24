@@ -34,7 +34,7 @@ A blocked later-stage feature must not block the shipped personal-space baseline
 
 ## VFM-SHELL-005 — Kit-First UI Contract
 
-The app follows `P-KIT-065` kit-first protocol. All shell-level UI must be composed from `@nimiplatform/nimi-kit/ui` shared primitives. App-local UI components are permitted only for domain-specific surfaces not covered by kit (e.g. map rendering, extraction progress).
+The app follows `P-KIT-065` kit-first protocol. All shell-level UI must be composed from `@nimiplatform/kit/ui` shared primitives. App-local UI components are permitted only for domain-specific surfaces not covered by kit (e.g. map rendering, extraction progress).
 
 ## VFM-SHELL-006 — Theme Pack
 

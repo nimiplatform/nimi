@@ -1,5 +1,5 @@
-import { type GenerationRunItem } from '@nimiplatform/nimi-kit/features/generation/headless';
-import { GenerationStatusToast } from '@nimiplatform/nimi-kit/features/generation/ui';
+import { type GenerationRunItem } from '@nimiplatform/kit/features/generation/headless';
+import { GenerationStatusToast } from '@nimiplatform/kit/features/generation/ui';
 
 type ScenarioJobStatus = 'SUBMITTED' | 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELED' | 'TIMEOUT';
 

@@ -1,4 +1,4 @@
-import { Button, SelectField, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, SelectField, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import { formatAccuracyLabel, formatDistanceLabel } from '@renderer/data/nearby.js';
 import type { ImportRecord, MapPoint, VideoFoodMapSnapshot } from '@renderer/data/types.js';
 import { MapSurface } from '@renderer/components/map-surface.js';

@@ -1,4 +1,4 @@
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 import type { AttachmentRow, DentalRecordRow } from '../../bridge/sqlite-bridge.js';
 import type { AlignerContext } from './orthodontic-derive.js';
 import { DentalHistoryRecordList } from './dental-history-record-list.js';

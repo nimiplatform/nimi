@@ -1,4 +1,4 @@
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 /**
  * Case-level chrome pieces shared by `orthodontic-case-shell`: the bottom
  * 疗程总进度 strip + stage stepper, the overall-progress projection, and the

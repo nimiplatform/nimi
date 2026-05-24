@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { TextareaField, TextField } from '@nimiplatform/kit/ui';
 
 export type AdvancedParamsScope = 'textGenerate' | 'textStream';
 

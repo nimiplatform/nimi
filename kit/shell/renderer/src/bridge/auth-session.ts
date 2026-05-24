@@ -1,7 +1,7 @@
 import {
   parseSharedDesktopAuthSession,
   type SharedDesktopAuthSession,
-} from '@nimiplatform/nimi-kit/auth';
+} from '@nimiplatform/kit/auth';
 import { hasTauriInvoke } from './env.js';
 import { invokeChecked } from './invoke.js';
 

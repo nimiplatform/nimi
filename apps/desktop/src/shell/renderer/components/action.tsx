@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
-import { Button, IconButton, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, cn } from '@nimiplatform/kit/ui';
 
 type DesktopCompactActionTone = 'neutral' | 'primary' | 'danger';
 

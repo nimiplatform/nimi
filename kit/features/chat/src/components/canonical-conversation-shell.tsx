@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 import type {
   ConversationCanonicalMessage,
   ConversationCharacterData,

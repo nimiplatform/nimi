@@ -12,7 +12,7 @@ import {
 import type { Runtime } from '@nimiplatform/sdk/runtime';
 import { getRuntimeDefaults, getDaemonStatus } from '@renderer/bridge';
 import { useAppStore, type AuthUser } from '@renderer/app-shell/providers/app-store.js';
-import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { registerForgeModSdkHost } from './forge-runtime-host.js';
 
 // FG-SHELL-011 / FG-SHELL-012: Forge admitted as local-first-party Runtime

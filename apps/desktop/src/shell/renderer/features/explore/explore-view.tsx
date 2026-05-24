@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { IconButton, ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
+import { IconButton, ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';

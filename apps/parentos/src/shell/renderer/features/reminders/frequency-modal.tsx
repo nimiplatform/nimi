@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, IconButton, OverlayShell, TextField, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, OverlayShell, TextField, cn } from '@nimiplatform/kit/ui';
 import { saveFreqOverride, clearFreqOverride, loadFreqOverrides, type FreqOverride } from '../../engine/reminder-freq-overrides.js';
 import { catchLogThen } from '../../infra/telemetry/catch-log.js';
 

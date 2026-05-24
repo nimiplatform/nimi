@@ -213,7 +213,7 @@ Active route highlighted. Sidebar collapsible to icon-only mode (64px).
       '@renderer': './src/shell/renderer',
       '@runtime': './src/runtime',
       '@nimiplatform/sdk': '../../sdk/src',
-      '@nimiplatform/nimi-kit/core': '../../kit/core/src',
+      '@nimiplatform/kit/core': '../../kit/core/src',
       '@world-engine': '../../nimi-mods/runtime/world-studio/src/',
     },
   },

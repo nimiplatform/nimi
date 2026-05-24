@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
 import { sqliteGetSessionsForLearner } from '@renderer/bridge/sqlite-bridge.js';

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import type { UseModelPickerResult } from '../hooks/use-model-picker.js';
 import { modelPickerBadgeTone } from './badge-tone.js';
 

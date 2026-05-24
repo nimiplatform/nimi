@@ -1,8 +1,8 @@
 import type {
   ConversationMessageViewModel,
   ConversationThreadSummary,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
-import type { AvatarPresentationProfile } from '@nimiplatform/nimi-kit/features/avatar/headless';
+} from '@nimiplatform/kit/features/chat/headless';
+import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 import type {
   AgentLocalMessageRecord,
   AgentLocalTargetSnapshot,

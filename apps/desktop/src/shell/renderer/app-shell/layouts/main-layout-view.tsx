@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { AmbientBackground, ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { AmbientBackground, ScrollArea } from '@nimiplatform/kit/ui';
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import { resolveRouteTabExtension } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
 import { StatusBanner } from '@renderer/ui/feedback/status-banner';
@@ -25,7 +25,7 @@ import {
   subscribeDeveloperMode,
 } from '@renderer/features/developer/developer-mode';
 import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '@renderer/features/world/world-detail-route-state';
-import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
+import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { DesktopReleaseStrip } from './desktop-release-strip';
 import { MainLayoutTopBar } from './main-layout-topbar';
 import { MainLayoutSettingsMenu, type SettingsSubmenuItemId } from './main-layout-settings-menu';

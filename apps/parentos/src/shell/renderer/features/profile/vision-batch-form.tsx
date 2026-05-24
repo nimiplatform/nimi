@@ -12,7 +12,7 @@ import {
   EYE_SET, FORM_SECTIONS, PUPIL_OPTIONS, getPickerConfig,
   type VisionRecord,
 } from './vision-data.js';
-import { Button, DatePicker, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DatePicker, TextField } from '@nimiplatform/kit/ui';
 import {
   ChipGroup,
   type ChipOption,

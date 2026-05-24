@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 import { SHELL_CHROME_TOOLTIP_CLASS } from './shell-chrome-classes';
 
 export function SidebarTooltipButton({

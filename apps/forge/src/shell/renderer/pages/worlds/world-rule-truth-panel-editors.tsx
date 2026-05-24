@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button } from '@nimiplatform/nimi-kit/ui';
+import { Button } from '@nimiplatform/kit/ui';
 import { LabeledTextField, LabeledTextareaField, LabeledSelectField } from '@renderer/components/form-fields.js';
 import {
   WORLD_RULE_SCOPE_OPTIONS,

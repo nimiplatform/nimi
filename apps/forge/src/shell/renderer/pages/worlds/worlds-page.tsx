@@ -4,7 +4,7 @@
 
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@nimiplatform/nimi-kit/ui';
+import { Button } from '@nimiplatform/kit/ui';
 import { useWorldResourceQueries, type WorldDraftSummary, type WorldSummary } from '@renderer/hooks/use-world-queries.js';
 import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
 import { useWorldWorkbenchNavigation } from '@renderer/app-shell/routes/world-workbench-navigation.js';

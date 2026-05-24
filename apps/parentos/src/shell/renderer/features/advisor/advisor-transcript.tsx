@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import {
   CanonicalMessageBubble,
   CanonicalTypingBubble,
-} from '@nimiplatform/nimi-kit/features/chat/ui';
-import type { ConversationCanonicalMessage } from '@nimiplatform/nimi-kit/features/chat';
+} from '@nimiplatform/kit/features/chat/ui';
+import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat';
 import type { AiMessageRow } from '../../bridge/sqlite-bridge.js';
 
 type StreamingState = 'idle' | 'streaming';

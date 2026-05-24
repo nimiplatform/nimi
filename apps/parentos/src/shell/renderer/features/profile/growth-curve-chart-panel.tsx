@@ -1,4 +1,4 @@
-import { Surface, Tooltip as KitTooltip, cn } from '@nimiplatform/nimi-kit/ui';
+import { Surface, Tooltip as KitTooltip, cn } from '@nimiplatform/kit/ui';
 import { Link } from 'react-router-dom';
 import {
   Area,

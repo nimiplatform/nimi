@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { ConfirmDialog } from '@nimiplatform/nimi-kit/ui';
+import { ConfirmDialog } from '@nimiplatform/kit/ui';
 
 /* ------------------------------------------------------------------ */
 /*  useConfirmDialog hook                                              */

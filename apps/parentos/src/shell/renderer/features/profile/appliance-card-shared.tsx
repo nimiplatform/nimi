@@ -1,4 +1,4 @@
-import { Button, IconButton, StatusBadge, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, StatusBadge, cn } from '@nimiplatform/kit/ui';
 /**
  * Shared building blocks for the multi-appliance orthodontic cards
  * (`appliance-hero-card` / `appliance-compact-card`). Keeping the header,

@@ -20,7 +20,7 @@ entries:
 chunks:
   - chunk: shell-core
     includes:
-      - "@nimiplatform/nimi-kit/core"
+      - "@nimiplatform/kit/core"
       - app-shell/providers
       - app-shell/layouts
     lazy: false

@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
 import type { JsonObject } from '@renderer/bridge';
 import { finalizeResource } from '@renderer/data/content-data-client.js';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import {
   ForgePage,
   ForgePageHeader,

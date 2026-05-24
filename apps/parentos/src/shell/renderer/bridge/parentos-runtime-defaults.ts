@@ -1,4 +1,4 @@
-import { getRuntimeDefaults } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+import { getRuntimeDefaults } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { ParentOSRuntimeDefaults } from './parentos-types.js';
 
 function readEnv(name: string): string {

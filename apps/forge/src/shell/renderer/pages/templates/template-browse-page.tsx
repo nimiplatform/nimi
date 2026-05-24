@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Button, SearchField, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, SearchField, Surface } from '@nimiplatform/kit/ui';
 import { ForgePage, ForgePageHeader, ForgeEmptyState } from '@renderer/components/page-layout.js';
 import { LabeledSelectField } from '@renderer/components/form-fields.js';
 import { ForgeSegmentControl, type SegmentOption } from '@renderer/components/segment-control.js';

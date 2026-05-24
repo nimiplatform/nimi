@@ -1,6 +1,6 @@
 import { i18n } from '@renderer/i18n';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 import { DesktopCompactAction } from '@renderer/components/action';
 import { DesktopCardSurface } from '@renderer/components/surface';
 import type { ContactRequestRecord } from './contacts-model.js';

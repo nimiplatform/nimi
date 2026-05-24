@@ -2,7 +2,7 @@
 // Generic OAuth login handler
 // ---------------------------------------------------------------------------
 
-import type { TauriOAuthBridge } from '@nimiplatform/nimi-kit/core/oauth';
+import type { TauriOAuthBridge } from '@nimiplatform/kit/core/oauth';
 import type { SocialOauthProvider } from './social-oauth.js';
 import { resolveProviderLabel, startSocialOauth } from './social-oauth.js';
 import { toErrorMessage } from './oauth-helpers.js';

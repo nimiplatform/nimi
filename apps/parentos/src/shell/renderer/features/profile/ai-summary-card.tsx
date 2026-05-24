@@ -1,4 +1,4 @@
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 /**
  * AISummaryCard — Reusable AI analysis summary for profile sub-pages.
  *

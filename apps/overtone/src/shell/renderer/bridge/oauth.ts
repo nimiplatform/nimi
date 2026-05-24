@@ -11,6 +11,6 @@
 // `extra` fields that do not exist on the kit's `OauthTokenExchangePayload`
 // — this caused 3 TS errors and was a holdover from an older kit shape.
 // The factory below subsumes that surface with the current type.
-import { createTauriOAuthBridge } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+import { createTauriOAuthBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export const overtoneTauriOAuthBridge = createTauriOAuthBridge();

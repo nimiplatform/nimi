@@ -8,4 +8,4 @@ export {
   SidebarSearch,
   SidebarSection,
   SidebarShell,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';

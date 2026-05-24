@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { Check, FileImage, GraduationCap, LoaderCircle, Pencil, Printer } from 'lucide-react';
 import { describeError, logRendererEvent } from '../../infra/telemetry/renderer-log.js';
 

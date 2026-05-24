@@ -66,8 +66,8 @@ The primary user is an analyst who wants to:
 | State management | Zustand |
 | Data fetching | TanStack Query |
 | SDK | `@nimiplatform/sdk/runtime` |
-| Kit core | `@nimiplatform/nimi-kit/core/*` |
-| Chat shell | `@nimiplatform/nimi-kit/features/chat/*` (runtime/app-local surface only) |
+| Kit core | `@nimiplatform/kit/core/*` |
+| Chat shell | `@nimiplatform/kit/features/chat/*` (runtime/app-local surface only) |
 | External market data | Polymarket front-end taxonomy surfaces + Gamma API + market WebSocket + batch price history APIs |
 
 Polyinfo follows the SDK-first shell pattern used by other standalone nimi apps:

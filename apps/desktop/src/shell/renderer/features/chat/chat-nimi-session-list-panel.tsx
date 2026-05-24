@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
-import type { ConversationThreadSummary } from '@nimiplatform/nimi-kit/features/chat/headless';
+import { cn } from '@nimiplatform/kit/ui';
+import type { ConversationThreadSummary } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
 import { DesktopCompactAction } from '@renderer/components/action';
 import { DesktopCardSurface } from '@renderer/components/surface';

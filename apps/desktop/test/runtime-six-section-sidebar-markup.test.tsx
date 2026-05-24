@@ -20,7 +20,7 @@ import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import { SidebarItem, SidebarSection } from '@nimiplatform/nimi-kit/ui';
+import { SidebarItem, SidebarSection } from '@nimiplatform/kit/ui';
 import { RUNTIME_SIDEBAR_ITEMS } from '../src/shell/renderer/features/runtime-config/runtime-config-sidebar';
 import { E2E_IDS } from '../src/shell/renderer/testability/e2e-ids';
 

@@ -6,7 +6,7 @@ import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button, SearchField, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, SearchField, Surface } from '@nimiplatform/kit/ui';
 import { useAgentListQuery, type AgentSummary } from '@renderer/hooks/use-agent-queries.js';
 import { useAgentMutations } from '@renderer/hooks/use-agent-mutations.js';
 import type { JsonObject } from '@renderer/bridge';

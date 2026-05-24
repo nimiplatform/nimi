@@ -4,7 +4,7 @@
 export type {
   CodegenCapabilityTier,
   CodegenCapabilityDecision,
-} from '@nimiplatform/nimi-kit/core/runtime-capabilities';
+} from '@nimiplatform/kit/core/runtime-capabilities';
 
 export {
   CODEGEN_T0_CAPABILITY_PATTERNS,
@@ -14,4 +14,4 @@ export {
   normalizeCodegenCapabilityWildcard,
   classifyCodegenCapability,
   resolveCodegenCapabilityDecision,
-} from '@nimiplatform/nimi-kit/core/runtime-capabilities';
+} from '@nimiplatform/kit/core/runtime-capabilities';

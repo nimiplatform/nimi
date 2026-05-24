@@ -1,5 +1,5 @@
 import { useState, useCallback, type ReactNode } from 'react';
-import { IconButton, SidebarShell, cn } from '@nimiplatform/nimi-kit/ui';
+import { IconButton, SidebarShell, cn } from '@nimiplatform/kit/ui';
 import { ConversationAnimationStyles } from './conversation-animations.js';
 
 export type ConversationStageLayoutProps = {

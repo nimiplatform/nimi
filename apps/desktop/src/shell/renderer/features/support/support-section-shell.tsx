@@ -9,7 +9,7 @@
 
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 
 export function SupportSectionShell(props: {
   title: string;

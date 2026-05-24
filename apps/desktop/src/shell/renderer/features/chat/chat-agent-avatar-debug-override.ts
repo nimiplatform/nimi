@@ -1,4 +1,4 @@
-import type { ConversationCharacterData } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationCharacterData } from '@nimiplatform/kit/features/chat/headless';
 
 export const CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT = 'nimi:chat-avatar-smoke-override-change';
 

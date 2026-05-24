@@ -7,7 +7,7 @@ import {
   type DelegatedDiagnostic,
   type DelegatedReplayTrace,
 } from '@nimiplatform/sdk/runtime';
-import { ScrollArea, Surface, cn } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, Surface, cn } from '@nimiplatform/kit/ui';
 import { Button, Input } from './runtime-config-primitives';
 import {
   createDesktopDelegatedCapabilityService,

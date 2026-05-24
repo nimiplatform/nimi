@@ -20,7 +20,7 @@ import {
   SidebarSection,
   SidebarShell,
   Surface,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import {
   SUPPORT_SECTION_IDS,
   SUPPORT_SECTION_LABEL_KEY,

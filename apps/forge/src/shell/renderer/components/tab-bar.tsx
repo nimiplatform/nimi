@@ -4,7 +4,7 @@
  * Replaces custom tab patterns in workbench panel nav, agent detail tabs, etc.
  */
 
-import { Surface, cn } from '@nimiplatform/nimi-kit/ui';
+import { Surface, cn } from '@nimiplatform/kit/ui';
 
 export type ForgeTab<T extends string = string> = {
   value: T;

@@ -1,7 +1,7 @@
 import type {
   ConversationMessageViewModel,
   ConversationThreadSummary,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import type {
   LocalModelOptionV11,
   RuntimeConfigStateV11,

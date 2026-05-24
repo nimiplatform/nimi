@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { IconButton, StatusBadge, Surface, cn } from '@nimiplatform/nimi-kit/ui';
+import { IconButton, StatusBadge, Surface, cn } from '@nimiplatform/kit/ui';
 import { OBSERVATION_DIMENSIONS } from '../../knowledge-base/index.js';
 import type { JournalEntryRow } from '../../bridge/sqlite-bridge.js';
 import { DentalPhotoLightbox, type DentalPhotoLightboxItem } from '../profile/dental-photo-lightbox.js';

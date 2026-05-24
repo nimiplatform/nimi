@@ -7,17 +7,17 @@ on:
         description: Public @nimiplatform/sdk version to prove
         required: true
         type: string
-        default: 0.5.14
+        default: 0.5.15
       kit_version:
-        description: Public @nimiplatform/nimi-kit version to prove
+        description: Public @nimiplatform/kit version to prove
         required: true
         type: string
         default: 0.1.0
-      dev_tools_version:
-        description: Public @nimiplatform/dev-tools version to use for scaffold generation
+      app_tools_version:
+        description: Public @nimiplatform/app-tools version to use for scaffold generation
         required: true
         type: string
-        default: 0.5.7
+        default: 0.1.0
       shell_tauri_version:
         description: Public nimi-shell-tauri crate version to prove
         required: true
@@ -37,7 +37,7 @@ jobs:
     env:
       SDK_VERSION: ${{ inputs.sdk_version }}
       KIT_VERSION: ${{ inputs.kit_version }}
-      DEV_TOOLS_VERSION: ${{ inputs.dev_tools_version }}
+      APP_TOOLS_VERSION: ${{ inputs.app_tools_version }}
       SHELL_TAURI_VERSION: ${{ inputs.shell_tauri_version }}
     steps:
       - name: Checkout
@@ -66,16 +66,16 @@ jobs:
         run: |
           set -euo pipefail
           npm view "@nimiplatform/sdk@${SDK_VERSION}" version >/dev/null
-          npm view "@nimiplatform/nimi-kit@${KIT_VERSION}" version >/dev/null
-          npm view "@nimiplatform/dev-tools@${DEV_TOOLS_VERSION}" version >/dev/null
+          npm view "@nimiplatform/kit@${KIT_VERSION}" version >/dev/null
+          npm view "@nimiplatform/app-tools@${APP_TOOLS_VERSION}" version >/dev/null
           curl --fail --silent --show-error "https://crates.io/api/v1/crates/nimi-shell-tauri/${SHELL_TAURI_VERSION}" >/dev/null
 
-      - name: Generate clean standalone app from public dev-tools
+      - name: Generate clean standalone app from public app-tools
         run: |
           set -euo pipefail
           proof_dir="${RUNNER_TEMP}/nimi-public-install-proof"
           rm -rf "${proof_dir}"
-          pnpm dlx --package "@nimiplatform/dev-tools@${DEV_TOOLS_VERSION}" nimi-app create \
+          pnpm dlx --package "@nimiplatform/app-tools@${APP_TOOLS_VERSION}" nimi-app create \
             --dir "${proof_dir}" \
             --profile standalone \
             --title "Nimi Public Install Proof"
@@ -89,8 +89,8 @@ jobs:
           const cargoToml = readFileSync(join(proofDir, 'src-tauri', 'Cargo.toml'), 'utf8');
           const expected = {
             '@nimiplatform/sdk': `^${process.env.SDK_VERSION}`,
-            '@nimiplatform/nimi-kit': `^${process.env.KIT_VERSION}`,
-            '@nimiplatform/dev-tools': `^${process.env.DEV_TOOLS_VERSION}`,
+            '@nimiplatform/kit': `^${process.env.KIT_VERSION}`,
+            '@nimiplatform/app-tools': `^${process.env.APP_TOOLS_VERSION}`,
           };
           for (const [name, version] of Object.entries(expected)) {
             const actual = pkg.dependencies?.[name] ?? pkg.devDependencies?.[name];

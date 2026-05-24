@@ -10,8 +10,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ConversationOrchestrationRegistry,
   createReadyConversationSetupState,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
-import { createSimpleAiConversationProvider } from '@nimiplatform/nimi-kit/features/chat/runtime';
+} from '@nimiplatform/kit/features/chat/headless';
+import { createSimpleAiConversationProvider } from '@nimiplatform/kit/features/chat/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import type { ChatAiMessageRecord, ChatAiThreadRecord } from '@renderer/bridge/runtime-bridge/types';
@@ -46,7 +46,7 @@ import {
   toErrorMessage,
 } from './chat-nimi-shell-core';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
-import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
+import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
 import { useAiConversationPresentation } from './chat-nimi-shell-presentation';
 import { createChatAiConversationRuntimeAdapter } from './chat-nimi-shell-runtime-adapter';
 import { useAiConversationEffects } from './chat-nimi-shell-effects';

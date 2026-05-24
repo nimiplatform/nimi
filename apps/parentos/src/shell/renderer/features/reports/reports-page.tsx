@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, DatePicker, NimiText, StatusBadge, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DatePicker, NimiText, StatusBadge, Surface, TextareaField } from '@nimiplatform/kit/ui';
 import { ArrowRight, ChevronDown, Eye, Pencil, Star } from 'lucide-react';
 import { useAppStore } from '../../app-shell/app-store.js';
 import {

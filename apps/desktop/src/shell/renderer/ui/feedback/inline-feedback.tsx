@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import type { StatusKind } from '@renderer/app-shell/providers/app-store';
 

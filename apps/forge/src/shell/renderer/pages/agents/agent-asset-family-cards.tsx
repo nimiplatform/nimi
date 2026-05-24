@@ -1,4 +1,4 @@
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { ForgeEntityAvatar } from '@renderer/components/card-list.js';
 import { formatDate } from '@renderer/components/format-utils.js';
 import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';

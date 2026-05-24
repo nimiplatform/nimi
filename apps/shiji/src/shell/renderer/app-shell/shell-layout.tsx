@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ShellErrorBoundary } from '@nimiplatform/nimi-kit/telemetry/error-boundary';
+import { ShellErrorBoundary } from '@nimiplatform/kit/telemetry/error-boundary';
 
 // Nav icon components (simple SVG, education-appropriate)
 function ExploreIcon() {

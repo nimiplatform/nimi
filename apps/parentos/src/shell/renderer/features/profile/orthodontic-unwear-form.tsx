@@ -1,4 +1,4 @@
-import { Button, IconButton, Surface, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, Surface, TextareaField, TextField } from '@nimiplatform/kit/ui';
 import { useMemo, useState } from 'react';
 import {
   insertUnwearInterval,

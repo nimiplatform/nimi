@@ -120,7 +120,7 @@ export type ChapterChunkRecord = {
 
 // ── Character Card V2 Types ───────────────────────────────────
 // Single-sourced from the shared kit Character Card surface; Forge does not
-// fork the card type. See `@nimiplatform/nimi-kit/core/character-card`.
+// fork the card type. See `@nimiplatform/kit/core/character-card`.
 
 import type {
   CharacterBook,
@@ -128,7 +128,7 @@ import type {
   TavernCardV2,
   TavernCardV2Data,
   ValidationResult,
-} from '@nimiplatform/nimi-kit/core/character-card';
+} from '@nimiplatform/kit/core/character-card';
 
 export type {
   CharacterBook,

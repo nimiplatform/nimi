@@ -5,7 +5,7 @@ import type {
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
 } from '@renderer/bridge/runtime-bridge/types';
-import type { ConversationTurnEvent } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationTurnEvent } from '@nimiplatform/kit/features/chat/headless';
 import {
   createEmptyAgentThreadBundle,
   overlayAgentAssistantVisibleState,

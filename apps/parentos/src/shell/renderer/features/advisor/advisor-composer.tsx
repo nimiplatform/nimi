@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, IconButton, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, Surface, TextareaField } from '@nimiplatform/kit/ui';
 
 const MIN_HEIGHT = 48;
 const MAX_HEIGHT = 128;

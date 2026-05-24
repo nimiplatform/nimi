@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, IconButton, StatusBadge, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, StatusBadge, TextareaField } from '@nimiplatform/kit/ui';
 import { AlertCircle, ArrowRight, Heart, Pencil, Quote } from 'lucide-react';
 import { NoteAnchor } from './report-user-notes.js';
 import { exportReportAsImage, exportReportAsPdf, printReport } from './report-export.js';

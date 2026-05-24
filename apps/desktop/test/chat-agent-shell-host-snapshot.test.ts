@@ -5,7 +5,7 @@ import type {
   ConversationCanonicalMessage,
   ConversationCharacterData,
   ConversationTargetSummary,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import { resolveAgentConversationHostSnapshot } from '../src/shell/renderer/features/chat/chat-agent-shell-host-snapshot.js';
 
 function targetSummaries(): ConversationTargetSummary[] {

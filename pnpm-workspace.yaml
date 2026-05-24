@@ -3,7 +3,7 @@ packages:
   - 'kit'
   - 'docs'
   - 'examples'
-  - 'dev-tools'
+  - 'app-tools'
   - 'nimi-cognition'
   - 'nimi-mods/*'
   - 'sdk'

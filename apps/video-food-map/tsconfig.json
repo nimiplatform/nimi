@@ -7,11 +7,11 @@
       "react-dom": ["./node_modules/@types/react-dom/index.d.ts"],
       "react-dom/client": ["./node_modules/@types/react-dom/client.d.ts"],
       "react-dom/server": ["./node_modules/@types/react-dom/server.d.ts"],
-      "@nimiplatform/nimi-kit/ui": ["../../kit/ui/src/index.ts"],
-      "@nimiplatform/nimi-kit/ui/*": ["../../kit/ui/src/*"],
-      "@nimiplatform/nimi-kit/telemetry": ["../../kit/telemetry/src/telemetry/index.ts"],
-      "@nimiplatform/nimi-kit/telemetry/error-boundary": ["../../kit/telemetry/src/error-boundary/index.ts"],
-      "@nimiplatform/nimi-kit/shell/renderer/bridge": ["../../kit/shell/renderer/src/bridge/index.ts"]
+      "@nimiplatform/kit/ui": ["../../kit/ui/src/index.ts"],
+      "@nimiplatform/kit/ui/*": ["../../kit/ui/src/*"],
+      "@nimiplatform/kit/telemetry": ["../../kit/telemetry/src/telemetry/index.ts"],
+      "@nimiplatform/kit/telemetry/error-boundary": ["../../kit/telemetry/src/error-boundary/index.ts"],
+      "@nimiplatform/kit/shell/renderer/bridge": ["../../kit/shell/renderer/src/bridge/index.ts"]
     },
     "target": "ES2022",
     "module": "ESNext",

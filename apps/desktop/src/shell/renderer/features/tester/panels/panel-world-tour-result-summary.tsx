@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import type {
   WorldFixturePackage,
   WorldInspectRenderPlan,

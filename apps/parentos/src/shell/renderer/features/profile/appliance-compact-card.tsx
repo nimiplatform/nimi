@@ -1,4 +1,4 @@
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import type { CSSProperties } from 'react';
 /**
  * Full-width compact card for the appliance that would otherwise be left

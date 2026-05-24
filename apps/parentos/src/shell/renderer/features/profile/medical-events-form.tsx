@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type RefObject } from 'react';
-import { DashedAddButton } from '@nimiplatform/nimi-kit/ui';
+import { DashedAddButton } from '@nimiplatform/kit/ui';
 import { DrugComboBox, type DrugSelection } from './drug-combobox.js';
 import { getMedicalEvents } from '../../bridge/sqlite-bridge.js';
 import type { MedicalEventRow } from '../../bridge/sqlite-bridge.js';
@@ -22,7 +22,7 @@ import type {
   MedicalEventsFormMedication,
 } from './medical-events-page-types.js';
 import { useMedicalEventsFormState } from './medical-events-page-form-state.js';
-import { Button, DatePicker, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DatePicker, TextField, TextareaField } from '@nimiplatform/kit/ui';
 import {
   ChipGroup,
   type ChipOption,

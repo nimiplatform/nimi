@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ScrollArea, cn } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, cn } from '@nimiplatform/kit/ui';
 
 export type ConversationTranscriptShellProps = {
   header?: ReactNode;

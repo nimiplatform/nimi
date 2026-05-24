@@ -4,7 +4,7 @@ import {
   parseOptionalString,
   parseRequiredString,
 } from './shared.js';
-import type { AvatarPresentationProfile } from '@nimiplatform/nimi-kit/features/avatar/headless';
+import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 import type {
   AgentLocalBeatModality,
   AgentLocalBeatStatus,

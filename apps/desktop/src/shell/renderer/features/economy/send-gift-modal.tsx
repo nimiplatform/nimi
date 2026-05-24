@@ -1,8 +1,8 @@
-import { SendGiftDialog } from '@nimiplatform/nimi-kit/features/commerce/ui';
+import { SendGiftDialog } from '@nimiplatform/kit/features/commerce/ui';
 import {
   useRealmSendGiftDialog,
-} from '@nimiplatform/nimi-kit/features/commerce/realm';
-import '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/features/commerce/realm';
+import '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';

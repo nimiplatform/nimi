@@ -13,9 +13,9 @@ import {
   useRouteModelPickerData,
   type RouteModelPickerDataProvider,
   type RouteModelPickerSelection,
-} from '@nimiplatform/nimi-kit/features/model-picker/headless';
-import { RouteModelPickerPanel } from '@nimiplatform/nimi-kit/features/model-picker/ui';
-import { Button, SettingsCard, SettingsSectionTitle, Surface } from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/features/model-picker/headless';
+import { RouteModelPickerPanel } from '@nimiplatform/kit/features/model-picker/ui';
+import { Button, SettingsCard, SettingsSectionTitle, Surface } from '@nimiplatform/kit/ui';
 import {
   useAiConfigStore,
   resolveStoredBinding,

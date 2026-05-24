@@ -13,7 +13,7 @@
 
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 import {
   SUPPORT_DEGRADED_REACHABLE_SECTIONS,
   SUPPORT_SECTION_LABEL_KEY,

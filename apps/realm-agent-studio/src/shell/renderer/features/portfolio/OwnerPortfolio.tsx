@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, EmptyState, FieldShell, InlineAlert, SearchField, SegmentedControl, SelectField, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, EmptyState, FieldShell, InlineAlert, SearchField, SegmentedControl, SelectField, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import { studioWorkspaceItems, type StudioWorkspace } from '../../app-shell/shell-layout.js';
 import {
   applyOwnerPortfolioView,

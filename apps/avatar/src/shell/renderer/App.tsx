@@ -5,7 +5,7 @@
 // hard-cut; companion-surface is always-visible while ready.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { IconButton, Surface, Toggle, cn } from '@nimiplatform/nimi-kit/ui';
+import { IconButton, Surface, Toggle, cn } from '@nimiplatform/kit/ui';
 import { useTranslation } from './i18n/index.js';
 import { bootstrapAvatar, type BootstrapHandle } from './app-shell/app-bootstrap.js';
 import { useAvatarStore } from './app-shell/app-store.js';

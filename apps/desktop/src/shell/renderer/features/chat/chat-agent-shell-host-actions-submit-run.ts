@@ -1,6 +1,6 @@
 import {
   matchConversationTurnEvent,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import type {
   AgentLocalThreadBundle,
 } from '@renderer/bridge/runtime-bridge/types';

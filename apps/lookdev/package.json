@@ -35,7 +35,7 @@
     "jsdom": "^28.1.0"
   },
   "dependencies": {
-    "@nimiplatform/nimi-kit": "workspace:*",
+    "@nimiplatform/kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
     "@tanstack/react-query": "^5.100.11",
     "@tauri-apps/api": "^2.11.0",

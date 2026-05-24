@@ -6,10 +6,10 @@ import type {
   ConversationCanonicalMessage,
   ConversationMessageViewModel,
   ConversationSetupState,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import type { AgentLocalTargetSnapshot, AgentLocalThreadBundle, AgentLocalThreadSummary } from '@renderer/bridge/runtime-bridge/types';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
+import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
 import type { AISchedulingJudgement } from '@nimiplatform/sdk/mod';
 import type { AgentConversationSelection } from './chat-shell-types';
 import type { AgentHostFlowFooterState } from './chat-agent-shell-host-flow';

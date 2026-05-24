@@ -1,4 +1,4 @@
-import { Button, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 /**
  * Case-level consolidated review card (PO-ORTHO-015). When a case runs
  * multiple appliances in parallel they often share one physical clinic visit;

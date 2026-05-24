@@ -5,7 +5,7 @@ import {
   StatusBadge,
   Surface,
   cn,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import type { UseModelPickerResult } from '../hooks/use-model-picker.js';
 import { modelPickerBadgeTone } from './badge-tone.js';
 

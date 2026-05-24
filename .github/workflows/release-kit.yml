@@ -1,9 +1,9 @@
-name: release-nimi-kit
+name: release-kit
 
 on:
   push:
     tags:
-      - nimi-kit/v*
+      - kit/v*
   workflow_dispatch:
     inputs:
       version:
@@ -11,7 +11,7 @@ on:
         required: true
         type: string
       publish:
-        description: Publish @nimiplatform/nimi-kit to npm. false runs the dry-run release gate only.
+        description: Publish @nimiplatform/kit to npm. false runs the dry-run release gate only.
         required: true
         type: boolean
         default: false
@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-nimi-kit-${{ github.ref_name || github.run_id }}
+  group: release-kit-${{ github.ref_name || github.run_id }}
   cancel-in-progress: false
 
 jobs:
@@ -31,7 +31,7 @@ jobs:
       version_plain: ${{ steps.resolve.outputs.version_plain }}
       publish: ${{ steps.resolve.outputs.publish }}
     steps:
-      - name: Resolve nimi-kit release version
+      - name: Resolve kit release version
         id: resolve
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -45,12 +45,12 @@ jobs:
 
           if [[ "${EVENT_NAME}" == "push" ]]; then
             case "${REF_NAME}" in
-              nimi-kit/v*)
-                version="${REF_NAME#nimi-kit/}"
+              kit/v*)
+                version="${REF_NAME#kit/}"
                 publish="true"
                 ;;
               *)
-                echo "unsupported nimi-kit tag format: ${REF_NAME}" >&2
+                echo "unsupported kit tag format: ${REF_NAME}" >&2
                 exit 1
                 ;;
             esac
@@ -104,7 +104,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Verify nimi-kit package version and metadata
+      - name: Verify kit package version and metadata
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
@@ -114,80 +114,83 @@ jobs:
           const sdkPkg = JSON.parse(readFileSync('sdk/package.json', 'utf8'));
           const expectedVersion = process.env.RELEASE_VERSION;
           const expectedSdkDependency = `^${sdkPkg.version}`;
-          if (pkg.name !== '@nimiplatform/nimi-kit') {
+          if (pkg.name !== '@nimiplatform/kit') {
             throw new Error(`unexpected kit package name: ${pkg.name}`);
           }
           if (pkg.version !== expectedVersion) {
             throw new Error(`kit/package.json version ${pkg.version} does not match release ${expectedVersion}`);
           }
           if (pkg.private !== false) {
-            throw new Error('@nimiplatform/nimi-kit must remain public');
+            throw new Error('@nimiplatform/kit must remain public');
           }
           if (pkg.publishConfig?.access !== 'public') {
-            throw new Error('@nimiplatform/nimi-kit publishConfig.access must be public');
+            throw new Error('@nimiplatform/kit publishConfig.access must be public');
           }
           if (pkg.publishConfig?.provenance !== true) {
-            throw new Error('@nimiplatform/nimi-kit publishConfig.provenance must be true');
+            throw new Error('@nimiplatform/kit publishConfig.provenance must be true');
           }
           if (pkg.repository?.url !== 'https://github.com/nimiplatform/nimi') {
-            throw new Error('@nimiplatform/nimi-kit repository.url must match provenance repository');
+            throw new Error('@nimiplatform/kit repository.url must match provenance repository');
           }
           if (pkg.repository?.directory !== 'kit') {
-            throw new Error('@nimiplatform/nimi-kit repository.directory must be kit');
+            throw new Error('@nimiplatform/kit repository.directory must be kit');
           }
           if (!Array.isArray(pkg.files) || !pkg.files.includes('README.md')) {
-            throw new Error('@nimiplatform/nimi-kit package files must include README.md');
+            throw new Error('@nimiplatform/kit package files must include README.md');
           }
           const sdkDependency = pkg.dependencies?.['@nimiplatform/sdk'];
           if (typeof sdkDependency !== 'string') {
-            throw new Error('@nimiplatform/nimi-kit must declare @nimiplatform/sdk in dependencies');
+            throw new Error('@nimiplatform/kit must declare @nimiplatform/sdk in dependencies');
           }
-          if (sdkDependency.startsWith('workspace:')) {
-            throw new Error('@nimiplatform/nimi-kit must not publish with a workspace: @nimiplatform/sdk dependency');
+          if (sdkDependency === 'workspace:*') {
+            throw new Error('@nimiplatform/kit must not use a wildcard workspace @nimiplatform/sdk dependency');
           }
-          if (!/^\^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$/.test(sdkDependency)) {
-            throw new Error(`@nimiplatform/nimi-kit SDK dependency ${sdkDependency} is not a public caret semver range`);
+          const normalizedSdkDependency = sdkDependency.startsWith('workspace:')
+            ? sdkDependency.slice('workspace:'.length)
+            : sdkDependency;
+          if (!/^\^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$/.test(normalizedSdkDependency)) {
+            throw new Error(`@nimiplatform/kit SDK dependency ${sdkDependency} is not a publishable caret semver range`);
           }
-          if (sdkDependency !== expectedSdkDependency) {
-            throw new Error(`@nimiplatform/nimi-kit SDK dependency ${sdkDependency} does not match published SDK ${expectedSdkDependency}`);
+          if (normalizedSdkDependency !== expectedSdkDependency) {
+            throw new Error(`@nimiplatform/kit SDK dependency ${sdkDependency} does not match published SDK ${expectedSdkDependency}`);
           }
           NODE
 
       - name: Build SDK for local workspace resolution
         run: pnpm --filter @nimiplatform/sdk build
 
-      - name: Build nimi-kit
-        run: pnpm --filter @nimiplatform/nimi-kit build
+      - name: Build kit
+        run: pnpm --filter @nimiplatform/kit build
 
-      - name: Test nimi-kit
-        run: pnpm --filter @nimiplatform/nimi-kit test
+      - name: Test kit
+        run: pnpm --filter @nimiplatform/kit test
 
-      - name: Check duplicate nimi-kit npm version
+      - name: Check duplicate kit npm version
         run: |
           set -euo pipefail
-          if npm view "@nimiplatform/nimi-kit@${RELEASE_VERSION}" version >/dev/null 2>&1; then
+          if npm view "@nimiplatform/kit@${RELEASE_VERSION}" version >/dev/null 2>&1; then
             if [[ "${PUBLISH}" == "true" ]]; then
-              echo "@nimiplatform/nimi-kit@${RELEASE_VERSION} already exists on npm" >&2
+              echo "@nimiplatform/kit@${RELEASE_VERSION} already exists on npm" >&2
               exit 1
             fi
-            echo "@nimiplatform/nimi-kit@${RELEASE_VERSION} already exists on npm; dry-run mode will not publish"
+            echo "@nimiplatform/kit@${RELEASE_VERSION} already exists on npm; dry-run mode will not publish"
           else
-            echo "@nimiplatform/nimi-kit@${RELEASE_VERSION} is not published on npm"
+            echo "@nimiplatform/kit@${RELEASE_VERSION} is not published on npm"
           fi
 
-      - name: Nimi-kit npm publish dry-run
-        run: pnpm --filter @nimiplatform/nimi-kit publish --access public --no-git-checks --dry-run
+      - name: Kit npm publish dry-run
+        run: pnpm --filter @nimiplatform/kit publish --access public --no-git-checks --dry-run
 
-      - name: Publish nimi-kit to npm
+      - name: Publish kit to npm
         if: env.PUBLISH == 'true'
         run: |
           set -euo pipefail
           if [[ -z "${NPM_TOKEN:-}" ]]; then
-            echo "NPM_TOKEN is required for @nimiplatform/nimi-kit publish" >&2
+            echo "NPM_TOKEN is required for @nimiplatform/kit publish" >&2
             exit 1
           fi
           npm_config="${NPM_CONFIG_USERCONFIG:-${HOME}/.npmrc}"
           mkdir -p "$(dirname "${npm_config}")"
           printf '//registry.npmjs.org/:_authToken=%s\n' "${NPM_TOKEN}" > "${npm_config}"
           export NODE_AUTH_TOKEN="${NPM_TOKEN}"
-          pnpm --filter @nimiplatform/nimi-kit publish --access public --no-git-checks --provenance
+          pnpm --filter @nimiplatform/kit publish --access public --no-git-checks --provenance

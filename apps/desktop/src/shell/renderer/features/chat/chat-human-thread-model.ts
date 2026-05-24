@@ -1,5 +1,5 @@
-import type { ConversationThreadSummary } from '@nimiplatform/nimi-kit/features/chat/headless';
-import { resolveRealmMessageText } from '@nimiplatform/nimi-kit/features/chat/realm';
+import type { ConversationThreadSummary } from '@nimiplatform/kit/features/chat/headless';
+import { resolveRealmMessageText } from '@nimiplatform/kit/features/chat/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { i18n, formatLocaleDate, formatRelativeLocaleTime } from '@renderer/i18n';
 import { resolveCanonicalChatAttachmentPreviewText } from '@renderer/features/turns/chat-attachment-contract.js';

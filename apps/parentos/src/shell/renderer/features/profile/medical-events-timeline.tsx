@@ -6,7 +6,7 @@ import {
   TimelineGroup,
   cn,
   type StatusTone,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import { formatAge } from '../../app-shell/app-store.js';
 import type { MedicalEventRow } from '../../bridge/sqlite-bridge.js';
 import {

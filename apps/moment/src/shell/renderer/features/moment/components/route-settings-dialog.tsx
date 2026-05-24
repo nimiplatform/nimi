@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   SelectField,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import { useRuntimeReadiness } from '@renderer/hooks/use-runtime-readiness.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 

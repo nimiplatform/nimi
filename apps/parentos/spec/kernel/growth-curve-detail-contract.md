@@ -328,7 +328,7 @@ would expose internal storage shapes.
 
 ## PO-GROWTH-DETAIL-008 Visual Token Boundary
 
-The detail surface consumes only `@nimiplatform/nimi-kit/ui` primitives
+The detail surface consumes only `@nimiplatform/kit/ui` primitives
 and existing CSS custom properties — `--nimi-text-*`, `--nimi-surface-*`,
 `--nimi-status-*`, `--nimi-accent-*`, `--nimi-action-*`, `--nimi-border-*`,
 `--nimi-material-*`, `--nimi-elevation-*`. The mockup's `--mint`,

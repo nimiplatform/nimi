@@ -1,6 +1,6 @@
 import { type RefObject } from 'react';
 import { i18n } from '@renderer/i18n';
-import { ScrollArea, Tooltip } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
 import {
   AlertIcon,
   CheckIcon,

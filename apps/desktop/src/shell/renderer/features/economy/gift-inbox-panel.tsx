@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import {
   type CommerceGiftStatus,
-} from '@nimiplatform/nimi-kit/features/commerce/headless';
+} from '@nimiplatform/kit/features/commerce/headless';
 import {
   GiftInboxDetail,
   GiftInboxList,
-} from '@nimiplatform/nimi-kit/features/commerce/ui';
-import { useRealmGiftInbox } from '@nimiplatform/nimi-kit/features/commerce/realm';
+} from '@nimiplatform/kit/features/commerce/ui';
+import { useRealmGiftInbox } from '@nimiplatform/kit/features/commerce/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 import { formatLocaleDate } from '@renderer/i18n';
 import { invalidateNotificationQueries } from '@renderer/features/notification/notification-query.js';
 import { persistStoredSettingsSelected } from '@renderer/features/settings/settings-storage';

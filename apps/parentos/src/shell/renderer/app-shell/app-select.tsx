@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { SelectField, type SelectFieldOption } from '@nimiplatform/nimi-kit/ui';
+import { SelectField, type SelectFieldOption } from '@nimiplatform/kit/ui';
 
 export type AppSelectOption = SelectFieldOption;
 

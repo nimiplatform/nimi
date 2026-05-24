@@ -1,6 +1,6 @@
 # Platform Kit
 
-> Status: Running today. `@nimiplatform/nimi-kit` is the shipped
+> Status: Running today. `@nimiplatform/kit` is the shipped
 > single-package authority for cross-app shared platform
 > infrastructure (`P-KIT-001..P-KIT-099`).
 
@@ -16,7 +16,7 @@ imports. Apps do not duplicate what Kit covers.
 
 | Rule | Value |
 | --- | --- |
-| Authority package | `@nimiplatform/nimi-kit` (single) |
+| Authority package | `@nimiplatform/kit` (single) |
 | Subpath exports | `/ui`, `/auth`, `/core/*`, `/telemetry/*`, `/features/*` |
 | Source location | `kit/` at repo root, peer to `apps/`, `sdk/`, `runtime/` |
 | Sub-module workspace manifests | NOT permitted (single workspace package) |
@@ -32,9 +32,9 @@ sub-modules register before any consumer can import.
 
 | Kind | Purpose | Example |
 | --- | --- | --- |
-| `foundation` | Tokens + primitives + themes (Kit's bedrock) | `ui` (`@nimiplatform/nimi-kit/ui`) |
-| `feature` | Bounded feature surface (components + hooks + adapters within one public surface) | `auth` (`@nimiplatform/nimi-kit/auth`) |
-| `logic` | Pure-logic utility (no UI / no CSS) | `core` (`@nimiplatform/nimi-kit/core/*`) |
+| `foundation` | Tokens + primitives + themes (Kit's bedrock) | `ui` (`@nimiplatform/kit/ui`) |
+| `feature` | Bounded feature surface (components + hooks + adapters within one public surface) | `auth` (`@nimiplatform/kit/auth`) |
+| `logic` | Pure-logic utility (no UI / no CSS) | `core` (`@nimiplatform/kit/core/*`) |
 | `infra` | Infrastructure: telemetry, error boundaries, host glue | `telemetry`, `shell/tauri` |
 
 ## Layer Boundaries
@@ -77,13 +77,13 @@ A consumer app wants its UI to match the shared Nimi interaction
 language.
 
 1. **Consume Kit primitives.** The mod imports
-   `@nimiplatform/nimi-kit/ui` for shared `<Button>`, `<Surface>`,
+   `@nimiplatform/kit/ui` for shared `<Button>`, `<Surface>`,
    `<Dialog>`, etc.
 2. **Use semantic tokens.** Components consume `--nimi-*` CSS custom
    properties; do not redefine them.
 3. **Theme follows shared scheme.** Mod imports the shared light /
    dark CSS plus exactly one app accent pack from
-   `@nimiplatform/nimi-kit/ui/themes/*-accent.css`.
+   `@nimiplatform/kit/ui/themes/*-accent.css`.
 4. **Visual consistency.** The consumer UI inherits the admitted
    primitives and tokens automatically.
 
@@ -94,7 +94,7 @@ primitives.
 
 An app needs OAuth flow handling.
 
-1. **Check Kit first.** `@nimiplatform/nimi-kit/auth` provides auth
+1. **Check Kit first.** `@nimiplatform/kit/auth` provides auth
    components + hooks, parameterized through `AuthPlatformAdapter`.
 2. **Inject the adapter.** App provides the platform-specific
    adapter (native shell / browser).

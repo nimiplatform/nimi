@@ -6,7 +6,7 @@ import {
   TimelineDivider,
   TimelineGroup,
   cn,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import { useMemo, useState } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type {

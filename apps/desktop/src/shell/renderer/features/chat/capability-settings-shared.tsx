@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getPlatformClient } from '@nimiplatform/sdk';
-import type { LocalAssetEntry } from '@nimiplatform/nimi-kit/features/model-config';
+import type { LocalAssetEntry } from '@nimiplatform/kit/features/model-config';
 
 export function useLocalAssets() {
   return useQuery({

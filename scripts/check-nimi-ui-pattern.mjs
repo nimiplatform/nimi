@@ -191,19 +191,19 @@ for (const row of adoptionRows) {
 for (const entry of appEntries) {
   const styleContent = read(entry.styleRel);
   const accentPack = accentPackByApp.get(entry.app);
-  if (!styleContent.includes('@nimiplatform/nimi-kit/ui/styles.css')) {
-    hardFailures.push(`${entry.styleRel}: must import @nimiplatform/nimi-kit/ui/styles.css`);
+  if (!styleContent.includes('@nimiplatform/kit/ui/styles.css')) {
+    hardFailures.push(`${entry.styleRel}: must import @nimiplatform/kit/ui/styles.css`);
   }
   for (const requiredImport of [
-    '@nimiplatform/nimi-kit/ui/themes/light.css',
-    '@nimiplatform/nimi-kit/ui/themes/dark.css',
-    accentPack ? `@nimiplatform/nimi-kit/ui/themes/${accentPack}.css` : '',
+    '@nimiplatform/kit/ui/themes/light.css',
+    '@nimiplatform/kit/ui/themes/dark.css',
+    accentPack ? `@nimiplatform/kit/ui/themes/${accentPack}.css` : '',
   ].filter(Boolean)) {
     if (!styleContent.includes(requiredImport)) {
       hardFailures.push(`${entry.styleRel}: must import ${requiredImport}`);
     }
   }
-  if (styleContent.includes('@nimiplatform/nimi-kit/ui/themes/relay-dark.css') || styleContent.includes('@nimiplatform/nimi-kit/ui/themes/overtone-studio.css')) {
+  if (styleContent.includes('@nimiplatform/kit/ui/themes/relay-dark.css') || styleContent.includes('@nimiplatform/kit/ui/themes/overtone-studio.css')) {
     hardFailures.push(`${entry.styleRel}: must not import legacy app-specific theme packs`);
   }
   if (/@theme\s*\{/u.test(styleContent)) {
@@ -223,8 +223,8 @@ for (const entry of appEntries) {
   }
   const themeProviderRel = entry.themeProviderRel || entry.mainRel;
   const themeProviderContent = read(themeProviderRel);
-  if (!themeProviderContent.includes('@nimiplatform/nimi-kit/ui') || !themeProviderContent.includes('NimiThemeProvider')) {
-    hardFailures.push(`${themeProviderRel}: must use NimiThemeProvider from @nimiplatform/nimi-kit/ui`);
+  if (!themeProviderContent.includes('@nimiplatform/kit/ui') || !themeProviderContent.includes('NimiThemeProvider')) {
+    hardFailures.push(`${themeProviderRel}: must use NimiThemeProvider from @nimiplatform/kit/ui`);
   }
 }
 
@@ -315,8 +315,8 @@ for (const row of adoptionRows) {
     continue;
   }
   const content = read(rel);
-  if (!content.includes('@nimiplatform/nimi-kit/ui')) {
-    hardFailures.push(`${rel}: governed module must import @nimiplatform/nimi-kit/ui`);
+  if (!content.includes('@nimiplatform/kit/ui')) {
+    hardFailures.push(`${rel}: governed module must import @nimiplatform/kit/ui`);
   }
   if (Boolean(row?.testid_required) && !content.includes('data-testid') && !content.includes('E2E_IDS.')) {
     hardFailures.push(`${rel}: governed module requires stable testid coverage`);
@@ -364,7 +364,7 @@ for (const { doc } of appCompositionTables) {
 for (const [relModule, rows] of compositionsByModule) {
   const content = read(relModule);
   const importedSharedTargets = new Set(
-    [...content.matchAll(/import\s*\{([^}]+)\}\s*from\s*'@nimiplatform\/nimi-kit\/ui'/gu)]
+    [...content.matchAll(/import\s*\{([^}]+)\}\s*from\s*'@nimiplatform\/kit\/ui'/gu)]
       .flatMap((match) => String(match[1] || '').split(','))
       .map((part) => part.trim())
       .filter(Boolean),

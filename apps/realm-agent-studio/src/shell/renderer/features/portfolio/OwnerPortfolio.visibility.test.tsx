@@ -1,7 +1,7 @@
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { NimiThemeProvider } from '@nimiplatform/nimi-kit/ui';
+import { NimiThemeProvider } from '@nimiplatform/kit/ui';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { OwnerPortfolioAgent, OwnerPortfolioAgentDetail, SettingField } from './portfolio-data.js';
 
@@ -352,8 +352,8 @@ vi.mock('./portfolio-client.js', async (importOriginal) => {
   };
 });
 
-vi.mock('@nimiplatform/nimi-kit/ui', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@nimiplatform/nimi-kit/ui')>();
+vi.mock('@nimiplatform/kit/ui', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@nimiplatform/kit/ui')>();
   return {
     ...actual,
     SelectField: ({

@@ -6,7 +6,7 @@ import {
   TextField,
   SelectField as KitSelectField,
   cn,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import { DesktopCardSurface } from '@renderer/components/surface';
 import {
   statusTextV11,

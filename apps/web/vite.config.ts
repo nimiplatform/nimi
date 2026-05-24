@@ -185,47 +185,47 @@ export default defineConfig(({ mode }) => {
           replacement: path.resolve(__dirname, '../../sdk/src'),
         },
         {
-          find: '@nimiplatform/nimi-kit/core',
+          find: '@nimiplatform/kit/core',
           replacement: path.resolve(__dirname, '../../kit/core/src'),
         },
         {
-          find: '@nimiplatform/nimi-kit/ui',
+          find: '@nimiplatform/kit/ui',
           replacement: path.resolve(__dirname, '../../kit/ui/src'),
         },
         {
-          find: '@nimiplatform/nimi-kit/auth',
+          find: '@nimiplatform/kit/auth',
           replacement: path.resolve(__dirname, '../../kit/auth/src'),
         },
         {
-          find: '@nimiplatform/nimi-kit/telemetry',
+          find: '@nimiplatform/kit/telemetry',
           replacement: path.resolve(__dirname, '../../kit/telemetry/src'),
         },
         {
-          find: '@nimiplatform/nimi-kit/shell/renderer/bridge',
+          find: '@nimiplatform/kit/shell/renderer/bridge',
           replacement: path.resolve(__dirname, '../../kit/shell/renderer/src/bridge'),
         },
         {
-          find: '@nimiplatform/nimi-kit/features/avatar',
+          find: '@nimiplatform/kit/features/avatar',
           replacement: path.resolve(__dirname, '../../kit/features/avatar/src'),
         },
         {
-          find: '@nimiplatform/nimi-kit/features/chat',
+          find: '@nimiplatform/kit/features/chat',
           replacement: path.resolve(__dirname, '../../kit/features/chat/src'),
         },
         {
-          find: '@nimiplatform/nimi-kit/features/commerce',
+          find: '@nimiplatform/kit/features/commerce',
           replacement: path.resolve(__dirname, '../../kit/features/commerce/src'),
         },
         {
-          find: '@nimiplatform/nimi-kit/features/generation',
+          find: '@nimiplatform/kit/features/generation',
           replacement: path.resolve(__dirname, '../../kit/features/generation/src'),
         },
         {
-          find: '@nimiplatform/nimi-kit/features/model-config',
+          find: '@nimiplatform/kit/features/model-config',
           replacement: path.resolve(__dirname, '../../kit/features/model-config/src'),
         },
         {
-          find: '@nimiplatform/nimi-kit/features/model-picker',
+          find: '@nimiplatform/kit/features/model-picker',
           replacement: path.resolve(__dirname, '../../kit/features/model-picker/src'),
         },
       ],
@@ -517,7 +517,7 @@ export default defineConfig(({ mode }) => {
             }
             if (
               normalizedId.includes('/@nimiplatform/sdk')
-              || normalizedId.includes('/@nimiplatform/nimi-kit/auth/')
+              || normalizedId.includes('/@nimiplatform/kit/auth/')
               || isNodePackage(normalizedId, 'openapi-fetch')
             ) {
               return 'vendor-platform';

@@ -1,4 +1,4 @@
-import { invoke, hasTauriInvoke } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+import { invoke, hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   parseCreatorSyncResult,
   parseImportRecordResult,

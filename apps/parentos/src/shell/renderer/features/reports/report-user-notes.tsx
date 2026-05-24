@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Button, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, TextareaField } from '@nimiplatform/kit/ui';
 import { Pencil, Plus } from 'lucide-react';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import type { NarrativeReportContent, UserNote } from './structured-report.js';

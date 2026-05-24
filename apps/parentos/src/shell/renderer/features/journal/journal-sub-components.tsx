@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, DashedAddButton, DialogTitle, OverlayShell, StatusBadge, Surface, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, DashedAddButton, DialogTitle, OverlayShell, StatusBadge, Surface, cn } from '@nimiplatform/kit/ui';
 import type { JournalTagInsertRow } from '../../bridge/sqlite-bridge.js';
 import { ulid } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';

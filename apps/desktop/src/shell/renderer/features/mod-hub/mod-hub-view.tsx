@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { ModHubRow } from './mod-hub-row';
 import type { ModHubPageModel } from './mod-hub-controller';

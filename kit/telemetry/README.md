@@ -4,8 +4,8 @@
 Renderer-safe infrastructure module for shared emitters and error boundaries.
 
 ## Public Surfaces
-- `@nimiplatform/nimi-kit/telemetry`
-- `@nimiplatform/nimi-kit/telemetry/error-boundary`
+- `@nimiplatform/kit/telemetry`
+- `@nimiplatform/kit/telemetry/error-boundary`
 - Current surfaces:
   - `headless`: active
   - `ui`: active
@@ -26,5 +26,5 @@ Renderer-safe infrastructure module for shared emitters and error boundaries.
 - `relay`
 
 ## Verification
-- `pnpm --filter @nimiplatform/nimi-kit build`
+- `pnpm --filter @nimiplatform/kit build`
 - `pnpm check:nimi-kit`

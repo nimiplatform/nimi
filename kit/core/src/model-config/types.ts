@@ -17,10 +17,10 @@ import type {
   AIProfileRef,
   AIScopeRef,
   SpeechVoiceReference,
-} from '@nimiplatform/nimi-kit/core/sdk-contract';
+} from '@nimiplatform/kit/core/sdk-contract';
 import type {
   CanonicalCapabilityDescriptor,
-} from '@nimiplatform/nimi-kit/core/runtime-capabilities';
+} from '@nimiplatform/kit/core/runtime-capabilities';
 
 // ---------------------------------------------------------------------------
 // SharedAIConfigService — host-owned AIConfig persistence seam.

@@ -1,10 +1,10 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, TextareaField } from '@nimiplatform/kit/ui';
 import {
   AUDIO_SYNTHESIZE_RESPONSE_FORMAT_OPTIONS,
   type AudioSynthesizeParamsState,
-} from '@nimiplatform/nimi-kit/features/model-config';
+} from '@nimiplatform/kit/features/model-config';
 import type { SpeechVoiceReference } from '@nimiplatform/sdk/runtime';
 import { VoiceAssetStatus, VoiceWorkflowType } from '@nimiplatform/sdk/runtime';
 import type { CapabilityState, VoiceAssetSelection, VoiceOption } from '../tester-types.js';

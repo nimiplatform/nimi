@@ -9,7 +9,7 @@ import type {
   RealmListMessagesResultDto,
   RealmMessageViewDto,
   RealmChatRealtimeSocket,
-} from '@nimiplatform/nimi-kit/features/chat/realm';
+} from '@nimiplatform/kit/features/chat/realm';
 import {
   applyRealmRealtimeMessageToChatsResult,
   applyRealmRealtimeMessageUpdateToChatsResult,
@@ -18,7 +18,7 @@ import {
   mergeRealmRealtimeMessageIntoMessagesResult,
   rememberRealmChatSeenEvent,
   useRealmChatRealtimeController,
-} from '@nimiplatform/nimi-kit/features/chat/realm';
+} from '@nimiplatform/kit/features/chat/realm';
 import { dataSync } from '@runtime/data-sync';
 import { getOfflineCoordinator } from '@runtime/offline';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';

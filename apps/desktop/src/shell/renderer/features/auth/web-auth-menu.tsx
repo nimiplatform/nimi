@@ -8,10 +8,10 @@ import {
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
-import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
-import type { WebAuthMenuMode } from '@nimiplatform/nimi-kit/auth';
-import { DesktopShellAuthPage } from '@nimiplatform/nimi-kit/auth';
-import '@nimiplatform/nimi-kit/auth/styles.css';
+import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
+import type { WebAuthMenuMode } from '@nimiplatform/kit/auth';
+import { DesktopShellAuthPage } from '@nimiplatform/kit/auth';
+import '@nimiplatform/kit/auth/styles.css';
 import {
   createDesktopAuthAdapter,
   createDesktopRuntimeAccountBrowserBroker,
@@ -21,7 +21,7 @@ import { toAuthUserRecord } from './auth-session-utils.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
-export type { WebAuthMenuMode } from '@nimiplatform/nimi-kit/auth';
+export type { WebAuthMenuMode } from '@nimiplatform/kit/auth';
 
 const SlotHost = lazy(async () => {
   const mod = await import('@renderer/mod-ui/host/slot-host');

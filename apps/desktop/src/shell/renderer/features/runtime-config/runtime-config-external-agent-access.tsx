@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Surface, cn } from '@nimiplatform/nimi-kit/ui';
+import { Surface, cn } from '@nimiplatform/kit/ui';
 import {
   getExternalAgentGatewayStatus,
   issueExternalAgentToken,

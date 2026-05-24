@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   type ChatComposerSubmitInput,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import { RuntimeStreamFooter } from './chat-shared-runtime-stream-ui';
 import { cancelStream } from '../turns/stream-controller';

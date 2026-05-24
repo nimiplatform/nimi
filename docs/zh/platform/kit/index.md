@@ -1,6 +1,6 @@
 # 平台工具包
 
-> 状态：运行中 (Running)。`@nimiplatform/nimi-kit` 是跨应用共享平台基础设施 (`P-KIT-001..P-KIT-099`) 的单一包权威。
+> 状态：运行中 (Running)。`@nimiplatform/kit` 是跨应用共享平台基础设施 (`P-KIT-001..P-KIT-099`) 的单一包权威。
 
 **平台工具包**是跨表面层，包含设计令牌、基本元素、基础模块、功能模块、逻辑模块和基础设施模块，这些模块被受管理的应用程序所使用。它是对“共享的视觉+交互语言在哪里？”这个问题的回答。
 
@@ -10,7 +10,7 @@
 
 | 规则 | 值 |
 | --- | --- |
-| 权威包 | `@nimiplatform/nimi-kit`（单一） |
+| 权威包 | `@nimiplatform/kit`（单一） |
 | 子路径导出 | `/ui`, `/auth`, `/core/*`, `/telemetry/*`, `/features/*` |
 | 源位置 | 仓库根目录下的 `kit/`，与 `apps/`, `sdk/`, `runtime/` 同级 |
 | 子模块工作区清单 | 不允许（单个工作区包） |
@@ -22,9 +22,9 @@
 
 | 种类 | 目的 | 示例 |
 | --- | --- | --- |
-| `foundation` | 令牌 + 基本元素 + 主题（工具包的基础） | `ui` (`@nimiplatform/nimi-kit/ui`) |
-| `feature` | 有界功能表面（组件 + 钩子 + 适配器在一个公共表面上） | `auth` (`@nimiplatform/nimi-kit/auth`) |
-| `logic` | 纯逻辑实用工具（无 UI / 无 CSS） | `core` (`@nimiplatform/nimi-kit/core/*`) |
+| `foundation` | 令牌 + 基本元素 + 主题（工具包的基础） | `ui` (`@nimiplatform/kit/ui`) |
+| `feature` | 有界功能表面（组件 + 钩子 + 适配器在一个公共表面上） | `auth` (`@nimiplatform/kit/auth`) |
+| `logic` | 纯逻辑实用工具（无 UI / 无 CSS） | `core` (`@nimiplatform/kit/core/*`) |
 | `infra` | 基础设施：遥测、错误边界、主机粘合剂 | `telemetry`, `shell/tauri` |
 
 ## 层边界
@@ -63,9 +63,9 @@
 
 一个消费方应用希望它的 UI 符合共享的 Nimi 交互语言。
 
-1. **使用工具包的基本元素。** 模块导入 `@nimiplatform/nimi-kit/ui` 以获取共享的 `<Button>`, `<Surface>`, `<Dialog>` 等。
+1. **使用工具包的基本元素。** 模块导入 `@nimiplatform/kit/ui` 以获取共享的 `<Button>`, `<Surface>`, `<Dialog>` 等。
 2. **使用语义令牌。** 组件消耗 `--nimi-*` CSS 自定义属性；不要重新定义它们。
-3. **主题遵循共享方案。** 模块从 `@nimiplatform/nimi-kit/ui/themes/*-accent.css` 导入共享的浅色/深色 CSS 以及恰好一个应用强调包。
+3. **主题遵循共享方案。** 模块从 `@nimiplatform/kit/ui/themes/*-accent.css` 导入共享的浅色/深色 CSS 以及恰好一个应用强调包。
 4. **视觉一致性。** 消费方 UI 自动继承已准入的基本元素和令牌。
 
 消费方没有重新定义按钮变体，而是组合已准入的基本元素。
@@ -74,7 +74,7 @@
 
 一个应用需要处理 OAuth 流程。
 
-1. **首先检查工具包。** `@nimiplatform/nimi-kit/auth` 提供认证组件 + 钩子，通过 `AuthPlatformAdapter` 参数化。
+1. **首先检查工具包。** `@nimiplatform/kit/auth` 提供认证组件 + 钩子，通过 `AuthPlatformAdapter` 参数化。
 2. **注入适配器。** 应用提供特定于平台的适配器（native shell / browser）。
 3. **使用工具包的表面。** 应用不从头开始实现 OAuth。
 

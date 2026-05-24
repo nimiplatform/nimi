@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { NimiText } from '@nimiplatform/nimi-kit/ui';
+import { NimiText } from '@nimiplatform/kit/ui';
 
 /**
  * Centralized empty state for profile detail pages when no child is active.

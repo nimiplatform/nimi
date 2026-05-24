@@ -41,6 +41,9 @@ modules:
       - react-dom
     exports:
       - ./ui
+      - ./ui/glass
+      - ./ui/motion
+      - ./ui/a11y
       - ./ui/styles.css
       - ./ui/themes/light.css
       - ./ui/themes/dark.css
@@ -48,12 +51,18 @@ modules:
     headless_exports: []
     ui_exports:
       - ./ui
+      - ./ui/glass
+      - ./ui/motion
+      - ./ui/a11y
       - ./ui/styles.css
       - ./ui/themes/light.css
       - ./ui/themes/dark.css
       - ./ui/themes/nimi-accent.css
     reuse_entrypoints:
       - ./ui
+      - ./ui/glass
+      - ./ui/motion
+      - ./ui/a11y
       - ./ui/styles.css
     admission_status: active
     owner: platform
@@ -99,15 +108,18 @@ modules:
       - ./core/shell-mode
       - ./core/oauth
       - ./core/character-card
+      - ./core/sdk-contract
     headless_exports:
       - ./core/shell-mode
       - ./core/oauth
       - ./core/character-card
+      - ./core/sdk-contract
     ui_exports: []
     reuse_entrypoints:
       - ./core/shell-mode
       - ./core/oauth
       - ./core/character-card
+      - ./core/sdk-contract
     admission_status: active
     owner: platform
     source_rule: P-KIT-030

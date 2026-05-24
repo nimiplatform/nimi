@@ -1,4 +1,4 @@
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { useState, useEffect } from 'react';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { getPostureAssessments, getFitnessAssessments } from '../../bridge/sqlite-bridge.js';

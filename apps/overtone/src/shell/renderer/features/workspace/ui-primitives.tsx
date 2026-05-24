@@ -1,5 +1,5 @@
 import React, { forwardRef, useState, useCallback, useRef, useEffect } from 'react';
-import { Button, IconButton, TextField, TextareaField, Toggle, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, TextField, TextareaField, Toggle, cn } from '@nimiplatform/kit/ui';
 
 const cx = cn;
 

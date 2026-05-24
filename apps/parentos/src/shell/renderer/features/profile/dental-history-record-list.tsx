@@ -1,4 +1,4 @@
-import { IconButton, StatusBadge, Surface, Timeline, TimelineGroup } from '@nimiplatform/nimi-kit/ui';
+import { IconButton, StatusBadge, Surface, Timeline, TimelineGroup } from '@nimiplatform/kit/ui';
 import { useState } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type { AttachmentRow, DentalRecordRow } from '../../bridge/sqlite-bridge.js';

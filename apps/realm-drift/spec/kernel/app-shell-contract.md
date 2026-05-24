@@ -216,7 +216,7 @@ Simplified from forge (FG-SHELL-006):
       '@renderer': './src/shell/renderer',
       '@runtime': './src/runtime',
       '@nimiplatform/sdk': '../../sdk/src',
-      '@nimiplatform/nimi-kit/core': '../../kit/core/src',
+      '@nimiplatform/kit/core': '../../kit/core/src',
     },
   },
   server: {

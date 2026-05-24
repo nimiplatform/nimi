@@ -5,8 +5,8 @@ import {
   ChatComposerResizeHandle,
   ChatComposerShell,
   ChatPanelState,
-} from '@nimiplatform/nimi-kit/features/chat/ui';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/features/chat/ui';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import nimiLogo from '@renderer/assets/logo-gray.png';

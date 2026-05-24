@@ -7,7 +7,7 @@ import {
   SearchField,
   SelectField,
   cn,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import {
   useRouteModelPickerData,
   type RouteModelPickerDataProvider,

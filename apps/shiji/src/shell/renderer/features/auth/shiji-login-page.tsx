@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { DesktopShellAuthPage } from '@nimiplatform/nimi-kit/auth';
-import '@nimiplatform/nimi-kit/auth/styles.css';
+import { DesktopShellAuthPage } from '@nimiplatform/kit/auth';
+import '@nimiplatform/kit/auth/styles.css';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
 import { shijiTauriOAuthBridge } from '@renderer/bridge';
 import {

@@ -1,4 +1,4 @@
-import { Button, StatusBadge, Surface, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, StatusBadge, Surface, cn } from '@nimiplatform/kit/ui';
 import { GiftStatusBadge } from './gift-status-badge.js';
 import type { CommerceGiftStatus, CommerceGiftSummary } from '../types.js';
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import type { DiagnosticsInfo } from './tester-types.js';
 import { toPrettyJson } from './tester-utils.js';
 

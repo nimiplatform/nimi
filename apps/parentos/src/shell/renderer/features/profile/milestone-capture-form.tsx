@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Button, DatePicker, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DatePicker, Surface, TextareaField } from '@nimiplatform/kit/ui';
 import { saveAttachment, upsertMilestoneRecord } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { MILESTONE_CATALOG } from '../../knowledge-base/index.js';

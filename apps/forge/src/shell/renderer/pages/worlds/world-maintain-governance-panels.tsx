@@ -1,4 +1,4 @@
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { ForgeEmptyState, ForgeLoadingSpinner } from '@renderer/components/page-layout.js';
 import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
 import type {

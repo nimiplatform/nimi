@@ -1,6 +1,6 @@
 import type {
   ConversationRuntimeTrace,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import {

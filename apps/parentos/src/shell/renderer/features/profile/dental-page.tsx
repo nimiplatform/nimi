@@ -1,4 +1,4 @@
-import { PillTabs } from '@nimiplatform/nimi-kit/ui';
+import { PillTabs } from '@nimiplatform/kit/ui';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';

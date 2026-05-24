@@ -1,4 +1,4 @@
-import type { AuthPlatformAdapter } from '@nimiplatform/nimi-kit/auth';
+import type { AuthPlatformAdapter } from '@nimiplatform/kit/auth';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { shijiTauriOAuthBridge } from '@renderer/bridge';
 import {

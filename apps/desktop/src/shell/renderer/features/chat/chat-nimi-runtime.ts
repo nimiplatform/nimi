@@ -3,7 +3,7 @@ import {
   type TextMessage,
   type TextStreamOutput,
 } from '@nimiplatform/sdk/runtime';
-import type { ConversationRuntimeTextMessage } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationRuntimeTextMessage } from '@nimiplatform/kit/features/chat/headless';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';

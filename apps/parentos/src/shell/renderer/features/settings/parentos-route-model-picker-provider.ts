@@ -1,7 +1,7 @@
 import {
   createSnapshotRouteDataProvider,
   type RouteModelPickerDataProvider,
-} from '@nimiplatform/nimi-kit/features/model-picker';
+} from '@nimiplatform/kit/features/model-picker';
 import { loadParentosRuntimeRouteOptions } from '../../infra/parentos-runtime-route-options.js';
 
 const providerCache = new Map<string, RouteModelPickerDataProvider>();

@@ -6,7 +6,7 @@ import {
   IconButton,
   PageDetailLayout,
   type PageDetailLayoutWidth,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 
 export type ProfileDetailShellProps = {
   title: ReactNode;

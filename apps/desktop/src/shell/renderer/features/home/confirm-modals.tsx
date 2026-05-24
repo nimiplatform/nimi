@@ -1,4 +1,4 @@
-import { ConfirmDialog } from '@nimiplatform/nimi-kit/ui';
+import { ConfirmDialog } from '@nimiplatform/kit/ui';
 import { i18n } from '@renderer/i18n';
 
 export function BlockUserConfirmModal({

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 
 const MAX_WIDTH_CLASS: Record<string, string> = {
   '2xl': 'max-w-2xl',

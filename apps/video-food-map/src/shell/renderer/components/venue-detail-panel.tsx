@@ -4,7 +4,7 @@ import {
   Button,
   StatusBadge,
   Surface,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import {
   retryImport,
   setVenueConfirmation,

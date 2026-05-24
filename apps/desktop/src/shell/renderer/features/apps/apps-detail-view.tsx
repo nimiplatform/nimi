@@ -10,7 +10,7 @@
 
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, OverlayShell } from '@nimiplatform/nimi-kit/ui';
+import { Button, OverlayShell } from '@nimiplatform/kit/ui';
 import {
   actionPlanForCardState,
   type AppCardActionId,

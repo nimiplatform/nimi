@@ -4,7 +4,7 @@ import type {
   ConversationTurnError,
   ConversationTurnEvent,
   ConversationTurnInput,
-} from '@nimiplatform/nimi-kit/features/chat';
+} from '@nimiplatform/kit/features/chat';
 import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import type {
   AgentLocalCommitTurnResult,

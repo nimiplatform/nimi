@@ -9,7 +9,7 @@ import {
   SidebarSection,
   SidebarShell,
   Surface,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
 import { RUNTIME_SIDEBAR_ITEMS } from './runtime-config-sidebar';

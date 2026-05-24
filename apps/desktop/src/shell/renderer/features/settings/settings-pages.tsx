@@ -9,7 +9,7 @@ import { PerformancePage } from './settings-performance-page.js';
 import { PrivacyPage } from './settings-privacy-page.js';
 import { SecurityPage } from './settings-security-page.js';
 import { DataManagementPage } from './settings-data-management-page.js';
-import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
+import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 
 export {
   ProfilePage,

@@ -6,13 +6,13 @@ import {
   useRealmMessageTimeline,
   type RealmChatOutboxEntryLike,
   type RealmChatTimelineMessage,
-} from '@nimiplatform/nimi-kit/features/chat/realm';
+} from '@nimiplatform/kit/features/chat/realm';
 import {
   ChatPanelState,
   ChatStreamStatus,
   ChatThreadHeader,
   RealmChatTimeline,
-} from '@nimiplatform/nimi-kit/features/chat/ui';
+} from '@nimiplatform/kit/features/chat/ui';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';

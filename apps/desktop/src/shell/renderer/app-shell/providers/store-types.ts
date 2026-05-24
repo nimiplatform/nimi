@@ -15,7 +15,7 @@ import type {
   ConversationSourceFilter,
   ConversationSetupState,
   ConversationViewMode,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import type { OfflineTier } from '@runtime/offline/types.js';
 import type {
   NimiConversationSelection,

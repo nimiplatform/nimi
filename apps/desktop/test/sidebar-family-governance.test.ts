@@ -44,14 +44,14 @@ test('sidebar family contract is anchored in platform design authority', () => {
   assert.match(designContractSource, /P-DESIGN-020/u);
   assert.match(designContractSource, /P-DESIGN-090/u);
   assert.match(designContractSource, /shared primitive families/i);
-  assert.match(designContractSource, /@nimiplatform\/nimi-kit\/ui/u);
+  assert.match(designContractSource, /@nimiplatform\/kit\/ui/u);
   assert.match(designOverviewSource, /does not define product rules/u);
   assert.match(designOverviewSource, /\.nimi\/spec\/platform\/kernel\/design-pattern-contract\.md/u);
 });
 
 test('governed sidebar modules import and use the shared sidebar primitive', () => {
   for (const source of [runtimePanelSource, settingsPanelSource]) {
-    assert.match(source, /@nimiplatform\/nimi-kit\/ui/);
+    assert.match(source, /@nimiplatform\/kit\/ui/);
     assert.match(source, /SidebarShell/);
     assert.match(source, /SidebarHeader/);
   }

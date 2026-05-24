@@ -1,4 +1,4 @@
-import { ConfirmDialog, IconButton, Surface, TextField } from '@nimiplatform/nimi-kit/ui';
+import { ConfirmDialog, IconButton, Surface, TextField } from '@nimiplatform/kit/ui';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { saveTextFileViaDialog } from '../reports/report-export.js';

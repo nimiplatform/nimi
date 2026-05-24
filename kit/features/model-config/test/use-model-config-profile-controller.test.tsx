@@ -18,7 +18,7 @@ import type {
 import type {
   SharedAIConfigService,
   UserProfilesSource,
-} from '@nimiplatform/nimi-kit/core/model-config';
+} from '@nimiplatform/kit/core/model-config';
 import type {
   ModelConfigProfileController,
   ModelConfigProfileCopy,

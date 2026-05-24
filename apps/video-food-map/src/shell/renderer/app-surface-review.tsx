@@ -1,4 +1,4 @@
-import { Button, ScrollArea, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, ScrollArea, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 
 import { formatConfidenceLabel, InfoPill, type ReviewItem, resolveVenueStatus } from './app-surface-shared.js';
 

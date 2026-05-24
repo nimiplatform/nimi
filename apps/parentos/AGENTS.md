@@ -18,7 +18,7 @@
 | Frontend | React 19 + Vite 7 + Tailwind 4 | `src/shell/renderer/` |
 | Local storage | SQLite (rusqlite, bundled) | `src-tauri/src/sqlite/` |
 | AI | nimi runtime (`runtime.ai.text.generate`) | via `@nimiplatform/sdk` |
-| UI components | `@nimiplatform/nimi-kit` | workspace dependency |
+| UI components | `@nimiplatform/kit` | workspace dependency |
 | State | Zustand | `app-shell/app-store.ts` |
 | Charts | recharts | growth curves |
 | Dev port | 1426 | vite.config.ts |

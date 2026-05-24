@@ -1,11 +1,11 @@
 import { Suspense, lazy, useCallback, useMemo, useState, type ReactNode } from 'react';
-import { CanonicalComposer } from '@nimiplatform/nimi-kit/features/chat/components/canonical-composer';
-import type { ChatComposerSubmitInput } from '@nimiplatform/nimi-kit/features/chat/headless';
+import { CanonicalComposer } from '@nimiplatform/kit/features/chat/components/canonical-composer';
+import type { ChatComposerSubmitInput } from '@nimiplatform/kit/features/chat/headless';
 import type {
   CanonicalMessageContentSlot,
   ConversationMessageViewModel,
   ConversationSetupState,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
 import type {
   ChatAiThreadBundle,
@@ -19,7 +19,7 @@ import {
 import { toConversationThreadSummary } from './chat-nimi-thread-model';
 import type { ChatThinkingPreference } from './chat-shared-thinking';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
+import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
 import type { AISchedulingJudgement } from '@nimiplatform/sdk/mod';
 import { resolveExecutionSchedulingGuardDecision } from './chat-shared-execution-scheduling-guard';
 

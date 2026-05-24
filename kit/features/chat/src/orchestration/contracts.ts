@@ -1,4 +1,4 @@
-import type { TextMessageContentPart } from '@nimiplatform/nimi-kit/core/sdk-contract';
+import type { TextMessageContentPart } from '@nimiplatform/kit/core/sdk-contract';
 import type { ConversationMessageRole } from '../types.js';
 
 export const CONVERSATION_ORCHESTRATION_MODE_IDS = [

@@ -1,5 +1,5 @@
-import type { ConversationRuntimeAdapter } from '@nimiplatform/nimi-kit/features/chat/headless';
-import { normalizeConversationRuntimeTextStreamPart } from '@nimiplatform/nimi-kit/features/chat/runtime';
+import type { ConversationRuntimeAdapter } from '@nimiplatform/kit/features/chat/headless';
+import { normalizeConversationRuntimeTextStreamPart } from '@nimiplatform/kit/features/chat/runtime';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { ChatThinkingPreference } from './chat-shared-thinking';

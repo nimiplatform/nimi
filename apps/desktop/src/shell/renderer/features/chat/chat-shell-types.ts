@@ -3,7 +3,7 @@ import type {
   ConversationSourceFilter,
   ConversationSetupState,
   ConversationViewMode,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 
 export type NimiConversationSelection = {
   threadId: string | null;

@@ -4,7 +4,7 @@ import {
   TextareaField as KitTextareaField,
   TextField as KitTextField,
   Toggle,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 
 /* ------------------------------------------------------------------ */
 /*  ToggleRow — labeled toggle using kit Toggle for the switch        */

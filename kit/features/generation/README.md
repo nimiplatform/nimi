@@ -4,10 +4,10 @@
 Reusable generation workflow shell for submit, status, and result-oriented runtime jobs.
 
 ## Public Surfaces
-- `@nimiplatform/nimi-kit/features/generation`
-- `@nimiplatform/nimi-kit/features/generation/headless`
-- `@nimiplatform/nimi-kit/features/generation/ui`
-- `@nimiplatform/nimi-kit/features/generation/runtime`
+- `@nimiplatform/kit/features/generation`
+- `@nimiplatform/kit/features/generation/headless`
+- `@nimiplatform/kit/features/generation/ui`
+- `@nimiplatform/kit/features/generation/runtime`
 - Current surfaces:
   - `headless`: active
   - `ui`: active
@@ -39,7 +39,7 @@ Reusable generation workflow shell for submit, status, and result-oriented runti
   Uses `generation/ui` status surfaces for scenario job progress and shared runtime status display.
 
 ## Verification
-- `pnpm --filter @nimiplatform/nimi-kit test`
+- `pnpm --filter @nimiplatform/kit test`
 - `pnpm --filter @nimiplatform/overtone build`
 - `pnpm --filter @nimiplatform/desktop build`
 - `pnpm check:nimi-kit`

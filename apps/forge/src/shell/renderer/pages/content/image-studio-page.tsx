@@ -16,7 +16,7 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { getResolvedAiParams } from '@renderer/hooks/use-ai-config.js';
 import { useImageGeneration } from '@renderer/hooks/use-image-generation.js';
 import type { ImageGenCandidate, ImageGenTarget, ImageGenEntityContext } from '@renderer/data/image-gen-client.js';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import {
   ForgePage,
   ForgePageHeader,

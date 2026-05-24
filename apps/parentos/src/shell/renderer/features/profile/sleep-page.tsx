@@ -1,4 +1,4 @@
-import { Button, OverlayShell, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, OverlayShell, Surface } from '@nimiplatform/kit/ui';
 import { useEffect, useState } from 'react';
 import { useAppStore, computeAgeMonths, formatAge } from '../../app-shell/app-store.js';
 import { deleteSleepRecord, getSleepRecords } from '../../bridge/sqlite-bridge.js';

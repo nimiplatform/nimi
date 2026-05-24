@@ -17,7 +17,7 @@ import {
   startDaemon,
 } from '@renderer/bridge';
 import { useAppStore, type AuthUser } from './app-store.js';
-import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 
 // SJ-SHELL-010 / SJ-SHELL-011: ShiJi admitted as local-first-party Runtime
 // account / session consumer. Caller fixed; runtime owns refresh-token

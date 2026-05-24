@@ -23,7 +23,7 @@
 | Audio pipeline | wLipSync; reads bytes via `runtime.artifacts.readBytes` (S-RUNTIME-111) | `src/shell/renderer/audio/` |
 | State | Zustand | `src/shell/renderer/app-shell/` |
 | AI / Events | `@nimiplatform/sdk` real consume path | workspace dep |
-| UI components | `@nimiplatform/nimi-kit/{ui,core,auth,telemetry}` (NOT `kit/features/avatar`) | workspace dep |
+| UI components | `@nimiplatform/kit/{ui,core,auth,telemetry}` (NOT `kit/features/avatar`) | workspace dep |
 | Dev port | 1427 | `vite.config.ts` |
 
 ## Product Form
@@ -380,14 +380,14 @@ self-contained policy enforced by `pnpm check:apps-avatar-isolation`）；
 
 `apps/avatar/**` 是 self-contained app；以下 import 路径**禁止**：
 
-- `@nimiplatform/nimi-kit/features/avatar/*`（cross-app 已禁；kit avatar 子模块即将整体移除是独立架构 topic）
+- `@nimiplatform/kit/features/avatar/*`（cross-app 已禁；kit avatar 子模块即将整体移除是独立架构 topic）
 - `apps/desktop/**` / `apps/web/**` / `apps/forge/**` / `apps/realm-drift/**` /
   `apps/install-gateway/**` / `apps/overtone/**`
 - `_external/**`（任何路径，runtime 引用禁止；airi 仅算法借鉴）
 
 允许的 import：
 
-- `@nimiplatform/nimi-kit/{ui,core,auth,telemetry}`（design system 核心；非 avatar 子模块）
+- `@nimiplatform/kit/{ui,core,auth,telemetry}`（design system 核心；非 avatar 子模块）
 - `@nimiplatform/sdk/runtime` / `@nimiplatform/sdk/runtime/browser` /
   `@nimiplatform/sdk/realm`
 - `@pixiv/three-vrm` / `@pixiv/three-vrm-animation` / `@pixiv/three-vrm-core`

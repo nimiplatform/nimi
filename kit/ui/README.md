@@ -4,9 +4,9 @@
 Foundation design system for shared tokens, primitives, themes, and generated visual contracts.
 
 ## Public Surfaces
-- `@nimiplatform/nimi-kit/ui`
-- `@nimiplatform/nimi-kit/ui/styles.css`
-- `@nimiplatform/nimi-kit/ui/themes/*`
+- `@nimiplatform/kit/ui`
+- `@nimiplatform/kit/ui/styles.css`
+- `@nimiplatform/kit/ui/themes/*`
 - Current surfaces:
   - `headless`: none
   - `ui`: active
@@ -28,7 +28,7 @@ Foundation design system for shared tokens, primitives, themes, and generated vi
 - `relay`
 
 ## Verification
-- `pnpm --filter @nimiplatform/nimi-kit build`
-- `pnpm --filter @nimiplatform/nimi-kit test`
+- `pnpm --filter @nimiplatform/kit build`
+- `pnpm --filter @nimiplatform/kit test`
 - `pnpm check:nimi-ui-pattern`
 - `pnpm check:nimi-ui-lib-drift`

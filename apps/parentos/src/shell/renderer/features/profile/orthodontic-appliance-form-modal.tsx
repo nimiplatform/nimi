@@ -1,4 +1,4 @@
-import { Button, cn, DatePicker, SelectField, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, cn, DatePicker, SelectField, TextField, TextareaField } from '@nimiplatform/kit/ui';
 import { useState } from 'react';
 import {
   insertOrthodonticAppliance,

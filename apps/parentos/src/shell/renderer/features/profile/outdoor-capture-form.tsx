@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, DatePicker, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DatePicker, TextField, TextareaField } from '@nimiplatform/kit/ui';
 import { insertOutdoorRecord } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import type { LinkedHealthRecordReminder } from './health-capture-orchestrator.js';

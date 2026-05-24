@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { uploadFileAsResource, type FileUploadResult } from '@renderer/data/content-data-client.js';
 
 type ImageUploadFieldProps = {

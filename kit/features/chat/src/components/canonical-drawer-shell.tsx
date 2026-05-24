@@ -1,4 +1,4 @@
-import { IconButton, SidebarShell, cn } from '@nimiplatform/nimi-kit/ui';
+import { IconButton, SidebarShell, cn } from '@nimiplatform/kit/ui';
 import type { ReactNode } from 'react';
 
 export type CanonicalDrawerShellProps = {

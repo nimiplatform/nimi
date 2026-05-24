@@ -5,7 +5,7 @@
 // fallback path.
 import './i18n/index.js';
 import { createRoot } from 'react-dom/client';
-import { NimiThemeProvider } from '@nimiplatform/nimi-kit/ui';
+import { NimiThemeProvider } from '@nimiplatform/kit/ui';
 import { App } from './App.js';
 import { t } from './i18n/index.js';
 import { installCreateImageBitmapSuspendForTauri } from './vrm/vrm-tauri-quirks.js';

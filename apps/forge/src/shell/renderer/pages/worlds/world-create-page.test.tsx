@@ -18,7 +18,7 @@ vi.mock('react-router-dom', () => ({
   useSearchParams: () => [new URLSearchParams()],
 }));
 
-vi.mock('@nimiplatform/nimi-kit/ui', () => ({
+vi.mock('@nimiplatform/kit/ui', () => ({
   Button: ({ children, onClick }: { children: ReactNode; onClick?: () => void }) => (
     <button type="button" onClick={onClick}>{children}</button>
   ),

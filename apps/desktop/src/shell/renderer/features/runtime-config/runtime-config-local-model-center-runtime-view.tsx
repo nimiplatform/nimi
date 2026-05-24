@@ -10,7 +10,7 @@ import type {
   LocalRuntimeUnregisteredAssetDescriptor,
   LocalRuntimeVerifiedAssetDescriptor,
 } from '@runtime/local-runtime';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 import type {
   AssetTaskEntry,
 } from './runtime-config-local-model-center-helpers';

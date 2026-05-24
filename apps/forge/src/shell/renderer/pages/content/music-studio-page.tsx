@@ -12,7 +12,7 @@ import { getResolvedAiParams } from '@renderer/hooks/use-ai-config.js';
 import type { JsonObject } from '@renderer/bridge';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
 import { finalizeResource } from '@renderer/data/content-data-client.js';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import {
   ForgePage,
   ForgePageHeader,

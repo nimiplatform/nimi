@@ -18,7 +18,7 @@ export {
   parseRuntimeBridgeDaemonStatus,
   hasTauriRuntime,
   invokeTauri,
-} from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+} from '@nimiplatform/kit/shell/renderer/bridge';
 export type {
   RuntimeDefaults,
   RealmDefaults,
@@ -27,9 +27,9 @@ export type {
   JsonValue,
   JsonObject,
   JsonPrimitive,
-} from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+} from '@nimiplatform/kit/shell/renderer/bridge';
 
-import { createTauriOAuthBridge } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+import { createTauriOAuthBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 
 // RD-SHELL-009 / RD-SHELL-010: Tauri OAuth bridge for the kit
 // `<DesktopShellAuthPage>` desktop-browser flow. Runtime BeginLogin returns a

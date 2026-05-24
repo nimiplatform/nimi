@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { AmbientBackground, Surface, buttonVariants, cn } from '@nimiplatform/nimi-kit/ui';
+import { AmbientBackground, Surface, buttonVariants, cn } from '@nimiplatform/kit/ui';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { ChildAvatar } from '../../shared/child-avatar.js';
 

@@ -19,7 +19,7 @@ import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/t
 import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
 import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
 import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
-import type { ConversationMode } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
 import type { AgentConversationSelection } from '@renderer/features/chat/chat-shell-types.js';
 
 // Minimal RealmAgent identity needed to build the deterministic localAgentRef

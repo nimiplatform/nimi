@@ -53,7 +53,7 @@
 | `ai-profile-config-contract.md` | `D-AIPC-*` | Desktop `AIProfile` / `AIConfig` / `AISnapshot` 三段式 AI 配置 canonical model 与 `D-LLM-015` ~ `D-LLM-021` 的 umbrella 关系 |
 | `explore-surface-contract.md` | `D-EXPL-*` | Explore 统一 Realm 发现表面产品语义：三区结构（Worlds / Agents / Activity）、World card / detail 字段语义、RealmAgent card 与 friend-state → primary-action 模型、lightweight RealmAgent creation 的 draft-before-truth 规则、controlled World creation 边界；不拥有导航布局、Friendship / AgentFriend canonical 真值、LocalAgent projection / `localAgentRef`、World canonical truth |
 | `contacts-surface-contract.md` | `D-CONTACTS-*` | Retired Contacts primary-nav/page boundary：不得 expose Contacts tab、route、sidebar、page journey；保留 user/agent profile detail modal 与 admitted social actions 作为共享能力；不拥有导航布局、Realm discovery、Friendship / AgentFriend canonical 真值、LocalAgent projection / `localAgentRef` |
-| `kit-ui-consumption-contract.md` | `D-SHELL-*` | Desktop 对 `@nimiplatform/nimi-kit/ui` 的消费清单、保留 composition、allowlist 与受控例外 |
+| `kit-ui-consumption-contract.md` | `D-SHELL-*` | Desktop 对 `@nimiplatform/kit/ui` 的消费清单、保留 composition、allowlist 与受控例外 |
 | `menu-bar-shell-contract.md` | `D-MBAR-*` | macOS menu bar shell 入口、导航与 close/hide 语义 |
 | `error-boundary-contract.md` | `D-ERR-*` | 错误边界与归一化映射 |
 | `telemetry-contract.md` | `D-TEL-*` | 结构化日志与消息格式 |

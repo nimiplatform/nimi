@@ -1,6 +1,6 @@
 # ParentOS Kit UI Consumption Contract
 
-This contract owns ParentOS-specific consumption of `@nimiplatform/nimi-kit/ui`.
+This contract owns ParentOS-specific consumption of `@nimiplatform/kit/ui`.
 The platform design spec owns shared primitives, tokens, material taxonomy, theme
 schema, and generic validation rules. ParentOS owns the concrete renderer
 inventory and retained app-owned compositions that consume those shared rules.
@@ -17,12 +17,12 @@ inventory and retained app-owned compositions that consume those shared rules.
 
 ## PO-KITUI-002 — Theme Entry
 
-- ParentOS renderer must import `@nimiplatform/nimi-kit/ui/styles.css`,
+- ParentOS renderer must import `@nimiplatform/kit/ui/styles.css`,
   `light.css`, `dark.css`, and exactly one accent pack.
 - ParentOS uses `nimi-accent` unless this app-local contract explicitly admits a
   different ParentOS-owned accent pack.
 - ParentOS root rendering must use `NimiThemeProvider` from
-  `@nimiplatform/nimi-kit/ui`.
+  `@nimiplatform/kit/ui`.
 
 ## PO-KITUI-003 — No App-Local Shared Visual Truth
 

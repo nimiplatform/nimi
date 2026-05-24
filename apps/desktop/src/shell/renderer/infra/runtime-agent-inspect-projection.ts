@@ -1,5 +1,5 @@
 import { asNimiError } from '@nimiplatform/sdk/runtime';
-import type { AvatarPresentationProfile } from '@nimiplatform/nimi-kit/features/avatar/headless';
+import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { summarizeCanonicalMemoryView } from './runtime-agent-memory';
 

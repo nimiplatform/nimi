@@ -1,6 +1,6 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 import { FeaturedWorldCard, WorldCard, WorldListRow } from './world-list-cards';
 import { isMainWorld, type WorldListItem } from './world-list-model';
 import { Chip, Kicker, Stat, formatNum } from './world-list-atoms';

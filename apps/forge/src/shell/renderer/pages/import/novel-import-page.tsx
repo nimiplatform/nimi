@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { useNovelImport } from '@renderer/features/import/hooks/use-novel-import.js';
 import { accumulatorToImportResult } from '@renderer/features/import/state/novel-accumulator.js';
 import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';

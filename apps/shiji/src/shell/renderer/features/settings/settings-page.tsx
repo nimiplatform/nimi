@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { RuntimeModelPickerPanel } from '@nimiplatform/nimi-kit/features/model-picker/ui';
-import { useRuntimeModelPickerPanel } from '@nimiplatform/nimi-kit/features/model-picker/runtime';
+import { RuntimeModelPickerPanel } from '@nimiplatform/kit/features/model-picker/ui';
+import { useRuntimeModelPickerPanel } from '@nimiplatform/kit/features/model-picker/runtime';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
 import { ParentModePanel } from './parent-mode-panel.js';
 

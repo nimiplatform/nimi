@@ -5,7 +5,7 @@ import { ModelConfigAiModelHub } from '../src/ui.js';
 import type {
   AppModelConfigSurface,
   SharedAIConfigService,
-} from '@nimiplatform/nimi-kit/core/model-config';
+} from '@nimiplatform/kit/core/model-config';
 import type {
   AIConfig,
   AIScopeRef,

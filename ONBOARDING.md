@@ -195,9 +195,9 @@ Runtime 实例暴露以下模块：`auth`、`appAuth`、`ai`、`media`、`model`
 Kit 工具包（多数 app 均依赖）：
 
 ```ts
-import { Button } from '@nimiplatform/nimi-kit/ui';
-import { useAuth } from '@nimiplatform/nimi-kit/auth';
-import { ChatFeature } from '@nimiplatform/nimi-kit/features/chat';
+import { Button } from '@nimiplatform/kit/ui';
+import { useAuth } from '@nimiplatform/kit/auth';
+import { ChatFeature } from '@nimiplatform/kit/features/chat';
 ```
 
 ## 6. Desktop 与 Web 开发

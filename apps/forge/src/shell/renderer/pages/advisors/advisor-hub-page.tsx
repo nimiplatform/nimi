@@ -8,12 +8,12 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@nimiplatform/nimi-kit/ui';
-import { RuntimeChatPanel } from '@nimiplatform/nimi-kit/features/chat/ui';
+import { Button } from '@nimiplatform/kit/ui';
+import { RuntimeChatPanel } from '@nimiplatform/kit/features/chat/ui';
 import {
   useRuntimeChatSession,
   type RuntimeChatSessionMessage,
-} from '@nimiplatform/nimi-kit/features/chat/runtime';
+} from '@nimiplatform/kit/features/chat/runtime';
 import { ForgePage, ForgePageHeader } from '@renderer/components/page-layout.js';
 import { ForgeActionCard } from '@renderer/components/card-list.js';
 import { useWorldResourceQueries } from '@renderer/hooks/use-world-queries.js';

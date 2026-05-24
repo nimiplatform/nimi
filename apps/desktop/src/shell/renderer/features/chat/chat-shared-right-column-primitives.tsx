@@ -1,5 +1,5 @@
 import type { HTMLAttributes, ReactNode } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 import { DesktopCardSurface } from '@renderer/components/surface';
 
 export function ChatRightColumn(props: {

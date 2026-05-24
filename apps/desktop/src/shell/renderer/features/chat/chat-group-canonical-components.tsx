@@ -4,7 +4,7 @@ import type {
   CanonicalTranscriptViewProps,
   CanonicalStagePanelProps,
   ConversationCanonicalMessage,
-} from '@nimiplatform/nimi-kit/features/chat';
+} from '@nimiplatform/kit/features/chat';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 
 function resolveSenderName(message: ConversationCanonicalMessage): string {

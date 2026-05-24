@@ -4,9 +4,9 @@ type CreateProxyFetch = (typeof import('@desktop-public/infra'))['createProxyFet
 type CreateRendererFlowId = (typeof import('@desktop-public/infra'))['createRendererFlowId'];
 type LogRendererEvent = (typeof import('@desktop-public/infra'))['logRendererEvent'];
 type UseAppStore = (typeof import('@desktop-public/app-store'))['useAppStore'];
-type ClearPersistedAccessToken = (typeof import('@nimiplatform/nimi-kit/auth'))['clearPersistedAccessToken'];
-type LoadPersistedAuthSession = (typeof import('@nimiplatform/nimi-kit/auth'))['loadPersistedAuthSession'];
-type PersistAuthSession = (typeof import('@nimiplatform/nimi-kit/auth'))['persistAuthSession'];
+type ClearPersistedAccessToken = (typeof import('@nimiplatform/kit/auth'))['clearPersistedAccessToken'];
+type LoadPersistedAuthSession = (typeof import('@nimiplatform/kit/auth'))['loadPersistedAuthSession'];
+type PersistAuthSession = (typeof import('@nimiplatform/kit/auth'))['persistAuthSession'];
 
 type RuntimeBootstrapWebDeps = {
   dataSync: DataSyncFacade;
@@ -50,7 +50,7 @@ async function loadRuntimeBootstrapWebDeps(): Promise<RuntimeBootstrapWebDeps> {
       import('@renderer/bridge'),
       import('@desktop-public/infra'),
       import('@desktop-public/app-store'),
-      import('@nimiplatform/nimi-kit/auth'),
+      import('@nimiplatform/kit/auth'),
     ]);
 
     return {

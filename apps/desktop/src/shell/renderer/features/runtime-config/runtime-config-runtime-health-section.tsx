@@ -5,7 +5,7 @@ import type {
   AIProviderHealthSnapshot,
   AIProviderSubHealth,
 } from '@nimiplatform/sdk/runtime';
-import { Surface, Tooltip, cn } from '@nimiplatform/nimi-kit/ui';
+import { Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
 import {
   runtimeHealthStatusLabel,
   formatBytes,

@@ -10,32 +10,32 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import {
   type CanonicalStagePanelProps,
-} from '@nimiplatform/nimi-kit/features/chat/components/canonical-stage-panel';
+} from '@nimiplatform/kit/features/chat/components/canonical-stage-panel';
 import {
   CanonicalDrawerSection,
-} from '@nimiplatform/nimi-kit/features/chat/components/canonical-drawer-section';
+} from '@nimiplatform/kit/features/chat/components/canonical-drawer-section';
 import {
   CanonicalStagePanel,
-} from '@nimiplatform/nimi-kit/features/chat/components/canonical-stage-panel';
+} from '@nimiplatform/kit/features/chat/components/canonical-stage-panel';
 import {
   CanonicalTranscriptView,
   type CanonicalTranscriptViewProps,
-} from '@nimiplatform/nimi-kit/features/chat/components/canonical-transcript-view';
+} from '@nimiplatform/kit/features/chat/components/canonical-transcript-view';
 import {
   ChatStreamStatus,
-} from '@nimiplatform/nimi-kit/features/chat/components/chat-stream-status';
+} from '@nimiplatform/kit/features/chat/components/chat-stream-status';
 import {
   type CanonicalMessageAccessorySlot,
   type CanonicalMessageAvatarSlot,
   type CanonicalMessageContentSlot,
   type ConversationCanonicalMessage,
   type ConversationCharacterData,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import {
   getRealmChatTimelineDisplayModel,
   useRealmMessageTimeline,
   type RealmChatOutboxEntryLike,
-} from '@nimiplatform/nimi-kit/features/chat/realm';
+} from '@nimiplatform/kit/features/chat/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';

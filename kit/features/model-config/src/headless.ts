@@ -106,11 +106,11 @@ export type {
   SharedAIConfigSubscribeListener,
   SharedAIConfigUnsubscribe,
   UserProfilesSource,
-} from '@nimiplatform/nimi-kit/core/model-config';
+} from '@nimiplatform/kit/core/model-config';
 
 export {
   createModelConfigProfileControllerCore,
   selectEnabledDescriptors,
   summarizeAiModelAggregate,
   summarizeProfilePreview,
-} from '@nimiplatform/nimi-kit/core/model-config';
+} from '@nimiplatform/kit/core/model-config';

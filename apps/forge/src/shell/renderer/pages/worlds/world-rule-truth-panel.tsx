@@ -1,7 +1,7 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import type { JsonObject } from '@renderer/bridge';
 import { useEffect, useState } from 'react';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import type { AgentSummary } from '@renderer/hooks/use-agent-queries.js';
 import { LabeledTextField, LabeledTextareaField, LabeledSelectField } from '@renderer/components/form-fields.js';
 import { AgentRuleEditor, WorldRuleEditor } from './world-rule-truth-panel-editors.js';

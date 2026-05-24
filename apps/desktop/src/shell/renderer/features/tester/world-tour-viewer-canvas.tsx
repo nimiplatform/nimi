@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@nimiplatform/nimi-kit/ui';
+import { Button } from '@nimiplatform/kit/ui';
 import { SparkRenderer, SplatMesh } from '@sparkjsdev/spark';
 import { invokeTauri } from '@runtime/tauri-api';
 import * as THREE from 'three';

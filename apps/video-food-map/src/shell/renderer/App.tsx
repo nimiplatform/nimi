@@ -1,7 +1,7 @@
 import { type MouseEvent, useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { NimiThemeProvider } from '@nimiplatform/nimi-kit/ui';
-import { ShellErrorBoundary } from '@nimiplatform/nimi-kit/telemetry/error-boundary';
+import { NimiThemeProvider } from '@nimiplatform/kit/ui';
+import { ShellErrorBoundary } from '@nimiplatform/kit/telemetry/error-boundary';
 import {
   importCreator,
   importVideo,

@@ -22,7 +22,7 @@ import {
   SidebarSection,
   SidebarShell,
   Surface,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import {
   DEVELOPER_TOOLS_SECTION_IDS,
   DEVELOPER_TOOLS_SECTION_LABEL_KEY,

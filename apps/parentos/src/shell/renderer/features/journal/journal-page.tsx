@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { NimiText } from '@nimiplatform/nimi-kit/ui';
+import { NimiText } from '@nimiplatform/kit/ui';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { OBSERVATION_DIMENSIONS } from '../../knowledge-base/index.js';

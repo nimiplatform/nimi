@@ -1,7 +1,7 @@
 import type {
   ConversationTurnError,
   ConversationTurnHistoryMessage,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import type {
   AgentLocalDraftRecord,
   AgentLocalMessageRecord,

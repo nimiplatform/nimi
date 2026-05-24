@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { BLOCKED_USERS_UPDATED_EVENT, dataSync, type PostFeedScope } from '@runtime/data-sync';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';

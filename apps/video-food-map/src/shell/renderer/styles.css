@@ -1,7 +1,7 @@
-@import "@nimiplatform/nimi-kit/ui/styles.css";
-@import "@nimiplatform/nimi-kit/ui/themes/light.css";
-@import "@nimiplatform/nimi-kit/ui/themes/dark.css";
-@import "@nimiplatform/nimi-kit/ui/themes/video-food-map-accent.css";
+@import "@nimiplatform/kit/ui/styles.css";
+@import "@nimiplatform/kit/ui/themes/light.css";
+@import "@nimiplatform/kit/ui/themes/dark.css";
+@import "@nimiplatform/kit/ui/themes/video-food-map-accent.css";
 @import "tailwindcss";
 
 html,

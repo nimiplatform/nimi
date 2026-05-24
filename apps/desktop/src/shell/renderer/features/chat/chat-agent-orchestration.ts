@@ -2,7 +2,7 @@ import type {
   ConversationTurnEvent,
   ConversationTurnInput,
   ConversationOrchestrationProvider,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 import {
   toChatAgentRuntimeError,

@@ -5,7 +5,7 @@ import {
   type RealmListChatsResultDto,
   type RealmListMessagesResultDto,
   type RealmMessageViewDto,
-} from '@nimiplatform/nimi-kit/features/chat/realm';
+} from '@nimiplatform/kit/features/chat/realm';
 
 type MergeSentRealmChatMessageIntoCacheInput = {
   queryClient: QueryClient;

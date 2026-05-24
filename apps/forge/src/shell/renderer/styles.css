@@ -1,5 +1,5 @@
-@import "@nimiplatform/nimi-kit/ui/styles.css";
-@import "@nimiplatform/nimi-kit/ui/themes/light.css";
-@import "@nimiplatform/nimi-kit/ui/themes/dark.css";
-@import "@nimiplatform/nimi-kit/ui/themes/forge-accent.css";
+@import "@nimiplatform/kit/ui/styles.css";
+@import "@nimiplatform/kit/ui/themes/light.css";
+@import "@nimiplatform/kit/ui/themes/dark.css";
+@import "@nimiplatform/kit/ui/themes/forge-accent.css";
 @import "tailwindcss";

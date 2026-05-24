@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ScrollArea, cn } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, cn } from '@nimiplatform/kit/ui';
 import { DesktopFieldTrigger } from '@renderer/components/action';
 import { DesktopCardSurface } from '@renderer/components/surface';
 import { useTranslation } from 'react-i18next';

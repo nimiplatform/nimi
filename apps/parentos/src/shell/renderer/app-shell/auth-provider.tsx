@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AmbientBackground } from '@nimiplatform/nimi-kit/ui';
+import { AmbientBackground } from '@nimiplatform/kit/ui';
 import { useAppStore } from './app-store.js';
 import { runParentOSBootstrap } from '../infra/parentos-bootstrap.js';
 import { getPlatformClient } from '@nimiplatform/sdk';

@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 
 export const textMain = '#1e293b';
 export const textMuted = '#475569';

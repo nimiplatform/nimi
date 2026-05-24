@@ -1,4 +1,4 @@
-import { ScrollArea, cn } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, cn } from '@nimiplatform/kit/ui';
 import type { ReactNode } from 'react';
 import type { ConversationThreadSummary } from '../types.js';
 

@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import type {
   CanonicalStagePanelProps,
-} from '@nimiplatform/nimi-kit/features/chat/components/canonical-stage-panel';
+} from '@nimiplatform/kit/features/chat/components/canonical-stage-panel';
 import type {
   CanonicalTranscriptViewProps,
-} from '@nimiplatform/nimi-kit/features/chat/components/canonical-transcript-view';
+} from '@nimiplatform/kit/features/chat/components/canonical-transcript-view';
 import type {
   ConversationCanonicalMessage,
   ConversationCharacterData,
@@ -12,7 +12,7 @@ import type {
   ConversationModeAvailability,
   ConversationShellAdapter,
   ConversationTargetSummary,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 
 export type DesktopConversationModeHost = {
   mode: ConversationMode;

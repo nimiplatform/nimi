@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `@nimiplatform/nimi-kit` are documented here.
+All notable changes to `@nimiplatform/kit` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
@@ -10,7 +10,7 @@ Discipline.
 ## [0.1.0] - 2026-05-23
 
 Initial public publish for the ST-L1-2 standardization work.
-`@nimiplatform/nimi-kit` becomes the single cross-app toolkit package
+`@nimiplatform/kit` becomes the single cross-app toolkit package
 for Nimi apps with 58 public subpath exports while remaining in a
 pre-1.0 iteration phase.
 
@@ -54,7 +54,7 @@ pre-1.0 iteration phase.
 
 - **`kit/features/chat/src/runtime/orchestration.ts`**: the dynamic
   SDK import for `getPlatformClient` now routes through
-  `@nimiplatform/nimi-kit/core/sdk-contract` instead of
+  `@nimiplatform/kit/core/sdk-contract` instead of
   `@nimiplatform/sdk` directly, eliminating the last bypass of the
   single-boundary contract.
 - **`kit/README.md`**: rewritten as external-consumer documentation
@@ -75,7 +75,7 @@ an explicit 1.0.0 readiness decision.
 
 None — initial release. Consumers previously building against
 unpublished workspace paths should update to the npm package name
-`@nimiplatform/nimi-kit` and keep `@nimiplatform/sdk` aligned with the
+`@nimiplatform/kit` and keep `@nimiplatform/sdk` aligned with the
 compatible pre-1.0 range selected by their app.
 
 [0.1.0]: ./

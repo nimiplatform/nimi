@@ -24,7 +24,7 @@ import {
 } from '@runtime/mod';
 import { setRuntimeLogger } from '@runtime/telemetry/logger';
 import { createDesktopWorldEvolutionSelectorReadAdapter } from '@runtime/world-evolution/selector-read-adapter';
-import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
+import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { desktopBridge, toRendererLogMessage } from '@renderer/bridge';
 import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import { createProxyFetch } from '@renderer/infra/bridge/proxy-fetch';

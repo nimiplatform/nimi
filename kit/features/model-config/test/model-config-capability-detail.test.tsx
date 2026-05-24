@@ -6,11 +6,11 @@ import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ModelConfigCapabilityDetail } from '../src/ui.js';
-import { TooltipProvider } from '@nimiplatform/nimi-kit/ui';
+import { TooltipProvider } from '@nimiplatform/kit/ui';
 import type {
   AppModelConfigSurface,
   SharedAIConfigService,
-} from '@nimiplatform/nimi-kit/core/model-config';
+} from '@nimiplatform/kit/core/model-config';
 import type { AIConfig, AIScopeRef } from '@nimiplatform/sdk/mod';
 
 (

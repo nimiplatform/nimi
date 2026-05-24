@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, TextField } from '@nimiplatform/kit/ui';
 import {
   type CapabilityState,
   type ImageGenerationRecord,

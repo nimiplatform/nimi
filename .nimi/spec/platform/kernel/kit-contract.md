@@ -4,7 +4,7 @@
 
 ## P-KIT-001 — Kit Package Authority
 
-- `@nimiplatform/nimi-kit` is the single authoritative package for cross-app shared platform infrastructure.
+- `@nimiplatform/kit` is the single authoritative package for cross-app shared platform infrastructure.
 - Sub-modules are published through subpath exports on the single package: `/ui`, `/auth`, `/core/*`, `/telemetry/*`, and `/features/*`.
 - Apps must not duplicate capabilities already covered by a kit sub-module in app-local code.
 
@@ -20,7 +20,7 @@
 - `kit/` is a single workspace package rooted at `kit/package.json`; sub-modules do not carry independent workspace package manifests.
 - Kit sub-modules must not import app-layer code (`apps/**`).
 - Kit sub-modules must not import runtime internal code (`runtime/internal/**`).
-- Apps consume kit TypeScript surfaces through `@nimiplatform/nimi-kit/<subpath>`.
+- Apps consume kit TypeScript surfaces through `@nimiplatform/kit/<subpath>`.
 - `kit/shell/tauri/**` is an admitted non-npm Rust crate surface within the single kit authority. Apps consume it via Cargo path dependency, not npm import. It has no `package.json` exports and does not carry an independent workspace package manifest.
 
 ## P-KIT-010 — UI Sub-Module (nimi-ui)
@@ -28,7 +28,7 @@
 - `ui` is the foundation module for shared design tokens, primitives, themes, and generated visual contracts.
 - All existing `P-DESIGN-*` rules remain in force for the UI sub-module.
 - The token → primitive → generation → gate pipeline is unchanged.
-- Consumer import path: `@nimiplatform/nimi-kit/ui`.
+- Consumer import path: `@nimiplatform/kit/ui`.
 - Generation pipeline output: `kit/ui/src/generated/`.
 - `ui` owns reusable primitive families and default visual behavior only. It
   must not absorb app product composition, information architecture, route
@@ -80,7 +80,7 @@
 ## P-KIT-042 — Renderer Shell Module
 
 - `shell/renderer` is an infra module for shared renderer shell glue: Tauri command wrappers, bridge primitives, and bootstrap skeleton.
-- Delivered as subpath exports of the single `@nimiplatform/nimi-kit` package: `./shell/renderer/bridge` and `./shell/renderer/bootstrap`.
+- Delivered as subpath exports of the single `@nimiplatform/kit` package: `./shell/renderer/bridge` and `./shell/renderer/bootstrap`.
 - Must not contain app-specific stores, navigation, UI rendering, or runtime readiness policy.
 - Must not re-own auth session truth or telemetry normalization truth already owned by `kit/auth` (domain/auth) and `kit/telemetry` (domain/telemetry).
 - Shared `parseRuntimeDefaults()` semantics are owned here: missing required realm defaults must fail closed instead of normalizing to empty strings, and consumer apps must not fork a parallel parser contract.
@@ -151,7 +151,7 @@ Fixed rules:
 ## P-KIT-071 — Avatar Feature Module
 
 - `kit/features/avatar` is the admitted reusable avatar surface for agent presentation in Nimi apps.
-- It must publish aggregate, `/headless`, `/ui`, and `/runtime` surfaces on the single `@nimiplatform/nimi-kit` package.
+- It must publish aggregate, `/headless`, `/ui`, and `/runtime` surfaces on the single `@nimiplatform/kit` package.
 - It may additionally publish backend-specific optional renderer surfaces such as `/vrm` and future `/live2d` surfaces when those surfaces preserve the same avatar semantic contracts and do not force heavyweight renderer/runtime assumptions into the default `ui` surface.
 - `headless` owns normalized avatar presentation inputs, transient interaction-state contracts, and reusable controller logic.
 - `ui` owns the default opinionated avatar stage shell that consuming apps may place without rebuilding a parallel baseline renderer shell.

@@ -61,7 +61,7 @@
 | Routing | React Router 7 (HashRouter) |
 | I18n | i18next + react-i18next |
 | SDK | `@nimiplatform/sdk/runtime` + `@nimiplatform/sdk/realm` |
-| Shell core | `@nimiplatform/nimi-kit` |
+| Shell core | `@nimiplatform/kit` |
 
 时迹通过 SDK 根 bootstrap 连接两个平台平面：
 - **Platform client** — `createPlatformClient({ appId: 'nimi.shiji', runtimeTransport: 'tauri-ipc', sessionStore })`

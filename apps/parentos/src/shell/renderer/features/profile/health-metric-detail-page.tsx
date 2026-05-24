@@ -3,7 +3,7 @@ import { Navigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { CalendarClock, Plus } from 'lucide-react';
-import { IconButton, Surface } from '@nimiplatform/nimi-kit/ui';
+import { IconButton, Surface } from '@nimiplatform/kit/ui';
 import { GenericMetricDetailShell } from './_shared/generic-metric-detail-shell.js';
 import { computeAgeMonths, useAppStore } from '../../app-shell/app-store.js';
 import {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, cn, DashedAddButton, DatePicker, PillTabs, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, cn, DashedAddButton, DatePicker, PillTabs, TextField, TextareaField } from '@nimiplatform/kit/ui';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { deleteFitnessEvent, insertFitnessAssessment, saveHealthRecordCapture } from '../../bridge/sqlite-bridge.js';

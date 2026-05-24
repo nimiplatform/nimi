@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { clearPlatformClient, getPlatformClient } from '@nimiplatform/sdk';
-import { performDesktopWebAuth } from '@nimiplatform/nimi-kit/auth';
+import { performDesktopWebAuth } from '@nimiplatform/kit/auth';
 import { createTauriOAuthBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
 import {

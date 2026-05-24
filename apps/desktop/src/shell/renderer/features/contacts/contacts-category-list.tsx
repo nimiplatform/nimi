@@ -2,7 +2,7 @@ import React, { useMemo, type ReactNode } from 'react';
 import {
   SidebarItem,
   SidebarSection,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { i18n } from '@renderer/i18n';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';

@@ -1,6 +1,6 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { normalizeRealmMessagePayload } from '@nimiplatform/nimi-kit/features/chat/headless';
+import { normalizeRealmMessagePayload } from '@nimiplatform/kit/features/chat/headless';
 import { isJsonObject, type JsonObject } from '@runtime/net/json';
 import {
   getErrorMessage,

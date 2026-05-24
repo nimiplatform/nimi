@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, TextareaField, TextField } from '@nimiplatform/kit/ui';
 import type { CapabilityState } from '../tester-types.js';
 import { asString } from '../tester-utils.js';
 import { resolveEffectiveBinding } from '../tester-route.js';

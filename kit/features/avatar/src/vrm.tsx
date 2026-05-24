@@ -1,6 +1,6 @@
 import { Suspense, lazy, type CSSProperties, type ComponentType, type ReactNode } from 'react';
 
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 
 import type {
   AvatarStageBackendRenderer,

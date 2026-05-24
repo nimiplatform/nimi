@@ -1,5 +1,5 @@
 import React, { type ReactNode } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 
 export function CanonicalSettingsSegmentButton(props: {
   active?: boolean;

@@ -1,4 +1,4 @@
-import { Button, ScrollArea, Surface, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, ScrollArea, Surface, cn } from '@nimiplatform/kit/ui';
 import type { ConversationRow } from '../../bridge/sqlite-bridge.js';
 import { formatRelativeTimeCn } from './advisor-theme.js';
 

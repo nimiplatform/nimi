@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Button, InlineAlert, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, InlineAlert, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import { runStudioBootstrap } from './studio-platform.js';
 import { StudioSessionContext, type StudioSessionState } from './studio-session.js';
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { NimiThemeProvider, applyNimiThemeAttributes } from '@nimiplatform/nimi-kit/ui';
+import { NimiThemeProvider, applyNimiThemeAttributes } from '@nimiplatform/kit/ui';
 import { installBundledImportMetaEnv } from './import-meta-env.js';
 import './web-styles.css';
 

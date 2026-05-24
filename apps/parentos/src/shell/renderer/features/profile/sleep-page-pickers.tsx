@@ -1,4 +1,4 @@
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 import { forwardRef, useCallback, useEffect, useRef, useState, type ReactNode, type RefObject, type WheelEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { Calendar, ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react';

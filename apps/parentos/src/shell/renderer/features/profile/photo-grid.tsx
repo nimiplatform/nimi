@@ -1,4 +1,4 @@
-import { DashedAddButton } from '@nimiplatform/nimi-kit/ui';
+import { DashedAddButton } from '@nimiplatform/kit/ui';
 import { useState } from 'react';
 import { readImageFileAsDataUrl } from './checkup-ocr.js';
 

@@ -68,7 +68,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "2.0.47",
-    "@nimiplatform/nimi-kit": "workspace:*",
+    "@nimiplatform/kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
     "@pixiv/three-vrm": "3.5.3",
     "@react-three/drei": "^10.7.7",

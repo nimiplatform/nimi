@@ -11,7 +11,7 @@ import {
   SettingsCard,
   SettingsSectionTitle,
   useNimiTheme,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import { ForgeSegmentControl } from '@renderer/components/segment-control.js';
 import { ToggleRow } from '@renderer/components/form-fields.js';
 import { ForgePage, ForgePageHeader } from '@renderer/components/page-layout.js';

@@ -4,4 +4,4 @@ export {
   applyRealmRealtimeMessageUpdateToMessagesResult as applyRealtimeMessageUpdateToMessagesResult,
   mergeRealmRealtimeMessageIntoMessagesResult as mergeRealtimeMessageIntoMessagesResult,
   normalizeRealmRealtimeMessagePayload as normalizeRealtimeMessagePayload,
-} from '@nimiplatform/nimi-kit/features/chat/realm';
+} from '@nimiplatform/kit/features/chat/realm';

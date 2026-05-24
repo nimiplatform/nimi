@@ -9,7 +9,7 @@ import {
   useModelConfigProfileController,
   type AppModelConfigSurface,
   type ModelConfigProfileController,
-} from '@nimiplatform/nimi-kit/features/model-config';
+} from '@nimiplatform/kit/features/model-config';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-navigation-events';

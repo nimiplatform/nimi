@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, IconButton, OverlayShell, TextField, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, OverlayShell, TextField, cn } from '@nimiplatform/kit/ui';
 import { computeAgeMonths, type NurtureMode } from '../../app-shell/app-store.js';
 import { getReminderStates } from '../../bridge/sqlite-bridge.js';
 import { REMINDER_RULES } from '../../knowledge-base/index.js';

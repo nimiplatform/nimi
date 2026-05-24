@@ -1,4 +1,4 @@
-import { Button } from '@nimiplatform/nimi-kit/ui';
+import { Button } from '@nimiplatform/kit/ui';
 
 export function DentalHistoryActions({
   show,

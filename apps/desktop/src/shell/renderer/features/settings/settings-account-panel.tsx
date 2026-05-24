@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { ShellAuthWindow } from '@nimiplatform/nimi-kit/auth';
-import { getGoogleClientId, loadGoogleScript } from '@nimiplatform/nimi-kit/auth';
-import { resolveSocialOauthConfig, startSocialOauth } from '@nimiplatform/nimi-kit/auth';
+import type { ShellAuthWindow } from '@nimiplatform/kit/auth';
+import { getGoogleClientId, loadGoogleScript } from '@nimiplatform/kit/auth';
+import { resolveSocialOauthConfig, startSocialOauth } from '@nimiplatform/kit/auth';
 import { desktopOAuthBridge } from '@renderer/features/auth/desktop-auth-adapter.js';
 import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import {

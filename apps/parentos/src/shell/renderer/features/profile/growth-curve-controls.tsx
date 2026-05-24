@@ -1,4 +1,4 @@
-import { PillTabs, Surface } from '@nimiplatform/nimi-kit/ui';
+import { PillTabs, Surface } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { AppSelect } from '../../app-shell/app-select.js';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';

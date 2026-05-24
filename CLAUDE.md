@@ -53,7 +53,7 @@ If the module has sub-level `AGENTS.md` files, read the nearest one to the file 
 
 - `/.nimi/spec/**` is the only normative contract source. Retired pre-cutover authority history lives in Git only. Nimicoding package authority lives outside this host repo and is consumed only through `pnpm exec nimicoding` plus injected `.nimi/{config,contracts,methodology}/**` projections. Host-project bootstrap truth lives under `.nimi/**`. Local-only execution workspaces and reports may live under `.local/**`; tracked support inputs live under `config/**`. `dev/**` is not an active execution-doc surface.
 - Layer debug order: `runtime` → `sdk` → `apps/desktop` / `apps/web` → `nimi-mods`.
-- Reuse `nimi-kit` first for app UI and interaction work. If a matching kit surface already covers the baseline styling and baseline interaction behavior, extend or compose it instead of recreating a parallel app-local shell.
+- Reuse `@nimiplatform/kit` first for app UI and interaction work. If a matching kit surface already covers the baseline styling and baseline interaction behavior, extend or compose it instead of recreating a parallel app-local shell.
 - No legacy shims, compatibility shells, hardcoded provider/model lists, or downstream workarounds.
 - No fallback that hides contract violations. Missing typed output, MIME type, discriminator, required JSON shape, or schema fields must fail-close.
 - No pseudo-success on stable product paths. Do not synthesize placeholder artifacts, guessed MIME types, fabricated IDs, default payloads, or "unchanged" success after a typed/cached path fails.

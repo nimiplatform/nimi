@@ -1,4 +1,4 @@
-// @nimiplatform/nimi-kit/auth — Shared authentication UI for Desktop and Relay
+// @nimiplatform/kit/auth — Shared authentication UI for Desktop and Relay
 
 // Platform adapter
 export type {

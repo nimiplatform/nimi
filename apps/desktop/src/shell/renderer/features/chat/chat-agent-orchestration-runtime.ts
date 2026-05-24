@@ -1,7 +1,7 @@
 import type {
   ConversationRuntimeTextStreamPart,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
-import { normalizeConversationRuntimeTextStreamPart } from '@nimiplatform/nimi-kit/features/chat/runtime';
+} from '@nimiplatform/kit/features/chat/headless';
+import { normalizeConversationRuntimeTextStreamPart } from '@nimiplatform/kit/features/chat/runtime';
 import {
   generateChatAgentImageRuntime,
   invokeChatAgentRuntime,

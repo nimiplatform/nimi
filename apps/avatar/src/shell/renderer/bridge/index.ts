@@ -3,7 +3,7 @@ export {
   getRuntimeDefaults,
   getDaemonStatus,
   startDaemon,
-} from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+} from '@nimiplatform/kit/shell/renderer/bridge';
 export {
   getAvatarLaunchContext,
   parseAvatarLaunchContext,
@@ -12,7 +12,7 @@ export {
 export type {
   RuntimeDefaults,
   RuntimeBridgeDaemonStatus,
-} from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+} from '@nimiplatform/kit/shell/renderer/bridge';
 export type {
   AvatarLaunchContext,
 } from './launch-context.js';

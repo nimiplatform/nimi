@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';

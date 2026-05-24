@@ -5,7 +5,7 @@ import {
   SelectField,
   type SelectFieldOption,
   cn,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import type { UseModelPickerResult } from '../headless.js';
 
 export type RouteModelPickerSource = 'local' | 'cloud';

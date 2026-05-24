@@ -1,20 +1,19 @@
 {
-  "name": "@nimiplatform/dev-tools",
-  "version": "0.5.7",
+  "name": "@nimiplatform/app-tools",
+  "version": "0.1.0",
   "license": "Apache-2.0",
   "type": "module",
   "private": false,
   "repository": {
     "type": "git",
     "url": "https://github.com/nimiplatform/nimi",
-    "directory": "dev-tools"
+    "directory": "app-tools"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
   "bin": {
-    "nimi-mod": "./bin/nimi-mod.mjs",
     "nimi-app": "./bin/nimi-app.mjs"
   },
   "files": [
@@ -22,10 +21,5 @@
     "lib",
     "README.md"
   ],
-  "dependencies": {
-    "@tailwindcss/cli": "^4.3.0",
-    "esbuild": "^0.28.0",
-    "tailwindcss": "^4.3.0",
-    "yaml": "^2.9.0"
-  }
+  "dependencies": {}
 }

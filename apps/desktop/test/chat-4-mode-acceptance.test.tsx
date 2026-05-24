@@ -6,8 +6,8 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import type { AIScopeRef } from '@nimiplatform/sdk/mod';
-import type { ConversationMode } from '@nimiplatform/nimi-kit/features/chat/headless';
-import { ConversationModeSwitcher } from '@nimiplatform/nimi-kit/features/chat/ui';
+import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
+import { ConversationModeSwitcher } from '@nimiplatform/kit/features/chat/ui';
 
 /**
  * T3-3 — Chat 4-mode acceptance + no-RealmAgent-direct-chat proof.

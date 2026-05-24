@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
-import { RuntimeChatPanel } from '@nimiplatform/nimi-kit/features/chat/ui';
-import { useRuntimeChatSession } from '@nimiplatform/nimi-kit/features/chat/runtime';
+import { Button, Surface } from '@nimiplatform/kit/ui';
+import { RuntimeChatPanel } from '@nimiplatform/kit/features/chat/ui';
+import { useRuntimeChatSession } from '@nimiplatform/kit/features/chat/runtime';
 import { ForgePage, ForgeEmptyState } from '@renderer/components/page-layout.js';
 import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
 import { LabeledTextField, LabeledTextareaField } from '@renderer/components/form-fields.js';

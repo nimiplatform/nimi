@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, type MouseEvent as ReactMouseEvent, type ReactNode, type ComponentType } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Home, User, BookText, MessageCircle, TrendingUp, Settings, LogOut, ChevronDown, Check, UserPlus, type LucideProps } from 'lucide-react';
-import { AmbientBackground, Surface, cn } from '@nimiplatform/nimi-kit/ui';
+import { AmbientBackground, Surface, cn } from '@nimiplatform/kit/ui';
 import { useAppStore, computeAgeMonths, type ChildProfile } from './app-store.js';
 import { startParentosWindowDrag } from '../bridge/window-drag.js';
 import { setAppSetting } from '../bridge/sqlite-bridge.js';

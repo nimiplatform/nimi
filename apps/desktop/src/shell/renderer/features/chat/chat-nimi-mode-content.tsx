@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { CanonicalConversationShell } from '@nimiplatform/nimi-kit/features/chat/components/canonical-conversation-shell';
+import { CanonicalConversationShell } from '@nimiplatform/kit/features/chat/components/canonical-conversation-shell';
 import {
   type ConversationSetupAction,
   type ConversationTargetSummary,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useAiConversationModeHost } from './chat-nimi-shell-adapter';

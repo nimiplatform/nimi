@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { createReadyConversationSetupState } from '@nimiplatform/nimi-kit/features/chat/headless';
-import type { ConversationCanonicalMessage } from '@nimiplatform/nimi-kit/features/chat/headless';
+import { createReadyConversationSetupState } from '@nimiplatform/kit/features/chat/headless';
+import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';

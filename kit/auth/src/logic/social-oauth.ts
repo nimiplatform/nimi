@@ -2,7 +2,7 @@
 // Social OAuth — parameterized on TauriOAuthBridge
 // ---------------------------------------------------------------------------
 
-import type { TauriOAuthBridge } from '@nimiplatform/nimi-kit/core/oauth';
+import type { TauriOAuthBridge } from '@nimiplatform/kit/core/oauth';
 import {
   createDesktopCallbackRedirectUri,
   createDesktopCallbackState,

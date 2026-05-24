@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { AIConfig } from '@nimiplatform/nimi-kit/core/sdk-contract';
+import type { AIConfig } from '@nimiplatform/kit/core/sdk-contract';
 import {
   CANONICAL_CAPABILITY_CATALOG_BY_ID,
   type CanonicalCapabilityDescriptor,
   type CanonicalCapabilitySectionId,
-} from '@nimiplatform/nimi-kit/core/runtime-capabilities';
+} from '@nimiplatform/kit/core/runtime-capabilities';
 import {
   selectEnabledDescriptors,
   summarizeAiModelAggregate,
   type AppModelConfigSurface,
   type CapabilityEvaluation,
   type ModelConfigStatusTone,
-} from '@nimiplatform/nimi-kit/core/model-config';
+} from '@nimiplatform/kit/core/model-config';
 import type { ModelConfigProfileController } from '../types.js';
 import { ProfileConfigSection } from './profile-config-section.js';
 import { ModelConfigCapabilityDetail } from './model-config-capability-detail.js';

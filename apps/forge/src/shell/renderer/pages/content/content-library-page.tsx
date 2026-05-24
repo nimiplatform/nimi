@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useResourceQuery, useResourcesQuery } from '@renderer/hooks/use-content-queries.js';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
-import { Button, Surface, SearchField } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface, SearchField } from '@nimiplatform/kit/ui';
 import {
   ForgePage,
   ForgePageHeader,

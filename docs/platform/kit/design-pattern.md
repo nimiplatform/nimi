@@ -5,7 +5,7 @@
 > contracts.
 
 The Nimi **design pattern** is the shared visual + interaction
-authority that sits inside `@nimiplatform/nimi-kit/ui`. It governs
+authority that sits inside `@nimiplatform/kit/ui`. It governs
 kit primitives, semantic tokens, theme schemas, and the generic
 contract any consuming app must follow.
 
@@ -33,9 +33,9 @@ identity comes from accent packs that layer on top.
 Governed app entries import:
 
 ```
-@nimiplatform/nimi-kit/ui/themes/light.css
-@nimiplatform/nimi-kit/ui/themes/dark.css
-@nimiplatform/nimi-kit/ui/themes/<app>-accent.css   (exactly one)
+@nimiplatform/kit/ui/themes/light.css
+@nimiplatform/kit/ui/themes/dark.css
+@nimiplatform/kit/ui/themes/<app>-accent.css   (exactly one)
 ```
 
 There is no "mix two accent packs" mode and no "skip the foundation
@@ -135,7 +135,7 @@ surface meaning.
 
 Shared primitives:
 
-- Delivered by `@nimiplatform/nimi-kit/ui`
+- Delivered by `@nimiplatform/kit/ui`
 - Built on Radix UI headless primitives (Dialog, Tooltip, ScrollArea,
   Select, Switch, Avatar, Popover)
 - Styled with CVA + Tailwind referencing `--nimi-*` semantic tokens
@@ -144,7 +144,7 @@ Governed app modules **must** use shared primitives for shell-level
 families: `surface`, `action`, `overlay`, `sidebar`, `field`,
 `status`, `scroll_area`, `toggle`, `avatar`. Thin compatibility
 wrappers are permitted only if they delegate directly to
-`@nimiplatform/nimi-kit/ui` and do not redefine the visual contract.
+`@nimiplatform/kit/ui` and do not redefine the visual contract.
 
 ## Reader Scenario: Adding An Accent Pack For A New App
 
@@ -152,7 +152,7 @@ A new admitted Nimi app needs its own accent identity.
 
 1. **Add accent pack.** A new
    `<app>-accent.css` lands under
-   `@nimiplatform/nimi-kit/ui/themes/`.
+   `@nimiplatform/kit/ui/themes/`.
 2. **Tokens overridden.** The accent pack assigns values to admitted
    `accent`-layer semantic tokens; foundation tokens stay untouched.
 3. **App imports.** App entry imports the foundation light + dark CSS

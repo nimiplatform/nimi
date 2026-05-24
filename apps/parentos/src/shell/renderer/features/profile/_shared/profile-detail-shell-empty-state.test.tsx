@@ -17,7 +17,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { TooltipProvider } from '@nimiplatform/nimi-kit/ui';
+import { TooltipProvider } from '@nimiplatform/kit/ui';
 import { useAppStore } from '../../../app-shell/app-store.js';
 
 vi.mock('@tauri-apps/api/core', () => ({

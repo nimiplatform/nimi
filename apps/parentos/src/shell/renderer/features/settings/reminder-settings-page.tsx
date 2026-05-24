@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { useAppStore } from '../../app-shell/app-store.js';
 import { REMINDER_RULES } from '../../knowledge-base/index.js';
 import { loadAllFreqOverrides, clearFreqOverride, type FreqOverride } from '../../engine/reminder-freq-overrides.js';

@@ -13,7 +13,7 @@ import {
   type TextStreamInput,
   type TextStreamPart,
   type NimiError,
-} from '@nimiplatform/nimi-kit/core/sdk-contract';
+} from '@nimiplatform/kit/core/sdk-contract';
 import type { ChatComposerAdapter, ChatComposerSubmitInput } from './types.js';
 export type {
   SimpleAiConversationProviderOptions,

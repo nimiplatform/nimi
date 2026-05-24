@@ -1,6 +1,6 @@
 # Desktop Kit UI Consumption Contract
 
-This contract owns Desktop-specific consumption of `@nimiplatform/nimi-kit/ui`.
+This contract owns Desktop-specific consumption of `@nimiplatform/kit/ui`.
 The platform design spec owns shared primitives, tokens, theme schema, material
 taxonomy, and generic validation rules. Desktop owns its concrete renderer
 inventory, retained app-owned compositions, and controlled exceptions.
@@ -15,11 +15,11 @@ inventory, retained app-owned compositions, and controlled exceptions.
 
 ## D-SHELL-091 — Theme Entry
 
-- Desktop renderer must import `@nimiplatform/nimi-kit/ui/styles.css`,
+- Desktop renderer must import `@nimiplatform/kit/ui/styles.css`,
   `light.css`, `dark.css`, and exactly one accent pack.
 - Desktop uses `nimi-accent`.
 - Desktop root rendering must use `NimiThemeProvider` from
-  `@nimiplatform/nimi-kit/ui`.
+  `@nimiplatform/kit/ui`.
 
 ## D-SHELL-092 — Controlled Exceptions
 
@@ -42,7 +42,7 @@ inventory, retained app-owned compositions, and controlled exceptions.
 - Desktop may retain local facade directories for Desktop-specific bridge
   modules.
 - Shared renderer shell primitives must come from
-  `@nimiplatform/nimi-kit/shell/renderer`; Desktop facades must not fork
+  `@nimiplatform/kit/shell/renderer`; Desktop facades must not fork
   shared bridge primitive semantics.
 
 ## D-SHELL-095 — Local Avatar Binding Consumer Boundary

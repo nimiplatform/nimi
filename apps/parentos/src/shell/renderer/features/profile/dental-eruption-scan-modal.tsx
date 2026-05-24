@@ -1,4 +1,4 @@
-import { Button, cn, DatePicker, OverlayShell, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, cn, DatePicker, OverlayShell, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import { useMemo, useState } from 'react';
 import {
   PERM_LOWER_L,

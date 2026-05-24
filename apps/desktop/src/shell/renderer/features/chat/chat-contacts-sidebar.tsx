@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
-import type { ConversationTargetSummary } from '@nimiplatform/nimi-kit/features/chat/headless';
-import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
+import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { DesktopIconToggleAction } from '@renderer/components/action';

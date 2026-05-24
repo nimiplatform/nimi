@@ -2,8 +2,8 @@
   "compilerOptions": {
     "paths": {
       "@renderer/*": ["./src/shell/renderer/*"],
-      "@nimiplatform/nimi-kit/ui": ["../../kit/ui/src/index.ts"],
-      "@nimiplatform/nimi-kit/ui/*": ["../../kit/ui/src/*"],
+      "@nimiplatform/kit/ui": ["../../kit/ui/src/index.ts"],
+      "@nimiplatform/kit/ui/*": ["../../kit/ui/src/*"],
       "@nimiplatform/sdk/realm": ["../../sdk/src/realm/index.ts"]
     },
     "target": "ES2022",

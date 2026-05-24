@@ -5,7 +5,7 @@
  * button group pattern across Forge pages.
  */
 
-import { Surface, cn } from '@nimiplatform/nimi-kit/ui';
+import { Surface, cn } from '@nimiplatform/kit/ui';
 
 export type SegmentOption<T extends string = string> = {
   value: T;

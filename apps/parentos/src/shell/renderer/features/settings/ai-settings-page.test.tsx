@@ -3,7 +3,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-import { TooltipProvider } from '@nimiplatform/nimi-kit/ui';
+import { TooltipProvider } from '@nimiplatform/kit/ui';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from '../../app-shell/app-store.js';
 import AiSettingsPage from './ai-settings-page.js';

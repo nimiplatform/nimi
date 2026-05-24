@@ -120,10 +120,10 @@ function verifyAppEntry(app, rel) {
   const modules = Array.isArray(doc?.modules) ? doc.modules : [];
   const style = styleRel ? read(styleRel) : '';
   const requiredImports = [
-    '@nimiplatform/nimi-kit/ui/styles.css',
-    '@nimiplatform/nimi-kit/ui/themes/light.css',
-    '@nimiplatform/nimi-kit/ui/themes/dark.css',
-    '@nimiplatform/nimi-kit/ui/themes/nimi-accent.css',
+    '@nimiplatform/kit/ui/styles.css',
+    '@nimiplatform/kit/ui/themes/light.css',
+    '@nimiplatform/kit/ui/themes/dark.css',
+    '@nimiplatform/kit/ui/themes/nimi-accent.css',
   ];
   const missingImports = requiredImports.filter((requiredImport) => !style.includes(requiredImport));
   const missingFiles = [styleRel, bootstrapRel, themeProviderRel]
@@ -424,9 +424,9 @@ function viteConfigText(appRoot, extraAliases = []) {
     ['react-dom/client', path.join(appRoot, 'node_modules/react-dom/client.js')],
     ['react-dom', path.join(appRoot, 'node_modules/react-dom/index.js')],
     ['react', path.join(appRoot, 'node_modules/react/index.js')],
-    ['@nimiplatform/nimi-kit/ui', path.join(repoRoot, 'kit/ui/src')],
-    ['@nimiplatform/nimi-kit/auth', path.join(repoRoot, 'kit/auth/src')],
-    ['@nimiplatform/nimi-kit/core', path.join(repoRoot, 'kit/core/src')],
+    ['@nimiplatform/kit/ui', path.join(repoRoot, 'kit/ui/src')],
+    ['@nimiplatform/kit/auth', path.join(repoRoot, 'kit/auth/src')],
+    ['@nimiplatform/kit/core', path.join(repoRoot, 'kit/core/src')],
     ...extraAliases,
   ];
   const aliasSource = aliases
@@ -676,7 +676,7 @@ createRoot(document.getElementById('root')!).render(<App />);
     ],
     aliases: [
       ['@renderer', path.join(repoRoot, 'apps/avatar/src/shell/renderer')],
-      ['@nimiplatform/nimi-kit/shell/renderer/bridge', path.join(repoRoot, 'kit/shell/renderer/src/bridge/index.ts')],
+      ['@nimiplatform/kit/shell/renderer/bridge', path.join(repoRoot, 'kit/shell/renderer/src/bridge/index.ts')],
       ['react-i18next', resolveFromPackage('apps/avatar/package.json', 'react-i18next')],
       ['i18next', resolveFromPackage('apps/avatar/package.json', 'i18next')],
     ],
@@ -770,8 +770,8 @@ const requiredGateChecks = [
   runCommand('check-nimi-kit', 'pnpm', ['check:nimi-kit']),
   runCommand('check-nimi-ui-lib-drift', 'pnpm', ['check:nimi-ui-lib-drift']),
   runCommand('nimi-design-negative-fixtures', 'pnpm', ['check:nimi-design-gate-negative-fixtures']),
-  runCommand('nimi-kit-build', 'pnpm', ['--filter', '@nimiplatform/nimi-kit', 'build']),
-  runCommand('nimi-kit-test', 'pnpm', ['--filter', '@nimiplatform/nimi-kit', 'test']),
+  runCommand('nimi-kit-build', 'pnpm', ['--filter', '@nimiplatform/kit', 'build']),
+  runCommand('nimi-kit-test', 'pnpm', ['--filter', '@nimiplatform/kit', 'test']),
   runCommand('desktop-targeted-shell-tests', 'pnpm', [
     '--filter',
     '@nimiplatform/desktop',

@@ -43,7 +43,7 @@ the W1 `24 / 32` two-value anchor.
 **Consumer rules:**
 
 - Governed surfaces must consume material only through the
-  `<Surface material="...">` primitive in `@nimiplatform/nimi-kit/ui` or
+  `<Surface material="...">` primitive in `@nimiplatform/kit/ui` or
   the equivalent `data-nimi-material="<tier>"` marker class.
 - Inline `rgba(...)` material background fills, inline
   `backdrop-filter` declarations, and hand-picked `backdrop-blur-*`
@@ -92,7 +92,7 @@ downgrade(tier: MaterialTier, level: TransparencyLevel) => MaterialTier
   not consulted.
 
 Phase 3b is expected to implement `downgrade` inside
-`@nimiplatform/nimi-kit/ui` as a pure function and wire
+`@nimiplatform/kit/ui` as a pure function and wire
 `SurfaceProvider.transparencyLevel` through the existing theme provider
 without introducing a new context.
 

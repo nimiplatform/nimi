@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, DatePicker, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DatePicker, TextField } from '@nimiplatform/kit/ui';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertVaccineRecord } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';

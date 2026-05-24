@@ -122,7 +122,7 @@ Avatar companion/persona/debug participation consumer boundary:
 
 ### [`kit-ui-consumption-contract.md`](kit-ui-consumption-contract.md)
 
-Avatar-local consumption contract for `@nimiplatform/nimi-kit`:
+Avatar-local consumption contract for `@nimiplatform/kit`:
 
 - Avatar concrete renderer adoption and composition inventories live under
   `.nimi/spec/avatar/kernel/tables/nimi-kit-*.yaml`

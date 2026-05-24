@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CapabilityState, VideoGenerationRecord } from '../tester-types.js';
-import type { VideoParamsState } from '@nimiplatform/nimi-kit/features/model-config';
+import type { VideoParamsState } from '@nimiplatform/kit/features/model-config';
 import {
   asString,
   buildAsyncImageJobOutcome,

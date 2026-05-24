@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
-import { Button, Surface, TextField, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface, TextField, cn } from '@nimiplatform/kit/ui';
 import {
   RECORDED_AT_PRESETS,
   formatRecordedAtLabel,

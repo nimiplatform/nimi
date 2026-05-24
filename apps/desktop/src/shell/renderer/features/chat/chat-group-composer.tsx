@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
-import { ConversationComposerShell } from '@nimiplatform/nimi-kit/features/chat';
+import { cn } from '@nimiplatform/kit/ui';
+import { ConversationComposerShell } from '@nimiplatform/kit/features/chat';
 import { useTranslation } from 'react-i18next';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 

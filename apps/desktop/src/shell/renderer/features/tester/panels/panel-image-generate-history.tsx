@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@nimiplatform/nimi-kit/ui';
+import { Button } from '@nimiplatform/kit/ui';
 import type { ImageGenerationRecord } from '../tester-types.js';
 import { RawJsonSection } from '../tester-diagnostics.js';
 import { formatRelativeTime } from './panel-image-generate-model.js';

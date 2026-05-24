@@ -37,7 +37,7 @@ VRM backend 是 `apps/avatar` 内独立实现：
 
 - 文件骨架：`apps/avatar/src/shell/renderer/vrm/**`（详 design-02 §"VRM
   Backend 文件骨架"）
-- 0 行 import 自 `@nimiplatform/nimi-kit/features/avatar/*` /
+- 0 行 import 自 `@nimiplatform/kit/features/avatar/*` /
   `apps/desktop/**` / `_external/**`（self-contained policy；详 design-12
   及 `apps/avatar/AGENTS.md`）
 - airi 算法借鉴（design-11）：MToon outline / instance cache /

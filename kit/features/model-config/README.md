@@ -6,10 +6,10 @@ apply UX, capability-local params editors, and the AI Model hub composition
 that unifies how apps present the canonical capability catalog.
 
 ## Public Surfaces
-- `@nimiplatform/nimi-kit/features/model-config`
-- `@nimiplatform/nimi-kit/features/model-config/headless`
-- `@nimiplatform/nimi-kit/features/model-config/ui`
-- `@nimiplatform/nimi-kit/core/model-config` (pure-logic seam; shared
+- `@nimiplatform/kit/features/model-config`
+- `@nimiplatform/kit/features/model-config/headless`
+- `@nimiplatform/kit/features/model-config/ui`
+- `@nimiplatform/kit/core/model-config` (pure-logic seam; shared
   `SharedAIConfigService` / `AppModelConfigSurface` / controller factory)
 
 ## Canonical Ownership
@@ -17,7 +17,7 @@ that unifies how apps present the canonical capability catalog.
 This module owns the following shared Nimi app surfaces:
 
 - Consumer shell for the canonical capability catalog published by
-  `@nimiplatform/nimi-kit/core/runtime-capabilities`
+  `@nimiplatform/kit/core/runtime-capabilities`
   (`CANONICAL_CAPABILITY_CATALOG`). The catalog is spec-resident per
   `P-CAPCAT-001..003` and is codegen-owned by `kit/core/runtime-capabilities`;
   this module consumes it and never re-declares, mutates, or shadows it.
@@ -79,7 +79,7 @@ This module owns the following shared Nimi app surfaces:
 
 ## Before Building Locally
 
-- Check this module and `@nimiplatform/nimi-kit/core/model-config` before
+- Check this module and `@nimiplatform/kit/core/model-config` before
   adding another app-local model settings shell, capability enum, params
   editor, profile controller, or hub layout.
 - `AIConfig` / `AIProfile` authority stays in the app host bridge that
@@ -96,7 +96,7 @@ consumers of the hub. Until those waves complete, the previous
 
 ## Verification
 
-- `pnpm --filter @nimiplatform/nimi-kit build`
-- `pnpm --filter @nimiplatform/nimi-kit test`
+- `pnpm --filter @nimiplatform/kit build`
+- `pnpm --filter @nimiplatform/kit test`
 - `pnpm check:nimi-kit`
 - `pnpm check:canonical-capability-catalog`

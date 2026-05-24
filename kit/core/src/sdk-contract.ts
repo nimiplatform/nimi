@@ -1,5 +1,5 @@
 /**
- * `@nimiplatform/nimi-kit/core/sdk-contract`
+ * `@nimiplatform/kit/core/sdk-contract`
  *
  * SDK ↔ kit boundary contract (wave-b fork F3 formalization).
  *
@@ -84,7 +84,7 @@
  *  `kit/features/chat/src/runtime/orchestration.ts:199` lazy-loads
  *  the SDK root facade to defer the platform-client wiring cost
  *  until the runtime adapter is actually invoked. It routes through
- *  `import('@nimiplatform/nimi-kit/core/sdk-contract')` so the
+ *  `import('@nimiplatform/kit/core/sdk-contract')` so the
  *  dynamic-import path is bounded by this contract surface. There is
  *  no other admitted dynamic SDK import inside kit; new dynamic
  *  imports must target this file or be admitted here explicitly.

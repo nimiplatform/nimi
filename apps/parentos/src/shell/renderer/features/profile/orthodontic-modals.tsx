@@ -1,4 +1,4 @@
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 import { useMemo, useState, type ReactNode } from 'react';
 import {
   insertOrthodonticCase,

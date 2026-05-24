@@ -1,5 +1,5 @@
 import { Component, Suspense, lazy, memo, useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { Dialog, DialogContent, DialogTitle, IconButton, cn } from '@nimiplatform/nimi-kit/ui';
+import { Dialog, DialogContent, DialogTitle, IconButton, cn } from '@nimiplatform/kit/ui';
 import type { ConversationCanonicalMessage } from '../types.js';
 import { hasRpContent } from '../utils/rp-content-parser.js';
 

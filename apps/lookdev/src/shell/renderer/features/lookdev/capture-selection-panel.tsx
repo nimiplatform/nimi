@@ -1,4 +1,4 @@
-import { Button } from '@nimiplatform/nimi-kit/ui';
+import { Button } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import type { LookdevAgentRecord } from '@renderer/data/lookdev-data-client.js';
 

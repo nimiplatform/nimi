@@ -16,14 +16,14 @@ import type {
   AppModelConfigSurface,
   ModelConfigProjectionStatus,
   ModelConfigSection,
-} from '@nimiplatform/nimi-kit/features/model-config';
+} from '@nimiplatform/kit/features/model-config';
 import {
   DisabledConfigNote,
   ModelConfigAiModelHub,
   ModelConfigPanel,
   defaultModelConfigProfileCopy,
   useModelConfigProfileController,
-} from '@nimiplatform/nimi-kit/features/model-config';
+} from '@nimiplatform/kit/features/model-config';
 import { useLocalAssets } from './capability-settings-shared';
 import type { ConversationCapabilityProjection } from './conversation-capability';
 
@@ -44,7 +44,7 @@ type ChatSettingsPanelProps = {
   showDiagnosticsFooter?: boolean;
   showClearHistoryAction?: boolean;
   /** When set, the AI Model Hub is rendered in a 2-col grouped grid (used by Agent Center). */
-  superSections?: ReadonlyArray<import('@nimiplatform/nimi-kit/features/model-config').ModelConfigSuperSection>;
+  superSections?: ReadonlyArray<import('@nimiplatform/kit/features/model-config').ModelConfigSuperSection>;
 };
 
 const SCHEDULING_STYLE: Record<string, { border: string; bg: string; text: string; icon: string }> = {
@@ -267,7 +267,7 @@ function AiModeSettings(props: {
   showPresenceContent?: boolean;
   showDiagnosticsFooter?: boolean;
   showClearHistoryAction?: boolean;
-  superSections?: ReadonlyArray<import('@nimiplatform/nimi-kit/features/model-config').ModelConfigSuperSection>;
+  superSections?: ReadonlyArray<import('@nimiplatform/kit/features/model-config').ModelConfigSuperSection>;
 }) {
   const { t } = useTranslation();
   const aiConfig = useAppStore((state) => state.aiConfig);

@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, type PropsWithChildren } from 'react';
 import { createRoot } from 'react-dom/client';
-import { NimiThemeProvider } from '@nimiplatform/nimi-kit/ui';
+import { NimiThemeProvider } from '@nimiplatform/kit/ui';
 import bootstrapEntryCopy from '@renderer/locales/en/26-Bootstrap.json';
 import '@renderer/styles.css';
 

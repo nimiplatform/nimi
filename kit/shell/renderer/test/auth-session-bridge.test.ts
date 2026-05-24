@@ -5,7 +5,7 @@ import {
   loadAuthSession,
   saveAuthSession,
 } from '../src/bridge/index.js';
-import type { SharedDesktopAuthSession } from '@nimiplatform/nimi-kit/auth';
+import type { SharedDesktopAuthSession } from '@nimiplatform/kit/auth';
 
 type TauriTestGlobal = typeof globalThis & {
   __NIMI_TAURI_TEST__?: {

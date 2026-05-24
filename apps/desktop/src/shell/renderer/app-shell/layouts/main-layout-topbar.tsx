@@ -1,6 +1,6 @@
 import type { MouseEvent, ReactNode, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Tooltip } from '@nimiplatform/nimi-kit/ui';
+import { Tooltip } from '@nimiplatform/kit/ui';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   SHELL_CHROME_ACTION_CELL_CLASS,

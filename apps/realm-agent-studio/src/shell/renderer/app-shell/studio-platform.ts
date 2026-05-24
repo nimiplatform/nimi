@@ -4,7 +4,7 @@ import {
   getPlatformClient,
   type PlatformClient,
 } from '@nimiplatform/sdk';
-import { getRuntimeDefaults } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+import { getRuntimeDefaults } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   AccountCallerMode,
   AccountSessionState,

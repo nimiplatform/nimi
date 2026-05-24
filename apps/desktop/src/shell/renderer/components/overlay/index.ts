@@ -1,1 +1,1 @@
-export { OverlayShell } from '@nimiplatform/nimi-kit/ui';
+export { OverlayShell } from '@nimiplatform/kit/ui';

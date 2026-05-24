@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 import type { AppTab } from '@renderer/app-shell/providers/app-store';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {

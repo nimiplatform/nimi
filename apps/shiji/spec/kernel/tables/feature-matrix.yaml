@@ -11,7 +11,7 @@ features:
     contract: SJ-SHELL-001 ~ 004, SJ-SHELL-008 ~ 009
     dependencies:
       - "@nimiplatform/sdk"
-      - "@nimiplatform/nimi-kit"
+      - "@nimiplatform/kit"
     description: Tauri shell、SDK bootstrap、auth flow、error boundary 与首轮使用体验。
 
   - id: settings

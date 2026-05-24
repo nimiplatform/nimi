@@ -1,4 +1,4 @@
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { ForgeErrorBanner, ForgeStatCard } from '@renderer/components/page-layout.js';
 import type { WorkbenchPageSnapshot } from './workbench-page-shared.js';
 

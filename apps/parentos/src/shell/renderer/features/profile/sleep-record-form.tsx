@@ -19,7 +19,7 @@ import {
   TIER_DEFAULTS,
   unpackNotes,
 } from './sleep-page-shared.js';
-import { Button, DatePicker, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, DatePicker, TextField } from '@nimiplatform/kit/ui';
 import { AppSelect } from '../../app-shell/app-select.js';
 import {
   FormField,

@@ -29,7 +29,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { X, type LucideIcon } from 'lucide-react';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 
 /* ── Tokens ─────────────────────────────────────────────────────────────── */
 

@@ -4,8 +4,8 @@
 Pure shared logic module for shell-mode detection, env helpers, and OAuth utilities.
 
 ## Public Surfaces
-- `@nimiplatform/nimi-kit/core/shell-mode`
-- `@nimiplatform/nimi-kit/core/oauth`
+- `@nimiplatform/kit/core/shell-mode`
+- `@nimiplatform/kit/core/oauth`
 - Current surfaces:
   - `headless`: active
   - `ui`: none
@@ -30,5 +30,5 @@ Pure shared logic module for shell-mode detection, env helpers, and OAuth utilit
 - `realm-drift`
 
 ## Verification
-- `pnpm --filter @nimiplatform/nimi-kit build`
+- `pnpm --filter @nimiplatform/kit build`
 - `pnpm check:nimi-kit`

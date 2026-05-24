@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 
 const TimelinePage = lazy(() => import('../features/timeline/timeline-page.js'));
 const ProfilePage = lazy(() => import('../features/profile/profile-page.js'));

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
-import { Button, IconButton, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, Surface, TextareaField } from '@nimiplatform/kit/ui';
 import type { VoiceDraft } from './journal-page-helpers.js';
 import type { VoiceRecordingSession } from './voice-observation-recorder.js';
 

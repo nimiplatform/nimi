@@ -103,9 +103,9 @@ test('chat mode surfaces stay behind mode-level lazy boundaries', () => {
 test('default AI chat startup keeps non-default surfaces out of the eager graph', () => {
   assert.match(
     CHAT_NIMI_MODE_SOURCE,
-    /import \{ CanonicalConversationShell \} from '@nimiplatform\/nimi-kit\/features\/chat\/components\/canonical-conversation-shell'/,
+    /import \{ CanonicalConversationShell \} from '@nimiplatform\/kit\/features\/chat\/components\/canonical-conversation-shell'/,
   );
-  assert.doesNotMatch(CHAT_NIMI_MODE_SOURCE, /from '@nimiplatform\/nimi-kit\/features\/chat';/);
+  assert.doesNotMatch(CHAT_NIMI_MODE_SOURCE, /from '@nimiplatform\/kit\/features\/chat';/);
   assert.match(CANONICAL_SHELL_SOURCE, /const CanonicalStagePanel = lazy\(async \(\) => \{/);
   assert.match(CANONICAL_SHELL_SOURCE, /const CanonicalCharacterRail = lazy\(async \(\) => \{/);
   assert.doesNotMatch(
@@ -121,7 +121,7 @@ test('markdown, model config, and SDK barrels do not block default chat import',
   assert.match(CHAT_NIMI_PRESENTATION_SOURCE, /const ChatSettingsPanel = lazy\(async \(\) => \{/);
   assert.doesNotMatch(CHAT_NIMI_PRESENTATION_SOURCE, /import \{ ChatSettingsPanel \} from '\.\/chat-shared-settings-panel'/);
   assert.doesNotMatch(KIT_RUNTIME_ORCHESTRATION_SOURCE, /import \{ getPlatformClient \} from '@nimiplatform\/sdk'/);
-  assert.match(KIT_RUNTIME_ORCHESTRATION_SOURCE, /import\('@nimiplatform\/nimi-kit\/core\/sdk-contract'\)/);
+  assert.match(KIT_RUNTIME_ORCHESTRATION_SOURCE, /import\('@nimiplatform\/kit\/core\/sdk-contract'\)/);
 });
 
 test('human and agent mode chunks do not synchronously import settings or chat barrels', () => {
@@ -132,17 +132,17 @@ test('human and agent mode chunks do not synchronously import settings or chat b
 
   assert.match(
     CHAT_AGENT_CANONICAL_COMPOSER_SOURCE,
-    /import \{ CanonicalComposer \} from '@nimiplatform\/nimi-kit\/features\/chat\/components\/canonical-composer'/,
+    /import \{ CanonicalComposer \} from '@nimiplatform\/kit\/features\/chat\/components\/canonical-composer'/,
   );
   assert.match(
     CHAT_HUMAN_COMPOSER_SOURCE,
-    /import \{ CanonicalComposer \} from '@nimiplatform\/nimi-kit\/features\/chat\/components\/canonical-composer'/,
+    /import \{ CanonicalComposer \} from '@nimiplatform\/kit\/features\/chat\/components\/canonical-composer'/,
   );
   assert.match(
     CHAT_HUMAN_CANONICAL_COMPONENTS_SOURCE,
-    /from '@nimiplatform\/nimi-kit\/features\/chat\/components\/canonical-transcript-view'/,
+    /from '@nimiplatform\/kit\/features\/chat\/components\/canonical-transcript-view'/,
   );
-  assert.doesNotMatch(CHAT_AGENT_CANONICAL_COMPOSER_SOURCE, /from '@nimiplatform\/nimi-kit\/features\/chat';/);
-  assert.doesNotMatch(CHAT_HUMAN_COMPOSER_SOURCE, /from '@nimiplatform\/nimi-kit\/features\/chat';/);
-  assert.doesNotMatch(CHAT_HUMAN_CANONICAL_COMPONENTS_SOURCE, /from '@nimiplatform\/nimi-kit\/features\/chat';/);
+  assert.doesNotMatch(CHAT_AGENT_CANONICAL_COMPOSER_SOURCE, /from '@nimiplatform\/kit\/features\/chat';/);
+  assert.doesNotMatch(CHAT_HUMAN_COMPOSER_SOURCE, /from '@nimiplatform\/kit\/features\/chat';/);
+  assert.doesNotMatch(CHAT_HUMAN_CANONICAL_COMPONENTS_SOURCE, /from '@nimiplatform\/kit\/features\/chat';/);
 });

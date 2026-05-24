@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { ConversationTurnEvent } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationTurnEvent } from '@nimiplatform/kit/features/chat/headless';
 import {
   assertAgentTurnLifecycleCompleted,
   createInitialAgentTurnLifecycleState,

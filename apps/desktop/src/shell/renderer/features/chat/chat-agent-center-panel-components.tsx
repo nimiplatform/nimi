@@ -1,5 +1,5 @@
 import { type ReactElement, type ReactNode, type SVGProps } from 'react';
-import { Toggle, Tooltip, cn } from '@nimiplatform/nimi-kit/ui';
+import { Toggle, Tooltip, cn } from '@nimiplatform/kit/ui';
 
 export type AgentCenterSectionId = 'overview' | 'appearance' | 'behavior' | 'model' | 'cognition' | 'advanced';
 

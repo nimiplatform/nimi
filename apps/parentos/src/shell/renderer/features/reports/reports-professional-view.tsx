@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Button, IconButton, Surface, TextareaField, Toggle as KitToggle } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, Surface, TextareaField, Toggle as KitToggle } from '@nimiplatform/kit/ui';
 import { Pencil, X } from 'lucide-react';
 import type { NarrativeReportContent, ProfessionalSummary, ProfessionalSummarySection } from './structured-report.js';
 

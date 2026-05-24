@@ -150,10 +150,10 @@ function usesSharedOverlayPrimitive(content) {
   if (/(?:components\/overlay(?:\/index)?\.js|\.\/overlay(?:\/index)?\.js|@renderer\/components\/overlay(?:\/index)?\.js)/u.test(content)) {
     return true;
   }
-  if (/@nimiplatform\/nimi-kit\/features\/commerce\/ui/u.test(content) && /\bSendGiftDialog\b/u.test(content)) {
+  if (/@nimiplatform\/kit\/features\/commerce\/ui/u.test(content) && /\bSendGiftDialog\b/u.test(content)) {
     return true;
   }
-  if (/@nimiplatform\/nimi-kit\/ui/u.test(content)
+  if (/@nimiplatform\/kit\/ui/u.test(content)
     && /\b(?:Tooltip(?:Provider|Trigger|Content)?|OverlayShell)\b/u.test(content)) {
     return true;
   }
@@ -167,7 +167,7 @@ function usesSharedSidebarPrimitive(content) {
   // Any named Sidebar* import from nimi-kit/ui counts as adopting the shared
   // primitive. New Sidebar* sub-primitives added to the kit are picked up
   // automatically without editing this regex.
-  if (/@nimiplatform\/nimi-kit\/ui/u.test(content) && /\bSidebar[A-Z][A-Za-z0-9]*\b/u.test(content)) {
+  if (/@nimiplatform\/kit\/ui/u.test(content) && /\bSidebar[A-Z][A-Za-z0-9]*\b/u.test(content)) {
     return true;
   }
   return false;

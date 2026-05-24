@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent, type ReactNode } from 'react';
-import { Button, Surface, TextareaField, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface, TextareaField, cn } from '@nimiplatform/kit/ui';
 import type {
   RuntimeChatSessionMessage,
   UseRuntimeChatSessionResult,

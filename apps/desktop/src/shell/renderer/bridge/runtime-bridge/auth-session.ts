@@ -1,7 +1,7 @@
 import {
   parseSharedDesktopAuthSession,
   type SharedDesktopAuthSession,
-} from '@nimiplatform/nimi-kit/auth';
+} from '@nimiplatform/kit/auth';
 import { invokeChecked } from './invoke';
 
 function parseOptionalSharedDesktopAuthSession(value: unknown): SharedDesktopAuthSession | null {

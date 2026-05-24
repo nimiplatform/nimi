@@ -1,4 +1,4 @@
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 import { Pencil, Trash2 } from 'lucide-react';
 import { formatAge } from '../../app-shell/app-store.js';
 import type { SleepRecordRow } from '../../bridge/sqlite-bridge.js';

@@ -1,4 +1,4 @@
-import { Avatar } from '@nimiplatform/nimi-kit/ui';
+import { Avatar } from '@nimiplatform/kit/ui';
 
 type EntityAvatarProps = {
   imageUrl?: string | null;

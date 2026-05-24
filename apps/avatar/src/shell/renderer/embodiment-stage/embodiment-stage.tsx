@@ -6,7 +6,7 @@
 // degraded / loading / error / relaunch-pending state.
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 import {
   createAvatarHitRegionSnapshot,
   rectFromElement,

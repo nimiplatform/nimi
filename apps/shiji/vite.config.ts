@@ -26,12 +26,12 @@ export default defineConfig(() => {
         { find: '@renderer', replacement: path.resolve(__dirname, 'src/shell/renderer') },
         { find: '@engine', replacement: path.resolve(__dirname, 'src/shell/renderer/engine') },
         { find: '@nimiplatform/sdk', replacement: path.resolve(__dirname, '../../sdk/src') },
-        { find: '@nimiplatform/nimi-kit/features/model-picker', replacement: path.resolve(__dirname, '../../kit/features/model-picker/src') },
-        { find: '@nimiplatform/nimi-kit/ui', replacement: path.resolve(__dirname, '../../kit/ui/src') },
-        { find: '@nimiplatform/nimi-kit/auth', replacement: path.resolve(__dirname, '../../kit/auth/src') },
-        { find: '@nimiplatform/nimi-kit/core', replacement: path.resolve(__dirname, '../../kit/core/src') },
-        { find: '@nimiplatform/nimi-kit/telemetry/error-boundary', replacement: path.resolve(__dirname, '../../kit/telemetry/src/error-boundary/index.ts') },
-        { find: '@nimiplatform/nimi-kit/telemetry', replacement: path.resolve(__dirname, '../../kit/telemetry/src/telemetry/index.ts') },
+        { find: '@nimiplatform/kit/features/model-picker', replacement: path.resolve(__dirname, '../../kit/features/model-picker/src') },
+        { find: '@nimiplatform/kit/ui', replacement: path.resolve(__dirname, '../../kit/ui/src') },
+        { find: '@nimiplatform/kit/auth', replacement: path.resolve(__dirname, '../../kit/auth/src') },
+        { find: '@nimiplatform/kit/core', replacement: path.resolve(__dirname, '../../kit/core/src') },
+        { find: '@nimiplatform/kit/telemetry/error-boundary', replacement: path.resolve(__dirname, '../../kit/telemetry/src/error-boundary/index.ts') },
+        { find: '@nimiplatform/kit/telemetry', replacement: path.resolve(__dirname, '../../kit/telemetry/src/telemetry/index.ts') },
       ],
     },
     plugins: [
@@ -126,7 +126,7 @@ export default defineConfig(() => {
               return 'vendor-protobuf';
             }
             if (
-              normalizedId.includes('/@nimiplatform/nimi-kit/auth/')
+              normalizedId.includes('/@nimiplatform/kit/auth/')
               || normalizedId.includes('/@nimiplatform/sdk/')
               || normalizedId.includes('/openapi-fetch/')
             ) {

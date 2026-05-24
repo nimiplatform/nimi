@@ -6,7 +6,7 @@ import { buildAgentGreetingSeedMessage, createEmptyAgentThreadBundle } from './c
 import { bundleQueryKey, THREADS_QUERY_KEY, upsertThreadSummary } from './chat-agent-shell-core.js';
 import { findAgentConversationThreadByLocalAgentRef } from './chat-agent-thread-model.js';
 import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
-import type { ConversationMode } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
 import type { AgentConversationSelection } from './chat-shell-types.js';
 
 type AgentConversationLauncherInput = {

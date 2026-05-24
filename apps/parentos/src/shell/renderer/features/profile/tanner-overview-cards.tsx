@@ -1,4 +1,4 @@
-import '@nimiplatform/nimi-kit/ui';
+import '@nimiplatform/kit/ui';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
 
 type TannerOverviewCardsProps = {

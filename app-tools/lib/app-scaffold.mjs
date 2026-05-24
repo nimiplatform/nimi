@@ -140,13 +140,13 @@ function buildPackageJson(profile, versions, identity) {
     },
     dependencies: {
       '@nimiplatform/sdk': profile === 'workspace-app' ? 'workspace:*' : versions.sdkVersion,
-      '@nimiplatform/nimi-kit': profile === 'workspace-app' ? 'workspace:*' : versions.nimiKitVersion,
+      '@nimiplatform/kit': profile === 'workspace-app' ? 'workspace:*' : versions.kitVersion,
       '@tauri-apps/api': versions.tauriApiVersion,
       react: versions.reactVersion,
       'react-dom': versions.reactDomVersion,
     },
     devDependencies: {
-      '@nimiplatform/dev-tools': profile === 'workspace-app' ? 'workspace:*' : versions.devToolsVersion,
+      '@nimiplatform/app-tools': profile === 'workspace-app' ? 'workspace:*' : versions.appToolsVersion,
       '@types/node': versions.nodeTypesVersion,
       '@types/react': versions.reactTypesVersion,
       '@types/react-dom': versions.reactDomTypesVersion,
@@ -168,8 +168,8 @@ function buildRendererFiles(identity) {
       content: [
         "import React from 'react';",
         "import { createRoot } from 'react-dom/client';",
-        "import { NimiThemeProvider } from '@nimiplatform/nimi-kit/ui';",
-        "import '@nimiplatform/nimi-kit/ui/styles.css';",
+        "import { NimiThemeProvider } from '@nimiplatform/kit/ui';",
+        "import '@nimiplatform/kit/ui/styles.css';",
         "import './styles.css';",
         "import { App } from './shell/App.js';",
         '',
@@ -235,7 +235,7 @@ function buildRendererFiles(identity) {
       content: [
         "import { useEffect, useState, type ReactNode } from 'react';",
         "import type { NimiAppAuthProjection } from '@nimiplatform/sdk';",
-        "import { InlineAlert, StatusBadge } from '@nimiplatform/nimi-kit/ui';",
+        "import { InlineAlert, StatusBadge } from '@nimiplatform/kit/ui';",
         "import { getRuntimePlatformProjection } from './runtime-platform.js';",
         '',
         'export function AuthGate({ children }: { children: ReactNode }) {',
@@ -274,7 +274,7 @@ function buildRendererFiles(identity) {
       path: 'src/shell/auth/runtime-gate.tsx',
       content: [
         "import type { ReactNode } from 'react';",
-        "import { StatusBadge } from '@nimiplatform/nimi-kit/ui';",
+        "import { StatusBadge } from '@nimiplatform/kit/ui';",
         '',
         'export function RuntimeGate({ children }: { children: ReactNode }) {',
         '  return (',
@@ -293,7 +293,7 @@ function buildRendererFiles(identity) {
     {
       path: 'src/shell/routes/product-area.tsx',
       content: [
-        "import { Button, Surface } from '@nimiplatform/nimi-kit/ui';",
+        "import { Button, Surface } from '@nimiplatform/kit/ui';",
         '',
         'export function ProductArea() {',
         '  return (',
@@ -311,7 +311,7 @@ function buildRendererFiles(identity) {
     {
       path: 'src/shell/routes/settings.tsx',
       content: [
-        "import { Surface, Toggle } from '@nimiplatform/nimi-kit/ui';",
+        "import { Surface, Toggle } from '@nimiplatform/kit/ui';",
         '',
         'export function SettingsRoute() {',
         '  return (',
@@ -330,7 +330,7 @@ function buildRendererFiles(identity) {
     {
       path: 'src/shell/routes/demo-surfaces.tsx',
       content: [
-        "import { EmptyState, Surface } from '@nimiplatform/nimi-kit/ui';",
+        "import { EmptyState, Surface } from '@nimiplatform/kit/ui';",
         '',
         'export function DemoSurfaces() {',
         '  return (',
@@ -827,9 +827,9 @@ export function hashScaffoldContent(content) {
 function buildDependencyMatrix(profile, versions) {
   return {
     npm: {
-      '@nimiplatform/dev-tools': profile === 'workspace-app' ? 'workspace:*' : versions.devToolsVersion,
+      '@nimiplatform/app-tools': profile === 'workspace-app' ? 'workspace:*' : versions.appToolsVersion,
       '@nimiplatform/sdk': profile === 'workspace-app' ? 'workspace:*' : versions.sdkVersion,
-      '@nimiplatform/nimi-kit': profile === 'workspace-app' ? 'workspace:*' : versions.nimiKitVersion,
+      '@nimiplatform/kit': profile === 'workspace-app' ? 'workspace:*' : versions.kitVersion,
       '@tauri-apps/api': versions.tauriApiVersion,
       react: versions.reactVersion,
       'react-dom': versions.reactDomVersion,

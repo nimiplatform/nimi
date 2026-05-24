@@ -55,12 +55,14 @@ func TestPrintUsageUsesAppAuthCommand(t *testing.T) {
 		t.Fatalf("usage should not expose local-state command group after hard cut: %q", output)
 	}
 	for _, command := range []string{
-		"pnpm dlx @nimiplatform/dev-tools nimi-mod",
-		"pnpm dlx @nimiplatform/dev-tools nimi-app",
+		"pnpm dlx @nimiplatform/app-tools nimi-app",
 	} {
 		if !strings.Contains(output, command) {
 			t.Fatalf("usage should include author tooling hint %s: %q", command, output)
 		}
+	}
+	if strings.Contains(output, "pnpm dlx @nimiplatform/app-tools nimi-mod") {
+		t.Fatalf("usage should not expose removed mod author tooling: %q", output)
 	}
 	for _, command := range []string{"start", "status", "stop", "logs", "health"} {
 		if !strings.Contains(output, command) {
@@ -93,8 +95,7 @@ func TestPrintRuntimeModUsageIncludesInstalledManagementOnly(t *testing.T) {
 		"--mod-circle-repo",
 		"--mod-circle-ref",
 		"--strict-id",
-		"pnpm dlx @nimiplatform/dev-tools nimi-mod create|dev|build|doctor|pack",
-		"pnpm dlx @nimiplatform/dev-tools nimi-app create",
+		"pnpm dlx @nimiplatform/app-tools nimi-app create",
 	}
 	for _, command := range required {
 		if !strings.Contains(output, command) {
@@ -105,6 +106,9 @@ func TestPrintRuntimeModUsageIncludesInstalledManagementOnly(t *testing.T) {
 		if strings.Contains(output, command) {
 			t.Fatalf("runtime mod usage should not include author command %s: %q", command, output)
 		}
+	}
+	if strings.Contains(output, "nimi-mod") {
+		t.Fatalf("runtime mod usage should not include removed nimi-mod author tooling: %q", output)
 	}
 }
 

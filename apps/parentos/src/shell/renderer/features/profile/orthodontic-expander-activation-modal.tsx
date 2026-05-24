@@ -1,4 +1,4 @@
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 /**
  * Records an expander activation turn (PO-ORTHO-005 `expander-activation`
  * checkin / PO-ORTHO-014). Opened from the expander card's "记录转动" action.

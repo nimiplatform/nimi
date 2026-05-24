@@ -4,7 +4,7 @@ import type {
   LocalRuntimeCatalogItemDescriptor,
   LocalRuntimeVerifiedAssetDescriptor,
 } from '@runtime/local-runtime';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 import { i18n } from '@renderer/i18n';
 import { RuntimeSelect } from './runtime-config-primitives';
 import {

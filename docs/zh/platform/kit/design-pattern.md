@@ -3,7 +3,7 @@
 > 状态：运行中 (Running)。Nimi 设计模式 (`P-DESIGN-*`) 是
 > 用于共享视觉和交互约定的跨应用权威。
 
-Nimi **设计模式** 是位于 `@nimiplatform/nimi-kit/ui` 中的共享视觉和交互权威。它管理 kit primitives、语义令牌、主题 schema，以及任何消费方 app 接入时必须遵守的通用契约。
+Nimi **设计模式** 是位于 `@nimiplatform/kit/ui` 中的共享视觉和交互权威。它管理 kit primitives、语义令牌、主题 schema，以及任何消费方 app 接入时必须遵守的通用契约。
 
 ## 基础权威
 
@@ -28,9 +28,9 @@ Nimi **设计模式** 是位于 `@nimiplatform/nimi-kit/ui` 中的共享视觉�
 受管理的应用条目导入：
 
 ```
-@nimiplatform/nimi-kit/ui/themes/light.css
-@nimiplatform/nimi-kit/ui/themes/dark.css
-@nimiplatform/nimi-kit/ui/themes/<app>-accent.css   （恰好一个）
+@nimiplatform/kit/ui/themes/light.css
+@nimiplatform/kit/ui/themes/dark.css
+@nimiplatform/kit/ui/themes/<app>-accent.css   （恰好一个）
 ```
 
 没有“混合两个强调包”的模式，也没有“跳过基础方案”的模式。
@@ -118,17 +118,17 @@ Nimi **设计模式** 是位于 `@nimiplatform/nimi-kit/ui` 中的共享视觉�
 
 共享原语：
 
-- 由 `@nimiplatform/nimi-kit/ui` 提供
+- 由 `@nimiplatform/kit/ui` 提供
 - 基于 Radix UI 无头原语（Dialog, Tooltip, ScrollArea, Select, Switch, Avatar, Popover）
 - 使用 CVA + Tailwind 引用 `--nimi-*` 语义令牌进行样式设置
 
-受管理的应用模块**必须**使用共享原语进行壳级家族：`surface`, `action`, `overlay`, `sidebar`, `field`, `status`, `scroll_area`, `toggle`, `avatar`。仅允许直接委托给 `@nimiplatform/nimi-kit/ui` 的薄兼容包装器，且不重新定义视觉契约。
+受管理的应用模块**必须**使用共享原语进行壳级家族：`surface`, `action`, `overlay`, `sidebar`, `field`, `status`, `scroll_area`, `toggle`, `avatar`。仅允许直接委托给 `@nimiplatform/kit/ui` 的薄兼容包装器，且不重新定义视觉契约。
 
 ## 读者场景：为新应用添加强调包
 
 一个新的准入 Nimi 应用需要自己的强调身份。
 
-1. **添加强调包。** 新的 `<app>-accent.css` 文件将放置在 `@nimiplatform/nimi-kit/ui/themes/` 下。
+1. **添加强调包。** 新的 `<app>-accent.css` 文件将放置在 `@nimiplatform/kit/ui/themes/` 下。
 2. **令牌被覆盖。** 强调包为已准入的 `accent` 层语义令牌分配值；基础令牌保持不变。
 3. **应用导入。** 应用入口导入基础浅色 + 深色 CSS 以及恰好其自身的 `-accent.css`。
 4. **视觉身份显现。** 应用感觉独特，同时共享基础方案。

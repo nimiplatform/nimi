@@ -33,7 +33,7 @@ vi.mock('@nimiplatform/sdk/mod', () => ({
   }),
 }));
 
-vi.mock('@nimiplatform/nimi-kit/features/model-picker/ui', () => ({
+vi.mock('@nimiplatform/kit/features/model-picker/ui', () => ({
   RouteModelPickerPanel: ({ sourceOptions, connectorOptions }: {
     sourceOptions?: Array<{ value: string; label: string }>;
     connectorOptions?: Array<{ value: string; label: string }>;

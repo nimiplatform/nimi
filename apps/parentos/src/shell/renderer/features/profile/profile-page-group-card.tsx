@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Activity, Award, ChevronDown, ChevronRight, Eye, Footprints, Moon, Plus, Smile, Stethoscope, Sun, Syringe } from 'lucide-react';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 import type { HealthGroupSnapshot, HealthMetricSnapshot } from '../../engine/health-record-domain.js';
 import type { HealthMetricGroupId, HealthMetricId } from '../../knowledge-base/index.js';
 import { formatDate, formatMetricSnapshotValue, formatMetricSnapshotValueParts, groupLabel, metricLabel } from './health-record-display.js';

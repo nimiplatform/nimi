@@ -30,7 +30,7 @@
 
 | 规则 | 是否必须 |
 | --- | --- |
-| 通过 `@nimiplatform/nimi-kit/ui` 中的 `<Surface material="...">` 原始组件消费材质，或使用等效的 `data-nimi-material="<tier>"` 标记类 | 是 |
+| 通过 `@nimiplatform/kit/ui` 中的 `<Surface material="...">` 原始组件消费材质，或使用等效的 `data-nimi-material="<tier>"` 标记类 | 是 |
 | 内联 `rgba(...)` 材质背景填充 | 禁止 |
 | 内联 `backdrop-filter` 声明 | 禁止 |
 | 在工具包生成的实用类之外手动选择 `backdrop-blur-*` Tailwind 命名令牌 | 禁止 |
@@ -107,7 +107,7 @@
 | 五级分类 + 令牌 | `P-DESIGN-022`（此合同） |
 | 令牌目录 | `tables/nimi-ui-tokens.yaml` |
 | 主题值 | `tables/nimi-ui-themes.yaml` |
-| `<Surface>` 原始组件 | `@nimiplatform/nimi-kit/ui` |
+| `<Surface>` 原始组件 | `@nimiplatform/kit/ui` |
 | 性能降级接口 | 此合同（规范层面） |
 | 运行时性能降级实现 | 消费者责任（单独） |
 

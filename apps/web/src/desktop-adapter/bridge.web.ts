@@ -4,7 +4,7 @@
 // Residual desktop type coupling tracked as F-011. Full decoupling requires
 // a web-specific app shell that does not render desktop App.
 
-import type { SharedDesktopAuthSession } from '@nimiplatform/nimi-kit/auth';
+import type { SharedDesktopAuthSession } from '@nimiplatform/kit/auth';
 import {
   hasTauriInvoke,
   getDaemonStatus,
@@ -19,7 +19,7 @@ import {
   loadAuthSession,
   saveAuthSession,
   clearAuthSession,
-} from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+} from '@nimiplatform/kit/shell/renderer/bridge';
 
 // Desktop public boundary — types and functions imported via the admitted
 // public-for-web surface instead of reaching into desktop bridge internals.

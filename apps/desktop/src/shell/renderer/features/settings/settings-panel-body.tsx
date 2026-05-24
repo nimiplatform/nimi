@@ -9,8 +9,8 @@ import {
   SidebarSection,
   SidebarShell,
   Surface,
-} from '@nimiplatform/nimi-kit/ui';
-import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
+} from '@nimiplatform/kit/ui';
+import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { getSettingsMenuSections } from './settings-assets.js';
 import { renderSettingsPage } from './settings-pages.js';
 import {

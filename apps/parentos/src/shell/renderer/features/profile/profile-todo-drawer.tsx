@@ -1,4 +1,4 @@
-import { IconButton, cn } from '@nimiplatform/nimi-kit/ui';
+import { IconButton, cn } from '@nimiplatform/kit/ui';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../../app-shell/app-store.js';

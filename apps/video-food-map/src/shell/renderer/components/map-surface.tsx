@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { openExternalUrl } from '@renderer/data/api.js';
 import { formatDistanceLabel, type UserLocation } from '@renderer/data/nearby.js';
 import type { MapPoint } from '@renderer/data/types.js';

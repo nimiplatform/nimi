@@ -1,4 +1,4 @@
-import { parseRuntimeDefaults as parseSharedRuntimeDefaults } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+import { parseRuntimeDefaults as parseSharedRuntimeDefaults } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   assertRecord,
   parseOptionalJsonObject,

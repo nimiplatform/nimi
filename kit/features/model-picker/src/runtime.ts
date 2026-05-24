@@ -15,7 +15,7 @@ import {
   type CatalogModelWorkflowBinding,
   type CatalogModelSummary,
   type ModelCatalogProviderEntry,
-} from '@nimiplatform/nimi-kit/core/sdk-contract';
+} from '@nimiplatform/kit/core/sdk-contract';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useModelPicker, type UseModelPickerOptions, type UseModelPickerResult } from './headless.js';
 import type { ModelCatalogAdapter } from './types.js';

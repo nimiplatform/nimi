@@ -1,5 +1,5 @@
 import React, { useEffect, useState, type ReactNode } from 'react';
-import { Button, SidebarShell, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, SidebarShell, Surface } from '@nimiplatform/kit/ui';
 
 type SidebarBoundaryProps = {
   children: ReactNode;

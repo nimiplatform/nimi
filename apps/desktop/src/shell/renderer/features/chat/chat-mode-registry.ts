@@ -1,4 +1,4 @@
-import type { ConversationMode } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 
 export type DesktopConversationModeRegistry = {

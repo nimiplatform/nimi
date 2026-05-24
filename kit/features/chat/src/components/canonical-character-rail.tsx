@@ -1,11 +1,11 @@
 import type { RefObject } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn } from '@nimiplatform/kit/ui';
 import {
   AvatarStage,
   createAvatarStageSnapshot,
   resolveAvatarPresentationProfile,
   resolveAvatarStagePosterUrl,
-} from '@nimiplatform/nimi-kit/features/avatar';
+} from '@nimiplatform/kit/features/avatar';
 import type { ConversationCharacterData, ConversationTargetSummary } from '../types.js';
 export const CANONICAL_NO_BIO_FALLBACK = 'This Agent has no public bio.';
 

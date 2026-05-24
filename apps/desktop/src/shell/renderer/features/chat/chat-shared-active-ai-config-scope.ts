@@ -2,7 +2,7 @@ import {
   createBuiltInChatAIScopeRef,
   type AIScopeRef,
 } from '@nimiplatform/sdk/mod';
-import type { ConversationMode } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
 import { scopeKeyFromRef } from '@renderer/app-shell/providers/desktop-ai-config-storage';
 import { pushDesktopAIConfigToBoundStore } from '@renderer/app-shell/providers/desktop-ai-config-service';
 

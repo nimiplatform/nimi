@@ -26,10 +26,10 @@ export default defineConfig(() => {
         { find: '@renderer', replacement: path.resolve(__dirname, 'src/shell/renderer') },
         { find: '@runtime', replacement: path.resolve(__dirname, 'src/runtime') },
         { find: '@nimiplatform/sdk', replacement: path.resolve(__dirname, '../../sdk/src') },
-        { find: '@nimiplatform/nimi-kit/features/chat', replacement: path.resolve(__dirname, '../../kit/features/chat/src') },
-        { find: '@nimiplatform/nimi-kit/ui', replacement: path.resolve(__dirname, '../../kit/ui/src') },
-        { find: '@nimiplatform/nimi-kit/auth', replacement: path.resolve(__dirname, '../../kit/auth/src') },
-        { find: '@nimiplatform/nimi-kit/core', replacement: path.resolve(__dirname, '../../kit/core/src') },
+        { find: '@nimiplatform/kit/features/chat', replacement: path.resolve(__dirname, '../../kit/features/chat/src') },
+        { find: '@nimiplatform/kit/ui', replacement: path.resolve(__dirname, '../../kit/ui/src') },
+        { find: '@nimiplatform/kit/auth', replacement: path.resolve(__dirname, '../../kit/auth/src') },
+        { find: '@nimiplatform/kit/core', replacement: path.resolve(__dirname, '../../kit/core/src') },
         { find: '@world-engine', replacement: path.resolve(__dirname, '../../nimi-mods/runtime/world-studio/src') },
       ],
     },
@@ -131,7 +131,7 @@ export default defineConfig(() => {
               return 'vendor-three';
             }
             if (
-              normalizedId.includes('/@nimiplatform/nimi-kit/auth/')
+              normalizedId.includes('/@nimiplatform/kit/auth/')
               || normalizedId.includes('/@nimiplatform/sdk/')
               || normalizedId.includes('/openapi-fetch/')
             ) {

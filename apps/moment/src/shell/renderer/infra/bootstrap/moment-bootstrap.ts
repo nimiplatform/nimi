@@ -1,5 +1,5 @@
 import { clearPlatformClient } from '@nimiplatform/sdk';
-import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import {
   getRuntimeDefaults,

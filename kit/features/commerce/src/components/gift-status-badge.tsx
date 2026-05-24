@@ -1,4 +1,4 @@
-import { StatusBadge, type StatusTone } from '@nimiplatform/nimi-kit/ui';
+import { StatusBadge, type StatusTone } from '@nimiplatform/kit/ui';
 import type { CommerceGiftStatus } from '../types.js';
 
 function getStatusTone(status: CommerceGiftStatus): StatusTone {

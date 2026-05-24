@@ -1,5 +1,5 @@
 /**
- * `@nimiplatform/nimi-kit/ui/motion`
+ * `@nimiplatform/kit/ui/motion`
  *
  * Motion timing primitives + prefers-reduced-motion hook (wave-b
  * fork F1 lift-the-bar).

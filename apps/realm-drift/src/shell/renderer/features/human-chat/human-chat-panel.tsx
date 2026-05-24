@@ -11,13 +11,13 @@ import {
   sendRealmChatMessage,
   startRealmChat,
   type RealmChatTimelineMessage,
-} from '@nimiplatform/nimi-kit/features/chat/realm';
-import { useChatComposer } from '@nimiplatform/nimi-kit/features/chat/headless';
+} from '@nimiplatform/kit/features/chat/realm';
+import { useChatComposer } from '@nimiplatform/kit/features/chat/headless';
 import {
   ChatPanelState,
   ChatThreadHeader,
   RealmChatTimeline,
-} from '@nimiplatform/nimi-kit/features/chat';
+} from '@nimiplatform/kit/features/chat';
 
 type StartChatResult = RealmServiceResult<'HumanChatsService', 'startChat'>;
 type ListMessagesResult = RealmServiceResult<'HumanChatsService', 'listMessages'>;

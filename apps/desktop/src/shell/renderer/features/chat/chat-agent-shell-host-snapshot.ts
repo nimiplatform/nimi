@@ -1,5 +1,5 @@
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
-import type { ConversationCanonicalMessage, ConversationCharacterData, ConversationTargetSummary } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationCanonicalMessage, ConversationCharacterData, ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 
 export type AgentConversationHostSnapshot = Pick<
   DesktopConversationModeHost,

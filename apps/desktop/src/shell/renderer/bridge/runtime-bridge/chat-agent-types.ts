@@ -1,5 +1,5 @@
 import type { JsonObject } from './shared.js';
-import type { AvatarPresentationProfile } from '@nimiplatform/nimi-kit/features/avatar/headless';
+import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 
 export type AgentLocalMessageRole = 'system' | 'user' | 'assistant';
 export type AgentLocalMessageStatus = 'pending' | 'complete' | 'error';

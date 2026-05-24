@@ -1,4 +1,4 @@
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { type ReactNode } from 'react';
 import type { GrowthMilestone } from './growth-milestone-rules.js';
 import type {

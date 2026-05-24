@@ -1,4 +1,4 @@
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
 import { formatDate } from '@renderer/components/format-utils.js';
 import { PANELS, type WorkbenchPageSnapshot, type WorkbenchPanel } from './workbench-page-shared.js';

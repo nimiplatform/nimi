@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface } from '@nimiplatform/kit/ui';
 import { CandidateCard, DesignedVoiceAssetCard, LibraryCard, LifecycleCounter } from './agent-asset-family-cards';
 import { ForgeEntityAvatar } from '@renderer/components/card-list.js';
 import {

@@ -113,17 +113,17 @@ modules:
 `);
   write(root, 'apps/probe/spec/kernel/tables/nimi-kit-compositions.yaml', 'version: 1\napp: probe\ncomponents: []\n');
   write(root, 'apps/probe/spec/kernel/tables/nimi-kit-allowlists.yaml', 'version: 1\napp: probe\nitems: []\n');
-  write(root, 'apps/probe/src/styles.css', `@import "@nimiplatform/nimi-kit/ui/styles.css";
-@import "@nimiplatform/nimi-kit/ui/themes/light.css";
-@import "@nimiplatform/nimi-kit/ui/themes/dark.css";
-@import "@nimiplatform/nimi-kit/ui/themes/nimi-accent.css";
+  write(root, 'apps/probe/src/styles.css', `@import "@nimiplatform/kit/ui/styles.css";
+@import "@nimiplatform/kit/ui/themes/light.css";
+@import "@nimiplatform/kit/ui/themes/dark.css";
+@import "@nimiplatform/kit/ui/themes/nimi-accent.css";
 `);
-  write(root, 'apps/probe/src/main.tsx', `import { NimiThemeProvider } from '@nimiplatform/nimi-kit/ui';
+  write(root, 'apps/probe/src/main.tsx', `import { NimiThemeProvider } from '@nimiplatform/kit/ui';
 export function App() {
   return <NimiThemeProvider><div /></NimiThemeProvider>;
 }
 `);
-  write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/nimi-kit/ui';
+  write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/kit/ui';
 export function ProbeSurface() {
   return <Surface>probe</Surface>;
 }
@@ -198,7 +198,7 @@ function buildKitFixture(root) {
     reuse_entrypoints: []
 `);
   write(root, 'kit/package.json', JSON.stringify({
-    name: '@nimiplatform/nimi-kit-fixture',
+    name: '@nimiplatform/kit-fixture',
     exports: {
       './ui': './ui/src/index.ts',
       './auth': './auth/src/index.ts',
@@ -250,12 +250,12 @@ const uiCases = [
   {
     name: 'missing kit accent theme import',
     mutate(root) {
-      write(root, 'apps/probe/src/styles.css', `@import "@nimiplatform/nimi-kit/ui/styles.css";
-@import "@nimiplatform/nimi-kit/ui/themes/light.css";
-@import "@nimiplatform/nimi-kit/ui/themes/dark.css";
+      write(root, 'apps/probe/src/styles.css', `@import "@nimiplatform/kit/ui/styles.css";
+@import "@nimiplatform/kit/ui/themes/light.css";
+@import "@nimiplatform/kit/ui/themes/dark.css";
 `);
     },
-    expected: 'apps/probe/src/styles.css: must import @nimiplatform/nimi-kit/ui/themes/nimi-accent.css',
+    expected: 'apps/probe/src/styles.css: must import @nimiplatform/kit/ui/themes/nimi-accent.css',
   },
   {
     name: 'missing kit theme provider',
@@ -265,12 +265,12 @@ const uiCases = [
 }
 `);
     },
-    expected: 'apps/probe/src/main.tsx: must use NimiThemeProvider from @nimiplatform/nimi-kit/ui',
+    expected: 'apps/probe/src/main.tsx: must use NimiThemeProvider from @nimiplatform/kit/ui',
   },
   {
     name: 'inline raw glass style',
     mutate(root) {
-      write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/nimi-kit/ui';
+      write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/kit/ui';
 export function ProbeSurface() {
   return <Surface style={{ backdropFilter: 'blur(12px)' }}>probe</Surface>;
 }
@@ -281,7 +281,7 @@ export function ProbeSurface() {
   {
     name: 'marketing hero gradient card',
     mutate(root) {
-      write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/nimi-kit/ui';
+      write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/kit/ui';
 export function ProbeSurface() {
   return (
     <Surface>
@@ -298,7 +298,7 @@ export function ProbeSurface() {
   {
     name: 'plain web form styling',
     mutate(root) {
-      write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/nimi-kit/ui';
+      write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/kit/ui';
 export function ProbeSurface() {
   return (
     <Surface>
@@ -315,7 +315,7 @@ export function ProbeSurface() {
   {
     name: 'dense border line material bypass',
     mutate(root) {
-      write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/nimi-kit/ui';
+      write(root, 'apps/probe/src/surface.tsx', `import { Surface } from '@nimiplatform/kit/ui';
 export function ProbeSurface() {
   return <Surface><div className="border-[#dfe4ec]">dense lines</div></Surface>;
 }
@@ -364,7 +364,7 @@ modules: []
       write(root, 'apps/synthetic/src/styles.css', '');
       write(root, 'apps/synthetic/src/main.tsx', 'export function Synthetic() { return null; }\n');
     },
-    expected: 'apps/synthetic/src/styles.css: must import @nimiplatform/nimi-kit/ui/styles.css',
+    expected: 'apps/synthetic/src/styles.css: must import @nimiplatform/kit/ui/styles.css',
   },
 ];
 
@@ -379,10 +379,10 @@ withTempFixture('ui-pattern-base', buildUiPatternFixture, (root) => {
     themeProvider: 'apps/probe/src/main.tsx',
     governedModule: 'apps/probe/src/surface.tsx',
     imports: [
-      '@nimiplatform/nimi-kit/ui/styles.css',
-      '@nimiplatform/nimi-kit/ui/themes/light.css',
-      '@nimiplatform/nimi-kit/ui/themes/dark.css',
-      '@nimiplatform/nimi-kit/ui/themes/nimi-accent.css',
+      '@nimiplatform/kit/ui/styles.css',
+      '@nimiplatform/kit/ui/themes/light.css',
+      '@nimiplatform/kit/ui/themes/dark.css',
+      '@nimiplatform/kit/ui/themes/nimi-accent.css',
       'NimiThemeProvider',
       'Surface',
     ],

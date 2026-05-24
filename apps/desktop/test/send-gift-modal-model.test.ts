@@ -4,7 +4,7 @@ import test from 'node:test';
 import {
   normalizeCommerceGiftCatalog,
   resolveSelectedGiftId,
-} from '@nimiplatform/nimi-kit/features/commerce/headless';
+} from '@nimiplatform/kit/features/commerce/headless';
 
 test('normalizeCommerceGiftCatalog accepts array and item-wrapper payloads', () => {
   const fromArray = normalizeCommerceGiftCatalog([

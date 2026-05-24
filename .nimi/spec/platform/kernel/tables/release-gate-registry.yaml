@@ -421,7 +421,7 @@ gates:
     p_relg_anchors: [P-RELG-001, P-RELG-006]
     parent_p_gov_anchors: [P-GOV-003, P-GOV-011]
     experimental: true
-    notes: Product runtime/desktop release gates no longer depend on the external mods repo; dev-tools/mod cleanup owns reactivation.
+    notes: Product runtime/desktop release gates no longer depend on the external mods repo; app-tools/mod cleanup owns reactivation.
 
   - id: gate.desktop.e2e-smoke
     description: Desktop E2E smoke test (Linux/Windows CI only; macOS uses manual smoke).
@@ -492,7 +492,7 @@ gates:
     p_relg_anchors: [P-RELG-001, P-RELG-006]
     parent_p_gov_anchors: [P-GOV-003, P-GOV-011]
     experimental: true
-    notes: Product runtime/desktop release gates no longer provide external mods env; dev-tools/mod cleanup owns reactivation.
+    notes: Product runtime/desktop release gates no longer provide external mods env; app-tools/mod cleanup owns reactivation.
 
   - id: gate.desktop.version-sync
     description: Desktop version sync verification.

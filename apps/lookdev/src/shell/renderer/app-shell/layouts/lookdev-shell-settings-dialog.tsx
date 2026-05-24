@@ -10,7 +10,7 @@ import {
   SelectField,
   StatusBadge,
   type SelectFieldOption,
-} from '@nimiplatform/nimi-kit/ui';
+} from '@nimiplatform/kit/ui';
 import { useRuntimeReadiness } from '@renderer/hooks/use-runtime-readiness.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { useLookdevRouteSettings } from '@renderer/hooks/use-lookdev-route-settings.js';

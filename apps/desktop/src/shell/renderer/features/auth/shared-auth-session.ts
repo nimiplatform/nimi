@@ -1,7 +1,7 @@
 import {
   clearPersistedAccessToken,
   type ResolvedDesktopBootstrapAuthSession,
-} from '@nimiplatform/nimi-kit/auth';
+} from '@nimiplatform/kit/auth';
 
 export async function loadResolvedSharedDesktopBootstrapAuthSession(input: {
   realmBaseUrl: string;

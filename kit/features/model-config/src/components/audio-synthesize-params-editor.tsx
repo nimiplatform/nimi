@@ -1,5 +1,5 @@
 import type { AudioSynthesizeParamsState } from '../types.js';
-import type { SpeechVoiceReference } from '@nimiplatform/nimi-kit/core/sdk-contract';
+import type { SpeechVoiceReference } from '@nimiplatform/kit/core/sdk-contract';
 import { AUDIO_SYNTHESIZE_RESPONSE_FORMAT_OPTIONS } from '../constants.js';
 import {
   EditorSectionTitle,

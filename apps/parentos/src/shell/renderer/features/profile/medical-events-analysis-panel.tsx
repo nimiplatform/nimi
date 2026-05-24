@@ -1,4 +1,4 @@
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { Surface } from '@nimiplatform/kit/ui';
 import type { MedicalAnalysis } from '../../engine/smart-alerts.js';
 import { EVENT_TYPE_LABELS } from './medical-events-page-shared.js';
 

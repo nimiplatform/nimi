@@ -1,4 +1,4 @@
-import { Button, DialogTitle, OverlayShell } from '@nimiplatform/nimi-kit/ui';
+import { Button, DialogTitle, OverlayShell } from '@nimiplatform/kit/ui';
 /**
  * Parent-initiated treatment-phase advance dialog (PO-ORTHO-013). The
  * per-appliance mirror of `OrthodonticStageConfirmDialog`: the phase pill on

@@ -105,17 +105,17 @@ func TestResolveModsDirRequiresExplicitInput(t *testing.T) {
 	}
 }
 
-func TestRunRuntimeModAuthorCommandsMovedToNimiMod(t *testing.T) {
+func TestRunRuntimeModAuthorCommandsRemoved(t *testing.T) {
 	for _, command := range []string{"create", "dev", "build", "publish"} {
 		err := runRuntimeMod([]string{command})
 		if err == nil {
-			t.Fatalf("expected moved error for %s", command)
+			t.Fatalf("expected removed error for %s", command)
 		}
-		if !strings.Contains(err.Error(), "AUTHOR_COMMAND_MOVED") {
-			t.Fatalf("missing moved reason code for %s: %v", command, err)
+		if !strings.Contains(err.Error(), "AUTHOR_COMMAND_REMOVED") {
+			t.Fatalf("missing removed reason code for %s: %v", command, err)
 		}
-		if !strings.Contains(err.Error(), "use_nimi-mod_"+command) {
-			t.Fatalf("missing nimi-mod hint for %s: %v", command, err)
+		if !strings.Contains(err.Error(), "runtime_mod_authoring_removed") {
+			t.Fatalf("missing removed authoring hint for %s: %v", command, err)
 		}
 	}
 }
