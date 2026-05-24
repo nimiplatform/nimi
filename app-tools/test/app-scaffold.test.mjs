@@ -113,6 +113,7 @@ test('standalone scaffold generates industrial Nimi App Tauri profile', () => {
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], versions.sdkVersion);
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], versions.kitVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], versions.appToolsVersion);
+    assert.equal(packageJson.scripts.typecheck, 'tsc --noEmit');
     assert.equal(packageJson.scripts.doctor, 'nimi-app doctor');
     assert.equal(packageJson.scripts.update, 'nimi-app update');
     assert.equal(Object.hasOwn(packageJson, 'author'), false);

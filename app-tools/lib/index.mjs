@@ -4,7 +4,7 @@ import { createAppScaffold } from './app-scaffold.mjs';
 import { doctorApp, updateApp } from './app-doctor-update.mjs';
 
 const SDK_VERSION = '^0.5.15';
-const APP_TOOLS_VERSION = '^0.1.0';
+const APP_TOOLS_VERSION = '^0.1.1';
 const KIT_VERSION = '^0.1.0';
 const REACT_VERSION = '^19.1.0';
 const REACT_DOM_VERSION = '^19.1.0';

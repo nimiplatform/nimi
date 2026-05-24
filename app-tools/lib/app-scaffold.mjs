@@ -129,6 +129,7 @@ function buildPackageJson(profile, versions, identity) {
     type: 'module',
     scripts: {
       dev: 'vite',
+      typecheck: 'tsc --noEmit',
       build: 'tsc --noEmit && vite build',
       test: 'node --test test/*.test.mjs',
       check: 'pnpm run doctor && pnpm run test && pnpm run validate',
