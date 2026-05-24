@@ -111,7 +111,9 @@ jobs:
           import { readFileSync } from 'node:fs';
 
           const pkg = JSON.parse(readFileSync('kit/package.json', 'utf8'));
+          const sdkPkg = JSON.parse(readFileSync('sdk/package.json', 'utf8'));
           const expectedVersion = process.env.RELEASE_VERSION;
+          const expectedSdkDependency = `^${sdkPkg.version}`;
           if (pkg.name !== '@nimiplatform/nimi-kit') {
             throw new Error(`unexpected kit package name: ${pkg.name}`);
           }
@@ -136,7 +138,23 @@ jobs:
           if (!Array.isArray(pkg.files) || !pkg.files.includes('README.md')) {
             throw new Error('@nimiplatform/nimi-kit package files must include README.md');
           }
+          const sdkDependency = pkg.dependencies?.['@nimiplatform/sdk'];
+          if (typeof sdkDependency !== 'string') {
+            throw new Error('@nimiplatform/nimi-kit must declare @nimiplatform/sdk in dependencies');
+          }
+          if (sdkDependency.startsWith('workspace:')) {
+            throw new Error('@nimiplatform/nimi-kit must not publish with a workspace: @nimiplatform/sdk dependency');
+          }
+          if (!/^\^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$/.test(sdkDependency)) {
+            throw new Error(`@nimiplatform/nimi-kit SDK dependency ${sdkDependency} is not a public caret semver range`);
+          }
+          if (sdkDependency !== expectedSdkDependency) {
+            throw new Error(`@nimiplatform/nimi-kit SDK dependency ${sdkDependency} does not match published SDK ${expectedSdkDependency}`);
+          }
           NODE
+
+      - name: Build SDK for local workspace resolution
+        run: pnpm --filter @nimiplatform/sdk build
 
       - name: Build nimi-kit
         run: pnpm --filter @nimiplatform/nimi-kit build

@@ -1257,7 +1257,7 @@ importers:
   kit:
     dependencies:
       '@nimiplatform/sdk':
-        specifier: workspace:*
+        specifier: ^0.5.14
         version: link:../sdk
       '@radix-ui/react-avatar':
         specifier: ^1.1.10
