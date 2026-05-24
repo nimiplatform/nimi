@@ -118,7 +118,7 @@ test('standalone scaffold generates industrial Nimi App Tauri profile', () => {
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], versions.appToolsVersion);
     assert.equal(packageJson.devDependencies['@tauri-apps/cli'], versions.tauriCliVersion);
     assert.equal(packageJson.scripts.dev, 'pnpm run dev:renderer');
-    assert.equal(packageJson.scripts['dev:renderer'], 'vite --host 127.0.0.1 --port 1420 --strictPort');
+    assert.equal(packageJson.scripts['dev:renderer'], 'vite --host 127.0.0.1 --port 1430 --strictPort');
     assert.equal(packageJson.scripts['dev:shell'], 'tauri dev');
     assert.equal(packageJson.scripts.typecheck, 'tsc --noEmit');
     assert.equal(packageJson.scripts.pack, 'pnpm run build && node scripts/pack.mjs');

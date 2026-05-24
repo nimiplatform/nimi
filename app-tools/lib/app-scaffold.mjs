@@ -132,7 +132,7 @@ function buildPackageJson(profile, versions, identity) {
     },
     scripts: {
       dev: 'pnpm run dev:renderer',
-      'dev:renderer': 'vite --host 127.0.0.1 --port 1420 --strictPort',
+      'dev:renderer': 'vite --host 127.0.0.1 --port 1430 --strictPort',
       'dev:shell': 'tauri dev',
       typecheck: 'tsc --noEmit',
       build: 'tsc --noEmit && vite build',
@@ -846,7 +846,7 @@ function buildTauriFiles(identity, versions) {
         build: {
           beforeDevCommand: 'pnpm run dev:renderer',
           beforeBuildCommand: 'pnpm run build',
-          devUrl: 'http://localhost:1420',
+          devUrl: 'http://localhost:1430',
           frontendDist: '../dist',
         },
         app: {
