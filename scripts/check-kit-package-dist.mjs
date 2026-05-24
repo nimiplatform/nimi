@@ -92,14 +92,25 @@ for (const target of collectExportTargets(pkg.exports)) {
 }
 
 for (const absPath of walkFiles(path.join(kitRoot, 'dist'))) {
-  if (!/\.(?:js|d\.ts)$/.test(absPath)) {
-    continue;
-  }
   const content = fs.readFileSync(absPath, 'utf8');
-  for (const match of content.matchAll(/(?:from\s+|import\()\s*['"](@nimiplatform\/kit\/[^'"]+)['"]/g)) {
-    const subpath = `.${match[1].slice('@nimiplatform/kit'.length)}`;
-    if (!packageExportKeys.has(subpath)) {
-      fail(`${rel(absPath)} imports unpublished kit subpath ${match[1]}`);
+  if (/\.(?:js|d\.ts)$/.test(absPath)) {
+    for (const match of content.matchAll(/(?:from\s+|import\()\s*['"](@nimiplatform\/kit\/[^'"]+)['"]/g)) {
+      const subpath = `.${match[1].slice('@nimiplatform/kit'.length)}`;
+      if (!packageExportKeys.has(subpath)) {
+        fail(`${rel(absPath)} imports unpublished kit subpath ${match[1]}`);
+      }
+    }
+  }
+  if (absPath.endsWith('.css')) {
+    for (const match of content.matchAll(/@import\s+['"]([^'"]+)['"]/g)) {
+      const importPath = match[1];
+      if (!importPath.startsWith('.')) {
+        continue;
+      }
+      const target = path.resolve(path.dirname(absPath), importPath);
+      if (!fs.existsSync(target)) {
+        fail(`${rel(absPath)} imports missing CSS asset ${importPath}`);
+      }
     }
   }
 }

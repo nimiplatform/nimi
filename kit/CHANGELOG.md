@@ -7,6 +7,15 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 with the pre-1.0 discipline documented in `kit/AGENTS.md` §Semver
 Discipline.
 
+## [0.1.2] - 2026-05-25
+
+### Fixed
+
+- Included nested auth CSS theme assets in the published `dist` package so
+  `@nimiplatform/kit/auth/styles.css` resolves every relative `@import`.
+- Extended the kit dist package guard to fail when a published CSS file
+  references a missing relative CSS asset.
+
 ## [0.1.1] - 2026-05-24
 
 ### Fixed
@@ -88,5 +97,6 @@ unpublished workspace paths should update to the npm package name
 `@nimiplatform/kit` and keep `@nimiplatform/sdk` aligned with the
 compatible pre-1.0 range selected by their app.
 
+[0.1.2]: ./
 [0.1.1]: ./
 [0.1.0]: ./
