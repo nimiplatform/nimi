@@ -7,9 +7,12 @@ import { wireAvatarVoiceLipsync } from '../apps/avatar/src/shell/renderer/voice-
 
 const turnId = 'acceptance-turn-1';
 const streamId = 'acceptance-stream-1';
+const ownerUserId = 'user-acceptance';
+const realmAgentId = 'agent-acceptance';
+const localAgentRef = `local-agent:${ownerUserId}:${realmAgentId}`;
 
 const runtimePayload = {
-  agent_id: 'agent-acceptance',
+  agent_id: localAgentRef,
   conversation_anchor_id: 'anchor-acceptance',
   turn_id: turnId,
   stream_id: streamId,
@@ -84,10 +87,12 @@ const runtime = {
 async function main(): Promise<void> {
   const driver = new SdkDriver({
     runtime: runtime as never,
-    agentId: 'agent-acceptance',
+    ownerUserId,
+    realmAgentId,
+    localAgentRef,
     conversationAnchorId: 'anchor-acceptance',
     activeWorldId: 'world-acceptance',
-    activeUserId: 'user-acceptance',
+    activeUserId: ownerUserId,
     locale: 'en-US',
     now: () => 1_714_000_000_000,
   });
