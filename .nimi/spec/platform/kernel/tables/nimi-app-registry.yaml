@@ -156,6 +156,44 @@ apps:
     admission_status: admitted
     source_rule: P-NAPP-011
 
+  - app_id: nimi.shijing
+    display_label: ShiJing
+    publisher: nimi-first-party
+    trust_tier_ref: nimi-first-party
+    package_kind: nimi-app
+    package_signature_policy_ref: nimi-first-party-signature-policy
+    update_channel_ref: stable
+    ai_profile_selection_ref: hybrid-recommended
+    capability_set_refs:
+      - text.generate
+      - text.embed
+    local_compute_pack_refs:
+      - local-text
+    runtime_registration_mode: app-managed
+    permission_scope_ref:
+      - { appId: nimi.shijing, scopeFamily: account, scopeName: account.session.read }
+      - { appId: nimi.shijing, scopeFamily: agent, scopeName: agent.identity.project }
+      - { appId: nimi.shijing, scopeFamily: memory, scopeName: memory.read.bounded, qualifier: persona-scoped }
+      - { appId: nimi.shijing, scopeFamily: knowledge, scopeName: knowledge.read.bounded }
+      - { appId: nimi.shijing, scopeFamily: ai_spend, scopeName: ai.spend.meter }
+      - { appId: nimi.shijing, scopeFamily: notification, scopeName: notification.send }
+      - { appId: nimi.shijing, scopeFamily: ai_profile, scopeName: ai_profile.selection.consume }
+    health_repair_projection:
+      - unavailable
+      - setup-required
+      - needs-confirmation
+      - in-progress
+      - failed
+      - unsupported
+      - repair-required
+      - stale-projection
+    ordinary_visibility: ordinary-visible
+    release_descriptor_ref: nimi.shijing.bundled-with-nimi
+    install_storage_policy_ref: nimi-data-app-roots
+    source_repo_url: null
+    admission_status: admitted
+    source_rule: P-NAPP-011
+
   - app_id: nimi.tester
     display_label: Tester
     publisher: nimi-first-party
