@@ -19,21 +19,6 @@ const DESKTOP_BOOTSTRAP_TIMEOUT_MS = 25000;
 const MIN_BOOTSTRAP_TIMEOUT_MS = 5_000;
 const MAX_BOOTSTRAP_TIMEOUT_MS = 180_000;
 
-function isStandaloneWorldTourRoute(): boolean {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  if (!window.location.hash.startsWith('#/world-tour-viewer')) {
-    return false;
-  }
-  const queryIndex = window.location.hash.indexOf('?');
-  if (queryIndex < 0) {
-    return false;
-  }
-  const params = new URLSearchParams(window.location.hash.slice(queryIndex + 1));
-  return Boolean(params.get('launchToken')?.trim());
-}
-
 async function runBootstrapRuntime(): Promise<void> {
   const module = await import('@renderer/infra/bootstrap/runtime-bootstrap');
   await module.bootstrapRuntime();
@@ -64,33 +49,24 @@ async function resolveBootstrapTimeoutMs(shellMode: string): Promise<number> {
 function AppBoot() {
   const { t } = useTranslation();
   const shellMode = getShellFeatureFlags().mode;
-  const standaloneWorldTour = isStandaloneWorldTourRoute();
   const setBootstrapError = useAppStore((state) => state.setBootstrapError);
   const setBootstrapReady = useAppStore((state) => state.setBootstrapReady);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const bootstrapError = useAppStore((state) => state.bootstrapError);
-  const runtimeHealthBootstrapEnabled = shellMode === 'desktop' && bootstrapReady && !standaloneWorldTour;
+  const runtimeHealthBootstrapEnabled = shellMode === 'desktop' && bootstrapReady;
 
   useMenuBarNavigationListener();
   useRuntimeHealthCoordinatorBootstrap(runtimeHealthBootstrapEnabled);
   useMenuBarRuntimeSync();
-  useDesktopUpdatesBootstrap(bootstrapReady && !standaloneWorldTour);
-  useDesktopMacosSmokeBootstrap(bootstrapReady && !standaloneWorldTour, bootstrapError);
+  useDesktopUpdatesBootstrap(bootstrapReady);
+  useDesktopMacosSmokeBootstrap(bootstrapReady, bootstrapError);
 
   useEffect(() => {
-    if (standaloneWorldTour) {
-      return;
-    }
     void pingDesktopMacosSmoke('app-mounted').catch(() => {});
-  }, [standaloneWorldTour]);
+  }, []);
 
   useEffect(() => {
-    if (standaloneWorldTour) {
-      setBootstrapReady(true);
-      setBootstrapError(null);
-      return;
-    }
     const flowId = createRendererFlowId('renderer-bootstrap');
     let settled = false;
     let cancelled = false;
@@ -198,7 +174,7 @@ function AppBoot() {
         clearTimeout(timeoutId);
       }
     };
-  }, [setBootstrapError, setBootstrapReady, setStatusBanner, shellMode, standaloneWorldTour, t]);
+  }, [setBootstrapError, setBootstrapReady, setStatusBanner, shellMode, t]);
 
   useEffect(() => {
     const unsubscribe = onI18nIssue((issue) => {

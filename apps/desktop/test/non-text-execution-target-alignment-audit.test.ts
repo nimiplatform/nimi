@@ -34,7 +34,7 @@ function findFilesContaining(pattern: RegExp, rootDir: string): string[] {
     .sort();
 }
 
-test('desktop non-text execution audit: renderer media execution surface is limited to agent chat and explicit tester panels', () => {
+test('desktop non-text execution audit: renderer media execution surface is limited to agent chat', () => {
   const mediaExecutionCallsites = findFilesContaining(
     /\bmedia\.(image|video|tts|stt)\.(generate|stream|synthesize|transcribe)\s*\(|\bmedia\.jobs\.submit\s*\(/,
     rendererFeaturesDir,
@@ -42,9 +42,6 @@ test('desktop non-text execution audit: renderer media execution surface is limi
   assert.deepEqual(mediaExecutionCallsites, [
     'src/shell/renderer/features/chat/chat-agent-runtime-image.ts',
     'src/shell/renderer/features/chat/chat-agent-runtime-voice.ts',
-    'src/shell/renderer/features/tester/panels/panel-image-generate.tsx',
-    'src/shell/renderer/features/tester/panels/panel-video-generate.tsx',
-    'src/shell/renderer/features/tester/tester-speech-actions.ts',
   ]);
 });
 

@@ -1,44 +1,65 @@
 /**
- * Developer Tools — embedded Tester sub-area (`D-DEV-005`, `D-DEV-006`).
+ * Developer Tools — standalone `nimi.tester` app reference (`D-DEV-005`, `D-DEV-006`).
  *
- * `D-DEV-005`: the Desktop-embedded Tester (`features/tester/**`) is reachable
- * ONLY inside `Developer Tools`, and `Developer Tools` itself is reachable only
- * behind admitted Developer Mode. The embedded Tester stays a frozen internal
- * source / validation surface — this section gates it, it does not extract it
- * into a standalone app.
+ * `D-DEV-005`: Desktop no longer owns or renders the Tester product surface.
+ * This section only references the admitted standalone `nimi.tester` developer
+ * app and routes launch through the Runtime app lifecycle surface.
  *
  * `D-DEV-006`: the reference to `nimi.tester` consumes the admitted
  * `nimi.tester` row from the Platform App admission registry (`P-NAPP-016`) as
  * the single admission truth. The registry row — `admission_status: admitted`,
  * `ordinary_visibility: developer-only` — is resolved through
  * `nimi-tester-registry.ts`. If the row is absent or not admitted, this
- * section fails closed: the embedded Tester is NOT surfaced.
+ * section fails closed: no fallback Tester surface is synthesized.
  */
 
-import { Suspense, lazy, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button, InlineAlert } from '@nimiplatform/kit/ui';
+import { desktopAppLifecycleBridge } from '@renderer/features/apps/apps-lifecycle-bridge';
 import {
   resolveNimiTesterRegistryReference,
   isNimiTesterDeveloperVisible,
 } from './nimi-tester-registry.js';
 
-const TesterPage = lazy(async () => {
-  const mod = await import('@renderer/features/tester/tester-page');
-  return { default: mod.TesterPage };
-});
-
 export function DeveloperTesterSection() {
   const { t } = useTranslation();
+  const [launchState, setLaunchState] = useState<'idle' | 'launching' | 'launched' | 'blocked'>('idle');
+  const [launchMessage, setLaunchMessage] = useState<string | null>(null);
 
-  // D-DEV-006: the embedded Tester is surfaced only when the admitted
-  // `nimi.tester` registry row resolves as a developer-only Nimi App.
+  // D-DEV-006: Desktop references only the admitted developer-only
+  // `nimi.tester` registry row. It never treats a source folder as truth.
   const testerReference = useMemo(() => resolveNimiTesterRegistryReference(), []);
   const developerVisible = isNimiTesterDeveloperVisible(testerReference);
 
+  async function launchTesterApp() {
+    if (!testerReference) {
+      return;
+    }
+    setLaunchState('launching');
+    setLaunchMessage(null);
+    try {
+      const projection = await desktopAppLifecycleBridge.open({
+        appId: testerReference.appId,
+        scope: { kind: 'app', ownerId: testerReference.appId },
+      });
+      setLaunchState(projection.state === 'launched' ? 'launched' : 'blocked');
+      setLaunchMessage(
+        projection.state === 'launched'
+          ? t('DeveloperTools.testerLaunchReady', { defaultValue: 'Runtime accepted the standalone Tester launch.' })
+          : t('DeveloperTools.testerLaunchBlocked', {
+              defaultValue: 'Runtime blocked the standalone Tester launch at {{step}}.',
+              step: projection.reachedStep || 'open',
+            }),
+      );
+    } catch (error) {
+      setLaunchState('blocked');
+      setLaunchMessage(error instanceof Error ? error.message : String(error || 'Failed to launch standalone Tester.'));
+    }
+  }
+
   if (!developerVisible || !testerReference) {
-    // Fail-closed: no admitted developer-only `nimi.tester` row — never
-    // synthesize a fallback Tester entry or treat the embedded source folder
-    // as admission truth.
+    // Fail-closed: no admitted developer-only `nimi.tester` row.
     return (
       <div
         data-testid="developer-tools:tester-unavailable"
@@ -55,26 +76,38 @@ export function DeveloperTesterSection() {
   }
 
   return (
-    <div data-testid="developer-tools:tester" className="flex min-h-0 flex-1 flex-col">
-      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--nimi-border-subtle)] px-5 py-2.5">
-        <span className="text-xs font-semibold text-[var(--nimi-text-primary)]">
-          {testerReference.displayName}
-        </span>
+    <div data-testid="developer-tools:tester" className="flex min-h-0 flex-1 flex-col gap-4 p-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-semibold text-[var(--nimi-text-primary)]">{testerReference.displayName}</span>
         <span className="rounded-full bg-[var(--nimi-surface-active)] px-2 py-0.5 text-[10px] font-medium text-[var(--nimi-text-secondary)]">
           {testerReference.appId}
         </span>
         <span className="rounded-full bg-[var(--nimi-surface-active)] px-2 py-0.5 text-[10px] font-medium text-[var(--nimi-text-secondary)]">
-          {t('DeveloperTools.testerRegistryBadge', {
-            defaultValue: 'developer-only · {{rule}}',
-            rule: testerReference.sourceRule,
-          })}
+          {t('DeveloperTools.testerRegistryBadge', { defaultValue: 'developer-only · {{rule}}', rule: testerReference.sourceRule })}
         </span>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col">
-        <Suspense fallback={<div className="flex min-h-0 flex-1" />}>
-          <TesterPage />
-        </Suspense>
+      <div className="max-w-2xl text-sm leading-6 text-[var(--nimi-text-secondary)]">
+        {t('DeveloperTools.testerStandaloneBody', {
+          defaultValue: 'Tester is now a standalone Nimi App generated by app-tools. Desktop keeps the developer reference and launches the app through Runtime; it no longer embeds the tester product UI.',
+        })}
       </div>
+      <div>
+        <Button type="button" tone="primary" loading={launchState === 'launching'} onClick={() => void launchTesterApp()}>
+          {t('DeveloperTools.testerLaunchAction', { defaultValue: 'Open standalone Tester' })}
+        </Button>
+      </div>
+      {launchMessage ? (
+        <InlineAlert tone={launchState === 'launched' ? 'success' : 'warning'}>
+          <div className="grid gap-1">
+            <strong>
+              {launchState === 'launched'
+                ? t('DeveloperTools.testerLaunchReadyTitle', { defaultValue: 'Launch accepted' })
+                : t('DeveloperTools.testerLaunchBlockedTitle', { defaultValue: 'Launch blocked' })}
+            </strong>
+            <span>{launchMessage}</span>
+          </div>
+        </InlineAlert>
+      ) : null}
     </div>
   );
 }

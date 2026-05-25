@@ -1,104 +1,43 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
+const desktopDir = resolve(import.meta.dirname, '..');
+
 function readRendererFile(relativePath: string): string {
-  return readFileSync(resolve(import.meta.dirname, `../src/shell/renderer/${relativePath}`), 'utf8');
+  return readFileSync(resolve(desktopDir, `src/shell/renderer/${relativePath}`), 'utf8');
 }
 
 function readTauriFile(relativePath: string): string {
-  return readFileSync(resolve(import.meta.dirname, `../src-tauri/src/${relativePath}`), 'utf8');
+  return readFileSync(resolve(desktopDir, `src-tauri/src/${relativePath}`), 'utf8');
 }
 
-test('tester capability catalog admits world.generate as world tour lane', () => {
-  const source = readRendererFile('features/tester/tester-types.ts');
-  assert.match(source, /'world\.generate'/);
-  assert.match(source, /World Tour/);
-});
-
-test('tester page mounts the world tour panel', () => {
-  const source = readRendererFile('features/tester/tester-page.tsx');
-  assert.match(source, /WorldTourPanel/);
-  assert.match(source, /case 'world\.generate'/);
-});
-
-test('world tour panel keeps world.generate submit flow and launch-only desktop viewer entry', () => {
-  const source = readRendererFile('features/tester/panels/panel-world-tour.tsx');
-  const summarySource = readRendererFile('features/tester/panels/panel-world-tour-result-summary.tsx');
-  assert.match(source, /@nimiplatform\/sdk\/world/);
-  assert.match(source, /worldGenerate\.project/);
-  assert.match(source, /createInspectWorldRenderPlan/);
-  assert.match(source, /createInspectWorldSession/);
-  assert.match(source, /media\.world\.generate/);
-  assert.match(source, /Run World Tour/);
-  assert.match(source, /Load Cached Fixture/);
-  assert.match(summarySource, /Launch World Tour/);
-  assert.match(source, /WORLD_TOUR_CACHE_MANIFEST_PATH/);
-  assert.match(source, /resolve_world_tour_fixture/);
-  assert.match(source, /open_world_tour_window/);
-  assert.doesNotMatch(source, /window\.open/);
-  assert.doesNotMatch(source, /world-tour-viewer\?/);
-  assert.doesNotMatch(source, /hasTauriRuntime/);
-  assert.match(source, /readWorldTourRenderAcceptance/);
-  assert.doesNotMatch(source, /localStorage/);
-  assert.match(source, /spark-render-acceptance-pending/);
-  assert.match(source, /spark-render-accepted/);
-  assert.doesNotMatch(source, /finishReason:\s*'cached-fixture'/);
-  assert.doesNotMatch(source, /result:\s*'passed',\s*error:\s*'',\s*output:\s*world/);
-});
-
-test('dedicated world tour viewer route and canvas own Spark renderer lifecycle', () => {
-  const routeSource = readRendererFile('features/tester/world-tour-viewer-route.tsx');
-  const canvasSource = readRendererFile('features/tester/world-tour-viewer-canvas.tsx');
-  assert.match(routeSource, /WorldTourViewerCanvas/);
-  assert.match(routeSource, /claim_world_tour_viewer_launch/);
-  assert.match(routeSource, /launchToken/);
-  assert.match(routeSource, /Tester-owned desktop launch token/);
-  assert.doesNotMatch(routeSource, /resolve_world_tour_fixture/);
-  assert.match(canvasSource, /SparkRenderer/);
-  assert.match(canvasSource, /OrbitControls/);
-  assert.match(canvasSource, /GLTFLoader/);
-  assert.match(canvasSource, /Fit Scene/);
-  assert.match(canvasSource, /Reset View/);
-  assert.match(canvasSource, /Save Current View/);
-  assert.match(canvasSource, /Pilot Target/);
-  assert.match(canvasSource, /dblclick/);
-  assert.match(canvasSource, /save_world_tour_viewer_preset/);
-  assert.match(canvasSource, /Booting world tour viewer/);
-  assert.match(canvasSource, /writeWorldTourRenderAcceptance/);
-  assert.match(canvasSource, /hasVerifiedSpzIntegrity/);
-  assert.match(canvasSource, /digest\/provenance/);
-  assert.match(canvasSource, /status:\s*'passed'/);
-  assert.match(canvasSource, /status:\s*'failed'/);
-  assert.match(canvasSource, /const WORLD_TOUR_UPRIGHT_QUATERNION = new THREE\.Quaternion\(1,\s*0,\s*0,\s*0\)/);
-  assert.doesNotMatch(canvasSource, /splat\.quaternion\.copy\(WORLD_TOUR_UPRIGHT_QUATERNION\)/);
-  assert.doesNotMatch(canvasSource, /Ground Lock/);
-});
-
-test('app routes admit the dedicated world tour viewer route', () => {
-  const source = readRendererFile('app-shell/routes/app-routes.tsx');
+test('desktop does not host the extracted world tour viewer route', () => {
+  const routeSource = readRendererFile('app-shell/routes/app-routes.tsx');
   const appSource = readRendererFile('App.tsx');
-  assert.match(source, /WorldTourViewerRoute/);
-  assert.match(source, /world-tour-viewer/);
-  assert.match(source, /launchToken/);
-  assert.match(appSource, /launchToken/);
+  assert.doesNotMatch(routeSource, /world-tour-viewer|WorldTourViewerRoute|launchToken|features\/tester/);
+  assert.doesNotMatch(appSource, /world-tour-viewer|launchToken|standaloneWorldTour/);
+  assert.equal(
+    existsSync(resolve(desktopDir, 'src/shell/renderer/features/tester')),
+    false,
+  );
 });
 
-test('world tour Tauri command boundary issues and claims launch tokens', () => {
-  const worldTourSource = readTauriFile('main_parts/defaults_and_commands/world_tour.rs');
-  const bootstrapSource = readTauriFile('main_parts/app_bootstrap.rs');
-  assert.match(worldTourSource, /ClaimWorldTourViewerLaunchPayload/);
-  assert.match(worldTourSource, /claim_world_tour_viewer_launch/);
-  assert.match(worldTourSource, /write_launch_token/);
-  assert.match(worldTourSource, /claim_launch_token/);
-  assert.match(worldTourSource, /append_pair\("launchToken"/);
-  assert.match(bootstrapSource, /claim_world_tour_viewer_launch/);
-});
-
-test('tester settings expose a world route picker', () => {
-  const settingsSource = readRendererFile('features/tester/tester-settings-dialog.tsx');
-  const hookSource = readRendererFile('features/tester/tester-model-config-hook.ts');
-  assert.match(hookSource, /'world\.generate'/);
-  assert.match(settingsSource, /ModelConfigCapabilityDetail/);
+test('desktop Tauri command boundary no longer registers tester world-tour commands', () => {
+  const modules = readTauriFile('main_parts/defaults_and_commands/mod.rs');
+  const bootstrap = readTauriFile('main_parts/app_bootstrap.rs');
+  assert.doesNotMatch(modules, /tester_storage|world_tour/);
+  assert.doesNotMatch(
+    bootstrap,
+    /tester_(image|run|fixture)|world_tour|resolve_world_tour_fixture|claim_world_tour_viewer_launch|save_world_tour_viewer_preset|world_tour_render_acceptance|open_world_tour_window/,
+  );
+  assert.equal(
+    existsSync(resolve(desktopDir, 'src-tauri/src/main_parts/defaults_and_commands/world_tour.rs')),
+    false,
+  );
+  assert.equal(
+    existsSync(resolve(desktopDir, 'src-tauri/src/main_parts/defaults_and_commands/tester_storage.rs')),
+    false,
+  );
 });

@@ -7,12 +7,12 @@
  *     `enableDeveloperTools`; it is NOT in the ordinary primary nav.
  *   - D-DEV-002: the discoverable Developer Mode toggle lives in Settings; it
  *     is not reachable only via env vars / launch params.
- *   - D-DEV-003: the surface composition (mod sources, Tester, diagnostics)
+ *   - D-DEV-003: the surface composition (mod sources, Tester reference, diagnostics)
  *     and the superseded orphan `DeveloperPage`.
  *   - D-DEV-004: mod UI is reachable only behind Developer Mode; `enableModUi`
  *     defaults `false`.
- *   - D-DEV-005: the embedded Tester is gated behind Developer Mode, frozen,
- *     not deleted.
+ *   - D-DEV-005: Desktop keeps only the standalone `nimi.tester` launch
+ *     reference; the tester product surface is app-tools-owned.
  *   - D-DEV-006: `nimi.tester` is referenced via the admitted registry row.
  *   - D-DEV-007: developer surfaces default to invisible / unreachable.
  *
@@ -21,7 +21,7 @@
  */
 
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -191,22 +191,32 @@ test('D-DEV-004: the layout redirects away from mod surfaces when Developer Mode
 });
 
 // ---------------------------------------------------------------------------
-// D-DEV-005 — Embedded Tester Gated Behind Developer Mode
+// D-DEV-005 — Standalone Tester Reference Gated Behind Developer Mode
 // ---------------------------------------------------------------------------
 
-test('D-DEV-005: the embedded Tester is reachable only inside Developer Tools', () => {
+test('D-DEV-005: the standalone Tester reference is reachable only inside Developer Tools', () => {
   const testerSection = readDesktop('src/shell/renderer/features/developer/developer-tester-section.tsx');
-  assert.match(testerSection, /features\/tester\/tester-page/);
+  assert.match(testerSection, /desktopAppLifecycleBridge\.open/);
+  assert.match(testerSection, /resolveNimiTesterRegistryReference/);
+  assert.doesNotMatch(testerSection, /features\/tester\/tester-page/);
+  assert.doesNotMatch(testerSection, /TesterPage/);
   // The Developer Tools panel dispatches the Tester sub-area.
   const panel = readDesktop('src/shell/renderer/features/developer/developer-tools-panel.tsx');
   assert.match(panel, /<DeveloperTesterSection \/>/);
 });
 
-test('D-DEV-005: the embedded Tester source stays present — frozen, not deleted', () => {
-  // The embedded Tester remains a frozen internal source; this wave gates it,
-  // it does not extract or delete it.
-  const testerPage = readDesktop('src/shell/renderer/features/tester/tester-page.tsx');
-  assert.match(testerPage, /export function TesterPage/);
+test('D-DEV-005: the Tester product surface is not embedded in Desktop source', () => {
+  assert.equal(
+    existsSync(path.join(desktopDir, 'src/shell/renderer/features/tester')),
+    false,
+  );
+  const routes = readDesktop('src/shell/renderer/app-shell/routes/app-routes.tsx');
+  assert.doesNotMatch(routes, /world-tour-viewer|WorldTourViewerRoute|features\/tester/);
+  const bootstrap = readDesktop('src-tauri/src/main_parts/app_bootstrap.rs');
+  assert.doesNotMatch(
+    bootstrap,
+    /tester_(image|run|fixture)|world_tour|resolve_world_tour_fixture|claim_world_tour_viewer_launch|open_world_tour_window/,
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -235,7 +245,7 @@ test('D-DEV-006: a non-admitted / missing row fails closed', () => {
       sourceRule: 'P-NAPP-016',
     }),
     false,
-    'ordinary-visible visibility must not surface the embedded Tester',
+    'ordinary-visible visibility must not surface the standalone Tester reference',
   );
 });
 

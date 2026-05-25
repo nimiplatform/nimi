@@ -237,9 +237,6 @@ export async function runDesktopMacosSmokeScenario(
         });
         return;
 
-      case 'tester.speech-bundle-panels':
-        throw new Error('tester.speech-bundle-panels is blocked: AI Tester is not an ordinary primary navigation entry in the Product/UI alignment cut');
-
       case 'chat.live2d-avatar-product-smoke': {
         record('verify-runtime-account-projection');
         await deps.verifyRuntimeAccountProjection();

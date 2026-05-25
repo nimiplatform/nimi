@@ -24,26 +24,6 @@ const FirstRunGatePanel = lazy(async () => {
   return { default: mod.FirstRunGatePanel };
 });
 
-const WorldTourViewerRoute = lazy(async () => {
-  const mod = await import('@renderer/features/tester/world-tour-viewer-route');
-  return { default: mod.WorldTourViewerRoute };
-});
-
-function isStandaloneWorldTourRoute(): boolean {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  if (!window.location.hash.startsWith('#/world-tour-viewer')) {
-    return false;
-  }
-  const queryIndex = window.location.hash.indexOf('?');
-  if (queryIndex < 0) {
-    return false;
-  }
-  const params = new URLSearchParams(window.location.hash.slice(queryIndex + 1));
-  return Boolean(params.get('launchToken')?.trim());
-}
-
 function NimiLogoMark({ className = 'h-12 w-12' }: { className?: string }) {
   return (
     <svg
@@ -478,7 +458,6 @@ function DesktopAdmissionFailedScreen(props: {
 
 export function AppRoutes() {
   const flags = getShellFeatureFlags();
-  const standaloneWorldTour = isStandaloneWorldTourRoute();
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const bootstrapError = useAppStore((state) => state.bootstrapError);
   const authStatus = useAppStore((state) => state.auth.status);
@@ -498,11 +477,11 @@ export function AppRoutes() {
     }
   }, [authStatus, location.pathname, navigate]);
 
-  if (!standaloneWorldTour && flags.mode !== 'web' && !bootstrapReady && !bootstrapError) {
+  if (flags.mode !== 'web' && !bootstrapReady && !bootstrapError) {
     return <LoadingScreen />;
   }
 
-  if (!standaloneWorldTour && bootstrapError) {
+  if (bootstrapError) {
     return <BootstrapErrorScreen message={bootstrapError} />;
   }
 
@@ -510,14 +489,6 @@ export function AppRoutes() {
     <Routes>
       {isDesktopShell ? (
         <>
-          <Route
-            path="/world-tour-viewer"
-            element={(
-              <Suspense fallback={<LoadingScreen />}>
-                <WorldTourViewerRoute />
-              </Suspense>
-            )}
-          />
           <Route path="/" element={<DesktopOrdinaryShellGate />} />
           <Route
             path="/login"

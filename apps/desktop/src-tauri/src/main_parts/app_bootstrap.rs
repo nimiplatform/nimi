@@ -517,17 +517,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             local_runtime::commands::runtime_local_assets_reveal_root_folder,
             local_runtime::commands::runtime_local_assets_scan_unregistered,
             local_runtime::commands::runtime_local_assets_scaffold_orphan,
-            super::defaults_and_commands::tester_storage::tester_image_history_load,
-            super::defaults_and_commands::tester_storage::tester_image_history_save,
-            super::defaults_and_commands::tester_storage::tester_run_history_load,
-            super::defaults_and_commands::tester_storage::tester_run_history_save,
-            super::defaults_and_commands::tester_storage::tester_fixture_read_file,
-            super::defaults_and_commands::world_tour::resolve_world_tour_fixture,
-            super::defaults_and_commands::world_tour::claim_world_tour_viewer_launch,
-            super::defaults_and_commands::world_tour::save_world_tour_viewer_preset,
-            super::defaults_and_commands::world_tour::world_tour_render_acceptance_load,
-            super::defaults_and_commands::world_tour::world_tour_render_acceptance_save,
-            super::defaults_and_commands::world_tour::open_world_tour_window
         ])
         .build(tauri::generate_context!())
 }

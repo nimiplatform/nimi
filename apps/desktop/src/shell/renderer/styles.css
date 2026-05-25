@@ -232,31 +232,3 @@
 @media (prefers-reduced-motion: reduce) {
   .desktop-world-pulse-dot { animation: none; }
 }
-
-/* ---- Tester page hero + history timeline (no inner card; content sits on outer glass) ---- */
-.tester-page-hero {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--nimi-border-subtle);
-}
-.tester-cap-title {
-  font-family: var(--nimi-font-display);
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--nimi-fg-1);
-  line-height: 1.2;
-}
-.tester-cap-sub {
-  font-family: var(--nimi-font-sans);
-  font-size: 13px;
-  color: var(--nimi-fg-3);
-  margin-top: 4px;
-}
-@keyframes tester-pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgba(78, 204, 163, 0.45); }
-  80% { box-shadow: 0 0 0 6px rgba(78, 204, 163, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(78, 204, 163, 0); }
-}

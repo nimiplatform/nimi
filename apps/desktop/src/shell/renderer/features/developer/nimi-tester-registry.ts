@@ -4,9 +4,9 @@
  * The `Developer Tools` surface references `nimi.tester` as a developer-only
  * Nimi App. `D-DEV-006` requires that reference to consume the admitted
  * `nimi.tester` row in the Platform App admission registry (`P-NAPP-016`) as
- * the SINGLE admission truth source. It MUST NOT treat the Desktop-embedded
- * Tester source folder, a Tauri command name, a workspace fixture cache, a
- * GitHub repo, or an npm package as the admission truth.
+ * the SINGLE admission truth source. It MUST NOT treat a Desktop source
+ * folder, a Tauri command name, a workspace fixture cache, a GitHub repo, or
+ * an npm package as the admission truth.
  *
  * The registry rows are projected into the desktop runtime as the generated
  * `PLATFORM_NIMI_APP_REGISTRY_ROWS` catalog (the typed projection of
@@ -60,8 +60,8 @@ export function resolveNimiTesterRegistryReference(): NimiTesterRegistryReferenc
 
 /**
  * `true` when the resolved `nimi.tester` row is admitted AND scoped to
- * `developer-only` visibility — the only state in which the embedded Tester
- * may be surfaced inside `Developer Tools`.
+ * `developer-only` visibility — the only state in which Desktop may surface a
+ * launch reference for the standalone Tester app inside `Developer Tools`.
  */
 export function isNimiTesterDeveloperVisible(
   reference: NimiTesterRegistryReference | null,

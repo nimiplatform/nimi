@@ -8,8 +8,8 @@
  * gate before this panel is ever reached (`main-layout-view.tsx`).
  *
  * The host renders a fixed three-item sub-area sidebar (`D-DEV-003`: mod
- * sources, embedded Tester, developer diagnostics) and dispatches the active
- * sub-area. It hosts no ordinary-user product functionality.
+ * sources, standalone Tester reference, developer diagnostics) and dispatches
+ * the active sub-area. It hosts no ordinary-user product functionality.
  */
 
 import { useCallback, useState } from 'react';

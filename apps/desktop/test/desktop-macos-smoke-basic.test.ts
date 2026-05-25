@@ -150,10 +150,3 @@ test('desktop macos smoke chat memory bind scenario follows the expected step or
     htmlSnapshot: '<html>chat</html>',
   });
 });
-
-test('desktop macos smoke tester scenario is blocked from ordinary primary navigation', async () => {
-  await assert.rejects(
-    () => runDesktopMacosSmokeScenario('tester.speech-bundle-panels', createBaseDriver()),
-    /AI Tester is not an ordinary primary navigation entry/,
-  );
-});

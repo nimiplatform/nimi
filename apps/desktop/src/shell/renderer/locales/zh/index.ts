@@ -51,7 +51,6 @@ import section49 from './50-Document.json';
 import section50 from './51-Time.json';
 import section51 from './52-I18n.json';
 import section52 from './53-BridgeErrors.json';
-import section53 from './54-Tester.json';
 import section54 from './55-ModelConfig.json';
 import section55 from './56-Apps.json';
 import section56 from './57-FirstRun.json';
@@ -114,7 +113,6 @@ const messages = {
   "Time": section50,
   "I18n": section51,
   "BridgeErrors": section52,
-  "Tester": section53,
   "ModelConfig": section54,
   "Apps": section55,
   "FirstRun": section56,
