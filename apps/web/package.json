@@ -15,14 +15,14 @@
     "test": "tsx --tsconfig tsconfig.json --test test/**/*.test.ts"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "2.0.47",
+    "@ai-sdk/openai-compatible": "2.0.48",
     "@nimiplatform/kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@react-three/postprocessing": "^3.0.4",
-    "@tanstack/react-query": "^5.100.11",
-    "ai": "6.0.190",
+    "@tanstack/react-query": "^5.100.14",
+    "ai": "6.0.191",
     "postprocessing": "^6.39.1",
     "react": "19.2.6",
     "react-dom": "19.2.6",

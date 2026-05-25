@@ -309,7 +309,7 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "simplex-noise": "^4.0.3",
-    "@tanstack/react-virtual": "^3.13.25",
+    "@tanstack/react-virtual": "^3.13.26",
     "tailwind-merge": "^3.6.0",
     "three": "^0.184.0",
     "zod": "4.4.3"
