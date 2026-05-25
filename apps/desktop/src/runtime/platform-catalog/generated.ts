@@ -93,7 +93,6 @@ export const PLATFORM_AI_PROFILE_FACTORY_ROWS = [
     "computePosture": "cpu-only",
     "capabilitySet": [
       "text.generate",
-      "text.embed",
       "audio.transcribe",
       "audio.synthesize"
     ],
@@ -134,7 +133,6 @@ export const PLATFORM_AI_PROFILE_FACTORY_ROWS = [
     "capabilitySet": [
       "text.generate",
       "text.generate.vision",
-      "text.embed",
       "audio.transcribe",
       "audio.synthesize",
       "image.generate",
@@ -245,6 +243,18 @@ export const PLATFORM_NIMI_APP_REGISTRY_ROWS = [
     "admissionStatus": "admitted"
   },
   {
+    "appId": "nimi.shijing",
+    "appKind": "nimi-app",
+    "displayName": "ShiJing",
+    "publisher": "nimi-first-party",
+    "trustTier": "nimi-first-party",
+    "ordinaryVisibility": "ordinary-visible",
+    "releaseDescriptorRef": "nimi.shijing.bundled-with-nimi",
+    "installStoragePolicyRef": "nimi-data-app-roots",
+    "sourceRule": "P-NAPP-011",
+    "admissionStatus": "admitted"
+  },
+  {
     "appId": "nimi.tester",
     "appKind": "nimi-app",
     "displayName": "Tester",
@@ -254,18 +264,6 @@ export const PLATFORM_NIMI_APP_REGISTRY_ROWS = [
     "releaseDescriptorRef": "nimi.tester.bundled-with-nimi",
     "installStoragePolicyRef": "nimi-data-app-roots",
     "sourceRule": "P-NAPP-016",
-    "admissionStatus": "admitted"
-  },
-  {
-    "appId": "nimi.realm-agent-studio",
-    "appKind": "nimi-app",
-    "displayName": "Realm Agent Studio",
-    "publisher": "nimi-first-party",
-    "trustTier": "nimi-first-party",
-    "ordinaryVisibility": "developer-only",
-    "releaseDescriptorRef": "nimi.realm-agent-studio.bundled-with-nimi",
-    "installStoragePolicyRef": "nimi-data-app-roots",
-    "sourceRule": "P-NAPP-017",
     "admissionStatus": "admitted"
   }
 ] as const satisfies readonly NimiAppRegistrySourceRow[];
@@ -316,6 +314,28 @@ export const PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS = [
     "sourceRule": "P-NAPP-014"
   },
   {
+    "descriptorId": "nimi.shijing.bundled-with-nimi",
+    "appId": "nimi.shijing",
+    "version": "bundled-with-current-nimi-release",
+    "descriptorClass": "bundled-with-nimi",
+    "sourceKind": "nimi-bundle",
+    "sourceRef": "current-atomic-nimi-release",
+    "artifactLocator": "current-nimi-release-bundle",
+    "digestAlgorithm": "sha256",
+    "sha256": "inherited-from-atomic-nimi-release-manifest",
+    "size": "inherited-from-atomic-nimi-release-manifest",
+    "provenanceRef": "nimi-first-party-signature-policy",
+    "packageKind": "nimi-app",
+    "entryRef": "shijing-runtime-registration",
+    "sandboxRef": "first-party-bundled-app",
+    "permissionsRef": "nimi.shijing.permission_scope_ref",
+    "storagePolicyRef": "nimi-data-app-roots",
+    "admissionPath": "first-party-bundled-release",
+    "mutableSourceAllowed": false,
+    "installDigestVerificationRequired": "inherited_from_atomic_bundle",
+    "sourceRule": "P-NAPP-014"
+  },
+  {
     "descriptorId": "nimi.tester.bundled-with-nimi",
     "appId": "nimi.tester",
     "version": "bundled-with-current-nimi-release",
@@ -336,28 +356,6 @@ export const PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS = [
     "mutableSourceAllowed": false,
     "installDigestVerificationRequired": "inherited_from_atomic_bundle",
     "sourceRule": "P-NAPP-016"
-  },
-  {
-    "descriptorId": "nimi.realm-agent-studio.bundled-with-nimi",
-    "appId": "nimi.realm-agent-studio",
-    "version": "bundled-with-current-nimi-release",
-    "descriptorClass": "bundled-with-nimi",
-    "sourceKind": "nimi-bundle",
-    "sourceRef": "current-atomic-nimi-release",
-    "artifactLocator": "current-nimi-release-bundle",
-    "digestAlgorithm": "sha256",
-    "sha256": "inherited-from-atomic-nimi-release-manifest",
-    "size": "inherited-from-atomic-nimi-release-manifest",
-    "provenanceRef": "nimi-first-party-signature-policy",
-    "packageKind": "nimi-app",
-    "entryRef": "realm-agent-studio-runtime-registration",
-    "sandboxRef": "first-party-bundled-app",
-    "permissionsRef": "nimi.realm-agent-studio.permission_scope_ref",
-    "storagePolicyRef": "nimi-data-app-roots",
-    "admissionPath": "first-party-bundled-release",
-    "mutableSourceAllowed": false,
-    "installDigestVerificationRequired": "inherited_from_atomic_bundle",
-    "sourceRule": "P-NAPP-017"
   }
 ] as const satisfies readonly PlatformNimiAppReleaseDescriptorRow[];
 
@@ -429,9 +427,6 @@ export const PLATFORM_AI_PROFILE_FACTORY_CATALOG = [
       "text.generate": {
         "binding": null
       },
-      "text.embed": {
-        "binding": null
-      },
       "audio.transcribe": {
         "binding": null
       },
@@ -455,9 +450,6 @@ export const PLATFORM_AI_PROFILE_FACTORY_CATALOG = [
         "binding": null
       },
       "text.generate.vision": {
-        "binding": null
-      },
-      "text.embed": {
         "binding": null
       },
       "audio.transcribe": {

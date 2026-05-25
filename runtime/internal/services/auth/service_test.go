@@ -126,19 +126,6 @@ func testNimiAppRegistryCatalog() *appregistrycatalog.Registry {
 				AdmissionStatus:         appregistrycatalog.AdmissionStatusGatedByAvatarMasterGate,
 				SourceRule:              "P-NAPP-011",
 			},
-			{
-				AppID:                   "nimi.realm-agent-studio",
-				DisplayLabel:            "Realm Agent Studio",
-				Publisher:               "nimi-first-party",
-				TrustTierRef:            appregistrycatalog.TrustTierFirstParty,
-				PackageKind:             appregistrycatalog.PackageKindNimiApp,
-				RuntimeRegistrationMode: appregistrycatalog.RuntimeRegistrationModeAppManaged,
-				OrdinaryVisibility:      appregistrycatalog.OrdinaryVisibilityDeveloperOnly,
-				ReleaseDescriptorRef:    "nimi.realm-agent-studio.bundled-with-nimi",
-				InstallStoragePolicyRef: "nimi-data-app-roots",
-				AdmissionStatus:         appregistrycatalog.AdmissionStatusAdmitted,
-				SourceRule:              "P-NAPP-017",
-			},
 		},
 	}
 }
@@ -339,27 +326,6 @@ func TestRegisterAppChecksNimiAppRegistryProjection(t *testing.T) {
 	}
 	if !admittedAvatarResp.GetAccepted() {
 		t.Fatalf("expected internal admitted Avatar row to register, reason=%v", admittedAvatarResp.GetReasonCode())
-	}
-}
-
-func TestRegisterAppAdmitsRealmAgentStudioDeveloperShellCaller(t *testing.T) {
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalog())
-
-	resp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:         "app.nimi.realm-agent-studio",
-		AppInstanceId: "app.nimi.realm-agent-studio.local-first-party",
-		DeviceId:      "local-first-party-device",
-		ModeManifest:  validFullAppModeManifest(),
-	})
-	if err != nil {
-		t.Fatalf("register Realm Agent Studio: %v", err)
-	}
-	if !resp.GetAccepted() {
-		t.Fatalf("expected Realm Agent Studio developer shell caller to register, reason=%v", resp.GetReasonCode())
-	}
-	if resp.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
-		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
 	}
 }
 

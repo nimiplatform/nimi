@@ -78,13 +78,6 @@ admissions:
     evidence_roots: [apps/realm-drift]
     may_not_override: *kernel_authority
     source_rule: P-APP-001
-  - app_id: realm-agent-studio
-    admission_posture: active
-    owner_domain: app-realm-agent-studio
-    authority_root: apps/realm-agent-studio/spec
-    evidence_roots: [apps/realm-agent-studio]
-    may_not_override: *kernel_authority
-    source_rule: P-APP-001
   - app_id: shiji
     admission_posture: active
     owner_domain: app-shiji

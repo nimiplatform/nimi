@@ -75,12 +75,7 @@ pub const PLATFORM_AI_PROFILE_FACTORY_ROWS: &[PlatformAIProfileFactoryRow] = &[
         alias: "local-speech-ready",
         privacy_posture: "local-preferred",
         compute_posture: "cpu-only",
-        capability_set: &[
-            "text.generate",
-            "text.embed",
-            "audio.transcribe",
-            "audio.synthesize",
-        ],
+        capability_set: &["text.generate", "audio.transcribe", "audio.synthesize"],
         routing_policy: "local-first",
         host_capability_profile_refs: &[
             "windows-amd64-cpu",
@@ -108,7 +103,6 @@ pub const PLATFORM_AI_PROFILE_FACTORY_ROWS: &[PlatformAIProfileFactoryRow] = &[
         capability_set: &[
             "text.generate",
             "text.generate.vision",
-            "text.embed",
             "audio.transcribe",
             "audio.synthesize",
             "image.generate",

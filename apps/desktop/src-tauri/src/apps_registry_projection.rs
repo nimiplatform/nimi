@@ -444,13 +444,6 @@ mod tests {
             .expect("tester row");
         assert_eq!(tester.visibility, "developer-only");
         assert_ne!(tester.visibility, "ordinary");
-        let studio = record
-            .apps
-            .iter()
-            .find(|row| row.app_id == "nimi.realm-agent-studio")
-            .expect("realm agent studio row");
-        assert_eq!(studio.visibility, "developer-only");
-        assert_ne!(studio.visibility, "ordinary");
         let parentos = record
             .apps
             .iter()
