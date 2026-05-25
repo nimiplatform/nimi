@@ -1,11 +1,10 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createAppScaffold } from './app-scaffold.mjs';
 import { doctorApp, initApp, updateApp } from './app-doctor-update.mjs';
 
-const SDK_VERSION = '^0.5.15';
+const SDK_VERSION = '^0.6.0';
 const NIMICODING_VERSION = '0.2.5';
 const KIT_VERSION = '^0.1.0';
 const REACT_VERSION = '^19.1.0';
@@ -27,17 +26,7 @@ const TAURI_API_VERSION = '^2.9.1';
 const TAURI_CLI_VERSION = '^2.11.2';
 const NIMI_SHELL_TAURI_VERSION = '0.1.0';
 const AI_SDK_VERSION = '^6.0.85';
-const PACKAGE_JSON_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../package.json');
-
-function packageVersion() {
-  const packageJson = JSON.parse(readFileSync(PACKAGE_JSON_PATH, 'utf8'));
-  if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(String(packageJson.version || ''))) {
-    throw new Error(`Invalid @nimiplatform/app-tools package version: ${String(packageJson.version || '')}`);
-  }
-  return packageJson.version;
-}
-
-const APP_TOOLS_VERSION = `^${packageVersion()}`;
+const APP_TOOLS_VERSION = '^0.1.4';
 
 function ensureDirEmptyOrMissing(targetDir) {
   if (!existsSync(targetDir)) {

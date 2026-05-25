@@ -15,7 +15,7 @@ const SDK_VNEXT_TEST_FILES = [
   'test/realm/realm-client-core.test.ts',
   'test/scope/module.test.ts',
   'test/ai-provider/provider-text.test.ts',
-  'test/mod/mod-runtime-context.test.ts',
+  'test/world-evolution-selector-read-validation.test.ts',
   'test/integration/runtime-realm-orchestration.test.ts',
 ];
 
