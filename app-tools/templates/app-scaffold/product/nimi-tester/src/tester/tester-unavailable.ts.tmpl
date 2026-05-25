@@ -2,6 +2,7 @@ import type { TesterCapability } from './tester-capabilities.js';
 
 export type TesterUnavailableReason =
   | 'runtime-not-ready'
+  | 'ai-config-binding-missing'
   | 'sdk-surface-missing'
   | 'tauri-command-failed';
 
@@ -26,7 +27,9 @@ export function capabilityUnavailable(
     message,
     actionHint: reason === 'sdk-surface-missing'
       ? 'Add an admitted SDK Nimi App execution method. Do not bypass Runtime with app-local REST.'
-      : 'Restore Runtime or standalone Tauri readiness, then retry the lane.',
+      : reason === 'ai-config-binding-missing'
+        ? 'Import/apply an AIProfile or choose a runtime model binding in App Lab AIConfig, then retry.'
+        : 'Restore Runtime or standalone Tauri readiness, then retry the lane.',
     missingSurface: capability.missingSurface,
   };
 }

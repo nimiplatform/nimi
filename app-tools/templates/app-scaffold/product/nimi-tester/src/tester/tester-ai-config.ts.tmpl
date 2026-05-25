@@ -3,7 +3,7 @@ import { inspectRuntimeReadiness, type TesterRuntimeInspection } from './tester-
 export type TesterAIConfigSummary = {
   runtime: TesterRuntimeInspection;
   schedulingOwner: 'runtime';
-  providerCatalogSurface: 'runtimeAdmin.listProviderCatalog';
+  providerCatalogSurface: 'runtimeAdmin.listConnectors/listConnectorModels';
   appLocalProviderDefaults: false;
 };
 
@@ -11,7 +11,7 @@ export async function loadTesterAIConfigSummary(): Promise<TesterAIConfigSummary
   return {
     runtime: await inspectRuntimeReadiness(),
     schedulingOwner: 'runtime',
-    providerCatalogSurface: 'runtimeAdmin.listProviderCatalog',
+    providerCatalogSurface: 'runtimeAdmin.listConnectors/listConnectorModels',
     appLocalProviderDefaults: false,
   };
 }

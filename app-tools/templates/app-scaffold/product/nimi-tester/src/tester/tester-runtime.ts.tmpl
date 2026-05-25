@@ -1,6 +1,11 @@
 import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
 import { getTesterCapability, type TesterCapabilityId } from './tester-capabilities.js';
 import { capabilityUnavailable, type TesterUnavailable } from './tester-unavailable.js';
+import {
+  invokeTesterCapability,
+  type TesterInvocationResult,
+  type TesterTypedSuccess,
+} from './tester-runtime-invokers.js';
 
 export type TesterRuntimeInspection = {
   status: 'ready' | 'unavailable';
@@ -12,16 +17,10 @@ export type TesterRuntimeInspection = {
 export type TesterCapabilityRunInput = {
   capabilityId: TesterCapabilityId;
   prompt: string;
+  scenarioId?: string;
 };
 
-export type TesterCapabilityRunResult =
-  | {
-      ok: true;
-      capabilityId: TesterCapabilityId;
-      message: string;
-      runtime: TesterRuntimeInspection;
-    }
-  | TesterUnavailable;
+export type TesterCapabilityRunResult = TesterTypedSuccess | TesterUnavailable;
 
 function compactJson(value: unknown): string {
   try {
@@ -45,7 +44,7 @@ export async function inspectRuntimeReadiness(): Promise<TesterRuntimeInspection
     return {
       status: 'ready',
       mode: projection.mode,
-      detail: 'Runtime app session is ready. AI execution lanes still require admitted Nimi App SDK methods.',
+      detail: 'Runtime app session is ready. Capability lanes call runtime.ai.* / runtime.media.* directly.',
       healthJson: compactJson(health),
     };
   } catch (error) {
@@ -59,13 +58,13 @@ export async function inspectRuntimeReadiness(): Promise<TesterRuntimeInspection
 
 export async function runTesterCapability(input: TesterCapabilityRunInput): Promise<TesterCapabilityRunResult> {
   const capability = getTesterCapability(input.capabilityId);
-  const runtime = await inspectRuntimeReadiness();
-  if (runtime.status !== 'ready') {
-    return capabilityUnavailable(capability, 'runtime-not-ready', runtime.detail);
+  const projection = await getRuntimePlatformProjection();
+  if (projection.status !== 'ready') {
+    return capabilityUnavailable(capability, 'runtime-not-ready', projection.message);
   }
-  return capabilityUnavailable(
-    capability,
-    'sdk-surface-missing',
-    capability.missingSurface || `${capability.surface} is not admitted for generated Nimi Apps yet.`,
-  );
+  const result: TesterInvocationResult = await invokeTesterCapability(projection.client, input.capabilityId, {
+    prompt: input.prompt,
+    scenarioId: input.scenarioId || 'default',
+  });
+  return result;
 }

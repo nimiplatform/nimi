@@ -375,7 +375,10 @@ test('create accepts explicit app identity and records safe generated names', ()
     assert.match(readFileSync(path.join(target, 'src/shell/auth/runtime-platform.ts'), 'utf8'), /runtimeAccountLoginEnabled = true/);
     assert.match(readFileSync(path.join(target, 'src/shell/routes/product-area.tsx'), 'utf8'), /TesterWorkbench/);
     assert.match(readFileSync(path.join(target, 'src/tester/tester-workbench.tsx'), 'utf8'), /Nimi App Runtime Tester/);
-    assert.match(readFileSync(path.join(target, 'src/tester/tester-runtime.ts'), 'utf8'), /sdk-surface-missing/);
+    assert.match(readFileSync(path.join(target, 'src/tester/tester-runtime.ts'), 'utf8'), /invokeTesterCapability/);
+    assert.match(readFileSync(path.join(target, 'src/tester/tester-runtime-invokers.ts'), 'utf8'), /client\.runtime\.ai\.text\.generate/);
+    assert.match(readFileSync(path.join(target, 'src/tester/tester-runtime-model-provider.ts'), 'utf8'), /runtimeAdmin\.listConnectors/);
+    assert.match(readFileSync(path.join(target, 'src/tester/tester-ai-config-store.ts'), 'utf8'), /connectorId must be empty for local Runtime bindings/);
     assert.match(readFileSync(path.join(target, 'src/tester/world-tour/world-tour-shared.ts'), 'utf8'), /claim_world_tour_viewer_launch/);
     assert.match(readFileSync(path.join(target, 'src-tauri/src/main.rs'), 'utf8'), /tester_run_history_load/);
     assert.match(readFileSync(path.join(target, 'src-tauri/src/world_tour.rs'), 'utf8'), /open_world_tour_window/);
@@ -386,6 +389,9 @@ test('create accepts explicit app identity and records safe generated names', ()
       'src/tester/tester-workbench.tsx',
       'src/tester/tester-runtime.ts',
       'src/tester/tester-ai-config.ts',
+      'src/tester/tester-runtime-invokers.ts',
+      'src/tester/tester-runtime-model-provider.ts',
+      'src/tester/tester-ai-config-store.ts',
       'src/tester/world-tour/world-tour-viewer-route.tsx',
     ].map((relativePath) => readFileSync(path.join(target, relativePath), 'utf8')).join('\n');
     assert.doesNotMatch(testerSources, /from ['"]@renderer\//);

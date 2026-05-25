@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import test from 'node:test';
+import { pathToFileURL } from 'node:url';
 
 const root = path.resolve(import.meta.dirname, '..');
 
@@ -16,6 +18,54 @@ function listSourceFiles(dir) {
     return /\.(ts|tsx)$/.test(entry.name) ? [next] : [];
   });
 }
+
+let behaviorBuildDir = null;
+
+function buildBehaviorModules() {
+  if (behaviorBuildDir) return behaviorBuildDir;
+  mkdirSync(path.join(root, '.tmp'), { recursive: true });
+  behaviorBuildDir = mkdtempSync(path.join(root, '.tmp', 'behavior-'));
+  execFileSync('pnpm', [
+    'exec',
+    'tsc',
+    '--outDir',
+    behaviorBuildDir,
+    '--rootDir',
+    'src',
+    '--module',
+    'NodeNext',
+    '--moduleResolution',
+    'NodeNext',
+    '--target',
+    'ES2022',
+    '--jsx',
+    'react-jsx',
+    '--skipLibCheck',
+    'true',
+    '--types',
+    'node',
+    '--noEmit',
+    'false',
+    'src/tester/tester-runtime-invokers.ts',
+    'src/tester/tester-ai-config-store.ts',
+    'src/tester/tester-runtime-model-provider.ts',
+  ], {
+    cwd: root,
+    stdio: 'pipe',
+  });
+  return behaviorBuildDir;
+}
+
+async function importBehaviorModule(relativePath) {
+  const buildDir = buildBehaviorModules();
+  return import(pathToFileURL(path.join(buildDir, relativePath)).href);
+}
+
+test.after(() => {
+  if (behaviorBuildDir) {
+    rmSync(behaviorBuildDir, { recursive: true, force: true });
+  }
+});
 
 test('tester workbench is app-owned and rejects Desktop private imports', () => {
   const sources = listSourceFiles(path.join(root, 'src')).map((filePath) => readFileSync(filePath, 'utf8')).join('\n');
@@ -55,6 +105,135 @@ test('tester kit gallery covers required component families', () => {
     assert.match(gallery, new RegExp(`\\b${required}\\b`));
   }
   assert.match(gallery, /Runtime projection blocked/);
+});
+
+test('tester App Lab AIConfig uses Runtime connector surfaces without local facade consumption', () => {
+  const store = read('src/tester/tester-ai-config-store.ts');
+  const invokers = read('src/tester/tester-runtime-invokers.ts');
+  const provider = read('src/tester/tester-runtime-model-provider.ts');
+  const summary = read('src/tester/tester-ai-config.ts');
+
+  assert.match(store, /connectorId must be empty for local Runtime bindings/);
+  assert.match(store, /connectorId is required for cloud Runtime bindings/);
+  assert.match(invokers, /binding\.source === 'local' && connectorId/);
+  assert.match(invokers, /binding\.source === 'cloud' && !connectorId/);
+  assert.match(invokers, /connectorId,\s*\n\s*route: 'cloud'/);
+  assert.match(invokers, /route: 'local'/);
+  assert.match(provider, /runtimeAdmin\.listConnectors/);
+  assert.match(provider, /runtimeAdmin\.listConnectorModels/);
+  assert.match(provider, /listLocalModels/);
+  assert.match(provider, /ConnectorKind\.REMOTE_MANAGED/);
+  assert.match(summary, /runtimeAdmin\.listConnectors\/listConnectorModels/);
+});
+
+test('tester Runtime local facade maps to local model and omits connectorId in local payload', async () => {
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const providerModule = await importBehaviorModule('tester/tester-runtime-model-provider.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  const runtimeLocalModelId = 'local.chat.gemma-4-e2b-it.q8-0';
+
+  assert.throws(() => store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      selectedBindings: {
+        'text.generate': {
+          source: 'local',
+          connectorId: 'runtime-local-facade',
+          model: runtimeLocalModelId,
+        },
+      },
+      localProfileRefs: {},
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  }), /connectorId.*local/i);
+
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      selectedBindings: {
+        'text.generate': {
+          source: 'local',
+          connectorId: '',
+          model: runtimeLocalModelId,
+          modelId: runtimeLocalModelId,
+          localModelId: runtimeLocalModelId,
+        },
+      },
+      localProfileRefs: {},
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  });
+
+  let capturedInput = null;
+  const result = await invokers.invokeTesterCapability({
+    runtime: {
+      ai: {
+        text: {
+          async generate(input) {
+            capturedInput = input;
+            return {
+              text: 'ok',
+              finishReason: 'stop',
+              usage: { totalTokens: 1 },
+              trace: { traceId: 'local', modelResolved: input.model, routeDecision: input.route },
+            };
+          },
+          async stream() {
+            throw new Error('stream should not be called');
+          },
+        },
+        embedding: {
+          async generate() {
+            throw new Error('embedding should not be called');
+          },
+        },
+      },
+    },
+  }, 'text.generate', {
+    prompt: 'Hello Runtime',
+    scenarioId: 'local',
+  });
+  assert.equal(result.ok, true);
+  assert.equal(capturedInput.model, runtimeLocalModelId);
+  assert.equal(capturedInput.route, 'local');
+  assert.equal(Object.hasOwn(capturedInput, 'connectorId'), false);
+
+  const provider = providerModule.createTesterRuntimeModelPickerProviderFromClient({
+    domains: {
+      runtimeAdmin: {
+        async listConnectors() {
+          return {
+            connectors: [
+              { connectorId: 'local-facade', provider: 'local', label: 'Runtime Local LLM', kind: 1, localCategory: 1, status: 1 },
+              { connectorId: 'remote-managed', provider: 'cloud', label: 'Cloud', kind: 2, localCategory: 0, status: 1 },
+            ],
+            nextPageToken: '',
+          };
+        },
+        async listConnectorModels(input) {
+          if (input.connectorId === 'local-facade') {
+            return {
+              models: [
+                { modelId: runtimeLocalModelId, modelLabel: 'Local Gemma', available: true, capabilities: ['text.generate'] },
+              ],
+              nextPageToken: '',
+            };
+          }
+          return {
+            models: [
+              { modelId: 'remote.chat.model', modelLabel: 'Remote Chat', available: true, capabilities: ['text.generate'] },
+            ],
+            nextPageToken: '',
+          };
+        },
+      },
+    },
+  }, 'text.generate');
+  assert.deepEqual((await provider.listConnectors()).map((connector) => connector.connectorId), ['remote-managed']);
+  assert.deepEqual((await provider.listLocalModels()).map((model) => model.modelId), [runtimeLocalModelId]);
 });
 
 test('tester app-owned Tauri commands are registered in standalone shell', () => {
