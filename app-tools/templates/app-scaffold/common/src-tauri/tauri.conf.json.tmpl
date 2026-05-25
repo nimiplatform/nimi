@@ -1,0 +1,25 @@
+{
+  "productName": "{{APP_TITLE}}",
+  "version": "0.1.0",
+  "identifier": "{{TAURI_IDENTIFIER}}",
+  "build": {
+    "beforeDevCommand": "pnpm run dev:renderer",
+    "beforeBuildCommand": "pnpm run build",
+    "devUrl": "http://127.0.0.1:{{DEV_PORT}}",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "{{APP_TITLE}}",
+        "width": 1120,
+        "height": 760
+      }
+    ]
+  },
+  "bundle": {
+    "icon": [
+      "icons/icon.png"
+    ]
+  }
+}

@@ -1,0 +1,324 @@
+import { useMemo, useState, type ReactNode } from 'react';
+import {
+  AlertTriangle,
+  BadgeCheck,
+  Bell,
+  Boxes,
+  ChevronDown,
+  ClipboardCheck,
+  Code2,
+  Copy,
+  Cpu,
+  GalleryHorizontalEnd,
+  Menu as MenuIcon,
+  MessageSquare,
+  MoreHorizontal,
+  Play,
+  Plus,
+  RefreshCw,
+  Search,
+  Settings,
+  SlidersHorizontal,
+  Sparkles,
+  TerminalSquare,
+  X,
+} from 'lucide-react';
+import {
+  ActionMenu,
+  Button,
+  Checkbox,
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  EmptyState,
+  FieldShell,
+  IconButton,
+  InlineAlert,
+  LoadingSkeleton,
+  NimiTabs,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  ProgressIndicator,
+  ScrollArea,
+  SegmentedControl,
+  SelectField,
+  Slider,
+  StatusBadge,
+  Surface,
+  TextareaField,
+  TextField,
+  Toggle,
+} from '@nimiplatform/kit/ui';
+
+type GalleryTab = 'controls' | 'feedback' | 'overlays' | 'surfaces';
+
+const galleryTabs = [
+  { value: 'controls', label: 'Controls' },
+  { value: 'feedback', label: 'Feedback' },
+  { value: 'overlays', label: 'Overlays' },
+  { value: 'surfaces', label: 'Surfaces' },
+];
+
+const densityModes = [
+  { value: 'review', label: 'Review', icon: <ClipboardCheck size={14} /> },
+  { value: 'author', label: 'Author', icon: <Code2 size={14} /> },
+  { value: 'runtime', label: 'Runtime', icon: <Cpu size={14} /> },
+];
+
+function GalleryCard(props: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <Surface className="gallery-card" material="glass-regular" tone="card" elevation="base">
+      <div className="gallery-card__heading">
+        <p className="eyebrow">{props.eyebrow}</p>
+        <h3>{props.title}</h3>
+        <p>{props.description}</p>
+      </div>
+      <div className="gallery-card__body">{props.children}</div>
+    </Surface>
+  );
+}
+
+function ControlsPanel() {
+  const [density, setDensity] = useState('review');
+  const [selectedRoute, setSelectedRoute] = useState('text.generate');
+  const [guardrails, setGuardrails] = useState(true);
+  const [batchSize, setBatchSize] = useState(62);
+  const [trace, setTrace] = useState(true);
+  const routeOptions = useMemo(() => [
+    { value: 'text.generate', label: 'Text generation' },
+    { value: 'chat.stream', label: 'Chat stream' },
+    { value: 'image.generate', label: 'Image generation' },
+    { value: 'world.generate', label: 'World tour' },
+  ], []);
+
+  return (
+    <div className="gallery-grid">
+      <GalleryCard eyebrow="Actions" title="Buttons and icon buttons" description="Primary, secondary, ghost, danger, loading, disabled, and compact icon actions.">
+        <div className="gallery-actions">
+          <Button tone="primary" leadingIcon={<Play size={16} />}>Run route</Button>
+          <Button tone="secondary" leadingIcon={<RefreshCw size={16} />}>Refresh</Button>
+          <Button tone="ghost" leadingIcon={<Copy size={16} />}>Copy trace</Button>
+          <Button tone="danger" leadingIcon={<X size={16} />}>Stop</Button>
+          <Button loading>Checking</Button>
+        </div>
+        <div className="gallery-icon-row" aria-label="Icon button examples">
+          <IconButton aria-label="Search routes" icon={<Search size={16} />} />
+          <IconButton aria-label="Open settings" icon={<Settings size={16} />} />
+          <IconButton aria-label="Add workflow" tone="primary" icon={<Plus size={16} />} />
+          <IconButton aria-label="More actions" tone="secondary" icon={<MoreHorizontal size={16} />} />
+        </div>
+      </GalleryCard>
+
+      <GalleryCard eyebrow="Inputs" title="Fields and selectors" description="Text, textarea, select, switch, checkbox, segmented controls, and sliders in one form rhythm.">
+        <div className="gallery-form">
+          <FieldShell label="Route name" description="Stored as app-owned draft data.">
+            <TextField value="Runtime readiness route" onChange={() => {}} leading={<TerminalSquare size={15} />} />
+          </FieldShell>
+          <FieldShell label="Request body">
+            <TextareaField rows={4} value="Validate the active Nimi App runtime route without app-local provider defaults." onChange={() => {}} />
+          </FieldShell>
+          <FieldShell label="Capability">
+            <SelectField value={selectedRoute} onValueChange={setSelectedRoute} options={routeOptions} aria-label="Capability route" />
+          </FieldShell>
+          <div className="gallery-form__inline">
+            <span>Trace Runtime calls</span>
+            <Toggle checked={trace} onChange={setTrace} />
+          </div>
+          <Checkbox checked={guardrails} onChange={(event) => setGuardrails(event.currentTarget.checked)} label="Fail closed on missing SDK surface" />
+          <SegmentedControl items={densityModes} value={density} onValueChange={setDensity} ariaLabel="Gallery density" size="sm" />
+          <Slider min={1} max={100} value={batchSize} onChange={(event) => setBatchSize(Number(event.currentTarget.value))} showValue aria-label="Batch size" />
+        </div>
+      </GalleryCard>
+    </div>
+  );
+}
+
+function FeedbackPanel() {
+  return (
+    <div className="gallery-grid">
+      <GalleryCard eyebrow="Status" title="Badges, alerts, and progress" description="Workflow state is visible without treating unavailable Runtime routes as success.">
+        <div className="gallery-badge-row">
+          <StatusBadge tone="success" shape="dot">session ready</StatusBadge>
+          <StatusBadge tone="warning" shape="dot">sdk gap</StatusBadge>
+          <StatusBadge tone="danger" shape="outline">blocked</StatusBadge>
+          <StatusBadge tone="info">developer</StatusBadge>
+        </div>
+        <ProgressIndicator value={72} showValue />
+        <InlineAlert tone="info" icon={<Bell size={16} />}>
+          <div className="runtime-alert-copy">
+            <strong>Runtime-bound surface</strong>
+            <span>Execution proof comes from SDK calls or typed unavailable states.</span>
+          </div>
+        </InlineAlert>
+        <InlineAlert tone="warning" icon={<AlertTriangle size={16} />}>
+          <div className="runtime-alert-copy">
+            <strong>Missing admitted SDK method</strong>
+            <span>The workflow can render controls, but cannot claim execution readiness.</span>
+          </div>
+        </InlineAlert>
+      </GalleryCard>
+
+      <GalleryCard eyebrow="Empty and loading" title="Skeletons and error states" description="Starter screens include non-happy-path states instead of blank panels.">
+        <LoadingSkeleton lines={4} />
+        <EmptyState
+          icon={<Boxes size={18} />}
+          title="No captured artifacts"
+          description="Run a real capability or resolve a typed blocker before this list fills."
+          action={<Button size="sm" tone="secondary" leadingIcon={<RefreshCw size={14} />}>Refresh</Button>}
+        />
+        <Surface className="gallery-error-state" material="glass-thin" tone="card">
+          <AlertTriangle size={18} />
+          <div>
+            <strong>Runtime projection blocked</strong>
+            <span>Third-party session projection is not exposed by this SDK/runtime pair.</span>
+          </div>
+        </Surface>
+      </GalleryCard>
+    </div>
+  );
+}
+
+function OverlaysPanel() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  return (
+    <div className="gallery-grid">
+      <GalleryCard eyebrow="Dialog and popover" title="Overlay controls" description="Overlays stay inside kit primitives and expose typed actions.">
+        <div className="gallery-actions">
+          <Button tone="primary" leadingIcon={<GalleryHorizontalEnd size={16} />} onClick={() => setDialogOpen(true)}>
+            Open dialog
+          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button tone="secondary" trailingIcon={<ChevronDown size={16} />}>Route details</Button>
+            </PopoverTrigger>
+            <PopoverContent className="gallery-popover">
+              <strong>Runtime route contract</strong>
+              <span>Capability, prompt, diagnostics, and typed unavailable state travel together.</span>
+            </PopoverContent>
+          </Popover>
+        </div>
+        <ActionMenu
+          ariaLabel="Gallery actions"
+          items={[
+            { id: 'copy', label: 'Copy request trace', icon: <Copy size={14} /> },
+            { id: 'rerun', label: 'Run again', icon: <RefreshCw size={14} /> },
+            { id: 'stop', label: 'Stop route', icon: <X size={14} />, tone: 'danger' },
+          ]}
+        />
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent onClose={() => setDialogOpen(false)} dataTestId="nimi-tester-gallery-dialog">
+            <DialogHeader>
+              <DialogTitle>Runtime admission check</DialogTitle>
+            </DialogHeader>
+            <DialogBody>
+              <p className="gallery-dialog-copy">This dialog is rendered by kit primitives and does not bypass Runtime or SDK admission.</p>
+            </DialogBody>
+            <DialogFooter className="gallery-dialog-footer">
+              <Button tone="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button tone="primary" onClick={() => setDialogOpen(false)}>Acknowledge</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </GalleryCard>
+
+      <GalleryCard eyebrow="Menu" title="Action menu surface" description="Menu actions remain explicit and keyboard reachable.">
+        <Surface className="gallery-menu-preview" material="glass-thin" tone="panel">
+          <div className="gallery-menu-preview__top">
+            <StatusBadge tone="neutral">route tools</StatusBadge>
+            <IconButton aria-label="Open menu" icon={<MenuIcon size={16} />} />
+          </div>
+          <ActionMenu
+            ariaLabel="Route tools"
+            items={[
+              { id: 'inspect', label: 'Inspect payload', icon: <Search size={14} /> },
+              { id: 'settings', label: 'Open settings', icon: <Settings size={14} /> },
+              { id: 'clear', label: 'Clear draft', icon: <X size={14} />, tone: 'danger' },
+            ]}
+          />
+        </Surface>
+      </GalleryCard>
+    </div>
+  );
+}
+
+function SurfacesPanel() {
+  const rows = Array.from({ length: 12 }, (_, index) => ({
+    id: `trace-${index + 1}`,
+    label: `Trace ${index + 1}`,
+    status: index % 3 === 0 ? 'typed unavailable' : index % 3 === 1 ? 'queued' : 'ready',
+  }));
+
+  return (
+    <div className="gallery-grid">
+      <GalleryCard eyebrow="Surfaces" title="Cards and glass materials" description="Canvas, panel, card, overlay, and raised states use kit material tokens.">
+        <div className="gallery-surface-row">
+          <Surface material="glass-thin" tone="card" className="gallery-mini-surface">
+            <Sparkles size={18} />
+            <strong>Thin glass</strong>
+          </Surface>
+          <Surface material="glass-regular" tone="panel" className="gallery-mini-surface">
+            <BadgeCheck size={18} />
+            <strong>Regular</strong>
+          </Surface>
+          <Surface material="glass-thick" tone="overlay" elevation="floating" className="gallery-mini-surface">
+            <SlidersHorizontal size={18} />
+            <strong>Overlay</strong>
+          </Surface>
+        </div>
+        <NimiTabs
+          items={[
+            { value: 'request', label: 'Request' },
+            { value: 'diagnostics', label: 'Diagnostics' },
+            { value: 'artifacts', label: 'Artifacts', disabled: true },
+          ]}
+          value="diagnostics"
+          onValueChange={() => {}}
+          ariaLabel="Surface tabs"
+        />
+      </GalleryCard>
+
+      <GalleryCard eyebrow="Scroll" title="Scroll area and dense records" description="Long records keep stable dimensions and do not resize the shell.">
+        <ScrollArea className="gallery-scroll-area" viewportClassName="gallery-scroll-area__viewport" contentClassName="gallery-scroll-list">
+          {rows.map((row) => (
+            <div key={row.id} className="gallery-scroll-row">
+              <MessageSquare size={15} />
+              <span>{row.label}</span>
+              <StatusBadge tone={row.status === 'ready' ? 'success' : row.status === 'queued' ? 'info' : 'warning'}>{row.status}</StatusBadge>
+            </div>
+          ))}
+        </ScrollArea>
+      </GalleryCard>
+    </div>
+  );
+}
+
+export function KitComponentGallery() {
+  const [tab, setTab] = useState<GalleryTab>('controls');
+
+  return (
+    <section className="kit-gallery" data-testid="nimi-tester-kit-gallery">
+      <div className="kit-gallery__header">
+        <div>
+          <p className="eyebrow">Nimi Kit Gallery</p>
+          <h2>Component and workflow primitives</h2>
+          <p>Every control on this page is imported from reviewed kit public surfaces and composed inside app-owned product routes.</p>
+        </div>
+        <StatusBadge tone="info" shape="dot">kit public surface</StatusBadge>
+      </div>
+      <NimiTabs items={galleryTabs} value={tab} onValueChange={(value) => setTab(value as GalleryTab)} ariaLabel="Kit gallery sections" />
+      {tab === 'controls' ? <ControlsPanel /> : null}
+      {tab === 'feedback' ? <FeedbackPanel /> : null}
+      {tab === 'overlays' ? <OverlaysPanel /> : null}
+      {tab === 'surfaces' ? <SurfacesPanel /> : null}
+    </section>
+  );
+}

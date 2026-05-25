@@ -1,24 +1,43 @@
-import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createAppScaffold } from './app-scaffold.mjs';
-import { doctorApp, updateApp } from './app-doctor-update.mjs';
+import { doctorApp, initApp, updateApp } from './app-doctor-update.mjs';
 
 const SDK_VERSION = '^0.5.15';
-const APP_TOOLS_VERSION = '^0.1.3';
+const NIMICODING_VERSION = '0.2.5';
 const KIT_VERSION = '^0.1.0';
 const REACT_VERSION = '^19.1.0';
 const REACT_DOM_VERSION = '^19.1.0';
+const I18NEXT_VERSION = '^25.8.18';
+const REACT_I18NEXT_VERSION = '^16.5.8';
+const LUCIDE_REACT_VERSION = '^0.577.0';
 const TYPESCRIPT_VERSION = '^5.9.3';
 const TSX_VERSION = '^4.21.0';
 const NODE_TYPES_VERSION = '^24.10.1';
 const REACT_TYPES_VERSION = '^19.2.14';
 const REACT_DOM_TYPES_VERSION = '^19.2.3';
+const THREE_TYPES_VERSION = '^0.184.1';
 const VITE_VERSION = '^7.2.4';
 const VITE_REACT_PLUGIN_VERSION = '^5.1.1';
+const TAILWINDCSS_VERSION = '^4.3.0';
+const TAILWINDCSS_VITE_VERSION = '^4.3.0';
 const TAURI_API_VERSION = '^2.9.1';
 const TAURI_CLI_VERSION = '^2.11.2';
 const NIMI_SHELL_TAURI_VERSION = '0.1.0';
 const AI_SDK_VERSION = '^6.0.85';
+const PACKAGE_JSON_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../package.json');
+
+function packageVersion() {
+  const packageJson = JSON.parse(readFileSync(PACKAGE_JSON_PATH, 'utf8'));
+  if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(String(packageJson.version || ''))) {
+    throw new Error(`Invalid @nimiplatform/app-tools package version: ${String(packageJson.version || '')}`);
+  }
+  return packageJson.version;
+}
+
+const APP_TOOLS_VERSION = `^${packageVersion()}`;
 
 function ensureDirEmptyOrMissing(targetDir) {
   if (!existsSync(targetDir)) {
@@ -50,21 +69,53 @@ function appScaffoldVersions() {
   return {
     sdkVersion: SDK_VERSION,
     appToolsVersion: APP_TOOLS_VERSION,
+    nimicodingVersion: NIMICODING_VERSION,
     aiSdkVersion: AI_SDK_VERSION,
     kitVersion: KIT_VERSION,
     reactVersion: REACT_VERSION,
     reactDomVersion: REACT_DOM_VERSION,
+    i18nextVersion: I18NEXT_VERSION,
+    reactI18nextVersion: REACT_I18NEXT_VERSION,
+    lucideReactVersion: LUCIDE_REACT_VERSION,
     tsxVersion: TSX_VERSION,
     typescriptVersion: TYPESCRIPT_VERSION,
     nodeTypesVersion: NODE_TYPES_VERSION,
     reactTypesVersion: REACT_TYPES_VERSION,
     reactDomTypesVersion: REACT_DOM_TYPES_VERSION,
+    threeTypesVersion: THREE_TYPES_VERSION,
     viteVersion: VITE_VERSION,
     viteReactPluginVersion: VITE_REACT_PLUGIN_VERSION,
+    tailwindcssVersion: TAILWINDCSS_VERSION,
+    tailwindcssViteVersion: TAILWINDCSS_VITE_VERSION,
     tauriApiVersion: TAURI_API_VERSION,
     tauriCliVersion: TAURI_CLI_VERSION,
     nimiShellTauriVersion: NIMI_SHELL_TAURI_VERSION,
   };
+}
+
+function runNimicodingSync(targetDir, mode) {
+  if (!['apply', 'check'].includes(mode)) {
+    throw new Error(`Unsupported nimicoding sync mode: ${mode}`);
+  }
+  const flag = mode === 'apply' ? '--apply' : '--check';
+  const result = spawnSync('pnpm', ['exec', 'nimicoding', 'sync', flag, '--json'], {
+    cwd: targetDir,
+    encoding: 'utf8',
+  });
+  if (result.status !== 0) {
+    const output = [result.stdout, result.stderr].filter(Boolean).join('\n').trim();
+    throw new Error(`nimicoding sync ${mode} failed. Run pnpm install before pnpm run init. ${output}`);
+  }
+  try {
+    return JSON.parse(result.stdout);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`nimicoding sync ${mode} returned invalid JSON: ${message}`);
+  }
+}
+
+function appToolRunners() {
+  return { runNimicodingSync };
 }
 
 export function createApp(cwd, options = {}) {
@@ -87,9 +138,13 @@ export function createApp(cwd, options = {}) {
 }
 
 export function doctorAppScaffold(cwd, options = {}) {
-  return doctorApp(cwd, options, appScaffoldVersions());
+  return doctorApp(cwd, options, appScaffoldVersions(), appToolRunners());
+}
+
+export function initAppScaffold(cwd, options = {}) {
+  return initApp(cwd, options, appScaffoldVersions(), appToolRunners());
 }
 
 export function updateAppScaffold(cwd, options = {}) {
-  return updateApp(cwd, options, appScaffoldVersions());
+  return updateApp(cwd, options, appScaffoldVersions(), appToolRunners());
 }

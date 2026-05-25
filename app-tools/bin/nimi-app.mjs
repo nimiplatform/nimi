@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import process from 'node:process';
-import { createApp, doctorAppScaffold, updateAppScaffold } from '../lib/index.mjs';
+import { createApp, doctorAppScaffold, initAppScaffold, updateAppScaffold } from '../lib/index.mjs';
 
 function parseArgs(argv) {
   const [command = '', ...rest] = argv;
@@ -66,6 +66,7 @@ function printUsage() {
     [
       'Usage:',
       '  nimi-app create [--dir path] [--profile standalone|workspace-app] [--app-id id] [--title title] [--package-name name] [--author author]',
+      '  nimi-app init [--dir path] [--json]',
       '  nimi-app doctor [--dir path] [--json]',
       '  nimi-app update [--dir path] [--json]',
       '',
@@ -88,6 +89,12 @@ try {
         title,
         packageName,
         author,
+      });
+      break;
+    case 'init':
+      initAppScaffold(process.cwd(), {
+        dir,
+        json,
       });
       break;
     case 'doctor':

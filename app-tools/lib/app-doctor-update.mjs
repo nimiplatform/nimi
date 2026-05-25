@@ -2,8 +2,12 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import path from 'node:path';
 import {
   buildAppScaffoldSnapshot,
+  buildAppScaffoldSnapshotFromIntent,
   hashScaffoldContent,
+  SCAFFOLD_BUILD_PROFILE_PATH,
+  SCAFFOLD_INTENT_PATH,
   SCAFFOLD_LOCK_PATH,
+  SCAFFOLD_SUBMISSION_PATH,
   SCAFFOLD_VERSION,
   SUPPORTED_APP_SCAFFOLD_PROFILES,
 } from './app-scaffold.mjs';
@@ -61,21 +65,29 @@ function resolveTargetDir(cwd, options = {}) {
   return path.resolve(cwd, String(options.dir || '').trim() || '.');
 }
 
-function readJsonFile(filePath) {
+function readJsonFile(filePath, label = 'JSON file') {
   try {
     return JSON.parse(readFileSync(filePath, 'utf8'));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Invalid scaffold lock: ${filePath}: ${message}`);
+    throw new Error(`Invalid ${label}: ${filePath}: ${message}`);
   }
 }
 
 function readLock(targetDir) {
   const lockPath = path.join(targetDir, SCAFFOLD_LOCK_PATH);
   if (!existsSync(lockPath)) {
-    throw new Error(`Missing scaffold lock: ${SCAFFOLD_LOCK_PATH}`);
+    throw new Error(`Missing initialized scaffold lock: ${SCAFFOLD_LOCK_PATH}. Run pnpm install, then pnpm run init.`);
   }
-  return readJsonFile(lockPath);
+  return readJsonFile(lockPath, 'scaffold lock');
+}
+
+function readIntent(targetDir) {
+  const intentPath = path.join(targetDir, SCAFFOLD_INTENT_PATH);
+  if (!existsSync(intentPath)) {
+    throw new Error(`Missing scaffold init intent: ${SCAFFOLD_INTENT_PATH}`);
+  }
+  return readJsonFile(intentPath, 'scaffold init intent');
 }
 
 function assertSupportedLock(lock) {
@@ -156,6 +168,16 @@ function collectTextFiles(rootDir) {
         continue;
       }
       if (!entry.isFile()) {
+        continue;
+      }
+      const relativePath = path.relative(rootDir, fullPath).split(path.sep).join('/');
+      if (
+        relativePath.startsWith('.nimi/config/')
+        || relativePath.startsWith('.nimi/contracts/')
+        || relativePath.startsWith('.nimi/methodology/')
+        || relativePath.startsWith('.nimi/local/')
+        || relativePath.startsWith('.nimi/cache/')
+      ) {
         continue;
       }
       const stat = statSync(fullPath);
@@ -274,9 +296,10 @@ function assertSemanticMarkers(targetDir) {
     throw new Error('Submitted manifest contains admission or grant wording');
   }
 
-  const submission = readFileSync(path.join(targetDir, '.nimi/admission/submission.yaml'), 'utf8');
+  const submission = readFileSync(path.join(targetDir, SCAFFOLD_SUBMISSION_PATH), 'utf8');
   for (const marker of [
     'submission_role: developer-submitted-input',
+    'init_command: pnpm run init',
     'dev_shell_command: pnpm dev:shell',
     'admission_truth: platform-owned-after-review',
   ]) {
@@ -288,10 +311,12 @@ function assertSemanticMarkers(targetDir) {
     throw new Error('Admission submission contains admission or grant wording');
   }
 
-  const buildProfile = readFileSync(path.join(targetDir, '.nimi/config/build-profile.yaml'), 'utf8');
+  const buildProfile = readFileSync(path.join(targetDir, SCAFFOLD_BUILD_PROFILE_PATH), 'utf8');
   for (const marker of [
     'build_profile_ref:',
     'toolchain_version:',
+    'install_command:',
+    'init_command:',
     'build_command:',
     'output_path:',
     'lockfile_path:',
@@ -327,33 +352,10 @@ function assertSemanticMarkers(targetDir) {
     throw new Error(`CI enables pnpm cache before lockfile exists: ${lockfilePath}`);
   }
 
-  const appIdentity = readFileSync(path.join(targetDir, '.nimi/config/app-identity.yaml'), 'utf8');
-  for (const marker of [
-    'app_id:',
-    'npm_package_name:',
-    'cargo_package_name:',
-    'tauri_identifier:',
-    'identity_role: scaffold-generated-authoring-input',
-  ]) {
-    if (!appIdentity.includes(marker)) {
-      throw new Error(`App identity marker missing: ${marker}`);
-    }
-  }
-
-  const boundary = readFileSync(path.join(targetDir, '.nimi/contracts/scaffold-boundary.yaml'), 'utf8');
-  for (const marker of [
-    'public_admission_truth: not-generated',
-    'local_audit_role: pre-submission-self-check',
-    'permission_declarations: transparency-input-only',
-  ]) {
-    if (!boundary.includes(marker)) {
-      throw new Error(`Scaffold boundary marker missing: ${marker}`);
-    }
-  }
-
   const agents = readFileSync(path.join(targetDir, 'AGENTS.md'), 'utf8');
   for (const marker of [
-    'host-local scaffold truth',
+    'app-scaffold intent and lock',
+    '@nimiplatform/nimi-coding',
     'scaffold-managed files',
     'app-owned area',
     'pre-submission self-checks only',
@@ -361,6 +363,16 @@ function assertSemanticMarkers(targetDir) {
     if (!agents.includes(marker)) {
       throw new Error(`AGENTS.md boundary text missing: ${marker}`);
     }
+  }
+}
+
+function assertNimicodingProjectionCurrent(targetDir, runners) {
+  if (!runners?.runNimicodingSync) {
+    throw new Error('Missing nimicoding sync runner');
+  }
+  const result = runners.runNimicodingSync(targetDir, 'check');
+  if (result && result.ok === false) {
+    throw new Error('nimicoding package-owned projection check failed');
   }
 }
 
@@ -382,13 +394,14 @@ function assertManagedFilesCurrent(targetDir, lock) {
   }
 }
 
-function validateDoctorState(targetDir, versions) {
+function validateDoctorState(targetDir, versions, runners = {}) {
   const lock = readLock(targetDir);
   const snapshot = expectedSnapshotFromLock(lock, versions);
   ensureLockMatchesCurrentGenerator(lock, snapshot);
   assertRequiredSupportFiles(targetDir, snapshot);
   assertSemanticMarkers(targetDir);
   assertManagedFilesCurrent(targetDir, lock);
+  assertNimicodingProjectionCurrent(targetDir, runners);
   const forbiddenFindings = scanForbiddenPatterns(targetDir);
   if (forbiddenFindings.length > 0) {
     throw new Error(`Forbidden scaffold remnants detected: ${forbiddenFindings.join('; ')}`);
@@ -400,9 +413,39 @@ function validateDoctorState(targetDir, versions) {
   };
 }
 
-export function doctorApp(cwd, options = {}, versions) {
+export function initApp(cwd, options = {}, versions, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
-  const result = validateDoctorState(targetDir, versions);
+  const intent = readIntent(targetDir);
+  const snapshot = buildAppScaffoldSnapshotFromIntent({ intent, versions });
+  if (!runners?.runNimicodingSync) {
+    throw new Error('Missing nimicoding sync runner');
+  }
+  const nimicoding = runners.runNimicodingSync(targetDir, 'apply');
+  for (const file of snapshot.initFiles) {
+    writeScaffoldFile(targetDir, file);
+  }
+  validateDoctorState(targetDir, versions, runners);
+  const payload = {
+    ok: true,
+    command: 'init',
+    dir: targetDir,
+    scaffoldVersion: snapshot.lock.scaffoldVersion,
+    profile: snapshot.lock.profile,
+    appId: snapshot.lock.appId,
+    initializedFiles: snapshot.initFiles.length,
+    nimicodingSync: nimicoding?.summary || null,
+  };
+  if (options.json) {
+    process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+  } else {
+    process.stdout.write(`[nimi-app] init completed for ${targetDir}\n`);
+  }
+  return payload;
+}
+
+export function doctorApp(cwd, options = {}, versions, runners = {}) {
+  const targetDir = resolveTargetDir(cwd, options);
+  const result = validateDoctorState(targetDir, versions, runners);
   const payload = {
     ok: true,
     command: 'doctor',
@@ -451,11 +494,15 @@ function writeScaffoldFile(targetDir, file) {
   writeFileSync(targetPath, file.content);
 }
 
-export function updateApp(cwd, options = {}, versions) {
+export function updateApp(cwd, options = {}, versions, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
   const lock = readLock(targetDir);
   const snapshot = expectedSnapshotFromLock(lock, versions);
   assertNoClassificationConflict(lock, snapshot);
+  if (!runners?.runNimicodingSync) {
+    throw new Error('Missing nimicoding sync runner');
+  }
+  runners.runNimicodingSync(targetDir, 'apply');
 
   for (const file of snapshot.filesWithoutLock) {
     const managedEntry = snapshot.lock.managedFileHashes[file.path];
@@ -469,7 +516,7 @@ export function updateApp(cwd, options = {}, versions) {
     content: `${JSON.stringify(snapshot.lock, null, 2)}\n`,
   });
 
-  validateDoctorState(targetDir, versions);
+  validateDoctorState(targetDir, versions, runners);
   const payload = {
     ok: true,
     command: 'update',

@@ -1,0 +1,31 @@
+import { Surface, StatusBadge } from '@nimiplatform/kit/ui';
+
+const surfaces = [
+  { name: 'Runtime session', detail: 'SDK-created session projection with fail-closed unavailable states.' },
+  { name: 'Permission posture', detail: 'Manifest scopes stay review inputs until Platform admission grants them.' },
+  { name: 'Product route', detail: 'App-owned code starts here while scaffold-managed glue keeps Runtime boundaries intact.' },
+] as const;
+
+export function ProductArea() {
+  return (
+    <section className="product-area" aria-labelledby="product-title">
+      <div className="product-hero">
+        <div>
+          <p className="eyebrow">Runtime-bound product surface</p>
+          <h1 id="product-title">{{APP_TITLE}}</h1>
+          <p className="product-copy">A generated Nimi App shell with real Runtime session boundaries, review-input manifest posture, and kit-native glass surfaces.</p>
+        </div>
+        <StatusBadge tone="success" shape="dot">session ready</StatusBadge>
+      </div>
+
+      <div className="workbench-grid" aria-label="Generated app surfaces">
+        {surfaces.map((surface) => (
+          <Surface key={surface.name} className="workbench-card" material="glass-regular" tone="card" elevation="raised">
+            <h2>{surface.name}</h2>
+            <p>{surface.detail}</p>
+          </Surface>
+        ))}
+      </div>
+    </section>
+  );
+}

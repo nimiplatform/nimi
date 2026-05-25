@@ -4,17 +4,33 @@ Public app-authoring CLI for Nimi App projects.
 
 ```bash
 pnpm dlx @nimiplatform/app-tools nimi-app create --profile standalone
+pnpm dlx @nimiplatform/app-tools nimi-app init --dir path/to/app
 pnpm dlx @nimiplatform/app-tools nimi-app doctor --dir path/to/app
 pnpm dlx @nimiplatform/app-tools nimi-app update --dir path/to/app
 ```
 
 `nimi-app create` emits a publishable Tauri app-authoring scaffold. The
 generated project is designed to install its own dependencies with
-`pnpm install`, run with `pnpm dev:shell`, run local checks, produce a
+`pnpm install`, initialize with `pnpm run init`, run with `pnpm dev:shell`, run local checks, produce a
 developer-submitted Nimi listing packet, and remain directly usable without
 hand-editing scaffold-managed glue.
 
-`nimi-app doctor` verifies scaffold lock state, managed glue, package-owned
+`nimi-app init` is the explicit post-install activation step. It runs the
+pinned local `nimicoding sync --apply` projection for `.nimi/{config,contracts,methodology}/**`
+and writes app-scaffold admission/build-profile/lock state. It does not use
+`npx` or mutate `.nimi/**` from package install side effects.
+
+`pnpm dev:shell` requests a short-lived local Runtime developer app session
+before launching Tauri. That local session is development material only; it is
+not listing admission, installed-app truth, or a permission grant.
+
+When `--app-id nimi.tester` is used, the generator emits the first-party
+developer tester product surface: Runtime-authenticated shell, Nimi Kit glass
+workbench, typed AI capability lanes, app-owned history storage, standalone
+world-tour viewer commands, and local acceptance tests. It is not a summary-card
+starter page.
+
+`nimi-app doctor` verifies scaffold init/lock state, managed glue, package-owned
 projections, dependency alignment, and forbidden shortcut patterns in a source
 checkout. `nimi-app update` refreshes scaffold-managed files while preserving
 app-owned product code.
@@ -34,6 +50,7 @@ pnpm add @nimiplatform/sdk @nimiplatform/kit
 
 ```bash
 nimi-app create [--dir path] [--profile standalone|workspace-app] [--app-id id] [--title title] [--package-name name] [--author author]
+nimi-app init [--dir path] [--json]
 nimi-app doctor [--dir path] [--json]
 nimi-app update [--dir path] [--json]
 ```
