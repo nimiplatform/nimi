@@ -7,8 +7,6 @@ import {
   setRuntimeWorldEvolutionSelectorReadProvider,
   type WorldEvolutionSelectorReadProvider,
 } from '../src/internal/world-evolution-selector-read.js';
-import { worldEvolution as modWorldEvolution } from '../src/mod/index.js';
-import { clearModSdkHost, setModSdkHost } from '../src/mod/host.js';
 import { ReasonCode } from '../src/types/index.js';
 
 function createProvider(): WorldEvolutionSelectorReadProvider {
@@ -86,49 +84,15 @@ test('platform worldEvolution executionEvents.read supports anchored filters', a
   });
 });
 
-test('app and mod worldEvolution paths reject the same invalid selector category', async () => {
-  clearPlatformClient();
-  clearModSdkHost();
-
-  const client = await createPlatformClient({
-    appId: 'nimi.sdk.wee.validation.parity',
-    realmBaseUrl: 'https://realm.example',
-    allowAnonymousRealm: true,
-    runtimeTransport: null,
-  });
-  const provider = createProvider();
-  setRuntimeWorldEvolutionSelectorReadProvider(client.runtime, provider);
-  setModSdkHost({
-    worldEvolution: provider,
-  } as never);
-
-  try {
-    let appErrorCategory = '';
-    let modErrorCategory = '';
-
-    await assert.rejects(
-      () => client.worldEvolution.executionEvents.read({ appId: 'app-only' }),
-      (error: unknown) => {
-        appErrorCategory = String((error as { details?: { rejectionCategory?: string } }).details?.rejectionCategory || '');
-        assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.ACTION_INPUT_INVALID);
-        return true;
-      },
-    );
-
-    await assert.rejects(
-      () => modWorldEvolution.executionEvents.read({ appId: 'app-only' }),
-      (error: unknown) => {
-        modErrorCategory = String((error as { details?: { rejectionCategory?: string } }).details?.rejectionCategory || '');
-        assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.ACTION_INPUT_INVALID);
-        return true;
-      },
-    );
-
-    assert.equal(appErrorCategory, 'INCOMPLETE_SELECTOR');
-    assert.equal(modErrorCategory, 'INCOMPLETE_SELECTOR');
-  } finally {
-    clearModSdkHost();
-  }
+test('retired mod worldEvolution path is physically absent', async () => {
+  const retiredModPath = '../src/mod/index.js';
+  await assert.rejects(
+    () => import(retiredModPath),
+    (error: unknown) => {
+      assert.equal((error as { code?: string }).code, 'ERR_MODULE_NOT_FOUND');
+      return true;
+    },
+  );
 });
 
 test('commitRequests.read rejects incomplete schema selector pairs', async () => {

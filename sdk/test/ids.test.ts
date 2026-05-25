@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { createAISnapshotExecutionId } from '../src/ai/index.js';
 import { createNimiUlid } from '../src/index.js';
-import { createAISnapshotExecutionId } from '../src/mod/index.js';
 
 const ULID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/;
 
