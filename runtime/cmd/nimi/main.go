@@ -52,8 +52,6 @@ func main() {
 		exitIfCommandError("ai", runRuntimeAI(args[2:]))
 	case "model":
 		exitIfCommandError("model", runRuntimeModel(args[2:]))
-	case "mod":
-		exitIfCommandError("mod", runRuntimeMod(args[2:]))
 	case "app-auth":
 		exitIfCommandError("app-auth", runRuntimeAppAuth(args[2:]))
 	case "knowledge":

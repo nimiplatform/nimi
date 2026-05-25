@@ -162,15 +162,20 @@ func treeDigest(root string) (string, int64, error) {
 	sort.Slice(entries, func(i, j int) bool { return entries[i].rel < entries[j].rel })
 	hasher := sha256.New()
 	for _, item := range entries {
-		fmt.Fprintf(hasher, "path:%s\n", item.rel)
+		if _, err := fmt.Fprintf(hasher, "path:%s\n", item.rel); err != nil {
+			return "", 0, fmt.Errorf("appinstallgateway bundled source: hash path %q: %w", item.rel, err)
+		}
 		file, err := os.Open(item.path)
 		if err != nil {
 			return "", 0, fmt.Errorf("appinstallgateway bundled source: open %q: %w", item.path, err)
 		}
 		written, err := io.Copy(hasher, file)
-		_ = file.Close()
+		closeErr := file.Close()
 		if err != nil {
 			return "", 0, fmt.Errorf("appinstallgateway bundled source: hash %q: %w", item.path, err)
+		}
+		if closeErr != nil {
+			return "", 0, fmt.Errorf("appinstallgateway bundled source: close %q: %w", item.path, closeErr)
 		}
 		bytesTotal += written
 	}

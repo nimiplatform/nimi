@@ -80,8 +80,11 @@ func LoadCatalogFromFile(path string) (*Catalog, error) {
 	if err != nil {
 		return nil, fmt.Errorf("host-capability LoadCatalogFromFile open: %w", err)
 	}
-	defer file.Close()
-	return LoadCatalog(file)
+	catalog, loadErr := LoadCatalog(file)
+	if closeErr := file.Close(); closeErr != nil && loadErr == nil {
+		return nil, fmt.Errorf("host-capability LoadCatalogFromFile close: %w", closeErr)
+	}
+	return catalog, loadErr
 }
 
 func convertProfile(raw rawProfile) (Profile, error) {

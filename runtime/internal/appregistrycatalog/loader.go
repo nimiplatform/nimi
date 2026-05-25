@@ -117,8 +117,11 @@ func LoadRegistryFromFile(path string) (*Registry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("appregistry LoadRegistryFromFile open: %w", err)
 	}
-	defer file.Close()
-	return LoadRegistry(file)
+	registry, loadErr := LoadRegistry(file)
+	if closeErr := file.Close(); closeErr != nil && loadErr == nil {
+		return nil, fmt.Errorf("appregistry LoadRegistryFromFile close: %w", closeErr)
+	}
+	return registry, loadErr
 }
 
 func convertApp(raw rawApp) (App, error) {

@@ -93,8 +93,11 @@ func LoadCatalogFromFile(path string) (*Catalog, error) {
 	if err != nil {
 		return nil, fmt.Errorf("appreleasecatalog LoadCatalogFromFile open: %w", err)
 	}
-	defer file.Close()
-	return LoadCatalog(file)
+	catalog, loadErr := LoadCatalog(file)
+	if closeErr := file.Close(); closeErr != nil && loadErr == nil {
+		return nil, fmt.Errorf("appreleasecatalog LoadCatalogFromFile close: %w", closeErr)
+	}
+	return catalog, loadErr
 }
 
 func convertDescriptor(raw rawDescriptor) (Descriptor, error) {
