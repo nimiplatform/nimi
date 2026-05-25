@@ -81,7 +81,7 @@ async function writeConsumerPackageJson(appDir, sdkTarballPath) {
 async function writeSmokeEntry(appDir) {
   const source = [
     "import { clearPlatformClient, createNimiAppRuntimePlatformClient, createPlatformClient, getPlatformClient } from '@nimiplatform/sdk';",
-    "import { Runtime, buildRuntimeAuthMetadata, createRuntimeRealmBridgeHelpers, fetchRealmGrant } from '@nimiplatform/sdk/runtime';",
+    "import { Runtime, buildRuntimeAuthMetadata, createRuntimeClient, createRuntimeRealmBridgeHelpers, fetchRealmGrant } from '@nimiplatform/sdk/runtime';",
     "import { Realm } from '@nimiplatform/sdk/realm';",
     "import { createWorldFacade, generate as worldGenerate, fixture as worldFixture, render as worldRender, session as worldSession } from '@nimiplatform/sdk/world';",
     "import { Modal } from '@nimiplatform/sdk/runtime';",
@@ -95,6 +95,7 @@ async function writeSmokeEntry(appDir) {
     "if (typeof getPlatformClient !== 'function') throw new Error('root getPlatformClient export invalid');",
     "if (typeof clearPlatformClient !== 'function') throw new Error('root clearPlatformClient export invalid');",
     "if (typeof Runtime !== 'function') throw new Error('runtime class export invalid');",
+    "if (typeof createRuntimeClient !== 'function') throw new Error('runtime client factory export invalid');",
     "if (typeof fetchRealmGrant !== 'function') throw new Error('runtime realm bridge export invalid');",
     "if (typeof createRuntimeRealmBridgeHelpers !== 'function') throw new Error('runtime realm bridge helper export invalid');",
     "if (typeof buildRuntimeAuthMetadata !== 'function') throw new Error('runtime auth metadata export invalid');",
@@ -109,6 +110,23 @@ async function writeSmokeEntry(appDir) {
     "if (typeof aiApi.createAppAIScopeRef !== 'function') throw new Error('app ai scope export invalid');",
     "if (typeof aiApi.normalizeRuntimeRouteSource !== 'function') throw new Error('ai runtime-route export invalid');",
     "if (typeof aiApi.loadStorageJsonFrom !== 'function') throw new Error('ai storage export invalid');",
+    "const aiScopeRef = aiApi.createAppAIScopeRef('app.nimi.sdk-smoke', 'default-surface');",
+    "if (aiScopeRef.kind !== 'app' || aiScopeRef.ownerId !== 'app.nimi.sdk-smoke' || aiScopeRef.surfaceId !== 'default-surface') throw new Error('app ai scope call invalid');",
+    'const emptyAIConfig = aiApi.createEmptyAIConfig(aiScopeRef);',
+    "if (emptyAIConfig.scopeRef.ownerId !== 'app.nimi.sdk-smoke') throw new Error('ai config call invalid');",
+    "if (aiApi.normalizeRuntimeRouteSource('cloud') !== 'cloud') throw new Error('ai runtime-route cloud call invalid');",
+    "if (aiApi.normalizeRuntimeRouteSource('unsupported') !== 'local') throw new Error('ai runtime-route fallback call invalid');",
+    "if (aiApi.loadStorageJsonFrom(undefined, 'missing') !== null) throw new Error('ai storage missing call invalid');",
+    "if (aiApi.loadStorageJsonFrom({ getItem: () => '{\"ok\":true}' }, 'present')?.ok !== true) throw new Error('ai storage present call invalid');",
+    'try {',
+    "  await import('@nimiplatform/sdk/mod');",
+    "  throw new Error('retired mod subpath resolved');",
+    '} catch (error) {',
+    "  if (String(error?.message || error) === 'retired mod subpath resolved') throw error;",
+    "  const code = String(error?.code || '');",
+    "  const message = String(error?.message || error);",
+    "  if (code !== 'ERR_PACKAGE_PATH_NOT_EXPORTED' && !message.includes('not defined by \"exports\"')) throw error;",
+    '}',
     "if (typeof Modal !== 'object') throw new Error('runtime export invalid');",
     'clearPlatformClient();',
     'const platformClient = await createPlatformClient({',
@@ -256,48 +274,6 @@ async function writeSmokeEntry(appDir) {
     "if (bridgeMetadata.realmGrantVersion !== 'sdk-v1') throw new Error('runtime realm bridge metadata invalid');",
     "if (typeof ReasonCode !== 'object') throw new Error('types export invalid');",
     "if (typeof createScopeModule !== 'function') throw new Error('scope export invalid');",
-    "if (modApi.normalizeRuntimeRouteSource('cloud') !== 'cloud') throw new Error('mod runtime-route call invalid');",
-    "if (!Array.isArray(modApi.filterModelOptions([], 'x'))) throw new Error('mod model-options call invalid');",
-    "if (typeof modApi.getPendingModTranslationCount() !== 'number') throw new Error('mod i18n call invalid');",
-    "if (typeof modApi.normalizeRuntimeModSettingsMap({}) !== 'object') throw new Error('mod settings call invalid');",
-    "if (modApi.loadStorageJsonFrom(undefined, 'missing') !== null) throw new Error('mod utils call invalid');",
-    "if (typeof modApi.worldEvolution.executionEvents.read !== 'function') throw new Error('mod worldEvolution executionEvents export invalid');",
-    "if (typeof modApi.worldEvolution.supervision.read !== 'function') throw new Error('mod worldEvolution supervision export invalid');",
-    "const smokeModel = ['gpt', '4.1-mini'].join('-');",
-    'const runtimeCalls = [];',
-    "const runtimeClient = modApi.createModRuntimeClient('world.nimi.sdk-smoke', {",
-    '  runtime: {},',
-    '  runtimeHost: {',
-    '    route: {',
-    "      listOptions: async (input) => { runtimeCalls.push(['route.listOptions', input]); return { capability: input.capability, selected: { source: 'cloud', connectorId: 'connector-1', model: smokeModel }, resolvedDefault: { source: 'cloud', connectorId: 'connector-1', model: smokeModel }, local: { models: [] }, connectors: [] }; },",
-    "      resolve: async (input) => { runtimeCalls.push(['route.resolve', input]); return { capability: input.capability, source: 'cloud', provider: 'openai', model: input.binding?.model || smokeModel, connectorId: input.binding?.connectorId || 'connector-1' }; },",
-    "      checkHealth: async (input) => { runtimeCalls.push(['route.checkHealth', input]); return { healthy: true, status: 'healthy', provider: 'openai', reasonCode: 'RUNTIME_ROUTE_HEALTHY', actionHint: 'none' }; },",
-    '    },',
-    '    ai: {',
-    '      text: {',
-    "        generate: async (input) => { runtimeCalls.push(['ai.text.generate', input]); return { text: 'ok', traceId: 'trace-1', promptTraceId: 'prompt-1' }; },",
-    "        stream: async (input) => { runtimeCalls.push(['ai.text.stream', input]); return { [Symbol.asyncIterator]: async function* () { yield { type: 'text_delta', delta: 'ok' }; } }; },",
-    '      },',
-    "      embedding: { generate: async (input) => { runtimeCalls.push(['ai.embedding.generate', input]); return { vectors: [[1, 2, 3]], traceId: 'trace-embed-1' }; } },",
-    '    },',
-    '    media: {',
-    "      image: { generate: async (input) => { runtimeCalls.push(['media.image.generate', input]); return { images: [], traceId: 'trace-image-1' }; }, stream: async (input) => { runtimeCalls.push(['media.image.stream', input]); return { [Symbol.asyncIterator]: async function* () {} }; } },",
-    "      video: { generate: async (input) => { runtimeCalls.push(['media.video.generate', input]); return { videos: [], traceId: 'trace-video-1' }; }, stream: async (input) => { runtimeCalls.push(['media.video.stream', input]); return { [Symbol.asyncIterator]: async function* () {} }; } },",
-    "      tts: { synthesize: async (input) => { runtimeCalls.push(['media.tts.synthesize', input]); return { audioUri: 'memory://audio', mimeType: 'audio/mpeg', traceId: 'trace-tts-1' }; }, stream: async (input) => { runtimeCalls.push(['media.tts.stream', input]); return { [Symbol.asyncIterator]: async function* () {} }; }, listVoices: async (input) => { runtimeCalls.push(['media.tts.listVoices', input]); return { voices: [], traceId: 'trace-voice-1' }; } },",
-    "      stt: { transcribe: async (input) => { runtimeCalls.push(['media.stt.transcribe', input]); return { text: 'hello', traceId: 'trace-stt-1' }; } },",
-    "      jobs: { get: async (input) => { runtimeCalls.push(['media.jobs.get', input]); return { jobId: input.jobId }; }, cancel: async (input) => { runtimeCalls.push(['media.jobs.cancel', input]); return { jobId: input.jobId }; }, subscribe: async (input) => { runtimeCalls.push(['media.jobs.subscribe', input]); return { [Symbol.asyncIterator]: async function* () {} }; }, getArtifacts: async (input) => { runtimeCalls.push(['media.jobs.getArtifacts', input]); return { artifacts: [], traceId: 'trace-artifacts-1' }; } },",
-    '    },',
-    '    voice: {',
-    "      getAsset: async (input) => { runtimeCalls.push(['voice.getAsset', input]); return { asset: undefined }; },",
-    "      listAssets: async (input) => { runtimeCalls.push(['voice.listAssets', input]); return { assets: [] }; },",
-    "      deleteAsset: async (input) => { runtimeCalls.push(['voice.deleteAsset', input]); return { deleted: true }; },",
-    "      listPresetVoices: async (input) => { runtimeCalls.push(['voice.listPresetVoices', input]); return { voices: [] }; },",
-    '    },',
-    '  },',
-    '});',
-    "await runtimeClient.route.listOptions({ capability: 'text.generate' });",
-    "await runtimeClient.ai.text.generate({ prompt: 'hello', binding: { source: 'cloud', connectorId: 'connector-1', model: smokeModel } });",
-    "if (runtimeCalls[0]?.[1]?.modId !== 'world.nimi.sdk-smoke') throw new Error('runtime owner id injection invalid');",
     "console.log('sdk consumer smoke ok');",
     '',
   ].join('\n');
@@ -312,6 +288,7 @@ async function writeAuthorToolsPackageJson(appDir, appToolsTarballPath) {
     type: 'module',
     devDependencies: {
       '@nimiplatform/app-tools': `file:${appToolsTarballPath}`,
+      '@nimiplatform/nimi-coding': '0.2.5',
     },
   };
 
@@ -379,6 +356,7 @@ async function main() {
 
   await writeAuthorToolsPackageJson(authorDir, appToolsTarball);
   runCommand('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], authorDir);
+  process.env.PATH = `${path.join(authorDir, 'node_modules', '.bin')}${path.delimiter}${process.env.PATH || ''}`;
   runCommand(
     'pnpm',
     ['exec', 'nimi-app', 'create', '--dir', 'generated-app-standalone', '--profile', 'standalone'],
@@ -390,6 +368,7 @@ async function main() {
     authorDir,
   );
   for (const generatedAppDir of [generatedStandaloneAppDir, generatedWorkspaceAppDir]) {
+    runCommand('pnpm', ['exec', 'nimi-app', 'init', '--dir', generatedAppDir], authorDir);
     runCommand('pnpm', ['exec', 'nimi-app', 'doctor', '--dir', generatedAppDir], authorDir);
     runCommand('pnpm', ['exec', 'nimi-app', 'update', '--dir', generatedAppDir], authorDir);
     runCommand('pnpm', ['exec', 'nimi-app', 'doctor', '--dir', generatedAppDir], authorDir);
@@ -402,6 +381,7 @@ async function main() {
     },
     devDependencies: {
       '@nimiplatform/app-tools': `file:${appToolsTarball}`,
+      '@nimiplatform/nimi-coding': '0.2.5',
     },
     pnpmOverrides: {
       '@nimiplatform/sdk': `file:${sdkTarball}`,
@@ -418,6 +398,7 @@ async function main() {
     },
     devDependencies: {
       '@nimiplatform/app-tools': `file:${appToolsTarball}`,
+      '@nimiplatform/nimi-coding': '0.2.5',
     },
     pnpmOverrides: {
       '@nimiplatform/sdk': `file:${sdkTarball}`,
