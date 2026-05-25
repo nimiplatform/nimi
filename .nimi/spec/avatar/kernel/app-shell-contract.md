@@ -461,12 +461,12 @@ Normal path boundary:
   Runtime-backed token provider 为 `runtime.agent` turns API 获取
   request-time capability token；默认路径不 issue scoped binding
 - visual bootstrap：Avatar resolves the selected local Avatar asset into
-  materialized Live2D/VRM files after Runtime validates `agent_id`. Realm /
-  Asset Market packages may become a local Avatar asset only after acquisition
-  and local materialization; they are not the default launch-time source of
-  visual truth. Current Agent Center resolver plumbing is local Avatar asset
-  materialization storage, not marketplace package lifecycle, inventory, or
-  activation authority.
+  materialized Live2D/VRM files after Runtime validates `agent_id`. Remote
+  marketplace package sources are retired (Asset Market withdrawn); local
+  import + materialization is the only launch-time source of visual truth.
+  Current Agent Center resolver plumbing is local Avatar asset materialization
+  storage, not marketplace package lifecycle, inventory, or activation
+  authority.
 - data bootstrap：Runtime / SDK validates `agent_id` for the current Runtime
   account projection before private agent/user data or authorized local visual
   materialization loads
@@ -664,8 +664,8 @@ Avatar 必须：
 - 在加载 private agent data 或 selected local Avatar asset materialization 前
   验证 `agent_id`
 - 仅从 Avatar local asset resolver 返回的 materialized Live2D/VRM files 读取
-  visual files；Realm / Asset Market package records 必须先 materialize 到同一
-  local asset store 后才可被 Avatar 消费
+  visual files；远程 marketplace package 来源已退役（Asset Market 撤回），
+  本地 import + materialization 是 visual 唯一来源
 - 创建或恢复 Avatar-owned conversation context
 - 通过 Runtime / SDK `K-AGCORE-138` live-instance binding 恢复 Desktop-current
   conversation anchor；缺失绑定时不得从 same-agent identity 推断同一 conversation

@@ -64,7 +64,6 @@ surfaces:
       - marketplace_economy_truth
       - package_trust_authority
       - app_local_spec_discovery_truth
-      - avatar_package_install_update_authority
     source_rule: D-HOME-004
 
   - surface_id: agent-chat

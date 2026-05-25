@@ -4,18 +4,23 @@
 
 ## Scope
 
-定义 first-party Nimi App（Wave 5 hardcut targets：Avatar 与 ParentOS）
-从 standalone install path 迁移到 Nimi App registry 行的 product 级
-migration authority。本契约固化 `design.md` "First-Party Migration
-Policy" 决议，并锁定 migration failure fail-closed 状态机、source-
-development marker rule 与 no-silent-user-state-reset rule。
+定义 first-party Nimi App（Wave 5 hardcut target：Avatar）从 standalone
+install path 迁移到 Nimi App registry 行的 product 级 migration authority。
+本契约固化 `design.md` "First-Party Migration Policy" 决议，并锁定
+migration failure fail-closed 状态机、source-development marker rule 与
+no-silent-user-state-reset rule。
+
+> 历史注：ParentOS 在 topic
+> `2026-05-25-parentos-first-party-admission-exit` 中已 retire 出 first-party
+> admission，本契约的 migration 状态机不再覆盖 parentos-standalone-to-nimi-app
+> 路径。
 
 ## P-FPM-001 — Required Migration Questions
 
 `MUST`：Wave 5 implementation 必须为每个 hardcut target 显式回答以下
 问题，并把答案落到对应 app 的 migration plan：
 
-1. 当前存在哪些 standalone Avatar / ParentOS 用户状态？
+1. 当前存在哪些 standalone Avatar 用户状态？
 2. 哪些状态是 app-private、迁移后仍留在 app 内？
 3. 哪些状态必须升级为 Nimi account / data / permission truth？
 4. 哪些本地文件或设置变为 Nimi Home-managed install state？

@@ -158,11 +158,6 @@ entries:
   - K-AGCORE-130
   - K-AGCORE-131
   - K-AGCORE-132
-  - K-AGCORE-133
-  - K-AGCORE-134
-  - K-AGCORE-135
-  - K-AGCORE-136
-  - K-AGCORE-137
   - K-AGCORE-138
 rules:
   - rule_id: K-AGCORE-001
@@ -782,35 +777,10 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
     evidence_requirement: required
-  - rule_id: K-AGCORE-133
-    evidence_refs:
-      - runtime_kernel_consistency
-    note: Avatar package launch projection authority admitted as Runtime-owned contract truth.
-    evidence_requirement: required
-  - rule_id: K-AGCORE-134
-    evidence_refs:
-      - runtime_kernel_consistency
-    note: Avatar package launch projection method name, RPC owner, and scope admitted as contract truth.
-    evidence_requirement: required
-  - rule_id: K-AGCORE-135
-    evidence_refs:
-      - runtime_kernel_consistency
-    note: Avatar package launch eligibility gate admitted as Runtime contract truth.
-    evidence_requirement: required
-  - rule_id: K-AGCORE-136
-    evidence_refs:
-      - runtime_kernel_consistency
-    note: Agent Center non-authority boundary admitted for Avatar package projection.
-    evidence_requirement: required
-  - rule_id: K-AGCORE-137
-    evidence_refs:
-      - runtime_kernel_consistency
-    note: Avatar package projection remains contract-only until Asset Market and Runtime emit implementation land.
-    evidence_requirement: required
   - rule_id: K-AGCORE-138
     evidence_refs:
       - runtime_kernel_consistency
-    note: Avatar live-instance binding recovery admitted as Runtime-owned anchor continuity truth.
+    note: Avatar live-instance binding recovery admitted as Runtime-owned anchor continuity truth; Avatar package projection contract withdrawn with Asset Market.
     evidence_requirement: required
   - rule_id: K-AGCORE-139
     evidence_refs:

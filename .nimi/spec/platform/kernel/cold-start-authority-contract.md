@@ -236,8 +236,8 @@ app-level REST calls may participate as positive ready evidence.
 - Wave 3 Nimi App registry / 申请 / 跨 wave joins。
 - Wave 4 permission fabric（account、data、agent identity、AI spend、
   memory / cognition access）。
-- Wave 5 first-party app integration（Avatar / ParentOS，受 Avatar
-  productization master gate 约束）。
+- Wave 5 first-party app integration（Avatar，受 Avatar productization
+  master gate 约束）。
 
 `MUST NOT`：在 wave 关闭前以"代为预判"的 default ready 状态投影任何
 upstream authority。

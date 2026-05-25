@@ -1044,11 +1044,6 @@ method_mappings:
     proto_method: SetAgentPresentationProfile
     mapping_posture: aligned
   - design_service: RuntimeAgentService
-    design_method: ResolveAvatarPackageLaunchProjection
-    proto_service: RuntimeAgentService
-    proto_method: ResolveAvatarPackageLaunchProjection
-    mapping_posture: aligned
-  - design_service: RuntimeAgentService
     design_method: CreateRealmGroupMessageCandidate
     proto_service: RuntimeAgentService
     proto_method: CreateRealmGroupMessageCandidate

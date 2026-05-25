@@ -410,8 +410,6 @@ services:
         type: unary
       - name: GetAvatarDebugReplay
         type: unary
-      - name: ResolveAvatarPackageLaunchProjection
-        type: unary
       - name: ListDelegatedProviderProfiles
         type: unary
       - name: UpsertDelegatedProviderProfile

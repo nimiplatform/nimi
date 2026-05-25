@@ -118,7 +118,7 @@ AIScopeRef {
 
 - `ownerId` 必须是该 app 在 Nimi App registry 中已 admit 的 `app_id`
   （`P-NAPP-002`），即 dot-separated namespace 形式的 app identity（例如
-  `nimi.avatar`、`parentos`），并且对应 row 必须满足
+  `nimi.avatar`），并且对应 row 必须满足
   `admission_status=admitted`。它不得是 release descriptor id、package id、
   registry row 序号、library record id、launch session id、renderer tab key、
   account id、agent id、conversation id、profile id 或任何瞬时 launch context

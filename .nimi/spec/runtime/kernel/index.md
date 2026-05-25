@@ -67,7 +67,6 @@
 | `agent-presentation-contract.md` | `K-AGCORE-*` | Runtime-owned persistent `AgentPresentationProfile` truth、default avatar binding、and non-owner boundary for renderer-local state |
 | `agent-presentation-stream-contract.md` | `K-AGCORE-*` | Runtime-owned transient `turn` / `presentation` projection seam、current emotion projection、and stream commit semantics |
 | `avatar-debug-projection-contract.md` | `K-AGCORE-*` | Runtime-owned Avatar debug probe request/result/replay projection semantics and `runtime.agent.avatar_debug.*` event families |
-| `avatar-package-projection-contract.md` | `K-AGCORE-*` | Runtime-owned secondary Realm / Asset Market Avatar package-source projection, `runtime.avatarPackage.resolveLaunchProjection` method shape, materialization gate, and Agent Center non-authority |
 | `agent-hook-intent-contract.md` | `K-AGCORE-*` | Runtime-owned narrow-admit `HookIntent` truth、admission states、and event seam |
 | `agent-output-wire-contract.md` | `K-AGCORE-*` | Agent chat model-facing APML output wire authority、APML-to-runtime projection boundary、and post-turn action / HookIntent split |
 | `delegated-capability-gateway-contract.md` | `K-DELEG-*` | Runtime-owned delegated provider/session/request/result authority、provider profile lifecycle、streaming result envelope、and no protocol ontology promotion |

@@ -25,7 +25,7 @@ features:
     priority: P0
     contract: FG-SHELL-004, FG-SHELL-011, FG-SHELL-012
     backend-dependency: realm OAuth authority (R-OAUTH-*) + runtime account service (K-ACCSVC-008)
-    migration-source: parentos local-first-party runtime account migration
+    migration-source: shijing local-first-party runtime account migration
     description: RuntimeAccountService desktop-browser broker login + creator access gate. App-owned token custody forbidden.
 
   - feature: layout

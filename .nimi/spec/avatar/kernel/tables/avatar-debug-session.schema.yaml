@@ -30,9 +30,6 @@ fields:
   avatar_instance_id:
     type: string_optional
     owner: avatar
-  avatar_package_ref:
-    type: string_optional
-    semantics: opaque_authorized_ref
   backend_capability_profile_ref:
     type: string_optional
     semantics: opaque_authorized_ref

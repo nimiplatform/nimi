@@ -204,13 +204,6 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarPackageLaunchProjection
-    posture: protected_or_scoped_binding_read
-    rationale: avatar package launch projection carries authorized package and materialization refs through protected Runtime access
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTH-001
-      - K-AGCORE-134
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentState
     posture: anonymous_read
     rationale: id-based state read; no JWT validation

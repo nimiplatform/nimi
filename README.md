@@ -116,9 +116,7 @@ app, not the platform itself.
 | [`apps/lookdev/`](apps/lookdev/) | Visual design and look development |
 | [`apps/realm-drift/`](apps/realm-drift/) | World exploration with 3D marble visualization |
 | [`apps/video-food-map/`](apps/video-food-map/) | Food video to geolocation mapping |
-| [`apps/parentos/`](apps/parentos/) | 成长底稿 — AI-driven child growth OS |
 | [`apps/polyinfo/`](apps/polyinfo/) | Polymarket sector analysis workspace |
-| [`apps/asset-market/`](apps/asset-market/) | Creator-facing reusable package market |
 | [`apps/install-gateway/`](apps/install-gateway/) | Cloudflare Worker for release distribution |
 
 ## What's Installable Today

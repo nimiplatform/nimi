@@ -54,9 +54,9 @@ Fixed constraints:
 - Avatar-specific configuration and debug workbench truth lives in
   `agent-avatar-configuration-contract.md` and
   `agent-avatar-debug-workbench-contract.md`. This rule remains the
-  delegated-capability placement cross-reference and does not own avatar package
-  refs, backend capability profile refs, Runtime avatar probe semantics, or
-  Avatar backend evidence.
+  delegated-capability placement cross-reference and does not own backend
+  capability profile refs, Runtime avatar probe semantics, or Avatar backend
+  evidence.
 
 ## D-LLM-075 — Approval UX Boundary
 

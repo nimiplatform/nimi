@@ -8,7 +8,6 @@ surfaces:
   - runtime.avatarDebug.requestProbe
   - runtime.avatarDebug.listProbeResults
   - runtime.avatarDebug.getReplay
-  - runtime.avatarPackage.resolveLaunchProjection
   - any
   - Record<string, unknown>
   - free_form_map
@@ -50,15 +49,6 @@ methods:
     input_ref: avatar-debug-replay-keys.yaml
     output_ref: avatar-debug-replay-keys.yaml
     semantic_owner: runtime_audit
-  - name: runtime.avatarPackage.resolveLaunchProjection
-    category: read
-    method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarPackageLaunchProjection
-    input_ref: .nimi/spec/runtime/kernel/avatar-package-projection-contract.md#K-AGCORE-134
-    output_ref: .nimi/spec/runtime/kernel/avatar-package-projection-contract.md#K-AGCORE-135
-    semantic_owner: runtime_avatar_package_projection
-    auth_scope: runtime.agent.avatar_package.read
-    public_sdk_decoder: decodeAvatarPackageHandoff
-    implementation_status: secondary_source_contract_only_fail_closed
   - name: runtime.agent.anchors.registerAvatarLiveInstance
     category: write
     method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding

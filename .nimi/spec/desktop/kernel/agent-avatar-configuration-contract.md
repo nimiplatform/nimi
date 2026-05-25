@@ -148,9 +148,8 @@ Desktop MUST NOT become a package registry, package lifecycle authority,
 package inventory authority, activation authority, review authority, or local
 remote-package carrier registry.
 
-Realm / Asset Market package acquisition may appear in the same product area as
-a secondary source. It must materialize into the same local Avatar asset store
-before Avatar consumes it.
+Avatar 启动只保留本地资产路径；远程 marketplace package 来源已随 Asset Market
+撤回退役，Desktop 不得引入任何替代远程包获取入口。
 
 ## D-LLM-100 — Opaque Ref Storage
 
@@ -166,17 +165,14 @@ provenance, and bounded status summaries:
 
 Desktop MUST NOT persist or pass package descriptors, package file paths,
 package bytes, backend runtime roots, Agent Center materialization paths, local
-activation bindings, or raw Asset Market API payloads as configuration truth.
+activation bindings, or any retired marketplace API payloads as configuration
+truth.
 
 ## D-LLM-101 — Acquisition And Import UX
 
 Desktop MAY initiate private local Live2D / VRM import into the local Avatar
-asset store.
-
-Desktop MAY also initiate Realm / Asset Market acquisition only through typed
-SDK or Asset Market projections admitted by `AM-LIB-005` and `AM-API-005`.
-Those remote sources must download / subscribe / materialize into the same
-local Avatar asset store before becoming launchable.
+asset store. Remote marketplace acquisition surfaces are retired (Asset Market
+withdrawn); Desktop must not reintroduce them.
 
 Desktop MUST NOT create:
 

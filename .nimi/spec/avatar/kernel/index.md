@@ -82,20 +82,6 @@ Desktop shell and window surface:
 - Always-visible Companion Surface bound to the Avatar embodiment footprint
 - App lifecycle events (`avatar.app.*`)
 
-### [`avatar-package-consumption-contract.md`](avatar-package-consumption-contract.md)
-
-Avatar local asset consumption boundary:
-
-- consumes selected local Avatar assets as the primary Live2D / VRM source
-- treats Realm / Asset Market `Package` records as optional upstream sources
-  that must first materialize into the same local asset store
-- accepts only launched `live2d | vrm` backend kinds
-- keeps resolver execution in Avatar after Runtime validates the launch agent
-- forbids Avatar-local remote package lifecycle, inventory, activation, review,
-  or UGC truth
-- fails closed on missing local selection, unsupported backend, blocking
-  compatibility evidence, or local materialization failure
-
 ### [`avatar-external-entry-consumer-contract.md`](avatar-external-entry-consumer-contract.md)
 
 Avatar external-entry consumer boundary:

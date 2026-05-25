@@ -16,7 +16,7 @@ registration mode / permission scope reference、与 app health/repair projectio
 admitted package kind set。Wave 3 仅 admit `nimi-app` package kind。
 
 `MUST NOT`：不得 admit Public Mod、Public Extension、shared Nimi Content
-Pack、Asset Market generic content channel 作为可安装 product unit。
+Pack 作为可安装 product unit。
 
 ## P-NAPP-002 — Registry Row Schema
 
@@ -144,18 +144,21 @@ subordinate authority semantics 与本契约 admission 并行存在；两者互�
 
 ## P-NAPP-011 — First-Party Seed
 
-`MUST`：Wave 3 seed row 仅包含 Wave 5 hardcut targets：
+`MUST`：Wave 3 seed row 仅包含 Wave 5 hardcut target：
 
 - `nimi.avatar` — `admission_status: gated_by_avatar_master_gate`。Wave 5
   必须先由 Avatar 产品化 master gate 清场，才能切换为 `admitted`。即使
   future status becomes `admitted` for package/update coordination, ordinary
   Apps visibility remains `hidden-internal` unless a later product authority
   explicitly changes Avatar Apps posture.
-- `nimi.parentos` — `admission_status: admitted`。
+
+> 历史注：ParentOS 在 topic
+> `2026-05-25-parentos-first-party-admission-exit` 中已 retire 出本契约的
+> first-party seed 集合，转为外部 nimi-app。
 
 其余 `first-party-hardcut-scope-ledger.md` 中的 deferred app（Forge,
-Asset Market, Moment, Polyinfo, Shiji, Realm Drift, Lookdev, Video Food
-Map, Overtone）暂不进入 Wave 3 seed。
+Moment, Polyinfo, Shiji, Realm Drift, Lookdev, Video Food Map, Overtone）
+暂不进入 Wave 3 seed。
 
 ## P-NAPP-012 — Mechanical Guard Registration
 

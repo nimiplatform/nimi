@@ -30,8 +30,6 @@ spec_governance:
       - node scripts/check-lookdev-spec-kernel-consistency.mjs
     apps/moment:
       - node scripts/check-moment-spec-kernel-consistency.mjs
-    apps/parentos:
-      - pnpm --filter @nimiplatform/parentos check:spec-consistency
     apps/polyinfo:
       - node scripts/check-polyinfo-spec-kernel-consistency.mjs
     apps/realm-drift:
@@ -192,7 +190,6 @@ ai_governance:
         error_average_line_bytes: 800
     classifiers:
       temporary_large_spec_yaml:
-        - apps/parentos/spec/kernel/tables/reminder-rules.yaml
         - spec/runtime/kernel/tables/rule-evidence.rules.yaml
         - .nimi/spec/runtime/kernel/tables/rule-evidence.rules.yaml
       release_gate_registry:

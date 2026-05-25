@@ -898,7 +898,7 @@ rules:
   - rule_id: D-LLM-101
     evidence_refs:
       - desktop_kernel_consistency
-    note: Desktop Avatar local import and secondary acquisition UX must route through typed Asset Market/SDK projections.
+    note: Desktop Avatar local import UX is the only admitted acquisition path; remote marketplace acquisition retired with Asset Market.
     evidence_requirement: required
   - rule_id: D-LLM-102
     evidence_refs:

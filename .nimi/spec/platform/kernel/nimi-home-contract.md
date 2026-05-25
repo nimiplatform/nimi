@@ -52,7 +52,6 @@
 - Avatar `.nimi/spec/avatar/**` kernel authority
 - public Mod / public Extension 产品类目
 - 共享 Nimi Content Pack 渠道
-- Asset Market 升格为通用内容渠道
 - agent identity 跨 app 平级 owner（参见
   `agent-identity-primitive-floor.md` Wave 0 决议）
 

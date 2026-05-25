@@ -294,7 +294,7 @@ factory `AIProfile` 必须保持 provider/model agnostic。
 
 ## P-AIPS-009 — First-Party App AIProfile Hint Rule
 
-Admitted first-party Nimi App（例如 Avatar、ParentOS）必须通过 typed
+Admitted first-party Nimi App（例如 Avatar）必须通过 typed
 `AIProfile` reference 声明其默认体验 hint。
 
 `MUST`:

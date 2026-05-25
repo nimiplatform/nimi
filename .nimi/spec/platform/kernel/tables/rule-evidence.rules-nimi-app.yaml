@@ -238,7 +238,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; Asset Market disposition enforcement requires Wave 5 first-party app integration consumer validation
+    evidence_scope_note: retired sentinel; Asset Market admission and all consumers withdrawn — no active enforcement required
   - rule_id: P-MOEX-006
     evidence_refs:
       - platform_kernel_consistency

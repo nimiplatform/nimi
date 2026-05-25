@@ -7,10 +7,10 @@
 固化 Public Mod / Public Extension 的 non-admission 决议，记录现有
 `nimi-hook`、Desktop mod governance、mod workspace、SDK mod contract surface
 的 developer / internal / retirement 边界，并锁定 `Shared Nimi Content
-Pack` 与 `Asset Market` 的 non-admission 与 admission 边界。
+Pack` 的 non-admission 边界。
 
-本契约固化 Wave 0 D6 / D8 / D12 决议（参见
-`mod-extension-retirement-map.md`、`asset-market-disposition.md`）。
+本契约固化 Wave 0 D6 / D8 决议（参见
+`mod-extension-retirement-map.md`）。
 
 ## P-MOEX-001 — Public Mod / Public Extension Non-Admission
 
@@ -46,25 +46,18 @@ admission；任何"通用内容渠道"提案视为 reopen condition（参见 Wav
 ## P-MOEX-004 — App-Internal Content Package Boundary
 
 `MUST`：App-internal content packages（Avatar Live2D / VRM / voice / persona
-assets，ParentOS prompt / knowledge / workflow bundle 等）由各自 app 或
-显式 admit 的 domain-specific upstream authority 拥有。
+assets，或其他 app 的 prompt / knowledge / workflow bundle 等）由各自 app
+或显式 admit 的 domain-specific upstream authority 拥有。
 
 `MUST NOT`：上述 content package 不得被错误归类为 Nimi App、Mod、Extension、
 或共享 content channel。
 
-## P-MOEX-005 — Asset Market Disposition
+## P-MOEX-005 — Retired (Asset Market Disposition)
 
-`MUST`：Asset Market 不是通用的 Nimi 内容渠道。如果 Asset Market 作为
-controlled first-party app 或 domain-specific upstream package authority 被
-admit，必须经过显式 admission row + Platform / Runtime / Realm 边界审计
-（参见 Wave 0 `asset-market-disposition.md`）。
-
-`MUST NOT`：Asset Market 不得：
-
-- 升格为通用 content marketplace
-- 替代 Nimi App 注册
-- 替代 Wave 4 permission fabric
-- 替代 Runtime materializer 的 selected source record authority
+`RETIRED`：Asset Market 已完全退出 Nimi 一方应用 admission（连同 backend
+实现、avatar-package projection 链路与 spec 树一起撤回）。本条规则保留
+为退役占位，不再承载 active normative 行为。任何复活 Asset Market 的提案
+必须重新通过显式 admission row 并重新写入新规则。
 
 ## P-MOEX-006 — Mechanical Guard Registration
 
@@ -81,5 +74,4 @@ admit，必须经过显式 admission row + Platform / Runtime / Realm 边界审�
 - `.nimi/spec/desktop/kernel/hook-capability-contract.md` — developer/internal retirement only
 - `.nimi/spec/sdk/kernel/mod-contract.md` — developer/internal retirement only
 - `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/mod-extension-retirement-map.md`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/asset-market-disposition.md`
 - `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/desktop-kernel-supersession-schedule.md`

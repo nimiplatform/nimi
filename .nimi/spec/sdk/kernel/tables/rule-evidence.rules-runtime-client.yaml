@@ -110,15 +110,6 @@ entries:
   - S-RUNTIME-228
   - S-RUNTIME-229
   - S-RUNTIME-230
-  - S-RUNTIME-231
-  - S-RUNTIME-232
-  - S-RUNTIME-233
-  - S-RUNTIME-234
-  - S-RUNTIME-235
-  - S-RUNTIME-236
-  - S-RUNTIME-237
-  - S-RUNTIME-238
-  - S-RUNTIME-239
   - S-RUNTIME-240
 rules:
   - rule_id: S-RUNTIME-010
@@ -600,51 +591,6 @@ rules:
     evidence_refs:
       - sdk_kernel_consistency
     note: Companion Participation SDK candidate/commit split admitted as contract truth.
-    evidence_requirement: required
-  - rule_id: S-RUNTIME-231
-    evidence_refs:
-      - sdk_kernel_consistency
-    note: Avatar package SDK typed consumer boundary admitted as contract truth.
-    evidence_requirement: required
-  - rule_id: S-RUNTIME-232
-    evidence_refs:
-      - sdk_kernel_consistency
-    note: Avatar package SDK opaque ref projection admitted as contract truth.
-    evidence_requirement: required
-  - rule_id: S-RUNTIME-233
-    evidence_refs:
-      - sdk_kernel_consistency
-    note: Avatar package SDK acquisition/import projection must align to Asset Market authority.
-    evidence_requirement: required
-  - rule_id: S-RUNTIME-234
-    evidence_refs:
-      - sdk_kernel_consistency
-    note: Avatar package SDK readiness and compatibility decoding must fail closed.
-    evidence_requirement: required
-  - rule_id: S-RUNTIME-235
-    evidence_refs:
-      - sdk_kernel_consistency
-    note: Avatar package SDK handoff projection carries refs and status summaries only.
-    evidence_requirement: required
-  - rule_id: S-RUNTIME-236
-    evidence_refs:
-      - sdk_kernel_consistency
-    note: Avatar package SDK no-lifecycle-authority hardcut admitted as contract truth.
-    evidence_requirement: required
-  - rule_id: S-RUNTIME-237
-    evidence_refs:
-      - sdk_kernel_consistency
-    note: Runtime Avatar package resolveLaunchProjection method shape admitted as SDK contract truth.
-    evidence_requirement: required
-  - rule_id: S-RUNTIME-238
-    evidence_refs:
-      - sdk_kernel_consistency
-    note: SDK Avatar package projection method must remain contract-only and fail closed until Runtime emit lands.
-    evidence_requirement: required
-  - rule_id: S-RUNTIME-239
-    evidence_refs:
-      - sdk_kernel_consistency
-    note: SDK public runtime index must expose only consumer-safe Avatar package handoff APIs and types.
     evidence_requirement: required
   - rule_id: S-RUNTIME-240
     evidence_refs:

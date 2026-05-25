@@ -4,22 +4,31 @@
 
 ## Scope
 
-定义首批 first-party Nimi App（Wave 5 hardcut targets：Avatar 与
-ParentOS）通过 Platform Nimi App registry / SDK Nimi App client / SDK
-Nimi permission client 与 Runtime 集成的产品级 authority。本契约不实现
-app 代码、Tauri packaging、Runtime 集成本身；它锁定 first-party 集成的
-contract 关系与"hard cut 之后无 standalone ordinary-user product truth"
-的边界。
+定义 first-party Nimi App（Wave 5 hardcut target：Avatar）通过 Platform
+Nimi App registry / SDK Nimi App client / SDK Nimi permission client 与
+Runtime 集成的产品级 authority。本契约不实现 app 代码、Tauri packaging、
+Runtime 集成本身；它锁定 first-party 集成的 contract 关系与"hard cut 之后
+无 standalone ordinary-user product truth"的边界。
+
+> 历史注：ParentOS 在 topic
+> `2026-05-25-parentos-first-party-admission-exit` 中已 retire 出 first-party
+> admission，转为外部 nimi-app（不在 `tables/nimi-app-registry.yaml` row 集合
+> 中）；本契约相关条款也已收缩到 Avatar-only。
 
 ## P-FPI-001 — First-Party Hardcut Targets
 
-`MUST`：Wave 5 first-party hardcut targets 仅限 Avatar（`nimi.avatar`）
-与 ParentOS（`nimi.parentos`），与
-`first-party-hardcut-scope-ledger.md` 保持一致。
+`MUST`：Wave 5 first-party hardcut target 仅限 Avatar（`nimi.avatar`），
+与 `first-party-hardcut-scope-ledger.md` 保持一致。
+
+`MUST NOT`：不得把 ParentOS 视作 Wave 5 first-party hardcut target；
+ParentOS 已在
+`2026-05-25-parentos-first-party-admission-exit` 退出 first-party
+admission，转为外部 nimi-app（不在 `tables/nimi-app-registry.yaml` row
+集合中）。
 
 `MUST NOT`：不得在 Wave 5 product close 中使用 deferred first-party app
-作为 evidence（参见 ledger 中 Forge、Asset Market、Moment、Polyinfo、
-Shiji、Realm Drift、Lookdev、Video Food Map、Overtone 等条目）。
+作为 evidence（参见 ledger 中 Forge、Moment、Polyinfo、Shiji、Realm
+Drift、Lookdev、Video Food Map、Overtone 等条目）。
 
 ## P-FPI-002 — Single Registry Source
 
@@ -44,7 +53,7 @@ provider / connector / engine / model 字符串常量（`P-AIPS-008`、
 ## P-FPI-004 — Permission Scope Ref Consumption
 
 `MUST`：first-party app 通过 SDK `S-PERM-*` 请求 Wave 4 admitted grant
-list（`P-PERM-009`）。Avatar 与 ParentOS 的 grant list 必须严格匹配
+list（`P-PERM-009`）。Avatar 的 grant list 必须严格匹配
 `tables/nimi-app-registry.yaml` 中的 `permission_scope_ref` typed object
 列表。
 
@@ -78,14 +87,13 @@ Runtime registration；registration mode 必须匹配 registry row 中的
 
 ## P-FPI-007 — No Standalone Ordinary-User Truth After Hard Cut
 
-`MUST`：Wave 5 close 之后，Avatar 与 ParentOS 在 ordinary-user product
-truth 层不得保留 standalone install / launch / update 路径；只允许
-Nimi App registry 行作为 ordinary-user product truth。
+`MUST`：Wave 5 close 之后，Avatar 在 ordinary-user product truth 层不得
+保留 standalone install / launch / update 路径；只允许 Nimi App registry
+行作为 ordinary-user product truth。
 
-`MUST NOT`：不得保留 standalone Avatar / ParentOS 安装包作为 ordinary-
-user product channel；不得让 desktop hosted shell 暴露独立 ParentOS Apps
-入口绕过 Nimi App registry / SDK projection。Avatar remains hidden from
-ordinary Apps while package/update coordination stays registry/package-owned.
+`MUST NOT`：不得保留 standalone Avatar 安装包作为 ordinary-user product
+channel。Avatar remains hidden from ordinary Apps while package/update
+coordination stays registry/package-owned.
 
 source-development workflows 可继续以 standalone 方式启动，但必须遵守
 `P-FPM-004` 的 source-development marker rule。
