@@ -148,13 +148,13 @@ test('isRuntimeAnonymousReadMethod returns false for fabricated method ids', () 
   assert.equal(isRuntimeAnonymousReadMethod('garbage'), false);
 });
 
-test('RuntimeAnonymousReadMethodIds set has exactly 123 members (current spec shard size)', () => {
+test('RuntimeAnonymousReadMethodIds set has exactly 125 members (current spec shard size)', () => {
   // Set equality is enforced by scripts/check-runtime-rpc-auth-posture-sdk-drift.mjs;
   // this in-memory check guards against accidental duplication / truncation
   // of the literal at TS compile time.
   const distinct = new Set(RuntimeAnonymousReadMethodIds);
   assert.equal(distinct.size, RuntimeAnonymousReadMethodIds.length, 'classifier list must have no duplicates');
-  assert.equal(distinct.size, 123, 'classifier set must contain exactly 123 method ids');
+  assert.equal(distinct.size, 125, 'classifier set must contain exactly 125 method ids');
 });
 
 test('RuntimeMethodIds.audit live-failure anchors are all classified anonymous_read', () => {

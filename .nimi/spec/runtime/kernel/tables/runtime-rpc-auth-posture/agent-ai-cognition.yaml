@@ -92,6 +92,8 @@ surfaces:
   - methods_79
   - methods_80
   - methods_81
+  - methods_82
+  - methods_83
 description: Agent, AI, realtime, and cognition posture entries.
 services:
   - RuntimeAgentService
@@ -176,6 +178,18 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay
     posture: protected_or_scoped_binding_read
     rationale: companion participation replay exposes typed projection/audit refs through a scoped read path
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate
+    posture: anonymous_read
+    rationale: request body supplies subject_user_id and owner_user_id; handler enforces equality but performs no JWT lookup
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence
+    posture: anonymous_read
+    rationale: handle-based evidence read validates candidate/evidence/trace refs against stored evidence; no JWT lookup
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001

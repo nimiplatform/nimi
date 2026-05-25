@@ -272,10 +272,12 @@ test('default CLI standalone scaffold uses current public SDK version source', (
     const lock = JSON.parse(generated.read('.nimi/app-scaffold/lock.json'));
     const appToolsPackageJson = JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8'));
     const expectedAppToolsVersion = `^${appToolsPackageJson.version}`;
-    assert.equal(packageJson.dependencies['@nimiplatform/sdk'], '^0.5.15');
+    assert.equal(packageJson.dependencies['@nimiplatform/sdk'], '^0.6.0');
+    assert.equal(packageJson.dependencies['@nimiplatform/kit'], '^0.2.0');
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], expectedAppToolsVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/nimi-coding'], '0.2.5');
-    assert.equal(lock.dependencyMatrix.npm['@nimiplatform/sdk'], '^0.5.15');
+    assert.equal(lock.dependencyMatrix.npm['@nimiplatform/sdk'], '^0.6.0');
+    assert.equal(lock.dependencyMatrix.npm['@nimiplatform/kit'], '^0.2.0');
     assert.equal(lock.dependencyMatrix.npm['@nimiplatform/app-tools'], expectedAppToolsVersion);
     assert.equal(lock.dependencyMatrix.npm['@nimiplatform/nimi-coding'], '0.2.5');
   } finally {

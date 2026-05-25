@@ -14,6 +14,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 
 const SDK_PACKAGES = [
   'sdk',
+  'kit',
   'app-tools',
 ];
 const PUBLIC_RUNTIME_SURFACE_PATHS = [
@@ -158,8 +159,10 @@ async function main() {
   }
 
   const sdkVersion = packageVersions.get('@nimiplatform/sdk')?.version || '';
+  const kitVersion = packageVersions.get('@nimiplatform/kit')?.version || '';
   const appToolsVersion = packageVersions.get('@nimiplatform/app-tools')?.version || '';
   const expectedSdkRange = sdkVersion ? `^${sdkVersion}` : '';
+  const expectedKitRange = kitVersion ? `^${kitVersion}` : '';
   const expectedAppToolsRange = appToolsVersion ? `^${appToolsVersion}` : '';
 
   const examplesAppTemplate = JSON.parse(await fs.readFile(path.join(repoRoot, 'examples/app-template/package.json'), 'utf8'));
@@ -171,9 +174,13 @@ async function main() {
 
   const appToolsSource = await fs.readFile(path.join(repoRoot, 'app-tools/lib/index.mjs'), 'utf8');
   const sdkVersionMatch = appToolsSource.match(/const SDK_VERSION = '([^']+)';/);
+  const kitVersionMatch = appToolsSource.match(/const KIT_VERSION = '([^']+)';/);
   const appToolsVersionMatch = appToolsSource.match(/const APP_TOOLS_VERSION = '([^']+)';/);
   if (!sdkVersionMatch || sdkVersionMatch[1] !== expectedSdkRange) {
     violations.push(`app-tools/lib/index.mjs SDK_VERSION must be "${expectedSdkRange}"`);
+  }
+  if (!kitVersionMatch || kitVersionMatch[1] !== expectedKitRange) {
+    violations.push(`app-tools/lib/index.mjs KIT_VERSION must be "${expectedKitRange}"`);
   }
   if (!appToolsVersionMatch || appToolsVersionMatch[1] !== expectedAppToolsRange) {
     violations.push(`app-tools/lib/index.mjs APP_TOOLS_VERSION must be "${expectedAppToolsRange}"`);
