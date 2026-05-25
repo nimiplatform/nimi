@@ -306,17 +306,17 @@ mod tests {
         with_env(&[("HOME", home.to_str())], || {
             select_product_data_root(data_root.to_str().expect("data root"))
                 .expect("select data root");
-            // Write Runtime install evidence for ParentOS.
+            // Write Runtime install evidence for ShiJing.
             let release_root = data_root
                 .join("apps")
-                .join("nimi.parentos")
+                .join("nimi.shijing")
                 .join("releases")
                 .join("1.0.0");
             let evidence_dir = release_root.join(".nimi");
             std::fs::create_dir_all(&evidence_dir).expect("mkdir");
             let evidence = serde_json::json!({
-                "appId": "nimi.parentos",
-                "releaseDescriptorRef": "nimi.parentos.bundled-with-nimi",
+                "appId": "nimi.shijing",
+                "releaseDescriptorRef": "nimi.shijing.bundled-with-nimi",
                 "storagePolicyRef": "nimi-data-app-roots",
                 "installedVersion": "1.0.0",
                 "sha256": "abc123",
@@ -335,8 +335,8 @@ mod tests {
             let row = projection
                 .install_evidence
                 .iter()
-                .find(|row| row.app_id == "nimi.parentos")
-                .expect("parentos evidence");
+                .find(|row| row.app_id == "nimi.shijing")
+                .expect("shijing evidence");
             assert_eq!(row.verification_state, "digest-verified");
             assert_eq!(row.installed_version.as_deref(), Some("1.0.0"));
             let roots = row.storage_roots.as_ref().expect("storage roots");
@@ -348,13 +348,13 @@ mod tests {
     #[test]
     fn derive_storage_roots_resolves_app_root_siblings() {
         let roots =
-            derive_storage_roots("/data/apps/nimi.parentos/releases/1.0.0").expect("storage roots");
+            derive_storage_roots("/data/apps/nimi.shijing/releases/1.0.0").expect("storage roots");
         assert_eq!(
             roots.release_root,
-            "/data/apps/nimi.parentos/releases/1.0.0"
+            "/data/apps/nimi.shijing/releases/1.0.0"
         );
-        assert_eq!(roots.data_root, "/data/apps/nimi.parentos/data");
-        assert_eq!(roots.cache_root, "/data/apps/nimi.parentos/cache");
-        assert_eq!(roots.temp_root, "/data/apps/nimi.parentos/tmp");
+        assert_eq!(roots.data_root, "/data/apps/nimi.shijing/data");
+        assert_eq!(roots.cache_root, "/data/apps/nimi.shijing/cache");
+        assert_eq!(roots.temp_root, "/data/apps/nimi.shijing/tmp");
     }
 }

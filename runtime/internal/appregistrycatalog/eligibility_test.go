@@ -6,14 +6,14 @@ import (
 	"testing"
 )
 
-func TestCheckCallerEligibility_ParentOSInstallRequired(t *testing.T) {
+func TestCheckCallerEligibility_ShiJingInstallRequired(t *testing.T) {
 	r, _ := LoadRegistry(strings.NewReader(sampleRegistryYAML))
-	result, err := r.CheckCallerEligibility("nimi.parentos")
+	result, err := r.CheckCallerEligibility("nimi.shijing")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if result.Eligible {
-		t.Error("parentos should not be executable from admission alone")
+		t.Error("shijing should not be executable from admission alone")
 	}
 	if result.Reason != string(EligibilityReasonInstallRequired) {
 		t.Errorf("reason = %q, want %q", result.Reason, EligibilityReasonInstallRequired)
@@ -82,7 +82,7 @@ func TestCheckCallerEligibility_EmptyAppIDReturnsError(t *testing.T) {
 
 func TestCheckCallerEligibility_NilRegistry(t *testing.T) {
 	var r *Registry
-	result, err := r.CheckCallerEligibility("nimi.parentos")
+	result, err := r.CheckCallerEligibility("nimi.shijing")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -100,7 +100,7 @@ func TestCheckCallerEligibility_PendingWave4Status(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadRegistry: %v", err)
 	}
-	result, err := r.CheckCallerEligibility("nimi.parentos")
+	result, err := r.CheckCallerEligibility("nimi.shijing")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestCheckCallerEligibility_PendingWave4Status(t *testing.T) {
 func TestCheckCallerEligibility_RetiredStatus(t *testing.T) {
 	yaml := strings.Replace(sampleRegistryYAML, "admission_status: admitted", "admission_status: retired", 1)
 	r, _ := LoadRegistry(strings.NewReader(yaml))
-	result, err := r.CheckCallerEligibility("nimi.parentos")
+	result, err := r.CheckCallerEligibility("nimi.shijing")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -130,7 +130,7 @@ func TestCheckCallerEligibility_RetiredStatus(t *testing.T) {
 func TestCheckCallerEligibility_DeferredStatus(t *testing.T) {
 	yaml := strings.Replace(sampleRegistryYAML, "admission_status: admitted", "admission_status: deferred", 1)
 	r, _ := LoadRegistry(strings.NewReader(yaml))
-	result, err := r.CheckCallerEligibility("nimi.parentos")
+	result, err := r.CheckCallerEligibility("nimi.shijing")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

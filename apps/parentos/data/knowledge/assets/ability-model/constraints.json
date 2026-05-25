@@ -1,7 +1,0 @@
-[
-  "abilityId must be unique",
-  "sourceObservations 中的 dimensionId 必须在 observation-framework data asset 中存在",
-  "本表不引入新的家长观察动作——所有数据来源于底层维度的已有记录",
-  "AI 输出遵循 parentos.md §6.2 的安全措辞规则，本表不覆盖该约束",
-  "报告中不对能力层做评分或排名，只做趋势描述和行为证据引用"
-]

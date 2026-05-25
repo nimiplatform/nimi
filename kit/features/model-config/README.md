@@ -71,7 +71,7 @@ This module owns the following shared Nimi app surfaces:
 ## When To Use It
 
 - Reuse it whenever an app or module needs the AI Model configuration hub
-  (chat settings, tester, parentos AI settings, future workspaces).
+  (chat settings, tester, shijing AI settings, future workspaces).
 - Reuse `useModelConfigProfileController` instead of reimplementing profile
   apply flow; never redefine D-AIPC-005 semantics downstream.
 - Reuse `defaultModelConfigProfileCopy(t)` instead of per-app
@@ -90,7 +90,7 @@ This module owns the following shared Nimi app surfaces:
 ## Current Consumers
 
 Wave 1 ships the expanded kit surface; consumer migration (wave 2 / 3 / 4)
-admits desktop tester, desktop chat, and parentos AI settings as canonical
+admits desktop tester, desktop chat, and shijing AI settings as canonical
 consumers of the hub. Until those waves complete, the previous
 `ModelConfigPanel` entry remains available for existing callers.
 

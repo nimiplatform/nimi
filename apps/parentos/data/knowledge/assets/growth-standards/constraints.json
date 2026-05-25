@@ -1,7 +1,0 @@
-[
-  "P50 is the median reference line",
-  "记录 ageRange 与官方参考覆盖 referenceCoverage 可以不同；超出 referenceCoverage 时必须 fail-close",
-  "AI 分析只做趋势描述（如'生长速度放缓'），不做诊断判断",
-  "低于 P3 或高于 P97 时提示'建议咨询专业人士'，不做解读",
-  "生长曲线按性别区分（male/female）"
-]

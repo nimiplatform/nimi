@@ -23,13 +23,13 @@ function createPlatformRegistryClient(): NimiAppClient {
 }
 
 describe('Nimi Home Library / install / launch smoke', () => {
-  it('projects ParentOS source-development posture as install-required, not ready', async () => {
+  it('projects ShiJing source-development posture as install-required, not ready', async () => {
     const library = await projectLibrary(createPlatformRegistryClient());
     assert.equal(library.status, 'loaded');
     if (library.status !== 'loaded') return;
 
-    const parentOS = library.entries.find((entry) => entry.app.appId === 'nimi.parentos');
-    assert.ok(parentOS, 'ParentOS registry row must be projected');
+    const parentOS = library.entries.find((entry) => entry.app.appId === 'nimi.shijing');
+    assert.ok(parentOS, 'ShiJing registry row must be projected');
     assert.equal(parentOS.status?.launchReadiness, 'install-required');
     assert.notEqual(parentOS.status?.launchReadiness, 'ready');
   });
@@ -85,8 +85,8 @@ describe('Nimi Home Library / install / launch smoke', () => {
     assert.equal(library.status, 'loaded');
     if (library.status !== 'loaded') return;
 
-    const parentOS = library.entries.find((entry) => entry.app.appId === 'nimi.parentos');
-    assert.ok(parentOS, 'ParentOS registry row must be projected');
+    const parentOS = library.entries.find((entry) => entry.app.appId === 'nimi.shijing');
+    assert.ok(parentOS, 'ShiJing registry row must be projected');
     assert.equal(parentOS.status?.verificationState, 'not-installed');
     assert.notEqual(parentOS.status?.launchReadiness, 'ready');
   });

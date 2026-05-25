@@ -37,8 +37,8 @@ func releaseDescriptorFixture() []ReleaseDescriptorValidationRef {
 			StoragePolicyRef: "nimi-data-app-roots",
 		},
 		{
-			DescriptorID:     "nimi.parentos.bundled-with-nimi",
-			AppID:            "nimi.parentos",
+			DescriptorID:     "nimi.shijing.bundled-with-nimi",
+			AppID:            "nimi.shijing",
 			StoragePolicyRef: "nimi-data-app-roots",
 		},
 	}
@@ -63,7 +63,7 @@ func TestCrossTableValidate_NoViolationsOnHealthyCatalogs(t *testing.T) {
 }
 
 func TestCrossTableValidate_FlagsUnresolvedProfileAlias(t *testing.T) {
-	// avatar references local-gpu and parentos references cloud-first.
+	// avatar references local-gpu and shijing references cloud-first.
 	// Build an admitted-alias set that omits local-gpu; avatar should be
 	// flagged.
 	registry := loadRegistryForValidator(t)
@@ -116,12 +116,12 @@ func TestCrossTableValidate_FlagsUnresolvedReleaseDescriptor(t *testing.T) {
 	violations := registry.CrossTableValidate(ctx)
 	flagged := false
 	for _, v := range violations {
-		if v.AppID == "nimi.parentos" && v.Field == "release_descriptor_ref" {
+		if v.AppID == "nimi.shijing" && v.Field == "release_descriptor_ref" {
 			flagged = true
 		}
 	}
 	if !flagged {
-		t.Errorf("expected parentos release descriptor to be flagged; got %v", violations)
+		t.Errorf("expected shijing release descriptor to be flagged; got %v", violations)
 	}
 }
 
@@ -137,7 +137,7 @@ func TestCrossTableValidate_FlagsCrossAppReleaseDescriptor(t *testing.T) {
 				StoragePolicyRef: "nimi-data-app-roots",
 			},
 			{
-				DescriptorID:     "nimi.parentos.bundled-with-nimi",
+				DescriptorID:     "nimi.shijing.bundled-with-nimi",
 				AppID:            "nimi.avatar",
 				StoragePolicyRef: "nimi-data-app-roots",
 			},
@@ -147,12 +147,12 @@ func TestCrossTableValidate_FlagsCrossAppReleaseDescriptor(t *testing.T) {
 	violations := registry.CrossTableValidate(ctx)
 	flagged := false
 	for _, v := range violations {
-		if v.AppID == "nimi.parentos" && v.Field == "release_descriptor_ref" && v.Reason == "release descriptor belongs to a different app" {
+		if v.AppID == "nimi.shijing" && v.Field == "release_descriptor_ref" && v.Reason == "release descriptor belongs to a different app" {
 			flagged = true
 		}
 	}
 	if !flagged {
-		t.Errorf("expected parentos cross-app descriptor to be flagged; got %v", violations)
+		t.Errorf("expected shijing cross-app descriptor to be flagged; got %v", violations)
 	}
 }
 
@@ -168,8 +168,8 @@ func TestCrossTableValidate_FlagsDescriptorStorageMismatch(t *testing.T) {
 				StoragePolicyRef: "nimi-data-app-roots",
 			},
 			{
-				DescriptorID:     "nimi.parentos.bundled-with-nimi",
-				AppID:            "nimi.parentos",
+				DescriptorID:     "nimi.shijing.bundled-with-nimi",
+				AppID:            "nimi.shijing",
 				StoragePolicyRef: "other-storage-policy",
 			},
 		},
@@ -178,12 +178,12 @@ func TestCrossTableValidate_FlagsDescriptorStorageMismatch(t *testing.T) {
 	violations := registry.CrossTableValidate(ctx)
 	flagged := false
 	for _, v := range violations {
-		if v.AppID == "nimi.parentos" && v.Field == "release_descriptor_ref" && v.Reason == "release descriptor storage policy does not match install_storage_policy_ref" {
+		if v.AppID == "nimi.shijing" && v.Field == "release_descriptor_ref" && v.Reason == "release descriptor storage policy does not match install_storage_policy_ref" {
 			flagged = true
 		}
 	}
 	if !flagged {
-		t.Errorf("expected parentos descriptor storage mismatch to be flagged; got %v", violations)
+		t.Errorf("expected shijing descriptor storage mismatch to be flagged; got %v", violations)
 	}
 }
 

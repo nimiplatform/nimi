@@ -9,9 +9,9 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
 // Per Wave 6 close-requires + closed-redesign first-party hardcut:
-// existing ordinary-user standalone entry points for Avatar / ParentOS
-// must be removed, blocked, or converted to developer-only paths with
-// clear failure projection.
+// existing ordinary-user standalone entry points for Avatar must be
+// removed, blocked, or converted to developer-only paths with clear
+// failure projection.
 //
 // This gate scans Tauri config + first-party app entrypoint manifests
 // for any ordinary-user posture standalone entry that isn't explicitly
@@ -19,7 +19,6 @@ const repoRoot = path.resolve(scriptDir, '..');
 
 const TARGET_GLOBS = [
   'apps/avatar/src-tauri',
-  'apps/parentos/src-tauri',
 ];
 
 const SOURCE_EXTENSIONS = new Set(['.json', '.json5', '.toml', '.yaml', '.yml']);

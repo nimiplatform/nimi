@@ -233,31 +233,10 @@ func (s *Service) checkNimiAppRegistryEligibility(req *runtimev1.RegisterAppRequ
 		return runtimev1.ReasonCode_ACTION_EXECUTED, eligibility.Reason, true
 	}
 	if eligibility.Reason == string(appregistrycatalog.EligibilityReasonInstallRequired) &&
-		isParentOSRuntimeAccountConsumerRegistration(req) {
-		return runtimev1.ReasonCode_ACTION_EXECUTED, "parentos-runtime-account-consumer", true
-	}
-	if eligibility.Reason == string(appregistrycatalog.EligibilityReasonInstallRequired) &&
 		isShijingRuntimeAccountConsumerRegistration(req) {
 		return runtimev1.ReasonCode_ACTION_EXECUTED, "shijing-runtime-account-consumer", true
 	}
 	return mapNimiAppEligibilityReason(eligibility.Reason), eligibility.Reason, false
-}
-
-func isParentOSRuntimeAccountConsumerRegistration(req *runtimev1.RegisterAppRequest) bool {
-	appID := strings.TrimSpace(req.GetAppId())
-	instanceID := strings.TrimSpace(req.GetAppInstanceId())
-	deviceID := strings.TrimSpace(req.GetDeviceId())
-	if appID != "app.nimi.parentos" {
-		return false
-	}
-	switch instanceID {
-	case "app.nimi.parentos.local-first-party":
-		return deviceID == "local-first-party-device"
-	case "app.nimi.parentos.platform-runtime-session":
-		return deviceID == "platform-runtime-session"
-	default:
-		return false
-	}
 }
 
 func isShijingRuntimeAccountConsumerRegistration(req *runtimev1.RegisterAppRequest) bool {

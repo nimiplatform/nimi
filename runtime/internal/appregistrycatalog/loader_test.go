@@ -30,8 +30,8 @@ apps:
     admission_status: gated_by_avatar_master_gate
     source_rule: P-NAPP-004
 
-  - app_id: nimi.parentos
-    display_label: ParentOS
+  - app_id: nimi.shijing
+    display_label: ShiJing
     publisher: nimi-first-party
     trust_tier_ref: nimi-first-party
     package_kind: nimi-app
@@ -44,7 +44,7 @@ apps:
     permission_scope_ref: []
     health_repair_projection: unavailable
     ordinary_visibility: ordinary-visible
-    release_descriptor_ref: nimi.parentos.bundled-with-nimi
+    release_descriptor_ref: nimi.shijing.bundled-with-nimi
     install_storage_policy_ref: nimi-data-app-roots
     admission_status: admitted
     source_rule: P-NAPP-004
@@ -117,12 +117,12 @@ func TestLoadRegistry_RejectsMissingRequiredField(t *testing.T) {
 
 func TestFindByID_ReturnsExisting(t *testing.T) {
 	r, _ := LoadRegistry(strings.NewReader(sampleRegistryYAML))
-	app, err := r.FindByID("nimi.parentos")
+	app, err := r.FindByID("nimi.shijing")
 	if err != nil {
 		t.Fatalf("FindByID returned error: %v", err)
 	}
-	if app.DisplayLabel != "ParentOS" {
-		t.Errorf("DisplayLabel = %q, want ParentOS", app.DisplayLabel)
+	if app.DisplayLabel != "ShiJing" {
+		t.Errorf("DisplayLabel = %q, want ShiJing", app.DisplayLabel)
 	}
 }
 

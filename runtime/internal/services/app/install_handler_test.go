@@ -65,14 +65,14 @@ table_family: product_catalog
 owner: platform
 catalog_id: test_nimi_app_registry
 apps:
-  - app_id: nimi.parentos
-    display_label: ParentOS
+  - app_id: nimi.shijing
+    display_label: ShiJing
     publisher: nimi-first-party
     trust_tier_ref: nimi-first-party
     package_kind: nimi-app
     runtime_registration_mode: app-managed
     ordinary_visibility: ordinary-visible
-    release_descriptor_ref: nimi.parentos.bundled-with-nimi
+    release_descriptor_ref: nimi.shijing.bundled-with-nimi
     install_storage_policy_ref: nimi-data-app-roots
     admission_status: admitted
     source_rule: P-NAPP-011
@@ -91,8 +91,8 @@ table_family: product_catalog
 owner: platform
 catalog_id: platform_nimi_app_release_descriptors
 descriptors:
-  - descriptor_id: nimi.parentos.bundled-with-nimi
-    app_id: nimi.parentos
+  - descriptor_id: nimi.shijing.bundled-with-nimi
+    app_id: nimi.shijing
     version: bundled-with-current-nimi-release
     descriptor_class: bundled-with-nimi
     source:
@@ -106,9 +106,9 @@ descriptors:
       signature_or_provenance_ref: nimi-first-party-signature-policy
     runtime:
       package_kind: nimi-app
-      entry_ref: parentos-runtime-registration
+      entry_ref: shijing-runtime-registration
       sandbox_ref: first-party-bundled-app
-    permissions_ref: nimi.parentos.permission_scope_ref
+    permissions_ref: nimi.shijing.permission_scope_ref
     storage_policy_ref: nimi-data-app-roots
     review:
       admission_path: first-party-bundled-release
@@ -143,11 +143,11 @@ func newBundledInstallService(t *testing.T) (*Service, string) {
 	t.Helper()
 	dataRoot := t.TempDir()
 	bundledRoot := t.TempDir()
-	appArtifact := filepath.Join(bundledRoot, "nimi.parentos")
+	appArtifact := filepath.Join(bundledRoot, "nimi.shijing")
 	if err := os.MkdirAll(appArtifact, 0o755); err != nil {
 		t.Fatalf("mkdir bundled artifact: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(appArtifact, "manifest.json"), []byte(`{"name":"parentos"}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(appArtifact, "manifest.json"), []byte(`{"name":"shijing"}`), 0o644); err != nil {
 		t.Fatalf("write bundled manifest: %v", err)
 	}
 	runtime, err := NewInstallRuntime(
@@ -181,7 +181,7 @@ func waitForTerminalJob(t *testing.T, svc *Service, jobID string) *runtimev1.App
 
 func TestInstallAppBundledReachesInstalled(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
-	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.parentos", Confirmed: true})
+	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.shijing", Confirmed: true})
 	if err != nil {
 		t.Fatalf("InstallApp: %v", err)
 	}
@@ -210,7 +210,7 @@ func TestInstallAppRejectsUnknownApp(t *testing.T) {
 
 func TestInstallAppRequiresInstallRuntime(t *testing.T) {
 	svc := New(testLogger())
-	_, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.parentos"})
+	_, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.shijing"})
 	if err == nil {
 		t.Fatal("expected fail-closed without install runtime")
 	}
@@ -218,7 +218,7 @@ func TestInstallAppRequiresInstallRuntime(t *testing.T) {
 
 func TestGetAppInstallJobReturnsTypedProjection(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
-	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.parentos", Confirmed: true})
+	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.shijing", Confirmed: true})
 	if err != nil {
 		t.Fatalf("InstallApp: %v", err)
 	}
@@ -234,7 +234,7 @@ func TestGetAppInstallJobReturnsTypedProjection(t *testing.T) {
 
 func TestUninstallAppRemovesReleaseKeepsData(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
-	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.parentos", Confirmed: true})
+	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.shijing", Confirmed: true})
 	if err != nil {
 		t.Fatalf("InstallApp: %v", err)
 	}
@@ -247,7 +247,7 @@ func TestUninstallAppRemovesReleaseKeepsData(t *testing.T) {
 		t.Fatalf("seed durable data: %v", err)
 	}
 
-	uninstall, err := svc.UninstallApp(context.Background(), &runtimev1.UninstallAppRequest{AppId: "nimi.parentos"})
+	uninstall, err := svc.UninstallApp(context.Background(), &runtimev1.UninstallAppRequest{AppId: "nimi.shijing"})
 	if err != nil {
 		t.Fatalf("UninstallApp: %v", err)
 	}
@@ -268,7 +268,7 @@ func TestUninstallAppRemovesReleaseKeepsData(t *testing.T) {
 func TestUninstallAppRejectsUnconfirmedDestructiveDelete(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
 	_, err := svc.UninstallApp(context.Background(), &runtimev1.UninstallAppRequest{
-		AppId:             "nimi.parentos",
+		AppId:             "nimi.shijing",
 		DeleteDurableData: true,
 	})
 	if err == nil {
@@ -284,7 +284,7 @@ func TestWatchAppInstallJobEventsStreamsProgress(t *testing.T) {
 		done <- svc.WatchAppInstallJobEvents(&runtimev1.WatchAppInstallJobEventsRequest{}, stream)
 	}()
 
-	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.parentos", Confirmed: true})
+	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.shijing", Confirmed: true})
 	if err != nil {
 		t.Fatalf("InstallApp: %v", err)
 	}
@@ -306,7 +306,7 @@ func TestWatchAppInstallJobEventsStreamsProgress(t *testing.T) {
 
 func TestUpdateAppRejectsNotInstalled(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
-	_, err := svc.UpdateApp(context.Background(), &runtimev1.UpdateAppRequest{AppId: "nimi.parentos"})
+	_, err := svc.UpdateApp(context.Background(), &runtimev1.UpdateAppRequest{AppId: "nimi.shijing"})
 	if err == nil {
 		t.Fatal("expected fail-closed: app not installed")
 	}
@@ -314,13 +314,13 @@ func TestUpdateAppRejectsNotInstalled(t *testing.T) {
 
 func TestUpdateAppRejectsAlreadyAtBoundVersion(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
-	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.parentos", Confirmed: true})
+	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.shijing", Confirmed: true})
 	if err != nil {
 		t.Fatalf("InstallApp: %v", err)
 	}
 	waitForTerminalJob(t, svc, resp.GetJob().GetJobId())
 	// The bound bundled descriptor version equals the active version: no update.
-	_, err = svc.UpdateApp(context.Background(), &runtimev1.UpdateAppRequest{AppId: "nimi.parentos"})
+	_, err = svc.UpdateApp(context.Background(), &runtimev1.UpdateAppRequest{AppId: "nimi.shijing"})
 	if err == nil {
 		t.Fatal("expected fail-closed: update not available")
 	}
@@ -329,7 +329,7 @@ func TestUpdateAppRejectsAlreadyAtBoundVersion(t *testing.T) {
 func TestHealthRepairRejectsUnknownAction(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
 	_, err := svc.HealthRepairApp(context.Background(), &runtimev1.HealthRepairAppRequest{
-		AppId:  "nimi.parentos",
+		AppId:  "nimi.shijing",
 		Action: runtimev1.AppHealthRepairAction_APP_HEALTH_REPAIR_ACTION_UNSPECIFIED,
 	})
 	if err == nil {
@@ -339,7 +339,7 @@ func TestHealthRepairRejectsUnknownAction(t *testing.T) {
 
 func TestHealthRepairRepairRematerializesRelease(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
-	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.parentos", Confirmed: true})
+	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.shijing", Confirmed: true})
 	if err != nil {
 		t.Fatalf("InstallApp: %v", err)
 	}
@@ -349,7 +349,7 @@ func TestHealthRepairRepairRematerializesRelease(t *testing.T) {
 		t.Fatalf("damage release: %v", err)
 	}
 	repairResp, err := svc.HealthRepairApp(context.Background(), &runtimev1.HealthRepairAppRequest{
-		AppId:  "nimi.parentos",
+		AppId:  "nimi.shijing",
 		Action: runtimev1.AppHealthRepairAction_APP_HEALTH_REPAIR_ACTION_REPAIR,
 	})
 	if err != nil {
@@ -366,14 +366,14 @@ func TestHealthRepairRepairRematerializesRelease(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read repaired manifest: %v", err)
 	}
-	if string(got) != `{"name":"parentos"}` {
+	if string(got) != `{"name":"shijing"}` {
 		t.Fatalf("repair must re-materialize a clean release payload, got %q", string(got))
 	}
 }
 
 func TestHealthRepairReinstallKeepsData(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
-	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.parentos", Confirmed: true})
+	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.shijing", Confirmed: true})
 	if err != nil {
 		t.Fatalf("InstallApp: %v", err)
 	}
@@ -386,7 +386,7 @@ func TestHealthRepairReinstallKeepsData(t *testing.T) {
 		t.Fatalf("write durable data: %v", err)
 	}
 	reinstallResp, err := svc.HealthRepairApp(context.Background(), &runtimev1.HealthRepairAppRequest{
-		AppId:  "nimi.parentos",
+		AppId:  "nimi.shijing",
 		Action: runtimev1.AppHealthRepairAction_APP_HEALTH_REPAIR_ACTION_REINSTALL,
 	})
 	if err != nil {
@@ -404,7 +404,7 @@ func TestHealthRepairReinstallKeepsData(t *testing.T) {
 func TestHealthRepairRetryWithoutRecoverableJobFailsClosed(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
 	_, err := svc.HealthRepairApp(context.Background(), &runtimev1.HealthRepairAppRequest{
-		AppId:  "nimi.parentos",
+		AppId:  "nimi.shijing",
 		Action: runtimev1.AppHealthRepairAction_APP_HEALTH_REPAIR_ACTION_RETRY,
 	})
 	if err == nil {
@@ -415,7 +415,7 @@ func TestHealthRepairRetryWithoutRecoverableJobFailsClosed(t *testing.T) {
 func TestHealthRepairCancelWithoutInFlightJobFailsClosed(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
 	_, err := svc.HealthRepairApp(context.Background(), &runtimev1.HealthRepairAppRequest{
-		AppId:  "nimi.parentos",
+		AppId:  "nimi.shijing",
 		Action: runtimev1.AppHealthRepairAction_APP_HEALTH_REPAIR_ACTION_CANCEL,
 	})
 	if err == nil {

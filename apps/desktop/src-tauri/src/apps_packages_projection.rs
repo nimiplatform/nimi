@@ -424,14 +424,14 @@ mod tests {
             select_product_data_root(data_root.to_str().expect("data root"))
                 .expect("select data root");
             crate::apps_registry_projection::ensure_apps_registry().expect("ensure registry");
-            write_runtime_evidence(&data_root, "nimi.parentos", "1.0.0", "digest-verified");
+            write_runtime_evidence(&data_root, "nimi.shijing", "1.0.0", "digest-verified");
             let projection = ensure_apps_packages().expect("ensure packages");
             let row = projection
                 .record
                 .packages
                 .iter()
-                .find(|row| row.app_id == "nimi.parentos")
-                .expect("parentos package row");
+                .find(|row| row.app_id == "nimi.shijing")
+                .expect("shijing package row");
             assert_eq!(row.version, "1.0.0");
             assert_eq!(row.state, "installed");
             assert!(row.install_root.contains("releases"));
@@ -446,14 +446,14 @@ mod tests {
             select_product_data_root(data_root.to_str().expect("data root"))
                 .expect("select data root");
             crate::apps_registry_projection::ensure_apps_registry().expect("ensure registry");
-            write_runtime_evidence(&data_root, "nimi.parentos", "1.0.0", "digest-mismatch");
+            write_runtime_evidence(&data_root, "nimi.shijing", "1.0.0", "digest-mismatch");
             let projection = ensure_apps_packages().expect("ensure packages");
             let row = projection
                 .record
                 .packages
                 .iter()
-                .find(|row| row.app_id == "nimi.parentos")
-                .expect("parentos package row");
+                .find(|row| row.app_id == "nimi.shijing")
+                .expect("shijing package row");
             assert_eq!(row.state, "repair_required");
         });
     }
@@ -481,7 +481,7 @@ mod tests {
             crate::apps_registry_projection::ensure_apps_registry().expect("ensure registry");
             let evidence_dir = data_root
                 .join("apps")
-                .join("nimi.parentos")
+                .join("nimi.shijing")
                 .join("releases")
                 .join("1.0.0")
                 .join(".nimi");

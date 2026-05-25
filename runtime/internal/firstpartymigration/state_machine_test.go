@@ -5,12 +5,16 @@ import (
 	"testing"
 )
 
-func parentosMigration(state MigrationState) *Migration {
+// genericMigration constructs an Avatar-kind migration with the master gate
+// already acked, so transition tests exercise the canonical state machine
+// without the Avatar-specific master-gate guard interfering.
+func genericMigration(state MigrationState) *Migration {
 	return &Migration{
-		MigrationID:   "mig-parentos-1",
-		Kind:          MigrationKindParentOSStandalone,
-		SubjectUserID: "user-1",
-		State:         state,
+		MigrationID:           "mig-generic-1",
+		Kind:                  MigrationKindAvatarStandalone,
+		SubjectUserID:         "user-1",
+		State:                 state,
+		AvatarMasterGateAcked: true,
 	}
 }
 
@@ -55,8 +59,8 @@ func TestMigrationStates_TerminalAndBlocked(t *testing.T) {
 	}
 }
 
-func TestTransition_ParentOSHappyPath(t *testing.T) {
-	m := parentosMigration(MigrationStatePending)
+func TestTransition_HappyPath(t *testing.T) {
+	m := genericMigration(MigrationStatePending)
 	for _, next := range []MigrationState{
 		MigrationStateInventoryBuilt,
 		MigrationStateUserConfirmed,
@@ -108,7 +112,7 @@ func TestTransition_AvatarUnblockAfterMasterGateAck(t *testing.T) {
 }
 
 func TestTransition_FailedRecoverableRequiresRecoveryPath(t *testing.T) {
-	m := parentosMigration(MigrationStateFailedRecoverable)
+	m := genericMigration(MigrationStateFailedRecoverable)
 	_, err := Transition(m, MigrationStateInProgress, 1, "")
 	if err == nil {
 		t.Fatal("failed-recoverable→in-progress without recovery path must fail")
@@ -119,8 +123,8 @@ func TestTransition_FailedRecoverableRequiresRecoveryPath(t *testing.T) {
 }
 
 func TestTransition_FailedRecoverableWithRecoveryPathSucceeds(t *testing.T) {
-	m := parentosMigration(MigrationStateFailedRecoverable)
-	m.RecoveryPath = "/var/nimi/migration-recovery/mig-parentos-1.snapshot"
+	m := genericMigration(MigrationStateFailedRecoverable)
+	m.RecoveryPath = "/var/nimi/migration-recovery/mig-generic-1.snapshot"
 	m, err := Transition(m, MigrationStateInProgress, 1, "retry with recovery")
 	if err != nil {
 		t.Fatalf("retry with recovery: %v", err)
@@ -131,7 +135,7 @@ func TestTransition_FailedRecoverableWithRecoveryPathSucceeds(t *testing.T) {
 }
 
 func TestTransition_FailedRecoverableRolledBack(t *testing.T) {
-	m := parentosMigration(MigrationStateFailedRecoverable)
+	m := genericMigration(MigrationStateFailedRecoverable)
 	m, err := Transition(m, MigrationStateRolledBack, 1, "user declined retry")
 	if err != nil {
 		t.Fatalf("failed-recoverable→rolled-back: %v", err)
@@ -142,7 +146,7 @@ func TestTransition_FailedRecoverableRolledBack(t *testing.T) {
 }
 
 func TestTransition_TerminalStateLocked(t *testing.T) {
-	m := parentosMigration(MigrationStateCompleted)
+	m := genericMigration(MigrationStateCompleted)
 	_, err := Transition(m, MigrationStatePending, 1, "")
 	if err == nil {
 		t.Fatal("terminal state must not transition")
@@ -153,7 +157,7 @@ func TestTransition_TerminalStateLocked(t *testing.T) {
 }
 
 func TestTransition_InvalidTransitionRejected(t *testing.T) {
-	m := parentosMigration(MigrationStatePending)
+	m := genericMigration(MigrationStatePending)
 	_, err := Transition(m, MigrationStateInProgress, 1, "")
 	if err == nil {
 		t.Fatal("pending→in-progress (skipping steps) must fail")
@@ -164,7 +168,7 @@ func TestTransition_InvalidTransitionRejected(t *testing.T) {
 }
 
 func TestTransition_UnknownNextStateRejected(t *testing.T) {
-	m := parentosMigration(MigrationStatePending)
+	m := genericMigration(MigrationStatePending)
 	_, err := Transition(m, MigrationState("rogue"), 1, "")
 	if err == nil {
 		t.Fatal("unknown next state must be rejected")

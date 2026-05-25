@@ -233,9 +233,6 @@ function collectRepoFiles() {
     'apps/polyinfo/src',
     'apps/polyinfo/src-tauri',
     'apps/polyinfo/spec/kernel',
-    'apps/parentos/src',
-    'apps/parentos/src-tauri',
-    'apps/parentos/spec/kernel',
     // FG-SHELL-011 / FG-SHELL-012: Forge is admitted as a local-first-party
     // Runtime account consumer. Walked here so scanPlatformClientConstruction
     // and scanJwtSubjectAuthority detect regressions in forge sources.

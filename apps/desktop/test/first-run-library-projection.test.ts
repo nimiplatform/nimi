@@ -18,7 +18,7 @@ function makeClient(behavior: {
       if (behavior.list instanceof Error) throw behavior.list;
       if (behavior.list !== undefined) return behavior.list;
       return [
-        buildRow('parentos', 'ParentOS'),
+        buildRow('shijing', 'ShiJing'),
       ];
     },
     async get(appId: string) {
@@ -58,7 +58,7 @@ describe('projectLibrary', () => {
     assert.equal(projection.status, 'loaded');
     if (projection.status === 'loaded') {
       assert.equal(projection.entries.length, 1);
-      assert.equal(projection.entries[0]!.app.appId, 'parentos');
+      assert.equal(projection.entries[0]!.app.appId, 'shijing');
       assert.equal(projection.entries[0]!.status?.launchReadiness, 'install-required');
     }
   });
@@ -75,9 +75,9 @@ describe('projectLibrary', () => {
     const client = makeClient({
       list: [
         buildRow('avatar', 'Avatar'),
-        buildRow('parentos', 'ParentOS'),
+        buildRow('shijing', 'ShiJing'),
       ],
-      status: (id) => (id === 'parentos' ? new Error('status boom') : { appId: id, launchReadiness: 'ready' as const }),
+      status: (id) => (id === 'shijing' ? new Error('status boom') : { appId: id, launchReadiness: 'ready' as const }),
     });
     const projection = await projectLibrary(client);
     assert.equal(projection.status, 'loaded');

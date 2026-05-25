@@ -73,7 +73,5 @@ func formatNimiAppRegistryViolations(violations []appregistrycatalog.CrossTableV
 }
 
 func defaultFirstPartyMigrationLaunchGate() *firstpartymigration.LaunchGate {
-	return firstpartymigration.NewLaunchGate(
-		firstpartymigration.WithMigrationNotRequired("nimi.parentos"),
-	)
+	return firstpartymigration.NewLaunchGate()
 }

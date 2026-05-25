@@ -444,12 +444,12 @@ mod tests {
             .expect("tester row");
         assert_eq!(tester.visibility, "developer-only");
         assert_ne!(tester.visibility, "ordinary");
-        let parentos = record
+        let shijing = record
             .apps
             .iter()
-            .find(|row| row.app_id == "nimi.parentos")
-            .expect("parentos row");
-        assert_eq!(parentos.visibility, "ordinary");
+            .find(|row| row.app_id == "nimi.shijing")
+            .expect("shijing row");
+        assert_eq!(shijing.visibility, "ordinary");
     }
 
     #[test]
@@ -462,13 +462,13 @@ mod tests {
             .expect("avatar row");
         // Avatar is gated_by_avatar_master_gate -> blocked, not bundled.
         assert_eq!(avatar.install_state, "blocked");
-        let parentos = record
+        let shijing = record
             .apps
             .iter()
-            .find(|row| row.app_id == "nimi.parentos")
-            .expect("parentos row");
-        // ParentOS admitted + bundled-with-nimi descriptor -> bundled.
-        assert_eq!(parentos.install_state, "bundled");
+            .find(|row| row.app_id == "nimi.shijing")
+            .expect("shijing row");
+        // ShiJing admitted + bundled-with-nimi descriptor -> bundled.
+        assert_eq!(shijing.install_state, "bundled");
     }
 
     #[test]

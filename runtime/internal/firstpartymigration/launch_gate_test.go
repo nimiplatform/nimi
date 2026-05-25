@@ -2,31 +2,40 @@ package firstpartymigration
 
 import "testing"
 
-func TestLaunchGateAdmitsParentOSWhenMigrationNotRequired(t *testing.T) {
-	gate := NewLaunchGate(WithMigrationNotRequired("app.nimi.parentos"))
-	decision := gate.Evaluate("nimi.parentos")
+func TestLaunchGateAdmitsAvatarWhenMigrationNotRequired(t *testing.T) {
+	gate := NewLaunchGate(
+		WithAvatarMasterGateAcked(true),
+		WithMigrationNotRequired("app.nimi.avatar"),
+	)
+	decision := gate.Evaluate("nimi.avatar")
 	if !decision.Admitted || decision.Reason != LaunchReasonNotRequired {
 		t.Fatalf("unexpected decision: %+v", decision)
 	}
 }
 
 func TestLaunchGateAdmitsCompletedMigration(t *testing.T) {
-	gate := NewLaunchGate(WithMigrationState("nimi.parentos", MigrationStateCompleted))
-	decision := gate.Evaluate("app.nimi.parentos")
+	gate := NewLaunchGate(
+		WithAvatarMasterGateAcked(true),
+		WithMigrationState("nimi.avatar", MigrationStateCompleted),
+	)
+	decision := gate.Evaluate("app.nimi.avatar")
 	if !decision.Admitted || decision.Reason != LaunchReasonCompleted {
 		t.Fatalf("unexpected decision: %+v", decision)
 	}
 }
 
 func TestLaunchGateBlocksMissingOrIncompleteMigration(t *testing.T) {
-	gate := NewLaunchGate()
-	missing := gate.Evaluate("nimi.parentos")
+	gate := NewLaunchGate(WithAvatarMasterGateAcked(true))
+	missing := gate.Evaluate("nimi.avatar")
 	if missing.Admitted || missing.Reason != LaunchReasonStateMissing {
 		t.Fatalf("missing migration should fail closed: %+v", missing)
 	}
 
-	pendingGate := NewLaunchGate(WithMigrationState("nimi.parentos", MigrationStatePending))
-	pending := pendingGate.Evaluate("nimi.parentos")
+	pendingGate := NewLaunchGate(
+		WithAvatarMasterGateAcked(true),
+		WithMigrationState("nimi.avatar", MigrationStatePending),
+	)
+	pending := pendingGate.Evaluate("nimi.avatar")
 	if pending.Admitted || pending.Reason != string(MigrationStatePending) {
 		t.Fatalf("pending migration should fail closed: %+v", pending)
 	}

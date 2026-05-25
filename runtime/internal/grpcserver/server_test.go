@@ -129,14 +129,14 @@ table_family: product_catalog
 owner: platform
 catalog_id: test_nimi_app_registry
 apps:
-  - app_id: nimi.parentos
-    display_label: ParentOS
+  - app_id: nimi.shijing
+    display_label: ShiJing
     publisher: nimi-first-party
     trust_tier_ref: nimi-first-party
     package_kind: nimi-app
     runtime_registration_mode: app-managed
     ordinary_visibility: ordinary-visible
-    release_descriptor_ref: nimi.parentos.bundled-with-nimi
+    release_descriptor_ref: nimi.shijing.bundled-with-nimi
     install_storage_policy_ref: nimi-data-app-roots
     admission_status: admitted
     source_rule: P-NAPP-011
@@ -144,7 +144,7 @@ apps:
 	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 		t.Fatalf("write registry: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "nimi-app-release-descriptors.yaml"), []byte(parentOSReleaseDescriptorYAML("nimi.parentos", "nimi-data-app-roots")), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "nimi-app-release-descriptors.yaml"), []byte(shijingReleaseDescriptorYAML("nimi.shijing", "nimi-data-app-roots")), 0o600); err != nil {
 		t.Fatalf("write release descriptors: %v", err)
 	}
 
@@ -158,12 +158,12 @@ apps:
 	if releases == nil {
 		t.Fatal("expected release descriptor catalog")
 	}
-	eligibility, err := registry.CheckCallerEligibility("nimi.parentos")
+	eligibility, err := registry.CheckCallerEligibility("nimi.shijing")
 	if err != nil {
 		t.Fatalf("check eligibility: %v", err)
 	}
 	if eligibility.Eligible {
-		t.Fatalf("expected admitted parentos to remain install-required until verified")
+		t.Fatalf("expected admitted shijing to remain install-required until verified")
 	}
 	if eligibility.Reason != "app-install-required" {
 		t.Fatalf("expected install-required eligibility, reason=%s", eligibility.Reason)
@@ -178,14 +178,14 @@ table_family: product_catalog
 owner: platform
 catalog_id: test_nimi_app_registry
 apps:
-  - app_id: nimi.parentos
-    display_label: ParentOS
+  - app_id: nimi.shijing
+    display_label: ShiJing
     publisher: nimi-first-party
     trust_tier_ref: nimi-first-party
     package_kind: nimi-app
     runtime_registration_mode: app-managed
     ordinary_visibility: ordinary-visible
-    release_descriptor_ref: nimi.parentos.bundled-with-nimi
+    release_descriptor_ref: nimi.shijing.bundled-with-nimi
     install_storage_policy_ref: nimi-data-app-roots
     admission_status: admitted
     source_rule: P-NAPP-011
@@ -193,7 +193,7 @@ apps:
 	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 		t.Fatalf("write registry: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "nimi-app-release-descriptors.yaml"), []byte(parentOSReleaseDescriptorYAML("other.app", "nimi-data-app-roots")), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "nimi-app-release-descriptors.yaml"), []byte(shijingReleaseDescriptorYAML("other.app", "nimi-data-app-roots")), 0o600); err != nil {
 		t.Fatalf("write release descriptors: %v", err)
 	}
 
@@ -214,14 +214,14 @@ table_family: product_catalog
 owner: platform
 catalog_id: test_nimi_app_registry
 apps:
-  - app_id: nimi.parentos
-    display_label: ParentOS
+  - app_id: nimi.shijing
+    display_label: ShiJing
     publisher: nimi-first-party
     trust_tier_ref: nimi-first-party
     package_kind: nimi-app
     runtime_registration_mode: app-managed
     ordinary_visibility: ordinary-visible
-    release_descriptor_ref: nimi.parentos.bundled-with-nimi
+    release_descriptor_ref: nimi.shijing.bundled-with-nimi
     install_storage_policy_ref: other-storage-policy
     admission_status: admitted
     source_rule: P-NAPP-011
@@ -229,7 +229,7 @@ apps:
 	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 		t.Fatalf("write registry: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "nimi-app-release-descriptors.yaml"), []byte(parentOSReleaseDescriptorYAML("nimi.parentos", "nimi-data-app-roots")), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "nimi-app-release-descriptors.yaml"), []byte(shijingReleaseDescriptorYAML("nimi.shijing", "nimi-data-app-roots")), 0o600); err != nil {
 		t.Fatalf("write release descriptors: %v", err)
 	}
 
@@ -255,13 +255,13 @@ func TestLoadNimiAppRegistryCatalogEmptyPath(t *testing.T) {
 	}
 }
 
-func parentOSReleaseDescriptorYAML(appID string, storagePolicyRef string) string {
+func shijingReleaseDescriptorYAML(appID string, storagePolicyRef string) string {
 	return `version: 1
 table_family: product_catalog
 owner: platform
 catalog_id: platform_nimi_app_release_descriptors
 descriptors:
-  - descriptor_id: nimi.parentos.bundled-with-nimi
+  - descriptor_id: nimi.shijing.bundled-with-nimi
     app_id: ` + appID + `
     version: bundled-with-current-nimi-release
     descriptor_class: bundled-with-nimi
@@ -276,9 +276,9 @@ descriptors:
       signature_or_provenance_ref: nimi-first-party-signature-policy
     runtime:
       package_kind: nimi-app
-      entry_ref: parentos-runtime-registration
+      entry_ref: shijing-runtime-registration
       sandbox_ref: first-party-bundled-app
-    permissions_ref: nimi.parentos.permission_scope_ref
+    permissions_ref: nimi.shijing.permission_scope_ref
     storage_policy_ref: ` + storagePolicyRef + `
     review:
       admission_path: first-party-bundled-release
@@ -290,9 +290,9 @@ descriptors:
 
 func TestDefaultFirstPartyMigrationLaunchGate(t *testing.T) {
 	gate := defaultFirstPartyMigrationLaunchGate()
-	parentOS := gate.Evaluate("nimi.parentos")
-	if !parentOS.Admitted {
-		t.Fatalf("ParentOS should default to migration-not-required until standalone state is inventoried: %+v", parentOS)
+	nonHardcut := gate.Evaluate("nimi.shijing")
+	if !nonHardcut.Admitted {
+		t.Fatalf("non-hardcut app should admit immediately: %+v", nonHardcut)
 	}
 	avatar := gate.Evaluate("nimi.avatar")
 	if avatar.Admitted {

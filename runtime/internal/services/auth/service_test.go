@@ -17,7 +17,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
-	"github.com/nimiplatform/nimi/runtime/internal/firstpartymigration"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -101,14 +100,14 @@ func testNimiAppRegistryCatalog() *appregistrycatalog.Registry {
 		CatalogID:   "test_nimi_app_registry",
 		Apps: []appregistrycatalog.App{
 			{
-				AppID:                   "nimi.parentos",
-				DisplayLabel:            "ParentOS",
+				AppID:                   "nimi.shijing",
+				DisplayLabel:            "ShiJing",
 				Publisher:               "nimi-first-party",
 				TrustTierRef:            appregistrycatalog.TrustTierFirstParty,
 				PackageKind:             appregistrycatalog.PackageKindNimiApp,
 				RuntimeRegistrationMode: appregistrycatalog.RuntimeRegistrationModeAppManaged,
 				OrdinaryVisibility:      appregistrycatalog.OrdinaryVisibilityOrdinaryVisible,
-				ReleaseDescriptorRef:    "nimi.parentos.bundled-with-nimi",
+				ReleaseDescriptorRef:    "nimi.shijing.bundled-with-nimi",
 				InstallStoragePolicyRef: "nimi-data-app-roots",
 				AdmissionStatus:         appregistrycatalog.AdmissionStatusAdmitted,
 				SourceRule:              "P-NAPP-011",
@@ -241,7 +240,7 @@ func TestRegisterAppFailsClosedForNimiAppWithoutRegistryProjection(t *testing.T)
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	resp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:        "nimi.parentos",
+		AppId:        "nimi.shijing",
 		ModeManifest: validFullAppModeManifest(),
 	})
 	if err != nil {
@@ -259,47 +258,47 @@ func TestRegisterAppChecksNimiAppRegistryProjection(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalog())
 
-	parentResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:         "app.nimi.parentos",
-		AppInstanceId: "app.nimi.parentos.local-first-party",
+	consumerResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:         "app.nimi.shijing",
+		AppInstanceId: "app.nimi.shijing.local-first-party",
 		DeviceId:      "local-first-party-device",
 		ModeManifest:  validFullAppModeManifest(),
 	})
 	if err != nil {
-		t.Fatalf("register parentos: %v", err)
+		t.Fatalf("register shijing: %v", err)
 	}
-	if !parentResp.GetAccepted() {
-		t.Fatalf("expected admitted ParentOS runtime-account consumer to register, reason=%v", parentResp.GetReasonCode())
+	if !consumerResp.GetAccepted() {
+		t.Fatalf("expected admitted ShiJing runtime-account consumer to register, reason=%v", consumerResp.GetReasonCode())
 	}
-	if parentResp.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
-		t.Fatalf("unexpected ParentOS reason code: %v", parentResp.GetReasonCode())
+	if consumerResp.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("unexpected ShiJing reason code: %v", consumerResp.GetReasonCode())
 	}
 
-	parentRuntimeSessionResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:         "app.nimi.parentos",
-		AppInstanceId: "app.nimi.parentos.platform-runtime-session",
+	platformSessionResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:         "app.nimi.shijing",
+		AppInstanceId: "app.nimi.shijing.platform-runtime-session",
 		DeviceId:      "platform-runtime-session",
 		ModeManifest:  validFullAppModeManifest(),
 	})
 	if err != nil {
-		t.Fatalf("register parentos platform runtime session: %v", err)
+		t.Fatalf("register shijing platform runtime session: %v", err)
 	}
-	if !parentRuntimeSessionResp.GetAccepted() {
-		t.Fatalf("expected admitted ParentOS platform runtime session to register, reason=%v", parentRuntimeSessionResp.GetReasonCode())
+	if !platformSessionResp.GetAccepted() {
+		t.Fatalf("expected admitted ShiJing platform runtime session to register, reason=%v", platformSessionResp.GetReasonCode())
 	}
 
-	genericParentResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:        "app.nimi.parentos",
+	genericResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:        "app.nimi.shijing",
 		ModeManifest: validFullAppModeManifest(),
 	})
 	if err != nil {
-		t.Fatalf("register generic parentos: %v", err)
+		t.Fatalf("register generic shijing: %v", err)
 	}
-	if genericParentResp.GetAccepted() {
-		t.Fatalf("generic ParentOS app registration must still fail closed until descriptor install is verified")
+	if genericResp.GetAccepted() {
+		t.Fatalf("generic ShiJing app registration must still fail closed until descriptor install is verified")
 	}
-	if genericParentResp.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
-		t.Fatalf("unexpected generic ParentOS reason code: %v", genericParentResp.GetReasonCode())
+	if genericResp.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
+		t.Fatalf("unexpected generic ShiJing reason code: %v", genericResp.GetReasonCode())
 	}
 
 	avatarResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
@@ -329,41 +328,12 @@ func TestRegisterAppChecksNimiAppRegistryProjection(t *testing.T) {
 	}
 }
 
-func TestRegisterAppAppliesFirstPartyMigrationGate(t *testing.T) {
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalog())
-	svc.SetFirstPartyMigrationLaunchGate(firstpartymigration.NewLaunchGate(
-		firstpartymigration.WithMigrationState("nimi.parentos", firstpartymigration.MigrationStatePending),
-	))
-
-	blocked, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:        "nimi.parentos",
-		ModeManifest: validFullAppModeManifest(),
-	})
-	if err != nil {
-		t.Fatalf("register parentos pending migration: %v", err)
-	}
-	if blocked.GetAccepted() || blocked.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
-		t.Fatalf("expected pending migration to block registration, got accepted=%v reason=%v", blocked.GetAccepted(), blocked.GetReasonCode())
-	}
-
-	svc.SetFirstPartyMigrationLaunchGate(firstpartymigration.NewLaunchGate(
-		firstpartymigration.WithMigrationState("nimi.parentos", firstpartymigration.MigrationStateCompleted),
-	))
-	admitted, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:        "nimi.parentos",
-		ModeManifest: validFullAppModeManifest(),
-	})
-	if err != nil {
-		t.Fatalf("register parentos completed migration: %v", err)
-	}
-	if admitted.GetAccepted() {
-		t.Fatalf("completed migration must not bypass descriptor install verification")
-	}
-	if admitted.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
-		t.Fatalf("expected descriptor/install fail-close after migration, reason=%v", admitted.GetReasonCode())
-	}
-}
+// Migration-gate behavior is unit-tested in
+// runtime/internal/firstpartymigration/launch_gate_test.go. The auth-service
+// integration of that gate used to be exercised via parentos in a now-retired
+// test; parentos has exited first-party admission
+// (topic 2026-05-25-parentos-first-party-admission-exit) and avatar's
+// admitted/gated path is covered by TestRegisterAppChecksNimiAppRegistryProjection.
 
 func TestRegisterAppKeepsDesktopHostOutsideNimiAppRegistry(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))

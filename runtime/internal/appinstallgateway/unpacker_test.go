@@ -62,7 +62,7 @@ func zipArchive(t *testing.T, files map[string]string) []byte {
 
 func unpackPlan(t *testing.T) appstorage.Plan {
 	t.Helper()
-	plan, err := appstorage.Resolve(t.TempDir(), "nimi.parentos", "1.0.0", "nimi-data-app-roots")
+	plan, err := appstorage.Resolve(t.TempDir(), "nimi.shijing", "1.0.0", "nimi-data-app-roots")
 	if err != nil {
 		t.Fatalf("resolve plan: %v", err)
 	}
@@ -75,8 +75,8 @@ func unpackPlan(t *testing.T) appstorage.Plan {
 func TestArchiveUnpackerUnpacksTarGz(t *testing.T) {
 	plan := unpackPlan(t)
 	payload := tarGzArchive(t, map[string]string{
-		"manifest.json": `{"name":"parentos"}`,
-		"bin/run.js":    "console.log('parentos')",
+		"manifest.json": `{"name":"shijing"}`,
+		"bin/run.js":    "console.log('shijing')",
 	})
 	unpacker := NewArchiveUnpacker()
 	if err := unpacker.Unpack(context.Background(), VerifiedArtifact{Payload: payload}, plan); err != nil {
@@ -86,7 +86,7 @@ func TestArchiveUnpackerUnpacksTarGz(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read unpacked file: %v", err)
 	}
-	if string(got) != "console.log('parentos')" {
+	if string(got) != "console.log('shijing')" {
 		t.Fatalf("unpacked content = %q", got)
 	}
 }
@@ -94,7 +94,7 @@ func TestArchiveUnpackerUnpacksTarGz(t *testing.T) {
 func TestArchiveUnpackerUnpacksZip(t *testing.T) {
 	plan := unpackPlan(t)
 	payload := zipArchive(t, map[string]string{
-		"manifest.json": `{"name":"parentos"}`,
+		"manifest.json": `{"name":"shijing"}`,
 	})
 	unpacker := NewArchiveUnpacker()
 	if err := unpacker.Unpack(context.Background(), VerifiedArtifact{Payload: payload}, plan); err != nil {

@@ -21,7 +21,7 @@ function makeClient(behavior: {
       if (behavior.list instanceof Error) throw behavior.list;
       if (behavior.list !== undefined) return behavior.list;
       return [
-        buildRow('parentos', 'ParentOS'),
+        buildRow('shijing', 'ShiJing'),
       ];
     },
     async get(appId: string) {
@@ -36,7 +36,7 @@ function makeClient(behavior: {
         if (result instanceof Error) throw result;
         return result;
       }
-      if (appId === 'parentos') return { appId, launchReadiness: 'install-required' };
+      if (appId === 'shijing') return { appId, launchReadiness: 'install-required' };
       return { appId, launchReadiness: 'update-required' };
     },
   };
@@ -61,9 +61,9 @@ describe('projectDiscovery', () => {
     const projection = await projectDiscovery(makeClient());
     assert.equal(projection.status, 'loaded');
     if (projection.status === 'loaded') {
-      // ParentOS is the sole ordinary-visible admitted app in this projection fixture.
+      // ShiJing is the sole ordinary-visible admitted app in this projection fixture.
       const ids = projection.entries.map((e) => e.app.appId);
-      assert.deepEqual([...ids].sort(), ['parentos']);
+      assert.deepEqual([...ids].sort(), ['shijing']);
     }
   });
 

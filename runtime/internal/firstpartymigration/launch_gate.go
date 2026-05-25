@@ -86,7 +86,7 @@ func normalizeNimiAppID(appID string) string {
 
 func isFirstPartyHardcutTarget(appID string) bool {
 	switch appID {
-	case "nimi.avatar", "nimi.parentos":
+	case "nimi.avatar":
 		return true
 	default:
 		return false

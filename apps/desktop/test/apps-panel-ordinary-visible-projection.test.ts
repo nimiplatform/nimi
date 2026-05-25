@@ -40,7 +40,7 @@ function makeClient(behavior: {
     async list() {
       if (behavior.list instanceof Error) throw behavior.list;
       if (behavior.list !== undefined) return behavior.list;
-      return [buildRow('nimi.parentos', 'ParentOS')];
+      return [buildRow('nimi.shijing', 'ShiJing')];
     },
     async get(appId: string) {
       const rows = await this.list();
@@ -80,12 +80,12 @@ describe('AppsPanel ordinary-visible projection', () => {
     if (projection.status !== 'loaded') return;
 
     const ids = projection.entries.map((entry) => entry.app.appId);
-    assert.deepEqual(ids, ['nimi.parentos']);
+    assert.deepEqual(ids, ['nimi.shijing']);
     assert.equal(projection.entries[0]!.cardState, 'not_installed_installable');
     assert.equal(projection.entries.some((entry) => entry.app.appId === 'nimi.avatar'), false);
     assert.equal(projection.entries.some((entry) => entry.app.appId === 'nimi.tester'), false);
-    assert.equal(projection.entries.some((entry) => entry.app.appId.toLowerCase().includes('forge')), false);
-    assert.equal(projection.entries.some((entry) => entry.app.appId.toLowerCase().includes('shiji')), false);
+    assert.equal(projection.entries.some((entry) => entry.app.appId === 'nimi.forge'), false);
+    assert.equal(projection.entries.some((entry) => entry.app.appId === 'nimi.shiji'), false);
   });
 
   it('keeps Tester admitted as developer-only without ordinary Apps projection', async () => {

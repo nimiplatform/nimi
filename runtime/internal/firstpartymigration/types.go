@@ -51,13 +51,12 @@ func (s MigrationState) IsBlocked() bool {
 type MigrationKind string
 
 const (
-	MigrationKindParentOSStandalone MigrationKind = "parentos-standalone-to-nimi-app"
-	MigrationKindAvatarStandalone   MigrationKind = "avatar-standalone-to-nimi-app"
+	MigrationKindAvatarStandalone MigrationKind = "avatar-standalone-to-nimi-app"
 )
 
 func (k MigrationKind) Valid() bool {
 	switch k {
-	case MigrationKindParentOSStandalone, MigrationKindAvatarStandalone:
+	case MigrationKindAvatarStandalone:
 		return true
 	}
 	return false

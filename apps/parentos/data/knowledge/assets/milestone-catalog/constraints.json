@@ -1,6 +1,0 @@
-[
-  "milestoneId must be unique",
-  "typicalAge.rangeStart <= typicalAge.medianMonths <= typicalAge.rangeEnd",
-  "alertIfNotBy > typicalAge.rangeEnd",
-  "alertIfNotBy 仅用于 AI 分析输出，不得作为诊断依据"
-]
