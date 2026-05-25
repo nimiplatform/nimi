@@ -533,21 +533,68 @@ rules:
     spec_anchor: .nimi/spec/realm/kernel/social-contract.md#R-SOC-006
     profile_refs:
       - social
+    service_files:
+      - nimi-backend/libs/domains/agent/src/domains/owned-master-agents.scope.ts
+      - nimi-backend/libs/domains/agent/src/domains/agent.service.ts
+      - nimi-backend/libs/domains/agent/src/domains/agent-management.service.ts
+      - nimi-backend/libs/domains/agent/src/domains/agent-master.service.ts
+      - nimi-backend/libs/domains/agent/src/domains/agent-dev.service.ts
+    test_files:
+      - nimi-backend/libs/domains/agent/src/domains/r-soc-006.spec.ts
   R-SOC-007:
     domain: social
     spec_anchor: .nimi/spec/realm/kernel/social-contract.md#R-SOC-007
     profile_refs:
       - social
+    prisma_models:
+      - Friendship
+      - LocalAgentTerminationIntent
+    service_files:
+      - nimi-backend/libs/domains/relationship/src/friendship.service.ts
+      - nimi-backend/libs/domains/user/src/domains/local-agent-termination-intent.service.ts
+      - nimi-backend/libs/domains/user/src/domains/user.service.ts
+    test_files:
+      - nimi-backend/libs/domains/relationship/src/friendship.service.spec.ts
+      - nimi-backend/libs/domains/user/src/domains/local-agent-termination-intent.service.spec.ts
+      - nimi-backend/apps/api/src/modules/user/user.controller.spec.ts
   R-SOC-008:
     domain: social
     spec_anchor: .nimi/spec/realm/kernel/social-contract.md#R-SOC-008
     profile_refs:
       - social
+    openapi:
+      - GET /api/me/local-agent-termination-intents
+      - POST /api/me/local-agent-termination-intents/{intentId}/ack
+    prisma_models:
+      - LocalAgentTerminationIntent
+    service_files:
+      - nimi-backend/apps/api/src/modules/user/user.controller.ts
+      - nimi-backend/libs/domains/user/src/domains/local-agent-termination-intent.service.ts
+    test_files:
+      - nimi-backend/apps/api/src/modules/user/user.controller.spec.ts
+      - nimi-backend/libs/domains/user/src/domains/local-agent-termination-intent.service.spec.ts
   R-SOC-009:
     domain: social
     spec_anchor: .nimi/spec/realm/kernel/social-contract.md#R-SOC-009
     profile_refs:
       - social
+    openapi:
+      - GET /api/me/local-agent-provision-intents
+      - POST /api/me/local-agent-provision-intents/{intentId}/ack
+    prisma_models:
+      - LocalAgentProvisionIntent
+      - LocalAgentTerminationIntent
+    service_files:
+      - nimi-backend/libs/common/src/local-agent-provision-intent.ts
+      - nimi-backend/libs/domains/relationship/src/friendship.service.ts
+      - nimi-backend/libs/domains/user/src/domains/local-agent-provision-intent.service.ts
+      - nimi-backend/libs/domains/agent/src/domains/agent.service.ts
+    test_files:
+      - nimi-backend/libs/common/src/guide-agent-bootstrap.spec.ts
+      - nimi-backend/libs/domains/relationship/src/friendship.service.spec.ts
+      - nimi-backend/libs/domains/user/src/domains/local-agent-provision-intent.service.spec.ts
+      - nimi-backend/libs/domains/agent/src/domains/agent.service.spec.ts
+      - nimi-backend/apps/api/src/modules/user/user.controller.spec.ts
   R-FEED-001:
     domain: feed
     spec_anchor: .nimi/spec/realm/kernel/feed-contract.md#R-FEED-001

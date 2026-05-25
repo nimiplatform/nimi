@@ -3,7 +3,7 @@ id: SPEC-REALM-KERNEL-TRUTH-001
 title: Realm Truth Kernel Contract
 status: active
 owner: "@team"
-updated: 2026-04-22
+updated: 2026-05-22
 ---
 
 # Truth Contract

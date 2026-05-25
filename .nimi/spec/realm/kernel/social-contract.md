@@ -3,7 +3,7 @@ id: SPEC-REALM-KERNEL-SOCIAL-001
 title: Realm Social Kernel Contract
 status: active
 owner: "@team"
-updated: 2026-03-23
+updated: 2026-05-25
 ---
 
 # Social Contract
@@ -40,16 +40,14 @@ exceptions, or authority-bearing official-agent status.
 
 ## R-SOC-006
 
-New-user initialization may seed a Nimi guide AgentFriend relationship only
-through ordinary Realm social admission. Before creating or repairing that
-relationship, the backend path must validate the guide Agent account, required
-RealmAgent identity, and required AgentProfile / Realm payload needed for the
-ordinary relationship. Missing or invalid payloads fail closed as typed
-provisioning or repair states.
-
-`MUST NOT`: Guide AgentFriend provisioning must not create a privileged
-official-agent class, social schema fork, quota bypass, server-bot bypass,
-Runtime local-only agent, Desktop fixture, or prompt/docs authority shortcut.
+Owner-agent listing and owner-agent quota share the MASTER_OWNED scope.
+For every user `u`,
+`count(listMyRealmAgents(u)) === owner-agent limit count(u)` MUST hold:
+both sides are defined as the AgentProfile rows where `creatorId = u` and
+`ownershipType = MASTER_OWNED`. WORLD_OWNED RealmAgents and world-created NPC
+RealmAgents are excluded from both list and quota; they MUST NOT consume the
+owner-agent slot budget on the create / adopt path while being absent from
+`/api/me/agents`.
 
 ## R-SOC-007
 

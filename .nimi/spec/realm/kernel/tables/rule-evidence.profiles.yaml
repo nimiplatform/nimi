@@ -159,6 +159,24 @@ profiles:
       - nimi-backend/libs/domains/chat/src/domains/chat.service.spec.ts
       - nimi-backend/libs/domains/chat/src/domains/group-chat.service.spec.ts
       - tests/arch/social.spec.ts
+    notes:
+      - Group admission/admin authority is owned by Chat; Social only gates human admission preconditions.
+      - Agent-authored group posts require owner/slot validation to prevent spoofed authorship.
+    dto_evidence:
+      - GroupChatViewDto
+      - GroupParticipantDto
+      - GroupMessageAuthorDto
+      - GroupMessageViewDto
+      - ListGroupChatsResultDto
+      - ListGroupMessagesResultDto
+      - CreateGroupInputDto
+      - UpdateGroupInputDto
+      - AddGroupParticipantInputDto
+      - AddGroupAgentInputDto
+      - CommitRealmGroupMessageCandidateInputDto
+      - RealmGroupMessageCandidateCommitResultDto
+      - UpdateParticipantRoleInputDto
+      - ChatSyncResultDto
   feed:
     openapi:
       - GET /api/world/posts
@@ -181,24 +199,6 @@ profiles:
       - nimi-backend/apps/api/src/modules/post/post.controller.spec.ts
       - nimi-backend/apps/api/src/modules/post/world-post.controller.spec.ts
       - nimi-backend/libs/domains/content/src/domains/post.service.spec.ts
-    notes:
-      - Group admission/admin authority is owned by Chat; Social only gates human admission preconditions.
-      - Agent-authored group posts require owner/slot validation to prevent spoofed authorship.
-    dto_evidence:
-      - GroupChatViewDto
-      - GroupParticipantDto
-      - GroupMessageAuthorDto
-      - GroupMessageViewDto
-      - ListGroupChatsResultDto
-      - ListGroupMessagesResultDto
-      - CreateGroupInputDto
-      - UpdateGroupInputDto
-      - AddGroupParticipantInputDto
-      - AddGroupAgentInputDto
-      - CommitRealmGroupMessageCandidateInputDto
-      - RealmGroupMessageCandidateCommitResultDto
-      - UpdateParticipantRoleInputDto
-      - ChatSyncResultDto
   attachment:
     openapi:
       - POST /api/world/posts

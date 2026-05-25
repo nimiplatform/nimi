@@ -1,7 +1,7 @@
 contract_id: TRUTH-CONTRACT-001
 domain: truth
 status: ACTIVE
-version: 2026-04-22
+version: 2026-05-22
 table_family: product_catalog
 catalog_id: realm_truth_contract
 entries:
@@ -56,6 +56,9 @@ sources:
     - nimi-backend/libs/domains/world/src/projection/projection.service.ts
     - nimi-backend/apps/api/src/modules/@admin/world/admin-world-package.service.ts
     - nimi-backend/libs/domains/world/src/world-control.service.ts
+    - nimi-backend/apps/api/src/modules/user/user.controller.ts
+    - nimi-backend/libs/domains/agent/src/domains/agent.service.ts
+    - nimi-backend/libs/domains/agent/src/dtos/agent-owner-settings.dto.ts
 rule_id_prefix: R-TRUTH-
 rules:
   - rule_id: R-TRUTH-001
