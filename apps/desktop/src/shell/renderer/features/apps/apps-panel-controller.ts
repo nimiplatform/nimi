@@ -15,7 +15,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RuntimeAppOpenScopeRef } from '@nimiplatform/sdk/runtime';
-import { createDesktopHomeLiveBridge } from '../nimi-home/nimi-home-live-bridge.js';
 import {
   desktopAppLifecycleBridge,
   formatAppLifecycleErrorDetail,
@@ -29,6 +28,7 @@ import {
   type DesktopAppLibraryBridge,
 } from '@renderer/bridge/runtime-bridge/account-app-library.js';
 import type { AppCardActionId } from './apps-card-actions.js';
+import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 import { projectAppsPanel, type DesktopAppsPanelProjection } from './apps-panel-projection.js';
 
 /** A pending destructive-confirm flow (uninstall-with-data-delete / retry-cleanup). */
@@ -69,18 +69,18 @@ export type AppsPanelController = AppsPanelState & AppsPanelActions;
 interface AppsPanelControllerDeps {
   readonly lifecycle?: DesktopAppLifecycleBridge;
   readonly library?: DesktopAppLibraryBridge;
-  readonly buildLiveBridge?: typeof createDesktopHomeLiveBridge;
+  readonly buildLiveBridge?: typeof createDesktopAppsLiveBridge;
 }
 
 /**
  * The Apps panel controller hook. `deps` is injectable for tests; production
- * uses the live home bridge (`NimiAppClient`), the W2d lifecycle bridge, and
+ * uses the Apps registry bridge (`NimiAppClient`), the W2d lifecycle bridge, and
  * the W4 account app-library bridge.
  */
 export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): AppsPanelController {
   const lifecycle = deps.lifecycle ?? desktopAppLifecycleBridge;
   const library = deps.library ?? desktopAppLibraryBridge;
-  const buildLiveBridge = deps.buildLiveBridge ?? createDesktopHomeLiveBridge;
+  const buildLiveBridge = deps.buildLiveBridge ?? createDesktopAppsLiveBridge;
   const liveBridge = useMemo(() => buildLiveBridge(), [buildLiveBridge]);
 
   const [projection, setProjection] = useState<DesktopAppsPanelProjection | null>(null);
@@ -93,30 +93,62 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
   // overwriting a fresher one (the projection is async).
   const reloadTokenRef = useRef(0);
 
-  const reload = useCallback(async (): Promise<void> => {
+  const reload = useCallback(async (options: { readonly includeJobs?: boolean } = {}): Promise<void> => {
     const token = ++reloadTokenRef.current;
-    const next = await projectAppsPanel(liveBridge.appClient, lifecycle);
+    const next = await projectAppsPanel(
+      liveBridge.appClient,
+      options.includeJobs ? lifecycle : undefined,
+    );
     if (token === reloadTokenRef.current) {
       setProjection(next);
     }
   }, [liveBridge, lifecycle]);
 
-  // Initial projection.
+  // Initial projection. The Apps page paints from registry/status first so a
+  // slow runtime job projection cannot make the tab feel frozen; the job-aware
+  // projection follows immediately in the background and still fails closed if
+  // lifecycle truth is unavailable.
   useEffect(() => {
-    void reload();
+    let stopped = false;
+    void (async () => {
+      await reload({ includeJobs: false });
+      if (!stopped) {
+        await reload({ includeJobs: true });
+      }
+    })();
+    return () => {
+      stopped = true;
+    };
   }, [reload]);
 
-  // Observe the runtime job lifecycle. Each typed frame re-projects the panel
-  // so `installing`/`uninstalling` progress and the terminal `installed_ready`
-  // / `install_failed` states are live, with no renderer-local job store. A
-  // terminal `installed` / `uninstalled` frame also drives the `library.json`
-  // writer (Fork D) — the desktop owns that account-scoped projection.
+  const activeJobIdsKey = useMemo(() => {
+    if (projection?.status !== 'loaded') {
+      return '';
+    }
+    return projection.entries
+      .map((entry) => entry.job)
+      .filter((job): job is RuntimeAppInstallJob => Boolean(job && isActiveJob(job)))
+      .map((job) => job.jobId)
+      .sort()
+      .join('|');
+  }, [projection]);
+
+  // Observe the runtime job lifecycle only while the panel knows about an
+  // active job. This keeps the Apps tab from opening a long-lived runtime
+  // stream on every click when there is no install/update/uninstall work to
+  // observe. Each typed frame re-projects the panel so
+  // `installing`/`uninstalling` progress and terminal states stay live, with
+  // no renderer-local job store. A terminal `installed` / `uninstalled` frame
+  // also drives the `library.json` writer (Fork D).
   //
   // A renderer-local `Set` of job ids whose library mutation already ran keeps
   // the writer idempotent across repeated terminal frames; it is bookkeeping
   // for the runtime-owned job stream, not a parallel job truth.
   const appliedLibraryJobsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
+    if (!activeJobIdsKey) {
+      return;
+    }
     const controller = new AbortController();
     let stopped = false;
     void (async () => {
@@ -134,7 +166,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
               setActionError(formatAppLifecycleErrorDetail(error));
             }
           });
-          void reload();
+          void reload({ includeJobs: true });
         }
       } catch (error) {
         // A watch failure must not crash the panel; the projection still
@@ -148,7 +180,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
       stopped = true;
       controller.abort();
     };
-  }, [lifecycle, library, reload]);
+  }, [activeJobIdsKey, lifecycle, library, reload]);
 
   const performAction = useCallback(
     async (appId: string, action: AppCardActionId): Promise<void> => {
@@ -165,7 +197,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
         if (action === 'delete_app_data') {
           await library.apply({ appId, mutation: 'removed_from_library' });
         }
-        await reload();
+        await reload({ includeJobs: true });
       } catch (error) {
         setActionError(formatAppLifecycleErrorDetail(error));
       } finally {
@@ -218,6 +250,10 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
     dismissPending,
     closeDetail,
   };
+}
+
+function isActiveJob(job: RuntimeAppInstallJob): boolean {
+  return job.state === 'queued' || job.state === 'in_progress';
 }
 
 /**

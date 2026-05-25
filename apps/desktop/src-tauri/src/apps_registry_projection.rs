@@ -389,8 +389,10 @@ pub fn ensure_apps_registry() -> Result<AppsRegistryProjection, String> {
 }
 
 #[tauri::command]
-pub fn apps_registry_get() -> Result<AppsRegistryProjection, String> {
-    ensure_apps_registry()
+pub async fn apps_registry_get() -> Result<AppsRegistryProjection, String> {
+    tauri::async_runtime::spawn_blocking(ensure_apps_registry)
+        .await
+        .map_err(|error| format!("apps_registry_get task failed: {error}"))?
 }
 
 #[cfg(test)]

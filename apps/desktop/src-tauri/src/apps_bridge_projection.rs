@@ -240,8 +240,10 @@ pub fn build_apps_bridge_projection() -> Result<AppsBridgeProjection, String> {
 }
 
 #[tauri::command]
-pub fn apps_bridge_projection_get() -> Result<AppsBridgeProjection, String> {
-    build_apps_bridge_projection()
+pub async fn apps_bridge_projection_get() -> Result<AppsBridgeProjection, String> {
+    tauri::async_runtime::spawn_blocking(build_apps_bridge_projection)
+        .await
+        .map_err(|error| format!("apps_bridge_projection_get task failed: {error}"))?
 }
 
 #[cfg(test)]
