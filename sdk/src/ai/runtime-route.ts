@@ -1,5 +1,5 @@
-import type { LocalProviderAdapter, LocalProviderHints } from './types/llm.js';
-import { asRecord } from './json-utils';
+import { asRecord } from '../internal/utils.js';
+import type { LocalProviderAdapter, LocalProviderHints } from './types.js';
 
 export type RuntimeRouteSource = 'local' | 'cloud';
 export type RuntimeRouteModelProfileContextSource = 'provider-api' | 'template' | 'default' | 'unknown';
@@ -31,8 +31,15 @@ export type RuntimeRouteBinding = {
   maxContextTokens?: number;
   maxOutputTokens?: number;
   endpoint?: string;
+  localProviderEndpoint?: string;
+  localOpenAiEndpoint?: string;
   goRuntimeLocalModelId?: string;
   goRuntimeStatus?: 'installed' | 'active' | 'unhealthy' | 'removed' | string;
+};
+
+export type RuntimeResolvedBinding = RuntimeRouteBinding & {
+  capability: RuntimeCanonicalCapability;
+  resolvedBindingRef?: RuntimeRouteResolvedBindingRef;
 };
 
 export type RuntimeRouteMetadataKind =

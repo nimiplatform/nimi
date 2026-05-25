@@ -4,14 +4,15 @@ import type {
   AIConfigEvidence,
   AIConfigFieldDiff,
 } from './ai-config.js';
+import type { JsonObject } from '../internal/utils.js';
 
 function canonicalizeAIConfigJsonValue(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map((item) => canonicalizeAIConfigJsonValue(item));
   }
   if (value && typeof value === 'object') {
-    const record = value as Record<string, unknown>;
-    const canonical: Record<string, unknown> = {};
+    const record = value as JsonObject;
+    const canonical: JsonObject = {};
     for (const key of Object.keys(record).sort()) {
       const nextValue = record[key];
       if (nextValue !== undefined) {
@@ -78,8 +79,8 @@ function diffAIConfigJsonValue(
     && typeof before === 'object' && typeof after === 'object'
     && !Array.isArray(before) && !Array.isArray(after);
   if (bothObjects) {
-    const beforeRecord = before as Record<string, unknown>;
-    const afterRecord = after as Record<string, unknown>;
+    const beforeRecord = before as JsonObject;
+    const afterRecord = after as JsonObject;
     const keys = Array.from(
       new Set([...Object.keys(beforeRecord), ...Object.keys(afterRecord)]),
     ).sort();
@@ -130,4 +131,3 @@ export function computeAIConfigDiff(
   diffAIConfigJsonValue('', before ?? {}, after, fields);
   return { identical: fields.length === 0, fields };
 }
-

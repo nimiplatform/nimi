@@ -8,15 +8,18 @@
  *   S-AICONF-001~006 SDK surface contract
  */
 
-import { createNimiError } from '../../runtime/errors.js';
-import { createNimiUlid } from '../../runtime/ids.js';
-import { ReasonCode } from '../../types/index.js';
-import type { RuntimeRouteBinding } from '../runtime-route.js';
+import { createNimiError } from '../runtime/errors.js';
+import { createNimiUlid } from '../runtime/ids.js';
+import { ReasonCode } from '../types/index.js';
+import type { JsonObject } from '../internal/utils.js';
+import type { RuntimeRouteBinding } from './runtime-route.js';
 
 // ---------------------------------------------------------------------------
 // AIScopeRef  (P-AISC-001)
 // ---------------------------------------------------------------------------
 
+// The `mod` literal is retained only to read historical AIConfig evidence.
+// New callers must not mint mod-scoped AIConfig records.
 export type AIScopeKind = 'app' | 'mod' | 'module' | 'feature';
 
 /** Canonical identity for an AI configuration scope. */
@@ -42,7 +45,7 @@ export type AIRuntimeLocalProfileRef = {
 export type AIProfileCapabilityIntent = {
   binding?: RuntimeRouteBinding | null;
   localProfileRef?: AIRuntimeLocalProfileRef | null;
-  params?: Record<string, unknown>;
+  params?: JsonObject;
 };
 
 /** Portable AI configuration template. Not a live config. */
@@ -68,7 +71,7 @@ export type AIProfileRef = {
 export type AIConfigCapabilities = {
   selectedBindings: Partial<Record<string, RuntimeRouteBinding | null>>;
   localProfileRefs: Partial<Record<string, AIRuntimeLocalProfileRef | null>>;
-  selectedParams: Partial<Record<string, Record<string, unknown>>>;
+  selectedParams: Partial<Record<string, JsonObject>>;
 };
 
 /** Scope-bound live AI configuration. Keyed by AIScopeRef. */
@@ -720,7 +723,7 @@ export function validateAIProfile(profile: unknown): AIProfileValidationResult {
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
     return { valid: false, errors: ['profile must be a non-null object'] };
   }
-  const p = profile as Record<string, unknown>;
+  const p = profile as JsonObject;
   if (typeof p.profileId !== 'string' || !p.profileId) errors.push('profileId is required');
   if (typeof p.title !== 'string' || !p.title) errors.push('title is required');
   if (typeof p.description !== 'string') errors.push('description must be a string');

@@ -1,4 +1,4 @@
-import type { JsonObject } from '../../internal/utils.js';
+import type { JsonObject } from '../internal/utils.js';
 export type RuntimeModality = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | 'music';
 
 export type LocalEngine = 'llama' | 'media' | 'speech' | 'sidecar' | string;

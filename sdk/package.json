@@ -43,21 +43,9 @@
       "types": "./dist/ai-provider/index.d.ts",
       "default": "./dist/ai-provider/index.js"
     },
-    "./mod": {
-      "types": "./dist/mod/index.d.ts",
-      "default": "./dist/mod/index.js"
-    },
-    "./mod/shell": {
-      "types": "./dist/mod/shell.d.ts",
-      "default": "./dist/mod/shell.js"
-    },
-    "./mod/lifecycle": {
-      "types": "./dist/mod/lifecycle.d.ts",
-      "default": "./dist/mod/lifecycle.js"
-    },
-    "./mod/storage": {
-      "types": "./dist/mod/storage/index.d.ts",
-      "default": "./dist/mod/storage/index.js"
+    "./ai": {
+      "types": "./dist/ai/index.d.ts",
+      "default": "./dist/ai/index.js"
     },
     "./scope": {
       "types": "./dist/scope/index.d.ts",

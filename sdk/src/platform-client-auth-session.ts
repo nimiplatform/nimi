@@ -81,29 +81,6 @@ export async function resolveToken(
   return normalizeText(explicit);
 }
 
-export function decodeJwtSubject(accessToken: string): string {
-  const normalizedToken = normalizeText(accessToken);
-  if (!normalizedToken) {
-    return '';
-  }
-  const rawToken = normalizedToken.toLowerCase().startsWith('bearer ')
-    ? normalizeText(normalizedToken.slice(7))
-    : normalizedToken;
-  const parts = rawToken.split('.');
-  if (parts.length < 2) {
-    return '';
-  }
-  try {
-    const payloadText = decodeBase64UrlUtf8(parts[1] || '');
-    if (!payloadText) {
-      return '';
-    }
-    return normalizeText(asRecord(JSON.parse(payloadText)).sub);
-  } catch {
-    return '';
-  }
-}
-
 function decodeJwtExpiry(accessToken: string): number | null {
   const normalizedToken = normalizeText(accessToken);
   if (!normalizedToken) {

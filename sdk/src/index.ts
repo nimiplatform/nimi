@@ -20,3 +20,4 @@ export type {
 } from './nimi-app-runtime-platform-client.js';
 export { withRealmContextLock } from './realm/context-lock.js';
 export type { RealmContextInput } from './realm/context-lock.js';
+export * from './ai/index.js';

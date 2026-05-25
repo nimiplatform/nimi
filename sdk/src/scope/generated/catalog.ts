@@ -86,7 +86,6 @@ export const GENERATED_RUNTIME_SCOPES: readonly ScopeName[] = Object.freeze([
   'runtime.agent.request_avatar_debug_probe' as ScopeName,
   'runtime.agent.request_companion_participation' as ScopeName,
   'runtime.agent.resolve_avatar_live_instance_binding' as ScopeName,
-  'runtime.agent.resolve_avatar_package_launch_projection' as ScopeName,
   'runtime.agent.set_agent_presentation_profile' as ScopeName,
   'runtime.agent.set_autonomy_config' as ScopeName,
   'runtime.agent.set_delegated_provider_state' as ScopeName,

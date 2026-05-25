@@ -168,7 +168,6 @@ import {
   createDisabledRuntime,
   createLocalFirstPartyAuthRouteError,
   DEFAULT_PLATFORM_APP_ID,
-  decodeJwtSubject,
   discardExpiredRuntimeAccessToken,
   PLATFORM_RUNTIME_SESSION_APP_INSTANCE_SUFFIX,
   PLATFORM_RUNTIME_SESSION_DEVICE_ID,
@@ -440,7 +439,7 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
         return subjectUserId;
       }
     }
-    return decodeJwtSubject(await runtimeAccessTokenProvider());
+    return '';
   };
 
   let runtime!: Runtime;

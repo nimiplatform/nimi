@@ -5,14 +5,14 @@
 - SDK work starts only after runtime gates are green.
 
 ## Hard Boundaries
-- Public surface is the single package `@nimiplatform/sdk` with stable subpaths such as `@nimiplatform/sdk/runtime`, `@nimiplatform/sdk/realm`, `@nimiplatform/sdk/mod`, `@nimiplatform/sdk/mod/shell`, `@nimiplatform/sdk/mod/lifecycle`, and `@nimiplatform/sdk/mod/storage`.
+- Public surface is the single package `@nimiplatform/sdk` with stable subpaths such as `@nimiplatform/sdk/runtime`, `@nimiplatform/sdk/realm`, `@nimiplatform/sdk/world`, `@nimiplatform/sdk/scope`, `@nimiplatform/sdk/app`, `@nimiplatform/sdk/ai-provider`, and `@nimiplatform/sdk/ai`.
 - Do not add legacy split packages, private deep imports, or public `Parameters<T>` / `ReturnType<T>` facade signatures.
 - Do not cross private `realm` and `runtime` boundaries.
 - Generated code is read-only: `sdk/src/runtime/generated/**`, `sdk/src/realm/generated/**`.
 - Preserve TypeScript rules: ESM with `.js` suffixes, strict typing, `zod.safeParse`, no production `console.log`.
 
 ## Retrieval Defaults
-- Start in `sdk/src/runtime`, `sdk/src/realm`, `sdk/src/mod`, `sdk/src/ai-provider`, and matching `sdk/test/**`.
+- Start in `sdk/src/runtime`, `sdk/src/realm`, `sdk/src/ai`, `sdk/src/ai-provider`, and matching `sdk/test/**`.
 - Skip generated clients and packed artifacts unless the task is codegen or drift.
 
 ## Verification Commands
