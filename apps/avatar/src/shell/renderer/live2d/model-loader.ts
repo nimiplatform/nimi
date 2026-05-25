@@ -1,8 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 
 // Local Avatar asset resolution is current private-skin materialization
-// plumbing. Realm/Asset Market distribution may feed this local store later,
-// but the launched carrier consumes local materialized assets.
+// plumbing. Asset Market distribution is retired; launched carriers consume
+// only local materialized assets.
 
 export type ModelManifest = {
   runtimeDir: string;

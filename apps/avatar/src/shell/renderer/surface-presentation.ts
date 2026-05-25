@@ -91,7 +91,7 @@ function formatRuntimeBindingReason(reason: string): {
       recovery: 'Check the agent and Runtime anchor service, then relaunch this surface.',
     };
   }
-  if (lowered.includes('local_avatar_asset_manifest') || lowered.includes('avatar_package_manifest')) {
+  if (lowered.includes('local_avatar_asset_manifest')) {
     return {
       label: 'Local Avatar asset is not available',
       recovery: 'Verify the agent local Live2D/VRM asset import, then relaunch this surface.',

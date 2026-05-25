@@ -21,11 +21,17 @@ export type DesktopAvatarLiveInstanceIdentityInput = {
 };
 
 const FORBIDDEN_LIVE_INSTANCE_FIELDS = new Set([
+  'conversationAnchorId',
   'avatarPackage',
   'avatarPackageKind',
   'avatarPackageId',
+  'avatarPackageRef',
   'avatarPackageSchemaVersion',
-  'conversationAnchorId',
+  'avatar_package',
+  'avatar_package_kind',
+  'avatar_package_id',
+  'avatar_package_ref',
+  'avatar_package_schema_version',
   'anchorMode',
   'runtimeAppId',
   'worldId',

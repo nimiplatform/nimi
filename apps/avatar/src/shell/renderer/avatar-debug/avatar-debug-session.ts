@@ -227,9 +227,7 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
 
   switch (input.runtimeProbe.probeKind) {
     case AvatarDebugProbeKind.PACKAGE_VALIDATION:
-      return resolved?.packageResolved === true && optionalString(input.avatarPackageRef) !== null
-        ? { status: 'passed', reasonCode: null }
-        : { status: 'failed', reasonCode: 'package_descriptor_not_resolved' };
+      return { status: 'unsupported', reasonCode: 'avatar_package_projection_retired' };
     case AvatarDebugProbeKind.LAUNCH_READINESS:
     case AvatarDebugProbeKind.BACKEND_LOAD:
       return hasBackend

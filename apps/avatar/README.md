@@ -35,7 +35,7 @@ Nimi Avatar（阿凡达）— 桌面悬浮 embodiment carrier，承载 Nimi agen
 - 正常启动必须带 Desktop-selected minimal launch context：required `agent_id`；optional `avatar_instance_id`、optional non-authoritative `launch_source`
 - `agent_id` 是 selector，不是 authorization proof；Avatar 必须通过 Runtime / SDK 验证当前 agent/session projection
 - 缺少 launch context：fail closed；avatar app 不会默认 bootstrap 单个 agent
-- visual bootstrap 的主路径是 selected local Avatar asset。用户本地导入的 Live2D / VRM 是一等来源；Realm / Asset Market package 未来下载或订阅后也必须 materialize 到同一本地资产路径，再按本地资产消费
+- visual bootstrap 的主路径是 selected local Avatar asset。用户本地导入的 Live2D / VRM 是一等来源；Asset Market 已撤回，远程 marketplace package 不再是可进入 launch-time visual truth 的来源
 - runtime bootstrap 只通过 Desktop/Runtime IPC bridge；Avatar 不读取 shared auth、不创建 Realm HTTP client、不拥有 login/session truth
 - handoff payload 不携带 raw JWT、refresh token、`subject_user_id`、或 Realm base URL
 - runtime binding 不可用时，Avatar 停止 interaction/voice/activity consume，

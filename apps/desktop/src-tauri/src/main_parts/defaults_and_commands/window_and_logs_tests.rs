@@ -107,9 +107,6 @@ fn avatar_handoff_uri_includes_only_minimal_launch_intent() {
     assert!(!uri.contains("realm_agent_id"));
     assert!(!uri.contains("local_agent_ref"));
     assert!(!uri.contains("conversation_anchor_id"));
-    assert!(!uri.contains("avatar_package_kind"));
-    assert!(!uri.contains("avatar_package_id"));
-    assert!(!uri.contains("avatar_package_schema_version"));
     assert!(!uri.contains("runtime_app_id"));
     assert!(!uri.contains("world_id"));
     assert!(!uri.contains("binding_id"));
@@ -418,9 +415,7 @@ fn avatar_launch_payload_rejects_old_authority_fields() {
         "realmAgentId": "agent-1",
         "localAgentRef": "local-agent:owner-1:agent-1",
         "conversationAnchorId": "anchor-1",
-        "avatarInstanceId": "instance-1",
-        "avatarPackageRef": "pkg-avatar-1",
-        "materializationRef": "agent-center://avatar/pkg-avatar-1"
+        "avatarInstanceId": "instance-1"
     });
     let error = serde_json::from_value::<DesktopAvatarLaunchHandoffPayload>(payload)
         .expect_err("old launch authority fields must fail closed");

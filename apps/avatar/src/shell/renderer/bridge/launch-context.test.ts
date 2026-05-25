@@ -63,10 +63,18 @@ describe('parseAvatarLaunchContext', () => {
     }
   });
 
-  it('rejects package refs and materialization fields in launch context', () => {
+  it('rejects backend capability and materialization fields in launch context', () => {
     for (const field of [
+      'avatarPackage',
+      'avatar_package',
+      'avatarPackageKind',
+      'avatar_package_kind',
+      'avatarPackageId',
+      'avatar_package_id',
       'avatarPackageRef',
       'avatar_package_ref',
+      'avatarPackageSchemaVersion',
+      'avatar_package_schema_version',
       'backendCapabilityProfileRef',
       'backend_capability_profile_ref',
       'materializationRef',

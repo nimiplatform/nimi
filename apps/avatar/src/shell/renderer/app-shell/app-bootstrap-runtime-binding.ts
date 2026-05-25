@@ -1,11 +1,6 @@
 import {
-  decodeAvatarPackageHandoff,
-  type RuntimeAvatarPackageHandoff,
-} from '@nimiplatform/sdk/runtime';
-import {
   AccountCallerMode,
   type AccountCaller,
-  type Runtime,
 } from '@nimiplatform/sdk/runtime/browser';
 import { readNormalizedString } from './app-bootstrap-helpers.js';
 
@@ -62,31 +57,5 @@ export function resolveLaunchAgentIdentity(input: {
     ownerUserId,
     realmAgentId,
     localAgentRef: `${LOCAL_AGENT_REF_PREFIX}${ownerUserId}:${realmAgentId}`,
-  };
-}
-
-export async function resolveRuntimeAvatarPackageHandoff(input: {
-  runtime: Runtime;
-  accountId: string;
-  ownerUserId: string;
-  realmAgentId: string;
-  localAgentRef: string;
-  avatarInstanceId: string;
-}): Promise<RuntimeAvatarPackageHandoff & { materializationRef: string }> {
-  const handoff = decodeAvatarPackageHandoff(
-    await input.runtime.avatarPackage.resolveLaunchProjection({
-      accountId: input.accountId,
-      ownerUserId: input.ownerUserId,
-      realmAgentId: input.realmAgentId,
-      localAgentRef: input.localAgentRef,
-      avatarInstanceId: input.avatarInstanceId,
-    }),
-  );
-  if (!handoff.materializationRef) {
-    throw new Error('Runtime Avatar package handoff is missing materializationRef');
-  }
-  return {
-    ...handoff,
-    materializationRef: handoff.materializationRef,
   };
 }

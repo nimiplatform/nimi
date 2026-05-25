@@ -56,7 +56,6 @@ const runtimeMock = {
     request: (...args: unknown[]) => requestCompanionParticipationMock(...args),
     cancel: (...args: unknown[]) => cancelCompanionParticipationMock(...args),
   },
-  avatarPackage: {},
   media: {
     stt: {
       transcribe: (...args: unknown[]) => transcribeMock(...args),
