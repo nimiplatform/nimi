@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/kit",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "license": "MIT",
   "private": false,
   "repository": {
@@ -293,7 +293,7 @@
     "test": "vitest run --config ui/vitest.config.ts"
   },
   "dependencies": {
-    "@nimiplatform/sdk": "workspace:^0.5.15",
+    "@nimiplatform/sdk": "workspace:^0.6.0",
     "@tauri-apps/api": "^2.11.0",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.14",
