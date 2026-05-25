@@ -91,6 +91,37 @@ fn apply_local_payload_change(
     refresh_content_hash(record);
 }
 
+fn add_legacy_text_embed_to_factory_seed(record: &mut AccountDefaultProfileRecord) {
+    record.profile.payload.capabilities.insert(
+        "text.embed".to_string(),
+        serde_json::json!({
+            "binding": null,
+        }),
+    );
+    record.profile.payload_hash = super::stable_json_hash(
+        &record.profile.payload,
+        "Account Default Profile AIProfile payload",
+    )
+    .expect("payload hash");
+    record.factory_seed_profile_payload = record.profile.payload.clone();
+    record.factory_seed_profile_payload_hash = super::stable_json_hash(
+        &record.factory_seed_profile_payload,
+        "Account Default Profile factory seed AIProfile payload",
+    )
+    .expect("seed hash");
+    record.capability_set.push("text.embed".to_string());
+    record
+        .factory_provenance
+        .capability_set
+        .push("text.embed".to_string());
+    record.factory_provenance_hash = super::stable_json_hash(
+        &record.factory_provenance,
+        "Account Default Profile factory provenance",
+    )
+    .expect("provenance hash");
+    refresh_content_hash(record);
+}
+
 #[test]
 fn creates_default_profile_under_nimi_control_root_accounts() {
     with_isolated_home("create", |home| {
@@ -200,6 +231,89 @@ fn restores_existing_valid_profile_without_overwriting_for_new_selection() {
             restored.account_default_profile_ref,
             first.account_default_profile_ref
         );
+        assert_eq!(raw_after, raw_before);
+    });
+}
+
+#[test]
+fn reseeds_unedited_factory_profile_after_factory_catalog_drift() {
+    with_isolated_home("reseed-factory-drift", |_home| {
+        let root = temp_data_root("reseed-factory-drift");
+        let first =
+            ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
+                .expect("first ensure");
+        let path = account_default_profile_path("account_1").expect("profile path");
+        let mut stale_record = read_record(&path);
+        add_legacy_text_embed_to_factory_seed(&mut stale_record);
+        write_record(&path, &stale_record);
+
+        let reseeded =
+            ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
+                .expect("reseed stale factory profile");
+        let next_record = read_record(&path);
+
+        assert_ne!(
+            reseeded.account_default_profile_ref,
+            first.account_default_profile_ref
+        );
+        assert_eq!(next_record.profile_revision.revision_kind, "factory_seed");
+        assert!(!next_record
+            .profile
+            .payload
+            .capabilities
+            .contains_key("text.embed"));
+        assert_eq!(
+            next_record.profile.payload,
+            next_record.factory_seed_profile_payload
+        );
+        assert_eq!(
+            next_record.capability_set,
+            vec![
+                "text.generate".to_string(),
+                "audio.transcribe".to_string(),
+                "audio.synthesize".to_string(),
+            ]
+        );
+    });
+}
+
+#[test]
+fn catalog_drift_does_not_overwrite_locally_edited_default_profile() {
+    with_isolated_home("edited-factory-drift", |_home| {
+        let root = temp_data_root("edited-factory-drift");
+        ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
+            .expect("first ensure");
+        let path = account_default_profile_path("account_1").expect("profile path");
+        let mut edited_record = read_record(&path);
+        apply_local_payload_change(
+            &mut edited_record,
+            super::PROFILE_REVISION_LOCAL_EDIT,
+            "Edited Local Default",
+        );
+        edited_record
+            .factory_seed_profile_payload
+            .capabilities
+            .insert(
+                "text.embed".to_string(),
+                serde_json::json!({
+                    "binding": null,
+                }),
+            );
+        edited_record.factory_seed_profile_payload_hash = super::stable_json_hash(
+            &edited_record.factory_seed_profile_payload,
+            "Account Default Profile factory seed AIProfile payload",
+        )
+        .expect("seed hash");
+        refresh_content_hash(&mut edited_record);
+        write_record(&path, &edited_record);
+        let raw_before = std::fs::read_to_string(&path).expect("read before");
+
+        let error =
+            ensure_account_default_profile(&root, "account_1", "local-speech-ready", "minimal")
+                .expect_err("edited stale profile must fail closed");
+        let raw_after = std::fs::read_to_string(&path).expect("read after");
+
+        assert!(error.contains("factory seed AIProfile payload"));
         assert_eq!(raw_after, raw_before);
     });
 }

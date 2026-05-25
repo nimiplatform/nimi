@@ -1,22 +1,7 @@
-use serde::Serialize;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
 const NIMI_DIR_NAME: &str = ".nimi";
-const NIMI_RUNTIME_DIR_NAME: &str = "runtime";
-const LOCAL_RUNTIME_STATE_FILE: &str = "local-state.json";
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DesktopStorageDirsPayload {
-    pub nimi_dir: String,
-    pub nimi_data_dir: String,
-    pub installed_mods_dir: String,
-    pub runtime_mod_db_path: String,
-    pub media_cache_dir: String,
-    pub local_models_dir: String,
-    pub local_runtime_state_path: String,
-}
 
 fn normalize_absolute_path(path: &Path) -> PathBuf {
     let mut normalized = PathBuf::new();
@@ -88,43 +73,9 @@ pub fn default_data_root_proposal() -> Result<PathBuf, String> {
     Ok(normalize_absolute_path(&home.join("Nimi")))
 }
 
-pub fn describe_desktop_storage_dirs() -> Result<DesktopStorageDirsPayload, String> {
-    let nimi_dir = resolve_nimi_dir()?;
-    let nimi_data_dir = resolve_nimi_data_dir()?;
-    let runtime_dir = nimi_dir.join(NIMI_RUNTIME_DIR_NAME);
-    let installed_mods_dir = nimi_data_dir.join("mods");
-    let media_cache_dir = nimi_data_dir.join("cache").join("media");
-    let local_models_dir = nimi_data_dir.join("models");
-    let local_runtime_state_path = runtime_dir.join(LOCAL_RUNTIME_STATE_FILE);
-    let runtime_mod_db_path = nimi_data_dir.join("runtime-mod.db");
-
-    for dir in [
-        &runtime_dir,
-        &installed_mods_dir,
-        &media_cache_dir,
-        &local_models_dir,
-    ] {
-        fs::create_dir_all(dir)
-            .map_err(|error| format!("创建目录失败 ({}): {error}", dir.display()))?;
-    }
-
-    Ok(DesktopStorageDirsPayload {
-        nimi_dir: nimi_dir.display().to_string(),
-        nimi_data_dir: nimi_data_dir.display().to_string(),
-        installed_mods_dir: installed_mods_dir.display().to_string(),
-        runtime_mod_db_path: runtime_mod_db_path.display().to_string(),
-        media_cache_dir: media_cache_dir.display().to_string(),
-        local_models_dir: local_models_dir.display().to_string(),
-        local_runtime_state_path: local_runtime_state_path.display().to_string(),
-    })
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{
-        default_data_root_proposal, describe_desktop_storage_dirs, resolve_nimi_data_dir,
-        resolve_nimi_dir,
-    };
+    use super::{default_data_root_proposal, resolve_nimi_data_dir, resolve_nimi_dir};
     use crate::test_support::with_env;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -165,16 +116,6 @@ mod tests {
             // `select_product_data_root` after explicit user confirmation.
             assert!(!proposed.exists());
             assert!(!home.join(".nimi").join("nimi.json").exists());
-        });
-    }
-
-    #[test]
-    fn describe_storage_dirs_requires_selected_product_nimi_data() {
-        let home = temp_home("storage-dirs");
-        with_env(&[("HOME", home.to_str())], || {
-            let error = describe_desktop_storage_dirs().expect_err("missing product data root");
-
-            assert!(error.contains("~/.nimi/nimi.json is missing"));
         });
     }
 }

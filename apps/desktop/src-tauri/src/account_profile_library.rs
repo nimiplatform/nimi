@@ -487,6 +487,78 @@ fn verify_record_fields(
     Ok(())
 }
 
+fn is_reseedable_factory_profile_record(
+    record: &AccountDefaultProfileRecord,
+    authenticated_account_id: &str,
+    expected_data_root_ref: &str,
+) -> Result<bool, String> {
+    let account_id = validate_account_id(authenticated_account_id)?;
+    if record.schema_version != ACCOUNT_PROFILE_SCHEMA_VERSION
+        || record.profile_id != ACCOUNT_DEFAULT_PROFILE_ID
+        || record.account_id != account_id
+        || record.data_root_ref != expected_data_root_ref
+        || record.source.kind != ACCOUNT_DEFAULT_PROFILE_SOURCE_KIND
+        || record.source.policy_ref != PLATFORM_AI_PROFILE_SELECTION_POLICY_REF
+        || record.source.catalog_id != PLATFORM_AI_PROFILE_FACTORY_CATALOG_ID
+        || record.source.catalog_version != PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION
+    {
+        return Ok(false);
+    }
+    let Ok(row) = row_from_record(record) else {
+        return Ok(false);
+    };
+    if row.source_rule != record.source.catalog_row_source_rule {
+        return Ok(false);
+    }
+    if record.profile.ai_profile_version != 1
+        || record.profile.payload != record.factory_seed_profile_payload
+        || record.profile_revision.revision_kind != PROFILE_REVISION_FACTORY_SEED
+        || record.profile_revision.source != ACCOUNT_PROFILE_LOCAL_LIBRARY_SOURCE
+        || record.profile_revision.previous_content_hash.is_some()
+        || record.profile_revision.changed_at.trim().is_empty()
+        || record.profile_revision.changed_at != record.updated_at
+    {
+        return Ok(false);
+    }
+    validate_sdk_ai_profile_payload(&record.profile.payload)?;
+    if record.profile.payload_hash
+        != stable_json_hash(
+            &record.profile.payload,
+            "Account Default Profile AIProfile payload",
+        )?
+    {
+        return Ok(false);
+    }
+    if record.factory_seed_profile_payload_hash
+        != stable_json_hash(
+            &record.factory_seed_profile_payload,
+            "Account Default Profile factory seed AIProfile payload",
+        )?
+    {
+        return Ok(false);
+    }
+    if record.factory_provenance_hash
+        != stable_json_hash(
+            &record.factory_provenance,
+            "Account Default Profile factory provenance",
+        )?
+    {
+        return Ok(false);
+    }
+    if record.content_hash != compute_record_hash(record)? {
+        return Ok(false);
+    }
+    Ok(true)
+}
+
+fn is_factory_catalog_drift_error(error: &str) -> bool {
+    error.contains("factory seed AIProfile payload")
+        || error.contains("factory seed payload hash")
+        || error.contains("factory provenance")
+        || error.contains("source catalog capability set")
+        || error.contains("source catalog routing policy")
+}
+
 fn evidence_from_record(
     path: &Path,
     record: &AccountDefaultProfileRecord,
@@ -686,7 +758,32 @@ pub fn ensure_account_default_profile(
         verify_first_run_factory_ai_profile(selected_ai_profile_alias, install_level)?;
     if path.exists() {
         let record = read_profile_record(&path)?;
-        verify_record_fields(&record, authenticated_account_id, &expected_data_root_ref)?;
+        if let Err(error) =
+            verify_record_fields(&record, authenticated_account_id, &expected_data_root_ref)
+        {
+            if is_factory_catalog_drift_error(&error)
+                && is_reseedable_factory_profile_record(
+                    &record,
+                    authenticated_account_id,
+                    &expected_data_root_ref,
+                )?
+            {
+                let next_record = new_profile_record(
+                    authenticated_account_id,
+                    &expected_data_root_ref,
+                    install_level,
+                    selected_row,
+                )?;
+                write_profile_record(&path, &next_record)?;
+                let evidence = evidence_from_record(&path, &next_record)?;
+                return verify_account_default_profile_ref(
+                    data_root,
+                    authenticated_account_id,
+                    &evidence.account_default_profile_ref,
+                );
+            }
+            return Err(error);
+        }
         let evidence = evidence_from_record(&path, &record)?;
         return verify_account_default_profile_ref(
             data_root,
