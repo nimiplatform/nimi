@@ -23,6 +23,7 @@ entries:
   - R-TRUTH-019
   - R-TRUTH-020
   - R-TRUTH-021
+  - R-TRUTH-022
   - R-PROJ-001
   - R-PROJ-002
   - R-PROJ-003
@@ -258,6 +259,12 @@ rules:
     level: must
     title: raw-attempt-committed-units-and-final-batch-must-stay-distinct
     statement: Official publish, workspace continuation, and governed Forge commit surfaces must distinguish raw attempt artifacts, committed observation units, and the final consolidated extraction batch; raw provider output, partial attempt residue, or incomplete continuation state cannot be treated as canonical truth ingress or successful publish evidence.
+    source: .nimi/spec/realm/kernel/truth-contract.md
+  - rule_id: R-TRUTH-022
+    domain: truth
+    level: must
+    title: user-owned-realmagent-settings-ingress
+    statement: GET/PATCH /api/me/agents/{agentId}/settings are owner-scoped surfaces for the authenticated user's MASTER_OWNED RealmAgent only; reads return owner-facing structured settings without raw AgentRule review authority, and writes accept owner-reviewed settings input that the server compiles or derives into canonical profile writes and versioned AgentRule truth writes.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-PROJ-001
     domain: projection

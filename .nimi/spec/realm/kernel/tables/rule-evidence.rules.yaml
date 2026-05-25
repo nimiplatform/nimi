@@ -45,6 +45,7 @@ entries:
   - R-TRUTH-019
   - R-TRUTH-020
   - R-TRUTH-021
+  - R-TRUTH-022
   - R-PROJ-001
   - R-PROJ-002
   - R-PROJ-003
@@ -257,6 +258,21 @@ rules:
     spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-021
     profile_refs:
       - truth
+  R-TRUTH-022:
+    domain: truth
+    spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-022
+    profile_refs:
+      - truth
+    openapi:
+      - GET /api/me/agents/{agentId}/settings
+      - PATCH /api/me/agents/{agentId}/settings
+    service_files:
+      - nimi-backend/apps/api/src/modules/user/user.controller.ts
+      - nimi-backend/libs/domains/agent/src/domains/agent.service.ts
+      - nimi-backend/libs/domains/agent/src/dtos/agent-owner-settings.dto.ts
+    test_files:
+      - nimi-backend/apps/api/src/modules/user/user.controller.spec.ts
+      - nimi-backend/libs/domains/agent/src/domains/agent.service.spec.ts
   R-PROJ-001:
     domain: projection
     spec_anchor: .nimi/spec/realm/kernel/projection-contract.md#R-PROJ-001
