@@ -23,12 +23,12 @@ class StubTransport implements NimiAppTransport {
     if (this.behavior.list !== undefined) return this.behavior.list;
     return [
       {
-        appId: 'nimi.parentos',
+        appId: 'nimi.shijing',
         appKind: 'nimi-app',
-        displayName: 'ParentOS',
+        displayName: 'ShiJing',
         trustTier: 'nimi-first-party',
         publisher: 'Nimi',
-        releaseDescriptorRef: 'nimi.parentos.bundled',
+        releaseDescriptorRef: 'nimi.shijing.bundled',
         installStoragePolicyRef: 'nimi-data-app-roots',
         sourceRule: 'P-NAPP-004',
       },
@@ -64,7 +64,7 @@ describe('NimiAppClient', () => {
     const client = new NimiAppClient(new StubTransport());
     const rows = await client.list();
     assert.equal(rows.length, 1);
-    assert.equal(rows[0]!.appId, 'nimi.parentos');
+    assert.equal(rows[0]!.appId, 'nimi.shijing');
   });
 
   it('list rejects rows with non-admitted appKind (no public mod/extension)', async () => {
@@ -147,18 +147,18 @@ describe('NimiAppClient', () => {
 
   it('status returns canonical launchReadiness', async () => {
     const client = new NimiAppClient(new StubTransport());
-    const status = await client.status('nimi.parentos');
-    assert.equal(status.appId, 'nimi.parentos');
+    const status = await client.status('nimi.shijing');
+    assert.equal(status.appId, 'nimi.shijing');
     assert.equal(status.launchReadiness, 'install-required');
   });
 
   it('status rejects non-canonical launchReadiness', async () => {
     const bad: NimiAppStatus = {
-      appId: 'nimi.parentos',
+      appId: 'nimi.shijing',
       launchReadiness: 'best-effort-ready' as 'ready',
     };
     const client = new NimiAppClient(new StubTransport({ status: bad }));
-    await assert.rejects(client.status('nimi.parentos'), (err: unknown) => {
+    await assert.rejects(client.status('nimi.shijing'), (err: unknown) => {
       assert.ok(err instanceof NimiAppClientError);
       assert.equal((err as NimiAppClientError).code, 'non-canonical-response');
       return true;
@@ -178,7 +178,7 @@ describe('NimiAppClient', () => {
 
   it('status wraps transport errors', async () => {
     const client = new NimiAppClient(new StubTransport({ status: new Error('boom') }));
-    await assert.rejects(client.status('nimi.parentos'), (err: unknown) => {
+    await assert.rejects(client.status('nimi.shijing'), (err: unknown) => {
       assert.ok(err instanceof NimiAppClientError);
       assert.equal((err as NimiAppClientError).code, 'transport-error');
       return true;
@@ -187,7 +187,7 @@ describe('NimiAppClient', () => {
 
   it('status rejects null response', async () => {
     const client = new NimiAppClient(new StubTransport({ status: null }));
-    await assert.rejects(client.status('nimi.parentos'), NimiAppClientError);
+    await assert.rejects(client.status('nimi.shijing'), NimiAppClientError);
   });
 
   it('is a pure read-projection surface — no lifecycle mutation methods', () => {

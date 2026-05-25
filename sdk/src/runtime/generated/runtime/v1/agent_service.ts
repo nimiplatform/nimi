@@ -20,8 +20,6 @@ import { UpsertDelegatedProviderProfileResponse } from "./delegated_control";
 import { UpsertDelegatedProviderProfileRequest } from "./delegated_control";
 import { ListDelegatedProviderProfilesResponse } from "./delegated_control";
 import { ListDelegatedProviderProfilesRequest } from "./delegated_control";
-import { ResolveAvatarPackageLaunchProjectionResponse } from "./avatar_package";
-import { ResolveAvatarPackageLaunchProjectionRequest } from "./avatar_package";
 import { GetRealmGroupMessageCandidateEvidenceResponse } from "./agent_group_message_candidate";
 import { GetRealmGroupMessageCandidateEvidenceRequest } from "./agent_group_message_candidate";
 import { CreateRealmGroupMessageCandidateResponse } from "./agent_group_message_candidate";
@@ -9919,7 +9917,6 @@ export const RuntimeAgentService = new ServiceType("nimi.runtime.v1.RuntimeAgent
     { name: "RequestAvatarDebugProbe", options: {}, I: RequestAvatarDebugProbeRequest, O: RequestAvatarDebugProbeResponse },
     { name: "ListAvatarDebugProbeResults", options: {}, I: ListAvatarDebugProbeResultsRequest, O: ListAvatarDebugProbeResultsResponse },
     { name: "GetAvatarDebugReplay", options: {}, I: GetAvatarDebugReplayRequest, O: GetAvatarDebugReplayResponse },
-    { name: "ResolveAvatarPackageLaunchProjection", options: {}, I: ResolveAvatarPackageLaunchProjectionRequest, O: ResolveAvatarPackageLaunchProjectionResponse },
     { name: "GetAgentState", options: {}, I: GetAgentStateRequest, O: GetAgentStateResponse },
     { name: "UpdateAgentState", options: {}, I: UpdateAgentStateRequest, O: UpdateAgentStateResponse },
     { name: "SetAgentPresentationProfile", options: {}, I: SetAgentPresentationProfileRequest, O: SetAgentPresentationProfileResponse },

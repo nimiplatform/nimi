@@ -17,9 +17,19 @@ function read(relPath) {
   return fs.readFileSync(path.join(cwd, relPath), 'utf8');
 }
 
+function exists(relPath) {
+  return fs.existsSync(path.join(cwd, relPath));
+}
+
 function expectRegex(content, pattern, label) {
   if (!pattern.test(content)) {
     fail(`missing ${label}`);
+  }
+}
+
+function expectNotRegex(content, pattern, label) {
+  if (pattern.test(content)) {
+    fail(`found ${label}`);
   }
 }
 
@@ -509,93 +519,59 @@ function checkRuntimeAgentServiceProtoAdmission() {
   }
 }
 
-function checkAvatarPackageProjectionProtoAdmission() {
+function checkAvatarPackageProjectionProtoRetirement() {
   const serviceRel = 'proto/runtime/v1/agent_service.proto';
   const serviceContent = read(serviceRel);
   const messageRel = 'proto/runtime/v1/avatar_package.proto';
-  const messageContent = read(messageRel);
 
-  if (!serviceContent.includes('import "runtime/v1/avatar_package.proto";')) {
-    fail(`${serviceRel} must import avatar_package.proto instead of inlining avatar package projection messages`);
+  if (exists(messageRel)) {
+    fail(`${messageRel} must remain deleted; Avatar package projection retired with Asset Market`);
   }
+  if (serviceContent.includes('import "runtime/v1/avatar_package.proto";')) {
+    fail(`${serviceRel} must not import retired avatar_package.proto`);
+  }
+  expectNotRegex(
+    serviceContent,
+    /rpc\s+ResolveAvatarPackageLaunchProjection\s*\(/m,
+    `${serviceRel} retired ResolveAvatarPackageLaunchProjection RPC`,
+  );
   for (const messageName of [
+    'ResolveAvatarPackageLaunchProjectionRequest',
+    'ResolveAvatarPackageLaunchProjectionResponse',
     'RuntimeAvatarPackageCompatibilityDiagnostic',
     'RuntimeAvatarPackageModelLayout',
     'RuntimeAvatarPackageProvenance',
   ]) {
     if (serviceContent.includes(`message ${messageName}`)) {
-      fail(`${serviceRel} must not inline ${messageName}; use ${messageRel}`);
+      fail(`${serviceRel} must not inline retired ${messageName}`);
     }
   }
 
-  expectRegex(
-    serviceContent,
-    /rpc\s+ResolveAvatarPackageLaunchProjection\s*\(\s*ResolveAvatarPackageLaunchProjectionRequest\s*\)\s*returns\s*\(\s*ResolveAvatarPackageLaunchProjectionResponse\s*\)\s*;/m,
-    `${serviceRel} ResolveAvatarPackageLaunchProjection RPC`,
-  );
-
-  const request = getProtoMessageBlock(messageContent, 'ResolveAvatarPackageLaunchProjectionRequest', messageRel);
-  assertMessageHasFields(request, 'ResolveAvatarPackageLaunchProjectionRequest', messageRel, [
-    'context',
-    'avatar_instance_id',
-  ]);
-
-  const response = getProtoMessageBlock(messageContent, 'ResolveAvatarPackageLaunchProjectionResponse', messageRel);
-  assertMessageHasFields(response, 'ResolveAvatarPackageLaunchProjectionResponse', messageRel, [
-    'avatar_package_ref',
-    'package_kind',
-    'package_id',
-    'bundle_id',
-    'bundle_member_asset_ids',
-    'backend_kind',
-    'backend_capability_profile_ref',
-    'avatar_model_layout',
-    'provenance',
-    'compatibility_diagnostics',
-    'status',
-    'is_ready',
-    'readiness_issues',
-    'materialization_ref',
-    'observed_at',
-  ]);
-
-  const layout = getProtoMessageBlock(messageContent, 'RuntimeAvatarPackageModelLayout', messageRel);
-  assertMessageHasFields(layout, 'RuntimeAvatarPackageModelLayout', messageRel, [
-    'layout_version',
-    'backend_kind',
-    'entry_asset_id',
-    'runtime_root',
-    'required_asset_ids',
-    'live2d',
-    'vrm',
-  ]);
-
-  const contract = read('.nimi/spec/runtime/kernel/avatar-package-projection-contract.md');
+  const contractRel = '.nimi/spec/runtime/kernel/avatar-package-projection-contract.md';
+  if (exists(contractRel)) {
+    fail(`${contractRel} must remain deleted; use rule-evidence retired sentinels instead of active Avatar package projection truth`);
+  }
+  const ruleEvidence = read('.nimi/spec/runtime/kernel/tables/rule-evidence.rules-agent-core.yaml');
   for (const token of [
-    'K-AGCORE-134',
-    'K-AGCORE-135',
-    'K-AGCORE-137',
-    'ResolveAvatarPackageLaunchProjection',
-    'runtime.agent.avatar_package.read',
-    'typed proto request/response messages',
+    'Avatar package projection contract withdrawn with Asset Market',
+    'K-AGCORE-138',
   ]) {
-    if (!contract.includes(token)) {
-      fail(`.nimi/spec/runtime/kernel/avatar-package-projection-contract.md missing token: ${token}`);
+    if (!ruleEvidence.includes(token)) {
+      fail(`rule-evidence.rules-agent-core.yaml missing retirement/continuity token: ${token}`);
     }
   }
 
   const rpcMethods = read('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
-  if (!rpcMethods.includes('ResolveAvatarPackageLaunchProjection')) {
-    fail('rpc-methods.yaml missing ResolveAvatarPackageLaunchProjection');
+  if (rpcMethods.includes('ResolveAvatarPackageLaunchProjection')) {
+    fail('rpc-methods.yaml must not list retired ResolveAvatarPackageLaunchProjection');
   }
   const authPosture = read('.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml');
-  for (const token of [
+  for (const retiredToken of [
     '/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarPackageLaunchProjection',
-    'protected_or_scoped_binding_read',
-    'K-AGCORE-134',
+    'runtime.agent.avatar_package.read',
   ]) {
-    if (!authPosture.includes(token)) {
-      fail(`runtime-rpc-auth-posture/agent-ai-cognition.yaml missing token: ${token}`);
+    if (authPosture.includes(retiredToken)) {
+      fail(`runtime-rpc-auth-posture/agent-ai-cognition.yaml must not include retired token: ${retiredToken}`);
     }
   }
 }
@@ -615,9 +591,7 @@ function checkRequiredRuleDefinitions() {
     'K-MEM-008',
     'K-AGCORE-003',
     'K-AGCORE-006',
-    'K-AGCORE-134',
-    'K-AGCORE-135',
-    'K-AGCORE-137',
+    'K-AGCORE-138',
     'K-LOCAL-003',
     'K-LOCAL-029',
     'K-LOCAL-030',
@@ -641,7 +615,7 @@ function main() {
   checkPagingPairsInConnectorAndGrantProto();
   checkMemoryProtoAdmission();
   checkRuntimeAgentServiceProtoAdmission();
-  checkAvatarPackageProjectionProtoAdmission();
+  checkAvatarPackageProjectionProtoRetirement();
 
   if (failed) {
     process.exit(1);

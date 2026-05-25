@@ -46,10 +46,6 @@ import {
   RequestCompanionParticipationResponse,
 } from '../generated/runtime/v1/agent_service.js';
 import {
-  ResolveAvatarPackageLaunchProjectionRequest,
-  ResolveAvatarPackageLaunchProjectionResponse,
-} from '../generated/runtime/v1/avatar_package.js';
-import {
   ExecuteDelegatedCapabilityRequest,
   ExecuteDelegatedCapabilityResponse,
   GetDelegatedControlSurfaceSnapshotRequest,
@@ -499,10 +495,6 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       getAvatarDebugReplay: customUnary(RuntimeMethodIds.agent.getAvatarDebugReplay, {
         requestType: GetAvatarDebugReplayRequest,
         responseType: GetAvatarDebugReplayResponse,
-      }),
-      resolveAvatarPackageLaunchProjection: customUnary(RuntimeMethodIds.agent.resolveAvatarPackageLaunchProjection, {
-        requestType: ResolveAvatarPackageLaunchProjectionRequest,
-        responseType: ResolveAvatarPackageLaunchProjectionResponse,
       }),
       listDelegatedProviderProfiles: customUnary(RuntimeMethodIds.agent.listDelegatedProviderProfiles, {
         requestType: ListDelegatedProviderProfilesRequest,

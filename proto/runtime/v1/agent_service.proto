@@ -5,7 +5,6 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/agent_common.proto";
-import "runtime/v1/avatar_package.proto";
 import "runtime/v1/agent_group_message_candidate.proto";
 import "runtime/v1/common.proto";
 import "runtime/v1/delegated_control.proto";
@@ -781,7 +780,6 @@ service RuntimeAgentService {
   rpc RequestAvatarDebugProbe(RequestAvatarDebugProbeRequest) returns (RequestAvatarDebugProbeResponse);
   rpc ListAvatarDebugProbeResults(ListAvatarDebugProbeResultsRequest) returns (ListAvatarDebugProbeResultsResponse);
   rpc GetAvatarDebugReplay(GetAvatarDebugReplayRequest) returns (GetAvatarDebugReplayResponse);
-  rpc ResolveAvatarPackageLaunchProjection(ResolveAvatarPackageLaunchProjectionRequest) returns (ResolveAvatarPackageLaunchProjectionResponse);
   rpc GetAgentState(GetAgentStateRequest) returns (GetAgentStateResponse);
   rpc UpdateAgentState(UpdateAgentStateRequest) returns (UpdateAgentStateResponse);
   rpc SetAgentPresentationProfile(SetAgentPresentationProfileRequest) returns (SetAgentPresentationProfileResponse);

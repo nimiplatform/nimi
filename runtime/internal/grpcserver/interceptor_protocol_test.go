@@ -312,7 +312,6 @@ func isKnownReadOperation(operation string) bool {
 	switch operation {
 	case "OpenCompanionParticipationReplay",
 		"ResolveAvatarLiveInstanceBinding",
-		"ResolveAvatarPackageLaunchProjection",
 		"ResolveLocalEnvironmentPlan",
 		"ResolveModelInstallPlan",
 		"ResolveProfile":

@@ -22,13 +22,13 @@ const rows: readonly NimiAppRegistrySourceRow[] = [
     detail: 'Avatar master gate remains open',
   },
   {
-    appId: 'nimi.parentos',
+    appId: 'nimi.shijing',
     appKind: 'nimi-app',
-    displayName: 'ParentOS',
+    displayName: 'ShiJing',
     publisher: 'nimi-first-party',
     trustTier: 'nimi-first-party',
     ordinaryVisibility: 'ordinary-visible',
-    releaseDescriptorRef: 'nimi.parentos.bundled-with-nimi',
+    releaseDescriptorRef: 'nimi.shijing.bundled-with-nimi',
     installStoragePolicyRef: 'nimi-data-app-roots',
     sourceRule: 'P-NAPP-011',
     admissionStatus: 'admitted',
@@ -71,21 +71,21 @@ const descriptors: readonly NimiAppReleaseDescriptorRow[] = [
     sourceRule: 'P-NAPP-014',
   },
   {
-    descriptorId: 'nimi.parentos.bundled-with-nimi',
-    appId: 'nimi.parentos',
+    descriptorId: 'nimi.shijing.bundled-with-nimi',
+    appId: 'nimi.shijing',
     version: 'bundled-with-current-nimi-release',
     descriptorClass: 'bundled-with-nimi',
     sourceKind: 'nimi-bundle',
     sourceRef: 'current-atomic-nimi-release',
     artifactLocator: 'current-nimi-release-bundle',
     digestAlgorithm: 'sha256',
-    sha256: 'parentos-sha',
+    sha256: 'shijing-sha',
     size: '200',
     provenanceRef: 'nimi-first-party-signature-policy',
     packageKind: 'nimi-app',
-    entryRef: 'parentos-runtime-registration',
+    entryRef: 'shijing-runtime-registration',
     sandboxRef: 'first-party-bundled-app',
-    permissionsRef: 'nimi.parentos.permission_scope_ref',
+    permissionsRef: 'nimi.shijing.permission_scope_ref',
     storagePolicyRef: 'nimi-data-app-roots',
     admissionPath: 'first-party-bundled-release',
     mutableSourceAllowed: false,
@@ -116,19 +116,19 @@ const descriptors: readonly NimiAppReleaseDescriptorRow[] = [
   },
 ];
 
-const verifiedParentOSEvidence: readonly NimiAppInstallEvidenceRow[] = [
+const verifiedShiJingEvidence: readonly NimiAppInstallEvidenceRow[] = [
   {
-    appId: 'nimi.parentos',
-    releaseDescriptorRef: 'nimi.parentos.bundled-with-nimi',
+    appId: 'nimi.shijing',
+    releaseDescriptorRef: 'nimi.shijing.bundled-with-nimi',
     storagePolicyRef: 'nimi-data-app-roots',
     installedVersion: 'bundled-with-current-nimi-release',
-    sha256: 'parentos-sha',
+    sha256: 'shijing-sha',
     verificationState: 'digest-verified',
     storageRoots: {
-      releaseRoot: '/tmp/nimi/apps/nimi.parentos/releases/bundled-with-current-nimi-release',
-      dataRoot: '/tmp/nimi/apps/nimi.parentos/data',
-      cacheRoot: '/tmp/nimi/apps/nimi.parentos/cache',
-      tempRoot: '/tmp/nimi/apps/nimi.parentos/tmp',
+      releaseRoot: '/tmp/nimi/apps/nimi.shijing/releases/bundled-with-current-nimi-release',
+      dataRoot: '/tmp/nimi/apps/nimi.shijing/data',
+      cacheRoot: '/tmp/nimi/apps/nimi.shijing/cache',
+      tempRoot: '/tmp/nimi/apps/nimi.shijing/tmp',
     },
   },
 ];
@@ -139,8 +139,8 @@ describe('Nimi App registry transport', () => {
     const registryRows = await transport.list();
     assert.equal(registryRows.length, 1);
     assert.equal(registryRows[0]!.appKind, 'nimi-app');
-    assert.equal(registryRows[0]!.displayName, 'ParentOS');
-    assert.equal(registryRows[0]!.releaseDescriptorRef, 'nimi.parentos.bundled-with-nimi');
+    assert.equal(registryRows[0]!.displayName, 'ShiJing');
+    assert.equal(registryRows[0]!.releaseDescriptorRef, 'nimi.shijing.bundled-with-nimi');
   });
 
   it('blocks Avatar status from the ordinary app surface', async () => {
@@ -150,7 +150,7 @@ describe('Nimi App registry transport', () => {
 
   it('maps admitted app to install-required by default without claiming readiness', async () => {
     const transport = createNimiAppRegistryTransport({ loadRows: () => rows, loadReleaseDescriptors: () => descriptors });
-    const status = await transport.status('nimi.parentos');
+    const status = await transport.status('nimi.shijing');
     assert.equal(status.launchReadiness, 'install-required');
   });
 
@@ -158,12 +158,12 @@ describe('Nimi App registry transport', () => {
     const transport = createNimiAppRegistryTransport({
       loadRows: () => rows,
       loadReleaseDescriptors: () => descriptors,
-      loadInstallEvidence: () => verifiedParentOSEvidence,
+      loadInstallEvidence: () => verifiedShiJingEvidence,
     });
-    const status = await transport.status('nimi.parentos');
+    const status = await transport.status('nimi.shijing');
     assert.equal(status.launchReadiness, 'ready');
     assert.equal(status.verificationState, 'digest-verified');
-    assert.equal(status.storageRoots?.dataRoot, '/tmp/nimi/apps/nimi.parentos/data');
+    assert.equal(status.storageRoots?.dataRoot, '/tmp/nimi/apps/nimi.shijing/data');
   });
 
   it('is a pure read-projection transport — no lifecycle mutation methods', () => {
@@ -190,7 +190,7 @@ describe('Nimi App registry transport', () => {
 
   it('blocks developer-only Tester from ordinary app projection', async () => {
     const transport = createNimiAppRegistryTransport({ loadRows: () => rows, loadReleaseDescriptors: () => descriptors });
-    assert.deepEqual((await transport.list()).map((row) => row.appId), ['nimi.parentos']);
+    assert.deepEqual((await transport.list()).map((row) => row.appId), ['nimi.shijing']);
     await assert.rejects(transport.get('nimi.tester'), NimiAppRegistryTransportError);
     await assert.rejects(transport.status('nimi.tester'), NimiAppRegistryTransportError);
   });
@@ -200,11 +200,11 @@ describe('Nimi App registry transport', () => {
       loadRows: () => rows,
       loadReleaseDescriptors: () => descriptors,
       loadInstallEvidence: () => [{
-        ...verifiedParentOSEvidence[0]!,
+        ...verifiedShiJingEvidence[0]!,
         sha256: 'wrong-sha',
       }],
     });
-    const status = await transport.status('nimi.parentos');
+    const status = await transport.status('nimi.shijing');
     assert.equal(status.launchReadiness, 'install-required');
   });
 
@@ -213,11 +213,11 @@ describe('Nimi App registry transport', () => {
       loadRows: () => rows,
       loadReleaseDescriptors: () => descriptors,
       loadInstallEvidence: () => [{
-        ...verifiedParentOSEvidence[0]!,
+        ...verifiedShiJingEvidence[0]!,
         storageRoots: undefined,
       }],
     });
-    const status = await transport.status('nimi.parentos');
+    const status = await transport.status('nimi.shijing');
     assert.equal(status.launchReadiness, 'install-required');
   });
 
@@ -226,11 +226,11 @@ describe('Nimi App registry transport', () => {
       loadRows: () => rows,
       loadReleaseDescriptors: () => descriptors,
       loadInstallEvidence: () => [{
-        ...verifiedParentOSEvidence[0]!,
+        ...verifiedShiJingEvidence[0]!,
         installedVersion: undefined,
       }],
     });
-    const status = await transport.status('nimi.parentos');
+    const status = await transport.status('nimi.shijing');
     assert.equal(status.launchReadiness, 'install-required');
   });
 
@@ -239,11 +239,11 @@ describe('Nimi App registry transport', () => {
       loadRows: () => rows,
       loadReleaseDescriptors: () => descriptors,
       loadInstallEvidence: () => [{
-        ...verifiedParentOSEvidence[0]!,
+        ...verifiedShiJingEvidence[0]!,
         installedVersion: 'older-version',
       }],
     });
-    const status = await transport.status('nimi.parentos');
+    const status = await transport.status('nimi.shijing');
     assert.equal(status.launchReadiness, 'update-required');
   });
 

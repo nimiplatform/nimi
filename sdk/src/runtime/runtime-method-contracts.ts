@@ -167,7 +167,6 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.agent.requestAvatarDebugProbe]: RuntimeClientMethodContract<'agent', 'requestAvatarDebugProbe'>;
   [RuntimeMethodIds.agent.listAvatarDebugProbeResults]: RuntimeClientMethodContract<'agent', 'listAvatarDebugProbeResults'>;
   [RuntimeMethodIds.agent.getAvatarDebugReplay]: RuntimeClientMethodContract<'agent', 'getAvatarDebugReplay'>;
-  [RuntimeMethodIds.agent.resolveAvatarPackageLaunchProjection]: RuntimeClientMethodContract<'agent', 'resolveAvatarPackageLaunchProjection'>;
   [RuntimeMethodIds.agent.listDelegatedProviderProfiles]: RuntimeClientMethodContract<'agent', 'listDelegatedProviderProfiles'>;
   [RuntimeMethodIds.agent.upsertDelegatedProviderProfile]: RuntimeClientMethodContract<'agent', 'upsertDelegatedProviderProfile'>;
   [RuntimeMethodIds.agent.setDelegatedProviderState]: RuntimeClientMethodContract<'agent', 'setDelegatedProviderState'>;

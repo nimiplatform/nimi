@@ -330,10 +330,6 @@ import type {
   WriteAgentMemoryResponse,
 } from './generated/runtime/v1/agent_service';
 import type {
-  ResolveAvatarPackageLaunchProjectionRequest,
-  ResolveAvatarPackageLaunchProjectionResponse,
-} from './generated/runtime/v1/avatar_package';
-import type {
   ExecuteDelegatedCapabilityRequest,
   ExecuteDelegatedCapabilityResponse,
   GetDelegatedControlSurfaceSnapshotRequest,
@@ -612,10 +608,6 @@ export type RuntimeAgentClient = {
     request: GetAvatarDebugReplayRequest,
     options?: RuntimeCallOptions,
   ): Promise<GetAvatarDebugReplayResponse>;
-  resolveAvatarPackageLaunchProjection(
-    request: ResolveAvatarPackageLaunchProjectionRequest,
-    options?: RuntimeCallOptions,
-  ): Promise<ResolveAvatarPackageLaunchProjectionResponse>;
   listDelegatedProviderProfiles(
     request: ListDelegatedProviderProfilesRequest,
     options?: RuntimeCallOptions,

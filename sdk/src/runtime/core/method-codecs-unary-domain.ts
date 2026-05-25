@@ -110,10 +110,6 @@ import {
   WriteAgentMemoryResponse,
 } from '../generated/runtime/v1/agent_service';
 import {
-  ResolveAvatarPackageLaunchProjectionRequest,
-  ResolveAvatarPackageLaunchProjectionResponse,
-} from '../generated/runtime/v1/avatar_package';
-import {
   ExecuteDelegatedCapabilityRequest,
   ExecuteDelegatedCapabilityResponse,
   GetDelegatedControlSurfaceSnapshotRequest,
@@ -438,10 +434,6 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.agent.getAvatarDebugReplay]: {
     requestType: GetAvatarDebugReplayRequest,
     responseType: GetAvatarDebugReplayResponse,
-  },
-  [RuntimeMethodIds.agent.resolveAvatarPackageLaunchProjection]: {
-    requestType: ResolveAvatarPackageLaunchProjectionRequest,
-    responseType: ResolveAvatarPackageLaunchProjectionResponse,
   },
   [RuntimeMethodIds.agent.listDelegatedProviderProfiles]: {
     requestType: ListDelegatedProviderProfilesRequest,

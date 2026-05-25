@@ -215,13 +215,6 @@ export type {
   RuntimeAvatarDebugSnapshotRequest,
 } from './runtime-avatar-debug.js';
 export {
-  decodeAvatarPackageHandoff,
-} from './runtime-avatar-package.js';
-export type {
-  RuntimeAvatarPackageBackendKind,
-  RuntimeAvatarPackageHandoff,
-} from './runtime-avatar-package.js';
-export {
   decodeCompanionParticipationProjection,
 } from './runtime-companion-participation.js';
 export type {

@@ -36,10 +36,10 @@ class StubTransport implements PermissionTransport {
 }
 
 const sampleRequest: GrantRequest = {
-  appId: 'parentos',
+  appId: 'shijing',
   subjectUserId: 'user-1',
   scopeKey: 'avatar.mood.read',
-  reason: 'ParentOS dashboard projection',
+  reason: 'ShiJing dashboard projection',
 };
 
 describe('PermissionClient', () => {
