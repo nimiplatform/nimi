@@ -9,19 +9,17 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
 // Targets: Nimi App registry table rows + registry consumer code. Per
-// P-NAPP-012 and P-MOEX-006, public Mod and Extension product kinds are
-// not admitted as Nimi App registry entries. This gate scans the
-// canonical app registry YAML + SDK app client + Runtime app service for
-// any admission of `appKind: public-mod` / `appKind: extension` /
-// equivalent variants.
+// P-NAPP-012 and P-MOEX-002.a/P-MOEX-006, public Mod and Extension product
+// kinds are not admitted as Nimi App registry entries. This gate scans the
+// canonical app registry YAML + SDK app client + Runtime app service for any
+// admission of `appKind: public-mod` / `appKind: extension` / equivalent
+// variants.
 
 const TARGET_GLOBS = [
   '.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml',
   'apps/desktop/src/runtime/platform-catalog',
   'runtime/internal/services/app',
   'sdk/src/app',
-  'apps/desktop/src/shell/renderer/features/mods',
-  'apps/desktop/src/shell/renderer/features/mod-hub',
 ];
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs', '.go', '.yaml', '.yml']);

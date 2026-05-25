@@ -16,7 +16,7 @@ vi.mock('@nimiplatform/sdk', () => ({
   }),
 }));
 
-vi.mock('@nimiplatform/sdk/mod', () => ({
+vi.mock('@nimiplatform/sdk/ai', () => ({
   createEmptyAIConfig: (scopeRef?: { kind: string; ownerId: string; surfaceId?: string }) => ({
     scopeRef: scopeRef || { kind: 'app', ownerId: 'forge', surfaceId: 'settings' },
     capabilities: { selectedBindings: {}, localProfileRefs: {}, selectedParams: {} },

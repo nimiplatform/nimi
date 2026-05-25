@@ -65,11 +65,6 @@ export const PROJECTION_KEY_CATALOG = {
     tierFilter: 'release-target:proto',
     targetFilter: 'proto',
   },
-  'mods-quality-checks': {
-    description: 'ci.yml mods-quality job step list',
-    tierFilter: 'release-target:mods',
-    targetFilter: 'mods',
-  },
   'live-smoke-checks': {
     description:
       'release.yml/release-runtime.yml/live-smoke-matrix.yml live-smoke-gate step list',

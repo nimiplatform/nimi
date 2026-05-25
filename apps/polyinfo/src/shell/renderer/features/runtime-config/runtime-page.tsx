@@ -16,7 +16,7 @@ import {
   summarizeRuntimeBinding,
   updateTextGenerateBinding,
 } from '@renderer/data/runtime-routes.js';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
 
 function Section({
   eyebrow,

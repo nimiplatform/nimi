@@ -10,10 +10,6 @@ desktop:
   - changed-files:
       - any-glob-to-any-file: 'apps/desktop/**'
 
-mods:
-  - changed-files:
-      - any-glob-to-any-file: 'nimi-mods/**'
-
 docs:
   - changed-files:
       - any-glob-to-any-file: 'docs/**'

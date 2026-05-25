@@ -130,7 +130,7 @@ test('translateProbeVerdict: blocker_semantics:fail policy → fail', () => {
 
 test('translateProbeVerdict: missing external repo → blocked default', () => {
   const gate = { id: 'gate.test.x' };
-  const probe = { ok: false, missing: { secrets: [], externalRepos: ['nimi-mods'], binaries: [] } };
+  const probe = { ok: false, missing: { secrets: [], externalRepos: ['external-tools'], binaries: [] } };
   const r = translateProbeVerdict(gate, probe);
   assert.equal(r.verdict, 'blocked');
   assert.equal(r.blockerReasonCode, 'EXTERNAL_REPO_UNAVAILABLE');

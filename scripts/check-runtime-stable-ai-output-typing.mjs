@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 
 const checks = [
   {
@@ -104,8 +105,12 @@ const checks = [
 ];
 
 function runRipgrep(pattern, paths) {
+  const existingPaths = paths.filter((targetPath) => existsSync(targetPath));
+  if (existingPaths.length === 0) {
+    return '';
+  }
   try {
-    return execFileSync('rg', ['-n', pattern, ...paths], {
+    return execFileSync('rg', ['-n', pattern, ...existingPaths], {
       cwd: process.cwd(),
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],

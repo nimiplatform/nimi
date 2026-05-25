@@ -3,7 +3,7 @@ import type {
   WorldStudioWorkspaceSnapshot,
 } from '@world-engine/contracts.js';
 import type { JsonObject } from '@renderer/bridge';
-import { asRecord } from '@nimiplatform/sdk/mod';
+import { asRecord } from '@nimiplatform/sdk/ai';
 
 type LegacyWorkspaceSnapshotRecord = Partial<WorldStudioWorkspaceSnapshot> & {
   worldStateDraft?: unknown;

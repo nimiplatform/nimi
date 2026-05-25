@@ -162,7 +162,6 @@ export function checkDesktopFeatureCoverage(fail, kernelRuleDefinitions) {
     'runtime-config',
     'local-ai-entry',
     'external-agent-entry',
-    'mods-panel',
   ];
   for (const feature of requiredFeatures) {
     if (!featureMap.has(feature)) {
@@ -175,7 +174,7 @@ export function checkDesktopFeatureCoverage(fail, kernelRuleDefinitions) {
     const appTabsDoc = readYaml(appTabsPath) || {};
     const tabs = Array.isArray(appTabsDoc?.tabs) ? appTabsDoc.tabs : [];
     const requiredTabIds = tabs
-      .filter((item) => ['core', 'mod-nav'].includes(String(item?.nav_group || '').trim()))
+      .filter((item) => String(item?.nav_group || '').trim() === 'core')
       .map((item) => String(item?.id || '').trim())
       .filter(Boolean);
     const coveredTabIds = new Set(

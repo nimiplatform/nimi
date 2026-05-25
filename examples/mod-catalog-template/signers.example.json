@@ -1,8 +1,0 @@
-{
-  "signers": {
-    "nimi.release": {
-      "algorithm": "ed25519",
-      "publicKey": "-----BEGIN PUBLIC KEY-----\nREPLACE_WITH_REAL_ED25519_PUBLIC_KEY\n-----END PUBLIC KEY-----"
-    }
-  }
-}

@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { bindRuntimeI18n } from '@nimiplatform/sdk/mod';
+import { bindRuntimeI18n } from '@nimiplatform/sdk/ai';
 import { installSdkTauriRuntimeHook } from '@runtime/tauri-api';
 import './styles.css';
 import { App } from './App.js';

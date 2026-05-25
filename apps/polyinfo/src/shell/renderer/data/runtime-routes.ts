@@ -9,7 +9,7 @@ import {
   type RuntimeRouteConnectorOption,
   type RuntimeRouteLocalOption,
   type RuntimeRouteOptionsSnapshot,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 import type { RuntimeDefaults, RuntimeBridgeDaemonStatus } from '@renderer/bridge';
 import { hasTauriInvoke } from '@renderer/bridge';
 import { isRuntimeAccountAccessUnavailable } from '@renderer/infra/bootstrap/polyinfo-runtime-account.js';

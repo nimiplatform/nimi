@@ -340,7 +340,6 @@ function checkA2AFutureSeamNegativeGates() {
     ...walkA2ANegativeGateTree(path.join(cwd, 'runtime')),
     ...walkA2ANegativeGateTree(path.join(cwd, 'sdk/src')),
     ...walkA2ANegativeGateTree(path.join(cwd, 'apps')),
-    ...walkA2ANegativeGateTree(path.join(cwd, 'nimi-mods')),
   ]
     .map((abs) => path.relative(cwd, abs))
     .filter(isA2ANegativeGateSourceFile);
@@ -398,9 +397,6 @@ function collectDependencyManifests() {
     'runtime/go.sum',
     'sdk/package.json',
     ...walkA2ANegativeGateTree(path.join(cwd, 'apps'))
-      .map((abs) => path.relative(cwd, abs))
-      .filter((rel) => rel.replaceAll('\\', '/').endsWith('/package.json')),
-    ...walkA2ANegativeGateTree(path.join(cwd, 'nimi-mods'))
       .map((abs) => path.relative(cwd, abs))
       .filter((rel) => rel.replaceAll('\\', '/').endsWith('/package.json')),
   ];

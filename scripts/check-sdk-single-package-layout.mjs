@@ -13,7 +13,7 @@ const REQUIRED_PATHS = [
   'sdk/src/realm/index.ts',
   'sdk/src/runtime/index.ts',
   'sdk/src/types/index.ts',
-  'sdk/src/mod',
+  'sdk/src/ai',
   'sdk/src/ai-provider',
   'sdk/src/scope',
 ];

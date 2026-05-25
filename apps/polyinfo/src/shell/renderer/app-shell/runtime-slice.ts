@@ -1,5 +1,5 @@
 import type { AppStoreSet, AppStoreState } from './store-types.js';
-import { createEmptyAIConfig } from '@nimiplatform/sdk/mod';
+import { createEmptyAIConfig } from '@nimiplatform/sdk/ai';
 import {
   createPolyinfoAIScopeRef,
   savePersistedAIConfig,

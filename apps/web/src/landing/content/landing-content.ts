@@ -11,7 +11,6 @@ export type LandingContent = {
     architecture: string;
     desktop: string;
     security: string;
-    mods: string;
     openSource: string;
     faq: string;
   };
@@ -170,17 +169,6 @@ export type LandingContent = {
       title: string;
       points: string[];
     }>;
-  };
-  mods: {
-    eyebrow: string;
-    title: string;
-    subtitle: string;
-    items: ReadonlyArray<{
-      icon: string;
-      name: string;
-      description: string;
-    }>;
-    buildModCta: string;
   };
   openSource: {
     title: string;

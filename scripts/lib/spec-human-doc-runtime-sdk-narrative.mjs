@@ -277,7 +277,7 @@ SDK 本地     → 参数/环境/边界违规   → SDK_* 错误码
 
   d.text(`### 9.4 导入边界与模块隔离
 
-SDK 的五个子路径之间有**物理级导入隔离**，而非仅靠文档约定。设计意图是：Mod 开发者引入 \`@nimiplatform/sdk/mod\` 时，不能通过 import chain 间接访问到 runtime 或 realm 的私有客户端——这是安全边界，不只是代码组织偏好。`);
+SDK 的公开子路径之间有**物理级导入隔离**，而非仅靠文档约定。设计意图是：应用开发者引入公开 SDK surface 时，不能通过 import chain 间接访问到 runtime 或 realm 的私有客户端——这是安全边界，不只是代码组织偏好。`);
   d.blank();
   d.rule('S-BOUNDARY-001');
 
@@ -285,7 +285,7 @@ SDK 的五个子路径之间有**物理级导入隔离**，而非仅靠文档约
   d.blank();
   d.rule('S-BOUNDARY-002');
 
-  d.text(`Mod SDK 的隔离更为严格——Mod 不得绕过 host 注入直接访问 runtime/realm 的私有客户端。所有对平台资源的依赖必须通过注入的 host facade 流转。`);
+  d.text(`应用 SDK 的隔离更为严格——应用不得绕过 host 注入直接访问 runtime/realm 的私有客户端。所有对平台资源的依赖必须通过注入的 host facade 流转。`);
   d.blank();
   d.rule('S-BOUNDARY-003');
 

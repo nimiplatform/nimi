@@ -200,7 +200,7 @@ async function runSelfTest() {
   await fs.writeFile(
     negativePath,
     [
-      "import { applyAIProfileToConfig } from '@nimiplatform/sdk/mod';",
+      "import { applyAIProfileToConfig } from '@nimiplatform/sdk/ai';",
       "const owner = 'ai-profile-selection';",
       'await applyAIProfileToConfig(baseConfig, profile);',
       '',

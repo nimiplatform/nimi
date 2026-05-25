@@ -7,7 +7,7 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { createModRuntimeClient } from '@nimiplatform/sdk/mod';
+import { createModRuntimeClient } from '@nimiplatform/sdk/ai';
 import {
   createSnapshotRouteDataProvider,
   useRouteModelPickerData,

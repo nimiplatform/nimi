@@ -106,7 +106,7 @@ app, not the platform itself.
 
 | App | What it explores |
 | --- | --- |
-| [`apps/desktop/`](apps/desktop/) | Native first-party shell — agent chat, mod hub, local AI, knowledge, voice |
+| [`apps/desktop/`](apps/desktop/) | Native first-party shell — agent chat, local AI, knowledge, voice |
 | [`apps/web/`](apps/web/) | Browser projection of public Desktop surfaces |
 | [`apps/avatar/`](apps/avatar/) | Live2D embodied carrier for Nimi agents (floating desktop avatar) |
 | [`apps/forge/`](apps/forge/) | Creator studio for worlds, agents, and content |
@@ -203,10 +203,9 @@ original Chinese content, not sentence-by-sentence translation.
 | `kit/` | Cross-app design system, auth, telemetry, and feature modules |
 | `proto/` | Protocol Buffers and gRPC definitions |
 | `apps/` | Showcase apps (Desktop, Web, Avatar, Forge, …) |
-| `nimi-mods/` | Mod ecosystem workspace |
 | `nimi-cognition/` | Cognition implementation workspace |
 | `docs/` | Public documentation source (VitePress) |
-| `examples/` | SDK / runtime / app / mod scaffold templates |
+| `examples/` | SDK / runtime / app scaffold templates |
 | `scripts/` | Build, generate, validate, and audit scripts |
 
 The full module ownership map is described in per-module `AGENTS.md`
@@ -274,7 +273,7 @@ Nimi is multi-licensed by component:
 | Path | License |
 | --- | --- |
 | `runtime/`, `sdk/`, `proto/` | Apache-2.0 |
-| `apps/desktop/`, `apps/web/`, `apps/_libs/`, `nimi-mods/` | MIT |
+| `apps/desktop/`, `apps/web/`, `apps/_libs/` | MIT |
 | `docs/` | CC-BY-4.0 |
 
 Canonical license texts are in [`licenses/`](licenses/). The full

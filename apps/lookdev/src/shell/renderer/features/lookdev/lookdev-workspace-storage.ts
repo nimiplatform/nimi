@@ -1,4 +1,4 @@
-import { loadLocalStorageJson, removeLocalStorageKey, saveLocalStorageJson } from '@nimiplatform/sdk/mod';
+import { loadLocalStorageJson, removeLocalStorageKey, saveLocalStorageJson } from '@nimiplatform/sdk/ai';
 import type {
   LookdevBatch,
   LookdevCaptureState,

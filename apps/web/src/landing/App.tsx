@@ -5,7 +5,6 @@ import { HeroSection } from './components/hero-section.js';
 import { ArchitectureSection } from './components/architecture-section.js';
 import { LanguageToggle } from './components/language-toggle.js';
 import { ModelCatalogOverviewSection } from './components/model-catalog-overview-section.js';
-import { ModsSection } from './components/mods-section.js';
 import { OpenSourceSection } from './components/open-source-section.js';
 import { SecuritySection } from './components/security-section.js';
 import { SdkSection } from './components/sdk-section.js';
@@ -91,7 +90,6 @@ export function App() {
     { href: '#sdk', label: content.nav.sdk },
     { href: '#catalog', label: content.nav.catalog },
     { href: '#desktop', label: content.nav.desktop },
-    { href: '#mods', label: content.nav.mods },
     { href: '#security', label: content.nav.security },
     { href: '#open-source', label: content.nav.openSource },
     { href: '#faq', label: content.nav.faq },
@@ -174,7 +172,6 @@ export function App() {
         />
         <ArchitectureSection content={content.architecture} />
         <DesktopSection content={content.desktop} links={links} />
-        <ModsSection content={content.mods} links={links} />
         <SecuritySection content={content.security} />
         <OpenSourceSection content={content.openSource} links={links} />
         <FaqSection content={content.faq} links={links} />

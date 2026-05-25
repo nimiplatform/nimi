@@ -26,7 +26,7 @@
 
 | 应用 | 目录 | 技术栈 | 说明 |
 |---|---|---|---|
-| desktop | `apps/desktop/` | Tauri + React | 主桌面 host、mod 生态、agent 交互 |
+| desktop | `apps/desktop/` | Tauri + React | 主桌面 host、agent 交互、本地 AI |
 | forge | `apps/forge/` | Tauri + React | 创作者工作台（世界/agent/内容管理） |
 | overtone | `apps/overtone/` | Tauri + React | 音乐创作与协作 |
 | shiji | `apps/shiji/` | Tauri + React | K-12 历史教育（时迹） |
@@ -41,11 +41,8 @@
 
 | 组件 | 目录 | 说明 |
 |---|---|---|
-| nimi-mods | `nimi-mods/` | Mod 生态（独立工作区） |
 | kit shell tauri | `kit/shell/tauri/` | 跨 Tauri app 共享 Rust host glue |
-| examples | `examples/` | SDK/runtime 示例 + app/mod 脚手架模板 |
-
-`desktop` 现在是零内置 mod host。独立 mod 仓是可选的外部工作区，不再是主仓默认构建输入。
+| examples | `examples/` | SDK/runtime 示例 + app 脚手架模板 |
 
 ## 2. 前置环境
 
@@ -85,11 +82,9 @@ NIMI_WEB_URL=http://localhost:1420
 
 说明：
 
-1. Desktop 构建不再要求 legacy desktop-mods root env。
-2. 如需联调独立 mod，可额外设置 `NIMI_RUNTIME_MODS_DIR=/ABS/PATH/TO/runtime-mods`，且该目录必须是已存在绝对路径。
-3. Desktop 构建与运行统一只读取仓库根 `.env`（`nimi/.env`）。
-4. 显式 `export` 的 shell 环境变量优先级最高。
-5. `NIMI_RUNTIME_BRIDGE_MODE` 仅允许 `RUNTIME`/`RELEASE`；本地开发应使用 `RUNTIME`，发布环境使用 `RELEASE`。
+1. Desktop 构建与运行统一只读取仓库根 `.env`（`nimi/.env`）。
+2. 显式 `export` 的 shell 环境变量优先级最高。
+3. `NIMI_RUNTIME_BRIDGE_MODE` 仅允许 `RUNTIME`/`RELEASE`；本地开发应使用 `RUNTIME`，发布环境使用 `RELEASE`。
 6. 开源仓库只允许提交 `.env*.example` 模板；`*.env` 与 `*.env.*` 本地文件禁止提交。
 7. `NIMI_REALM_URL` 是 Realm API 地址；`NIMI_CONTROL_PLANE_URL` 是 Runtime 控制面地址；`NIMI_WEB_URL` 是桌面网页登录入口地址（不要混用）。
 
@@ -202,26 +197,12 @@ import { ChatFeature } from '@nimiplatform/kit/features/chat';
 
 ## 6. Desktop 与 Web 开发
 
-### 6.1 Desktop（含可选 mod 联调）
+### 6.1 Desktop
 
 `.env` 配置规则见第 3 节。也可以临时用 shell 导出：
 
 ```bash
 pnpm -C apps/desktop run dev:shell
-```
-
-若需要联调独立 mod：
-
-```bash
-export NIMI_RUNTIME_MODS_DIR=/ABS/PATH/TO/runtime-mods
-pnpm -C apps/desktop run dev:shell
-```
-
-本地已安装 mod smoke：
-
-```bash
-export NIMI_RUNTIME_MODS_DIR=/ABS/PATH/TO/runtime-mods
-pnpm run check:desktop-mods-smoke
 ```
 
 ### 6.2 其他 Tauri 应用
@@ -300,8 +281,7 @@ pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-con
 
 1. desktop/web 不得 import `runtime/internal/*`
 2. SDK 不得跨 realm/runtime 不当耦合
-3. mods 不得绕过 hook 直接调用 SDK runtime
-4. 新增能力优先走 spec 契约定义，再做实现
+3. 新增能力优先走 spec 契约定义，再做实现
 
 ## 9. 建议的开发流程
 
@@ -324,15 +304,6 @@ pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-con
 
 1. **Connector 路径**（Desktop UI 配置）：检查 Connector 是否为 `ACTIVE` 状态，凭据是否已填入。
 2. **Config 路径**（CLI `apiKeyEnv`）：运行 `pnpm runtime:config:get` 检查 `apiKeyEnv` 字段，确认环境变量已在启动 runtime 的 shell 中导出。
-
-### Q3: 独立 mod 仓怎么和 desktop 联调？
-
-desktop 不再读取 mod 源码仓本身。做法是把预构建目录安装、复制或 symlink 到 `NIMI_RUNTIME_MODS_DIR`，例如：
-
-```bash
-export NIMI_RUNTIME_MODS_DIR=/ABS/PATH/TO/runtime-mods
-ln -s /ABS/PATH/TO/my-mod-package "$NIMI_RUNTIME_MODS_DIR/my-mod"
-```
 
 ## 11. 参考文档
 

@@ -38,18 +38,6 @@ import type {
   DesktopReleaseInfo,
   DesktopUpdateCheckResult,
   DesktopUpdateState,
-  AvailableModUpdate,
-  CatalogConsentReason,
-  CatalogInstallResult,
-  CatalogPackageRecord,
-  CatalogPackageSummary,
-  CatalogReleaseRecord,
-  CatalogReleaseSource,
-  CatalogPublisher,
-  CatalogSigner,
-  CatalogState,
-  CatalogTrustTier,
-  InstalledModPolicy,
   MenuBarProviderSummary,
   MenuBarRuntimeHealthSyncPayload,
   OpenExternalUrlResult,
@@ -62,21 +50,7 @@ import type {
   RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
-  RuntimeLocalAsset,
-  RuntimeLocalManifestSummary,
-  RuntimeModStorageDirs,
-  RuntimeModSourceType,
-  RuntimeModSourceRecord,
-  RuntimeModDeveloperModeState,
-  RuntimeModDiagnosticStatus,
-  RuntimeModDiagnosticRecord,
-  RuntimeModReloadResult,
-  RuntimeModSourceChangeEvent,
-  RuntimeModInstallPayload,
-  RuntimeModInstallAccepted,
-  RuntimeModInstallProgressEvent,
-  RuntimeModInstallResult,
-  RuntimeModUpdatePayload,
+  DesktopStorageDirs,
   SystemResourceSnapshot,
   NimiDataMigrationPreview,
   NimiDataMigrationOutcome,
@@ -92,18 +66,6 @@ export type {
   DesktopReleaseInfo,
   DesktopUpdateCheckResult,
   DesktopUpdateState,
-  AvailableModUpdate,
-  CatalogConsentReason,
-  CatalogInstallResult,
-  CatalogPackageRecord,
-  CatalogPackageSummary,
-  CatalogPublisher,
-  CatalogReleaseRecord,
-  CatalogReleaseSource,
-  CatalogSigner,
-  CatalogState,
-  CatalogTrustTier,
-  InstalledModPolicy,
   MenuBarProviderSummary,
   MenuBarRuntimeHealthSyncPayload,
   OpenExternalUrlResult,
@@ -116,20 +78,7 @@ export type {
   RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
-  RuntimeLocalManifestSummary,
-  RuntimeModStorageDirs,
-  RuntimeModSourceType,
-  RuntimeModSourceRecord,
-  RuntimeModDeveloperModeState,
-  RuntimeModDiagnosticStatus,
-  RuntimeModDiagnosticRecord,
-  RuntimeModReloadResult,
-  RuntimeModSourceChangeEvent,
-  RuntimeModInstallPayload,
-  RuntimeModInstallAccepted,
-  RuntimeModInstallProgressEvent,
-  RuntimeModInstallResult,
-  RuntimeModUpdatePayload,
+  DesktopStorageDirs,
   SystemResourceSnapshot,
   NimiDataMigrationPreview,
   NimiDataMigrationOutcome,
@@ -172,6 +121,10 @@ export async function getDesktopUpdateState(): Promise<DesktopUpdateState> {
   unsupportedDesktopRuntime('Application update state is only available in desktop runtime');
 }
 
+export async function getDesktopStorageDirs(): Promise<DesktopStorageDirs> {
+  unsupportedDesktopRuntime('Desktop storage directories are only available in desktop runtime');
+}
+
 export async function desktopUpdateCheck(): Promise<DesktopUpdateCheckResult> {
   unsupportedDesktopRuntime('Application update is only available in desktop runtime');
 }
@@ -192,62 +145,6 @@ export async function subscribeDesktopUpdateState(
   _listener: (event: DesktopUpdateState) => void,
 ): Promise<() => void> {
   unsupportedDesktopRuntime('Application update events are only available in desktop runtime');
-}
-
-export async function listRuntimeLocalModManifests(): Promise<RuntimeLocalManifestSummary[]> {
-  return [];
-}
-
-export async function readRuntimeLocalModEntry(_path: string): Promise<string> {
-  throw new Error('Local mod entry is only available in desktop runtime');
-}
-
-export async function readRuntimeLocalModAsset(_path: string): Promise<RuntimeLocalAsset> {
-  throw new Error('Local mod asset is only available in desktop runtime');
-}
-
-export async function listInstalledRuntimeMods(): Promise<RuntimeLocalManifestSummary[]> {
-  return [];
-}
-
-export async function listRuntimeModSources(): Promise<RuntimeModSourceRecord[]> {
-  return [];
-}
-
-export async function getRuntimeModStorageDirs(): Promise<RuntimeModStorageDirs> {
-  return {
-    nimiDir: '',
-    nimiDataDir: '',
-    installedModsDir: '',
-    runtimeModDbPath: '',
-    mediaCacheDir: '',
-    localModelsDir: '',
-    localRuntimeStatePath: '',
-  };
-}
-
-export async function upsertRuntimeModSource(_input: {
-  sourceId?: string;
-  sourceType: 'installed' | 'dev';
-  sourceDir: string;
-  enabled?: boolean;
-}): Promise<RuntimeModSourceRecord> {
-  throw new Error('Runtime mod sources are only available in desktop runtime');
-}
-
-export async function removeRuntimeModSource(_sourceId: string): Promise<boolean> {
-  return false;
-}
-
-export async function getRuntimeModDeveloperMode(): Promise<RuntimeModDeveloperModeState> {
-  return { enabled: false, autoReloadEnabled: false };
-}
-
-export async function setRuntimeModDeveloperMode(_input: {
-  enabled: boolean;
-  autoReloadEnabled?: boolean;
-}): Promise<RuntimeModDeveloperModeState> {
-  return { enabled: false, autoReloadEnabled: false };
 }
 
 // The `nimi_data` directory-ownership + migration flow (P-MIG-006/007/008) is a
@@ -350,92 +247,6 @@ export async function admitProductReadyForUse(): Promise<ProductControlRecordPro
   unsupportedDesktopRuntime('First-run readiness admission is only available in desktop runtime');
 }
 
-export async function listRuntimeModDiagnostics(): Promise<RuntimeModDiagnosticRecord[]> {
-  return [];
-}
-
-export async function openRuntimeModDir(_path: string): Promise<void> {
-  unsupportedDesktopRuntime('Runtime mod directories are only available in desktop runtime');
-}
-
-export async function reloadRuntimeMod(_modId: string): Promise<RuntimeModReloadResult[]> {
-  return [];
-}
-
-export async function reloadAllRuntimeMods(): Promise<RuntimeModReloadResult[]> {
-  return [];
-}
-
-export async function installRuntimeMod(_payload: RuntimeModInstallPayload): Promise<RuntimeModInstallResult> {
-  unsupportedDesktopRuntime('Runtime mod install is only available in desktop runtime');
-}
-
-export async function updateRuntimeMod(_payload: RuntimeModUpdatePayload): Promise<RuntimeModInstallResult> {
-  unsupportedDesktopRuntime('Runtime mod update is only available in desktop runtime');
-}
-
-export async function uninstallRuntimeMod(_modId: string): Promise<RuntimeLocalManifestSummary> {
-  unsupportedDesktopRuntime('Runtime mod uninstall is only available in desktop runtime');
-}
-
-export async function readInstalledRuntimeModManifest(_input: {
-  modId?: string;
-  path?: string;
-}): Promise<RuntimeLocalManifestSummary> {
-  unsupportedDesktopRuntime('Runtime mod manifest read is only available in desktop runtime');
-}
-
-export async function listCatalogMods(): Promise<CatalogPackageSummary[]> {
-  return [];
-}
-
-export async function getCatalogMod(_packageId: string): Promise<CatalogPackageRecord | null> {
-  return null;
-}
-
-export async function checkModUpdates(): Promise<AvailableModUpdate[]> {
-  return [];
-}
-
-export async function installCatalogMod(_input: { packageId: string }): Promise<RuntimeModInstallAccepted> {
-  unsupportedDesktopRuntime('Catalog mod install is only available in desktop runtime');
-}
-
-export async function updateInstalledMod(_input: { packageId: string }): Promise<RuntimeModInstallAccepted> {
-  unsupportedDesktopRuntime('Installed mod update is only available in desktop runtime');
-}
-
-export async function restoreRuntimeModBackup(_input: {
-  modId: string;
-  backupPath: string;
-}): Promise<RuntimeModInstallAccepted> {
-  unsupportedDesktopRuntime('Runtime mod backup restore is only available in desktop runtime');
-}
-
-export async function listRuntimeModInstallProgress(
-  _installSessionId?: string,
-): Promise<RuntimeModInstallProgressEvent[]> {
-  return [];
-}
-
-export async function subscribeRuntimeModInstallProgress(
-  _listener: (event: RuntimeModInstallProgressEvent) => void,
-): Promise<() => void> {
-  return () => {};
-}
-
-export async function subscribeRuntimeModSourceChanged(
-  _listener: (event: RuntimeModSourceChangeEvent) => void,
-): Promise<() => void> {
-  return () => {};
-}
-
-export async function subscribeRuntimeModReloadResult(
-  _listener: (event: RuntimeModReloadResult) => void,
-): Promise<() => void> {
-  return () => {};
-}
-
 export async function getRuntimeBridgeStatus(): Promise<RuntimeBridgeDaemonStatus> {
   return getDaemonStatus();
 }
@@ -481,6 +292,7 @@ export const desktopBridge = {
   setRuntimeBridgeConfig,
   getRuntimeDefaults,
   getProductControlRecord,
+  getDesktopStorageDirs,
   pickProductDataRootDirectory,
   defaultProductDataRootDirectory,
   selectProductDataRoot,
@@ -499,19 +311,6 @@ export const desktopBridge = {
   focusMainWindow,
   syncMenuBarRuntimeHealth,
   completeMenuBarQuit,
-  listInstalledRuntimeMods,
-  listCatalogMods,
-  getCatalogMod,
-  checkModUpdates,
-  installRuntimeMod,
-  installCatalogMod,
-  listRuntimeLocalModManifests,
-  listRuntimeModSources,
-  getRuntimeModStorageDirs,
-  upsertRuntimeModSource,
-  removeRuntimeModSource,
-  getRuntimeModDeveloperMode,
-  setRuntimeModDeveloperMode,
   previewNimiDataMigration,
   runNimiDataMigration,
   planNimiDataCleanup,
@@ -519,21 +318,6 @@ export const desktopBridge = {
   planNimiDataOldRootReclaim,
   executeNimiDataOldRootReclaim,
   exportDesktopLogs,
-  listRuntimeModDiagnostics,
-  openRuntimeModDir,
-  reloadRuntimeMod,
-  reloadAllRuntimeMods,
-  listRuntimeModInstallProgress,
-  readInstalledRuntimeModManifest,
-  readRuntimeLocalModAsset,
-  readRuntimeLocalModEntry,
-  subscribeRuntimeModInstallProgress,
-  subscribeRuntimeModSourceChanged,
-  subscribeRuntimeModReloadResult,
   startWindowDrag,
-  uninstallRuntimeMod,
-  updateRuntimeMod,
-  updateInstalledMod,
-  restoreRuntimeModBackup,
   logRendererEvent,
 };

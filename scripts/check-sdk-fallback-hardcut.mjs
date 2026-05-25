@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -81,8 +82,12 @@ const checks = [
 ];
 
 function runRipgrep(pattern, paths) {
+  const existingPaths = paths.filter((targetPath) => existsSync(path.join(repoRoot, targetPath)));
+  if (existingPaths.length === 0) {
+    return '';
+  }
   try {
-    return execFileSync('rg', ['-n', pattern, ...paths], {
+    return execFileSync('rg', ['-n', pattern, ...existingPaths], {
       cwd: repoRoot,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -35,6 +36,11 @@ const checks = [
 ];
 
 function runSearch(pattern, paths) {
+  const existingPaths = paths.filter((targetPath) => fs.existsSync(path.join(repoRoot, targetPath)));
+  if (existingPaths.length === 0) {
+    return '';
+  }
+
   const tryCommand = (cmd, args) => {
     try {
       return execFileSync(cmd, args, {
@@ -54,11 +60,11 @@ function runSearch(pattern, paths) {
   };
 
   // Try ripgrep (rg) first
-  let result = tryCommand('rg', ['-n', pattern, ...paths]);
+  let result = tryCommand('rg', ['-n', pattern, ...existingPaths]);
   if (result !== null) return result;
 
   // Fallback to grep -E
-  result = tryCommand('grep', ['-En', pattern, ...paths]);
+  result = tryCommand('grep', ['-En', pattern, ...existingPaths]);
   if (result !== null) return result;
 
   throw new Error('desktop bootstrap hardcut requires `rg` or `grep` to be installed');

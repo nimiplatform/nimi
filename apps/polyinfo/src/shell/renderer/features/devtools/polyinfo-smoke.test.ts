@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createEmptyAIConfig } from '@nimiplatform/sdk/mod';
+import { createEmptyAIConfig } from '@nimiplatform/sdk/ai';
 import type { RuntimeDefaults } from '@renderer/bridge';
 import {
   createPolyinfoAIScopeRef,

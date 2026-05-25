@@ -279,7 +279,7 @@ interface ForgeAppStore {
 (`{ id, displayName }`). Token / refresh-token / subject-id provider state is
 forbidden on the renderer store (FG-SHELL-012).
 
-`AIConfig` type is imported from `@nimiplatform/sdk/mod`. See FG-ROUTE-004 for persistence and migration rules.
+`AIConfig` type is imported from `@nimiplatform/sdk/ai`. See FG-ROUTE-004 for persistence and migration rules.
 
 ## FG-SHELL-010: SDK Direct Connectivity
 

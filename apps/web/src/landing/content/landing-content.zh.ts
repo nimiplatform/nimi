@@ -14,7 +14,6 @@ export const landingContentZh: LandingContent = {
     architecture: '平台',
     desktop: 'Desktop',
     security: 'Governance',
-    mods: 'Mods',
     openSource: 'Source',
     faq: '常见问题',
   },
@@ -276,7 +275,7 @@ export const landingContentZh: LandingContent = {
   desktop: {
     title: '原生 Desktop，真实的 Web 边界。',
     subtitle:
-      'Desktop 是完整应用 —— 本地 mod、内嵌 runtime、跑在你自己的机器上。Web mode 用同一套外壳加上明确的 web-only adapter。两边都是真实的产品面。',
+      'Desktop 是完整应用 —— 内嵌 runtime、本地 AI、跑在你自己的机器上。Web mode 用同一套外壳加上明确的 web-only adapter。两边都是真实的产品面。',
     chromeLabels: {
       appName: 'Nimi Desktop',
       runtime: 'Runtime',
@@ -295,7 +294,6 @@ export const landingContentZh: LandingContent = {
         description: '一眼看清模型状态、资源占用和活跃会话。',
       },
       { icon: 'chat', title: '内置聊天', description: '在同一个工作区里对话本地与云端模型。' },
-      { icon: 'mods', title: 'Mod 宿主', description: '不离开桌面应用即可启动已安装的 mod。' },
       { icon: 'models', title: '模型管理', description: '一处安装、更新、切换模型。' },
     ],
     downloadCta: '阅读 Desktop 文档',
@@ -304,7 +302,7 @@ export const landingContentZh: LandingContent = {
       items: [
         '原生外壳，覆盖 macOS、Linux 与 Windows',
         '通过 web mode 支持纯浏览器会话',
-        'Mod 与 runtime 内置',
+        '本地 AI 与 runtime 内置',
       ],
     },
   },
@@ -337,12 +335,7 @@ export const landingContentZh: LandingContent = {
       {
         question: 'Desktop 与 Web mode 有什么区别？',
         answer:
-          'Desktop 是完整应用 —— 本地 mod、内嵌 runtime、原生外壳。Web mode 用同一套外壳加上 web-only adapter 支持纯浏览器会话。',
-      },
-      {
-        question: '可以构建 Mod 吗？',
-        answer:
-          '可以。Mods 通过已准入的 hook 与 capability 契约接入桌面 runtime —— 边界清晰，不会插件失控。',
+          'Desktop 是完整应用 —— 内嵌 runtime、本地 AI、原生外壳。Web mode 用同一套外壳加上 web-only adapter 支持纯浏览器会话。',
       },
     ],
   },
@@ -374,31 +367,6 @@ export const landingContentZh: LandingContent = {
         points: ['Provider、模型与能力数据由规范表生成。', '不会有手写的营销说法偏离来源。'],
       },
     ],
-  },
-  mods: {
-    eyebrow: '生态层',
-    title: '扩展聊天的 Mod，跑在强类型 runtime 里。',
-    subtitle:
-      'Mods 通过已准入的 hook 与 capability 契约接入桌面 runtime —— 一次构建，跑在用户已经信任的 runtime 中。',
-    items: [
-      {
-        icon: 'docs',
-        name: '能力契约',
-        description: 'Mods 通过已准入的 hook 与 capability 契约路由 —— 边界清晰，不会插件失控。',
-      },
-      {
-        icon: 'sim',
-        name: '归属边界',
-        description: 'Mods 与 Runtime、SDK、Desktop 各层组合，不绕开归属边界。',
-      },
-      {
-        icon: 'story',
-        name: '开放生态进行中',
-        description:
-          '注册中心契约获准入后，公开 Mod 目录随之上线 —— 在那之前，先为你自己的用户构建。',
-      },
-    ],
-    buildModCta: '阅读 Mod 文档',
   },
   openSource: {
     title: '从头到尾，全部开源。',

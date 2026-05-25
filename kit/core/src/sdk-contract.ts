@@ -51,7 +51,7 @@
  *   @nimiplatform/sdk/types — typed error envelope
  *     - NimiError (chat/src/runtime.ts:16)
  *     - ReasonCode (model-picker/src/runtime.ts:18)
- *   @nimiplatform/sdk/mod   — module-config authority
+ *   @nimiplatform/sdk/ai   — module-config authority
  *     - * (re-exports) (core/model-config/types.ts:19,
  *       core/model-config/profile-controller-core.ts:20)
  *     - AIConfig (features/model-config/src/components/model-config-ai-model-hub.tsx:3,
@@ -76,7 +76,7 @@
  *  - The single value re-export `getPlatformClient` is the SDK root
  *    facade entrypoint; everything else is `export type`.
  *  - Kit module-config has both type and value SDK surfaces from
- *    `@nimiplatform/sdk/mod`; we re-export the whole sub-path for
+ *    `@nimiplatform/sdk/ai`; we re-export the whole sub-path for
  *    that one consumer to match its existing star-import shape.
  *
  * Dynamic-import boundary (wave-c carry-forward concern 1)
@@ -162,7 +162,7 @@ export type { NimiError } from '@nimiplatform/sdk/types';
 export { ReasonCode } from '@nimiplatform/sdk/types';
 
 // --- Module-config (kit/core/model-config + kit/features/model-config) ------
-// `@nimiplatform/sdk/mod` consumers in kit:
+// `@nimiplatform/sdk/ai` consumers in kit:
 //   - core/model-config/types.ts (AIConfig, AIProfile, AIProfileApplyResult,
 //     AIProfilePreviewResult, AIProfileRef, AIScopeRef)
 //   - core/model-config/profile-controller-core.ts (AIConfig, AIProfile,
@@ -178,4 +178,4 @@ export type {
   AIProfilePreviewResult,
   AIProfileRef,
   AIScopeRef,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';

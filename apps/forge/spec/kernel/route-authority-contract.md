@@ -13,7 +13,7 @@ This is the same authority source as Desktop (per S-RUNTIME-074). Forge does not
 |----------|-------|
 | Authority API | `runtime.route.listOptions(...)` |
 | Host access path | `createModRuntimeClient('core:runtime')` via mod SDK host |
-| Snapshot type | `RuntimeRouteOptionsSnapshot` from `@nimiplatform/sdk/mod` |
+| Snapshot type | `RuntimeRouteOptionsSnapshot` from `@nimiplatform/sdk/ai` |
 | Prerequisite | Mod SDK host must be registered at bootstrap (see FG-ROUTE-003) |
 
 Forge must NOT use `platformClient.runtime.connector.listConnectors` or `platformClient.runtime.local.listLocalAssets` as app-facing route option truth. These are inventory APIs, not capability-first route authority.
@@ -84,11 +84,11 @@ Speech alignment boundary:
 
 ### Reuse boundary
 
-The host registration mechanism (`setModSdkHost` from `@nimiplatform/sdk/mod`) is shared. The host capabilities builder must be Forge-specific because Desktop's `buildRuntimeHostCapabilities` includes mod lifecycle, UI slots, shell hooks, and conversation-specific execution that Forge does not need.
+The host registration mechanism (`setModSdkHost` from `@nimiplatform/sdk/ai`) is shared. The host capabilities builder must be Forge-specific because Desktop's `buildRuntimeHostCapabilities` includes mod lifecycle, UI slots, shell hooks, and conversation-specific execution that Forge does not need.
 
 ## FG-ROUTE-004: Route Selection Persistence
 
-Forge route selection is persisted as `AIConfig` (from `@nimiplatform/sdk/mod`), keyed by `AIScopeRef`.
+Forge route selection is persisted as `AIConfig` (from `@nimiplatform/sdk/ai`), keyed by `AIScopeRef`.
 
 | Property | Value |
 |----------|-------|

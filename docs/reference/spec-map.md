@@ -60,8 +60,7 @@ evidence or implementation context, but they do not silently become
 the source of public product truth.
 
 Private repositories (for example, `nimi-realm/.nimi/spec/**` for
-backend, dashboard, and creator-side authority, and
-`nimi-mods/spec/**` for mods workspace authority) are referenced
+backend, dashboard, and creator-side authority) are referenced
 from the public docs only by name, not by content. Those public
 mentions are placement information; they do not promote private
 authority into public docs.

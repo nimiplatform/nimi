@@ -124,7 +124,7 @@ async function runSelfTest() {
   await fs.writeFile(
     negativePath,
     [
-      "import { applyAIProfileToConfig } from '@nimiplatform/sdk/mod';",
+      "import { applyAIProfileToConfig } from '@nimiplatform/sdk/ai';",
       'const profileId = scopeRef.resolveProfileAlias();',
       'await applyAIProfileToConfig(baseConfig, profile);',
       '',
@@ -135,7 +135,7 @@ async function runSelfTest() {
   await fs.writeFile(
     positivePath,
     [
-      "import { applyAIProfileToConfig } from '@nimiplatform/sdk/mod';",
+      "import { applyAIProfileToConfig } from '@nimiplatform/sdk/ai';",
       "const profileId = 'gpt-4o';",
       'await applyAIProfileToConfig(baseConfig, profile);',
       '',

@@ -124,24 +124,8 @@ export default defineConfig(({ mode }) => {
           replacement: path.resolve(__dirname, 'src/desktop-adapter/runtime-bootstrap.web.ts'),
         },
         {
-          find: '@renderer/mod-ui/host/slot-host',
-          replacement: path.resolve(__dirname, 'src/desktop-adapter/slot-host.web.tsx'),
-        },
-        {
-          find: '@renderer/mod-ui/host/slot-context',
-          replacement: path.resolve(__dirname, 'src/desktop-adapter/slot-context.web.ts'),
-        },
-        {
-          find: '@renderer/features/mod-workspace/mod-workspace-tabs',
-          replacement: path.resolve(__dirname, 'src/desktop-adapter/mod-workspace-tabs.web.tsx'),
-        },
-        {
           find: '@renderer/features/runtime-config/runtime-config-panel-view',
           replacement: path.resolve(__dirname, 'src/desktop-adapter/runtime-config-panel.web.tsx'),
-        },
-        {
-          find: '@renderer/features/mod-hub/mod-hub-page',
-          replacement: path.resolve(__dirname, 'src/desktop-adapter/mod-hub-page.web.tsx'),
         },
         {
           find: '@renderer/features/tester/world-tour-viewer-route',
@@ -154,10 +138,6 @@ export default defineConfig(({ mode }) => {
         {
           find: '@renderer/features/chat/chat-agent-avatar-live2d-cubism-runtime-loader',
           replacement: path.resolve(__dirname, 'src/desktop-adapter/chat-agent-avatar-live2d-cubism-runtime-loader.web.ts'),
-        },
-        {
-          find: /^@runtime\/mod$/,
-          replacement: path.resolve(__dirname, 'src/desktop-adapter/runtime-mod.web.ts'),
         },
         // Desktop public-for-web boundary: web source files import from here
         // instead of reaching into desktop internals directly.

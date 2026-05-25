@@ -5,5 +5,4 @@ packages:
   - 'examples'
   - 'app-tools'
   - 'nimi-cognition'
-  - 'nimi-mods/*'
   - 'sdk'

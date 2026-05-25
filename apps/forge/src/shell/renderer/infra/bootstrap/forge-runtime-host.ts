@@ -11,13 +11,13 @@
  * if actually invoked — Forge does not use mod lifecycle or hook features.
  */
 
-import { setModSdkHost } from '@nimiplatform/sdk/mod';
+import { setModSdkHost } from '@nimiplatform/sdk/ai';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type {
   RuntimeCanonicalCapability,
   RuntimeRouteOptionsSnapshot,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 
 // ---------------------------------------------------------------------------
 // Route options authority

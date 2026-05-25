@@ -1,4 +1,4 @@
-import { loadStorageJsonFrom, saveStorageJsonTo } from '@nimiplatform/sdk/mod';
+import { loadStorageJsonFrom, saveStorageJsonTo } from '@nimiplatform/sdk/ai';
 
 const LOOKDEV_ROUTE_SETTINGS_STORAGE_KEY = 'nimi:lookdev:route-settings.v1';
 

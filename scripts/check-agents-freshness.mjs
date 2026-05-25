@@ -59,7 +59,6 @@ function collectKnownPnpmScripts() {
     'sdk/package.json',
     'docs/package.json',
     'examples/package.json',
-    'nimi-mods/package.json',
   ];
   for (const rel of packageFiles) {
     const abs = path.join(repoRoot, rel);

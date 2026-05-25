@@ -6,7 +6,7 @@ import type {
   AIConfig,
   AIProfile,
   AIScopeRef,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 import type { SharedAIConfigService } from '@nimiplatform/kit/core/model-config';
 import type {
   ModelConfigProfileController,

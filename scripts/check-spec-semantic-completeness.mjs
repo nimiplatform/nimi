@@ -7,7 +7,7 @@ const cwd = process.cwd();
 const specRoot = path.join(cwd, '.nimi', 'spec');
 const allowlistPath = path.join(cwd, 'scripts', 'spec-semantic-completeness-allowlist.json');
 
-const RULE_ID_SOURCE = String.raw`(?:C|K|S|D|P|R|F)-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-\d{3}[a-z]?`;
+const RULE_ID_SOURCE = String.raw`(?:C|K|S|D|P|R|F|AV)-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-\d{3}(?:[a-z]|\.[a-z])?`;
 const RULE_HEADING_RE = new RegExp(String.raw`^##\s+(${RULE_ID_SOURCE})\b`, 'gmu');
 const RULE_REF_RE = new RegExp(String.raw`\b${RULE_ID_SOURCE}\b`, 'g');
 const RULELIKE_NON_FAMILY_RE = /(?<![CKSDPRF]-)\b[A-Z][A-Z0-9]{1,15}(?:-[A-Z0-9]{1,15})?-\d{3}[a-z]?\b/g;

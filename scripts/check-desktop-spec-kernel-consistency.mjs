@@ -107,7 +107,7 @@ checkNoLegacyStoreImports();
 
 checkRetryJitterPresence();
 
-// ── Check 22: Store slice count = 4 (D-STATE-001) ──
+// ── Check 22: Store slice table matches app store composition (D-STATE-001) ──
 
 checkStoreSliceCount();
 
@@ -184,8 +184,11 @@ function collectKernelRuleDefinitions() {
 
 function checkUiSlotsConsistency() {
   const capabilitiesPath = 'apps/desktop/src/runtime/hook/contracts/capabilities.ts';
+  const yamlPath = '.nimi/spec/desktop/kernel/tables/ui-slots.yaml';
   if (!fileExists(capabilitiesPath)) {
-    fail(`source file not found: ${capabilitiesPath}`);
+    if (fileExists(yamlPath)) {
+      fail(`ui-slots.yaml exists but source file is retired: ${capabilitiesPath}`);
+    }
     return;
   }
 
@@ -199,7 +202,6 @@ function checkUiSlotsConsistency() {
     [...slotsBody.matchAll(/'([^']+)'/g)].map((m) => m[1]),
   );
 
-  const yamlPath = '.nimi/spec/desktop/kernel/tables/ui-slots.yaml';
   if (!fileExists(yamlPath)) return;
   const doc = readYaml(yamlPath);
   const yamlSlots = new Set(
@@ -682,9 +684,24 @@ function checkStoreSliceCount() {
   const content = read(storePath);
   const sliceImports = content.match(/create\w+Slice/g) || [];
   const uniqueSlices = new Set(sliceImports);
+  const yamlPath = '.nimi/spec/desktop/kernel/tables/store-slices.yaml';
+  if (!fileExists(yamlPath)) {
+    fail(`D-STATE-001 missing store slices table: ${yamlPath}`);
+    return;
+  }
+  const doc = readYaml(yamlPath);
+  const expectedSlices = new Set(
+    (Array.isArray(doc?.slices) ? doc.slices : [])
+      .map((item) => String(item?.factory || '').trim())
+      .filter(Boolean),
+  );
 
-  if (uniqueSlices.size !== 4) {
-    fail(`D-STATE-001 expects exactly 4 store slices, found ${uniqueSlices.size}: ${[...uniqueSlices].join(', ')}`);
+  const missingInSource = [...expectedSlices].filter((slice) => !uniqueSlices.has(slice));
+  const extraInSource = [...uniqueSlices].filter((slice) => !expectedSlices.has(slice));
+  if (missingInSource.length > 0 || extraInSource.length > 0) {
+    fail(
+      `D-STATE-001 store slices mismatch: missing source factories [${missingInSource.join(', ')}], unknown source factories [${extraInSource.join(', ')}]`,
+    );
   }
 }
 

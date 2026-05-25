@@ -1,5 +1,5 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
 
 const ROUTE_POLICY_LOCAL = 1;
 const ROUTE_POLICY_CLOUD = 2;

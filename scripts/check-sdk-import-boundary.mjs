@@ -14,7 +14,7 @@ const sdkPackageJsonPaths = [
 const forbiddenExportPattern = /(?:^|\/)(internal|generated)(?:\/|$)/;
 const forbiddenStableImportPattern = /(?:from|import)\s+['"]@nimiplatform\/sdk\/(?:internal|generated)(?:\/|['"])/;
 const importTargetPattern = /(?:from\s+['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\))/g;
-const consumerSourceRoots = ['apps', 'runtime', 'examples', 'scripts', 'nimi-mods'];
+const consumerSourceRoots = ['apps', 'runtime', 'examples', 'scripts'];
 const sourceExtensions = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
 const skippedDirectories = new Set(['node_modules', 'dist', 'build', 'coverage', '.next', '.turbo', 'target']);
 

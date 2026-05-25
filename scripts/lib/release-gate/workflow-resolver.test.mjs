@@ -336,7 +336,7 @@ test('resolveWorkflowReferences: GitHub Actions ${{ }} expression in dirPath is 
     writeWorkflow(
       root,
       'a.yml',
-      'jobs:\n  j:\n    steps:\n      - run: pnpm --dir nimi-mods/${{ matrix.path }} run verify\n'
+      'jobs:\n  j:\n    steps:\n      - run: pnpm --dir tools/${{ matrix.path }} run verify\n'
     );
     const cat = loadAvailableScripts(root);
     const refs = extractPnpmReferences(path.join(root, '.github', 'workflows', 'a.yml'));
@@ -353,7 +353,7 @@ test('resolveWorkflowReferences: shell variable ${VAR} in dirPath is skipped', (
     writeWorkflow(
       root,
       'a.yml',
-      'jobs:\n  j:\n    steps:\n      - run: pnpm --dir "nimi-mods/${MOD_PATH}" run verify\n'
+      'jobs:\n  j:\n    steps:\n      - run: pnpm --dir "tools/${TOOL_PATH}" run verify\n'
     );
     const cat = loadAvailableScripts(root);
     const refs = extractPnpmReferences(path.join(root, '.github', 'workflows', 'a.yml'));
@@ -464,15 +464,15 @@ test('checkWorkflowReferences: --recursive fail when no workspace defines script
 test('checkWorkflowReferences: ad-hoc dir (non-workspace) with package.json resolves', () => {
   const root = makeRoot();
   try {
-    fs.mkdirSync(path.join(root, 'nimi-mods', 'local-chat'), { recursive: true });
+    fs.mkdirSync(path.join(root, 'tools', 'local-chat'), { recursive: true });
     fs.writeFileSync(
-      path.join(root, 'nimi-mods', 'local-chat', 'package.json'),
+      path.join(root, 'tools', 'local-chat', 'package.json'),
       JSON.stringify({ name: 'local-chat', scripts: { verify: 'echo verify' } }, null, 2)
     );
     writeWorkflow(
       root,
       'a.yml',
-      'jobs:\n  j:\n    steps:\n      - run: pnpm --dir nimi-mods/local-chat run verify\n'
+      'jobs:\n  j:\n    steps:\n      - run: pnpm --dir tools/local-chat run verify\n'
     );
     const result = checkWorkflowReferences(root);
     assert.equal(result.ok, true);

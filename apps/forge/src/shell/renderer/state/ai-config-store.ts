@@ -12,8 +12,8 @@ import {
   createEmptyAIConfig,
   type AIConfig,
   type AIScopeRef,
-} from '@nimiplatform/sdk/mod';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
 
 // ---------------------------------------------------------------------------
 // Types

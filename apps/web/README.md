@@ -6,7 +6,7 @@ It serves a landing homepage at `/`, keeps static legal pages in the same build,
 
 ## Goals
 
-- Reuse `desktop` non-mod UI with minimal drift.
+- Reuse `desktop` web-admitted UI with minimal drift.
 - Keep one renderer development source of truth (`desktop`).
 - Deploy landing, legal pages, and web-shell from a standard Vite web app without Tauri runtime dependency.
 
@@ -31,7 +31,6 @@ is allowed to use:
 - `@desktop-public/bridge` — bridge types and functions
 - `@desktop-public/infra` — proxy-fetch, telemetry
 - `@desktop-public/app-store` — application store
-- `@desktop-public/mod-ui-types` — mod UI contract types
 - `@desktop-public/data-sync` — runtime data-sync facade
 
 Wide `@renderer/*` and `@runtime/*` aliases remain in Vite config for
@@ -44,12 +43,7 @@ These modules replace desktop-specific entry points with web stubs:
 
 - `@renderer/infra/bootstrap/runtime-bootstrap`
 - `@renderer/bridge`
-- `@renderer/mod-ui/host/slot-host`
-- `@renderer/mod-ui/host/slot-context`
-- `@renderer/features/mod-workspace/mod-workspace-tabs`
 - `@renderer/features/runtime-config/runtime-config-panel-view`
-- `@renderer/features/mod-hub/mod-hub-page`
-- `@runtime/mod`
 
 These adapters live in `src/desktop-adapter/`.
 
@@ -131,5 +125,5 @@ When desktop renderer evolves:
 
 1. Keep feature UI changes in desktop renderer.
 2. If the change adds a new surface that web needs, expose it through `apps/desktop/src/public-web/` first.
-3. If change touches desktop-only runtime/mod hooks, update corresponding files in `src/desktop-adapter/`.
-4. Rebuild `@nimiplatform/web` and verify output does not contain desktop runtime-mod bootstrap symbols.
+3. If the change touches desktop-only runtime or bridge surfaces, update corresponding files in `src/desktop-adapter/`.
+4. Rebuild `@nimiplatform/web` and verify output does not contain desktop-only bootstrap symbols.

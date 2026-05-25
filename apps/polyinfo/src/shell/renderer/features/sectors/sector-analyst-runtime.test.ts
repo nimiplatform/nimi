@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
 import { streamSectorAnalyst } from './sector-analyst-runtime.js';
 
 const mocks = vi.hoisted(() => ({

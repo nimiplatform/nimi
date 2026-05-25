@@ -145,11 +145,11 @@ func (s *Service) ObserveRefreshToken() { s.revokeBindingsLocked(reason) }
       source: "createPlatformClient({ accessTokenProvider: () => token });",
     },
     {
-      relPath: 'nimi-mods/example/src/bad.ts',
+      relPath: 'external-workspaces/example/src/bad.ts',
       source: 'runtime.account.getAccessToken({});',
     },
     {
-      relPath: 'nimi-mods/example/src/good.ts',
+      relPath: 'external-workspaces/example/src/good.ts',
       source: 'host.capabilities.invoke("runtime.agent.turn.write");',
     },
   ];
@@ -169,8 +169,8 @@ func (s *Service) ObserveRefreshToken() { s.revokeBindingsLocked(reason) }
   assert.equal(violations.some((item) => item.includes('runtime-bootstrap.web.ts')), false);
   assert.equal(violations.some((item) => item.includes('apps/web/src/negative.ts')), true);
   assert.equal(violations.some((item) => item.includes('apps/web/src/positive.ts')), false);
-  assert.equal(violations.some((item) => item.includes('nimi-mods/example/src/bad.ts')), false);
-  assert.equal(violations.some((item) => item.includes('nimi-mods/example/src/good.ts')), false);
+  assert.equal(violations.some((item) => item.includes('external-workspaces/example/src/bad.ts')), false);
+  assert.equal(violations.some((item) => item.includes('external-workspaces/example/src/good.ts')), false);
 
   // Negative case: an unfenced spec in an entry of NON_ADMITTED_LOCAL_APP_SLICE_ROOTS
   // MUST trigger the Non-admitted local app slice fence violation. We

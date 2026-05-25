@@ -381,8 +381,8 @@ function checkReference(ref, available, rootDir) {
     const normalized = path.normalize(ref.dirPath).replace(/^\.\//, '');
     const scripts = available.byPkgDir.get(normalized);
     if (!scripts) {
-      // Fall back: maybe the dir is a non-workspace package (e.g.
-      // nimi-mods/<x>); if a package.json exists there, read it ad-hoc.
+      // Fall back: maybe the dir is a non-workspace package; if a
+      // package.json exists there, read it ad-hoc.
       const adHocPath = path.join(rootDir, normalized, 'package.json');
       if (!fs.existsSync(adHocPath)) {
         return 'WORKFLOW_PNPM_DIR_PATH_UNKNOWN';

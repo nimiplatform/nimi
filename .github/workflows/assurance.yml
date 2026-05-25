@@ -12,9 +12,6 @@ concurrency:
   group: assurance-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
-env:
-  NIMI_MODS_REF: 931311bcc79ce93195e539da793a05579ee66194 # pragma: allowlist secret
-
 jobs:
   ai-governance:
     runs-on: ubuntu-latest
@@ -213,23 +210,11 @@ jobs:
 
   desktop-release-assurance:
     runs-on: ubuntu-22.04
-    env:
-      NIMI_MODS_ROOT: ${{ github.workspace }}/nimi-mods
-      NIMI_RUNTIME_MODS_DIR: ${{ github.workspace }}/nimi-mods/runtime
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-
-      - name: Checkout nimi-mods (pinned external repo)
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: nimiplatform/nimi-mods
-          token: ${{ secrets.NIMI_MODS_REPO_TOKEN || github.token }}
-          ref: ${{ env.NIMI_MODS_REF }}
-          path: nimi-mods
-          fetch-depth: 1
 
       - name: Setup pnpm
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
@@ -257,13 +242,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Install nimi-mods dependencies
-        run: pnpm --dir nimi-mods install --no-frozen-lockfile
-
-      - name: Build product studio runtime mod
-        working-directory: nimi-mods/runtime/product-studio
-        run: pnpm run build
-
       - name: Install desktop native drivers
         run: cargo install tauri-driver --locked
 
@@ -288,14 +266,8 @@ jobs:
       - name: Desktop runtime bridge tests assurance
         run: cargo test runtime_bridge --manifest-path apps/desktop/src-tauri/Cargo.toml
 
-      - name: Desktop mods env assurance
-        run: pnpm --filter @nimiplatform/desktop run env:check:mods-root
-
       - name: Desktop group chat contract assurance
         run: pnpm check:desktop-group-chat-contract
-
-      - name: Desktop mods smoke assurance
-        run: pnpm check:desktop-mods-smoke
 
       - name: Desktop E2E smoke assurance
         id: desktop_e2e_smoke

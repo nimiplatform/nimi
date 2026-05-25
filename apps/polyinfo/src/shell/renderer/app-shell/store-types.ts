@@ -12,7 +12,7 @@ import type {
   TaxonomyOverlay,
   WindowKey,
 } from '@renderer/data/types.js';
-import type { AIConfig } from '@nimiplatform/sdk/mod';
+import type { AIConfig } from '@nimiplatform/sdk/ai';
 
 export type AuthStatus = 'bootstrapping' | 'authenticated' | 'anonymous';
 

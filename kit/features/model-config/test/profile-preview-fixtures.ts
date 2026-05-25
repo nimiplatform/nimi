@@ -10,7 +10,7 @@ import type {
   AIProfile,
   AIProfilePreviewResult,
   AIScopeRef,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 import type { ModelConfigProfileCopy } from '../src/types.js';
 
 /** The D-AIPC-014 preview-step subset of ModelConfigProfileCopy. */

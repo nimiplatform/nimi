@@ -1,17 +1,17 @@
 # Nimi Vision
 
-Nimi is an AI-native runtime and developer platform for building open, mod-driven worlds.
+Nimi is an AI-native runtime and developer platform for building open, persistent worlds.
 
 ## Product Direction
 
-1. Local-first execution: user-critical AI and mod execution run in local runtime by default.
-2. Contract-first interoperability: runtime, sdk, apps/desktop, mods, and docs are governed by SSOT contracts.
+1. Local-first execution: user-critical AI execution runs in local runtime by default when admitted routes support it.
+2. Contract-first interoperability: runtime, sdk, apps/desktop, apps/web, and docs are governed by SSOT contracts.
 3. No-legacy by default: pre-launch architecture uses hard-cut evolution, no dual-path compatibility debt.
-4. AI-first developer workflow: SDK + mod runtime contracts are designed for human + AI coding collaboration.
+4. AI-first developer workflow: SDK + runtime contracts are designed for human + AI coding collaboration.
 
 ## Open Source Direction
 
-1. Open platform core: runtime, sdk, kit, proto, all apps (desktop/relay/forge/overtone/shiji/moment/lookdev/realm-drift/video-food-map/web/install-gateway), nimi-mods, and docs are open by default.
+1. Open platform core: runtime, sdk, kit, proto, all apps (desktop/relay/forge/overtone/shiji/moment/lookdev/realm-drift/video-food-map/web/install-gateway), and docs are open by default.
 2. Industrial-grade release gates: reproducible CI, supply-chain verification, and auditable release process.
 3. Developer trust: explicit boundaries, stable contracts, and fail-fast behavior over hidden fallback.
 

@@ -11,7 +11,7 @@ import type {
   AppModelConfigSurface,
   SharedAIConfigService,
 } from '@nimiplatform/kit/core/model-config';
-import type { AIConfig, AIScopeRef } from '@nimiplatform/sdk/mod';
+import type { AIConfig, AIScopeRef } from '@nimiplatform/sdk/ai';
 
 (
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }

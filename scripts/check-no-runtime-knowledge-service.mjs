@@ -48,7 +48,6 @@ const ALLOW_PREFIXES = [
   'scripts/check-runtime-proto-spec-linkage.mjs',                     // guard self-reference
   'scripts/check-no-runtime-knowledge-service.mjs',                   // this guard's pattern strings
   'scripts/check-no-runtime-knowledge-service.test.mjs',              // self-test fixtures
-  'nimi-mods/runtime/knowledge-base/',                                // deferred mod surface
 ];
 
 // File-specific allow-list. The wave-4 rename targets

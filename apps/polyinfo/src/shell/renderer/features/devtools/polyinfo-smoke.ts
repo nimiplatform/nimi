@@ -1,7 +1,7 @@
 import type {
   AIConfig,
   RuntimeRouteOptionsSnapshot,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 import type {
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,

@@ -14,7 +14,6 @@ export const landingContentEn: LandingContent = {
     architecture: 'Platform',
     desktop: 'Desktop',
     security: 'Governance',
-    mods: 'Mods',
     openSource: 'Source',
     faq: 'FAQ',
   },
@@ -286,7 +285,7 @@ export const landingContentEn: LandingContent = {
   desktop: {
     title: 'Native desktop. Real web boundary.',
     subtitle:
-      'Desktop is the full app — local mods, embedded runtime, your machine. Web mode runs the same shell with explicit web-only adapters. Both ship as real surfaces.',
+      'Desktop is the full app — embedded runtime, local AI, your machine. Web mode runs the same shell with explicit web-only adapters. Both ship as real surfaces.',
     chromeLabels: {
       appName: 'Nimi Desktop',
       runtime: 'Runtime',
@@ -310,11 +309,6 @@ export const landingContentEn: LandingContent = {
         description: 'Talk to local and cloud models from the same workspace.',
       },
       {
-        icon: 'mods',
-        title: 'Mod Host',
-        description: 'Launch installed mods without leaving the desktop app.',
-      },
-      {
         icon: 'models',
         title: 'Model Management',
         description: 'Install, update, and switch models from one place.',
@@ -326,7 +320,7 @@ export const landingContentEn: LandingContent = {
       items: [
         'Native shell on macOS, Linux, and Windows',
         'Browser-only sessions via web mode',
-        'Mods + runtime built-in',
+        'Local AI + runtime built-in',
       ],
     },
   },
@@ -360,12 +354,7 @@ export const landingContentEn: LandingContent = {
       {
         question: 'Desktop vs Web mode?',
         answer:
-          'Desktop is the full app — local mods, embedded runtime, native shell. Web mode runs the same shell with web-only adapters for browser-only sessions.',
-      },
-      {
-        question: 'Can I build mods?',
-        answer:
-          'Yes. Mods plug into the desktop runtime via admitted hook and capability contracts — clear boundary, no plugin sprawl.',
+          'Desktop is the full app — embedded runtime, local AI, native shell. Web mode runs the same shell with web-only adapters for browser-only sessions.',
       },
     ],
   },
@@ -400,33 +389,6 @@ export const landingContentEn: LandingContent = {
         ],
       },
     ],
-  },
-  mods: {
-    eyebrow: 'Ecosystem surface',
-    title: 'Mods that extend chat. Within a typed runtime.',
-    subtitle:
-      'Mods plug into the desktop runtime via admitted hook and capability contracts. Build once, ship inside the runtime your users already trust.',
-    items: [
-      {
-        icon: 'docs',
-        name: 'Capability contracts',
-        description:
-          'Mods route through admitted hook and capability contracts — clear boundary, no plugin sprawl.',
-      },
-      {
-        icon: 'sim',
-        name: 'Owner boundaries',
-        description:
-          'Mods compose with runtime, SDK, and desktop surfaces without bypassing owner cuts.',
-      },
-      {
-        icon: 'story',
-        name: 'Open ecosystem ahead',
-        description:
-          'A public mod catalog admits as the registry contract lands — until then, build for your own users.',
-      },
-    ],
-    buildModCta: 'Read mod docs',
   },
   openSource: {
     title: 'Open source. End to end.',

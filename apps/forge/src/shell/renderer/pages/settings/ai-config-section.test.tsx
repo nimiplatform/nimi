@@ -20,7 +20,7 @@ vi.mock('@nimiplatform/sdk', () => ({
   }),
 }));
 
-vi.mock('@nimiplatform/sdk/mod', () => ({
+vi.mock('@nimiplatform/sdk/ai', () => ({
   createModRuntimeClient: () => ({
     route: {
       listOptions: listOptionsFn,

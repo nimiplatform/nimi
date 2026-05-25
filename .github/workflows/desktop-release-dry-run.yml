@@ -27,10 +27,6 @@ concurrency:
   group: desktop-release-dry-run-${{ github.ref_name || github.run_id }}
   cancel-in-progress: false
 
-env:
-  NIMI_MODS_REF: 931311bcc79ce93195e539da793a05579ee66194 # pragma: allowlist secret
-  NIMI_MODS_CHECKOUT_TOKEN: ${{ secrets.NIMI_MODS_REPO_TOKEN || github.token }}
-
 jobs:
   resolve:
     runs-on: ubuntu-latest
@@ -83,134 +79,86 @@ jobs:
         shell: bash
     env:
       RELEASE_VERSION: ${{ needs.resolve.outputs.version_plain }}
-      NIMI_MODS_ROOT: ${{ github.workspace }}/nimi-mods
-      NIMI_RUNTIME_MODS_DIR: ${{ github.workspace }}/nimi-mods/runtime
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
-      - name: Probe nimi-mods access
-        id: nimi_mods_access
-        run: |
-          set -euo pipefail
-          if curl --fail --silent --show-error \
-            -H "Authorization: Bearer ${NIMI_MODS_CHECKOUT_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/nimiplatform/nimi-mods/commits/${NIMI_MODS_REF}" \
-            >/dev/null; then
-            {
-              echo "available=true"
-            } >> "${GITHUB_OUTPUT}"
-          else
-            {
-              echo "available=false"
-            } >> "${GITHUB_OUTPUT}"
-          fi
-
-      - name: Checkout nimi-mods (pinned external repo)
-        if: steps.nimi_mods_access.outputs.available == 'true'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: nimiplatform/nimi-mods
-          ref: ${{ env.NIMI_MODS_REF }}
-          path: nimi-mods
-          fetch-depth: 1
-          token: ${{ env.NIMI_MODS_CHECKOUT_TOKEN }}
-
       - name: Setup pnpm
-        if: steps.nimi_mods_access.outputs.available == 'true'
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
         with:
           version: 10.32.1
 
       - name: Setup Node.js
-        if: steps.nimi_mods_access.outputs.available == 'true'
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: 24
           package-manager-cache: false
 
       - name: Setup Go
-        if: steps.nimi_mods_access.outputs.available == 'true'
         uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
           go-version-file: runtime/go.mod
           cache: false
 
       - name: Install Rust toolchain
-        if: steps.nimi_mods_access.outputs.available == 'true'
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
         with:
           toolchain: stable
 
       - name: Install Linux system dependencies
-        if: steps.nimi_mods_access.outputs.available == 'true' && matrix.platform == 'ubuntu-22.04'
+        if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf webkit2gtk-driver xvfb
 
       - name: Install dependencies
-        if: steps.nimi_mods_access.outputs.available == 'true'
         run: pnpm install --no-frozen-lockfile
 
       - name: Install desktop E2E driver
-        if: steps.nimi_mods_access.outputs.available == 'true' && matrix.platform != 'macos-latest'
+        if: matrix.platform != 'macos-latest'
         run: cargo install tauri-driver --locked
 
       - name: Install matching Windows native driver
         id: windows_native_driver
-        if: steps.nimi_mods_access.outputs.available == 'true' && matrix.platform == 'windows-2025-vs2026'
+        if: matrix.platform == 'windows-2025-vs2026'
         shell: pwsh
         run: ./scripts/release/install-matching-msedgedriver.ps1
 
       - name: Build SDK surfaces (desktop runtime dependency)
-        if: steps.nimi_mods_access.outputs.available == 'true'
         run: pnpm build:sdk
-
-      - name: Install nimi-mods dependencies
-        if: steps.nimi_mods_access.outputs.available == 'true'
-        run: pnpm --dir nimi-mods install --no-frozen-lockfile
-
-      - name: Build runtime mods for desktop E2E
-        if: steps.nimi_mods_access.outputs.available == 'true'
-        run: pnpm --dir nimi-mods run build
-
-      - name: Validate runtime mod entries for desktop E2E
-        if: steps.nimi_mods_access.outputs.available == 'true'
-        run: pnpm --filter @nimiplatform/desktop run smoke:mods
 
       - name: Run desktop E2E smoke (Linux)
         id: desktop_e2e_smoke_linux
-        if: steps.nimi_mods_access.outputs.available == 'true' && matrix.platform == 'ubuntu-22.04'
+        if: matrix.platform == 'ubuntu-22.04'
         env:
           NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
         run: xvfb-run -a pnpm check:desktop-e2e-smoke
 
       - name: Run desktop E2E journeys (Linux)
         id: desktop_e2e_journeys_linux
-        if: steps.nimi_mods_access.outputs.available == 'true' && matrix.platform == 'ubuntu-22.04'
+        if: matrix.platform == 'ubuntu-22.04'
         env:
           NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
         run: xvfb-run -a pnpm check:desktop-e2e-journeys
 
       - name: Run desktop E2E smoke (Windows)
         id: desktop_e2e_smoke_windows
-        if: steps.nimi_mods_access.outputs.available == 'true' && matrix.platform == 'windows-2025-vs2026'
+        if: matrix.platform == 'windows-2025-vs2026'
         env:
           NIMI_E2E_NATIVE_DRIVER: ${{ steps.windows_native_driver.outputs.msedgedriver_path }}
         run: pnpm check:desktop-e2e-smoke
 
       - name: Run desktop E2E journeys (Windows)
         id: desktop_e2e_journeys_windows
-        if: steps.nimi_mods_access.outputs.available == 'true' && matrix.platform == 'windows-2025-vs2026'
+        if: matrix.platform == 'windows-2025-vs2026'
         env:
           NIMI_E2E_NATIVE_DRIVER: ${{ steps.windows_native_driver.outputs.msedgedriver_path }}
         run: pnpm check:desktop-e2e-journeys
 
       - name: Generate desktop E2E evidence (Linux)
-        if: always() && steps.nimi_mods_access.outputs.available == 'true' && matrix.platform == 'ubuntu-22.04'
+        if: always() && matrix.platform == 'ubuntu-22.04'
         run: |
           pnpm --filter @nimiplatform/desktop run report:desktop-e2e-evidence -- \
             --platform ubuntu-22.04 \
@@ -228,7 +176,7 @@ jobs:
           JOURNEYS_OUTCOME: ${{ steps.desktop_e2e_journeys_linux.outcome }}
 
       - name: Generate desktop E2E evidence (Windows)
-        if: always() && steps.nimi_mods_access.outputs.available == 'true' && matrix.platform == 'windows-2025-vs2026'
+        if: always() && matrix.platform == 'windows-2025-vs2026'
         shell: bash
         run: |
           pnpm --filter @nimiplatform/desktop run report:desktop-e2e-evidence -- \
@@ -248,7 +196,7 @@ jobs:
           NATIVE_DRIVER: ${{ steps.windows_native_driver.outputs.msedgedriver_path }}
 
       - name: Upload desktop E2E evidence
-        if: always() && steps.nimi_mods_access.outputs.available == 'true' && matrix.platform != 'macos-latest'
+        if: always() && matrix.platform != 'macos-latest'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: desktop-e2e-evidence-${{ matrix.platform }}
@@ -256,20 +204,15 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload desktop E2E artifacts
-        if: failure() && steps.nimi_mods_access.outputs.available == 'true' && matrix.platform != 'macos-latest'
+        if: failure() && matrix.platform != 'macos-latest'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: desktop-e2e-artifacts-${{ matrix.platform }}
           path: apps/desktop/reports/e2e/**
           if-no-files-found: ignore
 
-      - name: Validate desktop mods env contract
-        if: steps.nimi_mods_access.outputs.available == 'true'
-        run: pnpm --filter @nimiplatform/desktop run env:check:mods-root
-
       - name: Resolve macOS signing mode
         id: macos_signing
-        if: steps.nimi_mods_access.outputs.available == 'true'
         env:
           MATRIX_PLATFORM: ${{ matrix.platform }}
           CONFIGURED_MODE: ${{ vars.NIMI_DESKTOP_MACOS_SIGNING_MODE || 'developer-id' }}
@@ -305,13 +248,11 @@ jobs:
           } >> "${GITHUB_OUTPUT}"
 
       - name: Normalize desktop updater public key
-        if: steps.nimi_mods_access.outputs.available == 'true'
         env:
           NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
         run: node apps/desktop/scripts/normalize-updater-public-key.mjs --write-github-env
 
       - name: Write desktop updater Tauri config
-        if: steps.nimi_mods_access.outputs.available == 'true'
         env:
           NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
         run: |
@@ -319,7 +260,6 @@ jobs:
             --output apps/desktop/src-tauri/target/ci-updater.conf.json
 
       - name: Validate desktop signing inputs
-        if: steps.nimi_mods_access.outputs.available == 'true'
         run: |
           set -euo pipefail
           if [[ -z "${NIMI_DESKTOP_UPDATER_PUBLIC_KEY:-}" ]]; then
@@ -376,7 +316,6 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
 
       - name: Prepare bundled runtime resources
-        if: steps.nimi_mods_access.outputs.available == 'true'
         run: |
           pnpm --filter @nimiplatform/desktop run prepare:runtime-bundle -- \
             --version "${RELEASE_VERSION}" \
@@ -384,16 +323,14 @@ jobs:
             --commit "${GITHUB_SHA}"
 
       - name: Validate desktop version sync
-        if: steps.nimi_mods_access.outputs.available == 'true'
         run: pnpm --filter @nimiplatform/desktop run check:version-sync -- --expected "${RELEASE_VERSION}"
 
       - name: Validate bundled runtime manifest
-        if: steps.nimi_mods_access.outputs.available == 'true'
         run: pnpm --filter @nimiplatform/desktop run check:desktop-release-sync -- --expected "${RELEASE_VERSION}"
 
       - name: Build desktop updater artifacts (non-macOS)
         id: tauri_build_non_macos
-        if: steps.nimi_mods_access.outputs.available == 'true' && matrix.platform != 'macos-latest'
+        if: matrix.platform != 'macos-latest'
         uses: tauri-apps/tauri-action@73fb865345c54760d875b94642314f8c0c894afa # action-v0.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -409,7 +346,7 @@ jobs:
 
       - name: Build desktop updater artifacts (macOS ad-hoc)
         id: tauri_build_macos_ad_hoc
-        if: steps.nimi_mods_access.outputs.available == 'true' && matrix.platform == 'macos-latest' && steps.macos_signing.outputs.use_ad_hoc_signing == 'true'
+        if: matrix.platform == 'macos-latest' && steps.macos_signing.outputs.use_ad_hoc_signing == 'true'
         uses: tauri-apps/tauri-action@73fb865345c54760d875b94642314f8c0c894afa # action-v0.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -426,7 +363,7 @@ jobs:
 
       - name: Build desktop updater artifacts (macOS Developer ID)
         id: tauri_build_macos_developer_id
-        if: steps.nimi_mods_access.outputs.available == 'true' && matrix.platform == 'macos-latest' && steps.macos_signing.outputs.require_apple_credentials == 'true'
+        if: matrix.platform == 'macos-latest' && steps.macos_signing.outputs.require_apple_credentials == 'true'
         uses: tauri-apps/tauri-action@73fb865345c54760d875b94642314f8c0c894afa # action-v0.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -448,7 +385,6 @@ jobs:
 
       - name: Resolve desktop updater artifact paths
         id: tauri_build
-        if: steps.nimi_mods_access.outputs.available == 'true'
         env:
           ARTIFACT_PATHS_NON_MACOS: ${{ steps.tauri_build_non_macos.outputs.artifactPaths }}
           ARTIFACT_PATHS_MACOS_AD_HOC: ${{ steps.tauri_build_macos_ad_hoc.outputs.artifactPaths }}
@@ -467,14 +403,12 @@ jobs:
           } >> "${GITHUB_OUTPUT}"
 
       - name: Validate desktop updater artifacts
-        if: steps.nimi_mods_access.outputs.available == 'true'
         env:
           NIMI_ARTIFACT_PATHS_JSON: ${{ steps.tauri_build.outputs.artifactPaths }}
           NIMI_EXPECTED_BUNDLE: ${{ matrix.extra_args }}
         run: pnpm --filter @nimiplatform/desktop run check:desktop-updater-artifacts
 
       - name: Generate desktop dry-run evidence
-        if: steps.nimi_mods_access.outputs.available == 'true'
         env:
           NIMI_ARTIFACT_PATHS_JSON: ${{ steps.tauri_build.outputs.artifactPaths }}
         run: |
@@ -488,7 +422,6 @@ jobs:
 
       - name: Compose desktop dry-run upload paths
         id: upload_paths
-        if: steps.nimi_mods_access.outputs.available == 'true'
         env:
           NIMI_ARTIFACT_PATHS_JSON: ${{ steps.tauri_build.outputs.artifactPaths }}
         run: |
@@ -514,15 +447,8 @@ jobs:
           NODE
 
       - name: Upload desktop dry-run artifacts
-        if: steps.nimi_mods_access.outputs.available == 'true'
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: desktop-dry-run-${{ matrix.platform }}-${{ needs.resolve.outputs.version }}
           path: ${{ steps.upload_paths.outputs.paths }}
           if-no-files-found: error
-
-      - name: Fail missing dry-run prerequisites
-        if: always() && steps.nimi_mods_access.outputs.available != 'true'
-        run: |
-          echo "Desktop release dry-run requires access to nimiplatform/nimi-mods at ${NIMI_MODS_REF}. Configure NIMI_MODS_REPO_TOKEN or repository access before rerunning." >&2
-          exit 1

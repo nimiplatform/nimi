@@ -265,10 +265,6 @@ export function bootstrapRuntime(): Promise<void> {
       fetchImpl: proxyFetch,
     });
 
-    appStore.setLocalManifestSummaries([]);
-    appStore.setRegisteredRuntimeModIds([]);
-    appStore.setRuntimeModFailures([]);
-
     try {
       await withTimeout(
         bootstrapAuthSession({
@@ -310,11 +306,6 @@ export function bootstrapRuntime(): Promise<void> {
       message: 'phase:web-bootstrap:done',
       flowId,
       costMs: Number((performance.now() - startedAt).toFixed(2)),
-      details: {
-        runtimeModCount: 0,
-        manifestCount: 0,
-        runtimeModFailureCount: 0,
-      },
     });
   })().catch((error) => {
     const message = safeErrorMessage(error);

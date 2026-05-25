@@ -64,7 +64,7 @@ vi.mock('@world-engine/state/workspace/normalize.js', () => ({
 const mockLoadLocalStorageJson = vi.fn<(...args: unknown[]) => unknown>(() => null);
 const mockSaveLocalStorageJson = vi.fn<(...args: unknown[]) => void>();
 
-vi.mock('@nimiplatform/sdk/mod', () => ({
+vi.mock('@nimiplatform/sdk/ai', () => ({
   asRecord: (v: unknown) => (v && typeof v === 'object' ? v : {}),
   loadLocalStorageJson: (...args: unknown[]) => mockLoadLocalStorageJson(...(args as [unknown?, unknown?, unknown?])),
   saveLocalStorageJson: (...args: unknown[]) => mockSaveLocalStorageJson(...(args as [unknown?, unknown?])),

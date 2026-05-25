@@ -34,41 +34,6 @@ const specs = [
     render: renderStoreSlices,
   },
   {
-    input: 'hook-subsystems.yaml',
-    output: 'hook-subsystems.md',
-    render: renderHookSubsystems,
-  },
-  {
-    input: 'hook-capability-allowlists.yaml',
-    output: 'hook-capability-allowlists.md',
-    render: renderHookCapabilityAllowlists,
-  },
-  {
-    input: 'ui-slots.yaml',
-    output: 'ui-slots.md',
-    render: renderUiSlots,
-  },
-  {
-    input: 'turn-hook-points.yaml',
-    output: 'turn-hook-points.md',
-    render: renderTurnHookPoints,
-  },
-  {
-    input: 'mod-kernel-stages.yaml',
-    output: 'mod-kernel-stages.md',
-    render: renderModKernelStages,
-  },
-  {
-    input: 'mod-lifecycle-states.yaml',
-    output: 'mod-lifecycle-states.md',
-    render: renderModLifecycleStates,
-  },
-  {
-    input: 'mod-access-modes.yaml',
-    output: 'mod-access-modes.md',
-    render: renderModAccessModes,
-  },
-  {
     input: 'feature-flags.yaml',
     output: 'feature-flags.md',
     render: renderFeatureFlags,
@@ -142,26 +107,6 @@ const specs = [
     input: 'rule-evidence.yaml',
     output: 'rule-evidence.md',
     render: renderRuleEvidence,
-  },
-  {
-    input: 'codegen-import-allowlist.yaml',
-    output: 'codegen-import-allowlist.md',
-    render: renderCodegenImportAllowlist,
-  },
-  {
-    input: 'codegen-capability-tiers.yaml',
-    output: 'codegen-capability-tiers.md',
-    render: renderCodegenCapabilityTiers,
-  },
-  {
-    input: 'codegen-static-scan-deny-patterns.yaml',
-    output: 'codegen-static-scan-deny-patterns.md',
-    render: renderCodegenStaticScanDenyPatterns,
-  },
-  {
-    input: 'codegen-acceptance-gates.yaml',
-    output: 'codegen-acceptance-gates.md',
-    render: renderCodegenAcceptanceGates,
   },
 ];
 
