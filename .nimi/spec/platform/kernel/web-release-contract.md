@@ -8,7 +8,7 @@
 
 ## P-WEB-002 — Desktop Public Boundary
 
-Web shell mode may consume desktop public-for-web surfaces and web-specific adapter replacements, but it must not import Tauri APIs, desktop-private renderer aliases, runtime internals, or local filesystem/mod behaviors. Unsupported desktop-only release/self-update surfaces must fail closed rather than returning pseudo-success values.
+Web shell mode may consume desktop public-for-web surfaces and web-specific adapter replacements, but it must not import Tauri APIs, desktop-private renderer aliases, runtime internals, or local filesystem behaviors. Unsupported desktop-only release/self-update surfaces must fail closed rather than returning pseudo-success values.
 
 Web shell bootstrap is client-only: no SSR and no service worker cache are part of the product contract. `realmBaseUrl` resolves to the browser same-origin deployment unless an admitted web release adapter supplies a different origin. Browser OAuth redirect replaces Tauri deep links, and raw bearer tokens remain memory-only while persistent browser storage carries non-sensitive session metadata.
 

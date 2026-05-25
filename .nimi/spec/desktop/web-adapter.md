@@ -30,7 +30,3 @@ This guide points to the desktop authority surfaces for web-adapter. It does not
 - `.nimi/spec/desktop/kernel/tables/app-tabs.yaml`
 - `.nimi/spec/desktop/kernel/tables/bootstrap-phases.yaml`
 - `.nimi/spec/desktop/kernel/tables/build-chunks.yaml`
-- `.nimi/spec/desktop/kernel/tables/codegen-acceptance-gates.yaml`
-- `.nimi/spec/desktop/kernel/tables/codegen-capability-tiers.yaml`
-- `.nimi/spec/desktop/kernel/tables/codegen-import-allowlist.yaml`
-- `.nimi/spec/desktop/kernel/tables/codegen-static-scan-deny-patterns.yaml`

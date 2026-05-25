@@ -15,7 +15,7 @@ entries:
     or install
   - a degraded or unsupported profile must project plan constraints explicitly
   - Runtime must preserve cloud-only readiness even when profile probing fails
-  - Desktop, SDK, mods, and engines may consume profile projection only
+  - Desktop, SDK, and engines may consume profile projection only
 
 # Canonical host capability profile authority.
 # The profile is Runtime-owned evidence for plan resolution. It is not an
@@ -93,4 +93,4 @@ profile_rules:
   - profile refresh may update evidence but must not start dependency download or install
   - a degraded or unsupported profile must project plan constraints explicitly
   - Runtime must preserve cloud-only readiness even when profile probing fails
-  - Desktop, SDK, mods, and engines may consume profile projection only
+  - Desktop, SDK, and engines may consume profile projection only

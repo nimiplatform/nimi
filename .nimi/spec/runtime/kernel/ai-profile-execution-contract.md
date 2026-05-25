@@ -74,8 +74,6 @@ runtime 侧执行快照的最小要求：
 - desktop `AISnapshot.runtimeEvidence` 消费 runtime execution evidence。
 - desktop 通过 `ConversationExecutionSnapshot`（D-LLM-019）或等效 snapshot slice 记录 app-facing execution evidence。
 - scheduling preflight judgement 通过 `AISnapshot.runtimeEvidence.schedulingJudgement` 传递到 desktop（D-AIPC-004），且该值始终对应 submit-specific execution target。
-- 对 desktop mod consumer，app-facing `AISnapshot` 的 record / read owner 仍是 Desktop host；mod host bridge 负责把 mod execution 绑定到 canonical mod `scopeRef` 并记录 snapshot。
-- runtime 不感知 mod business code 的 consumer-local snapshot model；runtime 只提供 execution evidence 数据，不能被解释为把 snapshot ownership 下放给 mod。
 - runtime 不感知 desktop 的 `AISnapshot` 或 `AIConfig` schema；runtime 只提供 execution evidence 数据。
 
 ## K-AIEXEC-004 — Scheduling Boundary

@@ -8,7 +8,9 @@
 
 本契约是 Desktop 侧 AI 配置的最终态 canonical owner。
 
-在 desktop surface 中，Desktop host 既是 app scope 也是 mod scope 的 `AIConfig` / `AISnapshot` host-local persistence owner；mod business code 只能通过 formal host bridge 消费本 authority，不能自持久化平行真相。
+在 desktop surface 中，Desktop host 是 canonical app / module / feature scope 的
+`AIConfig` / `AISnapshot` host-local persistence owner；consumer 只能通过
+formal host bridge 消费本 authority，不能自持久化平行真相。
 
 Agent chat behavior semantics 不由本契约拥有。`AIProfile` / `AIConfig` /
 `AISnapshot` 只拥有 AI configuration authority；single-message、turn-mode、
@@ -46,11 +48,11 @@ Desktop AI 配置 authority 固定为三段式：
 - device-specific feasibility state / host-specific engine binary path
 - live health / availability state
 
-与 `ModRuntimeLocalProfile` / `LocalAiProfileDescriptor` 的关系：
+与 `RuntimeLocalProfile` / `LocalAiProfileDescriptor` 的关系：
 
 - runtime local profile 是 runtime-facing、installable 的 local dependency / execution package。
 - 一个 `AIProfile` 可引用、组合或派生出一个或多个 runtime local profile。
-- `AIProfile` 与 `ModRuntimeLocalProfile` 不假定一一对应。
+- `AIProfile` 与 runtime local profile 不假定一一对应。
 - portable profile payload 与 machine-local install state 之间的边界由 D-AIPC-007 定义。
 
 ## D-AIPC-003 — AIConfig Semantics
@@ -58,11 +60,10 @@ Desktop AI 配置 authority 固定为三段式：
 `AIConfig` 是某个 scope 当前实际生效的 AI 配置：
 
 - 必须绑定到 canonical `AIScopeRef`（P-AISC-001）。
-- scope 不限于 app；可为 app / mod / module / feature。
+- scope 不限于 app；可为 app / module / feature。
 - `AIConfig` 必须是 full materialized config — 不允许 partial overlay 或 scope 间 fallback chain（P-AISC-003）。
 - `AIConfig` 可与 `AIProfile` 共享 schema subset；区别在于 owner 语义（bound vs template），不在字段形状。
-- 在 Desktop host 中，`AIConfig` 的 canonical persistence / subscription / scope-keyed read-write owner 必须是 shared Desktop host AIConfig service，而不是某个单独 consumer 私有的 chat-local 或 mod-local storage helper。
-- mod business code 只能通过 Desktop host bridge 编辑或读取其 scope 的 `AIConfig`；不得自定义并持久化另一份 mod-local live AI truth。
+- 在 Desktop host 中，`AIConfig` 的 canonical persistence / subscription / scope-keyed read-write owner 必须是 shared Desktop host AIConfig service，而不是某个单独 consumer 私有的 chat-local storage helper。
 
 `AIConfig` 内部结构固定包含：
 
@@ -102,8 +103,8 @@ Memory embedding config 被明确 admit 为第一类 adjacent live config surfac
   bank identity、migration state、或 cutover result
 
 Desktop consumer 必须通过 typed Desktop host config surface 读取/写入这类
-adjacent live config；不得把 renderer-local state、mod-local state、或 runtime
-private loopback convenience endpoint 当成正式 live-config owner。
+adjacent live config；不得把 renderer-local state 或 runtime private loopback
+convenience endpoint 当成正式 live-config owner。
 
 ## D-AIPC-004 — AISnapshot Semantics
 
@@ -124,8 +125,7 @@ private loopback convenience endpoint 当成正式 live-config owner。
 - 运行中 turn / job 只读自己的 snapshot，不回读 live `AIConfig`
 - `runtimeEvidence` 为 null 表示 submit path 未执行 scheduling preflight（如 cloud route 不经过 local scheduler），不是错误
 - 若 submit path 只有 scope aggregate feasibility 结果而没有 target-scoped scheduling judgement，则 `runtimeEvidence.schedulingJudgement` 必须保持为 null，不允许用 scope aggregate 充当 execution evidence
-- 在 Desktop host 中，`AISnapshot` 的 schema、record 与 read owner 同样归 Desktop host；mod business code 不得自定义 consumer-local `AISnapshot` schema 或把 mod-local storage 当成正式 snapshot owner。
-- mod-facing execution path 必须通过 mod host bridge 接入 formal `AIConfig` / `AISnapshot` authority；bridge 负责把 mod consumer 的 execution 绑定到 canonical `scopeRef`，而不是由 mod business code 私自决定 snapshot owner 语义。
+- 在 Desktop host 中，`AISnapshot` 的 schema、record 与 read owner 同样归 Desktop host；consumer 不得自定义 consumer-local `AISnapshot` schema 或把 local storage 当成正式 snapshot owner。
 - snapshot 若记录 agent chat behavior evidence，也只能记录来自
   `agent-chat-behavior-contract.md`（`D-LLM-022` ~ `D-LLM-025`）的 resolved outputs；
   `AISnapshot` 不得在 capture 时重新解析、覆写、或补默认 behavior truth
@@ -154,8 +154,7 @@ Apply probe / failure 规则：
 - global 层只保留 profile catalog。
 - 不允许把所有 scope 的 live config 收口成一个全局单值。
 - 每个 scope 独立持有 `AIConfig`，不存在跨 scope 联动 live config 的机制。
-- 若某个 consumer 需要“当前正在编辑的 scope”便利状态，该 active-scope orchestration 只能是 consumer-local helper，不能扩展为跨 chat / mod host 的全局 singleton。
-- mod-facing surface 调用应优先显式传入 `scopeRef`；不得继承 desktop chat 的 active scope 单值作为默认行为。
+- 若某个 consumer 需要“当前正在编辑的 scope”便利状态，该 active-scope orchestration 只能是 consumer-local helper，不能扩展为全局 singleton。
 
 ## D-AIPC-007 — Portable Profile Boundary
 
@@ -239,9 +238,8 @@ portable payload 的目标是：任何 profile 可在不同设备间迁移，接
 
 ### Host ownership and bridge
 
-- Desktop host 必须对所有 desktop-resident scope（包括 `kind: 'mod'` scope）提供统一的 AIConfig authority bridge。
-- chat、settings、future mod workspace 等 consumer 都只能作为 shared Desktop host AIConfig service 的 consumer，不得各自持有独立 persistence owner。
-- mod host bridge 负责把 mod manifest identity 映射到 canonical mod `AIScopeRef`，并把 mod consumer 接到 formal `AIConfig` / `AISnapshot` surface；mod business code 不得直接操作 host persistence。
+- Desktop host 必须对所有 desktop-resident canonical scopes 提供统一的 AIConfig authority bridge。
+- chat、settings 等 consumer 都只能作为 shared Desktop host AIConfig service 的 consumer，不得各自持有独立 persistence owner。
 
 ## D-AIPC-012 — Runtime Probe Taxonomy
 
@@ -260,7 +258,7 @@ profile 与 config 的 probe 分为三类：
 - `probeFeasibility(scopeRef)` 是 scope aggregate surface，不是 submit-time authoritative execution truth。
 - Desktop 必须区分 scope aggregate 与 submit-target scheduling evaluation；不允许继续用单个 primary local profile 同时代表这两种语义。
 - aggregate `unknown` 不得在 UI 或 submit 逻辑中被伪装成 `runnable`。
-- 上述 probe taxonomy 同时适用于 app scope 与 mod scope；mod consumer 不得绕过 formal AIConfig surface，直接把 raw runtime route / scheduler low-level API 升格为 product-facing probe owner。
+- 上述 probe taxonomy 适用于 canonical desktop scopes；consumer 不得绕过 formal AIConfig surface，直接把 raw runtime route / scheduler low-level API 升格为 product-facing probe owner。
 
 UI 必须根据 probe 类别展示对应级别的状态信息。不允许将不同类别的 probe failure 混为同一个 generic "unavailable" 标签。当 `schedulingJudgement` 可用时，UI 应展示 scheduling state 的具体含义（queue、slowdown、denied），而不是仅展示 aggregate `status`。
 
@@ -345,9 +343,8 @@ preview 的 base version 过期；此时 commit 端必须依据 `D-AIPC-005` 的
 version / CAS 保护处理，不允许把过期 preview 的 `after` 当作权威 commit 输入。
 preview 自身不持有锁，也不冻结 scope。
 
-本规则同时适用于 app scope 与 mod scope；mod consumer 的 apply preview 必须经过
-`D-AIPC-011` 定义的 Desktop host AIConfig bridge，不得自定义 mod-local preview
-真相。
+本规则适用于 canonical desktop scopes；apply preview 必须经过 `D-AIPC-011`
+定义的 Desktop host AIConfig bridge，不得自定义 local preview 真相。
 
 ## Fact Sources
 

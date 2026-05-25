@@ -38,8 +38,8 @@ Fixed rules:
   renderer/backend-specific action controls remain outside this APML dialect
 - public chat APML does not admit direct motion, expression, look-at, pose,
   speech-prosody, surface-routing, notification, tool, chain-of-thought,
-  memory-write, posture/status, hook-cancel, namespace extension, mod
-  extension, or parser-event syntax
+  memory-write, posture/status, hook-cancel, namespace extension, or
+  parser-event syntax
 - public `<event-hook>` is admitted only for the narrow HookIntent v1 event
   subset: `event-user-idle` with a positive `idle-for` / `idle-for-ms` duration
   or `event-chat-ended`; it must carry `<effect kind="follow-up-turn">`

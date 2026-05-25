@@ -40,8 +40,8 @@ Realm 真值。它 **不拥有**：
 固定其产品职责为 Realm discovery。
 
 `MUST NOT`：不得在 ordinary primary navigation 中保留独立于 `Explore` 的
-`World` 入口。`Explore` 当前阶段不得承载 App / Nimi App / Mod / Extension
-发现 —— App discovery 属于 `Apps` 表面（`D-HOME-004`），不在本契约范围。
+`World` 入口。`Explore` 当前阶段不得承载 App / Nimi App 发现 —— App
+discovery 属于 `Apps` 表面（`D-HOME-004`），不在本契约范围。
 
 `MUST NOT`：不得把 `Explore` 退化成单一列表而丢失下述三区的语义区分。
 

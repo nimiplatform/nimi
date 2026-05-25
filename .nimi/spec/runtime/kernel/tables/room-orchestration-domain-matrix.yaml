@@ -28,7 +28,7 @@ rows:
       participant_set_source:
         owner: K-AGCORE
         allowed_evidence_source: Realm-authenticated group member and agent slot evidence.
-        forbidden_parallel_truth: Open participant strings from Desktop, Web, SDK, or mods.
+        forbidden_parallel_truth: Open participant strings from Desktop, Web, or SDK.
         handoff_refusal_posture: Missing Realm evidence fails closed.
       trigger_arbitration:
         owner: K-AGCORE

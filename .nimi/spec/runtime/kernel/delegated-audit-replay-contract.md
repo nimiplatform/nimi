@@ -68,5 +68,5 @@ when replay is required evidence.
 Delegation audit event `domain` values must use `runtime.delegation` or a
 more-specific Runtime-owned subdomain such as `runtime.delegation.firewall`.
 
-No Desktop, Avatar, app, mod, MCP, or A2A audit domain may become the canonical
+No Desktop, Avatar, app, MCP, or A2A audit domain may become the canonical
 source for delegated decision lineage.

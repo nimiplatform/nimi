@@ -96,33 +96,6 @@ canonical 配置路径固定为 `~/.nimi/runtime/config.json`（K-CFG-001）；D
 
 支持 PKCE（codeVerifier）和 clientSecret 两种模式。
 
-## D-IPC-007 — Mod 本地命令
-
-Mod 本地持久化与审计命令集（`runtime_mod::commands`）：
-
-- `runtime_mod_list_local_manifests`：列出 runtime mods 目录中的本地 mod 清单摘要。
-- `runtime_mod_list_installed`：列出已安装 mod 清单。
-- `runtime_mod_install` / `runtime_mod_update` / `runtime_mod_uninstall`：developer/internal mod 安装生命周期命令。`runtime_mod_uninstall` 只卸载 package，不删除 `{nimi_data_dir}/mod-data/{mod_id}`。`nimi_data_dir` 必须来自已选择并调和的 product `nimi_data`。
-- `runtime_mod_read_manifest`：读取已安装 mod manifest。
-- `runtime_mod_install_progress`：查询安装进度事件。
-- `runtime_mod_read_local_entry`：读取 mod 入口源码。
-- `runtime_mod_read_local_asset`：读取 manifest 声明的本地 mod 图标资源，返回 `mimeType + base64`。
-- `runtime_mod_append_audit` / `runtime_mod_query_audit` / `runtime_mod_delete_audit`：mod 审计记录 CRUD。
-- `runtime_mod_get_action_idempotency` / `runtime_mod_put_action_idempotency` / `runtime_mod_purge_action_idempotency`：action 幂等性记录。
-- `runtime_mod_get_action_verify_ticket` / `runtime_mod_put_action_verify_ticket` / `runtime_mod_delete_action_verify_ticket` / `runtime_mod_purge_action_verify_tickets`：action 验证票据。
-- `runtime_mod_put_action_execution_ledger` / `runtime_mod_query_action_execution_ledger` / `runtime_mod_purge_action_execution_ledger`：action 执行账本。
-- `runtime_mod_media_cache_put` / `runtime_mod_media_cache_gc`：mod 媒体缓存写入与垃圾回收。
-- `runtime_mod_storage_file_read` / `runtime_mod_storage_file_write` / `runtime_mod_storage_file_delete` / `runtime_mod_storage_file_list` / `runtime_mod_storage_file_stat`：host-managed mod files 子树访问。
-- `runtime_mod_storage_sqlite_query` / `runtime_mod_storage_sqlite_execute` / `runtime_mod_storage_sqlite_transaction`：host-managed per-mod sqlite 访问。
-- `runtime_mod_storage_data_purge`：显式删除 `{nimi_data_dir}/mod-data/{mod_id}`，供 Mod Hub / Settings 发起数据清理动作。
-
-存储边界固定如下：
-
-- installed mod package 继续位于 `{nimi_data_dir}/mods`，但该 surface 是 developer/internal/retirement-only，不是 ordinary Apps install storage。
-- mod 持久化数据固定位于 `{nimi_data_dir}/mod-data/{mod_id}`。
-- `files` 仅允许访问 `files/` 子树，拒绝绝对路径、空路径、`..` 与符号链接越界。
-- `sqlite` 仅允许访问 `sqlite/main.db`，并拒绝 `ATTACH`、`DETACH`、`VACUUM INTO`、`load_extension`。
-
 ## D-IPC-008 — External Agent 命令
 
 - `external_agent_issue_token`：签发 agent token。
@@ -185,7 +158,7 @@ Desktop 自更新命令集：
 - D-IPC-001 (auth session), D-IPC-002 (daemon lifecycle), D-IPC-004 (HTTP proxy), D-IPC-005 (UI commands `open_external_url`), D-IPC-006 (OAuth), D-IPC-009 (invoke infrastructure, `log_renderer_event`) shared implementations live in `kit/shell/tauri/**`.
 - Apps must not duplicate these shared command implementations in app-local Rust code.
 - Apps must not use `#[path = "..."]` to compile another app's Rust source for shared bridge functionality.
-- App-specific Tauri commands (D-IPC-007 mod commands, D-IPC-008 external agent, desktop menu bar, desktop self-update) remain app-local.
+- App-specific Tauri commands (D-IPC-008 external agent, desktop menu bar, desktop self-update) remain app-local.
 
 ## D-IPC-012 — IPC 桥与 SDK 路径分界
 
@@ -209,8 +182,6 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 - 配置管理（D-IPC-003: config_get/config_set + hot-reload 提示）
 - HTTP 代理（D-IPC-004: proxy fetch）
 - OAuth 流（D-IPC-006: token exchange）
-- Mod 清单管理（D-IPC-007: list/read local manifests）
-- Mod 图标资源读取（D-IPC-007: read local asset）
 - External Agent 管理（D-IPC-008: token/action/gateway）
 - shell-native / host helper 能力（D-IPC-011：picker、reveal、notification、以及仍未下沉到 runtime 的 host-local helper）
 
@@ -257,7 +228,7 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 - `runtime_local_models_catalog_list_variants`：host-local catalog helper；不得被视为模型清单、安装状态或 transfer 真源。
 - `runtime_local_recommendation_feed_get`：host-local recommendation helper；install/import/download/lifecycle 真源仍是 `RuntimeLocalService`。
 - `runtime_local_profiles_resolve` / `runtime_local_profiles_apply`：profile 解析与应用。
-- `runtime_local_profiles_apply_status` / `runtime_local_profiles_apply_sessions`：读取 durable profile apply session 状态，供 reload 后 host/mod 查询已接受 job 的 running/terminal 结果；不得以 event-only success 取代 durable terminal evidence。Desktop host-local state 至少保留最近 500 条 profile apply session 终态/进度快照，超出时按 `occurred_at` 丢弃最旧记录。
+- `runtime_local_profiles_apply_status` / `runtime_local_profiles_apply_sessions`：读取 durable profile apply session 状态，供 reload 后 host 查询已接受 job 的 running/terminal 结果；不得以 event-only success 取代 durable terminal evidence。Desktop host-local state 至少保留最近 500 条 profile apply session 终态/进度快照，超出时按 `occurred_at` 丢弃最旧记录。
 - `runtime_local_assets_reveal_in_folder` / `runtime_local_assets_reveal_root_folder`：在系统文件管理器中打开目录。
 - `runtime_local_assets_scan_unregistered`：host-local intake helper。若产品路径已通过 runtime `ScanUnregisteredAssets` 获得同等结果，则前者不得再被当作权威扫描源。
 - `runtime_local_assets_scaffold_orphan`：对经过显式 review 的 loose/orphan asset 执行 host-assisted intake，并调用 runtime `ScaffoldOrphanAsset` 将文件迁入 runtime-managed storage；不得形成第二套 Desktop-owned asset registry。
@@ -306,18 +277,6 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 
 - `pnpm check:no-local-ai-private-calls`
 - `pnpm check:no-local-ai-tauri-commands`
-
-## D-IPC-013 — Mod Developer Host 命令面
-
-Desktop 作为 mod developer host 时，开发态 source 管理与 reload 能力必须通过受管 IPC surface 暴露，而不是要求用户改启动参数：
-
-- source registry：`runtime_mod_sources_list`、`runtime_mod_sources_upsert`、`runtime_mod_sources_remove` — 列出、添加/更新、移除 mod source directories。
-- storage dirs：`runtime_mod_storage_dirs_get` — 只读读取当前 `nimi_dir` / `nimi_data_dir` / installed mods 路径。数据根迁移不属于本命令面：移动 `nimi_data` 必须经由 Data Management 的 `nimi_data` 迁移流程（P-MIG-007），不存在 casual data-root 重写命令。
-- developer mode：`runtime_mod_dev_mode_get`、`runtime_mod_dev_mode_set` — 读取和切换 App 内的 Developer Mode 状态。
-- reload controls：`runtime_mod_reload`、`runtime_mod_reload_all` — 对 `dev` source 中的单个 mod 或全部 mod 执行 reload。
-- diagnostics：`runtime_mod_diagnostics_list` — 列出 source 扫描结果、重复 `mod id` 冲突、最近 reload 结果。
-
-这些命令属于平台管理操作，不属于 mod 业务 API，不得要求第三方作者直接操作环境变量或文件系统约定来替代。
 
 ## D-IPC-017 — Desktop-Local Avatar Carrier IPC Decommission Boundary
 

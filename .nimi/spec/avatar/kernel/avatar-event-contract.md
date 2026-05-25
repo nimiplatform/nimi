@@ -207,7 +207,7 @@ avatar.user.click:
 
 avatar.activity.start:
   detail:
-    activity_name: string                          # "happy" | "ext:grateful" | "mod-foo:bar"
+    activity_name: string                          # "happy" | "ext:grateful" | "ext:proud"
     category: enum(emotion|interaction|state)
     intensity: enum(weak|moderate|strong) | null   # null if not applicable
     source: enum(apml_output|direct_api|mock)

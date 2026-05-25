@@ -6,8 +6,6 @@ values:
   - renderer-bootstrap
   - bridge
   - datasync
-  - hook
-  - mod
   - local-ai
   - external-agent
   - auth
@@ -33,14 +31,6 @@ areas:
 
   - area: datasync
     description: DataSync facade action errors and API call traces
-    source_rule: D-TEL-001
-
-  - area: hook
-    description: Hook runtime capability checks and registration events
-    source_rule: D-TEL-001
-
-  - area: mod
-    description: Mod governance kernel stage execution and lifecycle events
     source_rule: D-TEL-001
 
   - area: local-ai

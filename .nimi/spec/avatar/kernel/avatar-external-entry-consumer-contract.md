@@ -86,4 +86,3 @@ Avatar must refuse rendering of an external-entry projection when:
 
 Refusal must use admitted degraded/debug surfaces. It must not invent a local
 fallback driver, localhost state path, fixture carrier, or static success state.
-

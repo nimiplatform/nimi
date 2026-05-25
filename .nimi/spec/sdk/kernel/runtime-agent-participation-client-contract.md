@@ -102,7 +102,7 @@ become SDK public API.
 
 ## S-RUNTIME-219 Consumer No-Bypass
 
-SDK must not provide helper APIs that let Desktop, Web, Avatar, apps, or mods
+SDK must not provide helper APIs that let Desktop, Web, Avatar, or apps
 bypass Runtime participation authority with direct provider calls, direct model
 selection, direct Realm GROUP AI write, raw prompt assembly, or direct
 MCP/A2A client creation.
@@ -115,7 +115,7 @@ domain commits must remain under their domain owners.
 Wave-3 admits the SDK typed contract and method registry only. SDK
 implementation methods, generated client code, proto stubs, Desktop surfaces,
 Avatar surfaces, app integrations, OASIS consumers, Scenario consumers,
-A2A production entry, MCP production entry, and mod surfaces remain owned by
+A2A production entry and MCP production entry remain owned by
 later waves.
 
 Until those waves close, SDK must not claim production Runtime Agent

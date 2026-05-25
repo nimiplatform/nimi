@@ -35,7 +35,7 @@
 | `authn-token-validation.md` | `K-AUTHN-*` | JWT/JWKS 验签、缓存刷新、时钟偏差、会话失效 |
 | `auth-service.md` | `K-AUTHSVC-*` | RuntimeAuthService 契约与会话生命周期 |
 | `account-session-contract.md` | `K-ACCSVC-*` | RuntimeAccountService 契约：local first-party account session、login lifecycle、secure custody、refresh、short-lived app access-token projection、logout、user switch、daemon restart recovery、scoped binding issuance |
-| `scoped-app-binding-contract.md` | `K-BIND-*` | Runtime-issued scoped app binding：carrier 分类、生命周期、relation tuple、revocation、replay、Avatar/Mod/Desktop binding 规则 |
+| `scoped-app-binding-contract.md` | `K-BIND-*` | Runtime-issued scoped app binding：carrier 分类、生命周期、relation tuple、revocation、replay、Avatar/Desktop binding 规则 |
 | `workspace-binding-contract.md` | `K-BIND-*` | Runtime-issued workspace knowledge binding：Realm membership projection consumption、workspace-specific relation/attachment、issue/revoke lifecycle、internal resolver、decision/audit/fail-close matrix |
 | `grant-service.md` | `K-GRANT-*` | RuntimeGrantService 契约与 delegated token 约束 |
 | `key-source-routing.md` | `K-KEYSRC-*` | `connector_id`/inline 与 metadata 契约 |
@@ -74,7 +74,7 @@
 | `delegated-audit-replay-contract.md` | `K-DELEG-*` | Delegation audit/replay payload and lineage extension on top of `K-AUDIT-*` storage |
 | `delegated-approval-contract.md` | `K-DELEG-*` | Runtime-owned delegated approval request/decision/resume semantics and Desktop UX non-owner boundary |
 | `delegated-mcp-adapter-contract.md` | `K-DELEG-*` | Runtime-owned MCP adapter lifecycle、tool discovery/allowlist、token hygiene、quarantined gateway evidence、and no pre-firewall consumption |
-| `delegated-a2a-future-seam-contract.md` | `K-DELEG-*` | Future A2A adapter seam only、no production A2A support、no protocol authority promotion、and no app/Desktop/Avatar/mod bypass |
+| `delegated-a2a-future-seam-contract.md` | `K-DELEG-*` | Future A2A adapter seam only、no production A2A support、no protocol authority promotion、and no app/Desktop/Avatar bypass |
 | `app-messaging-contract.md` | `K-APP-*` | 应用间消息、事件流 |
 | `cli-onboarding-contract.md` | `K-CLI-*` | CLI 首次使用、provider-first cloud setup 与 author tooling 边界 |
 | `config-contract.md` | `K-CFG-*` | Runtime config path `~/.nimi/runtime/config.json`, source priority, secret policy, atomic writes, schema migration, and selected `nimi_data` dataRootRef boundary |

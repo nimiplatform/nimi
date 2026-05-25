@@ -1,102 +1,97 @@
 table_family: support_registry
 registry_id: desktop_rule_evidence_requirement_rules_support_devtools
 owner: desktop
-schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+schema_ref: ".nimi/contracts/table-family.schema.yaml#support_registry"
 allowed_fields:
-  - rule_id
-  - evidence_requirement
-  - evidence_refs
-  - note
-  - na_reason
-  - evidence_scope_note
-  - test_files
+- rule_id
+- evidence_requirement
+- evidence_refs
+- note
+- na_reason
+- evidence_scope_note
+- test_files
 forbidden_state_fields:
-  - done
-  - covered
-  - coverage_status
-  - audit_date
-  - evidence_report
-  - current
-  - proposed
-  - backlog_status
-  - migration_status
-  - mapping_status
-  - run_id
-  - ledger_ref
+- done
+- covered
+- coverage_status
+- audit_date
+- evidence_report
+- current
+- proposed
+- backlog_status
+- migration_status
+- mapping_status
+- run_id
+- ledger_ref
 entries:
-  - D-SUP-001
-  - D-SUP-002
-  - D-SUP-003
-  - D-SUP-004
-  - D-SUP-005
-  - D-SUP-006
-  - D-SUP-007
-  - D-SUP-008
-  - D-DEV-001
-  - D-DEV-002
-  - D-DEV-003
-  - D-DEV-004
-  - D-DEV-005
-  - D-DEV-006
-  - D-DEV-007
+- D-SUP-001
+- D-SUP-002
+- D-SUP-003
+- D-SUP-004
+- D-SUP-005
+- D-SUP-006
+- D-SUP-007
+- D-SUP-008
+- D-DEV-001
+- D-DEV-002
+- D-DEV-003
+- D-DEV-005
+- D-DEV-006
+- D-DEV-007
 rules:
-  - rule_id: D-SUP-001
-    evidence_refs:
-      - desktop_kernel_consistency
-    evidence_requirement: required
-  - rule_id: D-SUP-002
-    evidence_refs:
-      - desktop_kernel_consistency
-    evidence_requirement: required
-  - rule_id: D-SUP-003
-    evidence_refs:
-      - desktop_kernel_consistency
-    evidence_requirement: required
-  - rule_id: D-SUP-004
-    evidence_refs:
-      - desktop_kernel_consistency
-    evidence_requirement: required
-  - rule_id: D-SUP-005
-    evidence_refs:
-      - desktop_kernel_consistency
-    evidence_requirement: required
-  - rule_id: D-SUP-006
-    evidence_refs:
-      - desktop_kernel_consistency
-    evidence_requirement: required
-  - rule_id: D-SUP-007
-    evidence_refs:
-      - desktop_kernel_consistency
-    evidence_requirement: required
-  - rule_id: D-SUP-008
-    evidence_refs:
-      - desktop_kernel_consistency
-    evidence_requirement: required
-  - rule_id: D-DEV-001
-    evidence_refs:
-      - desktop_kernel_consistency
-    evidence_requirement: required
-  - rule_id: D-DEV-002
-    evidence_refs:
-      - desktop_kernel_consistency
-    evidence_requirement: required
-  - rule_id: D-DEV-003
-    evidence_refs:
-      - desktop_kernel_consistency
-    evidence_requirement: required
-  - rule_id: D-DEV-004
-    evidence_refs:
-      - desktop_kernel_consistency
-    evidence_requirement: required
-  - rule_id: D-DEV-005
-    evidence_refs:
-      - desktop_kernel_consistency
-    evidence_requirement: required
-  - rule_id: D-DEV-006
-    evidence_refs:
-      - desktop_kernel_consistency
-    evidence_requirement: required
-  - rule_id: D-DEV-007
-    evidence_refs:
-      - desktop_kernel_consistency
-    evidence_requirement: required
+- rule_id: D-SUP-001
+  evidence_refs:
+  - desktop_kernel_consistency
+  evidence_requirement: required
+- rule_id: D-SUP-002
+  evidence_refs:
+  - desktop_kernel_consistency
+  evidence_requirement: required
+- rule_id: D-SUP-003
+  evidence_refs:
+  - desktop_kernel_consistency
+  evidence_requirement: required
+- rule_id: D-SUP-004
+  evidence_refs:
+  - desktop_kernel_consistency
+  evidence_requirement: required
+- rule_id: D-SUP-005
+  evidence_refs:
+  - desktop_kernel_consistency
+  evidence_requirement: required
+- rule_id: D-SUP-006
+  evidence_refs:
+  - desktop_kernel_consistency
+  evidence_requirement: required
+- rule_id: D-SUP-007
+  evidence_refs:
+  - desktop_kernel_consistency
+  evidence_requirement: required
+- rule_id: D-SUP-008
+  evidence_refs:
+  - desktop_kernel_consistency
+  evidence_requirement: required
+- rule_id: D-DEV-001
+  evidence_refs:
+  - desktop_kernel_consistency
+  evidence_requirement: required
+- rule_id: D-DEV-002
+  evidence_refs:
+  - desktop_kernel_consistency
+  evidence_requirement: required
+- rule_id: D-DEV-003
+  evidence_refs:
+  - desktop_kernel_consistency
+  evidence_requirement: required
+- rule_id: D-DEV-005
+  evidence_refs:
+  - desktop_kernel_consistency
+  evidence_requirement: required
+- rule_id: D-DEV-006
+  evidence_refs:
+  - desktop_kernel_consistency
+  evidence_requirement: required
+- rule_id: D-DEV-007
+  evidence_refs:
+  - desktop_kernel_consistency
+  evidence_requirement: required

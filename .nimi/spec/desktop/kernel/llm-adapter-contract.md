@@ -30,7 +30,6 @@ cloud connector 路径必须保持 runtime-only：Desktop 不得恢复 legacy pr
 执行内核 turn 路由：
 
 - Desktop core product 不拥有 Agent chat route API，也不得在 DataSync / launcher / fallback policy 中内建 Agent 聊天路由。
-- mods 如需 Agent 聊天路由，必须通过 desktop host 的 data capability `data-api.core.agent.chat.route.resolve` 查询目标 agent 和 provider。
 - `data-api.core.agent.chat.route.resolve` 必须 fail-close：缺少 `agentId`、控制面请求失败、或返回 payload 非法时直接报错；Desktop host 不得合成本地 `LOCAL/AGENT_LOCAL` 成功路由。
 - `AgentEffectiveCapabilityResolution` 的唯一 authority home 是 `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）定义的 shared builder；setup / submit / runtime 不得各自重算一份 agent route truth。
 - `ExecuteLocalTurnInput` 封装完整请求（sessionId、turnIndex、mode、provider、model 参数）。
@@ -113,18 +112,18 @@ Desktop 侧 speech engine 只暴露 runtime-aligned 语音能力：
 
 ## D-LLM-007 — 分层调试责任与门禁顺序
 
-Desktop/mod 调试必须遵循固定分层门禁顺序：
+Desktop 调试必须遵循固定分层门禁顺序：
 
-- Runtime gate（K-GATE-040/K-GATE-060/K-GATE-070）未通过时，SDK 与 Desktop/mod 不得以 workaround 继续推进。
-- SDK gate（S-GATE-020/S-GATE-080/S-GATE-090）未通过时，Desktop/mod 只能修复 SDK 对接问题，不得在 Desktop 侧 hardcode 补洞。
-- Desktop/mod 仅在 Runtime+SDK 双绿灯后进入 E2E 排障。
+- Runtime gate（K-GATE-040/K-GATE-060/K-GATE-070）未通过时，SDK 与 Desktop 不得以 workaround 继续推进。
+- SDK gate（S-GATE-020/S-GATE-080/S-GATE-090）未通过时，Desktop 只能修复 SDK 对接问题，不得在 Desktop 侧 hardcode 补洞。
+- Desktop 仅在 Runtime+SDK 双绿灯后进入 E2E 排障。
 
 禁止路径：
 
 - 以 legacy 接口或 hardcode provider/model/route 规避上游未收敛问题。
 - 在 Desktop 侧复制 Runtime/SDK 的路由或能力判定逻辑。
 
-跨层引用：K-GATE-040、K-GATE-060、K-GATE-070、S-GATE-080、S-GATE-090、D-MOD-002。
+跨层引用：K-GATE-040、K-GATE-060、K-GATE-070、S-GATE-080、S-GATE-090。
 
 ## D-LLM-008 — Trace 连续性
 
@@ -132,19 +131,9 @@ LLM 适配器必须在跨模态链路保持统一 trace：
 
 - 对外返回统一 `traceId`（text/image/video/stt/embedding/speech）；`promptTraceId` 仅作为文本兼容字段并与 `traceId` 语义对齐。
 - Runtime 未返回 trace 时，Desktop 执行层必须生成可追踪 fallback trace，避免断链。
-- 推理审计载荷必须包含 `traceId + modality + routeSource + reasonCode`，确保 Runtime↔SDK↔Desktop↔Mod 可检索。
+- 推理审计载荷必须包含 `traceId + modality + routeSource + reasonCode`，确保 Runtime↔SDK↔Desktop 可检索。
 
 跨层引用：K-AUDIT-001、S-ERROR-005、D-IPC-011、D-ERR-007。
-
-## D-LLM-009 — Mod 行为门禁归属
-
-Desktop 不得把任何特定 mod 设为内建发布门禁：
-
-- Desktop 仓只保留 runtime mod smoke、安装生命周期和桥接一致性检查。
-- 任意独立 mod 的 deterministic/live E2E 必须留在该 mod 自己的仓中维护。
-- Desktop mod smoke 只验证 host/runtime contract，不替代 mod 仓的行为级 E2E。
-
-跨层引用：K-GATE-060、S-GATE-080、S-GATE-090、D-MOD-007。
 
 ## D-LLM-010 — 设备画像匹配与引擎支持
 
@@ -217,6 +206,5 @@ Desktop 消费 `world.generate` 时必须保持 runtime-only 路径：
 
 ## Fact Sources
 
-- `tables/hook-capability-allowlists.yaml` — runtime facade capability 白名单
 - `tables/error-codes.yaml` — LLM 相关错误码
 - `tables/rule-evidence.yaml` — LLM 分层门禁与证据映射

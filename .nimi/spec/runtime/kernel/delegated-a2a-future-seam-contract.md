@@ -4,7 +4,7 @@
 
 A2A is admitted only as a future Runtime delegated provider adapter seam. This
 contract does not admit production A2A execution, production A2A dependencies,
-Desktop A2A configuration, app/Avatar/mod direct A2A paths, or A2A protocol
+Desktop A2A configuration, app/Avatar direct A2A paths, or A2A protocol
 wire schemas as Nimi semantic authority.
 
 ## K-DELEG-120 A2A Future Seam Authority
@@ -29,8 +29,8 @@ replay, model-context, projection, or action path may consume them.
 
 A future A2A adapter must enter through the Runtime delegated capability gateway.
 
-It must not be called directly by Desktop, Web, Avatar, apps, mods,
-`nimi-hook`, SDK public convenience APIs, or product UI surfaces.
+It must not be called directly by Desktop, Web, Avatar, apps, SDK public
+convenience APIs, or product UI surfaces.
 
 ## K-DELEG-123 A2A Firewall Boundary
 
@@ -57,7 +57,7 @@ keys, and OAuth artifacts must remain under Runtime connector/grant/authn/authz
 custody.
 
 Future A2A adapter code must not pass raw credentials through SDK, Desktop,
-Avatar, app, mod, or `nimi-hook` surfaces.
+Avatar, or app surfaces.
 
 ## K-DELEG-126 A2A Audit And Replay Boundary
 
@@ -69,7 +69,7 @@ they must not become the canonical audit ledger.
 
 ## K-DELEG-127 A2A Product Claim Prohibition
 
-Desktop, Web, Avatar, apps, and mods must not claim production A2A availability,
+Desktop, Web, Avatar, and apps must not claim production A2A availability,
 configuration, health, or success until a future packet admits production A2A
 support.
 
@@ -83,7 +83,7 @@ Until production A2A is admitted, validation must prove there is no:
 - production A2A SDK import
 - Runtime A2A adapter registration
 - Desktop A2A configuration or availability claim
-- app/Avatar/mod direct A2A client path
+- app/Avatar direct A2A client path
 - fake A2A server success fixture
 - A2A task payload projected directly into `runtime.agent.*`
 
@@ -96,6 +96,6 @@ A future production A2A packet must include:
 - provider profile binding and credential custody
 - gateway and firewall integration tests
 - approval, audit, replay, and redaction tests
-- no-direct-app/Avatar/mod/Desktop/SDK bypass gates
+- no-direct-app/Avatar/Desktop/SDK bypass gates
 - controlled non-fake integration fixture
 - explicit migration posture from this future-seam-only contract

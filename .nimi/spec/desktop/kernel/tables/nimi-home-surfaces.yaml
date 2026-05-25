@@ -160,13 +160,11 @@ surfaces:
     surface_label: Developer Mode
     owner: desktop_nimi_home_shell
     source_authority:
-      - .nimi/spec/desktop/kernel/mod-governance-contract.md
-      - .nimi/spec/desktop/kernel/hook-capability-contract.md
+      - .nimi/spec/desktop/kernel/devtools-contract.md
     allowed_projection_scope:
       - developer_only_visibility_per_naming_and_kernel_ontology
-      - mod_hook_retirement_projection
+      - developer_tools_visibility
     forbidden_ownership:
-      - public_mod_or_extension_admission
       - ordinary_user_product_promise
     source_rule: D-HOME-009
 

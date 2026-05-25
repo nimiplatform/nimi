@@ -53,7 +53,7 @@ smoke 集合至少覆盖：
 所有新增用户可见功能必须在 `tables/desktop-feature-coverage.yaml` 中登记风险等级与必测层：
 
 - `P0`：启动、bootstrap、auth 分支、主 shell、runtime unavailable、fatal error、offline/recovery、quit/hide、release strip；必须有 smoke + failure/recovery desktop E2E。
-- `P1`：chat、explore、runtime config、mods、local-ai、external-agent 等关键路径；至少 1 个 desktop E2E happy path。若触及 IPC、网络、持久化、daemon、文件系统，再补 1 个 error/recovery 场景。
+- `P1`：chat、explore、runtime config、local-ai、external-agent 等关键路径；至少 1 个 desktop E2E happy path。若触及 IPC、网络、持久化、daemon、文件系统，再补 1 个 error/recovery 场景。
 - `P2`：纯展示或低风险状态组合；默认可停留在 unit / mock integration。若新增 Tauri IPC、窗口、副作用型 bootstrap、auth/session、updater、文件系统或 runtime bridge，则自动升级为 `P1`。
 
 journeys gate 必须覆盖 `desktop-feature-coverage.yaml` 中所有 `required_layers` 含 `desktop_e2e_*` 的场景。
@@ -105,20 +105,6 @@ Desktop testing gate、feature coverage 与 rule evidence 必须作为 kernel �
 
 - `pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency`
 - `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check`
-
-## D-GATE-081 Desktop Bootstrap Mod Hydration Gate
-
-修改 Desktop bootstrap、mod host、runtime mod registration、mod source discovery、UI extension sync、或
-hook/data capability materialization 时，必须覆盖 deferred hydration 负例：
-
-- slow mod entry / slow `setup()` 不得延迟 `bootstrapReady=true`；
-- failing mod hydration 不得设置 `bootstrapError`，但必须进入 mod failure projection；
-- 未 hydration 的 slot / route / hook / data capability consumer 不得返回 silent success；
-- 同一 `modId + generation/source revision` 的重复 hydration 请求不得重复执行 `setup()`；
-- Runtime 请求授权不得依赖 `modId` 或 source type。
-
-这些测试至少需要 renderer unit / contract / Tauri-mock 覆盖；若新增或修改 Tauri backend 文件系统 / watcher /
-reload IPC 行为，还必须补 Rust / Tauri integration gate。
 
 ## D-GATE-090 Desktop Design Contract Gate
 

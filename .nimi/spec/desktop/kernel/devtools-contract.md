@@ -6,15 +6,15 @@
 
 定义 Desktop `Developer Tools` 表面与 `Developer Mode` 门控的产品语义：
 Developer Mode 的可发现切换入口、DevTools 表面的门控、embedded Tester 的门控、
-`nimi.tester` 在 App admission registry 的登记关系、以及 mod / developer
-surface 的可见性默认值。
+`nimi.tester` 在 App admission registry 的登记关系、以及 developer surface
+的可见性默认值。
 
 `Developer Tools` 是一个 developer/internal 表面，不是 ordinary primary
 navigation tab。它只在 admitted Developer Mode 开启时可达。
 
-本契约取代并收口 `D-SHELL-009`（"Mod Developer Mode 入口"）中关于 Developer
-Mode 入口的笼统描述：`D-SHELL-009` 仍保留为 `ui-shell` 的导航锚点，本契约
-（`D-DEV-*`）拥有 Developer Mode 门控与 DevTools 表面的完整规则集。
+本契约取代并收口 `D-SHELL-009` 中关于 Developer Mode 入口的笼统描述：
+`D-SHELL-009` 仍保留为 `ui-shell` 的导航锚点，本契约（`D-DEV-*`）
+拥有 Developer Mode 门控与 DevTools 表面的完整规则集。
 
 ### Tester Extraction Boundary（明确边界）
 
@@ -34,8 +34,6 @@ surface，不得被删除。
 - `nimi.tester` 的 App admission 真值与 registry row（`P-NAPP-016`、
   `nimi-app-registry.yaml`、`nimi-app-release-descriptors.yaml`）。
 - World Tour Tester 产品语义（`world-tour-tester-contract.md` `D-LLM-066..104`）。
-- mod 执行内核与 mod 治理（`D-MOD-*`、`mod-governance-contract.md`）。
-- public Mod / Extension 准入（`P-MOEX-*`，公开准入被否决）。
 
 ## D-DEV-001 — Developer Tools As Gated Developer Surface
 
@@ -54,18 +52,17 @@ surface，不得被删除。
 环境变量或隐藏快捷键进入。
 
 `MUST`：Developer Mode 默认为关闭。只有用户在可发现入口显式开启后，
-`Developer Tools` 表面、mod UI 表面与 developer-only surface 才变为可达。
+`Developer Tools` 表面与 developer-only surface 才变为可达。
 
-`MUST NOT`：第三方 mod 作者或开发者使用 Desktop 时，不得被要求通过启动参数
+`MUST NOT`：第三方开发者使用 Desktop 时，不得被要求通过启动参数
 或环境变量进入主要开发路径。
 
 ## D-DEV-003 — DevTools Surface Composition
 
 `MUST`：`Developer Tools` 表面在 Developer Mode 下承载：
 
-- mod / developer source directory 管理与 auto-reload 开关。
 - 开发态技术诊断入口（technical diagnostics）。
-- mod / developer surface，仅在其各自 admission 允许的范围内。
+- developer-only surface，仅在其 admission 允许的范围内。
 
 `MUST`：先前孤立、未接入任何可达路由的 Developer 页面（`DeveloperPage`）必须
 被接入此表面，且仅在 Developer Mode 下可达。它不得保持为无入口的 orphan
@@ -73,20 +70,6 @@ surface，也不得在 Developer Mode 关闭时可达。
 
 `MUST NOT`：`Developer Tools` 不得承载 ordinary-user 产品功能；ordinary
 product path 不得依赖 `Developer Tools` 的存在或可达性。
-
-## D-DEV-004 — Mod UI Behind Developer Mode
-
-`MUST`：mod UI 表面（`mods` tab、Mod Hub、sidebar puzzle icon、mod workspace
-tab、settings extension 区域）只能在 admitted Developer Mode 下可达。控制其
-渲染的 feature flag `enableModUi` 默认必须为 `false`。
-
-`MUST`：`enableModUi` 在 `feature-flags.yaml` 中的 desktop 默认值为 `false`，
-与 `D-SHELL-002` 的 "developer/internal/retirement-only" posture 一致，也与
-mod 系统当前 deferred 的产品姿态一致。
-
-`MUST NOT`：mod UI 表面不得作为 ordinary-user 发现 / 安装 / 更新 / 启用 /
-禁用 / 卸载 public Mod 的产品入口；它不得进入 ordinary-user Nimi Home close
-evidence。public Mod / Extension 准入仍被 `P-MOEX-*` 否决。
 
 ## D-DEV-005 — Embedded Tester Gated Behind Developer Mode
 
@@ -121,7 +104,7 @@ precondition 约束。
 
 ## D-DEV-007 — Developer Surface Visibility Default
 
-`MUST`：所有 developer / internal surface（`Developer Tools`、mod UI、
+`MUST`：所有 developer / internal surface（`Developer Tools`、
 embedded Tester、developer diagnostics）的默认可见性为不可见 / 不可达。
 它们只在 admitted Developer Mode 显式开启后变为可达。
 
@@ -132,12 +115,10 @@ embedded Tester、developer diagnostics）的默认可见性为不可见 / 不�
 ## Fact Sources
 
 - `.nimi/spec/desktop/kernel/ui-shell-contract.md` — `D-SHELL-001`, `D-SHELL-002`, `D-SHELL-009`
-- `.nimi/spec/desktop/kernel/mod-governance-contract.md` — `D-MOD-*`
 - `.nimi/spec/desktop/kernel/world-tour-tester-contract.md` — `D-LLM-066..D-LLM-104`
 - `.nimi/spec/desktop/kernel/support-surface-contract.md` — `D-SUP-001..D-SUP-008`
 - `.nimi/spec/desktop/kernel/tables/app-tabs.yaml`
 - `.nimi/spec/desktop/kernel/tables/feature-flags.yaml`
 - `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-016`
-- `.nimi/spec/platform/kernel/mod-extension-retirement-contract.md` — `P-MOEX-*`
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
 - `.nimi/topics/ongoing/2026-05-20-nimi-product-manual-authority-recovery/product-manual-full-authority.md` — §Support / Settings / Developer Tools (1469-1495)

@@ -8,14 +8,12 @@ entries:
   - state
   - admitted_values
   - rules
-  - prefix_pattern
-  - modid_pattern
   - activity_pattern
   - category_source
   - current_runtime_public_chat_admission
   - runtime.agent.presentation.activity_requested.detail.activity_name must be
-    one of the admitted core or extended ids unless a manifest-backed mod
-    namespace is admitted later.
+    one of the admitted core or extended ids unless a separate authority admits
+    another namespace later.
   - runtime.agent.presentation.activity_requested.detail.category must be
     emotion, interaction, or state.
   - runtime.agent.presentation.activity_requested.detail.intensity must be
@@ -89,14 +87,12 @@ extended_activities:
       - ext:eating
 
 custom_namespace:
-  prefix_pattern: "mod-<modid>:<activity>"
-  modid_pattern: "^[a-z][a-z0-9-]*$"
   activity_pattern: "^[a-z][a-z0-9-]*$"
-  category_source: mod manifest only
-  current_runtime_public_chat_admission: not admitted without manifest-backed authority
+  category_source: separate authority only
+  current_runtime_public_chat_admission: not admitted without explicit authority
 
 projection_rules:
-  - runtime.agent.presentation.activity_requested.detail.activity_name must be one of the admitted core or extended ids unless a manifest-backed mod namespace is admitted later.
+  - runtime.agent.presentation.activity_requested.detail.activity_name must be one of the admitted core or extended ids unless a separate authority admits another namespace later.
   - runtime.agent.presentation.activity_requested.detail.category must be emotion, interaction, or state.
   - runtime.agent.presentation.activity_requested.detail.intensity must be absent or weak, moderate, strong.
   - runtime.agent.presentation.activity_requested.detail.source records the upstream projection source and does not replace category authority.

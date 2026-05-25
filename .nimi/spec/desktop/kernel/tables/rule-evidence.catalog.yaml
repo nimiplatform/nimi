@@ -1,48 +1,46 @@
+---
 table_family: support_registry
 registry_id: desktop_rule_evidence_catalog
 owner: desktop
-schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+schema_ref: ".nimi/contracts/table-family.schema.yaml#support_registry"
 allowed_fields:
-  - type
-  - command
-  - path
-  - description
-  - evidence_type
-  - validation_scope
+- type
+- command
+- path
+- description
+- evidence_type
+- validation_scope
 forbidden_state_fields:
-  - covered
-  - coverage_status
-  - audit_date
-  - evidence_report
-  - current
-  - done
-  - run_id
-  - ledger_ref
+- covered
+- coverage_status
+- audit_date
+- evidence_report
+- current
+- done
+- run_id
+- ledger_ref
 entries:
-  - desktop_kernel_consistency
-  - desktop_spec_docs_drift_gate
-  - avatar_spec_consistency_gate
-  - avatar_lint_gate
-  - avatar_test_gate
-  - desktop_lint_gate
-  - desktop_test_gate
-  - desktop_e2e_smoke_gate
-  - desktop_e2e_journey_gate
-  - desktop_rust_test_gate
-  - desktop_rust_clippy_gate
-  - desktop_macos_manual_smoke_policy
-  - desktop_macos_automated_smoke_gate
-  - desktop_macos_automated_smoke_report
-  - desktop_e2e_failure_artifacts_gate
-  - desktop_e2e_ci_evidence_report
-  - desktop_mods_smoke_gate
-  - runtime_mod_hook_hardcut_gate
-  - desktop_cloud_runtime_only_gate
-  - desktop_design_contract_gate
-  - desktop_tauri_command_execution_gate
-  - desktop_runtime_config_path_gate
-  - desktop_local_ai_bridge_gate
-  - desktop_mod_capabilities_gate
+- desktop_kernel_consistency
+- desktop_spec_docs_drift_gate
+- avatar_spec_consistency_gate
+- avatar_lint_gate
+- avatar_test_gate
+- desktop_lint_gate
+- desktop_test_gate
+- desktop_e2e_smoke_gate
+- desktop_e2e_journey_gate
+- desktop_rust_test_gate
+- desktop_rust_clippy_gate
+- desktop_macos_manual_smoke_policy
+- desktop_macos_automated_smoke_gate
+- desktop_macos_automated_smoke_report
+- desktop_e2e_failure_artifacts_gate
+- desktop_e2e_ci_evidence_report
+- desktop_cloud_runtime_only_gate
+- desktop_design_contract_gate
+- desktop_tauri_command_execution_gate
+- desktop_runtime_config_path_gate
+- desktop_local_ai_bridge_gate
 desktop_kernel_consistency:
   type: static_gate
   command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency
@@ -101,7 +99,7 @@ desktop_rust_clippy_gate:
 desktop_macos_manual_smoke_policy:
   type: manual_policy
   command: spec-only
-  path: .nimi/spec/desktop/testing-gates.md
+  path: ".nimi/spec/desktop/testing-gates.md"
   description: Structured macOS non-blocking manual smoke checklist for menu-bar and packaged shell behavior.
 desktop_macos_automated_smoke_gate:
   type: smoke_gate
@@ -116,23 +114,13 @@ desktop_macos_automated_smoke_report:
 desktop_e2e_failure_artifacts_gate:
   type: ci_artifact_policy
   command: upload apps/desktop/reports/e2e/**
-  path: .github/workflows/ci.yml
+  path: ".github/workflows/ci.yml"
   description: CI must retain desktop E2E screenshots, HTML, browser logs, backend logs, driver logs, and scenario manifests on failure.
 desktop_e2e_ci_evidence_report:
   type: ci_evidence_report
   command: pnpm --filter @nimiplatform/desktop run report:desktop-e2e-evidence
   path: apps/desktop/scripts/generate-desktop-e2e-evidence.mjs
   description: Generates structured Linux/Windows desktop E2E pass-fail evidence from reports/e2e artifacts.
-desktop_mods_smoke_gate:
-  type: smoke_gate
-  command: pnpm check:desktop-mods-smoke --all
-  path: scripts/check-desktop-mods-smoke.mjs
-  description: Desktop runtime mod host can discover and validate installed prebuilt mod packages from the runtime mods directory.
-runtime_mod_hook_hardcut_gate:
-  type: static_gate
-  command: pnpm check:runtime-mod-hook-hardcut
-  path: scripts/check-runtime-mod-hook-hardcut.mjs
-  description: Cross-layer runtime-aligned mod and hook surface hard-cut guard.
 desktop_cloud_runtime_only_gate:
   type: static_gate
   command: pnpm check:desktop-cloud-runtime-only
@@ -158,8 +146,3 @@ desktop_local_ai_bridge_gate:
   command: pnpm check:no-local-ai-private-calls && pnpm check:no-local-ai-tauri-commands
   path: package.json
   description: Forbids direct legacy local_ai command literals outside the managed bridge surface.
-desktop_mod_capabilities_gate:
-  type: static_gate
-  command: pnpm check:no-legacy-mod-permissions-field
-  path: package.json
-  description: Enforces capabilities-only mod manifests and runtime registration surfaces.

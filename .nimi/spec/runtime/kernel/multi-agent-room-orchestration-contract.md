@@ -8,7 +8,7 @@ multi-agent and external-participant contexts.
 It materializes wave-1 of
 `2026-05-03-multi-agent-room-orchestration-authority`. It does not create SDK,
 proto, Desktop, Web, Avatar, Realm, Scenario, OASIS/world, external-entry,
-MCP/A2A, app, mod, or runtime implementation surfaces.
+MCP/A2A, app, or runtime implementation surfaces.
 
 ## K-AGCORE-107 Room Orchestration Authority
 
@@ -34,7 +34,7 @@ Runtime does not own:
 - OASIS/world state, event log, ontology, or product truth
 - external protocol wire truth
 - canonical chat transcript truth
-- Desktop, Web, Avatar, or mod UI truth
+- Desktop, Web, or Avatar UI truth
 
 ## K-AGCORE-108 Parent Participation Boundary
 
@@ -71,7 +71,7 @@ The fixed axis families are:
 - `external_participant_admission`
 - `commit_race_handoff`
 
-Apps, SDKs, mods, and product domains must not submit open string axis values or
+Apps, SDKs, and product domains must not submit open string axis values or
 domain-local axis extensions.
 
 ## K-AGCORE-110 Domain Matrix Co-Freeze
@@ -123,8 +123,8 @@ Per-room and per-agent budget admission remains Runtime-owned and must preserve:
 - `K-AGCORE-073` execution concurrency axis
 - `K-AGCORE-086` concurrency policy table
 
-Desktop, Web, Avatar, Realm, Scenario, OASIS/world, external-entry, SDK, and
-mods must not own room budget, fairness, queue, cancellation, timeout, or
+Desktop, Web, Avatar, Realm, Scenario, OASIS/world, external-entry, and SDK
+must not own room budget, fairness, queue, cancellation, timeout, or
 exhaustion decisions.
 
 ## K-AGCORE-113 Queue Visibility And Status Projection
@@ -215,8 +215,8 @@ Room orchestration fails closed if any of these appear outside this contract and
 its tables:
 
 - app-local room queue as steady-state authority
-- Realm, Scenario, OASIS/world, external-entry, Avatar, Desktop, Web, SDK, or
-  mod ownership of room ordering, fairness, budget, cancellation, or timeout
+- Realm, Scenario, OASIS/world, external-entry, Avatar, Desktop, Web, or SDK
+  ownership of room ordering, fairness, budget, cancellation, or timeout
 - Runtime direct commit of Realm GROUP, Scenario, OASIS/world, canonical chat,
   or external domain truth
 - external participant room entry based only on protocol readiness

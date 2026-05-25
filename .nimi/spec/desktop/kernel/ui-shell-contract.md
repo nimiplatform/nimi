@@ -19,9 +19,8 @@ Tab 分组：
 1. **Core Nav**（`getCoreNavItems()`）：home、chat、explore、apps、runtime。
 2. **Secondary/System**：settings 等系统入口。它们可由菜单、账户区或设置入口打开，
    但不得作为普通 primary nav 项。
-3. **Developer/Internal**：mods、mod workspace、developer mode、diagnostics。
-   这些 surface 仅作为 developer/internal/retirement surface；不得作为 Nimi
-   Home 普通用户公开产品入口。
+3. **Developer/Internal**：developer mode、diagnostics。这些 surface 不得作为
+   Nimi Home 普通用户公开产品入口。
 4. **Detail Tab**：profile、agent-detail、world-detail、notification、
    gift-inbox、privacy-policy、terms-of-service。
 
@@ -33,31 +32,12 @@ Feature flag 门控：
 - `enableRuntimeTab` 不得控制普通 Runtime primary nav 是否存在；Runtime 是
   baseline primary nav。该 flag 只能在实现迁移期作为 internal hardcut guard，
   不得进入产品 close evidence。
-- `enableModUi` 控制 mods tab 可见性（sidebar puzzle icon + guard clause）。
-  新 Nimi 产品 posture 下该入口必须保持 developer/internal/retirement-only，
-  不能进入 ordinary-user Nimi Home close evidence。
 
-## D-SHELL-002 — Mod UI 扩展
+## D-SHELL-002 — Settings Panel Extension Areas
 
-Mod UI 通过 feature flag 门控。该 surface 当前是 retirement/internalization
-对账对象，不是 public Nimi App / Extension / Mod ecosystem:
-
-- `enableModUi`：启用 mod 组件渲染 + Mods Panel + sidebar puzzle icon。只允许
-  developer/internal/retirement 使用。
-- `enableModWorkspaceTabs`：启用 mod workspace tab 管理。
-- `enableSettingsExtensions`：启用 settings panel 扩展区域。
-
-Mods Panel（`features/mods/mods-panel.tsx`）直接承载单页 Mod Hub：
-- 侧边栏 puzzle icon 直接导航到 `activeTab = 'mods'`。
-- `Mods` 打开后直接展示 Mod Hub，而不是旧的双视图结构。
-- Mod Hub 统一负责现存 mod surface 的 retirement/internalization 诊断、安装状态
-  对账与开发者操作。它不得作为 ordinary-user 发现、安装、更新、启用、禁用、
-  卸载 public Mods 的产品入口。
-- Disable / Uninstall 当前激活 mod 时 fallback 到 `'mods'` tab。
-- Guard clause：`enableModUi = false` 时访问 `'mods'` tab 自动回退到 `'chat'`。
-
-`ui-extension.app.sidebar.mods` slot 仅保留为 internal/retirement 对账 surface
-（参考 `D-HOOK-004`）。不得作为 public Extension slot 承诺。
+`MUST`：`enableSettingsExtensions` 只控制 host-owned Settings 面板中的
+admitted first-party section composition。它不得被解释为第三方 product
+extension channel、install surface、或 registry promise。
 
 ## D-SHELL-003 — 窗口管理
 
@@ -71,7 +51,7 @@ Mods Panel（`features/mods/mods-panel.tsx`）直接承载单页 Mod Hub：
 代码分割策略：
 
 - **同步加载**：shell-core、bridge（首屏必需）。
-- **懒加载**：chat、explore、settings、profile、runtime-view、mod-ui、local-ai、external-agent。
+- **懒加载**：chat、explore、settings、profile、runtime-view、local-ai、external-agent。
 
 懒加载通过 `React.lazy(() => import(...))` 实现，配合 `Suspense` 边界。
 
@@ -88,7 +68,7 @@ Mods Panel（`features/mods/mods-panel.tsx`）直接承载单页 Mod Hub：
 
 `MainLayoutView` 定义两栏布局：
 
-- **左侧 sidebar**：可折叠，包含 core nav + mod nav + profile。
+- **左侧 sidebar**：可折叠，包含 core nav + profile。
 - **右侧 content**：根据 `activeTab` 渲染对应面板。
 
 Content 面板映射：
@@ -99,8 +79,6 @@ Content 面板映射：
 - `profile` → `ProfilePanel`（承载共享 profile detail surface）
 - `gift-inbox` → `GiftInboxPanel`（礼物交易列表与详情入口，作为 full-page detail route）
 - `runtime` → `RuntimeView`
-- `mods` → `ModsPanel`（gated by `enableModUi`）
-- `mod:*` → `ModWorkspacePanel`
 
 ## D-SHELL-007 — 图标系统
 
@@ -126,30 +104,20 @@ Shell 模式检测优先级（由高到低）：
 | Flag | Desktop 默认 | Web 默认 | 控制规则 |
 |---|---|---|---|
 | `enableRuntimeTab` | `true` | `false` | `D-SHELL-001` |
-| `enableModUi` | `true` | `false` | `D-SHELL-002` |
-| `enableModWorkspaceTabs` | `true` | `false` | `D-SHELL-002` |
 | `enableSettingsExtensions` | `true` | `false` | `D-SHELL-002` |
 | `enableTitlebarDrag` | `true` | `false` | `D-SHELL-003` |
 | `enableMenuBarShell` | `true`（macOS）/ `false`（其他） | `false` | `D-MBAR-001` |
 | `enableRuntimeBootstrap` | `true` | `false` | `D-BOOT-004` |
 
-Web 模式下所有 runtime/mod/window 相关功能默认禁用，仅保留基础 chat/social/explore 功能。此表为 `shellMode → flag` 映射的唯一定义，替代分散在各规则中的零散引用。
+Web 模式下所有 runtime/window 相关功能默认禁用，仅保留基础 chat/social/explore 功能。此表为 `shellMode → flag` 映射的唯一定义，替代分散在各规则中的零散引用。
 
-## D-SHELL-009 — Mod Developer Mode 入口
+## D-SHELL-009 — Developer Mode Entry
 
 Desktop 必须在 App 内提供显式的 Developer Mode 入口，而不是把开发模式建立在启动参数之上：
 
 - Developer Mode 的开启、关闭与状态展示必须位于 App 内可发现位置（例如 Settings / Developer）。
 - Developer Mode 负责管理 `dev` source directories、auto reload 开关与开发态诊断入口。
-- 第三方 mod 作者使用 Desktop 时，不应被要求通过启动参数或环境变量进入主要开发路径。
-
-## D-SHELL-010 — Mod Source 可观测性与冲突可见性
-
-Desktop UI 必须让用户可观察每个 mod 的解析来源与冲突状态：
-
-- Mods Panel 必须可见 mod 的 source type、来源目录和当前状态（如 `loaded`、`disabled`、`failed`、`conflict`）。
-- Developer Panel 必须展示 source directories 列表、每个目录发现的 mod、冲突项、reload 日志与错误链。
-- Mod Hub 负责发现、安装、更新与卸载，不应承担主要调试入口；来源路径与冲突排障应在 Mods Panel / Developer Panel 中完成。
+- 第三方开发者使用 Desktop 时，不应被要求通过启动参数或环境变量进入主要开发路径。
 
 ## D-SHELL-011 — World Detail Surface Order
 

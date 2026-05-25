@@ -173,5 +173,5 @@ flows:
   - flow: agent
     methods:
       - loadMyAgents
-    description: Agent listing only; final agent-detail display authority stays downstream in bounded display seams, and Agent LLM route/memory stays in host data capabilities for mods
+    description: Agent listing only; final agent-detail display authority stays downstream in bounded display seams, and Agent LLM route/memory stays outside Desktop core DataSync ownership
     source_rule: D-DSYNC-011

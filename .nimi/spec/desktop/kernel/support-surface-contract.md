@@ -48,7 +48,7 @@ diagnostics / logs / recovery）均不得作为 primary ordinary 产品类别。
 
 `MUST NOT`：`Support` 不得承载 ordinary preference 设置（account / language /
 appearance / notifications 等）——这些归 `Settings`。`Support` 不得成为
-mod / developer surface 的入口——developer surface 归 `D-DEV-*`。
+developer surface 的入口——developer surface 归 `D-DEV-*`。
 
 ## D-SUP-003 — Repair Sub-Area
 

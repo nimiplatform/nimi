@@ -94,7 +94,7 @@ DashScope TTS 的 voice 解析主路径必须由 catalog 驱动（权威定义�
 
 ## K-MMPROV-014 Cross-Layer Traceable Voice Diagnostics
 
-TTS voice 解析与校验日志必须可观测 `catalog_source`、`model_resolved` 与 `voice_count`，用于 Runtime → SDK → Desktop/Mod 统一排障。
+TTS voice 解析与校验日志必须可观测 `catalog_source`、`model_resolved` 与 `voice_count`，用于 Runtime → SDK → Desktop 统一排障。
 
 ## K-MMPROV-015 DashScope Voice Legacy Bypass Forbidden
 

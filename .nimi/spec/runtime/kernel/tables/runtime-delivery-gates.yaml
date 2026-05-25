@@ -28,8 +28,8 @@ gates:
     source_rule: K-GATE-020
   - gate: G2
     name: sdk_alignment
-    objective: sdk projection, boundary checks, and runtime-aligned mod or hook hard-cuts pass
-    command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency && pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check && pnpm check:runtime-bridge-method-drift && pnpm check:runtime-mod-hook-hardcut
+    objective: sdk projection, boundary checks, and P-MOEX anti-target hard-cuts pass
+    command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency && pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check && pnpm check:runtime-bridge-method-drift && pnpm check:p-moex-anti-targets
     blocking: hard_block
     evidence_route: .local/report/*
     source_rule: K-GATE-030

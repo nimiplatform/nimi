@@ -15,7 +15,6 @@ This guide points to the sdk authority surfaces for index. It does not define pr
 - `.nimi/spec/sdk/kernel/companion-participation-client-contract.md`
 - `.nimi/spec/sdk/kernel/error-projection.md`
 - `.nimi/spec/sdk/kernel/local-environment-projection-contract.md`
-- `.nimi/spec/sdk/kernel/mod-contract.md`
 - `.nimi/spec/sdk/kernel/package-governance-contract.md`
 - `.nimi/spec/sdk/kernel/realm-contract.md`
 - `.nimi/spec/sdk/kernel/realm-group-agent-participation-client-contract.md`

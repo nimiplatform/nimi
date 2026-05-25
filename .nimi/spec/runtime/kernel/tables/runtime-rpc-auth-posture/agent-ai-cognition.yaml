@@ -92,7 +92,6 @@ surfaces:
   - methods_79
   - methods_80
   - methods_81
-  - methods_82
 description: Agent, AI, realtime, and cognition posture entries.
 services:
   - RuntimeAgentService

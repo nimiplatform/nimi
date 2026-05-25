@@ -21,19 +21,40 @@ external installable / distributable / user-authorized product category。
 gateway / release channel 不得通过任何 alias 重新引入 Public Mod 或
 Public Extension。
 
-## P-MOEX-002 — Existing Surfaces As Developer / Internal / Retirement Only
+## P-MOEX-002 — Retired (Existing Mod / Hook Surfaces)
 
-`MUST`：现有 `.nimi/spec/desktop/kernel/mod-governance-contract.md`、
+`RETIRED`：既有 Mod / Hook / runtime-mod / SDK mod surface 已完成 physical
+retirement execution。`.nimi/spec/desktop/kernel/mod-governance-contract.md`、
 `.nimi/spec/desktop/kernel/hook-capability-contract.md`、
 `.nimi/spec/desktop/kernel/tables/mod-*`、
 `.nimi/spec/desktop/kernel/tables/hook-*`、
 `.nimi/spec/desktop/kernel/tables/turn-hook-points.yaml`、
-`.nimi/spec/sdk/kernel/mod-contract.md`、`nimi-mods/` workspace 等存量
-surface 仅作为 developer / internal / retirement surface 存在。
+`.nimi/spec/sdk/kernel/mod-contract.md` 等存量 active authority 文件已撤回；
+对应 SDK exports、runtime CLI、Desktop / Web consumer surfaces、scripts / CI
+guards 与 docs active references 已移除。
 
-`MUST NOT`：上述 surface 不得作为普通用户产品入口、Nimi App、外部生态接入
-点、或第三方 SDK / API 公开承诺。Wave 5 之前必须完成 audit / freeze /
-internalization，并按 `desktop-kernel-supersession-schedule.md` 顺序退役。
+`MUST NOT`：上述 retired surfaces 不得作为普通用户产品入口、Nimi App、
+外部生态接入点、第三方 SDK / API 公开承诺、或 future reserved namespace
+重新出现。任何复活 Mod / Hook / runtime-mod / SDK mod surface 的提案必须
+重新通过显式 admission，并不得复用 retired 文件、路径或命名作为兼容层。
+
+`MUST`：Wave 5 true-close audit 必须确认 parent workspace active
+`nimi-mods` references 已清理或经 admitted allowlist 处置；历史归档与本地
+审计证据只可作为追溯材料，不得成为 active authority。
+
+## P-MOEX-002.a — Physical Retirement Anti-Targets
+
+`MUST NOT`：以下命名模式禁止在本仓库重新引入为 registry / SDK export /
+runtime CLI / desktop UI route / Tauri command / npm package name：
+
+- `mod-*` / `Mod*` / `nimi-mod*` / `@nimiplatform/mod-*`
+- `mod-hub` / `mod-workspace` / `mod-codegen` / `mods-panel` / `runtime-mod`
+- `inter-mod` / `mod-governance` / `mod-extension`
+- `hook-capability` / `hook-allowlist` / `turn-hook-points`
+
+`MUST`：mechanical guard `check:p-moex-anti-targets` 必须在 physical
+retirement true-close 前覆盖上述模式，并在 true-close 后持续阻断这些模式
+作为 active product / API / command / package surface 回流。
 
 ## P-MOEX-003 — No Shared Nimi Content Pack Channel
 
@@ -68,10 +89,8 @@ assets，或其他 app 的 prompt / knowledge / workflow bundle 等）由各自 
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-012`
+- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-030`
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
-- `.nimi/spec/desktop/kernel/mod-governance-contract.md` — developer/internal retirement only
-- `.nimi/spec/desktop/kernel/hook-capability-contract.md` — developer/internal retirement only
-- `.nimi/spec/sdk/kernel/mod-contract.md` — developer/internal retirement only
 - `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/mod-extension-retirement-map.md`
 - `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/desktop-kernel-supersession-schedule.md`
+- `.nimi/topics/closed/2026-05-25-nimi-mod-system-physical-retirement/` — physical retirement execution

@@ -8,7 +8,7 @@ that are not always canonical 1:1 Agent Chat.
 It materializes the wave-1 frozen authority model from
 `2026-05-02-runtime-agent-participation-authority`. It does not create SDK,
 proto, Desktop, Avatar, app, Realm implementation, OASIS, Scenario, A2A
-production, MCP production, or mod surfaces.
+production, or MCP production surfaces.
 
 ## K-AGCORE-061 Runtime Participation Authority
 
@@ -32,7 +32,7 @@ Runtime does not own:
 - Realm GROUP thread, membership, message, read-state, sync, or commit truth
 - Scenario package, run, branch, replay, or transcript truth
 - OASIS/world state, event log, or product ontology
-- Desktop, Web, Avatar, or mod UI state
+- Desktop, Web, or Avatar UI state
 - A2A or MCP protocol wire truth
 
 ## K-AGCORE-062 Non-Canonical Candidate Posture
@@ -69,7 +69,7 @@ The fixed axis families are:
 - `promotion_posture`
 - `execution_concurrency`
 
-Apps, SDKs, mods, and product domains must not submit open string axis values.
+Apps, SDKs, and product domains must not submit open string axis values.
 
 ## K-AGCORE-064 Transcript Owner Axis
 
@@ -656,7 +656,7 @@ Wave-6 does not admit:
 - OASIS/world product UI or backend implementation
 - Scenario Sandbox product UI or backend implementation
 - ScenarioJob execution changes
-- SDK/proto/app/Desktop/Avatar/mod public surfaces
+- SDK/proto/app/Desktop/Avatar public surfaces
 - promotion implementation
 - world/scenario product success fixtures
 

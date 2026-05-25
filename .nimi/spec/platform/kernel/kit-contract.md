@@ -68,8 +68,8 @@
 - Workspace generated apps consume the same crate surface by Cargo path dependency.
 - This rule does not rename implementation files, package manifests, crate source, package exports, or the `kit.shell.tauri` authority id.
 - Must remain renderer-agnostic: pure Rust host/bridge logic, no JS/TS runtime code.
-- Must not contain app-specific business logic, single-consumer menu bar or
-  mod-host logic, or realm/runtime typed API truth.
+- Must not contain app-specific business logic, single-consumer menu bar logic,
+  or realm/runtime typed API truth.
 - Shared `runtime_defaults` payload shape is owned here together with `shell/renderer`: canonical fields include `realmBaseUrl`, `jwksUrl`, `revocationUrl`, `jwtIssuer`, `jwtAudience`, and `connectorId`; retired `credentialRefId` must not remain emitted truth.
 - Consumer Tauri apps that wire `nimi_shell_tauri::runtime_defaults` must not retain an app-local `src-tauri/src/defaults.rs` duplicate for the same payload shape.
 - D-IPC-* rules continue to govern IPC contract semantics; this module provides the shared implementation.

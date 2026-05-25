@@ -49,7 +49,7 @@ commit/read/sync truth. SDK must not publish or normalize a public
 
 ## S-RUNTIME-225 Consumer Hardcut Gates
 
-SDK must fail closed if a Desktop, Web, Avatar, app, or mod consumer attempts
+SDK must fail closed if a Desktop, Web, Avatar, app attempts
 to pass public prompt text for execution, choose providers or models, override
 Runtime memory/capability/concurrency verdicts, own same-room ordering/fairness/
 budget/cancellation/timeout, use `GROUP_LIMITED` as a capability enum, or bypass

@@ -93,7 +93,7 @@ removing the risky operation.
 ## K-DELEG-098 Programmatic Approval
 
 Programmatic approval may exist only as Runtime policy. Desktop, SDK,
-protocol adapters, apps, mods, and Avatar cannot auto-approve delegated
+protocol adapters, apps, and Avatar cannot auto-approve delegated
 requests by local convention.
 
 ## K-DELEG-099 Approval Projection

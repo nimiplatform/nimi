@@ -33,14 +33,14 @@ SDK 门禁分层：单元/模块、consumer smoke、合同/边界、runtime 投�
 
 vNext 能力矩阵必须与 runtime method groups 对齐。
 
-## S-GATE-040 Mod/Scope Gate
+## S-GATE-040 Scope Gate
 
-mod/scope 子路径必须通过边界、语义回归与 runtime-aligned mod/hook surface hard-cut。
+scope 子路径必须通过边界与语义回归。
 
 执行命令：
 
-- `pnpm check:mods-no-runtime-sdk`
-- `pnpm check:runtime-mod-hook-hardcut`
+- `pnpm check:sdk-import-boundary`
+- `pnpm check:sdk-consumer-smoke`
 
 ## S-GATE-050 Runtime Projection Gate
 

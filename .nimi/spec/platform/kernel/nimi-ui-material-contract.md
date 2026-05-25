@@ -18,7 +18,7 @@
 ## 1. Material Consumption Boundary
 
 The 5-tier taxonomy admitted under `P-DESIGN-022` is the single material
-authority for all governed surfaces in the repo. No app, mod, or feature
+authority for all governed surfaces in the repo. No app or feature
 module may author a parallel material axis.
 
 UI Card v2.1 surface labels map to this material taxonomy only as semantic

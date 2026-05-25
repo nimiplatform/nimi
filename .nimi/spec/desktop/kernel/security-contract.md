@@ -43,14 +43,6 @@ OAuth 流程通过 Tauri IPC 执行（参考 `D-IPC-006`）：
 - 非 Tauri 环境抛出明确错误而非静默失败。
 - 所有 IPC 调用通过统一入口 `invoke()` 执行，确保日志追踪覆盖。
 
-## D-SEC-005 — Mod 能力沙箱
-
-Mod 执行在能力沙箱内（参考 `D-HOOK-008`、`D-MOD-005`）：
-
-- Source type 决定可用能力集。
-- 未声明的能力调用被拒绝。
-- `codegen` source type 使用最小权限原则。
-
 ## D-SEC-006 — 模型完整性校验
 
 本地 AI 模型安装区分 verified 与 local-unverified 两类完整性语义：
@@ -78,7 +70,7 @@ Content Security Policy 约束：
 
 - Tauri webview 默认启用 CSP，限制外部脚本和样式加载。
 - `connect-src` 仅允许 realm API 域名和回环地址。
-- 生产 `script-src` 禁止 `eval` 和 inline script（mod 通过沙箱 iframe 隔离）。
+- 生产 `script-src` 禁止 `eval` 和 inline script。
 - Desktop Tauri 开发态关闭 Vite HMR / React Fast Refresh，使 `devCsp` 与生产 `csp` 保持同等 `script-src` 约束。
 - Web 模式下依赖服务端 CSP header 而非 Tauri webview 策略。
 
@@ -154,4 +146,3 @@ Token scope 将 action ID 绑定到允许的操作阶段。
 
 - `tables/error-codes.yaml` — 安全相关错误码（`LOCAL_AI_ENDPOINT_NOT_LOOPBACK`、`LOCAL_AI_ENDPOINT_INVALID`）
 - `tables/ipc-commands.yaml` — OAuth 和 External Agent IPC 命令
-- `tables/hook-capability-allowlists.yaml` — Mod 能力沙箱白名单

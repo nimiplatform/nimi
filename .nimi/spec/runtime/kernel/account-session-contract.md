@@ -76,7 +76,7 @@ undergo a new rule admission before proto / RPC table projection.
 - `SubscribeAccountSessionEvents`: server-stream，必须先返回 `account.status` snapshot，再按单调 sequence 顺序投递事件。重连时若 replay 不可用，必须发出 `replay_truncated` 标志。
 - `BeginLogin`: 创建 login attempt，返回 UX instruction envelope（如 `oauth_authorization_url`、`callback_origin`、`pkce_challenge`、`state`、`expires_at`）。kit / Desktop 不得获得 PKCE verifier。
 - `CompleteLogin`: 接受 typed proof envelope（见 K-ACCSVC-008）。Runtime 验证后写入 custody 并转换状态。
-- `GetAccessToken`: 向 admitted local first-party app instance 返回当前 short-lived access token，或在 Runtime 内部 refresh 后返回新 access token。不得返回 refresh token、durable session、raw subject、或任何可由 app 自行刷新 token 的材料。Explicit binding-only Avatar embodiment 与未被授权的 Mod 必须被拒绝；default `nimi.avatar` first-party app instance may use this method when registry-admitted.
+- `GetAccessToken`: 向 admitted local first-party app instance 返回当前 short-lived access token，或在 Runtime 内部 refresh 后返回新 access token。不得返回 refresh token、durable session、raw subject、或任何可由 app 自行刷新 token 的材料。Explicit binding-only Avatar embodiment 必须被拒绝；default `nimi.avatar` first-party app instance may use this method when registry-admitted.
 - `RefreshAccountSession`: Runtime 主动或被动刷新；调用方不得提交 refresh token。
 - `Logout`: Runtime 撤销 local session 与所有 binding；幂等。
 - `SwitchAccount`: 原子转换；旧 binding 在新 projection 之前 revoke。
@@ -234,8 +234,6 @@ binding 在 daemon 重启时全部失效；调用方必须重新申请。Runtime
 | Binding-only Avatar mode | 不允许直接 account registration | N/A | Runtime-issued scoped binding from owner surface | account access token、refresh token、anchor 创建、independent auth truth |
 | Web / cloud app | 显式 Web/cloud adapter | Web/cloud session | Web/cloud adapter | local Runtime account authority claim |
 | External principal | 现有 external-principal 注册 | external proof | external-principal session / grant | local account projection claim |
-| Mod host | host 注册并发 mod-scoped capability | host account projection | host-scoped binding | 暴露 account service 给 mod |
-| Mod | 不允许直接 account 注册 | N/A | host 发的 scoped capability | `RuntimeAccountService` 直接调用 |
 
 ## K-ACCSVC-013 Activation Boundary
 

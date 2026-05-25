@@ -79,11 +79,6 @@ sdk_generated_type_quality_gate:
   command: pnpm check:sdk-generated-type-quality
   path: scripts/check-sdk-generated-type-quality.mjs
   description: Generated realm schema quality gate, including high-frequency DTO assertions and dynamic-envelope allowlist enforcement.
-sdk_mod_hardcut_gate:
-  type: static_gate
-  command: pnpm check:runtime-mod-hook-hardcut
-  path: scripts/check-runtime-mod-hook-hardcut.mjs
-  description: Mod legacy surface hardcut enforcement.
 sdk_runtime_stable_ai_output_gate:
   type: static_gate
   command: pnpm check:runtime-stable-ai-output-typing

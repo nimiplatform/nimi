@@ -4,11 +4,11 @@
 
 ## P-ALMI-001 — 两段最后一公里
 
-Nimi AI last mile 同时满足两段能力：关系连续性（World + Agent + Memory）与能力接入标准化（Local AI Runtime + Mod）。两段必须同时成立。
+Nimi AI last mile 同时满足两段能力：关系连续性（World + Agent + Memory）与能力接入标准化（Local AI Runtime + External Agent action plane）。两段必须同时成立。
 
-## P-ALMI-002 — Hook Action Fabric
+## P-ALMI-002 — External Agent Action Plane
 
-`MUST`: Hook Action Fabric 建立在现有 Hook（event-bus/data-api/ui-extension/turn-hook/inter-mod）之上的 Action 粒度注册协议。不是新 Hook 类型。Action 执行走既有 Hook Runtime 与权限/审计边界。Mod 只声明 Action schema 与 handler，runtime 封装治理策略。
+`MUST`: Action plane 建立在 Runtime-owned action descriptors、ExternalAgent gateway、权限校验与审计边界之上。Action 执行不得依赖 renderer-local registry、host-only success event 或未持久化的 handler state。
 
 ## P-ALMI-003 — Principal 模型
 
@@ -18,7 +18,7 @@ Nimi AI last mile 同时满足两段能力：关系连续性（World + Agent + M
 
 `MUST`: ExternalAgent 不等同于 NimiAgent。必须由显式签发有限期授权凭证。所有外部 Agent 调用必须携带 `principalId + issuer + signature`。delegated 模式必须验证 Friendship 前置条件。autonomous 模式独立账号执行。V1 第三方 Agent 固定走 ExternalAgent Principal。
 
-## P-ALMI-010 — Hook Action 契约
+## P-ALMI-010 — Action 契约
 
 Action Registry 最少包含：actionId、inputSchema、outputSchema、riskLevel (low|medium|high)、executionMode (full|guarded|opaque)、idempotent、supportsDryRun、auditEventMap、compensation。`MUST`: opaque 模式固定 supportsDryRun=false。high risk 不得以 opaque 模式注册。
 

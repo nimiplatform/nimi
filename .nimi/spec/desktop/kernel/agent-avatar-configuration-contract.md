@@ -115,8 +115,8 @@ External Live2D adapter sidecar custody is a Desktop storage operation only:
 
 D-LLM-069 renderer-local debug override remains renderer-local unless a later
 wave explicitly retires or promotes it through a typed public contract. This
-configuration contract does not expose that override through SDK, Runtime, mod,
-or public app surfaces.
+configuration contract does not expose that override through SDK, Runtime, or
+public app surfaces.
 
 D-LLM-074 remains delegated-capability placement authority. Avatar
 configuration may appear in the same product area, but delegated provider

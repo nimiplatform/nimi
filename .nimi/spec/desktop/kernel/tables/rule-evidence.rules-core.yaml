@@ -1,483 +1,460 @@
 table_family: support_registry
 registry_id: desktop_rule_evidence_core_rules
 owner: desktop
-schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+schema_ref: ".nimi/contracts/table-family.schema.yaml#support_registry"
 allowed_fields:
-  - rule_id
-  - evidence_requirement
-  - evidence_refs
-  - note
-  - na_reason
-  - evidence_scope_note
-  - test_files
+- rule_id
+- evidence_requirement
+- evidence_refs
+- note
+- na_reason
+- evidence_scope_note
+- test_files
 forbidden_state_fields:
-  - done
-  - covered
-  - coverage_status
-  - audit_date
-  - evidence_report
-  - current
-  - proposed
-  - backlog_status
-  - migration_status
-  - mapping_status
-  - run_id
-  - ledger_ref
+- done
+- covered
+- coverage_status
+- audit_date
+- evidence_report
+- current
+- proposed
+- backlog_status
+- migration_status
+- mapping_status
+- run_id
+- ledger_ref
 entries:
-  - D-AUTH-001
-  - D-AUTH-002
-  - D-AUTH-003
-  - D-AUTH-004
-  - D-AUTH-005
-  - D-AUTH-006
-  - D-AUTH-007
-  - D-AUTH-008
-  - D-AUTH-009
-  - D-AUTH-010
-  - D-AUTH-011
-  - D-AUTH-012
-  - D-AUTH-013
-  - D-AUTH-014
-  - D-BOOT-001
-  - D-BOOT-002
-  - D-BOOT-003
-  - D-BOOT-004
-  - D-BOOT-005
-  - D-BOOT-006
-  - D-BOOT-007
-  - D-BOOT-008
-  - D-BOOT-009
-  - D-BOOT-010
-  - D-BOOT-011
-  - D-BOOT-012
-  - D-ERR-001
-  - D-ERR-002
-  - D-ERR-003
-  - D-ERR-004
-  - D-ERR-005
-  - D-ERR-006
-  - D-ERR-007
-  - D-ERR-008
-  - D-ERR-009
-  - D-ERR-010
-  - D-ERR-011
-  - D-ERR-012
-  - D-SEC-001
-  - D-SEC-002
-  - D-SEC-003
-  - D-SEC-004
-  - D-SEC-005
-  - D-SEC-006
-  - D-SEC-007
-  - D-SEC-008
-  - D-SEC-009
-  - D-SEC-010
-  - D-SEC-011
-  - D-SEC-012
-  - D-SEC-013
-  - D-SEC-014
-  - D-STATE-001
-  - D-STATE-002
-  - D-STATE-003
-  - D-STATE-004
-  - D-STATE-005
-  - D-GATE-001
-  - D-GATE-010
-  - D-GATE-020
-  - D-GATE-030
-  - D-GATE-040
-  - D-GATE-050
-  - D-GATE-060
-  - D-GATE-070
-  - D-GATE-080
-  - D-GATE-081
-  - D-GATE-090
-  - D-GATE-091
-  - D-GATE-092
-  - D-GATE-093
-  - D-GATE-094
-  - D-GATE-095
-  - D-GATE-096
+- D-AUTH-001
+- D-AUTH-002
+- D-AUTH-003
+- D-AUTH-004
+- D-AUTH-005
+- D-AUTH-006
+- D-AUTH-007
+- D-AUTH-008
+- D-AUTH-009
+- D-AUTH-010
+- D-AUTH-011
+- D-AUTH-012
+- D-AUTH-013
+- D-AUTH-014
+- D-BOOT-001
+- D-BOOT-002
+- D-BOOT-003
+- D-BOOT-004
+- D-BOOT-006
+- D-BOOT-007
+- D-BOOT-008
+- D-BOOT-009
+- D-BOOT-010
+- D-BOOT-011
+- D-BOOT-012
+- D-ERR-001
+- D-ERR-002
+- D-ERR-003
+- D-ERR-004
+- D-ERR-005
+- D-ERR-006
+- D-ERR-007
+- D-ERR-008
+- D-ERR-009
+- D-ERR-010
+- D-ERR-011
+- D-ERR-012
+- D-SEC-001
+- D-SEC-002
+- D-SEC-003
+- D-SEC-004
+- D-SEC-006
+- D-SEC-007
+- D-SEC-008
+- D-SEC-009
+- D-SEC-010
+- D-SEC-011
+- D-SEC-012
+- D-SEC-013
+- D-SEC-014
+- D-STATE-001
+- D-STATE-002
+- D-STATE-004
+- D-STATE-005
+- D-GATE-001
+- D-GATE-010
+- D-GATE-020
+- D-GATE-030
+- D-GATE-040
+- D-GATE-050
+- D-GATE-060
+- D-GATE-070
+- D-GATE-080
+- D-GATE-090
+- D-GATE-091
+- D-GATE-092
+- D-GATE-093
+- D-GATE-094
+- D-GATE-095
+- D-GATE-096
 rules:
-  - rule_id: D-AUTH-001
-    evidence_refs: &a1
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-AUTH-002
-    evidence_refs: *a1
-    evidence_requirement: required
-  - rule_id: D-AUTH-003
-    evidence_refs: *a1
-    evidence_requirement: required
-  - rule_id: D-AUTH-004
-    evidence_refs: *a1
-    evidence_requirement: required
-  - rule_id: D-AUTH-005
-    evidence_refs: *a1
-    evidence_requirement: required
-  - rule_id: D-AUTH-006
-    evidence_refs: *a1
-    evidence_requirement: required
-  - rule_id: D-AUTH-007
-    evidence_refs: *a1
-    evidence_requirement: required
-  - rule_id: D-AUTH-008
-    evidence_refs: *a1
-    evidence_requirement: required
-  - rule_id: D-AUTH-009
-    evidence_refs: *a1
-    evidence_requirement: required
-  - rule_id: D-AUTH-010
-    evidence_refs: &a2
-      - desktop_kernel_consistency
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-AUTH-011
-    evidence_refs: *a2
-    evidence_requirement: required
-  - rule_id: D-AUTH-012
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_rust_test_gate
-    note: External Agent revocation & audit; Rust backend test coverage
-    evidence_requirement: required
-  - rule_id: D-AUTH-013
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_test_gate
-    note: Email entry route typed decision; anonymous checkEmail call via S-REALM-038
-    evidence_requirement: required
-  - rule_id: D-AUTH-014
-    evidence_refs:
-      - desktop_kernel_consistency
-      - avatar_spec_consistency_gate
-      - avatar_lint_gate
-      - avatar_test_gate
-    note: Shared-session revalidation excludes Avatar; Avatar coverage now proves local visual bootstrap plus runtime-binding fail-closed behavior.
-    evidence_requirement: required
-  - rule_id: D-BOOT-001
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-      - desktop_e2e_smoke_gate
-      - desktop_runtime_config_path_gate
-    evidence_requirement: required
-  - rule_id: D-BOOT-002
-    evidence_refs: *a1
-    evidence_requirement: required
-  - rule_id: D-BOOT-003
-    evidence_refs: *a1
-    evidence_requirement: required
-  - rule_id: D-BOOT-004
-    evidence_refs: *a1
-    evidence_requirement: required
-  - rule_id: D-BOOT-005
-    evidence_refs: *a1
-    evidence_requirement: required
-  - rule_id: D-BOOT-006
-    evidence_refs: *a1
-    evidence_requirement: required
-  - rule_id: D-BOOT-007
-    evidence_refs: *a1
-    evidence_requirement: required
-  - rule_id: D-BOOT-008
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-      - desktop_e2e_smoke_gate
-    evidence_requirement: required
-  - rule_id: D-BOOT-009
-    evidence_refs: *a1
-    evidence_requirement: required
-  - rule_id: D-BOOT-010
-    evidence_refs: *a1
-    evidence_requirement: required
-  - rule_id: D-BOOT-011
-    evidence_refs: *a1
-    evidence_requirement: required
-  - rule_id: D-BOOT-012
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-      - desktop_e2e_smoke_gate
-    evidence_requirement: required
-  - rule_id: D-ERR-001
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-ERR-002
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-ERR-003
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-ERR-004
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-ERR-005
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-ERR-006
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-ERR-007
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-ERR-008
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-ERR-009
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-ERR-010
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-ERR-011
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-ERR-012
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SEC-001
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SEC-002
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SEC-003
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SEC-004
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SEC-005
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SEC-006
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SEC-007
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SEC-008
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SEC-009
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SEC-010
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SEC-011
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_rust_test_gate
-    note: Error message credential scrubbing; Rust backend test validates redaction patterns
-    evidence_requirement: required
-  - rule_id: D-SEC-012
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_rust_test_gate
-    note: External Agent token state machine; Rust backend test coverage
-    evidence_requirement: required
-  - rule_id: D-SEC-013
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_rust_test_gate
-    note: External Agent scope binding model; Rust backend test coverage
-    evidence_requirement: required
-  - rule_id: D-SEC-014
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_rust_test_gate
-    note: External Agent execution context verification; Rust backend test coverage
-    evidence_requirement: required
-  - rule_id: D-STATE-001
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-STATE-002
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-STATE-003
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-STATE-004
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-STATE-005
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-GATE-001
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_e2e_smoke_gate
-      - desktop_e2e_journey_gate
-    evidence_requirement: required
-  - rule_id: D-GATE-010
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-GATE-020
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_rust_test_gate
-      - desktop_rust_clippy_gate
-    evidence_requirement: required
-  - rule_id: D-GATE-030
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_e2e_smoke_gate
-    evidence_requirement: required
-  - rule_id: D-GATE-040
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_e2e_journey_gate
-    evidence_requirement: required
-  - rule_id: D-GATE-050
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_e2e_smoke_gate
-    evidence_requirement: required
-  - rule_id: D-GATE-060
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_e2e_journey_gate
-      - desktop_macos_manual_smoke_policy
-      - desktop_macos_automated_smoke_gate
-      - desktop_macos_automated_smoke_report
-    evidence_requirement: required
-  - rule_id: D-GATE-070
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_e2e_smoke_gate
-      - desktop_e2e_journey_gate
-      - desktop_e2e_failure_artifacts_gate
-      - desktop_e2e_ci_evidence_report
-    evidence_requirement: required
-  - rule_id: D-GATE-080
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-    evidence_requirement: required
-  - rule_id: D-GATE-081
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_test_gate
-      - desktop_spec_docs_drift_gate
-    evidence_requirement: required
-  - rule_id: D-GATE-090
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_design_contract_gate
-    evidence_requirement: required
-  - rule_id: D-GATE-091
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_design_contract_gate
-      - desktop_spec_docs_drift_gate
-    evidence_requirement: required
-  - rule_id: D-GATE-092
-    evidence_refs: &a3
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-      - desktop_tauri_command_execution_gate
-    evidence_requirement: required
-  - rule_id: D-GATE-093
-    evidence_refs: *a3
-    evidence_requirement: required
-  - rule_id: D-GATE-094
-    evidence_refs: *a3
-    evidence_requirement: required
-  - rule_id: D-GATE-095
-    evidence_refs: *a3
-    evidence_requirement: required
-  - rule_id: D-GATE-096
-    evidence_refs: *a3
-    evidence_requirement: required
+- rule_id: D-AUTH-001
+  evidence_refs: &1
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-AUTH-002
+  evidence_refs: *1
+  evidence_requirement: required
+- rule_id: D-AUTH-003
+  evidence_refs: *1
+  evidence_requirement: required
+- rule_id: D-AUTH-004
+  evidence_refs: *1
+  evidence_requirement: required
+- rule_id: D-AUTH-005
+  evidence_refs: *1
+  evidence_requirement: required
+- rule_id: D-AUTH-006
+  evidence_refs: *1
+  evidence_requirement: required
+- rule_id: D-AUTH-007
+  evidence_refs: *1
+  evidence_requirement: required
+- rule_id: D-AUTH-008
+  evidence_refs: *1
+  evidence_requirement: required
+- rule_id: D-AUTH-009
+  evidence_refs: *1
+  evidence_requirement: required
+- rule_id: D-AUTH-010
+  evidence_refs: &2
+  - desktop_kernel_consistency
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-AUTH-011
+  evidence_refs: *2
+  evidence_requirement: required
+- rule_id: D-AUTH-012
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_rust_test_gate
+  note: External Agent revocation & audit; Rust backend test coverage
+  evidence_requirement: required
+- rule_id: D-AUTH-013
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_test_gate
+  note: Email entry route typed decision; anonymous checkEmail call via S-REALM-038
+  evidence_requirement: required
+- rule_id: D-AUTH-014
+  evidence_refs:
+  - desktop_kernel_consistency
+  - avatar_spec_consistency_gate
+  - avatar_lint_gate
+  - avatar_test_gate
+  note: Shared-session revalidation excludes Avatar; Avatar coverage now proves local
+    visual bootstrap plus runtime-binding fail-closed behavior.
+  evidence_requirement: required
+- rule_id: D-BOOT-001
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  - desktop_e2e_smoke_gate
+  - desktop_runtime_config_path_gate
+  evidence_requirement: required
+- rule_id: D-BOOT-002
+  evidence_refs: *1
+  evidence_requirement: required
+- rule_id: D-BOOT-003
+  evidence_refs: *1
+  evidence_requirement: required
+- rule_id: D-BOOT-004
+  evidence_refs: *1
+  evidence_requirement: required
+- rule_id: D-BOOT-006
+  evidence_refs: *1
+  evidence_requirement: required
+- rule_id: D-BOOT-007
+  evidence_refs: *1
+  evidence_requirement: required
+- rule_id: D-BOOT-008
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  - desktop_e2e_smoke_gate
+  evidence_requirement: required
+- rule_id: D-BOOT-009
+  evidence_refs: *1
+  evidence_requirement: required
+- rule_id: D-BOOT-010
+  evidence_refs: *1
+  evidence_requirement: required
+- rule_id: D-BOOT-011
+  evidence_refs: *1
+  evidence_requirement: required
+- rule_id: D-BOOT-012
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  - desktop_e2e_smoke_gate
+  evidence_requirement: required
+- rule_id: D-ERR-001
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-ERR-002
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-ERR-003
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-ERR-004
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-ERR-005
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-ERR-006
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-ERR-007
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-ERR-008
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-ERR-009
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-ERR-010
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-ERR-011
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-ERR-012
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SEC-001
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SEC-002
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SEC-003
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SEC-004
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SEC-006
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SEC-007
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SEC-008
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SEC-009
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SEC-010
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SEC-011
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_rust_test_gate
+  note: Error message credential scrubbing; Rust backend test validates redaction
+    patterns
+  evidence_requirement: required
+- rule_id: D-SEC-012
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_rust_test_gate
+  note: External Agent token state machine; Rust backend test coverage
+  evidence_requirement: required
+- rule_id: D-SEC-013
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_rust_test_gate
+  note: External Agent scope binding model; Rust backend test coverage
+  evidence_requirement: required
+- rule_id: D-SEC-014
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_rust_test_gate
+  note: External Agent execution context verification; Rust backend test coverage
+  evidence_requirement: required
+- rule_id: D-STATE-001
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-STATE-002
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-STATE-004
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-STATE-005
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-GATE-001
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_e2e_smoke_gate
+  - desktop_e2e_journey_gate
+  evidence_requirement: required
+- rule_id: D-GATE-010
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-GATE-020
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_rust_test_gate
+  - desktop_rust_clippy_gate
+  evidence_requirement: required
+- rule_id: D-GATE-030
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_e2e_smoke_gate
+  evidence_requirement: required
+- rule_id: D-GATE-040
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_e2e_journey_gate
+  evidence_requirement: required
+- rule_id: D-GATE-050
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_e2e_smoke_gate
+  evidence_requirement: required
+- rule_id: D-GATE-060
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_e2e_journey_gate
+  - desktop_macos_manual_smoke_policy
+  - desktop_macos_automated_smoke_gate
+  - desktop_macos_automated_smoke_report
+  evidence_requirement: required
+- rule_id: D-GATE-070
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_e2e_smoke_gate
+  - desktop_e2e_journey_gate
+  - desktop_e2e_failure_artifacts_gate
+  - desktop_e2e_ci_evidence_report
+  evidence_requirement: required
+- rule_id: D-GATE-080
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  evidence_requirement: required
+- rule_id: D-GATE-090
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_design_contract_gate
+  evidence_requirement: required
+- rule_id: D-GATE-091
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_design_contract_gate
+  - desktop_spec_docs_drift_gate
+  evidence_requirement: required
+- rule_id: D-GATE-092
+  evidence_refs: &3
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_tauri_command_execution_gate
+  evidence_requirement: required
+- rule_id: D-GATE-093
+  evidence_refs: *3
+  evidence_requirement: required
+- rule_id: D-GATE-094
+  evidence_refs: *3
+  evidence_requirement: required
+- rule_id: D-GATE-095
+  evidence_refs: *3
+  evidence_requirement: required
+- rule_id: D-GATE-096
+  evidence_refs: *3
+  evidence_requirement: required

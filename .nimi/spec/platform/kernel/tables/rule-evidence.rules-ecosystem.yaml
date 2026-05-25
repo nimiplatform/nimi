@@ -1,87 +1,92 @@
 table_family: support_registry
 registry_id: platform_rule_evidence_requirement_rules_ecosystem
 owner: platform
-schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+schema_ref: ".nimi/contracts/table-family.schema.yaml#support_registry"
 allowed_fields:
-  - rule_id
-  - evidence_requirement
-  - evidence_refs
-  - note
-  - na_reason
-  - evidence_scope_note
-  - test_files
+- rule_id
+- evidence_requirement
+- evidence_refs
+- note
+- na_reason
+- evidence_scope_note
+- test_files
 forbidden_state_fields:
-  - done
-  - covered
-  - coverage_status
-  - audit_date
-  - evidence_report
-  - current
-  - proposed
-  - backlog_status
-  - migration_status
-  - mapping_status
-  - run_id
-  - ledger_ref
+- done
+- covered
+- coverage_status
+- audit_date
+- evidence_report
+- current
+- proposed
+- backlog_status
+- migration_status
+- mapping_status
+- run_id
+- ledger_ref
 entries:
-  - P-ECO-001
-  - P-ECO-002
-  - P-ECO-003
-  - P-ECO-004
-  - P-ECO-005
-  - P-ECO-006
-  - P-ECO-007
-  - P-ECO-008
-  - P-ECO-009
-  - P-ECO-010
+- P-ECO-001
+- P-ECO-002
+- P-ECO-003
+- P-ECO-004
+- P-ECO-005
+- P-ECO-006
+- P-ECO-007
+- P-ECO-008
+- P-ECO-010
 rules:
-  - rule_id: P-ECO-001
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; ecosystem expansion scope is enforced by Wave 6 implementation consumer validation
-  - rule_id: P-ECO-002
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; third-party developer onboarding admission posture is enforced by `tables/nimi-app-registry.yaml` consumer validation and `P-MOEX-*` mechanical guard
-  - rule_id: P-ECO-003
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; trust tier expansion boundary is enforced by `tables/nimi-app-trust-tiers.yaml` consumer validation
-  - rule_id: P-ECO-004
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; review posture state set enforcement is downstream review-tool consumer validation
-  - rule_id: P-ECO-005
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; world/game app class posture enforcement requires Realm grant backend and projection contract consumer validation
-  - rule_id: P-ECO-006
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; engine SDK seam enforcement is SDK boundary check and `P-ARCH-024..P-ARCH-027` consumer validation
-  - rule_id: P-ECO-007
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; economy posture child-proposal spawn is downstream proposal authoring; Wave 6 records the name only
-  - rule_id: P-ECO-008
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; no-Steam-copy negative gate enforcement is product copy / registry / review consumer validation; future `check:no-steam-copy-language` mechanical guard is registered in `enforcement-gates-required.md`
-  - rule_id: P-ECO-009
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; public mod/extension non-admission persistence is enforced by `check:no-public-mod-extension-admission` mechanical guard
-  - rule_id: P-ECO-010
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; cross-wave invariants are enforced by Wave 0..5 individual mechanical guards and consumer validations
+- rule_id: P-ECO-001
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; ecosystem expansion scope is enforced by Wave
+    6 implementation consumer validation
+- rule_id: P-ECO-002
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; third-party developer onboarding admission
+    posture is enforced by `tables/nimi-app-registry.yaml` consumer validation and
+    `P-MOEX-*` mechanical guard
+- rule_id: P-ECO-003
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; trust tier expansion boundary is enforced
+    by `tables/nimi-app-trust-tiers.yaml` consumer validation
+- rule_id: P-ECO-004
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; review posture state set enforcement is downstream
+    review-tool consumer validation
+- rule_id: P-ECO-005
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; world/game app class posture enforcement requires
+    Realm grant backend and projection contract consumer validation
+- rule_id: P-ECO-006
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; engine SDK seam enforcement is SDK boundary
+    check and `P-ARCH-024..P-ARCH-027` consumer validation
+- rule_id: P-ECO-007
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; economy posture child-proposal spawn is downstream
+    proposal authoring; Wave 6 records the name only
+- rule_id: P-ECO-008
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; no-Steam-copy negative gate enforcement is
+    product copy / registry / review consumer validation; future `check:no-steam-copy-language`
+    mechanical guard is registered in `enforcement-gates-required.md`
+- rule_id: P-ECO-010
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; cross-wave invariants are enforced by Wave
+    0..5 individual mechanical guards and consumer validations

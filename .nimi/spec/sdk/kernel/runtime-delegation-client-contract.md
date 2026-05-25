@@ -83,7 +83,7 @@ protocol metadata fields admitted by `K-DELEG-044`.
 ## S-RUNTIME-209 Consumer No-Bypass
 
 SDK must not provide helper APIs that connect Desktop, Avatar, apps, Web, or
-mods directly to MCP/A2A providers. All delegated operations must route through
+direct consumers directly to MCP/A2A providers. All delegated operations must route through
 Runtime-owned gateway APIs.
 
 ## S-RUNTIME-210 Later Surface Status

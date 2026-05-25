@@ -125,7 +125,7 @@ multi-beat / tail text path，不构成 authority，后续 alignment 必须向�
 
 具体约束：
 
-- Desktop agent chat 在本 landing 中不得把 scheduler、heartbeat、notification、automation、orchestration helpers、prompt runtime internals、或 mod implementation evidence 升格为 proactive-contact owner
+- Desktop agent chat 在本 landing 中不得把 scheduler、heartbeat、notification、automation、orchestration helpers、prompt runtime internals、或 unrelated implementation evidence 升格为 proactive-contact owner
 - `explicit-media`、beat planning、experience policy、或 helper diagnostics 不得借道重新引入 video-generation admission
  - `explicit-media`、single-message planning、experience policy、或 helper diagnostics
    不得借道重新引入 video-generation admission

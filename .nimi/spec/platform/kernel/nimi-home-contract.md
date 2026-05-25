@@ -50,7 +50,6 @@
 - Realm 账户 / 云端 / world / economy / social authority
 - Cognition 语义 memory / knowledge artifact authority
 - Avatar `.nimi/spec/avatar/**` kernel authority
-- public Mod / public Extension 产品类目
 - 共享 Nimi Content Pack 渠道
 - agent identity 跨 app 平级 owner（参见
   `agent-identity-primitive-floor.md` Wave 0 决议）
@@ -129,8 +128,8 @@ App client projection、与 Runtime registration / enforcement projection。
 
 - 不得拥有 admission truth、marketplace truth、economy truth、package
   trust truth、或第二份 app discovery 平面。
-- 不得从 app-local spec、workspace source tree、Mods、Extensions、或未
-  admitted registry row 推导 ordinary Apps 可见性。
+- 不得从 app-local spec、workspace source tree、或未 admitted registry row
+  推导 ordinary Apps 可见性。
 - 不得在 ordinary Apps 中显示 Avatar；隐藏 Avatar 也不得把 package /
   install / update truth 移入 Agent Chat。
 - 不得引入“Home tab as Home”命名递归（参见 Wave 0

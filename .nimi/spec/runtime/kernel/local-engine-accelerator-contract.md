@@ -8,8 +8,8 @@
 
 Runtime owns shared accelerator dependency readiness for supervised local
 execution. CUDA user-space runtime readiness is not owned by image assets,
-`llama.cpp`, `stable-diffusion.cpp`, diffusers, package installers, Desktop, SDK,
-or mods. Ordinary users must not be required to install CUDA Toolkit, configure
+`llama.cpp`, `stable-diffusion.cpp`, diffusers, package installers, Desktop, or
+SDK. Ordinary users must not be required to install CUDA Toolkit, configure
 `CUDA_PATH` / `CUDA_HOME`, or have `nvcc` on PATH before using an admitted
 Windows NVIDIA local execution path.
 
@@ -31,7 +31,7 @@ The authority layers are fixed:
 - Image topology/package tables may reference dependency ids and consumer ids,
   but they must not own CUDA source selection, installation, repair, or selected
   source records.
-- Desktop, SDK, mods, and app code may only project runtime dependency truth and
+- Desktop, SDK, and app code may only project runtime dependency truth and
   must not probe, install, or infer CUDA readiness themselves.
 
 Windows NVIDIA CUDA source policy is `system-first-managed-fallback`:

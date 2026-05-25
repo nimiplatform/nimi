@@ -8,7 +8,7 @@
 |---|---|
 | `nimi-realm` | 闭源 |
 | `runtime` / `sdk` / `proto` | 开源 (Apache-2.0) |
-| `apps/desktop` / `nimi-mods` / `apps/web` | 开源 (MIT) |
+| `apps/desktop` / `apps/web` | 开源 (MIT) |
 | `docs` / `spec` | 开源 (CC-BY-4.0) |
 
 ## P-GOV-002 — 许可证矩阵
@@ -16,7 +16,7 @@
 | 路径 | License |
 |---|---|
 | `runtime/`, `sdk/`, `proto/` | Apache-2.0 |
-| `apps/desktop/`, `apps/web/`, `kit/`, `nimi-mods/` | MIT |
+| `apps/desktop/`, `apps/web/`, `kit/` | MIT |
 | `docs/`, `spec/` | CC-BY-4.0 |
 
 ## P-GOV-003 — 发布门禁规则
@@ -51,7 +51,7 @@ Top-level package/protocol support roots such as `sdk/` root metadata and `proto
 
 ## P-GOV-023 — Release Automation Traceability
 
-Release and CI workflow files must remain traceable to their governed release surface, security posture, or package/protocol release gates. Workflows that publish runtime, SDK, proto, desktop, web, or mod artifacts must not become unstated parallel release authority.
+Release and CI workflow files must remain traceable to their governed release surface, security posture, or package/protocol release gates. Workflows that publish runtime, SDK, proto, desktop, or web artifacts must not become unstated parallel release authority.
 
 ## Operational Refinement Reference
 

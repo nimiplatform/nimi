@@ -111,8 +111,7 @@ Avatar must not appear in `app.list()` for ordinary Apps, even when an internal
 registry row exists for bundled package/update coordination.
 
 `MUST NOT`：SDK must not expose unadmitted workspace apps, app-local spec rows,
-Mods, Extensions, Avatar hidden-internal rows, or source-discovered packages as
-ordinary Apps.
+Avatar hidden-internal rows, or source-discovered packages as ordinary Apps.
 
 ## S-APP-010 — Install Descriptor Verification
 

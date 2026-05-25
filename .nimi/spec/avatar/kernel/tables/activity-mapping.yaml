@@ -39,8 +39,8 @@ naming_rule:
       motion_group: "Activity_Happy"
     - activity_id: "ext:grateful"
       motion_group: "Activity_ExtGrateful"
-    - activity_id: "mod-weather:storm-watching"
-      motion_group: "Activity_ModWeatherStormWatching"
+    - activity_id: "ext:proud"
+      motion_group: "Activity_ExtProud"
 
 # ── core ontology activities (every entry MUST have BOTH live2d AND vrm route) ──
 activities: &avatar_activity_backend_projection_surfaces
@@ -185,8 +185,9 @@ extended_activities_passthrough:
 
 custom_activities_passthrough:
   rule: >
-    `mod-<modid>:*` activities are admitted only when the mod manifest
-    declares them. Same fail-close as extended.
+    Activity namespaces outside this table are not admitted. They use the same
+    fail-close behavior as extended activities until a separate authority admits
+    an extension namespace.
 
 intensity_variants:
   description: >
@@ -225,7 +226,7 @@ constraints:
         Live2D `motion_group` references SHOULD resolve to a group in
         the loaded model3.json; missing group falls back via §naming_rule
         + emit `avatar.motion.preset.fail_close { reason_code: 'preset_not_admitted' }`.
-        ext:/mod-: prefix activities NOT in this table fail-close
+        ext: prefix activities NOT in this table fail-close
         (log warn, no silent fallback to idle).
     - description: >
         Adding a generated motion route MUST update this table in the same

@@ -7,7 +7,7 @@ entries:
   - consumer_smoke
   - boundary_checks
   - vnext_matrix
-  - mod_scope
+  - scope
   - runtime_projection
   - coverage
   - provider_alignment
@@ -33,8 +33,8 @@ gates:
   - gate: vnext_matrix
     command: pnpm check:sdk-vnext-matrix
     source_rule: S-GATE-030
-  - gate: mod_scope
-    command: pnpm check:mods-no-runtime-sdk && pnpm check:runtime-mod-hook-hardcut
+  - gate: scope
+    command: pnpm check:sdk-import-boundary && pnpm check:sdk-consumer-smoke
     source_rule: S-GATE-040
   - gate: runtime_projection
     command: pnpm check:runtime-bridge-method-drift

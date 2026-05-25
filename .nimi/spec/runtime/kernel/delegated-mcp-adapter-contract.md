@@ -56,7 +56,7 @@ quarantine against this contract.
 Runtime owns starting, connecting, monitoring, timing out, and closing MCP
 server sessions.
 
-No Desktop, Avatar, Web, app, mod, or `nimi-hook` layer may instantiate an MCP
+No Desktop, Avatar, Web, or app layer may instantiate an MCP
 client or server session directly.
 
 ## K-DELEG-105 Tool Discovery
@@ -121,7 +121,7 @@ gateway evidence must not be consumed by:
 
 Runtime must not pass raw user, provider, connector, OAuth, API key, or bearer
 tokens through MCP request arguments, SDK metadata, environment injection, app
-payloads, Avatar payloads, Desktop payloads, or mod payloads.
+payloads, Avatar payloads, or Desktop payloads.
 
 Credential material must remain under connector/key-source/grant/authn/authz
 authority. MCP adapter code may receive only the minimum credential material
@@ -161,7 +161,7 @@ Wave-2 does not create a second audit store.
 Only Runtime-owned MCP adapter implementation paths may import
 `github.com/modelcontextprotocol/go-sdk`.
 
-SDK, Desktop, Avatar, Web, apps, mods, and `nimi-hook` direct MCP imports are
+SDK, Desktop, Avatar, Web, and apps direct MCP imports are
 forbidden.
 
 ## K-DELEG-117 A2A Non-Interference

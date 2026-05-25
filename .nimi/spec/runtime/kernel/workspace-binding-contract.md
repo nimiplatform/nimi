@@ -181,7 +181,7 @@ and direct use of `app_id` / `subject_user_id` as proof.
 
 ## K-BIND-023 SDK/Desktop/App Boundary
 
-SDK, Desktop, Web, apps, and mods may only carry or project the workspace
+SDK, Desktop, Web, and apps may only carry or project the workspace
 binding attachment fields admitted by `K-BIND-017`. They must not compute
 workspace authorization, cache membership truth as resolver truth, call an
 internal resolver, or convert workspace binding into Realm REST credentials.

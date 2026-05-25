@@ -5,14 +5,8 @@
 ## P-ARCH-001 — 六层执行架构定义
 
 Nimi 平台的长期用户面产品是可安装的 `Nimi`。`Nimi Home` 是入口壳 /
-entry shell；当前由 desktop host 承载。历史执行拓扑中的
-`desktop`、`nimi-hook`、`mods` 只保留为现有实现与 retirement/internalization
-对账对象，不再构成公开产品类目。
-
-公开外部分发、安装、授权单位固定为 `Nimi App`。Public Mods 与 Public
-Extensions 不被 admitted。任何仍存在的 hook/mod 实现面只允许作为
-developer/internal/retirement surface 存在，不能被产品文案、registry、
-Apps、或第三方接入文档描述为 Nimi 生态入口。
+entry shell；当前由 desktop host 承载。公开外部分发、安装、授权单位固定为
+`Nimi App`。
 
 `nimi-cognition` 作为独立 authority domain 存在，由 runtime / sdk bridge 与 consume；它不是第七条执行宿主层，也不得被 platform text 静默压回 realm 或 runtime 子章节。
 
@@ -21,17 +15,13 @@ public top-layer architecture text `MUST` 同时暴露 cross-repo read path：
 - public canonical 入口在 `nimi/.nimi/spec/**`
 - private realm / backend / dashboard / creator-side authority 保留在
   `nimi-realm/.nimi/spec/**`
-- mods workspace authority 保留在 `nimi-mods/spec/**`
-
 上述 framing 只负责 cross-repo topology 与 authority routing；不得把 private
-repo 或 mods workspace 的 semantic owner 静默迁回当前 public root。
+repo 的 semantic owner 静默迁回当前 public root。
 
 ## P-ARCH-002 — 层间通信规则
 
 `MUST`: Realm 与 Runtime 并列互不依赖，通过 SDK 桥接。Nimi Apps 通过
-`@nimiplatform/sdk` 统一接入。Public Mods / Extensions 不被 admitted；历史
-`nimi-hook` 只允许作为 developer/internal/retirement surface，不得作为普通用户
-或第三方产品通信入口。通信协议固定：Realm=REST+WS，Runtime=gRPC。
+`@nimiplatform/sdk` 统一接入。通信协议固定：Realm=REST+WS，Runtime=gRPC。
 
 ## P-ARCH-003 — Realm 职责边界
 
@@ -72,8 +62,7 @@ surface is `Apps`. These surfaces do not own Runtime materialization、Nimi App
 registry/admission、Realm/Cognition truth、或 marketplace economy truth。
 
 历史 `App Store`、`Library`、`Discovery` ordinary product wording superseded 为
-Nimi `Apps` projection；历史 `nimi-hook` 特性 superseded 为 developer/internal/retirement
-surface，不得作为 public Mod/Extension product promise。
+Nimi `Apps` projection。
 
 ordinary-user 默认 AI 体验（first-run、scope-bound apply、admitted
 first-party Nimi App 的 AIProfile selection hint）的 Platform factory catalog
@@ -98,7 +87,7 @@ existing Desktop kernel hosted-shell 合同（`D-HOME-*`、`D-SHELL-*` 等）
 
 ## P-ARCH-022 — World Evolution Engine Placement
 
-`MUST`: World Evolution Engine 被定义为跨 app / mod / domain consumer 的 shared execution layer。Platform kernel 只拥有其 placement、boundary、naming、packaging guardrails；execution semantics semantic owner 保留给 Runtime kernel 后续合同。
+`MUST`: World Evolution Engine 被定义为跨 app / domain consumer 的 shared execution layer。Platform kernel 只拥有其 placement、boundary、naming、packaging guardrails；execution semantics semantic owner 保留给 Runtime kernel 后续合同。
 
 ## P-ARCH-023 — World Evolution Engine 非 Owner 边界
 
@@ -132,19 +121,19 @@ existing Desktop kernel hosted-shell 合同（`D-HOME-*`、`D-SHELL-*` 等）
 
 - 由 SDK 充当 shared kernel semantic owner
 - App / Desktop / Web 直接持有 Runtime internal 或 Realm private access
-- Mods 或 narrative-engine 直接耦合 shared kernel internals
+- consumer-specific implementation 直接耦合 shared kernel internals
 - 通过 host-private bridge、app-local singleton、或 private client 形成第二条 control path
 - 把 commit authorization、canonical history、canonical state、runtime audit、或 stable event truth 迁移为 shared kernel 的第二套 authority
 
 ## P-ARCH-027 — Consumer Boundary And Rewrite Hardcut
 
-`MUST`: apps、mods、narrative-engine、以及其他 consumer 与 World Evolution Engine 的交互只允许通过 SDK public surface、host-injected facade、或显式 adapter / event boundary 完成。
+`MUST`: apps、narrative-engine、以及其他 consumer 与 World Evolution Engine 的交互只允许通过 SDK public surface、host-injected facade、或显式 adapter / event boundary 完成。
 
 `MUST NOT`:
 
 - 通过 private boundary import 直接耦合 Runtime / Realm internals
-- 在 app / mod / narrative consumer 各自重写 tick loop、replay semantics、checkpoint semantics、或 shared execution authority
-- 让 `kit/**`、apps、mods、或 narrative-engine 吸入 write authority、commit authorization authority、或 canonical truth ownership
+- 在 app / narrative consumer 各自重写 tick loop、replay semantics、checkpoint semantics、或 shared execution authority
+- 让 `kit/**`、apps、或 narrative-engine 吸入 write authority、commit authorization authority、或 canonical truth ownership
 
 ## P-ARCH-028 — Workflow Surface 非 World Evolution Engine Truth
 
@@ -154,11 +143,11 @@ existing Desktop kernel hosted-shell 合同（`D-HOME-*`、`D-SHELL-*` 等）
 
 ## P-ARCH-029 — Consumer API Contract Home
 
-`MUST`: World Evolution Engine 的 app/mod consumer-facing API contract 落点固定为 `.nimi/spec/sdk/kernel/**` 中的 downstream consumer seam contract。
+`MUST`: World Evolution Engine 的 app consumer-facing API contract 落点固定为 `.nimi/spec/sdk/kernel/**` 中的 downstream consumer seam contract。
 
 该 contract 只拥有：
 
-- app-facing SDK facade 与 mod host-injected facade 的 consumer composition boundary
+- app-facing SDK facade 的 consumer composition boundary
 - consumer read/observe surface 与 command/request surface 的 admissibility framing
 - consumer-visible no-leak / no-widening / no-bypass hardcut
 
@@ -167,7 +156,7 @@ existing Desktop kernel hosted-shell 合同（`D-HOME-*`、`D-SHELL-*` 等）
 - Runtime execution semantics semantic ownership
 - SDK projection-visible shape semantic ownership
 - host bridge concrete API ownership
-- app / mod / host implementation strategy ownership
+- app / host implementation strategy ownership
 
 因此：
 

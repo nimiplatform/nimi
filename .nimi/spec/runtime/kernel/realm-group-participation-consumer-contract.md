@@ -65,7 +65,7 @@ Same-room ordering, fairness, queueing, budget allocation, cancellation, timeout
 status projection, external participant admission, and commit-race handoff for
 Realm Group participation are owned by Runtime Room Orchestration. Runtime
 consumers must bind to the closed `realm_group` matrix row and overlay and must
-not accept a Realm, SDK, Desktop, Web, mod, or app-local same-room scheduler.
+not accept a Realm, SDK, Desktop, Web, or app-local same-room scheduler.
 
 ## K-AGCORE-124
 

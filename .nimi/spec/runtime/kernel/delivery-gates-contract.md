@@ -30,14 +30,14 @@ proto lint/breaking/generate/drift 与 proto-spec linkage 必须全部通过。
 
 ## K-GATE-030 G2 SDK Gate
 
-SDK 投影、边界、错误语义、runtime-aligned mod/hook surface hard-cut 与文档漂移检查必须通过。
+SDK 投影、边界、错误语义、P-MOEX anti-target hard-cut 与文档漂移检查必须通过。
 
 执行命令（PR 必须通过）：
 
 - `pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency`
 - `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check`
 - `pnpm check:runtime-bridge-method-drift`
-- `pnpm check:runtime-mod-hook-hardcut`
+- `pnpm check:p-moex-anti-targets`
 
 ## K-GATE-040 G3 Provider Gate
 
@@ -59,7 +59,7 @@ provider 覆盖矩阵、runtime Go statements coverage、catalog/source drift、
 
 阻断语义：
 
-- 任一命令失败均阻断 Runtime 进入下游层（SDK/Desktop/mod）。
+- 任一命令失败均阻断 Runtime 进入下游层（SDK/Desktop）。
 
 证据路由：
 
@@ -98,7 +98,7 @@ external async 事件与任务语义必须一致可追溯。
 
 阻断语义：
 
-- compliance gate 未通过时，SDK/Desktop/mod 层不得继续执行 workaround 调试。
+- compliance gate 未通过时，SDK/Desktop 层不得继续执行 workaround 调试。
 
 ## K-GATE-080 G7 Release Candidate Gate
 

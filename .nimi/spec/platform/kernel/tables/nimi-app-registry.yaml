@@ -20,7 +20,7 @@ entries:
   - permission_scope_ref is the wave 4 permission fabric placeholder and must remain pending_wave_4 until wave 4 close
 
 # Canonical Nimi App registry — Platform admission/catalog authority.
-# See nimi-app-admission-contract.md (P-NAPP-001..P-NAPP-012).
+# See nimi-app-admission-contract.md (P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-030).
 
 app_schema:
   owner: platform_nimi_app_registry

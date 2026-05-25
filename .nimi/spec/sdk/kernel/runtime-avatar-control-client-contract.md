@@ -60,7 +60,7 @@ Stable SDK contracts must not use:
 
 ## S-RUNTIME-118 Consumer No-Bypass
 
-SDK must not provide helper APIs that let Desktop, Avatar, apps, Web, or mods
+SDK must not provide helper APIs that let Desktop, Avatar, apps, or Web
 bypass Runtime-owned probe/replay/authorization semantics or Avatar-owned
 backend resolver execution.
 
@@ -69,8 +69,8 @@ backend resolver execution.
 `RETIRED`：SDK Avatar package client surface 已随 Asset Market 撤回一并退役。
 原 `runtime.avatarPackage.resolveLaunchProjection`、`decodeAvatarPackageHandoff`、
 `RuntimeAvatarPackageHandoff`、`RuntimeAvatarPackageBackendKind` 等公共 SDK
-surface 不再存在。本范围保留为退役占位，rule IDs `S-RUNTIME-231` 至
-`S-RUNTIME-239` 不再承载 active normative 行为。
+surface 不再存在。本范围保留为退役占位，原 231-239 Avatar package
+client rule block 不再承载 active normative 行为。
 
 Avatar 启动只保留本地 Avatar 资产路径（私有 import + 本地 materialization），
 不再有远程 package 来源；任何复活该 surface 的提案必须重新立项并写入新规则。

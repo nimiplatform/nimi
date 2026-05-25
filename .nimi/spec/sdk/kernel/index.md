@@ -1,6 +1,6 @@
 # SDK Kernel Contracts
 
-> Scope: `@nimiplatform/sdk` 跨域契约（Runtime / Realm / Scope / Mod / AI Provider / Testing Gates）。
+> Scope: `@nimiplatform/sdk` 跨域契约（Runtime / Realm / Scope / AI Provider / Testing Gates）。
 
 ## 1. 目标
 
@@ -15,7 +15,7 @@
 ## 3. Rule ID 规范
 
 - 格式：`S-<DOMAIN>-NNN`
-- `DOMAIN` 固定枚举：`SURFACE` `TRANSPORT` `ERROR` `BOUNDARY` `RUNTIME` `WORLD` `REALM` `AIP` `SCOPE` `MOD` `GATE` `PKG` `AICONF` `APP` `PERM`
+- `DOMAIN` 固定枚举：`SURFACE` `TRANSPORT` `ERROR` `BOUNDARY` `RUNTIME` `WORLD` `REALM` `AIP` `SCOPE` `GATE` `PKG` `AICONF` `APP` `PERM`
 - `NNN` 三位递增编号，不复用。
 
 ## 4. 文档所有权
@@ -33,14 +33,13 @@
 | `runtime-agent-participation-client-contract.md` | `S-RUNTIME-*` | SDK typed client and method registry boundary for Runtime-owned agent participation profiles, candidates, verdicts, audit, and replay |
 | `realm-group-agent-participation-client-contract.md` | `S-RUNTIME-*` | SDK typed consumer hardcut for Realm GROUP agent participation controls, context refs, candidates, status projection, and no prompt/provider/model/commit ownership |
 | `companion-participation-client-contract.md` | `S-RUNTIME-*` | SDK typed companion participation projection/control boundary for Avatar companion/persona/debug surfaces; no raw prompt/provider/APML/debug/domain payload transport |
-| `runtime-avatar-control-client-contract.md` | `S-RUNTIME-*` | SDK typed client boundary for Desktop Avatar configuration and Runtime-owned Avatar debug probe/replay methods; Avatar package client surface retired (S-RUNTIME-231..239) along with Asset Market |
+| `runtime-avatar-control-client-contract.md` | `S-RUNTIME-*` | SDK typed client boundary for Desktop Avatar configuration and Runtime-owned Avatar debug probe/replay methods; Avatar package client surface retired along with Asset Market |
 | `world-evolution-engine-projection-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 typed projection-only 边界 |
-| `world-evolution-engine-consumer-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 app/mod consumer-facing API landing、selector-read stable method matrix、shared typed building blocks 与 no-leak hardcut |
+| `world-evolution-engine-consumer-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 app consumer-facing API landing、selector-read stable method matrix、shared typed building blocks 与 no-leak hardcut |
 | `world-contract.md` | `S-WORLD-*` | `sdk/world` 的 public facade boundary、five-family coarse landing、world-input projection boundary、fixture package boundary、renderer orchestration boundary、world-session composition boundary |
 | `realm-contract.md` | `S-REALM-*` | realm 子路径实例隔离、刷新策略、实时边界 |
 | `ai-provider-contract.md` | `S-AIP-*` | ai-provider 子路径适配与投影约束 |
 | `scope-contract.md` | `S-SCOPE-*` | scope 子路径 catalog 与边界语义 |
-| `mod-contract.md` | `S-MOD-*` | mod 子路径 host 注入、inter-mod 边界、以及 World Evolution Engine host-injected facade / selector-read publication boundary |
 | `testing-gates-contract.md` | `S-GATE-*` | SDK 门禁层次、发布同级策略 |
 | `package-governance-contract.md` | `S-PKG-*` | SDK root package metadata (`S-PKG-001`), support docs (`S-PKG-002`), release gate alignment (`S-PKG-003`), and audit evidence admission (`S-PKG-004`) |
 | `ai-config-surface-contract.md` | `S-AICONF-*` | SDK typed AI config / profile / snapshot surface, host-local persistence boundary, scheduling probe categories, and no-fallback rule |
@@ -73,4 +72,4 @@
 
 ## 8. Domain Activation Overview
 
-SDK active domains are `runtime`, `realm`, and `ai-provider`. `world`, `scope`, and `mod` remain defined SDK domains whose API surface grows only through kernel contracts and structured tables.
+SDK active domains are `runtime`, `realm`, and `ai-provider`. `world` and `scope` remain defined SDK domains whose API surface grows only through kernel contracts and structured tables.

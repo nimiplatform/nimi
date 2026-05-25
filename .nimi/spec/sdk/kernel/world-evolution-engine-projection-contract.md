@@ -142,7 +142,7 @@ Therefore SDK must not:
 - depend on `runtime/internal/**`
 - depend on Realm private client or private transport
 - depend on host-private bridge details
-- depend on app-private or mod-private client state
+- depend on app-private client state
 - widen Runtime semantic vocabulary with SDK-only enum values or hidden fallback reinterpretation
 
 Projection must remain fail-close:

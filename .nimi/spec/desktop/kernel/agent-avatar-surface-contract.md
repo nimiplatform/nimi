@@ -324,7 +324,7 @@ Fixed rules:
 - script / debug overrides may mutate avatar transform through a single
   renderer-local channel (currently the admitted debug override); this channel
   remains a non-stable surface contract and must not be exposed through SDK,
-  runtime, or mod public surface until a separate authority admits it
+  runtime, or public app surface until a separate authority admits it
 - placement persistence and transform transience together must not invent
   camera choreography, cross-thread avatar synchronization, or standalone
   editor surface; those remain deferred per `D-LLM-058`

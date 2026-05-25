@@ -1,545 +1,543 @@
 table_family: support_registry
 registry_id: desktop_rule_evidence_shell_ui_rules
 owner: desktop
-schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+schema_ref: ".nimi/contracts/table-family.schema.yaml#support_registry"
 allowed_fields:
-  - rule_id
-  - evidence_requirement
-  - evidence_refs
-  - note
-  - na_reason
-  - evidence_scope_note
-  - test_files
+- rule_id
+- evidence_requirement
+- evidence_refs
+- note
+- na_reason
+- evidence_scope_note
+- test_files
 forbidden_state_fields:
-  - done
-  - covered
-  - coverage_status
-  - audit_date
-  - evidence_report
-  - current
-  - proposed
-  - backlog_status
-  - migration_status
-  - mapping_status
-  - run_id
-  - ledger_ref
+- done
+- covered
+- coverage_status
+- audit_date
+- evidence_report
+- current
+- proposed
+- backlog_status
+- migration_status
+- mapping_status
+- run_id
+- ledger_ref
 entries:
-  - D-MBAR-001
-  - D-MBAR-002
-  - D-MBAR-003
-  - D-MBAR-004
-  - D-MBAR-005
-  - D-NET-001
-  - D-NET-002
-  - D-NET-003
-  - D-NET-004
-  - D-NET-005
-  - D-NET-006
-  - D-NET-007
-  - D-SHELL-001
-  - D-SHELL-002
-  - D-SHELL-003
-  - D-SHELL-004
-  - D-SHELL-005
-  - D-SHELL-006
-  - D-SHELL-007
-  - D-SHELL-008
-  - D-SHELL-009
-  - D-SHELL-010
-  - D-SHELL-011
-  - D-SHELL-012
-  - D-SHELL-013
-  - D-SHELL-014
-  - D-SHELL-015
-  - D-SHELL-016
-  - D-SHELL-017
-  - D-SHELL-018
-  - D-SHELL-019
-  - D-SHELL-020
-  - D-SHELL-021
-  - D-SHELL-022
-  - D-SHELL-023
-  - D-SHELL-024
-  - D-SHELL-025
-  - D-SHELL-026
-  - D-SHELL-027
-  - D-SHELL-028
-  - D-SHELL-029
-  - D-SHELL-030
-  - D-SHELL-031
-  - D-SHELL-032
-  - D-SHELL-033
-  - D-SHELL-034
-  - D-SHELL-035
-  - D-SHELL-036
-  - D-SHELL-037
-  - D-STRM-001
-  - D-STRM-002
-  - D-STRM-003
-  - D-STRM-004
-  - D-STRM-005
-  - D-STRM-006
-  - D-STRM-007
-  - D-STRM-008
-  - D-STRM-009
-  - D-STRM-010
-  - D-STRM-011
-  - D-TEL-001
-  - D-TEL-002
-  - D-TEL-003
-  - D-TEL-004
-  - D-TEL-005
-  - D-TEL-006
-  - D-TEL-007
-  - D-TEL-008
-  - D-OFFLINE-001
-  - D-OFFLINE-002
-  - D-OFFLINE-003
-  - D-OFFLINE-004
-  - D-OFFLINE-005
+- D-MBAR-001
+- D-MBAR-002
+- D-MBAR-003
+- D-MBAR-004
+- D-MBAR-005
+- D-NET-001
+- D-NET-002
+- D-NET-003
+- D-NET-004
+- D-NET-005
+- D-NET-006
+- D-NET-007
+- D-SHELL-001
+- D-SHELL-002
+- D-SHELL-003
+- D-SHELL-004
+- D-SHELL-005
+- D-SHELL-006
+- D-SHELL-007
+- D-SHELL-008
+- D-SHELL-009
+- D-SHELL-011
+- D-SHELL-012
+- D-SHELL-013
+- D-SHELL-014
+- D-SHELL-015
+- D-SHELL-016
+- D-SHELL-017
+- D-SHELL-018
+- D-SHELL-019
+- D-SHELL-020
+- D-SHELL-021
+- D-SHELL-022
+- D-SHELL-023
+- D-SHELL-024
+- D-SHELL-025
+- D-SHELL-026
+- D-SHELL-027
+- D-SHELL-028
+- D-SHELL-029
+- D-SHELL-030
+- D-SHELL-031
+- D-SHELL-032
+- D-SHELL-033
+- D-SHELL-034
+- D-SHELL-035
+- D-SHELL-036
+- D-SHELL-037
+- D-STRM-001
+- D-STRM-002
+- D-STRM-003
+- D-STRM-004
+- D-STRM-005
+- D-STRM-006
+- D-STRM-007
+- D-STRM-008
+- D-STRM-009
+- D-STRM-010
+- D-STRM-011
+- D-TEL-001
+- D-TEL-002
+- D-TEL-003
+- D-TEL-004
+- D-TEL-005
+- D-TEL-006
+- D-TEL-007
+- D-TEL-008
+- D-OFFLINE-001
+- D-OFFLINE-002
+- D-OFFLINE-003
+- D-OFFLINE-004
+- D-OFFLINE-005
 rules:
-  - rule_id: D-MBAR-001
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-MBAR-002
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-MBAR-003
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-MBAR-004
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-MBAR-005
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-NET-001
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-NET-002
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-NET-003
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-NET-004
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-NET-005
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-NET-006
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-NET-007
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-001
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-      - desktop_e2e_smoke_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-002
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-003
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-004
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-005
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-006
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-      - desktop_e2e_smoke_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-007
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-008
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-      - desktop_e2e_smoke_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-009
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-010
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-011
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-012
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-013
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-014
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-015
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-      - desktop_design_contract_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-016
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-      - desktop_design_contract_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-017
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-      - desktop_design_contract_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-018
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-      - desktop_design_contract_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-019
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_design_contract_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-020
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_design_contract_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-021
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_design_contract_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-022
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_design_contract_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-023
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-      - desktop_design_contract_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-024
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-      - desktop_design_contract_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-025
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-      - desktop_design_contract_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-026
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-      - desktop_design_contract_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-027
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-      - desktop_design_contract_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-028
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-      - desktop_design_contract_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-029
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-      - desktop_design_contract_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-030
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-      - desktop_design_contract_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-031
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-      - desktop_design_contract_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-032
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-      - desktop_design_contract_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-033
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-      - desktop_design_contract_gate
-    evidence_requirement: required
-  - rule_id: D-SHELL-034
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-    note: Desktop obstacle-aware occupancy rectangle authority; executable behavior coverage lands with downstream implementation
-    evidence_requirement: required
-  - rule_id: D-SHELL-035
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-    note: Desktop obstacle-flow taxonomy and fail-closed fallback; renderer/parser widening remains structurally blocked until downstream implementation
-    evidence_requirement: required
-  - rule_id: D-SHELL-036
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-    note: Desktop transcript stability invariants; scroll/reflow behavior coverage lands with downstream implementation
-    evidence_requirement: required
-  - rule_id: D-SHELL-037
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_spec_docs_drift_gate
-      - desktop_design_contract_gate
-    note: Desktop-controlled kit chat exception-consumer boundary for obstacle-aware line
-    evidence_requirement: required
-  - rule_id: D-STRM-001
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-STRM-002
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-STRM-003
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-STRM-004
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-STRM-005
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-STRM-006
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-STRM-007
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-STRM-008
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-STRM-009
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-STRM-010
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-STRM-011
-    evidence_refs:
-      - desktop_kernel_consistency
-    note: Agent PresentationTimeline consume boundary is admitted; implementation evidence is owned by downstream Desktop consume implementation
-    evidence_requirement: required
-  - rule_id: D-TEL-001
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-TEL-002
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-TEL-003
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-TEL-004
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-TEL-005
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-TEL-006
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-TEL-007
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-TEL-008
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-OFFLINE-001
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-      - desktop_e2e_smoke_gate
-    evidence_requirement: required
-  - rule_id: D-OFFLINE-002
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-OFFLINE-003
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
-  - rule_id: D-OFFLINE-004
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-      - desktop_e2e_smoke_gate
-    evidence_requirement: required
-  - rule_id: D-OFFLINE-005
-    evidence_refs:
-      - desktop_kernel_consistency
-      - desktop_lint_gate
-      - desktop_test_gate
-    evidence_requirement: required
+- rule_id: D-MBAR-001
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-MBAR-002
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-MBAR-003
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-MBAR-004
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-MBAR-005
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-NET-001
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-NET-002
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-NET-003
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-NET-004
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-NET-005
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-NET-006
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-NET-007
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-001
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  - desktop_e2e_smoke_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-002
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-003
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-004
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-005
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-006
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  - desktop_e2e_smoke_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-007
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-008
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  - desktop_e2e_smoke_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-009
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-011
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-012
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-013
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-014
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-015
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_design_contract_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-016
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_design_contract_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-017
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_design_contract_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-018
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_design_contract_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-019
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_design_contract_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-020
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_design_contract_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-021
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_design_contract_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-022
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_design_contract_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-023
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_design_contract_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-024
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_design_contract_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-025
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_design_contract_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-026
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_design_contract_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-027
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_design_contract_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-028
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_design_contract_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-029
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_design_contract_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-030
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_design_contract_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-031
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_design_contract_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-032
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_design_contract_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-033
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_design_contract_gate
+  evidence_requirement: required
+- rule_id: D-SHELL-034
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  note: Desktop obstacle-aware occupancy rectangle authority; executable behavior
+    coverage lands with downstream implementation
+  evidence_requirement: required
+- rule_id: D-SHELL-035
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  note: Desktop obstacle-flow taxonomy and fail-closed fallback; renderer/parser widening
+    remains structurally blocked until downstream implementation
+  evidence_requirement: required
+- rule_id: D-SHELL-036
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  note: Desktop transcript stability invariants; scroll/reflow behavior coverage lands
+    with downstream implementation
+  evidence_requirement: required
+- rule_id: D-SHELL-037
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_design_contract_gate
+  note: Desktop-controlled kit chat exception-consumer boundary for obstacle-aware
+    line
+  evidence_requirement: required
+- rule_id: D-STRM-001
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-STRM-002
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-STRM-003
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-STRM-004
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-STRM-005
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-STRM-006
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-STRM-007
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-STRM-008
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-STRM-009
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-STRM-010
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-STRM-011
+  evidence_refs:
+  - desktop_kernel_consistency
+  note: Agent PresentationTimeline consume boundary is admitted; implementation evidence
+    is owned by downstream Desktop consume implementation
+  evidence_requirement: required
+- rule_id: D-TEL-001
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-TEL-002
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-TEL-003
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-TEL-004
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-TEL-005
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-TEL-006
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-TEL-007
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-TEL-008
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-OFFLINE-001
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  - desktop_e2e_smoke_gate
+  evidence_requirement: required
+- rule_id: D-OFFLINE-002
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-OFFLINE-003
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-OFFLINE-004
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  - desktop_e2e_smoke_gate
+  evidence_requirement: required
+- rule_id: D-OFFLINE-005
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required

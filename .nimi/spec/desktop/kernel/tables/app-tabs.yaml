@@ -9,7 +9,6 @@ entries:
   - runtime
   - settings
   - support
-  - mods
   - developer-tools
   - profile
   - agent-detail
@@ -18,7 +17,6 @@ entries:
   - gift-inbox
   - privacy-policy
   - terms-of-service
-  - mod:*
 # Desktop App Tab Enumeration
 # Source: apps/desktop/src/shell/renderer/app-shell/providers/store-types.ts (AppTab)
 #         apps/desktop/src/shell/renderer/app-shell/layouts/navigation-config.tsx
@@ -69,13 +67,6 @@ tabs:
     gated_by: null
     source_rule: D-SUP-001
 
-  # Developer/internal surfaces. They are not ordinary primary nav entries.
-  - id: mods
-    nav_group: developer
-    label: Mods
-    gated_by: enableModUi
-    source_rule: D-SHELL-002
-
   - id: developer-tools
     nav_group: developer
     label: Developer Tools
@@ -123,11 +114,4 @@ tabs:
     nav_group: detail
     label: Terms of Service
     gated_by: null
-    source_rule: D-SHELL-001
-
-  # Dynamic mod tabs (pattern: mod:${modId})
-  - id: "mod:*"
-    nav_group: developer
-    label: Mod Workspace
-    gated_by: enableModWorkspaceTabs
     source_rule: D-SHELL-001

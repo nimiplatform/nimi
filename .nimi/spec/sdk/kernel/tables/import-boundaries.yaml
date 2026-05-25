@@ -63,17 +63,6 @@ rules:
       - "runtime/internal/**"
     source_rules:
       - S-BOUNDARY-001
-  - surface: mod
-    allowed:
-      - "@nimiplatform/sdk/mod"
-    forbidden:
-      - "@nimiplatform/sdk/runtime/internal/**"
-      - "@nimiplatform/sdk/realm/internal/**"
-    source_rules:
-      - S-BOUNDARY-001
-      - S-BOUNDARY-003
-      - S-BOUNDARY-005
-      - S-BOUNDARY-006
   - surface: types
     allowed:
       - "@nimiplatform/sdk/types"

@@ -17,8 +17,8 @@ developer onboarding, trust tier expansion, world / game app class,
 engine SDK future seam, economy posture, and no-Steam-copy negative
 gates.
 
-`MUST NOT`：本契约不替代 `P-NAPP-*`、`P-PERM-*`、`P-MOEX-*` 的 admission
-authority；只在其之上添加 ecosystem expansion 规则。
+`MUST NOT`：本契约不替代 Nimi App admission、permission fabric、或已退役
+extension-class authority；只在其之上添加 ecosystem expansion 规则。
 
 ## P-ECO-002 — Third-Party Developer Onboarding
 
@@ -30,11 +30,8 @@ authority；只在其之上添加 ecosystem expansion 规则。
 - `package_kind` 为 `nimi-app`
 - 全部 `P-NAPP-*` 字段合法
 
-`MUST NOT`：不得：
-
-- admit 公共 Mod / 公共 Extension
-- admit 共享 Nimi Content Pack channel
-- 引入 alias 让第三方绕过 Nimi App registry
+`MUST NOT`：不得 admit 共享 Nimi Content Pack channel，或引入 alias 让第三方
+绕过 Nimi App registry。
 
 ## P-ECO-003 — Trust Tier Expansion Boundary
 
@@ -112,7 +109,7 @@ tweak。
 `MUST`：以下品类不得作为 Nimi 平台主要 product justification 或 strategic
 posture：
 
-- Workshop clone 作为 mod / app market
+- Workshop clone 作为第三方 package marketplace
 - Trading cards / achievement grind / collectible badges / platform
   inventory 作为 retention 主线
 - Family sharing clone
@@ -122,14 +119,6 @@ posture：
 
 `MUST NOT`：产品文案、registry row、third-party admission review、
 ecosystem marketing 都不得违反上述负面闸门。
-
-## P-ECO-009 — Public Mod / Extension Non-Admission Persists
-
-`MUST`：第三方 admission 仅限 Nimi Apps；公共 Mods、公共 Extensions 仍
-按 `P-MOEX-*` 保持不被 admit。
-
-`MUST NOT`：不得通过 alias、改名、或 community tier 绕过 `P-MOEX-001`
-的 non-admission 决议。
 
 ## P-ECO-010 — Cross-Wave Invariants
 
@@ -145,8 +134,7 @@ ecosystem marketing 都不得违反上述负面闸门。
 
 ## Fact Sources
 
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-015`
-- `.nimi/spec/platform/kernel/mod-extension-retirement-contract.md` — `P-MOEX-001..P-MOEX-006`
+- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-015`
 - `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-010`
 - `.nimi/spec/platform/kernel/agent-identity-floor-contract.md` — `P-AGID-001..P-AGID-008`
 - `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-013`

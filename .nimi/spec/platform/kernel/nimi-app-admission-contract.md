@@ -15,8 +15,7 @@ registration mode / permission scope reference、与 app health/repair projectio
 `MUST`：Platform 拥有 Nimi App admission、`tables/nimi-app-registry.yaml` 与
 admitted package kind set。Wave 3 仅 admit `nimi-app` package kind。
 
-`MUST NOT`：不得 admit Public Mod、Public Extension、shared Nimi Content
-Pack 作为可安装 product unit。
+`MUST NOT`：不得 admit shared Nimi Content Pack 作为可安装 product unit。
 
 ## P-NAPP-002 — Registry Row Schema
 
@@ -129,8 +128,8 @@ registry/package/SDK projection。Ordinary Apps visibility 的闭合条件为：
 - host/runtime projection does not fail-close the row as unsupported or blocked
 
 `MUST NOT`：Apps 不得拥有 admission truth、marketplace truth、economy
-truth、package trust truth；不得读取 source workspace、app-local spec、Mods、
-Extensions、or unadmitted registry rows to decide visibility.
+truth、package trust truth；不得读取 source workspace、app-local spec、or
+unadmitted registry rows to decide visibility.
 
 ## P-NAPP-010 — App-Slice Admission Orthogonality
 
@@ -159,12 +158,6 @@ subordinate authority semantics 与本契约 admission 并行存在；两者互�
 其余 `first-party-hardcut-scope-ledger.md` 中的 deferred app（Forge,
 Moment, Polyinfo, Shiji, Realm Drift, Lookdev, Video Food Map, Overtone）
 暂不进入 Wave 3 seed。
-
-## P-NAPP-012 — Mechanical Guard Registration
-
-`MUST`：mechanical guard `check:no-public-mod-extension-admission` 在
-`enforcement-gates-required.md` 中以 `Required before: Wave 3 close` 注册，
-并 block：registry/package rows admitting public Mods or Extensions。
 
 ## P-NAPP-013 — Third-Party Admission Path
 
@@ -739,7 +732,6 @@ admitted conjunction.
 - `.nimi/spec/platform/kernel/capability-catalog-contract.md` — `P-CAPCAT-*`
 - `.nimi/spec/platform/kernel/app-slice-admission-contract.md` — `P-APP-*`
 - `.nimi/spec/platform/kernel/package-authority-admission-contract.md` — `P-PKG-*`
-- `.nimi/spec/platform/kernel/mod-extension-retirement-contract.md` — `P-MOEX-001..P-MOEX-006`
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml`

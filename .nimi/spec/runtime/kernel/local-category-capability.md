@@ -81,7 +81,7 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 
 本地资产系统采用三层抽象：
 
-- **Asset**（`LocalAssetRecord`）：用户与 App/Mod 可见的统一资产抽象。每条记录携带 `local_asset_id`（ULID）、`kind`（`chat` / `image` / `video` / `tts` / `stt` / `vae` / `clip` / `lora` / `controlnet` / `auxiliary`）、`logical_model_id`、`family`、`artifact_roles`、`preferred_engine`、`fallback_engines`、`bundle_state`、`warm_state`、`host_requirements` 。passive asset（如 `vae`、`clip`、`lora`、`controlnet`）不需要独立 Service 或 Node；其 workflow 槽位由 profile entry 的 `engineSlot` 声明，不属于 asset record 自身。
+- **Asset**（`LocalAssetRecord`）：用户与 App 可见的统一资产抽象。每条记录携带 `local_asset_id`（ULID）、`kind`（`chat` / `image` / `video` / `tts` / `stt` / `vae` / `clip` / `lora` / `controlnet` / `auxiliary`）、`logical_model_id`、`family`、`artifact_roles`、`preferred_engine`、`fallback_engines`、`bundle_state`、`warm_state`、`host_requirements` 。passive asset（如 `vae`、`clip`、`lora`、`controlnet`）不需要独立 Service 或 Node；其 workflow 槽位由 profile entry 的 `engineSlot` 声明，不属于 asset record 自身。
 - **Service**（`LocalServiceDescriptor`）：某个 runnable asset 当前绑定的执行实例。一个 Service 代表一个可访问 endpoint，可以是 `ATTACHED_ENDPOINT` 或 `SUPERVISED`。仅 runnable asset（chat/image/video/tts/stt）需要 Service 绑定。
 - **Node**（`LocalNodeDescriptor`）：能力投影视图。从 Service × capabilities 生成，携带 adapter/engine/policy_gate 等运行时路由信息。Node 是能力发现入口，不是规范真相源。passive asset 不参与 Node 生成。
 
@@ -241,7 +241,7 @@ K-MCAT `local` catalog。两者不得形成第二套 verified catalog。
 - runnable asset entries（`assetKind` 为 `chat` / `image` / `video` / `tts` / `stt`，且无 `engineSlot`）进入 execution resolver，生成 Service/Node 绑定。
 - passive asset entries（携带 `engineSlot`）参与统一资产解析，由 runtime 在 workflow 执行时通过 `engineSlot` 匹配注入路径。
 - `ApplyProfile` 执行统一资产安装：先安装 runnable asset，再安装 passive asset；所有 asset 使用 `InstallVerifiedAsset` / `ImportLocalAsset` 统一入口。
-- daemon 不负责枚举 mod manifest 中声明了哪些 profile；profile 列举职责仍属于 desktop / mod host。daemon 只负责执行传入的单个 profile。
+- daemon 不负责枚举 app manifest 中声明了哪些 profile；profile 列举职责仍属于 desktop / app host。daemon 只负责执行传入的单个 profile。
 - capability filter 存在时，只执行与该 capability 匹配或未显式声明 capability 的 profile entry。
 
 ## K-LOCAL-015 Apply 失败回滚
@@ -511,7 +511,7 @@ Runtime/desktop 允许在 catalog surface 之外新增 capability-scoped candida
         └── diffusers/
 ```
 
-Desktop/Tauri 面向用户与 App/Mod 的统一资产 manifest public contract 固定为 `resolved/<local-asset-id>/asset.manifest.json`。旧 `manifest.json`、`model.manifest.json`、`artifact.manifest.json` 不再是合法 public import/install 入口，实现必须 reject。
+Desktop/Tauri 面向用户与 App 的统一资产 manifest public contract 固定为 `resolved/<local-asset-id>/asset.manifest.json`。旧 `manifest.json`、`model.manifest.json`、`artifact.manifest.json` 不再是合法 public import/install 入口，实现必须 reject。
 
 `resolved/` 是统一资产管理根目录；裸文件 intake 不得将 `resolved/` 视作 orphan/unregistered 候选。
 
@@ -553,11 +553,11 @@ hashes:                        # 必填，所有文件须有对应 hash
 
 - local asset（含所有 kind：chat、image、video、tts、stt、vae、clip、lora、controlnet、auxiliary）的搜索、下载、安装、导入、orphan scaffold/adopt、health/readiness、audit 与 transfer/progress 全部由 runtime 执行并持久化。
 - desktop 不得再持有并回写第二套本地资产状态，不得通过 host-local state 推断安装成功、下载完成或资产可启动。
-- desktop / web / mods 对本地资产的产品访问必须经 `RuntimeLocalService` typed surface；desktop host 仅保留 picker、reveal、notification 与等价 shell-native/helper 能力。
+- desktop / web / apps 对本地资产的产品访问必须经 `RuntimeLocalService` typed surface；desktop host 仅保留 picker、reveal、notification 与等价 shell-native/helper 能力。
 - future CLI / Web 路径扩展时必须继续复用 runtime 作为统一本地资产控制面，不得复制第二套执行面。
 - passive asset 的生命周期（install / remove / transfer）与 runnable asset 共享同一执行管道与状态机（`K-LOCAL-005`），但 passive asset 不参与 Service 绑定与 Node 生成。
 - `ListLocalAssets` 是 runtime-owned local inventory 的快照视图；它不得触发 endpoint probe、engine bootstrap、warm execution、recovery accounting、状态迁移或持久化写入。
-- local asset health probe 的执行权只属于 `CheckLocalAssetHealth`、`StartLocalAsset`、`WarmLocalAsset`、真实 consume 前的 runtime-owned readiness 路径，以及 runtime-owned background health maintainer。SDK、Desktop、Web 与 Mods 不得以 poll list、host cache、renderer-local probe 或 app-local retry state 形成第二套 health truth。
+- local asset health probe 的执行权只属于 `CheckLocalAssetHealth`、`StartLocalAsset`、`WarmLocalAsset`、真实 consume 前的 runtime-owned readiness 路径，以及 runtime-owned background health maintainer。SDK、Desktop、Web 与 apps 不得以 poll list、host cache、renderer-local probe 或 app-local retry state 形成第二套 health truth。
 - runtime-owned background health maintainer 可以维护 supervised asset 的 health/readiness projection，但必须遵循 per-asset due gating、recovery interval 与 in-flight 合并；不得因多个 list/poll caller 放大为 N callers × M assets 的 endpoint probe。
 
 ## K-LOCAL-029 LocalAuditEvent 扩展字段契约

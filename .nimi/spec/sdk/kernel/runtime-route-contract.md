@@ -4,7 +4,7 @@
 
 ## Scope
 
-定义 app-facing `runtime.route.*` typed surface，覆盖 host typed surface、mod stable contract、以及 `runtime.route.describe(...)` 的 SDK projection 边界。
+定义 app-facing `runtime.route.*` typed surface，覆盖 host typed surface 以及 `runtime.route.describe(...)` 的 SDK projection 边界。
 
 ## S-RUNTIME-074 App-Facing Route Typed Surface
 
@@ -17,7 +17,7 @@ SDK app-facing route facade 固定暴露以下 logical operation：
 
 其中：
 
-- `runtime.route.describe(...)` 在 Phase 1 的 stable authority home 是 host typed surface / mod injected route facade。
+- `runtime.route.describe(...)` 在 Phase 1 的 stable authority home 是 host typed surface。
 - 本轮不得把 `describe(...)` 定义成 direct daemon convenience method，也不得要求 `new Runtime()` 必须具备与 daemon 顶层 RPC 一一对应的 `describe()`。
 - `describe(...)` 相关类型和值域必须直接继承 `K-RPC-015` ~ `K-RPC-021`，不得在 SDK 再发明第二套 route metadata schema。
 
@@ -57,14 +57,6 @@ SDK 对 `runtime.route.describe(...)` 的稳定消费必须 fail-close：
 - 回落到 `resolve + checkHealth` 视为 metadata 成功
 - 用 provider/model 名称或 local/cloud 假设补猜 `supportsThinking`、`supports*Input`、workflow metadata
 - 暴露 product-facing fallback knob 让调用方选择 fail-open
-
-## S-RUNTIME-077 Mod Stable Contract Boundary
-
-mod-facing 的 `runtime.route.*` 能力只允许通过 host-injected typed facade 暴露。
-
-- mod 可消费 `listOptions / resolve / checkHealth / describe` 的 typed result，但不得获得 writable global route truth 或 Desktop metadata cache ownership。
-- mod 若消费 `ConversationCapabilityProjection`，必须把其视为 Desktop host 提供的 read model；不得回写 thread-level `routeSnapshot`、不得把 `runtimeFields` 重新当作 route owner。
-- mod stable surface 不得暴露 `reasonCode: string | null` 形式的自由文本 route metadata/projection reason。
 
 ## S-RUNTIME-078 Runtime Client Projection Boundary
 

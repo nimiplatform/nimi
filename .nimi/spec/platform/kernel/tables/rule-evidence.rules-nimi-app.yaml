@@ -1,246 +1,281 @@
 table_family: support_registry
 registry_id: platform_rule_evidence_requirement_rules_nimi_app
 owner: platform
-schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+schema_ref: ".nimi/contracts/table-family.schema.yaml#support_registry"
 allowed_fields:
-  - rule_id
-  - evidence_requirement
-  - evidence_refs
-  - note
-  - na_reason
-  - evidence_scope_note
-  - test_files
+- rule_id
+- evidence_requirement
+- evidence_refs
+- note
+- na_reason
+- evidence_scope_note
+- test_files
 forbidden_state_fields:
-  - done
-  - covered
-  - coverage_status
-  - audit_date
-  - evidence_report
-  - current
-  - proposed
-  - backlog_status
-  - migration_status
-  - mapping_status
-  - run_id
-  - ledger_ref
+- done
+- covered
+- coverage_status
+- audit_date
+- evidence_report
+- current
+- proposed
+- backlog_status
+- migration_status
+- mapping_status
+- run_id
+- ledger_ref
 entries:
-  - P-NAPP-001
-  - P-NAPP-002
-  - P-NAPP-003
-  - P-NAPP-004
-  - P-NAPP-005
-  - P-NAPP-006
-  - P-NAPP-007
-  - P-NAPP-008
-  - P-NAPP-009
-  - P-NAPP-010
-  - P-NAPP-011
-  - P-NAPP-012
-  - P-NAPP-013
-  - P-NAPP-014
-  - P-NAPP-015
-  - P-NAPP-016
-  - P-NAPP-017
-  - P-NAPP-018
-  - P-NAPP-019
-  - P-NAPP-020
-  - P-NAPP-021
-  - P-NAPP-022
-  - P-NAPP-023
-  - P-NAPP-024
-  - P-NAPP-025
-  - P-NAPP-026
-  - P-NAPP-027
-  - P-NAPP-028
-  - P-NAPP-029
-  - P-NAPP-030
-  - P-MOEX-001
-  - P-MOEX-002
-  - P-MOEX-003
-  - P-MOEX-004
-  - P-MOEX-005
-  - P-MOEX-006
+- P-NAPP-001
+- P-NAPP-002
+- P-NAPP-003
+- P-NAPP-004
+- P-NAPP-005
+- P-NAPP-006
+- P-NAPP-007
+- P-NAPP-008
+- P-NAPP-009
+- P-NAPP-010
+- P-NAPP-011
+- P-NAPP-013
+- P-NAPP-014
+- P-NAPP-015
+- P-NAPP-016
+- P-NAPP-017
+- P-NAPP-018
+- P-NAPP-019
+- P-NAPP-020
+- P-NAPP-021
+- P-NAPP-022
+- P-NAPP-023
+- P-NAPP-024
+- P-NAPP-025
+- P-NAPP-026
+- P-NAPP-027
+- P-NAPP-028
+- P-NAPP-029
+- P-NAPP-030
+- P-MOEX-001
+- P-MOEX-002
+- P-MOEX-003
+- P-MOEX-004
+- P-MOEX-005
+- P-MOEX-006
 rules:
-  - rule_id: P-NAPP-001
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; admission authority enforcement requires Wave 3 implementation guard `check:no-public-mod-extension-admission`
-  - rule_id: P-NAPP-002
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; registry row schema cross-table resolution is enforced by `tables/nimi-app-registry.yaml` consumer validation
-  - rule_id: P-NAPP-003
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; factory AIProfile selection reference resolution requires Wave 2 `P-AIPS-009` consumer validation
-  - rule_id: P-NAPP-004
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; trust tier enum reference enforcement is owned by `tables/nimi-app-trust-tiers.yaml` consumer validation
-  - rule_id: P-NAPP-005
-    evidence_refs:
-      - platform_kernel_consistency
-      - canonical_capability_catalog_gate
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; capability and compute pack resolution is a Runtime / Platform consumer validation
-  - rule_id: P-NAPP-006
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; Runtime registration ownership is enforced by Runtime consumer validation
-  - rule_id: P-NAPP-007
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; package trust / signature / update channel behavior is enforced by `release-gate-registry.yaml` consumer validation
-  - rule_id: P-NAPP-008
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; fail-closed health/repair projection behavior is enforced by Wave 1 hosted-shell consumer validation and SDK projection consumer validation
-  - rule_id: P-NAPP-009
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; Apps non-owner and ordinary-visible filtering enforcement is `D-HOME-004` / `D-HOME-005` plus SDK consumer validation
-  - rule_id: P-NAPP-010
-    evidence_refs:
-      - platform_kernel_consistency
-      - app_slice_admission_gate
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; orthogonality between app-slice admission and Nimi App admission is enforced by both admission tables
-  - rule_id: P-NAPP-011
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; first-party seed enforcement is Wave 3 implementation validation and Avatar productization master gate consumer validation
-  - rule_id: P-NAPP-012
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; mechanical guard `check:no-public-mod-extension-admission` registration is verified by `enforcement-gates-required.md`
-  - rule_id: P-NAPP-013
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; third-party PR admission implementation evidence lands with Apps registry/install/storage child topic
-  - rule_id: P-NAPP-014
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; release descriptor digest verification implementation evidence lands with SDK/Desktop install tests
-  - rule_id: P-NAPP-015
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; app install storage enforcement lands with Runtime/SDK/Desktop install and uninstall tests
-  - rule_id: P-NAPP-016
-    evidence_refs:
-      - platform_kernel_consistency
-      - canonical_capability_catalog_gate
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; developer-only Tester App admission is enforced by registry/descriptor cross-table validation and SDK ordinary projection filtering
-  - rule_id: P-NAPP-017
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; developer-only Realm Agent Studio admission is enforced by `tables/nimi-app-registry.yaml` and `tables/nimi-app-release-descriptors.yaml` cross-table consumer validation
-  - rule_id: P-NAPP-018
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; third-party release descriptor shape enforcement is `tables/nimi-app-release-descriptors.yaml` consumer validation and SDK install descriptor verification consumer validation
-  - rule_id: P-NAPP-019
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; no-collapsed sizes/dates/versions enforcement is downstream Apps registry/install/storage child topic consumer validation
-  - rule_id: P-NAPP-020
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; publisher identity required-fields enforcement is `tables/nimi-app-release-descriptors.yaml` consumer validation and downstream review-tool consumer validation
-  - rule_id: P-NAPP-021
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; identity assurance enum and KYC deferral enforcement is downstream review-tool consumer validation
-  - rule_id: P-NAPP-022
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; artifact mirror ref and mirror license clearance enforcement is downstream Apps registry/install/storage child topic consumer validation
-  - rule_id: P-NAPP-023
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; third-party build assurance exclusion enforcement is downstream review-tool consumer validation
-  - rule_id: P-NAPP-024
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; platform signing assurance subfields enforcement is downstream Apps registry/install/storage child topic consumer validation
-  - rule_id: P-NAPP-025
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; review decision schema enforcement is `P-AUDIT-006` review-evidence shape consumer validation and SDK `S-APP-015` review-evidence accessor consumer validation
-  - rule_id: P-NAPP-026
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; support manifest required-fields enforcement is downstream review-tool consumer validation
-  - rule_id: P-NAPP-027
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; storage posture admission enforcement is `P-PERM-011` app-local-drafts qualifier and Runtime `K-APP-018` file-API surface consumer validation
-  - rule_id: P-NAPP-028
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; app-owned OS storage disclosure enforcement is downstream review-tool consumer validation and SDK projection consumer validation
-  - rule_id: P-NAPP-029
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; source repository visibility enforcement is downstream review-tool consumer validation
-  - rule_id: P-NAPP-030
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; listing closure field set enforcement is downstream review-tool consumer validation and SDK projection consumer validation
-  - rule_id: P-MOEX-001
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; public mod/extension non-admission enforcement is the mechanical guard `check:no-public-mod-extension-admission`
-  - rule_id: P-MOEX-002
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; existing surfaces as developer/internal/retirement-only posture is recorded in `desktop-kernel-supersession-schedule.md`
-  - rule_id: P-MOEX-003
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; no shared Nimi Content Pack channel enforcement is a registry admission constraint enforced by `tables/nimi-app-registry.yaml` consumer validation
-  - rule_id: P-MOEX-004
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; app-internal content package boundary enforcement is app-slice admission consumer validation
-  - rule_id: P-MOEX-005
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: retired sentinel; Asset Market admission and all consumers withdrawn — no active enforcement required
-  - rule_id: P-MOEX-006
-    evidence_refs:
-      - platform_kernel_consistency
-    evidence_requirement: structural_required
-    evidence_scope_note: structural only; mechanical guard `check:no-public-mod-extension-admission` registration is verified by `enforcement-gates-required.md`
+- rule_id: P-NAPP-001
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; admission authority enforcement requires Wave
+    3 implementation guard `check:no-public-mod-extension-admission`
+- rule_id: P-NAPP-002
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; registry row schema cross-table resolution
+    is enforced by `tables/nimi-app-registry.yaml` consumer validation
+- rule_id: P-NAPP-003
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; factory AIProfile selection reference resolution
+    requires Wave 2 `P-AIPS-009` consumer validation
+- rule_id: P-NAPP-004
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; trust tier enum reference enforcement is owned
+    by `tables/nimi-app-trust-tiers.yaml` consumer validation
+- rule_id: P-NAPP-005
+  evidence_refs:
+  - platform_kernel_consistency
+  - canonical_capability_catalog_gate
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; capability and compute pack resolution is
+    a Runtime / Platform consumer validation
+- rule_id: P-NAPP-006
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; Runtime registration ownership is enforced
+    by Runtime consumer validation
+- rule_id: P-NAPP-007
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; package trust / signature / update channel
+    behavior is enforced by `release-gate-registry.yaml` consumer validation
+- rule_id: P-NAPP-008
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; fail-closed health/repair projection behavior
+    is enforced by Wave 1 hosted-shell consumer validation and SDK projection consumer
+    validation
+- rule_id: P-NAPP-009
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; Apps non-owner and ordinary-visible filtering
+    enforcement is `D-HOME-004` / `D-HOME-005` plus SDK consumer validation
+- rule_id: P-NAPP-010
+  evidence_refs:
+  - platform_kernel_consistency
+  - app_slice_admission_gate
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; orthogonality between app-slice admission
+    and Nimi App admission is enforced by both admission tables
+- rule_id: P-NAPP-011
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; first-party seed enforcement is Wave 3 implementation
+    validation and Avatar productization master gate consumer validation
+- rule_id: P-NAPP-013
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; third-party PR admission implementation evidence
+    lands with Apps registry/install/storage child topic
+- rule_id: P-NAPP-014
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; release descriptor digest verification implementation
+    evidence lands with SDK/Desktop install tests
+- rule_id: P-NAPP-015
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; app install storage enforcement lands with
+    Runtime/SDK/Desktop install and uninstall tests
+- rule_id: P-NAPP-016
+  evidence_refs:
+  - platform_kernel_consistency
+  - canonical_capability_catalog_gate
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; developer-only Tester App admission is enforced
+    by registry/descriptor cross-table validation and SDK ordinary projection filtering
+- rule_id: P-NAPP-017
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; developer-only Realm Agent Studio admission
+    is enforced by `tables/nimi-app-registry.yaml` and `tables/nimi-app-release-descriptors.yaml`
+    cross-table consumer validation
+- rule_id: P-NAPP-018
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; third-party release descriptor shape enforcement
+    is `tables/nimi-app-release-descriptors.yaml` consumer validation and SDK install
+    descriptor verification consumer validation
+- rule_id: P-NAPP-019
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; no-collapsed sizes/dates/versions enforcement
+    is downstream Apps registry/install/storage child topic consumer validation
+- rule_id: P-NAPP-020
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; publisher identity required-fields enforcement
+    is `tables/nimi-app-release-descriptors.yaml` consumer validation and downstream
+    review-tool consumer validation
+- rule_id: P-NAPP-021
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; identity assurance enum and KYC deferral enforcement
+    is downstream review-tool consumer validation
+- rule_id: P-NAPP-022
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; artifact mirror ref and mirror license clearance
+    enforcement is downstream Apps registry/install/storage child topic consumer validation
+- rule_id: P-NAPP-023
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; third-party build assurance exclusion enforcement
+    is downstream review-tool consumer validation
+- rule_id: P-NAPP-024
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; platform signing assurance subfields enforcement
+    is downstream Apps registry/install/storage child topic consumer validation
+- rule_id: P-NAPP-025
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; review decision schema enforcement is `P-AUDIT-006`
+    review-evidence shape consumer validation and SDK `S-APP-015` review-evidence
+    accessor consumer validation
+- rule_id: P-NAPP-026
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; support manifest required-fields enforcement
+    is downstream review-tool consumer validation
+- rule_id: P-NAPP-027
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; storage posture admission enforcement is `P-PERM-011`
+    app-local-drafts qualifier and Runtime `K-APP-018` file-API surface consumer validation
+- rule_id: P-NAPP-028
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; app-owned OS storage disclosure enforcement
+    is downstream review-tool consumer validation and SDK projection consumer validation
+- rule_id: P-NAPP-029
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; source repository visibility enforcement is
+    downstream review-tool consumer validation
+- rule_id: P-NAPP-030
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; listing closure field set enforcement is downstream
+    review-tool consumer validation and SDK projection consumer validation
+- rule_id: P-MOEX-001
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; public mod/extension non-admission enforcement
+    is the mechanical guard `check:no-public-mod-extension-admission`
+- rule_id: P-MOEX-002
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; existing surfaces as developer/internal/retirement-only
+    posture is recorded in `desktop-kernel-supersession-schedule.md`
+- rule_id: P-MOEX-003
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; no shared Nimi Content Pack channel enforcement
+    is a registry admission constraint enforced by `tables/nimi-app-registry.yaml`
+    consumer validation
+- rule_id: P-MOEX-004
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; app-internal content package boundary enforcement
+    is app-slice admission consumer validation
+- rule_id: P-MOEX-005
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: retired sentinel; Asset Market admission and all consumers
+    withdrawn — no active enforcement required
+- rule_id: P-MOEX-006
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; mechanical guard `check:no-public-mod-extension-admission`
+    registration is verified by `enforcement-gates-required.md`

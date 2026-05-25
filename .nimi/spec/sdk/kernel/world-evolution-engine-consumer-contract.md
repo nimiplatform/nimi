@@ -4,8 +4,8 @@
 
 ## Scope
 
-This contract defines the controlled app/mod consumer-facing API landing for the World Evolution Engine.
-It owns only the downstream consumer seam that composes SDK projection-visible shapes into app-facing SDK facades and mod host-injected facades.
+This contract defines the controlled app consumer-facing API landing for the World Evolution Engine.
+It owns only the downstream consumer seam that composes SDK projection-visible shapes into app-facing SDK facades.
 It also defines the selector-read stable method contract for the approved read-only slice and the typed facade framing for the remaining non-stable families.
 It does not redefine Runtime execution semantics, SDK projection semantics, host bridge concrete API, or implementation strategy.
 
@@ -16,7 +16,7 @@ Consumer rule map:
 - `S-RUNTIME-087` defines the read/observe surface boundary.
 - `S-RUNTIME-088` defines the command/request surface boundary.
 - `S-RUNTIME-089` defines the inadmissible affordance and leakage hardcut.
-- `S-RUNTIME-090` defines the host/app/mod boundary and no-implementation-assumption hardcut.
+- `S-RUNTIME-090` defines the host/app boundary and no-implementation-assumption hardcut.
 - `S-RUNTIME-092` defines the shared typed candidate building blocks.
 - `S-RUNTIME-093` defines the admissible observe and selector-read candidate categories.
 - `S-RUNTIME-094` defines the admissible request / result / rejection candidate categories.
@@ -26,17 +26,17 @@ Consumer rule map:
 - `S-RUNTIME-098` defines the shared selector matrix.
 - `S-RUNTIME-099` defines the shared read-result matrix.
 - `S-RUNTIME-100` defines the shared read-only rejection matrix.
-- `S-RUNTIME-101` defines shared semantic parity and publication layering requirements across app-facing and mod-facing selector-read methods.
+- `S-RUNTIME-101` defines shared semantic parity and publication layering requirements across app-facing selector-read methods.
 
 ## S-RUNTIME-085 Consumer API Ownership Boundary
 
-The World Evolution Engine app/mod consumer-facing API contract lands in SDK kernel as a downstream consumer seam contract.
+The World Evolution Engine app consumer-facing API contract lands in SDK kernel as a downstream consumer seam contract.
 
 Therefore:
 
 - Runtime `K-WEV-*` remains the semantic owner for execution events, replay, checkpoint, supervision, effect-stage ordering, and commit-request staging semantics.
 - `world-evolution-engine-projection-contract.md` remains the owner of normalized SDK projection-visible shapes.
-- This consumer contract owns only how app-facing SDK facades and mod host-injected facades may compose those already-visible shapes into stable consumer API families
+- This consumer contract owns only how app-facing SDK facades may compose those already-visible shapes into stable consumer API families
 
 This contract must not:
 
@@ -58,7 +58,7 @@ No stable third family is admissible for:
 
 - workflow substrate truth ownership
 - host-private control-plane ownership
-- app-local or mod-local shadow semantic ownership
+- app-local shadow semantic ownership
 - direct Runtime or Realm private client access
 
 If a proposed consumer API shape cannot be described as one of the two families above using only projection-visible shapes, it is inadmissible.
@@ -112,7 +112,7 @@ It does not define a concrete method list, transport binding, host bridge shape,
 
 ## S-RUNTIME-089 Inadmissible Affordance And Leakage Hardcut
 
-World Evolution Engine consumer-facing API must not widen or leak Runtime-local substrate into app/mod stable truth.
+World Evolution Engine consumer-facing API must not widen or leak Runtime-local substrate into app stable truth.
 
 The following are inadmissible consumer affordances:
 
@@ -121,7 +121,7 @@ The following are inadmissible consumer affordances:
 - `route_policy`, `fallback`, or equivalent recovery/migration controls
 - runtime-private checkpoint substrate or supervision substrate
 - consumer-authored semantic reinterpretation of missing evidence
-- host-private singleton handles, app-private client handles, or mod-private client handles
+- host-private singleton handles, app-private client handles, client handles
 - direct authoring of canonical Realm mutation truth, canonical history truth, or canonical audit truth
 
 Consumer API must not turn:
@@ -131,10 +131,9 @@ Consumer API must not turn:
 - read-model absence into synthetic empty success
 - Runtime-local execution evidence into Realm/shared canonical truth
 
-## S-RUNTIME-090 Host / App / Mod Boundary And No-Implementation-Assumption Hardcut
+## S-RUNTIME-090 Host / App Boundary And No-Implementation-Assumption Hardcut
 
 App-facing World Evolution Engine consumer API may be published only through SDK public surface.
-Mod-facing World Evolution Engine consumer API may be published only through host-injected facade or equivalent stable mod surface that preserves the same consumer contract.
 
 Both paths must preserve one composed contract:
 
@@ -147,14 +146,14 @@ Therefore consumer API must not:
 - depend on `runtime/internal/**`
 - depend on Realm private clients or private transport
 - depend on SDK private internals
-- depend on host bridge private methods, app-private state stores, or mod-private bypass clients
+- depend on host bridge private methods, app-private state stores, bypass clients
 - assume concrete subscription plumbing, buffering strategy, caching policy, or host lifecycle behavior as normative contract
 
 If a consumer surface requires those assumptions to be well-defined, that surface is not yet admissible for stable landing.
 
 ## S-RUNTIME-092 Shared Typed Candidate Building Blocks
 
-App-facing SDK facades and mod-facing host-injected facades must share one minimal typed candidate vocabulary.
+App-facing SDK facades host-injected facades must share one minimal typed candidate vocabulary.
 
 That shared vocabulary is limited to:
 
@@ -171,7 +170,7 @@ Therefore shared typed building blocks must not require:
 - workflow DAG / task / node / edge / output identifiers
 - raw checkpoint payloads or restore substrate
 - raw commit envelopes, history-append payloads, or audit records as consumer-authored inputs
-- host-private handles, app-private handles, or mod-private handles
+- host-private handles, app-private handles, handles
 
 ## S-RUNTIME-093 Admissible Observe And Selector-Read Candidate Categories
 
@@ -230,8 +229,7 @@ Request / result / rejection framing must not:
 The following World Evolution Engine consumer candidates are admitted to later implementation design:
 
 - app-facing logical facade families governed by `S-RUNTIME-091`
-- mod-facing host-injected logical facade families governed by `S-MOD-014`
-- shared selector, observe-item, read-model, acknowledgment, and rejection type families governed by `S-RUNTIME-092` through `S-RUNTIME-094`
+- - shared selector, observe-item, read-model, acknowledgment, and rejection type families governed by `S-RUNTIME-092` through `S-RUNTIME-094`
 
 This admission is category/framing-only.
 Selector-read stable methods governed by `S-RUNTIME-097` through `S-RUNTIME-101` are the only exception.
@@ -254,7 +252,7 @@ The following candidate shapes remain inadmissible even for later implementation
 - raw checkpoint-substrate, supervision-substrate, scheduler, queue, or worker control facades
 - host bridge passthrough, IPC mirror, or transport-payload passthrough facades
 - route migration, fallback migration, re-inference, or hidden semantic recovery facades
-- runtime-private, realm-private, app-private, or mod-private bypass facades
+- runtime-private, realm-private, app-private, bypass facades
 - any facade that turns Runtime-local evidence into Realm/shared canonical truth
 - any facade that turns commit-request candidacy into implied authorization success or canonical mutation success
 
@@ -444,17 +442,17 @@ Rejection matrix:
   - the consumer is outside the admitted authority boundary for the requested selector-read method
   - the request would require private bypass, host-private state, or otherwise forbidden authority crossing
 
-App-facing and mod-facing publication profiles must preserve the same rejection categories, same fail-close meaning, and same unknown-category behavior.
+App-facing publication profiles must preserve the same rejection categories, same fail-close meaning, and same unknown-category behavior.
 Neither path may:
 
 - replace the closed category set with free-text-only rejection
-- add app-only or mod-only selector-read rejection categories
+- add app-only selector-read rejection categories
 - reinterpret rejection as empty success or hidden downgrade
 
 ## S-RUNTIME-101 Shared Semantic Parity And Publication Layering
 
 `S-RUNTIME-097` through `S-RUNTIME-100` define one shared semantic selector-read method matrix.
-That shared semantic matrix must be identical across app-facing SDK publication and mod-facing host-injected publication for:
+That shared semantic matrix must be identical across app-facing SDK publication host-injected publication for:
 
 - method-category names
 - selector matrix
@@ -468,8 +466,7 @@ It must not differ by semantic method meaning.
 Therefore:
 
 - app-facing publication profile is defined by `runtime-contract.md` (`S-RUNTIME-102`)
-- mod-facing publication profile is defined by `mod-contract.md` (`S-MOD-015`)
-- surface placement hardcut is defined by `surface-contract.md` (`S-SURFACE-013`)
+- - surface placement hardcut is defined by `surface-contract.md` (`S-SURFACE-013`)
 
 No publication layer may use selector-read stable methods to smuggle in:
 
@@ -486,4 +483,4 @@ No publication layer may use selector-read stable methods to smuggle in:
 - `runtime-contract.md` — `S-RUNTIME-091`, `S-RUNTIME-102`
 - `runtime-route-contract.md` — `S-RUNTIME-074` through `S-RUNTIME-078`
 - `surface-contract.md` — `S-SURFACE-001`, `S-SURFACE-004`, `S-SURFACE-013`
-- `mod-contract.md` — `S-MOD-001`, `S-MOD-003`, `S-MOD-006`, `S-MOD-014`, `S-MOD-015`
+-

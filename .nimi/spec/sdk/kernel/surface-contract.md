@@ -12,7 +12,6 @@
 - `@nimiplatform/sdk/ai-provider`
 - `@nimiplatform/sdk/realm`
 - `@nimiplatform/sdk/scope`
-- `@nimiplatform/sdk/mod`
 - `@nimiplatform/sdk/types`
 
 SDK 必须维持单一 package layout；公开子路径只允许在 `@nimiplatform/sdk` 包内投影，不得漂移为多 package 或多根布局。
@@ -53,11 +52,10 @@ SDK 对外契约层禁止出现以下旧接口名：
 - `checkTokenProviderHealth`
 - `TokenProvider*`
 
-## S-SURFACE-004 Realm/Scope/Mod 稳定导出面
+## S-SURFACE-004 Realm/Scope 稳定导出面
 
 - Realm SDK 以实例化 facade 为唯一入口，不允许全局配置入口。
 - Scope SDK 以 in-memory catalog + publish/revoke 语义为最小稳定面。
-- Mod SDK 以 host 注入 facade + hook 客户端为最小稳定面。
 
 ## S-SURFACE-005 Realm 公开命名去 Legacy
 
@@ -145,7 +143,7 @@ Realm codegen 生成出的 `[key: string]: unknown` 字段不得默认为“可�
 - stable helper 缺 typed output、artifact metadata 或 mime/result 字段时必须直接报错，不得再补默认 `artifactId`、`application/octet-stream`、`audio/wav` 或空 artifact 成功路径；
 - relay/desktop 对这些稳定能力的消费不得再通过 `result.object`、`Struct.fields.*`、artifact bytes/mime 约定、或 `Record<string, unknown>` 恢复语义。
 
-真正动态的 workflow/internal envelope、plugin/mod manifest、transport/error raw payload 仍可保留动态边界，但必须与稳定 AI product surface 明确分层。
+真正动态的 workflow/internal envelope、plugin manifest、transport/error raw payload 仍可保留动态边界，但必须与稳定 AI product surface 明确分层。
 
 执行命令：
 
@@ -158,7 +156,6 @@ World Evolution Engine typed facade candidates are logical consumer surfaces, no
 Placement rules:
 
 - app-facing candidate facades land on existing SDK public composition surfaces governed by `S-RUNTIME-091` and `S-RUNTIME-092` through `S-RUNTIME-096`
-- mod-facing candidate facades land on existing stable host-injected mod surfaces governed by `S-MOD-014`
 - shared types may be re-exported through existing SDK public surfaces when they remain projection-derived and consumer-seam-only
 
 The following are not admissible:
@@ -174,7 +171,6 @@ World Evolution Engine selector-read stable methods must stay on existing public
 Allowed placement:
 
 - app-facing selector-read methods on the SDK root composition surface governed by `S-RUNTIME-102`
-- mod-facing selector-read methods on an existing stable host-injected mod surface governed by `S-MOD-015`
 - shared selector / result / rejection / view type families on existing SDK public surfaces when they remain projection-derived helper types
 
 Forbidden placement:

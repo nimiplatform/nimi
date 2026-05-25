@@ -79,7 +79,6 @@ Renderer 日志通过 IPC 转发到 Tauri backend：
 - **LLM 路径**：D-LLM-008 已覆盖（text/image/video/stt/embedding/speech）。
 - **DataSync 错误**：D-DSYNC-000 `emitDataSyncError` 产生的错误对象，若 upstream 响应包含 `trace_id`，必须保留。
 - **Auth 错误**：D-AUTH-006/007 token 刷新失败时，若 upstream 返回 `trace_id`，错误对象必须携带。
-- **Mod 治理错误**：D-MOD-003 capability 检查失败、D-MOD-009 审计写入失败时，若上游提供 `trace_id`，必须传播到错误日志。
 - **Bridge invoke 错误**：D-ERR-011 已要求 `traceId` 为必输出字段，本规则确认此要求覆盖所有 bridge 路径。
 
 **传播规则**：

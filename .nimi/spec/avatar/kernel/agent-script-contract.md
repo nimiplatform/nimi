@@ -196,7 +196,7 @@ Nimi model package 的组织 **尊重 Live2D Cubism 官方目录结构**。官�
         focused.js
         ext_grateful.js               # extended: "ext:grateful"
         ext_proud.js
-        mod_weather_storm_watching.js # mod custom: "mod-weather:storm-watching"
+        ext_proud.js                   # extended: "ext:proud"
       event/                          # Non-activity event handlers
         avatar_user_click.js          # avatar.user.click
         avatar_user_drag_end.js
@@ -280,7 +280,7 @@ Avatar app 加载 model 流程：
 |---|---|
 | `happy` | `happy.js` |
 | `ext:grateful` | `ext_grateful.js` |
-| `mod-weather:storm-watching` | `mod_weather_storm_watching.js` |
+| `ext:proud` | `ext_proud.js` |
 | `avatar.user.click` | `avatar_user_click.js` |
 | `avatar.user.drag.end` | `avatar_user_drag_end.js` |
 | `runtime.agent.state.posture_changed` | `runtime_agent_state_posture_changed.js` |
@@ -372,7 +372,7 @@ interface AgentDataBundle {
   // Activity context (仅 activity handler 或
   // runtime.agent.presentation.activity_requested event 时存在)
   activity?: {
-    name: string;                       // "happy", "ext:grateful", "mod-weather:storm-watching"
+    name: string;                       // "happy", "ext:grateful", "ext:proud"
     category: "emotion" | "interaction" | "state";
     intensity: "weak" | "moderate" | "strong" | null;
     source: "apml_output" | "direct_api" | "mock";
@@ -496,7 +496,7 @@ split by `-` / `:` → CamelCase 每段 → prefix `Activity_`:
 |---|---|
 | `happy` | `Activity_Happy` |
 | `ext:grateful` | `Activity_ExtGrateful` |
-| `mod-weather:storm-watching` | `Activity_ModWeatherStormWatching` |
+| `ext:proud` | `Activity_ExtProud` |
 ### 7.2 Event Fallback
 Default = silent skip。大多数 event 没有有意义的 default 行为。
 ### 7.3 Lifecycle Events 的 Default
@@ -604,8 +604,8 @@ Avatar app 加载 model 时：
 **规则**: `_` 替换为 `.`，但某些 event name 本身含 `_`（如 `focus_change`、`posture_changed`）—— 以 **event contract 注册表**为准。Avatar app 维护 known event names 表，file-to-event 解析走这张表。
 **冲突处理**：若 denormalized event name 不在 registry 中 → log warn + ignore handler。
 ### 10.3 Handler 冲突
-一个 activity / event 同时有多个 handler（如同时有 `nimi/activity/happy.js` 和 mod 注入）：
-**v1 规则**：Model-provided handler 优先，不允许其他 handler 覆盖。Mod 扩展机制等 mod 体系 re-land 后定义。
+一个 activity / event 同时有多个 handler（如同时有 `nimi/activity/happy.js` 和重复模型 handler）：
+**v1 规则**：Model-provided handler 优先，不允许其他 handler 覆盖。额外扩展机制需要单独 authority admission。
 ---
 ## 11. config.json (Optional Feature Flags)
 仅当 model 需要 opt-in feature 时存在:
@@ -761,7 +761,7 @@ Rule: replace every char not in [a-z0-9_] with '_'
 Examples:
   happy                          → happy.js
   ext:grateful                   → ext_grateful.js
-  mod-weather:storm-watching     → mod_weather_storm_watching.js
+  ext:proud                      → ext_proud.js
   ext:proud                      → ext_proud.js
 ```
 ## 附录 B: Event Name → File Name Normalization

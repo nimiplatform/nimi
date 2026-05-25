@@ -36,12 +36,8 @@ tiers:
     semantic: desktop_release_blocking_subset
   - id: release-target:web
     semantic: web_release_blocking_subset
-  - id: release-target:mods
-    semantic: mods_release_blocking_subset
   - id: live
     semantic: requires_secrets_and_external_repo
-  - id: external-repo
-    semantic: requires_nimi_mods_checkout_no_secrets
   - id: nightly
     semantic: scheduled_only
 
@@ -56,7 +52,6 @@ targets:
   - desktop
   - web
   - nimicoding
-  - mods
 
 # -----------------------------------------------------------------------
 # Reason codes (P-RELG-005 verdict-set lock; D7 reason code catalog)
@@ -64,8 +59,6 @@ targets:
 reason_codes:
   - id: SECRETS_MISSING
     semantic: blocked_runtime_env_missing_required_secret
-  - id: EXTERNAL_REPO_UNAVAILABLE
-    semantic: blocked_nimi_mods_checkout_absent
   - id: LIVE_PROVIDER_UNAVAILABLE
     semantic: blocked_live_provider_endpoint_unreachable
   - id: BINARY_MISSING
@@ -408,21 +401,6 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.desktop.mods-smoke
-    description: Desktop mods smoke test paused outside product release path pending mod cleanup.
-    command: pnpm check:desktop-mods-smoke
-    runner: pnpm
-    tiers: [release, release-target:mods]
-    targets: [mods]
-    timeout_seconds: 600
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001, P-RELG-006]
-    parent_p_gov_anchors: [P-GOV-003, P-GOV-011]
-    experimental: true
-    notes: Product runtime/desktop release gates no longer depend on the external mods repo; app-tools/mod cleanup owns reactivation.
-
   - id: gate.desktop.e2e-smoke
     description: Desktop E2E smoke test (Linux/Windows CI only; macOS uses manual smoke).
     command: pnpm check:desktop-e2e-smoke
@@ -478,21 +456,6 @@ gates:
     p_relg_anchors: [P-RELG-001]
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
-
-  - id: gate.desktop.env-mods-root
-    description: Legacy desktop mods env validation paused outside product release path.
-    command: pnpm --filter @nimiplatform/desktop run env:check:mods-root
-    runner: pnpm
-    tiers: [release, release-target:mods]
-    targets: [mods]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001, P-RELG-006]
-    parent_p_gov_anchors: [P-GOV-003, P-GOV-011]
-    experimental: true
-    notes: Product runtime/desktop release gates no longer provide external mods env; app-tools/mod cleanup owns reactivation.
 
   - id: gate.desktop.version-sync
     description: Desktop version sync verification.
@@ -893,20 +856,6 @@ gates:
     runner: pnpm
     tiers: [fast, release]
     targets: [desktop]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.platform-hardcut.no-legacy-mod-permissions-field
-    description: Forbid legacy permissions field in mod manifests/runtime registration.
-    command: pnpm check:no-legacy-mod-permissions-field
-    runner: pnpm
-    tiers: [fast, release]
-    targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
     evidence:
@@ -1486,79 +1435,6 @@ gates:
     runner: pnpm
     tiers: [fast, release]
     targets: [runtime]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  # =====================================================================
-  # owner: runtime-mod (mod-related runtime hardcut checks)
-  # =====================================================================
-  - id: gate.runtime-mod.hook-hardcut
-    description: Runtime mod-hook hardcut check.
-    command: pnpm check:runtime-mod-hook-hardcut
-    runner: pnpm
-    tiers: [fast, release]
-    targets: [runtime, mods]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.runtime-mod.browser-storage-hardcut
-    description: Runtime mod browser storage hardcut.
-    command: pnpm check:runtime-mod-browser-storage-hardcut
-    runner: pnpm
-    tiers: [fast, release]
-    targets: [runtime, mods]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.runtime-mod.mods-no-runtime-sdk
-    description: Forbid mods importing runtime SDK directly (must use nimi-hook).
-    command: pnpm check:mods-no-runtime-sdk
-    runner: pnpm
-    tiers: [release, release-target:mods]
-    targets: [mods]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.runtime-mod.catalog-script
-    description: Mod catalog script test.
-    command: pnpm check:mod-catalog-script
-    runner: pnpm
-    tiers: [fast, release]
-    targets: [mods]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
-  - id: gate.runtime-mod.catalog-signers
-    description: Mod catalog signers verification.
-    command: pnpm check:mod-catalog-signers
-    runner: pnpm
-    tiers: [fast, release]
-    targets: [mods]
     timeout_seconds: 60
     requires_binaries: [pnpm]
     evidence:

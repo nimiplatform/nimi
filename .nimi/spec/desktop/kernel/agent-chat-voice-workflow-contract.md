@@ -227,7 +227,7 @@ anchor continuity。
   and API boundary
 - `.nimi/spec/runtime/kernel/voice-contract.md` — runtime workflow / `VoiceReference`
   / `VoiceAsset` / scenario job / discovery boundary
-- `sdk/src/mod/runtime-route.ts` — workflow capability metadata and independent
+- `sdk/src/ai/runtime-route.ts` — workflow capability metadata and independent
   capability key evidence
 - `apps/desktop/src/shell/renderer/features/chat/chat-agent-turn-plan.ts` —
   current narrow single-voice-action / `audio.synthesize` evidence only

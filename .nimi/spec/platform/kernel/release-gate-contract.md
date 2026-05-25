@@ -142,7 +142,7 @@ rule level.
 allow-list:
 `runtime`, `proto`, `sdk`, `desktop`, `web`, `cargo`, `nimicoding`,
 `spec-governance`, `docs`, `security`, `workflow`, `release-gate`,
-`platform-hardcut`, `runtime-provider`, `runtime-mod`, `realm`,
+`platform-hardcut`, `runtime-provider`, `realm`,
 `cognition`, `ui`, `live`, `dev-loop`.
 
 `MUST`: Adding to the allow-list requires editing the coherence

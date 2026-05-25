@@ -189,7 +189,13 @@ ai_governance:
         error_max_line_bytes: 4000
         error_average_line_bytes: 800
     classifiers:
+      temporary_large_production:
+        - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md
+        - apps/desktop/src-tauri/src/desktop_product_control/operations.rs
+        - apps/desktop/src/shell/renderer/first-run/product-control-workflow.tsx
+        - runtime/internal/services/localservice/local_environment_jobs.go
       temporary_large_spec_yaml:
+        - runtime/catalog/source/providers/local.source.yaml
         - spec/runtime/kernel/tables/rule-evidence.rules.yaml
         - .nimi/spec/runtime/kernel/tables/rule-evidence.rules.yaml
       release_gate_registry:

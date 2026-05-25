@@ -340,7 +340,7 @@ Delegated artifact retention classes are fixed to `EPHEMERAL_EVIDENCE`,
 `REPLAY_EVIDENCE`, `USER_VISIBLE_ARTIFACT`, and `QUARANTINED_EVIDENCE`.
 
 `USER_VISIBLE_ARTIFACT` requires Runtime decision acceptance before SDK,
-Desktop, Web, Avatar, app, or mod consumption.
+Desktop, Web, Avatar, or app consumption.
 
 ## K-DELEG-076 Artifact Hash Requirement
 

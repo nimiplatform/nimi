@@ -134,7 +134,6 @@ Agent 方法：`loadMyAgents`。
 
 - Agent Detail page 的最终展示 authority 必须由下游 bounded display seam 承接，不得由 page 直接把 `loadAgentDetails` 的 mixed envelope 当作最终语义。
 - Agent LLM 相关的聊天路由与记忆读取不属于 Desktop core product DataSync contract。
-- mods 如需 Agent chat route / memory，必须通过 desktop host 注册的 data capability 获取，而不是通过 DataSync facade。
 - host memory capability 采用 cache-only 语义：只有本地已缓存并满足请求的 slice/stats 才允许返回 `local-index-only`；否则必须依赖远端成功结果。
 - host memory capability 在缺少 `agentId` / `entityId`、远端失败、或无法完成 recall/backfill 时必须 fail-close，不得返回空数组、空 recall 结果、或基于本地 slice 合成统计。
 

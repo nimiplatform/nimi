@@ -30,7 +30,6 @@ features:
       - platform-client
       - datasync-init
       - runtime-host
-      - runtime-mod-host-ready
       - external-agent
       - auth-session
       - bootstrap-ready
@@ -203,19 +202,3 @@ features:
       - scenario_id: runtime.external-agent.panel-load
         source_rule: D-GATE-040
         spec_path: apps/desktop/e2e/specs/runtime.external-agent.panel-load.e2e.mjs
-  - feature: mods-panel
-    risk_tier: P1
-    required_layers:
-      - unit_contract
-      - desktop_e2e_journey
-    covers_tabs:
-      - mods
-    covers_bootstrap_phases:
-      - runtime-mod-host-ready
-    covers_ipc_commands:
-      - runtime_mod_list_installed
-    covers_runtime_pages: []
-    scenarios:
-      - scenario_id: mods.panel-open
-        source_rule: D-GATE-040
-        spec_path: apps/desktop/e2e/specs/mods.panel-open.e2e.mjs

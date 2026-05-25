@@ -191,7 +191,7 @@ Live2D branch 默认 activity fallback 查的 motion group 名：`Activity_<Came
 |---|---|---|
 | `happy` | `Activity_Happy` | core emotion |
 | `ext:grateful` | `Activity_ExtGrateful` | extended |
-| `mod-weather:storm-watching` | `Activity_ModWeatherStormWatching` | mod custom |
+| `ext:proud` | `Activity_ExtProud` | extended |
 
 ### 5.2 Motion Priority
 

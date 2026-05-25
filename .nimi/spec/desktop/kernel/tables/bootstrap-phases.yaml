@@ -9,9 +9,7 @@ entries:
   - phases_5
   - phases_6
   - phases_7
-  - phases_8
   - constraints_1
-  - constraints_2
 # Desktop Bootstrap Phases
 # Source: apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts
 
@@ -36,33 +34,26 @@ phases:
 
   - phase: runtime-host
     order: 4
-    description: Wire mod SDK host, hook runtime, speech route resolver, and core data capabilities without executing mod entries
+    description: Wire runtime host capabilities, speech route resolver, and core data capabilities
     source_rule: D-BOOT-004
     async: true
     gated_by: enableRuntimeBootstrap
 
-  - phase: runtime-mod-host-ready
-    order: 5
-    description: Prepare Desktop mod host state and schedule deferred post-ready/on-demand hydration; mod entry import and setup are not bootstrap readiness gates
-    source_rule: D-BOOT-005
-    async: true
-    gated_by: enableRuntimeBootstrap
-
   - phase: external-agent
-    order: 6
+    order: 5
     description: Register tier-1 external agent actions and start action bridge
     source_rule: D-BOOT-006
     async: true
     gated_by: enableRuntimeBootstrap
 
   - phase: auth-session
-    order: 7
+    order: 6
     description: Bootstrap authentication session (token exchange or anonymous fallback)
     source_rule: D-BOOT-007
     async: true
 
   - phase: bootstrap-ready
-    order: 8
+    order: 7
     description: Set bootstrapReady=true, clear bootstrapError, emit completion log
     source_rule: D-BOOT-008
     async: false
@@ -72,6 +63,3 @@ constraints:
   - constraint: idempotency-guard
     description: bootstrapRuntime() uses bootstrapPromise singleton to ensure exactly-once execution
     source_rule: D-BOOT-009
-  - constraint: mod-hydration-not-ready-gate
-    description: bootstrapReady must not depend on sideload/catalog/dev mod entry import or setup execution
-    source_rule: D-BOOT-005

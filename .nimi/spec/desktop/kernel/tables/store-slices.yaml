@@ -4,7 +4,6 @@ catalog_id: desktop_store_slices
 entries:
   - auth
   - runtime
-  - mod-workspace
   - ui
 # Desktop Zustand Store Slices
 # Source: apps/desktop/src/shell/renderer/app-shell/providers/app-store.ts
@@ -21,12 +20,6 @@ slices:
     file: runtime-slice.ts
     description: Runtime execution fields (provider, model, agent, world bindings)
     source_rule: D-STATE-002
-
-  - name: mod-workspace
-    factory: createModWorkspaceSlice
-    file: mod-workspace-slice.ts
-    description: Mod workspace tabs, fused mod tracking, mod failures
-    source_rule: D-STATE-003
 
   - name: ui
     factory: createUiSlice

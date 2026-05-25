@@ -67,7 +67,7 @@ admissions:
       Runtime-owned control plane work: Runtime retains final cognition,
       approval, credential, firewall, projection, action, and audit authority;
       MCP is admitted only as a quarantined adapter source, A2A remains a
-      future seam, and Desktop/Avatar/apps/mods remain typed consumers or
+      future seam, and Desktop/Avatar/apps remain typed consumers or
       control surfaces without delegated semantic ownership.
     source_decision_contract: .nimi/topics/closed/2026-05-01-runtime-delegated-agent-capability-gateway/packet-wave-0-authority-admit.md
 admission_rules:

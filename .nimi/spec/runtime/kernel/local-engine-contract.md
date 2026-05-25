@@ -115,7 +115,7 @@ Speech product posture 由 `local-engine-speech-contract.md` 的 `Speech Runtime
 
 - 不得以 `LocalAI / Nexa` 作为 supervised 代理层。
 - 不得把 `media.diffusers` 伪装成主引擎。
-- 不得把 `backend_class`、`backend_family` 暴露给 app / mod 作为 public routing knob。
+- 不得把 `backend_class`、`backend_family` 暴露给 app 作为 public routing knob。
 - 不得把 canonical local image path 降级为 `ATTACHED_ENDPOINT`。
 - 不得把 `media.diffusers`、`stablediffusion-ggml` 等 backend 名称提升为 public engine target。
 
@@ -217,7 +217,7 @@ HTTP contract：
 重要约束：
 
 - 以上状态机是 runtime-private internal lifecycle，不直接替换现有 public lifecycle。
-- 对 app / mod / sdk 的稳定投影仍必须继续落在：`INSTALLED`、`ACTIVE`、`UNHEALTHY`、`REMOVED`。
+- 对 app / sdk 的稳定投影仍必须继续落在：`INSTALLED`、`ACTIVE`、`UNHEALTHY`、`REMOVED`。
 
 状态 owner：
 
@@ -646,7 +646,7 @@ which target Runtime job id. Admitted commands are
 Command semantics, terminal states, retryability, and forbidden shortcuts are
 owned by `local-environment-job-states.yaml`.
 
-Desktop, SDK, mods, and engines may invoke these commands only through
+Desktop, SDK, and engines may invoke these commands only through
 RuntimeLocalService or downstream SDK projection. They must not choose sources,
 create selected source records, mutate PATH, run package-manager scripts, or
 project `ready` from job existence, transfer completion, endpoint reachability,

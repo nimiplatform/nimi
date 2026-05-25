@@ -49,8 +49,8 @@ SDK Nimi App client projection、与 Runtime registration projection 提供；�
 契约只锁定 placement 与非 owner 边界。
 
 `MUST NOT`：Apps 不得拥有 app admission truth、marketplace truth、或
-package trust truth；不得读取 app-local spec、workspace source tree、Mods、
-Extensions、或未 admitted registry row 作为可见性来源；不得显示 Avatar。
+package trust truth；不得读取 app-local spec、workspace source tree、或未
+admitted registry row 作为可见性来源；不得显示 Avatar。
 
 ## D-HOME-005 — Apps Card State Placement
 

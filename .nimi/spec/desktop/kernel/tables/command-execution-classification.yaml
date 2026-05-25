@@ -165,11 +165,10 @@ registered_command_families:
         - runtime_defaults
         - desktop_release_info_get
         - desktop_update_state_get
-        - runtime_mod_dev_mode_get
-        - runtime_mod_install_progress
         - memory_embedding_runtime_inspect
         - memory_embedding_runtime_request_bind
         - memory_embedding_runtime_request_cutover
+        - built_in_ai_config_for_scope_init
     origin_crate: mixed
     owner_domain: desktop-state-projection
     execution_class: bounded_blocking_with_admission
@@ -219,7 +218,6 @@ registered_command_families:
         - open_world_tour_window
         - runtime_local_assets_reveal_in_folder
         - runtime_local_assets_reveal_root_folder
-        - runtime_mod_open_dir
     origin_crate: mixed
     owner_domain: desktop-shell
     execution_class: bounded_blocking_with_admission
@@ -466,100 +464,6 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-094
 
-  - family: runtime_mod_catalog_queries
-    match:
-      exact:
-        - runtime_mod_catalog_get
-        - runtime_mod_catalog_updates_check
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: runtime-mod-catalog
-    execution_class: request_response_async
-    remediation_required: false
-    admitted_risks: []
-    source_rule: D-GATE-094
-
-  - family: runtime_mod_catalog_background
-    match:
-      exact:
-        - runtime_mod_catalog_install
-        - runtime_mod_catalog_update
-        - runtime_mod_restore_backup
-        - runtime_mod_install
-        - runtime_mod_update
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: runtime-mod-catalog
-    execution_class: background_job
-    remediation_required: false
-    admitted_risks:
-      - blocking_http
-      - archive_or_compression
-      - sqlite_sync
-      - std_fs
-      - process_command
-      - spawn_blocking
-      - sync_lock_contention
-    source_rule: D-GATE-094
-
-  - family: runtime_mod_local_store
-    match:
-      prefix: runtime_mod_
-    explicit_admission_required: true
-    admitted_commands:
-      - runtime_mod_append_audit
-      - runtime_mod_query_audit
-      - runtime_mod_delete_audit
-      - runtime_mod_list_local_manifests
-      - runtime_mod_read_local_entry
-      - runtime_mod_read_local_asset
-      - runtime_mod_list_installed
-      - runtime_mod_sources_list
-      - runtime_mod_sources_upsert
-      - runtime_mod_sources_remove
-      - runtime_mod_dev_mode_get
-      - runtime_mod_dev_mode_set
-      - runtime_mod_storage_dirs_get
-      - runtime_mod_diagnostics_list
-      - runtime_mod_reload
-      - runtime_mod_reload_all
-      - runtime_mod_open_dir
-      - runtime_mod_uninstall
-      - runtime_mod_storage_file_read
-      - runtime_mod_storage_file_write
-      - runtime_mod_storage_file_delete
-      - runtime_mod_storage_file_list
-      - runtime_mod_storage_file_stat
-      - runtime_mod_storage_sqlite_query
-      - runtime_mod_storage_sqlite_execute
-      - runtime_mod_storage_sqlite_transaction
-      - runtime_mod_storage_data_purge
-      - runtime_mod_read_manifest
-      - runtime_mod_catalog_list
-      - runtime_mod_install_progress
-      - runtime_mod_get_action_idempotency
-      - runtime_mod_put_action_idempotency
-      - runtime_mod_purge_action_idempotency
-      - runtime_mod_get_action_verify_ticket
-      - runtime_mod_put_action_verify_ticket
-      - runtime_mod_delete_action_verify_ticket
-      - runtime_mod_purge_action_verify_tickets
-      - runtime_mod_put_action_execution_ledger
-      - runtime_mod_query_action_execution_ledger
-      - runtime_mod_purge_action_execution_ledger
-      - runtime_mod_media_cache_put
-      - runtime_mod_media_cache_gc
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: runtime-mod-local-store
-    execution_class: bounded_blocking_with_admission
-    remediation_required: false
-    admitted_risks:
-      - sqlite_sync
-      - std_fs
-      - native_dialog
-      - process_command
-      - spawn_blocking
-      - sync_lock_contention
-    source_rule: D-GATE-094
-
   - family: chat_local_stores
     match:
       regex: "^chat_(ai|agent)_.*$"
@@ -688,6 +592,7 @@ registered_command_families:
     remediation_required: false
     admitted_risks:
       - std_fs
+      - spawn_blocking
     source_rule: D-GATE-092
 
   - family: account_profile_library
@@ -756,4 +661,15 @@ dormant_command_families:
     dormant_class: dormant_admitted
     remediation_required: true
     reason: Avatar store commands are annotated but not registered; W3 must either admit a product path and active classification or delete them.
+    source_rule: D-GATE-095
+
+  - family: shell_tauri_test_fixture_unregistered
+    match:
+      exact:
+        - test_app_command
+    origin_crate: kit/shell/tauri
+    owner_domain: shell-tauri-test-fixture
+    dormant_class: dormant_admitted
+    remediation_required: false
+    reason: Macro self-test fixture command is annotated only inside test support and is not a product command.
     source_rule: D-GATE-095

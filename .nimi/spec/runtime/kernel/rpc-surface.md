@@ -127,7 +127,7 @@ Tier 1 的读写边界固定如下：
 - `ListLocalAssets` 只返回 runtime 已承认的 local asset inventory snapshot；它不是 probe、bootstrap、warm、recovery 或 status-normalization 入口。
 - `CheckLocalAssetHealth` 是显式 health probe surface；它可以执行 endpoint probe 与 readiness projection，但必须 fail-close，并不得把 no-response / timeout 投影成可用。
 - `StartLocalAsset` 与 `WarmLocalAsset` 是显式 lifecycle/readiness surface；它们可以启动受管引擎、执行 warm/minimal execution、更新 warm/status projection，并记录结构化失败。
-- runtime-owned background health maintainer 可以异步维护 health projection，但它是 runtime 内部执行路径，不得被 Desktop/SDK/Mods 以 list polling 方式替代或放大。
+- runtime-owned background health maintainer 可以异步维护 health projection，但它是 runtime 内部执行路径，不得被 Desktop/SDK/apps 以 list polling 方式替代或放大。
 
 **Tier 2 — 目录、伴随资产、intake 与 transfer：**
 
@@ -184,7 +184,7 @@ confirmation/job/status surface with these semantics:
   such as `downloading`, `verifying`, and `installing`
 - provide health/audit detail for `ready_system`, `ready_managed`, `failed`, and
   `repair_required`
-- never require Desktop, SDK, mods, or a visible terminal to execute dependency
+- never require Desktop, SDK, apps, or a visible terminal to execute dependency
   installation scripts
 - keep setup idempotent per dependency/environment; duplicate llama,
   stable-diffusion.cpp, and Python-native consumer requests must attach to the
@@ -218,7 +218,7 @@ to selected source records.
 
 `RuntimeLocalService` and the runtime config surface jointly own local AI state
 and storage reconciliation. Runtime is the only active owner of local asset
-state. Desktop, SDK, mods, and host helpers must not maintain a second local AI
+state. Desktop, SDK, apps, and host helpers must not maintain a second local AI
 state file or silently fall back to retired state files.
 
 Runtime must distinguish these path roles:
@@ -228,7 +228,7 @@ Runtime must distinguish these path roles:
   projection.
 - `managedRoots.models`: the filesystem root for model and asset payload files,
   derived from `dataRootRef` unless explicitly reconciled by Runtime config.
-- Nimi data dir: a product storage root that may contain models, mods, caches,
+- Nimi data dir: a product storage root that may contain models, caches,
   and dependency payloads, but is not itself local AI state truth.
 
 When Desktop or another admitted host surface changes Nimi data dir, Runtime
@@ -767,7 +767,7 @@ preserve these constraints:
   `needs_confirmation`, `queued`, `downloading`, `verifying`, `installing`,
   `ready_system`, `ready_managed`, `repair_required`, `failed`, `unsupported`,
   and `cancelled`
-- no Desktop, SDK, mod, engine, or app-level REST bypass may execute installers,
+- no Desktop, SDK, engine, or app-level REST bypass may execute installers,
   probes, source selection, PATH mutation, or pseudo-ready projection on behalf
   of this surface
 - activation gate projection exposes the logical operation

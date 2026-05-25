@@ -1,6 +1,6 @@
 # Desktop Kernel Contracts
 
-> Scope: Desktop 应用全量契约（启动序列 / IPC / 状态 / 会话 / 数据同步 / Hook / Mod 治理 / LLM / UI / 错误 / 遥测 / 网络 / 安全 / 流消费 / Codegen）。
+> Scope: Desktop 应用全量契约（启动序列 / IPC / 状态 / 会话 / 数据同步 / LLM / UI / 错误 / 遥测 / 网络 / 安全 / 流消费）。
 
 ## 1. 目标
 
@@ -15,7 +15,7 @@
 ## 3. Rule ID 规范
 
 - 格式：`D-<DOMAIN>-NNN`
-- `DOMAIN` 固定枚举：`BOOT` `IPC` `STATE` `AUTH` `DSYNC` `HOOK` `MOD` `LLM` `SHELL` `MBAR` `HOME` `HOMEFEED` `EXPL` `CONTACTS` `AIPC` `SUP` `DEV` `ERR` `TEL` `NET` `SEC` `STRM` `OFFLINE` `CODEGEN` `GATE`
+- `DOMAIN` 固定枚举：`BOOT` `IPC` `STATE` `AUTH` `DSYNC` `LLM` `SHELL` `MBAR` `HOME` `HOMEFEED` `EXPL` `CONTACTS` `AIPC` `SUP` `DEV` `ERR` `TEL` `NET` `SEC` `STRM` `OFFLINE` `GATE`
 - `NNN` 三位递增编号，不复用。
 
 ## 4. 文档所有权
@@ -29,8 +29,6 @@
 | `auth-session-contract.md` | `D-AUTH-*` | 会话生命周期、token 持久化 |
 | `data-sync-contract.md` | `D-DSYNC-*` | DataSync 业务流规则 |
 | `knowledge-ui-contract.md` | `D-DSYNC-*` | 已退役的 Runtime Config Knowledge UI hard-cut；RuntimeCognitionService knowledge 仍为 runtime/SDK API，不是 Desktop 配置页 |
-| `hook-capability-contract.md` | `D-HOOK-*` | Hook 子系统与能力网关 |
-| `mod-governance-contract.md` | `D-MOD-*` | 8 阶段执行内核与审计 |
 | `llm-adapter-contract.md` | `D-LLM-*` | Provider 适配与路由边界 |
 | `world-tour-tester-contract.md` | `D-LLM-*` | Developer-only `nimi.tester` World Tour authority：`world.generate` baseline end-to-end acceptance semantics、runtime-owned route/job/result consumption、Spark 2.0 SPZ render proof、app-owned fixture custody；Desktop-embedded Tester is frozen migration source only and does not own ordinary primary navigation / Explore / canonical Realm world truth |
 | `conversation-capability-contract.md` | `D-LLM-*` | Conversation capability selection/projection、agent overlay、execution snapshot；不拥有 resolved message / action truth |
@@ -47,7 +45,7 @@
 | `agent-chat-voice-workflow-contract.md` | `D-LLM-*` | Agent chat richer voice workflow authority：`voice_workflow.voice_clone` / `voice_workflow.voice_design` admission、voice identity / `VoiceReference`、preset/custom voice selection、packet-bounded clone/design trigger、workflow return-path truth；不拥有 APML-projected resolved message/action / runtime workflow substrate / broader voice session truth |
 | `ui-shell-contract.md` | `D-SHELL-*` | 导航、布局、路由、分包 |
 | `support-surface-contract.md` | `D-SUP-*` | Desktop `Support` 独立 secondary 系统表面产品语义：repair / updates / diagnostics / logs-export / recovery-help 五子区、self-update 投影宿主、`P-MIG-*` 修复流程消费边界、degraded-state 可达性；不拥有 self-update 机制、`~/.nimi` 迁移执行、Runtime diagnostic/log/audit 真值、product-control first-run 状态机 |
-| `devtools-contract.md` | `D-DEV-*` | Desktop `Developer Tools` 表面与 `Developer Mode` 门控产品语义：可发现 Developer Mode 切换、DevTools surface 门控、embedded Tester 门控、`nimi.tester` registry 登记关系、mod/developer surface 默认不可见；`D-SHELL-009` 的门控收口；不拥有 `nimi.tester` App admission 真值、World Tour Tester 语义、mod 执行内核、public Mod/Extension 准入；不 mandate 本 portfolio 内 Tester 源码完整抽取 |
+| `devtools-contract.md` | `D-DEV-*` | Desktop `Developer Tools` 表面与 `Developer Mode` 门控产品语义：可发现 Developer Mode 切换、DevTools surface 门控、embedded Tester 门控、`nimi.tester` registry 登记关系；`D-SHELL-009` 的门控收口；不拥有 `nimi.tester` App admission 真值、World Tour Tester 语义；不 mandate 本 portfolio 内 Tester 源码完整抽取 |
 | `nimi-home-shell-contract.md` | `D-HOME-*` | Desktop-hosted Nimi Home shell IA、first-run / return-run state machine、surface registry placement、Agent Chat in-shell reference placement、`AIScopeRef` enforcement、no-private-path enforcement、self-update UI projection、first-screen rule、failure-projection as first-class surface |
 | `home-feed-contract.md` | `D-HOMEFEED-*` | Desktop `Home` primary-nav tab 作为 Realm feed 表面的产品语义：三个 feed scope（personal / friends / agent_activity）呈现、Create Post affordance、SDK-typed Realm feed projection 消费边界、与 `D-HOME-*`（`Nimi Home` installed shell）的显式 non-overlap、`Home` 非 ready entry；不拥有 shell 导航布局、Realm Post / Feed canonical 真值 |
 | `ai-profile-config-contract.md` | `D-AIPC-*` | Desktop `AIProfile` / `AIConfig` / `AISnapshot` 三段式 AI 配置 canonical model 与 `D-LLM-015` ~ `D-LLM-021` 的 umbrella 关系 |
@@ -61,7 +59,6 @@
 | `security-contract.md` | `D-SEC-*` | CSP、凭据委托、OAuth、端点安全 |
 | `streaming-consumption-contract.md` | `D-STRM-*` | 流式消费、取消与恢复语义；只消费 beat/action outputs，不拥有其 product semantics |
 | `offline-degradation-contract.md` | `D-OFFLINE-*` | Runtime/Realm 离线降级、缓存与重连冲突策略 |
-| `codegen-contract.md` | `D-CODEGEN-*` | mod codegen 规则、预检、门禁与回滚 |
 | `testing-gates-contract.md` | `D-GATE-*` | Desktop 测试治理、E2E 风险分层与发布门禁 |
 | `command-execution-contract.md` | `D-GATE-*` | Desktop Tauri invoke command execution classes, cross-crate registered surface SSOT, blocking admission, and fail-closed gate |
 
@@ -73,13 +70,6 @@
 - `tables/ipc-commands.yaml`
 - `tables/app-tabs.yaml`
 - `tables/store-slices.yaml`
-- `tables/hook-subsystems.yaml`
-- `tables/hook-capability-allowlists.yaml`
-- `tables/ui-slots.yaml`
-- `tables/turn-hook-points.yaml`
-- `tables/mod-kernel-stages.yaml`
-- `tables/mod-lifecycle-states.yaml`
-- `tables/mod-access-modes.yaml`
 - `tables/feature-flags.yaml`
 - `tables/data-sync-flows.yaml`
 - `tables/retry-status-codes.yaml`
@@ -109,10 +99,6 @@
 - `tables/realm-agent-creation-modes.yaml`
 - `tables/realm-agent-creation-fields.yaml`
 - `tables/rule-evidence.yaml`（fragment directive；实际内容委托给 `tables/rule-evidence.catalog.yaml` 与 `tables/rule-evidence.rules-*.yaml`，含 `tables/rule-evidence.rules-support-devtools.yaml`）
-- `tables/codegen-import-allowlist.yaml`
-- `tables/codegen-capability-tiers.yaml`
-- `tables/codegen-static-scan-deny-patterns.yaml`
-- `tables/codegen-acceptance-gates.yaml`
 
 ## 6. Kernel Companion 约束
 

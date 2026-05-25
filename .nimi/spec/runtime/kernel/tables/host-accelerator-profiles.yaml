@@ -7,7 +7,7 @@ entries:
   - profiles_2
 
 # Canonical host accelerator profile authority.
-# Runtime owns probe, refresh, evidence, and state. Desktop, SDK, mods, model
+# Runtime owns probe, refresh, evidence, and state. Desktop, SDK, model
 # import, engine package selection, and provider health may consume this table
 # only through runtime-owned projection; they must not create a second GPU/CUDA
 # truth source.

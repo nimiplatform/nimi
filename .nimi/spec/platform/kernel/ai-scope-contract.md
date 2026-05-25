@@ -12,36 +12,22 @@
 
 ```
 AIScopeRef {
-  kind: 'app' | 'mod' | 'module' | 'feature'
+  kind: 'app' | 'module' | 'feature'
   ownerId: string
   surfaceId?: string
 }
 ```
 
 - `kind` 标识作用域类型。
-- `ownerId` 标识作用域所有者实体（app ID、mod ID、module ID、feature ID）。
+- `ownerId` 标识作用域所有者实体（app ID、module ID、feature ID）。
 - `surfaceId` 可选，标识同一 owner 下的子面（如 app 内某个独立 feature surface）。
 - `kind + ownerId + surfaceId?` 三元组必须在整个系统中形成稳定唯一键。
 
 `kind` 的 canonical 语义约束：
 
 - `kind: 'app'`：`ownerId` 标识 app identity；`surfaceId` 可标识 app 下的独立 AI feature surface。
-- `kind: 'mod'`：`ownerId` 必须是 stable mod manifest ID；不得使用 route page ID、tab key、conversation ID、document ID、project ID、prompt config ID、profile ID 等 mod 内数据实体或瞬时 UI key 充当 owner。
 - `kind: 'module'`：`ownerId` 标识独立 module identity；仅当 module 自身是 canonical owner 时才可使用。
-- `kind: 'feature'`：`ownerId` 标识跨 app/mod 复用的独立 feature owner；不得把本应属于 mod owner 的 AI truth 拆散到 feature fragments。
-
-Phase 1 mod-scoped AIConfig 的 canonical shape 固定为：
-
-```
-AIScopeRef {
-  kind: 'mod'
-  ownerId: <stable mod manifest id>
-  surfaceId: 'workspace'
-}
-```
-
-- `surfaceId: 'workspace'` 表示该 mod 当前唯一的 canonical AI workspace。
-- 在后续 kernel rule 明确定义前，mod-scoped AIConfig consumer 不得省略该 `surfaceId`，也不得自行发明替代值。
+- `kind: 'feature'`：`ownerId` 标识跨 app 复用的独立 feature owner；不得把本应属于 app 或 module owner 的 AI truth 拆散到 feature fragments。
 
 ## P-AISC-002 — Uniqueness And Lifecycle
 
@@ -52,10 +38,9 @@ AIScopeRef {
 
 多 scope 约束：
 
-- 一个 mod 默认只拥有一个 canonical AI scope：`surfaceId: 'workspace'`。
-- 只有当同一 mod 内存在多个 first-class AI workspace，且每个 workspace 都需要独立的 profile apply / config edit / probe / snapshot history 时，才允许为该 mod 扩展多个 `AIScopeRef`。
-- mod 多 scope 必须是显式少量、可被用户稳定理解的 workspace identity；不得按 tab、session、thread、document、selected record、modal、wizard step 或其他瞬时 UI / domain 粒度滥扩 scope。
-- 若产品只是想在一个 mod workspace 内切换当前对象、当前文档或当前会话，必须在该 workspace scope 内通过 domain state 实现，不得为每个对象额外创建 `AIScopeRef`。
+- 一个 app 默认只拥有一个 canonical AI scope，除非 manifest 明确声明多个 first-class AI feature surface。
+- 多 scope 必须是显式少量、可被用户稳定理解的 feature identity；不得按 tab、session、thread、document、selected record、modal、wizard step 或其他瞬时 UI / domain 粒度滥扩 scope。
+- 若产品只是想在一个 app surface 内切换当前对象、当前文档或当前会话，必须在该 surface scope 内通过 domain state 实现，不得为每个对象额外创建 `AIScopeRef`。
 
 ## P-AISC-003 — No Implicit Inheritance
 
@@ -77,7 +62,6 @@ AIScopeRef {
   - SDK Kernel — 用于 typed config/profile/snapshot API 的 scope parameter
   - Runtime Kernel — 用于 execution snapshot 的 scope evidence
 - consumer 不得扩展 `AIScopeRef` schema（如添加 consumer-local fields）；如需额外标注，必须在 consumer 侧建立独立 annotation，不修改 `AIScopeRef` 本体。
-- mod-facing AIConfig consumer 通过 Desktop/Web host bridge 消费 `AIScopeRef` 时，仍必须使用本契约定义的 canonical identity；不得退回 consumer-local key schema。
 
 ## P-AISC-006 — Built-In First-Run Chat Scopes
 
@@ -148,8 +132,7 @@ app-launch scope 不得复用 `P-AISC-006` 的 built-in chat feature scope
 
 ## Fact Sources
 
-- 本契约无 YAML 表。Phase 1 scope kind 值域为封闭枚举 `'app' | 'mod' | 'module' | 'feature'`；若需扩展，须修改本规则并通过 spec consistency check。
-- Phase 1 mod-scoped AIConfig canonical workspace identity 固定为 `{ kind: 'mod', ownerId: <modManifestId>, surfaceId: 'workspace' }`。
+- 本契约无 YAML 表。Phase 1 scope kind 值域为封闭枚举 `'app' | 'module' | 'feature'`；若需扩展，须修改本规则并通过 spec consistency check。
 - First-run built-in chat scope identities固定为 `P-AISC-006` 中
   feature owner `desktop.chat` 下的 `{ surfaceId: 'nimi' }` 与
   `{ surfaceId: 'agent' }` 两个子面。

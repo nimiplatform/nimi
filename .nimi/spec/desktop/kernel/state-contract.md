@@ -30,17 +30,6 @@ lifecycle projection，不得成为平行语义 owner。
 
 - `runtimeFields: RuntimeFieldMap`（provider、model 与可透传的 runtime execution context 字段）
 - `runtimeDefaults: RuntimeDefaults | null`
-- `localManifestSummaries`、`registeredRuntimeModIds`、`runtimeModDisabledIds`
-- `runtimeModUninstalledIds`、`runtimeModSettingsById`、`runtimeModFailures`
-- `runtimeModHydrationById`（或等价 Desktop mod host projection）：按 `modId + generation/source revision`
-  表达 `not_requested` / `scheduled` / `hydrating` / `hydrated` / `failed`
-- `fusedRuntimeMods`（熔断记录）
-
-`localManifestSummaries` 的来源固定为 runtime mods 安装目录；Desktop 不扫描源码仓作为发现输入。
-`localManifestSummaries` 只表示 manifest/source/diagnostic projection；不得被解释为 entry 已 import 或
-`setup()` 已执行。`registeredRuntimeModIds` 只允许表示 Desktop host 中已完成 setup 的 active mod registrations；
-若实现需要展示未 hydration 的 mod，必须通过 hydration projection 或 manifest projection 表达，不得伪造
-registered 状态。
 
 初始 `RuntimeFieldMap`：
 - `targetType: ''`
@@ -48,7 +37,7 @@ registered 状态。
 - `turnIndex: 1`
 - `localProviderEndpoint: ''`
 
-`RuntimeFieldMap` 必须保持 string-keyed extensible map 语义；Desktop 可以预置核心字段，但不得将额外 runtime field key 视为非法。Desktop core 不得预置 Agent chat launcher 语义；Agent chat 相关字段仅允许作为 mod-owned runtime context 透传。
+`RuntimeFieldMap` 必须保持 string-keyed extensible map 语义；Desktop 可以预置核心字段，但不得将额外 runtime field key 视为非法。Desktop core 不得预置 Agent chat launcher 语义。
 
 `runtimeFields` 的 route-related 字段在 `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）下只允许作为 execution projection / transient input；不得继续承担 selection truth、projection truth 或 thread-global route owner 语义。
 
@@ -69,24 +58,6 @@ runtime-owned hook outputs 时必须 fail-close。
 当前 admitted pending continuation state 只允许 process-local projection ownership；
 持久化 store 不得在 hydration 后自动恢复旧 pending continuation timer，也不得把
 thread/anchor metadata 升格成递归 continuation chain 的 owner。
-
-## D-STATE-003 — Mod Workspace Slice
-
-`createModWorkspaceSlice` 管理 mod 工作区：
-
-- `modWorkspaceTabs: ModWorkspaceTab[]`（`tabId: 'mod:${modId}'`、`title`、`fused`）
-- 操作：`openModWorkspaceTab`、`closeModWorkspaceTab`
-- `modWorkspaceTabs` 中存在的条目即表示 Desktop host 视为“已打开”的 mod route runtime instance
-
-`tabId` 是当前 Desktop route runtime identity。任何公开的 route lifecycle 或 route retention 语义都必须以 `tabId` 为作用域，而不是 `modId`。
-
-Desktop host 对 mod workspace tab 的产品规则固定为：
-
-- 同时最多允许 `5` 个已打开的 mod workspace tabs
-- 当第 `6` 个不同的 mod tab 打开请求到达时，host 必须拒绝该请求，不得隐式关闭、替换或卸载已有 tab
-- 若目标 `tabId` 已经处于已打开集合中，host 必须激活已有 tab，而不是将该请求视为超限失败
-- 只要 mod tab 仍处于已打开集合中，普通 tab 切换不得导致 host 自动卸载对应 route instance
-- route instance 的销毁仅允许由用户关闭 tab、mod 被禁用/卸载、或 host 明确执行销毁触发
 
 ## D-STATE-004 — UI Slice
 

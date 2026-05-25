@@ -54,7 +54,7 @@ job 到达终态后必须清理快照凭据（best-effort 内存清零 + 持久�
 `ScenarioJob` 终态失败信息必须分为两层：
 
 - `reason_code` / `reason_detail`：稳定的短摘要，供通用轮询与 UI 列表展示
-- `reason_metadata`：安全的结构化失败细节，供 SDK / Desktop / mods 继续投影到 `NimiError.details`
+- `reason_metadata`：安全的结构化失败细节，供 SDK / Desktop / apps 继续投影到 `NimiError.details`
 
 约束：
 

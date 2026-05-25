@@ -8,8 +8,6 @@ values:
   - flags_4
   - flags_5
   - flags_6
-  - flags_7
-  - flags_8
 # Desktop Shell Feature Flags
 # Source: kit/core/src/shell-mode.ts (ShellFeatureFlags)
 # Note: platform-conditional desktop defaults are captured in entry-specific fields when a plain
@@ -22,15 +20,6 @@ flags:
     description: Internal migration guard only; Runtime is an ordinary primary nav item in product authority
     source_rule: D-SHELL-001
 
-  - flag: enableModUi
-    default_desktop: false
-    default_web: false
-    description: >-
-      Enable mod UI extension rendering. Default false on desktop and web; mod UI
-      surfaces are reachable only behind admitted Developer Mode per D-DEV-004,
-      consistent with the developer/internal/retirement-only posture of D-SHELL-002.
-    source_rule: D-DEV-004
-
   - flag: enableDeveloperTools
     default_desktop: false
     default_web: false
@@ -39,12 +28,6 @@ flags:
       surface is reachable only after the user enables admitted Developer Mode
       from the discoverable Settings toggle per D-DEV-001 and D-DEV-002.
     source_rule: D-DEV-001
-
-  - flag: enableModWorkspaceTabs
-    default_desktop: true
-    default_web: false
-    description: Enable mod workspace tab management
-    source_rule: D-SHELL-002
 
   - flag: enableSettingsExtensions
     default_desktop: true
@@ -70,5 +53,5 @@ flags:
   - flag: enableRuntimeBootstrap
     default_desktop: true
     default_web: false
-    description: Execute full runtime bootstrap sequence (hook runtime, mods, external agent)
+    description: Execute full runtime bootstrap sequence (external agent and runtime readiness)
     source_rule: D-BOOT-004

@@ -72,10 +72,6 @@ entries:
   - REALM-DOC-CREATOR-REVENUE-POLICY
   - REALM-DOC-REALM-INTEROP-MAPPING
   - PLATFORM-AI-LAST-MILE
-  - MOD-WORLD-STUDIO-SPEC
-  - MOD-NARRATIVE-ENGINE-SPEC
-  - MOD-TEXTPLAY-SPEC
-  - MOD-VIDEOPLAY-SPEC
 mappings:
   - external_id: R-TRUTH-001
     external_type: kernel_rule
@@ -420,25 +416,5 @@ mappings:
   - external_id: PLATFORM-AI-LAST-MILE
     external_type: platform_ref
     external_path: .nimi/spec/platform/ai-last-mile.md
-    local_anchor: .nimi/spec/realm/app-interconnect-model.md#Normative Imports
-    alignment_posture: aligned
-  - external_id: MOD-WORLD-STUDIO-SPEC
-    external_type: mod_spec
-    external_path: nimi-mods/runtime/world-studio/.nimi/spec/world-studio.md
-    local_anchor: .nimi/spec/realm/app-interconnect-model.md#Normative Imports
-    alignment_posture: aligned
-  - external_id: MOD-NARRATIVE-ENGINE-SPEC
-    external_type: mod_spec
-    external_path: nimi-mods/modules/narrative-engine/.nimi/spec/narrative-engine.md
-    local_anchor: .nimi/spec/realm/app-interconnect-model.md#Normative Imports
-    alignment_posture: aligned
-  - external_id: MOD-TEXTPLAY-SPEC
-    external_type: mod_spec
-    external_path: nimi-mods/runtime/textplay/.nimi/spec/textplay.md
-    local_anchor: .nimi/spec/realm/app-interconnect-model.md#Normative Imports
-    alignment_posture: aligned
-  - external_id: MOD-VIDEOPLAY-SPEC
-    external_type: mod_spec
-    external_path: nimi-mods/runtime/videoplay/.nimi/spec/videoplay.md
     local_anchor: .nimi/spec/realm/app-interconnect-model.md#Normative Imports
     alignment_posture: aligned

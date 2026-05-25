@@ -304,9 +304,8 @@ groups:
     note: >
       Runtime implementation complete (~900 LOC) with production-grade
       security baseline (K-APP-005): rate limiting, loop detection, payload
-      size enforcement. SDK projection is landed. Desktop uses D-HOOK
-      interMod path for mod-to-mod communication by default instead of making
-      RuntimeAppService the same-process message bus.
+      size enforcement. SDK projection is landed. Desktop must not treat
+      RuntimeAppService as a same-process message bus.
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - SendAppMessage
