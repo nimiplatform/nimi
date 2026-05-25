@@ -23,18 +23,10 @@ function collectSourceFiles(root: string): string[] {
   return output;
 }
 
-test('bootstrap and mod startup noise no longer writes global status banners', () => {
-  assert.doesNotMatch(
-    read('shell/renderer/infra/bootstrap/runtime-bootstrap-runtime-mods.ts'),
-    /setStatusBanner\(/,
-  );
+test('bootstrap startup noise no longer writes global status banners', () => {
   const bootstrapSource = read('shell/renderer/infra/bootstrap/runtime-bootstrap.ts');
   assert.doesNotMatch(bootstrapSource, /message:\s*daemonStatus\.lastError \|\| 'Runtime unavailable'/);
   assert.doesNotMatch(bootstrapSource, /setStatusBanner\(\{\s*kind:\s*'warning',\s*message,\s*\}\)/);
-  assert.doesNotMatch(
-    read('shell/renderer/mod-ui/lifecycle/runtime-mod-developer-host.ts'),
-    /setStatusBanner\(/,
-  );
 });
 
 test('runtime-config routes connector tests and page errors through inline feedback', () => {
@@ -47,16 +39,6 @@ test('runtime-config routes connector tests and page errors through inline feedb
   assert.match(panelViewSource, /model\.pageFeedback/);
 });
 
-test('mods actions use page-context feedback instead of global banners', () => {
-  const modHubSource = read('shell/renderer/features/mod-hub/mod-hub-controller.ts');
-  assert.match(modHubSource, /setModsFeedback/);
-  assert.doesNotMatch(modHubSource, /setStatusBanner\(\{/);
-
-  const navSource = read('shell/renderer/app-shell/layouts/main-layout-view.tsx');
-  assert.doesNotMatch(navSource, /modsHasIssues/);
-  assert.doesNotMatch(navSource, /badge=\{modsHasIssues/);
-});
-
 test('phase-2 migrated surfaces no longer write global status banners directly', () => {
   const migratedSources = [
     'shell/renderer/features/contacts/contacts-panel.tsx',
@@ -64,7 +46,6 @@ test('phase-2 migrated surfaces no longer write global status banners directly',
     'shell/renderer/features/notification/notification-panel.tsx',
     'shell/renderer/features/settings/settings-account-panel.tsx',
     'shell/renderer/features/settings/settings-security-page.tsx',
-    'shell/renderer/features/settings/settings-developer-page.tsx',
     'shell/renderer/features/settings/settings-language-region-panel.tsx',
     'shell/renderer/features/settings/settings-data-management-page.tsx',
     'shell/renderer/features/turns/turn-input.tsx',
@@ -79,7 +60,6 @@ test('phase-2 migrated surfaces no longer write global status banners directly',
     'shell/renderer/features/chat/chat-agent-shell-adapter.tsx',
     'shell/renderer/features/world/world-detail.tsx',
     'shell/renderer/features/turns/human-conversation-gift-modal.tsx',
-    'shell/renderer/mod-ui/host/slot-host.tsx',
   ];
 
   for (const source of migratedSources) {
@@ -89,7 +69,8 @@ test('phase-2 migrated surfaces no longer write global status banners directly',
 
 test('notification audit report records final target channels for migrated phase-2 surfaces', () => {
   const report = readFileSync(resolve(import.meta.dirname, './fixtures/desktop-notification-audit.fixture.md'), 'utf8');
-  assert.match(report, /slot-host\.tsx` render failed .* \| `page_inline` \(`Mods`\) \| migrated \|/);
+  assert.doesNotMatch(report, /slot-host\.tsx/);
+  assert.doesNotMatch(report, /`Mods`/);
   assert.match(report, /web-auth-menu\.tsx` auth warning\/error incl\. onboarding pending .* \| `page_inline` \| migrated \|/);
   assert.match(report, /turn-input\.tsx` upload\/send\/read-only\/unsupported-file .* \| `page_inline` \/ composer inline \| migrated \|/);
   assert.match(report, /## Remaining Whitelist/);
@@ -103,8 +84,6 @@ test('direct global status banner store access is limited to the explicit whitel
     'shell/renderer/features/auth/logout.ts',
     'shell/renderer/infra/bootstrap/desktop-updates.ts',
     'shell/renderer/infra/bootstrap/runtime-bootstrap.ts',
-    'shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities.ts',
-    'shell/renderer/mod-ui/host/mod-tab-limit-banner.ts',
     'shell/renderer/ui/feedback/status-banner.tsx',
   ]);
 

@@ -1,14 +1,12 @@
 import React, { Suspense, lazy, useEffect, useState, type MouseEvent, type PropsWithChildren } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
-import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
-import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import {
   isDeveloperModeEnabled,
-  isModUiEnabled,
   subscribeDeveloperMode,
 } from '@renderer/features/developer/developer-mode';
 import { MainLayoutView } from './main-layout-view';
@@ -62,25 +60,18 @@ class NonCriticalStartupBoundary extends React.Component<PropsWithChildren, { ha
 }
 
 export function MainLayout() {
-  const flags = getShellFeatureFlags();
   const navigate = useNavigate();
+  const flags = getShellFeatureFlags();
   const activeTab = useAppStore((state) => state.activeTab);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const clearAuthSession = useAppStore((state) => state.clearAuthSession);
   const authStatus = useAppStore((state) => state.auth.status);
   const user = useAppStore((state) => state.auth.user);
-  const context = useUiExtensionContext({
-    sidebarCollapsed: true,
-  });
 
   const displayName = String(user?.displayName || user?.handle || 'User');
   const userAvatarUrl = typeof user?.avatarUrl === 'string' ? user.avatarUrl : null;
   const userEmail = typeof user?.email === 'string' ? user.email : null;
 
-  // D-DEV-004 / D-DEV-007: developer / internal surfaces (mods, mod workspace
-  // tabs, Developer Tools) are reachable only behind admitted Developer Mode.
-  // If the active tab is one of them and Developer Mode is off — or it never
-  // turned on — fall back to chat so no developer surface stays reachable.
   const [developerModeEnabled, setDeveloperModeEnabled] = useState(
     () => isDeveloperModeEnabled(),
   );
@@ -90,15 +81,10 @@ export function MainLayout() {
     });
   }, []);
   useEffect(() => {
-    const modUiReachable = flags.enableModUi && isModUiEnabled() && developerModeEnabled;
-    if (!modUiReachable && (activeTab === 'mods' || activeTab.startsWith('mod:'))) {
-      setActiveTab('chat');
-      return;
-    }
     if (!developerModeEnabled && activeTab === 'developer-tools') {
       setActiveTab('chat');
     }
-  }, [activeTab, authStatus, developerModeEnabled, flags, setActiveTab]);
+  }, [activeTab, authStatus, developerModeEnabled, setActiveTab]);
 
   useEffect(() => {
     if (!tabSwitchPending || tabSwitchPending.toTab !== activeTab) return;
@@ -149,7 +135,6 @@ export function MainLayout() {
         displayName={displayName}
         userAvatarUrl={userAvatarUrl}
         userEmail={userEmail}
-        context={context}
         onNav={onNav}
         onLogout={() => {
           void onLogout();

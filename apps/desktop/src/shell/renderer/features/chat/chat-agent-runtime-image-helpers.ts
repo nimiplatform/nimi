@@ -1,4 +1,4 @@
-import { buildLocalProfileExtensions } from '@nimiplatform/sdk/mod';
+import { buildLocalProfileExtensions } from '@nimiplatform/sdk/ai';
 import type {
   AgentImageExecutionRuntimeDiagnostics,
   AgentRuntimeResolvedBinding,

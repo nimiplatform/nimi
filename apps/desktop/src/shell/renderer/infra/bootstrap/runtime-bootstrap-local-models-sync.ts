@@ -1,8 +1,8 @@
 import type {
+  DesktopStorageDirs,
   RuntimeBridgeConfigGetResult,
   RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
-  RuntimeModStorageDirs,
 } from '@renderer/bridge';
 import { createRuntimeConfigManualRestartRequiredError } from './runtime-bootstrap-config-errors';
 
@@ -17,12 +17,12 @@ export type RuntimeLocalModelsConfigSyncBridge = {
 /**
  * Bridge surface for {@link syncRuntimeStorageConfig}: the runtime-config
  * read/write/restart triple plus the runtime daemon status and the desktop
- * storage-dir resolver. `getRuntimeModStorageDirs` fails closed (throws) on a
+ * storage-dir resolver. `getDesktopStorageDirs` fails closed (throws) on a
  * fresh install before the user has selected `nimi_data`.
  */
 export type RuntimeStorageConfigSyncBridge = RuntimeLocalModelsConfigSyncBridge & {
   getRuntimeBridgeStatus: () => Promise<RuntimeBridgeDaemonStatus>;
-  getRuntimeModStorageDirs: () => Promise<RuntimeModStorageDirs>;
+  getDesktopStorageDirs: () => Promise<DesktopStorageDirs>;
 };
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -126,14 +126,14 @@ export async function syncRuntimeLocalModelsConfig(input: {
  * This is the single desktop→runtime data-root config sync mechanism, shared by
  * the bootstrap path and the first-run Storage phase. It exists because the
  * data root is NOT known at bootstrap on a fresh install: bootstrap runs before
- * the first-run "Storage" step, so `getRuntimeModStorageDirs` fails closed there
+ * the first-run "Storage" step, so `getDesktopStorageDirs` fails closed there
  * (the product-control record has no `nimi_data` yet). The first-run workflow
  * therefore re-runs this immediately after `selectProductDataRoot` records the
  * user-selected data root — before any materialization can start — so the
  * runtime config reliably carries the data root when the model materializer
  * resolves its models root.
  *
- * `getRuntimeModStorageDirs` throwing (no data root selected yet) propagates:
+ * `getDesktopStorageDirs` throwing (no data root selected yet) propagates:
  * a caller reaching materialization with no resolved data root fails closed
  * rather than letting the runtime stage models into a relative/CWD path.
  */
@@ -145,7 +145,7 @@ export async function syncRuntimeStorageConfig(input: {
 }): Promise<RuntimeBridgeDaemonStatus> {
   const { bridge, preserveLocalRuntimeStatePath } = input;
   const daemonStatus = input.daemonStatus ?? (await bridge.getRuntimeBridgeStatus());
-  const runtimeStorageDirs = await bridge.getRuntimeModStorageDirs();
+  const runtimeStorageDirs = await bridge.getDesktopStorageDirs();
   return syncRuntimeLocalModelsConfig({
     daemonStatus,
     dataRootPath: runtimeStorageDirs.nimiDataDir,

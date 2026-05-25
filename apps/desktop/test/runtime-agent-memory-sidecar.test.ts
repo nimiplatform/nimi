@@ -6,7 +6,7 @@ import {
   type MemoryEmbeddingConfig,
   type MemoryEmbeddingConfigSurface,
   type MemoryEmbeddingRuntimeSurface,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 import {
   MemoryBankScope,
   MemoryCanonicalClass,

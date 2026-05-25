@@ -6,7 +6,6 @@ import test from 'node:test';
 import { isExpectedAnonymousSessionError, toAuthUserRecord } from '../src/shell/renderer/features/auth/auth-session-utils';
 import { bindAgentMemoryStandard } from '../src/shell/renderer/bridge/runtime-bridge/agent-memory';
 import { confirmDialog, openExternalUrl } from '../src/shell/renderer/bridge/runtime-bridge/ui';
-import { subscribeRuntimeModReloadResult } from '../src/shell/renderer/bridge/runtime-bridge/mod-local';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 type WindowLike = {
@@ -185,55 +184,6 @@ test('proxyHttp fallback blocks private-network absolute URLs outside the app or
     }
   } finally {
     globalThis.fetch = originalFetch;
-  }
-});
-
-test('subscribeRuntimeModReloadResult forwards parsed reload events through the listener', async () => {
-  let handler: ((event: { payload: unknown }) => void) | null = null;
-  let unsubscribed = false;
-  const restoreWindow = installWindowMock({
-    __NIMI_TAURI_TEST__: {
-      listen: (_eventName, nextHandler) => {
-        handler = nextHandler;
-        return () => {
-          unsubscribed = true;
-        };
-      },
-    },
-  });
-
-  try {
-    const received: Array<Record<string, unknown>> = [];
-    const unsubscribe = await subscribeRuntimeModReloadResult((event) => {
-      received.push(event as unknown as Record<string, unknown>);
-    });
-
-    const emitReload = handler as ((event: { payload: unknown }) => void) | null;
-    if (emitReload) {
-      emitReload({
-        payload: {
-          modId: 'mod.alpha',
-          sourceId: 'source.dev',
-          status: 'resolved',
-          occurredAt: '2026-03-21T01:40:00Z',
-        },
-      });
-    }
-
-    assert.deepEqual(received, [
-      {
-        modId: 'mod.alpha',
-        sourceId: 'source.dev',
-        status: 'resolved',
-        occurredAt: '2026-03-21T01:40:00Z',
-        error: undefined,
-      },
-    ]);
-
-    unsubscribe();
-    assert.equal(unsubscribed, true);
-  } finally {
-    restoreWindow();
   }
 });
 

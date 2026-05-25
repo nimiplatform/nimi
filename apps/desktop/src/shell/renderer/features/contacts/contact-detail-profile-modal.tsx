@@ -251,7 +251,7 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
         kind="dialog"
         onClose={props.onClose}
         dataTestId={E2E_IDS.contactDetailProfileModal}
-        className="bg-slate-950/45 backdrop-blur-sm"
+        className="nimi-material-glass-thin bg-slate-950/45 backdrop-blur-[var(--nimi-backdrop-blur-thin)]"
         panelClassName="h-[calc(100vh-88px)] max-w-none overflow-hidden rounded-[28px] border border-white/70 bg-[#f6fafb] shadow-[0_32px_100px_rgba(15,23,42,0.28)]"
         panelStyle={{ width: 'min(1180px, calc(100vw - 88px))', maxHeight: 'calc(100vh - 88px)' }}
         contentClassName="relative h-full min-h-0 p-0"

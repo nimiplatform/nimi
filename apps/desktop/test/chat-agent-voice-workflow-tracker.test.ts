@@ -7,7 +7,7 @@ import {
   ScenarioJobStatus,
   ScenarioType,
 } from '@nimiplatform/sdk/runtime';
-import { createAIConfigEvidence, createEmptyAIConfig } from '@nimiplatform/sdk/mod';
+import { createAIConfigEvidence, createEmptyAIConfig } from '@nimiplatform/sdk/ai';
 import type {
   AgentLocalMessageRecord,
   AgentLocalUpdateMessageInput,

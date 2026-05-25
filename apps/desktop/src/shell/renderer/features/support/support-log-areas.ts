@@ -13,8 +13,6 @@ export type DesktopLogArea =
   | 'renderer-bootstrap'
   | 'bridge'
   | 'datasync'
-  | 'hook'
-  | 'mod'
   | 'local-ai'
   | 'external-agent'
   | 'auth'
@@ -26,8 +24,6 @@ export const DESKTOP_LOG_AREAS: readonly DesktopLogArea[] = [
   'renderer-bootstrap',
   'bridge',
   'datasync',
-  'hook',
-  'mod',
   'local-ai',
   'external-agent',
   'auth',
@@ -40,8 +36,6 @@ export const DESKTOP_LOG_AREA_LABEL_KEY: Record<DesktopLogArea, string> = {
   'renderer-bootstrap': 'Support.logAreaRendererBootstrap',
   bridge: 'Support.logAreaBridge',
   datasync: 'Support.logAreaDatasync',
-  hook: 'Support.logAreaHook',
-  mod: 'Support.logAreaMod',
   'local-ai': 'Support.logAreaLocalAi',
   'external-agent': 'Support.logAreaExternalAgent',
   auth: 'Support.logAreaAuth',

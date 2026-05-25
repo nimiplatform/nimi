@@ -3,7 +3,7 @@ import test from 'node:test';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import type { AIScopeRef } from '@nimiplatform/sdk/mod';
+import type { AIScopeRef } from '@nimiplatform/sdk/ai';
 
 /**
  * Phase 5: Multi-scope contract tests.

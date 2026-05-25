@@ -10,8 +10,8 @@ function readDesktopFile(relativePath: string): string {
 }
 
 test('tier-1 external agent actions derive required capabilities from lifecycle domains', () => {
-  const source = readDesktopFile('src/runtime/external-agent/tier1-actions.ts');
-  assert.match(source, /function tier1ActionCapabilities/);
+  const source = readDesktopFile('src/runtime/external-agent/local-ai-actions.ts');
+  assert.match(source, /function localAIActionCapabilities/);
   assert.match(source, /`action\.discover\.\$\{actionId\}`/);
   assert.match(source, /`action\.dry-run\.\$\{actionId\}`/);
   assert.match(source, /`action\.verify\.\$\{actionId\}`/);
@@ -20,21 +20,21 @@ test('tier-1 external agent actions derive required capabilities from lifecycle 
 });
 
 test('tier-1 dry-run capabilities are limited to actions that support dry-run', () => {
-  const source = readDesktopFile('src/runtime/external-agent/tier1-actions.ts');
+  const source = readDesktopFile('src/runtime/external-agent/local-ai-actions.ts');
   assert.match(
     source,
-    /runtime\.local-ai\.models\.list'[\s\S]*requiredCapabilities: tier1ActionCapabilities\('runtime\.local-ai\.models\.list', \{ supportsDryRun: true \}\)/,
+    /runtime\.local-ai\.models\.list'[\s\S]*requiredCapabilities: localAIActionCapabilities\('runtime\.local-ai\.models\.list', \{ supportsDryRun: true \}\)/,
   );
   assert.match(
     source,
-    /runtime\.local-ai\.models\.health'[\s\S]*requiredCapabilities: tier1ActionCapabilities\('runtime\.local-ai\.models\.health', \{ supportsDryRun: true \}\)/,
+    /runtime\.local-ai\.models\.health'[\s\S]*requiredCapabilities: localAIActionCapabilities\('runtime\.local-ai\.models\.health', \{ supportsDryRun: true \}\)/,
   );
   assert.match(
     source,
-    /runtime\.local-ai\.models\.start'[\s\S]*requiredCapabilities: tier1ActionCapabilities\('runtime\.local-ai\.models\.start', \{ supportsDryRun: false \}\)/,
+    /runtime\.local-ai\.models\.start'[\s\S]*requiredCapabilities: localAIActionCapabilities\('runtime\.local-ai\.models\.start', \{ supportsDryRun: false \}\)/,
   );
   assert.match(
     source,
-    /runtime\.local-ai\.models\.install'[\s\S]*requiredCapabilities: tier1ActionCapabilities\('runtime\.local-ai\.models\.install', \{ supportsDryRun: false \}\)/,
+    /runtime\.local-ai\.models\.install'[\s\S]*requiredCapabilities: localAIActionCapabilities\('runtime\.local-ai\.models\.install', \{ supportsDryRun: false \}\)/,
   );
 });

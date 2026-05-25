@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -47,9 +47,17 @@ const runtimeBootstrapRouteOptionsPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options.ts',
 );
-const runtimeBootstrapHostCapabilitiesPath = path.resolve(
+const runtimeBootstrapRouteResolversPath = path.resolve(
+  process.cwd(),
+  'src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-resolvers.ts',
+);
+const retiredRuntimeBootstrapHostCapabilitiesPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities.ts',
+);
+const retiredRuntimeBootstrapHostCapabilitiesRoutingPath = path.resolve(
+  process.cwd(),
+  'src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-routing.ts',
 );
 const tauriCommandsPath = path.resolve(
   process.cwd(),
@@ -75,7 +83,7 @@ const localModelCenterSectionsSource = readFileSync(localModelCenterSectionsPath
 const localModelCenterUtilsSource = readFileSync(localModelCenterUtilsPath, 'utf-8');
 const localModelCenterProgressCacheSource = readFileSync(localModelCenterProgressCachePath, 'utf-8');
 const runtimeBootstrapRouteOptionsSource = readFileSync(runtimeBootstrapRouteOptionsPath, 'utf-8');
-const runtimeBootstrapHostCapabilitiesSource = readFileSync(runtimeBootstrapHostCapabilitiesPath, 'utf-8');
+const runtimeBootstrapRouteResolversSource = readFileSync(runtimeBootstrapRouteResolversPath, 'utf-8');
 const tauriCommandsSource = readFileSync(tauriCommandsPath, 'utf-8');
 const tauriModelIndexSource = readFileSync(tauriModelIndexPath, 'utf-8');
 const tauriLocalRuntimeModSource = readFileSync(tauriLocalRuntimeModPath, 'utf-8');
@@ -147,22 +155,18 @@ test('local route options preserve per-asset endpoint instead of falling back to
 });
 
 test('local route hydration prefers fresh local model adapter over stale binding adapter', () => {
-  assert.match(
-    readFileSync(
-      path.resolve(
-        process.cwd(),
-        'src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-routing.ts',
-      ),
-      'utf-8',
-    ),
-    /adapter: String\(localModel\.adapter \|\| binding\.adapter \|\| ''\)\.trim\(\) \|\| undefined/,
-  );
+  assert.equal(existsSync(retiredRuntimeBootstrapHostCapabilitiesRoutingPath), false);
+  assert.match(runtimeBootstrapRouteOptionsSource, /const snapshotByLocalModelId = new Map\(snapshot\.assets\.map/);
+  assert.match(runtimeBootstrapRouteOptionsSource, /const snapshotModel = snapshotByLocalModelId\.get/);
+  assert.match(runtimeBootstrapRouteOptionsSource, /endpoint: String\(item\.endpoint \|\| snapshotModel\?\.endpoint \|\| ''\)\.trim\(\) \|\| undefined/);
 });
 
-test('runtime route resolve always rehydrates local bindings before resolving adapter and status', () => {
-  assert.match(runtimeBootstrapHostCapabilitiesSource, /const needsLocalHydration = effectiveBinding\?\.source === 'local';/);
-  assert.match(runtimeBootstrapHostCapabilitiesSource, /if \(options && effectiveBinding\.source === 'local'\) \{/);
-  assert.doesNotMatch(runtimeBootstrapHostCapabilitiesSource, /localGoRuntimeStatus === 'removed'/);
+test('runtime route resolve uses the selected local binding and retired host-capability files stay absent', () => {
+  assert.equal(existsSync(retiredRuntimeBootstrapHostCapabilitiesPath), false);
+  assert.match(runtimeBootstrapRouteOptionsSource, /\.filter\(\(item: LocalRuntimeAssetRecord\) => item\.status !== 'removed'\)/);
+  assert.match(runtimeBootstrapRouteResolversSource, /const endpoint = String\(binding\?\.endpoint \|\| ''\)\.trim\(\)/);
+  assert.match(runtimeBootstrapRouteResolversSource, /goRuntimeStatus: String\(binding\?\.goRuntimeStatus \|\| ''\)\.trim\(\) \|\| undefined/);
+  assert.doesNotMatch(runtimeBootstrapRouteResolversSource, /localGoRuntimeStatus === 'removed'/);
 });
 
 test('manual import no longer injects managed media loopback defaults and can forward explicit endpoints', () => {

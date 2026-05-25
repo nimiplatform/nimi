@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { DesktopIconToggleAction } from '@renderer/components/action';
 import { DesktopCardSurface } from '@renderer/components/surface';
 import { EntityAvatar } from '@renderer/components/entity-avatar';
+import { ScrollShell } from '@renderer/components/scroll-shell';
 
 export type ChatSideSheetProps = {
   title: ReactNode;
@@ -103,14 +104,14 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
             onClick={props.onClose}
           />
         </div>
-        <div
+        <ScrollShell
           className={cn(
-            'min-h-0 flex-1 overflow-y-auto overscroll-contain',
+            'flex-1',
             props.bodyClassName,
           )}
         >
           {props.children}
-        </div>
+        </ScrollShell>
         {props.footer ? (
           <div className="border-t border-white/70 px-4 py-3">
             {props.footer}

@@ -2,14 +2,7 @@ import type {
   DesktopReleaseInfo,
   DesktopUpdateState,
   RuntimeDefaults,
-  RuntimeModDeveloperModeState,
-  RuntimeModDiagnosticRecord,
-  RuntimeLocalManifestSummary,
-  RuntimeModReloadResult,
-  RuntimeModSourceRecord,
 } from '@renderer/bridge';
-import type { RuntimeModRegisterFailure } from '@runtime/mod';
-import type { RuntimeModSettingsMap } from '@nimiplatform/sdk/mod';
 import type {
   ConversationMode,
   ConversationSourceFilter,
@@ -31,9 +24,8 @@ import type {
   ConversationCapability,
   ConversationCapabilityProjection,
 } from '@renderer/features/chat/conversation-capability';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
-import type { AIConfig, AIProfile } from '@nimiplatform/sdk/mod';
-import type { OpenModWorkspaceTabResult } from './mod-workspace-policy';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
+import type { AIConfig, AIProfile } from '@nimiplatform/sdk/ai';
 
 export type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
 export type AppTab =
@@ -44,7 +36,6 @@ export type AppTab =
   | 'runtime'
   | 'settings'
   | 'support'
-  | 'mods'
   | 'developer-tools'
   | 'profile'
   | 'agent-detail'
@@ -52,8 +43,7 @@ export type AppTab =
   | 'gift-inbox'
   | 'notification'
   | 'privacy-policy'
-  | 'terms-of-service'
-  | `mod:${string}`;
+  | 'terms-of-service';
 export type StatusKind = 'info' | 'success' | 'warning' | 'error';
 
 export type RuntimeFieldMap = {
@@ -79,30 +69,6 @@ export type StatusBanner = {
   message: string;
   actionLabel?: string;
   onAction?: () => void;
-};
-
-export type ModWorkspaceTab = {
-  tabId: `mod:${string}`;
-  modId: string;
-  title: string;
-  fused: boolean;
-  lastAccessedAt: number;
-};
-
-export type RuntimeModHydrationStatus =
-  | 'not_requested'
-  | 'scheduled'
-  | 'hydrating'
-  | 'hydrated'
-  | 'failed';
-
-export type RuntimeModHydrationRecord = {
-  modId: string;
-  status: RuntimeModHydrationStatus;
-  generation: string;
-  updatedAt: string;
-  stage?: RuntimeModRegisterFailure['stage'];
-  error?: string;
 };
 
 export type AppStoreState = {
@@ -140,22 +106,8 @@ export type AppStoreState = {
   selectedGiftTransactionId: string | null;
   profileDetailOverlayOpen: boolean;
   chatProfilePanelTarget: 'self' | 'other' | null;
-  localManifestSummaries: RuntimeLocalManifestSummary[];
-  runtimeModSources: RuntimeModSourceRecord[];
-  runtimeModDeveloperMode: RuntimeModDeveloperModeState;
-  runtimeModDiagnostics: RuntimeModDiagnosticRecord[];
-  runtimeModRecentReloads: RuntimeModReloadResult[];
-  registeredRuntimeModIds: string[];
-  runtimeModDisabledIds: string[];
-  runtimeModUninstalledIds: string[];
-  runtimeModSettingsById: RuntimeModSettingsMap;
-  runtimeModHydrationById: Record<string, RuntimeModHydrationRecord>;
-  modWorkspaceTabs: ModWorkspaceTab[];
-  fusedRuntimeMods: Record<string, { reason: string; lastError: string; at: string }>;
-  runtimeModFailures: RuntimeModRegisterFailure[];
   offlineTier: OfflineTier;
   statusBanner: StatusBanner | null;
-  modsFeedback: StatusBanner | null;
   setOfflineTier: (tier: OfflineTier) => void;
   setBootstrapReady: (ready: boolean) => void;
   setBootstrapError: (message: string | null) => void;
@@ -211,25 +163,7 @@ export type AppStoreState = {
   navigateToWorld: (worldId: string) => void;
   navigateToGiftInbox: (giftTransactionId?: string | null) => void;
   navigateBack: () => void;
-  setLocalManifestSummaries: (manifests: RuntimeLocalManifestSummary[]) => void;
-  setRuntimeModSources: (sources: RuntimeModSourceRecord[]) => void;
-  setRuntimeModDeveloperMode: (value: RuntimeModDeveloperModeState) => void;
-  setRuntimeModDiagnostics: (records: RuntimeModDiagnosticRecord[]) => void;
-  pushRuntimeModReloadResults: (records: RuntimeModReloadResult[]) => void;
-  setRegisteredRuntimeModIds: (modIds: string[]) => void;
-  setRuntimeModDisabledIds: (modIds: string[]) => void;
-  setRuntimeModUninstalledIds: (modIds: string[]) => void;
-  setRuntimeModSettings: (modId: string, settings: Record<string, unknown>) => void;
-  setRuntimeModHydrationRecords: (records: RuntimeModHydrationRecord[]) => void;
-  clearRuntimeModHydrationRecords: () => void;
-  openModWorkspaceTab: (tabId: `mod:${string}`, title: string, modId: string) => OpenModWorkspaceTabResult;
-  closeModWorkspaceTab: (tabId: `mod:${string}`) => void;
-  touchModWorkspaceTab: (tabId: `mod:${string}`) => void;
-  markRuntimeModFused: (modId: string, error: string, reason: string) => void;
-  clearRuntimeModFuse: (modId: string) => void;
-  setRuntimeModFailures: (failures: RuntimeModRegisterFailure[]) => void;
   setStatusBanner: (banner: StatusBanner | null) => void;
-  setModsFeedback: (banner: StatusBanner | null) => void;
 };
 
 export type AppStoreSet = (

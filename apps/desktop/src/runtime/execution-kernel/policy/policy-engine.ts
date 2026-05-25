@@ -1,6 +1,5 @@
 import { isAccessMode, type AccessMode } from '../contracts/types';
 import { RuntimeControlPlaneClient } from '../../control-plane/client';
-import { resolveCodegenCapabilityDecision } from '@runtime/mod/codegen/capability-catalog';
 
 const HIGH_RISK = new Set([
   'network',
@@ -46,26 +45,7 @@ export class PolicyEngine {
         grantedCapabilities: [],
       };
     }
-    if (sourceType === 'codegen') {
-      const decision = resolveCodegenCapabilityDecision(requested);
-      const hardDenied = Array.from(new Set([...decision.denied, ...decision.unknown]));
-      if (hardDenied.length > 0) {
-        return {
-          ok: false,
-          reasonCodes: ['CODEGEN_CAPABILITY_DENIED', ...hardDenied.map((item) => `capability:${item}`)],
-          grantedCapabilities: [],
-        };
-      }
-
-      const hasConsentGrant = Boolean(input.grantRef?.grantId && input.grantRef?.token);
-      if (decision.requiresConsent.length > 0 && !hasConsentGrant) {
-        return {
-          ok: false,
-          reasonCodes: ['CODEGEN_T1_CONSENT_REQUIRED'],
-          grantedCapabilities: decision.autoGranted,
-        };
-      }
-    }
+    void sourceType;
 
     const protectedRequested = requested.filter((item) => PROTECTED_CAPABILITIES.has(item));
 

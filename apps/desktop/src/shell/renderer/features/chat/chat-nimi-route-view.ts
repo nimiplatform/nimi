@@ -6,7 +6,7 @@ import type {
   RuntimeRouteBinding,
   RuntimeRouteModelProfile,
   RuntimeRouteOptionsSnapshot,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 import type { ConversationCapabilityProjection } from './conversation-capability';
 
 export type AiConversationRouteOption = {

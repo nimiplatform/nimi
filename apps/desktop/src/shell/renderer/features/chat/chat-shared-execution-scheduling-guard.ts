@@ -7,7 +7,7 @@ import type {
   AISchedulingJudgement,
   AISchedulingState,
   AIScopeRef,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';

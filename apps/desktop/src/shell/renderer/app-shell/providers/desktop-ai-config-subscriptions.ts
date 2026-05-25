@@ -1,4 +1,4 @@
-import type { AIConfig } from '@nimiplatform/sdk/mod';
+import type { AIConfig } from '@nimiplatform/sdk/ai';
 
 // ---------------------------------------------------------------------------
 // Config subscription registry (S-AICONF-006)

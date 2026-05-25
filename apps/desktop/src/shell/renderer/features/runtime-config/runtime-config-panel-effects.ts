@@ -4,7 +4,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { RuntimeFieldMap, StatusBanner } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { ConversationCapability } from '@renderer/features/chat/conversation-capability';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
 import { useRuntimeConfigHydrationEffect } from './runtime-config-effect-hydration';
 import { useRuntimeConfigVaultSyncEffect } from './runtime-config-effect-vault-sync';
 import { useRuntimeConfigRouteInitEffect } from './runtime-config-effect-route-init';

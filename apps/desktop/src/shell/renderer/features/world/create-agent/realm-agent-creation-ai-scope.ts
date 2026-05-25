@@ -8,7 +8,7 @@
  * the creation surface owns its own AIConfig scope.
  */
 
-import type { AIScopeRef } from '@nimiplatform/sdk/mod';
+import type { AIScopeRef } from '@nimiplatform/sdk/ai';
 
 export const REALM_AGENT_CREATION_AI_OWNER_ID = 'desktop.explore';
 export const REALM_AGENT_CREATION_AI_SURFACE_ID = 'create-agent';

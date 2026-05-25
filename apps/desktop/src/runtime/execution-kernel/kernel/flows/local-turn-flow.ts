@@ -6,10 +6,6 @@ import { recordDesktopWorldEvolutionLocalTurnExecutionEvent } from '../../../wor
 
 type LocalTurnFlowInput = {
   input: ExecuteLocalTurnInput;
-  invokeTurnHooks: (input: {
-    point: 'pre-policy' | 'pre-model' | 'post-state' | 'pre-commit';
-    context: Record<string, unknown>;
-  }) => Promise<{ context: Record<string, unknown> }>;
   executeLocalKernelTurn: (input: ExecuteLocalTurnInput) => Promise<ExecuteLocalKernelTurnResult>;
   appendAudit: (entry: {
     id: string;
@@ -26,38 +22,14 @@ type LocalTurnFlowInput = {
 
 export async function runLocalTurnFlow({
   input,
-  invokeTurnHooks,
   executeLocalKernelTurn,
   appendAudit,
   reportCrash,
   shouldDisable,
 }: LocalTurnFlowInput): Promise<ExecuteLocalKernelTurnResult> {
-  const prePolicy = await invokeTurnHooks({
-    point: 'pre-policy',
-    context: {
-      requestId: input.requestId,
-      sessionId: input.sessionId,
-      turnIndex: input.turnIndex,
-      userInput: input.userInputText,
-    },
-  });
-  const effectiveInput = String(prePolicy.context.userInput || input.userInputText);
-
-  const preModel = await invokeTurnHooks({
-    point: 'pre-model',
-    context: {
-      requestId: input.requestId,
-      sessionId: input.sessionId,
-      turnIndex: input.turnIndex,
-      runtimeInput: effectiveInput,
-    },
-  });
-  const runtimeInput = String(preModel.context.runtimeInput || effectiveInput);
-
   try {
     const result = await executeLocalKernelTurn({
       ...input,
-      userInputText: runtimeInput,
     });
 
     recordDesktopWorldEvolutionLocalTurnExecutionEvent({
@@ -84,27 +56,6 @@ export async function runLocalTurnFlow({
         kind: 'desktop-local-turn',
         assistantStyle: result.assistantMessage.style,
         localOnly: result.localOnly,
-      },
-    });
-
-    await invokeTurnHooks({
-      point: 'post-state',
-      context: {
-        requestId: input.requestId,
-        sessionId: input.sessionId,
-        turnIndex: input.turnIndex,
-        stateDelta: result.stateDelta,
-      },
-    });
-
-    await invokeTurnHooks({
-      point: 'pre-commit',
-      context: {
-        requestId: input.requestId,
-        sessionId: input.sessionId,
-        turnIndex: input.turnIndex,
-        promptTraceId: String(result.promptTraceId || ''),
-        auditEventIds: Array.isArray(result.auditEventIds) ? result.auditEventIds : [],
       },
     });
 

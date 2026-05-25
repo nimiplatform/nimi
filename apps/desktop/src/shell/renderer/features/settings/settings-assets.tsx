@@ -1,5 +1,4 @@
 import React from 'react';
-import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 
 export const C = {
   brand50: '#ecfeff',
@@ -209,12 +208,6 @@ const BASE_MENU_SECTIONS: SettingsMenuSection[] = [
     ],
   },
   {
-    label: 'Extensions',
-    items: [
-      { id: 'extensions', icon: ICON_PUZZLE, title: 'Mod Settings' },
-    ],
-  },
-  {
     label: 'Advanced',
     items: [
       { id: 'wallet', icon: ICON_WALLET, title: 'Wallet' },
@@ -225,11 +218,7 @@ const BASE_MENU_SECTIONS: SettingsMenuSection[] = [
 export const MENU_SECTIONS: SettingsMenuSection[] = BASE_MENU_SECTIONS;
 
 export function getSettingsMenuSections(): SettingsMenuSection[] {
-  const flags = getShellFeatureFlags();
-  if (flags.enableSettingsExtensions) {
-    return BASE_MENU_SECTIONS;
-  }
-  return BASE_MENU_SECTIONS.filter((section) => section.label !== 'Extensions');
+  return BASE_MENU_SECTIONS;
 }
 
 export const BIO_MAX = 160;

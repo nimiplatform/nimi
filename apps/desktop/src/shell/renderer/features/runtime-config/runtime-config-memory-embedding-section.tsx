@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   createDefaultAIScopeRef,
   type MemoryEmbeddingConfig,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 import { Surface, cn } from '@nimiplatform/kit/ui';
 import { getDesktopMemoryEmbeddingConfigService } from '@renderer/app-shell/providers/desktop-memory-embedding-config-service';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';

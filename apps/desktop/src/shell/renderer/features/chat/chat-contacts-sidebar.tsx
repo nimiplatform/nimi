@@ -235,7 +235,7 @@ function ContactHoverCard({
       role="button"
       tabIndex={0}
       aria-label={`${t('Chat.hoverCardOpenChat', { defaultValue: 'Open chat' })}: ${target.title}`}
-      className="group fixed z-[9999] w-[min(430px,calc(100vw-96px))] overflow-hidden rounded-[22px] border border-white/75 bg-white/82 px-5 py-4 text-left shadow-[0_22px_70px_rgba(80,95,130,0.2)] backdrop-blur-2xl transition duration-200 hover:border-white hover:bg-white/88 hover:shadow-[0_24px_76px_rgba(80,95,130,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/80"
+      className="nimi-material-glass-chrome group fixed z-[9999] w-[min(430px,calc(100vw-96px))] overflow-hidden rounded-[22px] border border-white/75 bg-white/82 px-5 py-4 text-left shadow-[0_22px_70px_rgba(80,95,130,0.2)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] transition duration-200 hover:border-white hover:bg-white/88 hover:shadow-[0_24px_76px_rgba(80,95,130,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/80"
       style={{ top: pos.top, right: pos.right, transform: 'translateY(-50%)' }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

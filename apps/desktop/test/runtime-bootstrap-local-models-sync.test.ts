@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeBridgeDaemonStatus } from '../src/shell/renderer/bridge/runtime-bridge/types';
-import type { RuntimeModStorageDirs } from '../src/shell/renderer/bridge/runtime-bridge/runtime-types';
+import type { DesktopStorageDirs } from '../src/shell/renderer/bridge/runtime-bridge/desktop-storage';
 import {
   mergeRuntimeLocalModelsConfig,
   syncRuntimeLocalModelsConfig,
@@ -211,12 +211,10 @@ test('syncRuntimeLocalModelsConfig skips write when product data root and manage
   assert.equal(result.pid, 3003);
 });
 
-function storageDirs(overrides: Partial<RuntimeModStorageDirs> = {}): RuntimeModStorageDirs {
+function storageDirs(overrides: Partial<DesktopStorageDirs> = {}): DesktopStorageDirs {
   return {
     nimiDir: '/Users/eric/.nimi',
     nimiDataDir: '/Users/eric/Nimi',
-    installedModsDir: '/Users/eric/Nimi/mods',
-    runtimeModDbPath: '/Users/eric/Nimi/runtime-mod.db',
     mediaCacheDir: '/Users/eric/Nimi/cache/media',
     localModelsDir: '/Users/eric/Nimi/models',
     localRuntimeStatePath: '/Users/eric/.nimi/runtime/local-state.json',
@@ -238,7 +236,7 @@ test('syncRuntimeStorageConfig writes dataRootRef and managedRoots from the sele
       async getRuntimeBridgeStatus() {
         return createDaemonStatus({ running: true, managed: true, pid: 7001 });
       },
-      async getRuntimeModStorageDirs() {
+      async getDesktopStorageDirs() {
         return storageDirs();
       },
       async getRuntimeBridgeConfig() {
@@ -279,7 +277,7 @@ test('syncRuntimeStorageConfig fetches daemon status when not supplied', async (
         statusCalls += 1;
         return createDaemonStatus({ running: true, managed: true });
       },
-      async getRuntimeModStorageDirs() {
+      async getDesktopStorageDirs() {
         return storageDirs();
       },
       async getRuntimeBridgeConfig() {
@@ -303,7 +301,7 @@ test('syncRuntimeStorageConfig fetches daemon status when not supplied', async (
 });
 
 // Regression (Part 1): on a fresh install the data root is not yet selected, so
-// getRuntimeModStorageDirs throws; syncRuntimeStorageConfig must propagate that
+// getDesktopStorageDirs throws; syncRuntimeStorageConfig must propagate that
 // failure (fail closed) rather than writing an empty/partial runtime config.
 test('syncRuntimeStorageConfig fails closed when no data root is selected yet', async () => {
   let setCalls = 0;
@@ -315,7 +313,7 @@ test('syncRuntimeStorageConfig fails closed when no data root is selected yet', 
         async getRuntimeBridgeStatus() {
           return createDaemonStatus({ running: true, managed: true });
         },
-        async getRuntimeModStorageDirs() {
+        async getDesktopStorageDirs() {
           throw new Error('~/.nimi/nimi.json is missing');
         },
         async getRuntimeBridgeConfig() {

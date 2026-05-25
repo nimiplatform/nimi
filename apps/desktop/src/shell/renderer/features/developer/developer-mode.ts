@@ -2,14 +2,14 @@
  * Developer Mode gating resolver (`D-DEV-002`, `D-DEV-007`).
  *
  * Developer Mode is the single discoverable switch that controls every
- * developer / internal surface: the `Developer Tools` tab, the embedded
- * Tester, and the mod UI surfaces. Per `D-DEV-002` it MUST be reachable from a
+ * developer / internal surface: the `Developer Tools` tab and the embedded
+ * Tester. Per `D-DEV-002` it MUST be reachable from a
  * discoverable in-app location (canonically `Settings`) and MUST NOT be
  * reachable only through launch parameters or environment variables.
  *
- * The developer-surface feature flags `enableDeveloperTools` and `enableModUi`
- * are NOT static build flags — their effective runtime value is derived from
- * the admitted Developer Mode preference. `D-DEV-007` requires every developer
+ * The developer-surface feature flag `enableDeveloperTools` is NOT a static
+ * build flag — its effective runtime value is derived from the admitted
+ * Developer Mode preference. `D-DEV-007` requires every developer
  * surface to default to invisible / unreachable; that default is satisfied
  * because Developer Mode defaults to `false` (`settings-storage.ts`).
  *
@@ -37,16 +37,6 @@ export function isDeveloperModeEnabled(): boolean {
  * separate persisted flag: the surface gate IS Developer Mode.
  */
 export function isDeveloperToolsEnabled(): boolean {
-  return isDeveloperModeEnabled();
-}
-
-/**
- * `enableModUi` (`D-DEV-004`) — mod UI surfaces (`mods` tab, Mod Hub, mod
- * workspace tabs, settings extension area) are reachable only behind admitted
- * Developer Mode. The `feature-flags.yaml` desktop default for `enableModUi`
- * is `false`; Developer Mode is the discoverable switch that flips it on.
- */
-export function isModUiEnabled(): boolean {
   return isDeveloperModeEnabled();
 }
 

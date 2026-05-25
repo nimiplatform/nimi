@@ -7,13 +7,14 @@ use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use tokio::sync::{oneshot, Mutex};
 
-use crate::runtime_mod::store::{
+use self::store::{
     get_external_agent_token_record, get_runtime_kv, list_external_agent_token_records, open_db,
     set_runtime_kv, ExternalAgentTokenRecordPayload,
 };
 
 pub mod auth;
 pub mod server;
+pub mod store;
 pub mod token_issuer;
 
 pub const EXTERNAL_AGENT_EVENT_TTL_SECS: i64 = 15 * 60;

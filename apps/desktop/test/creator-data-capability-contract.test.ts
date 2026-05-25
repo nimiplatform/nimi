@@ -19,9 +19,9 @@ test('world data capability registry exposes creator agent get/update operations
 });
 
 test('creator bootstrap registers creator agent get/update against creator detail endpoints', () => {
-  const source = readDesktopFile('src/shell/renderer/infra/bootstrap/creator-capabilities.ts');
+  const source = readDesktopFile('src/shell/renderer/infra/bootstrap/runtime-bootstrap-utils.ts');
   assert.match(source, /creatorAgentsGet/);
   assert.match(source, /creatorAgentsUpdate/);
-  assert.match(source, /CreatorService\.creatorControllerGetAgent/);
-  assert.match(source, /CreatorService\.creatorControllerUpdateAgent/);
+  assert.doesNotMatch(source, /CreatorService\.creatorControllerGetAgent/);
+  assert.doesNotMatch(source, /CreatorService\.creatorControllerUpdateAgent/);
 });

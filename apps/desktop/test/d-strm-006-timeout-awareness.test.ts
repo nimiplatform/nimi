@@ -15,11 +15,11 @@ const SPEC_TIMEOUTS_PATH = resolve(
   import.meta.dirname,
   '../../../.nimi/spec/runtime/kernel/tables/ai-timeout-defaults.yaml',
 );
-const HOST_CAPABILITIES_PATH = resolve(
+const RETIRED_HOST_CAPABILITIES_PATH = resolve(
   import.meta.dirname,
   '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities.ts',
 );
-const HOST_CAPABILITIES_MEDIA_PATH = resolve(
+const RETIRED_HOST_CAPABILITIES_MEDIA_PATH = resolve(
   import.meta.dirname,
   '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-media.ts',
 );
@@ -40,20 +40,7 @@ test('D-STRM-006: Desktop-owned timeout constants match K-DAEMON-008 defaults', 
   assert.equal(STREAM_VIDEO_TOTAL_TIMEOUT_MS, readSpecTimeout('SubmitScenarioJob_video'));
 });
 
-test('D-STRM-006: Desktop media job submit path does not inject conflicting timeout overrides', () => {
-  const source = [HOST_CAPABILITIES_PATH, HOST_CAPABILITIES_MEDIA_PATH]
-    .map((filePath) => readFileSync(filePath, 'utf8'))
-    .join('\n');
-  const jobsStart = source.indexOf('jobs: {');
-  const jobsEnd = source.indexOf('get: async', jobsStart);
-  assert.ok(
-    jobsStart >= 0 && jobsEnd > jobsStart,
-    'expected jobs submit block in runtime-bootstrap-host-capabilities sources',
-  );
-
-  const jobsBlock = source.slice(jobsStart, jobsEnd);
-  assert.ok(
-    !jobsBlock.includes('timeoutMs:'),
-    'media.jobs.submit branches should rely on runtime defaults instead of Desktop hardcoded timeoutMs overrides',
-  );
+test('D-STRM-006: retired bootstrap media host-capability path is absent', () => {
+  assert.throws(() => readFileSync(RETIRED_HOST_CAPABILITIES_PATH, 'utf8'), /ENOENT/);
+  assert.throws(() => readFileSync(RETIRED_HOST_CAPABILITIES_MEDIA_PATH, 'utf8'), /ENOENT/);
 });

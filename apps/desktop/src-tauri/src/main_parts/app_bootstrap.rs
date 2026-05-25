@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
     chat_agent_store, chat_ai_store, desktop_agent_center_store, desktop_release, desktop_updates,
-    external_agent_gateway, local_runtime, menu_bar_shell, runtime_bridge, runtime_mod,
+    external_agent_gateway, local_runtime, menu_bar_shell, runtime_bridge,
 };
 use nimi_shell_tauri::runtime_bridge::RuntimeBridgeHostHooks;
 use std::sync::Arc;
@@ -282,7 +282,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
                 }
             }
             let _ = crate::menu_bar_shell::setup(app.handle());
-            let _ = crate::runtime_mod::store::sync_runtime_mod_source_watchers(app.handle());
 
             // RL-INTOP-004 — Deep-link URL scheme handler (nimi-desktop://runtime-config/{pageId})
             {
@@ -368,55 +367,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             super::defaults_and_commands::window_and_logs::start_window_drag,
             menu_bar_shell::menu_bar_sync_runtime_health,
             menu_bar_shell::menu_bar_complete_quit,
-            runtime_mod::commands::runtime_mod_append_audit,
-            runtime_mod::commands::runtime_mod_query_audit,
-            runtime_mod::commands::runtime_mod_delete_audit,
-            runtime_mod::commands::runtime_mod_list_local_manifests,
-            runtime_mod::commands::runtime_mod_read_local_entry,
-            runtime_mod::commands::runtime_mod_read_local_asset,
-            runtime_mod::commands::runtime_mod_list_installed,
-            runtime_mod::commands::runtime_mod_sources_list,
-            runtime_mod::commands::runtime_mod_sources_upsert,
-            runtime_mod::commands::runtime_mod_sources_remove,
-            runtime_mod::commands::runtime_mod_dev_mode_get,
-            runtime_mod::commands::runtime_mod_dev_mode_set,
-            runtime_mod::commands::runtime_mod_storage_dirs_get,
-            runtime_mod::commands::runtime_mod_diagnostics_list,
-            runtime_mod::commands::runtime_mod_reload,
-            runtime_mod::commands::runtime_mod_reload_all,
-            runtime_mod::commands::runtime_mod_open_dir,
-            runtime_mod::commands::runtime_mod_install,
-            runtime_mod::commands::runtime_mod_update,
-            runtime_mod::commands::runtime_mod_uninstall,
-            runtime_mod::commands::runtime_mod_storage_file_read,
-            runtime_mod::commands::runtime_mod_storage_file_write,
-            runtime_mod::commands::runtime_mod_storage_file_delete,
-            runtime_mod::commands::runtime_mod_storage_file_list,
-            runtime_mod::commands::runtime_mod_storage_file_stat,
-            runtime_mod::commands::runtime_mod_storage_sqlite_query,
-            runtime_mod::commands::runtime_mod_storage_sqlite_execute,
-            runtime_mod::commands::runtime_mod_storage_sqlite_transaction,
-            runtime_mod::commands::runtime_mod_storage_data_purge,
-            runtime_mod::commands::runtime_mod_read_manifest,
-            runtime_mod::commands::runtime_mod_catalog_list,
-            runtime_mod::commands::runtime_mod_catalog_get,
-            runtime_mod::commands::runtime_mod_catalog_updates_check,
-            runtime_mod::commands::runtime_mod_catalog_install,
-            runtime_mod::commands::runtime_mod_catalog_update,
-            runtime_mod::commands::runtime_mod_install_progress,
-            runtime_mod::commands::runtime_mod_restore_backup,
-            runtime_mod::commands::runtime_mod_get_action_idempotency,
-            runtime_mod::commands::runtime_mod_put_action_idempotency,
-            runtime_mod::commands::runtime_mod_purge_action_idempotency,
-            runtime_mod::commands::runtime_mod_get_action_verify_ticket,
-            runtime_mod::commands::runtime_mod_put_action_verify_ticket,
-            runtime_mod::commands::runtime_mod_delete_action_verify_ticket,
-            runtime_mod::commands::runtime_mod_purge_action_verify_tickets,
-            runtime_mod::commands::runtime_mod_put_action_execution_ledger,
-            runtime_mod::commands::runtime_mod_query_action_execution_ledger,
-            runtime_mod::commands::runtime_mod_purge_action_execution_ledger,
-            runtime_mod::commands::runtime_mod_media_cache_put,
-            runtime_mod::commands::runtime_mod_media_cache_gc,
             chat_ai_store::chat_ai_list_threads,
             chat_ai_store::chat_ai_get_thread_bundle,
             chat_ai_store::chat_ai_create_thread,

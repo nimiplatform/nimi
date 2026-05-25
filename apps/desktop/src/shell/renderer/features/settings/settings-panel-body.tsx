@@ -10,7 +10,6 @@ import {
   SidebarShell,
   Surface,
 } from '@nimiplatform/kit/ui';
-import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { getSettingsMenuSections } from './settings-assets.js';
 import { renderSettingsPage } from './settings-pages.js';
 import {
@@ -23,7 +22,6 @@ const SETTINGS_SECTION_KEY_BY_LABEL: Record<string, string> = {
   'Privacy & Security': 'Settings.sectionPrivacySecurity',
   Preferences: 'Settings.sectionPreferences',
   Data: 'Settings.sectionData',
-  Extensions: 'Settings.sectionExtensions',
   Advanced: 'Settings.sectionAdvanced',
 };
 
@@ -37,7 +35,6 @@ const SETTINGS_ITEM_KEY_BY_ID: Record<string, string> = {
   downloads: 'Settings.menuDownloads',
   performance: 'Settings.menuPerformance',
   data: 'Settings.menuData',
-  extensions: 'Settings.menuModSettings',
   wallet: 'Settings.menuWallet',
 };
 
@@ -45,19 +42,11 @@ export function SettingsPanelBody() {
   const MIN_SETTINGS_SIDEBAR_WIDTH = 220;
   const MAX_SETTINGS_SIDEBAR_WIDTH = 360;
   const { t } = useTranslation();
-  const flags = getShellFeatureFlags();
   const menuSections = getSettingsMenuSections();
   const containerRef = useRef<HTMLDivElement>(null);
   const resizingRef = useRef(false);
   const [sidebarWidth, setSidebarWidth] = useState(240);
-  const [selectedId, setSelectedId] = useState(() => {
-    const stored = loadStoredSettingsSelected('profile');
-    if (!flags.enableSettingsExtensions && stored === 'extensions') {
-      persistStoredSettingsSelected('profile');
-      return 'profile';
-    }
-    return stored;
-  });
+  const [selectedId, setSelectedId] = useState(() => loadStoredSettingsSelected('profile'));
 
   const handleSelect = (id: string) => {
     persistStoredSettingsSelected(id);

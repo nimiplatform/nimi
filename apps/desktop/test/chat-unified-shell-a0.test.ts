@@ -14,7 +14,7 @@ import {
   resolveAiConversationSetupStateFromProjection,
 } from '../src/shell/renderer/features/chat/chat-nimi-route-view';
 import type { ConversationCapabilityProjection } from '../src/shell/renderer/features/chat/conversation-capability';
-import type { RuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/mod';
+import type { RuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/ai';
 
 function createUiSliceHarness(): { getState: () => AppStoreState } {
   let state = {

@@ -66,7 +66,6 @@ export async function runEnableFlow(input: {
   getContext: (key: string) => RuntimeContext | undefined;
   setContextState: (key: string, state: LifecycleState) => void;
   setLifecycle: (modId: string, version: string, state: LifecycleState) => void;
-  setCapabilityBaseline: (modId: string, capabilities: string[]) => void;
   appendAudit: LifecycleAuditInput['appendAudit'];
   keyFor: (modId: string, version: string) => string;
 }) {
@@ -77,7 +76,6 @@ export async function runEnableFlow(input: {
 
   input.setContextState(input.keyFor(input.lifecycle.modId, input.lifecycle.version), 'ENABLED');
   input.setLifecycle(input.lifecycle.modId, input.lifecycle.version, 'ENABLED');
-  input.setCapabilityBaseline(input.lifecycle.modId, ctx.grantedCapabilities);
   await appendLifecycleAudit({
     appendAudit: input.appendAudit,
     modId: input.lifecycle.modId,
@@ -93,7 +91,6 @@ export async function runDisableFlow(input: {
   getContext: (key: string) => RuntimeContext | undefined;
   setContextState: (key: string, state: LifecycleState) => void;
   setLifecycle: (modId: string, version: string, state: LifecycleState) => void;
-  suspendMod: (modId: string) => void;
   appendAudit: LifecycleAuditInput['appendAudit'];
   keyFor: (modId: string, version: string) => string;
 }) {
@@ -104,7 +101,6 @@ export async function runDisableFlow(input: {
 
   input.setContextState(input.keyFor(input.lifecycle.modId, input.lifecycle.version), 'DISABLED');
   input.setLifecycle(input.lifecycle.modId, input.lifecycle.version, 'DISABLED');
-  input.suspendMod(input.lifecycle.modId);
   await appendLifecycleAudit({
     appendAudit: input.appendAudit,
     modId: input.lifecycle.modId,
@@ -123,7 +119,6 @@ export async function runUninstallFlow(input: {
   unloadModule: (modId: string, version: string) => void;
   unregisterInstalled: (modId: string) => void;
   setLifecycle: (modId: string, version: string, state: LifecycleState) => void;
-  suspendMod: (modId: string) => void;
   resetCrash: (modId: string) => void;
   appendAudit: LifecycleAuditInput['appendAudit'];
   keyFor: (modId: string, version: string) => string;
@@ -137,7 +132,6 @@ export async function runUninstallFlow(input: {
   input.deleteContext(key);
   input.unregisterInstalled(input.lifecycle.modId);
   input.setLifecycle(input.lifecycle.modId, input.lifecycle.version, 'UNINSTALLED');
-  input.suspendMod(input.lifecycle.modId);
   input.resetCrash(input.lifecycle.modId);
 
   await appendLifecycleAudit({

@@ -45,7 +45,7 @@ import {
   THREADS_QUERY_KEY,
   toErrorMessage,
 } from './chat-nimi-shell-core';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
 import { useAiConversationPresentation } from './chat-nimi-shell-presentation';
 import { createChatAiConversationRuntimeAdapter } from './chat-nimi-shell-runtime-adapter';

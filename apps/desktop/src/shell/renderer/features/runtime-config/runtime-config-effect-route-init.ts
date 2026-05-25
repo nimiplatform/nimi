@@ -5,7 +5,7 @@ import {
 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { setInitializedByV11 } from '@renderer/features/runtime-config/runtime-config-storage-persist';
 import type { ConversationCapability } from '@renderer/features/chat/conversation-capability';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
 
 type RouteInitEffectInput = {
   state: RuntimeConfigStateV11 | null;

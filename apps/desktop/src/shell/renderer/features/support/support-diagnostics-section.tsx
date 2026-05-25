@@ -3,17 +3,15 @@
  *
  * Aggregates the previously scattered feature-local diagnostics into one
  * technical diagnostics view. It consumes typed Runtime / SDK projections —
- * runtime daemon lifecycle status, host system-resource snapshot, runtime mod
- * source diagnostics — and never reads runtime internal state directly or
- * bypasses the typed projections. The ordinary-user product path does not
- * depend on this view.
+ * runtime daemon lifecycle status and host system-resource snapshot — and
+ * never reads runtime internal state directly or bypasses the typed
+ * projections. The ordinary-user product path does not depend on this view.
  */
 
 import { useTranslation } from 'react-i18next';
 import {
   desktopBridge,
   type RuntimeBridgeDaemonStatus,
-  type RuntimeModDiagnosticRecord,
   type SystemResourceSnapshot,
 } from '@renderer/bridge';
 import { useSupportProjection } from './support-projection.js';
@@ -27,19 +25,16 @@ import {
 
 interface DiagnosticsProjection {
   readonly daemon: RuntimeBridgeDaemonStatus;
-  readonly modDiagnostics: RuntimeModDiagnosticRecord[];
   /** System resource snapshot — secondary; absence does not fail the section. */
   readonly resources: SystemResourceSnapshot | null;
   readonly resourcesError: string | null;
 }
 
 async function loadDiagnosticsProjection(): Promise<DiagnosticsProjection> {
-  // The runtime daemon status is the load-bearing typed projection. The mod
-  // diagnostics list and the resource snapshot are aggregated alongside; the
-  // resource snapshot can be legitimately unavailable (no Tauri host probe),
-  // so its failure is captured inline instead of fail-closing the section.
+  // The runtime daemon status is the load-bearing typed projection. The
+  // resource snapshot can be legitimately unavailable (no Tauri host probe), so
+  // its failure is captured inline instead of fail-closing the section.
   const daemon = await desktopBridge.getRuntimeBridgeStatus();
-  const modDiagnostics = await desktopBridge.listRuntimeModDiagnostics();
   let resources: SystemResourceSnapshot | null = null;
   let resourcesError: string | null = null;
   try {
@@ -47,7 +42,7 @@ async function loadDiagnosticsProjection(): Promise<DiagnosticsProjection> {
   } catch (error) {
     resourcesError = error instanceof Error ? error.message : String(error ?? 'resource snapshot unavailable');
   }
-  return { daemon, modDiagnostics, resources, resourcesError };
+  return { daemon, resources, resourcesError };
 }
 
 function formatBytes(bytes: number): string {
@@ -91,8 +86,7 @@ export function SupportDiagnosticsSection() {
     );
   }
 
-  const { daemon, modDiagnostics, resources, resourcesError } = projection.data;
-  const unresolvedDiagnostics = modDiagnostics.filter((record) => record.status !== 'resolved');
+  const { daemon, resources, resourcesError } = projection.data;
 
   return (
     <SupportSectionShell
@@ -156,37 +150,6 @@ export function SupportDiagnosticsSection() {
           >
             {resourcesError || t('Support.diagnosticsResourcesUnavailable')}
           </p>
-        )}
-      </SupportCard>
-
-      <SupportCard
-        title={t('Support.diagnosticsModTitle')}
-        description={t('Support.diagnosticsModDescription')}
-        testId="support-diagnostics-mods"
-      >
-        {unresolvedDiagnostics.length === 0 ? (
-          <p
-            data-testid="support-diagnostics-mods-clear"
-            className="text-xs text-[var(--nimi-text-secondary)]"
-          >
-            {t('Support.diagnosticsModClear')}
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-2" data-testid="support-diagnostics-mods-list">
-            {unresolvedDiagnostics.map((record) => (
-              <li
-                key={`${record.sourceId}:${record.modId}`}
-                className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] px-3 py-2 text-xs"
-              >
-                <p className="font-medium text-[var(--nimi-text-primary)]">
-                  {record.modId} · {record.status}
-                </p>
-                {record.error ? (
-                  <p className="mt-1 break-words text-[var(--nimi-text-secondary)]">{record.error}</p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
         )}
       </SupportCard>
     </SupportSectionShell>

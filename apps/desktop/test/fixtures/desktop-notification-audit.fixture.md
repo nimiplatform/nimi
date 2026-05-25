@@ -1,9 +1,3 @@
-## Mods
-
-| source | current surface | trigger | user initiated? | message key / literal | current behavior | target channel | keep? | reason |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `slot-host.tsx` render failed | global banner | passive_state | no | `ModUI.renderFailedWithChain` | 被动渲染故障弹全局 | `page_inline` (`Mods`) | migrated | 现在只保留 fuse/telemetry，由 Mods 上下文承载 |
-
 ## Settings / Auth
 
 | source | current surface | trigger | user initiated? | message key / literal | current behavior | target channel | keep? | reason |

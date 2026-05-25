@@ -7,7 +7,7 @@ import {
   type StoredStateV11,
 } from './runtime-config-storage-defaults';
 import { normalizeStoredStateV11 } from './runtime-config-storage-normalize';
-import { loadStorageJsonFrom, saveStorageJsonTo } from "@nimiplatform/sdk/mod";
+import { loadStorageJsonFrom, saveStorageJsonTo } from "@nimiplatform/sdk/ai";
 export function loadRuntimeConfigStateV11(seed: RuntimeConfigSeedV11): RuntimeConfigStateV11 {
     const storage = typeof globalThis !== 'undefined' ? (globalThis.localStorage as Storage | undefined) : undefined;
     const parsedUnknown = loadStorageJsonFrom(storage, RUNTIME_CONFIG_STORAGE_KEY_V12)

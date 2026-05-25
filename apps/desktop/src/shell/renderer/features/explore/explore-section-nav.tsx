@@ -166,7 +166,7 @@ export function ExploreSearchField({
   const { t } = useTranslation();
   return (
     <div
-      className="group relative mx-auto flex h-11 w-full max-w-[480px] items-center rounded-xl border border-white/60 bg-white/45 pl-4 pr-3 shadow-[0_2px_10px_rgba(0,0,0,0.02)] backdrop-blur-[16px] transition-all duration-200 focus-within:border-white/90 focus-within:bg-white/70 focus-within:shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
+      className="nimi-material-glass-regular group relative mx-auto flex h-11 w-full max-w-[480px] items-center rounded-xl border border-white/60 bg-white/45 pl-4 pr-3 shadow-[0_2px_10px_rgba(0,0,0,0.02)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] transition-all duration-200 focus-within:border-white/90 focus-within:bg-white/70 focus-within:shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
       data-testid="explore-search-field"
       data-mod-tab-interactive="true"
     >

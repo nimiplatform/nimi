@@ -1,4 +1,4 @@
-import { loadStorageJsonFrom, saveStorageJsonTo } from '@nimiplatform/sdk/mod';
+import { loadStorageJsonFrom, saveStorageJsonTo } from '@nimiplatform/sdk/ai';
 import type { ProgressSessionState } from './runtime-config-model-center-utils';
 
 const downloadSessionSnapshotCache: Record<string, ProgressSessionState> = {};

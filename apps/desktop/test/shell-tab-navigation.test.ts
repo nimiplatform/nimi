@@ -54,8 +54,8 @@ test('D-SHELL-001: AppTab type includes settings', () => {
   assert.match(storeTypesSource, /\bAppTab\b[\s\S]*?\|\s*'settings'/);
 });
 
-test('D-SHELL-001: AppTab type includes mods', () => {
-  assert.match(storeTypesSource, /\bAppTab\b[\s\S]*?\|\s*'mods'/);
+test('D-SHELL-001: AppTab type excludes retired mods page', () => {
+  assert.doesNotMatch(storeTypesSource, /\bAppTab\b[\s\S]*?\|\s*'mods'/);
 });
 
 test('D-SHELL-001: AppTab type excludes retired primary world and tester tabs', () => {
@@ -89,12 +89,12 @@ test('D-SHELL-001: ordinary primary rail does not inject mods as product nav', (
   assert.doesNotMatch(mainLayoutViewSource, /E2E_IDS\.navTab\('mods'\)/);
 });
 
-// D-SHELL-008: Feature flags gate runtime and mod UI
+// D-SHELL-008: Feature flags gate runtime shell behavior
 
 test('D-SHELL-008: feature flags include enableRuntimeTab', () => {
   assert.match(shellModeSource, /enableRuntimeTab:\s*\w+/);
 });
 
-test('D-SHELL-008: feature flags include enableModUi', () => {
-  assert.match(shellModeSource, /enableModUi:\s*\w+/);
+test('D-SHELL-008: feature flags exclude retired mod UI toggles', () => {
+  assert.doesNotMatch(shellModeSource, /enableModUi|enableModWorkspaceTabs|VITE_NIMI_ENABLE_MOD_DEVELOPER_UI/);
 });

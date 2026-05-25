@@ -31,7 +31,6 @@ test('external agent renderer bridge does not subscribe to action request bypass
   assert.doesNotMatch(combinedSource, /external-agent:\/\/action-request/);
   assert.doesNotMatch(combinedSource, /listenTauri/);
   assert.doesNotMatch(combinedSource, /hookRuntime\.(dryRunAction|verifyAction|commitAction)/);
-  assert.doesNotMatch(runtimeBridgeSource, /external_agent_sync_action_descriptors/);
 });
 
 test('external agent gateway status derives enabled from live server status', () => {

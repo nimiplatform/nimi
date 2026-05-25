@@ -1,6 +1,6 @@
 import { hasTauriInvoke } from './env';
 import { invokeChecked } from './invoke';
-import type { AIConfig } from '@nimiplatform/sdk/mod';
+import type { AIConfig } from '@nimiplatform/sdk/ai';
 
 export type ProductControlState =
   | 'not_logged_in'

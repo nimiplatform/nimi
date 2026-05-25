@@ -9,8 +9,6 @@ function readSource(relativePath: string): string {
 
 const giftBubbleSource = readSource('../src/shell/renderer/features/economy/gift-message-bubble.tsx');
 const hydrationSource = readSource('../src/shell/renderer/features/runtime-config/runtime-config-effect-hydration.ts');
-const modHubControllerSource = readSource('../src/shell/renderer/features/mod-hub/mod-hub-controller.ts');
-const modHubControllerHelpersSource = readSource('../src/shell/renderer/features/mod-hub/mod-hub-controller-helpers.ts');
 const connectorDiscoverySource = readSource('../src/shell/renderer/features/runtime-config/runtime-config-connector-discovery.ts');
 const createPostModalSource = readSource('../src/shell/renderer/features/profile/create-post-modal.tsx');
 
@@ -25,18 +23,6 @@ test('gift message bubble surfaces accept/reject failures instead of silently sw
 test('runtime config hydration banner is localized instead of hardcoded Chinese text', () => {
   assert.match(hydrationSource, /i18n\.t\('RuntimeConfig\.structureUpgraded'/);
   assert.doesNotMatch(hydrationSource, /配置结构已升级，请重新确认模型绑定/);
-});
-
-test('mod hub controller routes runtime action banners through i18n helpers', () => {
-  assert.match(modHubControllerHelpersSource, /function tModHub/);
-  assert.match(modHubControllerSource, /ModHub\.runtimeActionFailed/);
-  assert.match(modHubControllerSource, /ModHub\.installRequiresConsent/);
-  assert.match(modHubControllerSource, /ModHub\.installFromCatalogSuccess/);
-  assert.match(modHubControllerSource, /ModHub\.updateSuccess/);
-  assert.match(modHubControllerSource, /ModHub\.enableSuccess/);
-  assert.match(modHubControllerSource, /ModHub\.disableSuccess/);
-  assert.match(modHubControllerSource, /ModHub\.uninstallSuccess/);
-  assert.doesNotMatch(modHubControllerSource, /操作失败|已安装，但需要重新确认后才会启用|已从 catalog 安装|已更新到|已启用|已禁用|已卸载/);
 });
 
 test('runtime config connector discovery validates node capabilities without as any', () => {

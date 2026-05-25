@@ -5,8 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { AmbientBackground, ScrollArea } from '@nimiplatform/kit/ui';
-import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
-import { resolveRouteTabExtension } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
 import { StatusBanner } from '@renderer/ui/feedback/status-banner';
 import {
   notificationQueryKeys,
@@ -21,7 +19,6 @@ import {
 } from '@renderer/features/settings/settings-storage';
 import {
   isDeveloperModeEnabled,
-  isModUiEnabled,
   subscribeDeveloperMode,
 } from '@renderer/features/developer/developer-mode';
 import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '@renderer/features/world/world-detail-route-state';
@@ -90,10 +87,6 @@ const HomePanel = lazy(async () => {
   const mod = await import('@renderer/features/home/home-panel');
   return { default: mod.HomePanel };
 });
-const ModsPanel = lazy(async () => {
-  const mod = await import('@renderer/features/mods/mods-panel');
-  return { default: mod.ModsPanel };
-});
 const DeveloperToolsPanel = lazy(async () => {
   const mod = await import('@renderer/features/developer/developer-tools-panel');
   return { default: mod.DeveloperToolsPanel };
@@ -105,10 +98,6 @@ const PrivacyPolicyView = lazy(async () => {
 const TermsOfServiceView = lazy(async () => {
   const mod = await import('@renderer/features/legal/terms-of-service-view');
   return { default: mod.TermsOfServiceView };
-});
-const SlotHost = lazy(async () => {
-  const mod = await import('@renderer/mod-ui/host/slot-host');
-  return { default: mod.SlotHost };
 });
 function parseBalanceValue(input: unknown): number {
   const raw = typeof input === 'string' ? Number(input) : (typeof input === 'number' ? input : 0);
@@ -166,7 +155,6 @@ type MainLayoutViewProps = {
   displayName: string;
   userAvatarUrl: string | null;
   userEmail?: string | null;
-  context: UiExtensionContext;
   onNav: (tabId: string) => void;
   onLogout: () => void;
   onLogin: () => void;
@@ -189,9 +177,9 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const quickNavItems = getQuickNavItems();
   const primaryCoreNavItems = coreNavItems.filter((item) => item.id !== 'home');
   // D-DEV-002 / D-DEV-007: Developer Mode is the single discoverable switch
-  // for every developer / internal surface. It is tracked reactively so the
-  // gated surfaces (Developer Tools tab, account-menu entry, mod UI) appear /
-  // disappear immediately when the user flips it from Settings.
+  // for developer / internal surfaces. It is tracked reactively so the gated
+  // surfaces appear / disappear immediately when the user flips it from
+  // Settings.
   const [developerModeEnabled, setDeveloperModeEnabled] = useState(
     () => isDeveloperModeEnabled(),
   );
@@ -200,11 +188,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       setDeveloperModeEnabled(next);
     });
   }, []);
-  // D-DEV-004: mod UI surfaces are reachable only behind admitted Developer
-  // Mode AND only when the build-level `enableModUi` flag is on. Default
-  // posture is invisible (`enableModUi` defaults false; Developer Mode
-  // defaults false).
-  const modUiReachable = flags.enableModUi && isModUiEnabled() && developerModeEnabled;
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [collapsedSettingsMenuPosition, setCollapsedSettingsMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const settingsTriggerRef = useRef<HTMLDivElement>(null);
@@ -223,15 +206,9 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   if (runtimeActive) runtimeEverMountedRef.current = true;
   const runtimeEverMounted = runtimeEverMountedRef.current;
 
-  const activeModTab = props.activeTab.startsWith('mod:');
-  const activeRouteExtension = useMemo(
-    () => (activeModTab ? resolveRouteTabExtension(props.activeTab) : null),
-    [activeModTab, props.activeTab],
-  );
-  const immersiveRoute = String(activeRouteExtension?.extension.shellMode || '').trim().toLowerCase() === 'immersive';
+  const immersiveRoute = props.activeTab === 'agent-detail'
+    || props.activeTab === 'gift-inbox';
   const hidePrimaryRail = immersiveRoute
-    || props.activeTab === 'agent-detail'
-    || props.activeTab === 'gift-inbox'
     || (props.activeTab === 'profile' && Boolean(selectedProfileId))
     || profileDetailOverlayOpen;
   const windowFocused = useWindowFocused();
@@ -610,12 +587,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               </div>
             ) : null}
 
-            {props.activeTab === 'mods' && modUiReachable ? (
-              <div data-testid={E2E_IDS.panel('mods')} className="flex min-h-0 flex-1 flex-col">
-                <ModsPanel />
-              </div>
-            ) : null}
-
             {/* D-DEV-001 / D-DEV-007: the Developer Tools surface is mounted
                 only when admitted Developer Mode is on. It is default-invisible
                 and never an ordinary primary nav tab. */}
@@ -638,13 +609,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             ) : null}
           </Suspense>
 
-          {/* D-DEV-004: the mod UI route-extension slot host is a mod UI
-              surface — reachable only behind admitted Developer Mode. */}
-          {modUiReachable ? (
-            <Suspense fallback={null}>
-              <SlotHost slot="ui-extension.app.content.routes" base={null} context={props.context} />
-            </Suspense>
-          ) : null}
         </div>
       </div>
 

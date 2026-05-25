@@ -5,7 +5,7 @@ import { queryClient } from '@renderer/infra/query-client/query-client';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
 import { dataSync } from '@runtime/data-sync';
 import { desktopBridge } from '@renderer/bridge';
-import type { NimiDataMigrationPreview } from '@renderer/bridge';
+import type { DesktopStorageDirs, NimiDataMigrationPreview } from '@renderer/bridge';
 import { syncRuntimeLocalModelsConfig } from '@renderer/infra/bootstrap/runtime-bootstrap-local-models-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import {
@@ -85,7 +85,6 @@ export function DataManagementPage() {
   const [migrationBusy, setMigrationBusy] = useState(false);
   const [resolvedNimiDir, setResolvedNimiDir] = useState('');
   const [resolvedNimiDataDir, setResolvedNimiDataDir] = useState('');
-  const [resolvedInstalledModsDir, setResolvedInstalledModsDir] = useState('');
   const [resolvedLocalModelsDir, setResolvedLocalModelsDir] = useState('');
   const [resolvedLocalRuntimeStatePath, setResolvedLocalRuntimeStatePath] = useState('');
   const [storage, setStorage] = useState<StorageSnapshot>({
@@ -122,23 +121,22 @@ export function DataManagementPage() {
     void refreshStorageSnapshot();
   }, [refreshStorageSnapshot]);
 
-  const applyStorageDirs = useCallback((dirs: Awaited<ReturnType<typeof desktopBridge.getRuntimeModStorageDirs>>) => {
+  const applyStorageDirs = useCallback((dirs: DesktopStorageDirs) => {
     setResolvedNimiDir(dirs.nimiDir);
     setResolvedNimiDataDir(dirs.nimiDataDir);
-    setResolvedInstalledModsDir(dirs.installedModsDir);
     setResolvedLocalModelsDir(dirs.localModelsDir);
     setResolvedLocalRuntimeStatePath(dirs.localRuntimeStatePath);
     setNimiDataDirInput(dirs.nimiDataDir);
   }, []);
 
   useEffect(() => {
-    void desktopBridge.getRuntimeModStorageDirs()
+    void desktopBridge.getDesktopStorageDirs()
       .then(applyStorageDirs)
       .catch((error) => {
         logRendererEvent({
           level: 'warn',
           area: 'settings-data-management',
-          message: 'get-runtime-storage-dirs:failed',
+          message: 'get-desktop-storage-dirs:failed',
           details: {
             error: error instanceof Error ? error.message : String(error || ''),
           },
@@ -212,7 +210,7 @@ export function DataManagementPage() {
       // The data is migrated + verified and ~/.nimi/nimi.json is cut over.
       // Re-sync the Runtime config dataRootRef (a K-CFG-* mechanism) so the
       // Runtime follows the new root.
-      const dirs = await desktopBridge.getRuntimeModStorageDirs();
+      const dirs = await desktopBridge.getDesktopStorageDirs();
       applyStorageDirs(dirs);
       let feedbackMessage = t('DataManagement.dataDirUpdated');
       try {
@@ -240,21 +238,6 @@ export function DataManagementPage() {
       });
     } finally {
       setMigrationBusy(false);
-    }
-  };
-
-  const handleOpenDataDir = async () => {
-    const normalized = String(resolvedNimiDataDir || '').trim();
-    if (!normalized) {
-      return;
-    }
-    try {
-      await desktopBridge.openRuntimeModDir(normalized);
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: error instanceof Error ? error.message : t('DataManagement.openDataDirFailed'),
-      });
     }
   };
 
@@ -346,7 +329,6 @@ export function DataManagementPage() {
           <div className="space-y-1 text-xs text-gray-500">
             <p>{t('DataManagement.nimiDirLabel')}: <span className="break-all text-gray-700">{resolvedNimiDir || '-'}</span></p>
             <p>{t('DataManagement.nimiDataDirLabel')}: <span className="break-all text-gray-700">{resolvedNimiDataDir || '-'}</span></p>
-            <p>{t('DataManagement.installedModsDirLabel')}: <span className="break-all text-gray-700">{resolvedInstalledModsDir || '-'}</span></p>
             <p>{t('DataManagement.localModelsDirLabel')}: <span className="break-all text-gray-700">{resolvedLocalModelsDir || '-'}</span></p>
             <p>{t('DataManagement.localRuntimeStatePathLabel')}: <span className="break-all text-gray-700">{resolvedLocalRuntimeStatePath || '-'}</span></p>
           </div>
@@ -435,15 +417,6 @@ export function DataManagementPage() {
               </div>
             </div>
           ) : null}
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => { void handleOpenDataDir(); }}
-              disabled={migrationBusy || !resolvedNimiDataDir}
-            >
-              {t('DataManagement.openDataDir')}
-            </Button>
-          </div>
         </div>
       </section>
 

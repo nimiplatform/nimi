@@ -14,7 +14,7 @@ import {
     type RuntimeRouteConnectorOption,
     type RuntimeRouteLocalOption,
     type RuntimeRouteOptionsSnapshot,
-} from "@nimiplatform/sdk/mod";
+} from "@nimiplatform/sdk/ai";
 import { normalizeLocalEngine, normalizeLocalModelRoot } from './runtime-bootstrap-utils';
 type RuntimeFields = {
     provider: string;
@@ -474,7 +474,7 @@ export async function loadRuntimeRouteOptions(input: {
     const runtimeFields = appStore.runtimeFields as RuntimeFields;
     const selectedBinding = input.capability === 'text.embed'
         ? undefined
-        : appStore.aiConfig.capabilities.selectedBindings[input.capability] as import('@nimiplatform/sdk/mod').RuntimeRouteBinding | null | undefined;
+        : appStore.aiConfig.capabilities.selectedBindings[input.capability] as import('@nimiplatform/sdk/ai').RuntimeRouteBinding | null | undefined;
     let connectorService: typeof import('@renderer/features/runtime-config/runtime-config-connector-sdk-service') | null = null;
     const getConnectorService = async () => {
         if (!connectorService) {

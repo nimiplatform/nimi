@@ -1,4 +1,4 @@
-import type { AIScopeRef, AISnapshot } from '@nimiplatform/sdk/mod';
+import type { AIScopeRef, AISnapshot } from '@nimiplatform/sdk/ai';
 import { scopeKeyFromRef } from './desktop-ai-config-storage.js';
 
 // ---------------------------------------------------------------------------

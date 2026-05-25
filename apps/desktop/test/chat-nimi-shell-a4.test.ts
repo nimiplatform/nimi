@@ -26,7 +26,7 @@ import {
   setConversationCapabilityRouteRuntime,
   updateConversationCapabilityBinding,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
-import { createEmptyAIConfig } from '@nimiplatform/sdk/mod';
+import { createEmptyAIConfig } from '@nimiplatform/sdk/ai';
 
 type CapturedInvokeInput = {
   modId: string;

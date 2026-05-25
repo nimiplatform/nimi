@@ -1,24 +1,14 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import test from 'node:test';
 
 import { setRuntimeLogger } from '../src/runtime/telemetry/logger.js';
 import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store.js';
-import { createEmptyAIConfig } from '@nimiplatform/sdk/mod';
+import { createEmptyAIConfig } from '@nimiplatform/sdk/ai';
 import {
   loadLocalRouteMetadata,
   loadRuntimeRouteOptions,
 } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options';
 
-// T10.5 / D-DEV-003: the mod / developer source-management body that was the
-// orphaned `DeveloperPage` now lives in the Developer Tools `mod-sources`
-// sub-area. `settings-developer-page.tsx` only re-exports the alias.
-const SETTINGS_DEVELOPER_PAGE_PATH = resolve(
-  import.meta.dirname,
-  '../src/shell/renderer/features/developer/developer-mod-sources-section.tsx',
-);
-const settingsDeveloperPageSource = readFileSync(SETTINGS_DEVELOPER_PAGE_PATH, 'utf8');
 const initialRuntimeFields = { ...useAppStore.getState().runtimeFields };
 
 test.afterEach(() => {
@@ -123,18 +113,6 @@ test('loadLocalRouteMetadata starts snapshot, node catalog, and local asset read
   const metadata = await metadataPromise;
   assert.equal(metadata.nodeCatalog.length, 0);
   assert.equal(metadata.runtimeLocalModels.length, 0);
-});
-
-test('D-ERR-009: settings developer page no longer uses silent empty catch', () => {
-  assert.ok(
-    !settingsDeveloperPageSource.includes('.catch(() => {})'),
-    'settings developer page must not use silent .catch(() => {})',
-  );
-  assert.match(
-    settingsDeveloperPageSource,
-    /logRendererEvent\(\{/,
-    'settings developer page should emit a renderer warning when getRuntimeModStorageDirs fails',
-  );
 });
 
 test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata times out', async () => {

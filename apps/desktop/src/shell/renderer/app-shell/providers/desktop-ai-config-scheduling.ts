@@ -1,10 +1,8 @@
-import { createModRuntimeClient } from '@nimiplatform/sdk/mod';
 import type {
   AIConfig,
   AISchedulingEvaluationTarget,
   AISchedulingJudgement,
-  AISchedulingState,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 
 export function resolveAIConfigScopeSchedulingTargets(
   config: AIConfig,
@@ -45,10 +43,6 @@ export function resolveAIConfigSchedulingTargetForCapability(
     resourceHint: null,
   };
 }
-
-const VALID_SCHEDULING_STATES: AISchedulingState[] = [
-  'runnable', 'queue_required', 'preemption_risk', 'slowdown_risk', 'denied', 'unknown',
-];
 
 type SchedulingBatchPeekResult = {
   occupancy: AISchedulingJudgement['occupancy'];
@@ -91,61 +85,20 @@ export function schedulingTargetsEqual(
     && (left.profileId || null) === (right.profileId || null);
 }
 
-function toSchedulingJudgement(value: {
-  state: string;
-  detail: string;
-  occupancy: { globalUsed: number; globalCap: number; appUsed: number; appCap: number } | null;
-  resourceWarnings: string[];
-} | null | undefined): AISchedulingJudgement | null {
-  if (!value) {
-    return null;
-  }
-  const state = VALID_SCHEDULING_STATES.includes(value.state as AISchedulingState)
-    ? value.state as AISchedulingState
-    : 'unknown';
-  return {
-    state,
-    detail: value.detail || null,
-    occupancy: value.occupancy,
-    resourceWarnings: value.resourceWarnings || [],
-  };
-}
-
 export async function peekSchedulingBatch(
   runtimeModId: string,
   appId: string,
   targets: AISchedulingEvaluationTarget[],
 ): Promise<SchedulingBatchPeekResult | null> {
+  void runtimeModId;
+  void appId;
   const normalizedTargets = targets
     .map((target) => normalizeSchedulingTarget(target))
     .filter((target): target is AISchedulingEvaluationTarget => target !== null);
   if (normalizedTargets.length === 0) {
     return null;
   }
-  try {
-    const client = createModRuntimeClient(runtimeModId);
-    const peekResult = await client.scheduler.peek({
-      appId,
-      targets: normalizedTargets,
-    });
-    return {
-      occupancy: peekResult.occupancy,
-      aggregateJudgement: toSchedulingJudgement(peekResult.aggregateJudgement),
-      targetJudgements: (peekResult.targetJudgements || [])
-        .map((entry) => {
-          const target = normalizeSchedulingTarget(entry.target);
-          const judgement = toSchedulingJudgement(entry.judgement);
-          if (!target || !judgement) {
-            return null;
-          }
-          return { target, judgement };
-        })
-        .filter((entry): entry is NonNullable<typeof entry> => entry !== null),
-    };
-  } catch {
-    // Runtime Peek RPC not available — honest null per D-AIPC-012.
-    return null;
-  }
+  return null;
 }
 
 export async function peekAggregateSchedulingJudgement(

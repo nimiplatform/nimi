@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -8,12 +8,13 @@ const localModelCenterSectionsPath = path.resolve(
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-sections.tsx',
 );
 const runtimeCommandsPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands-assets.ts');
-const runtimeHookFacadePath = path.resolve(process.cwd(), 'src/runtime/hook/contracts/facade.ts');
+const runtimeLocalTypesPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/types.ts');
+const runtimeHookDirPath = path.resolve(process.cwd(), 'src/runtime/hook');
 const tauriAssetsCommandsPath = path.resolve(process.cwd(), 'src-tauri/src/local_runtime/commands/commands_assets.rs');
 
 const localModelCenterSectionsSource = readFileSync(localModelCenterSectionsPath, 'utf-8');
 const runtimeCommandsSource = readFileSync(runtimeCommandsPath, 'utf-8');
-const runtimeHookFacadeSource = readFileSync(runtimeHookFacadePath, 'utf-8');
+const runtimeLocalTypesSource = readFileSync(runtimeLocalTypesPath, 'utf-8');
 const tauriAssetsCommandsSource = readFileSync(tauriAssetsCommandsPath, 'utf-8');
 
 type TauriInvokeCall = {
@@ -75,7 +76,7 @@ test('local model center uses one runtime manifest import entry and one asset fi
   assert.doesNotMatch(localModelCenterSectionsSource, /Import Artifact Manifest/);
 });
 
-test('hook facade accepts vae as a first-class asset kind', () => {
-  assert.match(runtimeHookFacadeSource, /assetKind\?:/);
-  assert.match(runtimeHookFacadeSource, /'vae'/);
+test('local runtime owns vae as a first-class asset kind after hook retirement', () => {
+  assert.equal(existsSync(runtimeHookDirPath), false);
+  assert.match(runtimeLocalTypesSource, /export type LocalRuntimeAssetKind = .*'vae'/);
 });

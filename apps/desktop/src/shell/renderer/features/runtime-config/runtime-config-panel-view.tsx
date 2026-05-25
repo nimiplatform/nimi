@@ -243,7 +243,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           )}
           {activePage === 'advanced' && (
             <div data-testid={E2E_IDS.runtimePageRoot('advanced')} className="flex min-h-0 flex-1 flex-col">
-              <AdvancedPage model={model} state={state} />
+              <AdvancedPage />
             </div>
           )}
         </ScrollArea>

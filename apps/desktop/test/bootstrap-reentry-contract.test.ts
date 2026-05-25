@@ -56,12 +56,8 @@ test('bootstrap failure performs teardown before auth reset and surfaces cleanup
     'teardown helper must stop external agent bridge',
   );
   assert.ok(
-    bootstrapSource.includes('resetRuntimeHostState();'),
-    'teardown helper must reset runtime host state',
-  );
-  assert.ok(
-    bootstrapSource.includes('clearInternalModSdkHost();'),
-    'teardown helper must clear internal mod sdk host',
+    bootstrapSource.includes('clearPlatformClient();'),
+    'teardown helper must clear platform client state',
   );
 });
 

@@ -78,7 +78,7 @@ async function preflightRendererAppDependencies(): Promise<void> {
 // App mounts and makes its first SDK / i18n call.
 const runtimeReady = Promise.all([
     loadEntryModule('entry:tauri-runtime-api', () => import('@runtime/tauri-api')),
-    loadEntryModule('entry:sdk-mod', () => import('@nimiplatform/sdk/mod')),
+    loadEntryModule('entry:sdk-ai', () => import('@nimiplatform/sdk/ai')),
     loadEntryModule('entry:i18n', () => import('@renderer/i18n')),
 ]).then(([tauriApi, sdkMod, i18nMod]) => {
     tauriApi.installSdkTauriRuntimeHook();

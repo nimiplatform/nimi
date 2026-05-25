@@ -10,7 +10,7 @@
  * bridge only reads/writes it and parses the host projection fail-closed.
  */
 
-import type { AIProfile } from '@nimiplatform/sdk/mod';
+import type { AIProfile } from '@nimiplatform/sdk/ai';
 import { hasTauriInvoke } from './env';
 import { invokeChecked } from './invoke';
 

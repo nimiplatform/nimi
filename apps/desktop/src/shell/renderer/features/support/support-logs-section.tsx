@@ -4,7 +4,7 @@
  * Provides log viewing affordances over the `tables/log-areas.yaml` log areas
  * and the `<nimi_data>/logs/` directory (`P-MIG-006` `logs` row, owner
  * `runtime_product_support`). The directory path is derived from the typed
- * `runtime_mod_storage_dirs_get` projection; the user can open it natively.
+ * desktop storage projection.
  *
  * Log EXPORT (`D-SUP-006` "用户可定位的导出工件"): the export action invokes the
  * typed `desktop_logs_export` command, which bundles `<nimi_data>/logs/` into a
@@ -18,8 +18,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   desktopBridge,
+  type DesktopStorageDirs,
   type LogsExportResult,
-  type RuntimeModStorageDirs,
 } from '@renderer/bridge';
 import { useSupportProjection } from './support-projection.js';
 import {
@@ -47,8 +47,8 @@ function deriveLogsDirectory(nimiDataDir: string): string {
   return `${normalized}${separator}logs`;
 }
 
-async function loadLogsProjection(): Promise<RuntimeModStorageDirs> {
-  return desktopBridge.getRuntimeModStorageDirs();
+async function loadLogsProjection(): Promise<DesktopStorageDirs> {
+  return desktopBridge.getDesktopStorageDirs();
 }
 
 /** Typed state of the in-component log-export action (`D-SUP-006`). */
@@ -181,21 +181,6 @@ export function SupportLogsSection() {
             value={logsDirectory || t('Support.valueUnknown')}
           />
         </div>
-        <button
-          type="button"
-          data-testid="support-logs-open-button"
-          disabled={!logsDirectory}
-          onClick={() => {
-            if (!logsDirectory) return;
-            void desktopBridge.openRuntimeModDir(logsDirectory).catch(() => {
-              // openRuntimeModDir surfaces its own failure; nothing to
-              // synthesize here.
-            });
-          }}
-          className="mt-4 inline-flex items-center rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs font-medium text-[var(--nimi-text-primary)] transition hover:bg-[var(--nimi-surface-active)] disabled:opacity-50"
-        >
-          {t('Support.logsOpenButton')}
-        </button>
       </SupportCard>
 
       <SupportCard

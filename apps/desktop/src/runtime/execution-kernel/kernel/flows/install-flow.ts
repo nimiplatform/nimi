@@ -33,7 +33,6 @@ type InstallFlowInput = {
   setLifecycle: (modId: string, version: string, state: LifecycleState) => void;
   registerInstalled: (modId: string, version: string, dependencies: string[]) => void;
   setContext: (key: string, context: RuntimeContext) => void;
-  setCapabilityBaseline: (modId: string, capabilities: string[]) => void;
   makeDecision: (
     modId: string,
     version: string,
@@ -59,7 +58,6 @@ export async function runInstallFlow({
   setLifecycle,
   registerInstalled,
   setContext,
-  setCapabilityBaseline,
   makeDecision,
   keyFor,
   persistStageTrail,
@@ -157,7 +155,6 @@ export async function runInstallFlow({
     state: 'INSTALLED',
     mode: input.mode,
   });
-  setCapabilityBaseline(input.modId, policy.grantedCapabilities);
   stageTrail.push(makeDecision(input.modId, input.version, 'lifecycle', 'ALLOW', ['STATE_INSTALLED']));
   stageTrail.push(makeDecision(input.modId, input.version, 'audit', 'ALLOW', ['AUDIT_WRITTEN']));
 

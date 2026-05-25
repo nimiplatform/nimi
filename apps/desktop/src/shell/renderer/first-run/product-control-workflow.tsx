@@ -430,7 +430,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     await syncRuntimeStorageConfig({
       bridge: {
         getRuntimeBridgeStatus: () => desktopBridge.getRuntimeBridgeStatus(),
-        getRuntimeModStorageDirs: () => desktopBridge.getRuntimeModStorageDirs(),
+        getDesktopStorageDirs: () => desktopBridge.getDesktopStorageDirs(),
         getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
         setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
         restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),

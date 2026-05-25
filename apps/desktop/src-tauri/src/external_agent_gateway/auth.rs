@@ -2,8 +2,7 @@ use axum::http::{header, HeaderMap};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use std::collections::{BTreeSet, HashSet};
 
-use crate::runtime_mod::store::{get_external_agent_token_record, open_db};
-
+use super::store::{get_external_agent_token_record, open_db};
 use super::{ExternalAgentClaims, ExternalAgentGatewayState, EXTERNAL_AGENT_TOKEN_AUDIENCE};
 
 pub fn bearer_token(headers: &HeaderMap) -> Result<String, String> {

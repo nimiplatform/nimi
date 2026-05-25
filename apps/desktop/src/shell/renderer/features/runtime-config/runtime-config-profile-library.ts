@@ -24,7 +24,7 @@
  * no compatibility bridge.
  */
 
-import type { AIProfile } from '@nimiplatform/sdk/mod';
+import type { AIProfile } from '@nimiplatform/sdk/ai';
 import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
 import {
   createAccountProfileLibraryProfile,

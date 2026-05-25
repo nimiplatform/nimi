@@ -1,4 +1,5 @@
 import { tauriInvoke, hasTauriInvoke } from '@runtime/llm-adapter/tauri-bridge';
+import { localAIActionDescriptors } from './local-ai-actions.js';
 
 export type ExternalAgentActionDescriptor = {
   actionId: string;
@@ -146,7 +147,25 @@ function parseExternalAgentTokenRecord(value: unknown, index: number): ExternalA
 }
 
 async function syncActionDescriptors(): Promise<void> {
-  await Promise.resolve();
+  const descriptors: ExternalAgentActionDescriptor[] = localAIActionDescriptors.map((descriptor) => ({
+    actionId: descriptor.name,
+    modId: 'core:local-ai',
+    sourceType: 'core',
+    description: descriptor.description,
+    operation: descriptor.operation,
+    socialPrecondition: 'none',
+    executionMode: 'guarded',
+    riskLevel: descriptor.riskLevel,
+    supportsDryRun: descriptor.supportsDryRun,
+    idempotent: descriptor.idempotent,
+    requiredCapabilities: [...descriptor.requiredCapabilities],
+  }));
+  if (!hasTauriInvoke()) {
+    return;
+  }
+  await tauriInvoke('external_agent_sync_action_descriptors', {
+    payload: { descriptors },
+  });
 }
 
 export async function startExternalAgentActionBridge(): Promise<void> {

@@ -10,7 +10,7 @@ use axum::{Json, Router};
 use futures_util::stream;
 use serde::Deserialize;
 
-use crate::runtime_mod::store::{open_db, query_runtime_audit, RuntimeAuditFilter};
+use super::store::{open_db, query_runtime_audit, RuntimeAuditFilter};
 
 use super::auth::{bearer_token, verify_external_agent_token};
 use super::{
@@ -248,9 +248,9 @@ async fn list_audits(
     let mut rows = query_runtime_audit(
         &conn,
         Some(RuntimeAuditFilter {
-            mod_id: None,
+            source_id: None,
             stage: Some("audit".to_string()),
-            event_type: Some("hook.action.commit".to_string()),
+            event_type: Some("external_agent.action.commit".to_string()),
             from: None,
             to: None,
             limit: Some(query.limit.unwrap_or(100).clamp(1, 1000)),

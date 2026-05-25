@@ -6,7 +6,7 @@ import {
   type MemoryEmbeddingConfigSurface,
   type MemoryEmbeddingRuntimeState,
   type MemoryEmbeddingRuntimeSurface,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 import {
   asNimiError,
   type AgentStateMutation,

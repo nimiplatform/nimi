@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { AIProfile } from '@nimiplatform/sdk/mod';
+import type { AIProfile } from '@nimiplatform/sdk/ai';
 import type { NimiError } from '@nimiplatform/sdk/types';
 
 /**

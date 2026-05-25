@@ -1,5 +1,14 @@
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { capabilityMatches } from '../../hook/contracts/capabilities.js';
+
+function capabilityMatches(pattern: string, capability: string): boolean {
+  if (pattern === '*') {
+    return true;
+  }
+  if (pattern.endsWith('*')) {
+    return capability.startsWith(pattern.slice(0, -1));
+  }
+  return pattern === capability;
+}
 type SandboxProfile = {
   profileId: string;
   modId: string;

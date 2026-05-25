@@ -41,7 +41,6 @@ type UiSlice = Pick<AppStoreState,
   | 'chatProfilePanelTarget'
   | 'offlineTier'
   | 'statusBanner'
-  | 'modsFeedback'
   | 'setOfflineTier'
   | 'setBootstrapReady'
   | 'setBootstrapError'
@@ -70,7 +69,6 @@ type UiSlice = Pick<AppStoreState,
   | 'navigateToGiftInbox'
   | 'navigateBack'
   | 'setStatusBanner'
-  | 'setModsFeedback'
 >;
 
 export function createUiSlice(set: AppStoreSet): UiSlice {
@@ -100,7 +98,6 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     chatProfilePanelTarget: null,
     offlineTier: 'L0' as OfflineTier,
     statusBanner: null,
-    modsFeedback: null,
     setOfflineTier: (tier) => set({ offlineTier: tier }),
     setBootstrapReady: (ready) => set({ bootstrapReady: ready }),
     setBootstrapError: (message) => set({ bootstrapError: message }),
@@ -249,6 +246,5 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
         };
       }),
     setStatusBanner: (banner) => set({ statusBanner: banner }),
-    setModsFeedback: (banner) => set({ modsFeedback: banner }),
   };
 }

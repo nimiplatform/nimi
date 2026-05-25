@@ -1,5 +1,4 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
-import { getRuntimeHookRuntime } from '@runtime/mod';
 import type { JsonObject } from '@runtime/net/json';
 import {
   getOfflineCacheManager,
@@ -36,31 +35,12 @@ async function applyAgentProfileReadFilters(input: {
   worldId?: string;
   profile: JsonObject;
 }): Promise<JsonObject> {
-  const ownerAgentId = toNonEmptyString(input.profile.id);
-  if (!ownerAgentId) {
-    return {
-      ...input.profile,
-    };
-  }
-  try {
-    return await getRuntimeHookRuntime().invokeAgentProfileReadFilters({
-      viewerUserId: input.viewerUserId,
-      ownerAgentId,
-      worldId: input.worldId || toNonEmptyString(input.profile.worldId),
-      profile: {
-        ...input.profile,
-      },
-    });
-  } catch (error) {
-    input.emitDataSyncError('load-agent-details:profile-read-filter', error, {
-      ownerAgentId,
-      viewerUserId: input.viewerUserId || null,
-    });
-    return {
-      ...input.profile,
-      referenceImageUrl: null,
-    };
-  }
+  void input.emitDataSyncError;
+  void input.viewerUserId;
+  void input.worldId;
+  return {
+    ...input.profile,
+  };
 }
 
 function toRecord(value: unknown): JsonObject | null {

@@ -9,7 +9,7 @@
  */
 
 import type { NimiAppRegistrySourceRow, NimiAppReleaseDescriptorRow } from '@nimiplatform/sdk/app';
-import type { AIProfile } from '@nimiplatform/sdk/mod';
+import type { AIProfile } from '@nimiplatform/sdk/ai';
 
 export interface PlatformAIProfileFactoryRow {
   readonly alias: string;

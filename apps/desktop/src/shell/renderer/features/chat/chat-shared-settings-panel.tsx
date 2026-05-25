@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AISchedulingJudgement } from '@nimiplatform/sdk/mod';
-import { applyAIProfileToConfig } from '@nimiplatform/sdk/mod';
+import type { AISchedulingJudgement } from '@nimiplatform/sdk/ai';
+import { applyAIProfileToConfig } from '@nimiplatform/sdk/ai';
 import { confirmDialog } from '@renderer/bridge/runtime-bridge/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';

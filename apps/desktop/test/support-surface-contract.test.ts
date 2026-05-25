@@ -176,14 +176,13 @@ test('D-SUP-004: updates consumes the DesktopReleaseInfo projection, not synthes
 test('D-SUP-005: diagnostics consumes typed runtime projections only', () => {
   const source = readDesktop(SECTION_FILES.diagnostics);
   assert.match(source, /getRuntimeBridgeStatus/);
-  assert.match(source, /listRuntimeModDiagnostics/);
   assert.match(source, /getSystemResourceSnapshot/);
 });
 
 test('D-SUP-006: logs consumes the log-areas table and exports via the typed IPC', () => {
   const source = readDesktop(SECTION_FILES.logs);
   assert.match(source, /DESKTOP_LOG_AREAS/);
-  assert.match(source, /getRuntimeModStorageDirs/);
+  assert.match(source, /getDesktopStorageDirs/);
   // The typed `desktop_logs_export` IPC produces the user-locatable artifact.
   assert.match(source, /exportDesktopLogs/);
   // The export action fails closed to a typed error state — it never
@@ -197,7 +196,8 @@ test('D-SUP-006: the log-areas projection matches the kernel closed enum', () =>
   for (const area of DESKTOP_LOG_AREAS) {
     assert.match(logAreasTable, new RegExp(`- ${area}\\b`));
   }
-  assert.equal(DESKTOP_LOG_AREAS.length, 10);
+  assert.doesNotMatch(logAreasTable, /- hook\b|- mod\b/);
+  assert.equal(DESKTOP_LOG_AREAS.length, 8);
 });
 
 test('D-SUP-007: recovery copy mapping is total and uses the copy floor', () => {

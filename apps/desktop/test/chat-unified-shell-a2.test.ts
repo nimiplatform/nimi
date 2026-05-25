@@ -225,7 +225,7 @@ test('chat unified shell a2: AIConfig is the umbrella authority over conversatio
   // SDK types imported in conversation-capability.ts
   assert.match(conversationCapabilitySource, /AIConfig/);
   assert.match(conversationCapabilitySource, /AIScopeRef/);
-  assert.match(conversationCapabilitySource, /@nimiplatform\/sdk\/mod/);
+  assert.match(conversationCapabilitySource, /@nimiplatform\/sdk\/ai/);
 
   // Bridge functions exist
   assert.match(conversationCapabilitySource, /function aiConfigFromSelectionStore\(/);

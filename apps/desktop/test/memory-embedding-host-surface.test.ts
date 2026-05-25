@@ -7,7 +7,7 @@ import {
   createEmptyMemoryEmbeddingConfig,
   type AIScopeRef,
   type MemoryEmbeddingConfig,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 
 function createStorageMock(): Storage {
   const store = new Map<string, string>();

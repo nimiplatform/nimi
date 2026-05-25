@@ -8,8 +8,8 @@
  * Hard cut — no legacy migration, no backward-compat shim. Project is pre-launch.
  */
 
-import type { AIConfig, AIScopeRef } from '@nimiplatform/sdk/mod';
-import { createEmptyAIConfig } from '@nimiplatform/sdk/mod';
+import type { AIConfig, AIScopeRef } from '@nimiplatform/sdk/ai';
+import { createEmptyAIConfig } from '@nimiplatform/sdk/ai';
 
 // ---------------------------------------------------------------------------
 // Storage helpers

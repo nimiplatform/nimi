@@ -4,9 +4,6 @@ import { dataSync } from '@runtime/data-sync';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollArea } from '@nimiplatform/kit/ui';
-import { SlotHost } from '@renderer/mod-ui/host/slot-host';
-import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
-import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { useChatComposer } from '@nimiplatform/kit/features/chat/headless';
 import { createRealmChatComposerAdapter } from '@nimiplatform/kit/features/chat/realm';
 import { MessageType } from '@nimiplatform/sdk/realm';
@@ -76,7 +73,6 @@ function Tooltip({ children, content, placement = 'top' }: TooltipProps) {
 export function TurnInput(props: TurnInputProps = {}) {
   const { onOpenGift } = props;
   const { t } = useTranslation();
-  const flags = getShellFeatureFlags();
   const selectedChatId = useAppStore((state) => state.selectedChatId);
   const offlineTier = useAppStore((state) => state.offlineTier);
   const currentUserId = String(useAppStore((state) => state.auth.user?.id) || '');
@@ -92,7 +88,6 @@ export function TurnInput(props: TurnInputProps = {}) {
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingAttachmentsRef = useRef<PendingAttachment[]>([]);
-  const context = useUiExtensionContext();
 
   // Categories per page
   const CATEGORIES_PER_PAGE = 4;
@@ -643,9 +638,6 @@ export function TurnInput(props: TurnInputProps = {}) {
               aria-hidden="true"
             />
 
-            {flags.enableModUi ? (
-              <SlotHost slot="chat.turn.input.toolbar" base={null} context={context} />
-            ) : null}
           </div>
 
           {/* Send button */}

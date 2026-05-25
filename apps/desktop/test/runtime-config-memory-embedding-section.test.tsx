@@ -3,7 +3,7 @@ import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import { createDefaultAIScopeRef, createEmptyMemoryEmbeddingConfig } from '@nimiplatform/sdk/mod';
+import { createDefaultAIScopeRef, createEmptyMemoryEmbeddingConfig } from '@nimiplatform/sdk/ai';
 import { getDesktopMemoryEmbeddingConfigService } from '../src/shell/renderer/app-shell/providers/desktop-memory-embedding-config-service';
 import { RuntimeConfigMemoryEmbeddingSection } from '../src/shell/renderer/features/runtime-config/runtime-config-memory-embedding-section';
 import { createDefaultStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-defaults';

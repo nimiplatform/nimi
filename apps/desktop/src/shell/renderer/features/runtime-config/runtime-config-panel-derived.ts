@@ -1,9 +1,6 @@
 import { useMemo } from 'react';
-import type { RuntimeLocalManifestSummary } from '@renderer/bridge';
-import type { JsonObject } from '@runtime/net/json';
 import { normalizeLocalRuntimeProfilesDeclaration } from '@runtime/local-runtime';
 import {
-  CAPABILITIES_V11,
   VENDOR_ORDER_V11,
   type CapabilityV11,
   type ProviderStatusV11,
@@ -15,17 +12,6 @@ import {
   selectFilteredLocalModelsV11,
   selectOrderedConnectorsV11,
 } from '@renderer/features/runtime-config/runtime-config-selectors-v11';
-
-function asRecord(value: unknown): JsonObject {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonObject : {};
-}
-
-function normalizeCapability(value: unknown): CapabilityV11 | null {
-  const normalized = String(value || '').trim();
-  return CAPABILITIES_V11.includes(normalized as CapabilityV11)
-    ? normalized as CapabilityV11
-    : null;
-}
 
 export type RuntimeConfigPanelDerivedModel = {
   selectedConnector: RuntimeConfigStateV11['connectors'][number] | null;
@@ -45,8 +31,6 @@ export function useRuntimeConfigPanelDerived(input: {
   state: RuntimeConfigStateV11 | null;
   localModelQuery: string;
   connectorModelQuery: string;
-  localManifestSummaries: RuntimeLocalManifestSummary[];
-  registeredRuntimeModIds: string[];
 }): RuntimeConfigPanelDerivedModel {
   const selectedConnector = input.state
     ? input.state.connectors.find((connector) => connector.id === input.state?.selectedConnectorId) || input.state.connectors[0] || null
@@ -78,51 +62,12 @@ export function useRuntimeConfigPanelDerived(input: {
     ? (input.state.local.status === 'healthy' ? 'healthy' : (selectedConnector?.status || input.state.local.status))
     : null;
 
-  const runtimeProfileTargets = useMemo(() => {
-    const registeredOrder = new Map(input.registeredRuntimeModIds.map((modId, index) => [String(modId || '').trim(), index]));
-    const targets: Array<{
-      modId: string;
-      modName: string;
-      consumeCapabilities: CapabilityV11[];
-      profiles: ReturnType<typeof normalizeLocalRuntimeProfilesDeclaration>;
-    }> = [];
-    for (const summary of input.localManifestSummaries) {
-      const modId = String(summary.id || '').trim();
-      if (!modId || !input.registeredRuntimeModIds.includes(modId)) continue;
-      const manifest = asRecord(summary.manifest);
-      const ai = asRecord(manifest.ai);
-      const profiles = normalizeLocalRuntimeProfilesDeclaration(ai.profiles);
-      if (profiles.length <= 0) continue;
-      const consumeEntries: unknown[] = Array.isArray(ai.consume) ? ai.consume : [];
-      const consumeCapabilities = consumeEntries.length > 0
-        ? Array.from(new Set(
-          consumeEntries
-            .map((item) => normalizeCapability(item))
-            .filter((item): item is CapabilityV11 => Boolean(item)),
-        ))
-        : [];
-      targets.push({
-        modId,
-        modName: String(summary.name || '').trim() || modId,
-        consumeCapabilities: consumeCapabilities.length > 0 ? consumeCapabilities : ['chat'],
-        profiles,
-      });
-    }
-    targets.sort((left, right) => {
-      const leftOrder = registeredOrder.get(left.modId) ?? Number.MAX_SAFE_INTEGER;
-      const rightOrder = registeredOrder.get(right.modId) ?? Number.MAX_SAFE_INTEGER;
-      const orderDelta = leftOrder - rightOrder;
-      if (orderDelta !== 0) {
-        return orderDelta;
-      }
-      const nameDelta = left.modName.localeCompare(right.modName);
-      if (nameDelta !== 0) {
-        return nameDelta;
-      }
-      return left.modId.localeCompare(right.modId);
-    });
-    return targets;
-  }, [input.localManifestSummaries, input.registeredRuntimeModIds]);
+  const runtimeProfileTargets = useMemo<Array<{
+    modId: string;
+    modName: string;
+    consumeCapabilities: CapabilityV11[];
+    profiles: ReturnType<typeof normalizeLocalRuntimeProfilesDeclaration>;
+  }>>(() => [], []);
 
   return {
     selectedConnector,

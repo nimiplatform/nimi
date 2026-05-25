@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import type { AIProfile } from '@nimiplatform/sdk/mod';
+import type { AIProfile } from '@nimiplatform/sdk/ai';
 import type { AccountProfileLibraryProjection, LibraryProfile } from './runtime-config-profile-library.js';
 
 function countConfiguredCapabilities(profile: AIProfile): number {

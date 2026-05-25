@@ -45,10 +45,7 @@ test('conversation capability UI contract: runtimeFields projection still only r
 test('conversation capability UI contract: conversationExecution stays confined to host media authority path', () => {
   assert.deepEqual(
     findFilesContaining(/\bconversationExecution\b/),
-    [
-      'src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-media.ts',
-      'src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities.ts',
-    ],
+    [],
   );
 });
 

@@ -1,14 +1,10 @@
 import {
-  Suspense,
-  lazy,
   useMemo,
   useState,
   type MouseEvent,
 } from 'react';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
-import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import type { WebAuthMenuMode } from '@nimiplatform/kit/auth';
 import { DesktopShellAuthPage } from '@nimiplatform/kit/auth';
 import '@nimiplatform/kit/auth/styles.css';
@@ -23,14 +19,7 @@ import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/
 
 export type { WebAuthMenuMode } from '@nimiplatform/kit/auth';
 
-const SlotHost = lazy(async () => {
-  const mod = await import('@renderer/mod-ui/host/slot-host');
-  return { default: mod.SlotHost };
-});
-
 export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
-  const flags = getShellFeatureFlags();
-  const context = useUiExtensionContext();
   const mode = props.mode || 'embedded';
   const adapter = useMemo(() => createDesktopAuthAdapter(), []);
   const runtimeAccountBroker = useMemo(() => createDesktopRuntimeAccountBrowserBroker(), []);
@@ -55,11 +44,6 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
     <div className="space-y-3">
       {authFeedback ? (
         <InlineFeedback feedback={authFeedback} onDismiss={() => setAuthFeedback(null)} />
-      ) : null}
-      {flags.enableModUi && mode === 'embedded' ? (
-        <Suspense fallback={null}>
-          <SlotHost slot="auth.login.form.footer" base={null} context={context} />
-        </Suspense>
       ) : null}
     </div>
   );

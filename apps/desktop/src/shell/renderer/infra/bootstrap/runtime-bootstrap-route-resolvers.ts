@@ -1,5 +1,5 @@
 import type { SourceIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { type LocalEngine, type ResolvedRuntimeRouteBinding, type RuntimeModality, type RuntimeRouteBinding } from "@nimiplatform/sdk/mod";
+import { type LocalEngine, type ResolvedRuntimeRouteBinding, type RuntimeModality, type RuntimeRouteBinding } from "@nimiplatform/sdk/ai";
 import { normalizeLocalEngine, normalizeLocalModelRoot } from './runtime-bootstrap-utils';
 type RuntimeFields = {
     provider: string;

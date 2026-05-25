@@ -4,24 +4,10 @@ import {
   isFriendInContacts,
 } from '@runtime/data-sync';
 import {
-  checkLocalLlmHealth,
-  executeLocalKernelTurn,
-} from '@runtime/llm-adapter';
-import {
   clearPlatformClient,
   createLocalFirstPartyRuntimePlatformClient,
   unstable_attachPlatformWorldEvolutionSelectorReadProvider,
-  withRealmContextLock,
 } from '@nimiplatform/sdk';
-import {
-  getRuntimeHookRuntime,
-  listRegisteredRuntimeModIds,
-  clearInternalModSdkHost,
-  resetRuntimeHostState,
-  setRuntimeModSdkContextProvider,
-  setRuntimeHttpContextProvider,
-  setInternalModSdkHost,
-} from '@runtime/mod';
 import { setRuntimeLogger } from '@runtime/telemetry/logger';
 import { createDesktopWorldEvolutionSelectorReadAdapter } from '@runtime/world-evolution/selector-read-adapter';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
@@ -33,14 +19,7 @@ import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetr
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { initializeBuiltInChatScopesFromProductControl } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { getOfflineCoordinator } from '@runtime/offline';
-import {
-  ensureCoreWorldDataCapabilitiesRegistered,
-  isCoreWorldDataCapability,
-} from './runtime-bootstrap-data-capabilities';
 import { safeErrorMessage } from './runtime-bootstrap-utils';
-import {
-  buildRuntimeHostCapabilities,
-} from './runtime-bootstrap-host-capabilities';
 import { syncRuntimeStorageConfig } from './runtime-bootstrap-local-models-sync';
 import { syncRuntimeJwtConfig } from './runtime-bootstrap-jwt-sync';
 import { isRuntimeConfigManualRestartRequiredError } from './runtime-bootstrap-config-errors';
@@ -51,7 +30,6 @@ import {
   resyncExternalAgentActionDescriptors,
   stopExternalAgentActionBridge,
 } from '@runtime/external-agent';
-import { registerExternalAgentTier1Actions } from '@runtime/external-agent/tier1-actions';
 import { startAuthStateWatcher, stopAuthStateWatcher } from './auth-state-watcher';
 import { checkDaemonVersion } from './version-check';
 import { registerExitHandler } from './exit-handler';
@@ -60,7 +38,6 @@ import { AccountSessionState } from '@nimiplatform/sdk/runtime/browser';
 import { getDesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import { pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import { hydrateDesktopAccountProfile } from './runtime-bootstrap-account-profile';
-import { schedulePostReadyRuntimeModHydration, invalidatePostReadyRuntimeModHydration } from './runtime-bootstrap-post-ready-mods';
 import { NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS, startNonCriticalBootstrapStep, withBootstrapStepTimeout } from './runtime-bootstrap-step-timeout';
 
 let bootstrapPromise: Promise<void> | null = null;
@@ -69,14 +46,6 @@ let offlineCoordinatorBindingsReady = false;
 let pendingRebootstrap = false;
 
 function suspendRuntimeCallbacksForL2(): void {
-  const hookRuntime = getRuntimeHookRuntime();
-  for (const modId of listRegisteredRuntimeModIds()) {
-    try {
-      hookRuntime.suspendMod(modId);
-    } catch {
-      // Ignore suspend failures; reconnect bootstrap will rebuild runtime state.
-    }
-  }
 }
 
 function bindOfflineCoordinator(): void {
@@ -223,11 +192,8 @@ async function handleRuntimeConfigSyncError(input: {
 }
 
 async function teardownBootstrapState(): Promise<void> {
-  invalidatePostReadyRuntimeModHydration();
   stopAuthStateWatcher();
   stopExternalAgentActionBridge();
-  resetRuntimeHostState();
-  clearInternalModSdkHost();
   clearPlatformClient();
 }
 
@@ -338,7 +304,7 @@ export function bootstrapRuntime(): Promise<void> {
         const preserveMacosSmokeRuntimeStatePath =
           macosSmokeContext.scenarioId === 'chat.live2d-avatar-product-smoke';
         // On a fresh install the user has not yet selected nimi_data, so
-        // `getRuntimeModStorageDirs` fails closed here; the first-run Storage
+        // `getDesktopStorageDirs` fails closed here; the first-run Storage
         // phase re-runs `syncRuntimeStorageConfig` after `selectProductDataRoot`
         // so the runtime config carries the data root before materialization.
         daemonStatus = await syncRuntimeStorageConfig({
@@ -346,7 +312,7 @@ export function bootstrapRuntime(): Promise<void> {
           preserveLocalRuntimeStatePath: preserveMacosSmokeRuntimeStatePath,
           bridge: {
             getRuntimeBridgeStatus: () => desktopBridge.getRuntimeBridgeStatus(),
-            getRuntimeModStorageDirs: () => desktopBridge.getRuntimeModStorageDirs(),
+            getDesktopStorageDirs: () => desktopBridge.getDesktopStorageDirs(),
             getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
             setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
             restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
@@ -579,46 +545,7 @@ export function bootstrapRuntime(): Promise<void> {
 
     startAuthStateWatcher();
 
-    let shouldSchedulePostReadyRuntimeModHydration = false;
-
     if (flags.enableRuntimeBootstrap && !macosSmokeContext.disableRuntimeBootstrap) {
-      setRuntimeHttpContextProvider(() => {
-        const store = useAppStore.getState();
-        const runtimeDefaultsRealmBaseUrl = String(store.runtimeDefaults?.realm?.realmBaseUrl || '').trim();
-        return {
-          realmBaseUrl: runtimeDefaultsRealmBaseUrl || defaults.realm.realmBaseUrl,
-          accessToken: '',
-          fetchImpl: proxyFetch,
-        };
-      });
-
-      const runtimeHostCapabilities = buildRuntimeHostCapabilities({
-        checkLocalLlmHealth,
-        executeLocalKernelTurn,
-        withOpenApiContextLock: async <T>(
-          context: { realmBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch },
-          task: () => Promise<T>,
-        ) => withRealmContextLock<T>(context, task),
-        getRuntimeHookRuntime: () => getRuntimeHookRuntime(),
-      });
-      setInternalModSdkHost(runtimeHostCapabilities);
-      setRuntimeModSdkContextProvider(() => ({
-        runtimeHost: runtimeHostCapabilities.runtime,
-        runtime: runtimeHostCapabilities.runtime.getRuntimeHookRuntime(),
-      }));
-
-      const hookRuntime = getRuntimeHookRuntime();
-      hookRuntime.setMissingDataCapabilityResolver(async (capability) => {
-        if (!isCoreWorldDataCapability(capability)) {
-          return false;
-        }
-        await ensureCoreWorldDataCapabilitiesRegistered();
-        return hookRuntime.listDataCapabilities().includes(capability);
-      });
-      await ensureCoreWorldDataCapabilitiesRegistered();
-
-      shouldSchedulePostReadyRuntimeModHydration = true;
-      registerExternalAgentTier1Actions(hookRuntime);
       startNonCriticalBootstrapStep({
         flowId,
         step: 'external agent action bridge startup',
@@ -630,10 +557,6 @@ export function bootstrapRuntime(): Promise<void> {
         task: resyncExternalAgentActionDescriptors(),
       });
     } else {
-      appStore.setLocalManifestSummaries([]);
-      appStore.setRegisteredRuntimeModIds([]);
-      appStore.setRuntimeModFailures([]);
-      appStore.clearRuntimeModHydrationRecords();
       if (macosSmokeContext.disableRuntimeBootstrap) {
         logRendererEvent({
           level: 'info',
@@ -680,13 +603,9 @@ export function bootstrapRuntime(): Promise<void> {
       flowId,
       costMs: Number((performance.now() - startedAt).toFixed(2)),
       details: {
-        runtimeModCount: flags.enableRuntimeBootstrap ? listRegisteredRuntimeModIds().length : 0,
-        postReadyRuntimeModHydrationScheduled: shouldSchedulePostReadyRuntimeModHydration,
+        localAiRuntimeBootstrap: flags.enableRuntimeBootstrap && !macosSmokeContext.disableRuntimeBootstrap,
       },
     });
-    if (shouldSchedulePostReadyRuntimeModHydration) {
-      schedulePostReadyRuntimeModHydration({ flowId });
-    }
   })().catch(async (error) => {
     // D-BOOT-008 + D-OFFLINE-001: Bootstrap failure → L2 degradation
     getOfflineCoordinator().markRuntimeReachable(false);

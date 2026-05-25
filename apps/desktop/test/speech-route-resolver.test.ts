@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createResolveRuntimeBinding } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-resolvers';
-import { type RuntimeRouteBinding } from "@nimiplatform/sdk/mod";
+import { type RuntimeRouteBinding } from "@nimiplatform/sdk/ai";
 function createMockFields(overrides: Partial<{
     provider: string;
     runtimeModelType: string;

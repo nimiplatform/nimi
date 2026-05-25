@@ -1,7 +1,6 @@
 import { RuntimeControlPlaneClient } from '../control-plane/client';
 import { executeLocalKernelTurn } from '../llm-adapter/execution/kernel-turn';
 import type { ExecuteLocalKernelTurnResult } from '../llm-adapter/execution/types';
-import { DesktopHookRuntimeService } from '../hook';
 import { LocalAuditLedger } from './audit/local-audit-ledger';
 import type {
   DecisionRecord,
@@ -51,15 +50,8 @@ export class DesktopExecutionKernelService {
   private readonly crashIsolator = new CrashIsolator();
   private readonly audit = new LocalAuditLedger();
   private readonly contexts = new Map<string, RuntimeContext>();
-  private readonly hookRuntime: DesktopHookRuntimeService;
 
-  constructor(hookRuntime?: DesktopHookRuntimeService) {
-    this.hookRuntime = hookRuntime || new DesktopHookRuntimeService();
-  }
-
-  getHookRuntime(): DesktopHookRuntimeService {
-    return this.hookRuntime;
-  }
+  constructor() {}
 
   async discover(input: DiscoverInput): Promise<{ modId: string; version: string; stageTrail: DecisionRecord[] }> {
     const records: DecisionRecord[] = [];
@@ -109,7 +101,6 @@ export class DesktopExecutionKernelService {
       setLifecycle: (modId, version, state) => this.lifecycle.set(modId, version, state),
       registerInstalled: (modId, version, dependencies) => this.dependency.registerInstalled(modId, version, dependencies),
       setContext: (runtimeKey, context) => this.contexts.set(runtimeKey, context),
-      setCapabilityBaseline: (modId, capabilities) => this.hookRuntime.setCapabilityBaseline(modId, capabilities),
       makeDecision: buildDecisionRecord,
       keyFor: buildContextKey,
       persistStageTrail: (stageTrail, eventType) => persistStageTrailRecords(this.audit, stageTrail, eventType),
@@ -125,7 +116,6 @@ export class DesktopExecutionKernelService {
         if (ctx) ctx.state = state;
       },
       setLifecycle: (modId, version, state) => this.lifecycle.set(modId, version, state),
-      setCapabilityBaseline: (modId, capabilities) => this.hookRuntime.setCapabilityBaseline(modId, capabilities),
       appendAudit: (entry) => this.audit.append(entry),
       keyFor: buildContextKey,
     });
@@ -140,7 +130,6 @@ export class DesktopExecutionKernelService {
         if (ctx) ctx.state = state;
       },
       setLifecycle: (modId, version, state) => this.lifecycle.set(modId, version, state),
-      suspendMod: (modId) => this.hookRuntime.suspendMod(modId),
       appendAudit: (entry) => this.audit.append(entry),
       keyFor: buildContextKey,
     });
@@ -155,7 +144,6 @@ export class DesktopExecutionKernelService {
       unloadModule: (modId, version) => this.loader.unload(modId, version),
       unregisterInstalled: (modId) => this.dependency.unregisterInstalled(modId),
       setLifecycle: (modId, version, state) => this.lifecycle.set(modId, version, state),
-      suspendMod: (modId) => this.hookRuntime.suspendMod(modId),
       resetCrash: (modId) => this.crashIsolator.reset(modId),
       appendAudit: (entry) => this.audit.append(entry),
       keyFor: buildContextKey,
@@ -178,7 +166,6 @@ export class DesktopExecutionKernelService {
   async executeLocalTurn(input: ExecuteLocalTurnInput): Promise<ExecuteLocalKernelTurnResult> {
     return runLocalTurnFlow({
       input,
-      invokeTurnHooks: (turnInput) => this.hookRuntime.invokeTurnHooks(turnInput),
       executeLocalKernelTurn: (runtimeInput) => executeLocalKernelTurn(runtimeInput),
       appendAudit: (entry) => this.audit.append(entry),
       reportCrash: (crashKey) => this.crashIsolator.report(crashKey),

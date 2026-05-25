@@ -2,7 +2,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 
-use crate::runtime_mod::store::{
+use super::store::{
     get_external_agent_token_record, open_db, revoke_external_agent_token_record,
     upsert_external_agent_token_record, ExternalAgentTokenRecordPayload,
 };
@@ -182,7 +182,7 @@ pub async fn issue_token(
             scopes: scopes
                 .iter()
                 .map(
-                    |scope| crate::runtime_mod::store::RuntimeExternalAgentActionScope {
+                    |scope| super::store::ExternalAgentStoredActionScope {
                         action_id: scope.action_id.clone(),
                         ops: scope.ops.clone(),
                     },

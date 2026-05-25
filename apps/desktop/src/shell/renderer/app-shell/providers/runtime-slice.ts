@@ -12,8 +12,8 @@ import {
 } from './desktop-ai-config-service';
 import { getActiveScope } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
 import { bindProjectionRefreshToSurface } from '@renderer/features/chat/conversation-capability-projection';
-import { applyAIProfileToConfig } from '@nimiplatform/sdk/mod';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
+import { applyAIProfileToConfig } from '@nimiplatform/sdk/ai';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
 
 const ROUTE_RELATED_RUNTIME_FIELD_KEYS = new Set([
   'provider',

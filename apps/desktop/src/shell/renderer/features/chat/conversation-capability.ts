@@ -16,23 +16,23 @@
  * and by bootstrap/effects code, not by product-facing UI components.
  */
 import type {
-  ModRuntimeResolvedBinding,
   RuntimeCanonicalCapability,
+  RuntimeResolvedBinding,
   RuntimeRouteBinding,
   RuntimeRouteDescribeResult,
   RuntimeRouteHealthResult,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 import type {
   AIConfig,
   AIRuntimeEvidence,
   AIScopeRef,
   AISnapshot,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 import {
   createAISnapshotExecutionId,
   createAISnapshotRecord,
   createDefaultAIScopeRef,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 
 export const CONVERSATION_CAPABILITIES = [
   'text.generate',
@@ -83,7 +83,7 @@ export type ConversationCapabilityProjectionReasonCode =
 export type ConversationCapabilityProjection = {
   capability: ConversationCapability;
   selectedBinding: RuntimeRouteBinding | null;
-  resolvedBinding: ModRuntimeResolvedBinding | null;
+  resolvedBinding: RuntimeResolvedBinding | null;
   health: RuntimeRouteHealthResult | null;
   metadata: RuntimeRouteDescribeResult | null;
   supported: boolean;
@@ -116,7 +116,7 @@ export type ConversationExecutionSnapshot = {
   createdAt: string;
   capability: ConversationCapability;
   selectedBinding: RuntimeRouteBinding | null;
-  resolvedBinding: ModRuntimeResolvedBinding | null;
+  resolvedBinding: RuntimeResolvedBinding | null;
   health: RuntimeRouteHealthResult | null;
   metadata: RuntimeRouteDescribeResult | null;
   agentResolution: AgentEffectiveCapabilityResolution | null;
@@ -128,7 +128,7 @@ export type ConversationCapabilityRouteRuntime = {
   resolve(input: {
     capability: ConversationCapability;
     binding?: RuntimeRouteBinding;
-  }): Promise<ModRuntimeResolvedBinding>;
+  }): Promise<RuntimeResolvedBinding>;
   checkHealth(input: {
     capability: ConversationCapability;
     binding?: RuntimeRouteBinding;
@@ -283,7 +283,7 @@ export async function buildConversationCapabilityProjection(
     });
   }
 
-  let resolvedBinding: ModRuntimeResolvedBinding;
+  let resolvedBinding: RuntimeResolvedBinding;
   try {
     resolvedBinding = await routeRuntime.resolve({
       capability: input.capability,
@@ -585,8 +585,8 @@ export type {
   AIScopeKind,
   AIScopeRef,
   AISnapshot,
-} from '@nimiplatform/sdk/mod';
-export { applyAIProfileToConfig, createDefaultAIScopeRef, createEmptyAIConfig } from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
+export { applyAIProfileToConfig, createDefaultAIScopeRef, createEmptyAIConfig } from '@nimiplatform/sdk/ai';
 
 export function toConversationCapabilityRouteProjectionFields(
   projection: ConversationCapabilityProjection | null | undefined,

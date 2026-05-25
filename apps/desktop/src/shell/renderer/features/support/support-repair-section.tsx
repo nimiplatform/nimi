@@ -12,8 +12,8 @@ import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   desktopBridge,
+  type DesktopStorageDirs,
   type ProductControlRecordProjection,
-  type RuntimeModStorageDirs,
 } from '@renderer/bridge';
 import {
   NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION,
@@ -31,7 +31,7 @@ import { isRepairRoutedState, RECOVERY_STATE_COPY_KEY } from './support-recovery
 
 interface RepairProjection {
   readonly control: ProductControlRecordProjection;
-  readonly dirs: RuntimeModStorageDirs | null;
+  readonly dirs: DesktopStorageDirs | null;
   readonly dirsError: string | null;
 }
 
@@ -41,10 +41,10 @@ async function loadRepairProjection(): Promise<RepairProjection> {
   // secondary input; its failure is captured inline, not promoted to a
   // whole-section fail-close (repair must stay reachable).
   const control = await desktopBridge.getProductControlRecord();
-  let dirs: RuntimeModStorageDirs | null = null;
+  let dirs: DesktopStorageDirs | null = null;
   let dirsError: string | null = null;
   try {
-    dirs = await desktopBridge.getRuntimeModStorageDirs();
+    dirs = await desktopBridge.getDesktopStorageDirs();
   } catch (error) {
     dirsError = error instanceof Error ? error.message : String(error ?? 'storage dirs unavailable');
   }
@@ -184,7 +184,7 @@ function SupportPointerCard(props: { control: ProductControlRecordProjection }) 
  * or relocates data itself.
  */
 function SupportDataRootCleanupCard(props: {
-  dirs: RuntimeModStorageDirs | null;
+  dirs: DesktopStorageDirs | null;
   dirsError: string | null;
 }) {
   const { t } = useTranslation();

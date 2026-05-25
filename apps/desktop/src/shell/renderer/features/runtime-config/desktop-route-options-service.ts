@@ -1,4 +1,4 @@
-import type { RuntimeCanonicalCapability, RuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/mod';
+import type { RuntimeCanonicalCapability, RuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/ai';
 import { loadRuntimeRouteOptions } from '@renderer/infra/bootstrap/runtime-bootstrap-route-options';
 
 export async function loadDesktopRouteOptions(

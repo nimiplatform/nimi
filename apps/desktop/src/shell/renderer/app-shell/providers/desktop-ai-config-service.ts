@@ -1,12 +1,11 @@
 /**
  * Shared Desktop host AIConfig service (S-AICONF-001~006).
  *
- * Desktop host owns app/mod scope AIConfig and AISnapshot persistence here.
- * Chat, runtime-config, and future mod bridge callers consume this service;
+ * Desktop host owns app scope AIConfig and AISnapshot persistence here.
+ * Chat and runtime-config callers consume this service;
  * none of them own the underlying persistence authority.
  */
 
-import { createModRuntimeClient } from '@nimiplatform/sdk/mod';
 import {
   applyAIProfileToConfig,
   assertAppAIScopeRef,
@@ -34,8 +33,11 @@ import {
   type AISnapshotSurface,
   type AppFirstLaunchAIConfigResult,
   type AppManifestRequirementGap,
-} from '@nimiplatform/sdk/mod';
-import { loadPlatformAIProfileFactoryCatalog } from '@runtime/platform-catalog';
+} from '@nimiplatform/sdk/ai';
+import {
+  loadPlatformAIProfileFactoryCatalog,
+  loadPlatformAIProfileFactoryRows,
+} from '@runtime/platform-catalog';
 import {
   listPersistedScopeKeys,
   loadAIConfigForScope,
@@ -78,7 +80,7 @@ function scopeKey(ref: AIScopeRef): string {
 const configByScope = new Map<string, AIConfig>();
 const materializedScopeKeys = new Set<string>();
 
-const CORE_RUNTIME_MOD_ID = 'core:runtime';
+const CORE_RUNTIME_PROFILE_OWNER_ID = 'core:runtime';
 const DESKTOP_RUNTIME_APP_ID = 'nimi.desktop';
 
 /**
@@ -394,16 +396,12 @@ export async function ensureAppFirstLaunchAIConfig(
 function createAIProfileSurface(): AIProfileSurface {
   return {
     async list(): Promise<AIProfile[]> {
-      const client = createModRuntimeClient(CORE_RUNTIME_MOD_ID);
-      const rawProfiles = await client.local.listProfiles();
-      return rawProfiles.map((p) => toAIProfile(p));
+      return loadPlatformAIProfileFactoryCatalog().map((profile) => cloneAIProfile(profile));
     },
 
     async get(profileId: string): Promise<AIProfile | null> {
-      const client = createModRuntimeClient(CORE_RUNTIME_MOD_ID);
-      const rawProfiles = await client.local.listProfiles();
-      const matched = rawProfiles.find((p) => p.id === profileId);
-      return matched ? toAIProfile(matched) : null;
+      const matched = loadPlatformAIProfileFactoryCatalog().find((profile) => profile.profileId === profileId);
+      return matched ? cloneAIProfile(matched) : null;
     },
 
     validate(profile: AIProfile): AIProfileValidationResult {
@@ -492,12 +490,14 @@ function createAIProfileSurface(): AIProfileSurface {
     },
 
     async resolveLocalDependencies(profileId: string): Promise<unknown[]> {
-      // K-AIEXEC-001: projection from portable AIProfile to LocalProfileDescriptor
-      const client = createModRuntimeClient(CORE_RUNTIME_MOD_ID);
-      const rawProfiles = await client.local.listProfiles();
-      const matched = rawProfiles.find((p) => p.id === profileId);
-      if (!matched?.entries) return [];
-      return matched.entries;
+      const row = loadPlatformAIProfileFactoryRows().find((candidate) => candidate.alias === profileId);
+      if (!row) {
+        return [];
+      }
+      return [
+        ...row.localComputePackRefs.map((ref) => ({ kind: 'local-compute-pack', ref })),
+        ...row.dependencyFamilyRefs.map((ref) => ({ kind: 'dependency-family', ref })),
+      ];
     },
   };
 }
@@ -579,7 +579,7 @@ function createAIConfigSurface(): AIConfigSurface {
       const availabilityResult = await probeConfigAvailability(config, routeRuntime);
       const targets = resolveAIConfigScopeSchedulingTargets(config);
       const schedulingJudgement = targets.length > 0
-        ? await peekAggregateSchedulingJudgement(CORE_RUNTIME_MOD_ID, DESKTOP_RUNTIME_APP_ID, targets)
+        ? await peekAggregateSchedulingJudgement(CORE_RUNTIME_PROFILE_OWNER_ID, DESKTOP_RUNTIME_APP_ID, targets)
         : null;
 
       // Aggregate status projection: combine availability + scheduling.
@@ -608,7 +608,7 @@ function createAIConfigSurface(): AIConfigSurface {
       if (!normalizedTarget) {
         return null;
       }
-      const batchResult = await peekSchedulingBatch(CORE_RUNTIME_MOD_ID, DESKTOP_RUNTIME_APP_ID, [normalizedTarget]);
+      const batchResult = await peekSchedulingBatch(CORE_RUNTIME_PROFILE_OWNER_ID, DESKTOP_RUNTIME_APP_ID, [normalizedTarget]);
       if (!batchResult) {
         return null;
       }
@@ -769,42 +769,22 @@ async function probeConfigAvailability(
 }
 
 // ---------------------------------------------------------------------------
-// Internal: runtime local profile -> AIProfile bridge
+// Internal: factory AIProfile clone
 // ---------------------------------------------------------------------------
 
-function toAIProfile(raw: {
-  id: string;
-  title?: string;
-  description?: string;
-  entries?: Array<{
-    capability?: string;
-    assetId?: string;
-    engine?: string;
-  }>;
-}): AIProfile {
-  const capabilities: AIProfile['capabilities'] = {};
-
-  for (const entry of raw.entries || []) {
-    const cap = entry.capability || 'image.generate';
-    capabilities[cap] = {
-      localProfileRef: { modId: CORE_RUNTIME_MOD_ID, profileId: raw.id },
-      binding: entry.assetId
-        ? {
-          source: 'local' as const,
-          connectorId: '',
-          model: entry.assetId,
-          localModelId: entry.assetId,
-          engine: entry.engine || undefined,
-        }
-        : null,
-    };
-  }
-
+function cloneAIProfile(raw: AIProfile): AIProfile {
   return {
-    profileId: raw.id,
-    title: raw.title || raw.id,
-    description: raw.description || '',
-    tags: [],
-    capabilities,
+    ...raw,
+    tags: [...raw.tags],
+    capabilities: Object.fromEntries(
+      Object.entries(raw.capabilities).map(([capability, intent]) => [
+        capability,
+        intent ? {
+          ...intent,
+          localProfileRef: intent.localProfileRef ? { ...intent.localProfileRef } : undefined,
+          binding: intent.binding ? { ...intent.binding } : intent.binding ?? undefined,
+        } : intent,
+      ]),
+    ),
   };
 }

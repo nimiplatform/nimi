@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type {
-  ModRuntimeResolvedBinding,
   RuntimeCanonicalCapability,
+  RuntimeResolvedBinding,
   RuntimeRouteDescribeResult,
   RuntimeRouteHealthResult,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 import {
   buildConversationCapabilityProjection,
   buildConversationCapabilityProjectionMap,
@@ -20,7 +20,7 @@ import {
 function createLocalResolvedBinding(
   capability: RuntimeCanonicalCapability,
   model: string,
-): ModRuntimeResolvedBinding {
+): RuntimeResolvedBinding {
   return {
     capability,
     source: 'local',
@@ -37,7 +37,7 @@ function createLocalResolvedBinding(
 function createCloudResolvedBinding(
   capability: RuntimeCanonicalCapability,
   model: string,
-): ModRuntimeResolvedBinding {
+): RuntimeResolvedBinding {
   return {
     capability,
     source: 'cloud',
@@ -150,7 +150,7 @@ function createDescribeResult(
 }
 
 function createMockRouteRuntime(overrides?: {
-  resolveResult?: ModRuntimeResolvedBinding;
+  resolveResult?: RuntimeResolvedBinding;
   healthResult?: RuntimeRouteHealthResult;
   describeResult?: RuntimeRouteDescribeResult;
   resolveError?: Error;

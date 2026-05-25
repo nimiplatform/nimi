@@ -512,7 +512,7 @@ export function ContactsView(props: ContactsViewProps) {
           />
         ) : selectedContact ? (
           <div className="flex min-h-full items-center justify-center bg-transparent px-6 py-6">
-            <div className="flex w-full max-w-md flex-col items-center rounded-[28px] border border-white/70 bg-white/76 px-8 py-9 text-center shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]">
+            <div className="nimi-material-glass-regular flex w-full max-w-md flex-col items-center rounded-[28px] border border-white/70 bg-white/76 px-8 py-9 text-center shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]">
               <EntityAvatar
                 imageUrl={selectedContact.avatarUrl}
                 name={selectedContact.displayName}

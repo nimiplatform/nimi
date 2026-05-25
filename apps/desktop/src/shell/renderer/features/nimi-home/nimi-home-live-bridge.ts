@@ -3,7 +3,7 @@
 // Provides the typed surface Nimi Home consumes for factory AIProfile
 // selection, AIProfile apply, and Nimi App registry projection. This
 // module consumes only:
-// - `@nimiplatform/sdk/mod` for `applyAIProfileToConfig` + types
+// - `@nimiplatform/sdk/ai` for `applyAIProfileToConfig` + types
 // - `@nimiplatform/sdk/app` for Nimi App registry typed access
 // - the platform catalog for factory AIProfile rows
 // - the Desktop host `AIConfig` service for atomic config writes
@@ -21,7 +21,7 @@ import {
   applyAIProfileToConfig,
   type AIProfile,
   type AIScopeRef as DesktopAIScopeRef,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 import { localRuntime } from '@runtime/local-runtime';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service.js';
 import { getAppsBridgeProjection } from '@renderer/bridge';

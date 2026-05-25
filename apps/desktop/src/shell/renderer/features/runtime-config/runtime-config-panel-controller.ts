@@ -27,8 +27,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   // D-LLM-021: Runtime Config is an authority editor for AIConfig capability bindings.
   // Uses the store convenience delegate which commits through the AIConfig surface.
   const setConversationCapabilityBinding = useAppStore((state) => state.setConversationCapabilityBinding);
-  const registeredRuntimeModIds = useAppStore((state) => state.registeredRuntimeModIds);
-  const localManifestSummaries = useAppStore((state) => state.localManifestSummaries);
   const [pageFeedback, setPageFeedback] = useState<InlineFeedbackState | null>(null);
   const [connectorTestFeedback, setConnectorTestFeedback] = useState<InlineFeedbackState | null>(null);
 
@@ -37,8 +35,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     state: panelState.state,
     localModelQuery: panelState.localModelQuery,
     connectorModelQuery: panelState.connectorModelQuery,
-    localManifestSummaries,
-    registeredRuntimeModIds,
   });
 
   const commandInput = useMemo(() => ({
@@ -109,7 +105,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   });
 
   const installActions = useRuntimeConfigInstallActions({
-    localManifestSummaries,
+    localManifestSummaries: [],
     refreshLocalSnapshot,
     setStatusBanner: setPageFeedback,
     updateState: panelState.updateState,
@@ -204,7 +200,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     filteredLocalModels: derived.filteredLocalModels,
     filteredConnectorModels: derived.filteredConnectorModels,
     runtimeProfileTargets: derived.runtimeProfileTargets,
-    registeredRuntimeModIds,
+    registeredRuntimeModIds: [],
     runtimeDaemonStatus: daemon.runtimeDaemonStatus,
     runtimeDaemonBusyAction: daemon.runtimeDaemonBusyAction,
     runtimeDaemonError: daemon.runtimeDaemonError,

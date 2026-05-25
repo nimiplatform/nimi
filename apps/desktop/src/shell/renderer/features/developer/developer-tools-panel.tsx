@@ -7,9 +7,9 @@
  * mounted only when admitted Developer Mode is on — the renderer enforces that
  * gate before this panel is ever reached (`main-layout-view.tsx`).
  *
- * The host renders a fixed three-item sub-area sidebar (`D-DEV-003`: mod
- * sources, standalone Tester reference, developer diagnostics) and dispatches
- * the active sub-area. It hosts no ordinary-user product functionality.
+ * The host renders a fixed developer sub-area sidebar (`D-DEV-003`:
+ * standalone Tester reference and developer diagnostics) and dispatches the
+ * active sub-area. It hosts no ordinary-user product functionality.
  */
 
 import { useCallback, useState } from 'react';
@@ -32,14 +32,11 @@ import {
   loadStoredDeveloperToolsSection,
   persistStoredDeveloperToolsSection,
 } from './developer-tools-storage.js';
-import { DeveloperModSourcesSection } from './developer-mod-sources-section.js';
 import { DeveloperTesterSection } from './developer-tester-section.js';
 import { SupportDiagnosticsSection } from '@renderer/features/support/support-diagnostics-section.js';
 
 function renderDeveloperToolsSection(section: DeveloperToolsSectionId) {
   switch (section) {
-    case 'mod-sources':
-      return <DeveloperModSourcesSection />;
     case 'tester':
       return <DeveloperTesterSection />;
     case 'diagnostics':

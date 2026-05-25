@@ -21,8 +21,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AIConfig, AIProfile } from '@nimiplatform/sdk/mod';
-import { applyAIProfileToConfig, validateAIProfile } from '@nimiplatform/sdk/mod';
+import type { AIConfig, AIProfile } from '@nimiplatform/sdk/ai';
+import { applyAIProfileToConfig, validateAIProfile } from '@nimiplatform/sdk/ai';
 import {
   CANONICAL_CAPABILITY_CATALOG,
 } from '@nimiplatform/kit/core/runtime-capabilities';

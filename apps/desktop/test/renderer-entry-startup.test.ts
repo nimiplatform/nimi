@@ -20,7 +20,7 @@ test('renderer entry never mounts the root with a null Suspense fallback', () =>
   assert.match(source, /renderer-entry-import-retry/);
   assert.match(source, /entry:renderer-app/);
   assert.match(source, /entry:app-routes/);
-  assert.match(source, /entry:sdk-mod/);
+  assert.match(source, /entry:sdk-ai/);
   assert.match(source, /renderer-app-import-failed/);
   assert.match(source, /renderer-entry-boundary-caught/);
   assert.match(source, /function EntryRuntimeBootSurface/);

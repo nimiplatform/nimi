@@ -12,7 +12,7 @@
  *  - the Runtime Surface Cleanup table merges are honoured:
  *      recommend + local + catalog            -> Models
  *      data-management + runtime (Operations)  -> Environment
- *      performance + Mods (developer-gated)    -> Advanced
+ *      performance                             -> Advanced
  *  - each of the nine Runtime Ordinary Tasks is reachable in the six-section IA
  *    without raw-log reading.
  *
@@ -194,21 +194,10 @@ test('Environment section absorbs data-management + runtime operations', () => {
   assert.match(environmentPageSource, /runtime-environment-pane:data/);
 });
 
-test('Advanced section absorbs performance and developer-gates Mods', () => {
-  // performance + developer-gated mods -> advanced
+test('Advanced section absorbs performance and excludes retired Mods', () => {
+  // performance -> advanced; Mods is retired, not developer-gated.
   assert.match(advancedPageSource, /PerformancePage/, 'Advanced absorbs the performance surface');
-  assert.match(advancedPageSource, /ModsPage/, 'Advanced hosts the developer-gated Mods surface');
-  // Mods is NOT ordinary: it only renders when Developer Mode is enabled.
-  assert.match(advancedPageSource, /developerMode/);
-  assert.match(
-    advancedPageSource,
-    /subTab === 'developer' && developerMode/,
-    'Mods pane must be guarded by the developerMode gate',
-  );
-  // When Developer Mode is off, the Developer sub-tab is never even listed.
-  assert.match(advancedPageSource, /if \(developerMode\) \{[\s\S]*?subTabs\.push/);
-  // And an active Developer tab falls back to Preferences when the gate drops.
-  assert.match(advancedPageSource, /!developerMode && subTab === 'developer'/);
+  assert.doesNotMatch(advancedPageSource, /ModsPage|developerMode|runtime-advanced-pane:developer/);
 });
 
 test('sidebar locale bundle exposes the six section labels and no retired label', () => {

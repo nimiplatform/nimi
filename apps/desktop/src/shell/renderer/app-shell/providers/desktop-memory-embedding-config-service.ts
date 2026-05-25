@@ -21,7 +21,7 @@ import {
   type MemoryEmbeddingRuntimeState,
   type MemoryEmbeddingRuntimeSurface,
   type MemoryEmbeddingBindOutcome,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
 import {

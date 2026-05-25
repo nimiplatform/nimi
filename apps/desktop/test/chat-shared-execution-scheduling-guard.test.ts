@@ -7,7 +7,7 @@ import {
   createEmptyAIConfig,
   type AIConfig,
   type AISchedulingJudgement,
-} from '@nimiplatform/sdk/mod';
+} from '@nimiplatform/sdk/ai';
 import { getDesktopAIConfigService } from '../src/shell/renderer/app-shell/providers/desktop-ai-config-service.js';
 import {
   isBusySlowdownRisk,
