@@ -26,8 +26,8 @@ cited below.
 - generated developer-repository scaffold requirements;
 - managed-file taxonomy for package-owned projections, scaffold-managed glue,
   and app-owned product code;
-- `nimi-app create`, `nimi-app doctor`, and `nimi-app update` authoring command
-  semantics;
+- `nimi-app create`, `nimi-app init`, `nimi-app doctor`, and
+  `nimi-app update` authoring command semantics;
 - the local-evidence acceptance harness role for this scaffolding topic;
 - the A5 dependency that default scaffold content must not import
   `kit/features/model-test` until a kit-owned follow-up closes.
@@ -71,7 +71,7 @@ are authoritative for this scaffolding contract:
 
 | Decision | Accepted input |
 |---|---|
-| A0 | App authoring CLI authority stays `nimi-app create|doctor|update`; it does not move under the runtime-occupied `nimi app send|watch` namespace. |
+| A0 | App authoring CLI authority stays `nimi-app create|init|doctor|update`; it does not move under the runtime-occupied `nimi app send|watch` namespace. |
 | A1 | Public Rust crate delivery name is `nimi-shell-tauri`; standalone targets the published crate channel after Wave 1 cuts API/publication mechanics, and workspace apps use Cargo path dependency. |
 | A2 | SDK auth cuts a generated-app helper shape with modes `local-first-party`, `third-party-nimi-app`, and `dev-standalone`; third-party apps must not reuse first-party helper paths as self-declared first-party. |
 | A3 | Explicit `workspace-app` scaffolding may auto-write monorepo app-slice admission under `P-APP-*`; standalone scaffolding never writes admitted truth. |
@@ -170,6 +170,7 @@ scaffold cannot update or diagnose.
 `MUST`: the admitted app-authoring command family is:
 
 - `nimi-app create`;
+- `nimi-app init`;
 - `nimi-app doctor`;
 - `nimi-app update`.
 
@@ -182,7 +183,26 @@ templates, build profiles, pack/publish flow, public admission, or scaffold
 doctor/update semantics. Runtime CLI owns only the negative boundary recorded
 by `K-CLI-009` and `K-CLI-009a`.
 
-## P-SCAF-009 — Doctor And Update Semantics
+## P-SCAF-009 — Init, Doctor, And Update Semantics
+
+`MUST`: `nimi-app create` writes the app source skeleton and an explicit
+app-scaffold initialization intent only. It must not copy package-owned
+`.nimi/{config,contracts,methodology}/**` projections from app-tools templates.
+
+`MUST`: `nimi-app init` is the explicit post-install scaffold activation step.
+It runs the pinned local `pnpm exec nimicoding sync --apply --json` projection
+for package-owned `.nimi/{config,contracts,methodology}/**` files, then writes
+app-scaffold admission/build-profile/lock state under app-scaffold-owned or
+developer-submitted input paths.
+
+`MUST`: `nimi-app init` consumes installed dependency state. It may be composed
+by higher-level app-tools flows, but installation itself must not mutate
+`.nimi/**` through hidden postinstall side effects.
+
+`MUST NOT`: `nimi-app init` must not call interactive or project-reconstruction
+oriented `nimicoding start` as the scaffold projection primitive. `nimicoding
+start` may remain a user-facing generic onboarding entrypoint, but app scaffold
+initialization requires deterministic sync/app-init semantics.
 
 `MUST`: `nimi-app doctor` operates on developer scaffold state. It may inspect
 scaffold lock/version state, managed-region drift, dependency version matrix,
@@ -195,21 +215,23 @@ developer-side local audit dry-run readiness.
 dependency versions under an admitted version matrix, rewrite managed files or
 regions, and apply admitted codemods. It must preserve app-owned product code.
 
-`MUST`: doctor and update must fail closed on drift, conflicts, mixed-version
-state, stale auth/session claims, or unsupported scaffold versions.
+`MUST`: init, doctor, and update must fail closed on drift, conflicts,
+mixed-version state, stale auth/session claims, unsupported scaffold versions,
+missing installed nimicoding projection, or stale package-owned projection
+state.
 
-`MUST NOT`: doctor output, update output, local audit dry-run output, endpoint
-reachability, file existence, or local build success must be projected as
-public admission, ordinary-user installed-app update, installed-app health,
-launch readiness, rollback truth, or kill-switch truth. Runtime app lifecycle
-truth remains `K-APP-*`; public admission and review truth remain `P-NAPP-*`
-and `P-AUDIT-*`.
+`MUST NOT`: init output, doctor output, update output, local audit dry-run
+output, endpoint reachability, file existence, or local build success must be
+projected as public admission, ordinary-user installed-app update,
+installed-app health, launch readiness, rollback truth, or kill-switch truth.
+Runtime app lifecycle truth remains `K-APP-*`; public admission and review
+truth remain `P-NAPP-*` and `P-AUDIT-*`.
 
 ## P-SCAF-010 — Nimicoding Projection Ownership
 
 `MUST`: package-owned `.nimi/{config,contracts,methodology}/**` projections in
 generated repositories remain owned by the external `@nimiplatform/nimi-coding`
-package. Host repositories consume them through `pnpm exec nimicoding` and
+package. Host repositories consume them through `pnpm exec nimicoding sync` and
 admitted generated projections.
 
 `MUST`: generated scaffolds must keep host-local truth under the generated

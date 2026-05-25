@@ -77,17 +77,17 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; command implementation evidence lands with app-authoring CLI waves
+    evidence_scope_note: structural only; create/init/doctor/update implementation evidence lands with app-authoring CLI waves
   - rule_id: P-SCAF-009
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; doctor/update behavior evidence lands with scaffold doctor/update and reference-app proof waves
+    evidence_scope_note: structural only; init/doctor/update behavior evidence lands with scaffold init/doctor/update and reference-app proof waves
   - rule_id: P-SCAF-010
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; nimicoding projection evidence lands with generator and doctor checks invoking packaged nimicoding
+    evidence_scope_note: structural only; nimicoding projection evidence lands with init and doctor checks invoking packaged nimicoding sync
   - rule_id: P-SCAF-011
     evidence_refs:
       - platform_kernel_consistency
