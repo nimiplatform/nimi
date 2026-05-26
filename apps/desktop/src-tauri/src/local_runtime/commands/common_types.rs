@@ -23,14 +23,6 @@ pub struct LocalAiAssetsInstallPayload {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiModelsCatalogSearchPayload {
-    pub query: Option<String>,
-    pub capability: Option<String>,
-    pub limit: Option<usize>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct LocalAiRecommendationFeedGetPayload {
     pub capability: Option<String>,
     pub page_size: Option<usize>,
@@ -40,24 +32,6 @@ pub struct LocalAiRecommendationFeedGetPayload {
 #[serde(rename_all = "camelCase")]
 pub struct LocalAiModelsCatalogListVariantsPayload {
     pub repo: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiModelsCatalogResolveInstallPlanPayload {
-    pub item_id: Option<String>,
-    pub source: Option<String>,
-    pub template_id: Option<String>,
-    pub model_id: Option<String>,
-    pub repo: Option<String>,
-    pub revision: Option<String>,
-    pub capabilities: Option<Vec<String>>,
-    pub engine: Option<String>,
-    pub entry: Option<String>,
-    pub files: Option<Vec<String>>,
-    pub license: Option<String>,
-    pub hashes: Option<std::collections::HashMap<String, String>>,
-    pub endpoint: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

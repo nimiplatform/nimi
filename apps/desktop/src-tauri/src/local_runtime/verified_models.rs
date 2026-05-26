@@ -172,6 +172,7 @@ pub fn verified_model_list() -> Vec<LocalAiVerifiedModelDescriptor> {
     ]
 }
 
+#[cfg(test)]
 pub fn find_verified_model(template_id: &str) -> Option<LocalAiVerifiedModelDescriptor> {
     let normalized = template_id.trim();
     if normalized.is_empty() {

@@ -33,6 +33,7 @@ pub struct LocalAiVerifiedModelDescriptor {
     pub engine_config: Option<serde_json::Value>,
 }
 
+#[cfg(test)]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum LocalAiEngineRuntimeMode {
@@ -53,6 +54,7 @@ pub struct CatalogVariantDescriptor {
     pub recommendation: Option<LocalAiRecommendationDescriptor>,
 }
 
+#[cfg(test)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalAiCatalogItemDescriptor {
@@ -84,6 +86,7 @@ pub struct LocalAiCatalogItemDescriptor {
     pub recommendation: Option<LocalAiRecommendationDescriptor>,
 }
 
+#[cfg(test)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalAiInstallPlanDescriptor {

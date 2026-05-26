@@ -1,34 +1,50 @@
-use super::import_validator::{normalize_and_validate_capabilities, validate_loopback_endpoint};
+use super::import_validator::normalize_and_validate_capabilities;
+#[cfg(test)]
+use super::import_validator::validate_loopback_endpoint;
+#[cfg(test)]
 use super::recommendation::{build_catalog_recommendation, build_recommendation_candidate};
+#[cfg(test)]
+use super::types::slugify_local_model_id;
+use super::types::{CatalogVariantDescriptor, LocalAiDeviceProfile};
+#[cfg(test)]
 use super::types::{
-    slugify_local_model_id, CatalogVariantDescriptor, LocalAiCatalogItemDescriptor,
-    LocalAiDeviceProfile, LocalAiInstallPlanDescriptor, LocalAiVerifiedModelDescriptor,
+    LocalAiCatalogItemDescriptor, LocalAiInstallPlanDescriptor, LocalAiVerifiedModelDescriptor,
 };
-use super::verified_models::{find_verified_model, verified_model_list};
+#[cfg(test)]
+use super::verified_models::find_verified_model;
+#[cfg(test)]
+use super::verified_models::verified_model_list;
+#[cfg(test)]
 use std::collections::HashMap;
 
 mod huggingface;
 mod shared;
 
 #[cfg(test)]
-use self::huggingface::{fetch_hf_model_details, fetch_hf_search_models};
 use self::huggingface::{
-    fetch_hf_model_details_async, fetch_hf_search_models_async, hf_search_to_catalog_item,
-    infer_capabilities, infer_license, known_total_size_bytes,
-    list_repo_catalog_variants_from_details, match_catalog_capability, match_catalog_query,
-    normalize_hf_repo_slug, normalize_search_query, resolve_hashes_for_files, select_entry_file,
-    select_install_files, sibling_size_bytes,
+    fetch_hf_model_details, fetch_hf_search_models, hf_search_to_catalog_item, infer_license,
+    known_total_size_bytes, match_catalog_capability, match_catalog_query, normalize_hf_repo_slug,
+    normalize_search_query, resolve_hashes_for_files, select_entry_file, select_install_files,
+    sibling_size_bytes,
+};
+use self::huggingface::{
+    fetch_hf_model_details_async, infer_capabilities, list_repo_catalog_variants_from_details,
 };
 #[cfg(test)]
 use self::huggingface::{hf_api_base_url, normalize_hf_file_path, HfModelSibling};
+use self::shared::infer_engine;
+#[cfg(test)]
+use self::shared::{default_endpoint_for_engine, normalize_install_limit};
+#[cfg(test)]
 use self::shared::{
-    default_endpoint_for_engine, infer_engine, install_available_for_engine,
-    normalize_install_limit, normalize_non_empty, provider_hints_for_capabilities,
+    install_available_for_engine, normalize_non_empty, provider_hints_for_capabilities,
     runtime_mode_for_engine,
 };
 
+#[cfg(test)]
 include!("install_plan.rs");
 
+#[cfg(test)]
 #[derive(Debug, Clone, Default)]
 pub struct LocalAiCatalogResolveInput {
     pub item_id: Option<String>,
@@ -45,6 +61,8 @@ pub struct LocalAiCatalogResolveInput {
     pub hashes: Option<HashMap<String, String>>,
     pub endpoint: Option<String>,
 }
+
+#[cfg(test)]
 fn verified_descriptor_to_catalog_item(
     descriptor: LocalAiVerifiedModelDescriptor,
     profile: &LocalAiDeviceProfile,
@@ -163,63 +181,6 @@ pub fn search_catalog(
 
     for item in filtered.iter_mut() {
         hydrate_catalog_item_for_recommendation(item, profile)?;
-    }
-
-    Ok(filtered)
-}
-
-pub async fn search_catalog_async(
-    query: Option<&str>,
-    capability: Option<&str>,
-    limit: usize,
-    profile: &LocalAiDeviceProfile,
-) -> Result<Vec<LocalAiCatalogItemDescriptor>, String> {
-    let normalized_query = normalize_search_query(query);
-    let normalized_capability = normalize_non_empty(capability);
-    let normalized_limit = normalize_install_limit(limit);
-
-    let mut merged = verified_model_list()
-        .into_iter()
-        .map(|descriptor| verified_descriptor_to_catalog_item(descriptor, profile))
-        .collect::<Vec<_>>();
-
-    let hf_rows =
-        fetch_hf_search_models_async(normalized_query.as_str(), normalized_limit * 2).await?;
-    merged.extend(
-        hf_rows
-            .into_iter()
-            .filter_map(|item| hf_search_to_catalog_item(item, profile)),
-    );
-
-    let mut filtered = merged
-        .into_iter()
-        .filter(|item| match_catalog_query(item, normalized_query.as_str()))
-        .filter(|item| {
-            if let Some(capability_filter) = normalized_capability.as_ref() {
-                return match_catalog_capability(item, capability_filter.as_str());
-            }
-            true
-        })
-        .collect::<Vec<_>>();
-
-    filtered.sort_by(|left, right| {
-        let left_rank = if left.verified { 0 } else { 1 };
-        let right_rank = if right.verified { 0 } else { 1 };
-        if left_rank != right_rank {
-            return left_rank.cmp(&right_rank);
-        }
-
-        left.title
-            .to_ascii_lowercase()
-            .cmp(&right.title.to_ascii_lowercase())
-    });
-
-    if filtered.len() > normalized_limit {
-        filtered.truncate(normalized_limit);
-    }
-
-    for item in filtered.iter_mut() {
-        hydrate_catalog_item_for_recommendation_async(item, profile).await?;
     }
 
     Ok(filtered)

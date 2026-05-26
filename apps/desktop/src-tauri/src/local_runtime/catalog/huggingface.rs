@@ -1,15 +1,20 @@
-use std::collections::{HashMap, HashSet};
+#[cfg(test)]
+use std::collections::HashMap;
+use std::collections::HashSet;
 use std::time::Duration;
 
 use serde::Deserialize;
 
 use super::super::hf_source::hf_download_base_url;
 use super::super::recommendation::recommend_variant_list;
-use super::super::types::{
-    CatalogVariantDescriptor, LocalAiCatalogItemDescriptor, LocalAiDeviceProfile,
-};
+#[cfg(test)]
+use super::super::types::LocalAiCatalogItemDescriptor;
+use super::super::types::{CatalogVariantDescriptor, LocalAiDeviceProfile};
+#[cfg(test)]
+use super::shared::infer_engine;
+#[cfg(test)]
 use super::shared::{
-    default_endpoint_for_engine, infer_engine, install_available_for_engine, normalize_non_empty,
+    default_endpoint_for_engine, install_available_for_engine, normalize_non_empty,
     provider_hints_for_capabilities, runtime_mode_for_engine,
 };
 
@@ -19,6 +24,7 @@ pub(super) fn hf_api_base_url() -> String {
     format!("{}/api/models", hf_download_base_url())
 }
 
+#[cfg(test)]
 #[derive(Debug, Deserialize)]
 pub(super) struct HfSearchModel {
     #[serde(default)]
@@ -41,6 +47,7 @@ pub(super) struct HfSearchModel {
 pub(super) struct HfModelDetails {
     #[serde(default)]
     pub(super) id: String,
+    #[cfg(test)]
     #[serde(default)]
     pub(super) sha: Option<String>,
     #[serde(default)]
@@ -67,6 +74,7 @@ pub(super) struct HfModelLfs {
     pub(super) size: Option<u64>,
 }
 
+#[cfg(test)]
 pub(super) fn normalize_hf_repo_slug(input: &str) -> Option<String> {
     let raw = input.trim();
     if raw.is_empty() {
@@ -117,6 +125,7 @@ pub(super) fn normalize_hf_repo_slug(input: &str) -> Option<String> {
     (!is_reserved_local_catalog_ref(repo.as_str())).then_some(repo)
 }
 
+#[cfg(test)]
 fn is_reserved_local_catalog_ref(input: &str) -> bool {
     let lower = input.trim().to_ascii_lowercase();
     lower.starts_with("local-import/")
@@ -196,6 +205,7 @@ pub(super) fn infer_capabilities(pipeline_tag: Option<&str>, tags: &[String]) ->
     output
 }
 
+#[cfg(test)]
 pub(super) fn match_catalog_query(item: &LocalAiCatalogItemDescriptor, query: &str) -> bool {
     let normalized = query.trim().to_ascii_lowercase();
     if normalized.is_empty() {
@@ -220,6 +230,7 @@ pub(super) fn match_catalog_query(item: &LocalAiCatalogItemDescriptor, query: &s
             .any(|tag| tag.to_ascii_lowercase().contains(normalized.as_str()))
 }
 
+#[cfg(test)]
 pub(super) fn match_catalog_capability(
     item: &LocalAiCatalogItemDescriptor,
     capability: &str,
@@ -231,6 +242,7 @@ pub(super) fn match_catalog_capability(
     item.capabilities.iter().any(|value| value == &normalized)
 }
 
+#[cfg(test)]
 pub(super) fn normalize_search_query(query: Option<&str>) -> String {
     query
         .map(|value| value.trim().to_string())
@@ -296,46 +308,6 @@ pub(super) fn fetch_hf_search_models(
     }
 
     let body = response.text().map_err(|error| {
-        format!(
-            "LOCAL_AI_CATALOG_HF_SEARCH_FAILED: failed to read huggingface search payload: {error}"
-        )
-    })?;
-    serde_json::from_str::<Vec<HfSearchModel>>(body.as_str()).map_err(|error| {
-        format!("LOCAL_AI_CATALOG_HF_SEARCH_FAILED: invalid huggingface search payload: {error}")
-    })
-}
-
-pub(super) async fn fetch_hf_search_models_async(
-    query: &str,
-    limit: usize,
-) -> Result<Vec<HfSearchModel>, String> {
-    let client = build_hf_async_client()?;
-    let api_base = hf_api_base_url();
-    let response = client
-        .get(&api_base)
-        .query(&[
-            ("search", query),
-            ("limit", &limit.to_string()),
-            ("full", "true"),
-            ("sort", "downloads"),
-            ("direction", "-1"),
-        ])
-        .header(reqwest::header::USER_AGENT, hf_user_agent())
-        .send()
-        .await
-        .map_err(|error| {
-            format!("LOCAL_AI_CATALOG_HF_SEARCH_FAILED: huggingface search request failed: {error}")
-        })?;
-
-    if !response.status().is_success() {
-        return Err(format!(
-            "LOCAL_AI_CATALOG_HF_SEARCH_FAILED: huggingface search status={} query={} ",
-            response.status().as_u16(),
-            query
-        ));
-    }
-
-    let body = response.text().await.map_err(|error| {
         format!(
             "LOCAL_AI_CATALOG_HF_SEARCH_FAILED: failed to read huggingface search payload: {error}"
         )
@@ -415,6 +387,7 @@ pub(super) async fn fetch_hf_model_details_async(repo: &str) -> Result<HfModelDe
     })
 }
 
+#[cfg(test)]
 pub(super) fn hf_search_to_catalog_item(
     item: HfSearchModel,
     profile: &LocalAiDeviceProfile,
@@ -469,10 +442,12 @@ pub(super) fn hf_search_to_catalog_item(
     })
 }
 
+#[cfg(test)]
 pub(super) fn sibling_size_bytes(sibling: &HfModelSibling) -> Option<u64> {
     sibling.lfs.as_ref().and_then(|value| value.size)
 }
 
+#[cfg(test)]
 pub(super) fn known_total_size_bytes(siblings: &[HfModelSibling], files: &[String]) -> Option<u64> {
     let mut total = 0_u64;
     let mut any = false;
@@ -519,6 +494,7 @@ pub(super) fn normalize_hf_file_path(value: &str) -> Option<String> {
     Some(normalized)
 }
 
+#[cfg(test)]
 pub(super) fn select_entry_file(
     siblings: &[HfModelSibling],
     manual_entry: Option<&str>,
@@ -634,6 +610,7 @@ pub(super) fn select_install_files(
     output
 }
 
+#[cfg(test)]
 pub(super) fn resolve_hashes_for_files(
     siblings: &[HfModelSibling],
     files: &[String],
@@ -671,6 +648,7 @@ pub(super) fn resolve_hashes_for_files(
     output
 }
 
+#[cfg(test)]
 pub(super) fn infer_license(tags: &[String], manual: Option<&str>) -> String {
     if let Some(manual_value) = normalize_non_empty(manual) {
         return manual_value;

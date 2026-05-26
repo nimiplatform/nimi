@@ -206,24 +206,9 @@ commands:
     description: Import a local asset from an asset.manifest.json file
     source_rule: D-IPC-011
 
-  - command: runtime_local_models_catalog_search
-    module: local-runtime
-    description: Host catalog helper; catalog/install-plan truth must remain runtime-owned
-    source_rule: D-IPC-011
-
   - command: runtime_local_models_catalog_list_variants
     module: local-runtime
     description: Host catalog helper for model variants; not a local model state truth source
-    source_rule: D-IPC-011
-
-  - command: runtime_local_models_catalog_resolve_install_plan
-    module: local-runtime
-    description: Host install-plan helper; product install-plan truth must remain runtime-owned
-    source_rule: D-IPC-011
-
-  - command: runtime_local_device_profile_collect
-    module: local-runtime
-    description: Collect local device profile (CPU/GPU/NPU/disk/ports)
     source_rule: D-IPC-011
 
   - command: runtime_local_recommendation_feed_get

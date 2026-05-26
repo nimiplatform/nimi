@@ -1,19 +1,26 @@
+#[cfg(test)]
 use super::super::provider_adapter::{
     default_provider_hints_for_provider_capability, provider_from_engine,
 };
+#[cfg(test)]
 use super::super::recommendation::{
     add_host_support_to_provider_hints, auto_runtime_mode_for_engine,
     install_available_for_runtime_mode,
 };
+#[cfg(test)]
 use super::super::service_artifacts::find_service_artifact;
+use super::super::types::{default_preferred_engine_for_capabilities, normalize_local_engine};
+#[cfg(test)]
 use super::super::types::{
-    default_preferred_engine_for_capabilities, normalize_local_engine, LocalAiDeviceProfile,
-    LocalAiEngineRuntimeMode, LocalAiProviderHints, DEFAULT_LOCAL_ENDPOINT,
+    LocalAiDeviceProfile, LocalAiEngineRuntimeMode, LocalAiProviderHints, DEFAULT_LOCAL_ENDPOINT,
 };
 
+#[cfg(test)]
 pub(super) const HF_SEARCH_LIMIT_MIN: usize = 1;
+#[cfg(test)]
 pub(super) const HF_SEARCH_LIMIT_MAX: usize = 80;
 
+#[cfg(test)]
 pub(super) fn normalize_non_empty(value: Option<&str>) -> Option<String> {
     let normalized = value.unwrap_or_default().trim();
     if normalized.is_empty() {
@@ -23,10 +30,12 @@ pub(super) fn normalize_non_empty(value: Option<&str>) -> Option<String> {
     }
 }
 
+#[cfg(test)]
 pub(super) fn normalize_install_limit(value: usize) -> usize {
     value.clamp(HF_SEARCH_LIMIT_MIN, HF_SEARCH_LIMIT_MAX)
 }
 
+#[cfg(test)]
 pub(super) fn runtime_mode_for_engine(
     engine: &str,
     profile: &LocalAiDeviceProfile,
@@ -34,6 +43,7 @@ pub(super) fn runtime_mode_for_engine(
     auto_runtime_mode_for_engine(engine, profile)
 }
 
+#[cfg(test)]
 pub(super) fn install_available_for_engine(
     engine: &str,
     runtime_mode: &LocalAiEngineRuntimeMode,
@@ -43,6 +53,7 @@ pub(super) fn install_available_for_engine(
     install_available_for_runtime_mode(engine, runtime_mode, endpoint, profile)
 }
 
+#[cfg(test)]
 fn service_artifact_preflight_port(service_identity: &str) -> Option<u16> {
     let artifact = find_service_artifact(service_identity)?;
     artifact.preflight.iter().find_map(|rule| {
@@ -58,6 +69,7 @@ fn service_artifact_preflight_port(service_identity: &str) -> Option<u16> {
     })
 }
 
+#[cfg(test)]
 pub(super) fn default_endpoint_for_engine(engine: &str) -> String {
     let port = service_artifact_preflight_port(engine);
     if let Some(port) = port {
@@ -97,6 +109,7 @@ pub(super) fn infer_engine(repo: &str, tags: &[String], capabilities: &[String])
     )
 }
 
+#[cfg(test)]
 pub(super) fn provider_hints_for_capabilities(
     capabilities: &[String],
     engine: &str,

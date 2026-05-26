@@ -1,15 +1,17 @@
 use llmfit_core::fit::{FitLevel as LlmFitLevel, ModelFit, RunMode as LlmRunMode};
 use llmfit_core::hardware::{GpuBackend, SystemSpecs};
 use llmfit_core::models::{quant_bpp, Capability as LlmCapability, LlmModel, ModelFormat, UseCase};
+#[cfg(test)]
 use serde_json::json;
 
 use super::types::{
-    CatalogVariantDescriptor, LocalAiDeviceProfile, LocalAiEngineRuntimeMode,
-    LocalAiHostSupportClass, LocalAiHostSupportDescriptor, LocalAiMemoryModel,
-    LocalAiProviderHints, LocalAiRecommendationBaseline, LocalAiRecommendationConfidence,
-    LocalAiRecommendationDescriptor, LocalAiRecommendationFormat, LocalAiRecommendationSource,
-    LocalAiRecommendationTier, LocalAiSuggestedAsset,
+    CatalogVariantDescriptor, LocalAiDeviceProfile, LocalAiHostSupportClass,
+    LocalAiHostSupportDescriptor, LocalAiMemoryModel, LocalAiRecommendationBaseline,
+    LocalAiRecommendationConfidence, LocalAiRecommendationDescriptor, LocalAiRecommendationFormat,
+    LocalAiRecommendationSource, LocalAiRecommendationTier, LocalAiSuggestedAsset,
 };
+#[cfg(test)]
+use super::types::{LocalAiEngineRuntimeMode, LocalAiProviderHints};
 use super::verified_assets::verified_asset_list;
 
 pub const REASON_BASELINE_IMAGE_DEFAULT_V1: &str = "baseline_image_default_v1";
@@ -180,6 +182,7 @@ pub fn classify_host_support(
     }
 }
 
+#[cfg(test)]
 pub fn auto_runtime_mode_for_engine(
     engine: &str,
     profile: &LocalAiDeviceProfile,
@@ -192,6 +195,7 @@ pub fn auto_runtime_mode_for_engine(
     }
 }
 
+#[cfg(test)]
 pub fn install_available_for_runtime_mode(
     engine: &str,
     runtime_mode: &LocalAiEngineRuntimeMode,
@@ -209,6 +213,7 @@ pub fn install_available_for_runtime_mode(
     }
 }
 
+#[cfg(test)]
 pub fn add_host_support_to_provider_hints(
     hints: Option<LocalAiProviderHints>,
     engine: &str,

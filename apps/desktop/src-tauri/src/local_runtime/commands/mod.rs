@@ -5,15 +5,11 @@ use tauri::{AppHandle, Emitter};
 
 use super::audit::{
     append_audit_event, EVENT_DEPENDENCY_RESOLVE_FAILED, EVENT_DEPENDENCY_RESOLVE_INVOKED,
-    EVENT_MODEL_CATALOG_SEARCH_FAILED, EVENT_MODEL_CATALOG_SEARCH_INVOKED,
     EVENT_MODEL_FILE_IMPORT_STARTED, EVENT_MODEL_IMPORT_VALIDATED,
     EVENT_RECOMMENDATION_RESOLVE_COMPLETED, EVENT_RECOMMENDATION_RESOLVE_FAILED,
     EVENT_RECOMMENDATION_RESOLVE_INVOKED, EVENT_RUNTIME_MODEL_READY_AFTER_INSTALL,
 };
-use super::catalog::{
-    list_catalog_variants_async, resolve_install_plan_async as resolve_catalog_install_plan_async,
-    search_catalog_async, LocalAiCatalogResolveInput,
-};
+use super::catalog::list_catalog_variants_async;
 use super::device_profile::collect_device_profile_async;
 use super::download_manager;
 use super::import_validator::{
@@ -33,9 +29,8 @@ use super::types::{
     is_runnable_asset_kind, normalize_local_engine, now_iso_timestamp, resolved_model_dir,
     runtime_managed_asset_dir, runtime_managed_asset_manifest_path, slugify_local_model_id,
     CatalogVariantDescriptor, LocalAiAssetDeclaration, LocalAiAssetHealth, LocalAiAssetKind,
-    LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus, LocalAiCatalogItemDescriptor,
-    LocalAiDeviceProfile, LocalAiDownloadProgressEvent, LocalAiDownloadState,
-    LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiIntegrityMode,
+    LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus, LocalAiDownloadProgressEvent,
+    LocalAiDownloadState, LocalAiInstallRequest, LocalAiIntegrityMode,
     LocalAiRecommendationFeedDescriptor, LocalAiRuntimeState, LocalAiSuggestionConfidence,
     LocalAiSuggestionSource, LocalAiTransferSessionKind, LocalAiUnregisteredAssetDescriptor,
     LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,

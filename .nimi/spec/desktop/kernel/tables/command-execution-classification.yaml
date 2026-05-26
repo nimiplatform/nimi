@@ -306,11 +306,8 @@ registered_command_families:
   - family: local_runtime_catalog_and_feed
     match:
       exact:
-        - runtime_local_models_catalog_search
         - runtime_local_models_catalog_list_variants
-        - runtime_local_models_catalog_resolve_install_plan
         - runtime_local_recommendation_feed_get
-        - runtime_local_device_profile_collect
     origin_crate: apps/desktop/src-tauri
     owner_domain: local-runtime-catalog
     execution_class: request_response_async

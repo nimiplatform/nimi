@@ -111,9 +111,6 @@ export {
 // runtime_local_assets_health
 // runtime_local_assets_reveal_in_folder
 // runtime_local_assets_reveal_root_folder
-// runtime_local_models_catalog_search
-// runtime_local_models_catalog_resolve_install_plan
-// runtime_local_device_profile_collect
 // runtime_local_assets_scan_unregistered
 
 function toInt64String(value: unknown): string {

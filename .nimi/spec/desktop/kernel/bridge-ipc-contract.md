@@ -218,7 +218,7 @@ cloud 路径必须固定经由 Runtime connector APIs；Desktop 不得恢复 leg
 
 Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`），命令集统一使用 `runtime_local_*` 前缀（`local_runtime::commands`）：
 
-Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_local_models_*` / `runtime_local_artifacts_*` CRUD/lifecycle 命令不再注册，也不得作为 shipped helper 保留。例外：catalog 搜索命令保留 `runtime_local_models_catalog_*` 前缀（对应 proto `SearchCatalogModels` / `ResolveModelInstallPlan`，搜索对象是 model catalog entry 而非 asset inventory）：
+Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_local_models_*` / `runtime_local_artifacts_*` CRUD/lifecycle 命令不再注册，也不得作为 shipped helper 保留。例外：variant helper 保留 `runtime_local_models_catalog_list_variants` 前缀；搜索与 install-plan 必须走 SDK `RuntimeLocalService` typed API：
 
 - `runtime_local_assets_install` / `runtime_local_assets_install_verified`：asset 安装，权威执行面为 `RuntimeLocalService`。
 - `runtime_local_assets_import` / `runtime_local_assets_import_file` / `runtime_local_assets_import_bundle`：asset 导入，权威执行面为 `RuntimeLocalService`。
@@ -232,10 +232,7 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 - `runtime_local_pick_asset_manifest_path`：统一选取 `resolved/<local-asset-id>/asset.manifest.json`。
 - `runtime_local_pick_asset_directory`：选取 bundle 目录，供 bundle import / rescan helper 使用。
 - `runtime_local_pick_asset_file`：选取任意待导入的 asset 文件。
-- `runtime_local_device_profile_collect`：设备能力采集（CPU/GPU/NPU/disk/ports）。
-- `runtime_local_models_catalog_search` / `runtime_local_models_catalog_resolve_install_plan` 若仍存在于 host helper 面，返回 payload 不得取代 runtime catalog/install-plan 真源。
 - recommendation page 允许新增只读的 `runtime_local_recommendation_feed_get` surface，用于 capability-scoped candidate feed；install 仍必须复用现有 `resolve_install_plan` / install-plan payload，不得新增私有安装协议。
-- `runtime_local_device_profile_collect` 返回的设备画像必须包含 `total_ram_bytes`、`available_ram_bytes`，以及 GPU `total_vram_bytes?`、`available_vram_bytes?`、`memory_model`。
 
 产品约束：
 
@@ -253,9 +250,7 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
   - high-confidence 且 declaration 完整的项允许自动导入；
   - low-confidence 项只允许预填 review UI，不得静默注册。
 - recommendation 审计仅覆盖 request-driven resolve 面，不覆盖 installed list 之类的被动刷新：
-  - `runtime_local_models_catalog_search`
   - `runtime_local_models_catalog_list_variants`
-  - `runtime_local_models_catalog_resolve_install_plan`
   - `runtime_local_assets_scan_unregistered`
   - `runtime_local_recommendation_feed_get`
 - 上述入口的 recommendation 解析沿现有 local runtime audit 面记录：
