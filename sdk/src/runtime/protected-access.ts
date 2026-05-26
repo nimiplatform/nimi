@@ -8,6 +8,7 @@ import type {
   RuntimeAuthClient,
   RuntimeAppAuthClient,
   RuntimeProtectedAccessToken,
+  RuntimeStreamCallOptions,
   RuntimeTransportConfig,
 } from './types.js';
 import { ReasonCode } from '../types/index.js';
@@ -15,6 +16,8 @@ import { ReasonCode } from '../types/index.js';
 const defaultTTLSeconds = 3600;
 const refreshSkewMs = 30_000;
 const runtimeProtectedScopeCatalogVersion = 'sdk-v2';
+const scopeKeySeparator = '\u0000';
+export const RUNTIME_AI_SPEND_METER_SCOPE = 'ai.spend.meter';
 
 type ProtectedRuntime = {
   appId: string;
@@ -25,7 +28,7 @@ type ProtectedRuntime = {
 
 type CreateRuntimeProtectedScopeHelperInput = {
   runtime: ProtectedRuntime;
-  getSubjectUserId: () => string | Promise<string>;
+  getSubjectUserId: (explicit?: string) => string | Promise<string>;
   now?: () => Date;
 };
 
@@ -37,6 +40,21 @@ type RuntimeProtectedAuthClient = {
 type CachedToken = {
   token: RuntimeProtectedAccessToken;
   expiresAtMs: number;
+};
+
+export type RuntimeProtectedScopeHelper = {
+  getCallOptions<T extends RuntimeCallOptions | RuntimeStreamCallOptions>(
+    scopes: readonly string[],
+    baseOptions?: T,
+    subjectUserId?: string,
+  ): Promise<T>;
+  invalidate(scopes: readonly string[], subjectUserId?: string): void;
+  withScopes<T, O extends RuntimeCallOptions | RuntimeStreamCallOptions = RuntimeCallOptions>(
+    scopes: readonly string[],
+    operation: (options: O) => Promise<T>,
+    baseOptions?: O,
+    subjectUserId?: string,
+  ): Promise<T>;
 };
 
 function normalizeText(value: unknown): string {
@@ -55,8 +73,12 @@ function normalizeScopes(scopes: readonly string[]): string[] {
   return [...new Set(scopes.map((scope) => normalizeText(scope)).filter(Boolean))].sort();
 }
 
-function scopeKey(scopes: readonly string[]): string {
+function scopesKey(scopes: readonly string[]): string {
   return normalizeScopes(scopes).join('\n');
+}
+
+function scopeKey(scopes: readonly string[], subjectUserId: string): string {
+  return `${normalizeText(subjectUserId)}${scopeKeySeparator}${scopesKey(scopes)}`;
 }
 
 function isRetryableProtectedAccessError(error: unknown): boolean {
@@ -95,8 +117,8 @@ export function createRuntimeProtectedScopeHelper(input: CreateRuntimeProtectedS
     return rawRuntimeClient;
   };
 
-  const ensureSubjectUserID = async (): Promise<string> => {
-    const subjectUserId = normalizeText(await input.getSubjectUserId());
+  const ensureSubjectUserID = async (explicit?: string): Promise<string> => {
+    const subjectUserId = normalizeText(await input.getSubjectUserId(explicit));
     if (subjectUserId) {
       return subjectUserId;
     }
@@ -143,9 +165,10 @@ export function createRuntimeProtectedScopeHelper(input: CreateRuntimeProtectedS
     }
   };
 
-  const issueToken = async (scopes: readonly string[]): Promise<CachedToken> => {
+  const issueToken = async (scopes: readonly string[], explicitSubjectUserId?: string): Promise<CachedToken> => {
     const normalizedScopes = normalizeScopes(scopes);
-    const key = normalizedScopes.join('\n');
+    const subjectUserId = await ensureSubjectUserID(explicitSubjectUserId);
+    const key = scopeKey(normalizedScopes, subjectUserId);
     const cached = cache.get(key);
     const nowMs = now().getTime();
     if (cached && cached.expiresAtMs-nowMs > refreshSkewMs) {
@@ -170,7 +193,7 @@ export function createRuntimeProtectedScopeHelper(input: CreateRuntimeProtectedS
         appId: input.runtime.appId,
         externalPrincipalId: input.runtime.appId,
         externalPrincipalType: ExternalPrincipalType.APP,
-        subjectUserId: await ensureSubjectUserID(),
+        subjectUserId,
         consentId: 'runtime-protected-access',
         consentVersion: 'v1',
         decisionAt: timestampFromDate(issuedAt),
@@ -218,52 +241,80 @@ export function createRuntimeProtectedScopeHelper(input: CreateRuntimeProtectedS
     }
   };
 
-  const getCallOptions = async (
+  const getCallOptions = async <T extends RuntimeCallOptions | RuntimeStreamCallOptions>(
     scopes: readonly string[],
-    baseOptions?: RuntimeCallOptions,
-  ): Promise<RuntimeCallOptions> => {
+    baseOptions?: T,
+    subjectUserId?: string,
+  ): Promise<T> => {
     const normalizedScopes = normalizeScopes(scopes);
-    if (normalizedScopes.length === 0) {
-      return { ...(baseOptions || {}) };
+    if (
+      normalizedScopes.length === 0
+      || (normalizeText(baseOptions?.protectedAccessToken?.tokenId)
+        && normalizeText(baseOptions?.protectedAccessToken?.secret))
+    ) {
+      return { ...(baseOptions || {}) } as T;
     }
-    const issued = await issueToken(normalizedScopes);
+    const issued = await issueToken(normalizedScopes, subjectUserId);
     return {
       ...(baseOptions || {}),
       protectedAccessToken: issued.token,
-    };
+    } as T;
+  };
+
+  const invalidateCache = (scopes: readonly string[], subjectUserId?: string): void => {
+    const normalizedSubjectUserId = normalizeText(subjectUserId);
+    if (normalizedSubjectUserId) {
+      const key = scopeKey(scopes, normalizedSubjectUserId);
+      cache.delete(key);
+      inflight.delete(key);
+      return;
+    }
+
+    const keySuffix = `${scopeKeySeparator}${scopesKey(scopes)}`;
+    for (const key of Array.from(cache.keys())) {
+      if (key.endsWith(keySuffix)) {
+        cache.delete(key);
+      }
+    }
+    for (const key of Array.from(inflight.keys())) {
+      if (key.endsWith(keySuffix)) {
+        inflight.delete(key);
+      }
+    }
   };
 
   return {
-    async getCallOptions(
+    async getCallOptions<T extends RuntimeCallOptions | RuntimeStreamCallOptions>(
       scopes: readonly string[],
-      baseOptions?: RuntimeCallOptions,
-    ): Promise<RuntimeCallOptions> {
-      return getCallOptions(scopes, baseOptions);
+      baseOptions?: T,
+      subjectUserId?: string,
+    ): Promise<T> {
+      return getCallOptions(scopes, baseOptions, subjectUserId);
     },
 
-    invalidate(scopes: readonly string[]): void {
-      const key = scopeKey(scopes);
-      cache.delete(key);
-      inflight.delete(key);
+    invalidate(scopes: readonly string[], subjectUserId?: string): void {
+      invalidateCache(scopes, subjectUserId);
     },
 
-    async withScopes<T>(
+    async withScopes<T, O extends RuntimeCallOptions | RuntimeStreamCallOptions = RuntimeCallOptions>(
       scopes: readonly string[],
-      operation: (options: RuntimeCallOptions) => Promise<T>,
-      baseOptions?: RuntimeCallOptions,
+      operation: (options: O) => Promise<T>,
+      baseOptions?: O,
+      subjectUserId?: string,
     ): Promise<T> {
       const normalizedScopes = normalizeScopes(scopes);
-      const key = normalizedScopes.join('\n');
+      const normalizedSubjectUserId = normalizeText(await input.getSubjectUserId(subjectUserId));
+      const key = scopeKey(normalizedScopes, normalizedSubjectUserId);
       try {
-        return await operation(await getCallOptions(normalizedScopes, baseOptions));
+        return await operation(await getCallOptions(normalizedScopes, baseOptions, normalizedSubjectUserId));
       } catch (error) {
         if (!isRetryableProtectedAccessError(error)) {
           throw error;
         }
         cache.delete(key);
         inflight.delete(key);
-        return operation(await getCallOptions(normalizedScopes, baseOptions));
+        return operation(await getCallOptions(normalizedScopes, baseOptions, normalizedSubjectUserId));
       }
     },
-  };
+  } satisfies RuntimeProtectedScopeHelper;
 }

@@ -6,6 +6,7 @@ import {
   runtimeStreamText,
   runtimeGenerateEmbedding,
 } from './runtime-ai-text.js';
+import { RUNTIME_AI_SPEND_METER_SCOPE } from './protected-access.js';
 import { FallbackPolicy } from './generated/runtime/v1/ai.js';
 import {
   runtimeSubmitScenarioJobForMedia,
@@ -443,7 +444,9 @@ export function createAppAuthClient(
 
   return {
     authorizeExternalPrincipal: async (request, optionsValue) => {
-      const resolvedScopeCatalogVersion = resolvePublishedCatalogVersion(request.scopeCatalogVersion);
+      const requestedScopeCatalogVersion = normalizeText(request.scopeCatalogVersion);
+      const resolvedScopeCatalogVersion = requestedScopeCatalogVersion
+        || resolvePublishedCatalogVersion(request.scopeCatalogVersion);
       const response = await invokeWithClient(async (client) => client.appAuth.authorizeExternalPrincipal(
         {
           ...request,
@@ -566,8 +569,13 @@ export function createAiModule(
         request as RuntimeAiExecuteScenarioRequestInput,
         optionsValue,
       );
+      const callOptions = await ctx.resolveProtectedCallOptions?.(
+        [RUNTIME_AI_SPEND_METER_SCOPE],
+        optionsValue,
+        normalizedRequest.head.subjectUserId,
+      ) ?? optionsValue;
       return invokeWithClient(
-        async (client) => client.ai.executeScenario(normalizedRequest, optionsValue),
+        async (client) => client.ai.executeScenario(normalizedRequest, callOptions),
       );
     },
     streamScenario: async (request, optionsValue) => {
@@ -575,8 +583,13 @@ export function createAiModule(
         request as RuntimeAiStreamScenarioRequestInput,
         optionsValue,
       );
+      const callOptions = await ctx.resolveProtectedCallOptions?.(
+        [RUNTIME_AI_SPEND_METER_SCOPE],
+        optionsValue,
+        normalizedRequest.head.subjectUserId,
+      ) ?? optionsValue;
       return invokeWithClient(
-        async (client) => client.ai.streamScenario(normalizedRequest, optionsValue),
+        async (client) => client.ai.streamScenario(normalizedRequest, callOptions),
       );
     },
     submitScenarioJob: async (request, optionsValue) => {
@@ -584,8 +597,13 @@ export function createAiModule(
         request as RuntimeAiSubmitScenarioJobRequestInput,
         optionsValue,
       );
+      const callOptions = await ctx.resolveProtectedCallOptions?.(
+        [RUNTIME_AI_SPEND_METER_SCOPE],
+        optionsValue,
+        normalizedRequest.head.subjectUserId,
+      ) ?? optionsValue;
       return invokeWithClient(
-        async (client) => client.ai.submitScenarioJob(normalizedRequest, optionsValue),
+        async (client) => client.ai.submitScenarioJob(normalizedRequest, callOptions),
       );
     },
     getScenarioJob: async (request, optionsValue) => invokeWithClient(

@@ -109,6 +109,30 @@ function decodeJwtExpiry(accessToken: string): number | null {
   }
 }
 
+export function decodeJwtSubjectUserId(accessToken: string): string {
+  const normalizedToken = normalizeText(accessToken);
+  if (!normalizedToken) {
+    return '';
+  }
+  const rawToken = normalizedToken.toLowerCase().startsWith('bearer ')
+    ? normalizeText(normalizedToken.slice(7))
+    : normalizedToken;
+  const parts = rawToken.split('.');
+  if (parts.length < 2) {
+    return '';
+  }
+  try {
+    const payloadText = decodeBase64UrlUtf8(parts[1] || '');
+    if (!payloadText) {
+      return '';
+    }
+    const payload = asRecord(JSON.parse(payloadText));
+    return normalizeText(payload.sub);
+  } catch {
+    return '';
+  }
+}
+
 export function discardExpiredRuntimeAccessToken(accessToken: string): string {
   const normalizedToken = normalizeText(accessToken);
   if (!normalizedToken) {

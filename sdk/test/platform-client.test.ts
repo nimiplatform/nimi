@@ -11,7 +11,8 @@ import {
   getPlatformClient,
   unstable_attachPlatformWorldEvolutionSelectorReadProvider,
 } from '../src/index.js';
-import { GetRuntimeHealthResponse, setNodeGrpcBridge } from '../src/runtime/index.js';
+import { GetRuntimeHealthResponse, RuntimeMethodIds, setNodeGrpcBridge } from '../src/runtime/index.js';
+import { ExecuteScenarioRequest, ExecuteScenarioResponse, FinishReason, RoutePolicy } from '../src/runtime/generated/runtime/v1/ai.js';
 import { GetAccessTokenResponse } from '../src/runtime/generated/runtime/v1/account.js';
 import { RegisterAppResponse } from '../src/runtime/generated/runtime/v1/auth.js';
 import { ReasonCode } from '../src/types/index.js';
@@ -35,10 +36,10 @@ function toBase64Url(input: string): string {
     .replace(/=+$/g, '');
 }
 
-function createJwt(expSecondsFromNow: number): string {
+function createJwt(expSecondsFromNow: number, sub = 'user-1'): string {
   const header = toBase64Url(JSON.stringify({ alg: 'none', typ: 'JWT' }));
   const payload = toBase64Url(JSON.stringify({
-    sub: 'user-1',
+    sub,
     exp: Math.floor(Date.now() / 1000) + expSecondsFromNow,
   }));
   return `${header}.${payload}.signature`;
@@ -563,6 +564,80 @@ test('createPlatformClient runtime auth provider does not forward expired bearer
     assert.equal(authorizationHeader, undefined);
   } finally {
     setNodeGrpcBridge(previousBridge);
+  }
+});
+
+test('createPlatformClient runtime AI subject falls back to access token jwt sub', async () => {
+  clearPlatformClient();
+  let capturedSubjectUserId = '';
+
+  setNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId !== RuntimeMethodIds.ai.executeScenario) {
+        throw new Error(`unexpected method: ${input.methodId}`);
+      }
+      const request = ExecuteScenarioRequest.fromBinary(input.request);
+      capturedSubjectUserId = request.head?.subjectUserId || '';
+      return ExecuteScenarioResponse.toBinary(ExecuteScenarioResponse.create({
+        finishReason: FinishReason.STOP,
+        routeDecision: RoutePolicy.CLOUD,
+        modelResolved: 'cloud/default',
+      }));
+    },
+    openStream: async () => ({
+      async *[Symbol.asyncIterator]() {
+        // no-op
+      },
+    }),
+    closeStream: async () => {},
+  });
+
+  try {
+    const client = await createPlatformClient({
+      appId: 'nimi.sdk.platform.runtime.jwt-subject',
+      realmBaseUrl: 'https://realm.example',
+      accessTokenProvider: () => createJwt(60, 'jwt-sdk-subject'),
+      subjectUserIdProvider: () => '',
+      runtimeTransport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+    });
+
+    await client.runtime.ai.executeScenario({
+      head: {
+        appId: client.runtime.appId,
+        modelId: 'cloud/default',
+        routePolicy: RoutePolicy.CLOUD,
+        timeoutMs: 1000,
+        connectorId: '',
+      },
+      scenarioType: 1,
+      executionMode: 1,
+      extensions: [],
+      spec: {
+        spec: {
+          oneofKind: 'textGenerate',
+          textGenerate: {
+            input: [{
+              role: 'user',
+              content: 'hello',
+              name: '',
+              parts: [],
+            }],
+            systemPrompt: '',
+            tools: [],
+            temperature: 0,
+            topP: 0,
+            maxTokens: 32,
+          },
+        },
+      },
+    });
+
+    assert.equal(capturedSubjectUserId, 'jwt-sdk-subject');
+  } finally {
+    setNodeGrpcBridge(null);
   }
 });
 

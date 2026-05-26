@@ -33,6 +33,7 @@ import {
 import { resolveStreamUsage } from '../internal/utils.js';
 import { asRecord } from '../internal/utils.js';
 import { runtimeAiRequestRequiresSubject } from './runtime-guards.js';
+import { RUNTIME_AI_SPEND_METER_SCOPE } from './protected-access.js';
 
 export async function runtimeGenerateText(
   ctx: RuntimeInternalContext,
@@ -85,12 +86,19 @@ export async function runtimeGenerateText(
     extensions: [],
   };
 
+  const callOptions = ctx.resolveRuntimeCallOptions({
+    timeoutMs: input.timeoutMs,
+    metadata: input.metadata,
+  });
+  const protectedCallOptions = await ctx.resolveProtectedCallOptions?.(
+    [RUNTIME_AI_SPEND_METER_SCOPE],
+    callOptions,
+    head.subjectUserId,
+  ) ?? callOptions;
+
   const response = await ctx.invokeWithClient(async (client) => client.ai.executeScenario(
     request,
-    ctx.resolveRuntimeCallOptions({
-      timeoutMs: input.timeoutMs,
-      metadata: input.metadata,
-    }),
+    protectedCallOptions,
   ));
 
   const trace = toTraceInfo({
@@ -144,6 +152,17 @@ export async function runtimeStreamText(
     metadata: input.metadata,
   });
 
+  const streamOptions = ctx.resolveRuntimeStreamOptions({
+    timeoutMs: input.timeoutMs,
+    metadata: input.metadata,
+    signal: input.signal,
+  });
+  const protectedStreamOptions = await ctx.resolveProtectedCallOptions?.(
+    [RUNTIME_AI_SPEND_METER_SCOPE],
+    streamOptions,
+    head.subjectUserId,
+  ) ?? streamOptions;
+
   const stream = await ctx.invokeWithClient(async (client) => client.ai.streamScenario(
     {
       head,
@@ -165,11 +184,7 @@ export async function runtimeStreamText(
       },
       extensions: [],
     } satisfies StreamScenarioRequest,
-    ctx.resolveRuntimeStreamOptions({
-      timeoutMs: input.timeoutMs,
-      metadata: input.metadata,
-      signal: input.signal,
-    }),
+    protectedStreamOptions,
   ));
 
   const ctxRef = ctx;
@@ -303,6 +318,16 @@ export async function runtimeGenerateEmbedding(
     metadata: input.metadata,
   });
 
+  const callOptions = ctx.resolveRuntimeCallOptions({
+    timeoutMs: input.timeoutMs,
+    metadata: input.metadata,
+  });
+  const protectedCallOptions = await ctx.resolveProtectedCallOptions?.(
+    [RUNTIME_AI_SPEND_METER_SCOPE],
+    callOptions,
+    head.subjectUserId,
+  ) ?? callOptions;
+
   const response = await ctx.invokeWithClient(async (client) => client.ai.executeScenario(
     {
       head,
@@ -318,10 +343,7 @@ export async function runtimeGenerateEmbedding(
       },
       extensions: [],
     },
-    ctx.resolveRuntimeCallOptions({
-      timeoutMs: input.timeoutMs,
-      metadata: input.metadata,
-    }),
+    protectedCallOptions,
   ));
 
   const trace = toTraceInfo({

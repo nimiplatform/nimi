@@ -197,6 +197,9 @@ export type RuntimeOptions = {
   transport?: RuntimeTransportConfig;
   defaults?: RuntimeClientDefaults;
   auth?: RuntimeAuthProvider;
+  protectedAccess?: {
+    autoIssueForAi?: boolean;
+  };
   timeoutMs?: number;
   retry?: {
     maxAttempts?: number;

@@ -2,6 +2,7 @@ import type { JsonObject } from '../internal/utils.js';
 import type { RuntimeCallOptions, RuntimeClient, RuntimeStreamCallOptions } from './types.js';
 import type { RuntimeOptions } from './types.js';
 import type { FallbackPolicy, RoutePolicy } from './generated/runtime/v1/ai.js';
+import type { RuntimeProtectedScopeHelper } from './protected-access.js';
 import type {
   RuntimeCallOptionsInternal,
   RuntimeStreamCallOptionsInternal,
@@ -59,6 +60,9 @@ export interface RuntimeInternalContext {
     subjectUserId: string;
     fallback: FallbackPolicy;
   }>;
+
+  /** Resolve Runtime protected access options for SDK-managed guarded calls. */
+  resolveProtectedCallOptions?: RuntimeProtectedScopeHelper['getCallOptions'];
 
   /** Emit a telemetry event. */
   emitTelemetry: (name: string, data?: JsonObject) => void;

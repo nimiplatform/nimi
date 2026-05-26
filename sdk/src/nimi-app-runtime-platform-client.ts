@@ -180,6 +180,13 @@ export async function createNimiAppRuntimePlatformClient(
       ...input.runtimeDefaults,
       callerKind: 'third-party-app',
     },
+    runtimeOptions: {
+      ...input.runtimeOptions,
+      protectedAccess: {
+        ...input.runtimeOptions?.protectedAccess,
+        autoIssueForAi: true,
+      },
+    },
     runtimeAppSession: {
       sessionId: developerSession.sessionId,
       sessionToken: developerSession.sessionToken,

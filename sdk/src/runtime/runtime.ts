@@ -83,7 +83,10 @@ import {
   type RuntimeAppLifecycleModule,
   createRuntimeAppLifecycleModule,
 } from './runtime-app-lifecycle.js';
-import { createRuntimeProtectedScopeHelper } from './protected-access.js';
+import {
+  createRuntimeProtectedScopeHelper,
+  type RuntimeProtectedScopeHelper,
+} from './protected-access.js';
 import {
   ensureRuntimeClientForCall,
   invokeWithRuntimeRetry,
@@ -237,6 +240,8 @@ export class Runtime {
 
     this.#scopeModule = createScopeModule({ appId: this.appId });
 
+    let protectedScopeHelper: RuntimeProtectedScopeHelper | null = null;
+
     this.#ctx = {
       appId: this.appId,
       options: this.#options,
@@ -270,6 +275,14 @@ export class Runtime {
           subjectUserId: subjectUserId || '',
           fallback: head.fallback ?? FallbackPolicy.DENY,
         };
+      },
+      resolveProtectedCallOptions: async <
+        T extends RuntimeCallOptions | RuntimeStreamCallOptions,
+      >(scopes: readonly string[], baseOptions?: T, subjectUserId?: string): Promise<T> => {
+        if (!protectedScopeHelper || !this.#options.protectedAccess?.autoIssueForAi) {
+          return { ...(baseOptions || {}) } as T;
+        }
+        return protectedScopeHelper.getCallOptions(scopes, baseOptions, subjectUserId);
       },
       emitTelemetry: (name, data) => this.#emitTelemetry(name, data),
     };
@@ -311,14 +324,14 @@ export class Runtime {
       },
     });
 
-    const protectedScopeHelper = createRuntimeProtectedScopeHelper({
+    protectedScopeHelper = createRuntimeProtectedScopeHelper({
       runtime: {
         appId: this.appId,
         transport: this.transport,
         auth: this.auth,
         appAuth: this.appAuth,
       },
-      getSubjectUserId: () => this.#ctx.resolveSubjectUserId(undefined),
+      getSubjectUserId: (explicit) => this.#ctx.resolveSubjectUserId(explicit),
     });
 
     this.agent = attachRuntimeAgentSurface(passthrough.agent, {

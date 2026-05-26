@@ -102,6 +102,78 @@ test('Runtime appAuth.authorizeExternalPrincipal resolves published scopeCatalog
   }
 });
 
+test('Runtime appAuth.authorizeExternalPrincipal passes explicit sdk-v2 catalog version without local publish', async () => {
+  let capturedScopeCatalogVersion = '';
+
+  installNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.appAuth.authorizeExternalPrincipal) {
+        const request = AuthorizeExternalPrincipalRequest.fromBinary(input.request);
+        capturedScopeCatalogVersion = request.scopeCatalogVersion;
+
+        return AuthorizeExternalPrincipalResponse.toBinary(
+          AuthorizeExternalPrincipalResponse.create({
+            tokenId: 'token-sdk-v2',
+            appId: APP_ID,
+            subjectUserId: 'scope-user-2',
+            externalPrincipalId: 'external-principal-2',
+            effectiveScopes: ['ai.spend.meter'],
+            policyVersion: 'runtime-protected-access-v1',
+            issuedScopeCatalogVersion: 'sdk-v2',
+            canDelegate: false,
+            secret: 'secret-sdk-v2',
+          }),
+        );
+      }
+      throw new Error(`unexpected method: ${input.methodId}`);
+    },
+    openStream: async () => {
+      throw new Error('unexpected stream call');
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+    });
+
+    await runtime.appAuth.authorizeExternalPrincipal({
+      domain: 'app-auth',
+      appId: APP_ID,
+      externalPrincipalId: 'external-principal-2',
+      externalPrincipalType: 2,
+      subjectUserId: 'scope-user-2',
+      consentId: 'consent-2',
+      consentVersion: '1.0',
+      decisionAt: Timestamp.create({ seconds: '1700000000', nanos: 0 }),
+      policyVersion: 'runtime-protected-access-v1',
+      policyMode: PolicyMode.CUSTOM,
+      preset: AuthorizationPreset.UNSPECIFIED,
+      scopes: ['ai.spend.meter'],
+      resourceSelectors: {
+        conversationIds: [],
+        messageIds: [],
+        documentIds: [],
+        labels: {},
+      },
+      canDelegate: false,
+      maxDelegationDepth: 0,
+      ttlSeconds: 3600,
+      scopeCatalogVersion: 'sdk-v2',
+      policyOverride: false,
+    });
+
+    assert.equal(capturedScopeCatalogVersion, 'sdk-v2');
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
 test('AI_PROVIDER_RATE_LIMITED is retryable', () => {
   assert.equal(isRetryableReasonCode(ReasonCode.AI_PROVIDER_RATE_LIMITED), true);
 });

@@ -8,9 +8,13 @@ import {
   clearPlatformClient,
   createNimiAppRuntimePlatformClient,
 } from '../src/index.js';
-import { setNodeGrpcBridge } from '../src/runtime/index.js';
+import { RuntimeMethodIds, setNodeGrpcBridge } from '../src/runtime/index.js';
+import { ExecuteScenarioRequest, ExecuteScenarioResponse, FinishReason, RoutePolicy } from '../src/runtime/generated/runtime/v1/ai.js';
 import { SendAppMessageResponse } from '../src/runtime/generated/runtime/v1/app.js';
+import { RegisterAppRequest, RegisterAppResponse } from '../src/runtime/generated/runtime/v1/auth.js';
+import { AuthorizeExternalPrincipalRequest, AuthorizeExternalPrincipalResponse } from '../src/runtime/generated/runtime/v1/grant.js';
 import { ReasonCode } from '../src/types/index.js';
+import { textGenerateOutput } from './helpers/runtime-ai-shapes.js';
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const helperSourcePath = path.join(testDir, '..', 'src', 'nimi-app-runtime-platform-client.ts');
@@ -115,6 +119,119 @@ test('dev-standalone mode forwards explicit Runtime app session to Runtime calls
       sessionToken: 'developer-session-token',
     });
     assert.equal(forwardedAuthorization, undefined);
+  } finally {
+    setNodeGrpcBridge(null);
+  }
+});
+
+test('dev-standalone Runtime AI text.generate issues sdk-v2 protected spend token', async () => {
+  clearPlatformClient();
+  const calls: string[] = [];
+  let registeredAppId = '';
+  let authorizedScopeCatalogVersion = '';
+  let authorizedScopes: string[] = [];
+  let authorizedSubjectUserId = '';
+  let executeProtectedToken: { tokenId?: string; secret?: string } | undefined;
+  let executeAuthorization: string | undefined;
+  let executeSubjectUserId = '';
+
+  setNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      calls.push(input.methodId);
+      if (input.methodId === RuntimeMethodIds.auth.registerApp) {
+        const request = RegisterAppRequest.fromBinary(input.request);
+        registeredAppId = request.appId;
+        return RegisterAppResponse.toBinary(RegisterAppResponse.create({
+          appInstanceId: request.appInstanceId,
+          accepted: true,
+        }));
+      }
+      if (input.methodId === RuntimeMethodIds.appAuth.authorizeExternalPrincipal) {
+        const request = AuthorizeExternalPrincipalRequest.fromBinary(input.request);
+        authorizedScopeCatalogVersion = request.scopeCatalogVersion;
+        authorizedScopes = request.scopes;
+        authorizedSubjectUserId = request.subjectUserId;
+        return AuthorizeExternalPrincipalResponse.toBinary(AuthorizeExternalPrincipalResponse.create({
+          tokenId: 'protected-ai-token',
+          appId: request.appId,
+          subjectUserId: request.subjectUserId,
+          externalPrincipalId: request.externalPrincipalId,
+          effectiveScopes: request.scopes,
+          policyVersion: request.policyVersion,
+          issuedScopeCatalogVersion: request.scopeCatalogVersion,
+          canDelegate: false,
+          secret: 'protected-ai-secret',
+        }));
+      }
+      if (input.methodId === RuntimeMethodIds.ai.executeScenario) {
+        executeProtectedToken = input.protectedAccessToken;
+        executeAuthorization = input.authorization;
+        const request = ExecuteScenarioRequest.fromBinary(input.request);
+        executeSubjectUserId = request.head?.subjectUserId || '';
+        return ExecuteScenarioResponse.toBinary(ExecuteScenarioResponse.create({
+          output: textGenerateOutput('nimi runtime llm ok'),
+          finishReason: FinishReason.STOP,
+          routeDecision: RoutePolicy.LOCAL,
+          modelResolved: 'local.chat.gemma-4-e2b-it.q8-0',
+          traceId: 'trace-dev-ai',
+        }));
+      }
+      throw new Error(`unexpected method: ${input.methodId}`);
+    },
+    openStream: async () => ({
+      async *[Symbol.asyncIterator]() {
+        // no-op
+      },
+    }),
+    closeStream: async () => {},
+  });
+
+  try {
+    const projection = await createNimiAppRuntimePlatformClient({
+      mode: 'dev-standalone',
+      appId: 'nimi.tester',
+      realmBaseUrl: 'https://realm.example',
+      runtimeTransport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      developerSession: {
+        source: 'runtime-developer-session',
+        sessionId: 'developer-session-id',
+        sessionToken: 'developer-session-token',
+      },
+    });
+
+    assert.equal(projection.status, 'ready');
+    const output = await projection.client.runtime.ai.text.generate({
+      route: 'local',
+      connectorId: '01KS723RD9R2TBFQ2D1Q8W1Q4G',
+      model: 'local.chat.gemma-4-e2b-it.q8-0',
+      subjectUserId: 'developer-local',
+      input: 'Reply with exactly: nimi runtime llm ok',
+      metadata: {
+        callerKind: 'third-party-app',
+        callerId: 'nimi.tester',
+        surfaceId: 'nimi.tester.ai.text.generate.smoke',
+      },
+    });
+
+    assert.equal(output.text, 'nimi runtime llm ok');
+    assert.equal(registeredAppId, 'nimi.tester');
+    assert.equal(authorizedScopeCatalogVersion, 'sdk-v2');
+    assert.deepEqual(authorizedScopes, ['ai.spend.meter']);
+    assert.equal(authorizedSubjectUserId, 'developer-local');
+    assert.deepEqual(executeProtectedToken, {
+      tokenId: 'protected-ai-token',
+      secret: 'protected-ai-secret',
+    });
+    assert.equal(executeAuthorization, undefined);
+    assert.equal(executeSubjectUserId, 'developer-local');
+    assert.deepEqual(calls, [
+      RuntimeMethodIds.auth.registerApp,
+      RuntimeMethodIds.appAuth.authorizeExternalPrincipal,
+      RuntimeMethodIds.ai.executeScenario,
+    ]);
   } finally {
     setNodeGrpcBridge(null);
   }
