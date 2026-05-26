@@ -7739,6 +7739,16 @@ pub struct ResolveModelInstallPlanResponse {
     #[prost(message, optional, tag = "1")]
     pub plan: ::core::option::Option<LocalInstallPlanDescriptor>,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct InstallModelFromPlanRequest {
+    #[prost(message, optional, tag = "1")]
+    pub plan: ::core::option::Option<LocalInstallPlanDescriptor>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct InstallModelFromPlanResponse {
+    #[prost(message, optional, tag = "1")]
+    pub asset: ::core::option::Option<LocalAssetRecord>,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct StartLocalAssetRequest {
     #[prost(string, tag = "1")]
@@ -8890,6 +8900,35 @@ pub mod runtime_local_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeLocalService",
                         "ResolveModelInstallPlan",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn install_model_from_plan(
+            &mut self,
+            request: impl tonic::IntoRequest<super::InstallModelFromPlanRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::InstallModelFromPlanResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "InstallModelFromPlan",
                     ),
                 );
             self.inner.unary(req, path, codec).await

@@ -116,7 +116,7 @@ ordinary-user desktop local speech 可以投影为 canonical product object `Loc
 
 ## K-LOCAL-009 Install 语义
 
-`InstallVerifiedAsset` 与 `ImportLocalAsset` 的语义是注册 + 状态持久化（统一取代旧 `InstallVerifiedModel` / `InstallVerifiedArtifact` 与 `ImportLocalModel` / `ImportLocalArtifact`）：
+`InstallVerifiedAsset`、`InstallModelFromPlan` 与 `ImportLocalAsset` 的语义是注册 + 状态持久化（统一取代旧 `InstallVerifiedModel` / `InstallVerifiedArtifact` 与 `ImportLocalModel` / `ImportLocalArtifact`）：
 
 - 将 asset_id/kind/capabilities/engine/source/endpoint 等字段写入本地状态存储。
 - runtime 必须同时写出 runtime-native 本地资产元数据：`family`、`artifact_roles`、`preferred_engine`、`fallback_engines`、`bundle_state`、`warm_state`、`host_requirements`、`kind`；runnable asset 必须写出 `logical_model_id`，passive asset 不得从 `asset_id` 自动合成 `logical_model_id`。
@@ -202,6 +202,8 @@ K-MCAT `local` catalog。两者不得形成第二套 verified catalog。
 4. 填充 `LocalProviderHints`（引擎特定适配信息）。
 5. 返回 `LocalInstallPlanDescriptor`（含 warnings 和 reason_code）。
 
+`InstallModelFromPlan` 只能消费 `ResolveModelInstallPlan` 产出的 `LocalInstallPlanDescriptor` 形态；`install_available=false` 必须 fail-closed。Desktop/Web/Kit 不得绕过该 RPC 自行执行 catalog/manual install。
+
 ## K-LOCAL-013 依赖解析模型
 
 `LocalExecutionDeclarationDescriptor` 定义四类执行条目声明：
@@ -227,7 +229,7 @@ K-MCAT `local` catalog。两者不得形成第二套 verified catalog。
 | 阶段 | 名称 | 动作 |
 |---|---|---|
 | 1 | `preflight` | 设备画像重新采集，校验硬件兼容性与端口可用性 |
-| 2 | `install` | 执行 `InstallVerifiedAsset` / `ImportLocalAsset` / `InstallLocalService`，持久化状态 |
+| 2 | `install` | 执行 `InstallVerifiedAsset` / `InstallModelFromPlan` / `ImportLocalAsset` / `InstallLocalService`，持久化状态 |
 | 3 | `bootstrap` | 执行 `StartLocalService`（ATTACHED_ENDPOINT 模式为连接验证） |
 | 4 | `health` | 执行健康探测（`K-LENG-007`），确认服务可用 |
 

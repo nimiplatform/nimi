@@ -676,6 +676,49 @@ func TestResolveModelInstallPlanSidecarEndpointRequired(t *testing.T) {
 	}
 }
 
+func TestInstallModelFromPlanRegistersAttachedEndpoint(t *testing.T) {
+	svc := newTestService(t)
+	resp, err := svc.InstallModelFromPlan(context.Background(), &runtimev1.InstallModelFromPlanRequest{
+		Plan: &runtimev1.LocalInstallPlanDescriptor{
+			ModelId:          "local/test-attached",
+			Repo:             "test/repo",
+			Revision:         "main",
+			Capabilities:     []string{"chat"},
+			Engine:           "llama",
+			InstallAvailable: true,
+			Endpoint:         "http://127.0.0.1:1234/v1",
+			Entry:            "model.gguf",
+			License:          "test",
+		},
+	})
+	if err != nil {
+		t.Fatalf("install model from plan: %v", err)
+	}
+	asset := resp.GetAsset()
+	if asset.GetAssetId() != "local/test-attached" {
+		t.Fatalf("unexpected asset id: %q", asset.GetAssetId())
+	}
+	if asset.GetEndpoint() != "http://127.0.0.1:1234/v1" {
+		t.Fatalf("unexpected endpoint: %q", asset.GetEndpoint())
+	}
+}
+
+func TestInstallModelFromPlanRejectsUnavailablePlan(t *testing.T) {
+	svc := newTestService(t)
+	_, err := svc.InstallModelFromPlan(context.Background(), &runtimev1.InstallModelFromPlanRequest{
+		Plan: &runtimev1.LocalInstallPlanDescriptor{
+			ModelId:      "local/unavailable",
+			ReasonCode:   runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String(),
+			Capabilities: []string{"music"},
+			Engine:       "sidecar",
+		},
+	})
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("expected reason code %s, got=%v ok=%v err=%v", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, reason, ok, err)
+	}
+}
+
 func TestInstallLocalModelSidecarRequiresEndpoint(t *testing.T) {
 	svc := newTestService(t)
 	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
@@ -808,8 +851,8 @@ func TestResolveModelInstallPlanCatalogSupervisedWithManagerAvailable(t *testing
 func TestLocalApplyExecutionPlanRejectsUnsupportedKindInPreflight(t *testing.T) {
 	svc := newTestService(t)
 	result := svc.applyExecutionPlanStrict(context.Background(), &runtimev1.LocalExecutionPlan{
-		PlanId: "dep-plan-unsupported-kind",
-		TargetId:  "world.nimi.unsupported-kind",
+		PlanId:   "dep-plan-unsupported-kind",
+		TargetId: "world.nimi.unsupported-kind",
 		Entries: []*runtimev1.LocalExecutionEntryDescriptor{
 			{
 				EntryId:  "dep.unsupported.kind",

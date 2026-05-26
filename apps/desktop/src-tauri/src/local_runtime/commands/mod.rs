@@ -25,7 +25,7 @@ use super::types::{
     default_preferred_engine_for_capabilities, infer_asset_integrity_mode_from_source,
     is_runnable_asset_kind, normalize_local_engine, resolved_model_dir, runtime_managed_asset_dir,
     runtime_managed_asset_manifest_path, slugify_local_model_id, LocalAiAssetKind,
-    LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus, LocalAiInstallRequest,
+    LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus,
     LocalAiRecommendationFeedDescriptor,
 };
 
@@ -34,7 +34,6 @@ include!("common_utils.rs");
 include!("dependency_utils.rs");
 include!("runtime_bridge_local.rs");
 include!("commands_asset_helpers.rs");
-include!("commands_downloads.rs");
 include!("commands_import_manifest.rs");
 include!("commands_import_bundle.rs");
 include!("commands_models_audit.rs");

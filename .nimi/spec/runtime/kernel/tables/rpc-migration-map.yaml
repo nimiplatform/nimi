@@ -299,6 +299,11 @@ method_mappings:
     proto_method: ResolveModelInstallPlan
     mapping_posture: aligned
   - design_service: RuntimeLocalService
+    design_method: InstallModelFromPlan
+    proto_service: RuntimeLocalService
+    proto_method: InstallModelFromPlan
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
     design_method: CollectDeviceProfile
     proto_service: RuntimeLocalService
     proto_method: CollectDeviceProfile

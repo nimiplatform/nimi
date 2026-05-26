@@ -428,7 +428,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             local_runtime::commands::runtime_local_pick_asset_file,
             local_runtime::commands::runtime_local_pick_asset_directory,
             local_runtime::commands::runtime_local_recommendation_feed_get,
-            local_runtime::commands::runtime_local_assets_install,
             local_runtime::commands::runtime_local_assets_import_bundle,
             local_runtime::commands::runtime_local_assets_rescan_bundle,
             local_runtime::commands::runtime_local_assets_reveal_in_folder,

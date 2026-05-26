@@ -114,13 +114,14 @@ ConnectorService 在 `CreateConnector` / `UpdateConnector` 上的 credential req
 
 1. `ListLocalAssets`
 2. `InstallVerifiedAsset`
-3. `ImportLocalAsset`
-4. `ImportLocalAssetFile`
-5. `RemoveLocalAsset`
-6. `StartLocalAsset`
-7. `StopLocalAsset`
-8. `CheckLocalAssetHealth`
-9. `WarmLocalAsset`
+3. `InstallModelFromPlan`
+4. `ImportLocalAsset`
+5. `ImportLocalAssetFile`
+6. `RemoveLocalAsset`
+7. `StartLocalAsset`
+8. `StopLocalAsset`
+9. `CheckLocalAssetHealth`
+10. `WarmLocalAsset`
 
 Tier 1 的读写边界固定如下：
 
@@ -131,43 +132,43 @@ Tier 1 的读写边界固定如下：
 
 **Tier 2 — 目录、伴随资产、intake 与 transfer：**
 
-10. `ListVerifiedAssets`
-11. `SearchCatalogModels`
-12. `ListCatalogVariants`
-13. `ResolveModelInstallPlan`
-14. `CollectDeviceProfile`
-15. `ScanUnregisteredAssets`
-16. `ScaffoldOrphanAsset`
-17. `ListLocalTransfers`
-17. `PauseLocalTransfer`
-18. `ResumeLocalTransfer`
-19. `CancelLocalTransfer`
-20. `WatchLocalTransfers`
+11. `ListVerifiedAssets`
+12. `SearchCatalogModels`
+13. `ListCatalogVariants`
+14. `ResolveModelInstallPlan`
+15. `CollectDeviceProfile`
+16. `ScanUnregisteredAssets`
+17. `ScaffoldOrphanAsset`
+18. `ListLocalTransfers`
+19. `PauseLocalTransfer`
+20. `ResumeLocalTransfer`
+21. `CancelLocalTransfer`
+22. `WatchLocalTransfers`
 
 **Tier 3 — 服务/节点/依赖/审计：**
 
-21. `ListLocalServices`
-22. `InstallLocalService`
-23. `StartLocalService`
-24. `StopLocalService`
-25. `CheckLocalServiceHealth`
-26. `RemoveLocalService`
-27. `ListNodeCatalog`
-28. `ResolveProfile`
-29. `ApplyProfile`
-30. `ListLocalAudits`
-31. _(reserved for stable RPC numbering)_
-32. _(reserved for stable RPC numbering)_
-33. `AppendInferenceAudit`
-34. `AppendRuntimeAudit`
+23. `ListLocalServices`
+24. `InstallLocalService`
+25. `StartLocalService`
+26. `StopLocalService`
+27. `CheckLocalServiceHealth`
+28. `RemoveLocalService`
+29. `ListNodeCatalog`
+30. `ResolveProfile`
+31. `ApplyProfile`
+32. `ListLocalAudits`
+33. _(reserved for stable RPC numbering)_
+34. _(reserved for stable RPC numbering)_
+35. `AppendInferenceAudit`
+36. `AppendRuntimeAudit`
 
 **Tier 4 — 引擎进程管理（K-LENG-004）：**
 
-35. `ListEngines`
-36. `EnsureEngine`
-37. `StartEngine`
-38. `StopEngine`
-39. `GetEngineStatus`
+37. `ListEngines`
+38. `EnsureEngine`
+39. `StartEngine`
+40. `StopEngine`
+41. `GetEngineStatus`
 
 Runtime-managed shared accelerator dependency jobs are admitted under
 `RuntimeLocalService` as the authority surface for supervised local engine

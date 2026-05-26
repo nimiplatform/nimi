@@ -252,6 +252,12 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan
+    posture: anonymous_read
+    rationale: install execution from a Runtime-owned plan; no JWT validation, no Realm subject binding
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalAsset
     posture: anonymous_read
     rationale: local asset start; no JWT validation

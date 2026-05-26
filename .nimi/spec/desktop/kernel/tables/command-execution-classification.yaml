@@ -317,7 +317,6 @@ registered_command_families:
   - family: local_runtime_background_assets
     match:
       exact:
-        - runtime_local_assets_install
         - runtime_local_assets_import_bundle
         - runtime_local_assets_rescan_bundle
     origin_crate: apps/desktop/src-tauri

@@ -143,34 +143,17 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       return;
     }
-    const accepted = await localRuntime.install({
-      modelId: plan.modelId,
-      kind: (plan.capabilities.includes('image') ? 'image'
-        : plan.capabilities.includes('video') ? 'video'
-        : plan.capabilities.includes('tts') ? 'tts'
-        : plan.capabilities.includes('stt') ? 'stt'
-        : (plan.capabilities.includes('embedding') || plan.capabilities.includes('text.embed')) ? 'embedding'
-        : 'chat') as import('@runtime/local-runtime').LocalRuntimeAssetKind,
-      repo: plan.repo,
-      revision: plan.revision,
-      capabilities: plan.capabilities,
-      engine: plan.engine,
-      entry: plan.entry,
-      files: plan.files,
-      license: plan.license,
-      hashes: plan.hashes,
-      endpoint: plan.endpoint,
-    }, { caller: 'core' });
-    installSessionMeta.set(accepted.installSessionId, { plan, installSource });
+    const asset = await localRuntime.install(plan, { caller: 'core' });
+    await refreshLocalSnapshot();
     setStatusBanner({
       kind: 'success',
       message: translateRuntimeLocalText(
-        'runtimeConfig.local.modelInstallQueued',
-        'Model install queued: {{modelId}}',
-        { modelId: accepted.modelId || plan.modelId },
+        'runtimeConfig.local.assetInstalled',
+        'Asset installed: {{assetId}}',
+        { assetId: asset.assetId || plan.modelId },
       ),
     });
-  }, [assertRuntimeWriteAllowed, installSessionMeta, refreshLocalSnapshot, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
 
   const retryInstall = useCallback((plan: LocalRuntimeInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => {
     void runInstallPlanLifecycle(plan, source).catch((error: unknown) => {

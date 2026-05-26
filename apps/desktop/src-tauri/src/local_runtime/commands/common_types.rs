@@ -8,21 +8,6 @@ pub struct LocalAiInstallAcceptedResponse {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiAssetsInstallPayload {
-    pub model_id: String,
-    pub repo: String,
-    pub revision: Option<String>,
-    pub capabilities: Option<Vec<String>>,
-    pub engine: Option<String>,
-    pub entry: Option<String>,
-    pub files: Option<Vec<String>>,
-    pub license: Option<String>,
-    pub hashes: Option<std::collections::HashMap<String, String>>,
-    pub endpoint: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct LocalAiRecommendationFeedGetPayload {
     pub capability: Option<String>,
     pub page_size: Option<usize>,

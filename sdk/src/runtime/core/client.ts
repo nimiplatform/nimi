@@ -337,6 +337,7 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       searchCatalogModels: unary(RuntimeMethodIds.local.searchCatalogModels),
       listCatalogVariants: unary(RuntimeMethodIds.local.listCatalogVariants),
       resolveModelInstallPlan: unary(RuntimeMethodIds.local.resolveModelInstallPlan),
+      installModelFromPlan: unary(RuntimeMethodIds.local.installModelFromPlan),
       installVerifiedAsset: unary(RuntimeMethodIds.local.installVerifiedAsset),
       importLocalAsset: unary(RuntimeMethodIds.local.importLocalAsset),
       importLocalAssetFile: unary(RuntimeMethodIds.local.importLocalAssetFile),

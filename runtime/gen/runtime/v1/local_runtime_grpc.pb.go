@@ -30,6 +30,7 @@ const (
 	RuntimeLocalService_SearchCatalogModels_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels"
 	RuntimeLocalService_ListCatalogVariants_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants"
 	RuntimeLocalService_ResolveModelInstallPlan_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan"
+	RuntimeLocalService_InstallModelFromPlan_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan"
 	RuntimeLocalService_StartLocalAsset_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset"
 	RuntimeLocalService_StopLocalAsset_FullMethodName                        = "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset"
 	RuntimeLocalService_CheckLocalAssetHealth_FullMethodName                 = "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth"
@@ -90,6 +91,7 @@ type RuntimeLocalServiceClient interface {
 	SearchCatalogModels(ctx context.Context, in *SearchCatalogModelsRequest, opts ...grpc.CallOption) (*SearchCatalogModelsResponse, error)
 	ListCatalogVariants(ctx context.Context, in *ListCatalogVariantsRequest, opts ...grpc.CallOption) (*ListCatalogVariantsResponse, error)
 	ResolveModelInstallPlan(ctx context.Context, in *ResolveModelInstallPlanRequest, opts ...grpc.CallOption) (*ResolveModelInstallPlanResponse, error)
+	InstallModelFromPlan(ctx context.Context, in *InstallModelFromPlanRequest, opts ...grpc.CallOption) (*InstallModelFromPlanResponse, error)
 	// Asset lifecycle (runnable assets)
 	StartLocalAsset(ctx context.Context, in *StartLocalAssetRequest, opts ...grpc.CallOption) (*StartLocalAssetResponse, error)
 	StopLocalAsset(ctx context.Context, in *StopLocalAssetRequest, opts ...grpc.CallOption) (*StopLocalAssetResponse, error)
@@ -255,6 +257,16 @@ func (c *runtimeLocalServiceClient) ResolveModelInstallPlan(ctx context.Context,
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResolveModelInstallPlanResponse)
 	err := c.cc.Invoke(ctx, RuntimeLocalService_ResolveModelInstallPlan_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) InstallModelFromPlan(ctx context.Context, in *InstallModelFromPlanRequest, opts ...grpc.CallOption) (*InstallModelFromPlanResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InstallModelFromPlanResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_InstallModelFromPlan_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -697,6 +709,7 @@ type RuntimeLocalServiceServer interface {
 	SearchCatalogModels(context.Context, *SearchCatalogModelsRequest) (*SearchCatalogModelsResponse, error)
 	ListCatalogVariants(context.Context, *ListCatalogVariantsRequest) (*ListCatalogVariantsResponse, error)
 	ResolveModelInstallPlan(context.Context, *ResolveModelInstallPlanRequest) (*ResolveModelInstallPlanResponse, error)
+	InstallModelFromPlan(context.Context, *InstallModelFromPlanRequest) (*InstallModelFromPlanResponse, error)
 	// Asset lifecycle (runnable assets)
 	StartLocalAsset(context.Context, *StartLocalAssetRequest) (*StartLocalAssetResponse, error)
 	StopLocalAsset(context.Context, *StopLocalAssetRequest) (*StopLocalAssetResponse, error)
@@ -789,6 +802,9 @@ func (UnimplementedRuntimeLocalServiceServer) ListCatalogVariants(context.Contex
 }
 func (UnimplementedRuntimeLocalServiceServer) ResolveModelInstallPlan(context.Context, *ResolveModelInstallPlanRequest) (*ResolveModelInstallPlanResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResolveModelInstallPlan not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) InstallModelFromPlan(context.Context, *InstallModelFromPlanRequest) (*InstallModelFromPlanResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method InstallModelFromPlan not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) StartLocalAsset(context.Context, *StartLocalAssetRequest) (*StartLocalAssetResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method StartLocalAsset not implemented")
@@ -1127,6 +1143,24 @@ func _RuntimeLocalService_ResolveModelInstallPlan_Handler(srv interface{}, ctx c
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeLocalServiceServer).ResolveModelInstallPlan(ctx, req.(*ResolveModelInstallPlanRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_InstallModelFromPlan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InstallModelFromPlanRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).InstallModelFromPlan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_InstallModelFromPlan_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).InstallModelFromPlan(ctx, req.(*InstallModelFromPlanRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1912,6 +1946,10 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ResolveModelInstallPlan",
 			Handler:    _RuntimeLocalService_ResolveModelInstallPlan_Handler,
+		},
+		{
+			MethodName: "InstallModelFromPlan",
+			Handler:    _RuntimeLocalService_InstallModelFromPlan_Handler,
 		},
 		{
 			MethodName: "StartLocalAsset",

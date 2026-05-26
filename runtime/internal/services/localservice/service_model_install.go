@@ -542,6 +542,41 @@ func (s *Service) installLocalAsset(ctx context.Context, params installLocalAsse
 	return record, nil
 }
 
+func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.InstallModelFromPlanRequest) (*runtimev1.InstallModelFromPlanResponse, error) {
+	plan := req.GetPlan()
+	if plan == nil {
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
+			Message: "install plan is required",
+		})
+	}
+	if !plan.GetInstallAvailable() {
+		message := strings.TrimSpace(plan.GetReasonCode())
+		if message == "" {
+			message = "install plan is not available"
+		}
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message: message,
+		})
+	}
+	record, err := s.installLocalAsset(ctx, installLocalAssetParams{
+		assetID:      plan.GetModelId(),
+		capabilities: append([]string(nil), plan.GetCapabilities()...),
+		engine:       plan.GetEngine(),
+		entry:        plan.GetEntry(),
+		files:        append([]string(nil), plan.GetFiles()...),
+		license:      plan.GetLicense(),
+		repo:         plan.GetRepo(),
+		revision:     plan.GetRevision(),
+		hashes:       cloneStringMap(plan.GetHashes()),
+		endpoint:     plan.GetEndpoint(),
+		engineConfig: cloneStruct(plan.GetEngineConfig()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.InstallModelFromPlanResponse{Asset: record}, nil
+}
+
 func (s *Service) InstallVerifiedAsset(ctx context.Context, req *runtimev1.InstallVerifiedAssetRequest) (*runtimev1.InstallVerifiedAssetResponse, error) {
 	record, err := s.installVerifiedAssetByTemplateID(ctx, req.GetTemplateId(), req.GetEndpoint())
 	if err != nil {

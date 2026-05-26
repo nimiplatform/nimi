@@ -201,11 +201,6 @@ commands:
     description: Read capability-scoped host recommendation feed; helper-only and not a local model truth source
     source_rule: D-IPC-011
 
-  - command: runtime_local_assets_install
-    module: local-runtime
-    description: Install an asset from catalog parameters; execution truth is RuntimeLocalService and must not create Desktop-owned speech bundle truth
-    source_rule: D-IPC-011
-
   - command: runtime_local_assets_import_bundle
     module: local-runtime
     description: Import a local asset bundle directory; execution truth is RuntimeLocalService

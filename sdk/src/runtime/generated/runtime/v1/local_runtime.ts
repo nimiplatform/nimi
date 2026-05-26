@@ -423,6 +423,24 @@ export interface ResolveModelInstallPlanResponse {
      */
     plan?: LocalInstallPlanDescriptor;
 }
+/**
+ * @generated from protobuf message nimi.runtime.v1.InstallModelFromPlanRequest
+ */
+export interface InstallModelFromPlanRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalInstallPlanDescriptor plan = 1
+     */
+    plan?: LocalInstallPlanDescriptor;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.InstallModelFromPlanResponse
+ */
+export interface InstallModelFromPlanResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAssetRecord asset = 1
+     */
+    asset?: LocalAssetRecord;
+}
 // === Asset Lifecycle (runnable assets) ===
 
 /**
@@ -3175,6 +3193,98 @@ class ResolveModelInstallPlanResponse$Type extends MessageType<ResolveModelInsta
  * @generated MessageType for protobuf message nimi.runtime.v1.ResolveModelInstallPlanResponse
  */
 export const ResolveModelInstallPlanResponse = new ResolveModelInstallPlanResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class InstallModelFromPlanRequest$Type extends MessageType<InstallModelFromPlanRequest> {
+    constructor() {
+        super("nimi.runtime.v1.InstallModelFromPlanRequest", [
+            { no: 1, name: "plan", kind: "message", T: () => LocalInstallPlanDescriptor }
+        ]);
+    }
+    create(value?: PartialMessage<InstallModelFromPlanRequest>): InstallModelFromPlanRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<InstallModelFromPlanRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: InstallModelFromPlanRequest): InstallModelFromPlanRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalInstallPlanDescriptor plan */ 1:
+                    message.plan = LocalInstallPlanDescriptor.internalBinaryRead(reader, reader.uint32(), options, message.plan);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: InstallModelFromPlanRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalInstallPlanDescriptor plan = 1; */
+        if (message.plan)
+            LocalInstallPlanDescriptor.internalBinaryWrite(message.plan, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.InstallModelFromPlanRequest
+ */
+export const InstallModelFromPlanRequest = new InstallModelFromPlanRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class InstallModelFromPlanResponse$Type extends MessageType<InstallModelFromPlanResponse> {
+    constructor() {
+        super("nimi.runtime.v1.InstallModelFromPlanResponse", [
+            { no: 1, name: "asset", kind: "message", T: () => LocalAssetRecord }
+        ]);
+    }
+    create(value?: PartialMessage<InstallModelFromPlanResponse>): InstallModelFromPlanResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<InstallModelFromPlanResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: InstallModelFromPlanResponse): InstallModelFromPlanResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAssetRecord asset */ 1:
+                    message.asset = LocalAssetRecord.internalBinaryRead(reader, reader.uint32(), options, message.asset);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: InstallModelFromPlanResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAssetRecord asset = 1; */
+        if (message.asset)
+            LocalAssetRecord.internalBinaryWrite(message.asset, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.InstallModelFromPlanResponse
+ */
+export const InstallModelFromPlanResponse = new InstallModelFromPlanResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class StartLocalAssetRequest$Type extends MessageType<StartLocalAssetRequest> {
     constructor() {
@@ -7938,6 +8048,7 @@ export const RuntimeLocalService = new ServiceType("nimi.runtime.v1.RuntimeLocal
     { name: "SearchCatalogModels", options: {}, I: SearchCatalogModelsRequest, O: SearchCatalogModelsResponse },
     { name: "ListCatalogVariants", options: {}, I: ListCatalogVariantsRequest, O: ListCatalogVariantsResponse },
     { name: "ResolveModelInstallPlan", options: {}, I: ResolveModelInstallPlanRequest, O: ResolveModelInstallPlanResponse },
+    { name: "InstallModelFromPlan", options: {}, I: InstallModelFromPlanRequest, O: InstallModelFromPlanResponse },
     { name: "StartLocalAsset", options: {}, I: StartLocalAssetRequest, O: StartLocalAssetResponse },
     { name: "StopLocalAsset", options: {}, I: StopLocalAssetRequest, O: StopLocalAssetResponse },
     { name: "CheckLocalAssetHealth", options: {}, I: CheckLocalAssetHealthRequest, O: CheckLocalAssetHealthResponse },

@@ -144,6 +144,14 @@ message ResolveModelInstallPlanResponse {
   LocalInstallPlanDescriptor plan = 1;
 }
 
+message InstallModelFromPlanRequest {
+  LocalInstallPlanDescriptor plan = 1;
+}
+
+message InstallModelFromPlanResponse {
+  LocalAssetRecord asset = 1;
+}
+
 // === Asset Lifecycle (runnable assets) ===
 
 message StartLocalAssetRequest {
@@ -694,6 +702,7 @@ service RuntimeLocalService {
   rpc SearchCatalogModels(SearchCatalogModelsRequest) returns (SearchCatalogModelsResponse);
   rpc ListCatalogVariants(ListCatalogVariantsRequest) returns (ListCatalogVariantsResponse);
   rpc ResolveModelInstallPlan(ResolveModelInstallPlanRequest) returns (ResolveModelInstallPlanResponse);
+  rpc InstallModelFromPlan(InstallModelFromPlanRequest) returns (InstallModelFromPlanResponse);
 
   // Asset lifecycle (runnable assets)
   rpc StartLocalAsset(StartLocalAssetRequest) returns (StartLocalAssetResponse);

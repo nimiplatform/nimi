@@ -262,9 +262,9 @@ export type LocalRuntimeFacade = {
   ) => Promise<LocalRuntimeServiceDescriptor>;
   listNodesCatalog: (payload?: LocalRuntimeNodesCatalogListPayload) => Promise<LocalRuntimeNodeDescriptor[]>;
   install: (
-    payload: LocalRuntimeInstallPayload,
+    plan: LocalRuntimeInstallPlanDescriptor,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeTransferAccepted>;
+  ) => Promise<LocalRuntimeAssetRecord>;
   listVerifiedAssets: (
     payload?: LocalRuntimeListVerifiedAssetsPayload,
   ) => Promise<LocalRuntimeVerifiedAssetDescriptor[]>;

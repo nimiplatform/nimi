@@ -1,3 +1,4 @@
+import { toProtoStruct } from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '../telemetry/logger';
 import type {
   LocalRuntimeAssetFileImportResult,
@@ -23,7 +24,7 @@ import type {
   LocalRuntimeImportBundlePayload,
   LocalRuntimeImportFilePayload,
   LocalRuntimeImportManifestOptions,
-  LocalRuntimeInstallPayload,
+  LocalRuntimeInstallPlanDescriptor,
   LocalRuntimeInstallVerifiedAssetPayload,
   LocalRuntimeRescanBundlePayload,
   LocalRuntimeScaffoldOrphanPayload,
@@ -45,6 +46,10 @@ import {
 } from './parsers';
 import { invokeLocalRuntimeCommand } from './parsers';
 import { asRecord, requireSdkLocal, toAssetKindFilter } from './commands-shared';
+
+function engineRuntimeModeToProto(value: LocalRuntimeInstallPlanDescriptor['engineRuntimeMode']): number {
+  return value === 'supervised' ? 1 : value === 'attached-endpoint' ? 2 : 0;
+}
 
 function capabilitiesForImportFileKind(kind: LocalRuntimeImportFilePayload['kind']): string[] {
   switch (kind) {
@@ -98,25 +103,36 @@ export async function importLocalRuntimeAssetBundle(
 }
 
 export async function installLocalRuntimeAsset(
-  payload: LocalRuntimeInstallPayload,
+  plan: LocalRuntimeInstallPlanDescriptor,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeTransferAccepted> {
+): Promise<LocalRuntimeAssetRecord> {
   assertLifecycleWriteAllowed('local_runtime_assets_install', options?.caller);
-  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_install', {
-    payload: {
-      modelId: String(payload.modelId || '').trim(),
-      repo: String(payload.repo || '').trim(),
-      revision: String(payload.revision || '').trim(),
-      capabilities: Array.isArray(payload.capabilities) ? payload.capabilities : [],
-      engine: String(payload.engine || '').trim(),
-      entry: String(payload.entry || '').trim(),
-      files: Array.isArray(payload.files) ? payload.files : [],
-      license: String(payload.license || '').trim(),
-      hashes: payload.hashes || {},
-      endpoint: String(payload.endpoint || '').trim(),
+  const runtime = requireSdkLocal();
+  const response = await runtime.installModelFromPlan({
+    plan: {
+      planId: String(plan.planId || '').trim(),
+      itemId: String(plan.itemId || '').trim(),
+      source: String(plan.source || '').trim(),
+      templateId: String(plan.templateId || '').trim(),
+      modelId: String(plan.modelId || '').trim(),
+      repo: String(plan.repo || '').trim(),
+      revision: String(plan.revision || '').trim(),
+      capabilities: Array.isArray(plan.capabilities) ? plan.capabilities : [],
+      engine: String(plan.engine || '').trim(),
+      engineRuntimeMode: engineRuntimeModeToProto(plan.engineRuntimeMode),
+      installKind: String(plan.installKind || '').trim(),
+      installAvailable: Boolean(plan.installAvailable),
+      endpoint: String(plan.endpoint || '').trim(),
+      entry: String(plan.entry || '').trim(),
+      files: Array.isArray(plan.files) ? plan.files : [],
+      license: String(plan.license || '').trim(),
+      hashes: plan.hashes || {},
+      warnings: Array.isArray(plan.warnings) ? plan.warnings : [],
+      reasonCode: String(plan.reasonCode || '').trim(),
+      engineConfig: toProtoStruct(plan.engineConfig),
     },
   });
-  return parseTransferAccepted(result);
+  return parseAssetRecord(asRecord(response).asset);
 }
 
 export async function installLocalRuntimeVerifiedAsset(

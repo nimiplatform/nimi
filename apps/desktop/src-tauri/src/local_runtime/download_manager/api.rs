@@ -1,9 +1,7 @@
 use serde::Serialize;
 use tauri::AppHandle;
 
-use super::super::audit::{
-    append_audit_event, EVENT_MODEL_DOWNLOAD_INTERRUPTED, EVENT_MODEL_DOWNLOAD_STARTED,
-};
+use super::super::audit::{append_audit_event, EVENT_MODEL_DOWNLOAD_INTERRUPTED};
 use super::super::store::load_state;
 use super::super::types::{
     now_iso_timestamp, LocalAiDownloadSessionRecord, LocalAiDownloadState, LocalAiInstallRequest,
@@ -11,12 +9,10 @@ use super::super::types::{
 };
 use super::shared::classify_reason_code;
 use super::shared::{
-    append_audit_non_blocking, build_install_session_id, emit_progress_event, find_record,
-    guessed_local_model_id, is_terminal_state, manager_initialized, queue_session,
-    recover_manager_state, update_record, with_state_mut, SessionControl,
+    build_install_session_id, emit_progress_event, find_record, is_terminal_state,
+    manager_initialized, recover_manager_state, update_record, with_state_mut,
     LOCAL_AI_HF_DOWNLOAD_INTERRUPTED,
 };
-use super::worker::start_worker_if_needed;
 use crate::local_runtime::commands::runtime_remove_asset_via_runtime;
 
 const LOCAL_AI_BACKGROUND_IMPORT_INTERRUPTED: &str = "LOCAL_AI_BACKGROUND_IMPORT_INTERRUPTED";
@@ -312,68 +308,4 @@ pub fn fail_background_import_task(
         Ok(updated) => emit_progress_event(app, &updated),
         Err(error) => eprintln!("LOCAL_AI_BACKGROUND_TASK_FAILURE_SAVE_FAILED: {error}"),
     }
-}
-
-pub fn enqueue_install(
-    app: &AppHandle,
-    install_request: LocalAiInstallRequest,
-    install_metadata: Option<serde_json::Value>,
-) -> Result<DownloadEnqueueAccepted, String> {
-    ensure_initialized(app)?;
-    let model_id = install_request.model_id.trim().to_string();
-    if model_id.is_empty() {
-        return Err("LOCAL_AI_INSTALL_MODEL_ID_EMPTY: modelId is required".to_string());
-    }
-    let install_session_id = build_install_session_id(model_id.as_str());
-    let local_model_id = guessed_local_model_id(model_id.as_str());
-    let now = now_iso_timestamp();
-    let record = LocalAiDownloadSessionRecord {
-        install_session_id: install_session_id.clone(),
-        model_id: model_id.clone(),
-        local_model_id: local_model_id.clone(),
-        session_kind: LocalAiTransferSessionKind::Download,
-        request: install_request,
-        install_metadata: install_metadata.clone(),
-        phase: "download".to_string(),
-        state: LocalAiDownloadState::Queued,
-        bytes_received: 0,
-        bytes_total: None,
-        speed_bytes_per_sec: None,
-        eta_seconds: None,
-        message: Some("queued for download".to_string()),
-        reason_code: None,
-        retryable: true,
-        created_at: now.clone(),
-        updated_at: now,
-    };
-
-    with_state_mut(app, |state| {
-        let has_active_for_model = state.downloads.iter().any(|item| {
-            item.model_id.eq_ignore_ascii_case(model_id.as_str()) && !is_terminal_state(&item.state)
-        });
-        if has_active_for_model {
-            return Err(format!(
-                "LOCAL_AI_HF_DOWNLOAD_SESSION_EXISTS: active download already exists for modelId={model_id}"
-            ));
-        }
-        state.downloads.push(record.clone());
-        Ok(())
-    })?;
-
-    queue_session(install_session_id.as_str(), SessionControl::Running);
-    emit_progress_event(app, &record);
-    append_audit_non_blocking(
-        app,
-        EVENT_MODEL_DOWNLOAD_STARTED,
-        Some(model_id.as_str()),
-        Some(local_model_id.as_str()),
-        install_metadata,
-    );
-    start_worker_if_needed(app);
-
-    Ok(DownloadEnqueueAccepted {
-        install_session_id,
-        model_id,
-        local_model_id,
-    })
 }
