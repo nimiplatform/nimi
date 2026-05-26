@@ -147,8 +147,8 @@ type appSemaphore struct {
 }
 
 const (
-	slowdownRiskDetailLowResources = "device resources are low; execution may be slow"
-	slowdownRiskDetailBusyDevice   = "active local executions are consuming device resources; execution may be slow"
+	slowdownRiskDetailLowResources = "low available resources"
+	slowdownRiskDetailBusyDevice   = "device busy with concurrent local executions"
 	slowdownRiskBusyWarning        = "active local executions currently occupy scheduler slots"
 )
 
