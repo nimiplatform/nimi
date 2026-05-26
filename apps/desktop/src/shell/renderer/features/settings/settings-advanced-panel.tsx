@@ -476,7 +476,10 @@ export function WalletPage() {
       {/* Balance Cards */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Spark Balance Card */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-mint-400 to-mint-600 p-6 text-white shadow-lg">
+        <div
+          className="relative overflow-hidden rounded-2xl p-6 text-white shadow-lg"
+          style={{ background: 'linear-gradient(to bottom right, var(--nimi-action-primary-bg), var(--nimi-action-primary-bg-hover))' }}
+        >
           <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
           <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-20 w-20 rounded-full bg-white/10 blur-xl" />
           <div className="relative">

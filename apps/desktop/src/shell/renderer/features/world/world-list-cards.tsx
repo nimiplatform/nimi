@@ -4,7 +4,7 @@ import { prefetchWorldDetailAndHistory } from './world-detail-queries';
 import { prefetchWorldDetailPanel } from './world-detail-route-state';
 import type { WorldListItem } from './world-list-model';
 import { WorldChronoPanel } from './world-list-chrono-panel';
-import { Chip, Pulse, Seal, Stat, StatusDot, formatNum, pulseFromId, sealGradientFor } from './world-list-atoms';
+import { Chip, Pulse, Seal, Stat, formatNum, pulseFromId, sealGradientFor } from './world-list-atoms';
 const FROZEN_STATUS = 'FROZEN';
 function initialLetter(name: string): string {
   const letter = name.trim().charAt(0).toUpperCase();
@@ -103,29 +103,34 @@ export function FeaturedWorldCard({ world, onOpen }: { world: WorldListItem; onO
               <div
                 style={{
                   display: 'flex',
-                  alignItems: 'center',
+                  alignItems: 'flex-start',
                   gap: 10,
                   marginBottom: 6,
                   flexWrap: 'wrap',
                 }}
               >
-                <h1
-                  style={{
-                    margin: 0,
-                    fontFamily: 'var(--nimi-font-display)',
-                    fontSize: 30,
-                    fontWeight: 700,
-                    letterSpacing: '-0.02em',
-                    color: 'var(--nimi-text-primary)',
-                  }}
-                >
-                  {world.name}
-                </h1>
-                <StatusDot
-                  active={world.status !== FROZEN_STATUS}
-                  activeLabel={t('World.status.active')}
-                  idleLabel={t('World.status.idle')}
-                />
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <h1
+                    style={{
+                      margin: 0,
+                      fontFamily: 'var(--nimi-font-display)',
+                      fontSize: 30,
+                      fontWeight: 700,
+                      letterSpacing: '-0.02em',
+                      color: 'var(--nimi-text-primary)',
+                    }}
+                  >
+                    {world.name}
+                  </h1>
+                  {world.status !== FROZEN_STATUS && (
+                    <span
+                      className="desktop-world-pulse-dot"
+                      aria-label={t('World.status.active')}
+                      title={t('World.status.active')}
+                      style={{ marginTop: 10 }}
+                    />
+                  )}
+                </div>
                 {/* D-EXPL-003 `lineage`: conditional, shrinks when absent. */}
                 {worldLineageLabel(world) ? <Chip>{worldLineageLabel(world)}</Chip> : null}
               </div>
@@ -272,54 +277,57 @@ export function WorldCard({ world, onOpen }: { world: WorldListItem; onOpen: () 
             radius={12}
           />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h3
+            <div
               style={{
-                margin: 0,
-                fontFamily: 'var(--nimi-font-display)',
-                fontSize: 16,
-                fontWeight: 600,
-                letterSpacing: '-0.01em',
-                color: 'var(--nimi-text-primary)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 6,
                 marginBottom: 3,
+                minWidth: 0,
               }}
-              title={world.name}
             >
-              {world.name}
-            </h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <StatusDot
-                active={world.status !== FROZEN_STATUS}
-                activeLabel={t('World.status.active')}
-                idleLabel={t('World.status.idle')}
-              />
-              {/* D-EXPL-003 `lineage`: conditional, shrinks when absent. */}
-              {worldLineageLabel(world) ? (
-                <>
-                  <span
-                    style={{
-                      width: 3,
-                      height: 3,
-                      borderRadius: 999,
-                      background: 'rgba(148,163,184,0.6)',
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: 'var(--nimi-text-muted)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.08em',
-                      fontWeight: 600,
-                    }}
-                  >
-                    {worldLineageLabel(world)}
-                  </span>
-                </>
-              ) : null}
+              <h3
+                style={{
+                  margin: 0,
+                  fontFamily: 'var(--nimi-font-display)',
+                  fontSize: 16,
+                  fontWeight: 600,
+                  letterSpacing: '-0.01em',
+                  color: 'var(--nimi-text-primary)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  minWidth: 0,
+                }}
+                title={world.name}
+              >
+                {world.name}
+              </h3>
+              {world.status !== FROZEN_STATUS && (
+                <span
+                  className="desktop-world-pulse-dot"
+                  aria-label={t('World.status.active')}
+                  title={t('World.status.active')}
+                  style={{ marginTop: 6 }}
+                />
+              )}
             </div>
+            {/* D-EXPL-003 `lineage`: conditional, shrinks when absent. */}
+            {worldLineageLabel(world) ? (
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--nimi-text-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    fontWeight: 600,
+                  }}
+                >
+                  {worldLineageLabel(world)}
+                </span>
+              </div>
+            ) : null}
           </div>
         </div>
         {tagline ? (

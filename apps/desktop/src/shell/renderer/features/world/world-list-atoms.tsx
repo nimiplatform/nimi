@@ -110,26 +110,6 @@ export function Pulse({ data, width = 120, height = 28, color = 'var(--nimi-acti
   );
 }
 
-export function StatusDot({ active, activeLabel, idleLabel }: { active: boolean; activeLabel: string; idleLabel: string }) {
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        fontSize: 11,
-        letterSpacing: '0.08em',
-        textTransform: 'uppercase',
-        fontWeight: 600,
-        color: active ? 'var(--nimi-action-primary-bg)' : 'var(--nimi-text-muted)',
-      }}
-    >
-      {active && <span className="desktop-world-pulse-dot" aria-hidden="true" />}
-      {active ? activeLabel : idleLabel}
-    </span>
-  );
-}
-
 export function Kicker({ children, style, className }: { children: ReactNode; style?: CSSProperties; className?: string }) {
   return (
     <div

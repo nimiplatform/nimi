@@ -80,7 +80,7 @@ export function EnvironmentPage({ model, state }: EnvironmentPageProps) {
   const [subTab, setSubTab] = useState<EnvironmentSubTabId>('dependencies');
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       <div
         className="flex shrink-0 items-center gap-1 px-5 pt-4"
         data-testid="runtime-environment-subtabs"
@@ -105,14 +105,14 @@ export function EnvironmentPage({ model, state }: EnvironmentPageProps) {
           );
         })}
       </div>
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {subTab === 'dependencies' ? (
-          <div data-testid="runtime-environment-pane:dependencies" className="flex min-h-0 flex-1 flex-col">
+          <div data-testid="runtime-environment-pane:dependencies" className="flex min-h-0 min-w-0 flex-1 flex-col">
             <RuntimePage model={model} state={state} />
           </div>
         ) : null}
         {subTab === 'data' ? (
-          <div data-testid="runtime-environment-pane:data">
+          <div data-testid="runtime-environment-pane:data" className="min-w-0">
             <DataManagementPage />
             <RuntimePageShell maxWidth="4xl">
               <DataRootMigrationStub />

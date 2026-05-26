@@ -149,7 +149,7 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   // List view
   // ---------------------------------------------------------------------------
   return (
-    <RuntimePageShell maxWidth="6xl" className="space-y-4">
+    <RuntimePageShell className="space-y-4">
       {/* Hero: Device Profile Bar */}
       {feed ? (
         <DeviceProfileBar
