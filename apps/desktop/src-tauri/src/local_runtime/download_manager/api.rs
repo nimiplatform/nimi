@@ -150,7 +150,7 @@ pub fn ensure_initialized(app: &AppHandle) -> Result<(), String> {
         }
     }
 
-    recover_manager_state(app);
+    recover_manager_state();
     Ok(())
 }
 

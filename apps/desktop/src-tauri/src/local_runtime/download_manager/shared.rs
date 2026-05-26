@@ -1,34 +1,21 @@
-use std::collections::{HashMap, VecDeque};
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use tauri::{AppHandle, Emitter};
 
-use super::super::audit::append_audit_event;
-use super::super::store::{load_state, runtime_models_dir, save_state};
+use super::super::store::{load_state, save_state};
 use super::super::types::{
     now_iso_timestamp, slugify_local_model_id, LocalAiDownloadProgressEvent,
     LocalAiDownloadSessionRecord, LocalAiDownloadState, LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
 };
 
 pub(super) const LOCAL_AI_HF_DOWNLOAD_INTERRUPTED: &str = "LOCAL_AI_HF_DOWNLOAD_INTERRUPTED";
-pub(super) const LOCAL_AI_HF_DOWNLOAD_PAUSED: &str = "LOCAL_AI_HF_DOWNLOAD_PAUSED";
 pub(super) const LOCAL_AI_HF_DOWNLOAD_CANCELLED: &str = "LOCAL_AI_HF_DOWNLOAD_CANCELLED";
 pub(super) const LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH: &str = "LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH";
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum SessionControl {
-    Running,
-    Paused,
-    Cancelled,
-}
 
 #[derive(Debug, Default)]
 struct DownloadManagerState {
     initialized: bool,
-    worker_running: bool,
-    queue: VecDeque<String>,
-    controls: HashMap<String, SessionControl>,
 }
 
 static DOWNLOAD_MANAGER: OnceLock<Mutex<DownloadManagerState>> = OnceLock::new();
@@ -50,10 +37,6 @@ pub(super) fn build_install_session_id(model_id: &str) -> String {
         .unwrap_or_default()
         .as_millis();
     format!("install-{}-{now_ms}", slugify_local_model_id(model_id))
-}
-
-pub(super) fn guessed_local_model_id(model_id: &str) -> String {
-    format!("hf:{}", slugify_local_model_id(model_id))
 }
 
 pub(super) fn is_terminal_state(state: &LocalAiDownloadState) -> bool {
@@ -124,22 +107,6 @@ pub(super) fn with_state_mut<T>(
     Ok(output)
 }
 
-pub(super) fn append_audit_non_blocking(
-    app: &AppHandle,
-    event_type: &str,
-    model_id: Option<&str>,
-    local_model_id: Option<&str>,
-    payload: Option<serde_json::Value>,
-) {
-    let result = with_state_mut(app, |state| {
-        append_audit_event(state, event_type, model_id, local_model_id, payload);
-        Ok(())
-    });
-    if let Err(error) = result {
-        eprintln!("LOCAL_AI_AUDIT_WRITE_FAILED: {error}");
-    }
-}
-
 pub(super) fn update_record(
     app: &AppHandle,
     install_session_id: &str,
@@ -161,36 +128,6 @@ pub(super) fn update_record(
     })
 }
 
-pub(super) fn update_or_restore_record(
-    app: &AppHandle,
-    fallback: &LocalAiDownloadSessionRecord,
-    mutate: impl FnOnce(&mut LocalAiDownloadSessionRecord),
-) -> Result<LocalAiDownloadSessionRecord, String> {
-    with_state_mut(app, |state| {
-        let index = state
-            .downloads
-            .iter()
-            .position(|item| item.install_session_id == fallback.install_session_id);
-        let entry = match index {
-            Some(index) => &mut state.downloads[index],
-            None => {
-                eprintln!(
-                    "LOCAL_AI_DOWNLOAD_SESSION_RECOVERED: installSessionId={}",
-                    fallback.install_session_id
-                );
-                state.downloads.push(fallback.clone());
-                state
-                    .downloads
-                    .last_mut()
-                    .expect("download session exists after recovery push")
-            }
-        };
-        mutate(entry);
-        entry.updated_at = now_iso_timestamp();
-        Ok(entry.clone())
-    })
-}
-
 pub(super) fn find_record(
     app: &AppHandle,
     install_session_id: &str,
@@ -206,73 +143,9 @@ pub(super) fn find_record(
         })
 }
 
-pub(super) fn cleanup_staging_for_model(app: &AppHandle, model_id: &str) {
-    let Ok(models_dir) = runtime_models_dir(app) else {
-        return;
-    };
-    let slug = slugify_local_model_id(model_id);
-    let staging_dir = models_dir.join(format!("{slug}-staging"));
-    if staging_dir.exists() {
-        let _ = std::fs::remove_dir_all(staging_dir);
-    }
-}
-
-pub(super) fn get_control(install_session_id: &str) -> SessionControl {
-    if let Ok(lock) = manager().lock() {
-        if let Some(control) = lock.controls.get(install_session_id).copied() {
-            return control;
-        }
-    }
-    SessionControl::Running
-}
-
-pub(super) fn take_next_queued_session() -> Option<String> {
-    manager()
-        .lock()
-        .ok()
-        .and_then(|mut lock| lock.queue.pop_front())
-}
-
-pub(super) fn mark_worker_started() -> bool {
-    if let Ok(mut lock) = manager().lock() {
-        if !lock.worker_running {
-            lock.worker_running = true;
-            return true;
-        }
-    }
-    false
-}
-
-pub(super) fn mark_worker_stopped() {
-    if let Ok(mut lock) = manager().lock() {
-        lock.worker_running = false;
-    }
-}
-
-pub(super) fn recover_manager_state(app: &AppHandle) {
+pub(super) fn recover_manager_state() {
     if let Ok(mut lock) = manager().lock() {
         lock.initialized = true;
-        lock.queue.clear();
-        lock.controls.clear();
-        if let Ok(state) = load_state(app) {
-            for session in &state.downloads {
-                let control = match session.state {
-                    LocalAiDownloadState::Paused => SessionControl::Paused,
-                    LocalAiDownloadState::Cancelled => SessionControl::Cancelled,
-                    _ => SessionControl::Running,
-                };
-                lock.controls
-                    .insert(session.install_session_id.clone(), control);
-            }
-        }
-    }
-}
-
-pub(super) fn queue_session(install_session_id: &str, control: SessionControl) {
-    if let Ok(mut lock) = manager().lock() {
-        lock.controls
-            .insert(install_session_id.to_string(), control);
-        lock.queue.push_back(install_session_id.to_string());
     }
 }
 

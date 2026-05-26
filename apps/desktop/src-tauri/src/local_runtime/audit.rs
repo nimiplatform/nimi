@@ -1,10 +1,5 @@
 use super::types::{now_iso_timestamp, LocalAiAuditEvent, LocalAiRuntimeState};
 
-pub const EVENT_MODEL_DOWNLOAD_STARTED: &str = "model_download_started";
-pub const EVENT_MODEL_DOWNLOAD_COMPLETED: &str = "model_download_completed";
-pub const EVENT_MODEL_DOWNLOAD_FAILED: &str = "model_download_failed";
-pub const EVENT_MODEL_DOWNLOAD_PAUSED: &str = "model_download_paused";
-pub const EVENT_MODEL_DOWNLOAD_CANCELLED: &str = "model_download_cancelled";
 pub const EVENT_MODEL_DOWNLOAD_INTERRUPTED: &str = "model_download_interrupted";
 pub const EVENT_RECOMMENDATION_RESOLVE_INVOKED: &str = "recommendation_resolve_invoked";
 pub const EVENT_RECOMMENDATION_RESOLVE_COMPLETED: &str = "recommendation_resolve_completed";

@@ -5,7 +5,6 @@ use std::time::Duration;
 
 use serde::Deserialize;
 
-use super::super::hf_source::hf_download_base_url;
 use super::super::recommendation::recommend_variant_list;
 #[cfg(test)]
 use super::super::types::LocalAiCatalogItemDescriptor;
@@ -19,6 +18,22 @@ use super::shared::{
 };
 
 const HF_SEARCH_TIMEOUT_SECS: u64 = 20;
+
+fn hf_download_base_url() -> String {
+    if let Ok(value) = std::env::var("NIMI_HF_MIRROR") {
+        let trimmed = value.trim().trim_end_matches('/').to_string();
+        if !trimmed.is_empty() {
+            return trimmed;
+        }
+    }
+    if let Ok(value) = std::env::var("HF_ENDPOINT") {
+        let trimmed = value.trim().trim_end_matches('/').to_string();
+        if !trimmed.is_empty() {
+            return trimmed;
+        }
+    }
+    "https://huggingface.co".to_string()
+}
 
 pub(super) fn hf_api_base_url() -> String {
     format!("{}/api/models", hf_download_base_url())
