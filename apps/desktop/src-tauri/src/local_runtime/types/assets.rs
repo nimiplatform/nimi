@@ -69,38 +69,6 @@ pub struct LocalAiAssetSource {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ImportedAssetManifest {
-    pub schema_version: String,
-    pub asset_id: String,
-    pub kind: String,
-    #[serde(default)]
-    pub logical_model_id: String,
-    #[serde(default)]
-    pub capabilities: Vec<String>,
-    pub engine: String,
-    pub entry: String,
-    #[serde(default)]
-    pub files: Vec<String>,
-    pub license: String,
-    pub source: LocalAiAssetSource,
-    #[serde(default)]
-    pub integrity_mode: Option<LocalAiIntegrityMode>,
-    pub hashes: HashMap<String, String>,
-    #[serde(default)]
-    pub artifact_roles: Vec<String>,
-    #[serde(default)]
-    pub preferred_engine: Option<String>,
-    #[serde(default)]
-    pub fallback_engines: Vec<String>,
-    #[serde(default)]
-    pub engine_config: Option<serde_json::Value>,
-    #[serde(default)]
-    pub endpoint: String,
-    pub metadata: Option<serde_json::Value>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct LocalAiAssetRecord {
     pub local_asset_id: String,
     pub asset_id: String,

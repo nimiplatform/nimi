@@ -23,14 +23,6 @@ pub(super) fn err(code: &str, message: impl AsRef<str>) -> String {
     format!("{code}: {}", message.as_ref())
 }
 
-pub(super) fn normalize_manifest_hash(value: &str) -> String {
-    value
-        .trim()
-        .to_ascii_lowercase()
-        .trim_start_matches("sha256:")
-        .to_string()
-}
-
 pub(crate) fn normalize_and_validate_capabilities(
     capabilities: &[String],
 ) -> Result<Vec<String>, String> {
