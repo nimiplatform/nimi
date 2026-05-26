@@ -102,7 +102,6 @@ import type {
   NimiDataCleanupOutcome,
   LogsExportResult,
   SystemResourceSnapshot,
-  RuntimeLocalAsset,
   DesktopStorageDirs,
 } from '@renderer/bridge/runtime-bridge';
 
@@ -147,7 +146,6 @@ export type {
   NimiDataCleanupOutcome,
   LogsExportResult,
   SystemResourceSnapshot,
-  RuntimeLocalAsset,
   DesktopStorageDirs,
 };
 

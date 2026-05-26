@@ -136,7 +136,6 @@ export type {
   RuntimeBridgeConfigSetResult,
   RuntimeDefaults,
   SystemResourceSnapshot,
-  RuntimeLocalAsset,
   OpenExternalUrlResult,
   OauthTokenExchangePayload,
   OauthTokenExchangeResult,
