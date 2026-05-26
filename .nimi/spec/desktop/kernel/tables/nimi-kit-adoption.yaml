@@ -22,7 +22,7 @@ rows:
   - desktop.world.detail.exception
   - desktop.chat.avatar.live2d.exception
   - desktop.chat.avatar.vrm.exception
-  - desktop.contacts.profile-detail.exception
+  - desktop.relationship.profile-detail.exception
   - desktop.no_legacy_brand_or_accent_aliases
   - desktop.no_motion_base_alias
 app: desktop
@@ -282,9 +282,9 @@ modules:
       - dark
     default_scheme: light
     accent_pack: nimi-accent
-  - id: desktop.contacts.profile-detail.exception
+  - id: desktop.relationship.profile-detail.exception
     app: desktop
-    module: apps/desktop/src/shell/renderer/features/contacts/contact-detail-view-content.tsx
+    module: apps/desktop/src/shell/renderer/features/relationship/profile-detail-view-content.tsx
     families:
       - surface
     testid_required: true

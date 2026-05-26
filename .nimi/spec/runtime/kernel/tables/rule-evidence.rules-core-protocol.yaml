@@ -73,6 +73,11 @@ entries:
   - K-MODEL-007
   - K-MODEL-008
   - K-MODEL-009
+  - K-MODEL-010
+  - K-MODEL-011
+  - K-MODEL-012
+  - K-MODEL-013
+  - K-MODEL-014
   - K-PROTO-001
   - K-PROTO-002
   - K-PROTO-003
@@ -376,6 +381,36 @@ rules:
   - rule_id: K-MODEL-009
     evidence_refs: []
     evidence_requirement: deferred
+  - rule_id: K-MODEL-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MODEL-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MODEL-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MODEL-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MODEL-014
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
   - rule_id: K-PROTO-001
     evidence_refs:
       - runtime_kernel_consistency

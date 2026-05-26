@@ -118,8 +118,8 @@ evidence_contracts:
       - string_only_ref
   builtInAiConfigRefs:
     owner_rule_ref: D-AIPC-013
-    owner: desktop_host_ai_config_service
-    verifier: Desktop host AIConfig service
+    owner: desktop_chat_feature_scope_owner
+    verifier: SDK AIConfig projection plus Runtime readiness evidence
     required_scopes:
       - scope_id: desktop.chat.nimi
         scopeRef:

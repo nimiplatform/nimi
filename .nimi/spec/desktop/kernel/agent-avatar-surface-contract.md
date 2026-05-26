@@ -158,14 +158,22 @@ cross-session persistence truth。
 
 ## D-LLM-059 — Desktop Local Avatar Carrier Decommission Boundary
 
-After desktop-local avatar carrier decommission, desktop no longer owns a local avatar resource
-registry, import path, or renderer/backend path as an admitted first-party
-carrier line.
+After desktop-local avatar carrier decommission, desktop no longer owns a local
+avatar carrier registry, carrier import path, renderer/backend path, package
+descriptor, backend capability profile, or per-agent binding truth as an
+admitted first-party carrier line.
+
+This rule does not prohibit `agent-avatar-configuration-contract.md`
+`D-LLM-099..103` opaque private local Avatar asset controls. Desktop may help a
+user select/import/remove a private local Live2D / VRM asset ref, but that ref
+is configuration evidence only. It is not a carrier registry row, package
+descriptor, backend resolver, or launch-ready proof.
 
 Fixed rules:
 
 - desktop must not present a desktop-local `resource_id`, imported VRM/Live2D
-  asset record, or local asset-read path as current avatar carrier truth
+  asset record, local asset-read path, or backend route as current avatar
+  carrier truth
 - stale desktop-local avatar registry code, if retained on disk for bounded
   source-history reasons, must remain unreachable from the shipped desktop
   product path
@@ -297,8 +305,8 @@ The admitted layer stack is, from bottom to top:
    in-app asset imported by the user, not a desktop wallpaper projection;
    defaults to fully transparent when absent
 3. component layer — chat shell interactive widgets (nav, transcript, composer,
-   contacts rail); the chat domain occupies the full middle area between the
-   left navigation and the right contacts rail, not a sub-column beside the
+   relationship rail); the chat domain occupies the full middle area between the
+   left navigation and the right relationship rail, not a sub-column beside the
    avatar
 
 Fixed rules:
@@ -480,8 +488,8 @@ Fixed rules:
   other Desktop surface, lifecycle hook, effect, or companion-event handler may
   emit a `start_with_chat` auto-launch intent outside this gate.
 - the gate MUST NOT auto-launch Avatar globally on Nimi start, and MUST NOT
-  auto-launch from Nimi Chat, Human Chat, Group Chat, Contacts, Explore, or
-  Apps. Auto-launch is exclusively a per-LocalAgent Agent Chat posture and is
+  auto-launch from Nimi Chat, Human Chat, Group Chat, standalone relationship
+  management, Explore, or Apps. Auto-launch is exclusively a per-LocalAgent Agent Chat posture and is
   never applied to every AgentFriend.
 - the gate MUST NOT widen the launch payload. A passed gate emits only the
   D-LLM-072 payload (`agent_id`, optional `avatar_instance_id`, optional

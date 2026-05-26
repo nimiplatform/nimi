@@ -291,17 +291,6 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-094
 
-  - family: external_agent_async_gateway
-    match:
-      prefix: external_agent_
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: external-agent-gateway
-    execution_class: request_response_async
-    remediation_required: false
-    admitted_risks:
-      - sync_lock_contention
-    source_rule: D-GATE-092
-
   - family: runtime_memory_binding_async
     match:
       prefix: agent_memory_

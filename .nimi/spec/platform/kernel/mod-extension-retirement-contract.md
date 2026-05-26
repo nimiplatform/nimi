@@ -45,12 +45,20 @@ guards 与 docs active references 已移除。
 ## P-MOEX-002.a — Physical Retirement Anti-Targets
 
 `MUST NOT`：以下命名模式禁止在本仓库重新引入为 registry / SDK export /
-runtime CLI / desktop UI route / Tauri command / npm package name：
+runtime CLI / desktop UI route / Tauri command / npm package name / URL path /
+locale namespace / script name / docs link / descriptor identity：
 
 - `mod-*` / `Mod*` / `nimi-mod*` / `@nimiplatform/mod-*`
 - `mod-hub` / `mod-workspace` / `mod-codegen` / `mods-panel` / `runtime-mod`
 - `inter-mod` / `mod-governance` / `mod-extension`
 - `hook-capability` / `hook-allowlist` / `turn-hook-points`
+- `modId` / `desktop-mod` / `CreatorMods*` / `/mods/` /
+  `/desktop/mod-system`
+
+The guard must cover identity shape, not only filenames. A field, type,
+descriptor, route, generated SDK service, docs URL, locale namespace, script,
+or test fixture that preserves Mod/Hook identity is an active anti-target even
+when the surrounding feature has been renamed.
 
 `MUST`：mechanical guard `check:p-moex-anti-targets` 必须在 physical
 retirement true-close 前覆盖上述模式，并在 true-close 后持续阻断这些模式
@@ -86,6 +94,11 @@ assets，或其他 app 的 prompt / knowledge / workflow bundle 等）由各自 
 `enforcement-gates-required.md` 中以 `Required before: Wave 3 close` 注册，
 并 block：registry / package rows admitting public Mods or Extensions，
 以及任何 alias 重新引入共享内容包 channel。
+
+`MUST`：mechanical guard `check:p-moex-anti-targets` 是独立的 full-surface
+retirement guard。它不得只是 `check:no-public-mod-extension-admission` 的别名；
+它必须覆盖 `P-MOEX-002.a` 的 filename / symbol / field / URL / docs / i18n /
+script / generated SDK anti-targets。
 
 ## Fact Sources
 

@@ -15,6 +15,11 @@ Phase 1 本地执行引擎固定为：
 `LocalAI / Nexa / nimi_media` 不再属于规范引擎枚举，也不得作为新的本地执行事实源。
 
 引擎类型值域以 `tables/local-engine-catalog.yaml` 为唯一事实源。
+Runtime code that consumes the engine taxonomy, including local routing helper
+tables such as `knownProviders()`, must be generated from or mechanically
+checked against this table. Adding, removing, or renaming an engine without
+updating the generator/checker is a spec drift violation, not a Desktop
+hard-cut target.
 
 `engine=media` 可承载多个 `backend_class`：
 

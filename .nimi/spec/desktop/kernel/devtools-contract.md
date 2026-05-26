@@ -43,7 +43,7 @@ surface，不得被删除。
 
 `MUST NOT`：`Developer Tools` 不得进入 ordinary primary navigation；它不得
 出现在 ordinary-user Nimi Home close evidence；ordinary primary navigation
-必须保持恰好 6 项。
+必须保持恰好 5 项：`Home`、`Chat`、`Explore`、`Apps`、`Runtime`。
 
 ## D-DEV-002 — Discoverable Developer Mode Toggle
 

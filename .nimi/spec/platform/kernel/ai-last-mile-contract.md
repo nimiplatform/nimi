@@ -10,6 +10,12 @@ Nimi AI last mile 同时满足两段能力：关系连续性（World + Agent + M
 
 `MUST`: Action plane 建立在 Runtime-owned action descriptors、ExternalAgent gateway、权限校验与审计边界之上。Action 执行不得依赖 renderer-local registry、host-only success event 或未持久化的 handler state。
 
+Runtime ownership includes the External Agent gateway/server entry, token /
+session / grant ledger, action descriptor registry, execution context
+verification, completion ledger, and audit query boundary. Desktop, Web, Kit,
+and apps may only consume this plane through SDK typed projection and must not
+create app-local or Tauri-local token/action/audit authority.
+
 ## P-ALMI-003 — Principal 模型
 
 统一执行主体：Human、NimiAgent、ExternalAgent、Device、Service。`MUST`: 默认最小权限。权限必须绑定条件（时间、场景、额度、设备、有效期）。高风险写操作必须显式同意与审计归因。

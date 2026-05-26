@@ -96,15 +96,16 @@ canonical 配置路径固定为 `~/.nimi/runtime/config.json`（K-CFG-001）；D
 
 支持 PKCE（codeVerifier）和 clientSecret 两种模式。
 
-## D-IPC-008 — External Agent 命令
+## D-IPC-008 — External Agent Runtime Boundary
 
-- `external_agent_issue_token`：签发 agent token。
-- `external_agent_revoke_token`：吊销 agent token。
-- `external_agent_list_tokens`：列出 agent tokens。
-- `external_agent_sync_action_descriptors`：同步 action descriptors。
-- `external_agent_complete_execution`：完成 action 执行。
-- `external_agent_gateway_status`：获取 gateway 状态。
-- `external_agent_verify_execution_context`：在 action dispatch 前校验 external agent 执行上下文。
+External Agent gateway, token/session/grant ledger, action descriptor registry,
+execution context verification, completion ledger, and audit are Runtime-owned
+authority surfaces (`P-ALMI-002`, Runtime delegated gateway/auth/grant/audit).
+
+Desktop MUST consume External Agent state and controls through SDK typed Runtime
+projection. Desktop/Tauri MUST NOT own or persist a parallel gateway, token
+ledger, action descriptor registry, verification path, completion waiter, or
+audit store.
 
 ## D-IPC-009 — Invoke 基础设施
 
@@ -182,7 +183,8 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 - 配置管理（D-IPC-003: config_get/config_set + hot-reload 提示）
 - HTTP 代理（D-IPC-004: proxy fetch）
 - OAuth 流（D-IPC-006: token exchange）
-- External Agent 管理（D-IPC-008: token/action/gateway）
+- External Agent 管理（D-IPC-008: SDK-projected Runtime gateway/token/action
+  state only）
 - shell-native / host helper 能力（D-IPC-011：picker、reveal、notification、以及仍未下沉到 runtime 的 host-local helper）
 
 **分界原则**：

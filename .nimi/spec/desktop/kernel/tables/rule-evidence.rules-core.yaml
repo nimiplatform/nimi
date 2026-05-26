@@ -136,8 +136,8 @@ rules:
 - rule_id: D-AUTH-012
   evidence_refs:
   - desktop_kernel_consistency
-  - desktop_rust_test_gate
-  note: External Agent revocation & audit; Rust backend test coverage
+  - desktop_test_gate
+  note: External Agent revocation & audit SDK/Runtime projection; no Desktop-owned Rust gateway truth
   evidence_requirement: required
 - rule_id: D-AUTH-013
   evidence_refs:
@@ -336,20 +336,20 @@ rules:
 - rule_id: D-SEC-012
   evidence_refs:
   - desktop_kernel_consistency
-  - desktop_rust_test_gate
-  note: External Agent token state machine; Rust backend test coverage
+  - desktop_test_gate
+  note: External Agent token state projection from Runtime; no Desktop-owned token ledger
   evidence_requirement: required
 - rule_id: D-SEC-013
   evidence_refs:
   - desktop_kernel_consistency
-  - desktop_rust_test_gate
-  note: External Agent scope binding model; Rust backend test coverage
+  - desktop_test_gate
+  note: External Agent scope binding projection from Runtime
   evidence_requirement: required
 - rule_id: D-SEC-014
   evidence_refs:
   - desktop_kernel_consistency
-  - desktop_rust_test_gate
-  note: External Agent execution context verification; Rust backend test coverage
+  - desktop_test_gate
+  note: External Agent execution context verification belongs to Runtime gateway
   evidence_requirement: required
 - rule_id: D-STATE-001
   evidence_refs:

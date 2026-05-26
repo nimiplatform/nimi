@@ -94,13 +94,6 @@ surfaces:
     exception_policy: none
     testid_required: true
     source_rule: D-SHELL-022
-  - id: contacts.blocked_users.dialogs
-    module: features/contacts/contacts-blocked-users.tsx
-    role: block_restore_dialogs
-    surface_profile: baseline
-    exception_policy: allowlisted_arbitrary
-    testid_required: true
-    source_rule: D-SHELL-022
   - id: home.view.root
     module: features/home/home-view.tsx
     role: home_root
@@ -185,16 +178,16 @@ surfaces:
     exception_policy: none
     testid_required: false
     source_rule: D-SHELL-032
-  - id: contacts.profile_detail.hero_exception
-    module: features/contacts/contact-detail-view-content.tsx
-    role: contacts_profile_detail_hero_exception
+  - id: relationship.profile_detail.hero_exception
+    module: features/relationship/profile-detail-view-content.tsx
+    role: relationship_profile_detail_hero_exception
     surface_profile: exception
     exception_policy: controlled
     testid_required: true
     source_rule: D-SHELL-032
-  - id: contacts.profile_detail.shell_exception
-    module: features/contacts/contact-detail-view-content-shell.tsx
-    role: contacts_profile_detail_shell_exception
+  - id: relationship.profile_detail.shell_exception
+    module: features/relationship/profile-detail-view-content-shell.tsx
+    role: relationship_profile_detail_shell_exception
     surface_profile: exception
     exception_policy: controlled
     testid_required: false

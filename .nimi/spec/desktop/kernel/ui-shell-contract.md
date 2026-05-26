@@ -461,9 +461,9 @@ candidate 状态永久停留在 Desktop authority 里。
 ## D-SHELL-032 — Shared Profile Detail Hero Exception Freeze
 
 shared profile detail / profile 不再允许被当成一整块 branded subsystem。W1 decision packet
-必须把 page shell-root、hero shell、feed cards 三类 surface 拆开治理。Contacts
-primary page 已退休；本规则只治理仍被 Home、Explore、Chat、Profile 复用的
-profile detail modal/content。
+必须把 page shell-root、hero shell、feed cards 三类 surface 拆开治理。Desktop
+不拥有 standalone relationship primary page；本规则只治理仍被 Home、Explore、Chat、Profile
+复用的 profile detail modal/content。
 
 - `profile.panel.root` 继续是 Desktop shared shell root
   consumer，不得因为 detail hero shell 仍然品牌化，就整体回退成
@@ -486,8 +486,8 @@ profile detail modal/content。
   `renderer-design-surfaces.yaml` 中被显式登记为 exception 的 detail hero shell
   才允许保留 bespoke geometry 与 glass aura。
 - `tables/renderer-design-surfaces.yaml` 必须把本轮 disposition 显式记录为：
-  1. `contacts.profile_detail.hero_exception`
-  2. `contacts.profile_detail.shell_exception`
+  1. `relationship.profile_detail.hero_exception`
+  2. `relationship.profile_detail.shell_exception`
   3. `profile.posts.cards`
   4. `profile.likes.cards`
   5. `profile.collections.cards`

@@ -57,12 +57,12 @@ OAuth 流程通过 Tauri IPC 执行（参考 `D-IPC-006`）：
 
 ## D-SEC-007 — External Agent Token 安全
 
-- Token 通过 `external_agent_issue_token` IPC 命令签发。
-- Token 可通过 `external_agent_revoke_token` 吊销。
-- Token 列表通过 `external_agent_list_tokens` 审计。
-- Gateway 状态通过 `external_agent_gateway_status` 监控。
+- Token 通过 SDK Runtime External Agent / delegation API 签发。
+- Token 可通过 SDK Runtime API 吊销。
+- Token 列表通过 SDK Runtime projection 审计。
+- Gateway 状态通过 SDK Runtime projection 监控。
 
-**跨层引用**：Runtime K-AUTHSVC-006 定义 External Principal 注册与开会话的验证规则（`proof_type` + `signature_key_id` 一致性校验）。Runtime K-GRANT-003 定义 token 权限模型。Desktop 层 token 签发/吊销通过 Tauri backend 桥接到 Runtime 层执行，Desktop 不直接处理 token 验证逻辑。
+**跨层引用**：Runtime K-AUTHSVC-006 定义 External Principal 注册与开会话的验证规则（`proof_type` + `signature_key_id` 一致性校验）。Runtime K-GRANT-003 定义 token 权限模型。Desktop 层只消费 SDK projection；Tauri backend 不得成为 External Agent token/gateway owner。
 
 ## D-SEC-008 — CSP 策略
 
@@ -111,38 +111,45 @@ Bridge 错误归一化（D-ERR-005）必须在消息暴露到 UI 或日志前检
 
 ## D-SEC-012 — External Agent Token 状态机
 
-External Agent token 遵循严格生命周期: **issued → valid → expired | revoked**。
+External Agent token 状态机由 Runtime 拥有；Desktop 只投影其 typed state。
+Runtime-owned lifecycle: **issued → valid → expired | revoked**。
 
-- **Token ID**: `principal_id:subject_account_id:mode:nonce` 的 SHA256 哈希，确保确定性去重。
-- **TTL 边界**: 钳位到 `[60, 86400]` 秒（1 分钟至 24 小时），超出范围静默钳位。
-- **吊销机制**: 双层持久化 — SQLite DB 写入 `revoked_at` + 内存 `revoked_token_ids` HashSet。两层必须一致才视为有效。
-- **验证级联**: JWT 签名 → DB 查找 → `revoked_at` 检查 → claims 匹配 → TTL 检查 → 内存吊销检查。任一步骤失败即短路。
+- Desktop MUST display token id, principal, subject account, mode, expiry, and
+  revoked/expired state exactly as projected by Runtime.
+- Desktop MUST NOT persist token lifecycle state, recompute expiry/revocation,
+  or maintain a Tauri SQLite token ledger as product truth.
+- Runtime may use durable and in-memory layers internally, but those layers are
+  Runtime implementation truth, not Desktop security authority.
 
 ## D-SEC-013 — External Agent Scope 绑定模型
 
-Token scope 将 action ID 绑定到允许的操作阶段。
+Token scope 将 action ID 绑定到允许的操作阶段。Scope evaluation is
+Runtime-owned and SDK-projected.
 
 - **Ops 枚举**: `discover`, `dry-run`, `verify`, `commit`, `audit`, `events`。通配符 `*` 允许所有 ops。
 - **Action ID 通配符**: `*` 匹配任意 action。
-- **默认 scope 生成**: 签发 token 时未指定 scopes，则为所有已注册 action 生成全 ops 权限。
-- **阶段强制执行**: `claims_allows_action_for_phase(claims, action_id, phase)` 必须找到匹配的 scope 条目（action_id 匹配或通配符 AND phase 在 ops 列表中或 ops 通配符）。
+- **默认 scope 生成**: Runtime signing path owns any default scope generation.
+- **阶段强制执行**: Runtime must find a matching scope 条目（action_id 匹配或通配符 AND phase 在 ops 列表中或 ops 通配符）。
 - **无 scope 提升**: Token 不可获得超出签发时授予的权限。
 
 ## D-SEC-014 — External Agent 执行上下文验证
 
-向 renderer 发送 action 请求前，Bridge 必须验证执行上下文：
+Action dispatch 前的 execution context verification 由 Runtime-owned gateway
+执行。Desktop renderer / Tauri must not become the verification owner.
+
+Runtime verification floor:
 
 1. `execution_id` 存在且非空
-2. Token 在 DB 中存在且未吊销
-3. Token 未过期（TTL 检查）
-4. Claims 与 DB 记录匹配: `principal_id`, `subject_account_id`, `mode`, `issuer`
-5. Token 不在内存吊销列表中
-6. 执行在 completion waiters 中待处理
-7. 执行所有者匹配: `principal_id` 和 `auth_token_id`
+2. Token/grant 在 Runtime ledger 中存在且未吊销
+3. Token 未过期
+4. Claims 与 Runtime ledger 记录匹配: `principal_id`, `subject_account_id`,
+   `mode`, `issuer`
+5. execution/completion ledger 证明该 execution 仍可提交
+6. 执行所有者匹配: `principal_id` 和 token/grant identity
 
-任一步骤失败返回 `false`，不提供诊断详情（防止信息泄露）。
+任一步骤失败必须 fail closed，不提供泄露性诊断详情。
 
 ## Fact Sources
 
 - `tables/error-codes.yaml` — 安全相关错误码（`LOCAL_AI_ENDPOINT_NOT_LOOPBACK`、`LOCAL_AI_ENDPOINT_INVALID`）
-- `tables/ipc-commands.yaml` — OAuth 和 External Agent IPC 命令
+- `tables/ipc-commands.yaml` — Desktop IPC command enumeration

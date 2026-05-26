@@ -70,8 +70,8 @@ scope identities：
 
 | Scope | Canonical `AIScopeRef` | Owner |
 |---|---|---|
-| `desktop.chat.nimi` | `{ kind: 'feature', ownerId: 'desktop.chat', surfaceId: 'nimi' }` | Desktop host AIConfig service |
-| `desktop.chat.agent` | `{ kind: 'feature', ownerId: 'desktop.chat', surfaceId: 'agent' }` | Desktop host AIConfig service |
+| `desktop.chat.nimi` | `{ kind: 'feature', ownerId: 'desktop.chat', surfaceId: 'nimi' }` | Desktop chat feature scope owner via SDK AIConfig projection |
+| `desktop.chat.agent` | `{ kind: 'feature', ownerId: 'desktop.chat', surfaceId: 'agent' }` | Desktop chat feature scope owner via SDK AIConfig projection |
 
 这些 scope 是 first-run `builtInAiConfigRefs` 的唯一 required built-in chat
 scope set。它们是 desktop product shell 内置 chat feature owner `desktop.chat`

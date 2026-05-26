@@ -96,6 +96,7 @@ entries:
 - D-OFFLINE-003
 - D-OFFLINE-004
 - D-OFFLINE-005
+- D-REL-001
 rules:
 - rule_id: D-MBAR-001
   evidence_refs:
@@ -536,6 +537,12 @@ rules:
   - desktop_e2e_smoke_gate
   evidence_requirement: required
 - rule_id: D-OFFLINE-005
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  evidence_requirement: required
+- rule_id: D-REL-001
   evidence_refs:
   - desktop_kernel_consistency
   - desktop_lint_gate

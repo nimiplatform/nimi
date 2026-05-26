@@ -3,13 +3,13 @@ table_family: product_catalog
 owner: desktop
 catalog_id: desktop_nimi_kit_compositions
 entries:
-  - desktop.chat.contact_rail
+  - desktop.chat.relationship_rail
 app: desktop
 components:
-  - id: desktop.chat.contact_rail
+  - id: desktop.chat.relationship_rail
     app: desktop
-    module: apps/desktop/src/shell/renderer/features/chat/chat-contacts-sidebar.tsx
-    component: ChatContactsSidebar
+    module: apps/desktop/src/shell/renderer/features/chat/chat-relationship-rail.tsx
+    component: ChatRelationshipRail
     classification: app_owned_composition
     shared_families: []
     shared_targets: []

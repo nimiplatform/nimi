@@ -5,10 +5,8 @@ catalog_id: desktop_renderer_design_overlays
 entries:
   - shared.tooltip
   - explore.quick_add_friend
-  - contacts.block_confirm
-  - contacts.restore_confirm
   - notification.reject_gift
-  - contacts.profile_detail_modal
+  - relationship.profile_detail_modal
   - economy.send_gift
   - profile.create_post
   - profile.create_post_popovers
@@ -32,24 +30,6 @@ overlays:
     testid_required: true
     reduced_motion: true
     source_rule: D-SHELL-018
-  - id: contacts.block_confirm
-    module: features/contacts/contacts-blocked-users.tsx
-    kind: dialog
-    surface_tone: overlay
-    elevation: modal
-    z_token: --nimi-z-dialog
-    testid_required: true
-    reduced_motion: true
-    source_rule: D-SHELL-018
-  - id: contacts.restore_confirm
-    module: features/contacts/contacts-blocked-users.tsx
-    kind: dialog
-    surface_tone: overlay
-    elevation: modal
-    z_token: --nimi-z-dialog
-    testid_required: true
-    reduced_motion: true
-    source_rule: D-SHELL-018
   - id: notification.reject_gift
     module: features/notification/notification-reject-gift-dialog.tsx
     kind: dialog
@@ -59,8 +39,8 @@ overlays:
     testid_required: true
     reduced_motion: true
     source_rule: D-SHELL-018
-  - id: contacts.profile_detail_modal
-    module: features/contacts/contact-detail-profile-modal.tsx
+  - id: relationship.profile_detail_modal
+    module: features/relationship/profile-detail-modal.tsx
     kind: dialog
     surface_tone: overlay
     elevation: modal

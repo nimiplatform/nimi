@@ -51,7 +51,9 @@ Runtime 和 Realm 均不可达时的行为规则：
 - Runtime 重连成功后重新初始化 SDK session（D-BOOT-004 re-bootstrap），遵循 `S-RUNTIME-070` session recovery 协议执行 `connect()` + `OpenSession()`。
 - Runtime Config 在 Realm 离线但 Runtime 可达时保留 `local` / `runtime` 页面可用，云 connector 写操作投影为排队或在线要求。
 - Runtime 与 Realm 同时不可达时，Runtime Config 降级为只读浏览；daemon 管理、本地引擎启停、connector 写入与 external-agent token 签发不可用。
-- Runtime 重连成功后，Runtime Config 刷新 daemon status、provider health、connector 配置与 External Agent gateway status。
+- Runtime 重连成功后，Runtime Config 通过 SDK projection 刷新 daemon status、
+  provider health、connector 配置与 Runtime-owned External Agent gateway
+  status。
 
 ## D-OFFLINE-005 — 本地缓存策略
 

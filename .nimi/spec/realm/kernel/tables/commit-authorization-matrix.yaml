@@ -4,9 +4,6 @@ matrix_id: realm_commit_authorization_matrix
 rows:
   - run_modes_1
   - run_modes_2
-  - app_policies_1
-  - app_policies_2
-  - app_policies_3
 updated_at: '2026-04-18'
 owner: '@team'
 description: Explicit run-mode authorization matrix for Realm state/history commit envelopes after realm memory decommission.
@@ -19,25 +16,4 @@ run_modes:
     allow_state_commit: true
     allow_history_append: true
     source_rules: [R-WSTATE-005, R-WHIST-004]
-app_policies:
-  - app_id: forge
-    schema_id: forge.world.workspace
-    schema_version: '1'
-    effect_class: STATE_ONLY
-    run_mode: CANON_MUTATION
-    allowed_scopes: [WORLD, ENTITY, RELATION]
-    source_rules: [R-WSTATE-005, R-WSTATE-006]
-  - app_id: forge
-    schema_id: world.history.append
-    schema_version: '1'
-    effect_class: STATE_AND_HISTORY
-    run_mode: CANON_MUTATION
-    allowed_scopes: [WORLD, ENTITY, RELATION]
-    source_rules: [R-WSTATE-005, R-WHIST-004]
-  - app_id: forge
-    schema_id: forge.world.publish
-    schema_version: '1'
-    effect_class: STATE_AND_HISTORY
-    run_mode: CANON_MUTATION
-    allowed_scopes: [WORLD]
-    source_rules: [R-WSTATE-005, R-WSTATE-006, R-WHIST-004]
+app_policies: []

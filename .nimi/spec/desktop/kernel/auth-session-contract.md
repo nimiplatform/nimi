@@ -157,15 +157,18 @@ Desktop token 过期检测与刷新采用双重机制：
 
 Desktop 对 ExternalPrincipal 的 UI 投影固定在 Runtime Config 的 External Agent Access 面板：
 
-- 首屏必须先读取 gateway status 与已签发 token ledger。
+- 首屏必须通过 SDK Runtime projection 读取 gateway status 与已签发 token
+  ledger。
 - `Issue Token` 表单固定字段为 `principalId`、`subjectAccountId`、`mode`、`actions`、`ttlSeconds`。
 - 明文 token 只允许在签发成功后的当前会话内展示一次；后续列表页只保留 `tokenId`、`principalId`、`mode`、`subjectAccountId`、过期状态与 revoke 能力。
 - gateway 不可用时，签发与吊销操作必须禁用，并向用户展示可读错误。
 
 ## D-AUTH-011 — ExternalPrincipal Token State & Revocation
 
-- token ledger 的 single source of truth 为 Tauri gateway 状态；Desktop 前端不持久化明文 token。
-- `Refresh` 必须重新从 gateway 拉取状态与 token ledger，不得依赖本地缓存推断 token 状态。
+- token ledger 的 single source of truth 为 Runtime External Agent gateway /
+  grant ledger；Desktop 前端不持久化明文 token。
+- `Refresh` 必须重新通过 SDK 从 Runtime gateway 拉取状态与 token ledger，不得
+  依赖本地缓存或 Tauri gateway state 推断 token 状态。
 - `Revoke` 成功后，若当前面板仍持有同一 token 的明文显示，必须立即清空。
 - 过期 token 与 revoked token 都保留在 UI ledger 中，但状态必须显式区分为 `expired` / `revoked`。
 
@@ -173,7 +176,8 @@ Desktop 对 ExternalPrincipal 的 UI 投影固定在 Runtime Config 的 External
 
 - **吊销 token 保持可见**: 吊销后 token 保留在 ledger 中，`revoked_at` 时间戳已设置。不删除记录。
 - **审计主体隔离**: 审计查询 (`/audit` endpoint) 按请求方 `principal_id` 过滤。Agent 无法查询其他 principal 的审计记录。
-- **审计事件来源**: 审计记录源自 runtime audit store，过滤条件 `stage = "audit"` + `event_type = "hook.action.commit"`。
+- **审计事件来源**: 审计记录源自 Runtime audit store 与 Runtime-owned
+  External Agent action/completion ledger。
 - **审计保留策略**: 受 runtime audit ring buffer 配置 (`cfg.AuditRingBufferSize`) 约束；external agent audit 无独立保留策略。
 
 ## D-AUTH-013 — Email Entry Route Typed Decision

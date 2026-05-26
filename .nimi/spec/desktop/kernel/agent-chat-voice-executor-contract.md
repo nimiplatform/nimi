@@ -148,7 +148,7 @@ input truth。
   push-to-talk / hands-free listening mode、wake-word、或后台 continuation admission；
   broader session semantics 若已被 admit，固定由
   `agent-chat-voice-session-contract.md`（`D-LLM-040` ~ `D-LLM-046`）拥有，而不是本契约
-- Forge host wiring、runtime route describe、voice list UI、playback helper、scheduler、
+- App-local host wiring、runtime route describe、voice list UI、playback helper、scheduler、
   bridge、notification 都不是 voice executor product owner
 - 若 downstream 需要 richer voice behavior surface，必须先落新的 admitted desktop
   kernel authority；不得扩写本契约或上游 helper 作为替代 owner
@@ -171,7 +171,5 @@ input truth。
   — desktop TTS synthesize bridge and route evidence
 - `apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-profiles.ts`
   — cached speech artifact playback evidence
-- `apps/forge/src/shell/renderer/infra/bootstrap/forge-runtime-host.ts` — Forge
-  host capability wiring evidence only
 - `.local/**` — local preflight evidence for the narrow first
   voice executor packet (non-authoritative supporting material only)

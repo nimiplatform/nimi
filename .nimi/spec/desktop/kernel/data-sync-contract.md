@@ -15,7 +15,7 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 - **上下文锁** — `callApi()` 内部使用 SDK `withRealmContextLock` 确保同一时刻只有一个 Realm 客户端上下文激活，响应通过 JSON 解析归一化，错误通过 `normalizeApiError` 归一化（错误格式参考 `D-NET-005`）。
 - **轮询管理** — `DataSyncPollingManager` 提供 key-based 轮询：`startPolling(key, callback, intervalMs)`、`stopPolling(key)`、`stopAllPolling()`。
 - **错误日志** — `emitDataSyncError` 通过 runtime telemetry 记录错误（日志区域 `datasync`，消息格式 `action:${actionName}:failed`）。
-- **初始数据加载** — `loadInitialData()` 按序加载 `loadCurrentUser()` → `loadChats()` → `loadContacts()`。
+- **初始数据加载** — `loadInitialData()` 按序加载 `loadCurrentUser()` → `loadChats()` → relationship/social snapshot。
 - **Facade 委托** — 所有业务操作委托给 `createDataSyncActions` 工厂创建的 actions 对象，注入 `callApiTask`、`emitFacadeError`、`setToken`、`clearAuth`、`stopAllPolling`、`isFriend`。
 - **分页基础设施** — 所有 `loadMore*` 方法遵循统一分页契约：
   - 默认 `pageSize: 20`（可由调用方覆盖），上限 `100`（超过 100 截断为 100）。
@@ -50,10 +50,10 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 
 ## D-DSYNC-004 — Social 数据流
 
-社交数据流方法：`loadContacts`、`loadSocialSnapshot`、`searchUser`、`requestOrAcceptFriend`、`rejectOrRemoveFriend`、`removeFriend`、`blockUser`、`unblockUser`、`loadFriendRequests`。
+社交数据流方法：relationship list/snapshot、`searchUser`、`requestOrAcceptFriend`、`rejectOrRemoveFriend`、`removeFriend`、`blockUser`、`unblockUser`、`loadFriendRequests`。
 
 - 使用基础设施：上下文锁、错误日志、初始数据加载。
-- 辅助方法：`isFriend(userId)` 在 contacts 状态中检查好友关系。
+- 辅助方法：`isFriend(userId)` 在 relationship/social 状态中检查好友关系。
 
 ## D-DSYNC-005 — World 数据流
 
@@ -87,11 +87,11 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 - 使用基础设施：上下文锁、错误日志。
 - `likePost` / `unlikePost` 是 post-local interaction；离线时可进入 social outbox，
   但 owner 仍是 feed/post interaction surface，不得由 Home renderer card 直接
-  解释为 contacts-local state。
+  解释为 relationship-local state。
 - `createReport` 仅作为 feed card 针对 post 的治理入口；report contract 仍由
   Realm GovernanceService 承担，Desktop 不得在 Home 层合成本地举报成功。
 - Home renderer `PostCard` 是 projection surface：它只能消费 D-DSYNC-007 action
-  adapter 与跨域 owner callback，不得直接 import DataSync facade、Contacts/Chat/
+  adapter 与跨域 owner callback，不得直接 import DataSync facade、relationship/Chat/
   Economy/Profile modal 或把跨域 side effect 内联为 Home card state。
 - `createImageDirectUpload` / `createVideoDirectUpload` 返回 `ResourceDirectUploadSessionDto` 语义：
   - `resourceId` 可用于后续 `createPost` 写入 `attachments[].targetId`
@@ -162,12 +162,10 @@ Desktop 存在两套并行数据获取架构：
 |---|---|---|
 | Workflow UI（K-WF-012） | Runtime 数据路径 | Workflow 数据来源为 Runtime gRPC（SubscribeWorkflowEvents），不经过 Realm |
 | Audit UI（K-AUDIT-013） | Runtime 数据路径 | 审计数据来源为 Runtime gRPC（ListAuditEvents/ExportAuditEvents）。注：Phase 2 Audit UI 应通过 SDK gRPC 路径消费全局审计（K-AUDIT-013: ListAuditEvents 20k ring buffer），而非 D-IPC-011 `runtime_local_audits_list`（K-LOCAL-016: 仅 5k 条本地审计）。`runtime_local_audits_list` IPC 命令仅用于本地 AI 调试视图 |
-| Retired Knowledge UI（K-KNOW-005a） | 不再作为 Desktop Runtime Config UI 暴露 | Knowledge bank/page/search/graph 仍是 RuntimeCognitionService 的 absorbed infra API；Desktop 不再以 Runtime Config 页面消费该 surface |
+| Cognition / knowledge infra | 不作为 Desktop Runtime Config 管理页暴露 | Knowledge bank/page/search/graph 是 RuntimeCognitionService absorbed infra API；Desktop cognition UX 需要新的产品 admission |
 | AppMessage UI（K-APP-006a） | Runtime 数据路径 | 应用消息来源为 Runtime gRPC（SubscribeAppMessages） |
 
-Runtime 数据路径当前缺少统一 facade。Phase 2 服务较多地使用 Runtime 路径时，应评估是否创建类似 DataSync 的 RuntimeSync facade（提供统一的错误归一化、重试、状态管理）。
-
-Retired Knowledge UI 的 hard-cut 边界见 `knowledge-ui-contract.md`（`D-DSYNC-014` ~ `D-DSYNC-018`）。新的 Desktop cognition UX 必须另行 admission，不得复活旧 Runtime Config bank/page 管理页。
+Runtime 数据路径当前缺少统一 facade。Phase 2 服务较多地使用 Runtime 路径时，应评估是否创建类似 DataSync 的 RuntimeSync facade（提供统一的错误归一化、重试、状态管理）。Desktop cognition UX 必须另行 admission，不得把 RuntimeCognitionService infra API 直接包装成 Runtime Config 管理页。
 
 ## Fact Sources
 

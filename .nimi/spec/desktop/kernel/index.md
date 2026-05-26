@@ -15,7 +15,7 @@
 ## 3. Rule ID 规范
 
 - 格式：`D-<DOMAIN>-NNN`
-- `DOMAIN` 固定枚举：`BOOT` `IPC` `STATE` `AUTH` `DSYNC` `LLM` `SHELL` `MBAR` `HOME` `HOMEFEED` `EXPL` `CONTACTS` `AIPC` `SUP` `DEV` `ERR` `TEL` `NET` `SEC` `STRM` `OFFLINE` `GATE`
+- `DOMAIN` 固定枚举：`BOOT` `IPC` `STATE` `AUTH` `DSYNC` `LLM` `SHELL` `MBAR` `HOME` `HOMEFEED` `EXPL` `REL` `AIPC` `SUP` `DEV` `ERR` `TEL` `NET` `SEC` `STRM` `OFFLINE` `GATE`
 - `NNN` 三位递增编号，不复用。
 
 ## 4. 文档所有权
@@ -28,7 +28,6 @@
 | `state-contract.md` | `D-STATE-*` | Zustand slices、持久化策略、pending action lifecycle projection boundary |
 | `auth-session-contract.md` | `D-AUTH-*` | 会话生命周期、token 持久化 |
 | `data-sync-contract.md` | `D-DSYNC-*` | DataSync 业务流规则 |
-| `knowledge-ui-contract.md` | `D-DSYNC-*` | 已退役的 Runtime Config Knowledge UI hard-cut；RuntimeCognitionService knowledge 仍为 runtime/SDK API，不是 Desktop 配置页 |
 | `llm-adapter-contract.md` | `D-LLM-*` | Provider 适配与路由边界 |
 | `world-tour-tester-contract.md` | `D-LLM-*` | Developer-only `nimi.tester` World Tour authority：`world.generate` baseline end-to-end acceptance semantics、runtime-owned route/job/result consumption、Spark 2.0 SPZ render proof、app-owned fixture custody；Desktop-embedded Tester is frozen migration source only and does not own ordinary primary navigation / Explore / canonical Realm world truth |
 | `conversation-capability-contract.md` | `D-LLM-*` | Conversation capability selection/projection、agent overlay、execution snapshot；不拥有 resolved message / action truth |
@@ -50,7 +49,7 @@
 | `home-feed-contract.md` | `D-HOMEFEED-*` | Desktop `Home` primary-nav tab 作为 Realm feed 表面的产品语义：三个 feed scope（personal / friends / agent_activity）呈现、Create Post affordance、SDK-typed Realm feed projection 消费边界、与 `D-HOME-*`（`Nimi Home` installed shell）的显式 non-overlap、`Home` 非 ready entry；不拥有 shell 导航布局、Realm Post / Feed canonical 真值 |
 | `ai-profile-config-contract.md` | `D-AIPC-*` | Desktop `AIProfile` / `AIConfig` / `AISnapshot` 三段式 AI 配置 canonical model 与 `D-LLM-015` ~ `D-LLM-021` 的 umbrella 关系 |
 | `explore-surface-contract.md` | `D-EXPL-*` | Explore 统一 Realm 发现表面产品语义：三区结构（Worlds / Agents / Activity）、World card / detail 字段语义、RealmAgent card 与 friend-state → primary-action 模型、lightweight RealmAgent creation 的 draft-before-truth 规则、controlled World creation 边界；不拥有导航布局、Friendship / AgentFriend canonical 真值、LocalAgent projection / `localAgentRef`、World canonical truth |
-| `contacts-surface-contract.md` | `D-CONTACTS-*` | Retired Contacts primary-nav/page boundary：不得 expose Contacts tab、route、sidebar、page journey；保留 user/agent profile detail modal 与 admitted social actions 作为共享能力；不拥有导航布局、Realm discovery、Friendship / AgentFriend canonical 真值、LocalAgent projection / `localAgentRef` |
+| `relationship-profile-surface-contract.md` | `D-REL-*` | Contextual relationship/profile UX：shared user/agent profile modal、admitted social actions、friend request state projection；不拥有导航布局、Realm discovery、Friendship / AgentFriend canonical 真值、LocalAgent projection / `localAgentRef` |
 | `kit-ui-consumption-contract.md` | `D-SHELL-*` | Desktop 对 `@nimiplatform/kit/ui` 的消费清单、保留 composition、allowlist 与受控例外 |
 | `menu-bar-shell-contract.md` | `D-MBAR-*` | macOS menu bar shell 入口、导航与 close/hide 语义 |
 | `error-boundary-contract.md` | `D-ERR-*` | 错误边界与归一化映射 |
@@ -94,8 +93,8 @@
 - `tables/home-feed-scopes.yaml`
 - `tables/explore-sections.yaml`
 - `tables/realm-agent-friend-actions.yaml`
-- `tables/contacts-categories.yaml`
-- `tables/contacts-friend-request-states.yaml`
+- `tables/relationship-categories.yaml`
+- `tables/relationship-friend-request-states.yaml`
 - `tables/realm-agent-creation-modes.yaml`
 - `tables/realm-agent-creation-fields.yaml`
 - `tables/rule-evidence.yaml`（fragment directive；实际内容委托给 `tables/rule-evidence.catalog.yaml` 与 `tables/rule-evidence.rules-*.yaml`，含 `tables/rule-evidence.rules-support-devtools.yaml`）

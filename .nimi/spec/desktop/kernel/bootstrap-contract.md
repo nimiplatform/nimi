@@ -74,10 +74,14 @@ product readiness truth.
 
 ## D-BOOT-006 — External Agent 桥接
 
-注册 tier-1 external agent actions 并启动 action bridge。
+External Agent action bridge is Runtime-owned and SDK-projected.
 
-- 调用 `registerExternalAgentTier1Actions()` 注册 direct runtime action descriptors。
-- 调用 `startExternalAgentActionBridge()` 和 `resyncExternalAgentActionDescriptors()`。
+Desktop bootstrap MUST NOT register renderer-local action descriptors, start a
+Desktop-owned action bridge, or resync descriptors through Tauri as product
+authority.
+
+Desktop MAY initialize SDK projection subscriptions for Runtime-owned External
+Agent gateway/status/action surfaces when the Runtime Config UI needs them.
 
 ## D-BOOT-007 — Auth Session 引导
 

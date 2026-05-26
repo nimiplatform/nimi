@@ -16,6 +16,6 @@ items:
   - id: allow.measured_panel_width
     pattern_type: inline_style_property
     pattern: width
-    scope: apps/desktop/src/shell/renderer/features/contacts apps/desktop/src/shell/renderer/features/runtime-config
-    reason: User-resizable panel widths are measured runtime layout state.
+    scope: apps/desktop/src/shell/renderer/features/runtime-config
+    reason: User-resizable runtime panel widths are measured runtime layout state.
     source_rule: P-DESIGN-021

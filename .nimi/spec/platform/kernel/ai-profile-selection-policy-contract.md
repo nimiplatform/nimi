@@ -9,10 +9,11 @@
 admitted first-party Nimi App 选用的 portable `AIProfile` 模板，并定义在何种
 host posture / user posture 下 deterministically 选择哪一行 `AIProfile`。
 
-本契约**不**重新解释 Desktop `D-AIPC-001..D-AIPC-012` 拥有的 `AIProfile` /
-`AIConfig` / `AISnapshot` 三段式 authority；也**不**把 Runtime 提升为产品
-profile 选择器。Runtime 仅承担 host capability、local compute pack、dependency
-plan、materialization job、activation gate 的 evidence-only owner 角色
+本契约**不**重新解释 `D-AIPC-001..D-AIPC-012` 描述的 `AIProfile` /
+`AIConfig` / `AISnapshot` 三段式 consumption model；也**不**把 Runtime 提升为
+产品 profile 选择器。Scope / app owner 拥有 `AIConfig` intent；Runtime 承担
+host capability、local compute pack、dependency plan、materialization job、
+activation gate、route feasibility 与 execution evidence owner 角色
 （`K-AIEXEC-001..K-AIEXEC-005`、`K-DEV-001..K-DEV-009`、`K-LENV-*`、
 `K-LENG-024..K-LENG-028`、`K-LOCAL-013..K-LOCAL-015`）。本契约严格禁止建立
 `AIProfile` / `AIConfig` / `AISnapshot` 之外的第四份 AI live config truth，
@@ -29,8 +30,10 @@ evidence 与 user posture inputs，从 catalog 中选择一行 factory `AIProfil
 `MUST`:
 
 - 选中行通过 `aiProfile.apply(scopeRef, profileId)`（`S-AICONF-001`）进入
-  `D-AIPC-005` 的原子覆盖路径，写入 scope-bound `AIConfig`。Live config 与
-  snapshot truth 仍由 Desktop host 的 `D-AIPC-003` / `D-AIPC-004` 拥有。
+  `D-AIPC-005` 的原子覆盖路径，写入 scope-bound `AIConfig`。Live config
+  intent 由该 `scopeRef` 的 scope / app owner 拥有；Runtime owns
+  materialization、readiness、route feasibility 与 execution evidence slices；
+  SDK owns typed projection。
 - selection policy 的输入来自 Runtime evidence（`K-DEV-001..K-DEV-009`、
   `K-LENV-ACT-*`、`K-LENG-024`）与显式 user posture；输出仅是 typed
   `AIProfile` reference + reason。
@@ -38,7 +41,8 @@ evidence 与 user posture inputs，从 catalog 中选择一行 factory `AIProfil
   `D-AIPC-007` 的可移植语义；non-portable 字段（local file path、install state、
   health 等）不得出现在 catalog row。
 - selection policy 与 catalog 都仅表达"推荐选用哪种 AI 体验"的产品语义；
-  执行权与安装权全部归 Runtime + Desktop host。
+  执行权、安装权、materialization 与 readiness 全部归 Runtime，scope intent
+  commit 通过 SDK projection 回到对应 scope / app owner。
 
 `MUST NOT`:
 
@@ -435,7 +439,8 @@ Account Default Profile content source。
 - `.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml` —
   admitted `CanonicalCapabilityId` rows
 - `.nimi/spec/desktop/kernel/ai-profile-config-contract.md` —
-  `D-AIPC-001..D-AIPC-012` `AIProfile` / `AIConfig` / `AISnapshot` authority
+  `D-AIPC-001..D-AIPC-012` Desktop consumption rules for `AIProfile` /
+  `AIConfig` / `AISnapshot`
 - `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md` —
   `K-AIEXEC-001..K-AIEXEC-006` runtime profile execution + probe contract
 - `.nimi/spec/runtime/kernel/local-engine-contract.md` —

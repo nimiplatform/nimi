@@ -140,3 +140,103 @@ binding reference 的合法性由 runtime local/model authority 冻结。
   决定
 - Desktop/SDK 不得通过“有某个本地文件/asset 存在”来推断 legal local memory
   embedding binding；合法性必须来自 admitted runtime local/model authority
+
+## K-MODEL-010 Runtime-Local Algorithm Authority
+
+Runtime owns the local model recommendation, install, registry, and download
+algorithms. Desktop, Web, and Kit consume these decisions through SDK / Runtime
+projection only.
+
+Runtime-owned algorithm surfaces:
+
+- device profile matching and engine support classification
+- recommendation memory budget and tier allocation
+- dependency resolver stage ordering
+- local model registry identity resolution
+- artifact download staging, verification, commit, resume, and progress truth
+
+Cross-owner split:
+
+- `device-profile-contract.md` owns `LocalDeviceProfile` collection and host
+  capability evidence.
+- `local-engine-contract.md` owns public engine taxonomy, supervised/attached
+  runtime modes, and engine/host compatibility rules.
+- `local-environment-materializers-contract.md` owns dependency materialization,
+  verification, activation, and repair evidence.
+- `model-catalog-contract.md` owns catalog identity and provider/source
+  metadata.
+- this `model-service-contract.md` owns model registry identity, health, model
+  status, and local/remote model projection.
+
+## K-MODEL-011 Recommendation Budget And Fit Projection
+
+Runtime recommendation may expose fit tiers such as recommended/runnable/tight
+or not-recommended, but the calculation is Runtime-owned.
+
+`MUST`:
+
+- use `LocalDeviceProfile` and runtime local engine/catalog evidence as inputs
+- keep confidence, memory budget, context/window, quantization, file metadata,
+  and capability fit as typed Runtime evidence
+- fail closed when required metadata is absent instead of silently accepting an
+  unsupported install path
+
+`MUST NOT`:
+
+- let Desktop provider/model defaults, renderer cache, or Tauri host state
+  substitute for Runtime fit evidence
+- let a recommendation result become install success or readiness truth
+
+## K-MODEL-012 Dependency Resolver Ordering
+
+Runtime dependency resolution owns required/optional/alternative stage ordering
+for local model and profile materialization.
+
+Fixed semantics:
+
+- required dependencies must be satisfied or the plan fails closed
+- optional dependencies may be skipped without creating pseudo-success
+- alternatives choose one admitted match and record why other choices were not
+  selected
+- resolver output must be stable for the same catalog, host evidence, and user
+  posture inputs
+
+Desktop may display the selected plan and warnings; it must not run a parallel
+dependency resolver.
+
+## K-MODEL-013 Registry Identity Resolution
+
+Runtime owns local model registry identity.
+
+`MUST`:
+
+- resolve existing entries before inserting new records
+- prevent duplicate identities across normalized model id, engine, logical
+  model id, and local asset identity where the relevant fields exist
+- rebuild capability indexes from Runtime registry truth, excluding removed
+  records
+- preserve file metadata and manifest evidence as part of recommendation and
+  health confidence
+
+Desktop may not create, merge, or repair registry rows through a Desktop-owned
+identity heuristic.
+
+## K-MODEL-014 Artifact Download Atomicity
+
+Runtime owns artifact transfer atomicity for local model/materialized asset
+downloads.
+
+`MUST`:
+
+- stage downloads outside committed resolved storage
+- verify required hashes/manifests before commit
+- commit atomically or roll back without leaving partial committed artifacts
+- expose durable transfer/progress state that survives renderer reload
+- resume only when Runtime can prove the staged bytes belong to the same
+  transfer identity
+
+`MUST NOT`:
+
+- let Desktop/Tauri download progress events be the only terminal evidence
+- mark an install ready before Runtime registry, manifest, and health evidence
+  agree

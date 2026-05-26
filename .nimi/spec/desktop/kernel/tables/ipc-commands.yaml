@@ -139,42 +139,6 @@ commands:
     description: Finalize explicit app quit after renderer cleanup
     source_rule: D-IPC-005
 
-  # External agent (external_agent_gateway)
-  - command: external_agent_issue_token
-    module: external-agent
-    description: Issue external agent access token
-    source_rule: D-IPC-008
-
-  - command: external_agent_revoke_token
-    module: external-agent
-    description: Revoke external agent access token
-    source_rule: D-IPC-008
-
-  - command: external_agent_list_tokens
-    module: external-agent
-    description: List external agent tokens
-    source_rule: D-IPC-008
-
-  - command: external_agent_verify_execution_context
-    module: external-agent
-    description: Verify external agent execution context before action dispatch
-    source_rule: D-IPC-008
-
-  - command: external_agent_sync_action_descriptors
-    module: external-agent
-    description: Sync external agent action descriptors
-    source_rule: D-IPC-008
-
-  - command: external_agent_complete_execution
-    module: external-agent
-    description: Complete external agent action execution
-    source_rule: D-IPC-008
-
-  - command: external_agent_gateway_status
-    module: external-agent
-    description: Get external agent gateway status
-    source_rule: D-IPC-008
-
   # Runtime bridge (runtime_bridge) — gRPC transport
   - command: runtime_bridge_unary
     module: runtime-bridge

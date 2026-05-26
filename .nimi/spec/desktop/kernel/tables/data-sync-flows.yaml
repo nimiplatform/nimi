@@ -73,7 +73,7 @@ flows:
       - blockUser
       - unblockUser
       - loadFriendRequests
-    description: Contacts, friend requests, social graph
+    description: Relationship list, friend requests, social graph
     source_rule: D-DSYNC-004
 
   - flow: world

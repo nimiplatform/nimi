@@ -12,6 +12,7 @@ or audit truth.
 SDK may expose Runtime delegation APIs only as typed clients for Runtime-owned
 contracts:
 
+- External Agent gateway/status/token/action/audit projection
 - provider profile projection
 - provider lifecycle projection
 - delegated session projection
@@ -40,6 +41,12 @@ through `K-DELEG-032`.
 
 SDK consumers may observe request state and submit Runtime-owned commands. They
 must not mutate request internals by local object replacement.
+
+External Agent action descriptors, issue/revoke/list token operations,
+execution context verification, completion, and audit replay are Runtime-owned
+commands/projections. SDK may expose typed methods for them; it must not
+preserve Desktop/Tauri command names or retired extension-specific identity
+fields.
 
 ## S-RUNTIME-204 Delegation Result Projection
 

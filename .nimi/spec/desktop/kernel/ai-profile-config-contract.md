@@ -1,16 +1,24 @@
-# AI Profile / Config / Snapshot Contract
+# AI Profile / Config / Snapshot Desktop Consumption Contract
 
 > Authority: Desktop Kernel
 
 ## Scope
 
-定义 `AIProfile`、`AIConfig`、`AISnapshot` 三段式 AI 配置 canonical model，以及它们与现有 `D-LLM-015 ~ D-LLM-021` conversation capability authority 的 umbrella 关系。
+定义 Desktop 如何消费 `AIProfile`、`AIConfig`、`AISnapshot` 三段式 AI
+配置模型，以及它们与现有 `D-LLM-015 ~ D-LLM-021` conversation capability
+authority 的 umbrella 关系。
 
-本契约是 Desktop 侧 AI 配置的最终态 canonical owner。
+本契约不是全局 AI 配置 canonical owner。AIConfig intent 归具体 scope /
+app owner；Runtime 归 facts、materialization、readiness、route feasibility 与
+execution evidence；SDK 归 Desktop / Web / Kit 消费这些 owner truth 的 typed
+projection boundary。Desktop 只能作为自身 desktop-resident scopes 的 consumer /
+placement owner，不得成为所有 app / module / feature scope 的 host-local
+AIConfig owner。
 
-在 desktop surface 中，Desktop host 是 canonical app / module / feature scope 的
-`AIConfig` / `AISnapshot` host-local persistence owner；consumer 只能通过
-formal host bridge 消费本 authority，不能自持久化平行真相。
+在 desktop surface 中，renderer、chat、settings、Runtime page 等 consumer
+只能通过 formal SDK / host projection 消费对应 scope 的 `AIConfig` /
+`AISnapshot`。它们不能自持久化平行真相，也不能把 Desktop host-local storage
+升级为跨 app 的 canonical AIConfig owner。
 
 Agent chat behavior semantics 不由本契约拥有。`AIProfile` / `AIConfig` /
 `AISnapshot` 只拥有 AI configuration authority；single-message、turn-mode、
@@ -19,11 +27,14 @@ experience-policy / settings semantics 继续由
 
 ## D-AIPC-001 — Three-Tier AI Configuration Authority
 
-Desktop AI 配置 authority 固定为三段式：
+AI 配置 authority 固定为三段式，Desktop 只消费和投影该三段式：
 
 1. **`AIProfile`** — 标准配置包 / 预设 / 模板。可下载、导入导出、推荐、probe、模块测试。不直接作为运行时长期真相。
-2. **`AIConfig`** — 某个 scope 当前实际生效的 AI 配置。绑定到 `AIScopeRef`（P-AISC-001）。是运行时长期真相。
-3. **`AISnapshot`** — 每次 turn / job 启动时固化的执行快照。是执行期真相。
+2. **`AIConfig`** — 某个 scope 当前实际生效的 AI intent/config。绑定到
+`AIScopeRef`（P-AISC-001）。其 intent owner 是该 scope / app owner；是否可
+执行由 Runtime facts/readiness/evidence 判定。
+3. **`AISnapshot`** — 每次 turn / job 启动时固化的执行快照 envelope。它包含
+scope config evidence 与 Runtime execution evidence slices，是执行期真相。
 
 三者不可互为 fallback：
 - `AIProfile` 不能被当作 live config 消费。
@@ -63,7 +74,11 @@ Desktop AI 配置 authority 固定为三段式：
 - scope 不限于 app；可为 app / module / feature。
 - `AIConfig` 必须是 full materialized config — 不允许 partial overlay 或 scope 间 fallback chain（P-AISC-003）。
 - `AIConfig` 可与 `AIProfile` 共享 schema subset；区别在于 owner 语义（bound vs template），不在字段形状。
-- 在 Desktop host 中，`AIConfig` 的 canonical persistence / subscription / scope-keyed read-write owner 必须是 shared Desktop host AIConfig service，而不是某个单独 consumer 私有的 chat-local storage helper。
+- `AIConfig` 的 canonical persistence / subscription / scope-keyed read-write
+  owner 必须是对应 `AIScopeRef` 的 scope / app owner，通过 SDK typed
+  projection 暴露给 Desktop。Desktop host 可以为自身 desktop-resident scopes
+  提供 placement 与 editing UI，但不得成为其它 app / module / feature scope 的
+  canonical persistence owner。
 
 `AIConfig` 内部结构固定包含：
 
@@ -80,13 +95,13 @@ top-level live config truth。若 chat consumer 需要这些 behavior semantics�
 
 ## D-AIPC-003a — Adjacent Desktop-Host Live Config Surface
 
-并非所有 user-editable 的 host-owned AI live config 都必须被收编进
+并非所有 user-editable 的 scope-owned AI live config 都必须被收编进
 `AIConfig.capabilities`。
 
-当某个 live config 同时满足以下条件时，允许作为 Desktop-host-owned adjacent
-config surface 存在：
+当某个 live config 同时满足以下条件时，允许作为 scope-owned adjacent config
+surface 存在，并通过 SDK / typed host projection 暴露给 Desktop UI：
 
-- 配置是 user-editable、scope-keyed、并需要 host-local persistence /
+- 配置是 user-editable、scope-keyed、并需要 durable persistence /
   subscription / read-write authority
 - 配置影响的是 runtime-owned bank / substrate / retained-memory behavior，而不是
   普通 turn execution capability truth
@@ -96,15 +111,16 @@ config surface 存在：
 
 Memory embedding config 被明确 admit 为第一类 adjacent live config surface：
 
-- Desktop host 是 editable memory embedding config 的 canonical persistence /
-  subscription / read-write owner
+- scope owner 是 editable memory embedding config 的 canonical persistence /
+  subscription / read-write owner；Desktop 只拥有其 UI placement 与 typed
+  projection consumption
 - 该 config 只表达 user intent，例如 `source_kind` 与 binding reference
 - 该 config 不拥有 resolved embedding profile、readiness proof、bind result、
   bank identity、migration state、或 cutover result
 
-Desktop consumer 必须通过 typed Desktop host config surface 读取/写入这类
-adjacent live config；不得把 renderer-local state 或 runtime private loopback
-convenience endpoint 当成正式 live-config owner。
+Desktop consumer 必须通过 typed SDK / host projection surface 读取/写入这类
+adjacent live config；不得把 renderer-local state、Desktop-local storage、或
+runtime private loopback convenience endpoint 当成正式 live-config owner。
 
 ## D-AIPC-004 — AISnapshot Semantics
 
@@ -125,7 +141,10 @@ convenience endpoint 当成正式 live-config owner。
 - 运行中 turn / job 只读自己的 snapshot，不回读 live `AIConfig`
 - `runtimeEvidence` 为 null 表示 submit path 未执行 scheduling preflight（如 cloud route 不经过 local scheduler），不是错误
 - 若 submit path 只有 scope aggregate feasibility 结果而没有 target-scoped scheduling judgement，则 `runtimeEvidence.schedulingJudgement` 必须保持为 null，不允许用 scope aggregate 充当 execution evidence
-- 在 Desktop host 中，`AISnapshot` 的 schema、record 与 read owner 同样归 Desktop host；consumer 不得自定义 consumer-local `AISnapshot` schema 或把 local storage 当成正式 snapshot owner。
+- `AISnapshot` 是 owner-sliced execution evidence envelope：scope / app owner
+  owns config evidence identity，Runtime owns execution/runtime evidence slices，
+  SDK owns typed projection。Desktop consumer 不得自定义 consumer-local
+  `AISnapshot` schema 或把 local storage 当成正式 snapshot owner。
 - snapshot 若记录 agent chat behavior evidence，也只能记录来自
   `agent-chat-behavior-contract.md`（`D-LLM-022` ~ `D-LLM-025`）的 resolved outputs；
   `AISnapshot` 不得在 capture 时重新解析、覆写、或补默认 behavior truth
@@ -236,10 +255,13 @@ portable payload 的目标是：任何 profile 可在不同设备间迁移，接
 - 不反向污染 `AIProfile`。
 - 自定义修改后 `AIConfig` 仍保持 full materialized，不退回 profile 引用模式。
 
-### Host ownership and bridge
+### Scope ownership and bridge
 
-- Desktop host 必须对所有 desktop-resident canonical scopes 提供统一的 AIConfig authority bridge。
-- chat、settings 等 consumer 都只能作为 shared Desktop host AIConfig service 的 consumer，不得各自持有独立 persistence owner。
+- Scope / app owner 必须对其 canonical scopes 提供统一的 AIConfig authority
+  surface，并通过 SDK / host projection 暴露给 Desktop。
+- Desktop-resident scopes 可以由 Desktop product surface 提供 editing placement，
+  但 chat、settings 等 consumer 仍只能作为 projection consumer，不得各自持有
+  独立 persistence owner。
 
 ## D-AIPC-012 — Runtime Probe Taxonomy
 
@@ -264,20 +286,24 @@ UI 必须根据 probe 类别展示对应级别的状态信息。不允许将不�
 
 ## D-AIPC-013 — Built-In First-Run AIConfig Evidence
 
-Desktop host AIConfig service owns first-run built-in `AIConfig` materialization
-for `desktop.chat.nimi` and `desktop.chat.agent` as defined by `P-AISC-006`.
+First-run built-in `AIConfig` materialization for `desktop.chat.nimi` and
+`desktop.chat.agent` is owned by the scope owner for those Desktop chat scopes
+and committed through the SDK / Runtime materialization boundary defined by
+`P-AISC-006`, `P-AIPS-*`, and Runtime readiness contracts. Desktop host is the
+placement surface, not the global writer authority.
 
 `MUST`:
 
 - first-run must apply the selected local baseline factory `AIProfile` to both
-  canonical scopes through `D-AIPC-005` atomic apply semantics
+  canonical chat scopes through `D-AIPC-005` atomic apply semantics
 - each built-in config evidence item must bind the exact canonical
   `scopeRef`, the applied `AIProfile` ref / hash, the committed `AIConfig`
-  version or content hash, the Desktop host writer identity, and `committedAt`
+  version or content hash, the responsible scope owner / SDK writer identity,
+  and `committedAt`
 - `builtInAiConfigRefs` in `~/.nimi/nimi.json` must contain backend-verifiable
   durable refs for both required scopes; the refs are valid only when the host
-  AIConfig service can resolve them to committed full materialized configs for
-  those exact scopes
+  SDK / Runtime projection can resolve them to committed full materialized
+  configs and readiness evidence for those exact scopes
 - apply or verification failure for either required scope fails first-run
   finalization closed; no partial built-in chat set may enter `ready_for_use`
 
@@ -343,13 +369,13 @@ preview 的 base version 过期；此时 commit 端必须依据 `D-AIPC-005` 的
 version / CAS 保护处理，不允许把过期 preview 的 `after` 当作权威 commit 输入。
 preview 自身不持有锁，也不冻结 scope。
 
-本规则适用于 canonical desktop scopes；apply preview 必须经过 `D-AIPC-011`
-定义的 Desktop host AIConfig bridge，不得自定义 local preview 真相。
+本规则适用于 canonical desktop scopes；apply preview 必须经过 SDK / host
+projection exposed by the scope owner，不得自定义 local preview 真相。
 
 ## Fact Sources
 
 - `agent-chat-behavior-contract.md` — D-LLM-022 ~ D-LLM-026 behavior authority boundary
 - `conversation-capability-contract.md` — D-LLM-015 ~ D-LLM-021 conversation capability submodel rules
-- `llm-adapter-contract.md` — D-LLM-001 ~ D-LLM-014 provider adaptation and routing rules
+- `llm-adapter-contract.md` — Desktop provider adaptation and routing rules
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001 ~ P-AISC-006 AIScopeRef identity contract
 - `.nimi/spec/runtime/kernel/scheduling-contract.md` — K-SCHED-001 ~ K-SCHED-007 scheduling judgement contract

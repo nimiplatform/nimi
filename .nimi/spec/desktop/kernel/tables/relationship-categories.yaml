@@ -1,12 +1,12 @@
 table_family: product_catalog
 owner: desktop
-catalog_id: desktop_contacts_categories
+catalog_id: desktop_relationship_categories
 authority_refs:
-  - D-CONTACTS-000
+  - D-REL-001
 entries:
   - id: human_friends
     name: Human Friends
-    semantics: Active human-to-human Friendship relations of the current account. Shared profile/social consumers may resolve each entry to a human contact and route to Human Chat.
+    semantics: Active human-to-human Friendship relations of the current account. Shared profile/social consumers may resolve each entry to a human relationship and route to Human Chat.
   - id: agent_friends
     name: Agent Friends
     semantics: Active AgentFriend relations of the current account. Shared profile/social consumers may resolve each entry to one one-to-one LocalAgent projection and route to LocalAgent Chat. Owner-created RealmAgents the account is also friends with remain ordinary AgentFriend relations, not a separate category.
