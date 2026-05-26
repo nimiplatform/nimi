@@ -258,16 +258,14 @@ describe('ModelConfigPanel', () => {
     }
 
     await act(async () => {
-      const selectTrigger = Array.from(document.querySelectorAll('button'))
-        .find((button) => button.textContent?.includes('Text to Video'));
-      selectTrigger?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await flush();
-    });
-
-    await act(async () => {
-      const referenceOption = Array.from(document.querySelectorAll('[role="option"]'))
-        .find((option) => option.textContent?.includes('Image to Video (reference)'));
-      referenceOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      const videoModeSelect = Array.from(document.querySelectorAll('select'))
+        .find((select) => Array.from(select.options)
+          .some((option) => option.textContent?.includes('Image to Video (reference)')));
+      expect(videoModeSelect).toBeTruthy();
+      if (videoModeSelect instanceof HTMLSelectElement) {
+        videoModeSelect.value = 'i2v-reference';
+        videoModeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
       await flush();
     });
 

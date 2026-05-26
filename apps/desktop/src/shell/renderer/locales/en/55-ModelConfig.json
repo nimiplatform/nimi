@@ -66,27 +66,33 @@
     },
     "imageEdit": {
       "title": "Image edit",
-      "subtitle": "Edit images with a prompt"
+      "subtitle": "Edit images with a prompt",
+      "detail": "Routes prompt-based image edit jobs through the selected local image editing model."
     },
     "imageGenerate": {
       "title": "Image generation",
-      "subtitle": "Generate images from prompts"
+      "subtitle": "Generate images from prompts",
+      "detail": "Routes text-to-image generation jobs through the selected local or cloud image model."
     },
     "textEmbed": {
       "title": "Embeddings",
-      "subtitle": "Generate vector embeddings"
+      "subtitle": "Generate vector embeddings",
+      "detail": "Routes embedding jobs through the selected vector model for memory and retrieval."
     },
     "textGenerate": {
       "title": "Chat",
-      "subtitle": "Text generation"
+      "subtitle": "Text generation",
+      "detail": "Routes chat and agent text generation turns through the selected local or cloud language model."
     },
     "textGenerateVision": {
       "title": "Vision chat",
-      "subtitle": "Generate text from image and text input"
+      "subtitle": "Generate text from image and text input",
+      "detail": "Routes image-aware chat turns through the selected multimodal language model."
     },
     "videoGenerate": {
       "title": "Video generation",
-      "subtitle": "Generate videos from prompts"
+      "subtitle": "Generate videos from prompts",
+      "detail": "Routes text-to-video generation jobs through the selected local or cloud video model."
     },
     "voiceWorkflowVoiceDesign": {
       "title": "Voice design",
@@ -100,7 +106,8 @@
     },
     "worldGenerate": {
       "title": "World generation",
-      "subtitle": "Generate world scenes"
+      "subtitle": "Generate world scenes",
+      "detail": "Routes world scene generation jobs through the selected world generation model."
     }
   },
   "editor": {

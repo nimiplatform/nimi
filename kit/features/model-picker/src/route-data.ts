@@ -431,12 +431,13 @@ export function useRouteModelPickerData({
   );
 
   // --- Data fetching ---
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (isCancelled?: () => boolean) => {
     setLoading(true);
     const [localResult, connectorResult] = await Promise.allSettled([
       provider.listLocalModels(),
       provider.listConnectors(),
     ]);
+    if (isCancelled?.()) return;
     if (localResult.status === 'fulfilled') {
       setLocalModels(localResult.value);
       setLocalStatus('ready');
@@ -452,25 +453,35 @@ export function useRouteModelPickerData({
     setLoading(false);
   }, [provider]);
 
-  const fetchConnectorModels = useCallback(async (cId: string) => {
+  const fetchConnectorModels = useCallback(async (cId: string, isCancelled?: () => boolean) => {
     if (!cId || connectorModelsMap[cId]) return;
     try {
       const models = await provider.listConnectorModels(cId);
+      if (isCancelled?.()) return;
       setConnectorModelsMap((prev) => ({ ...prev, [cId]: models }));
     } catch {
+      if (isCancelled?.()) return;
       setConnectorModelsMap((prev) => ({ ...prev, [cId]: [] }));
     }
   }, [provider, connectorModelsMap]);
 
   useEffect(() => {
-    void fetchData();
+    let cancelled = false;
+    void fetchData(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
   }, [fetchData]);
 
   // Auto-fetch connector models when connectorId changes
   useEffect(() => {
+    let cancelled = false;
     if (source === 'cloud' && connectorId) {
-      void fetchConnectorModels(connectorId);
+      void fetchConnectorModels(connectorId, () => cancelled);
     }
+    return () => {
+      cancelled = true;
+    };
   }, [source, connectorId, fetchConnectorModels]);
 
   // --- Build display model list ---
@@ -541,15 +552,17 @@ export function useRouteModelPickerData({
     }
   }, [loading, activeModel, source, connectorId, onSelectionChange, buildSelection]);
 
+  const handleSelectModel = useCallback((id: string) => {
+    if (id && id !== model) {
+      setModel(id);
+      onSelectionChange?.(buildSelection({ source, connectorId, model: id }));
+    }
+  }, [buildSelection, connectorId, model, onSelectionChange, source]);
+
   const pickerState = useModelPicker({
     adapter,
     selectedId: activeModel,
-    onSelectModel: (id) => {
-      if (id && id !== model) {
-        setModel(id);
-        onSelectionChange?.(buildSelection({ source, connectorId, model: id }));
-      }
-    },
+    onSelectModel: handleSelectModel,
   });
 
   // --- Connector options ---

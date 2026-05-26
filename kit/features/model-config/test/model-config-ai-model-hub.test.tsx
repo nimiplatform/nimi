@@ -2,6 +2,7 @@ import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ModelConfigAiModelHub } from '../src/ui.js';
+import { TooltipProvider } from '@nimiplatform/kit/ui';
 import type {
   AppModelConfigSurface,
   SharedAIConfigService,
@@ -52,6 +53,14 @@ async function render(node: ReactNode) {
     await flush();
     await flush();
   });
+}
+
+function wrap(node: ReactNode): ReactNode {
+  return <TooltipProvider>{node}</TooltipProvider>;
+}
+
+function click(element: Element) {
+  element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 }
 
 const scopeRef: AIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
@@ -120,6 +129,12 @@ const ALL_SECTION_CAPABILITIES = [
   'world.generate', // world
 ];
 
+const providerStub = Object.freeze({
+  listLocalModels: async () => [],
+  listConnectors: async () => [],
+  listConnectorModels: async () => [],
+});
+
 function makeSurface(service: SharedAIConfigService): AppModelConfigSurface {
   return {
     scopeRef,
@@ -171,5 +186,52 @@ describe('ModelConfigAiModelHub', () => {
     const importButtons = Array.from(container?.querySelectorAll('button') || [])
       .filter((button) => button.textContent?.includes('Import AI Profile'));
     expect(importButtons.length).toBe(1);
+  });
+
+  it('opens chat detail from grouped super-section layout without remount loops', async () => {
+    const service = stubService();
+    const surface: AppModelConfigSurface = {
+      ...makeSurface(service),
+      enabledCapabilities: ['text.generate', 'text.embed'],
+      providerResolver: () => providerStub,
+    };
+    await render(
+      wrap(
+        <ModelConfigAiModelHub
+          surface={surface}
+          profile={emptyProfileController}
+          superSections={[{
+            id: 'conversation',
+            label: 'Conversation',
+            sections: ['chat', 'embed'],
+          }]}
+        />,
+      ),
+    );
+
+    const chatButton = Array.from(container?.querySelectorAll('button') || [])
+      .find((button) => button.textContent?.includes('ModelConfig.section.chat.title'));
+    expect(chatButton).toBeTruthy();
+
+    await act(async () => {
+      click(chatButton as HTMLButtonElement);
+      await flush();
+      await flush();
+    });
+
+    expect(container?.textContent).toContain('ModelConfig.hub.detailTitleFormat');
+    expect(container?.textContent).toContain('ModelConfig.editor.textGenerate.temperatureLabel');
+
+    const selectorButton = Array.from(container?.querySelectorAll('button') || [])
+      .find((button) => button.textContent?.includes('Select a model'));
+    expect(selectorButton).toBeTruthy();
+
+    await act(async () => {
+      click(selectorButton as HTMLButtonElement);
+      await flush();
+      await flush();
+    });
+
+    expect(document.body.textContent).toContain('Select Model');
   });
 });

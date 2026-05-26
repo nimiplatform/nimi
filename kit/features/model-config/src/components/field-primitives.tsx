@@ -1,26 +1,25 @@
 import { useState, type ReactNode } from 'react';
 import {
   Button,
-  SelectField,
   StatusBadge,
   TextareaField,
   TextField,
   Toggle,
-  Tooltip,
   cn,
 } from '@nimiplatform/kit/ui';
 
 const FIELD_HEIGHT = 'min-h-[var(--nimi-sizing-field-md-height)]';
 
 export function FieldLabel(props: { label: string; tooltip?: string }) {
-  if (props.tooltip) {
-    return (
-      <Tooltip content={props.tooltip} placement="top">
-        <span className="text-xs font-semibold text-[var(--nimi-text-secondary)]">{props.label}</span>
-      </Tooltip>
-    );
-  }
-  return <span className="text-xs font-semibold text-[var(--nimi-text-secondary)]">{props.label}</span>;
+  return (
+    <span
+      className="text-xs font-semibold text-[var(--nimi-text-secondary)]"
+      title={props.tooltip}
+      aria-label={props.tooltip ? `${props.label}: ${props.tooltip}` : props.label}
+    >
+      {props.label}
+    </span>
+  );
 }
 
 export function FieldRow(props: { label: string; tooltip?: string; children: ReactNode }) {
@@ -56,13 +55,23 @@ export function FieldSelect(props: {
   placeholder?: string;
 }) {
   return (
-    <SelectField
+    <select
       value={props.value}
-      onValueChange={props.onChange}
-      options={props.options}
-      placeholder={props.placeholder}
-      selectClassName="min-h-10 rounded-xl px-3 text-sm"
-    />
+      onChange={(event) => props.onChange(event.currentTarget.value)}
+      className="min-h-10 w-full rounded-xl border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 text-sm text-[var(--nimi-field-text)] outline-none transition-colors duration-[var(--nimi-motion-fast)] focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
+      aria-label={props.placeholder}
+    >
+      {props.placeholder ? (
+        <option value="" disabled>
+          {props.placeholder}
+        </option>
+      ) : null}
+      {props.options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
   );
 }
 

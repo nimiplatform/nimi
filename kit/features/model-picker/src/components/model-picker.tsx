@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import {
   SearchField,
-  SelectField,
   StatusBadge,
   Surface,
   cn,
@@ -60,35 +59,35 @@ export function ModelPicker<TModel>({
         {hasCapabilityFilter ? (
           <label className="flex min-h-11 flex-col gap-1 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--nimi-text-muted)]">
             <span>Capability</span>
-            <SelectField
+            <select
               value={state.capabilityFilter}
-              onValueChange={state.setCapabilityFilter}
-              options={[
-                { value: 'all', label: 'All' },
-                ...state.capabilityOptions.map((capability) => ({
-                  value: capability,
-                  label: capability,
-                })),
-              ]}
-              selectClassName="font-normal"
-            />
+              onChange={(event) => state.setCapabilityFilter(event.currentTarget.value)}
+              className="min-h-[var(--nimi-sizing-field-md-height)] w-full rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 text-sm font-normal normal-case tracking-normal text-[var(--nimi-field-text)] outline-none transition-colors duration-[var(--nimi-motion-fast)] focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
+            >
+              <option value="all">All</option>
+              {state.capabilityOptions.map((capability) => (
+                <option key={capability} value={capability}>
+                  {capability}
+                </option>
+              ))}
+            </select>
           </label>
         ) : null}
         {hasSourceFilter ? (
           <label className="flex min-h-11 flex-col gap-1 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--nimi-text-muted)]">
             <span>Source</span>
-            <SelectField
+            <select
               value={state.sourceFilter}
-              onValueChange={state.setSourceFilter}
-              options={[
-                { value: 'all', label: 'All' },
-                ...state.sourceOptions.map((source) => ({
-                  value: source,
-                  label: source,
-                })),
-              ]}
-              selectClassName="font-normal"
-            />
+              onChange={(event) => state.setSourceFilter(event.currentTarget.value)}
+              className="min-h-[var(--nimi-sizing-field-md-height)] w-full rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 text-sm font-normal normal-case tracking-normal text-[var(--nimi-field-text)] outline-none transition-colors duration-[var(--nimi-motion-fast)] focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
+            >
+              <option value="all">All</option>
+              {state.sourceOptions.map((source) => (
+                <option key={source} value={source}>
+                  {source}
+                </option>
+              ))}
+            </select>
           </label>
         ) : null}
       </div>

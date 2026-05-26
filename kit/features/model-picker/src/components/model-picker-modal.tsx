@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  ScrollArea,
   SearchField,
-  SelectField,
   cn,
 } from '@nimiplatform/kit/ui';
 import {
@@ -96,14 +92,6 @@ export function ModelPickerModal({
     initialSelection,
   });
 
-  const connectorOptions = useMemo(
-    () => connectors.map((c) => ({
-      value: c.connectorId,
-      label: `${c.label} (${c.provider})`,
-    })),
-    [connectors],
-  );
-
   const filteredModels = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return pickerState.models;
@@ -153,18 +141,41 @@ export function ModelPickerModal({
     return () => clearTimeout(timer);
   }, [open]);
 
-  return (
-    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
-      <DialogContent
-        onClose={onClose}
-        className="flex max-h-[520px] w-full max-w-[480px] flex-col overflow-hidden"
-      >
-        <DialogTitle className="sr-only">{capabilityLabel}</DialogTitle>
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, open]);
 
+  if (!open) {
+    return null;
+  }
+
+  const modal = (
+    <div
+      className="fixed inset-0 z-[var(--nimi-z-dialog)] grid place-items-center bg-[var(--nimi-overlay-backdrop)] px-4 py-6"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="model-picker-modal-title"
+        className="nimi-overlay-panel nimi-overlay-panel--dialog flex max-h-[520px] w-full max-w-[480px] flex-col overflow-hidden rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-modal)]"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
         {/* Header */}
         <div className="shrink-0 border-b border-slate-100 px-5 pt-5 pb-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-slate-800">Select Model</h2>
+            <h2 id="model-picker-modal-title" className="text-base font-semibold text-slate-800">Select Model</h2>
             <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
               {capabilityLabel}
             </span>
@@ -196,19 +207,23 @@ export function ModelPickerModal({
           </div>
 
           {/* Connector (cloud only) */}
-          {selection.source === 'cloud' && connectorOptions.length > 0 ? (
+          {selection.source === 'cloud' && connectors.length > 0 ? (
             <div className="mt-3">
-              <SelectField
+              <select
                 value={selection.connectorId}
-                onValueChange={(value) => {
-                  changeConnector(value);
+                onChange={(event) => {
+                  changeConnector(event.currentTarget.value);
                   setSearch('');
                 }}
-                options={connectorOptions}
-                placeholder="Select connector"
-                selectClassName="font-normal"
-                contentClassName="z-[calc(var(--nimi-z-dialog)+10)]"
-              />
+                className="min-h-[var(--nimi-sizing-field-md-height)] w-full rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 text-sm font-normal text-[var(--nimi-field-text)] outline-none transition-colors duration-[var(--nimi-motion-fast)] focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
+                aria-label="Select connector"
+              >
+                {connectors.map((connector) => (
+                  <option key={connector.connectorId} value={connector.connectorId}>
+                    {connector.label} ({connector.provider})
+                  </option>
+                ))}
+              </select>
             </div>
           ) : null}
         </div>
@@ -224,7 +239,7 @@ export function ModelPickerModal({
         </div>
 
         {/* Model list */}
-        <ScrollArea className="min-h-0 flex-1">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {loading ? (
             <p className="px-5 py-8 text-center text-sm text-slate-400">Loading models...</p>
           ) : filteredModels.length > 0 ? (
@@ -266,8 +281,12 @@ export function ModelPickerModal({
               {search ? 'No models match your search.' : 'No models available.'}
             </p>
           )}
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </div>
   );
+
+  return typeof document === 'undefined'
+    ? modal
+    : createPortal(modal, document.body);
 }

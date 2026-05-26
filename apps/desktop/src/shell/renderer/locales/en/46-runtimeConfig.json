@@ -220,6 +220,7 @@
     "modelRemovedSyncFailed": "Model removed locally, but Go runtime sync failed: {{message}}",
     "removeAssetFailed": "Remove asset failed: {{message}}",
     "assetRemoved": "Asset removed: {{assetId}}",
+    "assetRemoveQueued": "Asset removal queued: {{assetId}}",
     "unknownError": "Unknown error",
     "runtimeUnavailableWriteReadOnly": "Runtime unavailable. Local model writes are disabled in read-only mode.",
     "baselineImageDefault": "image-default-v1 (1024x1024 text-to-image)",

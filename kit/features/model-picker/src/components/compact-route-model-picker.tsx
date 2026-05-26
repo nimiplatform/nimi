@@ -1,13 +1,7 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Button,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  ScrollArea,
   SearchField,
-  SelectField,
-  type SelectFieldOption,
   cn,
 } from '@nimiplatform/kit/ui';
 import type { UseModelPickerResult } from '../hooks/use-model-picker.js';
@@ -24,6 +18,12 @@ export type CompactRouteModelPickerSourceOption = {
   disabled?: boolean;
 };
 
+export type CompactRouteModelPickerSelectOption = {
+  value: string;
+  label: ReactNode;
+  disabled?: boolean;
+};
+
 export type CompactRouteModelPickerProps<TModel> = {
   state: UseModelPickerResult<TModel>;
   sourceValue: CompactRouteModelPickerSource;
@@ -31,7 +31,7 @@ export type CompactRouteModelPickerProps<TModel> = {
   onSourceChange?: (value: CompactRouteModelPickerSource) => void;
   showConnector?: boolean;
   connectorValue?: string;
-  connectorOptions?: readonly SelectFieldOption[];
+  connectorOptions?: readonly CompactRouteModelPickerSelectOption[];
   onConnectorChange?: (value: string) => void;
   triggerLabel?: ReactNode;
   triggerClassName?: string;
@@ -59,6 +59,11 @@ const CHECK_ICON = (
   </svg>
 );
 
+function optionLabelText(label: ReactNode): string {
+  if (typeof label === 'string' || typeof label === 'number') return String(label);
+  return '';
+}
+
 // ---------------------------------------------------------------------------
 // CompactRouteModelPicker
 // ---------------------------------------------------------------------------
@@ -82,6 +87,7 @@ export function CompactRouteModelPicker<TModel>({
   className,
 }: CompactRouteModelPickerProps<TModel>) {
   const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const selectedTitle = state.selectedModel
     ? state.adapter.getTitle(state.selectedModel)
@@ -89,9 +95,29 @@ export function CompactRouteModelPicker<TModel>({
 
   const displayLabel = triggerLabel ?? selectedTitle ?? 'Select model';
 
+  useEffect(() => {
+    if (!open) return undefined;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (rootRef.current?.contains(event.target as Node)) return;
+      setOpen(false);
+    };
+    window.addEventListener('pointerdown', handlePointerDown);
+    return () => window.removeEventListener('pointerdown', handlePointerDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <div ref={rootRef} className="relative inline-block">
         <Button
           tone="ghost"
           size="sm"
@@ -100,17 +126,20 @@ export function CompactRouteModelPicker<TModel>({
             'max-w-[200px] gap-1 px-2 text-[12px] font-medium text-[color:var(--nimi-text-secondary)] hover:text-[color:var(--nimi-text-primary)]',
             triggerClassName,
           )}
+          onClick={() => setOpen((next) => !next)}
         >
           <span className="truncate">{displayLabel}</span>
         </Button>
-      </PopoverTrigger>
 
-      <PopoverContent
-        align={align}
-        side={side}
-        sideOffset={8}
-        className={cn('w-[320px] p-0', className)}
-      >
+      {open ? (
+        <div
+          className={cn(
+            'absolute z-[var(--nimi-z-popover)] w-[320px] overflow-hidden rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-0 shadow-[var(--nimi-elevation-floating)]',
+            side === 'top' ? 'bottom-full mb-2' : 'top-full mt-2',
+            align === 'end' ? 'right-0' : align === 'center' ? 'left-1/2 -translate-x-1/2' : 'left-0',
+            className,
+          )}
+        >
         <div className="space-y-3 p-3">
           {/* Source toggle */}
           <div className="flex gap-1.5">
@@ -131,13 +160,18 @@ export function CompactRouteModelPicker<TModel>({
 
           {/* Connector (cloud only) */}
           {showConnector && connectorOptions.length > 0 ? (
-            <SelectField
+            <select
               value={connectorValue}
-              onValueChange={onConnectorChange}
-              options={connectorOptions.slice()}
-              placeholder="Select connector"
-              selectClassName="text-[13px] font-normal"
-            />
+              onChange={(event) => onConnectorChange?.(event.currentTarget.value)}
+              className="min-h-[var(--nimi-sizing-field-md-height)] w-full rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 text-[13px] font-normal text-[var(--nimi-field-text)] outline-none transition-colors duration-[var(--nimi-motion-fast)] focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
+              aria-label="Select connector"
+            >
+              {connectorOptions.map((option) => (
+                <option key={option.value} value={option.value} disabled={option.disabled}>
+                  {optionLabelText(option.label)}
+                </option>
+              ))}
+            </select>
           ) : null}
 
           {/* Search (when > 3 models) */}
@@ -162,7 +196,7 @@ export function CompactRouteModelPicker<TModel>({
               {emptyMessage}
             </p>
           ) : (
-            <ScrollArea className="max-h-[260px]" viewportClassName="py-1.5">
+            <div className="max-h-[260px] overflow-y-auto overscroll-contain py-1.5">
               {state.filteredModels.map((model) => {
                 const id = state.adapter.getId(model);
                 const title = state.adapter.getTitle(model);
@@ -217,10 +251,11 @@ export function CompactRouteModelPicker<TModel>({
                   </button>
                 );
               })}
-            </ScrollArea>
+            </div>
           )}
         </div>
-      </PopoverContent>
-    </Popover>
+        </div>
+      ) : null}
+    </div>
   );
 }

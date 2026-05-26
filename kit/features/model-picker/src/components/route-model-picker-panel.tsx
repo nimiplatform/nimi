@@ -1,9 +1,6 @@
 import { type ReactNode, useState } from 'react';
 import {
-  ScrollArea,
   SearchField,
-  SelectField,
-  type SelectFieldOption,
   cn,
 } from '@nimiplatform/kit/ui';
 import type { UseModelPickerResult } from '../headless.js';
@@ -21,6 +18,12 @@ export type RouteModelPickerBanner = {
   message: ReactNode;
 };
 
+export type RouteModelPickerSelectOption = {
+  value: string;
+  label: ReactNode;
+  disabled?: boolean;
+};
+
 export type RouteModelPickerPanelProps<TModel> = {
   state: UseModelPickerResult<TModel>;
   sourceValue: RouteModelPickerSource;
@@ -33,7 +36,7 @@ export type RouteModelPickerPanelProps<TModel> = {
   sourceLabel?: ReactNode;
   connectorLabel?: ReactNode;
   connectorValue?: string;
-  connectorOptions?: readonly SelectFieldOption[];
+  connectorOptions?: readonly RouteModelPickerSelectOption[];
   onConnectorChange?: (value: string) => void;
   showConnector?: boolean;
   modelLabel?: ReactNode;
@@ -73,6 +76,11 @@ const CHECK_ICON = (
     <path d="M4 10l4 4 8-8" />
   </svg>
 );
+
+function optionLabelText(label: ReactNode): string {
+  if (typeof label === 'string' || typeof label === 'number') return String(label);
+  return '';
+}
 
 function sourceIcon(value: RouteModelPickerSource) {
   return value === 'local' ? LOCAL_ICON : CLOUD_ICON;
@@ -150,17 +158,22 @@ export function RouteModelPickerPanel<TModel>({
 
         {/* Connector (cloud only) */}
         {showConnector && connectorOptions.length > 0 ? (
-          <SelectField
+          <select
             value={connectorValue}
-            onValueChange={(value) => {
-              onConnectorChange?.(value);
+            onChange={(event) => {
+              onConnectorChange?.(event.currentTarget.value);
               setExpanded(false);
               setSearch('');
             }}
-            options={connectorOptions.slice()}
-            placeholder={String(connectorLabel)}
-            selectClassName="font-normal"
-          />
+            className="min-h-[var(--nimi-sizing-field-md-height)] w-full rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 text-sm font-normal text-[var(--nimi-field-text)] outline-none transition-colors duration-[var(--nimi-motion-fast)] focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
+            aria-label={String(connectorLabel)}
+          >
+            {connectorOptions.map((option) => (
+              <option key={option.value} value={option.value} disabled={option.disabled}>
+                {optionLabelText(option.label)}
+              </option>
+            ))}
+          </select>
         ) : null}
 
         {/* Model selector */}
@@ -198,7 +211,7 @@ export function RouteModelPickerPanel<TModel>({
                   autoFocus
                 />
               </div>
-              <ScrollArea className="max-h-[240px]">
+              <div className="max-h-[240px] overflow-y-auto overscroll-contain">
                 {filteredModels.length > 0 ? (
                   <div className="py-1">
                     {filteredModels.map((model) => {
@@ -232,7 +245,7 @@ export function RouteModelPickerPanel<TModel>({
                 ) : (
                   <p className="px-3 py-4 text-center text-[13px] text-slate-400">{emptyMessage}</p>
                 )}
-              </ScrollArea>
+              </div>
             </div>
           ) : null}
         </div>

@@ -1,8 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import type { CompanionSlotDef, LocalAssetEntry } from '../types.js';
 import { filterAssetsByKind } from '../constants.js';
-import { FieldRow } from './field-primitives.js';
-import { SelectField } from '@nimiplatform/kit/ui';
+import { FieldRow, FieldSelect } from './field-primitives.js';
 
 const NONE_SENTINEL = '__none__';
 
@@ -38,11 +37,10 @@ export function CompanionSlotSelector(props: {
 
   return (
     <FieldRow label={props.slot.label}>
-      <SelectField
+      <FieldSelect
         value={selectValue}
-        onValueChange={handleChange}
+        onChange={handleChange}
         options={options}
-        selectClassName="min-h-10 rounded-xl px-3 text-sm"
       />
     </FieldRow>
   );

@@ -66,27 +66,33 @@
     },
     "imageEdit": {
       "title": "图像编辑",
-      "subtitle": "按提示词编辑图像"
+      "subtitle": "按提示词编辑图像",
+      "detail": "通过选中的本地图像编辑模型运行基于提示词的图像编辑任务。"
     },
     "imageGenerate": {
       "title": "图像生成",
-      "subtitle": "根据提示词生成图像"
+      "subtitle": "根据提示词生成图像",
+      "detail": "通过选中的本地或云端图像模型运行文生图任务。"
     },
     "textEmbed": {
       "title": "嵌入",
-      "subtitle": "生成向量嵌入"
+      "subtitle": "生成向量嵌入",
+      "detail": "通过选中的向量模型运行用于记忆和检索的嵌入任务。"
     },
     "textGenerate": {
       "title": "对话",
-      "subtitle": "文本生成"
+      "subtitle": "文本生成",
+      "detail": "通过选中的本地或云端语言模型运行对话和 Agent 文本生成回合。"
     },
     "textGenerateVision": {
       "title": "视觉对话",
-      "subtitle": "基于图像和文本生成回复"
+      "subtitle": "基于图像和文本生成回复",
+      "detail": "通过选中的多模态语言模型运行带图像输入的对话回合。"
     },
     "videoGenerate": {
       "title": "视频生成",
-      "subtitle": "根据提示词生成视频"
+      "subtitle": "根据提示词生成视频",
+      "detail": "通过选中的本地或云端视频模型运行文生视频任务。"
     },
     "voiceWorkflowVoiceDesign": {
       "title": "语音设计",
@@ -100,7 +106,8 @@
     },
     "worldGenerate": {
       "title": "世界生成",
-      "subtitle": "生成世界场景"
+      "subtitle": "生成世界场景",
+      "detail": "通过选中的世界生成模型运行世界场景生成任务。"
     }
   },
   "editor": {

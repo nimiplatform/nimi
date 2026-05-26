@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Tooltip } from '@nimiplatform/kit/ui';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
 import { ModelPickerModal, ModelSelectorTrigger } from '@nimiplatform/kit/features/model-picker/ui';
 import { bindingToPickerSelection, pickerSelectionToBinding } from '../binding-helpers.js';
@@ -60,9 +59,13 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
       {headerLabel}
     </span>
   ) : item.detail ? (
-    <Tooltip content={item.detail} placement="top">
-      <span className="text-xs font-semibold text-[var(--nimi-text-secondary,#475569)]">{item.label}</span>
-    </Tooltip>
+    <span
+      className="text-xs font-semibold text-[var(--nimi-text-secondary,#475569)]"
+      title={item.detail}
+      aria-label={`${item.label}: ${item.detail}`}
+    >
+      {item.label}
+    </span>
   ) : (
     <span className="text-xs font-semibold text-[var(--nimi-text-secondary,#475569)]">{item.label}</span>
   );
@@ -90,17 +93,19 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
         disabled={item.disabled}
       />
 
-      <ModelPickerModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        capability={item.routeCapability}
-        capabilityLabel={item.label}
-        provider={item.provider}
-        initialSelection={selection}
-        onSelect={(pickerSelection: RouteModelPickerSelection) => {
-          item.onBindingChange(pickerSelectionToBinding(pickerSelection));
-        }}
-      />
+      {modalOpen ? (
+        <ModelPickerModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          capability={item.routeCapability}
+          capabilityLabel={item.label}
+          provider={item.provider}
+          initialSelection={selection}
+          onSelect={(pickerSelection: RouteModelPickerSelection) => {
+            item.onBindingChange(pickerSelectionToBinding(pickerSelection));
+          }}
+        />
+      ) : null}
 
       {item.status?.title || item.status?.detail ? (
         <div className="space-y-0.5">

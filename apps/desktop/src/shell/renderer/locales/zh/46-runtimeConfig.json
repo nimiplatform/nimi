@@ -220,6 +220,7 @@
     "modelRemovedSyncFailed": "模型已在本地移除，但 Go runtime 同步失败：{{message}}",
     "removeAssetFailed": "移除资产失败：{{message}}",
     "assetRemoved": "资产已移除：{{assetId}}",
+    "assetRemoveQueued": "资产移除已排队：{{assetId}}",
     "unknownError": "未知错误",
     "runtimeUnavailableWriteReadOnly": "Runtime 当前不可用，只读模式下已禁用本地模型写入。",
     "baselineImageDefault": "image-default-v1（1024x1024 文生图）",

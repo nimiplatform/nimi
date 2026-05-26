@@ -50,22 +50,29 @@ export function useModelPicker<TModel>({
 
   const currentSelectedId = selectedId ?? internalSelectedId;
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (isCancelled?: () => boolean) => {
     setIsLoading(true);
     setError(null);
     try {
       const nextModels = await adapter.listModels();
+      if (isCancelled?.()) return;
       setModels(nextModels);
     } catch (nextError) {
+      if (isCancelled?.()) return;
       setModels([]);
       setError(nextError instanceof Error ? nextError.message : String(nextError));
     } finally {
+      if (isCancelled?.()) return;
       setIsLoading(false);
     }
   }, [adapter]);
 
   useEffect(() => {
-    void refresh();
+    let cancelled = false;
+    void refresh(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
   }, [refresh]);
 
   const capabilityOptions = useMemo(() => {
