@@ -15,6 +15,7 @@
   "copyLink": "复制链接",
   "friendRequestSentTo": "已向 {{name}} 发送好友请求",
   "createPost": "发布帖子",
+  "createPostShort": "发布",
   "delete": "删除",
   "deletePost": "删除帖子",
   "deletePostMessage": "确定要删除这条帖子吗？此操作无法撤销。",

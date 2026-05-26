@@ -5,7 +5,6 @@ import {
   type ExploreSectionId,
 } from '@renderer/features/explore/explore-section-nav';
 import {
-  HomeCreatePostButton,
   HomeFeedScopeNav,
 } from '@renderer/features/home/home-feed-controls';
 import type { AppTab } from '@renderer/app-shell/providers/app-store';
@@ -15,7 +14,6 @@ type MainLayoutTitlebarContentProps = {
   activeTab: AppTab;
   homeFeedScope: PostFeedScope;
   onHomeFeedScopeChange: (scope: PostFeedScope) => void;
-  onCreatePostRequest: () => void;
   exploreActiveSection: ExploreSectionId;
   onExploreSectionChange: (section: ExploreSectionId) => void;
   exploreSearchText: string;
@@ -32,7 +30,6 @@ export function MainLayoutTitlebarContent(props: MainLayoutTitlebarContentProps)
           active={props.homeFeedScope}
           onSelect={props.onHomeFeedScopeChange}
         />
-        <HomeCreatePostButton onClick={props.onCreatePostRequest} />
       </div>
     );
   }

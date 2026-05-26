@@ -60,19 +60,21 @@ export function HomeFeedScopeNav({
 export function HomeCreatePostButton({ onClick }: { onClick: () => void }) {
   const { t } = useTranslation();
   return (
-    <Tooltip content={t('Home.createPost', { defaultValue: 'Create Post' })} className="h-10">
+    <Tooltip content={t('Home.createPost', { defaultValue: 'Create Post' })} className="h-9">
       <button
         type="button"
         data-testid="home-create-post-header-button"
         data-mod-tab-interactive="true"
         onClick={onClick}
-        className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--nimi-accent)_14%,white)] bg-[color-mix(in_srgb,var(--nimi-accent)_14%,white)] text-[var(--nimi-accent)] shadow-[0_14px_34px_rgba(78,204,163,0.12)] transition hover:bg-[color-mix(in_srgb,var(--nimi-accent)_18%,white)]"
+        className="inline-flex h-9 items-center gap-1 rounded-full bg-transparent px-3 text-[13px] font-medium text-[color:var(--nimi-fg-2)] transition-colors duration-200 ease-out hover:text-[color:var(--nimi-accent)]"
         aria-label={t('Home.createPost', { defaultValue: 'Create Post' })}
+        style={{ fontFamily: 'var(--nimi-font-sans)' }}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
+        <span>{t('Home.createPostShort', { defaultValue: 'Post' })}</span>
       </button>
     </Tooltip>
   );

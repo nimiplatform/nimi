@@ -2,6 +2,7 @@ import type { MouseEvent, ReactNode, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@nimiplatform/kit/ui';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { HomeCreatePostButton } from '@renderer/features/home/home-feed-controls';
 import {
   SHELL_CHROME_ACTION_CELL_CLASS,
 } from './shell-chrome-classes';
@@ -30,6 +31,7 @@ type MainLayoutTopBarProps = {
   onLogin: () => void;
   onOpenChat: () => void;
   onOpenRuntimeConfig: () => void;
+  onCreatePostRequest: () => void;
   onMouseDown: (event: MouseEvent<HTMLDivElement>) => void;
 };
 
@@ -121,6 +123,9 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
             </div>
           ) : (
             <>
+              {props.activeTab === 'home' ? (
+                <HomeCreatePostButton onClick={props.onCreatePostRequest} />
+              ) : null}
               <Tooltip content="Spark" className="h-9">
                 <button
                   type="button"

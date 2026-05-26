@@ -107,6 +107,7 @@ const homeViewSource = readWorkspaceFile('src/shell/renderer/features/home/home-
 const homeFeedControlsSource = readWorkspaceFile('src/shell/renderer/features/home/home-feed-controls.tsx');
 const mainLayoutViewSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
 const mainLayoutTitlebarContentSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-titlebar-content.tsx');
+const mainLayoutTopBarSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx');
 
 test('Home feed controls present exactly the three canonical feed scopes (D-HOMEFEED-004)', () => {
   assert.match(
@@ -144,6 +145,6 @@ test('Home presents feed scope controls in the shell header', () => {
   assert.match(mainLayoutViewSource, /<MainLayoutTitlebarContent/);
   assert.match(mainLayoutTitlebarContentSource, /props\.activeTab === 'home'/);
   assert.match(mainLayoutTitlebarContentSource, /<HomeFeedScopeNav[\s\S]*active=\{props\.homeFeedScope\}/);
-  assert.match(mainLayoutTitlebarContentSource, /<HomeCreatePostButton/);
+  assert.match(mainLayoutTopBarSource, /<HomeCreatePostButton/);
   assert.match(homeViewSource, /max-w-\[760px\]/);
 });

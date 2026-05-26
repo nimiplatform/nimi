@@ -15,6 +15,7 @@
   "copyLink": "Copy link",
   "friendRequestSentTo": "Friend request sent to {{name}}",
   "createPost": "Create Post",
+  "createPostShort": "Post",
   "delete": "Delete",
   "deletePost": "Delete Post",
   "deletePostMessage": "Are you sure you want to delete this post? This action cannot be undone.",

@@ -425,7 +425,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             activeTab={props.activeTab}
             homeFeedScope={homeFeedScope}
             onHomeFeedScopeChange={(scope: PostFeedScope) => setHomeFeedScope(scope)}
-            onCreatePostRequest={() => setHomeCreatePostRequestKey((current) => current + 1)}
             exploreActiveSection={exploreActiveSection}
             onExploreSectionChange={setExploreActiveSection}
             exploreSearchText={exploreSearchText}
@@ -446,6 +445,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
         onLogin={props.onLogin}
         onOpenChat={() => props.onNav('chat')}
         onOpenRuntimeConfig={() => props.onNav('runtime')}
+        onCreatePostRequest={() => setHomeCreatePostRequestKey((current) => current + 1)}
         onMouseDown={props.onTitlebarMouseDown}
       />
 
