@@ -220,14 +220,13 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 
 Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_local_models_*` / `runtime_local_artifacts_*` CRUD/lifecycle 命令不再注册，也不得作为 shipped helper 保留。例外：variant helper 保留 `runtime_local_models_catalog_list_variants` 前缀；搜索与 install-plan 必须走 SDK `RuntimeLocalService` typed API：
 
-- `runtime_local_assets_install` / `runtime_local_assets_install_verified`：asset 安装，权威执行面为 `RuntimeLocalService`。
-- `runtime_local_assets_import` / `runtime_local_assets_import_file` / `runtime_local_assets_import_bundle`：asset 导入，权威执行面为 `RuntimeLocalService`。
+- `runtime_local_assets_install`：legacy catalog-parameter install helper；执行真源仍为 `RuntimeLocalService`，不得扩展为新 Desktop-owned install 协议。
+- `runtime_local_assets_import_bundle`：asset bundle 目录导入；执行真源为 `RuntimeLocalService`。
 - `runtime_local_assets_rescan_bundle`：对已导入 bundle 目录执行 host-assisted re-scan，执行真源仍为 `RuntimeLocalService`。
 - `runtime_local_models_catalog_list_variants`：host-local catalog helper；不得被视为模型清单、安装状态或 transfer 真源。
 - `runtime_local_recommendation_feed_get`：host-local recommendation helper；install/import/download/lifecycle 真源仍是 `RuntimeLocalService`。
 - `runtime_local_assets_reveal_in_folder` / `runtime_local_assets_reveal_root_folder`：在系统文件管理器中打开目录。
 - `runtime_local_assets_scan_unregistered`：host-local intake helper。若产品路径已通过 runtime `ScanUnregisteredAssets` 获得同等结果，则前者不得再被当作权威扫描源。
-- `runtime_local_assets_scaffold_orphan`：对经过显式 review 的 loose/orphan asset 执行 host-assisted intake，并调用 runtime `ScaffoldOrphanAsset` 将文件迁入 runtime-managed storage；不得形成第二套 Desktop-owned asset registry。
 - `runtime_local_pick_asset_manifest_path`：统一选取 `resolved/<local-asset-id>/asset.manifest.json`。
 - `runtime_local_pick_asset_directory`：选取 bundle 目录，供 bundle import / rescan helper 使用。
 - `runtime_local_pick_asset_file`：选取任意待导入的 asset 文件。

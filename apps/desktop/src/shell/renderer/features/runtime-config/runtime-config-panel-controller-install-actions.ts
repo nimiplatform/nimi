@@ -127,29 +127,40 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     installSource: 'catalog' | 'manual' | 'verified',
   ) => {
     assertRuntimeWriteAllowed();
-    const accepted = installSource === 'verified'
-      ? await localRuntime.installVerifiedAsset({
+    if (installSource === 'verified') {
+      const asset = await localRuntime.installVerifiedAsset({
         templateId: String(plan.templateId || '').trim(),
         endpoint: String(plan.endpoint || '').trim(),
-      }, { caller: 'core' })
-      : await localRuntime.install({
-        modelId: plan.modelId,
-        kind: (plan.capabilities.includes('image') ? 'image'
-          : plan.capabilities.includes('video') ? 'video'
-          : plan.capabilities.includes('tts') ? 'tts'
-          : plan.capabilities.includes('stt') ? 'stt'
-          : (plan.capabilities.includes('embedding') || plan.capabilities.includes('text.embed')) ? 'embedding'
-          : 'chat') as import('@runtime/local-runtime').LocalRuntimeAssetKind,
-        repo: plan.repo,
-        revision: plan.revision,
-        capabilities: plan.capabilities,
-        engine: plan.engine,
-        entry: plan.entry,
-        files: plan.files,
-        license: plan.license,
-        hashes: plan.hashes,
-        endpoint: plan.endpoint,
       }, { caller: 'core' });
+      await refreshLocalSnapshot();
+      setStatusBanner({
+        kind: 'success',
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.assetInstalled',
+          'Asset installed: {{assetId}}',
+          { assetId: asset.assetId || plan.modelId },
+        ),
+      });
+      return;
+    }
+    const accepted = await localRuntime.install({
+      modelId: plan.modelId,
+      kind: (plan.capabilities.includes('image') ? 'image'
+        : plan.capabilities.includes('video') ? 'video'
+        : plan.capabilities.includes('tts') ? 'tts'
+        : plan.capabilities.includes('stt') ? 'stt'
+        : (plan.capabilities.includes('embedding') || plan.capabilities.includes('text.embed')) ? 'embedding'
+        : 'chat') as import('@runtime/local-runtime').LocalRuntimeAssetKind,
+      repo: plan.repo,
+      revision: plan.revision,
+      capabilities: plan.capabilities,
+      engine: plan.engine,
+      entry: plan.entry,
+      files: plan.files,
+      license: plan.license,
+      hashes: plan.hashes,
+      endpoint: plan.endpoint,
+    }, { caller: 'core' });
     installSessionMeta.set(accepted.installSessionId, { plan, installSource });
     setStatusBanner({
       kind: 'success',
@@ -159,7 +170,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
         { modelId: accepted.modelId || plan.modelId },
       ),
     });
-  }, [assertRuntimeWriteAllowed, installSessionMeta, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, installSessionMeta, refreshLocalSnapshot, setStatusBanner]);
 
   const retryInstall = useCallback((plan: LocalRuntimeInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => {
     void runInstallPlanLifecycle(plan, source).catch((error: unknown) => {
@@ -346,12 +357,13 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
     try {
       assertRuntimeWriteAllowed();
-      const accepted = await localRuntime.installVerifiedAsset({
+      const asset = await localRuntime.installVerifiedAsset({
         templateId: normalizedTemplateId,
       }, { caller: 'core' });
+      await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
-        message: `Asset install queued: ${accepted.modelId}`,
+        message: `Asset installed: ${asset.assetId}`,
       });
     } catch (error) {
       setStatusBanner({
@@ -360,7 +372,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [assertRuntimeWriteAllowed, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
 
   const importLocalAsset = useCallback(async () => {
     try {
@@ -369,13 +381,14 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       if (!manifestPath) {
         return;
       }
-      const accepted = await localRuntime.importAsset({ manifestPath }, { caller: 'core' });
+      const asset = await localRuntime.importAsset({ manifestPath }, { caller: 'core' });
+      await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
         message: translateRuntimeLocalText(
-          'runtimeConfig.local.assetImportQueued',
-          'Asset import queued: {{assetId}}',
-          { assetId: accepted.modelId },
+          'runtimeConfig.local.assetImported',
+          'Asset imported: {{assetId}}',
+          { assetId: asset.assetId },
         ),
       });
     } catch (error) {
@@ -389,18 +402,19 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [assertRuntimeWriteAllowed, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
 
   const scaffoldLocalAssetOrphan = useCallback(async (path: string, kind: LocalRuntimeAssetKind) => {
     try {
       assertRuntimeWriteAllowed();
-      const accepted = await localRuntime.scaffoldOrphanAsset({
+      const asset = await localRuntime.scaffoldOrphanAsset({
         path,
         kind,
       }, { caller: 'core' });
+      await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
-        message: `Asset import queued: ${accepted.modelId}`,
+        message: `Asset imported: ${asset.assetId}`,
       });
     } catch (error) {
       setStatusBanner({
@@ -409,7 +423,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [assertRuntimeWriteAllowed, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
 
   const modelActions = useRuntimeConfigModelManagementActions({
     refreshLocalSnapshot,

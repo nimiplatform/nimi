@@ -222,7 +222,7 @@ export function useRuntimeConfigModelManagementActions(
         : capabilities.includes('stt') ? 'stt' as const
         : (capabilities.includes('embedding') || capabilities.includes('text.embed')) ? 'embedding' as const
         : 'chat' as const;
-      const accepted = await importLocalRuntimeAssetFile({
+      const asset = await importLocalRuntimeAssetFile({
         filePath,
         kind,
         engine: engine || undefined,
@@ -231,9 +231,9 @@ export function useRuntimeConfigModelManagementActions(
       setStatusBanner({
         kind: 'success',
         message: translateRuntimeLocalText(
-          'runtimeConfig.local.modelFileImportQueued',
-          'Model file import queued: {{modelId}}',
-          { modelId: accepted.modelId },
+          'runtimeConfig.local.assetImported',
+          'Asset imported: {{assetId}}',
+          { assetId: asset.assetId },
         ),
       });
     } catch (error) {

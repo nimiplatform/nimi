@@ -22,9 +22,3 @@ fn append_app_audit_event_non_blocking(
         eprintln!("LOCAL_AI_AUDIT_WRITE_FAILED: {error}");
     }
 }
-
-fn emit_download_progress_event(app: &AppHandle, event: LocalAiDownloadProgressEvent) {
-    if let Err(error) = app.emit(LOCAL_AI_DOWNLOAD_PROGRESS_EVENT, &event) {
-        eprintln!("LOCAL_AI_DOWNLOAD_PROGRESS_EMIT_FAILED: {error}");
-    }
-}

@@ -192,6 +192,7 @@
     "profileAppliedSyncFailed": "配置档已安装，但 Go runtime 同步失败：{{message}}",
     "profileAppliedSummary": "已为 {{targetId}} 安装配置档 {{profileId}}：{{modelCount}} 个可运行资产、{{serviceCount}} 个服务、{{dependencyAssetCount}} 个依赖资产",
     "profileApplyFailed": "配置档安装失败：{{message}}",
+    "assetInstalled": "资产已安装：{{assetId}}",
     "assetImported": "资产已导入：{{assetId}}",
     "assetImportFailed": "导入资产失败",
     "assetImportFailedWithReason": "导入资产失败：{{message}}",

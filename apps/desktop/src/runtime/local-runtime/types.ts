@@ -784,9 +784,9 @@ export type LocalRuntimeImportAssetFilePayload = {
 };
 
 export type LocalRuntimeAssetFileImportResult = {
-  accepted: LocalRuntimeTransferAccepted;
+  asset: LocalRuntimeAssetRecord;
 };
 
 export type LocalRuntimeAssetManifestImportResult = {
-  accepted: LocalRuntimeTransferAccepted;
+  asset: LocalRuntimeAssetRecord;
 };

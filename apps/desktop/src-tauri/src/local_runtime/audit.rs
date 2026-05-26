@@ -6,14 +6,12 @@ pub const EVENT_MODEL_DOWNLOAD_FAILED: &str = "model_download_failed";
 pub const EVENT_MODEL_DOWNLOAD_PAUSED: &str = "model_download_paused";
 pub const EVENT_MODEL_DOWNLOAD_CANCELLED: &str = "model_download_cancelled";
 pub const EVENT_MODEL_DOWNLOAD_INTERRUPTED: &str = "model_download_interrupted";
-pub const EVENT_MODEL_IMPORT_VALIDATED: &str = "model_import_validated";
 pub const EVENT_RECOMMENDATION_RESOLVE_INVOKED: &str = "recommendation_resolve_invoked";
 pub const EVENT_RECOMMENDATION_RESOLVE_COMPLETED: &str = "recommendation_resolve_completed";
 pub const EVENT_RECOMMENDATION_RESOLVE_FAILED: &str = "recommendation_resolve_failed";
 pub const EVENT_RUNTIME_MODEL_READY_AFTER_INSTALL: &str = "runtime_model_ready_after_install";
 pub const EVENT_DEPENDENCY_RESOLVE_INVOKED: &str = "dependency_resolve_invoked";
 pub const EVENT_DEPENDENCY_RESOLVE_FAILED: &str = "dependency_resolve_failed";
-pub const EVENT_MODEL_FILE_IMPORT_STARTED: &str = "model_file_import_started";
 
 const MAX_AUDIT_EVENTS: usize = 5000;
 

@@ -1,4 +1,5 @@
 use super::*;
+use crate::local_runtime::types::LocalAiIntegrityMode;
 
     fn temp_dir(label: &str) -> tempfile::TempDir {
         tempfile::Builder::new()

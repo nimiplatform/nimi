@@ -83,7 +83,8 @@ test('runtime state refreshes unified unregistered assets without passive auto-i
 
 test('unregistered model imports use orphan scaffold for all kinds while picked files stay on direct import', () => {
   assert.match(localModelCenterImportActionsSource, /localRuntime\.scaffoldOrphanAsset\(\{/);
-  assert.match(runtimeCommandsSource, /runtime_local_assets_scaffold_orphan/);
+  assert.match(runtimeCommandsSource, /runtime\.scaffoldOrphanAsset\(\{/);
+  assert.doesNotMatch(runtimeCommandsSource, /runtime_local_assets_scaffold_orphan/);
   assert.doesNotMatch(localModelCenterImportActionsSource, /const preflightImportPlan = useCallback/);
   assert.doesNotMatch(localModelCenterImportActionsSource, /localRuntime\.resolveInstallPlan\(\{/);
   assert.doesNotMatch(localModelCenterImportActionsSource, /planBlocksCanonicalImageImport/);

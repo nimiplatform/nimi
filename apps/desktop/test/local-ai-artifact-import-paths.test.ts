@@ -10,12 +10,10 @@ const localModelCenterSectionsPath = path.resolve(
 const runtimeCommandsPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands-assets.ts');
 const runtimeLocalTypesPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/types.ts');
 const runtimeHookDirPath = path.resolve(process.cwd(), 'src/runtime/hook');
-const tauriAssetsCommandsPath = path.resolve(process.cwd(), 'src-tauri/src/local_runtime/commands/commands_assets.rs');
 
 const localModelCenterSectionsSource = readFileSync(localModelCenterSectionsPath, 'utf-8');
 const runtimeCommandsSource = readFileSync(runtimeCommandsPath, 'utf-8');
 const runtimeLocalTypesSource = readFileSync(runtimeLocalTypesPath, 'utf-8');
-const tauriAssetsCommandsSource = readFileSync(tauriAssetsCommandsPath, 'utf-8');
 
 type TauriInvokeCall = {
   command: string;
@@ -55,18 +53,18 @@ test('pickLocalRuntimeAssetManifestPath uses the unified Tauri manifest picker',
 test('asset manifest import uses the unified importLocalRuntimeAsset command', () => {
   assert.match(runtimeCommandsSource, /importLocalRuntimeAsset\(\{\s*manifestPath: normalizedPath,\s*endpoint: String\(options\?\.endpoint \|\| ''\)\.trim\(\) \|\| undefined,\s*\}, options\)/s);
   assert.match(runtimeCommandsSource, /export async function importLocalRuntimeAssetManifest/);
+  assert.match(runtimeCommandsSource, /runtime\.importLocalAsset\(\{/);
   assert.doesNotMatch(runtimeCommandsSource, /runtime_local_assets_adopt/);
-  assert.match(tauriAssetsCommandsSource, /runtime_import_manifest_via_runtime\(\s*path\.as_path\(\),\s*endpoint\.as_deref\(\),\s*engine_config\.as_ref\(\),\s*\)/);
-  assert.doesNotMatch(tauriAssetsCommandsSource, /upsert_asset/);
-  assert.doesNotMatch(tauriAssetsCommandsSource, /runtime_local_assets_adopt/);
-  assert.doesNotMatch(tauriAssetsCommandsSource, /LOCAL_AI_ASSET_ADOPT_UNSUPPORTED/);
+  assert.doesNotMatch(runtimeCommandsSource, /runtime_local_assets_import['"]/);
 });
 
 test('asset file import uses unified importLocalRuntimeAssetFile and scaffoldLocalRuntimeOrphanAsset', () => {
   assert.match(runtimeCommandsSource, /export async function importLocalRuntimeAssetFile/);
   assert.match(runtimeCommandsSource, /export async function scaffoldLocalRuntimeOrphanAsset/);
-  assert.match(runtimeCommandsSource, /invokeLocalRuntimeCommand<unknown>\('runtime_local_assets_import_file', \{/);
-  assert.match(runtimeCommandsSource, /invokeLocalRuntimeCommand<unknown>\('runtime_local_assets_scaffold_orphan', \{/);
+  assert.match(runtimeCommandsSource, /runtime\.importLocalAssetFile\(\{/);
+  assert.match(runtimeCommandsSource, /runtime\.scaffoldOrphanAsset\(\{/);
+  assert.doesNotMatch(runtimeCommandsSource, /runtime_local_assets_import_file/);
+  assert.doesNotMatch(runtimeCommandsSource, /runtime_local_assets_scaffold_orphan/);
 });
 
 test('local model center uses one runtime manifest import entry and one asset file import entry', () => {

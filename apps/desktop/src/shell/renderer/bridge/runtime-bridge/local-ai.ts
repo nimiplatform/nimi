@@ -12,7 +12,6 @@ import type {
   LocalRuntimeListAssetsPayload,
   LocalRuntimeListVerifiedAssetsPayload,
   LocalRuntimeAssetsHealthResult,
-  LocalRuntimeTransferAccepted,
   LocalRuntimeVerifiedAssetDescriptor,
 } from './local-ai-types.js';
 
@@ -49,8 +48,8 @@ export async function pickLocalRuntimeAssetFile(): Promise<string | null> {
 export async function installLocalRuntimeVerifiedAsset(
   payload: LocalRuntimeInstallVerifiedAssetPayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeTransferAccepted> {
-  return localRuntime.installVerifiedAsset(payload, options) as Promise<LocalRuntimeTransferAccepted>;
+): Promise<LocalRuntimeAssetRecord> {
+  return localRuntime.installVerifiedAsset(payload, options) as Promise<LocalRuntimeAssetRecord>;
 }
 
 export async function listLocalRuntimeDownloadSessions(): Promise<LocalRuntimeDownloadSessionSummary[]> {
@@ -81,15 +80,15 @@ export async function cancelLocalRuntimeDownloadSession(
 export async function importLocalRuntimeAsset(
   payload: LocalRuntimeImportAssetPayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeTransferAccepted> {
-  return localRuntime.importAsset(payload, options) as Promise<LocalRuntimeTransferAccepted>;
+): Promise<LocalRuntimeAssetRecord> {
+  return localRuntime.importAsset(payload, options) as Promise<LocalRuntimeAssetRecord>;
 }
 
 export async function importLocalRuntimeAssetFile(
   payload: LocalRuntimeImportFilePayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeTransferAccepted> {
-  return localRuntime.importFile(payload, options) as Promise<LocalRuntimeTransferAccepted>;
+): Promise<LocalRuntimeAssetRecord> {
+  return localRuntime.importFile(payload, options) as Promise<LocalRuntimeAssetRecord>;
 }
 
 export async function removeLocalRuntimeAsset(

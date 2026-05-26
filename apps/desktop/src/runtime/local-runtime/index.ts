@@ -271,7 +271,7 @@ export type LocalRuntimeFacade = {
   installVerifiedAsset: (
     payload: LocalRuntimeInstallVerifiedAssetPayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeTransferAccepted>;
+  ) => Promise<LocalRuntimeAssetRecord>;
   listDownloads: () => Promise<LocalRuntimeDownloadSessionSummary[]>;
   pauseDownload: (
     installSessionId: string,
@@ -288,13 +288,13 @@ export type LocalRuntimeFacade = {
   importAsset: (
     payload: LocalRuntimeImportAssetPayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeTransferAccepted>;
+  ) => Promise<LocalRuntimeAssetRecord>;
   pickAssetFile: () => Promise<string | null>;
   pickAssetDirectory: () => Promise<string | null>;
   importFile: (
     payload: LocalRuntimeImportFilePayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeTransferAccepted>;
+  ) => Promise<LocalRuntimeAssetRecord>;
   importAssetBundle: (
     payload: LocalRuntimeImportBundlePayload,
     options?: LocalRuntimeWriteOptions,
@@ -356,7 +356,7 @@ export type LocalRuntimeFacade = {
   scaffoldOrphanAsset: (
     payload: LocalRuntimeScaffoldOrphanPayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeTransferAccepted>;
+  ) => Promise<LocalRuntimeAssetRecord>;
   scanUnregisteredAssets: () => Promise<LocalRuntimeUnregisteredAssetDescriptor[]>;
   importAssetFile: (
     payload: LocalRuntimeImportAssetFilePayload,

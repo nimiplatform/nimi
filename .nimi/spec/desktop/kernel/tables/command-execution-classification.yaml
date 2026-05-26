@@ -319,12 +319,8 @@ registered_command_families:
     match:
       exact:
         - runtime_local_assets_install
-        - runtime_local_assets_install_verified
-        - runtime_local_assets_import
-        - runtime_local_assets_import_file
         - runtime_local_assets_import_bundle
         - runtime_local_assets_rescan_bundle
-        - runtime_local_assets_scaffold_orphan
     origin_crate: apps/desktop/src-tauri
     owner_domain: local-runtime-assets
     execution_class: background_job

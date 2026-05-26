@@ -430,15 +430,11 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             local_runtime::commands::runtime_local_recommendation_feed_get,
             local_runtime::commands::runtime_local_models_catalog_list_variants,
             local_runtime::commands::runtime_local_assets_install,
-            local_runtime::commands::runtime_local_assets_install_verified,
-            local_runtime::commands::runtime_local_assets_import,
-            local_runtime::commands::runtime_local_assets_import_file,
             local_runtime::commands::runtime_local_assets_import_bundle,
             local_runtime::commands::runtime_local_assets_rescan_bundle,
             local_runtime::commands::runtime_local_assets_reveal_in_folder,
             local_runtime::commands::runtime_local_assets_reveal_root_folder,
             local_runtime::commands::runtime_local_assets_scan_unregistered,
-            local_runtime::commands::runtime_local_assets_scaffold_orphan,
         ])
         .build(tauri::generate_context!())
 }

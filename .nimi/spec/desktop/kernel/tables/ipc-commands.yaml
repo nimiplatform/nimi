@@ -196,16 +196,6 @@ commands:
     description: Pick a local asset bundle directory for bundle import or rescan helper flows
     source_rule: D-IPC-011
 
-  - command: runtime_local_assets_install_verified
-    module: local-runtime
-    description: Install a verified asset through the runtime-authoritative verified asset catalog; ordinary-user local speech flows still require explicit Download confirmation and runtime-owned bundle projection
-    source_rule: D-IPC-011
-
-  - command: runtime_local_assets_import
-    module: local-runtime
-    description: Import a local asset from an asset.manifest.json file
-    source_rule: D-IPC-011
-
   - command: runtime_local_models_catalog_list_variants
     module: local-runtime
     description: Host catalog helper for model variants; not a local model state truth source
@@ -219,11 +209,6 @@ commands:
   - command: runtime_local_assets_install
     module: local-runtime
     description: Install an asset from catalog parameters; execution truth is RuntimeLocalService and must not create Desktop-owned speech bundle truth
-    source_rule: D-IPC-011
-
-  - command: runtime_local_assets_import_file
-    module: local-runtime
-    description: Import a local asset file; execution truth is RuntimeLocalService
     source_rule: D-IPC-011
 
   - command: runtime_local_assets_import_bundle
@@ -249,11 +234,6 @@ commands:
   - command: runtime_local_assets_scan_unregistered
     module: local-runtime
     description: Host-local unregistered asset helper; if shipped product paths have runtime scan coverage, runtime remains the only truth source
-    source_rule: D-IPC-011
-
-  - command: runtime_local_assets_scaffold_orphan
-    module: local-runtime
-    description: Host-local orphan intake helper that promotes an explicitly reviewed loose asset file into runtime-managed storage via RuntimeLocalService
     source_rule: D-IPC-011
 
   - command: runtime_local_assets_rescan_bundle

@@ -36,30 +36,10 @@ pub struct LocalAiModelsCatalogListVariantsPayload {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiAssetsImportFilePayload {
-    pub file_path: String,
-    pub model_name: Option<String>,
-    pub capabilities: Vec<String>,
-    pub engine: Option<String>,
-    pub endpoint: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct LocalAiAssetsImportBundlePayload {
     pub directory_path: String,
     pub model_name: Option<String>,
     pub capabilities: Vec<String>,
-    pub engine: Option<String>,
-    pub endpoint: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiScaffoldOrphanPayload {
-    pub path: String,
-    pub kind: LocalAiAssetKind,
-    pub capabilities: Option<Vec<String>>,
     pub engine: Option<String>,
     pub endpoint: Option<String>,
 }

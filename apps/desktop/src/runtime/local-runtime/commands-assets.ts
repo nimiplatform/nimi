@@ -44,7 +44,7 @@ import {
   parseUnregisteredAssetDescriptor,
 } from './parsers';
 import { invokeLocalRuntimeCommand } from './parsers';
-import { asRecord, requireSdkLocal } from './commands-shared';
+import { asRecord, requireSdkLocal, toAssetKindFilter } from './commands-shared';
 
 function capabilitiesForImportFileKind(kind: LocalRuntimeImportFilePayload['kind']): string[] {
   switch (kind) {
@@ -66,18 +66,18 @@ function capabilitiesForImportFileKind(kind: LocalRuntimeImportFilePayload['kind
 export async function importLocalRuntimeAssetFile(
   payload: LocalRuntimeImportFilePayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeTransferAccepted> {
+): Promise<LocalRuntimeAssetRecord> {
   assertLifecycleWriteAllowed('local_runtime_assets_import_file', options?.caller);
-  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_import_file', {
-    payload: {
-      filePath: String(payload.filePath || '').trim(),
-      modelName: String(payload.assetName || '').trim() || undefined,
-      capabilities: capabilitiesForImportFileKind(payload.kind),
-      engine: String(payload.engine || '').trim() || undefined,
-      endpoint: String(payload.endpoint || '').trim() || undefined,
-    },
+  const runtime = requireSdkLocal();
+  const response = await runtime.importLocalAssetFile({
+    filePath: String(payload.filePath || '').trim(),
+    assetName: String(payload.assetName || '').trim(),
+    kind: toAssetKindFilter(payload.kind),
+    capabilities: capabilitiesForImportFileKind(payload.kind),
+    engine: String(payload.engine || '').trim(),
+    endpoint: String(payload.endpoint || '').trim(),
   });
-  return parseTransferAccepted(result);
+  return parseAssetRecord(asRecord(response).asset);
 }
 
 export async function importLocalRuntimeAssetBundle(
@@ -122,15 +122,14 @@ export async function installLocalRuntimeAsset(
 export async function installLocalRuntimeVerifiedAsset(
   payload: LocalRuntimeInstallVerifiedAssetPayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeTransferAccepted> {
+): Promise<LocalRuntimeAssetRecord> {
   assertLifecycleWriteAllowed('local_runtime_assets_install_verified', options?.caller);
-  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_install_verified', {
-    payload: {
-      templateId: String(payload.templateId || '').trim(),
-      endpoint: String(payload.endpoint || '').trim(),
-    },
+  const runtime = requireSdkLocal();
+  const response = await runtime.installVerifiedAsset({
+    templateId: String(payload.templateId || '').trim(),
+    endpoint: String(payload.endpoint || '').trim(),
   });
-  return parseTransferAccepted(result);
+  return parseAssetRecord(asRecord(response).asset);
 }
 
 export async function listLocalRuntimeDownloadSessions(): Promise<LocalRuntimeDownloadSessionSummary[]> {
@@ -180,15 +179,14 @@ export async function cancelLocalRuntimeDownload(
 export async function importLocalRuntimeAsset(
   payload: LocalRuntimeImportAssetPayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeTransferAccepted> {
+): Promise<LocalRuntimeAssetRecord> {
   assertLifecycleWriteAllowed('local_runtime_assets_import', options?.caller);
-  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_import', {
-    payload: {
-      manifestPath: String(payload.manifestPath || '').trim(),
-      endpoint: String(payload.endpoint || '').trim(),
-    },
+  const runtime = requireSdkLocal();
+  const response = await runtime.importLocalAsset({
+    manifestPath: String(payload.manifestPath || '').trim(),
+    endpoint: String(payload.endpoint || '').trim(),
   });
-  return parseTransferAccepted(result);
+  return parseAssetRecord(asRecord(response).asset);
 }
 
 export async function removeLocalRuntimeAsset(
@@ -414,18 +412,17 @@ export async function subscribeLocalRuntimeDownloadProgress(
 export async function scaffoldLocalRuntimeOrphanAsset(
   payload: LocalRuntimeScaffoldOrphanPayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeTransferAccepted> {
+): Promise<LocalRuntimeAssetRecord> {
   assertLifecycleWriteAllowed('local_runtime_assets_scaffold_orphan', options?.caller);
-  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_scaffold_orphan', {
-    payload: {
-      path: String(payload.path || '').trim(),
-      kind: String(payload.kind || '').trim(),
-      capabilities: [],
-      engine: String(payload.engine || '').trim() || undefined,
-      endpoint: String(payload.endpoint || '').trim() || undefined,
-    },
+  const runtime = requireSdkLocal();
+  const response = await runtime.scaffoldOrphanAsset({
+    path: String(payload.path || '').trim(),
+    kind: toAssetKindFilter(payload.kind),
+    capabilities: [],
+    engine: String(payload.engine || '').trim(),
+    endpoint: String(payload.endpoint || '').trim(),
   });
-  return parseTransferAccepted(result);
+  return parseAssetRecord(asRecord(response).asset);
 }
 
 export async function scanLocalRuntimeUnregisteredAssets(): Promise<LocalRuntimeUnregisteredAssetDescriptor[]> {
@@ -441,14 +438,14 @@ export async function importLocalRuntimeAssetFileUnified(
   options?: LocalRuntimeWriteOptions,
 ): Promise<LocalRuntimeAssetFileImportResult> {
   const declaration = payload.declaration;
-  const accepted = await importLocalRuntimeAssetFile({
+  const asset = await importLocalRuntimeAssetFile({
     filePath: payload.filePath,
     assetName: payload.assetName,
     kind: declaration.assetKind,
     engine: declaration.engine,
     endpoint: payload.endpoint,
   }, options);
-  return { accepted };
+  return { asset };
 }
 
 export async function importLocalRuntimeAssetManifest(
@@ -459,9 +456,9 @@ export async function importLocalRuntimeAssetManifest(
   if (!normalizedPath) {
     throw new Error('manifestPath is required');
   }
-  const accepted = await importLocalRuntimeAsset({
+  const asset = await importLocalRuntimeAsset({
     manifestPath: normalizedPath,
     endpoint: String(options?.endpoint || '').trim() || undefined,
   }, options);
-  return { accepted };
+  return { asset };
 }
