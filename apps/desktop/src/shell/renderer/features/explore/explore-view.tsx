@@ -116,31 +116,13 @@ function StatDivider() {
 // Featured-world hero. Lives inside the Worlds section per D-EXPL-002: it is a
 // World discovery affordance, not a standalone surface.
 function FeaturedWorldHero({
-  worldsWithBanners,
-  currentBannerIndex,
-  setCurrentBannerIndex,
+  currentBanner,
   onWorldOpen,
 }: {
-  worldsWithBanners: WorldBanner[];
-  currentBannerIndex: number;
-  setCurrentBannerIndex: (updater: number | ((prev: number) => number)) => void;
+  currentBanner: WorldBanner;
   onWorldOpen?: (worldId: string) => void;
 }) {
   const { t } = useTranslation();
-  const currentBanner = worldsWithBanners[currentBannerIndex];
-  if (!currentBanner) {
-    return null;
-  }
-  const nextBanner = () => {
-    if (worldsWithBanners.length > 1) {
-      setCurrentBannerIndex((prev) => (prev + 1) % worldsWithBanners.length);
-    }
-  };
-  const prevBanner = () => {
-    if (worldsWithBanners.length > 1) {
-      setCurrentBannerIndex((prev) => (prev - 1 + worldsWithBanners.length) % worldsWithBanners.length);
-    }
-  };
   return (
     <section className="relative mb-8" data-testid="explore-featured-world">
       <div
@@ -159,23 +141,16 @@ function FeaturedWorldHero({
           border: '1px solid var(--nimi-border-subtle)',
         }}
       >
-        <div
-          className="flex h-full transition-transform duration-700 ease-in-out will-change-transform"
-          style={{ transform: `translateX(-${currentBannerIndex * 100}%)` }}
-        >
-          {worldsWithBanners.map((world) => (
-            <div key={world.id} className="relative h-full w-full flex-shrink-0">
-              {world.bannerUrl ? (
-                <img
-                  src={world.bannerUrl}
-                  alt={world.name}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="h-full w-full" style={{ background: 'var(--nimi-surface-hero)' }} />
-              )}
-            </div>
-          ))}
+        <div className="absolute inset-0">
+          {currentBanner.bannerUrl ? (
+            <img
+              src={currentBanner.bannerUrl}
+              alt={currentBanner.name}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="h-full w-full" style={{ background: 'var(--nimi-surface-hero)' }} />
+          )}
         </div>
         <div
           aria-hidden
@@ -257,50 +232,33 @@ function FeaturedWorldHero({
           >
             {currentBanner.name}
           </h3>
-          {currentBanner.tagline && (
-            <p
-              className="mt-3 line-clamp-2"
-              style={{
-                fontFamily: 'var(--nimi-font-sans)',
-                fontSize: 15,
-                lineHeight: 1.5,
-                color: 'color-mix(in srgb, var(--nimi-fg-inverse) 78%, transparent)',
-                margin: 0,
-                maxWidth: 520,
-              }}
-            >
-              {currentBanner.tagline}
-            </p>
-          )}
-          <div className="mt-5 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onWorldOpen?.(currentBanner.id);
-              }}
-              className="inline-flex items-center gap-2 rounded-full px-4 py-2 transition-colors"
-              style={{
-                fontFamily: 'var(--nimi-font-sans)',
-                fontSize: 13,
-                fontWeight: 600,
-                background: 'var(--nimi-accent)',
-                color: 'var(--nimi-accent-onAccent)',
-                border: '1px solid color-mix(in srgb, var(--nimi-accent) 80%, transparent)',
-                boxShadow: 'var(--nimi-elevation-base)',
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-              {t('Explore.enterWorld', { defaultValue: 'Enter world' })}
-            </button>
-          </div>
         </div>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onWorldOpen?.(currentBanner.id);
+          }}
+          className="absolute bottom-5 right-5 z-[1] inline-flex items-center gap-2 rounded-full px-4 py-2 transition-colors"
+          style={{
+            fontFamily: 'var(--nimi-font-sans)',
+            fontSize: 13,
+            fontWeight: 600,
+            background: 'var(--nimi-accent)',
+            color: 'var(--nimi-accent-onAccent)',
+            border: '1px solid color-mix(in srgb, var(--nimi-accent) 80%, transparent)',
+            boxShadow: 'var(--nimi-elevation-base)',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+          {t('Explore.enterWorld', { defaultValue: 'Enter world' })}
+        </button>
         {(currentBanner.agentCount !== null || currentBanner.flowRatio !== null || currentBanner.eraLabel) && (
           <div
-            className="absolute bottom-5 right-5 flex items-stretch gap-0 rounded-2xl px-4 py-3 nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+            className="absolute bottom-5 left-5 flex items-stretch gap-0 rounded-2xl px-4 py-3 nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
             style={{
               background: 'color-mix(in srgb, var(--nimi-fg-inverse) 12%, transparent)',
               border: '1px solid color-mix(in srgb, var(--nimi-fg-inverse) 22%, transparent)',
@@ -329,74 +287,6 @@ function FeaturedWorldHero({
               />
             )}
           </div>
-        )}
-        {worldsWithBanners.length > 1 && (
-          <div className="absolute bottom-7 left-8 flex items-center gap-1.5">
-            {worldsWithBanners.map((_, idx) => {
-              const active = idx === currentBannerIndex;
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCurrentBannerIndex(idx);
-                  }}
-                  aria-label={t('Explore.goToBanner', { defaultValue: 'Go to banner', idx: idx + 1 })}
-                  className="h-1.5 rounded-full transition-all"
-                  style={{
-                    width: active ? 20 : 6,
-                    background: active
-                      ? 'var(--nimi-fg-inverse)'
-                      : 'color-mix(in srgb, var(--nimi-fg-inverse) 42%, transparent)',
-                    border: 0,
-                  }}
-                />
-              );
-            })}
-          </div>
-        )}
-        {worldsWithBanners.length > 1 && (
-          <>
-            <IconButton
-              onClick={(e) => {
-                e.stopPropagation();
-                prevBanner();
-              }}
-              tone="ghost"
-              icon={(
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="15 18 9 12 15 6" />
-                </svg>
-              )}
-              className="absolute left-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
-              style={{
-                background: 'color-mix(in srgb, var(--nimi-fg-inverse) 14%, transparent)',
-                border: '1px solid color-mix(in srgb, var(--nimi-fg-inverse) 24%, transparent)',
-                color: 'var(--nimi-fg-inverse)',
-              }}
-              aria-label={t('Explore.previousBanner', { defaultValue: 'Previous banner' })}
-            />
-            <IconButton
-              onClick={(e) => {
-                e.stopPropagation();
-                nextBanner();
-              }}
-              tone="ghost"
-              icon={(
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              )}
-              className="absolute right-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
-              style={{
-                background: 'color-mix(in srgb, var(--nimi-fg-inverse) 14%, transparent)',
-                border: '1px solid color-mix(in srgb, var(--nimi-fg-inverse) 24%, transparent)',
-                color: 'var(--nimi-fg-inverse)',
-              }}
-              aria-label={t('Explore.nextBanner', { defaultValue: 'Next banner' })}
-            />
-          </>
         )}
       </div>
     </section>
@@ -461,7 +351,6 @@ export function ExploreView(props: ExploreViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const feedScrollRef = useRef<HTMLDivElement>(null);
   const feedSectionRef = useRef<HTMLElement>(null);
-  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const postCardActionAdapter = usePostCardActionAdapter();
   const [feedColumns, setFeedColumns] = useState(() => (
     typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 640px)').matches
@@ -533,11 +422,9 @@ export function ExploreView(props: ExploreViewProps) {
       >
         {props.activeSection === 'worlds' && (
           <section data-testid="explore-worlds-section">
-            {worldsWithBanners.length > 0 && (
+            {worldsWithBanners[0] && (
               <FeaturedWorldHero
-                worldsWithBanners={worldsWithBanners}
-                currentBannerIndex={currentBannerIndex}
-                setCurrentBannerIndex={setCurrentBannerIndex}
+                currentBanner={worldsWithBanners[0]}
                 onWorldOpen={props.onWorldOpen}
               />
             )}

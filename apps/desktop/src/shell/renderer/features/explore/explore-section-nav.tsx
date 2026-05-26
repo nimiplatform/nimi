@@ -17,7 +17,6 @@ export const EXPLORE_SECTION_IDS: readonly ExploreSectionId[] = [
 type SectionMeta = {
   id: ExploreSectionId;
   labelKey: string;
-  descKey: string;
   icon: ReactNode;
 };
 
@@ -55,19 +54,16 @@ const SECTION_META: Record<ExploreSectionId, SectionMeta> = {
   worlds: {
     id: 'worlds',
     labelKey: 'Explore.sectionWorlds',
-    descKey: 'Explore.sectionWorldsDesc',
     icon: ICON_WORLDS,
   },
   agents: {
     id: 'agents',
     labelKey: 'Explore.sectionAgents',
-    descKey: 'Explore.sectionAgentsDesc',
     icon: ICON_AGENTS,
   },
   activity: {
     id: 'activity',
     labelKey: 'Explore.sectionActivity',
-    descKey: 'Explore.sectionActivityDesc',
     icon: ICON_ACTIVITY,
   },
 };
@@ -203,17 +199,6 @@ export function ExploreSectionHeader({ section }: { section: ExploreSectionId })
       >
         {t(meta.labelKey)}
       </h2>
-      <p
-        className="mt-1.5"
-        style={{
-          fontFamily: 'var(--nimi-font-sans)',
-          fontSize: 13,
-          color: 'var(--nimi-fg-3)',
-          margin: 0,
-        }}
-      >
-        {t(meta.descKey)}
-      </p>
     </div>
   );
 }
