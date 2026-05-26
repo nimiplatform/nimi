@@ -1,5 +1,7 @@
+import { toProtoStruct } from '@nimiplatform/sdk/runtime';
 import type {
   GgufVariantDescriptor,
+  LocalRuntimeAssetKind,
   LocalRuntimeAssetRecord,
   LocalRuntimeVerifiedAssetDescriptor,
   LocalRuntimeCatalogSearchPayload,
@@ -9,7 +11,11 @@ import type {
   LocalRuntimeDeviceProfile,
   LocalRuntimeProfileApplyAccepted,
   LocalRuntimeProfileApplyProgressEvent,
+  LocalRuntimeProfileDescriptor,
+  LocalRuntimeProfileEntryDescriptor,
+  LocalRuntimeProfileEntryOverride,
   LocalRuntimeProfileInstallStatus,
+  LocalRuntimeProfileRequirementDescriptor,
   LocalRuntimeProfileResolutionPlan,
   LocalRuntimeProfileResolvePayload,
   LocalRuntimeRecommendationFeedDescriptor,
@@ -129,6 +135,155 @@ export {
 
 const LOCAL_RUNTIME_PROFILE_APPLY_PROGRESS_EVENT = 'local-runtime://profile-apply-progress';
 
+function toInt64String(value: unknown): string {
+  const number = Number(value);
+  return Number.isFinite(number) ? String(Math.trunc(number)) : '0';
+}
+
+function toSdkAssetKind(kind?: LocalRuntimeAssetKind): number {
+  switch (kind) {
+    case 'chat':
+      return 1;
+    case 'image':
+      return 2;
+    case 'video':
+      return 3;
+    case 'tts':
+      return 4;
+    case 'stt':
+      return 5;
+    case 'embedding':
+      return 6;
+    case 'vae':
+      return 10;
+    case 'clip':
+      return 11;
+    case 'lora':
+      return 12;
+    case 'controlnet':
+      return 13;
+    case 'auxiliary':
+      return 14;
+    default:
+      return 0;
+  }
+}
+
+function toSdkProfileEntryKind(kind?: string): number {
+  switch (kind) {
+    case 'service':
+      return 3;
+    case 'node':
+      return 4;
+    case 'asset':
+      return 5;
+    default:
+      return 0;
+  }
+}
+
+function toSdkGpuMemoryModel(model?: string): number {
+  switch (model) {
+    case 'discrete':
+      return 1;
+    case 'unified':
+      return 2;
+    default:
+      return 0;
+  }
+}
+
+function toSdkDeviceProfile(profile?: LocalRuntimeDeviceProfile): Record<string, unknown> | undefined {
+  if (!profile) {
+    return undefined;
+  }
+  return {
+    os: String(profile.os || ''),
+    arch: String(profile.arch || ''),
+    totalRamBytes: toInt64String(profile.totalRamBytes),
+    availableRamBytes: toInt64String(profile.availableRamBytes),
+    diskFreeBytes: toInt64String(profile.diskFreeBytes),
+    ports: (Array.isArray(profile.ports) ? profile.ports : []).map((port) => ({
+      port: Number(port.port || 0),
+      available: Boolean(port.available),
+    })),
+    gpu: {
+      available: Boolean(profile.gpu?.available),
+      vendor: String(profile.gpu?.vendor || ''),
+      model: String(profile.gpu?.model || ''),
+      totalVramBytes: toInt64String(profile.gpu?.totalVramBytes),
+      availableVramBytes: toInt64String(profile.gpu?.availableVramBytes),
+      memoryModel: toSdkGpuMemoryModel(profile.gpu?.memoryModel),
+    },
+    python: {
+      available: Boolean(profile.python?.available),
+      version: String(profile.python?.version || ''),
+    },
+    npu: {
+      available: Boolean(profile.npu?.available),
+      ready: Boolean(profile.npu?.ready),
+      vendor: String(profile.npu?.vendor || ''),
+      runtime: String(profile.npu?.runtime || ''),
+      detail: String(profile.npu?.detail || ''),
+    },
+  };
+}
+
+function toSdkProfileRequirements(
+  requirements?: LocalRuntimeProfileRequirementDescriptor,
+): Record<string, unknown> | undefined {
+  if (!requirements) {
+    return undefined;
+  }
+  return {
+    minGpuMemoryGb: Number(requirements.minGpuMemoryGb || 0),
+    minDiskBytes: toInt64String(requirements.minDiskBytes),
+    platforms: Array.isArray(requirements.platforms) ? requirements.platforms : [],
+    notes: Array.isArray(requirements.notes) ? requirements.notes : [],
+  };
+}
+
+function toSdkProfileEntry(entry: LocalRuntimeProfileEntryDescriptor): Record<string, unknown> {
+  return {
+    entryId: String(entry.entryId || ''),
+    kind: toSdkProfileEntryKind(entry.kind),
+    title: String(entry.title || ''),
+    description: String(entry.description || ''),
+    capability: String(entry.capability || ''),
+    required: Boolean(entry.required),
+    preferred: Boolean(entry.preferred),
+    assetId: String(entry.assetId || ''),
+    assetKind: toSdkAssetKind(entry.assetKind),
+    engineSlot: String(entry.engineSlot || ''),
+    repo: String(entry.repo || ''),
+    serviceId: String(entry.serviceId || ''),
+    nodeId: String(entry.nodeId || ''),
+    engine: String(entry.engine || ''),
+    templateId: String(entry.templateId || ''),
+    revision: String(entry.revision || ''),
+    tags: Array.isArray(entry.tags) ? entry.tags : [],
+  };
+}
+
+function toSdkProfileDescriptor(profile: LocalRuntimeProfileDescriptor): Record<string, unknown> {
+  return {
+    id: String(profile.id || ''),
+    title: String(profile.title || ''),
+    description: String(profile.description || ''),
+    recommended: Boolean(profile.recommended),
+    consumeCapabilities: Array.isArray(profile.consumeCapabilities) ? profile.consumeCapabilities : [],
+    entries: (Array.isArray(profile.entries) ? profile.entries : []).map((entry) => toSdkProfileEntry(entry)),
+    requirements: toSdkProfileRequirements(profile.requirements),
+  };
+}
+
+function toSdkProfileEntryOverride(override: LocalRuntimeProfileEntryOverride): Record<string, unknown> {
+  return {
+    entryId: String(override.entryId || ''),
+    localAssetId: String(override.localAssetId || ''),
+  };
+}
+
 export async function listLocalRuntimeAssets(
   payload?: LocalRuntimeListAssetsPayload,
 ): Promise<LocalRuntimeAssetRecord[]> {
@@ -176,13 +331,17 @@ export async function listLocalRuntimeVerifiedAssets(
 export async function searchLocalRuntimeCatalog(
   payload?: LocalRuntimeCatalogSearchPayload,
 ): Promise<LocalRuntimeCatalogItemDescriptor[]> {
-  const items = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_models_catalog_search', {
-    payload: {
-      query: String(payload?.query || '').trim() || undefined,
-      capability: String(payload?.capability || '').trim() || undefined,
-      limit: Number(payload?.limit || 0) || undefined,
-    },
+  const runtime = requireSdkLocal();
+  const response = await runtime.searchCatalogModels({
+    query: String(payload?.query || '').trim(),
+    capability: String(payload?.capability || '').trim(),
+    categoryFilter: '',
+    engineFilter: '',
+    pageSize: Number(payload?.limit || 0) || 50,
+    pageToken: '',
   });
+  const raw = asRecord(response);
+  const items: unknown[] = Array.isArray(raw.items) ? raw.items : [];
   return (Array.isArray(items) ? items : []).map((item) => parseCatalogItemDescriptor(item));
 }
 
@@ -198,30 +357,30 @@ export async function listLocalRuntimeRepoGgufVariants(
 export async function resolveLocalRuntimeInstallPlan(
   payload: LocalRuntimeCatalogResolveInstallPlanPayload,
 ): Promise<LocalRuntimeInstallPlanDescriptor> {
-  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_models_catalog_resolve_install_plan', {
-    payload: {
-      itemId: String(payload.itemId || '').trim() || undefined,
-      source: String(payload.source || '').trim() || undefined,
-      templateId: String(payload.templateId || '').trim() || undefined,
-      modelId: String(payload.modelId || '').trim() || undefined,
-      repo: String(payload.repo || '').trim() || undefined,
-      revision: String(payload.revision || '').trim() || undefined,
-      capabilities: Array.isArray(payload.capabilities) ? payload.capabilities : undefined,
-      engine: String(payload.engine || '').trim() || undefined,
-      entry: String(payload.entry || '').trim() || undefined,
-      files: Array.isArray(payload.files) ? payload.files : undefined,
-      license: String(payload.license || '').trim() || undefined,
-      hashes: payload.hashes || undefined,
-      endpoint: String(payload.endpoint || '').trim() || undefined,
-      engineConfig: payload.engineConfig,
-    },
+  const runtime = requireSdkLocal();
+  const response = await runtime.resolveModelInstallPlan({
+    itemId: String(payload.itemId || '').trim(),
+    source: String(payload.source || '').trim(),
+    templateId: String(payload.templateId || '').trim(),
+    modelId: String(payload.modelId || '').trim(),
+    repo: String(payload.repo || '').trim(),
+    revision: String(payload.revision || '').trim(),
+    capabilities: Array.isArray(payload.capabilities) ? payload.capabilities : [],
+    engine: String(payload.engine || '').trim(),
+    entry: String(payload.entry || '').trim(),
+    files: Array.isArray(payload.files) ? payload.files : [],
+    license: String(payload.license || '').trim(),
+    hashes: payload.hashes || {},
+    endpoint: String(payload.endpoint || '').trim(),
+    engineConfig: toProtoStruct(payload.engineConfig),
   });
-  return parseInstallPlanDescriptor(result);
+  return parseInstallPlanDescriptor(asRecord(response).plan);
 }
 
 export async function collectLocalRuntimeDeviceProfile(): Promise<LocalRuntimeDeviceProfile> {
-  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_device_profile_collect');
-  return parseDeviceProfile(result);
+  const runtime = requireSdkLocal();
+  const response = await runtime.collectDeviceProfile({ extraPorts: [] });
+  return parseDeviceProfile(asRecord(response).profile);
 }
 
 export async function getLocalRuntimeRecommendationFeed(
@@ -239,16 +398,17 @@ export async function getLocalRuntimeRecommendationFeed(
 export async function resolveLocalRuntimeProfile(
   payload: LocalRuntimeProfileResolvePayload,
 ): Promise<LocalRuntimeProfileResolutionPlan> {
-  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_profiles_resolve', {
-    payload: {
-      targetId: payload.targetId,
-      profile: payload.profile,
-      capability: payload.capability,
-      deviceProfile: payload.deviceProfile,
-      entryOverrides: payload.entryOverrides,
-    },
-  });
-  return parseProfileResolutionPlan(result);
+  const runtime = requireSdkLocal();
+  const request = {
+    targetId: String(payload.targetId || '').trim(),
+    profile: toSdkProfileDescriptor(payload.profile),
+    capability: String(payload.capability || '').trim(),
+    deviceProfile: toSdkDeviceProfile(payload.deviceProfile),
+    entryOverrides: (Array.isArray(payload.entryOverrides) ? payload.entryOverrides : [])
+      .map((entryOverride) => toSdkProfileEntryOverride(entryOverride)),
+  } as unknown as Parameters<typeof runtime.resolveProfile>[0];
+  const response = await runtime.resolveProfile(request);
+  return parseProfileResolutionPlan(asRecord(response).plan);
 }
 
 export async function applyLocalRuntimeProfile(
