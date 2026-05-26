@@ -1,4 +1,4 @@
-use super::types::{LocalAiAssetHealth, LocalAiAssetRecord, LocalAiAssetStatus};
+use super::types::{LocalAiAssetRecord, LocalAiAssetStatus};
 use std::collections::HashMap;
 use std::process::Child;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -217,14 +217,8 @@ pub fn stop_engine(model: &LocalAiAssetRecord) -> EngineHealthResult {
     adapter_for(model).stop(model)
 }
 
-pub fn check_engine_health(model: &LocalAiAssetRecord) -> LocalAiAssetHealth {
-    let outcome = adapter_for(model).health(model);
-    LocalAiAssetHealth {
-        local_asset_id: model.local_asset_id.clone(),
-        status: outcome.status,
-        detail: outcome.detail,
-        endpoint: model.endpoint.clone(),
-    }
+pub fn check_engine_health(model: &LocalAiAssetRecord) -> EngineHealthResult {
+    adapter_for(model).health(model)
 }
 
 #[cfg(test)]

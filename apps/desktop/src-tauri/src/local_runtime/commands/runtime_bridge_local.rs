@@ -65,42 +65,6 @@ struct RuntimeRemoveLocalAssetResponse {
     asset: Option<runtime_bridge_generated::LocalAssetRecord>,
 }
 
-#[derive(Clone, PartialEq, ::prost::Message)]
-struct RuntimeStartLocalAssetRequest {
-    #[prost(string, tag = "1")]
-    local_asset_id: String,
-}
-
-#[derive(Clone, PartialEq, ::prost::Message)]
-struct RuntimeStartLocalAssetResponse {
-    #[prost(message, optional, tag = "1")]
-    asset: Option<runtime_bridge_generated::LocalAssetRecord>,
-}
-
-#[derive(Clone, PartialEq, ::prost::Message)]
-struct RuntimeStopLocalAssetRequest {
-    #[prost(string, tag = "1")]
-    local_asset_id: String,
-}
-
-#[derive(Clone, PartialEq, ::prost::Message)]
-struct RuntimeStopLocalAssetResponse {
-    #[prost(message, optional, tag = "1")]
-    asset: Option<runtime_bridge_generated::LocalAssetRecord>,
-}
-
-#[derive(Clone, PartialEq, ::prost::Message)]
-struct RuntimeCheckLocalAssetHealthRequest {
-    #[prost(string, tag = "1")]
-    local_asset_id: String,
-}
-
-#[derive(Clone, PartialEq, ::prost::Message)]
-struct RuntimeCheckLocalAssetHealthResponse {
-    #[prost(message, repeated, tag = "1")]
-    assets: Vec<runtime_bridge_generated::LocalAssetHealth>,
-}
-
 fn runtime_bridge_local_service_unary<Request, Response>(
     method_id: &str,
     request: &Request,
@@ -293,17 +257,6 @@ fn bridge_runtime_asset_record(
     })
 }
 
-fn bridge_runtime_asset_health(
-    asset: runtime_bridge_generated::LocalAssetHealth,
-) -> Result<LocalAiAssetHealth, String> {
-    Ok(LocalAiAssetHealth {
-        local_asset_id: asset.local_asset_id,
-        status: bridge_asset_status(asset.status)?,
-        detail: asset.detail,
-        endpoint: asset.endpoint,
-    })
-}
-
 pub(crate) fn runtime_install_verified_asset_via_runtime(
     template_id: &str,
     endpoint: Option<&str>,
@@ -374,46 +327,4 @@ pub(crate) fn runtime_remove_asset_via_runtime(local_asset_id: &str) -> Result<L
         .asset
         .ok_or_else(|| "RUNTIME_LOCAL_SERVICE_ASSET_MISSING: RemoveLocalAsset returned no asset".to_string())?;
     bridge_runtime_asset_record(asset)
-}
-
-pub(crate) fn runtime_start_asset_via_runtime(local_asset_id: &str) -> Result<LocalAiAssetRecord, String> {
-    let response: RuntimeStartLocalAssetResponse = runtime_bridge_local_service_unary(
-        "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset",
-        &RuntimeStartLocalAssetRequest {
-            local_asset_id: local_asset_id.trim().to_string(),
-        },
-    )?;
-    let asset = response
-        .asset
-        .ok_or_else(|| "RUNTIME_LOCAL_SERVICE_ASSET_MISSING: StartLocalAsset returned no asset".to_string())?;
-    bridge_runtime_asset_record(asset)
-}
-
-pub(crate) fn runtime_stop_asset_via_runtime(local_asset_id: &str) -> Result<LocalAiAssetRecord, String> {
-    let response: RuntimeStopLocalAssetResponse = runtime_bridge_local_service_unary(
-        "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset",
-        &RuntimeStopLocalAssetRequest {
-            local_asset_id: local_asset_id.trim().to_string(),
-        },
-    )?;
-    let asset = response
-        .asset
-        .ok_or_else(|| "RUNTIME_LOCAL_SERVICE_ASSET_MISSING: StopLocalAsset returned no asset".to_string())?;
-    bridge_runtime_asset_record(asset)
-}
-
-pub(crate) fn runtime_health_assets_via_runtime(
-    local_asset_id: Option<&str>,
-) -> Result<Vec<LocalAiAssetHealth>, String> {
-    let response: RuntimeCheckLocalAssetHealthResponse = runtime_bridge_local_service_unary(
-        "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
-        &RuntimeCheckLocalAssetHealthRequest {
-            local_asset_id: local_asset_id.unwrap_or_default().trim().to_string(),
-        },
-    )?;
-    response
-        .assets
-        .into_iter()
-        .map(bridge_runtime_asset_health)
-        .collect()
 }

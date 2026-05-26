@@ -270,14 +270,18 @@ test('desktop README does not document renderer-owned local provider route truth
   assert.match(desktopReadmeSource, /endpoint reachability alone is not route truth/);
 });
 
-test('local model tauri lifecycle commands run on a background blocking task', () => {
-  assert.match(tauriCommandsSource, /async fn runtime_local_assets_start/);
-  assert.match(tauriCommandsSource, /spawn_blocking\(move \|\| \{/);
-  assert.match(tauriCommandsSource, /runtime_start_asset_via_runtime_checked\(&app, &payload\.local_asset_id\)/);
-  assert.match(tauriCommandsSource, /async fn runtime_local_assets_stop/);
-  assert.match(tauriCommandsSource, /spawn_blocking\(move \|\| runtime_stop_asset_via_runtime\(&payload\.local_asset_id\)\)/);
-  assert.match(tauriCommandsSource, /async fn runtime_local_assets_health/);
-  assert.match(tauriCommandsSource, /spawn_blocking\(move \|\| runtime_health_assets_via_runtime\(local_asset_id\.as_deref\(\)\)\)/);
+test('local model lifecycle writes route through SDK runtime service only', () => {
+  const commandsAssetsSource = readFileSync(
+    path.resolve(process.cwd(), 'src/runtime/local-runtime/commands-assets.ts'),
+    'utf-8',
+  );
+  assert.doesNotMatch(tauriCommandsSource, /runtime_local_assets_start/);
+  assert.doesNotMatch(tauriCommandsSource, /runtime_local_assets_stop/);
+  assert.doesNotMatch(tauriCommandsSource, /runtime_local_assets_health/);
+  assert.doesNotMatch(tauriCommandsSource, /runtime_local_assets_remove/);
+  assert.match(commandsAssetsSource, /runtime\.startLocalAsset\(\{/);
+  assert.match(commandsAssetsSource, /runtime\.stopLocalAsset\(\{/);
+  assert.match(commandsAssetsSource, /runtime\.removeLocalAsset\(\{/);
   assert.doesNotMatch(tauriCommandsSource, /start_asset\(&app, &payload\.local_asset_id\)/);
   assert.doesNotMatch(tauriCommandsSource, /stop_asset\(&app, &payload\.local_asset_id\)/);
   assert.doesNotMatch(tauriCommandsSource, /health_assets\(&app, local_asset_id\.as_deref\(\)\)/);

@@ -105,10 +105,6 @@ export {
 // runtime_local_pick_asset_directory
 // runtime_local_assets_import_bundle
 // runtime_local_assets_rescan_bundle
-// runtime_local_assets_remove
-// runtime_local_assets_start
-// runtime_local_assets_stop
-// runtime_local_assets_health
 // runtime_local_assets_reveal_in_folder
 // runtime_local_assets_reveal_root_folder
 // runtime_local_assets_scan_unregistered

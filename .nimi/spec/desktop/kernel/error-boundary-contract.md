@@ -197,9 +197,6 @@ Runtime K-ERR-008 规定 `StartLocalAsset`、`StopLocalAsset`、`RemoveLocalAsse
 
 | IPC 命令 | gRPC 状态 | UI 行为 |
 |---|---|---|
-| `runtime_local_assets_start` | `NOT_FOUND` | toast "资产未找到，可能已被移除"，刷新资产列表 |
-| `runtime_local_assets_stop` | `NOT_FOUND` | 静默处理（资产已不存在等价于已停止），刷新资产列表 |
-| `runtime_local_assets_remove` | `NOT_FOUND` | 静默处理（幂等语义），刷新资产列表 |
 
 **跨层引用**：Runtime K-ERR-008、K-LOCAL-009。
 

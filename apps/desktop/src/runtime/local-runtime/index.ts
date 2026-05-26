@@ -302,7 +302,7 @@ export type LocalRuntimeFacade = {
   remove: (
     localAssetId: string,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeTransferAccepted>;
+  ) => Promise<LocalRuntimeAssetRecord>;
   start: (
     localAssetId: string,
     options?: LocalRuntimeWriteOptions,

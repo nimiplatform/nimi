@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use super::recommendation::LocalAiRecommendationDescriptor;
 use super::services::LocalAiProviderHints;
-use super::LocalAiAssetStatus;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -129,14 +128,4 @@ pub struct LocalAiInstallRequest {
     pub endpoint: Option<String>,
     pub provider_hints: Option<LocalAiProviderHints>,
     pub engine_config: Option<serde_json::Value>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiAssetHealth {
-    #[serde(rename = "localAssetId", alias = "localModelId")]
-    pub local_asset_id: String,
-    pub status: LocalAiAssetStatus,
-    pub detail: String,
-    pub endpoint: String,
 }

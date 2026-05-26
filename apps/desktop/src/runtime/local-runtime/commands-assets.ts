@@ -194,14 +194,13 @@ export async function importLocalRuntimeAsset(
 export async function removeLocalRuntimeAsset(
   localAssetId: string,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeTransferAccepted> {
+): Promise<LocalRuntimeAssetRecord> {
   assertLifecycleWriteAllowed('local_runtime_assets_remove', options?.caller);
-  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_remove', {
-    payload: {
-      localAssetId: String(localAssetId || '').trim(),
-    },
+  const runtime = requireSdkLocal();
+  const response = await runtime.removeLocalAsset({
+    localAssetId: String(localAssetId || '').trim(),
   });
-  return parseTransferAccepted(result);
+  return parseAssetRecord(asRecord(response).asset);
 }
 
 export async function startLocalRuntimeAsset(

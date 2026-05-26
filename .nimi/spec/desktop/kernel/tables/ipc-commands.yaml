@@ -231,26 +231,6 @@ commands:
     description: Import a local asset bundle directory; execution truth is RuntimeLocalService
     source_rule: D-IPC-011
 
-  - command: runtime_local_assets_remove
-    module: local-runtime
-    description: Remove an installed asset; execution truth is RuntimeLocalService
-    source_rule: D-IPC-011
-
-  - command: runtime_local_assets_start
-    module: local-runtime
-    description: Start a runnable asset; lifecycle truth is RuntimeLocalService
-    source_rule: D-IPC-011
-
-  - command: runtime_local_assets_stop
-    module: local-runtime
-    description: Stop a running asset; lifecycle truth is RuntimeLocalService
-    source_rule: D-IPC-011
-
-  - command: runtime_local_assets_health
-    module: local-runtime
-    description: Check asset health; health truth is RuntimeLocalService
-    source_rule: D-IPC-011
-
   - command: runtime_local_pick_asset_file
     module: local-runtime
     description: Pick a local asset file for import via native file dialog

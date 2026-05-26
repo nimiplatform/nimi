@@ -69,15 +69,3 @@ pub struct LocalAiScaffoldOrphanPayload {
 pub struct LocalAiAssetIdPayload {
     pub local_asset_id: String,
 }
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiAssetsHealthPayload {
-    pub local_asset_id: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiAssetsHealthResult {
-    pub assets: Vec<LocalAiAssetHealth>,
-}

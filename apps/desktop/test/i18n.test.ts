@@ -283,7 +283,7 @@ test('known dynamic desktop locale keys exist in both locales', async () => {
     'Chat.agentDebugCopyLabel',
     'Chat.agentDebugCopiedLabel',
     'Chat.agentDebugFollowUpLabel',
-    'runtimeConfig.local.assetRemoveQueued',
+    'runtimeConfig.local.assetRemoved',
   ];
 
   for (const [locale, localeData] of localeEntries) {

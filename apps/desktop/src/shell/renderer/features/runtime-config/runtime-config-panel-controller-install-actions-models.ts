@@ -410,7 +410,7 @@ export function useRuntimeConfigModelManagementActions(
 
   const removeLocalModel = useCallback(async (localModelId: string) => {
     assertRuntimeWriteAllowed();
-    const accepted = await removeLocalRuntimeAsset(localModelId, { caller: 'core' }).catch((error) => {
+    const removed = await removeLocalRuntimeAsset(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
         message: translateRuntimeLocalText(
@@ -424,16 +424,16 @@ export function useRuntimeConfigModelManagementActions(
     setStatusBanner({
       kind: 'success',
       message: translateRuntimeLocalText(
-        'runtimeConfig.local.modelRemoveQueued',
-        'Model removal queued: {{localModelId}}',
-        { localModelId: accepted.localModelId || localModelId },
+        'runtimeConfig.local.modelRemoved',
+        'Model removed: {{localModelId}}',
+        { localModelId: removed.localAssetId || localModelId },
       ),
     });
   }, [assertRuntimeWriteAllowed, setStatusBanner]);
 
   const removeLocalAsset = useCallback(async (localAssetId: string) => {
     assertRuntimeWriteAllowed();
-    const accepted = await removeLocalRuntimeAsset(localAssetId, { caller: 'core' }).catch((error) => {
+    const removed = await removeLocalRuntimeAsset(localAssetId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
         message: translateRuntimeLocalText(
@@ -447,9 +447,9 @@ export function useRuntimeConfigModelManagementActions(
     setStatusBanner({
       kind: 'success',
       message: translateRuntimeLocalText(
-        'runtimeConfig.local.assetRemoveQueued',
-        'Asset removal queued: {{assetId}}',
-        { assetId: accepted.localModelId || localAssetId },
+        'runtimeConfig.local.assetRemoved',
+        'Asset removed: {{assetId}}',
+        { assetId: removed.localAssetId || localAssetId },
       ),
     });
   }, [assertRuntimeWriteAllowed, setStatusBanner]);

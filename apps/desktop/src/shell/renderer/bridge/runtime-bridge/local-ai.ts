@@ -95,8 +95,8 @@ export async function importLocalRuntimeAssetFile(
 export async function removeLocalRuntimeAsset(
   localAssetId: string,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeTransferAccepted> {
-  return localRuntime.remove(localAssetId, options) as Promise<LocalRuntimeTransferAccepted>;
+): Promise<LocalRuntimeAssetRecord> {
+  return localRuntime.remove(localAssetId, options) as Promise<LocalRuntimeAssetRecord>;
 }
 
 export async function startLocalRuntimeAsset(

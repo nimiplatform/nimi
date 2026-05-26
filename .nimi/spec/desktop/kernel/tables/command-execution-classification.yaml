@@ -323,7 +323,6 @@ registered_command_families:
         - runtime_local_assets_import
         - runtime_local_assets_import_file
         - runtime_local_assets_import_bundle
-        - runtime_local_assets_remove
         - runtime_local_assets_rescan_bundle
         - runtime_local_assets_scaffold_orphan
     origin_crate: apps/desktop/src-tauri
@@ -346,9 +345,6 @@ registered_command_families:
   - family: local_runtime_asset_runtime_controls
     match:
       exact:
-        - runtime_local_assets_start
-        - runtime_local_assets_stop
-        - runtime_local_assets_health
         - runtime_local_assets_scan_unregistered
     origin_crate: apps/desktop/src-tauri
     owner_domain: local-runtime-assets
