@@ -1,28 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  localRuntime,
   type LocalRuntimeAssetDeclaration,
   type LocalRuntimeAssetKind,
-  type LocalRuntimeInstallPlanDescriptor,
 } from '@runtime/local-runtime';
 import {
   canImportDeclaration,
-  capabilitiesForAssetKind,
   defaultEngineForAnyAssetKind,
 } from './runtime-config-use-local-model-center-helpers.js';
 import {
-  planCanonicalImageCompatibilityHint,
-  planRequiresAttachedEndpointInput,
   type AssetEngineOption,
 } from './runtime-config-model-center-utils';
-
-export function planAttachedEndpointHint(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): string {
-  if (!planRequiresAttachedEndpointInput(plan)) {
-    return '';
-  }
-  return String(plan?.warnings[0] || '').trim()
-    || `Attached endpoint required for ${String(plan?.engine || 'this runtime').trim() || 'this runtime'}.`;
-}
 
 type UseLocalModelCenterImportFilePlanInput = {
   showImportFileDialog: boolean;
@@ -71,40 +58,11 @@ export function useLocalModelCenterImportFilePlan({
       setImportPlanAvailable(true);
       return undefined;
     }
-    if (importFileDeclaration.assetKind === 'image') {
-      setImportEndpointRequired(false);
-      setImportEndpointHint('');
-      setImportCompatibilityHint('');
-      setImportPlanAvailable(true);
-      return undefined;
-    }
-    let cancelled = false;
-    setImportPlanAvailable(false);
-    void localRuntime.resolveInstallPlan({
-      modelId: `local-import/import-preview-${importFileDeclaration.assetKind}`,
-      capabilities: capabilitiesForAssetKind(importFileDeclaration.assetKind),
-      engine,
-    }).then((plan) => {
-      if (cancelled) {
-        return;
-      }
-      const required = planRequiresAttachedEndpointInput(plan);
-      setImportEndpointRequired(required);
-      setImportEndpointHint(required ? planAttachedEndpointHint(plan) : '');
-      setImportCompatibilityHint(planCanonicalImageCompatibilityHint(plan));
-      setImportPlanAvailable(true);
-    }).catch(() => {
-      if (cancelled) {
-        return;
-      }
-      setImportEndpointRequired(false);
-      setImportEndpointHint('');
-      setImportCompatibilityHint('');
-      setImportPlanAvailable(true);
-    });
-    return () => {
-      cancelled = true;
-    };
+    setImportEndpointRequired(false);
+    setImportEndpointHint('');
+    setImportCompatibilityHint('');
+    setImportPlanAvailable(true);
+    return undefined;
   }, [importFileDeclaration, showImportFileDialog]);
 
   const canChooseImportFile = useMemo(

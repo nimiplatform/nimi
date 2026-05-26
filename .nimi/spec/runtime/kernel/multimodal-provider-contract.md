@@ -110,6 +110,7 @@ Runtime 在不引入 DAG 编排的前提下，必须支持 canonical local image
 - 本地路由（`local/*`）必须基于已解析 engine（`llama` / `media` / `sidecar`）推断 providerType，避免 adapter 误判。
 - `nimi.scenario.image.request` 命名空间允许 runtime 接收 `profile_overrides`：
   - image workflow 的 slot 依赖（`vae_path`、`llm_path`、`lora_path`、`controlnet_path` 等）由 runtime 从当前 profile 的已安装 passive asset entries 按 `engineSlot` 解析注入（`K-LOCAL-031`），不再由调用方通过 `components[]` 显式提供。
+  - slot 路径解析必须消费已安装 asset 的 `source.repo=file://.../asset.manifest.json` 与 `entry`；`local-import/*` 只能是 asset id 命名空间，不能作为 repo、logical id 或 resolved path fallback。
   - 当 profile 中缺失 workflow 必需的 `engineSlot` 绑定时，runtime 必须 fail-close（`AI_INPUT_INVALID`），不得猜测 companion 或使用默认值。
   - `profile_overrides` 允许覆盖非路径 profile 字段（`K-LOCAL-032`）；`parameters.model`、`download_files` 与任何 `*_path` 原始值必须由 runtime 注入或拒绝。
   - `profile_overrides` 单独存在但 profile 未绑定对应 slot asset 时，不得触发 dynamic import。

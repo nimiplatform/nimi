@@ -299,6 +299,49 @@ func TestInferNativeProjectionFailsClosedOnCorruptResolvedManifest(t *testing.T)
 	}
 }
 
+func TestInferNativeProjectionDoesNotSynthesizeLogicalIDFromAssetID(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("NIMI_RUNTIME_LOCAL_MODELS_ROOT", root)
+	resolvedBundleManifestIndexMu.Lock()
+	resolvedBundleManifestIndexCache = make(map[string]*resolvedBundleManifestIndex)
+	resolvedBundleManifestIndexMu.Unlock()
+
+	manifestDir := filepath.Join(root, "resolved", "local-import-ae")
+	if err := os.MkdirAll(manifestDir, 0o755); err != nil {
+		t.Fatalf("mkdir manifest dir: %v", err)
+	}
+	manifest := map[string]any{
+		"schema_version":   "1.0.0",
+		"asset_id":         "local-import/ae",
+		"kind":             "vae",
+		"engine":           "media",
+		"entry":            "ae.safetensors",
+		"files":            []string{"ae.safetensors"},
+		"preferred_engine": "media",
+		"source":           map[string]any{"repo": "file://" + filepath.ToSlash(filepath.Join(manifestDir, "asset.manifest.json")), "revision": "local"},
+		"hashes":           map[string]string{},
+		"integrity_mode":   "local_unverified",
+	}
+	raw, err := json.Marshal(manifest)
+	if err != nil {
+		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(manifestDir, "asset.manifest.json"), raw, 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	projection, err := InferNativeProjection("local-import/ae", nil, nil, runtimev1.ModelStatus_MODEL_STATUS_INSTALLED)
+	if err != nil {
+		t.Fatalf("infer native projection: %v", err)
+	}
+	if projection.LogicalModelID != "" {
+		t.Fatalf("asset_id must not be promoted to logical_model_id: got=%q", projection.LogicalModelID)
+	}
+	if projection.PreferredEngine != "media" {
+		t.Fatalf("preferred engine mismatch: got=%q want=media", projection.PreferredEngine)
+	}
+}
+
 func TestResolvedBundleManifestCandidatesStayUnderRoot(t *testing.T) {
 	resolvedRoot := filepath.Join(t.TempDir(), "resolved")
 	candidates := resolvedBundleManifestCandidates(resolvedRoot, "local/../../../etc/passwd")

@@ -329,6 +329,7 @@ v1 固定 internal reason key 集合（audit / health / structured error detail 
 - canonical image path 永不返回 `AI_LOCAL_ENDPOINT_REQUIRED`。
 - slot 缺失不得降级为"忽略该 slot"。
 - catalog 静态列表不得当成 ready 证明。
+- `local-import/*` 不得进入 Hugging Face catalog details 解析，也不得作为 runtime storage repo/path truth；本地导入与 slot 依赖必须通过 manifest-owned `file://.../asset.manifest.json` 解析。
 - 双平面失败时只允许一个稳定主错误码；次级平面信息只能进入 `secondary_detail`。
 - `repair_required -> resolved` 每次发生时，必须写入 audit event（至少包含 `old_entry_id`、重新解析原因、触发入口与时间戳）。
 

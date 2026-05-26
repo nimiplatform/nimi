@@ -104,7 +104,8 @@ pub(super) fn normalize_hf_repo_slug(input: &str) -> Option<String> {
     }
 
     if let Some((prefix, _)) = candidate.split_once("/resolve/") {
-        return Some(prefix.trim_matches('/').to_string());
+        let repo = prefix.trim_matches('/').to_string();
+        return (!is_reserved_local_catalog_ref(repo.as_str())).then_some(repo);
     }
 
     let parts = candidate.split('/').collect::<Vec<_>>();
@@ -112,7 +113,15 @@ pub(super) fn normalize_hf_repo_slug(input: &str) -> Option<String> {
         return None;
     }
 
-    Some(format!("{}/{}", parts[0], parts[1]))
+    let repo = format!("{}/{}", parts[0], parts[1]);
+    (!is_reserved_local_catalog_ref(repo.as_str())).then_some(repo)
+}
+
+fn is_reserved_local_catalog_ref(input: &str) -> bool {
+    let lower = input.trim().to_ascii_lowercase();
+    lower.starts_with("local-import/")
+        || lower.starts_with("file://")
+        || lower.starts_with("orphan:")
 }
 
 pub(super) fn infer_capabilities(pipeline_tag: Option<&str>, tags: &[String]) -> Vec<String> {

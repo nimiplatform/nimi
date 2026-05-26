@@ -20,6 +20,11 @@ SDK app-facing route facade 固定暴露以下 logical operation：
 - `runtime.route.describe(...)` 在 Phase 1 的 stable authority home 是 host typed surface。
 - 本轮不得把 `describe(...)` 定义成 direct daemon convenience method，也不得要求 `new Runtime()` 必须具备与 daemon 顶层 RPC 一一对应的 `describe()`。
 - `describe(...)` 相关类型和值域必须直接继承 `K-RPC-015` ~ `K-RPC-021`，不得在 SDK 再发明第二套 route metadata schema。
+- Phase 1 host typed surface 若通过 `ExecuteScenario` 的 route describe probe
+  承载 `describe(...)`，必须只解码 Runtime 写入的
+  `x-nimi-route-describe-result` response metadata 并执行 typed result 校验；
+  SDK/Desktop 不得把缺失 metadata 转换为默认值或根据 route binding 本地推断
+  metadata。
 
 ## S-RUNTIME-075 Typed Describe Result Projection
 

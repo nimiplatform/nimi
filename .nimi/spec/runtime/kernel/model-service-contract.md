@@ -14,7 +14,7 @@
 | `capabilities` | repeated string | 能力列表 |
 | `last_health_at` | `Timestamp` | 最近健康检查时间 |
 | `capability_profile` | `ModelCapabilityProfile` | 结构化能力画像 |
-| `logical_model_id` | string | 逻辑模型 ID |
+| `logical_model_id` | string | 逻辑模型 ID；passive asset 可为空，且不得作为 passive asset 文件路径真相 |
 | `family` | string | 模型家族 |
 | `artifact_roles` | repeated string | 解析后的 artifact 角色集合 |
 | `preferred_engine` | string | 首选执行引擎，值域固定为 `llama` / `media` / `speech` / `sidecar` |
@@ -46,7 +46,7 @@
 - `supports_async_media_job`
 - `supports_streaming`
 
-该 profile 是摘要视图；真正的本地执行真相仍由 `logical_model_id + artifact_roles + preferred_engine + bundle_state + warm_state` 组合给出。
+该 profile 是摘要视图；runnable asset 的本地执行真相由 `logical_model_id + artifact_roles + preferred_engine + bundle_state + warm_state` 组合给出。passive asset 的路径真相由已安装 manifest (`source.repo=file://.../asset.manifest.json`) 与 `entry` 给出，`logical_model_id` 不参与路径解析。
 
 ## K-MODEL-004 RuntimeModelService 方法集合
 
@@ -64,7 +64,7 @@
 - `source` 可选。
 - `digest` 可选。
 - 返回 `task_id` + `accepted` + `reason_code`。
-- 当目标为本地 native model 时，runtime 在进入 `INSTALLED` 前必须完成最小的 logical model 元数据推导，至少写出 `logical_model_id`、`preferred_engine`、`bundle_state` 与 `warm_state`。
+- 当目标为 runnable 本地 native model 时，runtime 在进入 `INSTALLED` 前必须完成最小的 logical model 元数据推导，至少写出 `logical_model_id`、`preferred_engine`、`bundle_state` 与 `warm_state`。passive asset 必须写出 `preferred_engine`、`bundle_state` 与 `warm_state`；不得从 `asset_id` 自动合成 `logical_model_id`。
 
 ## K-MODEL-006 CheckModelHealth 响应
 

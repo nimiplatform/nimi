@@ -39,6 +39,10 @@ import { getDesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/mac
 import { pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import { hydrateDesktopAccountProfile } from './runtime-bootstrap-account-profile';
 import { NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS, startNonCriticalBootstrapStep, withBootstrapStepTimeout } from './runtime-bootstrap-step-timeout';
+import {
+  bindDesktopConversationCapabilityRouteRuntime,
+  clearDesktopConversationCapabilityRouteRuntime,
+} from './runtime-bootstrap-conversation-route-runtime';
 
 let bootstrapPromise: Promise<void> | null = null;
 let rebootstrapPromise: Promise<void> | null = null;
@@ -194,6 +198,7 @@ async function handleRuntimeConfigSyncError(input: {
 async function teardownBootstrapState(): Promise<void> {
   stopAuthStateWatcher();
   stopExternalAgentActionBridge();
+  clearDesktopConversationCapabilityRouteRuntime();
   clearPlatformClient();
 }
 
@@ -391,6 +396,7 @@ export function bootstrapRuntime(): Promise<void> {
         eventNamespace: 'runtime_bridge',
       },
     });
+    bindDesktopConversationCapabilityRouteRuntime();
     const accountCaller = {
       appId: 'nimi.desktop',
       appInstanceId: 'nimi.desktop.local-first-party',

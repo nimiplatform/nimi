@@ -59,7 +59,6 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 	if !isRunnableKind(kind) && len(capabilities) > 0 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
 	}
-	preferredEngine := manifestStringDefault(manifest, "preferred_engine", "preferredEngine")
 	artifactRoles, artifactRolesErr := manifestStringSliceKeys(manifest, "artifact_roles", "artifactRoles")
 	if artifactRolesErr != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
@@ -69,6 +68,10 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
 	}
 	engine := defaultLocalEngine(manifestStringDefault(manifest, "engine"), capabilities)
+	preferredEngine := manifestStringDefault(manifest, "preferred_engine", "preferredEngine")
+	if preferredEngine == "" && !isRunnableKind(kind) {
+		preferredEngine = engine
+	}
 	entry := defaultString(manifestStringDefault(manifest, "entry"), "./dist/index.js")
 	license := defaultString(manifestStringDefault(manifest, "license"), "unknown")
 	endpoint := strings.TrimSpace(req.GetEndpoint())

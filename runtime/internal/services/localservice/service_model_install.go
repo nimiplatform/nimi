@@ -285,6 +285,9 @@ func (s *Service) installLocalAssetRecord(
 			projection.HostRequirements = cloneHostRequirements(projectionOverride.HostRequirements)
 		}
 	}
+	if !isRunnableKind(kind) && (projectionOverride == nil || strings.TrimSpace(projectionOverride.LogicalModelID) == "") {
+		projection.LogicalModelID = ""
+	}
 	record := &runtimev1.LocalAssetRecord{
 		LocalAssetId: ulid.Make().String(),
 		AssetId:      modelID,

@@ -37,6 +37,12 @@ func (s *Service) resolveManagedAssetEntryPath(artifact *runtimev1.LocalAssetRec
 	if strings.HasPrefix(repo, "file://") {
 		return resolveManagedEntryRelativePath(modelsRoot, artifact.GetAssetId(), repo, artifact.GetEntry())
 	}
+	if isLocalImportSourceRepo(repo) {
+		return "", grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    "local-import source repos are not storage truth; re-import from asset.manifest.json",
+			ActionHint: "reimport_asset_manifest",
+		})
+	}
 	root := strings.TrimSpace(modelsRoot)
 	if root == "" {
 		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
@@ -49,12 +55,6 @@ func (s *Service) resolveManagedAssetEntryPath(artifact *runtimev1.LocalAssetRec
 	cleanEntry, err := sanitizeManagedEntryPath(artifact.GetEntry())
 	if err != nil {
 		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	if relPath, resolved, err := resolveManagedPassiveSourceRepoEntryPath(rootAbs, repo, cleanEntry); resolved {
-		if err != nil {
-			return "", err
-		}
-		return relPath, nil
 	}
 	var absPath string
 	if isRunnableKind(artifact.GetKind()) {
@@ -83,40 +83,8 @@ func (s *Service) resolveManagedAssetEntryPath(artifact *runtimev1.LocalAssetRec
 	return filepath.ToSlash(relPath), nil
 }
 
-func resolveManagedPassiveSourceRepoEntryPath(rootAbs string, sourceRepo string, cleanEntry string) (string, bool, error) {
-	repo := strings.TrimSpace(sourceRepo)
-	const localImportPrefix = "local-import/"
-	if !strings.HasPrefix(repo, localImportPrefix) {
-		return "", false, nil
-	}
-	repoSlug := strings.Trim(strings.TrimPrefix(repo, localImportPrefix), "/")
-	if repoSlug == "" {
-		return "", true, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	cleanBaseDir := filepath.Clean(filepath.FromSlash(repoSlug))
-	if cleanBaseDir == "." || cleanBaseDir == "" || filepath.IsAbs(cleanBaseDir) || cleanBaseDir == ".." ||
-		strings.HasPrefix(cleanBaseDir, ".."+string(filepath.Separator)) {
-		return "", true, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	absPath := filepath.Join(rootAbs, "resolved", cleanBaseDir, cleanEntry)
-	absPath, err := filepath.Abs(absPath)
-	if err != nil {
-		return "", true, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
-	}
-	if !strings.HasPrefix(absPath, rootAbs+string(filepath.Separator)) && absPath != rootAbs {
-		return "", true, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	if _, statErr := os.Stat(absPath); statErr != nil {
-		if os.IsNotExist(statErr) {
-			return "", false, nil
-		}
-		return "", true, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	relPath, err := filepath.Rel(rootAbs, absPath)
-	if err != nil {
-		return "", true, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
-	}
-	return filepath.ToSlash(relPath), true, nil
+func isLocalImportSourceRepo(sourceRepo string) bool {
+	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(sourceRepo)), "local-import/")
 }
 
 func (s *Service) resolvedLocalModelsPath() string {
@@ -168,9 +136,21 @@ func resolveManagedEntryRelativePath(modelsRoot string, itemID string, sourceRep
 
 func resolveManagedBaseDir(modelsRoot string, itemID string, sourceRepo string) (string, error) {
 	repo := strings.TrimSpace(sourceRepo)
+	if isLocalImportSourceRepo(repo) {
+		return "", grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    "local-import source repos are not storage truth; re-import from asset.manifest.json",
+			ActionHint: "reimport_asset_manifest",
+		})
+	}
 	if strings.HasPrefix(repo, "file://") {
 		path, err := resolveManagedFileRepoPath(repo)
 		if err == nil && path != "" {
+			if !strings.EqualFold(filepath.Base(path), "asset.manifest.json") {
+				return "", grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+					Message:    "file source repos must point to asset.manifest.json",
+					ActionHint: "reimport_asset_manifest",
+				})
+			}
 			baseDir := filepath.Dir(path)
 			baseDir, err = filepath.Abs(baseDir)
 			if err == nil {

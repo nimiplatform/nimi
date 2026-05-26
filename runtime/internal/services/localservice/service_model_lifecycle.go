@@ -363,7 +363,18 @@ func (s *Service) CheckLocalAssetHealth(ctx context.Context, req *runtimev1.Chec
 			continue
 		}
 		if modelsRoot := s.resolvedLocalModelsPath(); strings.TrimSpace(modelsRoot) != "" {
-			if entryPath, resolveErr := resolveManagedModelEntryAbsolutePath(modelsRoot, model); resolveErr == nil {
+			if entryPath, resolveErr := resolveManagedModelEntryAbsolutePath(modelsRoot, model); resolveErr != nil {
+				repo := strings.TrimSpace(model.GetSource().GetRepo())
+				if strings.HasPrefix(repo, "file://") || isLocalImportSourceRepo(repo) {
+					detail := fmt.Sprintf("managed local model entry invalid: %v", resolveErr)
+					transitioned, updateErr := s.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, detail)
+					if updateErr != nil {
+						return nil, updateErr
+					}
+					result = append(result, modelHealth(transitioned))
+					continue
+				}
+			} else {
 				if validateErr := validateManagedModelEntryFile(entryPath); validateErr != nil {
 					detail := fmt.Sprintf("managed local model entry invalid: %v", validateErr)
 					transitioned, updateErr := s.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, detail)

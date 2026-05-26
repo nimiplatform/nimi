@@ -240,7 +240,7 @@ func TestResolveManagedMediaImageProfileRejectsOptionalMissingSlotAsset(t *testi
 	assertGRPCReasonCode(t, err, "optional slot asset missing", runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING)
 }
 
-func TestResolveManagedMediaImageProfileSupportsLegacyLocalImportSlotSourceRepo(t *testing.T) {
+func TestResolveManagedMediaImageProfileRejectsLocalImportSlotSourceRepo(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
@@ -282,7 +282,7 @@ func TestResolveManagedMediaImageProfileSupportsLegacyLocalImportSlotSourceRepo(
 	svc.assets[vaeRecord.GetLocalAssetId()] = vaeRecord
 	writeManagedAssetEntryFixture(t, modelsRoot, vaeRecord, "vae")
 
-	_, profile, _, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
+	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
 			{
 				EntryId:   "main-image",
@@ -302,12 +302,12 @@ func TestResolveManagedMediaImageProfileSupportsLegacyLocalImportSlotSourceRepo(
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("resolve local media image profile with legacy local-import slot source: %v", err)
+	if err == nil {
+		t.Fatal("expected local-import source repo slot to fail closed")
 	}
-	options := valueAsStringSlice(profile["options"])
-	if !containsString(options, "vae_path:resolved/local-import-ae/ae.safetensors") {
-		t.Fatalf("expected vae_path option from local-import repo slug, got=%v", options)
+	assertGRPCReasonCode(t, err, "local-import source repo slot", runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING)
+	if !strings.Contains(err.Error(), "local-import source repos are not storage truth") {
+		t.Fatalf("expected local-import storage truth error, got %v", err)
 	}
 }
 

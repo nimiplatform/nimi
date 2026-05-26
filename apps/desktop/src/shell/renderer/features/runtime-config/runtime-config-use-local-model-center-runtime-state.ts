@@ -9,16 +9,11 @@ import {
   type LocalRuntimeVerifiedAssetDescriptor,
 } from '@runtime/local-runtime';
 import {
-  basenameFromRuntimePath,
-  planCanonicalImageCompatibilityHint,
-  planBlocksCanonicalImageImport,
   defaultAssetDeclaration,
   normalizeCapabilityOption,
   normalizeInstallEngine,
   CAPABILITY_OPTIONS,
   PROGRESS_RETENTION_MS,
-  planBlockingHint,
-  planRequiresAttachedEndpointInput,
   type AssetEngineOption,
   type CapabilityOption,
   type InstallEngineOption,
@@ -33,14 +28,12 @@ import {
 } from './runtime-config-local-model-center-helpers';
 import {
   canImportDeclaration,
-  capabilitiesForAssetKind,
   defaultEngineForAnyAssetKind,
   manifestPathFromSourceRepo,
   normalizeAssetDeclaration,
   RUNNABLE_ASSET_KINDS,
 } from './runtime-config-use-local-model-center-helpers.js';
 import {
-  planAttachedEndpointHint,
   useLocalModelCenterImportFilePlan,
 } from './runtime-config-use-local-model-center-import-file-plan';
 import { toCanonicalLocalLookupKey } from '@runtime/local-runtime/local-id';
@@ -555,7 +548,6 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   }, [unregisteredAssets]);
 
   useEffect(() => {
-    let cancelled = false;
     for (const asset of unregisteredAssets) {
       const declaration = resolveUnregisteredAssetDraft(asset);
       if (declaration.assetKind === 'auxiliary') {
@@ -569,45 +561,11 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
         setUnregisteredImportAllowedByPath((prev) => ({ ...prev, [asset.path]: true }));
         continue;
       }
-      const previewFileName = basenameFromRuntimePath(asset.path);
-      setUnregisteredImportAllowedByPath((prev) => ({ ...prev, [asset.path]: false }));
-      void localRuntime.resolveInstallPlan({
-        modelId: `local-import/unregistered-preview-${declaration.assetKind}`,
-        capabilities: capabilitiesForAssetKind(declaration.assetKind),
-        engine,
-        entry: previewFileName,
-        files: [previewFileName],
-      }).then((plan) => {
-        if (cancelled) {
-          return;
-        }
-        const required = planRequiresAttachedEndpointInput(plan);
-        const blocked = declaration.assetKind === 'image' ? false : planBlocksCanonicalImageImport(plan);
-        setUnregisteredEndpointRequiredByPath((prev) => ({ ...prev, [asset.path]: required }));
-        setUnregisteredEndpointHintByPath((prev) => ({
-          ...prev,
-          [asset.path]: required ? planAttachedEndpointHint(plan) : '',
-        }));
-        setUnregisteredCompatibilityHintByPath((prev) => ({
-          ...prev,
-          [asset.path]: declaration.assetKind === 'image'
-            ? planCanonicalImageCompatibilityHint(plan)
-            : blocked ? planBlockingHint(plan) : '',
-        }));
-        setUnregisteredImportAllowedByPath((prev) => ({ ...prev, [asset.path]: !blocked }));
-      }).catch(() => {
-        if (cancelled) {
-          return;
-        }
-        setUnregisteredEndpointRequiredByPath((prev) => ({ ...prev, [asset.path]: false }));
-        setUnregisteredEndpointHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
-        setUnregisteredCompatibilityHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
-        setUnregisteredImportAllowedByPath((prev) => ({ ...prev, [asset.path]: true }));
-      });
+      setUnregisteredEndpointRequiredByPath((prev) => ({ ...prev, [asset.path]: false }));
+      setUnregisteredEndpointHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
+      setUnregisteredCompatibilityHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
+      setUnregisteredImportAllowedByPath((prev) => ({ ...prev, [asset.path]: true }));
     }
-    return () => {
-      cancelled = true;
-    };
   }, [resolveUnregisteredAssetDraft, unregisteredAssets]);
 
   const importUnregisteredAsset = useCallback(async (assetPath: string) => {

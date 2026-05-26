@@ -82,6 +82,7 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 本地资产系统采用三层抽象：
 
 - **Asset**（`LocalAssetRecord`）：用户与 App 可见的统一资产抽象。每条记录携带 `local_asset_id`（ULID）、`kind`（`chat` / `image` / `video` / `tts` / `stt` / `vae` / `clip` / `lora` / `controlnet` / `auxiliary`）、`logical_model_id`、`family`、`artifact_roles`、`preferred_engine`、`fallback_engines`、`bundle_state`、`warm_state`、`host_requirements` 。passive asset（如 `vae`、`clip`、`lora`、`controlnet`）不需要独立 Service 或 Node；其 workflow 槽位由 profile entry 的 `engineSlot` 声明，不属于 asset record 自身。
+- 本地导入资产的文件路径真相只来自 `source.repo=file://.../asset.manifest.json` 所在目录加 `entry`；`asset_id`、`logical_model_id`、`local-import/*` 字符串不得作为 resolved 目录真相或二次路径推导输入。passive asset 的 `logical_model_id` 可为空；即使存在，也只是语义元数据，不得覆盖 manifest parent 路径。
 - **Service**（`LocalServiceDescriptor`）：某个 runnable asset 当前绑定的执行实例。一个 Service 代表一个可访问 endpoint，可以是 `ATTACHED_ENDPOINT` 或 `SUPERVISED`。仅 runnable asset（chat/image/video/tts/stt）需要 Service 绑定。
 - **Node**（`LocalNodeDescriptor`）：能力投影视图。从 Service × capabilities 生成，携带 adapter/engine/policy_gate 等运行时路由信息。Node 是能力发现入口，不是规范真相源。passive asset 不参与 Node 生成。
 
@@ -118,7 +119,7 @@ ordinary-user desktop local speech 可以投影为 canonical product object `Loc
 `InstallVerifiedAsset` 与 `ImportLocalAsset` 的语义是注册 + 状态持久化（统一取代旧 `InstallVerifiedModel` / `InstallVerifiedArtifact` 与 `ImportLocalModel` / `ImportLocalArtifact`）：
 
 - 将 asset_id/kind/capabilities/engine/source/endpoint 等字段写入本地状态存储。
-- runtime 必须同时写出 runtime-native 本地资产元数据：`logical_model_id`、`family`、`artifact_roles`、`preferred_engine`、`fallback_engines`、`bundle_state`、`warm_state`、`host_requirements`、`kind`。
+- runtime 必须同时写出 runtime-native 本地资产元数据：`family`、`artifact_roles`、`preferred_engine`、`fallback_engines`、`bundle_state`、`warm_state`、`host_requirements`、`kind`；runnable asset 必须写出 `logical_model_id`，passive asset 不得从 `asset_id` 自动合成 `logical_model_id`。
 - runtime 内部必须同时持久化 asset 的 `engine_runtime_mode`，用于区分显式 `ATTACHED_ENDPOINT` 与自动选择的 `SUPERVISED` 生命周期语义；该内部状态当前不要求经现有 RPC 直接暴露。
 - 生成唯一 `local_asset_id`（ULID 格式）。
 - 初始状态为 `INSTALLED`（`K-LOCAL-005` 状态机锚点）。
@@ -160,7 +161,7 @@ descriptor 是 catalog projection 这一点不放宽 `K-LOCAL-009` 的安装语�
 - 文件名必须是 `asset.manifest.json`
 - manifest 顶层稳定字段必须使用 `asset_id` / `kind`；不得接受 `model_id`、`artifact_id` 或旧 dual manifest shape
 - runnable asset 使用同一 schema 扩展 `logical_model_id`、`capabilities`、`artifact_roles`、`preferred_engine`、`fallback_engines`
-- passive asset 也必须走同一 schema；区别仅在 `kind` 与可选 runtime-native 扩展字段，而不是另一套 manifest 类型
+- passive asset 也必须走同一 schema；区别仅在 `kind`、空 `capabilities`、可省略的 `logical_model_id` 与可选 runtime-native 扩展字段，而不是另一套 manifest 类型
 - Desktop / renderer / bridge / runtime 的稳定输入输出面都必须 fail-close，不得继续兼容旧 manifest 名称或旧字段别名
 
 ## K-LOCAL-011 模型目录来源
@@ -491,6 +492,7 @@ Runtime/desktop 允许在 catalog surface 之外新增 capability-scoped candida
 - **保留原始文件名**（非 content-addressable hash），理由：调试可读、生态工具兼容（vLLM/SGLang 等可直接引用）。
 - `resolved/` 下的 `asset.manifest.json` 是本地 bundle 的统一规范入口（schema 见 `K-LOCAL-026`），适用于所有 asset kind（chat、image、video、tts、stt、vae、clip、lora、controlnet、auxiliary）。
 - 嵌套目录保留原始结构（如 `speech_tokenizer/model.safetensors`）。
+- `local-import/*` 是本地导入 asset id 命名空间，不是 `source.repo`、Hugging Face repo slug、`logical_model_id` 或 resolved path namespace。实现必须拒绝把 `local-import/*` source repo 当成文件位置；需要导入/重绑时必须使用 `file://.../asset.manifest.json`。
 
 `~/.nimi/` 统一数据根布局：
 
@@ -517,7 +519,7 @@ Desktop/Tauri 面向用户与 App 的统一资产 manifest public contract 固�
 
 ## K-LOCAL-026 模型 Manifest Schema
 
-`resolved/<local-asset-id>/asset.manifest.json` 结构定义：
+`resolved/<local-asset-id>/asset.manifest.json` 结构定义；passive asset 与 runnable asset 共用该入口，但 `capabilities` 对 passive asset 必须为空，`logical_model_id` 对 passive asset 可省略：
 
 ```yaml
 schema_version: "1.0.0"      # 必填
@@ -538,9 +540,10 @@ hashes:                        # 必填，所有文件须有对应 hash
 
 - 所有必填字段非空。
 - `entry` 须存在于 `files` 列表中。
-- `capabilities` 每项须为有效值（`chat` | `image` | `video` | `tts` | `stt` | `embedding`）。
+- runnable asset 的 `capabilities` 每项须为有效值（`chat` | `image` | `video` | `tts` | `stt` | `embedding`）；passive asset 的 `capabilities` 必须为空，其 workflow 用途由 profile entry 的 `engineSlot` 决定。
 - `hashes` 的所有 key 须指向存在的文件，value 非空。
 - 文件路径规范化：拒绝绝对路径、拒绝 `..` 遍历、反斜杠转正斜杠。
+- 导入态 manifest 的 `source.repo` 必须是当前 `asset.manifest.json` 的 `file://` URL。任何 `local-import/*` source repo 必须 fail-close；不得通过 slug、symlink、复制或 fallback 目录修复。
 
 ## K-LOCAL-027 格式支持策略
 
@@ -603,6 +606,7 @@ hashes:                        # 必填，所有文件须有对应 hash
 - `engineSlot` 值域由 engine 定义，典型值包括但不限于：`vae_path`、`llm_path`、`lora_path`、`controlnet_path`、`clip_path`。
 - 同一 profile 内，同一 `engineSlot` 不得出现重复绑定；冲突时 `ResolveProfile` 必须 fail-close（`AI_LOCAL_PROFILE_SLOT_CONFLICT`）。
 - runtime 在 workflow 执行前，必须从当前 profile 的已安装 passive asset 中按 `engineSlot` 解析路径，注入到 engine 请求参数中。未安装或 `UNHEALTHY` 的 passive asset 对应的 slot 必须 fail-close，不得静默跳过或使用默认值。
+- passive asset 的 slot path 解析必须使用该 asset 的 manifest parent 与 `entry`；不得使用 `asset_id`、`logical_model_id` 或 `local-import/*` source repo 推导 `resolved/` 路径。
 
 ## K-LOCAL-032 Profile Entry Override 规则
 

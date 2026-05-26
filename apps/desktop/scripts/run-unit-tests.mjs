@@ -11,6 +11,50 @@ const workspaceRoot = path.resolve(scriptDir, '..');
 const testRoot = path.join(workspaceRoot, 'test');
 const i18nTestRelativePath = path.posix.join('test', 'i18n.test.ts');
 
+function normalizeFilterPath(input) {
+  let normalized = String(input || '').trim().replace(/\\/g, '/');
+  if (!normalized || normalized === '--') {
+    return '';
+  }
+  normalized = normalized.replace(/^\.?\//, '');
+  if (!normalized.startsWith('test/')) {
+    normalized = `test/${normalized}`;
+  }
+  return normalized;
+}
+
+function resolveRequestedTestFiles(allTestFiles, requestedFilters) {
+  const filters = requestedFilters.map(normalizeFilterPath).filter(Boolean);
+  if (filters.length === 0) {
+    return allTestFiles;
+  }
+
+  const selected = [];
+  const unmatched = [];
+  for (const filter of filters) {
+    const exact = allTestFiles.find((filePath) => filePath === filter);
+    if (exact) {
+      selected.push(exact);
+      continue;
+    }
+
+    const basenameMatches = allTestFiles.filter((filePath) => path.posix.basename(filePath) === path.posix.basename(filter));
+    if (basenameMatches.length === 1) {
+      selected.push(basenameMatches[0]);
+      continue;
+    }
+
+    unmatched.push(filter);
+  }
+
+  if (unmatched.length > 0) {
+    process.stderr.write(`run-unit-tests.mjs: requested test file(s) not found: ${unmatched.join(', ')}\n`);
+    process.exit(1);
+  }
+
+  return [...new Set(selected)];
+}
+
 function collectTestFiles(dirPath) {
   const entries = readdirSync(dirPath).sort((left, right) => left.localeCompare(right));
   const files = [];
@@ -29,7 +73,8 @@ function collectTestFiles(dirPath) {
 }
 
 const mode = process.argv[2];
-const allTestFiles = collectTestFiles(testRoot);
+const requestedTestFiles = process.argv.slice(3).filter((arg) => arg !== '--');
+const allTestFiles = resolveRequestedTestFiles(collectTestFiles(testRoot), requestedTestFiles);
 const selectedTestFiles = allTestFiles.filter((filePath) => {
   if (mode === '--i18n') {
     return filePath === i18nTestRelativePath;

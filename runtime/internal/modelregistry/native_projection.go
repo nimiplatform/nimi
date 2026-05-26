@@ -109,7 +109,7 @@ func loadResolvedBundleProjection(modelID string, status runtimev1.ModelStatus) 
 		return NativeProjection{}, false, fmt.Errorf("parse resolved manifest %q: %w", manifestPath, err)
 	}
 	projection := NativeProjection{
-		LogicalModelID:   firstNonEmpty(disk.LogicalModelID, disk.AssetID, disk.ModelID, modelID),
+		LogicalModelID:   strings.TrimSpace(disk.LogicalModelID),
 		Family:           firstNonEmpty(disk.Family, inferModelFamily(modelID)),
 		ArtifactRoles:    normalizeStrings(disk.ArtifactRoles),
 		PreferredEngine:  firstNonEmpty(disk.PreferredEngine, inferPreferredEngine(disk.Capabilities)),

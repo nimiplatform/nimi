@@ -454,6 +454,9 @@ func (s *Service) importLocalPassiveAssetFile(
 		"integrity_mode": "local_unverified",
 		"hashes":         map[string]string{},
 	}
+	if engine != "" {
+		manifest["preferred_engine"] = engine
+	}
 	s.updateTransferProgress(transferID, "manifest", 1, 1, "writing artifact manifest")
 	payload, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {

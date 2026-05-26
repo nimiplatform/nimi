@@ -30,11 +30,24 @@ Desktop 侧 conversation capability authority 固定拆分为四层：
 Desktop host bootstrap 是 conversation capability shared builder 的唯一 authority home：
 
 - AI Chat、Agent Chat、Runtime Config 必须消费同一 builder 结果，不得各自重算 route truth。
+- Desktop runtime bootstrap 在 runtime SDK client materialize 后必须注册唯一的
+  `ConversationCapabilityRouteRuntime` 到 shared builder；bootstrap teardown /
+  rebootstrap 前必须清空该注册。生产路径不得只在测试或局部 consumer 中注入
+  resolver，否则已有 `selectedBindings` 会被误投影为 `binding_unresolved`。
 - builder 允许输入固定为：
   - `SelectionStore.selectedBindings[capability]`
+  - `runtime.route.listOptions(...)` 产生的 capability-scoped option truth（仅用于
+    将持久化 binding hydrate 成当前 runtime-owned local/cloud route identity；
+    不得作为 metadata 或 health truth）
   - `runtime.route.resolve(...)`
   - `runtime.route.checkHealth(...)`
   - `runtime.route.describe(...)`
+- Desktop host 的 Phase 1 `runtime.route.describe(...)` facade 只能消费 Runtime
+  route describe logical operation 的 typed result。若 transport 通过
+  scenario route-describe probe 与 `x-nimi-route-describe-result` response metadata
+  承载结果，Desktop 只能解码并校验 typed result；不得根据 provider、model
+  label、local/cloud、endpoint 或 UI state 伪造 `supportsThinking` / multimodal /
+  workflow metadata。
 - builder 不得读取或恢复以下真相：
   - thread `routeSnapshot`
   - provider / route kind / local-cloud heuristic

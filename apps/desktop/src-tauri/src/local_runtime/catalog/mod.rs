@@ -373,6 +373,22 @@ mod tests {
     }
 
     #[test]
+    fn normalize_hf_repo_slug_rejects_reserved_local_import_refs() {
+        assert_eq!(
+            normalize_hf_repo_slug("local-import/unregistered-preview-image"),
+            None
+        );
+        assert_eq!(
+            normalize_hf_repo_slug("hf://local-import/unregistered-preview-image"),
+            None
+        );
+        assert_eq!(
+            normalize_hf_repo_slug("https://huggingface.co/local-import/unregistered-preview-image/resolve/main/model.gguf"),
+            None
+        );
+    }
+
+    #[test]
     fn infer_capabilities_defaults_to_chat() {
         let capabilities = infer_capabilities(None, &[]);
         assert_eq!(capabilities, vec!["chat".to_string()]);

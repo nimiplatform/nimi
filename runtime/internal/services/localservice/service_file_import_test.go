@@ -106,6 +106,12 @@ func TestImportLocalPassiveAssetFileKeepsManifestKind(t *testing.T) {
 	if len(asset.GetCapabilities()) != 0 {
 		t.Fatalf("passive asset must not synthesize runnable capabilities: %#v", asset.GetCapabilities())
 	}
+	if got := asset.GetLogicalModelId(); got != "" {
+		t.Fatalf("passive file import must not synthesize logical model id from asset id: got=%q", got)
+	}
+	if got := asset.GetPreferredEngine(); got != "media" {
+		t.Fatalf("passive preferred engine mismatch: got=%q want=media", got)
+	}
 	manifestPath := runtimeManagedPassiveAssetManifestPath(resolveLocalModelsPath(svc.localModelsPath), asset.GetAssetId())
 	raw, err := os.ReadFile(manifestPath)
 	if err != nil {
@@ -127,6 +133,9 @@ func TestImportLocalPassiveAssetFileKeepsManifestKind(t *testing.T) {
 	if got, _ := manifest["kind"].(string); got != "vae" {
 		t.Fatalf("manifest kind mismatch: got=%q want=vae", got)
 	}
+	if got, _ := manifest["preferred_engine"].(string); got != "media" {
+		t.Fatalf("manifest preferred_engine mismatch: got=%q want=media", got)
+	}
 	source, ok := manifest["source"].(map[string]any)
 	if !ok {
 		t.Fatalf("manifest source missing: %#v", manifest)
@@ -146,6 +155,16 @@ func TestImportLocalPassiveAssetFileKeepsManifestKind(t *testing.T) {
 	}
 	if got, want := filepath.Clean(resolvedPath), filepath.Clean(filepath.Join(filepath.Dir(manifestPath), asset.GetEntry())); got != want {
 		t.Fatalf("resolved passive asset path mismatch: got=%q want=%q", got, want)
+	}
+	svc.mu.Lock()
+	svc.assets[asset.GetLocalAssetId()].LogicalModelId = "local-import/ae"
+	svc.mu.Unlock()
+	resolvedPath, err = svc.ResolveManagedAssetPath(context.Background(), asset.GetLocalAssetId())
+	if err != nil {
+		t.Fatalf("resolve imported passive asset path with stale logical id: %v", err)
+	}
+	if got, want := filepath.Clean(resolvedPath), filepath.Clean(filepath.Join(filepath.Dir(manifestPath), asset.GetEntry())); got != want {
+		t.Fatalf("stale logical id must not select passive storage path: got=%q want=%q", got, want)
 	}
 }
 
