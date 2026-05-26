@@ -114,10 +114,6 @@ export {
 // runtime_local_models_catalog_search
 // runtime_local_models_catalog_resolve_install_plan
 // runtime_local_device_profile_collect
-// runtime_local_downloads_list
-// runtime_local_downloads_pause
-// runtime_local_downloads_resume
-// runtime_local_downloads_cancel
 // runtime_local_assets_scan_unregistered
 
 function toInt64String(value: unknown): string {

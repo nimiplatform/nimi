@@ -34,11 +34,10 @@ use super::types::{
     runtime_managed_asset_dir, runtime_managed_asset_manifest_path, slugify_local_model_id,
     CatalogVariantDescriptor, LocalAiAssetDeclaration, LocalAiAssetHealth, LocalAiAssetKind,
     LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus, LocalAiCatalogItemDescriptor,
-    LocalAiDeviceProfile, LocalAiDownloadControlPayload, LocalAiDownloadProgressEvent,
-    LocalAiDownloadSessionSummary, LocalAiDownloadState, LocalAiInstallPlanDescriptor,
-    LocalAiInstallRequest, LocalAiIntegrityMode, LocalAiRecommendationFeedDescriptor,
-    LocalAiRuntimeState, LocalAiSuggestionConfidence, LocalAiSuggestionSource,
-    LocalAiTransferSessionKind, LocalAiUnregisteredAssetDescriptor,
+    LocalAiDeviceProfile, LocalAiDownloadProgressEvent, LocalAiDownloadState,
+    LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiIntegrityMode,
+    LocalAiRecommendationFeedDescriptor, LocalAiRuntimeState, LocalAiSuggestionConfidence,
+    LocalAiSuggestionSource, LocalAiTransferSessionKind, LocalAiUnregisteredAssetDescriptor,
     LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
 };
 

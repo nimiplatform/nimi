@@ -4,7 +4,6 @@ pub const EVENT_MODEL_DOWNLOAD_STARTED: &str = "model_download_started";
 pub const EVENT_MODEL_DOWNLOAD_COMPLETED: &str = "model_download_completed";
 pub const EVENT_MODEL_DOWNLOAD_FAILED: &str = "model_download_failed";
 pub const EVENT_MODEL_DOWNLOAD_PAUSED: &str = "model_download_paused";
-pub const EVENT_MODEL_DOWNLOAD_RESUMED: &str = "model_download_resumed";
 pub const EVENT_MODEL_DOWNLOAD_CANCELLED: &str = "model_download_cancelled";
 pub const EVENT_MODEL_DOWNLOAD_INTERRUPTED: &str = "model_download_interrupted";
 pub const EVENT_MODEL_IMPORT_VALIDATED: &str = "model_import_validated";

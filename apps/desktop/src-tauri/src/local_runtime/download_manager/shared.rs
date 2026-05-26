@@ -8,8 +8,7 @@ use super::super::audit::append_audit_event;
 use super::super::store::{load_state, runtime_models_dir, save_state};
 use super::super::types::{
     now_iso_timestamp, slugify_local_model_id, LocalAiDownloadProgressEvent,
-    LocalAiDownloadSessionRecord, LocalAiDownloadSessionSummary, LocalAiDownloadState,
-    LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
+    LocalAiDownloadSessionRecord, LocalAiDownloadState, LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
 };
 
 pub(super) const LOCAL_AI_HF_DOWNLOAD_INTERRUPTED: &str = "LOCAL_AI_HF_DOWNLOAD_INTERRUPTED";
@@ -115,26 +114,6 @@ pub(super) fn emit_progress_event(app: &AppHandle, record: &LocalAiDownloadSessi
     }
 }
 
-pub(super) fn to_summary(record: &LocalAiDownloadSessionRecord) -> LocalAiDownloadSessionSummary {
-    LocalAiDownloadSessionSummary {
-        install_session_id: record.install_session_id.clone(),
-        model_id: record.model_id.clone(),
-        local_model_id: record.local_model_id.clone(),
-        session_kind: record.session_kind.clone(),
-        phase: record.phase.clone(),
-        state: record.state.clone(),
-        bytes_received: record.bytes_received,
-        bytes_total: record.bytes_total,
-        speed_bytes_per_sec: record.speed_bytes_per_sec,
-        eta_seconds: record.eta_seconds,
-        message: record.message.clone(),
-        reason_code: record.reason_code.clone(),
-        retryable: record.retryable,
-        created_at: record.created_at.clone(),
-        updated_at: record.updated_at.clone(),
-    }
-}
-
 pub(super) fn with_state_mut<T>(
     app: &AppHandle,
     op: impl FnOnce(&mut crate::local_runtime::types::LocalAiRuntimeState) -> Result<T, String>,
@@ -227,21 +206,6 @@ pub(super) fn find_record(
         })
 }
 
-pub(super) fn remove_from_queue(install_session_id: &str) {
-    if let Ok(mut lock) = manager().lock() {
-        if lock.queue.is_empty() {
-            return;
-        }
-        let mut next = VecDeque::new();
-        while let Some(current) = lock.queue.pop_front() {
-            if current != install_session_id {
-                next.push_back(current);
-            }
-        }
-        lock.queue = next;
-    }
-}
-
 pub(super) fn cleanup_staging_for_model(app: &AppHandle, model_id: &str) {
     let Ok(models_dir) = runtime_models_dir(app) else {
         return;
@@ -250,13 +214,6 @@ pub(super) fn cleanup_staging_for_model(app: &AppHandle, model_id: &str) {
     let staging_dir = models_dir.join(format!("{slug}-staging"));
     if staging_dir.exists() {
         let _ = std::fs::remove_dir_all(staging_dir);
-    }
-}
-
-pub(super) fn set_control(install_session_id: &str, control: SessionControl) {
-    if let Ok(mut lock) = manager().lock() {
-        lock.controls
-            .insert(install_session_id.to_string(), control);
     }
 }
 

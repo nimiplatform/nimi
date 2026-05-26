@@ -224,7 +224,6 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 - `runtime_local_assets_import` / `runtime_local_assets_import_file` / `runtime_local_assets_import_bundle`：asset 导入，权威执行面为 `RuntimeLocalService`。
 - `runtime_local_assets_remove` / `runtime_local_assets_start` / `runtime_local_assets_stop` / `runtime_local_assets_health`：asset 生命周期管理。
 - `runtime_local_assets_rescan_bundle`：对已导入 bundle 目录执行 host-assisted re-scan，执行真源仍为 `RuntimeLocalService`。
-- `runtime_local_downloads_list` / `runtime_local_downloads_pause` / `runtime_local_downloads_resume` / `runtime_local_downloads_cancel`：传输管理。
 - `runtime_local_models_catalog_list_variants`：host-local catalog helper；不得被视为模型清单、安装状态或 transfer 真源。
 - `runtime_local_recommendation_feed_get`：host-local recommendation helper；install/import/download/lifecycle 真源仍是 `RuntimeLocalService`。
 - `runtime_local_assets_reveal_in_folder` / `runtime_local_assets_reveal_root_folder`：在系统文件管理器中打开目录。
@@ -241,9 +240,9 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 产品约束：
 
 - local asset inventory 的 list、verified list、install、import、remove、health/readiness、intake、transfer session 与 progress 必须固定走 `RuntimeLocalService` typed APIs。
-- `Active Downloads` / `Active Imports` 必须来自 runtime-owned transfer plane（`ListLocalTransfers` + `WatchLocalTransfers`），不得再以 Tauri `runtime_local_downloads_*` 或 `local-runtime://download-progress` 为真源。
+- `Active Downloads` / `Active Imports` 必须来自 runtime-owned transfer plane（`ListLocalTransfers` + `WatchLocalTransfers`），不得再以 Desktop/Tauri local transfer state 为真源。
 - Tauri `runtime_local_*` 命令若仍存在于 shipped app，只能作为 shell-native/helper IPC；不得暴露或暗示 Desktop/Tauri local runtime state 是本地模型真源。
-- ordinary-user local speech product flow 必须表现为单一 `Local Speech` bundle projection；`runtime_local_assets_*` 与 `runtime_local_downloads_*` 只能作为 helper plumbing，不得把 env/bootstrap、host readiness 或 capability materialization 暗示成 Desktop/Tauri-owned install truth。
+- ordinary-user local speech product flow 必须表现为单一 `Local Speech` bundle projection；`runtime_local_assets_*` 只能作为 helper plumbing，不得把 env/bootstrap、host readiness 或 capability materialization 暗示成 Desktop/Tauri-owned install truth。
 - ordinary-user local speech 的 env/bootstrap、host init、capability materialization 只能在显式 `Download` 用户确认后启动；capability 选择、route 尝试、被动刷新或 recommendation helper 不得静默触发后台下载/初始化。
 - helper IPC 若返回 speech 相关状态，只能被 renderer 投影为 runtime-owned bundle state；不得据此创建独立 Desktop persisted speech bundle owner。
 - Desktop Local Model Center 不得再暴露手动 start/stop toggle；本地模型 readiness 必须直接反映 runtime 状态。

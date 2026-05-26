@@ -323,7 +323,6 @@ registered_command_families:
       exact:
         - runtime_local_assets_install
         - runtime_local_assets_install_verified
-        - runtime_local_downloads_resume
         - runtime_local_assets_import
         - runtime_local_assets_import_file
         - runtime_local_assets_import_bundle
@@ -345,22 +344,6 @@ registered_command_families:
       - spawn_blocking
       - sync_lock_contention
       - cpu_hash_or_codec
-    source_rule: D-GATE-094
-
-  - family: local_runtime_download_controls
-    match:
-      exact:
-        - runtime_local_downloads_list
-        - runtime_local_downloads_pause
-        - runtime_local_downloads_resume
-        - runtime_local_downloads_cancel
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: local-runtime-download-manager
-    execution_class: bounded_blocking_with_admission
-    remediation_required: false
-    admitted_risks:
-      - std_fs
-      - sync_lock_contention
     source_rule: D-GATE-094
 
   - family: local_runtime_asset_runtime_controls

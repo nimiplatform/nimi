@@ -266,26 +266,6 @@ commands:
     description: Check asset health; health truth is RuntimeLocalService
     source_rule: D-IPC-011
 
-  - command: runtime_local_downloads_list
-    module: local-runtime
-    description: List active download/transfer sessions
-    source_rule: D-IPC-011
-
-  - command: runtime_local_downloads_pause
-    module: local-runtime
-    description: Pause an active download session
-    source_rule: D-IPC-011
-
-  - command: runtime_local_downloads_resume
-    module: local-runtime
-    description: Resume a paused download session
-    source_rule: D-IPC-011
-
-  - command: runtime_local_downloads_cancel
-    module: local-runtime
-    description: Cancel an active download session
-    source_rule: D-IPC-011
-
   - command: runtime_local_pick_asset_file
     module: local-runtime
     description: Pick a local asset file for import via native file dialog

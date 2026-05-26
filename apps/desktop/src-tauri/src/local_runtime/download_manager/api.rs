@@ -2,30 +2,25 @@ use serde::Serialize;
 use tauri::AppHandle;
 
 use super::super::audit::{
-    append_audit_event, EVENT_MODEL_DOWNLOAD_CANCELLED, EVENT_MODEL_DOWNLOAD_INTERRUPTED,
-    EVENT_MODEL_DOWNLOAD_PAUSED, EVENT_MODEL_DOWNLOAD_RESUMED, EVENT_MODEL_DOWNLOAD_STARTED,
+    append_audit_event, EVENT_MODEL_DOWNLOAD_INTERRUPTED, EVENT_MODEL_DOWNLOAD_STARTED,
 };
 use super::super::store::load_state;
 use super::super::types::{
-    now_iso_timestamp, LocalAiDownloadSessionRecord, LocalAiDownloadSessionSummary,
-    LocalAiDownloadState, LocalAiInstallRequest, LocalAiTransferSessionKind,
+    now_iso_timestamp, LocalAiDownloadSessionRecord, LocalAiDownloadState, LocalAiInstallRequest,
+    LocalAiTransferSessionKind,
 };
 use super::shared::classify_reason_code;
 use super::shared::{
     append_audit_non_blocking, build_install_session_id, emit_progress_event, find_record,
     guessed_local_model_id, is_terminal_state, manager_initialized, queue_session,
-    recover_manager_state, remove_from_queue, set_control, to_summary, update_record,
-    with_state_mut, SessionControl, LOCAL_AI_HF_DOWNLOAD_CANCELLED,
-    LOCAL_AI_HF_DOWNLOAD_INTERRUPTED, LOCAL_AI_HF_DOWNLOAD_PAUSED,
+    recover_manager_state, update_record, with_state_mut, SessionControl,
+    LOCAL_AI_HF_DOWNLOAD_INTERRUPTED,
 };
 use super::worker::start_worker_if_needed;
 use crate::local_runtime::commands::runtime_remove_asset_via_runtime;
 
 const LOCAL_AI_BACKGROUND_IMPORT_INTERRUPTED: &str = "LOCAL_AI_BACKGROUND_IMPORT_INTERRUPTED";
 const LOCAL_AI_BACKGROUND_IMPORT_CANCELLED: &str = "LOCAL_AI_BACKGROUND_IMPORT_CANCELLED";
-const LOCAL_AI_BACKGROUND_IMPORT_PAUSE_UNSUPPORTED: &str =
-    "LOCAL_AI_BACKGROUND_IMPORT_PAUSE_UNSUPPORTED";
-const LOCAL_AI_BACKGROUND_IMPORT_NOT_RESUMABLE: &str = "LOCAL_AI_BACKGROUND_IMPORT_NOT_RESUMABLE";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -381,156 +376,4 @@ pub fn enqueue_install(
         model_id,
         local_model_id,
     })
-}
-
-pub fn list_download_sessions(
-    app: &AppHandle,
-) -> Result<Vec<LocalAiDownloadSessionSummary>, String> {
-    ensure_initialized(app)?;
-    let mut rows = load_state(app)?
-        .downloads
-        .into_iter()
-        .map(|item| to_summary(&item))
-        .collect::<Vec<_>>();
-    rows.sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
-    Ok(rows)
-}
-
-pub fn pause_download(
-    app: &AppHandle,
-    install_session_id: &str,
-) -> Result<LocalAiDownloadSessionSummary, String> {
-    ensure_initialized(app)?;
-    let current = find_record(app, install_session_id)?;
-    if current.session_kind == LocalAiTransferSessionKind::Import {
-        return Err(format!(
-            "{LOCAL_AI_BACKGROUND_IMPORT_PAUSE_UNSUPPORTED}: import sessions cannot be paused; cancel and start a new import"
-        ));
-    }
-    if current.state == LocalAiDownloadState::Completed
-        || current.state == LocalAiDownloadState::Cancelled
-    {
-        return Ok(to_summary(&current));
-    }
-    if current.state != LocalAiDownloadState::Running
-        && current.state != LocalAiDownloadState::Queued
-    {
-        return Ok(to_summary(&current));
-    }
-    set_control(install_session_id, SessionControl::Paused);
-    remove_from_queue(install_session_id);
-    let updated = update_record(app, install_session_id, |entry| {
-        entry.state = LocalAiDownloadState::Paused;
-        entry.reason_code = Some(LOCAL_AI_HF_DOWNLOAD_PAUSED.to_string());
-        entry.message = Some("download paused".to_string());
-    })?;
-    emit_progress_event(app, &updated);
-    append_audit_non_blocking(
-        app,
-        EVENT_MODEL_DOWNLOAD_PAUSED,
-        Some(updated.model_id.as_str()),
-        Some(updated.local_model_id.as_str()),
-        Some(serde_json::json!({
-            "installSessionId": updated.install_session_id,
-            "reasonCode": LOCAL_AI_HF_DOWNLOAD_PAUSED,
-        })),
-    );
-    Ok(to_summary(&updated))
-}
-
-pub fn resume_download(
-    app: &AppHandle,
-    install_session_id: &str,
-) -> Result<LocalAiDownloadSessionSummary, String> {
-    ensure_initialized(app)?;
-    let current = find_record(app, install_session_id)?;
-    if current.session_kind == LocalAiTransferSessionKind::Import {
-        return Err(format!(
-            "{LOCAL_AI_BACKGROUND_IMPORT_NOT_RESUMABLE}: import sessions cannot be resumed; start a new import"
-        ));
-    }
-    if current.state == LocalAiDownloadState::Completed {
-        return Ok(to_summary(&current));
-    }
-    if current.state == LocalAiDownloadState::Cancelled {
-        return Err(
-            "LOCAL_AI_HF_DOWNLOAD_NOT_RESUMABLE: cancelled session must start a new install"
-                .to_string(),
-        );
-    }
-    if current.state == LocalAiDownloadState::Failed && !current.retryable {
-        return Err(
-            "LOCAL_AI_HF_DOWNLOAD_NOT_RESUMABLE: failed session is not retryable, start a new install"
-                .to_string(),
-        );
-    }
-    set_control(install_session_id, SessionControl::Running);
-    let updated = update_record(app, install_session_id, |entry| {
-        entry.state = LocalAiDownloadState::Queued;
-        entry.reason_code = None;
-        entry.phase = "download".to_string();
-        entry.retryable = true;
-        entry.message = Some("queued for resume".to_string());
-    })?;
-    remove_from_queue(install_session_id);
-    queue_session(install_session_id, SessionControl::Running);
-    emit_progress_event(app, &updated);
-    append_audit_non_blocking(
-        app,
-        EVENT_MODEL_DOWNLOAD_RESUMED,
-        Some(updated.model_id.as_str()),
-        Some(updated.local_model_id.as_str()),
-        Some(serde_json::json!({
-            "installSessionId": updated.install_session_id,
-        })),
-    );
-    start_worker_if_needed(app);
-    Ok(to_summary(&updated))
-}
-
-pub fn cancel_download(
-    app: &AppHandle,
-    install_session_id: &str,
-) -> Result<LocalAiDownloadSessionSummary, String> {
-    ensure_initialized(app)?;
-    let current = find_record(app, install_session_id)?;
-    if current.state == LocalAiDownloadState::Completed
-        || current.state == LocalAiDownloadState::Cancelled
-    {
-        return Ok(to_summary(&current));
-    }
-    set_control(install_session_id, SessionControl::Cancelled);
-    remove_from_queue(install_session_id);
-    let updated = update_record(app, install_session_id, |entry| {
-        entry.state = LocalAiDownloadState::Cancelled;
-        entry.reason_code = Some(match entry.session_kind {
-            LocalAiTransferSessionKind::Download => LOCAL_AI_HF_DOWNLOAD_CANCELLED.to_string(),
-            LocalAiTransferSessionKind::Import => LOCAL_AI_BACKGROUND_IMPORT_CANCELLED.to_string(),
-        });
-        entry.retryable = false;
-        entry.message = Some(match entry.session_kind {
-            LocalAiTransferSessionKind::Download => "download cancelled".to_string(),
-            LocalAiTransferSessionKind::Import => "background import cancelled".to_string(),
-        });
-    })?;
-    super::shared::cleanup_staging_for_model(app, updated.model_id.as_str());
-    emit_progress_event(app, &updated);
-    let reason_code = updated
-        .reason_code
-        .clone()
-        .unwrap_or_else(|| match updated.session_kind {
-            LocalAiTransferSessionKind::Download => LOCAL_AI_HF_DOWNLOAD_CANCELLED.to_string(),
-            LocalAiTransferSessionKind::Import => LOCAL_AI_BACKGROUND_IMPORT_CANCELLED.to_string(),
-        });
-    append_audit_non_blocking(
-        app,
-        EVENT_MODEL_DOWNLOAD_CANCELLED,
-        Some(updated.model_id.as_str()),
-        Some(updated.local_model_id.as_str()),
-        Some(serde_json::json!({
-            "installSessionId": updated.install_session_id,
-            "reasonCode": reason_code,
-        })),
-    );
-    Ok(to_summary(&updated))
 }
