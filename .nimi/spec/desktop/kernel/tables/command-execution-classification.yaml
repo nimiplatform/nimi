@@ -347,27 +347,6 @@ registered_command_families:
       - cpu_hash_or_codec
     source_rule: D-GATE-094
 
-  - family: local_runtime_service_request_response
-    match:
-      exact:
-        - runtime_local_services_list
-        - runtime_local_services_install
-        - runtime_local_services_start
-        - runtime_local_services_stop
-        - runtime_local_services_health
-        - runtime_local_services_remove
-        - runtime_local_nodes_catalog_list
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: local-runtime-services
-    execution_class: request_response_async
-    remediation_required: false
-    admitted_risks:
-      - process_command
-      - std_fs
-      - spawn_blocking
-      - sync_lock_contention
-    source_rule: D-GATE-094
-
   - family: local_runtime_download_controls
     match:
       exact:

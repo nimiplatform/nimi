@@ -161,28 +161,3 @@ pub struct LocalAiRuntimeAuditPayload {
     pub detail: Option<String>,
     pub payload: Option<serde_json::Value>,
 }
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiServicesInstallPayload {
-    pub service_id: String,
-    pub title: Option<String>,
-    pub engine: Option<String>,
-    pub endpoint: Option<String>,
-    pub capabilities: Option<Vec<String>>,
-    pub local_model_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiServiceIdPayload {
-    pub service_id: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiNodesCatalogListPayload {
-    pub capability: Option<String>,
-    pub service_id: Option<String>,
-    pub provider: Option<String>,
-}

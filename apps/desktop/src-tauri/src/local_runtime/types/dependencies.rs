@@ -66,6 +66,7 @@ pub struct LocalAiHostSupportDescriptor {
     pub detail: Option<String>,
 }
 
+#[cfg(test)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalAiPreflightDecision {

@@ -1,6 +1,3 @@
-use super::super::reason_codes::{
-    normalize_local_ai_reason_code, LOCAL_AI_PROVIDER_INTERNAL_ERROR,
-};
 use super::super::types::{
     LocalAiDeviceProfile, LocalAiServiceArtifact, LocalAiServiceArtifactType,
     DEFAULT_LOCAL_ENDPOINT,
@@ -10,14 +7,6 @@ pub(super) fn normalize_non_empty(value: Option<&str>) -> Option<String> {
     value
         .map(|item| item.trim().to_string())
         .filter(|item| !item.is_empty())
-}
-
-pub(super) fn managed_provider_strategy(_provider: &str) -> Option<()> {
-    None
-}
-
-pub(super) fn bootstrap_marker_provider(_marker: &str) -> Option<&'static str> {
-    None
 }
 
 pub(super) fn parse_version_parts(version: &str) -> Option<(u32, u32)> {
@@ -92,67 +81,4 @@ pub(super) fn is_loopback_endpoint(endpoint: &str) -> bool {
         return url.host_str().map(is_loopback_host).unwrap_or(false);
     }
     false
-}
-
-pub(super) fn build_service_health_url(
-    endpoint: &str,
-    health_endpoint: &str,
-) -> Result<String, String> {
-    let endpoint = normalize_non_empty(Some(endpoint)).ok_or_else(|| {
-        "LOCAL_AI_SERVICE_ENDPOINT_REQUIRED: service endpoint is missing".to_string()
-    })?;
-    let health_endpoint = normalize_non_empty(Some(health_endpoint)).ok_or_else(|| {
-        "LOCAL_AI_SERVICE_HEALTH_ENDPOINT_REQUIRED: service health endpoint is missing".to_string()
-    })?;
-    if let Ok(url) = reqwest::Url::parse(health_endpoint.as_str()) {
-        return Ok(url.to_string());
-    }
-    let mut url = reqwest::Url::parse(endpoint.as_str()).map_err(|error| {
-        format!("LOCAL_AI_SERVICE_ENDPOINT_INVALID: invalid service endpoint URL: {error}")
-    })?;
-    if health_endpoint.starts_with('/') {
-        url.set_path(health_endpoint.as_str());
-        url.set_query(None);
-        url.set_fragment(None);
-        return Ok(url.to_string());
-    }
-
-    let joined_path = format!(
-        "{}/{}",
-        url.path().trim_end_matches('/'),
-        health_endpoint.trim_start_matches('/')
-    );
-    url.set_path(joined_path.as_str());
-    url.set_query(None);
-    url.set_fragment(None);
-    Ok(url.to_string())
-}
-
-pub(super) fn maybe_authenticate_async_request(
-    request: reqwest::RequestBuilder,
-    _service_id: &str,
-) -> reqwest::RequestBuilder {
-    request
-}
-
-pub(super) fn normalize_managed_error(error: String, fallback: &str) -> String {
-    let reason = normalize_local_ai_reason_code(error.as_str(), fallback);
-    format!("{reason}: {error}")
-}
-
-pub fn is_managed_service(_service_id: &str) -> bool {
-    false
-}
-
-pub fn start_managed_service(_service_id: &str, _endpoint: &str) -> Result<Option<String>, String> {
-    Ok(None)
-}
-
-pub fn stop_managed_service(_service_id: &str) -> Result<Option<String>, String> {
-    Ok(None)
-}
-
-#[allow(dead_code)]
-pub(super) fn provider_internal_error(error: String) -> String {
-    normalize_managed_error(error, LOCAL_AI_PROVIDER_INTERNAL_ERROR)
 }

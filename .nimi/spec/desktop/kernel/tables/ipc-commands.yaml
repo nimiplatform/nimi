@@ -236,41 +236,6 @@ commands:
     description: Read capability-scoped host recommendation feed; helper-only and not a local model truth source
     source_rule: D-IPC-011
 
-  - command: runtime_local_services_list
-    module: local-runtime
-    description: Host helper surface for local service listing; shipped product paths must treat RuntimeLocalService as the service truth source
-    source_rule: D-IPC-011
-
-  - command: runtime_local_services_install
-    module: local-runtime
-    description: Host service install helper; shipped product install truth must come from RuntimeLocalService and must not imply Desktop-owned local speech install truth
-    source_rule: D-IPC-011
-
-  - command: runtime_local_services_start
-    module: local-runtime
-    description: Host service start helper; shipped product lifecycle truth must come from RuntimeLocalService and must not bypass explicit Download-gated speech bundle flows
-    source_rule: D-IPC-011
-
-  - command: runtime_local_services_stop
-    module: local-runtime
-    description: Host service stop helper; shipped product lifecycle truth must come from RuntimeLocalService
-    source_rule: D-IPC-011
-
-  - command: runtime_local_services_health
-    module: local-runtime
-    description: Host service health helper; shipped product health truth must come from RuntimeLocalService and may only feed a runtime-owned speech bundle projection
-    source_rule: D-IPC-011
-
-  - command: runtime_local_services_remove
-    module: local-runtime
-    description: Host service removal helper; shipped product removal truth must come from RuntimeLocalService
-    source_rule: D-IPC-011
-
-  - command: runtime_local_nodes_catalog_list
-    module: local-runtime
-    description: Host node-catalog helper; node availability truth remains runtime-owned
-    source_rule: D-IPC-011
-
   - command: runtime_local_assets_install
     module: local-runtime
     description: Install an asset from catalog parameters; execution truth is RuntimeLocalService and must not create Desktop-owned speech bundle truth

@@ -115,13 +115,6 @@ export {
 // runtime_local_models_catalog_search
 // runtime_local_models_catalog_resolve_install_plan
 // runtime_local_device_profile_collect
-// runtime_local_services_list
-// runtime_local_services_install
-// runtime_local_services_start
-// runtime_local_services_stop
-// runtime_local_services_health
-// runtime_local_services_remove
-// runtime_local_nodes_catalog_list
 // runtime_local_downloads_list
 // runtime_local_downloads_pause
 // runtime_local_downloads_resume

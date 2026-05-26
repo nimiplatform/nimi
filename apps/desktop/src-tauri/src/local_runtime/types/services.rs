@@ -121,24 +121,6 @@ pub struct LocalAiProviderSidecarHints {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiCapabilityMatrixEntry {
-    pub service_id: String,
-    pub node_id: String,
-    pub capability: String,
-    pub provider: String,
-    pub model_id: Option<String>,
-    pub model_engine: Option<String>,
-    pub backend: Option<String>,
-    pub backend_source: String,
-    pub adapter: LocalAiProviderAdapterKind,
-    pub available: bool,
-    pub reason_code: Option<String>,
-    pub provider_hints: Option<LocalAiProviderHints>,
-    pub policy_gate: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct LocalAiNodeContract {
     pub node_id: String,
     pub title: String,
@@ -177,25 +159,4 @@ pub struct LocalAiServiceDescriptor {
     pub detail: Option<String>,
     pub installed_at: String,
     pub updated_at: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiNodeDescriptor {
-    pub node_id: String,
-    pub title: String,
-    pub service_id: String,
-    pub capabilities: Vec<String>,
-    pub provider: String,
-    pub adapter: LocalAiProviderAdapterKind,
-    pub backend: Option<String>,
-    pub backend_source: Option<String>,
-    pub available: bool,
-    pub reason_code: Option<String>,
-    pub provider_hints: Option<LocalAiProviderHints>,
-    pub policy_gate: Option<String>,
-    pub api_path: Option<String>,
-    pub input_schema: Option<serde_json::Value>,
-    pub output_schema: Option<serde_json::Value>,
-    pub read_only: bool,
 }

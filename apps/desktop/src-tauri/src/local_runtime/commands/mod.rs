@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::io::{Read as IoRead, Write as IoWrite};
 
 use chrono::DateTime;
@@ -9,12 +8,10 @@ use super::audit::{
     append_audit_event, EVENT_DEPENDENCY_RESOLVE_FAILED, EVENT_DEPENDENCY_RESOLVE_INVOKED,
     EVENT_FALLBACK_TO_CLOUD, EVENT_INFERENCE_FAILED, EVENT_INFERENCE_INVOKED,
     EVENT_MODEL_CATALOG_SEARCH_FAILED, EVENT_MODEL_CATALOG_SEARCH_INVOKED,
-    EVENT_MODEL_FILE_IMPORT_STARTED, EVENT_MODEL_IMPORT_VALIDATED, EVENT_NODE_CATALOG_LISTED,
+    EVENT_MODEL_FILE_IMPORT_STARTED, EVENT_MODEL_IMPORT_VALIDATED,
     EVENT_RECOMMENDATION_RESOLVE_COMPLETED, EVENT_RECOMMENDATION_RESOLVE_FAILED,
     EVENT_RECOMMENDATION_RESOLVE_INVOKED, EVENT_RUNTIME_MODEL_READY_AFTER_INSTALL,
-    EVENT_SERVICE_INSTALL_COMPLETED, EVENT_SERVICE_INSTALL_FAILED, EVENT_SERVICE_INSTALL_STARTED,
 };
-use super::capability_matrix::refresh_state_capability_matrix_with_probe_and_device;
 use super::catalog::{
     list_catalog_variants_async, resolve_install_plan_async as resolve_catalog_install_plan_async,
     search_catalog_async, LocalAiCatalogResolveInput,
@@ -26,18 +23,11 @@ use super::import_validator::{
     validate_loopback_endpoint,
 };
 use super::model_index::load_recommendation_feed_async;
-use super::node_catalog::list_nodes_from_services;
 use super::reason_codes::{
     extract_reason_code as extract_local_ai_reason_code, normalize_local_ai_reason_code,
     LOCAL_AI_PROVIDER_INTERNAL_ERROR,
 };
 use super::service_artifacts::find_service_artifact;
-use super::service_lifecycle::{
-    bootstrap_service_artifact, build_service_descriptor, is_managed_service,
-    normalize_service_descriptor, preflight_service_artifact,
-    probe_service_capability_models_async, probe_service_endpoint_health_async,
-    start_managed_service, stop_managed_service,
-};
 use super::store::{load_state, runtime_models_dir, save_state};
 use super::types::{
     default_artifact_roles_for_capabilities, default_endpoint_for_engine,
@@ -50,10 +40,9 @@ use super::types::{
     LocalAiCatalogItemDescriptor, LocalAiDeviceProfile, LocalAiDownloadControlPayload,
     LocalAiDownloadProgressEvent, LocalAiDownloadSessionSummary, LocalAiDownloadState,
     LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiIntegrityMode,
-    LocalAiNodeDescriptor, LocalAiRecommendationFeedDescriptor, LocalAiRuntimeState,
-    LocalAiServiceArtifactType, LocalAiServiceDescriptor, LocalAiServiceStatus,
-    LocalAiSuggestionConfidence, LocalAiSuggestionSource, LocalAiTransferSessionKind,
-    LocalAiUnregisteredAssetDescriptor, LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
+    LocalAiRecommendationFeedDescriptor, LocalAiRuntimeState, LocalAiSuggestionConfidence,
+    LocalAiSuggestionSource, LocalAiTransferSessionKind, LocalAiUnregisteredAssetDescriptor,
+    LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
 };
 
 include!("common_types.rs");
@@ -63,7 +52,6 @@ include!("runtime_bridge_local.rs");
 include!("commands_catalog_audit.rs");
 include!("commands_assets.rs");
 include!("commands_catalog_dependencies.rs");
-include!("commands_services.rs");
 include!("commands_downloads.rs");
 include!("commands_import_manifest.rs");
 include!("commands_import_file.rs");

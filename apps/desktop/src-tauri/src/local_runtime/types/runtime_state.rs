@@ -5,7 +5,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use super::assets::{LocalAiAssetRecord, LocalAiAuditEvent};
 use super::constants::LOCAL_AI_RUNTIME_VERSION;
 use super::download::LocalAiDownloadSessionRecord;
-use super::services::{LocalAiCapabilityMatrixEntry, LocalAiServiceDescriptor};
+use super::services::LocalAiServiceDescriptor;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -13,7 +13,6 @@ pub struct LocalAiRuntimeState {
     pub version: u32,
     pub assets: Vec<LocalAiAssetRecord>,
     pub capability_index: HashMap<String, Vec<String>>,
-    pub capability_matrix: Vec<LocalAiCapabilityMatrixEntry>,
     pub services: Vec<LocalAiServiceDescriptor>,
     pub downloads: Vec<LocalAiDownloadSessionRecord>,
     pub audits: Vec<LocalAiAuditEvent>,
@@ -25,7 +24,6 @@ impl Default for LocalAiRuntimeState {
             version: LOCAL_AI_RUNTIME_VERSION,
             assets: Vec::new(),
             capability_index: HashMap::new(),
-            capability_matrix: Vec::new(),
             services: Vec::new(),
             downloads: Vec::new(),
             audits: Vec::new(),
@@ -46,8 +44,6 @@ struct PersistedLocalAiRuntimeStateRead {
     artifacts: Vec<serde_json::Value>,
     #[serde(default)]
     capability_index: HashMap<String, Vec<String>>,
-    #[serde(default)]
-    capability_matrix: Vec<LocalAiCapabilityMatrixEntry>,
     #[serde(default)]
     services: Vec<LocalAiServiceDescriptor>,
     #[serde(default)]
@@ -75,7 +71,6 @@ impl<'de> Deserialize<'de> for LocalAiRuntimeState {
             version: persisted.version,
             assets: persisted.assets,
             capability_index: persisted.capability_index,
-            capability_matrix: persisted.capability_matrix,
             services: persisted.services,
             downloads: persisted.downloads,
             audits: persisted.audits,

@@ -1,5 +1,4 @@
 mod audit;
-mod capability_matrix;
 mod catalog;
 pub mod commands;
 mod device_profile;
@@ -12,11 +11,11 @@ mod hf_source;
 mod import_validator;
 mod model_index;
 mod model_index_remote;
-mod node_catalog;
 mod provider_adapter;
 mod reason_codes;
 mod recommendation;
 mod service_artifacts;
+#[cfg(test)]
 mod service_lifecycle;
 mod store;
 mod types;

@@ -119,22 +119,6 @@ fn sanitize_legacy_runtime_state(state: &mut LocalAiRuntimeState) {
             && !is_legacy_local_runtime_value(service.service_id.as_str())
     });
 
-    let valid_service_ids = state
-        .services
-        .iter()
-        .map(|service| service.service_id.trim().to_ascii_lowercase())
-        .collect::<Vec<_>>();
-    state.capability_matrix.retain(|entry| {
-        valid_service_ids
-            .iter()
-            .any(|service_id| service_id == &entry.service_id.trim().to_ascii_lowercase())
-            && !is_legacy_local_runtime_value(entry.provider.as_str())
-            && !entry
-                .model_engine
-                .as_deref()
-                .is_some_and(is_legacy_local_runtime_value)
-    });
-
     rebuild_capability_index(state);
 }
 

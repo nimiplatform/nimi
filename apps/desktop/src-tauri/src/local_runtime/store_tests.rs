@@ -140,7 +140,6 @@ fn save_and_load_state_roundtrip() {
         version: 11,
         assets: vec![model_fixture("model-a"), model_fixture("model-b")],
         capability_index: HashMap::new(),
-        capability_matrix: Vec::new(),
         services: Vec::new(),
         downloads: Vec::new(),
         audits: Vec::new(),
@@ -162,7 +161,6 @@ fn save_state_persists_single_assets_array() {
         version: 11,
         assets: vec![model_fixture("model-a"), asset_fixture("asset-a")],
         capability_index: HashMap::new(),
-        capability_matrix: Vec::new(),
         services: Vec::new(),
         downloads: Vec::new(),
         audits: Vec::new(),
@@ -341,7 +339,6 @@ fn merge_state_for_save_preserves_downloads_missing_from_incoming_state() {
         version: 11,
         assets: vec![],
         capability_index: HashMap::new(),
-        capability_matrix: Vec::new(),
         services: Vec::new(),
         downloads: vec![download_fixture(
             "install-1",
@@ -356,7 +353,6 @@ fn merge_state_for_save_preserves_downloads_missing_from_incoming_state() {
         version: 11,
         assets: vec![model_fixture("model-a")],
         capability_index: HashMap::new(),
-        capability_matrix: Vec::new(),
         services: Vec::new(),
         downloads: Vec::new(),
         audits: Vec::new(),
@@ -376,7 +372,6 @@ fn merge_state_for_save_prefers_newer_download_record() {
         version: 11,
         assets: vec![],
         capability_index: HashMap::new(),
-        capability_matrix: Vec::new(),
         services: Vec::new(),
         downloads: vec![download_fixture(
             "install-1",
@@ -391,7 +386,6 @@ fn merge_state_for_save_prefers_newer_download_record() {
         version: 11,
         assets: vec![],
         capability_index: HashMap::new(),
-        capability_matrix: Vec::new(),
         services: Vec::new(),
         downloads: vec![download_fixture(
             "install-1",
@@ -416,7 +410,6 @@ fn merge_state_for_save_breaks_same_timestamp_ties_with_progress() {
         version: 11,
         assets: vec![],
         capability_index: HashMap::new(),
-        capability_matrix: Vec::new(),
         services: Vec::new(),
         downloads: vec![download_fixture(
             "install-1",
@@ -431,7 +424,6 @@ fn merge_state_for_save_breaks_same_timestamp_ties_with_progress() {
         version: 11,
         assets: vec![],
         capability_index: HashMap::new(),
-        capability_matrix: Vec::new(),
         services: Vec::new(),
         downloads: vec![download_fixture(
             "install-1",
