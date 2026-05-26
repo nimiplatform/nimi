@@ -53,13 +53,10 @@ YAML tables in `kernel/tables/` are the authoritative fact sources. Prose in con
 3. **Cross-references use rule IDs**, not section headings (e.g., "per RD-SHELL-003" not "see Bootstrap section").
 4. **Tables are the single source for enumerations.** Do not inline route lists, API endpoint lists, or feature lists in prose contracts.
 5. **External API specs track upstream.** When the World Labs Marble API changes, update `external-api-surface.yaml` first, then adjust affected contract rules.
-6. **Forge spec alignment.** Where Realm Drift inherits behavior from Forge, reference `FG-*` rule IDs from `apps/forge/spec/kernel/`.
+6. **No archived-app inheritance.** Realm Drift must keep its contracts local or reference platform kernel rules; archived app specs are not active authority.
 
-## Relation to Forge Spec
+## Relation to App Shell Patterns
 
-Realm Drift reuses the Forge app shell pattern (Tauri + SDK direct connectivity). The following Forge contracts are inherited by reference:
-
-- `FG-SHELL-001` through `FG-SHELL-010` — App shell baseline (trimmed for Realm Drift)
-- `FG-SHELL-003` — Bootstrap sequence (simplified from 7-step to 5-step)
-
-Realm Drift contracts extend or override these where the demo app context diverges from the creator studio context.
+Realm Drift uses the platform app-shell pattern (Tauri + SDK direct
+connectivity). Realm Drift contracts are self-contained and do not inherit
+archived app specs by reference.

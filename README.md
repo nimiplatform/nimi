@@ -109,7 +109,6 @@ app, not the platform itself.
 | [`apps/desktop/`](apps/desktop/) | Native first-party shell — agent chat, local AI, knowledge, voice |
 | [`apps/web/`](apps/web/) | Browser projection of public Desktop surfaces |
 | [`apps/avatar/`](apps/avatar/) | Live2D embodied carrier for Nimi agents (floating desktop avatar) |
-| [`apps/forge/`](apps/forge/) | Creator studio for worlds, agents, and content |
 | [`apps/overtone/`](apps/overtone/) | Music creation and collaboration |
 | [`apps/shiji/`](apps/shiji/) | 时迹 — K-12 immersive history education |
 | [`apps/moment/`](apps/moment/) | Story-opening front door for Nimi |

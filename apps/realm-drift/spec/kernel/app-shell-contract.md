@@ -16,7 +16,7 @@ Realm Drift runs as a standalone Tauri 2.10 application.
 | `titleBarStyle` | `Overlay` (macOS native traffic lights) |
 | `withGlobalTauri` | `false` |
 
-CSP policy extends the forge baseline with iframe embedding for the Marble viewer:
+CSP policy is local to Realm Drift and admits iframe embedding for the Marble viewer:
 
 ```
 default-src 'self' ipc:;
@@ -33,7 +33,7 @@ The `frame-src https://marble.worldlabs.ai;` directive is the key addition enabl
 
 ## RD-SHELL-002: Rust Shell (Trimmed)
 
-Realm Drift Rust shell is a **copy of the forge Rust shell**. The following subsystems are retained:
+Realm Drift Rust shell is a trimmed Tauri shell. The following subsystems are retained:
 
 | Retained | Purpose |
 |----------|---------|
@@ -47,7 +47,7 @@ The following subsystems from the desktop app are **excluded**:
 
 | Excluded | Reason |
 |----------|--------|
-| Mod system (`mod-loader`, `mod-registry`) | No mods in demo app |
+| Retired extension system | Not admitted in this app |
 | External agent gateway | Consumer feature, not relevant |
 | Data sync pipeline | Uses lighter query-based access |
 
@@ -81,9 +81,9 @@ Step 5: Ready
   → Render app
 ```
 
-Differences from forge (FG-SHELL-003):
-- **Removed Step 6 (Runtime SDK Readiness)**: Non-blocking for demo — runtime readiness checked lazily when user initiates agent chat
-- **Removed Step 7 (Exit Handler)**: Simplified — no daemon management for demo
+Realm Drift intentionally keeps bootstrap to five steps:
+- **Runtime SDK readiness is lazy**: runtime readiness is checked when the user initiates agent chat.
+- **Exit handling is minimal**: no daemon management is admitted for the demo shell.
 
 Errors at any step (other than the runtime account RPC at Step 4, which is
 non-blocking per the rule above) → `setBootstrapError(message)` + show error
@@ -197,7 +197,7 @@ Right pane (30%): Tabbed panel — Agents tab (per RD-CHAT-*) / People tab (per 
 </QueryClientProvider>
 ```
 
-Simplified from forge (FG-SHELL-006):
+Realm Drift provider stack:
 - No `StoreProvider` wrapper — Zustand store accessed via hooks directly
 - No `AuthProvider` wrapper — auth state in Zustand store, checked in App.tsx
 - No `CreatorAccessGate` — demo does not require creator access
@@ -227,7 +227,7 @@ Simplified from forge (FG-SHELL-006):
 }
 ```
 
-No `@world-engine` alias — Realm Drift does not use the world creation engine.
+No external world-engine alias is admitted.
 
 ## RD-SHELL-008: App Store Shape
 
@@ -299,7 +299,7 @@ interface DriftAppStore {
 }
 ```
 
-Key difference from forge (FG-SHELL-009):
+Realm Drift store exclusions:
 - **No `creatorAccess` state** — demo does not gate on creator role
 - **No `sidebarCollapsed` state** — no sidebar
 - **Added `marbleJobs`** — per-world Marble generation state tracking

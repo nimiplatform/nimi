@@ -381,7 +381,7 @@ self-contained policy enforced by `pnpm check:apps-avatar-isolation`）；
 `apps/avatar/**` 是 self-contained app；以下 import 路径**禁止**：
 
 - `@nimiplatform/kit/features/avatar/*`（cross-app 已禁；kit avatar 子模块即将整体移除是独立架构 topic）
-- `apps/desktop/**` / `apps/web/**` / `apps/forge/**` / `apps/realm-drift/**` /
+- `apps/desktop/**` / `apps/web/**` / `apps/realm-drift/**` /
   `apps/install-gateway/**` / `apps/overtone/**`
 - `_external/**`（任何路径，runtime 引用禁止；airi 仅算法借鉴）
 

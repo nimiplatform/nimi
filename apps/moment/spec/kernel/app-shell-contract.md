@@ -79,7 +79,7 @@ It must not require or foreground internal ecosystem terms such as:
 
 - mod
 - runtime route
-- world-studio
+- external creator apps
 - scene-atlas
 - agent-capture
 - textplay

@@ -21,5 +21,4 @@ Primary cross-repo context:
 - `nimi-realm/spec/realm/kernel/truth-contract.md` defines Realm truth ownership
 - `nimi-realm/spec/realm/kernel/world-state-contract.md` defines durable shared-state writes
 - `nimi-realm/spec/realm/kernel/world-history-contract.md` defines canonical happened-fact storage
-- `nimi-mods/runtime/scene-atlas/spec/scene-atlas.md` and `nimi-mods/runtime/agent-capture/spec/agent-capture.md` are neighboring seed-source products, not Moment internals
-- `nimi-mods/runtime/textplay/spec/textplay.md` is a neighboring deeper-play product, not Moment's primary identity
+- Historical seed-source products live in Git history only and are not Moment internals or active upstream authority.

@@ -32,7 +32,7 @@
 5. `Moment` must not redefine Realm truth, world state, world history, asset, bundle, or chat semantics. Upstream Realm contracts stay authoritative.
 6. `Moment` owns app-local story-opening threshold/session/library objects only. Do not quietly promote those objects into canonical Realm objects inside this spec tree.
 7. The front-door principle is mandatory: the generated story-opening moment is the home-screen protagonist. Do not let sample walls, shelf surfaces, timeline panels, or explanatory copy take over the primary stage.
-8. Future integrations with `scene-atlas`, `agent-capture`, `textplay`, or `world-studio` must remain explicit downstream or upstream hooks. They must not collapse `Moment` into a wrapper around another product.
+8. Future integrations with neighboring apps must remain explicit downstream or upstream hooks. They must not collapse `Moment` into a wrapper around another product.
 9. User relation to the unfolding story is dynamic state, not a fixed mode chosen up front. Do not rewrite Moment as a binary "observer vs involved" selector product.
 
 ## Relation to Existing Specs
@@ -43,4 +43,4 @@
 - Kit-first UI reuse and app-local composition rules: `spec/platform/kernel/kit-contract.md` (`P-KIT-*`)
 - SDK instance and transport boundaries: `spec/sdk/kernel/boundary-contract.md`, `spec/sdk/kernel/realm-contract.md`
 - Realm truth/state/history boundaries: `nimi-realm/spec/realm/kernel/truth-contract.md`, `nimi-realm/spec/realm/kernel/world-state-contract.md`, `nimi-realm/spec/realm/kernel/world-history-contract.md`
-- Mods as upstream/downstream neighboring products only: `nimi-mods/**`
+- Retired workspace products live in Git history only and must not be referenced as active upstream/downstream products.

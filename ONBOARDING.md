@@ -27,7 +27,6 @@
 | 应用 | 目录 | 技术栈 | 说明 |
 |---|---|---|---|
 | desktop | `apps/desktop/` | Tauri + React | 主桌面 host、agent 交互、本地 AI |
-| forge | `apps/forge/` | Tauri + React | 创作者工作台（世界/agent/内容管理） |
 | overtone | `apps/overtone/` | Tauri + React | 音乐创作与协作 |
 | shiji | `apps/shiji/` | Tauri + React | K-12 历史教育（时迹） |
 | moment | `apps/moment/` | Tauri + React | 社交动态捕捉 |
@@ -207,16 +206,10 @@ pnpm -C apps/desktop run dev:shell
 
 ### 6.2 其他 Tauri 应用
 
-大多数 Tauri 应用（forge、overtone、shiji、moment、lookdev、realm-drift、video-food-map）遵循相同的开发模式：
+大多数 Tauri 应用（overtone、shiji、moment、lookdev、realm-drift、video-food-map）遵循相同的开发模式：
 
 ```bash
 pnpm -C apps/<app-name> run dev:shell
-```
-
-例如启动 forge：
-
-```bash
-pnpm -C apps/forge run dev:shell
 ```
 
 所有 Tauri 应用共享统一脚本接口：`dev:renderer`（仅前端）、`dev:shell`（含 Tauri）、`build`、`typecheck`、`lint`、`test`。

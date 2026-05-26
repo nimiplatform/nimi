@@ -10,7 +10,7 @@ features:
     contract: RD-SHELL-*
     backend-dependency: none
     external-dependency: none
-    migration-source: forge app (trimmed)
+    migration-source: local shell
     description: Tauri config, Rust shell, Vite config, package.json
 
   - feature: bootstrap
@@ -19,7 +19,7 @@ features:
     contract: RD-SHELL-003
     backend-dependency: none
     external-dependency: none
-    migration-source: forge forge-bootstrap.ts (simplified)
+    migration-source: local bootstrap
     description: 5-step bootstrap sequence
 
   - feature: auth
@@ -28,7 +28,7 @@ features:
     contract: RD-SHELL-004
     backend-dependency: none (reuse auth API)
     external-dependency: none
-    migration-source: forge auth flow
+    migration-source: platform auth flow
     description: JWT auth — no creator access gate
 
   - feature: layout
@@ -213,5 +213,5 @@ features:
     contract: RD-SHELL-*
     backend-dependency: none
     external-dependency: none
-    migration-source: forge i18n (minimal)
+    migration-source: local i18n (minimal)
     description: English-only i18n setup for demo

@@ -13,7 +13,7 @@ It is not:
 - a world editor
 - a writing assistant
 - a chat client with a prettier landing page
-- a thin wrapper around `textplay`, `world-studio`, `scene-atlas`, or `agent-capture`
+- a thin wrapper around another creator product or historical prototype
 
 Moment is the front door to Nimi.
 
@@ -176,7 +176,7 @@ Moment may later connect to nearby products, but it must remain its own product:
 - `scene-atlas` may become an upstream scene-seed supplier
 - `agent-capture` may become an upstream character-seed supplier
 - `textplay` may become an optional deeper continuation layer
-- `world-studio` may become an explicit downstream creator handoff surface for high-value thresholds
+- a future creator app may become an explicit downstream handoff surface for high-value thresholds
 
 None of those system names should be required to understand Moment's primary UX.
 The user should only feel:

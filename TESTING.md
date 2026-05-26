@@ -90,18 +90,8 @@ pnpm test
 ```
 
 - Unit and contract tests run via `tsx --test test/**/*.test.ts`
-- Tauri shell/e2e coverage is smoke-driven (`smoke:mods`) plus Rust/TS type checks
-
-### Desktop runtime-mod local smoke
-
-Use this before `dev:shell` to validate the installed runtime-mod contract:
-
-```bash
-export NIMI_RUNTIME_MODS_DIR=/ABS/PATH/TO/runtime-mods
-pnpm run check:desktop-mods-smoke
-```
-
-It validates the runtime mods directory, installed manifest/entry integrity, and zero-bundle desktop discovery behavior.
+- Tauri shell/e2e coverage uses renderer contract tests, Rust checks, and
+  admitted e2e fixtures only.
 
 ## Kit (@nimiplatform/kit)
 
@@ -111,7 +101,7 @@ pnpm --filter @nimiplatform/kit test
 
 Kit tests cover foundation modules (ui, core, telemetry), auth flows, and feature modules (chat, model-picker, generation, commerce).
 
-## Tauri Apps (forge, overtone, shiji, moment, lookdev, realm-drift, video-food-map)
+## Tauri Apps (overtone, shiji, moment, lookdev, realm-drift, video-food-map)
 
 All Tauri apps share the same test interface:
 

@@ -10,7 +10,7 @@ This document defines how `@nimiplatform/nimi` is maintained as an open-source p
 
 ## Decision Rules
 
-1. Contract-first: changes touching boundaries (`runtime/sdk/apps/desktop/nimi-mods/proto/spec`) must update spec first.
+1. Contract-first: changes touching boundaries (`runtime/sdk/apps/desktop/proto/spec`) must update spec first.
 2. No-legacy by default: pre-launch changes should hard-cut to final contract unless blocked by external dependency.
 3. Fail-fast over fallback: hidden path guessing and compatibility aliases are rejected.
 4. Security-sensitive domains require stricter review and explicit verification notes.

@@ -1,7 +1,7 @@
 # Lookdev Spec
 
 > Scope: standalone batch control-plane app for world-scoped portrait standardization, capture selection, generation, evaluation, and commit
-> Normative Imports: `spec/platform/kernel/architecture-contract.md`, upstream Realm agent presentation truth, `nimi-mods/runtime/agent-capture/spec/agent-capture.md`
+> Normative Imports: `spec/platform/kernel/architecture-contract.md`, upstream Realm agent presentation truth
 
 ## 0. Document Positioning
 

@@ -25,14 +25,11 @@ When iterating app UI or interaction flows, inspect `kit/README.md`, the relevan
 | `apps/web/**` | `apps/web/AGENTS.md` |
 | `apps/overtone/**` | `apps/overtone/AGENTS.md` |
 | `archive/apps/relay/**` | `archive/apps/relay/AGENTS.md` |
-| `apps/forge/**` | `apps/forge/AGENTS.md` |
 | `apps/realm-drift/**` | `apps/realm-drift/AGENTS.md` |
 | `apps/install-gateway/**` | `apps/install-gateway/AGENTS.md` |
 | `kit/**` | `kit/AGENTS.md` |
-| `nimi-mods/**` | `nimi-mods/AGENTS.md` |
 | `proto/**` | `proto/AGENTS.md` |
 | `scripts/**` | `scripts/AGENTS.md` |
-| `nimi-mods/runtime/<name>/spec/**` | That mod's `spec/AGENTS.md` |
 
 If the module has sub-level `AGENTS.md` files, read the nearest one to the file being edited.
 
@@ -52,7 +49,7 @@ If the module has sub-level `AGENTS.md` files, read the nearest one to the file 
 ## Repo-Wide Hard Boundaries
 
 - `/.nimi/spec/**` is the only normative contract source. Retired pre-cutover authority history lives in Git only. Nimicoding package authority lives outside this host repo and is consumed only through `pnpm exec nimicoding` plus injected `.nimi/{config,contracts,methodology}/**` projections. Host-project bootstrap truth lives under `.nimi/**`. Local-only execution workspaces and reports may live under `.local/**`; tracked support inputs live under `config/**`. `dev/**` is not an active execution-doc surface.
-- Layer debug order: `runtime` → `sdk` → `apps/desktop` / `apps/web` → `nimi-mods`.
+- Layer debug order: `runtime` → `sdk` → `apps/desktop` / `apps/web`.
 - Reuse `@nimiplatform/kit` first for app UI and interaction work. If a matching kit surface already covers the baseline styling and baseline interaction behavior, extend or compose it instead of recreating a parallel app-local shell.
 - No legacy shims, compatibility shells, hardcoded provider/model lists, or downstream workarounds.
 - No fallback that hides contract violations. Missing typed output, MIME type, discriminator, required JSON shape, or schema fields must fail-close.
@@ -62,7 +59,6 @@ If the module has sub-level `AGENTS.md` files, read the nearest one to the file 
 - Boundary enforcement:
   - Desktop/Web must not import `runtime/internal/**`.
   - SDK must not cross `realm` / `runtime` private boundaries.
-  - Mods must not bypass `nimi-hook` to call `@nimiplatform/sdk/runtime`.
   - Runtime must not import from `sdk/**` or `apps/**`.
 - No file/directory collisions, no forwarding shells outside `index.ts`, max 3-hop debug trace.
 

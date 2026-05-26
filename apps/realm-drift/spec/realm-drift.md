@@ -47,7 +47,7 @@ API details enumerated in `kernel/tables/external-api-surface.yaml`.
 
 ```
 nimi/apps/realm-drift/
-├── src-tauri/                    # Rust Tauri shell (copied from forge)
+├── src-tauri/                    # Rust Tauri shell
 │   ├── src/
 │   │   ├── main.rs
 │   │   ├── defaults.rs
@@ -64,7 +64,7 @@ nimi/apps/realm-drift/
 │   │       ├── app-shell/       # Providers, store, routes, layout
 │   │       ├── features/        # world-browser, world-viewer, agent-chat
 │   │       ├── infra/           # Bootstrap, query client
-│   │       ├── bridge/          # Tauri IPC bridge (copied from forge)
+│   │       ├── bridge/          # Tauri IPC bridge
 │   │       └── i18n/            # Minimal i18n
 │   └── runtime/                 # Platform client adapter
 ├── spec/                        # This spec tree
@@ -77,28 +77,26 @@ nimi/apps/realm-drift/
 
 - Package name: `@nimiplatform/realm-drift`
 - Workspace: `nimi/` pnpm workspace, pattern `apps/*` auto-discovers
-- Dev server port: `1424` (desktop uses `1420`, forge uses `1422`)
+- Dev server port: `1424` (desktop uses `1420`)
 - Tauri identifier: `app.nimi.realm-drift`
 
 ## Relationship to Other Apps
 
-| Aspect | Desktop App | Forge | Realm Drift |
-|--------|------------|-------|-------------|
-| Identifier | `app.nimi.desktop` | `app.nimi.forge` | `app.nimi.realm-drift` |
-| Dev port | 1420 | 1422 | 1424 |
-| Mod system | Full mod runtime | None | None |
-| Runtime access | Mixed shell bridge + SDK | SDK direct | SDK direct |
-| Realm access | SDK direct | SDK direct | SDK direct |
-| Target user | End users (consumers) | Creators (publishers) | Demo audience (explorers) |
-| External API | None | None | World Labs Marble API |
-| Local AI runtime | Full | Creator subset | Chat streaming only |
-| World engine | Yes (via mods) | Yes (via @world-engine alias) | No |
-| Creator gate | No | Yes | No |
-| Navigation | Multi-feature sidebar | Multi-feature sidebar | Minimal (2 routes) |
+| Aspect | Desktop App | Realm Drift |
+|--------|------------|-------------|
+| Identifier | `app.nimi.desktop` | `app.nimi.realm-drift` |
+| Dev port | 1420 | 1424 |
+| Runtime access | SDK/runtime bridge | SDK direct |
+| Realm access | SDK direct | SDK direct |
+| Target user | End users (consumers) | Demo audience (explorers) |
+| External API | None | World Labs Marble API |
+| Local AI runtime | Full | Chat streaming only |
+| Creator gate | No | No |
+| Navigation | Multi-feature sidebar | Minimal (2 routes) |
 
 ## Code Reuse Strategy
 
-Realm Drift copies the forge app shell pattern without the world engine:
+Realm Drift uses a local app shell pattern without external world-engine imports:
 
 ```typescript
 // vite.config.ts resolve.alias
@@ -106,14 +104,14 @@ Realm Drift copies the forge app shell pattern without the world engine:
 '@runtime': './src/runtime',
 '@nimiplatform/sdk': '../../sdk/src',
 '@nimiplatform/kit/core': '../../kit/core/src',
-// No @world-engine alias — Realm Drift does not use the world creation engine
+// No external world-engine alias.
 ```
 
-Copied from forge (adapted):
-- `src-tauri/` — Entire Rust shell including runtime_bridge
+Local shell pieces:
+- `src-tauri/` — Rust shell including runtime_bridge
 - `src/shell/renderer/bridge/` — Tauri IPC bridge helpers
 - `@nimiplatform/sdk` root `createPlatformClient()` — shared SDK initialization (appId = `nimi.realm-drift`)
-- Bootstrap sequence — Simplified from forge's 7-step to 5-step
+- Bootstrap sequence — local 5-step sequence
 
 ## Navigation Structure
 

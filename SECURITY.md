@@ -15,7 +15,7 @@ Use one of the following channels:
 
 Include:
 
-- affected component (`runtime`, `sdk`, `desktop`, `proto`, `nimi-mods`, `web`)
+- affected component (`runtime`, `sdk`, `desktop`, `proto`, `web`)
 - reproduction steps or proof of concept
 - impact assessment
 - suggested mitigation if available

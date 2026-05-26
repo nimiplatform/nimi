@@ -22,9 +22,6 @@ coverage/
 *.pfx
 *.jks
 
-# external local repo root (not committed in nimi monorepo)
-nimi-mods/
-
 # tauri/rust
 **/target/
 /runtime/nimi

@@ -39,7 +39,7 @@ This spec does not permit app-local raw REST path assembly, hidden fallback chan
 
 ## MM-BND-005: Neighboring Products Stay Neighboring
 
-`scene-atlas`, `agent-capture`, `textplay`, and `world-studio` are neighboring products.
+Neighboring creator products are external to Moment and must not become Moment internals.
 
 They may become explicit upstream or downstream integrations later, but they must not erase Moment's own product identity.
 
