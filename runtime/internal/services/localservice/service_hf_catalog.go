@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -31,6 +32,7 @@ type hfCatalogSearchRequest struct {
 }
 
 type hfCatalogSearchFunc func(ctx context.Context, req hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error)
+type hfCatalogVariantsFunc func(ctx context.Context, repo string) ([]*runtimev1.LocalCatalogVariantDescriptor, error)
 
 type hfModelSearchEntry struct {
 	ID           string         `json:"id"`
@@ -44,6 +46,24 @@ type hfModelSearchEntry struct {
 	CardData     map[string]any `json:"cardData"`
 }
 
+type hfModelDetails struct {
+	ID          string           `json:"id"`
+	ModelID     string           `json:"modelId"`
+	PipelineTag string           `json:"pipeline_tag"`
+	Tags        []string         `json:"tags"`
+	Siblings    []hfModelSibling `json:"siblings"`
+}
+
+type hfModelSibling struct {
+	Rfilename string             `json:"rfilename"`
+	Lfs       *hfModelSiblingLFS `json:"lfs"`
+}
+
+type hfModelSiblingLFS struct {
+	Size   int64  `json:"size"`
+	Sha256 string `json:"sha256"`
+}
+
 func (s *Service) searchHFCatalog(ctx context.Context, req hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
 	s.mu.RLock()
 	searchFn := s.hfCatalogSearch
@@ -52,6 +72,16 @@ func (s *Service) searchHFCatalog(ctx context.Context, req hfCatalogSearchReques
 		searchFn = defaultHFCatalogSearch
 	}
 	return searchFn(ctx, req)
+}
+
+func (s *Service) listHFCatalogVariants(ctx context.Context, repo string) ([]*runtimev1.LocalCatalogVariantDescriptor, error) {
+	s.mu.RLock()
+	variantsFn := s.hfCatalogVariants
+	s.mu.RUnlock()
+	if variantsFn == nil {
+		variantsFn = defaultHFCatalogVariants
+	}
+	return variantsFn(ctx, repo)
 }
 
 func defaultHFCatalogSearch(ctx context.Context, req hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
@@ -114,6 +144,41 @@ func defaultHFCatalogSearch(ctx context.Context, req hfCatalogSearchRequest) ([]
 		items = append(items, item)
 	}
 	return items, nil
+}
+
+func defaultHFCatalogVariants(ctx context.Context, repoRaw string) ([]*runtimev1.LocalCatalogVariantDescriptor, error) {
+	repo, err := normalizeHFRepo(repoRaw)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", errHfRepoInvalid, err)
+	}
+
+	u := url.URL{
+		Scheme: "https",
+		Host:   "huggingface.co",
+		Path:   "/api/models/" + repo,
+	}
+
+	requestCtx, cancel := context.WithTimeout(ctx, hfCatalogTimeout)
+	defer cancel()
+	httpReq, err := http.NewRequestWithContext(requestCtx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("build hf variants request: %w", err)
+	}
+	resp, err := (&http.Client{Timeout: hfCatalogTimeout}).Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("hf variants request failed: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("hf variants request status=%d", resp.StatusCode)
+	}
+
+	var details hfModelDetails
+	if err := json.NewDecoder(io.LimitReader(resp.Body, hfCatalogMaxBodyBytes)).Decode(&details); err != nil {
+		return nil, fmt.Errorf("decode hf variants response: %w", err)
+	}
+	return listHFCatalogVariantsFromDetails(&details), nil
 }
 
 var errHfRepoInvalid = fmt.Errorf("hf repo invalid")
@@ -294,4 +359,127 @@ func mapHFRowToCatalogItem(row hfModelSearchEntry, engineFilter string) (*runtim
 		LastModified:      strings.TrimSpace(row.LastModified),
 		Verified:          false,
 	}, true
+}
+
+func listHFCatalogVariantsFromDetails(details *hfModelDetails) []*runtimev1.LocalCatalogVariantDescriptor {
+	if details == nil {
+		return nil
+	}
+	capabilities := inferCapabilitiesFromHF(details.PipelineTag, details.Tags)
+	if len(capabilities) == 0 {
+		return nil
+	}
+	engine := strings.ToLower(defaultLocalEngine("", capabilities))
+	variants := make([]*runtimev1.LocalCatalogVariantDescriptor, 0, len(details.Siblings))
+	for _, sibling := range details.Siblings {
+		entry, ok := normalizeHFFilePath(sibling.Rfilename)
+		if !ok {
+			continue
+		}
+		lower := strings.ToLower(entry)
+		if !strings.HasSuffix(lower, ".gguf") && !strings.HasSuffix(lower, ".safetensors") {
+			continue
+		}
+		var sizeBytes int64
+		sha256 := ""
+		if sibling.Lfs != nil {
+			sizeBytes = sibling.Lfs.Size
+			sha256 = strings.TrimSpace(sibling.Lfs.Sha256)
+		}
+		variants = append(variants, &runtimev1.LocalCatalogVariantDescriptor{
+			Filename:  entry,
+			Entry:     entry,
+			Files:     selectHFCatalogInstallFiles(details.Siblings, entry, engine),
+			Format:    variantFormatForEntry(entry),
+			SizeBytes: sizeBytes,
+			Sha256:    sha256,
+		})
+	}
+	sort.Slice(variants, func(i, j int) bool {
+		if variants[i].GetSizeBytes() != variants[j].GetSizeBytes() {
+			return variants[i].GetSizeBytes() < variants[j].GetSizeBytes()
+		}
+		return variants[i].GetFilename() < variants[j].GetFilename()
+	})
+	return variants
+}
+
+func variantFormatForEntry(entry string) string {
+	lower := strings.ToLower(strings.TrimSpace(entry))
+	switch {
+	case strings.HasSuffix(lower, ".gguf"):
+		return "gguf"
+	case strings.HasSuffix(lower, ".safetensors"):
+		return "safetensors"
+	default:
+		return "unknown"
+	}
+}
+
+func normalizeHFFilePath(value string) (string, bool) {
+	normalized := strings.ReplaceAll(strings.TrimSpace(value), "\\", "/")
+	if normalized == "" || strings.HasPrefix(normalized, "/") {
+		return "", false
+	}
+	for _, segment := range strings.Split(normalized, "/") {
+		if segment == ".." {
+			return "", false
+		}
+	}
+	return normalized, true
+}
+
+func selectHFCatalogInstallFiles(siblings []hfModelSibling, entry string, engine string) []string {
+	entry, ok := normalizeHFFilePath(entry)
+	if !ok {
+		return nil
+	}
+	if strings.EqualFold(strings.TrimSpace(engine), "llama") && strings.HasSuffix(strings.ToLower(entry), ".gguf") {
+		return []string{entry}
+	}
+
+	preferredFiles := []string{
+		"config.json",
+		"generation_config.json",
+		"tokenizer.json",
+		"tokenizer.model",
+		"tokenizer_config.json",
+		"merges.txt",
+		"vocab.json",
+		"preprocessor_config.json",
+	}
+	siblingFiles := make([]string, 0, len(siblings))
+	siblingSet := make(map[string]struct{}, len(siblings))
+	for _, sibling := range siblings {
+		file, ok := normalizeHFFilePath(sibling.Rfilename)
+		if !ok {
+			continue
+		}
+		siblingFiles = append(siblingFiles, file)
+		siblingSet[file] = struct{}{}
+	}
+
+	seen := map[string]struct{}{entry: {}}
+	output := []string{entry}
+	for _, file := range preferredFiles {
+		if _, exists := siblingSet[file]; !exists {
+			continue
+		}
+		if _, exists := seen[file]; exists {
+			continue
+		}
+		seen[file] = struct{}{}
+		output = append(output, file)
+	}
+	for _, file := range siblingFiles {
+		if len(output) >= 12 {
+			break
+		}
+		if _, exists := seen[file]; exists {
+			continue
+		}
+		seen[file] = struct{}{}
+		output = append(output, file)
+	}
+	return output
 }

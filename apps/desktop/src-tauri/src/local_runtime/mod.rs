@@ -1,4 +1,5 @@
 mod audit;
+#[cfg(test)]
 mod catalog;
 pub mod commands;
 mod device_profile;

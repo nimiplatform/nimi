@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(test)]
 use super::recommendation::LocalAiRecommendationDescriptor;
 use super::services::LocalAiProviderHints;
 
@@ -40,6 +41,7 @@ pub enum LocalAiEngineRuntimeMode {
     AttachedEndpoint,
 }
 
+#[cfg(test)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CatalogVariantDescriptor {

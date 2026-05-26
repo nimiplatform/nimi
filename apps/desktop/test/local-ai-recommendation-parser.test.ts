@@ -41,6 +41,17 @@ test('parseGgufVariantDescriptor does not invent gguf format', () => {
   assert.equal(parsed.recommendation?.source, 'media-fit');
 });
 
+test('parseGgufVariantDescriptor accepts protobuf int64 size strings', () => {
+  const parsed = parseGgufVariantDescriptor({
+    filename: 'model-q4.gguf',
+    entry: 'model-q4.gguf',
+    files: ['model-q4.gguf'],
+    sizeBytes: '2048',
+  });
+
+  assert.equal(parsed.sizeBytes, 2048);
+});
+
 test('parseModelRecord keeps recommendation inputs without synthesizing completeness', () => {
   const parsed = parseModelRecord({
     localModelId: 'local-z-image',

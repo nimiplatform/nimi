@@ -30,12 +30,6 @@ pub struct LocalAiRecommendationFeedGetPayload {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiModelsCatalogListVariantsPayload {
-    pub repo: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct LocalAiAssetsImportBundlePayload {
     pub directory_path: String,
     pub model_name: Option<String>,

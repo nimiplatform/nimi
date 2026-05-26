@@ -173,6 +173,17 @@ func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.Search
 	}, nil
 }
 
+func (s *Service) ListCatalogVariants(ctx context.Context, req *runtimev1.ListCatalogVariantsRequest) (*runtimev1.ListCatalogVariantsResponse, error) {
+	variants, err := s.listHFCatalogVariants(ctx, req.GetRepo())
+	if err != nil {
+		if strings.Contains(err.Error(), errHfRepoInvalid.Error()) {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID)
+		}
+		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED)
+	}
+	return &runtimev1.ListCatalogVariantsResponse{Variants: variants}, nil
+}
+
 func matchesCatalogFilters(item *runtimev1.LocalCatalogModelDescriptor, query string, capability string, categoryFilter string, engineFilter string) bool {
 	if !matchesCatalogSearch(item, query, capability) {
 		return false

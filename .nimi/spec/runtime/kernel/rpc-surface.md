@@ -133,11 +133,12 @@ Tier 1 的读写边界固定如下：
 
 10. `ListVerifiedAssets`
 11. `SearchCatalogModels`
-12. `ResolveModelInstallPlan`
-13. `CollectDeviceProfile`
-14. `ScanUnregisteredAssets`
-15. `ScaffoldOrphanAsset`
-16. `ListLocalTransfers`
+12. `ListCatalogVariants`
+13. `ResolveModelInstallPlan`
+14. `CollectDeviceProfile`
+15. `ScanUnregisteredAssets`
+16. `ScaffoldOrphanAsset`
+17. `ListLocalTransfers`
 17. `PauseLocalTransfer`
 18. `ResumeLocalTransfer`
 19. `CancelLocalTransfer`

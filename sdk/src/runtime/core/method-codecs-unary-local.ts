@@ -23,6 +23,8 @@ import {
   InstallLocalServiceResponse,
   InstallVerifiedAssetRequest,
   InstallVerifiedAssetResponse,
+  ListCatalogVariantsRequest,
+  ListCatalogVariantsResponse,
   ListLocalAssetsRequest,
   ListLocalAssetsResponse,
   ListLocalAuditsRequest,
@@ -112,6 +114,10 @@ export const runtimeUnaryMethodCodecsLocal: Partial<RuntimeUnaryMethodCodecMap> 
   [RuntimeMethodIds.local.searchCatalogModels]: {
     requestType: SearchCatalogModelsRequest,
     responseType: SearchCatalogModelsResponse,
+  },
+  [RuntimeMethodIds.local.listCatalogVariants]: {
+    requestType: ListCatalogVariantsRequest,
+    responseType: ListCatalogVariantsResponse,
   },
   [RuntimeMethodIds.local.resolveModelInstallPlan]: {
     requestType: ResolveModelInstallPlanRequest,

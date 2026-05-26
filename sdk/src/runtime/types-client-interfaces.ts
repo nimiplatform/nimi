@@ -136,6 +136,8 @@ import type {
   InstallLocalServiceResponse,
   InstallVerifiedAssetRequest,
   InstallVerifiedAssetResponse,
+  ListCatalogVariantsRequest,
+  ListCatalogVariantsResponse,
   ListLocalAssetsRequest,
   ListLocalAssetsResponse,
   ListLocalAuditsRequest,
@@ -667,6 +669,7 @@ export type RuntimeLocalServiceClient = {
   listLocalAssets(request: ListLocalAssetsRequest, options?: RuntimeCallOptions): Promise<ListLocalAssetsResponse>;
   listVerifiedAssets(request: ListVerifiedAssetsRequest, options?: RuntimeCallOptions): Promise<ListVerifiedAssetsResponse>;
   searchCatalogModels(request: SearchCatalogModelsRequest, options?: RuntimeCallOptions): Promise<SearchCatalogModelsResponse>;
+  listCatalogVariants(request: ListCatalogVariantsRequest, options?: RuntimeCallOptions): Promise<ListCatalogVariantsResponse>;
   resolveModelInstallPlan(request: ResolveModelInstallPlanRequest, options?: RuntimeCallOptions): Promise<ResolveModelInstallPlanResponse>;
   installVerifiedAsset(request: InstallVerifiedAssetRequest, options?: RuntimeCallOptions): Promise<InstallVerifiedAssetResponse>;
   importLocalAsset(request: ImportLocalAssetRequest, options?: RuntimeCallOptions): Promise<ImportLocalAssetResponse>;

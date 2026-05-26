@@ -107,6 +107,7 @@ type Service struct {
 
 	endpointProbe                endpointProbeFunc
 	hfCatalogSearch              hfCatalogSearchFunc
+	hfCatalogVariants            hfCatalogVariantsFunc
 	hfDownloadBaseURL            string
 	artifactDownloadTimeout      time.Duration
 	artifactDownloadMaxBodyBytes int64
@@ -188,6 +189,7 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		profileRegistry:                  NewProfileRegistry(),
 		endpointProbe:                    defaultEndpointProbe,
 		hfCatalogSearch:                  defaultHFCatalogSearch,
+		hfCatalogVariants:                defaultHFCatalogVariants,
 		hfDownloadBaseURL:                defaultHFDownloadBaseURL,
 		artifactDownloadTimeout:          localArtifactDownloadTimeout,
 		artifactDownloadMaxBodyBytes:     localArtifactDownloadMaxBodyBytes,

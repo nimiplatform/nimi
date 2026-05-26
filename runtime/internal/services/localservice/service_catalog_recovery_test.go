@@ -178,6 +178,98 @@ func TestSearchCatalogModelsPassesHFRequestShape(t *testing.T) {
 	}
 }
 
+func TestListCatalogVariantsReturnsRuntimeOwnedHFVariants(t *testing.T) {
+	svc := newTestService(t)
+	var capturedRepo string
+	svc.hfCatalogVariants = func(_ context.Context, repo string) ([]*runtimev1.LocalCatalogVariantDescriptor, error) {
+		capturedRepo = repo
+		return []*runtimev1.LocalCatalogVariantDescriptor{
+			{
+				Filename:  "model-q4.gguf",
+				Entry:     "model-q4.gguf",
+				Files:     []string{"model-q4.gguf"},
+				Format:    "gguf",
+				SizeBytes: 2048,
+				Sha256:    "abc",
+			},
+		}, nil
+	}
+
+	resp, err := svc.ListCatalogVariants(context.Background(), &runtimev1.ListCatalogVariantsRequest{
+		Repo: "Qwen/Qwen2.5-7B-Instruct-GGUF",
+	})
+	if err != nil {
+		t.Fatalf("list catalog variants: %v", err)
+	}
+	if capturedRepo != "Qwen/Qwen2.5-7B-Instruct-GGUF" {
+		t.Fatalf("repo should pass through service boundary, got %q", capturedRepo)
+	}
+	if len(resp.GetVariants()) != 1 {
+		t.Fatalf("expected one variant, got %d", len(resp.GetVariants()))
+	}
+	got := resp.GetVariants()[0]
+	if got.GetFilename() != "model-q4.gguf" || got.GetEntry() != "model-q4.gguf" || got.GetFormat() != "gguf" {
+		t.Fatalf("unexpected variant descriptor: %+v", got)
+	}
+	if got.GetSizeBytes() != 2048 || got.GetSha256() != "abc" {
+		t.Fatalf("variant metadata mismatch: size=%d sha=%q", got.GetSizeBytes(), got.GetSha256())
+	}
+}
+
+func TestListCatalogVariantsInvalidRepoReturnsReasonCode(t *testing.T) {
+	svc := newTestService(t)
+	svc.hfCatalogVariants = defaultHFCatalogVariants
+
+	_, err := svc.ListCatalogVariants(context.Background(), &runtimev1.ListCatalogVariantsRequest{
+		Repo: "invalid_repo_format",
+	})
+	if err == nil {
+		t.Fatalf("expected invalid hf repo error")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID.String() {
+		t.Fatalf("unexpected reason code: %s", st.Message())
+	}
+}
+
+func TestListHFCatalogVariantsFromDetailsSelectsFilesAndSorts(t *testing.T) {
+	variants := listHFCatalogVariantsFromDetails(&hfModelDetails{
+		ID:          "org/model",
+		PipelineTag: "text-generation",
+		Tags:        []string{"gguf"},
+		Siblings: []hfModelSibling{
+			{Rfilename: "config.json"},
+			{Rfilename: "tokenizer.json"},
+			{Rfilename: "../../escape.gguf"},
+			{Rfilename: "model-q8.gguf", Lfs: &hfModelSiblingLFS{Size: 3000, Sha256: "q8"}},
+			{Rfilename: "model-q4.gguf", Lfs: &hfModelSiblingLFS{Size: 1000, Sha256: "q4"}},
+			{Rfilename: "adapter/model.safetensors", Lfs: &hfModelSiblingLFS{Size: 2000, Sha256: "safe"}},
+		},
+	})
+	if len(variants) != 3 {
+		t.Fatalf("expected three installable variants, got %d", len(variants))
+	}
+	if variants[0].GetFilename() != "model-q4.gguf" || variants[1].GetFilename() != "adapter/model.safetensors" || variants[2].GetFilename() != "model-q8.gguf" {
+		t.Fatalf("variants should sort by size and skip unsafe files, got %v", []string{
+			variants[0].GetFilename(),
+			variants[1].GetFilename(),
+			variants[2].GetFilename(),
+		})
+	}
+	if got := variants[0].GetFiles(); len(got) != 1 || got[0] != "model-q4.gguf" {
+		t.Fatalf("llama gguf manual variant should install only selected entry, got %v", got)
+	}
+	if got := variants[1].GetFiles(); len(got) < 3 || got[0] != "adapter/model.safetensors" || got[1] != "config.json" || got[2] != "tokenizer.json" {
+		t.Fatalf("safetensors variant should include preferred companion files, got %v", got)
+	}
+	if variants[1].GetFormat() != "safetensors" || variants[1].GetSha256() != "safe" {
+		t.Fatalf("safetensors metadata mismatch: %+v", variants[1])
+	}
+}
+
 func TestHFCatalogUnknownPipelineFailsClosed(t *testing.T) {
 	if capabilities := inferCapabilitiesFromHF("unknown-pipeline", nil); len(capabilities) != 0 {
 		t.Fatalf("unknown pipeline must not fall back to chat, got %v", capabilities)

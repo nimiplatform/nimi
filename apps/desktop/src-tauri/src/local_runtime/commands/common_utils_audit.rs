@@ -83,6 +83,7 @@ fn recommendation_resolve_invoked_payload(
     })
 }
 
+#[cfg(test)]
 fn recommendation_resolve_completed_payload(
     item_id: &str,
     model_id: Option<&str>,
@@ -210,27 +211,6 @@ fn append_recommendation_resolve_invoked(
         None,
         Some(recommendation_resolve_invoked_payload(
             item_id, model_id, capability,
-        )),
-    );
-}
-
-fn append_recommendation_resolve_completed(
-    app: &AppHandle,
-    item_id: &str,
-    model_id: Option<&str>,
-    capability: Option<&str>,
-    recommendation: &super::types::LocalAiRecommendationDescriptor,
-) {
-    append_app_audit_event_non_blocking(
-        app,
-        EVENT_RECOMMENDATION_RESOLVE_COMPLETED,
-        None,
-        None,
-        Some(recommendation_resolve_completed_payload(
-            item_id,
-            model_id,
-            capability,
-            recommendation,
         )),
     );
 }

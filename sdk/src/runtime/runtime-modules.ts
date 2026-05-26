@@ -149,6 +149,7 @@ const LOCAL_METHODS = [
   'listLocalAssets',
   'listVerifiedAssets',
   'searchCatalogModels',
+  'listCatalogVariants',
   'resolveModelInstallPlan',
   'installVerifiedAsset',
   'importLocalAsset',

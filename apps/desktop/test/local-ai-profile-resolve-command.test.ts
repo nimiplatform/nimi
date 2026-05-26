@@ -4,16 +4,14 @@ import test from 'node:test';
 import { clearPlatformClient, createPlatformClient } from '@nimiplatform/sdk';
 import {
   RuntimeMethodIds,
+  ResolveProfileRequest,
+  ResolveProfileResponse,
   setNodeGrpcBridge,
 } from '@nimiplatform/sdk/runtime';
 import type {
   RuntimeUnaryCall,
   RuntimeWireMessage,
 } from '@nimiplatform/sdk/runtime';
-import {
-  ResolveProfileRequest,
-  ResolveProfileResponse,
-} from '../../../sdk/src/runtime/generated/runtime/v1/local_runtime';
 
 import { localRuntime } from '../src/runtime/local-runtime';
 

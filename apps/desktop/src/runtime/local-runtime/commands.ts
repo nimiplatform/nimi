@@ -318,10 +318,13 @@ export async function searchLocalRuntimeCatalog(
 export async function listLocalRuntimeRepoGgufVariants(
   repo: string,
 ): Promise<GgufVariantDescriptor[]> {
-  const items = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_models_catalog_list_variants', {
-    payload: { repo },
+  const runtime = requireSdkLocal();
+  const response = await runtime.listCatalogVariants({
+    repo: String(repo || '').trim(),
   });
-  return (Array.isArray(items) ? items : []).map((item) => parseGgufVariantDescriptor(item));
+  const raw = asRecord(response);
+  const items: unknown[] = Array.isArray(raw.variants) ? raw.variants : [];
+  return items.map((item) => parseGgufVariantDescriptor(item));
 }
 
 export async function resolveLocalRuntimeInstallPlan(

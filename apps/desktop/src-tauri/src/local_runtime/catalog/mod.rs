@@ -1,3 +1,4 @@
+#[cfg(test)]
 use super::import_validator::normalize_and_validate_capabilities;
 #[cfg(test)]
 use super::import_validator::validate_loopback_endpoint;
@@ -5,7 +6,7 @@ use super::import_validator::validate_loopback_endpoint;
 use super::recommendation::{build_catalog_recommendation, build_recommendation_candidate};
 #[cfg(test)]
 use super::types::slugify_local_model_id;
-use super::types::{CatalogVariantDescriptor, LocalAiDeviceProfile};
+use super::types::LocalAiDeviceProfile;
 #[cfg(test)]
 use super::types::{
     LocalAiCatalogItemDescriptor, LocalAiInstallPlanDescriptor, LocalAiVerifiedModelDescriptor,
@@ -23,18 +24,14 @@ mod shared;
 #[cfg(test)]
 use self::huggingface::{
     fetch_hf_model_details, fetch_hf_search_models, hf_search_to_catalog_item, infer_license,
-    known_total_size_bytes, match_catalog_capability, match_catalog_query, normalize_hf_repo_slug,
-    normalize_search_query, resolve_hashes_for_files, select_entry_file, select_install_files,
-    sibling_size_bytes,
-};
-use self::huggingface::{
-    fetch_hf_model_details_async, infer_capabilities, list_repo_catalog_variants_from_details,
+    infer_capabilities, known_total_size_bytes, match_catalog_capability, match_catalog_query,
+    normalize_hf_repo_slug, normalize_search_query, resolve_hashes_for_files, select_entry_file,
+    select_install_files, sibling_size_bytes,
 };
 #[cfg(test)]
 use self::huggingface::{hf_api_base_url, normalize_hf_file_path, HfModelSibling};
-use self::shared::infer_engine;
 #[cfg(test)]
-use self::shared::{default_endpoint_for_engine, normalize_install_limit};
+use self::shared::{default_endpoint_for_engine, infer_engine, normalize_install_limit};
 #[cfg(test)]
 use self::shared::{
     install_available_for_engine, normalize_non_empty, provider_hints_for_capabilities,
@@ -184,51 +181,6 @@ pub fn search_catalog(
     }
 
     Ok(filtered)
-}
-
-#[cfg(test)]
-pub fn list_catalog_variants(
-    repo: &str,
-    profile: &LocalAiDeviceProfile,
-) -> Result<Vec<CatalogVariantDescriptor>, String> {
-    let details = fetch_hf_model_details(repo)?;
-    let capabilities = normalize_and_validate_capabilities(&infer_capabilities(
-        details.pipeline_tag.as_deref(),
-        &details.tags,
-    ))?;
-    let engine = infer_engine(repo, &details.tags, &capabilities);
-    Ok(list_repo_catalog_variants_from_details(
-        &details,
-        repo,
-        details.id.as_str(),
-        details.id.as_str(),
-        capabilities.as_slice(),
-        engine.as_str(),
-        profile,
-        details.tags.as_slice(),
-    ))
-}
-
-pub async fn list_catalog_variants_async(
-    repo: &str,
-    profile: &LocalAiDeviceProfile,
-) -> Result<Vec<CatalogVariantDescriptor>, String> {
-    let details = fetch_hf_model_details_async(repo).await?;
-    let capabilities = normalize_and_validate_capabilities(&infer_capabilities(
-        details.pipeline_tag.as_deref(),
-        &details.tags,
-    ))?;
-    let engine = infer_engine(repo, &details.tags, &capabilities);
-    Ok(list_repo_catalog_variants_from_details(
-        &details,
-        repo,
-        details.id.as_str(),
-        details.id.as_str(),
-        capabilities.as_slice(),
-        engine.as_str(),
-        profile,
-        details.tags.as_slice(),
-    ))
 }
 
 #[cfg(test)]

@@ -4,11 +4,13 @@ use llmfit_core::models::{quant_bpp, Capability as LlmCapability, LlmModel, Mode
 #[cfg(test)]
 use serde_json::json;
 
+#[cfg(test)]
+use super::types::CatalogVariantDescriptor;
 use super::types::{
-    CatalogVariantDescriptor, LocalAiDeviceProfile, LocalAiHostSupportClass,
-    LocalAiHostSupportDescriptor, LocalAiMemoryModel, LocalAiRecommendationBaseline,
-    LocalAiRecommendationConfidence, LocalAiRecommendationDescriptor, LocalAiRecommendationFormat,
-    LocalAiRecommendationSource, LocalAiRecommendationTier, LocalAiSuggestedAsset,
+    LocalAiDeviceProfile, LocalAiHostSupportClass, LocalAiHostSupportDescriptor,
+    LocalAiMemoryModel, LocalAiRecommendationBaseline, LocalAiRecommendationConfidence,
+    LocalAiRecommendationDescriptor, LocalAiRecommendationFormat, LocalAiRecommendationSource,
+    LocalAiRecommendationTier, LocalAiSuggestedAsset,
 };
 #[cfg(test)]
 use super::types::{LocalAiEngineRuntimeMode, LocalAiProviderHints};
@@ -276,6 +278,7 @@ pub fn build_recommendation_candidate(
     })
 }
 
+#[cfg(test)]
 pub fn recommend_variant_list(
     model_id: &str,
     repo: &str,

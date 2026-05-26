@@ -8,8 +8,6 @@ use super::audit::{
     EVENT_RECOMMENDATION_RESOLVE_COMPLETED, EVENT_RECOMMENDATION_RESOLVE_FAILED,
     EVENT_RECOMMENDATION_RESOLVE_INVOKED, EVENT_RUNTIME_MODEL_READY_AFTER_INSTALL,
 };
-use super::catalog::list_catalog_variants_async;
-use super::device_profile::collect_device_profile_async;
 use super::download_manager;
 use super::import_validator::{
     normalize_and_validate_capabilities, validate_import_asset_manifest_path,
@@ -26,9 +24,9 @@ use super::types::{
     default_fallback_engines_for_engine, default_logical_model_id,
     default_preferred_engine_for_capabilities, infer_asset_integrity_mode_from_source,
     is_runnable_asset_kind, normalize_local_engine, resolved_model_dir, runtime_managed_asset_dir,
-    runtime_managed_asset_manifest_path, slugify_local_model_id, CatalogVariantDescriptor,
-    LocalAiAssetKind, LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus,
-    LocalAiInstallRequest, LocalAiRecommendationFeedDescriptor,
+    runtime_managed_asset_manifest_path, slugify_local_model_id, LocalAiAssetKind,
+    LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus, LocalAiInstallRequest,
+    LocalAiRecommendationFeedDescriptor,
 };
 
 include!("common_types.rs");
@@ -36,7 +34,6 @@ include!("common_utils.rs");
 include!("dependency_utils.rs");
 include!("runtime_bridge_local.rs");
 include!("commands_asset_helpers.rs");
-include!("commands_catalog_dependencies.rs");
 include!("commands_downloads.rs");
 include!("commands_import_manifest.rs");
 include!("commands_import_bundle.rs");

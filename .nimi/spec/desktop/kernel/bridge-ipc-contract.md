@@ -218,12 +218,11 @@ cloud 路径必须固定经由 Runtime connector APIs；Desktop 不得恢复 leg
 
 Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`），命令集统一使用 `runtime_local_*` 前缀（`local_runtime::commands`）：
 
-Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_local_models_*` / `runtime_local_artifacts_*` CRUD/lifecycle 命令不再注册，也不得作为 shipped helper 保留。例外：variant helper 保留 `runtime_local_models_catalog_list_variants` 前缀；搜索与 install-plan 必须走 SDK `RuntimeLocalService` typed API：
+Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_local_models_*` / `runtime_local_artifacts_*` CRUD/lifecycle/catalog 命令不再注册，也不得作为 shipped helper 保留。catalog search、catalog variants 与 install-plan 必须走 SDK `RuntimeLocalService` typed API：
 
 - `runtime_local_assets_install`：legacy catalog-parameter install helper；执行真源仍为 `RuntimeLocalService`，不得扩展为新 Desktop-owned install 协议。
 - `runtime_local_assets_import_bundle`：asset bundle 目录导入；执行真源为 `RuntimeLocalService`。
 - `runtime_local_assets_rescan_bundle`：对已导入 bundle 目录执行 host-assisted re-scan，执行真源仍为 `RuntimeLocalService`。
-- `runtime_local_models_catalog_list_variants`：host-local catalog helper；不得被视为模型清单、安装状态或 transfer 真源。
 - `runtime_local_recommendation_feed_get`：host-local recommendation helper；install/import/download/lifecycle 真源仍是 `RuntimeLocalService`。
 - `runtime_local_assets_reveal_in_folder` / `runtime_local_assets_reveal_root_folder`：在系统文件管理器中打开目录。
 - `runtime_local_pick_asset_manifest_path`：统一选取 `resolved/<local-asset-id>/asset.manifest.json`。
@@ -247,7 +246,6 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
   - high-confidence 且 declaration 完整的项允许自动导入；
   - low-confidence 项只允许预填 review UI，不得静默注册。
 - recommendation 审计仅覆盖 request-driven resolve 面，不覆盖 installed list 之类的被动刷新：
-  - `runtime_local_models_catalog_list_variants`
   - `runtime_local_recommendation_feed_get`
 - 上述入口的 recommendation 解析沿现有 local runtime audit 面记录：
   - `recommendation_resolve_invoked`

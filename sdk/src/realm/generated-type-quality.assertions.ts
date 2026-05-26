@@ -225,15 +225,6 @@ type _GuardUpdateUserSettingsNotificationSettings = Assert<IsEqual<
   components['schemas']['UpdateUserNotificationSettingsDto'] | undefined
 >>;
 
-type _GuardIssueGrantBody = Assert<IsEqual<
-  _IssueGrantArgs[0],
-  components['schemas']['CreatorModControlGrantIssueRequestDto']
->>;
-type _GuardIssueGrantResult = Assert<IsEqual<
-  _IssueGrantResult,
-  components['schemas']['CreatorModControlGrantIssueResponseDto']
->>;
-
 type _GuardProjectRuntimePayloadBody = Assert<IsEqual<
   _ProjectRuntimePayloadArgs[0],
   components['schemas']['RuntimeProjectionRequestDto']

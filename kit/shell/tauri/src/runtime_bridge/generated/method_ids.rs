@@ -155,6 +155,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile",
     "/nimi.runtime.v1.RuntimeLocalService/InstallLocalService",
     "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset",
+    "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants",
     "/nimi.runtime.v1.RuntimeLocalService/ListEngines",
     "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets",
     "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits",

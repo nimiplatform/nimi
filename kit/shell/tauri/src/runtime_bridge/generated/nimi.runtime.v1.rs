@@ -7675,6 +7675,31 @@ pub struct SearchCatalogModelsResponse {
     #[prost(string, tag = "2")]
     pub next_page_token: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalCatalogVariantDescriptor {
+    #[prost(string, tag = "1")]
+    pub filename: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub entry: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "3")]
+    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "4")]
+    pub format: ::prost::alloc::string::String,
+    #[prost(int64, tag = "5")]
+    pub size_bytes: i64,
+    #[prost(string, tag = "6")]
+    pub sha256: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListCatalogVariantsRequest {
+    #[prost(string, tag = "1")]
+    pub repo: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListCatalogVariantsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub variants: ::prost::alloc::vec::Vec<LocalCatalogVariantDescriptor>,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResolveModelInstallPlanRequest {
     #[prost(string, tag = "1")]
@@ -8807,6 +8832,35 @@ pub mod runtime_local_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeLocalService",
                         "SearchCatalogModels",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_catalog_variants(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListCatalogVariantsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListCatalogVariantsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ListCatalogVariants",
                     ),
                 );
             self.inner.unary(req, path, codec).await

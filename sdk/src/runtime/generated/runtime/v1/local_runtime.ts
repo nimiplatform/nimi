@@ -305,6 +305,53 @@ export interface SearchCatalogModelsResponse {
     nextPageToken: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.LocalCatalogVariantDescriptor
+ */
+export interface LocalCatalogVariantDescriptor {
+    /**
+     * @generated from protobuf field: string filename = 1
+     */
+    filename: string;
+    /**
+     * @generated from protobuf field: string entry = 2
+     */
+    entry: string;
+    /**
+     * @generated from protobuf field: repeated string files = 3
+     */
+    files: string[];
+    /**
+     * @generated from protobuf field: string format = 4
+     */
+    format: string;
+    /**
+     * @generated from protobuf field: int64 size_bytes = 5
+     */
+    sizeBytes: string;
+    /**
+     * @generated from protobuf field: string sha256 = 6
+     */
+    sha256: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListCatalogVariantsRequest
+ */
+export interface ListCatalogVariantsRequest {
+    /**
+     * @generated from protobuf field: string repo = 1
+     */
+    repo: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListCatalogVariantsResponse
+ */
+export interface ListCatalogVariantsResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalCatalogVariantDescriptor variants = 1
+     */
+    variants: LocalCatalogVariantDescriptor[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ResolveModelInstallPlanRequest
  */
 export interface ResolveModelInstallPlanRequest {
@@ -2735,6 +2782,187 @@ class SearchCatalogModelsResponse$Type extends MessageType<SearchCatalogModelsRe
  * @generated MessageType for protobuf message nimi.runtime.v1.SearchCatalogModelsResponse
  */
 export const SearchCatalogModelsResponse = new SearchCatalogModelsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalCatalogVariantDescriptor$Type extends MessageType<LocalCatalogVariantDescriptor> {
+    constructor() {
+        super("nimi.runtime.v1.LocalCatalogVariantDescriptor", [
+            { no: 1, name: "filename", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "entry", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "files", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "format", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 6, name: "sha256", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalCatalogVariantDescriptor>): LocalCatalogVariantDescriptor {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.filename = "";
+        message.entry = "";
+        message.files = [];
+        message.format = "";
+        message.sizeBytes = "0";
+        message.sha256 = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalCatalogVariantDescriptor>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalCatalogVariantDescriptor): LocalCatalogVariantDescriptor {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string filename */ 1:
+                    message.filename = reader.string();
+                    break;
+                case /* string entry */ 2:
+                    message.entry = reader.string();
+                    break;
+                case /* repeated string files */ 3:
+                    message.files.push(reader.string());
+                    break;
+                case /* string format */ 4:
+                    message.format = reader.string();
+                    break;
+                case /* int64 size_bytes */ 5:
+                    message.sizeBytes = reader.int64().toString();
+                    break;
+                case /* string sha256 */ 6:
+                    message.sha256 = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalCatalogVariantDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string filename = 1; */
+        if (message.filename !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.filename);
+        /* string entry = 2; */
+        if (message.entry !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.entry);
+        /* repeated string files = 3; */
+        for (let i = 0; i < message.files.length; i++)
+            writer.tag(3, WireType.LengthDelimited).string(message.files[i]);
+        /* string format = 4; */
+        if (message.format !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.format);
+        /* int64 size_bytes = 5; */
+        if (message.sizeBytes !== "0")
+            writer.tag(5, WireType.Varint).int64(message.sizeBytes);
+        /* string sha256 = 6; */
+        if (message.sha256 !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.sha256);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalCatalogVariantDescriptor
+ */
+export const LocalCatalogVariantDescriptor = new LocalCatalogVariantDescriptor$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListCatalogVariantsRequest$Type extends MessageType<ListCatalogVariantsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListCatalogVariantsRequest", [
+            { no: 1, name: "repo", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListCatalogVariantsRequest>): ListCatalogVariantsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.repo = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListCatalogVariantsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListCatalogVariantsRequest): ListCatalogVariantsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string repo */ 1:
+                    message.repo = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListCatalogVariantsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string repo = 1; */
+        if (message.repo !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.repo);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListCatalogVariantsRequest
+ */
+export const ListCatalogVariantsRequest = new ListCatalogVariantsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListCatalogVariantsResponse$Type extends MessageType<ListCatalogVariantsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListCatalogVariantsResponse", [
+            { no: 1, name: "variants", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalCatalogVariantDescriptor }
+        ]);
+    }
+    create(value?: PartialMessage<ListCatalogVariantsResponse>): ListCatalogVariantsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.variants = [];
+        if (value !== undefined)
+            reflectionMergePartial<ListCatalogVariantsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListCatalogVariantsResponse): ListCatalogVariantsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.LocalCatalogVariantDescriptor variants */ 1:
+                    message.variants.push(LocalCatalogVariantDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListCatalogVariantsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.LocalCatalogVariantDescriptor variants = 1; */
+        for (let i = 0; i < message.variants.length; i++)
+            LocalCatalogVariantDescriptor.internalBinaryWrite(message.variants[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListCatalogVariantsResponse
+ */
+export const ListCatalogVariantsResponse = new ListCatalogVariantsResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ResolveModelInstallPlanRequest$Type extends MessageType<ResolveModelInstallPlanRequest> {
     constructor() {
@@ -7708,6 +7936,7 @@ export const RuntimeLocalService = new ServiceType("nimi.runtime.v1.RuntimeLocal
     { name: "ScaffoldOrphanAsset", options: {}, I: ScaffoldOrphanAssetRequest, O: ScaffoldOrphanAssetResponse },
     { name: "RemoveLocalAsset", options: {}, I: RemoveLocalAssetRequest, O: RemoveLocalAssetResponse },
     { name: "SearchCatalogModels", options: {}, I: SearchCatalogModelsRequest, O: SearchCatalogModelsResponse },
+    { name: "ListCatalogVariants", options: {}, I: ListCatalogVariantsRequest, O: ListCatalogVariantsResponse },
     { name: "ResolveModelInstallPlan", options: {}, I: ResolveModelInstallPlanRequest, O: ResolveModelInstallPlanResponse },
     { name: "StartLocalAsset", options: {}, I: StartLocalAssetRequest, O: StartLocalAssetResponse },
     { name: "StopLocalAsset", options: {}, I: StopLocalAssetRequest, O: StopLocalAssetResponse },

@@ -262,12 +262,13 @@ export function parseLocalRuntimeEnvironmentActivationGate(value: unknown): Loca
 
 export function parseGgufVariantDescriptor(value: unknown): GgufVariantDescriptor {
   const record = asRecord(value);
+  const sizeBytes = Number(record.sizeBytes);
   return {
     filename: asString(record.filename),
     entry: asString(record.entry) || asString(record.filename),
     files: Array.isArray(record.files) ? record.files.map((item) => asString(item)).filter(Boolean) : [],
     format: asString(record.format) || undefined,
-    sizeBytes: typeof record.sizeBytes === 'number' ? record.sizeBytes : undefined,
+    sizeBytes: Number.isFinite(sizeBytes) && sizeBytes > 0 ? sizeBytes : undefined,
     sha256: asString(record.sha256) || undefined,
     recommendation: parseCatalogRecommendation(record.recommendation),
   };

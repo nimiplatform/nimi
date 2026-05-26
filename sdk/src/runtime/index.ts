@@ -178,6 +178,10 @@ export {
   buildMusicIterationExtensions,
   buildLocalProfileExtensions,
 } from './runtime-media.js';
+export {
+  ResolveProfileRequest,
+  ResolveProfileResponse,
+} from './generated/runtime/v1/local_runtime.js';
 export type {
   RuntimeArtifactsModule,
   RuntimeArtifactsReadBytesInput,
