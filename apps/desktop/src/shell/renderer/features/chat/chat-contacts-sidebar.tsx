@@ -4,6 +4,7 @@ import { ScrollArea } from '@nimiplatform/kit/ui';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { DesktopIconToggleAction } from '@renderer/components/action';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import {
   ContactDetailProfileModal,
   type ContactDetailProfileSeed,
@@ -124,60 +125,13 @@ function buildContactProfileSeed(target: ConversationTargetSummary): { profileId
   };
 }
 
-function getSourceIcon(source: ConversationTargetSummary['source']) {
-  switch (source) {
-    case 'agent':
-      return {
-        className: 'border-emerald-200/80 bg-emerald-50/70 text-emerald-500 shadow-[0_8px_20px_rgba(16,185,129,0.14)]',
-        icon: (
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M12 3.5l1.45 4.05L17.5 9l-4.05 1.45L12 14.5l-1.45-4.05L6.5 9l4.05-1.45L12 3.5z" />
-            <path d="M18.5 13.5l.75 2.25 2.25.75-2.25.75-.75 2.25-.75-2.25-2.25-.75 2.25-.75.75-2.25z" />
-          </svg>
-        ),
-      };
-    case 'group':
-      return {
-        className: 'border-rose-200/80 bg-rose-50/70 text-rose-500 shadow-[0_8px_20px_rgba(244,63,94,0.12)]',
-        icon: (
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M16 20a4 4 0 0 0-8 0" />
-            <circle cx="12" cy="10" r="3" />
-            <path d="M4 18a3 3 0 0 1 4-2.83" />
-            <path d="M20 18a3 3 0 0 0-4-2.83" />
-            <path d="M6.5 11.5a2 2 0 1 1 1.8-2.87" />
-            <path d="M17.5 11.5a2 2 0 1 0-1.8-2.87" />
-          </svg>
-        ),
-      };
-    case 'ai':
-      return {
-        className: 'border-sky-200/80 bg-sky-50/70 text-sky-500 shadow-[0_8px_20px_rgba(14,165,233,0.14)]',
-        icon: (
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M12 2v4" />
-            <path d="M12 18v4" />
-            <path d="M4.93 4.93l2.83 2.83" />
-            <path d="M16.24 16.24l2.83 2.83" />
-            <path d="M2 12h4" />
-            <path d="M18 12h4" />
-            <path d="M4.93 19.07l2.83-2.83" />
-            <path d="M16.24 7.76l2.83-2.83" />
-          </svg>
-        ),
-      };
-    case 'human':
-    default:
-      return {
-        className: 'border-violet-200/80 bg-violet-50/70 text-violet-500 shadow-[0_8px_20px_rgba(139,92,246,0.14)]',
-        icon: (
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M20 21a8 8 0 0 0-16 0" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-        ),
-      };
-  }
+function AgentSparkleIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3.5l1.45 4.05L17.5 9l-4.05 1.45L12 14.5l-1.45-4.05L6.5 9l4.05-1.45L12 3.5z" />
+      <path d="M18.5 13.5l.75 2.25 2.25.75-2.25.75-.75 2.25-.75-2.25-2.25-.75 2.25-.75.75-2.25z" />
+    </svg>
+  );
 }
 
 function ContactHoverCard({
@@ -199,27 +153,27 @@ function ContactHoverCard({
 }) {
   const { t } = useTranslation();
   const sourceLabel = getSourceLabel(target.source, t);
-  const initial = (target.avatarFallback || target.title || '?').charAt(0).toUpperCase();
   const identity = getIdentityLabel(target, sourceLabel);
-  const sourceIcon = getSourceIcon(target.source);
   const preview = target.previewText || target.bio || t('Chat.hoverCardNoPreview', { defaultValue: 'No recent message' });
-  const avatarClassName = 'h-[74px] w-[74px] shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-slate-100 to-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.85),0_12px_28px_rgba(15,23,42,0.13)]';
-  const avatarContent = target.avatarUrl ? (
-    <img src={target.avatarUrl} alt="" className="h-full w-full object-cover" />
+  const isAgent = target.source === 'agent';
+  const agentPillLabel = t('Chat.hoverCardAgent', { defaultValue: 'Agent' });
+
+  const avatarVisual = isAgent ? (
+    <EntityAvatar
+      imageUrl={target.avatarUrl || null}
+      name={target.avatarFallback || target.title || '?'}
+      kind="agent"
+      sizeClassName="h-[74px] w-[74px]"
+      textClassName="text-xl font-semibold"
+    />
   ) : (
-    <div
-      className={`flex h-full w-full items-center justify-center text-xl font-semibold text-white ${
-        target.source === 'ai'
-          ? 'bg-gradient-to-br from-sky-400 to-teal-500'
-          : target.source === 'agent'
-            ? 'bg-gradient-to-br from-emerald-400 to-teal-600'
-            : target.source === 'group'
-              ? 'bg-gradient-to-br from-pink-400 to-rose-500'
-              : 'bg-gradient-to-br from-violet-400 to-indigo-500'
-      }`}
-    >
-      {initial}
-    </div>
+    <EntityAvatar
+      imageUrl={target.avatarUrl || null}
+      name={target.avatarFallback || target.title || '?'}
+      kind="human"
+      sizeClassName="h-[74px] w-[74px]"
+      textClassName="text-xl font-semibold"
+    />
   );
 
   const handleCardKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -248,7 +202,7 @@ function ContactHoverCard({
           selected ? 'h-[92px] -translate-y-1/2 opacity-100' : 'h-0 -translate-y-1/2 opacity-0'
         }`}
       />
-      <div className="flex min-w-0 items-center gap-4 pr-14">
+      <div className="flex min-w-0 items-center gap-4">
         {onOpenProfile ? (
           <button
             type="button"
@@ -257,19 +211,31 @@ function ContactHoverCard({
               event.stopPropagation();
               onOpenProfile();
             }}
-            className={`${avatarClassName} transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/80`}
+            className="shrink-0 rounded-[12px] transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/80"
           >
-            {avatarContent}
+            {avatarVisual}
           </button>
         ) : (
-          <div className={avatarClassName}>
-            {avatarContent}
+          <div className="shrink-0">
+            {avatarVisual}
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <h3 className="min-w-0 truncate text-[23px] font-semibold leading-7 tracking-normal text-slate-950">
-            {target.title}
-          </h3>
+          <div className="flex min-w-0 items-center gap-2">
+            <h3 className="min-w-0 truncate text-[23px] font-semibold leading-7 tracking-normal text-slate-950">
+              {target.title}
+            </h3>
+            {isAgent ? (
+              <span
+                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold leading-4 text-violet-700"
+                aria-label={agentPillLabel}
+                title={agentPillLabel}
+              >
+                <AgentSparkleIcon className="h-3 w-3" />
+                {agentPillLabel}
+              </span>
+            ) : null}
+          </div>
           <div className="mt-1 truncate text-[15px] font-medium leading-5 text-slate-500">
             {identity}
           </div>
@@ -280,14 +246,6 @@ function ContactHoverCard({
             <span className="min-w-0 flex-1 truncate">{preview}</span>
           </div>
         </div>
-        <span
-          role="img"
-          aria-label={sourceLabel}
-          title={sourceLabel}
-          className={`absolute right-8 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-2xl border ${sourceIcon.className}`}
-        >
-          {sourceIcon.icon}
-        </span>
       </div>
     </div>
   );

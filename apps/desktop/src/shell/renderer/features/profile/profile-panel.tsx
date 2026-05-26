@@ -346,6 +346,7 @@ export function ProfilePanel() {
           isBlockedProfile={isBlockedProfile}
           loading={loading}
           error={error}
+          hideBackButton
           onClose={navigateBack}
           onMessage={() => {
             void onMessage();

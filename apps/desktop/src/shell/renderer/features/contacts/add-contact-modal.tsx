@@ -193,31 +193,25 @@ export function AddContactModal(props: AddContactModalProps) {
 
   const footerNode = (
     <div className="flex items-center justify-end gap-3">
-      <button
-        type="button"
+      <Button
+        tone="ghost"
+        size="md"
         onClick={props.onClose}
         disabled={adding}
-        className="rounded-xl px-5 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
       >
         {t('Common.cancel', { defaultValue: 'Cancel' })}
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
+        tone="primary"
+        size="md"
+        loading={adding}
         onClick={() => { void handleAddContact(); }}
         disabled={!canAddContact}
-        className="rounded-xl bg-mint-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-mint-600 hover:shadow-md disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none"
       >
-        {adding ? (
-          <span className="flex items-center gap-1.5">
-            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" strokeDasharray="60" strokeDashoffset="20" />
-            </svg>
-            {t('Contacts.sending', { defaultValue: 'Sending...' })}
-          </span>
-        ) : (
-          t('Contacts.addContactTitle', { defaultValue: 'Add Contact' })
-        )}
-      </button>
+        {adding
+          ? t('Contacts.sending', { defaultValue: 'Sending...' })
+          : t('Contacts.addContactTitle', { defaultValue: 'Add Contact' })}
+      </Button>
     </div>
   );
 
