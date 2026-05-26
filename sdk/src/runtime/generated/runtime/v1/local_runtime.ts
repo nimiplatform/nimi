@@ -243,6 +243,58 @@ export interface ScaffoldOrphanAssetResponse {
     asset?: LocalAssetRecord;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.ImportLocalAssetBundleRequest
+ */
+export interface ImportLocalAssetBundleRequest {
+    /**
+     * @generated from protobuf field: string directory_path = 1
+     */
+    directoryPath: string;
+    /**
+     * @generated from protobuf field: string model_name = 2
+     */
+    modelName: string;
+    /**
+     * @generated from protobuf field: repeated string capabilities = 3
+     */
+    capabilities: string[];
+    /**
+     * @generated from protobuf field: string engine = 4
+     */
+    engine: string;
+    /**
+     * @generated from protobuf field: string endpoint = 5
+     */
+    endpoint: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ImportLocalAssetBundleResponse
+ */
+export interface ImportLocalAssetBundleResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalTransferSessionSummary transfer = 1
+     */
+    transfer?: LocalTransferSessionSummary;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RescanLocalAssetBundleRequest
+ */
+export interface RescanLocalAssetBundleRequest {
+    /**
+     * @generated from protobuf field: string local_asset_id = 1
+     */
+    localAssetId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RescanLocalAssetBundleResponse
+ */
+export interface RescanLocalAssetBundleResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalTransferSessionSummary transfer = 1
+     */
+    transfer?: LocalTransferSessionSummary;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.RemoveLocalAssetRequest
  */
 export interface RemoveLocalAssetRequest {
@@ -2565,6 +2617,224 @@ class ScaffoldOrphanAssetResponse$Type extends MessageType<ScaffoldOrphanAssetRe
  * @generated MessageType for protobuf message nimi.runtime.v1.ScaffoldOrphanAssetResponse
  */
 export const ScaffoldOrphanAssetResponse = new ScaffoldOrphanAssetResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ImportLocalAssetBundleRequest$Type extends MessageType<ImportLocalAssetBundleRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ImportLocalAssetBundleRequest", [
+            { no: 1, name: "directory_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "model_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ImportLocalAssetBundleRequest>): ImportLocalAssetBundleRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.directoryPath = "";
+        message.modelName = "";
+        message.capabilities = [];
+        message.engine = "";
+        message.endpoint = "";
+        if (value !== undefined)
+            reflectionMergePartial<ImportLocalAssetBundleRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ImportLocalAssetBundleRequest): ImportLocalAssetBundleRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string directory_path */ 1:
+                    message.directoryPath = reader.string();
+                    break;
+                case /* string model_name */ 2:
+                    message.modelName = reader.string();
+                    break;
+                case /* repeated string capabilities */ 3:
+                    message.capabilities.push(reader.string());
+                    break;
+                case /* string engine */ 4:
+                    message.engine = reader.string();
+                    break;
+                case /* string endpoint */ 5:
+                    message.endpoint = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ImportLocalAssetBundleRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string directory_path = 1; */
+        if (message.directoryPath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.directoryPath);
+        /* string model_name = 2; */
+        if (message.modelName !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.modelName);
+        /* repeated string capabilities = 3; */
+        for (let i = 0; i < message.capabilities.length; i++)
+            writer.tag(3, WireType.LengthDelimited).string(message.capabilities[i]);
+        /* string engine = 4; */
+        if (message.engine !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.engine);
+        /* string endpoint = 5; */
+        if (message.endpoint !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.endpoint);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ImportLocalAssetBundleRequest
+ */
+export const ImportLocalAssetBundleRequest = new ImportLocalAssetBundleRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ImportLocalAssetBundleResponse$Type extends MessageType<ImportLocalAssetBundleResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ImportLocalAssetBundleResponse", [
+            { no: 1, name: "transfer", kind: "message", T: () => LocalTransferSessionSummary }
+        ]);
+    }
+    create(value?: PartialMessage<ImportLocalAssetBundleResponse>): ImportLocalAssetBundleResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ImportLocalAssetBundleResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ImportLocalAssetBundleResponse): ImportLocalAssetBundleResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalTransferSessionSummary transfer */ 1:
+                    message.transfer = LocalTransferSessionSummary.internalBinaryRead(reader, reader.uint32(), options, message.transfer);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ImportLocalAssetBundleResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalTransferSessionSummary transfer = 1; */
+        if (message.transfer)
+            LocalTransferSessionSummary.internalBinaryWrite(message.transfer, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ImportLocalAssetBundleResponse
+ */
+export const ImportLocalAssetBundleResponse = new ImportLocalAssetBundleResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RescanLocalAssetBundleRequest$Type extends MessageType<RescanLocalAssetBundleRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RescanLocalAssetBundleRequest", [
+            { no: 1, name: "local_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RescanLocalAssetBundleRequest>): RescanLocalAssetBundleRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.localAssetId = "";
+        if (value !== undefined)
+            reflectionMergePartial<RescanLocalAssetBundleRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RescanLocalAssetBundleRequest): RescanLocalAssetBundleRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string local_asset_id */ 1:
+                    message.localAssetId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RescanLocalAssetBundleRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string local_asset_id = 1; */
+        if (message.localAssetId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.localAssetId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RescanLocalAssetBundleRequest
+ */
+export const RescanLocalAssetBundleRequest = new RescanLocalAssetBundleRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RescanLocalAssetBundleResponse$Type extends MessageType<RescanLocalAssetBundleResponse> {
+    constructor() {
+        super("nimi.runtime.v1.RescanLocalAssetBundleResponse", [
+            { no: 1, name: "transfer", kind: "message", T: () => LocalTransferSessionSummary }
+        ]);
+    }
+    create(value?: PartialMessage<RescanLocalAssetBundleResponse>): RescanLocalAssetBundleResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<RescanLocalAssetBundleResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RescanLocalAssetBundleResponse): RescanLocalAssetBundleResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalTransferSessionSummary transfer */ 1:
+                    message.transfer = LocalTransferSessionSummary.internalBinaryRead(reader, reader.uint32(), options, message.transfer);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RescanLocalAssetBundleResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalTransferSessionSummary transfer = 1; */
+        if (message.transfer)
+            LocalTransferSessionSummary.internalBinaryWrite(message.transfer, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RescanLocalAssetBundleResponse
+ */
+export const RescanLocalAssetBundleResponse = new RescanLocalAssetBundleResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class RemoveLocalAssetRequest$Type extends MessageType<RemoveLocalAssetRequest> {
     constructor() {
@@ -8044,6 +8314,8 @@ export const RuntimeLocalService = new ServiceType("nimi.runtime.v1.RuntimeLocal
     { name: "ImportLocalAssetFile", options: {}, I: ImportLocalAssetFileRequest, O: ImportLocalAssetFileResponse },
     { name: "ScanUnregisteredAssets", options: {}, I: ScanUnregisteredAssetsRequest, O: ScanUnregisteredAssetsResponse },
     { name: "ScaffoldOrphanAsset", options: {}, I: ScaffoldOrphanAssetRequest, O: ScaffoldOrphanAssetResponse },
+    { name: "ImportLocalAssetBundle", options: {}, I: ImportLocalAssetBundleRequest, O: ImportLocalAssetBundleResponse },
+    { name: "RescanLocalAssetBundle", options: {}, I: RescanLocalAssetBundleRequest, O: RescanLocalAssetBundleResponse },
     { name: "RemoveLocalAsset", options: {}, I: RemoveLocalAssetRequest, O: RemoveLocalAssetResponse },
     { name: "SearchCatalogModels", options: {}, I: SearchCatalogModelsRequest, O: SearchCatalogModelsResponse },
     { name: "ListCatalogVariants", options: {}, I: ListCatalogVariantsRequest, O: ListCatalogVariantsResponse },

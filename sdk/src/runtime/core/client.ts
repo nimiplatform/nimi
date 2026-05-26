@@ -341,6 +341,8 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       installVerifiedAsset: unary(RuntimeMethodIds.local.installVerifiedAsset),
       importLocalAsset: unary(RuntimeMethodIds.local.importLocalAsset),
       importLocalAssetFile: unary(RuntimeMethodIds.local.importLocalAssetFile),
+      importLocalAssetBundle: unary(RuntimeMethodIds.local.importLocalAssetBundle),
+      rescanLocalAssetBundle: unary(RuntimeMethodIds.local.rescanLocalAssetBundle),
       scanUnregisteredAssets: unary(RuntimeMethodIds.local.scanUnregisteredAssets),
       scaffoldOrphanAsset: unary(RuntimeMethodIds.local.scaffoldOrphanAsset),
       removeLocalAsset: unary(RuntimeMethodIds.local.removeLocalAsset),

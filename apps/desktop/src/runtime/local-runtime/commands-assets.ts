@@ -90,16 +90,15 @@ export async function importLocalRuntimeAssetBundle(
   options?: LocalRuntimeWriteOptions,
 ): Promise<LocalRuntimeTransferAccepted> {
   assertLifecycleWriteAllowed('local_runtime_assets_import_bundle', options?.caller);
-  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_import_bundle', {
-    payload: {
-      directoryPath: String(payload.directoryPath || '').trim(),
-      modelName: String(payload.modelName || '').trim() || undefined,
-      capabilities: Array.isArray(payload.capabilities) ? payload.capabilities : [],
-      engine: String(payload.engine || '').trim() || undefined,
-      endpoint: String(payload.endpoint || '').trim() || undefined,
-    },
+  const runtime = requireSdkLocal();
+  const response = await runtime.importLocalAssetBundle({
+    directoryPath: String(payload.directoryPath || '').trim(),
+    modelName: String(payload.modelName || '').trim(),
+    capabilities: Array.isArray(payload.capabilities) ? payload.capabilities : [],
+    engine: String(payload.engine || '').trim(),
+    endpoint: String(payload.endpoint || '').trim(),
   });
-  return parseTransferAccepted(result);
+  return parseTransferAccepted(asRecord(response).transfer);
 }
 
 export async function installLocalRuntimeAsset(
@@ -384,12 +383,11 @@ export async function rescanLocalRuntimeAssetBundle(
   options?: LocalRuntimeWriteOptions,
 ): Promise<LocalRuntimeTransferAccepted> {
   assertLifecycleWriteAllowed('local_runtime_assets_rescan_bundle', options?.caller);
-  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_rescan_bundle', {
-    payload: {
-      localAssetId: String(payload.localAssetId || '').trim(),
-    },
+  const runtime = requireSdkLocal();
+  const response = await runtime.rescanLocalAssetBundle({
+    localAssetId: String(payload.localAssetId || '').trim(),
   });
-  return parseTransferAccepted(result);
+  return parseTransferAccepted(asRecord(response).transfer);
 }
 
 export async function subscribeLocalRuntimeDownloadProgress(

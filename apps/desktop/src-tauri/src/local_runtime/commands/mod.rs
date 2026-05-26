@@ -1,6 +1,6 @@
 use std::io::{Read as IoRead, Write as IoWrite};
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use tauri::AppHandle;
 
 use super::audit::{
@@ -8,10 +8,8 @@ use super::audit::{
     EVENT_RECOMMENDATION_RESOLVE_COMPLETED, EVENT_RECOMMENDATION_RESOLVE_FAILED,
     EVENT_RECOMMENDATION_RESOLVE_INVOKED, EVENT_RUNTIME_MODEL_READY_AFTER_INSTALL,
 };
-use super::download_manager;
 use super::import_validator::{
-    normalize_and_validate_capabilities, validate_import_asset_manifest_path,
-    validate_loopback_endpoint,
+    validate_import_asset_manifest_path,
 };
 use super::model_index::load_recommendation_feed_async;
 use super::reason_codes::{

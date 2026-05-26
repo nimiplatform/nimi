@@ -132,6 +132,8 @@ import type {
   ImportLocalAssetResponse,
   ImportLocalAssetFileRequest,
   ImportLocalAssetFileResponse,
+  ImportLocalAssetBundleRequest,
+  ImportLocalAssetBundleResponse,
   InstallLocalServiceRequest,
   InstallLocalServiceResponse,
   InstallModelFromPlanRequest,
@@ -165,6 +167,8 @@ import type {
   RemoveLocalServiceResponse,
   RepairLocalEnvironmentDependencyRequest,
   RepairLocalEnvironmentDependencyResponse,
+  RescanLocalAssetBundleRequest,
+  RescanLocalAssetBundleResponse,
   ResumeLocalTransferRequest,
   ResumeLocalTransferResponse,
   ResolveLocalEnvironmentActivationGateRequest,
@@ -679,6 +683,8 @@ export type RuntimeLocalServiceClient = {
   importLocalAssetFile(request: ImportLocalAssetFileRequest, options?: RuntimeCallOptions): Promise<ImportLocalAssetFileResponse>;
   scanUnregisteredAssets(request: ScanUnregisteredAssetsRequest, options?: RuntimeCallOptions): Promise<ScanUnregisteredAssetsResponse>;
   scaffoldOrphanAsset(request: ScaffoldOrphanAssetRequest, options?: RuntimeCallOptions): Promise<ScaffoldOrphanAssetResponse>;
+  importLocalAssetBundle(request: ImportLocalAssetBundleRequest, options?: RuntimeCallOptions): Promise<ImportLocalAssetBundleResponse>;
+  rescanLocalAssetBundle(request: RescanLocalAssetBundleRequest, options?: RuntimeCallOptions): Promise<RescanLocalAssetBundleResponse>;
   removeLocalAsset(request: RemoveLocalAssetRequest, options?: RuntimeCallOptions): Promise<RemoveLocalAssetResponse>;
   startLocalAsset(request: StartLocalAssetRequest, options?: RuntimeCallOptions): Promise<StartLocalAssetResponse>;
   stopLocalAsset(request: StopLocalAssetRequest, options?: RuntimeCallOptions): Promise<StopLocalAssetResponse>;

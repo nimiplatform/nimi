@@ -7644,6 +7644,34 @@ pub struct ScaffoldOrphanAssetResponse {
     pub asset: ::core::option::Option<LocalAssetRecord>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ImportLocalAssetBundleRequest {
+    #[prost(string, tag = "1")]
+    pub directory_path: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub model_name: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "3")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "4")]
+    pub engine: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub endpoint: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ImportLocalAssetBundleResponse {
+    #[prost(message, optional, tag = "1")]
+    pub transfer: ::core::option::Option<LocalTransferSessionSummary>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RescanLocalAssetBundleRequest {
+    #[prost(string, tag = "1")]
+    pub local_asset_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RescanLocalAssetBundleResponse {
+    #[prost(message, optional, tag = "1")]
+    pub transfer: ::core::option::Option<LocalTransferSessionSummary>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RemoveLocalAssetRequest {
     #[prost(string, tag = "1")]
     pub local_asset_id: ::prost::alloc::string::String,
@@ -8783,6 +8811,64 @@ pub mod runtime_local_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeLocalService",
                         "ScaffoldOrphanAsset",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn import_local_asset_bundle(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ImportLocalAssetBundleRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ImportLocalAssetBundleResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ImportLocalAssetBundle",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn rescan_local_asset_bundle(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RescanLocalAssetBundleRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RescanLocalAssetBundleResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "RescanLocalAssetBundle",
                     ),
                 );
             self.inner.unary(req, path, codec).await

@@ -314,28 +314,6 @@ registered_command_families:
     admitted_risks: []
     source_rule: D-GATE-094
 
-  - family: local_runtime_background_assets
-    match:
-      exact:
-        - runtime_local_assets_import_bundle
-        - runtime_local_assets_rescan_bundle
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: local-runtime-assets
-    execution_class: background_job
-    remediation_required: false
-    admitted_risks:
-      - blocking_http
-      - runtime_bridge_block_on
-      - block_on_variants
-      - archive_or_compression
-      - sqlite_sync
-      - std_fs
-      - raw_thread_spawn
-      - spawn_blocking
-      - sync_lock_contention
-      - cpu_hash_or_codec
-    source_rule: D-GATE-094
-
   - family: chat_local_stores
     match:
       regex: "^chat_(ai|agent)_.*$"

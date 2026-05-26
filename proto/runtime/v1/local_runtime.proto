@@ -80,6 +80,26 @@ message ScaffoldOrphanAssetResponse {
   LocalAssetRecord asset = 1;
 }
 
+message ImportLocalAssetBundleRequest {
+  string directory_path = 1;
+  string model_name     = 2;
+  repeated string capabilities = 3;
+  string engine         = 4;
+  string endpoint       = 5;
+}
+
+message ImportLocalAssetBundleResponse {
+  LocalTransferSessionSummary transfer = 1;
+}
+
+message RescanLocalAssetBundleRequest {
+  string local_asset_id = 1;
+}
+
+message RescanLocalAssetBundleResponse {
+  LocalTransferSessionSummary transfer = 1;
+}
+
 message RemoveLocalAssetRequest {
   string local_asset_id = 1;
 }
@@ -696,6 +716,8 @@ service RuntimeLocalService {
   rpc ImportLocalAssetFile(ImportLocalAssetFileRequest) returns (ImportLocalAssetFileResponse);
   rpc ScanUnregisteredAssets(ScanUnregisteredAssetsRequest) returns (ScanUnregisteredAssetsResponse);
   rpc ScaffoldOrphanAsset(ScaffoldOrphanAssetRequest) returns (ScaffoldOrphanAssetResponse);
+  rpc ImportLocalAssetBundle(ImportLocalAssetBundleRequest) returns (ImportLocalAssetBundleResponse);
+  rpc RescanLocalAssetBundle(RescanLocalAssetBundleRequest) returns (RescanLocalAssetBundleResponse);
   rpc RemoveLocalAsset(RemoveLocalAssetRequest) returns (RemoveLocalAssetResponse);
 
   // Catalog & Install

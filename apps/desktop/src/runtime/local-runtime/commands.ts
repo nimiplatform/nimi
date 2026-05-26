@@ -99,8 +99,6 @@ export {
 // Desktop command contract: commands bridged via SDK gRPC client (not direct Tauri invoke).
 // These markers satisfy the desktop-spec-kernel-consistency check against ipc-commands.yaml.
 // runtime_local_pick_asset_directory
-// runtime_local_assets_import_bundle
-// runtime_local_assets_rescan_bundle
 // runtime_local_assets_reveal_in_folder
 // runtime_local_assets_reveal_root_folder
 

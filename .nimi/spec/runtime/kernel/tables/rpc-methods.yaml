@@ -105,6 +105,10 @@ services:
         type: unary
       - name: ImportLocalAssetFile
         type: unary
+      - name: ImportLocalAssetBundle
+        type: unary
+      - name: RescanLocalAssetBundle
+        type: unary
       - name: RemoveLocalAsset
         type: unary
       - name: StartLocalAsset

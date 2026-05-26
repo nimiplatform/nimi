@@ -26,6 +26,8 @@ const (
 	RuntimeLocalService_ImportLocalAssetFile_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile"
 	RuntimeLocalService_ScanUnregisteredAssets_FullMethodName                = "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets"
 	RuntimeLocalService_ScaffoldOrphanAsset_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset"
+	RuntimeLocalService_ImportLocalAssetBundle_FullMethodName                = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle"
+	RuntimeLocalService_RescanLocalAssetBundle_FullMethodName                = "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle"
 	RuntimeLocalService_RemoveLocalAsset_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset"
 	RuntimeLocalService_SearchCatalogModels_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels"
 	RuntimeLocalService_ListCatalogVariants_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants"
@@ -86,6 +88,8 @@ type RuntimeLocalServiceClient interface {
 	ImportLocalAssetFile(ctx context.Context, in *ImportLocalAssetFileRequest, opts ...grpc.CallOption) (*ImportLocalAssetFileResponse, error)
 	ScanUnregisteredAssets(ctx context.Context, in *ScanUnregisteredAssetsRequest, opts ...grpc.CallOption) (*ScanUnregisteredAssetsResponse, error)
 	ScaffoldOrphanAsset(ctx context.Context, in *ScaffoldOrphanAssetRequest, opts ...grpc.CallOption) (*ScaffoldOrphanAssetResponse, error)
+	ImportLocalAssetBundle(ctx context.Context, in *ImportLocalAssetBundleRequest, opts ...grpc.CallOption) (*ImportLocalAssetBundleResponse, error)
+	RescanLocalAssetBundle(ctx context.Context, in *RescanLocalAssetBundleRequest, opts ...grpc.CallOption) (*RescanLocalAssetBundleResponse, error)
 	RemoveLocalAsset(ctx context.Context, in *RemoveLocalAssetRequest, opts ...grpc.CallOption) (*RemoveLocalAssetResponse, error)
 	// Catalog & Install
 	SearchCatalogModels(ctx context.Context, in *SearchCatalogModelsRequest, opts ...grpc.CallOption) (*SearchCatalogModelsResponse, error)
@@ -217,6 +221,26 @@ func (c *runtimeLocalServiceClient) ScaffoldOrphanAsset(ctx context.Context, in 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ScaffoldOrphanAssetResponse)
 	err := c.cc.Invoke(ctx, RuntimeLocalService_ScaffoldOrphanAsset_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ImportLocalAssetBundle(ctx context.Context, in *ImportLocalAssetBundleRequest, opts ...grpc.CallOption) (*ImportLocalAssetBundleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ImportLocalAssetBundleResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ImportLocalAssetBundle_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) RescanLocalAssetBundle(ctx context.Context, in *RescanLocalAssetBundleRequest, opts ...grpc.CallOption) (*RescanLocalAssetBundleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RescanLocalAssetBundleResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_RescanLocalAssetBundle_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -704,6 +728,8 @@ type RuntimeLocalServiceServer interface {
 	ImportLocalAssetFile(context.Context, *ImportLocalAssetFileRequest) (*ImportLocalAssetFileResponse, error)
 	ScanUnregisteredAssets(context.Context, *ScanUnregisteredAssetsRequest) (*ScanUnregisteredAssetsResponse, error)
 	ScaffoldOrphanAsset(context.Context, *ScaffoldOrphanAssetRequest) (*ScaffoldOrphanAssetResponse, error)
+	ImportLocalAssetBundle(context.Context, *ImportLocalAssetBundleRequest) (*ImportLocalAssetBundleResponse, error)
+	RescanLocalAssetBundle(context.Context, *RescanLocalAssetBundleRequest) (*RescanLocalAssetBundleResponse, error)
 	RemoveLocalAsset(context.Context, *RemoveLocalAssetRequest) (*RemoveLocalAssetResponse, error)
 	// Catalog & Install
 	SearchCatalogModels(context.Context, *SearchCatalogModelsRequest) (*SearchCatalogModelsResponse, error)
@@ -790,6 +816,12 @@ func (UnimplementedRuntimeLocalServiceServer) ScanUnregisteredAssets(context.Con
 }
 func (UnimplementedRuntimeLocalServiceServer) ScaffoldOrphanAsset(context.Context, *ScaffoldOrphanAssetRequest) (*ScaffoldOrphanAssetResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ScaffoldOrphanAsset not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ImportLocalAssetBundle(context.Context, *ImportLocalAssetBundleRequest) (*ImportLocalAssetBundleResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ImportLocalAssetBundle not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) RescanLocalAssetBundle(context.Context, *RescanLocalAssetBundleRequest) (*RescanLocalAssetBundleResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RescanLocalAssetBundle not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) RemoveLocalAsset(context.Context, *RemoveLocalAssetRequest) (*RemoveLocalAssetResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RemoveLocalAsset not implemented")
@@ -1071,6 +1103,42 @@ func _RuntimeLocalService_ScaffoldOrphanAsset_Handler(srv interface{}, ctx conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeLocalServiceServer).ScaffoldOrphanAsset(ctx, req.(*ScaffoldOrphanAssetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ImportLocalAssetBundle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ImportLocalAssetBundleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ImportLocalAssetBundle(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ImportLocalAssetBundle_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ImportLocalAssetBundle(ctx, req.(*ImportLocalAssetBundleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_RescanLocalAssetBundle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RescanLocalAssetBundleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).RescanLocalAssetBundle(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_RescanLocalAssetBundle_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).RescanLocalAssetBundle(ctx, req.(*RescanLocalAssetBundleRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1930,6 +1998,14 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ScaffoldOrphanAsset",
 			Handler:    _RuntimeLocalService_ScaffoldOrphanAsset_Handler,
+		},
+		{
+			MethodName: "ImportLocalAssetBundle",
+			Handler:    _RuntimeLocalService_ImportLocalAssetBundle_Handler,
+		},
+		{
+			MethodName: "RescanLocalAssetBundle",
+			Handler:    _RuntimeLocalService_RescanLocalAssetBundle_Handler,
 		},
 		{
 			MethodName: "RemoveLocalAsset",

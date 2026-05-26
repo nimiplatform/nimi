@@ -144,6 +144,8 @@ Tier 1 的读写边界固定如下：
 20. `ResumeLocalTransfer`
 21. `CancelLocalTransfer`
 22. `WatchLocalTransfers`
+33. `ImportLocalAssetBundle`（consumes reserved stable slot 33）
+34. `RescanLocalAssetBundle`（consumes reserved stable slot 34）
 
 **Tier 3 — 服务/节点/依赖/审计：**
 
@@ -157,8 +159,6 @@ Tier 1 的读写边界固定如下：
 30. `ResolveProfile`
 31. `ApplyProfile`
 32. `ListLocalAudits`
-33. _(reserved for stable RPC numbering)_
-34. _(reserved for stable RPC numbering)_
 35. `AppendInferenceAudit`
 36. `AppendRuntimeAudit`
 

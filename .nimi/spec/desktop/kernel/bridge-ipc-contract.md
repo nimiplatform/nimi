@@ -220,12 +220,10 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 
 Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_local_models_*` / `runtime_local_artifacts_*` CRUD/lifecycle/catalog 命令不再注册，也不得作为 shipped helper 保留。catalog search、catalog variants、install-plan 与 install execution 必须走 SDK `RuntimeLocalService` typed API：
 
-- `runtime_local_assets_import_bundle`：asset bundle 目录导入；执行真源为 `RuntimeLocalService`。
-- `runtime_local_assets_rescan_bundle`：对已导入 bundle 目录执行 host-assisted re-scan，执行真源仍为 `RuntimeLocalService`。
 - `runtime_local_recommendation_feed_get`：host-local recommendation helper；install/import/download/lifecycle 真源仍是 `RuntimeLocalService`。
 - `runtime_local_assets_reveal_in_folder` / `runtime_local_assets_reveal_root_folder`：在系统文件管理器中打开目录。
 - `runtime_local_pick_asset_manifest_path`：统一选取 `resolved/<local-asset-id>/asset.manifest.json`。
-- `runtime_local_pick_asset_directory`：选取 bundle 目录，供 bundle import / rescan helper 使用。
+- `runtime_local_pick_asset_directory`：选取 bundle 目录，供 SDK `RuntimeLocalService` bundle import 使用。
 - `runtime_local_pick_asset_file`：选取任意待导入的 asset 文件。
 - recommendation page 允许新增只读的 `runtime_local_recommendation_feed_get` surface，用于 capability-scoped candidate feed；install 必须复用 SDK `resolveModelInstallPlan` / `installModelFromPlan` typed path，不得新增私有安装协议。
 
@@ -234,7 +232,7 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 - local asset inventory 的 list、verified list、install、import、remove、health/readiness、intake、transfer session 与 progress 必须固定走 `RuntimeLocalService` typed APIs。
 - `Active Downloads` / `Active Imports` 必须来自 runtime-owned transfer plane（`ListLocalTransfers` + `WatchLocalTransfers`），不得再以 Desktop/Tauri local transfer state 为真源。
 - Tauri `runtime_local_*` 命令若仍存在于 shipped app，只能作为 shell-native/helper IPC；不得暴露或暗示 Desktop/Tauri local runtime state 是本地模型真源。
-- ordinary-user local speech product flow 必须表现为单一 `Local Speech` bundle projection；`runtime_local_assets_*` 只能作为 helper plumbing，不得把 env/bootstrap、host readiness 或 capability materialization 暗示成 Desktop/Tauri-owned install truth。
+- ordinary-user local speech product flow 必须表现为单一 `Local Speech` bundle projection；helper IPC 不得把 env/bootstrap、host readiness 或 capability materialization 暗示成 Desktop/Tauri-owned install truth。
 - ordinary-user local speech 的 env/bootstrap、host init、capability materialization 只能在显式 `Download` 用户确认后启动；capability 选择、route 尝试、被动刷新或 recommendation helper 不得静默触发后台下载/初始化。
 - helper IPC 若返回 speech 相关状态，只能被 renderer 投影为 runtime-owned bundle state；不得据此创建独立 Desktop persisted speech bundle owner。
 - Desktop Local Model Center 不得再暴露手动 start/stop toggle；本地模型 readiness 必须直接反映 runtime 状态。

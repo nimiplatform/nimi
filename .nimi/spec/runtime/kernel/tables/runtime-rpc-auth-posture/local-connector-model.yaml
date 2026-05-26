@@ -216,6 +216,18 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle
+    posture: anonymous_read
+    rationale: local directory bundle import; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle
+    posture: anonymous_read
+    rationale: local managed directory bundle rescan; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets
     posture: anonymous_read
     rationale: filesystem scan; no JWT validation

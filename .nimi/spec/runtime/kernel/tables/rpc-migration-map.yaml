@@ -259,6 +259,16 @@ method_mappings:
     proto_method: ImportLocalAssetFile
     mapping_posture: aligned
   - design_service: RuntimeLocalService
+    design_method: ImportLocalAssetBundle
+    proto_service: RuntimeLocalService
+    proto_method: ImportLocalAssetBundle
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: RescanLocalAssetBundle
+    proto_service: RuntimeLocalService
+    proto_method: RescanLocalAssetBundle
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
     design_method: RemoveLocalAsset
     proto_service: RuntimeLocalService
     proto_method: RemoveLocalAsset

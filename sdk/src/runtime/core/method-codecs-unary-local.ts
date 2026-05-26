@@ -19,6 +19,8 @@ import {
   ImportLocalAssetResponse,
   ImportLocalAssetFileRequest,
   ImportLocalAssetFileResponse,
+  ImportLocalAssetBundleRequest,
+  ImportLocalAssetBundleResponse,
   InstallLocalServiceRequest,
   InstallLocalServiceResponse,
   InstallModelFromPlanRequest,
@@ -51,6 +53,8 @@ import {
   RemoveLocalServiceResponse,
   RepairLocalEnvironmentDependencyRequest,
   RepairLocalEnvironmentDependencyResponse,
+  RescanLocalAssetBundleRequest,
+  RescanLocalAssetBundleResponse,
   ResolveLocalEnvironmentActivationGateRequest,
   ResolveLocalEnvironmentActivationGateResponse,
   ResolveLocalEnvironmentPlanRequest,
@@ -140,6 +144,14 @@ export const runtimeUnaryMethodCodecsLocal: Partial<RuntimeUnaryMethodCodecMap> 
   [RuntimeMethodIds.local.importLocalAssetFile]: {
     requestType: ImportLocalAssetFileRequest,
     responseType: ImportLocalAssetFileResponse,
+  },
+  [RuntimeMethodIds.local.importLocalAssetBundle]: {
+    requestType: ImportLocalAssetBundleRequest,
+    responseType: ImportLocalAssetBundleResponse,
+  },
+  [RuntimeMethodIds.local.rescanLocalAssetBundle]: {
+    requestType: RescanLocalAssetBundleRequest,
+    responseType: RescanLocalAssetBundleResponse,
   },
   [RuntimeMethodIds.local.listLocalTransfers]: {
     requestType: ListLocalTransfersRequest,

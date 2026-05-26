@@ -155,6 +155,8 @@ const LOCAL_METHODS = [
   'installVerifiedAsset',
   'importLocalAsset',
   'importLocalAssetFile',
+  'importLocalAssetBundle',
+  'rescanLocalAssetBundle',
   'scanUnregisteredAssets',
   'scaffoldOrphanAsset',
   'removeLocalAsset',

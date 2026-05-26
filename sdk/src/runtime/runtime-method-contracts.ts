@@ -71,6 +71,8 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.local.installVerifiedAsset]: RuntimeClientMethodContract<'local', 'installVerifiedAsset'>;
   [RuntimeMethodIds.local.importLocalAsset]: RuntimeClientMethodContract<'local', 'importLocalAsset'>;
   [RuntimeMethodIds.local.importLocalAssetFile]: RuntimeClientMethodContract<'local', 'importLocalAssetFile'>;
+  [RuntimeMethodIds.local.importLocalAssetBundle]: RuntimeClientMethodContract<'local', 'importLocalAssetBundle'>;
+  [RuntimeMethodIds.local.rescanLocalAssetBundle]: RuntimeClientMethodContract<'local', 'rescanLocalAssetBundle'>;
   [RuntimeMethodIds.local.scanUnregisteredAssets]: RuntimeClientMethodContract<'local', 'scanUnregisteredAssets'>;
   [RuntimeMethodIds.local.scaffoldOrphanAsset]: RuntimeClientMethodContract<'local', 'scaffoldOrphanAsset'>;
   [RuntimeMethodIds.local.removeLocalAsset]: RuntimeClientMethodContract<'local', 'removeLocalAsset'>;
@@ -224,6 +226,8 @@ export type RuntimeStreamMethodContractMap = {
 
 type RuntimeExplicitUnaryMethodIds =
   | typeof RuntimeMethodIds.local.importLocalAssetFile
+  | typeof RuntimeMethodIds.local.importLocalAssetBundle
+  | typeof RuntimeMethodIds.local.rescanLocalAssetBundle
   | typeof RuntimeMethodIds.local.scanUnregisteredAssets
   | typeof RuntimeMethodIds.local.scaffoldOrphanAsset
   | typeof RuntimeMethodIds.local.listLocalTransfers
