@@ -38,6 +38,29 @@ pub fn runtime_local_pick_asset_file(app: AppHandle) -> Result<Option<String>, S
     Ok(selected.map(|p| p.to_string_lossy().to_string()))
 }
 
+#[tauri::command]
+pub fn runtime_local_pick_asset_manifest_path(app: AppHandle) -> Result<Option<String>, String> {
+    let models_root = runtime_models_dir(&app)?;
+    let selected = rfd::FileDialog::new()
+        .set_directory(&models_root)
+        .set_title("Select asset.manifest.json")
+        .add_filter("Asset Manifest", &["asset.manifest.json"])
+        .pick_file();
+    let Some(path) = selected else {
+        return Ok(None);
+    };
+    let file_name = path.file_name().and_then(|value| value.to_str()).unwrap_or("");
+    if file_name != ASSET_MANIFEST_FILE_NAME {
+        return Err(
+            "LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID: only asset.manifest.json can be imported"
+                .to_string(),
+        );
+    }
+    let canonical_path =
+        validate_import_asset_manifest_path(path.to_string_lossy().as_ref(), &models_root)?;
+    Ok(Some(canonical_path.to_string_lossy().to_string()))
+}
+
 fn copy_file_with_progress<F, C>(
     mut reader: std::fs::File,
     dest: &std::path::Path,

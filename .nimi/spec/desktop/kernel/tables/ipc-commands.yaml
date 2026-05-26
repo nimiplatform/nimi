@@ -231,11 +231,6 @@ commands:
     description: Reveal the runtime models root folder in the system file manager
     source_rule: D-IPC-011
 
-  - command: runtime_local_assets_scan_unregistered
-    module: local-runtime
-    description: Host-local unregistered asset helper; if shipped product paths have runtime scan coverage, runtime remains the only truth source
-    source_rule: D-IPC-011
-
   - command: runtime_local_assets_rescan_bundle
     module: local-runtime
     description: Re-scan a previously imported asset bundle directory; execution truth is RuntimeLocalService

@@ -104,7 +104,6 @@ export {
 // runtime_local_assets_rescan_bundle
 // runtime_local_assets_reveal_in_folder
 // runtime_local_assets_reveal_root_folder
-// runtime_local_assets_scan_unregistered
 
 function toInt64String(value: unknown): string {
   const number = Number(value);

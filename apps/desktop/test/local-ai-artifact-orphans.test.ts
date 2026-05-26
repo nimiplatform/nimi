@@ -49,7 +49,7 @@ const localModelCenterHelpersSource = readFileSync(localModelCenterHelpersPath, 
 
 test('local runtime exposes unified asset intake command surface', () => {
   assert.match(runtimeCommandsSource, /runtime\.scanUnregisteredAssets\(\{\}\)/);
-  assert.match(runtimeCommandsFacadeSource, /runtime_local_assets_scan_unregistered/);
+  assert.doesNotMatch(runtimeCommandsFacadeSource, /runtime_local_assets_scan_unregistered/);
   assert.match(runtimeCommandPickersSource, /runtime_local_pick_asset_manifest_path/);
   assert.match(runtimeCommandsSource, /export async function scanLocalRuntimeUnregisteredAssets/);
   assert.match(runtimeCommandsSource, /export async function importLocalRuntimeAssetFile/);

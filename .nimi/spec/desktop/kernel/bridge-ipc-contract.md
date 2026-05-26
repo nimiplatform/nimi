@@ -226,7 +226,6 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 - `runtime_local_models_catalog_list_variants`：host-local catalog helper；不得被视为模型清单、安装状态或 transfer 真源。
 - `runtime_local_recommendation_feed_get`：host-local recommendation helper；install/import/download/lifecycle 真源仍是 `RuntimeLocalService`。
 - `runtime_local_assets_reveal_in_folder` / `runtime_local_assets_reveal_root_folder`：在系统文件管理器中打开目录。
-- `runtime_local_assets_scan_unregistered`：host-local intake helper。若产品路径已通过 runtime `ScanUnregisteredAssets` 获得同等结果，则前者不得再被当作权威扫描源。
 - `runtime_local_pick_asset_manifest_path`：统一选取 `resolved/<local-asset-id>/asset.manifest.json`。
 - `runtime_local_pick_asset_directory`：选取 bundle 目录，供 bundle import / rescan helper 使用。
 - `runtime_local_pick_asset_file`：选取任意待导入的 asset 文件。
@@ -242,14 +241,13 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 - helper IPC 若返回 speech 相关状态，只能被 renderer 投影为 runtime-owned bundle state；不得据此创建独立 Desktop persisted speech bundle owner。
 - Desktop Local Model Center 不得再暴露手动 start/stop toggle；本地模型 readiness 必须直接反映 runtime 状态。
 - 自动纳管只适用于 go-runtime 已有结构化 local model record 的模型，以及 verified/catalog/manual-download 已携带显式 declaration 的 intake 来源。
-- 用户直接 copy 到 `~/.nimi/models` 的裸文件必须统一进入 `runtime_local_assets_scan_unregistered` intake：
+- 用户直接 copy 到 `~/.nimi/models` 的裸文件必须统一进入 RuntimeLocalService `ScanUnregisteredAssets` intake：
   - 根目录或未知目录文件不得静默纳管；
   - 识别到 typed folder（`chat` / `image` / `video` / `tts` / `stt` / `vae` / `ae` / `clip` / `controlnet` / `lora` / `auxiliary`）时，可视为 high-confidence declaration；
   - high-confidence 且 declaration 完整的项允许自动导入；
   - low-confidence 项只允许预填 review UI，不得静默注册。
 - recommendation 审计仅覆盖 request-driven resolve 面，不覆盖 installed list 之类的被动刷新：
   - `runtime_local_models_catalog_list_variants`
-  - `runtime_local_assets_scan_unregistered`
   - `runtime_local_recommendation_feed_get`
 - 上述入口的 recommendation 解析沿现有 local runtime audit 面记录：
   - `recommendation_resolve_invoked`

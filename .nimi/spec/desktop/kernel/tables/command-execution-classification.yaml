@@ -338,22 +338,6 @@ registered_command_families:
       - cpu_hash_or_codec
     source_rule: D-GATE-094
 
-  - family: local_runtime_asset_runtime_controls
-    match:
-      exact:
-        - runtime_local_assets_scan_unregistered
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: local-runtime-assets
-    execution_class: request_response_async
-    remediation_required: false
-    admitted_risks:
-      - runtime_bridge_block_on
-      - block_on_variants
-      - std_fs
-      - spawn_blocking
-      - sync_lock_contention
-    source_rule: D-GATE-094
-
   - family: chat_local_stores
     match:
       regex: "^chat_(ai|agent)_.*$"
