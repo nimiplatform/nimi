@@ -72,10 +72,10 @@ func TestLoadRegistry_FailsOnMissingFields(t *testing.T) {
 }
 
 func TestLoadRegistry_RejectsNonNimiAppPackageKind(t *testing.T) {
-	bad := strings.Replace(sampleRegistryYAML, "package_kind: nimi-app", "package_kind: public-mod", 1)
+	bad := strings.Replace(sampleRegistryYAML, "package_kind: nimi-app", "package_kind: external-app", 1)
 	_, err := LoadRegistry(strings.NewReader(bad))
 	if err == nil {
-		t.Fatal("LoadRegistry accepted package_kind=public-mod")
+		t.Fatal("LoadRegistry accepted package_kind=external-app")
 	}
 	if !errors.Is(err, ErrAppUnknownPackageKind) {
 		t.Errorf("error = %v, want wrapped ErrAppUnknownPackageKind", err)
@@ -149,8 +149,8 @@ func TestLoadRegistry_RejectsNonCanonicalOrdinaryVisibility(t *testing.T) {
 }
 
 func TestPackageKind_RejectsNonNimiApp(t *testing.T) {
-	if PackageKind("public-mod").Valid() {
-		t.Error("public-mod must not be valid PackageKind")
+	if PackageKind("external-app").Valid() {
+		t.Error("external-app must not be valid PackageKind")
 	}
 	if PackageKind("extension").Valid() {
 		t.Error("extension must not be valid PackageKind")

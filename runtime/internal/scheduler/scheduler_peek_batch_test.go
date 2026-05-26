@@ -62,15 +62,15 @@ func TestPeekDependencyDenialFires(t *testing.T) {
 	s := New(Config{GlobalConcurrency: 4, PerAppConcurrency: 2})
 	s.SetResourceAssessor(func() *ResourceSnapshot { return healthyResourceSnapshot() })
 	s.SetRiskThresholds(defaultRiskThresholds())
-	s.SetDependencyFeasibilityChecker(func(modID, profileID, capability string) (bool, string) {
-		if modID == "core:runtime" && profileID == "image-gpu-profile" {
+	s.SetDependencyFeasibilityChecker(func(targetID, profileID, capability string) (bool, string) {
+		if targetID == "core:runtime" && profileID == "image-gpu-profile" {
 			return false, "GPU required but not available for engine cuda"
 		}
 		return true, ""
 	})
 
 	j := peekSingleTarget(s, "app-a", SchedulingEvaluationTarget{
-		ModID:     "core:runtime",
+		TargetID:     "core:runtime",
 		ProfileID: "image-gpu-profile",
 	})
 	if j.State != StateDenied {
@@ -85,13 +85,13 @@ func TestPeekDependencyDenialSkippedWithoutProfileID(t *testing.T) {
 	s := New(Config{GlobalConcurrency: 4, PerAppConcurrency: 2})
 	s.SetResourceAssessor(func() *ResourceSnapshot { return healthyResourceSnapshot() })
 	s.SetRiskThresholds(defaultRiskThresholds())
-	s.SetDependencyFeasibilityChecker(func(modID, profileID, capability string) (bool, string) {
+	s.SetDependencyFeasibilityChecker(func(targetID, profileID, capability string) (bool, string) {
 		t.Fatal("checker should not be called without profileID")
 		return true, ""
 	})
 
 	j := peekSingleTarget(s, "app-a", SchedulingEvaluationTarget{
-		ModID: "core:runtime",
+		TargetID: "core:runtime",
 	})
 	if j.State == StateDenied {
 		t.Fatal("should not deny without profileID")
@@ -105,7 +105,7 @@ func TestPeekDependencyDenialSkippedWithoutChecker(t *testing.T) {
 	// No dependency checker set
 
 	j := peekSingleTarget(s, "app-a", SchedulingEvaluationTarget{
-		ModID:     "core:runtime",
+		TargetID:     "core:runtime",
 		ProfileID: "some-profile",
 	})
 	// Without checker, profile identity is ignored 鈥?should not deny
@@ -118,12 +118,12 @@ func TestPeekDependencyDenialFeasibleContinuesToRiskAssessment(t *testing.T) {
 	s := New(Config{GlobalConcurrency: 4, PerAppConcurrency: 2})
 	s.SetResourceAssessor(func() *ResourceSnapshot { return healthyResourceSnapshot() })
 	s.SetRiskThresholds(defaultRiskThresholds())
-	s.SetDependencyFeasibilityChecker(func(modID, profileID, capability string) (bool, string) {
+	s.SetDependencyFeasibilityChecker(func(targetID, profileID, capability string) (bool, string) {
 		return true, "" // feasible 鈥?continue to risk assessment
 	})
 
 	j := peekSingleTarget(s, "app-a", SchedulingEvaluationTarget{
-		ModID:     "core:runtime",
+		TargetID:     "core:runtime",
 		ProfileID: "ok-profile",
 	})
 	if j.State != StateRunnable {
@@ -138,13 +138,13 @@ func TestPeekStaticDenialTakesPrecedenceOverDependencyDenial(t *testing.T) {
 	s.RegisterDenialCheck(func() (bool, string) {
 		return true, "static denial: no GPU"
 	})
-	s.SetDependencyFeasibilityChecker(func(modID, profileID, capability string) (bool, string) {
+	s.SetDependencyFeasibilityChecker(func(targetID, profileID, capability string) (bool, string) {
 		t.Fatal("dependency checker should not run when static denial fires first")
 		return true, ""
 	})
 
 	j := peekSingleTarget(s, "app-a", SchedulingEvaluationTarget{
-		ModID:     "core:runtime",
+		TargetID:     "core:runtime",
 		ProfileID: "some-profile",
 	})
 	if j.State != StateDenied {
@@ -159,7 +159,7 @@ func TestPeekBatchAggregatePrecedenceAndTargetFold(t *testing.T) {
 	s := New(Config{GlobalConcurrency: 4, PerAppConcurrency: 2})
 	s.SetResourceAssessor(func() *ResourceSnapshot { return healthyResourceSnapshot() })
 	s.SetRiskThresholds(defaultRiskThresholds())
-	s.SetDependencyFeasibilityChecker(func(modID, profileID, capability string) (bool, string) {
+	s.SetDependencyFeasibilityChecker(func(targetID, profileID, capability string) (bool, string) {
 		if profileID == "blocked-profile" {
 			return false, "dependency missing"
 		}
@@ -169,8 +169,8 @@ func TestPeekBatchAggregatePrecedenceAndTargetFold(t *testing.T) {
 	result := s.Peek(context.Background(), PeekInput{
 		AppID: "app-a",
 		Targets: []SchedulingEvaluationTarget{
-			{Capability: "text.generate", ModID: "core:runtime", ProfileID: "ok-profile"},
-			{Capability: "image.generate", ModID: "core:runtime", ProfileID: "blocked-profile"},
+			{Capability: "text.generate", TargetID: "core:runtime", ProfileID: "ok-profile"},
+			{Capability: "image.generate", TargetID: "core:runtime", ProfileID: "blocked-profile"},
 		},
 	})
 
@@ -223,15 +223,15 @@ func TestPeekBatchDeniedDoesNotPolluteOtherTargets(t *testing.T) {
 	s := New(Config{GlobalConcurrency: 4, PerAppConcurrency: 2})
 	s.SetResourceAssessor(func() *ResourceSnapshot { return healthyResourceSnapshot() })
 	s.SetRiskThresholds(defaultRiskThresholds())
-	s.SetDependencyFeasibilityChecker(func(modID, profileID, capability string) (bool, string) {
+	s.SetDependencyFeasibilityChecker(func(targetID, profileID, capability string) (bool, string) {
 		return profileID != "bad-profile", "dependency unavailable"
 	})
 
 	result := s.Peek(context.Background(), PeekInput{
 		AppID: "app-a",
 		Targets: []SchedulingEvaluationTarget{
-			{Capability: "text.generate", ModID: "core:runtime", ProfileID: "bad-profile"},
-			{Capability: "video.generate", ModID: "core:runtime", ProfileID: "good-profile"},
+			{Capability: "text.generate", TargetID: "core:runtime", ProfileID: "bad-profile"},
+			{Capability: "video.generate", TargetID: "core:runtime", ProfileID: "good-profile"},
 		},
 	})
 

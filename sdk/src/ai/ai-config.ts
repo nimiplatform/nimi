@@ -18,9 +18,7 @@ import type { RuntimeRouteBinding } from './runtime-route.js';
 // AIScopeRef  (P-AISC-001)
 // ---------------------------------------------------------------------------
 
-// The `mod` literal is retained only to read historical AIConfig evidence.
-// New callers must not mint mod-scoped AIConfig records.
-export type AIScopeKind = 'app' | 'mod' | 'module' | 'feature';
+export type AIScopeKind = 'app' | 'module' | 'feature';
 
 /** Canonical identity for an AI configuration scope. */
 export type AIScopeRef = {
@@ -34,7 +32,7 @@ export type AIScopeRef = {
 // ---------------------------------------------------------------------------
 
 export type AIRuntimeLocalProfileRef = {
-  modId: string;
+  targetId: string;
   profileId: string;
 };
 
@@ -260,7 +258,7 @@ export type AISchedulingResourceHint = {
 /** K-SCHED-002: Atomic scheduling evaluation target. */
 export type AISchedulingEvaluationTarget = {
   capability: string;
-  modId?: string | null;
+  targetId?: string | null;
   profileId?: string | null;
   resourceHint?: AISchedulingResourceHint | null;
 };
@@ -278,8 +276,6 @@ export type AISchedulingJudgement = {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_SCOPE: AIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
-const CANONICAL_MOD_SCOPE_SURFACE_ID = 'workspace';
-
 // ---------------------------------------------------------------------------
 // Built-in first-run chat scopes  (P-AISC-006 / S-AICONF-007)
 // ---------------------------------------------------------------------------
@@ -292,73 +288,9 @@ export type BuiltInChatSurfaceId = 'nimi' | 'agent';
 
 const BUILT_IN_CHAT_SURFACE_IDS: readonly BuiltInChatSurfaceId[] = ['nimi', 'agent'];
 
-function normalizeRequiredId(value: string, label: string): string {
-  const normalized = String(value || '').trim();
-  if (!normalized) {
-    throw createNimiError({
-      message: `${label} is required`,
-      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
-      actionHint: `provide_${label.replace(/\s+/g, '_')}`,
-      source: 'sdk',
-    });
-  }
-  return normalized;
-}
-
 /** Create the default app-level scope ref for Phase 1. */
 export function createDefaultAIScopeRef(): AIScopeRef {
   return { ...DEFAULT_SCOPE };
-}
-
-/** Create the canonical Phase 1 mod workspace scope ref. */
-export function createCanonicalModAIScopeRef(modId: string): AIScopeRef {
-  return {
-    kind: 'mod',
-    ownerId: normalizeRequiredId(modId, 'mod id'),
-    surfaceId: CANONICAL_MOD_SCOPE_SURFACE_ID,
-  };
-}
-
-/** True when the scope matches the canonical Phase 1 mod workspace scope. */
-export function isCanonicalModAIScopeRef(
-  scopeRef: AIScopeRef | null | undefined,
-  modId: string,
-): boolean {
-  if (!scopeRef) {
-    return false;
-  }
-  const normalizedModId = String(modId || '').trim();
-  if (!normalizedModId) {
-    return false;
-  }
-  return scopeRef.kind === 'mod'
-    && String(scopeRef.ownerId || '').trim() === normalizedModId
-    && String(scopeRef.surfaceId || '').trim() === CANONICAL_MOD_SCOPE_SURFACE_ID;
-}
-
-/** Assert that the caller provided the canonical Phase 1 mod workspace scope. */
-export function assertCanonicalModAIScopeRef(
-  scopeRef: AIScopeRef | null | undefined,
-  modId: string,
-): AIScopeRef {
-  const canonicalScopeRef = createCanonicalModAIScopeRef(modId);
-  if (!scopeRef) {
-    throw createNimiError({
-      message: 'mod AIConfig scopeRef is required',
-      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
-      actionHint: 'provide_explicit_mod_scope_ref',
-      source: 'sdk',
-    });
-  }
-  if (!isCanonicalModAIScopeRef(scopeRef, canonicalScopeRef.ownerId)) {
-    throw createNimiError({
-      message: `mod AIConfig scopeRef must equal ${canonicalScopeRef.kind}:${canonicalScopeRef.ownerId}:${canonicalScopeRef.surfaceId}`,
-      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
-      actionHint: 'use_canonical_mod_workspace_scope_ref',
-      source: 'sdk',
-    });
-  }
-  return canonicalScopeRef;
 }
 
 /**

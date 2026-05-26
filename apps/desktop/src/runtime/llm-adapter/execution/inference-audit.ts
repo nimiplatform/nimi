@@ -18,7 +18,7 @@ export type InferenceAuditModality =
 
 export type InferenceAuditInput = {
   eventType: 'inference_invoked' | 'inference_failed' | 'fallback_to_cloud';
-  modId: string;
+  targetId: string;
   source: InferenceRouteSource;
   routeSource?: InferenceRouteSource;
   provider: string;
@@ -136,7 +136,7 @@ export function emitInferenceAudit(input: InferenceAuditInput): void {
     area: 'local-ai-runtime-audit',
     message: input.eventType,
     details: {
-      modId: input.modId,
+      targetId: input.targetId,
       source: input.source,
       routeSource: input.routeSource || input.source,
       provider: input.provider,
@@ -164,7 +164,7 @@ export function emitInferenceAudit(input: InferenceAuditInput): void {
       message: 'inference_audit_skip_persist_non_standard_modality',
       details: {
         eventType: input.eventType,
-        modId: input.modId,
+        targetId: input.targetId,
         modality: input.modality,
       },
     });
@@ -173,7 +173,7 @@ export function emitInferenceAudit(input: InferenceAuditInput): void {
 
   void localRuntime.appendInferenceAudit({
     eventType: input.eventType,
-    modId: input.modId,
+    targetId: input.targetId,
     source: input.source,
     routeSource: input.routeSource || input.source,
     provider: input.provider,
@@ -198,7 +198,7 @@ export function emitInferenceAudit(input: InferenceAuditInput): void {
       message: 'inference_audit_persist_failed',
       details: {
         eventType: input.eventType,
-        modId: input.modId,
+        targetId: input.targetId,
         reasonCode: ReasonCode.LOCAL_AI_AUDIT_WRITE_FAILED,
         detail: error instanceof Error ? error.message : String(error || ''),
       },

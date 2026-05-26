@@ -34,7 +34,7 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 
 	result := &runtimev1.LocalExecutionApplyResult{
 		PlanId:             plan.GetPlanId(),
-		ModId:              plan.GetModId(),
+		TargetId:              plan.GetTargetId(),
 		Entries:            make([]*runtimev1.LocalExecutionEntryDescriptor, 0, len(plan.GetEntries())),
 		InstalledAssets:    []*runtimev1.LocalAssetRecord{},
 		Services:           []*runtimev1.LocalServiceDescriptor{},

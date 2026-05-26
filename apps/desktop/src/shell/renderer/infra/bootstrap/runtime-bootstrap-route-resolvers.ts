@@ -22,8 +22,8 @@ function buildLocalSelector(modelId: string, engine: string): string {
     return normalizedModelId ? `${normalizedEngine}/${normalizedModelId}` : normalizedEngine;
 }
 export function createResolveRuntimeBinding(getRuntimeFields: () => RuntimeFields) {
-    return async ({ modId: _modId, binding }: {
-        modId?: string;
+    return async ({ targetId: _targetId, binding }: {
+        targetId?: string;
         binding?: RuntimeRouteBinding;
     }): Promise<ResolvedRuntimeRouteBinding> => {
         const fields = getRuntimeFields();

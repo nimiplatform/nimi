@@ -42,7 +42,7 @@ message SchedulingResourceHint {
 // K-SCHED-002: Atomic scheduling evaluation target.
 message SchedulingEvaluationTarget {
   string capability = 1;
-  string mod_id = 2;
+  string target_id = 2;
   string profile_id = 3;
   SchedulingResourceHint resource_hint = 4;
 }

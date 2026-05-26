@@ -310,7 +310,7 @@ export function parseProfileResolutionPlan(value: unknown): LocalRuntimeProfileR
     : [];
   return {
     planId: asString(record.planId),
-    modId: asString(record.modId),
+    targetId: asString(record.targetId),
     profileId: asString(record.profileId),
     title: asString(record.title),
     description: asString(record.description) || undefined,
@@ -336,7 +336,7 @@ export function parseProfileApplyResult(value: unknown): LocalRuntimeProfileAppl
     : [];
   return {
     planId: asString(record.planId),
-    modId: asString(record.modId),
+    targetId: asString(record.targetId),
     profileId: asString(record.profileId),
     executionResult: parseExecutionApplyResult(record.executionResult),
     installedAssets,
@@ -350,7 +350,7 @@ export function parseProfileApplyAccepted(value: unknown): LocalRuntimeProfileAp
   return {
     applySessionId: asString(record.applySessionId),
     planId: asString(record.planId),
-    modId: asString(record.modId),
+    targetId: asString(record.targetId),
     profileId: asString(record.profileId),
   };
 }
@@ -361,7 +361,7 @@ export function parseProfileApplyProgressEvent(value: unknown): LocalRuntimeProf
   return {
     applySessionId: asString(record.applySessionId),
     planId: asString(record.planId),
-    modId: asString(record.modId),
+    targetId: asString(record.targetId),
     profileId: asString(record.profileId),
     phase: asString(record.phase),
     status,
@@ -382,7 +382,7 @@ export function normalizeEngineRuntimeMode(value: unknown): LocalRuntimeEngineRu
     return value === 1 ? 'supervised' : 'attached-endpoint';
   }
   const normalized = asString(value);
-  if (normalized === 'LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED' || normalized === '1') {
+  if (normalized === 'LOCAL_ENGINE_RUNTIME_PACKAGEE_SUPERVISED' || normalized === '1') {
     return 'supervised';
   }
   return asString(value) === 'supervised' ? 'supervised' : 'attached-endpoint';
@@ -573,7 +573,7 @@ export function parseExecutionApplyResult(value: unknown): LocalRuntimeExecution
     : [];
   return {
     planId: asString(record.planId),
-    modId: asString(record.modId),
+    targetId: asString(record.targetId),
     entries,
     installedAssets,
     services,

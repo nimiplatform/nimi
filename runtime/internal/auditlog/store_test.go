@@ -115,7 +115,7 @@ func TestStoreListUsageByCallerKindAndCapability(t *testing.T) {
 		Timestamp:     now,
 		AppID:         "nimi.desktop",
 		SubjectUserID: "user-001",
-		CallerKind:    runtimev1.CallerKind_CALLER_KIND_DESKTOP_MOD,
+		CallerKind:    runtimev1.CallerKind_CALLER_KIND_THIRD_PARTY_APP,
 		CallerID:      "mod-test-ai",
 		Capability:    "runtime.ai.generate",
 		Success:       true,

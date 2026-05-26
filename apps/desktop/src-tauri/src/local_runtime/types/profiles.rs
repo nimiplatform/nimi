@@ -54,7 +54,7 @@ pub struct LocalAiProfileDescriptor {
 #[serde(rename_all = "camelCase")]
 pub struct LocalAiProfileResolutionPlan {
     pub plan_id: String,
-    pub mod_id: String,
+    pub target_id: String,
     pub profile_id: String,
     pub title: String,
     pub description: Option<String>,
@@ -74,7 +74,7 @@ pub struct LocalAiProfileResolutionPlan {
 #[serde(rename_all = "camelCase")]
 pub struct LocalAiProfileApplyResult {
     pub plan_id: String,
-    pub mod_id: String,
+    pub target_id: String,
     pub profile_id: String,
     pub execution_result: LocalAiDependencyApplyResult,
     #[serde(default)]
@@ -89,7 +89,7 @@ pub struct LocalAiProfileApplyResult {
 pub struct LocalAiProfileApplyAccepted {
     pub apply_session_id: String,
     pub plan_id: String,
-    pub mod_id: String,
+    pub target_id: String,
     pub profile_id: String,
 }
 
@@ -104,7 +104,7 @@ pub struct LocalAiProfileApplyStatusPayload {
 pub struct LocalAiProfileApplyProgressEvent {
     pub apply_session_id: String,
     pub plan_id: String,
-    pub mod_id: String,
+    pub target_id: String,
     pub profile_id: String,
     pub phase: String,
     pub status: String,

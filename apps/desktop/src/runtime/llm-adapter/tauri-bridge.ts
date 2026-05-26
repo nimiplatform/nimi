@@ -11,13 +11,13 @@ export async function tauriInvoke<T>(command: string, payload: unknown = {}): Pr
   return await invokeTauri<T>(command, payload);
 }
 
-export type RuntimeModMediaCachePutInput = {
+export type RuntimePackageMediaCachePutInput = {
   mediaBase64: string;
   mimeType: string;
   extensionHint?: string;
 };
 
-export type RuntimeModMediaCachePutResult = {
+export type RuntimePackageMediaCachePutResult = {
   cacheKey: string;
   filePath: string;
   uri: string;
@@ -26,14 +26,14 @@ export type RuntimeModMediaCachePutResult = {
   existed: boolean;
 };
 
-export type RuntimeModMediaCacheGcResult = {
+export type RuntimePackageMediaCacheGcResult = {
   scannedCount: number;
   removedCount: number;
   removedBytes: number;
   retainedCount: number;
 };
 
-function parseMediaCachePutResult(value: unknown): RuntimeModMediaCachePutResult | null {
+function parseMediaCachePutResult(value: unknown): RuntimePackageMediaCachePutResult | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null;
   }
@@ -56,7 +56,7 @@ function parseMediaCachePutResult(value: unknown): RuntimeModMediaCachePutResult
   };
 }
 
-function parseMediaCacheGcResult(value: unknown): RuntimeModMediaCacheGcResult | null {
+function parseMediaCacheGcResult(value: unknown): RuntimePackageMediaCacheGcResult | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null;
   }
@@ -76,15 +76,15 @@ function parseMediaCacheGcResult(value: unknown): RuntimeModMediaCacheGcResult |
   };
 }
 
-export async function runtimeModMediaCachePut(
-  input: RuntimeModMediaCachePutInput,
-): Promise<RuntimeModMediaCachePutResult> {
+export async function runtimePackageMediaCachePut(
+  input: RuntimePackageMediaCachePutInput,
+): Promise<RuntimePackageMediaCachePutResult> {
   if (!hasTauriRuntime()) {
-    throw new Error('RUNTIME_MOD_MEDIA_CACHE_UNAVAILABLE');
+    throw new Error('RUNTIME_PACKAGE_MEDIA_CACHE_UNAVAILABLE');
   }
   const mimeType = String(input.mimeType || '').trim();
   if (!mimeType) {
-    throw new Error('RUNTIME_MOD_MEDIA_CACHE_MIME_TYPE_REQUIRED');
+    throw new Error('RUNTIME_PACKAGE_MEDIA_CACHE_MIME_TYPE_REQUIRED');
   }
   try {
     const result = await invokeTauri('runtime_mod_media_cache_put', {
@@ -96,18 +96,18 @@ export async function runtimeModMediaCachePut(
     });
     const parsed = parseMediaCachePutResult(result);
     if (!parsed) {
-      throw new Error('RUNTIME_MOD_MEDIA_CACHE_INVALID_RESULT');
+      throw new Error('RUNTIME_PACKAGE_MEDIA_CACHE_INVALID_RESULT');
     }
     return parsed;
   } catch (error) {
     if (error instanceof Error) {
       throw error;
     }
-    throw new Error('RUNTIME_MOD_MEDIA_CACHE_PUT_FAILED', { cause: error });
+    throw new Error('RUNTIME_PACKAGE_MEDIA_CACHE_PUT_FAILED', { cause: error });
   }
 }
 
-export async function runtimeModMediaCacheGc(maxAgeSeconds?: number): Promise<RuntimeModMediaCacheGcResult | null> {
+export async function runtimePackageMediaCacheGc(maxAgeSeconds?: number): Promise<RuntimePackageMediaCacheGcResult | null> {
   if (!hasTauriRuntime()) {
     return null;
   }

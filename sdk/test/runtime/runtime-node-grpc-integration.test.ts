@@ -104,7 +104,7 @@ function createStreamGenerateRequest(): StreamScenarioRequest {
   return {
     head: {
       appId: APP_ID,
-      subjectUserId: 'mod:test-ai',
+      subjectUserId: 'external-principal:test-ai',
       modelId: 'llama3',
       routePolicy: RoutePolicy.LOCAL,
       fallback: FallbackPolicy.DENY,

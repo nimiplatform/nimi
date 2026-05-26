@@ -9,7 +9,7 @@ export type ExternalAgentActionRiskLevel = 'low' | 'medium' | 'high';
 
 export type ExternalAgentActionDescriptor = {
   actionId: string;
-  modId: string;
+  targetId: string;
   sourceType: string;
   description?: string;
   operation: 'read' | 'write';
@@ -131,7 +131,7 @@ export function parseExternalAgentActionDescriptors(value: unknown): ExternalAge
       : 'none';
     return {
       actionId: parseRequiredString(record.actionId, 'actionId', 'external-agent action descriptor'),
-      modId: parseRequiredString(record.modId, 'modId', 'external-agent action descriptor'),
+      targetId: parseRequiredString(record.targetId, 'targetId', 'external-agent action descriptor'),
       sourceType: parseRequiredString(record.sourceType, 'sourceType', 'external-agent action descriptor'),
       description: parseOptionalString(record.description),
       operation,

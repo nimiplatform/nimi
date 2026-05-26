@@ -107,7 +107,7 @@ export type LocalRuntimeExecutionStageResult = {
 
 export type LocalRuntimeExecutionPlan = {
   planId: string;
-  modId: string;
+  targetId: string;
   capability?: string;
   deviceProfile: LocalRuntimeDeviceProfile;
   entries: LocalRuntimeExecutionEntryDescriptor[];
@@ -119,7 +119,7 @@ export type LocalRuntimeExecutionPlan = {
 
 export type LocalRuntimeExecutionApplyResult = {
   planId: string;
-  modId: string;
+  targetId: string;
   entries: LocalRuntimeExecutionEntryDescriptor[];
   installedAssets: LocalRuntimeAssetRecord[];
   services: LocalRuntimeServiceDescriptor[];

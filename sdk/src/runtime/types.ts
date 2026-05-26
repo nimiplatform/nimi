@@ -14,7 +14,6 @@ export type * from './runtime-artifacts.js';
 
 export type RuntimeCallerKind =
   | 'desktop-core'
-  | 'desktop-mod'
   | 'third-party-app'
   | 'third-party-service';
 

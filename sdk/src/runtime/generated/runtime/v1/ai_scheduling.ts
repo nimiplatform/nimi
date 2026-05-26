@@ -91,9 +91,9 @@ export interface SchedulingEvaluationTarget {
      */
     capability: string;
     /**
-     * @generated from protobuf field: string mod_id = 2
+     * @generated from protobuf field: string target_id = 2
      */
-    modId: string;
+    targetId: string;
     /**
      * @generated from protobuf field: string profile_id = 3
      */
@@ -402,7 +402,7 @@ class SchedulingEvaluationTarget$Type extends MessageType<SchedulingEvaluationTa
     constructor() {
         super("nimi.runtime.v1.SchedulingEvaluationTarget", [
             { no: 1, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "mod_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "target_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "resource_hint", kind: "message", T: () => SchedulingResourceHint }
         ]);
@@ -410,7 +410,7 @@ class SchedulingEvaluationTarget$Type extends MessageType<SchedulingEvaluationTa
     create(value?: PartialMessage<SchedulingEvaluationTarget>): SchedulingEvaluationTarget {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.capability = "";
-        message.modId = "";
+        message.targetId = "";
         message.profileId = "";
         if (value !== undefined)
             reflectionMergePartial<SchedulingEvaluationTarget>(this, message, value);
@@ -424,8 +424,8 @@ class SchedulingEvaluationTarget$Type extends MessageType<SchedulingEvaluationTa
                 case /* string capability */ 1:
                     message.capability = reader.string();
                     break;
-                case /* string mod_id */ 2:
-                    message.modId = reader.string();
+                case /* string target_id */ 2:
+                    message.targetId = reader.string();
                     break;
                 case /* string profile_id */ 3:
                     message.profileId = reader.string();
@@ -448,9 +448,9 @@ class SchedulingEvaluationTarget$Type extends MessageType<SchedulingEvaluationTa
         /* string capability = 1; */
         if (message.capability !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.capability);
-        /* string mod_id = 2; */
-        if (message.modId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.modId);
+        /* string target_id = 2; */
+        if (message.targetId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.targetId);
         /* string profile_id = 3; */
         if (message.profileId !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.profileId);

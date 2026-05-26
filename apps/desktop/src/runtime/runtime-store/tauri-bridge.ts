@@ -2,7 +2,7 @@ import { hasTauriInvoke, invokeTauri } from '../tauri-api';
 
 type RuntimeAuditRecord = {
   id: string;
-  modId?: string;
+  targetId?: string;
   stage?: string;
   eventType: string;
   decision?: string;
@@ -75,16 +75,16 @@ export type RuntimeExternalAgentContextVerificationInput = {
   bridgeExecutionId?: string;
 };
 
-export type RuntimeModStorageFileKind = 'file' | 'directory';
+export type RuntimePackageStorageFileKind = 'file' | 'directory';
 
-export type RuntimeModStorageFileEntry = {
+export type RuntimePackageStorageFileEntry = {
   path: string;
-  kind: RuntimeModStorageFileKind;
+  kind: RuntimePackageStorageFileKind;
   sizeBytes: number;
   modifiedAt?: string;
 };
 
-export type RuntimeModStorageFileReadResult = {
+export type RuntimePackageStorageFileReadResult = {
   path: string;
   text?: string;
   bytes?: Uint8Array;
@@ -92,22 +92,22 @@ export type RuntimeModStorageFileReadResult = {
   modifiedAt?: string;
 };
 
-export type RuntimeModStorageFileWriteResult = {
+export type RuntimePackageStorageFileWriteResult = {
   path: string;
   sizeBytes: number;
   modifiedAt?: string;
 };
 
-export type RuntimeModStorageSqliteStatement = {
+export type RuntimePackageStorageSqliteStatement = {
   sql: string;
   params?: unknown[];
 };
 
-export type RuntimeModStorageSqliteQueryResult = {
+export type RuntimePackageStorageSqliteQueryResult = {
   rows: Record<string, unknown>[];
 };
 
-export type RuntimeModStorageSqliteExecuteResult = {
+export type RuntimePackageStorageSqliteExecuteResult = {
   rowsAffected: number;
   lastInsertRowid: number;
 };
@@ -125,7 +125,7 @@ function asObject(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function parseStorageFileEntry(value: unknown): RuntimeModStorageFileEntry | null {
+function parseStorageFileEntry(value: unknown): RuntimePackageStorageFileEntry | null {
   const row = asObject(value);
   const path = String(row.path || '').trim();
   const kind = String(row.kind || '').trim() === 'directory' ? 'directory' : 'file';
@@ -142,7 +142,7 @@ function parseStorageFileEntry(value: unknown): RuntimeModStorageFileEntry | nul
   };
 }
 
-function parseStorageFileReadResult(value: unknown): RuntimeModStorageFileReadResult | null {
+function parseStorageFileReadResult(value: unknown): RuntimePackageStorageFileReadResult | null {
   const row = asObject(value);
   const path = String(row.path || '').trim();
   const sizeBytes = Number(row.sizeBytes);
@@ -167,7 +167,7 @@ function parseStorageFileReadResult(value: unknown): RuntimeModStorageFileReadRe
   };
 }
 
-function parseStorageFileWriteResult(value: unknown): RuntimeModStorageFileWriteResult | null {
+function parseStorageFileWriteResult(value: unknown): RuntimePackageStorageFileWriteResult | null {
   const row = asObject(value);
   const path = String(row.path || '').trim();
   const sizeBytes = Number(row.sizeBytes);
@@ -181,7 +181,7 @@ function parseStorageFileWriteResult(value: unknown): RuntimeModStorageFileWrite
   };
 }
 
-function parseStorageSqliteExecuteResult(value: unknown): RuntimeModStorageSqliteExecuteResult | null {
+function parseStorageSqliteExecuteResult(value: unknown): RuntimePackageStorageSqliteExecuteResult | null {
   const row = asObject(value);
   const rowsAffected = Number(row.rowsAffected);
   const lastInsertRowid = Number(row.lastInsertRowid);
@@ -207,7 +207,7 @@ export async function appendRuntimeAudit(record: RuntimeAuditRecord): Promise<vo
 }
 
 export async function queryRuntimeAudit(filter?: {
-  modId?: string;
+  targetId?: string;
   stage?: string;
   eventType?: string;
   from?: string;
@@ -226,7 +226,7 @@ export async function queryRuntimeAudit(filter?: {
 }
 
 export async function deleteRuntimeAudit(filter?: {
-  modId?: string;
+  targetId?: string;
   stage?: string;
   eventType?: string;
   from?: string;
@@ -457,17 +457,17 @@ export async function verifyExternalAgentExecutionContext(
   return result === true;
 }
 
-export async function readRuntimeModStorageText(input: {
-  modId: string;
+export async function readRuntimePackageStorageText(input: {
+  targetId: string;
   path: string;
-}): Promise<RuntimeModStorageFileReadResult> {
+}): Promise<RuntimePackageStorageFileReadResult> {
   const invoke = readGlobalTauriInvoke();
   if (!invoke) {
     throw new Error('runtime mod storage file read requires Tauri runtime');
   }
   const result = await invoke('runtime_mod_storage_file_read', {
     payload: {
-      modId: input.modId,
+      targetId: input.targetId,
       path: input.path,
       format: 'text',
     },
@@ -479,17 +479,17 @@ export async function readRuntimeModStorageText(input: {
   return parsed;
 }
 
-export async function readRuntimeModStorageBytes(input: {
-  modId: string;
+export async function readRuntimePackageStorageBytes(input: {
+  targetId: string;
   path: string;
-}): Promise<RuntimeModStorageFileReadResult> {
+}): Promise<RuntimePackageStorageFileReadResult> {
   const invoke = readGlobalTauriInvoke();
   if (!invoke) {
     throw new Error('runtime mod storage file read requires Tauri runtime');
   }
   const result = await invoke('runtime_mod_storage_file_read', {
     payload: {
-      modId: input.modId,
+      targetId: input.targetId,
       path: input.path,
       format: 'bytes',
     },
@@ -501,18 +501,18 @@ export async function readRuntimeModStorageBytes(input: {
   return parsed;
 }
 
-export async function writeRuntimeModStorageText(input: {
-  modId: string;
+export async function writeRuntimePackageStorageText(input: {
+  targetId: string;
   path: string;
   text: string;
-}): Promise<RuntimeModStorageFileWriteResult> {
+}): Promise<RuntimePackageStorageFileWriteResult> {
   const invoke = readGlobalTauriInvoke();
   if (!invoke) {
     throw new Error('runtime mod storage file write requires Tauri runtime');
   }
   const result = await invoke('runtime_mod_storage_file_write', {
     payload: {
-      modId: input.modId,
+      targetId: input.targetId,
       path: input.path,
       text: input.text,
     },
@@ -524,18 +524,18 @@ export async function writeRuntimeModStorageText(input: {
   return parsed;
 }
 
-export async function writeRuntimeModStorageBytes(input: {
-  modId: string;
+export async function writeRuntimePackageStorageBytes(input: {
+  targetId: string;
   path: string;
   bytes: Uint8Array;
-}): Promise<RuntimeModStorageFileWriteResult> {
+}): Promise<RuntimePackageStorageFileWriteResult> {
   const invoke = readGlobalTauriInvoke();
   if (!invoke) {
     throw new Error('runtime mod storage file write requires Tauri runtime');
   }
   const result = await invoke('runtime_mod_storage_file_write', {
     payload: {
-      modId: input.modId,
+      targetId: input.targetId,
       path: input.path,
       bytes: Array.from(input.bytes),
     },
@@ -547,8 +547,8 @@ export async function writeRuntimeModStorageBytes(input: {
   return parsed;
 }
 
-export async function deleteRuntimeModStoragePath(input: {
-  modId: string;
+export async function deleteRuntimePackageStoragePath(input: {
+  targetId: string;
   path: string;
 }): Promise<boolean> {
   const invoke = readGlobalTauriInvoke();
@@ -561,10 +561,10 @@ export async function deleteRuntimeModStoragePath(input: {
   return result === true;
 }
 
-export async function listRuntimeModStorage(input: {
-  modId: string;
+export async function listRuntimePackageStorage(input: {
+  targetId: string;
   path?: string;
-}): Promise<RuntimeModStorageFileEntry[]> {
+}): Promise<RuntimePackageStorageFileEntry[]> {
   const invoke = readGlobalTauriInvoke();
   if (!invoke) {
     throw new Error('runtime mod storage file list requires Tauri runtime');
@@ -577,13 +577,13 @@ export async function listRuntimeModStorage(input: {
   }
   return result
     .map(parseStorageFileEntry)
-    .filter((entry): entry is RuntimeModStorageFileEntry => Boolean(entry));
+    .filter((entry): entry is RuntimePackageStorageFileEntry => Boolean(entry));
 }
 
-export async function statRuntimeModStoragePath(input: {
-  modId: string;
+export async function statRuntimePackageStoragePath(input: {
+  targetId: string;
   path: string;
-}): Promise<RuntimeModStorageFileEntry | null> {
+}): Promise<RuntimePackageStorageFileEntry | null> {
   const invoke = readGlobalTauriInvoke();
   if (!invoke) {
     throw new Error('runtime mod storage file stat requires Tauri runtime');
@@ -601,11 +601,11 @@ export async function statRuntimeModStoragePath(input: {
   return parsed;
 }
 
-export async function queryRuntimeModStorageSqlite(input: {
-  modId: string;
+export async function queryRuntimePackageStorageSqlite(input: {
+  targetId: string;
   sql: string;
   params?: unknown[];
-}): Promise<RuntimeModStorageSqliteQueryResult> {
+}): Promise<RuntimePackageStorageSqliteQueryResult> {
   const invoke = readGlobalTauriInvoke();
   if (!invoke) {
     throw new Error('runtime mod storage sqlite query requires Tauri runtime');
@@ -621,11 +621,11 @@ export async function queryRuntimeModStorageSqlite(input: {
   };
 }
 
-export async function executeRuntimeModStorageSqlite(input: {
-  modId: string;
+export async function executeRuntimePackageStorageSqlite(input: {
+  targetId: string;
   sql: string;
   params?: unknown[];
-}): Promise<RuntimeModStorageSqliteExecuteResult> {
+}): Promise<RuntimePackageStorageSqliteExecuteResult> {
   const invoke = readGlobalTauriInvoke();
   if (!invoke) {
     throw new Error('runtime mod storage sqlite execute requires Tauri runtime');
@@ -640,10 +640,10 @@ export async function executeRuntimeModStorageSqlite(input: {
   return parsed;
 }
 
-export async function transactRuntimeModStorageSqlite(input: {
-  modId: string;
-  statements: RuntimeModStorageSqliteStatement[];
-}): Promise<RuntimeModStorageSqliteExecuteResult> {
+export async function transactRuntimePackageStorageSqlite(input: {
+  targetId: string;
+  statements: RuntimePackageStorageSqliteStatement[];
+}): Promise<RuntimePackageStorageSqliteExecuteResult> {
   const invoke = readGlobalTauriInvoke();
   if (!invoke) {
     throw new Error('runtime mod storage sqlite transaction requires Tauri runtime');
@@ -658,8 +658,8 @@ export async function transactRuntimeModStorageSqlite(input: {
   return parsed;
 }
 
-export async function purgeRuntimeModStorageData(input: {
-  modId: string;
+export async function purgeRuntimePackageStorageData(input: {
+  targetId: string;
 }): Promise<boolean> {
   const invoke = readGlobalTauriInvoke();
   if (!invoke) {

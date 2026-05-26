@@ -113,8 +113,6 @@ func parseCallerKindFilter(raw string) (runtimev1.CallerKind, error) {
 		return runtimev1.CallerKind_CALLER_KIND_UNSPECIFIED, nil
 	case "desktop-core", "desktop_core":
 		return runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE, nil
-	case "desktop-mod", "desktop_mod":
-		return runtimev1.CallerKind_CALLER_KIND_DESKTOP_MOD, nil
 	case "third-party-app", "third_party_app":
 		return runtimev1.CallerKind_CALLER_KIND_THIRD_PARTY_APP, nil
 	case "third-party-service", "third_party_service":

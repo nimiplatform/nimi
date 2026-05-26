@@ -293,7 +293,7 @@ mod tests {
 
     fn sample_scope() -> MemoryEmbeddingScopeRefPayload {
         MemoryEmbeddingScopeRefPayload {
-            kind: "mod".to_string(),
+            kind: "app".to_string(),
             owner_id: "world.nimi.test".to_string(),
             surface_id: Some("workspace".to_string()),
         }
@@ -454,7 +454,7 @@ mod tests {
     #[test]
     fn validate_scope_ref_requires_owner_id() {
         let err = super::validate_scope_ref(&MemoryEmbeddingScopeRefPayload {
-            kind: "mod".to_string(),
+            kind: "app".to_string(),
             owner_id: "".to_string(),
             surface_id: None,
         })
@@ -465,7 +465,7 @@ mod tests {
     #[test]
     fn validate_scope_ref_allows_minimal_shape() {
         super::validate_scope_ref(&MemoryEmbeddingScopeRefPayload {
-            kind: "mod".to_string(),
+            kind: "app".to_string(),
             owner_id: "world.nimi.minimal".to_string(),
             surface_id: None,
         })

@@ -116,7 +116,7 @@ pub struct LocalAiAuditsListPayload {
     pub source: Option<String>,
     pub modality: Option<String>,
     pub local_model_id: Option<String>,
-    pub mod_id: Option<String>,
+    pub target_id: Option<String>,
     pub reason_code: Option<String>,
     pub time_range: Option<LocalAiAuditTimeRangePayload>,
 }
@@ -125,7 +125,7 @@ pub struct LocalAiAuditsListPayload {
 #[serde(rename_all = "camelCase")]
 pub struct LocalAiInferenceAuditPayload {
     pub event_type: String,
-    pub mod_id: String,
+    pub target_id: String,
     pub source: String,
     pub route_source: Option<String>,
     pub provider: String,
@@ -157,7 +157,7 @@ pub struct LocalAiRuntimeAuditPayload {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalAiProfilesResolvePayload {
-    pub mod_id: String,
+    pub target_id: String,
     pub profile: LocalAiProfileDescriptor,
     pub capability: Option<String>,
     pub device_profile: Option<LocalAiDeviceProfile>,

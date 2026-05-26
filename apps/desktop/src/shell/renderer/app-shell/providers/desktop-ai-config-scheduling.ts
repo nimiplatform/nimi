@@ -19,7 +19,7 @@ export function resolveAIConfigScopeSchedulingTargets(
     const ref = localRefs[capability];
     targets.push({
       capability,
-      modId: ref?.modId || null,
+      targetId: ref?.targetId || null,
       profileId: ref?.profileId || null,
       resourceHint: null,
     });
@@ -38,7 +38,7 @@ export function resolveAIConfigSchedulingTargetForCapability(
   const ref = config.capabilities.localProfileRefs?.[capability];
   return {
     capability,
-    modId: ref?.modId || null,
+    targetId: ref?.targetId || null,
     profileId: ref?.profileId || null,
     resourceHint: null,
   };
@@ -65,7 +65,7 @@ export function normalizeSchedulingTarget(
   }
   return {
     capability,
-    modId: String(target.modId || '').trim() || null,
+    targetId: String(target.targetId || '').trim() || null,
     profileId: String(target.profileId || '').trim() || null,
     resourceHint: target.resourceHint ? {
       estimatedVramBytes: target.resourceHint.estimatedVramBytes ?? null,
@@ -81,16 +81,16 @@ export function schedulingTargetsEqual(
   right: AISchedulingEvaluationTarget,
 ): boolean {
   return left.capability === right.capability
-    && (left.modId || null) === (right.modId || null)
+    && (left.targetId || null) === (right.targetId || null)
     && (left.profileId || null) === (right.profileId || null);
 }
 
 export async function peekSchedulingBatch(
-  runtimeModId: string,
+  runtimePackageId: string,
   appId: string,
   targets: AISchedulingEvaluationTarget[],
 ): Promise<SchedulingBatchPeekResult | null> {
-  void runtimeModId;
+  void runtimePackageId;
   void appId;
   const normalizedTargets = targets
     .map((target) => normalizeSchedulingTarget(target))
@@ -102,10 +102,10 @@ export async function peekSchedulingBatch(
 }
 
 export async function peekAggregateSchedulingJudgement(
-  runtimeModId: string,
+  runtimePackageId: string,
   appId: string,
   targets: AISchedulingEvaluationTarget[],
 ): Promise<AISchedulingJudgement | null> {
-  const batchResult = await peekSchedulingBatch(runtimeModId, appId, targets);
+  const batchResult = await peekSchedulingBatch(runtimePackageId, appId, targets);
   return batchResult?.aggregateJudgement ?? null;
 }

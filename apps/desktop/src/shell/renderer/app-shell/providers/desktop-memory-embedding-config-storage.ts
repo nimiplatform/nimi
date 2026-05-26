@@ -76,6 +76,12 @@ function normalizeBindingRef(raw: unknown): MemoryEmbeddingBindingRef | null {
   return null;
 }
 
+function normalizeScopeRef(kind: string, ownerId: string, surfaceId: string | undefined): AIScopeRef {
+  return surfaceId
+    ? { kind: kind as AIScopeRef['kind'], ownerId, surfaceId }
+    : { kind: kind as AIScopeRef['kind'], ownerId };
+}
+
 function normalizeMemoryEmbeddingConfig(raw: unknown): MemoryEmbeddingConfig | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return null;
@@ -99,11 +105,11 @@ function normalizeMemoryEmbeddingConfig(raw: unknown): MemoryEmbeddingConfig | n
   const updatedAt = String(record.updatedAt || '').trim() || new Date().toISOString();
   const revisionToken = String(record.revisionToken || '').trim() || updatedAt;
   return {
-    scopeRef: {
-      kind: kind as AIScopeRef['kind'],
+    scopeRef: normalizeScopeRef(
+      kind,
       ownerId,
-      surfaceId: sr.surfaceId ? String(sr.surfaceId).trim() || undefined : undefined,
-    },
+      sr.surfaceId ? String(sr.surfaceId).trim() || undefined : undefined,
+    ),
     sourceKind,
     bindingRef,
     revisionToken,
@@ -201,5 +207,5 @@ export function parseMemoryEmbeddingScopeKey(key: string): AIScopeRef | null {
   if (!kind || !ownerId) {
     return null;
   }
-  return { kind, ownerId, surfaceId };
+  return normalizeScopeRef(kind, ownerId, surfaceId);
 }

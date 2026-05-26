@@ -9,9 +9,9 @@ pub fn runtime_local_append_inference_audit(
         .map(|value| validate_inference_source(value.as_str()).map(str::to_string))
         .transpose()?;
     let modality = validate_inference_modality(payload.modality.as_str())?;
-    let mod_id = payload.mod_id.trim();
-    if mod_id.is_empty() {
-        return Err("LOCAL_AI_AUDIT_MOD_ID_MISSING: modId is required".to_string());
+    let target_id = payload.target_id.trim();
+    if target_id.is_empty() {
+        return Err("LOCAL_AI_AUDIT_MOD_ID_MISSING: targetId is required".to_string());
     }
     let provider = payload.provider.trim();
     if provider.is_empty() {
@@ -31,8 +31,8 @@ pub fn runtime_local_append_inference_audit(
 
     let mut payload_object = serde_json::Map::<String, serde_json::Value>::new();
     payload_object.insert(
-        "modId".to_string(),
-        serde_json::Value::String(mod_id.to_string()),
+        "targetId".to_string(),
+        serde_json::Value::String(target_id.to_string()),
     );
     payload_object.insert(
         "source".to_string(),

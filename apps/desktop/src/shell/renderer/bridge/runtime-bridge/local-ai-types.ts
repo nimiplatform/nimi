@@ -70,7 +70,7 @@ export type LocalRuntimeInferenceAuditModality =
 
 export type LocalRuntimeInferenceAuditPayload = {
   eventType: LocalRuntimeInferenceAuditEventType;
-  modId: string;
+  targetId: string;
   source: 'local' | 'cloud';
   routeSource?: 'local' | 'cloud';
   provider: string;
@@ -147,7 +147,7 @@ export type LocalRuntimeAuditListPayload = {
   source?: string;
   modality?: string;
   localModelId?: string;
-  modId?: string;
+  targetId?: string;
   reasonCode?: string;
   timeRange?: LocalRuntimeAuditTimeRange;
 };

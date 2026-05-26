@@ -236,16 +236,16 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	})
 
 	// K-SCHED-004 denial 2: dependency infeasible. Uses profile registry + ResolveProfile preflight.
-	// The checker looks up the profile descriptor by (modID, profileID) from the runtime-side
+	// The checker looks up the profile descriptor by (targetID, profileID) from the runtime-side
 	// profile registry, then calls ResolveProfile to evaluate dependency feasibility.
 	profileRegistry := localSvc.GetProfileRegistry()
-	aiSvc.SetSchedulerDependencyChecker(func(modID, profileID, capability string) (bool, string) {
-		profile := profileRegistry.LookupProfile(modID, profileID)
+	aiSvc.SetSchedulerDependencyChecker(func(targetID, profileID, capability string) (bool, string) {
+		profile := profileRegistry.LookupProfile(targetID, profileID)
 		if profile == nil {
 			return true, "" // profile not found — skip, not deny ("unable to evaluate ≠ infeasible")
 		}
 		resp, err := localSvc.ResolveProfile(context.Background(), &runtimev1.ResolveProfileRequest{
-			ModId:      modID,
+			TargetId:      targetID,
 			Profile:    profile,
 			Capability: capability,
 		})

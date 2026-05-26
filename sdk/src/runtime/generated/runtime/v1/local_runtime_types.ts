@@ -1610,9 +1610,9 @@ export interface LocalExecutionPlan {
      */
     planId: string;
     /**
-     * @generated from protobuf field: string mod_id = 2
+     * @generated from protobuf field: string target_id = 2
      */
-    modId: string;
+    targetId: string;
     /**
      * @generated from protobuf field: string capability = 3
      */
@@ -1729,9 +1729,9 @@ export interface LocalExecutionApplyResult {
      */
     planId: string;
     /**
-     * @generated from protobuf field: string mod_id = 2
+     * @generated from protobuf field: string target_id = 2
      */
-    modId: string;
+    targetId: string;
     /**
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalExecutionEntryDescriptor entries = 3
      */
@@ -1922,9 +1922,9 @@ export interface LocalProfileResolutionPlan {
      */
     planId: string;
     /**
-     * @generated from protobuf field: string mod_id = 2
+     * @generated from protobuf field: string target_id = 2
      */
-    modId: string;
+    targetId: string;
     /**
      * @generated from protobuf field: string profile_id = 3
      */
@@ -1971,9 +1971,9 @@ export interface LocalProfileApplyResult {
      */
     planId: string;
     /**
-     * @generated from protobuf field: string mod_id = 2
+     * @generated from protobuf field: string target_id = 2
      */
-    modId: string;
+    targetId: string;
     /**
      * @generated from protobuf field: string profile_id = 3
      */
@@ -6373,7 +6373,7 @@ class LocalExecutionPlan$Type extends MessageType<LocalExecutionPlan> {
     constructor() {
         super("nimi.runtime.v1.LocalExecutionPlan", [
             { no: 1, name: "plan_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "mod_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "target_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "device_profile", kind: "message", T: () => LocalDeviceProfile },
             { no: 5, name: "entries", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalExecutionEntryDescriptor },
@@ -6386,7 +6386,7 @@ class LocalExecutionPlan$Type extends MessageType<LocalExecutionPlan> {
     create(value?: PartialMessage<LocalExecutionPlan>): LocalExecutionPlan {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.planId = "";
-        message.modId = "";
+        message.targetId = "";
         message.capability = "";
         message.entries = [];
         message.selectionRationale = [];
@@ -6405,8 +6405,8 @@ class LocalExecutionPlan$Type extends MessageType<LocalExecutionPlan> {
                 case /* string plan_id */ 1:
                     message.planId = reader.string();
                     break;
-                case /* string mod_id */ 2:
-                    message.modId = reader.string();
+                case /* string target_id */ 2:
+                    message.targetId = reader.string();
                     break;
                 case /* string capability */ 3:
                     message.capability = reader.string();
@@ -6444,9 +6444,9 @@ class LocalExecutionPlan$Type extends MessageType<LocalExecutionPlan> {
         /* string plan_id = 1; */
         if (message.planId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.planId);
-        /* string mod_id = 2; */
-        if (message.modId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.modId);
+        /* string target_id = 2; */
+        if (message.targetId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.targetId);
         /* string capability = 3; */
         if (message.capability !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.capability);
@@ -6689,7 +6689,7 @@ class LocalExecutionApplyResult$Type extends MessageType<LocalExecutionApplyResu
     constructor() {
         super("nimi.runtime.v1.LocalExecutionApplyResult", [
             { no: 1, name: "plan_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "mod_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "target_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "entries", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalExecutionEntryDescriptor },
             { no: 4, name: "installed_assets", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAssetRecord },
             { no: 5, name: "services", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalServiceDescriptor },
@@ -6704,7 +6704,7 @@ class LocalExecutionApplyResult$Type extends MessageType<LocalExecutionApplyResu
     create(value?: PartialMessage<LocalExecutionApplyResult>): LocalExecutionApplyResult {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.planId = "";
-        message.modId = "";
+        message.targetId = "";
         message.entries = [];
         message.installedAssets = [];
         message.services = [];
@@ -6726,8 +6726,8 @@ class LocalExecutionApplyResult$Type extends MessageType<LocalExecutionApplyResu
                 case /* string plan_id */ 1:
                     message.planId = reader.string();
                     break;
-                case /* string mod_id */ 2:
-                    message.modId = reader.string();
+                case /* string target_id */ 2:
+                    message.targetId = reader.string();
                     break;
                 case /* repeated nimi.runtime.v1.LocalExecutionEntryDescriptor entries */ 3:
                     message.entries.push(LocalExecutionEntryDescriptor.internalBinaryRead(reader, reader.uint32(), options));
@@ -6771,9 +6771,9 @@ class LocalExecutionApplyResult$Type extends MessageType<LocalExecutionApplyResu
         /* string plan_id = 1; */
         if (message.planId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.planId);
-        /* string mod_id = 2; */
-        if (message.modId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.modId);
+        /* string target_id = 2; */
+        if (message.targetId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.targetId);
         /* repeated nimi.runtime.v1.LocalExecutionEntryDescriptor entries = 3; */
         for (let i = 0; i < message.entries.length; i++)
             LocalExecutionEntryDescriptor.internalBinaryWrite(message.entries[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
@@ -7209,7 +7209,7 @@ class LocalProfileResolutionPlan$Type extends MessageType<LocalProfileResolution
     constructor() {
         super("nimi.runtime.v1.LocalProfileResolutionPlan", [
             { no: 1, name: "plan_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "mod_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "target_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -7224,7 +7224,7 @@ class LocalProfileResolutionPlan$Type extends MessageType<LocalProfileResolution
     create(value?: PartialMessage<LocalProfileResolutionPlan>): LocalProfileResolutionPlan {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.planId = "";
-        message.modId = "";
+        message.targetId = "";
         message.profileId = "";
         message.title = "";
         message.description = "";
@@ -7244,8 +7244,8 @@ class LocalProfileResolutionPlan$Type extends MessageType<LocalProfileResolution
                 case /* string plan_id */ 1:
                     message.planId = reader.string();
                     break;
-                case /* string mod_id */ 2:
-                    message.modId = reader.string();
+                case /* string target_id */ 2:
+                    message.targetId = reader.string();
                     break;
                 case /* string profile_id */ 3:
                     message.profileId = reader.string();
@@ -7289,9 +7289,9 @@ class LocalProfileResolutionPlan$Type extends MessageType<LocalProfileResolution
         /* string plan_id = 1; */
         if (message.planId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.planId);
-        /* string mod_id = 2; */
-        if (message.modId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.modId);
+        /* string target_id = 2; */
+        if (message.targetId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.targetId);
         /* string profile_id = 3; */
         if (message.profileId !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.profileId);
@@ -7334,7 +7334,7 @@ class LocalProfileApplyResult$Type extends MessageType<LocalProfileApplyResult> 
     constructor() {
         super("nimi.runtime.v1.LocalProfileApplyResult", [
             { no: 1, name: "plan_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "mod_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "target_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "execution_result", kind: "message", T: () => LocalExecutionApplyResult },
             { no: 5, name: "installed_assets", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAssetRecord },
@@ -7345,7 +7345,7 @@ class LocalProfileApplyResult$Type extends MessageType<LocalProfileApplyResult> 
     create(value?: PartialMessage<LocalProfileApplyResult>): LocalProfileApplyResult {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.planId = "";
-        message.modId = "";
+        message.targetId = "";
         message.profileId = "";
         message.installedAssets = [];
         message.warnings = [];
@@ -7362,8 +7362,8 @@ class LocalProfileApplyResult$Type extends MessageType<LocalProfileApplyResult> 
                 case /* string plan_id */ 1:
                     message.planId = reader.string();
                     break;
-                case /* string mod_id */ 2:
-                    message.modId = reader.string();
+                case /* string target_id */ 2:
+                    message.targetId = reader.string();
                     break;
                 case /* string profile_id */ 3:
                     message.profileId = reader.string();
@@ -7395,9 +7395,9 @@ class LocalProfileApplyResult$Type extends MessageType<LocalProfileApplyResult> 
         /* string plan_id = 1; */
         if (message.planId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.planId);
-        /* string mod_id = 2; */
-        if (message.modId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.modId);
+        /* string target_id = 2; */
+        if (message.targetId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.targetId);
         /* string profile_id = 3; */
         if (message.profileId !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.profileId);

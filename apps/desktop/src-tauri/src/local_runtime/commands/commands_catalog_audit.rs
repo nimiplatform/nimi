@@ -19,9 +19,9 @@ pub fn runtime_local_audits_list(
     let local_model_id = payload
         .as_ref()
         .and_then(|item| normalize_optional(item.local_model_id.clone()));
-    let mod_id = payload
+    let target_id = payload
         .as_ref()
-        .and_then(|item| normalize_optional(item.mod_id.clone()));
+        .and_then(|item| normalize_optional(item.target_id.clone()));
     let reason_code = payload
         .as_ref()
         .and_then(|item| normalize_optional(item.reason_code.clone()));
@@ -65,9 +65,9 @@ pub fn runtime_local_audits_list(
                     return false;
                 }
             }
-            if let Some(expected_mod_id) = mod_id.as_ref() {
-                if payload_field_as_string(&event.payload, "modId").as_ref()
-                    != Some(expected_mod_id)
+            if let Some(expected_target_id) = target_id.as_ref() {
+                if payload_field_as_string(&event.payload, "targetId").as_ref()
+                    != Some(expected_target_id)
                 {
                     return false;
                 }

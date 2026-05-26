@@ -628,7 +628,7 @@ message LocalExecutionSelectionRationale {
 
 message LocalExecutionPlan {
   string plan_id                                              = 1;
-  string mod_id                                               = 2;
+  string target_id                                            = 2;
   string capability                                           = 3;
   LocalDeviceProfile device_profile                           = 4;
   repeated LocalExecutionEntryDescriptor entries              = 5;
@@ -666,7 +666,7 @@ message LocalServiceDescriptor {
 
 message LocalExecutionApplyResult {
   string plan_id                                               = 1;
-  string mod_id                                                = 2;
+  string target_id                                             = 2;
   repeated LocalExecutionEntryDescriptor entries               = 3;
   repeated LocalAssetRecord installed_assets                   = 4;
   repeated LocalServiceDescriptor services                     = 5;
@@ -730,7 +730,7 @@ message ProfileEntryOverride {
 
 message LocalProfileResolutionPlan {
   string plan_id                                             = 1;
-  string mod_id                                              = 2;
+  string target_id                                           = 2;
   string profile_id                                          = 3;
   string title                                               = 4;
   string description                                         = 5;
@@ -746,7 +746,7 @@ message LocalProfileResolutionPlan {
 
 message LocalProfileApplyResult {
   string plan_id                             = 1;
-  string mod_id                              = 2;
+  string target_id                           = 2;
   string profile_id                          = 3;
   LocalExecutionApplyResult execution_result = 4;
   repeated LocalAssetRecord installed_assets = 5;

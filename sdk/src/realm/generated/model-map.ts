@@ -124,13 +124,6 @@ export type RealmGeneratedModelMap = {
   CreatorAgentResponseDto: components['schemas']['CreatorAgentResponseDto'];
   CreatorCapabilitiesResponseDto: components['schemas']['CreatorCapabilitiesResponseDto'];
   CreatorEligibilityResponseDto: components['schemas']['CreatorEligibilityResponseDto'];
-  CreatorModControlAuditIngestRequestDto: components['schemas']['CreatorModControlAuditIngestRequestDto'];
-  CreatorModControlAuditRecordDto: components['schemas']['CreatorModControlAuditRecordDto'];
-  CreatorModControlGrantIssueRequestDto: components['schemas']['CreatorModControlGrantIssueRequestDto'];
-  CreatorModControlGrantIssueResponseDto: components['schemas']['CreatorModControlGrantIssueResponseDto'];
-  CreatorModControlGrantValidateRequestDto: components['schemas']['CreatorModControlGrantValidateRequestDto'];
-  CreatorModControlManifestVerifyRequestDto: components['schemas']['CreatorModControlManifestVerifyRequestDto'];
-  CreatorModControlSignatureVerifyRequestDto: components['schemas']['CreatorModControlSignatureVerifyRequestDto'];
   CurrencyBalancesDto: components['schemas']['CurrencyBalancesDto'];
   CurrencyTransactionDto: components['schemas']['CurrencyTransactionDto'];
   CurrencyTransactionHistoryDto: components['schemas']['CurrencyTransactionHistoryDto'];

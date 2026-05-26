@@ -6,14 +6,12 @@ type IsEqual<A, B> = (
   (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false
 );
 
-type _IssueGrantArgs = Parameters<RealmGeneratedServiceRegistry['CreatorModsControlPlaneService']['creatorModsControllerIssueGrant']>;
 type _ProjectRuntimePayloadArgs = Parameters<RealmGeneratedServiceRegistry['RuntimeProjectionsService']['projectRuntimePayload']>;
 type _IssueRuntimeRealmGrantArgs = Parameters<RealmGeneratedServiceRegistry['RuntimeRealmGrantsService']['issueRuntimeRealmGrant']>;
 type _ListFriendsWithDetailsResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['MeService']['listMyFriendsWithDetails']>>;
 type _GetCreatorAgentResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['CreatorService']['creatorControllerGetAgent']>>;
 type _UpdateCreatorAgentResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['CreatorService']['creatorControllerUpdateAgent']>>;
 
-type _IssueGrantResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['CreatorModsControlPlaneService']['creatorModsControllerIssueGrant']>>;
 type _ProjectRuntimePayloadResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['RuntimeProjectionsService']['projectRuntimePayload']>>;
 type _IssueRuntimeRealmGrantResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['RuntimeRealmGrantsService']['issueRuntimeRealmGrant']>>;
 type _RequestDataExportArgs = Parameters<RealmGeneratedServiceRegistry['MeaccountdataService']['requestDataExport']>;

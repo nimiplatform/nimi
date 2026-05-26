@@ -139,7 +139,7 @@ export function parseExecutionPlan(value: unknown): LocalRuntimeExecutionPlan {
     : [];
   return {
     planId: asString(record.planId),
-    modId: asString(record.modId),
+    targetId: asString(record.targetId),
     capability: asString(record.capability) || undefined,
     deviceProfile: parseDeviceProfile(record.deviceProfile),
     entries,

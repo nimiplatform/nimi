@@ -226,7 +226,7 @@ function withFailure(base: Omit<DesktopReplayResult, 'status'>, error: unknown):
 
 async function submitAndCollect(runtime: Runtime, request: DesktopReplayJobRequest, metadata: {
   traceId: string;
-  callerKind: 'desktop-core' | 'desktop-mod';
+  callerKind: 'desktop-core';
   callerId: string;
   surfaceId: string;
   keySource?: 'managed';
@@ -332,14 +332,14 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
   try {
     if (input.fixture.capability === 'text.generate') {
       await ensureRuntimeLocalModelWarm({
-        modId: DESKTOP_REPLAY_MOD_ID,
+        targetId: DESKTOP_REPLAY_MOD_ID,
         source: resolved.source,
         modelId: resolved.modelId,
         engine: resolved.provider,
         timeoutMs: 120_000,
       });
       const callOptions = await buildRuntimeCallOptions({
-        modId: DESKTOP_REPLAY_MOD_ID,
+        targetId: DESKTOP_REPLAY_MOD_ID,
         timeoutMs: 120_000,
         source: resolved.source,
       });
@@ -390,7 +390,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
 
     if (input.fixture.capability === 'text.embed') {
       const callOptions = await buildRuntimeCallOptions({
-        modId: DESKTOP_REPLAY_MOD_ID,
+        targetId: DESKTOP_REPLAY_MOD_ID,
         timeoutMs: 120_000,
         source: resolved.source,
       });
@@ -507,7 +507,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
     }
 
     const callOptions = await buildRuntimeCallOptions({
-      modId: DESKTOP_REPLAY_MOD_ID,
+      targetId: DESKTOP_REPLAY_MOD_ID,
       timeoutMs: 180_000,
       source: resolved.source,
     });

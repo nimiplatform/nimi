@@ -7,8 +7,8 @@ import type { ConversationRuntimeTextMessage } from '@nimiplatform/kit/features/
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { invokeModLlm } from '@runtime/llm-adapter/execution';
-import type { InvokeModLlmInput, InvokeModLlmOutput } from '@runtime/llm-adapter/execution';
+import { invokeRuntimeLlm } from '@runtime/llm-adapter/execution';
+import type { InvokeRuntimeLlmInput, InvokeRuntimeLlmOutput } from '@runtime/llm-adapter/execution';
 import {
   buildRuntimeStreamOptions,
   ensureRuntimeLocalModelWarm,
@@ -47,11 +47,11 @@ export type ChatAiRuntimeStreamResult = {
 };
 
 export type ChatAiRuntimeInvokeDeps = {
-  invokeModLlmImpl?: (input: InvokeModLlmInput) => Promise<InvokeModLlmOutput>;
+  invokeRuntimeLlmImpl?: (input: InvokeRuntimeLlmInput) => Promise<InvokeRuntimeLlmOutput>;
 };
 
 export type ChatAiRuntimeStreamDeps = {
-  resolveInvokeInputImpl?: (input: ChatAiRuntimeInvokeInput) => Promise<InvokeModLlmInput>;
+  resolveInvokeInputImpl?: (input: ChatAiRuntimeInvokeInput) => Promise<InvokeRuntimeLlmInput>;
 };
 
 export const CORE_CHAT_AI_MOD_ID = 'core.chat-ai';
@@ -90,7 +90,7 @@ function resolveRuntimeTextInput(input: ChatAiRuntimeInvokeInput): string | Text
 
 async function resolveInvokeInput(
   input: ChatAiRuntimeInvokeInput,
-): Promise<InvokeModLlmInput> {
+): Promise<InvokeRuntimeLlmInput> {
   const snapshot = input.executionSnapshot;
   const slice = snapshot?.conversationCapabilitySlice;
   if (!slice || slice.capability !== 'text.generate') {
@@ -113,7 +113,7 @@ async function resolveInvokeInput(
 
   if (resolved.source === 'local') {
     return {
-      modId: CORE_CHAT_AI_MOD_ID,
+      targetId: CORE_CHAT_AI_MOD_ID,
       provider: requireValue(
         resolved.provider,
         ReasonCode.AI_INPUT_INVALID,
@@ -133,7 +133,7 @@ async function resolveInvokeInput(
   }
 
   return {
-    modId: CORE_CHAT_AI_MOD_ID,
+    targetId: CORE_CHAT_AI_MOD_ID,
     provider: requireValue(
       resolved.provider,
       ReasonCode.AI_INPUT_INVALID,
@@ -169,7 +169,7 @@ export async function streamChatAiRuntime(
   const timeoutMs = 120_000;
 
   await ensureRuntimeLocalModelWarm({
-    modId: invokeInput.modId,
+    targetId: invokeInput.targetId,
     source: resolved.source,
     modelId: resolved.modelId,
     engine: resolved.provider,
@@ -178,7 +178,7 @@ export async function streamChatAiRuntime(
   });
 
   const callOptions = await buildRuntimeStreamOptions({
-    modId: invokeInput.modId,
+    targetId: invokeInput.targetId,
     timeoutMs,
     signal: input.signal,
     source: resolved.source,
@@ -210,9 +210,9 @@ export async function invokeChatAiRuntime(
   input: ChatAiRuntimeInvokeInput,
   deps: ChatAiRuntimeInvokeDeps = {},
 ): Promise<ChatAiRuntimeInvokeResult> {
-  const invokeModLlmImpl = deps.invokeModLlmImpl || invokeModLlm;
+  const invokeRuntimeLlmImpl = deps.invokeRuntimeLlmImpl || invokeRuntimeLlm;
   const invokeInput = await resolveInvokeInput(input);
-  const result = await invokeModLlmImpl(invokeInput);
+  const result = await invokeRuntimeLlmImpl(invokeInput);
   return {
     text: String(result.text || ''),
     traceId: String(result.traceId || ''),

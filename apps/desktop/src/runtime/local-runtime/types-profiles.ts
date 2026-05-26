@@ -53,7 +53,7 @@ export type LocalRuntimeProfileDescriptor = {
 };
 
 export type LocalRuntimeProfileTargetDescriptor = {
-  modId: string;
+  targetId: string;
   modName: string;
   consumeCapabilities: Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string>;
   profiles: LocalRuntimeProfileDescriptor[];
@@ -61,7 +61,7 @@ export type LocalRuntimeProfileTargetDescriptor = {
 
 export type LocalRuntimeProfileResolutionPlan = {
   planId: string;
-  modId: string;
+  targetId: string;
   profileId: string;
   title: string;
   description?: string;
@@ -76,7 +76,7 @@ export type LocalRuntimeProfileResolutionPlan = {
 
 export type LocalRuntimeProfileApplyResult = {
   planId: string;
-  modId: string;
+  targetId: string;
   profileId: string;
   executionResult: LocalRuntimeExecutionApplyResult;
   installedAssets: LocalRuntimeAssetRecord[];
@@ -87,14 +87,14 @@ export type LocalRuntimeProfileApplyResult = {
 export type LocalRuntimeProfileApplyAccepted = {
   applySessionId: string;
   planId: string;
-  modId: string;
+  targetId: string;
   profileId: string;
 };
 
 export type LocalRuntimeProfileApplyProgressEvent = {
   applySessionId: string;
   planId: string;
-  modId: string;
+  targetId: string;
   profileId: string;
   phase: string;
   status: 'queued' | 'running' | 'completed' | 'failed' | string;
@@ -109,7 +109,7 @@ export type LocalRuntimeProfileApplyProgressEvent = {
 };
 
 export type LocalRuntimeProfileInstallStatus = {
-  modId: string;
+  targetId: string;
   profileId: string;
   status: 'ready' | 'missing' | 'degraded';
   warnings: string[];
@@ -118,7 +118,7 @@ export type LocalRuntimeProfileInstallStatus = {
 };
 
 export type LocalRuntimeProfileResolvePayload = {
-  modId: string;
+  targetId: string;
   profile: LocalRuntimeProfileDescriptor;
   capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
   deviceProfile?: LocalRuntimeDeviceProfile;
@@ -126,14 +126,14 @@ export type LocalRuntimeProfileResolvePayload = {
 };
 
 export type LocalRuntimeProfileInstallRequest = {
-  modId: string;
+  targetId: string;
   profileId: string;
   confirmMessage?: string;
   entryOverrides?: LocalRuntimeProfileEntryOverride[];
 };
 
 export type LocalRuntimeProfileInstallRequestResult = {
-  modId: string;
+  targetId: string;
   profileId: string;
   accepted: boolean;
   declined: boolean;

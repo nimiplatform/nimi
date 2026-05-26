@@ -38,7 +38,7 @@ func toSchedulerTargets(targets []*runtimev1.SchedulingEvaluationTarget) []sched
 		}
 		out = append(out, scheduler.SchedulingEvaluationTarget{
 			Capability: strings.TrimSpace(target.GetCapability()),
-			ModID:      strings.TrimSpace(target.GetModId()),
+			TargetID:      strings.TrimSpace(target.GetTargetId()),
 			ProfileID:  strings.TrimSpace(target.GetProfileId()),
 			Hint:       toSchedulerResourceHint(target.GetResourceHint()),
 		})
@@ -76,7 +76,7 @@ func toProtoTargetJudgements(judgements []scheduler.TargetSchedulingJudgement) [
 		out = append(out, &runtimev1.SchedulingTargetJudgement{
 			Target: &runtimev1.SchedulingEvaluationTarget{
 				Capability:   judgement.Target.Capability,
-				ModId:        judgement.Target.ModID,
+				TargetId:        judgement.Target.TargetID,
 				ProfileId:    judgement.Target.ProfileID,
 				ResourceHint: toProtoResourceHint(judgement.Target.Hint),
 			},

@@ -17,7 +17,7 @@ func printRuntimeModelUsage() {
 	fmt.Fprintln(os.Stderr, "Usage:\n  nimi model list [--grpc-addr --timeout --app-id --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi model pull [--grpc-addr --timeout --app-id --model-ref --source --digest --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi model remove [--grpc-addr --timeout --app-id --model-id --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi model health [--grpc-addr --timeout --app-id --model-id --json --caller-kind --caller-id --surface-id --trace-id]")
 }
 
-func printRuntimeModUsage() {
+func printRuntimePackageUsage() {
 	fmt.Fprintln(os.Stderr, "Usage:\n  nimi mod list [--mods-dir --json]\n  nimi mod install [source] [--source --mods-dir --mod-circle-repo --mod-circle-ref --strict-id --api-base --token --json]\n\nApp author workflows:\n  pnpm dlx @nimiplatform/app-tools nimi-app create")
 }
 

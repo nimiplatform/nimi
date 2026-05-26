@@ -603,45 +603,6 @@ export const CreatorEligibilityTier = {
 
 export type CreatorEligibilityTier = (typeof CreatorEligibilityTier)[keyof typeof CreatorEligibilityTier];
 
-export const CreatorModControlAuditRecordDecision = {
-  ALLOW: "ALLOW",
-  ALLOW_WITH_WARNING: "ALLOW_WITH_WARNING",
-  DENY: "DENY",
-} as const satisfies Record<string, components['schemas']['CreatorModControlAuditRecordDto']['decision']>;
-
-export type CreatorModControlAuditRecordDecision = (typeof CreatorModControlAuditRecordDecision)[keyof typeof CreatorModControlAuditRecordDecision];
-
-export const CreatorModControlAuditRecordStage = {
-  DISCOVERY: "discovery",
-  MANIFEST_COMPAT: "manifest/compat",
-  SIGNATURE_AUTH: "signature/auth",
-  DEPENDENCY_BUILD: "dependency/build",
-  SANDBOX_POLICY: "sandbox/policy",
-  LOAD: "load",
-  LIFECYCLE: "lifecycle",
-  AUDIT: "audit",
-} as const satisfies Record<string, components['schemas']['CreatorModControlAuditRecordDto']['stage']>;
-
-export type CreatorModControlAuditRecordStage = (typeof CreatorModControlAuditRecordStage)[keyof typeof CreatorModControlAuditRecordStage];
-
-export const CreatorModControlManifestVerifyMode = {
-  LOCAL_DEV: "local-dev",
-  COMMUNITY: "community",
-  OFFICIAL: "official",
-  SIDELOAD: "sideload",
-} as const satisfies Record<string, components['schemas']['CreatorModControlManifestVerifyRequestDto']['mode']>;
-
-export type CreatorModControlManifestVerifyMode = (typeof CreatorModControlManifestVerifyMode)[keyof typeof CreatorModControlManifestVerifyMode];
-
-export const CreatorModControlSignatureVerifyMode = {
-  LOCAL_DEV: "local-dev",
-  COMMUNITY: "community",
-  OFFICIAL: "official",
-  SIDELOAD: "sideload",
-} as const satisfies Record<string, components['schemas']['CreatorModControlSignatureVerifyRequestDto']['mode']>;
-
-export type CreatorModControlSignatureVerifyMode = (typeof CreatorModControlSignatureVerifyMode)[keyof typeof CreatorModControlSignatureVerifyMode];
-
 export const FactionRelationshipType = {
   ALLY: "ALLY",
   NEUTRAL: "NEUTRAL",

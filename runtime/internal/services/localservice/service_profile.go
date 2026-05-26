@@ -12,10 +12,10 @@ func (s *Service) ResolveProfile(_ context.Context, req *runtimev1.ResolveProfil
 	// K-SCHED-004: auto-register profile in the runtime-side registry so that
 	// the scheduling dependency feasibility checker can look it up by identity.
 	if profile := req.GetProfile(); profile != nil {
-		modID := strings.TrimSpace(req.GetModId())
+		targetID := strings.TrimSpace(req.GetTargetId())
 		profileID := strings.TrimSpace(profile.GetId())
 		if profileID != "" && s.profileRegistry != nil {
-			s.profileRegistry.RegisterProfile(modID, profileID, profile)
+			s.profileRegistry.RegisterProfile(targetID, profileID, profile)
 		}
 	}
 	return &runtimev1.ResolveProfileResponse{
@@ -29,8 +29,8 @@ func (s *Service) ApplyProfile(ctx context.Context, req *runtimev1.ApplyProfileR
 	}, nil
 }
 
-func nextProfilePlanID(modID string, profileID string) string {
-	modSlug := slug(defaultString(modID, "mod"))
+func nextProfilePlanID(targetID string, profileID string) string {
+	modSlug := slug(defaultString(targetID, "mod"))
 	profileSlug := slug(defaultString(profileID, "profile"))
 	return "profile_plan_" + modSlug + "_" + profileSlug + "_" + ulid.Make().String()
 }
@@ -195,7 +195,7 @@ func (s *Service) resolveProfilePlan(req *runtimev1.ResolveProfileRequest) *runt
 		}
 	}
 
-	modID := strings.TrimSpace(req.GetModId())
+	targetID := strings.TrimSpace(req.GetTargetId())
 	profile := cloneProfileDescriptor(req.GetProfile())
 	capability := strings.TrimSpace(req.GetCapability())
 	deviceProfile := cloneDeviceProfile(req.GetDeviceProfile())
@@ -227,18 +227,18 @@ func (s *Service) resolveProfilePlan(req *runtimev1.ResolveProfileRequest) *runt
 		}
 	}
 
-	planID = nextProfilePlanID(modID, profileID)
+	planID = nextProfilePlanID(targetID, profileID)
 	overrides := entryOverrideIndex(req.GetEntryOverrides())
 	declaration := bridgeProfileToDependencyDeclaration(profile, capability, overrides)
 	executionPlan := resolveExecutionPlan(&executionResolveRequest{
-		modID:         modID,
+		targetID:         targetID,
 		capability:    capability,
 		entries:       declaration,
 		deviceProfile: cloneDeviceProfile(deviceProfile),
 	})
 	appendPassiveAssetEntriesToExecutionPlan(executionPlan, profile, capability, overrides)
 	executionPlan.PlanId = planID
-	executionPlan.ModId = modID
+	executionPlan.TargetId = targetID
 	executionPlan.Capability = capability
 	executionPlan.DeviceProfile = cloneDeviceProfile(deviceProfile)
 
@@ -258,7 +258,7 @@ func (s *Service) resolveProfilePlan(req *runtimev1.ResolveProfileRequest) *runt
 
 	return &runtimev1.LocalProfileResolutionPlan{
 		PlanId:              planID,
-		ModId:               modID,
+		TargetId:               targetID,
 		ProfileId:           profileID,
 		Title:               title,
 		Description:         description,
@@ -330,7 +330,7 @@ func (s *Service) applyProfileStrict(ctx context.Context, plan *runtimev1.LocalP
 
 	result := &runtimev1.LocalProfileApplyResult{
 		PlanId:          strings.TrimSpace(plan.GetPlanId()),
-		ModId:           strings.TrimSpace(plan.GetModId()),
+		TargetId:           strings.TrimSpace(plan.GetTargetId()),
 		ProfileId:       strings.TrimSpace(plan.GetProfileId()),
 		ExecutionResult: cloneDependencyApplyResult(s.applyExecutionPlanStrict(ctx, plan.GetExecutionPlan())),
 		InstalledAssets: []*runtimev1.LocalAssetRecord{},

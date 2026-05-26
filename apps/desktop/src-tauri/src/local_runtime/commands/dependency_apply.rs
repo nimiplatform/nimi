@@ -377,7 +377,7 @@ async fn run_dependency_apply(
 
     Ok(LocalAiDependencyApplyResult {
         plan_id: plan.plan_id.clone(),
-        mod_id: plan.mod_id.clone(),
+        target_id: plan.target_id.clone(),
         dependencies: plan.dependencies.clone(),
         installed_assets,
         services,

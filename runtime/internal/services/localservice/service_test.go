@@ -809,7 +809,7 @@ func TestLocalApplyExecutionPlanRejectsUnsupportedKindInPreflight(t *testing.T) 
 	svc := newTestService(t)
 	result := svc.applyExecutionPlanStrict(context.Background(), &runtimev1.LocalExecutionPlan{
 		PlanId: "dep-plan-unsupported-kind",
-		ModId:  "world.nimi.unsupported-kind",
+		TargetId:  "world.nimi.unsupported-kind",
 		Entries: []*runtimev1.LocalExecutionEntryDescriptor{
 			{
 				EntryId:  "dep.unsupported.kind",

@@ -150,7 +150,7 @@ func TestLoadCatalog_AcceptsExactNPMSourceRef(t *testing.T) {
 }
 
 func TestLoadCatalog_RejectsNonNimiAppPackageKind(t *testing.T) {
-	yaml := strings.Replace(sampleReleaseDescriptorsYAML, "package_kind: nimi-app", "package_kind: public-mod", 1)
+	yaml := strings.Replace(sampleReleaseDescriptorsYAML, "package_kind: nimi-app", "package_kind: external-app", 1)
 	_, err := LoadCatalog(strings.NewReader(yaml))
 	if err == nil {
 		t.Fatal("expected invalid package kind")

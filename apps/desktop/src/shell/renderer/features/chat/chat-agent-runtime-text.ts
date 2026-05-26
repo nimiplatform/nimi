@@ -74,7 +74,7 @@ export function resolveRouteInputFromTextResolvedBinding(
 ): ResolvedAgentRuntimeRouteInput {
   if (resolved.source === 'local') {
     return {
-      modId: CORE_CHAT_AGENT_MOD_ID,
+      targetId: CORE_CHAT_AGENT_MOD_ID,
       provider: requireValue(
         resolved.provider,
         ReasonCode.AI_INPUT_INVALID,
@@ -94,7 +94,7 @@ export function resolveRouteInputFromTextResolvedBinding(
 
   if (resolved.source === 'cloud') {
     return {
-      modId: CORE_CHAT_AGENT_MOD_ID,
+      targetId: CORE_CHAT_AGENT_MOD_ID,
       provider: requireValue(
         resolved.provider,
         ReasonCode.AI_INPUT_INVALID,
@@ -137,7 +137,7 @@ export async function streamChatAgentRuntime(
   const timeoutMs = 120_000;
 
   await (deps.ensureRuntimeLocalModelWarmImpl || ensureRuntimeLocalModelWarm)({
-    modId: routeInput.modId,
+    targetId: routeInput.targetId,
     source: resolved.source,
     modelId: resolved.modelId,
     engine: resolved.provider,
@@ -146,7 +146,7 @@ export async function streamChatAgentRuntime(
   });
 
   const callOptions = await (deps.buildRuntimeStreamOptionsImpl || buildRuntimeStreamOptions)({
-    modId: routeInput.modId,
+    targetId: routeInput.targetId,
     timeoutMs,
     signal: input.signal,
     source: resolved.source,
@@ -189,7 +189,7 @@ export async function invokeChatAgentRuntime(
   const timeoutMs = 120_000;
 
   await (deps.ensureRuntimeLocalModelWarmImpl || ensureRuntimeLocalModelWarm)({
-    modId: routeInput.modId,
+    targetId: routeInput.targetId,
     source: resolved.source,
     modelId: resolved.modelId,
     engine: resolved.provider,
@@ -198,7 +198,7 @@ export async function invokeChatAgentRuntime(
   });
 
   const callOptions = await (deps.buildRuntimeCallOptionsImpl || buildRuntimeCallOptions)({
-    modId: routeInput.modId,
+    targetId: routeInput.targetId,
     timeoutMs,
     source: resolved.source,
     connectorId: routeInput.connectorId,

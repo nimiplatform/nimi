@@ -67,11 +67,11 @@ function logDesktopRuntimeAgentCounter(input: {
   });
 }
 
-export const RUNTIME_MODAL_TEXT = 1;
-export const RUNTIME_MODAL_IMAGE = 2;
-export const RUNTIME_MODAL_VIDEO = 3;
-export const RUNTIME_MODAL_STT = 5;
-export const RUNTIME_MODAL_EMBEDDING = 6;
+export const RUNTIME_PACKAGEAL_TEXT = 1;
+export const RUNTIME_PACKAGEAL_IMAGE = 2;
+export const RUNTIME_PACKAGEAL_VIDEO = 3;
+export const RUNTIME_PACKAGEAL_STT = 5;
+export const RUNTIME_PACKAGEAL_EMBEDDING = 6;
 
 export type SourceAndModel = {
   source: InferenceRouteSource;
@@ -83,7 +83,7 @@ export type SourceAndModel = {
 };
 
 export type EnsureRuntimeLocalModelWarmInput = {
-  modId: string;
+  targetId: string;
   source: InferenceRouteSource;
   modelId: string;
   localModelId?: string;
@@ -158,7 +158,7 @@ function localWarmCacheKey(candidate: RuntimeLocalWarmCandidate): string {
 }
 
 export function selectRuntimeLocalWarmCandidate(
-  input: Omit<EnsureRuntimeLocalModelWarmInput, 'modId' | 'timeoutMs' | 'onStateChange'>,
+  input: Omit<EnsureRuntimeLocalModelWarmInput, 'targetId' | 'timeoutMs' | 'onStateChange'>,
   models: Array<Record<string, unknown>>,
 ): RuntimeLocalWarmCandidate | null {
   const targetLocalModelId = String(input.goRuntimeLocalModelId || input.localModelId || '').trim();
@@ -348,7 +348,7 @@ export async function ensureRuntimeLocalModelWarm(input: EnsureRuntimeLocalModel
     input.onStateChange?.('warming', initialCandidate);
     const timeoutMs = resolveWarmTimeoutMs(input.timeoutMs);
     const callOptions = await buildRuntimeCallOptions({
-      modId: input.modId,
+      targetId: input.targetId,
       timeoutMs,
       source: 'local',
       providerEndpoint: initialCandidate.endpoint,
@@ -444,15 +444,15 @@ export function resolveSourceAndModel(input: {
   };
 }
 
-function resolveCaller(modId: string): {
-  callerKind: 'desktop-core' | 'desktop-mod';
+function resolveCaller(targetId: string): {
+  callerKind: 'desktop-core';
   callerId: string;
 } {
-  const normalized = String(modId || '').trim();
-  if (normalized.startsWith('core.')) {
-    return { callerKind: 'desktop-core', callerId: normalized };
-  }
-  return { callerKind: 'desktop-mod', callerId: normalized ? `mod:${normalized}` : 'mod:unknown' };
+  const normalized = String(targetId || '').trim();
+  return {
+    callerKind: 'desktop-core',
+    callerId: normalized ? `target:${normalized}` : 'target:unknown',
+  };
 }
 
 export async function buildRuntimeRequestMetadata(input: {
@@ -472,7 +472,7 @@ export async function buildRuntimeRequestMetadata(input: {
 }
 
 export async function buildRuntimeCallOptions(input: {
-  modId: string;
+  targetId: string;
   timeoutMs: number;
   source: InferenceRouteSource;
   connectorId?: string;
@@ -482,13 +482,13 @@ export async function buildRuntimeCallOptions(input: {
   timeoutMs: number;
   metadata: {
     traceId: string;
-    callerKind: 'desktop-core' | 'desktop-mod';
+    callerKind: 'desktop-core';
     callerId: string;
     surfaceId: string;
     keySource?: 'managed';
   };
 }> {
-  const caller = resolveCaller(input.modId);
+  const caller = resolveCaller(input.targetId);
   const traceId = createRuntimeTraceId();
   const idempotencyKey = createRuntimeTraceId('runtime-idem');
   return {
@@ -506,7 +506,7 @@ export async function buildRuntimeCallOptions(input: {
 
 export async function buildRuntimeStreamOptions(
   input: {
-    modId: string;
+    targetId: string;
     timeoutMs: number;
     signal?: AbortSignal;
     source: InferenceRouteSource;
@@ -519,13 +519,13 @@ export async function buildRuntimeStreamOptions(
   signal?: AbortSignal;
   metadata: {
     traceId: string;
-    callerKind: 'desktop-core' | 'desktop-mod';
+    callerKind: 'desktop-core';
     callerId: string;
     surfaceId: string;
     keySource?: 'managed';
   };
 }> {
-  const caller = resolveCaller(input.modId);
+  const caller = resolveCaller(input.targetId);
   const traceId = createRuntimeTraceId();
   const idempotencyKey = createRuntimeTraceId('runtime-idem');
   return {

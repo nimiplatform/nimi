@@ -109,40 +109,40 @@ export type RuntimeLocalAsset = {
   base64: string;
 };
 
-export type RuntimeModInstallSourceKind = 'directory' | 'archive' | 'url';
+export type RuntimePackageInstallSourceKind = 'directory' | 'archive' | 'url';
 
-export type RuntimeModSourceType = 'installed' | 'dev';
+export type RuntimePackageSourceType = 'installed' | 'dev';
 
-export type RuntimeModSourceRecord = {
+export type RuntimePackageSourceRecord = {
   sourceId: string;
-  sourceType: RuntimeModSourceType;
+  sourceType: RuntimePackageSourceType;
   sourceDir: string;
   enabled: boolean;
   isDefault: boolean;
 };
 
-export type RuntimeModStorageDirs = {
+export type RuntimePackageStorageDirs = {
   nimiDir: string;
   nimiDataDir: string;
   installedModsDir: string;
-  runtimeModDbPath: string;
+  runtimePackageDbPath: string;
   mediaCacheDir: string;
   localModelsDir: string;
   localRuntimeStatePath: string;
 };
 
-export type RuntimeModDeveloperModeState = {
+export type RuntimePackageDeveloperModeState = {
   enabled: boolean;
   autoReloadEnabled: boolean;
 };
 
-export type RuntimeModDiagnosticStatus = 'resolved' | 'conflict' | 'invalid';
+export type RuntimePackageDiagnosticStatus = 'resolved' | 'conflict' | 'invalid';
 
-export type RuntimeModDiagnosticRecord = {
-  modId: string;
-  status: RuntimeModDiagnosticStatus;
+export type RuntimePackageDiagnosticRecord = {
+  targetId: string;
+  status: RuntimePackageDiagnosticStatus;
   sourceId: string;
-  sourceType: RuntimeModSourceType;
+  sourceType: RuntimePackageSourceType;
   sourceDir: string;
   manifestPath?: string;
   entryPath?: string;
@@ -150,47 +150,47 @@ export type RuntimeModDiagnosticRecord = {
   conflictPaths?: string[];
 };
 
-export type RuntimeModReloadResult = {
-  modId: string;
+export type RuntimePackageReloadResult = {
+  targetId: string;
   sourceId: string;
-  status: RuntimeModDiagnosticStatus;
+  status: RuntimePackageDiagnosticStatus;
   occurredAt: string;
   error?: string;
 };
 
-export type RuntimeModSourceChangeEvent = {
+export type RuntimePackageSourceChangeEvent = {
   sourceId: string;
-  sourceType: RuntimeModSourceType;
+  sourceType: RuntimePackageSourceType;
   sourceDir: string;
   occurredAt: string;
   paths: string[];
 };
 
-export type RuntimeModInstallPayload = {
+export type RuntimePackageInstallPayload = {
   source: string;
-  sourceKind?: RuntimeModInstallSourceKind;
+  sourceKind?: RuntimePackageInstallSourceKind;
   replaceExisting?: boolean;
 };
 
-export type RuntimeModUpdatePayload = {
-  modId: string;
+export type RuntimePackageUpdatePayload = {
+  targetId: string;
   source: string;
-  sourceKind?: RuntimeModInstallSourceKind;
+  sourceKind?: RuntimePackageInstallSourceKind;
 };
 
-export type RuntimeModInstallResult = {
+export type RuntimePackageInstallResult = {
   installSessionId: string;
   operation: string;
-  modId: string;
+  targetId: string;
   installedPath: string;
   manifest: RuntimeLocalManifestSummary;
   rollbackPath?: string;
 };
 
-export type RuntimeModInstallAccepted = {
+export type RuntimePackageInstallAccepted = {
   installSessionId: string;
   operation: string;
-  modId?: string;
+  targetId?: string;
   packageId?: string;
   sourceKind: string;
 };
@@ -217,7 +217,7 @@ export type CatalogSigner = {
 
 export type CatalogPackageSummary = {
   packageId: string;
-  packageType: 'desktop-mod' | 'nimi-app' | string;
+  packageType: 'runtime-package' | 'nimi-app' | string;
   name: string;
   description: string;
   latestVersion?: string;
@@ -235,7 +235,7 @@ export type CatalogReleaseSource = {
 };
 
 export type CatalogReleaseRecord = {
-  packageType: 'desktop-mod' | 'nimi-app' | string;
+  packageType: 'runtime-package' | 'nimi-app' | string;
   packageId: string;
   version: string;
   channel: string;
@@ -257,7 +257,7 @@ export type CatalogReleaseRecord = {
 
 export type CatalogPackageRecord = {
   packageId: string;
-  packageType: 'desktop-mod' | 'nimi-app' | string;
+  packageType: 'runtime-package' | 'nimi-app' | string;
   name: string;
   description: string;
   publisher: CatalogPublisher;
@@ -295,7 +295,7 @@ export type AvailableModUpdate = {
 };
 
 export type CatalogInstallResult = {
-  install: RuntimeModInstallResult;
+  install: RuntimePackageInstallResult;
   package: CatalogPackageRecord;
   release: CatalogReleaseRecord;
   policy: InstalledModPolicy;
@@ -305,20 +305,20 @@ export type CatalogInstallResult = {
   advisoryIds: string[];
 };
 
-export type RuntimeModInstallProgressEvent = {
+export type RuntimePackageInstallProgressEvent = {
   installSessionId: string;
   operation: string;
   sourceKind: string;
   phase: string;
   status: string;
   occurredAt: string;
-  modId?: string;
+  targetId?: string;
   manifestPath?: string;
   installedPath?: string;
   progressPercent?: number;
   message?: string;
   error?: string;
-  install?: RuntimeModInstallResult;
+  install?: RuntimePackageInstallResult;
   catalogInstall?: CatalogInstallResult;
   restoredManifest?: RuntimeLocalManifestSummary;
 };

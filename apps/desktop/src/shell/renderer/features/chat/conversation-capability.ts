@@ -62,7 +62,7 @@ export function toRuntimeCanonicalCapability(capability: ConversationCapability)
   return (CONVERSATION_CAPABILITY_RUNTIME_MAP[capability] || capability) as RuntimeCanonicalCapability;
 }
 export type RuntimeLocalProfileRef = {
-  modId: string;
+  targetId: string;
   profileId: string;
 };
 

@@ -249,7 +249,7 @@ fn validate_audit_payload_contract(
             event_type,
             payload,
             &[
-                "modId",
+                "targetId",
                 "hasDependencies",
                 "hasDeviceProfile",
                 "deviceProfile",
@@ -260,14 +260,14 @@ fn validate_audit_payload_contract(
         return require_audit_payload_keys(
             event_type,
             payload,
-            &["modId", "deviceProfile", "reasonCode", "error"],
+            &["targetId", "deviceProfile", "reasonCode", "error"],
         );
     }
     if event_type == EVENT_DEPENDENCY_APPLY_STARTED {
         return require_audit_payload_keys(
             event_type,
             payload,
-            &["modId", "planId", "dependencyCount"],
+            &["targetId", "planId", "dependencyCount"],
         );
     }
     if event_type == EVENT_DEPENDENCY_APPLY_COMPLETED {
@@ -275,7 +275,7 @@ fn validate_audit_payload_contract(
             event_type,
             payload,
             &[
-                "modId",
+                "targetId",
                 "planId",
                 "installedModelCount",
                 "serviceCount",
@@ -291,7 +291,7 @@ fn validate_audit_payload_contract(
         return require_audit_payload_keys(
             event_type,
             payload,
-            &["modId", "planId", "reasonCode", "rollbackApplied", "error"],
+            &["targetId", "planId", "reasonCode", "rollbackApplied", "error"],
         );
     }
     if event_type == EVENT_SERVICE_INSTALL_STARTED {
@@ -383,7 +383,7 @@ fn validate_audit_payload_contract(
         require_audit_payload_keys(
             event_type,
             payload,
-            &["modId", "source", "provider", "modality", "adapter"],
+            &["targetId", "source", "provider", "modality", "adapter"],
         )?;
         if event_type == EVENT_FALLBACK_TO_CLOUD {
             return require_audit_payload_keys(event_type, payload, &["reasonCode"]);

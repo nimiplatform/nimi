@@ -117,8 +117,8 @@ export type ExecuteLocalKernelTurnResult = {
   localAuditEvents: ExecuteLocalKernelAuditEvent[];
 };
 
-export type InvokeModLlmInput = {
-  modId: string;
+export type InvokeRuntimeLlmInput = {
+  targetId: string;
   provider: string;
   prompt: string;
   systemPrompt?: string;
@@ -135,7 +135,7 @@ export type InvokeModLlmInput = {
   fetchImpl?: FetchImpl;
 };
 
-export type InvokeModLlmOutput = {
+export type InvokeRuntimeLlmOutput = {
   text: string;
   promptTraceId: string;
   traceId: string;

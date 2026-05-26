@@ -180,8 +180,6 @@ func callerKindFromHeader(raw string) runtimev1.CallerKind {
 	switch strings.TrimSpace(strings.ToLower(raw)) {
 	case "desktop-core":
 		return runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE
-	case "desktop-mod":
-		return runtimev1.CallerKind_CALLER_KIND_DESKTOP_MOD
 	case "third-party-app":
 		return runtimev1.CallerKind_CALLER_KIND_THIRD_PARTY_APP
 	case "third-party-service":

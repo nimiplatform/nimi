@@ -137,7 +137,7 @@ fn profile_apply_fixture(index: usize) -> LocalAiProfileApplyProgressEvent {
     LocalAiProfileApplyProgressEvent {
         apply_session_id: format!("apply-{index:03}"),
         plan_id: "plan".to_string(),
-        mod_id: "mod".to_string(),
+        target_id: "mod".to_string(),
         profile_id: "profile".to_string(),
         phase: "complete".to_string(),
         status: "completed".to_string(),

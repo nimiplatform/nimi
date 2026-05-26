@@ -7,7 +7,7 @@ pub async fn runtime_local_profiles_apply(
     let accepted = LocalAiProfileApplyAccepted {
         apply_session_id: apply_session_id.clone(),
         plan_id: payload.plan.plan_id.clone(),
-        mod_id: payload.plan.mod_id.clone(),
+        target_id: payload.plan.target_id.clone(),
         profile_id: payload.plan.profile_id.clone(),
     };
     emit_profile_apply_progress(
@@ -107,7 +107,7 @@ fn emit_profile_apply_progress(
     let event = LocalAiProfileApplyProgressEvent {
         apply_session_id: accepted.apply_session_id.clone(),
         plan_id: accepted.plan_id.clone(),
-        mod_id: accepted.mod_id.clone(),
+        target_id: accepted.target_id.clone(),
         profile_id: accepted.profile_id.clone(),
         phase: phase.to_string(),
         status: status.to_string(),
@@ -159,7 +159,7 @@ async fn run_local_profile_apply(
         None,
         None,
         Some(serde_json::json!({
-            "modId": payload.plan.mod_id.clone(),
+            "targetId": payload.plan.target_id.clone(),
             "profileId": payload.plan.profile_id.clone(),
             "planId": payload.plan.plan_id.clone(),
             "runtimeEntryCount": payload.plan.execution_plan.dependencies.len(),
@@ -213,7 +213,7 @@ async fn run_local_profile_apply(
             }
             let result = LocalAiProfileApplyResult {
                 plan_id: payload.plan.plan_id.clone(),
-                mod_id: payload.plan.mod_id.clone(),
+                target_id: payload.plan.target_id.clone(),
                 profile_id: payload.plan.profile_id.clone(),
                 execution_result,
                 installed_assets,
@@ -231,7 +231,7 @@ async fn run_local_profile_apply(
                 None,
                 None,
                 Some(serde_json::json!({
-                    "modId": result.mod_id.clone(),
+                    "targetId": result.target_id.clone(),
                     "profileId": result.profile_id.clone(),
                     "planId": result.plan_id.clone(),
                     "installedAssetCount": result.execution_result.installed_assets.len(),
@@ -248,7 +248,7 @@ async fn run_local_profile_apply(
                 None,
                 None,
                 Some(serde_json::json!({
-                    "modId": payload.plan.mod_id,
+                    "targetId": payload.plan.target_id,
                     "profileId": payload.plan.profile_id,
                     "planId": payload.plan.plan_id,
                     "reasonCode": extract_reason_code(failure.error.as_str()),

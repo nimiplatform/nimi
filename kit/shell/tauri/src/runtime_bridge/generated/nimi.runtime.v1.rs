@@ -779,7 +779,6 @@ impl ExternalPrincipalType {
 pub enum CallerKind {
     Unspecified = 0,
     DesktopCore = 1,
-    DesktopMod = 2,
     ThirdPartyApp = 3,
     ThirdPartyService = 4,
 }
@@ -792,7 +791,6 @@ impl CallerKind {
         match self {
             Self::Unspecified => "CALLER_KIND_UNSPECIFIED",
             Self::DesktopCore => "CALLER_KIND_DESKTOP_CORE",
-            Self::DesktopMod => "CALLER_KIND_DESKTOP_MOD",
             Self::ThirdPartyApp => "CALLER_KIND_THIRD_PARTY_APP",
             Self::ThirdPartyService => "CALLER_KIND_THIRD_PARTY_SERVICE",
         }
@@ -802,7 +800,6 @@ impl CallerKind {
         match value {
             "CALLER_KIND_UNSPECIFIED" => Some(Self::Unspecified),
             "CALLER_KIND_DESKTOP_CORE" => Some(Self::DesktopCore),
-            "CALLER_KIND_DESKTOP_MOD" => Some(Self::DesktopMod),
             "CALLER_KIND_THIRD_PARTY_APP" => Some(Self::ThirdPartyApp),
             "CALLER_KIND_THIRD_PARTY_SERVICE" => Some(Self::ThirdPartyService),
             _ => None,
@@ -3107,7 +3104,7 @@ pub struct SchedulingEvaluationTarget {
     #[prost(string, tag = "1")]
     pub capability: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
-    pub mod_id: ::prost::alloc::string::String,
+    pub target_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub profile_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "4")]
@@ -6808,7 +6805,7 @@ pub struct LocalExecutionPlan {
     #[prost(string, tag = "1")]
     pub plan_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
-    pub mod_id: ::prost::alloc::string::String,
+    pub target_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub capability: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "4")]
@@ -6867,7 +6864,7 @@ pub struct LocalExecutionApplyResult {
     #[prost(string, tag = "1")]
     pub plan_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
-    pub mod_id: ::prost::alloc::string::String,
+    pub target_id: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "3")]
     pub entries: ::prost::alloc::vec::Vec<LocalExecutionEntryDescriptor>,
     #[prost(message, repeated, tag = "4")]
@@ -6965,7 +6962,7 @@ pub struct LocalProfileResolutionPlan {
     #[prost(string, tag = "1")]
     pub plan_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
-    pub mod_id: ::prost::alloc::string::String,
+    pub target_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub profile_id: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
@@ -6990,7 +6987,7 @@ pub struct LocalProfileApplyResult {
     #[prost(string, tag = "1")]
     pub plan_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
-    pub mod_id: ::prost::alloc::string::String,
+    pub target_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub profile_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "4")]
@@ -8263,7 +8260,7 @@ pub struct CollectDeviceProfileResponse {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResolveProfileRequest {
     #[prost(string, tag = "1")]
-    pub mod_id: ::prost::alloc::string::String,
+    pub target_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "2")]
     pub profile: ::core::option::Option<LocalProfileDescriptor>,
     #[prost(string, tag = "3")]
@@ -8399,7 +8396,7 @@ pub struct ListLocalAuditsRequest {
     #[prost(string, tag = "6")]
     pub local_model_id: ::prost::alloc::string::String,
     #[prost(string, tag = "7")]
-    pub mod_id: ::prost::alloc::string::String,
+    pub target_id: ::prost::alloc::string::String,
     #[prost(string, tag = "8")]
     pub reason_code: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "9")]
@@ -8425,7 +8422,7 @@ pub struct AppendInferenceAuditRequest {
     #[prost(string, tag = "1")]
     pub event_type: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
-    pub mod_id: ::prost::alloc::string::String,
+    pub target_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub source: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]

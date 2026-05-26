@@ -79,7 +79,7 @@ func localAuditsFilterDigest(req *runtimev1.ListLocalAuditsRequest) string {
 		strings.TrimSpace(req.GetSource()),
 		strings.TrimSpace(req.GetModality()),
 		strings.TrimSpace(req.GetLocalModelId()),
-		strings.TrimSpace(req.GetModId()),
+		strings.TrimSpace(req.GetTargetId()),
 		strings.TrimSpace(req.GetReasonCode()),
 		strings.TrimSpace(req.GetAppId()),
 		strings.TrimSpace(req.GetSubjectUserId()),
@@ -218,9 +218,9 @@ func matchesLocalAuditFilter(event *runtimev1.LocalAuditEvent, req *runtimev1.Li
 	if subjectUserID := strings.TrimSpace(req.GetSubjectUserId()); subjectUserID != "" && event.GetSubjectUserId() != subjectUserID {
 		return false
 	}
-	if modID := strings.TrimSpace(req.GetModId()); modID != "" {
+	if targetID := strings.TrimSpace(req.GetTargetId()); targetID != "" {
 		payload := structToMap(event.GetPayload())
-		if payloadModID := strings.TrimSpace(fmt.Sprintf("%v", payload["modId"])); payloadModID != modID {
+		if payloadModID := strings.TrimSpace(fmt.Sprintf("%v", payload["targetId"])); payloadModID != targetID {
 			return false
 		}
 	}

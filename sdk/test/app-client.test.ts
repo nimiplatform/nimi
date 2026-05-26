@@ -67,12 +67,12 @@ describe('NimiAppClient', () => {
     assert.equal(rows[0]!.appId, 'nimi.shijing');
   });
 
-  it('list rejects rows with non-admitted appKind (no public mod/extension)', async () => {
+  it('list rejects rows with non-admitted appKind', async () => {
     const bad: NimiAppRow[] = [
       {
-        appId: 'rogue-mod',
-        appKind: 'public-mod' as 'nimi-app',
-        displayName: 'Rogue Mod',
+        appId: 'rogue-kind',
+        appKind: 'external-app' as 'nimi-app',
+        displayName: 'Rogue App',
         trustTier: 'nimi-community',
         publisher: 'Third Party',
         releaseDescriptorRef: 'rogue.bundled',
@@ -83,7 +83,7 @@ describe('NimiAppClient', () => {
     const client = new NimiAppClient(new StubTransport({ list: bad }));
     await assert.rejects(client.list(), (err: unknown) => {
       assert.ok(err instanceof NimiAppClientError);
-      assert.equal((err as NimiAppClientError).code, 'public-mod-or-extension-admission');
+      assert.equal((err as NimiAppClientError).code, 'non-canonical-app-kind');
       return true;
     });
   });

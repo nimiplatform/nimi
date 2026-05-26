@@ -294,7 +294,7 @@ func (x *SchedulingResourceHint) GetEngine() string {
 type SchedulingEvaluationTarget struct {
 	state         protoimpl.MessageState  `protogen:"open.v1"`
 	Capability    string                  `protobuf:"bytes,1,opt,name=capability,proto3" json:"capability,omitempty"`
-	ModId         string                  `protobuf:"bytes,2,opt,name=mod_id,json=modId,proto3" json:"mod_id,omitempty"`
+	TargetId      string                  `protobuf:"bytes,2,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
 	ProfileId     string                  `protobuf:"bytes,3,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
 	ResourceHint  *SchedulingResourceHint `protobuf:"bytes,4,opt,name=resource_hint,json=resourceHint,proto3" json:"resource_hint,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -338,9 +338,9 @@ func (x *SchedulingEvaluationTarget) GetCapability() string {
 	return ""
 }
 
-func (x *SchedulingEvaluationTarget) GetModId() string {
+func (x *SchedulingEvaluationTarget) GetTargetId() string {
 	if x != nil {
-		return x.ModId
+		return x.TargetId
 	}
 	return ""
 }
@@ -546,12 +546,12 @@ const file_runtime_v1_ai_scheduling_proto_rawDesc = "" +
 	"\x14estimated_vram_bytes\x18\x01 \x01(\x03R\x12estimatedVramBytes\x12.\n" +
 	"\x13estimated_ram_bytes\x18\x02 \x01(\x03R\x11estimatedRamBytes\x120\n" +
 	"\x14estimated_disk_bytes\x18\x03 \x01(\x03R\x12estimatedDiskBytes\x12\x16\n" +
-	"\x06engine\x18\x04 \x01(\tR\x06engine\"\xc0\x01\n" +
+	"\x06engine\x18\x04 \x01(\tR\x06engine\"\xc6\x01\n" +
 	"\x1aSchedulingEvaluationTarget\x12\x1e\n" +
 	"\n" +
 	"capability\x18\x01 \x01(\tR\n" +
-	"capability\x12\x15\n" +
-	"\x06mod_id\x18\x02 \x01(\tR\x05modId\x12\x1d\n" +
+	"capability\x12\x1b\n" +
+	"\ttarget_id\x18\x02 \x01(\tR\btargetId\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x03 \x01(\tR\tprofileId\x12L\n" +
 	"\rresource_hint\x18\x04 \x01(\v2'.nimi.runtime.v1.SchedulingResourceHintR\fresourceHint\"\xa4\x01\n" +

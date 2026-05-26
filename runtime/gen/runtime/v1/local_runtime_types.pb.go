@@ -4346,7 +4346,7 @@ func (x *LocalExecutionSelectionRationale) GetDetail() string {
 type LocalExecutionPlan struct {
 	state              protoimpl.MessageState              `protogen:"open.v1"`
 	PlanId             string                              `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
-	ModId              string                              `protobuf:"bytes,2,opt,name=mod_id,json=modId,proto3" json:"mod_id,omitempty"`
+	TargetId           string                              `protobuf:"bytes,2,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
 	Capability         string                              `protobuf:"bytes,3,opt,name=capability,proto3" json:"capability,omitempty"`
 	DeviceProfile      *LocalDeviceProfile                 `protobuf:"bytes,4,opt,name=device_profile,json=deviceProfile,proto3" json:"device_profile,omitempty"`
 	Entries            []*LocalExecutionEntryDescriptor    `protobuf:"bytes,5,rep,name=entries,proto3" json:"entries,omitempty"`
@@ -4395,9 +4395,9 @@ func (x *LocalExecutionPlan) GetPlanId() string {
 	return ""
 }
 
-func (x *LocalExecutionPlan) GetModId() string {
+func (x *LocalExecutionPlan) GetTargetId() string {
 	if x != nil {
-		return x.ModId
+		return x.TargetId
 	}
 	return ""
 }
@@ -4654,7 +4654,7 @@ func (x *LocalServiceDescriptor) GetReasonCode() ReasonCode {
 type LocalExecutionApplyResult struct {
 	state              protoimpl.MessageState           `protogen:"open.v1"`
 	PlanId             string                           `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
-	ModId              string                           `protobuf:"bytes,2,opt,name=mod_id,json=modId,proto3" json:"mod_id,omitempty"`
+	TargetId           string                           `protobuf:"bytes,2,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
 	Entries            []*LocalExecutionEntryDescriptor `protobuf:"bytes,3,rep,name=entries,proto3" json:"entries,omitempty"`
 	InstalledAssets    []*LocalAssetRecord              `protobuf:"bytes,4,rep,name=installed_assets,json=installedAssets,proto3" json:"installed_assets,omitempty"`
 	Services           []*LocalServiceDescriptor        `protobuf:"bytes,5,rep,name=services,proto3" json:"services,omitempty"`
@@ -4705,9 +4705,9 @@ func (x *LocalExecutionApplyResult) GetPlanId() string {
 	return ""
 }
 
-func (x *LocalExecutionApplyResult) GetModId() string {
+func (x *LocalExecutionApplyResult) GetTargetId() string {
 	if x != nil {
-		return x.ModId
+		return x.TargetId
 	}
 	return ""
 }
@@ -5163,7 +5163,7 @@ func (x *ProfileEntryOverride) GetLocalAssetId() string {
 type LocalProfileResolutionPlan struct {
 	state               protoimpl.MessageState             `protogen:"open.v1"`
 	PlanId              string                             `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
-	ModId               string                             `protobuf:"bytes,2,opt,name=mod_id,json=modId,proto3" json:"mod_id,omitempty"`
+	TargetId            string                             `protobuf:"bytes,2,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
 	ProfileId           string                             `protobuf:"bytes,3,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
 	Title               string                             `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
 	Description         string                             `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
@@ -5214,9 +5214,9 @@ func (x *LocalProfileResolutionPlan) GetPlanId() string {
 	return ""
 }
 
-func (x *LocalProfileResolutionPlan) GetModId() string {
+func (x *LocalProfileResolutionPlan) GetTargetId() string {
 	if x != nil {
-		return x.ModId
+		return x.TargetId
 	}
 	return ""
 }
@@ -5287,7 +5287,7 @@ func (x *LocalProfileResolutionPlan) GetReasonCode() string {
 type LocalProfileApplyResult struct {
 	state           protoimpl.MessageState     `protogen:"open.v1"`
 	PlanId          string                     `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
-	ModId           string                     `protobuf:"bytes,2,opt,name=mod_id,json=modId,proto3" json:"mod_id,omitempty"`
+	TargetId        string                     `protobuf:"bytes,2,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
 	ProfileId       string                     `protobuf:"bytes,3,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
 	ExecutionResult *LocalExecutionApplyResult `protobuf:"bytes,4,opt,name=execution_result,json=executionResult,proto3" json:"execution_result,omitempty"`
 	InstalledAssets []*LocalAssetRecord        `protobuf:"bytes,5,rep,name=installed_assets,json=installedAssets,proto3" json:"installed_assets,omitempty"`
@@ -5334,9 +5334,9 @@ func (x *LocalProfileApplyResult) GetPlanId() string {
 	return ""
 }
 
-func (x *LocalProfileApplyResult) GetModId() string {
+func (x *LocalProfileApplyResult) GetTargetId() string {
 	if x != nil {
-		return x.ModId
+		return x.TargetId
 	}
 	return ""
 }
@@ -6340,10 +6340,10 @@ const file_runtime_v1_local_runtime_types_proto_rawDesc = "" +
 	"\bselected\x18\x02 \x01(\bR\bselected\x12\x1f\n" +
 	"\vreason_code\x18\x03 \x01(\tR\n" +
 	"reasonCode\x12\x16\n" +
-	"\x06detail\x18\x04 \x01(\tR\x06detail\"\xf5\x03\n" +
+	"\x06detail\x18\x04 \x01(\tR\x06detail\"\xfb\x03\n" +
 	"\x12LocalExecutionPlan\x12\x17\n" +
-	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x15\n" +
-	"\x06mod_id\x18\x02 \x01(\tR\x05modId\x12\x1e\n" +
+	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x1b\n" +
+	"\ttarget_id\x18\x02 \x01(\tR\btargetId\x12\x1e\n" +
 	"\n" +
 	"capability\x18\x03 \x01(\tR\n" +
 	"capability\x12J\n" +
@@ -6376,10 +6376,10 @@ const file_runtime_v1_local_runtime_types_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\v \x01(\tR\tupdatedAt\x12<\n" +
 	"\vreason_code\x18\f \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"\xdf\x04\n" +
+	"reasonCode\"\xe5\x04\n" +
 	"\x19LocalExecutionApplyResult\x12\x17\n" +
-	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x15\n" +
-	"\x06mod_id\x18\x02 \x01(\tR\x05modId\x12H\n" +
+	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x1b\n" +
+	"\ttarget_id\x18\x02 \x01(\tR\btargetId\x12H\n" +
 	"\aentries\x18\x03 \x03(\v2..nimi.runtime.v1.LocalExecutionEntryDescriptorR\aentries\x12L\n" +
 	"\x10installed_assets\x18\x04 \x03(\v2!.nimi.runtime.v1.LocalAssetRecordR\x0finstalledAssets\x12C\n" +
 	"\bservices\x18\x05 \x03(\v2'.nimi.runtime.v1.LocalServiceDescriptorR\bservices\x12\"\n" +
@@ -6434,10 +6434,10 @@ const file_runtime_v1_local_runtime_types_proto_rawDesc = "" +
 	"\frequirements\x18\a \x01(\v22.nimi.runtime.v1.LocalProfileRequirementDescriptorR\frequirements\"W\n" +
 	"\x14ProfileEntryOverride\x12\x19\n" +
 	"\bentry_id\x18\x01 \x01(\tR\aentryId\x12$\n" +
-	"\x0elocal_asset_id\x18\x02 \x01(\tR\flocalAssetId\"\xee\x03\n" +
+	"\x0elocal_asset_id\x18\x02 \x01(\tR\flocalAssetId\"\xf4\x03\n" +
 	"\x1aLocalProfileResolutionPlan\x12\x17\n" +
-	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x15\n" +
-	"\x06mod_id\x18\x02 \x01(\tR\x05modId\x12\x1d\n" +
+	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x1b\n" +
+	"\ttarget_id\x18\x02 \x01(\tR\btargetId\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x03 \x01(\tR\tprofileId\x12\x14\n" +
 	"\x05title\x18\x04 \x01(\tR\x05title\x12 \n" +
@@ -6449,10 +6449,10 @@ const file_runtime_v1_local_runtime_types_proto_rawDesc = "" +
 	"\bwarnings\x18\v \x03(\tR\bwarnings\x12\x1f\n" +
 	"\vreason_code\x18\f \x01(\tR\n" +
 	"reasonCodeJ\x04\b\n" +
-	"\x10\vR\rasset_entries\"\xca\x02\n" +
+	"\x10\vR\rasset_entries\"\xd0\x02\n" +
 	"\x17LocalProfileApplyResult\x12\x17\n" +
-	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x15\n" +
-	"\x06mod_id\x18\x02 \x01(\tR\x05modId\x12\x1d\n" +
+	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x1b\n" +
+	"\ttarget_id\x18\x02 \x01(\tR\btargetId\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x03 \x01(\tR\tprofileId\x12U\n" +
 	"\x10execution_result\x18\x04 \x01(\v2*.nimi.runtime.v1.LocalExecutionApplyResultR\x0fexecutionResult\x12L\n" +

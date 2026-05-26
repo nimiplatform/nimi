@@ -337,7 +337,7 @@ func TestLocalResolveExecutionPlanRejectsServiceWithoutModelID(t *testing.T) {
 	newTestService(t)
 
 	plan := resolveExecutionPlan(&executionResolveRequest{
-		modID:      "world.nimi.service-without-model",
+		targetID:      "world.nimi.service-without-model",
 		capability: "chat",
 		entries: &runtimev1.LocalExecutionDeclarationDescriptor{
 			Required: []*runtimev1.LocalExecutionOptionDescriptor{

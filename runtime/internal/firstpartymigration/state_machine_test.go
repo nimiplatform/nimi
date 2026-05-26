@@ -186,7 +186,7 @@ func TestTransition_NilMigration(t *testing.T) {
 }
 
 func TestMigrationKind_RejectsUnknown(t *testing.T) {
-	if MigrationKind("public-mod-standalone").Valid() {
+	if MigrationKind("legacy-standalone").Valid() {
 		t.Error("non-canonical migration kind must not be valid")
 	}
 }

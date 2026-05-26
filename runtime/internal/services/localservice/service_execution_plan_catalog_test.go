@@ -19,7 +19,7 @@ func TestLocalResolveAndApplyExecutionPlan(t *testing.T) {
 	svc := newTestService(t)
 
 	plan := resolveExecutionPlan(&executionResolveRequest{
-		modID:      "world.nimi.user-math-quiz",
+		targetID:      "world.nimi.user-math-quiz",
 		capability: "chat",
 		entries: &runtimev1.LocalExecutionDeclarationDescriptor{
 			Required: []*runtimev1.LocalExecutionOptionDescriptor{
@@ -83,7 +83,7 @@ func TestLocalResolveProfileSeparatesDependencyAndArtifactEntries(t *testing.T) 
 	optional := false
 
 	resp, err := svc.ResolveProfile(context.Background(), &runtimev1.ResolveProfileRequest{
-		ModId: "world.nimi.user-image-studio",
+		TargetId: "world.nimi.user-image-studio",
 		Profile: &runtimev1.LocalProfileDescriptor{
 			Id:                  "quality-best",
 			Title:               "Quality Best",
@@ -193,7 +193,7 @@ func TestLocalApplyProfileInstallsPassiveAssets(t *testing.T) {
 	}
 
 	resolveResp, err := svc.ResolveProfile(context.Background(), &runtimev1.ResolveProfileRequest{
-		ModId: "world.nimi.user-image-studio",
+		TargetId: "world.nimi.user-image-studio",
 		Profile: &runtimev1.LocalProfileDescriptor{
 			Id:                  "quality-best",
 			Title:               "Quality Best",
@@ -268,7 +268,7 @@ func TestLocalAuditFilterByModID(t *testing.T) {
 
 	if _, err := svc.AppendInferenceAudit(context.Background(), &runtimev1.AppendInferenceAuditRequest{
 		EventType: "inference_invoked",
-		ModId:     "world.nimi.user-math-quiz",
+		TargetId:     "world.nimi.user-math-quiz",
 		Source:    "local",
 		Provider:  "llama",
 		Modality:  "chat",
@@ -286,7 +286,7 @@ func TestLocalAuditFilterByModID(t *testing.T) {
 	}
 
 	filtered, err := svc.ListLocalAudits(context.Background(), &runtimev1.ListLocalAuditsRequest{
-		ModId:    "world.nimi.user-math-quiz",
+		TargetId:    "world.nimi.user-math-quiz",
 		PageSize: 10,
 	})
 	if err != nil {
@@ -562,7 +562,7 @@ func TestLocalCollectDeviceProfileUsesRealProbe(t *testing.T) {
 func TestLocalResolveExecutionPlanFailsOnInvalidRequired(t *testing.T) {
 	newTestService(t)
 	plan := resolveExecutionPlan(&executionResolveRequest{
-		modID:      "world.nimi.invalid-required",
+		targetID:      "world.nimi.invalid-required",
 		capability: "chat",
 		entries: &runtimev1.LocalExecutionDeclarationDescriptor{
 			Required: []*runtimev1.LocalExecutionOptionDescriptor{
@@ -586,7 +586,7 @@ func TestLocalResolveExecutionPlanFailsOnInvalidRequired(t *testing.T) {
 func TestLocalResolveExecutionPlanRejectsImplicitCapabilityDefault(t *testing.T) {
 	newTestService(t)
 	plan := resolveExecutionPlan(&executionResolveRequest{
-		modID:      "world.nimi.implicit-default",
+		targetID:      "world.nimi.implicit-default",
 		capability: "chat",
 		entries:    &runtimev1.LocalExecutionDeclarationDescriptor{},
 	})
@@ -604,7 +604,7 @@ func TestLocalResolveExecutionPlanRejectsImplicitCapabilityDefault(t *testing.T)
 func TestLocalResolveExecutionPlanRejectsWorkflowKind(t *testing.T) {
 	newTestService(t)
 	plan := resolveExecutionPlan(&executionResolveRequest{
-		modID:      "world.nimi.invalid-workflow-kind",
+		targetID:      "world.nimi.invalid-workflow-kind",
 		capability: "chat",
 		entries: &runtimev1.LocalExecutionDeclarationDescriptor{
 			Required: []*runtimev1.LocalExecutionOptionDescriptor{
@@ -635,7 +635,7 @@ func TestLocalApplyExecutionPlanShortCircuitsOnPreflight(t *testing.T) {
 	svc := newTestService(t)
 	result := svc.applyExecutionPlanStrict(context.Background(), &runtimev1.LocalExecutionPlan{
 		PlanId: "dep-plan-preflight",
-		ModId:  "world.nimi.preflight-fail",
+		TargetId:  "world.nimi.preflight-fail",
 		Entries: []*runtimev1.LocalExecutionEntryDescriptor{
 			{
 				EntryId:    "dep.python-required",
@@ -667,7 +667,7 @@ func TestLocalApplyExecutionPlanFailsWhenNodeUnresolved(t *testing.T) {
 	svc := newTestService(t)
 	result := svc.applyExecutionPlanStrict(context.Background(), &runtimev1.LocalExecutionPlan{
 		PlanId: "dep-plan-node-missing",
-		ModId:  "world.nimi.node-missing",
+		TargetId:  "world.nimi.node-missing",
 		Entries: []*runtimev1.LocalExecutionEntryDescriptor{
 			{
 				EntryId:    "dep.node.chat",
@@ -732,7 +732,7 @@ func TestLocalApplyExecutionPlanPassesWhenNodeResolved(t *testing.T) {
 
 	result := svc.applyExecutionPlanStrict(context.Background(), &runtimev1.LocalExecutionPlan{
 		PlanId: "dep-plan-node-ready",
-		ModId:  "world.nimi.node-ready",
+		TargetId:  "world.nimi.node-ready",
 		Entries: []*runtimev1.LocalExecutionEntryDescriptor{
 			{
 				EntryId:    "dep.node.chat",

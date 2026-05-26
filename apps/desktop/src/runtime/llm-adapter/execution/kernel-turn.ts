@@ -1,4 +1,4 @@
-import { invokeModLlm } from './invoke-text';
+import { invokeRuntimeLlm } from './invoke-text';
 import type { ExecuteLocalKernelTurnInput, ExecuteLocalKernelTurnResult } from './types';
 import { buildLocalId, estimateTokens } from './utils';
 import { ReasonCode } from '@nimiplatform/sdk/types';
@@ -21,8 +21,8 @@ export async function executeLocalKernelTurn(input: ExecuteLocalKernelTurnInput)
     `用户输入: ${input.userInputText}`,
     '请用简洁中文回复，并保持叙事连续性。',
   ].join('\n');
-  const result = await invokeModLlm({
-    modId: 'core.kernel',
+  const result = await invokeRuntimeLlm({
+    targetId: 'core.kernel',
     provider: input.provider,
     prompt,
     mode: input.mode === 'SCENE_TURN' ? 'SCENE_TURN' : 'STORY',

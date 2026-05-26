@@ -1394,9 +1394,9 @@ export interface CollectDeviceProfileResponse {
  */
 export interface ResolveProfileRequest {
     /**
-     * @generated from protobuf field: string mod_id = 1
+     * @generated from protobuf field: string target_id = 1
      */
-    modId: string;
+    targetId: string;
     /**
      * @generated from protobuf field: nimi.runtime.v1.LocalProfileDescriptor profile = 2
      */
@@ -1654,9 +1654,9 @@ export interface ListLocalAuditsRequest {
      */
     localModelId: string;
     /**
-     * @generated from protobuf field: string mod_id = 7
+     * @generated from protobuf field: string target_id = 7
      */
-    modId: string;
+    targetId: string;
     /**
      * @generated from protobuf field: string reason_code = 8
      */
@@ -1704,9 +1704,9 @@ export interface AppendInferenceAuditRequest {
      */
     eventType: string;
     /**
-     * @generated from protobuf field: string mod_id = 2
+     * @generated from protobuf field: string target_id = 2
      */
-    modId: string;
+    targetId: string;
     /**
      * @generated from protobuf field: string source = 3
      */
@@ -6318,7 +6318,7 @@ export const CollectDeviceProfileResponse = new CollectDeviceProfileResponse$Typ
 class ResolveProfileRequest$Type extends MessageType<ResolveProfileRequest> {
     constructor() {
         super("nimi.runtime.v1.ResolveProfileRequest", [
-            { no: 1, name: "mod_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "target_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "profile", kind: "message", T: () => LocalProfileDescriptor },
             { no: 3, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "device_profile", kind: "message", T: () => LocalDeviceProfile },
@@ -6327,7 +6327,7 @@ class ResolveProfileRequest$Type extends MessageType<ResolveProfileRequest> {
     }
     create(value?: PartialMessage<ResolveProfileRequest>): ResolveProfileRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.modId = "";
+        message.targetId = "";
         message.capability = "";
         message.entryOverrides = [];
         if (value !== undefined)
@@ -6339,8 +6339,8 @@ class ResolveProfileRequest$Type extends MessageType<ResolveProfileRequest> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string mod_id */ 1:
-                    message.modId = reader.string();
+                case /* string target_id */ 1:
+                    message.targetId = reader.string();
                     break;
                 case /* nimi.runtime.v1.LocalProfileDescriptor profile */ 2:
                     message.profile = LocalProfileDescriptor.internalBinaryRead(reader, reader.uint32(), options, message.profile);
@@ -6366,9 +6366,9 @@ class ResolveProfileRequest$Type extends MessageType<ResolveProfileRequest> {
         return message;
     }
     internalBinaryWrite(message: ResolveProfileRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string mod_id = 1; */
-        if (message.modId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.modId);
+        /* string target_id = 1; */
+        if (message.targetId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.targetId);
         /* nimi.runtime.v1.LocalProfileDescriptor profile = 2; */
         if (message.profile)
             LocalProfileDescriptor.internalBinaryWrite(message.profile, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
@@ -7304,7 +7304,7 @@ class ListLocalAuditsRequest$Type extends MessageType<ListLocalAuditsRequest> {
             { no: 4, name: "source", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "modality", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "local_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "mod_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "target_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "time_range", kind: "message", T: () => LocalAuditTimeRange },
             { no: 10, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
@@ -7320,7 +7320,7 @@ class ListLocalAuditsRequest$Type extends MessageType<ListLocalAuditsRequest> {
         message.source = "";
         message.modality = "";
         message.localModelId = "";
-        message.modId = "";
+        message.targetId = "";
         message.reasonCode = "";
         message.pageSize = 0;
         message.pageToken = "";
@@ -7350,8 +7350,8 @@ class ListLocalAuditsRequest$Type extends MessageType<ListLocalAuditsRequest> {
                 case /* string local_model_id */ 6:
                     message.localModelId = reader.string();
                     break;
-                case /* string mod_id */ 7:
-                    message.modId = reader.string();
+                case /* string target_id */ 7:
+                    message.targetId = reader.string();
                     break;
                 case /* string reason_code */ 8:
                     message.reasonCode = reader.string();
@@ -7398,9 +7398,9 @@ class ListLocalAuditsRequest$Type extends MessageType<ListLocalAuditsRequest> {
         /* string local_model_id = 6; */
         if (message.localModelId !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.localModelId);
-        /* string mod_id = 7; */
-        if (message.modId !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.modId);
+        /* string target_id = 7; */
+        if (message.targetId !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.targetId);
         /* string reason_code = 8; */
         if (message.reasonCode !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.reasonCode);
@@ -7489,7 +7489,7 @@ class AppendInferenceAuditRequest$Type extends MessageType<AppendInferenceAuditR
     constructor() {
         super("nimi.runtime.v1.AppendInferenceAuditRequest", [
             { no: 1, name: "event_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "mod_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "target_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "source", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "modality", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -7506,7 +7506,7 @@ class AppendInferenceAuditRequest$Type extends MessageType<AppendInferenceAuditR
     create(value?: PartialMessage<AppendInferenceAuditRequest>): AppendInferenceAuditRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.eventType = "";
-        message.modId = "";
+        message.targetId = "";
         message.source = "";
         message.provider = "";
         message.modality = "";
@@ -7528,8 +7528,8 @@ class AppendInferenceAuditRequest$Type extends MessageType<AppendInferenceAuditR
                 case /* string event_type */ 1:
                     message.eventType = reader.string();
                     break;
-                case /* string mod_id */ 2:
-                    message.modId = reader.string();
+                case /* string target_id */ 2:
+                    message.targetId = reader.string();
                     break;
                 case /* string source */ 3:
                     message.source = reader.string();
@@ -7579,9 +7579,9 @@ class AppendInferenceAuditRequest$Type extends MessageType<AppendInferenceAuditR
         /* string event_type = 1; */
         if (message.eventType !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.eventType);
-        /* string mod_id = 2; */
-        if (message.modId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.modId);
+        /* string target_id = 2; */
+        if (message.targetId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.targetId);
         /* string source = 3; */
         if (message.source !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.source);

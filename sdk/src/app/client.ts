@@ -28,7 +28,7 @@ export class NimiAppClientError extends Error {
     | 'transport-error'
     | 'non-canonical-response'
     | 'missing-required-field'
-    | 'public-mod-or-extension-admission';
+    | 'non-canonical-app-kind';
   constructor(
     code: NimiAppClientError['code'],
     message: string,
@@ -123,8 +123,8 @@ function validateRow(row: NimiAppRow | null | undefined): void {
     throw new NimiAppClientError('missing-required-field', 'list row missing installStoragePolicyRef');
   }
   if (!isCanonicalAppKind(row.appKind)) {
-    throw new NimiAppClientError(
-      'public-mod-or-extension-admission',
+      throw new NimiAppClientError(
+      'non-canonical-app-kind',
       `list row appKind "${String(row.appKind)}" is not an admitted Nimi App kind`,
     );
   }

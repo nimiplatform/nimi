@@ -133,14 +133,14 @@ fn bridge_profile_to_dependency_declaration(
     )
 }
 
-fn next_profile_plan_id(mod_id: &str, profile_id: &str) -> String {
+fn next_profile_plan_id(target_id: &str, profile_id: &str) -> String {
     let now_ms = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_millis();
     format!(
         "profile-plan-{}-{}-{now_ms}",
-        slugify_local_model_id(mod_id),
+        slugify_local_model_id(target_id),
         slugify_local_model_id(profile_id)
     )
 }
@@ -157,8 +157,8 @@ async fn resolve_profile_plan(
     app: &AppHandle,
     payload: &LocalAiProfilesResolvePayload,
 ) -> Result<LocalAiProfileResolutionPlan, String> {
-    let mod_id = normalize_non_empty(payload.mod_id.as_str())
-        .ok_or_else(|| "LOCAL_AI_PROFILE_MOD_ID_REQUIRED: modId is required".to_string())?;
+    let target_id = normalize_non_empty(payload.target_id.as_str())
+        .ok_or_else(|| "LOCAL_AI_PROFILE_MOD_ID_REQUIRED: targetId is required".to_string())?;
     let profile_id = normalize_non_empty(payload.profile.id.as_str())
         .ok_or_else(|| "LOCAL_AI_PROFILE_ID_REQUIRED: profile.id is required".to_string())?;
     let title = normalize_non_empty(payload.profile.title.as_str())
@@ -181,10 +181,10 @@ async fn resolve_profile_plan(
         capability_matrix: state.capability_matrix.clone(),
         declaration,
     })?;
-    let plan_id = next_profile_plan_id(mod_id.as_str(), profile_id.as_str());
+    let plan_id = next_profile_plan_id(target_id.as_str(), profile_id.as_str());
     let execution_plan = LocalAiDependencyResolutionPlan {
         plan_id: plan_id.clone(),
-        mod_id: mod_id.clone(),
+        target_id: target_id.clone(),
         capability: capability_filter,
         device_profile,
         dependencies: resolved.dependencies,
@@ -196,7 +196,7 @@ async fn resolve_profile_plan(
 
     Ok(LocalAiProfileResolutionPlan {
         plan_id,
-        mod_id,
+        target_id,
         profile_id: profile_id.to_string(),
         title: title.to_string(),
         description: normalize_optional(payload.profile.description.clone()),

@@ -3,7 +3,7 @@ import { localAIActionDescriptors } from './local-ai-actions.js';
 
 export type ExternalAgentActionDescriptor = {
   actionId: string;
-  modId: string;
+  targetId: string;
   sourceType: string;
   description?: string;
   operation: 'read' | 'write';
@@ -149,7 +149,7 @@ function parseExternalAgentTokenRecord(value: unknown, index: number): ExternalA
 async function syncActionDescriptors(): Promise<void> {
   const descriptors: ExternalAgentActionDescriptor[] = localAIActionDescriptors.map((descriptor) => ({
     actionId: descriptor.name,
-    modId: 'core:local-ai',
+    targetId: 'core:local-ai',
     sourceType: 'core',
     description: descriptor.description,
     operation: descriptor.operation,

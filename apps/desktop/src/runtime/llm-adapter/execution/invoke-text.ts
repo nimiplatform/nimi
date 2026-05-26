@@ -10,7 +10,7 @@ import {
   resolveSourceAndModel,
   toLocalRuntimeReasonCode,
 } from './runtime-ai-bridge';
-import type { InvokeModLlmInput, InvokeModLlmOutput } from './types';
+import type { InvokeRuntimeLlmInput, InvokeRuntimeLlmOutput } from './types';
 import { TEXT_GENERATE_TIMEOUT_MS } from './types';
 import { buildLocalId } from './utils';
 import { emitRuntimeLog } from '../../telemetry/logger';
@@ -91,7 +91,7 @@ export function sanitizeScenarioTextInput(
   return normalized;
 }
 
-export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModLlmOutput> {
+export async function invokeRuntimeLlm(input: InvokeRuntimeLlmInput): Promise<InvokeRuntimeLlmOutput> {
   const resolved = resolveSourceAndModel(input);
   let runtimeTraceId = '';
   const prompt = sanitizeScenarioTextInput(input.prompt, 'prompt');
@@ -100,7 +100,7 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
   try {
     const runtime = getRuntimeClient();
     await ensureRuntimeLocalModelWarm({
-      modId: input.modId,
+      targetId: input.targetId,
       source: resolved.source,
       modelId: resolved.modelId,
       engine: resolved.provider,
@@ -108,7 +108,7 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
       timeoutMs: TEXT_GENERATE_TIMEOUT_MS,
     });
     const callOptions = await buildRuntimeCallOptions({
-      modId: input.modId,
+      targetId: input.targetId,
       timeoutMs: TEXT_GENERATE_TIMEOUT_MS,
       source: resolved.source,
       connectorId: input.connectorId,
@@ -117,7 +117,7 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
     runtimeTraceId = String(callOptions.metadata.traceId || '').trim();
     emitInferenceAudit({
       eventType: 'inference_invoked',
-      modId: input.modId,
+      targetId: input.targetId,
       source: resolved.source,
       routeSource: resolved.source,
       provider: resolved.provider,
@@ -178,13 +178,13 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
       });
     }
 
-    if (String(input.modId || '').trim().startsWith('world.nimi.')) {
+    if (String(input.targetId || '').trim().startsWith('world.nimi.')) {
       emitRuntimeLog({
         level: 'info',
         area: 'mods-test-diag',
         message: '[MODS-TEST-DIAG] llm runtime generate meta',
         details: {
-          modId: input.modId,
+          targetId: input.targetId,
           traceId: responseTraceId || null,
           source: resolved.source,
           provider: resolved.provider,
@@ -209,7 +209,7 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
         area: 'mods-test-diag',
         message: '[MODS-TEST-DIAG] llm raw text output',
         details: {
-          modId: input.modId,
+          targetId: input.targetId,
           traceId: responseTraceId || null,
           source: resolved.source,
           modelId: resolved.modelId,
@@ -233,7 +233,7 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
     const localReasonCode = toLocalRuntimeReasonCode(normalizedError) || undefined;
     emitInferenceAudit({
       eventType: 'inference_failed',
-      modId: input.modId,
+      targetId: input.targetId,
       source: resolved.source,
       routeSource: resolved.source,
       provider: resolved.provider,

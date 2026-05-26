@@ -191,7 +191,7 @@ pub async fn runtime_local_profiles_resolve(
         None,
         None,
         Some(serde_json::json!({
-            "modId": payload.mod_id.clone(),
+            "targetId": payload.target_id.clone(),
             "profileId": payload.profile.id.clone(),
             "capability": payload.capability.clone(),
             "entryCount": payload.profile.entries.len(),
@@ -208,7 +208,7 @@ pub async fn runtime_local_profiles_resolve(
                 None,
                 None,
                 Some(serde_json::json!({
-                    "modId": payload.mod_id,
+                    "targetId": payload.target_id,
                     "profileId": payload.profile.id,
                     "capability": payload.capability,
                     "reasonCode": extract_reason_code(error.as_str()),

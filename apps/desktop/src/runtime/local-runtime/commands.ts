@@ -241,7 +241,7 @@ export async function resolveLocalRuntimeProfile(
 ): Promise<LocalRuntimeProfileResolutionPlan> {
   const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_profiles_resolve', {
     payload: {
-      modId: payload.modId,
+      targetId: payload.targetId,
       profile: payload.profile,
       capability: payload.capability,
       deviceProfile: payload.deviceProfile,
@@ -263,7 +263,7 @@ export async function applyLocalRuntimeProfile(
   return {
     applySessionId: accepted.applySessionId,
     planId: plan.planId,
-    modId: plan.modId,
+    targetId: plan.targetId,
     profileId: plan.profileId,
   };
 }
@@ -347,7 +347,7 @@ export async function getLocalRuntimeProfileInstallStatus(
   });
   const missingEntries = [...missingDependencies];
   return {
-    modId: payload.modId,
+    targetId: payload.targetId,
     profileId: payload.profile.id,
     status: missingEntries.length > 0
       ? 'missing'

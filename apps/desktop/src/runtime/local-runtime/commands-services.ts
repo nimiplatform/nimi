@@ -140,7 +140,7 @@ export async function listLocalRuntimeAudits(
     source: String(query?.source || '').trim(),
     modality: String(query?.modality || '').trim(),
     localModelId: String(query?.localModelId || '').trim(),
-    modId: String(query?.modId || '').trim(),
+    targetId: String(query?.targetId || '').trim(),
     reasonCode: String(query?.reasonCode || '').trim(),
     timeRange: query?.timeRange ? { from: String(query.timeRange.from || ''), to: String(query.timeRange.to || '') } : undefined,
     pageSize: Number(query?.limit || 0),
@@ -164,7 +164,7 @@ export async function appendLocalRuntimeInferenceAudit(
   };
   await runtime.appendInferenceAudit({
     eventType: payload.eventType,
-    modId: payload.modId,
+    targetId: payload.targetId,
     source: payload.source,
     provider: payload.provider,
     modality: payload.modality,

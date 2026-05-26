@@ -130,7 +130,7 @@ pub struct LocalAiDependencyApplyStageResult {
 #[serde(rename_all = "camelCase")]
 pub struct LocalAiDependencyResolutionPlan {
     pub plan_id: String,
-    pub mod_id: String,
+    pub target_id: String,
     pub capability: Option<String>,
     pub device_profile: LocalAiDeviceProfile,
     pub dependencies: Vec<LocalAiDependencyDescriptor>,
@@ -146,7 +146,7 @@ pub struct LocalAiDependencyResolutionPlan {
 #[serde(rename_all = "camelCase")]
 pub struct LocalAiDependencyApplyResult {
     pub plan_id: String,
-    pub mod_id: String,
+    pub target_id: String,
     pub dependencies: Vec<LocalAiDependencyDescriptor>,
     pub installed_assets: Vec<LocalAiAssetRecord>,
     pub services: Vec<LocalAiServiceDescriptor>,

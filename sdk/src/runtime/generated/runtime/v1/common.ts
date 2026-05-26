@@ -977,10 +977,6 @@ export enum CallerKind {
      */
     DESKTOP_CORE = 1,
     /**
-     * @generated from protobuf enum value: CALLER_KIND_DESKTOP_MOD = 2;
-     */
-    DESKTOP_MOD = 2,
-    /**
      * @generated from protobuf enum value: CALLER_KIND_THIRD_PARTY_APP = 3;
      */
     THIRD_PARTY_APP = 3,

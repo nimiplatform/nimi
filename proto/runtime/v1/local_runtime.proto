@@ -520,7 +520,7 @@ message CollectDeviceProfileResponse {
 // === Profile Resolution ===
 
 message ResolveProfileRequest {
-  string mod_id                                = 1;
+  string target_id                             = 1;
   LocalProfileDescriptor profile               = 2;
   string capability                            = 3;
   LocalDeviceProfile device_profile            = 4;
@@ -623,7 +623,7 @@ message ListLocalAuditsRequest {
   string source                = 4;
   string modality              = 5;
   string local_model_id        = 6;
-  string mod_id                = 7;
+  string target_id             = 7;
   string reason_code           = 8;
   LocalAuditTimeRange time_range = 9;
   int32 page_size              = 10;
@@ -639,7 +639,7 @@ message ListLocalAuditsResponse {
 
 message AppendInferenceAuditRequest {
   string event_type                = 1;
-  string mod_id                    = 2;
+  string target_id                 = 2;
   string source                    = 3;
   string provider                  = 4;
   string modality                  = 5;

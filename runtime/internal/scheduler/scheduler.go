@@ -46,7 +46,7 @@ type SchedulingJudgement struct {
 // SchedulingEvaluationTarget is the K-SCHED-002 atomic scheduling input.
 type SchedulingEvaluationTarget struct {
 	Capability string
-	ModID      string
+	TargetID      string
 	ProfileID  string
 	Hint       *ResourceHint
 }
@@ -110,10 +110,10 @@ type ResourceAssessor func() *ResourceSnapshot
 
 // DependencyFeasibilityChecker evaluates whether a profile's required
 // dependencies are satisfiable on the current device (K-SCHED-004).
-// The checker receives identity references only (modID + profileID + capability)
+// The checker receives identity references only (targetID + profileID + capability)
 // and resolves the profile from the runtime-side profile registry.
 // Returns (feasible, detail). Injected by caller (daemon bootstrap).
-type DependencyFeasibilityChecker func(modID string, profileID string, capability string) (feasible bool, detail string)
+type DependencyFeasibilityChecker func(targetID string, profileID string, capability string) (feasible bool, detail string)
 
 // Scheduler enforces global and per-app concurrency limits.
 // Phase 2: adds resource-aware risk assessment via ResourceAssessor.
@@ -353,9 +353,9 @@ func (s *Scheduler) peekTarget(
 	}
 
 	// K-SCHED-004: dependency feasibility denial.
-	// Only evaluated when profile identity (modID + profileID) is provided AND a checker is available.
+	// Only evaluated when profile identity (targetID + profileID) is provided AND a checker is available.
 	if strings.TrimSpace(target.ProfileID) != "" && depChecker != nil {
-		feasible, detail := depChecker(target.ModID, target.ProfileID, target.Capability)
+		feasible, detail := depChecker(target.TargetID, target.ProfileID, target.Capability)
 		if !feasible {
 			return SchedulingJudgement{
 				State:            StateDenied,
@@ -498,7 +498,7 @@ func targetUsesVRAM(target SchedulingEvaluationTarget, snapshot *ResourceSnapsho
 	if target.Hint != nil {
 		engine = strings.ToLower(strings.TrimSpace(target.Hint.Engine))
 	}
-	identity := strings.ToLower(strings.TrimSpace(target.ModID + " " + target.ProfileID + " " + engine))
+	identity := strings.ToLower(strings.TrimSpace(target.TargetID + " " + target.ProfileID + " " + engine))
 	if capability == "" && identity == "" {
 		return true
 	}
@@ -521,7 +521,7 @@ func normalizeSchedulingTargets(targets []SchedulingEvaluationTarget) []Scheduli
 	for _, target := range targets {
 		normalized = append(normalized, SchedulingEvaluationTarget{
 			Capability: strings.TrimSpace(target.Capability),
-			ModID:      strings.TrimSpace(target.ModID),
+			TargetID:      strings.TrimSpace(target.TargetID),
 			ProfileID:  strings.TrimSpace(target.ProfileID),
 			Hint:       target.Hint,
 		})
@@ -624,7 +624,7 @@ func compareSchedulingTargets(left SchedulingEvaluationTarget, right SchedulingE
 	if cmp := strings.Compare(left.Capability, right.Capability); cmp != 0 {
 		return cmp
 	}
-	if cmp := strings.Compare(left.ModID, right.ModID); cmp != 0 {
+	if cmp := strings.Compare(left.TargetID, right.TargetID); cmp != 0 {
 		return cmp
 	}
 	return strings.Compare(left.ProfileID, right.ProfileID)
@@ -632,19 +632,19 @@ func compareSchedulingTargets(left SchedulingEvaluationTarget, right SchedulingE
 
 func formatSchedulingTarget(target SchedulingEvaluationTarget) string {
 	capability := strings.TrimSpace(target.Capability)
-	modID := strings.TrimSpace(target.ModID)
+	targetID := strings.TrimSpace(target.TargetID)
 	profileID := strings.TrimSpace(target.ProfileID)
 	switch {
-	case capability != "" && modID != "" && profileID != "":
-		return fmt.Sprintf("%s (%s/%s)", capability, modID, profileID)
-	case capability != "" && modID != "":
-		return fmt.Sprintf("%s (%s)", capability, modID)
+	case capability != "" && targetID != "" && profileID != "":
+		return fmt.Sprintf("%s (%s/%s)", capability, targetID, profileID)
+	case capability != "" && targetID != "":
+		return fmt.Sprintf("%s (%s)", capability, targetID)
 	case capability != "":
 		return capability
-	case modID != "" && profileID != "":
-		return fmt.Sprintf("%s/%s", modID, profileID)
-	case modID != "":
-		return modID
+	case targetID != "" && profileID != "":
+		return fmt.Sprintf("%s/%s", targetID, profileID)
+	case targetID != "":
+		return targetID
 	default:
 		return "_unspecified_target"
 	}

@@ -174,7 +174,7 @@ export type ChatAgentRuntimeInvokeDeps = {
 };
 
 export type ResolvedAgentRuntimeRouteInput = {
-  modId: string;
+  targetId: string;
   provider: string;
   localProviderEndpoint?: string;
   localProviderModel?: string;

@@ -449,7 +449,7 @@ export function createDesktopConversationCapabilityRouteRuntime(
       const responseMetadata: Record<string, string> = {};
       const callOptions: RuntimeCallOptionsWithObserver = {
         ...(await deps.buildRuntimeCallOptions({
-          modId: 'core.chat.agent',
+          targetId: 'core.chat.agent',
           timeoutMs: ROUTE_DESCRIBE_TIMEOUT_MS,
           source: resolved.source,
           connectorId: normalizeText(resolved.connectorId) || undefined,

@@ -40,15 +40,15 @@ import type {
   RuntimeBridgeDaemonStatus,
   RuntimeLocalAsset,
   RuntimeLocalManifestSummary,
-  RuntimeModDeveloperModeState,
-  RuntimeModDiagnosticRecord,
-  RuntimeModInstallAccepted,
-  RuntimeModInstallProgressEvent,
-  RuntimeModInstallResult,
-  RuntimeModReloadResult,
-  RuntimeModSourceChangeEvent,
-  RuntimeModSourceRecord,
-  RuntimeModStorageDirs,
+  RuntimePackageDeveloperModeState,
+  RuntimePackageDiagnosticRecord,
+  RuntimePackageInstallAccepted,
+  RuntimePackageInstallProgressEvent,
+  RuntimePackageInstallResult,
+  RuntimePackageReloadResult,
+  RuntimePackageSourceChangeEvent,
+  RuntimePackageSourceRecord,
+  RuntimePackageStorageDirs,
   SystemResourceSnapshot,
 } from './runtime-types';
 
@@ -94,13 +94,13 @@ export function parseDesktopUpdateCheckResult(value: unknown): DesktopUpdateChec
   };
 }
 
-export function parseRuntimeModStorageDirs(value: unknown): RuntimeModStorageDirs {
+export function parseRuntimePackageStorageDirs(value: unknown): RuntimePackageStorageDirs {
   const record = assertRecord(value, 'runtime_mod_storage_dirs_get returned invalid payload');
   return {
     nimiDir: parseRequiredString(record.nimiDir, 'nimiDir', 'runtime_mod_storage_dirs_get'),
     nimiDataDir: parseRequiredString(record.nimiDataDir, 'nimiDataDir', 'runtime_mod_storage_dirs_get'),
     installedModsDir: parseRequiredString(record.installedModsDir, 'installedModsDir', 'runtime_mod_storage_dirs_get'),
-    runtimeModDbPath: parseRequiredString(record.runtimeModDbPath, 'runtimeModDbPath', 'runtime_mod_storage_dirs_get'),
+    runtimePackageDbPath: parseRequiredString(record.runtimePackageDbPath, 'runtimePackageDbPath', 'runtime_mod_storage_dirs_get'),
     mediaCacheDir: parseRequiredString(record.mediaCacheDir, 'mediaCacheDir', 'runtime_mod_storage_dirs_get'),
     localModelsDir: parseRequiredString(record.localModelsDir, 'localModelsDir', 'runtime_mod_storage_dirs_get'),
     localRuntimeStatePath: parseRequiredString(record.localRuntimeStatePath, 'localRuntimeStatePath', 'runtime_mod_storage_dirs_get'),
@@ -235,24 +235,24 @@ export function parseRuntimeLocalAsset(value: unknown): RuntimeLocalAsset {
   };
 }
 
-export function parseRuntimeModInstallResult(value: unknown): RuntimeModInstallResult {
+export function parseRuntimePackageInstallResult(value: unknown): RuntimePackageInstallResult {
   const record = assertRecord(value, 'runtime_mod_install returned invalid payload');
   return {
     installSessionId: parseRequiredString(record.installSessionId, 'installSessionId', 'runtime_mod_install'),
     operation: parseRequiredString(record.operation, 'operation', 'runtime_mod_install'),
-    modId: parseRequiredString(record.modId, 'modId', 'runtime_mod_install'),
+    targetId: parseRequiredString(record.targetId, 'targetId', 'runtime_mod_install'),
     installedPath: parseRequiredString(record.installedPath, 'installedPath', 'runtime_mod_install'),
     manifest: parseRuntimeLocalManifestSummary(record.manifest),
     rollbackPath: parseOptionalString(record.rollbackPath),
   };
 }
 
-export function parseRuntimeModInstallAccepted(value: unknown): RuntimeModInstallAccepted {
+export function parseRuntimePackageInstallAccepted(value: unknown): RuntimePackageInstallAccepted {
   const record = assertRecord(value, 'runtime_mod_install accepted payload');
   return {
     installSessionId: parseRequiredString(record.installSessionId, 'installSessionId', 'runtime_mod_install'),
     operation: parseRequiredString(record.operation, 'operation', 'runtime_mod_install'),
-    modId: parseOptionalString(record.modId),
+    targetId: parseOptionalString(record.targetId),
     packageId: parseOptionalString(record.packageId),
     sourceKind: parseRequiredString(record.sourceKind, 'sourceKind', 'runtime_mod_install'),
   };
@@ -393,7 +393,7 @@ export function parseAvailableModUpdates(value: unknown): AvailableModUpdate[] {
 export function parseCatalogInstallResult(value: unknown): CatalogInstallResult {
   const record = assertRecord(value, 'catalog install result');
   return {
-    install: parseRuntimeModInstallResult(record.install),
+    install: parseRuntimePackageInstallResult(record.install),
     package: parseCatalogPackageRecord(record.package),
     release: parseCatalogReleaseRecord(record.release),
     policy: parseInstalledModPolicy(record.policy),
@@ -408,7 +408,7 @@ export function parseCatalogInstallResult(value: unknown): CatalogInstallResult 
   };
 }
 
-export function parseRuntimeModInstallProgressEvent(value: unknown): RuntimeModInstallProgressEvent {
+export function parseRuntimePackageInstallProgressEvent(value: unknown): RuntimePackageInstallProgressEvent {
   const record = assertRecord(value, 'runtime_mod_install_progress returned invalid payload');
   return {
     installSessionId: parseRequiredString(record.installSessionId, 'installSessionId', 'runtime_mod_install_progress'),
@@ -417,26 +417,26 @@ export function parseRuntimeModInstallProgressEvent(value: unknown): RuntimeModI
     phase: parseRequiredString(record.phase, 'phase', 'runtime_mod_install_progress'),
     status: parseRequiredString(record.status, 'status', 'runtime_mod_install_progress'),
     occurredAt: parseRequiredString(record.occurredAt, 'occurredAt', 'runtime_mod_install_progress'),
-    modId: parseOptionalString(record.modId),
+    targetId: parseOptionalString(record.targetId),
     manifestPath: parseOptionalString(record.manifestPath),
     installedPath: parseOptionalString(record.installedPath),
     progressPercent: parseOptionalNumber(record.progressPercent),
     message: parseOptionalString(record.message),
     error: parseOptionalString(record.error),
-    install: record.install ? parseRuntimeModInstallResult(record.install) : undefined,
+    install: record.install ? parseRuntimePackageInstallResult(record.install) : undefined,
     catalogInstall: record.catalogInstall ? parseCatalogInstallResult(record.catalogInstall) : undefined,
     restoredManifest: record.restoredManifest ? parseRuntimeLocalManifestSummary(record.restoredManifest) : undefined,
   };
 }
 
-export function parseRuntimeModInstallProgressEvents(value: unknown): RuntimeModInstallProgressEvent[] {
+export function parseRuntimePackageInstallProgressEvents(value: unknown): RuntimePackageInstallProgressEvent[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.map((item) => parseRuntimeModInstallProgressEvent(item));
+  return value.map((item) => parseRuntimePackageInstallProgressEvent(item));
 }
 
-export function parseRuntimeModSourceRecord(value: unknown): RuntimeModSourceRecord {
+export function parseRuntimePackageSourceRecord(value: unknown): RuntimePackageSourceRecord {
   const record = assertRecord(value, 'runtime_mod_sources_list returned invalid payload');
   const sourceType = parseRequiredString(record.sourceType, 'sourceType', 'runtime_mod_sources_list');
   if (sourceType !== 'installed' && sourceType !== 'dev') {
@@ -451,14 +451,14 @@ export function parseRuntimeModSourceRecord(value: unknown): RuntimeModSourceRec
   };
 }
 
-export function parseRuntimeModSourceRecords(value: unknown): RuntimeModSourceRecord[] {
+export function parseRuntimePackageSourceRecords(value: unknown): RuntimePackageSourceRecord[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.map((item) => parseRuntimeModSourceRecord(item));
+  return value.map((item) => parseRuntimePackageSourceRecord(item));
 }
 
-export function parseRuntimeModDeveloperModeState(value: unknown): RuntimeModDeveloperModeState {
+export function parseRuntimePackageDeveloperModeState(value: unknown): RuntimePackageDeveloperModeState {
   const record = assertRecord(value, 'runtime_mod_dev_mode_get returned invalid payload');
   return {
     enabled: Boolean(record.enabled),
@@ -466,7 +466,7 @@ export function parseRuntimeModDeveloperModeState(value: unknown): RuntimeModDev
   };
 }
 
-export function parseRuntimeModDiagnosticRecord(value: unknown): RuntimeModDiagnosticRecord {
+export function parseRuntimePackageDiagnosticRecord(value: unknown): RuntimePackageDiagnosticRecord {
   const record = assertRecord(value, 'runtime_mod_diagnostics_list returned invalid payload');
   const status = parseRequiredString(record.status, 'status', 'runtime_mod_diagnostics_list');
   if (status !== 'resolved' && status !== 'conflict' && status !== 'invalid') {
@@ -477,7 +477,7 @@ export function parseRuntimeModDiagnosticRecord(value: unknown): RuntimeModDiagn
     throw new Error(`runtime_mod_diagnostics_list: invalid sourceType ${sourceType}`);
   }
   return {
-    modId: parseRequiredString(record.modId, 'modId', 'runtime_mod_diagnostics_list'),
+    targetId: parseRequiredString(record.targetId, 'targetId', 'runtime_mod_diagnostics_list'),
     status,
     sourceId: parseRequiredString(record.sourceId, 'sourceId', 'runtime_mod_diagnostics_list'),
     sourceType,
@@ -491,21 +491,21 @@ export function parseRuntimeModDiagnosticRecord(value: unknown): RuntimeModDiagn
   };
 }
 
-export function parseRuntimeModDiagnosticRecords(value: unknown): RuntimeModDiagnosticRecord[] {
+export function parseRuntimePackageDiagnosticRecords(value: unknown): RuntimePackageDiagnosticRecord[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.map((item) => parseRuntimeModDiagnosticRecord(item));
+  return value.map((item) => parseRuntimePackageDiagnosticRecord(item));
 }
 
-export function parseRuntimeModReloadResult(value: unknown): RuntimeModReloadResult {
+export function parseRuntimePackageReloadResult(value: unknown): RuntimePackageReloadResult {
   const record = assertRecord(value, 'runtime_mod_reload returned invalid payload');
   const status = parseRequiredString(record.status, 'status', 'runtime_mod_reload');
   if (status !== 'resolved' && status !== 'conflict' && status !== 'invalid') {
     throw new Error(`runtime_mod_reload: invalid status ${status}`);
   }
   return {
-    modId: parseRequiredString(record.modId, 'modId', 'runtime_mod_reload'),
+    targetId: parseRequiredString(record.targetId, 'targetId', 'runtime_mod_reload'),
     sourceId: parseRequiredString(record.sourceId, 'sourceId', 'runtime_mod_reload'),
     status,
     occurredAt: parseRequiredString(record.occurredAt, 'occurredAt', 'runtime_mod_reload'),
@@ -513,24 +513,24 @@ export function parseRuntimeModReloadResult(value: unknown): RuntimeModReloadRes
   };
 }
 
-export function parseRuntimeModReloadResults(value: unknown): RuntimeModReloadResult[] {
+export function parseRuntimePackageReloadResults(value: unknown): RuntimePackageReloadResult[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.map((item) => parseRuntimeModReloadResult(item));
+  return value.map((item) => parseRuntimePackageReloadResult(item));
 }
 
-export function parseRuntimeModSourceChangeEvent(value: unknown): RuntimeModSourceChangeEvent {
-  const record = assertRecord(value, 'runtime-mod://source-changed returned invalid payload');
-  const sourceType = parseRequiredString(record.sourceType, 'sourceType', 'runtime-mod://source-changed');
+export function parseRuntimePackageSourceChangeEvent(value: unknown): RuntimePackageSourceChangeEvent {
+  const record = assertRecord(value, 'runtime-package://source-changed returned invalid payload');
+  const sourceType = parseRequiredString(record.sourceType, 'sourceType', 'runtime-package://source-changed');
   if (sourceType !== 'installed' && sourceType !== 'dev') {
-    throw new Error(`runtime-mod://source-changed: invalid sourceType ${sourceType}`);
+    throw new Error(`runtime-package://source-changed: invalid sourceType ${sourceType}`);
   }
   return {
-    sourceId: parseRequiredString(record.sourceId, 'sourceId', 'runtime-mod://source-changed'),
+    sourceId: parseRequiredString(record.sourceId, 'sourceId', 'runtime-package://source-changed'),
     sourceType,
-    sourceDir: parseRequiredString(record.sourceDir, 'sourceDir', 'runtime-mod://source-changed'),
-    occurredAt: parseRequiredString(record.occurredAt, 'occurredAt', 'runtime-mod://source-changed'),
+    sourceDir: parseRequiredString(record.sourceDir, 'sourceDir', 'runtime-package://source-changed'),
+    occurredAt: parseRequiredString(record.occurredAt, 'occurredAt', 'runtime-package://source-changed'),
     paths: Array.isArray(record.paths)
       ? record.paths.map((item) => String(item || '').trim()).filter(Boolean)
       : [],

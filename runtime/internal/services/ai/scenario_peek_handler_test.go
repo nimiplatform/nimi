@@ -123,7 +123,7 @@ func TestPeekSchedulingRPCMapsRepeatedTargets(t *testing.T) {
 		SlowdownDiskBytes:        1,
 		PreemptionOccupancyRatio: 0.99,
 	})
-	sched.SetDependencyFeasibilityChecker(func(modID, profileID, capability string) (bool, string) {
+	sched.SetDependencyFeasibilityChecker(func(targetID, profileID, capability string) (bool, string) {
 		if profileID == "blocked" {
 			return false, "dependency missing"
 		}
@@ -134,8 +134,8 @@ func TestPeekSchedulingRPCMapsRepeatedTargets(t *testing.T) {
 	resp, err := svc.PeekScheduling(context.Background(), &runtimev1.PeekSchedulingRequest{
 		AppId: "test-app",
 		Targets: []*runtimev1.SchedulingEvaluationTarget{
-			{Capability: "text.generate", ModId: "core:runtime", ProfileId: "ok"},
-			{Capability: "image.generate", ModId: "core:runtime", ProfileId: "blocked"},
+			{Capability: "text.generate", TargetId: "core:runtime", ProfileId: "ok"},
+			{Capability: "image.generate", TargetId: "core:runtime", ProfileId: "blocked"},
 		},
 	})
 	if err != nil {

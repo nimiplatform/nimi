@@ -363,7 +363,7 @@ export type {
 } from './types-profiles';
 
 export type LocalRuntimeExecutionResolvePayload = {
-  modId: string;
+  targetId: string;
   capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
   entries?: LocalRuntimeExecutionDeclarationDescriptor;
   deviceProfile: LocalRuntimeDeviceProfile;
@@ -470,7 +470,7 @@ export type LocalRuntimeRescanBundlePayload = {
 
 export type LocalRuntimeInferenceAuditPayload = {
   eventType: 'inference_invoked' | 'inference_failed' | 'fallback_to_cloud';
-  modId: string;
+  targetId: string;
   source: 'local' | 'cloud';
   routeSource?: 'local' | 'cloud';
   provider: string;
@@ -540,7 +540,7 @@ export type LocalRuntimeAuditQuery = {
   source?: LocalRuntimeAuditSource;
   modality?: LocalRuntimeAuditModality;
   localModelId?: string;
-  modId?: string;
+  targetId?: string;
   reasonCode?: string;
   timeRange?: LocalRuntimeAuditTimeRange;
 };

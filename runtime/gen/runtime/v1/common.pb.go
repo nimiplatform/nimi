@@ -679,7 +679,6 @@ type CallerKind int32
 const (
 	CallerKind_CALLER_KIND_UNSPECIFIED         CallerKind = 0
 	CallerKind_CALLER_KIND_DESKTOP_CORE        CallerKind = 1
-	CallerKind_CALLER_KIND_DESKTOP_MOD         CallerKind = 2
 	CallerKind_CALLER_KIND_THIRD_PARTY_APP     CallerKind = 3
 	CallerKind_CALLER_KIND_THIRD_PARTY_SERVICE CallerKind = 4
 )
@@ -689,14 +688,12 @@ var (
 	CallerKind_name = map[int32]string{
 		0: "CALLER_KIND_UNSPECIFIED",
 		1: "CALLER_KIND_DESKTOP_CORE",
-		2: "CALLER_KIND_DESKTOP_MOD",
 		3: "CALLER_KIND_THIRD_PARTY_APP",
 		4: "CALLER_KIND_THIRD_PARTY_SERVICE",
 	}
 	CallerKind_value = map[string]int32{
 		"CALLER_KIND_UNSPECIFIED":         0,
 		"CALLER_KIND_DESKTOP_CORE":        1,
-		"CALLER_KIND_DESKTOP_MOD":         2,
 		"CALLER_KIND_THIRD_PARTY_APP":     3,
 		"CALLER_KIND_THIRD_PARTY_SERVICE": 4,
 	}
@@ -1469,14 +1466,13 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dEXTERNAL_PRINCIPAL_TYPE_AGENT\x10\x01\x12\x1f\n" +
 	"\x1bEXTERNAL_PRINCIPAL_TYPE_APP\x10\x02\x12#\n" +
-	"\x1fEXTERNAL_PRINCIPAL_TYPE_SERVICE\x10\x03*\xaa\x01\n" +
+	"\x1fEXTERNAL_PRINCIPAL_TYPE_SERVICE\x10\x03*\x93\x01\n" +
 	"\n" +
 	"CallerKind\x12\x1b\n" +
 	"\x17CALLER_KIND_UNSPECIFIED\x10\x00\x12\x1c\n" +
-	"\x18CALLER_KIND_DESKTOP_CORE\x10\x01\x12\x1b\n" +
-	"\x17CALLER_KIND_DESKTOP_MOD\x10\x02\x12\x1f\n" +
+	"\x18CALLER_KIND_DESKTOP_CORE\x10\x01\x12\x1f\n" +
 	"\x1bCALLER_KIND_THIRD_PARTY_APP\x10\x03\x12#\n" +
-	"\x1fCALLER_KIND_THIRD_PARTY_SERVICE\x10\x04B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"\x1fCALLER_KIND_THIRD_PARTY_SERVICE\x10\x04\"\x04\b\x02\x10\x02B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_common_proto_rawDescOnce sync.Once

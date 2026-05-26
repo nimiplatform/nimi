@@ -16,8 +16,8 @@ export function isCanonicalTrustTier(value: unknown): value is TrustTierId {
   return typeof value === 'string' && CANONICAL_TRUST_TIERS.includes(value as TrustTierId);
 }
 
-// AppLifecyclePhase enumerates admitted phases. Public Mod and Extension
-// kinds are explicitly NOT included per P-NAPP-012 and P-MOEX-006.
+// AppLifecyclePhase enumerates admitted phases. Retired extension kinds are
+// explicitly NOT included per P-NAPP-012 and P-MOEX-006.
 export type AppKind = 'nimi-app';
 
 export const CANONICAL_APP_KINDS: readonly AppKind[] = ['nimi-app'];

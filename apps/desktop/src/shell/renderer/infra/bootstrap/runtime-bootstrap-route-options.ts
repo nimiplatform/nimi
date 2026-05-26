@@ -283,7 +283,7 @@ type LoadRuntimeRouteOptionsData = {
 };
 const DEFAULT_RUNTIME_ROUTE_OPTIONS_DEPS_SCOPE: Record<string, never> = {};
 const runtimeRouteOptionsInflightByScope = new WeakMap<object, Map<string, Promise<LoadRuntimeRouteOptionsData>>>();
-function buildLocalRouteMetadataFallback(error: unknown, capability: RuntimeCanonicalCapability, modId?: string): LocalRouteMetadata {
+function buildLocalRouteMetadataFallback(error: unknown, capability: RuntimeCanonicalCapability, targetId?: string): LocalRouteMetadata {
     const normalized = asNimiError(error, {
         reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
         actionHint: 'check_runtime_daemon_health',
@@ -295,7 +295,7 @@ function buildLocalRouteMetadataFallback(error: unknown, capability: RuntimeCano
         message: 'action:load-local-route-metadata:degraded',
         traceId: normalized.traceId,
         details: {
-            modId: String(modId || '').trim() || undefined,
+            targetId: String(targetId || '').trim() || undefined,
             capability,
             reasonCode: normalized.reasonCode,
             actionHint: normalized.actionHint,
@@ -323,7 +323,7 @@ function getRuntimeRouteOptionsInflightMap(scope: object): Map<string, Promise<L
     runtimeRouteOptionsInflightByScope.set(scope, created);
     return created;
 }
-async function loadRuntimeRouteOptionsData(capability: RuntimeCanonicalCapability, modId: string | undefined, resolvedDeps: LoadRuntimeRouteOptionsDeps): Promise<LoadRuntimeRouteOptionsData> {
+async function loadRuntimeRouteOptionsData(capability: RuntimeCanonicalCapability, targetId: string | undefined, resolvedDeps: LoadRuntimeRouteOptionsDeps): Promise<LoadRuntimeRouteOptionsData> {
     const connectorDescriptorsPromise = resolvedDeps.sdkListConnectors().catch((error) => {
         const normalized = asNimiError(error, {
             reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
@@ -336,7 +336,7 @@ async function loadRuntimeRouteOptionsData(capability: RuntimeCanonicalCapabilit
             message: 'action:list-connectors:degraded',
             traceId: normalized.traceId,
             details: {
-                modId: String(modId || '').trim() || undefined,
+                targetId: String(targetId || '').trim() || undefined,
                 capability,
                 reasonCode: normalized.reasonCode,
                 actionHint: normalized.actionHint,
@@ -351,7 +351,7 @@ async function loadRuntimeRouteOptionsData(capability: RuntimeCanonicalCapabilit
     const localMetadataPromise = resolvedDeps.loadLocalRouteMetadata(capability)
         .catch((error) => {
         localMetadataDegraded = true;
-        return buildLocalRouteMetadataFallback(error, capability, modId);
+        return buildLocalRouteMetadataFallback(error, capability, targetId);
     });
     const [connectorDescriptors, localMetadata] = await Promise.all([
         connectorDescriptorsPromise,
@@ -370,7 +370,7 @@ async function loadRuntimeRouteOptionsData(capability: RuntimeCanonicalCapabilit
                 message: 'action:list-connector-model-descriptors:degraded',
                 traceId: normalized.traceId,
                 details: {
-                    modId: String(modId || '').trim() || undefined,
+                    targetId: String(targetId || '').trim() || undefined,
                     capability,
                     connectorId: String(connector.id || '').trim() || undefined,
                     reasonCode: normalized.reasonCode,
@@ -414,13 +414,13 @@ async function loadRuntimeRouteOptionsData(capability: RuntimeCanonicalCapabilit
         localMetadataDegraded,
     };
 }
-function loadRuntimeRouteOptionsDataSingleFlight(capability: RuntimeCanonicalCapability, modId: string | undefined, resolvedDeps: LoadRuntimeRouteOptionsDeps, scope: object): Promise<LoadRuntimeRouteOptionsData> {
+function loadRuntimeRouteOptionsDataSingleFlight(capability: RuntimeCanonicalCapability, targetId: string | undefined, resolvedDeps: LoadRuntimeRouteOptionsDeps, scope: object): Promise<LoadRuntimeRouteOptionsData> {
     const inflight = getRuntimeRouteOptionsInflightMap(scope);
     const existing = inflight.get(capability);
     if (existing) {
         return existing;
     }
-    const request = loadRuntimeRouteOptionsData(capability, modId, resolvedDeps)
+    const request = loadRuntimeRouteOptionsData(capability, targetId, resolvedDeps)
         .finally(() => {
         if (inflight.get(capability) === request) {
             inflight.delete(capability);
@@ -468,7 +468,7 @@ export function buildSelectedBinding(input: {
 }
 export async function loadRuntimeRouteOptions(input: {
     capability: RuntimeCanonicalCapability;
-    modId?: string;
+    targetId?: string;
 }, deps?: Partial<LoadRuntimeRouteOptionsDeps>): Promise<RuntimeRouteOptionsSnapshot> {
     const appStore = useAppStore.getState();
     const runtimeFields = appStore.runtimeFields as RuntimeFields;
@@ -491,7 +491,7 @@ export async function loadRuntimeRouteOptions(input: {
     const depsScope = deps || DEFAULT_RUNTIME_ROUTE_OPTIONS_DEPS_SCOPE;
     const { connectors, snapshot, nodeCatalog, runtimeLocalModels, localMetadataDegraded } = await loadRuntimeRouteOptionsDataSingleFlight(
         input.capability,
-        input.modId,
+        input.targetId,
         resolvedDeps,
         depsScope,
     );

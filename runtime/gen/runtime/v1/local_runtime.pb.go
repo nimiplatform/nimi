@@ -4419,7 +4419,7 @@ func (x *CollectDeviceProfileResponse) GetProfile() *LocalDeviceProfile {
 
 type ResolveProfileRequest struct {
 	state          protoimpl.MessageState  `protogen:"open.v1"`
-	ModId          string                  `protobuf:"bytes,1,opt,name=mod_id,json=modId,proto3" json:"mod_id,omitempty"`
+	TargetId       string                  `protobuf:"bytes,1,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
 	Profile        *LocalProfileDescriptor `protobuf:"bytes,2,opt,name=profile,proto3" json:"profile,omitempty"`
 	Capability     string                  `protobuf:"bytes,3,opt,name=capability,proto3" json:"capability,omitempty"`
 	DeviceProfile  *LocalDeviceProfile     `protobuf:"bytes,4,opt,name=device_profile,json=deviceProfile,proto3" json:"device_profile,omitempty"`
@@ -4458,9 +4458,9 @@ func (*ResolveProfileRequest) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{71}
 }
 
-func (x *ResolveProfileRequest) GetModId() string {
+func (x *ResolveProfileRequest) GetTargetId() string {
 	if x != nil {
-		return x.ModId
+		return x.TargetId
 	}
 	return ""
 }
@@ -5360,7 +5360,7 @@ type ListLocalAuditsRequest struct {
 	Source        string                 `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
 	Modality      string                 `protobuf:"bytes,5,opt,name=modality,proto3" json:"modality,omitempty"`
 	LocalModelId  string                 `protobuf:"bytes,6,opt,name=local_model_id,json=localModelId,proto3" json:"local_model_id,omitempty"`
-	ModId         string                 `protobuf:"bytes,7,opt,name=mod_id,json=modId,proto3" json:"mod_id,omitempty"`
+	TargetId      string                 `protobuf:"bytes,7,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
 	ReasonCode    string                 `protobuf:"bytes,8,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
 	TimeRange     *LocalAuditTimeRange   `protobuf:"bytes,9,opt,name=time_range,json=timeRange,proto3" json:"time_range,omitempty"`
 	PageSize      int32                  `protobuf:"varint,10,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
@@ -5436,9 +5436,9 @@ func (x *ListLocalAuditsRequest) GetLocalModelId() string {
 	return ""
 }
 
-func (x *ListLocalAuditsRequest) GetModId() string {
+func (x *ListLocalAuditsRequest) GetTargetId() string {
 	if x != nil {
-		return x.ModId
+		return x.TargetId
 	}
 	return ""
 }
@@ -5540,7 +5540,7 @@ func (x *ListLocalAuditsResponse) GetNextPageToken() string {
 type AppendInferenceAuditRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	EventType     string                 `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
-	ModId         string                 `protobuf:"bytes,2,opt,name=mod_id,json=modId,proto3" json:"mod_id,omitempty"`
+	TargetId      string                 `protobuf:"bytes,2,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
 	Source        string                 `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
 	Provider      string                 `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`
 	Modality      string                 `protobuf:"bytes,5,opt,name=modality,proto3" json:"modality,omitempty"`
@@ -5593,9 +5593,9 @@ func (x *AppendInferenceAuditRequest) GetEventType() string {
 	return ""
 }
 
-func (x *AppendInferenceAuditRequest) GetModId() string {
+func (x *AppendInferenceAuditRequest) GetTargetId() string {
 	if x != nil {
-		return x.ModId
+		return x.TargetId
 	}
 	return ""
 }
@@ -6082,9 +6082,9 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\vextra_ports\x18\x01 \x03(\x05R\n" +
 	"extraPorts\"]\n" +
 	"\x1cCollectDeviceProfileResponse\x12=\n" +
-	"\aprofile\x18\x01 \x01(\v2#.nimi.runtime.v1.LocalDeviceProfileR\aprofile\"\xad\x02\n" +
-	"\x15ResolveProfileRequest\x12\x15\n" +
-	"\x06mod_id\x18\x01 \x01(\tR\x05modId\x12A\n" +
+	"\aprofile\x18\x01 \x01(\v2#.nimi.runtime.v1.LocalDeviceProfileR\aprofile\"\xb3\x02\n" +
+	"\x15ResolveProfileRequest\x12\x1b\n" +
+	"\ttarget_id\x18\x01 \x01(\tR\btargetId\x12A\n" +
 	"\aprofile\x18\x02 \x01(\v2'.nimi.runtime.v1.LocalProfileDescriptorR\aprofile\x12\x1e\n" +
 	"\n" +
 	"capability\x18\x03 \x01(\tR\n" +
@@ -6149,7 +6149,7 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"page_token\x18\x06 \x01(\tR\tpageToken\"}\n" +
 	"\x17ListNodeCatalogResponse\x12:\n" +
 	"\x05nodes\x18\x01 \x03(\v2$.nimi.runtime.v1.LocalNodeDescriptorR\x05nodes\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb7\x03\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xbd\x03\n" +
 	"\x16ListLocalAuditsRequest\x12\x1d\n" +
 	"\n" +
 	"event_type\x18\x02 \x01(\tR\teventType\x12\x1f\n" +
@@ -6157,8 +6157,8 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"eventTypes\x12\x16\n" +
 	"\x06source\x18\x04 \x01(\tR\x06source\x12\x1a\n" +
 	"\bmodality\x18\x05 \x01(\tR\bmodality\x12$\n" +
-	"\x0elocal_model_id\x18\x06 \x01(\tR\flocalModelId\x12\x15\n" +
-	"\x06mod_id\x18\a \x01(\tR\x05modId\x12\x1f\n" +
+	"\x0elocal_model_id\x18\x06 \x01(\tR\flocalModelId\x12\x1b\n" +
+	"\ttarget_id\x18\a \x01(\tR\btargetId\x12\x1f\n" +
 	"\vreason_code\x18\b \x01(\tR\n" +
 	"reasonCode\x12C\n" +
 	"\n" +
@@ -6171,11 +6171,11 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x0fsubject_user_id\x18\r \x01(\tR\rsubjectUserIdJ\x04\b\x01\x10\x02R\x05limit\"{\n" +
 	"\x17ListLocalAuditsResponse\x128\n" +
 	"\x06events\x18\x01 \x03(\v2 .nimi.runtime.v1.LocalAuditEventR\x06events\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb7\x03\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xbd\x03\n" +
 	"\x1bAppendInferenceAuditRequest\x12\x1d\n" +
 	"\n" +
-	"event_type\x18\x01 \x01(\tR\teventType\x12\x15\n" +
-	"\x06mod_id\x18\x02 \x01(\tR\x05modId\x12\x16\n" +
+	"event_type\x18\x01 \x01(\tR\teventType\x12\x1b\n" +
+	"\ttarget_id\x18\x02 \x01(\tR\btargetId\x12\x16\n" +
 	"\x06source\x18\x03 \x01(\tR\x06source\x12\x1a\n" +
 	"\bprovider\x18\x04 \x01(\tR\bprovider\x12\x1a\n" +
 	"\bmodality\x18\x05 \x01(\tR\bmodality\x12\x18\n" +

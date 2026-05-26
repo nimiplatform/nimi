@@ -26,7 +26,7 @@ pub const EXTERNAL_AGENT_TOKEN_AUDIENCE: &str = "nimi-external-agent";
 #[serde(rename_all = "camelCase")]
 pub struct ExternalAgentActionDescriptor {
     pub action_id: String,
-    pub mod_id: String,
+    pub target_id: String,
     pub source_type: String,
     pub description: Option<String>,
     pub operation: String,

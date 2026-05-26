@@ -16,7 +16,7 @@ type dependencyCandidateCheck struct {
 }
 
 type executionResolveRequest struct {
-	modID         string
+	targetID         string
 	capability    string
 	entries       *runtimev1.LocalExecutionDeclarationDescriptor
 	deviceProfile *runtimev1.LocalDeviceProfile
@@ -54,7 +54,7 @@ func resolveExecutionPlan(req *executionResolveRequest) *runtimev1.LocalExecutio
 
 	plan := &runtimev1.LocalExecutionPlan{
 		PlanId:             "dep_plan_" + ulid.Make().String(),
-		ModId:              strings.TrimSpace(req.modID),
+		TargetId:              strings.TrimSpace(req.targetID),
 		Capability:         capability,
 		DeviceProfile:      profile,
 		Entries:            make([]*runtimev1.LocalExecutionEntryDescriptor, 0, 16),
