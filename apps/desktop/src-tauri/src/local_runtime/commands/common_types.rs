@@ -156,15 +156,6 @@ pub struct LocalAiRuntimeAuditPayload {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiProfilesResolvePayload {
-    pub target_id: String,
-    pub profile: LocalAiProfileDescriptor,
-    pub capability: Option<String>,
-    pub device_profile: Option<LocalAiDeviceProfile>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct LocalAiProfilesApplyPayload {
     pub plan: LocalAiProfileResolutionPlan,
 }

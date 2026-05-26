@@ -76,22 +76,14 @@ async fn list_actions(
             return error_response(StatusCode::UNAUTHORIZED, reason.as_str()).into_response();
         }
     };
-    let claims = match verify_external_agent_token(&state, token.as_str()).await {
+    let _claims = match verify_external_agent_token(&state, token.as_str()).await {
         Ok(value) => value,
         Err(reason) => {
             return error_response(StatusCode::UNAUTHORIZED, reason.as_str()).into_response();
         }
     };
 
-    let guard = state.inner.lock().await;
-    let mut actions = guard
-        .actions
-        .values()
-        .filter(|item| claims_allows_action_for_phase(&claims, item.action_id.as_str(), "discover"))
-        .cloned()
-        .collect::<Vec<_>>();
-    actions.sort_by(|left, right| left.action_id.cmp(&right.action_id));
-    Json(actions).into_response()
+    Json(Vec::<serde_json::Value>::new()).into_response()
 }
 
 async fn dispatch_action(

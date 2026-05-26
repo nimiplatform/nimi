@@ -41,7 +41,7 @@ phases:
 
   - phase: external-agent
     order: 5
-    description: Register tier-1 external agent actions and start action bridge
+    description: Consume Runtime-owned External Agent gateway/token/action projection; Desktop does not register action descriptors
     source_rule: D-BOOT-006
     async: true
     gated_by: enableRuntimeBootstrap

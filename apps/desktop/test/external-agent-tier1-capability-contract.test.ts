@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const desktopDir = path.resolve(import.meta.dirname, '..');
@@ -9,32 +9,26 @@ function readDesktopFile(relativePath: string): string {
   return readFileSync(path.join(desktopDir, relativePath), 'utf8');
 }
 
-test('tier-1 external agent actions derive required capabilities from lifecycle domains', () => {
-  const source = readDesktopFile('src/runtime/external-agent/local-ai-actions.ts');
-  assert.match(source, /function localAIActionCapabilities/);
-  assert.match(source, /`action\.discover\.\$\{actionId\}`/);
-  assert.match(source, /`action\.dry-run\.\$\{actionId\}`/);
-  assert.match(source, /`action\.verify\.\$\{actionId\}`/);
-  assert.match(source, /`action\.commit\.\$\{actionId\}`/);
-  assert.doesNotMatch(source, /requiredCapabilities:\s*\[\s*'action\.commit\.runtime\.local-ai\.models\.[^']+'\s*\]/);
+test('desktop does not own external agent local AI action descriptors', () => {
+  assert.equal(
+    existsSync(path.join(desktopDir, 'src/runtime/external-agent/local-ai-actions.ts')),
+    false,
+  );
+  const source = readDesktopFile('src/runtime/external-agent/index.ts');
+  assert.doesNotMatch(source, /localAIActionDescriptors/);
+  assert.doesNotMatch(source, /runtime\.local-ai\.models\./);
+  assert.doesNotMatch(source, /external_agent_sync_action_descriptors/);
 });
 
-test('tier-1 dry-run capabilities are limited to actions that support dry-run', () => {
-  const source = readDesktopFile('src/runtime/external-agent/local-ai-actions.ts');
-  assert.match(
-    source,
-    /runtime\.local-ai\.models\.list'[\s\S]*requiredCapabilities: localAIActionCapabilities\('runtime\.local-ai\.models\.list', \{ supportsDryRun: true \}\)/,
-  );
-  assert.match(
-    source,
-    /runtime\.local-ai\.models\.health'[\s\S]*requiredCapabilities: localAIActionCapabilities\('runtime\.local-ai\.models\.health', \{ supportsDryRun: true \}\)/,
-  );
-  assert.match(
-    source,
-    /runtime\.local-ai\.models\.start'[\s\S]*requiredCapabilities: localAIActionCapabilities\('runtime\.local-ai\.models\.start', \{ supportsDryRun: false \}\)/,
-  );
-  assert.match(
-    source,
-    /runtime\.local-ai\.models\.install'[\s\S]*requiredCapabilities: localAIActionCapabilities\('runtime\.local-ai\.models\.install', \{ supportsDryRun: false \}\)/,
-  );
+test('runtime bootstrap does not register app-local external agent descriptors', () => {
+  const source = readDesktopFile('src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts');
+  assert.doesNotMatch(source, /resyncExternalAgentActionDescriptors/);
+  assert.doesNotMatch(source, /external agent descriptor resync/);
+  assert.doesNotMatch(source, /startExternalAgentActionBridge/);
+});
+
+test('tauri bootstrap does not expose app-local external agent action bridge commands', () => {
+  const source = readDesktopFile('src-tauri/src/main_parts/app_bootstrap.rs');
+  assert.doesNotMatch(source, /external_agent_sync_action_descriptors/);
+  assert.doesNotMatch(source, /external_agent_complete_execution/);
 });

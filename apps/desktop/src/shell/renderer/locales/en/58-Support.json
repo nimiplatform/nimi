@@ -106,7 +106,7 @@
   "logAreaHook": "Hook runtime capability events",
   "logAreaMod": "Mod governance lifecycle events",
   "logAreaLocalAi": "Local AI model lifecycle and inference audit",
-  "logAreaExternalAgent": "External agent action bridge and tokens",
+  "logAreaExternalAgent": "External agent gateway and token projection",
   "logAreaAuth": "Authentication session lifecycle",
   "logAreaNet": "Network retry and error normalization",
   "recoveryTitle": "Recovery",

@@ -38,20 +38,6 @@ pub struct LocalAiProfileEntryDescriptor {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiProfileDescriptor {
-    pub id: String,
-    pub title: String,
-    pub description: Option<String>,
-    pub recommended: bool,
-    #[serde(default)]
-    pub consume_capabilities: Vec<String>,
-    #[serde(default)]
-    pub entries: Vec<LocalAiProfileEntryDescriptor>,
-    pub requirements: Option<LocalAiProfileRequirementDescriptor>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct LocalAiProfileResolutionPlan {
     pub plan_id: String,
     pub target_id: String,

@@ -229,7 +229,7 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 - `runtime_local_nodes_catalog_list`：节点目录。
 - `runtime_local_models_catalog_list_variants`：host-local catalog helper；不得被视为模型清单、安装状态或 transfer 真源。
 - `runtime_local_recommendation_feed_get`：host-local recommendation helper；install/import/download/lifecycle 真源仍是 `RuntimeLocalService`。
-- `runtime_local_profiles_resolve` / `runtime_local_profiles_apply`：profile 解析与应用。
+- `runtime_local_profiles_apply`：host-local profile 应用 session 接受入口；profile 解析真源必须走 Runtime/SDK projection。
 - `runtime_local_profiles_apply_status` / `runtime_local_profiles_apply_sessions`：读取 durable profile apply session 状态，供 reload 后 host 查询已接受 job 的 running/terminal 结果；不得以 event-only success 取代 durable terminal evidence。Desktop host-local state 至少保留最近 500 条 profile apply session 终态/进度快照，超出时按 `occurred_at` 丢弃最旧记录。
 - `runtime_local_assets_reveal_in_folder` / `runtime_local_assets_reveal_root_folder`：在系统文件管理器中打开目录。
 - `runtime_local_assets_scan_unregistered`：host-local intake helper。若产品路径已通过 runtime `ScanUnregisteredAssets` 获得同等结果，则前者不得再被当作权威扫描源。

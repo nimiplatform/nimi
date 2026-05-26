@@ -106,7 +106,7 @@
   "logAreaHook": "Hook runtime 能力事件",
   "logAreaMod": "Mod 治理生命周期事件",
   "logAreaLocalAi": "本地 AI 模型生命周期与推理审计",
-  "logAreaExternalAgent": "外部 agent 操作桥与令牌",
+  "logAreaExternalAgent": "外部 agent 网关与令牌投影",
   "logAreaAuth": "认证会话生命周期",
   "logAreaNet": "网络重试与错误归一化",
   "recoveryTitle": "恢复",

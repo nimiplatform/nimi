@@ -3,7 +3,6 @@ mod capability_matrix;
 mod catalog;
 pub mod commands;
 mod dependency_apply;
-mod dependency_resolver;
 mod device_profile;
 mod download_manager;
 #[cfg(test)]

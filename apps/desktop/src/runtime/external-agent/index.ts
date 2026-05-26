@@ -1,19 +1,4 @@
 import { tauriInvoke, hasTauriInvoke } from '@runtime/llm-adapter/tauri-bridge';
-import { localAIActionDescriptors } from './local-ai-actions.js';
-
-export type ExternalAgentActionDescriptor = {
-  actionId: string;
-  targetId: string;
-  sourceType: string;
-  description?: string;
-  operation: 'read' | 'write';
-  socialPrecondition: 'none' | 'human-agent-active';
-  executionMode: 'full' | 'guarded' | 'opaque';
-  riskLevel: 'low' | 'medium' | 'high';
-  supportsDryRun: boolean;
-  idempotent: boolean;
-  requiredCapabilities: string[];
-};
 
 export type ExternalAgentIssueTokenPayload = {
   principalId: string;
@@ -59,30 +44,6 @@ export type ExternalAgentGatewayStatus = {
   status?: string;
   reasonCode?: string;
 };
-
-export type ExternalAgentActionExecutionRequest = {
-  executionId: string;
-  actionId: string;
-  phase: 'dry-run' | 'verify' | 'commit';
-  input: Record<string, unknown>;
-  context: {
-    principalId: string;
-    principalType: 'external-agent';
-    mode: 'delegated' | 'autonomous';
-    subjectAccountId: string;
-    issuer?: string;
-    authTokenId?: string;
-    bridgeExecutionId?: string;
-    traceId: string;
-    userAccountId?: string;
-    externalAccountId?: string;
-    delegationChain?: string[];
-  };
-  idempotencyKey?: string;
-  verifyTicket?: string;
-};
-
-let actionBridgeStop: (() => void) | null = null;
 
 function asString(value: unknown): string {
   return String(value || '').trim();
@@ -146,42 +107,9 @@ function parseExternalAgentTokenRecord(value: unknown, index: number): ExternalA
   };
 }
 
-async function syncActionDescriptors(): Promise<void> {
-  const descriptors: ExternalAgentActionDescriptor[] = localAIActionDescriptors.map((descriptor) => ({
-    actionId: descriptor.name,
-    targetId: 'core:local-ai',
-    sourceType: 'core',
-    description: descriptor.description,
-    operation: descriptor.operation,
-    socialPrecondition: 'none',
-    executionMode: 'guarded',
-    riskLevel: descriptor.riskLevel,
-    supportsDryRun: descriptor.supportsDryRun,
-    idempotent: descriptor.idempotent,
-    requiredCapabilities: [...descriptor.requiredCapabilities],
-  }));
-  if (!hasTauriInvoke()) {
-    return;
-  }
-  await tauriInvoke('external_agent_sync_action_descriptors', {
-    payload: { descriptors },
-  });
-}
-
-export async function startExternalAgentActionBridge(): Promise<void> {
-  stopExternalAgentActionBridge();
-  await Promise.resolve();
-}
-
 export function stopExternalAgentActionBridge(): void {
-  if (actionBridgeStop) {
-    actionBridgeStop();
-    actionBridgeStop = null;
-  }
-}
-
-export async function resyncExternalAgentActionDescriptors(): Promise<void> {
-  await syncActionDescriptors();
+  // External Agent action bridge is Runtime-owned. Desktop teardown keeps this
+  // no-op hook so bootstrap failure cleanup can remain uniform.
 }
 
 export async function issueExternalAgentToken(

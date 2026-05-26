@@ -24,22 +24,6 @@ pub const EXTERNAL_AGENT_TOKEN_AUDIENCE: &str = "nimi-external-agent";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ExternalAgentActionDescriptor {
-    pub action_id: String,
-    pub target_id: String,
-    pub source_type: String,
-    pub description: Option<String>,
-    pub operation: String,
-    pub social_precondition: String,
-    pub execution_mode: String,
-    pub risk_level: String,
-    pub supports_dry_run: bool,
-    pub idempotent: bool,
-    pub required_capabilities: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ExternalAgentActionScope {
     pub action_id: String,
     pub ops: Vec<String>,
@@ -102,12 +86,6 @@ pub struct ExternalAgentVerifyExecutionContextPayload {
     pub issuer: String,
     pub auth_token_id: String,
     pub bridge_execution_id: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ExternalAgentSyncActionPayload {
-    pub descriptors: Vec<ExternalAgentActionDescriptor>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -319,7 +297,6 @@ mod tests {
 
 #[derive(Default)]
 pub struct ExternalAgentGatewayInner {
-    pub actions: HashMap<String, ExternalAgentActionDescriptor>,
     pub completion_waiters:
         HashMap<String, oneshot::Sender<ExternalAgentExecutionCompletionPayload>>,
     pub execution_owners: HashMap<String, ExternalAgentExecutionOwner>,
@@ -392,21 +369,6 @@ fn event_ts(value: &serde_json::Value) -> i64 {
         .unwrap_or(0)
 }
 
-fn with_event_ts(value: serde_json::Value, now_ts: i64) -> serde_json::Value {
-    if let Some(root) = value.as_object() {
-        let mut map = root.clone();
-        if map.get("ts").and_then(|item| item.as_i64()).is_none() {
-            map.insert("ts".to_string(), serde_json::Value::Number(now_ts.into()));
-        }
-        return serde_json::Value::Object(map);
-    }
-    serde_json::json!({
-        "type": "unknown",
-        "value": value,
-        "ts": now_ts,
-    })
-}
-
 impl ExternalAgentGatewayInner {
     fn prune_execution_events(&mut self, now_ts: i64) {
         let min_ts = now_ts - EXTERNAL_AGENT_EVENT_TTL_SECS;
@@ -447,21 +409,6 @@ impl ExternalAgentGatewayInner {
                 self.execution_events.remove(execution_id.as_str());
                 self.execution_owners.remove(execution_id.as_str());
             }
-        }
-    }
-
-    fn push_execution_event(&mut self, execution_id: &str, event: serde_json::Value) {
-        let now_ts = now_unix_secs();
-        self.prune_execution_events(now_ts);
-        let normalized = with_event_ts(event, now_ts);
-        let events = self
-            .execution_events
-            .entry(execution_id.to_string())
-            .or_default();
-        events.push(normalized);
-        if events.len() > EXTERNAL_AGENT_MAX_EVENTS_PER_EXECUTION {
-            let keep_from = events.len() - EXTERNAL_AGENT_MAX_EVENTS_PER_EXECUTION;
-            events.drain(0..keep_from);
         }
     }
 }
@@ -549,67 +496,6 @@ pub async fn external_agent_revoke_token(
 }
 
 #[tauri::command]
-pub async fn external_agent_sync_action_descriptors(
-    state: tauri::State<'_, ExternalAgentGatewayState>,
-    payload: ExternalAgentSyncActionPayload,
-) -> Result<Vec<ExternalAgentActionDescriptor>, String> {
-    let mut guard = state.inner.lock().await;
-    guard.actions.clear();
-    for descriptor in payload.descriptors {
-        guard
-            .actions
-            .insert(descriptor.action_id.clone(), descriptor);
-    }
-    let mut values = guard.actions.values().cloned().collect::<Vec<_>>();
-    values.sort_by(|left, right| left.action_id.cmp(&right.action_id));
-    Ok(values)
-}
-
-#[tauri::command]
-pub async fn external_agent_complete_execution(
-    state: tauri::State<'_, ExternalAgentGatewayState>,
-    payload: ExternalAgentExecutionCompletionPayload,
-) -> Result<(), String> {
-    let mut guard = state.inner.lock().await;
-    let execution_id = payload.execution_id.clone();
-    let reason_code = payload.reason_code.clone();
-    let action_hint = payload.action_hint.clone();
-    let trace_id = payload.trace_id.clone();
-    let audit_id = payload.audit_id.clone();
-    let execution_mode = payload.execution_mode.clone();
-    let ok = payload.ok;
-    guard.push_execution_event(
-        execution_id.as_str(),
-        serde_json::json!({
-            "type": "completed",
-            "executionId": execution_id.as_str(),
-            "ok": ok,
-            "reasonCode": reason_code.as_str(),
-            "actionHint": action_hint.as_str(),
-            "traceId": trace_id.as_str(),
-            "auditId": audit_id.as_deref(),
-            "executionMode": execution_mode.as_str(),
-        }),
-    );
-    if !ok {
-        guard.push_execution_event(
-            execution_id.as_str(),
-            serde_json::json!({
-                "type": "error",
-                "executionId": execution_id.as_str(),
-                "reasonCode": reason_code.as_str(),
-                "actionHint": action_hint.as_str(),
-            }),
-        );
-    }
-    if let Some(waiter) = guard.completion_waiters.remove(execution_id.as_str()) {
-        let _ = waiter.send(payload);
-        return Ok(());
-    }
-    Err("EXTERNAL_AGENT_EXECUTION_NOT_PENDING".to_string())
-}
-
-#[tauri::command]
 pub async fn external_agent_gateway_status(
     state: tauri::State<'_, ExternalAgentGatewayState>,
 ) -> Result<ExternalAgentGatewayStatus, String> {
@@ -619,7 +505,7 @@ pub async fn external_agent_gateway_status(
         enabled: server_status.enabled(),
         bind_address: state.config.bind_address.clone(),
         issuer: state.config.issuer.clone(),
-        action_count: guard.actions.len(),
+        action_count: 0,
         status: server_status.status_label().to_string(),
         reason_code: server_status.reason_code(),
     })

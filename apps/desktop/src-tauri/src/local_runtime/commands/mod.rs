@@ -14,7 +14,6 @@ use super::audit::{
     EVENT_MODEL_DOWNLOAD_COMPLETED, EVENT_MODEL_DOWNLOAD_FAILED, EVENT_MODEL_DOWNLOAD_STARTED,
     EVENT_MODEL_FILE_IMPORT_STARTED, EVENT_MODEL_IMPORT_VALIDATED, EVENT_NODE_CATALOG_LISTED,
     EVENT_PROFILE_APPLY_COMPLETED, EVENT_PROFILE_APPLY_FAILED, EVENT_PROFILE_APPLY_STARTED,
-    EVENT_PROFILE_RESOLVE_FAILED, EVENT_PROFILE_RESOLVE_INVOKED,
     EVENT_RECOMMENDATION_RESOLVE_COMPLETED, EVENT_RECOMMENDATION_RESOLVE_FAILED,
     EVENT_RECOMMENDATION_RESOLVE_INVOKED, EVENT_RUNTIME_MODEL_READY_AFTER_INSTALL,
     EVENT_SERVICE_INSTALL_COMPLETED, EVENT_SERVICE_INSTALL_FAILED, EVENT_SERVICE_INSTALL_STARTED,
@@ -26,9 +25,6 @@ use super::catalog::{
 };
 use super::dependency_apply::{
     fail_progress, mark_capability_matrix_refresh, run_preflight_all, DependencyApplyProgress,
-};
-use super::dependency_resolver::{
-    resolve_dependencies, DependencyDeclarationInput, DependencyOptionInput, DependencyResolveInput,
 };
 use super::device_profile::{collect_device_profile, collect_device_profile_async};
 use super::download_manager;
@@ -64,8 +60,7 @@ use super::types::{
     LocalAiDownloadProgressEvent, LocalAiDownloadSessionSummary, LocalAiDownloadState,
     LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiIntegrityMode,
     LocalAiNodeDescriptor, LocalAiProfileApplyAccepted, LocalAiProfileApplyProgressEvent,
-    LocalAiProfileApplyResult, LocalAiProfileApplyStatusPayload, LocalAiProfileDescriptor,
-    LocalAiProfileEntryDescriptor, LocalAiProfileResolutionPlan,
+    LocalAiProfileApplyResult, LocalAiProfileApplyStatusPayload, LocalAiProfileResolutionPlan,
     LocalAiRecommendationFeedDescriptor, LocalAiRuntimeState, LocalAiServiceArtifactType,
     LocalAiServiceDescriptor, LocalAiServiceStatus, LocalAiSuggestionConfidence,
     LocalAiSuggestionSource, LocalAiTransferSessionKind, LocalAiUnregisteredAssetDescriptor,

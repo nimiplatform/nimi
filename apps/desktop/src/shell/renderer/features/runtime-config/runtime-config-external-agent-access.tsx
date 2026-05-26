@@ -47,7 +47,7 @@ export function ExternalAgentAccessPanel() {
   const [principalId, setPrincipalId] = useState('openclaw.local');
   const [subjectAccountId, setSubjectAccountId] = useState('');
   const [mode, setMode] = useState<TokenMode>('delegated');
-  const [actionsInput, setActionsInput] = useState('runtime.local-ai.models.list');
+  const [actionsInput, setActionsInput] = useState('');
   const [ttlSeconds, setTtlSeconds] = useState('3600');
   const [tokenId, setTokenId] = useState('');
   const [issuedToken, setIssuedToken] = useState('');
@@ -118,6 +118,10 @@ export function ExternalAgentAccessPanel() {
           .split(',')
           .map((item) => item.trim())
           .filter(Boolean);
+        if (actions.length === 0) {
+          setErrorMessage(t('runtimeConfig.eaa.actionScopesRequired', { defaultValue: 'At least one action scope is required.' }));
+          return;
+        }
         const issued = await issueExternalAgentToken({
           principalId,
           mode,
@@ -177,7 +181,9 @@ export function ExternalAgentAccessPanel() {
     }).catch(() => undefined);
   };
 
-  const canIssue = gatewayStatus.enabled && !gatewayStatus.loading;
+  const canIssue = gatewayStatus.enabled
+    && !gatewayStatus.loading
+    && (gatewayStatus.actionCount ?? 0) > 0;
 
   const tokenCounts = useMemo(() => {
     let active = 0;
@@ -414,7 +420,7 @@ export function ExternalAgentAccessPanel() {
                   label={t('runtimeConfig.eaa.actionScopes', { defaultValue: 'Action Scopes (comma separated)' })}
                   value={actionsInput}
                   onChange={setActionsInput}
-                  placeholder="runtime.local-ai.models.list"
+                  placeholder={t('runtimeConfig.eaa.actionScopesPlaceholder', { defaultValue: 'Runtime action id' })}
                 />
               </div>
 

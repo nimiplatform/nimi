@@ -119,23 +119,14 @@ pub async fn issue_token(
     if scopes.iter().any(|scope| scope.ops.is_empty()) {
         return Err("EXTERNAL_AGENT_SCOPE_OPS_REQUIRED".to_string());
     }
+    if scopes.iter().any(|scope| scope.action_id.trim().is_empty()) {
+        return Err("EXTERNAL_AGENT_ACTION_SCOPE_REQUIRED".to_string());
+    }
 
     let actions = scopes
         .iter()
         .map(|scope| scope.action_id.clone())
         .collect::<Vec<_>>();
-
-    {
-        let guard = state.inner.lock().await;
-        for scope in &scopes {
-            if scope.action_id != "*" && !guard.actions.contains_key(scope.action_id.as_str()) {
-                return Err(format!(
-                    "EXTERNAL_AGENT_ACTION_SCOPE_UNKNOWN:{}",
-                    scope.action_id
-                ));
-            }
-        }
-    }
 
     let iat = now_unix_secs();
     let ttl = payload.ttl_seconds.unwrap_or(3600).clamp(60, 86_400) as usize;

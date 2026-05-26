@@ -59,7 +59,7 @@ scope config evidence 与 Runtime execution evidence slices，是执行期真相
 - device-specific feasibility state / host-specific engine binary path
 - live health / availability state
 
-与 `RuntimeLocalProfile` / `LocalAiProfileDescriptor` 的关系：
+与 Runtime local profile projection 的关系：
 
 - runtime local profile 是 runtime-facing、installable 的 local dependency / execution package。
 - 一个 `AIProfile` 可引用、组合或派生出一个或多个 runtime local profile。

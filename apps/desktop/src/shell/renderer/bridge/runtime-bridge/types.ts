@@ -290,20 +290,14 @@ export {
 } from './chat-agent-parsers.js';
 
 export type {
-  ExternalAgentActionExecutionMode,
-  ExternalAgentActionRiskLevel,
-  ExternalAgentActionDescriptor,
   ExternalAgentIssueTokenPayload,
   ExternalAgentIssueTokenResult,
   ExternalAgentRevokeTokenPayload,
   ExternalAgentTokenRecord,
   ExternalAgentGatewayStatus,
-  ExternalAgentActionExecutionRequest,
-  ExternalAgentActionExecutionCompletion,
 } from './external-agent-types.js';
 
 export {
-  parseExternalAgentActionDescriptors,
   parseExternalAgentIssueTokenResult,
   parseExternalAgentTokenRecord,
   parseExternalAgentTokenRecordList,

@@ -38,7 +38,7 @@ areas:
     source_rule: D-TEL-001
 
   - area: external-agent
-    description: External agent action bridge, token management
+    description: External agent gateway/token projection
     source_rule: D-TEL-001
 
   - area: auth

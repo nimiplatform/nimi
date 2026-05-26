@@ -1,13 +1,9 @@
 import { hasTauriInvoke } from './env';
 import { invoke, invokeChecked } from './invoke';
 import {
-  parseExternalAgentActionDescriptors,
   parseExternalAgentGatewayStatus,
   parseExternalAgentIssueTokenResult,
   parseExternalAgentTokenRecordList,
-  type ExternalAgentActionDescriptor,
-  type ExternalAgentActionExecutionCompletion,
-  type ExternalAgentActionExecutionRequest,
   type ExternalAgentGatewayStatus,
   type ExternalAgentIssueTokenPayload,
   type ExternalAgentIssueTokenResult,
@@ -36,26 +32,6 @@ export async function listExternalAgentTokens(): Promise<ExternalAgentTokenRecor
   return invokeChecked('external_agent_list_tokens', {}, parseExternalAgentTokenRecordList);
 }
 
-export async function syncExternalAgentActionDescriptors(
-  descriptors: ExternalAgentActionDescriptor[],
-): Promise<ExternalAgentActionDescriptor[]> {
-  if (!hasTauriInvoke()) {
-    return descriptors;
-  }
-  return invokeChecked(
-    'external_agent_sync_action_descriptors',
-    { payload: { descriptors } },
-    parseExternalAgentActionDescriptors,
-  );
-}
-
-export async function completeExternalAgentExecution(
-  payload: ExternalAgentActionExecutionCompletion,
-): Promise<void> {
-  if (!hasTauriInvoke()) return;
-  await invoke('external_agent_complete_execution', { payload });
-}
-
 export async function getExternalAgentGatewayStatus(): Promise<ExternalAgentGatewayStatus> {
   if (!hasTauriInvoke()) {
     return {
@@ -68,10 +44,4 @@ export async function getExternalAgentGatewayStatus(): Promise<ExternalAgentGate
     };
   }
   return invokeChecked('external_agent_gateway_status', {}, parseExternalAgentGatewayStatus);
-}
-
-export async function subscribeExternalAgentActionExecuteRequests(
-  _listener: (request: ExternalAgentActionExecutionRequest) => void,
-): Promise<() => void> {
-  return () => {};
 }

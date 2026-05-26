@@ -384,7 +384,6 @@ registered_command_families:
   - family: local_runtime_service_request_response
     match:
       exact:
-        - runtime_local_profiles_resolve
         - runtime_local_services_list
         - runtime_local_services_install
         - runtime_local_services_start

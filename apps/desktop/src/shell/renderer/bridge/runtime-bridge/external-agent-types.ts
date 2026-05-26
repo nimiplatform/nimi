@@ -3,23 +3,6 @@ import {
   parseOptionalString,
   parseRequiredString,
 } from './shared.js';
-import type { JsonObject } from './shared.js';
-export type ExternalAgentActionExecutionMode = 'full' | 'guarded' | 'opaque';
-export type ExternalAgentActionRiskLevel = 'low' | 'medium' | 'high';
-
-export type ExternalAgentActionDescriptor = {
-  actionId: string;
-  targetId: string;
-  sourceType: string;
-  description?: string;
-  operation: 'read' | 'write';
-  socialPrecondition: 'none' | 'human-agent-active';
-  executionMode: ExternalAgentActionExecutionMode;
-  riskLevel: ExternalAgentActionRiskLevel;
-  supportsDryRun: boolean;
-  idempotent: boolean;
-  requiredCapabilities: string[];
-};
 
 export type ExternalAgentIssueTokenPayload = {
   principalId: string;
@@ -69,81 +52,6 @@ export type ExternalAgentGatewayStatus = {
   status?: string;
   reasonCode?: string;
 };
-
-export type ExternalAgentActionExecutionRequest = {
-  executionId: string;
-  actionId: string;
-  phase: 'dry-run' | 'verify' | 'commit';
-  input: JsonObject;
-  context: {
-    principalId: string;
-    principalType: 'external-agent';
-    mode: 'delegated' | 'autonomous';
-    subjectAccountId: string;
-    issuer?: string;
-    authTokenId?: string;
-    traceId: string;
-    userAccountId?: string;
-    externalAccountId?: string;
-    delegationChain?: string[];
-  };
-  idempotencyKey?: string;
-  verifyTicket?: string;
-};
-
-export type ExternalAgentActionExecutionCompletion = {
-  executionId: string;
-  ok: boolean;
-  reasonCode: string;
-  actionHint: string;
-  traceId: string;
-  auditId?: string;
-  output?: JsonObject;
-  executionMode: ExternalAgentActionExecutionMode;
-  warnings?: string[];
-};
-export function parseExternalAgentActionDescriptors(value: unknown): ExternalAgentActionDescriptor[] {
-  if (!Array.isArray(value)) return [];
-  return value.map((item) => {
-    const record = assertRecord(item, 'external_agent_sync_action_descriptors returned invalid action descriptor');
-    const executionModeRaw = String(record.executionMode || '').trim();
-    const riskLevelRaw = String(record.riskLevel || '').trim();
-    const executionMode: ExternalAgentActionExecutionMode = (
-      executionModeRaw === 'full'
-      || executionModeRaw === 'opaque'
-    )
-      ? executionModeRaw
-      : 'guarded';
-    const riskLevel: ExternalAgentActionRiskLevel = (
-      riskLevelRaw === 'low'
-      || riskLevelRaw === 'high'
-    )
-      ? riskLevelRaw
-      : 'medium';
-    const requiredCapabilities = Array.isArray(record.requiredCapabilities)
-      ? record.requiredCapabilities.map((entry) => String(entry || '').trim()).filter(Boolean)
-      : [];
-    const operationRaw = String(record.operation || '').trim();
-    const socialPreconditionRaw = String(record.socialPrecondition || '').trim();
-    const operation = operationRaw === 'write' ? 'write' : 'read';
-    const socialPrecondition = socialPreconditionRaw === 'human-agent-active'
-      ? 'human-agent-active'
-      : 'none';
-    return {
-      actionId: parseRequiredString(record.actionId, 'actionId', 'external-agent action descriptor'),
-      targetId: parseRequiredString(record.targetId, 'targetId', 'external-agent action descriptor'),
-      sourceType: parseRequiredString(record.sourceType, 'sourceType', 'external-agent action descriptor'),
-      description: parseOptionalString(record.description),
-      operation,
-      socialPrecondition,
-      executionMode,
-      riskLevel,
-      supportsDryRun: Boolean(record.supportsDryRun),
-      idempotent: Boolean(record.idempotent),
-      requiredCapabilities,
-    };
-  });
-}
 
 export function parseExternalAgentIssueTokenResult(value: unknown): ExternalAgentIssueTokenResult {
   const record = assertRecord(value, 'external_agent_issue_token returned invalid payload');

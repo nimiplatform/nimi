@@ -226,11 +226,6 @@ commands:
     description: Host install-plan helper; product install-plan truth must remain runtime-owned
     source_rule: D-IPC-011
 
-  - command: runtime_local_profiles_resolve
-    module: local-runtime
-    description: Resolve a local local AI profile into an executable runtime plan
-    source_rule: D-IPC-011
-
   - command: runtime_local_device_profile_collect
     module: local-runtime
     description: Collect local device profile (CPU/GPU/NPU/disk/ports)

@@ -26,8 +26,6 @@ import { isRuntimeConfigManualRestartRequiredError } from './runtime-bootstrap-c
 import { reconcileLocalRuntimeBootstrapState } from './runtime-bootstrap-local-ai';
 import { attachOfflineCoordinatorBindings } from './runtime-bootstrap-offline';
 import {
-  startExternalAgentActionBridge,
-  resyncExternalAgentActionDescriptors,
   stopExternalAgentActionBridge,
 } from '@runtime/external-agent';
 import { startAuthStateWatcher, stopAuthStateWatcher } from './auth-state-watcher';
@@ -551,18 +549,7 @@ export function bootstrapRuntime(): Promise<void> {
 
     startAuthStateWatcher();
 
-    if (flags.enableRuntimeBootstrap && !macosSmokeContext.disableRuntimeBootstrap) {
-      startNonCriticalBootstrapStep({
-        flowId,
-        step: 'external agent action bridge startup',
-        task: startExternalAgentActionBridge(),
-      });
-      startNonCriticalBootstrapStep({
-        flowId,
-        step: 'external agent descriptor resync',
-        task: resyncExternalAgentActionDescriptors(),
-      });
-    } else {
+    if (!flags.enableRuntimeBootstrap || macosSmokeContext.disableRuntimeBootstrap) {
       if (macosSmokeContext.disableRuntimeBootstrap) {
         logRendererEvent({
           level: 'info',

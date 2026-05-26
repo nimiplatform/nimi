@@ -64,10 +64,15 @@ test('bootstrap failure performs teardown before auth reset and surfaces cleanup
 test('external agent bridge stop clears descriptor sync residue', () => {
   const stopIndex = externalAgentSource.indexOf('export function stopExternalAgentActionBridge(): void {');
   assert.notEqual(stopIndex, -1, 'stopExternalAgentActionBridge() must exist');
-  const stopBlock = externalAgentSource.slice(stopIndex, externalAgentSource.indexOf('export async function resyncExternalAgentActionDescriptors', stopIndex));
+  const stopBlock = externalAgentSource.slice(stopIndex, externalAgentSource.indexOf('export async function issueExternalAgentToken', stopIndex));
   assert.doesNotMatch(
     stopBlock,
     /syncedActionHash|actionRegistryResyncQueued/,
     'external agent bridge teardown must not retain app-local descriptor sync state',
+  );
+  assert.doesNotMatch(
+    externalAgentSource,
+    /resyncExternalAgentActionDescriptors|external_agent_sync_action_descriptors/,
+    'desktop must not own external agent action descriptor sync',
   );
 });

@@ -82,10 +82,7 @@ import {
   issueExternalAgentToken,
   listExternalAgentTokens,
   revokeExternalAgentToken,
-  syncExternalAgentActionDescriptors,
-  completeExternalAgentExecution,
   getExternalAgentGatewayStatus,
-  subscribeExternalAgentActionExecuteRequests,
 } from './runtime-bridge/external-agent';
 export type LocalRuntimeWriteOptions = {
   caller?: LocalRuntimeLifecycleCaller;
@@ -164,9 +161,6 @@ export type {
   LocalRuntimeAssetStatus,
   LocalRuntimeAssetsHealthResult,
   LocalRuntimeVerifiedAssetDescriptor,
-  ExternalAgentActionDescriptor,
-  ExternalAgentActionExecutionCompletion,
-  ExternalAgentActionExecutionRequest,
   ExternalAgentGatewayStatus,
   ExternalAgentIssueTokenPayload,
   ExternalAgentIssueTokenResult,
@@ -251,10 +245,7 @@ export {
   issueExternalAgentToken,
   listExternalAgentTokens,
   revokeExternalAgentToken,
-  syncExternalAgentActionDescriptors,
-  completeExternalAgentExecution,
   getExternalAgentGatewayStatus,
-  subscribeExternalAgentActionExecuteRequests,
 };
 
 export const desktopBridge = {
@@ -321,8 +312,5 @@ export const desktopBridge = {
   issueExternalAgentToken,
   listExternalAgentTokens,
   revokeExternalAgentToken,
-  syncExternalAgentActionDescriptors,
-  completeExternalAgentExecution,
   getExternalAgentGatewayStatus,
-  subscribeExternalAgentActionExecuteRequests,
 };
