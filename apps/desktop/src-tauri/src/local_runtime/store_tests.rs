@@ -2,8 +2,7 @@ use super::{load_state_from_path, save_state_to_path};
 use crate::local_runtime::types::{
     LocalAiAssetKind, LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus,
     LocalAiDownloadSessionRecord, LocalAiDownloadState, LocalAiInstallRequest,
-    LocalAiIntegrityMode, LocalAiProfileApplyProgressEvent, LocalAiRuntimeState,
-    LocalAiTransferSessionKind,
+    LocalAiIntegrityMode, LocalAiRuntimeState, LocalAiTransferSessionKind,
 };
 use std::collections::HashMap;
 use std::fs;
@@ -133,28 +132,6 @@ fn download_fixture(
     }
 }
 
-fn profile_apply_fixture(index: usize) -> LocalAiProfileApplyProgressEvent {
-    LocalAiProfileApplyProgressEvent {
-        apply_session_id: format!("apply-{index:03}"),
-        plan_id: "plan".to_string(),
-        target_id: "mod".to_string(),
-        profile_id: "profile".to_string(),
-        phase: "complete".to_string(),
-        status: "completed".to_string(),
-        occurred_at: format!(
-            "2026-01-01T{:02}:{:02}:{:02}.000Z",
-            index / 3600,
-            (index / 60) % 60,
-            index % 60
-        ),
-        message: None,
-        error: None,
-        reason_code: None,
-        rollback_applied: None,
-        result: None,
-    }
-}
-
 #[test]
 fn save_and_load_state_roundtrip() {
     let temp = unique_temp_dir("roundtrip");
@@ -166,7 +143,6 @@ fn save_and_load_state_roundtrip() {
         capability_matrix: Vec::new(),
         services: Vec::new(),
         downloads: Vec::new(),
-        profile_apply_sessions: Vec::new(),
         audits: Vec::new(),
     };
     save_state_to_path(&state_path, &state).expect("save state");
@@ -189,7 +165,6 @@ fn save_state_persists_single_assets_array() {
         capability_matrix: Vec::new(),
         services: Vec::new(),
         downloads: Vec::new(),
-        profile_apply_sessions: Vec::new(),
         audits: Vec::new(),
     };
 
@@ -375,7 +350,6 @@ fn merge_state_for_save_preserves_downloads_missing_from_incoming_state() {
             4_600_000_000,
             "2026-01-01T00:00:05.000Z",
         )],
-        profile_apply_sessions: Vec::new(),
         audits: Vec::new(),
     };
     let incoming = LocalAiRuntimeState {
@@ -385,7 +359,6 @@ fn merge_state_for_save_preserves_downloads_missing_from_incoming_state() {
         capability_matrix: Vec::new(),
         services: Vec::new(),
         downloads: Vec::new(),
-        profile_apply_sessions: Vec::new(),
         audits: Vec::new(),
     };
 
@@ -412,7 +385,6 @@ fn merge_state_for_save_prefers_newer_download_record() {
             4_600_000_000,
             "2026-01-01T00:00:05.000Z",
         )],
-        profile_apply_sessions: Vec::new(),
         audits: Vec::new(),
     };
     let incoming = LocalAiRuntimeState {
@@ -428,7 +400,6 @@ fn merge_state_for_save_prefers_newer_download_record() {
             1_000_000,
             "2026-01-01T00:00:03.000Z",
         )],
-        profile_apply_sessions: Vec::new(),
         audits: Vec::new(),
     };
 
@@ -454,7 +425,6 @@ fn merge_state_for_save_breaks_same_timestamp_ties_with_progress() {
             4_600_000_000,
             "2026-01-01T00:00:05.000Z",
         )],
-        profile_apply_sessions: Vec::new(),
         audits: Vec::new(),
     };
     let incoming = LocalAiRuntimeState {
@@ -470,7 +440,6 @@ fn merge_state_for_save_breaks_same_timestamp_ties_with_progress() {
             1_000_000,
             "2026-01-01T00:00:05.000Z",
         )],
-        profile_apply_sessions: Vec::new(),
         audits: Vec::new(),
     };
 
@@ -479,51 +448,4 @@ fn merge_state_for_save_breaks_same_timestamp_ties_with_progress() {
     assert_eq!(merged.downloads.len(), 1);
     assert_eq!(merged.downloads[0].phase, "verify");
     assert_eq!(merged.downloads[0].bytes_received, 4_600_000_000);
-}
-
-#[test]
-fn merge_state_for_save_caps_profile_apply_sessions_to_recent_records() {
-    let current = LocalAiRuntimeState {
-        version: 11,
-        assets: vec![],
-        capability_index: HashMap::new(),
-        capability_matrix: Vec::new(),
-        services: Vec::new(),
-        downloads: Vec::new(),
-        profile_apply_sessions: (0..520).map(profile_apply_fixture).collect(),
-        audits: Vec::new(),
-    };
-    let incoming = LocalAiRuntimeState {
-        version: 11,
-        assets: vec![],
-        capability_index: HashMap::new(),
-        capability_matrix: Vec::new(),
-        services: Vec::new(),
-        downloads: Vec::new(),
-        profile_apply_sessions: vec![profile_apply_fixture(520)],
-        audits: Vec::new(),
-    };
-
-    let merged = super::merge_state_for_save(&current, &incoming);
-
-    assert_eq!(
-        merged.profile_apply_sessions.len(),
-        super::PROFILE_APPLY_SESSION_RETENTION_LIMIT
-    );
-    assert_eq!(
-        merged
-            .profile_apply_sessions
-            .first()
-            .unwrap()
-            .apply_session_id,
-        "apply-021"
-    );
-    assert_eq!(
-        merged
-            .profile_apply_sessions
-            .last()
-            .unwrap()
-            .apply_session_id,
-        "apply-520"
-    );
 }

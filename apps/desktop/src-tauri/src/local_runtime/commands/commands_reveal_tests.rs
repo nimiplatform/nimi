@@ -25,46 +25,7 @@ fn reveal_path_in_os(path: &std::path::Path) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{copy_file_with_progress, extract_reason_code, run_install_preflight_with};
-    use crate::local_runtime::types::LocalAiInstallRequest;
-
-    fn install_request_fixture(engine: Option<&str>) -> LocalAiInstallRequest {
-        LocalAiInstallRequest {
-            model_id: "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign".to_string(),
-            repo: "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign".to_string(),
-            revision: Some("main".to_string()),
-            capabilities: Some(vec!["tts".to_string()]),
-            engine: engine.map(|value| value.to_string()),
-            entry: Some("model.safetensors".to_string()),
-            files: None,
-            license: Some("apache-2.0".to_string()),
-            hashes: None,
-            endpoint: Some("http://127.0.0.1:1234/v1".to_string()),
-            provider_hints: None,
-            engine_config: None,
-        }
-    }
-
-    #[test]
-    fn install_preflight_runs_for_llama_engine() {
-        let request = install_request_fixture(Some("llama"));
-        let result = run_install_preflight_with(&request, |engine| {
-            assert_eq!(engine, "llama");
-            Err("LOCAL_AI_SERVICE_UNREACHABLE: service unreachable".to_string())
-        });
-        let error = result.expect_err("preflight error should bubble");
-        assert!(error.contains("LOCAL_AI_SERVICE_UNREACHABLE"));
-    }
-
-    #[test]
-    fn install_preflight_runs_for_explicit_engine() {
-        let request = install_request_fixture(Some("llama"));
-        let result = run_install_preflight_with(&request, |engine| {
-            assert_eq!(engine, "llama");
-            Ok(())
-        });
-        assert!(result.is_ok());
-    }
+    use super::{copy_file_with_progress, extract_reason_code};
 
     #[test]
     fn install_preflight_preserves_reason_code_prefix() {
@@ -88,7 +49,7 @@ mod tests {
             |_| {},
             || Ok(()),
         )
-            .expect("copy should succeed");
+        .expect("copy should succeed");
 
         let copied = std::fs::read(&dst).expect("read dest");
         assert_eq!(copied, content);
@@ -107,7 +68,7 @@ mod tests {
             |_| {},
             || Ok(()),
         )
-            .expect("copy should succeed for empty file");
+        .expect("copy should succeed for empty file");
 
         let copied = std::fs::read(&dst).expect("read dest");
         assert!(copied.is_empty());
@@ -128,7 +89,7 @@ mod tests {
             |_| {},
             || Ok(()),
         )
-            .expect("copy should succeed");
+        .expect("copy should succeed");
 
         let copied = std::fs::read(&dst).expect("read dest");
         assert_eq!(copied.len(), content.len());

@@ -352,8 +352,6 @@ export type {
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileTargetDescriptor,
   LocalRuntimeProfileResolutionPlan,
-  LocalRuntimeProfileApplyAccepted,
-  LocalRuntimeProfileApplyProgressEvent,
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileInstallStatus,
   LocalRuntimeProfileResolvePayload,

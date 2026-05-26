@@ -84,19 +84,9 @@ pub fn verified_asset_list() -> Vec<LocalAiVerifiedAssetDescriptor> {
     vec![z_image_vae_descriptor(), z_image_qwen_descriptor()]
 }
 
-pub fn find_verified_asset(template_id: &str) -> Option<LocalAiVerifiedAssetDescriptor> {
-    let normalized = template_id.trim();
-    if normalized.is_empty() {
-        return None;
-    }
-    verified_asset_list()
-        .into_iter()
-        .find(|item| item.template_id == normalized)
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{find_verified_asset, verified_asset_list};
+    use super::verified_asset_list;
 
     #[test]
     fn verified_asset_registry_contains_z_image_entries() {
@@ -107,12 +97,5 @@ mod tests {
         assert!(rows
             .iter()
             .any(|item| item.template_id == "verified.asset.z_image.qwen3_4b"));
-    }
-
-    #[test]
-    fn find_verified_asset_returns_descriptor_by_template_id() {
-        let descriptor = find_verified_asset("verified.asset.z_image.vae").expect("descriptor");
-        assert_eq!(descriptor.asset_id, "local/z_image_ae");
-        assert_eq!(descriptor.engine, "media");
     }
 }

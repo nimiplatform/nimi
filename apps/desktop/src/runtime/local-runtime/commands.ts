@@ -9,8 +9,7 @@ import type {
   LocalRuntimeCatalogResolveInstallPlanPayload,
   LocalRuntimeInstallPlanDescriptor,
   LocalRuntimeDeviceProfile,
-  LocalRuntimeProfileApplyAccepted,
-  LocalRuntimeProfileApplyProgressEvent,
+  LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileEntryDescriptor,
   LocalRuntimeProfileEntryOverride,
@@ -33,12 +32,10 @@ import {
   parseGgufVariantDescriptor,
   parseInstallPlanDescriptor,
   parseDeviceProfile,
-  parseProfileApplyAccepted,
-  parseProfileApplyProgressEvent,
+  parseProfileApplyResult,
   parseProfileResolutionPlan,
   parseRecommendationFeedDescriptor,
   assertLifecycleWriteAllowed,
-  readGlobalTauriEventListen,
 } from './parsers';
 import {
   assetLookupKey,
@@ -132,8 +129,6 @@ export {
 // runtime_local_append_inference_audit
 // runtime_local_append_runtime_audit
 // runtime_local_assets_scan_unregistered
-
-const LOCAL_RUNTIME_PROFILE_APPLY_PROGRESS_EVENT = 'local-runtime://profile-apply-progress';
 
 function toInt64String(value: unknown): string {
   const number = Number(value);
@@ -414,53 +409,18 @@ export async function resolveLocalRuntimeProfile(
 export async function applyLocalRuntimeProfile(
   plan: LocalRuntimeProfileResolutionPlan,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeProfileApplyAccepted> {
+): Promise<LocalRuntimeProfileApplyResult> {
   assertLifecycleWriteAllowed('local_runtime_profiles_apply', options?.caller);
-  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_profiles_apply', {
-    payload: { plan },
+  const runtime = requireSdkLocal();
+  const response = await runtime.applyProfile({
+    plan: plan as unknown as Parameters<typeof runtime.applyProfile>[0]['plan'],
   });
-  const accepted = parseProfileApplyAccepted(result);
-  return {
-    applySessionId: accepted.applySessionId,
-    planId: plan.planId,
-    targetId: plan.targetId,
-    profileId: plan.profileId,
-  };
-}
-
-export async function subscribeLocalRuntimeProfileApplyProgress(
-  listener: (event: LocalRuntimeProfileApplyProgressEvent) => void,
-): Promise<() => void> {
-  const listen = readGlobalTauriEventListen();
-  if (!listen) {
-    throw new Error('LOCAL_AI_TAURI_EVENT_LISTEN_UNAVAILABLE: tauri listen is not available');
+  const result = parseProfileApplyResult(asRecord(response).result);
+  const reasonCode = String(result.reasonCode || result.executionResult.reasonCode || '').trim();
+  if (reasonCode && reasonCode !== 'ACTION_EXECUTED') {
+    throw new Error(reasonCode);
   }
-  const unsubscribe = await Promise.resolve(listen(LOCAL_RUNTIME_PROFILE_APPLY_PROGRESS_EVENT, (event) => {
-    listener(parseProfileApplyProgressEvent(event.payload));
-  }));
-  return () => {
-    if (unsubscribe) {
-      unsubscribe();
-    }
-  };
-}
-
-export async function getLocalRuntimeProfileApplyStatus(
-  applySessionId: string,
-): Promise<LocalRuntimeProfileApplyProgressEvent | null> {
-  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_profiles_apply_status', {
-    payload: {
-      applySessionId: String(applySessionId || '').trim(),
-    },
-  });
-  return result ? parseProfileApplyProgressEvent(result) : null;
-}
-
-export async function listLocalRuntimeProfileApplySessions(): Promise<LocalRuntimeProfileApplyProgressEvent[]> {
-  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_profiles_apply_sessions');
-  return Array.isArray(result)
-    ? result.map((item) => parseProfileApplyProgressEvent(item))
-    : [];
+  return result;
 }
 
 export async function getLocalRuntimeProfileInstallStatus(

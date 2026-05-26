@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   findLocalRuntimeProfileById,
@@ -8,7 +8,7 @@ import {
   type LocalRuntimeCatalogItemDescriptor,
   type LocalRuntimeInstallPayload,
   type LocalRuntimeInstallPlanDescriptor,
-  type LocalRuntimeProfileApplyAccepted,
+  type LocalRuntimeProfileApplyResult,
   type LocalRuntimeProfileDescriptor,
   type LocalRuntimeProfileResolutionPlan,
 } from '@runtime/local-runtime';
@@ -62,7 +62,7 @@ export type RuntimeConfigInstallActions = {
     targetId: string,
     profileId: string,
     capability?: string,
-  ) => Promise<LocalRuntimeProfileApplyAccepted>;
+  ) => Promise<LocalRuntimeProfileApplyResult>;
   installCatalogLocalModel: (
     item: LocalRuntimeCatalogItemDescriptor,
     options?: {
@@ -121,61 +121,6 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   const onDownloadComplete = useCallback(async () => {
     await refreshLocalSnapshot();
   }, [refreshLocalSnapshot]);
-
-  useEffect(() => {
-    let active = true;
-    let unsubscribe: (() => void) | null = null;
-    void localRuntime.subscribeProfileApplyProgress((event) => {
-      if (!event.done) {
-        return;
-      }
-      void (async () => {
-        await refreshLocalSnapshot();
-        if (!active) {
-          return;
-        }
-        if (event.success && event.result) {
-          setStatusBanner({
-            kind: 'success',
-            message: translateRuntimeLocalText(
-              'runtimeConfig.local.profileAppliedSummary',
-              'Installed profile {{profileId}} for {{targetId}}: {{modelCount}} runnable asset(s), {{serviceCount}} service(s), {{dependencyAssetCount}} dependency asset(s)',
-              {
-                targetId: event.targetId,
-                profileId: event.profileId,
-                modelCount: event.result.executionResult.installedAssets.length,
-                serviceCount: event.result.executionResult.services.length,
-                dependencyAssetCount: event.result.installedAssets.length,
-              },
-            ),
-          });
-          return;
-        }
-        setStatusBanner({
-          kind: 'error',
-          message: translateRuntimeLocalText(
-            'runtimeConfig.local.profileApplyFailed',
-            'Profile install failed: {{message}}',
-            { message: event.error || event.reasonCode || 'unknown error' },
-          ),
-        });
-      })();
-    }).then((nextUnsubscribe) => {
-      if (!active) {
-        nextUnsubscribe();
-        return;
-      }
-      unsubscribe = nextUnsubscribe;
-    }).catch(() => {
-      // Non-Tauri test hosts do not expose profile apply events.
-    });
-    return () => {
-      active = false;
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, [refreshLocalSnapshot, setStatusBanner]);
 
   const runInstallPlanLifecycle = useCallback(async (
     plan: LocalRuntimeInstallPlanDescriptor,
@@ -264,7 +209,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     targetId: string,
     profileId: string,
     capability?: string,
-  ): Promise<LocalRuntimeProfileApplyAccepted> => {
+  ): Promise<LocalRuntimeProfileApplyResult> => {
     try {
       assertRuntimeWriteAllowed();
       const plan = await resolveRuntimeProfile(targetId, profileId, capability);
@@ -272,19 +217,23 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(confirmMessage)) {
         throw new Error('LOCAL_AI_PROFILE_INSTALL_DECLINED');
       }
-      const accepted = await localRuntime.applyProfile(plan, { caller: 'core' });
+      const result = await localRuntime.applyProfile(plan, { caller: 'core' });
+      await refreshLocalSnapshot();
       setStatusBanner({
-        kind: 'info',
+        kind: 'success',
         message: translateRuntimeLocalText(
-          'runtimeConfig.local.profileApplyQueued',
-          'Profile {{profileId}} queued for {{targetId}}.',
+          'runtimeConfig.local.profileAppliedSummary',
+          'Installed profile {{profileId}} for {{targetId}}: {{modelCount}} runnable asset(s), {{serviceCount}} service(s), {{dependencyAssetCount}} dependency asset(s)',
           {
-            targetId: targetId,
-            profileId,
+            targetId: result.targetId || targetId,
+            profileId: result.profileId || profileId,
+            modelCount: result.executionResult.installedAssets.length,
+            serviceCount: result.executionResult.services.length,
+            dependencyAssetCount: result.installedAssets.length,
           },
         ),
       });
-      return accepted;
+      return result;
     } catch (error) {
       setStatusBanner({
         kind: 'error',
@@ -296,7 +245,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [assertRuntimeWriteAllowed, resolveRuntimeProfile, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, resolveRuntimeProfile, setStatusBanner]);
 
   const installCatalogLocalModel = useCallback(async (
     item: LocalRuntimeCatalogItemDescriptor,

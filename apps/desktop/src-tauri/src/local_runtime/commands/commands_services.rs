@@ -1,267 +1,4 @@
 #[tauri::command]
-pub async fn runtime_local_profiles_apply(
-    app: AppHandle,
-    payload: LocalAiProfilesApplyPayload,
-) -> Result<LocalAiProfileApplyAccepted, String> {
-    let apply_session_id = next_profile_apply_session_id(payload.plan.plan_id.as_str());
-    let accepted = LocalAiProfileApplyAccepted {
-        apply_session_id: apply_session_id.clone(),
-        plan_id: payload.plan.plan_id.clone(),
-        target_id: payload.plan.target_id.clone(),
-        profile_id: payload.plan.profile_id.clone(),
-    };
-    emit_profile_apply_progress(
-        &app,
-        &accepted,
-        "queued",
-        "queued",
-        Some("queued local runtime profile apply".to_string()),
-        None,
-        None,
-        None,
-        None,
-    );
-    let bg_app = app.clone();
-    let bg_accepted = accepted.clone();
-    tauri::async_runtime::spawn(async move {
-        emit_profile_apply_progress(
-            &bg_app,
-            &bg_accepted,
-            "apply",
-            "running",
-            Some("applying local runtime profile".to_string()),
-            None,
-            None,
-            None,
-            None,
-        );
-        match run_local_profile_apply(&bg_app, payload).await {
-            Ok(result) => emit_profile_apply_progress(
-                &bg_app,
-                &bg_accepted,
-                "complete",
-                "completed",
-                Some("local runtime profile apply completed".to_string()),
-                None,
-                result.reason_code.clone(),
-                Some(result.execution_result.rollback_applied),
-                Some(result),
-            ),
-            Err(failure) => emit_profile_apply_progress(
-                &bg_app,
-                &bg_accepted,
-                "complete",
-                "failed",
-                Some("local runtime profile apply failed".to_string()),
-                Some(failure.error.clone()),
-                Some(extract_reason_code(failure.error.as_str())),
-                Some(failure.rollback_applied),
-                None,
-            ),
-        }
-    });
-    Ok(accepted)
-}
-
-#[tauri::command]
-pub async fn runtime_local_profiles_apply_status(
-    app: AppHandle,
-    payload: LocalAiProfileApplyStatusPayload,
-) -> Result<Option<LocalAiProfileApplyProgressEvent>, String> {
-    let apply_session_id = payload.apply_session_id.trim().to_string();
-    if apply_session_id.is_empty() {
-        return Err("LOCAL_AI_PROFILE_APPLY_SESSION_ID_REQUIRED: applySessionId is required".to_string());
-    }
-    let state = tauri::async_runtime::spawn_blocking(move || load_state(&app))
-        .await
-        .map_err(|error| format!("LOCAL_AI_PROFILE_APPLY_STATUS_JOIN_FAILED: {error}"))??;
-    Ok(state
-        .profile_apply_sessions
-        .into_iter()
-        .find(|event| event.apply_session_id == apply_session_id))
-}
-
-#[tauri::command]
-pub async fn runtime_local_profiles_apply_sessions(
-    app: AppHandle,
-) -> Result<Vec<LocalAiProfileApplyProgressEvent>, String> {
-    let mut sessions = tauri::async_runtime::spawn_blocking(move || load_state(&app))
-        .await
-        .map_err(|error| format!("LOCAL_AI_PROFILE_APPLY_SESSIONS_JOIN_FAILED: {error}"))??
-        .profile_apply_sessions;
-    sessions.sort_by(|left, right| right.occurred_at.cmp(&left.occurred_at));
-    Ok(sessions)
-}
-
-fn emit_profile_apply_progress(
-    app: &AppHandle,
-    accepted: &LocalAiProfileApplyAccepted,
-    phase: &str,
-    status: &str,
-    message: Option<String>,
-    error: Option<String>,
-    reason_code: Option<String>,
-    rollback_applied: Option<bool>,
-    result: Option<LocalAiProfileApplyResult>,
-) {
-    let event = LocalAiProfileApplyProgressEvent {
-        apply_session_id: accepted.apply_session_id.clone(),
-        plan_id: accepted.plan_id.clone(),
-        target_id: accepted.target_id.clone(),
-        profile_id: accepted.profile_id.clone(),
-        phase: phase.to_string(),
-        status: status.to_string(),
-        occurred_at: now_iso_timestamp(),
-        message,
-        error,
-        reason_code,
-        rollback_applied,
-        result,
-    };
-    persist_profile_apply_progress(app, &event);
-    if let Err(error) = app.emit("local-runtime://profile-apply-progress", &event) {
-        eprintln!("LOCAL_AI_PROFILE_APPLY_PROGRESS_EMIT_FAILED: {error}");
-    }
-}
-
-fn persist_profile_apply_progress(app: &AppHandle, event: &LocalAiProfileApplyProgressEvent) {
-    let event = event.clone();
-    let result = save_state_with_profile_apply_event(app, event);
-    if let Err(error) = result {
-        eprintln!("LOCAL_AI_PROFILE_APPLY_PROGRESS_PERSIST_FAILED: {error}");
-    }
-}
-
-fn save_state_with_profile_apply_event(
-    app: &AppHandle,
-    event: LocalAiProfileApplyProgressEvent,
-) -> Result<(), String> {
-    let mut state = load_state(app)?;
-    if let Some(existing) = state
-        .profile_apply_sessions
-        .iter_mut()
-        .find(|item| item.apply_session_id == event.apply_session_id)
-    {
-        *existing = event;
-    } else {
-        state.profile_apply_sessions.push(event);
-    }
-    save_state(app, &state)
-}
-
-async fn run_local_profile_apply(
-    app: &AppHandle,
-    payload: LocalAiProfilesApplyPayload,
-) -> Result<LocalAiProfileApplyResult, LocalAiDependencyApplyFailure> {
-    append_app_audit_event_non_blocking(
-        app,
-        EVENT_PROFILE_APPLY_STARTED,
-        None,
-        None,
-        Some(serde_json::json!({
-            "targetId": payload.plan.target_id.clone(),
-            "profileId": payload.plan.profile_id.clone(),
-            "planId": payload.plan.plan_id.clone(),
-            "runtimeEntryCount": payload.plan.execution_plan.dependencies.len(),
-            "assetEntryCount": payload.plan.asset_entries.len(),
-        })),
-    );
-    match run_dependency_apply(app, &payload.plan.execution_plan).await {
-        Ok(execution_result) => {
-            let execution_reason_code = execution_result.reason_code.clone();
-            let mut warnings = payload.plan.warnings.clone();
-            let mut installed_assets = Vec::new();
-            let mut reason_code = execution_reason_code.clone();
-            for entry in &payload.plan.asset_entries {
-                let template_id = normalize_optional(entry.template_id.clone());
-                if template_id.is_none() {
-                    warnings.push(format!(
-                        "LOCAL_AI_PROFILE_ASSET_TEMPLATE_ID_REQUIRED: entryId={} requires templateId",
-                        entry.entry_id
-                    ));
-                    if entry.required != Some(false) {
-                        reason_code = Some("LOCAL_AI_PROFILE_ASSET_TEMPLATE_ID_REQUIRED".to_string());
-                        break;
-                    }
-                    continue;
-                }
-                match find_verified_asset(template_id.as_deref().unwrap_or_default()) {
-                    Some(_descriptor) => match runtime_install_verified_asset_via_runtime(
-                        template_id.as_deref().unwrap_or_default(),
-                        None,
-                    ) {
-                        Ok(record) => installed_assets.push(serde_json::to_value(record).unwrap_or_default()),
-                        Err(error) => {
-                            warnings.push(error.clone());
-                            if entry.required != Some(false) {
-                                reason_code = Some(extract_reason_code(error.as_str()));
-                                break;
-                            }
-                        }
-                    },
-                    None => {
-                        warnings.push(format!(
-                            "LOCAL_AI_VERIFIED_ASSET_TEMPLATE_NOT_FOUND: templateId={}",
-                            template_id.unwrap_or_default()
-                        ));
-                        if entry.required != Some(false) {
-                            reason_code = Some("LOCAL_AI_VERIFIED_ASSET_TEMPLATE_NOT_FOUND".to_string());
-                            break;
-                        }
-                    }
-                }
-            }
-            let result = LocalAiProfileApplyResult {
-                plan_id: payload.plan.plan_id.clone(),
-                target_id: payload.plan.target_id.clone(),
-                profile_id: payload.plan.profile_id.clone(),
-                execution_result,
-                installed_assets,
-                warnings: warnings
-                    .into_iter()
-                    .filter(|value| !value.trim().is_empty())
-                    .collect::<std::collections::BTreeSet<_>>()
-                    .into_iter()
-                    .collect::<Vec<_>>(),
-                reason_code: reason_code.or(execution_reason_code),
-            };
-            append_app_audit_event_non_blocking(
-                app,
-                EVENT_PROFILE_APPLY_COMPLETED,
-                None,
-                None,
-                Some(serde_json::json!({
-                    "targetId": result.target_id.clone(),
-                    "profileId": result.profile_id.clone(),
-                    "planId": result.plan_id.clone(),
-                    "installedAssetCount": result.execution_result.installed_assets.len(),
-                    "serviceCount": result.execution_result.services.len(),
-                    "warningCount": result.warnings.len(),
-                })),
-            );
-            Ok(result)
-        }
-        Err(failure) => {
-            append_app_audit_event_non_blocking(
-                app,
-                EVENT_PROFILE_APPLY_FAILED,
-                None,
-                None,
-                Some(serde_json::json!({
-                    "targetId": payload.plan.target_id,
-                    "profileId": payload.plan.profile_id,
-                    "planId": payload.plan.plan_id,
-                    "reasonCode": extract_reason_code(failure.error.as_str()),
-                    "rollbackApplied": failure.rollback_applied,
-                    "error": failure.error.clone(),
-                })),
-            );
-            Err(failure)
-        }
-    }
-}
-
-#[tauri::command]
 pub async fn runtime_local_services_list(
     app: AppHandle,
 ) -> Result<Vec<LocalAiServiceDescriptor>, String> {
@@ -308,7 +45,8 @@ pub async fn runtime_local_services_list(
                 service_id.as_str(),
                 endpoint.as_str(),
                 &client,
-            ).await;
+            )
+            .await;
             drop(permit);
             (service_id, result)
         });
@@ -316,8 +54,8 @@ pub async fn runtime_local_services_list(
 
     let mut probe_models_by_service = std::collections::BTreeMap::<String, Vec<String>>::new();
     while let Some(joined) = join_set.join_next().await {
-        let (service_id, result) = joined
-            .map_err(|error| format!("LOCAL_AI_SERVICE_LIST_TASK_JOIN_FAILED: {error}"))?;
+        let (service_id, result) =
+            joined.map_err(|error| format!("LOCAL_AI_SERVICE_LIST_TASK_JOIN_FAILED: {error}"))?;
         if let Ok(payload) = result {
             let ids = extract_probe_model_ids(&payload);
             if !ids.is_empty() {
@@ -519,13 +257,9 @@ pub async fn runtime_local_services_health(
 
     if !plans.is_empty() {
         let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(4));
-        let client = std::sync::Arc::new(
-            reqwest::Client::builder()
-                .build()
-                .map_err(|error| {
-                    format!("LOCAL_AI_SERVICE_HEALTH_HTTP_CLIENT_FAILED: error={error}")
-                })?,
-        );
+        let client = std::sync::Arc::new(reqwest::Client::builder().build().map_err(|error| {
+            format!("LOCAL_AI_SERVICE_HEALTH_HTTP_CLIENT_FAILED: error={error}")
+        })?);
         let mut join_set = tokio::task::JoinSet::new();
         for (plan_index, service_id, endpoint) in &plans {
             let semaphore = semaphore.clone();
@@ -539,7 +273,8 @@ pub async fn runtime_local_services_health(
                     service_id.as_str(),
                     endpoint.as_str(),
                     &client,
-                ).await;
+                )
+                .await;
                 drop(permit);
                 (plan_index, outcome)
             });
@@ -553,9 +288,10 @@ pub async fn runtime_local_services_health(
         }
 
         for (index, _, _) in &plans {
-            let service = state.services.get_mut(*index).ok_or_else(|| {
-                format!("LOCAL_AI_SERVICE_NOT_FOUND: index={index}")
-            })?;
+            let service = state
+                .services
+                .get_mut(*index)
+                .ok_or_else(|| format!("LOCAL_AI_SERVICE_NOT_FOUND: index={index}"))?;
             match probe_results.remove(index) {
                 Some(Ok(detail)) => {
                     service.status = LocalAiServiceStatus::Active;

@@ -1,3 +1,11 @@
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiInstallAcceptedResponse {
+    pub install_session_id: String,
+    pub model_id: String,
+    pub local_model_id: String,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalAiAssetsInstallPayload {
@@ -152,12 +160,6 @@ pub struct LocalAiRuntimeAuditPayload {
     pub reason_code: Option<String>,
     pub detail: Option<String>,
     pub payload: Option<serde_json::Value>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiProfilesApplyPayload {
-    pub plan: LocalAiProfileResolutionPlan,
 }
 
 #[derive(Debug, Deserialize)]

@@ -5,7 +5,6 @@ use serde::{Deserialize, Deserializer, Serialize};
 use super::assets::{LocalAiAssetRecord, LocalAiAuditEvent};
 use super::constants::LOCAL_AI_RUNTIME_VERSION;
 use super::download::LocalAiDownloadSessionRecord;
-use super::profiles::LocalAiProfileApplyProgressEvent;
 use super::services::{LocalAiCapabilityMatrixEntry, LocalAiServiceDescriptor};
 
 #[derive(Debug, Clone, Serialize)]
@@ -17,7 +16,6 @@ pub struct LocalAiRuntimeState {
     pub capability_matrix: Vec<LocalAiCapabilityMatrixEntry>,
     pub services: Vec<LocalAiServiceDescriptor>,
     pub downloads: Vec<LocalAiDownloadSessionRecord>,
-    pub profile_apply_sessions: Vec<LocalAiProfileApplyProgressEvent>,
     pub audits: Vec<LocalAiAuditEvent>,
 }
 
@@ -30,7 +28,6 @@ impl Default for LocalAiRuntimeState {
             capability_matrix: Vec::new(),
             services: Vec::new(),
             downloads: Vec::new(),
-            profile_apply_sessions: Vec::new(),
             audits: Vec::new(),
         }
     }
@@ -55,8 +52,6 @@ struct PersistedLocalAiRuntimeStateRead {
     services: Vec<LocalAiServiceDescriptor>,
     #[serde(default)]
     downloads: Vec<LocalAiDownloadSessionRecord>,
-    #[serde(default)]
-    profile_apply_sessions: Vec<LocalAiProfileApplyProgressEvent>,
     #[serde(default)]
     audits: Vec<LocalAiAuditEvent>,
 }
@@ -83,7 +78,6 @@ impl<'de> Deserialize<'de> for LocalAiRuntimeState {
             capability_matrix: persisted.capability_matrix,
             services: persisted.services,
             downloads: persisted.downloads,
-            profile_apply_sessions: persisted.profile_apply_sessions,
             audits: persisted.audits,
         })
     }

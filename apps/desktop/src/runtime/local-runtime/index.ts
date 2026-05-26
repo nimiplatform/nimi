@@ -31,9 +31,6 @@ import {
   collectLocalRuntimeDeviceProfile,
   getLocalRuntimeRecommendationFeed,
   applyLocalRuntimeProfile,
-  subscribeLocalRuntimeProfileApplyProgress,
-  getLocalRuntimeProfileApplyStatus,
-  listLocalRuntimeProfileApplySessions,
   getLocalRuntimeProfileInstallStatus,
   listLocalRuntimeServices,
   installLocalRuntimeService,
@@ -72,8 +69,6 @@ import type {
   LocalRuntimeCatalogResolveInstallPlanPayload,
   LocalRuntimeCatalogSearchPayload,
   LocalRuntimeAuditQuery,
-  LocalRuntimeProfileApplyAccepted,
-  LocalRuntimeProfileApplyProgressEvent,
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileEntryDescriptor,
@@ -167,8 +162,6 @@ export type {
   LocalRuntimeCatalogResolveInstallPlanPayload,
   LocalRuntimeCatalogSearchPayload,
   LocalRuntimeAuditQuery,
-  LocalRuntimeProfileApplyAccepted,
-  LocalRuntimeProfileApplyProgressEvent,
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileEntryDescriptor,
@@ -247,14 +240,7 @@ export type LocalRuntimeFacade = {
   applyProfile: (
     plan: LocalRuntimeProfileResolutionPlan,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeProfileApplyAccepted>;
-  subscribeProfileApplyProgress: (
-    listener: (event: LocalRuntimeProfileApplyProgressEvent) => void,
-  ) => Promise<() => void>;
-  getProfileApplyStatus: (
-    applySessionId: string,
-  ) => Promise<LocalRuntimeProfileApplyProgressEvent | null>;
-  listProfileApplySessions: () => Promise<LocalRuntimeProfileApplyProgressEvent[]>;
+  ) => Promise<LocalRuntimeProfileApplyResult>;
   getProfileInstallStatus: (payload: LocalRuntimeProfileResolvePayload) => Promise<LocalRuntimeProfileInstallStatus>;
   listServices: () => Promise<LocalRuntimeServiceDescriptor[]>;
   installService: (
@@ -392,9 +378,6 @@ export const localRuntime: LocalRuntimeFacade = {
   getRecommendationFeed: getLocalRuntimeRecommendationFeed,
   resolveProfile: resolveLocalRuntimeProfile,
   applyProfile: applyLocalRuntimeProfile,
-  subscribeProfileApplyProgress: subscribeLocalRuntimeProfileApplyProgress,
-  getProfileApplyStatus: getLocalRuntimeProfileApplyStatus,
-  listProfileApplySessions: listLocalRuntimeProfileApplySessions,
   getProfileInstallStatus: getLocalRuntimeProfileInstallStatus,
   listServices: listLocalRuntimeServices,
   installService: installLocalRuntimeService,

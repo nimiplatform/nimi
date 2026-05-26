@@ -7,8 +7,8 @@ use nimi_shell_tauri::runtime_bridge::RuntimeBridgeHostHooks;
 use std::sync::Arc;
 
 fn install_shared_runtime_bridge_hooks() {
-    let _ = nimi_shell_tauri::runtime_bridge::set_runtime_bridge_host_hooks(
-        RuntimeBridgeHostHooks {
+    let _ =
+        nimi_shell_tauri::runtime_bridge::set_runtime_bridge_host_hooks(RuntimeBridgeHostHooks {
             status_override: Some(Arc::new(|| {
                 crate::desktop_e2e_fixture::runtime_bridge_status_override()
             })),
@@ -30,8 +30,7 @@ fn install_shared_runtime_bridge_hooks() {
             })),
             resolve_nimi_dir: Some(Arc::new(crate::desktop_paths::resolve_nimi_dir)),
             resolve_nimi_data_dir: Some(Arc::new(crate::desktop_paths::resolve_nimi_data_dir)),
-        },
-    );
+        });
 }
 
 fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
@@ -434,9 +433,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             local_runtime::commands::runtime_local_models_catalog_list_variants,
             local_runtime::commands::runtime_local_models_catalog_resolve_install_plan,
             local_runtime::commands::runtime_local_device_profile_collect,
-            local_runtime::commands::runtime_local_profiles_apply,
-            local_runtime::commands::runtime_local_profiles_apply_status,
-            local_runtime::commands::runtime_local_profiles_apply_sessions,
             local_runtime::commands::runtime_local_services_list,
             local_runtime::commands::runtime_local_services_install,
             local_runtime::commands::runtime_local_services_start,

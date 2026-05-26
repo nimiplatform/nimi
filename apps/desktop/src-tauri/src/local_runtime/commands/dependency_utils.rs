@@ -23,26 +23,10 @@ fn append_app_audit_event_non_blocking(
     }
 }
 
-fn next_install_session_id(model_id: &str) -> String {
-    let now_ms = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis();
-    format!("install-{}-{now_ms}", slugify_local_model_id(model_id))
-}
-
 fn emit_download_progress_event(app: &AppHandle, event: LocalAiDownloadProgressEvent) {
     if let Err(error) = app.emit(LOCAL_AI_DOWNLOAD_PROGRESS_EVENT, &event) {
         eprintln!("LOCAL_AI_DOWNLOAD_PROGRESS_EMIT_FAILED: {error}");
     }
-}
-
-fn next_profile_apply_session_id(plan_id: &str) -> String {
-    let now_ms = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis();
-    format!("profile-apply-{}-{now_ms}", slugify_local_model_id(plan_id))
 }
 
 fn normalize_service_id(value: &str) -> Option<String> {

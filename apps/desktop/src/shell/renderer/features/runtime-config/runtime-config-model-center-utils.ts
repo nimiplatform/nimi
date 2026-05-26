@@ -9,7 +9,7 @@ import type {
   LocalRuntimeInstallPlanDescriptor,
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileEntryDescriptor,
-  LocalRuntimeProfileApplyAccepted,
+  LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileResolutionPlan,
 } from '@runtime/local-runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
@@ -30,7 +30,7 @@ export type LocalModelCenterProps = {
   onDiscover: () => Promise<void>;
   onHealthCheck: () => Promise<void>;
   onResolveProfile: (targetId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileResolutionPlan>;
-  onApplyProfile: (targetId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyAccepted>;
+  onApplyProfile: (targetId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyResult>;
   onInstallCatalogItem: (
     item: LocalRuntimeCatalogItemDescriptor,
     options?: {

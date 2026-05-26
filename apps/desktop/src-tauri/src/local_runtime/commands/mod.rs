@@ -1,19 +1,15 @@
 use std::collections::BTreeMap;
 use std::io::{Read as IoRead, Write as IoWrite};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::DateTime;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 
 use super::audit::{
-    append_audit_event, EVENT_DEPENDENCY_APPLY_COMPLETED, EVENT_DEPENDENCY_APPLY_FAILED,
-    EVENT_DEPENDENCY_APPLY_STARTED, EVENT_DEPENDENCY_RESOLVE_FAILED,
-    EVENT_DEPENDENCY_RESOLVE_INVOKED, EVENT_FALLBACK_TO_CLOUD, EVENT_INFERENCE_FAILED,
-    EVENT_INFERENCE_INVOKED, EVENT_MODEL_CATALOG_SEARCH_FAILED, EVENT_MODEL_CATALOG_SEARCH_INVOKED,
-    EVENT_MODEL_DOWNLOAD_COMPLETED, EVENT_MODEL_DOWNLOAD_FAILED, EVENT_MODEL_DOWNLOAD_STARTED,
+    append_audit_event, EVENT_DEPENDENCY_RESOLVE_FAILED, EVENT_DEPENDENCY_RESOLVE_INVOKED,
+    EVENT_FALLBACK_TO_CLOUD, EVENT_INFERENCE_FAILED, EVENT_INFERENCE_INVOKED,
+    EVENT_MODEL_CATALOG_SEARCH_FAILED, EVENT_MODEL_CATALOG_SEARCH_INVOKED,
     EVENT_MODEL_FILE_IMPORT_STARTED, EVENT_MODEL_IMPORT_VALIDATED, EVENT_NODE_CATALOG_LISTED,
-    EVENT_PROFILE_APPLY_COMPLETED, EVENT_PROFILE_APPLY_FAILED, EVENT_PROFILE_APPLY_STARTED,
     EVENT_RECOMMENDATION_RESOLVE_COMPLETED, EVENT_RECOMMENDATION_RESOLVE_FAILED,
     EVENT_RECOMMENDATION_RESOLVE_INVOKED, EVENT_RUNTIME_MODEL_READY_AFTER_INSTALL,
     EVENT_SERVICE_INSTALL_COMPLETED, EVENT_SERVICE_INSTALL_FAILED, EVENT_SERVICE_INSTALL_STARTED,
@@ -23,12 +19,8 @@ use super::catalog::{
     list_catalog_variants_async, resolve_install_plan_async as resolve_catalog_install_plan_async,
     search_catalog_async, LocalAiCatalogResolveInput,
 };
-use super::dependency_apply::{
-    fail_progress, mark_capability_matrix_refresh, run_preflight_all, DependencyApplyProgress,
-};
-use super::device_profile::{collect_device_profile, collect_device_profile_async};
+use super::device_profile::collect_device_profile_async;
 use super::download_manager;
-use super::hf_source::{install_from_hf, HfDownloadProgress};
 use super::import_validator::{
     normalize_and_validate_capabilities, validate_import_asset_manifest_path,
     validate_loopback_endpoint,
@@ -42,9 +34,9 @@ use super::reason_codes::{
 use super::service_artifacts::find_service_artifact;
 use super::service_lifecycle::{
     bootstrap_service_artifact, build_service_descriptor, is_managed_service,
-    normalize_service_descriptor, preflight_dependency, preflight_service_artifact,
+    normalize_service_descriptor, preflight_service_artifact,
     probe_service_capability_models_async, probe_service_endpoint_health_async,
-    resolve_node_host_service, start_managed_service, stop_managed_service,
+    start_managed_service, stop_managed_service,
 };
 use super::store::{load_state, runtime_models_dir, save_state};
 use super::types::{
@@ -55,28 +47,21 @@ use super::types::{
     runtime_managed_asset_dir, runtime_managed_asset_manifest_path, slugify_local_model_id,
     CatalogVariantDescriptor, LocalAiAssetDeclaration, LocalAiAssetHealth, LocalAiAssetKind,
     LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus, LocalAiAuditEvent,
-    LocalAiCatalogItemDescriptor, LocalAiDependencyApplyResult, LocalAiDependencyKind,
-    LocalAiDependencyResolutionPlan, LocalAiDeviceProfile, LocalAiDownloadControlPayload,
+    LocalAiCatalogItemDescriptor, LocalAiDeviceProfile, LocalAiDownloadControlPayload,
     LocalAiDownloadProgressEvent, LocalAiDownloadSessionSummary, LocalAiDownloadState,
     LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiIntegrityMode,
-    LocalAiNodeDescriptor, LocalAiProfileApplyAccepted, LocalAiProfileApplyProgressEvent,
-    LocalAiProfileApplyResult, LocalAiProfileApplyStatusPayload, LocalAiProfileResolutionPlan,
-    LocalAiRecommendationFeedDescriptor, LocalAiRuntimeState, LocalAiServiceArtifactType,
-    LocalAiServiceDescriptor, LocalAiServiceStatus, LocalAiSuggestionConfidence,
-    LocalAiSuggestionSource, LocalAiTransferSessionKind, LocalAiUnregisteredAssetDescriptor,
-    LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
+    LocalAiNodeDescriptor, LocalAiRecommendationFeedDescriptor, LocalAiRuntimeState,
+    LocalAiServiceArtifactType, LocalAiServiceDescriptor, LocalAiServiceStatus,
+    LocalAiSuggestionConfidence, LocalAiSuggestionSource, LocalAiTransferSessionKind,
+    LocalAiUnregisteredAssetDescriptor, LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
 };
-use super::verified_assets::find_verified_asset;
 
 include!("common_types.rs");
 include!("common_utils.rs");
 include!("dependency_utils.rs");
-include!("service_utils.rs");
 include!("runtime_bridge_local.rs");
-include!("dependency_apply.rs");
 include!("commands_catalog_audit.rs");
 include!("commands_assets.rs");
-include!("commands_install_shared.rs");
 include!("commands_catalog_dependencies.rs");
 include!("commands_services.rs");
 include!("commands_downloads.rs");

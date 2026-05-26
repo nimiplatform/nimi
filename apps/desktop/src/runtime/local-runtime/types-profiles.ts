@@ -84,30 +84,6 @@ export type LocalRuntimeProfileApplyResult = {
   reasonCode?: string;
 };
 
-export type LocalRuntimeProfileApplyAccepted = {
-  applySessionId: string;
-  planId: string;
-  targetId: string;
-  profileId: string;
-};
-
-export type LocalRuntimeProfileApplyProgressEvent = {
-  applySessionId: string;
-  planId: string;
-  targetId: string;
-  profileId: string;
-  phase: string;
-  status: 'queued' | 'running' | 'completed' | 'failed' | string;
-  occurredAt: string;
-  message?: string;
-  error?: string;
-  reasonCode?: string;
-  rollbackApplied?: boolean;
-  result?: LocalRuntimeProfileApplyResult;
-  done: boolean;
-  success: boolean;
-};
-
 export type LocalRuntimeProfileInstallStatus = {
   targetId: string;
   profileId: string;
@@ -139,8 +115,6 @@ export type LocalRuntimeProfileInstallRequestResult = {
   declined: boolean;
   plan?: LocalRuntimeProfileResolutionPlan;
   result?: LocalRuntimeProfileApplyResult;
-  apply?: LocalRuntimeProfileApplyAccepted;
-  applySessionId?: string;
   reasonCode?: string;
 };
 

@@ -1,8 +1,8 @@
 use super::reason_codes::LOCAL_AI_PREFLIGHT_UNSUPPORTED;
-use super::service_artifacts::{find_service_artifact, service_artifact_registry};
+use super::service_artifacts::find_service_artifact;
 use super::types::{
-    now_iso_timestamp, LocalAiDependencyKind, LocalAiDeviceProfile, LocalAiPreflightDecision,
-    LocalAiServiceArtifactType, LocalAiServiceDescriptor, LocalAiServiceStatus,
+    now_iso_timestamp, LocalAiDeviceProfile, LocalAiPreflightDecision, LocalAiServiceArtifactType,
+    LocalAiServiceDescriptor, LocalAiServiceStatus,
 };
 mod managed;
 
@@ -203,101 +203,6 @@ pub fn preflight_service_artifact(
         decisions.push(decision);
     }
     Ok(decisions)
-}
-
-pub fn resolve_node_host_service(node_id: &str) -> Option<(String, String)> {
-    let normalized_node_id = node_id.trim();
-    if normalized_node_id.is_empty() {
-        return None;
-    }
-    for artifact in service_artifact_registry() {
-        for node in artifact.nodes {
-            if node.node_id.trim().eq_ignore_ascii_case(normalized_node_id) {
-                return Some((artifact.service_id, node.capability));
-            }
-        }
-    }
-    None
-}
-
-pub fn preflight_dependency(
-    dependency_id: Option<&str>,
-    kind: &LocalAiDependencyKind,
-    service_id: Option<&str>,
-    engine: Option<&str>,
-    node_id: Option<&str>,
-    workflow_id: Option<&str>,
-    profile: &LocalAiDeviceProfile,
-) -> Result<Vec<LocalAiPreflightDecision>, String> {
-    if *kind == LocalAiDependencyKind::Service {
-        let service_id = normalize_non_empty(service_id).ok_or_else(|| {
-            "LOCAL_AI_DEPENDENCY_SERVICE_ID_MISSING: selected service dependency missing serviceId"
-                .to_string()
-        })?;
-        return preflight_service_artifact(dependency_id, service_id.as_str(), None, profile);
-    }
-
-    if *kind == LocalAiDependencyKind::Model {
-        let engine = normalize_non_empty(engine).unwrap_or_else(|| "llama".to_string());
-        if let Some(artifact) = find_service_artifact(engine.as_str()) {
-            return preflight_service_artifact(
-                dependency_id,
-                artifact.service_id.as_str(),
-                None,
-                profile,
-            );
-        }
-    }
-
-    if *kind == LocalAiDependencyKind::Node {
-        let node_id = normalize_non_empty(node_id).ok_or_else(|| {
-            "LOCAL_AI_DEPENDENCY_NODE_ID_MISSING: selected node dependency missing nodeId"
-                .to_string()
-        })?;
-        let mapped_service = resolve_node_host_service(node_id.as_str());
-        let resolved_service_id = if let Some(explicit_service_id) = normalize_non_empty(service_id)
-        {
-            if let Some((artifact_service_id, _)) = mapped_service.as_ref() {
-                if !artifact_service_id.eq_ignore_ascii_case(explicit_service_id.as_str()) {
-                    return Err(format!(
-                        "LOCAL_AI_NODE_SERVICE_MISMATCH: nodeId={} dependencyServiceId={} artifactServiceId={}",
-                        node_id, explicit_service_id, artifact_service_id
-                    ));
-                }
-            }
-            explicit_service_id
-        } else if let Some((artifact_service_id, _)) = mapped_service {
-            artifact_service_id
-        } else {
-            return Err(format!(
-                "LOCAL_AI_NODE_SERVICE_REQUIRED: nodeId={} requires serviceId or catalog mapping",
-                node_id
-            ));
-        };
-        return preflight_service_artifact(
-            dependency_id,
-            resolved_service_id.as_str(),
-            None,
-            profile,
-        );
-    }
-
-    if *kind == LocalAiDependencyKind::Workflow {
-        let workflow_id = normalize_non_empty(workflow_id).ok_or_else(|| {
-            "LOCAL_AI_DEPENDENCY_WORKFLOW_ID_MISSING: selected workflow dependency missing workflowId"
-                .to_string()
-        })?;
-        return Ok(vec![LocalAiPreflightDecision {
-            dependency_id: dependency_id.map(|value| value.to_string()),
-            target: "workflow".to_string(),
-            check: "workflow-declaration".to_string(),
-            ok: true,
-            reason_code: "LOCAL_AI_PREFLIGHT_OK".to_string(),
-            detail: format!("workflow dependency declared: workflowId={workflow_id}"),
-        }]);
-    }
-
-    Ok(Vec::new())
 }
 
 pub fn build_service_descriptor(

@@ -190,7 +190,6 @@
     "dependenciesAppliedSummary": "Dependencies applied for {{targetId}}: {{modelCount}} model(s), {{serviceCount}} service(s)",
     "profileAppliedSyncFailed": "Profile installed, but Go runtime sync failed: {{message}}",
     "profileAppliedSummary": "Installed profile {{profileId}} for {{targetId}}: {{modelCount}} runnable asset(s), {{serviceCount}} service(s), {{dependencyAssetCount}} dependency asset(s)",
-    "profileApplyQueued": "Profile {{profileId}} queued for {{targetId}}.",
     "profileApplyFailed": "Profile install failed: {{message}}",
     "assetImported": "Asset imported: {{assetId}}",
     "assetImportFailed": "Asset import failed",

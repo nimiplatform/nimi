@@ -9,8 +9,6 @@ import type {
   LocalRuntimeCatalogItemDescriptor,
   LocalRuntimeInstallPlanDescriptor,
   LocalRuntimeExecutionApplyResult,
-  LocalRuntimeProfileApplyAccepted,
-  LocalRuntimeProfileApplyProgressEvent,
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileEntryDescriptor,
   LocalRuntimeProfileRequirementDescriptor,
@@ -34,7 +32,6 @@ export {
   assertLifecycleWriteAllowed,
   invokeLocalRuntimeCommand,
   normalizeCaller,
-  readGlobalTauriEventListen,
 } from './parser-helpers';
 export {
   normalizeExecutionEntryKind,
@@ -342,37 +339,6 @@ export function parseProfileApplyResult(value: unknown): LocalRuntimeProfileAppl
     installedAssets,
     warnings,
     reasonCode: asString(record.reasonCode) || undefined,
-  };
-}
-
-export function parseProfileApplyAccepted(value: unknown): LocalRuntimeProfileApplyAccepted {
-  const record = asRecord(value);
-  return {
-    applySessionId: asString(record.applySessionId),
-    planId: asString(record.planId),
-    targetId: asString(record.targetId),
-    profileId: asString(record.profileId),
-  };
-}
-
-export function parseProfileApplyProgressEvent(value: unknown): LocalRuntimeProfileApplyProgressEvent {
-  const record = asRecord(value);
-  const status = asString(record.status);
-  return {
-    applySessionId: asString(record.applySessionId),
-    planId: asString(record.planId),
-    targetId: asString(record.targetId),
-    profileId: asString(record.profileId),
-    phase: asString(record.phase),
-    status,
-    occurredAt: asString(record.occurredAt),
-    message: asString(record.message) || undefined,
-    error: asString(record.error) || undefined,
-    reasonCode: asString(record.reasonCode) || undefined,
-    rollbackApplied: typeof record.rollbackApplied === 'boolean' ? record.rollbackApplied : undefined,
-    result: record.result ? parseProfileApplyResult(record.result) : undefined,
-    done: status === 'completed' || status === 'failed',
-    success: status === 'completed',
   };
 }
 

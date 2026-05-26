@@ -14,7 +14,6 @@ use super::types::{
 
 const LOCAL_AI_RUNTIME_MODELS_DIR: &str = "models";
 const LOCAL_AI_RUNTIME_STATE_FILE: &str = "state.json";
-const PROFILE_APPLY_SESSION_RETENTION_LIMIT: usize = 500;
 static STATE_SAVE_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 
 fn state_save_lock() -> &'static Mutex<()> {
@@ -205,47 +204,12 @@ fn merge_download_records(
     rows
 }
 
-fn merge_profile_apply_records(
-    current: &[crate::local_runtime::types::LocalAiProfileApplyProgressEvent],
-    incoming: &[crate::local_runtime::types::LocalAiProfileApplyProgressEvent],
-) -> Vec<crate::local_runtime::types::LocalAiProfileApplyProgressEvent> {
-    let mut merged =
-        HashMap::<String, crate::local_runtime::types::LocalAiProfileApplyProgressEvent>::new();
-    for record in current.iter().chain(incoming.iter()) {
-        let key = record.apply_session_id.clone();
-        match merged.get(&key) {
-            Some(existing) if existing.occurred_at >= record.occurred_at => {}
-            _ => {
-                merged.insert(key, record.clone());
-            }
-        }
-    }
-    let mut rows = merged.into_values().collect::<Vec<_>>();
-    rows.sort_by(|left, right| {
-        right
-            .occurred_at
-            .cmp(&left.occurred_at)
-            .then_with(|| right.apply_session_id.cmp(&left.apply_session_id))
-    });
-    rows.truncate(PROFILE_APPLY_SESSION_RETENTION_LIMIT);
-    rows.sort_by(|left, right| {
-        left.occurred_at
-            .cmp(&right.occurred_at)
-            .then_with(|| left.apply_session_id.cmp(&right.apply_session_id))
-    });
-    rows
-}
-
 fn merge_state_for_save(
     current: &LocalAiRuntimeState,
     incoming: &LocalAiRuntimeState,
 ) -> LocalAiRuntimeState {
     let mut merged = incoming.clone();
     merged.downloads = merge_download_records(&current.downloads, &incoming.downloads);
-    merged.profile_apply_sessions = merge_profile_apply_records(
-        &current.profile_apply_sessions,
-        &incoming.profile_apply_sessions,
-    );
     merged
 }
 

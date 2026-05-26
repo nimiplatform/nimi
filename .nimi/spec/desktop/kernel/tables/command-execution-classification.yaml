@@ -347,40 +347,6 @@ registered_command_families:
       - cpu_hash_or_codec
     source_rule: D-GATE-094
 
-  - family: local_runtime_profile_apply
-    match:
-      exact:
-        - runtime_local_profiles_apply
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: local-runtime-profile-apply
-    execution_class: background_job
-    remediation_required: false
-    admitted_risks:
-      - blocking_http
-      - process_command
-      - std_fs
-      - runtime_bridge_block_on
-      - raw_thread_spawn
-      - spawn_blocking
-      - sync_lock_contention
-      - cpu_hash_or_codec
-    source_rule: D-GATE-094
-
-  - family: local_runtime_profile_apply_query
-    match:
-      exact:
-        - runtime_local_profiles_apply_status
-        - runtime_local_profiles_apply_sessions
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: local-runtime-profile-apply
-    execution_class: request_response_async
-    remediation_required: false
-    admitted_risks:
-      - std_fs
-      - spawn_blocking
-      - sync_lock_contention
-    source_rule: D-GATE-094
-
   - family: local_runtime_service_request_response
     match:
       exact:

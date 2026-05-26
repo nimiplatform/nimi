@@ -4,7 +4,7 @@ import { ScrollArea } from '@nimiplatform/kit/ui';
 import type {
   LocalRuntimeAssetDeclaration,
   LocalRuntimeAssetKind,
-  LocalRuntimeProfileApplyAccepted,
+  LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileResolutionPlan,
   LocalRuntimeUnregisteredAssetDescriptor,
 } from '@runtime/local-runtime';
@@ -53,7 +53,7 @@ type ModModeViewProps = {
   onSetSelectedProfileId: (profileId: string) => void;
   onSetSelectedProfileCapability: (capability: string) => void;
   onResolveProfilePlanPreview: () => void;
-  onApplyProfile: (targetId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyAccepted>;
+  onApplyProfile: (targetId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyResult>;
   onNavigateToSetup?: (pageId: RuntimeSetupPageIdV11) => void;
 };
 

@@ -77,8 +77,7 @@ impl SessionProgressEstimator {
             Some(raw_eta) => {
                 let next_eta = match self.smoothed_eta_seconds {
                     Some(previous_eta) if previous_eta.is_finite() => {
-                        previous_eta
-                            + ((raw_eta - previous_eta) * DOWNLOAD_ETA_SMOOTHING_ALPHA)
+                        previous_eta + ((raw_eta - previous_eta) * DOWNLOAD_ETA_SMOOTHING_ALPHA)
                     }
                     _ => raw_eta,
                 };
@@ -93,18 +92,6 @@ impl SessionProgressEstimator {
 
         (speed_bytes_per_sec, eta_seconds)
     }
-}
-
-pub fn install_from_hf(
-    app: &AppHandle,
-    request: &LocalAiInstallRequest,
-    on_progress: &mut impl FnMut(HfDownloadProgress),
-) -> Result<super::types::LocalAiAssetRecord, String> {
-    let mut wrapped_progress = |progress: HfDownloadProgress| -> HfDownloadControl {
-        on_progress(progress);
-        HfDownloadControl::Continue
-    };
-    install_from_hf_with_control(app, request, &mut wrapped_progress)
 }
 
 pub fn install_from_hf_with_control(
@@ -211,11 +198,8 @@ pub fn install_from_hf_with_control(
         let mut on_file_progress = |progress: HfDownloadProgress| -> HfDownloadControl {
             let (bytes_received, bytes_total) =
                 aggregate_progress(completed_before_file, total_bytes_known, &progress);
-            let (speed_bytes_per_sec, eta_seconds) = session_progress_estimator.observe_at(
-                Instant::now(),
-                bytes_received,
-                bytes_total,
-            );
+            let (speed_bytes_per_sec, eta_seconds) =
+                session_progress_estimator.observe_at(Instant::now(), bytes_received, bytes_total);
             let message = progress.message.as_ref().map(|detail| {
                 format!(
                     "[{}/{}] {}: {}",
@@ -273,12 +257,8 @@ pub fn install_from_hf_with_control(
         let file_hash = sha256_hex_streaming_with_progress(
             &staged_file_path,
             &mut |verified_bytes, verified_total| {
-                let (verify_speed_bytes_per_sec, verify_eta_seconds) =
-                    verify_progress_estimator.observe_at(
-                        Instant::now(),
-                        verified_bytes,
-                        Some(verified_total),
-                    );
+                let (verify_speed_bytes_per_sec, verify_eta_seconds) = verify_progress_estimator
+                    .observe_at(Instant::now(), verified_bytes, Some(verified_total));
                 let verify_percent = if verified_total > 0 {
                     ((verified_bytes as f64 / verified_total as f64) * 100.0).round() as u64
                 } else {
@@ -388,9 +368,8 @@ pub fn install_from_hf_with_control(
 
     if model_dir.exists() {
         if let Some(parent) = backup_dir.parent() {
-            fs::create_dir_all(parent).map_err(|error| {
-                format!("创建 backup 目录失败 ({}): {error}", parent.display())
-            })?;
+            fs::create_dir_all(parent)
+                .map_err(|error| format!("创建 backup 目录失败 ({}): {error}", parent.display()))?;
         }
         fs::rename(&model_dir, &backup_dir).map_err(|error| {
             format!(
@@ -401,9 +380,8 @@ pub fn install_from_hf_with_control(
         })?;
     }
     if let Some(parent) = model_dir.parent() {
-        fs::create_dir_all(parent).map_err(|error| {
-            format!("创建模型目录失败 ({}): {error}", parent.display())
-        })?;
+        fs::create_dir_all(parent)
+            .map_err(|error| format!("创建模型目录失败 ({}): {error}", parent.display()))?;
     }
     if let Err(error) = fs::rename(&staging_dir, &model_dir) {
         // Rollback best-effort.

@@ -1,15 +1,8 @@
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { hasTauriInvoke, tauriInvoke } from '../llm-adapter/tauri-bridge';
-import { listenTauri } from '../tauri-api';
 import { emitRuntimeLog } from '../telemetry/logger';
 import type { LocalRuntimeWriteOptions } from './types';
 import { asRecord, asString } from './parser-primitives';
-
-type TauriEventUnsubscribe = () => void;
-type TauriEventListen = (
-  eventName: string,
-  handler: (event: { payload: unknown }) => void,
-) => Promise<TauriEventUnsubscribe | undefined> | TauriEventUnsubscribe | undefined;
 
 function decodeProtoDynamic(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -56,13 +49,6 @@ export function asPlainObject(value: unknown): Record<string, unknown> | undefin
   const decoded = decodeProtoDynamic(value);
   const record = asRecord(decoded);
   return Object.keys(record).length > 0 ? record : undefined;
-}
-
-export function readGlobalTauriEventListen(): TauriEventListen | null {
-  if (!hasTauriInvoke()) {
-    return null;
-  }
-  return listenTauri;
 }
 
 export function normalizeCaller(caller: LocalRuntimeWriteOptions['caller']): string {

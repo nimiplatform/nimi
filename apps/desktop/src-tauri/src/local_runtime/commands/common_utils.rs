@@ -26,34 +26,6 @@ fn extract_reason_code(error: &str) -> String {
     extract_local_ai_reason_code(error, LOCAL_AI_PROVIDER_INTERNAL_ERROR)
 }
 
-#[derive(Debug, Clone)]
-struct LocalAiDependencyApplyFailure {
-    error: String,
-    rollback_applied: bool,
-}
-
-impl LocalAiDependencyApplyFailure {
-    fn without_rollback(error: String) -> Self {
-        Self {
-            error,
-            rollback_applied: false,
-        }
-    }
-
-    fn with_rollback(error: String) -> Self {
-        Self {
-            error,
-            rollback_applied: true,
-        }
-    }
-}
-
-impl From<String> for LocalAiDependencyApplyFailure {
-    fn from(value: String) -> Self {
-        Self::without_rollback(value)
-    }
-}
-
 fn service_artifact_preflight_port(service_identity: &str) -> Option<u16> {
     let artifact = find_service_artifact(service_identity)?;
     artifact.preflight.iter().find_map(|rule| {
@@ -153,91 +125,6 @@ async fn refresh_state_capability_matrix_with_provider_probe_async(
     refresh_state_capability_matrix_with_probe_and_device(state, &probe_models, Some(&profile));
 }
 
-fn derive_node_dependency_binding(
-    dependency_service_id: Option<&str>,
-    node_id: &str,
-    declared_capability: Option<&str>,
-) -> Result<(String, Option<String>), LocalAiDependencyApplyFailure> {
-    let node_id = normalize_non_empty(node_id).ok_or_else(|| {
-        LocalAiDependencyApplyFailure::without_rollback(
-            "LOCAL_AI_DEPENDENCY_NODE_ID_MISSING: selected node dependency missing nodeId"
-                .to_string(),
-        )
-    })?;
-    let node_binding = resolve_node_host_service(node_id.as_str());
-    let service_id = if let Some(explicit_service_id) =
-        dependency_service_id.and_then(normalize_non_empty)
-    {
-        if let Some((artifact_service_id, _)) = node_binding.as_ref() {
-            if !artifact_service_id.eq_ignore_ascii_case(explicit_service_id.as_str()) {
-                return Err(LocalAiDependencyApplyFailure::without_rollback(format!(
-                    "LOCAL_AI_NODE_SERVICE_MISMATCH: nodeId={} dependencyServiceId={} artifactServiceId={}",
-                    node_id, explicit_service_id, artifact_service_id
-                )));
-            }
-        }
-        explicit_service_id
-    } else if let Some((artifact_service_id, _)) = node_binding.as_ref() {
-        artifact_service_id.clone()
-    } else {
-        return Err(LocalAiDependencyApplyFailure::without_rollback(format!(
-            "LOCAL_AI_NODE_SERVICE_REQUIRED: nodeId={} requires serviceId or catalog mapping",
-            node_id
-        )));
-    };
-
-    let capability = declared_capability
-        .and_then(normalize_non_empty)
-        .or_else(|| {
-            node_binding
-                .as_ref()
-                .map(|(_, capability)| capability.clone())
-        });
-    Ok((service_id, capability))
-}
-
-fn install_engine(request: &LocalAiInstallRequest) -> String {
-    let candidate = request
-        .engine
-        .as_deref()
-        .map(|value| value.trim())
-        .unwrap_or_default();
-    if candidate.is_empty() {
-        "llama".to_string()
-    } else {
-        candidate.to_string()
-    }
-}
-
-fn run_install_preflight_with<F>(
-    request: &LocalAiInstallRequest,
-    preflight: F,
-) -> Result<(), String>
-where
-    F: FnOnce(&str) -> Result<(), String>,
-{
-    let engine = install_engine(request);
-    preflight(engine.as_str())
-}
-
-fn run_install_preflight(app: &AppHandle, request: &LocalAiInstallRequest) -> Result<(), String> {
-    let profile = collect_device_profile(app);
-    run_install_preflight_with(request, |engine| {
-        let decisions = preflight_dependency(
-            None,
-            &LocalAiDependencyKind::Model,
-            None,
-            Some(engine),
-            None,
-            None,
-            &profile,
-        )?;
-        if let Some(failed) = decisions.iter().find(|item| !item.ok) {
-            return Err(format!("{}: {}", failed.reason_code, failed.detail));
-        }
-        Ok(())
-    })
-}
 include!("common_utils_audit.rs");
 
 fn validate_audit_payload_contract(
@@ -261,37 +148,6 @@ fn validate_audit_payload_contract(
             event_type,
             payload,
             &["targetId", "deviceProfile", "reasonCode", "error"],
-        );
-    }
-    if event_type == EVENT_DEPENDENCY_APPLY_STARTED {
-        return require_audit_payload_keys(
-            event_type,
-            payload,
-            &["targetId", "planId", "dependencyCount"],
-        );
-    }
-    if event_type == EVENT_DEPENDENCY_APPLY_COMPLETED {
-        return require_audit_payload_keys(
-            event_type,
-            payload,
-            &[
-                "targetId",
-                "planId",
-                "installedModelCount",
-                "serviceCount",
-                "capabilities",
-                "stageResults",
-                "preflightDecisionCount",
-                "rollbackApplied",
-                "warningCount",
-            ],
-        );
-    }
-    if event_type == EVENT_DEPENDENCY_APPLY_FAILED {
-        return require_audit_payload_keys(
-            event_type,
-            payload,
-            &["targetId", "planId", "reasonCode", "rollbackApplied", "error"],
         );
     }
     if event_type == EVENT_SERVICE_INSTALL_STARTED {
@@ -319,11 +175,7 @@ fn validate_audit_payload_contract(
     }
     if event_type == EVENT_RECOMMENDATION_RESOLVE_INVOKED {
         require_audit_payload_keys(event_type, payload, &["itemId"])?;
-        return require_audit_payload_present_keys(
-            event_type,
-            payload,
-            &["modelId", "capability"],
-        );
+        return require_audit_payload_present_keys(event_type, payload, &["modelId", "capability"]);
     }
     if event_type == EVENT_RECOMMENDATION_RESOLVE_COMPLETED {
         let is_feed_scope = payload
@@ -365,16 +217,8 @@ fn validate_audit_payload_contract(
         );
     }
     if event_type == EVENT_RECOMMENDATION_RESOLVE_FAILED {
-        require_audit_payload_keys(
-            event_type,
-            payload,
-            &["itemId", "reasonCode", "error"],
-        )?;
-        return require_audit_payload_present_keys(
-            event_type,
-            payload,
-            &["modelId", "capability"],
-        );
+        require_audit_payload_keys(event_type, payload, &["itemId", "reasonCode", "error"])?;
+        return require_audit_payload_present_keys(event_type, payload, &["modelId", "capability"]);
     }
     if event_type == EVENT_INFERENCE_INVOKED
         || event_type == EVENT_INFERENCE_FAILED
@@ -396,9 +240,9 @@ fn validate_audit_payload_contract(
 #[cfg(test)]
 mod audit_contract_tests {
     use super::{
-        recommendation_feed_completed_payload,
-        recommendation_resolve_completed_payload, recommendation_resolve_failed_payload,
-        recommendation_resolve_invoked_payload, validate_audit_payload_contract,
+        recommendation_feed_completed_payload, recommendation_resolve_completed_payload,
+        recommendation_resolve_failed_payload, recommendation_resolve_invoked_payload,
+        validate_audit_payload_contract,
     };
     use crate::local_runtime::audit::{
         EVENT_RECOMMENDATION_RESOLVE_COMPLETED, EVENT_RECOMMENDATION_RESOLVE_FAILED,
@@ -406,7 +250,8 @@ mod audit_contract_tests {
     };
     use crate::local_runtime::types::{
         LocalAiHostSupportClass, LocalAiRecommendationConfidence, LocalAiRecommendationDescriptor,
-        LocalAiRecommendationFeedCacheState, LocalAiRecommendationSource, LocalAiRecommendationTier,
+        LocalAiRecommendationFeedCacheState, LocalAiRecommendationSource,
+        LocalAiRecommendationTier,
     };
 
     fn recommendation_fixture() -> LocalAiRecommendationDescriptor {
@@ -446,7 +291,8 @@ mod audit_contract_tests {
             &recommendation_fixture(),
         ));
         assert!(
-            validate_audit_payload_contract(EVENT_RECOMMENDATION_RESOLVE_COMPLETED, &payload).is_ok()
+            validate_audit_payload_contract(EVENT_RECOMMENDATION_RESOLVE_COMPLETED, &payload)
+                .is_ok()
         );
     }
 
