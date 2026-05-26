@@ -186,11 +186,6 @@ commands:
     source_rule: D-IPC-003
 
   # Local runtime (local_runtime::commands)
-  - command: runtime_local_audits_list
-    module: local-runtime
-    description: Host helper surface for local AI audit listing; shipped product paths must treat runtime audit state as authoritative
-    source_rule: D-IPC-011
-
   - command: runtime_local_pick_asset_manifest_path
     module: local-runtime
     description: Pick a local AI asset.manifest.json path under the runtime models root via native file dialog
@@ -294,16 +289,6 @@ commands:
   - command: runtime_local_pick_asset_file
     module: local-runtime
     description: Pick a local asset file for import via native file dialog
-    source_rule: D-IPC-011
-
-  - command: runtime_local_append_inference_audit
-    module: local-runtime
-    description: Append a local AI inference audit record
-    source_rule: D-IPC-011
-
-  - command: runtime_local_append_runtime_audit
-    module: local-runtime
-    description: Append local runtime audit event
     source_rule: D-IPC-011
 
   - command: runtime_local_assets_reveal_in_folder

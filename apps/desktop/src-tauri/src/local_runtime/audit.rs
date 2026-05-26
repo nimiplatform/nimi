@@ -16,9 +16,6 @@ pub const EVENT_RECOMMENDATION_RESOLVE_FAILED: &str = "recommendation_resolve_fa
 pub const EVENT_RUNTIME_MODEL_READY_AFTER_INSTALL: &str = "runtime_model_ready_after_install";
 pub const EVENT_DEPENDENCY_RESOLVE_INVOKED: &str = "dependency_resolve_invoked";
 pub const EVENT_DEPENDENCY_RESOLVE_FAILED: &str = "dependency_resolve_failed";
-pub const EVENT_INFERENCE_INVOKED: &str = "inference_invoked";
-pub const EVENT_INFERENCE_FAILED: &str = "inference_failed";
-pub const EVENT_FALLBACK_TO_CLOUD: &str = "fallback_to_cloud";
 pub const EVENT_MODEL_FILE_IMPORT_STARTED: &str = "model_file_import_started";
 
 const MAX_AUDIT_EVENTS: usize = 5000;

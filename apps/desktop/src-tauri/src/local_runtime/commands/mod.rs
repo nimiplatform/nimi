@@ -1,12 +1,10 @@
 use std::io::{Read as IoRead, Write as IoWrite};
 
-use chrono::DateTime;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 
 use super::audit::{
     append_audit_event, EVENT_DEPENDENCY_RESOLVE_FAILED, EVENT_DEPENDENCY_RESOLVE_INVOKED,
-    EVENT_FALLBACK_TO_CLOUD, EVENT_INFERENCE_FAILED, EVENT_INFERENCE_INVOKED,
     EVENT_MODEL_CATALOG_SEARCH_FAILED, EVENT_MODEL_CATALOG_SEARCH_INVOKED,
     EVENT_MODEL_FILE_IMPORT_STARTED, EVENT_MODEL_IMPORT_VALIDATED,
     EVENT_RECOMMENDATION_RESOLVE_COMPLETED, EVENT_RECOMMENDATION_RESOLVE_FAILED,
@@ -24,8 +22,7 @@ use super::import_validator::{
 };
 use super::model_index::load_recommendation_feed_async;
 use super::reason_codes::{
-    extract_reason_code as extract_local_ai_reason_code, normalize_local_ai_reason_code,
-    LOCAL_AI_PROVIDER_INTERNAL_ERROR,
+    extract_reason_code as extract_local_ai_reason_code, LOCAL_AI_PROVIDER_INTERNAL_ERROR,
 };
 use super::service_artifacts::find_service_artifact;
 use super::store::{load_state, runtime_models_dir, save_state};
@@ -36,12 +33,12 @@ use super::types::{
     is_runnable_asset_kind, normalize_local_engine, now_iso_timestamp, resolved_model_dir,
     runtime_managed_asset_dir, runtime_managed_asset_manifest_path, slugify_local_model_id,
     CatalogVariantDescriptor, LocalAiAssetDeclaration, LocalAiAssetHealth, LocalAiAssetKind,
-    LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus, LocalAiAuditEvent,
-    LocalAiCatalogItemDescriptor, LocalAiDeviceProfile, LocalAiDownloadControlPayload,
-    LocalAiDownloadProgressEvent, LocalAiDownloadSessionSummary, LocalAiDownloadState,
-    LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiIntegrityMode,
-    LocalAiRecommendationFeedDescriptor, LocalAiRuntimeState, LocalAiSuggestionConfidence,
-    LocalAiSuggestionSource, LocalAiTransferSessionKind, LocalAiUnregisteredAssetDescriptor,
+    LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus, LocalAiCatalogItemDescriptor,
+    LocalAiDeviceProfile, LocalAiDownloadControlPayload, LocalAiDownloadProgressEvent,
+    LocalAiDownloadSessionSummary, LocalAiDownloadState, LocalAiInstallPlanDescriptor,
+    LocalAiInstallRequest, LocalAiIntegrityMode, LocalAiRecommendationFeedDescriptor,
+    LocalAiRuntimeState, LocalAiSuggestionConfidence, LocalAiSuggestionSource,
+    LocalAiTransferSessionKind, LocalAiUnregisteredAssetDescriptor,
     LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
 };
 
@@ -49,7 +46,6 @@ include!("common_types.rs");
 include!("common_utils.rs");
 include!("dependency_utils.rs");
 include!("runtime_bridge_local.rs");
-include!("commands_catalog_audit.rs");
 include!("commands_assets.rs");
 include!("commands_catalog_dependencies.rs");
 include!("commands_downloads.rs");

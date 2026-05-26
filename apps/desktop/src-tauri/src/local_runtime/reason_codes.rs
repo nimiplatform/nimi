@@ -80,6 +80,7 @@ fn prefixed_reason_code(error: &str) -> Option<&str> {
     is_canonical_desktop_error_code(candidate).then_some(candidate)
 }
 
+#[cfg(test)]
 pub fn normalize_local_ai_reason_code(error: &str, fallback: &str) -> String {
     let normalized = error.trim();
     if normalized.is_empty() {

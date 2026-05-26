@@ -118,20 +118,6 @@ fn validate_audit_payload_contract(
         require_audit_payload_keys(event_type, payload, &["itemId", "reasonCode", "error"])?;
         return require_audit_payload_present_keys(event_type, payload, &["modelId", "capability"]);
     }
-    if event_type == EVENT_INFERENCE_INVOKED
-        || event_type == EVENT_INFERENCE_FAILED
-        || event_type == EVENT_FALLBACK_TO_CLOUD
-    {
-        require_audit_payload_keys(
-            event_type,
-            payload,
-            &["targetId", "source", "provider", "modality", "adapter"],
-        )?;
-        if event_type == EVENT_FALLBACK_TO_CLOUD {
-            return require_audit_payload_keys(event_type, payload, &["reasonCode"]);
-        }
-        return Ok(());
-    }
     Ok(())
 }
 

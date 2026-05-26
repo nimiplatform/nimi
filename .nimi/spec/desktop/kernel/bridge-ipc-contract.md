@@ -232,7 +232,6 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 - `runtime_local_assets_scaffold_orphan`：对经过显式 review 的 loose/orphan asset 执行 host-assisted intake，并调用 runtime `ScaffoldOrphanAsset` 将文件迁入 runtime-managed storage；不得形成第二套 Desktop-owned asset registry。
 - `runtime_local_pick_asset_manifest_path`：统一选取 `resolved/<local-asset-id>/asset.manifest.json`。
 - `runtime_local_pick_asset_directory`：选取 bundle 目录，供 bundle import / rescan helper 使用。
-- `runtime_local_audits_list` / `runtime_local_append_inference_audit` / `runtime_local_append_runtime_audit`：host helper 命令保留仅为 tooling / bridge 对接；产品审计真相仍由 runtime 持有。
 - `runtime_local_pick_asset_file`：选取任意待导入的 asset 文件。
 - `runtime_local_device_profile_collect`：设备能力采集（CPU/GPU/NPU/disk/ports）。
 - `runtime_local_models_catalog_search` / `runtime_local_models_catalog_resolve_install_plan` 若仍存在于 host helper 面，返回 payload 不得取代 runtime catalog/install-plan 真源。

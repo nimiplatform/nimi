@@ -98,7 +98,6 @@ export {
 
 // Desktop command contract: commands bridged via SDK gRPC client (not direct Tauri invoke).
 // These markers satisfy the desktop-spec-kernel-consistency check against ipc-commands.yaml.
-// runtime_local_audits_list
 // runtime_local_assets_install
 // runtime_local_assets_install_verified
 // runtime_local_assets_import
@@ -119,8 +118,6 @@ export {
 // runtime_local_downloads_pause
 // runtime_local_downloads_resume
 // runtime_local_downloads_cancel
-// runtime_local_append_inference_audit
-// runtime_local_append_runtime_audit
 // runtime_local_assets_scan_unregistered
 
 function toInt64String(value: unknown): string {

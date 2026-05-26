@@ -363,21 +363,6 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-094
 
-  - family: local_runtime_audit_store
-    match:
-      exact:
-        - runtime_local_audits_list
-        - runtime_local_append_inference_audit
-        - runtime_local_append_runtime_audit
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: local-runtime-audit-store
-    execution_class: bounded_blocking_with_admission
-    remediation_required: false
-    admitted_risks:
-      - std_fs
-      - sync_lock_contention
-    source_rule: D-GATE-094
-
   - family: local_runtime_asset_runtime_controls
     match:
       exact:

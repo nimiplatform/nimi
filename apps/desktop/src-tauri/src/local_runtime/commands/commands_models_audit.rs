@@ -1,126 +1,3 @@
-#[tauri::command]
-pub fn runtime_local_append_inference_audit(
-    app: AppHandle,
-    payload: LocalAiInferenceAuditPayload,
-) -> Result<(), String> {
-    let event_type = validate_inference_event_type(payload.event_type.as_str())?;
-    let source = validate_inference_source(payload.source.as_str())?;
-    let route_source = normalize_optional(payload.route_source)
-        .map(|value| validate_inference_source(value.as_str()).map(str::to_string))
-        .transpose()?;
-    let modality = validate_inference_modality(payload.modality.as_str())?;
-    let target_id = payload.target_id.trim();
-    if target_id.is_empty() {
-        return Err("LOCAL_AI_AUDIT_MOD_ID_MISSING: targetId is required".to_string());
-    }
-    let provider = payload.provider.trim();
-    if provider.is_empty() {
-        return Err("LOCAL_AI_AUDIT_PROVIDER_MISSING: provider is required".to_string());
-    }
-
-    let model = normalize_optional(payload.model);
-    let local_model_id = normalize_optional(payload.local_model_id);
-    let endpoint = normalize_optional(payload.endpoint);
-    let trace_id = normalize_optional(payload.trace_id);
-    let reason_code = normalize_optional(payload.reason_code).map(|value| {
-        normalize_local_ai_reason_code(value.as_str(), LOCAL_AI_PROVIDER_INTERNAL_ERROR)
-    });
-    let detail = normalize_optional(payload.detail);
-    let adapter = normalize_optional(payload.adapter)
-        .ok_or_else(|| "LOCAL_AI_AUDIT_ADAPTER_MISSING: adapter is required".to_string())?;
-
-    let mut payload_object = serde_json::Map::<String, serde_json::Value>::new();
-    payload_object.insert(
-        "targetId".to_string(),
-        serde_json::Value::String(target_id.to_string()),
-    );
-    payload_object.insert(
-        "source".to_string(),
-        serde_json::Value::String(source.to_string()),
-    );
-    if let Some(value) = route_source {
-        payload_object.insert(
-            "routeSource".to_string(),
-            serde_json::Value::String(value),
-        );
-    }
-    payload_object.insert(
-        "provider".to_string(),
-        serde_json::Value::String(provider.to_string()),
-    );
-    payload_object.insert(
-        "modality".to_string(),
-        serde_json::Value::String(modality.to_string()),
-    );
-    payload_object.insert("adapter".to_string(), serde_json::Value::String(adapter));
-    if let Some(value) = trace_id {
-        payload_object.insert("traceId".to_string(), serde_json::Value::String(value));
-    }
-    if let Some(value) = endpoint {
-        payload_object.insert("endpoint".to_string(), serde_json::Value::String(value));
-    }
-    if let Some(value) = reason_code {
-        payload_object.insert("reasonCode".to_string(), serde_json::Value::String(value));
-    }
-    if let Some(value) = detail {
-        payload_object.insert("detail".to_string(), serde_json::Value::String(value));
-    }
-    if let Some(policy_gate) = payload.policy_gate {
-        payload_object.insert("policyGate".to_string(), policy_gate);
-    }
-    if let Some(extra) = payload.extra {
-        payload_object.insert("extra".to_string(), extra);
-    }
-
-    append_app_audit_event(
-        &app,
-        event_type,
-        model.as_deref(),
-        local_model_id.as_deref(),
-        Some(serde_json::Value::Object(payload_object)),
-    )
-}
-
-#[tauri::command]
-pub fn runtime_local_append_runtime_audit(
-    app: AppHandle,
-    payload: LocalAiRuntimeAuditPayload,
-) -> Result<(), String> {
-    let event_type = validate_runtime_audit_event_type(payload.event_type.as_str())?;
-    let mut payload_object = match payload.payload {
-        Some(serde_json::Value::Object(map)) => map,
-        Some(other) => {
-            let mut map = serde_json::Map::<String, serde_json::Value>::new();
-            map.insert("payload".to_string(), other);
-            map
-        }
-        None => serde_json::Map::<String, serde_json::Value>::new(),
-    };
-    if let Some(value) = normalize_optional(payload.source) {
-        payload_object.insert("source".to_string(), serde_json::Value::String(value));
-    }
-    if let Some(value) = normalize_optional(payload.modality) {
-        payload_object.insert("modality".to_string(), serde_json::Value::String(value));
-    }
-    if let Some(value) = normalize_optional(payload.reason_code) {
-        payload_object.insert("reasonCode".to_string(), serde_json::Value::String(value));
-    }
-    if let Some(value) = normalize_optional(payload.detail) {
-        payload_object.insert("detail".to_string(), serde_json::Value::String(value));
-    }
-    append_app_audit_event(
-        &app,
-        event_type,
-        normalize_optional(payload.model_id).as_deref(),
-        normalize_optional(payload.local_model_id).as_deref(),
-        if payload_object.is_empty() {
-            None
-        } else {
-            Some(serde_json::Value::Object(payload_object))
-        },
-    )
-}
-
 fn runtime_local_assets_reveal_managed_dir(
     app: AppHandle,
     payload: LocalAiAssetIdPayload,
@@ -244,8 +121,8 @@ pub async fn runtime_local_assets_start(
     tauri::async_runtime::spawn_blocking(move || {
         runtime_start_asset_via_runtime_checked(&app, &payload.local_asset_id)
     })
-        .await
-        .map_err(|error| format!("LOCAL_AI_ASSET_START_TASK_FAILED: {error}"))?
+    .await
+    .map_err(|error| format!("LOCAL_AI_ASSET_START_TASK_FAILED: {error}"))?
 }
 
 #[tauri::command]
@@ -253,9 +130,11 @@ pub async fn runtime_local_assets_stop(
     _app: AppHandle,
     payload: LocalAiAssetIdPayload,
 ) -> Result<LocalAiAssetRecord, String> {
-    tauri::async_runtime::spawn_blocking(move || runtime_stop_asset_via_runtime(&payload.local_asset_id))
-        .await
-        .map_err(|error| format!("LOCAL_AI_ASSET_STOP_TASK_FAILED: {error}"))?
+    tauri::async_runtime::spawn_blocking(move || {
+        runtime_stop_asset_via_runtime(&payload.local_asset_id)
+    })
+    .await
+    .map_err(|error| format!("LOCAL_AI_ASSET_STOP_TASK_FAILED: {error}"))?
 }
 
 #[tauri::command]
@@ -266,9 +145,11 @@ pub async fn runtime_local_assets_health(
     let local_asset_id = payload
         .and_then(|item| item.local_asset_id)
         .filter(|value| !value.trim().is_empty());
-    let output = tauri::async_runtime::spawn_blocking(move || runtime_health_assets_via_runtime(local_asset_id.as_deref()))
-        .await
-        .map_err(|error| format!("LOCAL_AI_ASSET_HEALTH_TASK_FAILED: {error}"))??;
+    let output = tauri::async_runtime::spawn_blocking(move || {
+        runtime_health_assets_via_runtime(local_asset_id.as_deref())
+    })
+    .await
+    .map_err(|error| format!("LOCAL_AI_ASSET_HEALTH_TASK_FAILED: {error}"))??;
     Ok(LocalAiAssetsHealthResult { assets: output })
 }
 

@@ -1,101 +1,3 @@
-fn normalize_optional_slice(
-    values: &Option<Vec<String>>,
-) -> Option<std::collections::HashSet<String>> {
-    let normalized = values
-        .as_ref()
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|item| normalize_non_empty(item.as_str()))
-                .collect::<std::collections::HashSet<_>>()
-        })
-        .unwrap_or_default();
-    if normalized.is_empty() {
-        return None;
-    }
-    Some(normalized)
-}
-
-fn merge_event_type_filters(payload: Option<&LocalAiAuditsListPayload>) -> Option<Vec<String>> {
-    let filters = payload?;
-    let mut merged = Vec::<String>::new();
-    if let Some(single) = normalize_optional(filters.event_type.clone()) {
-        merged.push(single);
-    }
-    if let Some(items) = filters.event_types.as_ref() {
-        merged.extend(items.iter().cloned());
-    }
-    if merged.is_empty() {
-        return None;
-    }
-    Some(merged)
-}
-
-fn payload_field_as_string(payload: &Option<serde_json::Value>, key: &str) -> Option<String> {
-    let root = payload.as_ref()?.as_object()?;
-    let value = root.get(key)?;
-    normalize_non_empty(value.as_str().unwrap_or_default())
-}
-
-fn parse_iso_timestamp_millis(value: &str) -> Option<i64> {
-    DateTime::parse_from_rfc3339(value)
-        .ok()
-        .map(|datetime| datetime.timestamp_millis())
-}
-
-fn validate_inference_event_type(value: &str) -> Result<&str, String> {
-    let normalized = value.trim();
-    if normalized == EVENT_INFERENCE_INVOKED
-        || normalized == EVENT_INFERENCE_FAILED
-        || normalized == EVENT_FALLBACK_TO_CLOUD
-    {
-        return Ok(normalized);
-    }
-    Err(format!(
-        "LOCAL_AI_AUDIT_EVENT_TYPE_INVALID: unsupported event type: {normalized}"
-    ))
-}
-
-fn validate_inference_source(value: &str) -> Result<&str, String> {
-    let normalized = value.trim();
-    if normalized == "local" || normalized == "cloud" {
-        return Ok(normalized);
-    }
-    Err(format!(
-        "LOCAL_AI_AUDIT_SOURCE_INVALID: unsupported source: {normalized}"
-    ))
-}
-
-fn validate_inference_modality(value: &str) -> Result<&str, String> {
-    let normalized = value.trim();
-    if normalized == "chat"
-        || normalized == "image"
-        || normalized == "video"
-        || normalized == "tts"
-        || normalized == "stt"
-        || normalized == "embedding"
-    {
-        return Ok(normalized);
-    }
-    Err(format!(
-        "LOCAL_AI_AUDIT_MODALITY_INVALID: unsupported modality: {normalized}"
-    ))
-}
-
-fn validate_runtime_audit_event_type(value: &str) -> Result<&str, String> {
-    let normalized = value.trim();
-    if normalized == EVENT_RUNTIME_MODEL_READY_AFTER_INSTALL
-        || normalized == EVENT_RECOMMENDATION_RESOLVE_INVOKED
-        || normalized == EVENT_RECOMMENDATION_RESOLVE_COMPLETED
-        || normalized == EVENT_RECOMMENDATION_RESOLVE_FAILED
-    {
-        return Ok(normalized);
-    }
-    Err(format!(
-        "LOCAL_AI_AUDIT_EVENT_TYPE_INVALID: unsupported runtime event type: {normalized}"
-    ))
-}
-
 fn require_audit_payload_keys(
     event_type: &str,
     payload: &Option<serde_json::Value>,
@@ -307,9 +209,7 @@ fn append_recommendation_resolve_invoked(
         model_id,
         None,
         Some(recommendation_resolve_invoked_payload(
-            item_id,
-            model_id,
-            capability,
+            item_id, model_id, capability,
         )),
     );
 }
@@ -348,10 +248,7 @@ fn append_recommendation_resolve_failed(
         model_id,
         None,
         Some(recommendation_resolve_failed_payload(
-            item_id,
-            model_id,
-            capability,
-            error,
+            item_id, model_id, capability, error,
         )),
     );
 }
