@@ -64,7 +64,7 @@ export function AddFriendModal({
       className="bg-[var(--nimi-scrim-modal)]"
       title={(
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-base font-semibold text-gray-900">{t('Contacts.addContact', { defaultValue: 'Add Friend' })}</h2>
+          <h2 className="text-base font-semibold text-gray-900">{t('Relationship.addContact', { defaultValue: 'Add Friend' })}</h2>
           <IconButton
             icon={(
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -92,7 +92,7 @@ export function AddFriendModal({
             }}
             disabled={loading}
           >
-            {loading ? t('Home.adding', { defaultValue: 'Adding...' }) : t('Contacts.addContact', { defaultValue: 'Add Friend' })}
+            {loading ? t('Home.adding', { defaultValue: 'Adding...' }) : t('Relationship.addContact', { defaultValue: 'Add Friend' })}
           </Button>
         </div>
       )}
@@ -111,7 +111,7 @@ export function AddFriendModal({
         <p className="text-sm text-gray-500">@{author.handle.replace(/^@/, '')}</p>
         {author.isAgent ? (
           <span className="mt-2 inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
-            {t('Contacts.agentBadge', { defaultValue: 'Agent' })}
+            {t('Relationship.agentBadge', { defaultValue: 'Agent' })}
           </span>
         ) : null}
       </div>

@@ -13,7 +13,7 @@ import {
 test('parseExecutionPlan normalizes device profile and selections', () => {
   const parsed = parseExecutionPlan({
     planId: 'plan-1',
-    modId: 'test-ai',
+    targetId: 'test-ai',
     capability: 'chat',
     deviceProfile: {
       os: 'darwin',
@@ -66,7 +66,7 @@ test('parseExecutionPlan normalizes device profile and selections', () => {
 test('parseExecutionApplyResult reuses model and service parsers', () => {
   const parsed = parseExecutionApplyResult({
     planId: 'plan-1',
-    modId: 'test-ai',
+    targetId: 'test-ai',
     entries: [
       {
         entryId: 'dep-service',
@@ -135,14 +135,14 @@ test('parseExecutionApplyResult reuses model and service parsers', () => {
 test('parseProfileResolutionPlan keeps passive asset entries', () => {
   const parsed = parseProfileResolutionPlan({
     planId: 'plan-asset-profile',
-    modId: 'world.nimi.local-image',
+    targetId: 'world.nimi.local-image',
     profileId: 'balanced-fast',
     title: 'Balanced Fast',
     recommended: true,
     consumeCapabilities: ['image'],
     executionPlan: {
       planId: 'plan-asset-profile',
-      modId: 'world.nimi.local-image',
+      targetId: 'world.nimi.local-image',
       entries: [],
       selectionRationale: [],
       preflightDecisions: [],

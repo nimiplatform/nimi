@@ -25,21 +25,6 @@ const CUBISM_WEB_SDK_CACHE_ROOT = path.resolve(
 const CUBISM_WEB_FRAMEWORK_CACHE_ROOT = path.join(CUBISM_WEB_SDK_CACHE_ROOT, 'Framework', 'src');
 const CUBISM_WEB_SHADER_CACHE_ROOT = path.join(CUBISM_WEB_SDK_CACHE_ROOT, 'Framework', 'Shaders', 'WebGL');
 
-function resolveOptionalAbsoluteDir(raw: string | undefined, envName: string): string | null {
-  const normalized = String(raw || '').trim();
-  if (!normalized) {
-    return null;
-  }
-  if (!path.isAbsolute(normalized)) {
-    throw new Error(`${envName} must be an absolute path. Received: ${normalized}`);
-  }
-  const resolved = path.resolve(normalized);
-  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
-    throw new Error(`${envName} must point to an existing directory. Received: ${resolved}`);
-  }
-  return resolved;
-}
-
 function loadDesktopBuildEnvFiles(): void {
   if (typeof process.loadEnvFile !== 'function') {
     return;
@@ -59,17 +44,10 @@ function loadDesktopBuildEnvFiles(): void {
 function resolveFsAllowList(env: Record<string, string>): string[] {
   const desktopRoot = path.resolve(__dirname);
   const workspaceRoot = path.resolve(searchForWorkspaceRoot(process.cwd()));
-  const runtimeModsDir = resolveOptionalAbsoluteDir(
-    env.NIMI_RUNTIME_MODS_DIR || process.env.NIMI_RUNTIME_MODS_DIR,
-    'NIMI_RUNTIME_MODS_DIR',
-  );
   const results = new Set<string>([
     workspaceRoot,
     desktopRoot,
   ]);
-  if (runtimeModsDir) {
-    results.add(runtimeModsDir);
-  }
 
   return Array.from(results);
 }

@@ -11,7 +11,7 @@ function readWorkspaceFile(relativePath: string): string {
 const postCardSource = readWorkspaceFile('src/shell/renderer/features/home/post-card.tsx');
 const articleSource = readWorkspaceFile('src/shell/renderer/features/home/article.tsx');
 const collectionsTabSource = readWorkspaceFile('src/shell/renderer/features/profile/collections-tab.tsx');
-const contactDetailTabsSource = readWorkspaceFile('src/shell/renderer/features/contacts/contact-detail-view-tabs.tsx');
+const contactDetailTabsSource = readWorkspaceFile('src/shell/renderer/features/relationship/profile-detail-view-tabs.tsx');
 const enLocaleSource = readDesktopLocaleSource('en');
 const zhLocaleSource = readDesktopLocaleSource('zh');
 

@@ -10,16 +10,16 @@ import {
 } from '@runtime/data-sync';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { ContactDetailView, type EditableProfileDraft } from '@renderer/features/contacts/contact-detail-view.js';
+import { ProfileDetailView, type EditableProfileDraft } from '@renderer/features/relationship/profile-detail-view.js';
 import {
-  ContactDetailErrorState,
-  ContactDetailLoadingState,
-} from '@renderer/features/contacts/contact-detail-view-content-shell.js';
+  ProfileDetailErrorState,
+  ProfileDetailLoadingState,
+} from '@renderer/features/relationship/profile-detail-view-content-shell.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
-import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
+import { resolveAgentFriendLimit } from '@renderer/features/relationship/agent-friend-limit';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { toProfileData, type ProfileSource } from './profile-model.js';
-import { toFriendContact, type ContactRecord } from '@renderer/features/contacts/contacts-model';
+import { toFriendContact, type ContactRecord } from '@renderer/features/relationship/relationship-model';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 function toErrorMessage(error: unknown, fallback: string): string {
@@ -154,7 +154,7 @@ export function ProfilePanel() {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: toErrorMessage(error, i18n.t('Contacts.openChatFailed', { defaultValue: 'Failed to open chat' })),
+        message: toErrorMessage(error, i18n.t('Relationship.openChatFailed', { defaultValue: 'Failed to open chat' })),
       });
     }
   };
@@ -163,7 +163,7 @@ export function ProfilePanel() {
     if (!selectedProfileId) return;
     try {
       if (profile?.isAgent && addFriendBlocked) {
-        throw new Error(addFriendHint || i18n.t('Contacts.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }));
+        throw new Error(addFriendHint || i18n.t('Relationship.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }));
       }
       await dataSync.requestOrAcceptFriend(selectedProfileId);
       await Promise.all([
@@ -176,7 +176,7 @@ export function ProfilePanel() {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: toErrorMessage(error, i18n.t('Contacts.addContactFailed', { defaultValue: 'Failed to add contact' })),
+        message: toErrorMessage(error, i18n.t('Relationship.addContactFailed', { defaultValue: 'Failed to add contact' })),
       });
     }
   };
@@ -204,7 +204,7 @@ export function ProfilePanel() {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: toErrorMessage(error, i18n.t('Contacts.blockUserFailed', { defaultValue: 'Failed to block user' })),
+        message: toErrorMessage(error, i18n.t('Relationship.blockUserFailed', { defaultValue: 'Failed to block user' })),
       });
     }
   };
@@ -226,7 +226,7 @@ export function ProfilePanel() {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: toErrorMessage(error, i18n.t('Contacts.removeFriendFailed', { defaultValue: 'Failed to remove friend' })),
+        message: toErrorMessage(error, i18n.t('Relationship.removeFriendFailed', { defaultValue: 'Failed to remove friend' })),
       });
     }
   };
@@ -287,7 +287,7 @@ export function ProfilePanel() {
           padding="none"
           className="flex flex-1 items-center justify-center rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
         >
-          <ContactDetailLoadingState label={i18n.t('ProfileView.loading')} />
+          <ProfileDetailLoadingState label={i18n.t('ProfileView.loading')} />
         </Surface>
       </div>
     );
@@ -302,7 +302,7 @@ export function ProfilePanel() {
           padding="none"
           className="flex flex-1 items-center justify-center rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
         >
-          <ContactDetailErrorState
+          <ProfileDetailErrorState
             backLabel={i18n.t('Common.back')}
             label={i18n.t('ProfileView.error')}
             onClose={navigateBack}
@@ -340,7 +340,7 @@ export function ProfilePanel() {
         padding="none"
         className="min-h-0 flex-1 overflow-hidden rounded-[2rem] border-white/60 shadow-[0_22px_52px_rgba(15,23,42,0.08)]"
       >
-        <ContactDetailView
+        <ProfileDetailView
           profile={profile}
           isOwnProfile={isOwnProfile}
           isBlockedProfile={isBlockedProfile}

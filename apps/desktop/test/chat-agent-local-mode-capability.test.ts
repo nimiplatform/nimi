@@ -452,6 +452,6 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.doesNotMatch(adapterSource, /chatAgentStoreClient\.createMessage/);
   assert.doesNotMatch(adapterSource, /chatAgentStoreClient\.updateMessage/);
   assert.doesNotMatch(adapterSource, /relay:/);
-  assert.doesNotMatch(adapterSource, /nimi-mods\/runtime\//);
+  assert.doesNotMatch(adapterSource, /retired-authoring-runtime\//);
   assert.doesNotMatch(adapterSource, /RuntimeStatusSidebar/);
 });

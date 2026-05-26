@@ -16,7 +16,7 @@ import type {
 } from '@runtime/local-runtime';
 
 export type RuntimeProfileTargetDescriptor = {
-  modId: string;
+  targetId: string;
   modName: string;
   consumeCapabilities: CapabilityV11[];
   profiles: LocalRuntimeProfileDescriptor[];
@@ -40,7 +40,7 @@ export type RuntimeConfigPanelControllerModel = {
   filteredLocalModels: string[];
   filteredConnectorModels: string[];
   runtimeProfileTargets: RuntimeProfileTargetDescriptor[];
-  registeredRuntimeModIds: string[];
+  registeredRuntimePackageIds: string[];
   runtimeDaemonStatus: RuntimeBridgeDaemonStatus | null;
   runtimeDaemonBusyAction: 'start' | 'restart' | 'stop' | null;
   runtimeDaemonError: string;
@@ -60,12 +60,12 @@ export type RuntimeConfigPanelControllerModel = {
   runLocalHealthCheck: () => Promise<void>;
   testSelectedConnector: () => Promise<void>;
   resolveRuntimeProfile: (
-    modId: string,
+    targetId: string,
     profileId: string,
     capability?: string,
   ) => Promise<LocalRuntimeProfileResolutionPlan>;
   applyRuntimeProfile: (
-    modId: string,
+    targetId: string,
     profileId: string,
     capability?: string,
   ) => Promise<LocalRuntimeProfileApplyAccepted>;

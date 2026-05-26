@@ -46,7 +46,6 @@ export function formatCpuMilli(milliStr: string): string {
 export function callerKindLabel(kind: number): string {
   switch (kind) {
     case 1: return 'Desktop Core';
-    case 2: return 'Desktop Mod';
     case 3: return 'Third-Party App';
     case 4: return 'Third-Party Service';
     default: return '-';

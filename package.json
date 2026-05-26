@@ -175,7 +175,6 @@
     "dev:web": "pnpm --filter @nimiplatform/web dev",
     "dev:moment": "pnpm --filter @nimiplatform/moment dev:shell",
     "dev:lookdev": "pnpm --filter @nimiplatform/lookdev dev:shell",
-    "dev:forge": "pnpm --filter @nimiplatform/forge dev:shell",
     "dev:overtone": "pnpm --filter @nimiplatform/overtone dev:shell",
     "docs:dev": "pnpm --filter @nimiplatform/docs dev",
     "docs:build": "pnpm --filter @nimiplatform/docs build",
@@ -196,7 +195,7 @@
     "nimicoding:blueprint-audit": "pnpm exec nimicoding blueprint-audit --write-local",
     "check:no-retired-methodology-refs": "node scripts/check-no-retired-methodology-refs.mjs",
     "check:nimi-nimicoding-split-readiness": "node scripts/check-nimi-nimicoding-split-readiness.mjs",
-    "check:p-moex-anti-targets": "node scripts/check-no-public-mod-extension-admission.mjs"
+    "check:p-moex-anti-targets": "node scripts/check-p-moex-anti-targets.mjs"
   },
   "pnpm": {
     "overrides": {

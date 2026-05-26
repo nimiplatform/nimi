@@ -28,7 +28,7 @@ type DownloadCompleteHandler = (
 ) => void;
 
 type UseLocalModelCenterDownloadsInput = {
-  isModMode: boolean;
+  isProfileTargetMode: boolean;
   onDownloadComplete?: DownloadCompleteHandler;
   onProgressSettled?: (event: LocalRuntimeDownloadProgressEvent) => void;
 };
@@ -45,7 +45,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
   }, [progressBySessionId]);
 
   useEffect(() => {
-    if (input.isModMode) {
+    if (input.isProfileTargetMode) {
       return undefined;
     }
     let disposed = false;
@@ -127,7 +127,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
         unsubscribe();
       }
     };
-  }, [input.isModMode, input.onDownloadComplete, input.onProgressSettled]);
+  }, [input.isProfileTargetMode, input.onDownloadComplete, input.onProgressSettled]);
 
   const mergeSessionSummary = useCallback((
     installSessionId: string,

@@ -9,9 +9,6 @@ import { normalizeApiError } from '../src/runtime/net/error-normalize';
 import { setRuntimeLogger } from '../src/runtime/telemetry/logger.js';
 
 const DATA_SYNC_FACADE_PATH = resolve(import.meta.dirname, '../src/runtime/data-sync/facade.ts');
-const KERNEL_UTILS_PATH = resolve(import.meta.dirname, '../src/runtime/execution-kernel/kernel/kernel-service-utils.ts');
-const LOCAL_TURN_FLOW_PATH = resolve(import.meta.dirname, '../src/runtime/execution-kernel/kernel/flows/local-turn-flow.ts');
-const LIFECYCLE_FLOW_PATH = resolve(import.meta.dirname, '../src/runtime/execution-kernel/kernel/flows/lifecycle-flow.ts');
 
 test.afterEach(() => {
   setRuntimeLogger(null);
@@ -61,12 +58,9 @@ test('D-TEL-008: emitAuthLog forwards top-level traceId and flowId', () => {
   assert.equal(logs[0]?.flowId, 'flow-auth-001');
 });
 
-test('D-TEL-008: DataSync and execution-kernel log sites propagate extracted trace fields', () => {
+test('D-TEL-008: DataSync log sites propagate extracted trace fields', () => {
   const sources = [
     readFileSync(DATA_SYNC_FACADE_PATH, 'utf8'),
-    readFileSync(KERNEL_UTILS_PATH, 'utf8'),
-    readFileSync(LOCAL_TURN_FLOW_PATH, 'utf8'),
-    readFileSync(LIFECYCLE_FLOW_PATH, 'utf8'),
   ];
 
   for (const source of sources) {

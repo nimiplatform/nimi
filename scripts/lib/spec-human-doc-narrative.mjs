@@ -243,7 +243,7 @@ Phase 1 支持两种 OpenAI-compatible 引擎：`);
 
   d.text(`#### 4.4.4 依赖解析
 
-Mod 可以声明对本地模型的依赖，分为四类：`);
+应用与产品 surface 可以通过 Runtime profile 声明对本地模型的依赖，分为四类：`);
   d.blank();
   d.rule('K-LOCAL-013');
 

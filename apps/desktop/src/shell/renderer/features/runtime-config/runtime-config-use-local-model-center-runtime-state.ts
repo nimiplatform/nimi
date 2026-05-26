@@ -44,11 +44,11 @@ import {
 import { useLocalModelCenterInstalledAssetViews } from './runtime-config-use-local-model-center-installed-assets';
 
 type UseLocalModelCenterRuntimeStateInput = {
-  isModMode: boolean;
+  isProfileTargetMode: boolean;
   props: LocalModelCenterProps;
 };
 
-export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalModelCenterRuntimeStateInput) {
+export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: UseLocalModelCenterRuntimeStateInput) {
   const [installing, setInstalling] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -474,7 +474,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
 
   const importActions = useLocalModelCenterImportActions({
     getInstallEngine: selectedCatalogEngine,
-    isModMode,
+    isProfileTargetMode,
     onRefreshUnregisteredAssets: refreshUnregisteredAssets,
     onRefreshAssetSections: refreshAssetSections,
     onRefreshVerifiedModels: refreshVerifiedModels,

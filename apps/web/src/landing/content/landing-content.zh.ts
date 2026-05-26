@@ -295,6 +295,7 @@ export const landingContentZh: LandingContent = {
       },
       { icon: 'chat', title: '内置聊天', description: '在同一个工作区里对话本地与云端模型。' },
       { icon: 'models', title: '模型管理', description: '一处安装、更新、切换模型。' },
+      { icon: 'apps', title: '应用启动器', description: '在同一个原生外壳中打开已准入的一方应用。' },
     ],
     downloadCta: '阅读 Desktop 文档',
     availability: {

@@ -11,8 +11,8 @@ function readRepoFile(relativePathFromRepoRoot: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', '..', '..', relativePathFromRepoRoot), 'utf8');
 }
 
-const contactsDetailSource = readWorkspaceFile('src/shell/renderer/features/contacts/contact-detail-view-content.tsx');
-const contactsDetailShellSource = readWorkspaceFile('src/shell/renderer/features/contacts/contact-detail-view-content-shell.tsx');
+const contactsDetailSource = readWorkspaceFile('src/shell/renderer/features/relationship/profile-detail-view-content.tsx');
+const contactsDetailShellSource = readWorkspaceFile('src/shell/renderer/features/relationship/profile-detail-view-content-shell.tsx');
 const profilePostsSource = readWorkspaceFile('src/shell/renderer/features/profile/posts-tab.tsx');
 const profileLikesSource = readWorkspaceFile('src/shell/renderer/features/profile/likes-tab.tsx');
 const profileCollectionsSource = readWorkspaceFile('src/shell/renderer/features/profile/collections-tab.tsx');
@@ -26,9 +26,9 @@ test('W1 shared profile branded decision: hero shell is the only admitted contro
   assert.match(desktopUiShellSpec, /## D-SHELL-032 — Shared Profile Detail Hero Exception Freeze/);
   assert.match(contactsDetailSource, /rounded-\[30px\]|backdrop-blur-\[18px\]|#4ECCA3/);
   assert.match(contactsDetailShellSource, /rounded-\[34px\]|rounded-\[30px\]|backdrop-blur-\[18px\]/);
-  assert.match(desktopSurfacesSpec, /id: contacts\.profile_detail\.hero_exception[\s\S]*surface_profile: exception[\s\S]*exception_policy: controlled[\s\S]*source_rule: D-SHELL-032/);
-  assert.match(desktopSurfacesSpec, /id: contacts\.profile_detail\.shell_exception[\s\S]*surface_profile: exception[\s\S]*exception_policy: controlled[\s\S]*source_rule: D-SHELL-032/);
-  assert.match(desktopKitAdoptionSpec, /id: desktop\.contacts\.profile-detail\.exception[\s\S]*exception_policy: controlled_exception/);
+  assert.match(desktopSurfacesSpec, /id: relationship\.profile_detail\.hero_exception[\s\S]*surface_profile: exception[\s\S]*exception_policy: controlled[\s\S]*source_rule: D-SHELL-032/);
+  assert.match(desktopSurfacesSpec, /id: relationship\.profile_detail\.shell_exception[\s\S]*surface_profile: exception[\s\S]*exception_policy: controlled[\s\S]*source_rule: D-SHELL-032/);
+  assert.match(desktopKitAdoptionSpec, /id: desktop\.relationship\.profile-detail\.exception[\s\S]*exception_policy: controlled_exception/);
 });
 
 test('W1 shared profile branded decision: feed cards are frozen as converging cohorts, not branded exceptions', () => {
@@ -44,5 +44,5 @@ test('W1 shared profile branded decision: feed cards are frozen as converging co
   assert.match(desktopSurfacesSpec, /id: profile\.media\.cards[\s\S]*surface_profile: secondary[\s\S]*exception_policy: none[\s\S]*source_rule: D-SHELL-032/);
   assert.match(desktopSurfacesSpec, /id: profile\.gifts\.cards[\s\S]*surface_profile: secondary[\s\S]*exception_policy: none[\s\S]*source_rule: D-SHELL-032/);
   assert.doesNotMatch(desktopKitAdoptionSpec, /desktop\.profile\.(posts|likes|collections|media|gifts)\.exception/);
-  assert.doesNotMatch(desktopKitAdoptionSpec, /desktop\.contacts\.friend-requests\.exception/);
+  assert.doesNotMatch(desktopKitAdoptionSpec, /desktop\.(contacts|relationship)\.friend-requests\.exception/);
 });

@@ -55,7 +55,7 @@ export const E2E_IDS = {
   runtimeSidebarPage: runtimeSidebarPageTestId,
   runtimePageRoot: (pageId) => `runtime-page:${pageId}`,
   feedPostAuthor: (postId) => `feed-post-author:${postId}`,
-  contactDetailProfileModal: 'contact-detail-profile-modal',
-  contactDetailProfileModalClose: 'contact-detail-profile-modal-close',
+  profileDetailModal: 'profile-detail-modal',
+  profileDetailModalClose: 'profile-detail-modal-close',
   profileDetailSurface: 'profile-detail-surface',
 };

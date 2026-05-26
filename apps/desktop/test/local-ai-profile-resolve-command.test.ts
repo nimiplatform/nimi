@@ -41,14 +41,14 @@ function installTauriRuntime(calls: TauriInvokeCall[]): () => void {
     if (command === 'runtime_local_profiles_resolve') {
       return {
         planId: 'plan-balanced-fast',
-        modId: 'world.nimi.local-image',
+        targetId: 'world.nimi.local-image',
         profileId: 'balanced-fast',
         title: 'Balanced Fast',
         recommended: true,
         consumeCapabilities: ['image'],
         executionPlan: {
           planId: 'plan-balanced-fast',
-          modId: 'world.nimi.local-image',
+          targetId: 'world.nimi.local-image',
           capability: 'image',
           deviceProfile: {
             os: 'darwin',
@@ -99,7 +99,7 @@ test('resolveLocalRuntimeProfile forwards entryOverrides to the tauri command pa
   const restore = installTauriRuntime(calls);
   try {
     const plan = await localRuntime.resolveProfile({
-      modId: 'world.nimi.local-image',
+      targetId: 'world.nimi.local-image',
       capability: 'image',
       profile: {
         id: 'balanced-fast',

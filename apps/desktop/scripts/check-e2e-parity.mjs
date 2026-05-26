@@ -62,6 +62,21 @@ function scenarioSpecPath(spec) {
   return path.resolve(repoRoot, spec);
 }
 
+function listFilesRecursive(rootDir, predicate) {
+  const files = [];
+  for (const entry of fs.readdirSync(rootDir, { withFileTypes: true })) {
+    const fullPath = path.join(rootDir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...listFilesRecursive(fullPath, predicate));
+      continue;
+    }
+    if (entry.isFile() && predicate(fullPath)) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
 function hasAuthorlessFeedPosts(profile) {
   const posts = profile?.realmFixture?.exploreFeed?.items;
   return Array.isArray(posts) && posts.some((post) => {
@@ -74,19 +89,45 @@ function hasAuthorlessFeedPosts(profile) {
 }
 
 function assertScenarioRegistryIntegrity() {
+  const registeredSpecPaths = new Set();
+  const registeredProfilePaths = new Set();
   for (const [scenarioId, entry] of scenarioRegistry.entries()) {
     if (entry.bucket !== 'smoke' && entry.bucket !== 'journeys') {
       fail(`${scenarioId} uses unsupported bucket ${JSON.stringify(entry.bucket)}`);
     }
     const profilePath = profilePathForScenario(scenarioId);
+    registeredProfilePaths.add(path.resolve(profilePath));
     if (!fs.existsSync(profilePath)) {
       fail(`${scenarioId} profile is missing: ${path.relative(repoRoot, profilePath)}`);
     }
     const specPath = scenarioSpecPath(entry.spec);
+    registeredSpecPaths.add(path.resolve(specPath));
     if (!fs.existsSync(specPath)) {
       fail(`${scenarioId} spec is missing: ${entry.spec}`);
     }
     loadProfileDefinition(profilePath);
+  }
+
+  const specRoot = path.join(desktopRoot, 'e2e', 'specs');
+  for (const specPath of listFilesRecursive(specRoot, (filePath) => filePath.endsWith('.e2e.mjs'))) {
+    if (!registeredSpecPaths.has(path.resolve(specPath))) {
+      fail(`orphan E2E spec is not registered: ${path.relative(repoRoot, specPath)}`);
+    }
+  }
+
+  const admittedUnregisteredProfiles = new Set([
+    '_authenticated-base.json',
+    'chat.live2d-render-smoke-sample.json',
+  ]);
+  const profileRoot = path.join(desktopRoot, 'e2e', 'fixtures', 'profiles');
+  for (const profilePath of listFilesRecursive(profileRoot, (filePath) => filePath.endsWith('.json'))) {
+    const profileName = path.basename(profilePath);
+    if (admittedUnregisteredProfiles.has(profileName)) {
+      continue;
+    }
+    if (!registeredProfilePaths.has(path.resolve(profilePath))) {
+      fail(`orphan E2E profile is not registered: ${path.relative(repoRoot, profilePath)}`);
+    }
   }
 }
 

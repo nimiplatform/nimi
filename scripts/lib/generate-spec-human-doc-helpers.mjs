@@ -75,11 +75,11 @@ Nimi Runtime 是一个 gRPC 守护进程，负责 AI 推理执行、模型管理
 │                  Desktop / Web App               │
 │                                                  │
 │   ┌──────────┐  ┌──────────┐  ┌──────────┐      │
-│   │  Realm   │  │ Runtime  │  │   Mod    │      │
+│   │  Realm   │  │ Runtime  │  │  Scope   │      │
 │   │   SDK    │  │   SDK    │  │   SDK    │      │
 │   └────┬─────┘  └────┬─────┘  └────┬─────┘      │
 └────────┼─────────────┼─────────────┼─────────────┘
-         │ HTTP/WS     │ gRPC/IPC    │ Host Inject
+         │ HTTP/WS     │ gRPC/IPC    │ memory
          ▼             ▼             ▼
    ┌──────────┐  ┌──────────────────────────────┐
    │  Realm   │  │      Nimi Runtime (Go)       │

@@ -32,8 +32,8 @@
   "advanced": {
     "tabPreferences": "偏好与更新",
     "tabDeveloper": "开发者工具",
-    "developerLocked": "开发者工具已隐藏。请在“偏好与更新”中启用开发者模式以访问 Mod 界面。",
-    "developerSectionTitle": "Mod 开发者界面"
+    "developerLocked": "开发者工具已隐藏。请在“偏好与更新”中启用开发者模式以访问内部诊断。",
+    "developerSectionTitle": "开发者界面"
   },
   "memory": {
     "sectionTitle": "记忆 Embedding",
@@ -69,7 +69,6 @@
     "healthyConnectorsCount": "{{count}} 个健康",
     "vaultEntries": "凭证条目",
     "credentialsStored": "已存储凭证",
-    "aiMods": "AI Mods",
     "withAiProfiles": "含 AI 配置档",
     "snapshotTitle": "概览快照",
     "systemResources": "系统资源",
@@ -127,12 +126,13 @@
     "configureCloudDescription": "API 密钥与连接器",
     "setup": "设置",
     "runtimeAuditDescription": "健康状态、日志与 EAA Token",
-    "modProfilesDescription": "为 Mod 配置 AI",
     "configureClouds": "配置云端",
     "runtimeAudit": "运行时与审计",
-    "modProfiles": "Mod 配置档",
     "costDisclaimer": "基于目录定价的估算，实际费用可能有所不同。",
-    "costTooltipUnknown": "部分模型定价未知"
+    "costTooltipUnknown": "部分模型定价未知",
+    "aiProfiles": "AI Profiles",
+    "profileSetupDescription": "配置本地 AI profile 需求",
+    "profileSetup": "Profile Setup"
   },
   "local": {
     "searchInstall": "搜索与安装模型",
@@ -147,11 +147,7 @@
     "modelDependencies": "模型配置档",
     "resolving": "解析中...",
     "resolvePlan": "预览安装",
-    "noProfileEnabledMod": "未找到启用了 profile 声明的运行时 Mod。",
-    "runtimeMod": "运行时 Mod",
-    "unknownRuntimeMod": "未知运行时 Mod",
     "autoDetect": "自动检测",
-    "selectedModNoProfile": "所选 Mod 没有 profile 声明。",
     "resolvingProfilePlan": "正在解析 profile 安装方案...",
     "planId": "方案 ID",
     "selected": "已选",
@@ -191,10 +187,10 @@
     "installLifecycleFailed": "安装流程失败：{{message}}",
     "retryingInstall": "正在重试安装：{{modelId}}。下载进度将显示在下方。",
     "dependenciesAppliedSyncFailed": "依赖已应用，但 Go runtime 同步失败：{{message}}",
-    "dependenciesAppliedSummary": "已为 {{modId}} 应用依赖：{{modelCount}} 个模型，{{serviceCount}} 个服务",
+    "dependenciesAppliedSummary": "已为 {{targetId}} 应用依赖：{{modelCount}} 个模型，{{serviceCount}} 个服务",
     "profileAppliedSyncFailed": "配置档已安装，但 Go runtime 同步失败：{{message}}",
-    "profileAppliedSummary": "已为 {{modId}} 安装配置档 {{profileId}}：{{modelCount}} 个可运行资产、{{serviceCount}} 个服务、{{dependencyAssetCount}} 个依赖资产",
-    "profileApplyQueued": "已将 {{modId}} 的配置档 {{profileId}} 加入队列。",
+    "profileAppliedSummary": "已为 {{targetId}} 安装配置档 {{profileId}}：{{modelCount}} 个可运行资产、{{serviceCount}} 个服务、{{dependencyAssetCount}} 个依赖资产",
+    "profileApplyQueued": "已将 {{targetId}} 的配置档 {{profileId}} 加入队列。",
     "profileApplyFailed": "配置档安装失败：{{message}}",
     "assetImported": "资产已导入：{{assetId}}",
     "assetImportFailed": "导入资产失败",
@@ -282,7 +278,11 @@
     "baseline": "基线",
     "confidence": "置信度",
     "host": "主机",
-    "recommendation": "推荐"
+    "recommendation": "推荐",
+    "noProfileEnabledTarget": "未找到启用 profile 的目标。",
+    "runtimeProfileTarget": "Profile 目标",
+    "unknownRuntimeProfileTarget": "未知 profile 目标",
+    "selectedTargetNoProfile": "所选目标没有 profile 声明。"
   },
   "cloud": {
     "connectors": "云端 API 连接器",
@@ -381,7 +381,6 @@
     "globalAuditTitle": "全局审计事件",
     "allCallers": "全部调用方",
     "desktopCore": "桌面核心",
-    "desktopMod": "桌面 Mod",
     "thirdPartyApp": "第三方应用",
     "thirdPartyService": "第三方服务",
     "loadingAuditEvents": "正在加载审计事件...",
@@ -512,28 +511,6 @@
     "runtimeBinaryMissingMessage": "Desktop 无法完成内置 `nimi` runtime 的落盘准备。请重启应用，或重新安装这个桌面版本。",
     "runtimeBinaryMissingTitle": "内置 Runtime 不可用",
     "vram": "VRAM"
-  },
-  "mods": {
-    "noAiMods": "无 AI Mods",
-    "noAiModsDesc": "当前没有已安装的 Mod 声明 AI profile。安装使用 AI 能力的 Mod 后，可在此处查看其推荐本地组合。",
-    "modsWithAiProfiles": "含 AI Profile 的 Mods",
-    "modsWithAiProfilesDesc": "选择一个 Mod 来配置它的 AI profile。",
-    "registeredModsSummary": "{{registered}} 个已注册 Mod · {{configured}} 个包含 AI profile",
-    "selectedModDescription": "配置所选 Mod 推荐的本地 AI profile。",
-    "aiCapabilityStatus": "AI 能力状态",
-    "local": "本地",
-    "needsSetup": "需要设置",
-    "ready": "已就绪",
-    "readyToInstall": "可安装",
-    "missingDeps": "缺少依赖",
-    "modProfiles": "Mod 配置档",
-    "selectCapabilityFirst": "请先选择一个能力再继续。",
-    "selectModPrompt": "选择一个 Mod 来配置它的 AI profile。",
-    "setup": "设置",
-    "setupRequired": "需要配置",
-    "setupRequiredDesc": "部分能力在本地不可用。请安装本地模型或配置云端 API 连接器以启用。",
-    "installModels": "安装模型",
-    "configureCloudApi": "配置云端 API"
   },
   "profiles": {
     "addTagPlaceholder": "添加标签...",
@@ -979,7 +956,7 @@
     "retrying": "重试中...",
     "reviewNeeded": "需要确认",
     "unregisteredAssetsAutoImportHint": "高置信度的已识别目录会自动导入，其他条目会保留在“需要确认”中。",
-    "runtimeMod": "Runtime Mod",
+    "runtimePackage": "Runtime Mod",
     "searchModelsPlaceholder": "按名称、仓库或任务搜索模型...",
     "searching": "搜索中...",
     "selectEngine": "选择引擎",
@@ -1055,5 +1032,10 @@
     "replayTrace": "回放链路",
     "command": "命令",
     "args": "参数"
+  },
+  "profileTargets": {
+    "ready": "Ready",
+    "setup": "Setup",
+    "profileSetup": "Profile Setup"
   }
 }

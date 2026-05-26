@@ -12,8 +12,8 @@
 import { dataSync } from '@runtime/data-sync';
 import { i18n } from '@renderer/i18n';
 import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
-import type { AgentFriendLimit } from '../contacts/agent-friend-limit';
-import { resolveAgentFriendLimit } from '../contacts/agent-friend-limit';
+import type { AgentFriendLimit } from '../relationship/agent-friend-limit';
+import { resolveAgentFriendLimit } from '../relationship/agent-friend-limit';
 
 export type RealmAgentFriendState = 'not_friend' | 'pending' | 'friend' | 'limit_reached';
 

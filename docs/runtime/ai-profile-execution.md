@@ -21,15 +21,15 @@ resolution, and the `AIScopeRef` link.
 | Responsibility | Owner |
 | --- | --- |
 | `AIProfile` portable schema definition + validation | Desktop kernel (`D-AIPC-002`) |
-| Portable → local descriptor projection | Desktop / SDK |
+| Portable → local descriptor projection | Scope owner / SDK |
 | `LocalProfileDescriptor` execution + install | Runtime (`K-LOCAL-013..015`) |
 | Device profile collection | Runtime (`K-DEV-001..009`) |
 | Local asset resolution + health | Runtime (`K-LOCAL-014a`) |
 | Execution snapshot evidence | Runtime (`K-AIEXEC-003`) |
 
 The runtime is **not** a portable schema validator. It accepts and
-executes `LocalProfileDescriptor`s; the desktop-side / SDK-side
-projection is what turns a portable `AIProfile` into descriptors.
+executes `LocalProfileDescriptor`s; the scope-owner / SDK projection
+is what turns a portable `AIProfile` into descriptors.
 
 ## Probe Contract
 
@@ -37,7 +37,7 @@ Probes split into three tiers (matching `D-AIPC-012`):
 
 | Tier | Where executed | What it answers |
 | --- | --- | --- |
-| Static schema probe | Desktop / SDK locally | Is the `AIProfile` portable schema valid? |
+| Static schema probe | Scope owner / SDK locally | Is the `AIProfile` portable schema valid? |
 | Runtime availability probe | Runtime via `runtime.route.checkHealth` / `runtime.route.describe` | Is the route's provider / engine available? |
 | Resource feasibility probe | Runtime via `CollectDeviceProfile` + `ResolveProfile` + `Peek` | Can this device run the profile? |
 
@@ -81,26 +81,25 @@ The runtime does not perceive the desktop's `AISnapshot` or
 `AIConfig` schema. It provides execution evidence data; that data
 does not transfer snapshot ownership to the runtime.
 
-For mod consumers, the app-facing `AISnapshot` record / read owner
-remains the Desktop host. The mod host bridge binds mod execution to
-the canonical mod `scopeRef` (see
-[AI Scope Identity](/platform/ai-scope-identity)) and records the
-snapshot. The runtime does not perceive consumer-local snapshot
-models.
+For app consumers, the app-facing `AISnapshot` record / read owner
+remains the scope owner. The SDK binds execution to the canonical app
+`scopeRef` (see [AI Scope Identity](/platform/ai-scope-identity)) and
+records the snapshot projection. The runtime does not perceive
+consumer-local snapshot models.
 
-## Reader Scenario: A Mod Workspace Executes Under An AI Profile
+## Reader Scenario: An App Workspace Executes Under An AI Profile
 
-1. **Profile applied.** Desktop projects the portable `AIProfile`
+1. **Profile applied.** The scope owner projects the portable `AIProfile`
    into a `LocalProfileDescriptor` for this device.
-2. **Scope identity.** The mod workspace's
-   `AIScopeRef{ kind: 'mod', ownerId: <manifest>, surfaceId: 'workspace' }`
+2. **Scope identity.** The app workspace's
+   `AIScopeRef{ kind: 'app', ownerId: <app id>, surfaceId: 'workspace' }`
    keys the snapshot.
 3. **Execution call.** `SubmitScenarioJob` (or equivalent) goes
    through with the resolved descriptor.
 4. **Execution snapshot.** Runtime fixes the four evidence rows in
    the execution context.
 5. **Audit trail.** Evidence writes through `K-AUDIT-001`.
-6. **Desktop `AISnapshot.runtimeEvidence`.** Desktop reads the
+6. **App `AISnapshot.runtimeEvidence`.** The scope owner reads the
    evidence into its app-facing snapshot model.
 
 ## Reader Scenario: A Resource Feasibility Probe

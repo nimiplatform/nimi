@@ -176,7 +176,6 @@ const desktopGroups: DefaultTheme.SidebarItem[] = [
       { text: 'AI Profile 配置', link: '/zh/desktop/ai-profile-config' },
       { text: '知识 UI', link: '/zh/desktop/knowledge-ui' },
       { text: '委派控制', link: '/zh/desktop/delegation-control' },
-      { text: 'Hook 能力白名单', link: '/zh/desktop/hook-capability-allowlists' },
       { text: '联系人与社交', link: '/zh/desktop/contacts-and-social' },
       { text: '个人主页', link: '/zh/desktop/profile' },
       { text: '经济 / 钱包', link: '/zh/desktop/economy' },
@@ -185,11 +184,8 @@ const desktopGroups: DefaultTheme.SidebarItem[] = [
     ],
   },
   {
-    text: 'Mod 与外部 AI',
+    text: '外部 AI',
     items: [
-      { text: 'Mod Hub', link: '/zh/desktop/mod-hub' },
-      { text: 'Mod Workspace', link: '/zh/desktop/mod-workspace' },
-      { text: 'Mod 治理', link: '/zh/desktop/mod-system' },
       { text: '外部 Agent 接入', link: '/zh/desktop/external-agent' },
     ],
   },

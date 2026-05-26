@@ -64,7 +64,7 @@ test('chat unified shell a2: chat page mounts the canonical target-first shell',
   assert.match(chatPageSource, /ChatHumanModeContent/);
   assert.match(chatPageSource, /ChatNimiModeContent/);
   assert.match(chatPageSource, /ChatAgentModeContent/);
-  assert.match(chatPageSource, /ChatContactsSidebar/);
+  assert.match(chatPageSource, /ChatRelationshipRail/);
   assert.match(chatPageSource, /selectedTargetBySource/);
   assert.doesNotMatch(chatPageSource, /setLastSelectedThreadForMode/);
   assert.doesNotMatch(chatPageSource, /settingsDrawer=\{/);

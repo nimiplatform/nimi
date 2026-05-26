@@ -233,13 +233,6 @@ function collectRepoFiles() {
     'apps/polyinfo/src',
     'apps/polyinfo/src-tauri',
     'apps/polyinfo/spec/kernel',
-    // FG-SHELL-011 / FG-SHELL-012: Forge is admitted as a local-first-party
-    // Runtime account consumer. Walked here so scanPlatformClientConstruction
-    // and scanJwtSubjectAuthority detect regressions in forge sources.
-    // Forge intentionally does NOT appear in LOCAL_APP_SLICE_ROOTS — it is
-    // admitted, not fenced.
-    'apps/forge/src',
-    'apps/forge/spec/kernel',
     // LD-SHELL-010 / LD-SHELL-011: Lookdev is admitted as a local-first-party
     // Runtime account consumer. Walked here so scanPlatformClientConstruction
     // and scanJwtSubjectAuthority detect regressions in lookdev sources.

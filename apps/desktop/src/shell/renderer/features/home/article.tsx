@@ -92,7 +92,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
                   props.onOpenAddFriendModal();
                 }}
                 className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#4ECCA3] text-white shadow-md border-2 border-white transition-transform hover:scale-110"
-                title={i18n.t('Contacts.addContact', { defaultValue: 'Add Friend' })}
+                title={i18n.t('Relationship.addContact', { defaultValue: 'Add Friend' })}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />

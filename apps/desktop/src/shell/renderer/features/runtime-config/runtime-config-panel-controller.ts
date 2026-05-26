@@ -171,16 +171,16 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   });
 
   const resolveRuntimeProfile = useCallback(async (
-    modId: string,
+    targetId: string,
     profileId: string,
     capability?: string,
-  ) => installActions.resolveRuntimeProfile(modId, profileId, capability), [installActions]);
+  ) => installActions.resolveRuntimeProfile(targetId, profileId, capability), [installActions]);
 
   const applyRuntimeProfile = useCallback(async (
-    modId: string,
+    targetId: string,
     profileId: string,
     capability?: string,
-  ) => installActions.applyRuntimeProfile(modId, profileId, capability), [installActions]);
+  ) => installActions.applyRuntimeProfile(targetId, profileId, capability), [installActions]);
 
   return {
     state: panelState.state,
@@ -200,7 +200,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     filteredLocalModels: derived.filteredLocalModels,
     filteredConnectorModels: derived.filteredConnectorModels,
     runtimeProfileTargets: derived.runtimeProfileTargets,
-    registeredRuntimeModIds: [],
+    registeredRuntimePackageIds: [],
     runtimeDaemonStatus: daemon.runtimeDaemonStatus,
     runtimeDaemonBusyAction: daemon.runtimeDaemonBusyAction,
     runtimeDaemonError: daemon.runtimeDaemonError,

@@ -9,7 +9,7 @@ function readWorkspaceFile(relativePath: string): string {
 }
 
 const chatPageSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-page.tsx');
-const chatContactsSidebarSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-contacts-sidebar.tsx');
+const chatRelationshipRailSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-relationship-rail.tsx');
 const chatNimiSheetSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-session-list-panel.tsx');
 const chatHumanModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-mode-content.tsx');
 const chatNimiModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-mode-content.tsx');
@@ -24,12 +24,12 @@ const chatSideSheetSource = readWorkspaceFile('src/shell/renderer/features/chat/
 
 test('chat page split layout keeps contacts on the far-right transparent rail', () => {
   assert.match(chatPageSource, /data-chat-page-layout="split"/);
-  assert.match(chatPageSource, /ChatContactsSidebar/);
-  assert.match(chatContactsSidebarSource, /data-chat-contacts-sidebar-chrome="transparent"/);
-  assert.match(chatContactsSidebarSource, /className="ml-4 mr-1 flex h-full w-14 shrink-0 flex-col items-center bg-transparent py-2"/);
-  assert.match(chatContactsSidebarSource, /onClick=\{onSelect\}/);
-  assert.match(chatContactsSidebarSource, /onOpenProfile=\{profileSeed \? handleOpenProfile : undefined\}/);
-  assert.doesNotMatch(chatContactsSidebarSource, /border-l/u);
+  assert.match(chatPageSource, /ChatRelationshipRail/);
+  assert.match(chatRelationshipRailSource, /data-chat-relationship-rail-chrome="transparent"/);
+  assert.match(chatRelationshipRailSource, /className="ml-4 mr-1 flex h-full w-14 shrink-0 flex-col items-center bg-transparent py-2"/);
+  assert.match(chatRelationshipRailSource, /onClick=\{onSelect\}/);
+  assert.match(chatRelationshipRailSource, /onOpenProfile=\{profileSeed \? handleOpenProfile : undefined\}/);
+  assert.doesNotMatch(chatRelationshipRailSource, /border-l/u);
 });
 
 test('chat page uses transient side sheets; agent mode keeps the scene background but no longer mounts a desktop-local avatar overlay carrier path', () => {
@@ -39,7 +39,8 @@ test('chat page uses transient side sheets; agent mode keeps the scene backgroun
   assert.match(chatSideSheetSource, /sheetKey === 'settings'/);
   assert.match(chatSideSheetSource, /w-\[min\(500px,calc\(100vw-96px\)\)\]/);
   assert.match(chatSideSheetSource, /w-\[min\(340px,calc\(100vw-96px\)\)\]/);
-  assert.match(chatSideSheetSource, /overflow-y-auto/);
+  assert.match(chatSideSheetSource, /ScrollShell/);
+  assert.match(chatSideSheetSource, /className=\{cn\([\s\S]*'flex-1'[\s\S]*props\.bodyClassName/);
   assert.doesNotMatch(chatSideSheetSource, /ScrollArea/u);
   assert.match(chatNimiSheetSource, /ChatSideSheet/);
   assert.doesNotMatch(chatNimiSheetSource, /Assistant status/u);

@@ -9,17 +9,14 @@ function readSource(relativePath: string): string {
 }
 
 const addFriendModalSource = readSource('../src/shell/renderer/features/home/add-friend-modal.tsx');
-const addContactModalSource = readSource('../src/shell/renderer/features/contacts/add-contact-modal.tsx');
 const explorePanelSource = readSource('../src/shell/renderer/features/explore/explore-panel.tsx');
-const contactsViewSource = readSource('../src/shell/renderer/features/contacts/contacts-view.tsx');
-const contactsFriendRequestsSource = readSource('../src/shell/renderer/features/contacts/contacts-friend-requests.tsx');
 const homeViewSource = readSource('../src/shell/renderer/features/home/home-view.tsx');
 const notificationPanelSource = readSource('../src/shell/renderer/features/notification/notification-panel.tsx');
 const notificationRejectDialogSource = readSource('../src/shell/renderer/features/notification/notification-reject-gift-dialog.tsx');
 const postCardSource = readSource('../src/shell/renderer/features/home/post-card.tsx');
 const postCardActionAdapterSource = readSource('../src/shell/renderer/features/home/post-card-action-adapter.tsx');
-const contactDetailTabsSource = readSource('../src/shell/renderer/features/contacts/contact-detail-view-tabs.tsx');
-const contactDetailProfileModalSource = readSource('../src/shell/renderer/features/contacts/contact-detail-profile-modal.tsx');
+const contactDetailTabsSource = readSource('../src/shell/renderer/features/relationship/profile-detail-view-tabs.tsx');
+const profileDetailModalSource = readSource('../src/shell/renderer/features/relationship/profile-detail-modal.tsx');
 const runtimeConfigSystemResourcesSource = readSource('../src/shell/renderer/features/runtime-config/runtime-config-system-resources.ts');
 const profilePostFeedSource = readSource('../src/shell/renderer/features/profile/post-feed-with-media-preview.tsx');
 const profilePostsTabSource = readSource('../src/shell/renderer/features/profile/posts-tab.tsx');
@@ -69,34 +66,15 @@ test('add friend modal forwards the typed greeting message to the add-friend act
   assert.match(postCardActionAdapterSource, /dataSync\.requestOrAcceptFriend\(authorId, message\)/);
 });
 
-test('add contact modal localizes footer action labels instead of hardcoding English strings', () => {
-  assert.match(addContactModalSource, /t\('Contacts\.sending', \{ defaultValue: 'Sending\.\.\.' \}\)/);
-  assert.match(addContactModalSource, /t\('Contacts\.addContactTitle', \{ defaultValue: 'Add Contact' \}\)/);
-  assert.doesNotMatch(addContactModalSource, /\n\s*Sending\.\.\.\n/);
-  assert.doesNotMatch(addContactModalSource, /\n\s*'Add Contact'\n/);
-});
-
-test('shared profile modal remains decoupled from Contacts page profile fetching', () => {
-  assert.doesNotMatch(contactsViewSource, /selectedProfile!/);
-  assert.match(contactsViewSource, /ContactDetailProfileModal/);
-  assert.match(contactsViewSource, /profileSeed=\{toContactDetailProfileSeed\(selectedContact\)\}/);
-  assert.doesNotMatch(contactsViewSource, /queryKey: \['contact-profile'/);
-  assert.doesNotMatch(contactsViewSource, /<ContactDetailView/);
-  assert.doesNotMatch(contactsViewSource, /return toProfileData\(fallbackProfile\)/);
-  assert.doesNotMatch(contactDetailProfileModalSource, /toSeedProfileData/);
-  assert.doesNotMatch(contactDetailProfileModalSource, /profileQuery\.data \|\| fallbackProfile/);
-  assert.doesNotMatch(contactsViewSource, /跟踪已接受的好友请求/);
-  assert.match(contactsViewSource, /处理联系人侧栏拖拽缩放/);
+test('profile detail modal remains decoupled from seed-only profile fetching', () => {
+  assert.doesNotMatch(profileDetailModalSource, /toSeedProfileData/);
+  assert.doesNotMatch(profileDetailModalSource, /profileQuery\.data \|\| fallbackProfile/);
 });
 
 test('runtime config system resources use explicit availability state instead of fake snapshots', () => {
   assert.match(runtimeConfigSystemResourcesSource, /SystemResourceStatus = 'idle' \| 'loading' \| 'ready' \| 'unavailable' \| 'stale'/);
   assert.doesNotMatch(runtimeConfigSystemResourcesSource, /fallbackSnapshot/);
   assert.match(runtimeConfigSystemResourcesSource, /status: prev\.snapshot \? 'stale' : 'unavailable'/);
-});
-
-test('contacts friend requests view does not carry an unused React default import', () => {
-  assert.doesNotMatch(contactsFriendRequestsSource, /import React from 'react'/);
 });
 
 test('home and notification surfaces import shared design primitives from nimi-kit directly', () => {
@@ -108,17 +86,17 @@ test('home and notification surfaces import shared design primitives from nimi-k
 test('design governance tables register secondary profile and overlay consumers explicitly, including the admitted shared profile detail hero/shell split', () => {
   assert.match(designSurfacesTable, /id: profile\.panel\.root/);
   assert.match(designSurfacesTable, /module: features\/profile\/profile-panel\.tsx/);
-  assert.match(designSurfacesTable, /id: contacts\.profile_detail\.hero_exception/);
-  assert.match(designSurfacesTable, /module: features\/contacts\/contact-detail-view-content\.tsx/);
-  assert.match(designSurfacesTable, /id: contacts\.profile_detail\.shell_exception/);
-  assert.match(designSurfacesTable, /module: features\/contacts\/contact-detail-view-content-shell\.tsx/);
+  assert.match(designSurfacesTable, /id: relationship\.profile_detail\.hero_exception/);
+  assert.match(designSurfacesTable, /module: features\/relationship\/profile-detail-view-content\.tsx/);
+  assert.match(designSurfacesTable, /id: relationship\.profile_detail\.shell_exception/);
+  assert.match(designSurfacesTable, /module: features\/relationship\/profile-detail-view-content-shell\.tsx/);
   assert.doesNotMatch(designSurfacesTable, /id: contacts\.view\.root/);
   assert.doesNotMatch(designSurfacesTable, /id: contacts\.friend_requests\.cards/);
   assert.match(designSurfacesTable, /id: economy\.send_gift\.dialog_surface/);
   assert.match(designSurfacesTable, /module: features\/economy\/send-gift-modal\.tsx/);
   assert.match(designOverlaysTable, /id: notification\.reject_gift/);
   assert.match(designOverlaysTable, /module: features\/notification\/notification-reject-gift-dialog\.tsx/);
-  assert.match(designOverlaysTable, /id: contacts\.profile_detail_modal/);
+  assert.match(designOverlaysTable, /id: relationship\.profile_detail_modal/);
   assert.match(designOverlaysTable, /id: economy\.send_gift/);
   assert.match(designOverlaysTable, /id: profile\.create_post/);
   assert.match(designOverlaysTable, /id: profile\.create_post_popovers/);
@@ -129,7 +107,7 @@ test('governed secondary overlays import shared nimi-kit overlay surfaces direct
   assert.match(sendGiftModalSource, /@nimiplatform\/kit\/features\/commerce\/ui/);
   assert.match(createPostModalSource, /@nimiplatform\/kit\/ui/);
   assert.match(createPostModalPanelsSource, /@nimiplatform\/kit\/ui/);
-  assert.match(contactDetailProfileModalSource, /@nimiplatform\/kit\/ui/);
+  assert.match(profileDetailModalSource, /@nimiplatform\/kit\/ui/);
   assert.match(giftsTabSource, /@nimiplatform\/kit\/ui/);
 });
 
@@ -142,8 +120,8 @@ test('governed roots and overlays expose stable testability hooks', () => {
   assert.match(createPostModalPanelsSource, /dataTestId=\{E2E_IDS\.createPostEmojiPanel\}/);
   assert.match(createPostModalPanelsSource, /dataTestId=\{E2E_IDS\.createPostLocationPanel\}/);
   assert.match(createPostModalPanelsSource, /dataTestId=\{E2E_IDS\.createPostTagPanel\}/);
-  assert.match(contactDetailProfileModalSource, /dataTestId=\{E2E_IDS\.contactDetailProfileModal\}/);
-  assert.match(contactDetailProfileModalSource, /data-testid=\{E2E_IDS\.contactDetailProfileModalClose\}/);
+  assert.match(profileDetailModalSource, /dataTestId=\{E2E_IDS\.profileDetailModal\}/);
+  assert.match(profileDetailModalSource, /data-testid=\{E2E_IDS\.profileDetailModalClose\}/);
   assert.match(giftsTabSource, /dataTestId=\{E2E_IDS\.profileTopSupportersDialog\}/);
 });
 
@@ -162,7 +140,7 @@ test('profile post feeds keep a stable two-column breakpoint instead of a late p
   assert.doesNotMatch(profilePostsTabSource, /min-\[980px\]:grid-cols-2/);
 });
 
-test('contact detail feed tabs use stable grid layout instead of masonry in profile detail surfaces', () => {
+test('profile detail feed tabs use stable grid layout instead of masonry in profile detail surfaces', () => {
   assert.match(contactDetailTabsSource, /<PostsTab profileId=\{profileId\} layout="grid" blockedContent=\{isBlockedProfile\} \/>/);
   assert.doesNotMatch(contactDetailTabsSource, /<PostsTab profileId=\{profileId\} layout="masonry"( blockedContent=\{isBlockedProfile\})? \/>/);
   assert.match(contactDetailTabsSource, /<CollectionsTab profileId=\{profileId\} layout="grid" \/>/);

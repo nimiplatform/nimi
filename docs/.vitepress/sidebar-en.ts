@@ -176,7 +176,6 @@ const desktopGroups: DefaultTheme.SidebarItem[] = [
       { text: 'AI Profile Config', link: '/desktop/ai-profile-config' },
       { text: 'Knowledge UI', link: '/desktop/knowledge-ui' },
       { text: 'Delegation Control', link: '/desktop/delegation-control' },
-      { text: 'Hook Capability Allowlists', link: '/desktop/hook-capability-allowlists' },
       { text: 'Contacts And Social', link: '/desktop/contacts-and-social' },
       { text: 'Profile', link: '/desktop/profile' },
       { text: 'Economy / Wallet', link: '/desktop/economy' },
@@ -185,11 +184,8 @@ const desktopGroups: DefaultTheme.SidebarItem[] = [
     ],
   },
   {
-    text: 'Mod And External AI',
+    text: 'External AI',
     items: [
-      { text: 'Mod Hub', link: '/desktop/mod-hub' },
-      { text: 'Mod Workspace', link: '/desktop/mod-workspace' },
-      { text: 'Mods (Governance)', link: '/desktop/mod-system' },
       { text: 'External Agent Access', link: '/desktop/external-agent' },
     ],
   },

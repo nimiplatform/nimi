@@ -19,7 +19,7 @@ function read(relativePath: string): string {
 }
 
 test('agent-friend-limit carries no hardcoded tier table or per-tier limit numbers', () => {
-  const source = read('shell/renderer/features/contacts/agent-friend-limit.ts');
+  const source = read('shell/renderer/features/relationship/agent-friend-limit.ts');
   // No per-tier quota table.
   assert.doesNotMatch(source, /LIMIT_BY_TIER/);
   // No subscription-tier literals as a quota source.
@@ -31,7 +31,7 @@ test('agent-friend-limit carries no hardcoded tier table or per-tier limit numbe
 });
 
 test('agent-friend-limit sources the limit from the backend projection', () => {
-  const source = read('shell/renderer/features/contacts/agent-friend-limit.ts');
+  const source = read('shell/renderer/features/relationship/agent-friend-limit.ts');
   // The limit is read from the backend agent-friend-limit projection,
   // not from the subscription status.
   assert.match(source, /dataSync\.loadAgentFriendLimit\(\)/);
@@ -39,7 +39,7 @@ test('agent-friend-limit sources the limit from the backend projection', () => {
 });
 
 test('agent-friend-limit fails closed with a typed unavailable state', () => {
-  const source = read('shell/renderer/features/contacts/agent-friend-limit.ts');
+  const source = read('shell/renderer/features/relationship/agent-friend-limit.ts');
   // A typed `unavailable` arm exists, and it is non-addable (fail-closed).
   assert.match(source, /status: 'unavailable'/);
   assert.match(source, /canAdd: false/);
@@ -48,7 +48,7 @@ test('agent-friend-limit fails closed with a typed unavailable state', () => {
 });
 
 test('the AgentFriendLimit type carries no subscription-tier field', () => {
-  const source = read('shell/renderer/features/contacts/agent-friend-limit.ts');
+  const source = read('shell/renderer/features/relationship/agent-friend-limit.ts');
   // The type declaration spans from `export type AgentFriendLimit =` up to the
   // `resolveAgentFriendLimit` function that follows it.
   const typeMatch = source.match(/export type AgentFriendLimit =[\s\S]*?(?=export async function)/);

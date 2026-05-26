@@ -4,7 +4,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `web-auth-menu.tsx` auth warning/error incl. onboarding pending | global banner | user_action | yes | `AUTH_COPY.onboardingPending`, auth errors | 登录页 warning/error 冒到全局 | `page_inline` | migrated | 现在落到 auth page footer inline，不再打全局 |
 
-## Contacts / Profile / Notification / Chat / Data Management
+## Relationship / Profile / Notification / Chat / Data Management
 
 | source | current surface | trigger | user initiated? | message key / literal | current behavior | target channel | keep? | reason |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |

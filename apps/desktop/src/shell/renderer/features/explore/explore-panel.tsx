@@ -6,7 +6,7 @@ import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-import { ContactDetailProfileModal, type ContactDetailProfileSeed } from '@renderer/features/contacts/contact-detail-profile-modal.js';
+import { ProfileDetailModal, type ProfileDetailSeed } from '@renderer/features/relationship/profile-detail-modal.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import { ExploreView } from './explore-view';
@@ -21,7 +21,7 @@ import {
 } from '../world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '../world/world-detail-route-state';
 import { QuickAddFriendModal } from './quick-add-friend-modal';
-import { resolveAgentFriendLimit } from '../contacts/agent-friend-limit';
+import { resolveAgentFriendLimit } from '../relationship/agent-friend-limit';
 import {
   loadRealmAgentSocialProjection,
   realmAgentSocialProjectionQueryKey,
@@ -192,7 +192,7 @@ function parseAgents(agentsResult: unknown, worldsMap: Map<string, { bannerUrl: 
 }
 
 function toProfileTargetFromAgent(agent: ExploreAgentCardData): PostCardAuthorProfileTarget {
-  const profileSeed: ContactDetailProfileSeed = {
+  const profileSeed: ProfileDetailSeed = {
     id: agent.id,
     displayName: agent.name,
     handle: agent.handle,
@@ -382,7 +382,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
   // friendState transitions to `friend` / `pending`.
   const onAddFriend = useCallback(async (agentId: string, message?: string) => {
     if (agentLimitQuery.data && !agentLimitQuery.data.canAdd) {
-      throw new Error(agentLimitQuery.data.reason || t('Contacts.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }));
+      throw new Error(agentLimitQuery.data.reason || t('Relationship.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }));
     }
     const target = agents.find((item) => item.id === agentId) ?? null;
     await addRealmAgentFriend(
@@ -427,7 +427,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
     );
   }, [agents, setActiveTab, setChatMode, setSelectedTargetForSource, setAgentConversationSelection]);
 
-  // `limit_reached` no longer routes to a retired Contacts page. Keep the
+  // `limit_reached` stays inline. Keep the
   // action fail-closed until an in-context management action is admitted.
   const onAgentManageFriends = useCallback(() => {
     setFeedback({
@@ -537,7 +537,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
           setSelectedAgentForGift(null);
         }}
       />
-      <ContactDetailProfileModal
+      <ProfileDetailModal
         open={Boolean(selectedProfileTarget)}
         profileId={selectedProfileTarget?.profileId || ''}
         profileSeed={selectedProfileTarget?.profileSeed || null}

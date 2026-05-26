@@ -9,7 +9,7 @@ import { CreatePostModal } from '@renderer/features/profile/create-post-modal.js
 import type { PostCardActionAdapter } from './post-card';
 
 function createOpenChatError(): Error {
-  return new Error(i18n.t('Contacts.openChatFailed', { defaultValue: 'Failed to open chat' }));
+  return new Error(i18n.t('Relationship.openChatFailed', { defaultValue: 'Failed to open chat' }));
 }
 
 export function usePostCardActionAdapter(): PostCardActionAdapter {

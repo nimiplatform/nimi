@@ -87,20 +87,20 @@ function Button({
 }
 
 export type ModelCenterProfileSectionProps = {
-  isModMode: boolean;
+  isProfileTargetMode: boolean;
   loadingProfilePlan: boolean;
-  selectedProfileModId: string;
+  selectedProfileTargetId: string;
   profileSelectionLocked: boolean;
   selectedProfileId: string;
   selectedProfileCapability: string;
   selectedProfileTarget: RuntimeProfileTargetDescriptor | null;
   executionPlanPreview: LocalRuntimeProfileResolutionPlan | null;
   runtimeProfileTargets: RuntimeProfileTargetDescriptor[];
-  onSetSelectedProfileModId: (modId: string) => void;
+  onSetSelectedProfileTargetId: (targetId: string) => void;
   onSetSelectedProfileId: (profileId: string) => void;
   onSetSelectedProfileCapability: (capability: string) => void;
   onResolveProfilePlanPreview: () => void;
-  onApplyProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyAccepted>;
+  onApplyProfile: (targetId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyAccepted>;
   variant?: 'card' | 'flat';
   state?: RuntimeConfigStateV11;
   onNavigateToSetup?: (pageId: RuntimePageIdV11) => void;
@@ -134,15 +134,15 @@ function ProfileSectionCard(props: ModelCenterProfileSectionProps & {
         <div className="flex items-center gap-2">
           <PackageIcon className="h-4 w-4 text-[var(--nimi-action-primary-bg)]" />
           <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {props.isModMode
+            {props.isProfileTargetMode
               ? t('runtimeConfig.local.modelProfiles', { defaultValue: 'Recommended Profiles' })
-              : t('runtimeConfig.mods.modProfiles', { defaultValue: 'Mod Profiles' })}
+              : t('runtimeConfig.profileTargets.profileSetup', { defaultValue: 'Profile Setup' })}
           </p>
         </div>
         <Button
           variant="secondary"
           size="sm"
-          disabled={props.loadingProfilePlan || !props.selectedProfileModId || !selectedProfile || capabilitySelectionMissing}
+          disabled={props.loadingProfilePlan || !props.selectedProfileTargetId || !selectedProfile || capabilitySelectionMissing}
           onClick={() => void props.onResolveProfilePlanPreview()}
           icon={<RefreshIcon />}
         >
@@ -154,7 +154,7 @@ function ProfileSectionCard(props: ModelCenterProfileSectionProps & {
 
       {props.runtimeProfileTargets.length <= 0 ? (
         <p className="text-xs text-[var(--nimi-text-muted)]">
-          {t('runtimeConfig.local.noProfileEnabledMod', { defaultValue: 'No profile-enabled runtime mod found.' })}
+          {t('runtimeConfig.local.noProfileEnabledTarget', { defaultValue: 'No profile-enabled target found.' })}
         </p>
       ) : (
         <>
@@ -162,25 +162,25 @@ function ProfileSectionCard(props: ModelCenterProfileSectionProps & {
             {props.profileSelectionLocked ? (
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
-                  {t('runtimeConfig.local.runtimeMod', { defaultValue: 'Runtime Mod' })}
+                  {t('runtimeConfig.local.runtimeProfileTarget', { defaultValue: 'Profile Target' })}
                 </label>
                 <div className="flex h-11 w-full items-center rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] px-3 text-sm text-[var(--nimi-text-primary)]">
                   {props.selectedProfileTarget?.modName
-                    || props.selectedProfileModId
-                    || t('runtimeConfig.local.unknownRuntimeMod', { defaultValue: 'Unknown runtime mod' })}
+                    || props.selectedProfileTargetId
+                    || t('runtimeConfig.local.unknownRuntimeProfileTarget', { defaultValue: 'Unknown profile target' })}
                 </div>
               </div>
             ) : (
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
-                  {t('runtimeConfig.local.runtimeMod', { defaultValue: 'Runtime Mod' })}
+                  {t('runtimeConfig.local.runtimeProfileTarget', { defaultValue: 'Profile Target' })}
                 </label>
                 <RuntimeSelect
-                  value={props.selectedProfileModId}
-                  onChange={props.onSetSelectedProfileModId}
+                  value={props.selectedProfileTargetId}
+                  onChange={props.onSetSelectedProfileTargetId}
                   className="w-full"
                   options={props.runtimeProfileTargets.map((target) => ({
-                    value: target.modId,
+                    value: target.targetId,
                     label: target.modName,
                   }))}
                 />
@@ -321,7 +321,7 @@ function ProfileSectionCard(props: ModelCenterProfileSectionProps & {
                     setApplyingProfile(true);
                     try {
                       const accepted = await props.onApplyProfile(
-                        props.selectedProfileModId,
+                        props.selectedProfileTargetId,
                         selectedProfile.id,
                         effectiveCapability || undefined,
                       );
@@ -375,14 +375,14 @@ function ProfileSectionFlat(props: ModelCenterProfileSectionProps & {
   return (
     <div className="space-y-5">
       <h4 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-        {props.isModMode
+        {props.isProfileTargetMode
           ? t('runtimeConfig.local.modelProfiles', { defaultValue: 'Recommended Profiles' })
-          : t('runtimeConfig.mods.modProfiles', { defaultValue: 'Mod Profiles' })}
+          : t('runtimeConfig.profileTargets.profileSetup', { defaultValue: 'Profile Setup' })}
       </h4>
 
       {props.runtimeProfileTargets.length <= 0 ? (
         <p className="text-xs text-[var(--nimi-text-muted)]">
-          {t('runtimeConfig.local.noProfileEnabledMod', { defaultValue: 'No profile-enabled runtime mod found.' })}
+          {t('runtimeConfig.local.noProfileEnabledTarget', { defaultValue: 'No profile-enabled target found.' })}
         </p>
       ) : (
         <>
@@ -391,25 +391,25 @@ function ProfileSectionFlat(props: ModelCenterProfileSectionProps & {
             {props.profileSelectionLocked ? (
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-[var(--nimi-text-secondary)]">
-                  {t('runtimeConfig.local.runtimeMod', { defaultValue: 'Runtime Mod' })}
+                  {t('runtimeConfig.local.runtimeProfileTarget', { defaultValue: 'Profile Target' })}
                 </label>
                 <div className="flex h-10 w-full items-center rounded-lg bg-[#F9FAFB] px-3 text-sm text-[var(--nimi-text-primary)]">
                   {props.selectedProfileTarget?.modName
-                    || props.selectedProfileModId
-                    || t('runtimeConfig.local.unknownRuntimeMod', { defaultValue: 'Unknown runtime mod' })}
+                    || props.selectedProfileTargetId
+                    || t('runtimeConfig.local.unknownRuntimeProfileTarget', { defaultValue: 'Unknown profile target' })}
                 </div>
               </div>
             ) : (
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-[var(--nimi-text-secondary)]">
-                  {t('runtimeConfig.local.runtimeMod', { defaultValue: 'Runtime Mod' })}
+                  {t('runtimeConfig.local.runtimeProfileTarget', { defaultValue: 'Profile Target' })}
                 </label>
                 <RuntimeSelect
-                  value={props.selectedProfileModId}
-                  onChange={props.onSetSelectedProfileModId}
+                  value={props.selectedProfileTargetId}
+                  onChange={props.onSetSelectedProfileTargetId}
                   className="w-full"
                   options={props.runtimeProfileTargets.map((target) => ({
-                    value: target.modId,
+                    value: target.targetId,
                     label: target.modName,
                   }))}
                 />
@@ -537,7 +537,7 @@ function ProfileSectionFlat(props: ModelCenterProfileSectionProps & {
                         {dep.met ? (
                           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--nimi-status-success)]">
                             <CheckIcon className="h-3 w-3" />
-                            {t('runtimeConfig.mods.ready', { defaultValue: 'Ready' })}
+                            {t('runtimeConfig.profileTargets.ready', { defaultValue: 'Ready' })}
                           </span>
                         ) : (
                           <>
@@ -553,7 +553,7 @@ function ProfileSectionFlat(props: ModelCenterProfileSectionProps & {
                                 onClick={() => props.onNavigateToSetup!(entry.kind === 'service' ? 'cloud' as const : 'models' as const)}
                               >
                                 <DownloadIcon />
-                                {t('runtimeConfig.mods.setup', { defaultValue: 'Setup' })}
+                                {t('runtimeConfig.profileTargets.setup', { defaultValue: 'Setup' })}
                               </button>
                             ) : null}
                           </>

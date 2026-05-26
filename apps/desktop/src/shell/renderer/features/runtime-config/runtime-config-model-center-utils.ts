@@ -21,16 +21,16 @@ export type LocalModelCenterProps = {
   discovering: boolean;
   checkingHealth: boolean;
   displayMode?: 'runtime' | 'mod';
-  lockedProfileModId?: string;
+  lockedProfileTargetId?: string;
   runtimeProfileTargets: RuntimeProfileTargetDescriptor[];
-  selectedProfileModId?: string;
-  onSelectProfileModId?: (modId: string) => void;
+  selectedProfileTargetId?: string;
+  onSelectProfileTargetId?: (targetId: string) => void;
   localModelQuery: string;
   filteredLocalModels: string[];
   onDiscover: () => Promise<void>;
   onHealthCheck: () => Promise<void>;
-  onResolveProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileResolutionPlan>;
-  onApplyProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyAccepted>;
+  onResolveProfile: (targetId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileResolutionPlan>;
+  onApplyProfile: (targetId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyAccepted>;
   onInstallCatalogItem: (
     item: LocalRuntimeCatalogItemDescriptor,
     options?: {
@@ -320,13 +320,13 @@ export function pruneProgressSessions(
 
 export function resolveSelectedRuntimeProfileTarget(
   runtimeProfileTargets: RuntimeProfileTargetDescriptor[],
-  selectedProfileModId: string | undefined,
+  selectedProfileTargetId: string | undefined,
 ): RuntimeProfileTargetDescriptor | null {
-  const modId = String(selectedProfileModId || '').trim();
-  if (!modId) {
+  const targetId = String(selectedProfileTargetId || '').trim();
+  if (!targetId) {
     return null;
   }
-  return runtimeProfileTargets.find((target) => target.modId === modId) || null;
+  return runtimeProfileTargets.find((target) => target.targetId === targetId) || null;
 }
 
 export function resolveProfileCapabilityOptions(
@@ -362,9 +362,9 @@ export function normalizeSelectedProfileCapability(
 
 export function shouldShowRuntimeProfileInstallSection(
   runtimeProfileTargets: RuntimeProfileTargetDescriptor[],
-  selectedProfileModId: string | undefined,
+  selectedProfileTargetId: string | undefined,
 ): boolean {
-  const target = resolveSelectedRuntimeProfileTarget(runtimeProfileTargets, selectedProfileModId);
+  const target = resolveSelectedRuntimeProfileTarget(runtimeProfileTargets, selectedProfileTargetId);
   return Boolean(target && target.profiles.length > 0);
 }
 

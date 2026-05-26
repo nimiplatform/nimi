@@ -15,7 +15,7 @@ const chatPageSource = readWorkspace('src/shell/renderer/features/chat/chat-page
 const chatAiModeContentSource = readWorkspace('src/shell/renderer/features/chat/chat-nimi-mode-content.tsx');
 const chatAgentModeContentSource = readWorkspace('src/shell/renderer/features/chat/chat-agent-mode-content.tsx');
 const chatHumanModeContentSource = readWorkspace('src/shell/renderer/features/chat/chat-human-mode-content.tsx');
-const chatContactsSidebarSource = readWorkspace('src/shell/renderer/features/chat/chat-contacts-sidebar.tsx');
+const chatRelationshipRailSource = readWorkspace('src/shell/renderer/features/chat/chat-relationship-rail.tsx');
 const runtimePanelSource = readWorkspace('src/shell/renderer/features/runtime-config/runtime-config-panel-view.tsx');
 const settingsPanelSource = readWorkspace('src/shell/renderer/features/settings/settings-panel-body.tsx');
 const sidebarPrimitiveSource = readRepo('kit/ui/src/components/sidebar.tsx');
@@ -25,7 +25,7 @@ const compositionsTable = readRepo('.nimi/spec/desktop/kernel/tables/nimi-kit-co
 const designContractSource = readRepo('.nimi/spec/platform/kernel/design-pattern-contract.md');
 const designOverviewSource = readRepo('.nimi/spec/platform/design-pattern.md');
 
-test('desktop kit registries align with the desktop chat contact rail refactor', () => {
+test('desktop kit registries align with the desktop chat relationship rail refactor', () => {
   assert.doesNotMatch(adoptionTable, /features\/chats\/chat-list\.tsx/);
   assert.doesNotMatch(adoptionTable, /id: desktop\.contacts\.sidebar/);
   assert.doesNotMatch(adoptionTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/contacts\/contacts-view\.tsx/);
@@ -33,9 +33,9 @@ test('desktop kit registries align with the desktop chat contact rail refactor',
   assert.match(adoptionTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/runtime-config\/runtime-config-panel-view\.tsx/);
   assert.match(adoptionTable, /id: desktop\.settings\.sidebar/);
   assert.match(adoptionTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/settings\/settings-panel-body\.tsx/);
-  assert.match(compositionsTable, /id: desktop\.chat\.contact_rail/);
-  assert.match(compositionsTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/chat\/chat-contacts-sidebar\.tsx/);
-  assert.match(compositionsTable, /component: ChatContactsSidebar/);
+  assert.match(compositionsTable, /id: desktop\.chat\.relationship_rail/);
+  assert.match(compositionsTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/chat\/chat-relationship-rail\.tsx/);
+  assert.match(compositionsTable, /component: ChatRelationshipRail/);
   assert.match(compositionsTable, /classification: app_owned_composition/);
 });
 
@@ -64,8 +64,8 @@ test('governed sidebar modules import and use the shared sidebar primitive', () 
   assert.match(settingsPanelSource, /SidebarResizeHandle/);
 });
 
-test('chat surface composes the canonical shell with an app-owned contact rail', () => {
-  assert.match(chatPageSource, /ChatContactsSidebar/);
+test('chat surface composes the canonical shell with an app-owned relationship rail', () => {
+  assert.match(chatPageSource, /ChatRelationshipRail/);
   assert.match(chatPageSource, /ChatHumanModeContent/);
   assert.match(chatPageSource, /ChatNimiModeContent/);
   assert.match(chatPageSource, /ChatAgentModeContent/);
@@ -73,9 +73,9 @@ test('chat surface composes the canonical shell with an app-owned contact rail',
   for (const source of [chatHumanModeContentSource, chatAiModeContentSource, chatAgentModeContentSource]) {
     assert.match(source, /CanonicalConversationShell/);
   }
-  assert.match(chatContactsSidebarSource, /E2E_IDS\.chatList/);
-  assert.match(chatContactsSidebarSource, /E2E_IDS\.chatRow/);
-  assert.doesNotMatch(chatContactsSidebarSource, /components\/sidebar\.js/);
+  assert.match(chatRelationshipRailSource, /E2E_IDS\.chatList/);
+  assert.match(chatRelationshipRailSource, /E2E_IDS\.chatRow/);
+  assert.doesNotMatch(chatRelationshipRailSource, /components\/sidebar\.js/);
 });
 
 test('shared sidebar primitive exports the required public surface', () => {

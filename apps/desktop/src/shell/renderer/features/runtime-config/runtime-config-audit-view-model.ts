@@ -72,7 +72,7 @@ export function resolveAuditPolicyGate(event: LocalRuntimeAuditEvent): string {
 
 export function resolveAuditLabel(event: LocalRuntimeAuditEvent): string {
   const source = resolveAuditSource(event);
-  const modId = payloadValue(event, 'modId');
+  const targetId = payloadValue(event, 'targetId');
   const model = String(event.modelId || '').trim() || payloadValue(event, 'model');
   const modality = resolveAuditModality(event);
   const parts = [
@@ -80,7 +80,7 @@ export function resolveAuditLabel(event: LocalRuntimeAuditEvent): string {
     source || '-',
     modality || '-',
     model || '-',
-    modId || '-',
+    targetId || '-',
   ];
   return parts.join(' · ');
 }

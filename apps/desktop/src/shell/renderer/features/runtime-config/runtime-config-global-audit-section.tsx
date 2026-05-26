@@ -167,7 +167,6 @@ export function GlobalAuditSection({
           options={[
             { value: String(0), label: t('runtimeConfig.runtime.allCallers', { defaultValue: 'All callers' }) },
             { value: String(CallerKind.DESKTOP_CORE), label: t('runtimeConfig.runtime.desktopCore', { defaultValue: 'Desktop Core' }) },
-            { value: String(CallerKind.DESKTOP_MOD), label: t('runtimeConfig.runtime.desktopMod', { defaultValue: 'Desktop Mod' }) },
             { value: String(CallerKind.THIRD_PARTY_APP), label: t('runtimeConfig.runtime.thirdPartyApp', { defaultValue: 'Third-Party App' }) },
             { value: String(CallerKind.THIRD_PARTY_SERVICE), label: t('runtimeConfig.runtime.thirdPartyService', { defaultValue: 'Third-Party Service' }) },
           ]}

@@ -54,12 +54,12 @@ export type RuntimeConfigInstallActions = {
     source: 'catalog' | 'manual' | 'verified',
   ) => void;
   resolveRuntimeProfile: (
-    modId: string,
+    targetId: string,
     profileId: string,
     capability?: string,
   ) => Promise<LocalRuntimeProfileResolutionPlan>;
   applyRuntimeProfile: (
-    modId: string,
+    targetId: string,
     profileId: string,
     capability?: string,
   ) => Promise<LocalRuntimeProfileApplyAccepted>;
@@ -139,9 +139,9 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
             kind: 'success',
             message: translateRuntimeLocalText(
               'runtimeConfig.local.profileAppliedSummary',
-              'Installed profile {{profileId}} for {{modId}}: {{modelCount}} runnable asset(s), {{serviceCount}} service(s), {{dependencyAssetCount}} dependency asset(s)',
+              'Installed profile {{profileId}} for {{targetId}}: {{modelCount}} runnable asset(s), {{serviceCount}} service(s), {{dependencyAssetCount}} dependency asset(s)',
               {
-                modId: event.modId,
+                targetId: event.targetId,
                 profileId: event.profileId,
                 modelCount: event.result.executionResult.installedAssets.length,
                 serviceCount: event.result.executionResult.services.length,
@@ -229,12 +229,12 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     });
   }, [runInstallPlanLifecycle, setStatusBanner]);
 
-  const findManifestProfilesByModId = useCallback((modId: string): LocalRuntimeProfileDescriptor[] => {
-    const normalizedModId = String(modId || '').trim();
-    if (!normalizedModId) {
+  const findManifestProfilesByTargetId = useCallback((targetId: string): LocalRuntimeProfileDescriptor[] => {
+    const normalizedTargetId = String(targetId || '').trim();
+    if (!normalizedTargetId) {
       return [];
     }
-    const summary = localManifestSummaries.find((item) => String(item.id || '').trim() === normalizedModId) || null;
+    const summary = localManifestSummaries.find((item) => String(item.id || '').trim() === normalizedTargetId) || null;
     if (!summary) {
       return [];
     }
@@ -244,31 +244,31 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   }, [localManifestSummaries]);
 
   const resolveRuntimeProfile = useCallback(async (
-    modId: string,
+    targetId: string,
     profileId: string,
     capability?: string,
   ): Promise<LocalRuntimeProfileResolutionPlan> => {
-    const profiles = findManifestProfilesByModId(modId);
+    const profiles = findManifestProfilesByTargetId(targetId);
     const profile = findLocalRuntimeProfileById(profiles, profileId);
     if (!profile) {
-      throw new Error(`profile missing in manifest: ${modId}/${profileId}`);
+      throw new Error(`profile missing in manifest: ${targetId}/${profileId}`);
     }
     return localRuntime.resolveProfile({
-      modId,
+      targetId,
       profile,
       capability: String(capability || '').trim() || undefined,
     });
-  }, [findManifestProfilesByModId]);
+  }, [findManifestProfilesByTargetId]);
 
   const applyRuntimeProfile = useCallback(async (
-    modId: string,
+    targetId: string,
     profileId: string,
     capability?: string,
   ): Promise<LocalRuntimeProfileApplyAccepted> => {
     try {
       assertRuntimeWriteAllowed();
-      const plan = await resolveRuntimeProfile(modId, profileId, capability);
-      const confirmMessage = `Install recommended local profile "${plan.title}" for ${modId}?`;
+      const plan = await resolveRuntimeProfile(targetId, profileId, capability);
+      const confirmMessage = `Install recommended local profile "${plan.title}" for ${targetId}?`;
       if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(confirmMessage)) {
         throw new Error('LOCAL_AI_PROFILE_INSTALL_DECLINED');
       }
@@ -277,9 +277,9 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
         kind: 'info',
         message: translateRuntimeLocalText(
           'runtimeConfig.local.profileApplyQueued',
-          'Profile {{profileId}} queued for {{modId}}.',
+          'Profile {{profileId}} queued for {{targetId}}.',
           {
-            modId,
+            targetId: targetId,
             profileId,
           },
         ),

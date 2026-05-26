@@ -67,7 +67,7 @@ const tauriModelIndexPath = path.resolve(
   process.cwd(),
   'src-tauri/src/local_runtime/model_index.rs',
 );
-const tauriLocalRuntimeModPath = path.resolve(
+const tauriLocalRuntimePackagePath = path.resolve(
   process.cwd(),
   'src-tauri/src/local_runtime/mod.rs',
 );
@@ -86,7 +86,7 @@ const runtimeBootstrapRouteOptionsSource = readFileSync(runtimeBootstrapRouteOpt
 const runtimeBootstrapRouteResolversSource = readFileSync(runtimeBootstrapRouteResolversPath, 'utf-8');
 const tauriCommandsSource = readFileSync(tauriCommandsPath, 'utf-8');
 const tauriModelIndexSource = readFileSync(tauriModelIndexPath, 'utf-8');
-const tauriLocalRuntimeModSource = readFileSync(tauriLocalRuntimeModPath, 'utf-8');
+const tauriLocalRuntimePackageSource = readFileSync(tauriLocalRuntimePackagePath, 'utf-8');
 const desktopReadmeSource = readFileSync(path.resolve(process.cwd(), 'README.md'), 'utf-8');
 
 test('local model center installed list is status-only and no longer renders a lifecycle toggle', () => {
@@ -284,10 +284,10 @@ test('local model tauri lifecycle commands run on a background blocking task', (
 });
 
 test('local runtime cleanup removes host-local registry and supervisor modules from shipped paths', () => {
-  assert.doesNotMatch(tauriLocalRuntimeModSource, /mod asset_registry;/);
-  assert.doesNotMatch(tauriLocalRuntimeModSource, /mod supervisor;/);
-  assert.match(tauriLocalRuntimeModSource, /#\[cfg\(test\)\]\s*mod engine_host;/);
-  assert.match(tauriLocalRuntimeModSource, /#\[cfg\(test\)\]\s*mod engine_pack;/);
+  assert.doesNotMatch(tauriLocalRuntimePackageSource, /mod asset_registry;/);
+  assert.doesNotMatch(tauriLocalRuntimePackageSource, /mod supervisor;/);
+  assert.match(tauriLocalRuntimePackageSource, /#\[cfg\(test\)\]\s*mod engine_host;/);
+  assert.match(tauriLocalRuntimePackageSource, /#\[cfg\(test\)\]\s*mod engine_pack;/);
   assert.doesNotMatch(tauriModelIndexSource, /list_runnable_assets/);
   assert.match(tauriModelIndexSource, /load_state\(app\)/);
 });

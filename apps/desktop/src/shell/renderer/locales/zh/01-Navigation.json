@@ -1,14 +1,11 @@
 {
   "home": "首页",
   "chat": "聊天",
-  "contacts": "联系人",
   "explore": "探索",
   "apps": "应用",
   "runtime": "运行时",
   "settings": "设置",
   "support": "支持",
-  "mods": "Mods",
   "notifications": "通知",
-  "profile": "个人主页",
-  "noMods": "暂无可用模块"
+  "profile": "个人主页"
 }

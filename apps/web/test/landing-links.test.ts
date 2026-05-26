@@ -31,10 +31,9 @@ test('landing links accept same-origin app-relative paths', () => {
   assert.equal(links.webAppUrl, '/#/');
 });
 
-test('landing links include desktopDownloadUrl and modDocsUrl defaults', () => {
+test('landing links include desktopDownloadUrl default', () => {
   const links = resolveLandingLinks({});
   assert.equal(links.appUrl, 'https://docs.nimi.ai/start/');
   assert.equal(links.webAppUrl, '/login');
   assert.equal(links.desktopDownloadUrl, 'https://docs.nimi.ai/desktop/');
-  assert.equal(links.modDocsUrl, 'https://docs.nimi.ai/desktop/mod-system');
 });

@@ -216,7 +216,7 @@ test('renderer translation key usages resolve in en locale', async () => {
   const en = readDesktopLocale('en');
   const enKeys = new Set(flattenLocaleKeys(en));
   const sourceFiles = await collectRendererSourceFiles(RENDERER_ROOT);
-  const directKeyPattern = /\b(?:i18n\.t|t|tModHub|deps\.translate)\(\s*['"]([^'"]+)['"]/g;
+  const directKeyPattern = /\b(?:i18n\.t|t|deps\.translate)\(\s*['"]([^'"]+)['"]/g;
   const seenKeys = new Set<string>();
 
   for (const filePath of sourceFiles) {
@@ -254,22 +254,6 @@ test('known dynamic desktop locale keys exist in both locales', async () => {
     'Menu.termsOfService',
     'Menu.privacyPolicy',
     'Menu.logout',
-    'ModHub.statusFailed',
-    'ModHub.statusConflict',
-    'ModHub.statusUpdateReady',
-    'ModHub.statusEnabled',
-    'ModHub.statusDisabled',
-    'ModHub.statusAvailable',
-    'ModHub.actionInstall',
-    'ModHub.actionUpdate',
-    'ModHub.actionOpen',
-    'ModHub.actionEnable',
-    'ModHub.actionDisable',
-    'ModHub.actionRemove',
-    'ModHub.actionRetry',
-    'ModHub.actionOpenFolder',
-    'ModHub.actionSettings',
-    'ModHub.actionLoading',
     'NotificationPanel.filters.all',
     'NotificationPanel.filters.gift',
     'NotificationPanel.filters.request',

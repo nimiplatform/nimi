@@ -293,51 +293,6 @@ export function renderStoreSlices(doc) {
   return `${out}\n`;
 }
 
-export function renderHookSubsystems(doc) {
-  const subsystems = doc?.subsystems || [];
-  let out = '| 子系统 | Namespace | 描述 |\n|---|---|---|\n';
-  for (const subsystem of subsystems) {
-    out += `| ${subsystem.name} | ${subsystem.namespace || subsystem.capability_prefix || '—'} | ${subsystem.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-export function renderUiSlots(doc) {
-  const slots = doc?.slots || [];
-  let out = '| 槽位 | 描述 |\n|---|---|\n';
-  for (const slot of slots) {
-    out += `| ${slot.slot || slot.slot_id} | ${slot.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-export function renderTurnHookPoints(doc) {
-  const points = doc?.points || [];
-  let out = '| Hook Point | 执行顺序 | 描述 |\n|---|---|---|\n';
-  for (const point of points) {
-    out += `| ${point.point || point.name} | ${point.order || '—'} | ${point.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-export function renderModLifecycleStates(doc) {
-  const states = doc?.states || [];
-  let out = '| 状态 | 描述 |\n|---|---|\n';
-  for (const state of states) {
-    out += `| ${state.state} | ${state.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-export function renderModKernelStages(doc) {
-  const stages = doc?.stages || [];
-  let out = '| 阶段 | 顺序 | 描述 |\n|---|---|---|\n';
-  for (const stage of stages) {
-    out += `| ${stage.stage || stage.name} | ${stage.order || '—'} | ${stage.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
 export function renderFeatureFlags(doc) {
   const flags = doc?.flags || [];
   let out = '| Flag | Desktop 默认 | Web 默认 | 描述 |\n|---|---|---|---|\n';
@@ -384,30 +339,11 @@ export function renderLogAreas(doc) {
   return `${out}\n`;
 }
 
-export function renderHookCapabilityAllowlists(doc) {
-  const allowlists = doc?.source_types || doc?.allowlists || [];
-  let out = '| Source Type | 能力模式 | 描述 |\n|---|---|---|\n';
-  for (const allowlist of allowlists) {
-    const patterns = allowlist.allowlist || allowlist.patterns || [];
-    out += `| ${allowlist.source_type} | ${Array.isArray(patterns) ? patterns.join(', ') : '—'} | ${allowlist.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
 export function renderBuildChunks(doc) {
   const chunks = doc?.chunks || [];
   let out = '| Chunk | 路由模式 | 描述 |\n|---|---|---|\n';
   for (const chunk of chunks) {
     out += `| ${chunk.name} | ${chunk.route_pattern || chunk.pattern || '—'} | ${chunk.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-export function renderModAccessModes(doc) {
-  const modes = doc?.modes || [];
-  let out = '| 模式 | 描述 |\n|---|---|\n';
-  for (const mode of modes) {
-    out += `| ${mode.name || mode.mode} | ${mode.description || '—'} |\n`;
   }
   return `${out}\n`;
 }
@@ -551,14 +487,14 @@ export const sdkKernelFiles = [
   'error-projection.md', 'boundary-contract.md',
   'runtime-contract.md', 'world-evolution-engine-projection-contract.md',
   'realm-contract.md', 'ai-provider-contract.md',
-  'scope-contract.md', 'mod-contract.md', 'testing-gates-contract.md',
+  'scope-contract.md', 'testing-gates-contract.md',
   'ai-config-surface-contract.md',
 ];
 
 export const desktopKernelFiles = [
   'bootstrap-contract.md', 'bridge-ipc-contract.md', 'state-contract.md',
-  'auth-session-contract.md', 'data-sync-contract.md', 'hook-capability-contract.md',
-  'mod-governance-contract.md', 'llm-adapter-contract.md', 'ui-shell-contract.md',
+  'auth-session-contract.md', 'data-sync-contract.md',
+  'llm-adapter-contract.md', 'ui-shell-contract.md',
   'error-boundary-contract.md', 'telemetry-contract.md', 'network-contract.md',
   'security-contract.md', 'streaming-consumption-contract.md', 'offline-degradation-contract.md',
   'codegen-contract.md', 'testing-gates-contract.md',

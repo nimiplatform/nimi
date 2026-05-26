@@ -2,6 +2,8 @@ import { normalizeOperationId } from './legacy-normalization.mjs';
 import { normalizeTagToService } from './operation-naming.mjs';
 
 const ORIGINAL_OPERATION_ID_FIELD = 'x-nimi-sdk-original-operation-id';
+const RETIRED_CONTROL_PATH_PREFIX = ['api', 'creator', 'mods'].join('/');
+const RETIRED_CONTROL_SCHEMA = /^Creator(?:Mod|Mods)(?:Controller|Control)/u;
 
 function resolveServiceName(operation) {
   const tags = Array.isArray(operation?.tags) ? operation.tags.filter(Boolean) : [];
@@ -37,6 +39,7 @@ function buildUniqueOperationId(baseId, service, index) {
 }
 
 export function normalizeRealmOpenApiSpec(spec) {
+  removeRetiredModsControlPlane(spec);
   const operations = collectOperations(spec);
   const groups = new Map();
 
@@ -70,4 +73,24 @@ export function normalizeRealmOpenApiSpec(spec) {
   }
 
   return spec;
+}
+
+function removeRetiredModsControlPlane(spec) {
+  const paths = spec?.paths;
+  if (paths && typeof paths === 'object') {
+    for (const pathName of Object.keys(paths)) {
+      if (pathName.slice(1).startsWith(RETIRED_CONTROL_PATH_PREFIX)) {
+        delete paths[pathName];
+      }
+    }
+  }
+
+  const schemas = spec?.components?.schemas;
+  if (schemas && typeof schemas === 'object') {
+    for (const schemaName of Object.keys(schemas)) {
+      if (RETIRED_CONTROL_SCHEMA.test(schemaName)) {
+        delete schemas[schemaName];
+      }
+    }
+  }
 }

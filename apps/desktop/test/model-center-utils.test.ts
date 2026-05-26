@@ -233,13 +233,13 @@ describe('formatDownloadPhaseLabel', () => {
 describe('runtime profile target selection', () => {
   const targets = [
     {
-      modId: 'world.nimi.mod-a',
+      targetId: 'world.nimi.profile-a',
       modName: 'Mod A',
       consumeCapabilities: ['chat'],
       profiles: [{ id: 'a-default', title: 'A Default', recommended: true, consumeCapabilities: ['chat'], entries: [] }],
     },
     {
-      modId: 'world.nimi.mod-b',
+      targetId: 'world.nimi.profile-b',
       modName: 'Mod B',
       consumeCapabilities: ['image'],
       profiles: [{ id: 'b-default', title: 'B Default', recommended: true, consumeCapabilities: ['image'], entries: [] }],
@@ -247,8 +247,8 @@ describe('runtime profile target selection', () => {
   ];
 
   test('returns only the selected mod target', () => {
-    const selected = resolveSelectedRuntimeProfileTarget(targets as never, 'world.nimi.mod-b');
-    assert.equal(selected?.modId, 'world.nimi.mod-b');
+    const selected = resolveSelectedRuntimeProfileTarget(targets as never, 'world.nimi.profile-b');
+    assert.equal(selected?.targetId, 'world.nimi.profile-b');
     assert.equal(selected?.profiles[0]?.id, 'b-default');
   });
 

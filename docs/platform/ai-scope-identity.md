@@ -3,10 +3,9 @@
 ## Status: Admitted, in build-out
 
 `AIScopeRef` is admitted at the kernel level
-(`P-AISC-001..P-AISC-005`). Phase 1 mod-scoped AI configuration is
-running today; remaining scope kinds (app, module, feature) are
-admitted as direction with their consumer surfaces in active
-build-out.
+(`P-AISC-001..P-AISC-005`). App-owned scope identity is the active
+product path; module and feature scopes are admitted only when those
+entities are canonical AI owners.
 
 ## What `AIScopeRef` Is
 
@@ -16,7 +15,7 @@ stable, unique key that does not depend on transient UI state.
 
 ```
 AIScopeRef {
-  kind: 'app' | 'mod' | 'module' | 'feature'
+  kind: 'app' | 'module' | 'feature'
   ownerId: string
   surfaceId?: string
 }
@@ -30,34 +29,32 @@ across the entire system.
 | `kind` | Owner identity | Notes |
 | --- | --- | --- |
 | `app` | App identity | `surfaceId` may identify an independent AI feature surface inside the app |
-| `mod` | Stable mod manifest id | Must NOT use route page id, tab key, conversation id, document id, project id, prompt config id, or profile id |
 | `module` | Independent module identity | Only when the module itself is a canonical owner |
-| `feature` | Cross-app/mod reusable feature owner | Must not fragment what should be mod-owned AI truth |
+| `feature` | Cross-app reusable feature owner | Must not fragment what should be app-owned AI truth |
 
-The kind enum is **closed**. Apps, mods, and consumers cannot invent
-a fifth kind.
+The kind enum is **closed**. Apps and consumers cannot invent another
+kind.
 
-## Phase 1 Mod-Scoped Canonical Shape
+## Canonical App-Scoped Shape
 
-The canonical shape for Phase 1 mod-scoped AI configuration is fixed:
+The canonical shape for app-owned AI configuration is fixed:
 
 ```
 AIScopeRef {
-  kind: 'mod'
-  ownerId: <stable mod manifest id>
-  surfaceId: 'workspace'
+  kind: 'app'
+  ownerId: <stable app id>
+  surfaceId: <stable surface id>
 }
 ```
 
-`surfaceId: 'workspace'` represents the mod's single canonical AI
-workspace. Until a later kernel rule explicitly defines alternatives,
-mod-scoped AI configuration consumers must not omit `surfaceId` and
-must not invent replacement values.
+`surfaceId` is present only when one app owns multiple independent AI
+configuration surfaces. It must be stable and product-defined; callers
+must not derive it from transient tabs, sessions, prompts, or route ids.
 
 ## Why Scope Identity Matters
 
 Without a canonical scope identity, the platform ends up with a mess
-of ad-hoc keys: "this AI config belongs to tab 3 of mod foo session
+of ad-hoc keys: "this AI config belongs to tab 3 of app foo session
 A" — keys that depend on UI state, that cannot survive app restart,
 that cannot be consistently looked up across surfaces.
 
@@ -66,8 +63,8 @@ that cannot be consistently looked up across surfaces.
 | Rule | What it prevents |
 | --- | --- |
 | Closed `kind` enum | Consumers cannot invent new scope kinds |
-| Stable mod manifest id required | UI-local keys cannot become AI scope identity |
-| Single canonical workspace per mod by default | Tab / session / thread proliferation cannot create silent scope explosion |
+| Stable owner id required | UI-local keys cannot become AI scope identity |
+| Stable app surface identity | Tab / session / thread proliferation cannot create silent scope explosion |
 | No implicit inheritance | Scope A's config does not silently fall back to scope B |
 | Owner-driven lifecycle | Scope creation / destruction binds to owner entity lifecycle |
 
@@ -98,14 +95,14 @@ Consumers must not extend `AIScopeRef` schema with consumer-local
 fields. Annotation needs go in independent consumer-local annotation
 records — never by mutating `AIScopeRef`.
 
-## Reader Scenario: A Mod Configures Its AI Workspace
+## Reader Scenario: An App Configures Its AI Surface
 
-A mod author writes a mod that uses AI in a workspace surface.
+An app owns a workspace surface that uses AI.
 
-1. **Manifest identity.** The mod ships with a stable manifest id
-   (e.g., `com.example.notes`).
-2. **Scope identity.** Desktop bridges the mod's AI configuration
-   under `AIScopeRef{ kind: 'mod', ownerId: 'com.example.notes',
+1. **App identity.** The app has a stable app id
+   (e.g., `nimi.shijing`).
+2. **Scope identity.** The app applies AI configuration under
+   `AIScopeRef{ kind: 'app', ownerId: 'nimi.shijing',
    surfaceId: 'workspace' }`.
 3. **Profile apply.** User picks a profile in the AI config UI;
    profile applies (copy-on-write) into the workspace scope's
@@ -113,14 +110,14 @@ A mod author writes a mod that uses AI in a workspace surface.
 4. **Persistence.** Config is keyed by the canonical scope identity;
    it survives app restart.
 
-## Reader Scenario: A Mod With Multiple Workspaces (Rare)
+## Reader Scenario: An App With Multiple AI Surfaces
 
-Suppose a mod genuinely hosts multiple first-class AI workspaces —
+Suppose an app genuinely hosts multiple first-class AI surfaces —
 each with its own profile apply / probe / snapshot history.
 
-1. **Explicit scope expansion.** The mod admits multiple
-   `AIScopeRef{ kind: 'mod', ownerId: <manifest>, surfaceId: <stable
-   workspace name> }` instances.
+1. **Explicit scope expansion.** The app admits multiple
+   `AIScopeRef{ kind: 'app', ownerId: <app id>, surfaceId: <stable
+   surface name> }` instances.
 2. **Stable workspace names.** Surfaces must be human-recognizable;
    `surfaceId` is not a transient ui key.
 3. **Not per-tab / per-session / per-document.** If the user is just
@@ -132,10 +129,10 @@ proliferation breaks the stability that makes config reliable.
 
 ## Reader Scenario: Scope Lifecycle Bound To Owner
 
-A user uninstalls a mod.
+A user uninstalls an app.
 
-1. **Owner entity destroyed.** The mod manifest is removed.
-2. **Scope destroyed.** All `AIScopeRef` instances tied to that mod
+1. **Owner entity destroyed.** The app package is removed.
+2. **Scope destroyed.** All `AIScopeRef` instances tied to that app
    are destroyed in lockstep.
 3. **Bound `AIConfig` cleaned.** Config tied to the destroyed scope
    is invalidated or cleaned. No dangling configs survive.
@@ -155,7 +152,7 @@ A user uninstalls a mod.
 | Concern | Owner |
 | --- | --- |
 | `AIScopeRef` schema + identity rules | Platform (`P-AISC-*`) |
-| `AIConfig` storage keyed by `AIScopeRef` | Desktop kernel |
+| AIConfig intent keyed by `AIScopeRef` | Scope owner through SDK projection |
 | Scope parameter on SDK config / profile / snapshot APIs | SDK kernel |
 | Execution snapshot scope evidence | Runtime kernel |
 

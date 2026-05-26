@@ -7,9 +7,9 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar';
 import { toProfileData, type ProfileData, type ProfileSource } from '@renderer/features/profile/profile-model';
 import {
-  ContactDetailProfileModal,
-  type ContactDetailProfileSeed,
-} from '@renderer/features/contacts/contact-detail-profile-modal.js';
+  ProfileDetailModal,
+  type ProfileDetailSeed,
+} from '@renderer/features/relationship/profile-detail-modal.js';
 
 export type ChatComposerLeadingAvatarPreviewTarget = {
   targetId: string;
@@ -166,7 +166,7 @@ function ChatComposerAvatarHoverPreview(props: {
     ? t('Chat.composerAvatarOpenAgent', { defaultValue: 'Open agent profile' })
     : t('Chat.composerAvatarOpenContact', { defaultValue: 'Open profile' });
 
-  const profileSeed: ContactDetailProfileSeed | null = profileModalOpen
+  const profileSeed: ProfileDetailSeed | null = profileModalOpen
     ? {
         id: props.targetId,
         displayName: props.name,
@@ -218,7 +218,7 @@ function ChatComposerAvatarHoverPreview(props: {
         </PopoverContent>
       </Popover>
       {profileModalOpen ? (
-        <ContactDetailProfileModal
+        <ProfileDetailModal
           open
           profileId={props.targetId}
           profileSeed={profileSeed}

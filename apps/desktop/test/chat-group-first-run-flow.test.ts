@@ -8,18 +8,18 @@ function readWorkspaceFile(relativePath: string): string {
 }
 
 const chatPageSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-page.tsx');
-const chatContactsSidebarSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-contacts-sidebar.tsx');
+const chatRelationshipRailSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-relationship-rail.tsx');
 const chatGroupAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-adapter.tsx');
 const chatGroupModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-mode-content.tsx');
 const chatGroupCreateModalSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-create-modal.tsx');
 const chatGroupCreateControllerSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-create-controller.tsx');
 const e2eIdsSource = readWorkspaceFile('src/shell/renderer/testability/e2e-ids.ts');
 
-test('group first-run flow: contact rail exposes a persistent create-group action', () => {
+test('group first-run flow: relationship rail exposes a persistent create-group action', () => {
   assert.match(e2eIdsSource, /chatCreateGroupButton: 'chat-create-group-button'/);
-  assert.match(chatContactsSidebarSource, /onCreateGroup\?: \(\) => void;/);
-  assert.match(chatContactsSidebarSource, /data-testid=\{E2E_IDS\.chatCreateGroupButton\}/);
-  assert.match(chatContactsSidebarSource, /onClick=\{onCreateGroup\}/);
+  assert.match(chatRelationshipRailSource, /onCreateGroup\?: \(\) => void;/);
+  assert.match(chatRelationshipRailSource, /data-testid=\{E2E_IDS\.chatCreateGroupButton\}/);
+  assert.match(chatRelationshipRailSource, /onClick=\{onCreateGroup\}/);
 });
 
 test('group first-run flow: chat page opens the create-group modal without mutating chat mode or selection', () => {

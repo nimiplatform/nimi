@@ -21,17 +21,14 @@ import section19 from './20-DesktopRelease.json';
 import section20 from './21-ProfileView.json';
 import section21 from './22-AgentDetail.json';
 import section22 from './23-GiftSend.json';
-import section23 from './24-Contacts.json';
+import section23 from './24-Relationship.json';
 import section24 from './25-GiftBubble.json';
 import section25 from './26-Bootstrap.json';
 import section26 from './27-ErrorBoundary.json';
-import section27 from './28-ModUI.json';
-import section28 from './29-ModSettings.json';
 import section29 from './30-Feedback.json';
 import section30 from './31-PrivacySettings.json';
 import section31 from './32-SecuritySettings.json';
 import section32 from './33-DataManagement.json';
-import section33 from './34-DeveloperSettings.json';
 import section34 from './35-TurnInput.json';
 import section35 from './36-ChatTimeline.json';
 import section36 from './37-OfflineShell.json';
@@ -39,14 +36,10 @@ import section37 from './38-RuntimeConfigLocal.json';
 import section38 from './39-PostsTab.json';
 import section39 from './40-ChatProfile.json';
 import section40 from './41-WorldDetail.json';
-import section41 from './42-ModsPanel.json';
-import section42 from './43-ModHub.json';
 import section43 from './44-AddContact.json';
 import section44 from './45-RuntimeConfig.json';
 import section45 from './46-runtimeConfig.json';
 import section46 from './47-Layout.json';
-import section47 from './48-RuntimeModPanel.json';
-import section48 from './49-ModCodegen.json';
 import section49 from './50-Document.json';
 import section50 from './51-Time.json';
 import section51 from './52-I18n.json';
@@ -83,17 +76,14 @@ const messages = {
   "ProfileView": section20,
   "AgentDetail": section21,
   "GiftSend": section22,
-  "Contacts": section23,
+  "Relationship": section23,
   "GiftBubble": section24,
   "Bootstrap": section25,
   "ErrorBoundary": section26,
-  "ModUI": section27,
-  "ModSettings": section28,
   "Feedback": section29,
   "PrivacySettings": section30,
   "SecuritySettings": section31,
   "DataManagement": section32,
-  "DeveloperSettings": section33,
   "TurnInput": section34,
   "ChatTimeline": section35,
   "OfflineShell": section36,
@@ -101,14 +91,10 @@ const messages = {
   "PostsTab": section38,
   "ChatProfile": section39,
   "WorldDetail": section40,
-  "ModsPanel": section41,
-  "ModHub": section42,
   "AddContact": section43,
   "RuntimeConfig": section44,
   "runtimeConfig": section45,
   "Layout": section46,
-  "RuntimeModPanel": section47,
-  "ModCodegen": section48,
   "Document": section49,
   "Time": section50,
   "I18n": section51,

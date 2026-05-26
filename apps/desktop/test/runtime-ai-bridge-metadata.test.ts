@@ -31,14 +31,14 @@ test('runtime ai bridge metadata remains managed only for cloud requests', async
     assert.equal(metadata['x-nimi-trace-id'], metadata.traceId);
 
     const callOptions = await runtimeAiBridge.buildRuntimeCallOptions({
-      modId: 'mod.runtime.metadata',
+      targetId: 'runtime.metadata',
       timeoutMs: 10_000,
       source: 'cloud',
       connectorId: 'connector-test',
       providerEndpoint: 'https://example.invalid/v1',
     });
-    assert.equal(callOptions.metadata.callerKind, 'desktop-mod');
-    assert.equal(callOptions.metadata.callerId, 'mod:mod.runtime.metadata');
+    assert.equal(callOptions.metadata.callerKind, 'desktop-core');
+    assert.equal(callOptions.metadata.callerId, 'target:runtime.metadata');
     assert.equal(callOptions.metadata.surfaceId, 'desktop.renderer');
     assert.equal(callOptions.metadata.keySource, 'managed');
     assert.equal(typeof callOptions.metadata.traceId, 'string');
@@ -47,14 +47,14 @@ test('runtime ai bridge metadata remains managed only for cloud requests', async
     assert.ok(callOptions.idempotencyKey.length > 0);
 
     const streamOptions = await runtimeAiBridge.buildRuntimeStreamOptions({
-      modId: 'mod.runtime.metadata',
+      targetId: 'runtime.metadata',
       timeoutMs: 10_000,
       source: 'cloud',
       connectorId: 'connector-test',
       providerEndpoint: 'https://example.invalid/v1',
     });
-    assert.equal(streamOptions.metadata.callerKind, 'desktop-mod');
-    assert.equal(streamOptions.metadata.callerId, 'mod:mod.runtime.metadata');
+    assert.equal(streamOptions.metadata.callerKind, 'desktop-core');
+    assert.equal(streamOptions.metadata.callerId, 'target:runtime.metadata');
     assert.equal(streamOptions.metadata.surfaceId, 'desktop.renderer');
     assert.equal(streamOptions.metadata.keySource, 'managed');
     assert.equal(typeof streamOptions.metadata.traceId, 'string');

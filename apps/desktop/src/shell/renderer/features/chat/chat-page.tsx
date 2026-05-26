@@ -5,7 +5,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { dispatchRuntimeConfigOpenPage } from '@renderer/features/runtime-config/runtime-config-navigation-events';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { ChatContactsSidebar } from './chat-contacts-sidebar';
+import { ChatRelationshipRail } from './chat-relationship-rail';
 import { useChatTargetsForSidebar } from './chat-sidebar-targets';
 import { useChatGroupCreateController } from './chat-group-create-controller';
 
@@ -313,7 +313,7 @@ export function ChatPage() {
         </ChatModeSurfaceErrorBoundary>
       ) : null}
       {authStatus === 'authenticated' ? (
-        <ChatContactsSidebar
+        <ChatRelationshipRail
           targets={allTargets}
           selectedTargetId={storeSelectedTargetId}
           activeMode={chatMode}

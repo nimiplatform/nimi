@@ -26,7 +26,6 @@ export default defineConfig([
   globalIgnores([
     '.cache/**',
     'dist/**',
-    'src-tauri/resources/default-mods/**/dist/**',
     'src-tauri/target/**',
     'node_modules/**',
     '.corepack-cache/**',
@@ -36,7 +35,7 @@ export default defineConfig([
     '*.config.mjs',
   ]),
   {
-    files: ['src/runtime/**/*.ts', 'src/mods/**/*.ts'],
+    files: ['src/runtime/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -60,10 +59,6 @@ export default defineConfig([
             {
               group: ['./bridge', '../bridge', '../../bridge', '../../../bridge', '../../../../bridge'],
               message: 'Import bridge APIs through @renderer/bridge.',
-            },
-            {
-              group: ['@runtime/mod/*'],
-              message: 'Import runtime mod APIs through @runtime/mod public entry.',
             },
             {
               group: ['@runtime/chat/*'],

@@ -613,7 +613,7 @@ test('generic media caller without conversationExecution is not affected by unsu
   // Even when projection is unsupported, the resolver must fall through to normal resolve.
   const normalResolveCalled: string[] = [];
   const resolveRuntimeRoute = async (payload: {
-    modId: string;
+    targetId: string;
     capability: RuntimeCanonicalCapability;
     binding?: { source: string; connectorId: string; model: string };
     conversationExecution?: boolean;
@@ -628,7 +628,7 @@ test('generic media caller without conversationExecution is not affected by unsu
   };
   // Generic caller — no conversationExecution flag
   const result = await resolveRuntimeRoute({
-    modId: 'mod:speech-engine',
+    targetId: 'speech-engine',
     capability: 'audio.synthesize',
   });
   assert.equal(result.model, 'tts-generic');
@@ -637,7 +637,7 @@ test('generic media caller without conversationExecution is not affected by unsu
 
 test('conversation media path with conversationExecution=true fails closed on unsupported projection', async () => {
   const resolveRuntimeRoute = async (payload: {
-    modId: string;
+    targetId: string;
     capability: RuntimeCanonicalCapability;
     binding?: { source: string; connectorId: string; model: string };
     conversationExecution?: boolean;
@@ -655,7 +655,7 @@ test('conversation media path with conversationExecution=true fails closed on un
   };
   await assert.rejects(
     () => resolveRuntimeRoute({
-      modId: 'core:runtime',
+      targetId: 'core:runtime',
       capability: 'audio.synthesize',
       conversationExecution: true,
     }),
@@ -667,7 +667,7 @@ test('conversation media path with conversationExecution=true uses projection re
   const projectionBinding = createCloudResolvedBinding('image.generate', 'projection-model');
   const fallbackBinding = createCloudResolvedBinding('image.generate', 'fallback-model');
   const resolveRuntimeRoute = async (payload: {
-    modId: string;
+    targetId: string;
     capability: RuntimeCanonicalCapability;
     binding?: { source: string; connectorId: string; model: string };
     conversationExecution?: boolean;
@@ -681,7 +681,7 @@ test('conversation media path with conversationExecution=true uses projection re
     return fallbackBinding;
   };
   const result = await resolveRuntimeRoute({
-    modId: 'core:runtime',
+    targetId: 'core:runtime',
     capability: 'image.generate',
     conversationExecution: true,
   });
@@ -693,7 +693,7 @@ test('host media resolve does not equate no-binding with conversation path', asy
   // Only conversationExecution=true activates it.
   let projectionChecked = false;
   const resolveRuntimeRoute = async (payload: {
-    modId: string;
+    targetId: string;
     capability: RuntimeCanonicalCapability;
     binding?: { source: string; connectorId: string; model: string };
     conversationExecution?: boolean;
@@ -705,7 +705,7 @@ test('host media resolve does not equate no-binding with conversation path', asy
   };
   // Call without binding AND without conversationExecution
   await resolveRuntimeRoute({
-    modId: 'mod:tts-engine',
+    targetId: 'tts-engine',
     capability: 'audio.synthesize',
   });
   assert.equal(projectionChecked, false, 'projection gate must not activate for generic no-binding calls');

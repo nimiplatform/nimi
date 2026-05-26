@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { toAgentContactLaunchTarget } from '../src/shell/renderer/features/contacts/agent-contact-launch-target.js';
+import { toAgentContactLaunchTarget } from '../src/shell/renderer/features/relationship/agent-contact-launch-target.js';
 
 const repoRoot = path.join(import.meta.dirname, '../../..');
 
@@ -10,19 +10,8 @@ function readRepo(relativePath: string): string {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
 }
 
-test('Contacts panel routes agent friends through LocalAgent launcher', () => {
-  const source = readRepo('apps/desktop/src/shell/renderer/features/contacts/contacts-panel.tsx');
-
-  assert.match(source, /launchAgentConversationFromDisplay/);
-  assert.match(source, /toAgentContactLaunchTargetFromContact\(contact,\s*currentUserId\)/);
-  assert.match(source, /blockedIds\.has\(contact\.id\)/);
-  assert.doesNotMatch(source, /if\s*\(\s*contact\.isAgent\s*\)\s*\{\s*return;\s*\}/);
-  assert.match(source, /setAgentConversationSelection/);
-  assert.match(source, /setSelectedTargetForSource/);
-});
-
-test('Contact profile modal only exposes agent chat after ordinary friendship evidence', () => {
-  const source = readRepo('apps/desktop/src/shell/renderer/features/contacts/contact-detail-profile-modal.tsx');
+test('profile detail modal only exposes agent chat after ordinary friendship evidence', () => {
+  const source = readRepo('apps/desktop/src/shell/renderer/features/relationship/profile-detail-modal.tsx');
 
   assert.match(source, /launchAgentConversationFromDisplay/);
   assert.match(source, /toAgentContactLaunchTargetFromProfile\(profile,\s*ownerUserId\)/);
@@ -31,8 +20,8 @@ test('Contact profile modal only exposes agent chat after ordinary friendship ev
   assert.doesNotMatch(source, /profile\.isAgent\s*\|\|\s*isBlockedProfile/);
 });
 
-test('shared contact profile modal does not hide ordinary agent-friend message actions', () => {
-  const source = readRepo('apps/desktop/src/shell/renderer/features/contacts/contact-detail-profile-modal.tsx');
+test('shared profile detail modal does not hide ordinary agent-friend message actions', () => {
+  const source = readRepo('apps/desktop/src/shell/renderer/features/relationship/profile-detail-modal.tsx');
 
   assert.match(source, /isBlockedProfile/);
   assert.match(source, /profile\.isAgent/);

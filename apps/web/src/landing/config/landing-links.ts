@@ -6,7 +6,6 @@ export type LandingLinks = {
   githubUrl: string;
   protocolUrl: string;
   desktopDownloadUrl: string;
-  modDocsUrl: string;
 };
 
 // Docs site is deployed at the docs.nimi.ai subdomain (VitePress with
@@ -21,7 +20,6 @@ const DEFAULT_LINKS: LandingLinks = {
   githubUrl: 'https://github.com/nimiplatform/nimi',
   protocolUrl: 'https://docs.nimi.ai/platform/protocol',
   desktopDownloadUrl: 'https://docs.nimi.ai/desktop/',
-  modDocsUrl: 'https://docs.nimi.ai/desktop/mod-system',
 };
 
 /**
@@ -59,7 +57,6 @@ export function resolveLocalizedLinks(links: LandingLinks, locale: 'en' | 'zh'):
     docsUrl: localizeDocsUrl(links.docsUrl, locale),
     protocolUrl: localizeDocsUrl(links.protocolUrl, locale),
     desktopDownloadUrl: localizeDocsUrl(links.desktopDownloadUrl, locale),
-    modDocsUrl: localizeDocsUrl(links.modDocsUrl, locale),
   };
 }
 
@@ -89,7 +86,6 @@ export function resolveLandingLinks(env: Record<string, unknown> = {}): LandingL
       env.VITE_LANDING_DESKTOP_DOWNLOAD_URL,
       DEFAULT_LINKS.desktopDownloadUrl,
     ),
-    modDocsUrl: normalizeUrl(env.VITE_LANDING_MOD_DOCS_URL, DEFAULT_LINKS.modDocsUrl),
   };
 }
 

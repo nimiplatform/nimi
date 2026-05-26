@@ -62,7 +62,7 @@ const rendererRuntimeBootstrapSource = readFileSync(
   'utf8',
 );
 
-test('built-in AIConfig owner is the Desktop host AIConfig service module and is registered', () => {
+test('built-in AIConfig local writer module is registered', () => {
   assert.match(mainSource, /mod desktop_ai_config_library;/);
   assert.match(
     desktopAiConfigLibrarySource,
@@ -142,9 +142,10 @@ test('product control materializes built-in AIConfig refs and exposes the wave-6
   );
 });
 
-test('product-control schema keeps builtInAiConfigRefs owned by the Desktop host AIConfig service', () => {
+test('product-control schema keeps builtInAiConfigRefs owned by desktop chat feature scopes through SDK projection', () => {
   assert.match(productControlSchemaSource, /builtInAiConfigRefs:/);
-  assert.match(productControlSchemaSource, /owner: desktop_host_ai_config_service/);
+  assert.match(productControlSchemaSource, /owner: desktop_chat_feature_scope_owner/);
+  assert.match(productControlSchemaSource, /verifier: SDK AIConfig projection plus Runtime readiness evidence/);
   for (const scope of [/surfaceId: nimi/, /surfaceId: agent/]) {
     assert.match(productControlSchemaSource, scope);
   }

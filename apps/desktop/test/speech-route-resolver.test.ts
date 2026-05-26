@@ -27,13 +27,13 @@ test('createResolveRuntimeBinding reads source/model/connectorId from RuntimeFie
         connectorId: 'conn-123',
     });
     const resolve = createResolveRuntimeBinding(() => fields);
-    await assert.rejects(() => resolve({ modId: 'test-mod' }), /RUNTIME_ROUTE_BINDING_REQUIRED/);
+    await assert.rejects(() => resolve({ targetId: 'test-mod' }), /RUNTIME_ROUTE_BINDING_REQUIRED/);
 });
 test('createResolveRuntimeBinding binding source takes priority over inferred source', async () => {
     const fields = createMockFields({ provider: 'localai' });
     const resolve = createResolveRuntimeBinding(() => fields);
     const result = await resolve({
-        modId: 'test-mod',
+        targetId: 'test-mod',
         binding: {
             source: 'cloud',
             connectorId: 'cloud-1',
@@ -52,7 +52,7 @@ test('createResolveRuntimeBinding connector binding takes priority over fields.c
         model: 'tts-1',
         provider: 'openai',
     };
-    const result = await resolve({ modId: 'test-mod', binding });
+    const result = await resolve({ targetId: 'test-mod', binding });
     assert.equal(result.connectorId, 'override-conn');
 });
 test('createResolveRuntimeBinding no longer falls back to fields.localProviderModel', async () => {
@@ -64,13 +64,13 @@ test('createResolveRuntimeBinding no longer falls back to fields.localProviderMo
         model: '',
         provider: 'dashscope',
     };
-    await assert.rejects(() => resolve({ modId: 'test-mod', binding }), /RUNTIME_ROUTE_BINDING_MODEL_REQUIRED/);
+    await assert.rejects(() => resolve({ targetId: 'test-mod', binding }), /RUNTIME_ROUTE_BINDING_MODEL_REQUIRED/);
 });
 test('createResolveRuntimeBinding local binding uses explicit local route data instead of runtimeFields fallback', async () => {
     const fields = createMockFields({ provider: 'llama' });
     const resolve = createResolveRuntimeBinding(() => fields);
     const result = await resolve({
-        modId: 'test-mod',
+        targetId: 'test-mod',
         binding: {
             source: 'local',
             connectorId: '',
@@ -91,7 +91,7 @@ test('createResolveRuntimeBinding cloud binding requires explicit provider and c
     const fields = createMockFields({ provider: 'openai' });
     const resolve = createResolveRuntimeBinding(() => fields);
     await assert.rejects(() => resolve({
-        modId: 'test-mod',
+        targetId: 'test-mod',
         binding: {
             source: 'cloud',
             connectorId: '',
@@ -108,7 +108,7 @@ test('createResolveRuntimeBinding preserves localModelId and adapter for local b
     });
     const resolve = createResolveRuntimeBinding(() => fields);
     const result = await resolve({
-        modId: 'test-mod',
+        targetId: 'test-mod',
         binding: {
             source: 'local',
             connectorId: '',

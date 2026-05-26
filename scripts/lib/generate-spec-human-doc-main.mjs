@@ -17,8 +17,6 @@ import {
   renderDesktopErrorCodes,
   renderErrorMappingMatrix,
   renderFeatureFlags,
-  renderHookCapabilityAllowlists,
-  renderHookSubsystems,
   renderImportBoundaries,
   renderIpcCommands,
   renderJobStates,
@@ -27,8 +25,6 @@ import {
   renderLocalEngineCatalog,
   renderLogAreas,
   renderMethodGroups,
-  renderModKernelStages,
-  renderModLifecycleStates,
   renderProviderCapabilities,
   renderProviderCatalog,
   renderPromptServingLanes,
@@ -43,8 +39,6 @@ import {
   renderServiceOperations,
   renderStateTransitions,
   renderStoreSlices,
-  renderTurnHookPoints,
-  renderUiSlots,
 } from './spec-human-doc-core.mjs';
 import { appendSpecHumanDocNarrative } from './spec-human-doc-narrative.mjs';
 import { appendSpecHumanDocRuntimeSdkNarrative } from './spec-human-doc-runtime-sdk-narrative.mjs';
@@ -186,47 +180,23 @@ async function main() {
 `);
   await d.yamlTable(dtTables('store-slices.yaml'), renderStoreSlices);
 
-  d.text(`### 12.26 Desktop — Hook 子系统
-`);
-  await d.yamlTable(dtTables('hook-subsystems.yaml'), renderHookSubsystems);
-
-  d.text(`### 12.27 Desktop — UI Slots
-`);
-  await d.yamlTable(dtTables('ui-slots.yaml'), renderUiSlots);
-
-  d.text(`### 12.28 Desktop — Turn Hook Points
-`);
-  await d.yamlTable(dtTables('turn-hook-points.yaml'), renderTurnHookPoints);
-
-  d.text(`### 12.29 Desktop — Hook Capability Allowlists
-`);
-  await d.yamlTable(dtTables('hook-capability-allowlists.yaml'), renderHookCapabilityAllowlists);
-
-  d.text(`### 12.30 Desktop — Mod 生命周期状态
-`);
-  await d.yamlTable(dtTables('mod-lifecycle-states.yaml'), renderModLifecycleStates);
-
-  d.text(`### 12.31 Desktop — Mod 内核阶段
-`);
-  await d.yamlTable(dtTables('mod-kernel-stages.yaml'), renderModKernelStages);
-
-  d.text(`### 12.32 Desktop — Feature Flags
+  d.text(`### 12.26 Desktop — Feature Flags
 `);
   await d.yamlTable(dtTables('feature-flags.yaml'), renderFeatureFlags);
 
-  d.text(`### 12.33 Desktop — 数据同步流
+  d.text(`### 12.27 Desktop — 数据同步流
 `);
   await d.yamlTable(dtTables('data-sync-flows.yaml'), renderDataSyncFlows);
 
-  d.text(`### 12.34 Desktop — 错误码
+  d.text(`### 12.28 Desktop — 错误码
 `);
   await d.yamlTable(dtTables('error-codes.yaml'), renderDesktopErrorCodes);
 
-  d.text(`### 12.35 Desktop — Retry Status Codes
+  d.text(`### 12.29 Desktop — Retry Status Codes
 `);
   await d.yamlTable(dtTables('retry-status-codes.yaml'), renderRetryStatusCodes);
 
-  d.text(`### 12.36 Desktop — Log Areas
+  d.text(`### 12.30 Desktop — Log Areas
 `);
   await d.yamlTable(dtTables('log-areas.yaml'), renderLogAreas);
 

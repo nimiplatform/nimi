@@ -3,7 +3,7 @@
   "sectionPrivacySecurity": "Privacy & Security",
   "sectionPreferences": "Preferences",
   "sectionData": "Data",
-  "sectionExtensions": "Extensions",
+  "sectionExtensions": "Integrations",
   "sectionAdvanced": "Advanced",
   "resizeSidebarAriaLabel": "Resize settings sidebar",
   "menuProfile": "Profile",
@@ -15,7 +15,6 @@
   "menuNotifications": "Notifications",
   "menuDownloads": "Downloads",
   "menuPerformance": "Performance",
-  "menuModSettings": "Mod Settings",
   "menuWallet": "Wallet",
-  "menuDeveloper": "Mod Developer"
+  "menuDeveloper": "Developer Tools"
 }

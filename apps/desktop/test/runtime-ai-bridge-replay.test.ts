@@ -66,6 +66,6 @@ test('desktop replay voice design uses async-job enum values without injecting s
   const options = (capturedOptions || {}) as Record<string, unknown>;
   const metadata = ((options.metadata || {}) as Record<string, unknown>);
   assert.equal(metadata.callerKind, 'desktop-core');
-  assert.equal(metadata.callerId, 'core.desktop.ai-gold-path');
+  assert.equal(metadata.callerId, 'target:core.desktop.ai-gold-path');
   assert.equal(metadata.surfaceId, 'desktop.renderer');
 });

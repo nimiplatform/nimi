@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { ReportReason } from '@nimiplatform/sdk/realm';
 import { i18n } from '@renderer/i18n';
-import type { ContactDetailProfileSeed } from '@renderer/features/contacts/contact-detail-profile-modal.js';
+import type { ProfileDetailSeed } from '@renderer/features/relationship/profile-detail-modal.js';
 import type { EditablePostSeed } from '@renderer/features/profile/create-post-modal-helpers.js';
 import { PostCardArticle } from './article';
 import { BlockUserConfirmModal, DeletePostConfirmModal } from './confirm-modals';
@@ -41,7 +41,7 @@ function toBannerErrorMessage(error: unknown, fallback: string): string {
 
 export type PostCardAuthorProfileTarget = {
   profileId: string;
-  profileSeed: ContactDetailProfileSeed;
+  profileSeed: ProfileDetailSeed;
 };
 
 export type PostCardActionAdapter = {
@@ -188,7 +188,7 @@ export function PostCard(input: PostCardProps) {
     post.author && typeof post.author === 'object'
       ? (post.author as Record<string, unknown>)
       : null;
-  const authorProfileSeed = useMemo<ContactDetailProfileSeed | null>(() => {
+  const authorProfileSeed = useMemo<ProfileDetailSeed | null>(() => {
     if (!authorId) {
       return null;
     }
@@ -468,7 +468,7 @@ export function PostCard(input: PostCardProps) {
         kind: 'error',
         message: toBannerErrorMessage(
           error,
-          i18n.t('Contacts.openChatFailed', { defaultValue: 'Failed to open chat' }),
+          i18n.t('Relationship.openChatFailed', { defaultValue: 'Failed to open chat' }),
         ),
       });
     }

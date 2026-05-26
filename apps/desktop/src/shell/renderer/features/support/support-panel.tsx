@@ -3,7 +3,7 @@
  *
  * `Support` is a standalone secondary surface, peer to `Settings`. It is
  * mounted from the `app-tabs.yaml` `support` entry (`nav_group: secondary`)
- * and is NOT one of the six ordinary primary navigation tabs.
+ * and is NOT one of the five ordinary primary navigation tabs.
  *
  * The host renders a fixed five-item sub-area sidebar (`D-SUP-002`: repair /
  * updates / diagnostics / logs / recovery) and dispatches the active sub-area.

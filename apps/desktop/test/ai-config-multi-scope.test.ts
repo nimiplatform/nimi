@@ -119,7 +119,7 @@ test('multi-scope: scopeKeyFromRef produces correct keys', async () => {
     '../src/shell/renderer/app-shell/providers/desktop-ai-config-storage.js'
   );
   assert.equal(scopeKeyFromRef({ kind: 'app', ownerId: 'desktop', surfaceId: 'chat' }), 'app:desktop:chat');
-  assert.equal(scopeKeyFromRef({ kind: 'mod', ownerId: 'my-mod' }), 'mod:my-mod:');
+  assert.equal(scopeKeyFromRef({ kind: 'app', ownerId: 'my-app' }), 'app:my-app:');
   assert.equal(scopeKeyFromRef({ kind: 'feature', ownerId: 'x', surfaceId: 'y' }), 'feature:x:y');
 });
 
@@ -140,24 +140,24 @@ test('multi-scope: parseScopeKey handles scope without surfaceId', async () => {
   const { parseScopeKey } = await import(
     '../src/shell/renderer/app-shell/providers/desktop-ai-config-storage.js'
   );
-  const parsed = parseScopeKey('mod:my-mod:');
+  const parsed = parseScopeKey('app:my-app:');
   assert.ok(parsed);
-  assert.equal(parsed.kind, 'mod');
-  assert.equal(parsed.ownerId, 'my-mod');
+  assert.equal(parsed.kind, 'app');
+  assert.equal(parsed.ownerId, 'my-app');
   assert.equal(parsed.surfaceId, undefined);
 });
 
-test('multi-scope: scope keys round-trip canonical mod owner ids with colons', async () => {
+test('multi-scope: scope keys round-trip app owner ids with colons', async () => {
   const { scopeKeyFromRef, parseScopeKey } = await import(
     '../src/shell/renderer/app-shell/providers/desktop-ai-config-storage.js'
   );
   const ref: AIScopeRef = {
-    kind: 'mod',
+    kind: 'app',
     ownerId: 'core:runtime',
-    surfaceId: 'workspace',
+    surfaceId: 'launcher',
   };
   const key = scopeKeyFromRef(ref);
-  assert.equal(key, 'mod:core%3Aruntime:workspace');
+  assert.equal(key, 'app:core%3Aruntime:launcher');
   assert.deepEqual(parseScopeKey(key), ref);
 });
 
@@ -167,7 +167,7 @@ test('multi-scope: parseScopeKey rejects invalid keys', async () => {
   );
   assert.equal(parseScopeKey(''), null);
   assert.equal(parseScopeKey('single'), null);
-  assert.equal(parseScopeKey('mod:broken%ZZ:workspace'), null);
+  assert.equal(parseScopeKey('app:broken%ZZ:launcher'), null);
 });
 
 // ---------------------------------------------------------------------------

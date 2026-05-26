@@ -29,7 +29,7 @@ import {
 import { createEmptyAIConfig } from '@nimiplatform/sdk/ai';
 
 type CapturedInvokeInput = {
-  modId: string;
+  targetId: string;
   provider: string;
   localProviderModel?: string;
   localProviderEndpoint?: string;
@@ -368,7 +368,7 @@ test('chat ai a4: invoke runtime uses desktop-owned core caller and local route 
       runtimeConfigState: state,
       runtimeFields: createRuntimeFields(),
     }, {
-      invokeModLlmImpl: async (input) => {
+      invokeRuntimeLlmImpl: async (input) => {
         capturedInput = input as CapturedInvokeInput;
         return {
           text: 'hi',
@@ -383,7 +383,7 @@ test('chat ai a4: invoke runtime uses desktop-owned core caller and local route 
       throw new Error('expected local invoke input');
     }
     const localInput = capturedInput as CapturedInvokeInput;
-    assert.equal(localInput.modId, 'core.chat-ai');
+    assert.equal(localInput.targetId, 'core.chat-ai');
     assert.equal(localInput.provider, 'llama');
     assert.equal(localInput.localProviderModel, 'qwen3');
     assert.equal(localInput.localProviderEndpoint, 'http://127.0.0.1:11434');
@@ -431,7 +431,7 @@ test('chat ai a4: invoke runtime fails close when projection is unavailable', as
         runtimeConfigState: state,
         runtimeFields: createRuntimeFields(),
       }, {
-        invokeModLlmImpl: async () => ({
+        invokeRuntimeLlmImpl: async () => ({
           text: 'hello back',
           traceId: 'trace-cloud',
           promptTraceId: 'prompt-cloud',

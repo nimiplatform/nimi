@@ -5,7 +5,7 @@
 // Policy:
 //   apps/avatar/src/** must NOT import:
 //     - @nimiplatform/kit/features/avatar (any subpath)
-//     - apps/desktop/, apps/web/, apps/forge/, apps/realm-drift/,
+//     - apps/desktop/, apps/web/, apps/realm-drift/,
 //       apps/install-gateway/, apps/overtone/ (any subpath)
 //     - _external/ (any subpath; reference-only)
 //   tsconfig path aliases are resolved before matching, so
@@ -42,10 +42,6 @@ const BANNED = [
   {
     label: 'cross-app: apps/web',
     test: (s) => /(^|\/)apps\/web(\/|$)/.test(s),
-  },
-  {
-    label: 'cross-app: apps/forge',
-    test: (s) => /(^|\/)apps\/forge(\/|$)/.test(s),
   },
   {
     label: 'cross-app: apps/realm-drift',

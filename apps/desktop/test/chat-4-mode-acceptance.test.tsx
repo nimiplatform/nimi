@@ -248,13 +248,6 @@ test('T3-3 proof: Agent Chat always means LocalAgent Chat — no direct-RealmAge
   assert.doesNotMatch(worldDetailSource, /launchAgentVoiceFromDisplay/);
   assert.doesNotMatch(worldDetailSource, /const handleChatAgent/);
 
-  const contactsPanelSource = readWorkspaceFile(
-    'src/shell/renderer/features/contacts/contacts-panel.tsx',
-  );
-  // Contacts opens agent chat only for an isAgent contact (an AgentFriend),
-  // through the same LocalAgent launcher — never a generic RealmAgent.
-  assert.match(contactsPanelSource, /if \(contact\.isAgent\) \{[\s\S]*?launchAgentConversationFromDisplay/);
-
   // No consumer reaches a chat session straight from a RealmAgent: there is no
   // launcher variant that accepts only a realmAgentId. The launcher's only
   // public entrypoints both require the full target with localAgentRef.

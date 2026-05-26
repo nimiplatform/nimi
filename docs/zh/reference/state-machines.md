@@ -147,18 +147,6 @@ provider 异步状态用 lower_snake；ScenarioJob 用 UPPER_SNAKE。映射规�
 
 归属：`avatar/kernel/index.md`。
 
-## Desktop · Mod Lifecycle
-
-| 状态 | 含义 |
-| --- | --- |
-| `admitted` | mod 已准入系统 |
-| `installed` | mod 已本地安装 |
-| `active` | mod 已激活，可达 |
-| `suspended` | mod 暂停 |
-| `removed` | mod 已卸载 |
-
-归属：`desktop/kernel/mod-governance-contract.md`，表 `desktop/kernel/tables/mod-lifecycle-states.yaml`。
-
 ## Nimi Coding · Topic State
 
 | 状态 | 含义 |
@@ -231,7 +219,7 @@ provider 异步状态用 lower_snake；ScenarioJob 用 UPPER_SNAKE。映射规�
 
 ## 跨域状态机命名
 
-ScenarioJob 与 Workflow 用 UPPER_SNAKE proto 枚举；provider 异步任务用 lower_snake，贴近 provider 语义；mod lifecycle 用小写产品语。大小写差异是有意的设计选择。
+ScenarioJob 与 Workflow 用 UPPER_SNAKE proto 枚举；provider 异步任务用 lower_snake，贴近 provider 语义。大小写差异是有意的设计选择。
 
 ## 来源依据
 
@@ -247,8 +235,6 @@ ScenarioJob 与 Workflow 用 UPPER_SNAKE proto 枚举；provider 异步任务用
 - [`.nimi/spec/runtime/kernel/world-evolution-engine-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/world-evolution-engine-contract.md)
 - [`.nimi/spec/realm/kernel/binding-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/binding-contract.md)
 - [`.nimi/spec/avatar/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/index.md)
-- [`.nimi/spec/desktop/kernel/mod-governance-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/mod-governance-contract.md)
-- [`.nimi/spec/desktop/kernel/tables/mod-lifecycle-states.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/tables/mod-lifecycle-states.yaml)
 - [`.nimi/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/topic.schema.yaml)
 - [`.nimi/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/wave.schema.yaml)
 - [`.nimi/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/packet.schema.yaml)

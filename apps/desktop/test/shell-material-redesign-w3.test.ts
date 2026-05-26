@@ -27,7 +27,7 @@ test('W3 route redesign: home and explore adopt route-shell material hosts', () 
   assert.match(mainLayoutTitlebarContentSource, /props\.activeTab === 'explore'/);
   assert.match(mainLayoutTitlebarContentSource, /<ExploreSectionNav[\s\S]*active=\{props\.exploreActiveSection\}[\s\S]*variant="topbar"/);
   assert.match(exploreSectionNavSource, /data-testid="explore-search-field"[\s\S]*type="search"/);
-  assert.doesNotMatch(mainLayoutTopBarSource, /ModWorkspaceTabs/);
+  assert.doesNotMatch(mainLayoutTopBarSource, /RetiredWorkspaceTabs/);
   assert.doesNotMatch(exploreViewSource, /className="flex min-h-0 flex-1 flex-col bg-\[var\(--nimi-sidebar-canvas\)\]"/);
 });
 
@@ -36,6 +36,6 @@ test('W3 route redesign: notification and profile consume glass route shells', (
   assert.match(notificationPanelSource, /<DesktopCardSurface[\s\S]*key=\{item\.id\}[\s\S]*kind="promoted-glass"/);
   assert.doesNotMatch(notificationPanelSource, /className="flex min-h-0 flex-1 flex-col bg-white"/u);
 
-  assert.match(profilePanelSource, /<Surface[\s\S]*tone="panel"[\s\S]*material="glass-regular"[\s\S]*<ContactDetailView/);
+  assert.match(profilePanelSource, /<Surface[\s\S]*tone="panel"[\s\S]*material="glass-regular"[\s\S]*<ProfileDetailView/);
   assert.doesNotMatch(profilePanelSource, /tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0"/u);
 });

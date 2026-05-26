@@ -24,15 +24,6 @@
 4. [参考 → 六条基础协议](/zh/reference/six-primitives)：理解您的世界在跨域交互时必须遵守的基础契约。
 5. [Realm → 创作者经济](/zh/realm/creator-economy)：了解跨世界的创作者经济模型与价值流转规则。
 
-## Mod 开发者
-
-如果您希望利用受限接口，为官方桌面端提供扩展功能：
-
-1. [桌面端](/zh/desktop/)：了解桌面端外壳的底层逻辑，以及 Mod 作为一等扩展的机制。
-2. [桌面端 → Mod 体系](/zh/desktop/mod-system)：明确各类 Hook 回调的核心能力与边界。
-3. [SDK → 边界](/zh/sdk/boundaries)：了解开发过程中必须遵守的代码隔离底线。
-4. [参考 → 权威域](/zh/reference/authority-domains)：明确 Mod 组件运行时的权限归属与限制。
-
 ## 应用开发者
 
 如果您计划使用 Nimi SDK 构建应用：

@@ -97,7 +97,7 @@ test('agent local runtime invoke uses runtime text generate with desktop-core me
     },
   }, {
     resolveRouteInputImpl: async () => ({
-      modId: CORE_CHAT_AGENT_MOD_ID,
+      targetId: CORE_CHAT_AGENT_MOD_ID,
       provider: 'llama',
       localProviderEndpoint: 'http://127.0.0.1:11434/v1',
       localProviderModel: 'llama3',
@@ -189,7 +189,7 @@ test('agent runtime invoke admits structured messages and system prompt', async 
     runtimeFields,
   }, {
     resolveRouteInputImpl: async () => ({
-      modId: CORE_CHAT_AGENT_MOD_ID,
+      targetId: CORE_CHAT_AGENT_MOD_ID,
       provider: 'llama',
       localProviderEndpoint: 'http://127.0.0.1:11434/v1',
       localProviderModel: 'llama3',
@@ -382,7 +382,7 @@ test('agent runtime invoke supports cloud routes via connectorId', async () => {
     },
   }, {
     resolveRouteInputImpl: async () => ({
-      modId: CORE_CHAT_AGENT_MOD_ID,
+      targetId: CORE_CHAT_AGENT_MOD_ID,
       provider: 'openai',
       connectorId: 'connector-openai',
       localProviderModel: 'gpt-5.4-mini',
@@ -459,7 +459,7 @@ test('agent runtime stream admits structured messages and system prompt', async 
     runtimeFields,
   }, {
     resolveRouteInputImpl: async () => ({
-      modId: CORE_CHAT_AGENT_MOD_ID,
+      targetId: CORE_CHAT_AGENT_MOD_ID,
       provider: 'llama',
       localProviderEndpoint: 'http://127.0.0.1:11434/v1',
       localProviderModel: 'llama3',

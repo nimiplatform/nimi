@@ -160,8 +160,7 @@ test('D-STRM-010: polling detects terminal COMPLETED and stops', async () => {
 
   startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
 
-  // Wait for polling to complete (2 polls * 5ms + margin)
-  await sleep(100);
+  await waitFor(() => getJobState(TEST_JOB).phase === 'terminal', 500);
 
   const state = getJobState(TEST_JOB);
   assert.equal(state.phase, 'terminal');
@@ -183,7 +182,7 @@ test('D-STRM-010: polling detects terminal FAILED and stops', async () => {
   });
 
   startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
-  await sleep(100);
+  await waitFor(() => getJobState(TEST_JOB).phase === 'terminal', 500);
 
   const state = getJobState(TEST_JOB);
   assert.equal(state.phase, 'terminal');
@@ -395,7 +394,7 @@ test('D-STRM-010: COMPLETED via polling triggers artifact fetch', async () => {
   });
 
   startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
-  await sleep(100);
+  await waitFor(() => getJobState(TEST_JOB).phase === 'terminal', 500);
 
   const state = getJobState(TEST_JOB);
   assert.equal(state.phase, 'terminal');
@@ -413,7 +412,7 @@ test('D-STRM-010: non-COMPLETED terminal does not fetch artifacts', async () => 
   };
 
   startPollingRecovery(TEST_JOB, deps, { pollIntervalMs: 5 });
-  await sleep(100);
+  await waitFor(() => getJobState(TEST_JOB).phase === 'terminal', 500);
 
   assert.equal(artifactsFetched, false);
   assert.equal(getJobState(TEST_JOB).artifacts, null);

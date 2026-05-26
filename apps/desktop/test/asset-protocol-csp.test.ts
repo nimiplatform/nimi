@@ -60,12 +60,12 @@ test('desktop CSP allows tauri asset protocol for VRM avatar loading', () => {
   );
 });
 
-test('desktop CSP allows blob module scripts for runtime mod loading', () => {
+test('desktop CSP allows blob module scripts for packaged renderer dependencies', () => {
   const scriptDirective = csp.match(/\bscript-src\b[^;]*/)?.[0] || '';
 
   assert.ok(
     scriptDirective.includes('blob:'),
-    'script-src must allow blob: module URLs for hosted mod package shims and source fallback loading',
+    'script-src must allow blob: module URLs for packaged renderer dependency loading',
   );
   assert.ok(
     scriptDirective.includes("'wasm-unsafe-eval'"),
@@ -88,7 +88,7 @@ test('desktop dev CSP keeps production script restrictions while HMR is disabled
   );
   assert.ok(
     devScriptDirective.includes('blob:'),
-    'dev script-src must preserve blob module support for runtime mod loading',
+    'dev script-src must preserve blob module support for packaged renderer dependency loading',
   );
   assert.ok(
     devScriptDirective.includes("'wasm-unsafe-eval'"),

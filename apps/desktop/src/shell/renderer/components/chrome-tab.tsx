@@ -67,7 +67,7 @@ export function ChromeTab(props: ChromeTabProps) {
             role="button"
             tabIndex={0}
             className="chrome-tab__close"
-            aria-label={`${i18n.t('ModUI.closeTab', { defaultValue: 'Close tab' })} ${title}`}
+            aria-label={`${i18n.t('Common.closeTab', { defaultValue: 'Close tab' })} ${title}`}
             onClick={(event) => {
               event.stopPropagation();
               onClose();

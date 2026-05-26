@@ -30,7 +30,7 @@ const checks = [
   },
   {
     description: 'desktop stable audio cache helpers must fail-close instead of returning nullable cache writes or unchanged artifacts on cache failure',
-    pattern: 'Promise<RuntimeModMediaCachePutResult \\| null>|return input\\.artifact;|!cached\\?\\.uri',
+    pattern: 'Promise<RuntimePackageMediaCachePutResult \\| null>|return input\\.artifact;|!cached\\?\\.uri',
     paths: [
       'apps/desktop/src/runtime/llm-adapter/tauri-bridge.ts',
       'apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-profiles.ts',
@@ -75,7 +75,6 @@ const checks = [
     pattern: 'ExecuteLocalKernelTurnResult = Record<string, unknown>|stateDelta: \\(result\\.stateDelta as Record<string, unknown>\\)',
     paths: [
       'apps/desktop/src/runtime/llm-adapter/execution/types.ts',
-      'apps/desktop/src/runtime/execution-kernel/kernel/flows/local-turn-flow.ts',
     ],
   },
   {
@@ -92,14 +91,6 @@ const checks = [
       'apps/desktop/src/runtime/llm-adapter/execution/runtime-ai-bridge.ts',
       'apps/desktop/src/runtime/llm-adapter/execution/invoke-text.ts',
       'apps/desktop/src/runtime/llm-adapter/execution/replay.ts',
-    ],
-  },
-  {
-    description: 'desktop control-plane client must fail-close instead of returning synthetic verify/grant/revocation/audit fallbacks',
-    pattern: 'fallback:\\s|return input\\.fallback|verified:\\s*input\\.mode ===|CONTROL_PLANE_UNAVAILABLE|accepted:\\s*input\\.records\\.length|items:\\s*\\[\\]',
-    paths: [
-      'apps/desktop/src/runtime/control-plane/http.ts',
-      'apps/desktop/src/runtime/control-plane/client.ts',
     ],
   },
 ];

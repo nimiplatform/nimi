@@ -33,21 +33,21 @@ call to apply profiles, probe, and inspect snapshots.
 
 | Owns | Does NOT own |
 | --- | --- |
-| Typed config / profile / snapshot API | `AIProfile` portable schema definition (Desktop) |
-| Scope parameter shape | `AIConfig` storage (Desktop kernel) |
+| Typed config / profile / snapshot API | `AIProfile` portable schema definition |
+| Scope parameter shape | Scope-owner AIConfig intent |
 | Probe surface for callers | `LocalProfileDescriptor` execution (Runtime) |
 
-The SDK is the typed access surface. Desktop owns AIProfile schema
-and AIConfig storage; Runtime owns local execution.
+The SDK is the typed access surface. The scope owner owns AIConfig
+intent; Runtime owns local facts, readiness, and execution evidence.
 
 ## Reader Scenario: App Applies An AI Profile
 
-App wants to apply a profile to a mod workspace.
+App wants to apply a profile to an app-owned workspace.
 
-1. **App calls SDK.** `aiConfig.applyProfile({ scope: { kind: 'mod',
-   ownerId: 'com.example.notes', surfaceId: 'workspace' }, profile })`.
+1. **App calls SDK.** `aiConfig.applyProfile({ scope: { kind: 'app',
+   ownerId: 'nimi.shijing', surfaceId: 'workspace' }, profile })`.
 2. **SDK validates.** Scope identity per `AIScopeRef` rules.
-3. **Desktop performs profile apply.** Copy-on-write into the
+3. **Scope owner performs profile apply.** Copy-on-write into the
    workspace scope's `AIConfig`.
 4. **Subsequent execution under the new profile.**
 

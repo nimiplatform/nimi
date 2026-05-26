@@ -4,7 +4,7 @@ import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { QuickAddFriendModal } from '@renderer/features/explore/quick-add-friend-modal';
-import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
+import { resolveAgentFriendLimit } from '@renderer/features/relationship/agent-friend-limit';
 import { prefetchWorldDetailAndHistory } from '@renderer/features/world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '@renderer/features/world/world-detail-route-state';
 import { queryClient } from '@renderer/infra/query-client/query-client';
@@ -74,7 +74,7 @@ export function AgentDetailPanel() {
     if (agentLimitQuery.data && !agentLimitQuery.data.canAdd) {
       setFeedback({
         kind: 'error',
-        message: agentLimitQuery.data.reason || i18n.t('Contacts.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }),
+        message: agentLimitQuery.data.reason || i18n.t('Relationship.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }),
       });
       return;
     }
@@ -127,12 +127,12 @@ export function AgentDetailPanel() {
         kind: 'error',
         message: error instanceof Error
           ? error.message
-          : i18n.t('Contacts.openChatFailed', { defaultValue: 'Failed to open chat' }),
+          : i18n.t('Relationship.openChatFailed', { defaultValue: 'Failed to open chat' }),
       });
     }
   };
 
-  // `limit_reached` no longer routes to a retired Contacts page. Keep the
+  // `limit_reached` stays inline. Keep the
   // action fail-closed until an in-context management action is admitted.
   const handleManageFriends = () => {
     setFeedback({

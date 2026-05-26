@@ -313,6 +313,11 @@ export const landingContentEn: LandingContent = {
         title: 'Model Management',
         description: 'Install, update, and switch models from one place.',
       },
+      {
+        icon: 'apps',
+        title: 'App Launcher',
+        description: 'Open admitted first-party apps from the same native shell.',
+      },
     ],
     downloadCta: 'Read Desktop Docs',
     availability: {

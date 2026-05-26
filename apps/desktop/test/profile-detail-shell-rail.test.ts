@@ -15,7 +15,7 @@ const storeTypesSource = readWorkspaceFile('src/shell/renderer/app-shell/provide
 const uiSliceSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/ui-slice.ts');
 const mainLayoutSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
 const profilePanelSource = readWorkspaceFile('src/shell/renderer/features/profile/profile-panel.tsx');
-const contactDetailProfileModalSource = readWorkspaceFile('src/shell/renderer/features/contacts/contact-detail-profile-modal.tsx');
+const profileDetailModalSource = readWorkspaceFile('src/shell/renderer/features/relationship/profile-detail-modal.tsx');
 const e2eIdsSource = readWorkspaceFile('src/shell/renderer/testability/e2e-ids.ts');
 const stateContractSource = readRepoFile('.nimi/spec/desktop/kernel/state-contract.md');
 const storeSlicesSource = readRepoFile('.nimi/spec/desktop/kernel/tables/store-slices.yaml');
@@ -41,9 +41,9 @@ test('profile detail shell rail: main layout exposes a stable sidebar rail test 
 });
 
 test('profile detail shell rail: modal toggles shell overlay state while open', () => {
-  assert.match(contactDetailProfileModalSource, /const setProfileDetailOverlayOpen = useAppStore\(\(state\) => state\.setProfileDetailOverlayOpen\);/);
+  assert.match(profileDetailModalSource, /const setProfileDetailOverlayOpen = useAppStore\(\(state\) => state\.setProfileDetailOverlayOpen\);/);
   assert.match(
-    contactDetailProfileModalSource,
+    profileDetailModalSource,
     /useEffect\(\(\) => \{\s*if \(!props\.open\) \{\s*return undefined;\s*\}\s*setProfileDetailOverlayOpen\(true\);\s*return \(\) => \{\s*setProfileDetailOverlayOpen\(false\);\s*\};\s*\}, \[props\.open, setProfileDetailOverlayOpen\]\);/s,
   );
 });

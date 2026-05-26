@@ -1,14 +1,11 @@
 {
   "home": "Home",
   "chat": "Chat",
-  "contacts": "Contacts",
   "explore": "Explore",
   "apps": "Apps",
   "runtime": "Runtime",
   "settings": "Settings",
   "support": "Support",
-  "mods": "Mods",
   "notifications": "Notifications",
-  "profile": "Profile",
-  "noMods": "No mods available"
+  "profile": "Profile"
 }

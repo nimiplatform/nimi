@@ -35,17 +35,6 @@ publish it.
 5. [Realm → Creator Economy](/realm/creator-economy) — economic
    semantics for creators across worlds.
 
-## Mod Developer
-
-You want to extend Desktop with bounded capabilities.
-
-1. [Desktop](/desktop/) — what Desktop is and why mods are first-class
-   surfaces, not plugins.
-2. [Desktop → Mods](/desktop/mod-system) — the hook capability boundary.
-3. [SDK → Boundaries](/sdk/boundaries) — what mods can't bypass.
-4. [Reference → Authority Domains](/reference/authority-domains) — the
-   ownership lines mods must respect.
-
 ## App Developer
 
 You want to build an app on Nimi using the SDK.

@@ -32,7 +32,6 @@ const OWNER_ALLOWLIST = new Set([
   'realm',
   'release-gate',
   'runtime',
-  'runtime-mod',
   'runtime-provider',
   'sdk',
   'security',

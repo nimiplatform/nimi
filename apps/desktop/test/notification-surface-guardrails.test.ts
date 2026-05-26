@@ -41,7 +41,6 @@ test('runtime-config routes connector tests and page errors through inline feedb
 
 test('phase-2 migrated surfaces no longer write global status banners directly', () => {
   const migratedSources = [
-    'shell/renderer/features/contacts/contacts-panel.tsx',
     'shell/renderer/features/profile/profile-panel.tsx',
     'shell/renderer/features/notification/notification-panel.tsx',
     'shell/renderer/features/settings/settings-account-panel.tsx',
@@ -51,7 +50,7 @@ test('phase-2 migrated surfaces no longer write global status banners directly',
     'shell/renderer/features/turns/turn-input.tsx',
     'shell/renderer/features/chat/chat-human-canonical-components.tsx',
     'shell/renderer/features/agent-detail/agent-detail-panel.tsx',
-    'shell/renderer/features/contacts/contact-detail-profile-modal.tsx',
+    'shell/renderer/features/relationship/profile-detail-modal.tsx',
     'shell/renderer/features/economy/gift-inbox-panel.tsx',
     'shell/renderer/features/economy/gift-message-bubble.tsx',
     'shell/renderer/features/home/post-card.tsx',

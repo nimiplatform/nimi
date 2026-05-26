@@ -11,8 +11,8 @@ function readSource(relativePath: string): string {
 
 test('product-side profile and contacts models do not infer agent identity from handle prefixes', () => {
   const profileModelSource = readSource('../src/shell/renderer/features/profile/profile-model.ts');
-  const contactsModelSource = readSource('../src/shell/renderer/features/contacts/contacts-model.ts');
-  const friendLimitSource = readSource('../src/shell/renderer/features/contacts/agent-friend-limit.ts');
+  const contactsModelSource = readSource('../src/shell/renderer/features/relationship/relationship-model.ts');
+  const friendLimitSource = readSource('../src/shell/renderer/features/relationship/agent-friend-limit.ts');
 
   assert.doesNotMatch(profileModelSource, /startsWith\('~'\)/);
   assert.doesNotMatch(contactsModelSource, /startsWith\('~'\)/);

@@ -146,7 +146,7 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
 
   const options = await loadRuntimeRouteOptions({
     capability: 'text.generate',
-    modId: 'world.nimi.test-ai',
+    targetId: 'world.nimi.test-ai',
   }, {
     sdkListConnectors: async () => ([
       {
@@ -216,7 +216,7 @@ test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models 
 
   const options = await loadRuntimeRouteOptions({
     capability: 'text.generate',
-    modId: 'world.nimi.test-ai',
+    targetId: 'world.nimi.test-ai',
   }, {
     sdkListConnectors: async () => ([]),
     sdkListConnectorModelDescriptors: async () => ([]),
@@ -267,7 +267,7 @@ test('loadRuntimeRouteOptions fetches connector descriptors in parallel', async 
 
   const optionsPromise = loadRuntimeRouteOptions({
     capability: 'text.generate',
-    modId: 'world.nimi.parallel-route-options',
+    targetId: 'world.nimi.parallel-route-options',
   }, {
     sdkListConnectors: async () => ([
       {
@@ -357,8 +357,8 @@ test('loadRuntimeRouteOptions dedupes concurrent capability reads within the sam
   };
 
   const [left, right] = await Promise.all([
-    loadRuntimeRouteOptions({ capability: 'text.generate', modId: 'world.nimi.one' }, deps),
-    loadRuntimeRouteOptions({ capability: 'text.generate', modId: 'world.nimi.two' }, deps),
+    loadRuntimeRouteOptions({ capability: 'text.generate', targetId: 'world.nimi.one' }, deps),
+    loadRuntimeRouteOptions({ capability: 'text.generate', targetId: 'world.nimi.two' }, deps),
   ]);
 
   assert.equal(connectorListCalls, 1);
@@ -376,7 +376,7 @@ test('loadRuntimeRouteOptions preserves local models when connector listing fail
 
   const options = await loadRuntimeRouteOptions({
     capability: 'text.generate',
-    modId: 'world.nimi.local-only',
+    targetId: 'world.nimi.local-only',
   }, {
     sdkListConnectors: async () => {
       throw new Error('dynamic provider catalog offline');
@@ -434,7 +434,7 @@ test('loadRuntimeRouteOptions preserves local models when connector model discov
 
   const options = await loadRuntimeRouteOptions({
     capability: 'text.generate',
-    modId: 'world.nimi.local-only',
+    targetId: 'world.nimi.local-only',
   }, {
     sdkListConnectors: async () => ([
       {

@@ -21,23 +21,23 @@ semantics belong to the runtime AI profile execution contract.
 | Owns | Does NOT own |
 | --- | --- |
 | User UI flow for profile selection + apply | `AIProfile` portable schema (this contract pins it) |
-| Per-agent / per-mod profile binding visibility | `AIScopeRef` identity (Platform) |
+| Per-agent / per-app profile binding visibility | `AIScopeRef` identity (Platform) |
 | Apply triggers + UI feedback | `LocalProfileDescriptor` execution (Runtime) |
 | Profile preference UX | Probe semantics (Runtime/SDK split) |
 
 The user picks; Desktop applies through the SDK; Runtime executes.
 The user does not edit how runtime executes.
 
-## Reader Scenario: User Picks A Profile For A Mod Workspace
+## Reader Scenario: User Picks A Profile For An App Workspace
 
-User wants their notes mod to use a different AI profile.
+User wants an app workspace to use a different AI profile.
 
 1. **User opens profile config UI.** Sees admitted profiles.
 2. **User selects profile.** Desktop calls SDK `aiConfig.applyProfile(...)`
-   with the mod workspace's `AIScopeRef`.
+   with the app workspace's `AIScopeRef`.
 3. **Profile applied.** Copy-on-write into the workspace scope's
    `AIConfig`.
-4. **Subsequent execution under the new profile.** Mod's next AI call
+4. **Subsequent execution under the new profile.** The app's next AI call
    routes via the new profile.
 
 ## What This Does Not Do

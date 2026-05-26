@@ -129,38 +129,37 @@ Nimi 的错误由两层组成，二者正交：
 
 ## 9. SDK 架构
 
-在 Nimi 的整体架构中，SDK 扮演的角色是**唯一合法网关**：Desktop 和 Web 应用不直接发 gRPC 调用，也不直接拼 HTTP 请求，一切对 Runtime 和 Realm 的访问必须经过 \`@nimiplatform/sdk\`。这不是一个便利性选择——SDK 承担了传输声明、错误投影、导入隔离三项关键职责，把"调用底层服务"从一个全局不确定行为收窄为五条受控通道。
+在 Nimi 的整体架构中，SDK 扮演的角色是**唯一合法网关**：Desktop 和 Web 应用不直接发 gRPC 调用，也不直接拼 HTTP 请求，一切对 Runtime 和 Realm 的访问必须经过 \`@nimiplatform/sdk\`。这不是一个便利性选择——SDK 承担了传输声明、错误投影、导入隔离三项关键职责，把"调用底层服务"从一个全局不确定行为收窄为四条受控通道。
 
 \`\`\`
 ┌─────────────────────────────────────────────────────────────┐
-│                   Desktop / Web / Mod                       │
+│                   Desktop / Web / Kit                       │
 │                                                             │
 │  @nimiplatform/sdk                                          │
-│  ┌──────────┐ ┌────────────┐ ┌───────┐ ┌───────┐ ┌──────┐  │
-│  │ runtime  │ │ai-provider │ │ realm │ │ scope │ │ mod  │  │
-│  └────┬─────┘ └─────┬──────┘ └───┬───┘ └───┬───┘ └──┬───┘  │
-│       │ gRPC/IPC     │ wraps     │ HTTP/WS  │ memory │ host │
-└───────┼──────────────┼───────────┼──────────┼────────┼──────┘
-        ▼              ▼           ▼          ▼        ▼
-  ┌───────────┐   (delegates   ┌────────┐  (local)  (injected
-  │  Runtime  │    to runtime) │ Realm  │           by desktop)
+│  ┌──────────┐ ┌────────────┐ ┌───────┐ ┌───────┐             │
+│  │ runtime  │ │ai-provider │ │ realm │ │ scope │             │
+│  └────┬─────┘ └─────┬──────┘ └───┬───┘ └───┬───┘             │
+│       │ gRPC/IPC     │ wraps     │ HTTP/WS  │ memory          │
+└───────┼──────────────┼───────────┼──────────┼────────────────┘
+        ▼              ▼           ▼          ▼
+  ┌───────────┐   (delegates   ┌────────┐  (local)
+  │  Runtime  │    to runtime) │ Realm  │
   │   (Go)    │                │ Server │
   └───────────┘                └────────┘
 \`\`\`
 
-下面的规范从"为什么分五个子路径"出发，依次展开传输层设计、错误投影模型和导入边界，最后简述每个子路径的领域特征。
+下面的规范从"为什么分四个子路径"出发，依次展开传输层设计、错误投影模型和导入边界，最后简述每个子路径的领域特征。
 
-### 9.1 为什么是五个子路径？
+### 9.1 为什么是四个子路径？
 
-五个子路径看似只是目录划分，实际上反映了五种**根本不同的传输模型和信任假设**：
+四个子路径看似只是目录划分，实际上反映了四种**根本不同的传输模型和信任假设**：
 
 - **runtime** — 通过 gRPC 或 Tauri IPC 与本地守护进程通信，延迟极低，但需要显式声明传输通道
 - **ai-provider** — 封装 AI SDK v3 协议，把标准化的 \`generateText\` / \`embed\` 调用翻译为 Runtime gRPC 方法；它是**协议适配层**，不做路由决策
 - **realm** — 通过 HTTP/WebSocket 与远程 Realm 服务器通信，延迟和可靠性特征与 gRPC 截然不同
 - **scope** — 纯 in-memory 权限目录，无网络通信，维护 register / publish / revoke 最小闭环
-- **mod** — Mod 不拥有自己的客户端，一切能力通过 host 注入获得
 
-如果把它们合并为一个入口，transport 切换逻辑、错误码映射、安全边界就会交织在一起，制造出"能调通但偶尔莫名失败"的隐藏耦合。五条子路径让每种通信模式有独立的初始化和失败语义。`);
+如果把它们合并为一个入口，transport 切换逻辑、错误码映射、安全边界就会交织在一起，制造出"能调通但偶尔莫名失败"的隐藏耦合。四条子路径让每种通信模式有独立的初始化和失败语义。`);
   d.blank();
   d.rule('S-SURFACE-001');
 
@@ -173,7 +172,7 @@ Nimi 的错误由两层组成，二者正交：
   d.blank();
   d.rule('S-SURFACE-003');
 
-  d.text(`Realm、Scope、Mod 三个子路径各有最小稳定导出面：Realm 使用实例化 facade 入口（无全局配置），Scope 暴露 in-memory catalog + publish/revoke 语义，Mod 暴露 host 注入 facade + hook client：`);
+  d.text(`Realm 与 Scope 子路径各有最小稳定导出面：Realm 使用实例化 facade 入口（无全局配置），Scope 暴露 in-memory catalog + publish/revoke 语义：`);
   d.blank();
   d.rule('S-SURFACE-004');
 
@@ -303,15 +302,13 @@ SDK 的公开子路径之间有**物理级导入隔离**，而非仅靠文档约
 
 **Realm SDK** 通过 HTTP/WebSocket 与远程 Realm 服务器通信。每个 \`new Realm(options)\` 实例独立配置 endpoint、token、headers（如 S-TRANSPORT-004 所定义）；它同样保留为 low-level escape hatch，而 app 主路径优先经由 \`createPlatformClient()\` 获取 Realm 实例。Realm SDK 的认证模型允许 \`NO_AUTH\` 模式用于公开数据读取。本地配置错误使用 \`SDK_REALM_*\` 族错误码。
 
-**Scope SDK** 维护纯内存的权限目录。核心 API 是 \`register\` / \`publish\` / \`revoke\` 三操作，不涉及网络通信。Scope catalog 是进程级的——各 Runtime 实例共享同一个 catalog 实例。
-
-**Mod SDK** 设计为最小权限。Mod 通过 host 注入获得 facade 和 hook client，不能直接构造 Runtime 或 Realm 客户端（如 S-BOUNDARY-003 所定义）。Mod 可用的能力由 Desktop 的 Hook 能力模型（见 10.6）中的 capability allowlist 控制。`);
+**Scope SDK** 维护纯内存的权限目录。核心 API 是 \`register\` / \`publish\` / \`revoke\` 三操作，不涉及网络通信。Scope catalog 是进程级的——各 Runtime 实例共享同一个 catalog 实例。`);
 
   d.text(`---
 
 ## 10. Desktop 架构
 
-Nimi Desktop 是一个 Tauri + React 应用，它把 Runtime（Go 守护进程）、Realm（远程平台）和 Mod（第三方扩展）三个世界粘合成一个统一的用户体验。与传统 Electron 应用不同，Desktop 选择 Tauri 的核心原因是 Rust 后端提供了真正的本地能力：进程管理、安全存储、TCP 端口绑定——这些在浏览器沙箱中无法实现。
+Nimi Desktop 是一个 Tauri + React 应用，它把 Runtime（Go 守护进程）、Realm（远程平台）和第一方产品 surface 粘合成一个统一的用户体验。与传统 Electron 应用不同，Desktop 选择 Tauri 的核心原因是 Rust 后端提供了真正的本地能力：进程管理、安全存储、TCP 端口绑定——这些在浏览器沙箱中无法实现。
 
 Desktop 规范由 13 个契约域组成，从启动序列到安全策略形成完整的应用生命周期。每个域都有独立的规则集，但域间存在明确的依赖关系——例如启动序列依赖 IPC 桥接，数据同步依赖认证会话。
 
@@ -319,12 +316,12 @@ Desktop 规范由 13 个契约域组成，从启动序列到安全策略形成�
 ┌──────────────────────────────────────────────────────────────┐
 │                    Nimi Desktop (Tauri)                       │
 │                                                              │
-│  ┌─────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐  │
-│  │UI Shell │  │  State   │  │   Hook   │  │ Mod Runtime  │  │
-│  │ (React) │  │(Zustand) │  │ (5 subs) │  │ (8 stages)   │  │
-│  └────┬────┘  └────┬─────┘  └────┬─────┘  └──────┬───────┘  │
-│       │            │             │                │          │
-│  ┌────┴────────────┴─────────────┴────────────────┴───────┐  │
+│  ┌─────────┐  ┌──────────┐  ┌──────────────┐  ┌──────────┐ │
+│  │UI Shell │  │  State   │  │ Runtime View │  │ SDK Host │ │
+│  │ (React) │  │(Zustand) │  │ Projection   │  │ Facades  │ │
+│  └────┬────┘  └────┬─────┘  └──────┬───────┘  └────┬─────┘ │
+│       │            │               │               │       │
+│  ┌────┴────────────┴───────────────┴───────────────┴────┐  │
 │  │              IPC Bridge (Tauri invoke)                  │  │
 │  └──────────────────────┬─────────────────────────────────┘  │
 │                         │                                    │
@@ -340,9 +337,9 @@ Desktop 规范由 13 个契约域组成，从启动序列到安全策略形成�
     └────────────────────┘    └─────────────────┘
 \`\`\`
 
-### 10.1 启动序列：八阶段异步初始化
+### 10.1 启动序列：有序异步初始化
 
-Desktop 的启动不是一个简单的 \`init()\` 调用——它是一条 8 阶段的异步依赖链。为什么不能一次性初始化？因为每个阶段都有明确的前置条件：Platform Client 需要 Realm URL（来自 Runtime Defaults），DataSync 需要 Platform Client，Runtime Host 需要 DataSync，Mod 注册需要 Runtime Host。任何阶段失败都有精确的错误边界，不会"半初始化"。
+Desktop 的启动不是一个简单的 \`init()\` 调用——它是一条有序的异步依赖链。为什么不能一次性初始化？因为每个阶段都有明确的前置条件：Platform Client 需要 Realm URL（来自 Runtime Defaults），DataSync 需要 Platform Client，Runtime Host 需要 DataSync，External Agent 桥接需要认证与 Runtime 投影就绪。任何阶段失败都有精确的错误边界，不会"半初始化"。
 
 \`\`\`
 阶段依赖链
@@ -357,11 +354,9 @@ Desktop 的启动不是一个简单的 \`init()\` 调用——它是一条 8 阶
    ↓ token ready / anonymous
 ⑤ Runtime Host 装配
    ↓ HTTP context + capabilities
-⑥ Mod 注册
-   ↓ 部分失败不阻塞
-⑦ External Agent 桥接
+⑥ External Agent 桥接
    ↓ tier-1 actions registered
-⑧ Bootstrap 完成
+⑦ Bootstrap 完成
    ↓ bootstrapReady = true
 \`\`\``);
   d.blank();
@@ -369,7 +364,7 @@ Desktop 的启动不是一个简单的 \`init()\` 调用——它是一条 8 阶
   d.rule('D-BOOT-002');
   d.rule('D-BOOT-003');
 
-  d.text(`阶段 ④ 在启动期间执行 token 交换或匿名回退——这是认证状态的初始决策点。阶段 ⑤ 组装 HTTP context provider、runtime host 能力、mod SDK host 和核心数据能力。阶段 ⑥ 从本地 manifest 注册 mod，**部分 mod 注册失败不阻塞整体启动**，采用降级模式继续。阶段 ⑦ 注册 tier-1 external agent actions 并启动 action bridge。`);
+  d.text(`阶段 ④ 在启动期间执行 token 交换或匿名回退——这是认证状态的初始决策点。阶段 ⑤ 组装 HTTP context provider、runtime host 能力和核心数据能力。阶段 ⑥ 注册 tier-1 external agent actions 并启动 action bridge。`);
   d.blank();
   d.rule('D-BOOT-004');
   d.rule('D-BOOT-005');
@@ -413,7 +408,7 @@ IPC 层的基础设施先于具体命令。统一的 \`invoke()\` 入口先检�
   d.rule('D-IPC-005');
   d.rule('D-IPC-006');
 
-  d.text(`**Mod 本地命令** — 读取本地 manifest 和 entry 文件。**External Agent 命令** — agent token 管理和 action descriptor 同步。**Local AI 命令** — 懒加载的模型列表、安装、生命周期管理和审计：`);
+  d.text(`**External Agent 命令** — agent token 管理和 action descriptor 同步。**Local AI 命令** — 懒加载的模型列表、安装、生命周期管理和审计：`);
   d.blank();
   d.rule('D-IPC-007');
   d.rule('D-IPC-008');
@@ -421,7 +416,7 @@ IPC 层的基础设施先于具体命令。统一的 \`invoke()\` 入口先检�
 
   d.text(`### 10.3 状态管理：四个 Zustand Slice
 
-Desktop 的应用状态采用 Zustand slice 架构。为什么不用 Redux 或 Context？因为各业务域（Auth、Runtime、Mod、UI）的状态生命周期完全不同——Auth 状态跨 session 持久化，Runtime 状态在 daemon 重启时重置，Mod 状态随 workspace 动态增减，UI 状态纯临时。Slice 架构让每个域独立声明自己的状态和操作，最终通过无 middleware 的组合注入全局 store。`);
+Desktop 的应用状态采用 Zustand slice 架构。为什么不用 Redux 或 Context？因为各业务域（Auth、Runtime、UI 与产品 surface）的状态生命周期完全不同——Auth 状态跨 session 持久化，Runtime 状态在 daemon 重启时重置，UI 状态纯临时。Slice 架构让每个域独立声明自己的状态和操作，最终通过无 middleware 的组合注入全局 store。`);
   d.blank();
   d.rule('D-STATE-001');
   d.rule('D-STATE-002');
@@ -482,89 +477,7 @@ Auth 状态机
     'D-DSYNC-008', 'D-DSYNC-009', 'D-DSYNC-010', 'D-DSYNC-011', 'D-DSYNC-012',
   ]);
 
-  d.text(`### 10.6 Hook 能力模型：五子系统与五级信任
-
-Hook 系统是 Mod 扩展 Desktop 的唯一合法途径。它定义了 5 个子系统，覆盖事件通信、数据查询、对话轮次干预、UI 注入和跨 Mod 调用五个扩展面。
-
-在具体子系统之前，先理解两个基础机制。**Capability Key 格式**采用点分隔命名（\`subsystem.action.target\`），支持 \`*\` 通配符匹配和批量匹配。**Source-Type 权限网关**定义了 5 种来源信任层级，从最高到最低：
-
-\`\`\`
-信任层级（权限只减不增）
-─────────────────────────────────────────────────
-Level 5   core        平台内置核心组件     — 完全能力
-Level 4   builtin     官方预装 Mod        — 接近完全
-Level 3   injected    运行时注入的组件     — 受限能力
-Level 2   sideload    开发者侧载          — 最小能力
-Level 1   codegen     AI 生成的代码       — 最受限
-\`\`\`
-
-每种 source type 有对应的 capability allowlist，权限只能沿信任层级递减，不能通过任何机制提升。`);
-  d.blank();
-  d.rule('D-HOOK-006');
-  d.rule('D-HOOK-007');
-
-  d.text(`在此基础上，5 个子系统各覆盖一个扩展面：
-
-**Event 子系统** — pub/sub 事件总线，能力键 \`event.publish.*\` / \`event.subscribe.*\`。**Data 子系统** — 数据查询和注册，能力键 \`data.query.*\` / \`data.register.*\`，sideload 来源限制为 query-only。`);
-  d.blank();
-  d.rule('D-HOOK-001');
-  d.rule('D-HOOK-002');
-
-  d.text(`**Turn 子系统** — 对话轮次 hook，4 个注入点（pre-policy → pre-model → post-state → pre-commit），source type 限制注入点访问。**UI 子系统** — 8 个预定义 slot 的组件注册，codegen 来源有前缀限制。**Inter-Mod 子系统** — 跨 Mod 的 RPC 通信（\`inter-mod.request.*\` / \`inter-mod.provide.*\`）。`);
-  d.blank();
-  d.rule('D-HOOK-003');
-  d.rule('D-HOOK-004');
-  d.rule('D-HOOK-005');
-
-  d.text(`Hook 系统还提供两个共享能力域：**LLM Capability** 覆盖文本/图像/视频/嵌入生成和语音操作，**Action Capability** 覆盖 discover/dry-run/verify/commit 操作：`);
-  d.blank();
-  d.rule('D-HOOK-008');
-  d.rule('D-HOOK-009');
-
-  d.text(`### 10.7 Mod 治理：八阶段执行内核
-
-Mod 的生命周期不是简单的"安装 → 运行"——它是一条 8 阶段的逐级过滤管道。每个阶段独立做出 ALLOW / ALLOW_WITH_WARNING / DENY 决策，并产出 decision record。阶段之间无跳过——即使前面的阶段全部通过，后面的阶段仍然独立评估。
-
-\`\`\`
-Mod 8 阶段执行管道
-─────────────────────────────────────────────────
-① Discovery   — 定位包 + 验证来源引用
-       ↓ ALLOW
-② Manifest    — 解析清单 + 版本兼容检查
-       ↓ ALLOW
-③ Signature   — 签名验证 + 签署者身份确认
-       ↓ ALLOW（local-dev/sideload 跳过）
-④ Dependency  — 依赖解析 + 构建产物
-       ↓ ALLOW
-⑤ Sandbox     — 能力策略评估 + 沙箱约束
-       ↓ ALLOW / ALLOW_WITH_WARNING
-⑥ Load        — 加载入口源 + 在沙箱中执行注册
-       ↓ ALLOW
-⑦ Lifecycle   — enable / disable / uninstall / update
-       ↓ 状态转换（支持 rollback）
-⑧ Audit       — 写入 decision record + 本地审计
-\`\`\`
-
-2 种 access mode 决定了每个阶段的验证严格度：\`sideload\` 面向已安装用户 mod，跳过签名但限制能力；\`local-dev\` 仅用于显式本地开发，会放宽调试限制但不能被远程分发元数据提升权限。`);
-  d.blank();
-  d.rule('D-MOD-001');
-  d.rule('D-MOD-002');
-  d.rule('D-MOD-003');
-  d.rule('D-MOD-004');
-
-  d.text(`阶段 ⑤ 的沙箱策略评估是安全核心：它根据 Mod 声明的 capability 需求和 source type 的 allowlist 做交叉匹配，超出允许范围的能力请求直接 DENY。`);
-  d.blank();
-  d.rule('D-MOD-005');
-  d.rule('D-MOD-006');
-  d.rule('D-MOD-007');
-
-  d.text(`每个阶段的决策结果有三种语义：\`ALLOW\` 无条件通过，\`ALLOW_WITH_WARNING\` 通过但记录警告（提示用户注意），\`DENY\` 阻止并终止管道。审计阶段将完整的 decision record 链写入本地存储。`);
-  d.blank();
-  d.rule('D-MOD-008');
-  d.rule('D-MOD-009');
-  d.rule('D-MOD-010');
-
-  d.text(`### 10.8 LLM 适配器与语音引擎
+  d.text(`### 10.6 LLM 适配器与语音引擎
 
 Desktop 的 LLM 层有一个关键设计决策：**不直接调用外部 AI API**。所有 AI 推理——无论是 OpenAI、Gemini 还是本地 Qwen——全部通过 SDK 的 Runtime 接口执行。Desktop 只在 Runtime 之上添加三层本地增强：provider 适配（路由到正确的 Runtime 方法）、Connector 凭据路由（通过 \`connector_id\` 路由到 Runtime ConnectorService 管理的凭据）、本地模型健康检查（验证 endpoint 可达性和模型状态）。
 
@@ -575,18 +488,18 @@ Desktop 的 LLM 层有一个关键设计决策：**不直接调用外部 AI API*
   d.rule('D-LLM-003');
   d.rule('D-LLM-004');
 
-  d.text(`语音引擎集成遵循相同的"不绕过 Runtime"原则。Desktop 通过 Hook 注册语音能力（7 个 speech capability keys），设置 fetch/route resolver，最终仍通过 Runtime 执行语音推理。本地 AI 推理事件通过 \`LocalAiInferenceAuditPayload\` 记录，包含 eventType 和 source 追踪。`);
+  d.text(`语音引擎集成遵循相同的"不绕过 Runtime"原则。Desktop 只负责用户交互和路由展示，语音能力、readiness 与执行证据由 Runtime/SDK 投影提供。本地 AI 推理事件通过 \`LocalAiInferenceAuditPayload\` 记录，包含 eventType 和 source 追踪。`);
   d.blank();
   d.rule('D-LLM-005');
   d.rule('D-LLM-006');
 
-  d.text(`### 10.9 UI Shell 与导航体系
+  d.text(`### 10.7 UI Shell 与导航体系
 
-UI Shell 定义了 Desktop 的视觉骨架：两栏布局（可折叠侧边栏 + 内容面板），3 组导航（Core Nav 6 项 + Quick Nav 1 项 + Detail Tab），以及 lazy-load 代码分割策略。`);
+UI Shell 定义了 Desktop 的视觉骨架：两栏布局（可折叠侧边栏 + 内容面板），3 组导航（Core Nav 5 项 + Quick Nav 1 项 + Detail Tab），以及 lazy-load 代码分割策略。`);
   d.blank();
   d.rule('D-SHELL-001');
 
-  d.text(`Mod 通过 feature flag 控制组件渲染和 workspace tab，通过 slot 注入扩展 UI：`);
+  d.text(`Feature flag 只控制当前 admitted product surface，不创建扩展运行时或并行产品入口：`);
   d.blank();
   d.rule('D-SHELL-002');
 
@@ -601,7 +514,7 @@ UI Shell 定义了 Desktop 的视觉骨架：两栏布局（可折叠侧边栏 +
   d.rule('D-SHELL-004');
   d.rule('D-SHELL-005');
 
-  d.text(`### 10.10 错误边界与归一化
+  d.text(`### 10.8 错误边界与归一化
 
 Desktop 的错误来自 4 个来源：Runtime gRPC 错误、Realm HTTP 错误、IPC Bridge 错误、本地逻辑错误。错误边界的职责是将这 4 种异构错误**归一化为统一格式**，让上层代码不必关心错误的原始来源。
 
@@ -617,7 +530,7 @@ Desktop 的错误来自 4 个来源：Runtime gRPC 错误、Realm HTTP 错误、
   d.rule('D-ERR-005');
   d.rule('D-ERR-006');
 
-  d.text(`### 10.11 遥测与可观测性
+  d.text(`### 10.9 遥测与可观测性
 
 遥测层的目标是让每个"事情发生了"都可追踪——无论是 IPC 调用、网络重试还是 bootstrap 阶段转换。
 
@@ -637,7 +550,7 @@ Desktop 的错误来自 4 个来源：Runtime gRPC 错误、Realm HTTP 错误、
   d.rule('D-TEL-006');
   d.rule('D-TEL-007');
 
-  d.text(`### 10.12 网络层：代理、重试与实时
+  d.text(`### 10.10 网络层：代理、重试与实时
 
 Desktop 的网络层解决三个问题：CORS 绕过、失败重试、实时通信。
 
@@ -656,9 +569,9 @@ Desktop 的网络层解决三个问题：CORS 绕过、失败重试、实时通�
   d.blank();
   d.rule('D-NET-006');
 
-  d.text(`### 10.13 安全模型
+  d.text(`### 10.11 安全模型
 
-Desktop 的安全策略由 5 层纵深防御构成，从最基础的网络限制到最上层的 Mod 沙箱。
+Desktop 的安全策略由多层纵深防御构成，从最基础的网络限制到最上层的 External Agent 与本地资产边界。
 
 **Layer 1: Loopback 限制** — 所有 Runtime endpoint 必须指向 localhost / 127.0.0.1 / [::1]，阻止任何远程路由。这是最基础的安全屏障：即使其他层全部失效，AI 推理请求也不会离开本机。`);
   d.blank();
@@ -682,7 +595,7 @@ Desktop 的安全策略由 5 层纵深防御构成，从最基础的网络限制
   d.rule('D-SEC-004');
   d.rule('D-SEC-008');
 
-  d.text(`**Layer 5: Mod 能力沙箱** — Mod 在 capability sandbox 中执行，source-type 强制执行最小权限（如 10.6 所定义）。本地 AI 模型要求非空 \`manifest.hashes\` 进行完整性校验。External Agent 的 token 支持签发、撤销、列表和网关监控。`);
+  d.text(`**Layer 5: External Agent 与本地资产边界** — External Agent 的 token 支持签发、撤销、列表和网关监控；本地 AI 模型与 Avatar 私有资产只能通过 Runtime/SDK 投影和 Desktop 允许的 opaque local refs 流转。`);
   d.blank();
   d.rule('D-SEC-005');
   d.rule('D-SEC-006');

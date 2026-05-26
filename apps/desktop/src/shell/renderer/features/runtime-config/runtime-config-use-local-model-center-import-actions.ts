@@ -17,7 +17,7 @@ import { useLocalModelCenterDownloads } from './runtime-config-use-local-model-c
 
 type UseLocalModelCenterImportActionsInput = {
   getInstallEngine: (item: LocalRuntimeCatalogItemDescriptor) => InstallEngineOption;
-  isModMode: boolean;
+  isProfileTargetMode: boolean;
   onRefreshUnregisteredAssets: () => Promise<void>;
   onRefreshAssetSections: () => Promise<void>;
   onRefreshVerifiedModels: () => Promise<void>;
@@ -81,7 +81,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     onCancelDownload,
     onDismissSession,
   } = useLocalModelCenterDownloads({
-    isModMode: input.isModMode,
+    isProfileTargetMode: input.isProfileTargetMode,
     onDownloadComplete: input.props.onDownloadComplete,
     onProgressSettled: handleSettledDownload,
   });

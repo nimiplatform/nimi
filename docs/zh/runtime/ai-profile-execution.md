@@ -13,13 +13,13 @@
 | 职责 | 负责人 |
 | --- | --- |
 | `AIProfile` 可移植模式定义 + 验证 | 桌面内核 (`D-AIPC-002`) |
-| 可移植 → 本地描述符映射 | 桌面 / SDK |
+| 可移植 → 本地描述符映射 | 范围所有者 / SDK |
 | `LocalProfileDescriptor` 执行 + 安装 | 运行时 (`K-LOCAL-013..015`) |
 | 设备配置文件收集 | 运行时 (`K-DEV-001..009`) |
 | 本地资源解析 + 健康状况 | 运行时 (`K-LOCAL-014a`) |
 | 执行快照证据 | 运行时 (`K-AIEXEC-003`) |
 
-运行时 **不是** 可移植模式验证器。它接受并执行 `LocalProfileDescriptor`；桌面侧 / SDK 侧的映射将可移植的 `AIProfile` 转换为描述符。
+运行时 **不是** 可移植模式验证器。它接受并执行 `LocalProfileDescriptor`；范围所有者 / SDK 的映射将可移植的 `AIProfile` 转换为描述符。
 
 ## 探针合约
 
@@ -27,7 +27,7 @@
 
 | 层级 | 执行位置 | 回答的问题 |
 | --- | --- | --- |
-| 静态模式探针 | 桌面 / SDK 本地 | `AIProfile` 可移植模式是否有效？ |
+| 静态模式探针 | 范围所有者 / SDK 本地 | `AIProfile` 可移植模式是否有效？ |
 | 运行时可用性探针 | 运行时通过 `runtime.route.checkHealth` / `runtime.route.describe` | 路由的提供者 / 引擎是否可用？ |
 | 资源可行性探针 | 运行时通过 `CollectDeviceProfile` + `ResolveProfile` + `Peek` | 该设备能否运行此配置文件？ |
 
@@ -58,16 +58,16 @@
 
 运行时无法感知桌面的 `AISnapshot` 或 `AIConfig` 模式。它提供执行证据数据；这些数据不会将快照所有权转移给运行时。
 
-对于模块消费者，面向应用的 `AISnapshot` 记录 / 读取所有者仍然是桌面主机。模块主机桥将模块执行绑定到规范的模块 `scopeRef`（参见 [AI 范围身份](/platform/ai-scope-identity)），并记录快照。运行时无法感知消费者本地的快照模型。
+对于应用消费者，面向应用的 `AISnapshot` 记录 / 读取所有者仍然是范围所有者。SDK 将执行绑定到规范的应用 `scopeRef`（参见 [AI 范围身份](/platform/ai-scope-identity)），并记录快照投影。运行时无法感知消费者本地的快照模型。
 
-## 读者场景：模块工作区在 AI 配置文件下执行
+## 读者场景：应用工作区在 AI 配置文件下执行
 
-1. **配置文件应用。** 桌面将可移植的 `AIProfile` 转换为此设备的 `LocalProfileDescriptor`。
-2. **范围身份。** 模块工作区的 `AIScopeRef{ kind: 'mod', ownerId: <manifest>, surfaceId: 'workspace' }` 键控快照。
+1. **配置文件应用。** 范围所有者将可移植的 `AIProfile` 转换为此设备的 `LocalProfileDescriptor`。
+2. **范围身份。** 应用工作区的 `AIScopeRef{ kind: 'app', ownerId: <app id>, surfaceId: 'workspace' }` 键控快照。
 3. **执行调用。** `SubmitScenarioJob`（或等效操作）通过解析后的描述符进行。
 4. **执行快照。** 运行时在执行上下文中固定四个证据行。
 5. **审计跟踪。** 证据通过 `K-AUDIT-001` 写入。
-6. **桌面 `AISnapshot.runtimeEvidence`。** 桌面将其读入面向应用的快照模型。
+6. **应用 `AISnapshot.runtimeEvidence`。** 范围所有者将其读入面向应用的快照模型。
 
 ## 读者场景：资源可行性探针
 

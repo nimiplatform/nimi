@@ -309,7 +309,7 @@ function ModePicker(props: {
             className={cn(
               'flex flex-col items-center gap-0.5 rounded-[10px] border px-2 py-2.5 text-center transition-all disabled:cursor-not-allowed disabled:opacity-50',
               selected
-                // Match the AI Runtime Mods card selection style: brand-tinted border + 6% accent fill + accent text.
+                // Match the runtime selection style: brand-tinted border + 6% accent fill + accent text.
                 ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,transparent)] text-[var(--nimi-action-primary-bg)]'
                 // Hover preview hints at the same brand-tinted selection state.
                 : 'border-slate-200/90 bg-white text-slate-900 hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_4%,white)]',

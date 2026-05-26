@@ -32,8 +32,8 @@
   "advanced": {
     "tabPreferences": "Preferences & Updates",
     "tabDeveloper": "Developer Tools",
-    "developerLocked": "Developer tools are hidden. Enable Developer Mode in Preferences & Updates to access mod surfaces.",
-    "developerSectionTitle": "Mod Developer Surfaces"
+    "developerLocked": "Developer tools are hidden. Enable Developer Mode in Preferences & Updates to access internal diagnostics.",
+    "developerSectionTitle": "Developer Surfaces"
   },
   "memory": {
     "sectionTitle": "Memory Embedding",
@@ -69,7 +69,6 @@
     "healthyConnectorsCount": "{{count}} healthy",
     "vaultEntries": "Vault Entries",
     "credentialsStored": "credentials stored",
-    "aiMods": "AI Mods",
     "withAiProfiles": "with AI profiles",
     "snapshotTitle": "Overview Snapshot",
     "systemResources": "System Resources",
@@ -127,12 +126,13 @@
     "configureCloudDescription": "API keys and connectors",
     "setup": "Setup",
     "runtimeAuditDescription": "Health, logs, EAA tokens",
-    "modProfilesDescription": "Configure AI for mods",
     "configureClouds": "Configure Cloud",
     "runtimeAudit": "Runtime & Audit",
-    "modProfiles": "Mod Profiles",
     "costDisclaimer": "Estimates based on catalog pricing; actual costs may vary.",
-    "costTooltipUnknown": "Some models have unknown pricing"
+    "costTooltipUnknown": "Some models have unknown pricing",
+    "aiProfiles": "AI Profiles",
+    "profileSetupDescription": "Configure local AI profile requirements",
+    "profileSetup": "Profile Setup"
   },
   "local": {
     "searchInstall": "Search & Install Models",
@@ -147,11 +147,7 @@
     "modelDependencies": "Model Profiles",
     "resolving": "Resolving...",
     "resolvePlan": "Preview Install",
-    "noProfileEnabledMod": "No profile-enabled runtime mod found.",
-    "runtimeMod": "Runtime Mod",
-    "unknownRuntimeMod": "Unknown runtime mod",
     "autoDetect": "Auto Detect",
-    "selectedModNoProfile": "Selected mod has no profile declaration.",
     "resolvingProfilePlan": "Resolving profile install plan...",
     "planId": "Plan ID",
     "selected": "Selected",
@@ -191,10 +187,10 @@
     "installLifecycleFailed": "Install lifecycle failed: {{message}}",
     "retryingInstall": "Retrying install: {{modelId}}. Download progress will appear below.",
     "dependenciesAppliedSyncFailed": "Dependencies applied, but Go runtime sync failed: {{message}}",
-    "dependenciesAppliedSummary": "Dependencies applied for {{modId}}: {{modelCount}} model(s), {{serviceCount}} service(s)",
+    "dependenciesAppliedSummary": "Dependencies applied for {{targetId}}: {{modelCount}} model(s), {{serviceCount}} service(s)",
     "profileAppliedSyncFailed": "Profile installed, but Go runtime sync failed: {{message}}",
-    "profileAppliedSummary": "Installed profile {{profileId}} for {{modId}}: {{modelCount}} runnable asset(s), {{serviceCount}} service(s), {{dependencyAssetCount}} dependency asset(s)",
-    "profileApplyQueued": "Profile {{profileId}} queued for {{modId}}.",
+    "profileAppliedSummary": "Installed profile {{profileId}} for {{targetId}}: {{modelCount}} runnable asset(s), {{serviceCount}} service(s), {{dependencyAssetCount}} dependency asset(s)",
+    "profileApplyQueued": "Profile {{profileId}} queued for {{targetId}}.",
     "profileApplyFailed": "Profile install failed: {{message}}",
     "assetImported": "Asset imported: {{assetId}}",
     "assetImportFailed": "Asset import failed",
@@ -282,7 +278,11 @@
     "baseline": "Baseline",
     "confidence": "Confidence",
     "host": "Host",
-    "recommendation": "Recommendation"
+    "recommendation": "Recommendation",
+    "noProfileEnabledTarget": "No profile-enabled target found.",
+    "runtimeProfileTarget": "Profile Target",
+    "unknownRuntimeProfileTarget": "Unknown profile target",
+    "selectedTargetNoProfile": "Selected target has no profile declaration."
   },
   "cloud": {
     "connectors": "Cloud API Connectors",
@@ -381,7 +381,6 @@
     "globalAuditTitle": "Global Audit Events",
     "allCallers": "All callers",
     "desktopCore": "Desktop Core",
-    "desktopMod": "Desktop Mod",
     "thirdPartyApp": "Third-Party App",
     "thirdPartyService": "Third-Party Service",
     "loadingAuditEvents": "Loading audit events...",
@@ -512,28 +511,6 @@
     "runtimeBinaryMissingMessage": "Desktop could not stage the bundled `nimi` runtime. Restart the app or reinstall this desktop release.",
     "runtimeBinaryMissingTitle": "Bundled runtime is unavailable",
     "vram": "VRAM"
-  },
-  "mods": {
-    "noAiMods": "No AI Mods",
-    "noAiModsDesc": "No installed mods have declared AI profiles. Install a mod that uses AI capabilities to see its recommended local stacks here.",
-    "modsWithAiProfiles": "Mods with AI Profiles",
-    "modsWithAiProfilesDesc": "Select a mod to configure its AI profiles.",
-    "registeredModsSummary": "{{registered}} registered mods · {{configured}} with AI profiles",
-    "selectedModDescription": "Configure the selected mod's recommended local AI profiles.",
-    "aiCapabilityStatus": "AI Capability Status",
-    "local": "local",
-    "needsSetup": "needs setup",
-    "ready": "Ready",
-    "readyToInstall": "Ready to install",
-    "missingDeps": "Missing dependencies",
-    "modProfiles": "Mod Profiles",
-    "selectCapabilityFirst": "Select a capability to continue.",
-    "selectModPrompt": "Select a mod to configure its AI profiles.",
-    "setup": "Setup",
-    "setupRequired": "Setup Required",
-    "setupRequiredDesc": "Some capabilities are not available locally. Install a local model or configure a cloud API connector.",
-    "installModels": "Install Models",
-    "configureCloudApi": "Configure Cloud API"
   },
   "profiles": {
     "addTagPlaceholder": "Add tag...",
@@ -979,7 +956,7 @@
     "retrying": "Retrying...",
     "reviewNeeded": "Review needed",
     "unregisteredAssetsAutoImportHint": "Typed folders import automatically when confidence is high; others stay in Review needed.",
-    "runtimeMod": "Runtime Mod",
+    "runtimePackage": "Runtime Mod",
     "searchModelsPlaceholder": "Search models by name, repo, or task...",
     "searching": "Searching...",
     "selectEngine": "Select engine",
@@ -1055,5 +1032,10 @@
     "replayTrace": "Replay trace",
     "command": "Command",
     "args": "Args"
+  },
+  "profileTargets": {
+    "ready": "Ready",
+    "setup": "Setup",
+    "profileSetup": "Profile Setup"
   }
 }

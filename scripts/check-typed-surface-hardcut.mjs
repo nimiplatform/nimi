@@ -73,12 +73,9 @@ const checks = [
     ],
   },
   {
-    description: 'desktop control-plane and runtime-config storage normalization must not erase types through raw record casts',
+    description: 'desktop runtime-config storage normalization must not erase types through raw record casts',
     pattern: 'Promise<unknown>|Record<string, unknown>|as unknown as',
     paths: [
-      'apps/desktop/src/runtime/control-plane/client.ts',
-      'apps/desktop/src/runtime/control-plane/http.ts',
-      'apps/desktop/src/runtime/control-plane/error-map.ts',
       'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-storage-normalize.ts',
     ],
   },
@@ -105,10 +102,8 @@ const checks = [
     pattern: 'Promise<unknown>|Record<string, unknown>|as unknown as|Promise<any>|as never',
     paths: [
       'apps/desktop/src/shell/renderer/features/realtime/chat-realtime-cache.ts',
-      'apps/desktop/src/shell/renderer/features/contacts/contacts-model.ts',
-      'apps/desktop/src/shell/renderer/features/contacts/contacts-panel.tsx',
-      'apps/desktop/src/shell/renderer/features/contacts/contacts-view.tsx',
-      'apps/desktop/src/shell/renderer/features/contacts/agent-friend-limit.ts',
+      'apps/desktop/src/shell/renderer/features/relationship/relationship-model.ts',
+      'apps/desktop/src/shell/renderer/features/relationship/agent-friend-limit.ts',
       'apps/desktop/src/shell/renderer/features/explore/explore-panel.tsx',
       'apps/desktop/src/shell/renderer/features/notification/notification-model.ts',
       'apps/desktop/src/shell/renderer/features/settings/settings-storage.ts',
@@ -120,71 +115,11 @@ const checks = [
     ],
   },
   {
-    description: 'forge core typed adapters must not fall back to unknown/record contracts',
-    pattern: 'as never|Record<string, unknown>|Promise<unknown>',
-    paths: [
-      'apps/forge/src/shell/renderer/data/agent-data-client.ts',
-      'apps/forge/src/shell/renderer/data/world-data-client.ts',
-      'apps/forge/src/shell/renderer/data/content-data-client.ts',
-      'apps/forge/src/shell/renderer/hooks/use-content-queries.ts',
-    ],
-  },
-  {
-    description: 'forge creator access gate must consume typed world access results directly',
-    pattern: 'getMyWorldAccess\\(\\) as Record<string, unknown>',
-    paths: [
-      'apps/forge/src/shell/renderer/app-shell/providers/creator-access-gate.tsx',
-    ],
-  },
-  {
-    description: 'forge revenue adapter and deferred stubs must not expose unknown/record contracts',
-    pattern: 'as never|Record<string, unknown>|Promise<unknown>',
-    paths: [
-      'apps/forge/src/shell/renderer/data/revenue-data-client.ts',
-      'apps/forge/src/shell/renderer/data/analytics-data-client.ts',
-      'apps/forge/src/shell/renderer/data/template-data-client.ts',
-      'apps/forge/src/shell/renderer/data/copyright-data-client.ts',
-    ],
-  },
-  {
-    description: 'forge agent detail pages must use named JsonObject boundaries instead of raw record contracts',
-    pattern: 'Record<string, unknown>|as unknown as|Promise<unknown>',
-    paths: [
-      'apps/forge/src/shell/renderer/pages/agents/agent-detail-page-tabs.tsx',
-    ],
-  },
-  {
-    description: 'forge world editor and content studio surfaces must use named JsonObject boundaries instead of raw record contracts',
-    pattern: 'Record<string, unknown>|as unknown as|Promise<unknown>|as never',
-    paths: [
-      'apps/forge/src/shell/renderer/state/creator-world-store.ts',
-      'apps/forge/src/shell/renderer/pages/agents/agents-page.tsx',
-      'apps/forge/src/shell/renderer/pages/content/image-studio-page.tsx',
-      'apps/forge/src/shell/renderer/pages/content/video-studio-page.tsx',
-      'apps/forge/src/shell/renderer/pages/content/music-studio-page.tsx',
-      'apps/forge/src/shell/renderer/pages/worlds/world-create-page-helpers.ts',
-      'apps/forge/src/shell/renderer/pages/worlds/world-create-page-generation.ts',
-      'apps/forge/src/shell/renderer/pages/worlds/world-create-page-controller.ts',
-      'apps/forge/src/shell/renderer/pages/worlds/world-create-page-draft-persistence.ts',
-      'apps/forge/src/shell/renderer/pages/worlds/world-maintain-page.tsx',
-      'apps/forge/src/shell/renderer/pages/worlds/world-rule-truth-panel.tsx',
-    ],
-  },
-  {
     description: 'web adapters must not expose unknown or record placeholder contracts',
     pattern: 'Promise<unknown>|Record<string, unknown>|as unknown as|: unknown\\b',
     paths: [
       'apps/web/src/post-permalink-page.tsx',
       'apps/web/src/desktop-adapter/runtime-config-panel.web.tsx',
-    ],
-  },
-  {
-    description: 'forge publish/import surfaces must not rely on record casts for app-facing payloads',
-    pattern: 'Record<string, unknown>|as unknown as',
-    paths: [
-      'apps/forge/src/shell/renderer/features/import/data/import-publish-client.ts',
-      'apps/forge/src/shell/renderer/pages/publish/channels-page.tsx',
-      'apps/forge/src/shell/renderer/pages/publish/releases-page.tsx',
     ],
   },
 ];

@@ -27,6 +27,7 @@ export const kernelFiles = [
   '.nimi/spec/desktop/kernel/support-surface-contract.md',
   '.nimi/spec/desktop/kernel/devtools-contract.md',
   '.nimi/spec/desktop/kernel/nimi-home-shell-contract.md',
+  '.nimi/spec/desktop/kernel/relationship-profile-surface-contract.md',
   '.nimi/spec/desktop/kernel/error-boundary-contract.md',
   '.nimi/spec/desktop/kernel/telemetry-contract.md',
   '.nimi/spec/desktop/kernel/network-contract.md',
@@ -54,6 +55,8 @@ export const kernelFiles = [
   '.nimi/spec/desktop/kernel/tables/command-execution-classification.yaml',
   '.nimi/spec/desktop/kernel/tables/desktop-feature-coverage.yaml',
   '.nimi/spec/desktop/kernel/tables/nimi-home-surfaces.yaml',
+  '.nimi/spec/desktop/kernel/tables/relationship-categories.yaml',
+  '.nimi/spec/desktop/kernel/tables/relationship-friend-request-states.yaml',
   '.nimi/spec/desktop/kernel/tables/rule-evidence.yaml',
 ];
 

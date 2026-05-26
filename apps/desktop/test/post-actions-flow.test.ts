@@ -61,7 +61,7 @@ test('post card is projection-only and consumes explicit owner adapters', () => 
   assert.match(postCardSource, /actionAdapter:\s*PostCardActionAdapter/);
   assert.doesNotMatch(postCardSource, /@runtime\/data-sync/);
   assert.doesNotMatch(postCardSource, /dataSync\./);
-  assert.doesNotMatch(postCardSource, /import\s+\{?\s*ContactDetailProfileModal\b/);
+  assert.doesNotMatch(postCardSource, /import\s+\{?\s*ProfileDetailModal\b/);
   assert.doesNotMatch(postCardSource, /import\s+\{?\s*SendGiftModal\b/);
   assert.doesNotMatch(postCardSource, /from\s+['"].*send-gift-modal/);
   assert.doesNotMatch(postCardSource, /import\s+\{?\s*CreatePostModal\b/);

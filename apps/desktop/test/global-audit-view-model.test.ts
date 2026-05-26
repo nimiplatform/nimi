@@ -178,8 +178,8 @@ describe('callerKindLabel', () => {
     assert.equal(callerKindLabel(1), 'Desktop Core');
   });
 
-  test('2 → Desktop Mod', () => {
-    assert.equal(callerKindLabel(2), 'Desktop Mod');
+  test('2 is retired', () => {
+    assert.equal(callerKindLabel(2), '-');
   });
 
   test('3 → Third-Party App', () => {

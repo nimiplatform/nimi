@@ -3,7 +3,7 @@
   "sectionPrivacySecurity": "隐私与安全",
   "sectionPreferences": "偏好设置",
   "sectionData": "数据",
-  "sectionExtensions": "扩展",
+  "sectionExtensions": "集成",
   "sectionAdvanced": "高级设置",
   "resizeSidebarAriaLabel": "调整设置侧边栏宽度",
   "menuProfile": "个人资料",
@@ -15,7 +15,6 @@
   "menuNotifications": "通知",
   "menuDownloads": "下载",
   "menuPerformance": "性能",
-  "menuModSettings": "Mod 设置",
   "menuWallet": "钱包",
-  "menuDeveloper": "Mod 开发"
+  "menuDeveloper": "开发者工具"
 }

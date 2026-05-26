@@ -42,7 +42,7 @@ test('normalizePageIdV11: unknown values fall back to "overview"', () => {
 });
 
 test('normalizePageIdV11: retired pre-T2.4 page ids fall back to "overview"', () => {
-  // Mods / Mod Developer were never ordinary sections.
+  // Developer-only surfaces are not ordinary sections.
   assert.equal(normalizePageIdV11('mods'), 'overview');
   assert.equal(normalizePageIdV11('mod-developer'), 'overview');
   // Sections merged away by the T2.4 Runtime Surface Cleanup table.
@@ -114,7 +114,7 @@ test('ordinary Runtime sidebar is the canonical six-section IA without Mods/deve
     assert.equal((pageIds as string[]).includes(retired), false, `retired id "${retired}" must not be a top-level section`);
   }
   assert.equal(labels.includes('Mods'), false);
-  assert.equal(labels.includes('Mod Developer'), false);
+  assert.equal(labels.includes('Developer Tools'), false);
   assert.equal(labels.includes('AI Runtime'), false);
 });
 

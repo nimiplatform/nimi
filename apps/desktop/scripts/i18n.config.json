@@ -3,7 +3,6 @@
     "en",
     "zh"
   ],
-  "modPolicies": {},
   "audit": {
     "scopeDirs": [
       "src/shell/renderer",
@@ -22,7 +21,6 @@
       "runtime-config-page-catalog.tsx"
     ],
     "allowTextPatterns": [
-      "^MOD$",
       "^CRASH$",
       "^You$",
       "^Agent$",

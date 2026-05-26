@@ -10,8 +10,6 @@ export const realmDynamicEnvelopeAllowlist = [
   { path: 'CreateAudioDirectUploadDto.metadata?', category: 'resource-metadata' },
   { path: 'CreateTextResourceDto.metadata?', category: 'resource-metadata' },
   { path: 'CreateWorldRuleDto.structured?', category: 'rule-structured-extension' },
-  { path: 'CreatorModControlAuditRecordDto.payload?', category: 'creator-mod-audit-payload' },
-  { path: 'CreatorModControlManifestVerifyRequestDto.manifest', category: 'mod-manifest-envelope' },
   { path: 'FinalizeResourceDto.metadata?', category: 'resource-metadata' },
   { path: 'ResourceDetailDto.metadata?', category: 'resource-metadata' },
   { path: 'NotificationDto.data', category: 'notification-envelope' },

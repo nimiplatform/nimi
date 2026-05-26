@@ -42,24 +42,24 @@ export {
 
 type ModModeViewProps = {
   state: RuntimeConfigStateV11;
-  selectedProfileModId: string;
+  selectedProfileTargetId: string;
   loadingProfilePlan: boolean;
   profileSelectionLocked: boolean;
   selectedProfileId: string;
   selectedProfileCapability: string;
   profilePlanPreview: LocalRuntimeProfileResolutionPlan | null;
   runtimeProfileTargets: RuntimeProfileTargetDescriptor[];
-  onSetSelectedProfileModId: (modId: string) => void;
+  onSetSelectedProfileTargetId: (targetId: string) => void;
   onSetSelectedProfileId: (profileId: string) => void;
   onSetSelectedProfileCapability: (capability: string) => void;
   onResolveProfilePlanPreview: () => void;
-  onApplyProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyAccepted>;
+  onApplyProfile: (targetId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyAccepted>;
   onNavigateToSetup?: (pageId: RuntimeSetupPageIdV11) => void;
 };
 
 export function LocalModelCenterModModeView(props: ModModeViewProps) {
-  const modCapabilities = props.runtimeProfileTargets.find((item) => item.modId === props.selectedProfileModId)?.consumeCapabilities || [];
-  const capabilityStatuses = modCapabilities.map((capability) => {
+  const targetCapabilities = props.runtimeProfileTargets.find((item) => item.targetId === props.selectedProfileTargetId)?.consumeCapabilities || [];
+  const capabilityStatuses = targetCapabilities.map((capability) => {
     const localNode = props.state.local.nodeMatrix.find((node) => node.capability === capability && node.available);
     const hasLocalModel = props.state.local.models.some((model) => model.status === 'active' && model.capabilities.includes(capability));
     return { capability, localAvailable: Boolean(localNode) || hasLocalModel };
@@ -67,7 +67,7 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
   const hasUnavailable = capabilityStatuses.some((item) => !item.localAvailable);
   const selectedProfileTarget = resolveSelectedRuntimeProfileTarget(
     props.runtimeProfileTargets,
-    props.selectedProfileModId,
+    props.selectedProfileTargetId,
   );
 
   return (
@@ -82,8 +82,8 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
             <div>
               <h4 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
                 {selectedProfileTarget?.modName
-                  || props.selectedProfileModId
-                  || i18n.t('runtimeConfig.localModelCenter.runtimeMod', { defaultValue: 'Runtime Mod' })}
+                  || props.selectedProfileTargetId
+                  || i18n.t('runtimeConfig.localModelCenter.runtimePackage', { defaultValue: 'Runtime Mod' })}
               </h4>
               <p className="text-xs text-[var(--nimi-text-muted)]">
                 {i18n.t('runtimeConfig.localModelCenter.modProfilesDescription', {
@@ -91,7 +91,7 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
                 })}
               </p>
             </div>
-            {modCapabilities.length > 0 ? (
+            {targetCapabilities.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-xs font-medium text-[var(--nimi-text-secondary)]">
                   {i18n.t('runtimeConfig.localModelCenter.aiCapabilityStatus', { defaultValue: 'AI Capability Status' })}
@@ -109,16 +109,16 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
               </div>
             ) : null}
             <ModelCenterProfileSection
-              isModMode
+              isProfileTargetMode
               loadingProfilePlan={props.loadingProfilePlan}
-              selectedProfileModId={props.selectedProfileModId}
+              selectedProfileTargetId={props.selectedProfileTargetId}
               profileSelectionLocked={props.profileSelectionLocked}
               selectedProfileId={props.selectedProfileId}
               selectedProfileCapability={props.selectedProfileCapability}
               selectedProfileTarget={selectedProfileTarget}
               executionPlanPreview={props.profilePlanPreview}
               runtimeProfileTargets={props.runtimeProfileTargets}
-              onSetSelectedProfileModId={props.onSetSelectedProfileModId}
+              onSetSelectedProfileTargetId={props.onSetSelectedProfileTargetId}
               onSetSelectedProfileId={props.onSetSelectedProfileId}
               onSetSelectedProfileCapability={props.onSetSelectedProfileCapability}
               onResolveProfilePlanPreview={props.onResolveProfilePlanPreview}

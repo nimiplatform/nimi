@@ -276,7 +276,7 @@ export function NotificationPanel() {
     if (!item.actorId) {
       setFeedback({
         kind: 'error',
-        message: t('Contacts.acceptRequestFailed', { defaultValue: 'Failed to accept friend request' }),
+        message: t('Relationship.acceptRequestFailed', { defaultValue: 'Failed to accept friend request' }),
       });
       return;
     }
@@ -288,7 +288,7 @@ export function NotificationPanel() {
       task: async () => {
         await dataSync.requestOrAcceptFriend(actorId);
       },
-      errorMessage: t('Contacts.acceptRequestFailed', { defaultValue: 'Failed to accept friend request' }),
+      errorMessage: t('Relationship.acceptRequestFailed', { defaultValue: 'Failed to accept friend request' }),
     });
   };
 
@@ -296,7 +296,7 @@ export function NotificationPanel() {
     if (!item.actorId) {
       setFeedback({
         kind: 'error',
-        message: t('Contacts.rejectRequestFailed', { defaultValue: 'Failed to reject friend request' }),
+        message: t('Relationship.rejectRequestFailed', { defaultValue: 'Failed to reject friend request' }),
       });
       return;
     }
@@ -308,7 +308,7 @@ export function NotificationPanel() {
       task: async () => {
         await dataSync.rejectOrRemoveFriend(actorId);
       },
-      errorMessage: t('Contacts.rejectRequestFailed', { defaultValue: 'Failed to reject friend request' }),
+      errorMessage: t('Relationship.rejectRequestFailed', { defaultValue: 'Failed to reject friend request' }),
     });
   };
 
@@ -403,7 +403,7 @@ export function NotificationPanel() {
               pendingItemAction,
               item.id,
               'friend-accept',
-              t('Contacts.accept', { defaultValue: 'Accept' }),
+              t('Relationship.accept', { defaultValue: 'Accept' }),
               t('NotificationPanel.accepting', { defaultValue: 'Accepting...' }),
             )}
           </Button>
@@ -426,7 +426,7 @@ export function NotificationPanel() {
               pendingItemAction,
               item.id,
               'friend-reject',
-              t('Contacts.reject', { defaultValue: 'Reject' }),
+              t('Relationship.reject', { defaultValue: 'Reject' }),
               t('NotificationPanel.rejecting', { defaultValue: 'Rejecting...' }),
             )}
           </Button>

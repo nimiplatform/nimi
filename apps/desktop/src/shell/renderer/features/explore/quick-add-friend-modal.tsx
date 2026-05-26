@@ -5,7 +5,7 @@ import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { OverlayShell } from '@renderer/components/overlay/index.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { ExploreAgentCardData } from './explore-cards';
-import type { AgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
+import type { AgentFriendLimit } from '@renderer/features/relationship/agent-friend-limit';
 
 type QuickAddFriendModalProps = {
   open: boolean;
@@ -72,7 +72,7 @@ export function QuickAddFriendModal(props: QuickAddFriendModalProps) {
       className="bg-[var(--nimi-scrim-modal)]"
       title={(
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-base font-semibold text-gray-900">{t('Contacts.addContact', { defaultValue: 'Add Friend' })}</h2>
+          <h2 className="text-base font-semibold text-gray-900">{t('Relationship.addContact', { defaultValue: 'Add Friend' })}</h2>
           <IconButton
             icon={(
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -93,7 +93,7 @@ export function QuickAddFriendModal(props: QuickAddFriendModalProps) {
             {t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
           </Button>
           <Button tone="primary" fullWidth onClick={handleAdd} disabled={!canAdd || adding}>
-            {adding ? t('Home.adding', { defaultValue: 'Adding...' }) : t('Contacts.addContact', { defaultValue: 'Add Friend' })}
+            {adding ? t('Home.adding', { defaultValue: 'Adding...' }) : t('Relationship.addContact', { defaultValue: 'Add Friend' })}
           </Button>
         </div>
       )}
@@ -109,7 +109,7 @@ export function QuickAddFriendModal(props: QuickAddFriendModalProps) {
         <h3 className="mt-3 text-lg font-bold text-gray-900">{agent.name}</h3>
         <p className="text-sm text-gray-500">@{agent.handle.replace(/^@/, '')}</p>
         <span className="mt-2 inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
-          {t('Contacts.agentBadge', { defaultValue: 'Agent' })}
+          {t('Relationship.agentBadge', { defaultValue: 'Agent' })}
         </span>
       </div>
 

@@ -6,40 +6,27 @@
  * - Preserves existing translations
  * - Removes keys not in English (use --no-prune to skip removal)
  *
- * Usage: node scripts/i18n-sync.mjs [--mod <mod-id>] [--no-prune]
+ * Usage: node scripts/i18n-sync.mjs [--no-prune]
  */
 
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveModsRoot } from './mod-paths.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const CONFIG_PATH = join(ROOT, 'scripts', 'i18n.config.json');
 
 const args = process.argv.slice(2);
-const modIndex = args.indexOf('--mod');
-const modId = modIndex !== -1 ? args[modIndex + 1] : null;
 const prune = !args.includes('--no-prune');
+const unknownArgs = args.filter((arg) => arg !== '--no-prune');
 
-if (modIndex !== -1 && (!modId || modId.startsWith('--'))) {
-  console.error('❌ Missing mod id after --mod');
+if (unknownArgs.length > 0) {
+  console.error(`❌ Unknown locale sync arguments: ${unknownArgs.join(', ')}`);
   process.exit(1);
 }
 
-const LOCALES_DIR = modId
-  ? (() => {
-    try {
-      const modsRoot = resolveModsRoot({ required: true, mustExist: true });
-      return join(modsRoot, modId, 'src', 'locales');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error(`❌ ${message}`);
-      process.exit(1);
-    }
-  })()
-  : join(ROOT, 'src', 'shell', 'renderer', 'locales');
+const LOCALES_DIR = join(ROOT, 'src', 'shell', 'renderer', 'locales');
 
 function loadJson(filePath) {
   if (!existsSync(filePath)) return null;
@@ -160,8 +147,7 @@ function writeLocaleBundle(localesDir, locale, data, modular) {
   writeLocaleIndex(localeDir, data, fileNames);
 }
 
-const scope = modId ? `mod:${modId}` : 'shell';
-console.log(`\n=== i18n:sync [${scope}] ===\n`);
+console.log('\n=== i18n:sync [shell] ===\n');
 
 const modularLocales = !existsSync(join(LOCALES_DIR, 'en.json')) && existsSync(join(LOCALES_DIR, 'en'));
 const enData = loadLocaleBundle(LOCALES_DIR, 'en');

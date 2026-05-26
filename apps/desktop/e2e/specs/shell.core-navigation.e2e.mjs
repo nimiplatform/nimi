@@ -14,7 +14,7 @@ describe('shell.core-navigation', () => {
       primaryOrder.push((await button.getAttribute('data-testid')).replace(E2E_IDS.navTab(''), ''));
     }
     assert.deepEqual(primaryOrder, ['home', 'chat', 'explore', 'apps', 'runtime']);
-    for (const removed of ['world', 'tester', 'settings', 'mods']) {
+    for (const removed of ['world', 'tester', 'settings', 'contacts', 'mods']) {
       assert.equal(await $(`[data-testid="${E2E_IDS.navTab(removed)}"]`).isExisting(), false);
     }
 

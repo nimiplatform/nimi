@@ -62,7 +62,7 @@ function createLocalTextSubmitConfig(): AIConfig {
       localProfileRefs: {
         ...config.capabilities.localProfileRefs,
         'text.generate': {
-          modId: 'core:runtime',
+          targetId: 'core:runtime',
           profileId: 'text-local',
         },
       },

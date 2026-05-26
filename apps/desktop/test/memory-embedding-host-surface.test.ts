@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  createCanonicalModAIScopeRef,
+  createAppAIScopeRef,
   createDefaultAIScopeRef,
   createEmptyMemoryEmbeddingConfig,
   type AIScopeRef,
@@ -52,7 +52,7 @@ test('desktop memory embedding storage round-trips adjacent config by scope', as
       listPersistedMemoryEmbeddingScopeKeys,
       scopeKeyFromRef,
     } = await loadMemoryEmbeddingModules();
-    const scopeRef = createCanonicalModAIScopeRef('world.nimi.desktop.memory.storage');
+    const scopeRef = createAppAIScopeRef('world.nimi.desktop.memory.storage');
     const config: MemoryEmbeddingConfig = {
       ...createEmptyMemoryEmbeddingConfig(scopeRef),
       sourceKind: 'cloud',

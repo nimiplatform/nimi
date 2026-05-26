@@ -158,7 +158,7 @@ messages.
 - It does not allow per-app rate to exceed 100/sec.
 - It does not let two apps create a fork-bomb loop without a
   breaker.
-- It does not let mod messages reach the runtime agent surface
+- It does not let app messages reach the runtime agent surface
   without an admitted scoped binding.
 - It does not replace `RuntimeAuthService` — apps still authenticate
   there.
@@ -171,7 +171,7 @@ messages.
 | `AppMessageEventType` enum | `K-APP-004` |
 | Security baseline (auth, size, rate, loop) | `K-APP-005` |
 | Scoped binding issuance | `RuntimeAccountService.IssueScopedAppBinding` |
-| Mod inter-mod path comparison | `K-APP-006` (Desktop Mod interMod path) |
+| App-to-app path comparison | `K-APP-006` |
 
 ## Source Basis
 

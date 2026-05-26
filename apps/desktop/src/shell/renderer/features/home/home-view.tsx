@@ -3,7 +3,7 @@ import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { BLOCKED_USERS_UPDATED_EVENT, dataSync, type PostFeedScope } from '@runtime/data-sync';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
+import { ProfileDetailModal } from '@renderer/features/relationship/profile-detail-modal.js';
 import { CreatePostModal } from '../profile/create-post-modal.js';
 import { PostCard, type PostCardAuthorProfileTarget } from './post-card';
 import { usePostCardActionAdapter } from './post-card-action-adapter';
@@ -212,7 +212,7 @@ export function HomeView(props: HomeViewProps) {
         />
       )}
 
-      <ContactDetailProfileModal
+      <ProfileDetailModal
         open={Boolean(selectedFeedProfile)}
         profileId={selectedFeedProfile?.profileId || ''}
         profileSeed={selectedFeedProfile?.profileSeed || null}

@@ -53,15 +53,7 @@ checkSourceRuleFormats();
 
 const kernelRuleDefinitions = collectKernelRuleDefinitions();
 
-checkUiSlotsConsistency();
-
-checkTurnHookPointsConsistency();
-
-checkModKernelStagesConsistency();
-
-checkModLifecycleStatesConsistency();
-
-checkModAccessModesConsistency();
+checkNoRetiredDesktopExtensionExecutionKernel();
 
 checkAppTabsConsistency();
 
@@ -182,204 +174,19 @@ function collectKernelRuleDefinitions() {
   return new Set(definitionMap.keys());
 }
 
-function checkUiSlotsConsistency() {
-  const capabilitiesPath = 'apps/desktop/src/runtime/hook/contracts/capabilities.ts';
-  const yamlPath = '.nimi/spec/desktop/kernel/tables/ui-slots.yaml';
-  if (!fileExists(capabilitiesPath)) {
-    if (fileExists(yamlPath)) {
-      fail(`ui-slots.yaml exists but source file is retired: ${capabilitiesPath}`);
+function checkNoRetiredDesktopExtensionExecutionKernel() {
+  const retiredRoots = [
+    'apps/desktop/src/runtime/execution-kernel',
+    'apps/desktop/src/runtime/control-plane',
+  ];
+  for (const relRoot of retiredRoots) {
+    const fullRoot = path.join(cwd, relRoot);
+    if (!fs.existsSync(fullRoot)) continue;
+    const files = walkSync(fullRoot, ['.ts', '.tsx', '.js', '.mjs'])
+      .map((file) => path.relative(cwd, file).replaceAll(path.sep, '/'));
+    if (files.length > 0) {
+      fail(`retired Desktop extension execution/control-plane files must not exist: ${files.join(', ')}`);
     }
-    return;
-  }
-
-  const slotsBody = resolveDesktopCapabilityArrayBody(capabilitiesPath, 'DEFAULT_UI_SLOTS');
-  if (!slotsBody) {
-    fail('could not parse DEFAULT_UI_SLOTS from source');
-    return;
-  }
-
-  const sourceSlots = new Set(
-    [...slotsBody.matchAll(/'([^']+)'/g)].map((m) => m[1]),
-  );
-
-  if (!fileExists(yamlPath)) return;
-  const doc = readYaml(yamlPath);
-  const yamlSlots = new Set(
-    (Array.isArray(doc?.slots) ? doc.slots : [])
-      .map((item) => String(item?.slot || '').trim())
-      .filter(Boolean),
-  );
-
-  const missingInYaml = [...sourceSlots].filter((s) => !yamlSlots.has(s));
-  const extraInYaml = [...yamlSlots].filter((s) => !sourceSlots.has(s));
-
-  if (missingInYaml.length > 0) {
-    fail(`ui-slots.yaml missing slots from source: ${missingInYaml.join(', ')}`);
-  }
-  if (extraInYaml.length > 0) {
-    fail(`ui-slots.yaml has unknown slots: ${extraInYaml.join(', ')}`);
-  }
-}
-
-function checkTurnHookPointsConsistency() {
-  const capabilitiesPath = 'apps/desktop/src/runtime/hook/contracts/capabilities.ts';
-  if (!fileExists(capabilitiesPath)) return;
-
-  const pointsBody = resolveDesktopCapabilityArrayBody(capabilitiesPath, 'DEFAULT_TURN_HOOK_POINTS');
-  if (!pointsBody) {
-    fail('could not parse DEFAULT_TURN_HOOK_POINTS from source');
-    return;
-  }
-
-  const sourcePoints = new Set(
-    [...pointsBody.matchAll(/'([^']+)'/g)].map((m) => m[1]),
-  );
-
-  const yamlPath = '.nimi/spec/desktop/kernel/tables/turn-hook-points.yaml';
-  if (!fileExists(yamlPath)) return;
-  const doc = readYaml(yamlPath);
-  const yamlPoints = new Set(
-    (Array.isArray(doc?.points) ? doc.points : [])
-      .map((item) => String(item?.point || '').trim())
-      .filter(Boolean),
-  );
-
-  const missingInYaml = [...sourcePoints].filter((p) => !yamlPoints.has(p));
-  const extraInYaml = [...yamlPoints].filter((p) => !sourcePoints.has(p));
-
-  if (missingInYaml.length > 0) {
-    fail(`turn-hook-points.yaml missing points from source: ${missingInYaml.join(', ')}`);
-  }
-  if (extraInYaml.length > 0) {
-    fail(`turn-hook-points.yaml has unknown points: ${extraInYaml.join(', ')}`);
-  }
-}
-
-function resolveDesktopCapabilityArrayBody(relPath, constName) {
-  const localSource = read(relPath);
-  const localMatch = localSource.match(new RegExp(`${constName}\\s*=\\s*\\[([^\\]]+)\\]`, 's'));
-  if (localMatch) {
-    return localMatch[1];
-  }
-
-  if (!new RegExp(`\\b${constName}\\b`).test(localSource)) {
-    return null;
-  }
-
-  const sharedPath = 'kit/core/src/runtime-capabilities/capabilities.ts';
-  if (!fileExists(sharedPath)) {
-    return null;
-  }
-  const sharedSource = read(sharedPath);
-  const sharedMatch = sharedSource.match(new RegExp(`${constName}\\s*=\\s*\\[([^\\]]+)\\]`, 's'));
-  return sharedMatch ? sharedMatch[1] : null;
-}
-
-function checkModKernelStagesConsistency() {
-  const typesPath = 'apps/desktop/src/runtime/execution-kernel/contracts/types.ts';
-  if (!fileExists(typesPath)) {
-    fail(`source file not found: ${typesPath}`);
-    return;
-  }
-
-  const source = read(typesPath);
-  const stageMatch = source.match(/type\s+KernelStage\s*=([^;]+);/s);
-  if (!stageMatch) {
-    fail('could not parse KernelStage from source');
-    return;
-  }
-
-  const sourceStages = new Set(
-    [...stageMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1]),
-  );
-
-  const yamlPath = '.nimi/spec/desktop/kernel/tables/mod-kernel-stages.yaml';
-  if (!fileExists(yamlPath)) return;
-  const doc = readYaml(yamlPath);
-  const yamlStages = new Set(
-    (Array.isArray(doc?.stages) ? doc.stages : [])
-      .map((item) => String(item?.stage || '').trim())
-      .filter(Boolean),
-  );
-
-  const missingInYaml = [...sourceStages].filter((s) => !yamlStages.has(s));
-  const extraInYaml = [...yamlStages].filter((s) => !sourceStages.has(s));
-
-  if (missingInYaml.length > 0) {
-    fail(`mod-kernel-stages.yaml missing stages from source: ${missingInYaml.join(', ')}`);
-  }
-  if (extraInYaml.length > 0) {
-    fail(`mod-kernel-stages.yaml has unknown stages: ${extraInYaml.join(', ')}`);
-  }
-}
-
-function checkModLifecycleStatesConsistency() {
-  const typesPath = 'apps/desktop/src/runtime/execution-kernel/contracts/types.ts';
-  if (!fileExists(typesPath)) return;
-
-  const source = read(typesPath);
-  const stateMatch = source.match(/type\s+LifecycleState\s*=([^;]+);/s);
-  if (!stateMatch) {
-    fail('could not parse LifecycleState from source');
-    return;
-  }
-
-  const sourceStates = new Set(
-    [...stateMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1]),
-  );
-
-  const yamlPath = '.nimi/spec/desktop/kernel/tables/mod-lifecycle-states.yaml';
-  if (!fileExists(yamlPath)) return;
-  const doc = readYaml(yamlPath);
-  const yamlStates = new Set(
-    (Array.isArray(doc?.states) ? doc.states : [])
-      .map((item) => String(item?.state || '').trim())
-      .filter(Boolean),
-  );
-
-  const missingInYaml = [...sourceStates].filter((s) => !yamlStates.has(s));
-  const extraInYaml = [...yamlStates].filter((s) => !sourceStates.has(s));
-
-  if (missingInYaml.length > 0) {
-    fail(`mod-lifecycle-states.yaml missing states from source: ${missingInYaml.join(', ')}`);
-  }
-  if (extraInYaml.length > 0) {
-    fail(`mod-lifecycle-states.yaml has unknown states: ${extraInYaml.join(', ')}`);
-  }
-}
-
-function checkModAccessModesConsistency() {
-  const typesPath = 'apps/desktop/src/runtime/execution-kernel/contracts/types.ts';
-  if (!fileExists(typesPath)) return;
-
-  const source = read(typesPath);
-  const modeMatch = source.match(/type\s+AccessMode\s*=([^;]+);/s);
-  if (!modeMatch) {
-    fail('could not parse AccessMode from source');
-    return;
-  }
-
-  const sourceModes = new Set(
-    [...modeMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1]),
-  );
-
-  const yamlPath = '.nimi/spec/desktop/kernel/tables/mod-access-modes.yaml';
-  if (!fileExists(yamlPath)) return;
-  const doc = readYaml(yamlPath);
-  const yamlModes = new Set(
-    (Array.isArray(doc?.modes) ? doc.modes : [])
-      .map((item) => String(item?.mode || '').trim())
-      .filter(Boolean),
-  );
-
-  const missingInYaml = [...sourceModes].filter((m) => !yamlModes.has(m));
-  const extraInYaml = [...yamlModes].filter((m) => !sourceModes.has(m));
-
-  if (missingInYaml.length > 0) {
-    fail(`mod-access-modes.yaml missing modes from source: ${missingInYaml.join(', ')}`);
-  }
-  if (extraInYaml.length > 0) {
-    fail(`mod-access-modes.yaml has unknown modes: ${extraInYaml.join(', ')}`);
   }
 }
 

@@ -3,7 +3,7 @@
  *
  * The `Support` secondary surface hosts exactly — and only — these five
  * sub-areas, in this order. Adding an ordinary preference section here, or a
- * mod/developer entry, violates `D-SUP-002`.
+ * developer-tool entry, violates `D-SUP-002`.
  */
 
 export type SupportSectionId =

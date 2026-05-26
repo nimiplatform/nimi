@@ -108,6 +108,6 @@ test('rendered Runtime sidebar markup shows the six section labels and no "AI Ru
   assert.doesNotMatch(markup, /AI Runtime/, 'no "AI Runtime" label may render');
   // No retired standalone section names render as ordinary labels.
   assert.doesNotMatch(markup, />\s*Mods\s*</);
-  assert.doesNotMatch(markup, />\s*Mod Developer\s*</);
+  assert.doesNotMatch(markup, />\s*Developer Tools\s*</);
   assert.doesNotMatch(markup, />\s*Data Management\s*</);
 });

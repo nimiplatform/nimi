@@ -5,32 +5,15 @@
  *
  * Usage:
  *   node scripts/i18n-check.mjs                Check shell locales
- *   node scripts/i18n-check.mjs --mod <id>     Check one mod locales
- *   node scripts/i18n-check.mjs --mods         Check all desktop mods by policy
  */
 
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveModsRoot } from './mod-paths.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const CONFIG_PATH = join(ROOT, 'scripts', 'i18n.config.json');
-
-const argv = process.argv.slice(2);
-const modIndex = argv.indexOf('--mod');
-const modId = modIndex === -1 ? null : argv[modIndex + 1];
-const checkModsFlag = argv.includes('--mods');
-
-if (modIndex !== -1 && (!modId || modId.startsWith('--'))) {
-  console.error('❌ Missing mod id after --mod');
-  process.exit(1);
-}
-if (modId && checkModsFlag) {
-  console.error('❌ Use either --mod <id> or --mods, not both.');
-  process.exit(1);
-}
 
 function flattenKeys(obj, prefix = '') {
   const result = [];
@@ -105,24 +88,9 @@ function loadConfig() {
     process.exit(1);
   }
 
-  const modPolicies = config.modPolicies && typeof config.modPolicies === 'object'
-    ? config.modPolicies
-    : {};
-
   return {
     supportedLocales,
-    modPolicies,
   };
-}
-
-function resolveModsRootOrExit() {
-  try {
-    return resolveModsRoot({ required: true, mustExist: true });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(`❌ ${message}`);
-    process.exit(1);
-  }
 }
 
 function checkScope({ scope, localesDir, supportedLocales }) {
@@ -194,88 +162,7 @@ function checkScope({ scope, localesDir, supportedLocales }) {
   return { ok: true, missing: 0, extra: totalExtra };
 }
 
-function listDesktopModIds(modsRoot) {
-  if (!existsSync(modsRoot)) return [];
-  return readdirSync(modsRoot, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
-    .map((entry) => entry.name)
-    .filter((id) => {
-      const modDir = join(modsRoot, id);
-      return ['mod.manifest.yaml', 'mod.manifest.yml', 'mod.manifest.json']
-        .some((filename) => existsSync(join(modDir, filename)));
-    })
-    .sort((a, b) => a.localeCompare(b));
-}
-
-function runModsCheck({ supportedLocales, modPolicies }) {
-  const modsRoot = resolveModsRootOrExit();
-  const modIds = listDesktopModIds(modsRoot);
-  const policyIds = Object.keys(modPolicies).sort((a, b) => a.localeCompare(b));
-
-  let hasPolicyError = false;
-
-  const missingPolicies = modIds.filter((id) => !Object.prototype.hasOwnProperty.call(modPolicies, id));
-  if (missingPolicies.length > 0) {
-    hasPolicyError = true;
-    console.error(`❌ Missing mod policy entries: ${missingPolicies.join(', ')}`);
-  }
-
-  const stalePolicies = policyIds.filter((id) => !modIds.includes(id));
-  if (stalePolicies.length > 0) {
-    hasPolicyError = true;
-    console.error(`❌ Stale mod policy entries (mod dir not found): ${stalePolicies.join(', ')}`);
-  }
-
-  if (hasPolicyError) {
-    return false;
-  }
-
-  let passed = true;
-  console.log('\n=== i18n:check [mods] ===');
-  console.log(`Mods root: ${modsRoot}`);
-  console.log(`Detected mods: ${modIds.join(', ')}`);
-
-  for (const id of modIds) {
-    const policy = modPolicies[id] || {};
-    const enforced = Boolean(policy.enforced);
-    const reason = typeof policy.reason === 'string' && policy.reason.trim()
-      ? policy.reason.trim()
-      : 'No reason provided.';
-
-    if (!enforced) {
-      console.log(`\n⏭️  mod:${id} skipped by policy`);
-      console.log(`   reason: ${reason}`);
-      continue;
-    }
-
-    const result = checkScope({
-      scope: `mod:${id}`,
-      localesDir: join(modsRoot, id, 'src', 'locales'),
-      supportedLocales,
-    });
-    if (!result.ok) {
-      passed = false;
-    }
-  }
-
-  return passed;
-}
-
-const { supportedLocales, modPolicies } = loadConfig();
-
-if (checkModsFlag) {
-  process.exit(runModsCheck({ supportedLocales, modPolicies }) ? 0 : 1);
-}
-
-if (modId) {
-  const modsRoot = resolveModsRootOrExit();
-  const result = checkScope({
-    scope: `mod:${modId}`,
-    localesDir: join(modsRoot, modId, 'src', 'locales'),
-    supportedLocales,
-  });
-  process.exit(result.ok ? 0 : 1);
-}
+const { supportedLocales } = loadConfig();
 
 const shellResult = checkScope({
   scope: 'shell',

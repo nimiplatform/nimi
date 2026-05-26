@@ -156,19 +156,6 @@ Owner: `realm/kernel/binding-contract.md` (`R-BIND-*`).
 
 Owner: `avatar/kernel/index.md`.
 
-## Desktop — Mod Lifecycle
-
-| State | Meaning |
-| --- | --- |
-| `admitted` | Mod admitted into the system |
-| `installed` | Mod installed locally |
-| `active` | Mod activated and reachable |
-| `suspended` | Mod paused |
-| `removed` | Mod uninstalled |
-
-Owner: `desktop/kernel/mod-governance-contract.md` and table
-`desktop/kernel/tables/mod-lifecycle-states.yaml`.
-
 ## Nimi Coding — Topic State
 
 | State | Meaning |
@@ -247,9 +234,8 @@ Owner: `.nimi/contracts/result.schema.yaml`.
 ## Cross-Domain State Machine Vocabulary
 
 ScenarioJob and Workflow use UPPER_SNAKE proto enums; provider async
-tasks use lower_snake to stay close to provider semantics; mod
-lifecycle uses lower-case product terms. The casing differences are
-intentional design.
+tasks use lower_snake to stay close to provider semantics. The casing
+differences are intentional design.
 
 ## Source Basis
 
@@ -265,8 +251,6 @@ intentional design.
 - [`.nimi/spec/runtime/kernel/world-evolution-engine-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/world-evolution-engine-contract.md)
 - [`.nimi/spec/realm/kernel/binding-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/binding-contract.md)
 - [`.nimi/spec/avatar/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/index.md)
-- [`.nimi/spec/desktop/kernel/mod-governance-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/mod-governance-contract.md)
-- [`.nimi/spec/desktop/kernel/tables/mod-lifecycle-states.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/tables/mod-lifecycle-states.yaml)
 - [`.nimi/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/topic.schema.yaml)
 - [`.nimi/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/wave.schema.yaml)
 - [`.nimi/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/packet.schema.yaml)

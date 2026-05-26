@@ -26,19 +26,19 @@ SDK 侧是应用调用的 **类型化配置 / 配置文件 / 快照 API**，用�
 
 | 拥有 | 不拥有 |
 | --- | --- |
-| 类型化配置 / 配置文件 / 快照 API | `AIProfile` 便携式模式定义（桌面） |
-| 作用域参数形状 | `AIConfig` 存储（桌面内核） |
+| 类型化配置 / 配置文件 / 快照 API | `AIProfile` 便携式模式定义 |
+| 作用域参数形状 | 范围所有者的 AIConfig 意图 |
 | 调用者的探测界面 | `LocalProfileDescriptor` 执行（运行时） |
 
-SDK 是类型化的访问界面。桌面拥有 `AIProfile` 模式和 `AIConfig` 存储；运行时拥有本地执行。
+SDK 是类型化访问界面。范围所有者拥有 AIConfig 意图；运行时拥有本地事实、就绪状态和执行证据。
 
 ## 读者场景：应用应用一个 AI 配置文件
 
-应用希望将一个配置文件应用到模块工作区。
+应用希望将一个配置文件应用到应用拥有的工作区。
 
-1. **应用调用 SDK。** `aiConfig.applyProfile({ scope: { kind: 'mod', ownerId: 'com.example.notes', surfaceId: 'workspace' }, profile })`。
+1. **应用调用 SDK。** `aiConfig.applyProfile({ scope: { kind: 'app', ownerId: 'nimi.shijing', surfaceId: 'workspace' }, profile })`。
 2. **SDK 验证。** 根据 `AIScopeRef` 规则验证作用域标识。
-3. **桌面执行配置文件应用。** 写时复制到工作区作用域的 `AIConfig`。
+3. **范围所有者执行配置文件应用。** 写时复制到工作区作用域的 `AIConfig`。
 4. **在新配置文件下进行后续执行。**
 
 ## 该界面不做的事情
