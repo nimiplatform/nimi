@@ -34,7 +34,6 @@ import {
 export { asRecord, asString } from './parser-primitives';
 export {
   assertLifecycleWriteAllowed,
-  invokeLocalRuntimeCommand,
   normalizeCaller,
 } from './parser-helpers';
 export {

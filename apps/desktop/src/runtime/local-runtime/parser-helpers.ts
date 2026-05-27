@@ -1,5 +1,4 @@
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { hasTauriInvoke, tauriInvoke } from '../llm-adapter/tauri-bridge';
 import { emitRuntimeLog } from '../telemetry/logger';
 import type { LocalRuntimeWriteOptions } from './types';
 import { asRecord, asString } from './parser-primitives';
@@ -74,14 +73,4 @@ export function assertLifecycleWriteAllowed(
     },
   });
   throw new Error(`LOCAL_LIFECYCLE_WRITE_DENIED: caller=${normalizedCaller}`);
-}
-
-export async function invokeLocalRuntimeCommand<T>(
-  command: string,
-  args: Record<string, unknown> = {},
-): Promise<T> {
-  if (!hasTauriInvoke()) {
-    throw new Error('LOCAL_AI_TAURI_INVOKE_UNAVAILABLE: tauriInvoke is not available');
-  }
-  return tauriInvoke<T>(command, args);
 }

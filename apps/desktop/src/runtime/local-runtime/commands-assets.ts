@@ -2,6 +2,7 @@ import {
   localRuntimeCapabilitiesForAssetKind,
   toProtoStruct,
 } from '@nimiplatform/sdk/runtime';
+import { tauriInvoke } from '../llm-adapter/tauri-bridge';
 import { emitRuntimeLog } from '../telemetry/logger';
 import type {
   LocalRuntimeAssetFileImportResult,
@@ -47,7 +48,6 @@ import {
   parseLocalRuntimeEnvironmentSelectedSourceRecord,
   parseUnregisteredAssetDescriptor,
 } from './parsers';
-import { invokeLocalRuntimeCommand } from './parsers';
 import { asRecord, requireSdkLocal, toAssetKindFilter } from './commands-shared';
 
 function engineRuntimeModeToProto(value: LocalRuntimeInstallPlanDescriptor['engineRuntimeMode']): number {
@@ -355,13 +355,13 @@ export async function repairLocalRuntimeEnvironmentDependency(
 }
 
 export async function revealLocalRuntimeAssetInFolder(localAssetId: string): Promise<void> {
-  await invokeLocalRuntimeCommand<void>('runtime_local_assets_reveal_in_folder', {
+  await tauriInvoke<void>('runtime_local_assets_reveal_in_folder', {
     payload: { localAssetId },
   });
 }
 
 export async function revealLocalRuntimeAssetsRootFolder(): Promise<void> {
-  await invokeLocalRuntimeCommand<void>('runtime_local_assets_reveal_root_folder');
+  await tauriInvoke<void>('runtime_local_assets_reveal_root_folder', {});
 }
 
 export async function rescanLocalRuntimeAssetBundle(
