@@ -610,7 +610,7 @@ export class DataSync {
   scheduleProactiveRefresh(accessToken: string) {
     this.clearProactiveRefreshTimer();
     if (!this.refreshToken) return;
-    const expiry = Realm.decodeTokenExpiry(accessToken);
+    const expiry = Realm.decodeTokenExpiryUnsafe(accessToken);
     if (!expiry) return;
     const PROACTIVE_REFRESH_BUFFER_MS = 60_000;
     const delayMs = Math.max(expiry.expiresInMs - PROACTIVE_REFRESH_BUFFER_MS, 1000);

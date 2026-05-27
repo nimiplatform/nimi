@@ -714,11 +714,8 @@ export class Realm {
   /**
    * Decodes the unverified JWT payload for UX hints only.
    * Do not use this helper for trust, authorization, or expiry enforcement.
-   *
-   * @deprecated Prefer {@link Realm.decodeTokenExpiryUnsafe} in new code to make
-   * the lack of signature verification explicit.
    */
-  static decodeTokenExpiry(jwt: string): { expiresAt: number; expiresInMs: number } | null {
+  static decodeTokenExpiryUnsafe(jwt: string): { expiresAt: number; expiresInMs: number } | null {
     try {
       const parts = jwt.split('.');
       if (parts.length !== 3) {
@@ -743,11 +740,6 @@ export class Realm {
     } catch {
       return null;
     }
-  }
-
-  // Explicit alias for the unverified UX-only JWT decode path.
-  static decodeTokenExpiryUnsafe(jwt: string): { expiresAt: number; expiresInMs: number } | null {
-    return Realm.decodeTokenExpiry(jwt);
   }
 
   async #resolveHeaders(overrides?: Record<string, string>, resolvedAccessToken?: string): Promise<Record<string, string>> {

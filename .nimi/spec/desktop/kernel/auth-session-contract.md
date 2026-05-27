@@ -119,7 +119,7 @@ Desktop 配置 SDK 的 `auth.refreshToken` + `auth.onTokenRefreshed` + `auth.onR
 
 过期前 60 秒计时器触发主动刷新：
 
-- 使用 `Realm.decodeTokenExpiry(jwt)` 计算 token 过期时间。
+- 使用 `Realm.decodeTokenExpiryUnsafe(jwt)` 计算 token 过期时间；该 helper 只解码未验证 JWT payload，用于 UX 计时提示，不得作为授权或信任判断。
 - 在 `expiresInMs - 60000` 时调度 `setTimeout`。
 - 登录成功 / `onTokenRefreshed` 回调 / `authChange` 事件后重新调度计时器。
 - logout / clearAuth 时清除计时器。
