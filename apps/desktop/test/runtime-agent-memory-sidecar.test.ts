@@ -9,11 +9,8 @@ import {
 } from '@nimiplatform/sdk/ai';
 import {
   MemoryBankScope,
-  MemoryCanonicalClass,
-  MemoryRecordKind,
 } from '@nimiplatform/sdk/runtime';
 import {
-  canonicalMemoryViewToDesktopRecord,
   createRuntimeAgentMemoryAdapter,
 } from '../src/shell/renderer/infra/runtime-agent-memory';
 
@@ -335,64 +332,5 @@ test('runtime agent memory adapter binds canonical bank standard through the mem
   assert.deepEqual(service.getConfig().bindingRef, {
     kind: 'local',
     targetId: 'local/embed-alpha',
-  });
-});
-
-test('canonical memory view compatibility projection stays runtime-owned', async () => {
-  const record = canonicalMemoryViewToDesktopRecord({
-    canonicalClass: MemoryCanonicalClass.DYADIC,
-    sourceBank: {
-      scope: MemoryBankScope.AGENT_DYADIC,
-      owner: {
-        oneofKind: 'agentDyadic',
-        agentDyadic: {
-          agentId: LOCAL_AGENT_REF,
-          userId: 'user-7',
-        },
-      },
-    },
-    record: {
-      memoryId: 'mem-7',
-      kind: MemoryRecordKind.OBSERVATIONAL,
-      canonicalClass: MemoryCanonicalClass.DYADIC,
-      provenance: {
-        sourceSystem: 'desktop.agent-chat',
-        sourceEventId: 'turn-7',
-        authorId: LOCAL_AGENT_REF,
-        traceId: 'thread-7',
-      },
-        payload: {
-          oneofKind: 'observational',
-          observational: {
-            observation: 'remember this',
-            sourceRef: 'thread-7',
-          },
-        },
-      createdAt: { seconds: '1714521600', nanos: 0 },
-      updatedAt: { seconds: '1714521600', nanos: 0 },
-      metadata: undefined,
-    },
-    recallScore: 0.5,
-    policyReason: 'runtime_agent_projection',
-  });
-
-  assert.deepEqual(record, {
-    actorRefs: [],
-    appId: 'desktop.agent-chat',
-    commitId: 'mem-7',
-    id: 'mem-7',
-    content: 'remember this',
-    createdAt: '2024-05-01T00:00:00.000Z',
-    createdBy: LOCAL_AGENT_REF,
-    effectClass: 'MEMORY_ONLY',
-    importance: 1,
-    reason: 'runtime_agent_projection',
-    schemaId: 'runtime.agent.canonical_memory',
-    schemaVersion: '1',
-    sessionId: 'thread-7',
-    type: 'DYADIC',
-    userId: 'user-7',
-    worldId: null,
-    metadata: undefined,
   });
 });

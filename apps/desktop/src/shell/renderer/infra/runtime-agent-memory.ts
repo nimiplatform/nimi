@@ -17,8 +17,7 @@ import { getDesktopMemoryEmbeddingConfigService } from '@renderer/app-shell/prov
 import { listLocalRuntimeAssets } from '@renderer/bridge/runtime-bridge/local-ai';
 import { getDesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/macos-smoke';
 
-export type { DesktopAgentMemoryRecord } from './runtime-agent-memory-records';
-export { canonicalMemoryViewToDesktopRecord, summarizeCanonicalMemoryView } from './runtime-agent-memory-records';
+export { summarizeCanonicalMemoryView } from './runtime-agent-memory-records';
 
 export type CanonicalMemoryMode = 'baseline' | 'standard' | 'unavailable';
 
