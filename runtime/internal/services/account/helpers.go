@@ -23,11 +23,6 @@ func validateProductionCaller(caller *runtimev1.AccountCaller, tokenRequest bool
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR:
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY, false
-	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_MOD:
-		if tokenRequest {
-			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_MOD_TOKEN_FORBIDDEN, false
-		}
-		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
 	default:
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
 	}

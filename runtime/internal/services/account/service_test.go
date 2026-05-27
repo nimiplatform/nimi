@@ -492,7 +492,7 @@ func TestDaemonRestartRecoversAccountButInvalidatesScopedBindings(t *testing.T) 
 	}
 }
 
-func TestGetAccessTokenRejectsAnonymousUnavailableAvatarModAndRevokedCaller(t *testing.T) {
+func TestGetAccessTokenRejectsAnonymousUnavailableAvatarAndRevokedCaller(t *testing.T) {
 	anonymous := newHarnessService(t, &memoryCustody{err: ErrCustodyUnavailable})
 	resp, err := anonymous.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyCaller()})
 	if err != nil {
@@ -512,15 +512,6 @@ func TestGetAccessTokenRejectsAnonymousUnavailableAvatarModAndRevokedCaller(t *t
 	}
 	if resp.GetAccepted() || resp.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY {
 		t.Fatalf("avatar token request must fail: %+v", resp)
-	}
-	mod := *firstPartyCaller()
-	mod.Mode = runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_MOD
-	resp, err = svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: &mod})
-	if err != nil {
-		t.Fatalf("mod GetAccessToken: %v", err)
-	}
-	if resp.GetAccepted() || resp.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_MOD_TOKEN_FORBIDDEN {
-		t.Fatalf("mod token request must fail: %+v", resp)
 	}
 	if _, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: firstPartyCaller()}); err != nil {
 		t.Fatalf("Logout: %v", err)

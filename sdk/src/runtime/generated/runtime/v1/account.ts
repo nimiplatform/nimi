@@ -989,10 +989,6 @@ export enum AccountReasonCode {
      */
     AVATAR_BINDING_ONLY = 11,
     /**
-     * @generated from protobuf enum value: ACCOUNT_REASON_CODE_MOD_TOKEN_FORBIDDEN = 12;
-     */
-    MOD_TOKEN_FORBIDDEN = 12,
-    /**
      * @generated from protobuf enum value: ACCOUNT_REASON_CODE_BINDING_NOT_FOUND = 13;
      */
     BINDING_NOT_FOUND = 13,
@@ -1029,10 +1025,6 @@ export enum AccountCallerMode {
      * @generated from protobuf enum value: ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR = 3;
      */
     DESKTOP_LAUNCHED_AVATAR = 3,
-    /**
-     * @generated from protobuf enum value: ACCOUNT_CALLER_MODE_MOD = 4;
-     */
-    MOD = 4,
     /**
      * @generated from protobuf enum value: ACCOUNT_CALLER_MODE_WEB_CLOUD = 5;
      */
