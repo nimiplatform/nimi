@@ -3,8 +3,10 @@ import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
+  parseCatalogItemDescriptor,
   parseExecutionApplyResult,
   parseExecutionPlan,
+  parseInstallPlanDescriptor,
   parseNodeDescriptor,
   parseProfileResolutionPlan,
   parseUnregisteredAssetDescriptor,
@@ -251,4 +253,30 @@ test('parseNodeDescriptor does not invent provider authority when runtime omits 
 
   assert.equal(parsed.provider, '');
   assert.equal(parsed.available, true);
+});
+
+test('catalog and install plan parsers do not invent local engine authority', () => {
+  const catalogItem = parseCatalogItemDescriptor({
+    itemId: 'catalog-1',
+    title: 'Runtime catalog item',
+    modelId: 'qwen3',
+    repo: 'Qwen/Qwen3',
+    capabilities: ['text.generate'],
+    files: [],
+    hashes: {},
+    tags: [],
+  });
+  const installPlan = parseInstallPlanDescriptor({
+    planId: 'plan-1',
+    itemId: 'catalog-1',
+    modelId: 'qwen3',
+    repo: 'Qwen/Qwen3',
+    capabilities: ['text.generate'],
+    files: [],
+    hashes: {},
+    warnings: [],
+  });
+
+  assert.equal(catalogItem.engine, '');
+  assert.equal(installPlan.engine, '');
 });
