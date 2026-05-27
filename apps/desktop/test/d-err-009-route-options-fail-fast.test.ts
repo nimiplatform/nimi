@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { setRuntimeLogger } from '../src/runtime/telemetry/logger.js';
 import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store.js';
@@ -9,6 +12,7 @@ import {
   loadRuntimeRouteOptions,
 } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const initialRuntimeFields = { ...useAppStore.getState().runtimeFields };
 
 test.afterEach(() => {
@@ -182,6 +186,7 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
   assert.equal(options.selected.source, 'local');
   assert.equal(options.selected.model, 'local-model');
   assert.equal(options.resolvedDefault?.source, 'local');
+  assert.equal(options.local.defaultEndpoint, undefined);
 
   const degradedLog = logs.find((entry) => entry.message === 'action:load-local-route-metadata:degraded');
   assert.ok(degradedLog, 'local metadata timeout should emit a degrade log instead of rejecting the dialog');
@@ -259,6 +264,21 @@ test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models 
   assert.equal(options.selected.source, 'local');
   assert.equal(options.selected.modelId, 'local-import/Qwen3-4B-Q4_K_M');
   assert.equal(options.selected.goRuntimeStatus, 'unavailable');
+  assert.equal(options.local.defaultEndpoint, undefined);
+});
+
+test('runtime route options bootstrap does not own projection heuristics or endpoint fallback', () => {
+  const source = readFileSync(
+    resolve(__dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options.ts'),
+    'utf8',
+  );
+
+  assert.doesNotMatch(source, /\bfallbackLocalEngine\b/);
+  assert.doesNotMatch(source, /\binferLocalEngine\b/);
+  assert.doesNotMatch(source, /\bproviderDefaultRank\b/);
+  assert.doesNotMatch(source, /\bsyncLookup\b/);
+  assert.doesNotMatch(source, /runtimeFields\.localProviderEndpoint/);
+  assert.doesNotMatch(source, /runtimeFields\.localOpenAiEndpoint/);
 });
 
 test('loadRuntimeRouteOptions fetches connector descriptors in parallel', async () => {

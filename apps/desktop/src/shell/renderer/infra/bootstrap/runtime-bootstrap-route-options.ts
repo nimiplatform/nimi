@@ -4,141 +4,20 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { localRuntime, type LocalRuntimeAssetRecord, type LocalRuntimeSnapshot } from '@runtime/local-runtime';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import {
-    buildRuntimeRouteOptionsSnapshot,
-    buildRuntimeRouteSelectedBinding,
-    normalizeRuntimeRouteCapabilityToken,
+    buildRuntimeRouteOptionsProjection,
     runtimeRouteLocalKindForCapability,
-    runtimeRouteLocalKindSupportsCapability,
-    runtimeRouteModelSupportsCapability,
     type RuntimeCanonicalCapability,
-    type RuntimeRouteBinding,
-    type RuntimeRouteConnectorOption,
-    type RuntimeRouteLocalOption,
+    type RuntimeRouteConnectorProjectionInput,
     type RuntimeRouteOptionsSnapshot,
 } from "@nimiplatform/sdk/ai";
-import { normalizeLocalEngine, normalizeLocalModelRoot } from './runtime-bootstrap-utils';
-type RuntimeFields = {
-    provider: string;
-    runtimeModelType: string;
-    localProviderEndpoint: string;
-    localProviderModel: string;
-    localOpenAiEndpoint: string;
-    connectorId: string;
-};
 type ConnectorDescriptor = {
     id: string;
     label?: string;
     vendor?: string;
     provider?: string;
 };
-/**
- * Extract a human-readable model name from an assetId.
- * Strips common prefixes like "local/local-import/", "local/", "media/" etc.
- */
-function extractModelDisplayName(assetId: string): string {
-    const raw = String(assetId || '').trim();
-    // Strip known prefixes: "local/local-import/", "local/", "media/"
-    const stripped = raw
-        .replace(/^local\/local-import\//, '')
-        .replace(/^local\//, '')
-        .replace(/^media\//, '');
-    return stripped || raw;
-}
 
 const LOCAL_SNAPSHOT_TIMEOUT_MS = 3500;
-
-function fallbackLocalEngine(capability?: RuntimeCanonicalCapability): string {
-    if (capability === 'image.generate' || capability === 'video.generate') {
-        return 'media';
-    }
-    if (
-        capability === 'audio.synthesize'
-        || capability === 'audio.transcribe'
-        || capability === 'voice_workflow.voice_clone'
-        || capability === 'voice_workflow.voice_design'
-    ) {
-        return 'speech';
-    }
-    return 'llama';
-}
-function inferLocalEngine(provider: string, capability?: RuntimeCanonicalCapability, runtimeDefaultEngine?: string): string {
-    const rawProvider = String(provider || '').trim().toLowerCase();
-    if (rawProvider === 'llama' || rawProvider === 'media' || rawProvider === 'speech' || rawProvider === 'sidecar') {
-        return normalizeLocalEngine(rawProvider);
-    }
-    const defaultEngine = String(runtimeDefaultEngine || '').trim();
-    if (defaultEngine) {
-        const normalizedDefault = normalizeLocalEngine(defaultEngine);
-        return normalizedDefault;
-    }
-    return fallbackLocalEngine(capability);
-}
-function isCanonicalLocalEngineToken(value: unknown): boolean {
-    const normalized = String(value || '').trim().toLowerCase();
-    return normalized === 'llama'
-        || normalized === 'media'
-        || normalized === 'speech'
-        || normalized === 'sidecar';
-}
-function rankRuntimeLocalStatus(value: unknown): number {
-    const status = String(value || '').trim().toLowerCase();
-    if (status === 'active')
-        return 0;
-    if (status === 'unhealthy')
-        return 1;
-    if (status === 'installed')
-        return 2;
-    if (status === 'removed')
-        return 3;
-    return 4;
-}
-function rankLocalStatus(value: unknown): number {
-    const status = String(value || '').trim().toLowerCase();
-    if (status === 'active')
-        return 0;
-    if (status === 'installed')
-        return 1;
-    if (status === 'unhealthy')
-        return 2;
-    if (status === 'removed')
-        return 3;
-    return 4;
-}
-function providerDefaultRank(providerHints: RuntimeRouteLocalOption['providerHints']): number {
-    const extra = providerHints?.extra;
-    if (!extra || typeof extra !== 'object') {
-        return Number.MAX_SAFE_INTEGER;
-    }
-    const numeric = Number((extra as Record<string, unknown>).local_default_rank);
-    return Number.isFinite(numeric) ? numeric : Number.MAX_SAFE_INTEGER;
-}
-export function pickPreferredRuntimeLocalModel(runtimeLocalModels: Array<{
-    localModelId?: string;
-    modelId?: string;
-    engine?: string;
-    status?: string;
-}>, modelId: string, engine: string): {
-    localModelId?: string;
-    status?: string;
-} | null {
-    const matches = runtimeLocalModels
-        .filter((goModel) => syncLookup(goModel.modelId || '', goModel.engine || '') === syncLookup(modelId, engine))
-        .filter((goModel) => String(goModel.status || '').trim().toLowerCase() !== 'removed')
-        .sort((left, right) => {
-        const rankDelta = rankRuntimeLocalStatus(left.status) - rankRuntimeLocalStatus(right.status);
-        if (rankDelta !== 0) {
-            return rankDelta;
-        }
-        return String(left.localModelId || '').localeCompare(String(right.localModelId || ''));
-    });
-    if (matches.length === 0) {
-        return null;
-    }
-    return {
-        localModelId: String(matches[0]?.localModelId || '').trim() || undefined,
-        status: String(matches[0]?.status || '').trim() || undefined,
-    };
-}
 async function pollLocalSnapshotWithTimeout(): Promise<LocalRuntimeSnapshot> {
     let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
     try {
@@ -261,7 +140,7 @@ type LoadRuntimeRouteOptionsDeps = {
     loadLocalRouteMetadata: typeof loadLocalRouteMetadata;
 };
 type LoadRuntimeRouteOptionsData = {
-    connectors: RuntimeRouteConnectorOption[];
+    connectors: RuntimeRouteConnectorProjectionInput[];
     snapshot: LocalRouteMetadata['snapshot'];
     nodeCatalog: LocalRouteMetadata['nodeCatalog'];
     runtimeLocalModels: LocalRouteMetadata['runtimeLocalModels'];
@@ -343,7 +222,7 @@ async function loadRuntimeRouteOptionsData(capability: RuntimeCanonicalCapabilit
         connectorDescriptorsPromise,
         localMetadataPromise,
     ]);
-    const connectorResults: Array<RuntimeRouteConnectorOption | null> = await Promise.all((connectorDescriptors as ConnectorDescriptor[]).map(async (connector) => {
+    const connectorResults: Array<RuntimeRouteConnectorProjectionInput | null> = await Promise.all((connectorDescriptors as ConnectorDescriptor[]).map(async (connector) => {
         const descriptors = await resolvedDeps.sdkListConnectorModelDescriptors(connector.id, false).catch((error) => {
             const normalized = asNimiError(error, {
                 reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
@@ -368,30 +247,17 @@ async function loadRuntimeRouteOptionsData(capability: RuntimeCanonicalCapabilit
             });
             return [];
         });
-        const models = descriptors
-            .filter((item) => runtimeRouteModelSupportsCapability(item.capabilities, capability))
-            .map((item) => item.modelId);
-        if (models.length === 0) {
-            return null;
-        }
-        const modelCapabilities = descriptors.reduce<Record<string, string[]>>((accumulator, item) => {
-            if (!runtimeRouteModelSupportsCapability(item.capabilities, capability)) {
-                return accumulator;
-            }
-            accumulator[item.modelId] = item.capabilities;
-            return accumulator;
-        }, {});
         return {
-            id: connector.id,
-            label: String(connector.label || ''),
-            vendor: String(connector.vendor || '').trim() || undefined,
-            provider: String(connector.provider || '').trim() || undefined,
-            models,
-            modelCapabilities,
-            modelProfiles: [],
+            descriptor: {
+                id: connector.id,
+                label: connector.label,
+                vendor: connector.vendor,
+                provider: connector.provider,
+            },
+            modelDescriptors: descriptors,
         };
     }));
-    const connectors = connectorResults.filter((connector): connector is RuntimeRouteConnectorOption => connector !== null);
+    const connectors = connectorResults.filter((connector): connector is RuntimeRouteConnectorProjectionInput => connector !== null);
     return {
         connectors,
         snapshot: localMetadata.snapshot,
@@ -415,49 +281,11 @@ function loadRuntimeRouteOptionsDataSingleFlight(capability: RuntimeCanonicalCap
     inflight.set(capability, request);
     return request;
 }
-export function buildSelectedBinding(input: {
-    capability: RuntimeCanonicalCapability;
-    selectedBinding?: RuntimeRouteBinding | null;
-    localModels: RuntimeRouteLocalOption[];
-    connectors: RuntimeRouteConnectorOption[];
-    localMetadataDegraded?: boolean;
-    runtimeDefaultEngine?: string;
-}): RuntimeRouteBinding | null {
-    const selected = buildRuntimeRouteSelectedBinding(input);
-    if (selected?.source === 'local') {
-        const normalizedModelId = normalizeLocalModelRoot(String(selected.modelId || selected.model || '').trim()) || undefined;
-        const selectedEngine = String(selected.engine || '').trim();
-        const selectedProvider = String(selected.provider || '').trim();
-        if (!selectedEngine || !isCanonicalLocalEngineToken(selectedEngine)) {
-            const inferredEngine = inferLocalEngine(
-                String(selectedProvider || input.selectedBinding?.engine || input.selectedBinding?.provider || '').trim(),
-                input.capability,
-                input.runtimeDefaultEngine,
-            );
-            return {
-                ...selected,
-                model: normalizedModelId || String(selected.model || '').trim(),
-                modelId: normalizedModelId,
-                engine: inferredEngine,
-                provider: isCanonicalLocalEngineToken(selectedProvider)
-                    ? selectedProvider
-                    : inferredEngine,
-            };
-        }
-        return {
-            ...selected,
-            model: normalizedModelId || String(selected.model || '').trim(),
-            modelId: normalizedModelId,
-        };
-    }
-    return selected;
-}
 export async function loadRuntimeRouteOptions(input: {
     capability: RuntimeCanonicalCapability;
     targetId?: string;
 }, deps?: Partial<LoadRuntimeRouteOptionsDeps>): Promise<RuntimeRouteOptionsSnapshot> {
     const appStore = useAppStore.getState();
-    const runtimeFields = appStore.runtimeFields as RuntimeFields;
     const selectedBinding = input.capability === 'text.embed'
         ? undefined
         : appStore.aiConfig.capabilities.selectedBindings[input.capability] as import('@nimiplatform/sdk/ai').RuntimeRouteBinding | null | undefined;
@@ -481,103 +309,23 @@ export async function loadRuntimeRouteOptions(input: {
         resolvedDeps,
         depsScope,
     );
-    const nodeByProvider = new Map<string, {
-        provider: string;
-        providerHints?: RuntimeRouteLocalOption['providerHints'];
-        defaultRank: number;
-    }>();
-    for (const node of nodeCatalog) {
-        const provider = normalizeLocalEngine(node.provider);
-        const current = nodeByProvider.get(provider);
-        const candidateRank = providerDefaultRank(node.providerHints);
-        if (!current
-            || candidateRank < current.defaultRank
-            || (!current.providerHints && node.providerHints)) {
-            nodeByProvider.set(provider, {
-                provider,
-                providerHints: node.providerHints,
-                defaultRank: candidateRank,
-            });
-        }
-    }
-    const snapshotByLocalModelId = new Map(snapshot.assets.map((item: LocalRuntimeAssetRecord) => [String(item.localAssetId || '').trim(), item]));
-    const snapshotByLookup = new Map(snapshot.assets.map((item: LocalRuntimeAssetRecord) => [syncLookup(item.assetId, item.engine), item]));
-    const localModels: RuntimeRouteLocalOption[] = runtimeLocalModels
-        .filter((item: LocalRuntimeAssetRecord) => item.status !== 'removed')
-        .filter((item: LocalRuntimeAssetRecord) => runtimeRouteModelSupportsCapability(item.capabilities, input.capability)
-        || runtimeRouteLocalKindSupportsCapability(item.kind, input.capability))
-        .map((item: LocalRuntimeAssetRecord) => {
-        const snapshotModel = snapshotByLocalModelId.get(String(item.localAssetId || '').trim())
-            || snapshotByLookup.get(syncLookup(item.assetId, item.engine))
-            || null;
-        const normalizedCapabilities = (item.capabilities || [])
-            .map((capability: string) => normalizeRuntimeRouteCapabilityToken(capability))
-            .filter((capability: RuntimeCanonicalCapability | null): capability is RuntimeCanonicalCapability => Boolean(capability));
-        const routeCapabilities = normalizedCapabilities.length > 0
-            ? normalizedCapabilities
-            : (runtimeRouteLocalKindSupportsCapability(item.kind, input.capability) ? [input.capability] : []);
-        if (snapshotModel && String(snapshotModel.status || '').trim().toLowerCase() !== String(item.status || '').trim().toLowerCase()) {
+    return buildRuntimeRouteOptionsProjection({
+        capability: input.capability,
+        selectedBinding,
+        connectors,
+        snapshotAssets: snapshot.assets,
+        nodeCatalog,
+        runtimeLocalModels,
+        localMetadataDegraded,
+        onLocalStatusMismatch: (mismatch) => {
             emitRuntimeLog({
                 level: 'warn',
                 area: 'route-options',
                 message: 'action:local-route-status-mismatch',
                 details: {
-                    capability: input.capability,
-                    localModelId: item.localAssetId,
-                    modelId: item.assetId,
-                    engine: item.engine,
-                    runtimeStatus: item.status,
-                    snapshotStatus: snapshotModel.status,
+                    ...mismatch,
                 },
             });
-        }
-        return {
-            localModelId: item.localAssetId,
-            label: extractModelDisplayName(item.assetId),
-            engine: item.engine,
-            model: item.assetId,
-            modelId: item.assetId,
-            provider: normalizeLocalEngine(item.engine),
-            providerHints: nodeByProvider.get(normalizeLocalEngine(item.engine))?.providerHints,
-            endpoint: String(item.endpoint || snapshotModel?.endpoint || '').trim() || undefined,
-            status: item.status,
-            goRuntimeLocalModelId: String(item.localAssetId || '').trim() || undefined,
-            goRuntimeStatus: String(item.status || '').trim() || undefined,
-            capabilities: routeCapabilities,
-        };
-    })
-        .sort((left: RuntimeRouteLocalOption, right: RuntimeRouteLocalOption) => {
-        const rankDelta = providerDefaultRank(left.providerHints) - providerDefaultRank(right.providerHints);
-        if (rankDelta !== 0) {
-            return rankDelta;
-        }
-        const statusDelta = rankLocalStatus(left.status) - rankLocalStatus(right.status);
-        if (statusDelta !== 0) {
-            return statusDelta;
-        }
-        return String(left.localModelId || '').localeCompare(String(right.localModelId || ''));
+        },
     });
-    const runtimeDefaultEngine = [...nodeByProvider.values()]
-        .sort((left, right) => left.defaultRank - right.defaultRank)[0]?.provider;
-    const selected = buildSelectedBinding({
-        capability: input.capability,
-        selectedBinding,
-        localModels: localModels,
-        connectors,
-        localMetadataDegraded,
-        runtimeDefaultEngine,
-    });
-    return buildRuntimeRouteOptionsSnapshot({
-        capability: input.capability,
-        selectedBinding,
-        selectedOverride: selected,
-        localModels,
-        connectors,
-        defaultLocalEndpoint: String(runtimeFields.localProviderEndpoint || runtimeFields.localOpenAiEndpoint || '').trim() || undefined,
-        localMetadataDegraded,
-        runtimeDefaultEngine,
-    });
-}
-function syncLookup(modelId: string, engine: string): string {
-    return `${normalizeLocalEngine(engine)}::${String(modelId || '').trim().toLowerCase()}`;
 }

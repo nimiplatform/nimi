@@ -47,6 +47,10 @@ const runtimeBootstrapRouteOptionsPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options.ts',
 );
+const sdkRuntimeRouteOptionsPath = path.resolve(
+  process.cwd(),
+  '../../sdk/src/ai/runtime-route-options.ts',
+);
 const runtimeBootstrapRouteResolversPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-resolvers.ts',
@@ -83,6 +87,7 @@ const localModelCenterSectionsSource = readFileSync(localModelCenterSectionsPath
 const localModelCenterUtilsSource = readFileSync(localModelCenterUtilsPath, 'utf-8');
 const localModelCenterProgressCacheSource = readFileSync(localModelCenterProgressCachePath, 'utf-8');
 const runtimeBootstrapRouteOptionsSource = readFileSync(runtimeBootstrapRouteOptionsPath, 'utf-8');
+const sdkRuntimeRouteOptionsSource = readFileSync(sdkRuntimeRouteOptionsPath, 'utf-8');
 const runtimeBootstrapRouteResolversSource = readFileSync(runtimeBootstrapRouteResolversPath, 'utf-8');
 const tauriCommandsSource = readFileSync(tauriCommandsPath, 'utf-8');
 const tauriLocalRuntimePackageSource = readFileSync(tauriLocalRuntimePackagePath, 'utf-8');
@@ -130,7 +135,9 @@ test('local route options consume runtime node adapter truth without image-speci
 });
 
 test('local route options preserve per-asset endpoint instead of falling back to global runtime endpoint', () => {
-  assert.match(runtimeBootstrapRouteOptionsSource, /endpoint: String\(item\.endpoint \|\| snapshotModel\?\.endpoint \|\| ''\)\.trim\(\) \|\| undefined/);
+  assert.match(sdkRuntimeRouteOptionsSource, /endpoint: String\(item\.endpoint \|\| snapshotModel\?\.endpoint \|\| ''\)\.trim\(\) \|\| undefined/);
+  assert.doesNotMatch(runtimeBootstrapRouteOptionsSource, /runtimeFields\.localProviderEndpoint/);
+  assert.doesNotMatch(runtimeBootstrapRouteOptionsSource, /runtimeFields\.localOpenAiEndpoint/);
   assert.match(
     readFileSync(
       path.resolve(
@@ -155,14 +162,16 @@ test('local route options preserve per-asset endpoint instead of falling back to
 
 test('local route hydration prefers fresh local model adapter over stale binding adapter', () => {
   assert.equal(existsSync(retiredRuntimeBootstrapHostCapabilitiesRoutingPath), false);
-  assert.match(runtimeBootstrapRouteOptionsSource, /const snapshotByLocalModelId = new Map\(snapshot\.assets\.map/);
-  assert.match(runtimeBootstrapRouteOptionsSource, /const snapshotModel = snapshotByLocalModelId\.get/);
-  assert.match(runtimeBootstrapRouteOptionsSource, /endpoint: String\(item\.endpoint \|\| snapshotModel\?\.endpoint \|\| ''\)\.trim\(\) \|\| undefined/);
+  assert.match(runtimeBootstrapRouteOptionsSource, /buildRuntimeRouteOptionsProjection\(\{/);
+  assert.match(sdkRuntimeRouteOptionsSource, /const snapshotByLocalModelId = new Map\(/);
+  assert.match(sdkRuntimeRouteOptionsSource, /const snapshotModel = snapshotByLocalModelId\.get/);
+  assert.match(sdkRuntimeRouteOptionsSource, /endpoint: String\(item\.endpoint \|\| snapshotModel\?\.endpoint \|\| ''\)\.trim\(\) \|\| undefined/);
 });
 
 test('runtime route resolve uses the selected local binding and retired host-capability files stay absent', () => {
   assert.equal(existsSync(retiredRuntimeBootstrapHostCapabilitiesPath), false);
-  assert.match(runtimeBootstrapRouteOptionsSource, /\.filter\(\(item: LocalRuntimeAssetRecord\) => item\.status !== 'removed'\)/);
+  assert.match(runtimeBootstrapRouteOptionsSource, /runtimeLocalModels,/);
+  assert.match(sdkRuntimeRouteOptionsSource, /\.filter\(\(item\) => String\(item\.status \|\| ''\)\.trim\(\)\.toLowerCase\(\) !== 'removed'\)/);
   assert.match(runtimeBootstrapRouteResolversSource, /const endpoint = String\(binding\?\.endpoint \|\| ''\)\.trim\(\)/);
   assert.match(runtimeBootstrapRouteResolversSource, /goRuntimeStatus: String\(binding\?\.goRuntimeStatus \|\| ''\)\.trim\(\) \|\| undefined/);
   assert.doesNotMatch(runtimeBootstrapRouteResolversSource, /localGoRuntimeStatus === 'removed'/);
