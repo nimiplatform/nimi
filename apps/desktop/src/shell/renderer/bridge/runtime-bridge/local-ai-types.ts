@@ -1,4 +1,5 @@
 import type { JsonObject } from './shared.js';
+import type { LocalProviderAdapter } from '@nimiplatform/sdk/ai';
 import type { LocalRuntimeAssetKindId } from '@nimiplatform/sdk/runtime';
 import type { LocalRuntimeCatalogRecommendation } from '@runtime/local-runtime';
 
@@ -76,7 +77,7 @@ export type LocalRuntimeInferenceAuditPayload = {
   routeSource?: 'local' | 'cloud';
   provider: string;
   modality: LocalRuntimeInferenceAuditModality;
-  adapter: 'openai_compat_adapter' | 'llama_native_adapter' | 'media_native_adapter' | 'speech_native_adapter' | 'sidecar_music_adapter' | string;
+  adapter: LocalProviderAdapter;
   traceId?: string;
   model?: string;
   localModelId?: string;

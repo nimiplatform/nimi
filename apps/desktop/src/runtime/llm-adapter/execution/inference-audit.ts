@@ -3,6 +3,7 @@ import {
   isLocalRuntimeRunnableAssetKindId,
   type LocalRuntimeRunnableAssetKindId,
 } from '@nimiplatform/sdk/runtime';
+import type { LocalProviderAdapter } from '@nimiplatform/sdk/ai';
 import { emitRuntimeLog } from '../../telemetry/logger';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
@@ -22,7 +23,7 @@ export type InferenceAuditInput = {
   routeSource?: InferenceRouteSource;
   provider: string;
   modality: InferenceAuditModality;
-  adapter: 'openai_compat_adapter' | 'llama_native_adapter' | 'media_native_adapter' | 'speech_native_adapter' | 'sidecar_music_adapter' | string;
+  adapter: LocalProviderAdapter;
   traceId: string;
   model?: string;
   localModelId?: string;
