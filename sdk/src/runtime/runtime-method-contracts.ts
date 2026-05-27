@@ -3,7 +3,7 @@ import type { RuntimeClient } from './types-client-interfaces.js';
 
 type RuntimeClientModuleKey = Extract<
   keyof RuntimeClient,
-  'auth' | 'appAuth' | 'account' | 'ai' | 'artifact' | 'workflow' | 'model' | 'local' | 'connector' | 'knowledge' | 'memory' | 'agent' | 'app' | 'audit'
+  'auth' | 'appAuth' | 'externalAgent' | 'account' | 'ai' | 'artifact' | 'workflow' | 'model' | 'local' | 'connector' | 'knowledge' | 'memory' | 'agent' | 'app' | 'audit'
 >;
 
 type RuntimeClientMethodContract<
@@ -30,6 +30,10 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.appAuth.revokeToken]: RuntimeClientMethodContract<'appAuth', 'revokeToken'>;
   [RuntimeMethodIds.appAuth.issueDelegatedToken]: RuntimeClientMethodContract<'appAuth', 'issueDelegatedToken'>;
   [RuntimeMethodIds.appAuth.listTokenChain]: RuntimeClientMethodContract<'appAuth', 'listTokenChain'>;
+  [RuntimeMethodIds.externalAgent.getGatewayStatus]: RuntimeClientMethodContract<'externalAgent', 'getGatewayStatus'>;
+  [RuntimeMethodIds.externalAgent.issueToken]: RuntimeClientMethodContract<'externalAgent', 'issueToken'>;
+  [RuntimeMethodIds.externalAgent.revokeToken]: RuntimeClientMethodContract<'externalAgent', 'revokeToken'>;
+  [RuntimeMethodIds.externalAgent.listTokens]: RuntimeClientMethodContract<'externalAgent', 'listTokens'>;
   [RuntimeMethodIds.account.getAccountSessionStatus]: RuntimeClientMethodContract<'account', 'getAccountSessionStatus'>;
   [RuntimeMethodIds.account.beginLogin]: RuntimeClientMethodContract<'account', 'beginLogin'>;
   [RuntimeMethodIds.account.completeLogin]: RuntimeClientMethodContract<'account', 'completeLogin'>;

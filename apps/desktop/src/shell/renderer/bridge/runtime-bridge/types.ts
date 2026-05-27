@@ -244,13 +244,6 @@ export type {
   ExternalAgentRevokeTokenPayload,
   ExternalAgentTokenRecord,
   ExternalAgentGatewayStatus,
-} from './external-agent-types.js';
-
-export {
-  parseExternalAgentIssueTokenResult,
-  parseExternalAgentTokenRecord,
-  parseExternalAgentTokenRecordList,
-  parseExternalAgentGatewayStatus,
-} from './external-agent-types.js';
+} from './external-agent.js';
 
 import './window-global.js';

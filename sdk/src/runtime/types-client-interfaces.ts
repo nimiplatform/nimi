@@ -54,6 +54,15 @@ import type {
   ValidateAppAccessTokenResponse,
 } from './generated/runtime/v1/grant';
 import type {
+  ExternalAgentGatewayStatusRequest,
+  ExternalAgentGatewayStatusResponse,
+  ExternalAgentIssueTokenRequest,
+  ExternalAgentIssueTokenResponse,
+  ExternalAgentListTokensRequest,
+  ExternalAgentListTokensResponse,
+  ExternalAgentRevokeTokenRequest,
+} from './generated/runtime/v1/external_agent';
+import type {
   AppendRealtimeInputRequest,
   AppendRealtimeInputResponse,
   CancelScenarioJobRequest,
@@ -458,6 +467,13 @@ export type RuntimeAppAuthClient = {
   revokeToken(request: RevokeAppAccessTokenRequest, options?: RuntimeCallOptions): Promise<Ack>;
   issueDelegatedToken(request: IssueDelegatedAccessTokenRequest, options?: RuntimeCallOptions): Promise<IssueDelegatedAccessTokenResponse>;
   listTokenChain(request: ListTokenChainRequest, options?: RuntimeCallOptions): Promise<ListTokenChainResponse>;
+};
+
+export type RuntimeExternalAgentClient = {
+  getGatewayStatus(request: ExternalAgentGatewayStatusRequest, options?: RuntimeCallOptions): Promise<ExternalAgentGatewayStatusResponse>;
+  issueToken(request: ExternalAgentIssueTokenRequest, options?: RuntimeCallOptions): Promise<ExternalAgentIssueTokenResponse>;
+  revokeToken(request: ExternalAgentRevokeTokenRequest, options?: RuntimeCallOptions): Promise<Ack>;
+  listTokens(request: ExternalAgentListTokensRequest, options?: RuntimeCallOptions): Promise<ExternalAgentListTokensResponse>;
 };
 
 export type RuntimeAccountClient = {

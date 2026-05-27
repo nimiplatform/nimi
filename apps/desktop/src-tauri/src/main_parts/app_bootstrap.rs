@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
     chat_agent_store, chat_ai_store, desktop_agent_center_store, desktop_release, desktop_updates,
-    external_agent_gateway, local_runtime, menu_bar_shell, runtime_bridge,
+    local_runtime, menu_bar_shell, runtime_bridge,
 };
 use nimi_shell_tauri::runtime_bridge::RuntimeBridgeHostHooks;
 use std::sync::Arc;
@@ -167,10 +167,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
         .setup(|app| {
             eprintln!("[boot:{:}] setup entered", now_ms());
             install_shared_runtime_bridge_hooks();
-            let gateway_state =
-                external_agent_gateway::ExternalAgentGatewayState::new(app.handle().clone());
-            external_agent_gateway::start_external_agent_gateway(gateway_state.clone());
-            app.manage(gateway_state);
             app.manage(crate::menu_bar_shell::MenuBarShellStore::new());
             match crate::desktop_release::initialize(app.handle()) {
                 Ok(info) => {
@@ -410,11 +406,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             desktop_agent_center_store::desktop_agent_center_background_validate,
             desktop_agent_center_store::desktop_agent_center_config_get,
             desktop_agent_center_store::desktop_agent_center_config_put,
-            external_agent_gateway::external_agent_issue_token,
-            external_agent_gateway::external_agent_revoke_token,
-            external_agent_gateway::external_agent_list_tokens,
-            external_agent_gateway::external_agent_verify_execution_context,
-            external_agent_gateway::external_agent_gateway_status,
             runtime_bridge::runtime_bridge_unary,
             runtime_bridge::runtime_bridge_stream_open,
             runtime_bridge::runtime_bridge_stream_close,

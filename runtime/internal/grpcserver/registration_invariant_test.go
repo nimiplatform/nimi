@@ -36,20 +36,21 @@ func TestServerRegistersRuntimeCognitionServiceExactlyOnce(t *testing.T) {
 	// `Register*ServiceServer` token must be added here intentionally
 	// and reviewed against the wave-2 packet.
 	allowed := map[string]struct{}{
-		"RegisterRuntimeAccountServiceServer":    {},
-		"RegisterRuntimeAgentServiceServer":      {},
-		"RegisterRuntimeAiRealtimeServiceServer": {},
-		"RegisterRuntimeAiServiceServer":         {},
-		"RegisterRuntimeAppServiceServer":        {},
-		"RegisterRuntimeArtifactServiceServer":   {},
-		"RegisterRuntimeAuditServiceServer":      {},
-		"RegisterRuntimeAuthServiceServer":       {},
-		"RegisterRuntimeCognitionServiceServer":  {},
-		"RegisterRuntimeConnectorServiceServer":  {},
-		"RegisterRuntimeGrantServiceServer":      {},
-		"RegisterRuntimeLocalServiceServer":      {},
-		"RegisterRuntimeModelServiceServer":      {},
-		"RegisterRuntimeWorkflowServiceServer":   {},
+		"RegisterRuntimeAccountServiceServer":       {},
+		"RegisterRuntimeAgentServiceServer":         {},
+		"RegisterRuntimeAiRealtimeServiceServer":    {},
+		"RegisterRuntimeAiServiceServer":            {},
+		"RegisterRuntimeAppServiceServer":           {},
+		"RegisterRuntimeArtifactServiceServer":      {},
+		"RegisterRuntimeAuditServiceServer":         {},
+		"RegisterRuntimeAuthServiceServer":          {},
+		"RegisterRuntimeCognitionServiceServer":     {},
+		"RegisterRuntimeConnectorServiceServer":     {},
+		"RegisterRuntimeExternalAgentServiceServer": {},
+		"RegisterRuntimeGrantServiceServer":         {},
+		"RegisterRuntimeLocalServiceServer":         {},
+		"RegisterRuntimeModelServiceServer":         {},
+		"RegisterRuntimeWorkflowServiceServer":      {},
 	}
 	tokens := scanRegisterTokens(text)
 	for token := range tokens {

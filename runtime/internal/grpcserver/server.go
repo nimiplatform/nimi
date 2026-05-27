@@ -29,6 +29,7 @@ import (
 	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	cognitionservice "github.com/nimiplatform/nimi/runtime/internal/services/cognition"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
+	externalagentservice "github.com/nimiplatform/nimi/runtime/internal/services/externalagent"
 	grantservice "github.com/nimiplatform/nimi/runtime/internal/services/grant"
 	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
@@ -245,7 +246,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 			return true, "" // profile not found — skip, not deny ("unable to evaluate ≠ infeasible")
 		}
 		resp, err := localSvc.ResolveProfile(context.Background(), &runtimev1.ResolveProfileRequest{
-			TargetId:      targetID,
+			TargetId:   targetID,
 			Profile:    profile,
 			Capability: capability,
 		})
@@ -322,6 +323,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	}
 
 	runtimev1.RegisterRuntimeGrantServiceServer(g, grantSvc)
+	runtimev1.RegisterRuntimeExternalAgentServiceServer(g, externalagentservice.New(logger))
 	runtimev1.RegisterRuntimeAuthServiceServer(g, authSvc)
 	runtimev1.RegisterRuntimeAccountServiceServer(g, accountSvc)
 	runtimev1.RegisterRuntimeCognitionServiceServer(g, cognitionSvc)
@@ -482,6 +484,7 @@ func (s *Server) SyncServingState() {
 	s.healthServer.SetServingStatus(runtimev1.RuntimeCognitionService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAgentService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeGrantService_ServiceDesc.ServiceName, servingStatus)
+	s.healthServer.SetServingStatus(runtimev1.RuntimeExternalAgentService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAuthService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAccountService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAppService_ServiceDesc.ServiceName, servingStatus)

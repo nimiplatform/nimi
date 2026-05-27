@@ -10,6 +10,7 @@ surfaces:
   - RuntimeAccountService
   - RuntimeAuthService
   - RuntimeGrantService
+  - RuntimeExternalAgentService
   - RuntimeAppService
   - methods_1
   - methods_2
@@ -37,11 +38,16 @@ surfaces:
   - methods_24
   - methods_25
   - methods_26
+  - methods_27
+  - methods_28
+  - methods_29
+  - methods_30
 description: Account, auth, grants, and app binding posture entries.
 services:
   - RuntimeAccountService
   - RuntimeAuthService
   - RuntimeGrantService
+  - RuntimeExternalAgentService
   - RuntimeAppService
 methods:
   - method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus
@@ -278,3 +284,31 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus
+    posture: anonymous_read
+    rationale: machine-local External Agent gateway projection; handler does not lookup JWT identity
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - P-ALMI-002
+  - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken
+    posture: anonymous_read
+    rationale: Runtime-owned External Agent token issuance surface; current handler fail-closes before issuing and does not lookup JWT identity
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - P-ALMI-002
+  - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken
+    posture: anonymous_read
+    rationale: Runtime-owned token revocation by token id; handler does not lookup JWT identity
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - P-ALMI-002
+  - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens
+    posture: anonymous_read
+    rationale: Runtime-owned local token ledger projection; handler does not lookup JWT identity
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - P-ALMI-002

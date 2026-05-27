@@ -26,6 +26,15 @@ import {
   ValidateAppAccessTokenResponse,
 } from '../generated/runtime/v1/grant';
 import {
+  ExternalAgentGatewayStatusRequest,
+  ExternalAgentGatewayStatusResponse,
+  ExternalAgentIssueTokenRequest,
+  ExternalAgentIssueTokenResponse,
+  ExternalAgentListTokensRequest,
+  ExternalAgentListTokensResponse,
+  ExternalAgentRevokeTokenRequest,
+} from '../generated/runtime/v1/external_agent';
+import {
   BeginLoginRequest,
   BeginLoginResponse,
   CompleteLoginRequest,
@@ -181,6 +190,22 @@ export const runtimeUnaryMethodCodecsAuthAi: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.appAuth.listTokenChain]: {
     requestType: ListTokenChainRequest,
     responseType: ListTokenChainResponse,
+  },
+  [RuntimeMethodIds.externalAgent.getGatewayStatus]: {
+    requestType: ExternalAgentGatewayStatusRequest,
+    responseType: ExternalAgentGatewayStatusResponse,
+  },
+  [RuntimeMethodIds.externalAgent.issueToken]: {
+    requestType: ExternalAgentIssueTokenRequest,
+    responseType: ExternalAgentIssueTokenResponse,
+  },
+  [RuntimeMethodIds.externalAgent.revokeToken]: {
+    requestType: ExternalAgentRevokeTokenRequest,
+    responseType: Ack,
+  },
+  [RuntimeMethodIds.externalAgent.listTokens]: {
+    requestType: ExternalAgentListTokensRequest,
+    responseType: ExternalAgentListTokensResponse,
   },
   [RuntimeMethodIds.artifact.readArtifactBytes]: {
     requestType: ReadArtifactBytesRequest,

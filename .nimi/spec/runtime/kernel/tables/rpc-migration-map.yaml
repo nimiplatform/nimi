@@ -37,6 +37,11 @@ service_mappings:
     source_rule: K-GRANT-002
     mapping_posture: aligned
     alignment_phase: phase1
+  - design_service: RuntimeExternalAgentService
+    proto_service: RuntimeExternalAgentService
+    source_rule: K-RPC-026
+    mapping_posture: aligned
+    alignment_phase: phase2
   - design_service: RuntimeAccountService
     proto_service: RuntimeAccountService
     source_rule: K-ACCSVC-002
@@ -572,6 +577,26 @@ method_mappings:
     design_method: ListTokenChain
     proto_service: RuntimeGrantService
     proto_method: ListTokenChain
+    mapping_posture: aligned
+  - design_service: RuntimeExternalAgentService
+    design_method: GetExternalAgentGatewayStatus
+    proto_service: RuntimeExternalAgentService
+    proto_method: GetExternalAgentGatewayStatus
+    mapping_posture: aligned
+  - design_service: RuntimeExternalAgentService
+    design_method: IssueExternalAgentToken
+    proto_service: RuntimeExternalAgentService
+    proto_method: IssueExternalAgentToken
+    mapping_posture: aligned
+  - design_service: RuntimeExternalAgentService
+    design_method: RevokeExternalAgentToken
+    proto_service: RuntimeExternalAgentService
+    proto_method: RevokeExternalAgentToken
+    mapping_posture: aligned
+  - design_service: RuntimeExternalAgentService
+    design_method: ListExternalAgentTokens
+    proto_service: RuntimeExternalAgentService
+    proto_method: ListExternalAgentTokens
     mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: GetAccountSessionStatus

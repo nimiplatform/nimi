@@ -133,6 +133,7 @@ entries:
   - K-RPC-004c
   - K-RPC-024
   - K-RPC-025
+  - K-RPC-026
 rules:
   - rule_id: K-APP-001
     evidence_refs:
@@ -687,4 +688,10 @@ rules:
   - rule_id: K-RPC-025
     evidence_refs:
       - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-RPC-026
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
     evidence_requirement: required

@@ -45,6 +45,7 @@ import type {
   RuntimeConnectorClient,
   RuntimeEventPayloadMap,
   RuntimeEventsModule,
+  RuntimeExternalAgentClient,
   RuntimeKnowledgeClient,
   RuntimeLocalServiceClient,
   RuntimeMemoryClient,
@@ -64,6 +65,7 @@ type RuntimeAiUploadModule = typeof import('./runtime-ai-upload.js');
 
 type RuntimePassthroughModuleKey =
   'auth'
+  | 'externalAgent'
   | 'account'
   | 'workflow'
   | 'model'
@@ -103,6 +105,7 @@ function loadRuntimeAiUploadModule(): Promise<RuntimeAiUploadModule> {
 
 export type RuntimeCorePassthroughClients = {
   auth: RuntimeAuthClient;
+  externalAgent: RuntimeExternalAgentClient;
   account: RuntimeAccountClient;
   workflow: RuntimeWorkflowClient;
   model: RuntimeModelClient;
@@ -137,6 +140,13 @@ const ACCOUNT_METHODS = [
   'issueWorkspaceBinding',
   'revokeWorkspaceBinding',
 ] as const satisfies readonly RuntimePassthroughMethod<RuntimeAccountClient>[];
+
+const EXTERNAL_AGENT_METHODS = [
+  'getGatewayStatus',
+  'issueToken',
+  'revokeToken',
+  'listTokens',
+] as const satisfies readonly RuntimePassthroughMethod<RuntimeExternalAgentClient>[];
 
 const MODEL_METHODS = [
   'list',
@@ -358,6 +368,7 @@ export function createCorePassthroughClients(input: {
   const guard = (mod: RuntimePassthroughModuleKey, method: string) => assertMethodAvailable(mod, method);
 
   const auth: RuntimeAuthClient = createPassthroughModule('auth', AUTH_METHODS, { guard, invokeWithClient });
+  const externalAgent: RuntimeExternalAgentClient = createPassthroughModule('externalAgent', EXTERNAL_AGENT_METHODS, { guard, invokeWithClient });
   const accountBase = createPassthroughModule('account', ACCOUNT_METHODS, { guard, invokeWithClient });
   const account: RuntimeAccountClient = {
     ...accountBase,
@@ -412,7 +423,7 @@ export function createCorePassthroughClients(input: {
 
   const audit: RuntimeAuditClient = createPassthroughModule('audit', AUDIT_METHODS, { guard, invokeWithClient });
 
-  return { auth, account, workflow, model, local, connector, knowledge, memory, agent, audit };
+  return { auth, externalAgent, account, workflow, model, local, connector, knowledge, memory, agent, audit };
 }
 
 export function createAppClient(input: {

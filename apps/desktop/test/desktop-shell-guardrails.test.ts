@@ -204,10 +204,6 @@ test('desktop shell source guardrails keep particle cleanup and auth helpers cen
     path.join(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-auth.ts'),
     'utf8',
   );
-  const gatewayServerSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src-tauri/src/external_agent_gateway/server.rs'),
-    'utf8',
-  );
   const sessionLoggingSource = fs.readFileSync(
     path.join(import.meta.dirname, '../src-tauri/src/main_parts/session_logging.rs'),
     'utf8',
@@ -232,7 +228,6 @@ test('desktop shell source guardrails keep particle cleanup and auth helpers cen
   assert.match(bootstrapAuthSource, /RuntimeAccountService owns local account truth/);
   assert.doesNotMatch(bootstrapAuthSource, /auth_session_load|auth_session_save|auth_session_clear/);
   assert.doesNotMatch(bootstrapAuthSource, /as Record<string, unknown>/);
-  assert.match(gatewayServerSource, /host\.eq_ignore_ascii_case\("localhost"\)/);
   assert.match(sessionLoggingSource, /ns_window_ptr\.is_null\(\)/);
   assert.match(systemResourcesSource, /static MACOS_CPU_COUNT: OnceLock<f64> = OnceLock::new\(\);/);
   assert.match(systemResourcesSource, /MACOS_CPU_COUNT\.get_or_init/);

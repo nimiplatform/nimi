@@ -21,6 +21,7 @@ forbidden_state_fields:
 entries:
   - runtime_kernel_consistency
   - runtime_go_test
+  - sdk_runtime_test
   - runtime_go_lint
   - runtime_proto_linkage
   - runtime_provider_checks
@@ -42,6 +43,13 @@ runtime_go_test:
     Go unit and integration tests verifying runtime service behavior.
     Rules with this evidence have behavioral test coverage in the
     corresponding service package.
+sdk_runtime_test:
+  type: test_gate
+  command: pnpm --filter @nimiplatform/sdk test
+  path: sdk/test/runtime
+  description: >-
+    SDK runtime projection tests verifying generated Runtime RPC method
+    coverage, auth posture classification, and typed client surfaces.
 runtime_go_lint:
   type: lint_gate
   command: cd runtime && golangci-lint run ./...

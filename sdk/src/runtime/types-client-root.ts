@@ -8,6 +8,7 @@ import type {
   RuntimeAuditClient,
   RuntimeAuthClient,
   RuntimeConnectorClient,
+  RuntimeExternalAgentClient,
   RuntimeKnowledgeClient,
   RuntimeLocalServiceClient,
   RuntimeMemoryClient,
@@ -21,6 +22,7 @@ export type RuntimeClient = {
   transport: RuntimeTransportConfig;
   auth: RuntimeAuthClient;
   appAuth: RuntimeAppAuthClient;
+  externalAgent: RuntimeExternalAgentClient;
   account: RuntimeAccountClient;
   ai: RuntimeAiClient;
   artifact: RuntimeArtifactClient;

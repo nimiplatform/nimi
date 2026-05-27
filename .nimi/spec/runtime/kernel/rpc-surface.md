@@ -13,6 +13,7 @@ Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 desi
 - `RuntimeLocalService`
 - `RuntimeAuthService`
 - `RuntimeGrantService`
+- `RuntimeExternalAgentService`
 - `RuntimeAccountService`（local first-party account session / scoped app binding 权威，方法集合见 `account-session-contract.md` `K-ACCSVC-002`，与 `RuntimeAuthService` 不重叠）
 
 **Phase 2（完整 Runtime 服务）：**
@@ -216,6 +217,26 @@ identifies the parent asset binding when the caller already has it. Pack-level
 placeholders such as `*.model-asset` or `*.companion-asset` are not valid
 materializer execution identities and must fail closed instead of being promoted
 to selected source records.
+
+## K-RPC-026 RuntimeExternalAgentService 方法集合
+
+`RuntimeExternalAgentService` 是 External Agent gateway / token ledger /
+action registry / audit projection 的 Runtime-owned app-facing RPC surface。
+Desktop、Web、Kit 与 apps 只能通过 SDK typed projection 消费该 service，不得
+通过 Tauri、本地 SQLite、renderer-local registry 或 app-local HTTP server 维护并行
+gateway/token/action/audit 真源。
+
+方法固定为：
+
+1. `GetExternalAgentGatewayStatus`
+2. `IssueExternalAgentToken`
+3. `RevokeExternalAgentToken`
+4. `ListExternalAgentTokens`
+
+在 Runtime-owned action registry/server 尚未启用前，service 必须 fail closed：
+status 返回 disabled / `EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY`，token issuance
+与 revoke 以 structured Runtime error 拒绝，不得发出 host-local token、伪造
+token mutation success 或伪造 action success。
 
 ### K-RPC-004-state Runtime Local State And Config Reconciliation
 

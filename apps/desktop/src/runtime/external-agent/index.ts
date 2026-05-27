@@ -1,4 +1,4 @@
-import { tauriInvoke, hasTauriInvoke } from '@runtime/llm-adapter/tauri-bridge';
+import { getPlatformClient } from '@nimiplatform/sdk';
 
 export type ExternalAgentIssueTokenPayload = {
   principalId: string;
@@ -53,6 +53,18 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
     : {};
+}
+
+function toIsoFromTimestamp(value: unknown): string {
+  const record = asRecord(value);
+  const seconds = Number(record.seconds);
+  const nanos = Number(record.nanos);
+  if (!Number.isFinite(seconds)) {
+    return '';
+  }
+  const millis = (seconds * 1000) + (Number.isFinite(nanos) ? Math.floor(nanos / 1_000_000) : 0);
+  const date = new Date(millis);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString();
 }
 
 function requiredString(value: unknown, field: string): string {
@@ -115,10 +127,17 @@ export function stopExternalAgentActionBridge(): void {
 export async function issueExternalAgentToken(
   payload: ExternalAgentIssueTokenPayload,
 ): Promise<ExternalAgentIssueTokenResult> {
-  if (!hasTauriInvoke()) {
-    throw new Error('external_agent_issue_token requires Tauri runtime');
-  }
-  const result = await tauriInvoke<Record<string, unknown>>('external_agent_issue_token', { payload });
+  const result = await getPlatformClient().runtime.externalAgent.issueToken({
+    principalId: payload.principalId,
+    mode: payload.mode,
+    subjectAccountId: payload.subjectAccountId,
+    actions: payload.actions,
+    scopes: (payload.scopes || []).map((scope) => ({
+      actionId: scope.actionId,
+      ops: scope.ops,
+    })),
+    ttlSeconds: payload.ttlSeconds || 0,
+  });
   return {
     token: asString(result.token),
     tokenId: asString(result.tokenId),
@@ -141,41 +160,37 @@ export async function issueExternalAgentToken(
         };
       }).filter((scope) => scope.actionId)
       : undefined,
-    issuedAt: asString(result.issuedAt) || undefined,
-    expiresAt: asString(result.expiresAt),
-    revokedAt: asString(result.revokedAt) || undefined,
+    issuedAt: toIsoFromTimestamp(result.issuedAt) || undefined,
+    expiresAt: toIsoFromTimestamp(result.expiresAt),
+    revokedAt: toIsoFromTimestamp(result.revokedAt) || undefined,
     issuer: asString(result.issuer),
   };
 }
 
 export async function revokeExternalAgentToken(tokenId: string): Promise<void> {
-  if (!hasTauriInvoke()) return;
-  await tauriInvoke('external_agent_revoke_token', {
-    payload: { tokenId },
-  });
+  await getPlatformClient().runtime.externalAgent.revokeToken({ tokenId });
 }
 
 export async function listExternalAgentTokens(): Promise<ExternalAgentTokenRecord[]> {
-  if (!hasTauriInvoke()) {
-    return [];
-  }
-  const result = await tauriInvoke<unknown>('external_agent_list_tokens', {});
-  if (!Array.isArray(result)) {
+  const result = await getPlatformClient().runtime.externalAgent.listTokens({
+    pageSize: 0,
+    pageToken: '',
+    includeRevoked: false,
+  });
+  const tokens = result.tokens;
+  if (!Array.isArray(tokens)) {
     throw new Error('EXTERNAL_AGENT_TOKEN_LEDGER_INVALID_RESPONSE');
   }
-  return result.map((item, index) => parseExternalAgentTokenRecord(item, index));
+  return tokens.map((item, index) => parseExternalAgentTokenRecord({
+    ...item,
+    issuedAt: toIsoFromTimestamp(item.issuedAt),
+    expiresAt: toIsoFromTimestamp(item.expiresAt),
+    revokedAt: toIsoFromTimestamp(item.revokedAt),
+  }, index));
 }
 
 export async function getExternalAgentGatewayStatus(): Promise<ExternalAgentGatewayStatus> {
-  if (!hasTauriInvoke()) {
-    return {
-      enabled: false,
-      bindAddress: '127.0.0.1:0',
-      issuer: 'local',
-      actionCount: 0,
-    };
-  }
-  const result = await tauriInvoke<Record<string, unknown>>('external_agent_gateway_status', {});
+  const result = await getPlatformClient().runtime.externalAgent.getGatewayStatus({});
   return {
     enabled: Boolean(result.enabled),
     bindAddress: asString(result.bindAddress),

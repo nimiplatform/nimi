@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/common.proto";
+
+message ExternalAgentActionScope {
+  string action_id = 1;
+  repeated string ops = 2;
+}
+
+message ExternalAgentGatewayStatusRequest {}
+
+message ExternalAgentGatewayStatusResponse {
+  bool enabled = 1;
+  string bind_address = 2;
+  string issuer = 3;
+  int32 action_count = 4;
+  string status = 5;
+  string reason_code = 6;
+}
+
+message ExternalAgentIssueTokenRequest {
+  string principal_id = 1;
+  string mode = 2;
+  string subject_account_id = 3;
+  repeated string actions = 4;
+  repeated ExternalAgentActionScope scopes = 5;
+  int32 ttl_seconds = 6;
+}
+
+message ExternalAgentIssueTokenResponse {
+  string token = 1;
+  string token_id = 2;
+  string principal_id = 3;
+  string mode = 4;
+  string subject_account_id = 5;
+  repeated string actions = 6;
+  repeated ExternalAgentActionScope scopes = 7;
+  google.protobuf.Timestamp issued_at = 8;
+  google.protobuf.Timestamp expires_at = 9;
+  string revoked_at = 10;
+  string issuer = 11;
+}
+
+message ExternalAgentRevokeTokenRequest {
+  string token_id = 1;
+}
+
+message ExternalAgentTokenRecord {
+  string token_id = 1;
+  string principal_id = 2;
+  string mode = 3;
+  string subject_account_id = 4;
+  repeated string actions = 5;
+  repeated ExternalAgentActionScope scopes = 6;
+  google.protobuf.Timestamp issued_at = 7;
+  google.protobuf.Timestamp expires_at = 8;
+  google.protobuf.Timestamp revoked_at = 9;
+  string issuer = 10;
+}
+
+message ExternalAgentListTokensRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  bool include_revoked = 3;
+}
+
+message ExternalAgentListTokensResponse {
+  repeated ExternalAgentTokenRecord tokens = 1;
+  string next_page_token = 2;
+}
+
+service RuntimeExternalAgentService {
+  rpc GetExternalAgentGatewayStatus(ExternalAgentGatewayStatusRequest) returns (ExternalAgentGatewayStatusResponse);
+  rpc IssueExternalAgentToken(ExternalAgentIssueTokenRequest) returns (ExternalAgentIssueTokenResponse);
+  rpc RevokeExternalAgentToken(ExternalAgentRevokeTokenRequest) returns (Ack);
+  rpc ListExternalAgentTokens(ExternalAgentListTokensRequest) returns (ExternalAgentListTokensResponse);
+}

@@ -1,111 +1,33 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import test from 'node:test';
 
-import { listExternalAgentTokens } from '../src/runtime/external-agent';
+const desktopDir = resolve(import.meta.dirname, '..');
+const repoDir = resolve(desktopDir, '../..');
 
-type TauriTestHook = {
-  invoke?: (command: string, payload?: unknown) => Promise<unknown>;
-};
-
-type TauriTestGlobal = typeof globalThis & {
-  __NIMI_TAURI_TEST__?: TauriTestHook;
-  window?: {
-    __NIMI_TAURI_TEST__?: TauriTestHook;
-  } & Window & typeof globalThis;
-};
-
-const target = globalThis as TauriTestGlobal;
-
-async function withTauriInvoke<T>(invoke: TauriTestHook['invoke'], run: () => Promise<T>): Promise<T> {
-  const previousRoot = target.__NIMI_TAURI_TEST__;
-  const previousWindow = target.window?.__NIMI_TAURI_TEST__;
-  target.__NIMI_TAURI_TEST__ = { invoke };
-  if (target.window) {
-    target.window.__NIMI_TAURI_TEST__ = { invoke };
-  }
-  try {
-    return await run();
-  } finally {
-    if (previousRoot) {
-      target.__NIMI_TAURI_TEST__ = previousRoot;
-    } else {
-      delete target.__NIMI_TAURI_TEST__;
-    }
-    if (target.window) {
-      if (previousWindow) {
-        target.window.__NIMI_TAURI_TEST__ = previousWindow;
-      } else {
-        delete target.window.__NIMI_TAURI_TEST__;
-      }
-    }
-  }
+function readDesktopFile(relativePath: string): string {
+  return readFileSync(resolve(desktopDir, relativePath), 'utf8');
 }
 
-const validToken = {
-  tokenId: 'token-1',
-  principalId: 'principal-1',
-  mode: 'delegated',
-  subjectAccountId: 'account-1',
-  actions: ['action.message.send'],
-  scopes: [{ actionId: 'action.message.send', ops: ['verify'] }],
-  issuedAt: '2026-05-08T00:00:00Z',
-  expiresAt: '2026-05-09T00:00:00Z',
-  issuer: 'local',
-};
+function readRepoFile(relativePath: string): string {
+  return readFileSync(resolve(repoDir, relativePath), 'utf8');
+}
 
-test('external agent token ledger rejects non-array Tauri evidence', async () => {
-  await withTauriInvoke(async () => ({ rows: [] }), async () => {
-    await assert.rejects(
-      () => listExternalAgentTokens(),
-      /EXTERNAL_AGENT_TOKEN_LEDGER_INVALID_RESPONSE/,
-    );
-  });
+test('external agent token ledger uses SDK Runtime projection instead of Tauri evidence', () => {
+  const source = readDesktopFile('src/runtime/external-agent/index.ts');
+
+  assert.match(source, /getPlatformClient\(\)\.runtime\.externalAgent\.listTokens/);
+  assert.match(source, /EXTERNAL_AGENT_TOKEN_LEDGER_INVALID_RESPONSE/);
+  assert.doesNotMatch(source, /tauriInvoke/);
+  assert.doesNotMatch(source, /external_agent_list_tokens/);
 });
 
-test('external agent token ledger rejects partial records instead of filtering them out', async () => {
-  await withTauriInvoke(async () => [
-    validToken,
-    {
-      ...validToken,
-      tokenId: '',
-    },
-  ], async () => {
-    await assert.rejects(
-      () => listExternalAgentTokens(),
-      /EXTERNAL_AGENT_TOKEN_LEDGER_FIELD_INVALID:tokens\[1\]\.tokenId/,
-    );
-  });
-});
+test('Runtime External Agent service fails closed while action registry is empty', () => {
+  const serviceSource = readRepoFile('runtime/internal/services/externalagent/service.go');
 
-test('external agent token ledger rejects malformed action and scope arrays', async () => {
-  await withTauriInvoke(async () => [
-    {
-      ...validToken,
-      actions: 'action.message.send',
-    },
-  ], async () => {
-    await assert.rejects(
-      () => listExternalAgentTokens(),
-      /EXTERNAL_AGENT_TOKEN_LEDGER_FIELD_INVALID:tokens\[0\]\.actions/,
-    );
-  });
-
-  await withTauriInvoke(async () => [
-    {
-      ...validToken,
-      scopes: [{ actionId: 'action.message.send', ops: 'verify' }],
-    },
-  ], async () => {
-    await assert.rejects(
-      () => listExternalAgentTokens(),
-      /EXTERNAL_AGENT_TOKEN_LEDGER_FIELD_INVALID:scopes\[0\]\.ops/,
-    );
-  });
-});
-
-test('external agent token ledger preserves valid token rows', async () => {
-  await withTauriInvoke(async () => [validToken], async () => {
-    const rows = await listExternalAgentTokens();
-    assert.deepEqual(rows, [{ ...validToken, revokedAt: undefined }]);
-  });
+  assert.match(serviceSource, /EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY/);
+  assert.match(serviceSource, /Enabled:\s*false/);
+  assert.match(serviceSource, /codes\.FailedPrecondition/);
+  assert.doesNotMatch(serviceSource, /token_issuer/);
 });

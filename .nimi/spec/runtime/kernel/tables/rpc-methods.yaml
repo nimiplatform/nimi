@@ -9,6 +9,7 @@ surfaces:
   - RuntimeLocalService
   - RuntimeAuthService
   - RuntimeGrantService
+  - RuntimeExternalAgentService
   - RuntimeAccountService
   - RuntimeWorkflowService
   - RuntimeAuditService
@@ -234,6 +235,17 @@ services:
       - name: IssueDelegatedAccessToken
         type: unary
       - name: ListTokenChain
+        type: unary
+  - name: RuntimeExternalAgentService
+    source_rule: K-RPC-026
+    methods:
+      - name: GetExternalAgentGatewayStatus
+        type: unary
+      - name: IssueExternalAgentToken
+        type: unary
+      - name: RevokeExternalAgentToken
+        type: unary
+      - name: ListExternalAgentTokens
         type: unary
   - name: RuntimeAccountService
     source_rule: K-ACCSVC-002

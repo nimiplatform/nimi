@@ -18,6 +18,7 @@ import type {
   RuntimeCallOptions,
   RuntimeClient,
   RuntimeConnectorClient,
+  RuntimeExternalAgentClient,
   RuntimeKnowledgeClient,
   RuntimeLocalServiceClient,
   RuntimeMemoryClient,
@@ -133,6 +134,7 @@ function readNodeEnv(name: string): string {
 export class Runtime {
   readonly appId: string;
   readonly auth: RuntimeAuthClient;
+  readonly externalAgent: RuntimeExternalAgentClient;
   readonly appAuth: RuntimeAppAuthClient;
   readonly account: RuntimeAccountClient;
   readonly ai: RuntimeAiModule;
@@ -294,6 +296,7 @@ export class Runtime {
       invokeWithClient: (operation) => this.#invokeWithClient(operation),
     });
     this.auth = passthrough.auth;
+    this.externalAgent = passthrough.externalAgent;
     this.account = passthrough.account;
     this.workflow = passthrough.workflow;
     this.model = passthrough.model;

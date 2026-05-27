@@ -159,7 +159,9 @@ Desktop 自更新命令集：
 - D-IPC-001 (auth session), D-IPC-002 (daemon lifecycle), D-IPC-004 (HTTP proxy), D-IPC-005 (UI commands `open_external_url`), D-IPC-006 (OAuth), D-IPC-009 (invoke infrastructure, `log_renderer_event`) shared implementations live in `kit/shell/tauri/**`.
 - Apps must not duplicate these shared command implementations in app-local Rust code.
 - Apps must not use `#[path = "..."]` to compile another app's Rust source for shared bridge functionality.
-- App-specific Tauri commands (D-IPC-008 external agent, desktop menu bar, desktop self-update) remain app-local.
+- App-specific Tauri commands for desktop menu bar and desktop self-update remain app-local.
+  D-IPC-008 External Agent is not app-local command authority; it must travel
+  through SDK Runtime projection.
 
 ## D-IPC-012 — IPC 桥与 SDK 路径分界
 

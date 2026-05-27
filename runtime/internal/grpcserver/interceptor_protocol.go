@@ -159,6 +159,8 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal",
 		"/nimi.runtime.v1.RuntimeGrantService/RevokeAppAccessToken",
 		"/nimi.runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken",
+		"/nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken",
+		"/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken",
 		"/nimi.runtime.v1.RuntimeAuthService/RegisterApp",
 		"/nimi.runtime.v1.RuntimeAuthService/OpenSession",
 		"/nimi.runtime.v1.RuntimeAuthService/RefreshSession",

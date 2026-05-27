@@ -24,7 +24,6 @@ mod desktop_product_control;
 mod desktop_product_control_admission;
 mod desktop_release;
 mod desktop_updates;
-mod external_agent_gateway;
 mod factory_profile_index;
 mod local_config_migration;
 mod local_runtime;

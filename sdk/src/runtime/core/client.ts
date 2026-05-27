@@ -286,6 +286,12 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       issueDelegatedToken: unary(RuntimeMethodIds.appAuth.issueDelegatedToken),
       listTokenChain: unary(RuntimeMethodIds.appAuth.listTokenChain),
     },
+    externalAgent: {
+      getGatewayStatus: unary(RuntimeMethodIds.externalAgent.getGatewayStatus),
+      issueToken: unary(RuntimeMethodIds.externalAgent.issueToken),
+      revokeToken: unary(RuntimeMethodIds.externalAgent.revokeToken),
+      listTokens: unary(RuntimeMethodIds.externalAgent.listTokens),
+    },
     account: {
       getAccountSessionStatus: unary(RuntimeMethodIds.account.getAccountSessionStatus),
       subscribeAccountSessionEvents: stream(RuntimeMethodIds.account.subscribeAccountSessionEvents),
