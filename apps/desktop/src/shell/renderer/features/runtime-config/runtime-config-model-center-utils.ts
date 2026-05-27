@@ -20,7 +20,7 @@ export type LocalModelCenterProps = {
   state: RuntimeConfigStateV11;
   discovering: boolean;
   checkingHealth: boolean;
-  displayMode?: 'runtime' | 'mod';
+  displayMode?: 'runtime' | 'profile-target';
   lockedProfileTargetId?: string;
   runtimeProfileTargets: RuntimeProfileTargetDescriptor[];
   selectedProfileTargetId?: string;

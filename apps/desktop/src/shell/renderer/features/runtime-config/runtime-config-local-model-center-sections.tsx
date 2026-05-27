@@ -40,7 +40,7 @@ export {
   LocalModelCenterVerifiedAssetsSection,
 } from './runtime-config-local-model-center-catalog-sections';
 
-type ModModeViewProps = {
+type ProfileTargetViewProps = {
   state: RuntimeConfigStateV11;
   selectedProfileTargetId: string;
   loadingProfilePlan: boolean;
@@ -57,7 +57,7 @@ type ModModeViewProps = {
   onNavigateToSetup?: (pageId: RuntimeSetupPageIdV11) => void;
 };
 
-export function LocalModelCenterModModeView(props: ModModeViewProps) {
+export function LocalModelCenterProfileTargetView(props: ProfileTargetViewProps) {
   const targetCapabilities = props.runtimeProfileTargets.find((item) => item.targetId === props.selectedProfileTargetId)?.consumeCapabilities || [];
   const capabilityStatuses = targetCapabilities.map((capability) => {
     const localNode = props.state.local.nodeMatrix.find((node) => node.capability === capability && node.available);
@@ -81,13 +81,13 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
           <div className="space-y-4 rounded-2xl border border-[var(--nimi-border-subtle)]/70 bg-white/95 p-6 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
             <div>
               <h4 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-                {selectedProfileTarget?.modName
+                {selectedProfileTarget?.targetName
                   || props.selectedProfileTargetId
-                  || i18n.t('runtimeConfig.localModelCenter.runtimePackage', { defaultValue: 'Runtime Mod' })}
+                  || i18n.t('runtimeConfig.localModelCenter.profileTarget', { defaultValue: 'Profile target' })}
               </h4>
               <p className="text-xs text-[var(--nimi-text-muted)]">
-                {i18n.t('runtimeConfig.localModelCenter.modProfilesDescription', {
-                  defaultValue: 'Configure only this mod&apos;s declared local AI profiles.',
+                {i18n.t('runtimeConfig.localModelCenter.profileTargetProfilesDescription', {
+                  defaultValue: 'Configure this target&apos;s declared local AI profiles.',
                 })}
               </p>
             </div>

@@ -17,7 +17,7 @@ import type {
 
 export type RuntimeProfileTargetDescriptor = {
   targetId: string;
-  modName: string;
+  targetName: string;
   consumeCapabilities: CapabilityV11[];
   profiles: LocalRuntimeProfileDescriptor[];
 };

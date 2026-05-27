@@ -19,7 +19,7 @@ export type RuntimeConfigPanelDerivedModel = {
   filteredConnectorModels: string[];
   runtimeProfileTargets: Array<{
     targetId: string;
-    modName: string;
+    targetName: string;
     consumeCapabilities: CapabilityV11[];
     profiles: ReturnType<typeof normalizeLocalRuntimeProfilesDeclaration>;
   }>;
@@ -58,7 +58,7 @@ export function useRuntimeConfigPanelDerived(input: {
 
   const runtimeProfileTargets = useMemo<Array<{
     targetId: string;
-    modName: string;
+    targetName: string;
     consumeCapabilities: CapabilityV11[];
     profiles: ReturnType<typeof normalizeLocalRuntimeProfilesDeclaration>;
   }>>(() => [], []);

@@ -4,12 +4,12 @@ import {
 } from '@runtime/local-runtime';
 import { revealLocalRuntimeAssetsRootFolder } from '@runtime/local-runtime/commands';
 import {
-  type LocalModelCenterProps,
   normalizeSelectedProfileCapability,
+  type LocalModelCenterProps,
   resolveProfileCapabilityOptions,
   resolveSelectedRuntimeProfileTarget,
 } from './runtime-config-model-center-utils';
-import { LocalModelCenterModModeView } from './runtime-config-local-model-center-sections';
+import { LocalModelCenterProfileTargetView } from './runtime-config-local-model-center-sections';
 import { LocalModelCenterRuntimeView } from './runtime-config-local-model-center-runtime-view';
 import { useLocalModelCenterRuntimeState } from './runtime-config-use-local-model-center-runtime-state';
 
@@ -20,8 +20,8 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
   const [profilePlanPreview, setProfilePlanPreview] = useState<LocalRuntimeProfileResolutionPlan | null>(null);
   const [loadingProfilePlan, setLoadingProfilePlan] = useState(false);
 
-  const displayMode: 'runtime' | 'mod' = props.displayMode === 'mod' ? 'mod' : 'runtime';
-  const isProfileTargetMode = displayMode === 'mod';
+  const displayMode: 'runtime' | 'profile-target' = props.displayMode === 'profile-target' ? 'profile-target' : 'runtime';
+  const isProfileTargetMode = displayMode === 'profile-target';
   const lockedProfileTargetId = String(props.lockedProfileTargetId || '').trim();
   const profileSelectionLocked = isProfileTargetMode && Boolean(lockedProfileTargetId);
   const selectedProfileTargetId = useMemo(
@@ -94,7 +94,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
 
   if (isProfileTargetMode) {
     return (
-      <LocalModelCenterModModeView
+      <LocalModelCenterProfileTargetView
         state={props.state}
         selectedProfileTargetId={selectedProfileTargetId}
         loadingProfilePlan={loadingProfilePlan}

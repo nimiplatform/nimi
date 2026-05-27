@@ -236,25 +236,25 @@ describe('runtime profile target selection', () => {
   const targets = [
     {
       targetId: 'world.nimi.profile-a',
-      modName: 'Mod A',
+      targetName: 'Target A',
       consumeCapabilities: ['chat'],
       profiles: [{ id: 'a-default', title: 'A Default', recommended: true, consumeCapabilities: ['chat'], entries: [] }],
     },
     {
       targetId: 'world.nimi.profile-b',
-      modName: 'Mod B',
+      targetName: 'Target B',
       consumeCapabilities: ['image'],
       profiles: [{ id: 'b-default', title: 'B Default', recommended: true, consumeCapabilities: ['image'], entries: [] }],
     },
   ];
 
-  test('returns only the selected mod target', () => {
+  test('returns only the selected profile target', () => {
     const selected = resolveSelectedRuntimeProfileTarget(targets as never, 'world.nimi.profile-b');
     assert.equal(selected?.targetId, 'world.nimi.profile-b');
     assert.equal(selected?.profiles[0]?.id, 'b-default');
   });
 
-  test('does not fall back when selected mod is missing', () => {
+  test('does not fall back when selected profile target is missing', () => {
     assert.equal(resolveSelectedRuntimeProfileTarget(targets as never, 'world.nimi.missing'), null);
     assert.equal(shouldShowRuntimeProfileInstallSection(targets as never, 'world.nimi.missing'), false);
   });

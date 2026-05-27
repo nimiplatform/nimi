@@ -165,7 +165,7 @@ function ProfileSectionCard(props: ModelCenterProfileSectionProps & {
                   {t('runtimeConfig.local.runtimeProfileTarget', { defaultValue: 'Profile Target' })}
                 </label>
                 <div className="flex h-11 w-full items-center rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] px-3 text-sm text-[var(--nimi-text-primary)]">
-                  {props.selectedProfileTarget?.modName
+                  {props.selectedProfileTarget?.targetName
                     || props.selectedProfileTargetId
                     || t('runtimeConfig.local.unknownRuntimeProfileTarget', { defaultValue: 'Unknown profile target' })}
                 </div>
@@ -181,7 +181,7 @@ function ProfileSectionCard(props: ModelCenterProfileSectionProps & {
                   className="w-full"
                   options={props.runtimeProfileTargets.map((target) => ({
                     value: target.targetId,
-                    label: target.modName,
+                    label: target.targetName,
                   }))}
                 />
               </div>
@@ -393,7 +393,7 @@ function ProfileSectionFlat(props: ModelCenterProfileSectionProps & {
                   {t('runtimeConfig.local.runtimeProfileTarget', { defaultValue: 'Profile Target' })}
                 </label>
                 <div className="flex h-10 w-full items-center rounded-lg bg-[#F9FAFB] px-3 text-sm text-[var(--nimi-text-primary)]">
-                  {props.selectedProfileTarget?.modName
+                  {props.selectedProfileTarget?.targetName
                     || props.selectedProfileTargetId
                     || t('runtimeConfig.local.unknownRuntimeProfileTarget', { defaultValue: 'Unknown profile target' })}
                 </div>
@@ -409,7 +409,7 @@ function ProfileSectionFlat(props: ModelCenterProfileSectionProps & {
                   className="w-full"
                   options={props.runtimeProfileTargets.map((target) => ({
                     value: target.targetId,
-                    label: target.modName,
+                    label: target.targetName,
                   }))}
                 />
               </div>
