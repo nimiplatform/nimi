@@ -18,6 +18,39 @@ import type {
   CapturedRuntimeTextStreamInput,
 } from './chat-agent-local-mode-test-utils.js';
 
+function localResolvedRouteInput() {
+  return {
+    targetId: CORE_CHAT_AGENT_TARGET_ID,
+    resolvedBinding: {
+      capability: 'text.generate' as const,
+      source: 'local' as const,
+      connectorId: '',
+      provider: 'llama',
+      engine: 'llama',
+      model: 'llama3',
+      modelId: 'llama3',
+      localModelId: 'local-model-1',
+      goRuntimeLocalModelId: 'local-model-1',
+      endpoint: 'http://127.0.0.1:11434/v1',
+      localProviderEndpoint: 'http://127.0.0.1:11434/v1',
+    },
+  };
+}
+
+function cloudResolvedRouteInput() {
+  return {
+    targetId: CORE_CHAT_AGENT_TARGET_ID,
+    resolvedBinding: {
+      capability: 'text.generate' as const,
+      source: 'cloud' as const,
+      connectorId: 'connector-openai',
+      provider: 'openai',
+      model: 'gpt-5.4-mini',
+      modelId: 'gpt-5.4-mini',
+    },
+  };
+}
+
 test('agent local runtime invoke uses runtime text generate with desktop-core metadata', async () => {
   const projection = {
     capability: 'text.generate' as const,
@@ -96,13 +129,7 @@ test('agent local runtime invoke uses runtime text generate with desktop-core me
       userConfirmedUpload: false,
     },
   }, {
-    resolveRouteInputImpl: async () => ({
-      targetId: CORE_CHAT_AGENT_TARGET_ID,
-      provider: 'llama',
-      localProviderEndpoint: 'http://127.0.0.1:11434/v1',
-      localProviderModel: 'llama3',
-      localOpenAiEndpoint: 'http://127.0.0.1:11434/v1',
-    }),
+    resolveRouteInputImpl: async () => localResolvedRouteInput(),
     ensureRuntimeLocalModelWarmImpl: async () => undefined,
     buildRuntimeCallOptionsImpl: async () => ({
       idempotencyKey: 'runtime-idem-1',
@@ -188,13 +215,7 @@ test('agent runtime invoke admits structured messages and system prompt', async 
     runtimeConfigState: null,
     runtimeFields,
   }, {
-    resolveRouteInputImpl: async () => ({
-      targetId: CORE_CHAT_AGENT_TARGET_ID,
-      provider: 'llama',
-      localProviderEndpoint: 'http://127.0.0.1:11434/v1',
-      localProviderModel: 'llama3',
-      localOpenAiEndpoint: 'http://127.0.0.1:11434/v1',
-    }),
+    resolveRouteInputImpl: async () => localResolvedRouteInput(),
     ensureRuntimeLocalModelWarmImpl: async () => undefined,
     buildRuntimeCallOptionsImpl: async () => ({
       idempotencyKey: 'runtime-idem-structured',
@@ -381,12 +402,7 @@ test('agent runtime invoke supports cloud routes via connectorId', async () => {
       userConfirmedUpload: false,
     },
   }, {
-    resolveRouteInputImpl: async () => ({
-      targetId: CORE_CHAT_AGENT_TARGET_ID,
-      provider: 'openai',
-      connectorId: 'connector-openai',
-      localProviderModel: 'gpt-5.4-mini',
-    }),
+    resolveRouteInputImpl: async () => cloudResolvedRouteInput(),
     ensureRuntimeLocalModelWarmImpl: async () => undefined,
     buildRuntimeCallOptionsImpl: async () => ({
       idempotencyKey: 'runtime-idem-cloud',
@@ -458,13 +474,7 @@ test('agent runtime stream admits structured messages and system prompt', async 
     runtimeConfigState: null,
     runtimeFields,
   }, {
-    resolveRouteInputImpl: async () => ({
-      targetId: CORE_CHAT_AGENT_TARGET_ID,
-      provider: 'llama',
-      localProviderEndpoint: 'http://127.0.0.1:11434/v1',
-      localProviderModel: 'llama3',
-      localOpenAiEndpoint: 'http://127.0.0.1:11434/v1',
-    }),
+    resolveRouteInputImpl: async () => localResolvedRouteInput(),
     ensureRuntimeLocalModelWarmImpl: async () => undefined,
     buildRuntimeStreamOptionsImpl: async () => ({
       idempotencyKey: 'runtime-idem-1',
@@ -565,7 +575,7 @@ test('agent route view ignores undersized max output token ceilings for structur
   }), 4096);
 });
 
-test('agent local runtime invoke falls back to resolved endpoint when provider-specific endpoints are absent', async () => {
+test('agent local runtime invoke uses resolved binding evidence when runtimeFields endpoints are absent', async () => {
   const projection = {
     capability: 'text.generate' as const,
     selectedBinding: {
@@ -618,6 +628,7 @@ test('agent local runtime invoke falls back to resolved endpoint when provider-s
 
   await assert.doesNotReject(async () => {
     let capturedWarmInput: Record<string, unknown> | null = null;
+    let capturedGenerateInput: CapturedRuntimeTextStreamInput | null = null;
     await invokeChatAgentRuntime({
       agentId: 'agent-1',
       prompt: 'hello local',
@@ -659,19 +670,24 @@ test('agent local runtime invoke falls back to resolved endpoint when provider-s
       getRuntimeClientImpl: () => ({
         ai: {
           text: {
-            generate: async () => ({
-              text: 'hi local',
-              finishReason: 'stop',
-              usage: {},
-              trace: {
-                traceId: 'trace-local',
-              },
-            }),
+            generate: async (input: CapturedRuntimeTextStreamInput) => {
+              capturedGenerateInput = input;
+              return {
+                text: 'hi local',
+                finishReason: 'stop',
+                usage: {},
+                trace: {
+                  traceId: 'trace-local',
+                },
+              };
+            },
           },
         },
       }) as never,
     });
-    assert.equal(capturedWarmInput?.['endpoint'], 'http://127.0.0.1:11434/v1');
-    assert.equal(capturedWarmInput?.['modelId'], 'llama/qwen3');
+    const warmBinding = capturedWarmInput?.['resolvedBinding'] as Record<string, unknown> | undefined;
+    const generateInput = capturedGenerateInput as CapturedRuntimeTextStreamInput | null;
+    assert.equal(warmBinding?.['endpoint'], 'http://127.0.0.1:11434/v1');
+    assert.equal(generateInput?.model, 'llama/qwen3');
   });
 });

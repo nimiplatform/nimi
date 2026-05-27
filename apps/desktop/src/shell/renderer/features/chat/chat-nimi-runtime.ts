@@ -13,8 +13,8 @@ import {
   buildRuntimeStreamOptions,
   ensureRuntimeLocalModelWarm,
   getRuntimeClient,
-  resolveSourceAndModel,
 } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
+import { runtimeRouteCallTargetFromResolvedBinding } from '@nimiplatform/sdk/ai';
 import {
   resolveChatThinkingConfig,
   resolveTextExecutionSnapshotThinkingSupport,
@@ -60,19 +60,6 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function requireValue(value: unknown, reasonCode: string, actionHint: string, message: string): string {
-  const normalized = normalizeText(value);
-  if (!normalized) {
-    throw createNimiError({
-      message,
-      reasonCode,
-      actionHint,
-      source: 'runtime',
-    });
-  }
-  return normalized;
-}
-
 function toSdkTextMessage(message: ConversationRuntimeTextMessage): TextMessage {
   return {
     role: message.role,
@@ -114,45 +101,15 @@ async function resolveInvokeInput(
   if (resolved.source === 'local') {
     return {
       targetId: CORE_CHAT_AI_TARGET_ID,
-      provider: requireValue(
-        resolved.provider,
-        ReasonCode.AI_INPUT_INVALID,
-        'select_runtime_route_binding',
-        'local AI route provider is missing',
-      ),
+      resolvedBinding: resolved,
       prompt: input.prompt,
-      localProviderEndpoint: normalizeText(resolved.localProviderEndpoint) || normalizeText(resolved.endpoint) || undefined,
-      localProviderModel: requireValue(
-        resolved.modelId || resolved.model || resolved.localModelId,
-        ReasonCode.AI_INPUT_INVALID,
-        'select_runtime_route_binding',
-        'local AI route model is missing',
-      ),
-      localOpenAiEndpoint: normalizeText(resolved.localOpenAiEndpoint) || normalizeText(resolved.endpoint) || undefined,
     };
   }
 
   return {
     targetId: CORE_CHAT_AI_TARGET_ID,
-    provider: requireValue(
-      resolved.provider,
-      ReasonCode.AI_INPUT_INVALID,
-      'select_runtime_route_binding',
-      'cloud AI route provider is missing',
-    ),
+    resolvedBinding: resolved,
     prompt: input.prompt,
-    connectorId: requireValue(
-      resolved.connectorId,
-      ReasonCode.AI_INPUT_INVALID,
-      'select_runtime_route_binding',
-      'cloud AI route connector is missing',
-    ),
-    localProviderModel: requireValue(
-      resolved.modelId || resolved.model,
-      ReasonCode.AI_INPUT_INVALID,
-      'select_runtime_route_binding',
-      'cloud AI route model is missing',
-    ),
   };
 }
 
@@ -165,15 +122,12 @@ export async function streamChatAiRuntime(
   deps: ChatAiRuntimeStreamDeps = {},
 ): Promise<ChatAiRuntimeStreamResult> {
   const invokeInput = await (deps.resolveInvokeInputImpl || resolveInvokeInput)(input);
-  const resolved = resolveSourceAndModel(invokeInput);
+  const resolved = runtimeRouteCallTargetFromResolvedBinding(invokeInput.resolvedBinding);
   const timeoutMs = 120_000;
 
   await ensureRuntimeLocalModelWarm({
     targetId: invokeInput.targetId,
-    source: resolved.source,
-    modelId: resolved.modelId,
-    engine: resolved.provider,
-    endpoint: resolved.endpoint,
+    resolvedBinding: invokeInput.resolvedBinding,
     timeoutMs,
   });
 
@@ -182,13 +136,13 @@ export async function streamChatAiRuntime(
     timeoutMs,
     signal: input.signal,
     source: resolved.source,
-    connectorId: invokeInput.connectorId,
+    connectorId: resolved.connectorId,
     providerEndpoint: resolved.endpoint,
   });
   const streamOutput = await getRuntimeClient().ai.text.stream({
     model: resolved.modelId,
     route: resolved.source,
-    connectorId: invokeInput.connectorId,
+    connectorId: resolved.connectorId,
     input: resolveRuntimeTextInput(input),
     system: normalizeText(input.systemPrompt) || undefined,
     reasoning: resolveChatThinkingConfig(

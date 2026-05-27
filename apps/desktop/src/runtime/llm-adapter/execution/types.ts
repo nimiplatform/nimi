@@ -2,6 +2,7 @@ import type {
   CheckModelHealthRequest,
   CheckModelHealthResponse,
 } from '@nimiplatform/sdk/runtime';
+import type { RuntimeResolvedBinding } from '@nimiplatform/sdk/ai';
 
 export const TEXT_GENERATE_TIMEOUT_MS = 120_000;
 
@@ -34,13 +35,9 @@ export type ExecuteLocalKernelTurnInput = {
   turnIndex: number;
   mode: 'STORY' | 'SCENE_TURN' | string;
   userInputText: string;
-  provider: string;
+  resolvedBinding: RuntimeResolvedBinding;
   worldId?: string;
   agentId?: string;
-  localProviderEndpoint?: string;
-  localProviderModel?: string;
-  localOpenAiEndpoint?: string;
-  connectorId?: string;
   fetchImpl?: FetchImpl;
 };
 
@@ -122,7 +119,7 @@ export type ExecuteLocalKernelTurnResult = {
 
 export type InvokeRuntimeLlmInput = {
   targetId: string;
-  provider: string;
+  resolvedBinding: RuntimeResolvedBinding;
   prompt: string;
   systemPrompt?: string;
   maxTokens?: number;
@@ -131,10 +128,6 @@ export type InvokeRuntimeLlmInput = {
   worldId?: string;
   agentId?: string;
   abortSignal?: AbortSignal;
-  localProviderEndpoint?: string;
-  localProviderModel?: string;
-  localOpenAiEndpoint?: string;
-  connectorId?: string;
   fetchImpl?: FetchImpl;
 };
 

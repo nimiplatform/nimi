@@ -23,15 +23,11 @@ export async function executeLocalKernelTurn(input: ExecuteLocalKernelTurnInput)
   ].join('\n');
   const result = await invokeRuntimeLlm({
     targetId: 'core.kernel',
-    provider: input.provider,
+    resolvedBinding: input.resolvedBinding,
     prompt,
     mode: input.mode === 'SCENE_TURN' ? 'SCENE_TURN' : 'STORY',
     worldId: input.worldId,
     agentId: input.agentId,
-    localProviderEndpoint: input.localProviderEndpoint,
-    localProviderModel: input.localProviderModel,
-    localOpenAiEndpoint: input.localOpenAiEndpoint,
-    connectorId: input.connectorId,
     fetchImpl: input.fetchImpl,
   });
   const assistantText = String(result.text || '').trim();
@@ -93,8 +89,8 @@ export async function executeLocalKernelTurn(input: ExecuteLocalKernelTurnInput)
       eventType: 'LOCAL_PROVIDER_EXECUTED',
       reasonCode: ReasonCode.LOCAL_ONLY_NOT_SYNCED,
       detail: {
-        provider: input.provider,
-        model: input.localProviderModel || '',
+        provider: input.resolvedBinding.provider || input.resolvedBinding.engine || '',
+        model: input.resolvedBinding.modelId || input.resolvedBinding.model || '',
       },
     }],
   };

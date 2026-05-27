@@ -7,7 +7,6 @@ import {
   createRuntimeTraceId,
   extractTextFromGenerateOutput,
   getRuntimeClient,
-  resolveSourceAndModel,
   toLocalRuntimeReasonCode,
 } from './runtime-ai-bridge';
 import type { InvokeRuntimeLlmInput, InvokeRuntimeLlmOutput } from './types';
@@ -15,6 +14,7 @@ import { TEXT_GENERATE_TIMEOUT_MS } from './types';
 import { buildLocalId } from './utils';
 import { emitRuntimeLog } from '../../telemetry/logger';
 import { createNimiError } from '@nimiplatform/sdk/runtime';
+import { runtimeRouteCallTargetFromResolvedBinding } from '@nimiplatform/sdk/ai';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 const SCENARIO_TYPE_TEXT_GENERATE = 1;
@@ -92,7 +92,7 @@ export function sanitizeScenarioTextInput(
 }
 
 export async function invokeRuntimeLlm(input: InvokeRuntimeLlmInput): Promise<InvokeRuntimeLlmOutput> {
-  const resolved = resolveSourceAndModel(input);
+  const resolved = runtimeRouteCallTargetFromResolvedBinding(input.resolvedBinding);
   let runtimeTraceId = '';
   const prompt = sanitizeScenarioTextInput(input.prompt, 'prompt');
   const systemPrompt = sanitizeScenarioTextInput(input.systemPrompt, 'systemPrompt');
@@ -101,17 +101,14 @@ export async function invokeRuntimeLlm(input: InvokeRuntimeLlmInput): Promise<In
     const runtime = getRuntimeClient();
     await ensureRuntimeLocalModelWarm({
       targetId: input.targetId,
-      source: resolved.source,
-      modelId: resolved.modelId,
-      engine: resolved.provider,
-      endpoint: resolved.endpoint,
+      resolvedBinding: input.resolvedBinding,
       timeoutMs: TEXT_GENERATE_TIMEOUT_MS,
     });
     const callOptions = await buildRuntimeCallOptions({
       targetId: input.targetId,
       timeoutMs: TEXT_GENERATE_TIMEOUT_MS,
       source: resolved.source,
-      connectorId: input.connectorId,
+      connectorId: resolved.connectorId,
       providerEndpoint: resolved.endpoint,
     });
     runtimeTraceId = String(callOptions.metadata.traceId || '').trim();
@@ -134,7 +131,7 @@ export async function invokeRuntimeLlm(input: InvokeRuntimeLlmInput): Promise<In
         modelId: resolved.modelId,
         routePolicy: resolved.routePolicy,
         timeoutMs: TEXT_GENERATE_TIMEOUT_MS,
-        connectorId: String(input.connectorId || ''),
+        connectorId: String(resolved.connectorId || ''),
       },
       scenarioType: SCENARIO_TYPE_TEXT_GENERATE,
       executionMode: EXECUTION_MODE_SYNC,
@@ -188,7 +185,7 @@ export async function invokeRuntimeLlm(input: InvokeRuntimeLlmInput): Promise<In
           traceId: responseTraceId || null,
           source: resolved.source,
           provider: resolved.provider,
-          connectorId: String(input.connectorId || '').trim() || null,
+          connectorId: String(resolved.connectorId || '').trim() || null,
           modelRequested: resolved.modelId,
           modelResolved: responseModelResolved || null,
           routeDecision: normalizeRouteDecision(responseRouteDecisionRaw),

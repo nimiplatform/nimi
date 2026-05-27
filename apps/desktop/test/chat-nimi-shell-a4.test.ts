@@ -26,14 +26,11 @@ import {
   setConversationCapabilityRouteRuntime,
   updateConversationCapabilityBinding,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
-import { createEmptyAIConfig } from '@nimiplatform/sdk/ai';
+import { createEmptyAIConfig, type RuntimeResolvedBinding } from '@nimiplatform/sdk/ai';
 
 type CapturedInvokeInput = {
   targetId: string;
-  provider: string;
-  localProviderModel?: string;
-  localProviderEndpoint?: string;
-  connectorId?: string;
+  resolvedBinding: RuntimeResolvedBinding;
 };
 
 function createRuntimeFields(overrides: Partial<RuntimeFieldMap> = {}): RuntimeFieldMap {
@@ -384,9 +381,9 @@ test('chat ai a4: invoke runtime uses desktop-owned core caller and local route 
     }
     const localInput = capturedInput as CapturedInvokeInput;
     assert.equal(localInput.targetId, 'core.chat-ai');
-    assert.equal(localInput.provider, 'llama');
-    assert.equal(localInput.localProviderModel, 'qwen3');
-    assert.equal(localInput.localProviderEndpoint, 'http://127.0.0.1:11434');
+    assert.equal(localInput.resolvedBinding.provider, 'llama');
+    assert.equal(localInput.resolvedBinding.modelId, 'qwen3');
+    assert.equal(localInput.resolvedBinding.localProviderEndpoint, 'http://127.0.0.1:11434');
   } finally {
     resetConversationCapabilityTestState();
   }

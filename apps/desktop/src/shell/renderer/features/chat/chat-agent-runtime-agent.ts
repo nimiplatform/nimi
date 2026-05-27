@@ -1,9 +1,7 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { asNimiError } from '@nimiplatform/sdk/runtime';
+import { runtimeRouteCallTargetFromResolvedBinding } from '@nimiplatform/sdk/ai';
 import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import {
-  resolveSourceAndModel,
-} from '@runtime/llm-adapter/execution/runtime-ai-bridge';
 import type {
   AgentLocalChatRuntimeRequest,
   AgentLocalChatTurnStreamPart,
@@ -53,7 +51,7 @@ export async function streamChatAgentRuntimeAgentTurn(
     runtimeFields: request.runtimeFields,
     signal: request.signal,
   });
-  const resolved = resolveSourceAndModel(routeInput);
+  const resolved = runtimeRouteCallTargetFromResolvedBinding(routeInput.resolvedBinding);
   safeLogRuntimeAgentTiming({
     stage: 'desktop.runtime_agent.route_resolve_ms',
     startedAt: routeResolveStartedAt,
@@ -65,7 +63,7 @@ export async function streamChatAgentRuntimeAgentTurn(
       route: resolved.source,
       modelId: resolved.modelId,
       provider: resolved.provider,
-      connectorId: normalizeText(routeInput.connectorId) || null,
+      connectorId: normalizeText(resolved.connectorId) || null,
     },
   });
   safeLogRuntimeAgentEvent({
@@ -80,7 +78,7 @@ export async function streamChatAgentRuntimeAgentTurn(
       route: resolved.source,
       modelId: resolved.modelId,
       provider: resolved.provider,
-      connectorId: normalizeText(routeInput.connectorId) || null,
+      connectorId: normalizeText(resolved.connectorId) || null,
     },
   });
   safeLogRuntimeAgentEvent({
@@ -99,7 +97,7 @@ export async function streamChatAgentRuntimeAgentTurn(
   });
   const route = resolved.source;
   const modelId = normalizeText(resolved.modelId);
-  const connectorId = normalizeText(routeInput.connectorId) || undefined;
+  const connectorId = normalizeText(resolved.connectorId) || undefined;
   const localIdentity = {
     ownerUserId: request.ownerUserId,
     realmAgentId: request.realmAgentId,

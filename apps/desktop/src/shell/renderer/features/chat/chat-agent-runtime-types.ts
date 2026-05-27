@@ -175,11 +175,7 @@ export type ChatAgentRuntimeInvokeDeps = {
 
 export type ResolvedAgentRuntimeRouteInput = {
   targetId: string;
-  provider: string;
-  localProviderEndpoint?: string;
-  localProviderModel?: string;
-  localOpenAiEndpoint?: string;
-  connectorId?: string;
+  resolvedBinding: AgentRuntimeResolvedBinding;
 };
 
 export type ChatAgentRuntimeStreamDeps = {

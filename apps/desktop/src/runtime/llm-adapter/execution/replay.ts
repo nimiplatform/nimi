@@ -8,14 +8,13 @@ import {
   asRuntimeInvokeError,
   buildRuntimeCallOptions,
   buildRuntimeRequestMetadata,
-  ensureRuntimeLocalModelWarm,
   extractEmbeddings,
   extractRuntimeReasonCode,
   extractTextFromGenerateOutput,
-  resolveSourceAndModel,
 } from './runtime-ai-bridge.js';
 
 const DESKTOP_REPLAY_TARGET_ID = 'core.desktop.ai-gold-path';
+const REPLAY_ROUTE_POLICY_CLOUD = 2;
 
 function replayVoiceRef(input: DesktopReplayFixture['voice_ref']): SpeechVoiceReference | undefined {
   const id = String(input?.id || '').trim();
@@ -113,6 +112,26 @@ type DesktopReplayInput = {
   runtime: Runtime;
   fixture: DesktopReplayFixture;
 };
+
+function resolveReplayFixtureCallTarget(fixture: DesktopReplayFixture): {
+  source: 'cloud';
+  routePolicy: typeof REPLAY_ROUTE_POLICY_CLOUD;
+  modelId: string;
+  provider: string;
+} {
+  const provider = String(fixture.provider || '').trim();
+  const model = String(fixture.model_id || '').trim();
+  if (!provider || !model) {
+    throw new Error('DESKTOP_REPLAY_FIXTURE_ROUTE_REQUIRED');
+  }
+  const modelId = model.startsWith('cloud/') ? model : `cloud/${model}`;
+  return {
+    source: 'cloud',
+    routePolicy: REPLAY_ROUTE_POLICY_CLOUD,
+    modelId,
+    provider,
+  };
+}
 
 function trimPreview(value: string): string {
   const normalized = String(value || '').trim();
@@ -288,10 +307,7 @@ async function submitAndCollect(runtime: Runtime, request: DesktopReplayJobReque
 }
 
 export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise<DesktopReplayResult> {
-  const resolved = resolveSourceAndModel({
-    provider: input.fixture.provider,
-    model: input.fixture.model_id,
-  });
+  const resolved = resolveReplayFixtureCallTarget(input.fixture);
   const base: Omit<DesktopReplayResult, 'status'> = {
     fixtureId: input.fixture.fixture_id,
     capability: input.fixture.capability,
@@ -331,13 +347,6 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
 
   try {
     if (input.fixture.capability === 'text.generate') {
-      await ensureRuntimeLocalModelWarm({
-        targetId: DESKTOP_REPLAY_TARGET_ID,
-        source: resolved.source,
-        modelId: resolved.modelId,
-        engine: resolved.provider,
-        timeoutMs: 120_000,
-      });
       const callOptions = await buildRuntimeCallOptions({
         targetId: DESKTOP_REPLAY_TARGET_ID,
         timeoutMs: 120_000,

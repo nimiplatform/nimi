@@ -1,12 +1,11 @@
 import {
   decodeRuntimeRouteDescribeResultFromMetadata,
-  runtimeRouteModalityForCapability,
+  resolveRuntimeRouteBindingFromSnapshot,
   type RuntimeCanonicalCapability,
   type RuntimeResolvedBinding,
   type RuntimeRouteBinding,
   type RuntimeRouteDescribeResult,
   type RuntimeRouteHealthResult,
-  type RuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/ai';
 import {
   ExecutionMode,
@@ -34,10 +33,6 @@ import type {
 import {
   loadRuntimeRouteOptions,
 } from './runtime-bootstrap-route-options';
-import {
-  normalizeLocalEngine,
-  normalizeLocalModelRoot,
-} from './runtime-bootstrap-utils';
 
 const ROUTE_DESCRIBE_TIMEOUT_MS = 30_000;
 const ROUTE_DESCRIBE_PROBE_TEXT = 'route describe probe';
@@ -65,168 +60,6 @@ const DEFAULT_DEPS: DesktopConversationCapabilityRouteRuntimeDeps = {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function encodeRefPart(value: unknown): string {
-  return encodeURIComponent(normalizeText(value));
-}
-
-function bindingKey(binding: RuntimeRouteBinding | null | undefined): string {
-  if (!binding) return '';
-  return [
-    normalizeText(binding.source),
-    normalizeText(binding.connectorId),
-    normalizeText(binding.modelId || binding.model),
-    normalizeText(binding.localModelId),
-    normalizeText(binding.engine || binding.provider),
-  ].join('|');
-}
-
-function optionBindingKey(binding: RuntimeRouteBinding | null | undefined): string {
-  return bindingKey(binding);
-}
-
-function normalizedBindingModel(binding: RuntimeRouteBinding): string {
-  return normalizeLocalModelRoot(binding.modelId || binding.model);
-}
-
-function normalizedBindingEngine(binding: RuntimeRouteBinding): string {
-  const engineLike = normalizeText(binding.engine || binding.provider);
-  return engineLike ? normalizeLocalEngine(engineLike) : '';
-}
-
-function sameLocalBindingRoute(left: RuntimeRouteBinding, right: RuntimeRouteBinding): boolean {
-  if (left.source !== 'local' || right.source !== 'local') {
-    return false;
-  }
-  const leftLocalModelId = normalizeText(left.localModelId || left.goRuntimeLocalModelId);
-  const rightLocalModelId = normalizeText(right.localModelId || right.goRuntimeLocalModelId);
-  if (leftLocalModelId && rightLocalModelId) {
-    return leftLocalModelId === rightLocalModelId;
-  }
-  const leftModel = normalizedBindingModel(left);
-  const rightModel = normalizedBindingModel(right);
-  if (!leftModel || !rightModel || leftModel !== rightModel) {
-    return false;
-  }
-  const leftEngine = normalizedBindingEngine(left);
-  const rightEngine = normalizedBindingEngine(right);
-  return !leftEngine || !rightEngine || leftEngine === rightEngine;
-}
-
-function sameCloudBindingRoute(left: RuntimeRouteBinding, right: RuntimeRouteBinding): boolean {
-  if (left.source !== 'cloud' || right.source !== 'cloud') {
-    return false;
-  }
-  const leftConnectorId = normalizeText(left.connectorId);
-  const rightConnectorId = normalizeText(right.connectorId);
-  const leftModel = normalizeText(left.modelId || left.model);
-  const rightModel = normalizeText(right.modelId || right.model);
-  return Boolean(leftConnectorId && rightConnectorId && leftConnectorId === rightConnectorId && leftModel && rightModel && leftModel === rightModel);
-}
-
-function sameBindingRoute(left: RuntimeRouteBinding, right: RuntimeRouteBinding): boolean {
-  return sameLocalBindingRoute(left, right) || sameCloudBindingRoute(left, right);
-}
-
-function resolveBindingFromSnapshot(
-  binding: RuntimeRouteBinding,
-  snapshot: RuntimeRouteOptionsSnapshot,
-): RuntimeRouteBinding {
-  if (snapshot.selected && optionBindingKey(snapshot.selected) === optionBindingKey(binding)) {
-    return snapshot.selected;
-  }
-  if (snapshot.selected && sameBindingRoute(binding, snapshot.selected)) {
-    return snapshot.selected;
-  }
-  return binding;
-}
-
-function resolvedBindingRefFor(capability: RuntimeCanonicalCapability, binding: RuntimeRouteBinding): string {
-  if (binding.source === 'cloud') {
-    return [
-      'cloud',
-      capability,
-      encodeRefPart(binding.connectorId),
-      encodeRefPart(binding.modelId || binding.model),
-    ].join(':');
-  }
-  return [
-    'local',
-    capability,
-    encodeRefPart(normalizeLocalEngine(binding.engine || binding.provider || '')),
-    encodeRefPart(binding.localModelId || binding.goRuntimeLocalModelId || binding.modelId || binding.model),
-  ].join(':');
-}
-
-function resolveLocalBinding(
-  capability: RuntimeCanonicalCapability,
-  binding: RuntimeRouteBinding,
-): RuntimeResolvedBinding {
-  const modelId = normalizeLocalModelRoot(binding.modelId || binding.model || binding.localModelId || '');
-  const engine = normalizeLocalEngine(binding.engine || binding.provider || '');
-  if (!modelId) {
-    throw new Error('RUNTIME_ROUTE_BINDING_MODEL_REQUIRED');
-  }
-  if (!engine) {
-    throw new Error('RUNTIME_ROUTE_BINDING_ENGINE_REQUIRED');
-  }
-  return {
-    ...binding,
-    capability,
-    source: 'local',
-    connectorId: '',
-    provider: normalizeText(binding.provider) || engine,
-    engine,
-    runtimeModelType: runtimeRouteModalityForCapability(capability),
-    model: modelId,
-    modelId,
-    localModelId: normalizeText(binding.localModelId) || undefined,
-    localProviderEndpoint: normalizeText(binding.localProviderEndpoint || binding.endpoint) || undefined,
-    localOpenAiEndpoint: normalizeText(binding.localOpenAiEndpoint || binding.endpoint) || undefined,
-    goRuntimeLocalModelId: normalizeText(binding.goRuntimeLocalModelId || binding.localModelId) || undefined,
-    goRuntimeStatus: normalizeText(binding.goRuntimeStatus) || undefined,
-    resolvedBindingRef: resolvedBindingRefFor(capability, binding),
-  } as RuntimeResolvedBinding;
-}
-
-function resolveCloudBinding(
-  capability: RuntimeCanonicalCapability,
-  binding: RuntimeRouteBinding,
-): RuntimeResolvedBinding {
-  const connectorId = normalizeText(binding.connectorId);
-  const provider = normalizeText(binding.provider);
-  const modelId = normalizeText(binding.modelId || binding.model);
-  if (!connectorId) {
-    throw new Error('RUNTIME_ROUTE_BINDING_CONNECTOR_REQUIRED');
-  }
-  if (!provider) {
-    throw new Error('RUNTIME_ROUTE_BINDING_PROVIDER_REQUIRED');
-  }
-  if (!modelId) {
-    throw new Error('RUNTIME_ROUTE_BINDING_MODEL_REQUIRED');
-  }
-  return {
-    ...binding,
-    capability,
-    source: 'cloud',
-    connectorId,
-    provider,
-    runtimeModelType: runtimeRouteModalityForCapability(capability),
-    model: modelId,
-    modelId,
-    endpoint: normalizeText(binding.endpoint) || undefined,
-    resolvedBindingRef: resolvedBindingRefFor(capability, binding),
-  } as RuntimeResolvedBinding;
-}
-
-function toResolvedBinding(
-  capability: RuntimeCanonicalCapability,
-  binding: RuntimeRouteBinding,
-): RuntimeResolvedBinding {
-  return binding.source === 'cloud'
-    ? resolveCloudBinding(capability, binding)
-    : resolveLocalBinding(capability, binding);
 }
 
 function toHealthResult(
@@ -398,8 +231,11 @@ export function createDesktopConversationCapabilityRouteRuntime(
     }
     const capability = input.capability as RuntimeCanonicalCapability;
     const snapshot = await deps.loadRuntimeRouteOptions({ capability });
-    const hydrated = resolveBindingFromSnapshot(input.binding, snapshot);
-    const resolved = toResolvedBinding(capability, hydrated);
+    const resolved = resolveRuntimeRouteBindingFromSnapshot({
+      capability,
+      binding: input.binding,
+      snapshot,
+    });
     if (resolved.resolvedBindingRef) {
       resolvedByRef.set(resolved.resolvedBindingRef, resolved);
     }
