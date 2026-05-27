@@ -157,6 +157,9 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.memory.recall]: RuntimeClientMethodContract<'memory', 'recall'>;
   [RuntimeMethodIds.memory.history]: RuntimeClientMethodContract<'memory', 'history'>;
   [RuntimeMethodIds.memory.deleteMemory]: RuntimeClientMethodContract<'memory', 'deleteMemory'>;
+  [RuntimeMethodIds.memory.inspectMemoryEmbeddingRuntime]: RuntimeClientMethodContract<'memory', 'inspectMemoryEmbeddingRuntime'>;
+  [RuntimeMethodIds.memory.requestMemoryEmbeddingRuntimeBind]: RuntimeClientMethodContract<'memory', 'requestMemoryEmbeddingRuntimeBind'>;
+  [RuntimeMethodIds.memory.requestMemoryEmbeddingRuntimeCutover]: RuntimeClientMethodContract<'memory', 'requestMemoryEmbeddingRuntimeCutover'>;
   [RuntimeMethodIds.agent.initializeAgent]: RuntimeClientMethodContract<'agent', 'initializeAgent'>;
   [RuntimeMethodIds.agent.terminateAgent]: RuntimeClientMethodContract<'agent', 'terminateAgent'>;
   [RuntimeMethodIds.agent.getAgent]: RuntimeClientMethodContract<'agent', 'getAgent'>;

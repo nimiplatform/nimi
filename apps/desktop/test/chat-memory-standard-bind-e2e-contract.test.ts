@@ -49,7 +49,7 @@ test('chat memory standard bind fixture carries tauri bind and confirm overrides
   const fixture = JSON.parse(fs.readFileSync(fixturePath, 'utf8')) as {
     tauriFixture?: {
       confirmDialog?: { responses?: Array<{ confirmed?: boolean }> };
-      agentMemoryBindStandard?: { embeddingProfileModelId?: string };
+      agentMemoryStandardFixture?: { embeddingProfileModelId?: string };
     };
   };
 
@@ -58,7 +58,7 @@ test('chat memory standard bind fixture carries tauri bind and confirm overrides
     [false, true],
   );
   assert.equal(
-    fixture.tauriFixture?.agentMemoryBindStandard?.embeddingProfileModelId,
+    fixture.tauriFixture?.agentMemoryStandardFixture?.embeddingProfileModelId,
     'local/embed-e2e-alpha',
   );
 });

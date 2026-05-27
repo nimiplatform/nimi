@@ -322,6 +322,7 @@ func isKnownReadOperation(operation string) bool {
 		"Collect",
 		"Get",
 		"History",
+		"Inspect",
 		"List",
 		"Peek",
 		"Query",

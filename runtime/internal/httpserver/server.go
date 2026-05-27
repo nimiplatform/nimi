@@ -5,94 +5,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 	"strings"
 	"time"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
-	"google.golang.org/grpc/codes"
-	grpcstatus "google.golang.org/grpc/status"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // Server exposes runtime diagnostics/readiness over HTTP.
 type Server struct {
-	addr                          string
-	state                         *health.State
-	logger                        *slog.Logger
-	http                          *http.Server
-	aiHealth                      *providerhealth.Tracker
-	bindCanonicalMemory           func(context.Context, string) (CanonicalBindResult, error)
-	inspectMemoryEmbedding        func(context.Context, MemoryEmbeddingAgentRequest) (MemoryEmbeddingInspectResult, error)
-	requestMemoryEmbeddingBind    func(context.Context, MemoryEmbeddingAgentRequest) (MemoryEmbeddingBindResult, error)
-	requestMemoryEmbeddingCutover func(context.Context, MemoryEmbeddingAgentRequest) (MemoryEmbeddingCutoverResult, error)
-}
-
-type CanonicalBindResult struct {
-	AlreadyBound bool
-	Bank         *runtimev1.MemoryBank
-}
-
-type MemoryEmbeddingBindingIntentSnapshot struct {
-	SourceKind    string                       `json:"sourceKind,omitempty"`
-	CloudBinding  *MemoryEmbeddingCloudBinding `json:"cloudBinding,omitempty"`
-	LocalBinding  *MemoryEmbeddingLocalBinding `json:"localBinding,omitempty"`
-	RevisionToken string                       `json:"revisionToken,omitempty"`
-}
-
-type MemoryEmbeddingCloudBinding struct {
-	ConnectorID string `json:"connectorId,omitempty"`
-	ModelID     string `json:"modelId,omitempty"`
-}
-
-type MemoryEmbeddingLocalBinding struct {
-	TargetID string `json:"targetId,omitempty"`
-}
-
-type MemoryEmbeddingScopeRef struct {
-	Kind      string `json:"kind,omitempty"`
-	OwnerID   string `json:"ownerId,omitempty"`
-	SurfaceID string `json:"surfaceId,omitempty"`
-}
-
-type MemoryEmbeddingRuntimeTargetRef struct {
-	Kind    string `json:"kind,omitempty"`
-	AgentID string `json:"agentId,omitempty"`
-}
-
-type MemoryEmbeddingAgentRequest struct {
-	ScopeRef              *MemoryEmbeddingScopeRef              `json:"scopeRef,omitempty"`
-	TargetRef             *MemoryEmbeddingRuntimeTargetRef      `json:"targetRef,omitempty"`
-	BindingIntentSnapshot *MemoryEmbeddingBindingIntentSnapshot `json:"bindingIntentSnapshot,omitempty"`
-}
-
-type MemoryEmbeddingInspectResult struct {
-	BindingIntentPresent    bool   `json:"bindingIntentPresent"`
-	BindingSourceKind       string `json:"bindingSourceKind,omitempty"`
-	ResolutionState         string `json:"resolutionState"`
-	ResolvedProfileIdentity string `json:"resolvedProfileIdentity,omitempty"`
-	CanonicalBankStatus     string `json:"canonicalBankStatus"`
-	BlockedReasonCode       string `json:"blockedReasonCode,omitempty"`
-	OperationReadiness      struct {
-		BindAllowed    bool `json:"bindAllowed"`
-		CutoverAllowed bool `json:"cutoverAllowed"`
-	} `json:"operationReadiness"`
-}
-
-type MemoryEmbeddingBindResult struct {
-	Outcome                  string `json:"outcome"`
-	BlockedReasonCode        string `json:"blockedReasonCode,omitempty"`
-	CanonicalBankStatusAfter string `json:"canonicalBankStatusAfter"`
-	PendingCutover           bool   `json:"pendingCutover"`
-}
-
-type MemoryEmbeddingCutoverResult struct {
-	Outcome                  string `json:"outcome"`
-	BlockedReasonCode        string `json:"blockedReasonCode,omitempty"`
-	CanonicalBankStatusAfter string `json:"canonicalBankStatusAfter"`
+	addr     string
+	state    *health.State
+	logger   *slog.Logger
+	http     *http.Server
+	aiHealth *providerhealth.Tracker
 }
 
 func New(
@@ -100,20 +27,12 @@ func New(
 	state *health.State,
 	logger *slog.Logger,
 	aiHealth *providerhealth.Tracker,
-	bindCanonicalMemory func(context.Context, string) (CanonicalBindResult, error),
-	inspectMemoryEmbedding func(context.Context, MemoryEmbeddingAgentRequest) (MemoryEmbeddingInspectResult, error),
-	requestMemoryEmbeddingBind func(context.Context, MemoryEmbeddingAgentRequest) (MemoryEmbeddingBindResult, error),
-	requestMemoryEmbeddingCutover func(context.Context, MemoryEmbeddingAgentRequest) (MemoryEmbeddingCutoverResult, error),
 ) *Server {
 	s := &Server{
-		addr:                          addr,
-		state:                         state,
-		logger:                        logger,
-		aiHealth:                      aiHealth,
-		bindCanonicalMemory:           bindCanonicalMemory,
-		inspectMemoryEmbedding:        inspectMemoryEmbedding,
-		requestMemoryEmbeddingBind:    requestMemoryEmbeddingBind,
-		requestMemoryEmbeddingCutover: requestMemoryEmbeddingCutover,
+		addr:     addr,
+		state:    state,
+		logger:   logger,
+		aiHealth: aiHealth,
 	}
 
 	mux := http.NewServeMux()
@@ -121,10 +40,6 @@ func New(
 	mux.HandleFunc("/readyz", s.handleReady)
 	mux.HandleFunc("/healthz", s.handleReady)
 	mux.HandleFunc("/v1/runtime/health", s.handleRuntimeHealth)
-	mux.HandleFunc("/v1/runtime/private/memory/canonical-bind", s.handleCanonicalBind)
-	mux.HandleFunc("/v1/runtime/private/memory/embedding/inspect", s.handleMemoryEmbeddingInspect)
-	mux.HandleFunc("/v1/runtime/private/memory/embedding/bind", s.handleMemoryEmbeddingBind)
-	mux.HandleFunc("/v1/runtime/private/memory/embedding/cutover", s.handleMemoryEmbeddingCutover)
 
 	s.http = &http.Server{
 		Addr:              addr,
@@ -136,71 +51,6 @@ func New(
 		IdleTimeout:       60 * time.Second,
 	}
 	return s
-}
-
-func decodeMemoryEmbeddingAgentRequest(req *http.Request) (MemoryEmbeddingAgentRequest, error) {
-	var payload MemoryEmbeddingAgentRequest
-	if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
-		return MemoryEmbeddingAgentRequest{}, err
-	}
-	if payload.ScopeRef != nil {
-		payload.ScopeRef.Kind = strings.TrimSpace(payload.ScopeRef.Kind)
-		payload.ScopeRef.OwnerID = strings.TrimSpace(payload.ScopeRef.OwnerID)
-		payload.ScopeRef.SurfaceID = strings.TrimSpace(payload.ScopeRef.SurfaceID)
-	}
-	if payload.ScopeRef == nil {
-		return MemoryEmbeddingAgentRequest{}, fmt.Errorf("scopeRef is required")
-	}
-	if payload.ScopeRef.Kind == "" {
-		return MemoryEmbeddingAgentRequest{}, fmt.Errorf("scopeRef.kind is required")
-	}
-	if payload.ScopeRef.OwnerID == "" {
-		return MemoryEmbeddingAgentRequest{}, fmt.Errorf("scopeRef.ownerId is required")
-	}
-	if payload.TargetRef == nil {
-		return MemoryEmbeddingAgentRequest{}, fmt.Errorf("targetRef is required")
-	}
-	payload.TargetRef.Kind = strings.TrimSpace(payload.TargetRef.Kind)
-	payload.TargetRef.AgentID = strings.TrimSpace(payload.TargetRef.AgentID)
-	if payload.TargetRef.Kind != "agent-core" {
-		return MemoryEmbeddingAgentRequest{}, fmt.Errorf("targetRef.kind must be agent-core")
-	}
-	if payload.TargetRef.AgentID == "" {
-		return MemoryEmbeddingAgentRequest{}, fmt.Errorf("targetRef.agentId is required")
-	}
-	if payload.BindingIntentSnapshot != nil {
-		payload.BindingIntentSnapshot.SourceKind = strings.TrimSpace(payload.BindingIntentSnapshot.SourceKind)
-		payload.BindingIntentSnapshot.RevisionToken = strings.TrimSpace(payload.BindingIntentSnapshot.RevisionToken)
-		if payload.BindingIntentSnapshot.CloudBinding != nil {
-			payload.BindingIntentSnapshot.CloudBinding.ConnectorID = strings.TrimSpace(payload.BindingIntentSnapshot.CloudBinding.ConnectorID)
-			payload.BindingIntentSnapshot.CloudBinding.ModelID = strings.TrimSpace(payload.BindingIntentSnapshot.CloudBinding.ModelID)
-		}
-		if payload.BindingIntentSnapshot.LocalBinding != nil {
-			payload.BindingIntentSnapshot.LocalBinding.TargetID = strings.TrimSpace(payload.BindingIntentSnapshot.LocalBinding.TargetID)
-		}
-	}
-	return payload, nil
-}
-
-func (s *Server) allowPrivateLoopbackPost(w http.ResponseWriter, req *http.Request) bool {
-	if req == nil {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return false
-	}
-	if req.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return false
-	}
-	if !requestFromLoopback(req) {
-		s.writeErrorJSON(w, http.StatusForbidden, "private memory embedding command requires loopback request")
-		return false
-	}
-	if snapshot := s.state.Snapshot(); !snapshot.Status.Ready() {
-		s.writeErrorJSON(w, http.StatusServiceUnavailable, "runtime is not ready")
-		return false
-	}
-	return true
 }
 
 func (s *Server) Serve() error {
@@ -264,130 +114,6 @@ func (s *Server) handleRuntimeHealth(w http.ResponseWriter, req *http.Request) {
 		"sampled_at":            snapshot.SampledAt.Format(time.RFC3339Nano),
 		"ai_providers":          providers,
 	})
-}
-
-func (s *Server) handleCanonicalBind(w http.ResponseWriter, req *http.Request) {
-	if req == nil {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	if req.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	if s.bindCanonicalMemory == nil {
-		s.writeErrorJSON(w, http.StatusServiceUnavailable, "canonical bind is unavailable")
-		return
-	}
-	if !requestFromLoopback(req) {
-		s.writeErrorJSON(w, http.StatusForbidden, "canonical bind requires loopback request")
-		return
-	}
-	if snapshot := s.state.Snapshot(); !snapshot.Status.Ready() {
-		s.writeErrorJSON(w, http.StatusServiceUnavailable, "runtime is not ready")
-		return
-	}
-
-	var payload struct {
-		AgentID string `json:"agentId"`
-	}
-	if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
-		s.writeErrorJSON(w, http.StatusBadRequest, fmt.Sprintf("invalid canonical bind payload: %v", err))
-		return
-	}
-	payload.AgentID = strings.TrimSpace(payload.AgentID)
-	if payload.AgentID == "" {
-		s.writeErrorJSON(w, http.StatusBadRequest, "agentId is required")
-		return
-	}
-
-	result, err := s.bindCanonicalMemory(req.Context(), payload.AgentID)
-	if err != nil {
-		s.writeErrorJSON(w, mapCanonicalBindErrorStatus(err), err.Error())
-		return
-	}
-
-	bankPayload := map[string]any{}
-	if result.Bank != nil {
-		raw, err := protojson.Marshal(result.Bank)
-		if err != nil {
-			s.writeErrorJSON(w, http.StatusInternalServerError, fmt.Sprintf("marshal canonical bind bank: %v", err))
-			return
-		}
-		if err := json.Unmarshal(raw, &bankPayload); err != nil {
-			s.writeErrorJSON(w, http.StatusInternalServerError, fmt.Sprintf("decode canonical bind bank: %v", err))
-			return
-		}
-	}
-
-	s.writeJSON(w, http.StatusOK, map[string]any{
-		"alreadyBound": result.AlreadyBound,
-		"bank":         bankPayload,
-	})
-}
-
-func (s *Server) handleMemoryEmbeddingInspect(w http.ResponseWriter, req *http.Request) {
-	if !s.allowPrivateLoopbackPost(w, req) {
-		return
-	}
-	if s.inspectMemoryEmbedding == nil {
-		s.writeErrorJSON(w, http.StatusServiceUnavailable, "memory embedding inspect is unavailable")
-		return
-	}
-	payload, err := decodeMemoryEmbeddingAgentRequest(req)
-	if err != nil {
-		s.writeErrorJSON(w, http.StatusBadRequest, fmt.Sprintf("invalid memory embedding inspect payload: %v", err))
-		return
-	}
-	result, err := s.inspectMemoryEmbedding(req.Context(), payload)
-	if err != nil {
-		s.writeErrorJSON(w, mapCanonicalBindErrorStatus(err), err.Error())
-		return
-	}
-	s.writeJSON(w, http.StatusOK, result)
-}
-
-func (s *Server) handleMemoryEmbeddingBind(w http.ResponseWriter, req *http.Request) {
-	if !s.allowPrivateLoopbackPost(w, req) {
-		return
-	}
-	if s.requestMemoryEmbeddingBind == nil {
-		s.writeErrorJSON(w, http.StatusServiceUnavailable, "memory embedding bind is unavailable")
-		return
-	}
-	payload, err := decodeMemoryEmbeddingAgentRequest(req)
-	if err != nil {
-		s.writeErrorJSON(w, http.StatusBadRequest, fmt.Sprintf("invalid memory embedding bind payload: %v", err))
-		return
-	}
-	result, err := s.requestMemoryEmbeddingBind(req.Context(), payload)
-	if err != nil {
-		s.writeErrorJSON(w, mapCanonicalBindErrorStatus(err), err.Error())
-		return
-	}
-	s.writeJSON(w, http.StatusOK, result)
-}
-
-func (s *Server) handleMemoryEmbeddingCutover(w http.ResponseWriter, req *http.Request) {
-	if !s.allowPrivateLoopbackPost(w, req) {
-		return
-	}
-	if s.requestMemoryEmbeddingCutover == nil {
-		s.writeErrorJSON(w, http.StatusServiceUnavailable, "memory embedding cutover is unavailable")
-		return
-	}
-	payload, err := decodeMemoryEmbeddingAgentRequest(req)
-	if err != nil {
-		s.writeErrorJSON(w, http.StatusBadRequest, fmt.Sprintf("invalid memory embedding cutover payload: %v", err))
-		return
-	}
-	result, err := s.requestMemoryEmbeddingCutover(req.Context(), payload)
-	if err != nil {
-		s.writeErrorJSON(w, mapCanonicalBindErrorStatus(err), err.Error())
-		return
-	}
-	s.writeJSON(w, http.StatusOK, result)
 }
 
 func providerSnapshotsPayload(tracker *providerhealth.Tracker) []map[string]any {
@@ -478,12 +204,6 @@ func (s *Server) writeJSON(w http.ResponseWriter, statusCode int, body any) {
 	}
 }
 
-func (s *Server) writeErrorJSON(w http.ResponseWriter, statusCode int, message string) {
-	s.writeJSON(w, statusCode, map[string]any{
-		"error": strings.TrimSpace(message),
-	})
-}
-
 func allowReadMethod(w http.ResponseWriter, req *http.Request) bool {
 	if req == nil {
 		w.Header().Set("Allow", http.MethodGet+", "+http.MethodHead)
@@ -497,43 +217,6 @@ func allowReadMethod(w http.ResponseWriter, req *http.Request) bool {
 		w.Header().Set("Allow", http.MethodGet+", "+http.MethodHead)
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return false
-	}
-}
-
-func requestFromLoopback(req *http.Request) bool {
-	if req == nil {
-		return false
-	}
-	host := strings.TrimSpace(req.RemoteAddr)
-	if host == "" {
-		return false
-	}
-	if parsedHost, _, err := net.SplitHostPort(host); err == nil {
-		host = parsedHost
-	}
-	host = strings.Trim(host, "[]")
-	if strings.EqualFold(host, "localhost") {
-		return true
-	}
-	ip := net.ParseIP(host)
-	return ip != nil && ip.IsLoopback()
-}
-
-func mapCanonicalBindErrorStatus(err error) int {
-	if err == nil {
-		return http.StatusOK
-	}
-	switch grpcstatus.Code(err) {
-	case codes.InvalidArgument:
-		return http.StatusBadRequest
-	case codes.NotFound:
-		return http.StatusNotFound
-	case codes.FailedPrecondition:
-		return http.StatusPreconditionFailed
-	case codes.Unavailable:
-		return http.StatusServiceUnavailable
-	default:
-		return http.StatusInternalServerError
 	}
 }
 

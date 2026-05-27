@@ -58,7 +58,6 @@ import { clearAuthSession, loadAuthSession, saveAuthSession } from './runtime-br
 import { oauthListenForCode, oauthTokenExchange } from './runtime-bridge/oauth';
 import { completeMenuBarQuit, syncMenuBarRuntimeHealth } from './runtime-bridge/menu-bar';
 import { confirmPrivateSync, focusMainWindow, openExternalUrl, startWindowDrag } from './runtime-bridge/ui';
-import { bindAgentMemoryStandard } from './runtime-bridge/agent-memory';
 import {
   listLocalRuntimeAssets,
   listLocalRuntimeVerifiedAssets,
@@ -143,8 +142,7 @@ export type {
   OauthListenForCodeResult,
   ConfirmPrivateSyncPayload,
   ConfirmPrivateSyncResult,
-  AgentMemoryBindStandardPayload,
-  AgentMemoryBindStandardResult,
+  AgentMemoryStandardFixtureStatusPayload,
   MenuBarProviderSummary,
   MenuBarRuntimeHealthSyncPayload,
   LocalRuntimeInferenceAuditPayload,
@@ -219,7 +217,6 @@ export {
   oauthListenForCode,
   oauthTokenExchange,
   confirmPrivateSync,
-  bindAgentMemoryStandard,
   focusMainWindow,
   openExternalUrl,
   startWindowDrag,
@@ -287,7 +284,6 @@ export const desktopBridge = {
   oauthTokenExchange,
   oauthListenForCode,
   confirmPrivateSync,
-  bindAgentMemoryStandard,
   focusMainWindow,
   syncMenuBarRuntimeHealth,
   completeMenuBarQuit,

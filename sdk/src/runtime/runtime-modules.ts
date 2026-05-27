@@ -260,6 +260,9 @@ const MEMORY_METHODS = [
   'recall',
   'history',
   'deleteMemory',
+  'inspectMemoryEmbeddingRuntime',
+  'requestMemoryEmbeddingRuntimeBind',
+  'requestMemoryEmbeddingRuntimeCutover',
   'subscribeEvents',
 ] as const satisfies readonly RuntimePassthroughMethod<RuntimeMemoryClient>[];
 

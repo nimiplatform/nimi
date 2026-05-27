@@ -31,7 +31,7 @@ struct DesktopE2ETauriFixture {
     desktop_release_info: Option<DesktopReleaseInfo>,
     product_control_record: Option<ProductControlRecord>,
     confirm_dialog: Option<DesktopE2EConfirmDialogOverride>,
-    agent_memory_bind_standard: Option<DesktopE2EAgentMemoryBindStandardOverride>,
+    agent_memory_standard_fixture: Option<DesktopE2EAgentMemoryStandardFixtureOverride>,
     macos_smoke: Option<DesktopE2EMacosSmokeOverride>,
 }
 
@@ -62,7 +62,7 @@ struct DesktopE2EConfirmDialogResponse {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DesktopE2EAgentMemoryBindStandardOverride {
+pub struct DesktopE2EAgentMemoryStandardFixtureOverride {
     pub already_bound: bool,
     pub bank_id: String,
     pub embedding_profile_model_id: Option<String>,
@@ -388,13 +388,13 @@ pub fn next_confirm_dialog_override() -> Result<Option<bool>, String> {
     Ok(selected)
 }
 
-pub fn agent_memory_bind_standard_override(
-) -> Result<Option<DesktopE2EAgentMemoryBindStandardOverride>, String> {
+pub fn agent_memory_standard_fixture_override(
+) -> Result<Option<DesktopE2EAgentMemoryStandardFixtureOverride>, String> {
     let override_payload = load_fixture_manifest()?
         .and_then(|manifest| manifest.tauri_fixture)
-        .and_then(|fixture| fixture.agent_memory_bind_standard);
+        .and_then(|fixture| fixture.agent_memory_standard_fixture);
     append_backend_log(&format!(
-        "agent_memory_bind_standard_override override_present={}",
+        "agent_memory_standard_fixture_override override_present={}",
         override_payload.is_some()
     ));
     Ok(override_payload)
@@ -424,7 +424,7 @@ mod tests {
                 desktop_release_info: None,
                 product_control_record: None,
                 confirm_dialog: None,
-                agent_memory_bind_standard: None,
+                agent_memory_standard_fixture: None,
                 macos_smoke: Some(DesktopE2EMacosSmokeOverride {
                     enabled: true,
                     scenario_id: Some(scenario_id.to_string()),

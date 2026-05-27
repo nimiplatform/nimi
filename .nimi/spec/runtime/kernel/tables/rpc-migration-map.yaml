@@ -913,6 +913,21 @@ method_mappings:
     proto_service: RuntimeCognitionService
     proto_method: SubscribeMemoryEvents
     mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: InspectMemoryEmbeddingRuntime
+    proto_service: RuntimeCognitionService
+    proto_method: InspectMemoryEmbeddingRuntime
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: RequestMemoryEmbeddingRuntimeBind
+    proto_service: RuntimeCognitionService
+    proto_method: RequestMemoryEmbeddingRuntimeBind
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: RequestMemoryEmbeddingRuntimeCutover
+    proto_service: RuntimeCognitionService
+    proto_method: RequestMemoryEmbeddingRuntimeCutover
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: InitializeAgent
     proto_service: RuntimeAgentService

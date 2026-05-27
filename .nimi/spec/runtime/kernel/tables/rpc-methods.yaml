@@ -334,6 +334,12 @@ services:
         type: unary
       - name: SubscribeMemoryEvents
         type: server_stream
+      - name: InspectMemoryEmbeddingRuntime
+        type: unary
+      - name: RequestMemoryEmbeddingRuntimeBind
+        type: unary
+      - name: RequestMemoryEmbeddingRuntimeCutover
+        type: unary
       - name: CreateKnowledgeBank
         type: unary
       - name: GetKnowledgeBank

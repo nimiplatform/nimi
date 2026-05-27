@@ -96,10 +96,6 @@ func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error
 		state,
 		logger,
 		grpcServer.AIHealthTracker(),
-		d.bindCanonicalMemoryStandard,
-		d.inspectMemoryEmbeddingForAgent,
-		d.requestMemoryEmbeddingBindForAgent,
-		d.requestMemoryEmbeddingCutoverForAgent,
 	)
 	return d, nil
 }

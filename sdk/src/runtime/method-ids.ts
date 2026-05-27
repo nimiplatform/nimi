@@ -157,6 +157,9 @@ export const RuntimeMethodIds = {
     recall: '/nimi.runtime.v1.RuntimeCognitionService/Recall',
     history: '/nimi.runtime.v1.RuntimeCognitionService/History',
     deleteMemory: '/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory',
+    inspectMemoryEmbeddingRuntime: '/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime',
+    requestMemoryEmbeddingRuntimeBind: '/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind',
+    requestMemoryEmbeddingRuntimeCutover: '/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover',
     subscribeEvents: '/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents',
   },
   agent: {
@@ -360,6 +363,8 @@ export const RuntimeWriteMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.memory.deleteBank,
   RuntimeMethodIds.memory.retain,
   RuntimeMethodIds.memory.deleteMemory,
+  RuntimeMethodIds.memory.requestMemoryEmbeddingRuntimeBind,
+  RuntimeMethodIds.memory.requestMemoryEmbeddingRuntimeCutover,
   RuntimeMethodIds.agent.initializeAgent,
   RuntimeMethodIds.agent.terminateAgent,
   RuntimeMethodIds.agent.openConversationAnchor,

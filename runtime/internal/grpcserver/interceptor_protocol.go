@@ -182,6 +182,8 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeCognitionService/DeleteBank",
 		"/nimi.runtime.v1.RuntimeCognitionService/Retain",
 		"/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory",
+		"/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind",
+		"/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover",
 		"/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank",
 		"/nimi.runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank",
 		"/nimi.runtime.v1.RuntimeCognitionService/PutPage",

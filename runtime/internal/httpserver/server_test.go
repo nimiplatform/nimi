@@ -1,16 +1,13 @@
 package httpserver
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 )
@@ -35,7 +32,7 @@ func TestHandleRuntimeHealthIncludesProviders(t *testing.T) {
 	if err := tracker.Mark("cloud-dashscope", false, "timeout"); err != nil {
 		t.Fatalf("Mark unhealthy provider: %v", err)
 	}
-	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), tracker, nil, nil, nil, nil)
+	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), tracker)
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/v1/runtime/health", nil)
@@ -79,7 +76,7 @@ func TestHandleRuntimeHealthIncludesProviders(t *testing.T) {
 func TestHandleRuntimeHealthReturnsUnavailableWhenNotReady(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusDegraded, "warming")
-	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil, nil, nil)
+	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/v1/runtime/health", nil)
@@ -92,7 +89,7 @@ func TestHandleRuntimeHealthReturnsUnavailableWhenNotReady(t *testing.T) {
 
 func TestHandleRuntimeHealthRejectsNonReadMethods(t *testing.T) {
 	state := health.NewState()
-	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil, nil, nil)
+	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/v1/runtime/health", nil)
@@ -121,7 +118,7 @@ func TestAllowReadMethodRejectsNilRequests(t *testing.T) {
 }
 
 func TestNewSetsMaxHeaderBytes(t *testing.T) {
-	server := New("127.0.0.1:0", health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil, nil, nil)
+	server := New("127.0.0.1:0", health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
 	if got := server.http.MaxHeaderBytes; got != 1<<16 {
 		t.Fatalf("max header bytes mismatch: got=%d want=%d", got, 1<<16)
 	}
@@ -130,7 +127,7 @@ func TestNewSetsMaxHeaderBytes(t *testing.T) {
 func TestDiagnosticEndpointsExposeExpectedStatusesAndHeaders(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusDegraded, "warming")
-	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil, nil, nil)
+	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
 
 	testCases := []struct {
 		name       string
@@ -157,67 +154,5 @@ func TestDiagnosticEndpointsExposeExpectedStatusesAndHeaders(t *testing.T) {
 		if got := recorder.Header().Get("X-Content-Type-Options"); got != "nosniff" {
 			t.Fatalf("%s x-content-type-options mismatch: got=%q", tc.name, got)
 		}
-	}
-}
-
-func TestHandleCanonicalBindRejectsNonLoopbackRequests(t *testing.T) {
-	state := health.NewState()
-	state.SetStatus(health.StatusReady, "ready")
-	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, func(context.Context, string) (CanonicalBindResult, error) {
-		t.Fatal("bind handler should not run for non-loopback request")
-		return CanonicalBindResult{}, nil
-	}, nil, nil, nil)
-
-	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/v1/runtime/private/memory/canonical-bind", strings.NewReader(`{"agentId":"agent-1"}`))
-	request.RemoteAddr = "192.168.1.20:40123"
-	server.http.Handler.ServeHTTP(recorder, request)
-
-	if recorder.Code != http.StatusForbidden {
-		t.Fatalf("status mismatch: got=%d want=%d", recorder.Code, http.StatusForbidden)
-	}
-}
-
-func TestHandleCanonicalBindReturnsBoundBank(t *testing.T) {
-	state := health.NewState()
-	state.SetStatus(health.StatusReady, "ready")
-	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, func(_ context.Context, agentID string) (CanonicalBindResult, error) {
-		if agentID != "agent-1" {
-			t.Fatalf("agentID mismatch: %s", agentID)
-		}
-		return CanonicalBindResult{
-			AlreadyBound: false,
-			Bank: &runtimev1.MemoryBank{
-				BankId: "bank-agent-1",
-				EmbeddingProfile: &runtimev1.MemoryEmbeddingProfile{
-					Provider: "local",
-					ModelId:  "local/embed-alpha",
-				},
-			},
-		}, nil
-	}, nil, nil, nil)
-
-	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/v1/runtime/private/memory/canonical-bind", strings.NewReader(`{"agentId":"agent-1"}`))
-	request.RemoteAddr = "127.0.0.1:40123"
-	server.http.Handler.ServeHTTP(recorder, request)
-
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("status mismatch: got=%d want=%d", recorder.Code, http.StatusOK)
-	}
-
-	var payload map[string]any
-	if err := json.Unmarshal(recorder.Body.Bytes(), &payload); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if payload["alreadyBound"] != false {
-		t.Fatalf("alreadyBound mismatch: %#v", payload["alreadyBound"])
-	}
-	bank, ok := payload["bank"].(map[string]any)
-	if !ok {
-		t.Fatalf("bank payload missing: %#v", payload["bank"])
-	}
-	if bank["bankId"] != "bank-agent-1" {
-		t.Fatalf("bankId mismatch: %#v", bank["bankId"])
 	}
 }

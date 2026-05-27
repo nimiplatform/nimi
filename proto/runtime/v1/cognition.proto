@@ -17,6 +17,9 @@ service RuntimeCognitionService {
   rpc History(HistoryRequest) returns (HistoryResponse);
   rpc DeleteMemory(DeleteMemoryRequest) returns (DeleteMemoryResponse);
   rpc SubscribeMemoryEvents(SubscribeMemoryEventsRequest) returns (stream MemoryEvent);
+  rpc InspectMemoryEmbeddingRuntime(InspectMemoryEmbeddingRuntimeRequest) returns (InspectMemoryEmbeddingRuntimeResponse);
+  rpc RequestMemoryEmbeddingRuntimeBind(RequestMemoryEmbeddingRuntimeBindRequest) returns (RequestMemoryEmbeddingRuntimeBindResponse);
+  rpc RequestMemoryEmbeddingRuntimeCutover(RequestMemoryEmbeddingRuntimeCutoverRequest) returns (RequestMemoryEmbeddingRuntimeCutoverResponse);
 
   rpc CreateKnowledgeBank(CreateKnowledgeBankRequest) returns (CreateKnowledgeBankResponse);
   rpc GetKnowledgeBank(GetKnowledgeBankRequest) returns (GetKnowledgeBankResponse);

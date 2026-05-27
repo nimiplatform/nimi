@@ -19,32 +19,35 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeCognitionService_CreateBank_FullMethodName            = "/nimi.runtime.v1.RuntimeCognitionService/CreateBank"
-	RuntimeCognitionService_GetBank_FullMethodName               = "/nimi.runtime.v1.RuntimeCognitionService/GetBank"
-	RuntimeCognitionService_ListBanks_FullMethodName             = "/nimi.runtime.v1.RuntimeCognitionService/ListBanks"
-	RuntimeCognitionService_DeleteBank_FullMethodName            = "/nimi.runtime.v1.RuntimeCognitionService/DeleteBank"
-	RuntimeCognitionService_Retain_FullMethodName                = "/nimi.runtime.v1.RuntimeCognitionService/Retain"
-	RuntimeCognitionService_Recall_FullMethodName                = "/nimi.runtime.v1.RuntimeCognitionService/Recall"
-	RuntimeCognitionService_History_FullMethodName               = "/nimi.runtime.v1.RuntimeCognitionService/History"
-	RuntimeCognitionService_DeleteMemory_FullMethodName          = "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory"
-	RuntimeCognitionService_SubscribeMemoryEvents_FullMethodName = "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents"
-	RuntimeCognitionService_CreateKnowledgeBank_FullMethodName   = "/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank"
-	RuntimeCognitionService_GetKnowledgeBank_FullMethodName      = "/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank"
-	RuntimeCognitionService_ListKnowledgeBanks_FullMethodName    = "/nimi.runtime.v1.RuntimeCognitionService/ListKnowledgeBanks"
-	RuntimeCognitionService_DeleteKnowledgeBank_FullMethodName   = "/nimi.runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank"
-	RuntimeCognitionService_PutPage_FullMethodName               = "/nimi.runtime.v1.RuntimeCognitionService/PutPage"
-	RuntimeCognitionService_GetPage_FullMethodName               = "/nimi.runtime.v1.RuntimeCognitionService/GetPage"
-	RuntimeCognitionService_ListPages_FullMethodName             = "/nimi.runtime.v1.RuntimeCognitionService/ListPages"
-	RuntimeCognitionService_DeletePage_FullMethodName            = "/nimi.runtime.v1.RuntimeCognitionService/DeletePage"
-	RuntimeCognitionService_SearchKeyword_FullMethodName         = "/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword"
-	RuntimeCognitionService_SearchHybrid_FullMethodName          = "/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid"
-	RuntimeCognitionService_AddLink_FullMethodName               = "/nimi.runtime.v1.RuntimeCognitionService/AddLink"
-	RuntimeCognitionService_RemoveLink_FullMethodName            = "/nimi.runtime.v1.RuntimeCognitionService/RemoveLink"
-	RuntimeCognitionService_ListLinks_FullMethodName             = "/nimi.runtime.v1.RuntimeCognitionService/ListLinks"
-	RuntimeCognitionService_ListBacklinks_FullMethodName         = "/nimi.runtime.v1.RuntimeCognitionService/ListBacklinks"
-	RuntimeCognitionService_TraverseGraph_FullMethodName         = "/nimi.runtime.v1.RuntimeCognitionService/TraverseGraph"
-	RuntimeCognitionService_IngestDocument_FullMethodName        = "/nimi.runtime.v1.RuntimeCognitionService/IngestDocument"
-	RuntimeCognitionService_GetIngestTask_FullMethodName         = "/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask"
+	RuntimeCognitionService_CreateBank_FullMethodName                           = "/nimi.runtime.v1.RuntimeCognitionService/CreateBank"
+	RuntimeCognitionService_GetBank_FullMethodName                              = "/nimi.runtime.v1.RuntimeCognitionService/GetBank"
+	RuntimeCognitionService_ListBanks_FullMethodName                            = "/nimi.runtime.v1.RuntimeCognitionService/ListBanks"
+	RuntimeCognitionService_DeleteBank_FullMethodName                           = "/nimi.runtime.v1.RuntimeCognitionService/DeleteBank"
+	RuntimeCognitionService_Retain_FullMethodName                               = "/nimi.runtime.v1.RuntimeCognitionService/Retain"
+	RuntimeCognitionService_Recall_FullMethodName                               = "/nimi.runtime.v1.RuntimeCognitionService/Recall"
+	RuntimeCognitionService_History_FullMethodName                              = "/nimi.runtime.v1.RuntimeCognitionService/History"
+	RuntimeCognitionService_DeleteMemory_FullMethodName                         = "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory"
+	RuntimeCognitionService_SubscribeMemoryEvents_FullMethodName                = "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents"
+	RuntimeCognitionService_InspectMemoryEmbeddingRuntime_FullMethodName        = "/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime"
+	RuntimeCognitionService_RequestMemoryEmbeddingRuntimeBind_FullMethodName    = "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind"
+	RuntimeCognitionService_RequestMemoryEmbeddingRuntimeCutover_FullMethodName = "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover"
+	RuntimeCognitionService_CreateKnowledgeBank_FullMethodName                  = "/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank"
+	RuntimeCognitionService_GetKnowledgeBank_FullMethodName                     = "/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank"
+	RuntimeCognitionService_ListKnowledgeBanks_FullMethodName                   = "/nimi.runtime.v1.RuntimeCognitionService/ListKnowledgeBanks"
+	RuntimeCognitionService_DeleteKnowledgeBank_FullMethodName                  = "/nimi.runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank"
+	RuntimeCognitionService_PutPage_FullMethodName                              = "/nimi.runtime.v1.RuntimeCognitionService/PutPage"
+	RuntimeCognitionService_GetPage_FullMethodName                              = "/nimi.runtime.v1.RuntimeCognitionService/GetPage"
+	RuntimeCognitionService_ListPages_FullMethodName                            = "/nimi.runtime.v1.RuntimeCognitionService/ListPages"
+	RuntimeCognitionService_DeletePage_FullMethodName                           = "/nimi.runtime.v1.RuntimeCognitionService/DeletePage"
+	RuntimeCognitionService_SearchKeyword_FullMethodName                        = "/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword"
+	RuntimeCognitionService_SearchHybrid_FullMethodName                         = "/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid"
+	RuntimeCognitionService_AddLink_FullMethodName                              = "/nimi.runtime.v1.RuntimeCognitionService/AddLink"
+	RuntimeCognitionService_RemoveLink_FullMethodName                           = "/nimi.runtime.v1.RuntimeCognitionService/RemoveLink"
+	RuntimeCognitionService_ListLinks_FullMethodName                            = "/nimi.runtime.v1.RuntimeCognitionService/ListLinks"
+	RuntimeCognitionService_ListBacklinks_FullMethodName                        = "/nimi.runtime.v1.RuntimeCognitionService/ListBacklinks"
+	RuntimeCognitionService_TraverseGraph_FullMethodName                        = "/nimi.runtime.v1.RuntimeCognitionService/TraverseGraph"
+	RuntimeCognitionService_IngestDocument_FullMethodName                       = "/nimi.runtime.v1.RuntimeCognitionService/IngestDocument"
+	RuntimeCognitionService_GetIngestTask_FullMethodName                        = "/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask"
 )
 
 // RuntimeCognitionServiceClient is the client API for RuntimeCognitionService service.
@@ -60,6 +63,9 @@ type RuntimeCognitionServiceClient interface {
 	History(ctx context.Context, in *HistoryRequest, opts ...grpc.CallOption) (*HistoryResponse, error)
 	DeleteMemory(ctx context.Context, in *DeleteMemoryRequest, opts ...grpc.CallOption) (*DeleteMemoryResponse, error)
 	SubscribeMemoryEvents(ctx context.Context, in *SubscribeMemoryEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[MemoryEvent], error)
+	InspectMemoryEmbeddingRuntime(ctx context.Context, in *InspectMemoryEmbeddingRuntimeRequest, opts ...grpc.CallOption) (*InspectMemoryEmbeddingRuntimeResponse, error)
+	RequestMemoryEmbeddingRuntimeBind(ctx context.Context, in *RequestMemoryEmbeddingRuntimeBindRequest, opts ...grpc.CallOption) (*RequestMemoryEmbeddingRuntimeBindResponse, error)
+	RequestMemoryEmbeddingRuntimeCutover(ctx context.Context, in *RequestMemoryEmbeddingRuntimeCutoverRequest, opts ...grpc.CallOption) (*RequestMemoryEmbeddingRuntimeCutoverResponse, error)
 	CreateKnowledgeBank(ctx context.Context, in *CreateKnowledgeBankRequest, opts ...grpc.CallOption) (*CreateKnowledgeBankResponse, error)
 	GetKnowledgeBank(ctx context.Context, in *GetKnowledgeBankRequest, opts ...grpc.CallOption) (*GetKnowledgeBankResponse, error)
 	ListKnowledgeBanks(ctx context.Context, in *ListKnowledgeBanksRequest, opts ...grpc.CallOption) (*ListKnowledgeBanksResponse, error)
@@ -185,6 +191,36 @@ func (c *runtimeCognitionServiceClient) SubscribeMemoryEvents(ctx context.Contex
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeCognitionService_SubscribeMemoryEventsClient = grpc.ServerStreamingClient[MemoryEvent]
+
+func (c *runtimeCognitionServiceClient) InspectMemoryEmbeddingRuntime(ctx context.Context, in *InspectMemoryEmbeddingRuntimeRequest, opts ...grpc.CallOption) (*InspectMemoryEmbeddingRuntimeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InspectMemoryEmbeddingRuntimeResponse)
+	err := c.cc.Invoke(ctx, RuntimeCognitionService_InspectMemoryEmbeddingRuntime_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeCognitionServiceClient) RequestMemoryEmbeddingRuntimeBind(ctx context.Context, in *RequestMemoryEmbeddingRuntimeBindRequest, opts ...grpc.CallOption) (*RequestMemoryEmbeddingRuntimeBindResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RequestMemoryEmbeddingRuntimeBindResponse)
+	err := c.cc.Invoke(ctx, RuntimeCognitionService_RequestMemoryEmbeddingRuntimeBind_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeCognitionServiceClient) RequestMemoryEmbeddingRuntimeCutover(ctx context.Context, in *RequestMemoryEmbeddingRuntimeCutoverRequest, opts ...grpc.CallOption) (*RequestMemoryEmbeddingRuntimeCutoverResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RequestMemoryEmbeddingRuntimeCutoverResponse)
+	err := c.cc.Invoke(ctx, RuntimeCognitionService_RequestMemoryEmbeddingRuntimeCutover_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 func (c *runtimeCognitionServiceClient) CreateKnowledgeBank(ctx context.Context, in *CreateKnowledgeBankRequest, opts ...grpc.CallOption) (*CreateKnowledgeBankResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -369,6 +405,9 @@ type RuntimeCognitionServiceServer interface {
 	History(context.Context, *HistoryRequest) (*HistoryResponse, error)
 	DeleteMemory(context.Context, *DeleteMemoryRequest) (*DeleteMemoryResponse, error)
 	SubscribeMemoryEvents(*SubscribeMemoryEventsRequest, grpc.ServerStreamingServer[MemoryEvent]) error
+	InspectMemoryEmbeddingRuntime(context.Context, *InspectMemoryEmbeddingRuntimeRequest) (*InspectMemoryEmbeddingRuntimeResponse, error)
+	RequestMemoryEmbeddingRuntimeBind(context.Context, *RequestMemoryEmbeddingRuntimeBindRequest) (*RequestMemoryEmbeddingRuntimeBindResponse, error)
+	RequestMemoryEmbeddingRuntimeCutover(context.Context, *RequestMemoryEmbeddingRuntimeCutoverRequest) (*RequestMemoryEmbeddingRuntimeCutoverResponse, error)
 	CreateKnowledgeBank(context.Context, *CreateKnowledgeBankRequest) (*CreateKnowledgeBankResponse, error)
 	GetKnowledgeBank(context.Context, *GetKnowledgeBankRequest) (*GetKnowledgeBankResponse, error)
 	ListKnowledgeBanks(context.Context, *ListKnowledgeBanksRequest) (*ListKnowledgeBanksResponse, error)
@@ -421,6 +460,15 @@ func (UnimplementedRuntimeCognitionServiceServer) DeleteMemory(context.Context, 
 }
 func (UnimplementedRuntimeCognitionServiceServer) SubscribeMemoryEvents(*SubscribeMemoryEventsRequest, grpc.ServerStreamingServer[MemoryEvent]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeMemoryEvents not implemented")
+}
+func (UnimplementedRuntimeCognitionServiceServer) InspectMemoryEmbeddingRuntime(context.Context, *InspectMemoryEmbeddingRuntimeRequest) (*InspectMemoryEmbeddingRuntimeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method InspectMemoryEmbeddingRuntime not implemented")
+}
+func (UnimplementedRuntimeCognitionServiceServer) RequestMemoryEmbeddingRuntimeBind(context.Context, *RequestMemoryEmbeddingRuntimeBindRequest) (*RequestMemoryEmbeddingRuntimeBindResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RequestMemoryEmbeddingRuntimeBind not implemented")
+}
+func (UnimplementedRuntimeCognitionServiceServer) RequestMemoryEmbeddingRuntimeCutover(context.Context, *RequestMemoryEmbeddingRuntimeCutoverRequest) (*RequestMemoryEmbeddingRuntimeCutoverResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RequestMemoryEmbeddingRuntimeCutover not implemented")
 }
 func (UnimplementedRuntimeCognitionServiceServer) CreateKnowledgeBank(context.Context, *CreateKnowledgeBankRequest) (*CreateKnowledgeBankResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateKnowledgeBank not implemented")
@@ -647,6 +695,60 @@ func _RuntimeCognitionService_SubscribeMemoryEvents_Handler(srv interface{}, str
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeCognitionService_SubscribeMemoryEventsServer = grpc.ServerStreamingServer[MemoryEvent]
+
+func _RuntimeCognitionService_InspectMemoryEmbeddingRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InspectMemoryEmbeddingRuntimeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeCognitionServiceServer).InspectMemoryEmbeddingRuntime(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeCognitionService_InspectMemoryEmbeddingRuntime_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeCognitionServiceServer).InspectMemoryEmbeddingRuntime(ctx, req.(*InspectMemoryEmbeddingRuntimeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeCognitionService_RequestMemoryEmbeddingRuntimeBind_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestMemoryEmbeddingRuntimeBindRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeCognitionServiceServer).RequestMemoryEmbeddingRuntimeBind(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeCognitionService_RequestMemoryEmbeddingRuntimeBind_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeCognitionServiceServer).RequestMemoryEmbeddingRuntimeBind(ctx, req.(*RequestMemoryEmbeddingRuntimeBindRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeCognitionService_RequestMemoryEmbeddingRuntimeCutover_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestMemoryEmbeddingRuntimeCutoverRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeCognitionServiceServer).RequestMemoryEmbeddingRuntimeCutover(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeCognitionService_RequestMemoryEmbeddingRuntimeCutover_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeCognitionServiceServer).RequestMemoryEmbeddingRuntimeCutover(ctx, req.(*RequestMemoryEmbeddingRuntimeCutoverRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
 
 func _RuntimeCognitionService_CreateKnowledgeBank_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateKnowledgeBankRequest)
@@ -992,6 +1094,18 @@ var RuntimeCognitionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteMemory",
 			Handler:    _RuntimeCognitionService_DeleteMemory_Handler,
+		},
+		{
+			MethodName: "InspectMemoryEmbeddingRuntime",
+			Handler:    _RuntimeCognitionService_InspectMemoryEmbeddingRuntime_Handler,
+		},
+		{
+			MethodName: "RequestMemoryEmbeddingRuntimeBind",
+			Handler:    _RuntimeCognitionService_RequestMemoryEmbeddingRuntimeBind_Handler,
+		},
+		{
+			MethodName: "RequestMemoryEmbeddingRuntimeCutover",
+			Handler:    _RuntimeCognitionService_RequestMemoryEmbeddingRuntimeCutover_Handler,
 		},
 		{
 			MethodName: "CreateKnowledgeBank",

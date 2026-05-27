@@ -177,6 +177,78 @@ func TestRuntimeCognitionMemoryHonorsBoundEmbeddingProfileAvailability(t *testin
 	}
 }
 
+func TestRuntimeCognitionMemoryEmbeddingRuntimeProjectionBindsAndCutovers(t *testing.T) {
+	svc, memorySvc, cleanup := newTestService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	locator := testAgentCoreMemoryLocator("agent-runtime-embedding")
+	oldProfile := testRuntimeEmbeddingProfile("local/embed-old")
+	newProfile := testRuntimeEmbeddingProfile("local/embed-new")
+
+	memorySvc.SetManagedEmbeddingProfile(oldProfile)
+	bindResp, err := svc.RequestMemoryEmbeddingRuntimeBind(ctx, &runtimev1.RequestMemoryEmbeddingRuntimeBindRequest{
+		Context:               &runtimev1.MemoryRequestContext{AppId: "desktop"},
+		Locator:               locator,
+		BindingIntentSnapshot: testRuntimeLocalEmbeddingIntent("local/embed-old"),
+	})
+	if err != nil {
+		t.Fatalf("RequestMemoryEmbeddingRuntimeBind(old): %v", err)
+	}
+	if bindResp.GetOutcome() != "bound" {
+		t.Fatalf("expected bound outcome, got %q", bindResp.GetOutcome())
+	}
+	if bindResp.GetCanonicalBankStatusAfter() != "bound_equivalent" {
+		t.Fatalf("expected bound_equivalent after bind, got %q", bindResp.GetCanonicalBankStatusAfter())
+	}
+
+	inspectResp, err := svc.InspectMemoryEmbeddingRuntime(ctx, &runtimev1.InspectMemoryEmbeddingRuntimeRequest{
+		Context:               &runtimev1.MemoryRequestContext{AppId: "desktop"},
+		Locator:               locator,
+		BindingIntentSnapshot: testRuntimeLocalEmbeddingIntent("local/embed-old"),
+	})
+	if err != nil {
+		t.Fatalf("InspectMemoryEmbeddingRuntime(old): %v", err)
+	}
+	if inspectResp.GetResolvedProfile().GetModelId() != "local/embed-old" {
+		t.Fatalf("expected old resolved profile, got %#v", inspectResp.GetResolvedProfile())
+	}
+	if inspectResp.GetOperationReadiness().GetBindAllowed() {
+		t.Fatal("bind should not be allowed when canonical bank is equivalent")
+	}
+
+	memorySvc.SetManagedEmbeddingProfile(newProfile)
+	stageResp, err := svc.RequestMemoryEmbeddingRuntimeBind(ctx, &runtimev1.RequestMemoryEmbeddingRuntimeBindRequest{
+		Context:               &runtimev1.MemoryRequestContext{AppId: "desktop"},
+		Locator:               locator,
+		BindingIntentSnapshot: testRuntimeLocalEmbeddingIntent("local/embed-new"),
+	})
+	if err != nil {
+		t.Fatalf("RequestMemoryEmbeddingRuntimeBind(new): %v", err)
+	}
+	if stageResp.GetOutcome() != "staged_rebuild" {
+		t.Fatalf("expected staged_rebuild outcome, got %q", stageResp.GetOutcome())
+	}
+	if !stageResp.GetPendingCutover() {
+		t.Fatal("expected pending cutover after staged rebuild")
+	}
+
+	cutoverResp, err := svc.RequestMemoryEmbeddingRuntimeCutover(ctx, &runtimev1.RequestMemoryEmbeddingRuntimeCutoverRequest{
+		Context:               &runtimev1.MemoryRequestContext{AppId: "desktop"},
+		Locator:               locator,
+		BindingIntentSnapshot: testRuntimeLocalEmbeddingIntent("local/embed-new"),
+	})
+	if err != nil {
+		t.Fatalf("RequestMemoryEmbeddingRuntimeCutover: %v", err)
+	}
+	if cutoverResp.GetOutcome() != "cutover_committed" {
+		t.Fatalf("expected cutover_committed outcome, got %q", cutoverResp.GetOutcome())
+	}
+	if cutoverResp.GetCanonicalBankStatusAfter() != "bound_equivalent" {
+		t.Fatalf("expected bound_equivalent after cutover, got %q", cutoverResp.GetCanonicalBankStatusAfter())
+	}
+}
+
 func TestRuntimeCognitionKnowledgeIngestRejectsInvalidEnvelope(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
@@ -345,6 +417,36 @@ func setMemoryEmbeddingVectorExecutorForTest(svc *memoryservice.Service) {
 		}
 		return out, nil
 	})
+}
+
+func testAgentCoreMemoryLocator(agentID string) *runtimev1.MemoryBankLocator {
+	return &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: agentID},
+		},
+	}
+}
+
+func testRuntimeEmbeddingProfile(modelID string) *runtimev1.MemoryEmbeddingProfile {
+	return &runtimev1.MemoryEmbeddingProfile{
+		Provider:        "local",
+		ModelId:         modelID,
+		Dimension:       16,
+		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
+		Version:         modelID + "@v1",
+		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
+	}
+}
+
+func testRuntimeLocalEmbeddingIntent(modelID string) *runtimev1.MemoryEmbeddingBindingIntentSnapshot {
+	return &runtimev1.MemoryEmbeddingBindingIntentSnapshot{
+		SourceKind: "local",
+		LocalBinding: &runtimev1.MemoryEmbeddingLocalBindingRef{
+			TargetId: modelID,
+		},
+		RevisionToken: "test-revision",
+	}
 }
 
 func testEmbeddingVector(raw string, dimension int) []float64 {

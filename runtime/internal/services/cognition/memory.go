@@ -9,6 +9,7 @@ import (
 	cognitionmemory "github.com/nimiplatform/nimi/nimi-cognition/memory"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -186,6 +187,94 @@ func (s *Service) DeleteMemory(ctx context.Context, req *runtimev1.DeleteMemoryR
 		Ack:              okAck(),
 		DeletedMemoryIds: deleted,
 	}, nil
+}
+
+func (s *Service) InspectMemoryEmbeddingRuntime(ctx context.Context, req *runtimev1.InspectMemoryEmbeddingRuntimeRequest) (*runtimev1.InspectMemoryEmbeddingRuntimeResponse, error) {
+	state, err := s.memorySvc.InspectMemoryEmbeddingState(ctx, memoryservice.InspectMemoryEmbeddingStateRequest{
+		Locator:               cloneMemoryLocator(req.GetLocator()),
+		BindingIntentSnapshot: memoryEmbeddingIntentSnapshotFromProto(req.GetBindingIntentSnapshot()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.InspectMemoryEmbeddingRuntimeResponse{
+		BindingIntentPresent: state.BindingIntentPresent,
+		BindingSourceKind:    strings.TrimSpace(string(state.BindingSourceKind)),
+		ResolutionState:      strings.TrimSpace(state.ResolutionState),
+		ResolvedProfile:      cloneMemoryEmbeddingProfile(state.ResolvedProfileIdentity),
+		CanonicalBankStatus:  strings.TrimSpace(state.CanonicalBankStatus),
+		BlockedReasonCode:    state.BlockedReasonCode,
+		OperationReadiness: &runtimev1.MemoryEmbeddingOperationReadiness{
+			BindAllowed:    state.OperationReadiness.BindAllowed,
+			CutoverAllowed: state.OperationReadiness.CutoverAllowed,
+		},
+	}, nil
+}
+
+func (s *Service) RequestMemoryEmbeddingRuntimeBind(ctx context.Context, req *runtimev1.RequestMemoryEmbeddingRuntimeBindRequest) (*runtimev1.RequestMemoryEmbeddingRuntimeBindResponse, error) {
+	result, err := s.memorySvc.RequestCanonicalMemoryEmbeddingBind(ctx, memoryservice.RequestCanonicalMemoryEmbeddingBindRequest{
+		Locator:               cloneMemoryLocator(req.GetLocator()),
+		BindingIntentSnapshot: memoryEmbeddingIntentSnapshotFromProto(req.GetBindingIntentSnapshot()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.RequestMemoryEmbeddingRuntimeBindResponse{
+		Outcome:                  strings.TrimSpace(result.Outcome),
+		BlockedReasonCode:        result.BlockedReasonCode,
+		CanonicalBankStatusAfter: strings.TrimSpace(result.CanonicalBankStatusAfter),
+		PendingCutover:           result.PendingCutover,
+	}, nil
+}
+
+func (s *Service) RequestMemoryEmbeddingRuntimeCutover(ctx context.Context, req *runtimev1.RequestMemoryEmbeddingRuntimeCutoverRequest) (*runtimev1.RequestMemoryEmbeddingRuntimeCutoverResponse, error) {
+	result, err := s.memorySvc.RequestMemoryEmbeddingCutover(ctx, memoryservice.RequestMemoryEmbeddingCutoverRequest{
+		Locator:               cloneMemoryLocator(req.GetLocator()),
+		BindingIntentSnapshot: memoryEmbeddingIntentSnapshotFromProto(req.GetBindingIntentSnapshot()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.RequestMemoryEmbeddingRuntimeCutoverResponse{
+		Outcome:                  strings.TrimSpace(result.Outcome),
+		BlockedReasonCode:        result.BlockedReasonCode,
+		CanonicalBankStatusAfter: strings.TrimSpace(result.CanonicalBankStatusAfter),
+	}, nil
+}
+
+func memoryEmbeddingIntentSnapshotFromProto(input *runtimev1.MemoryEmbeddingBindingIntentSnapshot) *memoryservice.MemoryEmbeddingBindingIntentSnapshot {
+	if input == nil {
+		return nil
+	}
+	return &memoryservice.MemoryEmbeddingBindingIntentSnapshot{
+		SourceKind: memoryservice.MemoryEmbeddingBindingSourceKind(strings.TrimSpace(input.GetSourceKind())),
+		CloudBinding: func() *memoryservice.MemoryEmbeddingCloudBindingRef {
+			if input.GetCloudBinding() == nil {
+				return nil
+			}
+			return &memoryservice.MemoryEmbeddingCloudBindingRef{
+				ConnectorID: strings.TrimSpace(input.GetCloudBinding().GetConnectorId()),
+				ModelID:     strings.TrimSpace(input.GetCloudBinding().GetModelId()),
+			}
+		}(),
+		LocalBinding: func() *memoryservice.MemoryEmbeddingLocalBindingRef {
+			if input.GetLocalBinding() == nil {
+				return nil
+			}
+			return &memoryservice.MemoryEmbeddingLocalBindingRef{
+				LocalModelID: strings.TrimSpace(input.GetLocalBinding().GetTargetId()),
+			}
+		}(),
+		RevisionToken: strings.TrimSpace(input.GetRevisionToken()),
+	}
+}
+
+func cloneMemoryEmbeddingProfile(value *runtimev1.MemoryEmbeddingProfile) *runtimev1.MemoryEmbeddingProfile {
+	if value == nil {
+		return nil
+	}
+	cloned, _ := proto.Clone(value).(*runtimev1.MemoryEmbeddingProfile)
+	return cloned
 }
 
 func runtimeRecordToCognition(bank *runtimev1.MemoryBank, input *runtimev1.MemoryRecordInput, now time.Time) (*runtimev1.MemoryRecord, cognitionmemory.Record, error) {

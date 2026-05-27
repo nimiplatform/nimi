@@ -10,7 +10,6 @@ import {
 import type { TFunction } from 'i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
-import { bindAgentMemoryStandard } from '@renderer/bridge/runtime-bridge/agent-memory';
 import { confirmDialog } from '@renderer/bridge/runtime-bridge/ui';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
@@ -82,28 +81,6 @@ type AgentConversationRuntimeController = {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function readRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null;
-}
-
-function standardMemoryStatusFromBindResult(
-  result: Awaited<ReturnType<typeof bindAgentMemoryStandard>>,
-): CanonicalMemoryBankStatus {
-  const bank = readRecord(result.bank);
-  const embeddingProfile = readRecord(bank?.embeddingProfile);
-  const bankId = normalizeText(bank?.bankId);
-  if (!bankId) {
-    throw new Error('agent_memory_bind_standard returned no canonical bankId');
-  }
-  return {
-    mode: 'standard',
-    bankId,
-    embeddingProfileModelId: normalizeText(embeddingProfile?.modelId) || undefined,
-  };
 }
 
 function requireRuntimeSubjectUserId(): string {
@@ -520,9 +497,9 @@ export function useAgentConversationRuntimeController(
       return;
     }
     setMutationPendingAction('Upgrading memory…');
-    void bindAgentMemoryStandard({ agentId })
-      .then((result) => {
-        setCanonicalMemoryStatus(standardMemoryStatusFromBindResult(result));
+    void runtimeAgentMemory.bindCanonicalBankStandard(agentId)
+      .then((status) => {
+        setCanonicalMemoryStatus(status);
         setHostFeedback({
           kind: 'success',
           message: t('Chat.memoryModeUpgradeSuccess', {
@@ -540,7 +517,7 @@ export function useAgentConversationRuntimeController(
       .finally(() => {
         setMutationPendingAction(null);
       });
-  }, [activeTarget?.localAgentRef, activeTarget?.displayName, reportHostError, setHostFeedback, t]);
+  }, [activeTarget?.localAgentRef, activeTarget?.displayName, reportHostError, runtimeAgentMemory, setHostFeedback, t]);
 
   const handleUpdateRuntimeState = useCallback((stateInput: RuntimeStateInput) => {
     const agentId = normalizeText(activeTarget?.localAgentRef);

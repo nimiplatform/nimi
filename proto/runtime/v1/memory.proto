@@ -129,6 +129,27 @@ message MemoryEmbeddingProfile {
   MemoryMigrationPolicy migration_policy = 6;
 }
 
+message MemoryEmbeddingCloudBindingRef {
+  string connector_id = 1;
+  string model_id = 2;
+}
+
+message MemoryEmbeddingLocalBindingRef {
+  string target_id = 1;
+}
+
+message MemoryEmbeddingBindingIntentSnapshot {
+  string source_kind = 1;
+  MemoryEmbeddingCloudBindingRef cloud_binding = 2;
+  MemoryEmbeddingLocalBindingRef local_binding = 3;
+  string revision_token = 4;
+}
+
+message MemoryEmbeddingOperationReadiness {
+  bool bind_allowed = 1;
+  bool cutover_allowed = 2;
+}
+
 message MemoryBank {
   string bank_id = 1;
   MemoryBankLocator locator = 2;
@@ -403,4 +424,45 @@ message SubscribeMemoryEventsRequest {
   repeated MemoryBankScope scope_filters = 2;
   repeated MemoryBankOwnerFilter owner_filters = 3;
   string cursor = 4;
+}
+
+message InspectMemoryEmbeddingRuntimeRequest {
+  MemoryRequestContext context = 1;
+  MemoryBankLocator locator = 2;
+  MemoryEmbeddingBindingIntentSnapshot binding_intent_snapshot = 3;
+}
+
+message InspectMemoryEmbeddingRuntimeResponse {
+  bool binding_intent_present = 1;
+  string binding_source_kind = 2;
+  string resolution_state = 3;
+  MemoryEmbeddingProfile resolved_profile = 4;
+  string canonical_bank_status = 5;
+  ReasonCode blocked_reason_code = 6;
+  MemoryEmbeddingOperationReadiness operation_readiness = 7;
+}
+
+message RequestMemoryEmbeddingRuntimeBindRequest {
+  MemoryRequestContext context = 1;
+  MemoryBankLocator locator = 2;
+  MemoryEmbeddingBindingIntentSnapshot binding_intent_snapshot = 3;
+}
+
+message RequestMemoryEmbeddingRuntimeBindResponse {
+  string outcome = 1;
+  ReasonCode blocked_reason_code = 2;
+  string canonical_bank_status_after = 3;
+  bool pending_cutover = 4;
+}
+
+message RequestMemoryEmbeddingRuntimeCutoverRequest {
+  MemoryRequestContext context = 1;
+  MemoryBankLocator locator = 2;
+  MemoryEmbeddingBindingIntentSnapshot binding_intent_snapshot = 3;
+}
+
+message RequestMemoryEmbeddingRuntimeCutoverResponse {
+  string outcome = 1;
+  ReasonCode blocked_reason_code = 2;
+  string canonical_bank_status_after = 3;
 }

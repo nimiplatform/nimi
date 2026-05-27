@@ -94,6 +94,9 @@ surfaces:
   - methods_81
   - methods_82
   - methods_83
+  - methods_84
+  - methods_85
+  - methods_86
 description: Agent, AI, realtime, and cognition posture entries.
 services:
   - RuntimeAgentService
@@ -502,6 +505,27 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime
+    posture: protected_or_scoped_binding_read
+    rationale: runtime-owned memory embedding readiness and canonical bank state projection requires runtime.memory.read capability
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-MEM-006b
+  - method_id: /nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind
+    posture: protected_or_scoped_binding_write
+    rationale: runtime-owned canonical memory embedding bind mutates bank embedding state and requires runtime.memory.write capability
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-MEM-006b
+  - method_id: /nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover
+    posture: protected_or_scoped_binding_write
+    rationale: runtime-owned memory embedding cutover mutates canonical bank embedding state and requires runtime.memory.write capability
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-MEM-006b
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents
     posture: anonymous_read
     rationale: memory event stream; no JWT validation

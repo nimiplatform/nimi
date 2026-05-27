@@ -46,10 +46,16 @@ import {
   GetBankResponse,
   HistoryRequest,
   HistoryResponse,
+  InspectMemoryEmbeddingRuntimeRequest,
+  InspectMemoryEmbeddingRuntimeResponse,
   ListBanksRequest,
   ListBanksResponse,
   RecallRequest,
   RecallResponse,
+  RequestMemoryEmbeddingRuntimeBindRequest,
+  RequestMemoryEmbeddingRuntimeBindResponse,
+  RequestMemoryEmbeddingRuntimeCutoverRequest,
+  RequestMemoryEmbeddingRuntimeCutoverResponse,
   RetainRequest,
   RetainResponse,
 } from '../generated/runtime/v1/memory';
@@ -358,6 +364,18 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.memory.deleteMemory]: {
     requestType: DeleteMemoryRequest,
     responseType: DeleteMemoryResponse,
+  },
+  [RuntimeMethodIds.memory.inspectMemoryEmbeddingRuntime]: {
+    requestType: InspectMemoryEmbeddingRuntimeRequest,
+    responseType: InspectMemoryEmbeddingRuntimeResponse,
+  },
+  [RuntimeMethodIds.memory.requestMemoryEmbeddingRuntimeBind]: {
+    requestType: RequestMemoryEmbeddingRuntimeBindRequest,
+    responseType: RequestMemoryEmbeddingRuntimeBindResponse,
+  },
+  [RuntimeMethodIds.memory.requestMemoryEmbeddingRuntimeCutover]: {
+    requestType: RequestMemoryEmbeddingRuntimeCutoverRequest,
+    responseType: RequestMemoryEmbeddingRuntimeCutoverResponse,
   },
   [RuntimeMethodIds.agent.initializeAgent]: {
     requestType: InitializeAgentRequest,

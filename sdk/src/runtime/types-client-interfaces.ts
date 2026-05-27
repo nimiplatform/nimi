@@ -281,10 +281,16 @@ import type {
   GetBankResponse,
   HistoryRequest,
   HistoryResponse,
+  InspectMemoryEmbeddingRuntimeRequest,
+  InspectMemoryEmbeddingRuntimeResponse,
   ListBanksRequest,
   ListBanksResponse,
   RecallRequest,
   RecallResponse,
+  RequestMemoryEmbeddingRuntimeBindRequest,
+  RequestMemoryEmbeddingRuntimeBindResponse,
+  RequestMemoryEmbeddingRuntimeCutoverRequest,
+  RequestMemoryEmbeddingRuntimeCutoverResponse,
   RetainRequest,
   RetainResponse,
   SubscribeMemoryEventsRequest,
@@ -563,6 +569,9 @@ export type RuntimeMemoryClient = {
   recall(request: RecallRequest, options?: RuntimeCallOptions): Promise<RecallResponse>;
   history(request: HistoryRequest, options?: RuntimeCallOptions): Promise<HistoryResponse>;
   deleteMemory(request: DeleteMemoryRequest, options?: RuntimeCallOptions): Promise<DeleteMemoryResponse>;
+  inspectMemoryEmbeddingRuntime(request: InspectMemoryEmbeddingRuntimeRequest, options?: RuntimeCallOptions): Promise<InspectMemoryEmbeddingRuntimeResponse>;
+  requestMemoryEmbeddingRuntimeBind(request: RequestMemoryEmbeddingRuntimeBindRequest, options?: RuntimeCallOptions): Promise<RequestMemoryEmbeddingRuntimeBindResponse>;
+  requestMemoryEmbeddingRuntimeCutover(request: RequestMemoryEmbeddingRuntimeCutoverRequest, options?: RuntimeCallOptions): Promise<RequestMemoryEmbeddingRuntimeCutoverResponse>;
   subscribeEvents(
     request: SubscribeMemoryEventsRequest,
     options?: RuntimeStreamCallOptions,

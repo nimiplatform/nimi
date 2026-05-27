@@ -440,6 +440,9 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       recall: unary(RuntimeMethodIds.memory.recall),
       history: unary(RuntimeMethodIds.memory.history),
       deleteMemory: unary(RuntimeMethodIds.memory.deleteMemory),
+      inspectMemoryEmbeddingRuntime: unary(RuntimeMethodIds.memory.inspectMemoryEmbeddingRuntime),
+      requestMemoryEmbeddingRuntimeBind: unary(RuntimeMethodIds.memory.requestMemoryEmbeddingRuntimeBind),
+      requestMemoryEmbeddingRuntimeCutover: unary(RuntimeMethodIds.memory.requestMemoryEmbeddingRuntimeCutover),
       subscribeEvents: stream(RuntimeMethodIds.memory.subscribeEvents),
     },
     agent: {

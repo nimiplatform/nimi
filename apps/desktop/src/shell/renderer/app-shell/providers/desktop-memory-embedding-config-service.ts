@@ -2,11 +2,22 @@
  * Shared Desktop host memory-embedding adjacent config service.
  *
  * This service owns the host-local adjacent config truth and exposes a
- * fail-closed runtime-facing logical surface. The runtime methods are temporary
- * skeletons for the first coding wave; they intentionally do not invent
- * resolved-profile truth in the host.
+ * fail-closed runtime-facing logical surface. Runtime readiness, bind, and
+ * cutover facts are projected through SDK runtime.memory methods backed by
+ * RuntimeCognitionService.
  */
 
+import {
+  getPlatformClient,
+} from '@nimiplatform/sdk';
+import {
+  createRuntimeProtectedScopeHelper,
+  MemoryBankScope,
+  RuntimeReasonCode,
+  type MemoryEmbeddingBindingIntentSnapshot,
+  type MemoryEmbeddingProfile,
+  type RuntimeCallOptions,
+} from '@nimiplatform/sdk/runtime';
 import {
   createEmptyMemoryEmbeddingConfig,
   type AIScopeRef,
@@ -20,15 +31,11 @@ import {
   type MemoryEmbeddingRuntimeInput,
   type MemoryEmbeddingRuntimeState,
   type MemoryEmbeddingRuntimeSurface,
+  type MemoryEmbeddingSourceKind,
   type MemoryEmbeddingBindOutcome,
 } from '@nimiplatform/sdk/ai';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
-import {
-  inspectMemoryEmbeddingRuntime,
-  requestMemoryEmbeddingRuntimeBind,
-  requestMemoryEmbeddingRuntimeCutover,
-} from '@renderer/bridge/runtime-bridge/memory-embedding';
+import { useAppStore } from './app-store.js';
 import {
   listPersistedMemoryEmbeddingScopeKeys,
   loadMemoryEmbeddingConfigForScope,
@@ -50,6 +57,7 @@ type MemoryEmbeddingSubscription = {
 let subscriptionIDCounter = 0;
 const subscriptions = new Map<number, MemoryEmbeddingSubscription>();
 const configByScope = new Map<string, MemoryEmbeddingConfig>();
+let protectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
 
 function ensureHydrated(): void {
   if (configByScope.size > 0) {
@@ -133,34 +141,7 @@ function inspectFromConfig(config: MemoryEmbeddingConfig): MemoryEmbeddingRuntim
   };
 }
 
-function toBridgeScopeRef(scopeRef: AIScopeRef): {
-  kind: string;
-  ownerId: string;
-  surfaceId?: string;
-} {
-  return {
-    kind: scopeRef.kind,
-    ownerId: scopeRef.ownerId,
-    surfaceId: scopeRef.surfaceId,
-  };
-}
-
-function toBridgeTargetRef(targetRef: MemoryEmbeddingRuntimeInput['targetRef']): {
-  kind: 'agent-core';
-  agentId: string;
-} {
-  return {
-    kind: 'agent-core',
-    agentId: String(targetRef.agentId || '').trim(),
-  };
-}
-
-function toBindingIntentSnapshot(config: MemoryEmbeddingConfig): {
-  sourceKind?: 'cloud' | 'local';
-  cloudBinding?: { connectorId: string; modelId: string };
-  localBinding?: { targetId: string };
-  revisionToken?: string;
-} | undefined {
+function toBindingIntentSnapshot(config: MemoryEmbeddingConfig): MemoryEmbeddingBindingIntentSnapshot | undefined {
   if (!config.sourceKind || !config.bindingRef) {
     return undefined;
   }
@@ -186,6 +167,73 @@ function toBindingIntentSnapshot(config: MemoryEmbeddingConfig): {
   return undefined;
 }
 
+function currentSubjectUserId(): string {
+  const user = useAppStore.getState().auth.user as Record<string, unknown> | null;
+  return String(user?.id || '').trim();
+}
+
+function getProtectedAccess() {
+  if (protectedAccess) {
+    return protectedAccess;
+  }
+  const runtime = getPlatformClient().runtime;
+  protectedAccess = createRuntimeProtectedScopeHelper({
+    runtime,
+    getSubjectUserId: async () => {
+      const subjectUserId = currentSubjectUserId();
+      if (!subjectUserId) {
+        throw new Error('desktop memory embedding runtime requires authenticated subject user id');
+      }
+      return subjectUserId;
+    },
+  });
+  return protectedAccess;
+}
+
+function toRuntimeRequestContext() {
+  return {
+    appId: getPlatformClient().runtime.appId,
+    subjectUserId: currentSubjectUserId(),
+  };
+}
+
+function toRuntimeAgentCoreLocator(targetRef: MemoryEmbeddingRuntimeInput['targetRef']) {
+  return {
+    scope: MemoryBankScope.AGENT_CORE,
+    owner: {
+      oneofKind: 'agentCore' as const,
+      agentCore: {
+        agentId: String(targetRef.agentId || '').trim(),
+      },
+    },
+  };
+}
+
+function runtimeReasonCodeName(value: RuntimeReasonCode | undefined): string | null {
+  const numeric = Number(value ?? RuntimeReasonCode.REASON_CODE_UNSPECIFIED);
+  if (!Number.isFinite(numeric) || numeric === RuntimeReasonCode.REASON_CODE_UNSPECIFIED) {
+    return null;
+  }
+  return RuntimeReasonCode[numeric as RuntimeReasonCode] || null;
+}
+
+function memoryEmbeddingProfileIdentity(profile: MemoryEmbeddingProfile | undefined): string | null {
+  if (!profile) {
+    return null;
+  }
+  const parts = [profile.provider, profile.modelId, profile.version]
+    .map((part) => String(part || '').trim())
+    .filter(Boolean);
+  return parts.length > 0 ? parts.join(':') : null;
+}
+
+async function withRuntimeMemoryScopes<T>(
+  scopes: readonly string[],
+  operation: (options: RuntimeCallOptions) => Promise<T>,
+): Promise<T> {
+  return getProtectedAccess().withScopes(scopes, operation);
+}
+
 function normalizeResolutionState(value: string): MemoryEmbeddingResolutionState {
   switch (value) {
     case 'missing':
@@ -195,6 +243,16 @@ function normalizeResolutionState(value: string): MemoryEmbeddingResolutionState
       return value;
     default:
       return 'unavailable';
+  }
+}
+
+function normalizeBindingSourceKind(value: string): MemoryEmbeddingSourceKind | null {
+  switch (value) {
+    case 'cloud':
+    case 'local':
+      return value;
+    default:
+      return null;
   }
 }
 
@@ -265,32 +323,32 @@ function createMemoryEmbeddingRuntimeSurface(): MemoryEmbeddingRuntimeSurface {
   return {
     async inspect(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingRuntimeState> {
       const config = getConfigForScope(input.scopeRef);
-      if (!hasTauriInvoke()) {
+      if (!currentSubjectUserId()) {
         return inspectFromConfig(config);
       }
-      const result = await inspectMemoryEmbeddingRuntime({
-        scopeRef: toBridgeScopeRef(input.scopeRef),
-        targetRef: toBridgeTargetRef(input.targetRef),
+      const runtime = getPlatformClient().runtime;
+      const result = await withRuntimeMemoryScopes(['runtime.memory.read'], (options) => runtime.memory.inspectMemoryEmbeddingRuntime({
+        context: toRuntimeRequestContext(),
+        locator: toRuntimeAgentCoreLocator(input.targetRef),
         bindingIntentSnapshot: toBindingIntentSnapshot(config),
-      });
+      }, options));
       return {
         bindingIntentPresent: result.bindingIntentPresent,
-        bindingSourceKind: result.bindingSourceKind || null,
+        bindingSourceKind: normalizeBindingSourceKind(result.bindingSourceKind),
         resolutionState: normalizeResolutionState(result.resolutionState),
-        resolvedProfileIdentity: result.resolvedProfileIdentity || null,
+        resolvedProfileIdentity: memoryEmbeddingProfileIdentity(result.resolvedProfile),
         canonicalBankStatus: normalizeCanonicalBankStatus(result.canonicalBankStatus),
-        blockedReasonCode: result.blockedReasonCode || null,
+        blockedReasonCode: runtimeReasonCodeName(result.blockedReasonCode),
         operationReadiness: {
-          bindAllowed: result.operationReadiness.bindAllowed,
-          cutoverAllowed: result.operationReadiness.cutoverAllowed,
+          bindAllowed: Boolean(result.operationReadiness?.bindAllowed),
+          cutoverAllowed: Boolean(result.operationReadiness?.cutoverAllowed),
         },
-        traceId: result.traceId,
       };
     },
 
     async requestBind(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingBindResult> {
       const config = getConfigForScope(input.scopeRef);
-      if (!hasTauriInvoke()) {
+      if (!currentSubjectUserId()) {
         const state = inspectFromConfig(config);
         return {
           outcome: 'rejected',
@@ -299,23 +357,23 @@ function createMemoryEmbeddingRuntimeSurface(): MemoryEmbeddingRuntimeSurface {
           pendingCutover: false,
         };
       }
-      const result = await requestMemoryEmbeddingRuntimeBind({
-        scopeRef: toBridgeScopeRef(input.scopeRef),
-        targetRef: toBridgeTargetRef(input.targetRef),
+      const runtime = getPlatformClient().runtime;
+      const result = await withRuntimeMemoryScopes(['runtime.memory.write'], (options) => runtime.memory.requestMemoryEmbeddingRuntimeBind({
+        context: toRuntimeRequestContext(),
+        locator: toRuntimeAgentCoreLocator(input.targetRef),
         bindingIntentSnapshot: toBindingIntentSnapshot(config),
-      });
+      }, options));
       return {
         outcome: normalizeBindOutcome(result.outcome),
-        blockedReasonCode: result.blockedReasonCode || null,
+        blockedReasonCode: runtimeReasonCodeName(result.blockedReasonCode),
         canonicalBankStatusAfter: normalizeCanonicalBankStatus(result.canonicalBankStatusAfter),
         pendingCutover: result.pendingCutover,
-        traceId: result.traceId,
       };
     },
 
     async requestCutover(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingCutoverResult> {
       const config = getConfigForScope(input.scopeRef);
-      if (!hasTauriInvoke()) {
+      if (!currentSubjectUserId()) {
         const state = inspectFromConfig(config);
         return {
           outcome: 'not_ready',
@@ -323,16 +381,16 @@ function createMemoryEmbeddingRuntimeSurface(): MemoryEmbeddingRuntimeSurface {
           canonicalBankStatusAfter: state.canonicalBankStatus,
         };
       }
-      const result = await requestMemoryEmbeddingRuntimeCutover({
-        scopeRef: toBridgeScopeRef(input.scopeRef),
-        targetRef: toBridgeTargetRef(input.targetRef),
+      const runtime = getPlatformClient().runtime;
+      const result = await withRuntimeMemoryScopes(['runtime.memory.write'], (options) => runtime.memory.requestMemoryEmbeddingRuntimeCutover({
+        context: toRuntimeRequestContext(),
+        locator: toRuntimeAgentCoreLocator(input.targetRef),
         bindingIntentSnapshot: toBindingIntentSnapshot(config),
-      });
+      }, options));
       return {
         outcome: normalizeCutoverOutcome(result.outcome),
-        blockedReasonCode: result.blockedReasonCode || null,
+        blockedReasonCode: runtimeReasonCodeName(result.blockedReasonCode),
         canonicalBankStatusAfter: normalizeCanonicalBankStatus(result.canonicalBankStatusAfter),
-        traceId: result.traceId,
       };
     },
   };

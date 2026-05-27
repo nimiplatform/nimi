@@ -282,59 +282,6 @@ func TestDaemonRunRefreshesManagedEmbeddingProfileOnStartup(t *testing.T) {
 	}
 }
 
-func TestDaemonBindCanonicalMemoryStandardIsIdempotent(t *testing.T) {
-	cfg := config.Config{
-		GRPCAddr:             "127.0.0.1:0",
-		HTTPAddr:             "127.0.0.1:0",
-		ShutdownTimeout:      2 * time.Second,
-		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
-		AuditRingBufferSize:  64,
-		UsageStatsBufferSize: 64,
-		IdempotencyCapacity:  32,
-	}
-	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
-	if err != nil {
-		t.Fatalf("create daemon: %v", err)
-	}
-	closeDaemonForTest(t, daemon)
-	if svc := daemon.grpc.LocalService(); svc != nil {
-		t.Cleanup(func() { svc.Close() })
-	}
-	daemon.listEmbeddingAssetsFn = func(context.Context) ([]*runtimev1.LocalAssetRecord, error) {
-		return []*runtimev1.LocalAssetRecord{
-			{
-				LocalAssetId: "local-embed-1",
-				AssetId:      "local/embed-alpha",
-				Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING,
-				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-				UpdatedAt:    "2026-04-13T12:00:00Z",
-			},
-		}, nil
-	}
-
-	first, err := daemon.bindCanonicalMemoryStandard(context.Background(), "agent-standard")
-	if err != nil {
-		t.Fatalf("first bind: %v", err)
-	}
-	if first.AlreadyBound {
-		t.Fatal("expected first bind to report alreadyBound=false")
-	}
-	if first.Bank == nil || first.Bank.GetEmbeddingProfile() == nil {
-		t.Fatal("expected first bind to return a bound bank")
-	}
-
-	second, err := daemon.bindCanonicalMemoryStandard(context.Background(), "agent-standard")
-	if err != nil {
-		t.Fatalf("second bind: %v", err)
-	}
-	if !second.AlreadyBound {
-		t.Fatal("expected second bind to report alreadyBound=true")
-	}
-	if second.Bank == nil || second.Bank.GetEmbeddingProfile() == nil {
-		t.Fatal("expected second bind to keep the bank bound")
-	}
-}
-
 func TestDaemonRunWaitsForBackgroundWorkersToStop(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:1234/v1")
 	cfg := config.Config{

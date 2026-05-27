@@ -153,6 +153,12 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.memory.read", true
 	case "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory":
 		return "runtime.memory.write", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime":
+		return "runtime.memory.read", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind":
+		return "runtime.memory.write", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover":
+		return "runtime.memory.write", true
 	case "/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank":
 		return "runtime.knowledge.admin", true
 	case "/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank":

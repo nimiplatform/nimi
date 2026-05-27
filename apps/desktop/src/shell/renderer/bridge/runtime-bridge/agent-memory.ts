@@ -1,25 +1,9 @@
 import { invokeTauri } from '@runtime/tauri-api';
 import {
-  parseAgentMemoryBindStandardResult,
   parseAgentMemoryStandardFixtureStatusResult,
-  type AgentMemoryBindStandardPayload,
-  type AgentMemoryBindStandardResult,
+  type AgentMemoryStandardFixtureStatusPayload,
   type AgentMemoryStandardFixtureStatusResult,
 } from './types';
-
-export async function bindAgentMemoryStandard(
-  payload: AgentMemoryBindStandardPayload,
-): Promise<AgentMemoryBindStandardResult> {
-  try {
-    const result = await invokeTauri('agent_memory_bind_standard', { payload });
-    return parseAgentMemoryBindStandardResult(result);
-  } catch (error) {
-    if (isTauriRuntimeUnavailable(error)) {
-      throw new Error('agent_memory_bind_standard requires Tauri runtime', { cause: error });
-    }
-    throw error;
-  }
-}
 
 function isTauriRuntimeUnavailable(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error || '');
@@ -32,7 +16,7 @@ function emptyAgentMemoryStandardFixtureStatus(): AgentMemoryStandardFixtureStat
 }
 
 export async function getAgentMemoryStandardFixtureStatus(
-  payload: AgentMemoryBindStandardPayload,
+  payload: AgentMemoryStandardFixtureStatusPayload,
 ): Promise<AgentMemoryStandardFixtureStatusResult> {
   try {
     const result = await invokeTauri('agent_memory_standard_fixture_status_get', { payload });
