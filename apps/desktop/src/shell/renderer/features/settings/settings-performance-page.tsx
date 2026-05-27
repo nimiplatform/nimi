@@ -23,9 +23,7 @@ import {
   AnimationIcon,
   AwardIcon,
   canUseDesktopUpdater,
-  CodeIcon,
   collectDesktopUpdatePanelAlerts,
-  CpuIcon,
   DownloadIcon,
   formatUpdateProgress,
   GpuIcon,
@@ -38,7 +36,6 @@ import {
 
 export function PerformancePage() {
   const { t } = useTranslation();
-  const runtimeFields = useAppStore((s) => s.runtimeFields);
   const desktopReleaseInfo = useAppStore((s) => s.desktopReleaseInfo);
   const desktopReleaseError = useAppStore((s) => s.desktopReleaseError);
   const desktopUpdateState = useAppStore((s) => s.desktopUpdateState);
@@ -279,18 +276,6 @@ export function PerformancePage() {
             never reachable only through launch params or env vars. */}
         <div className="mt-3">
           <DeveloperModeToggle />
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <SectionTitle>{t('Performance.sectionRuntimeInfo')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="divide-y divide-gray-100">
-            <InfoCard icon={<ServerIcon className="h-5 w-5" />} label={t('Performance.provider')} value={runtimeFields.provider || t('Performance.notConfigured')} />
-            <InfoCard icon={<CpuIcon className="h-5 w-5" />} label={t('Performance.model')} value={runtimeFields.localProviderModel || '-'} />
-            <InfoCard icon={<TargetIcon className="h-5 w-5" />} label={t('Performance.mode')} value={runtimeFields.mode} />
-            <InfoCard icon={<CodeIcon className="h-5 w-5" />} label={t('Performance.targetType')} value={runtimeFields.targetType} />
-          </div>
         </div>
       </section>
 
