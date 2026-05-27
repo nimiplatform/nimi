@@ -13,6 +13,11 @@ import type {
   LocalRuntimeProfileResolutionPlan,
 } from '@runtime/local-runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+import {
+  LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS,
+  normalizeLocalRuntimeRunnableAssetKindId,
+  type LocalRuntimeRunnableAssetKindId,
+} from '@nimiplatform/sdk/runtime';
 import type { RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
 import type { RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 
@@ -63,8 +68,8 @@ export type LocalModelCenterProps = {
   installSessionMeta?: Map<string, { plan: LocalRuntimeInstallPlanDescriptor; installSource: string }>;
 };
 
-export const CAPABILITY_OPTIONS = ['chat', 'image', 'video', 'tts', 'stt', 'embedding'] as const;
-export type CapabilityOption = typeof CAPABILITY_OPTIONS[number];
+export const CAPABILITY_OPTIONS = LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS;
+export type CapabilityOption = LocalRuntimeRunnableAssetKindId;
 export const ASSET_CLASS_OPTIONS = ['runnable', 'dependency'] as const;
 export type AssetClassOption = typeof ASSET_CLASS_OPTIONS[number];
 export const ASSET_ENGINE_OPTIONS = ['llama', 'media', 'speech', 'sidecar'] as const;
@@ -192,8 +197,7 @@ export function formatImportPhaseLabel(phase: string | undefined): string {
 }
 
 export function normalizeCapabilityOption(value: string | undefined): CapabilityOption {
-  const normalized = String(value || '').trim().toLowerCase();
-  return (CAPABILITY_OPTIONS.find((item) => item === normalized) || 'chat') as CapabilityOption;
+  return normalizeLocalRuntimeRunnableAssetKindId(value);
 }
 
 export function normalizeAssetClassOption(value: string | undefined): AssetClassOption {

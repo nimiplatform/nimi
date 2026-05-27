@@ -1,9 +1,15 @@
 import type { LocalRuntimeCatalogRecommendation } from '@runtime/local-runtime';
+import {
+  LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS,
+  isLocalRuntimeRunnableAssetKindId,
+  normalizeLocalRuntimeRunnableAssetKindId,
+  type LocalRuntimeRunnableAssetKindId,
+} from '@nimiplatform/sdk/runtime';
 
 type JsonObject = Record<string, unknown>;
 
-export const CAPABILITIES_V11 = ['chat', 'image', 'video', 'tts', 'stt', 'embedding'] as const;
-export type CapabilityV11 = (typeof CAPABILITIES_V11)[number];
+export const CAPABILITIES_V11 = LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS;
+export type CapabilityV11 = LocalRuntimeRunnableAssetKindId;
 
 export type SourceIdV11 = 'local' | 'cloud';
 /**
@@ -156,8 +162,7 @@ export function normalizePageIdV11(value: unknown): RuntimePageIdV11 {
 }
 
 export function normalizeCapabilityV11(value: unknown): CapabilityV11 {
-  if (value === 'image' || value === 'video' || value === 'tts' || value === 'stt' || value === 'embedding') return value;
-  return 'chat';
+  return normalizeLocalRuntimeRunnableAssetKindId(value);
 }
 
 export function normalizeUiModeV11(value: unknown): UiModeV11 {
@@ -260,14 +265,7 @@ export function normalizeLocalModelV11(raw: Partial<LocalModelOptionV11>): Local
   const localModelId = String(raw.localModelId || raw.model || randomIdV11('local-model')).trim();
   const capabilities = (Array.isArray(raw.capabilities) ? raw.capabilities : [])
     .map((value) => String(value || '').trim())
-    .filter((value): value is CapabilityV11 => (
-      value === 'chat'
-      || value === 'image'
-      || value === 'video'
-      || value === 'tts'
-      || value === 'stt'
-      || value === 'embedding'
-    ));
+    .filter(isLocalRuntimeRunnableAssetKindId);
   const engine = String(raw.engine || '').trim();
   return {
     localModelId,
@@ -289,11 +287,7 @@ export function normalizeLocalNodeMatrixEntryV11(
 ): LocalNodeMatrixEntryV11 {
   const capability = String(raw.capability || '').trim().toLowerCase();
   const normalizedCapability: NodeCapabilityV11 = (
-    capability === 'image'
-    || capability === 'video'
-    || capability === 'tts'
-    || capability === 'stt'
-    || capability === 'embedding'
+    isLocalRuntimeRunnableAssetKindId(capability)
     || capability === 'rerank'
     || capability === 'cv'
     || capability === 'diarize'

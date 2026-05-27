@@ -1,7 +1,16 @@
 import type { LocalRuntimeAssetDeclaration, LocalRuntimeAssetKind } from '@runtime/local-runtime';
+import {
+  LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS,
+  isLocalRuntimeRunnableAssetKindId,
+  localRuntimeCapabilitiesForAssetKind,
+} from '@nimiplatform/sdk/runtime';
 import { ALL_ASSET_KIND_OPTIONS, ASSET_KIND_OPTIONS } from './runtime-config-local-model-center-helpers.js';
 
-export const RUNNABLE_ASSET_KINDS = new Set(['chat', 'image', 'video', 'tts', 'stt', 'embedding']);
+export const RUNNABLE_ASSET_KINDS = new Set(LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS);
+
+export function isRunnableAssetKind(kind: LocalRuntimeAssetKind): boolean {
+  return isLocalRuntimeRunnableAssetKindId(kind);
+}
 
 export function normalizeDependencyAssetKind(kind: string | undefined): LocalRuntimeAssetKind {
   const normalized = String(kind || '').trim().toLowerCase();
@@ -41,20 +50,7 @@ export function canImportDeclaration(declaration: LocalRuntimeAssetDeclaration):
 }
 
 export function capabilitiesForAssetKind(kind: LocalRuntimeAssetKind): string[] {
-  switch (kind) {
-    case 'image':
-      return ['image'];
-    case 'video':
-      return ['video'];
-    case 'tts':
-      return ['tts'];
-    case 'stt':
-      return ['stt'];
-    case 'embedding':
-      return ['embedding'];
-    default:
-      return ['chat'];
-  }
+  return localRuntimeCapabilitiesForAssetKind(kind);
 }
 
 export function manifestPathFromSourceRepo(repo: string | undefined): string | undefined {

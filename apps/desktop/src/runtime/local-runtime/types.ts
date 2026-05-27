@@ -2,13 +2,18 @@ import type {
   LocalRuntimeExecutionDeclarationDescriptor,
   LocalRuntimeDeviceProfile,
 } from './types-dependencies';
-import type { LocalRecommendationFeedCapabilityId } from '@nimiplatform/sdk/runtime';
+import type {
+  LocalRecommendationFeedCapabilityId,
+  LocalRuntimeAssetKindId,
+  LocalRuntimeRunnableAssetKindId,
+} from '@nimiplatform/sdk/runtime';
 import type {
   LocalRuntimeProfileResolvePayload,
 } from './types-profiles';
 
 export type LocalRuntimeAssetStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
-export type LocalRuntimeAssetKind = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | 'vae' | 'clip' | 'lora' | 'controlnet' | 'auxiliary';
+export type LocalRuntimeAssetKind = LocalRuntimeAssetKindId;
+export type LocalRuntimeCapabilityToken = LocalRuntimeRunnableAssetKindId | string;
 export type LocalRuntimeIntegrityMode = 'verified' | 'local_unverified';
 export type LocalRuntimeSuggestionSource = 'manifest' | 'folder' | 'download-metadata' | 'filename' | 'unknown';
 export type LocalRuntimeSuggestionConfidence = 'high' | 'low';
@@ -232,7 +237,7 @@ export type LocalRuntimeCatalogItemDescriptor = {
   repo: string;
   revision: string;
   templateId?: string;
-  capabilities: Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string>;
+  capabilities: LocalRuntimeCapabilityToken[];
   engine: string;
   engineRuntimeMode: LocalRuntimeEngineRuntimeMode;
   installKind: string;
@@ -272,7 +277,7 @@ export type LocalRuntimeInstallPlanDescriptor = {
   modelId: string;
   repo: string;
   revision: string;
-  capabilities: Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string>;
+  capabilities: LocalRuntimeCapabilityToken[];
   engine: string;
   engineRuntimeMode: LocalRuntimeEngineRuntimeMode;
   installKind: string;
@@ -291,7 +296,7 @@ export type LocalRuntimeInstallPlanDescriptor = {
 
 export type LocalRuntimeCatalogSearchPayload = {
   query?: string;
-  capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
+  capability?: LocalRuntimeCapabilityToken;
   limit?: number;
 };
 
@@ -318,7 +323,7 @@ export type LocalRuntimeCatalogResolveInstallPlanPayload = {
   modelId?: string;
   repo?: string;
   revision?: string;
-  capabilities?: Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string>;
+  capabilities?: LocalRuntimeCapabilityToken[];
   engine?: string;
   entry?: string;
   files?: string[];
@@ -363,7 +368,7 @@ export type {
 
 export type LocalRuntimeExecutionResolvePayload = {
   targetId: string;
-  capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
+  capability?: LocalRuntimeCapabilityToken;
   entries?: LocalRuntimeExecutionDeclarationDescriptor;
   deviceProfile: LocalRuntimeDeviceProfile;
 };
@@ -397,7 +402,7 @@ export type LocalRuntimeServicesInstallPayload = {
 };
 
 export type LocalRuntimeNodesCatalogListPayload = {
-  capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
+  capability?: LocalRuntimeCapabilityToken;
   serviceId?: string;
   provider?: string;
 };
@@ -473,7 +478,7 @@ export type LocalRuntimeInferenceAuditPayload = {
   source: 'local' | 'cloud';
   routeSource?: 'local' | 'cloud';
   provider: string;
-  modality: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding';
+  modality: LocalRuntimeRunnableAssetKindId;
   adapter: LocalRuntimeProviderAdapter;
   traceId?: string;
   model?: string;

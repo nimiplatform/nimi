@@ -1,8 +1,15 @@
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { ProviderStatusV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { localRuntime } from '@runtime/local-runtime';
-import type { GetRuntimeHealthResponse } from '@nimiplatform/sdk/runtime';
-import { asNimiError } from '@nimiplatform/sdk/runtime';
+import type {
+  GetRuntimeHealthResponse,
+  LocalRuntimeRunnableAssetKindId,
+} from '@nimiplatform/sdk/runtime';
+import {
+  asNimiError,
+  isLocalRuntimeRunnableAssetKindId,
+  normalizeLocalRuntimeRunnableAssetKindId,
+} from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   sdkTestConnector,
@@ -16,21 +23,11 @@ type HealthResult = {
   checkedAt: string;
 };
 
-type RuntimeNodeCapability = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding';
+type RuntimeNodeCapability = LocalRuntimeRunnableAssetKindId;
 type RuntimeNodeAdapter = 'openai_compat_adapter' | 'llama_native_adapter' | 'media_native_adapter' | 'speech_native_adapter' | 'sidecar_music_adapter';
 
 function normalizeRuntimeNodeCapability(value: unknown): RuntimeNodeCapability {
-  switch (String(value || '').trim()) {
-    case 'image':
-    case 'video':
-    case 'tts':
-    case 'stt':
-    case 'embedding':
-      return String(value) as RuntimeNodeCapability;
-    case 'chat':
-    default:
-      return 'chat';
-  }
+  return normalizeLocalRuntimeRunnableAssetKindId(value);
 }
 
 function normalizeRuntimeNodeAdapter(value: unknown): RuntimeNodeAdapter | undefined {
@@ -94,7 +91,7 @@ export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV
     engine: m.engine || '',
     model: m.assetId,
     endpoint: endpoint,
-    capabilities: (m.capabilities || []) as Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding'>,
+    capabilities: (m.capabilities || []).filter(isLocalRuntimeRunnableAssetKindId),
     status: m.status as 'installed' | 'active' | 'unhealthy',
   }));
   const nodeMatrix = (nodes || []).map((n) => ({

@@ -108,7 +108,7 @@ test('desktop local page no longer wires start\\/stop\\/restart product actions 
 test('local model center hides removed tombstones from installed sections and reinstall indexes', () => {
   assert.match(localModelCenterInstalledAssetsSource, /const visibleInstalledAssets = useMemo\(/);
   assert.match(localModelCenterInstalledAssetsSource, /sortedInstalledAssets\.filter\(\(asset\) => asset\.status !== 'removed'\)/);
-  assert.match(localModelCenterInstalledAssetsSource, /visibleInstalledAssets\.filter\(\(asset\) => RUNNABLE_ASSET_KINDS\.has\(asset\.kind\)\)/);
+  assert.match(localModelCenterInstalledAssetsSource, /visibleInstalledAssets\.filter\(\(asset\) => isRunnableAssetKind\(asset\.kind\)\)/);
   assert.match(localModelCenterStateSource, /new Map\(visibleInstalledAssets\.map\(\(asset\) => \[toCanonicalLocalLookupKey\(asset\.assetId\), asset\] as const\)\)/);
 });
 

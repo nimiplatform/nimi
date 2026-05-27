@@ -1,11 +1,12 @@
 import type { LocalRuntimeAssetRecord, LocalRuntimeServiceDescriptor } from './types';
+import type { LocalRuntimeRunnableAssetKindId } from '@nimiplatform/sdk/runtime';
 
 export type LocalRuntimeExecutionEntryKind = 'asset' | 'service' | 'node';
 
 export type LocalRuntimeExecutionOptionDescriptor = {
   entryId: string;
   kind: LocalRuntimeExecutionEntryKind;
-  capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
+  capability?: LocalRuntimeRunnableAssetKindId | string;
   title?: string;
   assetId?: string;
   repo?: string;
@@ -24,7 +25,7 @@ export type LocalRuntimeExecutionDeclarationDescriptor = {
   required?: LocalRuntimeExecutionOptionDescriptor[];
   optional?: LocalRuntimeExecutionOptionDescriptor[];
   alternatives?: LocalRuntimeExecutionAlternativeDescriptor[];
-  preferred?: Partial<Record<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding', string>>;
+  preferred?: Partial<Record<LocalRuntimeRunnableAssetKindId, string>>;
 };
 
 export type LocalRuntimeExecutionEntryDescriptor = {

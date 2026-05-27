@@ -5,6 +5,10 @@ import type {
   LocalRuntimeCatalogRecommendation,
   LocalRuntimeVerifiedAssetDescriptor,
 } from '@runtime/local-runtime';
+import {
+  LOCAL_RUNTIME_ASSET_KIND_IDS,
+  LOCAL_RUNTIME_PASSIVE_ASSET_KIND_IDS,
+} from '@nimiplatform/sdk/runtime';
 import { formatRelativeLocaleTime, i18n } from '@renderer/i18n';
 import { parseTimestamp } from './runtime-config-model-center-utils';
 export {
@@ -27,27 +31,8 @@ export {
   removeDismissedSessionId,
 } from './runtime-config-local-model-center-progress-cache';
 
-export const ASSET_KIND_OPTIONS = [
-  'vae',
-  'clip',
-  'controlnet',
-  'lora',
-  'auxiliary',
-] as const satisfies readonly LocalRuntimeAssetKind[];
-
-export const ALL_ASSET_KIND_OPTIONS = [
-  'chat',
-  'image',
-  'video',
-  'tts',
-  'stt',
-  'embedding',
-  'vae',
-  'clip',
-  'controlnet',
-  'lora',
-  'auxiliary',
-] as const satisfies readonly LocalRuntimeAssetKind[];
+export const ASSET_KIND_OPTIONS = LOCAL_RUNTIME_PASSIVE_ASSET_KIND_IDS;
+export const ALL_ASSET_KIND_OPTIONS = LOCAL_RUNTIME_ASSET_KIND_IDS;
 
 export function formatAssetKindLabel(value: LocalRuntimeAssetKind): string {
   switch (value) {
@@ -149,19 +134,9 @@ export function sortVerifiedAssetsForDisplay(
   });
 }
 
-const ASSET_KIND_RANK: Partial<Record<LocalRuntimeAssetKind, number>> = {
-  chat: 0,
-  image: 1,
-  video: 2,
-  tts: 3,
-  stt: 4,
-  embedding: 5,
-  vae: 10,
-  clip: 11,
-  controlnet: 12,
-  lora: 13,
-  auxiliary: 14,
-};
+const ASSET_KIND_RANK: Partial<Record<LocalRuntimeAssetKind, number>> = Object.fromEntries(
+  ALL_ASSET_KIND_OPTIONS.map((kind, index) => [kind, index]),
+) as Partial<Record<LocalRuntimeAssetKind, number>>;
 
 export function sortVerifiedPassiveAssetsForDisplay(
   assets: LocalRuntimeVerifiedAssetDescriptor[],

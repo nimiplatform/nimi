@@ -2,6 +2,7 @@ import type {
   LocalRuntimeAssetKind,
   LocalRuntimeAssetRecord,
 } from './types';
+import type { LocalRuntimeRunnableAssetKindId } from '@nimiplatform/sdk/runtime';
 import type {
   LocalRuntimeExecutionDeclarationDescriptor,
   LocalRuntimeExecutionApplyResult,
@@ -27,7 +28,7 @@ export type LocalRuntimeProfileEntryDescriptor = {
   kind: LocalRuntimeProfileEntryKind;
   title?: string;
   description?: string;
-  capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
+  capability?: LocalRuntimeRunnableAssetKindId | string;
   required?: boolean;
   preferred?: boolean;
   assetId?: string;
@@ -47,7 +48,7 @@ export type LocalRuntimeProfileDescriptor = {
   title: string;
   description?: string;
   recommended: boolean;
-  consumeCapabilities: Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string>;
+  consumeCapabilities: Array<LocalRuntimeRunnableAssetKindId | string>;
   entries: LocalRuntimeProfileEntryDescriptor[];
   requirements?: LocalRuntimeProfileRequirementDescriptor;
 };
@@ -55,7 +56,7 @@ export type LocalRuntimeProfileDescriptor = {
 export type LocalRuntimeProfileTargetDescriptor = {
   targetId: string;
   modName: string;
-  consumeCapabilities: Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string>;
+  consumeCapabilities: Array<LocalRuntimeRunnableAssetKindId | string>;
   profiles: LocalRuntimeProfileDescriptor[];
 };
 
@@ -66,7 +67,7 @@ export type LocalRuntimeProfileResolutionPlan = {
   title: string;
   description?: string;
   recommended: boolean;
-  consumeCapabilities: Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string>;
+  consumeCapabilities: Array<LocalRuntimeRunnableAssetKindId | string>;
   requirements?: LocalRuntimeProfileRequirementDescriptor;
   executionPlan: LocalRuntimeExecutionPlan;
   assetEntries: LocalRuntimeProfileEntryDescriptor[];
@@ -96,7 +97,7 @@ export type LocalRuntimeProfileInstallStatus = {
 export type LocalRuntimeProfileResolvePayload = {
   targetId: string;
   profile: LocalRuntimeProfileDescriptor;
-  capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
+  capability?: LocalRuntimeRunnableAssetKindId | string;
   deviceProfile?: LocalRuntimeDeviceProfile;
   entryOverrides?: LocalRuntimeProfileEntryOverride[];
 };

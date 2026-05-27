@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { isLocalRuntimeRunnableAssetKindId } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   importLocalRuntimeAsset,
@@ -58,18 +59,7 @@ function toRuntimeConfigLocalModel(
     engine: model.engine || '',
     model: model.assetId || '',
     endpoint: '',
-    capabilities: (model.capabilities || []).filter(
-      (
-        capability,
-      ): capability is RuntimeConfigStateV11['local']['models'][number]['capabilities'][number] => (
-        capability === 'chat'
-        || capability === 'image'
-        || capability === 'video'
-        || capability === 'tts'
-        || capability === 'stt'
-        || capability === 'embedding'
-      ),
-    ),
+    capabilities: (model.capabilities || []).filter(isLocalRuntimeRunnableAssetKindId),
     status: model.status,
     integrityMode: model.integrityMode,
     installedAt: model.installedAt,

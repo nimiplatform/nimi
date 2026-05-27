@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { startLocalRuntimePolling, type LocalRuntimeSnapshot } from '@runtime/local-runtime';
+import { isLocalRuntimeRunnableAssetKindId } from '@nimiplatform/sdk/runtime';
 import type { Dispatch, SetStateAction } from 'react';
 import type { RuntimeFieldMap, StatusBanner } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
@@ -45,14 +46,7 @@ function mergeLocalSnapshot(
       model: item.assetId || '',
       endpoint: '',
       capabilities: (item.capabilities || [])
-        .filter((capability): capability is 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' => (
-          capability === 'chat'
-          || capability === 'image'
-          || capability === 'video'
-          || capability === 'tts'
-          || capability === 'stt'
-          || capability === 'embedding'
-      )),
+        .filter(isLocalRuntimeRunnableAssetKindId),
       status: item.status,
       integrityMode: item.integrityMode,
       recommendation: item.recommendation,

@@ -17,6 +17,7 @@ import type {
   LocalRuntimeServiceDescriptor,
   LocalRuntimeNodeDescriptor,
 } from './types';
+import { normalizeLocalRuntimeAssetKindId } from '@nimiplatform/sdk/runtime';
 import { asRecord, asString } from './parser-primitives';
 import { asPlainObject } from './parser-helpers';
 import { toCanonicalLocalId } from './local-id';
@@ -219,34 +220,7 @@ export function parseVerifiedAssetDescriptor(value: unknown): LocalRuntimeVerifi
 }
 
 export function normalizeAssetKind(value: unknown): LocalRuntimeAssetKind {
-  // Proto LocalAssetKind: CHAT=1, IMAGE=2, VIDEO=3, TTS=4, STT=5, EMBEDDING=6, VAE=10, CLIP=11, LORA=12, CONTROLNET=13, AUXILIARY=14
-  if (typeof value === 'number') {
-    if (value === 1) return 'chat';
-    if (value === 2) return 'image';
-    if (value === 3) return 'video';
-    if (value === 4) return 'tts';
-    if (value === 5) return 'stt';
-    if (value === 6) return 'embedding';
-    if (value === 10) return 'vae';
-    if (value === 11) return 'clip';
-    if (value === 12) return 'lora';
-    if (value === 13) return 'controlnet';
-    if (value === 14) return 'auxiliary';
-    return 'chat';
-  }
-  const raw = asString(value).toLowerCase();
-  if (raw === 'chat' || raw === 'local_asset_kind_chat' || raw === '1') return 'chat';
-  if (raw === 'image' || raw === 'local_asset_kind_image' || raw === '2') return 'image';
-  if (raw === 'video' || raw === 'local_asset_kind_video' || raw === '3') return 'video';
-  if (raw === 'tts' || raw === 'local_asset_kind_tts' || raw === '4') return 'tts';
-  if (raw === 'stt' || raw === 'local_asset_kind_stt' || raw === '5') return 'stt';
-  if (raw === 'embedding' || raw === 'local_asset_kind_embedding' || raw === '6') return 'embedding';
-  if (raw === 'vae' || raw === 'local_asset_kind_vae' || raw === '10') return 'vae';
-  if (raw === 'clip' || raw === 'local_asset_kind_clip' || raw === '11') return 'clip';
-  if (raw === 'lora' || raw === 'local_asset_kind_lora' || raw === '12') return 'lora';
-  if (raw === 'controlnet' || raw === 'local_asset_kind_controlnet' || raw === '13') return 'controlnet';
-  if (raw === 'auxiliary' || raw === 'local_asset_kind_auxiliary' || raw === '14') return 'auxiliary';
-  return 'chat';
+  return normalizeLocalRuntimeAssetKindId(value);
 }
 
 

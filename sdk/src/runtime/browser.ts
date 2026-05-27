@@ -168,6 +168,20 @@ export {
   toLocalRecommendationFeedCapabilityRequestValue,
   type LocalRecommendationFeedCapabilityId,
 } from './local-recommendation-feed.js';
+export {
+  LOCAL_RUNTIME_ASSET_KIND_IDS,
+  LOCAL_RUNTIME_PASSIVE_ASSET_KIND_IDS,
+  LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS,
+  isLocalRuntimePassiveAssetKindId,
+  isLocalRuntimeRunnableAssetKindId,
+  localRuntimeCapabilitiesForAssetKind,
+  normalizeLocalRuntimeAssetKindId,
+  normalizeLocalRuntimeRunnableAssetKindId,
+  parseLocalRuntimeAssetKindId,
+  type LocalRuntimeAssetKindId,
+  type LocalRuntimePassiveAssetKindId,
+  type LocalRuntimeRunnableAssetKindId,
+} from './local-asset-kind.js';
 export { createTauriIpcTransport } from './transports/tauri-ipc.js';
 export { createRuntimeClient } from './core/client.js';
 export { createRuntimeProtectedScopeHelper } from './protected-access.js';

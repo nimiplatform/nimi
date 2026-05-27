@@ -133,6 +133,28 @@ test('parseArtifactRecord and parseVerifiedArtifactDescriptor decode metadata in
   assert.equal(verified.assetId, 'z-image-ae');
 });
 
+test('parseArtifactRecord decodes Runtime LocalAssetKind enum projection', () => {
+  const parsed = parseArtifactRecord({
+    localAssetId: 'artifact-controlnet',
+    assetId: 'z-image-controlnet',
+    kind: 'LOCAL_ASSET_KIND_CONTROLNET',
+    engine: 'media',
+    entry: 'controlnet.safetensors',
+    files: ['controlnet.safetensors'],
+    license: 'apache-2.0',
+    source: {
+      repo: 'local-import/z-image-controlnet',
+      revision: 'main',
+    },
+    hashes: {},
+    status: 'installed',
+    installedAt: '2026-03-08T00:00:00Z',
+    updatedAt: '2026-03-08T00:00:00Z',
+  });
+
+  assert.equal(parsed.kind, 'controlnet');
+});
+
 test('parseModelRecord canonicalizes local runtime ids to local/ prefix', () => {
   const model = parseModelRecord({
     localAssetId: '01JMODEL',

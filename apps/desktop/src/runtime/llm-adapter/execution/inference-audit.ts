@@ -1,16 +1,15 @@
 import { localRuntime } from '@runtime/local-runtime';
+import {
+  isLocalRuntimeRunnableAssetKindId,
+  type LocalRuntimeRunnableAssetKindId,
+} from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '../../telemetry/logger';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export type InferenceRouteSource = 'local' | 'cloud';
 export type InferencePersistMode = 'persist' | 'log-only';
 export type InferenceAuditModality =
-  | 'chat'
-  | 'image'
-  | 'video'
-  | 'tts'
-  | 'stt'
-  | 'embedding'
+  | LocalRuntimeRunnableAssetKindId
   | 'rerank'
   | 'cv'
   | 'diarize'
@@ -35,15 +34,8 @@ export type InferenceAuditInput = {
   extra?: Record<string, unknown>;
 };
 
-function isPersistedModality(modality: InferenceAuditModality): modality is 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' {
-  return (
-    modality === 'chat'
-    || modality === 'image'
-    || modality === 'video'
-    || modality === 'tts'
-    || modality === 'stt'
-    || modality === 'embedding'
-  );
+function isPersistedModality(modality: InferenceAuditModality): modality is LocalRuntimeRunnableAssetKindId {
+  return isLocalRuntimeRunnableAssetKindId(modality);
 }
 
 function isLoopbackHost(host: string): boolean {

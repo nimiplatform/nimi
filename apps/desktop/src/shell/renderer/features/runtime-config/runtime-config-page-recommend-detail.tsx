@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { formatRelativeLocaleTime } from '@renderer/i18n';
 import {
   localRuntime,
-  type LocalRuntimeAssetKind,
   type LocalRuntimeCatalogVariantDescriptor,
   type LocalRuntimeInstallPayload,
   type LocalRuntimeInstallPlanDescriptor,
@@ -56,19 +55,13 @@ export type RecommendDetailPageProps = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function inferKindFromCapabilities(capabilities: string[]): LocalRuntimeAssetKind {
-  if (capabilities.includes('image')) return 'image';
-  if (capabilities.includes('video')) return 'video';
-  if (capabilities.includes('tts')) return 'tts';
-  if (capabilities.includes('stt')) return 'stt';
-  if (capabilities.includes('embedding') || capabilities.includes('text.embed')) return 'embedding';
-  return 'chat';
-}
-
-function installPayloadFromPlan(plan: LocalRuntimeInstallPlanDescriptor): LocalRuntimeInstallPayload {
+function installPayloadFromPlan(
+  plan: LocalRuntimeInstallPlanDescriptor,
+  item: LocalRuntimeRecommendationFeedItemDescriptor,
+): LocalRuntimeInstallPayload {
   return {
     modelId: plan.modelId,
-    kind: inferKindFromCapabilities(plan.capabilities),
+    kind: item.installPayload.kind,
     repo: plan.repo,
     revision: plan.revision,
     capabilities: plan.capabilities,
@@ -165,11 +158,11 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
     if (!planPreview) return;
     setInstalling(true);
     try {
-      await model.installLocalModel(installPayloadFromPlan(planPreview));
+      await model.installLocalModel(installPayloadFromPlan(planPreview, item));
     } finally {
       setInstalling(false);
     }
-  }, [model, planPreview]);
+  }, [item, model, planPreview]);
 
   const openLocalModels = useCallback(() => {
     model.setLocalModelQuery(item.title || item.installPayload.modelId);

@@ -26,8 +26,9 @@ test('runtime config hydration banner is localized instead of hardcoded Chinese 
 });
 
 test('runtime config connector discovery validates node capabilities without as any', () => {
-  assert.match(connectorDiscoverySource, /type RuntimeNodeCapability = 'chat' \| 'image' \| 'video' \| 'tts' \| 'stt' \| 'embedding'/);
+  assert.match(connectorDiscoverySource, /type RuntimeNodeCapability = LocalRuntimeRunnableAssetKindId/);
   assert.match(connectorDiscoverySource, /function normalizeRuntimeNodeCapability/);
+  assert.match(connectorDiscoverySource, /normalizeLocalRuntimeRunnableAssetKindId/);
   assert.doesNotMatch(connectorDiscoverySource, /capability: \(\(\(n\.capabilities \|\| \[\]\)\[0\] \|\| 'chat'\) as any/);
 });
 

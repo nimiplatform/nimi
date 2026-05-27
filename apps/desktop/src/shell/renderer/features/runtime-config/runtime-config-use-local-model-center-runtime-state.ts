@@ -26,9 +26,9 @@ import {
 } from './runtime-config-local-model-center-helpers';
 import {
   canImportDeclaration,
+  isRunnableAssetKind,
   manifestPathFromSourceRepo,
   normalizeAssetDeclaration,
-  RUNNABLE_ASSET_KINDS,
 } from './runtime-config-use-local-model-center-helpers.js';
 import {
   useLocalModelCenterImportFilePlan,
@@ -183,7 +183,7 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
         return;
       }
       setVerifiedModels(sortVerifiedAssetsForDisplay(rows.filter((item) => (
-        RUNNABLE_ASSET_KINDS.has(item.kind) && !isRunnableAssetInstalled(item.assetId)
+        isRunnableAssetKind(item.kind) && !isRunnableAssetInstalled(item.assetId)
       ))).slice(0, 5));
     } catch {
       if (!mountedRef.current || requestId !== verifiedModelsRequestSeqRef.current) {
@@ -300,7 +300,7 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
   const visibleVerifiedAssets = useMemo(() => {
     const query = deferredSearchQuery.toLowerCase().trim();
     const candidates = verifiedAssets.filter((asset) => {
-      if (RUNNABLE_ASSET_KINDS.has(asset.kind)) {
+      if (isRunnableAssetKind(asset.kind)) {
         return false;
       }
       if (assetKindFilter !== 'all' && asset.kind !== assetKindFilter) {

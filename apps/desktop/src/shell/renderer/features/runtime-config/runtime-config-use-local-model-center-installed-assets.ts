@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { LocalRuntimeAssetKind, LocalRuntimeAssetRecord } from '@runtime/local-runtime';
 import { parseTimestamp } from './runtime-config-model-center-utils';
 import { filterInstalledAssets } from './runtime-config-local-model-center-helpers';
-import { RUNNABLE_ASSET_KINDS } from './runtime-config-use-local-model-center-helpers.js';
+import { isRunnableAssetKind } from './runtime-config-use-local-model-center-helpers.js';
 
 type InstalledAssetViewsInput = {
   assetKindFilter: 'all' | LocalRuntimeAssetKind;
@@ -33,7 +33,7 @@ export function useLocalModelCenterInstalledAssetViews({
   );
 
   const sortedInstalledRunnableAssets = useMemo(
-    () => visibleInstalledAssets.filter((asset) => RUNNABLE_ASSET_KINDS.has(asset.kind)),
+    () => visibleInstalledAssets.filter((asset) => isRunnableAssetKind(asset.kind)),
     [visibleInstalledAssets],
   );
 
@@ -54,7 +54,7 @@ export function useLocalModelCenterInstalledAssetViews({
   }, [deferredSearchQuery, sortedInstalledRunnableAssets]);
 
   const sortedInstalledDependencyAssets = useMemo(
-    () => visibleInstalledAssets.filter((asset) => !RUNNABLE_ASSET_KINDS.has(asset.kind)),
+    () => visibleInstalledAssets.filter((asset) => !isRunnableAssetKind(asset.kind)),
     [visibleInstalledAssets],
   );
 
