@@ -1,5 +1,6 @@
 import { asRecord } from '../internal/utils.js';
 import {
+  DEFAULT_LOCAL_PROVIDER_ADAPTER_ID,
   normalizeLocalProviderAdapterId,
   type LocalProviderAdapter,
   type LocalProviderHints,
@@ -503,7 +504,7 @@ export function runtimeRouteCallTargetFromResolvedBinding(
       routePolicy: 2,
       modelId: ensureRuntimeRoutePrefixedModelId('cloud', resolved.modelId || resolved.model),
       provider,
-      adapter: resolved.adapter || 'openai_compat_adapter',
+      adapter: resolved.adapter || DEFAULT_LOCAL_PROVIDER_ADAPTER_ID,
       endpoint: String(resolved.endpoint || '').trim(),
       connectorId,
     };
@@ -521,7 +522,7 @@ export function runtimeRouteCallTargetFromResolvedBinding(
     routePolicy: 1,
     modelId: ensureRuntimeRoutePrefixedModelId(engine, resolved.modelId || resolved.model || resolved.localModelId),
     provider: String(resolved.provider || '').trim() || engine,
-    adapter: resolved.adapter || 'openai_compat_adapter',
+    adapter: resolved.adapter || DEFAULT_LOCAL_PROVIDER_ADAPTER_ID,
     endpoint: String(resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || resolved.endpoint || '').trim(),
     localModelId: localModelId || undefined,
     goRuntimeLocalModelId: goRuntimeLocalModelId || undefined,
