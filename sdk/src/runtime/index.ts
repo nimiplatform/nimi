@@ -182,6 +182,13 @@ export {
   ResolveProfileRequest,
   ResolveProfileResponse,
 } from './generated/runtime/v1/local_runtime.js';
+export {
+  LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,
+  normalizeLocalRecommendationFeedCapabilityId,
+  parseLocalRecommendationFeedCapabilityId,
+  toLocalRecommendationFeedCapabilityRequestValue,
+  type LocalRecommendationFeedCapabilityId,
+} from './local-recommendation-feed.js';
 export type {
   RuntimeArtifactsModule,
   RuntimeArtifactsReadBytesInput,

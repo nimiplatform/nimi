@@ -2,6 +2,7 @@ import type {
   LocalRuntimeExecutionDeclarationDescriptor,
   LocalRuntimeDeviceProfile,
 } from './types-dependencies';
+import type { LocalRecommendationFeedCapabilityId } from '@nimiplatform/sdk/runtime';
 import type {
   LocalRuntimeProfileResolvePayload,
 } from './types-profiles';
@@ -147,7 +148,7 @@ export type LocalRuntimeRecommendationHostSupportClass = 'supported_supervised' 
 export type LocalRuntimeRecommendationConfidence = 'high' | 'medium' | 'low';
 export type LocalRuntimeRecommendationBaseline = 'image-default-v1' | 'video-default-v1';
 export type LocalRuntimeRecommendationFeedCacheState = 'fresh' | 'stale' | 'empty';
-export type LocalRuntimeRecommendationFeedCapability = 'chat' | 'image' | 'video';
+export type LocalRuntimeRecommendationFeedCapability = LocalRecommendationFeedCapabilityId;
 export type LocalRuntimeRecommendationFeedSource = 'model-index';
 
 export type LocalRuntimeSuggestedAsset = {

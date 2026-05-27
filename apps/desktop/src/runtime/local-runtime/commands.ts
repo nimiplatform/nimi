@@ -1,4 +1,7 @@
-import { toProtoStruct } from '@nimiplatform/sdk/runtime';
+import {
+  toLocalRecommendationFeedCapabilityRequestValue,
+  toProtoStruct,
+} from '@nimiplatform/sdk/runtime';
 import type {
   GgufVariantDescriptor,
   LocalRuntimeAssetKind,
@@ -357,7 +360,7 @@ export async function getLocalRuntimeRecommendationFeed(
 ): Promise<LocalRuntimeRecommendationFeedDescriptor> {
   const runtime = requireSdkLocal();
   const response = await runtime.getRecommendationFeed({
-    capability: String(payload?.capability || '').trim(),
+    capability: toLocalRecommendationFeedCapabilityRequestValue(payload?.capability),
     pageSize: Number(payload?.pageSize || 0),
   });
   return parseRecommendationFeedDescriptor(asRecord(response).feed, parseDeviceProfile);

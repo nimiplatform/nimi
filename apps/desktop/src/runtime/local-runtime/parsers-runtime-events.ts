@@ -25,6 +25,10 @@ import type {
   LocalRuntimeAssetHealth,
   LocalRuntimeUnregisteredAssetDescriptor,
 } from './types';
+import {
+  LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,
+  parseLocalRecommendationFeedCapabilityId,
+} from '@nimiplatform/sdk/runtime';
 import { asRecord, asString } from './parser-primitives';
 import { toCanonicalLocalId } from './local-id';
 import { normalizeAssetKind, normalizeAssetStatus } from './parsers';
@@ -51,7 +55,9 @@ const RECOMMENDATION_BASELINES = new Set<NonNullable<LocalRuntimeCatalogRecommen
   'image-default-v1',
   'video-default-v1',
 ]);
-const RECOMMENDATION_FEED_CAPABILITIES = new Set<LocalRuntimeRecommendationFeedCapability>(['chat', 'image', 'video']);
+const RECOMMENDATION_FEED_CAPABILITIES = new Set<LocalRuntimeRecommendationFeedCapability>(
+  LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,
+);
 const RECOMMENDATION_FEED_CACHE_STATES = new Set<LocalRuntimeRecommendationFeedCacheState>(['fresh', 'stale', 'empty']);
 const RECOMMENDATION_FEED_SOURCES = new Set<LocalRuntimeRecommendationFeedSource>(['model-index']);
 
@@ -92,9 +98,7 @@ function normalizeRecommendationEnumValue<T extends string>(value: unknown, allo
     if (raw === '2' || lower === 'local_recommendation_baseline_video_default_v1') return 'video-default-v1';
   }
   if (allowed === RECOMMENDATION_FEED_CAPABILITIES) {
-    if (raw === '1' || lower === 'local_recommendation_feed_capability_chat') return 'chat';
-    if (raw === '2' || lower === 'local_recommendation_feed_capability_image') return 'image';
-    if (raw === '3' || lower === 'local_recommendation_feed_capability_video') return 'video';
+    return parseLocalRecommendationFeedCapabilityId(value) || raw;
   }
   if (allowed === RECOMMENDATION_FEED_CACHE_STATES) {
     if (raw === '1' || lower === 'local_recommendation_feed_cache_state_fresh') return 'fresh';

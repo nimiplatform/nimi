@@ -161,6 +161,13 @@ export type {
 export { ExternalProofType, AppMode, WorldRelation } from './generated/runtime/v1/auth.js';
 export { PolicyMode, AuthorizationPreset as RuntimeAuthorizationPreset } from './generated/runtime/v1/grant.js';
 export { WorkflowStatus, WorkflowEventType, WorkflowExecutionMode } from './generated/runtime/v1/workflow.js';
+export {
+  LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,
+  normalizeLocalRecommendationFeedCapabilityId,
+  parseLocalRecommendationFeedCapabilityId,
+  toLocalRecommendationFeedCapabilityRequestValue,
+  type LocalRecommendationFeedCapabilityId,
+} from './local-recommendation-feed.js';
 export { createTauriIpcTransport } from './transports/tauri-ipc.js';
 export { createRuntimeClient } from './core/client.js';
 export { createRuntimeProtectedScopeHelper } from './protected-access.js';

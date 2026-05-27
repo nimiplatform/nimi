@@ -27,6 +27,6 @@ test('recommendation feed command uses Runtime SDK projection, not Tauri command
   assert.match(runtimeCommandsSource, /runtime\.getRecommendationFeed\(\{/);
   assert.match(
     runtimeCommandsSource,
-    /capability:\s*String\(payload\?\.capability \|\| ''\)\.trim\(\),\s*pageSize:\s*Number\(payload\?\.pageSize \|\| 0\),/,
+    /capability:\s*toLocalRecommendationFeedCapabilityRequestValue\(payload\?\.capability\),\s*pageSize:\s*Number\(payload\?\.pageSize \|\| 0\),/,
   );
 });

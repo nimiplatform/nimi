@@ -90,6 +90,15 @@ test('parseRecommendationFeedDescriptor keeps feed shape and fails closed for in
   assert.equal(parsed.items[0]?.recommendation, undefined);
 });
 
+test('parseRecommendationFeedDescriptor accepts Runtime enum capability projection', () => {
+  const payload = recommendationFeedFixture();
+  payload.activeCapability = 'LOCAL_RECOMMENDATION_FEED_CAPABILITY_VIDEO';
+
+  const parsed = parseRecommendationFeedDescriptor(payload, parseDeviceProfile);
+
+  assert.equal(parsed.activeCapability, 'video');
+});
+
 test('parseRecommendationFeedDescriptor rejects invalid wrapper capability instead of defaulting to chat', () => {
   const payload = recommendationFeedFixture();
   payload.activeCapability = 'tts';

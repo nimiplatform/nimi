@@ -3,11 +3,16 @@ import type {
   LocalRuntimeRecommendationFeedDescriptor,
   LocalRuntimeRecommendationFeedItemDescriptor,
 } from '@runtime/local-runtime';
+import {
+  LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,
+  normalizeLocalRecommendationFeedCapabilityId,
+  type LocalRecommendationFeedCapabilityId,
+} from '@nimiplatform/sdk/runtime';
 import type { CapabilityV11 } from './runtime-config-state-types';
 
-export const RECOMMEND_PAGE_CAPABILITIES = ['chat', 'image', 'video'] as const;
+export const RECOMMEND_PAGE_CAPABILITIES = LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS;
 
-export type RecommendPageCapability = (typeof RECOMMEND_PAGE_CAPABILITIES)[number];
+export type RecommendPageCapability = LocalRecommendationFeedCapabilityId;
 
 export type RecommendationFeedSections = {
   topMatches: LocalRuntimeRecommendationFeedItemDescriptor[];
@@ -332,10 +337,7 @@ export function buildHuggingFaceUrl(repo: string): string {
 // ---------------------------------------------------------------------------
 
 export function normalizeRecommendPageCapability(value: CapabilityV11 | string | undefined): RecommendPageCapability {
-  if (value === 'image' || value === 'video') {
-    return value;
-  }
-  return 'chat';
+  return normalizeLocalRecommendationFeedCapabilityId(value);
 }
 
 export function recommendationFeedMatchesQuery(
