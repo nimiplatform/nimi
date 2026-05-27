@@ -18,11 +18,24 @@ type ConnectorDescriptor = {
 };
 
 const LOCAL_SNAPSHOT_TIMEOUT_MS = 3500;
+
+async function fetchLocalRouteSnapshot(): Promise<LocalRuntimeSnapshot> {
+    const [assets, health] = await Promise.all([
+        localRuntime.listAssets(),
+        localRuntime.health(),
+    ]);
+    return {
+        assets,
+        health,
+        generatedAt: new Date().toISOString(),
+    };
+}
+
 async function pollLocalSnapshotWithTimeout(): Promise<LocalRuntimeSnapshot> {
     let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
     try {
         return await Promise.race([
-            localRuntime.pollSnapshot().catch((error) => {
+            fetchLocalRouteSnapshot().catch((error) => {
                 throw asNimiError(error, {
                     reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
                     actionHint: 'check_runtime_daemon_health',

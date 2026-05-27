@@ -24,7 +24,6 @@ import type {
   LocalRuntimeProfileResolvePayload,
   LocalRuntimeRecommendationFeedDescriptor,
   LocalRuntimeRecommendationFeedGetPayload,
-  LocalRuntimeSnapshot,
   LocalRuntimeWriteOptions,
   LocalRuntimeListAssetsPayload,
   LocalRuntimeListVerifiedAssetsPayload,
@@ -344,18 +343,6 @@ export async function applyLocalRuntimeProfile(
     throw new Error(reasonCode);
   }
   return result;
-}
-
-export async function fetchLocalRuntimeSnapshot(localAssetId?: string): Promise<LocalRuntimeSnapshot> {
-  const [assets, health] = await Promise.all([
-    listLocalRuntimeAssets(),
-    healthLocalRuntimeAssets(localAssetId),
-  ]);
-  return {
-    assets,
-    health,
-    generatedAt: new Date().toISOString(),
-  };
 }
 
 export {

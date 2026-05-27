@@ -4,7 +4,6 @@ import {
   revealLocalRuntimeAssetInFolder,
   revealLocalRuntimeAssetsRootFolder,
   subscribeLocalRuntimeDownloadProgress,
-  fetchLocalRuntimeSnapshot,
   healthLocalRuntimeAssets,
   installLocalRuntimeVerifiedAsset,
   importLocalRuntimeAsset,
@@ -130,7 +129,6 @@ import type {
   LocalRuntimeEnvironmentSelectedSourceRecord,
   LocalRuntimeEnvironmentSelectedSourcesPayload,
 } from './types';
-import { startLocalRuntimePolling, type LocalRuntimePollingOptions } from './polling';
 export {
   bridgeLocalRuntimeProfile,
   findLocalRuntimeProfileById,
@@ -193,7 +191,6 @@ export type {
   LocalRuntimeRecommendationFeedItemDescriptor,
   LocalRuntimeRecommendationFeedGetPayload,
   LocalRuntimeAuditPayload,
-  LocalRuntimePollingOptions,
   LocalRuntimeSnapshot,
   LocalRuntimeWriteOptions,
   LocalRuntimeImportManifestOptions,
@@ -333,7 +330,6 @@ export type LocalRuntimeFacade = {
   appendInferenceAudit: (payload: LocalRuntimeInferenceAuditPayload) => Promise<void>;
   listAudits: (query?: LocalRuntimeAuditQuery) => Promise<LocalRuntimeAuditEvent[]>;
   pickAssetManifestPath: () => Promise<string | null>;
-  pollSnapshot: (localAssetId?: string) => Promise<LocalRuntimeSnapshot>;
   subscribeDownloadProgress: (
     listener: (event: LocalRuntimeDownloadProgressEvent) => void,
   ) => Promise<() => void>;
@@ -403,7 +399,6 @@ export const localRuntime: LocalRuntimeFacade = {
   appendInferenceAudit: appendLocalRuntimeInferenceAudit,
   listAudits: listLocalRuntimeAudits,
   pickAssetManifestPath: pickLocalRuntimeAssetManifestPath,
-  pollSnapshot: fetchLocalRuntimeSnapshot,
   subscribeDownloadProgress: subscribeLocalRuntimeDownloadProgress,
   revealInFolder: revealLocalRuntimeAssetInFolder,
   revealRootFolder: revealLocalRuntimeAssetsRootFolder,
@@ -413,5 +408,3 @@ export const localRuntime: LocalRuntimeFacade = {
   importAssetFile: importLocalRuntimeAssetFileUnified,
   importAssetManifest: importLocalRuntimeAssetManifest,
 };
-
-export { startLocalRuntimePolling };

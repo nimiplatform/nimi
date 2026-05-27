@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { startLocalRuntimePolling, type LocalRuntimeSnapshot } from '@runtime/local-runtime';
+import { localRuntime, type LocalRuntimeSnapshot } from '@runtime/local-runtime';
 import { isLocalRuntimeRunnableAssetKindId } from '@nimiplatform/sdk/runtime';
 import type { Dispatch, SetStateAction } from 'react';
 import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
@@ -59,6 +59,47 @@ function mergeLocalSnapshot(
   };
 }
 
+async function fetchRuntimeConfigLocalSnapshot(): Promise<LocalRuntimeSnapshot> {
+  const [assets, health] = await Promise.all([
+    localRuntime.listAssets(),
+    localRuntime.health(),
+  ]);
+  return {
+    assets,
+    health,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+function startRuntimeConfigSnapshotPolling(options: {
+  intervalMs: number;
+  onSnapshot: (snapshot: LocalRuntimeSnapshot) => void;
+  onError: (error: unknown) => void;
+}): () => void {
+  let cancelled = false;
+  const run = async () => {
+    if (cancelled) return;
+    try {
+      const snapshot = await fetchRuntimeConfigLocalSnapshot();
+      if (!cancelled) {
+        options.onSnapshot(snapshot);
+      }
+    } catch (error) {
+      if (!cancelled) {
+        options.onError(error);
+      }
+    }
+  };
+  void run();
+  const timer = setInterval(() => {
+    void run();
+  }, options.intervalMs);
+  return () => {
+    cancelled = true;
+    clearInterval(timer);
+  };
+}
+
 export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInput) {
   const runtimeHealthState = useRuntimeHealthCoordinatorState();
 
@@ -90,7 +131,7 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
 
   useEffect(() => {
     if (!input.hydrated) return;
-    const stop = startLocalRuntimePolling({
+    const stop = startRuntimeConfigSnapshotPolling({
       intervalMs: LOCAL_SNAPSHOT_POLL_INTERVAL_MS,
       onSnapshot: (snapshot) => {
         input.setState((previous) => {
@@ -98,6 +139,7 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
           return mergeLocalSnapshot(previous, snapshot);
         });
       },
+      onError: () => {},
     });
     return () => {
       stop();
