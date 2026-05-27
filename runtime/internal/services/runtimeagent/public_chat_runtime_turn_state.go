@@ -39,122 +39,144 @@ func (r publicChatRuntime) reserveTurn(
 	if entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "agent is not active")
 	}
-	binding, hasBinding, err := r.svc.resolvePublicChatBinding(parent, subjectUserID, req)
+	explicitBinding, hasExplicitBinding, err := r.svc.resolvePublicChatBinding(parent, subjectUserID, req)
 	if err != nil {
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, err
 	}
 	reasoning := normalizePublicChatReasoning(req.Reasoning)
 	transcript := cloneChatMessages(toProtoPublicChatMessages(req.Messages))
-	r.svc.chatSurfaceMu.Lock()
-	if activeTurnID := strings.TrimSpace(r.svc.chatActiveByAgent[localAgentRef]); activeTurnID != "" {
-		if activeTurn := r.svc.chatTurns[activeTurnID]; activeTurn != nil {
-			r.svc.chatSurfaceMu.Unlock()
-			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "agent already has an active public chat turn")
+	var runtimeDefaultBinding *publicChatExecutionBinding
+	for {
+		r.svc.chatSurfaceMu.Lock()
+		if activeTurnID := strings.TrimSpace(r.svc.chatActiveByAgent[localAgentRef]); activeTurnID != "" {
+			if activeTurn := r.svc.chatTurns[activeTurnID]; activeTurn != nil {
+				r.svc.chatSurfaceMu.Unlock()
+				return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "agent already has an active public chat turn")
+			}
+			delete(r.svc.chatActiveByAgent, localAgentRef)
 		}
-		delete(r.svc.chatActiveByAgent, localAgentRef)
-	}
-	session := r.svc.chatAnchors[anchorID]
-	if session == nil {
-		// Hard fail: runtime.agent.turn.request must reference an existing
-		// ConversationAnchor opened through OpenConversationAnchor.
-		r.svc.chatSurfaceMu.Unlock()
-		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.NotFound, "conversation_anchor_id not found; open ConversationAnchor first")
-	}
-	if session.CallerAppID != callerAppID {
-		r.svc.chatSurfaceMu.Unlock()
-		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.PermissionDenied, "public chat anchor caller mismatch")
-	}
-	if session.AgentID != localAgentRef {
-		r.svc.chatSurfaceMu.Unlock()
-		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor local_agent_ref mismatch")
-	}
-	if session.OwnerUserID != identity.OwnerUserID || session.RealmAgentID != identity.RealmAgentID || session.LocalAgentRef != identity.LocalAgentRef {
-		r.svc.chatSurfaceMu.Unlock()
-		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor local identity mismatch")
-	}
-	if session.Status == runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_CLOSED {
-		r.svc.chatSurfaceMu.Unlock()
-		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "conversation anchor is closed")
-	}
-	if session.ActiveTurnID != "" {
-		r.svc.chatSurfaceMu.Unlock()
-		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor already has an active turn")
-	}
-	if trimmed := strings.TrimSpace(subjectUserID); trimmed != "" &&
-		strings.TrimSpace(session.SubjectUserID) != "" &&
-		strings.TrimSpace(session.SubjectUserID) != trimmed {
-		r.svc.chatSurfaceMu.Unlock()
-		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor subject_user_id mismatch")
-	}
-	if trimmed := strings.TrimSpace(req.ThreadID); trimmed != "" &&
-		strings.TrimSpace(session.ThreadID) != "" &&
-		strings.TrimSpace(session.ThreadID) != trimmed {
-		r.svc.chatSurfaceMu.Unlock()
-		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor thread_id mismatch")
-	}
-	if hasBinding {
-		if session.Binding.ModelID != "" && publicChatExecutionBindingMismatch(session.Binding, binding) {
+		session := r.svc.chatAnchors[anchorID]
+		if session == nil {
+			// Hard fail: runtime.agent.turn.request must reference an existing
+			// ConversationAnchor opened through OpenConversationAnchor.
 			r.svc.chatSurfaceMu.Unlock()
-			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor execution_binding mismatch")
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.NotFound, "conversation_anchor_id not found; open ConversationAnchor first")
 		}
-		session.Binding = binding
-	}
-	if session.Binding.ModelID == "" || session.Binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+		if session.CallerAppID != callerAppID {
+			r.svc.chatSurfaceMu.Unlock()
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.PermissionDenied, "public chat anchor caller mismatch")
+		}
+		if session.AgentID != localAgentRef {
+			r.svc.chatSurfaceMu.Unlock()
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor local_agent_ref mismatch")
+		}
+		if session.OwnerUserID != identity.OwnerUserID || session.RealmAgentID != identity.RealmAgentID || session.LocalAgentRef != identity.LocalAgentRef {
+			r.svc.chatSurfaceMu.Unlock()
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor local identity mismatch")
+		}
+		if session.Status == runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_CLOSED {
+			r.svc.chatSurfaceMu.Unlock()
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "conversation anchor is closed")
+		}
+		if session.ActiveTurnID != "" {
+			r.svc.chatSurfaceMu.Unlock()
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor already has an active turn")
+		}
+		if trimmed := strings.TrimSpace(subjectUserID); trimmed != "" &&
+			strings.TrimSpace(session.SubjectUserID) != "" &&
+			strings.TrimSpace(session.SubjectUserID) != trimmed {
+			r.svc.chatSurfaceMu.Unlock()
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor subject_user_id mismatch")
+		}
+		if trimmed := strings.TrimSpace(req.ThreadID); trimmed != "" &&
+			strings.TrimSpace(session.ThreadID) != "" &&
+			strings.TrimSpace(session.ThreadID) != trimmed {
+			r.svc.chatSurfaceMu.Unlock()
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor thread_id mismatch")
+		}
+		if hasExplicitBinding {
+			if session.Binding.ModelID != "" && publicChatExecutionBindingMismatch(session.Binding, explicitBinding) {
+				r.svc.chatSurfaceMu.Unlock()
+				return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor execution_binding mismatch")
+			}
+			session.Binding = explicitBinding
+		} else if session.Binding.ModelID == "" || session.Binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+			if runtimeDefaultBinding == nil {
+				r.svc.chatSurfaceMu.Unlock()
+				// Default route/model selection is runtime-owned; resolve outside
+				// the surface mutex, then revalidate the anchor before binding it.
+				resolved, err := r.svc.resolveRuntimeDefaultPublicChatBinding(
+					parent,
+					subjectUserID,
+					req.SystemPrompt,
+					toProtoPublicChatMessages(req.Messages),
+					req.MaxOutputTokens,
+				)
+				if err != nil {
+					return publicChatAnchorState{}, publicChatTurnState{}, nil, err
+				}
+				runtimeDefaultBinding = &resolved
+				continue
+			}
+			session.Binding = *runtimeDefaultBinding
+		}
+		if session.Binding.ModelID == "" || session.Binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+			r.svc.chatSurfaceMu.Unlock()
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.InvalidArgument, "public chat anchor requires execution_binding")
+		}
+		if trimmed := strings.TrimSpace(subjectUserID); trimmed != "" {
+			session.SubjectUserID = trimmed
+		}
+		if trimmed := strings.TrimSpace(req.ThreadID); trimmed != "" {
+			session.ThreadID = trimmed
+		}
+		if trimmed := strings.TrimSpace(req.SystemPrompt); trimmed != "" || session.SystemPrompt == "" {
+			session.SystemPrompt = trimmed
+		}
+		if req.MaxOutputTokens > 0 || session.MaxTokens == 0 {
+			session.MaxTokens = req.MaxOutputTokens
+		}
+		if reasoning != nil || session.Reasoning == nil {
+			session.Reasoning = clonePublicChatReasoningConfig(reasoning)
+		}
+		session.Transcript = publicChatTranscriptWithCommittedAssistant(session.Transcript, session.LastTurnSnapshot)
+		if len(transcript) > 0 {
+			session.Transcript = reconcilePublicChatSessionTranscript(session.Transcript, transcript)
+		}
+		// Public chat turn execution is asynchronous relative to the ingress
+		// app-message handler. The runtime-owned turn context must therefore not
+		// inherit the handler/request lifetime; otherwise the handler returning can
+		// cancel the turn before AI execution even starts and surface false
+		// AI_PROVIDER_UNAVAILABLE failures from downstream scheduler/provider paths.
+		parent = context.Background()
+		turnID := "agent_turn_" + ulid.Make().String()
+		streamID := "agent_stream_" + ulid.Make().String()
+		timelineStartedAt := time.Now()
+		turnCtx, cancel := context.WithCancel(parent)
+		turn := &publicChatTurnState{
+			ConversationAnchorID: session.ConversationAnchorID,
+			TurnID:               turnID,
+			StreamID:             streamID,
+			AgentID:              session.AgentID,
+			CallerAppID:          session.CallerAppID,
+			SubjectUserID:        session.SubjectUserID,
+			ThreadID:             session.ThreadID,
+			Cancel:               cancel,
+			TimelineStartedAt:    timelineStartedAt,
+			Origin:               publicChatTurnOriginUser,
+		}
+		turn.Projection = newPublicChatTurnProjection(turn)
+		session.ActiveTurnID = turnID
+		session.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(turn.Projection)
+		session.UpdatedAt = time.Now().UTC()
+		r.svc.chatTurns[turnID] = turn
+		r.svc.chatActiveByAgent[localAgentRef] = turnID
+		snapshot := *session
+		turnSnapshot := *turn
 		r.svc.chatSurfaceMu.Unlock()
-		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.InvalidArgument, "public chat anchor requires execution_binding")
+		r.svc.persistCurrentPublicChatSurfaceState()
+		return snapshot, turnSnapshot, turnCtx, nil
 	}
-	if trimmed := strings.TrimSpace(subjectUserID); trimmed != "" {
-		session.SubjectUserID = trimmed
-	}
-	if trimmed := strings.TrimSpace(req.ThreadID); trimmed != "" {
-		session.ThreadID = trimmed
-	}
-	if trimmed := strings.TrimSpace(req.SystemPrompt); trimmed != "" || session.SystemPrompt == "" {
-		session.SystemPrompt = trimmed
-	}
-	if req.MaxOutputTokens > 0 || session.MaxTokens == 0 {
-		session.MaxTokens = req.MaxOutputTokens
-	}
-	if reasoning != nil || session.Reasoning == nil {
-		session.Reasoning = clonePublicChatReasoningConfig(reasoning)
-	}
-	session.Transcript = publicChatTranscriptWithCommittedAssistant(session.Transcript, session.LastTurnSnapshot)
-	if len(transcript) > 0 {
-		session.Transcript = reconcilePublicChatSessionTranscript(session.Transcript, transcript)
-	}
-	// Public chat turn execution is asynchronous relative to the ingress
-	// app-message handler. The runtime-owned turn context must therefore not
-	// inherit the handler/request lifetime; otherwise the handler returning can
-	// cancel the turn before AI execution even starts and surface false
-	// AI_PROVIDER_UNAVAILABLE failures from downstream scheduler/provider paths.
-	parent = context.Background()
-	turnID := "agent_turn_" + ulid.Make().String()
-	streamID := "agent_stream_" + ulid.Make().String()
-	timelineStartedAt := time.Now()
-	turnCtx, cancel := context.WithCancel(parent)
-	turn := &publicChatTurnState{
-		ConversationAnchorID: session.ConversationAnchorID,
-		TurnID:               turnID,
-		StreamID:             streamID,
-		AgentID:              session.AgentID,
-		CallerAppID:          session.CallerAppID,
-		SubjectUserID:        session.SubjectUserID,
-		ThreadID:             session.ThreadID,
-		Cancel:               cancel,
-		TimelineStartedAt:    timelineStartedAt,
-		Origin:               publicChatTurnOriginUser,
-	}
-	turn.Projection = newPublicChatTurnProjection(turn)
-	session.ActiveTurnID = turnID
-	session.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(turn.Projection)
-	session.UpdatedAt = time.Now().UTC()
-	r.svc.chatTurns[turnID] = turn
-	r.svc.chatActiveByAgent[localAgentRef] = turnID
-	snapshot := *session
-	turnSnapshot := *turn
-	r.svc.chatSurfaceMu.Unlock()
-	r.svc.persistCurrentPublicChatSurfaceState()
-	return snapshot, turnSnapshot, turnCtx, nil
 }
 
 func (r publicChatRuntime) releaseTurn(anchorID string, turnID string) {

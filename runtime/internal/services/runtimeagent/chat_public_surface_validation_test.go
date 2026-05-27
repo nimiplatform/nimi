@@ -10,7 +10,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-func TestPublicChatTurnRequestAllowsRouteOmissionWhenRuntimeResolvesBinding(t *testing.T) {
+func TestPublicChatTurnRequestAllowsExecutionBindingOmissionWhenRuntimeResolvesBinding(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
@@ -26,7 +26,7 @@ func TestPublicChatTurnRequestAllowsRouteOmissionWhenRuntimeResolvesBinding(t *t
 				t.Fatalf("expected runtime-resolved local route, got=%v", req.Binding.RoutePolicy)
 			}
 			if req.Binding.ModelID != "local/default" {
-				t.Fatalf("expected runtime-resolved model to preserve requested id, got=%q", req.Binding.ModelID)
+				t.Fatalf("expected runtime-resolved default model, got=%q", req.Binding.ModelID)
 			}
 			envelope := publicChatStructuredEnvelopeAPML("message-route-omission", "runtime resolved route")
 			if err := emit(&runtimev1.StreamScenarioEvent{
@@ -78,9 +78,6 @@ func TestPublicChatTurnRequestAllowsRouteOmissionWhenRuntimeResolvesBinding(t *t
 			"thread_id":              "thread-route-omission",
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
-			},
-			"execution_binding": map[string]any{
-				"model_id": "local/default",
 			},
 		}),
 	})
