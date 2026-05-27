@@ -97,7 +97,7 @@ export function ExploreSectionNav({
               role="tab"
               aria-selected={isActive}
               data-testid={`explore-section-tab-${id}`}
-              data-mod-tab-interactive="true"
+              data-titlebar-interactive="true"
               onClick={() => onSelect(id)}
               className={variant === 'topbar'
                 ? `inline-flex h-10 items-center text-[15px] transition-colors duration-200 ease-out hover:text-[color:var(--nimi-fg-1)] ${isActive ? 'font-semibold text-[color:var(--nimi-accent)]' : 'font-medium text-[color:var(--nimi-fg-2)]'}`
@@ -164,7 +164,7 @@ export function ExploreSearchField({
     <div
       className="nimi-material-glass-regular group relative mx-auto flex h-11 w-full max-w-[480px] items-center rounded-xl border border-white/60 bg-white/45 pl-4 pr-3 shadow-[0_2px_10px_rgba(0,0,0,0.02)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] transition-all duration-200 focus-within:border-white/90 focus-within:bg-white/70 focus-within:shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
       data-testid="explore-search-field"
-      data-mod-tab-interactive="true"
+      data-titlebar-interactive="true"
     >
       <span className="pointer-events-none mr-3 text-[color:var(--nimi-fg-3)] transition-colors group-focus-within:text-[color:var(--nimi-accent)]">
         {ICON_SEARCH}

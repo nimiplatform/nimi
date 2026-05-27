@@ -74,7 +74,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
                 <Tooltip content={t('Navigation.chat', { defaultValue: 'Chat' })} className="h-10">
                   <button
                   type="button"
-                  data-mod-tab-interactive="true"
+                  data-titlebar-interactive="true"
                   onClick={props.onOpenChat}
                   className={SHELL_CHROME_ACTION_CELL_CLASS}
                   aria-label={t('Navigation.chat', { defaultValue: 'Chat' })}
@@ -90,7 +90,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
                   <button
                     type="button"
                     data-testid={E2E_IDS.topbarRuntimeButton}
-                    data-mod-tab-interactive="true"
+                    data-titlebar-interactive="true"
                     onClick={props.onOpenRuntimeConfig}
                     className={SHELL_CHROME_ACTION_CELL_CLASS}
                     aria-label={t('Navigation.runtime', { defaultValue: 'Runtime' })}
@@ -108,7 +108,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
                 <button
                   type="button"
                   data-testid={E2E_IDS.topbarLoginButton}
-                  data-mod-tab-interactive="true"
+                  data-titlebar-interactive="true"
                   onClick={props.onLogin}
                   className={SHELL_CHROME_ACTION_CELL_CLASS}
                   aria-label={t('Auth.login', { defaultValue: 'Login' })}
@@ -129,7 +129,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
               <Tooltip content="Spark" className="h-9">
                 <button
                   type="button"
-                  data-mod-tab-interactive="true"
+                  data-titlebar-interactive="true"
                   onClick={props.onOpenWallet}
                   className={SHELL_TOPBAR_ASSET_CELL_CLASS}
                   aria-label={t('Common.openWalletSpark')}
@@ -150,7 +150,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
               <Tooltip content="Gem" className="h-9">
                 <button
                   type="button"
-                  data-mod-tab-interactive="true"
+                  data-titlebar-interactive="true"
                   onClick={props.onOpenWallet}
                   className={SHELL_TOPBAR_ASSET_CELL_CLASS}
                   aria-label={t('Common.openWalletGem')}
@@ -171,7 +171,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
               <Tooltip content={t('Navigation.notifications')} className="h-9">
                 <button
                   type="button"
-                  data-mod-tab-interactive="true"
+                  data-titlebar-interactive="true"
                   onClick={props.onOpenNotifications}
                   className={SHELL_TOPBAR_GHOST_ICON_CLASS}
                   aria-label={t('Common.openNotifications')}
@@ -195,7 +195,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
                 <div ref={props.settingsTriggerRef} className="flex h-9 items-center">
                   <button
                     type="button"
-                    data-mod-tab-interactive="true"
+                    data-titlebar-interactive="true"
                     onClick={props.onToggleSettingsMenu}
                     className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-black/5 bg-white p-0 text-[var(--nimi-text-primary)] shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-transform duration-150 hover:scale-[1.03]"
                     aria-label={t('Common.openAccountMenu')}

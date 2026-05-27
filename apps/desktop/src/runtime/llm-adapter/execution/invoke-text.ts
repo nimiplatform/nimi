@@ -181,8 +181,8 @@ export async function invokeRuntimeLlm(input: InvokeRuntimeLlmInput): Promise<In
     if (String(input.targetId || '').trim().startsWith('world.nimi.')) {
       emitRuntimeLog({
         level: 'info',
-        area: 'mods-test-diag',
-        message: '[MODS-TEST-DIAG] llm runtime generate meta',
+        area: 'world-ai-test-diag',
+        message: '[WORLD-AI-TEST-DIAG] llm runtime generate meta',
         details: {
           targetId: input.targetId,
           traceId: responseTraceId || null,
@@ -206,8 +206,8 @@ export async function invokeRuntimeLlm(input: InvokeRuntimeLlmInput): Promise<In
       });
       emitRuntimeLog({
         level: 'info',
-        area: 'mods-test-diag',
-        message: '[MODS-TEST-DIAG] llm raw text output',
+        area: 'world-ai-test-diag',
+        message: '[WORLD-AI-TEST-DIAG] llm raw text output',
         details: {
           targetId: input.targetId,
           traceId: responseTraceId || null,
@@ -219,7 +219,7 @@ export async function invokeRuntimeLlm(input: InvokeRuntimeLlmInput): Promise<In
       });
     }
 
-    const traceId = responseTraceId || createRuntimeTraceId('mod-text');
+    const traceId = responseTraceId || createRuntimeTraceId('runtime-text');
     return {
       text,
       promptTraceId: traceId || buildLocalId('prompt-trace'),
@@ -241,7 +241,7 @@ export async function invokeRuntimeLlm(input: InvokeRuntimeLlmInput): Promise<In
       adapter: resolved.adapter,
       model: resolved.modelId,
       endpoint: resolved.endpoint,
-      traceId: normalizedError.traceId || runtimeTraceId || createRuntimeTraceId('mod-text-error'),
+      traceId: normalizedError.traceId || runtimeTraceId || createRuntimeTraceId('runtime-text-error'),
       reasonCode: runtimeReasonCode,
       detail: normalizedError.message,
       extra: localReasonCode ? { localReasonCode } : undefined,

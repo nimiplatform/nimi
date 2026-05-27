@@ -121,7 +121,7 @@ export function MainLayout() {
     if (event.detail > 1) return;
     if (event.clientX < MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX) return;
     const target = event.target as HTMLElement | null;
-    if (target?.closest('[data-mod-tab-interactive="true"]')) return;
+    if (target?.closest('[data-titlebar-interactive="true"]')) return;
     void desktopBridge.startWindowDrag().catch(() => {
       // no-op
     });

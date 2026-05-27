@@ -30,9 +30,9 @@ func (s *Service) ApplyProfile(ctx context.Context, req *runtimev1.ApplyProfileR
 }
 
 func nextProfilePlanID(targetID string, profileID string) string {
-	modSlug := slug(defaultString(targetID, "mod"))
+	targetSlug := slug(defaultString(targetID, "target"))
 	profileSlug := slug(defaultString(profileID, "profile"))
-	return "profile_plan_" + modSlug + "_" + profileSlug + "_" + ulid.Make().String()
+	return "profile_plan_" + targetSlug + "_" + profileSlug + "_" + ulid.Make().String()
 }
 
 func profileEntryMatchesCapability(entry *runtimev1.LocalProfileEntryDescriptor, capability string) bool {
@@ -231,7 +231,7 @@ func (s *Service) resolveProfilePlan(req *runtimev1.ResolveProfileRequest) *runt
 	overrides := entryOverrideIndex(req.GetEntryOverrides())
 	declaration := bridgeProfileToDependencyDeclaration(profile, capability, overrides)
 	executionPlan := resolveExecutionPlan(&executionResolveRequest{
-		targetID:         targetID,
+		targetID:      targetID,
 		capability:    capability,
 		entries:       declaration,
 		deviceProfile: cloneDeviceProfile(deviceProfile),
@@ -258,7 +258,7 @@ func (s *Service) resolveProfilePlan(req *runtimev1.ResolveProfileRequest) *runt
 
 	return &runtimev1.LocalProfileResolutionPlan{
 		PlanId:              planID,
-		TargetId:               targetID,
+		TargetId:            targetID,
 		ProfileId:           profileID,
 		Title:               title,
 		Description:         description,
@@ -330,7 +330,7 @@ func (s *Service) applyProfileStrict(ctx context.Context, plan *runtimev1.LocalP
 
 	result := &runtimev1.LocalProfileApplyResult{
 		PlanId:          strings.TrimSpace(plan.GetPlanId()),
-		TargetId:           strings.TrimSpace(plan.GetTargetId()),
+		TargetId:        strings.TrimSpace(plan.GetTargetId()),
 		ProfileId:       strings.TrimSpace(plan.GetProfileId()),
 		ExecutionResult: cloneDependencyApplyResult(s.applyExecutionPlanStrict(ctx, plan.GetExecutionPlan())),
 		InstalledAssets: []*runtimev1.LocalAssetRecord{},

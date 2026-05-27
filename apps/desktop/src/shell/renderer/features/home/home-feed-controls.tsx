@@ -39,7 +39,7 @@ export function HomeFeedScopeNav({
             role="tab"
             aria-selected={selected}
             data-testid={`home-feed-scope-tab-${scope}`}
-            data-mod-tab-interactive="true"
+            data-titlebar-interactive="true"
             onClick={() => onSelect(scope)}
             className={`inline-flex h-10 items-center text-[15px] transition-colors duration-200 ease-out hover:text-[color:var(--nimi-fg-1)] ${selected ? 'font-semibold text-[color:var(--nimi-accent)]' : 'font-medium text-[color:var(--nimi-fg-2)]'}`}
             style={{
@@ -64,7 +64,7 @@ export function HomeCreatePostButton({ onClick }: { onClick: () => void }) {
       <button
         type="button"
         data-testid="home-create-post-header-button"
-        data-mod-tab-interactive="true"
+        data-titlebar-interactive="true"
         onClick={onClick}
         className="inline-flex h-9 items-center gap-1 rounded-full bg-transparent px-3 text-[13px] font-medium text-[color:var(--nimi-fg-2)] transition-colors duration-200 ease-out hover:text-[color:var(--nimi-accent)]"
         aria-label={t('Home.createPost', { defaultValue: 'Create Post' })}

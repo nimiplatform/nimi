@@ -131,7 +131,7 @@ func runtimeChecklistPart1(
 		},
 		{
 			ID:          "RS-11-18",
-			Requirement: "ListUsageStats consistency (desktop/mod/third-party)",
+			Requirement: "ListUsageStats consistency (desktop/app/third-party)",
 			Tests:       []testRef{{Package: pkgAuditLog, Name: "TestStoreListUsageByCallerKindAndCapability"}},
 		},
 		{
