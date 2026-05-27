@@ -11,12 +11,10 @@ import {
 import {
   defaultAssetDeclaration,
   normalizeCapabilityOption,
-  normalizeInstallEngine,
   CAPABILITY_OPTIONS,
   PROGRESS_RETENTION_MS,
   type AssetEngineOption,
   type CapabilityOption,
-  type InstallEngineOption,
   type LocalModelCenterProps,
 } from './runtime-config-model-center-utils';
 import {
@@ -73,7 +71,6 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
   const [importFileEndpoint, setImportFileEndpoint] = useState('');
   const importMenuRef = useRef<HTMLDivElement>(null);
   const [catalogCapabilityOverrides, setCatalogCapabilityOverrides] = useState<Record<string, CapabilityOption>>({});
-  const [catalogEngineOverrides, setCatalogEngineOverrides] = useState<Record<string, InstallEngineOption>>({});
   const [unregisteredAssets, setUnregisteredAssets] = useState<LocalRuntimeUnregisteredAssetDescriptor[]>([]);
   const [unregisteredAssetDrafts, setUnregisteredAssetDrafts] = useState<Record<string, LocalRuntimeAssetDeclaration>>({});
   const [unregisteredEndpointByPath, setUnregisteredEndpointByPath] = useState<Record<string, string>>({});
@@ -129,10 +126,6 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
   const selectedCatalogCapability = useCallback((item: LocalRuntimeCatalogItemDescriptor): CapabilityOption => (
     catalogCapabilityOverrides[item.itemId] || inferredCatalogCapability(item)
   ), [catalogCapabilityOverrides, inferredCatalogCapability]);
-
-  const selectedCatalogEngine = useCallback((item: LocalRuntimeCatalogItemDescriptor): InstallEngineOption => (
-    catalogEngineOverrides[item.itemId] || normalizeInstallEngine(item.engine)
-  ), [catalogEngineOverrides]);
 
   const searchQueryRef = useRef(deferredSearchQuery);
   searchQueryRef.current = deferredSearchQuery;
@@ -473,7 +466,6 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
   }, [props]);
 
   const importActions = useLocalModelCenterImportActions({
-    getInstallEngine: selectedCatalogEngine,
     isProfileTargetMode,
     onRefreshUnregisteredAssets: refreshUnregisteredAssets,
     onRefreshAssetSections: refreshAssetSections,
@@ -665,9 +657,9 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
     repairInstalledAsset, relatedAssetsByModelTemplate, removeInstalledAsset,
     cancelRuntimeDependencyJob, repairRuntimeDependency, retryRuntimeDependencyJob,
     runtimeDependencyByAssetId,
-    resolveUnregisteredAssetDraft, searchQuery, selectedCatalogCapability, selectedCatalogEngine,
+    resolveUnregisteredAssetDraft, searchQuery, selectedCatalogCapability,
     setAssetKindFilter, setCatalogCapability, setCatalogCapabilityOverrides,
-    setCatalogDisplayCount, setCatalogEngineOverrides,
+    setCatalogDisplayCount,
     setImportFileAssetKind, setImportFileAuxiliaryEngine, setImportFileEndpoint,
     setSearchQuery, setShowImportFileDialog, setShowImportMenu,
     setupRuntimeDependency, sharedRuntimeDependency, sharedRuntimeDependencyJobs,

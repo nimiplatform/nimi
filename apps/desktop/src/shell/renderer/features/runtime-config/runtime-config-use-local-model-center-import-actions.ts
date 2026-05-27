@@ -9,14 +9,12 @@ import {
 import { i18n } from '@renderer/i18n';
 import {
   basenameFromRuntimePath,
-  type InstallEngineOption,
   type LocalModelCenterProps,
 } from './runtime-config-model-center-utils';
 import { capabilitiesForAssetKind } from './runtime-config-use-local-model-center-helpers.js';
 import { useLocalModelCenterDownloads } from './runtime-config-use-local-model-center-downloads';
 
 type UseLocalModelCenterImportActionsInput = {
-  getInstallEngine: (item: LocalRuntimeCatalogItemDescriptor) => InstallEngineOption;
   isProfileTargetMode: boolean;
   onRefreshUnregisteredAssets: () => Promise<void>;
   onRefreshAssetSections: () => Promise<void>;
@@ -255,7 +253,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
       entry: selectedVariant?.entry || variantFilename,
       files: selectedVariant?.files || [variantFilename],
       capabilities: [String(item.capabilities[0] || 'chat').trim() || 'chat'],
-      engine: input.getInstallEngine(item),
+      engine: String(item.engine || '').trim(),
     });
   }, [input, variantList]);
 

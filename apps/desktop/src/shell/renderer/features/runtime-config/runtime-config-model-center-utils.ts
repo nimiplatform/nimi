@@ -65,14 +65,12 @@ export type LocalModelCenterProps = {
 
 export const CAPABILITY_OPTIONS = ['chat', 'image', 'video', 'tts', 'stt', 'embedding', 'music'] as const;
 export type CapabilityOption = typeof CAPABILITY_OPTIONS[number];
-export const INSTALL_ENGINE_OPTIONS = ['llama', 'media', 'speech', 'sidecar'] as const;
-export type InstallEngineOption = typeof INSTALL_ENGINE_OPTIONS[number];
 export const ASSET_CLASS_OPTIONS = ['runnable', 'dependency'] as const;
 export type AssetClassOption = typeof ASSET_CLASS_OPTIONS[number];
 export const MODEL_TYPE_OPTIONS = ['chat', 'embedding', 'image', 'video', 'tts', 'stt', 'music'] as const;
 export type ModelTypeOption = typeof MODEL_TYPE_OPTIONS[number];
-export const ASSET_ENGINE_OPTIONS = INSTALL_ENGINE_OPTIONS;
-export type AssetEngineOption = InstallEngineOption;
+export const ASSET_ENGINE_OPTIONS = ['llama', 'media', 'speech', 'sidecar'] as const;
+export type AssetEngineOption = typeof ASSET_ENGINE_OPTIONS[number];
 export type ProgressSessionState = {
   event: LocalRuntimeDownloadProgressEvent;
   updatedAtMs: number;
@@ -198,11 +196,6 @@ export function formatImportPhaseLabel(phase: string | undefined): string {
 export function normalizeCapabilityOption(value: string | undefined): CapabilityOption {
   const normalized = String(value || '').trim().toLowerCase();
   return (CAPABILITY_OPTIONS.find((item) => item === normalized) || 'chat') as CapabilityOption;
-}
-
-export function normalizeInstallEngine(value: string | undefined): InstallEngineOption {
-  const normalized = String(value || '').trim().toLowerCase();
-  return (INSTALL_ENGINE_OPTIONS.find((item) => item === normalized) || 'llama') as InstallEngineOption;
 }
 
 export function normalizeAssetClassOption(value: string | undefined): AssetClassOption {

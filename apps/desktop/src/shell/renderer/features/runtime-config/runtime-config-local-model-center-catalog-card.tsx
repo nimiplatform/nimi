@@ -10,7 +10,6 @@ import { RuntimeSelect } from './runtime-config-primitives';
 import {
   CAPABILITY_OPTIONS,
   type CapabilityOption,
-  type InstallEngineOption,
 } from './runtime-config-model-center-utils';
 import {
   DownloadIcon,
@@ -42,7 +41,6 @@ type CatalogCardProps = {
   variantError: string;
   loadingVariants: boolean;
   selectedCatalogCapability: (item: LocalRuntimeCatalogItemDescriptor) => CapabilityOption;
-  selectedCatalogEngine: (item: LocalRuntimeCatalogItemDescriptor) => InstallEngineOption;
   isAssetPending: (templateId: string) => boolean;
   onSearchQueryChange: (value: string) => void;
   onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
@@ -52,7 +50,6 @@ type CatalogCardProps = {
   onToggleVariantPicker: (item: LocalRuntimeCatalogItemDescriptor) => void;
   onCloseVariantPicker: () => void;
   onCatalogCapabilityOverrideChange: (itemId: string, capability: CapabilityOption) => void;
-  onCatalogEngineOverrideChange: (itemId: string, engine: InstallEngineOption) => void;
   onInstallCatalogVariant: (item: LocalRuntimeCatalogItemDescriptor, variantFilename: string) => void;
   onLoadMoreCatalog: () => void;
   installing: boolean;
@@ -192,11 +189,9 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                     variantError={props.variantError}
                     loadingVariants={props.loadingVariants}
                     selectedCapability={props.selectedCatalogCapability(item)}
-                    selectedEngine={props.selectedCatalogEngine(item)}
                     installing={props.installing}
                     onClose={props.onCloseVariantPicker}
                     onCapabilityChange={(capability) => props.onCatalogCapabilityOverrideChange(item.itemId, capability)}
-                    onEngineChange={(engine) => props.onCatalogEngineOverrideChange(item.itemId, engine)}
                     onInstallVariant={(filename) => props.onInstallCatalogVariant(item, filename)}
                   />
                 ) : null}

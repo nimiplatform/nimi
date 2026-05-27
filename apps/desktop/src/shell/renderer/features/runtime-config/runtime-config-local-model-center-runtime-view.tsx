@@ -28,7 +28,6 @@ import {
 import type {
   AssetEngineOption,
   CapabilityOption,
-  InstallEngineOption,
 } from './runtime-config-model-center-utils';
 import type { useLocalModelCenterDownloads } from './runtime-config-use-local-model-center-downloads';
 
@@ -80,7 +79,6 @@ type LocalModelCenterRuntimeViewProps = {
   onImportEndpointChange: (endpoint: string) => void;
   onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
   onCatalogCapabilityOverrideChange: (itemId: string, capability: CapabilityOption) => void;
-  onCatalogEngineOverrideChange: (itemId: string, engine: InstallEngineOption) => void;
   onChooseImportFile: () => void;
   onChooseImportDirectory: () => void;
   onCloseImportFileDialog: () => void;
@@ -119,7 +117,6 @@ type LocalModelCenterRuntimeViewProps = {
   resolveUnregisteredAssetDraft: (asset: LocalRuntimeUnregisteredAssetDescriptor) => LocalRuntimeAssetDeclaration;
   searchQuery: string;
   selectedCatalogCapability: (item: LocalRuntimeCatalogItemDescriptor) => CapabilityOption;
-  selectedCatalogEngine: (item: LocalRuntimeCatalogItemDescriptor) => InstallEngineOption;
   showImportFileDialog: boolean;
   showImportMenu: boolean;
   canChooseImportFile: boolean;
@@ -252,7 +249,6 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           variantError={props.variantError}
           loadingVariants={props.loadingVariants}
           selectedCatalogCapability={props.selectedCatalogCapability}
-          selectedCatalogEngine={props.selectedCatalogEngine}
           isAssetPending={props.isAssetPending}
           onSearchQueryChange={props.onSearchQueryChange}
           onCatalogCapabilityChange={props.onCatalogCapabilityChange}
@@ -262,7 +258,6 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onToggleVariantPicker={props.onToggleVariantPicker}
           onCloseVariantPicker={props.onCloseVariantPicker}
           onCatalogCapabilityOverrideChange={props.onCatalogCapabilityOverrideChange}
-          onCatalogEngineOverrideChange={props.onCatalogEngineOverrideChange}
           onInstallCatalogVariant={props.onInstallCatalogVariant}
           onLoadMoreCatalog={props.onLoadMoreCatalog}
           installing={props.installing}

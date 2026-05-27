@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import test, { describe } from 'node:test';
 
 import {
+  ASSET_ENGINE_OPTIONS,
   filterInstalledModels,
   formatBytes,
   formatDownloadPhaseLabel,
@@ -11,7 +14,6 @@ import {
   planBlockingHint,
   resolveSelectedRuntimeProfileTarget,
   normalizeCapabilityOption,
-  normalizeInstallEngine,
   HIGHLIGHT_CLEAR_MS,
   parseTimestamp,
   PROGRESS_RETENTION_MS,
@@ -276,17 +278,18 @@ describe('normalizeCapabilityOption', () => {
   });
 });
 
-describe('normalizeInstallEngine', () => {
-  test('keeps supported engine', () => {
-    assert.equal(normalizeInstallEngine('media'), 'media');
-  });
-
-  test('normalizes case and whitespace', () => {
-    assert.equal(normalizeInstallEngine('  LLAMA '), 'llama');
-  });
-
-  test('falls back to llama for unknown values', () => {
-    assert.equal(normalizeInstallEngine('llama-cpp'), 'llama');
+describe('local engine option projection', () => {
+  test('asset engine options match runtime local engine catalog', () => {
+    const source = readFileSync(
+      resolve(import.meta.dirname, '../../../.nimi/spec/runtime/kernel/tables/local-engine-catalog.yaml'),
+      'utf8',
+    );
+    const engines = Array.from(new Set(
+      [...source.matchAll(/^\s*-\s*engine:\s*([a-z0-9_-]+)/gmu)]
+        .map((match) => String(match[1] || '').trim())
+        .filter(Boolean),
+    ));
+    assert.deepEqual([...ASSET_ENGINE_OPTIONS], engines);
   });
 });
 

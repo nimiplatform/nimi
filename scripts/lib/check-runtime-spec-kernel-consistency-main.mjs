@@ -119,6 +119,7 @@ checkRuntimeCatalogLoaderIsolation();
 checkConnectorRpcFieldRulesCoverage();
 checkStateTransitionCoverage(kernelRuleDefinitions);
 checkDomainProviderTableAnchors();
+checkLocalEngineCatalogImplementationParity();
 checkConnectorRpcRulesAgainstRpcSurface();
 checkReasonCodeReferencesResolvable();
 checkProviderReferencesResolvable();
@@ -586,6 +587,29 @@ function checkDomainProviderTableAnchors() {
   }
 }
 
+function checkLocalEngineCatalogImplementationParity() {
+  const catalog = readYaml('.nimi/spec/runtime/kernel/tables/local-engine-catalog.yaml');
+  const catalogEngines = uniqueStrings(
+    (Array.isArray(catalog?.engines) ? catalog.engines : [])
+      .map((item) => String(item?.engine || '').trim())
+      .filter(Boolean),
+  );
+  const source = read('runtime/internal/localrouting/localrouting.go');
+  const match = source.match(/func\s+knownProviders\(\)\s+\[\]string\s*\{\s*return\s+\[\]string\{([^}]*)\}/su);
+  if (!match) {
+    fail('runtime/internal/localrouting/localrouting.go missing parseable knownProviders() engine list');
+    return;
+  }
+  const implementationEngines = uniqueStrings(
+    [...String(match[1] || '').matchAll(/"([^"]+)"/g)]
+      .map((item) => String(item[1] || '').trim())
+      .filter(Boolean),
+  );
+  if (catalogEngines.join('\n') !== implementationEngines.join('\n')) {
+    fail(`localrouting knownProviders drift from local-engine-catalog.yaml: spec=[${catalogEngines.join(', ')}] implementation=[${implementationEngines.join(', ')}]`);
+  }
+}
+
 function checkConnectorRpcRulesAgainstRpcSurface() {
   const rpcTable = readYaml('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
   const connectorRules = readYaml('.nimi/spec/runtime/kernel/tables/connector-rpc-field-rules.yaml');
@@ -1024,6 +1048,18 @@ function loadWorkflowNodeTypeSet() {
 
 function normalizeProviderName(value) {
   return String(value || '').trim().toLowerCase();
+}
+
+function uniqueStrings(values) {
+  const out = [];
+  const seen = new Set();
+  for (const value of values) {
+    const normalized = String(value || '').trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    out.push(normalized);
+  }
+  return out;
 }
 
 function listRuntimeKernelFiles() {

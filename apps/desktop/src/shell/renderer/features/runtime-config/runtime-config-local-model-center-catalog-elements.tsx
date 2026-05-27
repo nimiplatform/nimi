@@ -9,11 +9,8 @@ import { i18n } from '@renderer/i18n';
 import { RuntimeSelect } from './runtime-config-primitives';
 import {
   CAPABILITY_OPTIONS,
-  INSTALL_ENGINE_OPTIONS,
   type CapabilityOption,
-  type InstallEngineOption,
   formatBytes,
-  normalizeInstallEngine,
 } from './runtime-config-model-center-utils';
 import {
   DownloadIcon,
@@ -86,11 +83,9 @@ export function CatalogVariantPicker(props: {
   variantError: string;
   loadingVariants: boolean;
   selectedCapability: CapabilityOption;
-  selectedEngine: InstallEngineOption;
   installing: boolean;
   onClose: () => void;
   onCapabilityChange: (capability: CapabilityOption) => void;
-  onEngineChange: (engine: InstallEngineOption) => void;
   onInstallVariant: (filename: string) => void;
 }) {
   return (
@@ -127,17 +122,9 @@ export function CatalogVariantPicker(props: {
               <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--nimi-text-muted)]">
                 {i18n.t('runtimeConfig.localModelCenter.engine', { defaultValue: 'Engine' })}
               </p>
-              <RuntimeSelect
-                value={props.selectedEngine}
-                onChange={(next) => props.onEngineChange(normalizeInstallEngine(next))}
-                className="w-full"
-                options={INSTALL_ENGINE_OPTIONS.map((engine) => ({ value: engine, label: engine }))}
-              />
-              <p className="mt-1 text-[10px] text-[var(--nimi-text-muted)]">
-                {i18n.t('runtimeConfig.localModelCenter.detectedValue', {
-                  value: normalizeInstallEngine(props.item.engine),
-                  defaultValue: 'Detected: {{value}}',
-                })}
+              <p className="rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-3 py-2 text-xs text-[var(--nimi-text-secondary)]">
+                {String(props.item.engine || '').trim()
+                  || i18n.t('runtimeConfig.localModelCenter.runtimeCatalogDefault', { defaultValue: 'Runtime catalog default' })}
               </p>
             </div>
           </div>

@@ -183,10 +183,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
         ...prev,
         [itemId]: capability,
       }))}
-      onCatalogEngineOverrideChange={(itemId, engine) => runtimeState.setCatalogEngineOverrides((prev) => ({
-        ...prev,
-        [itemId]: engine,
-      }))}
       onChooseImportFile={() => {
         runtimeState.setShowImportFileDialog(false);
         void runtimeState.importPickedAssetFile(
@@ -251,7 +247,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       resolveUnregisteredAssetDraft={runtimeState.resolveUnregisteredAssetDraft}
       searchQuery={runtimeState.searchQuery}
       selectedCatalogCapability={runtimeState.selectedCatalogCapability}
-      selectedCatalogEngine={runtimeState.selectedCatalogEngine}
       showImportFileDialog={runtimeState.showImportFileDialog}
       showImportMenu={runtimeState.showImportMenu}
       canChooseImportFile={runtimeState.canChooseImportFile}
