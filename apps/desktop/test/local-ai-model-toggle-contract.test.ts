@@ -51,9 +51,19 @@ const sdkRuntimeRouteOptionsPath = path.resolve(
   process.cwd(),
   '../../sdk/src/ai/runtime-route-options.ts',
 );
+const sdkRuntimeRoutePath = path.resolve(
+  process.cwd(),
+  '../../sdk/src/ai/runtime-route.ts',
+);
+const retiredRouteResolverFileName = ['runtime-bootstrap-route', 'resolvers.ts'].join('-');
 const runtimeBootstrapRouteResolversPath = path.resolve(
   process.cwd(),
-  'src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-resolvers.ts',
+  'src/shell/renderer/infra/bootstrap',
+  retiredRouteResolverFileName,
+);
+const runtimeBootstrapConversationRouteRuntimePath = path.resolve(
+  process.cwd(),
+  'src/shell/renderer/infra/bootstrap/runtime-bootstrap-conversation-route-runtime.ts',
 );
 const retiredRuntimeBootstrapHostCapabilitiesPath = path.resolve(
   process.cwd(),
@@ -88,7 +98,8 @@ const localModelCenterUtilsSource = readFileSync(localModelCenterUtilsPath, 'utf
 const localModelCenterProgressCacheSource = readFileSync(localModelCenterProgressCachePath, 'utf-8');
 const runtimeBootstrapRouteOptionsSource = readFileSync(runtimeBootstrapRouteOptionsPath, 'utf-8');
 const sdkRuntimeRouteOptionsSource = readFileSync(sdkRuntimeRouteOptionsPath, 'utf-8');
-const runtimeBootstrapRouteResolversSource = readFileSync(runtimeBootstrapRouteResolversPath, 'utf-8');
+const sdkRuntimeRouteSource = readFileSync(sdkRuntimeRoutePath, 'utf-8');
+const runtimeBootstrapConversationRouteRuntimeSource = readFileSync(runtimeBootstrapConversationRouteRuntimePath, 'utf-8');
 const tauriCommandsSource = readFileSync(tauriCommandsPath, 'utf-8');
 const tauriLocalRuntimePackageSource = readFileSync(tauriLocalRuntimePackagePath, 'utf-8');
 const desktopReadmeSource = readFileSync(path.resolve(process.cwd(), 'README.md'), 'utf-8');
@@ -170,11 +181,15 @@ test('local route hydration prefers fresh local model adapter over stale binding
 
 test('runtime route resolve uses the selected local binding and retired host-capability files stay absent', () => {
   assert.equal(existsSync(retiredRuntimeBootstrapHostCapabilitiesPath), false);
+  assert.equal(existsSync(runtimeBootstrapRouteResolversPath), false);
   assert.match(runtimeBootstrapRouteOptionsSource, /runtimeLocalModels,/);
   assert.match(sdkRuntimeRouteOptionsSource, /\.filter\(\(item\) => String\(item\.status \|\| ''\)\.trim\(\)\.toLowerCase\(\) !== 'removed'\)/);
-  assert.match(runtimeBootstrapRouteResolversSource, /const endpoint = String\(binding\?\.endpoint \|\| ''\)\.trim\(\)/);
-  assert.match(runtimeBootstrapRouteResolversSource, /goRuntimeStatus: String\(binding\?\.goRuntimeStatus \|\| ''\)\.trim\(\) \|\| undefined/);
-  assert.doesNotMatch(runtimeBootstrapRouteResolversSource, /localGoRuntimeStatus === 'removed'/);
+  assert.match(runtimeBootstrapConversationRouteRuntimeSource, /resolveRuntimeRouteBindingFromSnapshot/);
+  assert.match(sdkRuntimeRouteSource, /export function resolveRuntimeRouteBindingFromSnapshot/);
+  assert.match(sdkRuntimeRouteSource, /endpoint: String\(binding\.endpoint \|\| binding\.localProviderEndpoint \|\| binding\.localOpenAiEndpoint \|\| ''\)\.trim\(\) \|\| undefined/);
+  assert.match(sdkRuntimeRouteSource, /goRuntimeStatus: String\(binding\.goRuntimeStatus \|\| ''\)\.trim\(\) \|\| undefined/);
+  assert.doesNotMatch(runtimeBootstrapConversationRouteRuntimeSource, new RegExp(['createResolveRuntime', 'Binding'].join('')));
+  assert.doesNotMatch(runtimeBootstrapConversationRouteRuntimeSource, new RegExp(retiredRouteResolverFileName.replace('.', '\\.')));
 });
 
 test('manual import no longer injects managed media loopback defaults and can forward explicit endpoints', () => {
