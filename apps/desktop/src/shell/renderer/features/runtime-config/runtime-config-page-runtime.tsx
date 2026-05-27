@@ -359,7 +359,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
                   {
                     key: 'grpc',
                     label: t('runtimeConfig.runtime.grpcBind', { defaultValue: 'gRPC Bind' }),
-                    value: model.runtimeDaemonStatus?.grpcAddr || '127.0.0.1:46371',
+                    value: model.runtimeDaemonStatus?.grpcAddr || '—',
                   },
                   {
                     key: 'pid',

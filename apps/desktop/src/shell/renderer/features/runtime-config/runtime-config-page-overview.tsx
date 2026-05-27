@@ -452,7 +452,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
               {
                 key: 'grpc',
                 label: t('runtimeConfig.overview.grpc', { defaultValue: 'gRPC' }),
-                value: model.runtimeDaemonStatus?.grpcAddr || '127.0.0.1:46371',
+                value: model.runtimeDaemonStatus?.grpcAddr || '—',
               },
               {
                 key: 'pid',
