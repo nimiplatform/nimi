@@ -811,7 +811,6 @@ function checkAppSliceAdmissions(definedRuleIds) {
   const rel = '.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml';
   const admissions = Array.isArray(appSliceAdmissionsTable?.admissions) ? appSliceAdmissionsTable.admissions : [];
   if (admissions.length === 0) {
-    fail(`${rel} admissions must not be empty`);
     return;
   }
   const seen = new Set();

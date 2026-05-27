@@ -21,9 +21,8 @@ Renderer-safe infrastructure module for shared emitters and error boundaries.
 - App-specific reporting schemas or transport bridges.
 
 ## Current Consumers
-- `forge`
 - `desktop`
-- `relay`
+- `web`
 
 ## Verification
 - `pnpm --filter @nimiplatform/kit build`

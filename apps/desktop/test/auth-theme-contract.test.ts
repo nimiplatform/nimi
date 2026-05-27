@@ -19,7 +19,7 @@ test('shell auth page keeps scoped theme routing enabled', () => {
   );
 });
 
-test('shell auth theme keeps desktop beige and relay dark scoped palettes', () => {
+test('shell auth theme keeps the desktop scoped palette', () => {
   assert.ok(
     shellAuthThemeSource.includes(".nimi-shell-auth-root[data-shell-auth-theme='desktop']"),
     'auth theme must define a scoped desktop palette',
@@ -28,8 +28,5 @@ test('shell auth theme keeps desktop beige and relay dark scoped palettes', () =
     shellAuthThemeSource.includes('var(--nimi-ambient-mesh-base-start)'),
     'desktop auth palette must consume the canonical ambient mesh background tokens',
   );
-  assert.ok(
-    shellAuthThemeSource.includes(".nimi-shell-auth-root[data-shell-auth-theme='relay-dark']"),
-    'auth theme must define a scoped relay dark palette',
-  );
+  assert.doesNotMatch(shellAuthThemeSource, /relay-dark/u);
 });

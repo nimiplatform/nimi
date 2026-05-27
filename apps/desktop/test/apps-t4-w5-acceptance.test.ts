@@ -7,7 +7,7 @@
 //      one of the 11 canonical states per the per-reason-code mapping
 //      (`repair_required` default) — P-NAPP-008 / manual line 962 forbid a
 //      collapsed "Unavailable" card.
-//   2. Registry-only visibility: Forge / Shiji / Tester (and any
+//   2. Registry-only visibility: Shiji / Tester / deferred rows (and any
 //      non-`ordinary-visible` or non-`admitted` workspace) do NOT surface in
 //      the Apps panel before admission (manual lines 880-882, P-NAPP-009,
 //      S-APP-009). A negative fixture proves the SDK ordinary-visible filter
@@ -173,19 +173,17 @@ describe('T4-W5 — status_unavailable 12th card state is hard-cut', () => {
 // 2. Registry-only visibility — negative proof
 // ---------------------------------------------------------------------------
 
-describe('T4-W5 — registry-only visibility: Forge/Shiji/Tester excluded before admission', () => {
+describe('T4-W5 — registry-only visibility: non-ordinary rows excluded before admission', () => {
   it('excludes non-ordinary-visible / non-admitted workspaces from the Apps panel', async () => {
     // A negative fixture: every row that is NOT both `ordinary-visible` and
-    // `admitted` must be filtered out. Only `nimi.shijing` (the admitted
+    // `admitted` must be filtered out. Only `nimi.example-app` (the admitted
     // ordinary-visible app) surfaces.
     const rows: readonly NimiAppRegistrySourceRow[] = [
-      registryRow('nimi.shijing', 'ShiJing', 'ordinary-visible', 'admitted'),
+      registryRow('nimi.example-app', 'Example App', 'ordinary-visible', 'admitted'),
       // Tester is admitted but developer-only — never an ordinary App.
       registryRow('nimi.tester', 'Tester', 'developer-only', 'admitted'),
-      // Forge: a development workspace, not admitted as an ordinary App.
-      registryRow('nimi.forge', 'Forge', 'not-admitted-visible', 'deferred'),
-      // Shiji: app-local spec exists but it is not admitted.
-      registryRow('nimi.shiji', 'Shiji', 'not-admitted-visible', 'pending_wave_4'),
+      // Deferred workspaces are not admitted as ordinary Apps.
+      registryRow('nimi.deferred-tool', 'Deferred Tool', 'not-admitted-visible', 'deferred'),
       // A hidden-internal workspace.
       registryRow('nimi.internal-tool', 'Internal Tool', 'hidden-internal', 'admitted'),
     ];
@@ -201,8 +199,8 @@ describe('T4-W5 — registry-only visibility: Forge/Shiji/Tester excluded before
     if (projection.status !== 'loaded') return;
 
     const surfaced = projection.entries.map((entry) => entry.app.appId);
-    assert.deepEqual(surfaced, ['nimi.shijing']);
-    for (const excluded of ['nimi.tester', 'nimi.forge', 'nimi.shiji', 'nimi.internal-tool']) {
+    assert.deepEqual(surfaced, ['nimi.example-app']);
+    for (const excluded of ['nimi.tester', 'nimi.deferred-tool', 'nimi.internal-tool']) {
       assert.equal(
         surfaced.includes(excluded),
         false,
@@ -215,7 +213,7 @@ describe('T4-W5 — registry-only visibility: Forge/Shiji/Tester excluded before
     // Visibility alone is not admission: a row marked `ordinary-visible` but
     // whose `admissionStatus` is not `admitted` must not surface.
     const rows: readonly NimiAppRegistrySourceRow[] = [
-      registryRow('nimi.forge', 'Forge', 'ordinary-visible', 'deferred'),
+      registryRow('nimi.deferred-tool', 'Deferred Tool', 'ordinary-visible', 'deferred'),
     ];
     const client = new NimiAppClient(
       createNimiAppRegistryTransport({
@@ -240,10 +238,10 @@ describe('T4-W5 — uninstall keeps durable app data by default', () => {
     // and keeps durable app data under <nimi_data>/apps/<app-id>/data by
     // default. The desktop action must never pass `deleteDurableData`.
     const { lifecycle, uninstallCalls } = recordingLifecycle();
-    await routeCardAction(lifecycle, 'nimi.shijing', 'uninstall');
+    await routeCardAction(lifecycle, 'nimi.example-app', 'uninstall');
     assert.equal(uninstallCalls.length, 1);
     const input = uninstallCalls[0]!;
-    assert.equal(input.appId, 'nimi.shijing');
+    assert.equal(input.appId, 'nimi.example-app');
     assert.notEqual(input.deleteDurableData, true);
     assert.notEqual(input.destructiveDataDeleteConfirmed, true);
   });
@@ -252,7 +250,7 @@ describe('T4-W5 — uninstall keeps durable app data by default', () => {
     // The destructive "Delete app data" flow is the ONLY path that removes
     // durable data — and only with the explicit destructive-confirm flag.
     const { lifecycle, uninstallCalls } = recordingLifecycle();
-    await routeCardAction(lifecycle, 'nimi.shijing', 'delete_app_data');
+    await routeCardAction(lifecycle, 'nimi.example-app', 'delete_app_data');
     assert.equal(uninstallCalls.length, 1);
     const input = uninstallCalls[0]!;
     assert.equal(input.deleteDurableData, true);
@@ -263,7 +261,7 @@ describe('T4-W5 — uninstall keeps durable app data by default', () => {
     // The runtime emits `releaseRemoved: true` / `durableDataRemoved: false`
     // for a default uninstall; the desktop bridge projects it unchanged.
     const { lifecycle } = recordingLifecycle();
-    const result = await lifecycle.uninstall({ appId: 'nimi.shijing' });
+    const result = await lifecycle.uninstall({ appId: 'nimi.example-app' });
     assert.equal(result.releaseRemoved, true);
     assert.equal(result.durableDataRemoved, false);
   });
@@ -278,7 +276,7 @@ function makeClient(behavior: {
 }): NimiAppClient {
   const transport: NimiAppTransport = {
     async list(): Promise<readonly NimiAppRow[]> {
-      return [clientRow('nimi.shijing', 'ShiJing')];
+      return [clientRow('nimi.example-app', 'Example App')];
     },
     async get(appId: string): Promise<NimiAppRow> {
       return clientRow(appId, appId);
@@ -356,20 +354,20 @@ function releaseDescriptorFor(row: NimiAppRegistrySourceRow): NimiAppReleaseDesc
 function uninstallJob(): RuntimeAppInstallJob {
   return {
     jobId: 'job-uninstall-01',
-    appId: 'nimi.shijing',
+    appId: 'nimi.example-app',
     kind: 'uninstall',
-    releaseDescriptorRef: 'nimi.shijing.descriptor',
+    releaseDescriptorRef: 'nimi.example-app.descriptor',
     installedVersion: '1.0.0',
     state: 'uninstalled',
     phase: 'uninstalled',
     sourceKind: 'bundled',
     artifactBytes: 0,
     storage: {
-      appRoot: '/data/apps/nimi.shijing',
-      releaseRoot: '/data/apps/nimi.shijing/releases/1.0.0',
-      durableDataRoot: '/data/apps/nimi.shijing/data',
-      cacheRoot: '/data/apps/nimi.shijing/cache',
-      tempRoot: '/data/apps/nimi.shijing/tmp',
+      appRoot: '/data/apps/nimi.example-app',
+      releaseRoot: '/data/apps/nimi.example-app/releases/1.0.0',
+      durableDataRoot: '/data/apps/nimi.example-app/data',
+      cacheRoot: '/data/apps/nimi.example-app/cache',
+      tempRoot: '/data/apps/nimi.example-app/tmp',
     },
     retryable: false,
   };
@@ -419,12 +417,12 @@ function recordingLifecycle(): {
     },
     async open() {
       return {
-        appId: 'nimi.shijing',
+        appId: 'nimi.example-app',
         state: 'launched',
         reachedStep: 'launch',
         launched: true,
         activeVersion: '1.0.0',
-        scope: { kind: 'app', ownerId: 'nimi.shijing' },
+        scope: { kind: 'app', ownerId: 'nimi.example-app' },
         reasonCode: ReasonCode.ACTION_EXECUTED,
       };
     },

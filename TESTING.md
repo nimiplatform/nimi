@@ -101,9 +101,9 @@ pnpm --filter @nimiplatform/kit test
 
 Kit tests cover foundation modules (ui, core, telemetry), auth flows, and feature modules (chat, model-picker, generation, commerce).
 
-## Tauri Apps (overtone, shiji, moment, lookdev, realm-drift, video-food-map)
+## Tauri Apps
 
-All Tauri apps share the same test interface:
+Active Tauri apps should expose an app-local test interface:
 
 ```bash
 pnpm -C apps/<name> run test

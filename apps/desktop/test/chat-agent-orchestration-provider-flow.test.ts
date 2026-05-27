@@ -584,7 +584,7 @@ test('agent local chat provider can emit a second image beat from the resolved m
         imageProjection: {
           capability: 'image.generate',
           selectedBinding: { source: 'local', connectorId: '', model: 'flux' },
-          resolvedBinding: { capability: 'image.generate', source: 'local', provider: 'forge', model: 'flux', modelId: 'flux', connectorId: '', endpoint: 'http://127.0.0.1:7860' },
+          resolvedBinding: { capability: 'image.generate', source: 'local', provider: 'local-image', model: 'flux', modelId: 'flux', connectorId: '', endpoint: 'http://127.0.0.1:7860' },
           health: null,
           metadata: null,
           supported: true,
@@ -688,7 +688,7 @@ test('agent local chat provider uses the resolved image prompt payload verbatim'
         imageProjection: {
           capability: 'image.generate',
           selectedBinding: { source: 'local', connectorId: '', model: 'flux' },
-          resolvedBinding: { capability: 'image.generate', source: 'local', provider: 'forge', model: 'flux', modelId: 'flux', connectorId: '', endpoint: 'http://127.0.0.1:7860' },
+          resolvedBinding: { capability: 'image.generate', source: 'local', provider: 'local-image', model: 'flux', modelId: 'flux', connectorId: '', endpoint: 'http://127.0.0.1:7860' },
           health: null,
           metadata: null,
           supported: true,
@@ -796,7 +796,7 @@ test('agent local chat provider does not generate an image when the resolved env
         imageProjection: {
           capability: 'image.generate',
           selectedBinding: { source: 'local', connectorId: '', model: 'flux' },
-          resolvedBinding: { capability: 'image.generate', source: 'local', provider: 'forge', model: 'flux', modelId: 'flux', connectorId: '', endpoint: 'http://127.0.0.1:7860' },
+          resolvedBinding: { capability: 'image.generate', source: 'local', provider: 'local-image', model: 'flux', modelId: 'flux', connectorId: '', endpoint: 'http://127.0.0.1:7860' },
           health: null,
           metadata: null,
           supported: true,

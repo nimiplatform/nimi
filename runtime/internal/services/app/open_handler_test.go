@@ -13,7 +13,7 @@ import (
 // has a verified, active release to launch.
 func installBundledAppForOpen(t *testing.T, svc *Service) {
 	t.Helper()
-	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.shijing", Confirmed: true})
+	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.example-app", Confirmed: true})
 	if err != nil {
 		t.Fatalf("InstallApp: %v", err)
 	}
@@ -32,8 +32,8 @@ func TestOpenAppLaunchesInstalledApp(t *testing.T) {
 	installBundledAppForOpen(t, svc)
 
 	resp, err := svc.OpenApp(context.Background(), &runtimev1.OpenAppRequest{
-		AppId: "nimi.shijing",
-		Scope: appOpenScope("nimi.shijing"),
+		AppId: "nimi.example-app",
+		Scope: appOpenScope("nimi.example-app"),
 	})
 	if err != nil {
 		t.Fatalf("OpenApp: %v", err)
@@ -51,8 +51,8 @@ func TestOpenAppLaunchesInstalledApp(t *testing.T) {
 	if proj.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
 		t.Fatalf("reason code = %v, want ACTION_EXECUTED", proj.GetReasonCode())
 	}
-	if proj.GetScope().GetKind() != "app" || proj.GetScope().GetOwnerId() != "nimi.shijing" {
-		t.Fatalf("scope = %v, want app/nimi.shijing", proj.GetScope())
+	if proj.GetScope().GetKind() != "app" || proj.GetScope().GetOwnerId() != "nimi.example-app" {
+		t.Fatalf("scope = %v, want app/nimi.example-app", proj.GetScope())
 	}
 	if proj.GetActiveVersion() == "" {
 		t.Fatal("expected resolved active version")
@@ -63,7 +63,7 @@ func TestOpenAppFailsClosedWithoutScopeRef(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
 	installBundledAppForOpen(t, svc)
 
-	resp, err := svc.OpenApp(context.Background(), &runtimev1.OpenAppRequest{AppId: "nimi.shijing"})
+	resp, err := svc.OpenApp(context.Background(), &runtimev1.OpenAppRequest{AppId: "nimi.example-app"})
 	if err != nil {
 		t.Fatalf("OpenApp: %v", err)
 	}
@@ -84,8 +84,8 @@ func TestOpenAppFailsClosedOnNonAppScopeKind(t *testing.T) {
 	installBundledAppForOpen(t, svc)
 
 	resp, err := svc.OpenApp(context.Background(), &runtimev1.OpenAppRequest{
-		AppId: "nimi.shijing",
-		Scope: &runtimev1.AppOpenScopeRef{Kind: "account", OwnerId: "nimi.shijing"},
+		AppId: "nimi.example-app",
+		Scope: &runtimev1.AppOpenScopeRef{Kind: "account", OwnerId: "nimi.example-app"},
 	})
 	if err != nil {
 		t.Fatalf("OpenApp: %v", err)
@@ -104,7 +104,7 @@ func TestOpenAppFailsClosedOnScopeOwnerMismatch(t *testing.T) {
 	installBundledAppForOpen(t, svc)
 
 	resp, err := svc.OpenApp(context.Background(), &runtimev1.OpenAppRequest{
-		AppId: "nimi.shijing",
+		AppId: "nimi.example-app",
 		Scope: &runtimev1.AppOpenScopeRef{Kind: "app", OwnerId: "nimi.other"},
 	})
 	if err != nil {
@@ -142,8 +142,8 @@ func TestOpenAppFailsClosedWhenPackageNotInstalled(t *testing.T) {
 	// No install: the app has no active release.
 
 	resp, err := svc.OpenApp(context.Background(), &runtimev1.OpenAppRequest{
-		AppId: "nimi.shijing",
-		Scope: appOpenScope("nimi.shijing"),
+		AppId: "nimi.example-app",
+		Scope: appOpenScope("nimi.example-app"),
 	})
 	if err != nil {
 		t.Fatalf("OpenApp: %v", err)
@@ -165,7 +165,7 @@ func TestOpenAppFailsClosedOnCorruptedAppData(t *testing.T) {
 	installBundledAppForOpen(t, svc)
 
 	// Corrupt the durable app-data root: replace it with a non-directory.
-	durableRoot := filepath.Join(dataRoot, "apps", "nimi.shijing", "data")
+	durableRoot := filepath.Join(dataRoot, "apps", "nimi.example-app", "data")
 	if err := os.RemoveAll(durableRoot); err != nil {
 		t.Fatalf("remove durable data root: %v", err)
 	}
@@ -174,8 +174,8 @@ func TestOpenAppFailsClosedOnCorruptedAppData(t *testing.T) {
 	}
 
 	resp, err := svc.OpenApp(context.Background(), &runtimev1.OpenAppRequest{
-		AppId: "nimi.shijing",
-		Scope: appOpenScope("nimi.shijing"),
+		AppId: "nimi.example-app",
+		Scope: appOpenScope("nimi.example-app"),
 	})
 	if err != nil {
 		t.Fatalf("OpenApp: %v", err)
@@ -192,8 +192,8 @@ func TestOpenAppFailsClosedOnCorruptedAppData(t *testing.T) {
 func TestOpenAppRequiresInstallRuntime(t *testing.T) {
 	svc := New(testLogger())
 	_, err := svc.OpenApp(context.Background(), &runtimev1.OpenAppRequest{
-		AppId: "nimi.shijing",
-		Scope: appOpenScope("nimi.shijing"),
+		AppId: "nimi.example-app",
+		Scope: appOpenScope("nimi.example-app"),
 	})
 	if err == nil {
 		t.Fatal("expected fail-closed without install runtime")

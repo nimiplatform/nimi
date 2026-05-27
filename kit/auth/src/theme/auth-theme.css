@@ -1,8 +1,8 @@
 /*
  * shell-auth layout — components consume --nimi-* tokens, but auth pages
  * still support scoped presentation themes via data-shell-auth-theme.
- * This preserves the established desktop beige and relay dark auth chrome
- * without creating a parallel global token system.
+ * This preserves the established desktop auth chrome without creating a
+ * parallel global token system.
  */
 .nimi-shell-auth-root {
   /* ---- shared fallback values ---- */
@@ -76,27 +76,6 @@
   --nimi-action-primary-text: #ffffff;
   --nimi-action-ghost-hover: #f0ece6;
   --nimi-focus-ring-color: rgba(78, 204, 163, 0.28);
-}
-
-.nimi-shell-auth-root[data-shell-auth-theme='relay-dark'] {
-  --nimi-app-background: #030712;
-  --nimi-surface-card: #1f2937;
-  --nimi-surface-overlay: rgba(31, 41, 55, 0.95);
-  --nimi-text-primary: #f9fafb;
-  --nimi-text-secondary: #9ca3af;
-  --nimi-text-muted: #9ca3af;
-  --nimi-field-bg: rgba(31, 41, 55, 0.9);
-  --nimi-field-border: #374151;
-  --nimi-border-subtle: #374151;
-  --nimi-elevation-base: 0 4px 12px rgba(0, 0, 0, 0.2);
-  --nimi-elevation-raised: 0 18px 40px rgba(16, 185, 129, 0.2);
-  --nimi-elevation-floating: 0 18px 40px rgba(0, 0, 0, 0.4);
-  --nimi-status-danger: #ef4444;
-  --nimi-action-primary-bg: #10b981;
-  --nimi-action-primary-bg-hover: #059669;
-  --nimi-action-primary-text: #ffffff;
-  --nimi-action-ghost-hover: #374151;
-  --nimi-focus-ring-color: rgba(16, 185, 129, 0.3);
 }
 
 .nimi-shell-auth-root .nimi-shell-auth-background {

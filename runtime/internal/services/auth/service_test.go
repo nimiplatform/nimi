@@ -100,14 +100,14 @@ func testNimiAppRegistryCatalog() *appregistrycatalog.Registry {
 		CatalogID:   "test_nimi_app_registry",
 		Apps: []appregistrycatalog.App{
 			{
-				AppID:                   "nimi.shijing",
-				DisplayLabel:            "ShiJing",
+				AppID:                   "nimi.example-app",
+				DisplayLabel:            "Example App",
 				Publisher:               "nimi-first-party",
 				TrustTierRef:            appregistrycatalog.TrustTierFirstParty,
 				PackageKind:             appregistrycatalog.PackageKindNimiApp,
 				RuntimeRegistrationMode: appregistrycatalog.RuntimeRegistrationModeAppManaged,
 				OrdinaryVisibility:      appregistrycatalog.OrdinaryVisibilityOrdinaryVisible,
-				ReleaseDescriptorRef:    "nimi.shijing.bundled-with-nimi",
+				ReleaseDescriptorRef:    "nimi.example-app.bundled-with-nimi",
 				InstallStoragePolicyRef: "nimi-data-app-roots",
 				AdmissionStatus:         appregistrycatalog.AdmissionStatusAdmitted,
 				SourceRule:              "P-NAPP-011",
@@ -240,7 +240,7 @@ func TestRegisterAppFailsClosedForNimiAppWithoutRegistryProjection(t *testing.T)
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	resp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:        "nimi.shijing",
+		AppId:        "nimi.example-app",
 		ModeManifest: validFullAppModeManifest(),
 	})
 	if err != nil {
@@ -258,47 +258,47 @@ func TestRegisterAppChecksNimiAppRegistryProjection(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalog())
 
-	consumerResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:         "app.nimi.shijing",
-		AppInstanceId: "app.nimi.shijing.local-first-party",
+	ordinaryResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:         "app.nimi.example-app",
+		AppInstanceId: "app.nimi.example-app.local-first-party",
 		DeviceId:      "local-first-party-device",
 		ModeManifest:  validFullAppModeManifest(),
 	})
 	if err != nil {
-		t.Fatalf("register shijing: %v", err)
+		t.Fatalf("register ordinary example app: %v", err)
 	}
-	if !consumerResp.GetAccepted() {
-		t.Fatalf("expected admitted ShiJing runtime-account consumer to register, reason=%v", consumerResp.GetReasonCode())
+	if ordinaryResp.GetAccepted() {
+		t.Fatalf("ordinary-visible app must fail closed until descriptor install is verified")
 	}
-	if consumerResp.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
-		t.Fatalf("unexpected ShiJing reason code: %v", consumerResp.GetReasonCode())
+	if ordinaryResp.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
+		t.Fatalf("unexpected ordinary app reason code: %v", ordinaryResp.GetReasonCode())
 	}
 
 	platformSessionResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:         "app.nimi.shijing",
-		AppInstanceId: "app.nimi.shijing.platform-runtime-session",
+		AppId:         "app.nimi.example-app",
+		AppInstanceId: "app.nimi.example-app.platform-runtime-session",
 		DeviceId:      "platform-runtime-session",
 		ModeManifest:  validFullAppModeManifest(),
 	})
 	if err != nil {
-		t.Fatalf("register shijing platform runtime session: %v", err)
+		t.Fatalf("register ordinary example platform runtime session: %v", err)
 	}
-	if !platformSessionResp.GetAccepted() {
-		t.Fatalf("expected admitted ShiJing platform runtime session to register, reason=%v", platformSessionResp.GetReasonCode())
+	if platformSessionResp.GetAccepted() {
+		t.Fatalf("ordinary-visible platform runtime session must fail closed until descriptor install is verified")
 	}
 
 	genericResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:        "app.nimi.shijing",
+		AppId:        "app.nimi.example-app",
 		ModeManifest: validFullAppModeManifest(),
 	})
 	if err != nil {
-		t.Fatalf("register generic shijing: %v", err)
+		t.Fatalf("register generic example-app: %v", err)
 	}
 	if genericResp.GetAccepted() {
-		t.Fatalf("generic ShiJing app registration must still fail closed until descriptor install is verified")
+		t.Fatalf("generic Example App app registration must still fail closed until descriptor install is verified")
 	}
 	if genericResp.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
-		t.Fatalf("unexpected generic ShiJing reason code: %v", genericResp.GetReasonCode())
+		t.Fatalf("unexpected generic Example App reason code: %v", genericResp.GetReasonCode())
 	}
 
 	avatarResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{

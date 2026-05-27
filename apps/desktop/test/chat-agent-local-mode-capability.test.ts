@@ -82,7 +82,7 @@ test('agent capability resolution keeps image and voice optional while exposing 
       capability: 'image.generate' as const,
       resolvedBindingRef: 'local:image:flux',
       source: 'local' as const,
-      provider: 'forge',
+      provider: 'local-image',
       model: 'flux',
       modelId: 'flux',
       connectorId: '',

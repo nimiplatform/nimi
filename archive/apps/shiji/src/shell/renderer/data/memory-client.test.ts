@@ -41,6 +41,14 @@ vi.mock('@renderer/app-shell/app-store.js', () => ({
 
 const { recallAgentMemory, writeAgentMemory } = await import('./memory-client.js');
 
+const agentContext = {
+  appId: 'nimi.shiji',
+  subjectUserId: 'guardian-1',
+  ownerUserId: 'learner-1',
+  realmAgentId: 'agent-1',
+  localAgentRef: 'local-agent:learner-1:agent-1',
+};
+
 describe('shiji memory-client', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -112,10 +120,7 @@ describe('shiji memory-client', () => {
     ]);
 
     expect(mockUpdateAgentState).toHaveBeenLastCalledWith({
-      context: {
-        appId: 'nimi.shiji',
-        subjectUserId: 'guardian-1',
-      },
+      context: agentContext,
       agentId: 'agent-1',
       mutations: [
         {
@@ -140,10 +145,7 @@ describe('shiji memory-client', () => {
       },
     });
     expect(mockQueryMemory).toHaveBeenCalledWith({
-      context: {
-        appId: 'nimi.shiji',
-        subjectUserId: 'guardian-1',
-      },
+      context: agentContext,
       agentId: 'agent-1',
       query: '',
       limit: 100,
@@ -177,11 +179,11 @@ describe('shiji memory-client', () => {
     });
 
     expect(mockInitializeAgent).toHaveBeenCalledWith({
-      context: {
-        appId: 'nimi.shiji',
-        subjectUserId: 'guardian-1',
-      },
+      context: agentContext,
       agentId: 'agent-1',
+      localAgentRef: 'local-agent:learner-1:agent-1',
+      ownerUserId: 'learner-1',
+      realmAgentId: 'agent-1',
       displayName: 'agent-1',
       autonomyConfig: undefined,
       worldId: 'world-1',

@@ -232,28 +232,7 @@ func (s *Service) checkNimiAppRegistryEligibility(req *runtimev1.RegisterAppRequ
 	if eligibility.Eligible {
 		return runtimev1.ReasonCode_ACTION_EXECUTED, eligibility.Reason, true
 	}
-	if eligibility.Reason == string(appregistrycatalog.EligibilityReasonInstallRequired) &&
-		isShijingRuntimeAccountConsumerRegistration(req) {
-		return runtimev1.ReasonCode_ACTION_EXECUTED, "shijing-runtime-account-consumer", true
-	}
 	return mapNimiAppEligibilityReason(eligibility.Reason), eligibility.Reason, false
-}
-
-func isShijingRuntimeAccountConsumerRegistration(req *runtimev1.RegisterAppRequest) bool {
-	appID := strings.TrimSpace(req.GetAppId())
-	instanceID := strings.TrimSpace(req.GetAppInstanceId())
-	deviceID := strings.TrimSpace(req.GetDeviceId())
-	if appID != "app.nimi.shijing" {
-		return false
-	}
-	switch instanceID {
-	case "app.nimi.shijing.local-first-party":
-		return deviceID == "local-first-party-device"
-	case "app.nimi.shijing.platform-runtime-session":
-		return deviceID == "platform-runtime-session"
-	default:
-		return false
-	}
 }
 
 func (s *Service) checkFirstPartyMigrationGate(appID string) (runtimev1.ReasonCode, string, bool) {

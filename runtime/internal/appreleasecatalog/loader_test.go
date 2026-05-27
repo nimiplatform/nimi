@@ -11,8 +11,8 @@ table_family: product_catalog
 owner: platform
 catalog_id: platform_nimi_app_release_descriptors
 descriptors:
-  - descriptor_id: nimi.shijing.bundled-with-nimi
-    app_id: nimi.shijing
+  - descriptor_id: nimi.example-app.bundled-with-nimi
+    app_id: nimi.example-app
     version: bundled-with-current-nimi-release
     descriptor_class: bundled-with-nimi
     source:
@@ -26,9 +26,9 @@ descriptors:
       signature_or_provenance_ref: nimi-first-party-signature-policy
     runtime:
       package_kind: nimi-app
-      entry_ref: shijing-runtime-registration
+      entry_ref: example-app-runtime-registration
       sandbox_ref: first-party-bundled-app
-    permissions_ref: nimi.shijing.permission_scope_ref
+    permissions_ref: nimi.example-app.permission_scope_ref
     storage_policy_ref: nimi-data-app-roots
     review:
       admission_path: first-party-bundled-release
@@ -45,7 +45,7 @@ func TestLoadCatalog_ParsesValidDescriptor(t *testing.T) {
 	if len(catalog.Descriptors) != 1 {
 		t.Fatalf("len(Descriptors) = %d, want 1", len(catalog.Descriptors))
 	}
-	descriptor, err := catalog.FindByID("nimi.shijing.bundled-with-nimi")
+	descriptor, err := catalog.FindByID("nimi.example-app.bundled-with-nimi")
 	if err != nil {
 		t.Fatalf("FindByID: %v", err)
 	}

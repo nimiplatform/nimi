@@ -2,7 +2,7 @@ import { readBundledEnv } from './env.js';
 
 export { readBundledEnv };
 
-export type ShellMode = 'desktop' | 'web' | 'forge';
+export type ShellMode = 'desktop' | 'web';
 
 export type ShellFeatureFlags = {
   mode: ShellMode;
@@ -22,7 +22,7 @@ function hasTauriRuntime(): boolean {
 
 function resolveShellModeFromEnv(): ShellMode {
   const raw = readBundledEnv('VITE_NIMI_SHELL_MODE').toLowerCase();
-  if (raw === 'desktop' || raw === 'web' || raw === 'forge') {
+  if (raw === 'desktop' || raw === 'web') {
     return raw;
   }
   if (typeof window === 'undefined') {
@@ -53,8 +53,7 @@ export function getShellFeatureFlags(): ShellFeatureFlags {
 
   const mode = resolveShellModeFromEnv();
   const isDesktop = mode === 'desktop';
-  const isForge = mode === 'forge';
-  const isTauriShell = isDesktop || isForge;
+  const isTauriShell = isDesktop;
   const enableMenuBarShell = isDesktop && isMacDesktopEnvironment();
 
   cachedFlags = {

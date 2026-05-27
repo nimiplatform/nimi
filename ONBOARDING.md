@@ -27,12 +27,7 @@
 | 应用 | 目录 | 技术栈 | 说明 |
 |---|---|---|---|
 | desktop | `apps/desktop/` | Tauri + React | 主桌面 host、agent 交互、本地 AI |
-| overtone | `apps/overtone/` | Tauri + React | 音乐创作与协作 |
-| shiji | `apps/shiji/` | Tauri + React | K-12 历史教育（时迹） |
-| moment | `apps/moment/` | Tauri + React | 社交动态捕捉 |
-| lookdev | `apps/lookdev/` | Tauri + React | 视觉设计工具 |
-| realm-drift | `apps/realm-drift/` | Tauri + React | 世界探索 + 3D marble 可视化 |
-| video-food-map | `apps/video-food-map/` | Tauri + React | 美食视频地理映射 |
+| avatar | `apps/avatar/` | Tauri + React | Avatar app / local carrier |
 | web | `apps/web/` | React | 浏览器客户端（Cloudflare Pages） |
 | install-gateway | `apps/install-gateway/` | Cloudflare Worker | 发行分发网关 |
 
@@ -206,7 +201,7 @@ pnpm -C apps/desktop run dev:shell
 
 ### 6.2 其他 Tauri 应用
 
-大多数 Tauri 应用（overtone、shiji、moment、lookdev、realm-drift、video-food-map）遵循相同的开发模式：
+当前 active Tauri 应用遵循相同的开发模式：
 
 ```bash
 pnpm -C apps/<app-name> run dev:shell

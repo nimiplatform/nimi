@@ -60,15 +60,15 @@ func writeBundledArtifact(t *testing.T, root string, appID string, files map[str
 
 func TestBundledArtifactSourceResolveAndMaterialize(t *testing.T) {
 	bundledRoot := t.TempDir()
-	writeBundledArtifact(t, bundledRoot, "nimi.shijing", map[string]string{
-		"manifest.json": `{"name":"shijing"}`,
-		"bin/run.js":    "console.log('shijing')",
+	writeBundledArtifact(t, bundledRoot, "nimi.example-app", map[string]string{
+		"manifest.json": `{"name":"example-app"}`,
+		"bin/run.js":    "console.log('example-app')",
 	})
 	source, err := NewBundledArtifactSource(bundledRoot)
 	if err != nil {
 		t.Fatalf("NewBundledArtifactSource: %v", err)
 	}
-	descriptor := bundledDescriptor("nimi.shijing")
+	descriptor := bundledDescriptor("nimi.example-app")
 	artifact, err := source.Resolve(context.Background(), descriptor)
 	if err != nil {
 		t.Fatalf("Resolve: %v", err)
@@ -94,7 +94,7 @@ func TestBundledArtifactSourceResolveAndMaterialize(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read materialized file: %v", err)
 	}
-	if string(got) != "console.log('shijing')" {
+	if string(got) != "console.log('example-app')" {
 		t.Fatalf("materialized content = %q", got)
 	}
 }
@@ -104,7 +104,7 @@ func TestBundledArtifactSourceRejectsExternalDescriptor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewBundledArtifactSource: %v", err)
 	}
-	descriptor := bundledDescriptor("nimi.shijing")
+	descriptor := bundledDescriptor("nimi.example-app")
 	descriptor.DescriptorClass = appreleasecatalog.DescriptorClassExternalImmutableArtifact
 	_, err = source.Resolve(context.Background(), descriptor)
 	if !errors.Is(err, ErrExternalDescriptorNotBundled) {
@@ -117,7 +117,7 @@ func TestBundledArtifactSourceMissingArtifactFailsClosed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewBundledArtifactSource: %v", err)
 	}
-	_, err = source.Resolve(context.Background(), bundledDescriptor("nimi.shijing"))
+	_, err = source.Resolve(context.Background(), bundledDescriptor("nimi.example-app"))
 	if !errors.Is(err, ErrBundledArtifactNotFound) {
 		t.Fatalf("error = %v, want ErrBundledArtifactNotFound", err)
 	}
@@ -125,8 +125,8 @@ func TestBundledArtifactSourceMissingArtifactFailsClosed(t *testing.T) {
 
 func TestGatewayInstallsBundledDescriptor(t *testing.T) {
 	bundledRoot := t.TempDir()
-	writeBundledArtifact(t, bundledRoot, "nimi.shijing", map[string]string{
-		"manifest.json": `{"name":"shijing"}`,
+	writeBundledArtifact(t, bundledRoot, "nimi.example-app", map[string]string{
+		"manifest.json": `{"name":"example-app"}`,
 	})
 	bundledSource, err := NewBundledArtifactSource(bundledRoot)
 	if err != nil {
@@ -138,7 +138,7 @@ func TestGatewayInstallsBundledDescriptor(t *testing.T) {
 		WithEvidenceWriter(FileEvidenceWriter{}),
 		WithBundledSource(bundledSource),
 	)
-	installed, err := gateway.Install(context.Background(), bundledDescriptor("nimi.shijing"))
+	installed, err := gateway.Install(context.Background(), bundledDescriptor("nimi.example-app"))
 	if err != nil {
 		t.Fatalf("Install bundled: %v", err)
 	}

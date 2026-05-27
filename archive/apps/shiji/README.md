@@ -106,7 +106,7 @@ pnpm --filter @nimiplatform/shiji test            # 测试
 
 | 维度 | 说明 |
 |---|---|
-| **内容来源** | World（历史时期）和 Agent（历史人物）由 nimi 通过 Forge 创建维护 |
+| **内容来源** | World（历史时期）和 Agent（历史人物）由 nimi 通过受治理的内容创作 / 发布管线创建维护 |
 | **AI 能力** | 通过 nimi runtime 获取文本生成、TTS、STT、图像生成 |
 | **用户体系** | 复用 nimi 账户体系和 Auth 流程 |
 | **独立运行** | 独立进程和窗口，非 Desktop mod |

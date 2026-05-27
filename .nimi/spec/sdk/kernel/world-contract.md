@@ -103,4 +103,4 @@ The first `sdk/world` cut excludes:
 - provider-native request authoring
 - renderer-driver APIs
 - direct Realm mutation surfaces beyond existing authority homes
-- cognition or Forge ownership
+- cognition or authoring-workbench ownership

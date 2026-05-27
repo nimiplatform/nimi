@@ -155,9 +155,8 @@ subordinate authority semantics 与本契约 admission 并行存在；两者互�
 > `2026-05-25-parentos-first-party-admission-exit` 中已 retire 出本契约的
 > first-party seed 集合，转为外部 nimi-app。
 
-其余 `first-party-hardcut-scope-ledger.md` 中的 deferred app（Forge,
-Moment, Polyinfo, Shiji, Realm Drift, Lookdev, Video Food Map, Overtone）
-暂不进入 Wave 3 seed。
+其余 `first-party-hardcut-scope-ledger.md` 中的 deferred app scopes
+暂不进入 Wave 3 seed，除非后续 owner admission 显式恢复。
 
 ## P-NAPP-013 — Third-Party Admission Path
 

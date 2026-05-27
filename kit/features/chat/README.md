@@ -65,14 +65,8 @@ Authoritative parity fixtures live in `kit/features/chat/test/conversation-shell
 - App-specific navigation, persistence, and moderation shells.
 
 ## Current Consumers
-- `relay`
-  Uses `chat/ui` default `ChatComposer` for lightweight AI/hybrid chat input.
 - `desktop`
   Uses `chat/headless`, `chat/realm`, and `chat/ui` surfaces for human chat composer wiring, realtime helpers, timeline rendering, stream status, and thread shell.
-- `forge`
-  Uses `chat/runtime` and `chat/ui` default `RuntimeChatPanel` for AI advisor and agent chat panels.
-- `realm-drift`
-  Uses `chat/realm`, `chat/headless`, and `chat/ui` for human chat thread shell, timeline, and send orchestration.
 
 ## Verification
 - `pnpm --filter @nimiplatform/kit test`

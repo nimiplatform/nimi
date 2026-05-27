@@ -23,9 +23,7 @@ Foundation design system for shared tokens, primitives, themes, and generated vi
 
 ## Current Consumers
 - `desktop`
-- `forge`
-- `overtone`
-- `relay`
+- `web`
 
 ## Verification
 - `pnpm --filter @nimiplatform/kit build`

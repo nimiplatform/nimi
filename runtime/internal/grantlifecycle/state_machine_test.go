@@ -8,7 +8,7 @@ import (
 func newGrant(state GrantState) *Grant {
 	return &Grant{
 		GrantID:       "grant-1",
-		AppID:         "nimi.shijing",
+		AppID:         "nimi.example-app",
 		SubjectUserID: "user-1",
 		ScopeKey:      "avatar.mood.read",
 		State:         state,

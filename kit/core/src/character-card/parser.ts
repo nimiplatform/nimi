@@ -1,7 +1,7 @@
 /**
  * Character Card V2 JSON parser & validator.
  *
- * Pure, framework-free logic shared by Forge's heavy import workbench and
+ * Pure, framework-free logic shared by governed authoring workbenches and
  * Desktop's lightweight RealmAgent creation. Parses and validates Character
  * Card V2 JSON per https://github.com/malfoyslastname/character-card-spec-v2.
  */

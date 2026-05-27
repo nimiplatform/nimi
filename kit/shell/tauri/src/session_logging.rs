@@ -10,7 +10,7 @@ static APP_RUN_SESSION_ID: OnceLock<String> = OnceLock::new();
 static APP_SESSION_PREFIX: OnceLock<String> = OnceLock::new();
 
 /// Set the app identity prefix used in session IDs and log entries.
-/// Must be called once before any logging. Example: "forge", "desktop", "shijing".
+/// Must be called once before any logging. Example: "desktop".
 pub fn set_app_session_prefix(prefix: &str) {
     let _ = APP_SESSION_PREFIX.set(prefix.to_string());
 }

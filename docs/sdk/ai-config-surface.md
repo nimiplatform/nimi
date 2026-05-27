@@ -45,7 +45,7 @@ intent; Runtime owns local facts, readiness, and execution evidence.
 App wants to apply a profile to an app-owned workspace.
 
 1. **App calls SDK.** `aiConfig.applyProfile({ scope: { kind: 'app',
-   ownerId: 'nimi.shijing', surfaceId: 'workspace' }, profile })`.
+   ownerId: 'nimi.example-app', surfaceId: 'workspace' }, profile })`.
 2. **SDK validates.** Scope identity per `AIScopeRef` rules.
 3. **Scope owner performs profile apply.** Copy-on-write into the
    workspace scope's `AIConfig`.

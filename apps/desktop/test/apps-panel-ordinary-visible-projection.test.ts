@@ -40,7 +40,7 @@ function makeClient(behavior: {
     async list() {
       if (behavior.list instanceof Error) throw behavior.list;
       if (behavior.list !== undefined) return behavior.list;
-      return [buildRow('nimi.shijing', 'ShiJing')];
+      return [buildRow('nimi.example-app', 'Example App')];
     },
     async get(appId: string) {
       const rows = await this.list();
@@ -74,18 +74,15 @@ function buildRow(appId: string, displayName: string): NimiAppRow {
 }
 
 describe('AppsPanel ordinary-visible projection', () => {
-  it('projects only current ordinary-visible admitted Apps from Platform catalog', async () => {
+  it('projects no ordinary-visible Apps from the current Platform catalog', async () => {
     const projection = await projectAppsPanel(createPlatformRegistryClient());
     assert.equal(projection.status, 'loaded');
     if (projection.status !== 'loaded') return;
 
     const ids = projection.entries.map((entry) => entry.app.appId);
-    assert.deepEqual(ids, ['nimi.shijing']);
-    assert.equal(projection.entries[0]!.cardState, 'not_installed_installable');
+    assert.deepEqual(ids, []);
     assert.equal(projection.entries.some((entry) => entry.app.appId === 'nimi.avatar'), false);
     assert.equal(projection.entries.some((entry) => entry.app.appId === 'nimi.tester'), false);
-    assert.equal(projection.entries.some((entry) => entry.app.appId === 'nimi.forge'), false);
-    assert.equal(projection.entries.some((entry) => entry.app.appId === 'nimi.shiji'), false);
   });
 
   it('keeps Tester admitted as developer-only without ordinary Apps projection', async () => {

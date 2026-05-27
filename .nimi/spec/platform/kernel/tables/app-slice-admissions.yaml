@@ -3,19 +3,5 @@ table_family: product_catalog
 owner: platform
 catalog_id: platform_app_slice_admissions
 entries:
-  - admissions_1
-admissions:
-  - app_id: shiji
-    admission_posture: active
-    owner_domain: app-shiji
-    authority_root: apps/shiji/spec
-    evidence_roots: [apps/shiji]
-    may_not_override: &kernel_authority
-      - .nimi/spec/runtime/**
-      - .nimi/spec/sdk/**
-      - .nimi/spec/realm/**
-      - .nimi/spec/platform/**
-      - .nimi/spec/desktop/**
-      - .nimi/spec/cognition/**
-      - .nimi/spec/avatar/**
-    source_rule: P-APP-001
+  - no active app-local spec slices are admitted in this cut
+admissions: []

@@ -27,8 +27,7 @@ admission，转为外部 nimi-app（不在 `tables/nimi-app-registry.yaml` row
 集合中）。
 
 `MUST NOT`：不得在 Wave 5 product close 中使用 deferred first-party app
-作为 evidence（参见 ledger 中 Forge、Moment、Polyinfo、Shiji、Realm
-Drift、Lookdev、Video Food Map、Overtone 等条目）。
+作为 evidence；只能使用当前 admitted registry rows 或明确准入的 app slice。
 
 ## P-FPI-002 — Single Registry Source
 

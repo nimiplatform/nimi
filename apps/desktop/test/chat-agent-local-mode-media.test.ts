@@ -22,9 +22,9 @@ test('agent image runtime returns artifact uri when provided by runtime media ou
     },
     resolvedBinding: {
       capability: 'image.generate' as const,
-      resolvedBindingRef: 'local:forge:flux',
+      resolvedBindingRef: 'local:image:flux',
       source: 'local' as const,
-      provider: 'forge',
+      provider: 'local-image',
       model: 'flux',
       modelId: 'flux',
       connectorId: '',

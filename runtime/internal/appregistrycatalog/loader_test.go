@@ -30,8 +30,8 @@ apps:
     admission_status: gated_by_avatar_master_gate
     source_rule: P-NAPP-004
 
-  - app_id: nimi.shijing
-    display_label: ShiJing
+  - app_id: nimi.example-app
+    display_label: Example App
     publisher: nimi-first-party
     trust_tier_ref: nimi-first-party
     package_kind: nimi-app
@@ -44,7 +44,7 @@ apps:
     permission_scope_ref: []
     health_repair_projection: unavailable
     ordinary_visibility: ordinary-visible
-    release_descriptor_ref: nimi.shijing.bundled-with-nimi
+    release_descriptor_ref: nimi.example-app.bundled-with-nimi
     install_storage_policy_ref: nimi-data-app-roots
     admission_status: admitted
     source_rule: P-NAPP-004
@@ -117,12 +117,12 @@ func TestLoadRegistry_RejectsMissingRequiredField(t *testing.T) {
 
 func TestFindByID_ReturnsExisting(t *testing.T) {
 	r, _ := LoadRegistry(strings.NewReader(sampleRegistryYAML))
-	app, err := r.FindByID("nimi.shijing")
+	app, err := r.FindByID("nimi.example-app")
 	if err != nil {
 		t.Fatalf("FindByID returned error: %v", err)
 	}
-	if app.DisplayLabel != "ShiJing" {
-		t.Errorf("DisplayLabel = %q, want ShiJing", app.DisplayLabel)
+	if app.DisplayLabel != "Example App" {
+		t.Errorf("DisplayLabel = %q, want Example App", app.DisplayLabel)
 	}
 }
 

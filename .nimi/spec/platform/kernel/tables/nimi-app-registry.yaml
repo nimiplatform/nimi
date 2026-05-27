@@ -10,6 +10,7 @@ entries:
   - registry rows must not embed provider, connector, engine, or model identifier strings
   - avatar registry row admission_status must remain gated_by_avatar_master_gate until the avatar productization master gate clears
   - ordinary Apps visibility requires admission_status admitted and ordinary_visibility ordinary-visible
+  - no ordinary-visible first-party app is admitted in this cut
   - Avatar must remain hidden-internal for ordinary Apps even when package/update coordination rows exist
   - Tester is admitted only as developer-only first-party App in this cut and
     must not appear in ordinary Apps
@@ -115,44 +116,6 @@ apps:
     admission_status: gated_by_avatar_master_gate
     source_rule: P-NAPP-011
 
-  - app_id: nimi.shijing
-    display_label: ShiJing
-    publisher: nimi-first-party
-    trust_tier_ref: nimi-first-party
-    package_kind: nimi-app
-    package_signature_policy_ref: nimi-first-party-signature-policy
-    update_channel_ref: stable
-    ai_profile_selection_ref: hybrid-recommended
-    capability_set_refs:
-      - text.generate
-      - text.embed
-    local_compute_pack_refs:
-      - local-text
-    runtime_registration_mode: app-managed
-    permission_scope_ref:
-      - { appId: nimi.shijing, scopeFamily: account, scopeName: account.session.read }
-      - { appId: nimi.shijing, scopeFamily: agent, scopeName: agent.identity.project }
-      - { appId: nimi.shijing, scopeFamily: memory, scopeName: memory.read.bounded, qualifier: persona-scoped }
-      - { appId: nimi.shijing, scopeFamily: knowledge, scopeName: knowledge.read.bounded }
-      - { appId: nimi.shijing, scopeFamily: ai_spend, scopeName: ai.spend.meter }
-      - { appId: nimi.shijing, scopeFamily: notification, scopeName: notification.send }
-      - { appId: nimi.shijing, scopeFamily: ai_profile, scopeName: ai_profile.selection.consume }
-    health_repair_projection:
-      - unavailable
-      - setup-required
-      - needs-confirmation
-      - in-progress
-      - failed
-      - unsupported
-      - repair-required
-      - stale-projection
-    ordinary_visibility: ordinary-visible
-    release_descriptor_ref: nimi.shijing.bundled-with-nimi
-    install_storage_policy_ref: nimi-data-app-roots
-    source_repo_url: null
-    admission_status: admitted
-    source_rule: P-NAPP-011
-
   - app_id: nimi.tester
     display_label: Tester
     publisher: nimi-first-party
@@ -199,4 +162,3 @@ apps:
     source_repo_url: null
     admission_status: admitted
     source_rule: P-NAPP-016
-

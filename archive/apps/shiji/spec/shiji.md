@@ -15,7 +15,7 @@
 3. **对话学习** — 通过对话、选择、验证与回顾理解历史因果、制度、人物关系与文化母题
 4. **积累成长** — 在知识图谱、章节进度和学习报告中沉淀长期学习记录
 
-时迹不创建或编辑 World/Agent 内容。内容由 nimi 运营团队通过 Forge 创建维护，时迹只消费目录白名单中的内容。
+时迹不创建或编辑 World/Agent 内容。内容由 nimi 运营团队通过受治理的内容创作 / 发布管线创建维护，时迹只消费目录白名单中的内容。
 
 ## Content Scope
 
@@ -136,14 +136,13 @@ nimi/apps/shiji/
 
 ## Relationship to Other Apps
 
-| Aspect | Desktop | Forge | ShiJi |
-|--------|---------|-------|-------|
-| Identifier | `app.nimi.desktop` | `app.nimi.forge` | `app.nimi.shiji` |
-| Dev port | 1420 | 1422 | 1425 |
-| Mod system | Full mod runtime | None | None |
-| Content role | Consumer + mod host | Creator + publisher | Consumer only |
-| Target user | General | Creators | K-12 students |
-| AI pipeline | Mod-delegated | Advisory | Dialogue engine |
+| Aspect | Desktop | Governed content authoring / publish pipeline | ShiJi |
+|--------|---------|-----------------------------------------------|-------|
+| Identifier | `app.nimi.desktop` | Not an admitted ShiJi app surface | `app.nimi.shiji` |
+| Dev port | 1420 | N/A | 1425 |
+| Content role | General consumer shell | Creator + publisher | Consumer only |
+| Target user | General | Content operators / creators | K-12 students |
+| AI pipeline | Chat/runtime projection | Governed authoring support | Dialogue engine |
 
 ## Content Governance
 
@@ -159,7 +158,7 @@ nimi/apps/shiji/
 
 ## Content Model
 
-时迹消费而非创建内容。内容由 nimi 通过 Forge 创建：
+时迹消费而非创建内容。内容由 nimi 通过受治理的内容创作 / 发布管线创建：
 
 | Realm Entity | 在时迹中的角色 | 示例 |
 |---|---|---|
@@ -176,7 +175,7 @@ nimi/apps/shiji/
 
 ## Non-Goals
 
-- 不创建或编辑 World/Agent 内容（Forge 职责）
+- 不创建或编辑 World/Agent 内容（内容创作 / 发布管线职责）
 - 不实现 mod 系统
 - 不实现世界史扩展或通用教育平台能力
 - 不管理本地 AI 模型（依赖 runtime daemon）

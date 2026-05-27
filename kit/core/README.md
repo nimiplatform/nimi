@@ -23,11 +23,7 @@ Pure shared logic module for shell-mode detection, env helpers, and OAuth utilit
 
 ## Current Consumers
 - `desktop`
-- `forge`
-- `overtone`
-- `relay`
 - `web`
-- `realm-drift`
 
 ## Verification
 - `pnpm --filter @nimiplatform/kit build`

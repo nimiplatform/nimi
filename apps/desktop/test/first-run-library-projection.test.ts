@@ -18,7 +18,7 @@ function makeClient(behavior: {
       if (behavior.list instanceof Error) throw behavior.list;
       if (behavior.list !== undefined) return behavior.list;
       return [
-        buildRow('shijing', 'ShiJing'),
+        buildRow('example-app', 'Example App'),
       ];
     },
     async get(appId: string) {
@@ -55,10 +55,10 @@ function buildRow(appId: string, displayName: string): NimiAppRow {
 describe('projectLibrary', () => {
   it('returns loaded with one entry per registry row', async () => {
     const projection = await projectLibrary(makeClient());
-    assert.equal(projection.status, 'loaded');
-    if (projection.status === 'loaded') {
-      assert.equal(projection.entries.length, 1);
-      assert.equal(projection.entries[0]!.app.appId, 'shijing');
+      assert.equal(projection.status, 'loaded');
+      if (projection.status === 'loaded') {
+        assert.equal(projection.entries.length, 1);
+      assert.equal(projection.entries[0]!.app.appId, 'example-app');
       assert.equal(projection.entries[0]!.status?.launchReadiness, 'install-required');
     }
   });
@@ -75,9 +75,9 @@ describe('projectLibrary', () => {
     const client = makeClient({
       list: [
         buildRow('avatar', 'Avatar'),
-        buildRow('shijing', 'ShiJing'),
+        buildRow('example-app', 'Example App'),
       ],
-      status: (id) => (id === 'shijing' ? new Error('status boom') : { appId: id, launchReadiness: 'ready' as const }),
+      status: (id) => (id === 'example-app' ? new Error('status boom') : { appId: id, launchReadiness: 'ready' as const }),
     });
     const projection = await projectLibrary(client);
     assert.equal(projection.status, 'loaded');

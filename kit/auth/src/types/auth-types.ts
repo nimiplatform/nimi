@@ -89,7 +89,7 @@ export type AuthMenuProps = {
   logoLoading?: boolean;
 };
 
-export type ShellAuthTheme = 'desktop' | 'relay-dark' | 'custom';
+export type ShellAuthTheme = 'desktop' | 'custom';
 
 export type ShellAuthSession = {
   mode: WebAuthMenuMode;
@@ -120,8 +120,8 @@ export type ShellAuthAppearance = {
  * Type-level admission of `RuntimeAccountService` as the only desktop-browser
  * login authority (R-OAUTH-* / spec K-ACCSVC-008). `runtimeAccountBroker` is
  * required — there is no admitted fallback. Apps without a broker cannot
- * type-check; if you are adding a new app, mirror polyinfo / shijing /
- * desktop and route through `createLocalFirstPartyRuntimePlatformClient` +
+ * type-check; if you are adding a new app, mirror desktop / web and route
+ * through `createLocalFirstPartyRuntimePlatformClient` +
  * `runtime.account.{beginLogin, completeLogin}`.
  */
 export type ShellAuthDesktopBrowserAuthRuntimeBroker = {

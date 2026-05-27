@@ -109,13 +109,6 @@ app, not the platform itself.
 | [`apps/desktop/`](apps/desktop/) | Native first-party shell — agent chat, local AI, knowledge, voice |
 | [`apps/web/`](apps/web/) | Browser projection of public Desktop surfaces |
 | [`apps/avatar/`](apps/avatar/) | Live2D embodied carrier for Nimi agents (floating desktop avatar) |
-| [`apps/overtone/`](apps/overtone/) | Music creation and collaboration |
-| [`apps/shiji/`](apps/shiji/) | 时迹 — K-12 immersive history education |
-| [`apps/moment/`](apps/moment/) | Story-opening front door for Nimi |
-| [`apps/lookdev/`](apps/lookdev/) | Visual design and look development |
-| [`apps/realm-drift/`](apps/realm-drift/) | World exploration with 3D marble visualization |
-| [`apps/video-food-map/`](apps/video-food-map/) | Food video to geolocation mapping |
-| [`apps/polyinfo/`](apps/polyinfo/) | Polymarket sector analysis workspace |
 | [`apps/install-gateway/`](apps/install-gateway/) | Cloudflare Worker for release distribution |
 
 ## What's Installable Today

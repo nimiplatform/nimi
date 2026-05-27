@@ -7,6 +7,14 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 with the pre-1.0 discipline documented in `kit/AGENTS.md` §Semver
 Discipline.
 
+## [0.1.3] - 2026-05-27
+
+### Changed
+
+- Hard-cut archived app-specific shell/auth affordances from the public kit
+  surface: `ShellMode` now admits only `desktop` and `web`, and
+  `ShellAuthTheme` no longer exposes the archived `relay-dark` palette.
+
 ## [0.1.2] - 2026-05-25
 
 ### Fixed
@@ -97,6 +105,7 @@ unpublished workspace paths should update to the npm package name
 `@nimiplatform/kit` and keep `@nimiplatform/sdk` aligned with the
 compatible pre-1.0 range selected by their app.
 
+[0.1.3]: ./
 [0.1.2]: ./
 [0.1.1]: ./
 [0.1.0]: ./

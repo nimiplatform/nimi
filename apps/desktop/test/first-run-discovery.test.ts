@@ -21,7 +21,7 @@ function makeClient(behavior: {
       if (behavior.list instanceof Error) throw behavior.list;
       if (behavior.list !== undefined) return behavior.list;
       return [
-        buildRow('shijing', 'ShiJing'),
+        buildRow('example-app', 'Example App'),
       ];
     },
     async get(appId: string) {
@@ -36,7 +36,7 @@ function makeClient(behavior: {
         if (result instanceof Error) throw result;
         return result;
       }
-      if (appId === 'shijing') return { appId, launchReadiness: 'install-required' };
+      if (appId === 'example-app') return { appId, launchReadiness: 'install-required' };
       return { appId, launchReadiness: 'update-required' };
     },
   };
@@ -61,9 +61,8 @@ describe('projectDiscovery', () => {
     const projection = await projectDiscovery(makeClient());
     assert.equal(projection.status, 'loaded');
     if (projection.status === 'loaded') {
-      // ShiJing is the sole ordinary-visible admitted app in this projection fixture.
       const ids = projection.entries.map((e) => e.app.appId);
-      assert.deepEqual([...ids].sort(), ['shijing']);
+      assert.deepEqual([...ids].sort(), ['example-app']);
     }
   });
 

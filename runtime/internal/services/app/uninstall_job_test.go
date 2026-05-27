@@ -17,7 +17,7 @@ func TestUninstallAppEmitsWatchableUninstallJob(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
 	installBundledAppForOpen(t, svc)
 
-	resp, err := svc.UninstallApp(context.Background(), &runtimev1.UninstallAppRequest{AppId: "nimi.shijing"})
+	resp, err := svc.UninstallApp(context.Background(), &runtimev1.UninstallAppRequest{AppId: "nimi.example-app"})
 	if err != nil {
 		t.Fatalf("UninstallApp: %v", err)
 	}
@@ -66,7 +66,7 @@ func TestUninstallJobWatchStreamCarriesUninstallKind(t *testing.T) {
 		done <- svc.WatchAppInstallJobEvents(&runtimev1.WatchAppInstallJobEventsRequest{}, stream)
 	}()
 
-	resp, err := svc.UninstallApp(context.Background(), &runtimev1.UninstallAppRequest{AppId: "nimi.shijing"})
+	resp, err := svc.UninstallApp(context.Background(), &runtimev1.UninstallAppRequest{AppId: "nimi.example-app"})
 	if err != nil {
 		t.Fatalf("UninstallApp: %v", err)
 	}
@@ -105,7 +105,7 @@ func TestUninstallAppDestructiveDeleteRemovesDurableData(t *testing.T) {
 	installBundledAppForOpen(t, svc)
 
 	resp, err := svc.UninstallApp(context.Background(), &runtimev1.UninstallAppRequest{
-		AppId:                          "nimi.shijing",
+		AppId:                          "nimi.example-app",
 		DeleteDurableData:              true,
 		DestructiveDataDeleteConfirmed: true,
 	})

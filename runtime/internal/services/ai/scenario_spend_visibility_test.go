@@ -24,7 +24,7 @@ func TestReportScenarioSpendDisclosureProjectsCloudUnknownCost(t *testing.T) {
 	})
 
 	err := svc.reportScenarioSpendDisclosure(context.Background(), &runtimev1.ScenarioRequestHead{
-		AppId:         "nimi.shijing",
+		AppId:         "nimi.example-app",
 		SubjectUserId: "user-1",
 		ModelId:       "gemini/gemini-pro",
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
@@ -49,7 +49,7 @@ func TestReportScenarioSpendDisclosureProjectsCloudUnknownCost(t *testing.T) {
 		t.Fatalf("expected one audit event, got %d", len(events.GetEvents()))
 	}
 	event := events.GetEvents()[0]
-	if event.GetOperation() != "SpendDisclosure" || event.GetAppId() != "nimi.shijing" {
+	if event.GetOperation() != "SpendDisclosure" || event.GetAppId() != "nimi.example-app" {
 		t.Fatalf("unexpected audit event: %+v", event)
 	}
 }

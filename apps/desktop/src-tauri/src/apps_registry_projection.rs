@@ -444,12 +444,10 @@ mod tests {
             .expect("tester row");
         assert_eq!(tester.visibility, "developer-only");
         assert_ne!(tester.visibility, "ordinary");
-        let shijing = record
-            .apps
-            .iter()
-            .find(|row| row.app_id == "nimi.shijing")
-            .expect("shijing row");
-        assert_eq!(shijing.visibility, "ordinary");
+        assert!(
+            record.apps.iter().all(|row| row.visibility != "ordinary"),
+            "this cut admits no ordinary-visible first-party app rows"
+        );
     }
 
     #[test]
@@ -462,13 +460,13 @@ mod tests {
             .expect("avatar row");
         // Avatar is gated_by_avatar_master_gate -> blocked, not bundled.
         assert_eq!(avatar.install_state, "blocked");
-        let shijing = record
+        let tester = record
             .apps
             .iter()
-            .find(|row| row.app_id == "nimi.shijing")
-            .expect("shijing row");
-        // ShiJing admitted + bundled-with-nimi descriptor -> bundled.
-        assert_eq!(shijing.install_state, "bundled");
+            .find(|row| row.app_id == "nimi.tester")
+            .expect("tester row");
+        // Tester is admitted + bundled-with-nimi but remains developer-only.
+        assert_eq!(tester.install_state, "bundled");
     }
 
     #[test]

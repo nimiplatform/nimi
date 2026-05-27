@@ -82,8 +82,8 @@ AIScopeRef {
 
 应用拥有一个使用 AI 的工作区界面。
 
-1.  **应用身份。** 应用拥有稳定的应用 ID（例如 `nimi.shijing`）。
-2.  **范围身份。** 应用将 AI 配置应用到 `AIScopeRef{ kind: 'app', ownerId: 'nimi.shijing', surfaceId: 'workspace' }` 下。
+1.  **应用身份。** 应用拥有稳定的应用 ID（例如 `nimi.example-app`）。
+2.  **范围身份。** 应用将 AI 配置应用到 `AIScopeRef{ kind: 'app', ownerId: 'nimi.example-app', surfaceId: 'workspace' }` 下。
 3.  **配置文件应用。** 用户在 AI 配置 UI 中选择一个配置文件；配置文件（写时复制）应用到工作区范围的 `AIConfig` 中。
 4.  **持久化。** 配置由规范范围身份作为键；它在应用重启后依然存在。
 

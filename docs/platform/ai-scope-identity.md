@@ -100,9 +100,9 @@ records — never by mutating `AIScopeRef`.
 An app owns a workspace surface that uses AI.
 
 1. **App identity.** The app has a stable app id
-   (e.g., `nimi.shijing`).
+   (e.g., `nimi.example-app`).
 2. **Scope identity.** The app applies AI configuration under
-   `AIScopeRef{ kind: 'app', ownerId: 'nimi.shijing',
+   `AIScopeRef{ kind: 'app', ownerId: 'nimi.example-app',
    surfaceId: 'workspace' }`.
 3. **Profile apply.** User picks a profile in the AI config UI;
    profile applies (copy-on-write) into the workspace scope's

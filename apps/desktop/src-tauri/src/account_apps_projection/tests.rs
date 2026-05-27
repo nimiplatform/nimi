@@ -46,7 +46,7 @@ fn library_read_round_trips_valid_record() {
                 "accountId": "account_1",
                 "updatedAt": "2026-05-21T00:00:00.000Z",
                 "apps": [{
-                    "appId": "nimi.shijing",
+                    "appId": "nimi.example-app",
                     "libraryState": "enabled",
                     "installed": true,
                     "lastOpenedAt": "2026-05-21T00:00:00.000Z",
@@ -116,19 +116,19 @@ fn library_mutation_installs_then_uninstalls_keeping_record() {
     with_env(&[("HOME", home.to_str())], || {
         let installed = apply_account_app_library_mutation(
             "account_1",
-            "nimi.shijing",
+            "nimi.example-app",
             AccountAppLibraryMutation::InstalledEnabled,
         )
         .expect("install mutation");
         assert_eq!(installed.apps.len(), 1);
-        assert_eq!(installed.apps[0].app_id, "nimi.shijing");
+        assert_eq!(installed.apps[0].app_id, "nimi.example-app");
         assert_eq!(installed.apps[0].library_state, "enabled");
         assert!(installed.apps[0].installed);
         assert_eq!(installed.apps[0].data_policy, "keep_on_uninstall");
 
         let uninstalled = apply_account_app_library_mutation(
             "account_1",
-            "nimi.shijing",
+            "nimi.example-app",
             AccountAppLibraryMutation::UninstalledKeepRecord,
         )
         .expect("uninstall mutation");
@@ -158,13 +158,13 @@ fn library_mutation_remove_marks_record_removed() {
     with_env(&[("HOME", home.to_str())], || {
         apply_account_app_library_mutation(
             "account_1",
-            "nimi.shijing",
+            "nimi.example-app",
             AccountAppLibraryMutation::InstalledEnabled,
         )
         .expect("install mutation");
         let removed = apply_account_app_library_mutation(
             "account_1",
-            "nimi.shijing",
+            "nimi.example-app",
             AccountAppLibraryMutation::RemovedFromLibrary,
         )
         .expect("remove mutation");
@@ -179,13 +179,13 @@ fn library_mutation_is_idempotent() {
     with_env(&[("HOME", home.to_str())], || {
         apply_account_app_library_mutation(
             "account_1",
-            "nimi.shijing",
+            "nimi.example-app",
             AccountAppLibraryMutation::InstalledEnabled,
         )
         .expect("install mutation");
         let second = apply_account_app_library_mutation(
             "account_1",
-            "nimi.shijing",
+            "nimi.example-app",
             AccountAppLibraryMutation::InstalledEnabled,
         )
         .expect("repeated install mutation");
@@ -215,7 +215,7 @@ fn library_mutation_fails_closed_on_faulted_file() {
         );
         let error = apply_account_app_library_mutation(
             "account_1",
-            "nimi.shijing",
+            "nimi.example-app",
             AccountAppLibraryMutation::InstalledEnabled,
         )
         .expect_err("faulted file fails the mutation closed");
@@ -250,7 +250,7 @@ fn grants_valid_projection_reads_back() {
                 "updatedAt": "2026-05-21T00:00:00.000Z",
                 "grants": [{
                     "grantId": "grant-1",
-                    "subject": "nimi.shijing",
+                    "subject": "nimi.example-app",
                     "scope": "account.session.read",
                     "state": "granted",
                     "createdAt": "2026-05-21T00:00:00.000Z",
@@ -278,7 +278,7 @@ fn grants_expired_granted_row_fails_closed_as_stale() {
                 "updatedAt": "2026-05-21T00:00:00.000Z",
                 "grants": [{
                     "grantId": "grant-1",
-                    "subject": "nimi.shijing",
+                    "subject": "nimi.example-app",
                     "scope": "account.session.read",
                     "state": "granted",
                     "createdAt": "2020-01-01T00:00:00.000Z",

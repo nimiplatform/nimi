@@ -33,8 +33,6 @@ Reusable browse-and-select surface for runtime model catalogs with shared filter
 ## Current Consumers
 - `desktop`
   Uses `model-picker/runtime` and `model-picker/ui` for runtime catalog browse/select/detail panels in runtime config.
-- `relay`
-  Uses `model-picker/headless` and `model-picker/ui` for route-level model selection over relay-discovered local/cloud model lists.
 
 ## Verification
 - `pnpm --filter @nimiplatform/kit test`

@@ -24,9 +24,6 @@ Cross-app authentication feature module for sign-in UI, flows, adapters, storage
 
 ## Current Consumers
 - `desktop`
-- `forge`
-- `overtone`
-- `relay`
 - `web`
 
 ## Verification

@@ -187,7 +187,7 @@ test('agent local chat provider consumes typed image prompt payloads from the mo
         imageProjection: {
           capability: 'image.generate',
           selectedBinding: { source: 'local', connectorId: '', model: 'flux' },
-          resolvedBinding: { capability: 'image.generate', source: 'local', provider: 'forge', model: 'flux', modelId: 'flux', connectorId: '', endpoint: 'http://127.0.0.1:7860' },
+          resolvedBinding: { capability: 'image.generate', source: 'local', provider: 'local-image', model: 'flux', modelId: 'flux', connectorId: '', endpoint: 'http://127.0.0.1:7860' },
           health: null,
           metadata: null,
           supported: true,

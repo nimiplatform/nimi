@@ -224,12 +224,6 @@ function collectRepoFiles() {
     'apps/web/src',
     'apps/avatar/src',
     'apps/avatar/src-tauri',
-    'apps/shiji/src',
-    'apps/shiji/src-tauri',
-    'apps/shiji/spec/kernel',
-    // SJ-SHELL-010 / SJ-SHELL-011: ShiJi is admitted as a local-first-party
-    // Runtime account consumer. It is the only currently admitted app slice
-    // that remains active in this host.
     'runtime/internal/services/account',
     'runtime/internal/grpcserver',
   ];

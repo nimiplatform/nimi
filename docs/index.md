@@ -19,10 +19,10 @@ development methodology that ships with everything else).
 
 Each product has its own section in these docs.
 
-The `apps/` directory in the repository contains extension apps
-(parentOS, Forge, shiji, overtone, and others) that showcase what the
-platform can do but are not part of the platform itself. Those apps are
-not documented here — these docs describe the platform.
+The active `apps/` directory contains only admitted product slices. Deferred
+or retired application history lives under `archive/apps/` and is not active
+product authority. These docs describe the platform and its current admitted
+surfaces.
 
 ## What You Will Find Here
 

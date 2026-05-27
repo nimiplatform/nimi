@@ -64,7 +64,7 @@ Public read surfaces (e.g. `GET /api/world/by-id/{id}/detail-with-agents`) may e
 
 官方内容工厂的 canonical truth write 必须收敛为单一 package-native publish contract。`world-drafts` 仍可作为 creator control-plane 的最小候选稿，但它们不是官方内容的长期 canonical publish contract，也不能与官方 package publish 并列为等价 truth-write 主线。
 
-Realm draft 只承载 `importSource`、`truthDraft`、`stateDraft`、`historyDraft` 这类最小 publish candidate。Forge workspace step、import task、phase intermediates、asset generation state、review UI state 与未准备发布的草稿保持 Forge-local；cross-device 恢复只保证最小 publish candidate，不保证恢复完整编辑器过程态。资产展示或正式使用绑定不属于 canonical world draft，落库时走 binding 路径。
+Realm draft 只承载 `importSource`、`truthDraft`、`stateDraft`、`historyDraft` 这类最小 publish candidate。Authoring workspace step、import task、phase intermediates、asset generation state、review UI state 与未准备发布的草稿保持 authoring-local；cross-device 恢复只保证最小 publish candidate，不保证恢复完整编辑器过程态。资产展示或正式使用绑定不属于 canonical world draft，落库时走 binding 路径。
 
 ## R-TRUTH-012
 
@@ -92,7 +92,7 @@ Realm draft 只承载 `importSource`、`truthDraft`、`stateDraft`、`historyDra
 
 ## R-TRUTH-018
 
-Forge formal `extract-observations` 与 `refine-observations` 的 LLM wire contract
+Formal authoring `extract-observations` 与 `refine-observations` 的 LLM wire contract
 必须收敛为单一 `ObservationMarkupProtocol` 主线。受治理的 authoring artifacts
 不得继续把 strict single-object JSON payload 视为正式 wire authority，也不得在
 不同 provider 或不同 stage 之间分叉出并列 mainline。
@@ -112,7 +112,7 @@ consolidated batch 的边界。
 
 ## R-TRUTH-021
 
-官方 publish、workspace continuation、以及任何受治理的 Forge commit surface，
+官方 publish、workspace continuation、以及任何受治理的 authoring commit surface，
 都必须显式区分 raw attempt artifacts、committed observation units、以及 final
 consolidated extraction batch。raw provider output、partial attempt residue、
 或未完成 continuation 的中间态，不得直接作为 canonical truth ingress 或 publish

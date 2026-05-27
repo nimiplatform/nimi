@@ -2,10 +2,10 @@
  * Character Card V2 → RealmAgent creation draft mapper (T5-3).
  *
  * The Character Card V2 parse + validation is the admitted shared kit surface
- * `@nimiplatform/kit/core/character-card` — the same parser Forge's heavy
- * import workbench uses. This module is the lightweight-creation projection:
- * it maps a parsed card onto the flat D-EXPL-009 creation field set rather than
- * Forge's rich 4-layer AgentRule structure.
+ * `@nimiplatform/kit/core/character-card` — the shared parser used by
+ * governed authoring workbenches. This module is the lightweight-creation
+ * projection: it maps a parsed card onto the flat D-EXPL-009 creation field
+ * set rather than a richer rule-authoring structure.
  *
  * Per D-EXPL-010 the result is a draft, never Realm truth. Per D-EXPL-011
  * card fields that have no creation-field home are surfaced as warnings and
@@ -95,13 +95,13 @@ export function mapCharacterCardToDraft(
   if (data.system_prompt.trim() || data.post_history_instructions.trim()) {
     warnings.push({
       field: 'source',
-      message: 'Card system_prompt / post_history_instructions are not part of lightweight creation; use Forge to author rule-level directives.',
+      message: 'Card system_prompt / post_history_instructions are not part of lightweight creation; use a governed authoring workbench to author rule-level directives.',
     });
   }
   if (data.character_book?.entries.length) {
     warnings.push({
       field: 'source',
-      message: `Card CharacterBook (${data.character_book.entries.length} lore entr(y/ies)) is not imported by lightweight creation; use Forge for lorebook import.`,
+      message: `Card CharacterBook (${data.character_book.entries.length} lore entr(y/ies)) is not imported by lightweight creation; use a governed authoring workbench for lorebook import.`,
     });
   }
   if (data.tags.length > 0) {

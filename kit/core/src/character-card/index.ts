@@ -1,9 +1,9 @@
 /**
  * `@nimiplatform/kit/core/character-card`
  *
- * Single admitted Character Card V2 parse surface. Forge's heavy import
- * workbench and Desktop's lightweight RealmAgent creation both consume this
- * module — neither forks the parser nor the card type.
+ * Single admitted Character Card V2 parse surface. Governed authoring
+ * workbenches and Desktop's lightweight RealmAgent creation both consume
+ * this module — neither forks the parser nor the card type.
  */
 
 export type {

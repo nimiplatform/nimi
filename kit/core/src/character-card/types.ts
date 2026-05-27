@@ -4,8 +4,8 @@
  * Mirrors the Character Card V2 spec
  * (https://github.com/malfoyslastname/character-card-spec-v2).
  *
- * This is the single admitted Character Card type surface shared by Forge's
- * heavy import workbench and Desktop's lightweight RealmAgent creation. Neither
+ * This is the single admitted Character Card type surface shared by governed
+ * authoring workbenches and Desktop's lightweight RealmAgent creation. Neither
  * consumer forks the parser or the card shape.
  */
 

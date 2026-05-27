@@ -56,7 +56,7 @@ adjacent authority 边界固定为：
   voice asset 与 scenario job truth
 
 若任一 consumer 需要 agent chat voice executor 决策，必须先读取同一份 resolved
-`voice` action 与 capability projection；不得从 route health、voice list、Forge host
+`voice` action 与 capability projection；不得从 route health、voice list、authoring host
 wiring、playback helper local state、或 runtime media job metadata 再派生一份 product
 truth。
 

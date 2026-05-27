@@ -35,7 +35,7 @@ pnpm build
 - For proto changes, run `pnpm proto:generate` and ensure no generated drift is left.
 - For runtime changes, run `cd runtime && go test ./...` and `go vet ./...`.
 - For kit changes, run `pnpm --filter @nimiplatform/kit build && pnpm --filter @nimiplatform/kit test`.
-- For Tauri app development (forge, overtone, shiji, moment, lookdev, realm-drift, video-food-map), use `pnpm -C apps/<name> run dev:shell`. All share the same script interface.
+- For Tauri app development, use the app-specific script documented by that active app.
 - For full onboarding flow and environment template details, follow [ONBOARDING.md](./ONBOARDING.md).
 - For test strategy details, follow [TESTING.md](./TESTING.md).
 

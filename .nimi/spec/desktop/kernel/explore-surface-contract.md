@@ -193,14 +193,14 @@ Explore -> World detail -> Create Agent
 | `ai_assisted_generation` | 用户描述概念；Nimi 生成 candidate 并进入 review。 |
 
 `MUST`：`character_card_import` 与 `ai_assisted_generation` 在可适用处必须
-复用 admitted 的 Forge / import 语义，不得自建平行解析 / 生成栈。
+复用 admitted 的 authoring / import 语义，不得自建平行解析 / 生成栈。
 
 `MUST`：`ai_assisted_generation` 的任何 AI execution path 必须显式携带
 `AIScopeRef`（`P-AISC-001`、`P-AISC-004`）；不得在 Explore 层无 scope
 调用 Runtime AI execution。
 
-`MUST NOT`：lightweight creation 不得取代 Forge。Forge 仍是 richer
-World / Agent 创作与发布的 heavy creator workbench；本契约的 lightweight
+`MUST NOT`：lightweight creation 不得取代 governed authoring workbench。Richer
+World / Agent 创作与发布属于独立准入的 creator workbench；本契约的 lightweight
 creation 只服务 fast ordinary RealmAgent creation。
 
 ## D-EXPL-009 — RealmAgent Creation 最小字段集

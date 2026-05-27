@@ -96,6 +96,26 @@ function requireSubjectUserId(): string {
   return subjectUserId;
 }
 
+function buildAgentRequestContext(input: {
+  runtimeAppId: string;
+  subjectUserId: string;
+  agentId: string;
+  learnerId: string;
+}) {
+  const ownerUserId = normalizeText(input.learnerId);
+  const realmAgentId = normalizeText(input.agentId);
+  if (!ownerUserId || !realmAgentId) {
+    throw new Error('shiji runtime agent memory requires learnerId and agentId');
+  }
+  return {
+    appId: input.runtimeAppId,
+    subjectUserId: input.subjectUserId,
+    ownerUserId,
+    realmAgentId,
+    localAgentRef: `local-agent:${ownerUserId}:${realmAgentId}`,
+  };
+}
+
 function isRuntimeMemoryUnavailable(error: unknown): boolean {
   const normalized = asNimiError(error, {
     reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
@@ -176,17 +196,16 @@ async function ensureRuntimeAgent(input: {
   createIfMissing: boolean;
 }): Promise<{
   runtime: ReturnType<typeof getPlatformClient>['runtime'];
-  context: {
-    appId: string;
-    subjectUserId: string;
-  };
+  context: ReturnType<typeof buildAgentRequestContext>;
 } | null> {
   const runtime = getPlatformClient().runtime;
   const subjectUserId = requireSubjectUserId();
-  const context = {
-    appId: runtime.appId,
+  const context = buildAgentRequestContext({
+    runtimeAppId: runtime.appId,
     subjectUserId,
-  };
+    agentId: input.agentId,
+    learnerId: input.learnerId,
+  });
   const agentId = normalizeText(input.agentId);
   try {
     await runtimeProtectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.getAgent({
@@ -209,6 +228,9 @@ async function ensureRuntimeAgent(input: {
       await runtimeProtectedAccess.withScopes(['runtime.agent.admin'], (options) => runtime.agent.initializeAgent({
         context,
         agentId,
+        localAgentRef: context.localAgentRef,
+        ownerUserId: context.ownerUserId,
+        realmAgentId: context.realmAgentId,
         displayName: agentId,
         autonomyConfig: undefined,
         worldId: normalizeText(input.worldId),

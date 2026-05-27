@@ -33,13 +33,10 @@ Reusable generation workflow shell for submit, status, and result-oriented runti
 - Realm business-service integrations.
 
 ## Current Consumers
-- `overtone`
-  Uses `generation/runtime` and `generation/ui` for music generate and iterate panels while keeping take creation, artifact decoding, and store updates app-local.
 - `desktop`
   Uses `generation/ui` status surfaces for scenario job progress and shared runtime status display.
 
 ## Verification
 - `pnpm --filter @nimiplatform/kit test`
-- `pnpm --filter @nimiplatform/overtone build`
 - `pnpm --filter @nimiplatform/desktop build`
 - `pnpm check:nimi-kit`

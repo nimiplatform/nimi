@@ -23,15 +23,12 @@ function createPlatformRegistryClient(): NimiAppClient {
 }
 
 describe('Nimi Home Library / install / launch smoke', () => {
-  it('projects ShiJing source-development posture as install-required, not ready', async () => {
+  it('projects no ordinary Library entries when no ordinary app is admitted', async () => {
     const library = await projectLibrary(createPlatformRegistryClient());
     assert.equal(library.status, 'loaded');
     if (library.status !== 'loaded') return;
 
-    const parentOS = library.entries.find((entry) => entry.app.appId === 'nimi.shijing');
-    assert.ok(parentOS, 'ShiJing registry row must be projected');
-    assert.equal(parentOS.status?.launchReadiness, 'install-required');
-    assert.notEqual(parentOS.status?.launchReadiness, 'ready');
+    assert.deepEqual(library.entries.map((entry) => entry.app.appId), []);
   });
 
   it('keeps hidden and developer-only Apps out of ordinary Library and installable Discovery', async () => {
@@ -80,14 +77,11 @@ describe('Nimi Home Library / install / launch smoke', () => {
     }
   });
 
-  it('status cannot be promoted to ready without digest-verified install evidence', async () => {
+  it('empty ordinary catalog cannot synthesize a ready app without registry evidence', async () => {
     const library = await projectLibrary(createPlatformRegistryClient());
     assert.equal(library.status, 'loaded');
     if (library.status !== 'loaded') return;
 
-    const parentOS = library.entries.find((entry) => entry.app.appId === 'nimi.shijing');
-    assert.ok(parentOS, 'ShiJing registry row must be projected');
-    assert.equal(parentOS.status?.verificationState, 'not-installed');
-    assert.notEqual(parentOS.status?.launchReadiness, 'ready');
+    assert.equal(library.entries.some((entry) => entry.status?.launchReadiness === 'ready'), false);
   });
 });
