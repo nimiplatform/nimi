@@ -1,7 +1,5 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 
 import {
   appendPendingAttachment,
@@ -17,19 +15,6 @@ import {
   getChatUploadPlaceholders,
   removeChatUploadPlaceholder,
 } from '../src/shell/renderer/features/turns/chat-upload-placeholder-store.js';
-
-const turnInputSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/features/turns/turn-input.tsx'),
-  'utf8',
-);
-const messageTimelineSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/features/turns/message-timeline.tsx'),
-  'utf8',
-);
-const humanConversationTranscriptSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/features/turns/human-conversation-transcript.tsx'),
-  'utf8',
-);
 
 describe('TurnInput attachment staging helpers', () => {
   test('stages image attachments instead of sending immediately', () => {
@@ -228,71 +213,4 @@ describe('TurnInput attachment staging helpers', () => {
     assert.equal(result.sendText, false);
   });
 
-  test('composer keeps attachment preview in a scrollable content area', () => {
-    assert.match(
-      turnInputSource,
-      /<ScrollArea className="min-h-0 flex-1" viewportClassName="pr-2">/,
-    );
-  });
-
-  test('composer renders attachment previews as a wrapped thumbnail list', () => {
-    assert.match(
-      turnInputSource,
-      /pendingAttachments\.length > 0 \? \(\s*<div className="mb-2 flex flex-wrap gap-2">/,
-    );
-    assert.match(
-      turnInputSource,
-      /className="block h-20 w-20 rounded-xl object-cover"/,
-    );
-  });
-
-  test('composer renders video attachments as rounded cards with metadata instead of square thumbnails', () => {
-    assert.match(
-      turnInputSource,
-      /className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-\[0_6px_20px_rgba\(15,23,42,0\.08\)\]"/,
-    );
-    assert.match(
-      turnInputSource,
-      /className="relative h-24 w-40 overflow-hidden bg-gray-900"/,
-    );
-    assert.match(
-      turnInputSource,
-      /formatPendingAttachmentSize\(attachment\.file\.size\)/,
-    );
-    assert.doesNotMatch(
-      turnInputSource,
-      /className="block h-20 w-20 rounded-xl bg-black object-cover"/,
-    );
-  });
-
-  test('composer keeps toolbar and send button in a fixed shrink-0 footer row', () => {
-    assert.match(
-      turnInputSource,
-      /className="mt-2 flex shrink-0 items-center justify-between"/,
-    );
-    assert.match(
-      turnInputSource,
-      /className=\{`ml-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-all hover:bg-\[#0052A3\] disabled:opacity-40 disabled:cursor-not-allowed \$\{/,
-    );
-  });
-
-  test('message timeline raises the default composer height', () => {
-    assert.match(messageTimelineSource, /const COMPOSER_MIN_HEIGHT = 132;/);
-    assert.match(messageTimelineSource, /const \[composerHeight, setComposerHeight\] = useState\(176\);/);
-  });
-
-  test('message timeline renders local upload placeholders with a spinner overlay', () => {
-    assert.match(
-      humanConversationTranscriptSource,
-      /const uploadPlaceholders = useChatUploadPlaceholders\(selectedChatId\);/,
-    );
-    assert.match(
-      humanConversationTranscriptSource,
-      /<RealmChatTimeline/,
-    );
-    assert.match(
-      humanConversationTranscriptSource,
-      /t\('ChatTimeline\.uploadingMedia', 'Uploading\.\.\.'\)/,
-    );
-  });
 });

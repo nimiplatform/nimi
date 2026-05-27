@@ -16,7 +16,6 @@ const contactsDetailShellSource = readWorkspaceFile('src/shell/renderer/features
 const profilePostsSource = readWorkspaceFile('src/shell/renderer/features/profile/posts-tab.tsx');
 const profileLikesSource = readWorkspaceFile('src/shell/renderer/features/profile/likes-tab.tsx');
 const profileCollectionsSource = readWorkspaceFile('src/shell/renderer/features/profile/collections-tab.tsx');
-const profileMediaSource = readWorkspaceFile('src/shell/renderer/features/profile/media-tab.tsx');
 const profileGiftsSource = readWorkspaceFile('src/shell/renderer/features/profile/gifts-tab.tsx');
 const desktopUiShellSpec = readRepoFile('.nimi/spec/desktop/kernel/ui-shell-contract.md');
 const desktopSurfacesSpec = readRepoFile('.nimi/spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
@@ -35,14 +34,12 @@ test('W1 shared profile branded decision: feed cards are frozen as converging co
   assert.match(profilePostsSource, /DesktopCardSurface|rounded-\[24px\]/);
   assert.match(profileLikesSource, /DesktopCardSurface|rounded-\[24px\]/);
   assert.match(profileCollectionsSource, /DesktopCardSurface|rounded-\[24px\]/);
-  assert.match(profileMediaSource, /DesktopCardSurface|rounded-\[22px\]/);
   assert.match(profileGiftsSource, /DesktopCardSurface|rounded-\[24px\]|#4ECCA3/);
   assert.doesNotMatch(desktopSurfacesSpec, /id: contacts\.friend_requests\.cards/);
   assert.match(desktopSurfacesSpec, /id: profile\.posts\.cards[\s\S]*surface_profile: secondary[\s\S]*exception_policy: none[\s\S]*source_rule: D-SHELL-032/);
   assert.match(desktopSurfacesSpec, /id: profile\.likes\.cards[\s\S]*surface_profile: secondary[\s\S]*exception_policy: none[\s\S]*source_rule: D-SHELL-032/);
   assert.match(desktopSurfacesSpec, /id: profile\.collections\.cards[\s\S]*surface_profile: secondary[\s\S]*exception_policy: none[\s\S]*source_rule: D-SHELL-032/);
-  assert.match(desktopSurfacesSpec, /id: profile\.media\.cards[\s\S]*surface_profile: secondary[\s\S]*exception_policy: none[\s\S]*source_rule: D-SHELL-032/);
   assert.match(desktopSurfacesSpec, /id: profile\.gifts\.cards[\s\S]*surface_profile: secondary[\s\S]*exception_policy: none[\s\S]*source_rule: D-SHELL-032/);
-  assert.doesNotMatch(desktopKitAdoptionSpec, /desktop\.profile\.(posts|likes|collections|media|gifts)\.exception/);
+  assert.doesNotMatch(desktopKitAdoptionSpec, /desktop\.profile\.(posts|likes|collections|gifts)\.exception/);
   assert.doesNotMatch(desktopKitAdoptionSpec, /desktop\.(contacts|relationship)\.friend-requests\.exception/);
 });

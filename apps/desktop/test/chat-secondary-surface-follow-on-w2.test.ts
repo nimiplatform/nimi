@@ -14,8 +14,6 @@ const chatSessionListSource = readWorkspaceFile('src/shell/renderer/features/cha
 const chatHistorySource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-history-panel.tsx');
 const chatRuntimeInspectSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-runtime-inspect-content.tsx');
 const chatDiagnosticsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-diagnostics.tsx');
-const chatTargetSelectorSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-target-selector.tsx');
-const chatRightRailSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-right-panel-character-rail.tsx');
 
 test('W2 chat surface follow-on: shared Desktop actions freeze compact, toggle, and field-trigger paths', () => {
   assert.match(actionSource, /export function DesktopCompactAction/);
@@ -29,8 +27,6 @@ test('W2 chat surface follow-on: page composition keeps toggle ownership in the 
   assert.doesNotMatch(chatPageSource, /emerald-/u);
   assert.match(chatRightPanelSettingsSource, /import \{ DesktopIconToggleAction \} from '@renderer\/components\/action';/);
   assert.match(chatRightPanelSettingsSource, /<DesktopIconToggleAction[\s\S]*data-chat-settings-toggle="true"/);
-  assert.match(chatRightRailSource, /import \{ DesktopIconToggleAction \} from '@renderer\/components\/action';/);
-  assert.match(chatRightRailSource, /<DesktopIconToggleAction/);
 });
 
 test('W2 chat surface follow-on: session and history cards consume shared Desktop surface and action primitives', () => {
@@ -46,12 +42,7 @@ test('W2 chat surface follow-on: session and history cards consume shared Deskto
   assert.doesNotMatch(chatHistorySource, /emerald-/u);
 });
 
-test('W2 chat surface follow-on: target selector, inspect, and diagnostics panels consume shared operational primitives', () => {
-  assert.match(chatTargetSelectorSource, /import \{ DesktopFieldTrigger \} from '@renderer\/components\/action';/);
-  assert.match(chatTargetSelectorSource, /import \{ DesktopCardSurface \} from '@renderer\/components\/surface';/);
-  assert.match(chatTargetSelectorSource, /<DesktopFieldTrigger/);
-  assert.match(chatTargetSelectorSource, /<DesktopCardSurface kind="operational-solid"/);
-  assert.doesNotMatch(chatTargetSelectorSource, /emerald-|teal-600/u);
+test('W2 chat surface follow-on: inspect and diagnostics panels consume shared operational primitives', () => {
   assert.match(chatRuntimeInspectSource, /import \{ DesktopCardSurface \} from '@renderer\/components\/surface';/);
   assert.match(chatRuntimeInspectSource, /<DesktopCardSurface kind="operational-solid"/);
   assert.match(chatDiagnosticsSource, /import \{ DesktopCompactAction \} from '@renderer\/components\/action';/);

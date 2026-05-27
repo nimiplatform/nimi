@@ -63,13 +63,10 @@
   "blocking": "屏蔽中...",
   "displayNameRequired": "显示名称不能为空",
   "blockedPostsHidden": "由于你已屏蔽该用户，对方的帖子已被隐藏。",
-  "blockedMediaHidden": "由于你已屏蔽该用户，对方的媒体内容已被隐藏。",
   "privateProfileDescription": "该资料为私密状态，仅显示基础联系人信息。",
   "privateProfileState": "私密资料",
   "loadPostsFailed": "加载帖子失败",
   "loadLikedPostsFailed": "加载点赞帖子失败",
-  "loadMediaFailed": "加载媒体内容失败",
-  "noMediaYet": "还没有媒体内容",
   "noProfileDataAvailable": "没有可用的资料数据",
   "Collections": {
     "empty": "暂无合集"

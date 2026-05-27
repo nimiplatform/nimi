@@ -7,10 +7,10 @@ type ListChatsResultDto = RealmModel<'ListChatsResultDto'>;
 type MessageViewDto = RealmModel<'MessageViewDto'>;
 
 import {
-  applyRealtimeMessageUpdateToChatsResult,
-  applyRealtimeMessageUpdateToMessagesResult,
-  mergeRealtimeMessageIntoMessagesResult,
-} from '../src/shell/renderer/features/realtime/chat-realtime-cache.js';
+  applyRealmRealtimeMessageUpdateToChatsResult as applyRealtimeMessageUpdateToChatsResult,
+  applyRealmRealtimeMessageUpdateToMessagesResult as applyRealtimeMessageUpdateToMessagesResult,
+  mergeRealmRealtimeMessageIntoMessagesResult as mergeRealtimeMessageIntoMessagesResult,
+} from '@nimiplatform/kit/features/chat/realm';
 
 function createMessage(input: Partial<MessageViewDto> & { id: string; chatId: string; createdAt: string }): MessageViewDto {
   return {

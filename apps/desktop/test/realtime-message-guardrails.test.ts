@@ -3,7 +3,9 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { normalizeRealtimeMessagePayload } from '../src/shell/renderer/features/realtime/chat-realtime-cache';
+import {
+  normalizeRealmRealtimeMessagePayload as normalizeRealtimeMessagePayload,
+} from '@nimiplatform/kit/features/chat/realm';
 
 const VIDEO_PLAYERS_SOURCE = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/home/video-players.tsx'),

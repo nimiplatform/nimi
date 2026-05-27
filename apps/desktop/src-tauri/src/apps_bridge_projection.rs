@@ -1,6 +1,6 @@
 //! Desktop Apps bridge projection command.
 //!
-//! The Desktop Apps bridge (`nimi-home-live-bridge.ts`) constructs a
+//! The Desktop Apps bridge (`apps-live-bridge.ts`) constructs a
 //! `NimiAppClient` over `createNimiAppRegistryTransport`, which needs three
 //! loader payloads in the SDK Nimi App client shapes:
 //! - registry rows (`NimiAppRegistrySourceRow[]`),

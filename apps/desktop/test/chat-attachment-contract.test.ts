@@ -9,10 +9,6 @@ import {
   resolveCanonicalChatAttachmentUrl,
 } from '../src/shell/renderer/features/turns/chat-attachment-contract.js';
 
-const turnInputSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/features/turns/turn-input.tsx'),
-  'utf8',
-);
 const messageTimelineUtilsSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/turns/message-timeline-utils.tsx'),
   'utf8',
@@ -75,17 +71,6 @@ test('chat attachment preview text prefers canonical metadata and falls back to 
     'Image',
   );
   assert.equal(resolveCanonicalChatAttachmentPreviewText({ imageId: 'legacy-image' }), '');
-});
-
-test('turn input writes ATTACHMENT chat payloads', () => {
-  assert.match(turnInputSource, /extractChatAttachmentTargetId\(uploadInfo\)/);
-  assert.match(turnInputSource, /finalizeResource\(attachmentTargetId,\s*\{\}\)/);
-  assert.match(turnInputSource, /type:\s*MessageType\.ATTACHMENT/);
-  assert.match(turnInputSource, /createCanonicalChatAttachmentPayload\(finalizedAttachmentTargetId\)/);
-  assert.doesNotMatch(turnInputSource, /\bimageId\s*:/);
-  assert.doesNotMatch(turnInputSource, /\bvideoId\s*:/);
-  assert.doesNotMatch(turnInputSource, /\bassetId\s*:/);
-  assert.doesNotMatch(turnInputSource, /storageRef/);
 });
 
 test('message timeline utilities do not synthesize legacy media endpoints', () => {

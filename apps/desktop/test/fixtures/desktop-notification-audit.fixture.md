@@ -8,6 +8,6 @@
 
 | source | current surface | trigger | user initiated? | message key / literal | current behavior | target channel | keep? | reason |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `turn-input.tsx` upload/send/read-only/unsupported-file | global banner | user_action | yes | `TurnInput.*` | composer 错误弹全局 | `page_inline` / composer inline | migrated | 输入框上方 inline 更合适 |
+| `chat-human-canonical-composer-profile.tsx` upload/send/read-only/unsupported-file | global banner | user_action | yes | `TurnInput.*` | composer 错误弹全局 | `page_inline` / composer inline | migrated | 输入框上方 inline 更合适 |
 
 ## Remaining Whitelist

@@ -10,7 +10,6 @@ function readWorkspaceFile(relativePath: string): string {
 const profilePostsSource = readWorkspaceFile('src/shell/renderer/features/profile/posts-tab.tsx');
 const profileLikesSource = readWorkspaceFile('src/shell/renderer/features/profile/likes-tab.tsx');
 const profileCollectionsSource = readWorkspaceFile('src/shell/renderer/features/profile/collections-tab.tsx');
-const profileMediaSource = readWorkspaceFile('src/shell/renderer/features/profile/media-tab.tsx');
 const profileGiftsSource = readWorkspaceFile('src/shell/renderer/features/profile/gifts-tab.tsx');
 const profileFeedWithPreviewSource = readWorkspaceFile('src/shell/renderer/features/profile/post-feed-with-media-preview.tsx');
 
@@ -28,11 +27,6 @@ test('W2 contacts/profile convergence: admitted profile tabs consume shared desk
   assert.match(profileCollectionsSource, /import \{ DesktopCardSurface \} from '@renderer\/components\/surface';/);
   assert.match(profileCollectionsSource, /<DesktopCardSurface kind="promoted-glass"/);
   assert.doesNotMatch(profileCollectionsSource, /DesktopCompactAction/);
-
-  assert.match(profileMediaSource, /import \{ DesktopCompactAction \} from '@renderer\/components\/action';/);
-  assert.match(profileMediaSource, /import \{ DesktopCardSurface \} from '@renderer\/components\/surface';/);
-  assert.match(profileMediaSource, /as="button"[\s\S]*kind="promoted-glass"[\s\S]*interactive/);
-  assert.match(profileMediaSource, /<DesktopCompactAction tone="danger"/);
 
   assert.match(profileGiftsSource, /import \{ DesktopCompactAction \} from '@renderer\/components\/action';/);
   assert.match(profileGiftsSource, /import \{ DesktopCardSurface \} from '@renderer\/components\/surface';/);

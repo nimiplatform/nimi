@@ -101,7 +101,6 @@ const checks = [
     description: 'desktop renderer-facing parser surfaces must use named JsonObject boundaries instead of raw record casts',
     pattern: 'Promise<unknown>|Record<string, unknown>|as unknown as|Promise<any>|as never',
     paths: [
-      'apps/desktop/src/shell/renderer/features/realtime/chat-realtime-cache.ts',
       'apps/desktop/src/shell/renderer/features/relationship/relationship-model.ts',
       'apps/desktop/src/shell/renderer/features/relationship/agent-friend-limit.ts',
       'apps/desktop/src/shell/renderer/features/explore/explore-panel.tsx',

@@ -11,7 +11,6 @@ const humanAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/c
 const canonicalHumanSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-canonical-components.tsx');
 const canonicalHumanComposerProfileSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-canonical-composer-profile.tsx');
 const giftModalSource = readWorkspaceFile('src/shell/renderer/features/turns/human-conversation-gift-modal.tsx');
-const messageTimelineSource = readWorkspaceFile('src/shell/renderer/features/turns/message-timeline.tsx');
 
 test('chat human shell a5: human host now uses shell-native transcript, composer, and target rail', () => {
   assert.match(humanAdapterSource, /useHumanCanonicalConversationSurface/);
@@ -110,14 +109,4 @@ test('chat human shell a5: composer and profile drawer reuse existing desktop tr
   assert.match(canonicalHumanComposerProfileSource, /ChatProfileCard/);
   assert.match(giftModalSource, /SendGiftModal/);
   assert.doesNotMatch(canonicalHumanComposerProfileSource, /<TurnInput/);
-});
-
-test('chat human shell a5: message timeline delegates to canonical extracted parts', () => {
-  assert.match(messageTimelineSource, /HumanCanonicalTranscriptSurface/);
-  assert.match(messageTimelineSource, /HumanCanonicalComposer/);
-  assert.match(messageTimelineSource, /HumanCanonicalProfileDrawer/);
-  assert.match(messageTimelineSource, /HumanConversationGiftModal/);
-  assert.doesNotMatch(messageTimelineSource, /HumanConversationTranscript/);
-  assert.doesNotMatch(messageTimelineSource, /HumanConversationComposer/);
-  assert.doesNotMatch(messageTimelineSource, /HumanConversationTargetRail/);
 });

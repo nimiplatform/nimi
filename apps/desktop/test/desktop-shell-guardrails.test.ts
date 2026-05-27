@@ -187,7 +187,7 @@ test('proxyHttp fallback blocks private-network absolute URLs outside the app or
   }
 });
 
-test('desktop shell source guardrails keep particle cleanup and auth helpers centralized', () => {
+test('desktop shell source guardrails keep auth helpers centralized', () => {
   const desktopTauriConfigSource = fs.readFileSync(
     path.join(import.meta.dirname, '../src-tauri/tauri.conf.json'),
     'utf8',
@@ -212,15 +212,6 @@ test('desktop shell source guardrails keep particle cleanup and auth helpers cen
     path.join(import.meta.dirname, '../src-tauri/src/main_parts/defaults_and_commands/system_resources.rs'),
     'utf8',
   );
-  const particleSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/features/auth/particle-background-light.tsx'),
-    'utf8',
-  );
-  const turnInputSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/features/turns/turn-input.tsx'),
-    'utf8',
-  );
-
   assert.doesNotMatch(authMenuSource, /function toAuthUserRecord/);
   assert.doesNotMatch(desktopTauriConfigSource, /"pubkey"\s*:\s*"dev-placeholder"/);
   assert.doesNotMatch(authAdapterSource, /as Promise</);
@@ -232,8 +223,4 @@ test('desktop shell source guardrails keep particle cleanup and auth helpers cen
   assert.match(systemResourcesSource, /static MACOS_CPU_COUNT: OnceLock<f64> = OnceLock::new\(\);/);
   assert.match(systemResourcesSource, /MACOS_CPU_COUNT\.get_or_init/);
   assert.doesNotMatch(systemResourcesSource, /collect_cpu_percent\(\)[\s\S]*read_command_output\("sysctl", &\["-n", "hw\.ncpu"\]\)/);
-  assert.match(particleSource, /spatialBuckets/);
-  assert.match(particleSource, /renderer\.forceContextLoss\(\)/);
-  assert.match(turnInputSource, /from '\.\/emoji-data'/);
-  assert.doesNotMatch(turnInputSource, /const EMOJI_CATEGORIES = \[/);
 });

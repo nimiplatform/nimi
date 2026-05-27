@@ -8,10 +8,6 @@ import {
   loadPlatformAIProfileFactoryRows,
 } from '../src/runtime/platform-catalog/index.js';
 
-const homeBridgeSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/features/nimi-home/nimi-home-live-bridge.ts'),
-  'utf8',
-);
 const appRoutesSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/app-shell/routes/app-routes.tsx'),
   'utf8',
@@ -83,7 +79,6 @@ test('Nimi Home first-run selection is install-level aware and fail-closed again
   assert.match(installLevelPolicySource, /row\.routingPolicy === 'cloud-first'/);
   assert.match(installLevelPolicySource, /row\.routingPolicy === 'hybrid-explicit'/);
   assert.match(installLevelPolicySource, /row\.capabilitySet\.includes\('video\.generate'\)/);
-  assert.doesNotMatch(homeBridgeSource, /return rows\[0\] \?\? null/);
 });
 
 test('first-run wizard exposes data root selection, install levels, and no mark-ready shortcut', () => {

@@ -24,13 +24,6 @@ surfaces:
     exception_policy: none
     testid_required: false
     source_rule: D-SHELL-030
-  - id: chat.utility.rail_controls
-    module: features/chat/chat-right-panel-character-rail.tsx
-    role: chat_utility_rail_controls
-    surface_profile: secondary
-    exception_policy: none
-    testid_required: true
-    source_rule: D-SHELL-030
   - id: chat.settings.rail_controls
     module: features/chat/chat-right-panel-settings.tsx
     role: chat_settings_rail_controls
@@ -51,13 +44,6 @@ surfaces:
     surface_profile: secondary
     exception_policy: none
     testid_required: true
-    source_rule: D-SHELL-030
-  - id: chat.target_selector.surface
-    module: features/chat/chat-target-selector.tsx
-    role: chat_target_selector_surface
-    surface_profile: secondary
-    exception_policy: none
-    testid_required: false
     source_rule: D-SHELL-030
   - id: chat.inspect.operational
     module: features/chat/chat-runtime-inspect-content.tsx
@@ -160,13 +146,6 @@ surfaces:
   - id: profile.collections.cards
     module: features/profile/collections-tab.tsx
     role: profile_collections_cards
-    surface_profile: secondary
-    exception_policy: none
-    testid_required: false
-    source_rule: D-SHELL-032
-  - id: profile.media.cards
-    module: features/profile/media-tab.tsx
-    role: profile_media_cards
     surface_profile: secondary
     exception_policy: none
     testid_required: false

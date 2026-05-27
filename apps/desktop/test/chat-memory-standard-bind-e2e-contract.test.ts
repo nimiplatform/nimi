@@ -28,10 +28,6 @@ const agentShellAdapterSource = fs.readFileSync(
   path.join(desktopRoot, 'src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx'),
   'utf8',
 );
-const rightPanelSource = fs.readFileSync(
-  path.join(desktopRoot, 'src/shell/renderer/features/chat/chat-right-panel-character-rail.tsx'),
-  'utf8',
-);
 
 test('chat memory standard bind journey is registered in the desktop E2E registry', () => {
   assert.match(
@@ -79,7 +75,6 @@ test('chat memory standard bind journey exposes stable Memory Mode test ids', ()
   assert.match(e2eSelectorsSource, /chatMemoryModeCard: 'chat-memory-mode-card',/);
   assert.match(e2eSelectorsSource, /chatMemoryModeStatus: 'chat-memory-mode-status',/);
   assert.match(e2eSelectorsSource, /chatMemoryModeUpgradeButton: 'chat-memory-mode-upgrade-button',/);
-  assert.match(rightPanelSource, /data-testid=\{E2E_IDS\.chatSettingsToggle\}/);
   assert.match(agentCenterPanelSource, /data-testid=\{E2E_IDS\.chatAgentCenterSection\(section\.id\)\}/);
   assert.match(historyPanelSource, /data-testid=\{E2E_IDS\.chatMemoryModeCard\}/);
   assert.match(historyPanelSource, /data-testid=\{E2E_IDS\.chatMemoryModeStatus\}/);

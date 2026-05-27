@@ -47,7 +47,7 @@ test('phase-2 migrated surfaces no longer write global status banners directly',
     'shell/renderer/features/settings/settings-security-page.tsx',
     'shell/renderer/features/settings/settings-language-region-panel.tsx',
     'shell/renderer/features/settings/settings-data-management-page.tsx',
-    'shell/renderer/features/turns/turn-input.tsx',
+    'shell/renderer/features/chat/chat-human-canonical-composer-profile.tsx',
     'shell/renderer/features/chat/chat-human-canonical-components.tsx',
     'shell/renderer/features/agent-detail/agent-detail-panel.tsx',
     'shell/renderer/features/relationship/profile-detail-modal.tsx',
@@ -71,7 +71,7 @@ test('notification audit report records final target channels for migrated phase
   assert.doesNotMatch(report, /slot-host\.tsx/);
   assert.doesNotMatch(report, /`Mods`/);
   assert.match(report, /web-auth-menu\.tsx` auth warning\/error incl\. onboarding pending .* \| `page_inline` \| migrated \|/);
-  assert.match(report, /turn-input\.tsx` upload\/send\/read-only\/unsupported-file .* \| `page_inline` \/ composer inline \| migrated \|/);
+  assert.match(report, /chat-human-canonical-composer-profile\.tsx` upload\/send\/read-only\/unsupported-file .* \| `page_inline` \/ composer inline \| migrated \|/);
   assert.match(report, /## Remaining Whitelist/);
 });
 

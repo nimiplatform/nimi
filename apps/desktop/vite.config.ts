@@ -305,7 +305,6 @@ export default defineConfig(({ mode }) => {
               }
               if (matchesAny(normalizedId, [
                 '/chat-agent-avatar-',
-                '/chat-right-panel-character-rail',
                 '/chat-agent-anchored-avatar-stage',
               ])) {
                 return 'chat-agent-avatar';

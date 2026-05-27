@@ -16,7 +16,6 @@ const runtimeSliceSource = readWorkspaceFile('src/shell/renderer/app-shell/provi
 const storeTypesSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/store-types.ts');
 const capabilityStorageSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/desktop-ai-config-storage.ts');
 const chatPageSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-page.tsx');
-const chatModeRegistrySource = readWorkspaceFile('src/shell/renderer/features/chat/chat-mode-registry.ts');
 const chatModeHostTypesSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-shared-mode-host-types.ts');
 const chatAiAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-adapter.tsx');
 const chatAiPresentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-presentation.tsx');
@@ -39,10 +38,6 @@ test('chat unified shell a2: main layout mounts the dedicated chat page host', (
   assert.match(mainLayoutViewSource, /@renderer\/features\/chat\/chat-page/);
   assert.match(mainLayoutViewSource, /<ChatPage \/>/);
   assert.doesNotMatch(mainLayoutViewSource, /function ChatLayout\(/);
-});
-
-test('chat unified shell a2: anonymous desktop only exposes AI mode', () => {
-  assert.match(chatModeRegistrySource, /input\.authStatus === 'authenticated'\s*\?\s*\[input\.aiHost, input\.humanHost, input\.agentHost.*\]\s*:\s*\[input\.aiHost\]/);
 });
 
 test('chat unified shell a2: AI host stays enterable and submit-time route gating owns readiness', () => {
