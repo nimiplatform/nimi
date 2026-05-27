@@ -76,12 +76,12 @@ Kit provides the building blocks. Apps assemble.
 A consumer app wants its UI to match the shared Nimi interaction
 language.
 
-1. **Consume Kit primitives.** The mod imports
+1. **Consume Kit primitives.** The app imports
    `@nimiplatform/kit/ui` for shared `<Button>`, `<Surface>`,
    `<Dialog>`, etc.
 2. **Use semantic tokens.** Components consume `--nimi-*` CSS custom
    properties; do not redefine them.
-3. **Theme follows shared scheme.** Mod imports the shared light /
+3. **Theme follows shared scheme.** The app imports the shared light /
    dark CSS plus exactly one app accent pack from
    `@nimiplatform/kit/ui/themes/*-accent.css`.
 4. **Visual consistency.** The consumer UI inherits the admitted

@@ -90,7 +90,7 @@ and vice versa.
 | --- | --- | --- |
 | Platform team | Maintain runtime, protocol, and Desktop | runtime, platform protocol, Desktop |
 | World creator | Build a world | SDK in full mode |
-| Mod developer | Extend Desktop with bounded capabilities | SDK then mod surface |
+| App developer | Build admitted Nimi apps with bounded capabilities | SDK and Nimi App admission |
 | AI agent | Participate as a first-class entity | Runtime-owned agent participation |
 | User | Explore worlds, interact, socialize, transact | Desktop or any Nimi-aware app |
 

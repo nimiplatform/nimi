@@ -102,7 +102,7 @@ Nimi 上的应用间协调通过**运行时中介应用消息**进行。应用�
 一个模块希望向用户的代理发送类型化消息。这是 `scoped_binding` 要求覆盖的情况。
 
 1. **模块有范围绑定。** 之前由 `RuntimeAccountService.IssueScopedAppBinding` 为已准入目的发布。
-2. **`SendAppMessage`。** `from_app_id: mod-x`，`to_app_id: runtime.agent`，消息家族属于 K-APP-008 集合，加上 `scoped_binding`。
+2. **`SendAppMessage`。** `from_app_id: app-x`，`to_app_id: runtime.agent`，消息家族属于 K-APP-008 集合，加上 `scoped_binding`。
 3. **运行时验证绑定。** 绑定 ID 解析；关系选择器检查；非秘密句柄（如果存在）匹配。
 4. **传递。** 消息在已准入绑定上下文中到达代理表面。
 
@@ -112,7 +112,7 @@ Nimi 上的应用间协调通过**运行时中介应用消息**进行。应用�
 
 两个模块意外进入聊天循环，快速互相发送消息。
 
-1. **发送速率上升。** 在一秒钟内，`(mod-a, mod-b)` 对双向交换超过 20 条消息。
+1. **发送速率上升。** 在一秒钟内，`(app-a, app-b)` 对双向交换超过 20 条消息。
 2. **断路器触发。** 运行时对后续发送发出 `APP_MESSAGE_LOOP_DETECTED`。
 3. **对在 60 秒内被阻止。** 其他应用继续正常消息传递；只有违规对被阻止。
 4. **作者看到类型化原因。** 模块作者修复其循环逻辑。

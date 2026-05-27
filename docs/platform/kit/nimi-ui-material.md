@@ -16,7 +16,7 @@ from color tone; you can have a `solid` action button, a
 `glass-thick` panel, a `glass-chrome` overlay — independent from
 their semantic color role.
 
-Material is a **closed 5-tier taxonomy**. No app, mod, or feature
+Material is a **closed 5-tier taxonomy**. No app or feature
 module may author a parallel material axis.
 
 ## The 5 Tiers
@@ -105,17 +105,17 @@ An app needs a modal over animated background content.
 The author wrote one `material="glass-thick"` and the rest is
 admitted.
 
-## Reader Scenario: A Mod Tries Inline Glass
+## Reader Scenario: An App Tries Inline Glass
 
-A mod author writes inline `style=\{\{ background: 'rgba(...)',
+An app author writes inline `style=\{\{ background: 'rgba(...)',
 backdropFilter: 'blur(20px)' \}\}` for a custom panel.
 
 1. **Reject.** Per consumer rules, inline `rgba(...)` material
    background and inline `backdrop-filter` declarations are
    forbidden.
-2. **Re-route.** The mod uses `<Surface material="glass-regular">`
+2. **Re-route.** The app uses `<Surface material="glass-regular">`
    or whichever admitted tier matches the intent.
-3. **Visual consistency.** The mod's panel matches every other
+3. **Visual consistency.** The app's panel matches every other
    admitted glass surface in the platform.
 
 ## Reader Scenario: Wanting A Sixth Tier

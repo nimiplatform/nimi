@@ -29,7 +29,7 @@ clicked regenerate on this message") are the message action contract.
 | Edit | Edit the user's prior message and re-derive |
 | Other admitted actions per `agent-chat-message-action-contract.md` |
 
-Each action is typed; mod / app code does not invent new actions.
+Each action is typed; app code does not invent new actions.
 
 ## Boundary
 
@@ -64,7 +64,7 @@ point.
 
 ## What Message Actions Do Not Do
 
-- They do not let mod / app code invent new actions.
+- They do not let app code invent new actions.
 - They do not bypass turn lifecycle.
 - They do not silently mutate Realm chat thread truth.
 - They do not redefine `ConversationAnchor` shape.

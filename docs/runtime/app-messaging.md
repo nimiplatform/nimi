@@ -77,7 +77,7 @@ Phase 2 launch baseline rules:
 | App authentication | `SendAppMessage` must verify `from_app_id` is registered with `RuntimeAuthService` and the current session holds a valid token. Unauthenticated returns `UNAUTHENTICATED` | Prevents arbitrary process from spoofing a registered app |
 | Payload size limit | `payload` Struct serialized must not exceed **64 KB**. Over: `INVALID_ARGUMENT` + `APP_MESSAGE_PAYLOAD_TOO_LARGE` | Prevents one message from exhausting runtime memory |
 | Send rate limit | Per `from_app_id`: **100 msgs/sec** sliding window. Over: `RESOURCE_EXHAUSTED` + `APP_MESSAGE_RATE_LIMITED` | Prevents storms / DoS |
-| Loop detection | Same `(from_app_id, to_app_id)` pair > **20 messages bidirectional within 1 second** auto-circuit-breaks the pair for **60 seconds** with `FAILED_PRECONDITION` + `APP_MESSAGE_LOOP_DETECTED`. Both apps may continue to talk to others during the breaker | Prevents fork-bomb between two mods |
+| Loop detection | Same `(from_app_id, to_app_id)` pair > **20 messages bidirectional within 1 second** auto-circuit-breaks the pair for **60 seconds** with `FAILED_PRECONDITION` + `APP_MESSAGE_LOOP_DETECTED`. Both apps may continue to talk to others during the breaker | Prevents fork-bomb between two apps |
 
 The security baseline is part of the contract, not advisory.
 
@@ -97,36 +97,36 @@ exists because:
 
 The runtime is the coordination substrate. Apps don't reinvent it.
 
-## Reader Scenario: A Mod Sends A Typed Message To Another App
+## Reader Scenario: An App Sends A Typed Message To Another App
 
-A notes mod wants to ask a calendar mod for the user's free time.
+A notes app wants to ask a calendar app for the user's free time.
 
-1. **Mod registered + authenticated.** `RuntimeAuthService` knows
-   about the notes mod; the current session has a valid token.
-2. **`SendAppMessage`.** notes mod calls with
+1. **App registered + authenticated.** `RuntimeAuthService` knows
+   about the notes app; the current session has a valid token.
+2. **`SendAppMessage`.** notes app calls with
    `from_app_id: notes`, `to_app_id: calendar`,
    `message_type: 'free-time-query'`,
    `payload: { date: '...' }`.
 3. **Runtime authenticates sender.** Verifies `from_app_id`.
 4. **Runtime checks size + rate.** Within limits.
-5. **Runtime delivers.** Calendar mod's
+5. **Runtime delivers.** Calendar app's
    `SubscribeAppMessages` stream emits `RECEIVED`.
 6. **Calendar processes.** Sends back a response via its own
    `SendAppMessage`.
 7. **Notes receives.** Through its own subscription stream.
 
-Both mods participate through `RuntimeAppService`. Neither tries to
+Both apps participate through `RuntimeAppService`. Neither tries to
 reach behind the runtime.
 
-## Reader Scenario: A Mod Messages The Agent Surface
+## Reader Scenario: An App Messages The Agent Surface
 
-A mod wants to send a typed message to the user's agent. This is the
+An app wants to send a typed message to the user's agent. This is the
 case the `scoped_binding` requirement covers.
 
-1. **Mod has a scoped binding.** Issued earlier by
+1. **App has a scoped binding.** Issued earlier by
    `RuntimeAccountService.IssueScopedAppBinding` for the admitted
    purpose.
-2. **`SendAppMessage`.** `from_app_id: mod-x`,
+2. **`SendAppMessage`.** `from_app_id: app-x`,
    `to_app_id: runtime.agent`, message family in the K-APP-008 set,
    plus the `scoped_binding`.
 3. **Runtime validates binding.** Binding id resolves; relation
@@ -135,21 +135,21 @@ case the `scoped_binding` requirement covers.
    admitted binding context.
 
 Without a valid scoped binding, the same message is rejected. The
-boundary is what keeps mod-to-agent messaging from becoming a
+boundary is what keeps app-to-agent messaging from becoming a
 credential-plane bypass.
 
 ## Reader Scenario: A Loop Trips The Breaker
 
-Two mods accidentally enter a chatter loop sending each other rapid
+Two apps accidentally enter a chatter loop sending each other rapid
 messages.
 
 1. **Send rate climbs.** Within one second, the
-   `(mod-a, mod-b)` pair exchanges > 20 messages bidirectional.
+   `(app-a, app-b)` pair exchanges > 20 messages bidirectional.
 2. **Breaker trips.** Runtime emits `APP_MESSAGE_LOOP_DETECTED` for
    subsequent sends in the pair.
 3. **Pair is gated for 60 seconds.** Other apps continue messaging
    normally; only the offending pair is gated.
-4. **Authors see typed reason.** Mod authors fix their loop logic.
+4. **Authors see typed reason.** App authors fix their loop logic.
 
 ## What App Messaging Does Not Do
 

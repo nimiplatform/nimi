@@ -1,6 +1,6 @@
 # 权威模型
 
-Nimi 的权威模型让差异巨大的参与者——终端用户、世界创作者、Mod 开发者、App 开发者、AI Agent、外部 AI 宿主——共享同一个平台，且互不悄悄覆盖。本页从产品角度解释这一模型。
+Nimi 的权威模型让差异巨大的参与者——终端用户、世界创作者、App 开发者、AI Agent、外部 AI 宿主——共享同一个平台，且互不悄悄覆盖。本页从产品角度解释这一模型。
 
 如需 schema 级定义，参见 [Reference → Authority Domains](/reference/authority-domains)。
 

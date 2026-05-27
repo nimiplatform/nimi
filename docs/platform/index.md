@@ -94,7 +94,7 @@ must fit these six primitives.
 - Runtime executes AI workflows and capability routing.
 - SDK gives apps the public integration boundary.
 - Desktop provides the first-party native shell with native, local, and
-  mod capability surfaces.
+  Nimi App launch surfaces.
 - Web is a constrained projection; it does not inherit Desktop-native
   behavior by implication.
 - Realm owns world truth, world state, history, and chat semantics.

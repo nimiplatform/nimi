@@ -22,7 +22,7 @@ the platform model.
 
 AI platforms are unusually sensitive to silent authority drift. A small
 local helper can grow into a parallel routing rule. A docs page can
-describe a behavior that the implementation never agreed to. A mod can
+describe a behavior that the implementation never agreed to. An app can
 quietly call past a Desktop boundary because the Runtime call worked at
 runtime.
 

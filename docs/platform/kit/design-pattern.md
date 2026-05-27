@@ -163,14 +163,14 @@ A new admitted Nimi app needs its own accent identity.
 The accent pack did not invent new token namespaces. It values
 admitted tokens.
 
-## Reader Scenario: A Mod Wants A New Visual Variant
+## Reader Scenario: An App Wants A New Visual Variant
 
-A mod author wants a button variant that doesn't match any admitted
+An app author wants a button variant that doesn't match any admitted
 shared primitive variant.
 
 1. **Check the variant table first.** `tables/nimi-ui-primitives.yaml`
    declares admitted variants.
-2. **If the variant isn't there:** the mod cannot define a new CVA
+2. **If the variant isn't there:** the app cannot define a new CVA
    variant for the shared primitive family in app-local code.
 3. **Options:** propose a new admitted variant for the shared
    primitive (governance flow), or use a custom app-local component

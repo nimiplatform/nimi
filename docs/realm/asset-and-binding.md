@@ -122,17 +122,17 @@ matrix.
 
 ## Reader Scenario: An Illegal Binding Combination
 
-A mod tries to bind a Resource directly to an Agent as `IMPORT`.
+An app tries to bind a Resource directly to an Agent as `IMPORT`.
 
-1. **Submit binding.** Mod sends the binding request.
+1. **Submit binding.** The app sends the binding request.
 2. **Realm validates.** Checks the legality matrix:
    `RESOURCE` × `AGENT` × `IMPORT`.
 3. **Not admitted.** This combination is not in the matrix.
 4. **Reject.** Fail-closed; typed error returned.
-5. **Mod sees reason.** "This binding combination is not
+5. **App sees reason.** "This binding combination is not
    admitted; check the legality matrix."
 
-The mod cannot accidentally violate a host type. The matrix is
+The app cannot accidentally violate a host type. The matrix is
 declarative and enforced.
 
 ## Reader Scenario: An Asset Survives Bundle Archival

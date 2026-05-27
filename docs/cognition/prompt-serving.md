@@ -81,12 +81,12 @@ The model cannot tell "this is identity" from "this is recall"
 unless the prompt distinguishes — which the lane separation
 ensures.
 
-## Reader Scenario: A Mod Tries To Inject Through Prompt
+## Reader Scenario: An App Tries To Inject Through Prompt
 
-A mod that has access to the agent's surface attempts to inject
+An app that has access to the agent's surface attempts to inject
 extra context by smuggling it through prompt assembly.
 
-1. **Mod constructs intended content.** Wants it in the prompt.
+1. **App constructs intended content.** Wants it in the prompt.
 2. **Submit to admitted lane.** The lane validates the input
    against its admitted shape.
 3. **Forbidden input rejected.** Working state, routine
@@ -94,7 +94,7 @@ extra context by smuggling it through prompt assembly.
 4. **Allowed input admitted under lane.** Stays under that
    lane's typed shape.
 
-A mod cannot smuggle working state through prompt assembly.
+An app cannot smuggle working state through prompt assembly.
 The lane validation is the gate.
 
 ## Reader Scenario: An Auditor Asks "What Did The Model See"

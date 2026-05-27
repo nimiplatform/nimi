@@ -9,7 +9,7 @@ in active build-out.
 
 ## What This Client Does
 
-The Delegation Client is the SDK surface for a mod or app that
+The Delegation Client is the SDK surface for an app or external AI host that
 integrates with delegated capability — proposing observations,
 queries, intents, tool requests, presentation updates, artifact
 creates, or controlled tests through the runtime delegation gateway.
@@ -41,11 +41,11 @@ exist as a low-level strategy; it must not weaken typed public
 contracts. A delegation that fails firewall is reported as the typed
 failure — not silently retried with a different provider.
 
-## Reader Scenario: Mod Proposes A Tool Call
+## Reader Scenario: App Proposes A Tool Call
 
-A mod backed by an external AI proposes a tool call.
+An app backed by an external AI proposes a tool call.
 
-1. **Mod calls SDK.** `delegationClient.suggestToolRequest(...)`.
+1. **App calls SDK.** `delegationClient.suggestToolRequest(...)`.
 2. **Runtime delegation gateway opens.** Per the trust tier of the
    provider profile.
 3. **Output firewall validates.** Schema, provenance, descriptor
@@ -53,7 +53,7 @@ A mod backed by an external AI proposes a tool call.
 4. **Verdict.** Typed verdict (`ACCEPTED_SUGGESTION`,
    `APPROVAL_REQUIRED`, `QUARANTINED`, etc.).
 5. **If approved:** Runtime acts under its own audit lineage; SDK
-   surfaces the typed result to the mod.
+   surfaces the typed result to the app.
 
 ## What This Client Does Not Do
 

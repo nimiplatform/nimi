@@ -88,8 +88,8 @@ or creator control-plane contract.
 
 Apps should not reach directly across private Runtime or Realm internals.
 The SDK is the public integration surface. It allows applications to
-compose Runtime-backed generation, Realm truth reads, scope flows, and
-mod surfaces without importing private implementation boundaries.
+compose Runtime-backed generation, Realm truth reads, and scope flows
+without importing private implementation boundaries.
 
 When an app violates that boundary, two things break. First, the app
 becomes coupled to internals that can change. Second, the app starts to

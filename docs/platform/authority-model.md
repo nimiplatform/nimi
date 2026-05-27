@@ -1,7 +1,7 @@
 # Authority Model
 
 Nimi's authority model is what lets very different participants —
-end users, world creators, mod developers, app developers, AI agents,
+end users, world creators, app developers, AI agents,
 and external AI hosts — share the same platform without one
 silently overriding another. This page explains the model in product
 terms.

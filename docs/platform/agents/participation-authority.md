@@ -160,7 +160,7 @@ other.
 - It does not own OASIS world / event / ontology truth — that's
   OASIS.
 - It does not own A2A or MCP wire truth — those are protocols.
-- It does not own Desktop / Web / Avatar / mod UI state.
+- It does not own Desktop / Web / Avatar / app UI state.
 
 ## Source Basis
 

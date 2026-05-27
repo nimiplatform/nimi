@@ -3,8 +3,8 @@
 Pick a reading path that matches your role. Each path moves you from
 the platform model into the part of Nimi you actually need.
 
-For specific personas (newcomer evaluator, world creator, mod
-developer, app developer, AI agent integrator, Nimi Coding adopter,
+For specific personas (newcomer evaluator, world creator, app
+developer, AI agent integrator, Nimi Coding adopter,
 auditor / reviewer), see [Personas](/start/personas).
 
 For installable surfaces and where each one lives, see

@@ -150,7 +150,7 @@ tool call goes through the output firewall.
 
 A2A (Agent-to-Agent) protocols are admitted as a **future seam
 only**. There is no production A2A support today; the seam is
-admitted to prevent app/Desktop/Avatar/mod bypass shortcuts that
+admitted to prevent app/Desktop/Avatar bypass shortcuts that
 would later collide with real A2A.
 
 | Property | Value |

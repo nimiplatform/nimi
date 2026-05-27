@@ -115,7 +115,7 @@ What public APML does **not** admit:
   [Generated Motion Provider](/avatar/generated-motion-provider.md))
 - speech prosody, surface routing, notification, tool invocation,
   chain-of-thought, memory write, posture/status, hook cancellation,
-  namespace extension, mod extension, parser-event syntax
+  namespace extension, parser-event syntax
 - video actions
 - raw `apml.*` events
 

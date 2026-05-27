@@ -72,7 +72,7 @@ rules, results in a new connection between them. Under Realm contracts:
 4. The historical fact that the connection formed is recorded under
    the world-history contract (`R-WHIST-*`).
 
-Each step follows an admitted Realm contract. An app or mod is
+Each step follows an admitted Realm contract. An app is
 not allowed to invent a "the connection exists" claim outside Realm
 and have other surfaces accept it.
 

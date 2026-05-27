@@ -39,7 +39,7 @@ authority for every surface in Desktop.
 | Polling | Polling-based for unread count |
 
 The unread count is polling-based — small operational detail, but
-it matters for what apps and mods can rely on. Realtime push for
+it matters for what apps can rely on. Realtime push for
 unread is not admitted; the polling model is.
 
 ## Reader Scenario: Acting On A Home Card

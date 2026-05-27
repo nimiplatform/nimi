@@ -10,8 +10,8 @@ active build-out.
 
 ## What This Client Does
 
-The Agent Participation Client is the SDK surface for app /mod
-developers who want their app to participate in agent execution under
+The Agent Participation Client is the SDK surface for app developers
+who want their app to participate in agent execution under
 an admitted participation profile (see
 [Platform → Agents → Participation Authority](/platform/agents/participation-authority)).
 
@@ -47,13 +47,13 @@ checks the SDK enforces before submission:
 These are SDK-side guards. Runtime still validates server-side; SDK
 simply fails fast on detectable violations.
 
-## Reader Scenario: Mod Submits An Output Candidate
+## Reader Scenario: App Submits An Output Candidate
 
-A mod wants its agent to participate in a Realm group thread.
+An app wants its agent to participate in a Realm group thread.
 
 1. **Profile attach.** SDK call attaches the agent under
    `realm_group_participation`.
-2. **Output candidate.** Mod assembles a typed message candidate;
+2. **Output candidate.** The app assembles a typed message candidate;
    submits via SDK.
 3. **SDK behavioral check.** Output destination
    `REALM_GROUP_MESSAGE_CANDIDATE` matches the profile.

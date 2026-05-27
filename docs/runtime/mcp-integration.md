@@ -21,7 +21,7 @@ objects do **not** become public Runtime ontology.
 | Tool call admission + quarantine | Runtime + delegated output firewall |
 | MCP wire object semantics | Adapter only — does **not** become Runtime ontology |
 
-No Desktop, Avatar, Web, app, mod, or `nimi-hook` layer may
+No Desktop, Avatar, Web, or app layer may
 instantiate an MCP client or server session directly. Runtime owns it.
 
 ## Stdio Transport (running)
@@ -104,11 +104,11 @@ Instead, Runtime normalizes MCP outputs into the admitted
 wave admits them to model context, projection, or action paths. The
 adapter boundary is what protects Runtime ontology.
 
-## Reader Scenario: A Mod Author Wires Up An MCP Tool Provider
+## Reader Scenario: An App Author Wires Up An MCP Tool Provider
 
-A mod author wants to expose an MCP-backed tool to their agent.
+An app author wants to expose an MCP-backed tool to their agent.
 
-1. **Provider profile.** Mod manifest declares an MCP provider
+1. **Provider profile.** The app descriptor declares an MCP provider
    profile binding with `provider_kind: MCP_TOOL_PROVIDER`,
    `transport_kind: stdio_command`, an explicit `allowed_tools`
    list, and a trust tier.
@@ -118,15 +118,15 @@ A mod author wants to expose an MCP-backed tool to their agent.
    official adapter; normalizes each listed tool into Runtime
    gateway evidence; matches against `allowed_tools`.
 4. **Tool exposed.** Allowed tools are reachable via Runtime's
-   delegated capability gateway; the mod's agent can request them
+   delegated capability gateway; the app's agent can request them
    through admitted SDK paths.
 5. **Tool call.** Each call goes through the **delegated output
    firewall** before any result enters model context or action path.
 6. **Audit.** Lineage records the call, firewall verdict, and any
    action that follows.
 
-The mod did not invent its own MCP integration. Runtime owns the
-adapter; the mod consumed admitted Runtime gateway evidence.
+The app did not invent its own MCP integration. Runtime owns the
+adapter; the app consumed admitted Runtime gateway evidence.
 
 ## Reader Scenario: Tool Schema Drift Quarantines A Provider
 
@@ -145,7 +145,7 @@ An MCP provider updates one of its tool schemas mid-session.
 ## What MCP Integration Does Not Do
 
 - It does not let MCP wire objects become Runtime ontology.
-- It does not let `nimi-hook` / Desktop / Avatar / mods open an MCP
+- It does not let Desktop / Avatar / apps open an MCP
   session directly.
 - It does not allow tool calls to bypass the delegated output
   firewall.

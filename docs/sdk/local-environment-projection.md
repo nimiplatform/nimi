@@ -9,7 +9,7 @@ active build-out.
 
 ## What This Page Covers
 
-The Local Environment Projection contract governs **what mod
+The Local Environment Projection contract governs **what app
 developers may import from the local environment** — and what they
 may not. The closed import boundary catalog is admitted; deviation
 fails closed.
@@ -26,35 +26,34 @@ Admitted import boundaries live in
 | Forbidden imports | Explicit list of forbidden import paths |
 | Rationale | Why this boundary exists |
 
-The catalog is closed. Mods cannot invent new boundaries by
+The catalog is closed. Apps cannot invent new boundaries by
 convention.
 
 ## Key Forbidden Paths
 
 | Forbidden | Why |
 | --- | --- |
-| `runtime/internal/**` | Runtime private surface; mods consume admitted SDK clients only |
+| `runtime/internal/**` | Runtime private surface; apps consume admitted SDK clients only |
 | `kit/internal/**` | Kit private surface |
-| App-layer code (`apps/**`) from a mod | Mods do not depend on app-layer code |
+| App-layer code (`apps/**`) from another app | Apps do not depend on other app-layer code |
 
-## Reader Scenario: Mod Imports A Capability
+## Reader Scenario: App Imports A Capability
 
-Mod author wants to use an admitted local capability.
+An app author wants to use an admitted local capability.
 
-1. **Mod imports.** `import { foo } from '@nimiplatform/sdk/local-env'`.
+1. **App imports.** `import { foo } from '@nimiplatform/sdk/local-env'`.
 2. **Boundary check.** Per the import boundary catalog, `local-env`
    is an admitted import path.
-3. **Mod uses.** Through admitted typed surface.
+3. **App uses.** Through admitted typed surface.
 
-If the mod tried `import { internal } from '@nimiplatform/sdk/runtime/internal'`,
+If the app tried `import { internal } from '@nimiplatform/sdk/runtime/internal'`,
 the boundary check rejects.
 
 ## What This Does Not Do
 
-- It does not let mods reach `runtime/internal/**`.
-- It does not let mods bypass `nimi-hook` to call SDK runtime
-  privately.
-- It does not let mods fork local environment access through
+- It does not let apps reach `runtime/internal/**`.
+- It does not let apps call SDK runtime private internals.
+- It does not let apps fork local environment access through
   app-layer code.
 - It does not allow new boundaries by convention.
 

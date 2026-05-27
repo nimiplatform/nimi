@@ -139,7 +139,7 @@ when scheduling preflight actually ran.
   (existing health surface is reused).
 - It does not let scope aggregate judgement substitute for submit
   judgement in execution snapshot.
-- It does not own desktop or mod snapshot schemas.
+- It does not own desktop or app snapshot schemas.
 - It does not silently overwrite execution evidence after later
   config changes.
 
