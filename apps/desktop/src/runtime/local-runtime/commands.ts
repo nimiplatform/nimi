@@ -19,7 +19,6 @@ import type {
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileEntryDescriptor,
   LocalRuntimeProfileEntryOverride,
-  LocalRuntimeProfileInstallStatus,
   LocalRuntimeProfileRequirementDescriptor,
   LocalRuntimeProfileResolutionPlan,
   LocalRuntimeProfileResolvePayload,
@@ -44,11 +43,9 @@ import {
 } from './parsers';
 import {
   assetLookupKey,
-  assetMatchesDependency,
   asRecord,
   getSdkLocal,
   requireSdkLocal,
-  serviceMatchesDependency,
   toAssetKindFilter,
   toAssetStatusFilter,
 } from './commands-shared';
@@ -347,61 +344,6 @@ export async function applyLocalRuntimeProfile(
     throw new Error(reasonCode);
   }
   return result;
-}
-
-export async function getLocalRuntimeProfileInstallStatus(
-  payload: LocalRuntimeProfileResolvePayload,
-): Promise<LocalRuntimeProfileInstallStatus> {
-  const resolved = await resolveLocalRuntimeProfile(payload);
-  const assets = await listLocalRuntimeAssets();
-  const services = await listLocalRuntimeServices();
-  const nodes = await listLocalRuntimeNodesCatalog();
-  const warnings = [...resolved.warnings];
-  const missingDependencies = resolved.executionPlan.entries.flatMap((entry) => {
-    if (!entry.required || !entry.selected) {
-      return entry.required ? [entry.entryId] : [];
-    }
-    if (entry.kind === 'asset') {
-      const asset = assets.find((candidate) => assetMatchesDependency(entry, candidate)) || null;
-      if (!asset || asset.status === 'removed') {
-        return [entry.entryId];
-      }
-      if (asset.status !== 'active') {
-        warnings.push(`asset ${entry.modelId || entry.entryId} is ${asset.status}`);
-      }
-      return [];
-    }
-    if (entry.kind === 'service') {
-      const service = services.find((candidate) => serviceMatchesDependency(entry, candidate)) || null;
-      if (!service || service.status === 'removed') {
-        return [entry.entryId];
-      }
-      if (service.status !== 'active') {
-        warnings.push(`service ${entry.serviceId || entry.entryId} is ${service.status}`);
-      }
-      return [];
-    }
-    if (entry.kind === 'node') {
-      const nodeId = String(entry.nodeId || '').trim();
-      const node = nodes.find((candidate) => String(candidate.nodeId || '').trim() === nodeId) || null;
-      if (!node || !node.available) {
-        return [entry.entryId];
-      }
-      return [];
-    }
-    return [];
-  });
-  const missingEntries = [...missingDependencies];
-  return {
-    targetId: payload.targetId,
-    profileId: payload.profile.id,
-    status: missingEntries.length > 0
-      ? 'missing'
-      : (warnings.length > 0 ? 'degraded' : 'ready'),
-    warnings: Array.from(new Set(warnings)),
-    missingEntries,
-    updatedAt: new Date().toISOString(),
-  };
 }
 
 export async function fetchLocalRuntimeSnapshot(localAssetId?: string): Promise<LocalRuntimeSnapshot> {

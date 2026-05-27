@@ -85,15 +85,6 @@ export type LocalRuntimeProfileApplyResult = {
   reasonCode?: string;
 };
 
-export type LocalRuntimeProfileInstallStatus = {
-  targetId: string;
-  profileId: string;
-  status: 'ready' | 'missing' | 'degraded';
-  warnings: string[];
-  missingEntries: string[];
-  updatedAt: string;
-};
-
 export type LocalRuntimeProfileResolvePayload = {
   targetId: string;
   profile: LocalRuntimeProfileDescriptor;

@@ -5,11 +5,9 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import type {
   LocalRuntimeAssetRecord,
-  LocalRuntimeExecutionPlan,
   LocalRuntimeListAssetsPayload,
-  LocalRuntimeServiceDescriptor,
 } from './types';
-import { localIdsMatch, toCanonicalLocalLookupKey } from './local-id';
+import { toCanonicalLocalLookupKey } from './local-id';
 
 export type LocalClient = ReturnType<typeof getPlatformClient>['runtime']['local'];
 
@@ -52,30 +50,4 @@ export function assetLookupKey(
     String(asset.kind || '').trim().toLowerCase(),
     String(asset.engine || '').trim().toLowerCase(),
   ].join('::');
-}
-
-export function assetMatchesDependency(
-  dependency: LocalRuntimeExecutionPlan['entries'][number],
-  asset: LocalRuntimeAssetRecord,
-): boolean {
-  const modelId = String(dependency.modelId || '').trim();
-  const engine = String(dependency.engine || '').trim().toLowerCase();
-  if (modelId && !localIdsMatch(asset.assetId, modelId)) {
-    return false;
-  }
-  if (engine && String(asset.engine || '').trim().toLowerCase() !== engine) {
-    return false;
-  }
-  return Boolean(modelId);
-}
-
-export function serviceMatchesDependency(
-  dependency: LocalRuntimeExecutionPlan['entries'][number],
-  service: LocalRuntimeServiceDescriptor,
-): boolean {
-  const serviceId = String(dependency.serviceId || '').trim().toLowerCase();
-  if (!serviceId) {
-    return false;
-  }
-  return String(service.serviceId || '').trim().toLowerCase() === serviceId;
 }

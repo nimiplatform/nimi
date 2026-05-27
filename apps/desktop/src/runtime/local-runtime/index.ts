@@ -31,7 +31,6 @@ import {
   collectLocalRuntimeDeviceProfile,
   getLocalRuntimeRecommendationFeed,
   applyLocalRuntimeProfile,
-  getLocalRuntimeProfileInstallStatus,
   listLocalRuntimeServices,
   installLocalRuntimeService,
   startLocalRuntimeService,
@@ -75,7 +74,6 @@ import type {
   LocalRuntimeProfileEntryOverride,
   LocalRuntimeProfileInstallRequest,
   LocalRuntimeProfileInstallRequestResult,
-  LocalRuntimeProfileInstallStatus,
   LocalRuntimeProfileResolutionPlan,
   LocalRuntimeProfileResolvePayload,
   LocalRuntimeProfileTargetDescriptor,
@@ -132,10 +130,6 @@ import type {
   LocalRuntimeEnvironmentSelectedSourceRecord,
   LocalRuntimeEnvironmentSelectedSourcesPayload,
 } from './types';
-import {
-  queryLocalRuntimeAssetsByCapability,
-  type LocalRuntimeCapability,
-} from './capability-query';
 import { startLocalRuntimePolling, type LocalRuntimePollingOptions } from './polling';
 export {
   bridgeLocalRuntimeProfile,
@@ -168,7 +162,6 @@ export type {
   LocalRuntimeProfileEntryOverride,
   LocalRuntimeProfileInstallRequest,
   LocalRuntimeProfileInstallRequestResult,
-  LocalRuntimeProfileInstallStatus,
   LocalRuntimeProfileResolutionPlan,
   LocalRuntimeProfileResolvePayload,
   LocalRuntimeProfileTargetDescriptor,
@@ -200,7 +193,6 @@ export type {
   LocalRuntimeRecommendationFeedItemDescriptor,
   LocalRuntimeRecommendationFeedGetPayload,
   LocalRuntimeAuditPayload,
-  LocalRuntimeCapability,
   LocalRuntimePollingOptions,
   LocalRuntimeSnapshot,
   LocalRuntimeWriteOptions,
@@ -241,7 +233,6 @@ export type LocalRuntimeFacade = {
     plan: LocalRuntimeProfileResolutionPlan,
     options?: LocalRuntimeWriteOptions,
   ) => Promise<LocalRuntimeProfileApplyResult>;
-  getProfileInstallStatus: (payload: LocalRuntimeProfileResolvePayload) => Promise<LocalRuntimeProfileInstallStatus>;
   listServices: () => Promise<LocalRuntimeServiceDescriptor[]>;
   installService: (
     payload: LocalRuntimeServicesInstallPayload,
@@ -342,7 +333,6 @@ export type LocalRuntimeFacade = {
   appendInferenceAudit: (payload: LocalRuntimeInferenceAuditPayload) => Promise<void>;
   listAudits: (query?: LocalRuntimeAuditQuery) => Promise<LocalRuntimeAuditEvent[]>;
   pickAssetManifestPath: () => Promise<string | null>;
-  queryByCapability: (capability: LocalRuntimeCapability) => Promise<LocalRuntimeAssetRecord[]>;
   pollSnapshot: (localAssetId?: string) => Promise<LocalRuntimeSnapshot>;
   subscribeDownloadProgress: (
     listener: (event: LocalRuntimeDownloadProgressEvent) => void,
@@ -378,7 +368,6 @@ export const localRuntime: LocalRuntimeFacade = {
   getRecommendationFeed: getLocalRuntimeRecommendationFeed,
   resolveProfile: resolveLocalRuntimeProfile,
   applyProfile: applyLocalRuntimeProfile,
-  getProfileInstallStatus: getLocalRuntimeProfileInstallStatus,
   listServices: listLocalRuntimeServices,
   installService: installLocalRuntimeService,
   startService: startLocalRuntimeService,
@@ -414,7 +403,6 @@ export const localRuntime: LocalRuntimeFacade = {
   appendInferenceAudit: appendLocalRuntimeInferenceAudit,
   listAudits: listLocalRuntimeAudits,
   pickAssetManifestPath: pickLocalRuntimeAssetManifestPath,
-  queryByCapability: queryLocalRuntimeAssetsByCapability,
   pollSnapshot: fetchLocalRuntimeSnapshot,
   subscribeDownloadProgress: subscribeLocalRuntimeDownloadProgress,
   revealInFolder: revealLocalRuntimeAssetInFolder,
