@@ -2,6 +2,7 @@ export * from './ai-config.js';
 export * from './ai-config-diff.js';
 export * from './app-ai-config.js';
 export * from './runtime-route.js';
+export * from './runtime-route-host-facade.js';
 export * from './runtime-route-options.js';
 export * from './local-storage.js';
 export * from './i18n.js';

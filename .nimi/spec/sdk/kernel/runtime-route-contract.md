@@ -36,15 +36,19 @@ SDK 稳定 typed result `RuntimeRouteDescribeResult` 必须保持以下公共字
 - `metadataKind`
 - `metadata`
 
-`metadata` 必须是 discriminated union，最小 Phase 1 variants 固定为：
+`metadata` 必须是 discriminated union，Phase 1 variants 继承
+`K-RPC-017` 的完整 route metadata family：
 
 - `TextGenerateRouteMetadata`
-- `VoiceWorkflowTtsV2vRouteMetadata`
-- `VoiceWorkflowTtsT2vRouteMetadata`
+- `SpeechSynthesizeRouteMetadata`
+- `SpeechTranscribeRouteMetadata`
+- `VoiceWorkflowVoiceCloneRouteMetadata`
+- `VoiceWorkflowVoiceDesignRouteMetadata`
 
 字段和值域必须与 `K-RPC-017` 同形：
 
 - `TextGenerateRouteMetadata.traceModeSupport` 只能是 `'none' | 'hide' | 'separate'`
+- `SpeechSynthesizeRouteMetadata.supportedTimingModes` 只能包含 `'none' | 'word' | 'char'`
 - `VoiceWorkflow*RouteMetadata.workflowType` 只能是 `'voice_clone'` 或 `'voice_design'`
 - 不得把结果降格为 `Struct`、`Record<string, unknown>`、provider raw payload 或自由字符串 map
 

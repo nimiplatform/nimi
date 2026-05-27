@@ -42,6 +42,7 @@
         "export * from './app-ai-config.js';",
         "export * from './i18n.js';",
         "export * from './local-storage.js';",
+        "export * from './runtime-route-host-facade.js';",
         "export * from './runtime-route-options.js';",
         "export * from './runtime-route.js';",
         "export * from './types.js';",

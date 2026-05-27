@@ -31,6 +31,7 @@ const checks = [
       'sdk/src/ai/app-ai-config.ts',
       'sdk/src/ai/i18n.ts',
       'sdk/src/ai/local-storage.ts',
+      'sdk/src/ai/runtime-route-host-facade.ts',
       'sdk/src/ai/runtime-route-options.ts',
       'sdk/src/ai/runtime-route.ts',
       'sdk/src/ai/types.ts',
