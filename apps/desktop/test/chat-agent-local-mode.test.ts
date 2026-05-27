@@ -378,7 +378,7 @@ test('agent session hydration does not drop committed assistant text when failed
       lastTurn: {
         turnId: 'turn-failed',
         status: 'failed',
-        message: 'structured chat output must be APML beginning with <message>',
+        message: 'runtime agent turn failed before producing a structured projection',
         reasonCode: ReasonCode.AI_OUTPUT_INVALID,
       },
     },

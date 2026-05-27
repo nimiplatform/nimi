@@ -1,13 +1,11 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { asNimiError } from '@nimiplatform/sdk/runtime';
-import { runtimeRouteCallTargetFromResolvedBinding } from '@nimiplatform/sdk/ai';
 import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type {
-  AgentLocalChatRuntimeRequest,
-  AgentLocalChatTurnStreamPart,
-} from './chat-agent-orchestration-types';
-import { normalizeText } from './chat-agent-orchestration-shared';
-import { resolveRouteInput } from './chat-agent-runtime-text';
+  AgentRuntimeChatTurnRequest,
+  AgentRuntimeChatTurnStreamPart,
+} from './chat-agent-runtime-turn-types';
+import { normalizeText } from './chat-agent-runtime-normalize';
 import {
   resolveChatThinkingConfig,
   resolveTextExecutionSnapshotThinkingSupport,
@@ -21,11 +19,10 @@ import {
 import { createRuntimeAgentTurnStream } from './chat-agent-runtime-agent-stream-consumer';
 
 export async function streamChatAgentRuntimeAgentTurn(
-  request: AgentLocalChatRuntimeRequest,
-): Promise<{ stream: AsyncIterable<AgentLocalChatTurnStreamPart> }> {
+  request: AgentRuntimeChatTurnRequest,
+): Promise<{ stream: AsyncIterable<AgentRuntimeChatTurnStreamPart> }> {
   const runtime = getPlatformClient().runtime;
   const requestId = randomIdV11('runtime-agent-turn-request');
-  const routeResolveStartedAt = nowMs();
   safeLogRuntimeAgentEvent({
     level: 'info',
     area: 'agent-chat-runtime',
@@ -37,67 +34,9 @@ export async function streamChatAgentRuntimeAgentTurn(
       requestId,
     },
   });
-  const routeInput = await resolveRouteInput({
-    agentId: request.localAgentRef,
-    prompt: request.prompt,
-    messages: request.messages,
-    systemPrompt: request.systemPrompt,
-    maxOutputTokensRequested: request.maxOutputTokensRequested,
-    threadId: request.threadId,
-    reasoningPreference: request.reasoningPreference,
-    agentResolution: request.agentResolution,
-    executionSnapshot: request.textExecutionSnapshot,
-    runtimeConfigState: request.runtimeConfigState,
-    runtimeFields: request.runtimeFields,
-    signal: request.signal,
-  });
-  const resolved = runtimeRouteCallTargetFromResolvedBinding(routeInput.resolvedBinding);
-  safeLogRuntimeAgentTiming({
-    stage: 'desktop.runtime_agent.route_resolve_ms',
-    startedAt: routeResolveStartedAt,
-    details: {
-      localAgentRef: request.localAgentRef,
-      conversationAnchorId: request.conversationAnchorId,
-      threadId: request.threadId,
-      requestId,
-      route: resolved.source,
-      modelId: resolved.modelId,
-      provider: resolved.provider,
-      connectorId: normalizeText(resolved.connectorId) || null,
-    },
-  });
-  safeLogRuntimeAgentEvent({
-    level: 'info',
-    area: 'agent-chat-runtime',
-    message: 'action:runtime-agent-turn:route-resolved',
-    details: {
-      localAgentRef: request.localAgentRef,
-      conversationAnchorId: request.conversationAnchorId,
-      threadId: request.threadId,
-      requestId,
-      route: resolved.source,
-      modelId: resolved.modelId,
-      provider: resolved.provider,
-      connectorId: normalizeText(resolved.connectorId) || null,
-    },
-  });
-  safeLogRuntimeAgentEvent({
-    level: 'info',
-    area: 'agent-chat-runtime',
-    message: 'action:runtime-agent-turn:local-warm-skipped',
-    details: {
-      localAgentRef: request.localAgentRef,
-      conversationAnchorId: request.conversationAnchorId,
-      threadId: request.threadId,
-      requestId,
-      route: resolved.source,
-      modelId: resolved.modelId,
-      reason: 'runtime_local_model_lease_authoritative',
-    },
-  });
-  const route = resolved.source;
-  const modelId = normalizeText(resolved.modelId);
-  const connectorId = normalizeText(resolved.connectorId) || undefined;
+  const route = 'runtime-owned';
+  const modelId = 'runtime-owned';
+  const connectorId = undefined;
   const localIdentity = {
     ownerUserId: request.ownerUserId,
     realmAgentId: request.realmAgentId,
@@ -160,27 +99,15 @@ export async function streamChatAgentRuntimeAgentTurn(
     ...localIdentity,
     conversationAnchorId: request.conversationAnchorId,
     threadId: request.threadId,
-    systemPrompt: normalizeText(request.systemPrompt) || undefined,
+    systemPrompt: undefined,
     maxOutputTokens: Number.isFinite(Number(request.maxOutputTokensRequested))
       && Number(request.maxOutputTokensRequested) > 0
       ? Math.floor(Number(request.maxOutputTokensRequested))
       : undefined,
-    messages: Array.isArray(request.messages)
-      ? request.messages.map((message) => ({
-        role: message.role,
-        content: typeof message.content === 'string'
-          ? message.content
-          : typeof message.text === 'string'
-            ? message.text
-            : '',
-        ...(normalizeText(message.name) ? { name: normalizeText(message.name) } : {}),
-      }))
-      : [],
-    executionBinding: {
-      route,
-      modelId,
-      ...(connectorId ? { connectorId } : {}),
-    },
+    messages: [{
+      role: 'user' as const,
+      content: normalizeText(request.userText),
+    }],
     reasoning: (() => {
       const resolved = resolveChatThinkingConfig(
         request.reasoningPreference,

@@ -41,10 +41,6 @@ export async function runActiveAgentSubmit(input: {
   signal: AbortSignal;
   agentResolution: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['agentResolution'];
   textExecutionSnapshot: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['textExecutionSnapshot'];
-  imageExecutionSnapshot: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['imageExecutionSnapshot'];
-  voiceExecutionSnapshot: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['voiceExecutionSnapshot'];
-  voiceWorkflowExecutionSnapshotByCapability: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['voiceWorkflowExecutionSnapshotByCapability'];
-  latestVoiceCapture: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['latestVoiceCapture'];
   textModelContextTokens: number | null;
   textMaxOutputTokensRequested: number | null;
   target: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['target'];
@@ -64,10 +60,6 @@ export async function runActiveAgentSubmit(input: {
     signal: input.signal,
     agentResolution: input.agentResolution,
     textExecutionSnapshot: input.textExecutionSnapshot,
-    imageExecutionSnapshot: input.imageExecutionSnapshot,
-    voiceExecutionSnapshot: input.voiceExecutionSnapshot,
-    voiceWorkflowExecutionSnapshotByCapability: input.voiceWorkflowExecutionSnapshotByCapability,
-    latestVoiceCapture: input.latestVoiceCapture,
     textModelContextTokens: input.textModelContextTokens,
     textMaxOutputTokensRequested: input.textMaxOutputTokensRequested,
     target: input.target,

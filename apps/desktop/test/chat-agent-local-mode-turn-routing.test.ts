@@ -129,21 +129,10 @@ test('agent runtime turn requests runtime without desktop local warm on local ro
       localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-local',
       threadId: 'thread-local',
-      messages: [{ role: 'user', text: 'hello local' }],
+      userMessageId: 'user-local-1',
+      userText: 'hello local',
       reasoningPreference: 'off',
-      agentResolution,
       textExecutionSnapshot: executionSnapshot,
-      runtimeConfigState: null,
-      runtimeFields: {
-        targetType: '',
-        targetAccountId: '',
-        agentId: 'agent-1',
-        targetId: '',
-        worldId: '',
-        mode: 'STORY',
-        turnIndex: 1,
-        userConfirmedUpload: false,
-      },
       signal: new AbortController().signal,
     });
     for await (const ignoredPart of result.stream) {
@@ -158,7 +147,7 @@ test('agent runtime turn requests runtime without desktop local warm on local ro
   }
 });
 
-test('agent runtime turn request uses resolved cloud route/model binding', async () => {
+test('agent runtime turn request delegates route/model binding to Runtime', async () => {
   resetRuntimeLocalModelWarmCacheForTests();
   clearPlatformClient();
   const client = await createPlatformClient({
@@ -270,21 +259,10 @@ test('agent runtime turn request uses resolved cloud route/model binding', async
       localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-cloud',
       threadId: 'thread-cloud',
-      messages: [{ role: 'user', text: 'hello cloud' }],
+      userMessageId: 'user-cloud-1',
+      userText: 'hello cloud',
       reasoningPreference: 'off',
-      agentResolution,
       textExecutionSnapshot: executionSnapshot,
-      runtimeConfigState: null,
-      runtimeFields: {
-        targetType: '',
-        targetAccountId: '',
-        agentId: 'agent-1',
-        targetId: '',
-        worldId: '',
-        mode: 'STORY',
-        turnIndex: 1,
-        userConfirmedUpload: false,
-      },
       signal: new AbortController().signal,
     });
     for await (const ignoredPart of result.stream) {
@@ -293,11 +271,7 @@ test('agent runtime turn request uses resolved cloud route/model binding', async
     }
 
     assert.equal(requestCalls.length, 1);
-    assert.deepEqual(requestCalls[0]?.executionBinding, {
-      route: 'cloud',
-      modelId: 'cloud/gpt-5.4-mini',
-      connectorId: 'connector-openai',
-    });
+    assert.equal(requestCalls[0]?.executionBinding, undefined);
   } finally {
     resetRuntimeLocalModelWarmCacheForTests();
     clearPlatformClient();
@@ -419,21 +393,10 @@ test('agent runtime turn fails closed when runtime rejects request_id in turn pa
       localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-legacy',
       threadId: 'thread-legacy',
-      messages: [{ role: 'user', text: 'hello legacy' }],
+      userMessageId: 'user-legacy-1',
+      userText: 'hello legacy',
       reasoningPreference: 'off',
-      agentResolution,
       textExecutionSnapshot: executionSnapshot,
-      runtimeConfigState: null,
-      runtimeFields: {
-        targetType: '',
-        targetAccountId: '',
-        agentId: 'agent-1',
-        targetId: '',
-        worldId: '',
-        mode: 'STORY',
-        turnIndex: 1,
-        userConfirmedUpload: false,
-      },
       signal: new AbortController().signal,
     }), {
       reasonCode: ReasonCode.PROTOCOL_ENVELOPE_INVALID,
@@ -538,21 +501,10 @@ test('agent runtime turn yields terminal turn-failed when runtime emits failed e
       localAgentRef: 'local-agent:user-1:agent-1',
       conversationAnchorId: 'anchor-failed',
       threadId: 'thread-failed',
-      messages: [{ role: 'user', text: 'hello failed' }],
+      userMessageId: 'user-failed-1',
+      userText: 'hello failed',
       reasoningPreference: 'off',
-      agentResolution,
       textExecutionSnapshot: executionSnapshot,
-      runtimeConfigState: null,
-      runtimeFields: {
-        targetType: '',
-        targetAccountId: '',
-        agentId: 'agent-1',
-        targetId: '',
-        worldId: '',
-        mode: 'STORY',
-        turnIndex: 1,
-        userConfirmedUpload: false,
-      },
       signal: new AbortController().signal,
     });
     const parts: Array<{

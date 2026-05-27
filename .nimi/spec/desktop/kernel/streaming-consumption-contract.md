@@ -9,13 +9,10 @@ Desktop 流式消费契约。定义 renderer 进程如何消费 Runtime 流式�
 **跨层引用**：Runtime `K-STREAM-001~007`、SDK `S-TRANSPORT-003`。
 
 本契约只拥有 stream lifecycle、render buffering、cancel / retry / timeout
-projection 语义。Agent chat 的 single-message semantics、turn-mode、experience-policy
-/ settings 不由 stream layer 拥有，相关行为真相固定来自
-`agent-chat-behavior-contract.md`（`D-LLM-022` ~ `D-LLM-026`）。APML projection 后的
-resolved message/action、immediate post-turn action、以及 model-generated modality prompt
-payload 也不由 stream layer 拥有，相关真相固定来自
-`agent-chat-message-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）。runtime-owned
-deferred continuation / `HookIntent` pending truth 固定来自
+projection 语义。Agent Chat orchestration、single-message / action semantics、
+prompt payload、voice workflow、media execution、and Runtime Agent execution truth
+不由 stream layer 拥有，相关真相固定来自 Runtime Agent / SDK projections。
+runtime-owned deferred continuation / `HookIntent` pending truth 固定来自
 `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`。
 
 ## D-STRM-001 — 流式订阅生命周期
@@ -32,9 +29,8 @@ subscribe → onDelta(chunk)* → onDone | onError → cleanup
 - **onError**：流建立失败或传输中断，进入 D-STRM-003 错误处理。
 - **cleanup**：释放订阅资源，清除进度指示器。无论正常完成或异常终止均须执行。
 
-若 Agent chat execution 使用单 message + actions delivery，stream consumer 只能按
-`agent-chat-message-action-contract.md` 已解析出的 resolved message/action outputs 消费与投影
-lifecycle。stream layer 不得自行拆分、合并、重排、补造第二条文本消息，也不得把
+若 Agent Chat projection includes single message + actions delivery，stream consumer
+只能按 Runtime-owned resolved projection 消费与投影 lifecycle。stream layer 不得自行拆分、合并、重排、补造第二条文本消息，也不得把
 hook-driven deferred continuation 降格成同 turn text continuation。
 
 若 execution 涉及 runtime-owned deferred continuation / `HookIntent` 或 modality action
@@ -244,8 +240,8 @@ timeline authority and Avatar remains the lipsync/render proof owner.
 
 ## Fact Sources
 
-- `agent-chat-behavior-contract.md` — D-LLM-022 ~ D-LLM-026 behavior authority boundary
-- `agent-chat-message-action-contract.md` — D-LLM-027 ~ D-LLM-033 message/action authority boundary
+- `agent-chat-projection-contract.md` — D-LLM-022 ~ D-LLM-026 Desktop Agent Chat projection boundary
+- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — Runtime Agent execution / projection authority
 - `.nimi/spec/runtime/kernel/voice-contract.md` — runtime voice workflow boundary
 - Runtime `K-STREAM-001~007` — 流式传输规则
 - Runtime `K-STREAM-008` — 流关闭模式统一分类（Mode A/B/C/D）

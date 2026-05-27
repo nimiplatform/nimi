@@ -3,17 +3,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { clearPlatformClient, createPlatformClient } from '@nimiplatform/sdk';
-import { ScenarioJobStatus, createNimiError, toProtoStruct } from '@nimiplatform/sdk/runtime';
+import { createNimiError, toProtoStruct } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { resetRuntimeLocalModelWarmCacheForTests } from '../src/runtime/llm-adapter/execution/runtime-ai-bridge.js';
 
 import {
   CORE_CHAT_AGENT_TARGET_ID,
-  generateChatAgentImageRuntime,
-  invokeChatAgentRuntime,
   streamChatAgentRuntimeAgentTurn,
-  streamChatAgentRuntime,
-  synthesizeChatAgentVoiceRuntime,
 } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
 import {
   findRuntimeRouteModelProfile,
@@ -147,39 +143,18 @@ function createCloudTextProjection() {
   };
 }
 
-type CapturedRuntimeTextStreamInput = {
-  model?: string;
-  route?: string;
-  connectorId?: string;
-  input: Array<{
-    role: string;
-    content: string;
-    name?: string | undefined;
-  }> | string;
-  system?: string | null;
-  maxTokens?: number;
-  reasoning?: unknown;
-  timeoutMs?: number;
-  metadata?: Record<string, string>;
-};
-
 export {
   assert,
   path,
   test,
   clearPlatformClient,
   createPlatformClient,
-  ScenarioJobStatus,
   createNimiError,
   toProtoStruct,
   ReasonCode,
   resetRuntimeLocalModelWarmCacheForTests,
   CORE_CHAT_AGENT_TARGET_ID,
-  generateChatAgentImageRuntime,
-  invokeChatAgentRuntime,
   streamChatAgentRuntimeAgentTurn,
-  streamChatAgentRuntime,
-  synthesizeChatAgentVoiceRuntime,
   findRuntimeRouteModelProfile,
   resolveAgentChatRequestedMaxOutputTokens,
   resolveAgentTurnTotalTimeoutMs,
@@ -200,5 +175,4 @@ export {
 
 export type {
   AgentLocalThreadSummary,
-  CapturedRuntimeTextStreamInput,
 };

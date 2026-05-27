@@ -32,7 +32,7 @@ import {
   type AgentConversationAnchorBinding,
 } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
-import type { AgentChatUserAttachment } from './chat-nimi-execution-engine';
+import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import type { UseAgentConversationHostActionsInput } from './chat-agent-shell-host-actions-types';
 import {
   normalizeRuntimeAgentPresentationBackendKind,

@@ -12,16 +12,13 @@ import type { AgentHostFlowFooterState } from './chat-agent-shell-host-flow';
 import type {
   AgentSubmitDriverState,
 } from './chat-agent-shell-submit-driver';
-import type { ChatAgentVoiceWorkflowReferenceAudio } from './chat-agent-runtime';
-import type { AgentVoiceSessionAnchorBoundReferenceAudio } from './chat-agent-voice-session';
 import type {
-  AgentVoiceWorkflowCapability,
   AgentEffectiveCapabilityResolution,
   AIConfig,
   AISnapshot,
 } from './conversation-capability';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
-import type { AgentChatUserAttachment } from './chat-nimi-execution-engine';
+import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
 
 export type AgentRunTurn = (input: {
@@ -37,10 +34,6 @@ export type AgentRunTurn = (input: {
   signal: AbortSignal;
   agentResolution: AgentEffectiveCapabilityResolution;
   textExecutionSnapshot: AISnapshot;
-  imageExecutionSnapshot: AISnapshot | null;
-  voiceExecutionSnapshot: AISnapshot | null;
-  voiceWorkflowExecutionSnapshotByCapability: Partial<Record<AgentVoiceWorkflowCapability, AISnapshot | null>>;
-  latestVoiceCapture: ChatAgentVoiceWorkflowReferenceAudio | null;
   textModelContextTokens: number | null;
   textMaxOutputTokensRequested: number | null;
   target: AgentLocalTargetSnapshot;
@@ -55,9 +48,6 @@ export type UseAgentConversationHostActionsInput = {
   currentDraftTextRef: { current: string };
   draftText: string | null | undefined;
   draftUpdatedAtMs: number | null | undefined;
-  latestVoiceCaptureByThreadRef: {
-    current: Record<string, AgentVoiceSessionAnchorBoundReferenceAudio | undefined>;
-  };
   queryClient: QueryClient;
   reportHostError: (error: unknown) => void;
   runAgentTurn: AgentRunTurn;

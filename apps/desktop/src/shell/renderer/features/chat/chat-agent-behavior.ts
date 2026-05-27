@@ -1,24 +1,4 @@
-import type { AgentChatExperienceSettings } from './chat-settings-storage';
-
 export const AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID = 'nimi.agent.chat.message-action.v1' as const;
-
-export type AgentResolvedTurnMode =
-  | 'information'
-  | 'emotional'
-  | 'playful'
-  | 'intimate'
-  | 'checkin'
-  | 'explicit-media'
-  | 'explicit-voice';
-
-export type AgentResolvedExperiencePolicy = {
-  contentBoundary: 'default' | 'explicit-media-request';
-  autonomyPolicy: 'guarded';
-  inspectOnly: {
-    enabled: boolean;
-    boundary: 'product-turn' | 'diagnostics-only';
-  };
-};
 
 export type AgentResolvedMessage = {
   messageId: string;
@@ -71,10 +51,4 @@ export type AgentResolvedMessageActionEnvelope = {
   message: AgentResolvedMessage;
   statusCue?: AgentResolvedStatusCue | null;
   actions: AgentResolvedModalityAction[];
-};
-
-export type AgentResolvedBehavior = {
-  settings: AgentChatExperienceSettings;
-  resolvedTurnMode: AgentResolvedTurnMode;
-  resolvedExperiencePolicy: AgentResolvedExperiencePolicy;
 };

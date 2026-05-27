@@ -11,7 +11,6 @@ import type {
   ChatAiThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import { toConversationMessageViewModel } from './chat-nimi-thread-model';
-import { parseAgentResolvedMessageActionEnvelope } from './chat-agent-behavior-resolver-envelope';
 
 export const THREADS_QUERY_KEY = ['chat-ai-threads'];
 
@@ -23,18 +22,8 @@ export function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-/**
- * If `text` is APML output produced by the agent output contract, extract the
- * human-readable message text. Otherwise return unchanged.
- */
 export function stripBeatActionEnvelopeIfPresent(text: string): string {
-  const trimmed = text.trim();
-  try {
-    const parsed = parseAgentResolvedMessageActionEnvelope(trimmed);
-    return normalizeText(parsed.message.text) || text;
-  } catch {
-    return text;
-  }
+  return text;
 }
 
 export function sortThreadSummaries(threads: readonly ChatAiThreadSummary[]): ChatAiThreadSummary[] {

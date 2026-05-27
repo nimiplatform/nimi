@@ -10,13 +10,13 @@
 
 本契约中的四层 authority 在 `AIProfile / AIConfig / AISnapshot` 体系（D-AIPC-001）下作为 conversation-capability submodel 保留，不作为独立 peer authority 与三段式并列。具体映射见 D-AIPC-010。
 
-Agent chat 的行为语义 owner 不在本文件。本契约只允许 capability surface 消费
-`agent-chat-behavior-contract.md`（`D-LLM-022` ~ `D-LLM-026`）产出的
-`resolvedTurnMode`、`resolvedExperiencePolicy`，以及
-`agent-chat-message-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）产出的 resolved
-message/action outputs。selection、projection、overlay、snapshot 或 bootstrap
-builder 不得重定义 single-message semantics、deferred continuation / HookIntent semantics、modality action
-envelope、model-generated modality prompt payload、或这些 behavior truths。
+Agent Chat orchestration、turn planning、message/action semantics、voice workflow、
+media execution、prompt/context assembly、and execution evidence are Runtime-owned.
+This contract only exposes capability selection / projection needed by Desktop
+presentation surfaces. Selection, projection, overlay, snapshot, or bootstrap
+builder must not redefine Agent Chat execution truth, message/action truth,
+voice workflow truth, Runtime Agent turn truth, or Runtime-owned conversation
+anchor truth.
 
 ## D-LLM-015 — Authority Map And Bootstrap Home
 
@@ -156,7 +156,8 @@ producer -> projection 映射规则固定为：
 - `ConversationCapabilityProjection(capability='text.generate')`
 - `ConversationCapabilityProjection(capability='image.generate')`
 
-Agent chat 总是在 desktop 本地执行，不需要后端路由决策。
+Agent Chat execution is Runtime-owned. Desktop may use this projection only to
+show readiness and submit typed user intent through SDK / Runtime Agent surfaces.
 `data-api.core.agent.chat.route.resolve` 已移除（Realm v1 不拥有 agent chat 路由 authority）。
 
 `reason` 固定为封闭枚举，且只表达 agent chat 的基础可发送性：
@@ -184,28 +185,14 @@ Agent chat 总是在 desktop 本地执行，不需要后端路由决策。
 - `imageReady` 必须仅由 `image.generate` projection 是否 `supported=true` 且 `resolvedBinding` 存在决定
 - `imageReady=false` 不得改变 `reason`，也不得把已经可发送的 Agent chat 降级成 `ready=false`
 - Agent chat settings / submit / provider 若消费图片能力，必须统一读取这一份 `imageProjection` / `imageReady` truth，不得自行从 `runtimeFields` 或 UI 局部状态重算一份 image route truth
-- `explicit-media` 等 turn-mode 分类只来自
-  `agent-chat-behavior-contract.md`（`D-LLM-024`）；capability overlay 不得把某个
-  turn mode 升格为新的 route truth、image gate truth、或 video-generation admission
-- `imageReady=true` 或未来 voice/video workflow projection healthy 只表达 execution
-  readiness；resolved modality action 是否存在、其 relation 是什么、以及
-  `promptPayload` 是什么，固定由 `agent-chat-message-action-contract.md` 拥有，capability
-  layer 不得从 healthy projection 反推 action existence
-- `voice_workflow.voice_clone`、`voice_workflow.voice_design` projection healthy 同样只表达
-  execution readiness；某个 richer workflow 是否被 admit、属于哪种 workflow type、
-  使用什么 voice identity、以及 workflow result 如何回到当前 conversation anchor，固定由
-  `agent-chat-voice-workflow-contract.md`（`D-LLM-047` ~ `D-LLM-052`）拥有，capability
-  layer 不得从 healthy projection 反推 workflow semantics
-- `audio.synthesize` 或 `voice_workflow.*` projection healthy 同样只表达 execution
-  readiness；某个 resolved `voice` action 是否进入 agent chat voice executor、是否形成
-  playback-ready outcome，固定由 `agent-chat-voice-executor-contract.md`
-  （`D-LLM-034` ~ `D-LLM-039`）拥有，capability layer 不得从 healthy projection 反推
-  executor success truth
-- `audio.transcribe`、`audio.synthesize`、或 `voice_workflow.*` projection healthy 也不表达
-  broader voice session 已被 admit；explicit entry / exit、same-anchor continuity、
-  admitted listening modes、interruption、以及 transcript / caption rules 固定由
-  `agent-chat-voice-session-contract.md`（`D-LLM-040` ~ `D-LLM-046`）拥有，capability layer
-  不得从 healthy projection 反推 session semantics
+- `imageReady=true`、`audio.synthesize` readiness, or `voice_workflow.*`
+  readiness only means Runtime reports a usable capability route. Desktop must
+  not infer that an Agent Chat action exists, that a prompt payload is valid,
+  that a workflow is admitted, or that voice playback/session semantics have
+  succeeded.
+- Agent Chat message/action/workflow/session decisions must arrive as
+  Runtime-owned Agent Chat projection/output evidence. Desktop capability
+  projection may not create those decisions.
 
 ## D-LLM-019 — Conversation Execution Snapshot
 
@@ -214,26 +201,13 @@ Agent chat 总是在 desktop 本地执行，不需要后端路由决策。
 - `executionId` 必须是 ULID
 - snapshot 必须固化本次执行消费的 capability、selection evidence、resolved binding evidence 与 agent overlay evidence
 - snapshot 可以引用 projection 结果，但不得替代 `SelectionStore` 或 `ConversationCapabilityProjection` 成为新的 owner
-- snapshot 若携带 `resolvedTurnMode`、`resolvedExperiencePolicy` 的 execution
-  evidence，也只能作为对 `agent-chat-behavior-contract.md`
-  （`D-LLM-022` ~ `D-LLM-025`）的只读引用或副本；snapshot 不得成为 behavior
-  resolution 的平行 owner
-- snapshot 若携带 resolved message、resolved immediate post-turn action、或
-  `promptPayload` evidence，也只能作为对
-  `agent-chat-message-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）的只读引用或副本；
-  snapshot 不得成为 message/action resolution 的平行 owner
+- snapshot 若携带 Runtime Agent Chat turn、message/action、workflow、voice、
+  presentation, or failure evidence, those slices remain Runtime-owned
+  projection evidence. Desktop must not create or reinterpret them as local
+  execution truth.
 - snapshot 若携带 deferred continuation / `HookIntent` proposal、admission、或 outcome
   evidence，也只能作为对 `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`
   的只读引用或副本；snapshot 不得成为 deferred continuation product semantics 的平行 owner
-- snapshot 若携带 richer voice workflow admission、workflow type、voice identity /
-  `VoiceReference`、preset/custom voice selection、或 workflow return-path evidence，
-  也只能作为对 `agent-chat-voice-workflow-contract.md`
-  （`D-LLM-047` ~ `D-LLM-052`）的只读引用或副本；snapshot 不得成为 richer voice
-  workflow product semantics 的平行 owner
-- snapshot 若携带 agent chat voice executor、playback-ready speech artifact、或 voice
-  playback outcome evidence，也只能作为对
-  `agent-chat-voice-executor-contract.md`（`D-LLM-034` ~ `D-LLM-039`）的只读引用或副本；
-  snapshot 不得成为 voice executor product semantics 的平行 owner
 
 thread-level `routeSnapshot` 不再是允许的规范 contract。
 
@@ -254,31 +228,17 @@ thread-level `routeSnapshot` 不再是允许的规范 contract。
 - Runtime Config 可以承载 Desktop-host-owned memory embedding adjacent live config，但该 config 只表达 user-selected source / binding intent，不表达 resolved profile、bind success、bank identity、migration readiness 或 cutover completion。
 - Runtime Config 对 runtime memory resolved state、bank availability、bind / rebuild / cutover readiness 的读取只消费 admitted typed host/runtime boundary；renderer-local form state、private loopback HTTP、本地资产启发式或 `canonical-bind` 类 convenience endpoint 不构成正式产品 contract。
 - AI / Agent submit path 只允许消费 `ConversationCapabilityProjection` 与 `ConversationExecutionSnapshot`；不得重新从可写 `runtimeFields` 拼装 capability truth
-- AI / Agent submit path 若还需要 `resolvedTurnMode`、`resolvedExperiencePolicy`，必须消费
-  `agent-chat-behavior-contract.md` 定义的 behavior outputs；不得经由
-  `runtimeFields` 再派生一份平行 behavior truth
-- AI / Agent submit path 若还需要 resolved message、resolved immediate post-turn action、
-  或 model-generated modality prompt payload，必须消费
-  `agent-chat-message-action-contract.md` 定义的 resolved message/action outputs；不得经由
-  capability health、metadata、`runtimeFields`、或 connector/model 默认值派生一份
-  平行 message/action truth
+- AI / Agent submit path must submit typed user intent through admitted SDK /
+  Runtime Agent surfaces and then consume Runtime-owned turn / message /
+  action / presentation projections. It must not derive behavior, action, or
+  prompt truth from `runtimeFields`.
 - AI / Agent submit path 若还需要 deferred continuation / `HookIntent` proposal、
   admission、或 outcome 决策，必须消费
   `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md` 定义的 runtime-owned outputs；
   不得经由 capability health、`runtimeFields`、scheduler queues、或 UI local state
   派生一份平行 deferred continuation truth
-- AI / Agent submit path 若还需要 richer voice workflow admission、workflow type、
-  agent chat voice identity / `VoiceReference`、preset/custom voice selection、或
-  workflow return-path 决策，必须消费
-  `agent-chat-voice-workflow-contract.md` 定义的 outputs；不得经由 capability health、
-  `runtimeFields`、voice list、voice asset inventory、或 connector/model 默认值派生
-  一份平行 workflow truth
-- AI / Agent submit path 若还需要 agent chat voice executor 决策、`audio.synthesize`
-  首包 playback outcome、或 playback-ready speech artifact evidence，必须消费
-  `agent-chat-voice-executor-contract.md` 定义的 outputs；不得经由 capability health、
-  `runtimeFields`、voice list、或 connector/model 默认值派生一份平行 voice executor
-  truth
-- AI / Agent submit path 若还需要 broader voice session 决策、listening-mode
-  session semantics、或 transcript/caption reveal boundary，必须消费
-  `agent-chat-voice-session-contract.md` 定义的 outputs；不得经由 capability health、
-  `runtimeFields`、capture state、或 UI local state 派生一份平行 session truth
+- AI / Agent submit path must not use capability health, metadata,
+  `runtimeFields`, voice lists, voice assets, capture state, or UI local state
+  to derive Agent Chat workflow, voice executor, broader voice session, or
+  transcript/caption semantics. Those are Runtime-owned projection/output truth
+  for Desktop.

@@ -2,7 +2,7 @@ import type {
   AgentLocalMessageRecord,
   AgentLocalTurnBeatInput,
 } from '@renderer/bridge/runtime-bridge/types';
-import type { AgentChatUserAttachment } from './chat-nimi-execution-engine';
+import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 
 function normalizeText(value: string): string {
   return value.trim();

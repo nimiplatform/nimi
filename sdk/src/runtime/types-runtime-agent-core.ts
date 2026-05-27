@@ -40,7 +40,7 @@ export type RuntimeAgentTurnRequest = RuntimeAgentLocalIdentity & {
   worldId?: string;
   maxOutputTokens?: number;
   messages: RuntimeAgentMessage[];
-  executionBinding: RuntimeAgentExecutionBinding;
+  executionBinding?: RuntimeAgentExecutionBinding;
   reasoning?: RuntimeAgentReasoningConfig;
   scopedBinding?: RuntimeScopedBindingAttachment;
 };

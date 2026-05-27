@@ -3,10 +3,10 @@ import type { ConversationRuntimeTrace } from '@nimiplatform/kit/features/chat/h
 
 import { type AgentResolvedMessageActionEnvelope } from './chat-agent-behavior';
 import type {
-  AgentLocalChatRuntimeRequest,
-  AgentLocalChatTurnStreamPart,
-} from './chat-agent-orchestration-types';
-import { normalizeText } from './chat-agent-orchestration-shared';
+  AgentRuntimeChatTurnRequest,
+  AgentRuntimeChatTurnStreamPart,
+} from './chat-agent-runtime-turn-types';
+import { normalizeText } from './chat-agent-runtime-normalize';
 import {
   isRuntimeAgentProjectionEvent,
   matchesRuntimeAgentProjectionScope,
@@ -49,14 +49,14 @@ type RuntimeAgentTurnStreamInput = {
     activeTurn?: RuntimeAgentSessionTurnSnapshot;
     lastTurn?: RuntimeAgentSessionTurnSnapshot;
   }>;
-  request: AgentLocalChatRuntimeRequest;
+  request: AgentRuntimeChatTurnRequest;
   requestId: string;
   requestMessageId: string;
   route: string;
   runtimeTurnRef: RuntimeAgentTurnRef;
 };
 
-export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput): { stream: AsyncIterable<AgentLocalChatTurnStreamPart> } {
+export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput): { stream: AsyncIterable<AgentRuntimeChatTurnStreamPart> } {
   const {
     acceptedRequestIds,
     cleanupSubscription,
@@ -72,7 +72,7 @@ export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput)
   } = input;
 
   return {
-    stream: (async function* stream(): AsyncIterable<AgentLocalChatTurnStreamPart> {
+    stream: (async function* stream(): AsyncIterable<AgentRuntimeChatTurnStreamPart> {
       let structuredEnvelope: AgentResolvedMessageActionEnvelope | null = null;
       let provisionalText = '';
       let committedMessage: PendingCommittedMessage | null = null;
@@ -140,7 +140,7 @@ export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput)
 
       const maybeYieldCommittedMessage = function* (
         trace?: ConversationRuntimeTrace,
-      ): Generator<AgentLocalChatTurnStreamPart> {
+      ): Generator<AgentRuntimeChatTurnStreamPart> {
         if (messageSealedEmitted || !structuredEnvelope || !committedMessage) {
           return;
         }
@@ -172,8 +172,8 @@ export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput)
           envelope: sealedEnvelope,
           trace,
           metadataJson: toDebugMetadata({
-            prompt: typeof request.prompt === 'string' ? request.prompt : '',
-            systemPrompt: normalizeText(request.systemPrompt) || null,
+            prompt: normalizeText(request.userText),
+            systemPrompt: null,
             conversationAnchorId: request.conversationAnchorId,
             runtimeTurnId: committedMessage.runtimeTurnId,
             runtimeStreamId: committedMessage.runtimeStreamId,

@@ -13,11 +13,7 @@ This guide points to the desktop authority surfaces for agent-detail. It does no
 - `.nimi/spec/desktop/kernel/agent-avatar-configuration-contract.md`
 - `.nimi/spec/desktop/kernel/agent-avatar-debug-workbench-contract.md`
 - `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
-- `.nimi/spec/desktop/kernel/agent-chat-behavior-contract.md`
-- `.nimi/spec/desktop/kernel/agent-chat-message-action-contract.md`
-- `.nimi/spec/desktop/kernel/agent-chat-voice-executor-contract.md`
-- `.nimi/spec/desktop/kernel/agent-chat-voice-session-contract.md`
-- `.nimi/spec/desktop/kernel/agent-chat-voice-workflow-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-projection-contract.md`
 - `.nimi/spec/desktop/kernel/agent-delegation-control-surface-contract.md`
 - `.nimi/spec/desktop/kernel/ai-profile-config-contract.md`
 - `.nimi/spec/desktop/kernel/auth-session-contract.md`

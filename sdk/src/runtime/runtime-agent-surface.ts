@@ -245,12 +245,13 @@ function toTurnPayload(request: RuntimeAgentTurnRequest): Record<string, unknown
   if (messages.length === 0) {
     runtimeAgentInputError('runtime agent turn request requires at least one non-empty message', 'provide_runtime_agent_turn_message');
   }
-  const route = normalizeText(request.executionBinding?.route).toLowerCase();
-  if (!TURN_ROUTES.has(route)) {
+  const hasExecutionBinding = Boolean(request.executionBinding);
+  const route = hasExecutionBinding ? normalizeText(request.executionBinding?.route).toLowerCase() : '';
+  if (hasExecutionBinding && !TURN_ROUTES.has(route)) {
     runtimeAgentInputError('runtime agent turn request executionBinding.route must be local or cloud', 'select_runtime_agent_route');
   }
-  const modelId = normalizeText(request.executionBinding?.modelId);
-  if (!modelId) {
+  const modelId = hasExecutionBinding ? normalizeText(request.executionBinding?.modelId) : '';
+  if (hasExecutionBinding && !modelId) {
     runtimeAgentInputError('runtime agent turn request executionBinding.modelId is required', 'select_runtime_agent_model');
   }
   const maxOutputTokens = optionalNumber(request.maxOutputTokens);
@@ -272,13 +273,15 @@ function toTurnPayload(request: RuntimeAgentTurnRequest): Record<string, unknown
       content: message.content,
       ...(optionalString(message.name) ? { name: optionalString(message.name) } : {}),
     })),
-    execution_binding: {
-      route,
-      model_id: modelId,
-      ...(optionalString(request.executionBinding.connectorId)
-        ? { connector_id: optionalString(request.executionBinding.connectorId) }
-        : {}),
-    },
+    ...(hasExecutionBinding ? {
+      execution_binding: {
+        route,
+        model_id: modelId,
+        ...(optionalString(request.executionBinding?.connectorId)
+          ? { connector_id: optionalString(request.executionBinding?.connectorId) }
+          : {}),
+      },
+    } : {}),
     ...(request.reasoning ? {
       reasoning: {
         ...(optionalString(request.reasoning.mode) ? { mode: optionalString(request.reasoning.mode) } : {}),

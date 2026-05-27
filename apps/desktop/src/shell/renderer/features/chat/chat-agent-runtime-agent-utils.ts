@@ -7,8 +7,8 @@ import {
   AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
   type AgentResolvedMessageActionEnvelope,
 } from './chat-agent-behavior';
-import { parseAgentResolvedMessageActionEnvelopeFromPayload } from './chat-agent-behavior-resolver-envelope';
-import { normalizeText } from './chat-agent-orchestration-shared';
+import { parseAgentResolvedMessageActionEnvelopeFromPayload } from './chat-agent-runtime-envelope';
+import { normalizeText } from './chat-agent-runtime-normalize';
 import type {
   RuntimeAgentTimelineSummary,
 } from './chat-agent-runtime-agent-timeline';

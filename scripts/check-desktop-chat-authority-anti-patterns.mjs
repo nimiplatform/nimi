@@ -12,6 +12,9 @@ const CHAT_ROOT = path.join(repoRoot, 'apps/desktop/src/shell/renderer/features/
 const PROVIDERS_ROOT = path.join(repoRoot, 'apps/desktop/src/shell/renderer/app-shell/providers');
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx']);
 const ALLOWED_CHAT_STORAGE_FILE = path.join(CHAT_ROOT, 'chat-settings-storage.ts');
+const ALLOWED_AGENT_CHAT_MEDIA_INPUT_FILES = new Set([
+  'chat-agent-voice-transcribe-runtime.ts',
+]);
 
 const BANNED_IDENTIFIER_PATTERNS = [
   {
@@ -79,6 +82,85 @@ const BANNED_CHAT_STORAGE_PATTERNS = [
   },
 ];
 
+const BANNED_AGENT_CHAT_FILE_PATTERNS = [
+  {
+    label: 'desktop-owned agent chat orchestration file',
+    regex: /^chat-agent-orchestration(?:-|\.|$)/u,
+  },
+  {
+    label: 'desktop-owned agent chat turn plan file',
+    regex: /^chat-agent-turn-plan\.tsx?$/u,
+  },
+  {
+    label: 'desktop-owned nimi execution engine file',
+    regex: /^chat-nimi-execution-engine(?:-|\.|$)/u,
+  },
+  {
+    label: 'desktop-owned agent chat runtime execution helper file',
+    regex: /^chat-agent-runtime-(?:text|image|voice)(?:-helpers)?\.tsx?$/u,
+  },
+  {
+    label: 'desktop-owned agent chat voice workflow tracker file',
+    regex: /^chat-agent-voice-workflow-tracker\.tsx?$/u,
+  },
+  {
+    label: 'desktop-owned agent chat behavior resolver file',
+    regex: /^chat-agent-behavior-resolver(?:-|\.|$)/u,
+  },
+  {
+    label: 'desktop-owned agent chat output contract file',
+    regex: /^chat-output-contract\.tsx?$/u,
+  },
+];
+
+const BANNED_AGENT_CHAT_EXECUTION_PATTERNS = [
+  {
+    label: 'desktop agent chat executeScenario path',
+    regex: /\bexecuteScenario\b/gu,
+  },
+  {
+    label: 'desktop agent chat output media execution path',
+    regex: /\bmedia\.(?:image|tts)\b/gu,
+  },
+  {
+    label: 'desktop agent chat runtime STT outside explicit voice input capture',
+    regex: /\bmedia\.stt\b/gu,
+    allowedBasenames: ALLOWED_AGENT_CHAT_MEDIA_INPUT_FILES,
+  },
+  {
+    label: 'desktop agent chat execution binding truth',
+    regex: /\bexecutionBinding\s*:/gu,
+  },
+  {
+    label: 'desktop-owned agent chat resolved action runner',
+    regex: /\brunResolvedEnvelopeActions\b/gu,
+  },
+  {
+    label: 'desktop-owned agent chat text execution request builder',
+    regex: /\bbuildAgentLocalChatExecutionTextRequest\b/gu,
+  },
+  {
+    label: 'desktop-owned agent chat image generation helper',
+    regex: /\bgenerateChatAgentImageRuntime\b/gu,
+  },
+  {
+    label: 'desktop-owned agent chat voice synthesis helper',
+    regex: /\bsynthesizeChatAgentVoiceRuntime\b/gu,
+  },
+  {
+    label: 'desktop-owned agent chat voice workflow helper',
+    regex: /\b(?:submitChatAgentVoiceWorkflowRuntime|pollChatAgentVoiceWorkflowRuntime|synthesizeChatAgentVoiceReferenceRuntime)\b/gu,
+  },
+  {
+    label: 'desktop-owned agent chat behavior resolver',
+    regex: /\b(?:resolveAgentChatBehavior|resolveAgentTurnMode|resolveAgentExperiencePolicy)\b/gu,
+  },
+  {
+    label: 'desktop-owned raw agent output parser',
+    regex: /\b(?:parseAgentResolvedMessageActionEnvelopeWithDiagnostics|parseAgentResolvedMessageActionEnvelope|resolveAgentModelOutputEnvelope|composeDesktopChatSystemPrompt)\b/gu,
+  },
+];
+
 function toRepoRelative(filePath) {
   return path.relative(repoRoot, filePath).replaceAll(path.sep, '/');
 }
@@ -115,7 +197,11 @@ async function collectSourceFiles(dir) {
 
 function collectPatternViolations(source, relPath, patterns) {
   const violations = [];
-  for (const { label, regex } of patterns) {
+  const basename = path.basename(relPath);
+  for (const { label, regex, allowedBasenames } of patterns) {
+    if (allowedBasenames?.has(basename)) {
+      continue;
+    }
     regex.lastIndex = 0;
     let match = regex.exec(source);
     while (match) {
@@ -125,6 +211,30 @@ function collectPatternViolations(source, relPath, patterns) {
     }
   }
   return violations;
+}
+
+function collectFileNameViolations(filePath, relPath, chatRoot) {
+  if (!filePath.startsWith(chatRoot)) {
+    return [];
+  }
+  const basename = path.basename(filePath);
+  const violations = [];
+  for (const { label, regex } of BANNED_AGENT_CHAT_FILE_PATTERNS) {
+    if (regex.test(basename)) {
+      violations.push(`${relPath}:1:1 ${label}`);
+    }
+  }
+  return violations;
+}
+
+function collectAgentChatProjectionViolations(filePath, source, relPath, chatRoot) {
+  if (!filePath.startsWith(chatRoot)) {
+    return [];
+  }
+  return [
+    ...collectFileNameViolations(filePath, relPath, chatRoot),
+    ...collectPatternViolations(source, relPath, BANNED_AGENT_CHAT_EXECUTION_PATTERNS),
+  ];
 }
 
 function isBuiltInChatScopeLivePathFile(filePath, chatRoot) {
@@ -145,6 +255,7 @@ async function collectViolations() {
     const source = await fs.readFile(filePath, 'utf8');
 
     violations.push(...collectPatternViolations(source, relPath, BANNED_IDENTIFIER_PATTERNS));
+    violations.push(...collectAgentChatProjectionViolations(filePath, source, relPath, CHAT_ROOT));
 
     if (isBuiltInChatScopeLivePathFile(filePath, CHAT_ROOT)) {
       violations.push(
@@ -206,6 +317,26 @@ async function runSelfTest() {
       "const globalChatRouteSelection = null;\n",
       'utf8',
     );
+    await fs.writeFile(
+      path.join(chatRoot, 'chat-agent-orchestration.ts'),
+      "export const oldProvider = true;\n",
+      'utf8',
+    );
+    await fs.writeFile(
+      path.join(chatRoot, 'bad-runtime-execution.ts'),
+      "await runtime.ai.executeScenario({});\nawait client.media.tts.synthesize({});\n",
+      'utf8',
+    );
+    await fs.writeFile(
+      path.join(chatRoot, 'chat-agent-behavior-resolver.ts'),
+      "export function resolveAgentChatBehavior() {}\n",
+      'utf8',
+    );
+    await fs.writeFile(
+      path.join(chatRoot, 'chat-agent-voice-transcribe-runtime.ts'),
+      "await client.media.stt.transcribe({});\n",
+      'utf8',
+    );
     // T3-3: a chat mode-scope live-path file that rebinds to the generic
     // scope must be flagged (both the factory call and the literal).
     await fs.writeFile(
@@ -223,8 +354,17 @@ async function runSelfTest() {
     };
 
     const report = await collectViolationsWithOverrides();
-    if (report.violations.length < 2) {
+    const joined = report.violations.join('\n');
+    if (
+      !joined.includes('desktop-owned agent chat orchestration file')
+      || !joined.includes('desktop agent chat executeScenario path')
+      || !joined.includes('desktop agent chat output media execution path')
+      || !joined.includes('desktop-owned agent chat behavior resolver file')
+    ) {
       throw new Error('self-test failed: expected violations were not detected');
+    }
+    if (joined.includes('chat-agent-voice-transcribe-runtime.ts')) {
+      throw new Error('self-test failed: explicit voice input transcription was incorrectly rejected');
     }
     process.stdout.write('check-desktop-chat-authority-anti-patterns self-test passed\n');
   } finally {
@@ -258,6 +398,7 @@ async function collectViolationsWithOverrides() {
     const relPath = path.relative(roots.repoRoot, filePath).replaceAll(path.sep, '/');
     const source = await fs.readFile(filePath, 'utf8');
     violations.push(...collectPatternViolations(source, relPath, BANNED_IDENTIFIER_PATTERNS));
+    violations.push(...collectAgentChatProjectionViolations(filePath, source, relPath, roots.CHAT_ROOT));
 
     if (isBuiltInChatScopeLivePathFile(filePath, roots.CHAT_ROOT)) {
       violations.push(

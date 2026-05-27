@@ -15,7 +15,7 @@ import type {
   AgentLocalChatImageState,
   AgentLocalChatVoiceState,
   AgentLocalTextMessageState,
-} from './chat-agent-turn-plan';
+} from './chat-agent-runtime-turn-types';
 import { toAgentVoicePlaybackCueEnvelopeJson } from './chat-agent-voice-playback-envelope';
 import { loadDesktopAgentRuntimeMemoryContext } from './chat-agent-runtime-memory';
 
@@ -308,7 +308,7 @@ export function createAgentLocalChatContinuityAdapter(
           createdAtMs: committedAtMs,
           deliveredAtMs: input.outcome === 'completed' ? committedAtMs : null,
         })),
-        ...(voiceState.status === 'none' || voiceState.status === 'synthesize'
+        ...(voiceState.status === 'none'
           ? []
           : [{
             id: voiceState.beatId,
@@ -324,15 +324,13 @@ export function createAgentLocalChatContinuityAdapter(
             artifactId: voiceState.status === 'complete' ? voiceState.artifactId : null,
             mimeType: voiceState.status === 'complete' ? voiceState.mimeType : null,
             mediaUrl: voiceState.status === 'complete' ? voiceState.mediaUrl : null,
-            projectionMessageId: voiceState.status === 'error'
-              ? null
-              : voiceState.projectionMessageId,
+            projectionMessageId: voiceState.projectionMessageId,
             createdAtMs: committedAtMs,
             deliveredAtMs: voiceState.status === 'complete' && input.outcome === 'completed'
               ? committedAtMs
               : null,
           }]),
-        ...(imageState.status === 'none' || imageState.status === 'generate'
+        ...(imageState.status === 'none'
           ? []
           : [{
             id: imageState.beatId,

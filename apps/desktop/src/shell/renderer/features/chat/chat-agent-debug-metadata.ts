@@ -1,7 +1,7 @@
 import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import type {
   AgentModelOutputDiagnostics,
-} from './chat-agent-behavior-resolver';
+} from './chat-agent-runtime-output-types';
 import type { AgentResolvedStatusCue } from './chat-agent-behavior';
 
 export type AgentTextTurnDebugMetadata = {

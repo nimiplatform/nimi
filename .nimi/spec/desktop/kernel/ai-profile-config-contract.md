@@ -20,10 +20,12 @@ AIConfig owner。
 `AISnapshot`。它们不能自持久化平行真相，也不能把 Desktop host-local storage
 升级为跨 app 的 canonical AIConfig owner。
 
-Agent chat behavior semantics 不由本契约拥有。`AIProfile` / `AIConfig` /
-`AISnapshot` 只拥有 AI configuration authority；single-message、turn-mode、
-experience-policy / settings semantics 继续由
-`agent-chat-behavior-contract.md`（`D-LLM-022` ~ `D-LLM-026`）拥有。
+Agent Chat orchestration and execution semantics 不由本契约拥有。`AIProfile` /
+`AIConfig` / `AISnapshot` 只拥有 AI configuration / execution evidence authority；
+Runtime owns Agent Chat turn planning、message/action、voice workflow、media
+execution、prompt/context assembly、and Runtime Agent execution projection.
+Desktop only consumes those projections through
+`agent-chat-projection-contract.md`（`D-LLM-022` ~ `D-LLM-026`）.
 
 ## D-AIPC-001 — Three-Tier AI Configuration Authority
 
@@ -86,10 +88,10 @@ scope config evidence 与 Runtime execution evidence slices，是执行期真相
 - `capabilities` — per-capability configuration（对齐 D-LLM-016 selection store schema，详见 D-AIPC-010）
 - `profileOrigin?: AIProfileRef | null` — 最近一次 apply 的 profile 来源（仅用于 UX 溯源展示，不构成 live reference）
 
-`AIConfig` 不得把 agent chat 的 `AgentChatExperienceSettings`、
-`ResolvedExperiencePolicy`、`resolvedTurnMode`、以及 resolved message/action outputs 收编为新的
-top-level live config truth。若 chat consumer 需要这些 behavior semantics，必须回到
-`agent-chat-behavior-contract.md` 定义的 authority surface。
+`AIConfig` 不得把 Agent Chat behavior settings、turn planning、message/action
+outputs、voice workflow semantics、or Runtime Agent execution projection 收编为新的
+top-level live config truth。若 chat consumer 需要这些 semantics，必须消费 Runtime /
+SDK projection；Desktop 不得在本地恢复一套 behavior authority surface。
 
 用户在 scope 内微调时，改的是该 scope 的 `AIConfig`。修改不反向污染 `AIProfile`。修改后 `profileOrigin` 可保留（表示"基于哪个 profile 的自定义"）但不具有 binding 语义。
 
@@ -145,9 +147,9 @@ runtime private loopback convenience endpoint 当成正式 live-config owner。
   owns config evidence identity，Runtime owns execution/runtime evidence slices，
   SDK owns typed projection。Desktop consumer 不得自定义 consumer-local
   `AISnapshot` schema 或把 local storage 当成正式 snapshot owner。
-- snapshot 若记录 agent chat behavior evidence，也只能记录来自
-  `agent-chat-behavior-contract.md`（`D-LLM-022` ~ `D-LLM-025`）的 resolved outputs；
-  `AISnapshot` 不得在 capture 时重新解析、覆写、或补默认 behavior truth
+- snapshot 若记录 Agent Chat turn / message / action / voice / workflow /
+  presentation evidence，也只能记录 Runtime-owned execution evidence slices；
+  Desktop consumer 不得在 capture 时重新解析、覆写、或补默认 Agent Chat truth
 
 ## D-AIPC-005 — Profile Apply Semantics
 
@@ -226,9 +228,9 @@ portable payload 的目标是：任何 profile 可在不同设备间迁移，接
 
 - 现有四层不被 supersede 或重命名；它们作为 `AIConfig` / `AISnapshot` 下的 conversation-capability submodel 保留。
 - 不允许"旧四层 + 新三层"并列 owner — 四层是 AIConfig/AISnapshot 的 submodel，不是独立 peer authority。
-- `agent-chat-behavior-contract.md`（`D-LLM-022` ~ `D-LLM-026`）不属于本 umbrella
-  收编对象；behavior contract 与本契约是相邻 authority，边界固定为
-  config/capability truth vs behavior truth
+- `agent-chat-projection-contract.md`（`D-LLM-022` ~ `D-LLM-026`）不属于本 umbrella
+  收编对象；projection contract 与本契约是相邻 authority，边界固定为
+  config/capability truth vs Desktop presentation/projection truth
 
 迁移映射固定为：
 
@@ -374,7 +376,7 @@ projection exposed by the scope owner，不得自定义 local preview 真相。
 
 ## Fact Sources
 
-- `agent-chat-behavior-contract.md` — D-LLM-022 ~ D-LLM-026 behavior authority boundary
+- `agent-chat-projection-contract.md` — D-LLM-022 ~ D-LLM-026 Desktop Agent Chat projection boundary
 - `conversation-capability-contract.md` — D-LLM-015 ~ D-LLM-021 conversation capability submodel rules
 - `llm-adapter-contract.md` — Desktop provider adaptation and routing rules
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-001 ~ P-AISC-006 AIScopeRef identity contract

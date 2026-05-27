@@ -4,8 +4,10 @@ import type {
 } from '@nimiplatform/kit/features/chat/headless';
 import {
   parseAgentModelOutputDiagnostics,
-  type AgentModelOutputDiagnostics,
-} from './chat-agent-behavior-resolver';
+} from './chat-agent-runtime-diagnostics';
+import type {
+  AgentModelOutputDiagnostics,
+} from './chat-agent-runtime-output-types';
 
 type AgentTurnTerminalState = 'running' | 'completed' | 'failed' | 'canceled';
 

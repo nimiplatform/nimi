@@ -102,6 +102,6 @@ closed。
 - `.nimi/spec/cognition/kernel/app-memory-access-contract.md` — `C-APMEM-001..C-APMEM-008`
 - `.nimi/spec/sdk/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-008`
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`
-- `.nimi/spec/desktop/kernel/agent-chat-behavior-contract.md` — `D-LLM-022..D-LLM-026`
+- `.nimi/spec/desktop/kernel/agent-chat-projection-contract.md` — `D-LLM-022..D-LLM-026`
 - `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/agent-identity-primitive-floor.md`
 - `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/runtime-cognition-knowledge-memory-owner-split.md`

@@ -27,7 +27,7 @@ import {
 import {
   type AgentHostFlowFooterState,
 } from './chat-agent-shell-host-flow';
-import { createAgentLocalChatConversationProvider } from './chat-agent-orchestration';
+import { createRuntimeAgentChatConversationProvider } from './chat-agent-runtime-provider';
 import type { AgentConversationSelection } from './chat-shell-types';
 import {
   RuntimeAgentDebugMessageAccessory,
@@ -48,7 +48,6 @@ import {
   loadStoredPerformancePreferences,
   subscribeStoredPerformancePreferences,
 } from '../settings/settings-storage';
-import { resolveAgentChatBehavior } from './chat-agent-behavior-resolver';
 import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import {
   bundleQueryKey,
@@ -106,9 +105,6 @@ export function useAgentConversationModeHost(
   const imageCapabilityProjection = useAppStore(
     (state) => state.conversationCapabilityProjectionByCapability['image.generate'] || null,
   );
-  const voiceCapabilityProjection = useAppStore(
-    (state) => state.conversationCapabilityProjectionByCapability['audio.synthesize'] || null,
-  );
   const transcribeCapabilityProjection = useAppStore(
     (state) => state.conversationCapabilityProjectionByCapability['audio.transcribe'] || null,
   );
@@ -132,7 +128,7 @@ export function useAgentConversationModeHost(
   const pendingAttachmentsByThreadRef = useRef<Record<string, readonly PendingAttachment[]>>({});
   const registry = useMemo(() => {
     const nextRegistry = new ConversationOrchestrationRegistry();
-    nextRegistry.register(createAgentLocalChatConversationProvider());
+    nextRegistry.register(createRuntimeAgentChatConversationProvider());
     return nextRegistry;
   }, []);
   const agentProvider = useMemo(
@@ -505,7 +501,6 @@ export function useAgentConversationModeHost(
   const {
     clearLatestVoiceCaptureForThread,
     handsFreeState,
-    latestVoiceCaptureByThreadRef,
     onVoiceSessionCancel,
     onVoiceSessionToggle,
     voiceCaptureState,
@@ -523,7 +518,6 @@ export function useAgentConversationModeHost(
     submittingThreadId,
     t,
     transcribeCapabilityProjection,
-    voiceCapabilityProjection,
   });
   const agentAiConfig = useAppStore((state) => state.aiConfig);
   const { handleDeleteMessage, handleDeleteThread, handleSelectAgent, handleSelectThread, handleSubmit } = useAgentConversationHostActions({
@@ -535,7 +529,6 @@ export function useAgentConversationModeHost(
     currentDraftTextRef,
     draftText: bundle?.draft?.text,
     draftUpdatedAtMs: bundle?.draft?.updatedAtMs,
-    latestVoiceCaptureByThreadRef,
     queryClient,
     reportHostError,
     runAgentTurn: (turnInput) => agentProvider.runTurn({
@@ -546,32 +539,13 @@ export function useAgentConversationModeHost(
       history: turnInput.history,
       signal: turnInput.signal,
       metadata: {
-        agentLocalChat: {
-          ownerUserId: turnInput.target.ownerUserId,
-          realmAgentId: turnInput.target.realmAgentId,
-          localAgentRef: turnInput.target.localAgentRef,
-          conversationAnchorId: turnInput.conversationAnchorId,
-          targetSnapshot: turnInput.target,
-          agentResolution: turnInput.agentResolution,
-          textExecutionSnapshot: turnInput.textExecutionSnapshot,
-          imageExecutionSnapshot: turnInput.imageExecutionSnapshot,
-          voiceExecutionSnapshot: turnInput.voiceExecutionSnapshot,
-          voiceWorkflowExecutionSnapshotByCapability: turnInput.voiceWorkflowExecutionSnapshotByCapability,
-          latestVoiceCapture: turnInput.latestVoiceCapture,
-          imageCapabilityParams: (
-            agentAiConfig.capabilities.selectedParams['image.generate'] || null
-          ) as Record<string, unknown> | null,
-          runtimeConfigState: input.runtimeConfigState,
-          runtimeFields: input.runtimeFields,
-          reasoningPreference: behaviorSettings.thinkingPreference,
-          textModelContextTokens: textRouteModelProfile?.maxContextTokens ?? null,
-          textMaxOutputTokensRequested: resolveAgentChatRequestedMaxOutputTokens(textRouteModelProfile, behaviorSettings.maxOutputTokensOverride),
-          resolvedBehavior: resolveAgentChatBehavior({
-            userText: turnInput.userMessage.text,
-            hasUserAttachments: turnInput.userMessage.attachments.length > 0,
-            settings: behaviorSettings,
-          }),
-        },
+        ownerUserId: turnInput.target.ownerUserId,
+        realmAgentId: turnInput.target.realmAgentId,
+        localAgentRef: turnInput.target.localAgentRef,
+        conversationAnchorId: turnInput.conversationAnchorId,
+        textExecutionSnapshot: turnInput.textExecutionSnapshot,
+        reasoningPreference: behaviorSettings.thinkingPreference,
+        textMaxOutputTokensRequested: resolveAgentChatRequestedMaxOutputTokens(textRouteModelProfile, behaviorSettings.maxOutputTokensOverride),
       },
     }),
     selectedLocalAgentRef: input.selection.localAgentRef,

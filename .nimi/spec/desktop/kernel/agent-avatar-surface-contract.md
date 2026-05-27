@@ -20,9 +20,10 @@ asset packaging truth。`.nimi/spec/runtime/kernel/agent-presentation-contract.m
 `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
 （`K-AGCORE-036` ~ `K-AGCORE-039`）继续拥有 runtime-owned transient turn /
 presentation seam 与 current emotion projection；
-`agent-chat-message-action-contract.md`、`agent-chat-voice-session-contract.md`、
-`agent-chat-voice-workflow-contract.md` 继续拥有 message / voice 上游语义 truth；kit avatar
-module 只消费本契约定义的 normalized surface semantics，不得反向成为 Desktop product owner。
+Runtime Agent Chat / Voice projections continue to own message / action / voice
+upstream semantic truth. `agent-chat-projection-contract.md` owns only Desktop
+Agent Chat presentation/projection boundaries；kit avatar module 只消费本契约定义的
+normalized surface semantics，不得反向成为 Desktop product owner。
 
 ## D-LLM-053 — Canonical Avatar Surface Authority Home
 
@@ -56,10 +57,9 @@ adjacent authority 边界固定为：
   （`K-AGCORE-036` ~ `K-AGCORE-039`）继续拥有 `runtime.agent.turn.*` /
   `runtime.agent.presentation.*` / `runtime.agent.state.emotion_changed`
   的 runtime-owned transient projection truth
-- `agent-chat-behavior-contract.md`（`D-LLM-022` ~ `D-LLM-026b`）继续拥有 generic behavior truth
-- `agent-chat-message-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）继续拥有 message/action truth
-- `agent-chat-voice-session-contract.md`（`D-LLM-040` ~ `D-LLM-046`）继续拥有 broader voice session truth
-- `agent-chat-voice-workflow-contract.md`（`D-LLM-047` ~ `D-LLM-052`）继续拥有 richer voice workflow / identity truth
+- `agent-chat-projection-contract.md`（`D-LLM-022` ~ `D-LLM-026`）继续拥有 Desktop
+  Agent Chat presentation/projection boundary；Runtime Agent / Voice contracts
+  own upstream behavior, message/action, workflow, and session truth
 - `kit/features/avatar` 只消费 normalized avatar surface inputs；不得提升为 Desktop semantic owner
 
 ## D-LLM-054 — AvatarInteractionState Boundary
@@ -551,10 +551,9 @@ Fixed rules:
 - `.nimi/spec/runtime/kernel/agent-presentation-contract.md` — runtime persistent presentation truth and non-owner boundary
 - `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md` — conversation continuity anchor truth
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — transient turn, presentation, emotion, and timeline projection truth
-- `.nimi/spec/desktop/kernel/agent-chat-behavior-contract.md` — generic behavior / experience semantics
-- `.nimi/spec/desktop/kernel/agent-chat-message-action-contract.md` — message/action envelope semantics
-- `.nimi/spec/desktop/kernel/agent-chat-voice-session-contract.md` — broader voice session semantics
-- `.nimi/spec/desktop/kernel/agent-chat-voice-workflow-contract.md` — richer workflow / voice identity semantics
+- `.nimi/spec/desktop/kernel/agent-chat-projection-contract.md` — Desktop Agent Chat presentation/projection boundary
+- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — Runtime Agent execution and presentation projection authority
+- `.nimi/spec/runtime/kernel/voice-contract.md` — Runtime voice workflow / asset semantics
 - `.nimi/spec/platform/kernel/kit-contract.md` — reusable `kit/features/avatar` admission and ownership hardcut
 - `.nimi/spec/avatar/kernel/index.md` — Avatar first-party authority map
 - `.nimi/spec/avatar/kernel/app-shell-contract.md` — Avatar shell launch, fail-closed, and foreground companion UX boundary

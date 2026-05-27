@@ -1,7 +1,7 @@
 import type { RuntimeAgentConsumeEvent, RuntimeAgentSessionTurnSnapshot } from '@nimiplatform/sdk/runtime';
 
-import { normalizeText } from './chat-agent-orchestration-shared';
-import type { AgentLocalChatRuntimeRequest } from './chat-agent-orchestration-types';
+import { normalizeText } from './chat-agent-runtime-normalize';
+import type { AgentRuntimeChatTurnRequest } from './chat-agent-runtime-turn-types';
 
 export type RuntimeAgentQueuedEvent =
   | { type: 'event'; event: RuntimeAgentConsumeEvent }
@@ -229,7 +229,7 @@ export type RuntimeAgentSnapshotRecoveryResult = 'none' | 'bound' | 'terminal';
 
 export async function recoverRuntimeAgentTerminalSnapshot(options: {
   reason: string;
-  request: AgentLocalChatRuntimeRequest;
+  request: AgentRuntimeChatTurnRequest;
   requestId: string;
   requestMessageId: string;
   requestStartedAtMs: number;

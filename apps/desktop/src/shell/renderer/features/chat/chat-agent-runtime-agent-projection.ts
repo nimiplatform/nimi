@@ -1,5 +1,5 @@
 import type { RuntimeAgentConsumeEvent } from '@nimiplatform/sdk/runtime';
-import { normalizeText } from './chat-agent-orchestration-shared';
+import { normalizeText } from './chat-agent-runtime-normalize';
 
 export type RuntimeAgentProjectionSummary = {
   eventName: string;

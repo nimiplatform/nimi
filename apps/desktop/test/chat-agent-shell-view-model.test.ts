@@ -14,7 +14,6 @@ import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadSummary,
 } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
-import { resolveAgentChatBehavior as resolveAgentChatBehaviorFromResolver } from '../src/shell/renderer/features/chat/chat-agent-behavior-resolver.js';
 
 function sampleTargets(): AgentLocalTargetSnapshot[] {
   return [{
@@ -376,82 +375,4 @@ test('agent shell view model emits thread metadata update when authoritative tar
     },
     target: mergedTarget,
   }), null);
-});
-
-test('agent behavior resolver produces a canonical resolved behavior object from feature-local settings', () => {
-  const resolved = resolveAgentChatBehaviorFromResolver({
-    userText: '我今天有点难过，想你了',
-    settings: {
-      thinkingPreference: 'on',
-      maxOutputTokensOverride: null,
-    },
-  });
-
-  assert.equal(resolved.settings.thinkingPreference, 'on');
-  assert.equal(resolved.resolvedTurnMode, 'intimate');
-  assert.equal(resolved.resolvedExperiencePolicy.autonomyPolicy, 'guarded');
-  assert.equal(resolved.resolvedExperiencePolicy.contentBoundary, 'default');
-  assert.deepEqual(resolved.resolvedExperiencePolicy.inspectOnly, {
-    enabled: false,
-    boundary: 'product-turn',
-  });
-});
-
-test('agent behavior resolver keeps explicit-media turns single-message without user toggles', () => {
-  const resolved = resolveAgentChatBehaviorFromResolver({
-    userText: '发张图给我看看',
-    settings: {
-      thinkingPreference: 'off',
-      maxOutputTokensOverride: null,
-    },
-  });
-
-  assert.equal(resolved.resolvedTurnMode, 'explicit-media');
-  assert.equal(resolved.resolvedExperiencePolicy.contentBoundary, 'explicit-media-request');
-  assert.equal(resolved.resolvedExperiencePolicy.autonomyPolicy, 'guarded');
-  assert.deepEqual(resolved.resolvedExperiencePolicy.inspectOnly, {
-    enabled: false,
-    boundary: 'product-turn',
-  });
-});
-
-test('agent behavior resolver fails closed for empty submitted turns', () => {
-  assert.throws(
-    () => resolveAgentChatBehaviorFromResolver({
-      userText: '   ',
-      hasUserAttachments: false,
-      settings: {
-        thinkingPreference: 'off',
-        maxOutputTokensOverride: null,
-      },
-    }),
-    /agent turn text is required for behavior resolution/,
-  );
-});
-
-test('agent behavior resolver admits attachment-only submitted turns as explicit media', () => {
-  const resolved = resolveAgentChatBehaviorFromResolver({
-    userText: '   ',
-    hasUserAttachments: true,
-    settings: {
-      thinkingPreference: 'off',
-      maxOutputTokensOverride: null,
-    },
-  });
-
-  assert.equal(resolved.resolvedTurnMode, 'explicit-media');
-  assert.equal(resolved.resolvedExperiencePolicy.contentBoundary, 'explicit-media-request');
-});
-
-test('agent behavior resolver explicitly classifies valid unmatched text as information', () => {
-  const resolved = resolveAgentChatBehaviorFromResolver({
-    userText: 'ok',
-    settings: {
-      thinkingPreference: 'off',
-      maxOutputTokensOverride: null,
-    },
-  });
-
-  assert.equal(resolved.resolvedTurnMode, 'information');
-  assert.equal(resolved.resolvedExperiencePolicy.contentBoundary, 'default');
 });

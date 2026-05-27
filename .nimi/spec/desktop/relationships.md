@@ -13,7 +13,7 @@ relationship/profile UX. It does not define product rules.
 - `.nimi/spec/desktop/kernel/relationship-profile-surface-contract.md`
 - `.nimi/spec/desktop/kernel/explore-surface-contract.md`
 - `.nimi/spec/desktop/kernel/home-feed-contract.md`
-- `.nimi/spec/desktop/kernel/agent-chat-behavior-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-projection-contract.md`
 - `.nimi/spec/desktop/kernel/ui-shell-contract.md`
 
 ## Tables

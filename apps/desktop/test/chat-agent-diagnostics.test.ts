@@ -73,7 +73,7 @@ test('agent diagnostics view model shows empty state before any completed turn',
   assert.equal(viewModel.emptyLabel, 'No recent agent turn diagnostics yet.');
 });
 
-test('agent diagnostics view model shows strict APML turn details', () => {
+test('agent diagnostics view model shows runtime structured turn details', () => {
   const viewModel = buildAgentDiagnosticsViewModel({
     ...baseInput(),
     lifecycle: {
@@ -86,7 +86,7 @@ test('agent diagnostics view model shows strict APML turn details', () => {
         outputTokens: 22,
       },
       diagnostics: {
-        classification: 'strict-apml',
+        classification: 'runtime-structured',
         recoveryPath: 'none',
         suspectedTruncation: false,
         parseErrorDetail: null,
@@ -118,10 +118,10 @@ test('agent diagnostics view model shows strict APML turn details', () => {
   assert.equal(viewModel.emptyLabel, null);
   assert.equal(viewModel.turnCards[0]?.label, 'Last Turn');
   assert.equal(viewModel.turnCards[0]?.value, 'Completed');
-  assert.match(viewModel.turnCards[0]?.detail || '', /classification=strict-apml/);
+  assert.match(viewModel.turnCards[0]?.detail || '', /classification=runtime-structured/);
   assert.equal(viewModel.turnCards[1]?.value, 'trace-recovered');
   assert.match(viewModel.turnCards[2]?.detail || '', /Input: 18 tokens/);
-  assert.equal(viewModel.turnCards[3]?.value, 'strict-apml');
+  assert.equal(viewModel.turnCards[3]?.value, 'runtime-structured');
   assert.equal(viewModel.turnCards[4]?.label, 'Context');
   assert.equal(viewModel.turnCards[4]?.value, 'Model profile');
   assert.match(viewModel.turnCards[4]?.detail || '', /Max output: 512 tokens/);
@@ -153,10 +153,10 @@ test('agent diagnostics view model shows truncation diagnostics for failed turns
         outputTokens: 41,
       },
       diagnostics: {
-        classification: 'partial-apml',
+        classification: 'partial-runtime-projection',
         recoveryPath: 'none',
         suspectedTruncation: true,
-        parseErrorDetail: 'APML message missing </message>',
+        parseErrorDetail: 'Runtime structured projection missing terminal message',
         rawOutputChars: 84,
         normalizedOutputChars: 84,
         finishReason: 'length',
@@ -188,7 +188,7 @@ test('agent diagnostics view model shows truncation diagnostics for failed turns
   assert.match(viewModel.turnCards[0]?.detail || '', /Partial output:/);
   assert.match(viewModel.turnCards[0]?.detail || '', /<message id="message-0"/);
   assert.equal(viewModel.turnCards[2]?.value, 'Reached token limit');
-  assert.match(viewModel.turnCards[3]?.detail || '', /parseError=APML message missing <\/message>/);
+  assert.match(viewModel.turnCards[3]?.detail || '', /parseError=Runtime structured projection missing terminal message/);
   assert.equal(viewModel.turnCards[4]?.value, 'Context limit exceeded');
   assert.match(viewModel.turnCards[4]?.detail || '', /Max output: 111 tokens/);
   assert.match(viewModel.turnCards[4]?.detail || '', /The prompt exceeded the available context window\./);
@@ -259,7 +259,7 @@ test('agent diagnostics view model shows image execution diagnostics when presen
       ...baseLifecycle(),
       terminal: 'completed',
       diagnostics: {
-        classification: 'strict-apml',
+        classification: 'runtime-structured',
         recoveryPath: 'none',
         suspectedTruncation: false,
         parseErrorDetail: null,
@@ -315,7 +315,7 @@ test('agent diagnostics view model shows follow-up chain diagnostics when presen
       ...baseLifecycle(),
       terminal: 'completed',
       diagnostics: {
-        classification: 'strict-apml',
+        classification: 'runtime-structured',
         recoveryPath: 'none',
         suspectedTruncation: false,
         parseErrorDetail: null,
@@ -365,7 +365,7 @@ test('agent diagnostics view model shows runtime turn evidence when lifecycle ca
         connectorId: null,
       },
       diagnostics: {
-        classification: 'strict-apml',
+        classification: 'runtime-structured',
         recoveryPath: 'none',
         suspectedTruncation: false,
         parseErrorDetail: null,

@@ -5,21 +5,18 @@ import type { RuntimeAgentConsumeEvent } from '@nimiplatform/sdk/runtime';
 import {
   recoverRuntimeAgentTerminalSnapshot,
 } from '../src/shell/renderer/features/chat/chat-agent-runtime-agent-stream';
-import type { AgentLocalChatRuntimeRequest } from '../src/shell/renderer/features/chat/chat-agent-orchestration-types';
+import type { AgentRuntimeChatTurnRequest } from '../src/shell/renderer/features/chat/chat-agent-runtime-turn-types';
 
-function createRequest(): AgentLocalChatRuntimeRequest {
+function createRequest(): AgentRuntimeChatTurnRequest {
   return {
     ownerUserId: 'user-1',
     realmAgentId: 'agent-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     conversationAnchorId: 'anchor-1',
     threadId: 'thread-1',
-    prompt: 'hello',
-    messages: [],
-    agentResolution: null,
     textExecutionSnapshot: null,
-    runtimeConfigState: null,
-    runtimeFields: {} as AgentLocalChatRuntimeRequest['runtimeFields'],
+    userMessageId: 'message-1',
+    userText: 'Hello from Desktop',
     reasoningPreference: 'off',
   };
 }

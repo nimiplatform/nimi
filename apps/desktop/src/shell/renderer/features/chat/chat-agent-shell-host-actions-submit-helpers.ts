@@ -4,17 +4,6 @@ import type {
 } from '@renderer/bridge/runtime-bridge/types';
 import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import {
-  peekDesktopAISchedulingForEvidence,
-  recordDesktopAISnapshot,
-  resolveAIConfigSchedulingTargetForCapability,
-} from '@renderer/app-shell/providers/desktop-ai-config-service';
-import {
-  AGENT_VOICE_WORKFLOW_CAPABILITIES,
-  createAISnapshot,
-  type AISnapshot,
-  type AgentVoiceWorkflowCapability,
-} from './conversation-capability';
-import {
   createEmptyAgentThreadBundle,
 } from './chat-agent-shell-bundle';
 import {
@@ -37,32 +26,6 @@ export function toFallbackThreadRecord(
     ...thread,
     createdAtMs: Date.now(),
   };
-}
-
-export async function buildVoiceWorkflowExecutionSnapshots(input: {
-  hostInput: UseAgentConversationHostActionsInput;
-  agentResolution: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['agentResolution'];
-}): Promise<Partial<Record<AgentVoiceWorkflowCapability, AISnapshot | null>>> {
-  const snapshots: Partial<Record<AgentVoiceWorkflowCapability, AISnapshot | null>> = {};
-  for (const workflowCapability of AGENT_VOICE_WORKFLOW_CAPABILITIES) {
-    const workflowProjection = input.agentResolution.voiceWorkflowProjections[workflowCapability] || null;
-    if (!workflowProjection?.supported || !workflowProjection.resolvedBinding) {
-      continue;
-    }
-    const workflowExecutionSnapshot = createAISnapshot({
-      config: input.hostInput.aiConfig,
-      capability: workflowCapability,
-      projection: workflowProjection,
-      agentResolution: input.agentResolution,
-      runtimeEvidence: await peekDesktopAISchedulingForEvidence({
-        scopeRef: input.hostInput.aiConfig.scopeRef,
-        target: resolveAIConfigSchedulingTargetForCapability(input.hostInput.aiConfig, workflowCapability),
-      }),
-    });
-    snapshots[workflowCapability] = workflowExecutionSnapshot;
-    recordDesktopAISnapshot(workflowExecutionSnapshot);
-  }
-  return snapshots;
 }
 
 export async function rollbackOptimisticUserProjection(input: {

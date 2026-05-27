@@ -15,8 +15,6 @@ import {
   type AIConfig,
   type ConversationCapabilityProjection,
 } from './conversation-capability';
-import { parseAgentChatVoiceWorkflowMetadata } from './chat-agent-voice-workflow';
-import { reconcileAgentChatVoiceWorkflowMessage } from './chat-agent-voice-workflow-tracker';
 import {
   transcribeChatAgentVoiceRuntime,
   toChatAgentRuntimeError,
@@ -63,7 +61,6 @@ type UseAgentConversationVoiceSessionInput = {
   submittingThreadId: string | null;
   t: TFunction;
   transcribeCapabilityProjection: ConversationCapabilityProjection | null;
-  voiceCapabilityProjection: ConversationCapabilityProjection | null;
 };
 
 export function useAgentConversationVoiceSession(
@@ -130,80 +127,6 @@ export function useAgentConversationVoiceSession(
       window.removeEventListener('blur', syncForegroundState);
     };
   }, []);
-
-  useEffect(() => {
-    if (!input.activeThreadId || !input.activeConversationAnchorId || !input.bundleMessages?.length) {
-      return undefined;
-    }
-    const activeThreadId = input.activeThreadId;
-    const activeConversationAnchorId = input.activeConversationAnchorId;
-    const pendingMessages = input.bundleMessages.filter((message) => {
-      const metadata = parseAgentChatVoiceWorkflowMetadata(message.metadataJson);
-      if (metadata?.conversationAnchorId !== activeConversationAnchorId) {
-        return false;
-      }
-      return metadata.workflowStatus === 'submitted'
-        || metadata.workflowStatus === 'queued'
-        || metadata.workflowStatus === 'running';
-    });
-    if (pendingMessages.length === 0) {
-      return undefined;
-    }
-    const voiceExecutionSnapshot = input.voiceCapabilityProjection?.supported && input.voiceCapabilityProjection.resolvedBinding
-      ? createAISnapshot({
-        config: input.aiConfig,
-        capability: 'audio.synthesize',
-        projection: input.voiceCapabilityProjection,
-        agentResolution: input.agentResolution,
-      })
-      : null;
-    let cancelled = false;
-    const timerId = window.setTimeout(() => {
-      void (async () => {
-        for (const message of pendingMessages) {
-          if (cancelled) {
-            return;
-          }
-          const result = await reconcileAgentChatVoiceWorkflowMessage({
-            message,
-            activeConversationAnchorId,
-            voiceExecutionSnapshot,
-          });
-          if (!result.updatedMessage || cancelled) {
-            continue;
-          }
-          input.setBundleCache(activeThreadId, (current) => {
-            if (!current) {
-              return current;
-            }
-            return {
-              ...current,
-              messages: current.messages.map((item) => (
-                item.id === result.updatedMessage?.id
-                  ? result.updatedMessage
-                  : item
-              )),
-            };
-          });
-        }
-      })().catch((error) => {
-        input.reportHostError(error);
-      });
-    }, 2_000);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timerId);
-    };
-  }, [
-    input.aiConfig,
-    input.agentResolution,
-    input.bundleMessages,
-    input.activeConversationAnchorId,
-    input.activeThreadId,
-    input.reportHostError,
-    input.setBundleCache,
-    input.voiceCapabilityProjection,
-  ]);
 
   const resolveVoiceSessionUnavailableMessage = useCallback(() => {
     if (!input.activeTarget) {

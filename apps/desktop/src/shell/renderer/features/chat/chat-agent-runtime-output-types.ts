@@ -1,7 +1,3 @@
-import type {
-    AgentResolvedMessageActionEnvelope,
-} from './chat-agent-behavior';
-
 export type AgentResolvedStatusCueDiagnostic = {
     accepted: boolean;
     reason: string | null;
@@ -10,9 +6,9 @@ export type AgentResolvedStatusCueDiagnostic = {
 };
 
 export const AGENT_MODEL_OUTPUT_CLASSIFICATIONS = [
-    'strict-apml',
-    'invalid-apml',
-    'partial-apml',
+    'runtime-structured',
+    'invalid-runtime-projection',
+    'partial-runtime-projection',
     'preflight-rejected',
 ] as const;
 export const AGENT_MODEL_OUTPUT_RECOVERY_PATHS = [
@@ -77,27 +73,3 @@ export type AgentModelOutputDiagnostics = {
     image?: AgentImageExecutionDiagnostics | null;
     preflight?: AgentPreflightExecutionDiagnostics | null;
 };
-export type ResolveAgentModelOutputEnvelopeInput = {
-    modelOutput: string;
-    requestPrompt?: string | null;
-    requestSystemPrompt?: string | null;
-    finishReason?: string | null;
-    trace?: {
-        traceId?: string | null;
-        promptTraceId?: string | null;
-    } | null;
-    usage?: AgentModelOutputUsage;
-    contextWindowSource: AgentPromptContextWindowSource;
-    maxOutputTokensRequested?: number | null;
-    promptOverflow: boolean;
-};
-export type ResolveAgentModelOutputEnvelopeResult =
-    | {
-        ok: true;
-        envelope: AgentResolvedMessageActionEnvelope;
-        diagnostics: AgentModelOutputDiagnostics;
-    }
-    | {
-        ok: false;
-        diagnostics: AgentModelOutputDiagnostics;
-    };

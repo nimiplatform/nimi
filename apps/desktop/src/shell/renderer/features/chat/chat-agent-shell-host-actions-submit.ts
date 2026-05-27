@@ -24,7 +24,6 @@ import {
 import {
   toChatAgentRuntimeError,
 } from './chat-agent-runtime';
-import { cancelPendingAgentFollowUpChain } from './chat-agent-orchestration';
 import {
   createAISnapshot,
 } from './conversation-capability';
@@ -56,7 +55,6 @@ import {
 } from './chat-agent-shell-host-actions-helpers';
 import { runActiveAgentSubmit } from './chat-agent-shell-host-actions-submit-run';
 import {
-  buildVoiceWorkflowExecutionSnapshots,
   rollbackOptimisticUserProjection,
   toFallbackThreadRecord,
 } from './chat-agent-shell-host-actions-submit-helpers';
@@ -148,7 +146,6 @@ export async function submitAgentConversationTurn(input: {
 
     const existingSubmit = input.activeSubmitsByThreadRef.current.get(effectiveThreadId) || null;
     if (existingSubmit && existingSubmit.threadId === effectiveThreadId && existingSubmit.interruptible) {
-      cancelPendingAgentFollowUpChain(effectiveThreadId);
       existingSubmit.overrideRequested = true;
       existingSubmit.abort();
       try {
@@ -248,11 +245,6 @@ export async function submitAgentConversationTurn(input: {
     };
 
     input.hostInput.currentDraftTextRef.current = submittedText;
-    const latestVoiceCapture = input.hostInput.latestVoiceCaptureByThreadRef.current[effectiveThreadId] || null;
-    const matchedVoiceCapture = latestVoiceCapture?.conversationAnchorId === conversationAnchorId
-      && latestVoiceCapture.transcriptText === submittedText
-      ? latestVoiceCapture
-      : null;
     let submitSession = createInitialAgentSubmitDriverState({
       fallbackThread: fallbackThreadRecord,
       assistantMessageId,
@@ -363,45 +355,6 @@ export async function submitAgentConversationTurn(input: {
       effectiveAgentResolution = useAppStore.getState().agentEffectiveCapabilityResolution || effectiveAgentResolution;
     }
 
-    const imageExecutionSnapshot = effectiveAgentResolution.imageProjection?.supported
-      && effectiveAgentResolution.imageProjection?.resolvedBinding
-      ? createAISnapshot({
-        config: input.hostInput.aiConfig,
-        capability: 'image.generate',
-        projection: effectiveAgentResolution.imageProjection,
-        agentResolution: effectiveAgentResolution,
-        runtimeEvidence: await peekDesktopAISchedulingForEvidence({
-          scopeRef: input.hostInput.aiConfig.scopeRef,
-          target: resolveAIConfigSchedulingTargetForCapability(input.hostInput.aiConfig, 'image.generate'),
-        }),
-      })
-      : null;
-    if (imageExecutionSnapshot) {
-      recordDesktopAISnapshot(imageExecutionSnapshot);
-    }
-    const voiceExecutionSnapshot = effectiveAgentResolution.voiceProjection?.supported
-      && effectiveAgentResolution.voiceProjection?.resolvedBinding
-      ? createAISnapshot({
-        config: input.hostInput.aiConfig,
-        capability: 'audio.synthesize',
-        projection: effectiveAgentResolution.voiceProjection,
-        agentResolution: effectiveAgentResolution,
-        runtimeEvidence: await peekDesktopAISchedulingForEvidence({
-          scopeRef: input.hostInput.aiConfig.scopeRef,
-          target: resolveAIConfigSchedulingTargetForCapability(input.hostInput.aiConfig, 'audio.synthesize'),
-        }),
-      })
-      : null;
-    if (voiceExecutionSnapshot) {
-      recordDesktopAISnapshot(voiceExecutionSnapshot);
-    }
-    const voiceWorkflowExecutionSnapshotByCapability = await buildVoiceWorkflowExecutionSnapshots(
-      {
-        hostInput: input.hostInput,
-        agentResolution: effectiveAgentResolution,
-      },
-    );
-
     const abortController = startStream(
       effectiveThreadId,
       resolveAgentTurnTotalTimeoutMs(input.hostInput.aiConfig),
@@ -431,10 +384,6 @@ export async function submitAgentConversationTurn(input: {
       signal: abortController.signal,
       agentResolution: effectiveAgentResolution,
       textExecutionSnapshot,
-      imageExecutionSnapshot,
-      voiceExecutionSnapshot,
-      voiceWorkflowExecutionSnapshotByCapability,
-      latestVoiceCapture: matchedVoiceCapture,
       textModelContextTokens: input.hostInput.textModelContextTokens,
       textMaxOutputTokensRequested: input.hostInput.textMaxOutputTokensRequested,
       target: activeTarget,

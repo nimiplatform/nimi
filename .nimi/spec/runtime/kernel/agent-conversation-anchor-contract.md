@@ -99,7 +99,7 @@ Fixed rules:
 ## Fact Sources
 
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
-- `.nimi/spec/desktop/kernel/agent-chat-voice-session-contract.md`
+- `.nimi/spec/desktop/kernel/agent-chat-projection-contract.md`
 - `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
 - `.nimi/spec/avatar/kernel/app-shell-contract.md`
 - `docs/architecture/agent-companion-core-protocol.md` — reader guide and dual-entry session correspondence
