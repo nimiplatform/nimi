@@ -8,7 +8,7 @@ Desktop 应用启动序列契约。定义 renderer 进程从 `bootstrapRuntime()
 
 ## D-BOOT-001 — Runtime Defaults 加载
 
-启动序列的首个异步操作。通过 IPC 桥接调用 `runtime_defaults` 获取 `RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、revocationUrl、jwtIssuer、jwtAudience）和 `RuntimeExecutionDefaults`（provider、model 与可透传的 runtime execution 字段）。
+启动序列的首个异步操作。通过 IPC 桥接调用 `runtime_defaults` 获取 `RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、revocationUrl、jwtIssuer、jwtAudience）和 `RuntimeExecutionDefaults`（targetType、targetAccountId、agentId、worldId、userConfirmedUpload 等非路由 bootstrap hints）。`runtime_defaults` 不得携带 provider / model / connector / local endpoint route truth；这些 truth 只能由 Runtime/SDK route projection 提供。
 
 Desktop 只允许使用 canonical runtime 配置路径 `~/.nimi/runtime/config.json`。
 Product readiness state is owned by `~/.nimi/nimi.json`; bootstrap may not treat

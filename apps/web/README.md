@@ -59,10 +59,6 @@ Optional:
 
 - `VITE_NIMI_GOOGLE_CLIENT_ID=...` (for Google OAuth in web auth menu)
 - `VITE_NIMI_ACCESS_TOKEN=...`
-- `VITE_NIMI_LOCAL_PROVIDER_ENDPOINT=...`
-- `VITE_NIMI_LOCAL_PROVIDER_MODEL=...`
-- `VITE_NIMI_LOCAL_OPENAI_ENDPOINT=...`
-- `VITE_NIMI_CREDENTIAL_REF_ID=...`
 
 Runtime wallet login is available in web mode when wallet providers are injected into `window`
 (MetaMask / OKX / Binance Wallet).

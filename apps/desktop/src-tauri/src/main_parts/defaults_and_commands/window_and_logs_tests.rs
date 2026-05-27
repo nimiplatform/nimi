@@ -150,6 +150,11 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         "NIMI_RUNTIME_BRIDGE_DEBUG",
         "NIMI_E2E_BACKEND_LOG_PATH",
         "NIMI_DATA_ROOT",
+        "NIMI_LOCAL_PROVIDER_ENDPOINT",
+        "NIMI_LOCAL_PROVIDER_MODEL",
+        "NIMI_LOCAL_OPENAI_ENDPOINT",
+        "NIMI_CONNECTOR_ID",
+        "NIMI_PROVIDER",
     ];
     let saved: Vec<(&str, Option<String>)> = keys
         .iter()
@@ -239,6 +244,11 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     std::env::set_var("NIMI_RUNTIME_BRIDGE_MODE", "RELEASE");
     std::env::set_var("NIMI_RUNTIME_BRIDGE_DEBUG", "1");
     std::env::set_var("NIMI_DATA_ROOT", "/tmp/must-not-forward-raw-env");
+    std::env::set_var("NIMI_LOCAL_PROVIDER_ENDPOINT", "http://127.0.0.1:1234/v1");
+    std::env::set_var("NIMI_LOCAL_PROVIDER_MODEL", "legacy-model");
+    std::env::set_var("NIMI_LOCAL_OPENAI_ENDPOINT", "http://localhost:1234/v1");
+    std::env::set_var("NIMI_CONNECTOR_ID", "legacy-connector");
+    std::env::set_var("NIMI_PROVIDER", "legacy-provider");
     std::env::set_var(
         "NIMI_E2E_BACKEND_LOG_PATH",
         fixture_dir.join("backend.log").as_os_str(),
@@ -303,6 +313,18 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     assert!(!pairs.iter().any(|(key, _)| key.starts_with("NIMI_REALM")));
     assert!(!pairs.iter().any(|(key, _)| key.contains("AUTH_SESSION")));
     assert!(!pairs.iter().any(|(key, _)| key.contains("ACCESS_TOKEN")));
+    for retired_route_key in [
+        "NIMI_LOCAL_PROVIDER_ENDPOINT",
+        "NIMI_LOCAL_PROVIDER_MODEL",
+        "NIMI_LOCAL_OPENAI_ENDPOINT",
+        "NIMI_CONNECTOR_ID",
+        "NIMI_PROVIDER",
+    ] {
+        assert!(
+            !pairs.iter().any(|(key, _)| *key == retired_route_key),
+            "Avatar handoff must not forward retired route env {retired_route_key}"
+        );
+    }
     let _ = fs::remove_dir_all(fixture_dir);
 }
 

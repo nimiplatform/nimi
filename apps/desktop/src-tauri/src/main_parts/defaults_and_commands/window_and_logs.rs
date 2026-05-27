@@ -191,24 +191,10 @@ fn avatar_runtime_env_pairs() -> Result<Vec<(&'static str, String)>, String> {
         .to_string();
     let mut pairs = vec![
         ("NIMI_DATA_ROOT", nimi_data_root),
-        (
-            "NIMI_LOCAL_PROVIDER_ENDPOINT",
-            defaults.runtime.local_provider_endpoint,
-        ),
-        (
-            "NIMI_LOCAL_PROVIDER_MODEL",
-            defaults.runtime.local_provider_model,
-        ),
-        (
-            "NIMI_LOCAL_OPENAI_ENDPOINT",
-            defaults.runtime.local_open_ai_endpoint,
-        ),
-        ("NIMI_CONNECTOR_ID", defaults.runtime.connector_id),
         ("NIMI_TARGET_TYPE", defaults.runtime.target_type),
         ("NIMI_TARGET_ACCOUNT_ID", defaults.runtime.target_account_id),
         ("NIMI_AGENT_ID", defaults.runtime.agent_id),
         ("NIMI_WORLD_ID", defaults.runtime.world_id),
-        ("NIMI_PROVIDER", defaults.runtime.provider),
         // Desktop may run with RELEASE bridge mode so it can host the bundled
         // product Runtime. Avatar is a separate first-party consumer of that
         // Runtime, so its handoff process must use the external Runtime bridge.

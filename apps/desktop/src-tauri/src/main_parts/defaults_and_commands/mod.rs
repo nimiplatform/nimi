@@ -140,15 +140,10 @@ pub(crate) fn runtime_defaults() -> Result<RuntimeDefaults, String> {
             jwt_audience: env_value("NIMI_REALM_JWT_AUDIENCE", "nimi-runtime"),
         },
         runtime: RuntimeExecutionDefaults {
-            local_provider_endpoint: env_value("NIMI_LOCAL_PROVIDER_ENDPOINT", ""),
-            local_provider_model: env_value("NIMI_LOCAL_PROVIDER_MODEL", ""),
-            local_open_ai_endpoint: env_value("NIMI_LOCAL_OPENAI_ENDPOINT", ""),
-            connector_id: env_value("NIMI_CONNECTOR_ID", ""),
             target_type: env_value("NIMI_TARGET_TYPE", ""),
             target_account_id: env_value("NIMI_TARGET_ACCOUNT_ID", ""),
             agent_id: env_value("NIMI_AGENT_ID", ""),
             world_id: env_value("NIMI_WORLD_ID", ""),
-            provider: env_value("NIMI_PROVIDER", ""),
             user_confirmed_upload: env_value("NIMI_USER_CONFIRMED_UPLOAD", "") == "1",
         },
     };

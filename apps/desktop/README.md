@@ -61,13 +61,12 @@ Environment variables:
 - `NIMI_SESSION_ID`
 - `NIMI_REQUEST_ID`
 - `NIMI_SESSION_ID`
-- `NIMI_CONNECTOR_ID` (optional connector ID for managed credential routing)
 
 Provider and model selection:
 
 - Local text readiness and sendability are resolved from the runtime authoritative local model list/status.
 - Host-side local snapshots are display-only; endpoint reachability alone is not route truth.
-- Managed cloud credentials and model selection use runtime connector routing via `NIMI_CONNECTOR_ID` or the Runtime Config connector UI.
+- Managed cloud credentials and model selection use Runtime connector routing via Runtime Config and SDK route projection, not `runtime_defaults` env fields.
 
 ## Scope
 

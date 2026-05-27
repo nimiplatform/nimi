@@ -13,15 +13,10 @@ const VALID_RUNTIME_DEFAULTS = {
     jwtAudience: 'nimi-runtime',
   },
   runtime: {
-    localProviderEndpoint: '',
-    localProviderModel: '',
-    localOpenAiEndpoint: '',
-    connectorId: '',
     targetType: '',
     targetAccountId: '',
     agentId: '',
     worldId: '',
-    provider: '',
     userConfirmedUpload: false,
   },
 };
@@ -30,8 +25,8 @@ describe('parseRuntimeDefaults', () => {
   it('accepts split payloads and empty local bindings', () => {
     const parsed = parseRuntimeDefaults(VALID_RUNTIME_DEFAULTS);
     expect(parsed.realm.revocationUrl).toBe('https://realm.example.com/api/auth/sessions/introspect');
-    expect(parsed.runtime.connectorId).toBe('');
-    expect(parsed.runtime.localProviderEndpoint).toBe('');
+    expect(parsed.runtime.targetType).toBe('');
+    expect(parsed.runtime.userConfirmedUpload).toBe(false);
   });
 
   it('fails closed on empty required realm fields', () => {

@@ -23,15 +23,10 @@ pub struct RealmDefaults {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeExecutionDefaults {
-    pub local_provider_endpoint: String,
-    pub local_provider_model: String,
-    pub local_open_ai_endpoint: String,
-    pub connector_id: String,
     pub target_type: String,
     pub target_account_id: String,
     pub agent_id: String,
     pub world_id: String,
-    pub provider: String,
     pub user_confirmed_upload: bool,
 }
 
@@ -77,16 +72,6 @@ fn resolve_realm_default_port(realm_base_url: &str) -> u16 {
         .ok()
         .and_then(|parsed| parsed.port_or_known_default())
         .unwrap_or(3002)
-}
-
-fn env_value_any(keys: &[&str], default: &str) -> String {
-    keys.iter()
-        .find_map(|key| {
-            std::env::var(key)
-                .ok()
-                .filter(|value| !value.trim().is_empty())
-        })
-        .unwrap_or_else(|| default.to_string())
 }
 
 #[tauri::command]
@@ -135,15 +120,10 @@ pub fn runtime_defaults() -> RuntimeDefaults {
             jwt_audience: env_value("NIMI_REALM_JWT_AUDIENCE", "nimi-runtime"),
         },
         runtime: RuntimeExecutionDefaults {
-            local_provider_endpoint: env_value("NIMI_LOCAL_PROVIDER_ENDPOINT", ""),
-            local_provider_model: env_value("NIMI_LOCAL_PROVIDER_MODEL", ""),
-            local_open_ai_endpoint: env_value("NIMI_LOCAL_OPENAI_ENDPOINT", ""),
-            connector_id: env_value_any(&["NIMI_CONNECTOR_ID", "NIMI_CREDENTIAL_REF_ID"], ""),
             target_type: env_value("NIMI_TARGET_TYPE", ""),
             target_account_id: env_value("NIMI_TARGET_ACCOUNT_ID", ""),
             agent_id: env_value("NIMI_AGENT_ID", ""),
             world_id: env_value("NIMI_WORLD_ID", ""),
-            provider: env_value("NIMI_PROVIDER", ""),
             user_confirmed_upload: env_value("NIMI_USER_CONFIRMED_UPLOAD", "") == "1",
         },
     }
@@ -229,15 +209,37 @@ mod tests {
     }
 
     #[test]
-    fn runtime_defaults_emit_connector_id_and_allow_legacy_env_fallback() {
+    fn runtime_defaults_do_not_emit_route_or_connector_defaults() {
         with_env_vars(
             &[
-                ("NIMI_CONNECTOR_ID", None),
+                (
+                    "NIMI_LOCAL_PROVIDER_ENDPOINT",
+                    Some("http://127.0.0.1:1234/v1"),
+                ),
+                ("NIMI_LOCAL_PROVIDER_MODEL", Some("legacy-model")),
+                (
+                    "NIMI_LOCAL_OPENAI_ENDPOINT",
+                    Some("http://localhost:1234/v1"),
+                ),
+                ("NIMI_CONNECTOR_ID", Some("connector-legacy")),
                 ("NIMI_CREDENTIAL_REF_ID", Some("legacy-ref")),
+                ("NIMI_PROVIDER", Some("legacy-provider")),
             ],
             || {
                 let defaults = runtime_defaults();
-                assert_eq!(defaults.runtime.connector_id, "legacy-ref");
+                let runtime = serde_json::to_value(defaults.runtime).expect("runtime json");
+                for retired_key in [
+                    "localProviderEndpoint",
+                    "localProviderModel",
+                    "localOpenAiEndpoint",
+                    "connectorId",
+                    "provider",
+                ] {
+                    assert!(
+                        runtime.get(retired_key).is_none(),
+                        "runtime_defaults must not emit retired route field {retired_key}"
+                    );
+                }
             },
         );
     }

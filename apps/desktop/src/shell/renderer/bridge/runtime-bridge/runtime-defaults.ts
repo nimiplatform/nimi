@@ -100,15 +100,10 @@ function readRuntimeDefaultsFallback(): RuntimeDefaults {
     realmPort,
   );
   const jwtAudience = readEnv('NIMI_REALM_JWT_AUDIENCE') || 'nimi-runtime';
-  const localProviderEndpoint = readEnv('NIMI_LOCAL_PROVIDER_ENDPOINT');
-  const localProviderModel = readEnv('NIMI_LOCAL_PROVIDER_MODEL');
-  const localOpenAiEndpoint = readEnv('NIMI_LOCAL_OPENAI_ENDPOINT');
-  const connectorId = readEnv('NIMI_CONNECTOR_ID');
   const targetType = readEnv('NIMI_TARGET_TYPE');
   const targetAccountId = readEnv('NIMI_TARGET_ACCOUNT_ID');
   const agentId = readEnv('NIMI_AGENT_ID');
   const worldId = readEnv('NIMI_WORLD_ID');
-  const provider = readEnv('NIMI_PROVIDER');
   const userConfirmedUpload = readEnv('NIMI_USER_CONFIRMED_UPLOAD') === '1';
   return {
     realm: {
@@ -121,15 +116,10 @@ function readRuntimeDefaultsFallback(): RuntimeDefaults {
       jwtAudience,
     },
     runtime: {
-      localProviderEndpoint,
-      localProviderModel,
-      localOpenAiEndpoint,
-      connectorId,
       targetType,
       targetAccountId,
       agentId,
       worldId,
-      provider,
       userConfirmedUpload,
     },
   };

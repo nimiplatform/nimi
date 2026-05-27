@@ -27,7 +27,7 @@ fn normalize_origin_rejects_non_http_scheme() {
 }
 
 #[test]
-fn allowed_http_origins_contains_runtime_defaults() {
+fn allowed_http_origins_does_not_admit_retired_local_provider_env() {
     with_env(
         &[
             ("NIMI_REALM_URL", Some("https://gateway.nimi.ai/v1")),
@@ -44,8 +44,8 @@ fn allowed_http_origins_contains_runtime_defaults() {
         || {
             let origins = allowed_http_origins();
             assert!(origins.contains("https://gateway.nimi.ai:443"));
-            assert!(origins.contains("http://127.0.0.1:1234"));
-            assert!(origins.contains("http://localhost:1234"));
+            assert!(!origins.contains("http://127.0.0.1:1234"));
+            assert!(!origins.contains("http://localhost:1234"));
         },
     );
 }
@@ -71,15 +71,10 @@ fn allowed_http_origins_contains_e2e_fixture_runtime_defaults() {
                 "jwtAudience": "nimi-runtime"
               },
               "runtime": {
-                "localProviderEndpoint": "",
-                "localProviderModel": "",
-                "localOpenAiEndpoint": "",
-                "connectorId": "",
                 "targetType": "",
                 "targetAccountId": "",
                 "agentId": "agent-e2e-alpha",
                 "worldId": "world-e2e-1",
-                "provider": "",
                 "userConfirmedUpload": false
               }
             }

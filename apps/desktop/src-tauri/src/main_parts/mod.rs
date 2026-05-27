@@ -51,15 +51,10 @@ pub(crate) struct RealmDefaults {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct RuntimeExecutionDefaults {
-    pub(crate) local_provider_endpoint: String,
-    pub(crate) local_provider_model: String,
-    pub(crate) local_open_ai_endpoint: String,
-    pub(crate) connector_id: String,
     pub(crate) target_type: String,
     pub(crate) target_account_id: String,
     pub(crate) agent_id: String,
     pub(crate) world_id: String,
-    pub(crate) provider: String,
     pub(crate) user_confirmed_upload: bool,
 }
 

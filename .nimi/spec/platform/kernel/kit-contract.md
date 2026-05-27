@@ -70,7 +70,7 @@
 - Must remain renderer-agnostic: pure Rust host/bridge logic, no JS/TS runtime code.
 - Must not contain app-specific business logic, single-consumer menu bar logic,
   or realm/runtime typed API truth.
-- Shared `runtime_defaults` payload shape is owned here together with `shell/renderer`: canonical fields include `realmBaseUrl`, `jwksUrl`, `revocationUrl`, `jwtIssuer`, `jwtAudience`, and `connectorId`; retired `credentialRefId` must not remain emitted truth.
+- Shared `runtime_defaults` payload shape is owned here together with `shell/renderer`: canonical fields include `realmBaseUrl`, `jwksUrl`, `revocationUrl`, `jwtIssuer`, `jwtAudience`, and non-route target/upload hints. Provider, model, connector, and local endpoint route fields must not remain emitted truth; route selection is owned by the Runtime/SDK route projection.
 - Consumer Tauri apps that wire `nimi_shell_tauri::runtime_defaults` must not retain an app-local `src-tauri/src/defaults.rs` duplicate for the same payload shape.
 - D-IPC-* rules continue to govern IPC contract semantics; this module provides the shared implementation.
 - App identity and session prefix must be parameterized; no hardcoded app branding in shared code.

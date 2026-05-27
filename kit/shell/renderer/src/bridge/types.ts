@@ -13,15 +13,10 @@ export type RealmDefaults = {
 };
 
 export type RuntimeExecutionDefaults = {
-  localProviderEndpoint: string;
-  localProviderModel: string;
-  localOpenAiEndpoint: string;
-  connectorId: string;
   targetType: string;
   targetAccountId: string;
   agentId: string;
   worldId: string;
-  provider: string;
   userConfirmedUpload: boolean;
 };
 
@@ -85,15 +80,10 @@ export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
       jwtAudience: requiredStr(realmRecord.jwtAudience, 'realm.jwtAudience', 'runtime_defaults'),
     },
     runtime: {
-      localProviderEndpoint: str(runtimeRecord.localProviderEndpoint),
-      localProviderModel: str(runtimeRecord.localProviderModel),
-      localOpenAiEndpoint: str(runtimeRecord.localOpenAiEndpoint),
-      connectorId: str(runtimeRecord.connectorId),
       targetType: str(runtimeRecord.targetType),
       targetAccountId: str(runtimeRecord.targetAccountId),
       agentId: str(runtimeRecord.agentId),
       worldId: str(runtimeRecord.worldId),
-      provider: str(runtimeRecord.provider),
       userConfirmedUpload: Boolean(runtimeRecord.userConfirmedUpload),
     },
   };

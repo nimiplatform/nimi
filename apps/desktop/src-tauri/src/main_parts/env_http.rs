@@ -66,8 +66,6 @@ fn is_security_critical_dotenv_key(key: &str) -> bool {
             | "NIMI_REALM_JWKS_URL"
             | "NIMI_REALM_JWT_ISSUER"
             | "NIMI_REALM_JWT_AUDIENCE"
-            | "NIMI_LOCAL_PROVIDER_ENDPOINT"
-            | "NIMI_LOCAL_OPENAI_ENDPOINT"
             | "NIMI_EXTERNAL_AGENT_BIND"
             | "NIMI_EXTERNAL_AGENT_ISSUER"
             | "NIMI_DESKTOP_UPDATER_ENDPOINT"
@@ -120,8 +118,6 @@ pub(super) fn allowed_http_origins() -> HashSet<String> {
         "http://127.0.0.1".to_string(),
         "http://localhost:3002".to_string(),
         "http://127.0.0.1:3002".to_string(),
-        env_value("NIMI_LOCAL_PROVIDER_ENDPOINT", ""),
-        env_value("NIMI_LOCAL_OPENAI_ENDPOINT", ""),
     ];
     if let Ok(Some(defaults)) = crate::desktop_e2e_fixture::runtime_defaults_override() {
         candidates.push(defaults.realm.realm_base_url);

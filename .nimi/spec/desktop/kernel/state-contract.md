@@ -28,7 +28,7 @@ lifecycle projection，不得成为平行语义 owner。
 
 `createRuntimeSlice` 管理运行时执行字段：
 
-- `runtimeFields: RuntimeFieldMap`（provider、model 与可透传的 runtime execution context 字段）
+- `runtimeFields: RuntimeFieldMap`（Runtime/SDK route projection 与可透传的 non-authority execution context 字段）
 - `runtimeDefaults: RuntimeDefaults | null`
 
 初始 `RuntimeFieldMap`：
@@ -40,6 +40,7 @@ lifecycle projection，不得成为平行语义 owner。
 `RuntimeFieldMap` 必须保持 string-keyed extensible map 语义；Desktop 可以预置核心字段，但不得将额外 runtime field key 视为非法。Desktop core 不得预置 Agent chat launcher 语义。
 
 `runtimeFields` 的 route-related 字段在 `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）下只允许作为 execution projection / transient input；不得继续承担 selection truth、projection truth 或 thread-global route owner 语义。
+这些 route-related 字段不得从 `runtime_defaults`、renderer env fallback、或 Desktop-owned provider/model defaults 派生。
 
 若 Desktop 持久化 Agent chat settings，仅允许持久化
 `agent-chat-behavior-contract.md`（`D-LLM-023`）定义的

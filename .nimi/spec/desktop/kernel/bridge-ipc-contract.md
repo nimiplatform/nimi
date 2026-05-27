@@ -13,7 +13,9 @@ Desktop Tauri IPC 桥接契约。定义 renderer 进程通过 `@tauri-apps/api/c
 
 `runtime_defaults` 命令返回 `RuntimeDefaults`，包含：
 - `realm: RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、revocationUrl、jwtIssuer、jwtAudience）
-- `runtime: RuntimeExecutionDefaults`（provider、model 与可透传的 runtime execution 字段）
+- `runtime: RuntimeExecutionDefaults`（targetType、targetAccountId、agentId、worldId、userConfirmedUpload 等非路由 bootstrap hints）
+
+`runtime_defaults` 不得继续承载 provider、model、connector、local provider endpoint、OpenAI-compatible endpoint 或 credential ref truth。Chat / Runtime Config 的 route selection、readiness 与 connector binding 只能来自 Runtime/SDK route projection 或 connector projection。
 
 所有字段通过 `parseRuntimeDefaults` 防御性解析。
 
