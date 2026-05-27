@@ -10,6 +10,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 
 const CHAT_ROOT = path.join(repoRoot, 'apps/desktop/src/shell/renderer/features/chat');
 const PROVIDERS_ROOT = path.join(repoRoot, 'apps/desktop/src/shell/renderer/app-shell/providers');
+const RUNTIME_BRIDGE_ROOT = path.join(repoRoot, 'apps/desktop/src/shell/renderer/bridge/runtime-bridge');
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx']);
 const ALLOWED_CHAT_STORAGE_FILE = path.join(CHAT_ROOT, 'chat-settings-storage.ts');
 const ALLOWED_AGENT_CHAT_MEDIA_INPUT_FILES = new Set([
@@ -161,6 +162,13 @@ const BANNED_AGENT_CHAT_EXECUTION_PATTERNS = [
   },
 ];
 
+const BANNED_AGENT_CHAT_LOCAL_MEMORY_PATTERNS = [
+  {
+    label: 'desktop-owned agent chat relation/recall memory bridge',
+    regex: /\b(?:relationMemorySlots|recallEntries|loadDesktopAgentRuntimeMemoryContext|AgentLocalRelationMemory|AgentLocalRecall|parseAgentLocalRelation|parseAgentLocalRecall)\b/gu,
+  },
+];
+
 function toRepoRelative(filePath) {
   return path.relative(repoRoot, filePath).replaceAll(path.sep, '/');
 }
@@ -237,6 +245,13 @@ function collectAgentChatProjectionViolations(filePath, source, relPath, chatRoo
   ];
 }
 
+function collectAgentChatLocalMemoryViolations(filePath, source, relPath, roots) {
+  if (!filePath.startsWith(roots.CHAT_ROOT) && !filePath.startsWith(roots.RUNTIME_BRIDGE_ROOT)) {
+    return [];
+  }
+  return collectPatternViolations(source, relPath, BANNED_AGENT_CHAT_LOCAL_MEMORY_PATTERNS);
+}
+
 function isBuiltInChatScopeLivePathFile(filePath, chatRoot) {
   return BUILTIN_CHAT_SCOPE_LIVE_PATH.some(
     (name) => filePath === path.join(chatRoot, name),
@@ -247,6 +262,7 @@ async function collectViolations() {
   const files = [
     ...await collectSourceFiles(CHAT_ROOT),
     ...await collectSourceFiles(PROVIDERS_ROOT),
+    ...await collectSourceFiles(RUNTIME_BRIDGE_ROOT),
   ];
   const violations = [];
 
@@ -256,6 +272,10 @@ async function collectViolations() {
 
     violations.push(...collectPatternViolations(source, relPath, BANNED_IDENTIFIER_PATTERNS));
     violations.push(...collectAgentChatProjectionViolations(filePath, source, relPath, CHAT_ROOT));
+    violations.push(...collectAgentChatLocalMemoryViolations(filePath, source, relPath, {
+      CHAT_ROOT,
+      RUNTIME_BRIDGE_ROOT,
+    }));
 
     if (isBuiltInChatScopeLivePathFile(filePath, CHAT_ROOT)) {
       violations.push(
@@ -289,8 +309,10 @@ async function runSelfTest() {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'nimi-chat-authority-'));
   const chatRoot = path.join(tempRoot, 'apps/desktop/src/shell/renderer/features/chat');
   const providersRoot = path.join(tempRoot, 'apps/desktop/src/shell/renderer/app-shell/providers');
+  const runtimeBridgeRoot = path.join(tempRoot, 'apps/desktop/src/shell/renderer/bridge/runtime-bridge');
   await fs.mkdir(chatRoot, { recursive: true });
   await fs.mkdir(providersRoot, { recursive: true });
+  await fs.mkdir(runtimeBridgeRoot, { recursive: true });
 
   const originalChatRoot = CHAT_ROOT;
   const originalProvidersRoot = PROVIDERS_ROOT;
@@ -345,10 +367,16 @@ async function runSelfTest() {
         + "const generic = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };\n",
       'utf8',
     );
+    await fs.writeFile(
+      path.join(runtimeBridgeRoot, 'bad-agent-memory.ts'),
+      "export const relationMemorySlots = [];\n",
+      'utf8',
+    );
 
     globalThis.__NIMI_CHAT_AUTHORITY_TEST_ROOTS__ = {
       CHAT_ROOT: chatRoot,
       PROVIDERS_ROOT: providersRoot,
+      RUNTIME_BRIDGE_ROOT: runtimeBridgeRoot,
       ALLOWED_CHAT_STORAGE_FILE: path.join(chatRoot, 'chat-settings-storage.ts'),
       repoRoot: tempRoot,
     };
@@ -360,6 +388,7 @@ async function runSelfTest() {
       || !joined.includes('desktop agent chat executeScenario path')
       || !joined.includes('desktop agent chat output media execution path')
       || !joined.includes('desktop-owned agent chat behavior resolver file')
+      || !joined.includes('desktop-owned agent chat relation/recall memory bridge')
     ) {
       throw new Error('self-test failed: expected violations were not detected');
     }
@@ -381,6 +410,7 @@ function getRoots() {
   return {
     CHAT_ROOT,
     PROVIDERS_ROOT,
+    RUNTIME_BRIDGE_ROOT,
     ALLOWED_CHAT_STORAGE_FILE,
     repoRoot,
   };
@@ -391,6 +421,7 @@ async function collectViolationsWithOverrides() {
   const files = [
     ...await collectSourceFiles(roots.CHAT_ROOT),
     ...await collectSourceFiles(roots.PROVIDERS_ROOT),
+    ...await collectSourceFiles(roots.RUNTIME_BRIDGE_ROOT),
   ];
   const violations = [];
 
@@ -399,6 +430,7 @@ async function collectViolationsWithOverrides() {
     const source = await fs.readFile(filePath, 'utf8');
     violations.push(...collectPatternViolations(source, relPath, BANNED_IDENTIFIER_PATTERNS));
     violations.push(...collectAgentChatProjectionViolations(filePath, source, relPath, roots.CHAT_ROOT));
+    violations.push(...collectAgentChatLocalMemoryViolations(filePath, source, relPath, roots));
 
     if (isBuiltInChatScopeLivePathFile(filePath, roots.CHAT_ROOT)) {
       violations.push(
