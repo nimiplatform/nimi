@@ -286,22 +286,29 @@ export function CloudPage({ model, state }: CloudPageProps) {
     if (!selectedConnector || !selectedConnectorId || !isCodexManagedConnector) {
       return;
     }
+    const profileId = String(selectedConnector.providerAuthProfile || '').trim();
+    if (!profileId) {
+      setTokenSaveError('Managed OAuth connector is missing provider auth profile.');
+      return;
+    }
     setCodexOAuthBusy(true);
     setTokenSaveError('');
     setTokenSavedConnectorId('');
     try {
       const acquired = await acquireCodexManagedCredential({
+        profileId,
         onPending: (pending) => {
           setCodexOAuthPending(pending);
         },
-      });
-      const persistedConnectorId = await onSaveConnectorCredential({
-        credentialValue: acquired.accessToken,
-        credentialJson: acquired.credentialJson,
+        persistCredential: async (credential) => ({
+          connectorId: await onSaveConnectorCredential({
+            credentialJson: credential.credentialJson,
+          }),
+        }),
       });
       setTokenDraft('');
       setCodexOAuthPending(null);
-      setTokenSavedConnectorId(persistedConnectorId || selectedConnectorId);
+      setTokenSavedConnectorId(acquired.connectorId || selectedConnectorId);
     } catch (error) {
       setTokenSaveError(error instanceof Error ? error.message : String(error || 'Codex sign-in failed'));
     } finally {

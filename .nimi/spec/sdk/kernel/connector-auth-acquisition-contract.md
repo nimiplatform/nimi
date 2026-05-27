@@ -36,11 +36,14 @@ OAuth acquisition constants 的唯一 SDK-side source 是
 该表只允许承载 acquisition metadata：
 
 - `profile_id`
+- `provider_auth_profile`
 - `issuer`
 - `client_id`
 - `device_authorization_url`
 - `device_token_url`
 - `redirect_uri`
+- `fallback_verification_url`
+- `token_exchange_provider`
 - `default_poll_interval_seconds`
 - `min_poll_interval_seconds`
 - `default_expires_in_seconds`
@@ -48,6 +51,9 @@ OAuth acquisition constants 的唯一 SDK-side source 是
 该表不得承载 sealed credential payload schema、refresh-token semantics、
 provider execution header derivation、connector status truth、model/catalog truth、
 或 Runtime-owned credential validation truth。
+`token_exchange_provider` 只用于 host-injected authorization-code exchange adapter
+routing；它不得被解释为 Runtime execution provider、model/catalog owner、或 header
+derivation truth。
 
 ## S-RUNTIME-122 Refresh / Rotation Deferral
 

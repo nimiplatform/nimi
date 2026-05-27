@@ -37,6 +37,23 @@ export {
   type ConnectorAuthProfileSpec,
 } from './connector-auth-profiles.generated.js';
 export {
+  acquireManagedConnectorCredential,
+  type AcquireManagedConnectorCredentialOptions,
+  type ConnectorAuthAcquisitionHost,
+  type ConnectorAuthAcquisitionHttpRequest,
+  type ConnectorAuthAcquisitionHttpResponse,
+  type ConnectorAuthAcquisitionPendingState,
+  type ConnectorAuthAcquisitionTokenExchangeInput,
+  type ConnectorAuthAcquisitionTokenExchangeResult,
+  type ManagedConnectorCredentialAcquisitionResult,
+  type PersistManagedConnectorCredentialInput,
+  type PersistManagedConnectorCredentialResult,
+} from './connector-auth-acquisition.js';
+export {
+  CONNECTOR_AUTH_ACQUISITION_PROFILES,
+  type ConnectorAuthAcquisitionProfileSpec,
+} from './connector-auth-acquisition-profiles.generated.js';
+export {
   RUNTIME_BRIDGE_CONFIG_DEFAULTS,
   type RuntimeBridgeConfigDefaults,
 } from './runtime-config-defaults.js';
