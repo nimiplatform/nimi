@@ -213,7 +213,7 @@ export type RuntimeRouteExecutionCallTarget = {
   routePolicy: 1 | 2;
   modelId: string;
   provider: string;
-  adapter: LocalProviderAdapter | 'openai_compat_adapter';
+  adapter: LocalProviderAdapter;
   endpoint: string;
   connectorId?: string;
   localModelId?: string;
