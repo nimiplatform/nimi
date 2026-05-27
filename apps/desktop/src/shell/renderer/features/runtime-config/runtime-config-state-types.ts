@@ -44,7 +44,7 @@ export type ApiConnectorAuthModeV11 = 'api_key' | 'oauth_managed';
 
 export type LocalModelOptionV11 = {
   localModelId: string;
-  engine: 'llama' | 'media' | 'speech' | 'sidecar' | string;
+  engine: string;
   model: string;
   endpoint: string;
   capabilities: CapabilityV11[];
@@ -81,7 +81,7 @@ export type LocalNodeMatrixEntryV11 = {
   nodeId: string;
   capability: NodeCapabilityV11;
   serviceId: string;
-  provider: 'llama' | 'media' | 'speech' | 'sidecar' | string;
+  provider: string;
   adapter?: LocalProviderAdapterId;
   backend?: string;
   backendSource?: string;
