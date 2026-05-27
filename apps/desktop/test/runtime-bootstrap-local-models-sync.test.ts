@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { RUNTIME_BRIDGE_CONFIG_DEFAULTS } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeBridgeDaemonStatus } from '../src/shell/renderer/bridge/runtime-bridge/types';
 import type { DesktopStorageDirs } from '../src/shell/renderer/bridge/runtime-bridge/desktop-storage';
@@ -15,7 +16,7 @@ function createDaemonStatus(overrides: Partial<RuntimeBridgeDaemonStatus> = {}):
     running: true,
     managed: true,
     launchMode: 'RUNTIME',
-    grpcAddr: '127.0.0.1:46371',
+    grpcAddr: RUNTIME_BRIDGE_CONFIG_DEFAULTS.grpcAddr,
     ...overrides,
   };
 }

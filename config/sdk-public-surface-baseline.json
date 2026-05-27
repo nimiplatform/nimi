@@ -156,6 +156,7 @@
         "export { ModelCatalogProviderSource, CatalogModelSource, ConnectorAuthKind, ConnectorKind, ConnectorOwnerType, ConnectorStatus, } from './generated/runtime/v1/connector.js';",
         "export { ModelHealthStatus, ModelStatus} from './generated/runtime/v1/model.js';",
         "export { PolicyMode, AuthorizationPreset as RuntimeAuthorizationPreset} from './generated/runtime/v1/grant.js';",
+        "export { RUNTIME_BRIDGE_CONFIG_DEFAULTS, type RuntimeBridgeConfigDefaults, } from './runtime-config-defaults.js';",
         "export { RealmGroupMessageCandidateCommitDisposition} from './generated/runtime/v1/agent_group_message_candidate.js';",
         "export { ReasonCode as RuntimeReasonCode, ExternalPrincipalType} from './generated/runtime/v1/common.js';",
         "export { ResolveProfileRequest, ResolveProfileResponse, } from './generated/runtime/v1/local_runtime.js';",

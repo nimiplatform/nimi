@@ -3,6 +3,7 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import { RUNTIME_BRIDGE_CONFIG_DEFAULTS } from '@nimiplatform/sdk/runtime';
 import type { RuntimeBridgeDaemonStatus } from '../src/shell/renderer/bridge/runtime-bridge/types';
 import { describeRuntimeDaemonIssue } from '../src/shell/renderer/features/runtime-config/runtime-daemon-guidance';
 
@@ -11,7 +12,7 @@ function createDaemonStatus(input: Partial<RuntimeBridgeDaemonStatus>): RuntimeB
     running: false,
     managed: false,
     launchMode: 'RELEASE',
-    grpcAddr: '127.0.0.1:46371',
+    grpcAddr: RUNTIME_BRIDGE_CONFIG_DEFAULTS.grpcAddr,
     ...input,
   };
 }

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { RUNTIME_BRIDGE_CONFIG_DEFAULTS } from '@nimiplatform/sdk/runtime';
 
 import {
   applyRuntimeBridgeConfigToState,
@@ -78,9 +79,9 @@ test('buildRuntimeBridgeConfigFromState emits schema defaults and llama engine l
   state.local.endpoint = 'http://127.0.0.1:11434/v1';
 
   const config = buildRuntimeBridgeConfigFromState(state, {});
-  assert.equal(config.schemaVersion, 1);
-  assert.equal(config.grpcAddr, '127.0.0.1:46371');
-  assert.equal(config.httpAddr, '127.0.0.1:46372');
+  assert.equal(config.schemaVersion, RUNTIME_BRIDGE_CONFIG_DEFAULTS.schemaVersion);
+  assert.equal(config.grpcAddr, RUNTIME_BRIDGE_CONFIG_DEFAULTS.grpcAddr);
+  assert.equal(config.httpAddr, RUNTIME_BRIDGE_CONFIG_DEFAULTS.httpAddr);
 
   const engines = asRecord(config.engines);
   const llama = asRecord(engines.llama);

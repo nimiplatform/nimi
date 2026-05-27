@@ -1,3 +1,4 @@
+import { RUNTIME_BRIDGE_CONFIG_DEFAULTS } from '@nimiplatform/sdk/runtime';
 import { hasTauriInvoke } from './env';
 import { invokeChecked } from './invoke';
 import {
@@ -14,7 +15,7 @@ function tauriUnavailableStatus(): RuntimeBridgeDaemonStatus {
     running: false,
     managed: false,
     launchMode: 'INVALID',
-    grpcAddr: '127.0.0.1:46371',
+    grpcAddr: RUNTIME_BRIDGE_CONFIG_DEFAULTS.grpcAddr,
     lastError: 'TAURI_RUNTIME_UNAVAILABLE',
   };
 }

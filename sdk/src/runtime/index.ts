@@ -36,6 +36,10 @@ export {
   CONNECTOR_AUTH_PROFILES,
   type ConnectorAuthProfileSpec,
 } from './connector-auth-profiles.generated.js';
+export {
+  RUNTIME_BRIDGE_CONFIG_DEFAULTS,
+  type RuntimeBridgeConfigDefaults,
+} from './runtime-config-defaults.js';
 export type {
   CatalogModelDetail,
   CatalogModelInput,

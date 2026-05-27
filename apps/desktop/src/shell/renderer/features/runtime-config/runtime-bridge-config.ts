@@ -3,13 +3,8 @@ import {
   normalizeEndpointV11,
   type RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import { RUNTIME_BRIDGE_CONFIG_DEFAULTS } from '@nimiplatform/sdk/runtime';
 import type { JsonObject } from '@runtime/net/json';
-
-const DEFAULT_RUNTIME_CONFIG = {
-  schemaVersion: 1,
-  grpcAddr: '127.0.0.1:46371',
-  httpAddr: '127.0.0.1:46372',
-} as const;
 
 function asRecord(value: unknown): JsonObject {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonObject : {};
@@ -83,9 +78,9 @@ export function buildRuntimeBridgeConfigFromState(
   baseConfigRaw: JsonObject,
 ): JsonObject {
   const configRecord = asRecord(JSON.parse(JSON.stringify(baseConfigRaw)));
-  configRecord.schemaVersion = DEFAULT_RUNTIME_CONFIG.schemaVersion;
-  configRecord.grpcAddr = readString(configRecord.grpcAddr as string) || DEFAULT_RUNTIME_CONFIG.grpcAddr;
-  configRecord.httpAddr = readString(configRecord.httpAddr as string) || DEFAULT_RUNTIME_CONFIG.httpAddr;
+  configRecord.schemaVersion = RUNTIME_BRIDGE_CONFIG_DEFAULTS.schemaVersion;
+  configRecord.grpcAddr = readString(configRecord.grpcAddr as string) || RUNTIME_BRIDGE_CONFIG_DEFAULTS.grpcAddr;
+  configRecord.httpAddr = readString(configRecord.httpAddr as string) || RUNTIME_BRIDGE_CONFIG_DEFAULTS.httpAddr;
 
   const localEndpoint = normalizeEndpointV11(state.local.endpoint, DEFAULT_LOCAL_ENDPOINT_V11);
 

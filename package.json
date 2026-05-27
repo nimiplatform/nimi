@@ -48,6 +48,7 @@
     "check:runtime-import-boundary": "node scripts/check-runtime-import-boundary.mjs",
     "check:runtime-bridge-method-drift": "node scripts/generate-runtime-bridge-methods.mjs --check",
     "check:runtime-catalog-drift": "node scripts/check-runtime-catalog-drift.mjs",
+    "check:runtime-config-defaults-drift": "node scripts/check-runtime-config-defaults-drift.mjs",
     "check:platform-catalog-drift": "node scripts/check-platform-catalog-drift.mjs",
     "check:runtime-selection-freshness": "node scripts/check-runtime-selection-freshness.mjs",
     "check:runtime-provider-capability-token-canonicalization": "node scripts/check-runtime-provider-capability-token-canonicalization.mjs",
