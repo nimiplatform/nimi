@@ -168,6 +168,7 @@
         "export { WorkflowStatus, WorkflowEventType, WorkflowExecutionMode} from './generated/runtime/v1/workflow.js';",
         "export { acquireManagedConnectorCredential, type AcquireManagedConnectorCredentialOptions, type ConnectorAuthAcquisitionHost, type ConnectorAuthAcquisitionHttpRequest, type ConnectorAuthAcquisitionHttpResponse, type ConnectorAuthAcquisitionPendingState, type ConnectorAuthAcquisitionTokenExchangeInput, type ConnectorAuthAcquisitionTokenExchangeResult, type ManagedConnectorCredentialAcquisitionResult, type PersistManagedConnectorCredentialInput, type PersistManagedConnectorCredentialResult, } from './connector-auth-acquisition.js';",
         "export { buildMusicIterationExtensions, buildLocalProfileExtensions, } from './runtime-media.js';",
+        "export { buildRuntimeBridgeConfigWithLocalEndpoint, buildRuntimeBridgeLoopbackEndpoint, extractRuntimeBridgeEndpointPort, normalizeRuntimeBridgeEndpoint, projectRuntimeBridgeLocalEndpoint, serializeRuntimeBridgeLocalEndpointProjection, type RuntimeBridgeConfigJson, } from './runtime-bridge-config-projection.js';",
         "export { createNodeGrpcTransport, setNodeGrpcBridge, type NodeGrpcBridge} from './transports/node-grpc.js';",
         "export { createRuntimeClient} from './core/client.js';",
         "export { createRuntimeProtectedScopeHelper} from './protected-access.js';",

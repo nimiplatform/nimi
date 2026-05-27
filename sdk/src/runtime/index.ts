@@ -57,6 +57,15 @@ export {
   RUNTIME_BRIDGE_CONFIG_DEFAULTS,
   type RuntimeBridgeConfigDefaults,
 } from './runtime-config-defaults.js';
+export {
+  buildRuntimeBridgeConfigWithLocalEndpoint,
+  buildRuntimeBridgeLoopbackEndpoint,
+  extractRuntimeBridgeEndpointPort,
+  normalizeRuntimeBridgeEndpoint,
+  projectRuntimeBridgeLocalEndpoint,
+  serializeRuntimeBridgeLocalEndpointProjection,
+  type RuntimeBridgeConfigJson,
+} from './runtime-bridge-config-projection.js';
 export type {
   CatalogModelDetail,
   CatalogModelInput,

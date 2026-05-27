@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
-import { RUNTIME_BRIDGE_CONFIG_DEFAULTS } from '@nimiplatform/sdk/runtime';
+import {
+  buildRuntimeBridgeConfigWithLocalEndpoint,
+  serializeRuntimeBridgeLocalEndpointProjection,
+} from '@nimiplatform/sdk/runtime';
 
 import {
   applyRuntimeBridgeConfigToState,
@@ -11,10 +16,10 @@ import { createDefaultStateV11 } from '../src/shell/renderer/features/runtime-co
 import { createConnectorV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types';
 import type { RuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types';
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
+const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
+
+function readRepoFile(relativePath: string): string {
+  return readFileSync(path.join(repoRoot, relativePath), 'utf8');
 }
 
 function createBaseState(): RuntimeConfigStateV11 {
@@ -70,19 +75,13 @@ test('applyRuntimeBridgeConfigToState does not manage connectors — they come f
   assert.equal(next.connectors[0]?.id, existingConnector.id);
 });
 
-test('buildRuntimeBridgeConfigFromState emits schema defaults and llama engine loopback config', () => {
+test('buildRuntimeBridgeConfigFromState delegates Runtime config schema projection to SDK', () => {
   const state = createBaseState();
   state.local.endpoint = 'http://127.0.0.1:11434/v1';
+  const baseConfig = {};
 
-  const config = buildRuntimeBridgeConfigFromState(state, {});
-  assert.equal(config.schemaVersion, RUNTIME_BRIDGE_CONFIG_DEFAULTS.schemaVersion);
-  assert.equal(config.grpcAddr, RUNTIME_BRIDGE_CONFIG_DEFAULTS.grpcAddr);
-  assert.equal(config.httpAddr, RUNTIME_BRIDGE_CONFIG_DEFAULTS.httpAddr);
-
-  const engines = asRecord(config.engines);
-  const llama = asRecord(engines.llama);
-  assert.equal(llama.enabled, true);
-  assert.equal(llama.port, 11434);
+  const config = buildRuntimeBridgeConfigFromState(state, baseConfig);
+  assert.deepEqual(config, buildRuntimeBridgeConfigWithLocalEndpoint(baseConfig, state.local.endpoint));
 });
 
 test('buildRuntimeBridgeConfigFromState preserves existing non-local provider entries', () => {
@@ -104,13 +103,20 @@ test('buildRuntimeBridgeConfigFromState preserves existing non-local provider en
     },
   });
 
-  const providers = asRecord(config.providers);
-  const gemini = asRecord(providers.gemini);
-  assert.equal(gemini.baseUrl, 'https://generativelanguage.googleapis.com/v1beta/openai');
-  assert.equal(gemini.apiKeyEnv, 'NIMI_RUNTIME_CLOUD_GEMINI_API_KEY');
-  const engines = asRecord(config.engines);
-  const media = asRecord(engines.media);
-  assert.equal(media.port, 8321);
+  assert.deepEqual(config, buildRuntimeBridgeConfigWithLocalEndpoint({
+    engines: {
+      media: {
+        enabled: true,
+        port: 8321,
+      },
+    },
+    providers: {
+      gemini: {
+        baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+        apiKeyEnv: 'NIMI_RUNTIME_CLOUD_GEMINI_API_KEY',
+      },
+    },
+  }, state.local.endpoint));
 });
 
 test('serializeRuntimeBridgeProjection ignores status-only runtime state changes', () => {
@@ -158,4 +164,19 @@ test('serializeRuntimeBridgeProjection detects local endpoint changes', () => {
 
   const second = serializeRuntimeBridgeProjection(changed);
   assert.notEqual(first, second);
+});
+
+test('runtime bridge config wrapper does not own Runtime config schema details', () => {
+  const source = readRepoFile('apps/desktop/src/shell/renderer/features/runtime-config/runtime-bridge-config.ts');
+
+  assert.doesNotMatch(source, /schemaVersion|grpcAddr|httpAddr/);
+  assert.doesNotMatch(source, /engines\.llama|providers\.local/);
+  assert.doesNotMatch(source, /function readNumber|function readBoolean|new URL\(/);
+
+  const state = createBaseState();
+  state.local.endpoint = 'http://127.0.0.1:11434/v1/';
+  assert.equal(
+    serializeRuntimeBridgeProjection(state),
+    serializeRuntimeBridgeLocalEndpointProjection(state.local.endpoint),
+  );
 });
