@@ -20,13 +20,10 @@ type ConnectorDescriptor = {
 const LOCAL_SNAPSHOT_TIMEOUT_MS = 3500;
 
 async function fetchLocalRouteSnapshot(): Promise<LocalRuntimeSnapshot> {
-    const [assets, health] = await Promise.all([
-        localRuntime.listAssets(),
-        localRuntime.health(),
-    ]);
+    const assets = await localRuntime.listAssets();
     return {
         assets,
-        health,
+        health: [],
         generatedAt: new Date().toISOString(),
     };
 }

@@ -277,6 +277,7 @@ test('runtime route options bootstrap does not own projection heuristics or endp
   assert.doesNotMatch(source, /\binferLocalEngine\b/);
   assert.doesNotMatch(source, /\bproviderDefaultRank\b/);
   assert.doesNotMatch(source, /\bsyncLookup\b/);
+  assert.doesNotMatch(source, /localRuntime\.health\(/);
   assert.doesNotMatch(source, /runtimeFields\.localProviderEndpoint/);
   assert.doesNotMatch(source, /runtimeFields\.localOpenAiEndpoint/);
 });
