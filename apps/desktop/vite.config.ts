@@ -413,9 +413,6 @@ export default defineConfig(({ mode }) => {
               ])) {
                 return 'runtime-config-knowledge';
               }
-              if (normalizedId.includes('/runtime-config-page-mods')) {
-                return 'runtime-config-mods';
-              }
               if (matchesAny(normalizedId, [
                 '/runtime-config-page-catalog',
                 '/runtime-config-catalog-',
