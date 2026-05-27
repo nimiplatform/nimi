@@ -5,15 +5,10 @@ import type {
   LocalRuntimeInferenceAuditPayload,
   LocalRuntimeNodeDescriptor,
   LocalRuntimeNodesCatalogListPayload,
-  LocalRuntimeServiceDescriptor,
-  LocalRuntimeServicesInstallPayload,
-  LocalRuntimeWriteOptions,
 } from './types';
 import {
-  assertLifecycleWriteAllowed,
   parseAuditEvent,
   parseNodeDescriptor,
-  parseServiceDescriptor,
 } from './parsers';
 import { asRecord, requireSdkLocal } from './commands-shared';
 
@@ -48,69 +43,6 @@ function jsonToProtoValue(value: unknown): ProtoValue {
   if (typeof value === 'boolean') return { kind: { oneofKind: 'boolValue', boolValue: value } };
   if (typeof value === 'string') return { kind: { oneofKind: 'stringValue', stringValue: value } };
   return { kind: { oneofKind: 'structValue', structValue: jsonToProtoStruct(value as Record<string, unknown>) } };
-}
-
-export async function listLocalRuntimeServices(): Promise<LocalRuntimeServiceDescriptor[]> {
-  const runtime = requireSdkLocal();
-  const response = await runtime.listLocalServices({ statusFilter: 0, pageSize: 0, pageToken: '' });
-  const raw = asRecord(response);
-  const services: unknown[] = Array.isArray(raw.services) ? raw.services : [];
-  return services.map((item) => parseServiceDescriptor(item));
-}
-
-export async function installLocalRuntimeService(
-  payload: LocalRuntimeServicesInstallPayload,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeServiceDescriptor> {
-  assertLifecycleWriteAllowed('local_runtime_services_install', options?.caller);
-  const runtime = requireSdkLocal();
-  const result = await runtime.installLocalService({
-    serviceId: String(payload.serviceId || '').trim(),
-    title: String(payload.title || '').trim(),
-    engine: String(payload.engine || '').trim(),
-    endpoint: String(payload.endpoint || '').trim(),
-    capabilities: Array.isArray(payload.capabilities) ? payload.capabilities : [],
-    localModelId: String(payload.localAssetId || '').trim(),
-  });
-  return parseServiceDescriptor(asRecord(result).service);
-}
-
-export async function startLocalRuntimeService(
-  serviceId: string,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeServiceDescriptor> {
-  assertLifecycleWriteAllowed('local_runtime_services_start', options?.caller);
-  const runtime = requireSdkLocal();
-  const result = await runtime.startLocalService({ serviceId: String(serviceId || '').trim() });
-  return parseServiceDescriptor(asRecord(result).service);
-}
-
-export async function stopLocalRuntimeService(
-  serviceId: string,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeServiceDescriptor> {
-  assertLifecycleWriteAllowed('local_runtime_services_stop', options?.caller);
-  const runtime = requireSdkLocal();
-  const result = await runtime.stopLocalService({ serviceId: String(serviceId || '').trim() });
-  return parseServiceDescriptor(asRecord(result).service);
-}
-
-export async function healthLocalRuntimeServices(serviceId?: string): Promise<LocalRuntimeServiceDescriptor[]> {
-  const runtime = requireSdkLocal();
-  const response = await runtime.checkLocalServiceHealth({ serviceId: String(serviceId || '').trim() });
-  const raw = asRecord(response);
-  const services: unknown[] = Array.isArray(raw.services) ? raw.services : [];
-  return services.map((item) => parseServiceDescriptor(item));
-}
-
-export async function removeLocalRuntimeService(
-  serviceId: string,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeServiceDescriptor> {
-  assertLifecycleWriteAllowed('local_runtime_services_remove', options?.caller);
-  const runtime = requireSdkLocal();
-  const result = await runtime.removeLocalService({ serviceId: String(serviceId || '').trim() });
-  return parseServiceDescriptor(asRecord(result).service);
 }
 
 export async function listLocalRuntimeNodesCatalog(

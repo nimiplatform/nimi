@@ -95,3 +95,13 @@ test('local runtime facade exposes SDK-backed local environment projection metho
   assert.match(localRuntimeCommandsSource, /runtime\.repairLocalEnvironmentDependency/);
   assert.doesNotMatch(localRuntimeCommandsSource, /runtime\.startLocalRuntimeDependencySetup/);
 });
+
+test('local runtime facade does not expose unmounted local service lifecycle controls', () => {
+  assert.doesNotMatch(localRuntimeFacadeSource, /\blistServices:/);
+  assert.doesNotMatch(localRuntimeFacadeSource, /\binstallService:/);
+  assert.doesNotMatch(localRuntimeFacadeSource, /\bstartService:/);
+  assert.doesNotMatch(localRuntimeFacadeSource, /\bstopService:/);
+  assert.doesNotMatch(localRuntimeFacadeSource, /\bhealthServices:/);
+  assert.doesNotMatch(localRuntimeFacadeSource, /\bremoveService:/);
+  assert.match(localRuntimeFacadeSource, /listNodesCatalog:\s*listLocalRuntimeNodesCatalog/);
+});

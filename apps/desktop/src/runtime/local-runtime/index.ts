@@ -30,12 +30,6 @@ import {
   collectLocalRuntimeDeviceProfile,
   getLocalRuntimeRecommendationFeed,
   applyLocalRuntimeProfile,
-  listLocalRuntimeServices,
-  installLocalRuntimeService,
-  startLocalRuntimeService,
-  stopLocalRuntimeService,
-  healthLocalRuntimeServices,
-  removeLocalRuntimeService,
   listLocalRuntimeNodesCatalog,
   listLocalRuntimeAssets,
   listLocalRuntimeVerifiedAssets,
@@ -93,7 +87,6 @@ import type {
   LocalRuntimeProviderAdapter,
   LocalRuntimeProviderHints,
   LocalRuntimeServiceDescriptor,
-  LocalRuntimeServicesInstallPayload,
   LocalRuntimeNodeDescriptor,
   LocalRuntimeExecutionEntryDescriptor,
   LocalRuntimeExecutionPlan,
@@ -179,7 +172,6 @@ export type {
   LocalRuntimeProviderAdapter,
   LocalRuntimeProviderHints,
   LocalRuntimeServiceDescriptor,
-  LocalRuntimeServicesInstallPayload,
   LocalRuntimeNodeDescriptor,
   LocalRuntimeExecutionEntryDescriptor,
   LocalRuntimeExecutionPlan,
@@ -230,24 +222,6 @@ export type LocalRuntimeFacade = {
     plan: LocalRuntimeProfileResolutionPlan,
     options?: LocalRuntimeWriteOptions,
   ) => Promise<LocalRuntimeProfileApplyResult>;
-  listServices: () => Promise<LocalRuntimeServiceDescriptor[]>;
-  installService: (
-    payload: LocalRuntimeServicesInstallPayload,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeServiceDescriptor>;
-  startService: (
-    serviceId: string,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeServiceDescriptor>;
-  stopService: (
-    serviceId: string,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeServiceDescriptor>;
-  healthServices: (serviceId?: string) => Promise<LocalRuntimeServiceDescriptor[]>;
-  removeService: (
-    serviceId: string,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeServiceDescriptor>;
   listNodesCatalog: (payload?: LocalRuntimeNodesCatalogListPayload) => Promise<LocalRuntimeNodeDescriptor[]>;
   install: (
     plan: LocalRuntimeInstallPlanDescriptor,
@@ -364,12 +338,6 @@ export const localRuntime: LocalRuntimeFacade = {
   getRecommendationFeed: getLocalRuntimeRecommendationFeed,
   resolveProfile: resolveLocalRuntimeProfile,
   applyProfile: applyLocalRuntimeProfile,
-  listServices: listLocalRuntimeServices,
-  installService: installLocalRuntimeService,
-  startService: startLocalRuntimeService,
-  stopService: stopLocalRuntimeService,
-  healthServices: healthLocalRuntimeServices,
-  removeService: removeLocalRuntimeService,
   listNodesCatalog: listLocalRuntimeNodesCatalog,
   install: installLocalRuntimeAsset,
   listVerifiedAssets: listLocalRuntimeVerifiedAssets,
