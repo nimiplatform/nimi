@@ -416,10 +416,6 @@ func localModelUnavailableErrorFromRecord(model *runtimev1.LocalAssetRecord) err
 
 func localModelUnavailableError(detail string) error {
 	trimmed := strings.TrimSpace(detail)
-	reasonCode := runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
-	if speechReason, ok := localSpeechReasonCodeFromDetail(trimmed); ok {
-		reasonCode = speechReason
-	}
 	options := grpcerr.ReasonOptions{
 		ActionHint: "inspect_local_runtime_model_health",
 		Message:    trimmed,
@@ -431,7 +427,7 @@ func localModelUnavailableError(detail string) error {
 	}
 	return grpcerr.WithReasonCodeOptions(
 		codes.FailedPrecondition,
-		reasonCode,
+		runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
 		options,
 	)
 }
@@ -444,70 +440,6 @@ func normalizeLocalModelRPCError(err error) error {
 		return err
 	}
 	return localModelUnavailableError(err.Error())
-}
-
-// Compatibility-only fallback for legacy local-runtime paths that still surface
-// speech failures as detail strings without a structured reason code.
-func localSpeechReasonCodeFromDetail(detail string) (runtimev1.ReasonCode, bool) {
-	lower := strings.ToLower(strings.TrimSpace(detail))
-	if lower == "" {
-		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, false
-	}
-	if !looksLikeSpeechDetail(lower) {
-		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, false
-	}
-
-	switch {
-	case strings.Contains(lower, "explicit download confirmation is required"),
-		strings.Contains(lower, "download confirmation required"),
-		strings.Contains(lower, "awaiting download confirmation"):
-		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED, true
-	case strings.Contains(lower, "speech-backed supervised mode is unavailable on this host"),
-		strings.Contains(lower, "configure an attached endpoint instead"),
-		strings.Contains(lower, "requires windows x64"),
-		strings.Contains(lower, "requires an nvidia gpu"),
-		strings.Contains(lower, "requires a cuda-ready nvidia runtime"):
-		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED, true
-	case strings.Contains(lower, "ensure uv for speech"),
-		strings.Contains(lower, "ensure managed python for speech"),
-		strings.Contains(lower, "write speech server script"),
-		strings.Contains(lower, "install speech dependencies"),
-		strings.Contains(lower, "write speech dependency stamp"):
-		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_ENV_INIT_FAILED, true
-	case strings.Contains(lower, "speech probe missing expected model"):
-		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED, true
-	case strings.Contains(lower, "speech probe missing required capability"),
-		strings.Contains(lower, "managed bundle file"),
-		strings.Contains(lower, "managed local model entry missing"),
-		strings.Contains(lower, "managed speech endpoint missing"),
-		strings.Contains(lower, "managed speech voices invalid"),
-		strings.Contains(lower, "voices.json"):
-		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_BUNDLE_DEGRADED, true
-	case strings.Contains(lower, "speech") &&
-		(strings.Contains(lower, "probe request failed") ||
-			strings.Contains(lower, "probe status not ok") ||
-			strings.Contains(lower, "probe response parse failed") ||
-			strings.Contains(lower, "catalog status not ok") ||
-			strings.Contains(lower, "catalog parse failed") ||
-			strings.Contains(lower, "connect") ||
-			strings.Contains(lower, "timed out") ||
-			strings.Contains(lower, "engine not ready")):
-		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_HOST_INIT_FAILED, true
-	default:
-		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, false
-	}
-}
-
-func looksLikeSpeechDetail(detail string) bool {
-	return strings.Contains(detail, "speech") ||
-		strings.Contains(detail, "audio.transcribe") ||
-		strings.Contains(detail, "audio.synthesize") ||
-		strings.Contains(detail, "voice") ||
-		strings.Contains(detail, "voices.json") ||
-		strings.Contains(detail, "tts") ||
-		strings.Contains(detail, "asr") ||
-		strings.Contains(detail, "whisper") ||
-		strings.Contains(detail, "kokoro")
 }
 
 func (s *Service) hydrateLocalProviderFromModel(model *runtimev1.LocalAssetRecord, endpointOverride string) {

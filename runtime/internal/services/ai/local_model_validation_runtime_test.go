@@ -14,20 +14,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-func TestLocalSpeechReasonCodeFromDetailSupportsDownloadConfirmationRequired(t *testing.T) {
-	reason, ok := localSpeechReasonCodeFromDetail("Explicit download confirmation is required before local speech setup can continue.")
-	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED {
-		t.Fatalf("expected speech download confirmation required, got=%v ok=%v", reason, ok)
-	}
-}
-
-func TestLocalSpeechReasonCodeFromDetailIgnoresNonSpeechDetail(t *testing.T) {
-	reason, ok := localSpeechReasonCodeFromDetail("media supervised mode requires a CUDA-ready NVIDIA runtime")
-	if ok || reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-		t.Fatalf("expected non-speech detail to remain unmapped, got=%v ok=%v", reason, ok)
-	}
-}
-
 func TestValidateLocalModelRequestPrefersCanonicalModalEngines(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := newTestService(logger)

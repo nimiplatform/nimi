@@ -454,13 +454,14 @@ func TestValidateLocalModelRequest(t *testing.T) {
 				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
 				Capabilities: []string{"audio.transcribe"},
 				HealthDetail: `speech probe missing required capability "audio.transcribe" for "speech/whisper-large-v3"; available_capabilities=audio.synthesize`,
+				ReasonCode:   runtimev1.ReasonCode_AI_LOCAL_SPEECH_BUNDLE_DEGRADED,
 			},
 		},
 	}
 	err = svc.validateLocalModelRequest(context.Background(), "speech/whisper-large-v3", nil, runtimev1.Modal_MODAL_STT)
 	reason, ok = grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SPEECH_BUNDLE_DEGRADED {
-		t.Fatalf("expected speech degraded start detail to map to bundle degraded, got=%v ok=%v err=%v", reason, ok, err)
+		t.Fatalf("expected structured speech bundle degraded reason to be preserved, got=%v ok=%v err=%v", reason, ok, err)
 	}
 
 	svc.localModel = &fakeLocalModelLister{
@@ -481,13 +482,14 @@ func TestValidateLocalModelRequest(t *testing.T) {
 				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
 				Capabilities: []string{"audio.synthesize"},
 				HealthDetail: `speech probe missing expected model "speech/qwen3tts"; available_models=speech/qwen3-asr`,
+				ReasonCode:   runtimev1.ReasonCode_AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED,
 			},
 		},
 	}
 	err = svc.validateLocalModelRequest(context.Background(), "speech/qwen3tts", nil, runtimev1.Modal_MODAL_TTS)
 	reason, ok = grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED {
-		t.Fatalf("expected speech missing-model detail to map to capability download failed, got=%v ok=%v err=%v", reason, ok, err)
+		t.Fatalf("expected structured speech capability download reason to be preserved, got=%v ok=%v err=%v", reason, ok, err)
 	}
 
 	svc.localModel = &fakeLocalModelLister{

@@ -357,10 +357,10 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewResolver: %v", err)
 	}
-	if resolved, ok := resolveConnectorTTSModelID(models, "qwen-tts", "dashscope", voiceCatalog); !ok || resolved != "qwen-tts" {
+	if resolved, ok := resolveConnectorTTSModelID(models, "qwen3-tts-instruct-flash", "dashscope", voiceCatalog); !ok || resolved != "qwen3-tts-instruct-flash" {
 		t.Fatalf("resolveConnectorTTSModelID catalog fallback mismatch: ok=%v resolved=%q", ok, resolved)
 	}
-	if resolved, ok := resolveConnectorTTSModelID(models, "qwen-tts-missing", "dashscope", voiceCatalog); ok || resolved != "" {
+	if resolved, ok := resolveConnectorTTSModelID(models, "qwen3-tts-non-existent", "dashscope", voiceCatalog); ok || resolved != "" {
 		t.Fatalf("resolveConnectorTTSModelID should reject missing catalog model: ok=%v resolved=%q", ok, resolved)
 	}
 
