@@ -13,7 +13,7 @@ function normalizeLocalEngine(provider: string): 'llama' | 'media' | 'speech' | 
   return '';
 }
 
-function usesCanonicalCatalogProbe(engine: ReturnType<typeof normalizeLocalEngine>): boolean {
+function usesCatalogProbe(engine: ReturnType<typeof normalizeLocalEngine>): boolean {
   return engine === 'media' || engine === 'speech';
 }
 
@@ -66,17 +66,7 @@ function normalizeEndpointForPlane(endpoint: string): string {
   return normalized;
 }
 
-function canonicalLocalPlaneForEngine(
-  engine: ReturnType<typeof normalizeLocalEngine>,
-): string {
-  if (engine === 'speech') return 'http://127.0.0.1:8330/v1';
-  if (engine === 'media') return 'http://127.0.0.1:8321/v1';
-  if (engine === 'llama') return 'http://127.0.0.1:1234/v1';
-  return '';
-}
-
 function resolveHealthPlane(
-  engine: ReturnType<typeof normalizeLocalEngine>,
   endpoint: string,
   connectorId: string | undefined,
 ): 'local-supervised' | 'attached-endpoint' | 'cloud-connector' | 'unknown' {
@@ -84,11 +74,7 @@ function resolveHealthPlane(
   const normalizedEndpoint = normalizeEndpointForPlane(endpoint);
   if (!normalizedEndpoint) return 'unknown';
   if (inferRouteSourceFromEndpoint(normalizedEndpoint) !== 'local') return 'attached-endpoint';
-  const canonical = canonicalLocalPlaneForEngine(engine);
-  if (canonical && normalizeEndpointForPlane(canonical) === normalizedEndpoint) {
-    return 'local-supervised';
-  }
-  return 'attached-endpoint';
+  return 'local-supervised';
 }
 
 function withPlaneDetail(
@@ -326,7 +312,7 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
   const engine = normalizeLocalEngine(provider);
   const capability = normalizeCapability(input.capability);
   const plane = engine === 'speech'
-    ? resolveHealthPlane(engine, endpoint, input.connectorId)
+    ? resolveHealthPlane(endpoint, input.connectorId)
     : 'unknown';
 
   if (
@@ -354,7 +340,7 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
         return await checkRuntimeAuthoritativeLocalModelHealth(input, provider, endpoint, model);
       }
       const localFetch = input.fetchImpl || fetch;
-      const response = usesCanonicalCatalogProbe(engine)
+      const response = usesCatalogProbe(engine)
         ? await probeMediaEndpoint(localFetch, endpoint, engine, model, capability)
         : await probeOpenAiCompatibleEndpoint(localFetch, endpoint);
       return {
