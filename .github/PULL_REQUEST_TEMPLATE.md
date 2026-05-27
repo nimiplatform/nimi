@@ -5,7 +5,7 @@
 
 ## Scope
 
-- Component(s): runtime / sdk / desktop / mods / docs / proto / web
+- Component(s): runtime / sdk / desktop / docs / proto / web
 - Type: bug / feature / breaking / docs / refactor
 
 ## Verification

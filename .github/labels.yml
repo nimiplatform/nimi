@@ -8,9 +8,6 @@
 - name: desktop
   color: "e4e669"
   description: "Tauri desktop app"
-- name: mods
-  color: "d876e3"
-  description: "Mod ecosystem"
 - name: docs
   color: "0e8a16"
   description: "Documentation"

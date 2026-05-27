@@ -10,6 +10,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 
 const TARGETS = [
   '.nimi/spec',
+  '.github',
   'apps/desktop',
   'apps/web',
   'docs',

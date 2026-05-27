@@ -12,7 +12,7 @@ body:
     id: component
     attributes:
       label: Component
-      description: runtime / sdk / desktop / mods / docs / proto / web
+      description: runtime / sdk / desktop / docs / proto / web
       placeholder: runtime
     validations:
       required: true
