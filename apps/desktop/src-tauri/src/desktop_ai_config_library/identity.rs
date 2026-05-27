@@ -86,7 +86,9 @@ pub(super) fn built_in_chat_scope_ref(surface_id: &str) -> Result<BuiltInChatSco
 }
 
 /// Reject the generic / retired / merged / string-only scope shapes.
-pub(super) fn verify_built_in_chat_scope_ref(scope_ref: &BuiltInChatScopeRef) -> Result<(), String> {
+pub(super) fn verify_built_in_chat_scope_ref(
+    scope_ref: &BuiltInChatScopeRef,
+) -> Result<(), String> {
     if scope_ref.kind.trim() != BUILT_IN_AI_CONFIG_SCOPE_KIND {
         return Err(
             "built-in AIConfig scopeRef.kind must be the feature shape, not a generic app scope"

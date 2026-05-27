@@ -75,12 +75,11 @@ fn built_in_ai_config_for_scope_init_from_record(
 }
 
 mod identity;
+pub use identity::{built_in_ai_config_path, data_root_ref};
 use identity::{
     built_in_chat_scope_ref, now_iso_timestamp, scope_path_segment, sha256_hex, stable_json_hash,
-    validate_account_id, validate_built_in_chat_surface_id,
-    verify_built_in_chat_scope_ref,
+    validate_account_id, validate_built_in_chat_surface_id, verify_built_in_chat_scope_ref,
 };
-pub use identity::{built_in_ai_config_path, data_root_ref};
 
 /// Materialize the full per-capability config from the factory `AIProfile` row.
 ///
