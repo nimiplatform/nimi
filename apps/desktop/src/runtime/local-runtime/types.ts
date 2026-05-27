@@ -642,30 +642,6 @@ export type LocalRuntimeEnvironmentPlanPayload = {
   installLevel?: string;
 };
 
-export type LocalRuntimeEnvironmentSelectedSourceRecord = {
-  recordId: string;
-  dependencyFamily: string;
-  dependencyId: string;
-  environmentKey: string;
-  sourceKind: string;
-  canonicalRoot?: string;
-  version?: string;
-  compatibilityEvidence: string[];
-  verifiedArtifacts: string[];
-  hashes: Record<string, string>;
-  selectedConsumers: string[];
-  activationEnvDelta: string[];
-  selectedAt?: string;
-  lastVerifiedAt?: string;
-  repairState?: string;
-  auditReasonCode?: string;
-};
-
-export type LocalRuntimeEnvironmentSelectedSourcesPayload = {
-  dependencyFamily?: string;
-  consumerScope?: string;
-};
-
 export type LocalRuntimeEnvironmentDependencyJob = {
   jobId: string;
   environmentKey: string;
@@ -719,26 +695,6 @@ export type LocalRuntimeEnvironmentDependencyRepairPayload = {
   dependencyId: string;
   confirmed: boolean;
   reasonCode?: string;
-};
-
-export type LocalRuntimeEnvironmentActivationGate = {
-  consumerId: string;
-  packId: string;
-  state: string;
-  reasonCode?: string;
-  detail?: string;
-  blockingDependencies: LocalRuntimeEnvironmentPlanDependency[];
-  dependencies: LocalRuntimeEnvironmentPlanDependency[];
-};
-
-export type LocalRuntimeEnvironmentActivationGatePayload = {
-  consumerId: string;
-  packId: string;
-  runtimeDataRoot?: string;
-  assetId?: string;
-  localAssetId?: string;
-  companionAssetId?: string;
-  parentAssetId?: string;
 };
 
 export type LocalRuntimeAssetDeclaration = {

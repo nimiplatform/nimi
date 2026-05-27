@@ -12,8 +12,6 @@ import type {
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeDownloadSessionSummary,
   LocalRuntimeTransferAccepted,
-  LocalRuntimeEnvironmentActivationGate,
-  LocalRuntimeEnvironmentActivationGatePayload,
   LocalRuntimeEnvironmentDependencyJobCancelPayload,
   LocalRuntimeEnvironmentDependencyJob,
   LocalRuntimeEnvironmentDependencyJobsPayload,
@@ -22,8 +20,6 @@ import type {
   LocalRuntimeEnvironmentDependencyRepairPayload,
   LocalRuntimeEnvironmentPlan,
   LocalRuntimeEnvironmentPlanPayload,
-  LocalRuntimeEnvironmentSelectedSourceRecord,
-  LocalRuntimeEnvironmentSelectedSourcesPayload,
   LocalRuntimeImportAssetFilePayload,
   LocalRuntimeImportAssetPayload,
   LocalRuntimeImportBundlePayload,
@@ -43,10 +39,8 @@ import {
   parseDownloadProgressEvent,
   parseDownloadSessionSummary,
   parseTransferAccepted,
-  parseLocalRuntimeEnvironmentActivationGate,
   parseLocalRuntimeEnvironmentDependencyJob,
   parseLocalRuntimeEnvironmentPlan,
-  parseLocalRuntimeEnvironmentSelectedSourceRecord,
   parseUnregisteredAssetDescriptor,
 } from './parsers';
 import { asRecord, requireSdkLocal, toAssetKindFilter } from './commands-shared';
@@ -250,20 +244,6 @@ export async function resolveLocalRuntimeEnvironmentPlan(
   return parseLocalRuntimeEnvironmentPlan(asRecord(response).plan);
 }
 
-export async function listLocalRuntimeEnvironmentSelectedSources(
-  payload?: LocalRuntimeEnvironmentSelectedSourcesPayload,
-): Promise<LocalRuntimeEnvironmentSelectedSourceRecord[]> {
-  const runtime = requireSdkLocal();
-  const response = await runtime.listLocalEnvironmentSelectedSources({
-    dependencyFamily: String(payload?.dependencyFamily || '').trim(),
-    consumerScope: String(payload?.consumerScope || '').trim(),
-  });
-  const sources = asRecord(response).sources;
-  return Array.isArray(sources)
-    ? sources.map((item) => parseLocalRuntimeEnvironmentSelectedSourceRecord(item))
-    : [];
-}
-
 export async function listLocalRuntimeEnvironmentDependencyJobs(
   payload?: LocalRuntimeEnvironmentDependencyJobsPayload,
 ): Promise<LocalRuntimeEnvironmentDependencyJob[]> {
@@ -276,22 +256,6 @@ export async function listLocalRuntimeEnvironmentDependencyJobs(
   return Array.isArray(jobs)
     ? jobs.map((item) => parseLocalRuntimeEnvironmentDependencyJob(item))
     : [];
-}
-
-export async function resolveLocalRuntimeEnvironmentActivationGate(
-  payload: LocalRuntimeEnvironmentActivationGatePayload,
-): Promise<LocalRuntimeEnvironmentActivationGate> {
-  const runtime = requireSdkLocal();
-  const response = await runtime.resolveLocalEnvironmentActivationGate({
-    consumerId: String(payload.consumerId || '').trim(),
-    packId: String(payload.packId || '').trim(),
-    runtimeDataRoot: String(payload.runtimeDataRoot || '').trim(),
-    assetId: String(payload.assetId || '').trim(),
-    localAssetId: String(payload.localAssetId || '').trim(),
-    companionAssetId: String(payload.companionAssetId || '').trim(),
-    parentAssetId: String(payload.parentAssetId || '').trim(),
-  });
-  return parseLocalRuntimeEnvironmentActivationGate(asRecord(response).gate);
 }
 
 export async function startLocalRuntimeEnvironmentDependencyJob(

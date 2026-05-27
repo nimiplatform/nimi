@@ -15,14 +15,12 @@ import {
   searchLocalRuntimeCatalog,
   listLocalRuntimeRepoGgufVariants,
   resolveLocalRuntimeInstallPlan,
-  resolveLocalRuntimeEnvironmentActivationGate,
   resolveLocalRuntimeEnvironmentPlan,
   startLocalRuntimeEnvironmentDependencyJob,
   cancelLocalRuntimeEnvironmentDependencyJob,
   retryLocalRuntimeEnvironmentDependencyJob,
   repairLocalRuntimeEnvironmentDependency,
   listLocalRuntimeEnvironmentDependencyJobs,
-  listLocalRuntimeEnvironmentSelectedSources,
   listLocalRuntimeDownloadSessions,
   pauseLocalRuntimeDownload,
   resumeLocalRuntimeDownload,
@@ -108,8 +106,6 @@ import type {
   LocalRuntimeScaffoldAssetResult,
   LocalRuntimeScaffoldOrphanPayload,
   LocalRuntimeRescanBundlePayload,
-  LocalRuntimeEnvironmentActivationGate,
-  LocalRuntimeEnvironmentActivationGatePayload,
   LocalRuntimeEnvironmentDependencyJob,
   LocalRuntimeEnvironmentDependencyJobCancelPayload,
   LocalRuntimeEnvironmentDependencyJobsPayload,
@@ -119,8 +115,6 @@ import type {
   LocalRuntimeEnvironmentPlan,
   LocalRuntimeEnvironmentPlanDependency,
   LocalRuntimeEnvironmentPlanPayload,
-  LocalRuntimeEnvironmentSelectedSourceRecord,
-  LocalRuntimeEnvironmentSelectedSourcesPayload,
 } from './types';
 export {
   bridgeLocalRuntimeProfile,
@@ -192,8 +186,6 @@ export type {
   LocalRuntimeScaffoldAssetResult,
   LocalRuntimeScaffoldOrphanPayload,
   LocalRuntimeRescanBundlePayload,
-  LocalRuntimeEnvironmentActivationGate,
-  LocalRuntimeEnvironmentActivationGatePayload,
   LocalRuntimeEnvironmentDependencyJob,
   LocalRuntimeEnvironmentDependencyJobCancelPayload,
   LocalRuntimeEnvironmentDependencyJobsPayload,
@@ -203,8 +195,6 @@ export type {
   LocalRuntimeEnvironmentPlan,
   LocalRuntimeEnvironmentPlanDependency,
   LocalRuntimeEnvironmentPlanPayload,
-  LocalRuntimeEnvironmentSelectedSourceRecord,
-  LocalRuntimeEnvironmentSelectedSourcesPayload,
 };
 
 export type LocalRuntimeFacade = {
@@ -275,15 +265,9 @@ export type LocalRuntimeFacade = {
   ) => Promise<LocalRuntimeAssetRecord>;
   health: (localAssetId?: string) => Promise<LocalRuntimeAssetHealth[]>;
   resolveEnvironmentPlan: (payload: LocalRuntimeEnvironmentPlanPayload) => Promise<LocalRuntimeEnvironmentPlan>;
-  listEnvironmentSelectedSources: (
-    payload?: LocalRuntimeEnvironmentSelectedSourcesPayload,
-  ) => Promise<LocalRuntimeEnvironmentSelectedSourceRecord[]>;
   listEnvironmentDependencyJobs: (
     payload?: LocalRuntimeEnvironmentDependencyJobsPayload,
   ) => Promise<LocalRuntimeEnvironmentDependencyJob[]>;
-  resolveEnvironmentActivationGate: (
-    payload: LocalRuntimeEnvironmentActivationGatePayload,
-  ) => Promise<LocalRuntimeEnvironmentActivationGate>;
   startEnvironmentDependencyJob: (
     payload: LocalRuntimeEnvironmentDependencyJobStartPayload,
     options?: LocalRuntimeWriteOptions,
@@ -356,9 +340,7 @@ export const localRuntime: LocalRuntimeFacade = {
   stop: stopLocalRuntimeAsset,
   health: healthLocalRuntimeAssets,
   resolveEnvironmentPlan: resolveLocalRuntimeEnvironmentPlan,
-  listEnvironmentSelectedSources: listLocalRuntimeEnvironmentSelectedSources,
   listEnvironmentDependencyJobs: listLocalRuntimeEnvironmentDependencyJobs,
-  resolveEnvironmentActivationGate: resolveLocalRuntimeEnvironmentActivationGate,
   startEnvironmentDependencyJob: startLocalRuntimeEnvironmentDependencyJob,
   cancelEnvironmentDependencyJob: cancelLocalRuntimeEnvironmentDependencyJob,
   retryEnvironmentDependencyJob: retryLocalRuntimeEnvironmentDependencyJob,

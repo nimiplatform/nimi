@@ -15,11 +15,9 @@ import type {
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeDownloadSessionSummary,
   LocalRuntimeTransferAccepted,
-  LocalRuntimeEnvironmentActivationGate,
   LocalRuntimeEnvironmentDependencyJob,
   LocalRuntimeEnvironmentPlan,
   LocalRuntimeEnvironmentPlanDependency,
-  LocalRuntimeEnvironmentSelectedSourceRecord,
   LocalRuntimeTransferSessionKind,
   LocalRuntimeScaffoldAssetResult,
   LocalRuntimeAssetHealth,
@@ -224,39 +222,6 @@ export function parseLocalRuntimeEnvironmentPlan(value: unknown): LocalRuntimeEn
   };
 }
 
-export function parseLocalRuntimeEnvironmentSelectedSourceRecord(value: unknown): LocalRuntimeEnvironmentSelectedSourceRecord {
-  const record = asRecord(value);
-  const hashes = asRecord(record.hashes);
-  return {
-    recordId: asString(record.recordId),
-    dependencyFamily: asString(record.dependencyFamily),
-    dependencyId: asString(record.dependencyId),
-    environmentKey: asString(record.environmentKey),
-    sourceKind: asString(record.sourceKind),
-    canonicalRoot: asString(record.canonicalRoot) || undefined,
-    version: asString(record.version) || undefined,
-    compatibilityEvidence: Array.isArray(record.compatibilityEvidence)
-      ? record.compatibilityEvidence.map((item) => asString(item)).filter(Boolean)
-      : [],
-    verifiedArtifacts: Array.isArray(record.verifiedArtifacts)
-      ? record.verifiedArtifacts.map((item) => asString(item)).filter(Boolean)
-      : [],
-    hashes: Object.fromEntries(
-      Object.entries(hashes).map(([key, hash]) => [String(key), asString(hash)]),
-    ),
-    selectedConsumers: Array.isArray(record.selectedConsumers)
-      ? record.selectedConsumers.map((item) => asString(item)).filter(Boolean)
-      : [],
-    activationEnvDelta: Array.isArray(record.activationEnvDelta)
-      ? record.activationEnvDelta.map((item) => asString(item)).filter(Boolean)
-      : [],
-    selectedAt: asString(record.selectedAt) || undefined,
-    lastVerifiedAt: asString(record.lastVerifiedAt) || undefined,
-    repairState: asString(record.repairState) || undefined,
-    auditReasonCode: asString(record.auditReasonCode) || undefined,
-  };
-}
-
 export function parseLocalRuntimeEnvironmentDependencyJob(value: unknown): LocalRuntimeEnvironmentDependencyJob {
   const record = asRecord(value);
   // K-RPC-025 progress fields. The proto int64s arrive as strings over the
@@ -292,23 +257,6 @@ function clampPercent(value: unknown): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) return 0;
   return parsed >= 100 ? 100 : Math.round(parsed);
-}
-
-export function parseLocalRuntimeEnvironmentActivationGate(value: unknown): LocalRuntimeEnvironmentActivationGate {
-  const record = asRecord(value);
-  return {
-    consumerId: asString(record.consumerId),
-    packId: asString(record.packId),
-    state: asString(record.state),
-    reasonCode: asString(record.reasonCode) || undefined,
-    detail: asString(record.detail) || undefined,
-    blockingDependencies: Array.isArray(record.blockingDependencies)
-      ? record.blockingDependencies.map((item) => parseLocalRuntimeEnvironmentPlanDependency(item))
-      : [],
-    dependencies: Array.isArray(record.dependencies)
-      ? record.dependencies.map((item) => parseLocalRuntimeEnvironmentPlanDependency(item))
-      : [],
-  };
 }
 
 export function parseGgufVariantDescriptor(value: unknown): GgufVariantDescriptor {

@@ -73,22 +73,22 @@ test('local model center projects Runtime-owned local environment state instead 
 
 test('local runtime facade exposes SDK-backed local environment projection methods', () => {
   assert.match(localRuntimeFacadeSource, /resolveEnvironmentPlan:\s*resolveLocalRuntimeEnvironmentPlan/);
-  assert.match(localRuntimeFacadeSource, /listEnvironmentSelectedSources:\s*listLocalRuntimeEnvironmentSelectedSources/);
   assert.match(localRuntimeFacadeSource, /listEnvironmentDependencyJobs:\s*listLocalRuntimeEnvironmentDependencyJobs/);
-  assert.match(localRuntimeFacadeSource, /resolveEnvironmentActivationGate:\s*resolveLocalRuntimeEnvironmentActivationGate/);
   assert.match(localRuntimeFacadeSource, /startEnvironmentDependencyJob:\s*startLocalRuntimeEnvironmentDependencyJob/);
   assert.match(localRuntimeFacadeSource, /cancelEnvironmentDependencyJob:\s*cancelLocalRuntimeEnvironmentDependencyJob/);
   assert.match(localRuntimeFacadeSource, /retryEnvironmentDependencyJob:\s*retryLocalRuntimeEnvironmentDependencyJob/);
   assert.match(localRuntimeFacadeSource, /repairEnvironmentDependency:\s*repairLocalRuntimeEnvironmentDependency/);
+  assert.doesNotMatch(localRuntimeFacadeSource, /listEnvironmentSelectedSources/);
+  assert.doesNotMatch(localRuntimeFacadeSource, /resolveEnvironmentActivationGate/);
   assert.doesNotMatch(localRuntimeFacadeSource, /startDependencySetup/);
   assert.match(localRuntimeCommandsSource, /runtime\.resolveLocalEnvironmentPlan/);
   assert.match(localRuntimeCommandsSource, /assetId:\s*String\(payload\.assetId \|\| ''\)\.trim\(\)/);
   assert.match(localRuntimeCommandsSource, /localAssetId:\s*String\(payload\.localAssetId \|\| ''\)\.trim\(\)/);
   assert.match(localRuntimeCommandsSource, /companionAssetId:\s*String\(payload\.companionAssetId \|\| ''\)\.trim\(\)/);
   assert.match(localRuntimeCommandsSource, /parentAssetId:\s*String\(payload\.parentAssetId \|\| ''\)\.trim\(\)/);
-  assert.match(localRuntimeCommandsSource, /runtime\.listLocalEnvironmentSelectedSources/);
   assert.match(localRuntimeCommandsSource, /runtime\.listLocalEnvironmentDependencyJobs/);
-  assert.match(localRuntimeCommandsSource, /runtime\.resolveLocalEnvironmentActivationGate/);
+  assert.doesNotMatch(localRuntimeCommandsSource, /runtime\.listLocalEnvironmentSelectedSources/);
+  assert.doesNotMatch(localRuntimeCommandsSource, /runtime\.resolveLocalEnvironmentActivationGate/);
   assert.match(localRuntimeCommandsSource, /runtime\.startLocalEnvironmentDependencyJob/);
   assert.match(localRuntimeCommandsSource, /runtime\.cancelLocalEnvironmentDependencyJob/);
   assert.match(localRuntimeCommandsSource, /runtime\.retryLocalEnvironmentDependencyJob/);
