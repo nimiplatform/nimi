@@ -9,20 +9,13 @@ import {
 } from '@nimiplatform/sdk/ai';
 import {
   asNimiError,
-  type AgentStateMutation,
   createRuntimeProtectedScopeHelper,
-  MemoryCanonicalClass,
-  MemoryRecordKind,
   MemoryBankScope,
-  type CanonicalMemoryView,
-  toProtoStruct,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { getDesktopMemoryEmbeddingConfigService } from '@renderer/app-shell/providers/desktop-memory-embedding-config-service';
 import { listLocalRuntimeAssets } from '@renderer/bridge/runtime-bridge/local-ai';
 import { getDesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/macos-smoke';
-import { canonicalMemoryViewToDesktopRecord } from './runtime-agent-memory-records';
-import type { DesktopAgentMemoryRecord } from './runtime-agent-memory-records';
 
 export type { DesktopAgentMemoryRecord } from './runtime-agent-memory-records';
 export { canonicalMemoryViewToDesktopRecord, summarizeCanonicalMemoryView } from './runtime-agent-memory-records';
@@ -50,63 +43,7 @@ type RuntimeAgentMemoryDeps = {
   getMemoryEmbeddingConfigService?: () => DesktopMemoryEmbeddingConfigService;
   getMemoryEmbeddingScopeRef?: () => AIScopeRef;
   listLocalRuntimeAssets?: typeof listLocalRuntimeAssets;
-  now?: () => Date;
 };
-
-type RuntimeAgentContext = {
-  agentId: string;
-  displayName?: string;
-  worldId?: string | null;
-  dyadicUserId?: string | null;
-  createIfMissing?: boolean;
-  syncWorldContext?: boolean;
-  syncDyadicContext?: boolean;
-};
-
-type RuntimeMemoryQueryInput = RuntimeAgentContext & {
-  query?: string;
-  limit?: number;
-  canonicalClasses: MemoryCanonicalClass[];
-  kinds?: MemoryRecordKind[];
-  includeInvalidated?: boolean;
-};
-
-type RuntimeDyadicObservationInput = RuntimeAgentContext & {
-  observation: string;
-  sourceEventId: string;
-  traceId: string;
-  authorId?: string;
-  policyReason: string;
-};
-
-export type RuntimeChatTrackMessage = {
-  role: string;
-  content: string;
-  name?: string;
-};
-
-type RuntimeChatTrackSidecarInput = {
-  agentId: string;
-  sourceEventId: string;
-  threadId: string;
-  messages: RuntimeChatTrackMessage[];
-};
-
-type RuntimeAgentSession = {
-  runtime: RuntimeClient;
-  context: {
-    appId: string;
-    subjectUserId: string;
-    ownerUserId: string;
-    realmAgentId: string;
-    localAgentRef: string;
-  };
-  subjectUserId: string;
-  protectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper>;
-};
-
-const RUNTIME_MEMORY_PROMOTION_TARGET_ID = 'RUNTIME_MEMORY_OR_COGNITION';
-const CANONICAL_AGENT_CHAT_SOURCE_PROFILE = 'canonical_agent_chat';
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -135,53 +72,6 @@ function buildAgentRequestContext(runtime: RuntimeClient, subjectUserId: string,
     subjectUserId,
     ...parseLocalAgentIdentity(localAgentRef),
   };
-}
-
-function toTimestamp(date: Date): { seconds: string; nanos: number } {
-  const ms = date.getTime();
-  const seconds = Math.floor(ms / 1000);
-  const nanos = (ms % 1000) * 1_000_000;
-  return { seconds: String(seconds), nanos };
-}
-
-function buildCanonicalAgentChatMemoryPromotionEvidence(input: {
-  runtimeAppId: string;
-  agentId: string;
-  sourceEventId: string;
-  traceId: string;
-  policyReason: string;
-  targetOwnerId: string;
-}): Record<string, string> {
-  const sourceEventId = normalizeText(input.sourceEventId);
-  const traceId = normalizeText(input.traceId);
-  const agentId = normalizeText(input.agentId);
-  const runtimeAppId = normalizeText(input.runtimeAppId);
-  const policyReason = normalizeText(input.policyReason) || 'desktop_agent_chat_dyadic_turn';
-  const targetOwnerId = normalizeText(input.targetOwnerId);
-  const outputRef = sourceEventId || traceId || `${agentId}:memory-candidate`;
-  const traceRef = traceId || outputRef;
-  return {
-    promotion_target_id: RUNTIME_MEMORY_PROMOTION_TARGET_ID,
-    participation_id: `canonical-agent-chat:${runtimeAppId || 'desktop'}:${agentId || 'agent'}:${traceRef}`,
-    source_profile: CANONICAL_AGENT_CHAT_SOURCE_PROFILE,
-    output_candidate_ref: outputRef,
-    audit_id: traceRef,
-    provenance_ref: `desktop.agent-chat:${traceRef}`,
-    policy_verdict_ref: policyReason,
-    memory_read_verdict: 'PASS',
-    memory_write_verdict: 'PASS',
-    capability_scope_verdict: 'PASS',
-    target_owner_authorization_ref: targetOwnerId || runtimeAppId || 'desktop',
-    explicit_user_or_manager_intent_ref: outputRef,
-  };
-}
-
-function normalizeRuntimeError(error: unknown, actionHint: string) {
-  return asNimiError(error, {
-    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
-    actionHint,
-    source: 'runtime',
-  });
 }
 
 function isRuntimeMemoryUnavailable(error: unknown): boolean {
@@ -239,7 +129,6 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
   const getMemoryEmbeddingScopeRef = deps.getMemoryEmbeddingScopeRef
     ?? (() => createDefaultAIScopeRef());
   const listAssets = deps.listLocalRuntimeAssets ?? listLocalRuntimeAssets;
-  const now = deps.now ?? (() => new Date());
   let protectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
 
   const resolveSubjectUserId = async (): Promise<string> => {
@@ -259,110 +148,6 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
       getSubjectUserId: async () => resolveSubjectUserId(),
     });
     return protectedAccess;
-  };
-
-  const ensureSession = async (input: RuntimeAgentContext): Promise<RuntimeAgentSession> => {
-    const runtime = getRuntime();
-    const protectedAccess = getProtectedAccess();
-    const subjectUserId = await resolveSubjectUserId();
-    const agentId = normalizeText(input.agentId);
-    if (!agentId) {
-      throw new Error('AGENT_ID_REQUIRED');
-    }
-
-    const context = buildAgentRequestContext(runtime, subjectUserId, agentId);
-
-    try {
-      await protectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.getAgent({
-        context,
-        agentId,
-      }, options));
-    } catch (error) {
-      const normalized = normalizeRuntimeError(error, 'check_runtime_agent');
-      if (normalized.reasonCode !== 'RUNTIME_GRPC_NOT_FOUND' || input.createIfMissing !== true) {
-        throw normalized;
-      }
-      try {
-        await protectedAccess.withScopes(['runtime.agent.admin'], (options) => runtime.agent.initializeAgent({
-          context,
-          agentId: '',
-          ownerUserId: context.ownerUserId,
-          realmAgentId: context.realmAgentId,
-          localAgentRef: context.localAgentRef,
-          displayName: normalizeText(input.displayName) || agentId,
-          autonomyConfig: undefined,
-          worldId: normalizeText(input.worldId),
-          metadata: undefined,
-        }, options));
-      } catch (initError) {
-        const normalizedInit = normalizeRuntimeError(initError, 'initialize_runtime_agent');
-        if (normalizedInit.reasonCode !== 'RUNTIME_GRPC_ALREADY_EXISTS') {
-          throw normalizedInit;
-        }
-      }
-    }
-
-    const mutations: AgentStateMutation[] = [];
-    if (input.syncDyadicContext === true) {
-      const dyadicUserId = normalizeText(input.dyadicUserId) || subjectUserId;
-      mutations.push(dyadicUserId
-        ? {
-          mutation: {
-            oneofKind: 'setDyadicContext' as const,
-            setDyadicContext: { userId: dyadicUserId },
-          },
-        }
-        : {
-          mutation: {
-            oneofKind: 'clearDyadicContext' as const,
-            clearDyadicContext: {},
-          },
-        });
-    }
-    if (input.syncWorldContext === true) {
-      const worldId = normalizeText(input.worldId);
-      mutations.push(worldId
-        ? {
-          mutation: {
-            oneofKind: 'setWorldContext' as const,
-            setWorldContext: { worldId },
-          },
-        }
-        : {
-          mutation: {
-            oneofKind: 'clearWorldContext' as const,
-            clearWorldContext: {},
-          },
-        });
-    }
-    if (mutations.length > 0) {
-      await protectedAccess.withScopes(['runtime.agent.write'], (options) => runtime.agent.updateAgentState({
-        context,
-        agentId,
-        mutations,
-      }, options));
-    }
-
-    return {
-      runtime,
-      context,
-      subjectUserId,
-      protectedAccess,
-    };
-  };
-
-  const queryCanonicalViews = async (input: RuntimeMemoryQueryInput): Promise<CanonicalMemoryView[]> => {
-    const session = await ensureSession(input);
-    const response = await session.protectedAccess.withScopes(['runtime.agent.read'], (options) => session.runtime.agent.queryMemory({
-      context: session.context,
-      agentId: normalizeText(input.agentId),
-      query: normalizeText(input.query),
-      limit: typeof input.limit === 'number' ? input.limit : 0,
-      canonicalClasses: [...input.canonicalClasses],
-      kinds: [...(input.kinds || [])],
-      includeInvalidated: input.includeInvalidated === true,
-    }, options));
-    return response.memories;
   };
 
   const hasActiveEmbeddingAsset = async (): Promise<boolean> => {
@@ -533,10 +318,6 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
   };
 
   return {
-    ensureSession,
-
-    queryCanonicalViews,
-
     async getCanonicalBankStatus(agentId: string): Promise<CanonicalMemoryBankStatus> {
       const normalizedAgentID = normalizeText(agentId);
       if (!normalizedAgentID) {
@@ -553,13 +334,6 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
       }
     },
 
-    async queryCompatibilityRecords(input: RuntimeMemoryQueryInput): Promise<DesktopAgentMemoryRecord[]> {
-      const memories = await queryCanonicalViews(input);
-      return memories
-        .map((view) => canonicalMemoryViewToDesktopRecord(view))
-        .filter((value): value is DesktopAgentMemoryRecord => Boolean(value));
-    },
-
     async bindCanonicalBankStandard(agentId: string): Promise<CanonicalMemoryBankStatus> {
       const normalizedAgentID = normalizeText(agentId);
       if (!normalizedAgentID) {
@@ -573,112 +347,6 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
         await memoryEmbeddingService.memoryEmbeddingRuntime.requestCutover(runtimeInput);
       }
       return this.getCanonicalBankStatus(normalizedAgentID);
-    },
-
-    async writeDyadicObservation(input: RuntimeDyadicObservationInput): Promise<CanonicalMemoryView[]> {
-      const observation = normalizeText(input.observation);
-      if (!observation) {
-        return [];
-      }
-
-      const session = await ensureSession({
-        ...input,
-        createIfMissing: input.createIfMissing !== false,
-        syncDyadicContext: input.syncDyadicContext ?? true,
-        syncWorldContext: input.syncWorldContext ?? true,
-      });
-      const dyadicUserId = normalizeText(input.dyadicUserId) || session.subjectUserId;
-      const authoredBy = normalizeText(input.authorId) || session.subjectUserId;
-      const timestamp = toTimestamp(now());
-      const response = await session.protectedAccess.withScopes(['runtime.agent.write'], (options) => session.runtime.agent.writeMemory({
-        context: session.context,
-        agentId: normalizeText(input.agentId),
-        candidates: [
-          {
-            canonicalClass: MemoryCanonicalClass.DYADIC,
-            targetBank: {
-              scope: MemoryBankScope.AGENT_DYADIC,
-              owner: {
-                oneofKind: 'agentDyadic' as const,
-                agentDyadic: {
-                  agentId: normalizeText(input.agentId),
-                  userId: dyadicUserId,
-                },
-              },
-            },
-            sourceEventId: normalizeText(input.sourceEventId),
-            policyReason: normalizeText(input.policyReason),
-            record: {
-              kind: MemoryRecordKind.OBSERVATIONAL,
-              canonicalClass: MemoryCanonicalClass.DYADIC,
-              provenance: {
-                sourceSystem: 'desktop.agent-chat',
-                sourceEventId: normalizeText(input.sourceEventId),
-                authorId: authoredBy,
-                traceId: normalizeText(input.traceId),
-                committedAt: timestamp,
-              },
-              metadata: undefined,
-              extensions: undefined,
-              payload: {
-                oneofKind: 'observational',
-                observational: {
-                  observation,
-                  observedAt: timestamp,
-                  sourceRef: normalizeText(input.traceId),
-                },
-              },
-            },
-            extensions: toProtoStruct(buildCanonicalAgentChatMemoryPromotionEvidence({
-              runtimeAppId: session.runtime.appId,
-              agentId: normalizeText(input.agentId),
-              sourceEventId: normalizeText(input.sourceEventId),
-              traceId: normalizeText(input.traceId),
-              policyReason: normalizeText(input.policyReason),
-              targetOwnerId: dyadicUserId,
-            })),
-          },
-        ],
-      }, options));
-
-      if (response.rejected.length > 0 || response.accepted.length === 0) {
-        throw new Error('runtime.agent.writeMemory did not admit desktop dyadic memory');
-      }
-      return response.accepted;
-    },
-
-    async sendChatTrackSidecarInput(input: RuntimeChatTrackSidecarInput): Promise<void> {
-      const agentId = normalizeText(input.agentId);
-      const sourceEventId = normalizeText(input.sourceEventId);
-      const threadId = normalizeText(input.threadId);
-      const messages = Array.isArray(input.messages)
-        ? input.messages
-          .map((message) => ({
-            role: normalizeText(message.role),
-            content: normalizeText(message.content),
-            ...(normalizeText(message.name) ? { name: normalizeText(message.name) } : {}),
-          }))
-          .filter((message) => message.role && message.content)
-        : [];
-      if (!agentId || !sourceEventId || !threadId || messages.length === 0) {
-        throw new Error('CHAT_TRACK_SIDECAR_INPUT_INVALID');
-      }
-
-      const runtime = getRuntime();
-      const subjectUserId = await resolveSubjectUserId();
-      await getProtectedAccess().withScopes(['runtime.app.send.cross_app'], (options) => runtime.app.sendMessage({
-        fromAppId: runtime.appId,
-        toAppId: 'runtime.agent.internal.chat_track_sidecar',
-        subjectUserId,
-        messageType: 'agent.chat_track.sidecar_input.v1',
-        payload: toProtoStruct({
-          agent_id: agentId,
-          source_event_id: sourceEventId,
-          thread_id: threadId,
-          messages,
-        }),
-        requireAck: false,
-      }, options));
     },
   };
 }
