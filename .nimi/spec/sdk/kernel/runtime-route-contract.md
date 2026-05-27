@@ -63,6 +63,39 @@ SDK 对 `runtime.route.describe(...)` 的稳定消费必须 fail-close：
 - 用 provider/model 名称或 local/cloud 假设补猜 `supportsThinking`、`supports*Input`、workflow metadata
 - 暴露 product-facing fallback knob 让调用方选择 fail-open
 
+## S-RUNTIME-077 Selection / Resolve / Health Host Projection Boundary
+
+`runtime.route.listOptions(...)`、`runtime.route.resolve(...)`、以及
+`runtime.route.checkHealth(...)` 在 Phase 1 的 app-facing stable home 是 SDK
+host typed surface。该 surface 只能做 Runtime facts 的 deterministic projection，
+不得成为新的 catalog、readiness、provider/model capability、fallback policy、
+或 default route policy authority。
+
+允许的 SDK projection 工作固定为：
+
+- 对 Runtime 已投影的 local asset / provider catalog / connector catalog / capability
+  record 做类型收窄、字段归一化和 fail-close 校验。
+- 在已存在的 typed binding intent 或 Runtime-projected local asset record 上执行
+  model-root normalization。
+- 在 Runtime 已提供 engine / provider / capability evidence 时，派生 local route
+  engine label；不得仅凭 Desktop raw provider/model/endpoint 猜测 engine。
+- 基于 Runtime local catalog/readiness projection 选择 warm candidate；该选择只能
+  用于同一已解析 local asset 的 warm-on-demand orchestration，不得替代
+  `runtime.route.resolve(...)` 的 binding truth。
+- 组装 app-facing resolved binding projection，但所有 resolved identity、health、
+  readiness 和 capability truth 必须可追溯到 Runtime projection input。
+
+禁止路径：
+
+- 从 Desktop `runtimeFields`、endpoint 字符串、provider label、model label、
+  local/cloud heuristic、或 connector 默认模型回填生成 execution route truth。
+- 在 SDK 内维护 provider/model catalog、local engine catalog、readiness cache、
+  fallback matrix、或 first-available default binding 作为 stable truth。
+- 把 `listOptions` 的 option ordering 或 UI convenience selection 升级为
+  execution fallback policy。
+- 把 `checkHealth` 成功解释为 metadata 成功；metadata 仍必须走
+  `runtime.route.describe(...)` 的 `S-RUNTIME-075` / `S-RUNTIME-076` 边界。
+
 ## S-RUNTIME-078 Runtime Client Projection Boundary
 
 `@nimiplatform/sdk/runtime` 在 Phase 1 可以共享 `runtime.route.describe(...)` 的 typed result types，但不得把它包装成“新增 daemon 顶层 RPC 已存在”的公开承诺。

@@ -171,3 +171,9 @@ consume/probe 时解出最小执行凭据子集”，而不是“拥有第三方
   runtime 必须 fail-close 为 `AI_PROVIDER_AUTH_FAILED`
 - provider auth failure 不得触发 runtime 内部的隐式 refresh、fallback 到其他
   connector、或 credential payload 静默重写
+
+第三方 OAuth acquisition 的 browser/device-code orchestration 若被产品化，必须由
+SDK/host typed acquisition facade 拥有（见
+`.nimi/spec/sdk/kernel/connector-auth-acquisition-contract.md`），并通过现有
+`CreateConnector` / `UpdateConnector` sealed write path 交付 `credential_json`。
+该 admission 不改变 Runtime ConnectorService 的 custody-only 边界。

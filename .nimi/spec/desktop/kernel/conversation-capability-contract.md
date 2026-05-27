@@ -42,6 +42,10 @@ Desktop host bootstrap 是 conversation capability shared builder 的唯一 auth
   - `runtime.route.resolve(...)`
   - `runtime.route.checkHealth(...)`
   - `runtime.route.describe(...)`
+- Desktop builder 必须通过 SDK route facade 消费上述 logical operation；不得在
+  Desktop renderer/host 内实现 model-root normalization、local engine inference、
+  warm candidate selection、resolved binding assembly、或 source/model resolution
+  作为 execution route truth。
 - Desktop host 的 Phase 1 `runtime.route.describe(...)` facade 只能消费 Runtime
   route describe logical operation 的 typed result。若 transport 通过
   scenario route-describe probe 与 `x-nimi-route-describe-result` response metadata

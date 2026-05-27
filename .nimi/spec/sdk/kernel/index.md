@@ -34,6 +34,7 @@
 | `realm-group-agent-participation-client-contract.md` | `S-RUNTIME-*` | SDK typed consumer hardcut for Realm GROUP agent participation controls, context refs, candidates, status projection, and no prompt/provider/model/commit ownership |
 | `companion-participation-client-contract.md` | `S-RUNTIME-*` | SDK typed companion participation projection/control boundary for Avatar companion/persona/debug surfaces; no raw prompt/provider/APML/debug/domain payload transport |
 | `runtime-avatar-control-client-contract.md` | `S-RUNTIME-*` | SDK typed client boundary for Desktop Avatar configuration and Runtime-owned Avatar debug probe/replay methods; Avatar package client surface retired along with Asset Market |
+| `connector-auth-acquisition-contract.md` | `S-RUNTIME-*` | SDK/host typed facade boundary for third-party managed OAuth acquisition; Runtime remains sealed connector credential custodian |
 | `world-evolution-engine-projection-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 typed projection-only 边界 |
 | `world-evolution-engine-consumer-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 app consumer-facing API landing、selector-read stable method matrix、shared typed building blocks 与 no-leak hardcut |
 | `world-contract.md` | `S-WORLD-*` | `sdk/world` 的 public facade boundary、five-family coarse landing、world-input projection boundary、fixture package boundary、renderer orchestration boundary、world-session composition boundary |
@@ -56,6 +57,7 @@
 - `tables/sdk-realm-realtime-gates.yaml`
 - `tables/sdk-testing-gates.yaml`
 - `tables/runtime-avatar-control-methods.yaml`
+- `tables/connector-auth-acquisition-profiles.yaml`
 - `tables/runtime-agent-participation-methods.yaml`
 - `tables/rule-evidence.yaml`
 
