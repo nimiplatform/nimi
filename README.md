@@ -194,7 +194,7 @@ original Chinese content, not sentence-by-sentence translation.
 | `sdk/` | TypeScript SDK (`@nimiplatform/sdk`) |
 | `kit/` | Cross-app design system, auth, telemetry, and feature modules |
 | `proto/` | Protocol Buffers and gRPC definitions |
-| `apps/` | Showcase apps (Desktop, Web, Avatar, Forge, …) |
+| `apps/` | Active apps (Desktop, Web, Avatar, install gateway) |
 | `nimi-cognition/` | Cognition implementation workspace |
 | `docs/` | Public documentation source (VitePress) |
 | `examples/` | SDK / runtime / app scaffold templates |
