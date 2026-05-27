@@ -23,13 +23,7 @@ function createRuntimeMock() {
   const calls = {
     registerApp: [] as Array<Record<string, unknown>>,
     authorizeExternalPrincipal: [] as Array<Record<string, unknown>>,
-    sendAppMessage: [] as Array<Record<string, unknown>>,
     getBank: [] as Array<Record<string, unknown>>,
-    getAgent: [] as Array<Record<string, unknown>>,
-    initializeAgent: [] as Array<Record<string, unknown>>,
-    updateAgentState: [] as Array<Record<string, unknown>>,
-    writeMemory: [] as Array<Record<string, unknown>>,
-    queryMemory: [] as Array<Record<string, unknown>>,
   };
 
   const runtime = {
@@ -46,16 +40,6 @@ function createRuntimeMock() {
         return {
           tokenId: 'protected-token-id',
           secret: 'protected-token-secret',
-        };
-      },
-    },
-    app: {
-      sendMessage: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
-        calls.sendAppMessage.push({ ...input, __options: options });
-        return {
-          messageId: 'app-msg-1',
-          accepted: true,
-          reasonCode: ReasonCode.ACTION_EXECUTED,
         };
       },
     },
@@ -79,96 +63,6 @@ function createRuntimeMock() {
               modelId: 'local/embed-alpha',
             },
           },
-        };
-      },
-    },
-    agent: {
-      getAgent: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
-        calls.getAgent.push({ ...input, __options: options });
-        return {};
-      },
-      initializeAgent: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
-        calls.initializeAgent.push({ ...input, __options: options });
-        return {};
-      },
-      updateAgentState: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
-        calls.updateAgentState.push({ ...input, __options: options });
-        return {};
-      },
-      writeMemory: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
-        calls.writeMemory.push({ ...input, __options: options });
-        return {
-          accepted: [
-            {
-              canonicalClass: MemoryCanonicalClass.DYADIC,
-              sourceBank: {
-                owner: {
-                  oneofKind: 'agentDyadic',
-                  agentDyadic: {
-                    agentId: LOCAL_AGENT_REF,
-                    userId: 'user-1',
-                  },
-                },
-              },
-              record: {
-                memoryId: 'mem-1',
-                canonicalClass: MemoryCanonicalClass.DYADIC,
-                provenance: {
-                  sourceSystem: 'desktop.agent-chat',
-                  sourceEventId: 'turn-1',
-                  authorId: 'user-1',
-                  traceId: 'thread-1',
-                },
-                payload: {
-                  oneofKind: 'observational',
-                  observational: {
-                    observation: 'hello',
-                  },
-                },
-              },
-              recallScore: 1,
-              policyReason: 'desktop_agent_chat_dyadic_turn',
-            },
-          ],
-          rejected: [],
-        };
-      },
-      queryMemory: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
-        calls.queryMemory.push({ ...input, __options: options });
-        return {
-          memories: [
-            {
-              canonicalClass: MemoryCanonicalClass.PUBLIC_SHARED,
-              sourceBank: {
-                owner: {
-                  oneofKind: 'agentCore',
-                  agent: {
-                    agentId: LOCAL_AGENT_REF,
-                  },
-                },
-              },
-              record: {
-                memoryId: 'core-1',
-                canonicalClass: MemoryCanonicalClass.PUBLIC_SHARED,
-                provenance: {
-                  sourceSystem: 'desktop.agent-chat',
-                  sourceEventId: 'turn-2',
-                  authorId: LOCAL_AGENT_REF,
-                  traceId: 'thread-1',
-                },
-                payload: {
-                  oneofKind: 'observational',
-                  observational: {
-                    observation: 'remember this',
-                  },
-                },
-                createdAt: { seconds: '1714521600', nanos: 0 },
-                updatedAt: { seconds: '1714521600', nanos: 0 },
-              },
-              recallScore: 0,
-              policyReason: 'query_agent_memory_history',
-            },
-          ],
         };
       },
     },
