@@ -227,8 +227,10 @@ test('scaffolded unregistered asset imports refresh installed asset sections imm
   assert.match(localModelCenterImportActionsSource, /if \('scaffolded' in imported && imported\.scaffolded\) \{\s*await input\.props\.onDiscover\(\);\s*await input\.onRefreshAssetSections\(\);\s*await input\.onRefreshUnregisteredAssets\(\);\s*return;\s*\}/s);
 });
 
-test('installed attached-loopback assets expose a repair flow instead of forcing remove and reimport', () => {
+test('installed attached-endpoint assets expose runtime reason-code repair flow instead of forcing remove and reimport', () => {
   assert.match(installedSectionSource, /function assetNeedsAttachedEndpointRepair\(/);
+  assert.match(installedSectionSource, /asset\.reasonCode \|\| ''/);
+  assert.doesNotMatch(installedSectionSource, /127\.0\.0\.1:8321|127\.0\.0\.1:8330|defaultManagedEndpointForEngine/);
   assert.match(installedSectionSource, /runtimeConfig\.localModelCenter\.repair/);
   assert.match(installedSectionSource, /props\.onRepairAsset\(asset\.localAssetId, repairEndpoint\)/);
   assert.match(localModelCenterStateSource, /const repairInstalledAsset = useCallback/);

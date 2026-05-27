@@ -124,27 +124,6 @@ export type RuntimeConfigStateV11 = {
 
 export const DEFAULT_LOCAL_ENDPOINT_V11 = '';
 export const DEFAULT_CONNECTOR_ENDPOINT_V11 = '';
-let _runtimeConfigPlatformForTests: 'windows' | 'darwin' | 'linux' | 'unknown' | null = null;
-
-export function setRuntimeConfigPlatformForTests(value: 'windows' | 'darwin' | 'linux' | 'unknown' | null): void {
-  _runtimeConfigPlatformForTests = value;
-}
-
-function defaultEngineForCapabilities(capabilities: CapabilityV11[]): LocalModelOptionV11['engine'] {
-  if (capabilities.includes('image') || capabilities.includes('video')) {
-    return 'media';
-  }
-  if (capabilities.includes('tts') || capabilities.includes('stt')) {
-    return 'speech';
-  }
-  return 'llama';
-}
-
-function defaultEndpointForEngine(engine: LocalModelOptionV11['engine']): string {
-  if (engine === 'speech') return 'http://127.0.0.1:8330';
-  if (engine === 'media') return 'http://127.0.0.1:8321';
-  return engine === 'llama' ? DEFAULT_LOCAL_ENDPOINT_V11 : '';
-}
 
 function humanizeVendorId(value: string): string {
   const normalized = String(value || '').trim();
@@ -289,12 +268,12 @@ export function normalizeLocalModelV11(raw: Partial<LocalModelOptionV11>): Local
       || value === 'stt'
       || value === 'embedding'
     ));
-  const engine = String(raw.engine || defaultEngineForCapabilities(capabilities)).trim() || defaultEngineForCapabilities(capabilities);
+  const engine = String(raw.engine || '').trim();
   return {
     localModelId,
     engine,
     model: String(raw.model || localModelId).trim() || localModelId,
-    endpoint: normalizeEndpointV11(String(raw.endpoint || defaultEndpointForEngine(engine)), defaultEndpointForEngine(engine)),
+    endpoint: normalizeEndpointV11(String(raw.endpoint || DEFAULT_LOCAL_ENDPOINT_V11), DEFAULT_LOCAL_ENDPOINT_V11),
     capabilities: capabilities.length > 0 ? capabilities : ['chat'],
     status: raw.status === 'active' || raw.status === 'unhealthy' || raw.status === 'removed' ? raw.status : 'installed',
     integrityMode: raw.integrityMode === 'local_unverified' ? 'local_unverified' : 'verified',

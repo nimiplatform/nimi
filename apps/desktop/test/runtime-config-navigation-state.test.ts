@@ -6,7 +6,6 @@ import {
   DEFAULT_LOCAL_ENDPOINT_V11,
   normalizeLocalModelV11,
   normalizePageIdV11,
-  setRuntimeConfigPlatformForTests,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types';
 import {
   createDefaultStateV11,
@@ -325,57 +324,44 @@ test('state round-trip: persist activePage then normalize back correctly', () =>
   }
 });
 
-test('normalizeLocalModelV11: image and video models default to media with canonical endpoint', () => {
-  setRuntimeConfigPlatformForTests('windows');
-  try {
-    const image = normalizeLocalModelV11({
-      localModelId: 'local/flux-default',
-      model: 'flux/default',
-      capabilities: ['image'],
-    });
-    const video = normalizeLocalModelV11({
-      localModelId: 'local/wan-default',
-      model: 'wan/default',
-      capabilities: ['video'],
-    });
+test('normalizeLocalModelV11: does not infer engine or endpoint from capabilities', () => {
+  const image = normalizeLocalModelV11({
+    localModelId: 'local/flux-default',
+    model: 'flux/default',
+    capabilities: ['image'],
+  });
+  const video = normalizeLocalModelV11({
+    localModelId: 'local/wan-default',
+    model: 'wan/default',
+    capabilities: ['video'],
+  });
 
-    assert.equal(image.engine, 'media');
-    assert.equal(image.endpoint, 'http://127.0.0.1:8321');
-    assert.equal(video.engine, 'media');
-    assert.equal(video.endpoint, 'http://127.0.0.1:8321');
-  } finally {
-    setRuntimeConfigPlatformForTests(null);
-  }
+  assert.equal(image.engine, '');
+  assert.equal(image.endpoint, DEFAULT_LOCAL_ENDPOINT_V11);
+  assert.equal(video.engine, '');
+  assert.equal(video.endpoint, DEFAULT_LOCAL_ENDPOINT_V11);
 });
 
-test('normalizeLocalModelV11: embedding models default to llama without fake endpoint', () => {
-  setRuntimeConfigPlatformForTests('windows');
-  try {
-    const embedding = normalizeLocalModelV11({
-      localModelId: 'local/embed-default',
-      model: 'llama/embed',
-      capabilities: ['embedding'],
-    });
+test('normalizeLocalModelV11: preserves Runtime-projected engine and endpoint', () => {
+  const image = normalizeLocalModelV11({
+    localModelId: 'local/flux-default',
+    model: 'flux/default',
+    engine: 'media',
+    endpoint: 'http://runtime.local/media',
+    capabilities: ['image'],
+  });
 
-    assert.equal(embedding.engine, 'llama');
-    assert.equal(embedding.endpoint, DEFAULT_LOCAL_ENDPOINT_V11);
-  } finally {
-    setRuntimeConfigPlatformForTests(null);
-  }
+  assert.equal(image.engine, 'media');
+  assert.equal(image.endpoint, 'http://runtime.local/media');
 });
 
-test('normalizeLocalModelV11: non-windows image models also use media canonical endpoint', () => {
-  setRuntimeConfigPlatformForTests('darwin');
-  try {
-    const image = normalizeLocalModelV11({
-      localModelId: 'local/flux-default',
-      model: 'flux/default',
-      capabilities: ['image'],
-    });
+test('normalizeLocalModelV11: embedding models keep blank endpoint when Runtime does not project one', () => {
+  const embedding = normalizeLocalModelV11({
+    localModelId: 'local/embed-default',
+    model: 'llama/embed',
+    capabilities: ['embedding'],
+  });
 
-    assert.equal(image.engine, 'media');
-    assert.equal(image.endpoint, 'http://127.0.0.1:8321');
-  } finally {
-    setRuntimeConfigPlatformForTests(null);
-  }
+  assert.equal(embedding.engine, '');
+  assert.equal(embedding.endpoint, DEFAULT_LOCAL_ENDPOINT_V11);
 });

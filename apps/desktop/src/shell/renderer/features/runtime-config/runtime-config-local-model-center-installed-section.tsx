@@ -44,31 +44,11 @@ type InstalledAssetsSectionProps = {
   onRescanAsset: (localAssetId: string) => void;
 };
 
-function defaultManagedEndpointForEngine(engine: string): string {
-  const normalized = String(engine || '').trim().toLowerCase();
-  if (normalized === 'media') {
-    return 'http://127.0.0.1:8321/v1';
-  }
-  if (normalized === 'speech') {
-    return 'http://127.0.0.1:8330/v1';
-  }
-  return '';
-}
-
 function assetNeedsAttachedEndpointRepair(asset: LocalRuntimeAssetRecord): boolean {
-  const engine = String(asset.engine || '').trim().toLowerCase();
-  if (engine !== 'media' && engine !== 'speech') {
-    return false;
-  }
   if (asset.engineRuntimeMode !== 'attached-endpoint') {
     return false;
   }
-  const defaultEndpoint = defaultManagedEndpointForEngine(engine);
-  const currentEndpoint = String(asset.endpoint || '').trim().replace(/\/+$/, '');
-  if (!defaultEndpoint || currentEndpoint !== defaultEndpoint.replace(/\/+$/, '')) {
-    return false;
-  }
-  return String(asset.source.repo || '').trim().toLowerCase().startsWith('file://');
+  return String(asset.reasonCode || '').trim() === 'AI_LOCAL_ENDPOINT_REQUIRED';
 }
 
 function assetSupportsBundleRescan(asset: LocalRuntimeAssetRecord): boolean {

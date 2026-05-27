@@ -55,7 +55,7 @@ function toRuntimeConfigLocalModel(
 ): RuntimeConfigStateV11['local']['models'][number] {
   return {
     localModelId: model.localAssetId || '',
-    engine: model.engine || 'llama',
+    engine: model.engine || '',
     model: model.assetId || '',
     endpoint: '',
     capabilities: (model.capabilities || []).filter(
