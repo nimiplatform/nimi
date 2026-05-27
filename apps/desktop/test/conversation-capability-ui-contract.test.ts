@@ -34,9 +34,19 @@ function findFilesContaining(pattern: RegExp): string[] {
     .sort();
 }
 
-test('conversation capability UI contract: runtimeFields projection still only reads text.generate', () => {
+test('conversation capability UI contract: runtimeFields no longer mirrors route projection truth', () => {
   const runtimeSliceSource = readSource('src/shell/renderer/app-shell/providers/runtime-slice.ts');
-  assert.match(runtimeSliceSource, /const textProjection = nextProjectionByCapability\['text\.generate'\] \|\| null;/);
+  const storeTypesSource = readSource('src/shell/renderer/app-shell/providers/store-types.ts');
+  const conversationCapabilitySource = readSource('src/shell/renderer/features/chat/conversation-capability.ts');
+  assert.match(runtimeSliceSource, /const RETIRED_ROUTE_RUNTIME_FIELD_KEYS = new Set\(\[/);
+  assert.doesNotMatch(runtimeSliceSource, /setRuntimeRouteProjection/);
+  assert.doesNotMatch(runtimeSliceSource, /toConversationCapabilityRouteProjectionFields/);
+  assert.doesNotMatch(storeTypesSource, /setRuntimeRouteProjection/);
+  assert.doesNotMatch(storeTypesSource, /\bprovider: string;/);
+  assert.doesNotMatch(storeTypesSource, /\blocalProviderEndpoint: string;/);
+  assert.doesNotMatch(storeTypesSource, /\bconnectorId: string;/);
+  assert.doesNotMatch(conversationCapabilitySource, /toConversationCapabilityRouteProjectionFields/);
+  assert.doesNotMatch(runtimeSliceSource, /nextProjectionByCapability\['text\.generate'\][\s\S]*runtimeFields:/);
   assert.doesNotMatch(runtimeSliceSource, /nextProjectionByCapability\['image\.generate'\]/);
   assert.doesNotMatch(runtimeSliceSource, /nextProjectionByCapability\['audio\.synthesize'\]/);
   assert.doesNotMatch(runtimeSliceSource, /nextProjectionByCapability\['voice_workflow\.voice_clone'\]/);

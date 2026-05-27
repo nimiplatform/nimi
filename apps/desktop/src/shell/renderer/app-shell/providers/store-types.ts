@@ -52,16 +52,9 @@ export type RuntimeFieldMap = {
   agentId: string;
   targetId: string;
   worldId: string;
-  provider: string;
-  runtimeModelType: string;
-  localProviderEndpoint: string;
-  localProviderModel: string;
-  localOpenAiEndpoint: string;
-  connectorId: string;
   mode: 'STORY' | 'SCENE_TURN';
   turnIndex: number;
   userConfirmedUpload: boolean;
-  [key: string]: string | number | boolean;
 };
 
 export type StatusBanner = {
@@ -118,9 +111,8 @@ export type AppStoreState = {
   setAuthBootstrapping: () => void;
   setAuthSession: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;
   clearAuthSession: () => void;
-  setRuntimeField: (key: string, value: string | number | boolean) => void;
+  setRuntimeField: (key: keyof RuntimeFieldMap, value: string | number | boolean) => void;
   setRuntimeFields: (updates: Partial<RuntimeFieldMap>) => void;
-  setRuntimeRouteProjection: (updates: Partial<RuntimeFieldMap>) => void;
   setAIConfig: (config: AIConfig) => void;
   applyAIProfile: (profile: AIProfile) => void;
   /**
@@ -176,12 +168,6 @@ export const INITIAL_RUNTIME_FIELDS: RuntimeFieldMap = {
   agentId: '',
   targetId: '',
   worldId: '',
-  provider: '',
-  runtimeModelType: 'chat',
-  localProviderEndpoint: '',
-  localProviderModel: '',
-  localOpenAiEndpoint: '',
-  connectorId: '',
   mode: 'STORY',
   turnIndex: 1,
   userConfirmedUpload: false,

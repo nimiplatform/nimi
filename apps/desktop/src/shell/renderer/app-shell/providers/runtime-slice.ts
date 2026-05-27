@@ -4,9 +4,6 @@ import {
   scopeKeyFromRef,
 } from './desktop-ai-config-storage';
 import {
-  toConversationCapabilityRouteProjectionFields,
-} from '@renderer/features/chat/conversation-capability';
-import {
   bindDesktopAIConfigAppStore,
   getDesktopAIConfigService,
 } from './desktop-ai-config-service';
@@ -15,7 +12,7 @@ import { bindProjectionRefreshToSurface } from '@renderer/features/chat/conversa
 import { applyAIProfileToConfig } from '@nimiplatform/sdk/ai';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
 
-const ROUTE_RELATED_RUNTIME_FIELD_KEYS = new Set([
+const RETIRED_ROUTE_RUNTIME_FIELD_KEYS = new Set([
   'provider',
   'runtimeModelType',
   'localProviderEndpoint',
@@ -33,7 +30,6 @@ type RuntimeSlice = Pick<AppStoreState,
   | 'setRuntimeDefaults'
   | 'setRuntimeField'
   | 'setRuntimeFields'
-  | 'setRuntimeRouteProjection'
   | 'setAIConfig'
   | 'applyAIProfile'
   | 'setConversationCapabilityBinding'
@@ -83,12 +79,6 @@ export function createRuntimeSlice(set: AppStoreSet): RuntimeSlice {
           agentId: String(defaults.runtime.agentId || ''),
           targetId: '',
           worldId: String(defaults.runtime.worldId || ''),
-          provider: '',
-          runtimeModelType: 'chat',
-          localProviderEndpoint: '',
-          localProviderModel: '',
-          localOpenAiEndpoint: '',
-          connectorId: '',
           mode: 'STORY',
           turnIndex: 1,
           userConfirmedUpload: Boolean(defaults.runtime.userConfirmedUpload),
@@ -96,7 +86,7 @@ export function createRuntimeSlice(set: AppStoreSet): RuntimeSlice {
       }),
     setRuntimeField: (key, value) =>
       set((state) => {
-        if (ROUTE_RELATED_RUNTIME_FIELD_KEYS.has(key)) {
+        if (RETIRED_ROUTE_RUNTIME_FIELD_KEYS.has(String(key))) {
           return {};
         }
         return {
@@ -109,7 +99,7 @@ export function createRuntimeSlice(set: AppStoreSet): RuntimeSlice {
     setRuntimeFields: (updates) =>
       set((state) => {
         const allowedEntries = Object.entries(updates).filter(([key, value]) => (
-          value !== undefined && !ROUTE_RELATED_RUNTIME_FIELD_KEYS.has(key)
+          value !== undefined && !RETIRED_ROUTE_RUNTIME_FIELD_KEYS.has(key)
         ));
         if (allowedEntries.length === 0) {
           return {};
@@ -123,18 +113,6 @@ export function createRuntimeSlice(set: AppStoreSet): RuntimeSlice {
           ) as AppStoreState['runtimeFields'],
         };
       }),
-    setRuntimeRouteProjection: (updates) =>
-      set((state) => ({
-        runtimeFields: {
-          ...state.runtimeFields,
-          provider: String(updates.provider || ''),
-          runtimeModelType: String(updates.runtimeModelType || 'chat'),
-          localProviderEndpoint: String(updates.localProviderEndpoint || ''),
-          localProviderModel: String(updates.localProviderModel || ''),
-          localOpenAiEndpoint: String(updates.localOpenAiEndpoint || ''),
-          connectorId: String(updates.connectorId || ''),
-        },
-      })),
     setAIConfig: (config) => {
       // Delegate to surface as unified write owner. commitConfig inside
       // the surface handles persistence + in-memory + app store push + subscribers.
@@ -170,13 +148,8 @@ export function createRuntimeSlice(set: AppStoreSet): RuntimeSlice {
           ...state.conversationCapabilityProjectionByCapability,
           ...projections,
         };
-        const textProjection = nextProjectionByCapability['text.generate'] || null;
         return {
           conversationCapabilityProjectionByCapability: nextProjectionByCapability,
-          runtimeFields: {
-            ...state.runtimeFields,
-            ...toConversationCapabilityRouteProjectionFields(textProjection),
-          },
         };
       }),
     setAgentEffectiveCapabilityResolution: (resolution) =>
