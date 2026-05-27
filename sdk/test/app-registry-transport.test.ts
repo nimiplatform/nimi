@@ -34,15 +34,15 @@ const rows: readonly NimiAppRegistrySourceRow[] = [
     admissionStatus: 'admitted',
   },
   {
-    appId: 'nimi.tester',
+    appId: 'nimi.dev-tool',
     appKind: 'nimi-app',
-    displayName: 'Tester',
+    displayName: 'Developer Tool',
     publisher: 'nimi-first-party',
     trustTier: 'nimi-first-party',
     ordinaryVisibility: 'developer-only',
-    releaseDescriptorRef: 'nimi.tester.bundled-with-nimi',
+    releaseDescriptorRef: 'nimi.dev-tool.bundled-with-nimi',
     installStoragePolicyRef: 'nimi-data-app-roots',
-    sourceRule: 'P-NAPP-016',
+    sourceRule: 'P-NAPP-011',
     admissionStatus: 'admitted',
   },
 ];
@@ -93,26 +93,26 @@ const descriptors: readonly NimiAppReleaseDescriptorRow[] = [
     sourceRule: 'P-NAPP-014',
   },
   {
-    descriptorId: 'nimi.tester.bundled-with-nimi',
-    appId: 'nimi.tester',
+    descriptorId: 'nimi.dev-tool.bundled-with-nimi',
+    appId: 'nimi.dev-tool',
     version: 'bundled-with-current-nimi-release',
     descriptorClass: 'bundled-with-nimi',
     sourceKind: 'nimi-bundle',
     sourceRef: 'current-atomic-nimi-release',
     artifactLocator: 'current-nimi-release-bundle',
     digestAlgorithm: 'sha256',
-    sha256: 'tester-sha',
+    sha256: 'dev-tool-sha',
     size: '300',
     provenanceRef: 'nimi-first-party-signature-policy',
     packageKind: 'nimi-app',
-    entryRef: 'tester-runtime-registration',
+    entryRef: 'dev-tool-runtime-registration',
     sandboxRef: 'first-party-bundled-app',
-    permissionsRef: 'nimi.tester.permission_scope_ref',
+    permissionsRef: 'nimi.dev-tool.permission_scope_ref',
     storagePolicyRef: 'nimi-data-app-roots',
     admissionPath: 'first-party-bundled-release',
     mutableSourceAllowed: false,
     installDigestVerificationRequired: 'inherited_from_atomic_bundle',
-    sourceRule: 'P-NAPP-016',
+    sourceRule: 'P-NAPP-011',
   },
 ];
 
@@ -188,11 +188,11 @@ describe('Nimi App registry transport', () => {
     await assert.rejects(transport.get('nimi.avatar'), NimiAppRegistryTransportError);
   });
 
-  it('blocks developer-only Tester from ordinary app projection', async () => {
+  it('blocks developer-only apps from ordinary app projection', async () => {
     const transport = createNimiAppRegistryTransport({ loadRows: () => rows, loadReleaseDescriptors: () => descriptors });
     assert.deepEqual((await transport.list()).map((row) => row.appId), ['nimi.example-app']);
-    await assert.rejects(transport.get('nimi.tester'), NimiAppRegistryTransportError);
-    await assert.rejects(transport.status('nimi.tester'), NimiAppRegistryTransportError);
+    await assert.rejects(transport.get('nimi.dev-tool'), NimiAppRegistryTransportError);
+    await assert.rejects(transport.status('nimi.dev-tool'), NimiAppRegistryTransportError);
   });
 
   it('does not let host install evidence mark ready without matching descriptor digest', async () => {

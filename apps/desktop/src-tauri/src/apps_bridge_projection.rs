@@ -117,7 +117,7 @@ pub struct AppsBridgeProjection {
 ///
 /// The SDK transport applies its own ordinary-visible + admitted filter; this
 /// command projects every catalog row in its true catalog shape so that filter
-/// can run. Avatar (`hidden-internal`) and Tester (`developer-only`) are
+/// can run. Avatar (`hidden-internal`) is
 /// projected with their true `ordinary_visibility`, so the SDK filter drops
 /// them from the ordinary Apps surface.
 fn project_registry_row(row: &PlatformNimiAppRegistryRow) -> BridgeRegistryRow {
@@ -282,20 +282,14 @@ mod tests {
             );
             // No install evidence on a fresh data root.
             assert!(projection.install_evidence.is_empty());
-            // Avatar/Tester are projected with their true visibility so the SDK
-            // transport filter drops them from ordinary Apps.
+            // Avatar is projected with its true visibility so the SDK transport
+            // filter drops it from ordinary Apps.
             let avatar = projection
                 .registry_rows
                 .iter()
                 .find(|row| row.app_id == "nimi.avatar")
                 .expect("avatar row");
             assert_eq!(avatar.ordinary_visibility, "hidden-internal");
-            let tester = projection
-                .registry_rows
-                .iter()
-                .find(|row| row.app_id == "nimi.tester")
-                .expect("tester row");
-            assert_eq!(tester.ordinary_visibility, "developer-only");
         });
     }
 

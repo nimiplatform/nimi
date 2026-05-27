@@ -2,8 +2,7 @@
  * Developer Mode gating resolver (`D-DEV-002`, `D-DEV-007`).
  *
  * Developer Mode is the single discoverable switch that controls every
- * developer / internal surface: the `Developer Tools` tab and the embedded
- * Tester. Per `D-DEV-002` it MUST be reachable from a
+ * developer / internal surface. Per `D-DEV-002` it MUST be reachable from a
  * discoverable in-app location (canonically `Settings`) and MUST NOT be
  * reachable only through launch parameters or environment variables.
  *

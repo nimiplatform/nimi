@@ -189,7 +189,7 @@ test('dev-standalone Runtime AI text.generate issues sdk-v2 protected spend toke
   try {
     const projection = await createNimiAppRuntimePlatformClient({
       mode: 'dev-standalone',
-      appId: 'nimi.tester',
+      appId: 'nimi.example-app',
       realmBaseUrl: 'https://realm.example',
       runtimeTransport: {
         type: 'node-grpc',
@@ -211,13 +211,13 @@ test('dev-standalone Runtime AI text.generate issues sdk-v2 protected spend toke
       input: 'Reply with exactly: nimi runtime llm ok',
       metadata: {
         callerKind: 'third-party-app',
-        callerId: 'nimi.tester',
-        surfaceId: 'nimi.tester.ai.text.generate.smoke',
+        callerId: 'nimi.example-app',
+        surfaceId: 'nimi.example-app.ai.text.generate.smoke',
       },
     });
 
     assert.equal(output.text, 'nimi runtime llm ok');
-    assert.equal(registeredAppId, 'nimi.tester');
+    assert.equal(registeredAppId, 'nimi.example-app');
     assert.equal(authorizedScopeCatalogVersion, 'sdk-v2');
     assert.deepEqual(authorizedScopes, ['ai.spend.meter']);
     assert.equal(authorizedSubjectUserId, 'developer-local');

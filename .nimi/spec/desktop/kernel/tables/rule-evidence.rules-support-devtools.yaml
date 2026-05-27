@@ -35,8 +35,6 @@ entries:
 - D-DEV-001
 - D-DEV-002
 - D-DEV-003
-- D-DEV-005
-- D-DEV-006
 - D-DEV-007
 rules:
 - rule_id: D-SUP-001
@@ -80,14 +78,6 @@ rules:
   - desktop_kernel_consistency
   evidence_requirement: required
 - rule_id: D-DEV-003
-  evidence_refs:
-  - desktop_kernel_consistency
-  evidence_requirement: required
-- rule_id: D-DEV-005
-  evidence_refs:
-  - desktop_kernel_consistency
-  evidence_requirement: required
-- rule_id: D-DEV-006
   evidence_refs:
   - desktop_kernel_consistency
   evidence_requirement: required

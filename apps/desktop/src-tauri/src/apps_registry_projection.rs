@@ -2,7 +2,7 @@
 //! Nimi App registry.
 //!
 //! Product owner: Platform / Nimi App registry projection (product manual
-//! `~/.nimi/apps/registry.json` subsection; `P-NAPP-001..P-NAPP-016`).
+//! `~/.nimi/apps/registry.json` subsection; `P-NAPP-*`).
 //!
 //! This file is a READ-ONLY projection of Platform catalog truth. It is
 //! regenerated deterministically from the packaged Platform Nimi App registry
@@ -14,7 +14,7 @@
 //! as the Apps bridge source (T4 Fork C). The Apps page consumes this
 //! projection, never app-local spec admission directly.
 //!
-//! Avatar (`hidden-internal`) and Tester (`developer-only`) are projected as
+//! Avatar (`hidden-internal`) is projected as
 //! rows for package/update coordination, but the registry row's `visibility`
 //! field carries their true catalog visibility — they are never projected as
 //! `visibility='ordinary'`. The ordinary-visible filter is applied by the
@@ -132,7 +132,7 @@ pub fn apps_registry_path() -> Result<PathBuf, String> {
 }
 
 /// Project the catalog `ordinary_visibility` axis onto the product-facing
-/// `visibility` field. Avatar stays `hidden-internal`, Tester stays
+/// `visibility` field. Avatar stays `hidden-internal`.
 /// `developer-only` — neither is ever projected as `ordinary`.
 fn project_visibility(ordinary_visibility: &str) -> Result<&'static str, String> {
     match ordinary_visibility {
@@ -437,13 +437,6 @@ mod tests {
             .expect("avatar row");
         assert_eq!(avatar.visibility, "hidden-internal");
         assert_ne!(avatar.visibility, "ordinary");
-        let tester = record
-            .apps
-            .iter()
-            .find(|row| row.app_id == "nimi.tester")
-            .expect("tester row");
-        assert_eq!(tester.visibility, "developer-only");
-        assert_ne!(tester.visibility, "ordinary");
         assert!(
             record.apps.iter().all(|row| row.visibility != "ordinary"),
             "this cut admits no ordinary-visible first-party app rows"
@@ -460,13 +453,6 @@ mod tests {
             .expect("avatar row");
         // Avatar is gated_by_avatar_master_gate -> blocked, not bundled.
         assert_eq!(avatar.install_state, "blocked");
-        let tester = record
-            .apps
-            .iter()
-            .find(|row| row.app_id == "nimi.tester")
-            .expect("tester row");
-        // Tester is admitted + bundled-with-nimi but remains developer-only.
-        assert_eq!(tester.install_state, "bundled");
     }
 
     #[test]

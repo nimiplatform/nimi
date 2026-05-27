@@ -15,7 +15,6 @@ export const kernelFiles = [
   '.nimi/spec/desktop/kernel/auth-session-contract.md',
   '.nimi/spec/desktop/kernel/data-sync-contract.md',
   '.nimi/spec/desktop/kernel/llm-adapter-contract.md',
-  '.nimi/spec/desktop/kernel/world-tour-tester-contract.md',
   '.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md',
   '.nimi/spec/desktop/kernel/agent-avatar-configuration-contract.md',
   '.nimi/spec/desktop/kernel/agent-avatar-debug-workbench-contract.md',

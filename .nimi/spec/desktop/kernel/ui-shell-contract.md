@@ -25,8 +25,7 @@ Tab 分组：
    gift-inbox、privacy-policy、terms-of-service。
 
 `World` 必须折入 `Explore`；`AI Runtime` 的普通产品 label 必须为
-`Runtime`；`AI Tester` 只能作为 Nimi App admission candidate 或
-developer/internal surface，不得作为普通 primary nav 项。
+`Runtime`。
 
 Feature flag 门控：
 - `enableRuntimeTab` 不得控制普通 Runtime primary nav 是否存在；Runtime 是

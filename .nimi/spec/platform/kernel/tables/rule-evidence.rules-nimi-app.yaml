@@ -38,7 +38,6 @@ entries:
 - P-NAPP-013
 - P-NAPP-014
 - P-NAPP-015
-- P-NAPP-016
 - P-NAPP-017
 - P-NAPP-018
 - P-NAPP-019
@@ -147,13 +146,6 @@ rules:
   evidence_requirement: structural_required
   evidence_scope_note: structural only; app install storage enforcement lands with
     Runtime/SDK/Desktop install and uninstall tests
-- rule_id: P-NAPP-016
-  evidence_refs:
-  - platform_kernel_consistency
-  - canonical_capability_catalog_gate
-  evidence_requirement: structural_required
-  evidence_scope_note: structural only; developer-only Tester App admission is enforced
-    by registry/descriptor cross-table validation and SDK ordinary projection filtering
 - rule_id: P-NAPP-017
   evidence_refs:
   - platform_kernel_consistency

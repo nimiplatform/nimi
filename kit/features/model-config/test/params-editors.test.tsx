@@ -174,12 +174,12 @@ describe('AudioSynthesizeParamsEditor', () => {
         params={next}
         voiceOptions={[{
           value: { kind: 'voice_asset_id', voiceAssetId: '01KQCHXDMP0E65RZBV4X9XQ27Q' },
-          label: 'tester-design · asset',
+          label: 'design-sample · asset',
         }]}
         onParamsChange={(value) => { next = value; }}
       />,
     );
-    expect(container?.textContent).toContain('tester-design · asset');
+    expect(container?.textContent).toContain('design-sample · asset');
     const select = container?.querySelector('select') as HTMLSelectElement;
     await act(async () => {
       select.value = 'asset:01KQCHXDMP0E65RZBV4X9XQ27Q';

@@ -340,18 +340,6 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-094
 
-  - family: tester_and_world_tour_local_fixtures
-    match:
-      regex: "^(tester_.*|resolve_world_tour_fixture|save_world_tour_viewer_preset)$"
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: desktop-test-fixtures
-    execution_class: bounded_blocking_with_admission
-    remediation_required: false
-    admitted_risks:
-      - std_fs
-      - sync_lock_contention
-    source_rule: D-GATE-092
-
   - family: system_resource_snapshot
     match:
       exact:

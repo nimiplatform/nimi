@@ -58,9 +58,8 @@ test('D-SHELL-001: AppTab type excludes retired mods page', () => {
   assert.doesNotMatch(storeTypesSource, /\bAppTab\b[\s\S]*?\|\s*'mods'/);
 });
 
-test('D-SHELL-001: AppTab type excludes retired primary world and tester tabs', () => {
+test('D-SHELL-001: AppTab type excludes retired primary world tab', () => {
   assert.doesNotMatch(storeTypesSource, /\bAppTab\b[\s\S]*?\|\s*'world'/);
-  assert.doesNotMatch(storeTypesSource, /\bAppTab\b[\s\S]*?\|\s*'tester'/);
 });
 
 test('D-SHELL-001: core nav source is the product primary order', () => {
@@ -68,7 +67,6 @@ test('D-SHELL-001: core nav source is the product primary order', () => {
   const coreIds = itemMatches.map((match) => match[1]);
   const labelsById = new Map(itemMatches.map((match) => [match[1], match[2]]));
   assert.deepEqual(coreIds, ['home', 'chat', 'explore', 'apps', 'runtime']);
-  assert.equal(coreIds.includes('tester'), false);
   assert.equal(coreIds.includes('world'), false);
   assert.equal(labelsById.get('runtime'), 'Runtime');
   assert.equal(labelsById.get('apps'), 'Apps');

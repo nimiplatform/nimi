@@ -156,7 +156,7 @@ function WorldDetailPageBody({
   const oasisSceneActionKeyById: Record<string, string> = {
     'oasis-scene-plaza': 'oasisPlaza',
     'oasis-scene-transit-hub': 'oasisTransitHub',
-    'oasis-scene-creator-forge': 'oasisCreatorForge',
+    'oasis-scene-creator-studio': 'oasisCreatorStudio',
     'oasis-scene-chat-core': 'oasisChatCore',
     'oasis-scene-notice-spire': 'oasisNoticeSpire',
   };

@@ -13,14 +13,14 @@ import {
 
 export const DEVELOPER_TOOLS_SELECTED_STORAGE_KEY = 'nimi.developer-tools.selected';
 
-/** Read the persisted Developer Tools sub-area, falling back to `tester`. */
+/** Read the persisted Developer Tools sub-area, falling back to diagnostics. */
 export function loadStoredDeveloperToolsSection(): DeveloperToolsSectionId {
   try {
     return resolveDeveloperToolsSection(
       localStorage.getItem(DEVELOPER_TOOLS_SELECTED_STORAGE_KEY),
     );
   } catch {
-    return 'tester';
+    return 'diagnostics';
   }
 }
 

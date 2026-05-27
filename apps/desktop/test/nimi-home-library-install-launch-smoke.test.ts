@@ -31,7 +31,7 @@ describe('Nimi Home Library / install / launch smoke', () => {
     assert.deepEqual(library.entries.map((entry) => entry.app.appId), []);
   });
 
-  it('keeps hidden and developer-only Apps out of ordinary Library and installable Discovery', async () => {
+  it('keeps hidden Apps out of ordinary Library and installable Discovery', async () => {
     const client = createPlatformRegistryClient();
     const library = await projectLibrary(client);
     const discovery = await projectDiscovery(client);
@@ -45,13 +45,6 @@ describe('Nimi Home Library / install / launch smoke', () => {
       discovery.entries.some((entry) => entry.app.appId === 'nimi.avatar'),
       false,
       'Avatar must not appear in installable Discovery while master gate is open',
-    );
-    const tester = library.entries.find((entry) => entry.app.appId === 'nimi.tester');
-    assert.equal(tester, undefined, 'Tester must not be projected in ordinary Library');
-    assert.equal(
-      discovery.entries.some((entry) => entry.app.appId === 'nimi.tester'),
-      false,
-      'Tester must not appear in installable Discovery while developer-only',
     );
   });
 

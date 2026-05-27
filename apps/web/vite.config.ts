@@ -128,10 +128,6 @@ export default defineConfig(({ mode }) => {
           replacement: path.resolve(__dirname, 'src/desktop-adapter/runtime-config-panel.web.tsx'),
         },
         {
-          find: '@renderer/features/tester/world-tour-viewer-route',
-          replacement: path.resolve(__dirname, 'src/desktop-adapter/world-tour-viewer-route.web.tsx'),
-        },
-        {
           find: /^@renderer\/bridge$/,
           replacement: path.resolve(__dirname, 'src/desktop-adapter/bridge.web.ts'),
         },

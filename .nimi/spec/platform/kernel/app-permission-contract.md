@@ -116,20 +116,13 @@ schema；Wave 3 `pending_wave_4` 占位字符串在 Wave 4 close 后必须全部
 
 ## P-PERM-009 — First-Party Seed Grant Set
 
-`MUST`：Wave 5 first-party target 与 developer-only `nimi.tester` 的 grant
-set admitted 如下：
+`MUST`：Wave 5 first-party target 的 grant set admitted 如下：
 
 - `nimi.avatar`：`account.session.read`, `agent.identity.project`,
   `memory.read.bounded` (qualifier=persona-scoped),
   `memory.write.admitted` (qualifier=session-scoped),
   `ai.spend.meter`, `device.use.scoped`, `file.read.scoped`,
   `ai_profile.selection.consume`。
-- `nimi.tester`：`account.session.read`, `ai_profile.selection.consume`,
-  `ai.spend.meter`, `file.read.scoped` (qualifier=tester-fixture-root),
-  `file.write.scoped` (qualifier=tester-app-storage), `audit.read.scoped`
-  (qualifier=tester-run-evidence)。`nimi.tester` remains developer-only and
-  must not receive ordinary user Apps visibility through this seed grant.
-
 `MUST NOT`：first-party seed grant 不得 admit 超出本枚举的 scope；
 Avatar Wave 5 集成仍受 Avatar 产品化 master gate 约束。
 

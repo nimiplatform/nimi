@@ -7,7 +7,7 @@
 //      one of the 11 canonical states per the per-reason-code mapping
 //      (`repair_required` default) — P-NAPP-008 / manual line 962 forbid a
 //      collapsed "Unavailable" card.
-//   2. Registry-only visibility: Shiji / Tester / deferred rows (and any
+//   2. Registry-only visibility: internal / deferred rows (and any
 //      non-`ordinary-visible` or non-`admitted` workspace) do NOT surface in
 //      the Apps panel before admission (manual lines 880-882, P-NAPP-009,
 //      S-APP-009). A negative fixture proves the SDK ordinary-visible filter
@@ -180,8 +180,8 @@ describe('T4-W5 — registry-only visibility: non-ordinary rows excluded before 
     // ordinary-visible app) surfaces.
     const rows: readonly NimiAppRegistrySourceRow[] = [
       registryRow('nimi.example-app', 'Example App', 'ordinary-visible', 'admitted'),
-      // Tester is admitted but developer-only — never an ordinary App.
-      registryRow('nimi.tester', 'Tester', 'developer-only', 'admitted'),
+      // Developer-only rows are admitted for internal tooling but never ordinary Apps.
+      registryRow('nimi.dev-tool', 'Developer Tool', 'developer-only', 'admitted'),
       // Deferred workspaces are not admitted as ordinary Apps.
       registryRow('nimi.deferred-tool', 'Deferred Tool', 'not-admitted-visible', 'deferred'),
       // A hidden-internal workspace.
@@ -200,7 +200,7 @@ describe('T4-W5 — registry-only visibility: non-ordinary rows excluded before 
 
     const surfaced = projection.entries.map((entry) => entry.app.appId);
     assert.deepEqual(surfaced, ['nimi.example-app']);
-    for (const excluded of ['nimi.tester', 'nimi.deferred-tool', 'nimi.internal-tool']) {
+    for (const excluded of ['nimi.dev-tool', 'nimi.deferred-tool', 'nimi.internal-tool']) {
       assert.equal(
         surfaced.includes(excluded),
         false,

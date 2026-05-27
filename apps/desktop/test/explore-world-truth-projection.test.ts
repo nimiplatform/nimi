@@ -23,7 +23,7 @@ test('ExploreView takes featured world data only from World truth banners', () =
   assert.doesNotMatch(exploreViewSource, /featuredWorlds/);
   assert.doesNotMatch(exploreCardsSource, /FeaturedWorldCard/);
   assert.doesNotMatch(exploreCardsSource, /FeaturedWorldCardData/);
-  assert.doesNotMatch(`${explorePanelSource}\n${exploreViewSource}\n${exploreCardsSource}`, /world-tour|World Tour|tester/i);
+  assert.doesNotMatch(`${explorePanelSource}\n${exploreViewSource}\n${exploreCardsSource}`, /world-tour|World Tour/i);
   assert.match(exploreViewSource, /worldsWithBanners = props\.worldBanners\.filter/);
   // Featured-world hero lives inside the Worlds section and opens the World it
   // projects via onWorldOpen.

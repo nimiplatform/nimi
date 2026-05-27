@@ -7,9 +7,8 @@
  * mounted only when admitted Developer Mode is on — the renderer enforces that
  * gate before this panel is ever reached (`main-layout-view.tsx`).
  *
- * The host renders a fixed developer sub-area sidebar (`D-DEV-003`:
- * standalone Tester reference and developer diagnostics) and dispatches the
- * active sub-area. It hosts no ordinary-user product functionality.
+ * The host renders developer diagnostics. It hosts no ordinary-user product
+ * functionality.
  */
 
 import { useCallback, useState } from 'react';
@@ -32,13 +31,10 @@ import {
   loadStoredDeveloperToolsSection,
   persistStoredDeveloperToolsSection,
 } from './developer-tools-storage.js';
-import { DeveloperTesterSection } from './developer-tester-section.js';
 import { SupportDiagnosticsSection } from '@renderer/features/support/support-diagnostics-section.js';
 
 function renderDeveloperToolsSection(section: DeveloperToolsSectionId) {
   switch (section) {
-    case 'tester':
-      return <DeveloperTesterSection />;
     case 'diagnostics':
       // D-DEV-003 technical diagnostics — reuses the typed diagnostics
       // projection surface rather than recreating a parallel diagnostics view.

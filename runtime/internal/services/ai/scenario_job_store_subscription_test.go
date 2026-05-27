@@ -219,8 +219,8 @@ func TestSubmitScenarioJobDashScopeVoiceDesignUsesAPIModelTarget(t *testing.T) {
 					TargetModelId: "dashscope/qwen3-tts-vd",
 					Input: &runtimev1.VoiceT2VInput{
 						InstructionText: "Warm, clear Mandarin speaking voice with steady pacing.",
-						PreviewText:     "Hello from the desktop tester voice design workflow.",
-						PreferredName:   "tester-design",
+						PreviewText:     "Hello from the desktop voice design workflow.",
+						PreferredName:   "design-sample",
 					},
 				},
 			},

@@ -29,7 +29,6 @@
 | `auth-session-contract.md` | `D-AUTH-*` | 会话生命周期、token 持久化 |
 | `data-sync-contract.md` | `D-DSYNC-*` | DataSync 业务流规则 |
 | `llm-adapter-contract.md` | `D-LLM-*` | Provider 适配与路由边界 |
-| `world-tour-tester-contract.md` | `D-LLM-*` | Developer-only `nimi.tester` World Tour authority：`world.generate` baseline end-to-end acceptance semantics、runtime-owned route/job/result consumption、Spark 2.0 SPZ render proof、app-owned fixture custody；Desktop-embedded Tester is frozen migration source only and does not own ordinary primary navigation / Explore / canonical Realm world truth |
 | `conversation-capability-contract.md` | `D-LLM-*` | Conversation capability selection/projection、agent overlay、execution snapshot；不拥有 resolved message / action truth |
 | `agent-chat-behavior-contract.md` | `D-LLM-*` | Agent chat generic behavior semantics、single-message / turn-mode / experience-policy authority；不拥有 message-action truth |
 | `agent-avatar-surface-contract.md` | `D-LLM-*` | Agent avatar transient surface + desktop bridge/handoff authority：`AvatarInteractionState`、desktop-to-`apps/avatar` launch semantics、desktop carrier decommission boundary、and retained non-carrier shell scope |
@@ -44,7 +43,7 @@
 | `agent-chat-voice-workflow-contract.md` | `D-LLM-*` | Agent chat richer voice workflow authority：`voice_workflow.voice_clone` / `voice_workflow.voice_design` admission、voice identity / `VoiceReference`、preset/custom voice selection、packet-bounded clone/design trigger、workflow return-path truth；不拥有 APML-projected resolved message/action / runtime workflow substrate / broader voice session truth |
 | `ui-shell-contract.md` | `D-SHELL-*` | 导航、布局、路由、分包 |
 | `support-surface-contract.md` | `D-SUP-*` | Desktop `Support` 独立 secondary 系统表面产品语义：repair / updates / diagnostics / logs-export / recovery-help 五子区、self-update 投影宿主、`P-MIG-*` 修复流程消费边界、degraded-state 可达性；不拥有 self-update 机制、`~/.nimi` 迁移执行、Runtime diagnostic/log/audit 真值、product-control first-run 状态机 |
-| `devtools-contract.md` | `D-DEV-*` | Desktop `Developer Tools` 表面与 `Developer Mode` 门控产品语义：可发现 Developer Mode 切换、DevTools surface 门控、embedded Tester 门控、`nimi.tester` registry 登记关系；`D-SHELL-009` 的门控收口；不拥有 `nimi.tester` App admission 真值、World Tour Tester 语义；不 mandate 本 portfolio 内 Tester 源码完整抽取 |
+| `devtools-contract.md` | `D-DEV-*` | Desktop `Developer Tools` 表面与 `Developer Mode` 门控产品语义：可发现 Developer Mode 切换、DevTools surface 门控、developer diagnostics 可见性；`D-SHELL-009` 的门控收口 |
 | `nimi-home-shell-contract.md` | `D-HOME-*` | Desktop-hosted Nimi Home shell IA、first-run / return-run state machine、surface registry placement、Agent Chat in-shell reference placement、`AIScopeRef` enforcement、no-private-path enforcement、self-update UI projection、first-screen rule、failure-projection as first-class surface |
 | `home-feed-contract.md` | `D-HOMEFEED-*` | Desktop `Home` primary-nav tab 作为 Realm feed 表面的产品语义：三个 feed scope（personal / friends / agent_activity）呈现、Create Post affordance、SDK-typed Realm feed projection 消费边界、与 `D-HOME-*`（`Nimi Home` installed shell）的显式 non-overlap、`Home` 非 ready entry；不拥有 shell 导航布局、Realm Post / Feed canonical 真值 |
 | `ai-profile-config-contract.md` | `D-AIPC-*` | Desktop `AIProfile` / `AIConfig` / `AISnapshot` 三段式 AI 配置 canonical model 与 `D-LLM-015` ~ `D-LLM-021` 的 umbrella 关系 |

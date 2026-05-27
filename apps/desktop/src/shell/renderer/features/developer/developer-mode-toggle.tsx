@@ -10,8 +10,8 @@
  *
  * It writes through the canonical performance-preferences store
  * (`developer-mode.ts` → `settings-storage.ts`) so a single source of truth is
- * preserved; every gated surface (`Developer Tools`, standalone Tester
- * reference) derives its reachability from that one persisted value.
+ * preserved; every gated developer surface derives its reachability from that
+ * one persisted value.
  */
 
 import { useEffect, useState } from 'react';

@@ -9,7 +9,7 @@ function normalizeText(value: unknown): string {
  * Convert a RuntimeRouteBinding to a partial RouteModelPickerSelection
  * for initializing a model picker.
  *
- * Unifies: chat's toSelection(), tester's bindingToInitialSelection(),
+ * Unifies: chat's toSelection(), workbench bindingToInitialSelection(),
  * and profile editor's inline initialSelection.
  */
 export function bindingToPickerSelection(
@@ -39,7 +39,7 @@ export function bindingToPickerSelection(
  * Convert a RouteModelPickerSelection to a RuntimeRouteBinding.
  *
  * Unifies: chat's toRuntimeRouteBindingFromPickerSelection(),
- * tester's selectionToBinding(), and profile editor's handleSelect.
+ * workbench selectionToBinding(), and profile editor's handleSelect.
  */
 export function pickerSelectionToBinding(
   selection: RouteModelPickerSelection,

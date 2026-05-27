@@ -82,19 +82,6 @@ describe('AppsPanel ordinary-visible projection', () => {
     const ids = projection.entries.map((entry) => entry.app.appId);
     assert.deepEqual(ids, []);
     assert.equal(projection.entries.some((entry) => entry.app.appId === 'nimi.avatar'), false);
-    assert.equal(projection.entries.some((entry) => entry.app.appId === 'nimi.tester'), false);
-  });
-
-  it('keeps Tester admitted as developer-only without ordinary Apps projection', async () => {
-    const client = createPlatformRegistryClient();
-    const listed = await client.list();
-    assert.equal(listed.some((entry) => entry.appId === 'nimi.tester'), false);
-
-    const registrySource = readFileSync(
-      resolve(import.meta.dirname, '../../../.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml'),
-      'utf8',
-    );
-    assert.match(registrySource, /app_id:\s*nimi\.tester[\s\S]*ordinary_visibility:\s*developer-only/);
   });
 
   it('maps SDK launch readiness into explicit Desktop Apps card states', () => {

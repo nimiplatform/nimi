@@ -62,9 +62,6 @@ entries:
 - D-LLM-007
 - D-LLM-008
 - D-LLM-065
-- D-LLM-066
-- D-LLM-067
-- D-LLM-068
 - D-LLM-053
 - D-LLM-054
 - D-LLM-055
@@ -112,7 +109,6 @@ entries:
 - D-LLM-101
 - D-LLM-102
 - D-LLM-103
-- D-LLM-104
 - D-LLM-105
 - D-LLM-106
 rules:
@@ -312,24 +308,6 @@ rules:
   - desktop_kernel_consistency
   note: World generate runtime-only boundary; enforced structurally by desktop consistency
     gate
-  evidence_requirement: required
-- rule_id: D-LLM-066
-  evidence_refs:
-  - desktop_kernel_consistency
-  note: World tour acceptance surface authority; enforced structurally by desktop
-    consistency gate
-  evidence_requirement: required
-- rule_id: D-LLM-067
-  evidence_refs:
-  - desktop_kernel_consistency
-  note: World tour required acceptance chain authority; executable coverage lands
-    with downstream implementation
-  evidence_requirement: required
-- rule_id: D-LLM-068
-  evidence_refs:
-  - desktop_kernel_consistency
-  note: World tour fail-close acceptance authority; executable coverage lands with
-    downstream implementation
   evidence_requirement: required
 - rule_id: D-LLM-053
   evidence_refs:
@@ -582,12 +560,6 @@ rules:
   - desktop_kernel_consistency
   note: Desktop Avatar local asset control must not widen launch payload or own resolver
     truth.
-  evidence_requirement: required
-- rule_id: D-LLM-104
-  evidence_refs:
-  - desktop_kernel_consistency
-  note: Tester App World Tour app-owned fixture custody authority; executable coverage
-    lands with downstream Tester implementation.
   evidence_requirement: required
 - rule_id: D-LLM-105
   evidence_refs:

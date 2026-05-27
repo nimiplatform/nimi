@@ -102,6 +102,6 @@ test('World Detail passes Create Agent only behind the admission guard', () => {
   assert.match(worldDetailSource, /This World is not admitting new user-created RealmAgents/);
 });
 
-test('World Tour remains Tester internal evidence and is not a registered ordinary E2E journey', () => {
-  assert.doesNotMatch(e2eRegistrySource, /\['tester\.world-tour'/);
+test('World Tour is not a registered ordinary E2E journey', () => {
+  assert.doesNotMatch(e2eRegistrySource, /world-tour/);
 });

@@ -42,8 +42,8 @@ pub struct PlatformNimiAppReleaseDescriptorRow {
 pub const PLATFORM_NIMI_APP_REGISTRY_CATALOG_ID: &str = "platform_nimi_app_registry";
 pub const PLATFORM_NIMI_APP_REGISTRY_CATALOG_VERSION: u32 = 1;
 
-pub const PLATFORM_NIMI_APP_REGISTRY_ROWS: &[PlatformNimiAppRegistryRow] = &[
-    PlatformNimiAppRegistryRow {
+pub const PLATFORM_NIMI_APP_REGISTRY_ROWS: &[PlatformNimiAppRegistryRow] =
+    &[PlatformNimiAppRegistryRow {
         app_id: "nimi.avatar",
         app_kind: "nimi-app",
         display_name: "Avatar",
@@ -54,23 +54,10 @@ pub const PLATFORM_NIMI_APP_REGISTRY_ROWS: &[PlatformNimiAppRegistryRow] = &[
         install_storage_policy_ref: "nimi-data-app-roots",
         admission_status: "gated_by_avatar_master_gate",
         source_rule: "P-NAPP-011",
-    },
-    PlatformNimiAppRegistryRow {
-        app_id: "nimi.tester",
-        app_kind: "nimi-app",
-        display_name: "Tester",
-        publisher: "nimi-first-party",
-        trust_tier: "nimi-first-party",
-        ordinary_visibility: "developer-only",
-        release_descriptor_ref: "nimi.tester.bundled-with-nimi",
-        install_storage_policy_ref: "nimi-data-app-roots",
-        admission_status: "admitted",
-        source_rule: "P-NAPP-016",
-    },
-];
+    }];
 
-pub const PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS: &[PlatformNimiAppReleaseDescriptorRow] = &[
-    PlatformNimiAppReleaseDescriptorRow {
+pub const PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS: &[PlatformNimiAppReleaseDescriptorRow] =
+    &[PlatformNimiAppReleaseDescriptorRow {
         descriptor_id: "nimi.avatar.bundled-with-nimi",
         app_id: "nimi.avatar",
         version: "bundled-with-current-nimi-release",
@@ -84,23 +71,7 @@ pub const PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS: &[PlatformNimiAppReleaseDes
         admission_path: "first-party-bundled-release",
         install_digest_verification_required: "inherited_from_atomic_bundle",
         source_rule: "P-NAPP-014",
-    },
-    PlatformNimiAppReleaseDescriptorRow {
-        descriptor_id: "nimi.tester.bundled-with-nimi",
-        app_id: "nimi.tester",
-        version: "bundled-with-current-nimi-release",
-        descriptor_class: "bundled-with-nimi",
-        source_kind: "nimi-bundle",
-        sha256: "inherited-from-atomic-nimi-release-manifest",
-        package_kind: "nimi-app",
-        storage_policy_ref: "nimi-data-app-roots",
-        digest_algorithm: "sha256",
-        mutable_source_allowed: false,
-        admission_path: "first-party-bundled-release",
-        install_digest_verification_required: "inherited_from_atomic_bundle",
-        source_rule: "P-NAPP-016",
-    },
-];
+    }];
 
 pub fn resolve_release_descriptor(
     descriptor_id: &str,

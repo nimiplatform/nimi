@@ -219,29 +219,6 @@ through an admitted Runtime-managed dependency/materialization path. App
 uninstall must not delete shared models, Runtime dependencies, account data, or
 other app data by implication.
 
-## P-NAPP-016 — Developer-Only Tester App Admission
-
-`MUST`：当前 Product/UI alignment cut admits `nimi.tester` only as a
-first-party developer-only Nimi App:
-
-- `admission_status: admitted`
-- `ordinary_visibility: developer-only`
-- `package_kind: nimi-app`
-- `release_descriptor_ref: nimi.tester.bundled-with-nimi`
-- `install_storage_policy_ref: nimi-data-app-roots`
-
-`MUST`：`nimi.tester` 的 release descriptor 使用 bundled first-party
-posture，绑定当前 atomic Nimi release bundle，不授权外部 mutable download。
-
-`MUST NOT`：`nimi.tester` 不得作为 ordinary primary navigation entry，
-不得出现在 ordinary-visible Apps projection，且不得以 Desktop-embedded
-Tester、workspace fixture cache、Tauri command name、source folder、GitHub repo
-或 npm package 作为 App admission/install truth。
-
-`MUST NOT`：该 admission 不删除 Desktop-embedded Tester。Desktop-embedded
-Tester 只能作为 frozen internal source/validation surface，后续 hard-cut
-retirement 必须等待 `nimi.tester` stability evidence。
-
 ## P-NAPP-017 — Retired Realm Agent Studio Admission
 
 P-NAPP-017 was retired on 2026-05-25. It admits no active Nimi App, grants no

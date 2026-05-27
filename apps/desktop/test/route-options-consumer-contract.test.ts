@@ -1,16 +1,12 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import test from 'node:test';
 
 const desktopDir = resolve(import.meta.dirname, '..');
 
 function readRendererFile(relativePath: string): string {
   return readFileSync(resolve(desktopDir, `src/shell/renderer/${relativePath}`), 'utf8');
-}
-
-function rendererPath(relativePath: string): string {
-  return resolve(desktopDir, `src/shell/renderer/${relativePath}`);
 }
 
 test('desktop route options service delegates to host-owned runtime bootstrap route options', () => {
@@ -25,9 +21,7 @@ test('desktop route model picker provider consumes shared desktop route options 
   assert.doesNotMatch(source, /createModRuntimeClient/);
 });
 
-test('desktop keeps route options ownership outside the extracted Tester product surface', () => {
-  assert.equal(existsSync(rendererPath('features/tester/tester-state.ts')), false);
-  assert.equal(existsSync(dirname(rendererPath('features/tester/tester-state.ts'))), false);
+test('desktop keeps route options ownership outside retired product-local runtime clients', () => {
   const source = readRendererFile('features/runtime-config/desktop-route-options-service.ts');
-  assert.doesNotMatch(source, /features\/tester|createModRuntimeClient/);
+  assert.doesNotMatch(source, /createModRuntimeClient/);
 });
