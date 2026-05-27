@@ -10,9 +10,18 @@ import {
   localRuntimeCapabilitiesForAssetKind,
   normalizeLocalRuntimeAssetKindId,
   normalizeLocalRuntimeRunnableAssetKindId,
+  parseLocalProfileEntryKindId,
+  parseLocalRuntimeGpuMemoryModelId,
   parseLocalRuntimeAssetKindId,
+  toLocalProfileEntryKindRequestValue,
+  toLocalRuntimeAssetKindRequestValue,
+  toLocalRuntimeGpuMemoryModelRequestValue,
 } from '../../src/runtime/index.js';
-import { LocalAssetKind } from '../../src/runtime/generated/runtime/v1/local_runtime_types.js';
+import {
+  GpuMemoryModel,
+  LocalAssetKind,
+  LocalProfileEntryKind,
+} from '../../src/runtime/generated/runtime/v1/local_runtime_types.js';
 
 test('local runtime asset kind ids are projected from Runtime enum order', () => {
   assert.deepEqual(LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS, ['chat', 'image', 'video', 'tts', 'stt', 'embedding']);
@@ -53,4 +62,17 @@ test('local runtime asset kind predicates and normalizers fail closed', () => {
 test('local runtime asset kind capability projection stays runtime-local', () => {
   assert.deepEqual(localRuntimeCapabilitiesForAssetKind('image'), ['image']);
   assert.deepEqual(localRuntimeCapabilitiesForAssetKind('vae'), ['chat']);
+});
+
+test('local runtime write-side enum helpers return Runtime proto enum values', () => {
+  assert.equal(toLocalRuntimeAssetKindRequestValue('LOCAL_ASSET_KIND_TTS'), LocalAssetKind.TTS);
+  assert.equal(toLocalRuntimeAssetKindRequestValue('music'), LocalAssetKind.UNSPECIFIED);
+  assert.equal(parseLocalProfileEntryKindId(LocalProfileEntryKind.SERVICE), 'service');
+  assert.equal(parseLocalProfileEntryKindId('LOCAL_PROFILE_ENTRY_KIND_ASSET'), 'asset');
+  assert.equal(toLocalProfileEntryKindRequestValue('node'), LocalProfileEntryKind.NODE);
+  assert.equal(toLocalProfileEntryKindRequestValue('model'), LocalProfileEntryKind.UNSPECIFIED);
+  assert.equal(parseLocalRuntimeGpuMemoryModelId(GpuMemoryModel.UNIFIED), 'unified');
+  assert.equal(parseLocalRuntimeGpuMemoryModelId('GPU_MEMORY_MODEL_DISCRETE'), 'discrete');
+  assert.equal(toLocalRuntimeGpuMemoryModelRequestValue('discrete'), GpuMemoryModel.DISCRETE);
+  assert.equal(toLocalRuntimeGpuMemoryModelRequestValue('shared'), GpuMemoryModel.UNSPECIFIED);
 });

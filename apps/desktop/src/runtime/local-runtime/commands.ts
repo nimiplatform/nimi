@@ -1,10 +1,12 @@
 import {
+  toLocalProfileEntryKindRequestValue,
   toLocalRecommendationFeedCapabilityRequestValue,
+  toLocalRuntimeAssetKindRequestValue,
+  toLocalRuntimeGpuMemoryModelRequestValue,
   toProtoStruct,
 } from '@nimiplatform/sdk/runtime';
 import type {
   GgufVariantDescriptor,
-  LocalRuntimeAssetKind,
   LocalRuntimeAssetRecord,
   LocalRuntimeVerifiedAssetDescriptor,
   LocalRuntimeCatalogSearchPayload,
@@ -109,59 +111,6 @@ function toInt64String(value: unknown): string {
   return Number.isFinite(number) ? String(Math.trunc(number)) : '0';
 }
 
-function toSdkAssetKind(kind?: LocalRuntimeAssetKind): number {
-  switch (kind) {
-    case 'chat':
-      return 1;
-    case 'image':
-      return 2;
-    case 'video':
-      return 3;
-    case 'tts':
-      return 4;
-    case 'stt':
-      return 5;
-    case 'embedding':
-      return 6;
-    case 'vae':
-      return 10;
-    case 'clip':
-      return 11;
-    case 'lora':
-      return 12;
-    case 'controlnet':
-      return 13;
-    case 'auxiliary':
-      return 14;
-    default:
-      return 0;
-  }
-}
-
-function toSdkProfileEntryKind(kind?: string): number {
-  switch (kind) {
-    case 'service':
-      return 3;
-    case 'node':
-      return 4;
-    case 'asset':
-      return 5;
-    default:
-      return 0;
-  }
-}
-
-function toSdkGpuMemoryModel(model?: string): number {
-  switch (model) {
-    case 'discrete':
-      return 1;
-    case 'unified':
-      return 2;
-    default:
-      return 0;
-  }
-}
-
 function toSdkDeviceProfile(profile?: LocalRuntimeDeviceProfile): Record<string, unknown> | undefined {
   if (!profile) {
     return undefined;
@@ -182,7 +131,7 @@ function toSdkDeviceProfile(profile?: LocalRuntimeDeviceProfile): Record<string,
       model: String(profile.gpu?.model || ''),
       totalVramBytes: toInt64String(profile.gpu?.totalVramBytes),
       availableVramBytes: toInt64String(profile.gpu?.availableVramBytes),
-      memoryModel: toSdkGpuMemoryModel(profile.gpu?.memoryModel),
+      memoryModel: toLocalRuntimeGpuMemoryModelRequestValue(profile.gpu?.memoryModel),
     },
     python: {
       available: Boolean(profile.python?.available),
@@ -215,14 +164,14 @@ function toSdkProfileRequirements(
 function toSdkProfileEntry(entry: LocalRuntimeProfileEntryDescriptor): Record<string, unknown> {
   return {
     entryId: String(entry.entryId || ''),
-    kind: toSdkProfileEntryKind(entry.kind),
+    kind: toLocalProfileEntryKindRequestValue(entry.kind),
     title: String(entry.title || ''),
     description: String(entry.description || ''),
     capability: String(entry.capability || ''),
     required: Boolean(entry.required),
     preferred: Boolean(entry.preferred),
     assetId: String(entry.assetId || ''),
-    assetKind: toSdkAssetKind(entry.assetKind),
+    assetKind: toLocalRuntimeAssetKindRequestValue(entry.assetKind),
     engineSlot: String(entry.engineSlot || ''),
     repo: String(entry.repo || ''),
     serviceId: String(entry.serviceId || ''),
