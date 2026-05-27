@@ -223,7 +223,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
       }
     >();
     for (const row of sortedNodeMatrix) {
-      const provider = String(row.provider || 'llama').trim() || 'llama';
+      const provider = String(row.provider || '').trim() || 'unknown';
       const current = grouped.get(provider) || {
         provider,
         total: 0,
@@ -654,7 +654,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
                       const tone: RuntimeTone = row.available ? 'success' : 'danger';
                       const toneStyle = TONE_STYLES[tone];
                       const metaBits = [
-                        `provider=${row.provider || 'llama'}`,
+                        `provider=${row.provider || 'unknown'}`,
                         `adapter=${row.adapter}`,
                         row.backend ? `backend=${row.backend}` : null,
                         runtimeSupportClass ? `runtimeSupport=${runtimeSupportClass}` : null,

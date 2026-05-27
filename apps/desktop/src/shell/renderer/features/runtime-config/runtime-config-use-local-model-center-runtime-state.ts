@@ -26,7 +26,6 @@ import {
 } from './runtime-config-local-model-center-helpers';
 import {
   canImportDeclaration,
-  defaultEngineForAnyAssetKind,
   manifestPathFromSourceRepo,
   normalizeAssetDeclaration,
   RUNNABLE_ASSET_KINDS,
@@ -490,10 +489,8 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
   }, []);
 
   const setUnregisteredAssetKind = useCallback((assetPath: string, assetKind: LocalRuntimeAssetKind) => {
-    const engine = defaultEngineForAnyAssetKind(assetKind);
     setUnregisteredAssetDraft(assetPath, {
       assetKind,
-      ...(engine ? { engine } : {}),
     });
   }, [setUnregisteredAssetDraft]);
 

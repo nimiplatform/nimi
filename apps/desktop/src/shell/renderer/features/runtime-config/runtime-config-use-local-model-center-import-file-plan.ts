@@ -5,7 +5,6 @@ import {
 } from '@runtime/local-runtime';
 import {
   canImportDeclaration,
-  defaultEngineForAnyAssetKind,
 } from './runtime-config-use-local-model-center-helpers.js';
 import {
   type AssetEngineOption,
@@ -32,7 +31,7 @@ export function useLocalModelCenterImportFilePlan({
   const importFileDeclaration = useMemo<LocalRuntimeAssetDeclaration>(() => {
     const engine = importFileAssetKind === 'auxiliary'
       ? String(importFileAuxiliaryEngine || '').trim()
-      : defaultEngineForAnyAssetKind(importFileAssetKind);
+      : '';
     return {
       assetKind: importFileAssetKind,
       ...(engine ? { engine } : {}),

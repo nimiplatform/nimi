@@ -91,17 +91,17 @@ export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV
   const discovered = activeModels.map((m) => m.assetId);
   const normalizedModels = activeModels.map((m) => ({
     localModelId: m.localAssetId || m.assetId,
-    engine: m.engine || 'llama',
+    engine: m.engine || '',
     model: m.assetId,
     endpoint: endpoint,
-    capabilities: (m.capabilities || ['chat']) as Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding'>,
+    capabilities: (m.capabilities || []) as Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding'>,
     status: m.status as 'installed' | 'active' | 'unhealthy',
   }));
   const nodeMatrix = (nodes || []).map((n) => ({
     nodeId: n.nodeId || '',
     capability: normalizeRuntimeNodeCapability((n.capabilities || [])[0]),
     serviceId: n.serviceId || '',
-    provider: n.provider || 'llama',
+    provider: n.provider || '',
     adapter: normalizeRuntimeNodeAdapter(n.adapter),
     available: n.available !== false,
     providerHints: n.providerHints,

@@ -278,12 +278,10 @@ export function defaultAssetDeclaration(assetClass: AssetClassOption = 'runnable
   if (assetClass === 'dependency') {
     return {
       assetKind: 'vae',
-      engine: 'media',
     };
   }
   return {
     assetKind: 'chat',
-    engine: 'llama',
   };
 }
 

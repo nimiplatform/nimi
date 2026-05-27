@@ -1,61 +1,31 @@
 import type { LocalRuntimeAssetDeclaration, LocalRuntimeAssetKind } from '@runtime/local-runtime';
-import { normalizeModelTypeOption, type AssetEngineOption } from './runtime-config-model-center-utils.js';
-import { ASSET_KIND_OPTIONS } from './runtime-config-local-model-center-helpers.js';
+import { ALL_ASSET_KIND_OPTIONS, ASSET_KIND_OPTIONS } from './runtime-config-local-model-center-helpers.js';
 
 export const RUNNABLE_ASSET_KINDS = new Set(['chat', 'image', 'video', 'tts', 'stt', 'embedding']);
-
-export function defaultEngineForModelType(modelType: string): AssetEngineOption {
-  if (modelType === 'image' || modelType === 'video') {
-    return 'media';
-  }
-  if (modelType === 'tts' || modelType === 'stt') {
-    return 'speech';
-  }
-  if (modelType === 'music') {
-    return 'sidecar';
-  }
-  return 'llama';
-}
-
-export function defaultEngineForDependencyAssetKind(kind: LocalRuntimeAssetKind): AssetEngineOption | '' {
-  if (kind === 'auxiliary') {
-    return '';
-  }
-  return 'media';
-}
 
 export function normalizeDependencyAssetKind(kind: string | undefined): LocalRuntimeAssetKind {
   const normalized = String(kind || '').trim().toLowerCase();
   return (ASSET_KIND_OPTIONS.find((value) => value === normalized) || 'vae') as LocalRuntimeAssetKind;
 }
 
-export function defaultEngineForAnyAssetKind(kind: string): AssetEngineOption | '' {
-  if (kind === 'chat' || kind === 'embedding') return 'llama';
-  if (kind === 'image' || kind === 'video') return 'media';
-  if (kind === 'tts' || kind === 'stt') return 'speech';
-  if (kind === 'music') return 'sidecar';
-  if (kind === 'auxiliary') return '';
-  return 'media';
-}
-
 export function normalizeAssetDeclaration(
   declaration?: LocalRuntimeAssetDeclaration,
 ): LocalRuntimeAssetDeclaration {
   const assetKind = declaration?.assetKind;
-  const isRunnable = RUNNABLE_ASSET_KINDS.has(String(assetKind || ''));
-  if (!isRunnable && assetKind) {
-    const normalizedKind = normalizeDependencyAssetKind(assetKind);
-    const engine = String(declaration?.engine || '').trim();
+  const engine = String(declaration?.engine || '').trim();
+  if (assetKind && ALL_ASSET_KIND_OPTIONS.includes(assetKind)) {
+    const normalizedKind = (ASSET_KIND_OPTIONS as readonly string[]).includes(assetKind)
+      ? normalizeDependencyAssetKind(assetKind)
+      : assetKind;
     return {
       assetKind: normalizedKind,
-      ...(engine ? { engine } : (normalizedKind === 'auxiliary' ? {} : { engine: defaultEngineForDependencyAssetKind(normalizedKind) })),
+      ...(engine ? { engine } : {}),
     };
   }
 
-  const modelType = normalizeModelTypeOption(assetKind);
   return {
-    assetKind: modelType === 'music' ? 'chat' : modelType as LocalRuntimeAssetKind,
-    engine: String(declaration?.engine || '').trim() || defaultEngineForModelType(modelType),
+    assetKind: 'chat',
+    ...(engine ? { engine } : {}),
   };
 }
 
