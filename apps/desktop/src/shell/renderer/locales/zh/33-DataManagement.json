@@ -35,7 +35,7 @@
   "openDataDirFailed": "打开 data dir 失败",
   "exportTitle": "导出数据",
   "exportDescription": "下载你的数据副本",
-  "exportBody": "下载包含会话、联系人和设置在内的数据副本。",
+  "exportBody": "下载包含会话、关系和设置在内的数据副本。",
   "requesting": "请求中...",
   "exportButton": "导出全部数据",
   "clearCacheTitle": "清理缓存",

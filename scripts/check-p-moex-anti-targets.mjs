@@ -70,6 +70,7 @@ const PATTERNS = [
   { id: 'mod-state-reason-code', re: /\bMOD_STATE_[A-Z0-9_]+\b|\bMOD_NOT_INSTALLED\b/gu },
   { id: 'core-local-ai-identity', re: /\bcore:local-ai\b/gu },
   { id: 'caller-desktop-mod', re: /\bdesktop-mod\b/gu },
+  { id: 'test-mod-fixture-token', re: /\btest-mod\b/gu },
   { id: 'creator-mods-service', re: /\bCreatorMods\w*\b/gu },
   { id: 'canonical-mod-ai-scope', re: /\b\w*CanonicalModAIScopeRef\b/gu },
   { id: 'sdk-kind-mod', re: /\bkind\s*:\s*['"]mod['"]/gu },

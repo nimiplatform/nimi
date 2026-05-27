@@ -392,8 +392,8 @@ func TestLogoutAndUserSwitchRevokeMultiConsumerProjections(t *testing.T) {
 				t.Fatalf("Desktop/SDK Runtime token provider should work before revoke: %+v", desktopToken)
 			}
 			avatarBinding := issueBinding(t, svc)
-			modHostBinding := issueBindingForRelation(t, svc, bindingRelationFor("window-mod", "avatar-mod", "agent-mod", "anchor-mod"))
-			for _, binding := range []*runtimev1.IssueScopedAppBindingResponse{avatarBinding, modHostBinding} {
+			secondaryHostBinding := issueBindingForRelation(t, svc, bindingRelationFor("window-2", "avatar-2", "agent-2", "anchor-2"))
+			for _, binding := range []*runtimev1.IssueScopedAppBindingResponse{avatarBinding, secondaryHostBinding} {
 				if reason, ok := svc.ValidateScopedBinding(binding.GetBindingId(), binding.GetRelation(), "runtime.agent.turn.read"); !ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
 					t.Fatalf("binding should validate before revoke, ok=%v reason=%v", ok, reason)
 				}
@@ -417,7 +417,7 @@ func TestLogoutAndUserSwitchRevokeMultiConsumerProjections(t *testing.T) {
 			if token.GetAccepted() {
 				t.Fatalf("Runtime token projection must fail closed after %s: %+v", tc.name, token)
 			}
-			for _, binding := range []*runtimev1.IssueScopedAppBindingResponse{avatarBinding, modHostBinding} {
+			for _, binding := range []*runtimev1.IssueScopedAppBindingResponse{avatarBinding, secondaryHostBinding} {
 				if reason, ok := svc.ValidateScopedBinding(binding.GetBindingId(), binding.GetRelation(), "runtime.agent.turn.read"); ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_STALE {
 					t.Fatalf("binding must be stale after %s, ok=%v reason=%v", tc.name, ok, reason)
 				}

@@ -35,7 +35,7 @@
   "openDataDirFailed": "Failed to open data directory",
   "exportTitle": "Export Data",
   "exportDescription": "Download a copy of your data",
-  "exportBody": "Download a copy of your data including chats, contacts, and settings.",
+  "exportBody": "Download a copy of your data including chats, relationships, and settings.",
   "requesting": "Requesting...",
   "exportButton": "Export All Data",
   "clearCacheTitle": "Clear Cache",
