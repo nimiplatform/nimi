@@ -39,7 +39,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@proj-airi/unplugin-live2d-sdk": "0.1.7",
     "@tailwindcss/vite": "^4.3.0",
     "@tauri-apps/cli": "^2.11.2",
     "@types/node": "^25.9.1",
@@ -62,19 +61,16 @@
     "webdriverio": "^9.27.1"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "2.0.47",
     "@nimiplatform/kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
     "@pixiv/three-vrm": "3.5.3",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@react-three/postprocessing": "^3.0.4",
-    "@sparkjsdev/spark": "2.1.0",
     "@tanstack/react-query": "^5.100.11",
     "@tanstack/react-virtual": "^3.13.25",
     "@tauri-apps/api": "^2.11.0",
     "@types/three": "^0.184.1",
-    "ai": "6.0.190",
     "ajv": "^8.20.0",
     "i18next": "^25.8.18",
     "react": "19.2.6",
