@@ -142,6 +142,7 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     executionModule: 'cloud',
     managedSupported: true,
     inventoryMode: 'dynamic_endpoint',
+    inlineSupported: true,
   },
   {
     provider: 'deepseek',
@@ -151,6 +152,7 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     executionModule: 'cloud',
     managedSupported: true,
     inventoryMode: 'static_source',
+    inlineSupported: true,
   },
   {
     provider: 'gemini',
@@ -160,6 +162,17 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     executionModule: 'cloud',
     managedSupported: true,
     inventoryMode: 'static_source',
+    inlineSupported: true,
+  },
+  {
+    provider: 'openai_codex',
+    defaultEndpoint: '',
+    requiresExplicitEndpoint: false,
+    runtimePlane: 'cloud',
+    executionModule: 'cloud',
+    managedSupported: true,
+    inventoryMode: 'static_source',
+    inlineSupported: false,
   },
 ];
 
@@ -333,15 +346,15 @@ test('providerToVendor is case-insensitive', () => {
 
 test('listConnectorAuthOptionsForProvider exposes admitted oauth-managed options without rebuilding truth', () => {
   assert.deepEqual(
-    listConnectorAuthOptionsForProvider('openai_codex').map((item) => item.value),
+    listConnectorAuthOptionsForProvider('openai_codex', PROVIDER_CATALOG).map((item) => item.value),
     ['oauth:openai_codex'],
   );
   assert.deepEqual(
-    listConnectorAuthOptionsForProvider('anthropic').map((item) => item.value),
+    listConnectorAuthOptionsForProvider('anthropic', PROVIDER_CATALOG).map((item) => item.value),
     ['api_key', 'oauth:anthropic'],
   );
   assert.deepEqual(
-    listConnectorAuthOptionsForProvider('openai_compatible').map((item) => item.value),
+    listConnectorAuthOptionsForProvider('openai_compatible', PROVIDER_CATALOG).map((item) => item.value),
     ['api_key', 'oauth:qwen_oauth'],
   );
 });

@@ -169,6 +169,30 @@ function authOptionLabelForProfile(profile: ConnectorAuthProfileSpec): string {
   return `Managed OAuth Token (${getVendorLabelV11(profile.id)})`;
 }
 
+export function connectorAuthProfileForId(profileId: string | undefined): ConnectorAuthProfileSpec | null {
+  const normalized = normalizeProviderAuthProfile(profileId || '');
+  return normalized ? (CONNECTOR_AUTH_PROFILES[normalized] || null) : null;
+}
+
+function providerCatalogEntryForProvider(
+  provider: string,
+  catalog: ProviderCatalogEntry[] | undefined,
+): ProviderCatalogEntry | null {
+  const normalizedProvider = String(provider || '').trim().toLowerCase();
+  if (!normalizedProvider || !Array.isArray(catalog)) {
+    return null;
+  }
+  return catalog.find((item) => String(item.provider || '').trim().toLowerCase() === normalizedProvider) || null;
+}
+
+function providerSupportsInlineCredential(
+  provider: string,
+  catalog?: ProviderCatalogEntry[],
+): boolean {
+  const entry = providerCatalogEntryForProvider(provider, catalog);
+  return entry?.inlineSupported !== false;
+}
+
 export function listProviderAuthProfiles(provider: string): ConnectorAuthProfileSpec[] {
   const normalizedProvider = String(provider || '').trim().toLowerCase();
   if (!normalizedProvider) {
@@ -181,7 +205,10 @@ export function listProviderAuthProfiles(provider: string): ConnectorAuthProfile
     .sort((left, right) => left.id.localeCompare(right.id));
 }
 
-export function listConnectorAuthOptionsForProvider(provider: string): ApiConnectorAuthOption[] {
+export function listConnectorAuthOptionsForProvider(
+  provider: string,
+  catalog?: ProviderCatalogEntry[],
+): ApiConnectorAuthOption[] {
   const normalizedProvider = String(provider || '').trim().toLowerCase();
   const profileOptions = listProviderAuthProfiles(normalizedProvider).map((profile) => ({
     value: `oauth:${profile.id}`,
@@ -189,7 +216,7 @@ export function listConnectorAuthOptionsForProvider(provider: string): ApiConnec
     authMode: 'oauth_managed' as const,
     providerAuthProfile: profile.id,
   }));
-  if (normalizedProvider === 'openai_codex') {
+  if (!providerSupportsInlineCredential(normalizedProvider, catalog)) {
     return profileOptions;
   }
   return [
@@ -202,8 +229,11 @@ export function listConnectorAuthOptionsForProvider(provider: string): ApiConnec
   ];
 }
 
-export function defaultConnectorAuthOptionForProvider(provider: string): ApiConnectorAuthOption {
-  const options = listConnectorAuthOptionsForProvider(provider);
+export function defaultConnectorAuthOptionForProvider(
+  provider: string,
+  catalog?: ProviderCatalogEntry[],
+): ApiConnectorAuthOption {
+  const options = listConnectorAuthOptionsForProvider(provider, catalog);
   return options[0] || {
     value: 'api_key',
     label: 'API Key',

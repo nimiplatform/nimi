@@ -1413,6 +1413,7 @@ type ProviderCatalogEntry struct {
 	ExecutionModule          string                 `protobuf:"bytes,5,opt,name=execution_module,json=executionModule,proto3" json:"execution_module,omitempty"`
 	ManagedSupported         bool                   `protobuf:"varint,6,opt,name=managed_supported,json=managedSupported,proto3" json:"managed_supported,omitempty"`
 	InventoryMode            string                 `protobuf:"bytes,7,opt,name=inventory_mode,json=inventoryMode,proto3" json:"inventory_mode,omitempty"`
+	InlineSupported          bool                   `protobuf:"varint,8,opt,name=inline_supported,json=inlineSupported,proto3" json:"inline_supported,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -1494,6 +1495,13 @@ func (x *ProviderCatalogEntry) GetInventoryMode() string {
 		return x.InventoryMode
 	}
 	return ""
+}
+
+func (x *ProviderCatalogEntry) GetInlineSupported() bool {
+	if x != nil {
+		return x.InlineSupported
+	}
+	return false
 }
 
 type ListProviderCatalogRequest struct {
@@ -3651,7 +3659,7 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	"page_token\x18\x05 \x01(\tR\tpageTokenJ\x04\b\x02\x10\x03R\bowner_id\"\x88\x01\n" +
 	"\x1bListConnectorModelsResponse\x12A\n" +
 	"\x06models\x18\x01 \x03(\v2).nimi.runtime.v1.ConnectorModelDescriptorR\x06models\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xbf\x02\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xea\x02\n" +
 	"\x14ProviderCatalogEntry\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12)\n" +
 	"\x10default_endpoint\x18\x02 \x01(\tR\x0fdefaultEndpoint\x12<\n" +
@@ -3659,7 +3667,8 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	"\rruntime_plane\x18\x04 \x01(\tR\fruntimePlane\x12)\n" +
 	"\x10execution_module\x18\x05 \x01(\tR\x0fexecutionModule\x12+\n" +
 	"\x11managed_supported\x18\x06 \x01(\bR\x10managedSupported\x12%\n" +
-	"\x0einventory_mode\x18\a \x01(\tR\rinventoryMode\"\x1c\n" +
+	"\x0einventory_mode\x18\a \x01(\tR\rinventoryMode\x12)\n" +
+	"\x10inline_supported\x18\b \x01(\bR\x0finlineSupported\"\x1c\n" +
 	"\x1aListProviderCatalogRequest\"b\n" +
 	"\x1bListProviderCatalogResponse\x12C\n" +
 	"\tproviders\x18\x01 \x03(\v2%.nimi.runtime.v1.ProviderCatalogEntryR\tproviders\"\xce\x06\n" +

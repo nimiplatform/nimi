@@ -5,7 +5,7 @@ import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { DEFAULT_CONNECTOR_ENDPOINT_V11, getVendorLabelV11, randomIdV11, type ApiVendor } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, sdkCreateConnector, sdkDeleteConnector, sdkListConnectors, sdkListProviderCatalog, sdkUpdateConnector, vendorToProvider } from './runtime-config-connector-sdk-service';
+import { connectorAuthProfileForId, defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, sdkCreateConnector, sdkDeleteConnector, sdkListConnectors, sdkListProviderCatalog, sdkUpdateConnector, vendorToProvider } from './runtime-config-connector-sdk-service';
 import { addConnectorToState, removeSelectedConnector, replaceConnectorsInState, updateConnectorField } from './runtime-config-connector-actions';
 import { formatRuntimeConfigErrorBanner } from './runtime-config-connector-error';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
@@ -41,8 +41,8 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const isDraft = selectedConnector?.isDraft || false;
   const canEditVendor = !isRuntimeSystem && isDraft;
   const authOptions = useMemo(
-    () => listConnectorAuthOptionsForProvider(selectedConnector?.provider || ''),
-    [selectedConnector?.provider],
+    () => listConnectorAuthOptionsForProvider(selectedConnector?.provider || '', providerCatalog),
+    [providerCatalog, selectedConnector?.provider],
   );
   const selectedAuthOptionValue = useMemo(() => {
     if (!selectedConnector) {
@@ -55,8 +55,9 @@ export function CloudPage({ model, state }: CloudPageProps) {
   }, [selectedConnector]);
   const canEditCredentialMode = !isRuntimeSystem && isDraft && authOptions.length > 1;
   const oauthManagedRequiresAuth = selectedConnector?.authMode === 'oauth_managed';
+  const selectedAuthProfile = connectorAuthProfileForId(selectedConnector?.providerAuthProfile);
   const isCodexManagedConnector = selectedConnector?.authMode === 'oauth_managed'
-    && selectedConnector?.providerAuthProfile === 'openai_codex';
+    && selectedAuthProfile?.headerBehavior === 'codex_oauth';
   const canStartCodexOAuth = Boolean(selectedConnectorId)
     && isCodexManagedConnector
     && authStatus === 'authenticated'
@@ -174,7 +175,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
     }
     const provider = providerEntry.provider;
     const vendor: ApiVendor = providerToVendor(provider);
-    const defaultAuthOption = defaultConnectorAuthOptionForProvider(provider);
+    const defaultAuthOption = defaultConnectorAuthOptionForProvider(provider, runtimeCatalog);
     const endpoint = resolveProviderEndpoint(provider, runtimeCatalog);
     const draft = {
       id: randomIdV11('draft'),
@@ -312,8 +313,8 @@ export function CloudPage({ model, state }: CloudPageProps) {
     const previousConnector = selectedConnector;
     const normalizedVendor = vendor as typeof selectedConnector.vendor;
     const provider = vendorToProvider(normalizedVendor);
-    const defaultAuthOption = defaultConnectorAuthOptionForProvider(provider);
     const runtimeCatalog = await sdkListProviderCatalog();
+    const defaultAuthOption = defaultConnectorAuthOptionForProvider(provider, runtimeCatalog);
     const endpoint = resolveProviderEndpoint(provider, runtimeCatalog);
     updateState((prev) => updateConnectorField(prev, selectedConnectorId, {
       vendor: normalizedVendor,

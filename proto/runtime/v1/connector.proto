@@ -168,6 +168,7 @@ message ProviderCatalogEntry {
   string execution_module = 5;
   bool managed_supported = 6;
   string inventory_mode = 7;
+  bool inline_supported = 8;
 }
 
 message ListProviderCatalogRequest {}

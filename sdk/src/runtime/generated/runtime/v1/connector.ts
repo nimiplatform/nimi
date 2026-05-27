@@ -348,6 +348,10 @@ export interface ProviderCatalogEntry {
      * @generated from protobuf field: string inventory_mode = 7
      */
     inventoryMode: string;
+    /**
+     * @generated from protobuf field: bool inline_supported = 8
+     */
+    inlineSupported: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListProviderCatalogRequest
@@ -2209,7 +2213,8 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
             { no: 4, name: "runtime_plane", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "execution_module", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "managed_supported", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 7, name: "inventory_mode", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 7, name: "inventory_mode", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "inline_supported", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<ProviderCatalogEntry>): ProviderCatalogEntry {
@@ -2221,6 +2226,7 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
         message.executionModule = "";
         message.managedSupported = false;
         message.inventoryMode = "";
+        message.inlineSupported = false;
         if (value !== undefined)
             reflectionMergePartial<ProviderCatalogEntry>(this, message, value);
         return message;
@@ -2250,6 +2256,9 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
                     break;
                 case /* string inventory_mode */ 7:
                     message.inventoryMode = reader.string();
+                    break;
+                case /* bool inline_supported */ 8:
+                    message.inlineSupported = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2284,6 +2293,9 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
         /* string inventory_mode = 7; */
         if (message.inventoryMode !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.inventoryMode);
+        /* bool inline_supported = 8; */
+        if (message.inlineSupported !== false)
+            writer.tag(8, WireType.Varint).bool(message.inlineSupported);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
