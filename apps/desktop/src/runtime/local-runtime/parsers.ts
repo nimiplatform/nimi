@@ -564,7 +564,7 @@ export function parseNodeDescriptor(value: unknown): LocalRuntimeNodeDescriptor 
     capabilities: Array.isArray(record.capabilities)
       ? record.capabilities.map((item) => asString(item)).filter(Boolean)
       : [],
-    provider: asString(record.provider) || 'llama',
+    provider: asString(record.provider),
     adapter: normalizeProviderAdapter(record.adapter),
     backend: asString(record.backend) || undefined,
     backendSource: asString(record.backendSource) || undefined,

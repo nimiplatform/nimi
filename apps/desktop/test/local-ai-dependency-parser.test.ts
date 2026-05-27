@@ -5,6 +5,7 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   parseExecutionApplyResult,
   parseExecutionPlan,
+  parseNodeDescriptor,
   parseProfileResolutionPlan,
   parseUnregisteredAssetDescriptor,
   normalizeAssetStatus,
@@ -236,4 +237,18 @@ test('normalizeEngineRuntimeMode accepts Runtime enum projection names', () => {
 test('normalizeProviderAdapter delegates adapter identity to SDK projection', () => {
   assert.equal(normalizeProviderAdapter(' SPEECH_NATIVE_ADAPTER '), 'speech_native_adapter');
   assert.equal(normalizeProviderAdapter('unknown_adapter'), 'openai_compat_adapter');
+});
+
+test('parseNodeDescriptor does not invent provider authority when runtime omits provider', () => {
+  const parsed = parseNodeDescriptor({
+    nodeId: 'node-1',
+    title: 'Runtime node',
+    serviceId: 'svc-1',
+    capabilities: ['text.generate'],
+    available: true,
+    readOnly: true,
+  });
+
+  assert.equal(parsed.provider, '');
+  assert.equal(parsed.available, true);
 });
