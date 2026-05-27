@@ -3,7 +3,7 @@ import type { ConversationMessageRole } from '../types.js';
 
 export const CONVERSATION_ORCHESTRATION_MODE_IDS = [
   'simple-ai',
-  'agent-local-chat-v1',
+  'runtime-agent-chat-v1',
 ] as const;
 
 export type KnownConversationOrchestrationModeId =

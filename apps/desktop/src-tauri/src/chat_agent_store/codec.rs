@@ -231,14 +231,6 @@ pub(super) fn normalize_f64(value: f64, field_name: &str) -> Result<f64, String>
     Ok(value)
 }
 
-pub(super) fn normalize_non_negative_f64(value: f64, field_name: &str) -> Result<f64, String> {
-    let value = normalize_f64(value, field_name)?;
-    if value < 0.0 {
-        return Err(format!("{field_name} must be non-negative"));
-    }
-    Ok(value)
-}
-
 pub(super) fn normalize_structured_json(
     value: &serde_json::Value,
     field_name: &str,

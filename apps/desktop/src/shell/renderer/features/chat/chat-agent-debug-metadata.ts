@@ -2,7 +2,7 @@ import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import type {
   AgentModelOutputDiagnostics,
 } from './chat-agent-runtime-output-types';
-import type { AgentResolvedStatusCue } from './chat-agent-behavior';
+import type { AgentResolvedStatusCue } from '@nimiplatform/sdk/runtime';
 
 export type AgentTextTurnDebugMetadata = {
   debugType: 'agent-text-turn';

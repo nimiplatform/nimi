@@ -12,12 +12,9 @@ import type {
   AgentLocalTurnContext,
 } from '@renderer/bridge/runtime-bridge/types';
 import type {
-  AgentLocalChatImageState,
-  AgentLocalChatVoiceState,
   AgentLocalTextMessageState,
 } from './chat-agent-runtime-turn-types';
-import { toAgentVoicePlaybackCueEnvelopeJson } from './chat-agent-voice-playback-envelope';
-import { loadDesktopAgentRuntimeMemoryContext } from './chat-agent-runtime-memory';
+import { RUNTIME_AGENT_CHAT_MODE_ID, type RuntimeAgentChatModeId } from './chat-agent-runtime-mode';
 
 type AgentLocalChatStoreClient = Pick<
   typeof chatAgentStoreClient,
@@ -29,7 +26,7 @@ export type AgentLocalChatContinuityAdapter = ConversationContinuityAdapter<
   AgentLocalCommitTurnResult
 > & {
   commitAgentTurnResult: (input: {
-    modeId: 'agent-local-chat-v1';
+    modeId: RuntimeAgentChatModeId;
     threadId: string;
     turnId: string;
     outcome: 'completed' | 'failed' | 'canceled';
@@ -38,8 +35,6 @@ export type AgentLocalChatContinuityAdapter = ConversationContinuityAdapter<
     error?: ConversationTurnError;
     events: readonly ConversationTurnEvent[];
     signal?: AbortSignal;
-    imageState?: AgentLocalChatImageState;
-    voiceState?: AgentLocalChatVoiceState;
     textMessageState?: AgentLocalTextMessageState;
   }) => Promise<AgentLocalCommitTurnResult>;
 };
@@ -172,83 +167,6 @@ function buildTextProjectionMessages(
   }));
 }
 
-function buildImageProjectionMessage(
-  thread: AgentLocalThreadRecord,
-  imageState: Extract<AgentLocalChatImageState, { status: 'complete' | 'error' }>,
-  committedAtMs: number,
-) {
-  return {
-    id: imageState.projectionMessageId,
-    threadId: thread.id,
-    role: 'assistant' as const,
-    status: imageState.status === 'complete' ? 'complete' as const : 'error' as const,
-    kind: 'image' as const,
-    contentText: imageState.prompt,
-    reasoningText: null,
-    error: imageState.status === 'complete'
-      ? null
-      : {
-        code: 'AGENT_IMAGE_FAILED',
-        message: imageState.message,
-      },
-    traceId: null,
-    parentMessageId: null,
-    mediaUrl: imageState.status === 'complete' ? imageState.mediaUrl : null,
-    mediaMimeType: imageState.status === 'complete' ? imageState.mimeType : null,
-    artifactId: imageState.status === 'complete' ? imageState.artifactId : null,
-    metadataJson: null,
-    createdAtMs: committedAtMs,
-    updatedAtMs: committedAtMs,
-  };
-}
-
-function buildVoiceProjectionMessage(
-  thread: AgentLocalThreadRecord,
-  voiceState: Extract<AgentLocalChatVoiceState, { status: 'pending' | 'complete' }>,
-  committedAtMs: number,
-) {
-  const metadataJson = {
-    ...(('metadata' in voiceState && voiceState.metadata) ? voiceState.metadata : {}),
-    transcriptText: voiceState.transcriptText,
-    playbackPrompt: voiceState.prompt,
-    sourceMessageId: voiceState.sourceMessageId,
-    sourceActionId: voiceState.sourceActionId,
-    ...((voiceState.status === 'complete' && voiceState.playbackCueEnvelope)
-      ? {
-        playbackCueEnvelope: toAgentVoicePlaybackCueEnvelopeJson(voiceState.playbackCueEnvelope),
-      }
-      : {}),
-  };
-  const shouldRenderAsVoice = voiceState.status === 'complete'
-    && Boolean(voiceState.mediaUrl);
-  return {
-    id: voiceState.projectionMessageId,
-    threadId: thread.id,
-    role: 'assistant' as const,
-    status: voiceState.status === 'pending'
-      ? 'pending' as const
-      : voiceState.status === 'complete'
-        ? 'complete' as const
-        : 'error' as const,
-    kind: shouldRenderAsVoice ? 'voice' as const : 'text' as const,
-    contentText: voiceState.status === 'pending'
-      ? voiceState.message
-      : shouldRenderAsVoice
-        ? ''
-        : voiceState.transcriptText,
-    reasoningText: null,
-    error: null,
-    traceId: null,
-    parentMessageId: null,
-    mediaUrl: voiceState.status === 'complete' ? voiceState.mediaUrl : null,
-    mediaMimeType: voiceState.status === 'complete' ? voiceState.mimeType : null,
-    artifactId: voiceState.status === 'complete' ? voiceState.artifactId : null,
-    metadataJson,
-    createdAtMs: committedAtMs,
-    updatedAtMs: committedAtMs,
-  };
-}
-
 export function createAgentLocalChatContinuityAdapter(
   options: {
     storeClient?: AgentLocalChatStoreClient;
@@ -268,16 +186,8 @@ export function createAgentLocalChatContinuityAdapter(
       outputText: input.outputText,
       textMessageState: input.textMessageState,
     });
-    const imageState = input.imageState || { status: 'none' as const };
-    const voiceState = input.voiceState || { status: 'none' as const };
     const projectionMessages = [
       ...buildTextProjectionMessages(thread, textMessages, input, committedAtMs),
-      ...((voiceState.status === 'pending' || voiceState.status === 'complete')
-        ? [buildVoiceProjectionMessage(thread, voiceState, committedAtMs)]
-        : []),
-      ...((imageState.status === 'complete' || imageState.status === 'error')
-        ? [buildImageProjectionMessage(thread, imageState, committedAtMs)]
-        : []),
     ];
     return storeClient.commitTurnResult({
       threadId: input.threadId,
@@ -286,7 +196,7 @@ export function createAgentLocalChatContinuityAdapter(
         threadId: input.threadId,
         role: 'assistant',
         status: mapOutcomeToTurnStatus(input.outcome),
-        providerMode: 'agent-local-chat-v1',
+        providerMode: RUNTIME_AGENT_CHAT_MODE_ID,
         traceId: resolveTerminalTraceId(input.events),
         promptTraceId: resolveTerminalPromptTraceId(input.events),
         startedAtMs: committedAtMs,
@@ -308,48 +218,8 @@ export function createAgentLocalChatContinuityAdapter(
           createdAtMs: committedAtMs,
           deliveredAtMs: input.outcome === 'completed' ? committedAtMs : null,
         })),
-        ...(voiceState.status === 'none'
-          ? []
-          : [{
-            id: voiceState.beatId,
-            turnId: input.turnId,
-            beatIndex: voiceState.beatIndex,
-            modality: 'voice' as const,
-            status: voiceState.status === 'pending'
-              ? 'planned' as const
-              : voiceState.status === 'complete'
-                ? 'delivered' as const
-                : 'failed' as const,
-            textShadow: voiceState.transcriptText || voiceState.prompt || null,
-            artifactId: voiceState.status === 'complete' ? voiceState.artifactId : null,
-            mimeType: voiceState.status === 'complete' ? voiceState.mimeType : null,
-            mediaUrl: voiceState.status === 'complete' ? voiceState.mediaUrl : null,
-            projectionMessageId: voiceState.projectionMessageId,
-            createdAtMs: committedAtMs,
-            deliveredAtMs: voiceState.status === 'complete' && input.outcome === 'completed'
-              ? committedAtMs
-              : null,
-          }]),
-        ...(imageState.status === 'none'
-          ? []
-          : [{
-            id: imageState.beatId,
-            turnId: input.turnId,
-            beatIndex: imageState.beatIndex,
-            modality: 'image' as const,
-            status: imageState.status === 'complete' ? 'delivered' as const : 'failed' as const,
-            textShadow: imageState.prompt || null,
-            artifactId: imageState.status === 'complete' ? imageState.artifactId : null,
-            mimeType: imageState.status === 'complete' ? imageState.mimeType : null,
-            mediaUrl: imageState.status === 'complete' ? imageState.mediaUrl : null,
-            projectionMessageId: imageState.projectionMessageId,
-            createdAtMs: committedAtMs,
-            deliveredAtMs: input.outcome === 'completed' ? committedAtMs : null,
-          }]),
       ],
       interactionSnapshot: null,
-      relationMemorySlots: [],
-      recallEntries: [],
       projection: {
         thread: {
           id: thread.id,
@@ -367,21 +237,13 @@ export function createAgentLocalChatContinuityAdapter(
   };
   return {
     loadTurnContext: async (input) => {
-      const context = await storeClient.loadTurnContext({
+      return storeClient.loadTurnContext({
         threadId: input.threadId,
       });
-      const runtimeMemory = await loadDesktopAgentRuntimeMemoryContext(context);
-      return {
-        ...context,
-        relationMemorySlots: runtimeMemory.relationMemorySlots,
-        recallEntries: runtimeMemory.recallEntries,
-      };
     },
     commitTurnResult: async (input) => commitAgentTurnResultInternal({
       ...input,
-      modeId: 'agent-local-chat-v1',
-      imageState: { status: 'none' },
-      voiceState: { status: 'none' },
+      modeId: RUNTIME_AGENT_CHAT_MODE_ID,
     }),
     commitAgentTurnResult: commitAgentTurnResultInternal,
     cancelTurn: async (input) => {
@@ -414,12 +276,10 @@ export async function commitProviderOutcome(input: {
   outputText: string;
   reasoningText: string;
   error?: ConversationTurnError;
-  imageState?: AgentLocalChatImageState;
-  voiceState?: AgentLocalChatVoiceState;
   textMessageState?: AgentLocalTextMessageState;
 }): Promise<AgentLocalCommitTurnResult> {
   return input.continuityAdapter.commitAgentTurnResult({
-    modeId: 'agent-local-chat-v1',
+    modeId: RUNTIME_AGENT_CHAT_MODE_ID,
     threadId: input.baseInput.threadId,
     turnId: input.baseInput.turnId,
     outcome: input.outcome,
@@ -431,8 +291,6 @@ export async function commitProviderOutcome(input: {
       input.terminalEvent,
     ],
     signal: input.baseInput.signal,
-    imageState: input.imageState,
-    voiceState: input.voiceState,
     textMessageState: input.textMessageState,
   });
 }

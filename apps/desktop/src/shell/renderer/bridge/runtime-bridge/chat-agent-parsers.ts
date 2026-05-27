@@ -26,10 +26,6 @@ import type {
   AgentLocalProjectionCommitInput,
   AgentLocalProjectionMessageInput,
   AgentLocalProjectionRebuildResult,
-  AgentLocalRecallEntryInput,
-  AgentLocalRecallEntryRecord,
-  AgentLocalRelationMemorySlotInput,
-  AgentLocalRelationMemorySlotRecord,
   AgentLocalTargetSnapshot,
   AgentLocalTurnBeatInput,
   AgentLocalTurnBeatRecord,
@@ -363,35 +359,6 @@ export function parseAgentLocalInteractionSnapshotRecord(value: unknown): AgentL
   };
 }
 
-export function parseAgentLocalRelationMemorySlotRecord(value: unknown): AgentLocalRelationMemorySlotRecord {
-  const record = assertRecord(value, 'chat_agent relation memory slot record is invalid');
-  return {
-    id: parseRequiredString(record.id, 'id', 'chat_agent relation memory slot record'),
-    threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent relation memory slot record'),
-    slotType: parseRequiredString(record.slotType, 'slotType', 'chat_agent relation memory slot record'),
-    summary: parseRequiredString(record.summary, 'summary', 'chat_agent relation memory slot record'),
-    sourceTurnId: parseOptionalString(record.sourceTurnId) || null,
-    sourceBeatId: parseOptionalString(record.sourceBeatId) || null,
-    sourceMessageId: parseOptionalString(record.sourceMessageId) || null,
-    score: Number(record.score),
-    updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent relation memory slot record'),
-  };
-}
-
-export function parseAgentLocalRecallEntryRecord(value: unknown): AgentLocalRecallEntryRecord {
-  const record = assertRecord(value, 'chat_agent recall entry record is invalid');
-  return {
-    id: parseRequiredString(record.id, 'id', 'chat_agent recall entry record'),
-    threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent recall entry record'),
-    sourceTurnId: parseOptionalString(record.sourceTurnId) || null,
-    sourceBeatId: parseOptionalString(record.sourceBeatId) || null,
-    sourceMessageId: parseOptionalString(record.sourceMessageId) || null,
-    summary: parseRequiredString(record.summary, 'summary', 'chat_agent recall entry record'),
-    searchText: parseRequiredString(record.searchText, 'searchText', 'chat_agent recall entry record'),
-    updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent recall entry record'),
-  };
-}
-
 export function parseAgentLocalThreadBundle(value: unknown): AgentLocalThreadBundle | null {
   if (value == null) {
     return null;
@@ -419,12 +386,6 @@ export function parseAgentLocalTurnContext(value: unknown): AgentLocalTurnContex
     interactionSnapshot: record.interactionSnapshot == null
       ? null
       : parseAgentLocalInteractionSnapshotRecord(record.interactionSnapshot),
-    relationMemorySlots: Array.isArray(record.relationMemorySlots)
-      ? record.relationMemorySlots.map((item) => parseAgentLocalRelationMemorySlotRecord(item))
-      : (() => { throw new Error('chat_agent turn context.relationMemorySlots must be an array'); })(),
-    recallEntries: Array.isArray(record.recallEntries)
-      ? record.recallEntries.map((item) => parseAgentLocalRecallEntryRecord(item))
-      : (() => { throw new Error('chat_agent turn context.recallEntries must be an array'); })(),
     draft: record.draft == null ? null : parseAgentLocalDraftRecord(record.draft),
     projectionVersion: parseRequiredString(record.projectionVersion, 'projectionVersion', 'chat_agent turn context'),
   };
@@ -448,12 +409,6 @@ export function parseAgentLocalCommitTurnResult(value: unknown): AgentLocalCommi
     interactionSnapshot: record.interactionSnapshot == null
       ? null
       : parseAgentLocalInteractionSnapshotRecord(record.interactionSnapshot),
-    relationMemorySlots: Array.isArray(record.relationMemorySlots)
-      ? record.relationMemorySlots.map((item) => parseAgentLocalRelationMemorySlotRecord(item))
-      : (() => { throw new Error('chat_agent commit turn result.relationMemorySlots must be an array'); })(),
-    recallEntries: Array.isArray(record.recallEntries)
-      ? record.recallEntries.map((item) => parseAgentLocalRecallEntryRecord(item))
-      : (() => { throw new Error('chat_agent commit turn result.recallEntries must be an array'); })(),
     bundle: parseAgentLocalThreadBundle(record.bundle) ?? (() => { throw new Error('chat_agent commit turn result.bundle is invalid'); })(),
     projectionVersion: parseRequiredString(record.projectionVersion, 'projectionVersion', 'chat_agent commit turn result'),
   };
@@ -548,8 +503,6 @@ export function parseAgentLocalLoadTurnContextInput(value: unknown): AgentLocalL
   return {
     threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent load_turn_context payload'),
     recentTurnLimit: record.recentTurnLimit == null ? undefined : parseFiniteInteger(record.recentTurnLimit, 'recentTurnLimit', 'chat_agent load_turn_context payload'),
-    relationMemoryLimit: record.relationMemoryLimit == null ? undefined : parseFiniteInteger(record.relationMemoryLimit, 'relationMemoryLimit', 'chat_agent load_turn_context payload'),
-    recallLimit: record.recallLimit == null ? undefined : parseFiniteInteger(record.recallLimit, 'recallLimit', 'chat_agent load_turn_context payload'),
   };
 }
 
@@ -563,14 +516,6 @@ export function parseAgentLocalTurnBeatInput(value: unknown): AgentLocalTurnBeat
 
 export function parseAgentLocalInteractionSnapshotInput(value: unknown): AgentLocalInteractionSnapshotInput {
   return parseAgentLocalInteractionSnapshotRecord(value);
-}
-
-export function parseAgentLocalRelationMemorySlotInput(value: unknown): AgentLocalRelationMemorySlotInput {
-  return parseAgentLocalRelationMemorySlotRecord(value);
-}
-
-export function parseAgentLocalRecallEntryInput(value: unknown): AgentLocalRecallEntryInput {
-  return parseAgentLocalRecallEntryRecord(value);
 }
 
 export function parseAgentLocalProjectionMessageInput(value: unknown): AgentLocalProjectionMessageInput {
@@ -600,12 +545,6 @@ export function parseAgentLocalCommitTurnResultInput(value: unknown): AgentLocal
     interactionSnapshot: record.interactionSnapshot == null
       ? null
       : parseAgentLocalInteractionSnapshotInput(record.interactionSnapshot),
-    relationMemorySlots: Array.isArray(record.relationMemorySlots)
-      ? record.relationMemorySlots.map((item) => parseAgentLocalRelationMemorySlotInput(item))
-      : (() => { throw new Error('chat_agent commit_turn_result payload.relationMemorySlots must be an array'); })(),
-    recallEntries: Array.isArray(record.recallEntries)
-      ? record.recallEntries.map((item) => parseAgentLocalRecallEntryInput(item))
-      : (() => { throw new Error('chat_agent commit_turn_result payload.recallEntries must be an array'); })(),
     projection: parseAgentLocalProjectionCommitInput(record.projection),
   };
 }

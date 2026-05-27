@@ -1,7 +1,7 @@
 import type { RuntimeAgentConsumeEvent, RuntimeAgentSessionTurnSnapshot } from '@nimiplatform/sdk/runtime';
 import type { ConversationRuntimeTrace } from '@nimiplatform/kit/features/chat/headless';
 
-import { type AgentResolvedMessageActionEnvelope } from './chat-agent-behavior';
+import type { AgentResolvedMessageActionEnvelope } from '@nimiplatform/sdk/runtime';
 import type {
   AgentRuntimeChatTurnRequest,
   AgentRuntimeChatTurnStreamPart,

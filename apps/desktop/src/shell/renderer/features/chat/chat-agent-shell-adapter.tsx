@@ -74,6 +74,7 @@ import {
 } from './chat-agent-thread-model';
 import { useAgentConversationRuntimeController } from './chat-agent-shell-adapter-runtime';
 import { useAgentRuntimeSessionSnapshotHydration } from './chat-agent-shell-adapter-session-snapshot';
+import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
 
 type UseAgentConversationModeHostInput = {
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
@@ -132,7 +133,7 @@ export function useAgentConversationModeHost(
     return nextRegistry;
   }, []);
   const agentProvider = useMemo(
-    () => registry.require('agent-local-chat-v1'),
+    () => registry.require(RUNTIME_AGENT_CHAT_MODE_ID),
     [registry],
   );
   const buildHostErrorDetails = useCallback((error: unknown, action?: string, extra?: Record<string, unknown>) => {
@@ -532,7 +533,7 @@ export function useAgentConversationModeHost(
     queryClient,
     reportHostError,
     runAgentTurn: (turnInput) => agentProvider.runTurn({
-      modeId: 'agent-local-chat-v1',
+      modeId: RUNTIME_AGENT_CHAT_MODE_ID,
       threadId: turnInput.threadId,
       turnId: turnInput.turnId,
       userMessage: turnInput.userMessage,

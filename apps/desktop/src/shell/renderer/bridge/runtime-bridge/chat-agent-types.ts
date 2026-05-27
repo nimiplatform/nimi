@@ -117,29 +117,6 @@ export type AgentLocalInteractionSnapshotRecord = {
   updatedAtMs: number;
 };
 
-export type AgentLocalRelationMemorySlotRecord = {
-  id: string;
-  threadId: string;
-  slotType: string;
-  summary: string;
-  sourceTurnId: string | null;
-  sourceBeatId?: string | null;
-  sourceMessageId?: string | null;
-  score: number;
-  updatedAtMs: number;
-};
-
-export type AgentLocalRecallEntryRecord = {
-  id: string;
-  threadId: string;
-  sourceTurnId: string | null;
-  sourceBeatId?: string | null;
-  sourceMessageId?: string | null;
-  summary: string;
-  searchText: string;
-  updatedAtMs: number;
-};
-
 export type AgentLocalThreadBundle = {
   thread: AgentLocalThreadRecord;
   messages: AgentLocalMessageRecord[];
@@ -151,8 +128,6 @@ export type AgentLocalTurnContext = {
   recentTurns: AgentLocalTurnRecord[];
   recentBeats: AgentLocalTurnBeatRecord[];
   interactionSnapshot: AgentLocalInteractionSnapshotRecord | null;
-  relationMemorySlots: AgentLocalRelationMemorySlotRecord[];
-  recallEntries: AgentLocalRecallEntryRecord[];
   draft: AgentLocalDraftRecord | null;
   projectionVersion: string;
 };
@@ -166,8 +141,6 @@ export type AgentLocalCommitTurnResult = {
   turn: AgentLocalTurnRecord;
   beats: AgentLocalTurnBeatRecord[];
   interactionSnapshot: AgentLocalInteractionSnapshotRecord | null;
-  relationMemorySlots: AgentLocalRelationMemorySlotRecord[];
-  recallEntries: AgentLocalRecallEntryRecord[];
   bundle: AgentLocalThreadBundle;
   projectionVersion: string;
 };
@@ -237,8 +210,6 @@ export type AgentLocalPutDraftInput = {
 export type AgentLocalLoadTurnContextInput = {
   threadId: string;
   recentTurnLimit?: number;
-  relationMemoryLimit?: number;
-  recallLimit?: number;
 };
 
 export type AgentLocalTurnRecordInput = Omit<AgentLocalTurnRecord, never>;
@@ -257,10 +228,6 @@ export type AgentLocalUpdateTurnBeatInput = {
 
 export type AgentLocalInteractionSnapshotInput = Omit<AgentLocalInteractionSnapshotRecord, never>;
 
-export type AgentLocalRelationMemorySlotInput = Omit<AgentLocalRelationMemorySlotRecord, never>;
-
-export type AgentLocalRecallEntryInput = Omit<AgentLocalRecallEntryRecord, never>;
-
 export type AgentLocalProjectionMessageInput = AgentLocalMessageRecord;
 
 export type AgentLocalProjectionCommitInput = {
@@ -275,8 +242,6 @@ export type AgentLocalCommitTurnResultInput = {
   turn: AgentLocalTurnRecordInput;
   beats: AgentLocalTurnBeatInput[];
   interactionSnapshot: AgentLocalInteractionSnapshotInput | null;
-  relationMemorySlots: AgentLocalRelationMemorySlotInput[];
-  recallEntries: AgentLocalRecallEntryInput[];
   projection: AgentLocalProjectionCommitInput;
 };
 

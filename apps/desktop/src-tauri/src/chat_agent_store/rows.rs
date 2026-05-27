@@ -239,32 +239,3 @@ pub(super) fn interaction_snapshot_record_from_row(
         updated_at_ms: row.get(7)?,
     })
 }
-
-pub(super) fn relation_memory_slot_record_from_row(
-    row: &rusqlite::Row<'_>,
-) -> Result<ChatAgentRelationMemorySlotRecord, rusqlite::Error> {
-    Ok(ChatAgentRelationMemorySlotRecord {
-        id: row.get(0)?,
-        thread_id: row.get(1)?,
-        slot_type: row.get(2)?,
-        summary: row.get(3)?,
-        source_turn_id: row.get(4)?,
-        source_beat_id: row.get(5)?,
-        score: row.get(6)?,
-        updated_at_ms: row.get(7)?,
-    })
-}
-
-pub(super) fn recall_entry_record_from_row(
-    row: &rusqlite::Row<'_>,
-) -> Result<ChatAgentRecallEntryRecord, rusqlite::Error> {
-    Ok(ChatAgentRecallEntryRecord {
-        id: row.get(0)?,
-        thread_id: row.get(1)?,
-        source_turn_id: row.get(2)?,
-        source_beat_id: row.get(3)?,
-        summary: row.get(4)?,
-        search_text: row.get(5)?,
-        updated_at_ms: row.get(6)?,
-    })
-}

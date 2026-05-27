@@ -521,7 +521,7 @@ fn chat_agent_delete_message_and_delete_thread_remove_local_history() {
                 &first_thread.id,
                 "assistant",
                 "completed",
-                "agent-local-chat-v1",
+                "runtime-agent-chat-v1",
                 150_i64,
             ],
         )
@@ -614,7 +614,7 @@ fn chat_agent_store_rejects_multi_text_beat_assistant_turns() {
                     thread_id: thread.id.clone(),
                     role: ChatAgentTurnRole::Assistant,
                     status: ChatAgentTurnStatus::Completed,
-                    provider_mode: "agent-local-chat-v1".to_string(),
+                    provider_mode: "runtime-agent-chat-v1".to_string(),
                     trace_id: Some("trace-turn-multi-text".to_string()),
                     prompt_trace_id: Some("prompt-trace-multi-text".to_string()),
                     started_at_ms: 200,
@@ -652,8 +652,6 @@ fn chat_agent_store_rejects_multi_text_beat_assistant_turns() {
                     },
                 ],
                 interaction_snapshot: None,
-                relation_memory_slots: vec![],
-                recall_entries: vec![],
                 projection: ChatAgentProjectionCommitInput {
                     thread: ChatAgentUpdateThreadMetadataInput {
                         id: thread.id.clone(),

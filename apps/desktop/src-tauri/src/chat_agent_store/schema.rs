@@ -91,31 +91,6 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
         );
         CREATE INDEX IF NOT EXISTS idx_agent_interaction_snapshots_thread_version ON agent_interaction_snapshots(thread_id, version DESC);
 
-        CREATE TABLE IF NOT EXISTS agent_relation_memory_slots (
-          id TEXT PRIMARY KEY,
-          thread_id TEXT NOT NULL REFERENCES agent_threads(id) ON DELETE CASCADE,
-          slot_type TEXT NOT NULL,
-          summary TEXT NOT NULL,
-          source_turn_id TEXT REFERENCES agent_turns(id) ON DELETE SET NULL,
-          source_beat_id TEXT REFERENCES agent_turn_beats(id) ON DELETE SET NULL,
-          score REAL NOT NULL,
-          updated_at_ms INTEGER NOT NULL
-        );
-        CREATE INDEX IF NOT EXISTS idx_agent_relation_memory_slots_thread_slot_type_updated
-          ON agent_relation_memory_slots(thread_id, slot_type, updated_at_ms DESC, id DESC);
-
-        CREATE TABLE IF NOT EXISTS agent_recall_index (
-          id TEXT PRIMARY KEY,
-          thread_id TEXT NOT NULL REFERENCES agent_threads(id) ON DELETE CASCADE,
-          source_turn_id TEXT REFERENCES agent_turns(id) ON DELETE SET NULL,
-          source_beat_id TEXT REFERENCES agent_turn_beats(id) ON DELETE SET NULL,
-          summary TEXT NOT NULL,
-          search_text TEXT NOT NULL,
-          updated_at_ms INTEGER NOT NULL
-        );
-        CREATE INDEX IF NOT EXISTS idx_agent_recall_index_thread_updated
-          ON agent_recall_index(thread_id, updated_at_ms DESC, id DESC);
-
         CREATE TABLE IF NOT EXISTS agent_store_meta (
           key TEXT PRIMARY KEY,
           value_json TEXT NOT NULL,
@@ -224,33 +199,7 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
             "updated_at_ms",
         ],
     )?;
-    ensure_required_columns(
-        conn,
-        "agent_relation_memory_slots",
-        &[
-            "id",
-            "thread_id",
-            "slot_type",
-            "summary",
-            "source_turn_id",
-            "source_beat_id",
-            "score",
-            "updated_at_ms",
-        ],
-    )?;
-    ensure_required_columns(
-        conn,
-        "agent_recall_index",
-        &[
-            "id",
-            "thread_id",
-            "source_turn_id",
-            "source_beat_id",
-            "summary",
-            "search_text",
-            "updated_at_ms",
-        ],
-    )?;
+    drop_retired_memory_tables(conn)?;
     ensure_required_columns(
         conn,
         "agent_store_meta",
@@ -263,6 +212,17 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
         serde_json::json!({ "version": CHAT_AGENT_DB_SCHEMA_VERSION }),
         0,
     )?;
+    Ok(())
+}
+
+fn drop_retired_memory_tables(conn: &Connection) -> Result<(), String> {
+    conn.execute_batch(
+        r#"
+        DROP TABLE IF EXISTS agent_recall_index;
+        DROP TABLE IF EXISTS agent_relation_memory_slots;
+        "#,
+    )
+    .map_err(|error| format!("删除 retired chat_agent memory tables 失败: {error}"))?;
     Ok(())
 }
 
@@ -335,19 +295,14 @@ fn ensure_store_meta(
     value_json: serde_json::Value,
     updated_at_ms: i64,
 ) -> Result<(), String> {
-    let existing = conn
-        .query_row(
-            "SELECT key FROM agent_store_meta WHERE key = ?1",
-            params![key],
-            |row| row.get::<_, String>(0),
-        )
-        .optional()
-        .map_err(|error| format!("查询 chat_agent store meta 失败: {error}"))?;
-    if existing.is_some() {
-        return Ok(());
-    }
     conn.execute(
-        "INSERT INTO agent_store_meta (key, value_json, updated_at_ms) VALUES (?1, ?2, ?3)",
+        r#"
+        INSERT INTO agent_store_meta (key, value_json, updated_at_ms)
+        VALUES (?1, ?2, ?3)
+        ON CONFLICT(key) DO UPDATE SET
+          value_json = excluded.value_json,
+          updated_at_ms = excluded.updated_at_ms
+        "#,
         params![
             key,
             serde_json::to_string(&value_json)

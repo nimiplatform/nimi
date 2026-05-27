@@ -4,12 +4,7 @@ import type {
   ConversationTurnError,
 } from '@nimiplatform/kit/features/chat';
 import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
-import type { AgentResolvedMessageActionEnvelope } from './chat-agent-behavior';
-import type {
-  AgentVoiceWorkflowCapability,
-} from './conversation-capability';
-import type { AgentVoicePlaybackCueEnvelope } from './chat-agent-voice-playback-envelope';
-import type { AgentChatVoiceWorkflowMessageMetadata } from './chat-agent-voice-workflow';
+import type { AgentResolvedMessageActionEnvelope } from '@nimiplatform/sdk/runtime';
 
 export const AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES = {
   reasoning: true,
@@ -92,68 +87,6 @@ export interface AgentRuntimeChatTurnAdapter {
     request: AgentRuntimeChatTurnRequest,
   ) => Promise<{ stream: AsyncIterable<AgentRuntimeChatTurnStreamPart> }>;
 }
-
-export type AgentVoiceWorkflowIntent = {
-  capability: AgentVoiceWorkflowCapability;
-  workflowType: 'voice_clone' | 'voice_design';
-  operation: string;
-};
-
-export type AgentLocalChatImageState =
-  | {
-    status: 'none';
-  }
-  | {
-    status: 'error';
-    beatId: string;
-    beatIndex: number;
-    projectionMessageId: string;
-    prompt: string;
-    message: string;
-  }
-  | {
-    status: 'complete';
-    beatId: string;
-    beatIndex: number;
-    projectionMessageId: string;
-    prompt: string;
-    mediaUrl: string;
-    mimeType: string;
-    artifactId: string | null;
-  };
-
-export type AgentLocalChatVoiceState =
-  | {
-    status: 'none';
-  }
-  | {
-    status: 'pending';
-    beatId: string;
-    beatIndex: number;
-    projectionMessageId: string;
-    prompt: string;
-    transcriptText: string;
-    message: string;
-    sourceMessageId: string;
-    workflowIntent: AgentVoiceWorkflowIntent;
-    sourceActionId: string;
-    metadata?: AgentChatVoiceWorkflowMessageMetadata | null;
-  }
-  | {
-    status: 'complete';
-    beatId: string;
-    beatIndex: number;
-    projectionMessageId: string;
-    prompt: string;
-    transcriptText: string;
-    mediaUrl: string;
-    mimeType: string;
-    artifactId: string | null;
-    sourceMessageId: string;
-    sourceActionId: string;
-    metadata?: AgentChatVoiceWorkflowMessageMetadata | null;
-    playbackCueEnvelope?: AgentVoicePlaybackCueEnvelope | null;
-  };
 
 export type AgentLocalTextMessageState = {
   messageId: string;

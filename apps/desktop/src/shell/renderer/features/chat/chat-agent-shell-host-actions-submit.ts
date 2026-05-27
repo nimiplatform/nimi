@@ -44,9 +44,7 @@ import {
 import { resolveAgentTurnTotalTimeoutMs } from './chat-agent-timeouts';
 import { ensureAgentConversationSubmitRouteReady } from './conversation-submit-readiness';
 import { buildAgentUserProjectionCommit } from './chat-agent-user-projection';
-import {
-  writeDesktopAgentUserTurnMemory,
-} from './chat-agent-runtime-memory';
+import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
 import {
   assertAgentSubmitSchedulingAllowed,
   ensureThreadAnchorBindingForTarget,
@@ -254,15 +252,6 @@ export async function submitAgentConversationTurn(input: {
     });
 
     await chatAgentStoreClient.deleteDraft(effectiveThreadId);
-    await writeDesktopAgentUserTurnMemory({
-      agentId: activeTarget.localAgentRef,
-      displayName: activeTarget.displayName,
-      worldId: activeTarget.worldId,
-      submittedText,
-      turnId: userTurnId,
-      threadId: effectiveThreadId,
-    });
-
     const userCommitted = await chatAgentStoreClient.commitTurnResult({
       threadId: effectiveThreadId,
       turn: {
@@ -270,7 +259,7 @@ export async function submitAgentConversationTurn(input: {
         threadId: effectiveThreadId,
         role: 'user',
         status: 'completed',
-        providerMode: 'agent-local-chat-v1',
+        providerMode: RUNTIME_AGENT_CHAT_MODE_ID,
         traceId: null,
         promptTraceId: null,
         startedAtMs: createdAtMs,
@@ -279,8 +268,6 @@ export async function submitAgentConversationTurn(input: {
       },
       beats: [...userProjection.beats],
       interactionSnapshot: null,
-      relationMemorySlots: [],
-      recallEntries: [],
       projection: {
         thread: {
           id: effectiveThreadRecord.id,
@@ -302,7 +289,7 @@ export async function submitAgentConversationTurn(input: {
       clearDraft: true,
     });
     if (!userBundle) {
-      throw new Error('agent-local-chat-v1 user commit did not return a projection bundle');
+      throw new Error(`${RUNTIME_AGENT_CHAT_MODE_ID} user commit did not return a projection bundle`);
     }
     input.hostInput.setThreadsCache((current) => upsertThreadSummary(current, userBundle.thread));
     input.hostInput.queryClient.setQueryData(bundleQueryKey(effectiveThreadId), userBundle);

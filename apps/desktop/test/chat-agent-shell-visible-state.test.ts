@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { AgentResolvedStatusCue } from '../src/shell/renderer/features/chat/chat-agent-behavior.js';
+import type { AgentResolvedStatusCue } from '@nimiplatform/sdk/runtime';
 import {
   resolveAgentConversationSurfaceState,
   type RuntimeCommittedStatusProjection,

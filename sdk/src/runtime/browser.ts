@@ -36,6 +36,50 @@ export {
   type ConnectorAuthProfileSpec,
 } from './connector-auth-profiles.generated.js';
 export {
+  acquireManagedConnectorCredential,
+  type AcquireManagedConnectorCredentialOptions,
+  type ConnectorAuthAcquisitionHost,
+  type ConnectorAuthAcquisitionHttpRequest,
+  type ConnectorAuthAcquisitionHttpResponse,
+  type ConnectorAuthAcquisitionPendingState,
+  type ConnectorAuthAcquisitionTokenExchangeInput,
+  type ConnectorAuthAcquisitionTokenExchangeResult,
+  type ManagedConnectorCredentialAcquisitionResult,
+  type PersistManagedConnectorCredentialInput,
+  type PersistManagedConnectorCredentialResult,
+} from './connector-auth-acquisition.js';
+export {
+  CONNECTOR_AUTH_ACQUISITION_PROFILES,
+  type ConnectorAuthAcquisitionProfileSpec,
+} from './connector-auth-acquisition-profiles.generated.js';
+export {
+  RUNTIME_BRIDGE_CONFIG_DEFAULTS,
+  type RuntimeBridgeConfigDefaults,
+} from './runtime-config-defaults.js';
+export {
+  buildRuntimeBridgeConfigWithLocalEndpoint,
+  buildRuntimeBridgeLoopbackEndpoint,
+  extractRuntimeBridgeEndpointPort,
+  normalizeRuntimeBridgeEndpoint,
+  projectRuntimeBridgeLocalEndpoint,
+  serializeRuntimeBridgeLocalEndpointProjection,
+  type RuntimeBridgeConfigJson,
+} from './runtime-bridge-config-projection.js';
+export {
+  AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+  AGENT_RESOLVED_STATUS_CUE_MOODS,
+  buildAgentResolvedOutputText,
+  cloneAgentResolvedMessageActionEnvelopeWithCommittedMessage,
+  parseAgentResolvedMessageActionEnvelopeFromPayload,
+  parseRuntimeAgentStructuredMessageActionEnvelope,
+  type AgentResolvedMessage,
+  type AgentResolvedMessageActionEnvelope,
+  type AgentResolvedModalityAction,
+  type AgentResolvedModalityActionPromptPayload,
+  type AgentResolvedStatusCue,
+  type AgentResolvedStatusCueMood,
+} from './runtime-agent-message-action.js';
+export {
   KnowledgeBankScope,
   KnowledgeIngestTaskStatus,
 } from './generated/runtime/v1/knowledge.js';

@@ -8,6 +8,7 @@ import {
 import type {
   AgentModelOutputDiagnostics,
 } from './chat-agent-runtime-output-types';
+import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
 
 type AgentTurnTerminalState = 'running' | 'completed' | 'failed' | 'canceled';
 
@@ -136,7 +137,7 @@ export function assertAgentTurnLifecycleCompleted(
   state: AgentTurnLifecycleState,
 ): AgentTurnLifecycleState & { terminal: 'completed' } {
   if (state.terminal !== 'completed') {
-    throw new Error('agent-local-chat-v1 provider completed without a terminal success event');
+    throw new Error(`${RUNTIME_AGENT_CHAT_MODE_ID} provider completed without a terminal success event`);
   }
   return state as AgentTurnLifecycleState & { terminal: 'completed' };
 }

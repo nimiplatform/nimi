@@ -1,5 +1,5 @@
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
-import type { AgentResolvedStatusCue } from './chat-agent-behavior';
+import type { AgentResolvedStatusCue } from '@nimiplatform/sdk/runtime';
 import type { AgentFooterViewState } from './chat-agent-shell-footer-state';
 import type { AgentVoiceSessionShellState } from './chat-agent-voice-session';
 

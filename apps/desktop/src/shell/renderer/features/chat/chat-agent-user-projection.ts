@@ -3,6 +3,7 @@ import type {
   AgentLocalTurnBeatInput,
 } from '@renderer/bridge/runtime-bridge/types';
 import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
+import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
 
 function normalizeText(value: string): string {
   return value.trim();
@@ -122,7 +123,7 @@ export function buildAgentUserProjectionCommit(input: {
   const lastMessageId = messages[messages.length - 1]?.id;
   const lastMessageAtMs = messages[messages.length - 1]?.updatedAtMs;
   if (!firstMessageId || !lastMessageId || lastMessageAtMs == null) {
-    throw new Error('agent-local-chat-v1 requires a user projection message');
+    throw new Error(`${RUNTIME_AGENT_CHAT_MODE_ID} requires a user projection message`);
   }
 
   return {

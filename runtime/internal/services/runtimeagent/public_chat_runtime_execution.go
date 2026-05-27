@@ -41,11 +41,26 @@ func (r publicChatRuntime) runTurn(
 	traceID := ""
 	streamCompletedAt := time.Time{}
 	firstDeltaObserved := false
+	assembledSystemPrompt, assemblyErr := r.assemblePublicChatSystemPrompt(ctx, session, req)
+	if assemblyErr != nil {
+		failure := runtimeErrorDetailFromError(assemblyErr)
+		r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
+			projection.Status = publicChatTurnStatusFailed
+			projection.TraceID = traceID
+			projection.ModelResolved = modelResolved
+			projection.RouteDecision = routeDecision
+			projection.ReasonCode = failure.ReasonCode
+			projection.ActionHint = failure.ActionHint
+			projection.Message = failure.Message
+		})
+		r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, failure.ReasonCode, failure.Message, failure.ActionHint)
+		return
+	}
 	err := r.svc.currentPublicChatTurnExecutor().StreamChatTurn(ctx, &PublicChatTurnExecutionRequest{
 		AppID:         session.CallerAppID,
 		SubjectUserID: session.SubjectUserID,
 		Messages:      toProtoPublicChatMessages(req.Messages),
-		SystemPrompt:  strings.TrimSpace(req.SystemPrompt),
+		SystemPrompt:  assembledSystemPrompt,
 		MaxTokens:     req.MaxOutputTokens,
 		Binding:       session.Binding,
 		Reasoning:     normalizePublicChatReasoning(req.Reasoning),

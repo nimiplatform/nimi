@@ -4,10 +4,8 @@ import type {
   ConversationTurnInput,
 } from '@nimiplatform/kit/features/chat/headless';
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
+import type { AgentResolvedMessageActionEnvelope } from '@nimiplatform/sdk/runtime';
 import { feedStreamEvent } from '../turns/stream-controller';
-import {
-  type AgentResolvedMessageActionEnvelope,
-} from './chat-agent-behavior';
 import { createAgentLocalChatContinuityAdapter, commitProviderOutcome } from './chat-agent-continuity';
 import {
   AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES,
@@ -18,6 +16,7 @@ import {
 import { streamChatAgentRuntimeAgentTurn } from './chat-agent-runtime-agent';
 import { normalizeText } from './chat-agent-runtime-normalize';
 import { toChatAgentRuntimeError } from './chat-agent-runtime';
+import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
 
 type AgentRuntimeChatProviderOptions = {
   runtimeAdapter?: AgentRuntimeChatTurnAdapter;
@@ -338,7 +337,7 @@ export function createRuntimeAgentChatConversationProvider(
   const runtimeAdapter = options.runtimeAdapter ?? { streamAgentTurn: streamChatAgentRuntimeAgentTurn };
   const continuityAdapter = options.continuityAdapter ?? createAgentLocalChatContinuityAdapter();
   return {
-    modeId: 'agent-local-chat-v1',
+    modeId: RUNTIME_AGENT_CHAT_MODE_ID,
     capabilities: AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES,
     async *runTurn(input: ConversationTurnInput): AsyncIterable<ConversationTurnEvent> {
       const metadata = requireProviderMetadata(input.metadata);
@@ -356,7 +355,7 @@ export function createRuntimeAgentChatConversationProvider(
       const emittedEvents: ConversationTurnEvent[] = [];
       const turnStarted: ConversationTurnEvent = {
         type: 'turn-started',
-        modeId: 'agent-local-chat-v1',
+        modeId: RUNTIME_AGENT_CHAT_MODE_ID,
         threadId: input.threadId,
         turnId: input.turnId,
       };

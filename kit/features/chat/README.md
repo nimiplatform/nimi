@@ -59,7 +59,8 @@ Authoritative parity fixtures live in `kit/features/chat/test/conversation-shell
 
 ## What Stays Outside
 - App-local system prompt policy.
-- App-local `agent-local-chat-v1` product orchestration semantics.
+- Runtime Agent Chat product-mode wiring and app shell persistence details;
+  execution and projection truth remain Runtime-owned.
 - Concrete socket client creation and app-owned notification/query side effects.
 - App-owned transport and source data orchestration that feeds canonical drawer sections, message/content slots, and capability hooks.
 - App-specific navigation, persistence, and moderation shells.

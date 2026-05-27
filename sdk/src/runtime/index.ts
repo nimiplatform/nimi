@@ -58,6 +58,20 @@ export {
   type RuntimeBridgeConfigDefaults,
 } from './runtime-config-defaults.js';
 export {
+  AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+  AGENT_RESOLVED_STATUS_CUE_MOODS,
+  buildAgentResolvedOutputText,
+  cloneAgentResolvedMessageActionEnvelopeWithCommittedMessage,
+  parseAgentResolvedMessageActionEnvelopeFromPayload,
+  parseRuntimeAgentStructuredMessageActionEnvelope,
+  type AgentResolvedMessage,
+  type AgentResolvedMessageActionEnvelope,
+  type AgentResolvedModalityAction,
+  type AgentResolvedModalityActionPromptPayload,
+  type AgentResolvedStatusCue,
+  type AgentResolvedStatusCueMood,
+} from './runtime-agent-message-action.js';
+export {
   buildRuntimeBridgeConfigWithLocalEndpoint,
   buildRuntimeBridgeLoopbackEndpoint,
   extractRuntimeBridgeEndpointPort,

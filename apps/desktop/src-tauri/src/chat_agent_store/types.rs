@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub(crate) const CHAT_AGENT_DB_SCHEMA_VERSION: i64 = 5;
+pub(crate) const CHAT_AGENT_DB_SCHEMA_VERSION: i64 = 6;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -189,38 +189,11 @@ pub struct ChatAgentInteractionSnapshotRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatAgentRelationMemorySlotRecord {
-    pub id: String,
-    pub thread_id: String,
-    pub slot_type: String,
-    pub summary: String,
-    pub source_turn_id: Option<String>,
-    pub source_beat_id: Option<String>,
-    pub score: f64,
-    pub updated_at_ms: i64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatAgentRecallEntryRecord {
-    pub id: String,
-    pub thread_id: String,
-    pub source_turn_id: Option<String>,
-    pub source_beat_id: Option<String>,
-    pub summary: String,
-    pub search_text: String,
-    pub updated_at_ms: i64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
 pub struct ChatAgentTurnContext {
     pub thread: ChatAgentThreadRecord,
     pub recent_turns: Vec<ChatAgentTurnRecord>,
     pub recent_beats: Vec<ChatAgentTurnBeatRecord>,
     pub interaction_snapshot: Option<ChatAgentInteractionSnapshotRecord>,
-    pub relation_memory_slots: Vec<ChatAgentRelationMemorySlotRecord>,
-    pub recall_entries: Vec<ChatAgentRecallEntryRecord>,
     pub draft: Option<ChatAgentDraftRecord>,
     pub projection_version: String,
 }
@@ -238,8 +211,6 @@ pub struct ChatAgentCommitTurnResult {
     pub turn: ChatAgentTurnRecord,
     pub beats: Vec<ChatAgentTurnBeatRecord>,
     pub interaction_snapshot: Option<ChatAgentInteractionSnapshotRecord>,
-    pub relation_memory_slots: Vec<ChatAgentRelationMemorySlotRecord>,
-    pub recall_entries: Vec<ChatAgentRecallEntryRecord>,
     pub bundle: ChatAgentThreadBundle,
     pub projection_version: String,
 }
@@ -347,8 +318,6 @@ pub struct ChatAgentDeleteDraftInput {
 pub struct ChatAgentLoadTurnContextInput {
     pub thread_id: String,
     pub recent_turn_limit: Option<i64>,
-    pub relation_memory_limit: Option<i64>,
-    pub recall_limit: Option<i64>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -410,31 +379,6 @@ pub struct ChatAgentInteractionSnapshotInput {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatAgentRelationMemorySlotInput {
-    pub id: String,
-    pub thread_id: String,
-    pub slot_type: String,
-    pub summary: String,
-    pub source_turn_id: Option<String>,
-    pub source_beat_id: Option<String>,
-    pub score: f64,
-    pub updated_at_ms: i64,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatAgentRecallEntryInput {
-    pub id: String,
-    pub thread_id: String,
-    pub source_turn_id: Option<String>,
-    pub source_beat_id: Option<String>,
-    pub summary: String,
-    pub search_text: String,
-    pub updated_at_ms: i64,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ChatAgentProjectionMessageInput {
     pub id: String,
     pub thread_id: String,
@@ -470,8 +414,6 @@ pub struct ChatAgentCommitTurnResultInput {
     pub turn: ChatAgentTurnRecordInput,
     pub beats: Vec<ChatAgentTurnBeatInput>,
     pub interaction_snapshot: Option<ChatAgentInteractionSnapshotInput>,
-    pub relation_memory_slots: Vec<ChatAgentRelationMemorySlotInput>,
-    pub recall_entries: Vec<ChatAgentRecallEntryInput>,
     pub projection: ChatAgentProjectionCommitInput,
 }
 

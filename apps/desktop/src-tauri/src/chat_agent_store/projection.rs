@@ -12,19 +12,17 @@ pub(super) fn compute_projection_version(
     conn: &Connection,
     thread_id: &str,
 ) -> Result<String, String> {
-    let (turn_count, beat_count, message_count, snapshot_count, memory_count, recall_count): (i64, i64, i64, i64, i64, i64) = conn
+    let (turn_count, beat_count, message_count, snapshot_count): (i64, i64, i64, i64) = conn
         .query_row(
             r#"
             SELECT
               (SELECT COUNT(*) FROM agent_turns WHERE thread_id = ?1),
               (SELECT COUNT(*) FROM agent_turn_beats WHERE turn_id IN (SELECT id FROM agent_turns WHERE thread_id = ?1)),
               (SELECT COUNT(*) FROM agent_messages WHERE thread_id = ?1),
-              (SELECT COUNT(*) FROM agent_interaction_snapshots WHERE thread_id = ?1),
-              (SELECT COUNT(*) FROM agent_relation_memory_slots WHERE thread_id = ?1),
-              (SELECT COUNT(*) FROM agent_recall_index WHERE thread_id = ?1)
+              (SELECT COUNT(*) FROM agent_interaction_snapshots WHERE thread_id = ?1)
             "#,
             params![thread_id],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
         )
         .map_err(|error| format!("compute chat_agent projection version counts failed: {error}"))?;
 
@@ -46,10 +44,6 @@ pub(super) fn compute_projection_version(
               SELECT COALESCE(MAX(updated_at_ms), 0) AS value FROM agent_messages WHERE thread_id = ?1
               UNION ALL
               SELECT COALESCE(MAX(updated_at_ms), 0) AS value FROM agent_interaction_snapshots WHERE thread_id = ?1
-              UNION ALL
-              SELECT COALESCE(MAX(updated_at_ms), 0) AS value FROM agent_relation_memory_slots WHERE thread_id = ?1
-              UNION ALL
-              SELECT COALESCE(MAX(updated_at_ms), 0) AS value FROM agent_recall_index WHERE thread_id = ?1
             )
             "#,
             params![thread_id],
@@ -58,7 +52,7 @@ pub(super) fn compute_projection_version(
         .map_err(|error| format!("compute chat_agent projection version timestamp failed: {error}"))?;
 
     Ok(format!(
-        "truth:{latest_truth_ms}:t{turn_count}:b{beat_count}:msg{message_count}:s{snapshot_count}:m{memory_count}:r{recall_count}"
+        "truth:{latest_truth_ms}:t{turn_count}:b{beat_count}:msg{message_count}:s{snapshot_count}"
     ))
 }
 

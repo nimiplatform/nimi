@@ -43,7 +43,7 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
                     thread_id: thread.id.clone(),
                     role: ChatAgentTurnRole::Assistant,
                     status: ChatAgentTurnStatus::Completed,
-                    provider_mode: "agent-local-chat-v1".to_string(),
+                    provider_mode: "runtime-agent-chat-v1".to_string(),
                     trace_id: Some("trace-turn-001".to_string()),
                     prompt_trace_id: Some("prompt-trace-001".to_string()),
                     started_at_ms: 200,
@@ -74,25 +74,6 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
                     open_loops_json: serde_json::json!(["send summary"]),
                     updated_at_ms: 261,
                 }),
-                relation_memory_slots: vec![ChatAgentRelationMemorySlotInput {
-                    id: "memory-001".to_string(),
-                    thread_id: thread.id.clone(),
-                    slot_type: "preference".to_string(),
-                    summary: "User prefers concise answers".to_string(),
-                    source_turn_id: Some("turn-001".to_string()),
-                    source_beat_id: Some("beat-001".to_string()),
-                    score: 0.9,
-                    updated_at_ms: 262,
-                }],
-                recall_entries: vec![ChatAgentRecallEntryInput {
-                    id: "recall-001".to_string(),
-                    thread_id: thread.id.clone(),
-                    source_turn_id: Some("turn-001".to_string()),
-                    source_beat_id: Some("beat-001".to_string()),
-                    summary: "Summarize the delivery plan".to_string(),
-                    search_text: "delivery plan summary".to_string(),
-                    updated_at_ms: 263,
-                }],
                 projection: ChatAgentProjectionCommitInput {
                     thread: ChatAgentUpdateThreadMetadataInput {
                         id: thread.id.clone(),
@@ -139,8 +120,6 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
                 .map(|item| item.version),
             Some(1)
         );
-        assert_eq!(committed.relation_memory_slots.len(), 1);
-        assert_eq!(committed.recall_entries.len(), 1);
         assert!(committed.projection_version.starts_with("truth:"));
 
         let context = load_turn_context(
@@ -148,20 +127,16 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
             &ChatAgentLoadTurnContextInput {
                 thread_id: thread.id.clone(),
                 recent_turn_limit: Some(8),
-                relation_memory_limit: Some(8),
-                recall_limit: Some(8),
             },
         )
         .expect("load turn context");
         assert_eq!(context.recent_turns.len(), 1);
-        assert_eq!(context.recent_turns[0].provider_mode, "agent-local-chat-v1");
+        assert_eq!(context.recent_turns[0].provider_mode, "runtime-agent-chat-v1");
         assert_eq!(context.recent_beats.len(), 1);
         assert_eq!(
             context.recent_beats[0].projection_message_id.as_deref(),
             Some("message-001")
         );
-        assert_eq!(context.relation_memory_slots.len(), 1);
-        assert_eq!(context.recall_entries.len(), 1);
         assert!(context.draft.is_none());
         assert_eq!(context.projection_version, committed.projection_version);
 
@@ -201,8 +176,6 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
             &ChatAgentLoadTurnContextInput {
                 thread_id: thread.id.clone(),
                 recent_turn_limit: Some(8),
-                relation_memory_limit: Some(8),
-                recall_limit: Some(8),
             },
         )
         .expect("load context after cancel");

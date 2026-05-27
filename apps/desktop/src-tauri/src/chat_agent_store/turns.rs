@@ -1,16 +1,15 @@
 use super::codec::{
     beat_modality_to_db_value, beat_status_to_db_value, map_sql_error, normalize_f64,
-    normalize_non_negative_f64, normalize_optional_string, normalize_positive_limit,
-    normalize_required_string, normalize_structured_json, require_non_negative_ms,
-    serialize_json_value, turn_role_to_db_value, turn_status_to_db_value,
+    normalize_optional_string, normalize_positive_limit, normalize_required_string,
+    normalize_structured_json, require_non_negative_ms, serialize_json_value,
+    turn_role_to_db_value, turn_status_to_db_value,
 };
 use super::crud::{delete_draft, get_draft, get_thread_bundle, put_draft, update_thread_metadata};
 use super::projection::{
     compute_projection_version, rebuild_projection_internal, upsert_projection_message,
 };
 use super::rows::{
-    beat_record_from_row, interaction_snapshot_record_from_row, recall_entry_record_from_row,
-    relation_memory_slot_record_from_row, turn_record_from_row,
+    beat_record_from_row, interaction_snapshot_record_from_row, turn_record_from_row,
 };
 use super::types::*;
 use rusqlite::{params, Connection, OptionalExtension, ToSql};
@@ -22,9 +21,6 @@ pub(crate) fn load_turn_context(
     let thread_id = normalize_required_string(&input.thread_id, "threadId")?;
     let recent_turn_limit =
         normalize_positive_limit(input.recent_turn_limit, "recentTurnLimit", 32)?;
-    let relation_memory_limit =
-        normalize_positive_limit(input.relation_memory_limit, "relationMemoryLimit", 16)?;
-    let recall_limit = normalize_positive_limit(input.recall_limit, "recallLimit", 32)?;
 
     let thread = get_thread_bundle(conn, &thread_id)?
         .map(|bundle| bundle.thread)
@@ -133,68 +129,6 @@ pub(crate) fn load_turn_context(
         .optional()
         .map_err(|error| format!("query chat_agent interaction snapshot failed: {error}"))?;
 
-    let mut memory_statement = conn
-        .prepare(
-            r#"
-            SELECT
-              id,
-              thread_id,
-              slot_type,
-              summary,
-              source_turn_id,
-              source_beat_id,
-              score,
-              updated_at_ms
-            FROM agent_relation_memory_slots
-            WHERE thread_id = ?1
-            ORDER BY updated_at_ms DESC, id DESC
-            LIMIT ?2
-            "#,
-        )
-        .map_err(|error| format!("prepare chat_agent relation memory failed: {error}"))?;
-    let memory_rows = memory_statement
-        .query_map(
-            params![&thread_id, relation_memory_limit],
-            relation_memory_slot_record_from_row,
-        )
-        .map_err(|error| format!("query chat_agent relation memory failed: {error}"))?;
-    let mut relation_memory_slots = Vec::new();
-    for row in memory_rows {
-        relation_memory_slots.push(
-            row.map_err(|error| format!("decode chat_agent relation memory failed: {error}"))?,
-        );
-    }
-
-    let mut recall_statement = conn
-        .prepare(
-            r#"
-            SELECT
-              id,
-              thread_id,
-              source_turn_id,
-              source_beat_id,
-              summary,
-              search_text,
-              updated_at_ms
-            FROM agent_recall_index
-            WHERE thread_id = ?1
-            ORDER BY updated_at_ms DESC, id DESC
-            LIMIT ?2
-            "#,
-        )
-        .map_err(|error| format!("prepare chat_agent recall index failed: {error}"))?;
-    let recall_rows = recall_statement
-        .query_map(
-            params![&thread_id, recall_limit],
-            recall_entry_record_from_row,
-        )
-        .map_err(|error| format!("query chat_agent recall index failed: {error}"))?;
-    let mut recall_entries = Vec::new();
-    for row in recall_rows {
-        recall_entries
-            .push(row.map_err(|error| format!("decode chat_agent recall entry failed: {error}"))?);
-    }
-
     let draft = get_draft(conn, &thread_id)?;
     let projection_version = compute_projection_version(conn, &thread_id)?;
     Ok(ChatAgentTurnContext {
@@ -202,8 +136,6 @@ pub(crate) fn load_turn_context(
         recent_turns,
         recent_beats,
         interaction_snapshot,
-        relation_memory_slots,
-        recall_entries,
         draft,
         projection_version,
     })
@@ -428,81 +360,6 @@ pub(crate) fn commit_turn_result(
         None
     };
 
-    for slot in &input.relation_memory_slots {
-        if slot.thread_id.trim() != thread_id {
-            return Err("relationMemorySlots[].threadId must match threadId".to_string());
-        }
-        tx.execute(
-            r#"
-            INSERT INTO agent_relation_memory_slots (
-              id,
-              thread_id,
-              slot_type,
-              summary,
-              source_turn_id,
-              source_beat_id,
-              score,
-              updated_at_ms
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
-            ON CONFLICT(id) DO UPDATE SET
-              thread_id = excluded.thread_id,
-              slot_type = excluded.slot_type,
-              summary = excluded.summary,
-              source_turn_id = excluded.source_turn_id,
-              source_beat_id = excluded.source_beat_id,
-              score = excluded.score,
-              updated_at_ms = excluded.updated_at_ms
-            "#,
-            params![
-                normalize_required_string(&slot.id, "relationMemorySlots[].id")?,
-                &thread_id,
-                normalize_required_string(&slot.slot_type, "relationMemorySlots[].slotType")?,
-                normalize_required_string(&slot.summary, "relationMemorySlots[].summary")?,
-                normalize_optional_string(slot.source_turn_id.as_deref()),
-                normalize_optional_string(slot.source_beat_id.as_deref()),
-                normalize_non_negative_f64(slot.score, "relationMemorySlots[].score")?,
-                require_non_negative_ms(slot.updated_at_ms, "relationMemorySlots[].updatedAtMs")?,
-            ],
-        )
-        .map_err(|error| map_sql_error("upsert chat_agent relation memory slot failed", error))?;
-    }
-
-    for entry in &input.recall_entries {
-        if entry.thread_id.trim() != thread_id {
-            return Err("recallEntries[].threadId must match threadId".to_string());
-        }
-        tx.execute(
-            r#"
-            INSERT INTO agent_recall_index (
-              id,
-              thread_id,
-              source_turn_id,
-              source_beat_id,
-              summary,
-              search_text,
-              updated_at_ms
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
-            ON CONFLICT(id) DO UPDATE SET
-              thread_id = excluded.thread_id,
-              source_turn_id = excluded.source_turn_id,
-              source_beat_id = excluded.source_beat_id,
-              summary = excluded.summary,
-              search_text = excluded.search_text,
-              updated_at_ms = excluded.updated_at_ms
-            "#,
-            params![
-                normalize_required_string(&entry.id, "recallEntries[].id")?,
-                &thread_id,
-                normalize_optional_string(entry.source_turn_id.as_deref()),
-                normalize_optional_string(entry.source_beat_id.as_deref()),
-                normalize_required_string(&entry.summary, "recallEntries[].summary")?,
-                normalize_required_string(&entry.search_text, "recallEntries[].searchText")?,
-                require_non_negative_ms(entry.updated_at_ms, "recallEntries[].updatedAtMs")?,
-            ],
-        )
-        .map_err(|error| map_sql_error("upsert chat_agent recall entry failed", error))?;
-    }
-
     let _ = update_thread_metadata(&tx, &input.projection.thread)?;
     for message in &input.projection.messages {
         if message.thread_id.trim() != thread_id {
@@ -578,65 +435,6 @@ pub(crate) fn commit_turn_result(
         "commit chat_agent turn failed: missing thread bundle after commit".to_string()
     })?;
 
-    let mut relation_memory_slots = Vec::new();
-    if !input.relation_memory_slots.is_empty() {
-        let mut stmt = tx
-            .prepare(
-                r#"
-                SELECT
-                  id,
-                  thread_id,
-                  slot_type,
-                  summary,
-                  source_turn_id,
-                  source_beat_id,
-                  score,
-                  updated_at_ms
-                FROM agent_relation_memory_slots
-                WHERE thread_id = ?1
-                ORDER BY updated_at_ms DESC, id DESC
-                "#,
-            )
-            .map_err(|error| format!("prepare committed relation memory slots failed: {error}"))?;
-        let rows = stmt
-            .query_map(params![&thread_id], relation_memory_slot_record_from_row)
-            .map_err(|error| format!("query committed relation memory slots failed: {error}"))?;
-        for row in rows {
-            relation_memory_slots.push(row.map_err(|error| {
-                format!("decode committed relation memory slot failed: {error}")
-            })?);
-        }
-    }
-
-    let mut recall_entries = Vec::new();
-    if !input.recall_entries.is_empty() {
-        let mut stmt = tx
-            .prepare(
-                r#"
-                SELECT
-                  id,
-                  thread_id,
-                  source_turn_id,
-                  source_beat_id,
-                  summary,
-                  search_text,
-                  updated_at_ms
-                FROM agent_recall_index
-                WHERE thread_id = ?1
-                ORDER BY updated_at_ms DESC, id DESC
-                "#,
-            )
-            .map_err(|error| format!("prepare committed recall entries failed: {error}"))?;
-        let rows = stmt
-            .query_map(params![&thread_id], recall_entry_record_from_row)
-            .map_err(|error| format!("query committed recall entries failed: {error}"))?;
-        for row in rows {
-            recall_entries.push(
-                row.map_err(|error| format!("decode committed recall entry failed: {error}"))?,
-            );
-        }
-    }
-
     let projection_version = compute_projection_version(&tx, &thread_id)?;
     tx.commit()
         .map_err(|error| format!("commit chat_agent turn transaction failed: {error}"))?;
@@ -645,8 +443,6 @@ pub(crate) fn commit_turn_result(
         turn,
         beats,
         interaction_snapshot,
-        relation_memory_slots,
-        recall_entries,
         bundle,
         projection_version,
     })
