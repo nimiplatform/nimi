@@ -220,7 +220,7 @@ func matchesLocalAuditFilter(event *runtimev1.LocalAuditEvent, req *runtimev1.Li
 	}
 	if targetID := strings.TrimSpace(req.GetTargetId()); targetID != "" {
 		payload := structToMap(event.GetPayload())
-		if payloadModID := strings.TrimSpace(fmt.Sprintf("%v", payload["targetId"])); payloadModID != targetID {
+		if payloadTargetID := strings.TrimSpace(fmt.Sprintf("%v", payload["targetId"])); payloadTargetID != targetID {
 			return false
 		}
 	}

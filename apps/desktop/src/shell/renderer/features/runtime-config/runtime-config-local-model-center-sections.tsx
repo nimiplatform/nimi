@@ -98,7 +98,7 @@ export function LocalModelCenterProfileTargetView(props: ProfileTargetViewProps)
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {capabilityStatuses.map((item) => (
-                    <span key={`mod-cap-status-${item.capability}`} className={`rounded-full px-3 py-1 text-[11px] font-medium ${item.localAvailable ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' : 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]'}`}>
+                    <span key={`cap-status-${item.capability}`} className={`rounded-full px-3 py-1 text-[11px] font-medium ${item.localAvailable ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' : 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]'}`}>
                       {item.capability}:{' '}
                       {item.localAvailable
                         ? i18n.t('runtimeConfig.localModelCenter.capabilityLocal', { defaultValue: 'local' })

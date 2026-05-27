@@ -176,15 +176,6 @@ code {
   font-family: var(--font-mono);
 }
 
-@keyframes mod-float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-9px);
-  }
-}
-
 @keyframes slide-in-right {
   from {
     opacity: 0;

@@ -91,27 +91,6 @@ function hasForbiddenRelativeSdkImport(file, raw) {
   return null;
 }
 
-function hasForbiddenIntraSdkRelativeImport(file, raw) {
-  const normalizedFile = path.relative(repoRoot, file).split(path.sep).join('/');
-  if (!normalizedFile.startsWith('sdk/src/mod/internal/')) {
-    return null;
-  }
-  for (const match of raw.matchAll(importTargetPattern)) {
-    const target = match[1] || match[2] || '';
-    if (!target.startsWith('.') && !path.isAbsolute(target)) {
-      continue;
-    }
-    const resolved = path.normalize(
-      path.isAbsolute(target) ? target : path.resolve(path.dirname(file), target),
-    );
-    const normalizedTarget = resolved.split(path.sep).join('/');
-    if (/\/sdk\/src\/(?:runtime|realm)\/(?:generated|internal)(?:\/|$)/.test(normalizedTarget)) {
-      return normalizedTarget;
-    }
-  }
-  return null;
-}
-
 async function main() {
   const violations = [];
 
@@ -134,12 +113,6 @@ async function main() {
     const raw = await fs.readFile(file, 'utf8');
     if (hasForbiddenSdkDeepImport(raw)) {
       violations.push(`forbidden stable import in ${path.relative(repoRoot, file)}`);
-    }
-    const forbiddenIntraSdkImport = hasForbiddenIntraSdkRelativeImport(file, raw);
-    if (forbiddenIntraSdkImport) {
-      violations.push(
-        `forbidden intra-sdk relative private import in ${path.relative(repoRoot, file)} -> ${path.relative(repoRoot, forbiddenIntraSdkImport)}`,
-      );
     }
   }
 

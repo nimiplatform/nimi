@@ -12,7 +12,6 @@ const TARGET_FILES = [
   'README.md',
   'AGENTS.md',
   'CLAUDE.md',
-  'apps/desktop/src/shell/renderer/mod-source.generated.css',
 ];
 
 const BANNED_PATTERNS = [

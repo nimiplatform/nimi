@@ -13,7 +13,6 @@ const SCAN_TARGETS = [
   'proto/README.md',
   'docs',
   'spec',
-  'apps/desktop/src/shell/renderer/mod-source.generated.css',
 ];
 
 const SCAN_EXTENSIONS = new Set(['.md', '.css']);
