@@ -1,3 +1,8 @@
+import type {
+  CheckModelHealthRequest,
+  CheckModelHealthResponse,
+} from '@nimiplatform/sdk/runtime';
+
 export const TEXT_GENERATE_TIMEOUT_MS = 120_000;
 
 export type FetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -19,10 +24,8 @@ export type CheckLlmHealthInput = {
   localOpenAiEndpoint?: string;
   localModelId?: string;
   goRuntimeLocalModelId?: string;
-  goRuntimeStatus?: string;
   connectorId?: string;
-  fetchImpl?: FetchImpl;
-  listRuntimeLocalModelsSnapshot?: () => Promise<Array<Record<string, unknown>>>;
+  runtimeModelHealth?: (request: CheckModelHealthRequest) => Promise<CheckModelHealthResponse>;
 };
 
 export type ExecuteLocalKernelTurnInput = {

@@ -11670,6 +11670,14 @@ pub struct CheckModelHealthRequest {
     pub model_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub local_asset_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub provider: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub endpoint: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CheckModelHealthResponse {
@@ -11679,6 +11687,14 @@ pub struct CheckModelHealthResponse {
     pub reason_code: i32,
     #[prost(string, tag = "3")]
     pub action_hint: ::prost::alloc::string::String,
+    #[prost(enumeration = "ModelHealthStatus", tag = "4")]
+    pub status: i32,
+    #[prost(string, tag = "5")]
+    pub detail: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub model_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -11711,6 +11727,41 @@ impl ModelStatus {
             "MODEL_STATUS_PULLING" => Some(Self::Pulling),
             "MODEL_STATUS_FAILED" => Some(Self::Failed),
             "MODEL_STATUS_REMOVED" => Some(Self::Removed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ModelHealthStatus {
+    Unspecified = 0,
+    Healthy = 1,
+    Degraded = 2,
+    Unsupported = 3,
+    Unreachable = 4,
+}
+impl ModelHealthStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MODEL_HEALTH_STATUS_UNSPECIFIED",
+            Self::Healthy => "MODEL_HEALTH_STATUS_HEALTHY",
+            Self::Degraded => "MODEL_HEALTH_STATUS_DEGRADED",
+            Self::Unsupported => "MODEL_HEALTH_STATUS_UNSUPPORTED",
+            Self::Unreachable => "MODEL_HEALTH_STATUS_UNREACHABLE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MODEL_HEALTH_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "MODEL_HEALTH_STATUS_HEALTHY" => Some(Self::Healthy),
+            "MODEL_HEALTH_STATUS_DEGRADED" => Some(Self::Degraded),
+            "MODEL_HEALTH_STATUS_UNSUPPORTED" => Some(Self::Unsupported),
+            "MODEL_HEALTH_STATUS_UNREACHABLE" => Some(Self::Unreachable),
             _ => None,
         }
     }

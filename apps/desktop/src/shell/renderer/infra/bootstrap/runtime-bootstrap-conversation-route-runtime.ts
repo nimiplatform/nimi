@@ -379,7 +379,6 @@ function toHealthInput(resolved: RuntimeResolvedBinding): CheckLlmHealthInput {
     localOpenAiEndpoint: normalizeText(resolved.localOpenAiEndpoint || resolved.endpoint) || undefined,
     localModelId: normalizeText(resolved.localModelId) || undefined,
     goRuntimeLocalModelId: normalizeText(resolved.goRuntimeLocalModelId || resolved.localModelId) || undefined,
-    goRuntimeStatus: normalizeText(resolved.goRuntimeStatus) || undefined,
     connectorId: normalizeText(resolved.connectorId) || undefined,
   };
 }

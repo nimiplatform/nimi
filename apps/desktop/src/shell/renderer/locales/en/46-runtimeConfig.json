@@ -882,6 +882,7 @@
     "downloadedBytes": "{{value}} downloaded",
     "engine": "Engine",
     "engineLabel": "Engine:",
+    "runtimeCatalogDefault": "Runtime catalog default",
     "endpointLabel": "Endpoint:",
     "endpointOptionalPlaceholder": "Optional attached endpoint",
     "endpointRequiredHint": "This engine requires an attached endpoint on the current host.",

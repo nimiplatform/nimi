@@ -77,6 +77,61 @@ func (ModelStatus) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_model_proto_rawDescGZIP(), []int{0}
 }
 
+type ModelHealthStatus int32
+
+const (
+	ModelHealthStatus_MODEL_HEALTH_STATUS_UNSPECIFIED ModelHealthStatus = 0
+	ModelHealthStatus_MODEL_HEALTH_STATUS_HEALTHY     ModelHealthStatus = 1
+	ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED    ModelHealthStatus = 2
+	ModelHealthStatus_MODEL_HEALTH_STATUS_UNSUPPORTED ModelHealthStatus = 3
+	ModelHealthStatus_MODEL_HEALTH_STATUS_UNREACHABLE ModelHealthStatus = 4
+)
+
+// Enum value maps for ModelHealthStatus.
+var (
+	ModelHealthStatus_name = map[int32]string{
+		0: "MODEL_HEALTH_STATUS_UNSPECIFIED",
+		1: "MODEL_HEALTH_STATUS_HEALTHY",
+		2: "MODEL_HEALTH_STATUS_DEGRADED",
+		3: "MODEL_HEALTH_STATUS_UNSUPPORTED",
+		4: "MODEL_HEALTH_STATUS_UNREACHABLE",
+	}
+	ModelHealthStatus_value = map[string]int32{
+		"MODEL_HEALTH_STATUS_UNSPECIFIED": 0,
+		"MODEL_HEALTH_STATUS_HEALTHY":     1,
+		"MODEL_HEALTH_STATUS_DEGRADED":    2,
+		"MODEL_HEALTH_STATUS_UNSUPPORTED": 3,
+		"MODEL_HEALTH_STATUS_UNREACHABLE": 4,
+	}
+)
+
+func (x ModelHealthStatus) Enum() *ModelHealthStatus {
+	p := new(ModelHealthStatus)
+	*p = x
+	return p
+}
+
+func (x ModelHealthStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ModelHealthStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_model_proto_enumTypes[1].Descriptor()
+}
+
+func (ModelHealthStatus) Type() protoreflect.EnumType {
+	return &file_runtime_v1_model_proto_enumTypes[1]
+}
+
+func (x ModelHealthStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ModelHealthStatus.Descriptor instead.
+func (ModelHealthStatus) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_model_proto_rawDescGZIP(), []int{1}
+}
+
 type ModelCapabilityProfile struct {
 	state                       protoimpl.MessageState `protogen:"open.v1"`
 	SupportsTextGenerate        bool                   `protobuf:"varint,1,opt,name=supports_text_generate,json=supportsTextGenerate,proto3" json:"supports_text_generate,omitempty"`
@@ -597,6 +652,10 @@ type CheckModelHealthRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ModelId       string                 `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
 	AppId         string                 `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	LocalAssetId  string                 `protobuf:"bytes,3,opt,name=local_asset_id,json=localAssetId,proto3" json:"local_asset_id,omitempty"`
+	Capability    string                 `protobuf:"bytes,4,opt,name=capability,proto3" json:"capability,omitempty"`
+	Provider      string                 `protobuf:"bytes,5,opt,name=provider,proto3" json:"provider,omitempty"`
+	Endpoint      string                 `protobuf:"bytes,6,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -645,11 +704,43 @@ func (x *CheckModelHealthRequest) GetAppId() string {
 	return ""
 }
 
+func (x *CheckModelHealthRequest) GetLocalAssetId() string {
+	if x != nil {
+		return x.LocalAssetId
+	}
+	return ""
+}
+
+func (x *CheckModelHealthRequest) GetCapability() string {
+	if x != nil {
+		return x.Capability
+	}
+	return ""
+}
+
+func (x *CheckModelHealthRequest) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *CheckModelHealthRequest) GetEndpoint() string {
+	if x != nil {
+		return x.Endpoint
+	}
+	return ""
+}
+
 type CheckModelHealthResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Healthy       bool                   `protobuf:"varint,1,opt,name=healthy,proto3" json:"healthy,omitempty"`
 	ReasonCode    ReasonCode             `protobuf:"varint,2,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
 	ActionHint    string                 `protobuf:"bytes,3,opt,name=action_hint,json=actionHint,proto3" json:"action_hint,omitempty"`
+	Status        ModelHealthStatus      `protobuf:"varint,4,opt,name=status,proto3,enum=nimi.runtime.v1.ModelHealthStatus" json:"status,omitempty"`
+	Detail        string                 `protobuf:"bytes,5,opt,name=detail,proto3" json:"detail,omitempty"`
+	Endpoint      string                 `protobuf:"bytes,6,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	ModelId       string                 `protobuf:"bytes,7,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -705,6 +796,34 @@ func (x *CheckModelHealthResponse) GetActionHint() string {
 	return ""
 }
 
+func (x *CheckModelHealthResponse) GetStatus() ModelHealthStatus {
+	if x != nil {
+		return x.Status
+	}
+	return ModelHealthStatus_MODEL_HEALTH_STATUS_UNSPECIFIED
+}
+
+func (x *CheckModelHealthResponse) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+func (x *CheckModelHealthResponse) GetEndpoint() string {
+	if x != nil {
+		return x.Endpoint
+	}
+	return ""
+}
+
+func (x *CheckModelHealthResponse) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
 var File_runtime_v1_model_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_model_proto_rawDesc = "" +
@@ -752,22 +871,38 @@ const file_runtime_v1_model_proto_rawDesc = "" +
 	"reasonCode\"F\n" +
 	"\x12RemoveModelRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12\x19\n" +
-	"\bmodel_id\x18\x02 \x01(\tR\amodelId\"K\n" +
+	"\bmodel_id\x18\x02 \x01(\tR\amodelId\"\xc9\x01\n" +
 	"\x17CheckModelHealthRequest\x12\x19\n" +
 	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12\x15\n" +
-	"\x06app_id\x18\x02 \x01(\tR\x05appId\"\x93\x01\n" +
+	"\x06app_id\x18\x02 \x01(\tR\x05appId\x12$\n" +
+	"\x0elocal_asset_id\x18\x03 \x01(\tR\flocalAssetId\x12\x1e\n" +
+	"\n" +
+	"capability\x18\x04 \x01(\tR\n" +
+	"capability\x12\x1a\n" +
+	"\bprovider\x18\x05 \x01(\tR\bprovider\x12\x1a\n" +
+	"\bendpoint\x18\x06 \x01(\tR\bendpoint\"\x9e\x02\n" +
 	"\x18CheckModelHealthResponse\x12\x18\n" +
 	"\ahealthy\x18\x01 \x01(\bR\ahealthy\x12<\n" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\x94\x01\n" +
+	"actionHint\x12:\n" +
+	"\x06status\x18\x04 \x01(\x0e2\".nimi.runtime.v1.ModelHealthStatusR\x06status\x12\x16\n" +
+	"\x06detail\x18\x05 \x01(\tR\x06detail\x12\x1a\n" +
+	"\bendpoint\x18\x06 \x01(\tR\bendpoint\x12\x19\n" +
+	"\bmodel_id\x18\a \x01(\tR\amodelId*\x94\x01\n" +
 	"\vModelStatus\x12\x1c\n" +
 	"\x18MODEL_STATUS_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16MODEL_STATUS_INSTALLED\x10\x01\x12\x18\n" +
 	"\x14MODEL_STATUS_PULLING\x10\x02\x12\x17\n" +
 	"\x13MODEL_STATUS_FAILED\x10\x03\x12\x18\n" +
-	"\x14MODEL_STATUS_REMOVED\x10\x042\xf3\x02\n" +
+	"\x14MODEL_STATUS_REMOVED\x10\x04*\xc5\x01\n" +
+	"\x11ModelHealthStatus\x12#\n" +
+	"\x1fMODEL_HEALTH_STATUS_UNSPECIFIED\x10\x00\x12\x1f\n" +
+	"\x1bMODEL_HEALTH_STATUS_HEALTHY\x10\x01\x12 \n" +
+	"\x1cMODEL_HEALTH_STATUS_DEGRADED\x10\x02\x12#\n" +
+	"\x1fMODEL_HEALTH_STATUS_UNSUPPORTED\x10\x03\x12#\n" +
+	"\x1fMODEL_HEALTH_STATUS_UNREACHABLE\x10\x042\xf3\x02\n" +
 	"\x13RuntimeModelService\x12U\n" +
 	"\n" +
 	"ListModels\x12\".nimi.runtime.v1.ListModelsRequest\x1a#.nimi.runtime.v1.ListModelsResponse\x12R\n" +
@@ -787,49 +922,51 @@ func file_runtime_v1_model_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_model_proto_rawDescData
 }
 
-var file_runtime_v1_model_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_runtime_v1_model_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_runtime_v1_model_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_runtime_v1_model_proto_goTypes = []any{
 	(ModelStatus)(0),                 // 0: nimi.runtime.v1.ModelStatus
-	(*ModelCapabilityProfile)(nil),   // 1: nimi.runtime.v1.ModelCapabilityProfile
-	(*ModelDescriptor)(nil),          // 2: nimi.runtime.v1.ModelDescriptor
-	(*ListModelsRequest)(nil),        // 3: nimi.runtime.v1.ListModelsRequest
-	(*ListModelsResponse)(nil),       // 4: nimi.runtime.v1.ListModelsResponse
-	(*PullModelRequest)(nil),         // 5: nimi.runtime.v1.PullModelRequest
-	(*PullModelResponse)(nil),        // 6: nimi.runtime.v1.PullModelResponse
-	(*RemoveModelRequest)(nil),       // 7: nimi.runtime.v1.RemoveModelRequest
-	(*CheckModelHealthRequest)(nil),  // 8: nimi.runtime.v1.CheckModelHealthRequest
-	(*CheckModelHealthResponse)(nil), // 9: nimi.runtime.v1.CheckModelHealthResponse
-	(*timestamppb.Timestamp)(nil),    // 10: google.protobuf.Timestamp
-	(LocalBundleState)(0),            // 11: nimi.runtime.v1.LocalBundleState
-	(LocalWarmState)(0),              // 12: nimi.runtime.v1.LocalWarmState
-	(*LocalHostRequirements)(nil),    // 13: nimi.runtime.v1.LocalHostRequirements
-	(ReasonCode)(0),                  // 14: nimi.runtime.v1.ReasonCode
-	(*Ack)(nil),                      // 15: nimi.runtime.v1.Ack
+	(ModelHealthStatus)(0),           // 1: nimi.runtime.v1.ModelHealthStatus
+	(*ModelCapabilityProfile)(nil),   // 2: nimi.runtime.v1.ModelCapabilityProfile
+	(*ModelDescriptor)(nil),          // 3: nimi.runtime.v1.ModelDescriptor
+	(*ListModelsRequest)(nil),        // 4: nimi.runtime.v1.ListModelsRequest
+	(*ListModelsResponse)(nil),       // 5: nimi.runtime.v1.ListModelsResponse
+	(*PullModelRequest)(nil),         // 6: nimi.runtime.v1.PullModelRequest
+	(*PullModelResponse)(nil),        // 7: nimi.runtime.v1.PullModelResponse
+	(*RemoveModelRequest)(nil),       // 8: nimi.runtime.v1.RemoveModelRequest
+	(*CheckModelHealthRequest)(nil),  // 9: nimi.runtime.v1.CheckModelHealthRequest
+	(*CheckModelHealthResponse)(nil), // 10: nimi.runtime.v1.CheckModelHealthResponse
+	(*timestamppb.Timestamp)(nil),    // 11: google.protobuf.Timestamp
+	(LocalBundleState)(0),            // 12: nimi.runtime.v1.LocalBundleState
+	(LocalWarmState)(0),              // 13: nimi.runtime.v1.LocalWarmState
+	(*LocalHostRequirements)(nil),    // 14: nimi.runtime.v1.LocalHostRequirements
+	(ReasonCode)(0),                  // 15: nimi.runtime.v1.ReasonCode
+	(*Ack)(nil),                      // 16: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_model_proto_depIdxs = []int32{
 	0,  // 0: nimi.runtime.v1.ModelDescriptor.status:type_name -> nimi.runtime.v1.ModelStatus
-	10, // 1: nimi.runtime.v1.ModelDescriptor.last_health_at:type_name -> google.protobuf.Timestamp
-	1,  // 2: nimi.runtime.v1.ModelDescriptor.capability_profile:type_name -> nimi.runtime.v1.ModelCapabilityProfile
-	11, // 3: nimi.runtime.v1.ModelDescriptor.bundle_state:type_name -> nimi.runtime.v1.LocalBundleState
-	12, // 4: nimi.runtime.v1.ModelDescriptor.warm_state:type_name -> nimi.runtime.v1.LocalWarmState
-	13, // 5: nimi.runtime.v1.ModelDescriptor.host_requirements:type_name -> nimi.runtime.v1.LocalHostRequirements
-	2,  // 6: nimi.runtime.v1.ListModelsResponse.models:type_name -> nimi.runtime.v1.ModelDescriptor
-	14, // 7: nimi.runtime.v1.PullModelResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	14, // 8: nimi.runtime.v1.CheckModelHealthResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3,  // 9: nimi.runtime.v1.RuntimeModelService.ListModels:input_type -> nimi.runtime.v1.ListModelsRequest
-	5,  // 10: nimi.runtime.v1.RuntimeModelService.PullModel:input_type -> nimi.runtime.v1.PullModelRequest
-	7,  // 11: nimi.runtime.v1.RuntimeModelService.RemoveModel:input_type -> nimi.runtime.v1.RemoveModelRequest
-	8,  // 12: nimi.runtime.v1.RuntimeModelService.CheckModelHealth:input_type -> nimi.runtime.v1.CheckModelHealthRequest
-	4,  // 13: nimi.runtime.v1.RuntimeModelService.ListModels:output_type -> nimi.runtime.v1.ListModelsResponse
-	6,  // 14: nimi.runtime.v1.RuntimeModelService.PullModel:output_type -> nimi.runtime.v1.PullModelResponse
-	15, // 15: nimi.runtime.v1.RuntimeModelService.RemoveModel:output_type -> nimi.runtime.v1.Ack
-	9,  // 16: nimi.runtime.v1.RuntimeModelService.CheckModelHealth:output_type -> nimi.runtime.v1.CheckModelHealthResponse
-	13, // [13:17] is the sub-list for method output_type
-	9,  // [9:13] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	11, // 1: nimi.runtime.v1.ModelDescriptor.last_health_at:type_name -> google.protobuf.Timestamp
+	2,  // 2: nimi.runtime.v1.ModelDescriptor.capability_profile:type_name -> nimi.runtime.v1.ModelCapabilityProfile
+	12, // 3: nimi.runtime.v1.ModelDescriptor.bundle_state:type_name -> nimi.runtime.v1.LocalBundleState
+	13, // 4: nimi.runtime.v1.ModelDescriptor.warm_state:type_name -> nimi.runtime.v1.LocalWarmState
+	14, // 5: nimi.runtime.v1.ModelDescriptor.host_requirements:type_name -> nimi.runtime.v1.LocalHostRequirements
+	3,  // 6: nimi.runtime.v1.ListModelsResponse.models:type_name -> nimi.runtime.v1.ModelDescriptor
+	15, // 7: nimi.runtime.v1.PullModelResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	15, // 8: nimi.runtime.v1.CheckModelHealthResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	1,  // 9: nimi.runtime.v1.CheckModelHealthResponse.status:type_name -> nimi.runtime.v1.ModelHealthStatus
+	4,  // 10: nimi.runtime.v1.RuntimeModelService.ListModels:input_type -> nimi.runtime.v1.ListModelsRequest
+	6,  // 11: nimi.runtime.v1.RuntimeModelService.PullModel:input_type -> nimi.runtime.v1.PullModelRequest
+	8,  // 12: nimi.runtime.v1.RuntimeModelService.RemoveModel:input_type -> nimi.runtime.v1.RemoveModelRequest
+	9,  // 13: nimi.runtime.v1.RuntimeModelService.CheckModelHealth:input_type -> nimi.runtime.v1.CheckModelHealthRequest
+	5,  // 14: nimi.runtime.v1.RuntimeModelService.ListModels:output_type -> nimi.runtime.v1.ListModelsResponse
+	7,  // 15: nimi.runtime.v1.RuntimeModelService.PullModel:output_type -> nimi.runtime.v1.PullModelResponse
+	16, // 16: nimi.runtime.v1.RuntimeModelService.RemoveModel:output_type -> nimi.runtime.v1.Ack
+	10, // 17: nimi.runtime.v1.RuntimeModelService.CheckModelHealth:output_type -> nimi.runtime.v1.CheckModelHealthResponse
+	14, // [14:18] is the sub-list for method output_type
+	10, // [10:14] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_model_proto_init() }
@@ -844,7 +981,7 @@ func file_runtime_v1_model_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_model_proto_rawDesc), len(file_runtime_v1_model_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,

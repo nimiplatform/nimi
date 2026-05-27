@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -198,101 +199,227 @@ func (s *Service) RemoveModel(_ context.Context, req *runtimev1.RemoveModelReque
 	}, nil
 }
 
+func modelHealthResponse(
+	healthy bool,
+	healthStatus runtimev1.ModelHealthStatus,
+	reasonCode runtimev1.ReasonCode,
+	actionHint string,
+	detail string,
+	endpoint string,
+	modelID string,
+) *runtimev1.CheckModelHealthResponse {
+	if healthStatus == runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_UNSPECIFIED {
+		if healthy {
+			healthStatus = runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_HEALTHY
+		} else {
+			healthStatus = runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_UNREACHABLE
+		}
+	}
+	return &runtimev1.CheckModelHealthResponse{
+		Healthy:    healthy,
+		ReasonCode: reasonCode,
+		ActionHint: strings.TrimSpace(actionHint),
+		Status:     healthStatus,
+		Detail:     strings.TrimSpace(detail),
+		Endpoint:   strings.TrimSpace(endpoint),
+		ModelId:    strings.TrimSpace(modelID),
+	}
+}
+
 func (s *Service) CheckModelHealth(ctx context.Context, req *runtimev1.CheckModelHealthRequest) (*runtimev1.CheckModelHealthResponse, error) {
 	appID := strings.TrimSpace(req.GetAppId())
 	if appID == "" {
-		return &runtimev1.CheckModelHealthResponse{
-			Healthy:    false,
-			ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
-			ActionHint: "set app_id",
-		}, nil
+		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_UNREACHABLE, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "set app_id", "", "", ""), nil
 	}
 
 	modelID := strings.TrimSpace(req.GetModelId())
-	if modelID == "" {
-		return &runtimev1.CheckModelHealthResponse{
-			Healthy:    false,
-			ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
-			ActionHint: "set model_id",
-		}, nil
+	localAssetID := strings.TrimSpace(req.GetLocalAssetId())
+	endpoint := strings.TrimSpace(req.GetEndpoint())
+	if modelID == "" && localAssetID == "" && endpoint == "" {
+		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_UNREACHABLE, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "set model_id", "", "", ""), nil
 	}
 
-	if isLocalNativeModel(modelregistry.Entry{ModelID: modelID}) {
-		if healthy, resolved, ok := s.checkLocalModelHealthViaLocalService(ctx, modelID); ok {
-			if healthy {
-				return &runtimev1.CheckModelHealthResponse{
-					Healthy:    true,
-					ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
-				}, nil
-			}
+	if localAssetID != "" || isLocalNativeModel(modelregistry.Entry{ModelID: modelID}) {
+		if resolved, ok := s.checkLocalModelHealthViaLocalService(ctx, modelID, localAssetID); ok {
 			return resolved, nil
 		}
 	}
 
+	if endpoint != "" {
+		return checkEndpointModelHealth(ctx, req), nil
+	}
+
 	item, exists := s.registry.Get(modelID)
 	if !exists {
-		return &runtimev1.CheckModelHealthResponse{
-			Healthy:    false,
-			ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_FOUND,
-			ActionHint: "pull model first",
-		}, nil
+		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_UNREACHABLE, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, "pull model first", "", "", modelID), nil
 	}
 
 	if item.Status != runtimev1.ModelStatus_MODEL_STATUS_INSTALLED {
-		return &runtimev1.CheckModelHealthResponse{
-			Healthy:    false,
-			ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_READY,
-			ActionHint: "wait for install",
-		}, nil
+		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "wait for install", "", "", modelID), nil
 	}
 
 	projection, err := modelregistry.InferNativeProjection(item.ModelID, item.Capabilities, item.Files, item.Status)
 	if err != nil {
-		return &runtimev1.CheckModelHealthResponse{
-			Healthy:    false,
-			ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_READY,
-			ActionHint: "repair local model metadata",
-		}, nil
+		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "repair local model metadata", "", "", modelID), nil
 	}
 	if isLocalNativeModel(item) {
 		probeCtx, cancel := context.WithTimeout(ctx, checkModelHealthProbeTimeout)
 		defer cancel()
 
 		if healthy, reasonCode, actionHint := checkLocalNativeModelHealth(probeCtx, item, projection); !healthy {
-			return &runtimev1.CheckModelHealthResponse{
-				Healthy:    false,
-				ReasonCode: reasonCode,
-				ActionHint: actionHint,
-			}, nil
+			return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, reasonCode, actionHint, "", "", modelID), nil
 		}
 	}
 
-	return &runtimev1.CheckModelHealthResponse{
-		Healthy:    true,
-		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
-	}, nil
+	return modelHealthResponse(true, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_HEALTHY, runtimev1.ReasonCode_ACTION_EXECUTED, "", "", "", modelID), nil
 }
 
-func (s *Service) checkLocalModelHealthViaLocalService(ctx context.Context, modelID string) (bool, *runtimev1.CheckModelHealthResponse, bool) {
+func checkEndpointModelHealth(ctx context.Context, req *runtimev1.CheckModelHealthRequest) *runtimev1.CheckModelHealthResponse {
+	endpoint := strings.TrimSpace(req.GetEndpoint())
+	modelID := strings.TrimSpace(req.GetModelId())
+	capability := strings.ToLower(strings.TrimSpace(req.GetCapability()))
+	engineLabel := normalizeHealthEngine(req.GetProvider(), modelID)
+	plane := healthPlaneForEndpoint(endpoint)
+
+	if engineLabel == "speech" && isVoiceWorkflowHealthCapability(capability) && plane == "local-supervised" {
+		return modelHealthResponse(
+			false,
+			runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_UNSUPPORTED,
+			runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
+			"select cloud or attached workflow provider",
+			withHealthPlaneDetail(plane, "local workflow health requires capability-scoped readiness and is not admitted on the canonical local speech path"),
+			endpoint,
+			modelID,
+		)
+	}
+
+	probeCtx, cancel := context.WithTimeout(ctx, checkModelHealthProbeTimeout)
+	defer cancel()
+
+	switch engineLabel {
+	case "media", "speech":
+		requiredCapabilities := admittedHealthCapabilities(engineLabel, capability)
+		if err := probeTargetCatalogHealth(probeCtx, endpoint, engineLabel, requiredCapabilities, modelID); err != nil {
+			return modelHealthResponse(
+				false,
+				runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED,
+				runtimev1.ReasonCode_AI_MODEL_NOT_READY,
+				fmt.Sprintf("start local %s engine", engineLabel),
+				healthDetailForEngine(engineLabel, plane, err.Error()),
+				endpoint,
+				modelID,
+			)
+		}
+		return modelHealthResponse(
+			true,
+			runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_HEALTHY,
+			runtimev1.ReasonCode_ACTION_EXECUTED,
+			"",
+			healthDetailForEngine(engineLabel, plane, ""),
+			endpoint,
+			modelID,
+		)
+	default:
+		if err := engine.ProbeHealth(probeCtx, endpoint, "/v1/models", ""); err != nil {
+			status := runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED
+			if strings.Contains(strings.ToLower(err.Error()), "health probe failed") {
+				status = runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_UNREACHABLE
+			}
+			return modelHealthResponse(false, status, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "start local model endpoint", err.Error(), endpoint, modelID)
+		}
+		return modelHealthResponse(true, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_HEALTHY, runtimev1.ReasonCode_ACTION_EXECUTED, "", "", endpoint, modelID)
+	}
+}
+
+func normalizeHealthEngine(provider string, modelID string) string {
+	normalized := strings.ToLower(strings.TrimSpace(provider))
+	if normalized == "local" {
+		return "llama"
+	}
+	switch normalized {
+	case "llama", "media", "speech", "sidecar":
+		return normalized
+	}
+	lowerModel := strings.ToLower(strings.TrimSpace(modelID))
+	for _, prefix := range []string{"llama/", "media/", "speech/", "sidecar/"} {
+		if strings.HasPrefix(lowerModel, prefix) {
+			return strings.TrimSuffix(prefix, "/")
+		}
+	}
+	return normalized
+}
+
+func healthPlaneForEndpoint(endpoint string) string {
+	parsed, err := url.Parse(strings.TrimSpace(endpoint))
+	if err != nil {
+		return "unknown"
+	}
+	host := strings.ToLower(strings.TrimSpace(parsed.Hostname()))
+	if host == "localhost" || host == "127.0.0.1" || host == "::1" {
+		return "local-supervised"
+	}
+	if host != "" {
+		return "attached-endpoint"
+	}
+	return "unknown"
+}
+
+func withHealthPlaneDetail(plane string, detail string) string {
+	normalizedPlane := strings.TrimSpace(plane)
+	normalizedDetail := strings.TrimSpace(detail)
+	if normalizedPlane == "" || normalizedPlane == "unknown" {
+		return normalizedDetail
+	}
+	if normalizedDetail == "" {
+		return "plane=" + normalizedPlane
+	}
+	return "plane=" + normalizedPlane + "; " + normalizedDetail
+}
+
+func healthDetailForEngine(engineLabel string, plane string, detail string) string {
+	if engineLabel == "speech" {
+		return withHealthPlaneDetail(plane, detail)
+	}
+	return strings.TrimSpace(detail)
+}
+
+func isVoiceWorkflowHealthCapability(value string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	return normalized == "voice_workflow.voice_clone" || normalized == "voice_workflow.voice_design"
+}
+
+func admittedHealthCapabilities(engineLabel string, capability string) []string {
+	if engineLabel != "speech" {
+		return nil
+	}
+	normalized := strings.ToLower(strings.TrimSpace(capability))
+	if normalized == "audio.synthesize" || normalized == "audio.transcribe" {
+		return []string{normalized}
+	}
+	return nil
+}
+
+func (s *Service) checkLocalModelHealthViaLocalService(ctx context.Context, modelID string, localAssetID string) (*runtimev1.CheckModelHealthResponse, bool) {
 	s.mu.Lock()
 	localModel := s.localModel
 	s.mu.Unlock()
 	if localModel == nil {
-		return false, nil, false
+		return nil, false
 	}
 
 	assets, err := s.listAllLocalAssets(ctx, localModel)
 	if err != nil {
-		return false, nil, false
+		return nil, false
 	}
 	if len(assets) == 0 {
-		return false, nil, false
+		return nil, false
 	}
 
 	normalizedModelID := strings.TrimSpace(modelID)
+	normalizedLocalAssetID := strings.TrimSpace(localAssetID)
 	var selected *runtimev1.LocalAssetRecord
 	for _, asset := range assets {
-		if asset == nil || !strings.EqualFold(strings.TrimSpace(asset.GetLogicalModelId()), normalizedModelID) {
+		if asset == nil || !localAssetMatchesHealthRequest(asset, normalizedModelID, normalizedLocalAssetID) {
 			continue
 		}
 		if selected == nil || localAssetStatusPriority(asset.GetStatus()) < localAssetStatusPriority(selected.GetStatus()) {
@@ -300,55 +427,38 @@ func (s *Service) checkLocalModelHealthViaLocalService(ctx context.Context, mode
 		}
 	}
 	if selected == nil {
-		return false, nil, false
+		return nil, false
 	}
 
 	if localSpeechAssetMissingAdmittedPlainCapability(selected) {
-		return false, &runtimev1.CheckModelHealthResponse{
-			Healthy:    false,
-			ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_READY,
-			ActionHint: "repair local model metadata",
-		}, true
+		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "repair local model metadata", "", selected.GetEndpoint(), normalizedModelID), true
 	}
 
 	switch selected.GetStatus() {
 	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
 		switch selected.GetWarmState() {
 		case runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY:
-			return true, nil, true
+			return modelHealthResponse(true, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_HEALTHY, runtimev1.ReasonCode_ACTION_EXECUTED, "", "", selected.GetEndpoint(), normalizedModelID), true
 		case runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED:
-			return false, &runtimev1.CheckModelHealthResponse{
-				Healthy:    false,
-				ReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
-				ActionHint: "inspect_local_runtime_model_health",
-			}, true
+			return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_UNREACHABLE, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, "inspect_local_runtime_model_health", strings.TrimSpace(selected.GetHealthDetail()), selected.GetEndpoint(), normalizedModelID), true
 		default:
-			return false, &runtimev1.CheckModelHealthResponse{
-				Healthy:    false,
-				ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_READY,
-				ActionHint: "warm local model",
-			}, true
+			return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "warm local model", "", selected.GetEndpoint(), normalizedModelID), true
 		}
 	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED:
-		return false, &runtimev1.CheckModelHealthResponse{
-			Healthy:    false,
-			ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_READY,
-			ActionHint: "warm local model",
-		}, true
+		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "warm local model", "", selected.GetEndpoint(), normalizedModelID), true
 	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY:
-		return false, &runtimev1.CheckModelHealthResponse{
-			Healthy:    false,
-			ReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
-			ActionHint: "inspect_local_runtime_model_health",
-		}, true
+		detail := strings.TrimSpace(selected.GetHealthDetail())
+		if isRecoverableSupervisedIdleProbe(detail) {
+			return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_DEGRADED, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "warm local model", "managed local model ready to warm", selected.GetEndpoint(), normalizedModelID), true
+		}
+		if detail == "" {
+			detail = "runtime local model unhealthy"
+		}
+		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_UNREACHABLE, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, "inspect_local_runtime_model_health", detail, selected.GetEndpoint(), normalizedModelID), true
 	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED:
-		return false, &runtimev1.CheckModelHealthResponse{
-			Healthy:    false,
-			ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_FOUND,
-			ActionHint: "pull model first",
-		}, true
+		return modelHealthResponse(false, runtimev1.ModelHealthStatus_MODEL_HEALTH_STATUS_UNREACHABLE, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, "pull model first", "", selected.GetEndpoint(), normalizedModelID), true
 	default:
-		return false, nil, false
+		return nil, false
 	}
 }
 
@@ -386,6 +496,47 @@ func localAssetStatusPriority(status runtimev1.LocalAssetStatus) int {
 	default:
 		return 4
 	}
+}
+
+func localAssetMatchesHealthRequest(asset *runtimev1.LocalAssetRecord, modelID string, localAssetID string) bool {
+	if asset == nil {
+		return false
+	}
+	normalizedLocalAssetID := strings.TrimSpace(localAssetID)
+	if normalizedLocalAssetID != "" && strings.EqualFold(strings.TrimSpace(asset.GetLocalAssetId()), normalizedLocalAssetID) {
+		return true
+	}
+
+	normalizedModelID := strings.TrimSpace(modelID)
+	if normalizedModelID == "" {
+		return false
+	}
+	candidates := []string{
+		asset.GetLogicalModelId(),
+		asset.GetAssetId(),
+	}
+	for _, candidate := range candidates {
+		if strings.EqualFold(strings.TrimSpace(candidate), normalizedModelID) {
+			return true
+		}
+		candidateComparable := comparableModelID(candidate)
+		requestComparable := comparableModelID(normalizedModelID)
+		if candidateComparable != "" && candidateComparable == requestComparable {
+			return true
+		}
+		candidateBase := comparableModelIDBase(candidate)
+		requestBase := comparableModelIDBase(normalizedModelID)
+		if candidateBase != "" && candidateBase == requestBase {
+			return true
+		}
+	}
+	return false
+}
+
+func isRecoverableSupervisedIdleProbe(detail string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(detail))
+	return strings.Contains(normalized, "plane=local-supervised") &&
+		strings.Contains(normalized, "connect: connection refused")
 }
 
 func isLocalNativeModel(item modelregistry.Entry) bool {
@@ -488,6 +639,25 @@ func probeTargetCatalogHealth(ctx context.Context, endpoint string, engineLabel 
 	}
 	if len(rows) == 0 {
 		return fmt.Errorf("%s catalog missing ready models", engineLabel)
+	}
+	hasExpectedID := false
+	for _, expected := range expectedIDs {
+		if comparableModelID(expected) != "" {
+			hasExpectedID = true
+			break
+		}
+	}
+	if !hasExpectedID {
+		normalizedRequired := normalizeProbeCapabilities(requiredCapabilities)
+		if engineLabel == "speech" && len(normalizedRequired) > 0 {
+			for _, row := range rows {
+				if _, missing := firstMissingProbeCapability(row.capabilities, normalizedRequired); !missing {
+					return nil
+				}
+			}
+			return fmt.Errorf("%s catalog missing required capability %q", engineLabel, normalizedRequired[0])
+		}
+		return nil
 	}
 	for _, row := range rows {
 		if !hasComparableProbeModel([]string{row.id}, expectedIDs...) {

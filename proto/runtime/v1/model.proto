@@ -16,6 +16,14 @@ enum ModelStatus {
   MODEL_STATUS_REMOVED = 4;
 }
 
+enum ModelHealthStatus {
+  MODEL_HEALTH_STATUS_UNSPECIFIED = 0;
+  MODEL_HEALTH_STATUS_HEALTHY = 1;
+  MODEL_HEALTH_STATUS_DEGRADED = 2;
+  MODEL_HEALTH_STATUS_UNSUPPORTED = 3;
+  MODEL_HEALTH_STATUS_UNREACHABLE = 4;
+}
+
 message ModelCapabilityProfile {
   bool supports_text_generate = 1;
   bool supports_text_stream = 2;
@@ -72,12 +80,20 @@ message RemoveModelRequest {
 message CheckModelHealthRequest {
   string model_id = 1;
   string app_id = 2;
+  string local_asset_id = 3;
+  string capability = 4;
+  string provider = 5;
+  string endpoint = 6;
 }
 
 message CheckModelHealthResponse {
   bool healthy = 1;
   ReasonCode reason_code = 2;
   string action_hint = 3;
+  ModelHealthStatus status = 4;
+  string detail = 5;
+  string endpoint = 6;
+  string model_id = 7;
 }
 
 service RuntimeModelService {

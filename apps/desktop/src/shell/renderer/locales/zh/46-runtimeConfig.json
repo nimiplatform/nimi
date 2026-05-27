@@ -882,6 +882,7 @@
     "downloadedBytes": "已下载 {{value}}",
     "engine": "引擎",
     "engineLabel": "引擎：",
+    "runtimeCatalogDefault": "Runtime 目录默认值",
     "endpointLabel": "端点：",
     "endpointOptionalPlaceholder": "可选 attached endpoint",
     "endpointRequiredHint": "当前主机上，这个引擎必须填写 attached endpoint。",

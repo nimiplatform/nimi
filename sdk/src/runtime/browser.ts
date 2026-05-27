@@ -13,7 +13,11 @@ export {
   ScenarioJobStatus,
   ScenarioJobEventType,
 } from './generated/runtime/v1/ai.js';
-export { ModelStatus } from './generated/runtime/v1/model.js';
+export { ModelHealthStatus, ModelStatus } from './generated/runtime/v1/model.js';
+export type {
+  CheckModelHealthRequest,
+  CheckModelHealthResponse,
+} from './generated/runtime/v1/model.js';
 export {
   VoiceAssetStatus,
   VoiceWorkflowType,

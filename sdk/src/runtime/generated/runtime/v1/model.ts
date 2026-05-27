@@ -197,6 +197,22 @@ export interface CheckModelHealthRequest {
      * @generated from protobuf field: string app_id = 2
      */
     appId: string;
+    /**
+     * @generated from protobuf field: string local_asset_id = 3
+     */
+    localAssetId: string;
+    /**
+     * @generated from protobuf field: string capability = 4
+     */
+    capability: string;
+    /**
+     * @generated from protobuf field: string provider = 5
+     */
+    provider: string;
+    /**
+     * @generated from protobuf field: string endpoint = 6
+     */
+    endpoint: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CheckModelHealthResponse
@@ -214,6 +230,22 @@ export interface CheckModelHealthResponse {
      * @generated from protobuf field: string action_hint = 3
      */
     actionHint: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ModelHealthStatus status = 4
+     */
+    status: ModelHealthStatus;
+    /**
+     * @generated from protobuf field: string detail = 5
+     */
+    detail: string;
+    /**
+     * @generated from protobuf field: string endpoint = 6
+     */
+    endpoint: string;
+    /**
+     * @generated from protobuf field: string model_id = 7
+     */
+    modelId: string;
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ModelStatus
@@ -239,6 +271,31 @@ export enum ModelStatus {
      * @generated from protobuf enum value: MODEL_STATUS_REMOVED = 4;
      */
     REMOVED = 4
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.ModelHealthStatus
+ */
+export enum ModelHealthStatus {
+    /**
+     * @generated from protobuf enum value: MODEL_HEALTH_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: MODEL_HEALTH_STATUS_HEALTHY = 1;
+     */
+    HEALTHY = 1,
+    /**
+     * @generated from protobuf enum value: MODEL_HEALTH_STATUS_DEGRADED = 2;
+     */
+    DEGRADED = 2,
+    /**
+     * @generated from protobuf enum value: MODEL_HEALTH_STATUS_UNSUPPORTED = 3;
+     */
+    UNSUPPORTED = 3,
+    /**
+     * @generated from protobuf enum value: MODEL_HEALTH_STATUS_UNREACHABLE = 4;
+     */
+    UNREACHABLE = 4
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class ModelCapabilityProfile$Type extends MessageType<ModelCapabilityProfile> {
@@ -778,13 +835,21 @@ class CheckModelHealthRequest$Type extends MessageType<CheckModelHealthRequest> 
     constructor() {
         super("nimi.runtime.v1.CheckModelHealthRequest", [
             { no: 1, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "local_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<CheckModelHealthRequest>): CheckModelHealthRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.modelId = "";
         message.appId = "";
+        message.localAssetId = "";
+        message.capability = "";
+        message.provider = "";
+        message.endpoint = "";
         if (value !== undefined)
             reflectionMergePartial<CheckModelHealthRequest>(this, message, value);
         return message;
@@ -799,6 +864,18 @@ class CheckModelHealthRequest$Type extends MessageType<CheckModelHealthRequest> 
                     break;
                 case /* string app_id */ 2:
                     message.appId = reader.string();
+                    break;
+                case /* string local_asset_id */ 3:
+                    message.localAssetId = reader.string();
+                    break;
+                case /* string capability */ 4:
+                    message.capability = reader.string();
+                    break;
+                case /* string provider */ 5:
+                    message.provider = reader.string();
+                    break;
+                case /* string endpoint */ 6:
+                    message.endpoint = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -818,6 +895,18 @@ class CheckModelHealthRequest$Type extends MessageType<CheckModelHealthRequest> 
         /* string app_id = 2; */
         if (message.appId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.appId);
+        /* string local_asset_id = 3; */
+        if (message.localAssetId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.localAssetId);
+        /* string capability = 4; */
+        if (message.capability !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.capability);
+        /* string provider = 5; */
+        if (message.provider !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.provider);
+        /* string endpoint = 6; */
+        if (message.endpoint !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.endpoint);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -834,7 +923,11 @@ class CheckModelHealthResponse$Type extends MessageType<CheckModelHealthResponse
         super("nimi.runtime.v1.CheckModelHealthResponse", [
             { no: 1, name: "healthy", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
-            { no: 3, name: "action_hint", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "action_hint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.ModelHealthStatus", ModelHealthStatus, "MODEL_HEALTH_STATUS_"] },
+            { no: 5, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<CheckModelHealthResponse>): CheckModelHealthResponse {
@@ -842,6 +935,10 @@ class CheckModelHealthResponse$Type extends MessageType<CheckModelHealthResponse
         message.healthy = false;
         message.reasonCode = 0;
         message.actionHint = "";
+        message.status = 0;
+        message.detail = "";
+        message.endpoint = "";
+        message.modelId = "";
         if (value !== undefined)
             reflectionMergePartial<CheckModelHealthResponse>(this, message, value);
         return message;
@@ -859,6 +956,18 @@ class CheckModelHealthResponse$Type extends MessageType<CheckModelHealthResponse
                     break;
                 case /* string action_hint */ 3:
                     message.actionHint = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ModelHealthStatus status */ 4:
+                    message.status = reader.int32();
+                    break;
+                case /* string detail */ 5:
+                    message.detail = reader.string();
+                    break;
+                case /* string endpoint */ 6:
+                    message.endpoint = reader.string();
+                    break;
+                case /* string model_id */ 7:
+                    message.modelId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -881,6 +990,18 @@ class CheckModelHealthResponse$Type extends MessageType<CheckModelHealthResponse
         /* string action_hint = 3; */
         if (message.actionHint !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.actionHint);
+        /* nimi.runtime.v1.ModelHealthStatus status = 4; */
+        if (message.status !== 0)
+            writer.tag(4, WireType.Varint).int32(message.status);
+        /* string detail = 5; */
+        if (message.detail !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.detail);
+        /* string endpoint = 6; */
+        if (message.endpoint !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.endpoint);
+        /* string model_id = 7; */
+        if (message.modelId !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.modelId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
