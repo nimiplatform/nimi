@@ -1878,7 +1878,6 @@ pub enum AccountReasonCode {
     RefreshReuseDetected = 9,
     CallerUnauthorized = 10,
     AvatarBindingOnly = 11,
-    ModTokenForbidden = 12,
     BindingNotFound = 13,
     BindingStale = 14,
     BindingReplay = 15,
@@ -1903,7 +1902,6 @@ impl AccountReasonCode {
             Self::RefreshReuseDetected => "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED",
             Self::CallerUnauthorized => "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED",
             Self::AvatarBindingOnly => "ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY",
-            Self::ModTokenForbidden => "ACCOUNT_REASON_CODE_MOD_TOKEN_FORBIDDEN",
             Self::BindingNotFound => "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND",
             Self::BindingStale => "ACCOUNT_REASON_CODE_BINDING_STALE",
             Self::BindingReplay => "ACCOUNT_REASON_CODE_BINDING_REPLAY",
@@ -1929,7 +1927,6 @@ impl AccountReasonCode {
             }
             "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED" => Some(Self::CallerUnauthorized),
             "ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY" => Some(Self::AvatarBindingOnly),
-            "ACCOUNT_REASON_CODE_MOD_TOKEN_FORBIDDEN" => Some(Self::ModTokenForbidden),
             "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND" => Some(Self::BindingNotFound),
             "ACCOUNT_REASON_CODE_BINDING_STALE" => Some(Self::BindingStale),
             "ACCOUNT_REASON_CODE_BINDING_REPLAY" => Some(Self::BindingReplay),
@@ -1947,7 +1944,6 @@ pub enum AccountCallerMode {
     LocalFirstPartyApp = 1,
     DesktopShell = 2,
     DesktopLaunchedAvatar = 3,
-    Mod = 4,
     WebCloud = 5,
     ExternalPrincipal = 6,
 }
@@ -1962,7 +1958,6 @@ impl AccountCallerMode {
             Self::LocalFirstPartyApp => "ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP",
             Self::DesktopShell => "ACCOUNT_CALLER_MODE_DESKTOP_SHELL",
             Self::DesktopLaunchedAvatar => "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR",
-            Self::Mod => "ACCOUNT_CALLER_MODE_MOD",
             Self::WebCloud => "ACCOUNT_CALLER_MODE_WEB_CLOUD",
             Self::ExternalPrincipal => "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL",
         }
@@ -1976,7 +1971,6 @@ impl AccountCallerMode {
             "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR" => {
                 Some(Self::DesktopLaunchedAvatar)
             }
-            "ACCOUNT_CALLER_MODE_MOD" => Some(Self::Mod),
             "ACCOUNT_CALLER_MODE_WEB_CLOUD" => Some(Self::WebCloud),
             "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL" => Some(Self::ExternalPrincipal),
             _ => None,
