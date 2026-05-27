@@ -86,12 +86,10 @@ func LoadFileConfig(path string) (FileConfig, error) {
 	if len(strings.TrimSpace(string(content))) == 0 {
 		return FileConfig{SchemaVersion: DefaultSchemaVersion}, nil
 	}
-	originalContent := append([]byte(nil), content...)
 	var root map[string]json.RawMessage
 	if err := json.Unmarshal(content, &root); err == nil {
-		content, err = flattenLegacyNestedRuntimeObject(path, content, root)
-		if err != nil {
-			return FileConfig{}, err
+		if _, nestedRuntime := root["runtime"]; nestedRuntime {
+			return FileConfig{}, fmt.Errorf("parse runtime config file %q: nested runtime object is removed; use top-level runtime config fields", path)
 		}
 		if err := rejectLegacyLocalRuntimeConfigKeys(path, root); err != nil {
 			return FileConfig{}, err
@@ -120,45 +118,10 @@ func LoadFileConfig(path string) (FileConfig, error) {
 	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
 		return FileConfig{}, fmt.Errorf("parse runtime config file %q: unexpected trailing content", path)
 	}
-	parsed, err = migrateFileConfig(path, content, parsed)
-	if err != nil {
-		return FileConfig{}, fmt.Errorf("validate runtime config file %q: %w", path, err)
-	}
 	if err := ValidateFileConfig(parsed); err != nil {
 		return FileConfig{}, fmt.Errorf("validate runtime config file %q: %w", path, err)
 	}
-	if !bytes.Equal(content, originalContent) && path != "" {
-		if err := backupAndRewriteMigratedConfig(path, originalContent, parsed); err != nil {
-			return FileConfig{}, fmt.Errorf("validate runtime config file %q: %w", path, err)
-		}
-	}
 	return parsed, nil
-}
-
-func flattenLegacyNestedRuntimeObject(path string, content []byte, root map[string]json.RawMessage) ([]byte, error) {
-	runtimeRaw, legacyRuntime := root["runtime"]
-	if !legacyRuntime {
-		return content, nil
-	}
-
-	var runtimeFields map[string]json.RawMessage
-	if err := json.Unmarshal(runtimeRaw, &runtimeFields); err != nil {
-		return nil, fmt.Errorf("parse runtime config file %q: legacy nested runtime object is invalid: %w", path, err)
-	}
-
-	delete(root, "runtime")
-	for key, value := range runtimeFields {
-		if _, exists := root[key]; exists {
-			return nil, fmt.Errorf("parse runtime config file %q: legacy nested runtime object conflicts with top-level key %q", path, key)
-		}
-		root[key] = value
-	}
-
-	flattened, err := json.MarshalIndent(root, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("parse runtime config file %q: flatten legacy nested runtime object: %w", path, err)
-	}
-	return append(flattened, '\n'), nil
 }
 
 func ValidateFileConfig(fileCfg FileConfig) error {

@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func TestLoadMigratesLegacyNestedRuntimeObjectAtCanonicalPath(t *testing.T) {
+func TestLoadRejectsNestedRuntimeObjectAtCanonicalPath(t *testing.T) {
 	homeDir := t.TempDir()
 	setRuntimeTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
@@ -19,28 +19,13 @@ func TestLoadMigratesLegacyNestedRuntimeObjectAtCanonicalPath(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
 		t.Fatalf("mkdir canonical config dir: %v", err)
 	}
-	legacyBody := `{"schemaVersion":1,"runtime":{"grpcAddr":"127.0.0.1:59001"}}`
-	if err := os.WriteFile(configPath, []byte(legacyBody), 0o600); err != nil {
-		t.Fatalf("write legacy canonical config: %v", err)
+	body := `{"schemaVersion":1,"runtime":{"grpcAddr":"127.0.0.1:59001"}}`
+	if err := os.WriteFile(configPath, []byte(body), 0o600); err != nil {
+		t.Fatalf("write nested runtime config: %v", err)
 	}
 
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load returned error: %v", err)
-	}
-	if cfg.GRPCAddr != "127.0.0.1:59001" {
-		t.Fatalf("grpc addr mismatch after legacy canonical migration: got=%q", cfg.GRPCAddr)
-	}
-
-	fileCfg, err := LoadFileConfig(configPath)
-	if err != nil {
-		t.Fatalf("LoadFileConfig after migration: %v", err)
-	}
-	if fileCfg.GRPCAddr != "127.0.0.1:59001" {
-		t.Fatalf("migrated file grpc addr mismatch: got=%q", fileCfg.GRPCAddr)
-	}
-	if _, statErr := os.Stat(configPath + ".bak"); statErr != nil {
-		t.Fatalf("expected migration backup file: %v", statErr)
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "nested runtime object is removed") {
+		t.Fatalf("expected nested runtime object rejection, got %v", err)
 	}
 }
 
@@ -431,7 +416,7 @@ func clearRuntimeConfigEnv(t *testing.T) {
 	}
 }
 
-func TestLoadFileConfigMigratesMissingSchemaVersion(t *testing.T) {
+func TestLoadFileConfigRejectsMissingSchemaVersion(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.json")
 	raw := `{
   "grpcAddr": "127.0.0.1:47001",
@@ -445,56 +430,8 @@ func TestLoadFileConfigMigratesMissingSchemaVersion(t *testing.T) {
 		t.Fatalf("write config: %v", err)
 	}
 
-	fileCfg, err := LoadFileConfig(path)
-	if err != nil {
-		t.Fatalf("LoadFileConfig: %v", err)
-	}
-	if fileCfg.SchemaVersion != DefaultSchemaVersion {
-		t.Fatalf("unexpected schema version: got=%d want=%d", fileCfg.SchemaVersion, DefaultSchemaVersion)
-	}
-	if _, err := os.Stat(path + ".bak"); err != nil {
-		t.Fatalf("expected migration backup file, got %v", err)
-	}
-}
-
-func TestMigrationIsIdempotent(t *testing.T) {
-	// K-CFG-015: replaying the same migration yields the same migrated output.
-	path := filepath.Join(t.TempDir(), "config.json")
-	raw := `{
-  "grpcAddr": "127.0.0.1:47001",
-  "providers": {
-    "gemini": {
-      "apiKeyEnv": "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"
-    }
-  }
-}`
-	if err := os.WriteFile(path, []byte(raw), 0o600); err != nil {
-		t.Fatalf("write config: %v", err)
-	}
-
-	firstCfg, err := LoadFileConfig(path)
-	if err != nil {
-		t.Fatalf("LoadFileConfig first pass: %v", err)
-	}
-	firstContent, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read migrated config: %v", err)
-	}
-
-	secondCfg, err := LoadFileConfig(path)
-	if err != nil {
-		t.Fatalf("LoadFileConfig second pass: %v", err)
-	}
-	secondContent, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read migrated config second pass: %v", err)
-	}
-
-	if !reflect.DeepEqual(firstCfg, secondCfg) {
-		t.Fatalf("expected repeated migration loads to match: first=%+v second=%+v", firstCfg, secondCfg)
-	}
-	if string(firstContent) != string(secondContent) {
-		t.Fatalf("expected migrated config to be idempotent across reloads")
+	if _, err := LoadFileConfig(path); err == nil || !strings.Contains(err.Error(), "schemaVersion must be 1") {
+		t.Fatalf("expected missing schemaVersion rejection, got %v", err)
 	}
 }
 

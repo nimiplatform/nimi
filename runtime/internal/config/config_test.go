@@ -503,7 +503,7 @@ func TestLoadInvalidConfigFileReturnsError(t *testing.T) {
 	}
 }
 
-func TestLoadMigratesLegacyNestedConfigSchema(t *testing.T) {
+func TestLoadRejectsNestedRuntimeConfigSchema(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
@@ -517,15 +517,8 @@ func TestLoadMigratesLegacyNestedConfigSchema(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
 
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load returned error: %v", err)
-	}
-	if cfg.GRPCAddr != "127.0.0.1:50001" {
-		t.Fatalf("grpc addr mismatch after nested migration: got=%q", cfg.GRPCAddr)
-	}
-	if _, statErr := os.Stat(configPath + ".bak"); statErr != nil {
-		t.Fatalf("expected migration backup file: %v", statErr)
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "nested runtime object is removed") {
+		t.Fatalf("expected nested runtime config rejection, got %v", err)
 	}
 }
 
