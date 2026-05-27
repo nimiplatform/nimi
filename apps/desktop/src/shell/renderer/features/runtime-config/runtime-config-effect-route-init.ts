@@ -24,7 +24,7 @@ export function useRuntimeConfigRouteInitEffect(input: RouteInitEffectInput) {
       details: {
         capability: 'chat',
         source: input.state.selectedSource,
-        reason: 'legacy-v11-init-marker-only',
+        reason: 'v11-init-marker-only',
       },
     });
   }, [input.setState, input.state]);

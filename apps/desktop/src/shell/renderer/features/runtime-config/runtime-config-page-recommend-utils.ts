@@ -332,10 +332,6 @@ export function buildHuggingFaceUrl(repo: string): string {
   return `https://huggingface.co/${repo}`;
 }
 
-// ---------------------------------------------------------------------------
-// Original exports (preserved for backward compat)
-// ---------------------------------------------------------------------------
-
 export function normalizeRecommendPageCapability(value: CapabilityV11 | string | undefined): RecommendPageCapability {
   return normalizeLocalRecommendationFeedCapabilityId(value);
 }

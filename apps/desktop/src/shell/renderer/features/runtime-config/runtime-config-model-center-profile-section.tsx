@@ -113,10 +113,6 @@ function summaryLine(plan: LocalRuntimeProfileResolutionPlan): string {
   return `${selectedDependencies} runtime entries · ${passiveAssetCount} passive assets`;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Card variant (original layout — backward compat)                  */
-/* ------------------------------------------------------------------ */
-
 function ProfileSectionCard(props: ModelCenterProfileSectionProps & {
   selectedProfile: ReturnType<typeof useResolvedProfile>;
   capabilityOptions: string[];
