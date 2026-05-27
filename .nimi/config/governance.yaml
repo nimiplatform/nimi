@@ -22,8 +22,6 @@ spec_governance:
       - node scripts/check-desktop-spec-kernel-consistency.mjs
     platform-consistency:
       - node scripts/check-platform-spec-kernel-consistency.mjs
-    apps/ci:
-      - node scripts/check-platform-spec-kernel-consistency.mjs
     avatar:
       - node scripts/check-avatar-spec-kernel-consistency.mjs
     apps/avatar:
