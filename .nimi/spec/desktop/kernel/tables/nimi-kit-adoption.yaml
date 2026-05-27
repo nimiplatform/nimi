@@ -175,7 +175,7 @@ modules:
     accent_pack: nimi-accent
   - id: desktop.runtime.local.catalog.page
     app: desktop
-    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-model-center-catalog-section.tsx
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-local-model-center-catalog-sections.tsx
     families:
       - surface
       - action
