@@ -251,7 +251,7 @@ impl MenuBarShellStateSnapshot {
             "gRPC: {}",
             daemon
                 .map(|status| status.grpc_addr.as_str())
-                .unwrap_or("127.0.0.1:46371")
+                .unwrap_or("pending")
         );
         let pid_line = format!(
             "PID: {}",

@@ -114,7 +114,7 @@ pub fn initialize(app: &AppHandle) -> Result<(), String> {
         let grpc_line = MenuItem::with_id(
             app,
             "menu-bar-grpc-line",
-            "gRPC: 127.0.0.1:46371",
+            "gRPC: pending",
             false,
             None::<&str>,
         )

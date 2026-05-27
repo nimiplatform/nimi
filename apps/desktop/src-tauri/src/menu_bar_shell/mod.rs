@@ -134,4 +134,12 @@ mod tests {
         let presentation = snapshot.presentation(false, false);
         assert_eq!(presentation.detail_line, "Detail: provider quorum lost");
     }
+
+    #[test]
+    fn presentation_does_not_fallback_to_default_grpc_address_without_status() {
+        let snapshot = MenuBarShellStateSnapshot::default();
+
+        let presentation = snapshot.presentation(false, false);
+        assert_eq!(presentation.grpc_line, "gRPC: pending");
+    }
 }
