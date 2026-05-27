@@ -24,14 +24,6 @@ spec_governance:
       - node scripts/check-platform-spec-kernel-consistency.mjs
     apps/ci:
       - node scripts/check-platform-spec-kernel-consistency.mjs
-    apps/lookdev:
-      - node scripts/check-lookdev-spec-kernel-consistency.mjs
-    apps/moment:
-      - node scripts/check-moment-spec-kernel-consistency.mjs
-    apps/polyinfo:
-      - node scripts/check-polyinfo-spec-kernel-consistency.mjs
-    apps/realm-drift:
-      - node scripts/check-realm-drift-spec-kernel-consistency.mjs
     apps/shiji:
       - node scripts/check-shiji-spec-kernel-consistency.mjs
     avatar:
@@ -77,8 +69,6 @@ ai_governance:
       - rel: apps/desktop/AGENTS.md
         max_lines: 30
       - rel: apps/web/AGENTS.md
-        max_lines: 30
-      - rel: apps/realm-drift/AGENTS.md
         max_lines: 30
       - rel: apps/install-gateway/AGENTS.md
         max_lines: 30

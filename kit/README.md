@@ -88,9 +88,8 @@ import { FOCUS_RING_CLASS_NAME, VisuallyHidden } from '@nimiplatform/kit/ui/a11y
 @import '@nimiplatform/kit/ui/themes/nimi-accent.css';
 ```
 
-Available themes: `light`, `dark`, `nimi-accent`, `forge-accent`,
-`overtone-accent`, `video-food-map-accent`. Theme tokens are projected
-from `.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml`.
+Available themes: `light`, `dark`, and `nimi-accent`. Theme tokens are
+projected from `.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml`.
 
 ### Auth
 
@@ -181,8 +180,8 @@ Authors building new animations MUST gate non-essential motion behind
 ## Theming Integration
 
 The kit ships base styles plus theme overlays. Apply exactly one
-**base theme** (`light.css` or `dark.css`) and optionally one **accent
-overlay** (`nimi-accent.css`, `forge-accent.css`, etc.). Themes set CSS
+**base theme** (`light.css` or `dark.css`) and optionally the Nimi **accent
+overlay** (`nimi-accent.css`). Themes set CSS
 custom properties that kit primitives consume; do not override the
 property names — extend by adding scoped overlays.
 

@@ -4,18 +4,12 @@ owner: platform
 catalog_id: platform_app_slice_admissions
 entries:
   - admissions_1
-  - admissions_2
-  - admissions_3
-  - admissions_4
-  - admissions_5
-  - admissions_6
-  - admissions_7
 admissions:
-  - app_id: lookdev
+  - app_id: shiji
     admission_posture: active
-    owner_domain: app-lookdev
-    authority_root: apps/lookdev/spec
-    evidence_roots: [apps/lookdev]
+    owner_domain: app-shiji
+    authority_root: apps/shiji/spec
+    evidence_roots: [apps/shiji]
     may_not_override: &kernel_authority
       - .nimi/spec/runtime/**
       - .nimi/spec/sdk/**
@@ -24,46 +18,4 @@ admissions:
       - .nimi/spec/desktop/**
       - .nimi/spec/cognition/**
       - .nimi/spec/avatar/**
-    source_rule: P-APP-001
-  - app_id: moment
-    admission_posture: active
-    owner_domain: app-moment
-    authority_root: apps/moment/spec
-    evidence_roots: [apps/moment]
-    may_not_override: *kernel_authority
-    source_rule: P-APP-001
-  - app_id: overtone
-    admission_posture: active
-    owner_domain: app-overtone
-    authority_root: apps/overtone/spec
-    evidence_roots: [apps/overtone]
-    may_not_override: *kernel_authority
-    source_rule: P-APP-001
-  - app_id: polyinfo
-    admission_posture: active
-    owner_domain: app-polyinfo
-    authority_root: apps/polyinfo/spec
-    evidence_roots: [apps/polyinfo]
-    may_not_override: *kernel_authority
-    source_rule: P-APP-001
-  - app_id: realm-drift
-    admission_posture: active
-    owner_domain: app-realm-drift
-    authority_root: apps/realm-drift/spec
-    evidence_roots: [apps/realm-drift]
-    may_not_override: *kernel_authority
-    source_rule: P-APP-001
-  - app_id: shiji
-    admission_posture: active
-    owner_domain: app-shiji
-    authority_root: apps/shiji/spec
-    evidence_roots: [apps/shiji]
-    may_not_override: *kernel_authority
-    source_rule: P-APP-001
-  - app_id: video-food-map
-    admission_posture: active
-    owner_domain: app-video-food-map
-    authority_root: apps/video-food-map/spec
-    evidence_roots: [apps/video-food-map]
-    may_not_override: *kernel_authority
     source_rule: P-APP-001

@@ -5,8 +5,7 @@
 // Policy:
 //   apps/avatar/src/** must NOT import:
 //     - @nimiplatform/kit/features/avatar (any subpath)
-//     - apps/desktop/, apps/web/, apps/realm-drift/,
-//       apps/install-gateway/, apps/overtone/ (any subpath)
+//     - apps/desktop/, apps/web/, apps/install-gateway/ (any subpath)
 //     - _external/ (any subpath; reference-only)
 //   tsconfig path aliases are resolved before matching, so
 //     `@renderer/...` -> `apps/avatar/src/shell/renderer/...` is allowed
@@ -44,16 +43,8 @@ const BANNED = [
     test: (s) => /(^|\/)apps\/web(\/|$)/.test(s),
   },
   {
-    label: 'cross-app: apps/realm-drift',
-    test: (s) => /(^|\/)apps\/realm-drift(\/|$)/.test(s),
-  },
-  {
     label: 'cross-app: apps/install-gateway',
     test: (s) => /(^|\/)apps\/install-gateway(\/|$)/.test(s),
-  },
-  {
-    label: 'cross-app: apps/overtone',
-    test: (s) => /(^|\/)apps\/overtone(\/|$)/.test(s),
   },
   {
     label: '_external/ runtime reference',

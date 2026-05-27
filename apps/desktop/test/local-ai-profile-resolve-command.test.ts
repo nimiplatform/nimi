@@ -74,6 +74,7 @@ function installRuntimeLocalBridge(calls: CapturedRuntimeCall[]): () => void {
 async function createRuntimeLocalPlatformClient(): Promise<void> {
   await createPlatformClient({
     appId: 'nimi.desktop.test',
+    authMode: 'external-principal',
     realmBaseUrl: 'https://realm.test.local',
     accessToken: 'test-access-token',
     subjectUserIdProvider: () => 'test-user',

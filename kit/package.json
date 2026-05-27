@@ -50,9 +50,6 @@
     "./ui/themes/light.css": "./dist/ui/themes/light.css",
     "./ui/themes/dark.css": "./dist/ui/themes/dark.css",
     "./ui/themes/nimi-accent.css": "./dist/ui/themes/nimi-accent.css",
-    "./ui/themes/forge-accent.css": "./dist/ui/themes/forge-accent.css",
-    "./ui/themes/overtone-accent.css": "./dist/ui/themes/overtone-accent.css",
-    "./ui/themes/video-food-map-accent.css": "./dist/ui/themes/video-food-map-accent.css",
     "./auth": {
       "types": "./dist/auth/index.d.ts",
       "import": "./dist/auth/index.js",

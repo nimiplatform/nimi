@@ -4,20 +4,14 @@
 export const DESIGN_PACK_IDS = [
   "nimi-light",
   "nimi-dark",
-  "nimi-accent",
-  "forge-accent",
-  "overtone-accent",
-  "video-food-map-accent"
+  "nimi-accent"
 ] as const;
 export const FOUNDATION_SCHEME_IDS = [
   "nimi-light",
   "nimi-dark"
 ] as const;
 export const ACCENT_PACK_IDS = [
-  "nimi-accent",
-  "forge-accent",
-  "overtone-accent",
-  "video-food-map-accent"
+  "nimi-accent"
 ] as const;
 export const TYPOGRAPHY_ROLE_IDS = [
   "page_title",

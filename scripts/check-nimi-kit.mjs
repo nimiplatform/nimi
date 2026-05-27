@@ -218,7 +218,7 @@ const packageExportsMap = kitPackage.exports || {};
 const packageExports = new Set(Object.keys(packageExportsMap));
 const appLocalThemeExports = discoverAppLocalThemeExports();
 const modules = Array.isArray(registry?.modules) ? registry.modules : [];
-const appAliasPattern = /^@(renderer|runtime|app|desktop|forge|relay|web|overtone|realm-drift)(\/|$)/u;
+const appAliasPattern = /^@(renderer|runtime|app|desktop|web)(\/|$)/u;
 const registeredExportKeys = new Set();
 const featureReadmePaths = [];
 

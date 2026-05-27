@@ -614,7 +614,7 @@ test('confirm dialog uses governed overlay and action primitives', async () => {
   expect(hasClass(html, 'nimi-action--danger')).toBe(true);
 });
 
-test('theme provider applies semantic accent packs without app truth', async () => {
+test('theme provider applies semantic accent pack and scheme without app truth', async () => {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -635,7 +635,7 @@ test('theme provider applies semantic accent packs without app truth', async () 
 
   await act(async () => {
     root?.render(
-      <NimiThemeProvider accentPack="forge-accent" scheme="light">
+      <NimiThemeProvider accentPack="nimi-accent" scheme="light">
         <Surface tone="panel">theme</Surface>
       </NimiThemeProvider>,
     );
@@ -643,10 +643,9 @@ test('theme provider applies semantic accent packs without app truth', async () 
   });
 
   expect(document.documentElement.dataset.nimiScheme).toBe('light');
-  expect(document.documentElement.dataset.nimiAccent).toBe('forge-accent');
+  expect(document.documentElement.dataset.nimiAccent).toBe('nimi-accent');
   expect(document.documentElement.classList.contains('dark')).toBe(false);
-  expect(document.documentElement.classList.contains('nimi-theme-accent--forge-accent')).toBe(true);
-  expect(document.documentElement.classList.contains('nimi-theme-accent--nimi-accent')).toBe(false);
+  expect(document.documentElement.classList.contains('nimi-theme-accent--nimi-accent')).toBe(true);
 });
 
 test('cn utility merges classes correctly', () => {

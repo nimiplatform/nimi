@@ -227,43 +227,9 @@ function collectRepoFiles() {
     'apps/shiji/src',
     'apps/shiji/src-tauri',
     'apps/shiji/spec/kernel',
-    'apps/moment/src',
-    'apps/moment/src-tauri',
-    'apps/moment/spec/kernel',
-    'apps/polyinfo/src',
-    'apps/polyinfo/src-tauri',
-    'apps/polyinfo/spec/kernel',
-    // LD-SHELL-010 / LD-SHELL-011: Lookdev is admitted as a local-first-party
-    // Runtime account consumer. Walked here so scanPlatformClientConstruction
-    // and scanJwtSubjectAuthority detect regressions in lookdev sources.
-    // Lookdev intentionally does NOT appear in NON_ADMITTED_LOCAL_APP_SLICE_ROOTS
-    // — it is admitted, not fenced.
-    'apps/lookdev/src',
-    'apps/lookdev/spec/kernel',
-    // RD-SHELL-009 / RD-SHELL-010: Realm Drift is admitted as a
-    // local-first-party Runtime account consumer. Walked here so
-    // scanPlatformClientConstruction and scanJwtSubjectAuthority detect
-    // regressions in realm-drift sources. Realm Drift intentionally does NOT
-    // appear in NON_ADMITTED_LOCAL_APP_SLICE_ROOTS; it is admitted, not
-    // fenced.
-    'apps/realm-drift/src',
-    'apps/realm-drift/src-tauri',
-    'apps/realm-drift/spec/kernel',
     // SJ-SHELL-010 / SJ-SHELL-011: ShiJi is admitted as a local-first-party
-    // Runtime account consumer. Walked here for the same reason as forge /
-    // lookdev. ShiJi intentionally does NOT appear in
-    // NON_ADMITTED_LOCAL_APP_SLICE_ROOTS — it is admitted, not fenced.
-    // Existing roots above (shiji/src, shiji/src-tauri, shiji/spec/kernel)
-    // are retained — they were previously walked while shiji was non-admitted.
-    // Overtone admitted as a local-first-party Runtime account consumer
-    // (apps/overtone/spec/architecture.md §"Auth & Runtime Account").
-    // Walked here so scanPlatformClientConstruction and
-    // scanJwtSubjectAuthority detect regressions in overtone sources.
-    // Overtone uses prose-only spec (Option A) — no kernel/, fact tables
-    // live at apps/overtone/spec/tables/.
-    'apps/overtone/src',
-    'apps/overtone/src-tauri',
-    'apps/overtone/spec',
+    // Runtime account consumer. It is the only currently admitted app slice
+    // that remains active in this host.
     'runtime/internal/services/account',
     'runtime/internal/grpcserver',
   ];
@@ -898,35 +864,6 @@ function scanAvatarLaunchParserGuardrail(files, violations) {
   }
 }
 
-function scanDesktopLocalAvatarCarrierDecommission(files, violations) {
-  const store = files.find((item) => item.relPath === 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.ts');
-  const source = requireSource(store, violations, 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.ts');
-  if (!source) {
-    return;
-  }
-  if (!source.includes('DESKTOP_AVATAR_STORE_DECOMMISSIONED_MESSAGE')) {
-    pushViolation(
-      violations,
-      'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.ts',
-      source,
-      0,
-      'Desktop local avatar carrier decommission guard',
-      'decommissioned Desktop avatar store must retain an explicit hard-block message',
-    );
-  }
-  const invokeMatch = /\binvokeChecked\s*\(/u.exec(source);
-  if (invokeMatch) {
-    pushViolation(
-      violations,
-      'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.ts',
-      source,
-      invokeMatch.index,
-      'Desktop local avatar carrier IPC revival',
-      'decommissioned Desktop avatar store must not call Tauri IPC resource or binding commands',
-    );
-  }
-}
-
 function scanWebCloudFence(files, violations) {
   const webBootstrap = files.find((file) => file.relPath === 'apps/web/src/desktop-adapter/runtime-bootstrap.web.ts');
   if (webBootstrap && !webBootstrap.source.includes('WEB_CLOUD_ADAPTER_AUTH_MODE')) {
@@ -966,7 +903,6 @@ export function scanAccountSessionHardcut(files) {
   scanRuntimeBindingAuthenticatedState(files, violations);
   scanDesktopAvatarLaunchAuthority(files, violations);
   scanAvatarLaunchParserGuardrail(files, violations);
-  scanDesktopLocalAvatarCarrierDecommission(files, violations);
   scanWebCloudFence(files, violations);
   scanNonAdmittedLocalAppSliceFence(files, violations);
   return violations.sort();

@@ -9,6 +9,7 @@ entries:
   - RuntimeLocalService
   - RuntimeAuthService
   - RuntimeGrantService
+  - RuntimeExternalAgentService
   - RuntimeAccountService
   - RuntimeWorkflowService
   - RuntimeAuditService
@@ -162,6 +163,24 @@ groups:
       - RevokeAppAccessToken
       - IssueDelegatedAccessToken
       - ListTokenChain
+    source_rule: S-SURFACE-002
+  - group: external_agent_service_projection
+    service: RuntimeExternalAgentService
+    phase: 1
+    status: active
+    note: >
+      RuntimeExternalAgentService is the only admitted External Agent gateway,
+      token ledger, action registry, and audit projection surface. The SDK
+      exposes the typed projection even while Runtime fails closed with
+      EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY until the Runtime-owned action
+      registry/server lands; apps must not preserve a Desktop/Tauri-local token
+      ledger or renderer-local action descriptor truth.
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - GetExternalAgentGatewayStatus
+      - IssueExternalAgentToken
+      - RevokeExternalAgentToken
+      - ListExternalAgentTokens
     source_rule: S-SURFACE-002
   - group: account_service_projection
     service: RuntimeAccountService

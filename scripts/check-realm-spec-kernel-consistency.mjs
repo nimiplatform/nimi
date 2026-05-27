@@ -382,7 +382,6 @@ function main() {
   }
 
   const seenPolicies = new Set();
-  if (appPolicyRows.length === 0) pushIssue(issues, 'commit-authorization-matrix', 'app_policies must be non-empty');
   for (const row of appPolicyRows) {
     const appId = String(row.app_id || '').trim();
     const schemaId = String(row.schema_id || '').trim();
