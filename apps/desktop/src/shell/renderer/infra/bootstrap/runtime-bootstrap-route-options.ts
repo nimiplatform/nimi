@@ -7,6 +7,7 @@ import {
     buildRuntimeRouteOptionsSnapshot,
     buildRuntimeRouteSelectedBinding,
     normalizeRuntimeRouteCapabilityToken,
+    runtimeRouteLocalKindForCapability,
     runtimeRouteLocalKindSupportsCapability,
     runtimeRouteModelSupportsCapability,
     type RuntimeCanonicalCapability,
@@ -46,21 +47,6 @@ function extractModelDisplayName(assetId: string): string {
 
 const LOCAL_SNAPSHOT_TIMEOUT_MS = 3500;
 
-function mapCanonicalCapabilityToLocalCapability(capability: RuntimeCanonicalCapability): 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | undefined {
-    if (capability === 'text.generate')
-        return 'chat';
-    if (capability === 'text.embed')
-        return 'embedding';
-    if (capability === 'image.generate')
-        return 'image';
-    if (capability === 'video.generate')
-        return 'video';
-    if (capability === 'audio.synthesize')
-        return 'tts';
-    if (capability === 'audio.transcribe')
-        return 'stt';
-    return undefined;
-}
 function fallbackLocalEngine(capability?: RuntimeCanonicalCapability): string {
     if (capability === 'image.generate' || capability === 'video.generate') {
         return 'media';
@@ -217,7 +203,7 @@ function rethrowLocalRouteMetadataError(input: {
     throw normalized;
 }
 export async function loadLocalRouteMetadata(capability: RuntimeCanonicalCapability, deps?: Partial<LocalRouteMetadataDeps>): Promise<LocalRouteMetadata> {
-    const localCapability = mapCanonicalCapabilityToLocalCapability(capability);
+    const localCapability = runtimeRouteLocalKindForCapability(capability);
     const resolvedDeps: LocalRouteMetadataDeps = {
         pollLocalSnapshotWithTimeout,
         listNodesCatalog: localRuntime.listNodesCatalog,

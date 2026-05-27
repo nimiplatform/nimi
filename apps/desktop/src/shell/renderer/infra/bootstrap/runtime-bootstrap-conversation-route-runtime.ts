@@ -1,5 +1,6 @@
 import {
   decodeRuntimeRouteDescribeResultFromMetadata,
+  runtimeRouteModalityForCapability,
   type RuntimeCanonicalCapability,
   type RuntimeResolvedBinding,
   type RuntimeRouteBinding,
@@ -141,15 +142,6 @@ function resolveBindingFromSnapshot(
   return binding;
 }
 
-function modalityForCapability(capability: RuntimeCanonicalCapability): 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' {
-  if (capability === 'image.generate') return 'image';
-  if (capability === 'video.generate') return 'video';
-  if (capability === 'audio.synthesize' || capability === 'voice_workflow.voice_clone' || capability === 'voice_workflow.voice_design') return 'tts';
-  if (capability === 'audio.transcribe') return 'stt';
-  if (capability === 'text.embed') return 'embedding';
-  return 'chat';
-}
-
 function resolvedBindingRefFor(capability: RuntimeCanonicalCapability, binding: RuntimeRouteBinding): string {
   if (binding.source === 'cloud') {
     return [
@@ -186,7 +178,7 @@ function resolveLocalBinding(
     connectorId: '',
     provider: normalizeText(binding.provider) || engine,
     engine,
-    runtimeModelType: modalityForCapability(capability),
+    runtimeModelType: runtimeRouteModalityForCapability(capability),
     model: modelId,
     modelId,
     localModelId: normalizeText(binding.localModelId) || undefined,
@@ -220,7 +212,7 @@ function resolveCloudBinding(
     source: 'cloud',
     connectorId,
     provider,
-    runtimeModelType: modalityForCapability(capability),
+    runtimeModelType: runtimeRouteModalityForCapability(capability),
     model: modelId,
     modelId,
     endpoint: normalizeText(binding.endpoint) || undefined,

@@ -5,6 +5,11 @@ import type {
   RuntimeRouteLocalOption,
   RuntimeRouteOptionsSnapshot,
 } from './runtime-route.js';
+import {
+  isLocalRuntimeRunnableAssetKindId,
+  parseLocalRuntimeAssetKindId,
+  type LocalRuntimeRunnableAssetKindId,
+} from '../runtime/local-asset-kind.js';
 
 function normalizeCapabilityAlias(value: string): RuntimeCanonicalCapability | null {
   if (value === 'chat') return 'text.generate';
@@ -192,33 +197,49 @@ export function runtimeRouteModelSupportsCapability(
   return (capabilities || []).some((item) => normalizeRuntimeRouteCapabilityToken(item) === capability);
 }
 
+export function runtimeRouteLocalKindForCapability(
+  capability: RuntimeCanonicalCapability,
+): LocalRuntimeRunnableAssetKindId | null {
+  if (capability === 'text.generate') {
+    return 'chat';
+  }
+  if (capability === 'text.embed') {
+    return 'embedding';
+  }
+  if (capability === 'image.generate') {
+    return 'image';
+  }
+  if (capability === 'video.generate') {
+    return 'video';
+  }
+  if (
+    capability === 'audio.synthesize'
+    || capability === 'voice_workflow.voice_clone'
+    || capability === 'voice_workflow.voice_design'
+  ) {
+    return 'tts';
+  }
+  if (capability === 'audio.transcribe') {
+    return 'stt';
+  }
+  return null;
+}
+
+export function runtimeRouteModalityForCapability(
+  capability: RuntimeCanonicalCapability,
+): LocalRuntimeRunnableAssetKindId {
+  return runtimeRouteLocalKindForCapability(capability) || 'chat';
+}
+
 export function runtimeRouteLocalKindSupportsCapability(
   kind: string | null | undefined,
   capability: RuntimeCanonicalCapability,
 ): boolean {
-  const normalizedKind = String(kind || '').trim().toLowerCase();
-  if (!normalizedKind) {
+  const normalizedKind = parseLocalRuntimeAssetKindId(kind);
+  if (!normalizedKind || !isLocalRuntimeRunnableAssetKindId(normalizedKind)) {
     return false;
   }
-  if (capability === 'text.generate' && normalizedKind === 'chat') {
-    return true;
-  }
-  if (capability === 'text.embed' && normalizedKind === 'embedding') {
-    return true;
-  }
-  if (capability === 'image.generate' && normalizedKind === 'image') {
-    return true;
-  }
-  if (capability === 'video.generate' && normalizedKind === 'video') {
-    return true;
-  }
-  if (capability === 'audio.synthesize' && normalizedKind === 'tts') {
-    return true;
-  }
-  if (capability === 'audio.transcribe' && normalizedKind === 'stt') {
-    return true;
-  }
-  return false;
+  return normalizedKind === runtimeRouteLocalKindForCapability(capability);
 }
 
 export function buildRuntimeRouteSelectedBinding(input: {
