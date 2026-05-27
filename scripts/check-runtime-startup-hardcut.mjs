@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 
 const checks = [
   {
@@ -25,11 +26,25 @@ const checks = [
       'runtime/internal/services/workflow/executor_standard_nodes.go',
     ],
   },
+  {
+    description: 'runtime local-state migration tooling must not reappear after the schema-v2 hard cut',
+    pattern: 'runtime:local-state:migrate|migrate-runtime-local-state-v1-to-v2|runtime-local-state-migrate|local-state migrate',
+    paths: [
+      'package.json',
+      'scripts/migrate-runtime-local-state-v1-to-v2.mjs',
+      'scripts/lib/runtime-local-state-migrate.mjs',
+      'scripts/test/runtime-local-state-migrate.test.mjs',
+    ],
+  },
 ];
 
 function runRipgrep(pattern, paths) {
+  const existingPaths = paths.filter((targetPath) => existsSync(targetPath));
+  if (existingPaths.length === 0) {
+    return '';
+  }
   try {
-    return execFileSync('rg', ['-n', pattern, ...paths], {
+    return execFileSync('rg', ['-n', pattern, ...existingPaths], {
       cwd: process.cwd(),
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
