@@ -123,8 +123,7 @@ export type RuntimeConfigStateV11 = {
 };
 
 export const DEFAULT_LOCAL_ENDPOINT_V11 = '';
-export const DEFAULT_OPENAI_ENDPOINT_V11 = '';
-export const DEFAULT_OPENROUTER_ENDPOINT_V11 = 'https://openrouter.ai/api/v1';
+export const DEFAULT_CONNECTOR_ENDPOINT_V11 = '';
 let _runtimeConfigPlatformForTests: 'windows' | 'darwin' | 'linux' | 'unknown' | null = null;
 
 export function setRuntimeConfigPlatformForTests(value: 'windows' | 'darwin' | 'linux' | 'unknown' | null): void {
@@ -146,34 +145,6 @@ function defaultEndpointForEngine(engine: LocalModelOptionV11['engine']): string
   if (engine === 'media') return 'http://127.0.0.1:8321';
   return engine === 'llama' ? DEFAULT_LOCAL_ENDPOINT_V11 : '';
 }
-
-export const VENDOR_LABELS_V11: Record<string, string> = {
-  gpt: 'OpenAI',
-  openai_codex: 'OpenAI Codex',
-  openai_compatible: 'OpenAI-Compatible',
-  claude: 'Anthropic Claude',
-  gemini: 'Google Gemini',
-  kimi: 'Moonshot Kimi',
-  deepseek: 'DeepSeek',
-  volcengine: 'Volcengine (火山引擎)',
-  dashscope: 'DashScope (阿里云)',
-  openrouter: 'OpenRouter',
-  custom: 'Custom',
-};
-
-export const VENDOR_ORDER_V11: ApiVendor[] = [
-  'openrouter',
-  'gpt',
-  'openai_codex',
-  'openai_compatible',
-  'claude',
-  'gemini',
-  'deepseek',
-  'dashscope',
-  'kimi',
-  'volcengine',
-  'custom',
-];
 
 function humanizeVendorId(value: string): string {
   const normalized = String(value || '').trim();
@@ -216,7 +187,7 @@ export function normalizeUiModeV11(value: unknown): UiModeV11 {
 
 export function normalizeVendorV11(value: unknown): ApiVendor {
   const normalized = String(value || '').trim().toLowerCase();
-  return normalized || 'openrouter';
+  return normalized || 'custom';
 }
 
 export function normalizeStatusV11(value: unknown): ProviderStatusV11 {
@@ -250,7 +221,7 @@ export function dedupeStringsV11(values: string[]): string[] {
 }
 
 export function getVendorLabelV11(vendor: ApiVendor): string {
-  return VENDOR_LABELS_V11[vendor] || humanizeVendorId(vendor);
+  return humanizeVendorId(vendor);
 }
 
 export function normalizeEndpointV11(value: string, fallback: string): string {
@@ -261,8 +232,7 @@ export function randomIdV11(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function createConnectorV11(vendor: ApiVendor = 'openrouter', label?: string): ApiConnector {
-  const defaultEndpoint = vendor === 'openrouter' ? DEFAULT_OPENROUTER_ENDPOINT_V11 : DEFAULT_OPENAI_ENDPOINT_V11;
+export function createConnectorV11(vendor: ApiVendor = 'custom', label?: string): ApiConnector {
   return {
     id: randomIdV11('connector'),
     label: label || `${getVendorLabelV11(vendor)} Connector`,
@@ -270,7 +240,7 @@ export function createConnectorV11(vendor: ApiVendor = 'openrouter', label?: str
     provider: '',
     authMode: 'api_key',
     providerAuthProfile: undefined,
-    endpoint: defaultEndpoint,
+    endpoint: DEFAULT_CONNECTOR_ENDPOINT_V11,
     scope: 'user',
     hasCredential: false,
     isSystemOwned: false,
@@ -288,7 +258,6 @@ export function normalizeConnectorModelsV11(vendor: ApiVendor, rawModels: unknow
 
 export function normalizeConnectorV11(raw: Partial<ApiConnector>): ApiConnector {
   const vendor = normalizeVendorV11(raw.vendor);
-  const defaultEndpoint = vendor === 'openrouter' ? DEFAULT_OPENROUTER_ENDPOINT_V11 : DEFAULT_OPENAI_ENDPOINT_V11;
   const scope = normalizeConnectorScopeV11(raw.scope);
   return {
     id: String(raw.id || randomIdV11('connector')),
@@ -297,7 +266,7 @@ export function normalizeConnectorV11(raw: Partial<ApiConnector>): ApiConnector 
     provider: String(raw.provider || ''),
     authMode: raw.authMode === 'oauth_managed' ? 'oauth_managed' : 'api_key',
     providerAuthProfile: String(raw.providerAuthProfile || '').trim() || undefined,
-    endpoint: normalizeEndpointV11(String(raw.endpoint || defaultEndpoint), defaultEndpoint),
+    endpoint: normalizeEndpointV11(String(raw.endpoint || DEFAULT_CONNECTOR_ENDPOINT_V11), DEFAULT_CONNECTOR_ENDPOINT_V11),
     scope,
     hasCredential: Boolean(raw.hasCredential),
     isSystemOwned: scope !== 'user' || Boolean(raw.isSystemOwned),

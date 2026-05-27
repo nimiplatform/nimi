@@ -21,9 +21,11 @@ test('runtime config connector endpoint edits do not infer provider authority fr
 
 test('runtime config connector provider selection remains catalog and draft scoped', () => {
   assert.match(cloudPageSource, /sdkListProviderCatalog\(\)/);
-  assert.match(cloudPageSource, /\.map\(\(entry\) => providerToVendor\(entry\.provider\)\)/);
+  assert.match(cloudPageSource, /runtimeCatalog\.find\(\(entry\) => entry\.managedSupported && entry\.provider !== 'local'\)/);
+  assert.match(cloudPageSource, /providerToVendor\(provider\)/);
   assert.match(cloudPageSource, /const canEditVendor = !isRuntimeSystem && isDraft;/);
   assert.match(cloudPageSource, /const onChangeConnectorEndpoint = useCallback\(\(endpoint: string\) => \{/);
   assert.match(cloudPageSource, /updateConnectorField\(prev, selectedConnectorId, \{ endpoint \}\)/);
   assert.doesNotMatch(cloudPageSource, /onChangeConnectorEndpoint[\s\S]*provider:\s*inferredProvider/);
+  assert.doesNotMatch(cloudPageSource, /VENDOR_ORDER_V11|DEFAULT_OPENROUTER_ENDPOINT_V11/);
 });

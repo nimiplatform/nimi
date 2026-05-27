@@ -6,14 +6,12 @@ import {
 
 export function selectOrderedConnectorsV11(
   state: RuntimeConfigStateV11 | null,
-  vendorOrderIndex: Map<string, number>,
 ): ApiConnector[] {
   if (!state) return [];
   return [...state.connectors].sort((left, right) => {
-    const leftRank = vendorOrderIndex.get(left.vendor) ?? Number.MAX_SAFE_INTEGER;
-    const rightRank = vendorOrderIndex.get(right.vendor) ?? Number.MAX_SAFE_INTEGER;
-    if (leftRank !== rightRank) return leftRank - rightRank;
-    return String(left.label || '').localeCompare(String(right.label || ''));
+    const labelOrder = String(left.label || '').localeCompare(String(right.label || ''));
+    if (labelOrder !== 0) return labelOrder;
+    return String(left.vendor || '').localeCompare(String(right.vendor || ''));
   });
 }
 

@@ -47,7 +47,8 @@ test('runtime config cloud scope contract: vendor options are derived from runti
   assert.match(cloudPageSource, /sdkListProviderCatalog\(\)/);
   assert.match(cloudPageSource, /const vendorOptions = useMemo\(\(\) => \{/);
   assert.match(cloudPageSource, /\.filter\(\(entry\) => entry\.managedSupported && entry\.provider !== 'local'\)/);
-  assert.match(cloudPageSource, /\.map\(\(entry\) => providerToVendor\(entry\.provider\)\)/);
+  assert.match(cloudPageSource, /providerToVendor\(entry\.provider\)/);
+  assert.doesNotMatch(cloudPageSource, /VENDOR_ORDER_V11/);
   assert.match(cloudPageSource, /options=\{vendorOptions\}/);
 });
 

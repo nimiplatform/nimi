@@ -154,30 +154,10 @@ export function resolveProviderEndpoint(
 
 export function providerToVendor(provider: string): ApiVendor {
   const normalized = String(provider || '').trim().toLowerCase();
-  if (normalized === 'deepseek') return 'deepseek';
-  if (normalized === 'dashscope') return 'dashscope';
-  if (normalized === 'volcengine' || normalized === 'volcengine_openspeech') return 'volcengine';
-  if (normalized === 'gemini') return 'gemini';
-  if (normalized === 'kimi') return 'kimi';
-  if (normalized === 'openai') return 'gpt';
-  if (normalized === 'openai_codex') return 'openai_codex';
-  if (normalized === 'openai_compatible') return 'openai_compatible';
-  if (normalized === 'anthropic') return 'claude';
-  if (normalized === 'openrouter') return 'openrouter';
-  return 'custom';
+  return normalized || 'custom';
 }
 
 export function vendorToProvider(vendor: ApiVendor): string {
-  if (vendor === 'dashscope') return 'dashscope';
-  if (vendor === 'volcengine') return 'volcengine';
-  if (vendor === 'gemini') return 'gemini';
-  if (vendor === 'kimi') return 'kimi';
-  if (vendor === 'deepseek') return 'deepseek';
-  if (vendor === 'gpt') return 'openai';
-  if (vendor === 'openai_codex') return 'openai_codex';
-  if (vendor === 'openai_compatible') return 'openai_compatible';
-  if (vendor === 'claude') return 'anthropic';
-  if (vendor === 'openrouter') return 'openrouter';
   return String(vendor || '').trim().toLowerCase() || 'custom';
 }
 

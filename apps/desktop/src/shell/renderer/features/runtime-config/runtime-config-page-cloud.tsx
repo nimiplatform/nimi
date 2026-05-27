@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { DEFAULT_OPENAI_ENDPOINT_V11, VENDOR_ORDER_V11, getVendorLabelV11, randomIdV11, type ApiVendor } from '@renderer/features/runtime-config/runtime-config-state-types';
+import { DEFAULT_CONNECTOR_ENDPOINT_V11, getVendorLabelV11, randomIdV11, type ApiVendor } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, sdkCreateConnector, sdkDeleteConnector, sdkListConnectors, sdkListProviderCatalog, sdkUpdateConnector, vendorToProvider } from './runtime-config-connector-sdk-service';
 import { addConnectorToState, removeSelectedConnector, replaceConnectorsInState, updateConnectorField } from './runtime-config-connector-actions';
@@ -85,6 +85,10 @@ export function CloudPage({ model, state }: CloudPageProps) {
     () => providerCatalog.find((entry) => entry.provider === selectedConnector?.provider) || null,
     [providerCatalog, selectedConnector?.provider],
   );
+  const managedProviderCatalog = useMemo(
+    () => providerCatalog.filter((entry) => entry.managedSupported && entry.provider !== 'local'),
+    [providerCatalog],
+  );
   const reportError = useCallback((label: string, error: unknown) => {
     model.setPageFeedback({
       kind: 'error',
@@ -108,19 +112,21 @@ export function CloudPage({ model, state }: CloudPageProps) {
     clearPageErrorByLabel(PROVIDER_CATALOG_ERROR_LABEL);
   }, [clearPageErrorByLabel, PROVIDER_CATALOG_ERROR_LABEL]);
   const vendorOptions = useMemo(() => {
-    const known = [...VENDOR_ORDER_V11];
-    const knownSet = new Set(known);
-    const dynamicProviders = providerCatalog
-      .filter((entry) => entry.managedSupported && entry.provider !== 'local')
-      .map((entry) => providerToVendor(entry.provider))
-      .filter((vendor) => Boolean(vendor) && !knownSet.has(vendor));
-    const orderedDynamicProviders = Array.from(new Set(dynamicProviders))
-      .sort((left, right) => getVendorLabelV11(left).localeCompare(getVendorLabelV11(right)));
-    return [...known, ...orderedDynamicProviders].map((vendor) => ({
-      value: vendor,
-      label: getVendorLabelV11(vendor),
-    }));
-  }, [providerCatalog]);
+    const visibleVendors = new Set<ApiVendor>();
+    for (const entry of managedProviderCatalog) {
+      const vendor = providerToVendor(entry.provider);
+      if (vendor) visibleVendors.add(vendor);
+    }
+    for (const connector of state.connectors) {
+      if (connector.vendor) visibleVendors.add(connector.vendor);
+    }
+    return Array.from(visibleVendors)
+      .sort((left, right) => getVendorLabelV11(left).localeCompare(getVendorLabelV11(right)))
+      .map((vendor) => ({
+        value: vendor,
+        label: getVendorLabelV11(vendor),
+      }));
+  }, [managedProviderCatalog, state.connectors]);
   const refreshConnectorsFromSdk = useCallback(async () => {
     const connectors = await sdkListConnectors();
     updateState((prev) => {
@@ -161,12 +167,15 @@ export function CloudPage({ model, state }: CloudPageProps) {
     CONNECTORS_LOAD_ERROR_LABEL,
   ]);
   const onAddConnector = useCallback(async () => {
-    const vendor: ApiVendor = 'openrouter';
-    const provider = vendorToProvider(vendor);
-    const defaultAuthOption = defaultConnectorAuthOptionForProvider(provider);
     const runtimeCatalog = await sdkListProviderCatalog();
-    const endpoint = resolveProviderEndpoint(provider, runtimeCatalog)
-      || DEFAULT_OPENAI_ENDPOINT_V11;
+    const providerEntry = runtimeCatalog.find((entry) => entry.managedSupported && entry.provider !== 'local');
+    if (!providerEntry?.provider) {
+      throw new Error('Runtime provider catalog returned no managed cloud providers.');
+    }
+    const provider = providerEntry.provider;
+    const vendor: ApiVendor = providerToVendor(provider);
+    const defaultAuthOption = defaultConnectorAuthOptionForProvider(provider);
+    const endpoint = resolveProviderEndpoint(provider, runtimeCatalog);
     const draft = {
       id: randomIdV11('draft'),
       label: `API Connector ${state.connectors.length + 1}`,
@@ -305,7 +314,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
     const provider = vendorToProvider(normalizedVendor);
     const defaultAuthOption = defaultConnectorAuthOptionForProvider(provider);
     const runtimeCatalog = await sdkListProviderCatalog();
-    const endpoint = resolveProviderEndpoint(provider, runtimeCatalog) || DEFAULT_OPENAI_ENDPOINT_V11;
+    const endpoint = resolveProviderEndpoint(provider, runtimeCatalog);
     updateState((prev) => updateConnectorField(prev, selectedConnectorId, {
       vendor: normalizedVendor,
       endpoint,
@@ -500,7 +509,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
                     label={t('runtimeConfig.cloud.endpoint', { defaultValue: 'Endpoint' })}
                     value={selectedConnector.endpoint}
                     onChange={onChangeConnectorEndpoint}
-                    placeholder={DEFAULT_OPENAI_ENDPOINT_V11}
+                    placeholder={selectedProviderCatalogEntry?.defaultEndpoint || DEFAULT_CONNECTOR_ENDPOINT_V11}
                     disabled={isRuntimeSystem}
                   />
                   {isRuntimeSystem ? (

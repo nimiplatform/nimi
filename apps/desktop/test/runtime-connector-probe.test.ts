@@ -277,47 +277,43 @@ test('sdkConnectorToApiConnector uses default endpoint from catalog when connect
   assert.ok(result.endpoint.length > 0, 'should have a fallback endpoint');
 });
 
-test('providerToVendor maps known providers correctly', () => {
+test('providerToVendor normalizes runtime provider ids without rebuilding provider truth', () => {
   assert.equal(providerToVendor('deepseek'), 'deepseek');
   assert.equal(providerToVendor('dashscope'), 'dashscope');
-  assert.equal(providerToVendor('volcengine'), 'volcengine');
-  assert.equal(providerToVendor('volcengine_openspeech'), 'volcengine');
+  assert.equal(providerToVendor('volcengine_openspeech'), 'volcengine_openspeech');
   assert.equal(providerToVendor('gemini'), 'gemini');
-  assert.equal(providerToVendor('kimi'), 'kimi');
-  assert.equal(providerToVendor('openai'), 'gpt');
+  assert.equal(providerToVendor('openai'), 'openai');
   assert.equal(providerToVendor('openai_codex'), 'openai_codex');
   assert.equal(providerToVendor('openai_compatible'), 'openai_compatible');
-  assert.equal(providerToVendor('anthropic'), 'claude');
+  assert.equal(providerToVendor('anthropic'), 'anthropic');
   assert.equal(providerToVendor('openrouter'), 'openrouter');
-  assert.equal(providerToVendor('unknown-provider'), 'custom');
+  assert.equal(providerToVendor('unknown-provider'), 'unknown-provider');
   assert.equal(providerToVendor(''), 'custom');
 });
 
-test('vendorToProvider maps known vendors correctly', () => {
+test('vendorToProvider normalizes UI provider ids without alias mapping', () => {
   assert.equal(vendorToProvider('dashscope'), 'dashscope');
   assert.equal(vendorToProvider('volcengine'), 'volcengine');
   assert.equal(vendorToProvider('gemini'), 'gemini');
-  assert.equal(vendorToProvider('kimi'), 'kimi');
   assert.equal(vendorToProvider('deepseek'), 'deepseek');
-  assert.equal(vendorToProvider('gpt'), 'openai');
+  assert.equal(vendorToProvider('openai'), 'openai');
   assert.equal(vendorToProvider('openai_codex'), 'openai_codex');
   assert.equal(vendorToProvider('openai_compatible'), 'openai_compatible');
-  assert.equal(vendorToProvider('claude'), 'anthropic');
+  assert.equal(vendorToProvider('anthropic'), 'anthropic');
   assert.equal(vendorToProvider('openrouter'), 'openrouter');
   assert.equal(vendorToProvider('custom'), 'custom');
 });
 
-test('providerToVendor and vendorToProvider are bidirectional for all standard mappings', () => {
+test('providerToVendor and vendorToProvider are pass-through for runtime provider ids', () => {
   const pairs: Array<[string, string]> = [
     ['deepseek', 'deepseek'],
     ['dashscope', 'dashscope'],
-    ['volcengine', 'volcengine'],
+    ['volcengine_openspeech', 'volcengine_openspeech'],
     ['gemini', 'gemini'],
-    ['kimi', 'kimi'],
-    ['openai', 'gpt'],
+    ['openai', 'openai'],
     ['openai_codex', 'openai_codex'],
     ['openai_compatible', 'openai_compatible'],
-    ['anthropic', 'claude'],
+    ['anthropic', 'anthropic'],
     ['openrouter', 'openrouter'],
   ];
 
@@ -330,7 +326,7 @@ test('providerToVendor and vendorToProvider are bidirectional for all standard m
 test('providerToVendor is case-insensitive', () => {
   assert.equal(providerToVendor('DEEPSEEK'), 'deepseek');
   assert.equal(providerToVendor('Gemini'), 'gemini');
-  assert.equal(providerToVendor('OpenAI'), 'gpt');
+  assert.equal(providerToVendor('OpenAI'), 'openai');
   assert.equal(providerToVendor('OPENAI_CODEX'), 'openai_codex');
   assert.equal(providerToVendor('OpenAI_Compatible'), 'openai_compatible');
 });

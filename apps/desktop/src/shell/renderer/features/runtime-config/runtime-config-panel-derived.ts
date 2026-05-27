@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { normalizeLocalRuntimeProfilesDeclaration } from '@runtime/local-runtime';
 import {
-  VENDOR_ORDER_V11,
   type CapabilityV11,
   type ProviderStatusV11,
   type RuntimeConfigStateV11,
@@ -36,14 +35,9 @@ export function useRuntimeConfigPanelDerived(input: {
     ? input.state.connectors.find((connector) => connector.id === input.state?.selectedConnectorId) || input.state.connectors[0] || null
     : null;
 
-  const vendorOrderIndex = useMemo(
-    () => new Map(VENDOR_ORDER_V11.map((vendor, index) => [vendor, index])),
-    [],
-  );
-
   const orderedConnectors = useMemo(
-    () => selectOrderedConnectorsV11(input.state, vendorOrderIndex),
-    [input.state, vendorOrderIndex],
+    () => selectOrderedConnectorsV11(input.state),
+    [input.state],
   );
 
   const allLocalModels = useMemo(() => selectAllLocalModelsV11(input.state), [input.state]);
