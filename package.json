@@ -27,7 +27,6 @@
     "runtime:config:validate": "pnpm runtime:cmd -- config validate --json",
     "runtime:config:get": "pnpm runtime:cmd -- config get --json",
     "runtime:run:hello": "pnpm runtime:cmd -- run \"hello runtime\" --json --yes",
-    "debug:dashscope-tts-voices": "pnpm --filter @nimiplatform/desktop run debug:dashscope-tts-voices",
     "generate:realm-sdk": "node scripts/generate-realm-sdk.mjs",
     "generate:runtime-bridge-methods": "node scripts/generate-runtime-bridge-methods.mjs",
     "generate:runtime-catalog": "node scripts/generate-runtime-catalog.mjs",

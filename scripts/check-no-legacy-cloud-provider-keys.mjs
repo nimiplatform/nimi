@@ -6,8 +6,11 @@ import { extname, resolve, relative } from 'node:path';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const scanRoots = [
+  'package.json',
   'runtime/internal',
   'runtime/cmd',
+  'apps/desktop/package.json',
+  'apps/desktop/scripts',
   'apps/desktop/src-tauri/src/runtime_bridge',
   'sdk/src',
   'runtime/README.md',
@@ -48,6 +51,14 @@ const genericChecks = [
   {
     label: 'legacy config migrate command',
     pattern: /\bnimi config migrate\b/g,
+  },
+  {
+    label: 'desktop DashScope debug script',
+    pattern: /debug:dashscope-tts-voices|debug-dashscope-tts-voices/g,
+  },
+  {
+    label: 'legacy DashScope env alias',
+    pattern: /\b(?:NIMI_DASHSCOPE_[A-Z0-9_]+|DASHSCOPE_API_KEY)\b/g,
   },
 ];
 

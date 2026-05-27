@@ -10,7 +10,6 @@
     "dev:renderer": "node scripts/ensure-dev-renderer-port.mjs && vite --host 127.0.0.1 --port 1420 --strictPort",
     "dev:shell": "tauri dev --config src-tauri/tauri.conf.json",
     "dev:shell:clean": "pnpm run clean:src-js && pnpm run dev:shell",
-    "debug:dashscope-tts-voices": "node scripts/debug-dashscope-tts-voices.mjs",
     "clean:src-js": "find src -type f -name '*.js' -delete",
     "prepare:runtime-bundle": "node scripts/prepare-runtime-bundle.mjs",
     "check:version-sync": "node scripts/check-version-sync.mjs",
