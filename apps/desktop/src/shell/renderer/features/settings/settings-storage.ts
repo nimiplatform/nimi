@@ -1,7 +1,7 @@
 import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
 
 export const SETTINGS_SELECTED_STORAGE_KEY = 'nimi.settings.selected';
-export const SETTINGS_SELECTED_MOD_ID_STORAGE_KEY = 'nimi.settings.targetId';
+export const SETTINGS_SELECTED_TARGET_ID_STORAGE_KEY = 'nimi.settings.targetId';
 export const SETTINGS_PERFORMANCE_PREFERENCES_STORAGE_KEY = 'nimi.settings.performance.preferences.v1';
 export const SETTINGS_PERFORMANCE_PREFERENCES_EVENT = 'nimi:settings:performance-preferences-changed';
 
@@ -24,7 +24,7 @@ export function persistStoredSettingsSelected(id: string): void {
 
 export function loadStoredSettingsTargetId(): string {
   try {
-    return String(localStorage.getItem(SETTINGS_SELECTED_MOD_ID_STORAGE_KEY) || '').trim();
+    return String(localStorage.getItem(SETTINGS_SELECTED_TARGET_ID_STORAGE_KEY) || '').trim();
   } catch {
     return '';
   }
@@ -32,7 +32,7 @@ export function loadStoredSettingsTargetId(): string {
 
 export function persistStoredSettingsTargetId(targetId: string): void {
   try {
-    localStorage.setItem(SETTINGS_SELECTED_MOD_ID_STORAGE_KEY, String(targetId || '').trim());
+    localStorage.setItem(SETTINGS_SELECTED_TARGET_ID_STORAGE_KEY, String(targetId || '').trim());
   } catch {
     // ignore
   }

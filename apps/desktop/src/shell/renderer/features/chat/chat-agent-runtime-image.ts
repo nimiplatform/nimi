@@ -18,7 +18,7 @@ import type {
   ChatAgentImageRuntimeInvokeInput,
   ChatAgentImageRuntimeInvokeResult,
 } from './chat-agent-runtime-types';
-import { CORE_CHAT_AGENT_MOD_ID } from './chat-agent-runtime-types';
+import { CORE_CHAT_AGENT_TARGET_ID } from './chat-agent-runtime-types';
 import {
   asRecord,
   encodeBytesAsDataUrl,
@@ -76,7 +76,7 @@ export async function generateChatAgentImageRuntime(
 
   if (runtimeClient.ai?.submitScenarioJob && runtimeClient.ai?.getScenarioJob && runtimeClient.ai?.getScenarioArtifacts) {
     const callOptions = await (deps.buildRuntimeCallOptionsImpl || buildRuntimeCallOptions)({
-      targetId: CORE_CHAT_AGENT_MOD_ID,
+      targetId: CORE_CHAT_AGENT_TARGET_ID,
       timeoutMs: timeoutMs ?? 180_000,
       source: resolved.source,
       connectorId: normalizeText(resolved.connectorId) || undefined,

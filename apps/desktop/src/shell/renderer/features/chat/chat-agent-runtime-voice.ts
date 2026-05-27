@@ -24,7 +24,7 @@ import type {
   ChatAgentVoiceWorkflowSubmitInput,
   ChatAgentVoiceWorkflowSubmitResult,
 } from './chat-agent-runtime-types';
-import { CORE_CHAT_AGENT_MOD_ID } from './chat-agent-runtime-types';
+import { CORE_CHAT_AGENT_TARGET_ID } from './chat-agent-runtime-types';
 import {
   normalizeText,
   requireValue,
@@ -133,7 +133,7 @@ export async function submitChatAgentVoiceWorkflowRuntime(
   const resolved = slice.resolvedBinding as AgentRuntimeResolvedBinding;
   const runtimeClient = (deps.getRuntimeClientImpl || getRuntimeClient)();
   const callOptions = await (deps.buildRuntimeCallOptionsImpl || buildRuntimeCallOptions)({
-    targetId: CORE_CHAT_AGENT_MOD_ID,
+    targetId: CORE_CHAT_AGENT_TARGET_ID,
     timeoutMs: 180_000,
     source: resolved.source,
     connectorId: normalizeText(resolved.connectorId) || undefined,
@@ -286,7 +286,7 @@ export async function synthesizeChatAgentVoiceReferenceRuntime(
   const resolved = slice.resolvedBinding as AgentRuntimeResolvedBinding;
   const runtimeClient = (deps.getRuntimeClientImpl || getRuntimeClient)();
   const callOptions = await (deps.buildRuntimeCallOptionsImpl || buildRuntimeCallOptions)({
-    targetId: CORE_CHAT_AGENT_MOD_ID,
+    targetId: CORE_CHAT_AGENT_TARGET_ID,
     timeoutMs: 120_000,
     source: resolved.source,
     connectorId: normalizeText(resolved.connectorId) || undefined,

@@ -189,6 +189,6 @@ export type ChatAgentRuntimeStreamDeps = {
   getRuntimeClientImpl?: typeof getRuntimeClient;
 };
 
-export const CORE_CHAT_AGENT_MOD_ID = 'core.chat-agent';
+export const CORE_CHAT_AGENT_TARGET_ID = 'core.chat-agent';
 
 export type AgentRuntimeResolvedBinding = NonNullable<ConversationExecutionSnapshot['resolvedBinding']>;

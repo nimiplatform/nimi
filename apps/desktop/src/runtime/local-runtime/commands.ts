@@ -5,6 +5,7 @@ import {
   toLocalRuntimeGpuMemoryModelRequestValue,
   toProtoStruct,
 } from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
   GgufVariantDescriptor,
   LocalRuntimeAssetRecord,
@@ -342,7 +343,7 @@ export async function applyLocalRuntimeProfile(
   });
   const result = parseProfileApplyResult(asRecord(response).result);
   const reasonCode = String(result.reasonCode || result.executionResult.reasonCode || '').trim();
-  if (reasonCode && reasonCode !== 'ACTION_EXECUTED') {
+  if (reasonCode && reasonCode !== ReasonCode.ACTION_EXECUTED) {
     throw new Error(reasonCode);
   }
   return result;

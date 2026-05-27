@@ -55,7 +55,7 @@ export type LocalRuntimeProfileDescriptor = {
 
 export type LocalRuntimeProfileTargetDescriptor = {
   targetId: string;
-  modName: string;
+  targetName: string;
   consumeCapabilities: Array<LocalRuntimeRunnableAssetKindId | string>;
   profiles: LocalRuntimeProfileDescriptor[];
 };

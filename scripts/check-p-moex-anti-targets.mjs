@@ -13,6 +13,8 @@ const TARGETS = [
   'apps/desktop',
   'apps/web',
   'docs',
+  '.env.example',
+  'CONTRIBUTING.md',
   'kit',
   'runtime',
   'sdk/src',
@@ -61,6 +63,11 @@ const ALLOWLIST = new Set([
 
 const PATTERNS = [
   { id: 'field-mod-id', re: /\bmodId\b/gu },
+  { id: 'field-mod-name', re: /\bmodName\b/gu },
+  { id: 'upper-mod-id', re: /\b[A-Z0-9_]*MOD_ID[A-Z0-9_]*\b/gu },
+  { id: 'upper-mods-dir', re: /\b[A-Z0-9_]*MODS_DIR[A-Z0-9_]*\b/gu },
+  { id: 'mod-state-reason-code', re: /\bMOD_STATE_[A-Z0-9_]+\b|\bMOD_NOT_INSTALLED\b/gu },
+  { id: 'core-local-ai-identity', re: /\bcore:local-ai\b/gu },
   { id: 'caller-desktop-mod', re: /\bdesktop-mod\b/gu },
   { id: 'creator-mods-service', re: /\bCreatorMods\w*\b/gu },
   { id: 'canonical-mod-ai-scope', re: /\b\w*CanonicalModAIScopeRef\b/gu },

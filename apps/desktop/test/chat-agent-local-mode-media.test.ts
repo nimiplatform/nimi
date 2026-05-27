@@ -3,7 +3,7 @@ import {
   test,
   ScenarioJobStatus,
   toProtoStruct,
-  CORE_CHAT_AGENT_MOD_ID,
+  CORE_CHAT_AGENT_TARGET_ID,
   generateChatAgentImageRuntime,
   synthesizeChatAgentVoiceRuntime,
   buildAgentEffectiveCapabilityResolution,
@@ -199,7 +199,7 @@ test('agent image runtime captures staged diagnostics from scenario job metadata
     },
   }, {
     getRuntimeClientImpl: () => ({
-      appId: CORE_CHAT_AGENT_MOD_ID,
+      appId: CORE_CHAT_AGENT_TARGET_ID,
       ai: {
         submitScenarioJob: async () => ({
           job: {
@@ -295,7 +295,7 @@ test('agent image runtime merges typed output artifact with hydrated raw ai arti
     imageExecutionSnapshot,
   }, {
     getRuntimeClientImpl: () => ({
-      appId: CORE_CHAT_AGENT_MOD_ID,
+      appId: CORE_CHAT_AGENT_TARGET_ID,
       ai: {
         submitScenarioJob: async () => ({
           job: {

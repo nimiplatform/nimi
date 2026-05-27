@@ -54,7 +54,7 @@ export type ChatAiRuntimeStreamDeps = {
   resolveInvokeInputImpl?: (input: ChatAiRuntimeInvokeInput) => Promise<InvokeRuntimeLlmInput>;
 };
 
-export const CORE_CHAT_AI_MOD_ID = 'core.chat-ai';
+export const CORE_CHAT_AI_TARGET_ID = 'core.chat-ai';
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -113,7 +113,7 @@ async function resolveInvokeInput(
 
   if (resolved.source === 'local') {
     return {
-      targetId: CORE_CHAT_AI_MOD_ID,
+      targetId: CORE_CHAT_AI_TARGET_ID,
       provider: requireValue(
         resolved.provider,
         ReasonCode.AI_INPUT_INVALID,
@@ -133,7 +133,7 @@ async function resolveInvokeInput(
   }
 
   return {
-    targetId: CORE_CHAT_AI_MOD_ID,
+    targetId: CORE_CHAT_AI_TARGET_ID,
     provider: requireValue(
       resolved.provider,
       ReasonCode.AI_INPUT_INVALID,

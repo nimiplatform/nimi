@@ -27,7 +27,7 @@ import type {
   ResolvedAgentRuntimeRouteInput,
 } from './chat-agent-runtime-types';
 import {
-  CORE_CHAT_AGENT_MOD_ID,
+  CORE_CHAT_AGENT_TARGET_ID,
 } from './chat-agent-runtime-types';
 import {
   normalizeText,
@@ -74,7 +74,7 @@ export function resolveRouteInputFromTextResolvedBinding(
 ): ResolvedAgentRuntimeRouteInput {
   if (resolved.source === 'local') {
     return {
-      targetId: CORE_CHAT_AGENT_MOD_ID,
+      targetId: CORE_CHAT_AGENT_TARGET_ID,
       provider: requireValue(
         resolved.provider,
         ReasonCode.AI_INPUT_INVALID,
@@ -94,7 +94,7 @@ export function resolveRouteInputFromTextResolvedBinding(
 
   if (resolved.source === 'cloud') {
     return {
-      targetId: CORE_CHAT_AGENT_MOD_ID,
+      targetId: CORE_CHAT_AGENT_TARGET_ID,
       provider: requireValue(
         resolved.provider,
         ReasonCode.AI_INPUT_INVALID,

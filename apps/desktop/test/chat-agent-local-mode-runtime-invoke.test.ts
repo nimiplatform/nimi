@@ -1,7 +1,7 @@
 import {
   assert,
   test,
-  CORE_CHAT_AGENT_MOD_ID,
+  CORE_CHAT_AGENT_TARGET_ID,
   invokeChatAgentRuntime,
   streamChatAgentRuntime,
   findRuntimeRouteModelProfile,
@@ -97,7 +97,7 @@ test('agent local runtime invoke uses runtime text generate with desktop-core me
     },
   }, {
     resolveRouteInputImpl: async () => ({
-      targetId: CORE_CHAT_AGENT_MOD_ID,
+      targetId: CORE_CHAT_AGENT_TARGET_ID,
       provider: 'llama',
       localProviderEndpoint: 'http://127.0.0.1:11434/v1',
       localProviderModel: 'llama3',
@@ -110,7 +110,7 @@ test('agent local runtime invoke uses runtime text generate with desktop-core me
       metadata: {
         traceId: 'prompt-trace-1',
         callerKind: 'desktop-core',
-        callerId: CORE_CHAT_AGENT_MOD_ID,
+        callerId: CORE_CHAT_AGENT_TARGET_ID,
         surfaceId: 'desktop.renderer',
       },
     }),
@@ -148,7 +148,7 @@ test('agent local runtime invoke uses runtime text generate with desktop-core me
     metadata: {
       traceId: 'prompt-trace-1',
       callerKind: 'desktop-core',
-      callerId: CORE_CHAT_AGENT_MOD_ID,
+      callerId: CORE_CHAT_AGENT_TARGET_ID,
       surfaceId: 'desktop.renderer',
     },
   });
@@ -189,7 +189,7 @@ test('agent runtime invoke admits structured messages and system prompt', async 
     runtimeFields,
   }, {
     resolveRouteInputImpl: async () => ({
-      targetId: CORE_CHAT_AGENT_MOD_ID,
+      targetId: CORE_CHAT_AGENT_TARGET_ID,
       provider: 'llama',
       localProviderEndpoint: 'http://127.0.0.1:11434/v1',
       localProviderModel: 'llama3',
@@ -202,7 +202,7 @@ test('agent runtime invoke admits structured messages and system prompt', async 
       metadata: {
         traceId: 'prompt-trace-structured-invoke',
         callerKind: 'desktop-core',
-        callerId: CORE_CHAT_AGENT_MOD_ID,
+        callerId: CORE_CHAT_AGENT_TARGET_ID,
         surfaceId: 'desktop.renderer',
       },
     }),
@@ -382,7 +382,7 @@ test('agent runtime invoke supports cloud routes via connectorId', async () => {
     },
   }, {
     resolveRouteInputImpl: async () => ({
-      targetId: CORE_CHAT_AGENT_MOD_ID,
+      targetId: CORE_CHAT_AGENT_TARGET_ID,
       provider: 'openai',
       connectorId: 'connector-openai',
       localProviderModel: 'gpt-5.4-mini',
@@ -394,7 +394,7 @@ test('agent runtime invoke supports cloud routes via connectorId', async () => {
       metadata: {
         traceId: 'prompt-trace-cloud',
         callerKind: 'desktop-core',
-        callerId: CORE_CHAT_AGENT_MOD_ID,
+        callerId: CORE_CHAT_AGENT_TARGET_ID,
         surfaceId: 'desktop.renderer',
         keySource: 'managed',
       },
@@ -459,7 +459,7 @@ test('agent runtime stream admits structured messages and system prompt', async 
     runtimeFields,
   }, {
     resolveRouteInputImpl: async () => ({
-      targetId: CORE_CHAT_AGENT_MOD_ID,
+      targetId: CORE_CHAT_AGENT_TARGET_ID,
       provider: 'llama',
       localProviderEndpoint: 'http://127.0.0.1:11434/v1',
       localProviderModel: 'llama3',
@@ -473,7 +473,7 @@ test('agent runtime stream admits structured messages and system prompt', async 
       metadata: {
         traceId: 'prompt-trace-structured',
         callerKind: 'desktop-core',
-        callerId: CORE_CHAT_AGENT_MOD_ID,
+        callerId: CORE_CHAT_AGENT_TARGET_ID,
         surfaceId: 'desktop.renderer',
       },
     }),
@@ -652,7 +652,7 @@ test('agent local runtime invoke falls back to resolved endpoint when provider-s
         metadata: {
           traceId: 'prompt-trace-local',
           callerKind: 'desktop-core',
-          callerId: CORE_CHAT_AGENT_MOD_ID,
+          callerId: CORE_CHAT_AGENT_TARGET_ID,
           surfaceId: 'desktop.renderer',
         },
       }),

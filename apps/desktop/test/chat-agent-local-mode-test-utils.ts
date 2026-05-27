@@ -8,7 +8,7 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import { resetRuntimeLocalModelWarmCacheForTests } from '../src/runtime/llm-adapter/execution/runtime-ai-bridge.js';
 
 import {
-  CORE_CHAT_AGENT_MOD_ID,
+  CORE_CHAT_AGENT_TARGET_ID,
   generateChatAgentImageRuntime,
   invokeChatAgentRuntime,
   streamChatAgentRuntimeAgentTurn,
@@ -174,7 +174,7 @@ export {
   toProtoStruct,
   ReasonCode,
   resetRuntimeLocalModelWarmCacheForTests,
-  CORE_CHAT_AGENT_MOD_ID,
+  CORE_CHAT_AGENT_TARGET_ID,
   generateChatAgentImageRuntime,
   invokeChatAgentRuntime,
   streamChatAgentRuntimeAgentTurn,

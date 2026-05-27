@@ -219,6 +219,6 @@ mod tests {
         assert_eq!(reveal_target_for_asset(&root, "asset-1"), asset);
         assert_eq!(reveal_target_for_asset(&root, "../asset-1"), root);
         assert_eq!(reveal_target_for_asset(&root, "nested/asset-1"), root);
-        assert_eq!(reveal_target_for_asset(&root, "core:local-ai"), root);
+        assert_eq!(reveal_target_for_asset(&root, "core.local-ai"), root);
     }
 }

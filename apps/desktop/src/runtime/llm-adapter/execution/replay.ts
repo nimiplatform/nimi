@@ -15,7 +15,7 @@ import {
   resolveSourceAndModel,
 } from './runtime-ai-bridge.js';
 
-const DESKTOP_REPLAY_MOD_ID = 'core.desktop.ai-gold-path';
+const DESKTOP_REPLAY_TARGET_ID = 'core.desktop.ai-gold-path';
 
 function replayVoiceRef(input: DesktopReplayFixture['voice_ref']): SpeechVoiceReference | undefined {
   const id = String(input?.id || '').trim();
@@ -332,14 +332,14 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
   try {
     if (input.fixture.capability === 'text.generate') {
       await ensureRuntimeLocalModelWarm({
-        targetId: DESKTOP_REPLAY_MOD_ID,
+        targetId: DESKTOP_REPLAY_TARGET_ID,
         source: resolved.source,
         modelId: resolved.modelId,
         engine: resolved.provider,
         timeoutMs: 120_000,
       });
       const callOptions = await buildRuntimeCallOptions({
-        targetId: DESKTOP_REPLAY_MOD_ID,
+        targetId: DESKTOP_REPLAY_TARGET_ID,
         timeoutMs: 120_000,
         source: resolved.source,
       });
@@ -390,7 +390,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
 
     if (input.fixture.capability === 'text.embed') {
       const callOptions = await buildRuntimeCallOptions({
-        targetId: DESKTOP_REPLAY_MOD_ID,
+        targetId: DESKTOP_REPLAY_TARGET_ID,
         timeoutMs: 120_000,
         source: resolved.source,
       });
@@ -507,7 +507,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
     }
 
     const callOptions = await buildRuntimeCallOptions({
-      targetId: DESKTOP_REPLAY_MOD_ID,
+      targetId: DESKTOP_REPLAY_TARGET_ID,
       timeoutMs: 180_000,
       source: resolved.source,
     });

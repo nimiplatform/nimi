@@ -37,7 +37,7 @@
 ```
 SchedulingEvaluationTarget {
   capability: string
-  mod_id?: string
+  target_id?: string
   profile_id?: string
   resourceHint?: ResourceHint
 }
@@ -46,7 +46,7 @@ SchedulingEvaluationTarget {
 约束：
 
 - 一个 `SchedulingEvaluationTarget` 表示一个**具体可执行的 capability path**，不是 scope 全量配置。
-- `mod_id` + `profile_id` 标识该 target 对应的 local profile identity；两者是 target-scoped，不是 batch-global。
+- `target_id` + `profile_id` 标识该 target 对应的 local profile identity；两者是 target-scoped，不是 batch-global。
 - `resourceHint` 只允许描述该 target 的资源预估，不允许提升为 scope-global / batch-global 模糊字段。
 
 ### Batch input
@@ -106,8 +106,8 @@ fold 规则：
 aggregate `detail` 合并规则固定为：
 
 1. 选出所有 `state == aggregate.state` 的 contributor targets
-2. 按 `capability`、`mod_id`、`profile_id` 做稳定排序
-3. 每个 contributor 渲染为 `<capability> (<mod_id>/<profile_id>): <detail>`
+2. 按 `capability`、`target_id`、`profile_id` 做稳定排序
+3. 每个 contributor 渲染为 `<capability> (<target_id>/<profile_id>): <detail>`
 4. 用 `; ` 连接
 5. 若 aggregate state 不是 `unknown` 且 batch 内存在 `unknown` target，则在末尾追加 `; unevaluated targets: <ordered target list>`
 
@@ -132,7 +132,7 @@ aggregate `resourceWarnings` 合并规则固定为：
 - response 采用 shared batch occupancy + aggregate judgement
 - response 可选返回 repeated per-target judgements 供 consumer 做精确映射 / 诊断
 
-不允许长期保留“singular capability/mod_id/profile_id 请求”和“repeated targets 请求”并列作为双轨 canonical 形态。
+不允许长期保留“singular capability/target_id/profile_id 请求”和“repeated targets 请求”并列作为双轨 canonical 形态。
 
 Non-blocking guarantee：
 
@@ -169,7 +169,7 @@ OccupancySnapshot {
 |------|---------|------|
 | 本地模型需要 GPU 但设备无 GPU | `CollectDeviceProfile().gpu.available == false`（K-DEV-001） | 已实现 |
 | 磁盘可用空间低于安全阈值 | `CollectDeviceProfile().disk_free_bytes < threshold`（K-CFG 配置路径驱动） | 已实现 |
-| 必需依赖不满足 | `Peek` target 提供 `mod_id` + `profile_id` 标识目标 local profile。Runtime 从内部 profile registry 查找对应的 `LocalProfileDescriptor`，使用 `ResolveProfile` preflight decision 逻辑评估。当 required entry 的 preflight decision `ok=false` 时返回 `denied`。 | 已实现。target 未提供 `profile_id` 时此检查跳过。profile 在 registry 中未找到 / cannot evaluate 时跳过，不等于 infeasible。 |
+| 必需依赖不满足 | `Peek` target 提供 `target_id` + `profile_id` 标识目标 local profile。Runtime 从内部 profile registry 查找对应的 `LocalProfileDescriptor`，使用 `ResolveProfile` preflight decision 逻辑评估。当 required entry 的 preflight decision `ok=false` 时返回 `denied`。 | 已实现。target 未提供 `profile_id` 时此检查跳过。profile 在 registry 中未找到 / cannot evaluate 时跳过，不等于 infeasible。 |
 
 约束：
 
@@ -231,7 +231,7 @@ Phase 2：消费 `CollectDeviceProfile()` 实时数据与 per-capability resourc
 
 - `capability` 用于对应 target 的 dependency feasibility 检查 filter（K-SCHED-004）。
 - `resourceHint` 包含对应 target 的 estimated VRAM / RAM / disk consumption，用于 `slowdown_risk` 与 `preemption_risk` 评估。
-- `mod_id` + `profile_id`：对应 target 的 profile identity reference，用于 dependency infeasible denial 判断。Runtime 从内部 profile registry 查找对应的 `LocalProfileDescriptor` 并使用 `ResolveProfile` preflight decision 逻辑评估。两者都提供时触发该 target 的 dependency denial 检查；缺少 `profile_id` 时仅跳过该 target 的此项检查。
+- `target_id` + `profile_id`：对应 target 的 profile identity reference，用于 dependency infeasible denial 判断。Runtime 从内部 profile registry 查找对应的 `LocalProfileDescriptor` 并使用 `ResolveProfile` preflight decision 逻辑评估。两者都提供时触发该 target 的 dependency denial 检查；缺少 `profile_id` 时仅跳过该 target 的此项检查。
 
 `ResourceHint` 最小 schema：
 
@@ -249,7 +249,7 @@ ResourceHint {
 - resource heuristic 必须来自配置或设备画像推导，不允许 hardcode 固定值。
 - `profile_id` 未提供时或 profile 在 registry 中未找到时，不得伪造 `denied`。"无法评估" 不等于 infeasible。
 - `resourceHint` 只允许挂在 `SchedulingEvaluationTarget` 上；不允许引入 scope-global / batch-global `resourceHint` 作为模糊替代。
-- `capability`、`mod_id`、`profile_id`、`resourceHint` 的 proto 方向应收敛到 `repeated SchedulingEvaluationTarget`。不允许继续把 singular request fields 视为最终 canonical shape。
+- `capability`、`target_id`、`profile_id`、`resourceHint` 的 proto 方向应收敛到 `repeated SchedulingEvaluationTarget`。不允许继续把 singular request fields 视为最终 canonical shape。
 
 ## Fact Sources
 

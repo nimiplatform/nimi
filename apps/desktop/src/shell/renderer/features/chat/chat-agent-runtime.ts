@@ -1,5 +1,5 @@
 export {
-  CORE_CHAT_AGENT_MOD_ID,
+  CORE_CHAT_AGENT_TARGET_ID,
   type AgentImageExecutionRuntimeDiagnostics,
   type ChatAgentImageRuntimeInvokeDeps,
   type ChatAgentImageRuntimeInvokeInput,

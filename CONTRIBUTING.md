@@ -31,7 +31,7 @@ pnpm build
 
 ## Development Setup Notes
 
-- For desktop + mods local debugging, use Desktop `Settings > Mod Developer` as the primary path; runtime mods directory env overrides are CI/internal compatibility only.
+- For desktop runtime debugging, use Desktop Runtime settings and app-specific dev docs.
 - For proto changes, run `pnpm proto:generate` and ensure no generated drift is left.
 - For runtime changes, run `cd runtime && go test ./...` and `go vet ./...`.
 - For kit changes, run `pnpm --filter @nimiplatform/kit build && pnpm --filter @nimiplatform/kit test`.
