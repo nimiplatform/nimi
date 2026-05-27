@@ -12,7 +12,6 @@ import (
 
 const (
 	disabledStatusReason = "EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY"
-	defaultBindAddress   = "127.0.0.1:0"
 	defaultIssuer        = "runtime"
 )
 
@@ -31,7 +30,7 @@ func New(logger *slog.Logger) *Service {
 func (s *Service) GetExternalAgentGatewayStatus(context.Context, *runtimev1.ExternalAgentGatewayStatusRequest) (*runtimev1.ExternalAgentGatewayStatusResponse, error) {
 	return &runtimev1.ExternalAgentGatewayStatusResponse{
 		Enabled:     false,
-		BindAddress: defaultBindAddress,
+		BindAddress: "",
 		Issuer:      defaultIssuer,
 		ActionCount: 0,
 		Status:      "disabled",

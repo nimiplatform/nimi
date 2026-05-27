@@ -27,6 +27,9 @@ func TestGatewayStatusFailsClosedUntilRuntimeActionRegistryExists(t *testing.T) 
 	if resp.GetActionCount() != 0 {
 		t.Fatalf("expected zero action count, got %d", resp.GetActionCount())
 	}
+	if resp.GetBindAddress() != "" {
+		t.Fatalf("disabled gateway must not project a bind address, got %q", resp.GetBindAddress())
+	}
 	if resp.GetIssuer() != defaultIssuer {
 		t.Fatalf("issuer mismatch: %q", resp.GetIssuer())
 	}

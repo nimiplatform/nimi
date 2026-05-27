@@ -354,8 +354,8 @@ Desktop 的启动不是一个简单的 \`init()\` 调用——它是一条有序
    ↓ token ready / anonymous
 ⑤ Runtime Host 装配
    ↓ HTTP context + capabilities
-⑥ External Agent 桥接
-   ↓ tier-1 actions registered
+⑥ External Agent Runtime projection
+   ↓ disabled reason / token ledger projection
 ⑦ Bootstrap 完成
    ↓ bootstrapReady = true
 \`\`\``);
@@ -364,7 +364,7 @@ Desktop 的启动不是一个简单的 \`init()\` 调用——它是一条有序
   d.rule('D-BOOT-002');
   d.rule('D-BOOT-003');
 
-  d.text(`阶段 ④ 在启动期间执行 token 交换或匿名回退——这是认证状态的初始决策点。阶段 ⑤ 组装 HTTP context provider、runtime host 能力和核心数据能力。阶段 ⑥ 注册 tier-1 external agent actions 并启动 action bridge。`);
+  d.text(`阶段 ④ 在启动期间执行 token 交换或匿名回退——这是认证状态的初始决策点。阶段 ⑤ 组装 HTTP context provider、runtime host 能力和核心数据能力。阶段 ⑥ 只消费 Runtime-owned External Agent 状态投影；当前 action registry 为空时必须显示 disabled reason，不能在 Desktop 注册 action descriptor 或启动本地 action 通道。`);
   d.blank();
   d.rule('D-BOOT-004');
   d.rule('D-BOOT-005');
@@ -408,7 +408,7 @@ IPC 层的基础设施先于具体命令。统一的 \`invoke()\` 入口先检�
   d.rule('D-IPC-005');
   d.rule('D-IPC-006');
 
-  d.text(`**External Agent 命令** — agent token 管理和 action descriptor 同步。**Local AI 命令** — 懒加载的模型列表、安装、生命周期管理和审计：`);
+  d.text(`**External Agent 投影** — gateway status、token ledger 与 future action registry 均由 Runtime 拥有，Desktop 只通过 SDK typed Runtime API 读取 fail-closed 状态。**Local Runtime helper IPC** — Desktop 只保留系统文件选择与 reveal-in-folder 这类 shell-native helper；模型目录、安装、生命周期、健康与审计必须走 SDK RuntimeLocalService：`);
   d.blank();
   d.rule('D-IPC-007');
   d.rule('D-IPC-008');
@@ -595,7 +595,7 @@ Desktop 的安全策略由多层纵深防御构成，从最基础的网络限制
   d.rule('D-SEC-004');
   d.rule('D-SEC-008');
 
-  d.text(`**Layer 5: External Agent 与本地资产边界** — External Agent 的 token 支持签发、撤销、列表和网关监控；本地 AI 模型与 Avatar 私有资产只能通过 Runtime/SDK 投影和 Desktop 允许的 opaque local refs 流转。`);
+  d.text(`**Layer 5: External Agent 与本地资产边界** — External Agent 的 token、gateway、action descriptor registry 与 audit lineage 由 Runtime 拥有；当前 action registry 未落地时必须 fail closed，并投影 \`EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY\`。本地 AI 模型与 Avatar 私有资产只能通过 Runtime/SDK 投影和 Desktop 允许的 opaque local refs 流转。`);
   d.blank();
   d.rule('D-SEC-005');
   d.rule('D-SEC-006');

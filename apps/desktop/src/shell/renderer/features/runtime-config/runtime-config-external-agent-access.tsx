@@ -172,7 +172,7 @@ export function ExternalAgentAccessPanel() {
   };
 
   const onCopyBindAddress = () => {
-    if (!gatewayStatus.bindAddress) return;
+    if (!gatewayStatus.enabled || !gatewayStatus.bindAddress) return;
     const clip = typeof navigator !== 'undefined' ? navigator.clipboard : null;
     if (!clip?.writeText) return;
     void clip.writeText(gatewayStatus.bindAddress).then(() => {
@@ -238,7 +238,7 @@ export function ExternalAgentAccessPanel() {
       key: 'bind',
       label: t('runtimeConfig.eaa.bindAddressLabel', { defaultValue: 'Bind Address' }),
       value: gatewayStatus.bindAddress || '—',
-      copyable: Boolean(gatewayStatus.bindAddress),
+      copyable: Boolean(gatewayStatus.enabled && gatewayStatus.bindAddress),
     },
     {
       key: 'issuer',
