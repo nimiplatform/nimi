@@ -143,6 +143,15 @@ message ListCatalogVariantsResponse {
   repeated LocalCatalogVariantDescriptor variants = 1;
 }
 
+message GetRecommendationFeedRequest {
+  string capability = 1;
+  int32 page_size   = 2;
+}
+
+message GetRecommendationFeedResponse {
+  LocalRecommendationFeedDescriptor feed = 1;
+}
+
 message ResolveModelInstallPlanRequest {
   string item_id                       = 1;
   string source                        = 2;
@@ -723,6 +732,7 @@ service RuntimeLocalService {
   // Catalog & Install
   rpc SearchCatalogModels(SearchCatalogModelsRequest) returns (SearchCatalogModelsResponse);
   rpc ListCatalogVariants(ListCatalogVariantsRequest) returns (ListCatalogVariantsResponse);
+  rpc GetRecommendationFeed(GetRecommendationFeedRequest) returns (GetRecommendationFeedResponse);
   rpc ResolveModelInstallPlan(ResolveModelInstallPlanRequest) returns (ResolveModelInstallPlanResponse);
   rpc InstallModelFromPlan(InstallModelFromPlanRequest) returns (InstallModelFromPlanResponse);
 

@@ -21,7 +21,7 @@ test('external agent renderer bridge no longer subscribes to app-local execution
   const source = readDesktopFile('src/shell/renderer/bridge/runtime-bridge/external-agent.ts');
   assert.doesNotMatch(source, /function parseActionPhase/);
   assert.doesNotMatch(source, /parseExecutionRequest/);
-  assert.match(source, /return \(\) => \{\};/);
+  assert.doesNotMatch(source, /subscribeExternalAgentActionRequests/);
   assert.doesNotMatch(source, /record\.dryRun\s*\?\s*'dry-run'\s*:\s*'commit'/);
   assert.doesNotMatch(source, /phaseRaw === 'commit'[\s\S]*:\s*'commit'/);
 });

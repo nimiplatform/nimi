@@ -56,8 +56,55 @@ const RECOMMENDATION_FEED_CACHE_STATES = new Set<LocalRuntimeRecommendationFeedC
 const RECOMMENDATION_FEED_SOURCES = new Set<LocalRuntimeRecommendationFeedSource>(['model-index']);
 
 function parseEnumValue<T extends string>(value: unknown, allowed: Set<T>): T | undefined {
-  const normalized = asString(value) as T;
+  const normalized = normalizeRecommendationEnumValue(value, allowed) as T;
   return allowed.has(normalized) ? normalized : undefined;
+}
+
+function normalizeRecommendationEnumValue<T extends string>(value: unknown, allowed: Set<T>): string {
+  const raw = asString(value);
+  const lower = raw.toLowerCase();
+  if (allowed === RECOMMENDATION_SOURCES) {
+    if (raw === '1' || lower === 'local_recommendation_source_llmfit') return 'llmfit';
+    if (raw === '2' || lower === 'local_recommendation_source_media_fit') return 'media-fit';
+  }
+  if (allowed === RECOMMENDATION_FORMATS) {
+    if (raw === '1' || lower === 'local_recommendation_format_gguf') return 'gguf';
+    if (raw === '2' || lower === 'local_recommendation_format_safetensors') return 'safetensors';
+  }
+  if (allowed === RECOMMENDATION_TIERS) {
+    if (raw === '1' || lower === 'local_recommendation_tier_recommended') return 'recommended';
+    if (raw === '2' || lower === 'local_recommendation_tier_runnable') return 'runnable';
+    if (raw === '3' || lower === 'local_recommendation_tier_tight') return 'tight';
+    if (raw === '4' || lower === 'local_recommendation_tier_not_recommended') return 'not_recommended';
+  }
+  if (allowed === RECOMMENDATION_HOST_SUPPORT) {
+    if (raw === '1' || lower === 'local_host_support_class_supported_supervised') return 'supported_supervised';
+    if (raw === '2' || lower === 'local_host_support_class_attached_only') return 'attached_only';
+    if (raw === '3' || lower === 'local_host_support_class_unsupported') return 'unsupported';
+  }
+  if (allowed === RECOMMENDATION_CONFIDENCE) {
+    if (raw === '1' || lower === 'local_recommendation_confidence_high') return 'high';
+    if (raw === '2' || lower === 'local_recommendation_confidence_medium') return 'medium';
+    if (raw === '3' || lower === 'local_recommendation_confidence_low') return 'low';
+  }
+  if (allowed === RECOMMENDATION_BASELINES) {
+    if (raw === '1' || lower === 'local_recommendation_baseline_image_default_v1') return 'image-default-v1';
+    if (raw === '2' || lower === 'local_recommendation_baseline_video_default_v1') return 'video-default-v1';
+  }
+  if (allowed === RECOMMENDATION_FEED_CAPABILITIES) {
+    if (raw === '1' || lower === 'local_recommendation_feed_capability_chat') return 'chat';
+    if (raw === '2' || lower === 'local_recommendation_feed_capability_image') return 'image';
+    if (raw === '3' || lower === 'local_recommendation_feed_capability_video') return 'video';
+  }
+  if (allowed === RECOMMENDATION_FEED_CACHE_STATES) {
+    if (raw === '1' || lower === 'local_recommendation_feed_cache_state_fresh') return 'fresh';
+    if (raw === '2' || lower === 'local_recommendation_feed_cache_state_stale') return 'stale';
+    if (raw === '3' || lower === 'local_recommendation_feed_cache_state_empty') return 'empty';
+  }
+  if (allowed === RECOMMENDATION_FEED_SOURCES) {
+    if (raw === '1' || lower === 'local_recommendation_feed_source_model_index') return 'model-index';
+  }
+  return raw;
 }
 
 function requiredEnumValue<T extends string>(

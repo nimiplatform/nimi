@@ -150,6 +150,7 @@ const LOCAL_METHODS = [
   'listVerifiedAssets',
   'searchCatalogModels',
   'listCatalogVariants',
+  'getRecommendationFeed',
   'resolveModelInstallPlan',
   'installModelFromPlan',
   'installVerifiedAsset',

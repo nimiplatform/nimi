@@ -26,7 +26,7 @@ test('D-AUTH-010: external principal token UI flow preserves required structure'
   assert.match(externalAgentUiSource, /setIssuedToken\(issued\.token\);/);
   assert.match(externalAgentUiSource, /await revokeExternalAgentToken\(resolvedTokenId\);/);
   assert.match(externalAgentUiSource, /setIssuedToken\(''\);/);
-  assert.match(externalAgentUiSource, /const canIssue = gatewayStatus\.enabled && !gatewayStatus\.loading;/);
+  assert.match(externalAgentUiSource, /const canIssue = gatewayStatus\.enabled\s*&& !gatewayStatus\.loading\s*&& \(gatewayStatus\.actionCount \?\? 0\) > 0;/);
   assert.match(externalAgentUiSource, /const ttlIsPositiveInteger =/);
   assert.match(externalAgentUiSource, /ttlValidationMessage/);
   assert.match(externalAgentUiSource, /const \[showIssueForm, setShowIssueForm\] = useState\(false\);/);

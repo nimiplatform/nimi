@@ -146,6 +146,7 @@ Tier 1 的读写边界固定如下：
 22. `WatchLocalTransfers`
 33. `ImportLocalAssetBundle`（consumes reserved stable slot 33）
 34. `RescanLocalAssetBundle`（consumes reserved stable slot 34）
+42. `GetRecommendationFeed`（Runtime-owned capability feed / model-index cache / host-fit projection）
 
 **Tier 3 — 服务/节点/依赖/审计：**
 

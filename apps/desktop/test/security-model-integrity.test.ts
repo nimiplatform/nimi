@@ -8,15 +8,12 @@ import { toBridgeNimiError } from '../src/shell/renderer/bridge/runtime-bridge/i
 // ---------------------------------------------------------------------------
 // D-SEC-006 — Model integrity verification
 //
-// The hash validation lives in two Rust module groups:
-//   1. `local_runtime/import_validator*` — manifest hash verification at import time
-//      (LOCAL_AI_IMPORT_HASH_MISMATCH)
-//   2. `commands_models_audit.rs` — runtime-authoritative start preflight for verified
-//      assets with empty hashes
-//      (LOCAL_AI_MODEL_HASHES_EMPTY)
+// Runtime owns hash verification and model integrity materialization.
+// Desktop keeps only shell-local manifest path validation and renderer error
+// projection for Runtime-originated integrity failures.
 //
-// This file uses source scanning on the Rust authoritative layer and
-// behavioral tests on the TypeScript bridge error mapping.
+// This file uses source scanning to prevent Tauri from re-acquiring content
+// hash truth, and behavioral tests on the TypeScript bridge error mapping.
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
@@ -35,11 +32,6 @@ const IMPORT_VALIDATOR_MANIFEST_CHECKS_PATH = path.resolve(
   import.meta.dirname ?? __dirname,
   '../src-tauri/src/local_runtime/import_validator/manifest_checks.rs',
 );
-const LIFECYCLE_COMMANDS_PATH = path.resolve(
-  import.meta.dirname ?? __dirname,
-  '../src-tauri/src/local_runtime/commands/commands_models_audit.rs',
-);
-
 const importValidatorSource = [
   IMPORT_VALIDATOR_ENTRY_PATH,
   IMPORT_VALIDATOR_HELPERS_PATH,
@@ -47,24 +39,12 @@ const importValidatorSource = [
 ]
   .map((filePath) => fs.readFileSync(filePath, 'utf-8'))
   .join('\n');
-const lifecycleCommandsSource = fs.readFileSync(LIFECYCLE_COMMANDS_PATH, 'utf-8');
 
 // ---------------------------------------------------------------------------
-// D-SEC-006: verified empty hash list → LOCAL_AI_MODEL_HASHES_EMPTY
+// D-SEC-006: Runtime-owned integrity errors still project through bridge map
 // ---------------------------------------------------------------------------
 
-test('D-SEC-006: verified empty hash list produces LOCAL_AI_MODEL_HASHES_EMPTY error', () => {
-  // 1. Supervisor preflight rejects only verified models with empty hashes (source scan)
-  assert.ok(
-    lifecycleCommandsSource.includes('resolved_model_integrity_mode(model) == LocalAiIntegrityMode::Verified'),
-    'commands_models_audit.rs must gate the empty-hash preflight on verified integrity mode',
-  );
-  assert.ok(
-    lifecycleCommandsSource.includes('LOCAL_AI_MODEL_HASHES_EMPTY'),
-    'commands_models_audit.rs must emit LOCAL_AI_MODEL_HASHES_EMPTY when hashes are empty',
-  );
-
-  // 2. Bridge error map translates the code for the renderer (behavioral)
+test('D-SEC-006: verified empty hash list projects LOCAL_AI_MODEL_HASHES_EMPTY error', () => {
   const error = toBridgeNimiError(
     new Error('LOCAL_AI_MODEL_HASHES_EMPTY: hashes are empty'),
   );
@@ -80,33 +60,43 @@ test('D-SEC-006: verified empty hash list produces LOCAL_AI_MODEL_HASHES_EMPTY e
   );
 });
 
-test('D-SEC-006: local unverified models are allowed to start without hashes', () => {
+// ---------------------------------------------------------------------------
+// D-SEC-006: manifest path validation remains shell-local; content hashes do not
+// ---------------------------------------------------------------------------
+
+test('D-SEC-006: Desktop import validator only validates resolved manifest location', () => {
   assert.ok(
-    lifecycleCommandsSource.includes('infer_model_integrity_mode_from_source(&model.source)'),
-    'commands_models_audit.rs must infer integrity mode for legacy records from source.repo',
+    importValidatorSource.includes('validate_import_asset_manifest_path'),
+    'import_validator must keep shell-local manifest path validation',
   );
   assert.ok(
-    lifecycleCommandsSource.includes('LocalAiIntegrityMode::Verified'),
-    'commands_models_audit.rs must explicitly distinguish verified models from local unverified imports',
+    importValidatorSource.includes('ASSET_MANIFEST_FILE_NAME'),
+    'import_validator must require the canonical asset manifest filename',
+  );
+  assert.ok(
+    importValidatorSource.includes('LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT'),
+    'import_validator must keep runtime-root containment checks',
+  );
+  assert.ok(
+    importValidatorSource.includes('"resolved"'),
+    'import_validator must require resolved/<asset-id>/asset.manifest.json placement',
   );
 });
 
-// ---------------------------------------------------------------------------
-// D-SEC-006: mismatched hash → LOCAL_AI_IMPORT_HASH_MISMATCH
-// ---------------------------------------------------------------------------
-
-test('D-SEC-006: mismatched hash produces LOCAL_AI_IMPORT_HASH_MISMATCH error', () => {
-  // 1. Import validator compares actual vs expected hash (source scan)
-  assert.ok(
-    importValidatorSource.includes('actual_hash != expected_hash'),
-    'import_validator sources must compare actual_hash against expected_hash',
+test('D-SEC-006: Desktop import validator does not own content hash verification', () => {
+  assert.doesNotMatch(
+    importValidatorSource,
+    /sha256_hex_for_file|Sha256::new\(\)|actual_hash\s*!=\s*expected_hash|assert_manifest_hashes|manifest_hashes_required/,
+    'Tauri import_validator must not own model content hash verification',
   );
-  assert.ok(
-    importValidatorSource.includes('LOCAL_AI_IMPORT_HASH_MISMATCH'),
-    'import_validator sources must emit LOCAL_AI_IMPORT_HASH_MISMATCH on mismatch',
+  assert.doesNotMatch(
+    importValidatorSource,
+    /LOCAL_AI_IMPORT_HASH_MISMATCH|LOCAL_AI_IMPORT_MANIFEST_HASHES_MISSING/,
+    'Tauri import_validator must not emit Runtime-owned model hash verification errors',
   );
+});
 
-  // 2. Bridge error map translates the code for the renderer (behavioral)
+test('D-SEC-006: mismatched hash projects LOCAL_AI_IMPORT_HASH_MISMATCH error', () => {
   const error = toBridgeNimiError(
     new Error('LOCAL_AI_IMPORT_HASH_MISMATCH: hash mismatch for model.gguf'),
   );
@@ -119,72 +109,6 @@ test('D-SEC-006: mismatched hash produces LOCAL_AI_IMPORT_HASH_MISMATCH error', 
     String(error.details?.userMessage || ''),
     'Model file verification failed. Confirm the file is intact and try again.',
     'userMessage must match the bridge error code map entry for hash mismatch',
-  );
-});
-
-// ---------------------------------------------------------------------------
-// D-SEC-006: valid hash passes verification
-// ---------------------------------------------------------------------------
-
-test('D-SEC-006: valid hash passes verification', () => {
-  // 1. Import validator uses SHA-256 for hash computation (source scan)
-  assert.ok(
-    importValidatorSource.includes('sha256_hex_for_file'),
-    'import_validator sources must define sha256_hex_for_file for hash computation',
-  );
-  assert.ok(
-    importValidatorSource.includes('Sha256::new()'),
-    'import_validator sources must use Sha256 hasher',
-  );
-
-  // 2. When hashes match, assert_manifest_hashes returns Ok (source scan)
-  //    The function iterates all hash entries and returns Ok(()) only when
-  //    every file's actual hash equals the expected hash.
-  assert.ok(
-    importValidatorSource.includes('fn assert_manifest_hashes('),
-    'import_validator sources must define assert_manifest_hashes function',
-  );
-
-  // 3. Manifest validation calls hash assertion (source scan)
-  assert.ok(
-    importValidatorSource.includes('assert_manifest_hashes(&manifest, path)'),
-    'parse_and_validate_manifest must invoke assert_manifest_hashes',
-  );
-
-  // 4. The normalize_manifest_hash strips "sha256:" prefix for comparison
-  assert.ok(
-    importValidatorSource.includes('trim_start_matches("sha256:")'),
-    'import_validator sources must strip sha256: prefix when normalizing hashes',
-  );
-});
-
-// ---------------------------------------------------------------------------
-// Source-scan: only verified manifests require hashes at import time
-// ---------------------------------------------------------------------------
-
-test('D-SEC-006: import validator only rejects empty manifest.hashes for verified imports', () => {
-  assert.ok(
-    importValidatorSource.includes('manifest_hashes_required(manifest) && manifest.hashes.is_empty()'),
-    'import_validator sources must only reject empty hashes when the manifest requires verification',
-  );
-  assert.ok(
-    importValidatorSource.includes('LOCAL_AI_IMPORT_MANIFEST_HASHES_MISSING'),
-    'import_validator sources must emit HASHES_MISSING when manifest.hashes is empty',
-  );
-  assert.ok(
-    importValidatorSource.includes('resolved_manifest_integrity_mode(manifest) == LocalAiIntegrityMode::Verified'),
-    'import_validator sources must tie hash requirements to verified integrity mode',
-  );
-});
-
-test('D-SEC-006: local unverified manifest path skips required-hash enforcement', () => {
-  assert.ok(
-    importValidatorSource.includes('if !manifest_hashes_required(manifest) {'),
-    'import_validator sources must skip hash verification for local_unverified manifests',
-  );
-  assert.ok(
-    importValidatorSource.includes('infer_model_integrity_mode_from_source'),
-    'import_validator sources must infer legacy local-import manifests from source.repo',
   );
 });
 

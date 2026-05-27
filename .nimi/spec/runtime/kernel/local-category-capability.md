@@ -412,7 +412,7 @@ v1 `media-fit` 仅适用于 `image / video` 主模型，不评完整 workflow。
 
 `llmfit` recommendation 适用于 `LLM / vision-LLM` 主模型，并复用同一 `recommendation` payload：
 
-- Desktop 必须将共享的 `LocalDeviceProfile` 映射到 `llmfit` 所需的 system spec；不得绕过 `K-DEV` 另起一套私有硬件真相源
+- Runtime 必须将共享的 `LocalDeviceProfile` 映射到 `llmfit`/等价 Runtime-owned fit evaluator 所需的 system spec；不得绕过 `K-DEV` 另起一套私有硬件真相源
 - v1 在无 `model-index` 前提下，允许基于 repo/title/tag、entry quant filename、以及 artifact size 对参数量 / context 做保守推断
 - `fit_level` 映射固定为：
   - `Perfect -> recommended`
@@ -424,10 +424,11 @@ v1 `media-fit` 仅适用于 `image / video` 主模型，不评完整 workflow。
 
 ## K-LOCAL-021e Recommendation candidate feed
 
-Runtime/desktop 允许在 catalog surface 之外新增 capability-scoped candidate feed read surface，用于 recommendation page：
+Runtime 允许在 catalog surface 之外暴露 capability-scoped `GetRecommendationFeed` read surface，用于 recommendation page：
 
 - feed 的候选池可以来自 worker/index、verified corpus 或等价的 capability-first catalog，但必须输出 install-bridge-ready entry metadata
-- worker/index 只负责原始候选与 install-ready metadata；最终 `tier / host_support_class / confidence` 排序必须在 Desktop/Tauri 基于本机设备画像完成
+- model-index/cache、installed-state projection、device-profile fit evaluation、最终 `tier / host_support_class / confidence` 排序全部由 RuntimeLocalService 持有；Desktop/Tauri 只能消费 SDK projection 并渲染
+- worker/index 只负责原始候选与 install-ready metadata；不得成为 host-fit、readiness 或 install action truth
 - feed item 必须复用与 catalog 相同的 `recommendation` payload 语义，不得定义第二套 recommendation contract
 - 引入 feed surface 不得改写 `SearchCatalogModels` 的固定排序规则；catalog 搜索仍遵循 `K-LOCAL-021`
 

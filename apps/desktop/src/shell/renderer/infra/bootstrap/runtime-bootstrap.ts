@@ -36,7 +36,7 @@ import { AccountSessionState } from '@nimiplatform/sdk/runtime/browser';
 import { getDesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import { pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import { hydrateDesktopAccountProfile } from './runtime-bootstrap-account-profile';
-import { NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS, startNonCriticalBootstrapStep, withBootstrapStepTimeout } from './runtime-bootstrap-step-timeout';
+import { NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS, withBootstrapStepTimeout } from './runtime-bootstrap-step-timeout';
 import {
   bindDesktopConversationCapabilityRouteRuntime,
   clearDesktopConversationCapabilityRouteRuntime,

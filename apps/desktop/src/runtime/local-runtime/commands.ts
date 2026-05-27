@@ -25,7 +25,6 @@ import type {
   LocalRuntimeListVerifiedAssetsPayload,
 } from './types';
 import {
-  invokeLocalRuntimeCommand,
   parseAssetRecord,
   parseVerifiedAssetDescriptor,
   parseCatalogItemDescriptor,
@@ -356,13 +355,12 @@ export async function collectLocalRuntimeDeviceProfile(): Promise<LocalRuntimeDe
 export async function getLocalRuntimeRecommendationFeed(
   payload?: LocalRuntimeRecommendationFeedGetPayload,
 ): Promise<LocalRuntimeRecommendationFeedDescriptor> {
-  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_recommendation_feed_get', {
-    payload: payload ? {
-      capability: payload.capability,
-      pageSize: payload.pageSize,
-    } : undefined,
+  const runtime = requireSdkLocal();
+  const response = await runtime.getRecommendationFeed({
+    capability: String(payload?.capability || '').trim(),
+    pageSize: Number(payload?.pageSize || 0),
   });
-  return parseRecommendationFeedDescriptor(result, parseDeviceProfile);
+  return parseRecommendationFeedDescriptor(asRecord(response).feed, parseDeviceProfile);
 }
 
 export async function resolveLocalRuntimeProfile(

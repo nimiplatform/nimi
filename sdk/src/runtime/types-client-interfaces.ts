@@ -128,6 +128,8 @@ import type {
   CollectDeviceProfileResponse,
   ExecuteLocalStateCutoverRequest,
   ExecuteLocalStateCutoverResponse,
+  GetRecommendationFeedRequest,
+  GetRecommendationFeedResponse,
   ImportLocalAssetRequest,
   ImportLocalAssetResponse,
   ImportLocalAssetFileRequest,
@@ -676,6 +678,7 @@ export type RuntimeLocalServiceClient = {
   listVerifiedAssets(request: ListVerifiedAssetsRequest, options?: RuntimeCallOptions): Promise<ListVerifiedAssetsResponse>;
   searchCatalogModels(request: SearchCatalogModelsRequest, options?: RuntimeCallOptions): Promise<SearchCatalogModelsResponse>;
   listCatalogVariants(request: ListCatalogVariantsRequest, options?: RuntimeCallOptions): Promise<ListCatalogVariantsResponse>;
+  getRecommendationFeed(request: GetRecommendationFeedRequest, options?: RuntimeCallOptions): Promise<GetRecommendationFeedResponse>;
   resolveModelInstallPlan(request: ResolveModelInstallPlanRequest, options?: RuntimeCallOptions): Promise<ResolveModelInstallPlanResponse>;
   installModelFromPlan(request: InstallModelFromPlanRequest, options?: RuntimeCallOptions): Promise<InstallModelFromPlanResponse>;
   installVerifiedAsset(request: InstallVerifiedAssetRequest, options?: RuntimeCallOptions): Promise<InstallVerifiedAssetResponse>;

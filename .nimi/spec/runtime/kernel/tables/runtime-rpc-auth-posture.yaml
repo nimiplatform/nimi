@@ -72,7 +72,7 @@ method_shards:
       - RuntimeCognitionService
   - path: runtime-rpc-auth-posture/local-connector-model.yaml
     id: nimicoding.runtime-rpc-auth-posture.local-connector-model.v1
-    method_count: 70
+    method_count: 75
     services:
       - RuntimeLocalService
       - RuntimeConnectorService

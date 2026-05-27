@@ -76,27 +76,6 @@ fn validate_audit_payload_contract(
         return require_audit_payload_present_keys(event_type, payload, &["modelId", "capability"]);
     }
     if event_type == EVENT_RECOMMENDATION_RESOLVE_COMPLETED {
-        let is_feed_scope = payload
-            .as_ref()
-            .and_then(|value| value.as_object())
-            .and_then(|root| root.get("itemId"))
-            .and_then(|value| value.as_str())
-            .is_some_and(|item_id| item_id.starts_with("recommend-feed:"));
-        if is_feed_scope {
-            require_audit_payload_keys(event_type, payload, &["itemId", "source", "reasonCodes"])?;
-            return require_audit_payload_present_keys(
-                event_type,
-                payload,
-                &[
-                    "modelId",
-                    "capability",
-                    "format",
-                    "tier",
-                    "hostSupportClass",
-                    "confidence",
-                ],
-            );
-        }
         require_audit_payload_keys(
             event_type,
             payload,
@@ -124,9 +103,8 @@ fn validate_audit_payload_contract(
 #[cfg(test)]
 mod audit_contract_tests {
     use super::{
-        recommendation_feed_completed_payload, recommendation_resolve_completed_payload,
-        recommendation_resolve_failed_payload, recommendation_resolve_invoked_payload,
-        validate_audit_payload_contract,
+        recommendation_resolve_completed_payload, recommendation_resolve_failed_payload,
+        recommendation_resolve_invoked_payload, validate_audit_payload_contract,
     };
     use crate::local_runtime::audit::{
         EVENT_RECOMMENDATION_RESOLVE_COMPLETED, EVENT_RECOMMENDATION_RESOLVE_FAILED,
@@ -134,8 +112,7 @@ mod audit_contract_tests {
     };
     use crate::local_runtime::types::{
         LocalAiHostSupportClass, LocalAiRecommendationConfidence, LocalAiRecommendationDescriptor,
-        LocalAiRecommendationFeedCacheState, LocalAiRecommendationSource,
-        LocalAiRecommendationTier,
+        LocalAiRecommendationSource, LocalAiRecommendationTier,
     };
 
     fn recommendation_fixture() -> LocalAiRecommendationDescriptor {
@@ -211,16 +188,4 @@ mod audit_contract_tests {
         assert!(result.unwrap_err().contains("reasonCodes"));
     }
 
-    #[test]
-    fn recommendation_feed_completed_payload_satisfies_contract_with_aggregate_fields() {
-        let payload = Some(recommendation_feed_completed_payload(
-            "image",
-            &LocalAiRecommendationFeedCacheState::Stale,
-            12,
-        ));
-        assert!(
-            validate_audit_payload_contract(EVENT_RECOMMENDATION_RESOLVE_COMPLETED, &payload)
-                .is_ok()
-        );
-    }
 }

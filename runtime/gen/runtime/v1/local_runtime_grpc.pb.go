@@ -31,6 +31,7 @@ const (
 	RuntimeLocalService_RemoveLocalAsset_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset"
 	RuntimeLocalService_SearchCatalogModels_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels"
 	RuntimeLocalService_ListCatalogVariants_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants"
+	RuntimeLocalService_GetRecommendationFeed_FullMethodName                 = "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed"
 	RuntimeLocalService_ResolveModelInstallPlan_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan"
 	RuntimeLocalService_InstallModelFromPlan_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan"
 	RuntimeLocalService_StartLocalAsset_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset"
@@ -94,6 +95,7 @@ type RuntimeLocalServiceClient interface {
 	// Catalog & Install
 	SearchCatalogModels(ctx context.Context, in *SearchCatalogModelsRequest, opts ...grpc.CallOption) (*SearchCatalogModelsResponse, error)
 	ListCatalogVariants(ctx context.Context, in *ListCatalogVariantsRequest, opts ...grpc.CallOption) (*ListCatalogVariantsResponse, error)
+	GetRecommendationFeed(ctx context.Context, in *GetRecommendationFeedRequest, opts ...grpc.CallOption) (*GetRecommendationFeedResponse, error)
 	ResolveModelInstallPlan(ctx context.Context, in *ResolveModelInstallPlanRequest, opts ...grpc.CallOption) (*ResolveModelInstallPlanResponse, error)
 	InstallModelFromPlan(ctx context.Context, in *InstallModelFromPlanRequest, opts ...grpc.CallOption) (*InstallModelFromPlanResponse, error)
 	// Asset lifecycle (runnable assets)
@@ -271,6 +273,16 @@ func (c *runtimeLocalServiceClient) ListCatalogVariants(ctx context.Context, in 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListCatalogVariantsResponse)
 	err := c.cc.Invoke(ctx, RuntimeLocalService_ListCatalogVariants_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) GetRecommendationFeed(ctx context.Context, in *GetRecommendationFeedRequest, opts ...grpc.CallOption) (*GetRecommendationFeedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRecommendationFeedResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_GetRecommendationFeed_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -734,6 +746,7 @@ type RuntimeLocalServiceServer interface {
 	// Catalog & Install
 	SearchCatalogModels(context.Context, *SearchCatalogModelsRequest) (*SearchCatalogModelsResponse, error)
 	ListCatalogVariants(context.Context, *ListCatalogVariantsRequest) (*ListCatalogVariantsResponse, error)
+	GetRecommendationFeed(context.Context, *GetRecommendationFeedRequest) (*GetRecommendationFeedResponse, error)
 	ResolveModelInstallPlan(context.Context, *ResolveModelInstallPlanRequest) (*ResolveModelInstallPlanResponse, error)
 	InstallModelFromPlan(context.Context, *InstallModelFromPlanRequest) (*InstallModelFromPlanResponse, error)
 	// Asset lifecycle (runnable assets)
@@ -831,6 +844,9 @@ func (UnimplementedRuntimeLocalServiceServer) SearchCatalogModels(context.Contex
 }
 func (UnimplementedRuntimeLocalServiceServer) ListCatalogVariants(context.Context, *ListCatalogVariantsRequest) (*ListCatalogVariantsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListCatalogVariants not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) GetRecommendationFeed(context.Context, *GetRecommendationFeedRequest) (*GetRecommendationFeedResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRecommendationFeed not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) ResolveModelInstallPlan(context.Context, *ResolveModelInstallPlanRequest) (*ResolveModelInstallPlanResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResolveModelInstallPlan not implemented")
@@ -1193,6 +1209,24 @@ func _RuntimeLocalService_ListCatalogVariants_Handler(srv interface{}, ctx conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeLocalServiceServer).ListCatalogVariants(ctx, req.(*ListCatalogVariantsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_GetRecommendationFeed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRecommendationFeedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).GetRecommendationFeed(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_GetRecommendationFeed_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).GetRecommendationFeed(ctx, req.(*GetRecommendationFeedRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2018,6 +2052,10 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListCatalogVariants",
 			Handler:    _RuntimeLocalService_ListCatalogVariants_Handler,
+		},
+		{
+			MethodName: "GetRecommendationFeed",
+			Handler:    _RuntimeLocalService_GetRecommendationFeed_Handler,
 		},
 		{
 			MethodName: "ResolveModelInstallPlan",

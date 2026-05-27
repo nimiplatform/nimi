@@ -220,12 +220,11 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 
 Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_local_models_*` / `runtime_local_artifacts_*` CRUD/lifecycle/catalog 命令不再注册，也不得作为 shipped helper 保留。catalog search、catalog variants、install-plan 与 install execution 必须走 SDK `RuntimeLocalService` typed API：
 
-- `runtime_local_recommendation_feed_get`：host-local recommendation helper；install/import/download/lifecycle 真源仍是 `RuntimeLocalService`。
 - `runtime_local_assets_reveal_in_folder` / `runtime_local_assets_reveal_root_folder`：在系统文件管理器中打开目录。
 - `runtime_local_pick_asset_manifest_path`：统一选取 `resolved/<local-asset-id>/asset.manifest.json`。
 - `runtime_local_pick_asset_directory`：选取 bundle 目录，供 SDK `RuntimeLocalService` bundle import 使用。
 - `runtime_local_pick_asset_file`：选取任意待导入的 asset 文件。
-- recommendation page 允许新增只读的 `runtime_local_recommendation_feed_get` surface，用于 capability-scoped candidate feed；install 必须复用 SDK `resolveModelInstallPlan` / `installModelFromPlan` typed path，不得新增私有安装协议。
+- recommendation page 必须经 SDK `RuntimeLocalService.GetRecommendationFeed` 读取 capability-scoped candidate feed；Tauri 不得保留 recommendation feed / model-index / host-fit helper surface。
 
 产品约束：
 
@@ -242,17 +241,7 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
   - 识别到 typed folder（`chat` / `image` / `video` / `tts` / `stt` / `vae` / `ae` / `clip` / `controlnet` / `lora` / `auxiliary`）时，可视为 high-confidence declaration；
   - high-confidence 且 declaration 完整的项允许自动导入；
   - low-confidence 项只允许预填 review UI，不得静默注册。
-- recommendation 审计仅覆盖 request-driven resolve 面，不覆盖 installed list 之类的被动刷新：
-  - `runtime_local_recommendation_feed_get`
-- 上述入口的 recommendation 解析沿现有 local runtime audit 面记录：
-  - `recommendation_resolve_invoked`
-  - `recommendation_resolve_completed`
-  - `recommendation_resolve_failed`
-- `runtime_local_recommendation_feed_get` 的 completed event 允许采用 feed-scoped 聚合 payload：
-  - `itemId = recommend-feed:<capability>`
-  - `modelId = null`
-  - `source = model-index-feed`
-  - 可追加 `itemCount` 与 `cacheState`
+- recommendation feed 的 request-driven resolve、model-index cache 与 host-fit 排序属于 RuntimeLocalService；Desktop 不得用 Tauri audit/event payload 暗示本地 recommendation owner。
 
 执行命令：
 

@@ -303,17 +303,6 @@ registered_command_families:
       - runtime_bridge_block_on
     source_rule: D-GATE-092
 
-  - family: local_runtime_recommendation_feed
-    match:
-      exact:
-        - runtime_local_recommendation_feed_get
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: local-runtime-recommendation
-    execution_class: request_response_async
-    remediation_required: false
-    admitted_risks: []
-    source_rule: D-GATE-094
-
   - family: chat_local_stores
     match:
       regex: "^chat_(ai|agent)_.*$"

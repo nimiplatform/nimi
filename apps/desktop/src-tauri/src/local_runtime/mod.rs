@@ -1,6 +1,4 @@
 mod audit;
-#[cfg(test)]
-mod catalog;
 pub mod commands;
 mod device_profile;
 mod download_manager;
@@ -9,12 +7,9 @@ mod engine_host;
 #[cfg(test)]
 mod engine_pack;
 mod import_validator;
-mod model_index;
-mod model_index_remote;
 #[cfg(test)]
 mod provider_adapter;
 mod reason_codes;
-mod recommendation;
 mod service_artifacts;
 #[cfg(test)]
 mod service_lifecycle;

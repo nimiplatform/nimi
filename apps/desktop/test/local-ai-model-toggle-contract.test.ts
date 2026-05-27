@@ -85,7 +85,6 @@ const localModelCenterProgressCacheSource = readFileSync(localModelCenterProgres
 const runtimeBootstrapRouteOptionsSource = readFileSync(runtimeBootstrapRouteOptionsPath, 'utf-8');
 const runtimeBootstrapRouteResolversSource = readFileSync(runtimeBootstrapRouteResolversPath, 'utf-8');
 const tauriCommandsSource = readFileSync(tauriCommandsPath, 'utf-8');
-const tauriModelIndexSource = readFileSync(tauriModelIndexPath, 'utf-8');
 const tauriLocalRuntimePackageSource = readFileSync(tauriLocalRuntimePackagePath, 'utf-8');
 const desktopReadmeSource = readFileSync(path.resolve(process.cwd(), 'README.md'), 'utf-8');
 
@@ -290,8 +289,8 @@ test('local model lifecycle writes route through SDK runtime service only', () =
 test('local runtime cleanup removes host-local registry and supervisor modules from shipped paths', () => {
   assert.doesNotMatch(tauriLocalRuntimePackageSource, /mod asset_registry;/);
   assert.doesNotMatch(tauriLocalRuntimePackageSource, /mod supervisor;/);
+  assert.doesNotMatch(tauriLocalRuntimePackageSource, /mod model_index;/);
   assert.match(tauriLocalRuntimePackageSource, /#\[cfg\(test\)\]\s*mod engine_host;/);
   assert.match(tauriLocalRuntimePackageSource, /#\[cfg\(test\)\]\s*mod engine_pack;/);
-  assert.doesNotMatch(tauriModelIndexSource, /list_runnable_assets/);
-  assert.match(tauriModelIndexSource, /load_state\(app\)/);
+  assert.equal(existsSync(tauriModelIndexPath), false);
 });

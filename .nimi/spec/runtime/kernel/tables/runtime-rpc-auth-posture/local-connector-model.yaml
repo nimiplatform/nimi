@@ -76,6 +76,7 @@ surfaces:
   - methods_64
   - methods_65
   - methods_66
+  - methods_67
 description: Local runtime, connector, and model posture entries.
 services:
   - RuntimeLocalService
@@ -255,6 +256,12 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants
     posture: anonymous_read
     rationale: local catalog variant listing; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed
+    posture: anonymous_read
+    rationale: local recommendation feed read projection; no JWT validation
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001

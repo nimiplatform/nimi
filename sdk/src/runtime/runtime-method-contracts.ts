@@ -66,6 +66,7 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.local.listVerifiedAssets]: RuntimeClientMethodContract<'local', 'listVerifiedAssets'>;
   [RuntimeMethodIds.local.searchCatalogModels]: RuntimeClientMethodContract<'local', 'searchCatalogModels'>;
   [RuntimeMethodIds.local.listCatalogVariants]: RuntimeClientMethodContract<'local', 'listCatalogVariants'>;
+  [RuntimeMethodIds.local.getRecommendationFeed]: RuntimeClientMethodContract<'local', 'getRecommendationFeed'>;
   [RuntimeMethodIds.local.resolveModelInstallPlan]: RuntimeClientMethodContract<'local', 'resolveModelInstallPlan'>;
   [RuntimeMethodIds.local.installModelFromPlan]: RuntimeClientMethodContract<'local', 'installModelFromPlan'>;
   [RuntimeMethodIds.local.installVerifiedAsset]: RuntimeClientMethodContract<'local', 'installVerifiedAsset'>;

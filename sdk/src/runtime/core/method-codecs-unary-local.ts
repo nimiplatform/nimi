@@ -13,6 +13,8 @@ import {
   CheckLocalServiceHealthResponse,
   CollectDeviceProfileRequest,
   CollectDeviceProfileResponse,
+  GetRecommendationFeedRequest,
+  GetRecommendationFeedResponse,
   CancelLocalTransferRequest,
   CancelLocalTransferResponse,
   ImportLocalAssetRequest,
@@ -124,6 +126,10 @@ export const runtimeUnaryMethodCodecsLocal: Partial<RuntimeUnaryMethodCodecMap> 
   [RuntimeMethodIds.local.listCatalogVariants]: {
     requestType: ListCatalogVariantsRequest,
     responseType: ListCatalogVariantsResponse,
+  },
+  [RuntimeMethodIds.local.getRecommendationFeed]: {
+    requestType: GetRecommendationFeedRequest,
+    responseType: GetRecommendationFeedResponse,
   },
   [RuntimeMethodIds.local.resolveModelInstallPlan]: {
     requestType: ResolveModelInstallPlanRequest,

@@ -42,6 +42,7 @@ import { LocalDeviceProfile } from "./local_runtime_types";
 import { LocalUnregisteredAssetDescriptor } from "./local_runtime_types";
 import { LocalAssetHealth } from "./local_runtime_types";
 import { LocalInstallPlanDescriptor } from "./local_runtime_types";
+import { LocalRecommendationFeedDescriptor } from "./local_runtime_types";
 import { LocalCatalogModelDescriptor } from "./local_runtime_types";
 import { Struct } from "../../google/protobuf/struct";
 import { LocalVerifiedAssetDescriptor } from "./local_runtime_types";
@@ -402,6 +403,28 @@ export interface ListCatalogVariantsResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalCatalogVariantDescriptor variants = 1
      */
     variants: LocalCatalogVariantDescriptor[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetRecommendationFeedRequest
+ */
+export interface GetRecommendationFeedRequest {
+    /**
+     * @generated from protobuf field: string capability = 1
+     */
+    capability: string;
+    /**
+     * @generated from protobuf field: int32 page_size = 2
+     */
+    pageSize: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetRecommendationFeedResponse
+ */
+export interface GetRecommendationFeedResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationFeedDescriptor feed = 1
+     */
+    feed?: LocalRecommendationFeedDescriptor;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ResolveModelInstallPlanRequest
@@ -3251,6 +3274,107 @@ class ListCatalogVariantsResponse$Type extends MessageType<ListCatalogVariantsRe
  * @generated MessageType for protobuf message nimi.runtime.v1.ListCatalogVariantsResponse
  */
 export const ListCatalogVariantsResponse = new ListCatalogVariantsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetRecommendationFeedRequest$Type extends MessageType<GetRecommendationFeedRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetRecommendationFeedRequest", [
+            { no: 1, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetRecommendationFeedRequest>): GetRecommendationFeedRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.capability = "";
+        message.pageSize = 0;
+        if (value !== undefined)
+            reflectionMergePartial<GetRecommendationFeedRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetRecommendationFeedRequest): GetRecommendationFeedRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string capability */ 1:
+                    message.capability = reader.string();
+                    break;
+                case /* int32 page_size */ 2:
+                    message.pageSize = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetRecommendationFeedRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string capability = 1; */
+        if (message.capability !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.capability);
+        /* int32 page_size = 2; */
+        if (message.pageSize !== 0)
+            writer.tag(2, WireType.Varint).int32(message.pageSize);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetRecommendationFeedRequest
+ */
+export const GetRecommendationFeedRequest = new GetRecommendationFeedRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetRecommendationFeedResponse$Type extends MessageType<GetRecommendationFeedResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetRecommendationFeedResponse", [
+            { no: 1, name: "feed", kind: "message", T: () => LocalRecommendationFeedDescriptor }
+        ]);
+    }
+    create(value?: PartialMessage<GetRecommendationFeedResponse>): GetRecommendationFeedResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetRecommendationFeedResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetRecommendationFeedResponse): GetRecommendationFeedResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalRecommendationFeedDescriptor feed */ 1:
+                    message.feed = LocalRecommendationFeedDescriptor.internalBinaryRead(reader, reader.uint32(), options, message.feed);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetRecommendationFeedResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalRecommendationFeedDescriptor feed = 1; */
+        if (message.feed)
+            LocalRecommendationFeedDescriptor.internalBinaryWrite(message.feed, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetRecommendationFeedResponse
+ */
+export const GetRecommendationFeedResponse = new GetRecommendationFeedResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ResolveModelInstallPlanRequest$Type extends MessageType<ResolveModelInstallPlanRequest> {
     constructor() {
@@ -8319,6 +8443,7 @@ export const RuntimeLocalService = new ServiceType("nimi.runtime.v1.RuntimeLocal
     { name: "RemoveLocalAsset", options: {}, I: RemoveLocalAssetRequest, O: RemoveLocalAssetResponse },
     { name: "SearchCatalogModels", options: {}, I: SearchCatalogModelsRequest, O: SearchCatalogModelsResponse },
     { name: "ListCatalogVariants", options: {}, I: ListCatalogVariantsRequest, O: ListCatalogVariantsResponse },
+    { name: "GetRecommendationFeed", options: {}, I: GetRecommendationFeedRequest, O: GetRecommendationFeedResponse },
     { name: "ResolveModelInstallPlan", options: {}, I: ResolveModelInstallPlanRequest, O: ResolveModelInstallPlanResponse },
     { name: "InstallModelFromPlan", options: {}, I: InstallModelFromPlanRequest, O: InstallModelFromPlanResponse },
     { name: "StartLocalAsset", options: {}, I: StartLocalAssetRequest, O: StartLocalAssetResponse },

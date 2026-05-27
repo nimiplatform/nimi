@@ -196,11 +196,6 @@ commands:
     description: Pick a local asset bundle directory for bundle import or rescan helper flows
     source_rule: D-IPC-011
 
-  - command: runtime_local_recommendation_feed_get
-    module: local-runtime
-    description: Read capability-scoped host recommendation feed; helper-only and not a local model truth source
-    source_rule: D-IPC-011
-
   - command: runtime_local_pick_asset_file
     module: local-runtime
     description: Pick a local asset file for import via native file dialog

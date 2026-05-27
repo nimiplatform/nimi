@@ -91,6 +91,8 @@ import type { InstallModelFromPlanResponse } from "./local_runtime";
 import type { InstallModelFromPlanRequest } from "./local_runtime";
 import type { ResolveModelInstallPlanResponse } from "./local_runtime";
 import type { ResolveModelInstallPlanRequest } from "./local_runtime";
+import type { GetRecommendationFeedResponse } from "./local_runtime";
+import type { GetRecommendationFeedRequest } from "./local_runtime";
 import type { ListCatalogVariantsResponse } from "./local_runtime";
 import type { ListCatalogVariantsRequest } from "./local_runtime";
 import type { SearchCatalogModelsResponse } from "./local_runtime";
@@ -176,6 +178,10 @@ export interface IRuntimeLocalServiceClient {
      * @generated from protobuf rpc: ListCatalogVariants
      */
     listCatalogVariants(input: ListCatalogVariantsRequest, options?: RpcOptions): UnaryCall<ListCatalogVariantsRequest, ListCatalogVariantsResponse>;
+    /**
+     * @generated from protobuf rpc: GetRecommendationFeed
+     */
+    getRecommendationFeed(input: GetRecommendationFeedRequest, options?: RpcOptions): UnaryCall<GetRecommendationFeedRequest, GetRecommendationFeedResponse>;
     /**
      * @generated from protobuf rpc: ResolveModelInstallPlan
      */
@@ -469,17 +475,24 @@ export class RuntimeLocalServiceClient implements IRuntimeLocalServiceClient, Se
         return stackIntercept<ListCatalogVariantsRequest, ListCatalogVariantsResponse>("unary", this._transport, method, opt, input);
     }
     /**
+     * @generated from protobuf rpc: GetRecommendationFeed
+     */
+    getRecommendationFeed(input: GetRecommendationFeedRequest, options?: RpcOptions): UnaryCall<GetRecommendationFeedRequest, GetRecommendationFeedResponse> {
+        const method = this.methods[12], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GetRecommendationFeedRequest, GetRecommendationFeedResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
      * @generated from protobuf rpc: ResolveModelInstallPlan
      */
     resolveModelInstallPlan(input: ResolveModelInstallPlanRequest, options?: RpcOptions): UnaryCall<ResolveModelInstallPlanRequest, ResolveModelInstallPlanResponse> {
-        const method = this.methods[12], opt = this._transport.mergeOptions(options);
+        const method = this.methods[13], opt = this._transport.mergeOptions(options);
         return stackIntercept<ResolveModelInstallPlanRequest, ResolveModelInstallPlanResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: InstallModelFromPlan
      */
     installModelFromPlan(input: InstallModelFromPlanRequest, options?: RpcOptions): UnaryCall<InstallModelFromPlanRequest, InstallModelFromPlanResponse> {
-        const method = this.methods[13], opt = this._transport.mergeOptions(options);
+        const method = this.methods[14], opt = this._transport.mergeOptions(options);
         return stackIntercept<InstallModelFromPlanRequest, InstallModelFromPlanResponse>("unary", this._transport, method, opt, input);
     }
     /**
@@ -488,28 +501,28 @@ export class RuntimeLocalServiceClient implements IRuntimeLocalServiceClient, Se
      * @generated from protobuf rpc: StartLocalAsset
      */
     startLocalAsset(input: StartLocalAssetRequest, options?: RpcOptions): UnaryCall<StartLocalAssetRequest, StartLocalAssetResponse> {
-        const method = this.methods[14], opt = this._transport.mergeOptions(options);
+        const method = this.methods[15], opt = this._transport.mergeOptions(options);
         return stackIntercept<StartLocalAssetRequest, StartLocalAssetResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: StopLocalAsset
      */
     stopLocalAsset(input: StopLocalAssetRequest, options?: RpcOptions): UnaryCall<StopLocalAssetRequest, StopLocalAssetResponse> {
-        const method = this.methods[15], opt = this._transport.mergeOptions(options);
+        const method = this.methods[16], opt = this._transport.mergeOptions(options);
         return stackIntercept<StopLocalAssetRequest, StopLocalAssetResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: CheckLocalAssetHealth
      */
     checkLocalAssetHealth(input: CheckLocalAssetHealthRequest, options?: RpcOptions): UnaryCall<CheckLocalAssetHealthRequest, CheckLocalAssetHealthResponse> {
-        const method = this.methods[16], opt = this._transport.mergeOptions(options);
+        const method = this.methods[17], opt = this._transport.mergeOptions(options);
         return stackIntercept<CheckLocalAssetHealthRequest, CheckLocalAssetHealthResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: WarmLocalAsset
      */
     warmLocalAsset(input: WarmLocalAssetRequest, options?: RpcOptions): UnaryCall<WarmLocalAssetRequest, WarmLocalAssetResponse> {
-        const method = this.methods[17], opt = this._transport.mergeOptions(options);
+        const method = this.methods[18], opt = this._transport.mergeOptions(options);
         return stackIntercept<WarmLocalAssetRequest, WarmLocalAssetResponse>("unary", this._transport, method, opt, input);
     }
     /**
@@ -518,35 +531,35 @@ export class RuntimeLocalServiceClient implements IRuntimeLocalServiceClient, Se
      * @generated from protobuf rpc: ListLocalTransfers
      */
     listLocalTransfers(input: ListLocalTransfersRequest, options?: RpcOptions): UnaryCall<ListLocalTransfersRequest, ListLocalTransfersResponse> {
-        const method = this.methods[18], opt = this._transport.mergeOptions(options);
+        const method = this.methods[19], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListLocalTransfersRequest, ListLocalTransfersResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: PauseLocalTransfer
      */
     pauseLocalTransfer(input: PauseLocalTransferRequest, options?: RpcOptions): UnaryCall<PauseLocalTransferRequest, PauseLocalTransferResponse> {
-        const method = this.methods[19], opt = this._transport.mergeOptions(options);
+        const method = this.methods[20], opt = this._transport.mergeOptions(options);
         return stackIntercept<PauseLocalTransferRequest, PauseLocalTransferResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: ResumeLocalTransfer
      */
     resumeLocalTransfer(input: ResumeLocalTransferRequest, options?: RpcOptions): UnaryCall<ResumeLocalTransferRequest, ResumeLocalTransferResponse> {
-        const method = this.methods[20], opt = this._transport.mergeOptions(options);
+        const method = this.methods[21], opt = this._transport.mergeOptions(options);
         return stackIntercept<ResumeLocalTransferRequest, ResumeLocalTransferResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: CancelLocalTransfer
      */
     cancelLocalTransfer(input: CancelLocalTransferRequest, options?: RpcOptions): UnaryCall<CancelLocalTransferRequest, CancelLocalTransferResponse> {
-        const method = this.methods[21], opt = this._transport.mergeOptions(options);
+        const method = this.methods[22], opt = this._transport.mergeOptions(options);
         return stackIntercept<CancelLocalTransferRequest, CancelLocalTransferResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: WatchLocalTransfers
      */
     watchLocalTransfers(input: WatchLocalTransfersRequest, options?: RpcOptions): ServerStreamingCall<WatchLocalTransfersRequest, LocalTransferProgressEvent> {
-        const method = this.methods[22], opt = this._transport.mergeOptions(options);
+        const method = this.methods[23], opt = this._transport.mergeOptions(options);
         return stackIntercept<WatchLocalTransfersRequest, LocalTransferProgressEvent>("serverStreaming", this._transport, method, opt, input);
     }
     /**
@@ -555,84 +568,84 @@ export class RuntimeLocalServiceClient implements IRuntimeLocalServiceClient, Se
      * @generated from protobuf rpc: ResolveLocalEnvironmentPlan
      */
     resolveLocalEnvironmentPlan(input: ResolveLocalEnvironmentPlanRequest, options?: RpcOptions): UnaryCall<ResolveLocalEnvironmentPlanRequest, ResolveLocalEnvironmentPlanResponse> {
-        const method = this.methods[23], opt = this._transport.mergeOptions(options);
+        const method = this.methods[24], opt = this._transport.mergeOptions(options);
         return stackIntercept<ResolveLocalEnvironmentPlanRequest, ResolveLocalEnvironmentPlanResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: ListLocalEnvironmentSelectedSources
      */
     listLocalEnvironmentSelectedSources(input: ListLocalEnvironmentSelectedSourcesRequest, options?: RpcOptions): UnaryCall<ListLocalEnvironmentSelectedSourcesRequest, ListLocalEnvironmentSelectedSourcesResponse> {
-        const method = this.methods[24], opt = this._transport.mergeOptions(options);
+        const method = this.methods[25], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListLocalEnvironmentSelectedSourcesRequest, ListLocalEnvironmentSelectedSourcesResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: ListLocalEnvironmentDependencyJobs
      */
     listLocalEnvironmentDependencyJobs(input: ListLocalEnvironmentDependencyJobsRequest, options?: RpcOptions): UnaryCall<ListLocalEnvironmentDependencyJobsRequest, ListLocalEnvironmentDependencyJobsResponse> {
-        const method = this.methods[25], opt = this._transport.mergeOptions(options);
+        const method = this.methods[26], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListLocalEnvironmentDependencyJobsRequest, ListLocalEnvironmentDependencyJobsResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: ResolveLocalEnvironmentActivationGate
      */
     resolveLocalEnvironmentActivationGate(input: ResolveLocalEnvironmentActivationGateRequest, options?: RpcOptions): UnaryCall<ResolveLocalEnvironmentActivationGateRequest, ResolveLocalEnvironmentActivationGateResponse> {
-        const method = this.methods[26], opt = this._transport.mergeOptions(options);
+        const method = this.methods[27], opt = this._transport.mergeOptions(options);
         return stackIntercept<ResolveLocalEnvironmentActivationGateRequest, ResolveLocalEnvironmentActivationGateResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: MintRuntimeBaselineReadiness
      */
     mintRuntimeBaselineReadiness(input: MintRuntimeBaselineReadinessRequest, options?: RpcOptions): UnaryCall<MintRuntimeBaselineReadinessRequest, MintRuntimeBaselineReadinessResponse> {
-        const method = this.methods[27], opt = this._transport.mergeOptions(options);
+        const method = this.methods[28], opt = this._transport.mergeOptions(options);
         return stackIntercept<MintRuntimeBaselineReadinessRequest, MintRuntimeBaselineReadinessResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: ResolveRuntimeBaselineReadiness
      */
     resolveRuntimeBaselineReadiness(input: ResolveRuntimeBaselineReadinessRequest, options?: RpcOptions): UnaryCall<ResolveRuntimeBaselineReadinessRequest, ResolveRuntimeBaselineReadinessResponse> {
-        const method = this.methods[28], opt = this._transport.mergeOptions(options);
+        const method = this.methods[29], opt = this._transport.mergeOptions(options);
         return stackIntercept<ResolveRuntimeBaselineReadinessRequest, ResolveRuntimeBaselineReadinessResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: MintFirstRunExecutionEvidence
      */
     mintFirstRunExecutionEvidence(input: MintFirstRunExecutionEvidenceRequest, options?: RpcOptions): UnaryCall<MintFirstRunExecutionEvidenceRequest, MintFirstRunExecutionEvidenceResponse> {
-        const method = this.methods[29], opt = this._transport.mergeOptions(options);
+        const method = this.methods[30], opt = this._transport.mergeOptions(options);
         return stackIntercept<MintFirstRunExecutionEvidenceRequest, MintFirstRunExecutionEvidenceResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: ResolveFirstRunExecutionEvidence
      */
     resolveFirstRunExecutionEvidence(input: ResolveFirstRunExecutionEvidenceRequest, options?: RpcOptions): UnaryCall<ResolveFirstRunExecutionEvidenceRequest, ResolveFirstRunExecutionEvidenceResponse> {
-        const method = this.methods[30], opt = this._transport.mergeOptions(options);
+        const method = this.methods[31], opt = this._transport.mergeOptions(options);
         return stackIntercept<ResolveFirstRunExecutionEvidenceRequest, ResolveFirstRunExecutionEvidenceResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: StartLocalEnvironmentDependencyJob
      */
     startLocalEnvironmentDependencyJob(input: StartLocalEnvironmentDependencyJobRequest, options?: RpcOptions): UnaryCall<StartLocalEnvironmentDependencyJobRequest, StartLocalEnvironmentDependencyJobResponse> {
-        const method = this.methods[31], opt = this._transport.mergeOptions(options);
+        const method = this.methods[32], opt = this._transport.mergeOptions(options);
         return stackIntercept<StartLocalEnvironmentDependencyJobRequest, StartLocalEnvironmentDependencyJobResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: CancelLocalEnvironmentDependencyJob
      */
     cancelLocalEnvironmentDependencyJob(input: CancelLocalEnvironmentDependencyJobRequest, options?: RpcOptions): UnaryCall<CancelLocalEnvironmentDependencyJobRequest, CancelLocalEnvironmentDependencyJobResponse> {
-        const method = this.methods[32], opt = this._transport.mergeOptions(options);
+        const method = this.methods[33], opt = this._transport.mergeOptions(options);
         return stackIntercept<CancelLocalEnvironmentDependencyJobRequest, CancelLocalEnvironmentDependencyJobResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: RetryLocalEnvironmentDependencyJob
      */
     retryLocalEnvironmentDependencyJob(input: RetryLocalEnvironmentDependencyJobRequest, options?: RpcOptions): UnaryCall<RetryLocalEnvironmentDependencyJobRequest, RetryLocalEnvironmentDependencyJobResponse> {
-        const method = this.methods[33], opt = this._transport.mergeOptions(options);
+        const method = this.methods[34], opt = this._transport.mergeOptions(options);
         return stackIntercept<RetryLocalEnvironmentDependencyJobRequest, RetryLocalEnvironmentDependencyJobResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: RepairLocalEnvironmentDependency
      */
     repairLocalEnvironmentDependency(input: RepairLocalEnvironmentDependencyRequest, options?: RpcOptions): UnaryCall<RepairLocalEnvironmentDependencyRequest, RepairLocalEnvironmentDependencyResponse> {
-        const method = this.methods[34], opt = this._transport.mergeOptions(options);
+        const method = this.methods[35], opt = this._transport.mergeOptions(options);
         return stackIntercept<RepairLocalEnvironmentDependencyRequest, RepairLocalEnvironmentDependencyResponse>("unary", this._transport, method, opt, input);
     }
     /**
@@ -641,14 +654,14 @@ export class RuntimeLocalServiceClient implements IRuntimeLocalServiceClient, Se
      * @generated from protobuf rpc: ResolveLocalStateReconciliation
      */
     resolveLocalStateReconciliation(input: ResolveLocalStateReconciliationRequest, options?: RpcOptions): UnaryCall<ResolveLocalStateReconciliationRequest, ResolveLocalStateReconciliationResponse> {
-        const method = this.methods[35], opt = this._transport.mergeOptions(options);
+        const method = this.methods[36], opt = this._transport.mergeOptions(options);
         return stackIntercept<ResolveLocalStateReconciliationRequest, ResolveLocalStateReconciliationResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: ExecuteLocalStateCutover
      */
     executeLocalStateCutover(input: ExecuteLocalStateCutoverRequest, options?: RpcOptions): UnaryCall<ExecuteLocalStateCutoverRequest, ExecuteLocalStateCutoverResponse> {
-        const method = this.methods[36], opt = this._transport.mergeOptions(options);
+        const method = this.methods[37], opt = this._transport.mergeOptions(options);
         return stackIntercept<ExecuteLocalStateCutoverRequest, ExecuteLocalStateCutoverResponse>("unary", this._transport, method, opt, input);
     }
     /**
@@ -657,7 +670,7 @@ export class RuntimeLocalServiceClient implements IRuntimeLocalServiceClient, Se
      * @generated from protobuf rpc: CollectDeviceProfile
      */
     collectDeviceProfile(input: CollectDeviceProfileRequest, options?: RpcOptions): UnaryCall<CollectDeviceProfileRequest, CollectDeviceProfileResponse> {
-        const method = this.methods[37], opt = this._transport.mergeOptions(options);
+        const method = this.methods[38], opt = this._transport.mergeOptions(options);
         return stackIntercept<CollectDeviceProfileRequest, CollectDeviceProfileResponse>("unary", this._transport, method, opt, input);
     }
     /**
@@ -666,14 +679,14 @@ export class RuntimeLocalServiceClient implements IRuntimeLocalServiceClient, Se
      * @generated from protobuf rpc: ResolveProfile
      */
     resolveProfile(input: ResolveProfileRequest, options?: RpcOptions): UnaryCall<ResolveProfileRequest, ResolveProfileResponse> {
-        const method = this.methods[38], opt = this._transport.mergeOptions(options);
+        const method = this.methods[39], opt = this._transport.mergeOptions(options);
         return stackIntercept<ResolveProfileRequest, ResolveProfileResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: ApplyProfile
      */
     applyProfile(input: ApplyProfileRequest, options?: RpcOptions): UnaryCall<ApplyProfileRequest, ApplyProfileResponse> {
-        const method = this.methods[39], opt = this._transport.mergeOptions(options);
+        const method = this.methods[40], opt = this._transport.mergeOptions(options);
         return stackIntercept<ApplyProfileRequest, ApplyProfileResponse>("unary", this._transport, method, opt, input);
     }
     /**
@@ -682,42 +695,42 @@ export class RuntimeLocalServiceClient implements IRuntimeLocalServiceClient, Se
      * @generated from protobuf rpc: ListLocalServices
      */
     listLocalServices(input: ListLocalServicesRequest, options?: RpcOptions): UnaryCall<ListLocalServicesRequest, ListLocalServicesResponse> {
-        const method = this.methods[40], opt = this._transport.mergeOptions(options);
+        const method = this.methods[41], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListLocalServicesRequest, ListLocalServicesResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: InstallLocalService
      */
     installLocalService(input: InstallLocalServiceRequest, options?: RpcOptions): UnaryCall<InstallLocalServiceRequest, InstallLocalServiceResponse> {
-        const method = this.methods[41], opt = this._transport.mergeOptions(options);
+        const method = this.methods[42], opt = this._transport.mergeOptions(options);
         return stackIntercept<InstallLocalServiceRequest, InstallLocalServiceResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: StartLocalService
      */
     startLocalService(input: StartLocalServiceRequest, options?: RpcOptions): UnaryCall<StartLocalServiceRequest, StartLocalServiceResponse> {
-        const method = this.methods[42], opt = this._transport.mergeOptions(options);
+        const method = this.methods[43], opt = this._transport.mergeOptions(options);
         return stackIntercept<StartLocalServiceRequest, StartLocalServiceResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: StopLocalService
      */
     stopLocalService(input: StopLocalServiceRequest, options?: RpcOptions): UnaryCall<StopLocalServiceRequest, StopLocalServiceResponse> {
-        const method = this.methods[43], opt = this._transport.mergeOptions(options);
+        const method = this.methods[44], opt = this._transport.mergeOptions(options);
         return stackIntercept<StopLocalServiceRequest, StopLocalServiceResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: CheckLocalServiceHealth
      */
     checkLocalServiceHealth(input: CheckLocalServiceHealthRequest, options?: RpcOptions): UnaryCall<CheckLocalServiceHealthRequest, CheckLocalServiceHealthResponse> {
-        const method = this.methods[44], opt = this._transport.mergeOptions(options);
+        const method = this.methods[45], opt = this._transport.mergeOptions(options);
         return stackIntercept<CheckLocalServiceHealthRequest, CheckLocalServiceHealthResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: RemoveLocalService
      */
     removeLocalService(input: RemoveLocalServiceRequest, options?: RpcOptions): UnaryCall<RemoveLocalServiceRequest, RemoveLocalServiceResponse> {
-        const method = this.methods[45], opt = this._transport.mergeOptions(options);
+        const method = this.methods[46], opt = this._transport.mergeOptions(options);
         return stackIntercept<RemoveLocalServiceRequest, RemoveLocalServiceResponse>("unary", this._transport, method, opt, input);
     }
     /**
@@ -726,7 +739,7 @@ export class RuntimeLocalServiceClient implements IRuntimeLocalServiceClient, Se
      * @generated from protobuf rpc: ListNodeCatalog
      */
     listNodeCatalog(input: ListNodeCatalogRequest, options?: RpcOptions): UnaryCall<ListNodeCatalogRequest, ListNodeCatalogResponse> {
-        const method = this.methods[46], opt = this._transport.mergeOptions(options);
+        const method = this.methods[47], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListNodeCatalogRequest, ListNodeCatalogResponse>("unary", this._transport, method, opt, input);
     }
     /**
@@ -735,21 +748,21 @@ export class RuntimeLocalServiceClient implements IRuntimeLocalServiceClient, Se
      * @generated from protobuf rpc: ListLocalAudits
      */
     listLocalAudits(input: ListLocalAuditsRequest, options?: RpcOptions): UnaryCall<ListLocalAuditsRequest, ListLocalAuditsResponse> {
-        const method = this.methods[47], opt = this._transport.mergeOptions(options);
+        const method = this.methods[48], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListLocalAuditsRequest, ListLocalAuditsResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: AppendInferenceAudit
      */
     appendInferenceAudit(input: AppendInferenceAuditRequest, options?: RpcOptions): UnaryCall<AppendInferenceAuditRequest, Ack> {
-        const method = this.methods[48], opt = this._transport.mergeOptions(options);
+        const method = this.methods[49], opt = this._transport.mergeOptions(options);
         return stackIntercept<AppendInferenceAuditRequest, Ack>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: AppendRuntimeAudit
      */
     appendRuntimeAudit(input: AppendRuntimeAuditRequest, options?: RpcOptions): UnaryCall<AppendRuntimeAuditRequest, Ack> {
-        const method = this.methods[49], opt = this._transport.mergeOptions(options);
+        const method = this.methods[50], opt = this._transport.mergeOptions(options);
         return stackIntercept<AppendRuntimeAuditRequest, Ack>("unary", this._transport, method, opt, input);
     }
     /**
@@ -758,35 +771,35 @@ export class RuntimeLocalServiceClient implements IRuntimeLocalServiceClient, Se
      * @generated from protobuf rpc: ListEngines
      */
     listEngines(input: ListEnginesRequest, options?: RpcOptions): UnaryCall<ListEnginesRequest, ListEnginesResponse> {
-        const method = this.methods[50], opt = this._transport.mergeOptions(options);
+        const method = this.methods[51], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListEnginesRequest, ListEnginesResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: EnsureEngine
      */
     ensureEngine(input: EnsureEngineRequest, options?: RpcOptions): UnaryCall<EnsureEngineRequest, EnsureEngineResponse> {
-        const method = this.methods[51], opt = this._transport.mergeOptions(options);
+        const method = this.methods[52], opt = this._transport.mergeOptions(options);
         return stackIntercept<EnsureEngineRequest, EnsureEngineResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: StartEngine
      */
     startEngine(input: StartEngineRequest, options?: RpcOptions): UnaryCall<StartEngineRequest, StartEngineResponse> {
-        const method = this.methods[52], opt = this._transport.mergeOptions(options);
+        const method = this.methods[53], opt = this._transport.mergeOptions(options);
         return stackIntercept<StartEngineRequest, StartEngineResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: StopEngine
      */
     stopEngine(input: StopEngineRequest, options?: RpcOptions): UnaryCall<StopEngineRequest, StopEngineResponse> {
-        const method = this.methods[53], opt = this._transport.mergeOptions(options);
+        const method = this.methods[54], opt = this._transport.mergeOptions(options);
         return stackIntercept<StopEngineRequest, StopEngineResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: GetEngineStatus
      */
     getEngineStatus(input: GetEngineStatusRequest, options?: RpcOptions): UnaryCall<GetEngineStatusRequest, GetEngineStatusResponse> {
-        const method = this.methods[54], opt = this._transport.mergeOptions(options);
+        const method = this.methods[55], opt = this._transport.mergeOptions(options);
         return stackIntercept<GetEngineStatusRequest, GetEngineStatusResponse>("unary", this._transport, method, opt, input);
     }
 }

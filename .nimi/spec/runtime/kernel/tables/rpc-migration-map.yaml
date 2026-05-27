@@ -304,6 +304,11 @@ method_mappings:
     proto_method: ListCatalogVariants
     mapping_posture: aligned
   - design_service: RuntimeLocalService
+    design_method: GetRecommendationFeed
+    proto_service: RuntimeLocalService
+    proto_method: GetRecommendationFeed
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
     design_method: ResolveModelInstallPlan
     proto_service: RuntimeLocalService
     proto_method: ResolveModelInstallPlan

@@ -11,7 +11,6 @@ use super::audit::{
 use super::import_validator::{
     validate_import_asset_manifest_path,
 };
-use super::model_index::load_recommendation_feed_async;
 use super::reason_codes::{
     extract_reason_code as extract_local_ai_reason_code, LOCAL_AI_PROVIDER_INTERNAL_ERROR,
 };
@@ -24,7 +23,6 @@ use super::types::{
     is_runnable_asset_kind, normalize_local_engine, resolved_model_dir, runtime_managed_asset_dir,
     runtime_managed_asset_manifest_path, slugify_local_model_id, LocalAiAssetKind,
     LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus,
-    LocalAiRecommendationFeedDescriptor,
 };
 
 include!("common_types.rs");
@@ -35,5 +33,4 @@ include!("commands_asset_helpers.rs");
 include!("commands_import_manifest.rs");
 include!("commands_import_bundle.rs");
 include!("commands_models_audit.rs");
-include!("commands_recommendation_feed.rs");
 include!("commands_reveal_tests.rs");

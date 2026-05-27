@@ -20,10 +20,13 @@ test('recommendation feed request payload is capability-enum-only', () => {
   );
 });
 
-test('recommendation feed command only forwards capability and pageSize payload fields', () => {
-  assert.match(runtimeCommandsSource, /runtime_local_recommendation_feed_get/);
+test('recommendation feed command uses Runtime SDK projection, not Tauri command truth', () => {
+  assert.doesNotMatch(runtimeCommandsSource, /runtime_local_recommendation_feed_get/);
+  assert.doesNotMatch(runtimeCommandsSource, /invokeLocalRuntimeCommand/);
+  assert.match(runtimeCommandsSource, /requireSdkLocal\(\)/);
+  assert.match(runtimeCommandsSource, /runtime\.getRecommendationFeed\(\{/);
   assert.match(
     runtimeCommandsSource,
-    /payload:\s*payload \?\s*\{\s*capability:\s*payload\.capability,\s*pageSize:\s*payload\.pageSize,\s*\}\s*:\s*undefined/,
+    /capability:\s*String\(payload\?\.capability \|\| ''\)\.trim\(\),\s*pageSize:\s*Number\(payload\?\.pageSize \|\| 0\),/,
   );
 });

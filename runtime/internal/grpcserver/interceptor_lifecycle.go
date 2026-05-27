@@ -64,6 +64,7 @@ var readOnlyMethods = map[string]bool{
 	"/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets":                 true,
 	"/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets":              true,
 	"/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels":             true,
+	"/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed":           true,
 	"/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan":         true,
 	"/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth":           true,
 	"/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile":            true,

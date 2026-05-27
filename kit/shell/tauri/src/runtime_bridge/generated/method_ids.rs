@@ -151,6 +151,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
     "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
     "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
+    "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed",
     "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset",
     "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle",
     "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile",
