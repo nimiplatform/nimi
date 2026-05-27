@@ -2,6 +2,7 @@ import type {
   LocalRuntimeExecutionDeclarationDescriptor,
   LocalRuntimeDeviceProfile,
 } from './types-dependencies';
+import type { LocalProviderAdapter } from '@nimiplatform/sdk/ai';
 import type {
   LocalRecommendationFeedCapabilityId,
   LocalRuntimeAssetKindId,
@@ -104,13 +105,7 @@ export type LocalRuntimeVerifiedAssetDescriptor = {
 
 export type LocalRuntimeEngineRuntimeMode = 'supervised' | 'attached-endpoint';
 
-export type LocalRuntimeProviderAdapter =
-  | 'openai_compat_adapter'
-  | 'llama_native_adapter'
-  | 'media_native_adapter'
-  | 'speech_native_adapter'
-  | 'sidecar_music_adapter'
-  | string;
+export type LocalRuntimeProviderAdapter = LocalProviderAdapter;
 
 export type LocalRuntimeProviderLlamaHints = {
   preferredAdapter?: LocalRuntimeProviderAdapter;

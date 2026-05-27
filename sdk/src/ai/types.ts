@@ -3,13 +3,30 @@ export type RuntimeModality = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embe
 
 export type LocalEngine = 'llama' | 'media' | 'speech' | 'sidecar' | string;
 
-export type LocalProviderAdapter =
-  | 'openai_compat_adapter'
-  | 'llama_native_adapter'
-  | 'media_native_adapter'
-  | 'speech_native_adapter'
-  | 'sidecar_music_adapter'
-  | string;
+export const LOCAL_PROVIDER_ADAPTER_IDS = [
+  'openai_compat_adapter',
+  'llama_native_adapter',
+  'media_native_adapter',
+  'speech_native_adapter',
+  'sidecar_music_adapter',
+] as const;
+
+export type LocalProviderAdapterId = (typeof LOCAL_PROVIDER_ADAPTER_IDS)[number];
+export type LocalProviderAdapter = LocalProviderAdapterId | string;
+
+export const DEFAULT_LOCAL_PROVIDER_ADAPTER_ID: LocalProviderAdapterId = 'openai_compat_adapter';
+
+export function isLocalProviderAdapterId(value: unknown): value is LocalProviderAdapterId {
+  return LOCAL_PROVIDER_ADAPTER_IDS.includes(value as LocalProviderAdapterId);
+}
+
+export function normalizeLocalProviderAdapterId(
+  value: unknown,
+  fallback?: LocalProviderAdapterId,
+): LocalProviderAdapterId | undefined {
+  const normalized = String(value || '').trim().toLowerCase();
+  return isLocalProviderAdapterId(normalized) ? normalized : fallback;
+}
 
 export type LlamaProviderHints = {
   preferredAdapter?: LocalProviderAdapter;

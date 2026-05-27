@@ -1,5 +1,9 @@
 import type { LocalRuntimeCatalogRecommendation } from '@runtime/local-runtime';
 import {
+  normalizeLocalProviderAdapterId,
+  type LocalProviderAdapterId,
+} from '@nimiplatform/sdk/ai';
+import {
   LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS,
   isLocalRuntimeRunnableAssetKindId,
   normalizeLocalRuntimeRunnableAssetKindId,
@@ -57,16 +61,16 @@ export type NodeCapabilityV11 = CapabilityV11 | 'rerank' | 'cv' | 'diarize';
 export type LocalProviderHintsV11 = {
   llama?: {
     backend?: string;
-    preferredAdapter?: 'openai_compat_adapter' | 'llama_native_adapter' | string;
+    preferredAdapter?: LocalProviderAdapterId | string;
     whisperVariant?: string;
   };
   media?: {
-    preferredAdapter?: 'media_native_adapter' | string;
+    preferredAdapter?: LocalProviderAdapterId | string;
     driver?: string;
     family?: string;
   };
   speech?: {
-    preferredAdapter?: 'speech_native_adapter' | string;
+    preferredAdapter?: LocalProviderAdapterId | string;
     backend?: string;
     family?: string;
   };
@@ -78,7 +82,7 @@ export type LocalNodeMatrixEntryV11 = {
   capability: NodeCapabilityV11;
   serviceId: string;
   provider: 'llama' | 'media' | 'speech' | 'sidecar' | string;
-  adapter?: 'openai_compat_adapter' | 'llama_native_adapter' | 'media_native_adapter' | 'speech_native_adapter' | 'sidecar_music_adapter';
+  adapter?: LocalProviderAdapterId;
   backend?: string;
   backendSource?: string;
   available: boolean;
@@ -294,20 +298,7 @@ export function normalizeLocalNodeMatrixEntryV11(
   ) ? capability : 'chat';
   const normalizedProvider = String(raw.provider || '').trim().toLowerCase();
   const adapterRaw = String(raw.adapter || '').trim().toLowerCase();
-  let normalizedAdapter: LocalNodeMatrixEntryV11['adapter'];
-  if (adapterRaw === 'llama_native_adapter') {
-    normalizedAdapter = 'llama_native_adapter';
-  } else if (adapterRaw === 'media_native_adapter') {
-    normalizedAdapter = 'media_native_adapter';
-  } else if (adapterRaw === 'speech_native_adapter') {
-    normalizedAdapter = 'speech_native_adapter';
-  } else if (adapterRaw === 'sidecar_music_adapter') {
-    normalizedAdapter = 'sidecar_music_adapter';
-  } else if (adapterRaw === 'openai_compat_adapter') {
-    normalizedAdapter = 'openai_compat_adapter';
-  } else {
-    normalizedAdapter = undefined;
-  }
+  const normalizedAdapter = normalizeLocalProviderAdapterId(adapterRaw);
   const hints = (
     raw.providerHints
     && typeof raw.providerHints === 'object'

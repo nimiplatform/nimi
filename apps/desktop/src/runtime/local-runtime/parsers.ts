@@ -21,6 +21,10 @@ import {
   normalizeLocalRuntimeAssetKindId,
   normalizeLocalRuntimeAssetStatusId,
 } from '@nimiplatform/sdk/runtime';
+import {
+  DEFAULT_LOCAL_PROVIDER_ADAPTER_ID,
+  normalizeLocalProviderAdapterId,
+} from '@nimiplatform/sdk/ai';
 import { asRecord, asString } from './parser-primitives';
 import { asPlainObject } from './parser-helpers';
 import { toCanonicalLocalId } from './local-id';
@@ -321,15 +325,7 @@ export function normalizeEngineRuntimeMode(value: unknown): LocalRuntimeEngineRu
 
 export function normalizeProviderAdapter(value: unknown): LocalRuntimeProviderAdapter {
   const raw = asString(value);
-  if (
-    raw === 'llama_native_adapter'
-    || raw === 'media_native_adapter'
-    || raw === 'speech_native_adapter'
-    || raw === 'sidecar_music_adapter'
-  ) {
-    return raw;
-  }
-  return 'openai_compat_adapter';
+  return normalizeLocalProviderAdapterId(raw, DEFAULT_LOCAL_PROVIDER_ADAPTER_ID) ?? DEFAULT_LOCAL_PROVIDER_ADAPTER_ID;
 }
 
 export function parseProviderHints(value: unknown): LocalRuntimeProviderHints | undefined {

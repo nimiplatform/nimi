@@ -9,6 +9,7 @@ import {
   parseUnregisteredAssetDescriptor,
   normalizeAssetStatus,
   normalizeEngineRuntimeMode,
+  normalizeProviderAdapter,
 } from '../src/runtime/local-runtime/parsers.js';
 
 test('parseExecutionPlan normalizes device profile and selections', () => {
@@ -230,4 +231,9 @@ test('normalizeEngineRuntimeMode accepts Runtime enum projection names', () => {
     normalizeEngineRuntimeMode('LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT'),
     'attached-endpoint',
   );
+});
+
+test('normalizeProviderAdapter delegates adapter identity to SDK projection', () => {
+  assert.equal(normalizeProviderAdapter(' SPEECH_NATIVE_ADAPTER '), 'speech_native_adapter');
+  assert.equal(normalizeProviderAdapter('unknown_adapter'), 'openai_compat_adapter');
 });

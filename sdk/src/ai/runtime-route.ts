@@ -1,5 +1,9 @@
 import { asRecord } from '../internal/utils.js';
-import type { LocalProviderAdapter, LocalProviderHints } from './types.js';
+import {
+  normalizeLocalProviderAdapterId,
+  type LocalProviderAdapter,
+  type LocalProviderHints,
+} from './types.js';
 
 export type RuntimeRouteSource = 'local' | 'cloud';
 export type RuntimeRouteModelProfileContextSource = 'provider-api' | 'template' | 'default' | 'unknown';
@@ -611,20 +615,6 @@ export function parseRuntimeRouteMetadataKind(value: unknown): RuntimeRouteMetad
   return null;
 }
 
-function parseLocalProviderAdapter(value: unknown): LocalProviderAdapter | undefined {
-  const normalized = String(value || '').trim();
-  if (
-    normalized === 'openai_compat_adapter'
-    || normalized === 'llama_native_adapter'
-    || normalized === 'media_native_adapter'
-    || normalized === 'speech_native_adapter'
-    || normalized === 'sidecar_music_adapter'
-  ) {
-    return normalized;
-  }
-  return undefined;
-}
-
 export function parseRuntimeRouteBinding(value: unknown): RuntimeRouteBinding | null {
   if (!value || typeof value !== 'object') return null;
   const record = asRecord(value);
@@ -637,7 +627,7 @@ export function parseRuntimeRouteBinding(value: unknown): RuntimeRouteBinding | 
     provider: String(record.provider || '').trim() || undefined,
     localModelId: String(record.localModelId || '').trim() || undefined,
     engine: String(record.engine || '').trim() || undefined,
-    adapter: parseLocalProviderAdapter(record.adapter),
+    adapter: normalizeLocalProviderAdapterId(record.adapter),
     providerHints: record.providerHints && typeof record.providerHints === 'object' && !Array.isArray(record.providerHints)
       ? record.providerHints as LocalProviderHints
       : undefined,
@@ -729,7 +719,7 @@ function parseLocalModels(value: unknown): RuntimeRouteLocalOption[] {
       model,
       modelId: String(record.modelId || '').trim() || undefined,
       provider: String(record.provider || '').trim() || undefined,
-      adapter: parseLocalProviderAdapter(record.adapter),
+      adapter: normalizeLocalProviderAdapterId(record.adapter),
       providerHints: record.providerHints && typeof record.providerHints === 'object' && !Array.isArray(record.providerHints)
         ? record.providerHints as LocalProviderHints
         : undefined,
