@@ -2,15 +2,14 @@
 // Capability types
 // ---------------------------------------------------------------------------
 
-export type HookCapabilityKey = string;
-export type HookSourceType = 'builtin' | 'injected' | 'sideload' | 'core' | 'codegen';
-export type TurnHookPoint = 'pre-policy' | 'pre-model' | 'post-state' | 'pre-commit';
+export type CapabilityKey = string;
+export type CapabilitySourceType = 'builtin' | 'injected' | 'sideload' | 'core' | 'codegen';
 
 // ---------------------------------------------------------------------------
 // Normalization and matching
 // ---------------------------------------------------------------------------
 
-export function normalizeCapabilityKey(value: string): HookCapabilityKey {
+export function normalizeCapabilityKey(value: string): CapabilityKey {
   return String(value || '').trim();
 }
 
@@ -82,76 +81,57 @@ export function expandCapabilitiesFromDeclarations(
 // Capability builders
 // ---------------------------------------------------------------------------
 
-export function eventPublishCapability(topic: string): HookCapabilityKey {
+export function eventPublishCapability(topic: string): CapabilityKey {
   return `event.publish.${String(topic || '').trim()}`;
 }
 
-export function eventSubscribeCapability(topic: string): HookCapabilityKey {
+export function eventSubscribeCapability(topic: string): CapabilityKey {
   return `event.subscribe.${String(topic || '').trim()}`;
 }
 
-export function dataQueryCapability(name: string): HookCapabilityKey {
+export function dataQueryCapability(name: string): CapabilityKey {
   return `data.query.${String(name || '').trim()}`;
 }
 
-export function dataRegisterCapability(name: string): HookCapabilityKey {
+export function dataRegisterCapability(name: string): CapabilityKey {
   return `data.register.${String(name || '').trim()}`;
 }
 
-export function storageFilesReadCapability(): HookCapabilityKey {
+export function storageFilesReadCapability(): CapabilityKey {
   return 'storage.files.read';
 }
 
-export function storageFilesWriteCapability(): HookCapabilityKey {
+export function storageFilesWriteCapability(): CapabilityKey {
   return 'storage.files.write';
 }
 
-export function storageFilesDeleteCapability(): HookCapabilityKey {
+export function storageFilesDeleteCapability(): CapabilityKey {
   return 'storage.files.delete';
 }
 
-export function storageFilesListCapability(): HookCapabilityKey {
+export function storageFilesListCapability(): CapabilityKey {
   return 'storage.files.list';
 }
 
-export function storageSqliteQueryCapability(): HookCapabilityKey {
+export function storageSqliteQueryCapability(): CapabilityKey {
   return 'storage.sqlite.query';
 }
 
-export function storageSqliteExecuteCapability(): HookCapabilityKey {
+export function storageSqliteExecuteCapability(): CapabilityKey {
   return 'storage.sqlite.execute';
 }
 
-export function storageSqliteTransactionCapability(): HookCapabilityKey {
+export function storageSqliteTransactionCapability(): CapabilityKey {
   return 'storage.sqlite.transaction';
 }
 
-export function turnRegisterCapability(point: string): HookCapabilityKey {
-  return `turn.register.${String(point || '').trim()}`;
-}
-
-export function uiRegisterCapability(slot: string): HookCapabilityKey {
+export function uiRegisterCapability(slot: string): CapabilityKey {
   return `ui.register.${String(slot || '').trim()}`;
-}
-
-export function interModRequestCapability(channel: string): HookCapabilityKey {
-  return `inter-mod.request.${String(channel || '').trim()}`;
-}
-
-export function interModProvideCapability(channel: string): HookCapabilityKey {
-  return `inter-mod.provide.${String(channel || '').trim()}`;
 }
 
 // ---------------------------------------------------------------------------
 // Permission catalog constants
 // ---------------------------------------------------------------------------
-
-export const DEFAULT_TURN_HOOK_POINTS = [
-  'pre-policy',
-  'pre-model',
-  'post-state',
-  'pre-commit',
-] as const satisfies TurnHookPoint[];
 
 export const DEFAULT_UI_SLOTS = [
   'auth.login.form.footer',
@@ -159,7 +139,6 @@ export const DEFAULT_UI_SLOTS = [
   'chat.chat.list.item.trailing',
   'chat.turn.input.toolbar',
   'settings.panel.section',
-  'ui-extension.app.sidebar.mods',
   'ui-extension.app.content.routes',
   'ui-extension.runtime.devtools.panel',
 ] as const;
@@ -223,17 +202,14 @@ const DEFAULT_CODEGEN_ALLOWLIST = [
   'meta.read.self',
 ] as const;
 
-export const DEFAULT_SOURCE_ALLOWLIST: Record<HookSourceType, string[]> = {
+export const DEFAULT_SOURCE_ALLOWLIST: Record<CapabilitySourceType, string[]> = {
   core: ['*'],
   builtin: [
     'event.publish.*',
     'event.subscribe.*',
     'data.query.*',
     'data.register.*',
-    'turn.register.*',
     'ui.register.*',
-    'inter-mod.request.*',
-    'inter-mod.provide.*',
     ...DEFAULT_STORAGE_ALLOWLIST,
     ...DEFAULT_RUNTIME_ALLOWLIST,
     ...DEFAULT_ACTION_ALLOWLIST,
@@ -246,10 +222,7 @@ export const DEFAULT_SOURCE_ALLOWLIST: Record<HookSourceType, string[]> = {
     'event.subscribe.*',
     'data.query.*',
     'data.register.*',
-    'turn.register.pre-model',
-    'turn.register.post-state',
     'ui.register.*',
-    'inter-mod.request.*',
     ...DEFAULT_STORAGE_ALLOWLIST,
     ...DEFAULT_RUNTIME_ALLOWLIST,
     ...DEFAULT_ACTION_ALLOWLIST,
@@ -260,7 +233,6 @@ export const DEFAULT_SOURCE_ALLOWLIST: Record<HookSourceType, string[]> = {
     'event.publish.*',
     'data.query.*',
     'ui.register.*',
-    'inter-mod.request.*',
     ...DEFAULT_STORAGE_ALLOWLIST,
     ...DEFAULT_RUNTIME_ALLOWLIST,
     ...DEFAULT_ACTION_ALLOWLIST,

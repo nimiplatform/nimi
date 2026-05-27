@@ -1,8 +1,7 @@
 // Core normalization, matching, builders, and catalog
 export type {
-  HookCapabilityKey,
-  HookSourceType,
-  TurnHookPoint,
+  CapabilityKey,
+  CapabilitySourceType,
 } from './capabilities.js';
 export {
   normalizeCapabilityKey,
@@ -20,16 +19,12 @@ export {
   storageSqliteQueryCapability,
   storageSqliteExecuteCapability,
   storageSqliteTransactionCapability,
-  turnRegisterCapability,
   uiRegisterCapability,
-  interModRequestCapability,
-  interModProvideCapability,
-  DEFAULT_TURN_HOOK_POINTS,
   DEFAULT_UI_SLOTS,
   DEFAULT_SOURCE_ALLOWLIST,
 } from './capabilities.js';
 
-// Codegen tier classification (hook capability permission tiering)
+// Codegen tier classification (capability permission tiering)
 export type {
   CodegenCapabilityTier,
   CodegenCapabilityDecision,

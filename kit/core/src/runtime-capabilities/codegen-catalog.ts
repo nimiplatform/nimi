@@ -30,8 +30,6 @@ export const CODEGEN_T1_CAPABILITY_PATTERNS = [
 ] as const;
 
 export const CODEGEN_T2_CAPABILITY_PATTERNS = [
-  'turn.register.*',
-  'inter-mod.*',
   'action.*',
   'network*',
   'filesystem*',

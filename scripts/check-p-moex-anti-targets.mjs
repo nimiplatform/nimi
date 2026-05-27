@@ -13,6 +13,7 @@ const TARGETS = [
   'apps/desktop',
   'apps/web',
   'docs',
+  'kit',
   'runtime',
   'sdk/src',
   'sdk/test',
