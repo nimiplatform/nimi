@@ -47,6 +47,10 @@ const runtimeBootstrapRouteOptionsPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options.ts',
 );
+const runtimeConfigPanelEffectsPath = path.resolve(
+  process.cwd(),
+  'src/shell/renderer/features/runtime-config/runtime-config-panel-effects.ts',
+);
 const sdkRuntimeRouteOptionsPath = path.resolve(
   process.cwd(),
   '../../sdk/src/ai/runtime-route-options.ts',
@@ -97,6 +101,7 @@ const localModelCenterSectionsSource = readFileSync(localModelCenterSectionsPath
 const localModelCenterUtilsSource = readFileSync(localModelCenterUtilsPath, 'utf-8');
 const localModelCenterProgressCacheSource = readFileSync(localModelCenterProgressCachePath, 'utf-8');
 const runtimeBootstrapRouteOptionsSource = readFileSync(runtimeBootstrapRouteOptionsPath, 'utf-8');
+const runtimeConfigPanelEffectsSource = readFileSync(runtimeConfigPanelEffectsPath, 'utf-8');
 const sdkRuntimeRouteOptionsSource = readFileSync(sdkRuntimeRouteOptionsPath, 'utf-8');
 const sdkRuntimeRouteSource = readFileSync(sdkRuntimeRoutePath, 'utf-8');
 const runtimeBootstrapConversationRouteRuntimeSource = readFileSync(runtimeBootstrapConversationRouteRuntimePath, 'utf-8');
@@ -143,6 +148,11 @@ test('local route options consume runtime node adapter truth without image-speci
   assert.doesNotMatch(runtimeBootstrapRouteOptionsSource, /String\(item\.preferredEngine \|\| ''\)\.trim\(\)\.toLowerCase\(\) === 'llama'/);
   assert.doesNotMatch(runtimeBootstrapRouteOptionsSource, /adapter: String\(nodeByProvider\.get\(normalizeLocalEngine\(item\.engine\)\)\?\.adapter \|\| ''\)\.trim\(\) \|\| undefined/);
   assert.doesNotMatch(runtimeBootstrapRouteOptionsSource, /function defaultLocalAdapter\(/);
+});
+
+test('runtime config local snapshot polling does not duplicate runtime health truth', () => {
+  assert.doesNotMatch(runtimeConfigPanelEffectsSource, /localRuntime\.health\(/);
+  assert.match(runtimeConfigPanelEffectsSource, /useRuntimeHealthCoordinatorState/);
 });
 
 test('local route options preserve per-asset endpoint instead of falling back to global runtime endpoint', () => {

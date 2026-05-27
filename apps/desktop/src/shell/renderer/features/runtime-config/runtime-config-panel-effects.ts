@@ -60,13 +60,10 @@ function mergeLocalSnapshot(
 }
 
 async function fetchRuntimeConfigLocalSnapshot(): Promise<LocalRuntimeSnapshot> {
-  const [assets, health] = await Promise.all([
-    localRuntime.listAssets(),
-    localRuntime.health(),
-  ]);
+  const assets = await localRuntime.listAssets();
   return {
     assets,
-    health,
+    health: [],
     generatedAt: new Date().toISOString(),
   };
 }
