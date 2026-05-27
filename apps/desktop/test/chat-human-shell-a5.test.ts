@@ -112,7 +112,7 @@ test('chat human shell a5: composer and profile drawer reuse existing desktop tr
   assert.doesNotMatch(canonicalHumanComposerProfileSource, /<TurnInput/);
 });
 
-test('chat human shell a5: legacy message timeline is now a compatibility wrapper around extracted parts', () => {
+test('chat human shell a5: message timeline delegates to canonical extracted parts', () => {
   assert.match(messageTimelineSource, /HumanCanonicalTranscriptSurface/);
   assert.match(messageTimelineSource, /HumanCanonicalComposer/);
   assert.match(messageTimelineSource, /HumanCanonicalProfileDrawer/);

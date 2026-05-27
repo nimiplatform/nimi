@@ -19,6 +19,8 @@ function normalizeCapabilityAlias(value: string): RuntimeCanonicalCapability | n
   if (value === 'world') return 'world.generate';
   if (value === 'tts') return 'audio.synthesize';
   if (value === 'stt' || value === 'speech.transcribe') return 'audio.transcribe';
+  // Runtime keeps `music` as a coarse runtime-only token until the music
+  // product surface gets its own canonical identity.
   if (value === 'music') return 'music.generate';
   return null;
 }

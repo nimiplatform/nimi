@@ -36,7 +36,6 @@ import section37 from './38-RuntimeConfigLocal.json';
 import section38 from './39-PostsTab.json';
 import section39 from './40-ChatProfile.json';
 import section40 from './41-WorldDetail.json';
-import section43 from './44-AddContact.json';
 import section44 from './45-RuntimeConfig.json';
 import section45 from './46-runtimeConfig.json';
 import section46 from './47-Layout.json';
@@ -91,7 +90,6 @@ const messages = {
   "PostsTab": section38,
   "ChatProfile": section39,
   "WorldDetail": section40,
-  "AddContact": section43,
   "RuntimeConfig": section44,
   "runtimeConfig": section45,
   "Layout": section46,

@@ -18,11 +18,6 @@ export type ConversationSidebarShellProps = {
   /** Extra content below badges. */
   children?: ReactNode;
   className?: string;
-
-  /* ── legacy compat (kept for transition) ── */
-  modeSwitcher?: ReactNode;
-  header?: ReactNode;
-  footer?: ReactNode;
 };
 
 const BADGE_VARIANT_CLASSES: Record<ConversationCharacterBadge['variant'], string> = {
@@ -143,12 +138,3 @@ export function ConversationSidebarShell({
     </aside>
   );
 }
-
-/** @deprecated Use ConversationSidebarShell with character rail props instead. */
-export type ConversationSidebarShellProps_Legacy = {
-  modeSwitcher?: ReactNode;
-  header?: ReactNode;
-  children?: ReactNode;
-  footer?: ReactNode;
-  className?: string;
-};

@@ -223,7 +223,8 @@ export function parseRuntimeCanonicalCapability(value: unknown): RuntimeCanonica
   ) {
     return normalized;
   }
-  // Aliases — backward compatibility only, not canonical tokens
+  // Runtime keeps `music` as a coarse runtime-only token until the music
+  // product surface gets its own canonical identity.
   if (normalized === 'music') return 'music.generate';
   return null;
 }

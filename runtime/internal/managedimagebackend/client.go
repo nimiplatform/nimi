@@ -11,7 +11,6 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -175,21 +174,6 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 			return nil, fmt.Errorf("generate managed media image: %w", err)
 		}
 		progress, hasProgress, done, success, message, diag := readGenerateImageEvent(event)
-		if !hasOptionalField(event, "done") {
-			if legacySuccess, legacyMessage, legacyTerminal := readLegacyGenerateImageResult(event); legacyTerminal {
-				slog.Info("managed image backend invoke completed",
-					"operation", "generate",
-					"backend_address", strings.TrimSpace(req.BackendAddress),
-					"model_path", strings.TrimSpace(req.ModelPath),
-					"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
-					"legacy_terminal", true,
-				)
-				if !legacySuccess {
-					return nil, fmt.Errorf("generate managed media image failed: %s", defaultMessage(legacyMessage, "backend returned unsuccessful image result"))
-				}
-				return nil, nil
-			}
-		}
 		if hasProgress && req.OnProgress != nil {
 			req.OnProgress(progress)
 		}
@@ -709,39 +693,6 @@ func hasOptionalField(message *dynamicpb.Message, fieldName string) bool {
 	}
 	field := message.Descriptor().Fields().ByName(protoreflect.Name(fieldName))
 	return field != nil && message.Has(field)
-}
-
-func readLegacyGenerateImageResult(message *dynamicpb.Message) (bool, string, bool) {
-	if message == nil || resultMessageDescriptor == nil {
-		return false, "", false
-	}
-	if len(message.ProtoReflect().GetUnknown()) == 0 {
-		return false, "", false
-	}
-	raw, err := proto.Marshal(message)
-	if err != nil {
-		return false, "", false
-	}
-	legacy := dynamicpb.NewMessage(resultMessageDescriptor)
-	if err := proto.Unmarshal(raw, legacy); err != nil {
-		return false, "", false
-	}
-	successField := legacy.Descriptor().Fields().ByName(protoreflect.Name("success"))
-	messageField := legacy.Descriptor().Fields().ByName(protoreflect.Name("message"))
-	hasSuccess := successField != nil && legacy.Has(successField)
-	hasMessage := messageField != nil && legacy.Has(messageField)
-	if !hasSuccess && !hasMessage {
-		return false, "", false
-	}
-	success := false
-	if hasSuccess {
-		success = legacy.Get(successField).Bool()
-	}
-	resultMessage := ""
-	if hasMessage {
-		resultMessage = strings.TrimSpace(legacy.Get(messageField).String())
-	}
-	return success, resultMessage, true
 }
 
 func stringPtr(value string) *string {

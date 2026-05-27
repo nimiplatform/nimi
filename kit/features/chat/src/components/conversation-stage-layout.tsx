@@ -14,10 +14,6 @@ export type ConversationStageLayoutProps = {
   /** Callback when settings open state changes. */
   onSettingsOpenChange?: (open: boolean) => void;
   className?: string;
-
-  /* ── legacy compat (ignored if characterRail is provided) ── */
-  sidebar?: ReactNode;
-  targetRail?: ReactNode;
 };
 
 export function ConversationStageLayout({

@@ -133,7 +133,7 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 	}
 }
 
-func TestGenerateImageAcceptsLegacyTerminalResult(t *testing.T) {
+func TestGenerateImageRejectsResultTerminalShape(t *testing.T) {
 	if err := ensureDescriptors(); err != nil {
 		t.Fatalf("ensureDescriptors: %v", err)
 	}
@@ -172,12 +172,12 @@ func TestGenerateImageAcceptsLegacyTerminalResult(t *testing.T) {
 		ModelPath:      "resolved/example/model.gguf",
 		Dst:            outputPath,
 	})
-	if err != nil {
-		t.Fatalf("GenerateImage should accept legacy terminal result, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "missing terminal backend event") {
+		t.Fatalf("expected Result-shaped generate response to fail closed, got %v", err)
 	}
 }
 
-func TestGenerateImageReturnsLegacyTerminalFailure(t *testing.T) {
+func TestGenerateImageRejectsResultTerminalFailureShape(t *testing.T) {
 	if err := ensureDescriptors(); err != nil {
 		t.Fatalf("ensureDescriptors: %v", err)
 	}
@@ -210,8 +210,8 @@ func TestGenerateImageReturnsLegacyTerminalFailure(t *testing.T) {
 		ModelPath:      "resolved/example/model.gguf",
 		Dst:            filepath.Join(t.TempDir(), "artifact.png"),
 	})
-	if err == nil || !strings.Contains(err.Error(), "legacy generate failed") {
-		t.Fatalf("expected legacy terminal failure, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "missing terminal backend event") {
+		t.Fatalf("expected Result-shaped generate response to fail closed, got %v", err)
 	}
 }
 

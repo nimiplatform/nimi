@@ -118,10 +118,6 @@ export type ConversationShellProps = {
   thinkingState?: 'on' | 'off' | 'unsupported';
   onThinkingToggle?: () => void;
   className?: string;
-
-  /* ── legacy compat ── */
-  sidebarHeader?: ReactNode;
-  sidebarFooter?: ReactNode;
 };
 
 function defaultEmptyState(): ReactNode {
