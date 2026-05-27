@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
-// Paths that are Home shell / Desktop renderer AIProfile consumer code.
+// Paths that are Home shell / Desktop renderer/runtime consumer code.
 // These paths must only consume the SDK / typed Runtime client interface;
 // they must NOT import any Runtime-internal Go path (the Go package is in a
 // separate process / language, so TS imports cannot literally cross the
@@ -17,7 +17,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 // imports from runtime/internal-* TS packages if any exist).
 const TARGET_GLOBS = [
   'apps/desktop/src/shell/renderer',
-  'apps/desktop/src/runtime/platform-catalog',
+  'apps/desktop/src/runtime',
 ];
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
@@ -116,7 +116,7 @@ async function main() {
   }
   const violations = await collectViolations(files);
   if (violations.length > 0) {
-    process.stderr.write('Home shell + Desktop platform-catalog must NOT import runtime-internal paths.\n');
+    process.stderr.write('Desktop renderer/runtime consumer code must NOT import runtime-internal paths.\n');
     for (const v of violations) process.stderr.write(`- ${v}\n`);
     process.exitCode = 1;
     return;
