@@ -1,23 +1,3 @@
-export function normalizeLocalEngine(value: unknown): string {
-  const normalized = String(value || '').trim().toLowerCase();
-  if (normalized === 'media') return 'media';
-  if (normalized === 'speech') return 'speech';
-  if (normalized === 'sidecar') return 'sidecar';
-  return 'llama';
-}
-
-export function normalizeLocalModelRoot(value: unknown): string {
-  const trimmed = String(value || '').trim();
-  if (!trimmed) return '';
-  const lower = trimmed.toLowerCase();
-  if (lower.startsWith('llama/')) return trimmed.slice('llama/'.length).trim();
-  if (lower.startsWith('media/')) return trimmed.slice('media/'.length).trim();
-  if (lower.startsWith('speech/')) return trimmed.slice('speech/'.length).trim();
-  if (lower.startsWith('sidecar/')) return trimmed.slice('sidecar/'.length).trim();
-  if (lower.startsWith('local/')) return trimmed.slice('local/'.length).trim();
-  return trimmed;
-}
-
 export function safeErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || '');
 }
