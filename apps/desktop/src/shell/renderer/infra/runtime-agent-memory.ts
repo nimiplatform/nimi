@@ -14,8 +14,6 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { getDesktopMemoryEmbeddingConfigService } from '@renderer/app-shell/providers/desktop-memory-embedding-config-service';
-import { listLocalRuntimeAssets } from '@renderer/bridge/runtime-bridge/local-ai';
-import { getDesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/macos-smoke';
 
 export type CanonicalMemoryMode = 'baseline' | 'standard' | 'unavailable';
 
@@ -39,7 +37,6 @@ type RuntimeAgentMemoryDeps = {
   getSubjectUserId?: () => string | undefined | Promise<string | undefined>;
   getMemoryEmbeddingConfigService?: () => DesktopMemoryEmbeddingConfigService;
   getMemoryEmbeddingScopeRef?: () => AIScopeRef;
-  listLocalRuntimeAssets?: typeof listLocalRuntimeAssets;
 };
 
 function normalizeText(value: unknown): string {
@@ -98,15 +95,6 @@ function isRuntimeNotFound(error: unknown): boolean {
     || normalizeText(normalized.message).toLowerCase().includes('not found');
 }
 
-function isRuntimeAuthInvalid(error: unknown): boolean {
-  const normalized = asNimiError(error, {
-    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
-    source: 'runtime',
-  });
-  return normalizeText(normalized.reasonCode) === ReasonCode.AUTH_TOKEN_INVALID
-    || normalizeText(normalized.message).toUpperCase().includes('AUTH_TOKEN_INVALID');
-}
-
 function hasMemoryEmbeddingBindingIntent(config: MemoryEmbeddingConfig): boolean {
   return Boolean(config.sourceKind && config.bindingRef);
 }
@@ -125,7 +113,6 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
     ?? (() => getDesktopMemoryEmbeddingConfigService());
   const getMemoryEmbeddingScopeRef = deps.getMemoryEmbeddingScopeRef
     ?? (() => createDefaultAIScopeRef());
-  const listAssets = deps.listLocalRuntimeAssets ?? listLocalRuntimeAssets;
   let protectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
 
   const resolveSubjectUserId = async (): Promise<string> => {
@@ -145,18 +132,6 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
       getSubjectUserId: async () => resolveSubjectUserId(),
     });
     return protectedAccess;
-  };
-
-  const hasActiveEmbeddingAsset = async (): Promise<boolean> => {
-    try {
-      const assets = await listAssets({
-        kind: 'embedding',
-        status: 'active',
-      });
-      return assets.length > 0;
-    } catch {
-      return false;
-    }
   };
 
   const readCanonicalBankMetadata = async (agentId: string): Promise<{
@@ -186,49 +161,6 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
     };
   };
 
-  const getLegacyCanonicalBankStatus = async (agentId: string): Promise<CanonicalMemoryBankStatus> => {
-    try {
-      const metadata = await readCanonicalBankMetadata(agentId);
-      if (metadata.embeddingProfileModelId) {
-        return {
-          mode: 'standard',
-          bankId: metadata.bankId,
-          embeddingProfileModelId: metadata.embeddingProfileModelId,
-        };
-      }
-      if (await hasActiveEmbeddingAsset()) {
-        return {
-          mode: 'baseline',
-          bankId: metadata.bankId,
-        };
-      }
-      return {
-        mode: 'unavailable',
-        bankId: metadata.bankId,
-      };
-    } catch (error) {
-      if (isRuntimeMemoryUnavailable(error)) {
-        return { mode: 'unavailable' };
-      }
-      if (isRuntimeAuthInvalid(error)) {
-        try {
-          const smokeContext = await getDesktopMacosSmokeContext();
-          if (smokeContext.enabled && smokeContext.scenarioId === 'chat.memory-standard-bind') {
-            return { mode: 'baseline' };
-          }
-        } catch {
-          // Ignore smoke context lookup failure and fall back to the real runtime error.
-        }
-      }
-      if (!isRuntimeNotFound(error)) {
-        throw error;
-      }
-      return (await hasActiveEmbeddingAsset())
-        ? { mode: 'baseline' }
-        : { mode: 'unavailable' };
-    }
-  };
-
   const getMemoryEmbeddingRuntimeInput = (agentId: string) => ({
     scopeRef: getMemoryEmbeddingScopeRef(),
     targetRef: {
@@ -251,7 +183,7 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
       }
     }
 
-    if (metadata.embeddingProfileModelId || isStandardCanonicalBankStatus(state.canonicalBankStatus)) {
+    if (isStandardCanonicalBankStatus(state.canonicalBankStatus)) {
       return {
         mode: 'standard',
         bankId: metadata.bankId,
@@ -263,19 +195,11 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
       };
     }
 
-    if (state.resolutionState === 'resolved') {
+    if (state.resolutionState === 'resolved' && hasMemoryEmbeddingBindingIntent(config)) {
       return {
         mode: 'baseline',
         bankId: metadata.bankId,
         bindingSourceKind: state.bindingSourceKind || undefined,
-      };
-    }
-
-    if (!hasMemoryEmbeddingBindingIntent(config) && await hasActiveEmbeddingAsset()) {
-      return {
-        mode: 'baseline',
-        bankId: metadata.bankId,
-        bindingSourceKind: 'local',
       };
     }
 
@@ -285,33 +209,6 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
       bindingSourceKind: state.bindingSourceKind || undefined,
       blockedReasonCode: normalizeText(state.blockedReasonCode || '') || undefined,
     };
-  };
-
-  const ensureDefaultMemoryEmbeddingBinding = async (scopeRef: AIScopeRef): Promise<MemoryEmbeddingConfig> => {
-    const memoryEmbeddingService = getMemoryEmbeddingConfigService();
-    const current = memoryEmbeddingService.memoryEmbeddingConfig.get(scopeRef);
-    if (hasMemoryEmbeddingBindingIntent(current)) {
-      return current;
-    }
-    let first: { assetId?: string; localAssetId?: string } | undefined;
-    try {
-      first = (await listAssets({ kind: 'embedding', status: 'active' }))[0];
-    } catch {
-      return current;
-    }
-    const targetId = normalizeText(first?.assetId) || normalizeText(first?.localAssetId);
-    if (!targetId) {
-      return current;
-    }
-    memoryEmbeddingService.memoryEmbeddingConfig.update(scopeRef, {
-      ...current,
-      sourceKind: 'local',
-      bindingRef: {
-        kind: 'local',
-        targetId,
-      },
-    });
-    return memoryEmbeddingService.memoryEmbeddingConfig.get(scopeRef);
   };
 
   return {
@@ -326,8 +223,11 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
         const config = memoryEmbeddingService.memoryEmbeddingConfig.get(runtimeInput.scopeRef);
         const state = await memoryEmbeddingService.memoryEmbeddingRuntime.inspect(runtimeInput);
         return deriveCanonicalBankStatus(normalizedAgentID, state, config);
-      } catch {
-        return getLegacyCanonicalBankStatus(normalizedAgentID);
+      } catch (error) {
+        if (isRuntimeMemoryUnavailable(error)) {
+          return { mode: 'unavailable' };
+        }
+        throw error;
       }
     },
 
@@ -338,7 +238,10 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
       }
       const memoryEmbeddingService = getMemoryEmbeddingConfigService();
       const runtimeInput = getMemoryEmbeddingRuntimeInput(normalizedAgentID);
-      await ensureDefaultMemoryEmbeddingBinding(runtimeInput.scopeRef);
+      const config = memoryEmbeddingService.memoryEmbeddingConfig.get(runtimeInput.scopeRef);
+      if (!hasMemoryEmbeddingBindingIntent(config)) {
+        throw new Error('MEMORY_EMBEDDING_BINDING_INTENT_REQUIRED');
+      }
       const bindResult = await memoryEmbeddingService.memoryEmbeddingRuntime.requestBind(runtimeInput);
       if (bindResult.outcome === 'staged_rebuild' || bindResult.pendingCutover) {
         await memoryEmbeddingService.memoryEmbeddingRuntime.requestCutover(runtimeInput);

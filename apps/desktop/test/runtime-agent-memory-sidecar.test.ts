@@ -152,21 +152,6 @@ test('runtime agent memory adapter maps canonical bank status to standard, basel
     getRuntime: () => runtime as never,
     getSubjectUserId: () => 'user-1',
     getMemoryEmbeddingConfigService: () => standardService.service,
-    listLocalRuntimeAssets: async () => [{
-      localAssetId: 'local-embed-1',
-      assetId: 'local/embed-alpha',
-      kind: 'embedding',
-      engine: 'llama',
-      entry: 'embed.gguf',
-      files: ['embed.gguf'],
-      license: 'apache-2.0',
-      source: { repo: 'repo', revision: 'main' },
-      integrityMode: 'verified',
-      hashes: {},
-      status: 'active',
-      installedAt: '2026-04-01T00:00:00Z',
-      updatedAt: '2026-04-12T00:00:00Z',
-    }],
   });
 
   const standard = await adapter.getCanonicalBankStatus(LOCAL_AGENT_REF);
@@ -224,7 +209,6 @@ test('runtime agent memory adapter maps canonical bank status to standard, basel
     getRuntime: () => runtime as never,
     getSubjectUserId: () => 'user-1',
     getMemoryEmbeddingConfigService: () => baselineService.service,
-    listLocalRuntimeAssets: async () => [],
   });
   const baseline = await baselineAdapter.getCanonicalBankStatus(LOCAL_AGENT_REF);
   assert.deepEqual(baseline, {
@@ -251,7 +235,6 @@ test('runtime agent memory adapter maps canonical bank status to standard, basel
     getRuntime: () => runtime as never,
     getSubjectUserId: () => 'user-1',
     getMemoryEmbeddingConfigService: () => unavailableService.service,
-    listLocalRuntimeAssets: async () => [],
   });
   const unavailable = await unavailableAdapter.getCanonicalBankStatus(LOCAL_AGENT_REF);
   assert.deepEqual(unavailable, {
@@ -267,6 +250,13 @@ test('runtime agent memory adapter binds canonical bank standard through the mem
   const bindCalls: Array<Record<string, unknown>> = [];
   const cutoverCalls: Array<Record<string, unknown>> = [];
   const service = createMemoryEmbeddingServiceMock({
+    config: {
+      sourceKind: 'local',
+      bindingRef: {
+        kind: 'local',
+        targetId: 'local/embed-alpha',
+      },
+    },
     inspect: async () => ({
       bindingIntentPresent: true,
       bindingSourceKind: 'local',
@@ -301,21 +291,6 @@ test('runtime agent memory adapter binds canonical bank standard through the mem
     getRuntime: () => runtime as never,
     getSubjectUserId: () => 'user-1',
     getMemoryEmbeddingConfigService: () => service.service,
-    listLocalRuntimeAssets: async () => [{
-      localAssetId: 'local-embed-1',
-      assetId: 'local/embed-alpha',
-      kind: 'embedding',
-      engine: 'llama',
-      entry: 'embed.gguf',
-      files: ['embed.gguf'],
-      license: 'apache-2.0',
-      source: { repo: 'repo', revision: 'main' },
-      integrityMode: 'verified',
-      hashes: {},
-      status: 'active',
-      installedAt: '2026-04-01T00:00:00Z',
-      updatedAt: '2026-04-12T00:00:00Z',
-    }],
   });
 
   const result = await adapter.bindCanonicalBankStandard(LOCAL_AGENT_REF);
@@ -333,4 +308,20 @@ test('runtime agent memory adapter binds canonical bank standard through the mem
     kind: 'local',
     targetId: 'local/embed-alpha',
   });
+});
+
+test('runtime agent memory adapter requires explicit binding intent before standard bind', async () => {
+  const { runtime } = createRuntimeMock();
+  const service = createMemoryEmbeddingServiceMock();
+  const adapter = createRuntimeAgentMemoryAdapter({
+    getRuntime: () => runtime as never,
+    getSubjectUserId: () => 'user-1',
+    getMemoryEmbeddingConfigService: () => service.service,
+  });
+
+  await assert.rejects(
+    () => adapter.bindCanonicalBankStandard(LOCAL_AGENT_REF),
+    /MEMORY_EMBEDDING_BINDING_INTENT_REQUIRED/,
+  );
+  assert.equal(service.getConfig().bindingRef, null);
 });
