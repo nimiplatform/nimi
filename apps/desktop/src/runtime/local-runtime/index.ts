@@ -1,8 +1,6 @@
 import {
   appendLocalRuntimeInferenceAudit,
   appendLocalRuntimeAudit,
-  revealLocalRuntimeAssetInFolder,
-  revealLocalRuntimeAssetsRootFolder,
   subscribeLocalRuntimeDownloadProgress,
   healthLocalRuntimeAssets,
   installLocalRuntimeVerifiedAsset,
@@ -200,7 +198,6 @@ export type {
 export type LocalRuntimeFacade = {
   listAssets: (payload?: LocalRuntimeListAssetsPayload) => Promise<LocalRuntimeAssetRecord[]>;
   searchCatalog: (payload?: LocalRuntimeCatalogSearchPayload) => Promise<LocalRuntimeCatalogItemDescriptor[]>;
-  listRepoGgufVariants: (repo: string) => Promise<GgufVariantDescriptor[]>;
   listRepoVariants: (repo: string) => Promise<LocalRuntimeCatalogVariantDescriptor[]>;
   resolveInstallPlan: (payload: LocalRuntimeCatalogResolveInstallPlanPayload) => Promise<LocalRuntimeInstallPlanDescriptor>;
   collectDeviceProfile: () => Promise<LocalRuntimeDeviceProfile>;
@@ -291,8 +288,6 @@ export type LocalRuntimeFacade = {
   subscribeDownloadProgress: (
     listener: (event: LocalRuntimeDownloadProgressEvent) => void,
   ) => Promise<() => void>;
-  revealInFolder: (localAssetId: string) => Promise<void>;
-  revealRootFolder: () => Promise<void>;
   rescanAssetBundle: (
     payload: LocalRuntimeRescanBundlePayload,
     options?: LocalRuntimeWriteOptions,
@@ -315,7 +310,6 @@ export type LocalRuntimeFacade = {
 export const localRuntime: LocalRuntimeFacade = {
   listAssets: listLocalRuntimeAssets,
   searchCatalog: searchLocalRuntimeCatalog,
-  listRepoGgufVariants: listLocalRuntimeRepoGgufVariants,
   listRepoVariants: listLocalRuntimeRepoGgufVariants,
   resolveInstallPlan: resolveLocalRuntimeInstallPlan,
   collectDeviceProfile: collectLocalRuntimeDeviceProfile,
@@ -350,8 +344,6 @@ export const localRuntime: LocalRuntimeFacade = {
   listAudits: listLocalRuntimeAudits,
   pickAssetManifestPath: pickLocalRuntimeAssetManifestPath,
   subscribeDownloadProgress: subscribeLocalRuntimeDownloadProgress,
-  revealInFolder: revealLocalRuntimeAssetInFolder,
-  revealRootFolder: revealLocalRuntimeAssetsRootFolder,
   rescanAssetBundle: rescanLocalRuntimeAssetBundle,
   scaffoldOrphanAsset: scaffoldLocalRuntimeOrphanAsset,
   scanUnregisteredAssets: scanLocalRuntimeUnregisteredAssets,
