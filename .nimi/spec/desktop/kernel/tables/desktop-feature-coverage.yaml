@@ -120,7 +120,6 @@ features:
       - chat
     covers_bootstrap_phases: []
     covers_ipc_commands:
-      - agent_memory_bind_standard
       - confirm_dialog
     covers_runtime_pages: []
     scenarios:

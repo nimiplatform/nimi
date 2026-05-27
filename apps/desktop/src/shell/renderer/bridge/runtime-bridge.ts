@@ -142,7 +142,6 @@ export type {
   OauthListenForCodeResult,
   ConfirmPrivateSyncPayload,
   ConfirmPrivateSyncResult,
-  AgentMemoryStandardFixtureStatusPayload,
   MenuBarProviderSummary,
   MenuBarRuntimeHealthSyncPayload,
   LocalRuntimeInferenceAuditPayload,

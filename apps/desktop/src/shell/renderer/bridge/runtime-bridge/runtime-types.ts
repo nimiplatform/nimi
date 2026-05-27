@@ -140,16 +140,6 @@ export type ConfirmDialogResult = {
   confirmed: boolean;
 };
 
-export type AgentMemoryStandardFixtureStatusPayload = {
-  agentId: string;
-};
-
-export type AgentMemoryStandardFixtureStatusResult = {
-  available: boolean;
-  alreadyBound: boolean;
-  bank: JsonObject;
-};
-
 export type DesktopMacosSmokeContext = {
   enabled: boolean;
   scenarioId?: string;

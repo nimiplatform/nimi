@@ -291,18 +291,6 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-094
 
-  - family: runtime_memory_binding_async
-    match:
-      prefix: agent_memory_
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: runtime-memory-binding
-    execution_class: request_response_async
-    remediation_required: false
-    admitted_risks:
-      - blocking_http
-      - runtime_bridge_block_on
-    source_rule: D-GATE-092
-
   - family: chat_local_stores
     match:
       regex: "^chat_(ai|agent)_.*$"

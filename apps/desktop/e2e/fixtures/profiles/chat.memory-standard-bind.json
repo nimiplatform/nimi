@@ -36,11 +36,6 @@
           "confirmed": true
         }
       ]
-    },
-    "agentMemoryStandardFixture": {
-      "alreadyBound": false,
-      "bankId": "bank-agent-e2e-alpha",
-      "embeddingProfileModelId": "local/embed-e2e-alpha"
     }
   }
 }

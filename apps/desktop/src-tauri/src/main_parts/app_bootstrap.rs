@@ -345,7 +345,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             crate::desktop_avatar_instance_registry::commands::desktop_avatar_instance_registry_list,
             crate::oauth_commands::oauth_token_exchange,
             crate::oauth_commands::oauth_listen_for_code,
-            super::defaults_and_commands::runtime_agent_memory::agent_memory_standard_fixture_status_get,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_context_get,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_avatar_evidence_read,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_avatar_product_local_asset_fault_apply,

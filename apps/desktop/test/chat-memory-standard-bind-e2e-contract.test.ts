@@ -44,23 +44,21 @@ test('chat memory standard bind journey fixture and spec files exist', () => {
   assert.equal(fs.existsSync(specPath), true, `missing E2E spec: ${specPath}`);
 });
 
-test('chat memory standard bind fixture carries tauri bind and confirm overrides', () => {
+test('chat memory standard bind fixture carries only confirm overrides', () => {
   const fixturePath = path.join(desktopRoot, 'e2e/fixtures/profiles/chat.memory-standard-bind.json');
   const fixture = JSON.parse(fs.readFileSync(fixturePath, 'utf8')) as {
     tauriFixture?: {
       confirmDialog?: { responses?: Array<{ confirmed?: boolean }> };
-      agentMemoryStandardFixture?: { embeddingProfileModelId?: string };
+      [key: string]: unknown;
     };
   };
+  const retiredMemoryFixtureKey = ['agentMemory', 'StandardFixture'].join('');
 
   assert.deepEqual(
     fixture.tauriFixture?.confirmDialog?.responses?.map((item) => Boolean(item.confirmed)),
     [false, true],
   );
-  assert.equal(
-    fixture.tauriFixture?.agentMemoryStandardFixture?.embeddingProfileModelId,
-    'local/embed-e2e-alpha',
-  );
+  assert.equal(fixture.tauriFixture?.[retiredMemoryFixtureKey], undefined);
 });
 
 test('chat memory standard bind journey exposes stable Memory Mode test ids', () => {
@@ -82,7 +80,7 @@ test('chat memory standard bind journey exposes stable Memory Mode test ids', ()
   assert.match(historyPanelSource, /data-testid=\{E2E_IDS\.chatMemoryModeUpgradeButton\}/);
 });
 
-test('Agent Center wires Standard memory upgrade to the runtime bridge surface', () => {
+test('Agent Center wires Standard memory upgrade to the runtime memory projection surface', () => {
   assert.match(agentShellAdapterSource, /handleUpgradeStandardMemory/);
   assert.match(agentShellAdapterSource, /onUpgradeStandardMemory=\{handleUpgradeStandardMemory\}/);
   assert.match(agentShellAdapterSource, /allowMemoryUpgrade/);
