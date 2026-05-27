@@ -8,6 +8,7 @@ import {
   parseProfileResolutionPlan,
   parseUnregisteredAssetDescriptor,
   normalizeAssetStatus,
+  normalizeEngineRuntimeMode,
 } from '../src/runtime/local-runtime/parsers.js';
 
 test('parseExecutionPlan normalizes device profile and selections', () => {
@@ -215,4 +216,18 @@ test('normalizeAssetStatus fail-closes legacy model and artifact enums', () => {
   assert.equal(normalizeAssetStatus('LOCAL_MODEL_STATUS_ACTIVE'), 'installed');
   assert.equal(normalizeAssetStatus('LOCAL_ARTIFACT_STATUS_ACTIVE'), 'installed');
   assert.equal(normalizeAssetStatus('LOCAL_ASSET_STATUS_ACTIVE'), 'active');
+});
+
+test('normalizeEngineRuntimeMode accepts Runtime enum projection names', () => {
+  assert.equal(normalizeEngineRuntimeMode(1), 'supervised');
+  assert.equal(normalizeEngineRuntimeMode('1'), 'supervised');
+  assert.equal(normalizeEngineRuntimeMode('supervised'), 'supervised');
+  assert.equal(
+    normalizeEngineRuntimeMode('LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED'),
+    'supervised',
+  );
+  assert.equal(
+    normalizeEngineRuntimeMode('LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT'),
+    'attached-endpoint',
+  );
 });

@@ -313,7 +313,7 @@ export function normalizeEngineRuntimeMode(value: unknown): LocalRuntimeEngineRu
     return value === 1 ? 'supervised' : 'attached-endpoint';
   }
   const normalized = asString(value);
-  if (normalized === 'LOCAL_ENGINE_RUNTIME_PACKAGEE_SUPERVISED' || normalized === '1') {
+  if (normalized === 'LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED' || normalized === '1') {
     return 'supervised';
   }
   return asString(value) === 'supervised' ? 'supervised' : 'attached-endpoint';
