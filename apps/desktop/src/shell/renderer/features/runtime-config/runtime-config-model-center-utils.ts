@@ -63,12 +63,10 @@ export type LocalModelCenterProps = {
   installSessionMeta?: Map<string, { plan: LocalRuntimeInstallPlanDescriptor; installSource: string }>;
 };
 
-export const CAPABILITY_OPTIONS = ['chat', 'image', 'video', 'tts', 'stt', 'embedding', 'music'] as const;
+export const CAPABILITY_OPTIONS = ['chat', 'image', 'video', 'tts', 'stt', 'embedding'] as const;
 export type CapabilityOption = typeof CAPABILITY_OPTIONS[number];
 export const ASSET_CLASS_OPTIONS = ['runnable', 'dependency'] as const;
 export type AssetClassOption = typeof ASSET_CLASS_OPTIONS[number];
-export const MODEL_TYPE_OPTIONS = ['chat', 'embedding', 'image', 'video', 'tts', 'stt', 'music'] as const;
-export type ModelTypeOption = typeof MODEL_TYPE_OPTIONS[number];
 export const ASSET_ENGINE_OPTIONS = ['llama', 'media', 'speech', 'sidecar'] as const;
 export type AssetEngineOption = typeof ASSET_ENGINE_OPTIONS[number];
 export type ProgressSessionState = {
@@ -201,11 +199,6 @@ export function normalizeCapabilityOption(value: string | undefined): Capability
 export function normalizeAssetClassOption(value: string | undefined): AssetClassOption {
   const normalized = String(value || '').trim().toLowerCase();
   return (ASSET_CLASS_OPTIONS.find((item) => item === normalized) || 'runnable') as AssetClassOption;
-}
-
-export function normalizeModelTypeOption(value: string | undefined): ModelTypeOption {
-  const normalized = String(value || '').trim().toLowerCase();
-  return (MODEL_TYPE_OPTIONS.find((item) => item === normalized) || 'chat') as ModelTypeOption;
 }
 
 export function basenameFromRuntimePath(value: string | undefined): string {

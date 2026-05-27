@@ -5,6 +5,7 @@ import test, { describe } from 'node:test';
 
 import {
   ASSET_ENGINE_OPTIONS,
+  CAPABILITY_OPTIONS,
   filterInstalledModels,
   formatBytes,
   formatDownloadPhaseLabel,
@@ -275,6 +276,11 @@ describe('normalizeCapabilityOption', () => {
 
   test('falls back to chat for unknown values', () => {
     assert.equal(normalizeCapabilityOption('rerank'), 'chat');
+  });
+
+  test('does not expose deferred runtime-only music capability in desktop local catalog filters', () => {
+    assert.equal(CAPABILITY_OPTIONS.includes('music' as never), false);
+    assert.equal(normalizeCapabilityOption('music'), 'chat');
   });
 });
 
