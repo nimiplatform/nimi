@@ -9,6 +9,7 @@ import {
   isLocalRuntimePassiveAssetKindId,
   isLocalRuntimeRunnableAssetKindId,
   localRuntimeCapabilitiesForAssetKind,
+  localRuntimeRunnableAssetKindForCapabilities,
   normalizeLocalRuntimeAssetStatusId,
   normalizeLocalRuntimeAssetKindId,
   normalizeLocalRuntimeRunnableAssetKindId,
@@ -79,6 +80,10 @@ test('local runtime asset status parser accepts Runtime wire names and values', 
 test('local runtime asset kind capability projection stays runtime-local', () => {
   assert.deepEqual(localRuntimeCapabilitiesForAssetKind('image'), ['image']);
   assert.deepEqual(localRuntimeCapabilitiesForAssetKind('vae'), ['chat']);
+  assert.equal(localRuntimeRunnableAssetKindForCapabilities(['image']), 'image');
+  assert.equal(localRuntimeRunnableAssetKindForCapabilities(['text.embed']), 'embedding');
+  assert.equal(localRuntimeRunnableAssetKindForCapabilities(['audio.synthesize']), 'tts');
+  assert.equal(localRuntimeRunnableAssetKindForCapabilities(['unknown']), 'chat');
 });
 
 test('local runtime write-side enum helpers return Runtime proto enum values', () => {

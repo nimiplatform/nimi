@@ -250,3 +250,38 @@ export function normalizeLocalRuntimeRunnableAssetKindId(
 export function localRuntimeCapabilitiesForAssetKind(kind: LocalRuntimeAssetKindId): string[] {
   return [isLocalRuntimeRunnableAssetKindId(kind) ? kind : 'chat'];
 }
+
+export function localRuntimeRunnableAssetKindForCapabilities(
+  capabilities: readonly unknown[] | undefined,
+  fallback: LocalRuntimeRunnableAssetKindId = 'chat',
+): LocalRuntimeRunnableAssetKindId {
+  const normalized = new Set(
+    (Array.isArray(capabilities) ? capabilities : [])
+      .map((item) => String(item ?? '').trim().toLowerCase())
+      .filter(Boolean),
+  );
+  for (const kind of LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS) {
+    if (normalized.has(kind)) {
+      return kind;
+    }
+  }
+  if (normalized.has('image.generate') || normalized.has('image.edit')) {
+    return 'image';
+  }
+  if (normalized.has('video.generate')) {
+    return 'video';
+  }
+  if (normalized.has('audio.synthesize')) {
+    return 'tts';
+  }
+  if (normalized.has('audio.transcribe')) {
+    return 'stt';
+  }
+  if (normalized.has('text.embed') || normalized.has('embed')) {
+    return 'embedding';
+  }
+  if (normalized.has('text.generate')) {
+    return 'chat';
+  }
+  return fallback;
+}

@@ -197,6 +197,7 @@ export {
   isLocalRuntimePassiveAssetKindId,
   isLocalRuntimeRunnableAssetKindId,
   localRuntimeCapabilitiesForAssetKind,
+  localRuntimeRunnableAssetKindForCapabilities,
   normalizeLocalRuntimeAssetStatusId,
   normalizeLocalRuntimeAssetKindId,
   normalizeLocalRuntimeRunnableAssetKindId,

@@ -1,4 +1,7 @@
-import { toProtoStruct } from '@nimiplatform/sdk/runtime';
+import {
+  localRuntimeCapabilitiesForAssetKind,
+  toProtoStruct,
+} from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '../telemetry/logger';
 import type {
   LocalRuntimeAssetFileImportResult,
@@ -51,23 +54,6 @@ function engineRuntimeModeToProto(value: LocalRuntimeInstallPlanDescriptor['engi
   return value === 'supervised' ? 1 : value === 'attached-endpoint' ? 2 : 0;
 }
 
-function capabilitiesForImportFileKind(kind: LocalRuntimeImportFilePayload['kind']): string[] {
-  switch (kind) {
-    case 'image':
-      return ['image'];
-    case 'video':
-      return ['video'];
-    case 'tts':
-      return ['tts'];
-    case 'stt':
-      return ['stt'];
-    case 'embedding':
-      return ['embedding'];
-    default:
-      return ['chat'];
-  }
-}
-
 export async function importLocalRuntimeAssetFile(
   payload: LocalRuntimeImportFilePayload,
   options?: LocalRuntimeWriteOptions,
@@ -78,7 +64,7 @@ export async function importLocalRuntimeAssetFile(
     filePath: String(payload.filePath || '').trim(),
     assetName: String(payload.assetName || '').trim(),
     kind: toAssetKindFilter(payload.kind),
-    capabilities: capabilitiesForImportFileKind(payload.kind),
+    capabilities: localRuntimeCapabilitiesForAssetKind(payload.kind),
     engine: String(payload.engine || '').trim(),
     endpoint: String(payload.endpoint || '').trim(),
   });

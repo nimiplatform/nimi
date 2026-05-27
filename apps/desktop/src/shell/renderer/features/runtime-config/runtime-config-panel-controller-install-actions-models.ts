@@ -1,5 +1,8 @@
 import { useCallback, useRef, useState } from 'react';
-import { isLocalRuntimeRunnableAssetKindId } from '@nimiplatform/sdk/runtime';
+import {
+  isLocalRuntimeRunnableAssetKindId,
+  localRuntimeRunnableAssetKindForCapabilities,
+} from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   importLocalRuntimeAsset,
@@ -206,12 +209,7 @@ export function useRuntimeConfigModelManagementActions(
       if (!filePath) {
         return;
       }
-      const kind = capabilities.includes('image') ? 'image' as const
-        : capabilities.includes('video') ? 'video' as const
-        : capabilities.includes('tts') ? 'tts' as const
-        : capabilities.includes('stt') ? 'stt' as const
-        : (capabilities.includes('embedding') || capabilities.includes('text.embed')) ? 'embedding' as const
-        : 'chat' as const;
+      const kind = localRuntimeRunnableAssetKindForCapabilities(capabilities);
       const asset = await importLocalRuntimeAssetFile({
         filePath,
         kind,
