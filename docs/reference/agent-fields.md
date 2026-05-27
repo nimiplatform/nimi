@@ -153,9 +153,9 @@ memory provider is admitted by default.
 | Field | Value |
 | --- | --- |
 | Principal type | `ExternalPrincipal` |
-| Token | Scoped, single-use plaintext display, immutable token ledger |
-| Capability domains | `action.discover.*`, `action.dry-run.*`, `action.verify.*`, `action.commit.*` |
-| Action surface | Hook Action Fabric (Runtime + Desktop hook capability sandbox) |
+| Token | Deferred until Runtime owns gateway/server and token ledger |
+| Capability domains | Future `action.discover.*`, `action.dry-run.*`, `action.verify.*`, `action.commit.*` |
+| Action surface | Runtime-owned action plane |
 
 ## Source Basis
 

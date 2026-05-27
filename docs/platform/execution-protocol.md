@@ -216,7 +216,7 @@ in production. They are not optional defaults.
 | --- | --- |
 | Five-stage state machine | Platform (`P-ALMI-011`) |
 | Action contract minimum | Platform (`P-ALMI-010`) |
-| Hook Action Fabric (which actions exist) | Platform (`P-ALMI-002`) |
+| AI action boundary (which actions exist) | Platform (`P-ALMI-002`) |
 | Principal model (who is calling) | Platform (`P-ALMI-003`) |
 | ExternalAgent admission rules | Platform (`P-ALMI-004`) |
 | Runtime-side delegation gateway / firewall | Runtime (`K-DELEG-*`) |

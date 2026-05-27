@@ -1,6 +1,6 @@
 # SDK
 
-Nimi SDK 是应用代码（App）实际调用的接口层。它提供了一条官方支持的标准化入口，使应用能够调用 Runtime、访问 Realm 与世界语义、对接 AI Provider、管理作用域、挂载 Mod 并使用共享类型，而无需直接引入底层的私有实现。
+Nimi SDK 是应用代码（App）实际调用的接口层。它提供了一条官方支持的标准化入口，使应用能够调用 Runtime、访问 Realm 与世界语义、对接 AI Provider、管理作用域并使用共享类型，而无需直接引入底层的私有实现。
 
 在 Nimi 平台进行开发时，首要关注的边界即为 SDK。严格遵守此边界的应用，能够在 Runtime 与 Realm 底层架构演进时保持稳定；若越过该边界直接耦合内部实现，底层架构的任何变更都可能引发应用的破坏性故障。
 
@@ -29,7 +29,6 @@ SDK 被拆分为多个命名的子路径（Subpaths），每个子路径遵循�
 | `world` | 结合世界真值状态与 Runtime 的生成能力。 |
 | `ai-provider` | 对经由 Runtime 暴露的 AI Provider 进行标准化适配。 |
 | `scope` | 管理应用的授权机制与目录生命周期。 |
-| `mod` | 提供宿主环境注入的 Mod 扩展能力接口。 |
 | `types` | 提供跨模块共享的公开数据类型。 |
 
 应用通常会跨越多个子路径同时导入。这种拆分旨在确保每个子路径能够在独立契约的保障下自由演进，避免模块间的交叉影响。
@@ -47,8 +46,7 @@ SDK 被拆分为多个命名的子路径（Subpaths），每个子路径遵循�
 1. 从 `sdk/runtime` 导入。在流式契约保障下发起生成请求并使用数据流；具体规范详见 [Runtime 流式](/zh/runtime/streaming) 与 [Runtime 工作流](/zh/runtime/workflows)。
 2. 从 `sdk/realm`（如需组合读取则使用 `sdk/world`）导入以获取世界真值。严禁跨越边界直接导入 Realm 的私有内部逻辑；SDK 已安全地转换出应用层获准访问的视图。
 3. 若涉及权限验证与目录树管理，从 `sdk/scope` 导入相关工具。
-4. 仅在构建由宿主注入的 Mod 扩展表面时，从 `sdk/mod` 进行导入。一般应用开发不涉及此路径。
-5. 通用数据结构统一从 `sdk/types` 获取。它们是稳定的构建基石，支持跨子路径复用。
+4. 通用数据结构统一从 `sdk/types` 获取。它们是稳定的构建基石，支持跨子路径复用。
 
 遵循此规范可构建出隔离底层私有路径的高内聚应用。只要 SDK 契约保持稳定，底层 Runtime 或 Realm 的内部重构将不会影响应用运行。
 
@@ -76,6 +74,5 @@ SDK 被拆分为多个命名的子路径（Subpaths），每个子路径遵循�
 - [`.nimi/spec/sdk/kernel/realm-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/realm-contract.md)
 - [`.nimi/spec/sdk/kernel/ai-provider-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/ai-provider-contract.md)
 - [`.nimi/spec/sdk/kernel/scope-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/scope-contract.md)
-- [`.nimi/spec/sdk/kernel/mod-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/mod-contract.md)
 - [`.nimi/spec/sdk/kernel/tables/sdk-surfaces.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/tables/sdk-surfaces.yaml)
 - [`.nimi/spec/sdk/kernel/tables/import-boundaries.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/tables/import-boundaries.yaml)

@@ -2,7 +2,7 @@
 
 The Nimi SDK is the layer your app code actually talks to. It gives you a
 supported path into Runtime, Realm, world semantics, AI providers, scope,
-mods, and shared types — without importing private internals from any of
+and shared types — without importing private internals from any of
 those layers.
 
 If you're building on Nimi, the SDK is the boundary to look for first.
@@ -45,7 +45,6 @@ contract:
 | `world` | Composition of world truth and Runtime-backed generation |
 | `ai-provider` | AI provider projection through Runtime |
 | `scope` | Authorization and catalog lifecycle projection |
-| `mod` | Host-injected mod capabilities |
 | `types` | Shared public types |
 
 Apps usually import from more than one sub-path. The point of the split
@@ -79,9 +78,7 @@ generation, read world truth, and react to Realm updates:
    internals; the SDK projects what your app is allowed to see.
 3. You import from `sdk/scope` if your app needs authorization and
    catalog projection.
-4. You import from `sdk/mod` only if you are building a host-injected
-   mod surface. Otherwise this sub-path is not for your code.
-5. Shared types come from `sdk/types`. They are stable building blocks
+4. Shared types come from `sdk/types`. They are stable building blocks
    used across the other sub-paths.
 
 The result is an app that does not import a single private path. When
@@ -118,6 +115,5 @@ of what is and is not allowed.
 - [`.nimi/spec/sdk/kernel/realm-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/realm-contract.md)
 - [`.nimi/spec/sdk/kernel/ai-provider-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/ai-provider-contract.md)
 - [`.nimi/spec/sdk/kernel/scope-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/scope-contract.md)
-- [`.nimi/spec/sdk/kernel/mod-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/mod-contract.md)
 - [`.nimi/spec/sdk/kernel/tables/sdk-surfaces.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/tables/sdk-surfaces.yaml)
 - [`.nimi/spec/sdk/kernel/tables/import-boundaries.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/tables/import-boundaries.yaml)

@@ -80,17 +80,16 @@ replication), Cognition (memory authority), and Avatar
 redefine another's truth; the architecture exists exactly to make
 this story possible without authority drift.
 
-## Story 3: A Delegated AI Takes Action
+## Story 3: A Future Delegated AI Takes Action
 
-You have admitted an external AI host (a separate AI provider) as an
+After the Runtime-owned External Agent action plane is admitted, you
+admit an external AI host (a separate AI provider) as an
 `ExternalPrincipal`. You want it to send a gift to a friend on your
 behalf.
 
-1. **External AI registers.** The Desktop External Agent Access
-   panel issues a scoped token with `action.discover.*`,
-   `action.dry-run.*`, `action.verify.*`, `action.commit.*` capability
-   domains. The token is shown plaintext once; subsequent visibility
-   is via an immutable token ledger.
+1. **Runtime admits the external principal.** Runtime owns the gateway,
+   token ledger, and action registry. Desktop only projects the user
+   controls.
 2. **Delegated session opens.** Runtime opens a delegated session
    for the external principal. The session has a trust tier
    (`CONTROLLED_LOCAL` / `USER_ADDED_REVIEWED` / `ORG_MANAGED` /

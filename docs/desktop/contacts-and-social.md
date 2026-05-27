@@ -1,84 +1,77 @@
-# Contacts And Social
+# Relationships And Social
 
-Desktop's contacts and social surface lets users manage their
-friend list, send and receive friend requests, search users, and
-block or unblock contacts. Social state lives canonically in
-Realm; Desktop projects it.
+Desktop no longer has a standalone Contacts page. Relationship and
+social behavior appears only where the user is already acting: profile
+details, chat relationship rail, Explore discovery, Home profile cards,
+and notifications.
 
-## What The Surface Does
+Realm owns the social graph. Desktop reads the projected relationship
+state, renders contextual actions, and sends typed mutations back
+through the admitted Realm/SDK path.
 
-| Feature | Behavior |
+## What Desktop Projects
+
+| Surface | Behavior |
 | --- | --- |
-| Friend list | Canonical platform truth, projected from Realm |
-| Friend request | Send, receive, accept, decline |
-| User search | Find users by handle / display name |
-| Block / unblock | Per-user; admitted through Realm |
-| Contacts page | Sidebar with collapsible search; auto-collapses on blur or Escape |
+| Profile detail | Show relationship status, request friendship, remove friend, block user |
+| Chat relationship rail | Show available people and agents inside Chat context |
+| Explore / Home discovery | Offer contextual add-friend actions from discovered profiles |
+| Notifications | Accept, reject, or review incoming friend requests |
+| AgentFriend gating | Enforce agent friend quota and local-agent launch preconditions |
 
-The contacts page is not the source of truth. Realm's social
-contract (`R-SOC-*`) is. Desktop reads and projects.
+There is no primary navigation tab, lazy route, page shell, or
+standalone sidebar for Contacts. Those shapes were retired so the
+product concept stays centered on relationships, profiles, and the
+current task surface.
 
 ## Friendship As Canonical Truth
 
-Friendship in Nimi is **canonical platform truth** — once admitted,
-it is not world-local, not session-local, not app-local. It is
-visible in any world Alice and Bob both visit, and any app they
-both use.
+Friendship in Nimi is canonical platform truth. Once admitted, it is
+not world-local, session-local, or app-local. It is visible in every
+world Alice and Bob both visit and every Nimi app they both use.
 
 | Property | Value |
 | --- | --- |
 | Storage | Realm `R-SOC-*` |
 | Shape | Ordered-pair uniqueness graph |
-| Cross-world visibility | yes — same friendship in every world |
-| Cross-app visibility | yes — same friendship in every Nimi app |
+| Cross-world visibility | yes |
+| Cross-app visibility | yes |
 | Mutation | Through admitted Realm contracts |
 
-A user who befriends another in World A finds the friendship
-visible in World B and in any Nimi app — without re-acceptance.
+Desktop never treats relationship state as a private local cache. It
+projects Realm truth and fails closed when the projection or mutation
+precondition is missing.
 
 ## Reader Scenario: Sending A Friend Request
 
-You search for a user and send a friend request.
+You discover a profile from Explore or Home and send a friend request.
 
-1. **Search.** The contacts search bar accepts a handle.
-2. **Realm query.** Desktop queries Realm under admitted user
-   search surface; results are typed.
-3. **Send request.** You select a user; Desktop submits a typed
-   friend request to Realm.
-4. **Realm admits.** The request is recorded; the recipient sees
-   it.
-5. **Recipient accepts.** Realm marks the friendship `active`
-   (ordered pair recorded under `R-SOC-*`).
-6. **Visible everywhere.** From this moment, the friendship is
-   canonical platform truth — visible in any world either of you
-   visits.
+1. **Open profile context.** The profile detail surface shows the
+   current relationship projection.
+2. **Submit request.** Desktop sends a typed friend request through the
+   admitted Realm/SDK path.
+3. **Realm admits.** The request is recorded; the recipient sees it in
+   their notification context.
+4. **Recipient accepts.** Realm marks the friendship `active`.
+5. **Visible everywhere.** The relationship is now platform truth and
+   appears in other admitted contexts.
 
-The friendship is not a Desktop-local cache that needs syncing.
-It is canonical Realm truth that Desktop projects.
+No Contacts page is involved.
 
 ## Reader Scenario: Blocking A User
 
-You decide to block someone you no longer want to interact with.
+You block a user from a profile context.
 
-1. **Block.** Through the contacts page, you submit a block
-   request to Realm.
-2. **Realm admits.** Block is recorded; the social graph updates.
-3. **Cross-world effect.** The block applies in every world.
-   Chat preconditions (which depend on social state) refuse to
-   admit further direct conversation.
-4. **Audit lineage.** The block event is recorded.
+1. **Block.** The contextual profile surface submits the block request.
+2. **Realm admits.** The social graph records the block.
+3. **Cross-context effect.** Chat and other relationship-dependent
+   preconditions refuse further direct interaction.
+4. **Audit lineage.** The mutation is recorded with its admitted
+   source.
 
-A user blocked in any context is blocked in all contexts. The
-social graph is one truth, not per-app.
-
-## Sidebar Behavior
-
-The contacts sidebar has a collapsible search input that
-auto-collapses on blur or Escape — small UX detail, but the kind
-of behavior that makes the surface feel polished.
+The block is one social truth, not a Desktop-only setting.
 
 ## Source Basis
 
-- [`.nimi/spec/desktop/contacts.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/contacts.md)
-- [`.nimi/spec/realm/social.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/social.md)
+- [`.nimi/spec/desktop/kernel/relationship-profile-surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/relationship-profile-surface-contract.md)
 - [`.nimi/spec/realm/kernel/social-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/social-contract.md)

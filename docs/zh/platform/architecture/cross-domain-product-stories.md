@@ -30,11 +30,11 @@
 
 这一例触及平台（Transit、Social、Economy）、Realm（truth、transit、social、economy）、Runtime（记忆库复制）、Cognition（记忆权威）、Avatar（呈现）。各层不允许静默重定义对方的真相；架构存在的意义就是让这种故事成立而不出现权威漂移。
 
-## 故事 3：受委派的 AI 行动
+## 故事 3：未来受委派的 AI 行动
 
-你已经把一个外部 AI 宿主（独立 AI Provider）准入为 `ExternalPrincipal`。你想让它代你给一个朋友送一份礼物。
+在 Runtime-owned External Agent action plane 准入之后，你把一个外部 AI 宿主（独立 AI Provider）准入为 `ExternalPrincipal`。你想让它代你给一个朋友送一份礼物。
 
-1. **外部 AI 注册**。桌面端外部 Agent 接入面板签发限定作用域 Token，含 `action.discover.*`、`action.dry-run.*`、`action.verify.*`、`action.commit.*` 能力域。Token 明文展示一次；之后只看不可变账本。
+1. **Runtime 准入外部 principal**。Runtime 持有 gateway、token ledger 与 action registry。桌面端只投影用户控件。
 2. **委派会话开**。Runtime 给外部 principal 打开委派会话。会话有信任层级（`CONTROLLED_LOCAL` / `USER_ADDED_REVIEWED` / `ORG_MANAGED` / `BLOCKED`）与策略快照。
 3. **外部 AI 提议**。它发出强类型委派请求——比如 `SUGGEST_INTENT`（动作：给朋友送礼物）。
 4. **输出防火墙分类**。校验 schema、来源、描述符哈希、敏感度；识别 prompt 投毒；推导审批要求；吐出裁决：`ACCEPTED_OBSERVATION`、`ACCEPTED_SUGGESTION`、`APPROVAL_REQUIRED`、`QUARANTINED`、`REJECTED`、`PROVIDER_DRIFTED`、`SCHEMA_INVALID`、`POLICY_BLOCKED`。

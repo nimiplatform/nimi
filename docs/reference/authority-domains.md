@@ -7,11 +7,11 @@ not own.
 
 | Domain | Owns | Does not own |
 | --- | --- | --- |
-| Platform | World model, six protocol primitives, authority rules, app slice admission, Hook Action Fabric contract, AI agent security interface | World truth; AI execution; app integration; UI rendering |
-| Runtime | AI execution (text/image/video/audio/embedding/STT/TTS), workflows, streaming, multimodal artifacts, local capability routing, GPU arbitration, model lifecycle, agent execution (Chat Track / Life Track / hook scheduling), runtime-local memory, knowledge banks, app-to-app messaging, delegated capability gateway, output firewall, local audit | World truth; SDK projection; UI; Cognition authority; Realm authority |
+| Platform | World model, six protocol primitives, authority rules, app slice admission, AI last-mile action boundary, AI agent security interface | World truth; AI execution; app integration; UI rendering |
+| Runtime | AI execution (text/image/video/audio/embedding/STT/TTS), workflows, streaming, multimodal artifacts, local capability routing, GPU arbitration, model lifecycle, agent execution (Chat Track / Life Track / Runtime HookIntent scheduling), runtime-local memory, knowledge banks, app-to-app messaging, delegated capability gateway, output firewall, local audit | World truth; SDK projection; UI; Cognition authority; Realm authority |
 | SDK | App-facing access surface, surface contracts, transport, error projection, import boundaries | Runtime / Realm / Cognition / Desktop internals; new platform truth; runtime execution |
-| Desktop | Native first-party shell, native bridging, mod governance + hook capability allowlist, window/menu behavior, local integration boundaries, first-party user workflows, External Agent Access panel | Runtime execution; SDK contract definition; Realm truth; Avatar embodiment authority |
-| Web | Constrained browser projection of admitted Desktop surfaces | Native runtime bootstrap; mod registration; native window; sensitive token persistence beyond browser-safe limits |
+| Desktop | Native first-party shell, native bridging, window/menu behavior, local integration boundaries, first-party user workflows, External Agent Access placement | Runtime execution; SDK contract definition; Realm truth; Avatar embodiment authority; External Agent action authority |
+| Web | Constrained browser projection of admitted Desktop surfaces | Native runtime bootstrap; native window; sensitive token persistence beyond browser-safe limits |
 | Realm | World truth, world state, world history, chat, social, economy, asset, transit, binding, resource, bundle | Runtime execution; SDK projection; Desktop UI decisions; Cognition memory authority |
 | Avatar | Embodied agent presentation, embodiment projection, carrier visual acceptance, backend branches (Live2D / VRM / generated motion), agent script, avatar event surface | Agent identity (Runtime); agent memory (Cognition); world truth (Realm); generation (Runtime) |
 | Cognition | Standalone memory, knowledge, prompt serving, references, completion gates, skill service, runtime bridge contract, runtime upgrade contract | Runtime execution; Realm truth; Avatar embodiment; Desktop UI |
@@ -21,7 +21,6 @@ not own.
 
 | Edge | Direction | Carries |
 | --- | --- | --- |
-| `mods ↔ desktop` | bidirectional | In-process hook runtime |
 | `desktop → nimi-sdk` | unidirectional | Unified developer surface |
 | `desktop → nimi-runtime` | unidirectional | gRPC runtime access |
 | `nimi-apps → nimi-realm` | unidirectional | REST + WS realm access |
@@ -34,7 +33,6 @@ not own.
 | --- | --- |
 | Apps must use SDK | Apps cannot import private Runtime / Realm internals; SDK is the boundary |
 | SDK does not redefine | SDK projects upstream contracts; does not invent new product truth |
-| Mods must use hook capability | Mods consume admitted hook capabilities; cannot bypass into raw runtime |
 | Runtime cannot absorb Cognition | Bridge contract is consumption; authority remains with Cognition |
 | Cognition cannot redefine Realm | Memory and knowledge are not world truth |
 | Web cannot imply Desktop-native | Web adapter disables capabilities the browser cannot honor |

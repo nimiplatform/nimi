@@ -1,6 +1,6 @@
 # AI Last Mile
 
-> Status: Admitted, in build-out. The Hook Action Fabric +
+> Status: Admitted, in build-out. The AI action boundary +
 > Principal model + execution protocol state machine are admitted
 > at the kernel level (`P-ALMI-002`, `P-ALMI-003`, `P-ALMI-011`).
 > Sub-pieces (typed action verbs, delegated firewall, MCP adapter)
@@ -12,9 +12,8 @@ real action on the platform. It is where a model says "send a gift"
 and the platform either does it, asks the user, or refuses — under
 explicit, audited contracts.
 
-This page introduces the **Hook Action Fabric**, the unified action
-surface for both internal Nimi agents and external AI hosts. For
-the contract depth see:
+This page introduces the Runtime-owned AI action boundary for internal
+Nimi agents and future external AI hosts. For the contract depth see:
 
 - [Execution Protocol](/platform/execution-protocol) — the five-stage state machine
 - [AI Scope Identity](/platform/ai-scope-identity) — AI configuration scope identity
@@ -34,10 +33,9 @@ Nimi takes the opposite stance: AI agents call typed capability APIs
 that are designed for them. Action is a first-class admitted
 operation, not a screen click pretending to be one.
 
-## What The Hook Action Fabric Is
+## What The AI Action Boundary Is
 
-The Hook Action Fabric is built from Runtime + Desktop's hook
-capability sandbox. Together they provide:
+The AI action boundary is Runtime-owned. It provides:
 
 - **Typed action verbs.** Each admitted capability domain has its
   own action API (`action.discover.*`, `action.dry-run.*`,
@@ -58,10 +56,10 @@ refusal.
 
 ## Internal Agents And External Agents
 
-The Hook Action Fabric is the same surface for both. An agent that
-ships inside Nimi (life-track or chat-track) and an external AI host
-(via `ExternalPrincipal`) both call typed capabilities; both pass
-through the firewall; both leave audit lineage.
+The action boundary is the same conceptual surface for both. An agent
+that ships inside Nimi (life-track or chat-track) and a future external
+AI host (via `ExternalPrincipal`) both call typed capabilities; both
+pass through the firewall; both leave audit lineage.
 
 The difference is policy:
 

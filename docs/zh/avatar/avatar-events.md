@@ -4,7 +4,7 @@
 
 事件分类法已在内核层级获得准入；事件总线已交付。
 
-Avatar 对外暴露一组强类型事件，供 NAS 处理器、Mod 与 Runtime 组件订阅。事件家族在内核层准入，不接受自由格式。
+Avatar 对外暴露一组强类型事件，供 NAS 处理器、Avatar app 组件与 Runtime 组件订阅。事件家族在内核层准入，不接受自由格式。
 
 ## 事件家族
 
@@ -57,16 +57,16 @@ Avatar 对外暴露一组强类型事件，供 NAS 处理器、Mod 与 Runtime �
 
 合成态状态机的迁移事件（`loading → ready → degraded:* → relaunch-pending`）。
 
-## 场景：Mod 订阅 Avatar 事件
+## 场景：NAS 处理器订阅 Avatar 事件
 
-某个 Mod 想在 Agent 表达情绪时做点反应。
+某个 NAS 处理器想在 Agent 表达情绪时做点反应。
 
-1. **Mod 注册**。通过准入的桌面端 hook 能力订阅 `avatar.expression.*`。
+1. **处理器注册**。通过准入的 Avatar 处理器发现机制订阅 `avatar.expression.*`。
 2. **Avatar 发出事件**。Agent 的 Runtime 驱动一次表情更新时，Avatar 语义层发出 `avatar.expression.changed`。
-3. **Mod 收到事件**。事件强类型，包含旧表情与新表情。
-4. **Mod 在准入能力清单内行动**。
+3. **处理器收到事件**。事件强类型，包含旧表情与新表情。
+4. **处理器在 Avatar handler 边界内行动**。
 
-Mod 不需要自己推断 Avatar 状态——事件本身就是可观测面。
+处理器不需要自己推断 Avatar 状态——事件本身就是可观测面。
 
 ## 场景：跨 App 协同
 
@@ -96,7 +96,7 @@ Agent 开口说话，唇形需要与音频对齐。
 | --- | --- |
 | 事件分类 | Avatar event 契约 |
 | 事件发出 | Avatar 语义层 |
-| 事件消费 | NAS 处理器、Mod、其它 App |
+| 事件消费 | NAS 处理器、Avatar app 组件、其它 App |
 | 跨实例协同 | `avatar_instance_registry` |
 | 唇形同步桥 | Runtime 展示流 + SDK 队列 + Avatar `ParamMouthOpenY` |
 

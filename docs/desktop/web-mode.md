@@ -2,7 +2,7 @@
 
 Web mode is a constrained projection of Nimi. It can present selected
 platform and product surfaces in the browser, but it does not inherit
-Desktop-native runtime, local, mod, window, or shell capabilities.
+Desktop-native runtime, local, window, or shell capabilities.
 
 The kernel rules behind Web behavior live under the Web release
 contract and the Desktop web adapter.
@@ -13,7 +13,6 @@ The Web adapter disables surfaces that depend on Desktop or Tauri-like
 capabilities:
 
 - Native runtime bootstrap.
-- Mod registration and the in-process hook runtime.
 - External-agent bridges that depend on native processes.
 - Native window management and OS integrations.
 - Sensitive token persistence beyond what browsers can safely offer.
@@ -50,19 +49,6 @@ version. The expected behavior under the contract is:
 
 This honesty matters. A silent fallback would lie about the actual
 posture of the system.
-
-## Reader Scenario: A Mod Author Wondering About Web
-
-Suppose a mod author wants their mod to run on Web "for reach." Under
-the Web adapter, mods are not part of the Web surface. The author has
-two real options:
-
-- Build a Desktop mod and accept that the surface is Desktop only.
-- Propose a non-mod surface (for example, a content read pattern) that
-  could be admitted as a web-safe projection.
-
-Web mode does not become a smaller mod runtime by accident. If a
-capability is admitted for Web, that is an explicit contract change.
 
 ## Source Basis
 

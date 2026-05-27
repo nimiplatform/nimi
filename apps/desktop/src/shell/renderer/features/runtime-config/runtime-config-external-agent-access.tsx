@@ -184,6 +184,7 @@ export function ExternalAgentAccessPanel() {
   const canIssue = gatewayStatus.enabled
     && !gatewayStatus.loading
     && (gatewayStatus.actionCount ?? 0) > 0;
+  const isActionRegistryDeferred = gatewayStatus.reasonCode === 'EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY';
 
   const tokenCounts = useMemo(() => {
     let active = 0;
@@ -210,15 +211,19 @@ export function ExternalAgentAccessPanel() {
     ? t('runtimeConfig.eaa.gatewayLoadingHeadline', { defaultValue: 'Checking gateway status' })
     : gatewayStatus.errored
       ? t('runtimeConfig.eaa.gatewayUnavailableHeadline', { defaultValue: 'Gateway unavailable' })
-      : gatewayStatus.enabled
-        ? t('runtimeConfig.eaa.gatewayAcceptingHeadline', { defaultValue: 'Gateway is accepting connections' })
-        : t('runtimeConfig.eaa.gatewayOfflineHeadline', { defaultValue: 'Gateway is offline' });
+      : isActionRegistryDeferred
+        ? t('runtimeConfig.eaa.gatewayDeferredHeadline', { defaultValue: 'External Agent access is deferred' })
+        : gatewayStatus.enabled
+          ? t('runtimeConfig.eaa.gatewayAcceptingHeadline', { defaultValue: 'Gateway is accepting connections' })
+          : t('runtimeConfig.eaa.gatewayOfflineHeadline', { defaultValue: 'Gateway is offline' });
 
   const gatewaySubline = gatewayStatus.errored
     ? t('runtimeConfig.eaa.gatewayErrorSubline', { defaultValue: 'Unable to reach the local runtime gateway.' })
-    : gatewayStatus.enabled
-      ? t('runtimeConfig.eaa.gatewayAcceptingSubline', { defaultValue: 'External agents can request tokens at the bind address below.' })
-      : t('runtimeConfig.eaa.gatewayOfflineSubline', { defaultValue: 'Start the runtime daemon to accept external agent connections.' });
+    : isActionRegistryDeferred
+      ? t('runtimeConfig.eaa.gatewayActionRegistryEmptySubline', { defaultValue: 'Runtime projection is present, but token issuance stays disabled until the Runtime action registry and gateway server land.' })
+      : gatewayStatus.enabled
+        ? t('runtimeConfig.eaa.gatewayAcceptingSubline', { defaultValue: 'External agents can request tokens at the bind address below.' })
+        : t('runtimeConfig.eaa.gatewayOfflineSubline', { defaultValue: 'Runtime is not accepting external agent connections.' });
 
   const headerDot: 'success' | 'warning' | 'danger' | 'muted' = gatewayStatus.loading
     ? 'muted'
@@ -501,7 +506,9 @@ export function ExternalAgentAccessPanel() {
                 </p>
                 {tokens.length === 0 ? (
                   <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>
-                    {t('runtimeConfig.eaa.noTokensIssuedHint', { defaultValue: 'Issue a token to let an external agent call the runtime.' })}
+                    {canIssue
+                      ? t('runtimeConfig.eaa.noTokensIssuedHint', { defaultValue: 'Issue a token to let an external agent call the runtime.' })
+                      : t('runtimeConfig.eaa.noTokensIssuedDeferredHint', { defaultValue: 'Tokens will appear here after Runtime enables the External Agent action plane.' })}
                   </p>
                 ) : null}
               </div>

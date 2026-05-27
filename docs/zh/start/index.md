@@ -48,7 +48,7 @@ Nimi Coding 作为独立于宿主环境的方法论，已作为标准 npm 软件
 
 1. 阅读 [平台](/zh/platform/)，确立“世界”而非“会话”是平台核心运转对象的基础认知。
 2. 阅读 [Runtime](/zh/runtime/)，理解 Provider 调度、工作流、流式传输及多模态产物等逻辑均由 Runtime 契约统筹，而非应用代码。
-3. 阅读 [SDK](/zh/sdk/)，掌握如何通过 `sdk/runtime`、`sdk/world`、`sdk/realm`、`sdk/ai-provider`、`sdk/scope` 及 `sdk/mod` 合规消费底层能力，避免直接导入私有模块。
+3. 阅读 [SDK](/zh/sdk/)，掌握如何通过 `sdk/runtime`、`sdk/world`、`sdk/realm`、`sdk/ai-provider` 与 `sdk/scope` 合规消费底层能力，避免直接导入私有模块。
 4. 阅读 [桌面端](/zh/desktop/) 与 [Web 模式](/zh/desktop/web-mode)，明晰两种呈现形态的能力边界差异，以评估其对应用分发计划的影响。
 5. 准备进行代码贡献时，阅读 [Nimi Coding](/zh/nimicoding/)。处理高风险变更或跨模块重构时，需遵循此标准工作流。
 

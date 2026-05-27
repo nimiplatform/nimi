@@ -85,8 +85,8 @@ first walkthrough:
    app code.
 3. Read [SDK](/sdk/) to find that your app should consume those
    contracts through `sdk/runtime`, `sdk/world`, `sdk/realm`,
-   `sdk/ai-provider`, `sdk/scope`, and `sdk/mod`, not by importing
-   private internals.
+   `sdk/ai-provider`, and `sdk/scope`, not by importing private
+   internals.
 4. Read [Desktop](/desktop/) and [Web Mode](/desktop/web-mode) to
    learn why Desktop and Web do not have the same capability envelope
    and what that means for your distribution plans.

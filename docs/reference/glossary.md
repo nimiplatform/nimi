@@ -48,11 +48,11 @@ multimodal delivery, local capability routing, delegation, audit, and
 runtime-owned agent participation.
 
 **SDK.** The TypeScript app-facing access boundary. Apps consume Runtime,
-Realm, world composition, scope, and mods through the SDK rather than
-crossing private internals.
+Realm, world composition, scope, and shared public types through the SDK
+rather than crossing private internals.
 
-**Desktop.** The first-party native shell. Hosts native, local, and mod
-capabilities admitted by Desktop contracts.
+**Desktop.** The first-party native shell. Hosts native, local, and
+first-party user workflows admitted by Desktop contracts.
 
 **Web.** A constrained projection of selected platform surfaces. Does not
 inherit Desktop-native capabilities by implication.
@@ -100,7 +100,7 @@ capability semantics for local execution.
 
 **Surface.** A named SDK sub-path with its own export and boundary
 contract (`sdk/runtime`, `sdk/realm`, `sdk/world`, `sdk/ai-provider`,
-`sdk/scope`, `sdk/mod`, `sdk/types`).
+`sdk/scope`, `sdk/types`).
 
 **Boundary.** A spec-admitted import or call rule that prevents apps from
 crossing into private Runtime, Realm, or Cognition internals.
@@ -125,15 +125,9 @@ world meaning.
 
 **Shell.** Desktop's native first-party UI surface.
 
-**Mod.** A Desktop extension that runs near the user surface under hook
-capability allowlists.
-
-**Hook Capability.** A specific, allowlisted ability granted to a mod
-through a typed hook surface.
-
 **Web Adapter.** The constrained projection of selected Desktop surfaces
-into the browser. Native bootstrap, mod registration, native window
-behavior, and sensitive token persistence are disabled in this surface.
+into the browser. Native bootstrap, native window behavior, and sensitive
+token persistence are disabled in this surface.
 
 ## Avatar Vocabulary
 

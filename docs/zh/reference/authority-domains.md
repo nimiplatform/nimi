@@ -6,11 +6,11 @@
 
 | 域 | 持有 | 不持有 |
 | --- | --- | --- |
-| 平台 | 世界模型、六大基础协议、权威规则、App 切片准入、Hook Action Fabric 契约、AI Agent 安全接口 | 世界真相；AI 执行；App 集成；UI 渲染 |
-| Runtime | AI 执行（文/图/视频/音/embedding/STT/TTS）、工作流、流式、多模态产物、本地能力路由、GPU 仲裁、模型生命周期、Agent 执行（Chat 轨 / Life 轨 / hook 调度）、Runtime 本地记忆、知识库、App 间消息、委派能力网关、输出防火墙、本地审计 | 世界真相；SDK 改写；UI；Cognition 权威；Realm 权威 |
+| 平台 | 世界模型、六大基础协议、权威规则、App 切片准入、AI last-mile action 边界、AI Agent 安全接口 | 世界真相；AI 执行；App 集成；UI 渲染 |
+| Runtime | AI 执行（文/图/视频/音/embedding/STT/TTS）、工作流、流式、多模态产物、本地能力路由、GPU 仲裁、模型生命周期、Agent 执行（Chat 轨 / Life 轨 / Runtime HookIntent 调度）、Runtime 本地记忆、知识库、App 间消息、委派能力网关、输出防火墙、本地审计 | 世界真相；SDK 改写；UI；Cognition 权威；Realm 权威 |
 | SDK | App 面接入面、表面契约、传输、错误改写、import 边界 | Runtime / Realm / Cognition / 桌面端的私有内部；新平台真相；Runtime 执行 |
-| 桌面端 | 原生第一方外壳、原生桥接、mod 治理与 hook 能力白名单、窗口 / 菜单行为、本地集成边界、第一方用户工作流、外部 Agent 接入面板 | Runtime 执行；SDK 契约定义；Realm 真相；Avatar 形体权威 |
-| 网页端 | 已准入桌面端面的浏览器受限改写 | 原生 Runtime 启动；mod 注册；原生窗口；超出浏览器安全边界的敏感 token 持久化 |
+| 桌面端 | 原生第一方外壳、原生桥接、窗口 / 菜单行为、本地集成边界、第一方用户工作流、外部 Agent 接入位置 | Runtime 执行；SDK 契约定义；Realm 真相；Avatar 形体权威；外部 Agent action 权威 |
+| 网页端 | 已准入桌面端面的浏览器受限改写 | 原生 Runtime 启动；原生窗口；超出浏览器安全边界的敏感 token 持久化 |
 | Realm | 世界真相、世界状态、世界历史、聊天、社交、经济、资产、通行、绑定、资源、bundle | Runtime 执行；SDK 改写；桌面端 UI 决策；Cognition 记忆权威 |
 | Avatar | Agent 形体呈现、形体改写、载体视觉准入、后端分支（Live2D / VRM / 生成式动作）、Agent 脚本、Avatar 事件面 | Agent 身份（归 Runtime）；Agent 记忆（归 Cognition）；世界真相（归 Realm）；生成（归 Runtime） |
 | Cognition | 独立的记忆、知识、prompt 服务、引用、完成关卡、技能服务、runtime 桥接契约、runtime 升级契约 | Runtime 执行；Realm 真相；Avatar 形体；桌面端 UI |
@@ -20,7 +20,6 @@
 
 | 边 | 方向 | 承载 |
 | --- | --- | --- |
-| `mods ↔ desktop` | 双向 | 进程内 hook 运行时 |
 | `desktop → nimi-sdk` | 单向 | 统一开发者面 |
 | `desktop → nimi-runtime` | 单向 | gRPC runtime 接入 |
 | `nimi-apps → nimi-realm` | 单向 | REST + WS realm 接入 |
@@ -33,7 +32,6 @@
 | --- | --- |
 | App 必须通过 SDK | App 不能 import Runtime / Realm 私有内部；SDK 是边界 |
 | SDK 不重定义真相 | SDK 改写上游契约；不发明新的产品真相 |
-| Mod 必须通过 hook 能力 | Mod 使用已准入的 hook 能力；不能绕开直连 raw runtime |
 | Runtime 不吸收 Cognition | 桥接契约只是使用；权威留在 Cognition |
 | Cognition 不重定义 Realm | 记忆和知识不是世界真相 |
 | 网页端不能伪装原生 | 网页端适配器禁用浏览器无法兑现的能力 |

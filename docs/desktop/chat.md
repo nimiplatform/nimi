@@ -40,21 +40,12 @@ streams from Runtime under the streaming contract.
 A user who clicks "stop" mid-stream gets the partial reply
 preserved; the next interaction starts cleanly.
 
-## Turn Lifecycle Hook Points
+## Turn Lifecycle Ownership
 
-Desktop chat exposes admitted hook points so mods can react at
-each phase of a turn:
-
-| Hook point | Fires |
-| --- | --- |
-| `pre-policy` | Before policy decisions are applied |
-| `pre-model` | Before the model call happens |
-| `post-state` | After state has been updated |
-| `pre-commit` | Before the commit lands |
-
-Mods that register against these hooks (under their admitted
-allowlist) get typed events. Free-form interception is not
-admitted; the hook points are what the mod surface exposes.
+Desktop chat renders the conversation shell and forwards user intent
+through the SDK. Runtime owns the model call, streaming lifecycle,
+ConversationAnchor continuity, and agent track execution. Desktop does
+not expose a local turn interception surface.
 
 ## Reader Scenario: Talking To An Agent
 

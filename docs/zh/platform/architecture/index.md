@@ -12,7 +12,7 @@ Nimi 切成多个权威面，让任何一层都不会悄悄重写另一层的真
 - **Runtime** 持有 AI 执行、工作流、流式、模型与 provider 治理、本地能力路由、委派、审计，以及 Runtime 持有的 Agent 参与。
 - **SDK** 给 App 一个官方接入面，让 App 不必导入私有内部实现。
 - **Realm** 持有语义真相、世界状态、世界历史、聊天，以及相关的领域契约。
-- **桌面端（Desktop）** 承载原生第一方能力，包括 Mod 面与外壳级工作流。
+- **桌面端（Desktop）** 承载原生第一方能力与外壳级工作流。
 - **网页端（Web）** 在浏览器里呈现选定面的受限版本。
 - **Avatar** 把具身 Agent 的呈现作为独立领域来持有。
 - **Cognition** 独立持有 memory、知识、prompt 服务、引用、completion，以及 Runtime 桥语义。
@@ -24,7 +24,6 @@ Nimi 切成多个权威面，让任何一层都不会悄悄重写另一层的真
 平台规范冻结了一组小而稳的跨层关系。下图每一道箭头都对应一份准入的契约面：
 
 ```
-mods         <-> desktop          : 进程内 hook 运行环境
 desktop      ->  nimi-sdk         : 统一开发者接入面
 desktop      ->  nimi-runtime     : 走 gRPC 接入 Runtime
 nimi-apps    ->  nimi-realm       : REST + WS 接入 Realm
@@ -34,8 +33,8 @@ nimi-runtime <-> nimi-cognition   : Runtime 桥 / 消费重叠
 
 由这张图能引出两件事：
 
-- Mod 不绕开桌面端的 Hook 运行环境。Mod 直接调 `nimi-runtime` 就跳过了桌面端的能力边界。
 - Cognition 经由 Runtime 桥可达，但 Runtime 不吞并 Cognition 的权威。桥是消费，不是归属。
+- App 使用 SDK 边界，不直接导入 Runtime 或 Realm 的私有内部。
 
 ## 场景：App 发起一次生成请求
 
@@ -57,7 +56,7 @@ nimi-runtime <-> nimi-cognition   : Runtime 桥 / 消费重叠
 
 ## SDK 为什么重要
 
-App 不能直接跨进 Runtime 或 Realm 的私有内部。SDK 是公开的集成面。它让 App 在不导入私有实现边界的前提下，组合 Runtime 支撑的生成、Realm 真相读取、scope 流程、Mod 面。
+App 不能直接跨进 Runtime 或 Realm 的私有内部。SDK 是公开的集成面。它让 App 在不导入私有实现边界的前提下，组合 Runtime 支撑的生成、Realm 真相读取与 scope 流程。
 
 App 越过这道边界会出两件事。第一，它绑死在会改变的内部上。第二，它会形成自己对 Runtime 或 Realm 行为的本地预期，这种预期会与契约偏移，悄悄地长成本地的真相。
 

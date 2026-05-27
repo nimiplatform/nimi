@@ -146,9 +146,9 @@ Agent 申请未来调度的强类型契约。模型不能直接发出自由格�
 | 字段 | 值 |
 | --- | --- |
 | 主体类型 | `ExternalPrincipal` |
-| Token | 作用域受限、单次明文展示、不可变 token 账本 |
-| 能力域 | `action.discover.*`、`action.dry-run.*`、`action.verify.*`、`action.commit.*` |
-| 动作面 | Hook Action Fabric（Runtime + 桌面端 hook 能力沙盒） |
+| Token | 延期，直到 Runtime 持有 gateway/server 与 token ledger |
+| 能力域 | 未来的 `action.discover.*`、`action.dry-run.*`、`action.verify.*`、`action.commit.*` |
+| 动作面 | Runtime-owned action plane |
 
 ## 来源依据
 

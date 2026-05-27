@@ -20,8 +20,8 @@ At a high level, Nimi separates these responsibilities:
   not import private internals.
 - **Realm** owns semantic truth, world state, world history, chat, and
   related domain contracts.
-- **Desktop** hosts native first-party capabilities, including mod
-  surfaces and shell-level workflows.
+- **Desktop** hosts native first-party capabilities and shell-level
+  workflows.
 - **Web** exposes a constrained projection of selected surfaces in the
   browser.
 - **Avatar** owns embodied agent presentation as its own domain.
@@ -37,7 +37,6 @@ The platform spec freezes a small set of cross-layer relationships. Each
 arrow below corresponds to an admitted contract surface:
 
 ```
-mods         <-> desktop          : in-process hook runtime
 desktop      ->  nimi-sdk         : unified developer surface
 desktop      ->  nimi-runtime     : gRPC runtime access
 nimi-apps    ->  nimi-realm       : REST + WS realm access
@@ -47,10 +46,10 @@ nimi-runtime <-> nimi-cognition   : runtime bridge / consume overlap
 
 Two things follow from that diagram:
 
-- Mods do not bypass Desktop's hook runtime. A mod that tried to call
-  `nimi-runtime` directly would skip Desktop's capability boundary.
 - Cognition is reachable through Runtime's bridge, but Runtime doesn't
   absorb Cognition's authority. The bridge is consumption, not ownership.
+- Apps use the SDK boundary instead of importing Runtime or Realm
+  internals directly.
 
 ## Reader Scenario: A Generation Request From An App
 

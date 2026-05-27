@@ -68,9 +68,9 @@ Runtime is independent and reusable as AI infrastructure. The SDK is
 the unified developer surface. Desktop and third-party apps share the
 same access interface so that no app is structurally privileged.
 
-That makes it possible for a small mod, a third-party app, and the
-first-party Desktop shell to talk to the same Runtime, see the same
-Realm truth, and present a consistent agent across surfaces.
+That makes it possible for a third-party app and the first-party
+Desktop shell to talk to the same Runtime, see the same Realm truth,
+and present a consistent agent across surfaces.
 
 ### 3. Agents As First-Class Participants
 

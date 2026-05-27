@@ -3,8 +3,8 @@
 > Status: Running today. The event taxonomy is admitted at the
 > kernel level; the event bus is shipped.
 
-Avatar emits a typed event surface that NAS handlers, mods, and
-runtime components observe. The event families are admitted at
+Avatar emits a typed event surface that NAS handlers, Avatar app
+components, and runtime components observe. The event families are admitted at
 the kernel level; they are not free-form.
 
 ## Event Families
@@ -61,19 +61,19 @@ movement frames synchronized.
 State transitions of the composition state machine
 (`loading → ready → degraded:* → relaunch-pending`).
 
-## Reader Scenario: A Mod Subscribes To Avatar Events
+## Reader Scenario: A NAS Handler Subscribes To Avatar Events
 
-A mod wants to react when the agent expresses an emotion.
+A NAS handler wants to react when the agent expresses an emotion.
 
-1. **Mod registers.** Through admitted Desktop hook capability,
-   the mod subscribes to `avatar.expression.*`.
+1. **Handler registers.** Through admitted Avatar handler discovery,
+   the handler subscribes to `avatar.expression.*`.
 2. **Avatar emits.** When the agent's runtime drives an
    expression update, the projection emits
    `avatar.expression.changed`.
-3. **Mod receives.** Typed event with old + new expression.
-4. **Mod acts.** Within its admitted capability allowlist.
+3. **Handler receives.** Typed event with old + new expression.
+4. **Handler acts.** Within the Avatar handler boundary.
 
-Avatar events are observable; the mod did not have to construct
+Avatar events are observable; the handler did not have to construct
 its own state inference loop.
 
 ## Reader Scenario: A Cross-App Coordination
@@ -106,7 +106,7 @@ emotion intent. Avatar reflects both as event emissions.
 4. **Generated motion provider produces backend output.** Per
    [Generated Motion Provider](/avatar/generated-motion-provider.md).
 5. **Avatar event bus emits.** `avatar.activity.started` /
-   `avatar.expression.changed` propagate to NAS handlers, mods, and
+   `avatar.expression.changed` propagate to NAS handlers and
    subscribing apps.
 6. **Backend renders.** Live2D plays the wave motion + happy
    expression.
@@ -139,7 +139,7 @@ elaborate cross-domain choreography paths in the platform.
 | --- | --- |
 | Event taxonomy | Avatar event contract |
 | Event emission | Avatar projection layer |
-| Event consumption | NAS handlers, mods, other apps |
+| Event consumption | NAS handlers, Avatar app components, other apps |
 | Cross-instance coordination | `avatar_instance_registry` |
 | Lipsync bridge | Runtime presentation stream + SDK queue + Avatar `ParamMouthOpenY` |
 

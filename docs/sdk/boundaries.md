@@ -47,31 +47,30 @@ The reasoning is:
 Refusing the import is not pedantry. It is what keeps the app's surface
 stable and predictable.
 
-## Reader Scenario: A Mod That Tries To Skip Hooks
+## Reader Scenario: An App That Tries To Skip SDK
 
-Suppose a Desktop mod wants to call into Runtime directly for
-performance reasons, bypassing the Desktop hook capability layer. That
-is a different shape of the same boundary violation.
+Suppose an app wants to call into Runtime directly for performance
+reasons, bypassing the SDK projection. That is a different shape of the
+same boundary violation.
 
-- Mods consume capabilities through the host-injected mod surface, not
-  through arbitrary runtime imports.
-- The Desktop hook contract is what governs what mods are allowed to
-  do near the user surface.
-- Calling Runtime directly skips the capability allowlist and the
-  audit posture that mods are supposed to inherit.
+- Apps consume Runtime through public SDK methods, not arbitrary runtime
+  imports.
+- Runtime-owned behavior must stay behind Runtime contracts and SDK
+  projection.
+- Calling Runtime internals directly skips the stable error, transport,
+  and authority boundary the app is supposed to inherit.
 
-The performance argument is real. The right way to satisfy it is to
-extend the hook surface or admit a new SDK pattern, not to slip past
-the boundary.
+The performance argument can be real. The right way to satisfy it is to
+admit a new SDK pattern, not to slip past the boundary.
 
 ## What Belongs Inside The Boundary, And What Belongs Outside
 
-Inside the boundary lives anything an app, mod, or external integration
+Inside the boundary lives anything an app or external integration
 can rely on as a stable promise:
 
 - public SDK sub-paths and exports;
 - documented runtime methods, world composition primitives, realm
-  facade reads, scope projection, mod hooks;
+  facade reads, scope projection;
 - typed shared building blocks under `sdk/types`.
 
 Outside the boundary lives everything that exists for runtime

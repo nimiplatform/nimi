@@ -2,11 +2,11 @@
 
 ## 状态：已准入，建设中 (Admitted, in build-out)
 
-Hook Action Fabric + Principal 模型 + 执行协议状态机已在内核层准入 (P-ALMI-002, P-ALMI-003, P-ALMI-011)。
+AI action boundary + Principal 模型 + 执行协议状态机已在内核层准入 (P-ALMI-002, P-ALMI-003, P-ALMI-011)。
 
 AI 的最终执行环节，指的是从 Agent 形成意图，到平台上真正发生一次操作之间的那一段。当模型说"送一份礼物"时，平台要么真的送出去，要么停下来问用户，要么直接拒绝——所有这些动作都必须发生在显式、可审计的契约之下。
 
-本页介绍 **Hook Action Fabric**：Nimi 内部 Agent 与外部 AI 宿主共用的统一动作面。
+本页介绍 Runtime-owned AI action boundary：Nimi 内部 Agent 与未来外部 AI 宿主共用的动作边界。
 
 ## 它解决的问题
 
@@ -14,9 +14,9 @@ AI 的最终执行环节，指的是从 Agent 形成意图，到平台上真正�
 
 Nimi 选择了相反的做法：让 Agent 直接调用为它设计的强类型能力 API。动作是显式准入的一等操作，不是伪装成点击的副产品。
 
-## Hook Action Fabric 是什么
+## AI action boundary 是什么
 
-Hook Action Fabric 由 Runtime 加上桌面端 Hook 能力沙箱组成，提供四件事：
+AI action boundary 由 Runtime 持有，提供四件事：
 
 - **强类型动作动词**。每个准入的能力域有自己的动作 API：`action.discover.*`、`action.dry-run.*`、`action.verify.*`、`action.commit.*`。
 - **最小权限的作用域授权**。Token 上挂着显式作用域，能力以作用域为准，不以 Agent 的意愿为准。
@@ -27,7 +27,7 @@ Hook Action Fabric 由 Runtime 加上桌面端 Hook 能力沙箱组成，提供�
 
 ## 内部 Agent 与外部 Principal
 
-Hook Action Fabric 对两者是同一张面。Nimi 自带的 Agent（生命轨迹或对话轨迹）与通过 `ExternalPrincipal` 接入的外部 AI 宿主，调用的是同一组强类型能力，过的是同一道防火墙，留下的是同一种审计链路。
+这条 action boundary 对两者是同一张概念面。Nimi 自带的 Agent（生命轨迹或对话轨迹）与未来通过 `ExternalPrincipal` 接入的外部 AI 宿主，调用的是同一组强类型能力，过的是同一道防火墙，留下的是同一种审计链路。
 
 差别只在策略：
 

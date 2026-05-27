@@ -26,9 +26,9 @@
 
 **Runtime**。持有 AI 执行：provider、工作流、流式、多模态投递、本地能力路由、委派、审计，以及 Runtime 持有的 Agent 参与。
 
-**SDK**。面向 App 的 TypeScript 接入边界。App 通过 SDK 使用 Runtime、Realm、世界组合、scope、Mod，不跨进私有内部。
+**SDK**。面向 App 的 TypeScript 接入边界。App 通过 SDK 使用 Runtime、Realm、世界组合、scope 与共享公开类型，不跨进私有内部。
 
-**桌面端（Desktop）**。第一方原生外壳。承载经桌面端契约准入的原生、本地及 Mod 能力。
+**桌面端（Desktop）**。第一方原生外壳。承载经桌面端契约准入的原生、本地与第一方用户工作流。
 
 **网页端（Web）**。选定平台面的受限呈现。不会因暗示就继承桌面端原生能力。
 
@@ -58,7 +58,7 @@
 
 ## SDK 词汇
 
-**Surface（接入面）**。SDK 的命名子路径，自己有一份导出与边界契约（`sdk/runtime`、`sdk/realm`、`sdk/world`、`sdk/ai-provider`、`sdk/scope`、`sdk/mod`、`sdk/types`）。
+**Surface（接入面）**。SDK 的命名子路径，自己有一份导出与边界契约（`sdk/runtime`、`sdk/realm`、`sdk/world`、`sdk/ai-provider`、`sdk/scope`、`sdk/types`）。
 
 **边界（Boundary）**。规范准入的导入或调用规则，让 App 不能跨入 Runtime、Realm、Cognition 的私有内部。
 
@@ -78,11 +78,7 @@
 
 **外壳（Shell）**。桌面端第一方原生 UI 面。
 
-**Mod**。桌面端的扩展，跑在用户面附近，受 Hook 能力白名单约束。
-
-**Hook 能力**。经强类型 Hook 面授予 Mod 的具体白名单能力。
-
-**Web 适配器**。桌面端选定面到浏览器的受限呈现。原生启动、Mod 注册、原生窗口行为、敏感令牌持久化都在这一面里关闭。
+**Web 适配器**。桌面端选定面到浏览器的受限呈现。原生启动、原生窗口行为、敏感令牌持久化都在这一面里关闭。
 
 ## Avatar 词汇
 
