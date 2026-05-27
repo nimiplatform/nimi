@@ -199,6 +199,13 @@ export {
   type LocalRuntimePassiveAssetKindId,
   type LocalRuntimeRunnableAssetKindId,
 } from './local-asset-kind.js';
+export {
+  LOCAL_RUNTIME_ENGINE_IDS,
+  isLocalRuntimeEngineId,
+  normalizeLocalRuntimeEngineId,
+  parseLocalRuntimeEngineId,
+  type LocalRuntimeEngineId,
+} from './local-engine.js';
 export { createTauriIpcTransport } from './transports/tauri-ipc.js';
 export { createRuntimeClient } from './core/client.js';
 export { createRuntimeProtectedScopeHelper } from './protected-access.js';

@@ -14,8 +14,10 @@ import type {
 } from '@runtime/local-runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
+  LOCAL_RUNTIME_ENGINE_IDS,
   LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS,
   normalizeLocalRuntimeRunnableAssetKindId,
+  type LocalRuntimeEngineId,
   type LocalRuntimeRunnableAssetKindId,
 } from '@nimiplatform/sdk/runtime';
 import type { RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
@@ -72,8 +74,8 @@ export const CAPABILITY_OPTIONS = LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS;
 export type CapabilityOption = LocalRuntimeRunnableAssetKindId;
 export const ASSET_CLASS_OPTIONS = ['runnable', 'dependency'] as const;
 export type AssetClassOption = typeof ASSET_CLASS_OPTIONS[number];
-export const ASSET_ENGINE_OPTIONS = ['llama', 'media', 'speech', 'sidecar'] as const;
-export type AssetEngineOption = typeof ASSET_ENGINE_OPTIONS[number];
+export const ASSET_ENGINE_OPTIONS = LOCAL_RUNTIME_ENGINE_IDS;
+export type AssetEngineOption = LocalRuntimeEngineId;
 export type ProgressSessionState = {
   event: LocalRuntimeDownloadProgressEvent;
   updatedAtMs: number;

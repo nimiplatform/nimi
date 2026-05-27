@@ -1,6 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import test, { describe } from 'node:test';
 
 import {
@@ -25,6 +23,7 @@ import {
   statusLabel,
   type ProgressSessionState,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-model-center-utils';
+import { LOCAL_RUNTIME_ENGINE_IDS } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 // ---------------------------------------------------------------------------
@@ -285,17 +284,8 @@ describe('normalizeCapabilityOption', () => {
 });
 
 describe('local engine option projection', () => {
-  test('asset engine options match runtime local engine catalog', () => {
-    const source = readFileSync(
-      resolve(import.meta.dirname, '../../../.nimi/spec/runtime/kernel/tables/local-engine-catalog.yaml'),
-      'utf8',
-    );
-    const engines = Array.from(new Set(
-      [...source.matchAll(/^\s*-\s*engine:\s*([a-z0-9_-]+)/gmu)]
-        .map((match) => String(match[1] || '').trim())
-        .filter(Boolean),
-    ));
-    assert.deepEqual([...ASSET_ENGINE_OPTIONS], engines);
+  test('asset engine options consume SDK-projected runtime local engine ids', () => {
+    assert.deepEqual([...ASSET_ENGINE_OPTIONS], [...LOCAL_RUNTIME_ENGINE_IDS]);
   });
 });
 
