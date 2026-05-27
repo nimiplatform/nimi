@@ -492,16 +492,6 @@ registered_command_families:
     source_rule: D-GATE-092
 
 dormant_command_families:
-  - family: desktop_agent_avatar_store_unregistered
-    match:
-      prefix: desktop_agent_avatar_
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: desktop-agent-avatar-store
-    dormant_class: dormant_admitted
-    remediation_required: true
-    reason: Avatar store commands are annotated but not registered; W3 must either admit a product path and active classification or delete them.
-    source_rule: D-GATE-095
-
   - family: shell_tauri_test_fixture_unregistered
     match:
       exact:
