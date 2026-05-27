@@ -48,7 +48,7 @@ test('runtime config memory embedding section renders configured cloud selection
       },
     });
 
-    const state = createDefaultStateV11({});
+    const state = createDefaultStateV11();
     state.connectors = [{
       id: 'conn-gemini',
       label: 'Gemini Primary',

@@ -10,7 +10,7 @@ import {
   type RuntimeConfigStateV11,
 } from './runtime-config-state-types';
 import type { JsonObject } from '@runtime/net/json';
-import type { RuntimeConfigSeedV11, StoredStateV11 } from './runtime-config-storage-defaults';
+import type { StoredStateV11 } from './runtime-config-storage-defaults';
 import { createDefaultStateV11 } from './runtime-config-storage-defaults';
 
 function parseOptionalJsonObject(value: unknown): JsonObject | undefined {
@@ -18,7 +18,6 @@ function parseOptionalJsonObject(value: unknown): JsonObject | undefined {
 }
 
 function normalizeLocalFromAny(
-  seed: RuntimeConfigSeedV11,
   parsed: StoredStateV11 & JsonObject,
   fallback: RuntimeConfigStateV11,
 ): RuntimeConfigStateV11['local'] {
@@ -26,7 +25,7 @@ function normalizeLocalFromAny(
   const rawLocal = rawLocalRecord as Partial<RuntimeConfigStateV11['local']>;
 
   const endpoint = normalizeEndpointV11(
-    String(rawLocalRecord.endpoint || seed.localProviderEndpoint || seed.localOpenAiEndpoint),
+    String(rawLocalRecord.endpoint || ''),
     DEFAULT_LOCAL_ENDPOINT_V11,
   );
 
@@ -54,10 +53,10 @@ function normalizeLocalFromAny(
   };
 }
 
-export function normalizeStoredStateV11(seed: RuntimeConfigSeedV11, parsed: StoredStateV11): RuntimeConfigStateV11 {
-  const fallback = createDefaultStateV11(seed);
+export function normalizeStoredStateV11(parsed: StoredStateV11): RuntimeConfigStateV11 {
+  const fallback = createDefaultStateV11();
   const parsedRecord = parsed as StoredStateV11 & JsonObject;
-  const local = normalizeLocalFromAny(seed, parsedRecord, fallback);
+  const local = normalizeLocalFromAny(parsedRecord, fallback);
 
   const rawActivePage = parsedRecord.activePage || fallback.activePage;
 

@@ -72,15 +72,7 @@ export function useMenuBarNavigationListener(): void {
 
       if (payload.tab === 'runtime') {
         const nextPage = payload.page || 'overview';
-        const runtimeFields = store.runtimeFields;
-        const state = loadRuntimeConfigStateV11({
-          localProviderEndpoint: runtimeFields.localProviderEndpoint,
-          localOpenAiEndpoint: runtimeFields.localOpenAiEndpoint,
-          localProviderModel: runtimeFields.localProviderModel,
-          provider: runtimeFields.provider,
-          connectorId: runtimeFields.connectorId,
-          runtimeModelType: runtimeFields.runtimeModelType,
-        });
+        const state = loadRuntimeConfigStateV11();
         persistRuntimeConfigStateV11({
           ...state,
           activePage: nextPage,

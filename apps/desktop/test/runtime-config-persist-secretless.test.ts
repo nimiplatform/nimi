@@ -10,13 +10,7 @@ import { persistRuntimeConfigStateV11 } from '../src/shell/renderer/features/run
 import { createConnectorV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types';
 
 test('persisted state does not contain tokenApiKey or localOpenAiApiKey (type-level)', () => {
-  const state = createDefaultStateV11({
-    provider: 'local',
-    runtimeModelType: 'chat',
-    localProviderEndpoint: 'http://127.0.0.1:1234/v1',
-    localProviderModel: 'local-model',
-    localOpenAiEndpoint: 'https://openrouter.ai/api/v1',
-  });
+  const state = createDefaultStateV11();
 
   const connector = createConnectorV11('gemini', 'Gemini');
   connector.endpoint = 'https://generativelanguage.googleapis.com/v1beta/openai';
@@ -45,13 +39,7 @@ test('persistRuntimeConfigStateV11 does not persist connectors to localStorage',
   };
 
   try {
-    const state = createDefaultStateV11({
-      provider: 'local',
-      runtimeModelType: 'chat',
-      localProviderEndpoint: 'http://127.0.0.1:1234/v1',
-      localProviderModel: 'local-model',
-      localOpenAiEndpoint: 'https://openrouter.ai/api/v1',
-    });
+    const state = createDefaultStateV11();
 
     const connector = createConnectorV11('gemini', 'Gemini');
     connector.endpoint = 'https://generativelanguage.googleapis.com/v1beta/openai';

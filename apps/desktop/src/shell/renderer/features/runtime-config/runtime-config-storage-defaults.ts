@@ -3,15 +3,6 @@ import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 export const RUNTIME_CONFIG_STORAGE_KEY_V11 = 'nimi:runtime-config:v11';
 export const RUNTIME_CONFIG_STORAGE_KEY_V12 = 'nimi:runtime-config:v12';
 
-export type RuntimeConfigSeedV11 = {
-  localProviderEndpoint?: string;
-  localOpenAiEndpoint?: string;
-  localProviderModel?: string;
-  provider?: string;
-  connectorId?: string;
-  runtimeModelType?: string;
-};
-
 export type StoredStateV11 = {
   version: 11 | 12;
   initializedByV11: boolean;
@@ -23,8 +14,7 @@ export type StoredStateV11 = {
   local: RuntimeConfigStateV11['local'];
 };
 
-export function createDefaultStateV11(seed: RuntimeConfigSeedV11): RuntimeConfigStateV11 {
-  const endpoint = String(seed.localProviderEndpoint || seed.localOpenAiEndpoint || '').trim();
+export function createDefaultStateV11(): RuntimeConfigStateV11 {
   return {
     version: 12,
     initializedByV11: false,
@@ -34,7 +24,7 @@ export function createDefaultStateV11(seed: RuntimeConfigSeedV11): RuntimeConfig
     selectedSource: 'local',
     activeCapability: 'chat',
     local: {
-      endpoint,
+      endpoint: '',
       models: [],
       nodeMatrix: [],
       status: 'idle',

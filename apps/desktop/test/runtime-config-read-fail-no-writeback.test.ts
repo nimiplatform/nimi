@@ -8,13 +8,7 @@ import {
 import { createDefaultStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-defaults';
 
 test('write-back guard: state changes should not be written when bridge read fails', () => {
-  const state = createDefaultStateV11({
-    provider: 'local',
-    runtimeModelType: 'chat',
-    localProviderEndpoint: 'http://127.0.0.1:1234/v1',
-    localProviderModel: 'local-model',
-    localOpenAiEndpoint: 'https://openrouter.ai/api/v1',
-  });
+  const state = createDefaultStateV11();
 
   let runtimeBridgeReadSucceeded = false;
   let setRuntimeBridgeConfigCalled = false;

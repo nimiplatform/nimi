@@ -1,5 +1,5 @@
 import { useEffect, type Dispatch, type SetStateAction } from 'react';
-import type { RuntimeFieldMap, StatusBanner } from '@renderer/app-shell/providers/app-store';
+import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
 import { i18n } from '@renderer/i18n';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import {
@@ -18,7 +18,6 @@ type HydrationEffectInput = {
   hydrated: boolean;
   setHydrated: (next: boolean) => void;
   setState: Dispatch<SetStateAction<RuntimeConfigStateV11 | null>>;
-  runtimeFields: RuntimeFieldMap;
   setStatusBanner: (banner: StatusBanner | null) => void;
 };
 
@@ -37,14 +36,7 @@ export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
       }
     })();
 
-    const loaded = loadRuntimeConfigStateV11({
-      provider: input.runtimeFields.provider,
-      runtimeModelType: input.runtimeFields.runtimeModelType,
-      localProviderEndpoint: input.runtimeFields.localProviderEndpoint,
-      localProviderModel: input.runtimeFields.localProviderModel,
-      localOpenAiEndpoint: input.runtimeFields.localOpenAiEndpoint,
-      connectorId: input.runtimeFields.connectorId,
-    });
+    const loaded = loadRuntimeConfigStateV11();
 
     // Connectors are no longer stored in localStorage — they come from runtime bridge
     // config (config.json) exclusively. Hydration only restores UI preferences.
@@ -77,12 +69,6 @@ export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
   }, [
     input.bootstrapReady,
     input.hydrated,
-    input.runtimeFields.connectorId,
-    input.runtimeFields.localOpenAiEndpoint,
-    input.runtimeFields.localProviderEndpoint,
-    input.runtimeFields.localProviderModel,
-    input.runtimeFields.provider,
-    input.runtimeFields.runtimeModelType,
     input.setHydrated,
     input.setState,
     input.setStatusBanner,

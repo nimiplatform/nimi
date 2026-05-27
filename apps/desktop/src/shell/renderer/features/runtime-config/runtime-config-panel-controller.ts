@@ -22,11 +22,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const runtimeTabActive = activeTab === 'runtime';
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const offlineTier = useAppStore((state) => state.offlineTier);
-  const runtimeFields = useAppStore((state) => state.runtimeFields);
-  const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
-  // D-LLM-021: Runtime Config is an authority editor for AIConfig capability bindings.
-  // Uses the store convenience delegate which commits through the AIConfig surface.
-  const setConversationCapabilityBinding = useAppStore((state) => state.setConversationCapabilityBinding);
   const [pageFeedback, setPageFeedback] = useState<InlineFeedbackState | null>(null);
   const [connectorTestFeedback, setConnectorTestFeedback] = useState<InlineFeedbackState | null>(null);
 
@@ -128,9 +123,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     setHydrated: panelState.setHydrated,
     state: panelState.state,
     setState: panelState.setState,
-    runtimeFields,
-    setRuntimeFields,
-    setConversationCapabilityBinding,
     setStatusBanner: setPageFeedback,
     setVaultEntryCount: panelState.setVaultEntryCount,
     vaultVersion: panelState.vaultVersion,

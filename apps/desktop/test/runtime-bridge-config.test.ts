@@ -18,13 +18,9 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 function createBaseState(): RuntimeConfigStateV11 {
-  return createDefaultStateV11({
-    provider: 'local',
-    runtimeModelType: 'chat',
-    localProviderEndpoint: 'http://127.0.0.1:1234/v1',
-    localProviderModel: 'local-model',
-    localOpenAiEndpoint: 'https://openrouter.ai/api/v1',
-  });
+  const state = createDefaultStateV11();
+  state.local.endpoint = 'http://127.0.0.1:1234/v1';
+  return state;
 }
 
 test('applyRuntimeBridgeConfigToState maps llama engine loopback endpoint', () => {

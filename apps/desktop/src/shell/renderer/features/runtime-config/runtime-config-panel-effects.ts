@@ -2,10 +2,8 @@ import { useEffect } from 'react';
 import { startLocalRuntimePolling, type LocalRuntimeSnapshot } from '@runtime/local-runtime';
 import { isLocalRuntimeRunnableAssetKindId } from '@nimiplatform/sdk/runtime';
 import type { Dispatch, SetStateAction } from 'react';
-import type { RuntimeFieldMap, StatusBanner } from '@renderer/app-shell/providers/app-store';
+import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import type { ConversationCapability } from '@renderer/features/chat/conversation-capability';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
 import { useRuntimeConfigHydrationEffect } from './runtime-config-effect-hydration';
 import { useRuntimeConfigVaultSyncEffect } from './runtime-config-effect-vault-sync';
 import { useRuntimeConfigRouteInitEffect } from './runtime-config-effect-route-init';
@@ -21,12 +19,6 @@ type RuntimeConfigPanelEffectsInput = {
   setHydrated: (next: boolean) => void;
   state: RuntimeConfigStateV11 | null;
   setState: Dispatch<SetStateAction<RuntimeConfigStateV11 | null>>;
-  runtimeFields: RuntimeFieldMap;
-  setRuntimeFields: (updates: Partial<RuntimeFieldMap>) => void;
-  setConversationCapabilityBinding: (
-    capability: ConversationCapability,
-    binding: RuntimeRouteBinding | null | undefined,
-  ) => void;
   setStatusBanner: (banner: StatusBanner | null) => void;
   setVaultEntryCount: (count: number) => void;
   vaultVersion: number;
@@ -75,7 +67,6 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
     hydrated: input.hydrated,
     setHydrated: input.setHydrated,
     setState: input.setState,
-    runtimeFields: input.runtimeFields,
     setStatusBanner: input.setStatusBanner,
   });
 
@@ -88,7 +79,6 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
   useRuntimeConfigRouteInitEffect({
     state: input.state,
     setState: input.setState,
-    setConversationCapabilityBinding: input.setConversationCapabilityBinding,
   });
 
   useRuntimeConfigSetupAutodiscoverEffect({

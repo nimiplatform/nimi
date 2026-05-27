@@ -10,13 +10,7 @@ const DEFAULT_GRPC_ADDR = '127.0.0.1:46371';
 const CHECKED_AT = '2026-02-24T12:00:00.000Z';
 
 function createBaseState(): RuntimeConfigStateV11 {
-  return createDefaultStateV11({
-    provider: 'local',
-    runtimeModelType: 'chat',
-    localProviderEndpoint: 'http://127.0.0.1:1234/v1',
-    localProviderModel: 'local-model',
-    localOpenAiEndpoint: 'https://openrouter.ai/api/v1',
-  });
+  return createDefaultStateV11();
 }
 
 function createDaemonStatus(input: Partial<RuntimeBridgeDaemonStatus>): RuntimeBridgeDaemonStatus {

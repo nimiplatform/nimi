@@ -58,7 +58,7 @@ test('normalizePageIdV11: retired pre-T2.4 page ids fall back to "overview"', ()
 // ---------------------------------------------------------------------------
 
 test('createDefaultStateV11: activePage defaults to "overview"', () => {
-  const state = createDefaultStateV11({});
+  const state = createDefaultStateV11();
 
   assert.equal(state.activePage, 'overview');
   assert.equal(state.version, 12);
@@ -66,7 +66,7 @@ test('createDefaultStateV11: activePage defaults to "overview"', () => {
 });
 
 test('createDefaultStateV11: state shape keeps current navigation field only', () => {
-  const state = createDefaultStateV11({}) as Record<string, unknown>;
+  const state = createDefaultStateV11() as Record<string, unknown>;
 
   assert.equal('activePage' in state, true, 'must contain activePage');
 });
@@ -118,8 +118,6 @@ test('ordinary Runtime sidebar is the canonical six-section IA without Mods/deve
 });
 
 test('normalizeStoredStateV11: new activePage field takes precedence', () => {
-  const seed = { localProviderEndpoint: 'http://127.0.0.1:1234/v1' };
-
   const stored = {
     version: 11 as const,
     initializedByV11: true,
@@ -138,13 +136,11 @@ test('normalizeStoredStateV11: new activePage field takes precedence', () => {
     },
   };
 
-  const result = normalizeStoredStateV11(seed, stored as never);
+  const result = normalizeStoredStateV11(stored as never);
   assert.equal(result.activePage, 'cloud');
 });
 
 test('normalizeStoredStateV11: retired Runtime pages are not restored as ordinary UI', () => {
-  const seed = { localProviderEndpoint: 'http://127.0.0.1:1234/v1' };
-
   for (const retiredPage of ['mods', 'mod-developer']) {
     const stored = {
       version: 12 as const,
@@ -164,14 +160,12 @@ test('normalizeStoredStateV11: retired Runtime pages are not restored as ordinar
       },
     };
 
-    const result = normalizeStoredStateV11(seed, stored as never);
+    const result = normalizeStoredStateV11(stored as never);
     assert.equal(result.activePage, 'overview');
   }
 });
 
 test('normalizeStoredStateV11: accepts v12 snapshots and preserves local provider hints', () => {
-  const seed = { localProviderEndpoint: 'http://127.0.0.1:1234/v1' };
-
   const stored = {
     version: 12 as const,
     initializedByV11: true,
@@ -213,7 +207,7 @@ test('normalizeStoredStateV11: accepts v12 snapshots and preserves local provide
     },
   };
 
-  const result = normalizeStoredStateV11(seed, stored as never);
+  const result = normalizeStoredStateV11(stored as never);
   const providerHints = result.local.nodeMatrix[0]?.providerHints as {
     nimiMedia?: { preferredAdapter?: string };
     extra?: { runtime_support_class?: string };
@@ -227,8 +221,6 @@ test('normalizeStoredStateV11: accepts v12 snapshots and preserves local provide
 });
 
 test('normalizeStoredStateV11: connectors always empty (bridge is source of truth)', () => {
-  const seed = { localProviderEndpoint: 'http://127.0.0.1:1234/v1' };
-
   const stored = {
     version: 11 as const,
     initializedByV11: true,
@@ -247,7 +239,7 @@ test('normalizeStoredStateV11: connectors always empty (bridge is source of trut
     },
   };
 
-  const result = normalizeStoredStateV11(seed, stored as never);
+  const result = normalizeStoredStateV11(stored as never);
   assert.deepEqual(result.connectors, []);
   assert.equal(result.selectedConnectorId, '');
 });
@@ -268,7 +260,7 @@ test('persistRuntimeConfigStateV11: persists activePage to localStorage', () => 
   };
 
   try {
-    const state = createDefaultStateV11({ localProviderEndpoint: 'http://127.0.0.1:1234/v1' });
+    const state = createDefaultStateV11();
     state.activePage = 'profiles';
 
     persistRuntimeConfigStateV11(state);
@@ -301,8 +293,7 @@ test('state round-trip: persist activePage then normalize back correctly', () =>
   };
 
   try {
-    const seed = { localProviderEndpoint: 'http://127.0.0.1:1234/v1' };
-    const original = createDefaultStateV11(seed);
+    const original = createDefaultStateV11();
     original.activePage = 'environment';
     original.uiMode = 'advanced';
     original.activeCapability = 'image';
@@ -313,7 +304,7 @@ test('state round-trip: persist activePage then normalize back correctly', () =>
     assert.ok(raw);
 
     const parsed = JSON.parse(raw);
-    const restored = normalizeStoredStateV11(seed, parsed);
+    const restored = normalizeStoredStateV11(parsed);
 
     assert.equal(restored.activePage, 'environment');
     assert.equal(restored.uiMode, 'advanced');
