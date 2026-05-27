@@ -61,7 +61,7 @@ const retiredRuntimeBootstrapHostCapabilitiesRoutingPath = path.resolve(
 );
 const tauriCommandsPath = path.resolve(
   process.cwd(),
-  'src-tauri/src/local_runtime/commands/commands_models_audit.rs',
+  'src-tauri/src/local_runtime/commands/mod.rs',
 );
 const tauriModelIndexPath = path.resolve(
   process.cwd(),
@@ -284,13 +284,27 @@ test('local model lifecycle writes route through SDK runtime service only', () =
   assert.doesNotMatch(tauriCommandsSource, /start_asset\(&app, &payload\.local_asset_id\)/);
   assert.doesNotMatch(tauriCommandsSource, /stop_asset\(&app, &payload\.local_asset_id\)/);
   assert.doesNotMatch(tauriCommandsSource, /health_assets\(&app, local_asset_id\.as_deref\(\)\)/);
+  assert.doesNotMatch(tauriCommandsSource, /load_state\(/);
+  assert.doesNotMatch(tauriCommandsSource, /save_state\(/);
+  assert.doesNotMatch(tauriCommandsSource, /append_audit_event/);
 });
 
-test('local runtime cleanup removes host-local registry and supervisor modules from shipped paths', () => {
+test('local runtime cleanup leaves only admitted picker and reveal helpers in Tauri', () => {
+  assert.match(tauriCommandsSource, /pub fn runtime_local_pick_asset_manifest_path/);
+  assert.match(tauriCommandsSource, /pub fn runtime_local_pick_asset_file/);
+  assert.match(tauriCommandsSource, /pub fn runtime_local_pick_asset_directory/);
+  assert.match(tauriCommandsSource, /pub fn runtime_local_assets_reveal_in_folder/);
+  assert.match(tauriCommandsSource, /pub fn runtime_local_assets_reveal_root_folder/);
+  assert.doesNotMatch(tauriCommandsSource, /RuntimeLocalService/);
+  assert.doesNotMatch(tauriCommandsSource, /LocalAiAssetRecord/);
+  assert.doesNotMatch(tauriCommandsSource, /runtime_managed_asset_dir/);
   assert.doesNotMatch(tauriLocalRuntimePackageSource, /mod asset_registry;/);
   assert.doesNotMatch(tauriLocalRuntimePackageSource, /mod supervisor;/);
   assert.doesNotMatch(tauriLocalRuntimePackageSource, /mod model_index;/);
-  assert.match(tauriLocalRuntimePackageSource, /#\[cfg\(test\)\]\s*mod engine_host;/);
-  assert.match(tauriLocalRuntimePackageSource, /#\[cfg\(test\)\]\s*mod engine_pack;/);
+  assert.doesNotMatch(tauriLocalRuntimePackageSource, /mod engine_host;/);
+  assert.doesNotMatch(tauriLocalRuntimePackageSource, /mod engine_pack;/);
+  assert.doesNotMatch(tauriLocalRuntimePackageSource, /mod import_validator;/);
+  assert.doesNotMatch(tauriLocalRuntimePackageSource, /mod service_lifecycle;/);
+  assert.doesNotMatch(tauriLocalRuntimePackageSource, /mod store;/);
   assert.equal(existsSync(tauriModelIndexPath), false);
 });

@@ -1,36 +1,224 @@
-use std::io::{Read as IoRead, Write as IoWrite};
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use serde::Deserialize;
 use tauri::AppHandle;
 
-use super::audit::{
-    append_audit_event, EVENT_DEPENDENCY_RESOLVE_FAILED, EVENT_DEPENDENCY_RESOLVE_INVOKED,
-    EVENT_RECOMMENDATION_RESOLVE_COMPLETED, EVENT_RECOMMENDATION_RESOLVE_FAILED,
-    EVENT_RECOMMENDATION_RESOLVE_INVOKED, EVENT_RUNTIME_MODEL_READY_AFTER_INSTALL,
-};
-use super::import_validator::{
-    validate_import_asset_manifest_path,
-};
-use super::reason_codes::{
-    extract_reason_code as extract_local_ai_reason_code, LOCAL_AI_PROVIDER_INTERNAL_ERROR,
-};
-use super::service_artifacts::find_service_artifact;
-use super::store::{load_state, runtime_models_dir, save_state};
-use super::types::{
-    default_artifact_roles_for_capabilities, default_endpoint_for_engine,
-    default_fallback_engines_for_engine, default_logical_model_id,
-    default_preferred_engine_for_capabilities, infer_asset_integrity_mode_from_source,
-    is_runnable_asset_kind, normalize_local_engine, resolved_model_dir, runtime_managed_asset_dir,
-    runtime_managed_asset_manifest_path, slugify_local_model_id, LocalAiAssetKind,
-    LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus,
-};
+const ASSET_MANIFEST_FILE_NAME: &str = "asset.manifest.json";
+const LOCAL_AI_RUNTIME_MODELS_DIR: &str = "models";
 
-include!("common_types.rs");
-include!("common_utils.rs");
-include!("dependency_utils.rs");
-include!("runtime_bridge_local.rs");
-include!("commands_asset_helpers.rs");
-include!("commands_import_manifest.rs");
-include!("commands_import_bundle.rs");
-include!("commands_models_audit.rs");
-include!("commands_reveal_tests.rs");
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiAssetIdPayload {
+    pub local_asset_id: String,
+}
+
+fn runtime_root_dir() -> Result<PathBuf, String> {
+    crate::desktop_paths::resolve_nimi_data_dir()
+}
+
+fn runtime_models_dir() -> Result<PathBuf, String> {
+    let dir = runtime_root_dir()?.join(LOCAL_AI_RUNTIME_MODELS_DIR);
+    std::fs::create_dir_all(&dir)
+        .map_err(|e| format!("failed to create runtime models dir: {e}"))?;
+    Ok(dir)
+}
+
+fn picker_start_dir() -> PathBuf {
+    dirs::home_dir().unwrap_or_else(|| runtime_models_dir().unwrap_or_default())
+}
+
+fn canonical_manifest_path(path: &Path, models_root: &Path) -> Result<PathBuf, String> {
+    let file_name = path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("");
+    if file_name != ASSET_MANIFEST_FILE_NAME {
+        return Err(
+            "LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID: only asset.manifest.json can be imported"
+                .to_string(),
+        );
+    }
+
+    let canonical_models_root = models_root
+        .canonicalize()
+        .map_err(|e| format!("LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT: {e}"))?;
+    let canonical_path = path
+        .canonicalize()
+        .map_err(|e| format!("LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT: {e}"))?;
+    if !canonical_path.starts_with(&canonical_models_root) {
+        return Err(
+            "LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT: manifest must live under the runtime models root"
+                .to_string(),
+        );
+    }
+    Ok(canonical_path)
+}
+
+fn safe_local_asset_dir(models_root: &Path, local_asset_id: &str) -> Option<PathBuf> {
+    let trimmed = local_asset_id.trim();
+    if trimmed.is_empty()
+        || trimmed == "."
+        || trimmed == ".."
+        || !trimmed
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.'))
+    {
+        return None;
+    }
+
+    let candidate = models_root.join(trimmed);
+    if candidate.starts_with(models_root) && candidate.exists() {
+        Some(candidate)
+    } else {
+        None
+    }
+}
+
+fn reveal_target_for_asset(models_root: &Path, local_asset_id: &str) -> PathBuf {
+    safe_local_asset_dir(models_root, local_asset_id).unwrap_or_else(|| models_root.to_path_buf())
+}
+
+fn reveal_path_in_os(path: &Path) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .arg(path)
+            .spawn()
+            .map_err(|e| format!("reveal failed: {e}"))?;
+    }
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("explorer")
+            .arg(path)
+            .spawn()
+            .map_err(|e| format!("reveal failed: {e}"))?;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        Command::new("xdg-open")
+            .arg(path)
+            .spawn()
+            .map_err(|e| format!("reveal failed: {e}"))?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn runtime_local_pick_asset_file(_app: AppHandle) -> Result<Option<String>, String> {
+    let selected = rfd::FileDialog::new()
+        .set_directory(picker_start_dir())
+        .set_title("Select asset file to import")
+        .add_filter(
+            "Asset Files",
+            &["gguf", "safetensors", "bin", "pt", "onnx", "pth"],
+        )
+        .add_filter("All Files", &["*"])
+        .pick_file();
+    Ok(selected.map(|p| p.to_string_lossy().to_string()))
+}
+
+#[tauri::command]
+pub fn runtime_local_pick_asset_manifest_path(_app: AppHandle) -> Result<Option<String>, String> {
+    let models_root = runtime_models_dir()?;
+    let selected = rfd::FileDialog::new()
+        .set_directory(&models_root)
+        .set_title("Select asset.manifest.json")
+        .add_filter("Asset Manifest", &["asset.manifest.json"])
+        .pick_file();
+    let Some(path) = selected else {
+        return Ok(None);
+    };
+    Ok(Some(
+        canonical_manifest_path(&path, &models_root)?
+            .to_string_lossy()
+            .to_string(),
+    ))
+}
+
+#[tauri::command]
+pub fn runtime_local_pick_asset_directory(_app: AppHandle) -> Result<Option<String>, String> {
+    let selected = rfd::FileDialog::new()
+        .set_directory(picker_start_dir())
+        .set_title("Select asset bundle directory to import")
+        .pick_folder();
+    Ok(selected.map(|path| path.to_string_lossy().to_string()))
+}
+
+#[tauri::command]
+pub fn runtime_local_assets_reveal_in_folder(
+    _app: AppHandle,
+    payload: LocalAiAssetIdPayload,
+) -> Result<(), String> {
+    if payload.local_asset_id.trim().is_empty() {
+        return Err("LOCAL_AI_ASSET_ID_REQUIRED".to_string());
+    }
+    let models_root = runtime_models_dir()?;
+    let target = reveal_target_for_asset(&models_root, &payload.local_asset_id);
+    reveal_path_in_os(&target)
+}
+
+#[tauri::command]
+pub fn runtime_local_assets_reveal_root_folder(_app: AppHandle) -> Result<(), String> {
+    let models_root = runtime_models_dir()?;
+    reveal_path_in_os(&models_root)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{canonical_manifest_path, reveal_target_for_asset, ASSET_MANIFEST_FILE_NAME};
+
+    #[test]
+    fn manifest_picker_accepts_only_runtime_root_manifest() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        let root = tmp.path().join("models");
+        std::fs::create_dir_all(&root).expect("models dir");
+        let manifest = root.join(ASSET_MANIFEST_FILE_NAME);
+        std::fs::write(&manifest, "{}").expect("manifest");
+
+        let resolved = canonical_manifest_path(&manifest, &root).expect("manifest accepted");
+        assert_eq!(
+            resolved,
+            manifest.canonicalize().expect("canonical manifest")
+        );
+    }
+
+    #[test]
+    fn manifest_picker_rejects_wrong_name() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        let root = tmp.path().join("models");
+        std::fs::create_dir_all(&root).expect("models dir");
+        let manifest = root.join("manifest.json");
+        std::fs::write(&manifest, "{}").expect("manifest");
+
+        let error = canonical_manifest_path(&manifest, &root).expect_err("wrong filename");
+        assert!(error.starts_with("LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID"));
+    }
+
+    #[test]
+    fn manifest_picker_rejects_outside_runtime_root() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        let root = tmp.path().join("models");
+        let outside = tmp.path().join("outside");
+        std::fs::create_dir_all(&root).expect("models dir");
+        std::fs::create_dir_all(&outside).expect("outside dir");
+        let manifest = outside.join(ASSET_MANIFEST_FILE_NAME);
+        std::fs::write(&manifest, "{}").expect("manifest");
+
+        let error = canonical_manifest_path(&manifest, &root).expect_err("outside root");
+        assert!(error.starts_with("LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT"));
+    }
+
+    #[test]
+    fn reveal_target_never_interprets_asset_id_as_a_path() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        let root = tmp.path().join("models");
+        let asset = root.join("asset-1");
+        std::fs::create_dir_all(&asset).expect("asset dir");
+
+        assert_eq!(reveal_target_for_asset(&root, "asset-1"), asset);
+        assert_eq!(reveal_target_for_asset(&root, "../asset-1"), root);
+        assert_eq!(reveal_target_for_asset(&root, "nested/asset-1"), root);
+        assert_eq!(reveal_target_for_asset(&root, "core:local-ai"), root);
+    }
+}

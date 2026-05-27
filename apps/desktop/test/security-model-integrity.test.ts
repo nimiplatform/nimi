@@ -9,7 +9,7 @@ import { toBridgeNimiError } from '../src/shell/renderer/bridge/runtime-bridge/i
 // D-SEC-006 — Model integrity verification
 //
 // Runtime owns hash verification and model integrity materialization.
-// Desktop keeps only shell-local manifest path validation and renderer error
+// Desktop keeps only shell-native file picker containment and renderer error
 // projection for Runtime-originated integrity failures.
 //
 // This file uses source scanning to prevent Tauri from re-acquiring content
@@ -20,25 +20,11 @@ import { toBridgeNimiError } from '../src/shell/renderer/bridge/runtime-bridge/i
 // Rust source paths
 // ---------------------------------------------------------------------------
 
-const IMPORT_VALIDATOR_ENTRY_PATH = path.resolve(
+const LOCAL_RUNTIME_COMMANDS_PATH = path.resolve(
   import.meta.dirname ?? __dirname,
-  '../src-tauri/src/local_runtime/import_validator.rs',
+  '../src-tauri/src/local_runtime/commands/mod.rs',
 );
-const IMPORT_VALIDATOR_HELPERS_PATH = path.resolve(
-  import.meta.dirname ?? __dirname,
-  '../src-tauri/src/local_runtime/import_validator/helpers.rs',
-);
-const IMPORT_VALIDATOR_MANIFEST_CHECKS_PATH = path.resolve(
-  import.meta.dirname ?? __dirname,
-  '../src-tauri/src/local_runtime/import_validator/manifest_checks.rs',
-);
-const importValidatorSource = [
-  IMPORT_VALIDATOR_ENTRY_PATH,
-  IMPORT_VALIDATOR_HELPERS_PATH,
-  IMPORT_VALIDATOR_MANIFEST_CHECKS_PATH,
-]
-  .map((filePath) => fs.readFileSync(filePath, 'utf-8'))
-  .join('\n');
+const localRuntimeCommandsSource = fs.readFileSync(LOCAL_RUNTIME_COMMANDS_PATH, 'utf-8');
 
 // ---------------------------------------------------------------------------
 // D-SEC-006: Runtime-owned integrity errors still project through bridge map
@@ -64,36 +50,34 @@ test('D-SEC-006: verified empty hash list projects LOCAL_AI_MODEL_HASHES_EMPTY e
 // D-SEC-006: manifest path validation remains shell-local; content hashes do not
 // ---------------------------------------------------------------------------
 
-test('D-SEC-006: Desktop import validator only validates resolved manifest location', () => {
+test('D-SEC-006: Desktop Tauri helper validates only selected manifest containment', () => {
   assert.ok(
-    importValidatorSource.includes('validate_import_asset_manifest_path'),
-    'import_validator must keep shell-local manifest path validation',
+    localRuntimeCommandsSource.includes('fn canonical_manifest_path('),
+    'Tauri helper must keep shell-local selected manifest path containment',
   );
   assert.ok(
-    importValidatorSource.includes('ASSET_MANIFEST_FILE_NAME'),
-    'import_validator must require the canonical asset manifest filename',
+    localRuntimeCommandsSource.includes('ASSET_MANIFEST_FILE_NAME'),
+    'Tauri helper must require the canonical asset manifest filename',
   );
   assert.ok(
-    importValidatorSource.includes('LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT'),
-    'import_validator must keep runtime-root containment checks',
+    localRuntimeCommandsSource.includes('LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT'),
+    'Tauri helper must keep runtime-root containment checks',
   );
-  assert.ok(
-    importValidatorSource.includes('"resolved"'),
-    'import_validator must require resolved/<asset-id>/asset.manifest.json placement',
-  );
+  assert.doesNotMatch(localRuntimeCommandsSource, /"resolved"/);
 });
 
-test('D-SEC-006: Desktop import validator does not own content hash verification', () => {
+test('D-SEC-006: Desktop Tauri helper does not own content hash verification', () => {
   assert.doesNotMatch(
-    importValidatorSource,
+    localRuntimeCommandsSource,
     /sha256_hex_for_file|Sha256::new\(\)|actual_hash\s*!=\s*expected_hash|assert_manifest_hashes|manifest_hashes_required/,
-    'Tauri import_validator must not own model content hash verification',
+    'Tauri local runtime helper must not own model content hash verification',
   );
   assert.doesNotMatch(
-    importValidatorSource,
+    localRuntimeCommandsSource,
     /LOCAL_AI_IMPORT_HASH_MISMATCH|LOCAL_AI_IMPORT_MANIFEST_HASHES_MISSING/,
-    'Tauri import_validator must not emit Runtime-owned model hash verification errors',
+    'Tauri local runtime helper must not emit Runtime-owned model hash verification errors',
   );
+  assert.doesNotMatch(localRuntimeCommandsSource, /import_validator/);
 });
 
 test('D-SEC-006: mismatched hash projects LOCAL_AI_IMPORT_HASH_MISMATCH error', () => {

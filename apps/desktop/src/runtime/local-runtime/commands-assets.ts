@@ -315,7 +315,7 @@ export async function startLocalRuntimeEnvironmentDependencyJob(
   payload: LocalRuntimeEnvironmentDependencyJobStartPayload,
   options?: LocalRuntimeWriteOptions,
 ): Promise<LocalRuntimeEnvironmentDependencyJob> {
-  assertLifecycleWriteAllowed('runtime_local_environment_dependency_job_start', options?.caller);
+  assertLifecycleWriteAllowed('local_runtime_environment_dependency_job_start', options?.caller);
   const runtime = requireSdkLocal();
   const response = await runtime.startLocalEnvironmentDependencyJob({
     environmentKey: String(payload.environmentKey || '').trim(),
@@ -331,7 +331,7 @@ export async function cancelLocalRuntimeEnvironmentDependencyJob(
   payload: LocalRuntimeEnvironmentDependencyJobCancelPayload,
   options?: LocalRuntimeWriteOptions,
 ): Promise<LocalRuntimeEnvironmentDependencyJob> {
-  assertLifecycleWriteAllowed('runtime_local_environment_dependency_job_cancel', options?.caller);
+  assertLifecycleWriteAllowed('local_runtime_environment_dependency_job_cancel', options?.caller);
   const runtime = requireSdkLocal();
   const response = await runtime.cancelLocalEnvironmentDependencyJob({
     jobId: String(payload.jobId || '').trim(),
@@ -343,7 +343,7 @@ export async function retryLocalRuntimeEnvironmentDependencyJob(
   payload: LocalRuntimeEnvironmentDependencyJobRetryPayload,
   options?: LocalRuntimeWriteOptions,
 ): Promise<LocalRuntimeEnvironmentDependencyJob> {
-  assertLifecycleWriteAllowed('runtime_local_environment_dependency_job_retry', options?.caller);
+  assertLifecycleWriteAllowed('local_runtime_environment_dependency_job_retry', options?.caller);
   const runtime = requireSdkLocal();
   const response = await runtime.retryLocalEnvironmentDependencyJob({
     jobId: String(payload.jobId || '').trim(),
@@ -356,7 +356,7 @@ export async function repairLocalRuntimeEnvironmentDependency(
   payload: LocalRuntimeEnvironmentDependencyRepairPayload,
   options?: LocalRuntimeWriteOptions,
 ): Promise<LocalRuntimeEnvironmentDependencyJob> {
-  assertLifecycleWriteAllowed('runtime_local_environment_dependency_repair', options?.caller);
+  assertLifecycleWriteAllowed('local_runtime_environment_dependency_repair', options?.caller);
   const runtime = requireSdkLocal();
   const response = await runtime.repairLocalEnvironmentDependency({
     environmentKey: String(payload.environmentKey || '').trim(),

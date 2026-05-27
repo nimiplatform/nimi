@@ -9,14 +9,15 @@ import { toBridgeNimiError } from '../src/shell/renderer/bridge/runtime-bridge/i
 // D-SEC-001 — Endpoint loopback restriction
 //
 // The loopback check has two layers in this codebase:
-//   1. Rust `validate_loopback_endpoint` (Tauri backend — authoritative gate)
-//   2. TypeScript `isLoopbackHost` / `inferRouteSourceFromEndpoint` (renderer)
+//   1. Runtime owns authoritative endpoint validation.
+//   2. TypeScript `isLoopbackHost` / `inferRouteSourceFromEndpoint` projects route
+//      provenance for renderer audit display.
 //
 // The TypeScript `inferRouteSourceFromEndpoint` cannot be imported directly in
 // this test because its module transitively depends on `@runtime/local-runtime`
-// which requires the Tauri environment.  Instead, we source-scan to verify the
-// TypeScript layer implements the correct loopback rules, and use behavioral
-// tests on the bridge error code map via `toBridgeNimiError`.
+// which requires the Tauri environment. Instead, we source-scan to verify the
+// TypeScript display layer implements the correct loopback rules, and use
+// behavioral tests on the bridge error code map via `toBridgeNimiError`.
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
@@ -27,13 +28,9 @@ const INFERENCE_AUDIT_PATH = path.resolve(
   import.meta.dirname ?? __dirname,
   '../src/runtime/llm-adapter/execution/inference-audit.ts',
 );
-const RUST_VALIDATOR_PATH = path.resolve(
+const RUST_LOCAL_RUNTIME_MOD_PATH = path.resolve(
   import.meta.dirname ?? __dirname,
-  '../src-tauri/src/local_runtime/import_validator.rs',
-);
-const RUST_VALIDATOR_HELPERS_PATH = path.resolve(
-  import.meta.dirname ?? __dirname,
-  '../src-tauri/src/local_runtime/import_validator/helpers.rs',
+  '../src-tauri/src/local_runtime/mod.rs',
 );
 const INVOKE_PATH = path.resolve(
   import.meta.dirname ?? __dirname,
@@ -41,9 +38,7 @@ const INVOKE_PATH = path.resolve(
 );
 
 const inferenceAuditSource = fs.readFileSync(INFERENCE_AUDIT_PATH, 'utf-8');
-const rustValidatorSource = [RUST_VALIDATOR_PATH, RUST_VALIDATOR_HELPERS_PATH]
-  .map((filePath) => fs.readFileSync(filePath, 'utf-8'))
-  .join('\n');
+const rustLocalRuntimePackageSource = fs.readFileSync(RUST_LOCAL_RUNTIME_MOD_PATH, 'utf-8');
 const invokeSource = fs.readFileSync(INVOKE_PATH, 'utf-8');
 
 // ---------------------------------------------------------------------------
@@ -56,11 +51,7 @@ test('D-SEC-001: localhost passes loopback check', () => {
     inferenceAuditSource.includes("normalized === 'localhost'"),
     'isLoopbackHost must accept localhost',
   );
-  // Rust validate_loopback_endpoint accepts 'localhost'
-  assert.ok(
-    rustValidatorSource.includes('.eq_ignore_ascii_case("localhost")'),
-    'Rust validator sources must accept localhost via case-insensitive comparison',
-  );
+  assert.doesNotMatch(rustLocalRuntimePackageSource, /import_validator/);
 });
 
 // ---------------------------------------------------------------------------
@@ -73,11 +64,7 @@ test('D-SEC-001: 127.0.0.1 passes loopback check', () => {
     inferenceAuditSource.includes("normalized === '127.0.0.1'"),
     'isLoopbackHost must accept 127.0.0.1',
   );
-  // Rust uses parsed_ip.is_loopback() which covers 127.0.0.0/8
-  assert.ok(
-    rustValidatorSource.includes('.is_loopback()'),
-    'Rust validator sources must call is_loopback() on parsed IP (covers 127.0.0.0/8)',
-  );
+  assert.doesNotMatch(rustLocalRuntimePackageSource, /validate_loopback_endpoint/);
 });
 
 // ---------------------------------------------------------------------------
@@ -94,11 +81,7 @@ test('D-SEC-001: [::1] passes loopback check', () => {
     inferenceAuditSource.includes("normalized === '[::1]'"),
     'isLoopbackHost must accept [::1]',
   );
-  // Rust strips brackets and parses as IpAddr, then calls is_loopback()
-  assert.ok(
-    rustValidatorSource.includes("trim_matches(|ch| ch == '[' || ch == ']')"),
-    'Rust validator sources must strip brackets from IPv6 host before parsing',
-  );
+  assert.doesNotMatch(rustLocalRuntimePackageSource, /validate_loopback_endpoint/);
 });
 
 // ---------------------------------------------------------------------------
@@ -111,11 +94,7 @@ test('D-SEC-001: remote address fails loopback check', () => {
     inferenceAuditSource.includes("? 'local' : 'cloud'"),
     'inferRouteSourceFromEndpoint must return cloud for non-loopback hosts',
   );
-  // Rust: non-loopback IPs produce an Err
-  assert.ok(
-    rustValidatorSource.includes('if !parsed_ip.is_loopback()'),
-    'Rust validator sources must reject non-loopback IP addresses',
-  );
+  assert.doesNotMatch(rustLocalRuntimePackageSource, /LOCAL_AI_ENDPOINT_NOT_LOOPBACK/);
 });
 
 // ---------------------------------------------------------------------------
@@ -141,21 +120,13 @@ test('D-SEC-001: failure produces LOCAL_AI_ENDPOINT_NOT_LOOPBACK error', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Source-scan confirmation: Rust validator structure
+// Source-scan confirmation: Tauri no longer owns endpoint validation
 // ---------------------------------------------------------------------------
 
-test('D-SEC-001: Rust validate_loopback_endpoint function exists', () => {
-  assert.ok(
-    rustValidatorSource.includes('fn validate_loopback_endpoint('),
-    'import_validator sources must define validate_loopback_endpoint',
-  );
-});
-
-test('D-SEC-001: Rust validator emits LOCAL_AI_ENDPOINT_NOT_LOOPBACK on non-loopback host', () => {
-  assert.ok(
-    rustValidatorSource.includes('LOCAL_AI_ENDPOINT_NOT_LOOPBACK'),
-    'import_validator sources must reference LOCAL_AI_ENDPOINT_NOT_LOOPBACK error code',
-  );
+test('D-SEC-001: Desktop Tauri local runtime does not keep endpoint validation truth', () => {
+  assert.doesNotMatch(rustLocalRuntimePackageSource, /import_validator/);
+  assert.doesNotMatch(rustLocalRuntimePackageSource, /validate_loopback_endpoint/);
+  assert.doesNotMatch(rustLocalRuntimePackageSource, /LOCAL_AI_ENDPOINT_NOT_LOOPBACK/);
 });
 
 // ---------------------------------------------------------------------------
