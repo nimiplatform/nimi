@@ -196,6 +196,7 @@
     "nimicoding:blueprint-audit": "pnpm exec nimicoding blueprint-audit --write-local",
     "check:no-retired-methodology-refs": "node scripts/check-no-retired-methodology-refs.mjs",
     "check:nimi-nimicoding-split-readiness": "node scripts/check-nimi-nimicoding-split-readiness.mjs",
+    "check:no-public-mod-extension-admission": "node scripts/check-no-public-mod-extension-admission.mjs",
     "check:p-moex-anti-targets": "node scripts/check-p-moex-anti-targets.mjs"
   },
   "pnpm": {

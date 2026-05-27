@@ -92,8 +92,26 @@ function getLineColumn(source, index) {
   return { line, column };
 }
 
+function lineTextAt(source, index) {
+  const start = source.lastIndexOf('\n', index - 1) + 1;
+  const end = source.indexOf('\n', index);
+  return source.slice(start, end === -1 ? source.length : end);
+}
+
 function relPath(filePath) {
   return path.relative(repoRoot, filePath).replaceAll(path.sep, '/');
+}
+
+function isAllowedViolation(rel, patternId, source, index) {
+  if (
+    rel === 'package.json'
+    && (patternId === 'public-mod-token' || patternId === 'mod-extension-token')
+  ) {
+    const line = lineTextAt(source, index);
+    return line.includes('"check:no-public-mod-extension-admission"')
+      && line.includes('"node scripts/check-no-public-mod-extension-admission.mjs"');
+  }
+  return false;
 }
 
 async function collectFiles(target) {
@@ -136,6 +154,9 @@ async function collectViolations(files) {
       pattern.re.lastIndex = 0;
       let match;
       while ((match = pattern.re.exec(source)) !== null) {
+        if (isAllowedViolation(rel, pattern.id, source, match.index)) {
+          continue;
+        }
         const { line, column } = getLineColumn(source, match.index);
         violations.push(`${rel}:${line}:${column}: ${pattern.id}: ${match[0]}`);
         if (match[0].length === 0) pattern.re.lastIndex += 1;

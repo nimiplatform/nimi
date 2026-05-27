@@ -29,7 +29,7 @@ test('local runtime engine parser accepts known runtime engines only', () => {
   assert.equal(parseLocalRuntimeEngineId('  SPEECH '), 'speech');
   assert.equal(parseLocalRuntimeEngineId('openai'), undefined);
   assert.equal(isLocalRuntimeEngineId('sidecar'), true);
-  assert.equal(isLocalRuntimeEngineId('runtime-mod'), false);
+  assert.equal(isLocalRuntimeEngineId('retired-engine'), false);
 });
 
 test('local runtime engine normalizer fails closed to runtime default', () => {

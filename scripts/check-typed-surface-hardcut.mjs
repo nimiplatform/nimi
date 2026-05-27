@@ -57,7 +57,7 @@ const checks = [
       'apps/desktop/src/shell/renderer/bridge/runtime-bridge/types.ts',
       'apps/desktop/src/shell/renderer/bridge/runtime-bridge/runtime-types.ts',
       'apps/desktop/src/shell/renderer/bridge/runtime-bridge/local-ai-types.ts',
-      'apps/desktop/src/shell/renderer/bridge/runtime-bridge/external-agent-types.ts',
+      'apps/desktop/src/shell/renderer/bridge/runtime-bridge/external-agent.ts',
       'apps/desktop/src/shell/renderer/bridge/runtime-bridge/logging.ts',
       'apps/desktop/src/shell/renderer/infra/telemetry/renderer-log.ts',
     ],
