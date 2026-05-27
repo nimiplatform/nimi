@@ -321,63 +321,7 @@ func normalizeLookupModelID(raw string, provider string) string {
 }
 
 func modelLookupCandidates(provider string, normalizedModel string) []string {
-	candidates := []string{normalizedModel}
-	appendCandidate := func(value string) {
-		value = strings.TrimSpace(value)
-		if value == "" {
-			return
-		}
-		for _, existing := range candidates {
-			if existing == value {
-				return
-			}
-		}
-		candidates = append(candidates, value)
-	}
-
-	switch normalizeProvider(provider) {
-	case "dashscope":
-		switch {
-		case normalizedModel == "qwen-tts", normalizedModel == "qwen-tts-latest":
-			appendCandidate("qwen3-tts-instruct-flash")
-		case strings.HasPrefix(normalizedModel, "qwen-tts-"):
-			if isModelDateSuffix(strings.TrimPrefix(normalizedModel, "qwen-tts-")) {
-				appendCandidate("qwen3-tts-instruct-flash")
-			}
-		}
-	case "volcengine_openspeech":
-		switch normalizedModel {
-		case "volc.service_type.10029":
-			appendCandidate("doubao-tts")
-		case "doubao-tts":
-			appendCandidate("volc.service_type.10029")
-		case "volc.bigasr.auc_turbo":
-			appendCandidate("doubao-asr-flash")
-		case "doubao-asr-flash":
-			appendCandidate("volc.bigasr.auc_turbo")
-		}
-	}
-
-	return candidates
-}
-
-func isModelDateSuffix(value string) bool {
-	if len(value) != len("2026-01-26") {
-		return false
-	}
-	for idx, ch := range value {
-		switch idx {
-		case 4, 7:
-			if ch != '-' {
-				return false
-			}
-		default:
-			if ch < '0' || ch > '9' {
-				return false
-			}
-		}
-	}
-	return true
+	return []string{normalizedModel}
 }
 
 func modelIDBase(value string) string {
@@ -404,7 +348,7 @@ func inferProviderFromModel(modelID string) string {
 		return "local"
 	case normalized == "qwen3-asr-local", normalized == "qwen3-asr", strings.Contains(normalized, "qwen/qwen3-asr"):
 		return "local"
-	case strings.Contains(normalized, "qwen3-tts"), strings.Contains(normalized, "qwen-tts"):
+	case strings.Contains(normalized, "qwen3-tts"):
 		return "dashscope"
 	case strings.Contains(normalized, "gpt-audio"), strings.HasPrefix(normalized, "tts-1"):
 		return "openai"
