@@ -19,7 +19,6 @@
   "dataDirUpdateFailed": "迁移 nimi_data 失败",
   "nimiDirLabel": "nimi_dir",
   "nimiDataDirLabel": "nimi_data_dir",
-  "installedModsDirLabel": "Installed mods 目录",
   "localModelsDirLabel": "Runtime local models 目录",
   "localRuntimeStatePathLabel": "Runtime local state 路径",
   "dataDirPlaceholder": "/absolute/path/to/nimi-data",

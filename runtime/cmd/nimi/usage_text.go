@@ -6,7 +6,7 @@ import (
 )
 
 func printUsage() {
-	fmt.Fprintln(os.Stderr, "Nimi - AI Runtime\n\nUsage: nimi <command> [options]\n\nQuick Start:\n  serve       Start the runtime daemon in the foreground\n  start       Start the runtime daemon in the background\n  doctor      Check environment health\n  version     Show version info\n  run         Generate text from a model\n\nModel Management:\n  model       List, pull, remove, and check models\n\nCloud Setup:\n  provider    Configure and test cloud providers\n\nRuntime Ops:\n  status      Show runtime process status\n  stop        Stop the runtime daemon\n  logs        Read background runtime logs\n  health      Runtime health details\n  providers   Provider health snapshots\n\nAdvanced/Admin:\n  ai          Advanced AI operations\n  app-auth    App authorization lifecycle\n  mod         Installed mod management\n  workflow    Workflow engine\n  knowledge   Knowledge banks, pages, search, and ingest\n  app         Inter-app messaging\n  audit       Audit events and usage\n  config      Runtime configuration\n\nAuthor tooling:\n  pnpm dlx @nimiplatform/app-tools nimi-app  App author scaffolding\n\nRun 'nimi <command> --help' for details.")
+	fmt.Fprintln(os.Stderr, "Nimi - AI Runtime\n\nUsage: nimi <command> [options]\n\nQuick Start:\n  serve       Start the runtime daemon in the foreground\n  start       Start the runtime daemon in the background\n  doctor      Check environment health\n  version     Show version info\n  run         Generate text from a model\n\nModel Management:\n  model       List, pull, remove, and check models\n\nCloud Setup:\n  provider    Configure and test cloud providers\n\nRuntime Ops:\n  status      Show runtime process status\n  stop        Stop the runtime daemon\n  logs        Read background runtime logs\n  health      Runtime health details\n  providers   Provider health snapshots\n\nAdvanced/Admin:\n  ai          Advanced AI operations\n  app-auth    App authorization lifecycle\n  workflow    Workflow engine\n  knowledge   Knowledge banks, pages, search, and ingest\n  app         Inter-app messaging\n  audit       Audit events and usage\n  config      Runtime configuration\n\nAuthor tooling:\n  pnpm dlx @nimiplatform/app-tools nimi-app  App author scaffolding\n\nRun 'nimi <command> --help' for details.")
 }
 
 func printRuntimeAIUsage() {
@@ -15,10 +15,6 @@ func printRuntimeAIUsage() {
 
 func printRuntimeModelUsage() {
 	fmt.Fprintln(os.Stderr, "Usage:\n  nimi model list [--grpc-addr --timeout --app-id --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi model pull [--grpc-addr --timeout --app-id --model-ref --source --digest --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi model remove [--grpc-addr --timeout --app-id --model-id --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi model health [--grpc-addr --timeout --app-id --model-id --json --caller-kind --caller-id --surface-id --trace-id]")
-}
-
-func printRuntimePackageUsage() {
-	fmt.Fprintln(os.Stderr, "Usage:\n  nimi mod list [--mods-dir --json]\n  nimi mod install [source] [--source --mods-dir --mod-circle-repo --mod-circle-ref --strict-id --api-base --token --json]\n\nApp author workflows:\n  pnpm dlx @nimiplatform/app-tools nimi-app create")
 }
 
 func printRuntimeProviderUsage() {

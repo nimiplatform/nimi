@@ -203,7 +203,7 @@ export function GlobalAuditSection({
               {!loading ? (
                 <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>
                   {t('runtimeConfig.runtime.noAuditEventsHint', {
-                    defaultValue: 'Events appear here as mods and apps make authorized runtime calls.',
+                    defaultValue: 'Events appear here as connected apps make authorized runtime calls.',
                   })}
                 </p>
               ) : null}

@@ -11,7 +11,7 @@ import { pushDesktopAIConfigToBoundStore } from '@renderer/app-shell/providers/d
  *
  * This is a convenience state for chat projection and settings flows only.
  * It is not shared Desktop AIConfig authority and must not become a cross-domain
- * singleton for future mod consumers.
+ * singleton for future app consumers.
  *
  * T3-1: the active chat scope is mode-aware. Each chat mode binds to its
  * canonical built-in `AIScopeRef` (P-AISC-006):

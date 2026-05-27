@@ -275,7 +275,7 @@ export function UsageStatsSection({
                     {!loading ? (
                       <p className={cn('mt-1 text-xs', TOKEN_TEXT_MUTED)}>
                         {t('runtimeConfig.runtime.noUsageHint', {
-                          defaultValue: 'Data appears once mods or connected apps start making runtime calls.',
+                          defaultValue: 'Data appears once connected apps start making runtime calls.',
                         })}
                       </p>
                     ) : null}

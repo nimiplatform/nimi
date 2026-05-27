@@ -65,7 +65,6 @@ Advanced runtime groups:
 - `health`
 - `providers`
 - `config`
-- `mod`
 
 Run `nimi <command> --help` for the current command contract.
 

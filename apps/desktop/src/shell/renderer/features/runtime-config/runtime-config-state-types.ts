@@ -17,7 +17,7 @@ export type SourceIdV11 = 'local' | 'cloud';
  * Section merges from the Runtime Surface Cleanup table:
  *  - recommend + local (Local Models) + catalog  -> models
  *  - data-management + runtime (Operations)      -> environment
- *  - performance + developer-gated mods          -> advanced
+ *  - performance + developer-gated tools         -> advanced
  */
 export type RuntimePageIdV11 =
   | 'overview'

@@ -19,7 +19,6 @@
   "dataDirUpdateFailed": "Failed to migrate nimi_data",
   "nimiDirLabel": "nimi_dir",
   "nimiDataDirLabel": "nimi_data_dir",
-  "installedModsDirLabel": "Installed mods dir",
   "localModelsDirLabel": "Runtime local models dir",
   "localRuntimeStatePathLabel": "Runtime local state path",
   "dataDirPlaceholder": "/absolute/path/to/nimi-data",

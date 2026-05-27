@@ -104,7 +104,6 @@
   "logAreaBridge": "Tauri IPC invoke traces",
   "logAreaDatasync": "DataSync facade action traces",
   "logAreaHook": "Hook runtime capability events",
-  "logAreaMod": "Mod governance lifecycle events",
   "logAreaLocalAi": "Local AI model lifecycle and inference audit",
   "logAreaExternalAgent": "External agent gateway and token projection",
   "logAreaAuth": "Authentication session lifecycle",

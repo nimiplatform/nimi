@@ -1,12 +1,11 @@
 {
   "surfaceTitle": "Developer Tools",
   "sidebarSectionLabel": "Developer",
-  "sectionModSources": "Mod Sources",
   "sectionTester": "Tester",
   "sectionDiagnostics": "Diagnostics",
   "navLabel": "Developer Tools",
   "developerModeTitle": "Developer Mode",
-  "developerModeDescription": "Developer Mode unlocks developer and internal surfaces — Developer Tools, the standalone Tester reference, and mod UI. It is off by default and only changes what you can reach, never ordinary product behaviour.",
+  "developerModeDescription": "Developer Mode unlocks developer and internal surfaces — Developer Tools and the standalone Tester reference. It is off by default and only changes what you can reach, never ordinary product behaviour.",
   "developerModeStatusOn": "Developer Mode is on",
   "developerModeStatusOff": "Developer Mode is off",
   "developerModeEnable": "Enable Developer Mode",
