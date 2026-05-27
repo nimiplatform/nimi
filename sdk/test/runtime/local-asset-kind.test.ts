@@ -3,23 +3,28 @@ import test from 'node:test';
 
 import {
   LOCAL_RUNTIME_ASSET_KIND_IDS,
+  LOCAL_RUNTIME_ASSET_STATUS_IDS,
   LOCAL_RUNTIME_PASSIVE_ASSET_KIND_IDS,
   LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS,
   isLocalRuntimePassiveAssetKindId,
   isLocalRuntimeRunnableAssetKindId,
   localRuntimeCapabilitiesForAssetKind,
+  normalizeLocalRuntimeAssetStatusId,
   normalizeLocalRuntimeAssetKindId,
   normalizeLocalRuntimeRunnableAssetKindId,
   parseLocalProfileEntryKindId,
   parseLocalRuntimeGpuMemoryModelId,
   parseLocalRuntimeAssetKindId,
+  parseLocalRuntimeAssetStatusId,
   toLocalProfileEntryKindRequestValue,
   toLocalRuntimeAssetKindRequestValue,
+  toLocalRuntimeAssetStatusRequestValue,
   toLocalRuntimeGpuMemoryModelRequestValue,
 } from '../../src/runtime/index.js';
 import {
   GpuMemoryModel,
   LocalAssetKind,
+  LocalAssetStatus,
   LocalProfileEntryKind,
 } from '../../src/runtime/generated/runtime/v1/local_runtime_types.js';
 
@@ -39,6 +44,7 @@ test('local runtime asset kind ids are projected from Runtime enum order', () =>
     'controlnet',
     'auxiliary',
   ]);
+  assert.deepEqual(LOCAL_RUNTIME_ASSET_STATUS_IDS, ['installed', 'active', 'unhealthy', 'removed']);
 });
 
 test('local runtime asset kind parser accepts Runtime wire names and values', () => {
@@ -57,6 +63,17 @@ test('local runtime asset kind predicates and normalizers fail closed', () => {
   assert.equal(normalizeLocalRuntimeAssetKindId('music'), 'chat');
   assert.equal(normalizeLocalRuntimeRunnableAssetKindId('embedding'), 'embedding');
   assert.equal(normalizeLocalRuntimeRunnableAssetKindId('vae'), 'chat');
+});
+
+test('local runtime asset status parser accepts Runtime wire names and values', () => {
+  assert.equal(parseLocalRuntimeAssetStatusId(LocalAssetStatus.ACTIVE), 'active');
+  assert.equal(parseLocalRuntimeAssetStatusId('LOCAL_ASSET_STATUS_UNHEALTHY'), 'unhealthy');
+  assert.equal(parseLocalRuntimeAssetStatusId('4'), 'removed');
+  assert.equal(parseLocalRuntimeAssetStatusId('LOCAL_MODEL_STATUS_ACTIVE'), undefined);
+  assert.equal(normalizeLocalRuntimeAssetStatusId('LOCAL_ASSET_STATUS_ACTIVE'), 'active');
+  assert.equal(normalizeLocalRuntimeAssetStatusId('LOCAL_MODEL_STATUS_ACTIVE'), 'installed');
+  assert.equal(toLocalRuntimeAssetStatusRequestValue('removed'), LocalAssetStatus.REMOVED);
+  assert.equal(toLocalRuntimeAssetStatusRequestValue('missing'), LocalAssetStatus.UNSPECIFIED);
 });
 
 test('local runtime asset kind capability projection stays runtime-local', () => {

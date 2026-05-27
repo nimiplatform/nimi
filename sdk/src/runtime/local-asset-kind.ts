@@ -1,6 +1,7 @@
 import {
   GpuMemoryModel,
   LocalAssetKind,
+  LocalAssetStatus,
   LocalProfileEntryKind,
 } from './generated/runtime/v1/local_runtime_types.js';
 
@@ -23,6 +24,7 @@ export type LocalRuntimeAssetKindId =
   | LocalRuntimeRunnableAssetKindId
   | LocalRuntimePassiveAssetKindId;
 
+export type LocalRuntimeAssetStatusId = 'installed' | 'active' | 'unhealthy' | 'removed';
 export type LocalProfileEntryKindId = 'service' | 'node' | 'asset';
 export type LocalRuntimeGpuMemoryModelId = 'discrete' | 'unified';
 
@@ -54,6 +56,16 @@ const LOCAL_RUNTIME_ASSET_KIND_PAIRS = [
   ...LOCAL_RUNTIME_PASSIVE_ASSET_KIND_PAIRS,
 ] as const;
 
+const LOCAL_RUNTIME_ASSET_STATUS_PAIRS = [
+  [LocalAssetStatus.INSTALLED, 'installed'],
+  [LocalAssetStatus.ACTIVE, 'active'],
+  [LocalAssetStatus.UNHEALTHY, 'unhealthy'],
+  [LocalAssetStatus.REMOVED, 'removed'],
+] as const satisfies readonly (readonly [
+  LocalAssetStatus,
+  LocalRuntimeAssetStatusId,
+])[];
+
 const LOCAL_PROFILE_ENTRY_KIND_PAIRS = [
   [LocalProfileEntryKind.SERVICE, 'service'],
   [LocalProfileEntryKind.NODE, 'node'],
@@ -83,6 +95,10 @@ export const LOCAL_RUNTIME_ASSET_KIND_IDS = Object.freeze(
   LOCAL_RUNTIME_ASSET_KIND_PAIRS.map(([, id]) => id),
 ) as readonly LocalRuntimeAssetKindId[];
 
+export const LOCAL_RUNTIME_ASSET_STATUS_IDS = Object.freeze(
+  LOCAL_RUNTIME_ASSET_STATUS_PAIRS.map(([, id]) => id),
+) as readonly LocalRuntimeAssetStatusId[];
+
 export function parseLocalRuntimeAssetKindId(value: unknown): LocalRuntimeAssetKindId | undefined {
   const raw = String(value ?? '').trim();
   if (!raw) {
@@ -109,6 +125,41 @@ export function toLocalRuntimeAssetKindRequestValue(value: unknown): LocalAssetK
   }
   return LOCAL_RUNTIME_ASSET_KIND_PAIRS.find(([, current]) => current === id)?.[0]
     ?? LocalAssetKind.UNSPECIFIED;
+}
+
+export function parseLocalRuntimeAssetStatusId(value: unknown): LocalRuntimeAssetStatusId | undefined {
+  const raw = String(value ?? '').trim();
+  if (!raw) {
+    return undefined;
+  }
+  const lower = raw.toLowerCase();
+  for (const [protoValue, id] of LOCAL_RUNTIME_ASSET_STATUS_PAIRS) {
+    if (
+      value === protoValue ||
+      raw === String(protoValue) ||
+      lower === id ||
+      lower === `local_asset_status_${id}`
+    ) {
+      return id;
+    }
+  }
+  return undefined;
+}
+
+export function normalizeLocalRuntimeAssetStatusId(
+  value: unknown,
+  fallback: LocalRuntimeAssetStatusId = 'installed',
+): LocalRuntimeAssetStatusId {
+  return parseLocalRuntimeAssetStatusId(value) ?? fallback;
+}
+
+export function toLocalRuntimeAssetStatusRequestValue(value: unknown): LocalAssetStatus {
+  const id = parseLocalRuntimeAssetStatusId(value);
+  if (!id) {
+    return LocalAssetStatus.UNSPECIFIED;
+  }
+  return LOCAL_RUNTIME_ASSET_STATUS_PAIRS.find(([, current]) => current === id)?.[0]
+    ?? LocalAssetStatus.UNSPECIFIED;
 }
 
 export function parseLocalProfileEntryKindId(value: unknown): LocalProfileEntryKindId | undefined {

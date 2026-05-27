@@ -1,4 +1,8 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
+import {
+  toLocalRuntimeAssetKindRequestValue,
+  toLocalRuntimeAssetStatusRequestValue,
+} from '@nimiplatform/sdk/runtime';
 import type {
   LocalRuntimeAssetRecord,
   LocalRuntimeExecutionPlan,
@@ -33,26 +37,11 @@ export function requireSdkLocal(): LocalClient {
 }
 
 export function toAssetStatusFilter(status?: LocalRuntimeListAssetsPayload['status']): number {
-  if (status === 'installed') return 1;
-  if (status === 'active') return 2;
-  if (status === 'unhealthy') return 3;
-  if (status === 'removed') return 4;
-  return 0;
+  return toLocalRuntimeAssetStatusRequestValue(status);
 }
 
 export function toAssetKindFilter(kind?: LocalRuntimeListAssetsPayload['kind']): number {
-  if (kind === 'chat') return 1;
-  if (kind === 'image') return 2;
-  if (kind === 'video') return 3;
-  if (kind === 'tts') return 4;
-  if (kind === 'stt') return 5;
-  if (kind === 'embedding') return 6;
-  if (kind === 'vae') return 10;
-  if (kind === 'clip') return 11;
-  if (kind === 'lora') return 12;
-  if (kind === 'controlnet') return 13;
-  if (kind === 'auxiliary') return 14;
-  return 0;
+  return toLocalRuntimeAssetKindRequestValue(kind);
 }
 
 export function assetLookupKey(

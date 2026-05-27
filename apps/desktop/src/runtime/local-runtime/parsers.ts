@@ -17,7 +17,10 @@ import type {
   LocalRuntimeServiceDescriptor,
   LocalRuntimeNodeDescriptor,
 } from './types';
-import { normalizeLocalRuntimeAssetKindId } from '@nimiplatform/sdk/runtime';
+import {
+  normalizeLocalRuntimeAssetKindId,
+  normalizeLocalRuntimeAssetStatusId,
+} from '@nimiplatform/sdk/runtime';
 import { asRecord, asString } from './parser-primitives';
 import { asPlainObject } from './parser-helpers';
 import { toCanonicalLocalId } from './local-id';
@@ -63,18 +66,7 @@ export {
   parseScaffoldAssetResult,
 } from './parsers-runtime-events';
 export function normalizeAssetStatus(value: unknown): LocalRuntimeAssetStatus {
-  if (typeof value === 'number') {
-    if (value === 2) return 'active';
-    if (value === 3) return 'unhealthy';
-    if (value === 4) return 'removed';
-    return 'installed';
-  }
-  const raw = asString(value);
-  if (raw === 'active' || raw === 'unhealthy' || raw === 'removed') return raw;
-  if (raw === 'LOCAL_ASSET_STATUS_ACTIVE' || raw === '2') return 'active';
-  if (raw === 'LOCAL_ASSET_STATUS_UNHEALTHY' || raw === '3') return 'unhealthy';
-  if (raw === 'LOCAL_ASSET_STATUS_REMOVED' || raw === '4') return 'removed';
-  return 'installed';
+  return normalizeLocalRuntimeAssetStatusId(value);
 }
 
 function inferIntegrityModeFromRepo(repo: string): 'verified' | 'local_unverified' {

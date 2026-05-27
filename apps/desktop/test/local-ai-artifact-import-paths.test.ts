@@ -9,11 +9,13 @@ const localModelCenterSectionsPath = path.resolve(
 );
 const runtimeCommandsPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands-assets.ts');
 const runtimeLocalTypesPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/types.ts');
+const sdkLocalAssetKindPath = path.resolve(process.cwd(), '../../sdk/src/runtime/local-asset-kind.ts');
 const runtimeHookDirPath = path.resolve(process.cwd(), 'src/runtime/hook');
 
 const localModelCenterSectionsSource = readFileSync(localModelCenterSectionsPath, 'utf-8');
 const runtimeCommandsSource = readFileSync(runtimeCommandsPath, 'utf-8');
 const runtimeLocalTypesSource = readFileSync(runtimeLocalTypesPath, 'utf-8');
+const sdkLocalAssetKindSource = readFileSync(sdkLocalAssetKindPath, 'utf-8');
 
 type TauriInvokeCall = {
   command: string;
@@ -76,5 +78,6 @@ test('local model center uses one runtime manifest import entry and one asset fi
 
 test('local runtime owns vae as a first-class asset kind after hook retirement', () => {
   assert.equal(existsSync(runtimeHookDirPath), false);
-  assert.match(runtimeLocalTypesSource, /export type LocalRuntimeAssetKind = .*'vae'/);
+  assert.match(runtimeLocalTypesSource, /export type LocalRuntimeAssetKind = LocalRuntimeAssetKindId/);
+  assert.match(sdkLocalAssetKindSource, /\| 'vae'/);
 });
