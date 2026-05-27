@@ -2,11 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  listDesktopAgentAvatarResources,
-  readDesktopAgentAvatarResourceAsset,
-  readDesktopAgentAvatarResourceRelativeAsset,
-} from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.js';
-import {
   loadChatAgentAvatarLive2dModelSource,
   parseChatAgentAvatarLive2dMocVersion,
   parseChatAgentAvatarLive2dModelSettings,
@@ -52,16 +47,11 @@ test('live2d viewport state parses moc version from moc3 payload header', () => 
   assert.equal(version, 6);
 });
 
-test('live2d viewport state fails closed when stale desktop-avatar source loading hits the decommissioned bridge', async () => {
+test('live2d viewport state fails closed when stale desktop-avatar source loading is requested', async () => {
   await assert.rejects(
     () => loadChatAgentAvatarLive2dModelSource(
       'desktop-avatar://resource-live2d/airi.model3.json',
-      {
-        listResources: listDesktopAgentAvatarResources,
-        readAsset: readDesktopAgentAvatarResourceAsset,
-        readRelativeAsset: readDesktopAgentAvatarResourceRelativeAsset,
-      },
     ),
-    /decommissioned in Wave 4 Exec Pack 4/i,
+    /desktop-avatar:\/\/ asset references are decommissioned/i,
   );
 });

@@ -18,7 +18,6 @@ import {
   type ChatAgentAvatarVrmFramingResult,
 } from './chat-agent-avatar-vrm-framing';
 import type { ChatAgentAvatarAttentionState } from './chat-agent-avatar-attention-state';
-import { readDesktopAgentAvatarResourceAsset } from '@renderer/bridge/runtime-bridge/chat-agent-avatar-store';
 import {
   collectChatAgentAvatarVrmSceneResourceCounts,
   createChatAgentAvatarVrmDiagnostic,
@@ -456,47 +455,19 @@ export default function ChatAgentAvatarVrmViewport({
       });
       return undefined;
     }
-    let active = true;
-
     setResolvedAsset({
       assetRef: input.assetRef,
       url: null,
       arrayBuffer: null,
     });
     setLoadedVrm({
-      status: 'loading',
+      status: 'error',
       assetRef: input.assetRef,
       vrm: null,
-      error: null,
+      error: 'desktop-avatar:// asset references are decommissioned; use Avatar-owned local asset materialization.',
     });
 
-    void readDesktopAgentAvatarResourceAsset(desktopAssetRef.resourceId)
-      .then((asset) => {
-        if (!active) {
-          return;
-        }
-        const binary = Uint8Array.from(atob(asset.base64), (character) => character.charCodeAt(0));
-        setResolvedAsset({
-          assetRef: input.assetRef,
-          url: null,
-          arrayBuffer: binary.buffer,
-        });
-      })
-      .catch((error: unknown) => {
-        if (!active) {
-          return;
-        }
-        setLoadedVrm({
-          status: 'error',
-          assetRef: input.assetRef,
-          vrm: null,
-          error: error instanceof Error ? error.message : 'Failed to load desktop avatar asset.',
-        });
-      });
-
-    return () => {
-      active = false;
-    };
+    return undefined;
   }, [desktopAssetRef, input.assetRef, networkAssetUrl]);
 
   useEffect(() => {
