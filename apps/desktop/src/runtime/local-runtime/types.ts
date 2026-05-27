@@ -6,6 +6,7 @@ import type { LocalProviderAdapter } from '@nimiplatform/sdk/ai';
 import type {
   LocalRecommendationFeedCapabilityId,
   LocalRuntimeAssetKindId,
+  LocalRuntimeEngineRuntimeModeId,
   LocalRuntimeRunnableAssetKindId,
 } from '@nimiplatform/sdk/runtime';
 import type {
@@ -103,7 +104,7 @@ export type LocalRuntimeVerifiedAssetDescriptor = {
   metadata?: Record<string, unknown>;
 };
 
-export type LocalRuntimeEngineRuntimeMode = 'supervised' | 'attached-endpoint';
+export type LocalRuntimeEngineRuntimeMode = LocalRuntimeEngineRuntimeModeId;
 
 export type LocalRuntimeProviderAdapter = LocalProviderAdapter;
 

@@ -201,9 +201,14 @@ export {
 } from './local-asset-kind.js';
 export {
   LOCAL_RUNTIME_ENGINE_IDS,
+  LOCAL_RUNTIME_ENGINE_RUNTIME_MODE_IDS,
   isLocalRuntimeEngineId,
+  normalizeLocalRuntimeEngineRuntimeModeId,
   normalizeLocalRuntimeEngineId,
+  parseLocalRuntimeEngineRuntimeModeId,
   parseLocalRuntimeEngineId,
+  toLocalRuntimeEngineRuntimeModeRequestValue,
+  type LocalRuntimeEngineRuntimeModeId,
   type LocalRuntimeEngineId,
 } from './local-engine.js';
 export { createTauriIpcTransport } from './transports/tauri-ipc.js';

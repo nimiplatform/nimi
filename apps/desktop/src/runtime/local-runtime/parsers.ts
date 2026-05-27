@@ -20,6 +20,7 @@ import type {
 import {
   normalizeLocalRuntimeAssetKindId,
   normalizeLocalRuntimeAssetStatusId,
+  normalizeLocalRuntimeEngineRuntimeModeId,
 } from '@nimiplatform/sdk/runtime';
 import {
   DEFAULT_LOCAL_PROVIDER_ADAPTER_ID,
@@ -313,14 +314,7 @@ export function parseProfileApplyResult(value: unknown): LocalRuntimeProfileAppl
 
 
 export function normalizeEngineRuntimeMode(value: unknown): LocalRuntimeEngineRuntimeMode {
-  if (typeof value === 'number') {
-    return value === 1 ? 'supervised' : 'attached-endpoint';
-  }
-  const normalized = asString(value);
-  if (normalized === 'LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED' || normalized === '1') {
-    return 'supervised';
-  }
-  return asString(value) === 'supervised' ? 'supervised' : 'attached-endpoint';
+  return normalizeLocalRuntimeEngineRuntimeModeId(value);
 }
 
 export function normalizeProviderAdapter(value: unknown): LocalRuntimeProviderAdapter {

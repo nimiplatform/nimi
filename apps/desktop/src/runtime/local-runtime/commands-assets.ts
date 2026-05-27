@@ -1,5 +1,6 @@
 import {
   localRuntimeCapabilitiesForAssetKind,
+  toLocalRuntimeEngineRuntimeModeRequestValue,
   toProtoStruct,
 } from '@nimiplatform/sdk/runtime';
 import { tauriInvoke } from '../llm-adapter/tauri-bridge';
@@ -49,10 +50,6 @@ import {
   parseUnregisteredAssetDescriptor,
 } from './parsers';
 import { asRecord, requireSdkLocal, toAssetKindFilter } from './commands-shared';
-
-function engineRuntimeModeToProto(value: LocalRuntimeInstallPlanDescriptor['engineRuntimeMode']): number {
-  return value === 'supervised' ? 1 : value === 'attached-endpoint' ? 2 : 0;
-}
 
 export async function importLocalRuntimeAssetFile(
   payload: LocalRuntimeImportFilePayload,
@@ -104,7 +101,7 @@ export async function installLocalRuntimeAsset(
       revision: String(plan.revision || '').trim(),
       capabilities: Array.isArray(plan.capabilities) ? plan.capabilities : [],
       engine: String(plan.engine || '').trim(),
-      engineRuntimeMode: engineRuntimeModeToProto(plan.engineRuntimeMode),
+      engineRuntimeMode: toLocalRuntimeEngineRuntimeModeRequestValue(plan.engineRuntimeMode),
       installKind: String(plan.installKind || '').trim(),
       installAvailable: Boolean(plan.installAvailable),
       endpoint: String(plan.endpoint || '').trim(),
