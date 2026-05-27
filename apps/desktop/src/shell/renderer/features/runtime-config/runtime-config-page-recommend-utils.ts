@@ -114,27 +114,16 @@ export function licenseColorClass(label: string): string {
   return 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)] border-[var(--nimi-border-subtle)]';
 }
 
-export function parseProviderFromRepo(repo: string): string {
-  const org = repo.split('/')[0]?.toLowerCase() || '';
-  if (org.includes('meta') || org.includes('llama')) return 'Meta';
-  if (org.includes('qwen') || org.includes('alibaba') || org.includes('dashscope')) return 'Alibaba';
-  if (org.includes('google') || org.includes('gemma')) return 'Google';
-  if (org.includes('mistral')) return 'Mistral';
-  if (org.includes('microsoft') || org.includes('phi')) return 'Microsoft';
-  if (org.includes('deepseek')) return 'DeepSeek';
-  if (org.includes('stabilityai') || org.includes('stability')) return 'Stability AI';
-  if (org.includes('black-forest') || org.includes('flux')) return 'Black Forest Labs';
-  if (org.includes('openai')) return 'OpenAI';
-  if (org.includes('nvidia')) return 'NVIDIA';
-  if (org.includes('tencent')) return 'Tencent';
-  if (org.includes('01-ai') || org.includes('yi')) return '01.AI';
-  if (org.includes('cohere')) return 'Cohere';
-  if (org.includes('nous') || org.includes('nousresearch')) return 'NousResearch';
-  if (org.includes('thebloke')) return 'TheBloke';
-  if (org.includes('bartowski')) return 'bartowski';
-  if (org.includes('unsloth')) return 'Unsloth';
-  if (org.includes('lmstudio') || org.includes('lm-studio')) return 'LM Studio';
-  return org || 'Unknown';
+export function formatRepoOwnerFromRepo(repo: string): string {
+  const org = repo.split('/')[0]?.trim() || '';
+  if (!org) {
+    return 'Unknown';
+  }
+  return org
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (segment) => segment.toUpperCase());
 }
 
 // ---------------------------------------------------------------------------
@@ -252,7 +241,7 @@ export function applyFilters(
       if (!filters.grades.has(grade)) return false;
     }
     if (filters.providers.size > 0) {
-      const provider = parseProviderFromRepo(item.repo);
+      const provider = formatRepoOwnerFromRepo(item.repo);
       if (!filters.providers.has(provider)) return false;
     }
     if (filters.licenses.size > 0) {
@@ -266,7 +255,7 @@ export function applyFilters(
 export function collectUniqueProviders(items: LocalRuntimeRecommendationFeedItemDescriptor[]): string[] {
   const set = new Set<string>();
   for (const item of items) {
-    set.add(parseProviderFromRepo(item.repo));
+    set.add(formatRepoOwnerFromRepo(item.repo));
   }
   return [...set].sort();
 }

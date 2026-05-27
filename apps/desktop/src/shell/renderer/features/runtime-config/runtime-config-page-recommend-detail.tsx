@@ -31,7 +31,7 @@ import {
   licenseColorClass,
   parseParamsFromTitle,
   parseLicenseShort,
-  parseProviderFromRepo,
+  formatRepoOwnerFromRepo,
   parseQuantBitsFromEntry,
   parseQuantLevelFromEntry,
   quantQualityColorClass,
@@ -126,7 +126,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
   const recommendation = item.recommendation;
   const params = parseParamsFromTitle(item.title);
   const license = parseLicenseShort(item.installPayload.license);
-  const provider = parseProviderFromRepo(item.repo);
+  const provider = formatRepoOwnerFromRepo(item.repo);
   const grade = tierToGrade(recommendation?.tier);
   const hfUrl = buildHuggingFaceUrl(item.repo);
 

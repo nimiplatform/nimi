@@ -14,7 +14,7 @@ import {
   licenseColorClass,
   parseParamsFromTitle,
   parseLicenseShort,
-  parseProviderFromRepo,
+  formatRepoOwnerFromRepo,
   primaryEntrySize,
   tierToGrade,
   vramBarColorClass,
@@ -355,7 +355,7 @@ export function ModelRow({ item, totalVramBytes, onSelect }: ModelRowProps) {
           ) : null}
         </div>
         <div className="mt-0.5 flex items-center gap-2 text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
-          <span>{parseProviderFromRepo(item.repo)}</span>
+          <span>{formatRepoOwnerFromRepo(item.repo)}</span>
           <span>·</span>
           <span>{lastMod}</span>
         </div>

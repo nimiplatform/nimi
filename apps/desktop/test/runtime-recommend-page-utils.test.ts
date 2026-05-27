@@ -10,7 +10,7 @@ import {
   normalizeRecommendPageCapability,
   parseLicenseShort,
   parseParamsFromTitle,
-  parseProviderFromRepo,
+  formatRepoOwnerFromRepo,
   parseQuantBitsFromEntry,
   parseQuantLevelFromEntry,
   quantQualityLabel,
@@ -115,12 +115,12 @@ test('parseLicenseShort normalizes license strings to short labels', () => {
   assert.equal(parseLicenseShort('unknown'), '');
 });
 
-test('parseProviderFromRepo extracts provider from repo org', () => {
-  assert.equal(parseProviderFromRepo('meta-llama/Llama-3-8B-GGUF'), 'Meta');
-  assert.equal(parseProviderFromRepo('Qwen/Qwen2.5-7B-Instruct'), 'Alibaba');
-  assert.equal(parseProviderFromRepo('google/gemma-2-9b'), 'Google');
-  assert.equal(parseProviderFromRepo('mistralai/Mistral-7B'), 'Mistral');
-  assert.equal(parseProviderFromRepo('bartowski/model-GGUF'), 'bartowski');
+test('formatRepoOwnerFromRepo formats the repository owner without provider mapping', () => {
+  assert.equal(formatRepoOwnerFromRepo('meta-llama/Llama-3-8B-GGUF'), 'Meta Llama');
+  assert.equal(formatRepoOwnerFromRepo('Qwen/Qwen2.5-7B-Instruct'), 'Qwen');
+  assert.equal(formatRepoOwnerFromRepo('google/gemma-2-9b'), 'Google');
+  assert.equal(formatRepoOwnerFromRepo('mistralai/Mistral-7B'), 'Mistralai');
+  assert.equal(formatRepoOwnerFromRepo('bartowski/model-GGUF'), 'Bartowski');
 });
 
 test('computeVramPercentage returns correct percentage or null', () => {
