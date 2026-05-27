@@ -166,10 +166,7 @@ function normalizeProviderAuthProfile(value: string): string {
 }
 
 function authOptionLabelForProfile(profile: ConnectorAuthProfileSpec): string {
-  if (profile.id === 'openai_codex') return 'Managed OAuth Token (Codex)';
-  if (profile.id === 'anthropic') return 'Managed OAuth Token (Anthropic)';
-  if (profile.id === 'qwen_oauth') return 'Managed OAuth Token (Qwen)';
-  return `Managed OAuth Token (${profile.id})`;
+  return `Managed OAuth Token (${getVendorLabelV11(profile.id)})`;
 }
 
 export function listProviderAuthProfiles(provider: string): ConnectorAuthProfileSpec[] {
