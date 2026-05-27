@@ -16,10 +16,7 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-const (
-	registryFileName    = "connector-registry.json"
-	legacyCredentialDir = "credentials"
-)
+const registryFileName = "connector-registry.json"
 
 var errConnectorLimitExceeded = errors.New("connector limit exceeded")
 
@@ -66,10 +63,9 @@ type ConnectorMutations struct {
 
 // ConnectorStore manages connector records and credentials on disk.
 type ConnectorStore struct {
-	mu            sync.Mutex
-	registryPath  string
-	legacyCredDir string
-	secretStore   connectorSecretStore
+	mu           sync.Mutex
+	registryPath string
+	secretStore  connectorSecretStore
 }
 
 // NewConnectorStore creates a store rooted at basePath.
@@ -79,9 +75,8 @@ func NewConnectorStore(basePath string) *ConnectorStore {
 
 func newConnectorStore(basePath string, secretStore connectorSecretStore) *ConnectorStore {
 	return &ConnectorStore{
-		registryPath:  filepath.Join(basePath, registryFileName),
-		legacyCredDir: filepath.Join(basePath, legacyCredentialDir),
-		secretStore:   secretStore,
+		registryPath: filepath.Join(basePath, registryFileName),
+		secretStore:  secretStore,
 	}
 }
 
@@ -348,7 +343,6 @@ func (s *ConnectorStore) LoadSecretPayload(connectorID string) (string, error) {
 // ReconcileStartup performs startup reconciliation:
 // 1. Clean up delete_pending residuals
 // 2. Sync has_credential flags
-// 3. Remove orphan legacy credential files
 func (s *ConnectorStore) ReconcileStartup() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -376,24 +370,16 @@ func (s *ConnectorStore) ReconcileStartup() error {
 	}
 	records = filtered
 
-	// Sync has_credential flag and migrate any legacy on-disk secrets.
-	knownIDs := make(map[string]bool, len(records))
+	// Sync has_credential flag from the current credential source.
 	for i := range records {
 		r := &records[i]
-		knownIDs[r.ConnectorID] = true
-		legacyPath, err := s.credentialPath(r.ConnectorID)
-		if err != nil {
-			return fmt.Errorf("invalid connector id %q: %w", r.ConnectorID, err)
-		}
-		_, statErr := os.Stat(legacyPath)
-		legacyExists := statErr == nil
 		hasCred := false
 		if r.CredentialEnv != "" {
 			if _, err := sanitizeCredentialEnv(r.CredentialEnv); err != nil {
 				return fmt.Errorf("invalid credential env for connector %q: %w", r.ConnectorID, err)
 			}
 			hasCred = envCredentialAvailable(r.CredentialEnv)
-		} else if r.HasCredential || legacyExists {
+		} else if r.HasCredential {
 			secret, readErr := s.readStoredSecretPayloadLocked(r.ConnectorID)
 			if readErr != nil {
 				return fmt.Errorf("load credential %q: %w", r.ConnectorID, readErr)
@@ -404,11 +390,6 @@ func (s *ConnectorStore) ReconcileStartup() error {
 			r.HasCredential = hasCred
 			dirty = true
 		}
-	}
-
-	// Remove orphan legacy credential files after migration.
-	if err := s.cleanOrphanCredentialsLocked(knownIDs); err != nil {
-		return fmt.Errorf("clean orphan credentials: %w", err)
 	}
 
 	if dirty {
@@ -449,14 +430,6 @@ func (s *ConnectorStore) persistRegistryLocked(records []ConnectorRecord) error 
 	return atomicWriteFile(s.registryPath, data, 0o600)
 }
 
-func (s *ConnectorStore) credentialPath(connectorID string) (string, error) {
-	sanitized, err := sanitizeConnectorID(connectorID)
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(s.legacyCredDir, sanitized+".key"), nil
-}
-
 func (s *ConnectorStore) writeSecretPayloadLocked(connectorID string, payload string) error {
 	sanitized, err := sanitizeConnectorID(connectorID)
 	if err != nil {
@@ -464,13 +437,6 @@ func (s *ConnectorStore) writeSecretPayloadLocked(connectorID string, payload st
 	}
 	if err := s.secretStore.WriteSecret(sanitized, payload); err != nil {
 		return err
-	}
-	legacyPath, err := s.credentialPath(sanitized)
-	if err != nil {
-		return fmt.Errorf("resolve legacy credential path: %w", err)
-	}
-	if removeErr := os.Remove(legacyPath); removeErr != nil && !os.IsNotExist(removeErr) {
-		return fmt.Errorf("remove legacy credential: %w", removeErr)
 	}
 	return nil
 }
@@ -498,25 +464,7 @@ func (s *ConnectorStore) readStoredSecretPayloadLocked(connectorID string) (stri
 		return secret, nil
 	}
 
-	path, err := s.credentialPath(sanitized)
-	if err != nil {
-		return "", fmt.Errorf("resolve legacy credential path: %w", err)
-	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return "", nil
-		}
-		return "", fmt.Errorf("read credential: %w", err)
-	}
-	secret := string(data)
-	if err := s.secretStore.WriteSecret(sanitized, secret); err != nil {
-		return "", fmt.Errorf("migrate legacy credential: %w", err)
-	}
-	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-		return "", fmt.Errorf("remove migrated legacy credential: %w", err)
-	}
-	return secret, nil
+	return "", nil
 }
 
 func (s *ConnectorStore) deleteSecretPayloadLocked(connectorID string) error {
@@ -526,14 +474,6 @@ func (s *ConnectorStore) deleteSecretPayloadLocked(connectorID string) error {
 	}
 	if err := s.secretStore.DeleteSecret(sanitized); err != nil {
 		return err
-	}
-	path, err := s.credentialPath(sanitized)
-	if err != nil {
-		return fmt.Errorf("resolve legacy credential path: %w", err)
-	}
-	err = os.Remove(path)
-	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("delete legacy credential: %w", err)
 	}
 	return nil
 }
@@ -592,30 +532,6 @@ func sanitizeCredentialEnv(envKey string) (string, error) {
 
 func envCredentialAvailable(envKey string) bool {
 	return strings.TrimSpace(os.Getenv(strings.TrimSpace(envKey))) != ""
-}
-
-func (s *ConnectorStore) cleanOrphanCredentialsLocked(knownIDs map[string]bool) error {
-	entries, err := os.ReadDir(s.legacyCredDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		name := entry.Name()
-		if !strings.HasSuffix(name, ".key") {
-			continue
-		}
-		id := strings.TrimSuffix(name, ".key")
-		if !knownIDs[id] {
-			_ = os.Remove(filepath.Join(s.legacyCredDir, name))
-		}
-	}
-	return nil
 }
 
 // atomicWriteFile writes content atomically: temp → fsync → rename → fsync parent dir.

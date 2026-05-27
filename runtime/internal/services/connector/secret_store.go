@@ -11,7 +11,6 @@ import (
 const (
 	connectorSecretServicePrefix = "nimi/runtime/connector"
 	connectorSecretAccount       = "credential-payload"
-	legacyConnectorSecretAccount = "api-key"
 )
 
 type connectorSecretStore interface {
@@ -39,14 +38,7 @@ func (osKeychainSecretStore) ReadSecret(connectorID string) (string, bool, error
 		if !errors.Is(err, keyring.ErrNotFound) {
 			return "", false, fmt.Errorf("secure store read failed: %w", err)
 		}
-		legacySecret, legacyErr := keyring.Get(connectorSecretServiceName(connectorID), legacyConnectorSecretAccount)
-		if legacyErr != nil {
-			if errors.Is(legacyErr, keyring.ErrNotFound) {
-				return "", false, nil
-			}
-			return "", false, fmt.Errorf("secure store read failed: %w", legacyErr)
-		}
-		return legacySecret, true, nil
+		return "", false, nil
 	}
 	return secret, true, nil
 }
@@ -55,10 +47,6 @@ func (osKeychainSecretStore) DeleteSecret(connectorID string) error {
 	err := keyring.Delete(connectorSecretServiceName(connectorID), connectorSecretAccount)
 	if err != nil && !errors.Is(err, keyring.ErrNotFound) {
 		return fmt.Errorf("secure store delete failed: %w", err)
-	}
-	legacyErr := keyring.Delete(connectorSecretServiceName(connectorID), legacyConnectorSecretAccount)
-	if legacyErr != nil && !errors.Is(legacyErr, keyring.ErrNotFound) {
-		return fmt.Errorf("secure store delete failed: %w", legacyErr)
 	}
 	return nil
 }
