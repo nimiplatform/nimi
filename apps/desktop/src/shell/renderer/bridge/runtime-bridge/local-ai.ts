@@ -56,27 +56,6 @@ export async function listLocalRuntimeDownloadSessions(): Promise<LocalRuntimeDo
   return localRuntime.listDownloads() as Promise<LocalRuntimeDownloadSessionSummary[]>;
 }
 
-export async function pauseLocalRuntimeDownloadSession(
-  installSessionId: string,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeDownloadSessionSummary> {
-  return localRuntime.pauseDownload(installSessionId, options) as Promise<LocalRuntimeDownloadSessionSummary>;
-}
-
-export async function resumeLocalRuntimeDownloadSession(
-  installSessionId: string,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeDownloadSessionSummary> {
-  return localRuntime.resumeDownload(installSessionId, options) as Promise<LocalRuntimeDownloadSessionSummary>;
-}
-
-export async function cancelLocalRuntimeDownloadSession(
-  installSessionId: string,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeDownloadSessionSummary> {
-  return localRuntime.cancelDownload(installSessionId, options) as Promise<LocalRuntimeDownloadSessionSummary>;
-}
-
 export async function importLocalRuntimeAsset(
   payload: LocalRuntimeImportAssetPayload,
   options?: LocalRuntimeWriteOptions,
