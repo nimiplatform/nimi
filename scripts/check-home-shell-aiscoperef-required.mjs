@@ -11,8 +11,8 @@ const repoRoot = path.resolve(scriptDir, '..');
 // Home shell Agent Chat surfaces. Any AI execution call must include
 // an explicit AIScopeRef per `.nimi/spec/desktop/kernel/ai-profile-config-contract.md`.
 const TARGET_GLOBS = [
-  'apps/desktop/src/shell/renderer/agent-chat',
-  'apps/desktop/src/shell/renderer/chat',
+  'apps/desktop/src/shell/renderer/features/chat',
+  'apps/desktop/src/shell/renderer/features/nimi-home',
 ];
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
