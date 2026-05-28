@@ -101,7 +101,6 @@ export type {
   AgentLocalMessageError,
   AgentLocalMessageRecord,
   AgentLocalThreadBundle,
-  AgentLocalCreateThreadInput,
 } from './chat-agent-types.js';
 
 export {
@@ -112,7 +111,6 @@ export {
   parseAgentLocalMessageError,
   parseAgentLocalMessageRecord,
   parseAgentLocalThreadBundle,
-  parseAgentLocalCreateThreadInput,
 } from './chat-agent-parsers.js';
 
 export type {

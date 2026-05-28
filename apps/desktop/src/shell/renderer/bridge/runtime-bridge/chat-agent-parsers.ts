@@ -6,7 +6,6 @@ import {
 } from './shared.js';
 import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 import type {
-  AgentLocalCreateThreadInput,
   AgentLocalMessageError,
   AgentLocalMessageKind,
   AgentLocalMessageRecord,
@@ -222,27 +221,5 @@ export function parseAgentLocalThreadBundle(value: unknown): AgentLocalThreadBun
     messages: Array.isArray(record.messages)
       ? record.messages.map((item) => parseAgentLocalMessageRecord(item))
       : (() => { throw new Error('chat_agent thread bundle.messages must be an array'); })(),
-  };
-}
-
-export function parseAgentLocalCreateThreadInput(value: unknown): AgentLocalCreateThreadInput {
-  const record = assertRecord(value, 'chat_agent create_thread payload is invalid');
-  const identity = parseLocalAgentIdentity(record, 'chat_agent create_thread payload');
-  const targetSnapshot = parseAgentLocalTargetSnapshot(record.targetSnapshot);
-  if (
-    targetSnapshot.ownerUserId !== identity.ownerUserId
-    || targetSnapshot.realmAgentId !== identity.realmAgentId
-    || targetSnapshot.localAgentRef !== identity.localAgentRef
-  ) {
-    throw new Error('chat_agent create_thread payload: targetSnapshot local identity must match thread local identity');
-  }
-  return {
-    id: parseRequiredString(record.id, 'id', 'chat_agent create_thread payload'),
-    ...identity,
-    title: parseRequiredString(record.title, 'title', 'chat_agent create_thread payload'),
-    createdAtMs: parseFiniteInteger(record.createdAtMs, 'createdAtMs', 'chat_agent create_thread payload'),
-    updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent create_thread payload'),
-    lastMessageAtMs: parseNullableFiniteInteger(record.lastMessageAtMs, 'lastMessageAtMs', 'chat_agent create_thread payload'),
-    targetSnapshot,
   };
 }

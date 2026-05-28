@@ -11,7 +11,6 @@ import type {
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
-import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import {
   resolveAIConfigSchedulingTargetForCapability,
 } from '@renderer/app-shell/providers/desktop-ai-config-service';
@@ -19,7 +18,6 @@ import {
   bundleQueryKey,
   createAgentConversationCacheThreadId,
   normalizeText,
-  THREADS_QUERY_KEY,
   upsertThreadSummary,
 } from './chat-agent-shell-core';
 import { createEmptyAgentThreadBundle } from './chat-agent-shell-bundle';
@@ -270,7 +268,7 @@ export async function createThreadForTarget(
   target: AgentLocalTargetSnapshot,
 ): Promise<AgentLocalThreadSummary> {
   const timestampMs = Date.now();
-  const thread = await chatAgentStoreClient.createThread({
+  const thread: AgentLocalThreadRecord = {
     id: createAgentConversationCacheThreadId(target.localAgentRef),
     ownerUserId: target.ownerUserId,
     realmAgentId: target.realmAgentId,
@@ -280,10 +278,9 @@ export async function createThreadForTarget(
     updatedAtMs: timestampMs,
     lastMessageAtMs: null,
     targetSnapshot: target,
-  });
+  };
   input.setThreadsCache((current) => upsertThreadSummary(current, thread));
   input.queryClient.setQueryData(bundleQueryKey(thread.id), createEmptyAgentThreadBundle(thread));
-  void input.queryClient.invalidateQueries({ queryKey: THREADS_QUERY_KEY });
   input.currentComposerTextRef.current = '';
   input.syncSelectionToThread(thread);
   return thread;

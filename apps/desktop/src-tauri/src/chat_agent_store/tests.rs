@@ -19,11 +19,7 @@ fn sample_local_agent_ref(owner_user_id: &str, realm_agent_id: &str) -> String {
     format!("local-agent:{owner_user_id}:{realm_agent_id}")
 }
 
-fn sample_target_snapshot(realm_agent_id: &str) -> ChatAgentTargetSnapshot {
-    sample_target_snapshot_for_owner("user-1", realm_agent_id)
-}
-
-fn sample_target_snapshot_for_owner(
+fn sample_target_snapshot(
     owner_user_id: &str,
     realm_agent_id: &str,
 ) -> ChatAgentTargetSnapshot {
@@ -41,22 +37,64 @@ fn sample_target_snapshot_for_owner(
     }
 }
 
-fn sample_create_thread_input(
+fn chat_agent_db_path() -> PathBuf {
+    crate::desktop_paths::resolve_nimi_data_dir()
+        .expect("nimi data dir")
+        .join("chat-agent")
+        .join("main.db")
+}
+
+fn open_test_db() -> Connection {
+    let path = chat_agent_db_path();
+    fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
+    let conn = Connection::open(&path).expect("open");
+    super::schema::init_schema(&conn).expect("init schema");
+    conn
+}
+
+fn table_exists(conn: &Connection, table_name: &str) -> bool {
+    conn.query_row(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1 LIMIT 1",
+        params![table_name],
+        |_| Ok(()),
+    )
+    .is_ok()
+}
+
+fn insert_thread_raw(
+    conn: &Connection,
     id: &str,
     owner_user_id: &str,
     realm_agent_id: &str,
-) -> ChatAgentCreateThreadInput {
-    ChatAgentCreateThreadInput {
-        id: id.to_string(),
-        owner_user_id: owner_user_id.to_string(),
-        realm_agent_id: realm_agent_id.to_string(),
-        local_agent_ref: sample_local_agent_ref(owner_user_id, realm_agent_id),
-        title: "Agent One".to_string(),
-        created_at_ms: 100,
-        updated_at_ms: 120,
-        last_message_at_ms: None,
-        target_snapshot: sample_target_snapshot_for_owner(owner_user_id, realm_agent_id),
-    }
+) {
+    let target = sample_target_snapshot(owner_user_id, realm_agent_id);
+    conn.execute(
+        r#"
+        INSERT INTO agent_threads (
+          id,
+          local_agent_ref,
+          owner_user_id,
+          realm_agent_id,
+          title,
+          created_at_ms,
+          updated_at_ms,
+          last_message_at_ms,
+          target_snapshot_json
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+        "#,
+        params![
+            id,
+            target.local_agent_ref,
+            owner_user_id,
+            realm_agent_id,
+            target.display_name,
+            100_i64,
+            120_i64,
+            Option::<i64>::None,
+            serde_json::to_string(&target).expect("target json"),
+        ],
+    )
+    .expect("insert thread");
 }
 
 #[test]
@@ -64,230 +102,105 @@ fn chat_agent_db_path_stays_under_nimi_data_dir() {
     let home = temp_home("db-path");
     with_product_data_home(&home, || {
         let path = super::db::db_path().expect("db path");
-        assert_eq!(
-            path,
-            crate::desktop_paths::resolve_nimi_data_dir()
-                .expect("nimi data dir")
-                .join("chat-agent")
-                .join("main.db")
-        );
+        assert_eq!(path, chat_agent_db_path());
     });
 }
 
 #[test]
-fn chat_agent_open_db_initializes_schema_idempotently() {
+fn chat_agent_open_db_initializes_read_only_projection_cache_schema() {
     let home = temp_home("schema");
     with_product_data_home(&home, || {
-        let path = crate::desktop_paths::resolve_nimi_data_dir()
-            .expect("nimi data dir")
-            .join("chat-agent")
-            .join("main.db");
-        fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
-        let conn = Connection::open(&path).expect("open");
-        super::schema::init_schema(&conn).expect("init schema");
+        let conn = open_test_db();
         super::schema::init_schema(&conn).expect("init schema again");
 
         let version: i64 = conn
             .query_row("PRAGMA user_version", [], |row| row.get(0))
             .expect("user_version");
         assert_eq!(version, CHAT_AGENT_DB_SCHEMA_VERSION);
+
+        assert_eq!(table_exists(&conn, "agent_threads"), true);
+        assert_eq!(table_exists(&conn, "agent_messages"), true);
+        assert_eq!(table_exists(&conn, "agent_turns"), false);
+        assert_eq!(table_exists(&conn, "agent_turn_beats"), false);
     });
 }
 
 #[test]
-fn chat_agent_store_round_trip_thread() {
-    let home = temp_home("roundtrip");
+fn chat_agent_store_reads_existing_projection_cache_bundle() {
+    let home = temp_home("read-bundle");
     with_product_data_home(&home, || {
-        let path = crate::desktop_paths::resolve_nimi_data_dir()
-            .expect("nimi data dir")
-            .join("chat-agent")
-            .join("main.db");
-        fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
-        let conn = Connection::open(&path).expect("open");
-        super::schema::init_schema(&conn).expect("init schema");
-
-        let thread = create_thread(
-            &conn,
-            &sample_create_thread_input("thread-agent-001", "user-1", "agent-001"),
+        let conn = open_test_db();
+        insert_thread_raw(&conn, "thread-agent-001", "user-1", "agent-001");
+        conn.execute(
+            r#"
+            INSERT INTO agent_messages (
+              id,
+              thread_id,
+              role,
+              status,
+              kind,
+              content_text,
+              reasoning_text,
+              error_code,
+              error_message,
+              trace_id,
+              parent_message_id,
+              media_url,
+              media_mime_type,
+              artifact_id,
+              metadata_json,
+              created_at_ms,
+              updated_at_ms
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)
+            "#,
+            params![
+                "message-1",
+                "thread-agent-001",
+                "assistant",
+                "complete",
+                "text",
+                "hello",
+                Option::<String>::None,
+                Option::<String>::None,
+                Option::<String>::None,
+                "trace-1",
+                Option::<String>::None,
+                Option::<String>::None,
+                Option::<String>::None,
+                Option::<String>::None,
+                Option::<String>::None,
+                110_i64,
+                120_i64,
+            ],
         )
-        .expect("create thread");
-        assert_eq!(thread.realm_agent_id, "agent-001");
-        assert_eq!(thread.owner_user_id, "user-1");
-        assert_eq!(thread.local_agent_ref, "local-agent:user-1:agent-001");
+        .expect("insert message");
 
-        let threads = list_threads(&conn).expect("list threads");
-        assert_eq!(threads.len(), 1);
-        assert_eq!(threads[0].target_snapshot.handle, "~agent-one");
-
-        let bundle = get_thread_bundle(&conn, &thread.id)
+        let bundle = get_thread_bundle(&conn, "thread-agent-001")
             .expect("bundle")
             .expect("bundle present");
-        assert!(bundle.messages.is_empty());
+        assert_eq!(bundle.thread.realm_agent_id, "agent-001");
+        assert_eq!(bundle.messages.len(), 1);
+        assert_eq!(bundle.messages[0].content_text, "hello");
     });
 }
 
 #[test]
-fn chat_agent_store_rejects_missing_thread_reuses_duplicate_agent_and_invalid_json() {
-    let home = temp_home("errors");
+fn chat_agent_store_rejects_invalid_legacy_projection_json() {
+    let home = temp_home("bad-json");
     with_product_data_home(&home, || {
-        let path = crate::desktop_paths::resolve_nimi_data_dir()
-            .expect("nimi data dir")
-            .join("chat-agent")
-            .join("main.db");
-        fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
-        let conn = Connection::open(&path).expect("open");
-        super::schema::init_schema(&conn).expect("init schema");
-
-        let created = create_thread(
-            &conn,
-            &sample_create_thread_input("thread-agent-dup", "user-1", "agent-dup"),
-        )
-        .expect("create thread");
-        assert_eq!(created.id, "thread-agent-dup");
-
-        let duplicate_agent = create_thread(
-            &conn,
-            &ChatAgentCreateThreadInput {
-                id: "thread-agent-dup-2".to_string(),
-                owner_user_id: "user-1".to_string(),
-                realm_agent_id: "agent-dup".to_string(),
-                local_agent_ref: sample_local_agent_ref("user-1", "agent-dup"),
-                title: "Agent Dup Updated".to_string(),
-                created_at_ms: 101,
-                updated_at_ms: 121,
-                last_message_at_ms: None,
-                target_snapshot: ChatAgentTargetSnapshot {
-                    display_name: "Agent Dup Updated".to_string(),
-                    ..sample_target_snapshot("agent-dup")
-                },
-            },
-        )
-        .expect("duplicate agent should reuse existing thread");
-        assert_eq!(duplicate_agent.id, "thread-agent-dup");
-        assert_eq!(duplicate_agent.title, "Agent Dup Updated");
-        assert_eq!(
-            duplicate_agent.target_snapshot.display_name,
-            "Agent Dup Updated"
-        );
-
+        let conn = open_test_db();
+        insert_thread_raw(&conn, "thread-agent-bad-json", "user-1", "agent-bad-json");
         conn.execute(
             r#"
             UPDATE agent_threads
             SET target_snapshot_json = ?2
             WHERE id = ?1
             "#,
-            params!["thread-agent-dup", "{bad-json"],
+            params!["thread-agent-bad-json", "{bad-json"],
         )
         .expect("insert bad json");
-        let bundle_error =
-            get_thread_bundle(&conn, "thread-agent-dup").expect_err("bad json should fail");
+        let bundle_error = get_thread_bundle(&conn, "thread-agent-bad-json")
+            .expect_err("bad json should fail");
         assert!(bundle_error.contains("invalid JSON"));
-    });
-}
-
-#[test]
-fn chat_agent_store_isolates_same_realm_agent_across_owners() {
-    let home = temp_home("owner-isolation");
-    with_product_data_home(&home, || {
-        let path = crate::desktop_paths::resolve_nimi_data_dir()
-            .expect("nimi data dir")
-            .join("chat-agent")
-            .join("main.db");
-        fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
-        let conn = Connection::open(&path).expect("open");
-        super::schema::init_schema(&conn).expect("init schema");
-
-        let alice = create_thread(
-            &conn,
-            &sample_create_thread_input("thread-alice-shared-agent", "alice", "agent-shared"),
-        )
-        .expect("create alice thread");
-        let bob = create_thread(
-            &conn,
-            &sample_create_thread_input("thread-bob-shared-agent", "bob", "agent-shared"),
-        )
-        .expect("create bob thread");
-
-        assert_ne!(alice.id, bob.id);
-        assert_eq!(alice.realm_agent_id, bob.realm_agent_id);
-        assert_ne!(alice.local_agent_ref, bob.local_agent_ref);
-
-        let alice_bundle = get_thread_bundle(&conn, &alice.id)
-            .expect("alice bundle")
-            .expect("alice bundle present");
-        let bob_bundle = get_thread_bundle(&conn, &bob.id)
-            .expect("bob bundle")
-            .expect("bob bundle present");
-        assert_eq!(alice_bundle.thread.local_agent_ref, "local-agent:alice:agent-shared");
-        assert_eq!(bob_bundle.thread.local_agent_ref, "local-agent:bob:agent-shared");
-
-        let threads = list_threads(&conn).expect("list threads");
-        assert_eq!(threads.len(), 2);
-        assert!(threads
-            .iter()
-            .any(|thread| thread.local_agent_ref == "local-agent:alice:agent-shared"));
-        assert!(threads
-            .iter()
-            .any(|thread| thread.local_agent_ref == "local-agent:bob:agent-shared"));
-    });
-}
-
-#[test]
-fn chat_agent_store_rejects_invalid_local_agent_identity() {
-    let home = temp_home("identity-negative");
-    with_product_data_home(&home, || {
-        let path = crate::desktop_paths::resolve_nimi_data_dir()
-            .expect("nimi data dir")
-            .join("chat-agent")
-            .join("main.db");
-        fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
-        let conn = Connection::open(&path).expect("open");
-        super::schema::init_schema(&conn).expect("init schema");
-
-        let mut missing =
-            sample_create_thread_input("thread-missing-local-ref", "user-1", "agent-negative");
-        missing.local_agent_ref.clear();
-        assert!(create_thread(&conn, &missing)
-            .expect_err("missing localAgentRef should fail")
-            .contains("localAgentIdentity.localAgentRef must not be empty"));
-
-        let mut bare =
-            sample_create_thread_input("thread-bare-local-ref", "user-1", "agent-negative");
-        bare.local_agent_ref = "agent-negative".to_string();
-        assert!(create_thread(&conn, &bare)
-            .expect_err("bare realmAgentId should fail")
-            .contains("localAgentRef must not be bare realmAgentId"));
-
-        let mut malformed =
-            sample_create_thread_input("thread-malformed-local-ref", "user-1", "agent-negative");
-        malformed.local_agent_ref = "localagent:user-1:agent-negative".to_string();
-        assert!(create_thread(&conn, &malformed)
-            .expect_err("malformed localAgentRef should fail")
-            .contains("localAgentRef must start with local-agent:"));
-
-        let mut owner_mismatch =
-            sample_create_thread_input("thread-owner-mismatch", "user-1", "agent-negative");
-        owner_mismatch.local_agent_ref = sample_local_agent_ref("user-2", "agent-negative");
-        owner_mismatch.target_snapshot.local_agent_ref = owner_mismatch.local_agent_ref.clone();
-        assert!(create_thread(&conn, &owner_mismatch)
-            .expect_err("owner mismatch should fail")
-            .contains("localAgentRef must equal"));
-
-        let mut realm_mismatch =
-            sample_create_thread_input("thread-realm-mismatch", "user-1", "agent-negative");
-        realm_mismatch.local_agent_ref = sample_local_agent_ref("user-1", "agent-other");
-        realm_mismatch.target_snapshot.local_agent_ref = realm_mismatch.local_agent_ref.clone();
-        assert!(create_thread(&conn, &realm_mismatch)
-            .expect_err("realm mismatch should fail")
-            .contains("localAgentRef must equal"));
-
-        let mut snapshot_mismatch =
-            sample_create_thread_input("thread-snapshot-mismatch", "user-1", "agent-negative");
-        snapshot_mismatch.target_snapshot.owner_user_id = "user-2".to_string();
-        snapshot_mismatch.target_snapshot.local_agent_ref =
-            sample_local_agent_ref("user-2", "agent-negative");
-        assert!(create_thread(&conn, &snapshot_mismatch)
-            .expect_err("target snapshot mismatch should fail")
-            .contains("targetSnapshot local identity must match"));
     });
 }

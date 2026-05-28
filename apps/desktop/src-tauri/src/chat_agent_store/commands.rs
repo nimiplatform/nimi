@@ -1,8 +1,4 @@
-use super::{
-    create_thread, get_thread_bundle, list_threads, open_db, ChatAgentCreateThreadInput,
-    ChatAgentThreadBundle, ChatAgentThreadLookupPayload, ChatAgentThreadRecord,
-    ChatAgentThreadSummary,
-};
+use super::{get_thread_bundle, open_db, ChatAgentThreadBundle, ChatAgentThreadLookupPayload};
 
 async fn run_chat_agent_store<T, F>(operation: F) -> Result<T, String>
 where
@@ -15,32 +11,12 @@ where
 }
 
 #[tauri::command]
-pub(crate) async fn chat_agent_list_threads() -> Result<Vec<ChatAgentThreadSummary>, String> {
-    run_chat_agent_store(|| {
-        let conn = open_db()?;
-        list_threads(&conn)
-    })
-    .await
-}
-
-#[tauri::command]
 pub(crate) async fn chat_agent_get_thread_bundle(
     payload: ChatAgentThreadLookupPayload,
 ) -> Result<Option<ChatAgentThreadBundle>, String> {
     run_chat_agent_store(move || {
         let conn = open_db()?;
         get_thread_bundle(&conn, &payload.thread_id)
-    })
-    .await
-}
-
-#[tauri::command]
-pub(crate) async fn chat_agent_create_thread(
-    payload: ChatAgentCreateThreadInput,
-) -> Result<ChatAgentThreadRecord, String> {
-    run_chat_agent_store(move || {
-        let conn = open_db()?;
-        create_thread(&conn, &payload)
     })
     .await
 }

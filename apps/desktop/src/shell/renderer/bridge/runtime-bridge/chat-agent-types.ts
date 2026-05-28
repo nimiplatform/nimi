@@ -71,15 +71,3 @@ export type AgentLocalThreadBundle = {
   thread: AgentLocalThreadRecord;
   messages: AgentLocalMessageRecord[];
 };
-
-export type AgentLocalCreateThreadInput = {
-  id: string;
-  ownerUserId: string;
-  realmAgentId: string;
-  localAgentRef: string;
-  title: string;
-  createdAtMs: number;
-  updatedAtMs: number;
-  lastMessageAtMs: number | null;
-  targetSnapshot: AgentLocalTargetSnapshot;
-};

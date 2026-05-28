@@ -155,17 +155,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
   const restore = installTauriInvokeMock(async (command, payload) => {
     calls.push({ command, payload });
     switch (command) {
-      case 'chat_agent_list_threads':
-        return [{
-          id: 'thread-1',
-          ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
-          title: 'Companion',
-          updatedAtMs: 100,
-          lastMessageAtMs: 90,
-          targetSnapshot: sampleTarget(),
-        }];
       case 'chat_agent_get_thread_bundle':
         return {
           thread: {
@@ -197,33 +186,14 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
             updatedAtMs: 90,
           }],
         };
-      case 'chat_agent_create_thread':
-        return {
-          ...(payload as { payload: Record<string, unknown> }).payload,
-        };
       default:
         return null;
     }
   });
 
   try {
-    const threads = await chatAgentStoreClient.listThreads();
-    assert.equal(threads[0]?.localAgentRef, 'local-agent:user-1:agent-1');
-
     const bundle = await chatAgentStoreClient.getThreadBundle('thread-1');
     assert.equal(bundle?.messages[0]?.status, 'complete');
-
-    await chatAgentStoreClient.createThread({
-      id: 'thread-1',
-      ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
-      title: 'Companion',
-      createdAtMs: 50,
-      updatedAtMs: 100,
-      lastMessageAtMs: 90,
-      targetSnapshot: sampleTarget(),
-    });
   } finally {
     restore();
   }
@@ -231,23 +201,13 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
   assert.deepEqual(
     calls.map((call) => call.command),
     [
-      'chat_agent_list_threads',
       'chat_agent_get_thread_bundle',
-      'chat_agent_create_thread',
     ],
   );
   assert.deepEqual(
-    (calls[2]?.payload as { payload?: Record<string, unknown> })?.payload,
+    (calls[0]?.payload as { payload?: Record<string, unknown> })?.payload,
     {
-      id: 'thread-1',
-      ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
-      title: 'Companion',
-      createdAtMs: 50,
-      updatedAtMs: 100,
-      lastMessageAtMs: 90,
-      targetSnapshot: sampleTarget(),
+      threadId: 'thread-1',
     },
   );
 });
