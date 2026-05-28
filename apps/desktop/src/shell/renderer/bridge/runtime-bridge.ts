@@ -33,9 +33,7 @@ import {
 } from './runtime-bridge/product-control';
 import {
   executeNimiDataCleanup,
-  executeNimiDataOldRootReclaim,
   planNimiDataCleanup,
-  planNimiDataOldRootReclaim,
   previewNimiDataMigration,
   runNimiDataMigration,
 } from './runtime-bridge/nimi-data-migration';
@@ -197,8 +195,6 @@ export {
   runNimiDataMigration,
   planNimiDataCleanup,
   executeNimiDataCleanup,
-  planNimiDataOldRootReclaim,
-  executeNimiDataOldRootReclaim,
   exportDesktopLogs,
   getAppsBridgeProjection,
   getAccountAppLibrary,

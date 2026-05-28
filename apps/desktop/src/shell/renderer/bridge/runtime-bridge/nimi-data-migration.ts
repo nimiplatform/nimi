@@ -77,8 +77,8 @@ export interface NimiDataCleanupOutcome {
 
 /**
  * The explicit `P-MIG-008` destructive-cleanup confirmation token a UI must
- * collect from the user before a non-pure-cache cleanup or an old-root
- * reclaim. It mirrors the backend `DESTRUCTIVE_CLEANUP_CONFIRMATION` constant.
+ * collect from the user before a non-pure-cache cleanup. It mirrors the
+ * backend `DESTRUCTIVE_CLEANUP_CONFIRMATION` constant.
  */
 export const NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION = 'CLEAN';
 
@@ -225,32 +225,6 @@ export async function executeNimiDataCleanup(
   return invokeChecked(
     'nimi_data_cleanup_execute',
     { payload: { directory, confirmation: confirmation ?? null } },
-    parseCleanupOutcome,
-  );
-}
-
-/** `P-MIG-008` plan: compute the reclaim impact of a retained old data root. */
-export async function planNimiDataOldRootReclaim(oldRoot: string): Promise<NimiDataCleanupPlan> {
-  if (!hasTauriInvoke()) {
-    throw new Error('nimi_data_old_root_reclaim_plan requires Tauri runtime');
-  }
-  return invokeChecked('nimi_data_old_root_reclaim_plan', { oldRoot }, parseCleanupPlan);
-}
-
-/**
- * `P-MIG-008` execute: reclaim a retained post-migration old `nimi_data` data
- * root. Always requires {@link NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION}.
- */
-export async function executeNimiDataOldRootReclaim(
-  oldRoot: string,
-  confirmation?: string,
-): Promise<NimiDataCleanupOutcome> {
-  if (!hasTauriInvoke()) {
-    throw new Error('nimi_data_old_root_reclaim_execute requires Tauri runtime');
-  }
-  return invokeChecked(
-    'nimi_data_old_root_reclaim_execute',
-    { payload: { oldRoot, confirmation: confirmation ?? null } },
     parseCleanupOutcome,
   );
 }
