@@ -39,29 +39,6 @@ function isPersistedModality(modality: InferenceAuditModality): modality is Loca
   return isLocalRuntimeRunnableAssetKindId(modality);
 }
 
-function isLoopbackHost(host: string): boolean {
-  const normalized = String(host || '').trim().toLowerCase();
-  if (!normalized) return false;
-  if (normalized === 'localhost') return true;
-  if (normalized === '127.0.0.1' || normalized === '::1' || normalized === '[::1]') return true;
-  return normalized.startsWith('127.');
-}
-
-export function inferRouteSourceFromEndpoint(endpoint: string | null | undefined): InferenceRouteSource {
-  const normalized = String(endpoint || '').trim();
-  if (!normalized) return 'cloud';
-  try {
-    const parsed = new URL(normalized);
-    return isLoopbackHost(parsed.hostname) ? 'local' : 'cloud';
-  } catch {
-    const lowered = normalized.toLowerCase();
-    if (lowered.includes('localhost') || lowered.includes('127.0.0.1') || lowered.includes('[::1]')) {
-      return 'local';
-    }
-    return 'cloud';
-  }
-}
-
 export function emitInferenceAudit(input: InferenceAuditInput): void {
   const level = input.eventType === 'inference_invoked'
     ? 'info'
