@@ -135,19 +135,20 @@ Fixed rules:
 - Runtime-owned session snapshots and `runtime.agent.turn.*` /
   `runtime.agent.presentation.*` projections are the replay source for Agent
   Chat transcript and presentation state.
-- If a Desktop `chat_agent_*` store exists before cutover, it is remediation
-  scoped projection-cache infrastructure. It must remain replaceable by Runtime
-  / SDK session projection without changing product semantics.
+- No steady-state Desktop `chat_agent_*` store, bridge client, or Tauri command
+  family is admitted after cutover. Historical Desktop projection rows are not
+  a product recovery source; restart recovery must come from Runtime / SDK
+  session projection.
 - The only steady-state Desktop persistence admitted here is non-transcript UI
   state such as focus, scroll, popover, and transient panel state.
 
-## D-LLM-107 — Agent Chat Store Cutover Prerequisites
+## D-LLM-107 — Agent Chat Store Cutover Closeout
 
-Desktop must not hard-delete the `chat_agent_*` projection-cache store until a
-Runtime / SDK replacement can serve the same product journeys without promoting
-Desktop-local transcript truth.
+The Desktop `chat_agent_*` projection-cache store is retired. Desktop must not
+register `chat_agent_*` Tauri commands, expose a `chatAgentStoreClient`, or own
+SQLite schema for Agent Chat transcript/message/turn recovery.
 
-Required replacement coverage before deletion:
+Cutover closeout requirements:
 
 - Runtime / SDK can list the calling app's Agent Chat conversation summaries
   without reading Desktop SQLite.
@@ -155,11 +156,11 @@ Required replacement coverage before deletion:
   `ConversationAnchor` plus `GetPublicChatSessionSnapshot`, including
   Runtime-owned transcript replay envelope fields for stable message identity,
   timestamps, status, and kind.
-- Runtime / SDK has an admitted close / delete / clear policy for user-visible
-  conversation history. Desktop must not implement this as a local-only delete
-  once Runtime-owned transcript replay is active.
-- Runtime / SDK has admitted message-level delete / redact policy for Agent Chat
-  messages before Desktop exposes those actions.
+- Runtime / SDK must own any future close / delete / clear policy for
+  user-visible conversation history. Desktop must not implement this as a
+  local-only delete once Runtime-owned transcript replay is active.
+- Runtime / SDK must own any future message-level delete / redact policy for
+  Agent Chat messages before Desktop exposes those actions.
 - Agent Chat draft persistence is not a product requirement. Runtime / SDK must
   not add an Agent Chat draft surface to replace the retired Desktop draft
   behavior.
@@ -170,8 +171,10 @@ Required replacement coverage before deletion:
   and assistant transcript state replays from Runtime session snapshots or
   `runtime.agent.turn.*` / `runtime.agent.presentation.*` projections.
 
-Until those prerequisites are met, `chat_agent_*` commands remain remediation
-scoped and must not be treated as steady-state Desktop truth.
+No offline Agent Chat transcript product is admitted. If Runtime is unavailable,
+Desktop may preserve only the current renderer-session in-memory display state;
+after reload or restart, it must fail closed until Runtime / SDK projection is
+available.
 
 ## D-LLM-026 — Adjacent Authority Boundaries
 

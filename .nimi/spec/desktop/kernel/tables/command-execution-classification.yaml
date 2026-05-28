@@ -303,20 +303,6 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-094
 
-  - family: chat_agent_projection_cache_migration
-    match:
-      regex: "^chat_agent_.*$"
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: desktop-agent-chat-projection-cache-migration
-    execution_class: bounded_blocking_with_admission
-    remediation_required: true
-    admitted_risks:
-      - sqlite_sync
-      - std_fs
-      - spawn_blocking
-      - sync_lock_contention
-    source_rule: D-GATE-094
-
   - family: desktop_agent_center_resources
     match:
       exact:

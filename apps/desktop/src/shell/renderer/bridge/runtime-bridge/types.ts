@@ -103,16 +103,6 @@ export type {
   AgentLocalThreadBundle,
 } from './chat-agent-types.js';
 
-export {
-  parseAgentLocalTargetSnapshot,
-  parseAgentLocalThreadSummary,
-  parseAgentLocalThreadSummaries,
-  parseAgentLocalThreadRecord,
-  parseAgentLocalMessageError,
-  parseAgentLocalMessageRecord,
-  parseAgentLocalThreadBundle,
-} from './chat-agent-parsers.js';
-
 export type {
   ExternalAgentIssueTokenPayload,
   ExternalAgentIssueTokenResult,

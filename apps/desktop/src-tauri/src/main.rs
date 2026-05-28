@@ -12,7 +12,6 @@ mod account_profile_library_files;
 mod apps_bridge_projection;
 mod apps_packages_projection;
 mod apps_registry_projection;
-mod chat_agent_store;
 mod chat_ai_store;
 mod desktop_agent_center_store;
 mod desktop_ai_config_library;

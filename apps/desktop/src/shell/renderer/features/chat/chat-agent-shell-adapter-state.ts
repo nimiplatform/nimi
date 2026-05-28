@@ -10,7 +10,6 @@ import type {
   AgentLocalThreadBundle,
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
-import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import {
   overlayAgentTargetWithLiveProfileContent,
   toAgentFriendTargetsFromSocialSnapshot,
@@ -26,7 +25,6 @@ import {
   subscribeAgentConversationAnchorBindings,
 } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import {
-  bundleQueryKey,
   createAgentConversationCacheThreadId,
   isEmptyPendingAssistantMessage,
   sortThreadSummaries,
@@ -263,21 +261,9 @@ export function useAgentConversationShellState(
   }, [selectedTarget, selectedThreadRecord?.targetSnapshot]);
   const agentRouteReady = agentResolution?.ready === true;
 
-  // Remediation-only committed media/artifact projection cache fallback.
-  // Runtime session snapshots own Agent Chat text transcript replay; this read
-  // exists so previously committed media/artifact projection rows are still
-  // surfaced until Runtime owns those projections directly (D-LLM-025a /
-  // D-LLM-107). It must not become the source of active selection or text
-  // replay truth.
-  const remediationBundleQuery = useQuery({
-    queryKey: activeThreadId ? bundleQueryKey(activeThreadId) : ['chat-agent-thread-bundle', 'inactive'],
-    queryFn: () => chatAgentStoreClient.getThreadBundle(activeThreadId as string),
-    enabled: Boolean(activeThreadId),
-    staleTime: 60_000,
-  });
-  const bundle = remediationBundleQuery.data || null;
   const projectedBundle = useAgentVisibleProjection(activeThreadId);
-  const visibleMessages = projectedBundle?.messages || bundle?.messages || [];
+  const bundle = projectedBundle || null;
+  const visibleMessages = projectedBundle?.messages || [];
   const messages = useMemo(
     () => visibleMessages
       .map((message: AgentLocalMessageRecord) => toConversationMessageViewModel(message))
@@ -285,7 +271,7 @@ export function useAgentConversationShellState(
     [visibleMessages],
   );
   const streamState = useConversationStreamState(activeThreadId);
-  const isBundleLoading = Boolean(activeThreadId) && remediationBundleQuery.isPending && !bundle;
+  const isBundleLoading = false;
 
   return {
     activeTarget,
@@ -294,7 +280,7 @@ export function useAgentConversationShellState(
     agentResolution,
     agentRouteReady,
     bundle,
-    bundleError: remediationBundleQuery.error,
+    bundleError: null,
     handleModelSelectionChange,
     initialModelSelection,
     isBundleLoading,

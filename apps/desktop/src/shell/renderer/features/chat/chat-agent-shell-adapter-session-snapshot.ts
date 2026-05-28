@@ -12,6 +12,7 @@ import {
   upsertThreadSummary,
 } from './chat-agent-shell-core';
 import { hydrateAgentThreadBundleFromRuntimeSessionSnapshot } from './chat-agent-session-hydration';
+import { setAgentVisibleProjection } from './chat-agent-visible-projection-store';
 
 type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
 
@@ -162,6 +163,7 @@ export function useAgentRuntimeSessionSnapshotHydration(
           return;
         }
         input.queryClient.setQueryData(bundleQueryKey(thread.id), hydratedBundle);
+        setAgentVisibleProjection(thread.id, hydratedBundle);
         input.queryClient.setQueryData(THREADS_QUERY_KEY, (current: typeof input.threads | undefined) => (
           upsertThreadSummary(current || [], hydratedBundle.thread)
         ));

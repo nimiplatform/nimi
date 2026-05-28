@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
-    chat_agent_store, chat_ai_store, desktop_agent_center_store, desktop_release, desktop_updates,
-    local_runtime, menu_bar_shell, runtime_bridge,
+    chat_ai_store, desktop_agent_center_store, desktop_release, desktop_updates, local_runtime,
+    menu_bar_shell, runtime_bridge,
 };
 use nimi_shell_tauri::runtime_bridge::RuntimeBridgeHostHooks;
 use std::sync::Arc;
@@ -360,7 +360,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             chat_ai_store::chat_ai_get_draft,
             chat_ai_store::chat_ai_put_draft,
             chat_ai_store::chat_ai_delete_draft,
-            chat_agent_store::chat_agent_get_thread_bundle,
             desktop_agent_center_store::desktop_agent_center_account_local_resources_remove,
             desktop_agent_center_store::desktop_agent_center_agent_local_resources_remove,
             desktop_agent_center_store::desktop_agent_center_avatar_asset_import,

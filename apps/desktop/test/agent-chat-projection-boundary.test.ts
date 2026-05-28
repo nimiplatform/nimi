@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -13,6 +13,10 @@ function readWorkspaceFile(path: string): string {
   return readFileSync(resolve(repoRoot, path), 'utf8');
 }
 
+function workspacePathExists(path: string): boolean {
+  return existsSync(resolve(repoRoot, path));
+}
+
 test('Agent Chat spec forbids draft, archive, rename, and offline transcript persistence', () => {
   const spec = readWorkspaceFile('.nimi/spec/desktop/kernel/agent-chat-projection-contract.md');
 
@@ -24,21 +28,23 @@ test('Agent Chat spec forbids draft, archive, rename, and offline transcript per
   assert.match(spec, /must not admit Agent Chat rename or archive conversation semantics/);
   assert.match(spec, /single active Runtime conversation per AgentFriend/);
   assert.match(spec, /Runtime-owned session snapshots and `runtime\.agent\.turn\.\*`/);
-  assert.match(spec, /Desktop `chat_agent_\*` store exists before cutover/);
+  assert.match(spec, /No steady-state Desktop `chat_agent_\*` store/);
 });
 
-test('Agent Chat store deletion is gated on Runtime and SDK replacement coverage', () => {
+test('Agent Chat store cutover is closed by Runtime and SDK replacement coverage', () => {
   const desktopSpec = readWorkspaceFile('.nimi/spec/desktop/kernel/agent-chat-projection-contract.md');
   const runtimeSpec = readWorkspaceFile('.nimi/spec/runtime/kernel/runtime-agent-service-contract.md');
 
   assert.match(desktopSpec, /D-LLM-107/);
-  assert.match(desktopSpec, /must not hard-delete the `chat_agent_\*` projection-cache store/);
+  assert.match(desktopSpec, /projection-cache store is retired/);
+  assert.match(desktopSpec, /must not\s+register `chat_agent_\*` Tauri commands/);
   assert.match(desktopSpec, /conversation summaries/);
   assert.match(desktopSpec, /GetPublicChatSessionSnapshot/);
   assert.match(desktopSpec, /Agent Chat draft persistence is not a product requirement/);
   assert.match(desktopSpec, /message-level delete \/ redact policy/);
   assert.match(desktopSpec, /one active conversation per\s+AgentFriend/);
   assert.match(desktopSpec, /in-memory optimistic projection only/);
+  assert.match(desktopSpec, /No offline Agent Chat transcript product is admitted/);
 
   assert.match(runtimeSpec, /K-AGCORE-006a/);
   assert.match(runtimeSpec, /conversation summary listing scoped to the authenticated calling app/);
@@ -92,11 +98,7 @@ test('Desktop wires Runtime Agent conversation summaries as read-only projection
   assert.match(state, /synthesizeAgentThreadSummaryFromTarget/);
   assert.match(state, /createAgentConversationCacheThreadId/);
   assert.match(state, /threadsReady:\s*runtimeConversationSummariesReady/);
-  // getThreadBundle stays only as a remediation fallback for previously
-  // committed media/artifact projection rows until Runtime owns those
-  // projections directly.
-  assert.match(state, /remediationBundleQuery/);
-  assert.match(state, /Remediation-only committed media\/artifact projection cache fallback/);
+  assert.doesNotMatch(state, /chatAgentStoreClient|getThreadBundle|remediationBundleQuery/);
 });
 
 test('Runtime Agent conversation summary adapter keeps Runtime anchor identity explicit', () => {
@@ -145,72 +147,30 @@ test('Runtime Agent conversation summary adapter keeps Runtime anchor identity e
   assert.equal(summary?.targetSnapshot, target);
 });
 
-test('Desktop command classification treats chat_agent store commands as migration-scoped', () => {
+test('Desktop command classification no longer admits chat_agent store commands', () => {
   const table = readWorkspaceFile('.nimi/spec/desktop/kernel/tables/command-execution-classification.yaml');
 
   assert.doesNotMatch(table, /memory_embedding_runtime_(?:inspect|request_bind|request_cutover)/);
   assert.match(table, /family: chat_ai_local_store[\s\S]*?regex: "\^chat_ai_\.\*\$"[\s\S]*?remediation_required: false/);
-  assert.match(table, /family: chat_agent_projection_cache_migration[\s\S]*?regex: "\^chat_agent_\.\*\$"/);
-  assert.match(table, /owner_domain: desktop-agent-chat-projection-cache-migration/);
-  assert.match(table, /family: chat_agent_projection_cache_migration[\s\S]*?remediation_required: true/);
+  assert.doesNotMatch(table, /chat_agent_projection_cache_migration|chat_agent_\.\*/);
 });
 
-test('Desktop projection cache no longer exposes local Agent Chat message mutation commands', () => {
+test('Desktop projection cache store bridge is hard-cut', () => {
   const bootstrap = readWorkspaceFile('apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs');
-  const commands = readWorkspaceFile('apps/desktop/src-tauri/src/chat_agent_store/commands.rs');
-  const bridge = readWorkspaceFile(
-    'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-store.ts',
-  );
-
-  assert.doesNotMatch(bootstrap, /chat_agent_create_message/);
-  assert.doesNotMatch(bootstrap, /chat_agent_delete_message/);
-  assert.doesNotMatch(commands, /chat_agent_create_message/);
-  assert.doesNotMatch(commands, /chat_agent_delete_message/);
-  assert.doesNotMatch(bridge, /createMessage\(/);
-  assert.doesNotMatch(bridge, /deleteMessage\(/);
-});
-
-test('Desktop projection cache no longer exposes local Agent Chat cancel or rebuild commands', () => {
-  const bootstrap = readWorkspaceFile('apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs');
-  const commands = readWorkspaceFile('apps/desktop/src-tauri/src/chat_agent_store/commands.rs');
-  const bridge = readWorkspaceFile(
-    'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-store.ts',
-  );
+  const main = readWorkspaceFile('apps/desktop/src-tauri/src/main.rs');
   const runtimeProvider = readWorkspaceFile(
     'apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-provider.ts',
   );
+  const adapterState = readWorkspaceFile(
+    'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-adapter-state.ts',
+  );
 
-  assert.doesNotMatch(bootstrap, /chat_agent_cancel_turn|chat_agent_rebuild_projection/);
-  assert.doesNotMatch(commands, /chat_agent_cancel_turn|chat_agent_rebuild_projection/);
-  assert.doesNotMatch(bridge, /cancelTurn\(|rebuildProjection\(/);
+  assert.equal(workspacePathExists('apps/desktop/src-tauri/src/chat_agent_store/commands.rs'), false);
+  assert.equal(workspacePathExists('apps/desktop/src-tauri/src/chat_agent_store/mod.rs'), false);
+  assert.equal(workspacePathExists('apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-store.ts'), false);
+  assert.doesNotMatch(main, /mod chat_agent_store/);
+  assert.doesNotMatch(bootstrap, /chat_agent_store|chat_agent_/);
+  assert.doesNotMatch(adapterState, /chatAgentStoreClient|getThreadBundle|remediationBundleQuery/);
   assert.doesNotMatch(runtimeProvider, /chat-agent-continuity|commitProviderOutcome|createAgentLocalChatContinuityAdapter/);
   assert.doesNotMatch(runtimeProvider, /chatAgentStoreClient\.commitTurnResult/);
-});
-
-test('Desktop projection cache no longer exposes local Agent Chat turn commit commands', () => {
-  const bootstrap = readWorkspaceFile('apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs');
-  const commands = readWorkspaceFile('apps/desktop/src-tauri/src/chat_agent_store/commands.rs');
-  const bridge = readWorkspaceFile(
-    'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-store.ts',
-  );
-  const bridgeTypes = readWorkspaceFile(
-    'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-types.ts',
-  );
-
-  assert.doesNotMatch(bootstrap, /chat_agent_commit_turn_result/);
-  assert.doesNotMatch(commands, /chat_agent_commit_turn_result|commit_turn_result/);
-  assert.doesNotMatch(bridge, /commitTurnResult|chat_agent_commit_turn_result/);
-  assert.doesNotMatch(bridgeTypes, /AgentLocalCommitTurnResult|AgentLocalTurnRecord|AgentLocalTurnBeatRecord/);
-});
-
-test('Desktop projection cache no longer exposes local Agent Chat thread creation or listing commands', () => {
-  const bootstrap = readWorkspaceFile('apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs');
-  const commands = readWorkspaceFile('apps/desktop/src-tauri/src/chat_agent_store/commands.rs');
-  const bridge = readWorkspaceFile(
-    'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-store.ts',
-  );
-
-  assert.doesNotMatch(bootstrap, /chat_agent_list_threads|chat_agent_create_thread/);
-  assert.doesNotMatch(commands, /chat_agent_list_threads|chat_agent_create_thread|list_threads|create_thread/);
-  assert.doesNotMatch(bridge, /listThreads|createThread|chat_agent_list_threads|chat_agent_create_thread/);
 });

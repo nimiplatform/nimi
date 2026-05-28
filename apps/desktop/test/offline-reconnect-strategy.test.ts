@@ -10,10 +10,6 @@ const RUNTIME_BOOTSTRAP_SOURCE = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts'),
   'utf8',
 );
-const CHAT_AGENT_STORE_COMMANDS_SOURCE = readFileSync(
-  resolve(import.meta.dirname, '../src-tauri/src/chat_agent_store/commands.rs'),
-  'utf8',
-);
 const APP_BOOTSTRAP_SOURCE = readFileSync(
   resolve(import.meta.dirname, '../src-tauri/src/main_parts/app_bootstrap.rs'),
   'utf8',
@@ -330,7 +326,6 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
   test('D-OFFLINE-003: Agent Chat has no separate native offline transcript gate', () => {
     assert.doesNotMatch(RUNTIME_BOOTSTRAP_SOURCE, /chatAgentStoreClient\.setOfflineTier\(tier\)/);
     assert.doesNotMatch(APP_BOOTSTRAP_SOURCE, /chat_agent_store::chat_agent_set_offline_tier/);
-    assert.doesNotMatch(CHAT_AGENT_STORE_COMMANDS_SOURCE, /CHAT_AGENT_OFFLINE_L2_WRITE_DENIED/);
-    assert.doesNotMatch(CHAT_AGENT_STORE_COMMANDS_SOURCE, /fn ensure_chat_agent_writes_allowed\(\) -> Result<\(\), String>/);
+    assert.doesNotMatch(APP_BOOTSTRAP_SOURCE, /chat_agent_store/);
   });
 });
