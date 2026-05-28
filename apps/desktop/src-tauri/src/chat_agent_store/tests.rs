@@ -631,32 +631,3 @@ fn chat_agent_store_rejects_multi_text_beat_assistant_turns() {
         );
     });
 }
-
-#[test]
-fn chat_agent_store_rejects_tail_cancel_scope() {
-    let home = temp_home("tail-cancel-hardcut");
-    with_product_data_home(&home, || {
-        let path = crate::desktop_paths::resolve_nimi_data_dir()
-            .expect("nimi data dir")
-            .join("chat-agent")
-            .join("main.db");
-        fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
-        let mut conn = Connection::open(&path).expect("open");
-        super::schema::init_schema(&conn).expect("init schema");
-
-        let result = cancel_turn(
-            &mut conn,
-            &ChatAgentCancelTurnInput {
-                thread_id: "thread-missing".to_string(),
-                turn_id: "turn-missing".to_string(),
-                scope: "tail".to_string(),
-                aborted_at_ms: 1,
-            },
-        );
-
-        assert_eq!(
-            result.expect_err("tail cancel scope must fail closed"),
-            "scope tail is not admitted after the single-message hard cut"
-        );
-    });
-}

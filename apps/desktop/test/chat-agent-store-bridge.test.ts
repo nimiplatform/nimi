@@ -3,7 +3,6 @@ import test from 'node:test';
 
 import { chatAgentStoreClient } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-store.js';
 import {
-  parseAgentLocalCancelTurnInput,
   parseAgentLocalThreadBundle,
   parseAgentLocalThreadSummary,
 } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-parsers.js';
@@ -134,14 +133,6 @@ test('chat agent bridge parser rejects invalid target shape and timestamps', () 
     });
   }, /status is invalid/);
 
-  assert.throws(() => {
-    parseAgentLocalCancelTurnInput({
-      threadId: 'thread-1',
-      turnId: 'turn-1',
-      scope: 'bad',
-      abortedAtMs: 100,
-    });
-  }, /scope is invalid/);
 });
 
 test('chat agent bridge parser accepts live2d presentation profiles in target snapshots', () => {
@@ -296,48 +287,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
           },
           projectionVersion: 'projection:123:t1:b1:s0:m0:r0',
         };
-      case 'chat_agent_cancel_turn':
-        return {
-          id: 'turn-1',
-          threadId: 'thread-1',
-          role: 'assistant',
-          status: 'canceled',
-          providerMode: 'runtime-agent-chat-v1',
-          traceId: 'trace-1',
-          promptTraceId: 'prompt-1',
-          startedAtMs: 100,
-          completedAtMs: 120,
-          abortedAtMs: 125,
-        };
-      case 'chat_agent_rebuild_projection':
-        return {
-          bundle: {
-            thread: {
-              id: 'thread-1',
-              ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
-              title: 'Companion',
-              createdAtMs: 50,
-              updatedAtMs: 120,
-              lastMessageAtMs: 115,
-              archivedAtMs: null,
-              targetSnapshot: sampleTarget(),
-            },
-            messages: [createAgentTextMessage({
-              id: 'message-1',
-              threadId: 'thread-1',
-              role: 'assistant',
-              status: 'complete',
-              contentText: 'hello',
-              traceId: 'trace-1',
-              createdAtMs: 110,
-              updatedAtMs: 120,
-            })],
-            draft: null,
-          },
-          projectionVersion: 'projection:123:t1:b1:s0:m0:r0',
-        };
       default:
         return null;
     }
@@ -426,15 +375,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
       },
     });
     assert.equal(committed.turn.id, 'turn-1');
-    const canceled = await chatAgentStoreClient.cancelTurn({
-      threadId: 'thread-1',
-      turnId: 'turn-1',
-      scope: 'turn',
-      abortedAtMs: 125,
-    });
-    assert.equal(canceled.status, 'canceled');
-    const rebuilt = await chatAgentStoreClient.rebuildProjection('thread-1');
-    assert.equal(rebuilt.bundle.messages[0]?.status, 'complete');
   } finally {
     restore();
   }
@@ -449,8 +389,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
       'chat_agent_put_draft',
       'chat_agent_delete_draft',
       'chat_agent_commit_turn_result',
-      'chat_agent_cancel_turn',
-      'chat_agent_rebuild_projection',
     ],
   );
   assert.deepEqual(
@@ -473,20 +411,5 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
       clearDraft?: boolean;
     })?.clearDraft,
     true,
-  );
-  assert.deepEqual(
-    (calls[7]?.payload as { payload?: Record<string, unknown> })?.payload,
-    {
-      threadId: 'thread-1',
-      turnId: 'turn-1',
-      scope: 'turn',
-      abortedAtMs: 125,
-    },
-  );
-  assert.deepEqual(
-    (calls[8]?.payload as { payload?: Record<string, unknown> })?.payload,
-    {
-      threadId: 'thread-1',
-    },
   );
 });

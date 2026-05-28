@@ -334,6 +334,5 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     assert.match(CHAT_AGENT_STORE_COMMANDS_SOURCE, /fn ensure_chat_agent_writes_allowed\(\) -> Result<\(\), String>/);
     assert.match(CHAT_AGENT_STORE_COMMANDS_SOURCE, /chat_agent_create_thread[\s\S]*ensure_chat_agent_writes_allowed\(\)\?/);
     assert.match(CHAT_AGENT_STORE_COMMANDS_SOURCE, /chat_agent_commit_turn_result[\s\S]*ensure_chat_agent_writes_allowed\(\)\?/);
-    assert.match(CHAT_AGENT_STORE_COMMANDS_SOURCE, /chat_agent_rebuild_projection[\s\S]*ensure_chat_agent_writes_allowed\(\)\?/);
   });
 });

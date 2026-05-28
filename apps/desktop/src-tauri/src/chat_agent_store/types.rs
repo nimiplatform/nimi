@@ -176,13 +176,6 @@ pub struct ChatAgentTurnBeatRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatAgentProjectionRebuildResult {
-    pub bundle: ChatAgentThreadBundle,
-    pub projection_version: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
 pub struct ChatAgentCommitTurnResult {
     pub turn: ChatAgentTurnRecord,
     pub beats: Vec<ChatAgentTurnBeatRecord>,
@@ -313,13 +306,4 @@ pub struct ChatAgentCommitTurnResultInput {
     pub turn: ChatAgentTurnRecordInput,
     pub beats: Vec<ChatAgentTurnBeatInput>,
     pub projection: ChatAgentProjectionCommitInput,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatAgentCancelTurnInput {
-    pub thread_id: String,
-    pub turn_id: String,
-    pub scope: String,
-    pub aborted_at_ms: i64,
 }

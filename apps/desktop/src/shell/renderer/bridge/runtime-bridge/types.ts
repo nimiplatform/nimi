@@ -95,7 +95,6 @@ export {
 export type {
   AgentLocalBeatModality,
   AgentLocalBeatStatus,
-  AgentLocalCancelTurnInput,
   AgentLocalCommitTurnResult,
   AgentLocalCommitTurnResultInput,
   AgentLocalMessageRole,
@@ -111,7 +110,6 @@ export type {
   AgentLocalTurnRecord,
   AgentLocalTurnBeatRecord,
   AgentLocalThreadBundle,
-  AgentLocalProjectionRebuildResult,
   AgentLocalCreateThreadInput,
   AgentLocalUpdateThreadMetadataInput,
   AgentLocalPutDraftInput,
@@ -132,7 +130,6 @@ export {
   parseAgentLocalTurnRecord,
   parseAgentLocalTurnBeatRecord,
   parseAgentLocalThreadBundle,
-  parseAgentLocalProjectionRebuildResult,
   parseAgentLocalCommitTurnResult,
   parseAgentLocalCreateThreadInput,
   parseAgentLocalUpdateThreadMetadataInput,
@@ -142,7 +139,6 @@ export {
   parseAgentLocalProjectionMessageInput,
   parseAgentLocalProjectionCommitInput,
   parseAgentLocalCommitTurnResultInput,
-  parseAgentLocalCancelTurnInput,
 } from './chat-agent-parsers.js';
 
 export type {

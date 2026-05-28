@@ -1,6 +1,4 @@
 import type {
-  ConversationContinuityAdapter,
-  ConversationProjectionRebuildResult,
   ConversationTurnError,
   ConversationTurnEvent,
   ConversationTurnInput,
@@ -18,13 +16,10 @@ import { RUNTIME_AGENT_CHAT_MODE_ID, type RuntimeAgentChatModeId } from './chat-
 
 type AgentLocalChatStoreClient = Pick<
   typeof chatAgentStoreClient,
-  'getThreadBundle' | 'commitTurnResult' | 'cancelTurn' | 'rebuildProjection'
+  'getThreadBundle' | 'commitTurnResult'
 >;
 
-export type AgentLocalChatContinuityAdapter = ConversationContinuityAdapter<
-  AgentLocalThreadBundle,
-  AgentLocalCommitTurnResult
-> & {
+export type AgentLocalChatContinuityAdapter = {
   commitAgentTurnResult: (input: {
     modeId: RuntimeAgentChatModeId;
     threadId: string;
@@ -244,32 +239,7 @@ export function createAgentLocalChatContinuityAdapter(
     });
   };
   return {
-    loadTurnContext: async (input) => {
-      return requireThreadBundle(storeClient, input.threadId);
-    },
-    commitTurnResult: async (input) => commitAgentTurnResultInternal({
-      ...input,
-      modeId: RUNTIME_AGENT_CHAT_MODE_ID,
-    }),
     commitAgentTurnResult: commitAgentTurnResultInternal,
-    cancelTurn: async (input) => {
-      if (input.scope === 'tail') {
-        throw new Error('chat_agent cancelTurn scope tail is not admitted after the single-message hard cut');
-      }
-      await storeClient.cancelTurn({
-        threadId: input.threadId,
-        turnId: input.turnId,
-        scope: input.scope,
-        abortedAtMs: now(),
-      });
-    },
-    rebuildProjection: async (threadId) => {
-      const result = await storeClient.rebuildProjection(threadId);
-      return {
-        threadId,
-        projectionVersion: result.projectionVersion,
-      } satisfies ConversationProjectionRebuildResult;
-    },
   };
 }
 

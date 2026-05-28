@@ -112,11 +112,6 @@ export type AgentLocalThreadBundle = {
   draft: AgentLocalDraftRecord | null;
 };
 
-export type AgentLocalProjectionRebuildResult = {
-  bundle: AgentLocalThreadBundle;
-  projectionVersion: string;
-};
-
 export type AgentLocalCommitTurnResult = {
   turn: AgentLocalTurnRecord;
   beats: AgentLocalTurnBeatRecord[];
@@ -170,11 +165,4 @@ export type AgentLocalCommitTurnResultInput = {
   turn: AgentLocalTurnRecordInput;
   beats: AgentLocalTurnBeatInput[];
   projection: AgentLocalProjectionCommitInput;
-};
-
-export type AgentLocalCancelTurnInput = {
-  threadId: string;
-  turnId: string;
-  scope: 'turn' | 'projection';
-  abortedAtMs: number;
 };

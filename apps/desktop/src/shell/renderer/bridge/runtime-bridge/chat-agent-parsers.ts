@@ -8,7 +8,6 @@ import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avata
 import type {
   AgentLocalBeatModality,
   AgentLocalBeatStatus,
-  AgentLocalCancelTurnInput,
   AgentLocalCommitTurnResult,
   AgentLocalCommitTurnResultInput,
   AgentLocalCreateThreadInput,
@@ -21,7 +20,6 @@ import type {
   AgentLocalPutDraftInput,
   AgentLocalProjectionCommitInput,
   AgentLocalProjectionMessageInput,
-  AgentLocalProjectionRebuildResult,
   AgentLocalTargetSnapshot,
   AgentLocalTurnBeatInput,
   AgentLocalTurnBeatRecord,
@@ -325,14 +323,6 @@ export function parseAgentLocalThreadBundle(value: unknown): AgentLocalThreadBun
   };
 }
 
-export function parseAgentLocalProjectionRebuildResult(value: unknown): AgentLocalProjectionRebuildResult {
-  const record = assertRecord(value, 'chat_agent projection rebuild result is invalid');
-  return {
-    bundle: parseAgentLocalThreadBundle(record.bundle) ?? (() => { throw new Error('chat_agent projection rebuild result.bundle is invalid'); })(),
-    projectionVersion: parseRequiredString(record.projectionVersion, 'projectionVersion', 'chat_agent projection rebuild result'),
-  };
-}
-
 export function parseAgentLocalCommitTurnResult(value: unknown): AgentLocalCommitTurnResult {
   const record = assertRecord(value, 'chat_agent commit turn result is invalid');
   return {
@@ -422,19 +412,5 @@ export function parseAgentLocalCommitTurnResultInput(value: unknown): AgentLocal
       ? record.beats.map((item) => parseAgentLocalTurnBeatInput(item))
       : (() => { throw new Error('chat_agent commit_turn_result payload.beats must be an array'); })(),
     projection: parseAgentLocalProjectionCommitInput(record.projection),
-  };
-}
-
-export function parseAgentLocalCancelTurnInput(value: unknown): AgentLocalCancelTurnInput {
-  const record = assertRecord(value, 'chat_agent cancel_turn payload is invalid');
-  const scope = parseRequiredString(record.scope, 'scope', 'chat_agent cancel_turn payload');
-  if (scope !== 'turn' && scope !== 'projection') {
-    throw new Error('chat_agent cancel_turn payload: scope is invalid');
-  }
-  return {
-    threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent cancel_turn payload'),
-    turnId: parseRequiredString(record.turnId, 'turnId', 'chat_agent cancel_turn payload'),
-    scope,
-    abortedAtMs: parseFiniteInteger(record.abortedAtMs, 'abortedAtMs', 'chat_agent cancel_turn payload'),
   };
 }

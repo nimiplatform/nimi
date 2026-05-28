@@ -4,9 +4,7 @@ use super::codec::{
     turn_role_to_db_value, turn_status_to_db_value,
 };
 use super::crud::{delete_draft, get_thread_bundle, put_draft, update_thread_metadata};
-use super::projection::{
-    compute_projection_version, rebuild_projection_internal, upsert_projection_message,
-};
+use super::projection::{compute_projection_version, upsert_projection_message};
 use super::rows::{beat_record_from_row, turn_record_from_row};
 use super::types::*;
 use rusqlite::{params, Connection};
@@ -236,77 +234,4 @@ pub(crate) fn commit_turn_result(
         bundle,
         projection_version,
     })
-}
-
-pub(crate) fn cancel_turn(
-    conn: &mut Connection,
-    input: &ChatAgentCancelTurnInput,
-) -> Result<ChatAgentTurnRecord, String> {
-    let thread_id = normalize_required_string(&input.thread_id, "threadId")?;
-    let turn_id = normalize_required_string(&input.turn_id, "turnId")?;
-    let scope = normalize_required_string(&input.scope, "scope")?;
-    if scope == "tail" {
-        return Err("scope tail is not admitted after the single-message hard cut".to_string());
-    }
-    if scope != "turn" && scope != "projection" {
-        return Err("scope must be one of: turn, projection".to_string());
-    }
-    let aborted_at_ms = require_non_negative_ms(input.aborted_at_ms, "abortedAtMs")?;
-
-    let tx = conn
-        .transaction()
-        .map_err(|error| format!("begin chat_agent cancel turn transaction failed: {error}"))?;
-    let changed = tx
-        .execute(
-            r#"
-            UPDATE agent_turns
-            SET
-              status = 'canceled',
-              aborted_at_ms = ?3
-            WHERE id = ?1 AND thread_id = ?2
-            "#,
-            params![&turn_id, &thread_id, aborted_at_ms],
-        )
-        .map_err(|error| map_sql_error("cancel chat_agent turn failed", error))?;
-    if changed == 0 {
-        return Err("cancel chat_agent turn failed: turn not found".to_string());
-    }
-    let turn = tx
-        .query_row(
-            r#"
-            SELECT
-              id,
-              thread_id,
-              role,
-              status,
-              provider_mode,
-              trace_id,
-              prompt_trace_id,
-              started_at_ms,
-              completed_at_ms,
-              aborted_at_ms
-            FROM agent_turns
-            WHERE id = ?1
-            "#,
-            params![&turn_id],
-            turn_record_from_row,
-        )
-        .map_err(|error| format!("query canceled chat_agent turn failed: {error}"))?;
-    tx.commit()
-        .map_err(|error| format!("commit chat_agent cancel turn transaction failed: {error}"))?;
-    Ok(turn)
-}
-
-pub(crate) fn rebuild_projection(
-    conn: &mut Connection,
-    thread_id: &str,
-) -> Result<ChatAgentProjectionRebuildResult, String> {
-    let tx = conn.transaction().map_err(|error| {
-        format!("begin chat_agent rebuild projection transaction failed: {error}")
-    })?;
-    let result = rebuild_projection_internal(&tx, thread_id)?;
-    tx.commit().map_err(|error| {
-        format!("commit chat_agent rebuild projection transaction failed: {error}")
-    })?;
-    Ok(result)
 }

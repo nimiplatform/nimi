@@ -1,5 +1,5 @@
 #[test]
-fn chat_agent_projection_cache_commit_cancel_and_rebuild_projection_round_trip() {
+fn chat_agent_projection_cache_commit_turn_round_trip() {
     let home = temp_home("projection-cache");
     with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
@@ -105,35 +105,11 @@ fn chat_agent_projection_cache_commit_cancel_and_rebuild_projection_round_trip()
         assert_eq!(committed.bundle.messages[0].content_text, "first beat");
         assert!(committed.projection_version.starts_with("projection:"));
 
-        conn.execute(
-            "DELETE FROM agent_messages WHERE thread_id = ?1",
-            params![&thread.id],
-        )
-        .expect("delete projection messages");
-        let emptied_bundle = get_thread_bundle(&conn, &thread.id)
-            .expect("bundle after delete")
+        let bundle = get_thread_bundle(&conn, &thread.id)
+            .expect("bundle after commit")
             .expect("bundle present");
-        assert!(emptied_bundle.messages.is_empty());
-
-        let rebuilt = rebuild_projection(&mut conn, &thread.id).expect("rebuild projection");
-        assert_eq!(rebuilt.bundle.messages.len(), 1);
-        assert_eq!(
-            rebuilt.bundle.messages[0].status,
-            ChatAgentMessageStatus::Pending
-        );
-        assert_eq!(rebuilt.bundle.messages[0].content_text, "first beat");
-
-        let canceled = cancel_turn(
-            &mut conn,
-            &ChatAgentCancelTurnInput {
-                thread_id: thread.id.clone(),
-                turn_id: "turn-001".to_string(),
-                scope: "turn".to_string(),
-                aborted_at_ms: 280,
-            },
-        )
-        .expect("cancel turn");
-        assert_eq!(canceled.status, ChatAgentTurnStatus::Canceled);
-        assert_eq!(canceled.aborted_at_ms, Some(280));
+        assert_eq!(bundle.messages.len(), 1);
+        assert_eq!(bundle.messages[0].status, ChatAgentMessageStatus::Pending);
+        assert_eq!(bundle.messages[0].content_text, "first beat");
     });
 }

@@ -146,3 +146,19 @@ test('Desktop projection cache no longer exposes local Agent Chat message mutati
   assert.doesNotMatch(bridge, /createMessage\(/);
   assert.doesNotMatch(bridge, /deleteMessage\(/);
 });
+
+test('Desktop projection cache no longer exposes local Agent Chat cancel or rebuild commands', () => {
+  const bootstrap = readWorkspaceFile('apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs');
+  const commands = readWorkspaceFile('apps/desktop/src-tauri/src/chat_agent_store/commands.rs');
+  const bridge = readWorkspaceFile(
+    'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-store.ts',
+  );
+  const continuity = readWorkspaceFile(
+    'apps/desktop/src/shell/renderer/features/chat/chat-agent-continuity.ts',
+  );
+
+  assert.doesNotMatch(bootstrap, /chat_agent_cancel_turn|chat_agent_rebuild_projection/);
+  assert.doesNotMatch(commands, /chat_agent_cancel_turn|chat_agent_rebuild_projection/);
+  assert.doesNotMatch(bridge, /cancelTurn\(|rebuildProjection\(/);
+  assert.doesNotMatch(continuity, /cancelTurn\(|rebuildProjection\(/);
+});

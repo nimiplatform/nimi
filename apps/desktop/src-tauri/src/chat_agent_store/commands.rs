@@ -3,13 +3,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use serde::Deserialize;
 
 use super::{
-    cancel_turn, commit_turn_result, create_thread, delete_draft, delete_thread,
-    get_thread_bundle, list_threads, open_db, put_draft, rebuild_projection,
-    update_thread_metadata, ChatAgentCancelTurnInput, ChatAgentCommitTurnResult,
+    commit_turn_result, create_thread, delete_draft, delete_thread, get_thread_bundle,
+    list_threads, open_db, put_draft, update_thread_metadata, ChatAgentCommitTurnResult,
     ChatAgentCommitTurnResultInput, ChatAgentCreateThreadInput, ChatAgentDeleteDraftInput,
-    ChatAgentDraftRecord, ChatAgentProjectionRebuildResult,
-    ChatAgentPutDraftInput, ChatAgentThreadBundle, ChatAgentThreadLookupPayload,
-    ChatAgentThreadRecord, ChatAgentThreadSummary, ChatAgentTurnRecord,
+    ChatAgentDraftRecord, ChatAgentPutDraftInput, ChatAgentThreadBundle,
+    ChatAgentThreadLookupPayload, ChatAgentThreadRecord, ChatAgentThreadSummary,
     ChatAgentUpdateThreadMetadataInput,
 };
 
@@ -142,30 +140,6 @@ pub(crate) async fn chat_agent_commit_turn_result(
         ensure_chat_agent_writes_allowed()?;
         let mut conn = open_db()?;
         commit_turn_result(&mut conn, &payload)
-    })
-    .await
-}
-
-#[tauri::command]
-pub(crate) async fn chat_agent_cancel_turn(
-    payload: ChatAgentCancelTurnInput,
-) -> Result<ChatAgentTurnRecord, String> {
-    run_chat_agent_store(move || {
-        ensure_chat_agent_writes_allowed()?;
-        let mut conn = open_db()?;
-        cancel_turn(&mut conn, &payload)
-    })
-    .await
-}
-
-#[tauri::command]
-pub(crate) async fn chat_agent_rebuild_projection(
-    payload: ChatAgentThreadLookupPayload,
-) -> Result<ChatAgentProjectionRebuildResult, String> {
-    run_chat_agent_store(move || {
-        ensure_chat_agent_writes_allowed()?;
-        let mut conn = open_db()?;
-        rebuild_projection(&mut conn, &payload.thread_id)
     })
     .await
 }
