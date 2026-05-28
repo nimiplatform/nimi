@@ -86,12 +86,6 @@ pub async fn product_control_record_ensure_account_default_profile(
 }
 
 #[tauri::command]
-pub async fn product_control_record_ensure_built_in_ai_config(
-) -> Result<ProductControlRecordProjection, String> {
-    ensure_built_in_ai_config_for_product_control().await
-}
-
-#[tauri::command]
 pub async fn product_control_record_prepare_first_run_local_ai_ready(
 ) -> Result<ProductControlRecordProjection, String> {
     prepare_first_run_local_ai_ready_for_product_control().await

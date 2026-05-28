@@ -353,13 +353,6 @@ pub fn ensure_apps_packages() -> Result<AppsPackagesProjection, String> {
     })
 }
 
-#[tauri::command]
-pub async fn apps_packages_get() -> Result<AppsPackagesProjection, String> {
-    tauri::async_runtime::spawn_blocking(ensure_apps_packages)
-        .await
-        .map_err(|error| format!("apps_packages_get task failed: {error}"))?
-}
-
 #[cfg(test)]
 mod tests {
     use super::{

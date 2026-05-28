@@ -357,7 +357,17 @@ registered_command_families:
 
   - family: product_control
     match:
-      regex: "^(product_control_record_.*|product_control_default_data_root_directory|account_default_profile_for_scope_init)$"
+      exact:
+        - product_control_record_get
+        - product_control_record_select_data_root
+        - product_control_record_set_first_run_install_level
+        - product_control_record_ensure_account_default_profile
+        - product_control_record_prepare_first_run_local_ai_ready
+        - product_control_record_set_first_run_setup_state
+        - product_control_record_admit_ready_for_use
+        - product_control_default_data_root_directory
+        - account_default_profile_for_scope_init
+        - built_in_ai_config_for_scope_init
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-product-control
     execution_class: request_response_async
@@ -395,23 +405,9 @@ registered_command_families:
       - spawn_blocking
     source_rule: D-GATE-092
 
-  - family: factory_profile_index
-    match:
-      exact:
-        - factory_profile_index_get
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: desktop-factory-profile-index
-    execution_class: bounded_blocking_with_admission
-    remediation_required: false
-    admitted_risks:
-      - std_fs
-    source_rule: D-GATE-092
-
   - family: apps_projection
     match:
       exact:
-        - apps_registry_get
-        - apps_packages_get
         - apps_bridge_projection_get
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-apps-projection

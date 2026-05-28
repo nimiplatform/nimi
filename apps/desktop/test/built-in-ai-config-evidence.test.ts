@@ -120,10 +120,10 @@ test('built-in AIConfig apply is atomic (D-AIPC-005) via temp-file then rename',
   assert.match(desktopAiConfigLibrarySource, /fs::rename\(&tmp_path, path\)/);
 });
 
-test('product control materializes built-in AIConfig refs and exposes the wave-6 resolve seam', () => {
+test('product control materializes built-in AIConfig refs inside first-run finalization', () => {
   assert.match(
     desktopProductControlSource,
-    /ensure_built_in_ai_config_for_product_control/,
+    /prepare_first_run_local_ai_ready_for_product_control/,
   );
   assert.match(
     desktopProductControlSource,
@@ -135,8 +135,9 @@ test('product control materializes built-in AIConfig refs and exposes the wave-6
     /pub fn resolve_built_in_ai_config_refs_for_admission/,
   );
   assert.doesNotMatch(desktopProductControlSource, /product_control_record_mark_ready_for_use/);
-  // tauri command is registered.
-  assert.match(
+  // The one-off built-in AIConfig command is no longer separately exposed;
+  // first-run finalization materializes the refs through prepare_local_ai_ready.
+  assert.doesNotMatch(
     appBootstrapSource,
     /product_control_record_ensure_built_in_ai_config/,
   );

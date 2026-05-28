@@ -386,11 +386,6 @@ pub fn ensure_factory_profile_index() -> Result<FactoryProfileIndexProjection, S
     })
 }
 
-#[tauri::command]
-pub fn factory_profile_index_get() -> Result<FactoryProfileIndexProjection, String> {
-    ensure_factory_profile_index()
-}
-
 #[cfg(test)]
 mod tests {
     use super::{
