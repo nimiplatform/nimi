@@ -5,9 +5,6 @@ import type {
 import {
   createEmptyAgentThreadBundle,
 } from './chat-agent-shell-bundle';
-import {
-  upsertThreadSummary,
-} from './chat-agent-shell-core';
 import type {
   UseAgentConversationHostActionsInput,
 } from './chat-agent-shell-host-actions-types';
@@ -44,7 +41,6 @@ export async function rollbackOptimisticUserProjection(input: {
   const rollbackThreadId = input.optimisticThreadId;
   const rollbackThread = input.optimisticBaseThread;
   input.hostInput.currentComposerTextRef.current = input.submittedTextForRecovery;
-  input.hostInput.setThreadsCache((current) => upsertThreadSummary(current, rollbackThread));
   input.hostInput.setBundleCache(rollbackThreadId, (current) => {
     const base = current || createEmptyAgentThreadBundle(rollbackThread);
     return {

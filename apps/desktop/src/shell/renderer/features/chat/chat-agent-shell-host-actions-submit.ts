@@ -32,7 +32,6 @@ import {
 import {
   bundleQueryKey,
   normalizeText,
-  upsertThreadSummary,
 } from './chat-agent-shell-core';
 import {
   getStreamState,
@@ -196,7 +195,6 @@ export async function submitAgentConversationTurn(input: {
         targetSnapshot: activeTarget,
       };
       input.hostInput.currentComposerTextRef.current = '';
-      input.hostInput.setThreadsCache((current) => upsertThreadSummary(current, optimisticThreadRecord));
       input.hostInput.setBundleCache(effectiveThreadId, (current) => {
         const base = current || createEmptyAgentThreadBundle(optimisticThreadRecord);
         return {
@@ -266,7 +264,6 @@ export async function submitAgentConversationTurn(input: {
       ),
     };
     userProjectionApplied = true;
-    input.hostInput.setThreadsCache((current) => upsertThreadSummary(current, userBundle.thread));
     input.hostInput.queryClient.setQueryData(bundleQueryKey(effectiveThreadId), userBundle);
     input.hostInput.syncSelectionToThread(userBundle.thread);
     let submitSession = createInitialAgentSubmitDriverState({

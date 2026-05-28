@@ -13,7 +13,7 @@ import type {
   AgentSubmitDriverEffectQueue,
   AgentSubmitDriverState,
 } from './chat-agent-shell-submit-driver';
-import { bundleQueryKey, THREADS_QUERY_KEY, upsertThreadSummary } from './chat-agent-shell-core';
+import { bundleQueryKey } from './chat-agent-shell-core';
 import { setAgentVisibleProjection } from './chat-agent-visible-projection-store';
 import { feedStreamEvent } from '../turns/stream-controller';
 
@@ -30,13 +30,6 @@ type UseAgentConversationEffectsInput = {
 };
 
 export function useAgentConversationEffects(input: UseAgentConversationEffectsInput) {
-  const setThreadsCache = useCallback((updater: (current: AgentLocalThreadSummary[]) => AgentLocalThreadSummary[]) => {
-    input.queryClient.setQueryData<AgentLocalThreadSummary[]>(THREADS_QUERY_KEY, (current) => {
-      const safeCurrent = Array.isArray(current) ? current : [];
-      return updater(safeCurrent);
-    });
-  }, [input.queryClient]);
-
   const setBundleCache = useCallback((
     threadId: string,
     updater: (current: AgentLocalThreadBundle | null | undefined) => AgentLocalThreadBundle | null | undefined,
@@ -70,7 +63,6 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
   }, [input]);
 
   const applyHostInteractionPatch = useCallback((threadId: string, patch: AgentHostInteractionPatch) => {
-    setThreadsCache((current) => upsertThreadSummary(current, patch.bundle.thread));
     input.queryClient.setQueryData(bundleQueryKey(threadId), patch.bundle);
     setAgentVisibleProjection(threadId, null);
     input.currentComposerTextRef.current = patch.composerText;
@@ -79,7 +71,7 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
       footerState: patch.footerState,
       lifecycle: patch.lifecycle,
     });
-  }, [input, setFooterHostState, setThreadsCache]);
+  }, [input, setFooterHostState]);
 
   const applyDriverEffects = useCallback((threadId: string, effects: AgentSubmitDriverEffectQueue): AgentSubmitDriverState => {
     for (const streamEffect of effects.streamEffects) {
@@ -116,7 +108,6 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
     applyHostInteractionPatch,
     setBundleCache,
     setFooterHostState,
-    setThreadsCache,
     syncSelectionToThread,
   };
 }

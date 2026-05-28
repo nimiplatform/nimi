@@ -6,7 +6,6 @@ import type {
 } from '@renderer/bridge/runtime-bridge/types';
 import { toConversationMessageViewModel } from './chat-agent-thread-model';
 
-export const THREADS_QUERY_KEY = ['chat-agent-threads'];
 export const TARGETS_QUERY_KEY = ['chat-agent-friends'];
 
 export function bundleQueryKey(threadId: string): readonly ['chat-agent-thread-bundle', string] {
@@ -35,15 +34,6 @@ export function sortThreadSummaries(
     }
     return left.id.localeCompare(right.id);
   });
-}
-
-export function upsertThreadSummary(
-  threads: readonly AgentLocalThreadSummary[],
-  nextThread: AgentLocalThreadSummary,
-): AgentLocalThreadSummary[] {
-  const filtered = threads.filter((thread) => thread.id !== nextThread.id);
-  filtered.push(nextThread);
-  return sortThreadSummaries(filtered);
 }
 
 export function toErrorMessage(error: unknown, fallback = 'Unknown error'): string {

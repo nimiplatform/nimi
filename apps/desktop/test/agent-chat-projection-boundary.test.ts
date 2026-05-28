@@ -99,6 +99,19 @@ test('Desktop wires Runtime Agent conversation summaries as read-only projection
   assert.match(state, /createAgentConversationCacheThreadId/);
   assert.match(state, /threadsReady:\s*runtimeConversationSummariesReady/);
   assert.doesNotMatch(state, /chatAgentStoreClient|getThreadBundle|remediationBundleQuery/);
+
+  const core = readWorkspaceFile(
+    'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-core.ts',
+  );
+  const effects = readWorkspaceFile(
+    'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-effects.ts',
+  );
+  const snapshotHydration = readWorkspaceFile(
+    'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-adapter-session-snapshot.ts',
+  );
+  assert.doesNotMatch(core, /THREADS_QUERY_KEY|upsertThreadSummary/);
+  assert.doesNotMatch(effects, /setThreadsCache|THREADS_QUERY_KEY|upsertThreadSummary/);
+  assert.doesNotMatch(snapshotHydration, /THREADS_QUERY_KEY|upsertThreadSummary/);
 });
 
 test('Runtime Agent conversation summary adapter keeps Runtime anchor identity explicit', () => {

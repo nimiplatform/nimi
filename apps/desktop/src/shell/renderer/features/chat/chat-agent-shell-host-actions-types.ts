@@ -63,7 +63,6 @@ export type UseAgentConversationHostActionsInput = {
   ) => void;
   setSelectionForLocalAgentRef: (localAgentRef: string | null) => void;
   setSubmittingThreadId: (threadId: string | null) => void;
-  setThreadsCache: (updater: (current: AgentLocalThreadSummary[]) => AgentLocalThreadSummary[]) => void;
   clearSelectedTarget: () => void;
   submittingThreadId: string | null;
   syncSelectionToThread: (thread: AgentLocalThreadSummary | AgentLocalThreadRecord | null) => void;

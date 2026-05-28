@@ -18,7 +18,6 @@ import {
   bundleQueryKey,
   createAgentConversationCacheThreadId,
   normalizeText,
-  upsertThreadSummary,
 } from './chat-agent-shell-core';
 import { createEmptyAgentThreadBundle } from './chat-agent-shell-bundle';
 import { probeExecutionSchedulingGuard } from './chat-shared-execution-scheduling-guard';
@@ -279,7 +278,6 @@ export async function createThreadForTarget(
     lastMessageAtMs: null,
     targetSnapshot: target,
   };
-  input.setThreadsCache((current) => upsertThreadSummary(current, thread));
   input.queryClient.setQueryData(bundleQueryKey(thread.id), createEmptyAgentThreadBundle(thread));
   input.currentComposerTextRef.current = '';
   input.syncSelectionToThread(thread);

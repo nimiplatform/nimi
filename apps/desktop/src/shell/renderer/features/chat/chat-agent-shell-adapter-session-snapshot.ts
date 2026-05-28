@@ -8,8 +8,6 @@ import type {
 } from '@renderer/bridge/runtime-bridge/types';
 import {
   bundleQueryKey,
-  THREADS_QUERY_KEY,
-  upsertThreadSummary,
 } from './chat-agent-shell-core';
 import { hydrateAgentThreadBundleFromRuntimeSessionSnapshot } from './chat-agent-session-hydration';
 import { setAgentVisibleProjection } from './chat-agent-visible-projection-store';
@@ -32,7 +30,6 @@ type UseAgentRuntimeSessionSnapshotHydrationInput = {
   queryClient: QueryClient;
   selectedThreadRecord: AgentLocalThreadSummary | null;
   submittingThreadId: string | null;
-  threads: readonly AgentLocalThreadSummary[];
 };
 
 function normalizeText(value: unknown): string {
@@ -164,9 +161,6 @@ export function useAgentRuntimeSessionSnapshotHydration(
         }
         input.queryClient.setQueryData(bundleQueryKey(thread.id), hydratedBundle);
         setAgentVisibleProjection(thread.id, hydratedBundle);
-        input.queryClient.setQueryData(THREADS_QUERY_KEY, (current: typeof input.threads | undefined) => (
-          upsertThreadSummary(current || [], hydratedBundle.thread)
-        ));
         lastRuntimeSessionSnapshotRequestKeyRef.current = snapshotRequestKey;
       })
       .catch((error) => {
@@ -202,6 +196,5 @@ export function useAgentRuntimeSessionSnapshotHydration(
     input.queryClient,
     input.selectedThreadRecord,
     input.submittingThreadId,
-    input.threads,
   ]);
 }

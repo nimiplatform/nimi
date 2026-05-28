@@ -265,7 +265,6 @@ export function useAgentConversationModeHost(
     queryClient,
     selectedThreadRecord,
     submittingThreadId,
-    threads,
   });
 
   useAgentConversationCapabilityEffects({
@@ -297,7 +296,6 @@ export function useAgentConversationModeHost(
     applyDriverEffects,
     setBundleCache,
     setFooterHostState,
-    setThreadsCache,
     syncSelectionToThread,
   } = useAgentConversationEffects({
     currentComposerTextRef,
@@ -487,7 +485,6 @@ export function useAgentConversationModeHost(
       targetId: localAgentRef,
     }),
     setSubmittingThreadId,
-    setThreadsCache,
     clearSelectedTarget: () => setSelectedTargetForSource('agent', null),
     submittingThreadId,
     syncSelectionToThread,
