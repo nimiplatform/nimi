@@ -5,6 +5,7 @@ import test from 'node:test';
 
 const runtimeCommandsAssetsPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands-assets.ts');
 const runtimeIndexPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/index.ts');
+const localAiBridgePath = path.resolve(process.cwd(), 'src/shell/renderer/bridge/runtime-bridge/local-ai.ts');
 const localAiBridgeParsersPath = path.resolve(process.cwd(), 'src/shell/renderer/bridge/runtime-bridge/local-ai-parsers.ts');
 const localModelCenterDownloadsPath = path.resolve(process.cwd(), 'src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-downloads.ts');
 
@@ -27,6 +28,7 @@ test('runtime local facade no longer re-exports go-runtime sync helpers', () => 
 });
 
 test('desktop shipped progress paths no longer treat tauri local-ai progress as the SSOT', () => {
+  assert.equal(existsSync(localAiBridgePath), false);
   assert.equal(existsSync(localAiBridgeParsersPath), false);
   assert.match(localModelCenterDownloadsSource, /localRuntime\.listDownloads\(\)/);
   assert.match(localModelCenterDownloadsSource, /localRuntime\.subscribeDownloadProgress\(/);

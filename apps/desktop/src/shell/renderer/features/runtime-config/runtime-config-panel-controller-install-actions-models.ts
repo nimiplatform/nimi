@@ -4,22 +4,12 @@ import {
   localRuntimeRunnableAssetKindForCapabilities,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import {
-  importLocalRuntimeAsset,
-  importLocalRuntimeAssetFile,
-  pickLocalRuntimeAssetFile,
-  pickLocalRuntimeAssetManifestPath,
-  removeLocalRuntimeAsset,
-  startLocalRuntimeAsset,
-  stopLocalRuntimeAsset,
-} from '@renderer/bridge/runtime-bridge/local-ai';
+import { localRuntime, type LocalRuntimeAssetRecord } from '@runtime/local-runtime';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
 import { i18n } from '@renderer/i18n';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
-
-type LocalRuntimeAssetRecord = Awaited<ReturnType<typeof startLocalRuntimeAsset>>;
 
 export type RuntimeConfigModelManagementActions = {
   importLocalModel: () => Promise<void>;
@@ -174,11 +164,11 @@ export function useRuntimeConfigModelManagementActions(
   const importLocalModel = useCallback(async () => {
     try {
       assertRuntimeWriteAllowed();
-      const manifestPath = await pickLocalRuntimeAssetManifestPath();
+      const manifestPath = await localRuntime.pickAssetManifestPath();
       if (!manifestPath) {
         return;
       }
-      await importLocalRuntimeAsset({ manifestPath }, { caller: 'core' });
+      await localRuntime.importAsset({ manifestPath }, { caller: 'core' });
       await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
@@ -204,12 +194,12 @@ export function useRuntimeConfigModelManagementActions(
   const importLocalModelFile = useCallback(async (capabilities: string[], engine?: string) => {
     try {
       assertRuntimeWriteAllowed();
-      const filePath = await pickLocalRuntimeAssetFile();
+      const filePath = await localRuntime.pickAssetFile();
       if (!filePath) {
         return;
       }
       const kind = localRuntimeRunnableAssetKindForCapabilities(capabilities);
-      const asset = await importLocalRuntimeAssetFile({
+      const asset = await localRuntime.importFile({
         filePath,
         kind,
         engine: engine || undefined,
@@ -248,7 +238,7 @@ export function useRuntimeConfigModelManagementActions(
         { localModelId },
       ),
     });
-    const model = await startLocalRuntimeAsset(localModelId, { caller: 'core' }).catch((error) => {
+    const model = await localRuntime.start(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
       message: translateRuntimeLocalText(
@@ -296,7 +286,7 @@ export function useRuntimeConfigModelManagementActions(
         { localModelId },
       ),
     });
-    const model = await stopLocalRuntimeAsset(localModelId, { caller: 'core' }).catch((error) => {
+    const model = await localRuntime.stop(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
       message: translateRuntimeLocalText(
@@ -344,9 +334,9 @@ export function useRuntimeConfigModelManagementActions(
         { localModelId },
       ),
     });
-    let stoppedModel: Awaited<ReturnType<typeof stopLocalRuntimeAsset>> | null = null;
+    let stoppedModel: LocalRuntimeAssetRecord | null = null;
     try {
-      stoppedModel = await stopLocalRuntimeAsset(localModelId, { caller: 'core' }).catch((stopErr) => {
+      stoppedModel = await localRuntime.stop(localModelId, { caller: 'core' }).catch((stopErr) => {
         emitRuntimeLog({
           level: 'warn',
           area: 'local-ai',
@@ -355,7 +345,7 @@ export function useRuntimeConfigModelManagementActions(
         });
         return null;
       });
-      const startedModel = await startLocalRuntimeAsset(localModelId, { caller: 'core' });
+      const startedModel = await localRuntime.start(localModelId, { caller: 'core' });
       applyLocalModelSnapshotToState(updateState, startedModel);
       queueLifecycleReconcile(localModelId, epoch);
       setStatusBanner({
@@ -397,7 +387,7 @@ export function useRuntimeConfigModelManagementActions(
 
   const removeLocalModel = useCallback(async (localModelId: string) => {
     assertRuntimeWriteAllowed();
-    const removed = await removeLocalRuntimeAsset(localModelId, { caller: 'core' }).catch((error) => {
+    const removed = await localRuntime.remove(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
         message: translateRuntimeLocalText(
@@ -420,7 +410,7 @@ export function useRuntimeConfigModelManagementActions(
 
   const removeLocalAsset = useCallback(async (localAssetId: string) => {
     assertRuntimeWriteAllowed();
-    const removed = await removeLocalRuntimeAsset(localAssetId, { caller: 'core' }).catch((error) => {
+    const removed = await localRuntime.remove(localAssetId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
         message: translateRuntimeLocalText(
