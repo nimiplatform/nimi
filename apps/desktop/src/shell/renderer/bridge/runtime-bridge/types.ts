@@ -31,8 +31,6 @@ export type {
   OauthTokenExchangeResult,
   OauthListenForCodePayload,
   OauthListenForCodeResult,
-  ConfirmPrivateSyncPayload,
-  ConfirmPrivateSyncResult,
   ConfirmDialogPayload,
   ConfirmDialogResult,
 } from './runtime-types.js';
@@ -51,7 +49,6 @@ export {
   parseDesktopMacosSmokeContext,
   parseDesktopMacosSmokeAvatarEvidenceReadResult,
   parseDesktopMacosSmokeReportResult,
-  parseConfirmPrivateSyncResult,
   parseConfirmDialogResult,
   parseOauthTokenExchangeResult,
   parseOauthListenForCodeResult,

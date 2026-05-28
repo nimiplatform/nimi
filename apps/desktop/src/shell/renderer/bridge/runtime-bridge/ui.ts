@@ -2,12 +2,9 @@ import { hasTauriInvoke } from './env';
 import { invokeChecked } from './invoke';
 import {
   parseConfirmDialogResult,
-  parseConfirmPrivateSyncResult,
   parseOpenExternalUrlResult,
   type ConfirmDialogPayload,
   type ConfirmDialogResult,
-  type ConfirmPrivateSyncPayload,
-  type ConfirmPrivateSyncResult,
   type OpenExternalUrlResult,
 } from './types';
 
@@ -41,18 +38,6 @@ export async function openExternalUrl(url: string): Promise<OpenExternalUrlResul
       url: normalized,
     },
   }, parseOpenExternalUrlResult);
-}
-
-export async function confirmPrivateSync(payload: ConfirmPrivateSyncPayload): Promise<ConfirmPrivateSyncResult> {
-  if (!hasTauriInvoke()) {
-    return {
-      confirmed: window.confirm(
-        'LOCAL route will upload local content to the platform governance chain. Continue?',
-      ),
-    };
-  }
-
-  return invokeChecked('confirm_private_sync', { payload }, parseConfirmPrivateSyncResult);
 }
 
 export async function confirmDialog(payload: ConfirmDialogPayload): Promise<ConfirmDialogResult> {

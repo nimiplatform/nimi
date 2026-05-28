@@ -121,15 +121,6 @@ export type OauthListenForCodeResult = {
   error?: string;
 };
 
-export type ConfirmPrivateSyncPayload = {
-  agentId?: string;
-  sessionId?: string;
-};
-
-export type ConfirmPrivateSyncResult = {
-  confirmed: boolean;
-};
-
 export type ConfirmDialogPayload = {
   title: string;
   description: string;

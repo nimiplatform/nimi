@@ -30,7 +30,6 @@ import {
   syncMenuBarRuntimeHealth,
   proxyHttp,
   getSystemResourceSnapshot,
-  confirmPrivateSync,
   startWindowDrag,
 } from '@desktop-public/bridge';
 import type {
@@ -261,7 +260,7 @@ export async function setRuntimeBridgeConfig(_configJson: string): Promise<Runti
 }
 
 export { getRuntimeDefaults, oauthListenForCode, oauthTokenExchange, openExternalUrl, focusMainWindow };
-export { proxyHttp, getSystemResourceSnapshot, confirmPrivateSync, startWindowDrag };
+export { proxyHttp, getSystemResourceSnapshot, startWindowDrag };
 
 export const desktopBridge = {
   hasTauriInvoke,
@@ -296,7 +295,6 @@ export const desktopBridge = {
   oauthListenForCode,
   saveAuthSession,
   clearAuthSession,
-  confirmPrivateSync,
   focusMainWindow,
   syncMenuBarRuntimeHealth,
   completeMenuBarQuit,

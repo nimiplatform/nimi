@@ -13,7 +13,6 @@ import type {
   DesktopMacosSmokeContext,
   DesktopMacosSmokeAvatarEvidenceReadResult,
   DesktopMacosSmokeReportResult,
-  ConfirmPrivateSyncResult,
   ConfirmDialogResult,
   MenuBarProviderSummary,
   OauthListenForCodeResult,
@@ -151,13 +150,6 @@ export function parseOpenExternalUrlResult(value: unknown): OpenExternalUrlResul
   const record = assertRecord(value, 'open_external_url returned invalid payload');
   return {
     opened: Boolean(record.opened),
-  };
-}
-
-export function parseConfirmPrivateSyncResult(value: unknown): ConfirmPrivateSyncResult {
-  const record = assertRecord(value, 'confirm_private_sync returned invalid payload');
-  return {
-    confirmed: Boolean(record.confirmed),
   };
 }
 

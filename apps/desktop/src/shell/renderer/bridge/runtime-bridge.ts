@@ -55,7 +55,7 @@ import { getDesktopStorageDirs } from './runtime-bridge/desktop-storage';
 import { clearAuthSession, loadAuthSession, saveAuthSession } from './runtime-bridge/auth-session';
 import { oauthListenForCode, oauthTokenExchange } from './runtime-bridge/oauth';
 import { completeMenuBarQuit, syncMenuBarRuntimeHealth } from './runtime-bridge/menu-bar';
-import { confirmPrivateSync, focusMainWindow, openExternalUrl, startWindowDrag } from './runtime-bridge/ui';
+import { focusMainWindow, openExternalUrl, startWindowDrag } from './runtime-bridge/ui';
 import {
   listLocalRuntimeAssets,
   listLocalRuntimeVerifiedAssets,
@@ -138,8 +138,6 @@ export type {
   OauthTokenExchangeResult,
   OauthListenForCodePayload,
   OauthListenForCodeResult,
-  ConfirmPrivateSyncPayload,
-  ConfirmPrivateSyncResult,
   MenuBarProviderSummary,
   MenuBarRuntimeHealthSyncPayload,
   LocalRuntimeInferenceAuditPayload,
@@ -211,7 +209,6 @@ export {
   clearAuthSession,
   oauthListenForCode,
   oauthTokenExchange,
-  confirmPrivateSync,
   focusMainWindow,
   openExternalUrl,
   startWindowDrag,

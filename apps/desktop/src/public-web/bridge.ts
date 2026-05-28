@@ -5,7 +5,7 @@ export { logRendererEvent, toRendererLogMessage } from '../shell/renderer/bridge
 export { completeMenuBarQuit, syncMenuBarRuntimeHealth } from '../shell/renderer/bridge/runtime-bridge/menu-bar';
 export { proxyHttp } from '../shell/renderer/bridge/runtime-bridge/http';
 export { getSystemResourceSnapshot } from '../shell/renderer/bridge/runtime-bridge/system-resources';
-export { confirmPrivateSync, startWindowDrag } from '../shell/renderer/bridge/runtime-bridge/ui';
+export { startWindowDrag } from '../shell/renderer/bridge/runtime-bridge/ui';
 
 export type { AppsBridgeProjection } from '../shell/renderer/bridge/runtime-bridge/apps-projection';
 
