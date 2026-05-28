@@ -4,7 +4,6 @@ import {
 import type {
   AgentLocalThreadBundle,
 } from '@renderer/bridge/runtime-bridge/types';
-import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import {
   assertAgentTurnLifecycleCompleted,
 } from './chat-agent-shell-lifecycle';
@@ -78,13 +77,14 @@ export async function runActiveAgentSubmit(input: {
         const rebuiltBundle = event.bundle && typeof event.bundle === 'object'
           ? event.bundle as AgentLocalThreadBundle
           : null;
-        const refreshedBundle = rebuiltBundle || await chatAgentStoreClient.getThreadBundle(input.threadId);
-        submitSession = input.input.applyDriverEffects(input.threadId, resolveAgentSubmitDriverProjectionRefresh({
-          state: submitSession,
-          streamSnapshot: getStreamState(input.threadId),
-          refreshedBundle,
-          draftText: input.currentDraftText(),
-        }));
+        if (rebuiltBundle) {
+          submitSession = input.input.applyDriverEffects(input.threadId, resolveAgentSubmitDriverProjectionRefresh({
+            state: submitSession,
+            streamSnapshot: getStreamState(input.threadId),
+            refreshedBundle: rebuiltBundle,
+            draftText: input.currentDraftText(),
+          }));
+        }
       }
       continue;
     }
