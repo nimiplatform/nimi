@@ -30,7 +30,6 @@ export function ChatNimiModeContent({
   onSelectTarget,
 }: ChatNimiModeContentProps) {
   const { t } = useTranslation();
-  const runtimeFields = useAppStore((state) => state.runtimeFields);
   const setChatViewMode = useAppStore((state) => state.setChatViewMode);
   const setChatSetupState = useAppStore((state) => state.setChatSetupState);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
@@ -40,8 +39,6 @@ export function ChatNimiModeContent({
   const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource.ai ?? null);
 
   const { host } = useAiConversationModeHost({
-    runtimeConfigState: null,
-    runtimeFields,
     selection: nimiConversationSelection,
     lastSelectedThreadId: lastSelectedAiThread,
     setSelection: setNimiConversationSelection,

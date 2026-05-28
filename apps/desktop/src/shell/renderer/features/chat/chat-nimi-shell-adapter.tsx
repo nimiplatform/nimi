@@ -13,10 +13,8 @@ import {
 } from '@nimiplatform/kit/features/chat/headless';
 import { createSimpleAiConversationProvider } from '@nimiplatform/kit/features/chat/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import type { ChatAiMessageRecord, ChatAiThreadRecord } from '@renderer/bridge/runtime-bridge/types';
 import { chatAiStoreClient } from '@renderer/bridge/runtime-bridge/chat-ai-store';
-import { type RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useTranslation } from 'react-i18next';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import {
@@ -57,8 +55,6 @@ import { toRuntimeRouteBindingFromPickerSelection } from './conversation-capabil
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 
 type UseAiConversationModeHostInput = {
-  runtimeConfigState: RuntimeConfigStateV11 | null;
-  runtimeFields: RuntimeFieldMap;
   selection: NimiConversationSelection;
   lastSelectedThreadId: string | null;
   setSelection: (selection: NimiConversationSelection) => void;
@@ -217,8 +213,6 @@ export function useAiConversationModeHost(
           useAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null
         ),
         aiConfig,
-        runtimeConfigState: input.runtimeConfigState,
-        runtimeFields: input.runtimeFields,
       }),
       resolveSystemPrompt: (turnInput) => turnInput.systemPrompt || null,
     }));
@@ -226,8 +220,6 @@ export function useAiConversationModeHost(
   }, [
     chatThinkingPreference,
     aiConfig,
-    input.runtimeConfigState,
-    input.runtimeFields,
   ]);
 
   const isBundleLoading = Boolean(activeThreadId) && bundleQuery.isPending && !bundle;

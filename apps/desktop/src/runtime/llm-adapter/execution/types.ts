@@ -6,8 +6,6 @@ import type { RuntimeResolvedBinding } from '@nimiplatform/sdk/ai';
 
 export const TEXT_GENERATE_TIMEOUT_MS = 120_000;
 
-export type FetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
-
 export type ProviderHealth = {
   provider: string;
   endpoint: string | null;
@@ -36,11 +34,6 @@ export type InvokeRuntimeLlmInput = {
   systemPrompt?: string;
   maxTokens?: number;
   temperature?: number;
-  mode?: 'STORY' | 'SCENE_TURN';
-  worldId?: string;
-  agentId?: string;
-  abortSignal?: AbortSignal;
-  fetchImpl?: FetchImpl;
 };
 
 export type InvokeRuntimeLlmOutput = {

@@ -5,8 +5,6 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import type { ConversationRuntimeTextMessage } from '@nimiplatform/kit/features/chat/headless';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { invokeRuntimeLlm } from '@runtime/llm-adapter/execution/invoke-text';
 import type { InvokeRuntimeLlmInput, InvokeRuntimeLlmOutput } from '@runtime/llm-adapter/execution/types';
 import {
@@ -30,8 +28,6 @@ export type ChatAiRuntimeInvokeInput = {
   threadId: string;
   reasoningPreference: ChatThinkingPreference;
   executionSnapshot: AISnapshot | null;
-  runtimeConfigState: RuntimeConfigStateV11 | null;
-  runtimeFields: RuntimeFieldMap;
   signal?: AbortSignal;
 };
 

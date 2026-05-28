@@ -1,7 +1,5 @@
 import type { ConversationRuntimeAdapter } from '@nimiplatform/kit/features/chat/headless';
 import { normalizeConversationRuntimeTextStreamPart } from '@nimiplatform/kit/features/chat/runtime';
-import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { ChatThinkingPreference } from './chat-shared-thinking';
 import { streamChatAiRuntime } from './chat-nimi-runtime';
 import {
@@ -20,8 +18,6 @@ export function createChatAiConversationRuntimeAdapter(input: {
   reasoningPreference: ChatThinkingPreference;
   getTextProjection: () => ConversationCapabilityProjection | null;
   aiConfig: AIConfig;
-  runtimeConfigState: RuntimeConfigStateV11 | null;
-  runtimeFields: RuntimeFieldMap;
 }): ConversationRuntimeAdapter {
   return {
     async streamText(request) {
@@ -52,8 +48,6 @@ export function createChatAiConversationRuntimeAdapter(input: {
         threadId: request.threadId,
         reasoningPreference: input.reasoningPreference,
         executionSnapshot,
-        runtimeConfigState: input.runtimeConfigState,
-        runtimeFields: input.runtimeFields,
         signal: request.signal,
       });
       return {

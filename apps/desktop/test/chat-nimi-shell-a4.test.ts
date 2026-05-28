@@ -15,8 +15,6 @@ import {
   resolveAiThinkingSupportFromProjection,
   resolveChatThinkingConfig,
 } from '../src/shell/renderer/features/chat/chat-shared-thinking.js';
-import type { RuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types.js';
-import type { RuntimeFieldMap } from '../src/shell/renderer/app-shell/providers/store-types.js';
 import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store.js';
 import {
   aiConfigFromSelectionStore,
@@ -32,65 +30,6 @@ type CapturedInvokeInput = {
   targetId: string;
   resolvedBinding: RuntimeResolvedBinding;
 };
-
-function createRuntimeFields(overrides: Partial<RuntimeFieldMap> = {}): RuntimeFieldMap {
-  return {
-    targetType: '',
-    targetAccountId: '',
-    agentId: '',
-    targetId: '',
-    worldId: '',
-    mode: 'STORY',
-    turnIndex: 1,
-    userConfirmedUpload: false,
-    ...overrides,
-  };
-}
-
-function createRuntimeConfigState(): RuntimeConfigStateV11 {
-  return {
-    version: 11,
-    initializedByV11: true,
-    activePage: 'overview',
-    diagnosticsCollapsed: false,
-    selectedSource: 'local',
-    activeCapability: 'chat',
-    uiMode: 'simple',
-    local: {
-      endpoint: 'http://127.0.0.1:11434',
-      models: [{
-        localModelId: 'local-model-1',
-        engine: 'llama',
-        model: 'qwen3',
-        endpoint: 'http://127.0.0.1:11434',
-        capabilities: ['chat'],
-        status: 'active',
-      }],
-      nodeMatrix: [],
-      status: 'healthy',
-      lastCheckedAt: null,
-      lastDetail: '',
-    },
-    connectors: [{
-      id: 'connector-openai',
-      label: 'OpenAI',
-      vendor: 'gpt',
-      provider: 'openai',
-      endpoint: 'https://api.openai.com/v1',
-      scope: 'user',
-      hasCredential: true,
-      isSystemOwned: false,
-      models: ['gpt-5.4-mini'],
-      modelCapabilities: {
-        'gpt-5.4-mini': ['chat'],
-      },
-      status: 'healthy',
-      lastCheckedAt: null,
-      lastDetail: '',
-    }],
-    selectedConnectorId: 'connector-openai',
-  };
-}
 
 function resetConversationCapabilityTestState(): void {
   setConversationCapabilityRouteRuntime(null);
@@ -294,7 +233,6 @@ test('chat ai a4: switching thread route truth updates selection-store projectio
 });
 
 test('chat ai a4: invoke runtime uses desktop-owned core caller and local route defaults', async () => {
-  const state = createRuntimeConfigState();
   let capturedInput: CapturedInvokeInput | null = null;
   const selectionStore = updateConversationCapabilityBinding(
     createDefaultConversationCapabilitySelectionStore(),
@@ -356,8 +294,6 @@ test('chat ai a4: invoke runtime uses desktop-owned core caller and local route 
       threadId: 'thread-local',
       reasoningPreference: 'off',
       executionSnapshot,
-      runtimeConfigState: state,
-      runtimeFields: createRuntimeFields(),
     }, {
       invokeRuntimeLlmImpl: async (input) => {
         capturedInput = input as CapturedInvokeInput;
@@ -399,7 +335,6 @@ test('chat ai a4: no stale local-model preference helper remains in runtime adap
 });
 
 test('chat ai a4: invoke runtime fails close when projection is unavailable', async () => {
-  const state = createRuntimeConfigState();
   useAppStore.getState().setConversationCapabilityProjections({
     'text.generate': {
       capability: 'text.generate',
@@ -419,8 +354,6 @@ test('chat ai a4: invoke runtime fails close when projection is unavailable', as
         threadId: 'thread-cloud',
         reasoningPreference: 'off',
         executionSnapshot: null,
-        runtimeConfigState: state,
-        runtimeFields: createRuntimeFields(),
       }, {
         invokeRuntimeLlmImpl: async () => ({
           text: 'hello back',
