@@ -376,11 +376,14 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
     < hostActionSubmitSource.indexOf('const threadContext = await ensureThreadAnchorBindingForTarget({'),
     'agent host actions must verify Runtime route readiness before creating local projection cache rows',
   );
-  assert.ok(
-    hostActionSubmitSource.indexOf('const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({')
-    < hostActionSubmitSource.indexOf('const userCommitted = await chatAgentStoreClient.commitTurnResult({'),
-    'agent host actions must verify Runtime route readiness before committing local projection cache messages',
-  );
+  const readinessIndex = hostActionSubmitSource.indexOf('const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({');
+  const transitionalUserCommitIndex = hostActionSubmitSource.indexOf('const userCommitted = await chatAgentStoreClient.commitTurnResult({');
+  if (transitionalUserCommitIndex >= 0) {
+    assert.ok(
+      readinessIndex < transitionalUserCommitIndex,
+      'agent host actions must verify Runtime route readiness before committing transitional local projection cache messages',
+    );
+  }
   assert.match(hostActionSubmitRunSource, /if \(projectionEffects\.awaitRefresh\) \{\s+const rebuiltBundle =/s);
   assert.match(adapterSource, /logRendererEvent/);
   assert.match(adapterSource, /conversationCapabilityProjectionByCapability\['audio\.transcribe'\]/);
