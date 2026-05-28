@@ -12,12 +12,12 @@ import type {
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
-import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
   resolveAIConfigSchedulingTargetForCapability,
 } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import {
   bundleQueryKey,
+  createAgentConversationCacheThreadId,
   normalizeText,
   THREADS_QUERY_KEY,
   upsertThreadSummary,
@@ -271,7 +271,7 @@ export async function createThreadForTarget(
 ): Promise<AgentLocalThreadSummary> {
   const timestampMs = Date.now();
   const thread = await chatAgentStoreClient.createThread({
-    id: randomIdV11('agent-thread'),
+    id: createAgentConversationCacheThreadId(target.localAgentRef),
     ownerUserId: target.ownerUserId,
     realmAgentId: target.realmAgentId,
     localAgentRef: target.localAgentRef,

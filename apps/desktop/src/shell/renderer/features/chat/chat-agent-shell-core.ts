@@ -19,6 +19,14 @@ export function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+export function createAgentConversationCacheThreadId(localAgentRef: string): string {
+  const normalizedLocalAgentRef = normalizeText(localAgentRef);
+  if (!normalizedLocalAgentRef) {
+    throw new Error('agent conversation cache thread id requires localAgentRef');
+  }
+  return `agent-thread:${normalizedLocalAgentRef}`;
+}
+
 export function sortThreadSummaries(
   threads: readonly AgentLocalThreadSummary[],
 ): AgentLocalThreadSummary[] {

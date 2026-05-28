@@ -41,3 +41,13 @@ test('agent runtime summary projection requests one active conversation per Agen
   assert.doesNotMatch(source, /pageSize:\s*50/u);
   assert.doesNotMatch(source, /deduped\.get\(summary\.conversationAnchorId\)/u);
 });
+
+test('agent local projection cache ids are derived from localAgentRef', () => {
+  const coreSource = readSource('apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-core.ts');
+  const helpersSource = readSource('apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-host-actions-helpers.ts');
+
+  assert.match(coreSource, /createAgentConversationCacheThreadId\(localAgentRef: string\)/u);
+  assert.match(coreSource, /`agent-thread:\$\{normalizedLocalAgentRef\}`/u);
+  assert.match(helpersSource, /id:\s*createAgentConversationCacheThreadId\(target\.localAgentRef\)/u);
+  assert.doesNotMatch(helpersSource, /randomIdV11\('agent-thread'\)/u);
+});
