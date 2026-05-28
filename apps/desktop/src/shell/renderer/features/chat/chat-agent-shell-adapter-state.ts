@@ -51,7 +51,6 @@ type UseAgentConversationShellStateInput = {
   aiConfig: AIConfig;
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
   bootstrapReady: boolean;
-  lastSelectedThreadId: string | null;
   selection: AgentConversationSelection;
 };
 
@@ -197,9 +196,7 @@ export function useAgentConversationShellState(
   const activeThreadId = useMemo(
     () => resolveAgentConversationActiveThreadId({
       threads,
-      selectionThreadId: null,
       selectionLocalAgentRef: input.selection.localAgentRef,
-      lastSelectedThreadId: null,
     }),
     [input.selection.localAgentRef, threads],
   );

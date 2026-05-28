@@ -30,6 +30,7 @@ test('agent conversation shell does not expose local thread selection as product
   assert.match(presentationSource, /listThreads:\s*\(\)\s*=>\s*\[\]/u);
   assert.doesNotMatch(adapterStateSource, /selectionThreadId:\s*input\.selection\.threadId/u);
   assert.doesNotMatch(adapterStateSource, /lastSelectedThreadId:\s*input\.lastSelectedThreadId/u);
+  assert.doesNotMatch(adapterStateSource, /selectionThreadId|lastSelectedThreadId/u);
   assert.doesNotMatch(uiSliceSource, /agent:\s*selection\.threadId/u);
 });
 

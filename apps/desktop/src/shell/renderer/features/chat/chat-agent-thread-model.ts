@@ -249,9 +249,7 @@ export function findAgentConversationThreadByLocalAgentRef(
 
 export function resolveAgentConversationActiveThreadId(input: {
   threads: readonly AgentLocalThreadSummary[];
-  selectionThreadId: string | null | undefined;
   selectionLocalAgentRef?: string | null | undefined;
-  lastSelectedThreadId: string | null | undefined;
 }): string | null {
   const selectedAgentThread = findAgentConversationThreadByLocalAgentRef(
     input.threads,

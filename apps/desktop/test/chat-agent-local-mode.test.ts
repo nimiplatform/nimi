@@ -153,21 +153,15 @@ test('agent local mode resolves active cache thread only from selected AgentFrie
   assert.equal(findAgentConversationThreadByLocalAgentRef(threads, 'local-agent:user-1:agent-2')?.id, 'thread-agent-2');
   assert.equal(resolveAgentConversationActiveThreadId({
     threads,
-    selectionThreadId: null,
     selectionLocalAgentRef: 'local-agent:user-1:agent-2',
-    lastSelectedThreadId: 'thread-agent-1',
   }), 'thread-agent-2');
   assert.equal(resolveAgentConversationActiveThreadId({
     threads,
-    selectionThreadId: 'thread-agent-2',
     selectionLocalAgentRef: 'local-agent:user-1:agent-1',
-    lastSelectedThreadId: 'thread-agent-2',
   }), 'thread-agent-1');
   assert.equal(resolveAgentConversationActiveThreadId({
     threads,
-    selectionThreadId: 'thread-agent-1',
     selectionLocalAgentRef: null,
-    lastSelectedThreadId: 'thread-agent-2',
   }), null);
 });
 

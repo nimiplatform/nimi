@@ -43,7 +43,6 @@ export function ChatAgentModeContent({
     onOpenAgentCenter: onOpenSettings,
     runtimeFields,
     selection: agentConversationSelection,
-    lastSelectedThreadId: null,
     setSelection: setAgentConversationSelection,
   });
 

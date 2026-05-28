@@ -73,7 +73,6 @@ type UseAgentConversationModeHostInput = {
   onOpenAgentCenter?: () => void;
   runtimeFields: RuntimeFieldMap;
   selection: AgentConversationSelection;
-  lastSelectedThreadId: string | null;
   setSelection: (selection: AgentConversationSelection) => void;
 };
 
@@ -223,7 +222,6 @@ export function useAgentConversationModeHost(
     aiConfig: agentAdapterAiConfig,
     authStatus: input.authStatus,
     bootstrapReady,
-    lastSelectedThreadId: null,
     selection: input.selection,
   });
   const {
