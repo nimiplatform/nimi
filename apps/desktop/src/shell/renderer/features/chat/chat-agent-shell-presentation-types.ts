@@ -1,9 +1,8 @@
-import type { MouseEvent, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { useTranslation } from 'react-i18next';
 import type {
   CanonicalMessageAccessorySlot,
   CanonicalMessageContentSlot,
-  ConversationCanonicalMessage,
   ConversationMessageViewModel,
   ConversationSetupState,
 } from '@nimiplatform/kit/features/chat/headless';
@@ -53,7 +52,6 @@ export type UseAgentConversationPresentationInput = {
   pendingAttachments: readonly PendingAttachment[];
   onDismissHostFeedback: () => void;
   onAttachmentsChange: (attachments: readonly PendingAttachment[]) => void;
-  onMessageContextMenu?: (message: ConversationCanonicalMessage, event: MouseEvent<HTMLDivElement>) => void;
   onModelSelectionChange: (selection: RouteModelPickerSelection) => void;
   reasoningLabel: string;
   renderMessageAccessory?: CanonicalMessageAccessorySlot;

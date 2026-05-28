@@ -207,7 +207,6 @@ export function useAgentConversationPresentation(
     transcriptContentPaddingBottomClassName: AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS,
     renderMessageContent: input.renderMessageContent,
     renderMessageAccessory: input.renderMessageAccessory,
-    onMessageContextMenu: input.onMessageContextMenu,
     onStopGenerating: handleStopGenerating,
   }), [
     characterData.avatarUrl,
@@ -218,7 +217,6 @@ export function useAgentConversationPresentation(
     input.reasoningLabel,
     input.renderMessageAccessory,
     input.renderMessageContent,
-    input.onMessageContextMenu,
     input.streamState,
     input.t,
     handleStopGenerating,

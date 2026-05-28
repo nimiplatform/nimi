@@ -3,7 +3,6 @@ import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent
 import {
   bundleQueryKey,
   normalizeText,
-  upsertThreadSummary,
 } from './chat-agent-shell-core';
 import { clearAgentConversationAnchorBinding } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
@@ -22,7 +21,6 @@ export { assertAgentSubmitSchedulingAllowed } from './chat-agent-shell-host-acti
 export function useAgentConversationHostActions(
   input: UseAgentConversationHostActionsInput,
 ): {
-  handleDeleteMessage: (messageId: string) => Promise<void>;
   handleDeleteThread: (threadId: string) => Promise<void>;
   handleSelectAgent: (localAgentRef: string | null) => void;
   handleSelectThread: (threadId: string) => void;
@@ -93,23 +91,6 @@ export function useAgentConversationHostActions(
     }
   }, [input]);
 
-  const handleDeleteMessage = useCallback(async (messageId: string) => {
-    const normalizedMessageId = normalizeText(messageId);
-    if (!normalizedMessageId || !input.activeThreadId) {
-      return;
-    }
-    const bundle = input.bundle;
-    if (!bundle || bundle.thread.id !== input.activeThreadId) {
-      return;
-    }
-    if (!bundle.messages.some((message) => message.id === normalizedMessageId)) {
-      return;
-    }
-    const nextBundle = await chatAgentStoreClient.deleteMessage(normalizedMessageId);
-    input.setThreadsCache((current) => upsertThreadSummary(current, nextBundle.thread));
-    input.queryClient.setQueryData(bundleQueryKey(nextBundle.thread.id), nextBundle);
-  }, [input.activeThreadId, input.bundle, input.queryClient, input.setThreadsCache]);
-
   const handleSelectAgent = useCallback((localAgentRef: string | null) => {
     if (input.submittingThreadId) {
       return;
@@ -142,7 +123,6 @@ export function useAgentConversationHostActions(
   }, [input]);
 
   return {
-    handleDeleteMessage,
     handleDeleteThread,
     handleSelectAgent,
     handleSelectThread,

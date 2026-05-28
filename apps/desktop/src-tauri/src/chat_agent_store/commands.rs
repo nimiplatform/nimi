@@ -3,11 +3,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use serde::Deserialize;
 
 use super::{
-    cancel_turn, commit_turn_result, create_thread, delete_draft, delete_message, delete_thread,
+    cancel_turn, commit_turn_result, create_thread, delete_draft, delete_thread,
     get_thread_bundle, list_threads, open_db, put_draft, rebuild_projection,
     update_thread_metadata, ChatAgentCancelTurnInput, ChatAgentCommitTurnResult,
     ChatAgentCommitTurnResultInput, ChatAgentCreateThreadInput, ChatAgentDeleteDraftInput,
-    ChatAgentDraftRecord, ChatAgentMessageLookupPayload, ChatAgentProjectionRebuildResult,
+    ChatAgentDraftRecord, ChatAgentProjectionRebuildResult,
     ChatAgentPutDraftInput, ChatAgentThreadBundle, ChatAgentThreadLookupPayload,
     ChatAgentThreadRecord, ChatAgentThreadSummary, ChatAgentTurnRecord,
     ChatAgentUpdateThreadMetadataInput,
@@ -130,18 +130,6 @@ pub(crate) async fn chat_agent_delete_thread(
         ensure_chat_agent_writes_allowed()?;
         let conn = open_db()?;
         delete_thread(&conn, &payload.thread_id)
-    })
-    .await
-}
-
-#[tauri::command]
-pub(crate) async fn chat_agent_delete_message(
-    payload: ChatAgentMessageLookupPayload,
-) -> Result<ChatAgentThreadBundle, String> {
-    run_chat_agent_store(move || {
-        ensure_chat_agent_writes_allowed()?;
-        let conn = open_db()?;
-        delete_message(&conn, &payload.message_id)
     })
     .await
 }

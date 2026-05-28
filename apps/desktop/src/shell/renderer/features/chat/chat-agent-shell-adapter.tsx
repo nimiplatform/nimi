@@ -65,7 +65,6 @@ import { clearPendingAttachments } from '../turns/turn-input-attachments';
 import { ChatAgentHistoryPanel } from './chat-agent-history-panel';
 import { useAgentConversationVoiceSession } from './chat-agent-shell-adapter-voice';
 import { useAgentConversationShellState } from './chat-agent-shell-adapter-state';
-import { useAgentConversationMessageMenu } from './chat-agent-shell-adapter-menu';
 import { resolveAgentChatRequestedMaxOutputTokens } from './chat-nimi-route-view';
 import {
   buildAgentThreadMetadataUpdate,
@@ -519,7 +518,7 @@ export function useAgentConversationModeHost(
     transcribeCapabilityProjection,
   });
   const agentAiConfig = useAppStore((state) => state.aiConfig);
-  const { handleDeleteMessage, handleDeleteThread, handleSelectAgent, handleSelectThread, handleSubmit } = useAgentConversationHostActions({
+  const { handleDeleteThread, handleSelectAgent, handleSelectThread, handleSubmit } = useAgentConversationHostActions({
     activeTarget,
     activeThreadId,
     aiConfig: agentAiConfig,
@@ -569,23 +568,11 @@ export function useAgentConversationModeHost(
     textModelContextTokens: textRouteModelProfile?.maxContextTokens ?? null,
     textMaxOutputTokensRequested: resolveAgentChatRequestedMaxOutputTokens(textRouteModelProfile, behaviorSettings.maxOutputTokensOverride),
   });
-  const {
-    auxiliaryOverlayContent,
-    clearMessageContextMenu,
-    onMessageContextMenu,
-  } = useAgentConversationMessageMenu({
-    onDeleteMessage: (messageId) => {
-      void handleDeleteMessage(messageId).catch(reportHostError);
-    },
-    submittingThreadId,
-    t,
-  });
   const handleDeleteCurrentThread = useCallback((threadId: string) => {
-    clearMessageContextMenu();
     setPendingAttachmentsForThread(threadId, []);
     clearLatestVoiceCaptureForThread(threadId);
     void handleDeleteThread(threadId).catch(reportHostError);
-  }, [clearLatestVoiceCaptureForThread, clearMessageContextMenu, handleDeleteThread, reportHostError, setPendingAttachmentsForThread]);
+  }, [clearLatestVoiceCaptureForThread, handleDeleteThread, reportHostError, setPendingAttachmentsForThread]);
 
   const cognitionContent = useMemo(() => (
     activeTarget ? (
@@ -637,7 +624,6 @@ export function useAgentConversationModeHost(
     pendingAttachments: activePendingAttachments,
     onDismissHostFeedback: () => setHostFeedback(null),
     onAttachmentsChange: (nextAttachments) => setPendingAttachmentsForThread(activeThreadId, nextAttachments),
-    onMessageContextMenu,
     onModelSelectionChange: handleModelSelectionChange,
     reasoningLabel,
     renderMessageAccessory,
@@ -676,9 +662,8 @@ export function useAgentConversationModeHost(
 
   return useMemo<DesktopConversationModeHost>(() => ({
     ...presentation,
-    auxiliaryOverlayContent,
     handsFreeState,
     onSelectTarget: handleSelectAgent,
     onSelectThread: handleSelectThread,
-  }), [auxiliaryOverlayContent, handleSelectAgent, handleSelectThread, handsFreeState, presentation]);
+  }), [handleSelectAgent, handleSelectThread, handsFreeState, presentation]);
 }

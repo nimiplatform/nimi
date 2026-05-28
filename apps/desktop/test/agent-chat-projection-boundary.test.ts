@@ -132,7 +132,7 @@ test('Desktop command classification treats chat_agent store commands as migrati
   assert.match(table, /family: chat_agent_projection_cache_migration[\s\S]*?remediation_required: true/);
 });
 
-test('Desktop projection cache no longer exposes direct Agent Chat message authoring command', () => {
+test('Desktop projection cache no longer exposes local Agent Chat message mutation commands', () => {
   const bootstrap = readWorkspaceFile('apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs');
   const commands = readWorkspaceFile('apps/desktop/src-tauri/src/chat_agent_store/commands.rs');
   const bridge = readWorkspaceFile(
@@ -140,6 +140,9 @@ test('Desktop projection cache no longer exposes direct Agent Chat message autho
   );
 
   assert.doesNotMatch(bootstrap, /chat_agent_create_message/);
+  assert.doesNotMatch(bootstrap, /chat_agent_delete_message/);
   assert.doesNotMatch(commands, /chat_agent_create_message/);
+  assert.doesNotMatch(commands, /chat_agent_delete_message/);
   assert.doesNotMatch(bridge, /createMessage\(/);
+  assert.doesNotMatch(bridge, /deleteMessage\(/);
 });

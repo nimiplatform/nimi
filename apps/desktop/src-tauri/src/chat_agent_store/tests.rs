@@ -371,7 +371,7 @@ fn chat_agent_draft_put_overwrites_and_delete_clears() {
 }
 
 #[test]
-fn chat_agent_delete_message_and_delete_thread_remove_local_history() {
+fn chat_agent_delete_thread_removes_local_history() {
     let home = temp_home("delete-history");
     with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
@@ -426,26 +426,6 @@ fn chat_agent_delete_message_and_delete_thread_remove_local_history() {
             ],
         )
         .expect("insert first message");
-        conn.execute(
-            r#"
-            INSERT INTO agent_messages (
-              id, thread_id, role, status, kind, content_text, reasoning_text, error_code, error_message,
-              trace_id, parent_message_id, media_url, media_mime_type, artifact_id, metadata_json,
-              created_at_ms, updated_at_ms
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?7, ?8)
-            "#,
-            params![
-                "message-delete-2",
-                &second_thread.id,
-                "user",
-                "complete",
-                "text",
-                "hi",
-                230_i64,
-                230_i64,
-            ],
-        )
-        .expect("insert second message");
         put_draft(
             &conn,
             &ChatAgentPutDraftInput {
@@ -505,11 +485,6 @@ fn chat_agent_delete_message_and_delete_thread_remove_local_history() {
             )
             .expect("deleted turn count");
         assert_eq!(deleted_turn_count, 0);
-
-        let bundle_after_message_delete =
-            delete_message(&conn, "message-delete-2").expect("delete second thread message");
-        assert!(bundle_after_message_delete.messages.is_empty());
-        assert_eq!(bundle_after_message_delete.thread.last_message_at_ms, None);
 
         delete_thread(&conn, &second_thread.id).expect("delete second thread");
         let thread_count: i64 = conn
