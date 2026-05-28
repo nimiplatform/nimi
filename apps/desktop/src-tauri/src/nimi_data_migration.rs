@@ -174,7 +174,7 @@ pub async fn nimi_data_old_root_reclaim_execute(
 ///
 /// The migration copy / scan / cleanup are blocking filesystem work; running
 /// them on a Tauri async command thread would stall the event loop. This wraps
-/// them in `spawn_blocking`, matching the `runtime_mod` store idiom.
+/// them in `spawn_blocking`, matching the other filesystem-heavy store tasks.
 async fn run_blocking<T, F>(operation: F) -> Result<T, String>
 where
     T: Send + 'static,
