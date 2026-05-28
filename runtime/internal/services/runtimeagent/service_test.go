@@ -640,18 +640,6 @@ func TestRuntimeAgentRunLifeTrackSweepPrefersEarlierCallbackOverCadenceTick(t *t
 	}
 }
 
-// TestRuntimeAgentRunLifeTrackSweepDelaysCadenceTickUntilSuppressionExpires
-// previously exercised HookCadenceInteraction_SUPPRESS_BASE_TICK_UNTIL_EXPIRED.
-// Per K-AGCORE-041 the admitted trigger/effect matrix does not include any
-// cadence-interaction tag; runtime host owns cadence truth as a separate
-// concern reconciled via `reconcileCadenceHooks`. This behaviour is therefore
-// not a public surface anymore and this test is retired as part of the
-// Exec Pack 2 hard cut. Internal reconciliation semantics are covered by
-// the min-spacing and earlier-callback tests below.
-func TestRuntimeAgentRunLifeTrackSweepDelaysCadenceTickUntilSuppressionExpires(t *testing.T) {
-	t.Skip("retired: HookCadenceInteraction SUPPRESS_BASE_TICK_UNTIL_EXPIRED is not admitted in K-AGCORE-041 v1 matrix")
-}
-
 func TestRuntimeAgentExecuteDueHooksRespectsMinSpacingForEarlyCallback(t *testing.T) {
 	t.Parallel()
 
@@ -678,8 +666,8 @@ func TestRuntimeAgentExecuteDueHooksRespectsMinSpacingForEarlyCallback(t *testin
 	}
 
 	// Admit a hook with 10min delay; min-spacing policy requires 60min from
-	// the most recent completed hook. Execute at admitBase+30min 閳?the hook
-	// is due (>=10min) but below the 60min min-spacing floor 閳?runtime
+	// the most recent completed hook. Execute at admitBase+30min: the hook
+	// is due (>=10min) but below the 60min min-spacing floor, so runtime
 	// reschedules to admitBase+60min.
 	tooEarly := admitBase.Add(10 * time.Minute)
 	if err := svc.admitPendingHook(testRuntimeAgentLocalRef("agent-min-spacing"), newTestTimePendingHookWithReason(t, "hook-too-early", "agent-min-spacing", "early callback", tooEarly, admitBase)); err != nil {
@@ -718,14 +706,6 @@ func TestRuntimeAgentExecuteDueHooksRespectsMinSpacingForEarlyCallback(t *testin
 	if got := followup.GetScheduledFor().AsTime().UTC(); !got.Equal(expected) {
 		t.Fatalf("expected min spacing reschedule at %s, got %s", expected, got)
 	}
-}
-
-// TestValidateNextHookIntentRejectsSuppressUntilExpiredWithoutExpiresAt is
-// retired because NextHookIntent and HookCadenceInteraction are not admitted
-// in the K-AGCORE-041 narrow-admission matrix. Replacement coverage below
-// proves validateHookIntent rejects non-admitted trigger/effect combinations.
-func TestValidateNextHookIntentRejectsSuppressUntilExpiredWithoutExpiresAt(t *testing.T) {
-	t.Skip("retired: NextHookIntent + HookCadenceInteraction removed; see TestValidateHookIntentRejectsNonAdmittedMatrix")
 }
 
 // TestValidateHookIntentRejectsNonAdmittedMatrix proves validateHookIntent

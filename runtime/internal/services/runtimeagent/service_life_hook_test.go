@@ -629,27 +629,6 @@ func TestRuntimeAgentExecuteDueHooksReschedulesBudgetExhaustedAgent(t *testing.T
 	}
 }
 
-// TestRuntimeAgentAdmitPendingHookFailsClosedWithoutExplicitNonTimeSchedule
-// previously proved non-time (TURN_COMPLETED) triggers required an
-// explicit schedule. Per K-AGCORE-041, TURN_COMPLETED is no longer
-// admitted at all; validateHookIntent fails-closed on any trigger
-// family outside {TIME, EVENT(user_idle|chat_ended)}. Coverage for the
-// narrow-admission matrix lives in
-// TestValidateHookIntentRejectsNonAdmittedMatrix above.
-func TestRuntimeAgentAdmitPendingHookFailsClosedWithoutExplicitNonTimeSchedule(t *testing.T) {
-	t.Skip("retired: HOOK_TRIGGER_KIND_TURN_COMPLETED is not admitted in K-AGCORE-041 v1 matrix")
-}
-
-// TestTriggerDetailFromIntentUserIdleNilSafe is retired: the helper
-// `triggerDetailFromIntent` existed to translate NextHookIntent into a
-// separate HookTriggerDetail container. The new vocabulary unifies
-// trigger_detail inside HookIntent, so no translator is needed. The
-// EVENT(user_idle) admission-matrix coverage is exercised directly via
-// TestValidateHookIntentRejectsNonAdmittedMatrix.
-func TestTriggerDetailFromIntentUserIdleNilSafe(t *testing.T) {
-	t.Skip("retired: triggerDetailFromIntent helper removed with NextHookIntent hard cut")
-}
-
 func TestRuntimeAgentLifeTrackLoopRejectsDueHookWithoutExecutor(t *testing.T) {
 	t.Parallel()
 

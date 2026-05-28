@@ -519,19 +519,6 @@ func TestLifeTurnPromptsFrameCadenceInteractionAsBoundedHostOwnedHint(t *testing
 	}
 }
 
-// TestDecodeLifeTurnExecutorResultAcceptsCadenceInteractionIntent is retired
-// because HookCadenceInteraction is not admitted in the K-AGCORE-041 v1
-// matrix. The new HookIntent vocabulary has no cadence-interaction tag.
-func TestDecodeLifeTurnExecutorResultAcceptsCadenceInteractionIntent(t *testing.T) {
-	t.Skip("retired: HookCadenceInteraction is not admitted in K-AGCORE-041 v1 matrix")
-}
-
-// TestDecodeChatTrackSidecarExecutorResultRejectsSuppressUntilExpiredWithoutExpiresAt
-// is retired for the same reason.
-func TestDecodeChatTrackSidecarExecutorResultRejectsSuppressUntilExpiredWithoutExpiresAt(t *testing.T) {
-	t.Skip("retired: HookCadenceInteraction is not admitted in K-AGCORE-041 v1 matrix")
-}
-
 func TestRuntimeAgentConsumeChatTrackSidecarAppMessageExecutesIngressPayload(t *testing.T) {
 	t.Parallel()
 
