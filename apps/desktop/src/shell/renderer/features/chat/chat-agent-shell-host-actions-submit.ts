@@ -3,7 +3,6 @@ import type {
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
-import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
@@ -19,7 +18,6 @@ import {
 import {
   createEmptyAgentThreadBundle,
   replaceAgentBundleMessage,
-  resolveAuthoritativeAgentThreadBundle,
 } from './chat-agent-shell-bundle';
 import {
   toChatAgentRuntimeError,
@@ -43,7 +41,6 @@ import {
 import { resolveAgentTurnTotalTimeoutMs } from './chat-agent-timeouts';
 import { ensureAgentConversationSubmitRouteReady } from './conversation-submit-readiness';
 import { buildAgentUserProjectionCommit } from './chat-agent-user-projection';
-import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
 import {
   assertAgentSubmitSchedulingAllowed,
   ensureThreadAnchorBindingForTarget,
@@ -89,7 +86,7 @@ export async function submitAgentConversationTurn(input: {
   let optimisticThreadId: string | null = null;
   let optimisticUserMessageIds: string[] = [];
   let optimisticBaseThread: AgentLocalThreadRecord | null = null;
-  let authoritativeUserCommitStored = false;
+  let userProjectionApplied = false;
   let submittedTextForRecovery = '';
   let submittingLockToken: number | null = null;
 
@@ -253,52 +250,26 @@ export async function submitAgentConversationTurn(input: {
     };
 
     input.hostInput.currentComposerTextRef.current = submittedText;
-    let submitSession = createInitialAgentSubmitDriverState({
-      fallbackThread: fallbackThreadRecord,
-      assistantMessageId,
-      assistantPlaceholder,
-      submittedText,
-      workingBundle: input.hostInput.bundle,
-    });
-
-    const userCommitted = await chatAgentStoreClient.commitTurnResult({
-      threadId: effectiveThreadId,
-      turn: {
-        id: userTurnId,
-        threadId: effectiveThreadId,
-        role: 'user',
-        status: 'completed',
-        providerMode: RUNTIME_AGENT_CHAT_MODE_ID,
-        traceId: null,
-        promptTraceId: null,
-        startedAtMs: createdAtMs,
-        completedAtMs: createdAtMs,
-        abortedAtMs: null,
-      },
-      beats: [...userProjection.beats],
-      projection: {
-        thread: {
-          id: effectiveThreadRecord.id,
-          title: effectiveThreadRecord.title,
-          updatedAtMs: createdAtMs,
-          lastMessageAtMs: userProjection.lastMessageAtMs,
-          targetSnapshot: activeTarget,
-        },
-        messages: userProjection.messages,
-      },
-    });
-    authoritativeUserCommitStored = true;
-    const userBundle = resolveAuthoritativeAgentThreadBundle({
-      optimisticBundle: userCommitted.bundle,
-      refreshedBundle: null,
-    });
-    if (!userBundle) {
-      throw new Error(`${RUNTIME_AGENT_CHAT_MODE_ID} user commit did not return a projection bundle`);
-    }
+    const userThreadRecord: AgentLocalThreadRecord = {
+      ...fallbackThreadRecord,
+      updatedAtMs: createdAtMs,
+      lastMessageAtMs: userProjection.lastMessageAtMs,
+      targetSnapshot: activeTarget,
+    };
+    const baseUserBundle = input.hostInput.bundle || createEmptyAgentThreadBundle(userThreadRecord);
+    const userBundle = {
+      ...baseUserBundle,
+      thread: userThreadRecord,
+      messages: userProjection.messages.reduce<AgentLocalMessageRecord[]>(
+        (messages, message) => replaceAgentBundleMessage(messages, message),
+        baseUserBundle.messages,
+      ),
+    };
+    userProjectionApplied = true;
     input.hostInput.setThreadsCache((current) => upsertThreadSummary(current, userBundle.thread));
     input.hostInput.queryClient.setQueryData(bundleQueryKey(effectiveThreadId), userBundle);
     input.hostInput.syncSelectionToThread(userBundle.thread);
-    submitSession = createInitialAgentSubmitDriverState({
+    let submitSession = createInitialAgentSubmitDriverState({
       fallbackThread: fallbackThreadRecord,
       assistantMessageId,
       assistantPlaceholder,
@@ -435,10 +406,10 @@ export async function submitAgentConversationTurn(input: {
       details: {
         error: error instanceof Error ? error.message : String(error || ''),
         optimisticThreadId,
-        authoritativeUserCommitStored,
+        userProjectionApplied,
       },
     });
-    if (!authoritativeUserCommitStored) {
+    if (!userProjectionApplied) {
       await rollbackOptimisticUserProjection({
         hostInput: input.hostInput,
         optimisticThreadId,

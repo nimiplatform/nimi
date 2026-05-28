@@ -362,7 +362,7 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(hostActionSubmitRunSource, /resolveCompletedAgentSubmitDriverCheckpoint/);
   assert.match(hostActionSubmitSource, /resolveInterruptedAgentSubmitDriverCheckpoint/);
   assert.match(hostActionSubmitRunSource, /resolveAgentSubmitDriverProjectionRefresh/);
-  assert.match(hostActionSubmitSource, /resolveAuthoritativeAgentThreadBundle/);
+  assert.doesNotMatch(hostActionSubmitSource, /resolveAuthoritativeAgentThreadBundle/);
   assert.match(hostActionSubmitRunSource, /assertAgentTurnLifecycleCompleted/);
   assert.match(hostActionSubmitSource, /const activeTarget = input\.hostInput\.activeTarget;/);
   assert.doesNotMatch(hostActionSubmitSource, /resolveRuntimeAgentExecutionBindingFromTextResolvedBinding/);
@@ -377,13 +377,13 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
     'agent host actions must verify Runtime route readiness before creating local projection cache rows',
   );
   const readinessIndex = hostActionSubmitSource.indexOf('const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({');
-  const transitionalUserCommitIndex = hostActionSubmitSource.indexOf('const userCommitted = await chatAgentStoreClient.commitTurnResult({');
-  if (transitionalUserCommitIndex >= 0) {
-    assert.ok(
-      readinessIndex < transitionalUserCommitIndex,
-      'agent host actions must verify Runtime route readiness before committing transitional local projection cache messages',
-    );
-  }
+  const finalUserProjectionIndex = hostActionSubmitSource.indexOf('const userProjection = buildAgentUserProjectionCommit({');
+  assert.ok(
+    readinessIndex < finalUserProjectionIndex,
+    'agent host actions must verify Runtime route readiness before applying in-memory user projection messages',
+  );
+  assert.match(hostActionSubmitSource, /userProjectionApplied = true/);
+  assert.doesNotMatch(hostActionSubmitSource, /chatAgentStoreClient\.commitTurnResult/);
   assert.match(hostActionSubmitRunSource, /if \(projectionEffects\.awaitRefresh\) \{\s+const rebuiltBundle =/s);
   assert.match(adapterSource, /logRendererEvent/);
   assert.match(adapterSource, /conversationCapabilityProjectionByCapability\['audio\.transcribe'\]/);
