@@ -68,13 +68,6 @@ export async function updateThreadMetadata(input: AgentLocalUpdateThreadMetadata
   }, parseAgentLocalThreadRecord);
 }
 
-export async function getDraft(threadId: string): Promise<AgentLocalDraftRecord | null> {
-  requireTauri('chat_agent_get_draft');
-  return invokeChecked('chat_agent_get_draft', {
-    payload: { threadId },
-  }, (value) => (value == null ? null : parseAgentLocalDraftRecord(value)));
-}
-
 export async function putDraft(input: AgentLocalPutDraftInput): Promise<AgentLocalDraftRecord> {
   requireTauri('chat_agent_put_draft');
   return invokeChecked('chat_agent_put_draft', {
@@ -136,7 +129,6 @@ export const chatAgentStoreClient = {
   getThreadBundle,
   createThread,
   updateThreadMetadata,
-  getDraft,
   putDraft,
   deleteDraft,
   deleteThread,

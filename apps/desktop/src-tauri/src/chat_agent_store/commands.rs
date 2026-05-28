@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 use super::{
     cancel_turn, commit_turn_result, create_thread, delete_draft, delete_message, delete_thread,
-    get_draft, get_thread_bundle, list_threads, open_db, put_draft, rebuild_projection,
+    get_thread_bundle, list_threads, open_db, put_draft, rebuild_projection,
     update_thread_metadata, ChatAgentCancelTurnInput, ChatAgentCommitTurnResult,
     ChatAgentCommitTurnResultInput, ChatAgentCreateThreadInput, ChatAgentDeleteDraftInput,
     ChatAgentDraftRecord, ChatAgentMessageLookupPayload, ChatAgentProjectionRebuildResult,
@@ -94,17 +94,6 @@ pub(crate) async fn chat_agent_update_thread_metadata(
         ensure_chat_agent_writes_allowed()?;
         let conn = open_db()?;
         update_thread_metadata(&conn, &payload)
-    })
-    .await
-}
-
-#[tauri::command]
-pub(crate) async fn chat_agent_get_draft(
-    payload: ChatAgentThreadLookupPayload,
-) -> Result<Option<ChatAgentDraftRecord>, String> {
-    run_chat_agent_store(move || {
-        let conn = open_db()?;
-        get_draft(&conn, &payload.thread_id)
     })
     .await
 }

@@ -233,7 +233,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
     localAgentRef: 'local-agent:user-1:agent-1',
           createdAtMs: 50,
         };
-      case 'chat_agent_get_draft':
       case 'chat_agent_put_draft':
         return {
           threadId: 'thread-1',
@@ -371,7 +370,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
       archivedAtMs: null,
       targetSnapshot: sampleTarget(),
     });
-    await chatAgentStoreClient.getDraft('thread-1');
     await chatAgentStoreClient.putDraft({
       threadId: 'thread-1',
       text: 'draft',
@@ -448,7 +446,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
       'chat_agent_get_thread_bundle',
       'chat_agent_create_thread',
       'chat_agent_update_thread_metadata',
-      'chat_agent_get_draft',
       'chat_agent_put_draft',
       'chat_agent_delete_draft',
       'chat_agent_commit_turn_result',
@@ -472,13 +469,13 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
     },
   );
   assert.equal(
-    ((calls[7]?.payload as { payload?: Record<string, unknown> })?.payload?.projection as {
+    ((calls[6]?.payload as { payload?: Record<string, unknown> })?.payload?.projection as {
       clearDraft?: boolean;
     })?.clearDraft,
     true,
   );
   assert.deepEqual(
-    (calls[8]?.payload as { payload?: Record<string, unknown> })?.payload,
+    (calls[7]?.payload as { payload?: Record<string, unknown> })?.payload,
     {
       threadId: 'thread-1',
       turnId: 'turn-1',
@@ -487,7 +484,7 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
     },
   );
   assert.deepEqual(
-    (calls[9]?.payload as { payload?: Record<string, unknown> })?.payload,
+    (calls[8]?.payload as { payload?: Record<string, unknown> })?.payload,
     {
       threadId: 'thread-1',
     },
