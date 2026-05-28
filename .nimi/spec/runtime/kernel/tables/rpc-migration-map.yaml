@@ -959,6 +959,11 @@ method_mappings:
     proto_method: GetConversationAnchorSnapshot
     mapping_posture: aligned
   - design_service: RuntimeAgentService
+    design_method: ListAgentConversationSummaries
+    proto_service: RuntimeAgentService
+    proto_method: ListAgentConversationSummaries
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
     design_method: RegisterAvatarLiveInstanceBinding
     proto_service: RuntimeAgentService
     proto_method: RegisterAvatarLiveInstanceBinding

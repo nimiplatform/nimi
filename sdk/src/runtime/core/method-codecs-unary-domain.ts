@@ -84,6 +84,8 @@ import {
   GetPublicChatSessionSnapshotResponse,
   InitializeAgentRequest,
   InitializeAgentResponse,
+  ListAgentConversationSummariesRequest,
+  ListAgentConversationSummariesResponse,
   ListAgentsRequest,
   ListAgentsResponse,
   ListAvatarDebugProbeResultsRequest,
@@ -400,6 +402,10 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.agent.getConversationAnchorSnapshot]: {
     requestType: GetConversationAnchorSnapshotRequest,
     responseType: GetConversationAnchorSnapshotResponse,
+  },
+  [RuntimeMethodIds.agent.listAgentConversationSummaries]: {
+    requestType: ListAgentConversationSummariesRequest,
+    responseType: ListAgentConversationSummariesResponse,
   },
   [RuntimeMethodIds.agent.registerAvatarLiveInstanceBinding]: {
     requestType: RegisterAvatarLiveInstanceBindingRequest,

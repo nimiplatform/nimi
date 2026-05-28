@@ -8,6 +8,8 @@ import type {
   GetCompanionParticipationProjectionResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
+  ListAgentConversationSummariesRequest,
+  ListAgentConversationSummariesResponse,
   OpenCompanionParticipationReplayRequest,
   OpenCompanionParticipationReplayResponse,
   OpenConversationAnchorRequest,
@@ -79,6 +81,9 @@ const runtimeAgentPresentationResult = runtime.call(
 );
 const runtimeAgentOpenAnchorResult = runtime.agent.openConversationAnchor({} as OpenConversationAnchorRequest);
 const runtimeAgentGetAnchorSnapshotResult = runtime.agent.getConversationAnchorSnapshot({} as GetConversationAnchorSnapshotRequest);
+const runtimeAgentListConversationSummariesResult = runtime.agent.listAgentConversationSummaries(
+  {} as ListAgentConversationSummariesRequest,
+);
 const runtimeAgentRegisterAvatarLiveInstanceBindingResult = runtime.agent.registerAvatarLiveInstanceBinding(
   {} as RegisterAvatarLiveInstanceBindingRequest,
 );
@@ -162,6 +167,10 @@ type _GuardRuntimeAgentOpenAnchorResult = Assert<IsEqual<
 type _GuardRuntimeAgentGetAnchorSnapshotResult = Assert<IsEqual<
   Awaited<typeof runtimeAgentGetAnchorSnapshotResult>,
   GetConversationAnchorSnapshotResponse
+>>;
+type _GuardRuntimeAgentListConversationSummariesResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentListConversationSummariesResult>,
+  ListAgentConversationSummariesResponse
 >>;
 type _GuardRuntimeAgentRegisterAvatarLiveInstanceBindingResult = Assert<IsEqual<
   Awaited<typeof runtimeAgentRegisterAvatarLiveInstanceBindingResult>,

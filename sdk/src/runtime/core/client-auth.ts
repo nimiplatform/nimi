@@ -135,6 +135,7 @@ function runtimeMethodRequiresAppSession(methodId: string): boolean {
     || methodId === RuntimeMethodIds.app.subscribeAppMessages
     || methodId === RuntimeMethodIds.agent.openConversationAnchor
     || methodId === RuntimeMethodIds.agent.getConversationAnchorSnapshot
+    || methodId === RuntimeMethodIds.agent.listAgentConversationSummaries
     || methodId === RuntimeMethodIds.agent.registerAvatarLiveInstanceBinding
     || methodId === RuntimeMethodIds.agent.resolveAvatarLiveInstanceBinding
     || methodId === RuntimeMethodIds.agent.getPublicChatSessionSnapshot;

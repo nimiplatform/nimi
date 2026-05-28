@@ -412,6 +412,8 @@ services:
         type: unary
       - name: GetConversationAnchorSnapshot
         type: unary
+      - name: ListAgentConversationSummaries
+        type: unary
       - name: RegisterAvatarLiveInstanceBinding
         type: unary
       - name: ResolveAvatarLiveInstanceBinding

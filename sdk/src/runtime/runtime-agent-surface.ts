@@ -364,6 +364,29 @@ export function createRuntimeAgentAnchorsModule(input: {
       }
       return response.snapshot;
     },
+    async listSummaries(request, options) {
+      const identity = requireLocalAgentIdentity(request);
+      const subjectUserId = await input.resolveSubjectUserId(request.subjectUserId || identity.ownerUserId);
+      const pageSize = optionalNumber(request.pageSize);
+      if (pageSize !== undefined && pageSize < 0) {
+        runtimeAgentInputError('runtime agent conversation summaries pageSize must be non-negative', 'provide_non_negative_page_size');
+      }
+      const pageToken = optionalString(request.pageToken) || '';
+      const listOptions = options?.protectedAccessToken
+        ? baseCallOptions(options)
+        : await input.protectedAccess.getCallOptions([AGENT_READ_SCOPE], options);
+      const response = await input.agent.listAgentConversationSummaries({
+        agentId: identity.localAgentRef,
+        context: runtimeAgentRequestContext(input.appId, subjectUserId, identity),
+        statusFilter: Array.isArray(request.statusFilter) ? request.statusFilter : [],
+        pageSize: pageSize === undefined ? 0 : pageSize,
+        pageToken,
+      }, listOptions);
+      return {
+        summaries: response.summaries || [],
+        ...(optionalString(response.nextPageToken) ? { nextPageToken: optionalString(response.nextPageToken) } : {}),
+      };
+    },
     async registerAvatarLiveInstance(request, options) {
       const identity = requireLocalAgentIdentity(request);
       const avatarInstanceId = requireAvatarInstanceId(request.avatarInstanceId);

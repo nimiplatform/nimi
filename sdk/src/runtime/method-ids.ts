@@ -169,6 +169,7 @@ export const RuntimeMethodIds = {
     listAgents: '/nimi.runtime.v1.RuntimeAgentService/ListAgents',
     openConversationAnchor: '/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor',
     getConversationAnchorSnapshot: '/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot',
+    listAgentConversationSummaries: '/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries',
     registerAvatarLiveInstanceBinding: '/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding',
     resolveAvatarLiveInstanceBinding: '/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding',
     getPublicChatSessionSnapshot: '/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot',

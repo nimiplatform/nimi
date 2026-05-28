@@ -118,6 +118,7 @@ Apps may not:
 - `ListAgents`
 - `OpenConversationAnchor`
 - `GetConversationAnchorSnapshot`
+- `ListAgentConversationSummaries`
 - `RegisterAvatarLiveInstanceBinding`
 - `ResolveAvatarLiveInstanceBinding`
 - `GetPublicChatSessionSnapshot`
@@ -191,6 +192,27 @@ Runtime / SDK must provide admitted coverage for:
 These prerequisites do not admit Desktop-local transcript, message, turn, beat,
 or projection rebuild truth. They only define the Runtime / SDK replacement
 surface that must exist before host-local migration stores can be removed.
+
+## K-AGCORE-006b Public Chat Conversation Summary Listing
+
+`RuntimeAgentService` admits `ListAgentConversationSummaries` as a read-only
+conversation-summary query for Runtime-owned Agent Chat anchors.
+
+Fixed rules:
+
+- the query must be scoped to the calling app, explicit local agent identity,
+  owner context, and Runtime-owned `ConversationAnchor` truth
+- summaries must be ordered by `updated_at DESC, conversation_anchor_id ASC`
+  and use runtime pagination fields
+- each summary may expose a display `title`, but that title is derived
+  presentation text, not a separate persisted Runtime conversation-title truth
+- each summary may expose last-message role / text / id and transcript count
+  only as projection data derived from Runtime-owned session transcript state
+- `GetPublicChatSessionSnapshot` remains the recovery source for selected
+  conversation transcript and turn detail
+- this query does not admit close, delete, clear, archive, rename, or draft
+  mutation policy; those actions remain covered by K-AGCORE-006a prerequisites
+  until explicitly admitted elsewhere
 
 ## K-AGCORE-007 Token Budget Authority
 

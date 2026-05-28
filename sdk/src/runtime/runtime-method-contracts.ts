@@ -166,6 +166,7 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.agent.listAgents]: RuntimeClientMethodContract<'agent', 'listAgents'>;
   [RuntimeMethodIds.agent.openConversationAnchor]: RuntimeClientMethodContract<'agent', 'openConversationAnchor'>;
   [RuntimeMethodIds.agent.getConversationAnchorSnapshot]: RuntimeClientMethodContract<'agent', 'getConversationAnchorSnapshot'>;
+  [RuntimeMethodIds.agent.listAgentConversationSummaries]: RuntimeClientMethodContract<'agent', 'listAgentConversationSummaries'>;
   [RuntimeMethodIds.agent.registerAvatarLiveInstanceBinding]: RuntimeClientMethodContract<'agent', 'registerAvatarLiveInstanceBinding'>;
   [RuntimeMethodIds.agent.resolveAvatarLiveInstanceBinding]: RuntimeClientMethodContract<'agent', 'resolveAvatarLiveInstanceBinding'>;
   [RuntimeMethodIds.agent.getPublicChatSessionSnapshot]: RuntimeClientMethodContract<'agent', 'getPublicChatSessionSnapshot'>;

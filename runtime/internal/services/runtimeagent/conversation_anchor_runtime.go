@@ -2,6 +2,8 @@ package runtimeagent
 
 import (
 	"context"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -138,6 +140,110 @@ func (s *Service) GetConversationAnchorSnapshot(_ context.Context, req *runtimev
 	return &runtimev1.GetConversationAnchorSnapshotResponse{Snapshot: snapshot}, nil
 }
 
+// ListAgentConversationSummaries returns read-only conversation summaries for
+// Runtime-owned Agent Chat anchors. The display title is derived projection
+// text; selected transcript recovery remains GetPublicChatSessionSnapshot.
+func (s *Service) ListAgentConversationSummaries(_ context.Context, req *runtimev1.ListAgentConversationSummariesRequest) (*runtimev1.ListAgentConversationSummariesResponse, error) {
+	if s == nil || s.isClosed() {
+		return nil, status.Error(codes.FailedPrecondition, "runtime agent service unavailable")
+	}
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "list agent conversation summaries request is required")
+	}
+	identity, err := localAgentIdentityFromContext(req.GetContext())
+	if err != nil {
+		return nil, err
+	}
+	localAgentRef := identity.LocalAgentRef
+	if requestedAgentID := strings.TrimSpace(req.GetAgentId()); requestedAgentID != "" && requestedAgentID != localAgentRef {
+		return nil, status.Error(codes.FailedPrecondition, "agent_id local_agent_ref mismatch")
+	}
+	callerAppID := strings.TrimSpace(req.GetContext().GetAppId())
+	if callerAppID == "" {
+		return nil, status.Error(codes.InvalidArgument, "context.app_id is required")
+	}
+
+	statusFilter := map[runtimev1.ConversationAnchorStatus]bool{}
+	for _, statusValue := range req.GetStatusFilter() {
+		if statusValue != runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_UNSPECIFIED {
+			statusFilter[statusValue] = true
+		}
+	}
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = 50
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+	offset := 0
+	if token := strings.TrimSpace(req.GetPageToken()); token != "" {
+		parsed, parseErr := strconv.Atoi(token)
+		if parseErr != nil || parsed < 0 {
+			return nil, status.Error(codes.InvalidArgument, "page_token must be a non-negative integer offset")
+		}
+		offset = parsed
+	}
+
+	s.chatSurfaceMu.Lock()
+	anchors := make([]*publicChatAnchorState, 0, len(s.chatAnchors))
+	for _, anchor := range s.chatAnchors {
+		if anchor == nil {
+			continue
+		}
+		statusValue := anchor.Status
+		if statusValue == runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_UNSPECIFIED {
+			statusValue = runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE
+		}
+		if len(statusFilter) > 0 && !statusFilter[statusValue] {
+			continue
+		}
+		if anchor.CallerAppID != callerAppID ||
+			anchor.LocalAgentRef != identity.LocalAgentRef ||
+			anchor.AgentID != localAgentRef ||
+			anchor.OwnerUserID != identity.OwnerUserID ||
+			anchor.RealmAgentID != identity.RealmAgentID {
+			continue
+		}
+		cloned := *anchor
+		cloned.Transcript = append([]*runtimev1.ChatMessage(nil), anchor.Transcript...)
+		anchors = append(anchors, &cloned)
+	}
+	s.chatSurfaceMu.Unlock()
+
+	sort.SliceStable(anchors, func(i, j int) bool {
+		left := conversationSummaryUpdatedAt(anchors[i])
+		right := conversationSummaryUpdatedAt(anchors[j])
+		if !left.Equal(right) {
+			return left.After(right)
+		}
+		return strings.TrimSpace(anchors[i].ConversationAnchorID) < strings.TrimSpace(anchors[j].ConversationAnchorID)
+	})
+	if offset > len(anchors) {
+		offset = len(anchors)
+	}
+	end := offset + pageSize
+	if end > len(anchors) {
+		end = len(anchors)
+	}
+	nextPageToken := ""
+	if end < len(anchors) {
+		nextPageToken = strconv.Itoa(end)
+	}
+	summaries := make([]*runtimev1.AgentConversationSummary, 0, end-offset)
+	for _, anchor := range anchors[offset:end] {
+		metadata, err := s.chatStateRepo.loadConversationAnchorMetadata(anchor.ConversationAnchorID)
+		if err != nil {
+			return nil, status.Errorf(codes.Unavailable, "load conversation anchor metadata: %v", err)
+		}
+		summaries = append(summaries, s.agentConversationSummary(anchor, metadata))
+	}
+	return &runtimev1.ListAgentConversationSummariesResponse{
+		Summaries:     summaries,
+		NextPageToken: nextPageToken,
+	}, nil
+}
+
 func (s *Service) buildConversationAnchorSnapshotLocked(anchor *publicChatAnchorState, metadata *structpb.Struct) *runtimev1.ConversationAnchorSnapshot {
 	if anchor == nil {
 		return nil
@@ -180,6 +286,87 @@ func (s *Service) buildConversationAnchorSnapshotLocked(anchor *publicChatAnchor
 		ActiveTurnId:   activeTurnID,
 		ActiveStreamId: activeStreamID,
 	}
+}
+
+func (s *Service) agentConversationSummary(anchor *publicChatAnchorState, metadata *structpb.Struct) *runtimev1.AgentConversationSummary {
+	if anchor == nil {
+		return nil
+	}
+	snapshot := s.buildConversationAnchorSnapshotLocked(anchor, metadata)
+	summary := &runtimev1.AgentConversationSummary{
+		Anchor:                 snapshot.GetAnchor(),
+		Title:                  deriveAgentConversationSummaryTitle(metadata, anchor.Transcript),
+		LastMessageId:          strings.TrimSpace(anchor.LastMessageID),
+		TranscriptMessageCount: int32(len(anchor.Transcript)),
+	}
+	if updatedAt := conversationSummaryUpdatedAt(anchor); !updatedAt.IsZero() {
+		summary.UpdatedAt = timestamppb.New(updatedAt)
+	}
+	if last := lastAgentConversationMessage(anchor.Transcript); last != nil {
+		summary.LastMessageRole = strings.TrimSpace(last.GetRole())
+		summary.LastMessageText = compactAgentConversationSummaryText(last.GetContent(), 280)
+	}
+	return summary
+}
+
+func conversationSummaryUpdatedAt(anchor *publicChatAnchorState) time.Time {
+	if anchor == nil {
+		return time.Time{}
+	}
+	if !anchor.UpdatedAt.IsZero() {
+		return anchor.UpdatedAt.UTC()
+	}
+	if !anchor.CreatedAt.IsZero() {
+		return anchor.CreatedAt.UTC()
+	}
+	return time.Time{}
+}
+
+func deriveAgentConversationSummaryTitle(metadata *structpb.Struct, transcript []*runtimev1.ChatMessage) string {
+	if metadata != nil {
+		if value := metadata.GetFields()["title"]; value != nil {
+			if title := compactAgentConversationSummaryText(value.GetStringValue(), 80); title != "" {
+				return title
+			}
+		}
+	}
+	for _, message := range transcript {
+		if message != nil && strings.TrimSpace(message.GetRole()) == "user" {
+			if title := compactAgentConversationSummaryText(message.GetContent(), 80); title != "" {
+				return title
+			}
+		}
+	}
+	if last := lastAgentConversationMessage(transcript); last != nil {
+		if title := compactAgentConversationSummaryText(last.GetContent(), 80); title != "" {
+			return title
+		}
+	}
+	return "Agent conversation"
+}
+
+func lastAgentConversationMessage(transcript []*runtimev1.ChatMessage) *runtimev1.ChatMessage {
+	for i := len(transcript) - 1; i >= 0; i-- {
+		if transcript[i] != nil && strings.TrimSpace(transcript[i].GetContent()) != "" {
+			return transcript[i]
+		}
+	}
+	return nil
+}
+
+func compactAgentConversationSummaryText(value string, maxRunes int) string {
+	compact := strings.Join(strings.Fields(value), " ")
+	if maxRunes <= 0 {
+		return compact
+	}
+	runes := []rune(compact)
+	if len(runes) <= maxRunes {
+		return compact
+	}
+	if maxRunes <= 1 {
+		return string(runes[:maxRunes])
+	}
+	return string(runes[:maxRunes-1]) + "…"
 }
 
 func cloneConversationAnchorMetadata(metadata *structpb.Struct) *structpb.Struct {

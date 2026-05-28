@@ -1863,6 +1863,77 @@ export interface GetPublicChatSessionSnapshotResponse {
     snapshot?: Struct;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.AgentConversationSummary
+ */
+export interface AgentConversationSummary {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ConversationAnchor anchor = 1
+     */
+    anchor?: ConversationAnchor;
+    /**
+     * @generated from protobuf field: string title = 2
+     */
+    title: string;
+    /**
+     * @generated from protobuf field: string last_message_role = 3
+     */
+    lastMessageRole: string;
+    /**
+     * @generated from protobuf field: string last_message_text = 4
+     */
+    lastMessageText: string;
+    /**
+     * @generated from protobuf field: string last_message_id = 5
+     */
+    lastMessageId: string;
+    /**
+     * @generated from protobuf field: int32 transcript_message_count = 6
+     */
+    transcriptMessageCount: number;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 7
+     */
+    updatedAt?: Timestamp;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListAgentConversationSummariesRequest
+ */
+export interface ListAgentConversationSummariesRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ConversationAnchorStatus status_filter = 3
+     */
+    statusFilter: ConversationAnchorStatus[];
+    /**
+     * @generated from protobuf field: int32 page_size = 4
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 5
+     */
+    pageToken: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListAgentConversationSummariesResponse
+ */
+export interface ListAgentConversationSummariesResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AgentConversationSummary summaries = 1
+     */
+    summaries: AgentConversationSummary[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.CompanionParticipationProjection
  */
 export interface CompanionParticipationProjection {
@@ -8500,6 +8571,240 @@ class GetPublicChatSessionSnapshotResponse$Type extends MessageType<GetPublicCha
  */
 export const GetPublicChatSessionSnapshotResponse = new GetPublicChatSessionSnapshotResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AgentConversationSummary$Type extends MessageType<AgentConversationSummary> {
+    constructor() {
+        super("nimi.runtime.v1.AgentConversationSummary", [
+            { no: 1, name: "anchor", kind: "message", T: () => ConversationAnchor },
+            { no: 2, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "last_message_role", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "last_message_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "last_message_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "transcript_message_count", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 7, name: "updated_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<AgentConversationSummary>): AgentConversationSummary {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.title = "";
+        message.lastMessageRole = "";
+        message.lastMessageText = "";
+        message.lastMessageId = "";
+        message.transcriptMessageCount = 0;
+        if (value !== undefined)
+            reflectionMergePartial<AgentConversationSummary>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentConversationSummary): AgentConversationSummary {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ConversationAnchor anchor */ 1:
+                    message.anchor = ConversationAnchor.internalBinaryRead(reader, reader.uint32(), options, message.anchor);
+                    break;
+                case /* string title */ 2:
+                    message.title = reader.string();
+                    break;
+                case /* string last_message_role */ 3:
+                    message.lastMessageRole = reader.string();
+                    break;
+                case /* string last_message_text */ 4:
+                    message.lastMessageText = reader.string();
+                    break;
+                case /* string last_message_id */ 5:
+                    message.lastMessageId = reader.string();
+                    break;
+                case /* int32 transcript_message_count */ 6:
+                    message.transcriptMessageCount = reader.int32();
+                    break;
+                case /* google.protobuf.Timestamp updated_at */ 7:
+                    message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentConversationSummary, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ConversationAnchor anchor = 1; */
+        if (message.anchor)
+            ConversationAnchor.internalBinaryWrite(message.anchor, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string title = 2; */
+        if (message.title !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.title);
+        /* string last_message_role = 3; */
+        if (message.lastMessageRole !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.lastMessageRole);
+        /* string last_message_text = 4; */
+        if (message.lastMessageText !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.lastMessageText);
+        /* string last_message_id = 5; */
+        if (message.lastMessageId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.lastMessageId);
+        /* int32 transcript_message_count = 6; */
+        if (message.transcriptMessageCount !== 0)
+            writer.tag(6, WireType.Varint).int32(message.transcriptMessageCount);
+        /* google.protobuf.Timestamp updated_at = 7; */
+        if (message.updatedAt)
+            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentConversationSummary
+ */
+export const AgentConversationSummary = new AgentConversationSummary$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListAgentConversationSummariesRequest$Type extends MessageType<ListAgentConversationSummariesRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListAgentConversationSummariesRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "status_filter", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.ConversationAnchorStatus", ConversationAnchorStatus, "CONVERSATION_ANCHOR_STATUS_"] },
+            { no: 4, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 5, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListAgentConversationSummariesRequest>): ListAgentConversationSummariesRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        message.statusFilter = [];
+        message.pageSize = 0;
+        message.pageToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListAgentConversationSummariesRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListAgentConversationSummariesRequest): ListAgentConversationSummariesRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.ConversationAnchorStatus status_filter */ 3:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.statusFilter.push(reader.int32());
+                    else
+                        message.statusFilter.push(reader.int32());
+                    break;
+                case /* int32 page_size */ 4:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 5:
+                    message.pageToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListAgentConversationSummariesRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* repeated nimi.runtime.v1.ConversationAnchorStatus status_filter = 3; */
+        if (message.statusFilter.length) {
+            writer.tag(3, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.statusFilter.length; i++)
+                writer.int32(message.statusFilter[i]);
+            writer.join();
+        }
+        /* int32 page_size = 4; */
+        if (message.pageSize !== 0)
+            writer.tag(4, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 5; */
+        if (message.pageToken !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.pageToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListAgentConversationSummariesRequest
+ */
+export const ListAgentConversationSummariesRequest = new ListAgentConversationSummariesRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListAgentConversationSummariesResponse$Type extends MessageType<ListAgentConversationSummariesResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListAgentConversationSummariesResponse", [
+            { no: 1, name: "summaries", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AgentConversationSummary },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListAgentConversationSummariesResponse>): ListAgentConversationSummariesResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.summaries = [];
+        message.nextPageToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListAgentConversationSummariesResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListAgentConversationSummariesResponse): ListAgentConversationSummariesResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.AgentConversationSummary summaries */ 1:
+                    message.summaries.push(AgentConversationSummary.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListAgentConversationSummariesResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.AgentConversationSummary summaries = 1; */
+        for (let i = 0; i < message.summaries.length; i++)
+            AgentConversationSummary.internalBinaryWrite(message.summaries[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListAgentConversationSummariesResponse
+ */
+export const ListAgentConversationSummariesResponse = new ListAgentConversationSummariesResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class CompanionParticipationProjection$Type extends MessageType<CompanionParticipationProjection> {
     constructor() {
         super("nimi.runtime.v1.CompanionParticipationProjection", [
@@ -9907,6 +10212,7 @@ export const RuntimeAgentService = new ServiceType("nimi.runtime.v1.RuntimeAgent
     { name: "RegisterAvatarLiveInstanceBinding", options: {}, I: RegisterAvatarLiveInstanceBindingRequest, O: RegisterAvatarLiveInstanceBindingResponse },
     { name: "ResolveAvatarLiveInstanceBinding", options: {}, I: ResolveAvatarLiveInstanceBindingRequest, O: ResolveAvatarLiveInstanceBindingResponse },
     { name: "GetPublicChatSessionSnapshot", options: {}, I: GetPublicChatSessionSnapshotRequest, O: GetPublicChatSessionSnapshotResponse },
+    { name: "ListAgentConversationSummaries", options: {}, I: ListAgentConversationSummariesRequest, O: ListAgentConversationSummariesResponse },
     { name: "GetCompanionParticipationProjection", options: {}, I: GetCompanionParticipationProjectionRequest, O: GetCompanionParticipationProjectionResponse },
     { name: "RequestCompanionParticipation", options: {}, I: RequestCompanionParticipationRequest, O: RequestCompanionParticipationResponse },
     { name: "CancelCompanionParticipation", options: {}, I: CancelCompanionParticipationRequest, O: CancelCompanionParticipationResponse },

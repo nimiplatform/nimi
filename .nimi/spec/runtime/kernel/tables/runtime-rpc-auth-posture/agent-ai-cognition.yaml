@@ -140,6 +140,13 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries
+    posture: protected_or_scoped_binding_read
+    rationale: conversation summary listing enumerates Runtime-owned Agent Chat anchors and must be scoped by protected app/agent identity
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-006b
   - method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding
     posture: protected_or_scoped_binding_write
     rationale: runtime-owned Avatar live-instance binding mutates anchor recovery state and requires protected Runtime access

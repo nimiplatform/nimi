@@ -30,6 +30,8 @@ import {
   GetConversationAnchorSnapshotResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
+  ListAgentConversationSummariesRequest,
+  ListAgentConversationSummariesResponse,
   ListAvatarDebugProbeResultsRequest,
   ListAvatarDebugProbeResultsResponse,
   OpenConversationAnchorRequest,
@@ -457,6 +459,10 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       getConversationAnchorSnapshot: customUnary(RuntimeMethodIds.agent.getConversationAnchorSnapshot, {
         requestType: GetConversationAnchorSnapshotRequest,
         responseType: GetConversationAnchorSnapshotResponse,
+      }),
+      listAgentConversationSummaries: customUnary(RuntimeMethodIds.agent.listAgentConversationSummaries, {
+        requestType: ListAgentConversationSummariesRequest,
+        responseType: ListAgentConversationSummariesResponse,
       }),
       registerAvatarLiveInstanceBinding: customUnary(RuntimeMethodIds.agent.registerAvatarLiveInstanceBinding, {
         requestType: RegisterAvatarLiveInstanceBindingRequest,

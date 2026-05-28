@@ -1,4 +1,9 @@
-import type { AvatarLiveInstanceBinding, ConversationAnchorSnapshot } from './generated/runtime/v1/agent_service';
+import type {
+  AgentConversationSummary,
+  AvatarLiveInstanceBinding,
+  ConversationAnchorSnapshot,
+  ConversationAnchorStatus,
+} from './generated/runtime/v1/agent_service';
 import type { SendAppMessageResponse } from './generated/runtime/v1/app';
 import type { RuntimeAgentClient } from './types-client-interfaces.js';
 import type {
@@ -23,6 +28,18 @@ export type RuntimeAgentAnchorsOpenRequest = RuntimeAgentLocalIdentity & {
 export type RuntimeAgentAnchorsSnapshotRequest = RuntimeAgentLocalIdentity & {
   conversationAnchorId: string;
   subjectUserId?: string;
+};
+
+export type RuntimeAgentConversationSummariesRequest = RuntimeAgentLocalIdentity & {
+  statusFilter?: ConversationAnchorStatus[];
+  pageSize?: number;
+  pageToken?: string;
+  subjectUserId?: string;
+};
+
+export type RuntimeAgentConversationSummariesResult = {
+  summaries: AgentConversationSummary[];
+  nextPageToken?: string;
 };
 
 export type RuntimeAgentAvatarLiveInstanceBindingRequest = RuntimeAgentLocalIdentity & {
@@ -50,6 +67,10 @@ export type RuntimeAgentAnchorsModule = {
     request: RuntimeAgentAnchorsSnapshotRequest,
     options?: RuntimeCallOptions,
   ): Promise<ConversationAnchorSnapshot>;
+  listSummaries(
+    request: RuntimeAgentConversationSummariesRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<RuntimeAgentConversationSummariesResult>;
   registerAvatarLiveInstance(
     request: RuntimeAgentAvatarLiveInstanceBindingRequest,
     options?: RuntimeCallOptions,

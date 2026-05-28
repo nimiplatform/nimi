@@ -305,6 +305,8 @@ import type {
   DisableAutonomyResponse,
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
+  ListAgentConversationSummariesRequest,
+  ListAgentConversationSummariesResponse,
   EnableAutonomyRequest,
   EnableAutonomyResponse,
   GetAgentRequest,
@@ -591,6 +593,10 @@ export type RuntimeAgentClient = {
     request: GetConversationAnchorSnapshotRequest,
     options?: RuntimeCallOptions,
   ): Promise<GetConversationAnchorSnapshotResponse>;
+  listAgentConversationSummaries(
+    request: ListAgentConversationSummariesRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<ListAgentConversationSummariesResponse>;
   registerAvatarLiveInstanceBinding(
     request: RegisterAvatarLiveInstanceBindingRequest,
     options?: RuntimeCallOptions,

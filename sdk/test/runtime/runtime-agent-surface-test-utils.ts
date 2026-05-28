@@ -23,6 +23,8 @@ import {
   GetConversationAnchorSnapshotResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
+  ListAgentConversationSummariesRequest,
+  ListAgentConversationSummariesResponse,
   HookAdmissionState,
   HookEffect,
   HookTriggerFamily,
@@ -56,6 +58,7 @@ const LOCAL_AGENT_IDENTITY = {
 } as const;
 const OPEN_CONVERSATION_ANCHOR_METHOD = '/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor';
 const GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD = '/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot';
+const LIST_AGENT_CONVERSATION_SUMMARIES_METHOD = '/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries';
 const REGISTER_AVATAR_LIVE_INSTANCE_BINDING_METHOD = '/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding';
 const RESOLVE_AVATAR_LIVE_INSTANCE_BINDING_METHOD = '/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding';
 const TIMELINE_STARTED_AT = '2026-04-25T00:00:00.000Z';
@@ -195,6 +198,8 @@ export {
   GetConversationAnchorSnapshotResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
+  ListAgentConversationSummariesRequest,
+  ListAgentConversationSummariesResponse,
   HookAdmissionState,
   HookEffect,
   HookTriggerFamily,
@@ -219,6 +224,7 @@ export {
   LOCAL_AGENT_IDENTITY,
   OPEN_CONVERSATION_ANCHOR_METHOD,
   GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD,
+  LIST_AGENT_CONVERSATION_SUMMARIES_METHOD,
   REGISTER_AVATAR_LIVE_INSTANCE_BINDING_METHOD,
   RESOLVE_AVATAR_LIVE_INSTANCE_BINDING_METHOD,
   TIMELINE_STARTED_AT,

@@ -20,6 +20,8 @@ import {
   GetConversationAnchorSnapshotResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
+  ListAgentConversationSummariesRequest,
+  ListAgentConversationSummariesResponse,
   HookAdmissionState,
   HookEffect,
   HookTriggerFamily,
@@ -43,6 +45,7 @@ import {
   LOCAL_AGENT_IDENTITY,
   OPEN_CONVERSATION_ANCHOR_METHOD,
   GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD,
+  LIST_AGENT_CONVERSATION_SUMMARIES_METHOD,
   REGISTER_AVATAR_LIVE_INSTANCE_BINDING_METHOD,
   RESOLVE_AVATAR_LIVE_INSTANCE_BINDING_METHOD,
   TIMELINE_STARTED_AT,
@@ -60,6 +63,7 @@ import type { RuntimeAgentConsumeEvent } from './runtime-agent-surface-test-util
 test('runtime agent anchors project explicit localAgentRef and conversationAnchorId through runtime truth', async () => {
   let capturedOpenRequest: OpenConversationAnchorRequest | null = null;
   let capturedSnapshotRequest: GetConversationAnchorSnapshotRequest | null = null;
+  let capturedListSummariesRequest: ListAgentConversationSummariesRequest | null = null;
   let capturedRegisterRequest: RegisterAvatarLiveInstanceBindingRequest | null = null;
   let capturedResolveRequest: ResolveAvatarLiveInstanceBindingRequest | null = null;
   const authorizeRequests: AuthorizeExternalPrincipalRequest[] = [];
@@ -111,6 +115,26 @@ test('runtime agent anchors project explicit localAgentRef and conversationAncho
         });
         return GetConversationAnchorSnapshotResponse.toBinary(GetConversationAnchorSnapshotResponse.create({
           snapshot: createAnchorSnapshot('anchor-1', 'agent-1'),
+        }));
+      }
+      if (input.methodId === LIST_AGENT_CONVERSATION_SUMMARIES_METHOD) {
+        capturedListSummariesRequest = ListAgentConversationSummariesRequest.fromBinary(input.request);
+        protectedTokens.push({
+          methodId: input.methodId,
+          tokenId: input.protectedAccessToken?.tokenId || '',
+          secret: input.protectedAccessToken?.secret || '',
+        });
+        return ListAgentConversationSummariesResponse.toBinary(ListAgentConversationSummariesResponse.create({
+          summaries: [{
+            anchor: createAnchorSnapshot('anchor-1', LOCAL_AGENT_REF).anchor,
+            title: 'Runtime summary',
+            lastMessageRole: 'assistant',
+            lastMessageText: 'Hello from runtime',
+            lastMessageId: 'message-1',
+            transcriptMessageCount: 2,
+            updatedAt: Timestamp.fromDate(new Date(TIMELINE_STARTED_AT)),
+          }],
+          nextPageToken: '1',
         }));
       }
       if (input.methodId === REGISTER_AVATAR_LIVE_INSTANCE_BINDING_METHOD) {
@@ -181,6 +205,12 @@ test('runtime agent anchors project explicit localAgentRef and conversationAncho
       ...LOCAL_AGENT_IDENTITY,
       conversationAnchorId: 'anchor-1',
     });
+    const summaries = await runtime.agent.anchors.listSummaries({
+      ...LOCAL_AGENT_IDENTITY,
+      statusFilter: [ConversationAnchorStatus.ACTIVE],
+      pageSize: 10,
+      pageToken: '0',
+    });
     const registeredLiveInstance = await runtime.agent.anchors.registerAvatarLiveInstance({
       ...LOCAL_AGENT_IDENTITY,
       avatarInstanceId: 'avatar-instance-1',
@@ -213,6 +243,17 @@ test('runtime agent anchors project explicit localAgentRef and conversationAncho
     assert.equal(capturedSnapshotRequest?.context?.localAgentRef, LOCAL_AGENT_REF);
     assert.equal(capturedSnapshotRequest?.context?.ownerUserId, 'subject-1');
     assert.equal(capturedSnapshotRequest?.context?.realmAgentId, REALM_AGENT_ID);
+    assert.equal(capturedListSummariesRequest?.agentId, LOCAL_AGENT_REF);
+    assert.deepEqual(capturedListSummariesRequest?.statusFilter, [ConversationAnchorStatus.ACTIVE]);
+    assert.equal(capturedListSummariesRequest?.pageSize, 10);
+    assert.equal(capturedListSummariesRequest?.pageToken, '0');
+    assert.equal(capturedListSummariesRequest?.context?.appId, APP_ID);
+    assert.equal(capturedListSummariesRequest?.context?.subjectUserId, 'subject-1');
+    assert.equal(capturedListSummariesRequest?.context?.localAgentRef, LOCAL_AGENT_REF);
+    assert.equal(summaries.summaries[0]?.title, 'Runtime summary');
+    assert.equal(summaries.summaries[0]?.lastMessageText, 'Hello from runtime');
+    assert.equal(summaries.summaries[0]?.transcriptMessageCount, 2);
+    assert.equal(summaries.nextPageToken, '1');
     assert.equal(capturedRegisterRequest?.avatarInstanceId, 'avatar-instance-1');
     assert.equal(capturedRegisterRequest?.conversationAnchorId, 'anchor-1');
     assert.equal(capturedRegisterRequest?.context?.localAgentRef, LOCAL_AGENT_REF);
@@ -231,6 +272,11 @@ test('runtime agent anchors project explicit localAgentRef and conversationAncho
       },
       {
         methodId: GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD,
+        tokenId: 'anchor-token-2',
+        secret: 'anchor-secret-2',
+      },
+      {
+        methodId: LIST_AGENT_CONVERSATION_SUMMARIES_METHOD,
         tokenId: 'anchor-token-2',
         secret: 'anchor-secret-2',
       },

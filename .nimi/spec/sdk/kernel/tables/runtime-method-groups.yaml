@@ -371,6 +371,7 @@ groups:
       - ListAgents
       - OpenConversationAnchor
       - GetConversationAnchorSnapshot
+      - ListAgentConversationSummaries
       - RegisterAvatarLiveInstanceBinding
       - ResolveAvatarLiveInstanceBinding
       - GetPublicChatSessionSnapshot

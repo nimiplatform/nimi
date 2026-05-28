@@ -369,23 +369,24 @@ name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
 4. `ListAgents`
 5. `OpenConversationAnchor`
 6. `GetConversationAnchorSnapshot`
-7. `RegisterAvatarLiveInstanceBinding`
-8. `ResolveAvatarLiveInstanceBinding`
-9. `GetPublicChatSessionSnapshot`
-10. `GetCompanionParticipationProjection`
-11. `RequestCompanionParticipation`
-12. `CancelCompanionParticipation`
-13. `OpenCompanionParticipationReplay`
-14. `GetAgentState`
-15. `UpdateAgentState`
-16. `EnableAutonomy`
-17. `DisableAutonomy`
-18. `SetAutonomyConfig`
-19. `ListPendingHooks`
-20. `CancelHook`
-21. `QueryAgentMemory`
-22. `WriteAgentMemory`
-23. `SubscribeAgentEvents`
+7. `ListAgentConversationSummaries`
+8. `RegisterAvatarLiveInstanceBinding`
+9. `ResolveAvatarLiveInstanceBinding`
+10. `GetPublicChatSessionSnapshot`
+11. `GetCompanionParticipationProjection`
+12. `RequestCompanionParticipation`
+13. `CancelCompanionParticipation`
+14. `OpenCompanionParticipationReplay`
+15. `GetAgentState`
+16. `UpdateAgentState`
+17. `EnableAutonomy`
+18. `DisableAutonomy`
+19. `SetAutonomyConfig`
+20. `ListPendingHooks`
+21. `CancelHook`
+22. `QueryAgentMemory`
+23. `WriteAgentMemory`
+24. `SubscribeAgentEvents`
 
 固定约束：
 
@@ -410,7 +411,7 @@ name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
 最小 access matrix：
 
 - `InitializeAgent` / `TerminateAgent`：`runtime.agent.admin`
-- `GetAgent` / `ListAgents` / `GetConversationAnchorSnapshot` / `ResolveAvatarLiveInstanceBinding` / `GetPublicChatSessionSnapshot` / `GetAgentState` / `ListPendingHooks` / `QueryAgentMemory` / `SubscribeAgentEvents`：`runtime.agent.read`
+- `GetAgent` / `ListAgents` / `GetConversationAnchorSnapshot` / `ListAgentConversationSummaries` / `ResolveAvatarLiveInstanceBinding` / `GetPublicChatSessionSnapshot` / `GetAgentState` / `ListPendingHooks` / `QueryAgentMemory` / `SubscribeAgentEvents`：`runtime.agent.read`
 - `GetCompanionParticipationProjection` / `OpenCompanionParticipationReplay`：`runtime.agent.companion_participation.read`
 - `OpenConversationAnchor` / `RegisterAvatarLiveInstanceBinding`：`runtime.agent.write`
 - `RequestCompanionParticipation` / `CancelCompanionParticipation`：`runtime.agent.companion_participation.write`

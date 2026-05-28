@@ -37,6 +37,19 @@ test('Agent Chat store deletion is gated on Runtime and SDK replacement coverage
   assert.match(runtimeSpec, /do not admit Desktop-local transcript/);
 });
 
+test('Runtime admits Agent Chat conversation summaries before store cutover implementation', () => {
+  const runtimeSpec = readWorkspaceFile('.nimi/spec/runtime/kernel/runtime-agent-service-contract.md');
+  const rpcMethods = readWorkspaceFile('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
+  const sdkMethods = readWorkspaceFile('.nimi/spec/sdk/kernel/tables/runtime-method-groups.yaml');
+
+  assert.match(runtimeSpec, /K-AGCORE-006b/);
+  assert.match(runtimeSpec, /ListAgentConversationSummaries/);
+  assert.match(runtimeSpec, /derived\s+presentation text/);
+  assert.match(runtimeSpec, /does not admit close, delete, clear, archive, rename, or draft/);
+  assert.match(rpcMethods, /name: ListAgentConversationSummaries[\s\S]*?type: unary/);
+  assert.match(sdkMethods, /service: RuntimeAgentService[\s\S]*?ListAgentConversationSummaries/);
+});
+
 test('Desktop command classification treats chat_agent store commands as migration-scoped', () => {
   const table = readWorkspaceFile('.nimi/spec/desktop/kernel/tables/command-execution-classification.yaml');
 

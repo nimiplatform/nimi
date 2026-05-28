@@ -645,6 +645,26 @@ message GetPublicChatSessionSnapshotRequest {
 message GetPublicChatSessionSnapshotResponse {
   google.protobuf.Struct snapshot = 1;
 }
+message AgentConversationSummary {
+  ConversationAnchor anchor = 1;
+  string title = 2;
+  string last_message_role = 3;
+  string last_message_text = 4;
+  string last_message_id = 5;
+  int32 transcript_message_count = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+message ListAgentConversationSummariesRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  repeated ConversationAnchorStatus status_filter = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
+message ListAgentConversationSummariesResponse {
+  repeated AgentConversationSummary summaries = 1;
+  string next_page_token = 2;
+}
 enum CompanionParticipationSurfaceKind {
   COMPANION_PARTICIPATION_SURFACE_KIND_UNSPECIFIED = 0;
   COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION = 1;
@@ -770,6 +790,7 @@ service RuntimeAgentService {
   rpc RegisterAvatarLiveInstanceBinding(RegisterAvatarLiveInstanceBindingRequest) returns (RegisterAvatarLiveInstanceBindingResponse);
   rpc ResolveAvatarLiveInstanceBinding(ResolveAvatarLiveInstanceBindingRequest) returns (ResolveAvatarLiveInstanceBindingResponse);
   rpc GetPublicChatSessionSnapshot(GetPublicChatSessionSnapshotRequest) returns (GetPublicChatSessionSnapshotResponse);
+  rpc ListAgentConversationSummaries(ListAgentConversationSummariesRequest) returns (ListAgentConversationSummariesResponse);
   rpc GetCompanionParticipationProjection(GetCompanionParticipationProjectionRequest) returns (GetCompanionParticipationProjectionResponse);
   rpc RequestCompanionParticipation(RequestCompanionParticipationRequest) returns (RequestCompanionParticipationResponse);
   rpc CancelCompanionParticipation(CancelCompanionParticipationRequest) returns (CancelCompanionParticipationResponse);
