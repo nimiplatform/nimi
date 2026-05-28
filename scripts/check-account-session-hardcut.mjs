@@ -419,7 +419,6 @@ function scanDesktopSharedAuthOwner(files, violations) {
       continue;
     }
     const allowedDisabledWrappers = new Set([
-      'apps/desktop/src/shell/renderer/bridge/runtime-bridge/auth-session.ts',
       'apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap-auth.ts',
     ]);
     if (allowedDisabledWrappers.has(file.relPath)) {

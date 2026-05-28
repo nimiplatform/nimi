@@ -16,9 +16,6 @@ import {
   focusMainWindow,
   oauthListenForCode,
   oauthTokenExchange,
-  loadAuthSession,
-  saveAuthSession,
-  clearAuthSession,
 } from '@nimiplatform/kit/shell/renderer/bridge';
 
 // Desktop public boundary — types and functions imported via the admitted
@@ -100,7 +97,7 @@ function unsupportedDesktopRuntime(message: string): never {
   throw new Error(message);
 }
 
-export { hasTauriInvoke, loadAuthSession, saveAuthSession, clearAuthSession };
+export { hasTauriInvoke };
 
 export async function getDesktopReleaseInfo(): Promise<DesktopReleaseInfo> {
   unsupportedDesktopRuntime('Application release metadata is only available in desktop runtime');
@@ -288,13 +285,10 @@ export const desktopBridge = {
   setProductFirstRunSetupState,
   prepareProductFirstRunLocalAiReady,
   admitProductReadyForUse,
-  loadAuthSession,
   proxyHttp,
   openExternalUrl,
   oauthTokenExchange,
   oauthListenForCode,
-  saveAuthSession,
-  clearAuthSession,
   focusMainWindow,
   syncMenuBarRuntimeHealth,
   completeMenuBarQuit,

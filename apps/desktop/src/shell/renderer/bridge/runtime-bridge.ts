@@ -40,7 +40,6 @@ import {
 import { exportDesktopLogs } from './runtime-bridge/support-logs-export';
 import { getAppsBridgeProjection } from './runtime-bridge/apps-projection';
 import { getDesktopStorageDirs } from './runtime-bridge/desktop-storage';
-import { clearAuthSession, loadAuthSession, saveAuthSession } from './runtime-bridge/auth-session';
 import { oauthListenForCode, oauthTokenExchange } from './runtime-bridge/oauth';
 import { completeMenuBarQuit, syncMenuBarRuntimeHealth } from './runtime-bridge/menu-bar';
 import { focusMainWindow, openExternalUrl, startWindowDrag } from './runtime-bridge/ui';
@@ -170,9 +169,6 @@ export {
   exportDesktopLogs,
   getAppsBridgeProjection,
   getDesktopStorageDirs,
-  loadAuthSession,
-  saveAuthSession,
-  clearAuthSession,
   oauthListenForCode,
   oauthTokenExchange,
   focusMainWindow,
