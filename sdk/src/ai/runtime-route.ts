@@ -200,12 +200,6 @@ export type RuntimeRouteLocalOption = {
 export type RuntimeRouteOptionsSnapshot = {
   capability?: RuntimeCanonicalCapability;
   selected: RuntimeRouteBinding | null;
-  /**
-   * Display-only mirror of the explicit selected binding for older consumers.
-   * This must never be populated from option ordering or first-available local
-   * assets.
-   */
-  resolvedDefault?: RuntimeRouteBinding;
   local: {
     models: RuntimeRouteLocalOption[];
     defaultEndpoint?: string;
@@ -928,10 +922,7 @@ function parseVoiceWorkflowVoiceDesignRouteMetadata(value: unknown): VoiceWorkfl
   };
 }
 
-export function parseRuntimeRouteOptions(
-  value: unknown,
-  options?: { includeResolvedDefault?: boolean },
-): RuntimeRouteOptionsSnapshot | null {
+export function parseRuntimeRouteOptions(value: unknown): RuntimeRouteOptionsSnapshot | null {
   const record = asRecord(value);
   const capability = parseRuntimeCanonicalCapability(record.capability) || undefined;
   const selected = record.selected === null
@@ -963,7 +954,6 @@ export function parseRuntimeRouteOptions(
   return {
     ...(capability ? { capability } : {}),
     selected,
-    ...(options?.includeResolvedDefault ? { resolvedDefault: selected || undefined } : {}),
     local: {
       models: localModels,
       defaultEndpoint: String(local.defaultEndpoint || '').trim() || undefined,

@@ -79,7 +79,7 @@ test('resolved route projection rejects missing local runtime evidence', () => {
   );
 });
 
-test('resolved route projection does not promote resolvedDefault to execution truth', () => {
+test('resolved route projection does not promote legacy resolvedDefault to execution truth', () => {
   assert.throws(
     () => resolveRuntimeRouteBindingFromSnapshot({
       capability: 'text.generate',
@@ -101,7 +101,7 @@ test('resolved route projection does not promote resolvedDefault to execution tr
   );
 });
 
-test('route options snapshot does not promote first available local model to resolvedDefault', () => {
+test('route options snapshot does not expose first available local model as default truth', () => {
   const snapshot = buildRuntimeRouteOptionsSnapshot({
     capability: 'text.generate',
     selectedBinding: null,
@@ -110,21 +110,21 @@ test('route options snapshot does not promote first available local model to res
   });
 
   assert.equal(snapshot.selected, null);
-  assert.equal(snapshot.resolvedDefault, undefined);
+  assert.equal('resolvedDefault' in snapshot, false);
 });
 
-test('route options parser ignores external resolvedDefault fallback truth', () => {
+test('route options parser drops external resolvedDefault fallback truth', () => {
   const parsed = parseRuntimeRouteOptions({
     capability: 'text.generate',
     selected: null,
     resolvedDefault: localSnapshot.selected,
     local: { models: [] },
     connectors: [],
-  }, { includeResolvedDefault: true });
+  });
 
   assert.ok(parsed);
   assert.equal(parsed.selected, null);
-  assert.equal(parsed.resolvedDefault, undefined);
+  assert.equal('resolvedDefault' in parsed, false);
 });
 
 test('resolved route projection builds cloud call target from connector evidence', () => {

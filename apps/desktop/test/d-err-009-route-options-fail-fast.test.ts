@@ -185,7 +185,7 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
   assert.ok(options.selected);
   assert.equal(options.selected.source, 'local');
   assert.equal(options.selected.model, 'local-model');
-  assert.deepEqual(options.resolvedDefault, options.selected);
+  assert.equal('resolvedDefault' in options, false);
   assert.equal(options.local.defaultEndpoint, undefined);
 
   const degradedLog = logs.find((entry) => entry.message === 'action:load-local-route-metadata:degraded');

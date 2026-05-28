@@ -549,12 +549,9 @@ export function buildRuntimeRouteOptionsSnapshot(input: {
       runtimeDefaultEngine: input.runtimeDefaultEngine,
     })
     : input.selectedOverride;
-  const resolvedDefault = selected || undefined;
-
   return {
     capability: input.capability,
     selected,
-    resolvedDefault,
     local: {
       models: input.localModels,
       defaultEndpoint: String(input.defaultLocalEndpoint || '').trim() || undefined,
