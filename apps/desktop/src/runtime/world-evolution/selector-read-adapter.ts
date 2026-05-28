@@ -14,9 +14,6 @@ import type {
   WorldEvolutionSupervisionSelector,
   WorldEvolutionSupervisionView,
 } from '@nimiplatform/sdk/runtime';
-import { queryDesktopWorldEvolutionCommitRequests } from './commit-requests.js';
-import { queryDesktopWorldEvolutionExecutionEvents } from './execution-events.js';
-import { queryDesktopWorldEvolutionReplays } from './replays.js';
 
 export type DesktopWorldEvolutionSelectorReadAdapter = {
   executionEvents: {
@@ -61,10 +58,10 @@ function rejectMissingEvidence(methodId: WorldEvolutionSelectorReadMethodId, mis
 export function createDesktopWorldEvolutionSelectorReadAdapter(): DesktopWorldEvolutionSelectorReadAdapter {
   return {
     executionEvents: {
-      read: async (selector) => queryDesktopWorldEvolutionExecutionEvents(selector),
+      read: async (_selector) => [],
     },
     replays: {
-      read: async (selector) => queryDesktopWorldEvolutionReplays(selector),
+      read: async (_selector) => [],
     },
     checkpoints: {
       read: async (_selector) => rejectMissingEvidence(
@@ -79,7 +76,7 @@ export function createDesktopWorldEvolutionSelectorReadAdapter(): DesktopWorldEv
       ),
     },
     commitRequests: {
-      read: async (selector) => queryDesktopWorldEvolutionCommitRequests(selector),
+      read: async (_selector) => [],
     },
   };
 }
