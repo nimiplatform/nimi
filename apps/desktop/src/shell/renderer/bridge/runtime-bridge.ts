@@ -39,14 +39,6 @@ import {
 } from './runtime-bridge/nimi-data-migration';
 import { exportDesktopLogs } from './runtime-bridge/support-logs-export';
 import { getAppsBridgeProjection } from './runtime-bridge/apps-projection';
-import {
-  createAccountProfileLibraryProfile,
-  deleteAccountProfileLibraryProfile,
-  editAccountProfileLibraryProfile,
-  exportAccountProfileLibraryProfiles,
-  importAccountProfileLibraryProfiles,
-  listAccountProfileLibrary,
-} from './runtime-bridge/account-profile-library';
 import { getDesktopStorageDirs } from './runtime-bridge/desktop-storage';
 import { clearAuthSession, loadAuthSession, saveAuthSession } from './runtime-bridge/auth-session';
 import { oauthListenForCode, oauthTokenExchange } from './runtime-bridge/oauth';
@@ -103,13 +95,6 @@ export type { LogsExportResult } from './runtime-bridge/support-logs-export';
 
 export type { AppsBridgeProjection } from './runtime-bridge/apps-projection';
 export type { DesktopStorageDirs } from './runtime-bridge/desktop-storage';
-
-export type {
-  AccountProfileLibraryProjection,
-  LibraryIndexEntry,
-  LibraryProfile,
-  LibraryProfileOrigin,
-} from './runtime-bridge/account-profile-library';
 
 export type {
   DesktopReleaseInfo,
@@ -185,12 +170,6 @@ export {
   exportDesktopLogs,
   getAppsBridgeProjection,
   getDesktopStorageDirs,
-  listAccountProfileLibrary,
-  createAccountProfileLibraryProfile,
-  editAccountProfileLibraryProfile,
-  importAccountProfileLibraryProfiles,
-  exportAccountProfileLibraryProfiles,
-  deleteAccountProfileLibraryProfile,
   loadAuthSession,
   saveAuthSession,
   clearAuthSession,
