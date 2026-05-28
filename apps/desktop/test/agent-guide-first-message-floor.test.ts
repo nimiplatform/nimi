@@ -1,25 +1,23 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadRecord,
 } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
-import {
-  buildAgentGreetingSeedMessage,
-  createEmptyAgentThreadBundle,
-} from '../src/shell/renderer/features/chat/chat-agent-shell-bundle.js';
+import { createEmptyAgentThreadBundle } from '../src/shell/renderer/features/chat/chat-agent-shell-bundle.js';
 import {
   projectRealmAgentBuiltinDocsContext,
   projectRealmAgentGreeting,
 } from '../src/shell/renderer/features/chat/agent-profile-projection.js';
 
-// T9.W3 Part A — first-message floor delivery.
+// T9.W3 Part A — first-message floor projection.
 //
-// The first-message floor is delivered as an ordinary thread-open mechanic
-// keyed on the ordinary `AgentLocalTargetSnapshot.greeting` field, applied
-// uniformly to ANY RealmAgent. These tests prove the seed is generic (no guide
-// id branch) and renders the stored greeting verbatim.
+// The first-message floor remains ordinary RealmAgent profile data projected
+// on `AgentLocalTargetSnapshot.greeting`. Desktop must not author that greeting
+// as a persisted assistant transcript row; Runtime owns assistant transcript
+// replay and session initialization.
 
 // Verbatim manual floor (`product-manual-full-authority.md` "Default Nimi
 // Guide Agent" → First message floor). The Archivist greeting is the W1
@@ -55,55 +53,25 @@ function sampleThread(id: string): AgentLocalThreadRecord {
   };
 }
 
-test('empty AgentFriend thread opens with the profile greeting as the first assistant message', () => {
+test('empty AgentFriend thread keeps the profile greeting as target projection only', () => {
   const thread = sampleThread('thread-archivist');
-  const seed = buildAgentGreetingSeedMessage({
-    threadId: thread.id,
+  thread.targetSnapshot = {
+    ...thread.targetSnapshot,
     greeting: MANUAL_ARCHIVIST_FLOOR,
-    createdAtMs: thread.createdAtMs + 1,
-  });
-  assert.ok(seed, 'a non-empty greeting must produce a seed message');
-  const bundle = {
-    ...createEmptyAgentThreadBundle(thread),
-    messages: seed ? [seed] : [],
   };
-  assert.equal(bundle.messages.length, 1);
-  const first = bundle.messages[0];
-  assert.ok(first);
-  assert.equal(first.role, 'assistant');
-  assert.equal(first.status, 'complete');
-  // Rendered verbatim — byte-identical to the manual first-message floor.
-  assert.equal(first.contentText, MANUAL_ARCHIVIST_FLOOR);
+  const bundle = createEmptyAgentThreadBundle(thread);
+  assert.equal(bundle.messages.length, 0);
+  assert.equal(bundle.thread.targetSnapshot.greeting, MANUAL_ARCHIVIST_FLOOR);
 });
 
-test('the first-message seed is a generic ordinary mechanic, not a guide branch', () => {
-  // Any RealmAgent with an ordinary greeting seeds the same way. The seed
-  // builder takes no agent id and carries no guide-specific identifier.
-  const ordinary = buildAgentGreetingSeedMessage({
-    threadId: 'thread-ordinary',
-    greeting: 'Hello, I am an ordinary companion agent.',
-    createdAtMs: 5,
-  });
-  assert.ok(ordinary);
-  assert.equal(ordinary?.contentText, 'Hello, I am an ordinary companion agent.');
-  assert.equal(ordinary?.id, 'thread-ordinary:message:greeting');
-
-  // The seed builder source carries no guide identity literal.
-  const builderSource = buildAgentGreetingSeedMessage.toString().toLowerCase();
-  for (const token of ['archivist', 'nimi-guide', 'guide_agent']) {
-    assert.ok(!builderSource.includes(token), `seed builder must not branch on ${token}`);
-  }
-});
-
-test('a RealmAgent with no greeting opens an empty thread (no seed)', () => {
-  assert.equal(
-    buildAgentGreetingSeedMessage({ threadId: 't', greeting: null, createdAtMs: 1 }),
-    null,
+test('Desktop launcher does not persist greeting as assistant transcript truth', () => {
+  const launcherSource = readFileSync(
+    new URL('../src/shell/renderer/features/chat/agent-conversation-launcher.ts', import.meta.url),
+    'utf8',
   );
-  assert.equal(
-    buildAgentGreetingSeedMessage({ threadId: 't', greeting: '   ', createdAtMs: 1 }),
-    null,
-  );
+  assert.doesNotMatch(launcherSource, /buildAgentGreetingSeedMessage/);
+  assert.doesNotMatch(launcherSource, /createMessage\(/);
+  assert.doesNotMatch(launcherSource, /message:greeting/);
 });
 
 test('greeting projects out of the ordinary Realm agentProfile projection', () => {

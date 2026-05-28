@@ -31,47 +31,6 @@ export function createEmptyAgentThreadBundle(
   };
 }
 
-/**
- * Build the ordinary first-message-floor opening assistant message for a new
- * AgentFriend thread from the RealmAgent's stored `greeting`.
- *
- * This is a generic mechanic keyed purely on the ordinary
- * `AgentLocalTargetSnapshot.greeting` field — it applies to ANY RealmAgent
- * that carries a non-empty greeting and contains no guide-specific identifier
- * or branch. The greeting is carried VERBATIM as a complete assistant message
- * (it is not produced by a runtime turn). Returns `null` when the RealmAgent
- * carries no greeting, so a greeting-less RealmAgent simply opens with an
- * empty thread.
- */
-export function buildAgentGreetingSeedMessage(input: {
-  threadId: string;
-  greeting: string | null | undefined;
-  createdAtMs: number;
-}): AgentLocalMessageRecord | null {
-  const greeting = String(input.greeting || '').trim();
-  if (!greeting) {
-    return null;
-  }
-  return {
-    id: `${input.threadId}:message:greeting`,
-    threadId: input.threadId,
-    role: 'assistant',
-    status: 'complete',
-    kind: 'text',
-    contentText: greeting,
-    reasoningText: null,
-    error: null,
-    traceId: null,
-    parentMessageId: null,
-    mediaUrl: null,
-    mediaMimeType: null,
-    artifactId: null,
-    metadataJson: null,
-    createdAtMs: input.createdAtMs,
-    updatedAtMs: input.createdAtMs,
-  };
-}
-
 export function resolveAuthoritativeAgentThreadBundle(input: {
   optimisticBundle: AgentLocalThreadBundle | null | undefined;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;

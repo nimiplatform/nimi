@@ -1,8 +1,8 @@
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
-import type { AgentLocalMessageRecord, AgentLocalTargetSnapshot, AgentLocalThreadRecord, AgentLocalThreadSummary } from '@renderer/bridge/runtime-bridge/types';
+import type { AgentLocalTargetSnapshot, AgentLocalThreadRecord, AgentLocalThreadSummary } from '@renderer/bridge/runtime-bridge/types';
 import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { buildAgentGreetingSeedMessage, createEmptyAgentThreadBundle } from './chat-agent-shell-bundle.js';
+import { createEmptyAgentThreadBundle } from './chat-agent-shell-bundle.js';
 import { bundleQueryKey, THREADS_QUERY_KEY, upsertThreadSummary } from './chat-agent-shell-core.js';
 import { findAgentConversationThreadByLocalAgentRef } from './chat-agent-thread-model.js';
 import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
@@ -39,39 +39,6 @@ async function resolveExistingAgentThread(
   return findAgentConversationThreadByLocalAgentRef(listedThreads, localAgentRef);
 }
 
-/**
- * Seed the RealmAgent's first-turn opening message into a freshly-created,
- * empty AgentFriend thread.
- *
- * This is an ordinary, generic thread-open mechanic keyed purely on the
- * ordinary `AgentLocalTargetSnapshot.greeting` field (projected from
- * `AgentProfile.greeting`): any RealmAgent that carries a non-empty greeting
- * gets its greeting rendered as the opening assistant message, uniformly.
- * There is no guide-specific identifier or branch here.
- *
- * The greeting is rendered VERBATIM as a complete assistant message — it is
- * not produced by a runtime turn (the manual specifies an exact first-message
- * floor as product authority). The message is persisted as an ordinary
- * `agent_messages` row so it survives store reload.
- *
- * Returns the seeded message records (empty when the agent has no greeting).
- */
-async function seedFirstMessageFromGreeting(
-  thread: AgentLocalThreadRecord,
-  target: AgentLocalTargetSnapshot,
-): Promise<AgentLocalMessageRecord[]> {
-  const seedMessage = buildAgentGreetingSeedMessage({
-    threadId: thread.id,
-    greeting: target.greeting,
-    createdAtMs: thread.createdAtMs + 1,
-  });
-  if (!seedMessage) {
-    return [];
-  }
-  const persisted = await chatAgentStoreClient.createMessage(seedMessage);
-  return [persisted];
-}
-
 async function createAgentThread(
   target: AgentLocalTargetSnapshot,
 ): Promise<AgentLocalThreadRecord> {
@@ -88,16 +55,10 @@ async function createAgentThread(
     archivedAtMs: null,
     targetSnapshot: target,
   });
-  // Ordinary first-message floor: seed the RealmAgent's stored `greeting` as
-  // the opening assistant message of the new empty thread.
-  const seededMessages = await seedFirstMessageFromGreeting(thread, target);
   queryClient.setQueryData<readonly AgentLocalThreadSummary[]>(THREADS_QUERY_KEY, (current) =>
     upsertThreadSummary(current || [], thread),
   );
-  queryClient.setQueryData(bundleQueryKey(thread.id), {
-    ...createEmptyAgentThreadBundle(thread),
-    messages: seededMessages,
-  });
+  queryClient.setQueryData(bundleQueryKey(thread.id), createEmptyAgentThreadBundle(thread));
   return thread;
 }
 
