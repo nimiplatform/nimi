@@ -112,14 +112,6 @@ export type AgentLocalThreadBundle = {
   draft: AgentLocalDraftRecord | null;
 };
 
-export type AgentLocalTurnContext = {
-  thread: AgentLocalThreadRecord;
-  recentTurns: AgentLocalTurnRecord[];
-  recentBeats: AgentLocalTurnBeatRecord[];
-  draft: AgentLocalDraftRecord | null;
-  projectionVersion: string;
-};
-
 export type AgentLocalProjectionRebuildResult = {
   bundle: AgentLocalThreadBundle;
   projectionVersion: string;
@@ -177,11 +169,6 @@ export type AgentLocalPutDraftInput = {
   threadId: string;
   text: string;
   updatedAtMs: number;
-};
-
-export type AgentLocalLoadTurnContextInput = {
-  threadId: string;
-  recentTurnLimit?: number;
 };
 
 export type AgentLocalTurnRecordInput = Omit<AgentLocalTurnRecord, never>;

@@ -1,5 +1,5 @@
 #[test]
-fn chat_agent_projection_cache_commit_context_cancel_and_rebuild_projection_round_trip() {
+fn chat_agent_projection_cache_commit_cancel_and_rebuild_projection_round_trip() {
     let home = temp_home("projection-cache");
     with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
@@ -105,24 +105,6 @@ fn chat_agent_projection_cache_commit_context_cancel_and_rebuild_projection_roun
         assert_eq!(committed.bundle.messages[0].content_text, "first beat");
         assert!(committed.projection_version.starts_with("projection:"));
 
-        let context = load_turn_context(
-            &conn,
-            &ChatAgentLoadTurnContextInput {
-                thread_id: thread.id.clone(),
-                recent_turn_limit: Some(8),
-            },
-        )
-        .expect("load turn context");
-        assert_eq!(context.recent_turns.len(), 1);
-        assert_eq!(context.recent_turns[0].provider_mode, "runtime-agent-chat-v1");
-        assert_eq!(context.recent_beats.len(), 1);
-        assert_eq!(
-            context.recent_beats[0].projection_message_id.as_deref(),
-            Some("message-001")
-        );
-        assert!(context.draft.is_none());
-        assert_eq!(context.projection_version, committed.projection_version);
-
         conn.execute(
             "DELETE FROM agent_messages WHERE thread_id = ?1",
             params![&thread.id],
@@ -153,18 +135,5 @@ fn chat_agent_projection_cache_commit_context_cancel_and_rebuild_projection_roun
         .expect("cancel turn");
         assert_eq!(canceled.status, ChatAgentTurnStatus::Canceled);
         assert_eq!(canceled.aborted_at_ms, Some(280));
-
-        let post_cancel_context = load_turn_context(
-            &conn,
-            &ChatAgentLoadTurnContextInput {
-                thread_id: thread.id.clone(),
-                recent_turn_limit: Some(8),
-            },
-        )
-        .expect("load context after cancel");
-        assert_eq!(
-            post_cancel_context.recent_turns[0].status,
-            ChatAgentTurnStatus::Canceled
-        );
     });
 }

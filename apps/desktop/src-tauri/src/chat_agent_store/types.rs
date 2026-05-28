@@ -176,16 +176,6 @@ pub struct ChatAgentTurnBeatRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatAgentTurnContext {
-    pub thread: ChatAgentThreadRecord,
-    pub recent_turns: Vec<ChatAgentTurnRecord>,
-    pub recent_beats: Vec<ChatAgentTurnBeatRecord>,
-    pub draft: Option<ChatAgentDraftRecord>,
-    pub projection_version: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
 pub struct ChatAgentProjectionRebuildResult {
     pub bundle: ChatAgentThreadBundle,
     pub projection_version: String,
@@ -279,13 +269,6 @@ pub struct ChatAgentPutDraftInput {
 #[serde(rename_all = "camelCase")]
 pub struct ChatAgentDeleteDraftInput {
     pub thread_id: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatAgentLoadTurnContextInput {
-    pub thread_id: String,
-    pub recent_turn_limit: Option<i64>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

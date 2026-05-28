@@ -14,7 +14,6 @@ import type {
   AgentLocalCreateMessageInput,
   AgentLocalCreateThreadInput,
   AgentLocalDraftRecord,
-  AgentLocalLoadTurnContextInput,
   AgentLocalMessageError,
   AgentLocalMessageKind,
   AgentLocalMessageRecord,
@@ -30,7 +29,6 @@ import type {
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
-  AgentLocalTurnContext,
   AgentLocalTurnRecord,
   AgentLocalTurnRecordInput,
   AgentLocalTurnRole,
@@ -328,21 +326,6 @@ export function parseAgentLocalThreadBundle(value: unknown): AgentLocalThreadBun
   };
 }
 
-export function parseAgentLocalTurnContext(value: unknown): AgentLocalTurnContext {
-  const record = assertRecord(value, 'chat_agent turn context is invalid');
-  return {
-    thread: parseAgentLocalThreadRecord(record.thread),
-    recentTurns: Array.isArray(record.recentTurns)
-      ? record.recentTurns.map((item) => parseAgentLocalTurnRecord(item))
-      : (() => { throw new Error('chat_agent turn context.recentTurns must be an array'); })(),
-    recentBeats: Array.isArray(record.recentBeats)
-      ? record.recentBeats.map((item) => parseAgentLocalTurnBeatRecord(item))
-      : (() => { throw new Error('chat_agent turn context.recentBeats must be an array'); })(),
-    draft: record.draft == null ? null : parseAgentLocalDraftRecord(record.draft),
-    projectionVersion: parseRequiredString(record.projectionVersion, 'projectionVersion', 'chat_agent turn context'),
-  };
-}
-
 export function parseAgentLocalProjectionRebuildResult(value: unknown): AgentLocalProjectionRebuildResult {
   const record = assertRecord(value, 'chat_agent projection rebuild result is invalid');
   return {
@@ -426,14 +409,6 @@ export function parseAgentLocalPutDraftInput(value: unknown): AgentLocalPutDraft
     threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent put_draft payload'),
     text: String(record.text ?? ''),
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent put_draft payload'),
-  };
-}
-
-export function parseAgentLocalLoadTurnContextInput(value: unknown): AgentLocalLoadTurnContextInput {
-  const record = assertRecord(value, 'chat_agent load_turn_context payload is invalid');
-  return {
-    threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent load_turn_context payload'),
-    recentTurnLimit: record.recentTurnLimit == null ? undefined : parseFiniteInteger(record.recentTurnLimit, 'recentTurnLimit', 'chat_agent load_turn_context payload'),
   };
 }
 

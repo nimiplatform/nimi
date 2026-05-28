@@ -7,14 +7,12 @@ import {
   parseAgentLocalCreateMessageInput,
   parseAgentLocalCreateThreadInput,
   parseAgentLocalDraftRecord,
-  parseAgentLocalLoadTurnContextInput,
   parseAgentLocalMessageRecord,
   parseAgentLocalProjectionRebuildResult,
   parseAgentLocalPutDraftInput,
   parseAgentLocalThreadBundle,
   parseAgentLocalThreadRecord,
   parseAgentLocalThreadSummaries,
-  parseAgentLocalTurnContext,
   parseAgentLocalTurnRecord,
   parseAgentLocalUpdateThreadMetadataInput,
   type AgentLocalCancelTurnInput,
@@ -23,14 +21,12 @@ import {
   type AgentLocalCreateMessageInput,
   type AgentLocalCreateThreadInput,
   type AgentLocalDraftRecord,
-  type AgentLocalLoadTurnContextInput,
   type AgentLocalMessageRecord,
   type AgentLocalProjectionRebuildResult,
   type AgentLocalPutDraftInput,
   type AgentLocalThreadBundle,
   type AgentLocalThreadRecord,
   type AgentLocalThreadSummary,
-  type AgentLocalTurnContext,
   type AgentLocalTurnRecord,
   type AgentLocalUpdateThreadMetadataInput,
 } from './types';
@@ -124,13 +120,6 @@ export async function deleteMessage(messageId: string): Promise<AgentLocalThread
   });
 }
 
-export async function loadTurnContext(input: AgentLocalLoadTurnContextInput): Promise<AgentLocalTurnContext> {
-  requireTauri('chat_agent_load_turn_context');
-  return invokeChecked('chat_agent_load_turn_context', {
-    payload: parseAgentLocalLoadTurnContextInput(input),
-  }, parseAgentLocalTurnContext);
-}
-
 export async function commitTurnResult(input: AgentLocalCommitTurnResultInput): Promise<AgentLocalCommitTurnResult> {
   requireTauri('chat_agent_commit_turn_result');
   return invokeChecked('chat_agent_commit_turn_result', {
@@ -164,7 +153,6 @@ export const chatAgentStoreClient = {
   deleteDraft,
   deleteThread,
   deleteMessage,
-  loadTurnContext,
   commitTurnResult,
   cancelTurn,
   rebuildProjection,

@@ -265,15 +265,3 @@ pub(super) fn map_sql_error(context: &str, error: SqlError) -> String {
         other => format!("{context}: {other}"),
     }
 }
-
-pub(super) fn normalize_positive_limit(
-    value: Option<i64>,
-    field_name: &str,
-    default_value: i64,
-) -> Result<i64, String> {
-    match value {
-        None => Ok(default_value),
-        Some(next) if next > 0 => Ok(next),
-        Some(_) => Err(format!("{field_name} must be a positive integer")),
-    }
-}

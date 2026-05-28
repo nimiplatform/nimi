@@ -8,8 +8,8 @@ import type {
 import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import type {
   AgentLocalCommitTurnResult,
+  AgentLocalThreadBundle,
   AgentLocalThreadRecord,
-  AgentLocalTurnContext,
 } from '@renderer/bridge/runtime-bridge/types';
 import type {
   AgentLocalTextMessageState,
@@ -18,11 +18,11 @@ import { RUNTIME_AGENT_CHAT_MODE_ID, type RuntimeAgentChatModeId } from './chat-
 
 type AgentLocalChatStoreClient = Pick<
   typeof chatAgentStoreClient,
-  'loadTurnContext' | 'commitTurnResult' | 'cancelTurn' | 'rebuildProjection'
+  'getThreadBundle' | 'commitTurnResult' | 'cancelTurn' | 'rebuildProjection'
 >;
 
 export type AgentLocalChatContinuityAdapter = ConversationContinuityAdapter<
-  AgentLocalTurnContext,
+  AgentLocalThreadBundle,
   AgentLocalCommitTurnResult
 > & {
   commitAgentTurnResult: (input: {
@@ -125,6 +125,17 @@ function resolveTerminalPromptTraceId(events: readonly ConversationTurnEvent[]):
   return null;
 }
 
+async function requireThreadBundle(
+  storeClient: AgentLocalChatStoreClient,
+  threadId: string,
+): Promise<AgentLocalThreadBundle> {
+  const bundle = await storeClient.getThreadBundle(threadId);
+  if (!bundle) {
+    throw new Error('commit chat_agent projection failed: thread not found');
+  }
+  return bundle;
+}
+
 function buildTextProjectionMessages(
   thread: AgentLocalThreadRecord,
   textMessages: readonly AgentLocalTextMessageState[],
@@ -176,11 +187,9 @@ export function createAgentLocalChatContinuityAdapter(
   const storeClient = options.storeClient ?? chatAgentStoreClient;
   const now = options.now ?? (() => Date.now());
   const commitAgentTurnResultInternal: AgentLocalChatContinuityAdapter['commitAgentTurnResult'] = async (input) => {
-    const context = await storeClient.loadTurnContext({
-      threadId: input.threadId,
-    });
+    const bundle = await requireThreadBundle(storeClient, input.threadId);
     const committedAtMs = now();
-    const thread = context.thread;
+    const thread = bundle.thread;
     const textMessages = resolveTextMessageStates({
       turnId: input.turnId,
       outputText: input.outputText,
@@ -236,9 +245,7 @@ export function createAgentLocalChatContinuityAdapter(
   };
   return {
     loadTurnContext: async (input) => {
-      return storeClient.loadTurnContext({
-        threadId: input.threadId,
-      });
+      return requireThreadBundle(storeClient, input.threadId);
     },
     commitTurnResult: async (input) => commitAgentTurnResultInternal({
       ...input,

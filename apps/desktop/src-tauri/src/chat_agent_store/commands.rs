@@ -4,14 +4,13 @@ use serde::Deserialize;
 
 use super::{
     cancel_turn, commit_turn_result, create_message, create_thread, delete_draft, delete_message,
-    delete_thread, get_draft, get_thread_bundle, list_threads, load_turn_context, open_db,
-    put_draft, rebuild_projection, update_thread_metadata, ChatAgentCancelTurnInput,
-    ChatAgentCommitTurnResult, ChatAgentCommitTurnResultInput, ChatAgentCreateMessageInput,
-    ChatAgentCreateThreadInput, ChatAgentDeleteDraftInput, ChatAgentDraftRecord,
-    ChatAgentLoadTurnContextInput, ChatAgentMessageLookupPayload, ChatAgentMessageRecord,
-    ChatAgentProjectionRebuildResult, ChatAgentPutDraftInput, ChatAgentThreadBundle,
-    ChatAgentThreadLookupPayload, ChatAgentThreadRecord, ChatAgentThreadSummary,
-    ChatAgentTurnContext, ChatAgentTurnRecord, ChatAgentUpdateThreadMetadataInput,
+    delete_thread, get_draft, get_thread_bundle, list_threads, open_db, put_draft,
+    rebuild_projection, update_thread_metadata, ChatAgentCancelTurnInput, ChatAgentCommitTurnResult,
+    ChatAgentCommitTurnResultInput, ChatAgentCreateMessageInput, ChatAgentCreateThreadInput,
+    ChatAgentDeleteDraftInput, ChatAgentDraftRecord, ChatAgentMessageLookupPayload,
+    ChatAgentMessageRecord, ChatAgentProjectionRebuildResult, ChatAgentPutDraftInput,
+    ChatAgentThreadBundle, ChatAgentThreadLookupPayload, ChatAgentThreadRecord,
+    ChatAgentThreadSummary, ChatAgentTurnRecord, ChatAgentUpdateThreadMetadataInput,
 };
 
 const CHAT_AGENT_OFFLINE_L2_WRITE_DENIED: &str = "CHAT_AGENT_OFFLINE_L2_WRITE_DENIED";
@@ -166,17 +165,6 @@ pub(crate) async fn chat_agent_delete_message(
         ensure_chat_agent_writes_allowed()?;
         let conn = open_db()?;
         delete_message(&conn, &payload.message_id)
-    })
-    .await
-}
-
-#[tauri::command]
-pub(crate) async fn chat_agent_load_turn_context(
-    payload: ChatAgentLoadTurnContextInput,
-) -> Result<ChatAgentTurnContext, String> {
-    run_chat_agent_store(move || {
-        let conn = open_db()?;
-        load_turn_context(&conn, &payload)
     })
     .await
 }

@@ -1,118 +1,15 @@
 use super::codec::{
     beat_modality_to_db_value, beat_status_to_db_value, map_sql_error,
-    normalize_optional_string, normalize_positive_limit, normalize_required_string,
-    require_non_negative_ms, turn_role_to_db_value, turn_status_to_db_value,
+    normalize_optional_string, normalize_required_string, require_non_negative_ms,
+    turn_role_to_db_value, turn_status_to_db_value,
 };
-use super::crud::{delete_draft, get_draft, get_thread_bundle, put_draft, update_thread_metadata};
+use super::crud::{delete_draft, get_thread_bundle, put_draft, update_thread_metadata};
 use super::projection::{
     compute_projection_version, rebuild_projection_internal, upsert_projection_message,
 };
 use super::rows::{beat_record_from_row, turn_record_from_row};
 use super::types::*;
-use rusqlite::{params, Connection, ToSql};
-
-pub(crate) fn load_turn_context(
-    conn: &Connection,
-    input: &ChatAgentLoadTurnContextInput,
-) -> Result<ChatAgentTurnContext, String> {
-    let thread_id = normalize_required_string(&input.thread_id, "threadId")?;
-    let recent_turn_limit =
-        normalize_positive_limit(input.recent_turn_limit, "recentTurnLimit", 32)?;
-
-    let thread = get_thread_bundle(conn, &thread_id)?
-        .map(|bundle| bundle.thread)
-        .ok_or_else(|| "load chat_agent turn context failed: thread not found".to_string())?;
-
-    let mut turn_statement = conn
-        .prepare(
-            r#"
-            SELECT
-              id,
-              thread_id,
-              role,
-              status,
-              provider_mode,
-              trace_id,
-              prompt_trace_id,
-              started_at_ms,
-              completed_at_ms,
-              aborted_at_ms
-            FROM agent_turns
-            WHERE thread_id = ?1
-            ORDER BY started_at_ms DESC, id DESC
-            LIMIT ?2
-            "#,
-        )
-        .map_err(|error| format!("prepare chat_agent recent turns failed: {error}"))?;
-    let turn_rows = turn_statement
-        .query_map(params![&thread_id, recent_turn_limit], turn_record_from_row)
-        .map_err(|error| format!("query chat_agent recent turns failed: {error}"))?;
-    let mut recent_turns = Vec::new();
-    for row in turn_rows {
-        recent_turns
-            .push(row.map_err(|error| format!("decode chat_agent recent turn failed: {error}"))?);
-    }
-    recent_turns.reverse();
-
-    let recent_beats = if recent_turns.is_empty() {
-        Vec::new()
-    } else {
-        let placeholders = (0..recent_turns.len())
-            .map(|index| format!("?{}", index + 2))
-            .collect::<Vec<_>>()
-            .join(", ");
-        let sql = format!(
-            r#"
-            SELECT
-              b.id,
-              b.turn_id,
-              b.beat_index,
-              b.modality,
-              b.status,
-              b.text_shadow,
-              b.artifact_id,
-              b.mime_type,
-              b.media_url,
-              b.projection_message_id,
-              b.created_at_ms,
-              b.delivered_at_ms
-            FROM agent_turn_beats b
-            INNER JOIN agent_turns t ON t.id = b.turn_id
-            WHERE t.thread_id = ?1 AND b.turn_id IN ({placeholders})
-            ORDER BY t.started_at_ms ASC, b.beat_index ASC, b.id ASC
-            "#
-        );
-        let mut params_vec: Vec<&dyn ToSql> = Vec::with_capacity(recent_turns.len() + 1);
-        params_vec.push(&thread_id);
-        let turn_ids: Vec<String> = recent_turns.iter().map(|turn| turn.id.clone()).collect();
-        for turn_id in &turn_ids {
-            params_vec.push(turn_id);
-        }
-        let mut beat_statement = conn
-            .prepare(&sql)
-            .map_err(|error| format!("prepare chat_agent recent beats failed: {error}"))?;
-        let beat_rows = beat_statement
-            .query_map(rusqlite::params_from_iter(params_vec), beat_record_from_row)
-            .map_err(|error| format!("query chat_agent recent beats failed: {error}"))?;
-        let mut beats = Vec::new();
-        for row in beat_rows {
-            beats.push(
-                row.map_err(|error| format!("decode chat_agent recent beat failed: {error}"))?,
-            );
-        }
-        beats
-    };
-
-    let draft = get_draft(conn, &thread_id)?;
-    let projection_version = compute_projection_version(conn, &thread_id)?;
-    Ok(ChatAgentTurnContext {
-        thread,
-        recent_turns,
-        recent_beats,
-        draft,
-        projection_version,
-    })
-}
+use rusqlite::{params, Connection};
 
 pub(crate) fn commit_turn_result(
     conn: &mut Connection,
