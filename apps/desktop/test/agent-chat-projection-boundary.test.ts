@@ -176,12 +176,13 @@ test('Desktop projection cache no longer exposes local Agent Chat cancel or rebu
   const bridge = readWorkspaceFile(
     'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-store.ts',
   );
-  const continuity = readWorkspaceFile(
-    'apps/desktop/src/shell/renderer/features/chat/chat-agent-continuity.ts',
+  const runtimeProvider = readWorkspaceFile(
+    'apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-provider.ts',
   );
 
   assert.doesNotMatch(bootstrap, /chat_agent_cancel_turn|chat_agent_rebuild_projection/);
   assert.doesNotMatch(commands, /chat_agent_cancel_turn|chat_agent_rebuild_projection/);
   assert.doesNotMatch(bridge, /cancelTurn\(|rebuildProjection\(/);
-  assert.doesNotMatch(continuity, /cancelTurn\(|rebuildProjection\(/);
+  assert.doesNotMatch(runtimeProvider, /chat-agent-continuity|commitProviderOutcome|createAgentLocalChatContinuityAdapter/);
+  assert.doesNotMatch(runtimeProvider, /chatAgentStoreClient\.commitTurnResult/);
 });

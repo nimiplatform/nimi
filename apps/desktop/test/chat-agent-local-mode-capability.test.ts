@@ -407,6 +407,8 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(hostActionSubmitSource, /ensureAgentConversationSubmitRouteReady/);
   assert.match(runtimeProviderSource, /case 'text-delta':/);
   assert.match(runtimeProviderSource, /feedStreamEvent\(input\.baseInput\.threadId,\s*\{\s*type:\s*'keepalive'\s*\}\)/);
+  assert.doesNotMatch(runtimeProviderSource, /chat-agent-continuity|commitProviderOutcome|createAgentLocalChatContinuityAdapter/);
+  assert.doesNotMatch(runtimeProviderSource, /chatAgentStoreClient\.commitTurnResult/);
   assert.doesNotMatch(runtimeProviderSource, /buildAgentLocalChatExecutionTextRequest/);
   assert.doesNotMatch(runtimeProviderSource, /runResolvedEnvelopeActions/);
   assert.match(presentationSource, /showStreamingText=\{false\}/);

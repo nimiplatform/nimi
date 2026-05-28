@@ -6,7 +6,6 @@ import type {
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 import type { AgentResolvedMessageActionEnvelope } from '@nimiplatform/sdk/runtime';
 import { feedStreamEvent } from '../turns/stream-controller';
-import { createAgentLocalChatContinuityAdapter, commitProviderOutcome } from './chat-agent-continuity';
 import {
   AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES,
   type AgentChatUserAttachment,
@@ -20,7 +19,6 @@ import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
 
 type AgentRuntimeChatProviderOptions = {
   runtimeAdapter?: AgentRuntimeChatTurnAdapter;
-  continuityAdapter?: ReturnType<typeof createAgentLocalChatContinuityAdapter>;
 };
 
 type AgentRuntimeChatProviderMetadata = {
@@ -67,12 +65,6 @@ function isAbortLikeError(error: unknown): boolean {
     || /abort|cancel/i.test(String(record.message || ''));
 }
 
-function toAbortLikeErrorMessage(error: unknown): string {
-  return error instanceof Error && normalizeText(error.message)
-    ? error.message
-    : 'Generation stopped.';
-}
-
 function textMessageStateFromEnvelope(input: {
   turnId: string;
   envelope: AgentResolvedMessageActionEnvelope;
@@ -94,8 +86,6 @@ async function* runRuntimeOwnedAgentTurn(input: {
   baseInput: ConversationTurnInput;
   metadata: AgentRuntimeChatProviderMetadata;
   runtimeAdapter: AgentRuntimeChatTurnAdapter;
-  continuityAdapter: ReturnType<typeof createAgentLocalChatContinuityAdapter>;
-  emittedEvents: ConversationTurnEvent[];
   userText: string;
   userAttachments: readonly AgentChatUserAttachment[];
 }): AsyncIterable<ConversationTurnEvent> {
@@ -137,7 +127,6 @@ async function* runRuntimeOwnedAgentTurn(input: {
             turnId: input.baseInput.turnId,
             textDelta: part.textDelta,
           };
-          input.emittedEvents.push(reasoningEvent);
           yield reasoningEvent;
           break;
         }
@@ -152,7 +141,6 @@ async function* runRuntimeOwnedAgentTurn(input: {
             turnId: input.baseInput.turnId,
             textDelta,
           };
-          input.emittedEvents.push(textDeltaEvent);
           yield textDeltaEvent;
           break;
         }
@@ -170,7 +158,6 @@ async function* runRuntimeOwnedAgentTurn(input: {
             beatId: `${input.baseInput.turnId}:beat:0`,
             text: outputText,
           };
-          input.emittedEvents.push(sealedEvent);
           yield sealedEvent;
           outputDiagnostics = {
             ...(outputDiagnostics || {}),
@@ -202,21 +189,6 @@ async function* runRuntimeOwnedAgentTurn(input: {
                 missingStructuredProjection: true,
               },
             };
-            const commitResult = await commitProviderOutcome({
-              continuityAdapter: input.continuityAdapter,
-              baseInput: input.baseInput,
-              emittedEvents: input.emittedEvents,
-              terminalEvent,
-              outcome: 'failed',
-              outputText,
-              reasoningText,
-              error: terminalEvent.error,
-            });
-            yield {
-              type: 'projection-rebuilt',
-              threadId: input.baseInput.threadId,
-              bundle: commitResult.bundle,
-            };
             yield terminalEvent;
             return;
           }
@@ -229,21 +201,6 @@ async function* runRuntimeOwnedAgentTurn(input: {
             usage: part.usage,
             trace: part.trace,
             diagnostics: outputDiagnostics || undefined,
-          };
-          const commitResult = await commitProviderOutcome({
-            continuityAdapter: input.continuityAdapter,
-            baseInput: input.baseInput,
-            emittedEvents: input.emittedEvents,
-            terminalEvent,
-            outcome: 'completed',
-            outputText,
-            reasoningText,
-            textMessageState,
-          });
-          yield {
-            type: 'projection-rebuilt',
-            threadId: input.baseInput.threadId,
-            bundle: commitResult.bundle,
           };
           yield terminalEvent;
           return;
@@ -263,22 +220,6 @@ async function* runRuntimeOwnedAgentTurn(input: {
               ...(part.diagnostics || {}),
             },
           };
-          const commitResult = await commitProviderOutcome({
-            continuityAdapter: input.continuityAdapter,
-            baseInput: input.baseInput,
-            emittedEvents: input.emittedEvents,
-            terminalEvent,
-            outcome: 'failed',
-            outputText,
-            reasoningText,
-            error: part.error,
-            textMessageState: textMessageState || undefined,
-          });
-          yield {
-            type: 'projection-rebuilt',
-            threadId: input.baseInput.threadId,
-            bundle: commitResult.bundle,
-          };
           yield terminalEvent;
           return;
         }
@@ -294,25 +235,6 @@ async function* runRuntimeOwnedAgentTurn(input: {
               ...(outputDiagnostics || {}),
               ...(part.diagnostics || {}),
             },
-          };
-          const commitResult = await commitProviderOutcome({
-            continuityAdapter: input.continuityAdapter,
-            baseInput: input.baseInput,
-            emittedEvents: input.emittedEvents,
-            terminalEvent,
-            outcome: 'canceled',
-            outputText,
-            reasoningText,
-            error: {
-              code: 'OPERATION_ABORTED',
-              message: 'Generation stopped.',
-            },
-            textMessageState: textMessageState || undefined,
-          });
-          yield {
-            type: 'projection-rebuilt',
-            threadId: input.baseInput.threadId,
-            bundle: commitResult.bundle,
           };
           yield terminalEvent;
           return;
@@ -331,7 +253,6 @@ export function createRuntimeAgentChatConversationProvider(
   options: AgentRuntimeChatProviderOptions = {},
 ): ConversationOrchestrationProvider {
   const runtimeAdapter = options.runtimeAdapter ?? { streamAgentTurn: streamChatAgentRuntimeAgentTurn };
-  const continuityAdapter = options.continuityAdapter ?? createAgentLocalChatContinuityAdapter();
   return {
     modeId: RUNTIME_AGENT_CHAT_MODE_ID,
     capabilities: AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES,
@@ -348,14 +269,12 @@ export function createRuntimeAgentChatConversationProvider(
         throw new Error('runtime.agent chat requires a non-empty user message or admitted attachment projection');
       }
 
-      const emittedEvents: ConversationTurnEvent[] = [];
       const turnStarted: ConversationTurnEvent = {
         type: 'turn-started',
         modeId: RUNTIME_AGENT_CHAT_MODE_ID,
         threadId: input.threadId,
         turnId: input.turnId,
       };
-      emittedEvents.push(turnStarted);
       yield turnStarted;
 
       try {
@@ -363,8 +282,6 @@ export function createRuntimeAgentChatConversationProvider(
           baseInput: input,
           metadata,
           runtimeAdapter,
-          continuityAdapter,
-          emittedEvents,
           userText,
           userAttachments,
         })) {
@@ -372,29 +289,10 @@ export function createRuntimeAgentChatConversationProvider(
         }
       } catch (error) {
         if (isAbortLikeError(error) || input.signal?.aborted) {
-          const cancelError = {
-            code: 'OPERATION_ABORTED',
-            message: toAbortLikeErrorMessage(error),
-          };
           const terminalEvent: ConversationTurnEvent = {
             type: 'turn-canceled',
             turnId: input.turnId,
             scope: 'turn',
-          };
-          const commitResult = await commitProviderOutcome({
-            continuityAdapter,
-            baseInput: input,
-            emittedEvents,
-            terminalEvent,
-            outcome: 'canceled',
-            outputText: '',
-            reasoningText: '',
-            error: cancelError,
-          });
-          yield {
-            type: 'projection-rebuilt',
-            threadId: input.threadId,
-            bundle: commitResult.bundle,
           };
           yield terminalEvent;
           return;
@@ -413,21 +311,6 @@ export function createRuntimeAgentChatConversationProvider(
           type: 'turn-failed',
           turnId: input.turnId,
           error: runtimeError,
-        };
-        const commitResult = await commitProviderOutcome({
-          continuityAdapter,
-          baseInput: input,
-          emittedEvents,
-          terminalEvent,
-          outcome: 'failed',
-          outputText: '',
-          reasoningText: '',
-          error: runtimeError,
-        });
-        yield {
-          type: 'projection-rebuilt',
-          threadId: input.threadId,
-          bundle: commitResult.bundle,
         };
         yield terminalEvent;
       }

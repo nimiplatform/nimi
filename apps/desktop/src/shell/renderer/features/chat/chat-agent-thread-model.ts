@@ -5,7 +5,6 @@ import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avata
 import type {
   AgentLocalMessageRecord,
   AgentLocalTargetSnapshot,
-  AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import {
   assertRecord,
