@@ -3,7 +3,7 @@ import {
   toLocalRuntimeEngineRuntimeModeRequestValue,
   toProtoStruct,
 } from '@nimiplatform/sdk/runtime';
-import { tauriInvoke } from '../llm-adapter/tauri-bridge';
+import { tauriInvoke } from './tauri-helpers';
 import { emitRuntimeLog } from '../telemetry/logger';
 import type {
   LocalRuntimeAssetFileImportResult,

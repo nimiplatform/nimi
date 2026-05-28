@@ -14,11 +14,15 @@ test('retired runtime Tauri store bridge stays physically absent', () => {
     existsSync(path.resolve(root, 'src/runtime/runtime-store/tauri-bridge.ts')),
     false,
   );
+  assert.equal(
+    existsSync(path.resolve(root, 'src/runtime/llm-adapter/tauri-bridge.ts')),
+    false,
+  );
 });
 
 test('desktop runtime bridge no longer exposes retired Tauri wrappers', () => {
   const checkedSources = [
-    'src/runtime/llm-adapter/tauri-bridge.ts',
+    'src/runtime/local-runtime/tauri-helpers.ts',
     'src/shell/renderer/bridge/runtime-bridge/runtime-parsers.ts',
     'src/shell/renderer/bridge/runtime-bridge/runtime-types.ts',
     'src/shell/renderer/bridge/runtime-bridge/types.ts',

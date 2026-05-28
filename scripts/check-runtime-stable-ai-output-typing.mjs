@@ -18,7 +18,6 @@ const checks = [
       'sdk/src/ai-provider/helpers.ts',
       'runtime/internal/nimillm/transcription_chat_compat.go',
       'apps/desktop/src/runtime/llm-adapter/execution/runtime-ai-bridge.ts',
-      'apps/desktop/src/runtime/llm-adapter/tauri-bridge.ts',
     ],
   },
   {
@@ -32,7 +31,6 @@ const checks = [
     description: 'desktop stable audio cache helpers must fail-close instead of returning nullable cache writes or unchanged artifacts on cache failure',
     pattern: 'Promise<RuntimePackageMediaCachePutResult \\| null>|return input\\.artifact;|!cached\\?\\.uri',
     paths: [
-      'apps/desktop/src/runtime/llm-adapter/tauri-bridge.ts',
       'apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-profiles.ts',
     ],
   },

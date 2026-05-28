@@ -1,4 +1,4 @@
-import { hasTauriInvoke, tauriInvoke } from '../llm-adapter/tauri-bridge';
+import { hasTauriInvoke, tauriInvoke } from './tauri-helpers';
 
 export async function pickLocalRuntimeAssetManifestPath(): Promise<string | null> {
   if (!hasTauriInvoke()) return null;
