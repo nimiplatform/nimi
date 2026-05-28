@@ -543,12 +543,8 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
               onModelSelectionChange={input.onModelSelectionChange}
               initialModelSelection={input.initialModelSelection}
               diagnosticsContent={diagnosticsContent}
-              clearChatsTargetName={input.clearChatsTargetName}
-              clearChatsDisabled={input.clearChatsDisabled}
-              onClearAgentHistory={input.onClearAgentHistory}
               showPresenceContent={false}
               showDiagnosticsFooter={false}
-              showClearHistoryAction={false}
               superSections={[
                 { id: 'conversation', label: input.t('Chat.agentCenterSuperSectionConversation', { defaultValue: 'Conversation' }), sections: ['chat', 'embed'] },
                 { id: 'voice', label: input.t('Chat.agentCenterSuperSectionVoice', { defaultValue: 'Voice' }), sections: ['tts', 'stt', 'voice'] },
@@ -563,9 +559,6 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
         onEnableAutonomy={input.onEnableAutonomy}
         onDisableAutonomy={input.onDisableAutonomy}
         onUpdateAutonomyConfig={input.onUpdateAutonomyConfig}
-        clearChatsTargetName={input.clearChatsTargetName}
-        clearChatsDisabled={input.clearChatsDisabled}
-        onClearAgentHistory={input.onClearAgentHistory}
       />
   );
 }

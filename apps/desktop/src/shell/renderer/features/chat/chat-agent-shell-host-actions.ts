@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import {
-  bundleQueryKey,
   normalizeText,
 } from './chat-agent-shell-core';
-import { clearAgentConversationAnchorBinding } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { submitAgentConversationTurn } from './chat-agent-shell-host-actions-submit';
 import type {
@@ -18,7 +15,6 @@ export { assertAgentSubmitSchedulingAllowed } from './chat-agent-shell-host-acti
 export function useAgentConversationHostActions(
   input: UseAgentConversationHostActionsInput,
 ): {
-  handleDeleteThread: (threadId: string) => Promise<void>;
   handleSelectAgent: (localAgentRef: string | null) => void;
   handleSelectThread: (threadId: string) => void;
   handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
@@ -49,31 +45,6 @@ export function useAgentConversationHostActions(
     }
     input.currentDraftTextRef.current = '';
     input.syncSelectionToThread(nextThread);
-  }, [input]);
-
-  const handleDeleteThread = useCallback(async (threadId: string) => {
-    const normalizedThreadId = normalizeText(threadId);
-    if (!normalizedThreadId) {
-      return;
-    }
-    const thread = input.threads.find((item) => item.id === normalizedThreadId) || null;
-    if (!thread) {
-      return;
-    }
-    await chatAgentStoreClient.deleteThread(normalizedThreadId);
-    clearAgentConversationAnchorBinding(normalizedThreadId);
-    input.queryClient.removeQueries({ queryKey: bundleQueryKey(normalizedThreadId) });
-    input.setFooterHostState(normalizedThreadId, null);
-    input.setThreadsCache((current) => current.filter((item) => item.id !== normalizedThreadId));
-    if (input.activeThreadId === normalizedThreadId) {
-      input.currentDraftTextRef.current = '';
-      if (input.activeTarget?.localAgentRef === thread.localAgentRef) {
-        input.setSelectionForLocalAgentRef(thread.localAgentRef);
-      } else {
-        input.syncSelectionToThread(null);
-        input.clearSelectedTarget();
-      }
-    }
   }, [input]);
 
   const handleSelectAgent = useCallback((localAgentRef: string | null) => {
@@ -107,7 +78,6 @@ export function useAgentConversationHostActions(
   }, [input]);
 
   return {
-    handleDeleteThread,
     handleSelectAgent,
     handleSelectThread,
     handleSubmit,

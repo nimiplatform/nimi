@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@nimiplatform/kit/ui';
-import { confirmDialog } from '@renderer/bridge/runtime-bridge/ui';
 import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-navigation-events';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import type { RuntimeAgentInspectSnapshot } from '@renderer/infra/runtime-agent-inspect';
@@ -44,9 +43,6 @@ type AgentCenterPanelProps = {
   onEnableAutonomy?: () => void;
   onDisableAutonomy?: () => void;
   onUpdateAutonomyConfig?: (input: { mode: string; dailyTokenBudget: string; maxTokensPerHook: string }) => void;
-  clearChatsTargetName?: string | null;
-  clearChatsDisabled?: boolean;
-  onClearAgentHistory?: () => Promise<void> | void;
 };
 // ── Main component ────────────────────────────────────────────────────────
 
@@ -170,28 +166,6 @@ export function AgentCenterPanel(props: AgentCenterPanelProps) {
       : autonomyModeDirty
         ? t('Chat.agentCenterBehaviorModeSaving', { defaultValue: 'Saving mode change…' })
         : null;
-
-  const handleClearHistory = useCallback(() => {
-    if (!props.onClearAgentHistory) {
-      return;
-    }
-    void (async () => {
-      const confirmation = await confirmDialog({
-        title: t('Chat.clearAgentChatHistoryTitle', { defaultValue: 'Clear agent chat history' }),
-        description: t('Chat.clearAgentChatHistoryConfirm', {
-          defaultValue: 'Clear messages shown on this device for {{name}}? This does not delete agent memory or cognition.',
-          name: props.clearChatsTargetName || props.activeTarget?.displayName || '',
-        }),
-        level: 'warning',
-      });
-      if (!confirmation.confirmed) {
-        return;
-      }
-      await props.onClearAgentHistory?.();
-    })().catch(() => {
-      // Upstream host error handling owns action failures.
-    });
-  }, [props, t]);
 
   // ── Setup score (Avatar / Background / Model / Behavior / Cognition) ──
   const setupTotal = 5;
@@ -395,25 +369,6 @@ export function AgentCenterPanel(props: AgentCenterPanelProps) {
         </Card>
       </Group>
 
-      <Group>
-        <GroupHead title={t('Chat.agentCenterMaintenance', { defaultValue: 'Maintenance' })} />
-        <Card>
-          <Row
-            label={t('Chat.clearAgentChatHistoryTitle', { defaultValue: 'Clear agent chat history' })}
-            desc={t('Chat.agentCenterClearHistoryScope', { defaultValue: 'Clears messages shown on this device.' })}
-            right={(
-              <Btn
-                size="sm"
-                variant="danger"
-                disabled={props.clearChatsDisabled || !props.onClearAgentHistory}
-                onClick={handleClearHistory}
-              >
-                {t('Chat.agentCenterClearShort', { defaultValue: 'Clear' })}
-              </Btn>
-            )}
-          />
-        </Card>
-      </Group>
     </div>
   );
 

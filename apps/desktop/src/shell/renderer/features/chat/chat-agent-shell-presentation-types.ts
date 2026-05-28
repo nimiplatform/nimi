@@ -97,7 +97,4 @@ export type UseAgentConversationPresentationInput = {
   thinkingSupported: boolean;
   thinkingUnsupportedReason: string | null;
   agentRouteReady: boolean;
-  clearChatsTargetName?: string | null;
-  clearChatsDisabled?: boolean;
-  onClearAgentHistory?: () => Promise<void> | void;
 };

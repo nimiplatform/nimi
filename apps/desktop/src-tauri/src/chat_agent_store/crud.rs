@@ -287,13 +287,3 @@ pub(crate) fn update_thread_metadata(
         .map(|bundle| bundle.thread)
         .ok_or_else(|| "update chat_agent thread failed: missing thread after update".to_string())
 }
-
-pub(crate) fn delete_thread(conn: &Connection, thread_id: &str) -> Result<(), String> {
-    let thread_id = normalize_required_string(thread_id, "threadId")?;
-    conn.execute(
-        "DELETE FROM agent_threads WHERE id = ?1",
-        params![thread_id],
-    )
-    .map_err(|error| map_sql_error("delete chat_agent thread failed", error))?;
-    Ok(())
-}

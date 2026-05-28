@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AISchedulingJudgement } from '@nimiplatform/sdk/ai';
 import { applyAIProfileToConfig } from '@nimiplatform/sdk/ai';
-import { confirmDialog } from '@renderer/bridge/runtime-bridge/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-navigation-events';
@@ -37,12 +36,8 @@ type ChatSettingsPanelProps = {
   presenceContent?: ReactNode;
   unavailableReason?: string;
   onDiagnosticsVisibilityChange?: (visible: boolean) => void;
-  clearChatsTargetName?: string | null;
-  clearChatsDisabled?: boolean;
-  onClearAgentHistory?: () => Promise<void> | void;
   showPresenceContent?: boolean;
   showDiagnosticsFooter?: boolean;
-  showClearHistoryAction?: boolean;
   /** When set, the AI Model Hub is rendered in a 2-col grouped grid (used by Agent Center). */
   superSections?: ReadonlyArray<import('@nimiplatform/kit/features/model-config').ModelConfigSuperSection>;
 };
@@ -261,12 +256,8 @@ function AiModeSettings(props: {
   diagnosticsContent?: ReactNode;
   unavailableReason: string;
   onDiagnosticsVisibilityChange?: (visible: boolean) => void;
-  clearChatsTargetName?: string | null;
-  clearChatsDisabled?: boolean;
-  onClearAgentHistory?: () => Promise<void> | void;
   showPresenceContent?: boolean;
   showDiagnosticsFooter?: boolean;
-  showClearHistoryAction?: boolean;
   superSections?: ReadonlyArray<import('@nimiplatform/kit/features/model-config').ModelConfigSuperSection>;
 }) {
   const { t } = useTranslation();
@@ -334,25 +325,6 @@ function AiModeSettings(props: {
     };
   }, [props.onDiagnosticsVisibilityChange]);
 
-  const handleClearChats = useCallback(() => {
-    const onClear = props.onClearAgentHistory;
-    if (!onClear) return;
-    void (async () => {
-      const confirmation = await confirmDialog({
-        title: t('Chat.clearAgentChatHistoryTitle', { defaultValue: 'Clear agent chat history' }),
-        description: t('Chat.clearAgentChatHistoryConfirm', {
-          defaultValue: 'Clear all local chat history with {{name}}? This cannot be undone.',
-          name: props.clearChatsTargetName || '',
-        }),
-        level: 'warning',
-      });
-      if (!confirmation.confirmed) return;
-      await onClear();
-    })().catch(() => {
-      // Swallow confirm/host errors; upstream reporting handles them.
-    });
-  }, [props.onClearAgentHistory, props.clearChatsTargetName, t]);
-
   const footer = (
     <div className="space-y-2 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)] pt-3">
       <SchedulingWarningSection />
@@ -365,21 +337,6 @@ function AiModeSettings(props: {
         </div>
       ) : props.showDiagnosticsFooter !== false ? (
         <DisabledSettingsNote label={props.unavailableReason} />
-      ) : null}
-      {props.showClearHistoryAction !== false && props.onClearAgentHistory ? (
-        <button
-          type="button"
-          onClick={handleClearChats}
-          disabled={props.clearChatsDisabled}
-          className="flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-xs text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] disabled:pointer-events-none disabled:opacity-50"
-        >
-          <span>{t('Chat.clearAgentChatHistoryTitle', { defaultValue: 'Clear agent chat history' })}</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-            <path d="M3 6h18" />
-            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-          </svg>
-        </button>
       ) : null}
     </div>
   );
@@ -407,12 +364,8 @@ export function ChatSettingsPanel({
   presenceContent,
   unavailableReason,
   onDiagnosticsVisibilityChange,
-  clearChatsTargetName,
-  clearChatsDisabled,
-  onClearAgentHistory,
   showPresenceContent,
   showDiagnosticsFooter,
-  showClearHistoryAction,
   superSections,
 }: ChatSettingsPanelProps) {
   const { t } = useTranslation();
@@ -428,12 +381,8 @@ export function ChatSettingsPanel({
         diagnosticsContent={diagnosticsContent}
         unavailableReason={resolvedUnavailableReason}
         onDiagnosticsVisibilityChange={onDiagnosticsVisibilityChange}
-        clearChatsTargetName={clearChatsTargetName}
-        clearChatsDisabled={clearChatsDisabled}
-        onClearAgentHistory={onClearAgentHistory}
         showPresenceContent={showPresenceContent}
         showDiagnosticsFooter={showDiagnosticsFooter}
-        showClearHistoryAction={showClearHistoryAction}
         superSections={superSections}
       />
     );

@@ -58,13 +58,6 @@ export async function updateThreadMetadata(input: AgentLocalUpdateThreadMetadata
   }, parseAgentLocalThreadRecord);
 }
 
-export async function deleteThread(threadId: string): Promise<void> {
-  requireTauri('chat_agent_delete_thread');
-  await invokeChecked('chat_agent_delete_thread', {
-    payload: { threadId },
-  }, () => undefined);
-}
-
 export async function commitTurnResult(input: AgentLocalCommitTurnResultInput): Promise<AgentLocalCommitTurnResult> {
   requireTauri('chat_agent_commit_turn_result');
   return invokeChecked('chat_agent_commit_turn_result', {
@@ -78,6 +71,5 @@ export const chatAgentStoreClient = {
   getThreadBundle,
   createThread,
   updateThreadMetadata,
-  deleteThread,
   commitTurnResult,
 };

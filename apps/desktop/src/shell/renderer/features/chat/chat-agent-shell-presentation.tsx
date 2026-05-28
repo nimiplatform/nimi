@@ -414,9 +414,6 @@ export function useAgentConversationPresentation(
     selectedTargetId,
     schedulingGuard.disabled,
     resolvedAgentDisplayName,
-    input.clearChatsTargetName,
-    input.clearChatsDisabled,
-    input.onClearAgentHistory,
     input.cognitionContent,
     input.onOpenAgentCenter,
   ]);

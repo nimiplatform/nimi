@@ -488,7 +488,6 @@ export function useAgentConversationModeHost(
     currentDraftTextRef.current = input.text;
   }, [activeConversationAnchorId, activeThreadId, currentDraftTextRef]);
   const {
-    clearLatestVoiceCaptureForThread,
     handsFreeState,
     onVoiceSessionCancel,
     onVoiceSessionToggle,
@@ -509,7 +508,7 @@ export function useAgentConversationModeHost(
     transcribeCapabilityProjection,
   });
   const agentAiConfig = useAppStore((state) => state.aiConfig);
-  const { handleDeleteThread, handleSelectAgent, handleSelectThread, handleSubmit } = useAgentConversationHostActions({
+  const { handleSelectAgent, handleSelectThread, handleSubmit } = useAgentConversationHostActions({
     activeTarget,
     activeThreadId,
     aiConfig: agentAiConfig,
@@ -557,12 +556,6 @@ export function useAgentConversationModeHost(
     textModelContextTokens: textRouteModelProfile?.maxContextTokens ?? null,
     textMaxOutputTokensRequested: resolveAgentChatRequestedMaxOutputTokens(textRouteModelProfile, behaviorSettings.maxOutputTokensOverride),
   });
-  const handleDeleteCurrentThread = useCallback((threadId: string) => {
-    setPendingAttachmentsForThread(threadId, []);
-    clearLatestVoiceCaptureForThread(threadId);
-    void handleDeleteThread(threadId).catch(reportHostError);
-  }, [clearLatestVoiceCaptureForThread, handleDeleteThread, reportHostError, setPendingAttachmentsForThread]);
-
   const cognitionContent = useMemo(() => (
     activeTarget ? (
       <ChatAgentHistoryPanel
@@ -644,9 +637,6 @@ export function useAgentConversationModeHost(
     thinkingSupported: thinkingSupport.supported,
     thinkingUnsupportedReason,
     agentRouteReady,
-    clearChatsTargetName: activeTarget?.displayName ?? null,
-    clearChatsDisabled: Boolean(submittingThreadId) || !activeThreadId,
-    onClearAgentHistory: activeThreadId ? () => handleDeleteCurrentThread(activeThreadId) : undefined,
   });
 
   return useMemo<DesktopConversationModeHost>(() => ({

@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use serde::Deserialize;
 
 use super::{
-    commit_turn_result, create_thread, delete_thread, get_thread_bundle, list_threads, open_db,
+    commit_turn_result, create_thread, get_thread_bundle, list_threads, open_db,
     update_thread_metadata, ChatAgentCommitTurnResult, ChatAgentCommitTurnResultInput,
     ChatAgentCreateThreadInput, ChatAgentThreadBundle, ChatAgentThreadLookupPayload,
     ChatAgentThreadRecord, ChatAgentThreadSummary, ChatAgentUpdateThreadMetadataInput,
@@ -90,18 +90,6 @@ pub(crate) async fn chat_agent_update_thread_metadata(
         ensure_chat_agent_writes_allowed()?;
         let conn = open_db()?;
         update_thread_metadata(&conn, &payload)
-    })
-    .await
-}
-
-#[tauri::command]
-pub(crate) async fn chat_agent_delete_thread(
-    payload: ChatAgentThreadLookupPayload,
-) -> Result<(), String> {
-    run_chat_agent_store(move || {
-        ensure_chat_agent_writes_allowed()?;
-        let conn = open_db()?;
-        delete_thread(&conn, &payload.thread_id)
     })
     .await
 }
