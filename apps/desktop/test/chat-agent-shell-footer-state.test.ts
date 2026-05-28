@@ -193,7 +193,6 @@ test('agent footer state is unaffected by projection rebuild while terminal has 
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'projection-rebuilt',
     threadId: 'thread-1',
-    projectionVersion: 'projection:10:t1',
   });
 
   const viewState = resolveAgentFooterViewState({

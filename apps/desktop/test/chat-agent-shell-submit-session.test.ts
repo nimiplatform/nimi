@@ -307,7 +307,6 @@ test('agent submit session keeps authoritative projection when stale text delta 
     event: {
       type: 'projection-rebuilt',
       threadId: 'thread-1',
-      projectionVersion: 'projection:10:t1',
     },
     updatedAtMs: 140,
   }).state;
@@ -343,7 +342,6 @@ test('agent submit session applies projection refresh after completed terminal f
     event: {
       type: 'projection-rebuilt',
       threadId: 'thread-1',
-      projectionVersion: 'projection:10:t1',
     },
     updatedAtMs: 140,
   }).state;
@@ -382,7 +380,6 @@ test('agent submit session applies projection refresh after completed terminal f
     event: {
       type: 'projection-rebuilt',
       threadId: 'thread-1',
-      projectionVersion: 'projection:11:t2',
     },
     updatedAtMs: 160,
   }).state;

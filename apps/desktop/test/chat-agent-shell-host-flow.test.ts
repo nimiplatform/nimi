@@ -157,7 +157,6 @@ test('agent host flow preserves authoritative assistant content across first-bea
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'projection-rebuilt',
     threadId: 'thread-1',
-    projectionVersion: 'projection:10:t1',
   });
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'turn-canceled',
@@ -279,7 +278,6 @@ test('agent host flow resolves authoritative completion and clears composer text
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'projection-rebuilt',
     threadId: 'thread-1',
-    projectionVersion: 'projection:11:t1',
   });
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'turn-completed',

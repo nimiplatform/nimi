@@ -20,7 +20,6 @@ test('agent shell lifecycle ignores local projection version and keeps completed
     {
       type: 'projection-rebuilt',
       threadId: 'thread-1',
-      projectionVersion: 'projection:10:t1',
     },
     {
       type: 'turn-completed',
@@ -177,7 +176,6 @@ test('agent shell lifecycle fails close when provider exits without terminal suc
   const state = applyEvents([{
     type: 'projection-rebuilt',
     threadId: 'thread-1',
-    projectionVersion: 'projection:20:t1',
   }]);
 
   assert.equal(state.terminal, 'running');

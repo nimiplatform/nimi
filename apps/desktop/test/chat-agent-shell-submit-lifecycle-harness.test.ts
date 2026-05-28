@@ -226,7 +226,6 @@ test('agent host submit harness converges completed submit to authoritative bund
       event: {
         type: 'projection-rebuilt',
         threadId,
-        projectionVersion: 'projection:10:t1',
       },
       updatedAtMs: 140,
     });
@@ -333,7 +332,6 @@ test('agent host submit harness preserves sealed first-beat, restores composer t
       event: {
         type: 'projection-rebuilt',
         threadId,
-        projectionVersion: 'projection:10:t1',
       },
       updatedAtMs: 140,
     });
@@ -455,7 +453,6 @@ test('agent host submit harness does not create a pending second text message fo
       event: {
         type: 'projection-rebuilt',
         threadId,
-        projectionVersion: 'projection:11:t1',
       },
       updatedAtMs: 140,
     });

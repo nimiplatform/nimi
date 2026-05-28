@@ -215,7 +215,6 @@ async function* runRuntimeOwnedAgentTurn(input: {
             yield {
               type: 'projection-rebuilt',
               threadId: input.baseInput.threadId,
-              projectionVersion: commitResult.projectionVersion,
               bundle: commitResult.bundle,
             };
             yield terminalEvent;
@@ -244,7 +243,6 @@ async function* runRuntimeOwnedAgentTurn(input: {
           yield {
             type: 'projection-rebuilt',
             threadId: input.baseInput.threadId,
-            projectionVersion: commitResult.projectionVersion,
             bundle: commitResult.bundle,
           };
           yield terminalEvent;
@@ -279,7 +277,6 @@ async function* runRuntimeOwnedAgentTurn(input: {
           yield {
             type: 'projection-rebuilt',
             threadId: input.baseInput.threadId,
-            projectionVersion: commitResult.projectionVersion,
             bundle: commitResult.bundle,
           };
           yield terminalEvent;
@@ -315,7 +312,6 @@ async function* runRuntimeOwnedAgentTurn(input: {
           yield {
             type: 'projection-rebuilt',
             threadId: input.baseInput.threadId,
-            projectionVersion: commitResult.projectionVersion,
             bundle: commitResult.bundle,
           };
           yield terminalEvent;
@@ -398,7 +394,6 @@ export function createRuntimeAgentChatConversationProvider(
           yield {
             type: 'projection-rebuilt',
             threadId: input.threadId,
-            projectionVersion: commitResult.projectionVersion,
             bundle: commitResult.bundle,
           };
           yield terminalEvent;
@@ -432,7 +427,6 @@ export function createRuntimeAgentChatConversationProvider(
         yield {
           type: 'projection-rebuilt',
           threadId: input.threadId,
-          projectionVersion: commitResult.projectionVersion,
           bundle: commitResult.bundle,
         };
         yield terminalEvent;

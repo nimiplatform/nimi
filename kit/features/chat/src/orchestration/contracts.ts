@@ -222,7 +222,6 @@ export type ConversationTurnEvent =
   | {
     type: 'projection-rebuilt';
     threadId: string;
-    projectionVersion: string;
     bundle?: unknown;
   }
   | {

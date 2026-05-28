@@ -139,7 +139,6 @@ test('agent host interaction preserves authoritative content and interrupted foo
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'projection-rebuilt',
     threadId: 'thread-1',
-    projectionVersion: 'projection:10:t1',
   });
 
   const refreshedInteraction = resolveProjectionRefreshAgentHostInteraction({
@@ -281,7 +280,6 @@ test('agent host interaction prefers authoritative completion, clears composer t
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'projection-rebuilt',
     threadId: 'thread-1',
-    projectionVersion: 'projection:10:t1',
   });
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'turn-completed',
@@ -329,7 +327,6 @@ test('agent host interaction applies projection refresh after terminal completio
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'projection-rebuilt',
     threadId: 'thread-1',
-    projectionVersion: 'projection:10:t1',
   });
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'turn-completed',
@@ -349,7 +346,6 @@ test('agent host interaction applies projection refresh after terminal completio
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'projection-rebuilt',
     threadId: 'thread-1',
-    projectionVersion: 'projection:11:t2',
   });
 
   const interaction = resolveProjectionRefreshAgentHostInteraction({

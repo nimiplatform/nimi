@@ -220,7 +220,6 @@ test('agent submit driver accepts projection refresh in running state and keeps 
     event: {
       type: 'projection-rebuilt',
       threadId: 'thread-1',
-      projectionVersion: 'projection:10:t1',
     },
     updatedAtMs: 140,
   });
@@ -261,7 +260,6 @@ test('agent submit driver applies projection refresh after completed terminal fo
     event: {
       type: 'projection-rebuilt',
       threadId: 'thread-1',
-      projectionVersion: 'projection:10:t1',
     },
     updatedAtMs: 140,
   }).finalSession;
@@ -307,7 +305,6 @@ test('agent submit driver applies projection refresh after completed terminal fo
     event: {
       type: 'projection-rebuilt',
       threadId: 'thread-1',
-      projectionVersion: 'projection:11:t2',
     },
     updatedAtMs: 160,
   });
