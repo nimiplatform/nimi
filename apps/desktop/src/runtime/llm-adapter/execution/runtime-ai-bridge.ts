@@ -383,12 +383,8 @@ export async function buildRuntimeStreamOptions(
 
 export {
   asRuntimeInvokeError,
-  base64FromBytes,
-  extractEmbeddings,
   extractRuntimeReasonCode,
   extractTextFromGenerateOutput,
-  resolveTranscribeAudio,
   toLocalRuntimeReasonCode,
   type DesktopScenarioOutput,
-  type FetchImpl,
 } from './runtime-ai-bridge-output';
