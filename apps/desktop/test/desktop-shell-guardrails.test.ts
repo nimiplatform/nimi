@@ -78,12 +78,12 @@ test('confirmDialog falls back to window.confirm outside Tauri', async () => {
 
   try {
     const result = await confirmDialog({
-      title: 'Clear agent chat history',
-      description: 'Delete all local chat history with Agent One?',
+      title: 'Discard pending changes',
+      description: 'Discard the pending settings changes?',
       level: 'warning',
     });
     assert.equal(result.confirmed, true);
-    assert.equal(confirmMessage, 'Delete all local chat history with Agent One?');
+    assert.equal(confirmMessage, 'Discard the pending settings changes?');
   } finally {
     restoreWindow();
   }
@@ -104,16 +104,16 @@ test('confirmDialog invokes the fixed tauri command and payload shape', async ()
 
   try {
     const result = await confirmDialog({
-      title: 'Clear agent chat history',
-      description: 'Delete all local chat history with Agent One?',
+      title: 'Discard pending changes',
+      description: 'Discard the pending settings changes?',
       level: 'warning',
     });
     assert.equal(result.confirmed, false);
     assert.equal(observedCommand, 'confirm_dialog');
     assert.deepEqual(observedPayload, {
       payload: {
-        title: 'Clear agent chat history',
-        description: 'Delete all local chat history with Agent One?',
+        title: 'Discard pending changes',
+        description: 'Discard the pending settings changes?',
         level: 'warning',
       },
     });
