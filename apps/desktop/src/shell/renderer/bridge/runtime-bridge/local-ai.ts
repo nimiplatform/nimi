@@ -3,7 +3,7 @@ import type {
   LocalRuntimeAssetRecord,
   LocalRuntimeImportAssetPayload,
   LocalRuntimeImportFilePayload,
-} from './local-ai-types.js';
+} from '@runtime/local-runtime';
 
 export type LocalRuntimeLifecycleCaller = 'core' | 'builtin' | 'injected' | 'sideload' | string;
 

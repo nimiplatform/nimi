@@ -55,39 +55,6 @@ export {
 } from './runtime-parsers.js';
 
 export type {
-  LocalRuntimeAssetKind,
-  LocalRuntimeAssetStatus,
-  LocalRuntimeAssetRecord,
-  LocalRuntimeAssetHealth,
-  LocalRuntimeAssetsHealthResult,
-  LocalRuntimeInferenceAuditEventType,
-  LocalRuntimeInferenceAuditModality,
-  LocalRuntimeInferenceAuditPayload,
-  LocalRuntimeAuditEvent,
-  LocalRuntimeAuditTimeRange,
-  LocalRuntimeDownloadProgressEvent,
-  LocalRuntimeDownloadSessionSummary,
-  LocalRuntimeAuditListPayload,
-  LocalRuntimeListAssetsPayload,
-  LocalRuntimeListVerifiedAssetsPayload,
-  LocalRuntimeInstallPayload,
-  LocalRuntimeVerifiedAssetDescriptor,
-  LocalRuntimeInstallVerifiedAssetPayload,
-  LocalRuntimeImportAssetPayload,
-} from './local-ai-types.js';
-
-export {
-  parseLocalRuntimeAssetRecord,
-  parseLocalRuntimeVerifiedAssetDescriptor,
-  parseLocalRuntimeVerifiedAssetDescriptorList,
-  parseLocalRuntimeAssetRecordList,
-  parseLocalRuntimeAssetsHealthResult,
-  parseLocalRuntimeAuditEvent,
-  parseLocalRuntimeAuditEventList,
-  parseLocalRuntimePickManifestResult,
-} from './local-ai-parsers.js';
-
-export type {
   ChatAiMessageRole,
   ChatAiMessageStatus,
   ChatAiThreadSummary,

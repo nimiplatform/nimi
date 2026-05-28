@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -10,7 +10,6 @@ const localModelCenterDownloadsPath = path.resolve(process.cwd(), 'src/shell/ren
 
 const runtimeCommandsAssetsSource = readFileSync(runtimeCommandsAssetsPath, 'utf-8');
 const runtimeIndexSource = readFileSync(runtimeIndexPath, 'utf-8');
-const localAiBridgeParsersSource = readFileSync(localAiBridgeParsersPath, 'utf-8');
 const localModelCenterDownloadsSource = readFileSync(localModelCenterDownloadsPath, 'utf-8');
 
 test('local runtime transfer plane resolves through runtime typed APIs', () => {
@@ -28,8 +27,7 @@ test('runtime local facade no longer re-exports go-runtime sync helpers', () => 
 });
 
 test('desktop shipped progress paths no longer treat tauri local-ai progress as the SSOT', () => {
-  assert.doesNotMatch(localAiBridgeParsersSource, /parseLocalRuntimeDownloadProgressEvent/);
-  assert.doesNotMatch(localAiBridgeParsersSource, /local-ai:\/\/download-progress/);
+  assert.equal(existsSync(localAiBridgeParsersPath), false);
   assert.match(localModelCenterDownloadsSource, /localRuntime\.listDownloads\(\)/);
   assert.match(localModelCenterDownloadsSource, /localRuntime\.subscribeDownloadProgress\(/);
 });

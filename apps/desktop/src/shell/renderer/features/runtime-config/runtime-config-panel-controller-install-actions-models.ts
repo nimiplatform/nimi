@@ -13,14 +13,13 @@ import {
   startLocalRuntimeAsset,
   stopLocalRuntimeAsset,
 } from '@renderer/bridge/runtime-bridge/local-ai';
-import type {
-  LocalRuntimeAssetRecord,
-} from '@renderer/bridge/runtime-bridge/local-ai-types';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
 import { i18n } from '@renderer/i18n';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
+
+type LocalRuntimeAssetRecord = Awaited<ReturnType<typeof startLocalRuntimeAsset>>;
 
 export type RuntimeConfigModelManagementActions = {
   importLocalModel: () => Promise<void>;
