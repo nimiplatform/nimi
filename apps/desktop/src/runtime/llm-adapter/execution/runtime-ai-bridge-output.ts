@@ -1,4 +1,3 @@
-import { asNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode, type NimiError } from '@nimiplatform/sdk/types';
 
 const RUNTIME_REASON_CODE_TO_LOCAL_AI: Record<string, string> = {
@@ -37,80 +36,9 @@ const AI_REASON_CODE_NUMERIC: Record<number, string> = {
   565: 'AI_LOCAL_SPEECH_BUNDLE_DEGRADED',
 };
 
-const DEFAULT_RUNTIME_ACTION_HINT = 'retry_or_check_runtime_status';
-
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
   return value as Record<string, unknown>;
-}
-
-export type DesktopScenarioOutput = {
-  output?: (
-    | {
-      oneofKind: 'textGenerate';
-      textGenerate: {
-        text: string;
-      };
-    }
-    | {
-      oneofKind: 'textEmbed';
-      textEmbed: {
-        vectors: Array<{
-          values: number[];
-        }>;
-      };
-    }
-    | {
-      oneofKind: 'imageGenerate';
-      imageGenerate: {
-        artifacts: unknown[];
-      };
-    }
-    | {
-      oneofKind: 'videoGenerate';
-      videoGenerate: {
-        artifacts: unknown[];
-      };
-    }
-    | {
-      oneofKind: 'speechTranscribe';
-      speechTranscribe: {
-        text: string;
-        artifacts: unknown[];
-      };
-    }
-    | {
-      oneofKind: 'speechSynthesize';
-      speechSynthesize: {
-        artifacts: unknown[];
-      };
-    }
-    | {
-      oneofKind: 'musicGenerate';
-      musicGenerate: {
-        artifacts: unknown[];
-      };
-    }
-    | {
-      oneofKind: 'worldGenerate';
-      worldGenerate: {
-        worldId: string;
-        spzUrls?: Record<string, string>;
-        artifacts: unknown[];
-      };
-    }
-    | {
-      oneofKind: undefined;
-    }
-  );
-};
-
-export function extractTextFromGenerateOutput(output: DesktopScenarioOutput | undefined): string {
-  const variant = output?.output;
-  if (variant?.oneofKind === 'textGenerate') {
-    return String(variant.textGenerate.text || '').trim();
-  }
-  return '';
 }
 
 function extractReasonCodeCandidate(value: unknown): string | null {
@@ -154,20 +82,4 @@ function isRuntimeNimiError(error: unknown): error is NimiError {
   if (!error || typeof error !== 'object') return false;
   const record = error as Record<string, unknown>;
   return typeof record.reasonCode === 'string' && typeof record.actionHint === 'string';
-}
-
-export function asRuntimeInvokeError(
-  error: unknown,
-  fallback: {
-    traceId?: string;
-    reasonCode?: string;
-    actionHint?: string;
-  } = {},
-): NimiError {
-  return asNimiError(error, {
-    reasonCode: fallback.reasonCode || ReasonCode.RUNTIME_CALL_FAILED,
-    actionHint: fallback.actionHint || DEFAULT_RUNTIME_ACTION_HINT,
-    traceId: fallback.traceId || '',
-    source: 'runtime',
-  });
 }

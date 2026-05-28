@@ -382,9 +382,6 @@ export async function buildRuntimeStreamOptions(
 }
 
 export {
-  asRuntimeInvokeError,
   extractRuntimeReasonCode,
-  extractTextFromGenerateOutput,
   toLocalRuntimeReasonCode,
-  type DesktopScenarioOutput,
 } from './runtime-ai-bridge-output';
