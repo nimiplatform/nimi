@@ -103,12 +103,4 @@ export type {
   AgentLocalThreadBundle,
 } from './chat-agent-types.js';
 
-export type {
-  ExternalAgentIssueTokenPayload,
-  ExternalAgentIssueTokenResult,
-  ExternalAgentRevokeTokenPayload,
-  ExternalAgentTokenRecord,
-  ExternalAgentGatewayStatus,
-} from './external-agent.js';
-
 import './window-global.js';

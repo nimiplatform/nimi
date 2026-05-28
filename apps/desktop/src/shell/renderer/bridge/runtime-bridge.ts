@@ -43,12 +43,6 @@ import { getDesktopStorageDirs } from './runtime-bridge/desktop-storage';
 import { oauthListenForCode, oauthTokenExchange } from './runtime-bridge/oauth';
 import { completeMenuBarQuit, syncMenuBarRuntimeHealth } from './runtime-bridge/menu-bar';
 import { focusMainWindow, openExternalUrl, startWindowDrag } from './runtime-bridge/ui';
-import {
-  issueExternalAgentToken,
-  listExternalAgentTokens,
-  revokeExternalAgentToken,
-  getExternalAgentGatewayStatus,
-} from './runtime-bridge/external-agent';
 
 export type {
   ProductControlRecord,
@@ -91,11 +85,6 @@ export type {
   OauthListenForCodeResult,
   MenuBarProviderSummary,
   MenuBarRuntimeHealthSyncPayload,
-  ExternalAgentGatewayStatus,
-  ExternalAgentIssueTokenPayload,
-  ExternalAgentIssueTokenResult,
-  ExternalAgentRevokeTokenPayload,
-  ExternalAgentTokenRecord,
 } from './runtime-bridge/types';
 
 export {
@@ -141,8 +130,4 @@ export {
   startWindowDrag,
   syncMenuBarRuntimeHealth,
   completeMenuBarQuit,
-  issueExternalAgentToken,
-  listExternalAgentTokens,
-  revokeExternalAgentToken,
-  getExternalAgentGatewayStatus,
 };

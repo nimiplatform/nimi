@@ -39,6 +39,7 @@ import {
   type RuntimeRouteLocalStatusMismatch,
   type RuntimeRouteNodeCatalogProjectionInput,
 } from './runtime-route-options.js';
+import type { JsonObject } from '../internal/utils.js';
 
 export const RUNTIME_ROUTE_DESCRIBE_TIMEOUT_MS = 30_000;
 export const RUNTIME_ROUTE_LOCAL_WARM_DEFAULT_TIMEOUT_MS = 60_000;
@@ -119,13 +120,13 @@ export type RuntimeRouteLocalWarmMetric =
     kind: 'counter';
     name: string;
     value?: number;
-    details?: Record<string, unknown>;
+    details?: JsonObject;
   }
   | {
     kind: 'timing';
     name: string;
     durationMs: number;
-    details?: Record<string, unknown>;
+    details?: JsonObject;
   };
 
 export type RuntimeRouteLocalWarmDeps = {

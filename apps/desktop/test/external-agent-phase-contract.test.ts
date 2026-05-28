@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const desktopDir = path.resolve(import.meta.dirname, '..');
@@ -17,11 +17,7 @@ test('external agent runtime bridge no longer parses app-local lifecycle executi
   assert.doesNotMatch(source, /phaseRaw === 'commit'[\s\S]*:\s*'commit'/);
 });
 
-test('external agent renderer bridge no longer subscribes to app-local execution requests', () => {
-  const source = readDesktopFile('src/shell/renderer/bridge/runtime-bridge/external-agent.ts');
-  assert.doesNotMatch(source, /function parseActionPhase/);
-  assert.doesNotMatch(source, /parseExecutionRequest/);
-  assert.doesNotMatch(source, /subscribeExternalAgentActionRequests/);
-  assert.doesNotMatch(source, /record\.dryRun\s*\?\s*'dry-run'\s*:\s*'commit'/);
-  assert.doesNotMatch(source, /phaseRaw === 'commit'[\s\S]*:\s*'commit'/);
+test('external agent shell bridge forwarding surface stays retired', () => {
+  const bridgePath = path.join(desktopDir, 'src/shell/renderer/bridge/runtime-bridge/external-agent.ts');
+  assert.equal(existsSync(bridgePath), false);
 });
