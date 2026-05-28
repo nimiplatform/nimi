@@ -7,7 +7,6 @@ import {
   resolveAgentTargetSummaries,
 } from '../src/shell/renderer/features/chat/chat-agent-shell-view-model.js';
 import {
-  buildAgentThreadMetadataUpdate,
   mergeAgentTargetWithPresentationProfile,
 } from '../src/shell/renderer/features/chat/chat-agent-thread-model.js';
 import type {
@@ -365,35 +364,4 @@ test('agent shell view model merges runtime presentation profile onto desktop ta
     interactionPolicyRef: null,
     defaultVoiceReference: 'voice://agent-1/default',
   });
-});
-
-test('agent shell view model emits thread metadata update when authoritative target snapshot changes', () => {
-  const thread = sampleThreads()[0]!;
-  const mergedTarget = mergeAgentTargetWithPresentationProfile(thread.targetSnapshot, {
-    backendKind: 'live2d',
-    avatarAssetRef: 'asset://avatar/live2d/companion.model3.json',
-    expressionProfileRef: null,
-    idlePreset: 'companion.idle.soft',
-    interactionPolicyRef: null,
-    defaultVoiceReference: 'voice://agent-1/default',
-  });
-  const update = buildAgentThreadMetadataUpdate({
-    thread,
-    target: mergedTarget,
-  });
-
-  assert.deepEqual(update, {
-    id: 'thread-agent-1',
-    title: 'Companion',
-    updatedAtMs: 100,
-    lastMessageAtMs: 90,
-    targetSnapshot: mergedTarget,
-  });
-  assert.equal(buildAgentThreadMetadataUpdate({
-    thread: {
-      ...thread,
-      targetSnapshot: mergedTarget!,
-    },
-    target: mergedTarget,
-  }), null);
 });

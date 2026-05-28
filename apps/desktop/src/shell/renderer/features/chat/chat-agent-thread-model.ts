@@ -5,7 +5,6 @@ import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avata
 import type {
   AgentLocalMessageRecord,
   AgentLocalTargetSnapshot,
-  AgentLocalUpdateThreadMetadataInput,
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import {
@@ -185,25 +184,6 @@ export function areAgentTargetSnapshotsEquivalent(
     && (left.bio || null) === (right.bio || null)
     && (left.ownershipType || null) === (right.ownershipType || null)
     && arePresentationProfilesEqual(left.presentationProfile, right.presentationProfile);
-}
-
-export function buildAgentThreadMetadataUpdate(input: {
-  thread: AgentLocalThreadSummary | null;
-  target: AgentLocalTargetSnapshot | null;
-}): AgentLocalUpdateThreadMetadataInput | null {
-  if (!input.thread || !input.target || input.thread.localAgentRef !== input.target.localAgentRef) {
-    return null;
-  }
-  if (areAgentTargetSnapshotsEquivalent(input.thread.targetSnapshot, input.target)) {
-    return null;
-  }
-  return {
-    id: input.thread.id,
-    title: input.thread.title,
-    updatedAtMs: input.thread.updatedAtMs,
-    lastMessageAtMs: input.thread.lastMessageAtMs,
-    targetSnapshot: input.target,
-  };
 }
 
 function parseAgentFriendTarget(value: unknown, ownerUserId: string): AgentLocalTargetSnapshot {

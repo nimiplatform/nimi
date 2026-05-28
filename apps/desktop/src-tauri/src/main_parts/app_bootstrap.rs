@@ -364,7 +364,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             chat_agent_store::chat_agent_set_offline_tier,
             chat_agent_store::chat_agent_get_thread_bundle,
             chat_agent_store::chat_agent_create_thread,
-            chat_agent_store::chat_agent_update_thread_metadata,
             chat_agent_store::chat_agent_commit_turn_result,
             desktop_agent_center_store::desktop_agent_center_account_local_resources_remove,
             desktop_agent_center_store::desktop_agent_center_agent_local_resources_remove,

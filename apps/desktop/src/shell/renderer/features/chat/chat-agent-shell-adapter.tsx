@@ -17,8 +17,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
-import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
-import type { AgentLocalThreadBundle } from '@renderer/bridge/runtime-bridge/types';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import {
   type AgentTurnLifecycleState,
@@ -48,11 +46,7 @@ import {
   subscribeStoredPerformancePreferences,
 } from '../settings/settings-storage';
 import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-import {
-  bundleQueryKey,
-  upsertThreadSummary,
-  toErrorMessage,
-} from './chat-agent-shell-core';
+import { toErrorMessage } from './chat-agent-shell-core';
 import { useAgentConversationPresentation } from './chat-agent-shell-presentation';
 import { useAgentConversationEffects } from './chat-agent-shell-effects';
 import { useAgentConversationCapabilityEffects } from './chat-agent-shell-capability-effects';
@@ -66,7 +60,6 @@ import { useAgentConversationVoiceSession } from './chat-agent-shell-adapter-voi
 import { useAgentConversationShellState } from './chat-agent-shell-adapter-state';
 import { resolveAgentChatRequestedMaxOutputTokens } from './chat-nimi-route-view';
 import {
-  buildAgentThreadMetadataUpdate,
   mergeAgentTargetWithPresentationProfile,
 } from './chat-agent-thread-model';
 import { useAgentConversationRuntimeController } from './chat-agent-shell-adapter-runtime';
@@ -264,52 +257,6 @@ export function useAgentConversationModeHost(
     () => mergeAgentTargetWithPresentationProfile(shellActiveTarget, runtimePresentationProfile),
     [runtimePresentationProfile, shellActiveTarget],
   );
-
-  useEffect(() => {
-    const metadataUpdate = buildAgentThreadMetadataUpdate({
-      thread: selectedThreadRecord,
-      target: activeTarget,
-    });
-    if (!metadataUpdate) {
-      return;
-    }
-    let cancelled = false;
-    void chatAgentStoreClient.updateThreadMetadata(metadataUpdate)
-      .then((updatedThread) => {
-        if (cancelled) {
-          return;
-        }
-        queryClient.setQueryData(['chat-agent-threads'], (current: typeof threads | undefined) => (
-          upsertThreadSummary(current || [], updatedThread)
-        ));
-        queryClient.setQueryData(bundleQueryKey(updatedThread.id), (current: AgentLocalThreadBundle | undefined) => {
-          if (!current || current.thread.id !== updatedThread.id) {
-            return current;
-          }
-          return {
-            ...current,
-            thread: updatedThread,
-          };
-        });
-      })
-      .catch((error) => {
-        if (cancelled) {
-          return;
-        }
-        logRendererEvent({
-          level: 'warn',
-          area: 'agent-chat-shell',
-          message: 'action:host-error',
-          details: buildHostErrorDetails(error, 'sync-agent-thread-target-snapshot', {
-            threadId: metadataUpdate.id,
-            localAgentRef: metadataUpdate.targetSnapshot.localAgentRef,
-          }),
-        });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTarget, buildHostErrorDetails, queryClient, selectedThreadRecord, threads]);
 
   useAgentRuntimeSessionSnapshotHydration({
     activeLocalAgentRef: activeTarget?.localAgentRef || null,

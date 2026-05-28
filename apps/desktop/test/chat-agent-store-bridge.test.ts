@@ -205,14 +205,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
         return {
           ...(payload as { payload: Record<string, unknown> }).payload,
         };
-      case 'chat_agent_update_thread_metadata':
-        return {
-          ...(payload as { payload: Record<string, unknown> }).payload,
-          ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
-          createdAtMs: 50,
-        };
       case 'chat_agent_commit_turn_result':
         return {
           turn: {
@@ -289,13 +281,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
       lastMessageAtMs: 90,
       targetSnapshot: sampleTarget(),
     });
-    await chatAgentStoreClient.updateThreadMetadata({
-      id: 'thread-1',
-      title: 'Companion',
-      updatedAtMs: 120,
-      lastMessageAtMs: 115,
-      targetSnapshot: sampleTarget(),
-    });
     const committed = await chatAgentStoreClient.commitTurnResult({
       threadId: 'thread-1',
       turn: {
@@ -353,7 +338,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
       'chat_agent_list_threads',
       'chat_agent_get_thread_bundle',
       'chat_agent_create_thread',
-      'chat_agent_update_thread_metadata',
       'chat_agent_commit_turn_result',
     ],
   );

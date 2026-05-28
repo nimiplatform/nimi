@@ -7,14 +7,12 @@ import {
   parseAgentLocalThreadBundle,
   parseAgentLocalThreadRecord,
   parseAgentLocalThreadSummaries,
-  parseAgentLocalUpdateThreadMetadataInput,
   type AgentLocalCommitTurnResult,
   type AgentLocalCommitTurnResultInput,
   type AgentLocalCreateThreadInput,
   type AgentLocalThreadBundle,
   type AgentLocalThreadRecord,
   type AgentLocalThreadSummary,
-  type AgentLocalUpdateThreadMetadataInput,
 } from './types';
 
 type OfflineTier = 'L0' | 'L1' | 'L2';
@@ -51,13 +49,6 @@ export async function createThread(input: AgentLocalCreateThreadInput): Promise<
   }, parseAgentLocalThreadRecord);
 }
 
-export async function updateThreadMetadata(input: AgentLocalUpdateThreadMetadataInput): Promise<AgentLocalThreadRecord> {
-  requireTauri('chat_agent_update_thread_metadata');
-  return invokeChecked('chat_agent_update_thread_metadata', {
-    payload: parseAgentLocalUpdateThreadMetadataInput(input),
-  }, parseAgentLocalThreadRecord);
-}
-
 export async function commitTurnResult(input: AgentLocalCommitTurnResultInput): Promise<AgentLocalCommitTurnResult> {
   requireTauri('chat_agent_commit_turn_result');
   return invokeChecked('chat_agent_commit_turn_result', {
@@ -70,6 +61,5 @@ export const chatAgentStoreClient = {
   listThreads,
   getThreadBundle,
   createThread,
-  updateThreadMetadata,
   commitTurnResult,
 };
