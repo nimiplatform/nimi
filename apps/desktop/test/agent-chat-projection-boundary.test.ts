@@ -13,12 +13,16 @@ function readWorkspaceFile(path: string): string {
   return readFileSync(resolve(repoRoot, path), 'utf8');
 }
 
-test('Agent Chat spec limits local persistence to draft and projection-cache remediation', () => {
+test('Agent Chat spec forbids draft, archive, rename, and offline transcript persistence', () => {
   const spec = readWorkspaceFile('.nimi/spec/desktop/kernel/agent-chat-projection-contract.md');
 
   assert.match(spec, /D-LLM-025a/);
-  assert.match(spec, /limited to user drafts, renderer UI state, and a disposable projection cache/);
+  assert.match(spec, /limited to renderer UI state and a disposable projection cache/);
   assert.match(spec, /must not become canonical Agent Chat transcript/);
+  assert.match(spec, /must not provide offline Agent Chat transcript\s+recovery/);
+  assert.match(spec, /must not persist Agent Chat drafts/);
+  assert.match(spec, /must not admit Agent Chat rename or archive conversation semantics/);
+  assert.match(spec, /single active Runtime conversation per AgentFriend/);
   assert.match(spec, /Runtime-owned session snapshots and `runtime\.agent\.turn\.\*`/);
   assert.match(spec, /Desktop `chat_agent_\*` store exists before cutover/);
 });
@@ -31,13 +35,16 @@ test('Agent Chat store deletion is gated on Runtime and SDK replacement coverage
   assert.match(desktopSpec, /must not hard-delete the `chat_agent_\*` projection-cache store/);
   assert.match(desktopSpec, /conversation summaries/);
   assert.match(desktopSpec, /GetPublicChatSessionSnapshot/);
-  assert.match(desktopSpec, /app-local-drafts/);
+  assert.match(desktopSpec, /Agent Chat draft persistence is not a product requirement/);
+  assert.match(desktopSpec, /message-level delete \/ redact policy/);
+  assert.match(desktopSpec, /one active conversation per\s+AgentFriend/);
   assert.match(desktopSpec, /in-memory optimistic projection only/);
 
   assert.match(runtimeSpec, /K-AGCORE-006a/);
   assert.match(runtimeSpec, /conversation summary listing scoped to the authenticated calling app/);
   assert.match(runtimeSpec, /close \/ delete \/ clear policy/);
-  assert.match(runtimeSpec, /draft-only persistence/);
+  assert.match(runtimeSpec, /message-level delete \/ redact policy/);
+  assert.match(runtimeSpec, /explicit rejection of Agent Chat draft persistence/);
   assert.match(runtimeSpec, /do not admit Desktop-local transcript/);
 });
 
@@ -49,10 +56,13 @@ test('Runtime admits Agent Chat conversation summaries before store cutover impl
   assert.match(runtimeSpec, /K-AGCORE-006b/);
   assert.match(runtimeSpec, /ListAgentConversationSummaries/);
   assert.match(runtimeSpec, /derived\s+presentation text/);
-  assert.match(runtimeSpec, /does not admit close, delete, clear, archive, rename, or draft/);
+  assert.match(runtimeSpec, /does not admit close, delete, clear, archive, rename, draft, or/);
+  assert.match(runtimeSpec, /rename and archive are not product surfaces/);
+  assert.match(runtimeSpec, /one active Agent Chat conversation per AgentFriend/);
   assert.match(runtimeSpec, /K-AGCORE-006c/);
   assert.match(runtimeSpec, /Runtime-owned replay identity fields/);
   assert.match(runtimeSpec, /must not be re-derived differently by apps/);
+  assert.match(runtimeSpec, /does not admit offline Agent Chat transcript recovery/);
   assert.match(rpcMethods, /name: ListAgentConversationSummaries[\s\S]*?type: unary/);
   assert.match(sdkMethods, /service: RuntimeAgentService[\s\S]*?ListAgentConversationSummaries/);
 });

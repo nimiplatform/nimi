@@ -18,8 +18,8 @@ Desktop owns only:
   admitted SDK / Runtime Agent surface
 - rendering of Runtime / SDK Agent Chat projections, events, candidates,
   presentation timelines, and failure states
-- renderer-local ephemeral UI state such as focus, scroll, draft text,
-  popovers, transient composer state, and visible panel state
+- renderer-local ephemeral UI state such as focus, scroll, transient composer
+  text, popovers, pending attachments, and visible panel state
 - Avatar / Live2D / VRM presentation handoff as defined by
   `agent-avatar-surface-contract.md`, without owning Agent Chat execution truth
 
@@ -104,7 +104,8 @@ Desktop must fail closed as a presentation surface.
 Required behavior:
 
 - show unavailable / failed / pending states from Runtime reason codes
-- keep user-submitted drafts recoverable locally when appropriate
+- keep user-entered composer text in memory while the current renderer session is
+  active, without promising restart recovery
 - avoid pseudo-success assistant messages, pseudo audio playback, pseudo
   workflow completion, pseudo memory writes, and silent fallback model routes
 - keep renderer-local telemetry and diagnostics below product truth
@@ -112,7 +113,7 @@ Required behavior:
 ## D-LLM-025a — Local Persistence Remediation Boundary
 
 Desktop Agent Chat local persistence, when present during the D3 migration, is
-limited to user drafts, renderer UI state, and a disposable projection cache.
+limited to renderer UI state and a disposable projection cache.
 
 Fixed rules:
 
@@ -121,15 +122,24 @@ Fixed rules:
 - Desktop local persistence must not author assistant greetings, successful
   assistant turns, message/action existence, prompt traces, turn traces, or
   projection rebuild output as product truth.
+- Desktop local persistence must not provide offline Agent Chat transcript
+  recovery. When Runtime is unavailable, Desktop may preserve in-memory display
+  state for the current renderer session, but it must not reconstruct Agent Chat
+  history from Desktop storage after restart.
+- Desktop must not persist Agent Chat drafts. Composer text is transient
+  renderer state only and is allowed to be lost on reload or restart.
+- Desktop must not admit Agent Chat rename or archive conversation semantics.
+  Agent Chat exposes a single active Runtime conversation per AgentFriend; any
+  display title is derived projection text, not user-authored conversation
+  metadata.
 - Runtime-owned session snapshots and `runtime.agent.turn.*` /
   `runtime.agent.presentation.*` projections are the replay source for Agent
   Chat transcript and presentation state.
 - If a Desktop `chat_agent_*` store exists before cutover, it is remediation
   scoped projection-cache infrastructure. It must remain replaceable by Runtime
   / SDK session projection without changing product semantics.
-- The only steady-state Desktop persistence admitted here is explicit draft and
-  UI state such as focus, scroll, popover, composer text, and transient panel
-  state.
+- The only steady-state Desktop persistence admitted here is non-transcript UI
+  state such as focus, scroll, popover, and transient panel state.
 
 ## D-LLM-107 — Agent Chat Store Cutover Prerequisites
 
@@ -146,9 +156,16 @@ Required replacement coverage before deletion:
   Runtime-owned transcript replay envelope fields for stable message identity,
   timestamps, status, and kind.
 - Runtime / SDK has an admitted close / delete / clear policy for user-visible
-  conversation history, or the Desktop product explicitly removes those actions.
-- Draft persistence is owned by an admitted draft-only surface, such as
-  RuntimeApp `app-local-drafts`, and is not mixed with transcript truth.
+  conversation history. Desktop must not implement this as a local-only delete
+  once Runtime-owned transcript replay is active.
+- Runtime / SDK has admitted message-level delete / redact policy for Agent Chat
+  messages before Desktop exposes those actions.
+- Agent Chat draft persistence is not a product requirement. Runtime / SDK must
+  not add an Agent Chat draft surface to replace the retired Desktop draft
+  behavior.
+- Agent Chat rename, archive, and multi-conversation session management are not
+  product requirements. Runtime / SDK should expose one active conversation per
+  AgentFriend unless a later product decision admits multiple conversations.
 - Desktop submit paths use in-memory optimistic projection only; committed user
   and assistant transcript state replays from Runtime session snapshots or
   `runtime.agent.turn.*` / `runtime.agent.presentation.*` projections.

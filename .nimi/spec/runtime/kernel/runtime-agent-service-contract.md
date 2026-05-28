@@ -184,10 +184,13 @@ Runtime / SDK must provide admitted coverage for:
   explicit local agent identity, and owner context
 - recovery of a selected conversation through `ConversationAnchor` plus
   `GetPublicChatSessionSnapshot`
-- a close / delete / clear policy for user-visible conversation history, or an
-  explicit product rule that removes those actions
-- draft-only persistence through an admitted non-transcript surface such as
-  RuntimeApp `app-local-drafts`
+- a close / delete / clear policy for user-visible conversation history
+- message-level delete / redact policy before any app exposes per-message
+  deletion or redaction controls
+- a single-active-conversation policy for each AgentFriend / local agent
+  projection
+- explicit rejection of Agent Chat draft persistence, rename/archive
+  conversation semantics, and Desktop offline transcript recovery
 
 These prerequisites do not admit Desktop-local transcript, message, turn, beat,
 or projection rebuild truth. They only define the Runtime / SDK replacement
@@ -210,9 +213,16 @@ Fixed rules:
   only as projection data derived from Runtime-owned session transcript state
 - `GetPublicChatSessionSnapshot` remains the recovery source for selected
   conversation transcript and turn detail
-- this query does not admit close, delete, clear, archive, rename, or draft
-  mutation policy; those actions remain covered by K-AGCORE-006a prerequisites
-  until explicitly admitted elsewhere
+- this query does not admit close, delete, clear, archive, rename, draft, or
+  multi-conversation mutation policy; clear/delete/redact actions remain covered
+  by K-AGCORE-006a prerequisites until explicitly admitted elsewhere
+- Agent Chat rename and archive are not product surfaces. Runtime must not add
+  persistent user-authored conversation titles, archive flags, or multi-session
+  management for Agent Chat unless a later product decision admits them.
+- Runtime must present one active Agent Chat conversation per AgentFriend /
+  local agent projection. `ListAgentConversationSummaries` may page over
+  different agents and historical Runtime anchors as migration evidence, but it
+  must not become a user-facing multi-conversation product model.
 
 ## K-AGCORE-006c Public Chat Transcript Envelope Projection
 
@@ -239,6 +249,10 @@ Fixed rules:
 - this envelope does not admit Desktop-local transcript persistence; it exists
   to let apps replay Runtime session snapshots without fabricating transcript
   identity locally
+- this envelope does not admit offline Agent Chat transcript recovery from app
+  storage. If Runtime is unavailable, apps may retain in-memory display state for
+  the current renderer session, but restart recovery must come from Runtime
+  snapshots, not from Desktop-local transcript stores.
 
 ## K-AGCORE-007 Token Budget Authority
 
