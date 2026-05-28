@@ -207,18 +207,22 @@ export function useAgentConversationShellState(
     () => threads.find((thread) => thread.id === activeThreadId) || null,
     [activeThreadId, threads],
   );
+  const selectedTarget = useMemo(
+    () => targetByLocalAgentRef.get(input.selection.localAgentRef || '') || null,
+    [input.selection.localAgentRef, targetByLocalAgentRef],
+  );
   const anchorBindingVersion = useSyncExternalStore(
     subscribeAgentConversationAnchorBindings,
     getAgentConversationAnchorBindingVersion,
     getAgentConversationAnchorBindingVersion,
   );
+  const activeAnchorBindingLocalAgentRef = selectedTarget?.localAgentRef
+    || selectedThreadRecord?.localAgentRef
+    || input.selection.localAgentRef
+    || null;
   const activeConversationAnchorId = useMemo(
-    () => getAgentConversationAnchorBinding(selectedThreadRecord?.id || null)?.conversationAnchorId || null,
-    [anchorBindingVersion, selectedThreadRecord?.id],
-  );
-  const selectedTarget = useMemo(
-    () => targetByLocalAgentRef.get(input.selection.localAgentRef || '') || null,
-    [input.selection.localAgentRef, targetByLocalAgentRef],
+    () => getAgentConversationAnchorBinding(activeAnchorBindingLocalAgentRef)?.conversationAnchorId || null,
+    [activeAnchorBindingLocalAgentRef, anchorBindingVersion],
   );
   const activeTarget = useMemo(() => {
     const threadTarget = selectedThreadRecord?.targetSnapshot || null;

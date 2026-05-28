@@ -234,7 +234,6 @@ async function openConversationAnchorForTarget(
 }
 
 async function ensureConversationAnchorBindingUpstream(input: {
-  threadId: string;
   target: AgentLocalTargetSnapshot;
   binding: AgentConversationAnchorBinding;
 }): Promise<AgentConversationAnchorBinding | null> {
@@ -261,7 +260,7 @@ async function ensureConversationAnchorBindingUpstream(input: {
         { cause: error },
       );
     }
-    clearAgentConversationAnchorBinding(input.threadId);
+    clearAgentConversationAnchorBinding(input.target.localAgentRef);
     return null;
   }
 }
@@ -299,13 +298,12 @@ export async function ensureThreadAnchorBindingForTarget(input: {
   anchorBinding: AgentConversationAnchorBinding;
 }> {
   const ensuredThread = input.thread ?? await createThreadForTarget(input.input, input.target);
-  const existingBinding = getAgentConversationAnchorBinding(ensuredThread.id);
+  const existingBinding = getAgentConversationAnchorBinding(input.target.localAgentRef);
   if (existingBinding) {
     if (existingBinding.localAgentRef !== input.target.localAgentRef) {
       throw new Error('agent thread anchor binding does not match selected agent');
     }
     const runtimeBinding = await ensureConversationAnchorBindingUpstream({
-      threadId: ensuredThread.id,
       target: input.target,
       binding: existingBinding,
     });
@@ -318,7 +316,6 @@ export async function ensureThreadAnchorBindingForTarget(input: {
   }
   const conversationAnchorId = await openConversationAnchorForTarget(input.target);
   const anchorBinding = persistAgentConversationAnchorBinding({
-    threadId: ensuredThread.id,
     ownerUserId: input.target.ownerUserId,
     realmAgentId: input.target.realmAgentId,
     localAgentRef: input.target.localAgentRef,

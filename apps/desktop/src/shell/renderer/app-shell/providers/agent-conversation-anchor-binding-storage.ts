@@ -1,7 +1,6 @@
-export const AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY = 'nimi.chat.agent.anchor-bindings.v1';
+export const AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY = 'nimi.chat.agent.anchor-bindings.v2';
 
 export type AgentConversationAnchorBinding = {
-  threadId: string;
   ownerUserId: string;
   realmAgentId: string;
   localAgentRef: string;
@@ -9,7 +8,7 @@ export type AgentConversationAnchorBinding = {
   updatedAtMs: number;
 };
 
-const anchorBindingsByThreadId = new Map<string, AgentConversationAnchorBinding>();
+const anchorBindingsByLocalAgentRef = new Map<string, AgentConversationAnchorBinding>();
 let storageSnapshot = '';
 let anchorBindingVersion = 0;
 const anchorBindingListeners = new Set<() => void>();
@@ -32,19 +31,17 @@ function normalizeBinding(
     return null;
   }
   const record = value as Record<string, unknown>;
-  const threadId = normalizeText(record.threadId);
   const ownerUserId = normalizeText(record.ownerUserId);
   const realmAgentId = normalizeText(record.realmAgentId);
   const localAgentRef = normalizeText(record.localAgentRef);
   const conversationAnchorId = normalizeText(record.conversationAnchorId);
-  if (!threadId || !ownerUserId || !realmAgentId || !localAgentRef || !conversationAnchorId) {
+  if (!ownerUserId || !realmAgentId || !localAgentRef || !conversationAnchorId) {
     return null;
   }
   if (!localAgentRef.startsWith('local-agent:') || localAgentRef !== `local-agent:${ownerUserId}:${realmAgentId}`) {
     return null;
   }
   return {
-    threadId,
     ownerUserId,
     realmAgentId,
     localAgentRef,
@@ -79,7 +76,7 @@ function handleExternalAnchorBindingStorageChange(event: StorageEvent): void {
 }
 
 function serializeBindings(): string {
-  return JSON.stringify([...anchorBindingsByThreadId.values()]);
+  return JSON.stringify([...anchorBindingsByLocalAgentRef.values()]);
 }
 
 function hydrateBindingsFromStorage(): void {
@@ -97,7 +94,7 @@ function hydrateBindingsFromStorage(): void {
     return;
   }
   storageSnapshot = raw;
-  anchorBindingsByThreadId.clear();
+  anchorBindingsByLocalAgentRef.clear();
   if (!raw) {
     return;
   }
@@ -113,7 +110,10 @@ function hydrateBindingsFromStorage(): void {
   for (const entry of parsed) {
     const binding = normalizeBinding(entry);
     if (binding) {
-      anchorBindingsByThreadId.set(binding.threadId, binding);
+      const current = anchorBindingsByLocalAgentRef.get(binding.localAgentRef);
+      if (!current || binding.updatedAtMs >= current.updatedAtMs) {
+        anchorBindingsByLocalAgentRef.set(binding.localAgentRef, binding);
+      }
     }
   }
 }
@@ -125,7 +125,7 @@ function persistBindingsToStorage(): void {
   }
   const serialized = serializeBindings();
   try {
-    if (anchorBindingsByThreadId.size === 0) {
+    if (anchorBindingsByLocalAgentRef.size === 0) {
       storage.removeItem(AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY);
       storageSnapshot = '';
       return;
@@ -138,14 +138,14 @@ function persistBindingsToStorage(): void {
 }
 
 export function getAgentConversationAnchorBinding(
-  threadId: string | null | undefined,
+  localAgentRef: string | null | undefined,
 ): AgentConversationAnchorBinding | null {
-  const normalizedThreadId = normalizeText(threadId);
-  if (!normalizedThreadId) {
+  const normalizedLocalAgentRef = normalizeText(localAgentRef);
+  if (!normalizedLocalAgentRef) {
     return null;
   }
   hydrateBindingsFromStorage();
-  return anchorBindingsByThreadId.get(normalizedThreadId) || null;
+  return anchorBindingsByLocalAgentRef.get(normalizedLocalAgentRef) || null;
 }
 
 export function persistAgentConversationAnchorBinding(
@@ -155,31 +155,31 @@ export function persistAgentConversationAnchorBinding(
   if (!normalizedBinding) {
     throw new Error('agent conversation anchor binding is invalid');
   }
-  anchorBindingsByThreadId.set(normalizedBinding.threadId, normalizedBinding);
+  anchorBindingsByLocalAgentRef.set(normalizedBinding.localAgentRef, normalizedBinding);
   persistBindingsToStorage();
   notifyAnchorBindingListeners();
   return normalizedBinding;
 }
 
 export function clearAgentConversationAnchorBinding(
-  threadId: string | null | undefined,
+  localAgentRef: string | null | undefined,
 ): void {
-  const normalizedThreadId = normalizeText(threadId);
-  if (!normalizedThreadId) {
+  const normalizedLocalAgentRef = normalizeText(localAgentRef);
+  if (!normalizedLocalAgentRef) {
     return;
   }
   hydrateBindingsFromStorage();
-  anchorBindingsByThreadId.delete(normalizedThreadId);
+  anchorBindingsByLocalAgentRef.delete(normalizedLocalAgentRef);
   persistBindingsToStorage();
   notifyAnchorBindingListeners();
 }
 
 export function clearAllAgentConversationAnchorBindings(): void {
   hydrateBindingsFromStorage();
-  if (anchorBindingsByThreadId.size === 0) {
+  if (anchorBindingsByLocalAgentRef.size === 0) {
     return;
   }
-  anchorBindingsByThreadId.clear();
+  anchorBindingsByLocalAgentRef.clear();
   persistBindingsToStorage();
   notifyAnchorBindingListeners();
 }

@@ -50,7 +50,6 @@ test('agent conversation anchor binding persists only explicit anchor pointers',
   const storage = installMemoryStorage();
 
   const binding = persistAgentConversationAnchorBinding({
-    threadId: ' thread-1 ',
     ownerUserId: ' user-a ',
     realmAgentId: ' agent-alpha ',
     localAgentRef: ' local-agent:user-a:agent-alpha ',
@@ -59,7 +58,6 @@ test('agent conversation anchor binding persists only explicit anchor pointers',
   });
 
   assert.deepEqual(binding, {
-    threadId: 'thread-1',
     ownerUserId: 'user-a',
     realmAgentId: 'agent-alpha',
     localAgentRef: 'local-agent:user-a:agent-alpha',
@@ -69,40 +67,36 @@ test('agent conversation anchor binding persists only explicit anchor pointers',
 
   const persisted = JSON.parse(storage.getItem(AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY) || '[]') as Array<Record<string, unknown>>;
   assert.deepEqual(persisted, [binding]);
-  assert.deepEqual(getAgentConversationAnchorBinding('thread-1'), binding);
+  assert.deepEqual(getAgentConversationAnchorBinding('local-agent:user-a:agent-alpha'), binding);
 });
 
-test('agent conversation anchor binding hydrates from storage without same-agent fallback', () => {
+test('agent conversation anchor binding hydrates one active anchor per agent friend', () => {
   const storage = installMemoryStorage();
   storage.setItem(AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY, JSON.stringify([
     {
-      threadId: 'thread-a',
       ownerUserId: 'user-a',
-    realmAgentId: 'agent-alpha',
-    localAgentRef: 'local-agent:user-a:agent-alpha',
+      realmAgentId: 'agent-alpha',
+      localAgentRef: 'local-agent:user-a:agent-alpha',
       conversationAnchorId: 'anchor-a',
       updatedAtMs: 1,
     },
     {
-      threadId: 'thread-b',
       ownerUserId: 'user-a',
-    realmAgentId: 'agent-alpha',
-    localAgentRef: 'local-agent:user-a:agent-alpha',
+      realmAgentId: 'agent-alpha',
+      localAgentRef: 'local-agent:user-a:agent-alpha',
       conversationAnchorId: 'anchor-b',
       updatedAtMs: 2,
     },
   ]));
 
-  assert.equal(getAgentConversationAnchorBinding('thread-missing'), null);
-  assert.equal(getAgentConversationAnchorBinding('thread-a')?.conversationAnchorId, 'anchor-a');
-  assert.equal(getAgentConversationAnchorBinding('thread-b')?.conversationAnchorId, 'anchor-b');
+  assert.equal(getAgentConversationAnchorBinding('local-agent:user-a:agent-missing'), null);
+  assert.equal(getAgentConversationAnchorBinding('local-agent:user-a:agent-alpha')?.conversationAnchorId, 'anchor-b');
 });
 
 test('agent conversation anchor binding keeps same realmAgentId separate across owners', () => {
   installMemoryStorage();
 
   persistAgentConversationAnchorBinding({
-    threadId: 'thread-owner-a',
     ownerUserId: 'owner-a',
     realmAgentId: 'agent-shared',
     localAgentRef: 'local-agent:owner-a:agent-shared',
@@ -110,7 +104,6 @@ test('agent conversation anchor binding keeps same realmAgentId separate across 
     updatedAtMs: 10,
   });
   persistAgentConversationAnchorBinding({
-    threadId: 'thread-owner-b',
     ownerUserId: 'owner-b',
     realmAgentId: 'agent-shared',
     localAgentRef: 'local-agent:owner-b:agent-shared',
@@ -118,16 +111,14 @@ test('agent conversation anchor binding keeps same realmAgentId separate across 
     updatedAtMs: 11,
   });
 
-  assert.deepEqual(getAgentConversationAnchorBinding('thread-owner-a'), {
-    threadId: 'thread-owner-a',
+  assert.deepEqual(getAgentConversationAnchorBinding('local-agent:owner-a:agent-shared'), {
     ownerUserId: 'owner-a',
     realmAgentId: 'agent-shared',
     localAgentRef: 'local-agent:owner-a:agent-shared',
     conversationAnchorId: 'anchor-owner-a',
     updatedAtMs: 10,
   });
-  assert.deepEqual(getAgentConversationAnchorBinding('thread-owner-b'), {
-    threadId: 'thread-owner-b',
+  assert.deepEqual(getAgentConversationAnchorBinding('local-agent:owner-b:agent-shared'), {
     ownerUserId: 'owner-b',
     realmAgentId: 'agent-shared',
     localAgentRef: 'local-agent:owner-b:agent-shared',
@@ -140,29 +131,27 @@ test('agent conversation anchor binding drops malformed persisted entries and cl
   const storage = installMemoryStorage();
   storage.setItem(AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY, JSON.stringify([
     {
-      threadId: 'thread-valid',
       ownerUserId: 'user-a',
-    realmAgentId: 'agent-alpha',
-    localAgentRef: 'local-agent:user-a:agent-alpha',
+      realmAgentId: 'agent-alpha',
+      localAgentRef: 'local-agent:user-a:agent-alpha',
       conversationAnchorId: 'anchor-valid',
       updatedAtMs: 3,
     },
     {
-      threadId: 'thread-invalid',
       ownerUserId: 'user-a',
-    realmAgentId: 'agent-alpha',
-    localAgentRef: 'local-agent:user-a:agent-alpha',
+      realmAgentId: 'agent-alpha',
+      localAgentRef: 'local-agent:user-a:agent-alpha',
       conversationAnchorId: '',
       updatedAtMs: 4,
     },
   ]));
 
-  assert.equal(getAgentConversationAnchorBinding('thread-invalid'), null);
-  assert.equal(getAgentConversationAnchorBinding('thread-valid')?.conversationAnchorId, 'anchor-valid');
+  assert.equal(getAgentConversationAnchorBinding('local-agent:user-a:agent-missing'), null);
+  assert.equal(getAgentConversationAnchorBinding('local-agent:user-a:agent-alpha')?.conversationAnchorId, 'anchor-valid');
 
-  clearAgentConversationAnchorBinding('thread-valid');
+  clearAgentConversationAnchorBinding('local-agent:user-a:agent-alpha');
 
-  assert.equal(getAgentConversationAnchorBinding('thread-valid'), null);
+  assert.equal(getAgentConversationAnchorBinding('local-agent:user-a:agent-alpha'), null);
   assert.equal(storage.getItem(AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY), null);
 });
 
@@ -175,14 +164,13 @@ test('agent conversation anchor binding notifies same-window subscribers', () =>
 
   try {
     persistAgentConversationAnchorBinding({
-      threadId: 'thread-live',
       ownerUserId: 'user-a',
     realmAgentId: 'agent-alpha',
     localAgentRef: 'local-agent:user-a:agent-alpha',
       conversationAnchorId: 'anchor-live',
       updatedAtMs: 5,
     });
-    clearAgentConversationAnchorBinding('thread-live');
+    clearAgentConversationAnchorBinding('local-agent:user-a:agent-alpha');
   } finally {
     unsubscribe();
   }
