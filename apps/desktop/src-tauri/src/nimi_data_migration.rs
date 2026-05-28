@@ -42,8 +42,7 @@ pub use layout::enforce_data_root_layout;
 use serde::Deserialize;
 
 use cleanup::{
-    execute_directory_cleanup, plan_directory_cleanup, plan_old_root_reclaim, reclaim_old_root,
-    CleanupOutcome, CleanupPlan,
+    execute_directory_cleanup, plan_directory_cleanup, CleanupOutcome, CleanupPlan,
 };
 use flow::{preview_migration, run_migration, MigrationOutcome};
 use preview::MigrationPreview;
@@ -71,15 +70,6 @@ pub struct NimiDataCleanupPayload {
     pub directory: String,
     /// Explicit `P-MIG-008` confirmation token. Required for any
     /// non-pure-cache directory; ignored for a pure-cache directory.
-    pub confirmation: Option<String>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NimiDataOldRootReclaimPayload {
-    /// Absolute path of the retained pre-migration old `nimi_data` data root.
-    pub old_root: String,
-    /// Explicit `P-MIG-008` confirmation token.
     pub confirmation: Option<String>,
 }
 
@@ -140,32 +130,6 @@ pub async fn nimi_data_cleanup_execute(
             &payload.directory,
             payload.confirmation.as_deref(),
         )
-    })
-    .await
-}
-
-/// `P-MIG-008` plan: compute the reclaim impact of a retained post-migration
-/// old `nimi_data` data root.
-#[tauri::command]
-pub async fn nimi_data_old_root_reclaim_plan(old_root: String) -> Result<CleanupPlan, String> {
-    run_blocking(move || {
-        let path = std::path::PathBuf::from(old_root.trim());
-        plan_old_root_reclaim(&path)
-    })
-    .await
-}
-
-/// `P-MIG-008` execute: reclaim a retained post-migration old `nimi_data` data
-/// root. Always requires the confirmation token; refuses to delete the active
-/// data root.
-#[tauri::command]
-pub async fn nimi_data_old_root_reclaim_execute(
-    payload: NimiDataOldRootReclaimPayload,
-) -> Result<CleanupOutcome, String> {
-    run_blocking(move || {
-        let active = crate::desktop_product_control::selected_product_data_root()?;
-        let old = std::path::PathBuf::from(payload.old_root.trim());
-        reclaim_old_root(&old, &active, payload.confirmation.as_deref())
     })
     .await
 }

@@ -382,7 +382,7 @@ registered_command_families:
 
   - family: nimi_data_migration
     match:
-      regex: "^nimi_data_(migration|cleanup|old_root_reclaim)_.*$"
+      regex: "^nimi_data_(migration|cleanup)_.*$"
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-nimi-data-migration
     execution_class: request_response_async

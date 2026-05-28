@@ -168,26 +168,6 @@ pub fn execute_directory_cleanup(
     })
 }
 
-/// Plan the reclamation of a retained post-migration old data root
-/// (`P-MIG-007` / `P-MIG-008`).
-///
-/// After a completed migration the old `nimi_data` root is left on disk. This
-/// computes the impact of deleting it. It is always treated as
-/// confirmation-required: the old root holds the full pre-migration user / app
-/// / account data set.
-pub fn plan_old_root_reclaim(old_root: &Path) -> Result<CleanupPlan, String> {
-    let usage = measure_directory(old_root)?;
-    Ok(CleanupPlan {
-        directory: old_root.display().to_string(),
-        owner: "nimi_product_shell".to_string(),
-        cleanup_class: cleanup_class_id(CleanupClass::ConfirmRequired).to_string(),
-        total_bytes: usage.total_bytes,
-        file_count: usage.file_count,
-        requires_confirmation: true,
-        runtime_owner_blocked: false,
-    })
-}
-
 /// Reclaim a retained post-migration old `nimi_data` data root (`P-MIG-008`).
 ///
 /// This is the explicit, confirmed cleanup that completes the lifecycle the
