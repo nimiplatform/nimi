@@ -13,7 +13,6 @@ fn summarize_thread(record: ChatAiThreadRecord) -> ChatAiThreadSummary {
         title: record.title,
         updated_at_ms: record.updated_at_ms,
         last_message_at_ms: record.last_message_at_ms,
-        archived_at_ms: record.archived_at_ms,
     }
 }
 
@@ -26,11 +25,9 @@ pub(crate) fn list_threads(conn: &Connection) -> Result<Vec<ChatAiThreadSummary>
               title,
               created_at_ms,
               updated_at_ms,
-              last_message_at_ms,
-              archived_at_ms
+              last_message_at_ms
             FROM ai_threads
-            WHERE archived_at_ms IS NULL
-              AND EXISTS (
+            WHERE EXISTS (
                 SELECT 1 FROM ai_messages WHERE ai_messages.thread_id = ai_threads.id
               )
             ORDER BY updated_at_ms DESC, id DESC
@@ -61,8 +58,7 @@ pub(crate) fn get_thread_bundle(
               title,
               created_at_ms,
               updated_at_ms,
-              last_message_at_ms,
-              archived_at_ms
+              last_message_at_ms
             FROM ai_threads
             WHERE id = ?1
             "#,
@@ -144,10 +140,6 @@ pub(crate) fn create_thread(
         .last_message_at_ms
         .map(|value| require_non_negative_ms(value, "lastMessageAtMs"))
         .transpose()?;
-    let archived_at_ms = input
-        .archived_at_ms
-        .map(|value| require_non_negative_ms(value, "archivedAtMs"))
-        .transpose()?;
     match conn.execute(
         r#"
         INSERT INTO ai_threads (
@@ -157,15 +149,14 @@ pub(crate) fn create_thread(
           updated_at_ms,
           last_message_at_ms,
           archived_at_ms
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+        ) VALUES (?1, ?2, ?3, ?4, ?5, NULL)
         "#,
         params![
             id,
             title,
             created_at_ms,
             updated_at_ms,
-            last_message_at_ms,
-            archived_at_ms
+            last_message_at_ms
         ],
     ) {
         Ok(_) => Ok(ChatAiThreadRecord {
@@ -174,7 +165,6 @@ pub(crate) fn create_thread(
             created_at_ms,
             updated_at_ms,
             last_message_at_ms,
-            archived_at_ms,
         }),
         Err(error) => {
             let is_duplicate_thread = matches!(
@@ -204,10 +194,6 @@ pub(crate) fn update_thread_metadata(
         .last_message_at_ms
         .map(|value| require_non_negative_ms(value, "lastMessageAtMs"))
         .transpose()?;
-    let archived_at_ms = input
-        .archived_at_ms
-        .map(|value| require_non_negative_ms(value, "archivedAtMs"))
-        .transpose()?;
     let created_at_ms = conn
         .query_row(
             "SELECT created_at_ms FROM ai_threads WHERE id = ?1",
@@ -225,16 +211,14 @@ pub(crate) fn update_thread_metadata(
             SET
               title = ?2,
               updated_at_ms = ?3,
-              last_message_at_ms = ?4,
-              archived_at_ms = ?5
+              last_message_at_ms = ?4
             WHERE id = ?1
             "#,
             params![
                 &id,
                 &title,
                 updated_at_ms,
-                last_message_at_ms,
-                archived_at_ms
+                last_message_at_ms
             ],
         )
         .map_err(|error| map_sql_error("update chat_ai thread failed", error))?;
@@ -248,7 +232,6 @@ pub(crate) fn update_thread_metadata(
         created_at_ms,
         updated_at_ms,
         last_message_at_ms,
-        archived_at_ms,
     })
 }
 

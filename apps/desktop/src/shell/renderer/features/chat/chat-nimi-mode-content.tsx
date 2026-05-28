@@ -118,8 +118,6 @@ export function ChatNimiModeContent({
             onCloseThreadList();
           }}
           onCreateThread={host.onCreateThread ? () => void host.onCreateThread!() : undefined}
-          onArchiveThread={host.onArchiveThread ? (id) => void host.onArchiveThread!(id) : undefined}
-          onRenameThread={host.onRenameThread}
           onClose={onCloseThreadList}
           title={host.characterData?.name || selectedTarget.title}
           subtitle={host.characterData?.handle || selectedTarget.handle}

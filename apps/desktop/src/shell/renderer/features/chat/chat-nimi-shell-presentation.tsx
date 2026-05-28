@@ -37,9 +37,7 @@ type UseAiConversationPresentationInput = {
   composerReady: boolean;
   currentDraftTextRef: { current: string };
   footerContent: ReactNode;
-  handleArchiveThread: (threadId: string) => Promise<void>;
   handleCreateThread: () => Promise<void>;
-  handleRenameThread: (threadId: string, title: string) => void;
   handleSelectThread: (threadId: string) => void;
   handleSubmit: (text: string) => Promise<void>;
   hostFeedback: InlineFeedbackState | null;
@@ -207,8 +205,6 @@ export function useAiConversationPresentation(
     onThinkingToggle: () => input.setChatThinkingPreference(input.thinkingPreference === 'on' ? 'off' : 'on'),
     onSelectThread: input.handleSelectThread,
     onCreateThread: input.handleCreateThread,
-    onArchiveThread: input.handleArchiveThread,
-    onRenameThread: input.handleRenameThread,
   }), [
     adapter,
     diagnosticsContent,
@@ -223,9 +219,7 @@ export function useAiConversationPresentation(
     input.currentDraftTextRef,
     input.footerContent,
     input.isBundleLoading,
-    input.handleArchiveThread,
     input.handleCreateThread,
-    input.handleRenameThread,
     input.handleSelectThread,
     input.messages,
     input.onDismissHostFeedback,

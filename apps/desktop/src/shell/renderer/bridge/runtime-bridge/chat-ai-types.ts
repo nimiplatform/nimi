@@ -8,7 +8,6 @@ export type ChatAiThreadSummary = {
   title: string;
   updatedAtMs: number;
   lastMessageAtMs: number | null;
-  archivedAtMs: number | null;
 };
 
 export type ChatAiThreadRecord = ChatAiThreadSummary & {
@@ -86,7 +85,6 @@ export type ChatAiCreateThreadInput = {
   createdAtMs: number;
   updatedAtMs: number;
   lastMessageAtMs: number | null;
-  archivedAtMs: number | null;
 };
 
 export type ChatAiUpdateThreadMetadataInput = {
@@ -94,7 +92,6 @@ export type ChatAiUpdateThreadMetadataInput = {
   title: string;
   updatedAtMs: number;
   lastMessageAtMs: number | null;
-  archivedAtMs: number | null;
 };
 
 export type ChatAiCreateMessageInput = {

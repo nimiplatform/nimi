@@ -81,7 +81,6 @@ test('chat ai bridge parser rejects invalid timestamps', () => {
         createdAtMs: 100,
         updatedAtMs: 'not-a-number',
         lastMessageAtMs: null,
-        archivedAtMs: null,
       },
       messages: [],
       draft: null,
@@ -100,7 +99,6 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
           title: 'alpha',
           updatedAtMs: 100,
           lastMessageAtMs: 90,
-          archivedAtMs: null,
         }];
       case 'chat_ai_get_thread_bundle':
         return {
@@ -110,7 +108,6 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
             createdAtMs: 50,
             updatedAtMs: 100,
             lastMessageAtMs: 90,
-            archivedAtMs: null,
           },
           messages: [{
             id: 'message-1',
@@ -182,14 +179,12 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
       createdAtMs: 50,
       updatedAtMs: 100,
       lastMessageAtMs: 90,
-      archivedAtMs: null,
     });
     await chatAiStoreClient.updateThreadMetadata({
       id: 'thread-1',
       title: 'beta',
       updatedAtMs: 120,
       lastMessageAtMs: 115,
-      archivedAtMs: null,
     });
     await chatAiStoreClient.createMessage({
       id: 'message-1',
@@ -259,7 +254,6 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
         createdAtMs: 50,
         updatedAtMs: 100,
         lastMessageAtMs: 90,
-        archivedAtMs: null,
       },
     });
     assert.deepEqual(calls[5]?.payload, {

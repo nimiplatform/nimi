@@ -28,13 +28,11 @@ test('chat ai a4: active thread restore prefers explicit selection before last s
     title: 'alpha',
     updatedAtMs: 10,
     lastMessageAtMs: 10,
-    archivedAtMs: null,
   }, {
     id: 'thread-b',
     title: 'beta',
     updatedAtMs: 20,
     lastMessageAtMs: 20,
-    archivedAtMs: null,
   }];
 
   assert.equal(resolveAiConversationActiveThreadId({

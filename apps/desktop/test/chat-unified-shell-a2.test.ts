@@ -135,8 +135,8 @@ test('chat unified shell a2: host contract only exposes canonical data and secti
   assert.match(chatModeHostTypesSource, /rightSidebarAutoOpenKey\?:/);
   assert.match(chatModeHostTypesSource, /rightPanelContent\?:/);
   assert.match(chatModeHostTypesSource, /onCreateThread\?:/);
-  assert.match(chatModeHostTypesSource, /onArchiveThread\?:/);
-  assert.match(chatModeHostTypesSource, /onRenameThread\?:/);
+  assert.doesNotMatch(chatModeHostTypesSource, /onArchiveThread\?:/);
+  assert.doesNotMatch(chatModeHostTypesSource, /onRenameThread\?:/);
   assert.doesNotMatch(chatModeHostTypesSource, /renderTranscript\?:/);
   assert.doesNotMatch(chatModeHostTypesSource, /renderStagePanel\?:/);
   assert.doesNotMatch(chatModeHostTypesSource, /renderComposer\?:/);
@@ -157,8 +157,8 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAiPresentationSource, /composerContent:/);
   assert.match(chatAiPresentationSource, /settingsContent:/);
   assert.match(chatAiPresentationSource, /diagnosticsContent=/);
-  assert.match(chatAiPresentationSource, /onArchiveThread: input\.handleArchiveThread/);
-  assert.match(chatAiPresentationSource, /onRenameThread: input\.handleRenameThread/);
+  assert.doesNotMatch(chatAiPresentationSource, /onArchiveThread:/);
+  assert.doesNotMatch(chatAiPresentationSource, /onRenameThread:/);
   assert.doesNotMatch(chatAiPresentationSource, /rightSidebarContent:/);
   assert.doesNotMatch(chatAiAdapterSource, /renderTranscript:/);
   assert.doesNotMatch(chatAiAdapterSource, /renderComposer:/);

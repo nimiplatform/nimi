@@ -383,7 +383,6 @@ test('phase 6: parseChatAiCreateThreadInput strips route legacy fields from payl
   assert.equal('modelId' in parsed, false, 'parsed output must not contain modelId');
   assert.equal('routeBindingJson' in parsed, false, 'parsed output must not contain routeBindingJson');
   assert.deepEqual(Object.keys(parsed).sort(), [
-    'archivedAtMs',
     'createdAtMs',
     'id',
     'lastMessageAtMs',

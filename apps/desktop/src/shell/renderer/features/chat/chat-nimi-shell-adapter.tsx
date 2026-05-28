@@ -264,9 +264,7 @@ export function useAiConversationModeHost(
   ]);
 
   const {
-    handleArchiveThread,
     handleCreateThread,
-    handleRenameThread,
     handleSelectThread,
     handleSubmit,
   } = useAiConversationHostActions({
@@ -425,9 +423,7 @@ export function useAiConversationModeHost(
     composerReady,
     currentDraftTextRef,
     footerContent,
-    handleArchiveThread,
     handleCreateThread,
-    handleRenameThread,
     handleSelectThread,
     handleSubmit,
     hostFeedback,

@@ -120,7 +120,6 @@ export async function ensureChatAiThreadRecordPersisted(input: {
     createdAtMs: input.thread.createdAtMs,
     updatedAtMs: input.thread.updatedAtMs,
     lastMessageAtMs: input.thread.lastMessageAtMs,
-    archivedAtMs: input.thread.archivedAtMs,
   });
   return {
     thread: persisted,
@@ -131,9 +130,7 @@ export async function ensureChatAiThreadRecordPersisted(input: {
 export function useAiConversationHostActions(
   input: UseAiConversationHostActionsInput,
 ): {
-  handleArchiveThread: (threadId: string) => Promise<void>;
   handleCreateThread: () => Promise<void>;
-  handleRenameThread: (threadId: string, title: string) => void;
   handleSelectThread: (threadId: string) => void;
   handleSubmit: (text: string) => Promise<void>;
 } {
@@ -181,7 +178,6 @@ export function useAiConversationHostActions(
       createdAtMs: timestampMs,
       updatedAtMs: timestampMs,
       lastMessageAtMs: null,
-      archivedAtMs: null,
     };
     // In-memory only — persisted to DB on first message send
     input.setEphemeralThread(thread);
@@ -189,54 +185,6 @@ export function useAiConversationHostActions(
     input.currentDraftTextRef.current = '';
     syncAiThreadSelectionState(thread.id);
   }, [input, syncAiThreadSelectionState]);
-
-  const handleArchiveThread = useCallback(async (threadId: string) => {
-    const thread = input.threads.find((candidate) => candidate.id === threadId);
-    if (!thread) {
-      return;
-    }
-    // Ephemeral threads are not in DB — just discard them
-    if (input.ephemeralThread && input.ephemeralThread.id === threadId) {
-      input.queryClient.removeQueries({ queryKey: bundleQueryKey(threadId) });
-      input.setEphemeralThread(null);
-    } else {
-      const archivedAtMs = Date.now();
-      await chatAiStoreClient.updateThreadMetadata({
-        id: thread.id,
-        title: thread.title,
-        updatedAtMs: archivedAtMs,
-        lastMessageAtMs: thread.lastMessageAtMs,
-        archivedAtMs,
-      });
-      input.setThreadsCache((current) => current.filter((candidate) => candidate.id !== threadId));
-    }
-    if (input.activeThreadId === threadId) {
-      const remaining = input.threads.filter((candidate) => candidate.id !== threadId);
-      const nextThread = remaining[0] || null;
-      if (nextThread) {
-        syncAiThreadSelectionState(nextThread.id);
-      } else {
-        syncAiThreadSelectionState(null);
-      }
-    }
-  }, [input, syncAiThreadSelectionState]);
-
-  const handleRenameThread = useCallback((threadId: string, title: string) => {
-    const thread = input.threads.find((candidate) => candidate.id === threadId);
-    if (!thread) {
-      return;
-    }
-    void (async () => {
-      const updated = await chatAiStoreClient.updateThreadMetadata({
-        id: thread.id,
-        title,
-        updatedAtMs: Date.now(),
-        lastMessageAtMs: thread.lastMessageAtMs,
-        archivedAtMs: thread.archivedAtMs,
-      });
-      input.setThreadsCache((current) => upsertThreadSummary(current, updated));
-    })().catch(input.reportHostError);
-  }, [input]);
 
   const handleSelectThread = useCallback((threadId: string) => {
     if (!threadId || threadId === input.activeThreadId || input.submittingThreadId) {
@@ -278,7 +226,6 @@ export function useAiConversationHostActions(
         createdAtMs,
         updatedAtMs: createdAtMs,
         lastMessageAtMs: null,
-        archivedAtMs: null,
       };
       input.setEphemeralThread(localThread);
       input.setThreadsCache((current) => upsertThreadSummary(current, localThread));
@@ -498,7 +445,6 @@ export function useAiConversationHostActions(
         title: resolveThreadTitleAfterFirstSend(effectiveThreadRecord.title, submittedText),
         updatedAtMs: Date.now(),
         lastMessageAtMs: assistantMessage.updatedAtMs,
-        archivedAtMs: effectiveThreadRecord.archivedAtMs,
       });
       input.setThreadsCache((current) => upsertThreadSummary(current, updatedThread));
       input.setBundleCache(effectiveThreadId, (current) => {
@@ -595,9 +541,7 @@ export function useAiConversationHostActions(
   }, [input, syncAiThreadSelectionState]);
 
   return {
-    handleArchiveThread,
     handleCreateThread,
-    handleRenameThread,
     handleSelectThread,
     handleSubmit,
   };

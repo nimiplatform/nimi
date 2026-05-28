@@ -10,7 +10,6 @@ pub(super) fn thread_record_from_row(
         created_at_ms: row.get(2)?,
         updated_at_ms: row.get(3)?,
         last_message_at_ms: row.get(4)?,
-        archived_at_ms: row.get(5)?,
     })
 }
 

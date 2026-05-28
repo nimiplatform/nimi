@@ -61,8 +61,4 @@ export type DesktopConversationModeHost = {
   };
   /** Create a new thread/session. Used by AI and group mode entry surfaces. */
   onCreateThread?: () => Promise<void>;
-  /** Archive a thread by ID. Only meaningful for AI mode. */
-  onArchiveThread?: (threadId: string) => Promise<void>;
-  /** Rename a thread. Only meaningful for AI mode. */
-  onRenameThread?: (threadId: string, title: string) => void;
 };

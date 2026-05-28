@@ -90,7 +90,7 @@ export function toConversationThreadSummary(
     createdAt: toIsoString(thread.updatedAtMs),
     updatedAt: toIsoString(thread.updatedAtMs),
     unreadCount: 0,
-    status: thread.archivedAtMs == null ? 'active' : 'archived',
+    status: 'active',
     pinned: false,
     targetId: 'ai',
     targetLabel: 'AI',

@@ -166,7 +166,6 @@ export function parseChatAiThreadSummary(value: unknown): ChatAiThreadSummary {
     title: parseRequiredString(record.title, 'title', 'chat_ai thread summary'),
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_ai thread summary'),
     lastMessageAtMs: parseNullableFiniteInteger(record.lastMessageAtMs, 'lastMessageAtMs', 'chat_ai thread summary'),
-    archivedAtMs: parseNullableFiniteInteger(record.archivedAtMs, 'archivedAtMs', 'chat_ai thread summary'),
   };
 }
 
@@ -240,7 +239,6 @@ export function parseChatAiCreateThreadInput(value: unknown): ChatAiCreateThread
     createdAtMs: parseFiniteInteger(record.createdAtMs, 'createdAtMs', 'chat_ai create_thread payload'),
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_ai create_thread payload'),
     lastMessageAtMs: parseNullableFiniteInteger(record.lastMessageAtMs, 'lastMessageAtMs', 'chat_ai create_thread payload'),
-    archivedAtMs: parseNullableFiniteInteger(record.archivedAtMs, 'archivedAtMs', 'chat_ai create_thread payload'),
   };
 }
 
@@ -251,7 +249,6 @@ export function parseChatAiUpdateThreadMetadataInput(value: unknown): ChatAiUpda
     title: parseRequiredString(record.title, 'title', 'chat_ai update_thread_metadata payload'),
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_ai update_thread_metadata payload'),
     lastMessageAtMs: parseNullableFiniteInteger(record.lastMessageAtMs, 'lastMessageAtMs', 'chat_ai update_thread_metadata payload'),
-    archivedAtMs: parseNullableFiniteInteger(record.archivedAtMs, 'archivedAtMs', 'chat_ai update_thread_metadata payload'),
   };
 }
 

@@ -29,7 +29,6 @@ pub struct ChatAiThreadSummary {
     pub title: String,
     pub updated_at_ms: i64,
     pub last_message_at_ms: Option<i64>,
-    pub archived_at_ms: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -40,7 +39,6 @@ pub struct ChatAiThreadRecord {
     pub created_at_ms: i64,
     pub updated_at_ms: i64,
     pub last_message_at_ms: Option<i64>,
-    pub archived_at_ms: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -139,7 +137,6 @@ pub struct ChatAiCreateThreadInput {
     pub created_at_ms: i64,
     pub updated_at_ms: i64,
     pub last_message_at_ms: Option<i64>,
-    pub archived_at_ms: Option<i64>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -149,7 +146,6 @@ pub struct ChatAiUpdateThreadMetadataInput {
     pub title: String,
     pub updated_at_ms: i64,
     pub last_message_at_ms: Option<i64>,
-    pub archived_at_ms: Option<i64>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

@@ -198,7 +198,6 @@ fn chat_ai_store_round_trip_thread_message_and_draft() {
                 created_at_ms: 100,
                 updated_at_ms: 120,
                 last_message_at_ms: None,
-                archived_at_ms: None,
             },
         )
         .expect("create thread");
@@ -272,7 +271,6 @@ fn chat_ai_store_allows_empty_pending_assistant_placeholder_content() {
                 created_at_ms: 100,
                 updated_at_ms: 120,
                 last_message_at_ms: None,
-                archived_at_ms: None,
             },
         )
         .expect("create thread");
@@ -378,7 +376,6 @@ fn chat_ai_store_rejects_missing_thread_duplicate_id_and_invalid_json() {
                 created_at_ms: 100,
                 updated_at_ms: 120,
                 last_message_at_ms: None,
-                archived_at_ms: None,
             },
         )
         .expect("create thread");
@@ -390,7 +387,6 @@ fn chat_ai_store_rejects_missing_thread_duplicate_id_and_invalid_json() {
                 created_at_ms: 101,
                 updated_at_ms: 121,
                 last_message_at_ms: None,
-                archived_at_ms: None,
             },
         )
         .expect("duplicate thread should reuse existing record");
@@ -444,7 +440,6 @@ fn chat_ai_draft_put_overwrites_and_delete_clears() {
                 created_at_ms: 100,
                 updated_at_ms: 120,
                 last_message_at_ms: None,
-                archived_at_ms: None,
             },
         )
         .expect("create thread");

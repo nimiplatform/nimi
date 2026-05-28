@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
 import type { ConversationThreadSummary } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
@@ -32,8 +31,6 @@ export type ChatNimiThreadListSheetProps = {
   activeThreadId: string | null;
   onSelectThread: (threadId: string) => void;
   onCreateThread?: () => void;
-  onArchiveThread?: (threadId: string) => void;
-  onRenameThread?: (threadId: string, title: string) => void;
   onClose: () => void;
   title: string;
   subtitle?: string | null;
@@ -44,43 +41,11 @@ function SessionThreadItem({
   thread,
   active,
   onSelect,
-  onArchive,
-  onRename,
 }: {
   thread: ConversationThreadSummary;
   active: boolean;
   onSelect: () => void;
-  onArchive?: () => void;
-  onRename?: (title: string) => void;
 }) {
-  const { t } = useTranslation();
-  const [editing, setEditing] = useState(false);
-  const [editValue, setEditValue] = useState(thread.title);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (editing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [editing]);
-
-  const commitRename = useCallback(() => {
-    const trimmed = editValue.trim();
-    if (trimmed && trimmed !== thread.title && onRename) {
-      onRename(trimmed);
-    }
-    setEditing(false);
-  }, [editValue, onRename, thread.title]);
-
-  const handleTitleClick = useCallback((e: React.MouseEvent) => {
-    if (active && onRename) {
-      e.stopPropagation();
-      setEditValue(thread.title);
-      setEditing(true);
-    }
-  }, [active, onRename, thread.title]);
-
   return (
     <DesktopCardSurface
       kind="operational-solid"
@@ -92,56 +57,23 @@ function SessionThreadItem({
           : 'border-transparent bg-[color-mix(in_srgb,var(--nimi-surface-card)_74%,white)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)]',
       )}
     >
-      <button type="button" className="w-full px-3 py-2.5 pr-10 text-left" onClick={onSelect}>
+      <button type="button" className="w-full px-3 py-2.5 text-left" onClick={onSelect}>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            {editing ? (
-              <input
-                ref={inputRef}
-                type="text"
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                onBlur={commitRename}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') commitRename();
-                  if (e.key === 'Escape') setEditing(false);
-                }}
-                onClick={(e) => e.stopPropagation()}
-                className="w-full rounded-md border border-[color:var(--nimi-action-primary-bg)] bg-white px-1.5 py-0.5 text-[13px] font-semibold text-slate-900 outline-none focus:ring-1 focus:ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_25%,white)]"
-              />
-            ) : (
-              <p
-                className={cn(
-                  'truncate text-[13px]',
-                  active ? 'font-semibold text-slate-900 cursor-text' : 'font-medium text-slate-700',
-                )}
-                onClick={handleTitleClick}
-              >
-                {thread.title}
-              </p>
-            )}
+            <p
+              className={cn(
+                'truncate text-[13px]',
+                active ? 'font-semibold text-slate-900' : 'font-medium text-slate-700',
+              )}
+            >
+              {thread.title}
+            </p>
           </div>
-          {!editing ? (
-            <div className={cn('shrink-0 pt-0.5 pr-1 text-[10px] text-slate-400 transition-opacity', onArchive ? 'group-hover:opacity-0' : null)}>
-              {formatRelativeTime(thread.updatedAt)}
-            </div>
-          ) : null}
+          <div className="shrink-0 pt-0.5 pr-1 text-[10px] text-slate-400">
+            {formatRelativeTime(thread.updatedAt)}
+          </div>
         </div>
       </button>
-      {onArchive && !editing ? (
-        <button
-          type="button"
-          onClick={() => onArchive()}
-          className="absolute right-2 top-1/2 hidden h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 group-hover:flex"
-          aria-label={t('Chat.archiveConversation', { defaultValue: 'Archive conversation' })}
-          title={t('Chat.archiveConversation', { defaultValue: 'Archive conversation' })}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-          </svg>
-        </button>
-      ) : null}
     </DesktopCardSurface>
   );
 }
@@ -189,8 +121,6 @@ export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
               thread={thread}
               active={thread.id === props.activeThreadId}
               onSelect={() => props.onSelectThread(thread.id)}
-              onArchive={props.onArchiveThread ? () => props.onArchiveThread!(thread.id) : undefined}
-              onRename={props.onRenameThread ? (title) => props.onRenameThread!(thread.id, title) : undefined}
             />
           ))}
         </div>
