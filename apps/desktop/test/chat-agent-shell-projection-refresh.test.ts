@@ -53,8 +53,8 @@ function sampleBundle(): AgentLocalThreadBundle {
 
 test('agent projection refresh applies authoritative bundle while the turn is still running', () => {
   const outcome = resolveAgentProjectionRefreshOutcome({
-    requestedProjectionVersion: 'truth:10:t1',
-    latestProjectionVersion: 'truth:10:t1',
+    requestedProjectionVersion: 'projection:10:t1',
+    latestProjectionVersion: 'projection:10:t1',
     terminal: 'running',
     refreshedBundle: sampleBundle(),
   });
@@ -70,8 +70,8 @@ test('agent projection refresh applies authoritative bundle while the turn is st
 
 test('agent projection refresh ignores stale versions so older rebuilds cannot overwrite newer cache', () => {
   const outcome = resolveAgentProjectionRefreshOutcome({
-    requestedProjectionVersion: 'truth:10:t1',
-    latestProjectionVersion: 'truth:11:t1',
+    requestedProjectionVersion: 'projection:10:t1',
+    latestProjectionVersion: 'projection:11:t1',
     terminal: 'running',
     refreshedBundle: sampleBundle(),
   });
@@ -81,8 +81,8 @@ test('agent projection refresh ignores stale versions so older rebuilds cannot o
 
 test('agent projection refresh still applies after completed terminal so follow-up commits can surface immediately', () => {
   const outcome = resolveAgentProjectionRefreshOutcome({
-    requestedProjectionVersion: 'truth:11:t2',
-    latestProjectionVersion: 'truth:11:t2',
+    requestedProjectionVersion: 'projection:11:t2',
+    latestProjectionVersion: 'projection:11:t2',
     terminal: 'completed',
     refreshedBundle: sampleBundle(),
   });
@@ -93,8 +93,8 @@ test('agent projection refresh still applies after completed terminal so follow-
 
 test('agent projection refresh does not apply after terminal cancellation', () => {
   assert.equal(resolveAgentProjectionRefreshOutcome({
-    requestedProjectionVersion: 'truth:10:t1',
-    latestProjectionVersion: 'truth:10:t1',
+    requestedProjectionVersion: 'projection:10:t1',
+    latestProjectionVersion: 'projection:10:t1',
     terminal: 'canceled',
     refreshedBundle: sampleBundle(),
   }), null);

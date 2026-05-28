@@ -150,8 +150,8 @@ test('agent host flow preserves authoritative assistant content across first-bea
   assert.equal(firstBeatBundle.messages.at(-1)?.contentText, 'sealed first beat');
 
   const refreshOutcome = resolveAgentProjectionRefreshOutcome({
-    requestedProjectionVersion: 'truth:10:t1',
-    latestProjectionVersion: 'truth:10:t1',
+    requestedProjectionVersion: 'projection:10:t1',
+    latestProjectionVersion: 'projection:10:t1',
     terminal: 'running',
     refreshedBundle: authoritativeBundle(),
   });
@@ -171,7 +171,7 @@ test('agent host flow preserves authoritative assistant content across first-bea
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'projection-rebuilt',
     threadId: 'thread-1',
-    projectionVersion: 'truth:10:t1',
+    projectionVersion: 'projection:10:t1',
   });
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'turn-canceled',
@@ -299,7 +299,7 @@ test('agent host flow resolves authoritative completion and clears draft after f
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'projection-rebuilt',
     threadId: 'thread-1',
-    projectionVersion: 'truth:11:t1',
+    projectionVersion: 'projection:11:t1',
   });
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'turn-completed',

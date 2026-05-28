@@ -219,7 +219,6 @@ export function createAgentLocalChatContinuityAdapter(
           deliveredAtMs: input.outcome === 'completed' ? committedAtMs : null,
         })),
       ],
-      interactionSnapshot: null,
       projection: {
         thread: {
           id: thread.id,

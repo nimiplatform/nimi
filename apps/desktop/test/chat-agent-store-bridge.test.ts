@@ -13,7 +13,6 @@ import {
   createAgentCreateMessageInput,
   createAgentTextMessage,
   createAgentTurnBeatInput,
-  createAgentUpdateMessageInput,
 } from './helpers/agent-chat-record-fixtures.js';
 
 type TauriInvokeCall = {
@@ -153,20 +152,10 @@ test('chat agent bridge parser rejects invalid target shape and timestamps', () 
       },
       recentTurns: [],
       recentBeats: [],
-      interactionSnapshot: {
-        threadId: 'thread-1',
-        version: 1,
-        relationshipState: 'warm',
-        emotionalTemperature: 0.5,
-        assistantCommitmentsJson: 'bad',
-        userPrefsJson: {},
-        openLoopsJson: [],
-        updatedAtMs: 100,
-      },
       draft: null,
-      projectionVersion: 'truth:1',
+      projectionVersion: '',
     });
-  }, /assistantCommitmentsJson must be an array or object/);
+  }, /projectionVersion is required/);
 
   assert.throws(() => {
     parseAgentLocalCancelTurnInput({
@@ -271,16 +260,6 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
         return {
           ...(payload as { payload: Record<string, unknown> }).payload,
         };
-      case 'chat_agent_update_message':
-        return {
-          id: 'message-1',
-          threadId: 'thread-1',
-          role: 'assistant',
-          kind: 'text',
-          parentMessageId: null,
-          createdAtMs: 80,
-          ...(payload as { payload: Record<string, unknown> }).payload,
-        };
       case 'chat_agent_get_draft':
       case 'chat_agent_put_draft':
         return {
@@ -330,18 +309,8 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
             deliveredAtMs: 120,
             }),
           }],
-          interactionSnapshot: {
-            threadId: 'thread-1',
-            version: 1,
-            relationshipState: 'warm',
-            emotionalTemperature: 0.5,
-            assistantCommitmentsJson: {},
-            userPrefsJson: { brevity: true },
-            openLoopsJson: [],
-            updatedAtMs: 121,
-          },
           draft: null,
-          projectionVersion: 'truth:123:t1:b1:s1',
+          projectionVersion: 'projection:123:t1:b1:s1',
         };
       case 'chat_agent_commit_turn_result':
         return {
@@ -371,7 +340,6 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
             deliveredAtMs: 120,
             }),
           }],
-          interactionSnapshot: null,
           bundle: {
             thread: {
               id: 'thread-1',
@@ -397,7 +365,7 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
             })],
             draft: null,
           },
-          projectionVersion: 'truth:123:t1:b1:s0:m0:r0',
+          projectionVersion: 'projection:123:t1:b1:s0:m0:r0',
         };
       case 'chat_agent_cancel_turn':
         return {
@@ -439,7 +407,7 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
             })],
             draft: null,
           },
-          projectionVersion: 'truth:123:t1:b1:s0:m0:r0',
+          projectionVersion: 'projection:123:t1:b1:s0:m0:r0',
         };
       default:
         return null;
@@ -483,13 +451,6 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
       createdAtMs: 80,
       updatedAtMs: 90,
     }));
-    await chatAgentStoreClient.updateMessage(createAgentUpdateMessageInput({
-      id: 'message-1',
-      status: 'error',
-      contentText: '',
-      error: { code: 'FAIL', message: 'boom' },
-      updatedAtMs: 100,
-    }));
     await chatAgentStoreClient.getDraft('thread-1');
     await chatAgentStoreClient.putDraft({
       threadId: 'thread-1',
@@ -528,7 +489,6 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
         createdAtMs: 110,
         deliveredAtMs: 120,
       })],
-      interactionSnapshot: null,
       projection: {
         thread: {
           id: 'thread-1',
@@ -574,7 +534,6 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
       'chat_agent_create_thread',
       'chat_agent_update_thread_metadata',
       'chat_agent_create_message',
-      'chat_agent_update_message',
       'chat_agent_get_draft',
       'chat_agent_put_draft',
       'chat_agent_delete_draft',
@@ -600,20 +559,20 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
     },
   );
   assert.deepEqual(
-    (calls[9]?.payload as { payload?: Record<string, unknown> })?.payload,
+    (calls[8]?.payload as { payload?: Record<string, unknown> })?.payload,
     {
       threadId: 'thread-1',
       recentTurnLimit: 8,
     },
   );
   assert.equal(
-    ((calls[10]?.payload as { payload?: Record<string, unknown> })?.payload?.projection as {
+    ((calls[9]?.payload as { payload?: Record<string, unknown> })?.payload?.projection as {
       clearDraft?: boolean;
     })?.clearDraft,
     true,
   );
   assert.deepEqual(
-    (calls[11]?.payload as { payload?: Record<string, unknown> })?.payload,
+    (calls[10]?.payload as { payload?: Record<string, unknown> })?.payload,
     {
       threadId: 'thread-1',
       turnId: 'turn-1',
@@ -622,7 +581,7 @@ test('chat agent store bridge invokes fixed tauri commands and payload shapes', 
     },
   );
   assert.deepEqual(
-    (calls[12]?.payload as { payload?: Record<string, unknown> })?.payload,
+    (calls[11]?.payload as { payload?: Record<string, unknown> })?.payload,
     {
       threadId: 'thread-1',
     },

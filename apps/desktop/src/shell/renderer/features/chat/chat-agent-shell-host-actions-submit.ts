@@ -267,7 +267,6 @@ export async function submitAgentConversationTurn(input: {
         abortedAtMs: null,
       },
       beats: [...userProjection.beats],
-      interactionSnapshot: null,
       projection: {
         thread: {
           id: effectiveThreadRecord.id,

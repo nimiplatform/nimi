@@ -1,6 +1,6 @@
 #[test]
-fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_trip() {
-    let home = temp_home("truth-source");
+fn chat_agent_projection_cache_commit_context_cancel_and_rebuild_projection_round_trip() {
+    let home = temp_home("projection-cache");
     with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
             .expect("nimi data dir")
@@ -13,13 +13,13 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
         let thread = create_thread(
             &conn,
             &ChatAgentCreateThreadInput {
-                title: "Agent Truth".to_string(),
+                title: "Agent Projection".to_string(),
                 updated_at_ms: 100,
                 target_snapshot: ChatAgentTargetSnapshot {
-                    display_name: "Agent Truth".to_string(),
-                    ..sample_target_snapshot("agent-truth-source")
+                    display_name: "Agent Projection".to_string(),
+                    ..sample_target_snapshot("agent-projection-cache")
                 },
-                ..sample_create_thread_input("thread-truth-source", "user-1", "agent-truth-source")
+                ..sample_create_thread_input("thread-projection-cache", "user-1", "agent-projection-cache")
             },
         )
         .expect("create thread");
@@ -64,24 +64,14 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
                     created_at_ms: 210,
                     delivered_at_ms: Some(220),
                 }],
-                interaction_snapshot: Some(ChatAgentInteractionSnapshotInput {
-                    thread_id: thread.id.clone(),
-                    version: 1,
-                    relationship_state: "warm".to_string(),
-                    emotional_temperature: 0.6,
-                    assistant_commitments_json: serde_json::json!({ "promises": ["follow-up"] }),
-                    user_prefs_json: serde_json::json!({ "style": "concise" }),
-                    open_loops_json: serde_json::json!(["send summary"]),
-                    updated_at_ms: 261,
-                }),
                 projection: ChatAgentProjectionCommitInput {
                     thread: ChatAgentUpdateThreadMetadataInput {
                         id: thread.id.clone(),
-                        title: "Agent Truth".to_string(),
+                        title: "Agent Projection".to_string(),
                         updated_at_ms: 260,
                         last_message_at_ms: Some(260),
                         archived_at_ms: None,
-                        target_snapshot: sample_target_snapshot("agent-truth-source"),
+                        target_snapshot: sample_target_snapshot("agent-projection-cache"),
                     },
                     messages: vec![ChatAgentProjectionMessageInput {
                         id: "message-001".to_string(),
@@ -113,14 +103,7 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
         assert_eq!(committed.bundle.messages.len(), 1);
         assert!(committed.bundle.draft.is_none());
         assert_eq!(committed.bundle.messages[0].content_text, "first beat");
-        assert_eq!(
-            committed
-                .interaction_snapshot
-                .as_ref()
-                .map(|item| item.version),
-            Some(1)
-        );
-        assert!(committed.projection_version.starts_with("truth:"));
+        assert!(committed.projection_version.starts_with("projection:"));
 
         let context = load_turn_context(
             &conn,

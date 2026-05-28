@@ -5,14 +5,13 @@ use serde::Deserialize;
 use super::{
     cancel_turn, commit_turn_result, create_message, create_thread, delete_draft, delete_message,
     delete_thread, get_draft, get_thread_bundle, list_threads, load_turn_context, open_db,
-    put_draft, rebuild_projection, update_message, update_thread_metadata, update_turn_beat,
-    ChatAgentCancelTurnInput, ChatAgentCommitTurnResult, ChatAgentCommitTurnResultInput,
-    ChatAgentCreateMessageInput, ChatAgentCreateThreadInput, ChatAgentDeleteDraftInput,
-    ChatAgentDraftRecord, ChatAgentLoadTurnContextInput, ChatAgentMessageLookupPayload,
-    ChatAgentMessageRecord, ChatAgentProjectionRebuildResult, ChatAgentPutDraftInput,
-    ChatAgentThreadBundle, ChatAgentThreadLookupPayload, ChatAgentThreadRecord,
-    ChatAgentThreadSummary, ChatAgentTurnContext, ChatAgentTurnRecord, ChatAgentUpdateMessageInput,
-    ChatAgentUpdateThreadMetadataInput, ChatAgentUpdateTurnBeatInput,
+    put_draft, rebuild_projection, update_thread_metadata, ChatAgentCancelTurnInput,
+    ChatAgentCommitTurnResult, ChatAgentCommitTurnResultInput, ChatAgentCreateMessageInput,
+    ChatAgentCreateThreadInput, ChatAgentDeleteDraftInput, ChatAgentDraftRecord,
+    ChatAgentLoadTurnContextInput, ChatAgentMessageLookupPayload, ChatAgentMessageRecord,
+    ChatAgentProjectionRebuildResult, ChatAgentPutDraftInput, ChatAgentThreadBundle,
+    ChatAgentThreadLookupPayload, ChatAgentThreadRecord, ChatAgentThreadSummary,
+    ChatAgentTurnContext, ChatAgentTurnRecord, ChatAgentUpdateThreadMetadataInput,
 };
 
 const CHAT_AGENT_OFFLINE_L2_WRITE_DENIED: &str = "CHAT_AGENT_OFFLINE_L2_WRITE_DENIED";
@@ -108,30 +107,6 @@ pub(crate) async fn chat_agent_create_message(
         ensure_chat_agent_writes_allowed()?;
         let conn = open_db()?;
         create_message(&conn, &payload)
-    })
-    .await
-}
-
-#[tauri::command]
-pub(crate) async fn chat_agent_update_message(
-    payload: ChatAgentUpdateMessageInput,
-) -> Result<ChatAgentMessageRecord, String> {
-    run_chat_agent_store(move || {
-        ensure_chat_agent_writes_allowed()?;
-        let conn = open_db()?;
-        update_message(&conn, &payload)
-    })
-    .await
-}
-
-#[tauri::command]
-pub(crate) async fn chat_agent_update_turn_beat(
-    payload: ChatAgentUpdateTurnBeatInput,
-) -> Result<(), String> {
-    run_chat_agent_store(move || {
-        ensure_chat_agent_writes_allowed()?;
-        let conn = open_db()?;
-        update_turn_beat(&conn, &payload)
     })
     .await
 }

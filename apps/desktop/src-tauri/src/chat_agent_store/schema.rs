@@ -78,19 +78,6 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
         );
         CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_turn_beats_turn_index ON agent_turn_beats(turn_id, beat_index);
 
-        CREATE TABLE IF NOT EXISTS agent_interaction_snapshots (
-          thread_id TEXT NOT NULL REFERENCES agent_threads(id) ON DELETE CASCADE,
-          version INTEGER NOT NULL,
-          relationship_state TEXT NOT NULL,
-          emotional_temperature REAL NOT NULL,
-          assistant_commitments_json TEXT NOT NULL,
-          user_prefs_json TEXT NOT NULL,
-          open_loops_json TEXT NOT NULL,
-          updated_at_ms INTEGER NOT NULL,
-          PRIMARY KEY(thread_id, version)
-        );
-        CREATE INDEX IF NOT EXISTS idx_agent_interaction_snapshots_thread_version ON agent_interaction_snapshots(thread_id, version DESC);
-
         CREATE TABLE IF NOT EXISTS agent_store_meta (
           key TEXT PRIMARY KEY,
           value_json TEXT NOT NULL,
@@ -185,20 +172,6 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
             "delivered_at_ms",
         ],
     )?;
-    ensure_required_columns(
-        conn,
-        "agent_interaction_snapshots",
-        &[
-            "thread_id",
-            "version",
-            "relationship_state",
-            "emotional_temperature",
-            "assistant_commitments_json",
-            "user_prefs_json",
-            "open_loops_json",
-            "updated_at_ms",
-        ],
-    )?;
     drop_retired_memory_tables(conn)?;
     ensure_required_columns(
         conn,
@@ -220,6 +193,7 @@ fn drop_retired_memory_tables(conn: &Connection) -> Result<(), String> {
         r#"
         DROP TABLE IF EXISTS agent_recall_index;
         DROP TABLE IF EXISTS agent_relation_memory_slots;
+        DROP TABLE IF EXISTS agent_interaction_snapshots;
         "#,
     )
     .map_err(|error| format!("删除 retired chat_agent memory tables 失败: {error}"))?;

@@ -1,18 +1,15 @@
 use super::codec::{
-    beat_modality_to_db_value, beat_status_to_db_value, map_sql_error, normalize_f64,
+    beat_modality_to_db_value, beat_status_to_db_value, map_sql_error,
     normalize_optional_string, normalize_positive_limit, normalize_required_string,
-    normalize_structured_json, require_non_negative_ms, serialize_json_value,
-    turn_role_to_db_value, turn_status_to_db_value,
+    require_non_negative_ms, turn_role_to_db_value, turn_status_to_db_value,
 };
 use super::crud::{delete_draft, get_draft, get_thread_bundle, put_draft, update_thread_metadata};
 use super::projection::{
     compute_projection_version, rebuild_projection_internal, upsert_projection_message,
 };
-use super::rows::{
-    beat_record_from_row, interaction_snapshot_record_from_row, turn_record_from_row,
-};
+use super::rows::{beat_record_from_row, turn_record_from_row};
 use super::types::*;
-use rusqlite::{params, Connection, OptionalExtension, ToSql};
+use rusqlite::{params, Connection, ToSql};
 
 pub(crate) fn load_turn_context(
     conn: &Connection,
@@ -106,36 +103,12 @@ pub(crate) fn load_turn_context(
         beats
     };
 
-    let interaction_snapshot = conn
-        .query_row(
-            r#"
-            SELECT
-              thread_id,
-              version,
-              relationship_state,
-              emotional_temperature,
-              assistant_commitments_json,
-              user_prefs_json,
-              open_loops_json,
-              updated_at_ms
-            FROM agent_interaction_snapshots
-            WHERE thread_id = ?1
-            ORDER BY version DESC
-            LIMIT 1
-            "#,
-            params![&thread_id],
-            interaction_snapshot_record_from_row,
-        )
-        .optional()
-        .map_err(|error| format!("query chat_agent interaction snapshot failed: {error}"))?;
-
     let draft = get_draft(conn, &thread_id)?;
     let projection_version = compute_projection_version(conn, &thread_id)?;
     Ok(ChatAgentTurnContext {
         thread,
         recent_turns,
         recent_beats,
-        interaction_snapshot,
         draft,
         projection_version,
     })
@@ -281,85 +254,6 @@ pub(crate) fn commit_turn_result(
         .map_err(|error| map_sql_error("insert chat_agent turn beat failed", error))?;
     }
 
-    let interaction_snapshot = if let Some(snapshot) = &input.interaction_snapshot {
-        if snapshot.thread_id.trim() != thread_id {
-            return Err("interactionSnapshot.threadId must match threadId".to_string());
-        }
-        tx.execute(
-            r#"
-            INSERT INTO agent_interaction_snapshots (
-              thread_id,
-              version,
-              relationship_state,
-              emotional_temperature,
-              assistant_commitments_json,
-              user_prefs_json,
-              open_loops_json,
-              updated_at_ms
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
-            "#,
-            params![
-                &thread_id,
-                require_non_negative_ms(snapshot.version, "interactionSnapshot.version")?,
-                normalize_required_string(
-                    &snapshot.relationship_state,
-                    "interactionSnapshot.relationshipState",
-                )?,
-                normalize_f64(
-                    snapshot.emotional_temperature,
-                    "interactionSnapshot.emotionalTemperature",
-                )?,
-                serialize_json_value(
-                    &normalize_structured_json(
-                        &snapshot.assistant_commitments_json,
-                        "interactionSnapshot.assistantCommitmentsJson",
-                    )?,
-                    "interactionSnapshot.assistantCommitmentsJson",
-                )?,
-                serialize_json_value(
-                    &normalize_structured_json(
-                        &snapshot.user_prefs_json,
-                        "interactionSnapshot.userPrefsJson",
-                    )?,
-                    "interactionSnapshot.userPrefsJson",
-                )?,
-                serialize_json_value(
-                    &normalize_structured_json(
-                        &snapshot.open_loops_json,
-                        "interactionSnapshot.openLoopsJson",
-                    )?,
-                    "interactionSnapshot.openLoopsJson",
-                )?,
-                require_non_negative_ms(snapshot.updated_at_ms, "interactionSnapshot.updatedAtMs")?,
-            ],
-        )
-        .map_err(|error| map_sql_error("insert chat_agent interaction snapshot failed", error))?;
-        Some(
-            tx.query_row(
-                r#"
-                SELECT
-                  thread_id,
-                  version,
-                  relationship_state,
-                  emotional_temperature,
-                  assistant_commitments_json,
-                  user_prefs_json,
-                  open_loops_json,
-                  updated_at_ms
-                FROM agent_interaction_snapshots
-                WHERE thread_id = ?1 AND version = ?2
-                "#,
-                params![&thread_id, snapshot.version],
-                interaction_snapshot_record_from_row,
-            )
-            .map_err(|error| {
-                format!("query chat_agent inserted interaction snapshot failed: {error}")
-            })?,
-        )
-    } else {
-        None
-    };
-
     let _ = update_thread_metadata(&tx, &input.projection.thread)?;
     for message in &input.projection.messages {
         if message.thread_id.trim() != thread_id {
@@ -442,49 +336,9 @@ pub(crate) fn commit_turn_result(
     Ok(ChatAgentCommitTurnResult {
         turn,
         beats,
-        interaction_snapshot,
         bundle,
         projection_version,
     })
-}
-
-pub(crate) fn update_turn_beat(
-    conn: &Connection,
-    input: &ChatAgentUpdateTurnBeatInput,
-) -> Result<(), String> {
-    let id = normalize_required_string(&input.id, "id")?;
-    let delivered_at_ms = input
-        .delivered_at_ms
-        .map(|value| require_non_negative_ms(value, "deliveredAtMs"))
-        .transpose()?;
-    let changed = conn
-        .execute(
-            r#"
-            UPDATE agent_turn_beats
-            SET
-              status = ?2,
-              text_shadow = ?3,
-              artifact_id = ?4,
-              mime_type = ?5,
-              media_url = ?6,
-              delivered_at_ms = ?7
-            WHERE id = ?1
-            "#,
-            params![
-                id,
-                beat_status_to_db_value(input.status),
-                normalize_optional_string(input.text_shadow.as_deref()),
-                normalize_optional_string(input.artifact_id.as_deref()),
-                normalize_optional_string(input.mime_type.as_deref()),
-                normalize_optional_string(input.media_url.as_deref()),
-                delivered_at_ms,
-            ],
-        )
-        .map_err(|error| map_sql_error("update chat_agent turn beat failed", error))?;
-    if changed == 0 {
-        return Err("update chat_agent turn beat failed: beat not found".to_string());
-    }
-    Ok(())
 }
 
 pub(crate) fn cancel_turn(

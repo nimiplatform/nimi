@@ -319,14 +319,14 @@ test('agent submit session keeps authoritative projection when stale text delta 
     event: {
       type: 'projection-rebuilt',
       threadId: 'thread-1',
-      projectionVersion: 'truth:10:t1',
+      projectionVersion: 'projection:10:t1',
     },
     updatedAtMs: 140,
   }).state;
 
   const refresh = resolveProjectionRefreshAgentSubmitSession({
     state: session,
-    requestedProjectionVersion: 'truth:10:t1',
+    requestedProjectionVersion: 'projection:10:t1',
     refreshedBundle: authoritativeBundle(),
     draftText: '',
     streamSnapshot: streamState({
@@ -356,7 +356,7 @@ test('agent submit session applies projection refresh after completed terminal f
     event: {
       type: 'projection-rebuilt',
       threadId: 'thread-1',
-      projectionVersion: 'truth:10:t1',
+      projectionVersion: 'projection:10:t1',
     },
     updatedAtMs: 140,
   }).state;
@@ -395,14 +395,14 @@ test('agent submit session applies projection refresh after completed terminal f
     event: {
       type: 'projection-rebuilt',
       threadId: 'thread-1',
-      projectionVersion: 'truth:11:t2',
+      projectionVersion: 'projection:11:t2',
     },
     updatedAtMs: 160,
   }).state;
 
   const followUpRefresh = resolveProjectionRefreshAgentSubmitSession({
     state: session,
-    requestedProjectionVersion: 'truth:11:t2',
+    requestedProjectionVersion: 'projection:11:t2',
     refreshedBundle: authoritativeBundle(),
     draftText: '',
     streamSnapshot: streamState({

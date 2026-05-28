@@ -20,7 +20,7 @@ test('agent shell lifecycle keeps projection rebuild and completed terminal stat
     {
       type: 'projection-rebuilt',
       threadId: 'thread-1',
-      projectionVersion: 'truth:10:t1',
+      projectionVersion: 'projection:10:t1',
     },
     {
       type: 'turn-completed',
@@ -48,7 +48,7 @@ test('agent shell lifecycle keeps projection rebuild and completed terminal stat
   ]);
 
   const completed = assertAgentTurnLifecycleCompleted(state);
-  assert.equal(completed.projectionVersion, 'truth:10:t1');
+  assert.equal(completed.projectionVersion, 'projection:10:t1');
   assert.equal(completed.outputText, 'final answer');
   assert.equal(completed.reasoningText, 'hidden');
   assert.equal(completed.traceId, 'trace-1');
@@ -178,7 +178,7 @@ test('agent shell lifecycle fails close when provider exits without terminal suc
   const state = applyEvents([{
     type: 'projection-rebuilt',
     threadId: 'thread-1',
-    projectionVersion: 'truth:20:t1',
+    projectionVersion: 'projection:20:t1',
   }]);
 
   assert.equal(state.terminal, 'running');

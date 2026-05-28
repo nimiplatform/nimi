@@ -633,7 +633,7 @@ test('agent visible state converges to idle composer and hidden footer after com
       event: {
         type: 'projection-rebuilt',
         threadId,
-        projectionVersion: 'truth:10:t1',
+        projectionVersion: 'projection:10:t1',
       },
       updatedAtMs: 140,
     });
@@ -641,7 +641,7 @@ test('agent visible state converges to idle composer and hidden footer after com
       state: harness,
       submitSession,
       threadId,
-      requestedProjectionVersion: 'truth:10:t1',
+      requestedProjectionVersion: 'projection:10:t1',
       refreshedBundle: authoritativeBundle(),
       draftText: '',
     });

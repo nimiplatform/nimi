@@ -651,7 +651,6 @@ fn chat_agent_store_rejects_multi_text_beat_assistant_turns() {
                         delivered_at_ms: Some(260),
                     },
                 ],
-                interaction_snapshot: None,
                 projection: ChatAgentProjectionCommitInput {
                     thread: ChatAgentUpdateThreadMetadataInput {
                         id: thread.id.clone(),

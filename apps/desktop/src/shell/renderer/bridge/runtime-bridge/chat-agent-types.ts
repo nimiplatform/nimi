@@ -106,17 +106,6 @@ export type AgentLocalTurnBeatRecord = {
   deliveredAtMs: number | null;
 };
 
-export type AgentLocalInteractionSnapshotRecord = {
-  threadId: string;
-  version: number;
-  relationshipState: string;
-  emotionalTemperature: number;
-  assistantCommitmentsJson: Record<string, unknown> | unknown[];
-  userPrefsJson: Record<string, unknown> | unknown[];
-  openLoopsJson: Record<string, unknown> | unknown[];
-  updatedAtMs: number;
-};
-
 export type AgentLocalThreadBundle = {
   thread: AgentLocalThreadRecord;
   messages: AgentLocalMessageRecord[];
@@ -127,7 +116,6 @@ export type AgentLocalTurnContext = {
   thread: AgentLocalThreadRecord;
   recentTurns: AgentLocalTurnRecord[];
   recentBeats: AgentLocalTurnBeatRecord[];
-  interactionSnapshot: AgentLocalInteractionSnapshotRecord | null;
   draft: AgentLocalDraftRecord | null;
   projectionVersion: string;
 };
@@ -140,7 +128,6 @@ export type AgentLocalProjectionRebuildResult = {
 export type AgentLocalCommitTurnResult = {
   turn: AgentLocalTurnRecord;
   beats: AgentLocalTurnBeatRecord[];
-  interactionSnapshot: AgentLocalInteractionSnapshotRecord | null;
   bundle: AgentLocalThreadBundle;
   projectionVersion: string;
 };
@@ -186,21 +173,6 @@ export type AgentLocalCreateMessageInput = {
   updatedAtMs: number;
 };
 
-export type AgentLocalUpdateMessageInput = {
-  id: string;
-  kind: AgentLocalMessageKind;
-  status: AgentLocalMessageStatus;
-  contentText: string;
-  reasoningText: string | null;
-  error: AgentLocalMessageError | null;
-  traceId: string | null;
-  mediaUrl: string | null;
-  mediaMimeType: string | null;
-  artifactId: string | null;
-  metadataJson: JsonObject | null;
-  updatedAtMs: number;
-};
-
 export type AgentLocalPutDraftInput = {
   threadId: string;
   text: string;
@@ -216,18 +188,6 @@ export type AgentLocalTurnRecordInput = Omit<AgentLocalTurnRecord, never>;
 
 export type AgentLocalTurnBeatInput = Omit<AgentLocalTurnBeatRecord, never>;
 
-export type AgentLocalUpdateTurnBeatInput = {
-  id: string;
-  status: AgentLocalBeatStatus;
-  textShadow: string | null;
-  artifactId: string | null;
-  mimeType: string | null;
-  mediaUrl: string | null;
-  deliveredAtMs: number | null;
-};
-
-export type AgentLocalInteractionSnapshotInput = Omit<AgentLocalInteractionSnapshotRecord, never>;
-
 export type AgentLocalProjectionMessageInput = AgentLocalMessageRecord;
 
 export type AgentLocalProjectionCommitInput = {
@@ -241,7 +201,6 @@ export type AgentLocalCommitTurnResultInput = {
   threadId: string;
   turn: AgentLocalTurnRecordInput;
   beats: AgentLocalTurnBeatInput[];
-  interactionSnapshot: AgentLocalInteractionSnapshotInput | null;
   projection: AgentLocalProjectionCommitInput;
 };
 

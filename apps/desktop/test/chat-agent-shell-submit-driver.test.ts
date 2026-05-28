@@ -232,17 +232,17 @@ test('agent submit driver accepts projection refresh in running state and keeps 
     event: {
       type: 'projection-rebuilt',
       threadId: 'thread-1',
-      projectionVersion: 'truth:10:t1',
+      projectionVersion: 'projection:10:t1',
     },
     updatedAtMs: 140,
   });
   state = projection.finalSession;
   assert.deepEqual(effectKinds(projection), []);
-  assert.deepEqual(projection.awaitRefresh, { requestedProjectionVersion: 'truth:10:t1' });
+  assert.deepEqual(projection.awaitRefresh, { requestedProjectionVersion: 'projection:10:t1' });
 
   const refresh = resolveAgentSubmitDriverProjectionRefresh({
     state,
-    requestedProjectionVersion: 'truth:10:t1',
+    requestedProjectionVersion: 'projection:10:t1',
     refreshedBundle: authoritativeBundle(),
     draftText: '',
     streamSnapshot: streamState({
@@ -274,7 +274,7 @@ test('agent submit driver applies projection refresh after completed terminal fo
     event: {
       type: 'projection-rebuilt',
       threadId: 'thread-1',
-      projectionVersion: 'truth:10:t1',
+      projectionVersion: 'projection:10:t1',
     },
     updatedAtMs: 140,
   }).finalSession;
@@ -320,17 +320,17 @@ test('agent submit driver applies projection refresh after completed terminal fo
     event: {
       type: 'projection-rebuilt',
       threadId: 'thread-1',
-      projectionVersion: 'truth:11:t2',
+      projectionVersion: 'projection:11:t2',
     },
     updatedAtMs: 160,
   });
   state = followUpProjection.finalSession;
   assert.deepEqual(effectKinds(followUpProjection), []);
-  assert.deepEqual(followUpProjection.awaitRefresh, { requestedProjectionVersion: 'truth:11:t2' });
+  assert.deepEqual(followUpProjection.awaitRefresh, { requestedProjectionVersion: 'projection:11:t2' });
 
   const followUpRefresh = resolveAgentSubmitDriverProjectionRefresh({
     state,
-    requestedProjectionVersion: 'truth:11:t2',
+    requestedProjectionVersion: 'projection:11:t2',
     refreshedBundle: authoritativeBundle(),
     draftText: '',
     streamSnapshot: streamState({
@@ -417,7 +417,7 @@ test('agent submit driver keeps sealed first-beat when canceled turn wins over l
 
   const lateRefresh = resolveAgentSubmitDriverProjectionRefresh({
     state,
-    requestedProjectionVersion: 'truth:10:t1',
+    requestedProjectionVersion: 'projection:10:t1',
     refreshedBundle: authoritativeBundle(),
     draftText: 'retry this',
     streamSnapshot: streamState({

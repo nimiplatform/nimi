@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub(crate) const CHAT_AGENT_DB_SCHEMA_VERSION: i64 = 6;
+pub(crate) const CHAT_AGENT_DB_SCHEMA_VERSION: i64 = 7;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -176,24 +176,10 @@ pub struct ChatAgentTurnBeatRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatAgentInteractionSnapshotRecord {
-    pub thread_id: String,
-    pub version: i64,
-    pub relationship_state: String,
-    pub emotional_temperature: f64,
-    pub assistant_commitments_json: serde_json::Value,
-    pub user_prefs_json: serde_json::Value,
-    pub open_loops_json: serde_json::Value,
-    pub updated_at_ms: i64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
 pub struct ChatAgentTurnContext {
     pub thread: ChatAgentThreadRecord,
     pub recent_turns: Vec<ChatAgentTurnRecord>,
     pub recent_beats: Vec<ChatAgentTurnBeatRecord>,
-    pub interaction_snapshot: Option<ChatAgentInteractionSnapshotRecord>,
     pub draft: Option<ChatAgentDraftRecord>,
     pub projection_version: String,
 }
@@ -210,7 +196,6 @@ pub struct ChatAgentProjectionRebuildResult {
 pub struct ChatAgentCommitTurnResult {
     pub turn: ChatAgentTurnRecord,
     pub beats: Vec<ChatAgentTurnBeatRecord>,
-    pub interaction_snapshot: Option<ChatAgentInteractionSnapshotRecord>,
     pub bundle: ChatAgentThreadBundle,
     pub projection_version: String,
 }
@@ -267,23 +252,6 @@ pub struct ChatAgentCreateMessageInput {
     pub artifact_id: Option<String>,
     pub metadata_json: Option<serde_json::Value>,
     pub created_at_ms: i64,
-    pub updated_at_ms: i64,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatAgentUpdateMessageInput {
-    pub id: String,
-    pub kind: ChatAgentMessageKind,
-    pub status: ChatAgentMessageStatus,
-    pub content_text: String,
-    pub reasoning_text: Option<String>,
-    pub error: Option<ChatAgentMessageError>,
-    pub trace_id: Option<String>,
-    pub media_url: Option<String>,
-    pub media_mime_type: Option<String>,
-    pub artifact_id: Option<String>,
-    pub metadata_json: Option<serde_json::Value>,
     pub updated_at_ms: i64,
 }
 
@@ -354,31 +322,6 @@ pub struct ChatAgentTurnBeatInput {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatAgentUpdateTurnBeatInput {
-    pub id: String,
-    pub status: ChatAgentBeatStatus,
-    pub text_shadow: Option<String>,
-    pub artifact_id: Option<String>,
-    pub mime_type: Option<String>,
-    pub media_url: Option<String>,
-    pub delivered_at_ms: Option<i64>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatAgentInteractionSnapshotInput {
-    pub thread_id: String,
-    pub version: i64,
-    pub relationship_state: String,
-    pub emotional_temperature: f64,
-    pub assistant_commitments_json: serde_json::Value,
-    pub user_prefs_json: serde_json::Value,
-    pub open_loops_json: serde_json::Value,
-    pub updated_at_ms: i64,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ChatAgentProjectionMessageInput {
     pub id: String,
     pub thread_id: String,
@@ -413,7 +356,6 @@ pub struct ChatAgentCommitTurnResultInput {
     pub thread_id: String,
     pub turn: ChatAgentTurnRecordInput,
     pub beats: Vec<ChatAgentTurnBeatInput>,
-    pub interaction_snapshot: Option<ChatAgentInteractionSnapshotInput>,
     pub projection: ChatAgentProjectionCommitInput,
 }
 

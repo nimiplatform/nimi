@@ -151,11 +151,11 @@ test('agent host interaction preserves authoritative content and interrupted foo
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'projection-rebuilt',
     threadId: 'thread-1',
-    projectionVersion: 'truth:10:t1',
+    projectionVersion: 'projection:10:t1',
   });
 
   const refreshedInteraction = resolveProjectionRefreshAgentHostInteraction({
-    requestedProjectionVersion: 'truth:10:t1',
+    requestedProjectionVersion: 'projection:10:t1',
     latestProjectionVersion: lifecycle.projectionVersion,
     lifecycle,
     streamSnapshot: streamState({
@@ -300,7 +300,7 @@ test('agent host interaction prefers authoritative completion, clears draft, and
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'projection-rebuilt',
     threadId: 'thread-1',
-    projectionVersion: 'truth:10:t1',
+    projectionVersion: 'projection:10:t1',
   });
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'turn-completed',
@@ -349,7 +349,7 @@ test('agent host interaction applies projection refresh after terminal completio
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'projection-rebuilt',
     threadId: 'thread-1',
-    projectionVersion: 'truth:10:t1',
+    projectionVersion: 'projection:10:t1',
   });
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'turn-completed',
@@ -369,11 +369,11 @@ test('agent host interaction applies projection refresh after terminal completio
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'projection-rebuilt',
     threadId: 'thread-1',
-    projectionVersion: 'truth:11:t2',
+    projectionVersion: 'projection:11:t2',
   });
 
   const interaction = resolveProjectionRefreshAgentHostInteraction({
-    requestedProjectionVersion: 'truth:11:t2',
+    requestedProjectionVersion: 'projection:11:t2',
     latestProjectionVersion: lifecycle.projectionVersion,
     lifecycle,
     streamSnapshot: streamState({

@@ -224,13 +224,6 @@ pub(super) fn normalize_message_error(
         .transpose()
 }
 
-pub(super) fn normalize_f64(value: f64, field_name: &str) -> Result<f64, String> {
-    if !value.is_finite() {
-        return Err(format!("{field_name} must be finite"));
-    }
-    Ok(value)
-}
-
 pub(super) fn normalize_structured_json(
     value: &serde_json::Value,
     field_name: &str,

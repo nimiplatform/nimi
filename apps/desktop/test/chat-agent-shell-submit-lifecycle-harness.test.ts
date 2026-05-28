@@ -239,7 +239,7 @@ test('agent host submit harness converges completed submit to authoritative bund
       event: {
         type: 'projection-rebuilt',
         threadId,
-        projectionVersion: 'truth:10:t1',
+        projectionVersion: 'projection:10:t1',
       },
       updatedAtMs: 140,
     });
@@ -247,7 +247,7 @@ test('agent host submit harness converges completed submit to authoritative bund
       state: harness,
       submitSession,
       threadId,
-      requestedProjectionVersion: 'truth:10:t1',
+      requestedProjectionVersion: 'projection:10:t1',
       refreshedBundle: authoritativeBundle(),
       draftText: '',
     });
@@ -348,7 +348,7 @@ test('agent host submit harness preserves sealed first-beat, restores draft, and
       event: {
         type: 'projection-rebuilt',
         threadId,
-        projectionVersion: 'truth:10:t1',
+        projectionVersion: 'projection:10:t1',
       },
       updatedAtMs: 140,
     });
@@ -388,7 +388,7 @@ test('agent host submit harness preserves sealed first-beat, restores draft, and
       state: harness,
       submitSession,
       threadId,
-      requestedProjectionVersion: 'truth:10:t1',
+      requestedProjectionVersion: 'projection:10:t1',
       refreshedBundle: authoritativeBundle(),
       draftText: draft.text,
     });
@@ -472,7 +472,7 @@ test('agent host submit harness does not create a pending second text message fo
       event: {
         type: 'projection-rebuilt',
         threadId,
-        projectionVersion: 'truth:11:t1',
+        projectionVersion: 'projection:11:t1',
       },
       updatedAtMs: 140,
     });
@@ -480,7 +480,7 @@ test('agent host submit harness does not create a pending second text message fo
       state: harness,
       submitSession,
       threadId,
-      requestedProjectionVersion: 'truth:11:t1',
+      requestedProjectionVersion: 'projection:11:t1',
       refreshedBundle: authoritativeMultiBeatBundle(),
       draftText: '',
     });
