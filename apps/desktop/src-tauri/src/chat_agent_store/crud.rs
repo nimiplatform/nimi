@@ -1,7 +1,5 @@
 use super::codec::{
-    map_sql_error, message_kind_to_db_value, message_role_to_db_value, message_status_to_db_value,
-    normalize_message_error, normalize_optional_string, normalize_required_string,
-    normalize_structured_json, normalize_target_snapshot, require_non_negative_ms,
+    map_sql_error, normalize_required_string, normalize_target_snapshot, require_non_negative_ms,
 };
 use super::rows::{draft_record_from_row, message_record_from_row, thread_record_from_row};
 use super::types::*;
@@ -318,96 +316,6 @@ pub(crate) fn update_thread_metadata(
     get_thread_bundle(conn, &input.id)?
         .map(|bundle| bundle.thread)
         .ok_or_else(|| "update chat_agent thread failed: missing thread after update".to_string())
-}
-
-pub(crate) fn create_message(
-    conn: &Connection,
-    input: &ChatAgentCreateMessageInput,
-) -> Result<ChatAgentMessageRecord, String> {
-    let id = normalize_required_string(&input.id, "id")?;
-    let thread_id = normalize_required_string(&input.thread_id, "threadId")?;
-    let content_text = input.content_text.trim().to_string();
-    let error = normalize_message_error(input.error.as_ref())?;
-    let metadata_json = input
-        .metadata_json
-        .as_ref()
-        .map(|value| normalize_structured_json(value, "metadataJson"))
-        .transpose()?;
-    let created_at_ms = require_non_negative_ms(input.created_at_ms, "createdAtMs")?;
-    let updated_at_ms = require_non_negative_ms(input.updated_at_ms, "updatedAtMs")?;
-    conn.execute(
-        r#"
-        INSERT INTO agent_messages (
-          id,
-          thread_id,
-          role,
-          status,
-          kind,
-          content_text,
-          reasoning_text,
-          error_code,
-          error_message,
-          trace_id,
-          parent_message_id,
-          media_url,
-          media_mime_type,
-          artifact_id,
-          metadata_json,
-          created_at_ms,
-          updated_at_ms
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)
-        "#,
-        params![
-            id,
-            thread_id,
-            message_role_to_db_value(input.role),
-            message_status_to_db_value(input.status),
-            message_kind_to_db_value(input.kind),
-            content_text,
-            normalize_optional_string(input.reasoning_text.as_deref()),
-            error.as_ref().and_then(|item| item.code.clone()),
-            error.as_ref().map(|item| item.message.clone()),
-            normalize_optional_string(input.trace_id.as_deref()),
-            normalize_optional_string(input.parent_message_id.as_deref()),
-            normalize_optional_string(input.media_url.as_deref()),
-            normalize_optional_string(input.media_mime_type.as_deref()),
-            normalize_optional_string(input.artifact_id.as_deref()),
-            metadata_json
-                .as_ref()
-                .map(|value| super::codec::serialize_json_value(value, "metadataJson"))
-                .transpose()?,
-            created_at_ms,
-            updated_at_ms,
-        ],
-    )
-    .map_err(|error| map_sql_error("create chat_agent message failed", error))?;
-    conn.query_row(
-        r#"
-        SELECT
-          id,
-          thread_id,
-          role,
-          status,
-          kind,
-          content_text,
-          reasoning_text,
-          error_code,
-          error_message,
-          trace_id,
-          parent_message_id,
-          media_url,
-          media_mime_type,
-          artifact_id,
-          metadata_json,
-          created_at_ms,
-          updated_at_ms
-        FROM agent_messages
-        WHERE id = ?1
-        "#,
-        params![input.id],
-        message_record_from_row,
-    )
-    .map_err(|error| format!("query chat_agent created message failed: {error}"))
 }
 
 pub(crate) fn get_draft(

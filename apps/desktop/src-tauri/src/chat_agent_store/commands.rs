@@ -3,14 +3,14 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use serde::Deserialize;
 
 use super::{
-    cancel_turn, commit_turn_result, create_message, create_thread, delete_draft, delete_message,
-    delete_thread, get_draft, get_thread_bundle, list_threads, open_db, put_draft,
-    rebuild_projection, update_thread_metadata, ChatAgentCancelTurnInput, ChatAgentCommitTurnResult,
-    ChatAgentCommitTurnResultInput, ChatAgentCreateMessageInput, ChatAgentCreateThreadInput,
-    ChatAgentDeleteDraftInput, ChatAgentDraftRecord, ChatAgentMessageLookupPayload,
-    ChatAgentMessageRecord, ChatAgentProjectionRebuildResult, ChatAgentPutDraftInput,
-    ChatAgentThreadBundle, ChatAgentThreadLookupPayload, ChatAgentThreadRecord,
-    ChatAgentThreadSummary, ChatAgentTurnRecord, ChatAgentUpdateThreadMetadataInput,
+    cancel_turn, commit_turn_result, create_thread, delete_draft, delete_message, delete_thread,
+    get_draft, get_thread_bundle, list_threads, open_db, put_draft, rebuild_projection,
+    update_thread_metadata, ChatAgentCancelTurnInput, ChatAgentCommitTurnResult,
+    ChatAgentCommitTurnResultInput, ChatAgentCreateThreadInput, ChatAgentDeleteDraftInput,
+    ChatAgentDraftRecord, ChatAgentMessageLookupPayload, ChatAgentProjectionRebuildResult,
+    ChatAgentPutDraftInput, ChatAgentThreadBundle, ChatAgentThreadLookupPayload,
+    ChatAgentThreadRecord, ChatAgentThreadSummary, ChatAgentTurnRecord,
+    ChatAgentUpdateThreadMetadataInput,
 };
 
 const CHAT_AGENT_OFFLINE_L2_WRITE_DENIED: &str = "CHAT_AGENT_OFFLINE_L2_WRITE_DENIED";
@@ -94,18 +94,6 @@ pub(crate) async fn chat_agent_update_thread_metadata(
         ensure_chat_agent_writes_allowed()?;
         let conn = open_db()?;
         update_thread_metadata(&conn, &payload)
-    })
-    .await
-}
-
-#[tauri::command]
-pub(crate) async fn chat_agent_create_message(
-    payload: ChatAgentCreateMessageInput,
-) -> Result<ChatAgentMessageRecord, String> {
-    run_chat_agent_store(move || {
-        ensure_chat_agent_writes_allowed()?;
-        let conn = open_db()?;
-        create_message(&conn, &payload)
     })
     .await
 }

@@ -9,7 +9,6 @@ import {
 } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-parsers.js';
 import type { AgentLocalTargetSnapshot } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-types.js';
 import {
-  createAgentCreateMessageInput,
   createAgentTextMessage,
   createAgentTurnBeatInput,
 } from './helpers/agent-chat-record-fixtures.js';
@@ -234,10 +233,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
     localAgentRef: 'local-agent:user-1:agent-1',
           createdAtMs: 50,
         };
-      case 'chat_agent_create_message':
-        return {
-          ...(payload as { payload: Record<string, unknown> }).payload,
-        };
       case 'chat_agent_get_draft':
       case 'chat_agent_put_draft':
         return {
@@ -376,16 +371,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
       archivedAtMs: null,
       targetSnapshot: sampleTarget(),
     });
-    await chatAgentStoreClient.createMessage(createAgentCreateMessageInput({
-      id: 'message-1',
-      threadId: 'thread-1',
-      role: 'assistant',
-      status: 'complete',
-      contentText: 'hello',
-      traceId: 'trace-1',
-      createdAtMs: 80,
-      updatedAtMs: 90,
-    }));
     await chatAgentStoreClient.getDraft('thread-1');
     await chatAgentStoreClient.putDraft({
       threadId: 'thread-1',
@@ -463,7 +448,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
       'chat_agent_get_thread_bundle',
       'chat_agent_create_thread',
       'chat_agent_update_thread_metadata',
-      'chat_agent_create_message',
       'chat_agent_get_draft',
       'chat_agent_put_draft',
       'chat_agent_delete_draft',
@@ -488,13 +472,13 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
     },
   );
   assert.equal(
-    ((calls[8]?.payload as { payload?: Record<string, unknown> })?.payload?.projection as {
+    ((calls[7]?.payload as { payload?: Record<string, unknown> })?.payload?.projection as {
       clearDraft?: boolean;
     })?.clearDraft,
     true,
   );
   assert.deepEqual(
-    (calls[9]?.payload as { payload?: Record<string, unknown> })?.payload,
+    (calls[8]?.payload as { payload?: Record<string, unknown> })?.payload,
     {
       threadId: 'thread-1',
       turnId: 'turn-1',
@@ -503,7 +487,7 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
     },
   );
   assert.deepEqual(
-    (calls[10]?.payload as { payload?: Record<string, unknown> })?.payload,
+    (calls[9]?.payload as { payload?: Record<string, unknown> })?.payload,
     {
       threadId: 'thread-1',
     },

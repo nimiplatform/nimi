@@ -11,7 +11,6 @@ import type {
   AgentLocalCancelTurnInput,
   AgentLocalCommitTurnResult,
   AgentLocalCommitTurnResultInput,
-  AgentLocalCreateMessageInput,
   AgentLocalCreateThreadInput,
   AgentLocalDraftRecord,
   AgentLocalMessageError,
@@ -378,28 +377,6 @@ export function parseAgentLocalUpdateThreadMetadataInput(value: unknown): AgentL
     lastMessageAtMs: parseNullableFiniteInteger(record.lastMessageAtMs, 'lastMessageAtMs', 'chat_agent update_thread_metadata payload'),
     archivedAtMs: parseNullableFiniteInteger(record.archivedAtMs, 'archivedAtMs', 'chat_agent update_thread_metadata payload'),
     targetSnapshot: parseAgentLocalTargetSnapshot(record.targetSnapshot),
-  };
-}
-
-export function parseAgentLocalCreateMessageInput(value: unknown): AgentLocalCreateMessageInput {
-  const record = assertRecord(value, 'chat_agent create_message payload is invalid');
-  return {
-    id: parseRequiredString(record.id, 'id', 'chat_agent create_message payload'),
-    threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent create_message payload'),
-    role: parseMessageRole(record.role, 'chat_agent create_message payload'),
-    status: parseMessageStatus(record.status, 'chat_agent create_message payload'),
-    kind: parseMessageKind(record.kind, 'chat_agent create_message payload'),
-    contentText: String(record.contentText ?? ''),
-    reasoningText: parseOptionalString(record.reasoningText) || null,
-    error: record.error == null ? null : parseAgentLocalMessageError(record.error),
-    traceId: parseOptionalString(record.traceId) || null,
-    parentMessageId: parseOptionalString(record.parentMessageId) || null,
-    mediaUrl: parseOptionalString(record.mediaUrl) || null,
-    mediaMimeType: parseOptionalString(record.mediaMimeType) || null,
-    artifactId: parseOptionalString(record.artifactId) || null,
-    metadataJson: parseOptionalJsonObject(record.metadataJson) || null,
-    createdAtMs: parseFiniteInteger(record.createdAtMs, 'createdAtMs', 'chat_agent create_message payload'),
-    updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent create_message payload'),
   };
 }
 

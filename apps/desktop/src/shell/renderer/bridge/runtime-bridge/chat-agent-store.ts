@@ -4,10 +4,8 @@ import {
   parseAgentLocalCancelTurnInput,
   parseAgentLocalCommitTurnResult,
   parseAgentLocalCommitTurnResultInput,
-  parseAgentLocalCreateMessageInput,
   parseAgentLocalCreateThreadInput,
   parseAgentLocalDraftRecord,
-  parseAgentLocalMessageRecord,
   parseAgentLocalProjectionRebuildResult,
   parseAgentLocalPutDraftInput,
   parseAgentLocalThreadBundle,
@@ -18,10 +16,8 @@ import {
   type AgentLocalCancelTurnInput,
   type AgentLocalCommitTurnResult,
   type AgentLocalCommitTurnResultInput,
-  type AgentLocalCreateMessageInput,
   type AgentLocalCreateThreadInput,
   type AgentLocalDraftRecord,
-  type AgentLocalMessageRecord,
   type AgentLocalProjectionRebuildResult,
   type AgentLocalPutDraftInput,
   type AgentLocalThreadBundle,
@@ -70,13 +66,6 @@ export async function updateThreadMetadata(input: AgentLocalUpdateThreadMetadata
   return invokeChecked('chat_agent_update_thread_metadata', {
     payload: parseAgentLocalUpdateThreadMetadataInput(input),
   }, parseAgentLocalThreadRecord);
-}
-
-export async function createMessage(input: AgentLocalCreateMessageInput): Promise<AgentLocalMessageRecord> {
-  requireTauri('chat_agent_create_message');
-  return invokeChecked('chat_agent_create_message', {
-    payload: parseAgentLocalCreateMessageInput(input),
-  }, parseAgentLocalMessageRecord);
 }
 
 export async function getDraft(threadId: string): Promise<AgentLocalDraftRecord | null> {
@@ -147,7 +136,6 @@ export const chatAgentStoreClient = {
   getThreadBundle,
   createThread,
   updateThreadMetadata,
-  createMessage,
   getDraft,
   putDraft,
   deleteDraft,

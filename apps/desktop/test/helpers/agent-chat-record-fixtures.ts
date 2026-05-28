@@ -1,5 +1,4 @@
 import type {
-  AgentLocalCreateMessageInput,
   AgentLocalMessageRecord,
   AgentLocalTurnBeatInput,
   AgentLocalTurnBeatRecord,
@@ -56,12 +55,6 @@ export function createAgentVoiceMessage(
     metadataJson: null,
     ...input,
   };
-}
-
-export function createAgentCreateMessageInput(
-  input: PartialWithRequired<AgentLocalCreateMessageInput, 'id' | 'threadId' | 'role' | 'status' | 'contentText' | 'createdAtMs' | 'updatedAtMs'>,
-): AgentLocalCreateMessageInput {
-  return createAgentTextMessage(input);
 }
 
 export function createAgentTurnBeat(

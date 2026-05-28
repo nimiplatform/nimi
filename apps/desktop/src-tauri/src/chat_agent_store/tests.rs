@@ -96,7 +96,7 @@ fn chat_agent_open_db_initializes_schema_idempotently() {
 }
 
 #[test]
-fn chat_agent_store_round_trip_thread_message_and_draft() {
+fn chat_agent_store_round_trip_thread_and_draft() {
     let home = temp_home("roundtrip");
     with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
@@ -116,31 +116,6 @@ fn chat_agent_store_round_trip_thread_message_and_draft() {
         assert_eq!(thread.owner_user_id, "user-1");
         assert_eq!(thread.local_agent_ref, "local-agent:user-1:agent-001");
 
-        let message = create_message(
-            &conn,
-            &ChatAgentCreateMessageInput {
-                id: "message-001".to_string(),
-                thread_id: thread.id.clone(),
-                role: ChatAgentMessageRole::User,
-                status: ChatAgentMessageStatus::Complete,
-                kind: ChatAgentMessageKind::Text,
-                content_text: "hello".to_string(),
-                reasoning_text: Some("thinking".to_string()),
-                error: None,
-                trace_id: Some("trace-001".to_string()),
-                parent_message_id: None,
-                media_url: None,
-                media_mime_type: None,
-                artifact_id: None,
-                metadata_json: None,
-                created_at_ms: 130,
-                updated_at_ms: 130,
-            },
-        )
-        .expect("create message");
-        assert_eq!(message.trace_id.as_deref(), Some("trace-001"));
-        assert_eq!(message.reasoning_text.as_deref(), Some("thinking"));
-
         let draft = put_draft(
             &conn,
             &ChatAgentPutDraftInput {
@@ -159,12 +134,7 @@ fn chat_agent_store_round_trip_thread_message_and_draft() {
         let bundle = get_thread_bundle(&conn, &thread.id)
             .expect("bundle")
             .expect("bundle present");
-        assert_eq!(bundle.messages.len(), 1);
-        assert_eq!(bundle.messages[0].content_text, "hello");
-        assert_eq!(
-            bundle.messages[0].reasoning_text.as_deref(),
-            Some("thinking")
-        );
+        assert!(bundle.messages.is_empty());
         assert_eq!(bundle.draft.expect("draft").text, "draft");
     });
 }
@@ -180,30 +150,6 @@ fn chat_agent_store_rejects_missing_thread_reuses_duplicate_agent_and_invalid_js
         fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
         let conn = Connection::open(&path).expect("open");
         super::schema::init_schema(&conn).expect("init schema");
-
-        let create_missing_thread_message = create_message(
-            &conn,
-            &ChatAgentCreateMessageInput {
-                id: "message-orphan".to_string(),
-                thread_id: "missing-thread".to_string(),
-                role: ChatAgentMessageRole::User,
-                status: ChatAgentMessageStatus::Complete,
-                kind: ChatAgentMessageKind::Text,
-                content_text: "hello".to_string(),
-                reasoning_text: None,
-                error: None,
-                trace_id: None,
-                parent_message_id: None,
-                media_url: None,
-                media_mime_type: None,
-                artifact_id: None,
-                metadata_json: None,
-                created_at_ms: 100,
-                updated_at_ms: 100,
-            },
-        )
-        .expect_err("missing thread should fail");
-        assert!(create_missing_thread_message.contains("missing referenced thread"));
 
         let created = create_thread(
             &conn,

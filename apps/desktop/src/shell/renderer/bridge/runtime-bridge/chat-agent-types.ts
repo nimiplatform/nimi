@@ -146,25 +146,6 @@ export type AgentLocalUpdateThreadMetadataInput = {
   targetSnapshot: AgentLocalTargetSnapshot;
 };
 
-export type AgentLocalCreateMessageInput = {
-  id: string;
-  threadId: string;
-  role: AgentLocalMessageRole;
-  status: AgentLocalMessageStatus;
-  kind: AgentLocalMessageKind;
-  contentText: string;
-  reasoningText: string | null;
-  error: AgentLocalMessageError | null;
-  traceId: string | null;
-  parentMessageId: string | null;
-  mediaUrl: string | null;
-  mediaMimeType: string | null;
-  artifactId: string | null;
-  metadataJson: JsonObject | null;
-  createdAtMs: number;
-  updatedAtMs: number;
-};
-
 export type AgentLocalPutDraftInput = {
   threadId: string;
   text: string;

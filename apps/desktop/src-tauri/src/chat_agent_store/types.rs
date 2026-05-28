@@ -226,27 +226,6 @@ pub struct ChatAgentUpdateThreadMetadataInput {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatAgentCreateMessageInput {
-    pub id: String,
-    pub thread_id: String,
-    pub role: ChatAgentMessageRole,
-    pub status: ChatAgentMessageStatus,
-    pub kind: ChatAgentMessageKind,
-    pub content_text: String,
-    pub reasoning_text: Option<String>,
-    pub error: Option<ChatAgentMessageError>,
-    pub trace_id: Option<String>,
-    pub parent_message_id: Option<String>,
-    pub media_url: Option<String>,
-    pub media_mime_type: Option<String>,
-    pub artifact_id: Option<String>,
-    pub metadata_json: Option<serde_json::Value>,
-    pub created_at_ms: i64,
-    pub updated_at_ms: i64,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ChatAgentThreadLookupPayload {
     pub thread_id: String,
 }
