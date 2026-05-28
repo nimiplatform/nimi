@@ -7,8 +7,8 @@ import type { ConversationRuntimeTextMessage } from '@nimiplatform/kit/features/
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { invokeRuntimeLlm } from '@runtime/llm-adapter/execution';
-import type { InvokeRuntimeLlmInput, InvokeRuntimeLlmOutput } from '@runtime/llm-adapter/execution';
+import { invokeRuntimeLlm } from '@runtime/llm-adapter/execution/invoke-text';
+import type { InvokeRuntimeLlmInput, InvokeRuntimeLlmOutput } from '@runtime/llm-adapter/execution/types';
 import {
   buildRuntimeStreamOptions,
   ensureRuntimeLocalModelWarm,
