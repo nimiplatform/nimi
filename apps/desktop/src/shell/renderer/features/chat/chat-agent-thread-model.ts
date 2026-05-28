@@ -203,7 +203,6 @@ export function buildAgentThreadMetadataUpdate(input: {
     title: input.thread.title,
     updatedAtMs: input.thread.updatedAtMs,
     lastMessageAtMs: input.thread.lastMessageAtMs,
-    archivedAtMs: input.thread.archivedAtMs,
     targetSnapshot: input.target,
   };
 }
@@ -304,7 +303,7 @@ export function toConversationThreadSummary(
     createdAt: toIsoString(thread.updatedAtMs),
     updatedAt: toIsoString(thread.updatedAtMs),
     unreadCount: 0,
-    status: thread.archivedAtMs == null ? 'active' : 'archived',
+    status: 'active',
     pinned: false,
     targetId: thread.localAgentRef,
     targetLabel: thread.targetSnapshot.displayName,

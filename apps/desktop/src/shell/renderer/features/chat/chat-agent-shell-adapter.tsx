@@ -50,7 +50,6 @@ import {
 import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import {
   bundleQueryKey,
-  upsertBundleDraft,
   upsertThreadSummary,
   toErrorMessage,
 } from './chat-agent-shell-core';
@@ -486,17 +485,8 @@ export function useAgentConversationModeHost(
     if (!activeThreadId || !activeConversationAnchorId || input.conversationAnchorId !== activeConversationAnchorId) {
       throw new Error('Voice input is unavailable because no active thread is selected.');
     }
-    const draft = await chatAgentStoreClient.putDraft({
-      threadId: activeThreadId,
-      text: input.text,
-      updatedAtMs: Date.now(),
-    });
     currentDraftTextRef.current = input.text;
-    setBundleCache(
-      activeThreadId,
-      (current) => upsertBundleDraft(current, draft) || current,
-    );
-  }, [activeConversationAnchorId, activeThreadId, currentDraftTextRef, setBundleCache]);
+  }, [activeConversationAnchorId, activeThreadId, currentDraftTextRef]);
   const {
     clearLatestVoiceCaptureForThread,
     handsFreeState,
@@ -526,8 +516,6 @@ export function useAgentConversationModeHost(
     applyDriverEffects,
     bundle,
     currentDraftTextRef,
-    draftText: bundle?.draft?.text,
-    draftUpdatedAtMs: bundle?.draft?.updatedAtMs,
     queryClient,
     reportHostError,
     runAgentTurn: (turnInput) => agentProvider.runTurn({

@@ -54,7 +54,6 @@ function sampleThreads(): AgentLocalThreadSummary[] {
     title: 'Companion',
     updatedAtMs: 100,
     lastMessageAtMs: 90,
-    archivedAtMs: null,
     targetSnapshot: sampleTargets()[0]!,
   }];
 }
@@ -389,7 +388,6 @@ test('agent shell view model emits thread metadata update when authoritative tar
     title: 'Companion',
     updatedAtMs: 100,
     lastMessageAtMs: 90,
-    archivedAtMs: null,
     targetSnapshot: mergedTarget,
   });
   assert.equal(buildAgentThreadMetadataUpdate({

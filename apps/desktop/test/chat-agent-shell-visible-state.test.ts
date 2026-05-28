@@ -21,7 +21,6 @@ import {
 } from './helpers/agent-chat-submit-host-harness.js';
 import { createInitialAgentSubmitDriverState } from '../src/shell/renderer/features/chat/chat-agent-shell-submit-driver.js';
 import type {
-  AgentLocalDraftRecord,
   AgentLocalTargetSnapshot,
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
@@ -85,16 +84,7 @@ function sampleThread(): AgentLocalThreadRecord {
     createdAtMs: 10,
     updatedAtMs: 20,
     lastMessageAtMs: 20,
-    archivedAtMs: null,
     targetSnapshot: sampleTarget(),
-  };
-}
-
-function sampleDraft(): AgentLocalDraftRecord {
-  return {
-    threadId: 'thread-1',
-    text: 'retry this',
-    updatedAtMs: 300,
   };
 }
 
@@ -110,7 +100,6 @@ function baseUserBundle(): AgentLocalThreadBundle {
       createdAtMs: 100,
       updatedAtMs: 100,
     })],
-    draft: null,
   };
 }
 
@@ -154,7 +143,6 @@ function authoritativeBundle(): AgentLocalThreadBundle {
       createdAtMs: 101,
       updatedAtMs: 999,
     })],
-    draft: null,
   };
 }
 
@@ -741,7 +729,6 @@ test('agent visible state preserves idle composer and hidden footer after tail c
         code: 'OPERATION_ABORTED',
         message: 'Generation stopped.',
       },
-      draft: sampleDraft(),
       updatedAtMs: 160,
     });
     finishAgentHostSubmit(harness);

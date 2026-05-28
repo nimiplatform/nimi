@@ -3,7 +3,6 @@ import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
-  AgentLocalDraftRecord,
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
 } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
@@ -27,7 +26,6 @@ function sampleThread(): AgentLocalThreadRecord {
     createdAtMs: 10,
     updatedAtMs: 20,
     lastMessageAtMs: 20,
-    archivedAtMs: null,
     targetSnapshot: {
       ownerUserId: 'user-1',
       realmAgentId: 'agent-1',
@@ -45,14 +43,6 @@ function sampleThread(): AgentLocalThreadRecord {
   };
 }
 
-function sampleDraft(): AgentLocalDraftRecord {
-  return {
-    threadId: 'thread-1',
-    text: 'retry this',
-    updatedAtMs: 300,
-  };
-}
-
 function baseUserBundle(): AgentLocalThreadBundle {
   return {
     thread: sampleThread(),
@@ -65,7 +55,6 @@ function baseUserBundle(): AgentLocalThreadBundle {
       createdAtMs: 100,
       updatedAtMs: 100,
     })],
-    draft: null,
   };
 }
 
@@ -109,7 +98,6 @@ function authoritativeBundle(): AgentLocalThreadBundle {
       createdAtMs: 101,
       updatedAtMs: 999,
     })],
-    draft: null,
   };
 }
 
@@ -351,7 +339,6 @@ test('agent submit driver emits interrupted stream effect before interrupted hos
       code: 'RUNTIME_CALL_FAILED',
       message: 'runtime broke',
     },
-    draft: sampleDraft(),
     updatedAtMs: 160,
     streamSnapshot: streamState({
       phase: 'waiting',
@@ -361,7 +348,6 @@ test('agent submit driver emits interrupted stream effect before interrupted hos
   assert.deepEqual(effectKinds(interrupted), ['stream', 'host']);
   assert.equal(interrupted.streamEffects[0]?.type, 'error');
   assert.equal(interrupted.hostPatchEffect?.footerViewState.displayState, 'interrupted');
-  assert.deepEqual(interrupted.hostPatchEffect?.bundle.draft, sampleDraft());
 });
 
 test('agent submit driver keeps sealed first-beat when canceled turn wins over late refresh', () => {
@@ -399,7 +385,6 @@ test('agent submit driver keeps sealed first-beat when canceled turn wins over l
       code: 'OPERATION_ABORTED',
       message: 'Generation stopped.',
     },
-    draft: sampleDraft(),
     updatedAtMs: 150,
     streamSnapshot: streamState({
       phase: 'cancelled',

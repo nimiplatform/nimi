@@ -3,7 +3,6 @@ import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
-  AgentLocalDraftRecord,
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
 } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
@@ -27,7 +26,6 @@ function sampleThread(): AgentLocalThreadRecord {
     createdAtMs: 10,
     updatedAtMs: 20,
     lastMessageAtMs: 20,
-    archivedAtMs: null,
     targetSnapshot: {
       ownerUserId: 'user-1',
       realmAgentId: 'agent-1',
@@ -45,14 +43,6 @@ function sampleThread(): AgentLocalThreadRecord {
   };
 }
 
-function sampleDraft(): AgentLocalDraftRecord {
-  return {
-    threadId: 'thread-1',
-    text: 'retry this',
-    updatedAtMs: 300,
-  };
-}
-
 function baseUserBundle(): AgentLocalThreadBundle {
   return {
     thread: sampleThread(),
@@ -65,7 +55,6 @@ function baseUserBundle(): AgentLocalThreadBundle {
       createdAtMs: 100,
       updatedAtMs: 100,
     })],
-    draft: null,
   };
 }
 
@@ -109,7 +98,6 @@ function authoritativeBundle(): AgentLocalThreadBundle {
       createdAtMs: 101,
       updatedAtMs: 999,
     })],
-    draft: null,
   };
 }
 
@@ -423,7 +411,6 @@ test('agent submit session emits an error stream event only while waiting or str
       code: 'RUNTIME_CALL_FAILED',
       message: 'runtime broke',
     },
-    draft: sampleDraft(),
     updatedAtMs: 160,
     streamSnapshot: streamState({
       phase: 'waiting',
@@ -437,7 +424,6 @@ test('agent submit session emits an error stream event only while waiting or str
     traceId: undefined,
   });
   assert.equal(interrupted.hostInteractionPatch.footerViewState.displayState, 'interrupted');
-  assert.deepEqual(interrupted.hostInteractionPatch.bundle.draft, sampleDraft());
 });
 
 test('agent submit session preserves visible first-beat when the turn is canceled after seal', () => {
@@ -473,7 +459,6 @@ test('agent submit session preserves visible first-beat when the turn is cancele
       code: 'OPERATION_ABORTED',
       message: 'Generation stopped.',
     },
-    draft: sampleDraft(),
     updatedAtMs: 160,
     streamSnapshot: streamState({
       phase: 'cancelled',

@@ -55,7 +55,6 @@ fn sample_create_thread_input(
         created_at_ms: 100,
         updated_at_ms: 120,
         last_message_at_ms: None,
-        archived_at_ms: None,
         target_snapshot: sample_target_snapshot_for_owner(owner_user_id, realm_agent_id),
     }
 }
@@ -96,7 +95,7 @@ fn chat_agent_open_db_initializes_schema_idempotently() {
 }
 
 #[test]
-fn chat_agent_store_round_trip_thread_and_draft() {
+fn chat_agent_store_round_trip_thread() {
     let home = temp_home("roundtrip");
     with_product_data_home(&home, || {
         let path = crate::desktop_paths::resolve_nimi_data_dir()
@@ -116,17 +115,6 @@ fn chat_agent_store_round_trip_thread_and_draft() {
         assert_eq!(thread.owner_user_id, "user-1");
         assert_eq!(thread.local_agent_ref, "local-agent:user-1:agent-001");
 
-        let draft = put_draft(
-            &conn,
-            &ChatAgentPutDraftInput {
-                thread_id: thread.id.clone(),
-                text: "draft".to_string(),
-                updated_at_ms: 140,
-            },
-        )
-        .expect("put draft");
-        assert_eq!(draft.text, "draft");
-
         let threads = list_threads(&conn).expect("list threads");
         assert_eq!(threads.len(), 1);
         assert_eq!(threads[0].target_snapshot.handle, "~agent-one");
@@ -135,7 +123,6 @@ fn chat_agent_store_round_trip_thread_and_draft() {
             .expect("bundle")
             .expect("bundle present");
         assert!(bundle.messages.is_empty());
-        assert_eq!(bundle.draft.expect("draft").text, "draft");
     });
 }
 
@@ -169,7 +156,6 @@ fn chat_agent_store_rejects_missing_thread_reuses_duplicate_agent_and_invalid_js
                 created_at_ms: 101,
                 updated_at_ms: 121,
                 last_message_at_ms: None,
-                archived_at_ms: None,
                 target_snapshot: ChatAgentTargetSnapshot {
                     display_name: "Agent Dup Updated".to_string(),
                     ..sample_target_snapshot("agent-dup")
@@ -226,33 +212,14 @@ fn chat_agent_store_isolates_same_realm_agent_across_owners() {
         assert_eq!(alice.realm_agent_id, bob.realm_agent_id);
         assert_ne!(alice.local_agent_ref, bob.local_agent_ref);
 
-        put_draft(
-            &conn,
-            &ChatAgentPutDraftInput {
-                thread_id: alice.id.clone(),
-                text: "alice draft".to_string(),
-                updated_at_ms: 200,
-            },
-        )
-        .expect("put alice draft");
-        put_draft(
-            &conn,
-            &ChatAgentPutDraftInput {
-                thread_id: bob.id.clone(),
-                text: "bob draft".to_string(),
-                updated_at_ms: 210,
-            },
-        )
-        .expect("put bob draft");
-
         let alice_bundle = get_thread_bundle(&conn, &alice.id)
             .expect("alice bundle")
             .expect("alice bundle present");
         let bob_bundle = get_thread_bundle(&conn, &bob.id)
             .expect("bob bundle")
             .expect("bob bundle present");
-        assert_eq!(alice_bundle.draft.expect("alice draft").text, "alice draft");
-        assert_eq!(bob_bundle.draft.expect("bob draft").text, "bob draft");
+        assert_eq!(alice_bundle.thread.local_agent_ref, "local-agent:alice:agent-shared");
+        assert_eq!(bob_bundle.thread.local_agent_ref, "local-agent:bob:agent-shared");
 
         let threads = list_threads(&conn).expect("list threads");
         assert_eq!(threads.len(), 2);
@@ -326,51 +293,6 @@ fn chat_agent_store_rejects_invalid_local_agent_identity() {
 }
 
 #[test]
-fn chat_agent_draft_put_overwrites_and_delete_clears() {
-    let home = temp_home("draft");
-    with_product_data_home(&home, || {
-        let path = crate::desktop_paths::resolve_nimi_data_dir()
-            .expect("nimi data dir")
-            .join("chat-agent")
-            .join("main.db");
-        fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
-        let conn = Connection::open(&path).expect("open");
-        super::schema::init_schema(&conn).expect("init schema");
-
-        let thread = create_thread(
-            &conn,
-            &sample_create_thread_input("thread-agent-draft", "user-1", "agent-draft"),
-        )
-        .expect("create thread");
-
-        let first = put_draft(
-            &conn,
-            &ChatAgentPutDraftInput {
-                thread_id: thread.id.clone(),
-                text: "draft-1".to_string(),
-                updated_at_ms: 130,
-            },
-        )
-        .expect("first draft");
-        assert_eq!(first.text, "draft-1");
-
-        let second = put_draft(
-            &conn,
-            &ChatAgentPutDraftInput {
-                thread_id: thread.id.clone(),
-                text: "draft-2".to_string(),
-                updated_at_ms: 140,
-            },
-        )
-        .expect("second draft");
-        assert_eq!(second.text, "draft-2");
-
-        delete_draft(&conn, &thread.id).expect("delete draft");
-        assert!(get_draft(&conn, &thread.id).expect("get draft").is_none());
-    });
-}
-
-#[test]
 fn chat_agent_delete_thread_removes_local_history() {
     let home = temp_home("delete-history");
     with_product_data_home(&home, || {
@@ -426,15 +348,6 @@ fn chat_agent_delete_thread_removes_local_history() {
             ],
         )
         .expect("insert first message");
-        put_draft(
-            &conn,
-            &ChatAgentPutDraftInput {
-                thread_id: first_thread.id.clone(),
-                text: "draft".to_string(),
-                updated_at_ms: 140,
-            },
-        )
-        .expect("put first draft");
         conn.execute(
             r#"
             INSERT INTO agent_turns (
@@ -469,14 +382,6 @@ fn chat_agent_delete_thread_removes_local_history() {
             )
             .expect("deleted message count");
         assert_eq!(deleted_message_count, 0);
-        let deleted_draft_count: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM agent_thread_drafts WHERE thread_id = ?1",
-                params![&first_thread.id],
-                |row| row.get(0),
-            )
-            .expect("deleted draft count");
-        assert_eq!(deleted_draft_count, 0);
         let deleted_turn_count: i64 = conn
             .query_row(
                 "SELECT COUNT(*) FROM agent_turns WHERE thread_id = ?1",
@@ -578,7 +483,6 @@ fn chat_agent_store_rejects_multi_text_beat_assistant_turns() {
                         title: "Agent Single Message".to_string(),
                         updated_at_ms: 260,
                         last_message_at_ms: Some(260),
-                        archived_at_ms: None,
                         target_snapshot: sample_target_snapshot("agent-single-message-hardcut"),
                     },
                     messages: vec![
@@ -619,8 +523,6 @@ fn chat_agent_store_rejects_multi_text_beat_assistant_turns() {
                             updated_at_ms: 260,
                         },
                     ],
-                    draft: None,
-                    clear_draft: true,
                 },
             },
         );

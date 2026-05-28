@@ -309,8 +309,8 @@ export function useAgentConversationPresentation(
         <div className="space-y-3">
           {hostFeedbackNode}
           <AgentCanonicalComposer
-            composerKey={`${input.activeThreadId || 'none'}:${input.bundle?.draft?.updatedAtMs || 0}`}
-            initialText={input.bundle?.draft?.text || ''}
+            composerKey={input.activeThreadId || 'none'}
+            initialText={input.currentDraftTextRef.current}
             disabled={Boolean(input.submittingThreadId) || schedulingGuard.disabled}
             pendingAttachments={input.pendingAttachments}
             onAttachmentsChange={input.onAttachmentsChange}
@@ -390,8 +390,6 @@ export function useAgentConversationPresentation(
     input.agentRouteReady,
     input.mutationPendingAction,
     input.behaviorSettings,
-    input.bundle?.draft?.text,
-    input.bundle?.draft?.updatedAtMs,
     input.currentDraftTextRef,
     input.handleSubmit,
     input.onAttachmentsChange,

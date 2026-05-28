@@ -6,9 +6,6 @@ import {
 } from './chat-agent-shell-core';
 import { clearAgentConversationAnchorBinding } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
-import {
-  persistDraftForThread,
-} from './chat-agent-shell-host-actions-helpers';
 import { submitAgentConversationTurn } from './chat-agent-shell-host-actions-submit';
 import type {
   ActiveAgentSubmit,
@@ -26,15 +23,6 @@ export function useAgentConversationHostActions(
   handleSelectThread: (threadId: string) => void;
   handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
 } {
-  useEffect(() => {
-    input.currentDraftTextRef.current = input.draftText || '';
-  }, [input.currentDraftTextRef, input.draftText, input.draftUpdatedAtMs]);
-
-  const persistDraft = useCallback(
-    async (threadId: string | null) => persistDraftForThread(input, threadId),
-    [input],
-  );
-
   useEffect(() => {
     if (!input.threadsReady) {
       return;
@@ -59,12 +47,9 @@ export function useAgentConversationHostActions(
     if (!nextThread) {
       return;
     }
-    void (async () => {
-      await persistDraft(input.activeThreadId);
-      input.currentDraftTextRef.current = '';
-      input.syncSelectionToThread(nextThread);
-    })().catch(input.reportHostError);
-  }, [input, persistDraft]);
+    input.currentDraftTextRef.current = '';
+    input.syncSelectionToThread(nextThread);
+  }, [input]);
 
   const handleDeleteThread = useCallback(async (threadId: string) => {
     const normalizedThreadId = normalizeText(threadId);
@@ -96,7 +81,6 @@ export function useAgentConversationHostActions(
       return;
     }
     void (async () => {
-      await persistDraft(input.activeThreadId);
       input.currentDraftTextRef.current = '';
       const normalizedLocalAgentRef = normalizeText(localAgentRef);
       if (!normalizedLocalAgentRef) {
@@ -111,7 +95,7 @@ export function useAgentConversationHostActions(
       }
       input.setSelectionForLocalAgentRef(target.localAgentRef);
     })().catch(input.reportHostError);
-  }, [input, persistDraft]);
+  }, [input]);
 
   const handleSubmit = useCallback(async (payload: AgentConversationSubmitPayload) => {
     await submitAgentConversationTurn({

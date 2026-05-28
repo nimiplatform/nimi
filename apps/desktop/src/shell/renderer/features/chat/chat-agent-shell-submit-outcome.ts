@@ -1,5 +1,4 @@
 import type {
-  AgentLocalDraftRecord,
   AgentLocalMessageError,
   AgentLocalMessageRecord,
   AgentLocalThreadBundle,
@@ -53,7 +52,6 @@ export function resolveInterruptedAgentSubmitOutcome(input: {
   partialReasoningText: string;
   runtimeError: AgentLocalMessageError;
   traceId: string | null;
-  draft: AgentLocalDraftRecord;
   submittedText: string;
   updatedAtMs: number;
 }): AgentSubmitOutcomeState {
@@ -67,7 +65,6 @@ export function resolveInterruptedAgentSubmitOutcome(input: {
     partialReasoningText: input.partialReasoningText,
     runtimeError: input.runtimeError,
     traceId: input.traceId,
-    draft: input.draft,
     updatedAtMs: input.updatedAtMs,
   });
   return {

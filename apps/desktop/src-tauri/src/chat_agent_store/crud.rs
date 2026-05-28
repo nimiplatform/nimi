@@ -1,7 +1,7 @@
 use super::codec::{
     map_sql_error, normalize_required_string, normalize_target_snapshot, require_non_negative_ms,
 };
-use super::rows::{draft_record_from_row, message_record_from_row, thread_record_from_row};
+use super::rows::{message_record_from_row, thread_record_from_row};
 use super::types::*;
 use rusqlite::{params, Connection, OptionalExtension};
 
@@ -14,7 +14,6 @@ fn summarize_thread(record: ChatAgentThreadRecord) -> ChatAgentThreadSummary {
         title: record.title,
         updated_at_ms: record.updated_at_ms,
         last_message_at_ms: record.last_message_at_ms,
-        archived_at_ms: record.archived_at_ms,
         target_snapshot: record.target_snapshot,
     }
 }
@@ -32,7 +31,6 @@ pub(crate) fn list_threads(conn: &Connection) -> Result<Vec<ChatAgentThreadSumma
               created_at_ms,
               updated_at_ms,
               last_message_at_ms,
-              archived_at_ms,
               target_snapshot_json
             FROM agent_threads
             ORDER BY updated_at_ms DESC, id DESC
@@ -67,7 +65,6 @@ pub(crate) fn get_thread_bundle(
               created_at_ms,
               updated_at_ms,
               last_message_at_ms,
-              archived_at_ms,
               target_snapshot_json
             FROM agent_threads
             WHERE id = ?1
@@ -118,23 +115,9 @@ pub(crate) fn get_thread_bundle(
         messages.push(row.map_err(|error| format!("decode chat_agent message failed: {error}"))?);
     }
 
-    let draft = conn
-        .query_row(
-            r#"
-            SELECT thread_id, draft_text, updated_at_ms
-            FROM agent_thread_drafts
-            WHERE thread_id = ?1
-            "#,
-            params![&thread.id],
-            draft_record_from_row,
-        )
-        .optional()
-        .map_err(|error| format!("query chat_agent draft failed: {error}"))?;
-
     Ok(Some(ChatAgentThreadBundle {
         thread,
         messages,
-        draft,
     }))
 }
 
@@ -153,7 +136,6 @@ fn get_thread_record_by_local_agent_ref(
           created_at_ms,
           updated_at_ms,
           last_message_at_ms,
-          archived_at_ms,
           target_snapshot_json
         FROM agent_threads
         WHERE local_agent_ref = ?1
@@ -184,10 +166,6 @@ pub(crate) fn create_thread(
         .last_message_at_ms
         .map(|value| require_non_negative_ms(value, "lastMessageAtMs"))
         .transpose()?;
-    let archived_at_ms = input
-        .archived_at_ms
-        .map(|value| require_non_negative_ms(value, "archivedAtMs"))
-        .transpose()?;
     let target_snapshot = normalize_target_snapshot(&input.target_snapshot)?;
     if target_snapshot.owner_user_id != owner_user_id
         || target_snapshot.realm_agent_id != realm_agent_id
@@ -208,9 +186,8 @@ pub(crate) fn create_thread(
           created_at_ms,
           updated_at_ms,
           last_message_at_ms,
-          archived_at_ms,
           target_snapshot_json
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
         "#,
         params![
             id,
@@ -221,7 +198,6 @@ pub(crate) fn create_thread(
             created_at_ms,
             updated_at_ms,
             last_message_at_ms,
-            archived_at_ms,
             target_snapshot_json,
         ],
     ) {
@@ -277,10 +253,6 @@ pub(crate) fn update_thread_metadata(
         .last_message_at_ms
         .map(|value| require_non_negative_ms(value, "lastMessageAtMs"))
         .transpose()?;
-    let archived_at_ms = input
-        .archived_at_ms
-        .map(|value| require_non_negative_ms(value, "archivedAtMs"))
-        .transpose()?;
     let target_snapshot = normalize_target_snapshot(&input.target_snapshot)?;
     let changed = conn
         .execute(
@@ -290,11 +262,10 @@ pub(crate) fn update_thread_metadata(
               title = ?2,
               updated_at_ms = ?3,
               last_message_at_ms = ?4,
-              archived_at_ms = ?5,
-              local_agent_ref = ?6,
-              owner_user_id = ?7,
-              realm_agent_id = ?8,
-              target_snapshot_json = ?9
+              local_agent_ref = ?5,
+              owner_user_id = ?6,
+              realm_agent_id = ?7,
+              target_snapshot_json = ?8
             WHERE id = ?1
             "#,
             params![
@@ -302,7 +273,6 @@ pub(crate) fn update_thread_metadata(
                 title,
                 updated_at_ms,
                 last_message_at_ms,
-                archived_at_ms,
                 target_snapshot.local_agent_ref,
                 target_snapshot.owner_user_id,
                 target_snapshot.realm_agent_id,
@@ -316,56 +286,6 @@ pub(crate) fn update_thread_metadata(
     get_thread_bundle(conn, &input.id)?
         .map(|bundle| bundle.thread)
         .ok_or_else(|| "update chat_agent thread failed: missing thread after update".to_string())
-}
-
-pub(crate) fn get_draft(
-    conn: &Connection,
-    thread_id: &str,
-) -> Result<Option<ChatAgentDraftRecord>, String> {
-    let thread_id = normalize_required_string(thread_id, "threadId")?;
-    conn.query_row(
-        r#"
-        SELECT thread_id, draft_text, updated_at_ms
-        FROM agent_thread_drafts
-        WHERE thread_id = ?1
-        "#,
-        params![thread_id],
-        draft_record_from_row,
-    )
-    .optional()
-    .map_err(|error| format!("query chat_agent draft failed: {error}"))
-}
-
-pub(crate) fn put_draft(
-    conn: &Connection,
-    input: &ChatAgentPutDraftInput,
-) -> Result<ChatAgentDraftRecord, String> {
-    let thread_id = normalize_required_string(&input.thread_id, "threadId")?;
-    let updated_at_ms = require_non_negative_ms(input.updated_at_ms, "updatedAtMs")?;
-    let text = input.text.to_string();
-    conn.execute(
-        r#"
-        INSERT INTO agent_thread_drafts (thread_id, draft_text, updated_at_ms)
-        VALUES (?1, ?2, ?3)
-        ON CONFLICT(thread_id) DO UPDATE SET
-          draft_text = excluded.draft_text,
-          updated_at_ms = excluded.updated_at_ms
-        "#,
-        params![thread_id, text, updated_at_ms],
-    )
-    .map_err(|error| map_sql_error("put chat_agent draft failed", error))?;
-    get_draft(conn, &input.thread_id)?
-        .ok_or_else(|| "put chat_agent draft failed: missing draft after write".to_string())
-}
-
-pub(crate) fn delete_draft(conn: &Connection, thread_id: &str) -> Result<(), String> {
-    let thread_id = normalize_required_string(thread_id, "threadId")?;
-    conn.execute(
-        "DELETE FROM agent_thread_drafts WHERE thread_id = ?1",
-        params![thread_id],
-    )
-    .map_err(|error| map_sql_error("delete chat_agent draft failed", error))?;
-    Ok(())
 }
 
 pub(crate) fn delete_thread(conn: &Connection, thread_id: &str) -> Result<(), String> {

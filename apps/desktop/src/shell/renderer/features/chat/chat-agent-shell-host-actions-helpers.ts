@@ -19,7 +19,6 @@ import {
 import {
   bundleQueryKey,
   normalizeText,
-  upsertBundleDraft,
   THREADS_QUERY_KEY,
   upsertThreadSummary,
 } from './chat-agent-shell-core';
@@ -194,34 +193,6 @@ export async function assertAgentSubmitSchedulingAllowed(input: {
   }
 }
 
-export async function persistDraftForThread(
-  input: UseAgentConversationHostActionsInput,
-  threadId: string | null,
-): Promise<void> {
-  const normalizedThreadId = normalizeText(threadId);
-  if (!normalizedThreadId) {
-    return;
-  }
-  const nextText = input.currentDraftTextRef.current;
-  if (nextText.trim()) {
-    const draft = await chatAgentStoreClient.putDraft({
-      threadId: normalizedThreadId,
-      text: nextText,
-      updatedAtMs: Date.now(),
-    });
-    input.setBundleCache(
-      normalizedThreadId,
-      (current) => upsertBundleDraft(current, draft) || current,
-    );
-    return;
-  }
-  await chatAgentStoreClient.deleteDraft(normalizedThreadId);
-  input.setBundleCache(
-    normalizedThreadId,
-    (current) => upsertBundleDraft(current, null) || current,
-  );
-}
-
 async function openConversationAnchorForTarget(
   target: AgentLocalTargetSnapshot,
 ): Promise<string> {
@@ -309,7 +280,6 @@ export async function createThreadForTarget(
     createdAtMs: timestampMs,
     updatedAtMs: timestampMs,
     lastMessageAtMs: null,
-    archivedAtMs: null,
     targetSnapshot: target,
   });
   input.setThreadsCache((current) => upsertThreadSummary(current, thread));

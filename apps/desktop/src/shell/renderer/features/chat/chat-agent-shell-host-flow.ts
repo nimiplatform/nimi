@@ -1,5 +1,4 @@
 import type {
-  AgentLocalDraftRecord,
   AgentLocalMessageError,
   AgentLocalMessageRecord,
   AgentLocalThreadBundle,
@@ -75,7 +74,6 @@ export function resolveInterruptedAgentSubmitHostFlow(input: {
   partialReasoningText: string;
   runtimeError: AgentLocalMessageError;
   traceId: string | null;
-  draft: AgentLocalDraftRecord;
   submittedText: string;
   updatedAtMs: number;
   lifecycle: AgentTurnLifecycleState;
@@ -92,7 +90,6 @@ export function resolveInterruptedAgentSubmitHostFlow(input: {
       partialReasoningText: input.partialReasoningText,
       runtimeError: input.runtimeError,
       traceId: input.traceId,
-      draft: input.draft,
       submittedText: input.submittedText,
       updatedAtMs: input.updatedAtMs,
     }),

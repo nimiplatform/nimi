@@ -1,5 +1,4 @@
 import type {
-  AgentLocalDraftRecord,
   AgentLocalMessageError,
   AgentLocalMessageRecord,
   AgentLocalThreadBundle,
@@ -122,7 +121,6 @@ export function resolveInterruptedAgentSubmitDriverCheckpoint(input: {
   state: AgentSubmitDriverState;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;
   runtimeError: AgentLocalMessageError;
-  draft: AgentLocalDraftRecord;
   updatedAtMs: number;
   streamSnapshot: StreamState;
 }): AgentSubmitDriverEffectQueue {
@@ -130,7 +128,6 @@ export function resolveInterruptedAgentSubmitDriverCheckpoint(input: {
     state: input.state,
     refreshedBundle: input.refreshedBundle,
     runtimeError: input.runtimeError,
-    draft: input.draft,
     updatedAtMs: input.updatedAtMs,
     streamSnapshot: input.streamSnapshot,
   });

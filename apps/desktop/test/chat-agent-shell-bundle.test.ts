@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type {
-  AgentLocalDraftRecord,
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
 } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
@@ -25,7 +24,6 @@ function sampleThread(): AgentLocalThreadRecord {
     createdAtMs: 10,
     updatedAtMs: 20,
     lastMessageAtMs: 20,
-    archivedAtMs: null,
     targetSnapshot: {
       ownerUserId: 'user-1',
       realmAgentId: 'agent-1',
@@ -40,14 +38,6 @@ function sampleThread(): AgentLocalThreadRecord {
       greeting: null,
       builtinDocsContext: null,
     },
-  };
-}
-
-function sampleDraft(): AgentLocalDraftRecord {
-  return {
-    threadId: 'thread-1',
-    text: 'retry this',
-    updatedAtMs: 300,
   };
 }
 
@@ -74,14 +64,12 @@ function sampleBundle(): AgentLocalThreadBundle {
       createdAtMs: 101,
       updatedAtMs: 102,
     })],
-    draft: null,
   };
 }
 
-test('agent shell bundle prefers refreshed projection over optimistic cache and clears stale draft on success', () => {
+test('agent shell bundle prefers refreshed projection over optimistic cache and prefers authoritative projection on success', () => {
   const optimisticBundle: AgentLocalThreadBundle = {
     ...sampleBundle(),
-    draft: sampleDraft(),
   };
   const refreshedBundle: AgentLocalThreadBundle = {
     thread: {
@@ -108,42 +96,35 @@ test('agent shell bundle prefers refreshed projection over optimistic cache and 
       createdAtMs: 101,
       updatedAtMs: 999,
     })],
-    draft: sampleDraft(),
   };
 
   const nextBundle = resolveAuthoritativeAgentThreadBundle({
     optimisticBundle,
     refreshedBundle,
-    clearDraft: true,
   });
 
   assert.ok(nextBundle);
   assert.equal(nextBundle?.thread.updatedAtMs, 999);
   assert.equal(nextBundle?.messages.at(-1)?.contentText, 'authoritative projection');
-  assert.equal(nextBundle?.draft, null);
 });
 
 test('agent shell bundle falls back to optimistic bundle when no refreshed projection is available', () => {
   const optimisticBundle: AgentLocalThreadBundle = {
     ...sampleBundle(),
-    draft: sampleDraft(),
   };
 
   const nextBundle = resolveAuthoritativeAgentThreadBundle({
     optimisticBundle,
     refreshedBundle: null,
-    clearDraft: false,
   });
 
   assert.ok(nextBundle);
   assert.equal(nextBundle?.messages.at(-1)?.contentText, 'sealed first beat');
-  assert.deepEqual(nextBundle?.draft, sampleDraft());
 });
 
-test('agent shell bundle resolves completed terminals by preferring refreshed projection and clearing draft', () => {
+test('agent shell bundle resolves completed terminals by preferring refreshed projection and clearing composer text', () => {
   const optimisticBundle: AgentLocalThreadBundle = {
     ...sampleBundle(),
-    draft: sampleDraft(),
   };
   const refreshedBundle: AgentLocalThreadBundle = {
     ...sampleBundle(),
@@ -171,7 +152,6 @@ test('agent shell bundle resolves completed terminals by preferring refreshed pr
       createdAtMs: 101,
       updatedAtMs: 1000,
     })],
-    draft: sampleDraft(),
   };
 
   const nextBundle = resolveCompletedAgentThreadBundle({
@@ -182,7 +162,6 @@ test('agent shell bundle resolves completed terminals by preferring refreshed pr
   assert.ok(nextBundle);
   assert.equal(nextBundle?.messages.at(-1)?.contentText, 'authoritative completion');
   assert.equal(nextBundle?.thread.updatedAtMs, 1000);
-  assert.equal(nextBundle?.draft, null);
 });
 
 test('agent shell bundle preserves sealed assistant content when abort lands after first beat', () => {
@@ -207,7 +186,6 @@ test('agent shell bundle preserves sealed assistant content when abort lands aft
       message: 'Generation stopped.',
     },
     traceId: 'trace-tail',
-    draft: sampleDraft(),
     updatedAtMs: 400,
   });
 
@@ -220,7 +198,6 @@ test('agent shell bundle preserves sealed assistant content when abort lands aft
     message: 'Generation stopped.',
   });
   assert.equal(assistantMessage?.traceId, 'trace-sealed');
-  assert.deepEqual(nextBundle.draft, sampleDraft());
 });
 
 test('agent shell bundle grows pending assistant content during streaming before projection rebuild seals authority', () => {
@@ -236,7 +213,6 @@ test('agent shell bundle grows pending assistant content during streaming before
         createdAtMs: 100,
         updatedAtMs: 100,
       })],
-      draft: null,
     },
     fallbackThread: sampleThread(),
     assistantMessageId: 'assistant-1',
@@ -307,7 +283,6 @@ test('agent shell bundle does not let later partial deltas overwrite authoritati
       createdAtMs: 101,
       updatedAtMs: 999,
     })],
-    draft: null,
   };
 
   const nextBundle = overlayAgentAssistantVisibleState({
@@ -346,7 +321,6 @@ test('agent shell bundle creates assistant error placeholder when no committed a
       createdAtMs: 100,
       updatedAtMs: 100,
     })],
-    draft: null,
   };
 
   const nextBundle = overlayAgentAssistantTerminalState({
@@ -370,7 +344,6 @@ test('agent shell bundle creates assistant error placeholder when no committed a
       message: 'runtime broke',
     },
     traceId: 'trace-1',
-    draft: sampleDraft(),
     updatedAtMs: 410,
   });
 
@@ -383,13 +356,11 @@ test('agent shell bundle creates assistant error placeholder when no committed a
     message: 'runtime broke',
   });
   assert.equal(assistantMessage?.traceId, 'trace-1');
-  assert.deepEqual(nextBundle.draft, sampleDraft());
 });
 
-test('agent shell bundle resolves interrupted terminals against refreshed projection while keeping draft', () => {
+test('agent shell bundle resolves interrupted terminals against refreshed projection while keeping composer text', () => {
   const optimisticBundle: AgentLocalThreadBundle = {
     ...sampleBundle(),
-    draft: null,
   };
   const refreshedBundle: AgentLocalThreadBundle = {
     ...sampleBundle(),
@@ -398,7 +369,6 @@ test('agent shell bundle resolves interrupted terminals against refreshed projec
       updatedAtMs: 1200,
       lastMessageAtMs: 1200,
     },
-    draft: null,
   };
 
   const nextBundle = resolveInterruptedAgentThreadBundle({
@@ -423,7 +393,6 @@ test('agent shell bundle resolves interrupted terminals against refreshed projec
       message: 'Generation stopped.',
     },
     traceId: 'trace-tail',
-    draft: sampleDraft(),
     updatedAtMs: 1300,
   });
 
@@ -433,5 +402,4 @@ test('agent shell bundle resolves interrupted terminals against refreshed projec
     code: 'OPERATION_ABORTED',
     message: 'Generation stopped.',
   });
-  assert.deepEqual(nextBundle.draft, sampleDraft());
 });

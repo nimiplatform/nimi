@@ -229,12 +229,9 @@ export function createAgentLocalChatContinuityAdapter(
           title: thread.title,
           updatedAtMs: committedAtMs,
           lastMessageAtMs: projectionMessages.length > 0 ? committedAtMs : thread.lastMessageAtMs,
-          archivedAtMs: thread.archivedAtMs,
           targetSnapshot: thread.targetSnapshot,
         },
         messages: projectionMessages,
-        draft: null,
-        clearDraft: input.outcome === 'completed',
       },
     });
   };

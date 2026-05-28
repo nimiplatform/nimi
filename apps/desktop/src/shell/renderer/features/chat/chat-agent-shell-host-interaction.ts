@@ -1,5 +1,4 @@
 import type {
-  AgentLocalDraftRecord,
   AgentLocalMessageError,
   AgentLocalMessageRecord,
   AgentLocalThreadBundle,
@@ -81,7 +80,6 @@ export function resolveInterruptedAgentHostInteraction(input: {
   partialReasoningText: string;
   runtimeError: AgentLocalMessageError;
   traceId: string | null;
-  draft: AgentLocalDraftRecord;
   submittedText: string;
   updatedAtMs: number;
   lifecycle: AgentTurnLifecycleState;

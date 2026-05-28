@@ -3,7 +3,6 @@ import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
-  AgentLocalDraftRecord,
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
 } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
@@ -30,7 +29,6 @@ function sampleThread(): AgentLocalThreadRecord {
     createdAtMs: 10,
     updatedAtMs: 20,
     lastMessageAtMs: 20,
-    archivedAtMs: null,
     targetSnapshot: {
       ownerUserId: 'user-1',
       realmAgentId: 'agent-1',
@@ -48,14 +46,6 @@ function sampleThread(): AgentLocalThreadRecord {
   };
 }
 
-function sampleDraft(): AgentLocalDraftRecord {
-  return {
-    threadId: 'thread-1',
-    text: 'retry this',
-    updatedAtMs: 300,
-  };
-}
-
 function baseUserBundle(): AgentLocalThreadBundle {
   return {
     thread: sampleThread(),
@@ -68,7 +58,6 @@ function baseUserBundle(): AgentLocalThreadBundle {
       createdAtMs: 100,
       updatedAtMs: 100,
     })],
-    draft: null,
   };
 }
 
@@ -112,7 +101,6 @@ function authoritativeBundle(): AgentLocalThreadBundle {
       createdAtMs: 101,
       updatedAtMs: 999,
     })],
-    draft: null,
   };
 }
 
@@ -202,7 +190,6 @@ test('agent host interaction preserves authoritative content and interrupted foo
       message: 'Generation stopped.',
     },
     traceId: 'trace-tail',
-    draft: sampleDraft(),
     submittedText: 'retry this',
     updatedAtMs: 140,
     lifecycle,
@@ -220,7 +207,6 @@ test('agent host interaction preserves authoritative content and interrupted foo
 
   assert.equal(interaction.bundle.messages.at(-1)?.contentText, 'authoritative projection');
   assert.equal(interaction.bundle.messages.at(-1)?.reasoningText, 'authoritative reasoning');
-  assert.equal(interaction.draftText, 'retry this');
   assert.deepEqual(interaction.selection, {
     threadId: 'thread-1',
     localAgentRef: 'local-agent:user-1:agent-1',
@@ -263,7 +249,6 @@ test('agent host interaction keeps interrupted placeholder state when the turn f
       message: 'runtime broke',
     },
     traceId: 'trace-fail',
-    draft: sampleDraft(),
     submittedText: 'retry this',
     updatedAtMs: 140,
     lifecycle,
@@ -279,13 +264,11 @@ test('agent host interaction keeps interrupted placeholder state when the turn f
   });
 
   assert.equal(interaction.bundle.messages.at(-1)?.contentText, 'partial answer');
-  assert.deepEqual(interaction.bundle.draft, sampleDraft());
-  assert.equal(interaction.draftText, 'retry this');
   assert.equal(interaction.footerState, 'interrupted');
   assert.equal(interaction.footerViewState.displayState, 'interrupted');
 });
 
-test('agent host interaction prefers authoritative completion, clears draft, and hides the footer after first-beat and projection rebuild', () => {
+test('agent host interaction prefers authoritative completion, clears composer text, and hides the footer after first-beat and projection rebuild', () => {
   const firstBeatBundle = overlayAgentAssistantVisibleState({
     bundle: baseUserBundle(),
     fallbackThread: sampleThread(),
@@ -331,7 +314,6 @@ test('agent host interaction prefers authoritative completion, clears draft, and
 
   assert.ok(interaction);
   assert.equal(interaction?.bundle.messages.at(-1)?.contentText, 'authoritative projection');
-  assert.equal(interaction?.draftText, '');
   assert.deepEqual(interaction?.selection, {
     threadId: 'thread-1',
     localAgentRef: 'local-agent:user-1:agent-1',

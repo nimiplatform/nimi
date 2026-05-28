@@ -3,6 +3,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 
 pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
     hard_reset_old_agent_thread_schema(conn)?;
+    drop_retired_agent_chat_draft_table(conn)?;
     conn.pragma_update(None, "user_version", CHAT_AGENT_DB_SCHEMA_VERSION)
         .map_err(|error| format!("初始化 chat_agent user_version 失败: {error}"))?;
     conn.execute_batch(
@@ -16,7 +17,6 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
           created_at_ms INTEGER NOT NULL,
           updated_at_ms INTEGER NOT NULL,
           last_message_at_ms INTEGER,
-          archived_at_ms INTEGER,
           target_snapshot_json TEXT NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_agent_threads_updated ON agent_threads(updated_at_ms DESC, id DESC);
@@ -41,12 +41,6 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
           updated_at_ms INTEGER NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_agent_messages_thread_created ON agent_messages(thread_id, created_at_ms ASC, id ASC);
-
-        CREATE TABLE IF NOT EXISTS agent_thread_drafts (
-          thread_id TEXT PRIMARY KEY REFERENCES agent_threads(id) ON DELETE CASCADE,
-          draft_text TEXT NOT NULL,
-          updated_at_ms INTEGER NOT NULL
-        );
 
         CREATE TABLE IF NOT EXISTS agent_turns (
           id TEXT PRIMARY KEY,
@@ -99,7 +93,6 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
             "created_at_ms",
             "updated_at_ms",
             "last_message_at_ms",
-            "archived_at_ms",
             "target_snapshot_json",
         ],
     )?;
@@ -131,11 +124,6 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
             "created_at_ms",
             "updated_at_ms",
         ],
-    )?;
-    ensure_required_columns(
-        conn,
-        "agent_thread_drafts",
-        &["thread_id", "draft_text", "updated_at_ms"],
     )?;
     ensure_required_columns(
         conn,
@@ -225,6 +213,11 @@ fn hard_reset_old_agent_thread_schema(conn: &Connection) -> Result<(), String> {
     )
     .map_err(|error| format!("硬重建旧 chat_agent schema 失败: {error}"))?;
     Ok(())
+}
+
+fn drop_retired_agent_chat_draft_table(conn: &Connection) -> Result<(), String> {
+    conn.execute_batch("DROP TABLE IF EXISTS agent_thread_drafts;")
+        .map_err(|error| format!("删除退役 chat_agent draft 表失败: {error}"))
 }
 
 fn add_text_column_with_default_if_missing(

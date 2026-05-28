@@ -270,6 +270,5 @@ export function hydrateAgentThreadBundleFromRuntimeSessionSnapshot(input: {
       lastMessageAtMs: lastMessage?.updatedAtMs || input.thread.lastMessageAtMs,
     },
     messages,
-    draft: input.bundle?.draft || null,
   };
 }

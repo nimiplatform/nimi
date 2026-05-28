@@ -1,5 +1,4 @@
 import type {
-  AgentLocalDraftRecord,
   AgentLocalMessageError,
   AgentLocalMessageRecord,
   AgentLocalThreadBundle,
@@ -27,26 +26,14 @@ export function createEmptyAgentThreadBundle(
   return {
     thread,
     messages: [],
-    draft: null,
   };
 }
 
 export function resolveAuthoritativeAgentThreadBundle(input: {
   optimisticBundle: AgentLocalThreadBundle | null | undefined;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;
-  clearDraft: boolean;
 }): AgentLocalThreadBundle | null {
-  const base = input.refreshedBundle || input.optimisticBundle || null;
-  if (!base) {
-    return null;
-  }
-  if (!input.clearDraft || base.draft === null) {
-    return base;
-  }
-  return {
-    ...base,
-    draft: null,
-  };
+  return input.refreshedBundle || input.optimisticBundle || null;
 }
 
 export function resolveCompletedAgentThreadBundle(input: {
@@ -56,7 +43,6 @@ export function resolveCompletedAgentThreadBundle(input: {
   return resolveAuthoritativeAgentThreadBundle({
     optimisticBundle: input.optimisticBundle,
     refreshedBundle: input.refreshedBundle,
-    clearDraft: true,
   });
 }
 
@@ -106,7 +92,6 @@ export function overlayAgentAssistantTerminalState(input: {
   partialReasoningText: string;
   runtimeError: AgentLocalMessageError;
   traceId: string | null;
-  draft: AgentLocalDraftRecord;
   updatedAtMs: number;
 }): AgentLocalThreadBundle {
   const base = input.bundle || createEmptyAgentThreadBundle(input.fallbackThread);
@@ -131,7 +116,6 @@ export function overlayAgentAssistantTerminalState(input: {
         traceId: input.traceId,
         updatedAtMs: input.updatedAtMs,
       }),
-    draft: input.draft,
   };
 }
 
@@ -145,13 +129,11 @@ export function resolveInterruptedAgentThreadBundle(input: {
   partialReasoningText: string;
   runtimeError: AgentLocalMessageError;
   traceId: string | null;
-  draft: AgentLocalDraftRecord;
   updatedAtMs: number;
 }): AgentLocalThreadBundle {
   const authoritativeBundle = resolveAuthoritativeAgentThreadBundle({
     optimisticBundle: input.optimisticBundle,
     refreshedBundle: input.refreshedBundle,
-    clearDraft: false,
   });
   return overlayAgentAssistantTerminalState({
     bundle: authoritativeBundle,
@@ -162,7 +144,6 @@ export function resolveInterruptedAgentThreadBundle(input: {
     partialReasoningText: input.partialReasoningText,
     runtimeError: input.runtimeError,
     traceId: input.traceId,
-    draft: input.draft,
     updatedAtMs: input.updatedAtMs,
   });
 }

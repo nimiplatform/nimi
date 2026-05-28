@@ -40,7 +40,6 @@ export type AgentLocalThreadSummary = {
   title: string;
   updatedAtMs: number;
   lastMessageAtMs: number | null;
-  archivedAtMs: number | null;
   targetSnapshot: AgentLocalTargetSnapshot;
 };
 
@@ -69,12 +68,6 @@ export type AgentLocalMessageRecord = {
   artifactId: string | null;
   metadataJson: JsonObject | null;
   createdAtMs: number;
-  updatedAtMs: number;
-};
-
-export type AgentLocalDraftRecord = {
-  threadId: string;
-  text: string;
   updatedAtMs: number;
 };
 
@@ -109,7 +102,6 @@ export type AgentLocalTurnBeatRecord = {
 export type AgentLocalThreadBundle = {
   thread: AgentLocalThreadRecord;
   messages: AgentLocalMessageRecord[];
-  draft: AgentLocalDraftRecord | null;
 };
 
 export type AgentLocalCommitTurnResult = {
@@ -128,7 +120,6 @@ export type AgentLocalCreateThreadInput = {
   createdAtMs: number;
   updatedAtMs: number;
   lastMessageAtMs: number | null;
-  archivedAtMs: number | null;
   targetSnapshot: AgentLocalTargetSnapshot;
 };
 
@@ -137,14 +128,7 @@ export type AgentLocalUpdateThreadMetadataInput = {
   title: string;
   updatedAtMs: number;
   lastMessageAtMs: number | null;
-  archivedAtMs: number | null;
   targetSnapshot: AgentLocalTargetSnapshot;
-};
-
-export type AgentLocalPutDraftInput = {
-  threadId: string;
-  text: string;
-  updatedAtMs: number;
 };
 
 export type AgentLocalTurnRecordInput = Omit<AgentLocalTurnRecord, never>;
@@ -156,8 +140,6 @@ export type AgentLocalProjectionMessageInput = AgentLocalMessageRecord;
 export type AgentLocalProjectionCommitInput = {
   thread: AgentLocalUpdateThreadMetadataInput;
   messages: AgentLocalProjectionMessageInput[];
-  draft: AgentLocalPutDraftInput | null;
-  clearDraft: boolean;
 };
 
 export type AgentLocalCommitTurnResultInput = {

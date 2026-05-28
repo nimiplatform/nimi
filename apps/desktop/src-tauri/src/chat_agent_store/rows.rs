@@ -7,14 +7,14 @@ use super::types::*;
 pub(super) fn thread_record_from_row(
     row: &rusqlite::Row<'_>,
 ) -> Result<ChatAgentThreadRecord, rusqlite::Error> {
-    let target_snapshot_json: String = row.get(9)?;
+    let target_snapshot_json: String = row.get(8)?;
     let target_snapshot = parse_json_required::<ChatAgentTargetSnapshot>(
         target_snapshot_json,
         "agent_threads.target_snapshot_json",
     )
     .map_err(|error| {
         rusqlite::Error::FromSqlConversionFailure(
-            9,
+            8,
             rusqlite::types::Type::Text,
             Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, error)),
         )
@@ -28,7 +28,6 @@ pub(super) fn thread_record_from_row(
         created_at_ms: row.get(5)?,
         updated_at_ms: row.get(6)?,
         last_message_at_ms: row.get(7)?,
-        archived_at_ms: row.get(8)?,
         target_snapshot,
     })
 }
@@ -111,16 +110,6 @@ pub(super) fn message_record_from_row(
             })?,
         created_at_ms: row.get(15)?,
         updated_at_ms: row.get(16)?,
-    })
-}
-
-pub(super) fn draft_record_from_row(
-    row: &rusqlite::Row<'_>,
-) -> Result<ChatAgentDraftRecord, rusqlite::Error> {
-    Ok(ChatAgentDraftRecord {
-        thread_id: row.get(0)?,
-        text: row.get(1)?,
-        updated_at_ms: row.get(2)?,
     })
 }
 

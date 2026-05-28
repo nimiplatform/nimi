@@ -1,6 +1,5 @@
 import { createElement, type ReactNode } from 'react';
 import type {
-  AgentLocalDraftRecord,
   AgentLocalMessageError,
   AgentLocalTargetSnapshot,
   AgentLocalThreadBundle,
@@ -332,7 +331,6 @@ export function applyInterruptedCheckpointToHarness(input: {
   threadId: string;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;
   runtimeError: AgentLocalMessageError;
-  draft: AgentLocalDraftRecord;
   updatedAtMs: number;
 }): AgentSubmitDriverState {
   return applyAgentSubmitDriverEffects(
@@ -342,7 +340,6 @@ export function applyInterruptedCheckpointToHarness(input: {
       state: input.submitSession,
       refreshedBundle: input.refreshedBundle,
       runtimeError: input.runtimeError,
-      draft: input.draft,
       updatedAtMs: input.updatedAtMs,
       streamSnapshot: getStreamState(input.threadId),
     }),

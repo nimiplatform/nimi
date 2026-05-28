@@ -3,7 +3,6 @@ import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
-  AgentLocalDraftRecord,
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
 } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
@@ -32,7 +31,6 @@ function sampleThread(): AgentLocalThreadRecord {
     createdAtMs: 10,
     updatedAtMs: 20,
     lastMessageAtMs: 20,
-    archivedAtMs: null,
     targetSnapshot: {
       ownerUserId: 'user-1',
       realmAgentId: 'agent-1',
@@ -50,14 +48,6 @@ function sampleThread(): AgentLocalThreadRecord {
   };
 }
 
-function sampleDraft(): AgentLocalDraftRecord {
-  return {
-    threadId: 'thread-1',
-    text: 'retry this',
-    updatedAtMs: 300,
-  };
-}
-
 function baseUserBundle(): AgentLocalThreadBundle {
   return {
     thread: sampleThread(),
@@ -70,7 +60,6 @@ function baseUserBundle(): AgentLocalThreadBundle {
       createdAtMs: 100,
       updatedAtMs: 100,
     })],
-    draft: null,
   };
 }
 
@@ -114,7 +103,6 @@ function authoritativeBundle(): AgentLocalThreadBundle {
       createdAtMs: 101,
       updatedAtMs: 999,
     })],
-    draft: null,
   };
 }
 
@@ -198,7 +186,6 @@ test('agent host flow preserves authoritative assistant content across first-bea
       message: 'Generation stopped.',
     },
     traceId: 'trace-tail',
-    draft: sampleDraft(),
     submittedText: 'retry this',
     updatedAtMs: 140,
     lifecycle,
@@ -218,8 +205,6 @@ test('agent host flow preserves authoritative assistant content across first-bea
   assert.ok(hostFlow.outcome);
   assert.equal(hostFlow.outcome.bundle.messages.at(-1)?.contentText, 'authoritative projection');
   assert.equal(hostFlow.outcome.bundle.messages.at(-1)?.reasoningText, 'authoritative reasoning');
-  assert.deepEqual(hostFlow.outcome.bundle.draft, sampleDraft());
-  assert.equal(hostFlow.outcome.draftText, 'retry this');
   assert.deepEqual(hostFlow.outcome.selection, {
     threadId: 'thread-1',
     localAgentRef: 'local-agent:user-1:agent-1',
@@ -257,7 +242,6 @@ test('agent host flow creates interrupted placeholder state when the turn fails 
       message: 'runtime broke',
     },
     traceId: 'trace-fail',
-    draft: sampleDraft(),
     submittedText: 'retry this',
     updatedAtMs: 200,
     lifecycle,
@@ -280,11 +264,9 @@ test('agent host flow creates interrupted placeholder state when the turn fails 
     code: 'RUNTIME_CALL_FAILED',
     message: 'runtime broke',
   });
-  assert.deepEqual(hostFlow.outcome.bundle.draft, sampleDraft());
-  assert.equal(hostFlow.outcome.draftText, 'retry this');
 });
 
-test('agent host flow resolves authoritative completion and clears draft after first-beat and projection rebuild', () => {
+test('agent host flow resolves authoritative completion and clears composer text after first-beat and projection rebuild', () => {
   const firstBeatBundle = overlayAgentAssistantVisibleState({
     bundle: baseUserBundle(),
     fallbackThread: sampleThread(),
@@ -331,8 +313,6 @@ test('agent host flow resolves authoritative completion and clears draft after f
   assert.equal(hostFlow.footerState, 'done');
   assert.ok(hostFlow.outcome);
   assert.equal(hostFlow.outcome.bundle.messages.at(-1)?.contentText, 'authoritative projection');
-  assert.equal(hostFlow.outcome.bundle.draft, null);
-  assert.equal(hostFlow.outcome.draftText, '');
   assert.deepEqual(hostFlow.outcome.selection, {
     threadId: 'thread-1',
     localAgentRef: 'local-agent:user-1:agent-1',

@@ -35,7 +35,6 @@ function sampleThread(id: string): AgentLocalThreadRecord {
     createdAtMs: 100,
     updatedAtMs: 100,
     lastMessageAtMs: null,
-    archivedAtMs: null,
     targetSnapshot: {
       ownerUserId: 'user-1',
       realmAgentId: 'agent-1',

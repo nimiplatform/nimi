@@ -3,7 +3,7 @@ use super::codec::{
     normalize_optional_string, normalize_required_string, require_non_negative_ms,
     turn_role_to_db_value, turn_status_to_db_value,
 };
-use super::crud::{delete_draft, get_thread_bundle, put_draft, update_thread_metadata};
+use super::crud::{get_thread_bundle, update_thread_metadata};
 use super::projection::{compute_projection_version, upsert_projection_message};
 use super::rows::{beat_record_from_row, turn_record_from_row};
 use super::types::*;
@@ -19,11 +19,6 @@ pub(crate) fn commit_turn_result(
     }
     if input.turn.thread_id.trim() != thread_id {
         return Err("turn.threadId must match threadId".to_string());
-    }
-    if input.projection.clear_draft && input.projection.draft.is_some() {
-        return Err(
-            "projection.clearDraft and projection.draft are mutually exclusive".to_string(),
-        );
     }
     if input.turn.role == ChatAgentTurnRole::Assistant {
         let text_beat_count = input
@@ -156,15 +151,6 @@ pub(crate) fn commit_turn_result(
         }
         upsert_projection_message(&tx, message)?;
     }
-    if let Some(draft) = &input.projection.draft {
-        if draft.thread_id.trim() != thread_id {
-            return Err("projection.draft.threadId must match threadId".to_string());
-        }
-        let _ = put_draft(&tx, draft)?;
-    } else if input.projection.clear_draft {
-        delete_draft(&tx, &thread_id)?;
-    }
-
     let turn = tx
         .query_row(
             r#"

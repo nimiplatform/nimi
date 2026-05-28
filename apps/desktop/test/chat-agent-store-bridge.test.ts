@@ -92,7 +92,6 @@ test('chat agent bridge parser rejects invalid target shape and timestamps', () 
       title: 'Companion',
       updatedAtMs: 100,
       lastMessageAtMs: null,
-      archivedAtMs: null,
       targetSnapshot: {
         ownerUserId: 'user-1',
     realmAgentId: 'agent-1',
@@ -114,7 +113,6 @@ test('chat agent bridge parser rejects invalid target shape and timestamps', () 
         createdAtMs: 10,
         updatedAtMs: 100,
         lastMessageAtMs: null,
-        archivedAtMs: null,
         targetSnapshot: sampleTarget(),
       },
       messages: [{
@@ -129,7 +127,6 @@ test('chat agent bridge parser rejects invalid target shape and timestamps', () 
         createdAtMs: 80,
         updatedAtMs: 90,
       }],
-      draft: null,
     });
   }, /status is invalid/);
 
@@ -144,7 +141,6 @@ test('chat agent bridge parser accepts live2d presentation profiles in target sn
     title: 'Companion',
     updatedAtMs: 100,
     lastMessageAtMs: 90,
-    archivedAtMs: null,
     targetSnapshot: {
       ...sampleTarget(),
       presentationProfile: {
@@ -172,7 +168,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
           title: 'Companion',
           updatedAtMs: 100,
           lastMessageAtMs: 90,
-          archivedAtMs: null,
           targetSnapshot: sampleTarget(),
         }];
       case 'chat_agent_get_thread_bundle':
@@ -186,7 +181,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
             createdAtMs: 50,
             updatedAtMs: 100,
             lastMessageAtMs: 90,
-            archivedAtMs: null,
             targetSnapshot: sampleTarget(),
           },
           messages: [{
@@ -206,11 +200,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
             createdAtMs: 80,
             updatedAtMs: 90,
           }],
-          draft: {
-            threadId: 'thread-1',
-            text: 'draft',
-            updatedAtMs: 110,
-          },
         };
       case 'chat_agent_create_thread':
         return {
@@ -224,14 +213,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
     localAgentRef: 'local-agent:user-1:agent-1',
           createdAtMs: 50,
         };
-      case 'chat_agent_put_draft':
-        return {
-          threadId: 'thread-1',
-          text: 'draft',
-          updatedAtMs: 110,
-        };
-      case 'chat_agent_delete_draft':
-        return null;
       case 'chat_agent_commit_turn_result':
         return {
           turn: {
@@ -270,7 +251,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
               createdAtMs: 50,
               updatedAtMs: 120,
               lastMessageAtMs: 115,
-              archivedAtMs: null,
               targetSnapshot: sampleTarget(),
             },
             messages: [createAgentTextMessage({
@@ -283,7 +263,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
               createdAtMs: 110,
               updatedAtMs: 120,
             })],
-            draft: null,
           },
           projectionVersion: 'projection:123:t1:b1:s0:m0:r0',
         };
@@ -308,7 +287,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
       createdAtMs: 50,
       updatedAtMs: 100,
       lastMessageAtMs: 90,
-      archivedAtMs: null,
       targetSnapshot: sampleTarget(),
     });
     await chatAgentStoreClient.updateThreadMetadata({
@@ -316,15 +294,8 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
       title: 'Companion',
       updatedAtMs: 120,
       lastMessageAtMs: 115,
-      archivedAtMs: null,
       targetSnapshot: sampleTarget(),
     });
-    await chatAgentStoreClient.putDraft({
-      threadId: 'thread-1',
-      text: 'draft',
-      updatedAtMs: 110,
-    });
-    await chatAgentStoreClient.deleteDraft('thread-1');
     const committed = await chatAgentStoreClient.commitTurnResult({
       threadId: 'thread-1',
       turn: {
@@ -357,7 +328,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
           title: 'Companion',
           updatedAtMs: 120,
           lastMessageAtMs: 115,
-          archivedAtMs: null,
           targetSnapshot: sampleTarget(),
         },
         messages: [createAgentTextMessage({
@@ -370,8 +340,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
           createdAtMs: 110,
           updatedAtMs: 120,
         })],
-        draft: null,
-        clearDraft: true,
       },
     });
     assert.equal(committed.turn.id, 'turn-1');
@@ -386,8 +354,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
       'chat_agent_get_thread_bundle',
       'chat_agent_create_thread',
       'chat_agent_update_thread_metadata',
-      'chat_agent_put_draft',
-      'chat_agent_delete_draft',
       'chat_agent_commit_turn_result',
     ],
   );
@@ -402,14 +368,7 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
       createdAtMs: 50,
       updatedAtMs: 100,
       lastMessageAtMs: 90,
-      archivedAtMs: null,
       targetSnapshot: sampleTarget(),
     },
-  );
-  assert.equal(
-    ((calls[6]?.payload as { payload?: Record<string, unknown> })?.payload?.projection as {
-      clearDraft?: boolean;
-    })?.clearDraft,
-    true,
   );
 });

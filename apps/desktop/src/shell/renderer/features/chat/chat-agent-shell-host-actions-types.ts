@@ -45,8 +45,6 @@ export type UseAgentConversationHostActionsInput = {
   applyDriverEffects: (threadId: string, effects: ReturnType<typeof import('./chat-agent-shell-submit-driver').reduceAgentSubmitDriverEvent>) => AgentSubmitDriverState;
   bundle: AgentLocalThreadBundle | null;
   currentDraftTextRef: { current: string };
-  draftText: string | null | undefined;
-  draftUpdatedAtMs: number | null | undefined;
   queryClient: QueryClient;
   reportHostError: (error: unknown) => void;
   runAgentTurn: AgentRunTurn;

@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type {
-  AgentLocalDraftRecord,
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
 } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
@@ -60,7 +59,6 @@ function sampleThread(): AgentLocalThreadRecord {
     createdAtMs: 10,
     updatedAtMs: 20,
     lastMessageAtMs: 20,
-    archivedAtMs: null,
     targetSnapshot: {
       ownerUserId: 'user-1',
       realmAgentId: 'agent-1',
@@ -75,14 +73,6 @@ function sampleThread(): AgentLocalThreadRecord {
       greeting: null,
       builtinDocsContext: null,
     },
-  };
-}
-
-function sampleDraft(): AgentLocalDraftRecord {
-  return {
-    threadId: 'thread-1',
-    text: 'retry this',
-    updatedAtMs: 300,
   };
 }
 
@@ -102,7 +92,6 @@ function baseUserBundle(): AgentLocalThreadBundle {
       createdAtMs: 100,
       updatedAtMs: 100,
     })],
-    draft: null,
   };
 }
 
@@ -146,7 +135,6 @@ function authoritativeBundle(): AgentLocalThreadBundle {
       createdAtMs: 101,
       updatedAtMs: 999,
     })],
-    draft: null,
   };
 }
 
@@ -190,7 +178,6 @@ function authoritativeMultiBeatBundle(): AgentLocalThreadBundle {
         updatedAtMs: 1001,
       }),
     ],
-    draft: null,
   };
 }
 
@@ -315,17 +302,16 @@ test('agent host submit harness converges completed submit to authoritative bund
   }
 });
 
-test('agent host submit harness preserves sealed first-beat, restores draft, and ignores late refresh after tail cancel', () => {
+test('agent host submit harness preserves sealed first-beat, restores composer text, and ignores late refresh after tail cancel', () => {
   const threadId = 'thread-1';
   const harness = createAgentHostHarness({
     threadId,
     initialBundle: baseUserBundle(),
   });
   let submitSession = createSubmitSession();
-  const draft = sampleDraft();
   beginAgentHostSubmit(harness, {
     threadId,
-    submittedText: draft.text,
+    submittedText: 'retry this',
   });
 
   try {
@@ -379,7 +365,6 @@ test('agent host submit harness preserves sealed first-beat, restores draft, and
         code: 'OPERATION_ABORTED',
         message: 'Generation stopped.',
       },
-      draft,
       updatedAtMs: 160,
     });
     finishAgentHostSubmit(harness);
@@ -390,11 +375,11 @@ test('agent host submit harness preserves sealed first-beat, restores draft, and
       threadId,
       requestedProjectionVersion: 'projection:10:t1',
       refreshedBundle: authoritativeBundle(),
-      draftText: draft.text,
+      draftText: 'retry this',
     });
 
     assert.equal(harness.submittingThreadId, null);
-    assert.equal(harness.currentDraftText, draft.text);
+    assert.equal(harness.currentDraftText, 'retry this');
     assert.equal(harness.selection.threadId, threadId);
     assert.equal(harness.bundles[threadId]?.messages.at(-1)?.contentText, 'sealed first beat');
     assert.deepEqual(footerViewStateForHarness(harness, threadId), {
@@ -515,17 +500,16 @@ test('agent host submit harness does not create a pending second text message fo
   }
 });
 
-test('agent host submit harness restores draft and clears submitting state when runtime fails before first-beat', () => {
+test('agent host submit harness restores composer text and clears submitting state when runtime fails before first-beat', () => {
   const threadId = 'thread-1';
   const harness = createAgentHostHarness({
     threadId,
     initialBundle: baseUserBundle(),
   });
   const submitSession = createSubmitSession();
-  const draft = sampleDraft();
   beginAgentHostSubmit(harness, {
     threadId,
-    submittedText: draft.text,
+    submittedText: 'retry this',
   });
 
   try {
@@ -538,13 +522,12 @@ test('agent host submit harness restores draft and clears submitting state when 
         code: 'RUNTIME_CALL_FAILED',
         message: 'runtime broke',
       },
-      draft,
       updatedAtMs: 140,
     });
     finishAgentHostSubmit(harness);
 
     assert.equal(harness.submittingThreadId, null);
-    assert.equal(harness.currentDraftText, draft.text);
+    assert.equal(harness.currentDraftText, 'retry this');
     assert.equal(harness.selection.threadId, threadId);
     assert.equal(harness.bundles[threadId]?.messages.at(-1)?.error?.message, 'runtime broke');
     assert.deepEqual(footerViewStateForHarness(harness, threadId), {

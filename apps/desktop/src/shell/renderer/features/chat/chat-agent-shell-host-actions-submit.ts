@@ -196,7 +196,6 @@ export async function submitAgentConversationTurn(input: {
             (messages, message) => replaceAgentBundleMessage(messages, message),
             base.messages,
           ),
-          draft: null,
         };
       });
       optimisticThreadId = effectiveThreadId;
@@ -249,7 +248,6 @@ export async function submitAgentConversationTurn(input: {
       workingBundle: input.hostInput.bundle,
     });
 
-    await chatAgentStoreClient.deleteDraft(effectiveThreadId);
     const userCommitted = await chatAgentStoreClient.commitTurnResult({
       threadId: effectiveThreadId,
       turn: {
@@ -271,19 +269,15 @@ export async function submitAgentConversationTurn(input: {
           title: effectiveThreadRecord.title,
           updatedAtMs: createdAtMs,
           lastMessageAtMs: userProjection.lastMessageAtMs,
-          archivedAtMs: effectiveThreadRecord.archivedAtMs,
           targetSnapshot: activeTarget,
         },
         messages: userProjection.messages,
-        draft: null,
-        clearDraft: true,
       },
     });
     authoritativeUserCommitStored = true;
     const userBundle = resolveAuthoritativeAgentThreadBundle({
       optimisticBundle: userCommitted.bundle,
       refreshedBundle: null,
-      clearDraft: true,
     });
     if (!userBundle) {
       throw new Error(`${RUNTIME_AGENT_CHAT_MODE_ID} user commit did not return a projection bundle`);
@@ -419,21 +413,15 @@ export async function submitAgentConversationTurn(input: {
       if (activeSubmit.overrideRequested && runtimeError.code === 'OPERATION_ABORTED') {
         return;
       }
-      const draftUpdatedAtMs = Date.now();
-      const draft = await chatAgentStoreClient.putDraft({
-        threadId: effectiveThreadId,
-        text: submittedText,
-        updatedAtMs: draftUpdatedAtMs,
-      });
       const refreshedBundle = submitSession.lifecycle.projectionVersion
         ? await chatAgentStoreClient.getThreadBundle(effectiveThreadId)
         : null;
+      input.hostInput.currentDraftTextRef.current = submittedText;
       submitSession = input.hostInput.applyDriverEffects(effectiveThreadId, resolveInterruptedAgentSubmitDriverCheckpoint({
         state: submitSession,
         refreshedBundle,
         runtimeError,
-        draft,
-        updatedAtMs: draftUpdatedAtMs,
+        updatedAtMs: Date.now(),
         streamSnapshot,
       }));
       throw new Error(runtimeError.message, { cause: error });

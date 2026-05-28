@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type {
-  AgentLocalDraftRecord,
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
 } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
@@ -22,7 +21,6 @@ function sampleThread(): AgentLocalThreadRecord {
     createdAtMs: 10,
     updatedAtMs: 20,
     lastMessageAtMs: 20,
-    archivedAtMs: null,
     targetSnapshot: {
       ownerUserId: 'user-1',
       realmAgentId: 'agent-1',
@@ -37,14 +35,6 @@ function sampleThread(): AgentLocalThreadRecord {
       greeting: null,
       builtinDocsContext: null,
     },
-  };
-}
-
-function sampleDraft(): AgentLocalDraftRecord {
-  return {
-    threadId: 'thread-1',
-    text: 'retry this',
-    updatedAtMs: 300,
   };
 }
 
@@ -71,15 +61,13 @@ function sampleBundle(): AgentLocalThreadBundle {
       createdAtMs: 101,
       updatedAtMs: 102,
     })],
-    draft: null,
   };
 }
 
-test('agent submit outcome clears draft text and syncs selection from authoritative completed bundle', () => {
+test('agent submit outcome clears composer text and syncs selection from authoritative completed bundle', () => {
   const outcome = resolveCompletedAgentSubmitOutcome({
     optimisticBundle: {
       ...sampleBundle(),
-      draft: sampleDraft(),
     },
     refreshedBundle: {
       ...sampleBundle(),
@@ -88,22 +76,19 @@ test('agent submit outcome clears draft text and syncs selection from authoritat
         updatedAtMs: 999,
         lastMessageAtMs: 999,
       },
-      draft: sampleDraft(),
     },
   });
 
   assert.ok(outcome);
   assert.equal(outcome?.bundle.thread.updatedAtMs, 999);
-  assert.equal(outcome?.draftText, '');
   assert.deepEqual(outcome?.selection, {
     threadId: 'thread-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     targetId: 'local-agent:user-1:agent-1',
   });
-  assert.equal(outcome?.bundle.draft, null);
 });
 
-test('agent submit outcome keeps submitted draft text and syncs selection from interrupted bundle', () => {
+test('agent submit outcome keeps submitted composer text and syncs selection from interrupted bundle', () => {
   const outcome = resolveInterruptedAgentSubmitOutcome({
     optimisticBundle: sampleBundle(),
     refreshedBundle: {
@@ -113,7 +98,6 @@ test('agent submit outcome keeps submitted draft text and syncs selection from i
         updatedAtMs: 1200,
         lastMessageAtMs: 1200,
       },
-      draft: null,
     },
     fallbackThread: sampleThread(),
     assistantMessageId: 'assistant-1',
@@ -134,19 +118,16 @@ test('agent submit outcome keeps submitted draft text and syncs selection from i
       message: 'Generation stopped.',
     },
     traceId: 'trace-tail',
-    draft: sampleDraft(),
     submittedText: 'retry this',
     updatedAtMs: 1300,
   });
 
   assert.equal(outcome.bundle.thread.updatedAtMs, 1200);
-  assert.equal(outcome.draftText, 'retry this');
   assert.deepEqual(outcome.selection, {
     threadId: 'thread-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     targetId: 'local-agent:user-1:agent-1',
   });
-  assert.deepEqual(outcome.bundle.draft, sampleDraft());
   assert.deepEqual(outcome.bundle.messages.at(-1)?.error, {
     code: 'OPERATION_ABORTED',
     message: 'Generation stopped.',

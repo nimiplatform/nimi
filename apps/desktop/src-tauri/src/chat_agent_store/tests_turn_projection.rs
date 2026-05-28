@@ -24,16 +24,6 @@ fn chat_agent_projection_cache_commit_turn_round_trip() {
         )
         .expect("create thread");
 
-        put_draft(
-            &conn,
-            &ChatAgentPutDraftInput {
-                thread_id: thread.id.clone(),
-                text: "stale draft".to_string(),
-                updated_at_ms: 150,
-            },
-        )
-        .expect("seed draft");
-
         let committed = commit_turn_result(
             &mut conn,
             &ChatAgentCommitTurnResultInput {
@@ -70,7 +60,6 @@ fn chat_agent_projection_cache_commit_turn_round_trip() {
                         title: "Agent Projection".to_string(),
                         updated_at_ms: 260,
                         last_message_at_ms: Some(260),
-                        archived_at_ms: None,
                         target_snapshot: sample_target_snapshot("agent-projection-cache"),
                     },
                     messages: vec![ChatAgentProjectionMessageInput {
@@ -91,8 +80,6 @@ fn chat_agent_projection_cache_commit_turn_round_trip() {
                         created_at_ms: 210,
                         updated_at_ms: 220,
                     }],
-                    draft: None,
-                    clear_draft: true,
                 },
             },
         )
@@ -101,7 +88,6 @@ fn chat_agent_projection_cache_commit_turn_round_trip() {
         assert_eq!(committed.turn.id, "turn-001");
         assert_eq!(committed.beats.len(), 1);
         assert_eq!(committed.bundle.messages.len(), 1);
-        assert!(committed.bundle.draft.is_none());
         assert_eq!(committed.bundle.messages[0].content_text, "first beat");
         assert!(committed.projection_version.starts_with("projection:"));
 

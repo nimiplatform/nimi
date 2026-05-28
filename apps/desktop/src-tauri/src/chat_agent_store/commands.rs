@@ -3,12 +3,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use serde::Deserialize;
 
 use super::{
-    commit_turn_result, create_thread, delete_draft, delete_thread, get_thread_bundle,
-    list_threads, open_db, put_draft, update_thread_metadata, ChatAgentCommitTurnResult,
-    ChatAgentCommitTurnResultInput, ChatAgentCreateThreadInput, ChatAgentDeleteDraftInput,
-    ChatAgentDraftRecord, ChatAgentPutDraftInput, ChatAgentThreadBundle,
-    ChatAgentThreadLookupPayload, ChatAgentThreadRecord, ChatAgentThreadSummary,
-    ChatAgentUpdateThreadMetadataInput,
+    commit_turn_result, create_thread, delete_thread, get_thread_bundle, list_threads, open_db,
+    update_thread_metadata, ChatAgentCommitTurnResult, ChatAgentCommitTurnResultInput,
+    ChatAgentCreateThreadInput, ChatAgentThreadBundle, ChatAgentThreadLookupPayload,
+    ChatAgentThreadRecord, ChatAgentThreadSummary, ChatAgentUpdateThreadMetadataInput,
 };
 
 const CHAT_AGENT_OFFLINE_L2_WRITE_DENIED: &str = "CHAT_AGENT_OFFLINE_L2_WRITE_DENIED";
@@ -92,30 +90,6 @@ pub(crate) async fn chat_agent_update_thread_metadata(
         ensure_chat_agent_writes_allowed()?;
         let conn = open_db()?;
         update_thread_metadata(&conn, &payload)
-    })
-    .await
-}
-
-#[tauri::command]
-pub(crate) async fn chat_agent_put_draft(
-    payload: ChatAgentPutDraftInput,
-) -> Result<ChatAgentDraftRecord, String> {
-    run_chat_agent_store(move || {
-        ensure_chat_agent_writes_allowed()?;
-        let conn = open_db()?;
-        put_draft(&conn, &payload)
-    })
-    .await
-}
-
-#[tauri::command]
-pub(crate) async fn chat_agent_delete_draft(
-    payload: ChatAgentDeleteDraftInput,
-) -> Result<(), String> {
-    run_chat_agent_store(move || {
-        ensure_chat_agent_writes_allowed()?;
-        let conn = open_db()?;
-        delete_draft(&conn, &payload.thread_id)
     })
     .await
 }

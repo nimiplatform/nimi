@@ -11,13 +11,11 @@ import type {
   AgentLocalCommitTurnResult,
   AgentLocalCommitTurnResultInput,
   AgentLocalCreateThreadInput,
-  AgentLocalDraftRecord,
   AgentLocalMessageError,
   AgentLocalMessageKind,
   AgentLocalMessageRecord,
   AgentLocalMessageRole,
   AgentLocalMessageStatus,
-  AgentLocalPutDraftInput,
   AgentLocalProjectionCommitInput,
   AgentLocalProjectionMessageInput,
   AgentLocalTargetSnapshot,
@@ -216,7 +214,6 @@ export function parseAgentLocalThreadSummary(value: unknown): AgentLocalThreadSu
     title: parseRequiredString(record.title, 'title', 'chat_agent thread summary'),
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent thread summary'),
     lastMessageAtMs: parseNullableFiniteInteger(record.lastMessageAtMs, 'lastMessageAtMs', 'chat_agent thread summary'),
-    archivedAtMs: parseNullableFiniteInteger(record.archivedAtMs, 'archivedAtMs', 'chat_agent thread summary'),
     targetSnapshot,
   };
 }
@@ -266,15 +263,6 @@ export function parseAgentLocalMessageRecord(value: unknown): AgentLocalMessageR
   };
 }
 
-export function parseAgentLocalDraftRecord(value: unknown): AgentLocalDraftRecord {
-  const record = assertRecord(value, 'chat_agent draft record is invalid');
-  return {
-    threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent draft record'),
-    text: String(record.text ?? ''),
-    updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent draft record'),
-  };
-}
-
 export function parseAgentLocalTurnRecord(value: unknown): AgentLocalTurnRecord {
   const record = assertRecord(value, 'chat_agent turn record is invalid');
   return {
@@ -319,7 +307,6 @@ export function parseAgentLocalThreadBundle(value: unknown): AgentLocalThreadBun
     messages: Array.isArray(record.messages)
       ? record.messages.map((item) => parseAgentLocalMessageRecord(item))
       : (() => { throw new Error('chat_agent thread bundle.messages must be an array'); })(),
-    draft: record.draft == null ? null : parseAgentLocalDraftRecord(record.draft),
   };
 }
 
@@ -353,7 +340,6 @@ export function parseAgentLocalCreateThreadInput(value: unknown): AgentLocalCrea
     createdAtMs: parseFiniteInteger(record.createdAtMs, 'createdAtMs', 'chat_agent create_thread payload'),
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent create_thread payload'),
     lastMessageAtMs: parseNullableFiniteInteger(record.lastMessageAtMs, 'lastMessageAtMs', 'chat_agent create_thread payload'),
-    archivedAtMs: parseNullableFiniteInteger(record.archivedAtMs, 'archivedAtMs', 'chat_agent create_thread payload'),
     targetSnapshot,
   };
 }
@@ -365,17 +351,7 @@ export function parseAgentLocalUpdateThreadMetadataInput(value: unknown): AgentL
     title: parseRequiredString(record.title, 'title', 'chat_agent update_thread_metadata payload'),
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent update_thread_metadata payload'),
     lastMessageAtMs: parseNullableFiniteInteger(record.lastMessageAtMs, 'lastMessageAtMs', 'chat_agent update_thread_metadata payload'),
-    archivedAtMs: parseNullableFiniteInteger(record.archivedAtMs, 'archivedAtMs', 'chat_agent update_thread_metadata payload'),
     targetSnapshot: parseAgentLocalTargetSnapshot(record.targetSnapshot),
-  };
-}
-
-export function parseAgentLocalPutDraftInput(value: unknown): AgentLocalPutDraftInput {
-  const record = assertRecord(value, 'chat_agent put_draft payload is invalid');
-  return {
-    threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent put_draft payload'),
-    text: String(record.text ?? ''),
-    updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent put_draft payload'),
   };
 }
 
@@ -398,8 +374,6 @@ export function parseAgentLocalProjectionCommitInput(value: unknown): AgentLocal
     messages: Array.isArray(record.messages)
       ? record.messages.map((item) => parseAgentLocalProjectionMessageInput(item))
       : (() => { throw new Error('chat_agent projection payload.messages must be an array'); })(),
-    draft: record.draft == null ? null : parseAgentLocalPutDraftInput(record.draft),
-    clearDraft: Boolean(record.clearDraft),
   };
 }
 

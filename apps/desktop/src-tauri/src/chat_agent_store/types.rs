@@ -87,7 +87,6 @@ pub struct ChatAgentThreadSummary {
     pub title: String,
     pub updated_at_ms: i64,
     pub last_message_at_ms: Option<i64>,
-    pub archived_at_ms: Option<i64>,
     pub target_snapshot: ChatAgentTargetSnapshot,
 }
 
@@ -102,7 +101,6 @@ pub struct ChatAgentThreadRecord {
     pub created_at_ms: i64,
     pub updated_at_ms: i64,
     pub last_message_at_ms: Option<i64>,
-    pub archived_at_ms: Option<i64>,
     pub target_snapshot: ChatAgentTargetSnapshot,
 }
 
@@ -131,14 +129,6 @@ pub struct ChatAgentMessageRecord {
     pub artifact_id: Option<String>,
     pub metadata_json: Option<serde_json::Value>,
     pub created_at_ms: i64,
-    pub updated_at_ms: i64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatAgentDraftRecord {
-    pub thread_id: String,
-    pub text: String,
     pub updated_at_ms: i64,
 }
 
@@ -188,7 +178,6 @@ pub struct ChatAgentCommitTurnResult {
 pub struct ChatAgentThreadBundle {
     pub thread: ChatAgentThreadRecord,
     pub messages: Vec<ChatAgentMessageRecord>,
-    pub draft: Option<ChatAgentDraftRecord>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -202,7 +191,6 @@ pub struct ChatAgentCreateThreadInput {
     pub created_at_ms: i64,
     pub updated_at_ms: i64,
     pub last_message_at_ms: Option<i64>,
-    pub archived_at_ms: Option<i64>,
     pub target_snapshot: ChatAgentTargetSnapshot,
 }
 
@@ -213,27 +201,12 @@ pub struct ChatAgentUpdateThreadMetadataInput {
     pub title: String,
     pub updated_at_ms: i64,
     pub last_message_at_ms: Option<i64>,
-    pub archived_at_ms: Option<i64>,
     pub target_snapshot: ChatAgentTargetSnapshot,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatAgentThreadLookupPayload {
-    pub thread_id: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatAgentPutDraftInput {
-    pub thread_id: String,
-    pub text: String,
-    pub updated_at_ms: i64,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatAgentDeleteDraftInput {
     pub thread_id: String,
 }
 
@@ -295,8 +268,6 @@ pub struct ChatAgentProjectionMessageInput {
 pub struct ChatAgentProjectionCommitInput {
     pub thread: ChatAgentUpdateThreadMetadataInput,
     pub messages: Vec<ChatAgentProjectionMessageInput>,
-    pub draft: Option<ChatAgentPutDraftInput>,
-    pub clear_draft: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]

@@ -3,7 +3,6 @@ import type {
   ConversationTurnHistoryMessage,
 } from '@nimiplatform/kit/features/chat/headless';
 import type {
-  AgentLocalDraftRecord,
   AgentLocalMessageRecord,
   AgentLocalThreadBundle,
   AgentLocalThreadSummary,
@@ -40,19 +39,6 @@ export function upsertThreadSummary(
   const filtered = threads.filter((thread) => thread.id !== nextThread.id);
   filtered.push(nextThread);
   return sortThreadSummaries(filtered);
-}
-
-export function upsertBundleDraft(
-  bundle: AgentLocalThreadBundle | null | undefined,
-  draft: AgentLocalDraftRecord | null,
-): AgentLocalThreadBundle | null | undefined {
-  if (!bundle) {
-    return bundle;
-  }
-  return {
-    ...bundle,
-    draft,
-  };
 }
 
 export function toErrorMessage(error: unknown, fallback = 'Unknown error'): string {

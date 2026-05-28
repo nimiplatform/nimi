@@ -108,7 +108,6 @@ test('agent local mode resolves the selected agent to its existing thread before
       title: 'Agent One',
       updatedAtMs: 100,
       lastMessageAtMs: 90,
-      archivedAtMs: null,
       targetSnapshot: {
         ownerUserId: 'user-1',
     realmAgentId: 'agent-1',
@@ -133,7 +132,6 @@ test('agent local mode resolves the selected agent to its existing thread before
       title: 'Agent Two',
       updatedAtMs: 200,
       lastMessageAtMs: 180,
-      archivedAtMs: null,
       targetSnapshot: {
         ownerUserId: 'user-1',
     realmAgentId: 'agent-2',
@@ -177,7 +175,6 @@ test('agent session hydration does not replace missing local bundle with text-on
     createdAtMs: 1000,
     updatedAtMs: 1000,
     lastMessageAtMs: null,
-    archivedAtMs: null,
     targetSnapshot: {
       ownerUserId: 'user-1',
     realmAgentId: 'agent-1',
@@ -222,7 +219,6 @@ test('agent session hydration can rebuild missing local bundle from Runtime repl
     createdAtMs: 1000,
     updatedAtMs: 1000,
     lastMessageAtMs: null,
-    archivedAtMs: null,
     targetSnapshot: {
       ownerUserId: 'user-1',
     realmAgentId: 'agent-1',
@@ -295,7 +291,6 @@ test('agent session hydration can rebuild missing local bundle from Runtime repl
       parentMessageId: 'anchor-1:transcript:0',
     },
   ]);
-  assert.equal(hydrated?.draft, null);
   assert.equal(hydrated?.thread.lastMessageAtMs, 5001);
   assert.equal(hydrated?.messages[1]?.traceId, 'trace-runtime-1');
   assert.equal(hydrated?.messages[1]?.reasoningText, 'runtime reasoning');
@@ -311,7 +306,6 @@ test('agent session hydration preserves local pending projections over runtime s
     createdAtMs: 1000,
     updatedAtMs: 1000,
     lastMessageAtMs: null,
-    archivedAtMs: null,
     targetSnapshot: {
       ownerUserId: 'user-1',
     realmAgentId: 'agent-1',
@@ -351,7 +345,6 @@ test('agent session hydration preserves local pending projections over runtime s
         createdAtMs: 1001,
         updatedAtMs: 1001,
       }],
-      draft: null,
     },
     conversationAnchorId: 'anchor-1',
     snapshot: {
@@ -377,7 +370,6 @@ test('agent session hydration does not drop committed assistant text when failed
     createdAtMs: 1000,
     updatedAtMs: 3000,
     lastMessageAtMs: 3000,
-    archivedAtMs: null,
     targetSnapshot: {
       ownerUserId: 'user-1',
     realmAgentId: 'agent-1',
@@ -455,7 +447,6 @@ test('agent session hydration does not drop committed assistant text when failed
           updatedAtMs: 3000,
         },
       ],
-      draft: null,
     },
     conversationAnchorId: 'anchor-1',
     snapshot: {
@@ -487,7 +478,6 @@ test('agent session hydration preserves committed assistant image projection whe
     createdAtMs: 1000,
     updatedAtMs: 1000,
     lastMessageAtMs: 3000,
-    archivedAtMs: null,
     targetSnapshot: {
       ownerUserId: 'user-1',
     realmAgentId: 'agent-1',
@@ -565,7 +555,6 @@ test('agent session hydration preserves committed assistant image projection whe
           updatedAtMs: 1003,
         },
       ],
-      draft: null,
     },
     conversationAnchorId: 'anchor-1',
     snapshot: {
@@ -591,7 +580,6 @@ test('agent session hydration merges committed media projections when runtime te
     createdAtMs: 1000,
     updatedAtMs: 1000,
     lastMessageAtMs: 3000,
-    archivedAtMs: null,
     targetSnapshot: {
       ownerUserId: 'user-1',
     realmAgentId: 'agent-1',
@@ -669,7 +657,6 @@ test('agent session hydration merges committed media projections when runtime te
           updatedAtMs: 6000,
         },
       ],
-      draft: null,
     },
     conversationAnchorId: 'anchor-1',
     snapshot: {

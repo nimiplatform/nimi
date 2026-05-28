@@ -4,8 +4,6 @@ import {
   parseAgentLocalCommitTurnResult,
   parseAgentLocalCommitTurnResultInput,
   parseAgentLocalCreateThreadInput,
-  parseAgentLocalDraftRecord,
-  parseAgentLocalPutDraftInput,
   parseAgentLocalThreadBundle,
   parseAgentLocalThreadRecord,
   parseAgentLocalThreadSummaries,
@@ -13,8 +11,6 @@ import {
   type AgentLocalCommitTurnResult,
   type AgentLocalCommitTurnResultInput,
   type AgentLocalCreateThreadInput,
-  type AgentLocalDraftRecord,
-  type AgentLocalPutDraftInput,
   type AgentLocalThreadBundle,
   type AgentLocalThreadRecord,
   type AgentLocalThreadSummary,
@@ -62,20 +58,6 @@ export async function updateThreadMetadata(input: AgentLocalUpdateThreadMetadata
   }, parseAgentLocalThreadRecord);
 }
 
-export async function putDraft(input: AgentLocalPutDraftInput): Promise<AgentLocalDraftRecord> {
-  requireTauri('chat_agent_put_draft');
-  return invokeChecked('chat_agent_put_draft', {
-    payload: parseAgentLocalPutDraftInput(input),
-  }, parseAgentLocalDraftRecord);
-}
-
-export async function deleteDraft(threadId: string): Promise<void> {
-  requireTauri('chat_agent_delete_draft');
-  await invokeChecked('chat_agent_delete_draft', {
-    payload: { threadId },
-  }, () => undefined);
-}
-
 export async function deleteThread(threadId: string): Promise<void> {
   requireTauri('chat_agent_delete_thread');
   await invokeChecked('chat_agent_delete_thread', {
@@ -96,8 +78,6 @@ export const chatAgentStoreClient = {
   getThreadBundle,
   createThread,
   updateThreadMetadata,
-  putDraft,
-  deleteDraft,
   deleteThread,
   commitTurnResult,
 };

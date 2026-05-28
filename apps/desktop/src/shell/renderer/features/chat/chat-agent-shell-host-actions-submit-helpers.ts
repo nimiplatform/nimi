@@ -2,7 +2,6 @@ import type {
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
-import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import {
   createEmptyAgentThreadBundle,
 } from './chat-agent-shell-bundle';
@@ -44,12 +43,6 @@ export async function rollbackOptimisticUserProjection(input: {
   }
   const rollbackThreadId = input.optimisticThreadId;
   const rollbackThread = input.optimisticBaseThread;
-  const fallbackDraftUpdatedAtMs = Date.now();
-  const recoveredDraft = await chatAgentStoreClient.putDraft({
-    threadId: rollbackThreadId,
-    text: input.submittedTextForRecovery,
-    updatedAtMs: fallbackDraftUpdatedAtMs,
-  }).catch(() => null);
   input.hostInput.currentDraftTextRef.current = input.submittedTextForRecovery;
   input.hostInput.setThreadsCache((current) => upsertThreadSummary(current, rollbackThread));
   input.hostInput.setBundleCache(rollbackThreadId, (current) => {
@@ -58,11 +51,6 @@ export async function rollbackOptimisticUserProjection(input: {
       ...base,
       thread: rollbackThread,
       messages: base.messages.filter((message) => !input.optimisticUserMessageIds.includes(message.id)),
-      draft: recoveredDraft || {
-        threadId: rollbackThreadId,
-        text: input.submittedTextForRecovery,
-        updatedAtMs: fallbackDraftUpdatedAtMs,
-      },
     };
   });
 }

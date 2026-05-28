@@ -1,5 +1,4 @@
 import type {
-  AgentLocalDraftRecord,
   AgentLocalMessageError,
   AgentLocalMessageRecord,
   AgentLocalThreadBundle,
@@ -376,7 +375,6 @@ export function resolveInterruptedAgentSubmitSession(input: {
   state: AgentSubmitSessionState;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;
   runtimeError: AgentLocalMessageError;
-  draft: AgentLocalDraftRecord;
   updatedAtMs: number;
   streamSnapshot: StreamState;
 }): AgentSubmitSessionInterruptedResult {
@@ -414,7 +412,6 @@ export function resolveInterruptedAgentSubmitSession(input: {
     partialReasoningText: interruptedStreamSnapshot.partialReasoningText || input.state.streamedReasoningText,
     runtimeError: input.runtimeError,
     traceId,
-    draft: input.draft,
     submittedText: input.state.submittedText,
     updatedAtMs: input.updatedAtMs,
     lifecycle: input.state.lifecycle,
