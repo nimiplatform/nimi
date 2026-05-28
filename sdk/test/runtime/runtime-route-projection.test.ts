@@ -4,11 +4,15 @@ import test from 'node:test';
 import {
   buildRuntimeRouteOptionsSnapshot,
   checkRuntimeRouteHealthWithHost,
+  createRuntimeRouteLocalWarmCache,
   describeRuntimeRouteWithHost,
+  ensureRuntimeRouteLocalWarmWithHost,
   parseRuntimeRouteOptions,
+  resetRuntimeRouteLocalWarmCache,
   resolveRuntimeRouteBindingFromSnapshot,
   runtimeRouteCallTargetFromResolvedBinding,
   selectRuntimeLocalWarmCandidateFromResolvedBinding,
+  type RuntimeRouteLocalWarmMetric,
   type RuntimeRouteOptionsSnapshot,
 } from '../../src/ai/index.js';
 
@@ -199,6 +203,113 @@ test('local warm candidate selection excludes removed assets', () => {
   });
 
   assert.equal(selected, null);
+});
+
+test('local warm host facade owns pagination, cache, and warm candidate execution', async () => {
+  const resolved = resolveRuntimeRouteBindingFromSnapshot({
+    capability: 'text.generate',
+    binding: localSnapshot.selected,
+    snapshot: localSnapshot,
+  });
+  const cache = createRuntimeRouteLocalWarmCache();
+  const metrics: RuntimeRouteLocalWarmMetric[] = [];
+  const listRequests: Array<{ pageToken: string; pageSize: number }> = [];
+  const warmRequests: Array<{ localAssetId: string; timeoutMs: number }> = [];
+  const stateChanges: string[] = [];
+  let now = 1000;
+
+  await ensureRuntimeRouteLocalWarmWithHost({
+    targetId: 'core.chat-ai',
+    resolvedBinding: resolved,
+    timeoutMs: 999999,
+    onStateChange: (state, candidate) => {
+      stateChanges.push(`${state}:${candidate.localAssetId}`);
+    },
+  }, {
+    cache,
+    nowMs: () => {
+      now += 7;
+      return now;
+    },
+    emitMetric: (metric) => metrics.push(metric),
+    listLocalAssets: async (request) => {
+      listRequests.push({ pageToken: request.pageToken, pageSize: request.pageSize });
+      if (!request.pageToken) {
+        return {
+          assets: [{
+            localAssetId: 'not-target',
+            assetId: 'different',
+            engine: 'llama',
+            endpoint: 'http://127.0.0.1:4444/v1',
+            status: 2,
+          }],
+          nextPageToken: 'page-2',
+        };
+      }
+      return {
+        assets: [{
+          localAssetId: 'local-qwen',
+          assetId: 'local-import/qwen3-chat',
+          engine: 'llama',
+          endpoint: 'http://127.0.0.1:1234/v1',
+          status: 2,
+        }],
+        nextPageToken: '',
+      };
+    },
+    buildCallOptions: async (input) => ({
+      timeoutMs: input.timeoutMs,
+      metadata: {
+        traceId: 'trace-1',
+      },
+    }),
+    warmLocalAsset: async (request) => {
+      warmRequests.push(request);
+      return {};
+    },
+  });
+
+  await ensureRuntimeRouteLocalWarmWithHost({
+    targetId: 'core.chat-ai',
+    resolvedBinding: resolved,
+  }, {
+    cache,
+    emitMetric: (metric) => metrics.push(metric),
+    listLocalAssets: async () => ({
+      assets: [{
+        localAssetId: 'local-qwen',
+        assetId: 'local-import/qwen3-chat',
+        engine: 'llama',
+        endpoint: 'http://127.0.0.1:1234/v1',
+        status: 2,
+      }],
+      nextPageToken: '',
+    }),
+    buildCallOptions: async () => {
+      throw new Error('cache hit should not build call options');
+    },
+    warmLocalAsset: async () => {
+      throw new Error('cache hit should not warm again');
+    },
+  });
+
+  assert.deepEqual(listRequests, [
+    { pageToken: '', pageSize: 100 },
+    { pageToken: 'page-2', pageSize: 100 },
+    { pageToken: '', pageSize: 100 },
+    { pageToken: 'page-2', pageSize: 100 },
+  ]);
+  assert.deepEqual(warmRequests, [{
+    localAssetId: 'local-qwen',
+    timeoutMs: 300000,
+  }]);
+  assert.deepEqual(stateChanges, [
+    'warming:local-qwen',
+    'ready:local-qwen',
+  ]);
+  assert.ok(metrics.some((metric) => metric.kind === 'counter' && metric.name === 'runtime_route_local_warm_cache_hit_total'));
+  resetRuntimeRouteLocalWarmCache(cache);
+  assert.equal(cache.warmedLocalModelKeys.size, 0);
 });
 
 test('route health host facade maps resolved binding through SDK projection', async () => {
