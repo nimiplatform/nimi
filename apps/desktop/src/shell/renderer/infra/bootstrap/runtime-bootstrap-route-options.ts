@@ -4,18 +4,12 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { localRuntime, type LocalRuntimeAssetRecord, type LocalRuntimeSnapshot } from '@runtime/local-runtime';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import {
-    buildRuntimeRouteOptionsProjection,
+    listRuntimeRouteOptionsWithHost,
     runtimeRouteLocalKindForCapability,
     type RuntimeCanonicalCapability,
-    type RuntimeRouteConnectorProjectionInput,
+    type RuntimeRouteHostLocalMetadata,
     type RuntimeRouteOptionsSnapshot,
 } from "@nimiplatform/sdk/ai";
-type ConnectorDescriptor = {
-    id: string;
-    label?: string;
-    vendor?: string;
-    provider?: string;
-};
 
 const LOCAL_SNAPSHOT_TIMEOUT_MS = 3500;
 
@@ -149,15 +143,14 @@ type LoadRuntimeRouteOptionsDeps = {
     sdkListConnectorModelDescriptors: typeof import('@renderer/features/runtime-config/runtime-config-connector-sdk-service').sdkListConnectorModelDescriptors;
     loadLocalRouteMetadata: typeof loadLocalRouteMetadata;
 };
-type LoadRuntimeRouteOptionsData = {
-    connectors: RuntimeRouteConnectorProjectionInput[];
-    snapshot: LocalRouteMetadata['snapshot'];
-    nodeCatalog: LocalRouteMetadata['nodeCatalog'];
-    runtimeLocalModels: LocalRouteMetadata['runtimeLocalModels'];
-    localMetadataDegraded: boolean;
-};
 const DEFAULT_RUNTIME_ROUTE_OPTIONS_DEPS_SCOPE: Record<string, never> = {};
-const runtimeRouteOptionsInflightByScope = new WeakMap<object, Map<string, Promise<LoadRuntimeRouteOptionsData>>>();
+function toRuntimeRouteHostLocalMetadata(metadata: LocalRouteMetadata): RuntimeRouteHostLocalMetadata {
+    return {
+        snapshotAssets: metadata.snapshot.assets,
+        nodeCatalog: metadata.nodeCatalog,
+        runtimeLocalModels: metadata.runtimeLocalModels,
+    };
+}
 function buildLocalRouteMetadataFallback(error: unknown, capability: RuntimeCanonicalCapability, targetId?: string): LocalRouteMetadata {
     const normalized = asNimiError(error, {
         reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
@@ -189,108 +182,6 @@ function buildLocalRouteMetadataFallback(error: unknown, capability: RuntimeCano
         runtimeLocalModels: [],
     };
 }
-function getRuntimeRouteOptionsInflightMap(scope: object): Map<string, Promise<LoadRuntimeRouteOptionsData>> {
-    const existing = runtimeRouteOptionsInflightByScope.get(scope);
-    if (existing) {
-        return existing;
-    }
-    const created = new Map<string, Promise<LoadRuntimeRouteOptionsData>>();
-    runtimeRouteOptionsInflightByScope.set(scope, created);
-    return created;
-}
-async function loadRuntimeRouteOptionsData(capability: RuntimeCanonicalCapability, targetId: string | undefined, resolvedDeps: LoadRuntimeRouteOptionsDeps): Promise<LoadRuntimeRouteOptionsData> {
-    const connectorDescriptorsPromise = resolvedDeps.sdkListConnectors().catch((error) => {
-        const normalized = asNimiError(error, {
-            reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
-            actionHint: 'check_runtime_daemon_health',
-            source: 'runtime',
-        });
-        emitRuntimeLog({
-            level: 'warn',
-            area: 'route-options',
-            message: 'action:list-connectors:degraded',
-            traceId: normalized.traceId,
-            details: {
-                targetId: String(targetId || '').trim() || undefined,
-                capability,
-                reasonCode: normalized.reasonCode,
-                actionHint: normalized.actionHint,
-                retryable: normalized.retryable,
-                traceId: normalized.traceId,
-                error: normalized.message,
-            },
-        });
-        return [] as ConnectorDescriptor[];
-    });
-    let localMetadataDegraded = false;
-    const localMetadataPromise = resolvedDeps.loadLocalRouteMetadata(capability)
-        .catch((error) => {
-        localMetadataDegraded = true;
-        return buildLocalRouteMetadataFallback(error, capability, targetId);
-    });
-    const [connectorDescriptors, localMetadata] = await Promise.all([
-        connectorDescriptorsPromise,
-        localMetadataPromise,
-    ]);
-    const connectorResults: Array<RuntimeRouteConnectorProjectionInput | null> = await Promise.all((connectorDescriptors as ConnectorDescriptor[]).map(async (connector) => {
-        const descriptors = await resolvedDeps.sdkListConnectorModelDescriptors(connector.id, false).catch((error) => {
-            const normalized = asNimiError(error, {
-                reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
-                actionHint: 'check_runtime_daemon_health',
-                source: 'runtime',
-            });
-            emitRuntimeLog({
-                level: 'warn',
-                area: 'route-options',
-                message: 'action:list-connector-model-descriptors:degraded',
-                traceId: normalized.traceId,
-                details: {
-                    targetId: String(targetId || '').trim() || undefined,
-                    capability,
-                    connectorId: String(connector.id || '').trim() || undefined,
-                    reasonCode: normalized.reasonCode,
-                    actionHint: normalized.actionHint,
-                    retryable: normalized.retryable,
-                    traceId: normalized.traceId,
-                    error: normalized.message,
-                },
-            });
-            return [];
-        });
-        return {
-            descriptor: {
-                id: connector.id,
-                label: connector.label,
-                vendor: connector.vendor,
-                provider: connector.provider,
-            },
-            modelDescriptors: descriptors,
-        };
-    }));
-    const connectors = connectorResults.filter((connector): connector is RuntimeRouteConnectorProjectionInput => connector !== null);
-    return {
-        connectors,
-        snapshot: localMetadata.snapshot,
-        nodeCatalog: localMetadata.nodeCatalog,
-        runtimeLocalModels: localMetadata.runtimeLocalModels,
-        localMetadataDegraded,
-    };
-}
-function loadRuntimeRouteOptionsDataSingleFlight(capability: RuntimeCanonicalCapability, targetId: string | undefined, resolvedDeps: LoadRuntimeRouteOptionsDeps, scope: object): Promise<LoadRuntimeRouteOptionsData> {
-    const inflight = getRuntimeRouteOptionsInflightMap(scope);
-    const existing = inflight.get(capability);
-    if (existing) {
-        return existing;
-    }
-    const request = loadRuntimeRouteOptionsData(capability, targetId, resolvedDeps)
-        .finally(() => {
-        if (inflight.get(capability) === request) {
-            inflight.delete(capability);
-        }
-    });
-    inflight.set(capability, request);
-    return request;
-}
 export async function loadRuntimeRouteOptions(input: {
     capability: RuntimeCanonicalCapability;
     targetId?: string;
@@ -312,21 +203,66 @@ export async function loadRuntimeRouteOptions(input: {
         loadLocalRouteMetadata,
         ...deps,
     };
-    const depsScope = deps || DEFAULT_RUNTIME_ROUTE_OPTIONS_DEPS_SCOPE;
-    const { connectors, snapshot, nodeCatalog, runtimeLocalModels, localMetadataDegraded } = await loadRuntimeRouteOptionsDataSingleFlight(
-        input.capability,
-        input.targetId,
-        resolvedDeps,
-        depsScope,
-    );
-    return buildRuntimeRouteOptionsProjection({
+    return listRuntimeRouteOptionsWithHost({
         capability: input.capability,
+        targetId: input.targetId,
         selectedBinding,
-        connectors,
-        snapshotAssets: snapshot.assets,
-        nodeCatalog,
-        runtimeLocalModels,
-        localMetadataDegraded,
+    }, {
+        scope: deps || DEFAULT_RUNTIME_ROUTE_OPTIONS_DEPS_SCOPE,
+        listConnectors: resolvedDeps.sdkListConnectors,
+        listConnectorModelDescriptors: (connectorId) => resolvedDeps.sdkListConnectorModelDescriptors(connectorId, false),
+        loadLocalRouteMetadata: async (context) => toRuntimeRouteHostLocalMetadata(await resolvedDeps.loadLocalRouteMetadata(context.capability)),
+        onListConnectorsError: (error, context) => {
+            const normalized = asNimiError(error, {
+                reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+                actionHint: 'check_runtime_daemon_health',
+                source: 'runtime',
+            });
+            emitRuntimeLog({
+                level: 'warn',
+                area: 'route-options',
+                message: 'action:list-connectors:degraded',
+                traceId: normalized.traceId,
+                details: {
+                    targetId: context.targetId,
+                    capability: context.capability,
+                    reasonCode: normalized.reasonCode,
+                    actionHint: normalized.actionHint,
+                    retryable: normalized.retryable,
+                    traceId: normalized.traceId,
+                    error: normalized.message,
+                },
+            });
+            return [];
+        },
+        onListConnectorModelDescriptorsError: (error, context) => {
+            const normalized = asNimiError(error, {
+                reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+                actionHint: 'check_runtime_daemon_health',
+                source: 'runtime',
+            });
+            emitRuntimeLog({
+                level: 'warn',
+                area: 'route-options',
+                message: 'action:list-connector-model-descriptors:degraded',
+                traceId: normalized.traceId,
+                details: {
+                    targetId: context.targetId,
+                    capability: context.capability,
+                    connectorId: context.connectorId,
+                    reasonCode: normalized.reasonCode,
+                    actionHint: normalized.actionHint,
+                    retryable: normalized.retryable,
+                    traceId: normalized.traceId,
+                    error: normalized.message,
+                },
+            });
+            return [];
+        },
+        onLocalRouteMetadataError: (error, context) => ({
+            metadata: toRuntimeRouteHostLocalMetadata(buildLocalRouteMetadataFallback(error, context.capability, context.targetId)),
+            localMetadataDegraded: true,
+        }),
         onLocalStatusMismatch: (mismatch) => {
             emitRuntimeLog({
                 level: 'warn',

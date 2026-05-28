@@ -19,11 +19,20 @@ import type {
 } from './types.js';
 import {
   decodeRuntimeRouteDescribeResultFromMetadata,
+  type RuntimeRouteBinding,
   type RuntimeCanonicalCapability,
   type RuntimeResolvedBinding,
   type RuntimeRouteDescribeResult,
+  type RuntimeRouteOptionsSnapshot,
   type RuntimeRouteSource,
 } from './runtime-route.js';
+import {
+  buildRuntimeRouteOptionsProjection,
+  type RuntimeRouteConnectorModelDescriptorProjectionInput,
+  type RuntimeRouteLocalAssetProjectionInput,
+  type RuntimeRouteLocalStatusMismatch,
+  type RuntimeRouteNodeCatalogProjectionInput,
+} from './runtime-route-options.js';
 
 export const RUNTIME_ROUTE_DESCRIBE_TIMEOUT_MS = 30_000;
 
@@ -78,6 +87,181 @@ export type RuntimeRouteDescribeScenarioProbe = {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+export type RuntimeRouteHostConnectorDescriptor = {
+  id?: string;
+  label?: string;
+  vendor?: string;
+  provider?: string;
+};
+
+export type RuntimeRouteHostLocalMetadata = {
+  snapshotAssets?: RuntimeRouteLocalAssetProjectionInput[];
+  nodeCatalog?: RuntimeRouteNodeCatalogProjectionInput[];
+  runtimeLocalModels?: RuntimeRouteLocalAssetProjectionInput[];
+};
+
+export type RuntimeRouteHostOptionsContext = {
+  capability: RuntimeCanonicalCapability;
+  targetId?: string;
+};
+
+export type RuntimeRouteHostConnectorModelDescriptorsContext = RuntimeRouteHostOptionsContext & {
+  connectorId: string;
+};
+
+export type RuntimeRouteHostLocalMetadataFallback = {
+  metadata: RuntimeRouteHostLocalMetadata;
+  localMetadataDegraded?: boolean;
+};
+
+export type RuntimeRouteHostOptionsDeps = {
+  scope?: object;
+  listConnectors: () => Promise<RuntimeRouteHostConnectorDescriptor[]>;
+  listConnectorModelDescriptors: (
+    connectorId: string,
+  ) => Promise<RuntimeRouteConnectorModelDescriptorProjectionInput[]>;
+  loadLocalRouteMetadata: (
+    context: RuntimeRouteHostOptionsContext,
+  ) => Promise<RuntimeRouteHostLocalMetadata>;
+  onListConnectorsError?: (
+    error: unknown,
+    context: RuntimeRouteHostOptionsContext,
+  ) => Promise<RuntimeRouteHostConnectorDescriptor[]> | RuntimeRouteHostConnectorDescriptor[];
+  onListConnectorModelDescriptorsError?: (
+    error: unknown,
+    context: RuntimeRouteHostConnectorModelDescriptorsContext,
+  ) => Promise<RuntimeRouteConnectorModelDescriptorProjectionInput[]> | RuntimeRouteConnectorModelDescriptorProjectionInput[];
+  onLocalRouteMetadataError?: (
+    error: unknown,
+    context: RuntimeRouteHostOptionsContext,
+  ) => Promise<RuntimeRouteHostLocalMetadataFallback> | RuntimeRouteHostLocalMetadataFallback;
+  onLocalStatusMismatch?: (mismatch: RuntimeRouteLocalStatusMismatch) => void;
+};
+
+type RuntimeRouteHostOptionsData = {
+  connectors: RuntimeRouteHostConnectorProjection[];
+  localMetadata: RuntimeRouteHostLocalMetadata;
+  localMetadataDegraded: boolean;
+};
+
+type RuntimeRouteHostConnectorProjection = {
+  descriptor: RuntimeRouteHostConnectorDescriptor & { id: string };
+  modelDescriptors: RuntimeRouteConnectorModelDescriptorProjectionInput[];
+};
+
+const DEFAULT_RUNTIME_ROUTE_HOST_OPTIONS_SCOPE: Record<string, never> = {};
+const runtimeRouteHostOptionsInflightByScope = new WeakMap<object, Map<string, Promise<RuntimeRouteHostOptionsData>>>();
+
+function getRuntimeRouteHostOptionsInflightMap(scope: object): Map<string, Promise<RuntimeRouteHostOptionsData>> {
+  const existing = runtimeRouteHostOptionsInflightByScope.get(scope);
+  if (existing) {
+    return existing;
+  }
+  const created = new Map<string, Promise<RuntimeRouteHostOptionsData>>();
+  runtimeRouteHostOptionsInflightByScope.set(scope, created);
+  return created;
+}
+
+async function listRuntimeRouteHostOptionsData(
+  context: RuntimeRouteHostOptionsContext,
+  deps: RuntimeRouteHostOptionsDeps,
+): Promise<RuntimeRouteHostOptionsData> {
+  const connectorDescriptorsPromise = deps.listConnectors().catch((error) => {
+    if (deps.onListConnectorsError) {
+      return deps.onListConnectorsError(error, context);
+    }
+    throw error;
+  });
+
+  let localMetadataDegraded = false;
+  const localMetadataPromise = deps.loadLocalRouteMetadata(context).catch(async (error) => {
+    if (!deps.onLocalRouteMetadataError) {
+      throw error;
+    }
+    const fallback = await deps.onLocalRouteMetadataError(error, context);
+    localMetadataDegraded = Boolean(fallback.localMetadataDegraded);
+    return fallback.metadata;
+  });
+
+  const [connectorDescriptors, localMetadata] = await Promise.all([
+    connectorDescriptorsPromise,
+    localMetadataPromise,
+  ]);
+
+  const connectorResults: Array<RuntimeRouteHostConnectorProjection | null> = await Promise.all((connectorDescriptors || []).map(async (connector) => {
+    const connectorId = normalizeText(connector.id);
+    if (!connectorId) {
+      return null;
+    }
+    const modelDescriptors = await deps.listConnectorModelDescriptors(connectorId).catch((error) => {
+      if (deps.onListConnectorModelDescriptorsError) {
+        return deps.onListConnectorModelDescriptorsError(error, {
+          ...context,
+          connectorId,
+        });
+      }
+      throw error;
+    });
+    return {
+      descriptor: {
+        id: connectorId,
+        label: connector.label,
+        vendor: connector.vendor,
+        provider: connector.provider,
+      },
+      modelDescriptors,
+    };
+  }));
+
+  return {
+    connectors: connectorResults.filter((connector): connector is RuntimeRouteHostConnectorProjection => connector !== null),
+    localMetadata,
+    localMetadataDegraded,
+  };
+}
+
+async function listRuntimeRouteHostOptionsDataSingleFlight(
+  context: RuntimeRouteHostOptionsContext,
+  deps: RuntimeRouteHostOptionsDeps,
+): Promise<RuntimeRouteHostOptionsData> {
+  const scope = deps.scope || DEFAULT_RUNTIME_ROUTE_HOST_OPTIONS_SCOPE;
+  const inflight = getRuntimeRouteHostOptionsInflightMap(scope);
+  const existing = inflight.get(context.capability);
+  if (existing) {
+    return existing;
+  }
+  const request = listRuntimeRouteHostOptionsData(context, deps)
+    .finally(() => {
+      if (inflight.get(context.capability) === request) {
+        inflight.delete(context.capability);
+      }
+    });
+  inflight.set(context.capability, request);
+  return request;
+}
+
+export async function listRuntimeRouteOptionsWithHost(input: {
+  capability: RuntimeCanonicalCapability;
+  targetId?: string;
+  selectedBinding?: RuntimeRouteBinding | null;
+}, deps: RuntimeRouteHostOptionsDeps): Promise<RuntimeRouteOptionsSnapshot> {
+  const context = {
+    capability: input.capability,
+    targetId: normalizeText(input.targetId) || undefined,
+  };
+  const data = await listRuntimeRouteHostOptionsDataSingleFlight(context, deps);
+  return buildRuntimeRouteOptionsProjection({
+    capability: input.capability,
+    selectedBinding: input.selectedBinding,
+    connectors: data.connectors,
+    snapshotAssets: data.localMetadata.snapshotAssets,
+    nodeCatalog: data.localMetadata.nodeCatalog,
+    runtimeLocalModels: data.localMetadata.runtimeLocalModels,
+    localMetadataDegraded: data.localMetadataDegraded,
+    onLocalStatusMismatch: deps.onLocalStatusMismatch,
+  });
 }
 
 export function runtimeRouteHealthInputFromResolvedBinding(
