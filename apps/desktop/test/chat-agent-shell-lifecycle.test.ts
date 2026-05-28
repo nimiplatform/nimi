@@ -15,7 +15,7 @@ function applyEvents(events: readonly ConversationTurnEvent[]) {
   );
 }
 
-test('agent shell lifecycle keeps projection rebuild and completed terminal state authoritative', () => {
+test('agent shell lifecycle ignores local projection version and keeps completed terminal state authoritative', () => {
   const state = applyEvents([
     {
       type: 'projection-rebuilt',
@@ -48,7 +48,6 @@ test('agent shell lifecycle keeps projection rebuild and completed terminal stat
   ]);
 
   const completed = assertAgentTurnLifecycleCompleted(state);
-  assert.equal(completed.projectionVersion, 'projection:10:t1');
   assert.equal(completed.outputText, 'final answer');
   assert.equal(completed.reasoningText, 'hidden');
   assert.equal(completed.traceId, 'trace-1');

@@ -27,7 +27,6 @@ function sampleTarget() {
 
 function baseLifecycle(): AgentTurnLifecycleState {
   return {
-    projectionVersion: null,
     terminal: 'running',
     outputText: '',
     reasoningText: '',

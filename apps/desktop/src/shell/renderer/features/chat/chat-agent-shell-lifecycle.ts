@@ -23,7 +23,6 @@ export type AgentRuntimeChatLifecycleEvidence = {
 };
 
 export type AgentTurnLifecycleState = {
-  projectionVersion: string | null;
   terminal: AgentTurnTerminalState;
   outputText: string;
   reasoningText: string;
@@ -68,7 +67,6 @@ function parseRuntimeAgentTurnsLifecycleEvidence(value: unknown): AgentRuntimeCh
 
 export function createInitialAgentTurnLifecycleState(): AgentTurnLifecycleState {
   return {
-    projectionVersion: null,
     terminal: 'running',
     outputText: '',
     reasoningText: '',
@@ -86,11 +84,6 @@ export function reduceAgentTurnLifecycleState(
   event: ConversationTurnEvent,
 ): AgentTurnLifecycleState {
   switch (event.type) {
-    case 'projection-rebuilt':
-      return {
-        ...state,
-        projectionVersion: event.projectionVersion,
-      };
     case 'turn-completed':
       return {
         ...state,
