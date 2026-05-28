@@ -99,7 +99,7 @@ export async function listRuntimeAgentConversationSummaries(
       localAgentRef: target.localAgentRef,
       subjectUserId: target.ownerUserId,
       statusFilter: [ConversationAnchorStatus.ACTIVE],
-      pageSize: 50,
+      pageSize: 1,
     });
     return response.summaries
       .map((summary) => toAgentRuntimeConversationSummary(target, summary))
@@ -107,9 +107,9 @@ export async function listRuntimeAgentConversationSummaries(
   }));
   const deduped = new Map<string, AgentRuntimeConversationSummary>();
   for (const summary of responses.flat()) {
-    const previous = deduped.get(summary.conversationAnchorId);
+    const previous = deduped.get(summary.localAgentRef);
     if (!previous || summary.updatedAtMs >= previous.updatedAtMs) {
-      deduped.set(summary.conversationAnchorId, summary);
+      deduped.set(summary.localAgentRef, summary);
     }
   }
   return sortRuntimeConversationSummaries([...deduped.values()]);

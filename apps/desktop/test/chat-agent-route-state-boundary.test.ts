@@ -32,3 +32,12 @@ test('agent conversation shell does not expose local thread selection as product
   assert.doesNotMatch(adapterStateSource, /lastSelectedThreadId:\s*input\.lastSelectedThreadId/u);
   assert.doesNotMatch(uiSliceSource, /agent:\s*selection\.threadId/u);
 });
+
+test('agent runtime summary projection requests one active conversation per AgentFriend', () => {
+  const source = readSource('apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-conversation-summaries.ts');
+  assert.match(source, /statusFilter:\s*\[ConversationAnchorStatus\.ACTIVE\]/u);
+  assert.match(source, /pageSize:\s*1/u);
+  assert.match(source, /deduped\.get\(summary\.localAgentRef\)/u);
+  assert.doesNotMatch(source, /pageSize:\s*50/u);
+  assert.doesNotMatch(source, /deduped\.get\(summary\.conversationAnchorId\)/u);
+});
