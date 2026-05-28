@@ -5,4 +5,3 @@ export type {
   ExecuteLocalKernelTurnResult,
   ProviderHealth,
 } from './execution';
-export { NimiSpeechEngine } from './speech';

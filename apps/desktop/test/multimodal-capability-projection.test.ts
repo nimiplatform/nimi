@@ -609,7 +609,7 @@ test('buildConversationCapabilityProjectionMap includes image.edit in full refre
 
 test('generic media caller without conversationExecution is not affected by unsupported projection', async () => {
   // Simulates the host media resolve wrapper behavior.
-  // Generic callers (e.g. speech engine listVoices) do not set conversationExecution.
+  // Generic callers (e.g. runtime media tts listVoices) do not set conversationExecution.
   // Even when projection is unsupported, the resolver must fall through to normal resolve.
   const normalResolveCalled: string[] = [];
   const resolveRuntimeRoute = async (payload: {

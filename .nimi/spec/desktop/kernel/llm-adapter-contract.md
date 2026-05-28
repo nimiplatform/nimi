@@ -66,12 +66,9 @@ AI 请求的凭据通过 `connector_id` 路由（K-KEYSRC-001 managed 路径）�
 
 ## D-LLM-005 — 语音引擎集成
 
-Desktop 侧 speech engine 只暴露 runtime-aligned 语音能力：
-
-- `setSpeechFetchImpl(proxyFetch)`：设置语音请求的 fetch 实现。
-- `setSpeechRouteResolver(resolver)`：设置语音路由解析器。
-- 路由解析：从 capability-scoped route binding 读取 connector/model/endpoint 配置，不再暴露 provider list。
-- legacy speech provider-list surface 已下线，不提供替代接口。
+Desktop 不再持有独立 speech engine facade。语音能力必须通过 SDK
+Runtime media projection 消费；Desktop 只负责把用户交互、播放反馈和
+Runtime-projected voice capability 状态呈现到对应 UI。
 
 公开 surface 固定为：
 - `runtime.media.tts.list.voices`
