@@ -168,7 +168,7 @@ test('chat agent bridge parser accepts live2d presentation profiles in target sn
   assert.equal(summary.targetSnapshot.presentationProfile?.avatarAssetRef, 'asset://live2d/airi');
 });
 
-test('chat agent store bridge invokes fixed tauri commands and payload shapes', async () => {
+test('chat agent projection-cache bridge invokes fixed tauri commands and payload shapes', async () => {
   const calls: TauriInvokeCall[] = [];
   const restore = installTauriInvokeMock(async (command, payload) => {
     calls.push({ command, payload });

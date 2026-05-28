@@ -109,6 +109,28 @@ Required behavior:
   workflow completion, pseudo memory writes, and silent fallback model routes
 - keep renderer-local telemetry and diagnostics below product truth
 
+## D-LLM-025a — Local Persistence Remediation Boundary
+
+Desktop Agent Chat local persistence, when present during the D3 migration, is
+limited to user drafts, renderer UI state, and a disposable projection cache.
+
+Fixed rules:
+
+- Desktop local persistence must not become canonical Agent Chat transcript,
+  message, action, turn, beat, conversation-anchor, lifecycle, or history truth.
+- Desktop local persistence must not author assistant greetings, successful
+  assistant turns, message/action existence, prompt traces, turn traces, or
+  projection rebuild output as product truth.
+- Runtime-owned session snapshots and `runtime.agent.turn.*` /
+  `runtime.agent.presentation.*` projections are the replay source for Agent
+  Chat transcript and presentation state.
+- If a Desktop `chat_agent_*` store exists before cutover, it is remediation
+  scoped projection-cache infrastructure. It must remain replaceable by Runtime
+  / SDK session projection without changing product semantics.
+- The only steady-state Desktop persistence admitted here is explicit draft and
+  UI state such as focus, scroll, popover, composer text, and transient panel
+  state.
+
 ## D-LLM-026 — Adjacent Authority Boundaries
 
 Adjacent owner boundaries are fixed:

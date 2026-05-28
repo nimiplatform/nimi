@@ -321,7 +321,7 @@ test('agent local mode keeps thinking unsupported and forces effective off confi
   );
 });
 
-test('agent shell stays desktop-owned and uses social snapshot plus local agent store', () => {
+test('agent shell stays a Runtime Agent projection consumer with local UI state', () => {
   const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
   const adapterSessionSnapshotSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter-session-snapshot.ts');
   const adapterStateSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter-state.ts');
@@ -346,7 +346,6 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(adapterStateSource, /dataSync\.loadSocialSnapshot\(\)/);
   assert.match(adapterStateSource, /getDesktopAIConfigService\(\)/);
   assert.match(sessionHydrationSource, /snapshot\.transcript/);
-  assert.match(hostActionHelpersSource, /chatAgentStoreClient\.createThread/);
   assert.match(hostActionHelpersSource, /createRuntimeProtectedScopeHelper/);
   assert.match(hostActionHelpersSource, /runtime\.agent\.initializeAgent/);
   assert.match(hostActionHelpersSource, /runtime\.agent\.anchors\.getSnapshot/);
@@ -355,7 +354,6 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(hostActionHelpersSource, /withScopes\(\s*\['runtime\.agent\.write'\]/);
   assert.match(hostActionHelpersSource, /withScopes\(\s*\['runtime\.agent\.read'\]/);
   assert.match(hostActionHelpersSource, /record\.anchor/);
-  assert.match(hostActionSubmitSource, /chatAgentStoreClient\.commitTurnResult/);
   assert.match(hostActionSubmitRunSource, /matchConversationTurnEvent/);
   assert.match(hostActionSubmitSource, /createInitialAgentSubmitDriverState/);
   assert.match(hostActionSubmitSource, /previewUrl/);
@@ -378,7 +376,6 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
     < hostActionSubmitSource.indexOf('const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({'),
     'agent host actions must enter submitting state before route readiness checks so thinking appears immediately',
   );
-  assert.match(hostActionSubmitRunSource, /submitSession\.lifecycle\.projectionVersion\s*\?\s*await chatAgentStoreClient\.getThreadBundle\(input\.threadId\)/);
   assert.match(hostActionSubmitRunSource, /if \(projectionEffects\.awaitRefresh\) \{\s+const rebuiltBundle =/s);
   assert.match(adapterSource, /logRendererEvent/);
   assert.match(adapterSource, /conversationCapabilityProjectionByCapability\['audio\.transcribe'\]/);

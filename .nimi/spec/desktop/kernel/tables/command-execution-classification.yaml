@@ -65,6 +65,7 @@ surfaces:
   - registered_command_families_31
   - registered_command_families_32
   - registered_command_families_33
+  - registered_command_families_34
   - dormant_command_families_1
 # Desktop Tauri command execution classification.
 # Source of truth for D-GATE-092..D-GATE-096.
@@ -165,9 +166,6 @@ registered_command_families:
         - runtime_defaults
         - desktop_release_info_get
         - desktop_update_state_get
-        - memory_embedding_runtime_inspect
-        - memory_embedding_runtime_request_bind
-        - memory_embedding_runtime_request_cutover
         - built_in_ai_config_for_scope_init
     origin_crate: mixed
     owner_domain: desktop-state-projection
@@ -291,13 +289,27 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-094
 
-  - family: chat_local_stores
+  - family: chat_ai_local_store
     match:
-      regex: "^chat_(ai|agent)_.*$"
+      regex: "^chat_ai_.*$"
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-chat-local-store
     execution_class: bounded_blocking_with_admission
     remediation_required: false
+    admitted_risks:
+      - sqlite_sync
+      - std_fs
+      - spawn_blocking
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
+  - family: chat_agent_projection_cache_migration
+    match:
+      regex: "^chat_agent_.*$"
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-agent-chat-projection-cache-migration
+    execution_class: bounded_blocking_with_admission
+    remediation_required: true
     admitted_risks:
       - sqlite_sync
       - std_fs

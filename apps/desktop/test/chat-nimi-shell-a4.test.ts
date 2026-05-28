@@ -12,20 +12,11 @@ import {
   resolveAiThinkingSupportFromProjection,
   resolveChatThinkingConfig,
 } from '../src/shell/renderer/features/chat/chat-shared-thinking.js';
-import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store.js';
 import {
   buildConversationCapabilityProjection,
   createDefaultConversationCapabilitySelectionStore,
-  setConversationCapabilityRouteRuntime,
   updateConversationCapabilityBinding,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
-import { createEmptyAIConfig } from '@nimiplatform/sdk/ai';
-
-function resetConversationCapabilityTestState(): void {
-  setConversationCapabilityRouteRuntime(null);
-  useAppStore.getState().setConversationCapabilityProjections({});
-  useAppStore.getState().setAIConfig(createEmptyAIConfig());
-}
 
 function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');

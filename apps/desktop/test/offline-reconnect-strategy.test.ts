@@ -327,7 +327,7 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     assert.ok(effects.includes('runtimeReconnectEvent'));
   });
 
-  test('D-OFFLINE-003: L2 projects into native chat-agent store write guard', () => {
+  test('D-OFFLINE-003: L2 gates transitional native chat-agent projection-cache writes', () => {
     assert.match(RUNTIME_BOOTSTRAP_SOURCE, /chatAgentStoreClient\.setOfflineTier\(tier\)/);
     assert.match(APP_BOOTSTRAP_SOURCE, /chat_agent_store::chat_agent_set_offline_tier/);
     assert.match(CHAT_AGENT_STORE_COMMANDS_SOURCE, /CHAT_AGENT_OFFLINE_L2_WRITE_DENIED/);
