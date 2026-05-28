@@ -33,6 +33,10 @@ surface 必须维持 runtime-owned authority cut：
 
 - `runtime.memory.*` 仅投影 `RuntimeCognitionService` 中的 runtime-owned memory family
 - `runtime.knowledge.*` 仅投影 `RuntimeCognitionService` 中的 runtime-owned knowledge family
+- memory embedding runtime readiness/bind/cutover methods remain under the
+  `runtime.memory.*` SDK namespace as host/runtime typed logical methods backed
+  by retained runtime-private memory depth; they must not be treated as a
+  standalone `RuntimeMemoryService` or canonical agent memory direct-write path
 - steady-state agent authority surface is `RuntimeAgentService`
 - current admitted SDK public projection for the agent surface is
   `runtime.agent.*`

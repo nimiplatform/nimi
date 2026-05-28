@@ -362,6 +362,70 @@ function checkMemoryProtoAdmission() {
   }
 }
 
+function checkRuntimeMemorySdkProjection() {
+  const methodIdsRel = 'sdk/src/runtime/method-ids.ts';
+  const methodIds = read(methodIdsRel);
+  const memoryBlock = methodIds.match(/\bmemory:\s*\{([\s\S]*?)\n\s*\},\n\s*agent:/)?.[1] || '';
+  if (!memoryBlock) {
+    fail(`${methodIdsRel} missing RuntimeMethodIds.memory block`);
+  }
+  if (/RuntimeMemoryService/.test(memoryBlock)) {
+    fail(`${methodIdsRel} RuntimeMethodIds.memory must not point at retired RuntimeMemoryService`);
+  }
+  for (const [sdkMethod, rpcMethod] of [
+    ['createBank', 'CreateBank'],
+    ['getBank', 'GetBank'],
+    ['listBanks', 'ListBanks'],
+    ['deleteBank', 'DeleteBank'],
+    ['retain', 'Retain'],
+    ['recall', 'Recall'],
+    ['history', 'History'],
+    ['deleteMemory', 'DeleteMemory'],
+    ['inspectMemoryEmbeddingRuntime', 'InspectMemoryEmbeddingRuntime'],
+    ['requestMemoryEmbeddingRuntimeBind', 'RequestMemoryEmbeddingRuntimeBind'],
+    ['requestMemoryEmbeddingRuntimeCutover', 'RequestMemoryEmbeddingRuntimeCutover'],
+    ['subscribeEvents', 'SubscribeMemoryEvents'],
+  ]) {
+    const expected = new RegExp(`${sdkMethod}:\\s*['"]/nimi\\.runtime\\.v1\\.RuntimeCognitionService/${rpcMethod}['"]`);
+    if (!expected.test(memoryBlock)) {
+      fail(`${methodIdsRel} RuntimeMethodIds.memory.${sdkMethod} must target RuntimeCognitionService/${rpcMethod}`);
+    }
+  }
+
+  const methodGroupsRel = '.nimi/spec/sdk/kernel/tables/runtime-method-groups.yaml';
+  const methodGroups = YAML.parse(read(methodGroupsRel));
+  const memoryGroup = methodGroups?.groups?.find((group) => group?.group === 'memory_service_projection');
+  if (!memoryGroup) {
+    fail(`${methodGroupsRel} missing memory_service_projection group`);
+  } else {
+    for (const method of [
+      'InspectMemoryEmbeddingRuntime',
+      'RequestMemoryEmbeddingRuntimeBind',
+      'RequestMemoryEmbeddingRuntimeCutover',
+    ]) {
+      if (!Array.isArray(memoryGroup.methods) || !memoryGroup.methods.includes(method)) {
+        fail(`${methodGroupsRel} memory_service_projection missing ${method}`);
+      }
+    }
+  }
+
+  const desktopProductionRoots = [
+    'apps/desktop/src/shell/renderer',
+    'apps/desktop/src/runtime',
+  ];
+  const forbiddenDirectWrites = /\bruntime\.memory\.(?:retain|deleteMemory|createBank|deleteBank)\s*\(/;
+  for (const root of desktopProductionRoots) {
+    for (const absPath of walk(path.join(cwd, root))) {
+      if (!/\.(?:ts|tsx)$/.test(absPath)) continue;
+      const rel = toRel(absPath);
+      const content = read(rel);
+      if (forbiddenDirectWrites.test(content)) {
+        fail(`${rel} must not call canonical runtime.memory write/admin methods directly; use runtime.agent-owned memory projection`);
+      }
+    }
+  }
+}
+
 function checkRuntimeAgentServiceProtoAdmission() {
   const rel = 'proto/runtime/v1/agent_service.proto';
   const content = read(rel);
@@ -614,6 +678,7 @@ function main() {
   checkReasonCodes359To363Linkage();
   checkPagingPairsInConnectorAndGrantProto();
   checkMemoryProtoAdmission();
+  checkRuntimeMemorySdkProjection();
   checkRuntimeAgentServiceProtoAdmission();
   checkAvatarPackageProjectionProtoRetirement();
 

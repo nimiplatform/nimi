@@ -22,6 +22,10 @@ Runtime 子路径公开方法集合由 `runtime-method-groups.yaml` 约束，必
 
 - `runtime.memory.*` 投影 `RuntimeCognitionService` 的 runtime-owned memory family
 - `runtime.knowledge.*` 投影 `RuntimeCognitionService` 的 runtime-owned knowledge family
+- memory embedding runtime readiness/bind/cutover methods remain under the
+  `runtime.memory.*` SDK namespace, but they are host/runtime typed logical
+  methods backed by retained runtime-private memory depth; they are not a new
+  `RuntimeMemoryService` and not canonical agent memory direct-write shortcuts
 - steady-state runtime-owned live agent control plane belongs to
   `RuntimeAgentService`
 - the app-facing steady-state agent projection is `runtime.agent.*`

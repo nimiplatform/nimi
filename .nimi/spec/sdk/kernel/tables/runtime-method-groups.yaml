@@ -341,6 +341,10 @@ groups:
       shape remains internal. Default engine is the runtime-managed Hindsight
       daemon. App-private and workspace-private scopes may project here, but
       canonical agent memory writes do not route through this service directly.
+      Memory embedding runtime methods are host/runtime typed logical methods
+      backed by retained runtime-private memory depth; they are listed here
+      only because the SDK public namespace remains `runtime.memory.*` while
+      the underlying RPC owner is `RuntimeCognitionService`.
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - CreateBank
@@ -351,6 +355,9 @@ groups:
       - Recall
       - History
       - DeleteMemory
+      - InspectMemoryEmbeddingRuntime
+      - RequestMemoryEmbeddingRuntimeBind
+      - RequestMemoryEmbeddingRuntimeCutover
       - SubscribeMemoryEvents
     source_rule: S-SURFACE-002
   - group: agent_service_projection
