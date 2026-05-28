@@ -34,7 +34,6 @@ import {
 import {
   bundleQueryKey,
   normalizeText,
-  toConversationHistoryMessages,
   upsertThreadSummary,
 } from './chat-agent-shell-core';
 import {
@@ -222,7 +221,6 @@ export async function submitAgentConversationTurn(input: {
       uploadedAttachments,
       createdAtMs,
     });
-    const conversationHistoryBeforeSubmit = toConversationHistoryMessages(input.hostInput.bundle?.messages || []);
     const assistantPlaceholder: AgentLocalMessageRecord = {
       id: assistantMessageId,
       threadId: effectiveThreadId,
@@ -354,7 +352,6 @@ export async function submitAgentConversationTurn(input: {
       promise: Promise.resolve(),
     };
     input.activeSubmitsByThreadRef.current.set(effectiveThreadId, activeSubmit);
-    const history = conversationHistoryBeforeSubmit;
     const submitRunPromise = runActiveAgentSubmit({
       activeSubmit,
       input: input.hostInput,
@@ -366,7 +363,6 @@ export async function submitAgentConversationTurn(input: {
         text: submittedText,
         attachments: uploadedAttachments,
       },
-      history,
       signal: abortController.signal,
       agentResolution: effectiveAgentResolution,
       textExecutionSnapshot,

@@ -173,6 +173,36 @@ test('phase 3: agent adapter passes resolution to host actions, not separate rea
   );
 });
 
+test('phase 3: runtime agent submit does not replay Desktop-local message history', () => {
+  const hostActionsSubmitSource = fs.readFileSync(
+    path.join(srcDir, 'shell/renderer/features/chat/chat-agent-shell-host-actions-submit.ts'),
+    'utf8',
+  );
+  const hostActionsSubmitRunSource = fs.readFileSync(
+    path.join(srcDir, 'shell/renderer/features/chat/chat-agent-shell-host-actions-submit-run.ts'),
+    'utf8',
+  );
+  const agentAdapterSource = fs.readFileSync(
+    path.join(srcDir, 'shell/renderer/features/chat/chat-agent-shell-adapter.tsx'),
+    'utf8',
+  );
+  assert.equal(
+    /toConversationHistoryMessages/.test(hostActionsSubmitSource),
+    false,
+    'runtime-agent submit must not build a local message history window in Desktop',
+  );
+  assert.equal(
+    /history:\s*input\.history/.test(hostActionsSubmitRunSource),
+    false,
+    'runtime-agent submit runner must not pass Desktop-local history through to runAgentTurn',
+  );
+  assert.match(
+    agentAdapterSource,
+    /history:\s*\[\]/,
+    'runtime-agent Kit provider bridge should pass an empty history because Runtime owns turn context',
+  );
+});
+
 // --- AI route truth residual hard-cut tests ---
 
 test('phase 3: AI adapter does not sync routeSnapshot to setConversationCapabilityBinding', () => {

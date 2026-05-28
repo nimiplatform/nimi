@@ -30,7 +30,6 @@ export type AgentRunTurn = (input: {
     text: string;
     attachments: readonly AgentChatUserAttachment[];
   };
-  history: ReturnType<typeof import('./chat-agent-shell-core').toConversationHistoryMessages>;
   signal: AbortSignal;
   agentResolution: AgentEffectiveCapabilityResolution;
   textExecutionSnapshot: AISnapshot;

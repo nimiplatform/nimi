@@ -537,7 +537,7 @@ export function useAgentConversationModeHost(
       threadId: turnInput.threadId,
       turnId: turnInput.turnId,
       userMessage: turnInput.userMessage,
-      history: turnInput.history,
+      history: [],
       signal: turnInput.signal,
       metadata: {
         ownerUserId: turnInput.target.ownerUserId,

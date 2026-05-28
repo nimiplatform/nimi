@@ -37,7 +37,6 @@ export async function runActiveAgentSubmit(input: {
     text: string;
     attachments: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['userMessage']['attachments'];
   };
-  history: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['history'];
   signal: AbortSignal;
   agentResolution: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['agentResolution'];
   textExecutionSnapshot: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['textExecutionSnapshot'];
@@ -56,7 +55,6 @@ export async function runActiveAgentSubmit(input: {
     conversationAnchorId: input.conversationAnchorId,
     turnId: input.turnId,
     userMessage: input.userMessage,
-    history: input.history,
     signal: input.signal,
     agentResolution: input.agentResolution,
     textExecutionSnapshot: input.textExecutionSnapshot,
