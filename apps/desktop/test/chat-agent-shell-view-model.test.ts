@@ -288,7 +288,7 @@ test('agent shell view model maps voice messages to canonical voice kinds and pr
   });
 });
 
-test('agent shell view model keeps same-agent different-anchor messages isolated instead of collapsing to one session truth', () => {
+test('agent shell view model projects messages into the active Runtime anchor session', () => {
   const messages = resolveAgentCanonicalMessages({
     messages: [{
       id: 'assistant-anchor-a',
@@ -327,9 +327,8 @@ test('agent shell view model keeps same-agent different-anchor messages isolated
 
   assert.equal(messages[0]?.targetId, 'local-agent:user-1:agent-1');
   assert.equal(messages[1]?.targetId, 'local-agent:user-1:agent-1');
-  assert.equal(messages[0]?.sessionId, 'anchor-a');
-  assert.equal(messages[1]?.sessionId, 'anchor-b');
-  assert.notEqual(messages[0]?.sessionId, messages[1]?.sessionId);
+  assert.equal(messages[0]?.sessionId, 'anchor-active');
+  assert.equal(messages[1]?.sessionId, 'anchor-active');
 });
 
 test('agent shell view model resolves selected target id fail-close', () => {

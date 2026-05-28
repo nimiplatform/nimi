@@ -73,9 +73,10 @@ export function resolveAgentCanonicalMessages(input: {
     const kind = String(metadata.kind || '').trim();
     const isImage = kind === 'image';
     const isVoice = kind === 'voice';
-    const conversationAnchorId = typeof metadata.conversationAnchorId === 'string' && metadata.conversationAnchorId.trim().length > 0
+    const messageConversationAnchorId = typeof metadata.conversationAnchorId === 'string' && metadata.conversationAnchorId.trim().length > 0
       ? metadata.conversationAnchorId
-      : input.activeConversationAnchorId;
+      : null;
+    const conversationAnchorId = input.activeConversationAnchorId || messageConversationAnchorId;
     return {
       id: message.id,
       sessionId: conversationAnchorId || input.activeThreadId || input.activeTargetId || 'agent',
