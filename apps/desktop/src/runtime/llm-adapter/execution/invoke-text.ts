@@ -12,7 +12,6 @@ import {
 import type { InvokeRuntimeLlmInput, InvokeRuntimeLlmOutput } from './types';
 import { TEXT_GENERATE_TIMEOUT_MS } from './types';
 import { buildLocalId } from './utils';
-import { emitRuntimeLog } from '../../telemetry/logger';
 import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { runtimeRouteCallTargetFromResolvedBinding } from '@nimiplatform/sdk/ai';
 import { ReasonCode } from '@nimiplatform/sdk/types';
@@ -21,27 +20,6 @@ const SCENARIO_TYPE_TEXT_GENERATE = 1;
 const EXECUTION_MODE_SYNC = 1;
 const MAX_PROMPT_CHARS = 24_000;
 const MAX_SYSTEM_PROMPT_CHARS = 12_000;
-
-function normalizeFinishReason(value: unknown): string {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return 'UNKNOWN';
-  if (numeric === 1) return 'STOP';
-  if (numeric === 2) return 'LENGTH';
-  if (numeric === 3) return 'TOOL_CALL';
-  if (numeric === 4) return 'CONTENT_FILTER';
-  if (numeric === 5) return 'ERROR';
-  if (numeric === 0) return 'UNSPECIFIED';
-  return `UNKNOWN_${Math.trunc(numeric)}`;
-}
-
-function normalizeRouteDecision(value: unknown): string {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return 'UNKNOWN';
-  if (numeric === 1) return 'LOCAL';
-  if (numeric === 2) return 'CLOUD';
-  if (numeric === 0) return 'UNSPECIFIED';
-  return `UNKNOWN_${Math.trunc(numeric)}`;
-}
 
 function hasDisallowedControlCharacters(value: string): boolean {
   for (const char of value) {
@@ -158,12 +136,6 @@ export async function invokeRuntimeLlm(input: InvokeRuntimeLlmInput): Promise<In
 
     const responseTraceId = String(response.traceId || '').trim() || runtimeTraceId;
     runtimeTraceId = responseTraceId;
-    const responseModelResolved = String(response.modelResolved || '').trim();
-    const responseFinishReasonRaw = Number(response.finishReason);
-    const responseRouteDecisionRaw = Number(response.routeDecision);
-    const usageInputTokensRaw = Number(response.usage?.inputTokens);
-    const usageOutputTokensRaw = Number(response.usage?.outputTokens);
-    const usageComputeMsRaw = Number(response.usage?.computeMs);
     const text = extractTextFromGenerateOutput(response.output);
     if (!text) {
       throw createNimiError({
@@ -172,47 +144,6 @@ export async function invokeRuntimeLlm(input: InvokeRuntimeLlmInput): Promise<In
         actionHint: 'retry_or_switch_model',
         traceId: responseTraceId,
         source: 'runtime',
-      });
-    }
-
-    if (String(input.targetId || '').trim().startsWith('world.nimi.')) {
-      emitRuntimeLog({
-        level: 'info',
-        area: 'world-ai-test-diag',
-        message: '[WORLD-AI-TEST-DIAG] llm runtime generate meta',
-        details: {
-          targetId: input.targetId,
-          traceId: responseTraceId || null,
-          source: resolved.source,
-          provider: resolved.provider,
-          connectorId: String(resolved.connectorId || '').trim() || null,
-          modelRequested: resolved.modelId,
-          modelResolved: responseModelResolved || null,
-          routeDecision: normalizeRouteDecision(responseRouteDecisionRaw),
-          routeDecisionRaw: Number.isFinite(responseRouteDecisionRaw) ? responseRouteDecisionRaw : null,
-          finishReason: normalizeFinishReason(responseFinishReasonRaw),
-          finishReasonRaw: Number.isFinite(responseFinishReasonRaw) ? responseFinishReasonRaw : null,
-          maxTokensRequested: Number.isFinite(Number(input.maxTokens))
-            ? Number(input.maxTokens)
-            : null,
-          usageInputTokens: Number.isFinite(usageInputTokensRaw) ? usageInputTokensRaw : null,
-          usageOutputTokens: Number.isFinite(usageOutputTokensRaw) ? usageOutputTokensRaw : null,
-          usageComputeMs: Number.isFinite(usageComputeMsRaw) ? usageComputeMsRaw : null,
-          textLength: text.length,
-        },
-      });
-      emitRuntimeLog({
-        level: 'info',
-        area: 'world-ai-test-diag',
-        message: '[WORLD-AI-TEST-DIAG] llm raw text output',
-        details: {
-          targetId: input.targetId,
-          traceId: responseTraceId || null,
-          source: resolved.source,
-          modelId: resolved.modelId,
-          textLength: text.length,
-          text,
-        },
       });
     }
 

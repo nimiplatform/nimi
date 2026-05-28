@@ -78,6 +78,13 @@ const checks = [
     ],
   },
   {
+    description: 'desktop runtime text bridge must not restore world-ai raw-output diagnostic logging',
+    pattern: 'WORLD-AI-TEST-DIAG|world-ai-test-diag|normalizeFinishReason|normalizeRouteDecision',
+    paths: [
+      'apps/desktop/src/runtime/llm-adapter/execution/invoke-text.ts',
+    ],
+  },
+  {
     description: 'desktop runtime execution bridges must not carry redundant fallbackPolicy fields or re-inject fallback deny into stable requests',
     pattern: 'fallbackPolicy|fallback:\\s*resolved\\.',
     paths: [
