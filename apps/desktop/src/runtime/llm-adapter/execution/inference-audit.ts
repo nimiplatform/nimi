@@ -8,15 +8,15 @@ import { emitRuntimeLog } from '../../telemetry/logger';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export type InferenceRouteSource = 'local' | 'cloud';
-export type InferencePersistMode = 'persist' | 'log-only';
-export type InferenceAuditModality =
+type InferencePersistMode = 'persist' | 'log-only';
+type InferenceAuditModality =
   | LocalRuntimeRunnableAssetKindId
   | 'rerank'
   | 'cv'
   | 'diarize'
   | string;
 
-export type InferenceAuditInput = {
+type InferenceAuditInput = {
   eventType: 'inference_invoked' | 'inference_failed' | 'fallback_to_cloud';
   targetId: string;
   source: InferenceRouteSource;
@@ -60,46 +60,6 @@ export function inferRouteSourceFromEndpoint(endpoint: string | null | undefined
     }
     return 'cloud';
   }
-}
-
-export function parseReasonCode(input: unknown): string {
-  const raw = String(input || '').trim();
-  if (!raw) return 'LOCAL_AI_PROVIDER_INTERNAL_ERROR';
-  const matched = raw.match(/(LOCAL_AI_[A-Z_]+)/);
-  if (matched?.[1]) return matched[1];
-  const normalized = raw.toLowerCase();
-  if (normalized.includes('adapter mismatch')) return 'LOCAL_AI_ADAPTER_MISMATCH';
-  if (normalized.includes('timeout') || normalized.includes('timed out')) {
-    return 'LOCAL_AI_PROVIDER_TIMEOUT';
-  }
-  if (
-    normalized.includes('unauthorized')
-    || normalized.includes('forbidden')
-    || normalized.includes('401')
-    || normalized.includes('403')
-    || normalized.includes('auth')
-  ) {
-    return 'LOCAL_AI_AUTH_FAILED';
-  }
-  if (
-    normalized.includes('capability')
-    || normalized.includes('model required')
-    || normalized.includes('model missing')
-    || normalized.includes('404')
-    || normalized.includes('unsupported')
-  ) {
-    return 'LOCAL_AI_CAPABILITY_MISSING';
-  }
-  if (
-    normalized.includes('unreachable')
-    || normalized.includes('connection refused')
-    || normalized.includes('network')
-    || normalized.includes('failed to fetch')
-    || normalized.includes('econnrefused')
-  ) {
-    return 'LOCAL_AI_SERVICE_UNREACHABLE';
-  }
-  return 'LOCAL_AI_PROVIDER_INTERNAL_ERROR';
 }
 
 export function emitInferenceAudit(input: InferenceAuditInput): void {

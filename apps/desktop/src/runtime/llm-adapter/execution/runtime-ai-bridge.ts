@@ -63,13 +63,7 @@ function logDesktopRuntimeAgentCounter(input: {
   });
 }
 
-export const RUNTIME_PACKAGEAL_TEXT = 1;
-export const RUNTIME_PACKAGEAL_IMAGE = 2;
-export const RUNTIME_PACKAGEAL_VIDEO = 3;
-export const RUNTIME_PACKAGEAL_STT = 5;
-export const RUNTIME_PACKAGEAL_EMBEDDING = 6;
-
-export type EnsureRuntimeLocalModelWarmInput = {
+type EnsureRuntimeLocalModelWarmInput = {
   targetId: string;
   resolvedBinding: RuntimeResolvedBinding;
   timeoutMs?: number;
