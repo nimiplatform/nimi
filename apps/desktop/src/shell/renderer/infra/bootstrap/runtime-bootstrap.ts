@@ -25,9 +25,6 @@ import { syncRuntimeJwtConfig } from './runtime-bootstrap-jwt-sync';
 import { isRuntimeConfigManualRestartRequiredError } from './runtime-bootstrap-config-errors';
 import { reconcileLocalRuntimeBootstrapState } from './runtime-bootstrap-local-ai';
 import { attachOfflineCoordinatorBindings } from './runtime-bootstrap-offline';
-import {
-  stopExternalAgentActionBridge,
-} from '@runtime/external-agent';
 import { startAuthStateWatcher, stopAuthStateWatcher } from './auth-state-watcher';
 import { checkDaemonVersion } from './version-check';
 import { registerExitHandler } from './exit-handler';
@@ -195,7 +192,6 @@ async function handleRuntimeConfigSyncError(input: {
 
 async function teardownBootstrapState(): Promise<void> {
   stopAuthStateWatcher();
-  stopExternalAgentActionBridge();
   clearDesktopConversationCapabilityRouteRuntime();
   clearPlatformClient();
 }

@@ -52,27 +52,20 @@ test('bootstrap failure performs teardown before auth reset and surfaces cleanup
     'teardown helper must stop auth state watcher',
   );
   assert.ok(
-    bootstrapSource.includes('stopExternalAgentActionBridge();'),
-    'teardown helper must stop external agent bridge',
-  );
-  assert.ok(
     bootstrapSource.includes('clearPlatformClient();'),
     'teardown helper must clear platform client state',
   );
+  assert.doesNotMatch(
+    bootstrapSource,
+    /stopExternalAgentActionBridge/,
+    'bootstrap teardown must not retain a Desktop-owned external agent action bridge stop hook',
+  );
 });
 
-test('external agent bridge stop clears descriptor sync residue', () => {
-  const stopIndex = externalAgentSource.indexOf('export function stopExternalAgentActionBridge(): void {');
-  assert.notEqual(stopIndex, -1, 'stopExternalAgentActionBridge() must exist');
-  const stopBlock = externalAgentSource.slice(stopIndex, externalAgentSource.indexOf('export async function issueExternalAgentToken', stopIndex));
-  assert.doesNotMatch(
-    stopBlock,
-    /syncedActionHash|actionRegistryResyncQueued/,
-    'external agent bridge teardown must not retain app-local descriptor sync state',
-  );
+test('external agent runtime facade has no desktop action bridge residue', () => {
   assert.doesNotMatch(
     externalAgentSource,
-    /resyncExternalAgentActionDescriptors|external_agent_sync_action_descriptors/,
-    'desktop must not own external agent action descriptor sync',
+    /stopExternalAgentActionBridge|syncedActionHash|actionRegistryResyncQueued|resyncExternalAgentActionDescriptors|external_agent_sync_action_descriptors/,
+    'desktop must not own external agent action bridge or action descriptor sync',
   );
 });

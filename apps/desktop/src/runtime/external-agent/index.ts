@@ -119,11 +119,6 @@ function parseExternalAgentTokenRecord(value: unknown, index: number): ExternalA
   };
 }
 
-export function stopExternalAgentActionBridge(): void {
-  // External Agent action bridge is Runtime-owned. Desktop teardown keeps this
-  // no-op hook so bootstrap failure cleanup can remain uniform.
-}
-
 export async function issueExternalAgentToken(
   payload: ExternalAgentIssueTokenPayload,
 ): Promise<ExternalAgentIssueTokenResult> {
