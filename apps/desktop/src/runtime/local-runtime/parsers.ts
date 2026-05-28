@@ -320,7 +320,7 @@ export function normalizeProviderAdapter(value: unknown): LocalRuntimeProviderAd
   return normalizeLocalProviderAdapterId(raw, DEFAULT_LOCAL_PROVIDER_ADAPTER_ID) ?? DEFAULT_LOCAL_PROVIDER_ADAPTER_ID;
 }
 
-export function parseProviderHints(value: unknown): LocalRuntimeProviderHints | undefined {
+function parseProviderHints(value: unknown): LocalRuntimeProviderHints | undefined {
   const record = asRecord(value);
   const llama = asRecord(record.llama);
   const media = asRecord(record.media);
@@ -505,7 +505,7 @@ export function parseExecutionApplyResult(value: unknown): LocalRuntimeExecution
   };
 }
 
-export function normalizeServiceStatus(value: unknown): LocalRuntimeServiceStatus {
+function normalizeServiceStatus(value: unknown): LocalRuntimeServiceStatus {
   if (typeof value === 'number') {
     if (value === 2) return 'active';
     if (value === 3) return 'unhealthy';
@@ -522,7 +522,7 @@ export function normalizeServiceStatus(value: unknown): LocalRuntimeServiceStatu
   return 'installed';
 }
 
-export function normalizeServiceArtifactType(
+function normalizeServiceArtifactType(
   value: unknown,
 ): LocalRuntimeServiceDescriptor['artifactType'] {
   const raw = asString(value).toLowerCase();

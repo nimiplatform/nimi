@@ -273,7 +273,7 @@ export function parseGgufVariantDescriptor(value: unknown): GgufVariantDescripto
   };
 }
 
-export function parseRecommendationFeedEntryDescriptor(value: unknown): LocalRuntimeRecommendationFeedEntryDescriptor {
+function parseRecommendationFeedEntryDescriptor(value: unknown): LocalRuntimeRecommendationFeedEntryDescriptor {
   const record = asRecord(value);
   const totalSizeBytes = Number(record.totalSizeBytes);
   return {
@@ -290,7 +290,7 @@ export function parseRecommendationFeedEntryDescriptor(value: unknown): LocalRun
   };
 }
 
-export function parseRecommendationInstalledState(value: unknown): LocalRuntimeRecommendationInstalledState {
+function parseRecommendationInstalledState(value: unknown): LocalRuntimeRecommendationInstalledState {
   const record = asRecord(value);
   return {
     installed: Boolean(record.installed),
@@ -299,7 +299,7 @@ export function parseRecommendationInstalledState(value: unknown): LocalRuntimeR
   };
 }
 
-export function parseRecommendationActionState(value: unknown): LocalRuntimeRecommendationActionState {
+function parseRecommendationActionState(value: unknown): LocalRuntimeRecommendationActionState {
   const record = asRecord(value);
   return {
     canReviewInstallPlan: Boolean(record.canReviewInstallPlan),

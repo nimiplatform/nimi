@@ -27,9 +27,3 @@ export function toCanonicalLocalId(value: unknown): string {
 export function toCanonicalLocalLookupKey(value: unknown): string {
   return toCanonicalLocalId(value).toLowerCase();
 }
-
-export function localIdsMatch(left: unknown, right: unknown): boolean {
-  const leftKey = toCanonicalLocalLookupKey(left);
-  const rightKey = toCanonicalLocalLookupKey(right);
-  return Boolean(leftKey) && leftKey === rightKey;
-}

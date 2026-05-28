@@ -9,7 +9,7 @@ import type {
 } from './types';
 import { toCanonicalLocalLookupKey } from './local-id';
 
-export type LocalClient = ReturnType<typeof getPlatformClient>['runtime']['local'];
+type LocalClient = ReturnType<typeof getPlatformClient>['runtime']['local'];
 
 export function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
