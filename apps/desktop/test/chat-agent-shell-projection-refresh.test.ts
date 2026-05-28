@@ -51,8 +51,6 @@ function sampleBundle(): AgentLocalThreadBundle {
 
 test('agent projection refresh applies authoritative bundle while the turn is still running', () => {
   const outcome = resolveAgentProjectionRefreshOutcome({
-    requestedProjectionVersion: 'projection:10:t1',
-    latestProjectionVersion: 'projection:10:t1',
     terminal: 'running',
     refreshedBundle: sampleBundle(),
   });
@@ -66,21 +64,18 @@ test('agent projection refresh applies authoritative bundle while the turn is st
   });
 });
 
-test('agent projection refresh ignores stale versions so older rebuilds cannot overwrite newer cache', () => {
+test('agent projection refresh no longer gates authoritative bundles on local projection versions', () => {
   const outcome = resolveAgentProjectionRefreshOutcome({
-    requestedProjectionVersion: 'projection:10:t1',
-    latestProjectionVersion: 'projection:11:t1',
     terminal: 'running',
     refreshedBundle: sampleBundle(),
   });
 
-  assert.equal(outcome, null);
+  assert.ok(outcome);
+  assert.equal(outcome?.bundle.messages.at(-1)?.contentText, 'authoritative projection');
 });
 
 test('agent projection refresh still applies after completed terminal so follow-up commits can surface immediately', () => {
   const outcome = resolveAgentProjectionRefreshOutcome({
-    requestedProjectionVersion: 'projection:11:t2',
-    latestProjectionVersion: 'projection:11:t2',
     terminal: 'completed',
     refreshedBundle: sampleBundle(),
   });
@@ -91,8 +86,6 @@ test('agent projection refresh still applies after completed terminal so follow-
 
 test('agent projection refresh does not apply after terminal cancellation', () => {
   assert.equal(resolveAgentProjectionRefreshOutcome({
-    requestedProjectionVersion: 'projection:10:t1',
-    latestProjectionVersion: 'projection:10:t1',
     terminal: 'canceled',
     refreshedBundle: sampleBundle(),
   }), null);

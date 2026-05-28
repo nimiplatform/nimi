@@ -234,7 +234,6 @@ test('agent host submit harness converges completed submit to authoritative bund
       state: harness,
       submitSession,
       threadId,
-      requestedProjectionVersion: 'projection:10:t1',
       refreshedBundle: authoritativeBundle(),
       draftText: '',
     });
@@ -373,7 +372,6 @@ test('agent host submit harness preserves sealed first-beat, restores composer t
       state: harness,
       submitSession,
       threadId,
-      requestedProjectionVersion: 'projection:10:t1',
       refreshedBundle: authoritativeBundle(),
       draftText: 'retry this',
     });
@@ -465,7 +463,6 @@ test('agent host submit harness does not create a pending second text message fo
       state: harness,
       submitSession,
       threadId,
-      requestedProjectionVersion: 'projection:11:t1',
       refreshedBundle: authoritativeMultiBeatBundle(),
       draftText: '',
     });

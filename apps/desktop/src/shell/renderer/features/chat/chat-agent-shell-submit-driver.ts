@@ -24,9 +24,7 @@ export type AgentSubmitDriverEffectQueue = {
   bundleEffects: AgentLocalThreadBundle[];
   projectionEffect?: AgentLocalThreadBundle | null;
   hostPatchEffect: AgentHostInteractionPatch | null;
-  awaitRefresh: {
-    requestedProjectionVersion: string;
-  } | null;
+  awaitRefresh: boolean;
 };
 
 function createEffectQueue(input: {
@@ -35,9 +33,7 @@ function createEffectQueue(input: {
   bundleEffects?: AgentLocalThreadBundle[];
   projectionEffect?: AgentLocalThreadBundle | null;
   hostPatchEffect?: AgentHostInteractionPatch | null;
-  awaitRefresh?: {
-    requestedProjectionVersion: string;
-  } | null;
+  awaitRefresh?: boolean;
 }): AgentSubmitDriverEffectQueue {
   return {
     finalSession: input.finalSession,
@@ -45,7 +41,7 @@ function createEffectQueue(input: {
     bundleEffects: input.bundleEffects || [],
     projectionEffect: input.projectionEffect,
     hostPatchEffect: input.hostPatchEffect || null,
-    awaitRefresh: input.awaitRefresh || null,
+    awaitRefresh: input.awaitRefresh === true,
   };
 }
 
@@ -73,22 +69,18 @@ export function reduceAgentSubmitDriverEvent(input: {
     streamEffects: nextStep.streamEvent ? [nextStep.streamEvent] : [],
     bundleEffects: nextStep.persistedBundle ? [nextStep.persistedBundle] : [],
     projectionEffect: nextStep.projectionBundle,
-    awaitRefresh: input.event.type === 'projection-rebuilt'
-      ? { requestedProjectionVersion: input.event.projectionVersion }
-      : null,
+    awaitRefresh: input.event.type === 'projection-rebuilt',
   });
 }
 
 export function resolveAgentSubmitDriverProjectionRefresh(input: {
   state: AgentSubmitDriverState;
-  requestedProjectionVersion: string;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;
   draftText: string;
   streamSnapshot: StreamState;
 }): AgentSubmitDriverEffectQueue {
   const refreshOutcome = resolveProjectionRefreshAgentSubmitSession({
     state: input.state,
-    requestedProjectionVersion: input.requestedProjectionVersion,
     refreshedBundle: input.refreshedBundle,
     draftText: input.draftText,
     streamSnapshot: input.streamSnapshot,

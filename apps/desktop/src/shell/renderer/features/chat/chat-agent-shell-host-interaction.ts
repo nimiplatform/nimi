@@ -97,16 +97,12 @@ export function resolveInterruptedAgentHostInteraction(input: {
 }
 
 export function resolveProjectionRefreshAgentHostInteraction(input: {
-  requestedProjectionVersion: string;
-  latestProjectionVersion: string | null;
   lifecycle: AgentTurnLifecycleState;
   streamSnapshot: StreamState;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;
   draftText: string;
 }): AgentHostInteractionPatch | null {
   const refreshOutcome = resolveAgentProjectionRefreshOutcome({
-    requestedProjectionVersion: input.requestedProjectionVersion,
-    latestProjectionVersion: input.latestProjectionVersion,
     terminal: input.lifecycle.terminal,
     refreshedBundle: input.refreshedBundle,
   });

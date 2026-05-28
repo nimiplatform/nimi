@@ -143,8 +143,6 @@ test('agent host interaction preserves authoritative content and interrupted foo
   });
 
   const refreshedInteraction = resolveProjectionRefreshAgentHostInteraction({
-    requestedProjectionVersion: 'projection:10:t1',
-    latestProjectionVersion: lifecycle.projectionVersion,
     lifecycle,
     streamSnapshot: streamState({
       phase: 'streaming',
@@ -355,8 +353,6 @@ test('agent host interaction applies projection refresh after terminal completio
   });
 
   const interaction = resolveProjectionRefreshAgentHostInteraction({
-    requestedProjectionVersion: 'projection:11:t2',
-    latestProjectionVersion: lifecycle.projectionVersion,
     lifecycle,
     streamSnapshot: streamState({
       phase: 'done',

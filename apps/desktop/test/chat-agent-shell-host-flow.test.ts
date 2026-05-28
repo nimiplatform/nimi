@@ -138,8 +138,6 @@ test('agent host flow preserves authoritative assistant content across first-bea
   assert.equal(firstBeatBundle.messages.at(-1)?.contentText, 'sealed first beat');
 
   const refreshOutcome = resolveAgentProjectionRefreshOutcome({
-    requestedProjectionVersion: 'projection:10:t1',
-    latestProjectionVersion: 'projection:10:t1',
     terminal: 'running',
     refreshedBundle: authoritativeBundle(),
   });
@@ -206,7 +204,7 @@ test('agent host flow preserves authoritative assistant content across first-bea
   assert.equal(hostFlow.outcome.bundle.messages.at(-1)?.contentText, 'authoritative projection');
   assert.equal(hostFlow.outcome.bundle.messages.at(-1)?.reasoningText, 'authoritative reasoning');
   assert.deepEqual(hostFlow.outcome.selection, {
-    threadId: 'thread-1',
+    threadId: null,
     localAgentRef: 'local-agent:user-1:agent-1',
     targetId: 'local-agent:user-1:agent-1',
   });
@@ -314,7 +312,7 @@ test('agent host flow resolves authoritative completion and clears composer text
   assert.ok(hostFlow.outcome);
   assert.equal(hostFlow.outcome.bundle.messages.at(-1)?.contentText, 'authoritative projection');
   assert.deepEqual(hostFlow.outcome.selection, {
-    threadId: 'thread-1',
+    threadId: null,
     localAgentRef: 'local-agent:user-1:agent-1',
     targetId: 'local-agent:user-1:agent-1',
   });

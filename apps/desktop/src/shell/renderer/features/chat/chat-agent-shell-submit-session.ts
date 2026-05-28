@@ -317,14 +317,11 @@ export function reduceAgentSubmitSessionEvent(
 
 export function resolveProjectionRefreshAgentSubmitSession(input: {
   state: AgentSubmitSessionState;
-  requestedProjectionVersion: string;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;
   draftText: string;
   streamSnapshot: StreamState;
 }): AgentSubmitSessionProjectionRefreshResult {
   const hostInteractionPatch = resolveProjectionRefreshAgentHostInteraction({
-    requestedProjectionVersion: input.requestedProjectionVersion,
-    latestProjectionVersion: input.state.lifecycle.projectionVersion,
     lifecycle: input.state.lifecycle,
     streamSnapshot: input.streamSnapshot,
     refreshedBundle: input.refreshedBundle,

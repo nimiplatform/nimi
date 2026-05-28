@@ -226,11 +226,10 @@ test('agent submit driver accepts projection refresh in running state and keeps 
   });
   state = projection.finalSession;
   assert.deepEqual(effectKinds(projection), []);
-  assert.deepEqual(projection.awaitRefresh, { requestedProjectionVersion: 'projection:10:t1' });
+  assert.equal(projection.awaitRefresh, true);
 
   const refresh = resolveAgentSubmitDriverProjectionRefresh({
     state,
-    requestedProjectionVersion: 'projection:10:t1',
     refreshedBundle: authoritativeBundle(),
     draftText: '',
     streamSnapshot: streamState({
@@ -314,11 +313,10 @@ test('agent submit driver applies projection refresh after completed terminal fo
   });
   state = followUpProjection.finalSession;
   assert.deepEqual(effectKinds(followUpProjection), []);
-  assert.deepEqual(followUpProjection.awaitRefresh, { requestedProjectionVersion: 'projection:11:t2' });
+  assert.equal(followUpProjection.awaitRefresh, true);
 
   const followUpRefresh = resolveAgentSubmitDriverProjectionRefresh({
     state,
-    requestedProjectionVersion: 'projection:11:t2',
     refreshedBundle: authoritativeBundle(),
     draftText: '',
     streamSnapshot: streamState({
@@ -402,7 +400,6 @@ test('agent submit driver keeps sealed first-beat when canceled turn wins over l
 
   const lateRefresh = resolveAgentSubmitDriverProjectionRefresh({
     state,
-    requestedProjectionVersion: 'projection:10:t1',
     refreshedBundle: authoritativeBundle(),
     draftText: 'retry this',
     streamSnapshot: streamState({

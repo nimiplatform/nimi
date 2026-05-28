@@ -291,7 +291,6 @@ export function applyProjectionRefreshToHarness(input: {
   state: AgentHostHarnessState;
   submitSession: AgentSubmitDriverState;
   threadId: string;
-  requestedProjectionVersion: string;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;
   draftText: string;
 }): AgentSubmitDriverState {
@@ -300,7 +299,6 @@ export function applyProjectionRefreshToHarness(input: {
     input.threadId,
     resolveAgentSubmitDriverProjectionRefresh({
       state: input.submitSession,
-      requestedProjectionVersion: input.requestedProjectionVersion,
       refreshedBundle: input.refreshedBundle,
       draftText: input.draftText,
       streamSnapshot: getStreamState(input.threadId),

@@ -9,8 +9,6 @@ export type AgentProjectionRefreshOutcome = {
 };
 
 export function resolveAgentProjectionRefreshOutcome(input: {
-  requestedProjectionVersion: string;
-  latestProjectionVersion: string | null;
   terminal: AgentTurnTerminalState;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;
 }): AgentProjectionRefreshOutcome | null {
@@ -18,9 +16,6 @@ export function resolveAgentProjectionRefreshOutcome(input: {
     return null;
   }
   if (input.terminal === 'failed' || input.terminal === 'canceled') {
-    return null;
-  }
-  if (input.latestProjectionVersion !== input.requestedProjectionVersion) {
     return null;
   }
   return {

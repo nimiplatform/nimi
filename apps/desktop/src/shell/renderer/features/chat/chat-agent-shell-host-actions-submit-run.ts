@@ -81,7 +81,6 @@ export async function runActiveAgentSubmit(input: {
         const refreshedBundle = rebuiltBundle || await chatAgentStoreClient.getThreadBundle(input.threadId);
         submitSession = input.input.applyDriverEffects(input.threadId, resolveAgentSubmitDriverProjectionRefresh({
           state: submitSession,
-          requestedProjectionVersion: projectionEffects.awaitRefresh.requestedProjectionVersion,
           streamSnapshot: getStreamState(input.threadId),
           refreshedBundle,
           draftText: input.currentDraftText(),
@@ -147,12 +146,9 @@ export async function runActiveAgentSubmit(input: {
     });
   }
 
-  const refreshedBundle = submitSession.lifecycle.projectionVersion
-    ? await chatAgentStoreClient.getThreadBundle(input.threadId)
-    : null;
   submitSession = input.input.applyDriverEffects(input.threadId, resolveCompletedAgentSubmitDriverCheckpoint({
     state: submitSession,
-    refreshedBundle,
+    refreshedBundle: null,
     streamSnapshot: getStreamState(input.threadId),
   }));
 
