@@ -169,6 +169,29 @@ Primary semantic outputs on this surface must use Nimi-owned typed messages:
 Typed family registry is defined by
 `tables/runtime-agent-service-typed-family.yaml`.
 
+## K-AGCORE-006a Public Chat Conversation Cutover Prerequisites
+
+Runtime Agent Chat transcript and session truth already belongs to
+`RuntimeAgentService`, but deleting host-local projection caches requires an
+admitted app-facing replacement for the product journeys those caches currently
+serve.
+
+Before a host removes an Agent Chat `chat_agent_*` projection-cache store,
+Runtime / SDK must provide admitted coverage for:
+
+- conversation summary listing scoped to the authenticated calling app,
+  explicit local agent identity, and owner context
+- recovery of a selected conversation through `ConversationAnchor` plus
+  `GetPublicChatSessionSnapshot`
+- a close / delete / clear policy for user-visible conversation history, or an
+  explicit product rule that removes those actions
+- draft-only persistence through an admitted non-transcript surface such as
+  RuntimeApp `app-local-drafts`
+
+These prerequisites do not admit Desktop-local transcript, message, turn, beat,
+or projection rebuild truth. They only define the Runtime / SDK replacement
+surface that must exist before host-local migration stores can be removed.
+
 ## K-AGCORE-007 Token Budget Authority
 
 `RuntimeAgentService` owns token budget policy for Life Track autonomy.

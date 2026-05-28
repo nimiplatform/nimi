@@ -131,6 +131,29 @@ Fixed rules:
   UI state such as focus, scroll, popover, composer text, and transient panel
   state.
 
+## D-LLM-107 — Agent Chat Store Cutover Prerequisites
+
+Desktop must not hard-delete the `chat_agent_*` projection-cache store until a
+Runtime / SDK replacement can serve the same product journeys without promoting
+Desktop-local transcript truth.
+
+Required replacement coverage before deletion:
+
+- Runtime / SDK can list the calling app's Agent Chat conversation summaries
+  without reading Desktop SQLite.
+- Runtime / SDK can recover a selected conversation through
+  `ConversationAnchor` plus `GetPublicChatSessionSnapshot`.
+- Runtime / SDK has an admitted close / delete / clear policy for user-visible
+  conversation history, or the Desktop product explicitly removes those actions.
+- Draft persistence is owned by an admitted draft-only surface, such as
+  RuntimeApp `app-local-drafts`, and is not mixed with transcript truth.
+- Desktop submit paths use in-memory optimistic projection only; committed user
+  and assistant transcript state replays from Runtime session snapshots or
+  `runtime.agent.turn.*` / `runtime.agent.presentation.*` projections.
+
+Until those prerequisites are met, `chat_agent_*` commands remain remediation
+scoped and must not be treated as steady-state Desktop truth.
+
 ## D-LLM-026 — Adjacent Authority Boundaries
 
 Adjacent owner boundaries are fixed:

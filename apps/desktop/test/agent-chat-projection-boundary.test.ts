@@ -19,6 +19,24 @@ test('Agent Chat spec limits local persistence to draft and projection-cache rem
   assert.match(spec, /Desktop `chat_agent_\*` store exists before cutover/);
 });
 
+test('Agent Chat store deletion is gated on Runtime and SDK replacement coverage', () => {
+  const desktopSpec = readWorkspaceFile('.nimi/spec/desktop/kernel/agent-chat-projection-contract.md');
+  const runtimeSpec = readWorkspaceFile('.nimi/spec/runtime/kernel/runtime-agent-service-contract.md');
+
+  assert.match(desktopSpec, /D-LLM-107/);
+  assert.match(desktopSpec, /must not hard-delete the `chat_agent_\*` projection-cache store/);
+  assert.match(desktopSpec, /conversation summaries/);
+  assert.match(desktopSpec, /GetPublicChatSessionSnapshot/);
+  assert.match(desktopSpec, /app-local-drafts/);
+  assert.match(desktopSpec, /in-memory optimistic projection only/);
+
+  assert.match(runtimeSpec, /K-AGCORE-006a/);
+  assert.match(runtimeSpec, /conversation summary listing scoped to the authenticated calling app/);
+  assert.match(runtimeSpec, /close \/ delete \/ clear policy/);
+  assert.match(runtimeSpec, /draft-only persistence/);
+  assert.match(runtimeSpec, /do not admit Desktop-local transcript/);
+});
+
 test('Desktop command classification treats chat_agent store commands as migration-scoped', () => {
   const table = readWorkspaceFile('.nimi/spec/desktop/kernel/tables/command-execution-classification.yaml');
 

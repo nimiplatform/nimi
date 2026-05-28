@@ -30,6 +30,7 @@ entries:
   - K-AGCORE-004
   - K-AGCORE-005
   - K-AGCORE-006
+  - K-AGCORE-006a
   - K-AGCORE-007
   - K-AGCORE-008
   - K-AGCORE-009
@@ -176,6 +177,9 @@ rules:
     evidence_refs: []
     evidence_requirement: deferred
   - rule_id: K-AGCORE-006
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-006a
     evidence_refs: []
     evidence_requirement: deferred
   - rule_id: K-AGCORE-007
