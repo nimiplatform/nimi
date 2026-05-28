@@ -225,15 +225,18 @@ test('T3-3 proof: agent-conversation-launcher hard-requires localAgentRef and th
 
 test('T3-3 proof: Agent Chat always means LocalAgent Chat — no direct-RealmAgent-chat code path', () => {
   // `agent-conversation-launcher.ts` is the SOLE module that opens an Agent
-  // Chat session. Every consumer routes through it, and it always produces a
-  // LocalAgent thread keyed by localAgentRef.
+  // Chat session. Every consumer routes through it, and it only selects the
+  // LocalAgent target; submit owns creating any temporary local projection
+  // cache thread that remains before Runtime session cutover.
   const launcherSource = readWorkspaceFile(
     'src/shell/renderer/features/chat/agent-conversation-launcher.ts',
   );
-  // Thread creation/resolution is keyed by localAgentRef, not realmAgentId.
-  assert.match(launcherSource, /resolveExistingAgentThread\(\s*\n?\s*localAgentRef/);
-  assert.match(launcherSource, /findAgentConversationThreadByLocalAgentRef/);
-  assert.match(launcherSource, /createAgentThread\(input\.target\)/);
+  // Launch selection is keyed by localAgentRef, not realmAgentId, and does not
+  // pre-author a Desktop-local thread.
+  assert.match(launcherSource, /threadId: null/);
+  assert.match(launcherSource, /localAgentRef,\s*\n\s*targetId: localAgentRef/);
+  assert.doesNotMatch(launcherSource, /chatAgentStoreClient/);
+  assert.doesNotMatch(launcherSource, /createAgentThread|createThread\(/);
 
   // The RealmAgent / Explore surfaces never construct a chat session from a
   // bare RealmAgent id. T5-2 (`9d558335d`) hardened this further: World detail
