@@ -82,7 +82,6 @@ test('agent submit outcome clears composer text and syncs selection from authori
   assert.ok(outcome);
   assert.equal(outcome?.bundle.thread.updatedAtMs, 999);
   assert.deepEqual(outcome?.selection, {
-    threadId: null,
     localAgentRef: 'local-agent:user-1:agent-1',
     targetId: 'local-agent:user-1:agent-1',
   });
@@ -124,7 +123,6 @@ test('agent submit outcome keeps submitted composer text and syncs selection fro
 
   assert.equal(outcome.bundle.thread.updatedAtMs, 1200);
   assert.deepEqual(outcome.selection, {
-    threadId: null,
     localAgentRef: 'local-agent:user-1:agent-1',
     targetId: 'local-agent:user-1:agent-1',
   });

@@ -190,8 +190,7 @@ export function useAgentConversationModeHost(
 
   const setSelection = useCallback((selection: AgentConversationSelection) => {
     if (
-      input.selection.threadId === selection.threadId
-      && input.selection.localAgentRef === selection.localAgentRef
+      input.selection.localAgentRef === selection.localAgentRef
       && input.selection.targetId === selection.targetId
     ) {
       return;
@@ -486,7 +485,6 @@ export function useAgentConversationModeHost(
     setBundleCache,
     setFooterHostState,
     setSelectionForLocalAgentRef: (localAgentRef) => setSelection({
-      threadId: null,
       localAgentRef,
       targetId: localAgentRef,
     }),

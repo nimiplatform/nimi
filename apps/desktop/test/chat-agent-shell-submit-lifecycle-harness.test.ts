@@ -266,7 +266,6 @@ test('agent host submit harness converges completed submit to authoritative bund
     finishAgentHostSubmit(harness);
 
     assert.equal(harness.submittingThreadId, null);
-    assert.equal(harness.selection.threadId, null);
     assert.equal(harness.currentComposerText, '');
     assert.equal(harness.bundles[threadId]?.messages.at(-1)?.contentText, 'authoritative projection');
     assert.deepEqual(footerViewStateForHarness(harness, threadId), {
@@ -376,7 +375,6 @@ test('agent host submit harness preserves sealed first-beat, restores composer t
 
     assert.equal(harness.submittingThreadId, null);
     assert.equal(harness.currentComposerText, 'retry this');
-    assert.equal(harness.selection.threadId, null);
     assert.equal(harness.bundles[threadId]?.messages.at(-1)?.contentText, 'sealed first beat');
     assert.deepEqual(footerViewStateForHarness(harness, threadId), {
       displayState: 'hidden',
@@ -522,7 +520,6 @@ test('agent host submit harness restores composer text and clears submitting sta
 
     assert.equal(harness.submittingThreadId, null);
     assert.equal(harness.currentComposerText, 'retry this');
-    assert.equal(harness.selection.threadId, null);
     assert.equal(harness.bundles[threadId]?.messages.at(-1)?.error?.message, 'runtime broke');
     assert.deepEqual(footerViewStateForHarness(harness, threadId), {
       displayState: 'hidden',

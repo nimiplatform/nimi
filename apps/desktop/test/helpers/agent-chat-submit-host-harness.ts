@@ -95,7 +95,6 @@ export function createAgentHostHarness(input: {
     },
     threads: [input.initialBundle.thread],
     selection: {
-      threadId: input.threadId,
       localAgentRef: input.initialBundle.thread.localAgentRef,
       targetId: input.initialBundle.thread.localAgentRef,
     },

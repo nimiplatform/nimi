@@ -21,7 +21,6 @@ export function resolveAgentProjectionRefreshOutcome(input: {
   return {
     bundle: input.refreshedBundle,
     selection: {
-      threadId: input.refreshedBundle.thread.id,
       localAgentRef: input.refreshedBundle.thread.localAgentRef,
       targetId: input.refreshedBundle.thread.localAgentRef,
     },

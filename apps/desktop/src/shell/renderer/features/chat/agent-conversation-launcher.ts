@@ -14,8 +14,6 @@ type AgentConversationLauncherInput = {
 export type AgentInteractionLaunchKind = 'chat' | 'voice';
 
 export type AgentInteractionLaunchResult = {
-  threadId: string | null;
-  createdThread: boolean;
   interaction: AgentInteractionLaunchKind;
   routedSurface: 'agent-conversation';
 };
@@ -50,7 +48,6 @@ async function launchAgentInteractionFromDisplay(
 
   input.setSelectedTargetForSource('agent', localAgentRef);
   input.setAgentConversationSelection({
-    threadId: null,
     localAgentRef,
     targetId: localAgentRef,
   });
@@ -58,8 +55,6 @@ async function launchAgentInteractionFromDisplay(
   input.setActiveTab('chat');
 
   return {
-    threadId: null,
-    createdThread: false,
     interaction: input.interaction,
     routedSurface: 'agent-conversation',
   };

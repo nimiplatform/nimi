@@ -10,7 +10,6 @@ export type NimiConversationSelection = {
 };
 
 export type AgentConversationSelection = {
-  threadId: string | null;
   localAgentRef: string | null;
   targetId: string | null;
 };
@@ -42,7 +41,6 @@ export const EMPTY_NIMI_CONVERSATION_SELECTION: NimiConversationSelection = {
 };
 
 export const EMPTY_AGENT_CONVERSATION_SELECTION: AgentConversationSelection = {
-  threadId: null,
   localAgentRef: null,
   targetId: null,
 };

@@ -233,7 +233,7 @@ test('T3-3 proof: Agent Chat always means LocalAgent Chat — no direct-RealmAge
   );
   // Launch selection is keyed by localAgentRef, not realmAgentId, and does not
   // pre-author a Desktop-local thread.
-  assert.match(launcherSource, /threadId: null/);
+  assert.doesNotMatch(launcherSource, /threadId:/);
   assert.match(launcherSource, /localAgentRef,\s*\n\s*targetId: localAgentRef/);
   assert.doesNotMatch(launcherSource, /chatAgentStoreClient/);
   assert.doesNotMatch(launcherSource, /createAgentThread|createThread\(/);

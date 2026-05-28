@@ -203,7 +203,6 @@ test('agent host flow preserves authoritative assistant content across first-bea
   assert.equal(hostFlow.outcome.bundle.messages.at(-1)?.contentText, 'authoritative projection');
   assert.equal(hostFlow.outcome.bundle.messages.at(-1)?.reasoningText, 'authoritative reasoning');
   assert.deepEqual(hostFlow.outcome.selection, {
-    threadId: null,
     localAgentRef: 'local-agent:user-1:agent-1',
     targetId: 'local-agent:user-1:agent-1',
   });
@@ -310,7 +309,6 @@ test('agent host flow resolves authoritative completion and clears composer text
   assert.ok(hostFlow.outcome);
   assert.equal(hostFlow.outcome.bundle.messages.at(-1)?.contentText, 'authoritative projection');
   assert.deepEqual(hostFlow.outcome.selection, {
-    threadId: null,
     localAgentRef: 'local-agent:user-1:agent-1',
     targetId: 'local-agent:user-1:agent-1',
   });

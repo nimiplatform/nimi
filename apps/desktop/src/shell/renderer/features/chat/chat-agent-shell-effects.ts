@@ -100,14 +100,12 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
   const syncSelectionToThread = useCallback((thread: AgentLocalThreadSummary | AgentLocalThreadRecord | null) => {
     if (!thread) {
       input.setSelection({
-        threadId: null,
         localAgentRef: null,
         targetId: null,
       });
       return;
     }
     input.setSelection({
-      threadId: null,
       localAgentRef: thread.localAgentRef,
       targetId: thread.localAgentRef,
     });
