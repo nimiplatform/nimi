@@ -44,13 +44,6 @@ const checks = [
     ],
   },
   {
-    description: 'desktop text execution must not reparse typed executeScenario responses through record casts',
-    pattern: 'asRecord\\(response|responseRecord\\.|asRecord\\(response\\.usage',
-    paths: [
-      'apps/desktop/src/runtime/llm-adapter/execution/invoke-text.ts',
-    ],
-  },
-  {
     description: 'stable ai-provider request builders must not erase typed scenario requests to Record<string, unknown>',
     pattern: 'as unknown as Record<string, unknown>',
     paths: [
@@ -76,18 +69,10 @@ const checks = [
     ],
   },
   {
-    description: 'desktop runtime text bridge must not restore world-ai raw-output diagnostic logging',
-    pattern: 'WORLD-AI-TEST-DIAG|world-ai-test-diag|normalizeFinishReason|normalizeRouteDecision',
-    paths: [
-      'apps/desktop/src/runtime/llm-adapter/execution/invoke-text.ts',
-    ],
-  },
-  {
     description: 'desktop runtime execution bridges must not carry redundant fallbackPolicy fields or re-inject fallback deny into stable requests',
     pattern: 'fallbackPolicy|fallback:\\s*resolved\\.',
     paths: [
       'apps/desktop/src/runtime/llm-adapter/execution/runtime-ai-bridge.ts',
-      'apps/desktop/src/runtime/llm-adapter/execution/invoke-text.ts',
     ],
   },
 ];

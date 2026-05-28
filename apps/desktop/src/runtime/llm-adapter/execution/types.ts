@@ -2,7 +2,6 @@ import type {
   CheckModelHealthRequest,
   CheckModelHealthResponse,
 } from '@nimiplatform/sdk/runtime';
-import type { RuntimeResolvedBinding } from '@nimiplatform/sdk/ai';
 
 export const TEXT_GENERATE_TIMEOUT_MS = 120_000;
 
@@ -25,19 +24,4 @@ export type CheckLlmHealthInput = {
   goRuntimeLocalModelId?: string;
   connectorId?: string;
   runtimeModelHealth?: (request: CheckModelHealthRequest) => Promise<CheckModelHealthResponse>;
-};
-
-export type InvokeRuntimeLlmInput = {
-  targetId: string;
-  resolvedBinding: RuntimeResolvedBinding;
-  prompt: string;
-  systemPrompt?: string;
-  maxTokens?: number;
-  temperature?: number;
-};
-
-export type InvokeRuntimeLlmOutput = {
-  text: string;
-  promptTraceId: string;
-  traceId: string;
 };

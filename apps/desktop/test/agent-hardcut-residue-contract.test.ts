@@ -69,11 +69,11 @@ test('phase 3: AI runtime resolveInvokeInput reads from text.generate projection
     false,
     'chat-nimi-runtime.ts must not use toRuntimeRouteBindingFromAiRouteSnapshot',
   );
-  // ChatAiRuntimeInvokeInput must not contain routeSnapshot field
+  // ChatAiRuntimeTextInput must not contain routeSnapshot field
   assert.equal(
     /routeSnapshot:\s*AiConversationRouteSnapshot/.test(aiRuntimeSource),
     false,
-    'ChatAiRuntimeInvokeInput must not contain routeSnapshot field',
+    'ChatAiRuntimeTextInput must not contain routeSnapshot field',
   );
 });
 

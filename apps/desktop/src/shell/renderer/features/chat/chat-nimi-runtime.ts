@@ -5,14 +5,12 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import type { ConversationRuntimeTextMessage } from '@nimiplatform/kit/features/chat/headless';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { invokeRuntimeLlm } from '@runtime/llm-adapter/execution/invoke-text';
-import type { InvokeRuntimeLlmInput, InvokeRuntimeLlmOutput } from '@runtime/llm-adapter/execution/types';
 import {
   buildRuntimeStreamOptions,
   ensureRuntimeLocalModelWarm,
   getRuntimeClient,
 } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
-import { runtimeRouteCallTargetFromResolvedBinding } from '@nimiplatform/sdk/ai';
+import { runtimeRouteCallTargetFromResolvedBinding, type RuntimeResolvedBinding } from '@nimiplatform/sdk/ai';
 import {
   resolveChatThinkingConfig,
   resolveTextExecutionSnapshotThinkingSupport,
@@ -21,7 +19,7 @@ import {
 import { toChatUserFacingRuntimeError } from './chat-runtime-error-message';
 import type { AISnapshot } from './conversation-capability';
 
-export type ChatAiRuntimeInvokeInput = {
+export type ChatAiRuntimeTextInput = {
   prompt: string;
   messages?: readonly ConversationRuntimeTextMessage[];
   systemPrompt?: string | null;
@@ -31,23 +29,18 @@ export type ChatAiRuntimeInvokeInput = {
   signal?: AbortSignal;
 };
 
-export type ChatAiRuntimeInvokeResult = {
-  text: string;
-  traceId: string;
-  promptTraceId: string;
-};
-
 export type ChatAiRuntimeStreamResult = {
   stream: TextStreamOutput['stream'];
   promptTraceId: string;
 };
 
-export type ChatAiRuntimeInvokeDeps = {
-  invokeRuntimeLlmImpl?: (input: InvokeRuntimeLlmInput) => Promise<InvokeRuntimeLlmOutput>;
+type ChatAiRuntimeTextExecutionInput = {
+  targetId: string;
+  resolvedBinding: RuntimeResolvedBinding;
 };
 
 export type ChatAiRuntimeStreamDeps = {
-  resolveInvokeInputImpl?: (input: ChatAiRuntimeInvokeInput) => Promise<InvokeRuntimeLlmInput>;
+  resolveTextExecutionInputImpl?: (input: ChatAiRuntimeTextInput) => Promise<ChatAiRuntimeTextExecutionInput>;
 };
 
 export const CORE_CHAT_AI_TARGET_ID = 'core.chat-ai';
@@ -64,16 +57,16 @@ function toSdkTextMessage(message: ConversationRuntimeTextMessage): TextMessage 
   };
 }
 
-function resolveRuntimeTextInput(input: ChatAiRuntimeInvokeInput): string | TextMessage[] {
+function resolveRuntimeTextInput(input: ChatAiRuntimeTextInput): string | TextMessage[] {
   if (Array.isArray(input.messages) && input.messages.length > 0) {
     return input.messages.map((message) => toSdkTextMessage(message));
   }
   return input.prompt;
 }
 
-async function resolveInvokeInput(
-  input: ChatAiRuntimeInvokeInput,
-): Promise<InvokeRuntimeLlmInput> {
+async function resolveRuntimeTextExecutionInput(
+  input: ChatAiRuntimeTextInput,
+): Promise<ChatAiRuntimeTextExecutionInput> {
   const snapshot = input.executionSnapshot;
   const slice = snapshot?.conversationCapabilitySlice;
   if (!slice || slice.capability !== 'text.generate') {
@@ -97,7 +90,6 @@ async function resolveInvokeInput(
   return {
     targetId: CORE_CHAT_AI_TARGET_ID,
     resolvedBinding: resolved,
-    prompt: input.prompt,
   };
 }
 
@@ -106,21 +98,21 @@ export function toChatAiRuntimeError(error: unknown): { code: string; message: s
 }
 
 export async function streamChatAiRuntime(
-  input: ChatAiRuntimeInvokeInput,
+  input: ChatAiRuntimeTextInput,
   deps: ChatAiRuntimeStreamDeps = {},
 ): Promise<ChatAiRuntimeStreamResult> {
-  const invokeInput = await (deps.resolveInvokeInputImpl || resolveInvokeInput)(input);
-  const resolved = runtimeRouteCallTargetFromResolvedBinding(invokeInput.resolvedBinding);
+  const executionInput = await (deps.resolveTextExecutionInputImpl || resolveRuntimeTextExecutionInput)(input);
+  const resolved = runtimeRouteCallTargetFromResolvedBinding(executionInput.resolvedBinding);
   const timeoutMs = 120_000;
 
   await ensureRuntimeLocalModelWarm({
-    targetId: invokeInput.targetId,
-    resolvedBinding: invokeInput.resolvedBinding,
+    targetId: executionInput.targetId,
+    resolvedBinding: executionInput.resolvedBinding,
     timeoutMs,
   });
 
   const callOptions = await buildRuntimeStreamOptions({
-    targetId: invokeInput.targetId,
+    targetId: executionInput.targetId,
     timeoutMs,
     signal: input.signal,
     source: resolved.source,
@@ -145,19 +137,5 @@ export async function streamChatAiRuntime(
   return {
     stream: streamOutput.stream,
     promptTraceId: String(callOptions.metadata.traceId || ''),
-  };
-}
-
-export async function invokeChatAiRuntime(
-  input: ChatAiRuntimeInvokeInput,
-  deps: ChatAiRuntimeInvokeDeps = {},
-): Promise<ChatAiRuntimeInvokeResult> {
-  const invokeRuntimeLlmImpl = deps.invokeRuntimeLlmImpl || invokeRuntimeLlm;
-  const invokeInput = await resolveInvokeInput(input);
-  const result = await invokeRuntimeLlmImpl(invokeInput);
-  return {
-    text: String(result.text || ''),
-    traceId: String(result.traceId || ''),
-    promptTraceId: String(result.promptTraceId || ''),
   };
 }

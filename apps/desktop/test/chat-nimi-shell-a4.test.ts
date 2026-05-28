@@ -4,9 +4,6 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
-  invokeChatAiRuntime,
-} from '../src/shell/renderer/features/chat/chat-nimi-runtime.js';
-import {
   AI_NEW_CONVERSATION_TITLE,
   resolveAiConversationActiveThreadId,
   resolveThreadTitleAfterFirstSend,
@@ -17,19 +14,12 @@ import {
 } from '../src/shell/renderer/features/chat/chat-shared-thinking.js';
 import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store.js';
 import {
-  aiConfigFromSelectionStore,
   buildConversationCapabilityProjection,
-  createAISnapshot,
   createDefaultConversationCapabilitySelectionStore,
   setConversationCapabilityRouteRuntime,
   updateConversationCapabilityBinding,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
-import { createEmptyAIConfig, type RuntimeResolvedBinding } from '@nimiplatform/sdk/ai';
-
-type CapturedInvokeInput = {
-  targetId: string;
-  resolvedBinding: RuntimeResolvedBinding;
-};
+import { createEmptyAIConfig } from '@nimiplatform/sdk/ai';
 
 function resetConversationCapabilityTestState(): void {
   setConversationCapabilityRouteRuntime(null);
@@ -232,93 +222,6 @@ test('chat ai a4: switching thread route truth updates selection-store projectio
   );
 });
 
-test('chat ai a4: invoke runtime uses desktop-owned core caller and local route defaults', async () => {
-  let capturedInput: CapturedInvokeInput | null = null;
-  const selectionStore = updateConversationCapabilityBinding(
-    createDefaultConversationCapabilitySelectionStore(),
-    'text.generate',
-    { source: 'local', connectorId: '', model: 'qwen3' },
-  );
-  useAppStore.getState().setAIConfig(aiConfigFromSelectionStore(selectionStore));
-  const routeRuntime = {
-    resolve: async () => ({
-      capability: 'text.generate' as const,
-      resolvedBindingRef: 'local:llama:qwen3',
-      source: 'local' as const,
-      provider: 'llama',
-      model: 'qwen3',
-      modelId: 'qwen3',
-      localModelId: 'local-model-1',
-      connectorId: '',
-      endpoint: 'http://127.0.0.1:11434',
-      localProviderEndpoint: 'http://127.0.0.1:11434',
-      localOpenAiEndpoint: 'http://127.0.0.1:11434',
-    }),
-    checkHealth: async () => ({
-      healthy: true,
-      status: 'healthy' as const,
-      detail: 'ready',
-    }),
-    describe: async () => ({
-      capability: 'text.generate' as const,
-      metadataVersion: 'v1' as const,
-      resolvedBindingRef: 'local:llama:qwen3',
-      metadataKind: 'text.generate' as const,
-      metadata: {
-        supportsThinking: false,
-        traceModeSupport: 'none' as const,
-        supportsImageInput: false,
-        supportsAudioInput: false,
-        supportsVideoInput: false,
-        supportsArtifactRefInput: false,
-      },
-    }),
-  };
-  setConversationCapabilityRouteRuntime(routeRuntime);
-  const projection = await buildConversationCapabilityProjection({
-    capability: 'text.generate',
-    selectionStore,
-    routeRuntime,
-  });
-  const executionSnapshot = createAISnapshot({
-    config: createEmptyAIConfig(),
-    capability: 'text.generate',
-    projection,
-  });
-  useAppStore.getState().setConversationCapabilityProjections({ 'text.generate': projection });
-
-  try {
-    useAppStore.getState().setConversationCapabilityProjections({});
-    const result = await invokeChatAiRuntime({
-      prompt: 'hello',
-      threadId: 'thread-local',
-      reasoningPreference: 'off',
-      executionSnapshot,
-    }, {
-      invokeRuntimeLlmImpl: async (input) => {
-        capturedInput = input as CapturedInvokeInput;
-        return {
-          text: 'hi',
-          traceId: 'trace-local',
-          promptTraceId: 'prompt-local',
-        };
-      },
-    });
-
-    assert.equal(result.text, 'hi');
-    if (!capturedInput) {
-      throw new Error('expected local invoke input');
-    }
-    const localInput = capturedInput as CapturedInvokeInput;
-    assert.equal(localInput.targetId, 'core.chat-ai');
-    assert.equal(localInput.resolvedBinding.provider, 'llama');
-    assert.equal(localInput.resolvedBinding.modelId, 'qwen3');
-    assert.equal(localInput.resolvedBinding.localProviderEndpoint, 'http://127.0.0.1:11434');
-  } finally {
-    resetConversationCapabilityTestState();
-  }
-});
-
 test('chat ai a4: no stale local-model preference helper remains in runtime adapter', () => {
   const runtimeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-runtime.ts');
 
@@ -332,40 +235,6 @@ test('chat ai a4: no stale local-model preference helper remains in runtime adap
     false,
     'chat-nimi-runtime.ts must not retain runtime-config health fallback comments or logic',
   );
-});
-
-test('chat ai a4: invoke runtime fails close when projection is unavailable', async () => {
-  useAppStore.getState().setConversationCapabilityProjections({
-    'text.generate': {
-      capability: 'text.generate',
-      selectedBinding: null,
-      resolvedBinding: null,
-      health: null,
-      metadata: null,
-      supported: false,
-      reasonCode: 'selection_missing',
-    },
-  });
-
-  try {
-    await assert.rejects(
-      () => invokeChatAiRuntime({
-        prompt: 'hello cloud',
-        threadId: 'thread-cloud',
-        reasoningPreference: 'off',
-        executionSnapshot: null,
-      }, {
-        invokeRuntimeLlmImpl: async () => ({
-          text: 'hello back',
-          traceId: 'trace-cloud',
-          promptTraceId: 'prompt-cloud',
-        }),
-      }),
-      /text\.generate execution snapshot/,
-    );
-  } finally {
-    resetConversationCapabilityTestState();
-  }
 });
 
 test('chat ai a4: first successful send replaces placeholder thread title', () => {

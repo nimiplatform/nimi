@@ -213,7 +213,7 @@ Runtime 不可用时，用户操作必须显式失败，不允许伪成功。
 
 ## D-ERR-010 — Desktop Runtime Invoke Bridge 主码规则
 
-Desktop runtime invoke bridge（保留中的 `invoke-text` 私有 kernel turn 入口，以及 `runtime-bootstrap-host-capabilities.ts` 注册的 runtime host 能力桥）错误处理必须遵循：
+Desktop runtime execution bridges（当前 Nimi Chat streaming Runtime/SDK path，以及 `runtime-bootstrap-host-capabilities.ts` 注册的 runtime host 能力桥）错误处理必须遵循：
 
 - 统一抛出 `NimiError`，禁止 `throw new Error(normalizedError)` 降维
 - 主判定码使用 Runtime `reasonCode`
