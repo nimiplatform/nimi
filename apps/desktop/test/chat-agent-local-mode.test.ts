@@ -167,7 +167,7 @@ test('agent local mode resolves the selected agent to its existing thread before
   }), 'thread-agent-1');
 });
 
-test('agent session hydration does not replace missing local bundle with text-only runtime snapshot', () => {
+test('agent session hydration does not replace missing local bundle with text-only runtime snapshot without envelope', () => {
   const thread = {
     id: 'thread-1',
     ownerUserId: 'user-1',
@@ -210,6 +210,95 @@ test('agent session hydration does not replace missing local bundle with text-on
   });
 
   assert.equal(hydrated, null);
+});
+
+test('agent session hydration can rebuild missing local bundle from Runtime replay envelope', () => {
+  const thread = {
+    id: 'thread-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
+    title: 'Agent One',
+    createdAtMs: 1000,
+    updatedAtMs: 1000,
+    lastMessageAtMs: null,
+    archivedAtMs: null,
+    targetSnapshot: {
+      ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
+      displayName: 'Agent One',
+      handle: 'agent-one',
+      avatarUrl: null,
+      presentationProfile: null,
+      worldId: null,
+      worldName: null,
+      bio: null,
+      ownershipType: null,
+      greeting: null,
+      builtinDocsContext: null,
+    },
+  };
+
+  const hydrated = hydrateAgentThreadBundleFromRuntimeSessionSnapshot({
+    thread,
+    bundle: null,
+    conversationAnchorId: 'anchor-1',
+    snapshot: {
+      transcript: [
+        {
+          id: 'anchor-1:transcript:0',
+          role: 'user',
+          content: 'hello',
+          status: 'complete',
+          kind: 'text',
+          createdAt: '1970-01-01T00:00:05.000Z',
+          updatedAt: '1970-01-01T00:00:05.000Z',
+        },
+        {
+          id: 'anchor-1:transcript:1',
+          role: 'assistant',
+          content: 'hi there',
+          status: 'complete',
+          kind: 'text',
+          createdAt: '1970-01-01T00:00:05.001Z',
+          updatedAt: '1970-01-01T00:00:05.001Z',
+          traceId: 'trace-runtime-1',
+          reasoningText: 'runtime reasoning',
+        },
+      ],
+      transcriptMessageCount: 2,
+    },
+    nowMs: 9000,
+  });
+
+  assert.ok(hydrated);
+  assert.deepEqual(hydrated?.messages.map((message) => ({
+    id: message.id,
+    role: message.role,
+    text: message.contentText,
+    createdAtMs: message.createdAtMs,
+    parentMessageId: message.parentMessageId,
+  })), [
+    {
+      id: 'anchor-1:transcript:0',
+      role: 'user',
+      text: 'hello',
+      createdAtMs: 5000,
+      parentMessageId: null,
+    },
+    {
+      id: 'anchor-1:transcript:1',
+      role: 'assistant',
+      text: 'hi there',
+      createdAtMs: 5001,
+      parentMessageId: 'anchor-1:transcript:0',
+    },
+  ]);
+  assert.equal(hydrated?.draft, null);
+  assert.equal(hydrated?.thread.lastMessageAtMs, 5001);
+  assert.equal(hydrated?.messages[1]?.traceId, 'trace-runtime-1');
+  assert.equal(hydrated?.messages[1]?.reasoningText, 'runtime reasoning');
 });
 
 test('agent session hydration preserves local pending projections over runtime snapshot replay', () => {

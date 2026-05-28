@@ -60,6 +60,21 @@ function toMessageKind(value: unknown): AgentLocalMessageRecord['kind'] {
   return 'text';
 }
 
+function hasRuntimeReplayEnvelope(message: RuntimeAgentMessage | null | undefined): boolean {
+  return Boolean(
+    normalizeText(message?.id)
+    && normalizeText(message?.status)
+    && normalizeText(message?.kind)
+    && parseIsoTimestampMs(message?.createdAt) !== null
+    && parseIsoTimestampMs(message?.updatedAt) !== null,
+  );
+}
+
+function transcriptHasRuntimeReplayEnvelope(transcript: readonly RuntimeAgentMessage[]): boolean {
+  const replayMessages = transcript.filter(isTranscriptTextMessage);
+  return replayMessages.length > 0 && replayMessages.every(hasRuntimeReplayEnvelope);
+}
+
 function toHydratedMessageRecord(input: {
   threadId: string;
   conversationAnchorId: string;
@@ -83,7 +98,7 @@ function toHydratedMessageRecord(input: {
   const parentMessageId = role === 'assistant'
     && previous
     && normalizeText(previous.role) === 'user'
-      ? `${input.conversationAnchorId}:session:${input.index - 1}`
+      ? normalizeText(previous.id) || `${input.conversationAnchorId}:session:${input.index - 1}`
       : null;
   const createdAtMs = parseIsoTimestampMs(message.createdAt) ?? input.createdAtMs;
   const updatedAtMs = parseIsoTimestampMs(message.updatedAt) ?? createdAtMs;
@@ -212,7 +227,7 @@ export function hydrateAgentThreadBundleFromRuntimeSessionSnapshot(input: {
   if (!conversationAnchorId || transcript.length === 0) {
     return null;
   }
-  if (!input.bundle) {
+  if (!input.bundle && !transcriptHasRuntimeReplayEnvelope(transcript)) {
     return null;
   }
   if (input.bundle?.messages.some((message) => message.status === 'pending')) {
