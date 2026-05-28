@@ -372,9 +372,14 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(hostActionSubmitSource, /setFooterHostState\(effectiveThreadId,\s*null\)/);
   assert.match(hostActionSubmitSource, /releaseSubmittingIfCurrent/);
   assert.ok(
-    hostActionSubmitSource.indexOf('input.hostInput.setSubmittingThreadId(effectiveThreadId);')
-    < hostActionSubmitSource.indexOf('const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({'),
-    'agent host actions must enter submitting state before route readiness checks so thinking appears immediately',
+    hostActionSubmitSource.indexOf('const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({')
+    < hostActionSubmitSource.indexOf('const threadContext = await ensureThreadAnchorBindingForTarget({'),
+    'agent host actions must verify Runtime route readiness before creating local projection cache rows',
+  );
+  assert.ok(
+    hostActionSubmitSource.indexOf('const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({')
+    < hostActionSubmitSource.indexOf('const userCommitted = await chatAgentStoreClient.commitTurnResult({'),
+    'agent host actions must verify Runtime route readiness before committing local projection cache messages',
   );
   assert.match(hostActionSubmitRunSource, /if \(projectionEffects\.awaitRefresh\) \{\s+const rebuiltBundle =/s);
   assert.match(adapterSource, /logRendererEvent/);

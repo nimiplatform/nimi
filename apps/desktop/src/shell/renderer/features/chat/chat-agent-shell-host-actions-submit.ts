@@ -121,6 +121,19 @@ export async function submitAgentConversationTurn(input: {
       },
     });
 
+    const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({
+      t: input.hostInput.t,
+    });
+    await assertAgentSubmitSchedulingAllowed({
+      aiConfig: input.hostInput.aiConfig,
+      t: input.hostInput.t,
+    });
+    if (!refreshedAgentResolution.textProjection?.resolvedBinding) {
+      throw new Error(input.hostInput.t('Chat.agentSubmitRouteUnavailable', {
+        defaultValue: 'Choose a ready AI route before sending a message.',
+      }));
+    }
+
     let effectiveThreadRecord: AgentLocalThreadSummary | AgentLocalThreadRecord | null = input.hostInput.selectedThreadRecord;
     let effectiveThreadId = input.hostInput.activeThreadId;
     const threadContext = await ensureThreadAnchorBindingForTarget({
@@ -292,19 +305,6 @@ export async function submitAgentConversationTurn(input: {
       submittedText,
       workingBundle: userBundle,
     });
-
-    const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({
-      t: input.hostInput.t,
-    });
-    await assertAgentSubmitSchedulingAllowed({
-      aiConfig: input.hostInput.aiConfig,
-      t: input.hostInput.t,
-    });
-    if (!refreshedAgentResolution.textProjection?.resolvedBinding) {
-      throw new Error(input.hostInput.t('Chat.agentSubmitRouteUnavailable', {
-        defaultValue: 'Choose a ready AI route before sending a message.',
-      }));
-    }
 
     const runtimeEvidence = await peekDesktopAISchedulingForEvidence({
       scopeRef: input.hostInput.aiConfig.scopeRef,

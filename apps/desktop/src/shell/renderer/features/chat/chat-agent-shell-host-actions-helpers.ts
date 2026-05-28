@@ -297,7 +297,7 @@ export async function ensureThreadAnchorBindingForTarget(input: {
   thread: AgentLocalThreadSummary | AgentLocalThreadRecord;
   anchorBinding: AgentConversationAnchorBinding;
 }> {
-  const ensuredThread = input.thread ?? await createThreadForTarget(input.input, input.target);
+  let anchorBinding: AgentConversationAnchorBinding | null = null;
   const existingBinding = getAgentConversationAnchorBinding(input.target.localAgentRef);
   if (existingBinding) {
     if (existingBinding.localAgentRef !== input.target.localAgentRef) {
@@ -308,20 +308,20 @@ export async function ensureThreadAnchorBindingForTarget(input: {
       binding: existingBinding,
     });
     if (runtimeBinding) {
-      return {
-        thread: ensuredThread,
-        anchorBinding: runtimeBinding,
-      };
+      anchorBinding = runtimeBinding;
     }
   }
-  const conversationAnchorId = await openConversationAnchorForTarget(input.target);
-  const anchorBinding = persistAgentConversationAnchorBinding({
-    ownerUserId: input.target.ownerUserId,
-    realmAgentId: input.target.realmAgentId,
-    localAgentRef: input.target.localAgentRef,
-    conversationAnchorId,
-    updatedAtMs: Date.now(),
-  });
+  if (!anchorBinding) {
+    const conversationAnchorId = await openConversationAnchorForTarget(input.target);
+    anchorBinding = persistAgentConversationAnchorBinding({
+      ownerUserId: input.target.ownerUserId,
+      realmAgentId: input.target.realmAgentId,
+      localAgentRef: input.target.localAgentRef,
+      conversationAnchorId,
+      updatedAtMs: Date.now(),
+    });
+  }
+  const ensuredThread = input.thread ?? await createThreadForTarget(input.input, input.target);
   return {
     thread: ensuredThread,
     anchorBinding,

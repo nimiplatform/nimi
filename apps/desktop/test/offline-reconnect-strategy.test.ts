@@ -327,12 +327,10 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     assert.ok(effects.includes('runtimeReconnectEvent'));
   });
 
-  test('D-OFFLINE-003: L2 gates transitional native chat-agent projection-cache writes', () => {
-    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /chatAgentStoreClient\.setOfflineTier\(tier\)/);
-    assert.match(APP_BOOTSTRAP_SOURCE, /chat_agent_store::chat_agent_set_offline_tier/);
-    assert.match(CHAT_AGENT_STORE_COMMANDS_SOURCE, /CHAT_AGENT_OFFLINE_L2_WRITE_DENIED/);
-    assert.match(CHAT_AGENT_STORE_COMMANDS_SOURCE, /fn ensure_chat_agent_writes_allowed\(\) -> Result<\(\), String>/);
-    assert.match(CHAT_AGENT_STORE_COMMANDS_SOURCE, /chat_agent_create_thread[\s\S]*ensure_chat_agent_writes_allowed\(\)\?/);
-    assert.match(CHAT_AGENT_STORE_COMMANDS_SOURCE, /chat_agent_commit_turn_result[\s\S]*ensure_chat_agent_writes_allowed\(\)\?/);
+  test('D-OFFLINE-003: Agent Chat has no separate native offline transcript gate', () => {
+    assert.doesNotMatch(RUNTIME_BOOTSTRAP_SOURCE, /chatAgentStoreClient\.setOfflineTier\(tier\)/);
+    assert.doesNotMatch(APP_BOOTSTRAP_SOURCE, /chat_agent_store::chat_agent_set_offline_tier/);
+    assert.doesNotMatch(CHAT_AGENT_STORE_COMMANDS_SOURCE, /CHAT_AGENT_OFFLINE_L2_WRITE_DENIED/);
+    assert.doesNotMatch(CHAT_AGENT_STORE_COMMANDS_SOURCE, /fn ensure_chat_agent_writes_allowed\(\) -> Result<\(\), String>/);
   });
 });
