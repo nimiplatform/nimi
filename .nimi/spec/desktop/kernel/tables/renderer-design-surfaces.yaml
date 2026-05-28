@@ -38,9 +38,9 @@ surfaces:
     exception_policy: none
     testid_required: false
     source_rule: D-SHELL-030
-  - id: chat.agent_history.cards
-    module: features/chat/chat-agent-history-panel.tsx
-    role: chat_agent_history_cards
+  - id: chat.agent_cognition.cards
+    module: features/chat/chat-agent-cognition-panel.tsx
+    role: chat_agent_cognition_cards
     surface_profile: secondary
     exception_policy: none
     testid_required: true

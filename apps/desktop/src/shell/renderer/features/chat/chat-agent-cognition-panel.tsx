@@ -7,7 +7,7 @@ import { confirmDialog } from '@renderer/bridge/runtime-bridge/ui';
 import type { CanonicalMemoryBankStatus } from '@renderer/infra/runtime-agent-memory';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
-type ChatAgentHistoryPanelProps = {
+type ChatAgentCognitionPanelProps = {
   targetTitle: string;
   disabled?: boolean;
   memoryStatus?: CanonicalMemoryBankStatus | null;
@@ -16,7 +16,7 @@ type ChatAgentHistoryPanelProps = {
   allowMemoryUpgrade?: boolean;
 };
 
-export function ChatAgentHistoryPanel(props: ChatAgentHistoryPanelProps) {
+export function ChatAgentCognitionPanel(props: ChatAgentCognitionPanelProps) {
   const { t } = useTranslation();
 
   const handleUpgradeStandardMemory = useCallback(() => {

@@ -55,7 +55,7 @@ import { useAgentConversationHostActions } from './chat-agent-shell-host-actions
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { clearPendingAttachments } from '../turns/turn-input-attachments';
-import { ChatAgentHistoryPanel } from './chat-agent-history-panel';
+import { ChatAgentCognitionPanel } from './chat-agent-cognition-panel';
 import { useAgentConversationVoiceSession } from './chat-agent-shell-adapter-voice';
 import { useAgentConversationShellState } from './chat-agent-shell-adapter-state';
 import { resolveAgentChatRequestedMaxOutputTokens } from './chat-nimi-route-view';
@@ -501,7 +501,7 @@ export function useAgentConversationModeHost(
   });
   const cognitionContent = useMemo(() => (
     activeTarget ? (
-      <ChatAgentHistoryPanel
+      <ChatAgentCognitionPanel
         targetTitle={activeTarget.displayName}
         disabled={Boolean(submittingThreadId)}
         memoryStatus={canonicalMemoryStatus}
