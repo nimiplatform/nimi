@@ -44,30 +44,11 @@ import { oauthListenForCode, oauthTokenExchange } from './runtime-bridge/oauth';
 import { completeMenuBarQuit, syncMenuBarRuntimeHealth } from './runtime-bridge/menu-bar';
 import { focusMainWindow, openExternalUrl, startWindowDrag } from './runtime-bridge/ui';
 import {
-  listLocalRuntimeAssets,
-  listLocalRuntimeVerifiedAssets,
-  listLocalRuntimeAudits,
-  pickLocalRuntimeAssetManifestPath,
-  installLocalRuntimeVerifiedAsset,
-  listLocalRuntimeDownloadSessions,
-  importLocalRuntimeAsset,
-  removeLocalRuntimeAsset,
-  startLocalRuntimeAsset,
-  stopLocalRuntimeAsset,
-  healthLocalRuntimeAssets,
-  appendLocalRuntimeInferenceAudit,
-  subscribeLocalRuntimeDownloadProgress,
-} from './runtime-bridge/local-ai';
-import type { LocalRuntimeLifecycleCaller } from './runtime-bridge/local-ai';
-import {
   issueExternalAgentToken,
   listExternalAgentTokens,
   revokeExternalAgentToken,
   getExternalAgentGatewayStatus,
 } from './runtime-bridge/external-agent';
-export type LocalRuntimeWriteOptions = {
-  caller?: LocalRuntimeLifecycleCaller;
-};
 
 export type {
   ProductControlRecord,
@@ -110,19 +91,6 @@ export type {
   OauthListenForCodeResult,
   MenuBarProviderSummary,
   MenuBarRuntimeHealthSyncPayload,
-  LocalRuntimeInferenceAuditPayload,
-  LocalRuntimeAuditEvent,
-  LocalRuntimeAuditListPayload,
-  LocalRuntimeDownloadProgressEvent,
-  LocalRuntimeDownloadSessionSummary,
-  LocalRuntimeImportAssetPayload,
-  LocalRuntimeInstallPayload,
-  LocalRuntimeInstallVerifiedAssetPayload,
-  LocalRuntimeAssetHealth,
-  LocalRuntimeAssetRecord,
-  LocalRuntimeAssetStatus,
-  LocalRuntimeAssetsHealthResult,
-  LocalRuntimeVerifiedAssetDescriptor,
   ExternalAgentGatewayStatus,
   ExternalAgentIssueTokenPayload,
   ExternalAgentIssueTokenResult,
@@ -173,19 +141,6 @@ export {
   startWindowDrag,
   syncMenuBarRuntimeHealth,
   completeMenuBarQuit,
-  listLocalRuntimeAssets,
-  listLocalRuntimeVerifiedAssets,
-  listLocalRuntimeAudits,
-  pickLocalRuntimeAssetManifestPath,
-  installLocalRuntimeVerifiedAsset,
-  listLocalRuntimeDownloadSessions,
-  importLocalRuntimeAsset,
-  removeLocalRuntimeAsset,
-  startLocalRuntimeAsset,
-  stopLocalRuntimeAsset,
-  healthLocalRuntimeAssets,
-  appendLocalRuntimeInferenceAudit,
-  subscribeLocalRuntimeDownloadProgress,
   issueExternalAgentToken,
   listExternalAgentTokens,
   revokeExternalAgentToken,
