@@ -1,14 +1,10 @@
 import { hasTauriInvoke } from './env';
 import { invokeChecked } from './invoke';
 import {
-  parseAgentLocalCommitTurnResult,
-  parseAgentLocalCommitTurnResultInput,
   parseAgentLocalCreateThreadInput,
   parseAgentLocalThreadBundle,
   parseAgentLocalThreadRecord,
   parseAgentLocalThreadSummaries,
-  type AgentLocalCommitTurnResult,
-  type AgentLocalCommitTurnResultInput,
   type AgentLocalCreateThreadInput,
   type AgentLocalThreadBundle,
   type AgentLocalThreadRecord,
@@ -40,16 +36,8 @@ export async function createThread(input: AgentLocalCreateThreadInput): Promise<
   }, parseAgentLocalThreadRecord);
 }
 
-export async function commitTurnResult(input: AgentLocalCommitTurnResultInput): Promise<AgentLocalCommitTurnResult> {
-  requireTauri('chat_agent_commit_turn_result');
-  return invokeChecked('chat_agent_commit_turn_result', {
-    payload: parseAgentLocalCommitTurnResultInput(input),
-  }, parseAgentLocalCommitTurnResult);
-}
-
 export const chatAgentStoreClient = {
   listThreads,
   getThreadBundle,
   createThread,
-  commitTurnResult,
 };

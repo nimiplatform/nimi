@@ -1,6 +1,5 @@
 import type {
   AgentLocalMessageRecord,
-  AgentLocalTurnBeatInput,
 } from '@renderer/bridge/runtime-bridge/types';
 import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
@@ -9,7 +8,7 @@ function normalizeText(value: string): string {
   return value.trim();
 }
 
-export function buildAgentUserProjectionCommit(input: {
+export function buildAgentUserProjection(input: {
   threadId: string;
   agentId: string;
   conversationAnchorId: string;
@@ -19,16 +18,13 @@ export function buildAgentUserProjectionCommit(input: {
   createdAtMs: number;
 }): {
   messages: AgentLocalMessageRecord[];
-  beats: AgentLocalTurnBeatInput[];
   firstMessageId: string;
   lastMessageId: string;
   lastMessageAtMs: number;
 } {
   const messages: AgentLocalMessageRecord[] = [];
-  const beats: AgentLocalTurnBeatInput[] = [];
   const submittedText = normalizeText(input.submittedText);
   let messageIndex = 0;
-  let beatIndex = 0;
   let previousMessageId: string | null = null;
 
   if (submittedText) {
@@ -55,28 +51,13 @@ export function buildAgentUserProjectionCommit(input: {
       createdAtMs: input.createdAtMs,
       updatedAtMs: input.createdAtMs,
     });
-    beats.push({
-      id: `${input.turnId}:beat:${beatIndex}`,
-      turnId: input.turnId,
-      beatIndex,
-      modality: 'text',
-      status: 'delivered',
-      textShadow: submittedText,
-      artifactId: null,
-      mimeType: 'text/plain',
-      mediaUrl: null,
-      projectionMessageId: textMessageId,
-      createdAtMs: input.createdAtMs,
-      deliveredAtMs: input.createdAtMs,
-    });
     previousMessageId = textMessageId;
     messageIndex += 1;
-    beatIndex += 1;
   }
 
-  input.uploadedAttachments.forEach((attachment, index) => {
+  input.uploadedAttachments.forEach((attachment) => {
     const messageId = `${input.turnId}:message:${messageIndex}`;
-    const messageAtMs = input.createdAtMs + beatIndex;
+    const messageAtMs = input.createdAtMs + messageIndex;
     messages.push({
       id: messageId,
       threadId: input.threadId,
@@ -99,24 +80,8 @@ export function buildAgentUserProjectionCommit(input: {
       createdAtMs: messageAtMs,
       updatedAtMs: messageAtMs,
     });
-    beats.push({
-      id: `${input.turnId}:beat:${beatIndex}`,
-      turnId: input.turnId,
-      beatIndex,
-      modality: 'image',
-      status: 'delivered',
-      textShadow: null,
-      artifactId: attachment.resourceId,
-      mimeType: attachment.mimeType,
-      mediaUrl: attachment.url,
-      projectionMessageId: messageId,
-      createdAtMs: messageAtMs,
-      deliveredAtMs: messageAtMs,
-    });
     previousMessageId = messageId;
     messageIndex += 1;
-    beatIndex += 1;
-    void index;
   });
 
   const firstMessageId = messages[0]?.id;
@@ -128,7 +93,6 @@ export function buildAgentUserProjectionCommit(input: {
 
   return {
     messages,
-    beats,
     firstMessageId,
     lastMessageId,
     lastMessageAtMs,

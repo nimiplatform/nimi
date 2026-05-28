@@ -7,10 +7,6 @@ import {
   parseAgentLocalThreadSummary,
 } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-parsers.js';
 import type { AgentLocalTargetSnapshot } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-types.js';
-import {
-  createAgentTextMessage,
-  createAgentTurnBeatInput,
-} from './helpers/agent-chat-record-fixtures.js';
 
 type TauriInvokeCall = {
   command: string;
@@ -205,58 +201,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
         return {
           ...(payload as { payload: Record<string, unknown> }).payload,
         };
-      case 'chat_agent_commit_turn_result':
-        return {
-          turn: {
-            id: 'turn-1',
-            threadId: 'thread-1',
-            role: 'assistant',
-            status: 'completed',
-            providerMode: 'runtime-agent-chat-v1',
-            traceId: 'trace-1',
-            promptTraceId: 'prompt-1',
-            startedAtMs: 100,
-            completedAtMs: 120,
-            abortedAtMs: null,
-          },
-          beats: [{
-            ...createAgentTurnBeatInput({
-            id: 'beat-1',
-            turnId: 'turn-1',
-            beatIndex: 0,
-            modality: 'text',
-            status: 'delivered',
-            textShadow: 'hello',
-            mimeType: 'text/plain',
-            projectionMessageId: 'message-1',
-            createdAtMs: 110,
-            deliveredAtMs: 120,
-            }),
-          }],
-          bundle: {
-            thread: {
-              id: 'thread-1',
-              ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
-              title: 'Companion',
-              createdAtMs: 50,
-              updatedAtMs: 120,
-              lastMessageAtMs: 115,
-              targetSnapshot: sampleTarget(),
-            },
-            messages: [createAgentTextMessage({
-              id: 'message-1',
-              threadId: 'thread-1',
-              role: 'assistant',
-              status: 'complete',
-              contentText: 'hello',
-              traceId: 'trace-1',
-              createdAtMs: 110,
-              updatedAtMs: 120,
-            })],
-          },
-        };
       default:
         return null;
     }
@@ -280,53 +224,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
       lastMessageAtMs: 90,
       targetSnapshot: sampleTarget(),
     });
-    const committed = await chatAgentStoreClient.commitTurnResult({
-      threadId: 'thread-1',
-      turn: {
-        id: 'turn-1',
-        threadId: 'thread-1',
-        role: 'assistant',
-        status: 'completed',
-        providerMode: 'runtime-agent-chat-v1',
-        traceId: 'trace-1',
-        promptTraceId: 'prompt-1',
-        startedAtMs: 100,
-        completedAtMs: 120,
-        abortedAtMs: null,
-      },
-      beats: [createAgentTurnBeatInput({
-        id: 'beat-1',
-        turnId: 'turn-1',
-        beatIndex: 0,
-        modality: 'text',
-        status: 'delivered',
-        textShadow: 'hello',
-        mimeType: 'text/plain',
-        projectionMessageId: 'message-1',
-        createdAtMs: 110,
-        deliveredAtMs: 120,
-      })],
-      projection: {
-        thread: {
-          id: 'thread-1',
-          title: 'Companion',
-          updatedAtMs: 120,
-          lastMessageAtMs: 115,
-          targetSnapshot: sampleTarget(),
-        },
-        messages: [createAgentTextMessage({
-          id: 'message-1',
-          threadId: 'thread-1',
-          role: 'assistant',
-          status: 'complete',
-          contentText: 'hello',
-          traceId: 'trace-1',
-          createdAtMs: 110,
-          updatedAtMs: 120,
-        })],
-      },
-    });
-    assert.equal(committed.turn.id, 'turn-1');
   } finally {
     restore();
   }
@@ -337,7 +234,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
       'chat_agent_list_threads',
       'chat_agent_get_thread_bundle',
       'chat_agent_create_thread',
-      'chat_agent_commit_turn_result',
     ],
   );
   assert.deepEqual(

@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildAgentUserProjectionCommit } from '../src/shell/renderer/features/chat/chat-agent-user-projection.js';
+import { buildAgentUserProjection } from '../src/shell/renderer/features/chat/chat-agent-user-projection.js';
 
-test('agent user projection commit assigns unique projection message ids per beat for text plus images', () => {
-  const projection = buildAgentUserProjectionCommit({
+test('agent user projection assigns unique message ids for text plus images', () => {
+  const projection = buildAgentUserProjection({
     threadId: 'thread-1',
     agentId: 'agent-1',
     conversationAnchorId: 'anchor-1',
@@ -25,11 +25,6 @@ test('agent user projection commit assigns unique projection message ids per bea
     createdAtMs: 100,
   });
 
-  assert.deepEqual(
-    projection.beats.map((beat) => beat.projectionMessageId),
-    ['turn-user-1:message:0', 'turn-user-1:message:1', 'turn-user-1:message:2'],
-  );
-  assert.equal(new Set(projection.beats.map((beat) => beat.projectionMessageId)).size, projection.beats.length);
   assert.deepEqual(
     projection.messages.map((message) => ({
       id: message.id,
@@ -59,8 +54,8 @@ test('agent user projection commit assigns unique projection message ids per bea
   assert.equal(projection.lastMessageAtMs, 102);
 });
 
-test('agent user projection commit supports attachment-only turns', () => {
-  const projection = buildAgentUserProjectionCommit({
+test('agent user projection supports attachment-only turns', () => {
+  const projection = buildAgentUserProjection({
     threadId: 'thread-1',
     agentId: 'agent-1',
     conversationAnchorId: 'anchor-1',
@@ -76,10 +71,6 @@ test('agent user projection commit supports attachment-only turns', () => {
     createdAtMs: 200,
   });
 
-  assert.deepEqual(
-    projection.beats.map((beat) => beat.projectionMessageId),
-    ['turn-user-2:message:0'],
-  );
   assert.equal(projection.messages[0]?.kind, 'image');
   assert.equal(projection.messages[0]?.parentMessageId, null);
   assert.equal(projection.lastMessageId, 'turn-user-2:message:0');

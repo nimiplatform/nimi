@@ -1,7 +1,5 @@
 import type {
   AgentLocalMessageRecord,
-  AgentLocalTurnBeatInput,
-  AgentLocalTurnBeatRecord,
 } from '../../src/shell/renderer/bridge/runtime-bridge/types.js';
 
 type PartialWithRequired<T, K extends keyof T> = Partial<T> & Pick<T, K>;
@@ -55,23 +53,4 @@ export function createAgentVoiceMessage(
     metadataJson: null,
     ...input,
   };
-}
-
-export function createAgentTurnBeat(
-  input: PartialWithRequired<AgentLocalTurnBeatRecord, 'id' | 'turnId' | 'beatIndex' | 'modality' | 'status' | 'createdAtMs' | 'deliveredAtMs'>,
-): AgentLocalTurnBeatRecord {
-  return {
-    textShadow: null,
-    artifactId: null,
-    mimeType: null,
-    mediaUrl: null,
-    projectionMessageId: null,
-    ...input,
-  };
-}
-
-export function createAgentTurnBeatInput(
-  input: PartialWithRequired<AgentLocalTurnBeatInput, 'id' | 'turnId' | 'beatIndex' | 'modality' | 'status' | 'createdAtMs' | 'deliveredAtMs'>,
-): AgentLocalTurnBeatInput {
-  return createAgentTurnBeat(input);
 }

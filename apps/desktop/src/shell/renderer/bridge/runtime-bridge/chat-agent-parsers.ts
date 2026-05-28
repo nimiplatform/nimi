@@ -6,29 +6,16 @@ import {
 } from './shared.js';
 import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 import type {
-  AgentLocalBeatModality,
-  AgentLocalBeatStatus,
-  AgentLocalCommitTurnResult,
-  AgentLocalCommitTurnResultInput,
   AgentLocalCreateThreadInput,
   AgentLocalMessageError,
   AgentLocalMessageKind,
   AgentLocalMessageRecord,
   AgentLocalMessageRole,
   AgentLocalMessageStatus,
-  AgentLocalProjectionCommitInput,
-  AgentLocalProjectionMessageInput,
   AgentLocalTargetSnapshot,
-  AgentLocalTurnBeatInput,
-  AgentLocalTurnBeatRecord,
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
-  AgentLocalTurnRecord,
-  AgentLocalTurnRecordInput,
-  AgentLocalTurnRole,
-  AgentLocalTurnStatus,
-  AgentLocalUpdateThreadMetadataInput,
 } from './chat-agent-types.js';
 
 function parseFiniteInteger(value: unknown, fieldName: string, errorPrefix: string): number {
@@ -68,44 +55,6 @@ function parseMessageKind(value: unknown, errorPrefix: string): AgentLocalMessag
     return normalized;
   }
   throw new Error(`${errorPrefix}: kind is invalid`);
-}
-
-function parseTurnRole(value: unknown, errorPrefix: string): AgentLocalTurnRole {
-  const normalized = String(value || '').trim();
-  if (normalized === 'system' || normalized === 'user' || normalized === 'assistant') {
-    return normalized;
-  }
-  throw new Error(`${errorPrefix}: role is invalid`);
-}
-
-function parseTurnStatus(value: unknown, errorPrefix: string): AgentLocalTurnStatus {
-  const normalized = String(value || '').trim();
-  if (normalized === 'pending' || normalized === 'completed' || normalized === 'failed' || normalized === 'canceled') {
-    return normalized;
-  }
-  throw new Error(`${errorPrefix}: status is invalid`);
-}
-
-function parseBeatModality(value: unknown, errorPrefix: string): AgentLocalBeatModality {
-  const normalized = String(value || '').trim();
-  if (normalized === 'text' || normalized === 'voice' || normalized === 'image' || normalized === 'video') {
-    return normalized;
-  }
-  throw new Error(`${errorPrefix}: modality is invalid`);
-}
-
-function parseBeatStatus(value: unknown, errorPrefix: string): AgentLocalBeatStatus {
-  const normalized = String(value || '').trim();
-  if (
-    normalized === 'planned'
-    || normalized === 'sealed'
-    || normalized === 'delivered'
-    || normalized === 'failed'
-    || normalized === 'canceled'
-  ) {
-    return normalized;
-  }
-  throw new Error(`${errorPrefix}: status is invalid`);
 }
 
 function parseOwnershipType(
@@ -263,40 +212,6 @@ export function parseAgentLocalMessageRecord(value: unknown): AgentLocalMessageR
   };
 }
 
-export function parseAgentLocalTurnRecord(value: unknown): AgentLocalTurnRecord {
-  const record = assertRecord(value, 'chat_agent turn record is invalid');
-  return {
-    id: parseRequiredString(record.id, 'id', 'chat_agent turn record'),
-    threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent turn record'),
-    role: parseTurnRole(record.role, 'chat_agent turn record'),
-    status: parseTurnStatus(record.status, 'chat_agent turn record'),
-    providerMode: parseRequiredString(record.providerMode, 'providerMode', 'chat_agent turn record'),
-    traceId: parseOptionalString(record.traceId) || null,
-    promptTraceId: parseOptionalString(record.promptTraceId) || null,
-    startedAtMs: parseFiniteInteger(record.startedAtMs, 'startedAtMs', 'chat_agent turn record'),
-    completedAtMs: parseNullableFiniteInteger(record.completedAtMs, 'completedAtMs', 'chat_agent turn record'),
-    abortedAtMs: parseNullableFiniteInteger(record.abortedAtMs, 'abortedAtMs', 'chat_agent turn record'),
-  };
-}
-
-export function parseAgentLocalTurnBeatRecord(value: unknown): AgentLocalTurnBeatRecord {
-  const record = assertRecord(value, 'chat_agent turn beat record is invalid');
-  return {
-    id: parseRequiredString(record.id, 'id', 'chat_agent turn beat record'),
-    turnId: parseRequiredString(record.turnId, 'turnId', 'chat_agent turn beat record'),
-    beatIndex: parseFiniteInteger(record.beatIndex, 'beatIndex', 'chat_agent turn beat record'),
-    modality: parseBeatModality(record.modality, 'chat_agent turn beat record'),
-    status: parseBeatStatus(record.status, 'chat_agent turn beat record'),
-    textShadow: parseOptionalString(record.textShadow) || null,
-    artifactId: parseOptionalString(record.artifactId) || null,
-    mimeType: parseOptionalString(record.mimeType) || null,
-    mediaUrl: parseOptionalString(record.mediaUrl) || null,
-    projectionMessageId: parseOptionalString(record.projectionMessageId) || null,
-    createdAtMs: parseFiniteInteger(record.createdAtMs, 'createdAtMs', 'chat_agent turn beat record'),
-    deliveredAtMs: parseNullableFiniteInteger(record.deliveredAtMs, 'deliveredAtMs', 'chat_agent turn beat record'),
-  };
-}
-
 export function parseAgentLocalThreadBundle(value: unknown): AgentLocalThreadBundle | null {
   if (value == null) {
     return null;
@@ -307,17 +222,6 @@ export function parseAgentLocalThreadBundle(value: unknown): AgentLocalThreadBun
     messages: Array.isArray(record.messages)
       ? record.messages.map((item) => parseAgentLocalMessageRecord(item))
       : (() => { throw new Error('chat_agent thread bundle.messages must be an array'); })(),
-  };
-}
-
-export function parseAgentLocalCommitTurnResult(value: unknown): AgentLocalCommitTurnResult {
-  const record = assertRecord(value, 'chat_agent commit turn result is invalid');
-  return {
-    turn: parseAgentLocalTurnRecord(record.turn),
-    beats: Array.isArray(record.beats)
-      ? record.beats.map((item) => parseAgentLocalTurnBeatRecord(item))
-      : (() => { throw new Error('chat_agent commit turn result.beats must be an array'); })(),
-    bundle: parseAgentLocalThreadBundle(record.bundle) ?? (() => { throw new Error('chat_agent commit turn result.bundle is invalid'); })(),
   };
 }
 
@@ -340,50 +244,5 @@ export function parseAgentLocalCreateThreadInput(value: unknown): AgentLocalCrea
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent create_thread payload'),
     lastMessageAtMs: parseNullableFiniteInteger(record.lastMessageAtMs, 'lastMessageAtMs', 'chat_agent create_thread payload'),
     targetSnapshot,
-  };
-}
-
-export function parseAgentLocalUpdateThreadMetadataInput(value: unknown): AgentLocalUpdateThreadMetadataInput {
-  const record = assertRecord(value, 'chat_agent update_thread_metadata payload is invalid');
-  return {
-    id: parseRequiredString(record.id, 'id', 'chat_agent update_thread_metadata payload'),
-    title: parseRequiredString(record.title, 'title', 'chat_agent update_thread_metadata payload'),
-    updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent update_thread_metadata payload'),
-    lastMessageAtMs: parseNullableFiniteInteger(record.lastMessageAtMs, 'lastMessageAtMs', 'chat_agent update_thread_metadata payload'),
-    targetSnapshot: parseAgentLocalTargetSnapshot(record.targetSnapshot),
-  };
-}
-
-export function parseAgentLocalTurnRecordInput(value: unknown): AgentLocalTurnRecordInput {
-  return parseAgentLocalTurnRecord(value);
-}
-
-export function parseAgentLocalTurnBeatInput(value: unknown): AgentLocalTurnBeatInput {
-  return parseAgentLocalTurnBeatRecord(value);
-}
-
-export function parseAgentLocalProjectionMessageInput(value: unknown): AgentLocalProjectionMessageInput {
-  return parseAgentLocalMessageRecord(value);
-}
-
-export function parseAgentLocalProjectionCommitInput(value: unknown): AgentLocalProjectionCommitInput {
-  const record = assertRecord(value, 'chat_agent projection payload is invalid');
-  return {
-    thread: parseAgentLocalUpdateThreadMetadataInput(record.thread),
-    messages: Array.isArray(record.messages)
-      ? record.messages.map((item) => parseAgentLocalProjectionMessageInput(item))
-      : (() => { throw new Error('chat_agent projection payload.messages must be an array'); })(),
-  };
-}
-
-export function parseAgentLocalCommitTurnResultInput(value: unknown): AgentLocalCommitTurnResultInput {
-  const record = assertRecord(value, 'chat_agent commit_turn_result payload is invalid');
-  return {
-    threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent commit_turn_result payload'),
-    turn: parseAgentLocalTurnRecordInput(record.turn),
-    beats: Array.isArray(record.beats)
-      ? record.beats.map((item) => parseAgentLocalTurnBeatInput(item))
-      : (() => { throw new Error('chat_agent commit_turn_result payload.beats must be an array'); })(),
-    projection: parseAgentLocalProjectionCommitInput(record.projection),
   };
 }

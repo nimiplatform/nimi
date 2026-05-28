@@ -84,30 +84,6 @@ pub(super) fn normalize_target_snapshot(
     })
 }
 
-pub(super) fn message_role_to_db_value(value: ChatAgentMessageRole) -> &'static str {
-    match value {
-        ChatAgentMessageRole::System => "system",
-        ChatAgentMessageRole::User => "user",
-        ChatAgentMessageRole::Assistant => "assistant",
-    }
-}
-
-pub(super) fn message_status_to_db_value(value: ChatAgentMessageStatus) -> &'static str {
-    match value {
-        ChatAgentMessageStatus::Pending => "pending",
-        ChatAgentMessageStatus::Complete => "complete",
-        ChatAgentMessageStatus::Error => "error",
-    }
-}
-
-pub(super) fn message_kind_to_db_value(value: ChatAgentMessageKind) -> &'static str {
-    match value {
-        ChatAgentMessageKind::Text => "text",
-        ChatAgentMessageKind::Image => "image",
-        ChatAgentMessageKind::Voice => "voice",
-    }
-}
-
 pub(super) fn parse_message_role(value: &str) -> Result<ChatAgentMessageRole, String> {
     match value {
         "system" => Ok(ChatAgentMessageRole::System),
@@ -133,105 +109,6 @@ pub(super) fn parse_message_kind(value: &str) -> Result<ChatAgentMessageKind, St
         "voice" => Ok(ChatAgentMessageKind::Voice),
         other => Err(format!("chat_agent message kind is invalid: {other}")),
     }
-}
-
-pub(super) fn turn_role_to_db_value(value: ChatAgentTurnRole) -> &'static str {
-    match value {
-        ChatAgentTurnRole::System => "system",
-        ChatAgentTurnRole::User => "user",
-        ChatAgentTurnRole::Assistant => "assistant",
-    }
-}
-
-pub(super) fn turn_status_to_db_value(value: ChatAgentTurnStatus) -> &'static str {
-    match value {
-        ChatAgentTurnStatus::Pending => "pending",
-        ChatAgentTurnStatus::Completed => "completed",
-        ChatAgentTurnStatus::Failed => "failed",
-        ChatAgentTurnStatus::Canceled => "canceled",
-    }
-}
-
-pub(super) fn beat_modality_to_db_value(value: ChatAgentBeatModality) -> &'static str {
-    match value {
-        ChatAgentBeatModality::Text => "text",
-        ChatAgentBeatModality::Voice => "voice",
-        ChatAgentBeatModality::Image => "image",
-        ChatAgentBeatModality::Video => "video",
-    }
-}
-
-pub(super) fn beat_status_to_db_value(value: ChatAgentBeatStatus) -> &'static str {
-    match value {
-        ChatAgentBeatStatus::Planned => "planned",
-        ChatAgentBeatStatus::Sealed => "sealed",
-        ChatAgentBeatStatus::Delivered => "delivered",
-        ChatAgentBeatStatus::Failed => "failed",
-        ChatAgentBeatStatus::Canceled => "canceled",
-    }
-}
-
-pub(super) fn parse_turn_role(value: &str) -> Result<ChatAgentTurnRole, String> {
-    match value {
-        "system" => Ok(ChatAgentTurnRole::System),
-        "user" => Ok(ChatAgentTurnRole::User),
-        "assistant" => Ok(ChatAgentTurnRole::Assistant),
-        other => Err(format!("chat_agent turn role is invalid: {other}")),
-    }
-}
-
-pub(super) fn parse_turn_status(value: &str) -> Result<ChatAgentTurnStatus, String> {
-    match value {
-        "pending" => Ok(ChatAgentTurnStatus::Pending),
-        "completed" => Ok(ChatAgentTurnStatus::Completed),
-        "failed" => Ok(ChatAgentTurnStatus::Failed),
-        "canceled" => Ok(ChatAgentTurnStatus::Canceled),
-        other => Err(format!("chat_agent turn status is invalid: {other}")),
-    }
-}
-
-pub(super) fn parse_beat_modality(value: &str) -> Result<ChatAgentBeatModality, String> {
-    match value {
-        "text" => Ok(ChatAgentBeatModality::Text),
-        "voice" => Ok(ChatAgentBeatModality::Voice),
-        "image" => Ok(ChatAgentBeatModality::Image),
-        "video" => Ok(ChatAgentBeatModality::Video),
-        other => Err(format!("chat_agent beat modality is invalid: {other}")),
-    }
-}
-
-pub(super) fn parse_beat_status(value: &str) -> Result<ChatAgentBeatStatus, String> {
-    match value {
-        "planned" => Ok(ChatAgentBeatStatus::Planned),
-        "sealed" => Ok(ChatAgentBeatStatus::Sealed),
-        "delivered" => Ok(ChatAgentBeatStatus::Delivered),
-        "failed" => Ok(ChatAgentBeatStatus::Failed),
-        "canceled" => Ok(ChatAgentBeatStatus::Canceled),
-        other => Err(format!("chat_agent beat status is invalid: {other}")),
-    }
-}
-
-pub(super) fn normalize_message_error(
-    error: Option<&ChatAgentMessageError>,
-) -> Result<Option<ChatAgentMessageError>, String> {
-    error
-        .map(|value| {
-            Ok(ChatAgentMessageError {
-                code: normalize_optional_string(value.code.as_deref()),
-                message: normalize_required_string(&value.message, "error.message")?,
-            })
-        })
-        .transpose()
-}
-
-pub(super) fn normalize_structured_json(
-    value: &serde_json::Value,
-    field_name: &str,
-) -> Result<serde_json::Value, String> {
-    if value.is_array() || value.is_object() {
-        return Ok(value.clone());
-    }
-    Err(format!("{field_name} must be an array or object"))
 }
 
 pub(super) fn serialize_json_value<T: serde::Serialize>(

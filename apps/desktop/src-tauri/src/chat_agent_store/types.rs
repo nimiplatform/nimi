@@ -26,42 +26,6 @@ pub enum ChatAgentMessageKind {
     Voice,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ChatAgentTurnRole {
-    System,
-    User,
-    Assistant,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ChatAgentTurnStatus {
-    Pending,
-    Completed,
-    Failed,
-    Canceled,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ChatAgentBeatModality {
-    Text,
-    Voice,
-    Image,
-    Video,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ChatAgentBeatStatus {
-    Planned,
-    Sealed,
-    Delivered,
-    Failed,
-    Canceled,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatAgentTargetSnapshot {
@@ -134,46 +98,6 @@ pub struct ChatAgentMessageRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatAgentTurnRecord {
-    pub id: String,
-    pub thread_id: String,
-    pub role: ChatAgentTurnRole,
-    pub status: ChatAgentTurnStatus,
-    pub provider_mode: String,
-    pub trace_id: Option<String>,
-    pub prompt_trace_id: Option<String>,
-    pub started_at_ms: i64,
-    pub completed_at_ms: Option<i64>,
-    pub aborted_at_ms: Option<i64>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatAgentTurnBeatRecord {
-    pub id: String,
-    pub turn_id: String,
-    pub beat_index: i64,
-    pub modality: ChatAgentBeatModality,
-    pub status: ChatAgentBeatStatus,
-    pub text_shadow: Option<String>,
-    pub artifact_id: Option<String>,
-    pub mime_type: Option<String>,
-    pub media_url: Option<String>,
-    pub projection_message_id: Option<String>,
-    pub created_at_ms: i64,
-    pub delivered_at_ms: Option<i64>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatAgentCommitTurnResult {
-    pub turn: ChatAgentTurnRecord,
-    pub beats: Vec<ChatAgentTurnBeatRecord>,
-    pub bundle: ChatAgentThreadBundle,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
 pub struct ChatAgentThreadBundle {
     pub thread: ChatAgentThreadRecord,
     pub messages: Vec<ChatAgentMessageRecord>,
@@ -195,85 +119,6 @@ pub struct ChatAgentCreateThreadInput {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatAgentUpdateThreadMetadataInput {
-    pub id: String,
-    pub title: String,
-    pub updated_at_ms: i64,
-    pub last_message_at_ms: Option<i64>,
-    pub target_snapshot: ChatAgentTargetSnapshot,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ChatAgentThreadLookupPayload {
     pub thread_id: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatAgentTurnRecordInput {
-    pub id: String,
-    pub thread_id: String,
-    pub role: ChatAgentTurnRole,
-    pub status: ChatAgentTurnStatus,
-    pub provider_mode: String,
-    pub trace_id: Option<String>,
-    pub prompt_trace_id: Option<String>,
-    pub started_at_ms: i64,
-    pub completed_at_ms: Option<i64>,
-    pub aborted_at_ms: Option<i64>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatAgentTurnBeatInput {
-    pub id: String,
-    pub turn_id: String,
-    pub beat_index: i64,
-    pub modality: ChatAgentBeatModality,
-    pub status: ChatAgentBeatStatus,
-    pub text_shadow: Option<String>,
-    pub artifact_id: Option<String>,
-    pub mime_type: Option<String>,
-    pub media_url: Option<String>,
-    pub projection_message_id: Option<String>,
-    pub created_at_ms: i64,
-    pub delivered_at_ms: Option<i64>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatAgentProjectionMessageInput {
-    pub id: String,
-    pub thread_id: String,
-    pub role: ChatAgentMessageRole,
-    pub status: ChatAgentMessageStatus,
-    pub kind: ChatAgentMessageKind,
-    pub content_text: String,
-    pub reasoning_text: Option<String>,
-    pub error: Option<ChatAgentMessageError>,
-    pub trace_id: Option<String>,
-    pub parent_message_id: Option<String>,
-    pub media_url: Option<String>,
-    pub media_mime_type: Option<String>,
-    pub artifact_id: Option<String>,
-    pub metadata_json: Option<serde_json::Value>,
-    pub created_at_ms: i64,
-    pub updated_at_ms: i64,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatAgentProjectionCommitInput {
-    pub thread: ChatAgentUpdateThreadMetadataInput,
-    pub messages: Vec<ChatAgentProjectionMessageInput>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatAgentCommitTurnResultInput {
-    pub thread_id: String,
-    pub turn: ChatAgentTurnRecordInput,
-    pub beats: Vec<ChatAgentTurnBeatInput>,
-    pub projection: ChatAgentProjectionCommitInput,
 }

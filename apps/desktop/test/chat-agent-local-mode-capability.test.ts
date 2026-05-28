@@ -377,7 +377,7 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
     'agent host actions must verify Runtime route readiness before creating local projection cache rows',
   );
   const readinessIndex = hostActionSubmitSource.indexOf('const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({');
-  const finalUserProjectionIndex = hostActionSubmitSource.indexOf('const userProjection = buildAgentUserProjectionCommit({');
+  const finalUserProjectionIndex = hostActionSubmitSource.indexOf('const userProjection = buildAgentUserProjection({');
   assert.ok(
     readinessIndex < finalUserProjectionIndex,
     'agent host actions must verify Runtime route readiness before applying in-memory user projection messages',

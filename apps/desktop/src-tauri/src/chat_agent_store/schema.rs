@@ -4,6 +4,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
     hard_reset_old_agent_thread_schema(conn)?;
     drop_retired_agent_chat_draft_table(conn)?;
+    drop_retired_agent_chat_turn_tables(conn)?;
     conn.pragma_update(None, "user_version", CHAT_AGENT_DB_SCHEMA_VERSION)
         .map_err(|error| format!("初始化 chat_agent user_version 失败: {error}"))?;
     conn.execute_batch(
@@ -41,36 +42,6 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
           updated_at_ms INTEGER NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_agent_messages_thread_created ON agent_messages(thread_id, created_at_ms ASC, id ASC);
-
-        CREATE TABLE IF NOT EXISTS agent_turns (
-          id TEXT PRIMARY KEY,
-          thread_id TEXT NOT NULL REFERENCES agent_threads(id) ON DELETE CASCADE,
-          role TEXT NOT NULL,
-          status TEXT NOT NULL,
-          provider_mode TEXT NOT NULL,
-          trace_id TEXT,
-          prompt_trace_id TEXT,
-          started_at_ms INTEGER NOT NULL,
-          completed_at_ms INTEGER,
-          aborted_at_ms INTEGER
-        );
-        CREATE INDEX IF NOT EXISTS idx_agent_turns_thread_started ON agent_turns(thread_id, started_at_ms ASC, id ASC);
-
-        CREATE TABLE IF NOT EXISTS agent_turn_beats (
-          id TEXT PRIMARY KEY,
-          turn_id TEXT NOT NULL REFERENCES agent_turns(id) ON DELETE CASCADE,
-          beat_index INTEGER NOT NULL,
-          modality TEXT NOT NULL,
-          status TEXT NOT NULL,
-          text_shadow TEXT,
-          artifact_id TEXT,
-          mime_type TEXT,
-          media_url TEXT,
-          projection_message_id TEXT,
-          created_at_ms INTEGER NOT NULL,
-          delivered_at_ms INTEGER
-        );
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_turn_beats_turn_index ON agent_turn_beats(turn_id, beat_index);
 
         CREATE TABLE IF NOT EXISTS agent_store_meta (
           key TEXT PRIMARY KEY,
@@ -123,41 +94,6 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
             "metadata_json",
             "created_at_ms",
             "updated_at_ms",
-        ],
-    )?;
-    ensure_required_columns(
-        conn,
-        "agent_turns",
-        &[
-            "id",
-            "thread_id",
-            "role",
-            "status",
-            "provider_mode",
-            "trace_id",
-            "prompt_trace_id",
-            "started_at_ms",
-            "completed_at_ms",
-            "aborted_at_ms",
-        ],
-    )?;
-    add_nullable_text_column_if_missing(conn, "agent_turn_beats", "media_url")?;
-    ensure_required_columns(
-        conn,
-        "agent_turn_beats",
-        &[
-            "id",
-            "turn_id",
-            "beat_index",
-            "modality",
-            "status",
-            "text_shadow",
-            "artifact_id",
-            "mime_type",
-            "media_url",
-            "projection_message_id",
-            "created_at_ms",
-            "delivered_at_ms",
         ],
     )?;
     drop_retired_memory_tables(conn)?;
@@ -218,6 +154,16 @@ fn hard_reset_old_agent_thread_schema(conn: &Connection) -> Result<(), String> {
 fn drop_retired_agent_chat_draft_table(conn: &Connection) -> Result<(), String> {
     conn.execute_batch("DROP TABLE IF EXISTS agent_thread_drafts;")
         .map_err(|error| format!("删除退役 chat_agent draft 表失败: {error}"))
+}
+
+fn drop_retired_agent_chat_turn_tables(conn: &Connection) -> Result<(), String> {
+    conn.execute_batch(
+        r#"
+        DROP TABLE IF EXISTS agent_turn_beats;
+        DROP TABLE IF EXISTS agent_turns;
+        "#,
+    )
+    .map_err(|error| format!("删除退役 chat_agent turn 表失败: {error}"))
 }
 
 fn add_text_column_with_default_if_missing(

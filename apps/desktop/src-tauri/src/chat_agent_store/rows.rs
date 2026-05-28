@@ -1,6 +1,5 @@
 use super::codec::{
-    parse_beat_modality, parse_beat_status, parse_json_required, parse_message_kind,
-    parse_message_role, parse_message_status, parse_turn_role, parse_turn_status,
+    parse_json_required, parse_message_kind, parse_message_role, parse_message_status,
 };
 use super::types::*;
 
@@ -110,73 +109,5 @@ pub(super) fn message_record_from_row(
             })?,
         created_at_ms: row.get(15)?,
         updated_at_ms: row.get(16)?,
-    })
-}
-
-pub(super) fn turn_record_from_row(
-    row: &rusqlite::Row<'_>,
-) -> Result<ChatAgentTurnRecord, rusqlite::Error> {
-    let role_raw: String = row.get(2)?;
-    let role = parse_turn_role(&role_raw).map_err(|error| {
-        rusqlite::Error::FromSqlConversionFailure(
-            2,
-            rusqlite::types::Type::Text,
-            Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, error)),
-        )
-    })?;
-    let status_raw: String = row.get(3)?;
-    let status = parse_turn_status(&status_raw).map_err(|error| {
-        rusqlite::Error::FromSqlConversionFailure(
-            3,
-            rusqlite::types::Type::Text,
-            Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, error)),
-        )
-    })?;
-    Ok(ChatAgentTurnRecord {
-        id: row.get(0)?,
-        thread_id: row.get(1)?,
-        role,
-        status,
-        provider_mode: row.get(4)?,
-        trace_id: row.get(5)?,
-        prompt_trace_id: row.get(6)?,
-        started_at_ms: row.get(7)?,
-        completed_at_ms: row.get(8)?,
-        aborted_at_ms: row.get(9)?,
-    })
-}
-
-pub(super) fn beat_record_from_row(
-    row: &rusqlite::Row<'_>,
-) -> Result<ChatAgentTurnBeatRecord, rusqlite::Error> {
-    let modality_raw: String = row.get(3)?;
-    let modality = parse_beat_modality(&modality_raw).map_err(|error| {
-        rusqlite::Error::FromSqlConversionFailure(
-            3,
-            rusqlite::types::Type::Text,
-            Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, error)),
-        )
-    })?;
-    let status_raw: String = row.get(4)?;
-    let status = parse_beat_status(&status_raw).map_err(|error| {
-        rusqlite::Error::FromSqlConversionFailure(
-            4,
-            rusqlite::types::Type::Text,
-            Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, error)),
-        )
-    })?;
-    Ok(ChatAgentTurnBeatRecord {
-        id: row.get(0)?,
-        turn_id: row.get(1)?,
-        beat_index: row.get(2)?,
-        modality,
-        status,
-        text_shadow: row.get(5)?,
-        artifact_id: row.get(6)?,
-        mime_type: row.get(7)?,
-        media_url: row.get(8)?,
-        projection_message_id: row.get(9)?,
-        created_at_ms: row.get(10)?,
-        delivered_at_ms: row.get(11)?,
     })
 }

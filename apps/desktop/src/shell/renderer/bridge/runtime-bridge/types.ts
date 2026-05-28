@@ -93,28 +93,15 @@ export {
 } from './chat-ai-parsers.js';
 
 export type {
-  AgentLocalBeatModality,
-  AgentLocalBeatStatus,
-  AgentLocalCommitTurnResult,
-  AgentLocalCommitTurnResultInput,
   AgentLocalMessageRole,
   AgentLocalMessageStatus,
-  AgentLocalTurnRole,
-  AgentLocalTurnStatus,
   AgentLocalTargetSnapshot,
   AgentLocalThreadSummary,
   AgentLocalThreadRecord,
   AgentLocalMessageError,
   AgentLocalMessageRecord,
-  AgentLocalTurnRecord,
-  AgentLocalTurnBeatRecord,
   AgentLocalThreadBundle,
   AgentLocalCreateThreadInput,
-  AgentLocalUpdateThreadMetadataInput,
-  AgentLocalTurnRecordInput,
-  AgentLocalTurnBeatInput,
-  AgentLocalProjectionMessageInput,
-  AgentLocalProjectionCommitInput,
 } from './chat-agent-types.js';
 
 export {
@@ -124,17 +111,8 @@ export {
   parseAgentLocalThreadRecord,
   parseAgentLocalMessageError,
   parseAgentLocalMessageRecord,
-  parseAgentLocalTurnRecord,
-  parseAgentLocalTurnBeatRecord,
   parseAgentLocalThreadBundle,
-  parseAgentLocalCommitTurnResult,
   parseAgentLocalCreateThreadInput,
-  parseAgentLocalUpdateThreadMetadataInput,
-  parseAgentLocalTurnRecordInput,
-  parseAgentLocalTurnBeatInput,
-  parseAgentLocalProjectionMessageInput,
-  parseAgentLocalProjectionCommitInput,
-  parseAgentLocalCommitTurnResultInput,
 } from './chat-agent-parsers.js';
 
 export type {

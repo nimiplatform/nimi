@@ -186,3 +186,19 @@ test('Desktop projection cache no longer exposes local Agent Chat cancel or rebu
   assert.doesNotMatch(runtimeProvider, /chat-agent-continuity|commitProviderOutcome|createAgentLocalChatContinuityAdapter/);
   assert.doesNotMatch(runtimeProvider, /chatAgentStoreClient\.commitTurnResult/);
 });
+
+test('Desktop projection cache no longer exposes local Agent Chat turn commit commands', () => {
+  const bootstrap = readWorkspaceFile('apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs');
+  const commands = readWorkspaceFile('apps/desktop/src-tauri/src/chat_agent_store/commands.rs');
+  const bridge = readWorkspaceFile(
+    'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-store.ts',
+  );
+  const bridgeTypes = readWorkspaceFile(
+    'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-types.ts',
+  );
+
+  assert.doesNotMatch(bootstrap, /chat_agent_commit_turn_result/);
+  assert.doesNotMatch(commands, /chat_agent_commit_turn_result|commit_turn_result/);
+  assert.doesNotMatch(bridge, /commitTurnResult|chat_agent_commit_turn_result/);
+  assert.doesNotMatch(bridgeTypes, /AgentLocalCommitTurnResult|AgentLocalTurnRecord|AgentLocalTurnBeatRecord/);
+});

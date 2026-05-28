@@ -40,7 +40,7 @@ import {
 } from '../turns/stream-controller';
 import { resolveAgentTurnTotalTimeoutMs } from './chat-agent-timeouts';
 import { ensureAgentConversationSubmitRouteReady } from './conversation-submit-readiness';
-import { buildAgentUserProjectionCommit } from './chat-agent-user-projection';
+import { buildAgentUserProjection } from './chat-agent-user-projection';
 import {
   assertAgentSubmitSchedulingAllowed,
   ensureThreadAnchorBindingForTarget,
@@ -178,7 +178,7 @@ export async function submitAgentConversationTurn(input: {
         resourceId: null,
       }));
     const optimisticUserProjection = submittedText || optimisticPreviewAttachments.length > 0
-      ? buildAgentUserProjectionCommit({
+      ? buildAgentUserProjection({
         threadId: effectiveThreadId,
         agentId: activeTarget.localAgentRef,
         conversationAnchorId,
@@ -221,7 +221,7 @@ export async function submitAgentConversationTurn(input: {
     const uploadedAttachments = input.payload.attachments.length > 0
       ? await Promise.all(input.payload.attachments.map((attachment) => uploadPendingAttachment(input.hostInput, attachment)))
       : [];
-    const userProjection = buildAgentUserProjectionCommit({
+    const userProjection = buildAgentUserProjection({
       threadId: effectiveThreadId,
       agentId: activeTarget.localAgentRef,
       conversationAnchorId,

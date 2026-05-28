@@ -1,8 +1,7 @@
 use super::{
-    commit_turn_result, create_thread, get_thread_bundle, list_threads, open_db,
-    ChatAgentCommitTurnResult, ChatAgentCommitTurnResultInput,
-    ChatAgentCreateThreadInput, ChatAgentThreadBundle, ChatAgentThreadLookupPayload,
-    ChatAgentThreadRecord, ChatAgentThreadSummary,
+    create_thread, get_thread_bundle, list_threads, open_db, ChatAgentCreateThreadInput,
+    ChatAgentThreadBundle, ChatAgentThreadLookupPayload, ChatAgentThreadRecord,
+    ChatAgentThreadSummary,
 };
 
 async fn run_chat_agent_store<T, F>(operation: F) -> Result<T, String>
@@ -42,17 +41,6 @@ pub(crate) async fn chat_agent_create_thread(
     run_chat_agent_store(move || {
         let conn = open_db()?;
         create_thread(&conn, &payload)
-    })
-    .await
-}
-
-#[tauri::command]
-pub(crate) async fn chat_agent_commit_turn_result(
-    payload: ChatAgentCommitTurnResultInput,
-) -> Result<ChatAgentCommitTurnResult, String> {
-    run_chat_agent_store(move || {
-        let mut conn = open_db()?;
-        commit_turn_result(&mut conn, &payload)
     })
     .await
 }
