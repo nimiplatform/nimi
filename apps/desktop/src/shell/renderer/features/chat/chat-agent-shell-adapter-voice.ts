@@ -51,7 +51,7 @@ type UseAgentConversationVoiceSessionInput = {
   aiConfig: AIConfig;
   agentResolution: AgentEffectiveCapabilityResolution | null;
   bundleMessages: readonly AgentLocalMessageRecord[] | undefined;
-  persistVoiceTranscriptDraft: (input: { text: string; conversationAnchorId: string }) => Promise<void>;
+  applyVoiceTranscriptComposerText: (input: { text: string; conversationAnchorId: string }) => Promise<void>;
   reportHostError: (error: unknown) => void;
   setBundleCache: (
     threadId: string,
@@ -225,7 +225,7 @@ export function useAgentConversationVoiceSession(
             transcriptText: result.text,
           };
         }
-        await input.persistVoiceTranscriptDraft({
+        await input.applyVoiceTranscriptComposerText({
           text: result.text,
           conversationAnchorId: sessionAnchorId,
         });
@@ -254,7 +254,7 @@ export function useAgentConversationVoiceSession(
     input.activeThreadId,
     input.agentResolution,
     input.aiConfig,
-    input.persistVoiceTranscriptDraft,
+    input.applyVoiceTranscriptComposerText,
     input.reportHostError,
     input.t,
     input.transcribeCapabilityProjection,
@@ -415,7 +415,7 @@ export function useAgentConversationVoiceSession(
               transcriptText: result.text,
             };
           }
-          await input.persistVoiceTranscriptDraft({
+          await input.applyVoiceTranscriptComposerText({
             text: result.text,
             conversationAnchorId: sessionAnchorId,
           });
@@ -482,7 +482,7 @@ export function useAgentConversationVoiceSession(
     input.activeThreadId,
     input.aiConfig,
     input.agentResolution,
-    input.persistVoiceTranscriptDraft,
+    input.applyVoiceTranscriptComposerText,
     input.reportHostError,
     input.t,
     input.transcribeCapabilityProjection,

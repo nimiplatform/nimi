@@ -400,7 +400,7 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(voiceAdapterSource, /Voice input stopped because the conversation anchor changed\./);
   assert.match(voiceAdapterSource, /cancelStream\(activeThreadId\)/);
   assert.match(voiceAdapterSource, /conversationAnchorId:\s*sessionAnchorId/);
-  assert.match(voiceAdapterSource, /persistVoiceTranscriptDraft\(\{\s*text: result\.text,\s*conversationAnchorId: sessionAnchorId,\s*\}\)/);
+  assert.match(voiceAdapterSource, /applyVoiceTranscriptComposerText\(\{\s*text: result\.text,\s*conversationAnchorId: sessionAnchorId,\s*\}\)/);
   assert.doesNotMatch(hostActionSubmitSource, /latestVoiceCapture\?\.conversationAnchorId === conversationAnchorId/);
   assert.match(adapterSource, /return createReadyConversationSetupState\('agent'\);/);
   assert.match(adapterSource, /const composerReady = setupState\.status === 'ready'\s+&& !isBundleLoading\s+&& !bundleError/);

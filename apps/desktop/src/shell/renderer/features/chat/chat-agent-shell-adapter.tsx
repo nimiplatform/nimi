@@ -425,7 +425,7 @@ export function useAgentConversationModeHost(
       };
     });
   }, []);
-  const persistVoiceTranscriptDraft = useCallback(async (input: { text: string; conversationAnchorId: string }) => {
+  const applyVoiceTranscriptComposerText = useCallback(async (input: { text: string; conversationAnchorId: string }) => {
     if (!activeThreadId || !activeConversationAnchorId || input.conversationAnchorId !== activeConversationAnchorId) {
       throw new Error('Voice input is unavailable because no active thread is selected.');
     }
@@ -444,7 +444,7 @@ export function useAgentConversationModeHost(
     aiConfig: agentAdapterAiConfig,
     agentResolution,
     bundleMessages: bundle?.messages,
-    persistVoiceTranscriptDraft,
+    applyVoiceTranscriptComposerText,
     reportHostError,
     setBundleCache,
     submittingThreadId,
