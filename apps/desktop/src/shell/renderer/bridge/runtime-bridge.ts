@@ -40,10 +40,6 @@ import {
 import { exportDesktopLogs } from './runtime-bridge/support-logs-export';
 import { getAppsBridgeProjection } from './runtime-bridge/apps-projection';
 import {
-  applyLibraryMutation,
-  getAccountAppLibrary,
-} from './runtime-bridge/account-app-library';
-import {
   createAccountProfileLibraryProfile,
   deleteAccountProfileLibraryProfile,
   editAccountProfileLibraryProfile,
@@ -107,13 +103,6 @@ export type { LogsExportResult } from './runtime-bridge/support-logs-export';
 
 export type { AppsBridgeProjection } from './runtime-bridge/apps-projection';
 export type { DesktopStorageDirs } from './runtime-bridge/desktop-storage';
-
-export type {
-  AccountAppLibraryMutationKind,
-  AccountAppLibraryRecord,
-  AccountAppLibraryRow,
-  DesktopAppLibraryBridge,
-} from './runtime-bridge/account-app-library';
 
 export type {
   AccountProfileLibraryProjection,
@@ -195,8 +184,6 @@ export {
   executeNimiDataCleanup,
   exportDesktopLogs,
   getAppsBridgeProjection,
-  getAccountAppLibrary,
-  applyLibraryMutation,
   getDesktopStorageDirs,
   listAccountProfileLibrary,
   createAccountProfileLibraryProfile,
