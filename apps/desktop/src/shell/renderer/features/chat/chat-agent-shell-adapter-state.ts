@@ -197,11 +197,11 @@ export function useAgentConversationShellState(
   const activeThreadId = useMemo(
     () => resolveAgentConversationActiveThreadId({
       threads,
-      selectionThreadId: input.selection.threadId,
+      selectionThreadId: null,
       selectionLocalAgentRef: input.selection.localAgentRef,
-      lastSelectedThreadId: input.lastSelectedThreadId,
+      lastSelectedThreadId: null,
     }),
-    [input.lastSelectedThreadId, input.selection.localAgentRef, input.selection.threadId, threads],
+    [input.selection.localAgentRef, threads],
   );
   const selectedThreadRecord = useMemo(
     () => threads.find((thread) => thread.id === activeThreadId) || null,

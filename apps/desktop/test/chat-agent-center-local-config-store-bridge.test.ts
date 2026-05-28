@@ -49,10 +49,6 @@ test('Agent Center local config bridge parser accepts Rust store payload shape',
           evidence_ref: 'vrm_ab12cd34ef56',
         },
       },
-      local_history: {
-        schema_version: 1,
-        last_cleared_at: null,
-      },
       ui: {
         schema_version: 1,
         last_section: 'overview',
@@ -98,10 +94,6 @@ test('Agent Center local config bridge rejects retired selected package truth', 
           source: 'import_validation',
           evidence_ref: 'vrm_ab12cd34ef56',
         },
-      },
-      local_history: {
-        schema_version: 1,
-        last_cleared_at: null,
       },
       ui: {
         schema_version: 1,
@@ -173,10 +165,6 @@ test('Agent Center local config bridge rejects retired launch package config fie
           evidence_ref: 'agent-center-avatar-config-default',
         },
         last_launch_local_asset_id: null,
-      },
-      local_history: {
-        schema_version: 1,
-        last_cleared_at: null,
       },
       ui: {
         schema_version: 1,

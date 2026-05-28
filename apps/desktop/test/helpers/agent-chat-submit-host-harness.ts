@@ -178,7 +178,7 @@ export function resolveAgentConsumerSnapshotForHarness(input: {
   error?: string | null;
   title?: string;
 }): AgentHostConsumerSnapshot {
-  const activeThreadId = input.state.selection.threadId;
+  const activeThreadId = input.threadId;
   const bundle = input.state.bundles[input.threadId] || null;
   const footerViewState = footerViewStateForHarness(input.state, input.threadId);
   const title = input.title || 'Agent Chat';

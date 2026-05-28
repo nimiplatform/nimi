@@ -72,7 +72,7 @@ test('agent shell view model resolves target summaries from agent targets and th
     avatarUrl: summary.avatarUrl,
   })), [{
     id: 'local-agent:user-1:agent-1',
-    canonicalSessionId: 'thread-agent-1',
+    canonicalSessionId: 'local-agent:user-1:agent-1',
     title: 'Companion',
     handle: '@companion',
     avatarUrl: null,
@@ -137,7 +137,7 @@ test('agent shell view model uses Runtime summaries for target preview metadata'
 
   assert.equal(summaries[0]?.previewText, 'Runtime remembered this conversation.');
   assert.equal(summaries[0]?.updatedAt, '2026-03-20T09:46:40.250Z');
-  assert.equal(summaries[0]?.canonicalSessionId, 'thread-agent-1');
+  assert.equal(summaries[0]?.canonicalSessionId, 'anchor-agent-1');
 });
 
 test('agent shell view model resolves canonical messages with user/agent sender metadata', () => {

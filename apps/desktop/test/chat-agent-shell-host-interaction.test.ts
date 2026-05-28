@@ -208,7 +208,7 @@ test('agent host interaction preserves authoritative content and interrupted foo
   assert.equal(interaction.bundle.messages.at(-1)?.contentText, 'authoritative projection');
   assert.equal(interaction.bundle.messages.at(-1)?.reasoningText, 'authoritative reasoning');
   assert.deepEqual(interaction.selection, {
-    threadId: 'thread-1',
+    threadId: null,
     localAgentRef: 'local-agent:user-1:agent-1',
     targetId: 'local-agent:user-1:agent-1',
   });
@@ -315,7 +315,7 @@ test('agent host interaction prefers authoritative completion, clears composer t
   assert.ok(interaction);
   assert.equal(interaction?.bundle.messages.at(-1)?.contentText, 'authoritative projection');
   assert.deepEqual(interaction?.selection, {
-    threadId: 'thread-1',
+    threadId: null,
     localAgentRef: 'local-agent:user-1:agent-1',
     targetId: 'local-agent:user-1:agent-1',
   });

@@ -16,36 +16,19 @@ export function useAgentConversationHostActions(
   input: UseAgentConversationHostActionsInput,
 ): {
   handleSelectAgent: (localAgentRef: string | null) => void;
-  handleSelectThread: (threadId: string) => void;
   handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
 } {
   useEffect(() => {
     if (!input.threadsReady) {
       return;
     }
-    if (input.activeThreadId && !input.threads.some((thread) => thread.id === input.activeThreadId) && !input.selectedLocalAgentRef) {
+    if (input.selectedLocalAgentRef && !input.targetByLocalAgentRef.has(input.selectedLocalAgentRef)) {
       input.syncSelectionToThread(null);
-      return;
-    }
-    if (!input.activeThreadId && input.selectedThreadRecord) {
-      input.syncSelectionToThread(input.selectedThreadRecord);
     }
   }, [input]);
 
   const activeSubmitsByThreadRef = useRef<Map<string, ActiveAgentSubmit>>(new Map());
   const submittingLockTokenRef = useRef(0);
-
-  const handleSelectThread = useCallback((threadId: string) => {
-    if (!threadId || threadId === input.activeThreadId || input.submittingThreadId) {
-      return;
-    }
-    const nextThread = input.threads.find((thread) => thread.id === threadId) || null;
-    if (!nextThread) {
-      return;
-    }
-    input.currentDraftTextRef.current = '';
-    input.syncSelectionToThread(nextThread);
-  }, [input]);
 
   const handleSelectAgent = useCallback((localAgentRef: string | null) => {
     if (input.submittingThreadId) {
@@ -79,7 +62,6 @@ export function useAgentConversationHostActions(
 
   return {
     handleSelectAgent,
-    handleSelectThread,
     handleSubmit,
   };
 }

@@ -98,7 +98,7 @@ test('agent local mode treats Archivist as an ordinary agent friend target', () 
   assert.notEqual(targets[0]?.handle, '@archivist.nimi');
 });
 
-test('agent local mode resolves the selected agent to its existing thread before falling back to last selection', () => {
+test('agent local mode resolves active cache thread only from selected AgentFriend', () => {
   const threads: AgentLocalThreadSummary[] = [
     {
       id: 'thread-agent-1',
@@ -159,10 +159,16 @@ test('agent local mode resolves the selected agent to its existing thread before
   }), 'thread-agent-2');
   assert.equal(resolveAgentConversationActiveThreadId({
     threads,
-    selectionThreadId: 'thread-missing',
+    selectionThreadId: 'thread-agent-2',
     selectionLocalAgentRef: 'local-agent:user-1:agent-1',
     lastSelectedThreadId: 'thread-agent-2',
   }), 'thread-agent-1');
+  assert.equal(resolveAgentConversationActiveThreadId({
+    threads,
+    selectionThreadId: 'thread-agent-1',
+    selectionLocalAgentRef: null,
+    lastSelectedThreadId: 'thread-agent-2',
+  }), null);
 });
 
 test('agent session hydration does not replace missing local bundle with text-only runtime snapshot without envelope', () => {

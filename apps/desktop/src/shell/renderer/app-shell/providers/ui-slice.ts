@@ -164,7 +164,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
         agentConversationSelection: selection,
         lastSelectedThreadByMode: {
           ...state.lastSelectedThreadByMode,
-          agent: selection.threadId,
+          agent: null,
         },
       })),
     setChatSetupState: (mode, setupState) =>

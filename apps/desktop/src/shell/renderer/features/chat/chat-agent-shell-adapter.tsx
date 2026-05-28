@@ -231,7 +231,7 @@ export function useAgentConversationModeHost(
     aiConfig: agentAdapterAiConfig,
     authStatus: input.authStatus,
     bootstrapReady,
-    lastSelectedThreadId: input.lastSelectedThreadId,
+    lastSelectedThreadId: null,
     selection: input.selection,
   });
   const {
@@ -508,7 +508,7 @@ export function useAgentConversationModeHost(
     transcribeCapabilityProjection,
   });
   const agentAiConfig = useAppStore((state) => state.aiConfig);
-  const { handleSelectAgent, handleSelectThread, handleSubmit } = useAgentConversationHostActions({
+  const { handleSelectAgent, handleSubmit } = useAgentConversationHostActions({
     activeTarget,
     activeThreadId,
     aiConfig: agentAiConfig,
@@ -643,6 +643,5 @@ export function useAgentConversationModeHost(
     ...presentation,
     handsFreeState,
     onSelectTarget: handleSelectAgent,
-    onSelectThread: handleSelectThread,
-  }), [handleSelectAgent, handleSelectThread, handsFreeState, presentation]);
+  }), [handleSelectAgent, handsFreeState, presentation]);
 }

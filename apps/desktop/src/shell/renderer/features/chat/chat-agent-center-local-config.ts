@@ -63,7 +63,6 @@ export const AGENT_CENTER_LOCAL_CONFIG_KIND = 'agent_center_local_config';
 export const AGENT_CENTER_LOCAL_CONFIG_MODULE_IDS = [
   'appearance',
   'avatar_asset',
-  'local_history',
   'ui',
 ] as const;
 
@@ -83,11 +82,6 @@ export type AgentCenterAppearanceModule = {
   motion: 'system' | 'reduced' | 'full';
 };
 
-export type AgentCenterLocalHistoryModule = {
-  schema_version: 1;
-  last_cleared_at: string | null;
-};
-
 export type AgentCenterUiModule = {
   schema_version: 1;
   last_section: AgentCenterLocalConfigSectionId;
@@ -103,7 +97,6 @@ export type AgentCenterLocalConfig = {
   modules: {
     appearance: AgentCenterAppearanceModule;
     avatar_asset: AgentCenterAvatarAssetModule;
-    local_history: AgentCenterLocalHistoryModule;
     ui: AgentCenterUiModule;
   };
 };
@@ -130,7 +123,6 @@ const ROOT_KEYS = [
 ] as const;
 const MODULES_KEYS = AGENT_CENTER_LOCAL_CONFIG_MODULE_IDS;
 const APPEARANCE_KEYS = ['schema_version', 'background_asset_id', 'motion'] as const;
-const LOCAL_HISTORY_KEYS = ['schema_version', 'last_cleared_at'] as const;
 const UI_KEYS = ['schema_version', 'last_section'] as const;
 
 const MOTION_VALUES = new Set(['system', 'reduced', 'full']);
@@ -276,17 +268,6 @@ function validateAppearanceModule(value: unknown, errors: string[]): AgentCenter
   };
 }
 
-function validateLocalHistoryModule(value: unknown, errors: string[]): AgentCenterLocalHistoryModule {
-  const path = 'modules.local_history';
-  const record = requireRecord(value, path, errors) ?? {};
-  collectUnknownKeys(record, LOCAL_HISTORY_KEYS, path, errors);
-  requireSchemaVersion(record, path, errors);
-  return {
-    schema_version: 1,
-    last_cleared_at: validateTimestamp(record.last_cleared_at, `${path}.last_cleared_at`, errors),
-  };
-}
-
 function validateUiModule(value: unknown, errors: string[]): AgentCenterUiModule {
   const path = 'modules.ui';
   const record = requireRecord(value, path, errors) ?? {};
@@ -346,7 +327,6 @@ export function validateAgentCenterLocalConfig(value: unknown): AgentCenterLocal
     modules: {
       appearance: validateAppearanceModule(modules.appearance, errors),
       avatar_asset: validateAvatarAssetModule(modules.avatar_asset, errors),
-      local_history: validateLocalHistoryModule(modules.local_history, errors),
       ui: validateUiModule(modules.ui, errors),
     },
   };
@@ -377,10 +357,6 @@ export function createDefaultAgentCenterLocalConfig(input: {
         motion: 'system',
       },
       avatar_asset: createDefaultAgentCenterAvatarAssetModule(),
-      local_history: {
-        schema_version: 1,
-        last_cleared_at: null,
-      },
       ui: {
         schema_version: 1,
         last_section: 'overview',

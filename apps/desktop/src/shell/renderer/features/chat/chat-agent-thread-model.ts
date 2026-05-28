@@ -1,6 +1,5 @@
 import type {
   ConversationMessageViewModel,
-  ConversationThreadSummary,
 } from '@nimiplatform/kit/features/chat/headless';
 import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 import type {
@@ -274,10 +273,6 @@ export function resolveAgentConversationActiveThreadId(input: {
   selectionLocalAgentRef?: string | null | undefined;
   lastSelectedThreadId: string | null | undefined;
 }): string | null {
-  const normalizedSelectionThreadId = normalizeText(input.selectionThreadId);
-  if (normalizedSelectionThreadId && input.threads.some((thread) => thread.id === normalizedSelectionThreadId)) {
-    return normalizedSelectionThreadId;
-  }
   const selectedAgentThread = findAgentConversationThreadByLocalAgentRef(
     input.threads,
     input.selectionLocalAgentRef,
@@ -285,29 +280,7 @@ export function resolveAgentConversationActiveThreadId(input: {
   if (selectedAgentThread) {
     return selectedAgentThread.id;
   }
-  const normalizedLastSelectedThreadId = normalizeText(input.lastSelectedThreadId);
-  if (normalizedLastSelectedThreadId && input.threads.some((thread) => thread.id === normalizedLastSelectedThreadId)) {
-    return normalizedLastSelectedThreadId;
-  }
   return null;
-}
-
-export function toConversationThreadSummary(
-  thread: AgentLocalThreadSummary,
-): ConversationThreadSummary {
-  return {
-    id: thread.id,
-    mode: 'agent',
-    title: thread.title,
-    previewText: '',
-    createdAt: toIsoString(thread.updatedAtMs),
-    updatedAt: toIsoString(thread.updatedAtMs),
-    unreadCount: 0,
-    status: 'active',
-    pinned: false,
-    targetId: thread.localAgentRef,
-    targetLabel: thread.targetSnapshot.displayName,
-  };
 }
 
 export function toConversationMessageViewModel(

@@ -34,7 +34,6 @@ export function ChatAgentModeContent({
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
   const agentConversationSelection = useAppStore((state) => state.agentConversationSelection);
   const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
-  const lastSelectedAgentThread = useAppStore((state) => state.lastSelectedThreadByMode.agent ?? null);
   const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource.agent ?? null);
 
   const host = useAgentConversationModeHost({
@@ -44,7 +43,7 @@ export function ChatAgentModeContent({
     onOpenAgentCenter: onOpenSettings,
     runtimeFields,
     selection: agentConversationSelection,
-    lastSelectedThreadId: lastSelectedAgentThread,
+    lastSelectedThreadId: null,
     setSelection: setAgentConversationSelection,
   });
 

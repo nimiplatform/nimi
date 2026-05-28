@@ -4,7 +4,6 @@ import type {
 } from '@nimiplatform/kit/features/chat/headless';
 import type {
   AgentLocalMessageRecord,
-  AgentLocalThreadBundle,
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import { toConversationMessageViewModel } from './chat-agent-thread-model';

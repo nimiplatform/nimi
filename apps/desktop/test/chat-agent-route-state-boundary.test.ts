@@ -17,3 +17,18 @@ test('agent conversation launcher keeps route identity out of runtimeFields', ()
   assert.doesNotMatch(source, /runtimeFields[^]*targetId:\s*agentId/);
   assert.doesNotMatch(source, /worldId:\s*input\.target\.worldId/);
 });
+
+test('agent conversation shell does not expose local thread selection as product surface', () => {
+  const adapterSource = readSource('apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
+  const presentationSource = readSource('apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
+  const adapterStateSource = readSource('apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-adapter-state.ts');
+  const uiSliceSource = readSource('apps/desktop/src/shell/renderer/app-shell/providers/ui-slice.ts');
+
+  assert.doesNotMatch(adapterSource, /onSelectThread:\s*handleSelectThread/u);
+  assert.doesNotMatch(presentationSource, /toConversationThreadSummary/u);
+  assert.doesNotMatch(presentationSource, /targetSummariesInput\.threads\.map/u);
+  assert.match(presentationSource, /listThreads:\s*\(\)\s*=>\s*\[\]/u);
+  assert.doesNotMatch(adapterStateSource, /selectionThreadId:\s*input\.selection\.threadId/u);
+  assert.doesNotMatch(adapterStateSource, /lastSelectedThreadId:\s*input\.lastSelectedThreadId/u);
+  assert.doesNotMatch(uiSliceSource, /agent:\s*selection\.threadId/u);
+});

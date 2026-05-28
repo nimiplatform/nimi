@@ -17,7 +17,6 @@ import {
   resolveAgentSelectedTargetId,
   resolveAgentTargetSummaries,
 } from './chat-agent-shell-view-model';
-import { toConversationThreadSummary } from './chat-agent-thread-model';
 import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
 import { resolveExecutionSchedulingGuardDecision } from './chat-shared-execution-scheduling-guard';
 import {
@@ -249,7 +248,7 @@ export function useAgentConversationPresentation(
     mode: 'agent' as const,
     setupState: input.setupState,
     threadAdapter: {
-      listThreads: () => input.targetSummariesInput.threads.map((thread) => toConversationThreadSummary(thread)),
+      listThreads: () => [],
       listMessages: (threadId: string) => (
         input.bundle && input.bundle.thread.id === threadId
           ? input.messages
@@ -269,7 +268,7 @@ export function useAgentConversationPresentation(
         placeholder: surfaceState.composer.placeholder,
       }
       : null,
-  }), [input.bundle, input.handleSubmit, input.messages, input.setupState, input.targetSummariesInput.threads, schedulingGuard.disabled, schedulingGuard.disabledReason, surfaceState.composer]);
+  }), [input.bundle, input.handleSubmit, input.messages, input.setupState, schedulingGuard.disabled, schedulingGuard.disabledReason, surfaceState.composer]);
   return useMemo(() => ({
     ...hostSnapshot,
     adapter,

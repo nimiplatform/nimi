@@ -107,7 +107,7 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
       return;
     }
     input.setSelection({
-      threadId: thread.id,
+      threadId: null,
       localAgentRef: thread.localAgentRef,
       targetId: thread.localAgentRef,
     });

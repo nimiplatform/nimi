@@ -36,7 +36,7 @@ export function resolveAgentTargetSummaries(input: {
     return {
       id: target.localAgentRef,
       source: 'agent' as const,
-      canonicalSessionId: existingThread?.id || target.localAgentRef,
+      canonicalSessionId: runtimeSummary?.conversationAnchorId || target.localAgentRef,
       title: target.displayName,
       handle: target.handle ? `@${target.handle}` : null,
       bio: target.bio || null,
