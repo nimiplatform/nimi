@@ -34,6 +34,11 @@ import {
   THREADS_QUERY_KEY,
 } from './chat-agent-shell-core';
 import {
+  listRuntimeAgentConversationSummaries,
+  RUNTIME_AGENT_CONVERSATION_SUMMARIES_QUERY_KEY,
+  type AgentRuntimeConversationSummary,
+} from './chat-agent-runtime-conversation-summaries';
+import {
   toRuntimeRouteBindingFromPickerSelection,
   type AIConfig,
 } from './conversation-capability';
@@ -62,6 +67,8 @@ type AgentConversationShellState = {
   initialModelSelection: Partial<RouteModelPickerSelection>;
   isBundleLoading: boolean;
   messages: ReturnType<typeof toConversationMessageViewModel>[];
+  runtimeConversationSummaries: AgentRuntimeConversationSummary[];
+  runtimeConversationSummariesReady: boolean;
   selectedThreadRecord: AgentLocalThreadSummary | null;
   streamState: ReturnType<typeof useConversationStreamState>;
   targetByLocalAgentRef: Map<string, AgentLocalTargetSnapshot>;
@@ -157,6 +164,26 @@ export function useAgentConversationShellState(
     () => new Map(targets.map((target) => [target.localAgentRef, target])),
     [targets],
   );
+  const runtimeConversationSummaryTargetKey = useMemo(
+    () => targets.map((target) => target.localAgentRef).sort().join('|'),
+    [targets],
+  );
+  const runtimeConversationSummariesQuery = useQuery({
+    queryKey: [
+      ...RUNTIME_AGENT_CONVERSATION_SUMMARIES_QUERY_KEY,
+      runtimeConversationSummaryTargetKey,
+    ],
+    queryFn: () => listRuntimeAgentConversationSummaries(targets),
+    enabled: input.authStatus === 'authenticated' && targetsQuery.isSuccess && targets.length > 0,
+    staleTime: 60_000,
+  });
+  const runtimeConversationSummaries = useMemo(
+    () => (targets.length === 0 ? [] : runtimeConversationSummariesQuery.data || []),
+    [runtimeConversationSummariesQuery.data, targets.length],
+  );
+  const runtimeConversationSummariesReady = targets.length === 0
+    ? targetsQuery.isSuccess
+    : runtimeConversationSummariesQuery.isSuccess;
 
   const threadsQuery = useQuery({
     queryKey: THREADS_QUERY_KEY,
@@ -235,6 +262,8 @@ export function useAgentConversationShellState(
     initialModelSelection,
     isBundleLoading,
     messages,
+    runtimeConversationSummaries,
+    runtimeConversationSummariesReady,
     selectedThreadRecord,
     streamState,
     targetByLocalAgentRef,

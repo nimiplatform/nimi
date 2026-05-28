@@ -2,6 +2,10 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { Timestamp } from '@nimiplatform/sdk/runtime/generated/google/protobuf/timestamp';
+import { ConversationAnchorStatus } from '@nimiplatform/sdk/runtime/generated/runtime/v1/agent_service';
+import type { AgentLocalTargetSnapshot } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
+import { toAgentRuntimeConversationSummary } from '../src/shell/renderer/features/chat/chat-agent-runtime-conversation-summaries.js';
 
 const repoRoot = resolve(import.meta.dirname, '../../..');
 
@@ -48,6 +52,71 @@ test('Runtime admits Agent Chat conversation summaries before store cutover impl
   assert.match(runtimeSpec, /does not admit close, delete, clear, archive, rename, or draft/);
   assert.match(rpcMethods, /name: ListAgentConversationSummaries[\s\S]*?type: unary/);
   assert.match(sdkMethods, /service: RuntimeAgentService[\s\S]*?ListAgentConversationSummaries/);
+});
+
+test('Desktop wires Runtime Agent conversation summaries as read-only projection', () => {
+  const adapter = readWorkspaceFile(
+    'apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-conversation-summaries.ts',
+  );
+  const state = readWorkspaceFile(
+    'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-adapter-state.ts',
+  );
+
+  assert.match(adapter, /runtime\.agent\.anchors\.listSummaries/);
+  assert.match(adapter, /ConversationAnchorStatus\.ACTIVE/);
+  assert.match(adapter, /export type AgentRuntimeConversationSummary/);
+  assert.doesNotMatch(adapter, /chatAgentStoreClient/);
+  assert.doesNotMatch(adapter, /commitTurnResult|getThreadBundle|createThread|putDraft|deleteThread/);
+
+  assert.match(state, /listRuntimeAgentConversationSummaries/);
+  assert.match(state, /runtimeConversationSummariesQuery/);
+  assert.match(state, /runtimeConversationSummariesReady/);
+});
+
+test('Runtime Agent conversation summary adapter keeps Runtime anchor identity explicit', () => {
+  const target: AgentLocalTargetSnapshot = {
+    ownerUserId: 'owner-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:owner-1:agent-1',
+    displayName: 'Guide',
+    handle: '@guide',
+    avatarUrl: null,
+    presentationProfile: null,
+    worldId: null,
+    worldName: null,
+    bio: null,
+    ownershipType: null,
+    greeting: null,
+    builtinDocsContext: null,
+  };
+
+  const summary = toAgentRuntimeConversationSummary(target, {
+    anchor: {
+      conversationAnchorId: 'anchor-1',
+      agentId: '',
+      subjectUserId: 'owner-1',
+      status: ConversationAnchorStatus.ACTIVE,
+      lastTurnId: 'turn-1',
+      lastMessageId: 'msg-anchor',
+      localAgentRef: 'local-agent:owner-1:agent-1',
+      ownerUserId: 'owner-1',
+      realmAgentId: 'agent-1',
+      createdAt: Timestamp.create({ seconds: '1700000000', nanos: 0 }),
+      updatedAt: Timestamp.create({ seconds: '1700000001', nanos: 250000000 }),
+    },
+    title: 'Runtime title',
+    lastMessageRole: 'assistant',
+    lastMessageText: 'Hello from Runtime',
+    lastMessageId: 'msg-summary',
+    transcriptMessageCount: 2,
+    updatedAt: Timestamp.create({ seconds: '1700000002', nanos: 500000000 }),
+  });
+
+  assert.equal(summary?.conversationAnchorId, 'anchor-1');
+  assert.equal(summary?.localAgentRef, target.localAgentRef);
+  assert.equal(summary?.lastMessageId, 'msg-summary');
+  assert.equal(summary?.updatedAtMs, 1700000002500);
+  assert.equal(summary?.targetSnapshot, target);
 });
 
 test('Desktop command classification treats chat_agent store commands as migration-scoped', () => {
