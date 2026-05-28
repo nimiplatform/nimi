@@ -2,13 +2,8 @@ import {
   assert,
   test,
   ReasonCode,
-  findAgentConversationThreadByLocalAgentRef,
-  resolveAgentConversationActiveThreadId,
   toAgentFriendTargetsFromSocialSnapshot,
   hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
-} from './chat-agent-local-mode-test-utils.js';
-import type {
-  AgentLocalThreadSummary,
 } from './chat-agent-local-mode-test-utils.js';
 
 test('agent local mode filters social snapshot to agent friends and fails close on broken agent targets', () => {
@@ -96,73 +91,6 @@ test('agent local mode treats Archivist as an ordinary agent friend target', () 
     builtinDocsContext: null,
   }]);
   assert.notEqual(targets[0]?.handle, '@archivist.nimi');
-});
-
-test('agent local mode resolves active cache thread only from selected AgentFriend', () => {
-  const threads: AgentLocalThreadSummary[] = [
-    {
-      id: 'thread-agent-1',
-      ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
-      title: 'Agent One',
-      updatedAtMs: 100,
-      lastMessageAtMs: 90,
-      targetSnapshot: {
-        ownerUserId: 'user-1',
-    realmAgentId: 'agent-1',
-    localAgentRef: 'local-agent:user-1:agent-1',
-        displayName: 'Agent One',
-        handle: 'agent-one',
-        avatarUrl: null,
-        presentationProfile: null,
-        worldId: null,
-        worldName: null,
-        bio: null,
-        ownershipType: null,
-        greeting: null,
-        builtinDocsContext: null,
-      },
-    },
-    {
-      id: 'thread-agent-2',
-      ownerUserId: 'user-1',
-    realmAgentId: 'agent-2',
-    localAgentRef: 'local-agent:user-1:agent-2',
-      title: 'Agent Two',
-      updatedAtMs: 200,
-      lastMessageAtMs: 180,
-      targetSnapshot: {
-        ownerUserId: 'user-1',
-    realmAgentId: 'agent-2',
-    localAgentRef: 'local-agent:user-1:agent-2',
-        displayName: 'Agent Two',
-        handle: 'agent-two',
-        avatarUrl: null,
-        presentationProfile: null,
-        worldId: null,
-        worldName: null,
-        bio: null,
-        ownershipType: null,
-        greeting: null,
-        builtinDocsContext: null,
-      },
-    },
-  ];
-
-  assert.equal(findAgentConversationThreadByLocalAgentRef(threads, 'local-agent:user-1:agent-2')?.id, 'thread-agent-2');
-  assert.equal(resolveAgentConversationActiveThreadId({
-    threads,
-    selectionLocalAgentRef: 'local-agent:user-1:agent-2',
-  }), 'thread-agent-2');
-  assert.equal(resolveAgentConversationActiveThreadId({
-    threads,
-    selectionLocalAgentRef: 'local-agent:user-1:agent-1',
-  }), 'thread-agent-1');
-  assert.equal(resolveAgentConversationActiveThreadId({
-    threads,
-    selectionLocalAgentRef: null,
-  }), null);
 });
 
 test('agent session hydration does not replace missing local bundle with text-only runtime snapshot without envelope', () => {

@@ -17,8 +17,6 @@ import {
 } from '../src/shell/renderer/features/chat/chat-nimi-route-view.js';
 import { resolveAgentTurnTotalTimeoutMs } from '../src/shell/renderer/features/chat/chat-agent-timeouts.js';
 import {
-  findAgentConversationThreadByLocalAgentRef,
-  resolveAgentConversationActiveThreadId,
   toAgentFriendTargetsFromSocialSnapshot,
 } from '../src/shell/renderer/features/chat/chat-agent-thread-model.js';
 import { hydrateAgentThreadBundleFromRuntimeSessionSnapshot } from '../src/shell/renderer/features/chat/chat-agent-session-hydration.js';
@@ -158,8 +156,6 @@ export {
   findRuntimeRouteModelProfile,
   resolveAgentChatRequestedMaxOutputTokens,
   resolveAgentTurnTotalTimeoutMs,
-  findAgentConversationThreadByLocalAgentRef,
-  resolveAgentConversationActiveThreadId,
   toAgentFriendTargetsFromSocialSnapshot,
   hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
   resolveAgentChatThinkingSupport,

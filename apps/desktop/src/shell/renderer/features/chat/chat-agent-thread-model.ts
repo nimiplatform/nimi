@@ -236,31 +236,6 @@ export function toAgentFriendTargetsFromSocialSnapshot(
     .sort((left, right) => left.displayName.localeCompare(right.displayName));
 }
 
-export function findAgentConversationThreadByLocalAgentRef(
-  threads: readonly AgentLocalThreadSummary[],
-  localAgentRef: string | null | undefined,
-): AgentLocalThreadSummary | null {
-  const normalizedLocalAgentRef = normalizeText(localAgentRef);
-  if (!normalizedLocalAgentRef) {
-    return null;
-  }
-  return threads.find((thread) => thread.localAgentRef === normalizedLocalAgentRef) || null;
-}
-
-export function resolveAgentConversationActiveThreadId(input: {
-  threads: readonly AgentLocalThreadSummary[];
-  selectionLocalAgentRef?: string | null | undefined;
-}): string | null {
-  const selectedAgentThread = findAgentConversationThreadByLocalAgentRef(
-    input.threads,
-    input.selectionLocalAgentRef,
-  );
-  if (selectedAgentThread) {
-    return selectedAgentThread.id;
-  }
-  return null;
-}
-
 export function toConversationMessageViewModel(
   message: AgentLocalMessageRecord,
 ): ConversationMessageViewModel {
