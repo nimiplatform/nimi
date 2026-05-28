@@ -214,6 +214,32 @@ Fixed rules:
   mutation policy; those actions remain covered by K-AGCORE-006a prerequisites
   until explicitly admitted elsewhere
 
+## K-AGCORE-006c Public Chat Transcript Envelope Projection
+
+`GetPublicChatSessionSnapshot` owns the app-facing replay envelope for
+Runtime-owned Agent Chat transcript messages.
+
+Fixed rules:
+
+- every transcript entry projected by `GetPublicChatSessionSnapshot` must carry
+  Runtime-owned replay identity fields (`id`, `created_at`, `updated_at`) when
+  the Runtime session has enough anchor/session state to derive them
+- transcript entry `status` and `kind` are projection metadata, not model
+  output truth; text transcript entries default to `status=complete` and
+  `kind=text`
+- transcript entry ids may be derived from `conversation_anchor_id` plus stable
+  transcript index until Runtime stores per-message ids directly; that
+  derivation is Runtime-owned and must not be re-derived differently by apps
+- transcript entry timestamps may be derived from Runtime anchor/session time
+  until Runtime stores per-message timestamps directly; apps may display them
+  but must not reinterpret them as provider event time
+- richer fields such as reasoning text, trace id, media/artifact metadata,
+  error state, and parent linkage remain optional projection fields and may only
+  be trusted when Runtime projects them
+- this envelope does not admit Desktop-local transcript persistence; it exists
+  to let apps replay Runtime session snapshots without fabricating transcript
+  identity locally
+
 ## K-AGCORE-007 Token Budget Authority
 
 `RuntimeAgentService` owns token budget policy for Life Track autonomy.

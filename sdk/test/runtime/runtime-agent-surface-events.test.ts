@@ -417,7 +417,29 @@ test('runtime agent session snapshot recovery stays anchor-native and consumer-o
             subject_user_id: 'subject-1',
             session_status: 'active',
             transcript_message_count: 2,
-            transcript: [{ role: 'user', content: 'hello' }, { role: 'assistant', content: 'hi there' }],
+            transcript: [
+              {
+                id: 'anchor-1:transcript:0',
+                role: 'user',
+                content: 'hello',
+                status: 'complete',
+                kind: 'text',
+                created_at: '2026-05-27T00:00:00Z',
+                updated_at: '2026-05-27T00:00:00Z',
+              },
+              {
+                id: 'anchor-1:transcript:1',
+                role: 'assistant',
+                content: 'hi there',
+                status: 'complete',
+                kind: 'text',
+                created_at: '2026-05-27T00:00:00.001Z',
+                updated_at: '2026-05-27T00:00:00.001Z',
+                trace_id: 'trace-1',
+                reasoning_text: 'thinking',
+                metadata: { source: 'runtime' },
+              },
+            ],
             execution_binding: { route: 'local', model_id: 'local/qwen2.5' },
             active_turn: { turn_id: 'turn-1', stream_id: 'stream-1', status: 'running', stream_sequence: 3 },
           } as never),
@@ -466,7 +488,29 @@ test('runtime agent session snapshot recovery stays anchor-native and consumer-o
     assert.equal(snapshot.requestId, 'req-1');
     assert.equal(snapshot.threadId, 'thread-1');
     assert.equal(snapshot.sessionStatus, 'active');
-    assert.deepEqual(snapshot.transcript, [{ role: 'user', content: 'hello' }, { role: 'assistant', content: 'hi there' }]);
+    assert.deepEqual(snapshot.transcript, [
+      {
+        id: 'anchor-1:transcript:0',
+        role: 'user',
+        content: 'hello',
+        status: 'complete',
+        kind: 'text',
+        createdAt: '2026-05-27T00:00:00Z',
+        updatedAt: '2026-05-27T00:00:00Z',
+      },
+      {
+        id: 'anchor-1:transcript:1',
+        role: 'assistant',
+        content: 'hi there',
+        status: 'complete',
+        kind: 'text',
+        createdAt: '2026-05-27T00:00:00.001Z',
+        updatedAt: '2026-05-27T00:00:00.001Z',
+        traceId: 'trace-1',
+        reasoningText: 'thinking',
+        metadata: { source: 'runtime' },
+      },
+    ]);
     assert.equal(snapshot.executionBinding?.modelId, 'local/qwen2.5');
     assert.equal(snapshot.activeTurn?.turnId, 'turn-1');
     assert.equal(snapshot.activeTurn?.streamId, 'stream-1');

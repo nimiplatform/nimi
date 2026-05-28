@@ -585,8 +585,28 @@ test('agent session hydration merges committed media projections when runtime te
     conversationAnchorId: 'anchor-1',
     snapshot: {
       transcript: [
-        { role: 'user', content: 'hello' },
-        { role: 'assistant', content: 'new answer' },
+        {
+          id: 'anchor-1:transcript:0',
+          role: 'user',
+          content: 'hello',
+          status: 'complete',
+          kind: 'text',
+          createdAt: '1970-01-01T00:00:05.000Z',
+          updatedAt: '1970-01-01T00:00:05.000Z',
+        },
+        {
+          id: 'anchor-1:transcript:1',
+          role: 'assistant',
+          content: 'new answer',
+          status: 'complete',
+          kind: 'text',
+          createdAt: '1970-01-01T00:00:05.001Z',
+          updatedAt: '1970-01-01T00:00:05.001Z',
+          parentMessageId: 'anchor-1:transcript:0',
+          traceId: 'trace-runtime-1',
+          reasoningText: 'runtime reasoning',
+          metadata: { source: 'runtime' },
+        },
       ],
       transcriptMessageCount: 2,
     },
@@ -603,7 +623,7 @@ test('agent session hydration merges committed media projections when runtime te
     artifactId: message.artifactId,
   })), [
     {
-      id: 'anchor-1:session:0',
+      id: 'anchor-1:transcript:0',
       kind: 'text',
       text: 'hello',
       mediaUrl: null,
@@ -611,7 +631,7 @@ test('agent session hydration merges committed media projections when runtime te
       artifactId: null,
     },
     {
-      id: 'anchor-1:session:1',
+      id: 'anchor-1:transcript:1',
       kind: 'text',
       text: 'new answer',
       mediaUrl: null,
@@ -627,5 +647,10 @@ test('agent session hydration merges committed media projections when runtime te
       artifactId: 'artifact-image-1',
     },
   ]);
+  assert.equal(hydrated?.messages[0]?.createdAtMs, 5000);
+  assert.equal(hydrated?.messages[1]?.parentMessageId, 'anchor-1:transcript:0');
+  assert.equal(hydrated?.messages[1]?.traceId, 'trace-runtime-1');
+  assert.equal(hydrated?.messages[1]?.reasoningText, 'runtime reasoning');
+  assert.deepEqual(hydrated?.messages[1]?.metadataJson, { source: 'runtime' });
   assert.equal(hydrated?.thread.lastMessageAtMs, 6000);
 });

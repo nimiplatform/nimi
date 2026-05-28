@@ -142,7 +142,9 @@ Required replacement coverage before deletion:
 - Runtime / SDK can list the calling app's Agent Chat conversation summaries
   without reading Desktop SQLite.
 - Runtime / SDK can recover a selected conversation through
-  `ConversationAnchor` plus `GetPublicChatSessionSnapshot`.
+  `ConversationAnchor` plus `GetPublicChatSessionSnapshot`, including
+  Runtime-owned transcript replay envelope fields for stable message identity,
+  timestamps, status, and kind.
 - Runtime / SDK has an admitted close / delete / clear policy for user-visible
   conversation history, or the Desktop product explicitly removes those actions.
 - Draft persistence is owned by an admitted draft-only surface, such as

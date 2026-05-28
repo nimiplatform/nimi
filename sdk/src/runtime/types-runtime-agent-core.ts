@@ -1,9 +1,21 @@
 import type { NimiReasoningConfig, NimiRoutePolicy, NimiTraceInfo } from './types-media.js';
 
 export type RuntimeAgentMessage = {
+  id?: string;
   role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
   name?: string;
+  status?: 'pending' | 'complete' | 'error';
+  kind?: 'text' | 'image' | 'voice' | 'video' | 'tool';
+  createdAt?: string;
+  updatedAt?: string;
+  parentMessageId?: string;
+  traceId?: string;
+  reasoningText?: string;
+  mediaUrl?: string;
+  mediaMimeType?: string;
+  artifactId?: string;
+  metadata?: Record<string, unknown>;
 };
 
 export type RuntimeAgentExecutionBinding = {

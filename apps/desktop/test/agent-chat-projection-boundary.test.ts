@@ -50,6 +50,9 @@ test('Runtime admits Agent Chat conversation summaries before store cutover impl
   assert.match(runtimeSpec, /ListAgentConversationSummaries/);
   assert.match(runtimeSpec, /derived\s+presentation text/);
   assert.match(runtimeSpec, /does not admit close, delete, clear, archive, rename, or draft/);
+  assert.match(runtimeSpec, /K-AGCORE-006c/);
+  assert.match(runtimeSpec, /Runtime-owned replay identity fields/);
+  assert.match(runtimeSpec, /must not be re-derived differently by apps/);
   assert.match(rpcMethods, /name: ListAgentConversationSummaries[\s\S]*?type: unary/);
   assert.match(sdkMethods, /service: RuntimeAgentService[\s\S]*?ListAgentConversationSummaries/);
 });

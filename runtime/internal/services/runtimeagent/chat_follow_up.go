@@ -215,14 +215,39 @@ func publicChatMessagePayloadsFromProto(input []*runtimev1.ChatMessage) []public
 	return out
 }
 
-func publicChatMessageEnvelopePayloads(input []*runtimev1.ChatMessage) []any {
+func publicChatTranscriptMessageID(anchorID string, index int) string {
+	trimmedAnchorID := strings.TrimSpace(anchorID)
+	if trimmedAnchorID == "" {
+		trimmedAnchorID = "runtime-agent-session"
+	}
+	return fmt.Sprintf("%s:transcript:%d", trimmedAnchorID, index)
+}
+
+func publicChatTranscriptMessageTimestamp(createdAt time.Time, updatedAt time.Time, index int) string {
+	base := createdAt.UTC()
+	if base.IsZero() {
+		base = updatedAt.UTC()
+	}
+	if base.IsZero() {
+		base = time.Unix(0, 0).UTC()
+	}
+	return base.Add(time.Duration(index) * time.Millisecond).Format(time.RFC3339Nano)
+}
+
+func publicChatMessageEnvelopePayloads(input []*runtimev1.ChatMessage, anchorID string, createdAt time.Time, updatedAt time.Time) []any {
 	payloads := publicChatMessagePayloadsFromProto(input)
 	out := make([]any, 0, len(payloads))
-	for _, item := range payloads {
+	for index, item := range payloads {
+		timestamp := publicChatTranscriptMessageTimestamp(createdAt, updatedAt, index)
 		out = append(out, map[string]any{
-			"role":    item.Role,
-			"content": item.Content,
-			"name":    item.Name,
+			"id":         publicChatTranscriptMessageID(anchorID, index),
+			"role":       item.Role,
+			"content":    item.Content,
+			"name":       item.Name,
+			"status":     "complete",
+			"kind":       "text",
+			"created_at": timestamp,
+			"updated_at": timestamp,
 		})
 	}
 	return out

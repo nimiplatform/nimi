@@ -35,6 +35,31 @@ function isCommittedTextProjectionMessage(message: AgentLocalMessageRecord): boo
   return message.status !== 'pending' && !isCommittedMediaProjectionMessage(message);
 }
 
+function parseIsoTimestampMs(value: unknown): number | null {
+  const normalized = normalizeText(value);
+  if (!normalized) {
+    return null;
+  }
+  const parsed = Date.parse(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function toMessageStatus(value: unknown): AgentLocalMessageRecord['status'] {
+  const normalized = normalizeText(value);
+  if (normalized === 'pending' || normalized === 'complete' || normalized === 'error') {
+    return normalized;
+  }
+  return 'complete';
+}
+
+function toMessageKind(value: unknown): AgentLocalMessageRecord['kind'] {
+  const normalized = normalizeText(value);
+  if (normalized === 'image' || normalized === 'voice') {
+    return normalized;
+  }
+  return 'text';
+}
+
 function toHydratedMessageRecord(input: {
   threadId: string;
   conversationAnchorId: string;
@@ -60,23 +85,25 @@ function toHydratedMessageRecord(input: {
     && normalizeText(previous.role) === 'user'
       ? `${input.conversationAnchorId}:session:${input.index - 1}`
       : null;
+  const createdAtMs = parseIsoTimestampMs(message.createdAt) ?? input.createdAtMs;
+  const updatedAtMs = parseIsoTimestampMs(message.updatedAt) ?? createdAtMs;
   return {
-    id: `${input.conversationAnchorId}:session:${input.index}`,
+    id: normalizeText(message.id) || `${input.conversationAnchorId}:session:${input.index}`,
     threadId: input.threadId,
     role,
-    status: 'complete',
-    kind: 'text',
+    status: toMessageStatus(message.status),
+    kind: toMessageKind(message.kind),
     contentText,
-    reasoningText: null,
+    reasoningText: normalizeText(message.reasoningText) || null,
     error: null,
-    traceId: null,
-    parentMessageId,
-    mediaUrl: null,
-    mediaMimeType: null,
-    artifactId: null,
-    metadataJson: null,
-    createdAtMs: input.createdAtMs,
-    updatedAtMs: input.createdAtMs,
+    traceId: normalizeText(message.traceId) || null,
+    parentMessageId: normalizeText(message.parentMessageId) || parentMessageId,
+    mediaUrl: normalizeText(message.mediaUrl) || null,
+    mediaMimeType: normalizeText(message.mediaMimeType) || null,
+    artifactId: normalizeText(message.artifactId) || null,
+    metadataJson: message.metadata && Object.keys(message.metadata).length > 0 ? message.metadata : null,
+    createdAtMs,
+    updatedAtMs,
   };
 }
 

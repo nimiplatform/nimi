@@ -930,7 +930,23 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 		t.Fatalf("expected committed assistant in transcript, got snapshot=%v", snapshotDetail)
 	}
 	transcript := snapshotDetail["transcript"].([]any)
+	user := transcript[0].(map[string]any)
+	if got := user["id"]; got != anchorID+":transcript:0" {
+		t.Fatalf("expected transcript[0].id to be runtime-owned envelope id, got=%v", user)
+	}
+	if got := user["status"]; got != "complete" {
+		t.Fatalf("expected transcript[0].status=complete, got=%v", user)
+	}
+	if got := user["kind"]; got != "text" {
+		t.Fatalf("expected transcript[0].kind=text, got=%v", user)
+	}
+	if got := strings.TrimSpace(fmt.Sprint(user["created_at"])); got == "" {
+		t.Fatalf("expected transcript[0].created_at, got=%v", user)
+	}
 	assistant := transcript[1].(map[string]any)
+	if got := assistant["id"]; got != anchorID+":transcript:1" {
+		t.Fatalf("expected transcript[1].id to be runtime-owned envelope id, got=%v", assistant)
+	}
 	if got := assistant["role"]; got != "assistant" {
 		t.Fatalf("expected transcript[1].role=assistant, got=%v", assistant)
 	}

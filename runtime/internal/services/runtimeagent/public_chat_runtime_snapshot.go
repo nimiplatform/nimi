@@ -75,7 +75,7 @@ func (r publicChatRuntime) buildSessionSnapshotFromState(
 		"subject_user_id":          session.SubjectUserID,
 		"session_status":           publicChatSessionStatus(activeTurn, pendingFollowUp),
 		"transcript_message_count": len(session.Transcript),
-		"transcript":               publicChatMessageEnvelopePayloads(session.Transcript),
+		"transcript":               publicChatMessageEnvelopePayloads(session.Transcript, session.ConversationAnchorID, session.CreatedAt, session.UpdatedAt),
 		"execution_binding":        publicChatExecutionBindingProjectionPayload(session.Binding),
 	}
 	if trimmed := strings.TrimSpace(requestID); trimmed != "" {
