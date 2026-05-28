@@ -94,14 +94,6 @@ async function resolveInvokeInput(
     });
   }
 
-  if (resolved.source === 'local') {
-    return {
-      targetId: CORE_CHAT_AI_TARGET_ID,
-      resolvedBinding: resolved,
-      prompt: input.prompt,
-    };
-  }
-
   return {
     targetId: CORE_CHAT_AI_TARGET_ID,
     resolvedBinding: resolved,
