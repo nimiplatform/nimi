@@ -84,6 +84,19 @@ test('Desktop wires Runtime Agent conversation summaries as read-only projection
   assert.match(state, /listRuntimeAgentConversationSummaries/);
   assert.match(state, /runtimeConversationSummariesQuery/);
   assert.match(state, /runtimeConversationSummariesReady/);
+  // Active selection must not read from the migration-scoped chat_agent_*
+  // listThreads store; it derives from the selected localAgentRef plus the
+  // Runtime conversation summary projection (D-LLM-025a / D-LLM-107).
+  assert.doesNotMatch(state, /chatAgentStoreClient\.listThreads/);
+  assert.match(state, /synthesizeAgentThreadSummaryFromRuntimeSummary/);
+  assert.match(state, /synthesizeAgentThreadSummaryFromTarget/);
+  assert.match(state, /createAgentConversationCacheThreadId/);
+  assert.match(state, /threadsReady:\s*runtimeConversationSummariesReady/);
+  // getThreadBundle stays only as a remediation fallback for previously
+  // committed media/artifact projection rows until Runtime owns those
+  // projections directly.
+  assert.match(state, /remediationBundleQuery/);
+  assert.match(state, /Remediation-only committed media\/artifact projection cache fallback/);
 });
 
 test('Runtime Agent conversation summary adapter keeps Runtime anchor identity explicit', () => {

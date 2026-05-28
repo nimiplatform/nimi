@@ -13,7 +13,6 @@ import type {
 import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import {
   overlayAgentTargetWithLiveProfileContent,
-  resolveAgentConversationActiveThreadId,
   toAgentFriendTargetsFromSocialSnapshot,
   toConversationMessageViewModel,
 } from './chat-agent-thread-model';
@@ -28,10 +27,10 @@ import {
 } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import {
   bundleQueryKey,
+  createAgentConversationCacheThreadId,
   isEmptyPendingAssistantMessage,
   sortThreadSummaries,
   TARGETS_QUERY_KEY,
-  THREADS_QUERY_KEY,
 } from './chat-agent-shell-core';
 import {
   listRuntimeAgentConversationSummaries,
@@ -46,6 +45,36 @@ import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop
 import { loadDesktopRouteOptions } from '../runtime-config/desktop-route-options-service';
 
 type SocialSnapshot = Awaited<ReturnType<typeof dataSync.loadSocialSnapshot>>;
+
+function synthesizeAgentThreadSummaryFromRuntimeSummary(
+  summary: AgentRuntimeConversationSummary,
+): AgentLocalThreadSummary {
+  return {
+    id: createAgentConversationCacheThreadId(summary.localAgentRef),
+    ownerUserId: summary.ownerUserId,
+    realmAgentId: summary.realmAgentId,
+    localAgentRef: summary.localAgentRef,
+    title: summary.title,
+    updatedAtMs: summary.updatedAtMs,
+    lastMessageAtMs: summary.updatedAtMs || null,
+    targetSnapshot: summary.targetSnapshot,
+  };
+}
+
+function synthesizeAgentThreadSummaryFromTarget(
+  target: AgentLocalTargetSnapshot,
+): AgentLocalThreadSummary {
+  return {
+    id: createAgentConversationCacheThreadId(target.localAgentRef),
+    ownerUserId: target.ownerUserId,
+    realmAgentId: target.realmAgentId,
+    localAgentRef: target.localAgentRef,
+    title: target.displayName,
+    updatedAtMs: 0,
+    lastMessageAtMs: null,
+    targetSnapshot: target,
+  };
+}
 
 type UseAgentConversationShellStateInput = {
   aiConfig: AIConfig;
@@ -184,30 +213,31 @@ export function useAgentConversationShellState(
     ? targetsQuery.isSuccess
     : runtimeConversationSummariesQuery.isSuccess;
 
-  const threadsQuery = useQuery({
-    queryKey: THREADS_QUERY_KEY,
-    queryFn: () => chatAgentStoreClient.listThreads(),
-    enabled: input.authStatus === 'authenticated',
-  });
-  const threads = useMemo(
-    () => sortThreadSummaries(threadsQuery.data || []),
-    [threadsQuery.data],
-  );
-  const activeThreadId = useMemo(
-    () => resolveAgentConversationActiveThreadId({
-      threads,
-      selectionLocalAgentRef: input.selection.localAgentRef,
-    }),
-    [input.selection.localAgentRef, threads],
-  );
-  const selectedThreadRecord = useMemo(
-    () => threads.find((thread) => thread.id === activeThreadId) || null,
-    [activeThreadId, threads],
-  );
   const selectedTarget = useMemo(
     () => targetByLocalAgentRef.get(input.selection.localAgentRef || '') || null,
     [input.selection.localAgentRef, targetByLocalAgentRef],
   );
+  const runtimeConversationSummaryByLocalAgentRef = useMemo(
+    () => new Map(runtimeConversationSummaries.map((summary) => [summary.localAgentRef, summary])),
+    [runtimeConversationSummaries],
+  );
+  const threads = useMemo<AgentLocalThreadSummary[]>(
+    () => sortThreadSummaries(
+      runtimeConversationSummaries.map((summary) => synthesizeAgentThreadSummaryFromRuntimeSummary(summary)),
+    ),
+    [runtimeConversationSummaries],
+  );
+  const selectedThreadRecord = useMemo<AgentLocalThreadSummary | null>(() => {
+    if (!selectedTarget) {
+      return null;
+    }
+    const runtimeSummary = runtimeConversationSummaryByLocalAgentRef.get(selectedTarget.localAgentRef) || null;
+    if (runtimeSummary) {
+      return synthesizeAgentThreadSummaryFromRuntimeSummary(runtimeSummary);
+    }
+    return synthesizeAgentThreadSummaryFromTarget(selectedTarget);
+  }, [runtimeConversationSummaryByLocalAgentRef, selectedTarget]);
+  const activeThreadId = selectedThreadRecord?.id || null;
   const anchorBindingVersion = useSyncExternalStore(
     subscribeAgentConversationAnchorBindings,
     getAgentConversationAnchorBindingVersion,
@@ -233,13 +263,19 @@ export function useAgentConversationShellState(
   }, [selectedTarget, selectedThreadRecord?.targetSnapshot]);
   const agentRouteReady = agentResolution?.ready === true;
 
-  const bundleQuery = useQuery({
+  // Remediation-only committed media/artifact projection cache fallback.
+  // Runtime session snapshots own Agent Chat text transcript replay; this read
+  // exists so previously committed media/artifact projection rows are still
+  // surfaced until Runtime owns those projections directly (D-LLM-025a /
+  // D-LLM-107). It must not become the source of active selection or text
+  // replay truth.
+  const remediationBundleQuery = useQuery({
     queryKey: activeThreadId ? bundleQueryKey(activeThreadId) : ['chat-agent-thread-bundle', 'inactive'],
     queryFn: () => chatAgentStoreClient.getThreadBundle(activeThreadId as string),
     enabled: Boolean(activeThreadId),
     staleTime: 60_000,
   });
-  const bundle = bundleQuery.data || null;
+  const bundle = remediationBundleQuery.data || null;
   const projectedBundle = useAgentVisibleProjection(activeThreadId);
   const visibleMessages = projectedBundle?.messages || bundle?.messages || [];
   const messages = useMemo(
@@ -249,7 +285,7 @@ export function useAgentConversationShellState(
     [visibleMessages],
   );
   const streamState = useConversationStreamState(activeThreadId);
-  const isBundleLoading = Boolean(activeThreadId) && bundleQuery.isPending && !bundle;
+  const isBundleLoading = Boolean(activeThreadId) && remediationBundleQuery.isPending && !bundle;
 
   return {
     activeTarget,
@@ -258,7 +294,7 @@ export function useAgentConversationShellState(
     agentResolution,
     agentRouteReady,
     bundle,
-    bundleError: bundleQuery.error,
+    bundleError: remediationBundleQuery.error,
     handleModelSelectionChange,
     initialModelSelection,
     isBundleLoading,
@@ -273,6 +309,6 @@ export function useAgentConversationShellState(
     targetsReady: targetsQuery.isSuccess,
     textRouteModelProfile,
     threads,
-    threadsReady: threadsQuery.isSuccess,
+    threadsReady: runtimeConversationSummariesReady,
   };
 }

@@ -32,6 +32,13 @@ test('agent conversation shell does not expose local thread selection as product
   assert.doesNotMatch(adapterStateSource, /lastSelectedThreadId:\s*input\.lastSelectedThreadId/u);
   assert.doesNotMatch(adapterStateSource, /selectionThreadId|lastSelectedThreadId/u);
   assert.doesNotMatch(uiSliceSource, /agent:\s*selection\.threadId/u);
+  // Active selection must derive from the Runtime conversation summary
+  // projection plus localAgentRef, not from chat_agent_* listThreads
+  // (D-LLM-025a / D-LLM-107, K-AGCORE-006a/b/c).
+  assert.doesNotMatch(adapterStateSource, /chatAgentStoreClient\.listThreads/u);
+  assert.doesNotMatch(adapterStateSource, /resolveAgentConversationActiveThreadId/u);
+  assert.match(adapterStateSource, /synthesizeAgentThreadSummaryFromRuntimeSummary/u);
+  assert.match(adapterStateSource, /createAgentConversationCacheThreadId/u);
 });
 
 test('agent runtime summary projection requests one active conversation per AgentFriend', () => {
