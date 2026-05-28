@@ -457,7 +457,7 @@ function evaluateGoldPath(report, options) {
 
   for (const fixture of gatedDashscopeFixtures) {
     const fixtureId = String(fixture.fixture_id || '').trim() || 'unknown-fixture';
-    for (const layer of ['L0', 'L1', 'L2', 'L3']) {
+    for (const layer of ['L0', 'L1', 'L2']) {
       const status = String(fixture?.layers?.[layer]?.status || '').trim();
       const cellId = `gold_path:${fixtureId}:${layer}`;
       if (status === 'passed') {

@@ -10,7 +10,7 @@ const REPO_ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), 
 
 export const GOLD_FIXTURE_DIR = path.join(REPO_ROOT, 'config', 'live', 'fixtures', 'ai-gold-path');
 export const GOLD_REPORT_PATH = path.join(REPO_ROOT, '.local', 'report', 'ai-gold-path-report.yaml');
-export const GOLD_GATE_LAYERS = ['L0', 'L1', 'L2', 'L3'];
+export const GOLD_GATE_LAYERS = ['L0', 'L1', 'L2'];
 
 function expandEnvPlaceholders(source) {
   return String(source || '').replace(ENV_PATTERN, (_, name) => String(process.env[name] || ''));

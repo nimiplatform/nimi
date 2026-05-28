@@ -78,19 +78,11 @@ const checks = [
     ],
   },
   {
-    description: 'desktop replay summaries and workflow replay requests must stay typed instead of raw record payloads',
-    pattern: 'artifactSummary\\?: Record<string, unknown>|request: Record<string, unknown>|summary: Record<string, unknown>',
-    paths: [
-      'apps/desktop/src/runtime/llm-adapter/execution/replay.ts',
-    ],
-  },
-  {
     description: 'desktop runtime execution bridges must not carry redundant fallbackPolicy fields or re-inject fallback deny into stable requests',
     pattern: 'fallbackPolicy|fallback:\\s*resolved\\.',
     paths: [
       'apps/desktop/src/runtime/llm-adapter/execution/runtime-ai-bridge.ts',
       'apps/desktop/src/runtime/llm-adapter/execution/invoke-text.ts',
-      'apps/desktop/src/runtime/llm-adapter/execution/replay.ts',
     ],
   },
 ];

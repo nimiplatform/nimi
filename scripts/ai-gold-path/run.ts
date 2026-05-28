@@ -313,11 +313,7 @@ async function evaluateFixture(fixture: ReturnType<typeof loadGoldFixture>): Pro
           ],
           path.join(repoRoot, 'sdk'),
         );
-        record.layers.L3 = runCommandLayer(
-          'pnpm',
-          ['--filter', '@nimiplatform/desktop', 'exec', 'tsx', 'test/helpers/ai-gold-path-runner.ts', '--endpoint', endpoint, '--fixture', fixture.path],
-          repoRoot,
-        );
+        record.layers.L3 = reservedLayer('legacy desktop bridge replay layer removed');
         record.layers.L4 = reservedLayer('legacy mod consumer layer removed');
       },
     });
@@ -325,7 +321,7 @@ async function evaluateFixture(fixture: ReturnType<typeof loadGoldFixture>): Pro
     const daemonFailure = failedLayer(error);
     record.layers.L1 = record.layers.L1 || daemonFailure;
     record.layers.L2 = record.layers.L2 || daemonFailure;
-    record.layers.L3 = record.layers.L3 || daemonFailure;
+    record.layers.L3 = record.layers.L3 || reservedLayer('legacy desktop bridge replay layer removed');
     record.layers.L4 = record.layers.L4 || reservedLayer('legacy mod consumer layer removed');
   }
 
