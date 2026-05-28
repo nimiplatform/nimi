@@ -19,7 +19,6 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import type { AgentLocalThreadBundle } from '@renderer/bridge/runtime-bridge/types';
-import { type RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import {
   type AgentTurnLifecycleState,
@@ -81,7 +80,6 @@ type UseAgentConversationModeHostInput = {
   diagnosticsVisible: boolean;
   onDiagnosticsVisibilityChange?: (visible: boolean) => void;
   onOpenAgentCenter?: () => void;
-  runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
   selection: AgentConversationSelection;
   lastSelectedThreadId: string | null;

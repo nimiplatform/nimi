@@ -42,7 +42,6 @@ export function ChatAgentModeContent({
     diagnosticsVisible: settingsOpen && diagnosticsSectionVisible,
     onDiagnosticsVisibilityChange: setDiagnosticsSectionVisible,
     onOpenAgentCenter: onOpenSettings,
-    runtimeConfigState: null,
     runtimeFields,
     selection: agentConversationSelection,
     lastSelectedThreadId: lastSelectedAgentThread,
