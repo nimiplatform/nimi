@@ -7,6 +7,7 @@ import type {
   ConversationSetupState,
 } from '@nimiplatform/kit/features/chat/headless';
 import type { AgentLocalTargetSnapshot, AgentLocalThreadBundle, AgentLocalThreadSummary } from '@renderer/bridge/runtime-bridge/types';
+import type { AgentRuntimeConversationSummary } from './chat-agent-runtime-conversation-summaries';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
 import type { AISchedulingJudgement } from '@nimiplatform/sdk/ai';
@@ -89,6 +90,7 @@ export type UseAgentConversationPresentationInput = {
   targetSummariesInput: {
     targets: readonly AgentLocalTargetSnapshot[];
     threads: readonly AgentLocalThreadSummary[];
+    runtimeConversationSummaries?: readonly AgentRuntimeConversationSummary[];
   };
   targetsPending: boolean;
   thinkingPreference: ChatThinkingPreference;

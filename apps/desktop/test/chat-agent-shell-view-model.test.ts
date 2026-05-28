@@ -117,6 +117,30 @@ test('agent shell view model prefers persisted thread snapshot avatar for target
   });
 });
 
+test('agent shell view model uses Runtime summaries for target preview metadata', () => {
+  const summaries = resolveAgentTargetSummaries({
+    targets: sampleTargets(),
+    threads: sampleThreads(),
+    runtimeConversationSummaries: [{
+      conversationAnchorId: 'anchor-agent-1',
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
+      title: 'Runtime title',
+      lastMessageRole: 'assistant',
+      lastMessageText: 'Runtime remembered this conversation.',
+      lastMessageId: 'runtime-message-1',
+      transcriptMessageCount: 4,
+      updatedAtMs: 1_774_000_000_250,
+      targetSnapshot: sampleTargets()[0]!,
+    }],
+  });
+
+  assert.equal(summaries[0]?.previewText, 'Runtime remembered this conversation.');
+  assert.equal(summaries[0]?.updatedAt, '2026-03-20T09:46:40.250Z');
+  assert.equal(summaries[0]?.canonicalSessionId, 'thread-agent-1');
+});
+
 test('agent shell view model resolves canonical messages with user/agent sender metadata', () => {
   const messages = resolveAgentCanonicalMessages({
     messages: [{

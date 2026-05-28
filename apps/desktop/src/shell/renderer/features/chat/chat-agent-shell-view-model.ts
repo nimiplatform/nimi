@@ -7,13 +7,26 @@ import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
+import type { AgentRuntimeConversationSummary } from './chat-agent-runtime-conversation-summaries';
+
+function toIsoStringFromMs(value: number): string | null {
+  if (!Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  return new Date(value).toISOString();
+}
 
 export function resolveAgentTargetSummaries(input: {
   targets: readonly AgentLocalTargetSnapshot[];
   threads: readonly AgentLocalThreadSummary[];
+  runtimeConversationSummaries?: readonly AgentRuntimeConversationSummary[];
 }): ConversationTargetSummary[] {
+  const runtimeSummaryByLocalAgentRef = new Map(
+    (input.runtimeConversationSummaries || []).map((summary) => [summary.localAgentRef, summary]),
+  );
   return input.targets.map((target) => {
     const existingThread = input.threads.find((thread) => thread.localAgentRef === target.localAgentRef) || null;
+    const runtimeSummary = runtimeSummaryByLocalAgentRef.get(target.localAgentRef) || null;
     const persistedTarget = existingThread?.targetSnapshot || null;
     const resolvedTarget = {
       ...target,
@@ -29,8 +42,8 @@ export function resolveAgentTargetSummaries(input: {
       bio: target.bio || null,
       avatarUrl: resolvedTarget.avatarUrl || null,
       avatarFallback: target.displayName.charAt(0).toUpperCase() || 'A',
-      previewText: null,
-      updatedAt: null,
+      previewText: runtimeSummary?.lastMessageText || null,
+      updatedAt: runtimeSummary ? toIsoStringFromMs(runtimeSummary.updatedAtMs) : null,
       unreadCount: 0,
       status: 'active' as const,
       isOnline: null,
