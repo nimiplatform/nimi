@@ -413,13 +413,10 @@ export async function submitAgentConversationTurn(input: {
       if (activeSubmit.overrideRequested && runtimeError.code === 'OPERATION_ABORTED') {
         return;
       }
-      const refreshedBundle = submitSession.lifecycle.projectionVersion
-        ? await chatAgentStoreClient.getThreadBundle(effectiveThreadId)
-        : null;
       input.hostInput.currentDraftTextRef.current = submittedText;
       submitSession = input.hostInput.applyDriverEffects(effectiveThreadId, resolveInterruptedAgentSubmitDriverCheckpoint({
         state: submitSession,
-        refreshedBundle,
+        refreshedBundle: null,
         runtimeError,
         updatedAtMs: Date.now(),
         streamSnapshot,
