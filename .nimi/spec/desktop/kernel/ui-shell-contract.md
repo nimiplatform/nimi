@@ -50,7 +50,7 @@ extension channel、install surface、或 registry promise。
 代码分割策略：
 
 - **同步加载**：shell-core、bridge（首屏必需）。
-- **懒加载**：chat、explore、settings、profile、runtime-view、local-ai、external-agent。
+- **懒加载**：chat、explore、settings、profile，以及 Runtime Config 的 overview/cloud/local/runtime/catalog/profiles/recommend 子分包。
 
 懒加载通过 `React.lazy(() => import(...))` 实现，配合 `Suspense` 边界。
 

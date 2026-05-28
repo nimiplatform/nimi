@@ -406,13 +406,6 @@ export default defineConfig(({ mode }) => {
                 return 'runtime-config-runtime';
               }
               if (matchesAny(normalizedId, [
-                '/runtime-config-page-knowledge',
-                '/runtime-config-page-knowledge-',
-                '/runtime-config-knowledge-',
-              ])) {
-                return 'runtime-config-knowledge';
-              }
-              if (matchesAny(normalizedId, [
                 '/runtime-config-page-catalog',
                 '/runtime-config-catalog-',
               ])) {
@@ -459,7 +452,6 @@ export default defineConfig(({ mode }) => {
             }
             if (
               normalizedId.includes('/apps/desktop/src/runtime/local-runtime/')
-              || normalizedId.includes('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/local-ai')
               || normalizedId.includes('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/external-agent')
               || normalizedId.includes('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/')
               || normalizedId.endsWith('/apps/desktop/src/shell/renderer/bridge/runtime-bridge.ts')

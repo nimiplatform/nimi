@@ -17,12 +17,22 @@ test('runtime config hard-cuts the retired knowledge management page', () => {
   const sidebar = readRuntimeConfigFile('runtime-config-sidebar.tsx');
   const panel = readRuntimeConfigFile('runtime-config-panel-view.tsx');
   const meta = readRuntimeConfigFile('runtime-config-meta-v11.ts');
+  const viteConfig = readFileSync(
+    path.join(import.meta.dirname, '../vite.config.ts'),
+    'utf8',
+  );
+  const buildChunks = readFileSync(
+    path.join(import.meta.dirname, '../../../.nimi/spec/desktop/kernel/tables/build-chunks.yaml'),
+    'utf8',
+  );
 
   assert.doesNotMatch(stateTypes, /'knowledge'/);
   assert.doesNotMatch(sidebar, /id:\s*'knowledge'/);
   assert.doesNotMatch(sidebar, /runtimeConfig\.sidebar\.knowledge/);
   assert.doesNotMatch(panel, /KnowledgePage|runtimePageRoot\('knowledge'\)/);
   assert.doesNotMatch(meta, /knowledge:\s*{/);
+  assert.doesNotMatch(viteConfig, /runtime-config-(?:page-)?knowledge/);
+  assert.doesNotMatch(buildChunks, /runtime-config-(?:page-)?knowledge|chunk:\s*runtime-config-knowledge/);
 
   const retiredFiles = [
     'runtime-config-knowledge-sdk-service.ts',
