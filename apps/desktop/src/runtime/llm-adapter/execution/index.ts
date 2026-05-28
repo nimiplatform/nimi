@@ -1,7 +1,5 @@
 export type {
   CheckLlmHealthInput,
-  ExecuteLocalKernelTurnInput,
-  ExecuteLocalKernelTurnResult,
   InvokeRuntimeLlmInput,
   InvokeRuntimeLlmOutput,
   ProviderHealth,
@@ -9,4 +7,3 @@ export type {
 
 export { checkLocalLlmHealth } from './health-check';
 export { invokeRuntimeLlm } from './invoke-text';
-export { executeLocalKernelTurn } from './kernel-turn';

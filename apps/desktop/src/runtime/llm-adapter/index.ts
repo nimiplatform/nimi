@@ -1,7 +1,5 @@
-export { checkLocalLlmHealth, executeLocalKernelTurn } from './execution';
+export { checkLocalLlmHealth } from './execution';
 export type {
   CheckLlmHealthInput,
-  ExecuteLocalKernelTurnInput,
-  ExecuteLocalKernelTurnResult,
   ProviderHealth,
 } from './execution';

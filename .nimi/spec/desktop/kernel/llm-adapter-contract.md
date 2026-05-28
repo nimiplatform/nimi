@@ -35,8 +35,9 @@ cloud connector 路径必须保持 runtime-only：Desktop 不得恢复 legacy pr
 - Desktop LLM execution adapter 必须消费 SDK route facade 返回的 resolved route
   projection；不得从 provider/model/endpoint/runtimeFields/connector 默认模型
   重新推断 `source`、engine、resolved model id、warm candidate、或 fallback policy。
-- `ExecuteLocalTurnInput` 封装完整请求（sessionId、turnIndex、mode、provider、model 参数）。
-- `mode: 'STORY' | 'SCENE_TURN'` 确定对话模式。
+- Agent Chat turn execution 必须通过 Runtime Agent APIs / SDK projection；Desktop
+  不得封装本地 kernel turn 请求、拼装 prompt、合成 state delta / memory
+  writes / audit events、或用本地 mode 枚举替代 Runtime turn truth。
 
 ## D-LLM-003 — Connector 凭据路由
 

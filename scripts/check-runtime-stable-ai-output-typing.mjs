@@ -71,10 +71,10 @@ const checks = [
     ],
   },
   {
-    description: 'desktop local kernel turn result must stay a named typed contract instead of a raw record payload',
-    pattern: 'ExecuteLocalKernelTurnResult = Record<string, unknown>|stateDelta: \\(result\\.stateDelta as Record<string, unknown>\\)',
+    description: 'desktop must not restore local kernel turn orchestration after Runtime Agent ownership',
+    pattern: 'executeLocalKernelTurn|ExecuteLocalKernelTurn|stateDelta:|memoryWrites:',
     paths: [
-      'apps/desktop/src/runtime/llm-adapter/execution/types.ts',
+      'apps/desktop/src/runtime/llm-adapter',
     ],
   },
   {
