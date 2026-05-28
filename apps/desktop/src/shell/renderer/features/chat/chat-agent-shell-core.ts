@@ -1,9 +1,7 @@
 import type {
   ConversationTurnError,
-  ConversationTurnHistoryMessage,
 } from '@nimiplatform/kit/features/chat/headless';
 import type {
-  AgentLocalMessageRecord,
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import { toConversationMessageViewModel } from './chat-agent-thread-model';
@@ -66,35 +64,6 @@ export function isEmptyPendingAssistantMessage(
     return false;
   }
   return !message.text.trim() && !normalizeReasoningText(message.metadata?.reasoningText) && !message.error;
-}
-
-export function toConversationHistoryMessages(
-  messages: readonly AgentLocalMessageRecord[],
-): ConversationTurnHistoryMessage[] {
-  return messages.flatMap((message) => {
-    if (message.status !== 'complete') {
-      return [];
-    }
-    const viewModel = toConversationMessageViewModel(message);
-    const text = normalizeText(viewModel.text);
-    if (!text) {
-      return [];
-    }
-    if (
-      message.role !== 'system'
-      && message.role !== 'user'
-      && message.role !== 'assistant'
-      && message.role !== 'tool'
-    ) {
-      return [];
-    }
-    return [{
-      id: message.id,
-      role: message.role,
-      text,
-      metadata: message.metadataJson || undefined,
-    }];
-  });
 }
 
 export function toAbortError(message: string): Error {

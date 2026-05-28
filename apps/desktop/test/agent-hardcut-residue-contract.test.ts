@@ -182,9 +182,18 @@ test('phase 3: runtime agent submit does not replay Desktop-local message histor
     path.join(srcDir, 'shell/renderer/features/chat/chat-agent-shell-host-actions-submit-run.ts'),
     'utf8',
   );
+  const agentShellCoreSource = fs.readFileSync(
+    path.join(srcDir, 'shell/renderer/features/chat/chat-agent-shell-core.ts'),
+    'utf8',
+  );
   const agentAdapterSource = fs.readFileSync(
     path.join(srcDir, 'shell/renderer/features/chat/chat-agent-shell-adapter.tsx'),
     'utf8',
+  );
+  assert.equal(
+    /toConversationHistoryMessages/.test(agentShellCoreSource),
+    false,
+    'Agent Chat core must not expose a local message-history conversion helper',
   );
   assert.equal(
     /toConversationHistoryMessages/.test(hostActionsSubmitSource),
