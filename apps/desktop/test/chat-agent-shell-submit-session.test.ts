@@ -314,7 +314,7 @@ test('agent submit session keeps authoritative projection when stale text delta 
   const refresh = resolveProjectionRefreshAgentSubmitSession({
     state: session,
     refreshedBundle: authoritativeBundle(),
-    draftText: '',
+    composerText: '',
     streamSnapshot: streamState({
       phase: 'streaming',
       partialText: 'sealed first beat',
@@ -387,7 +387,7 @@ test('agent submit session applies projection refresh after completed terminal f
   const followUpRefresh = resolveProjectionRefreshAgentSubmitSession({
     state: session,
     refreshedBundle: authoritativeBundle(),
-    draftText: '',
+    composerText: '',
     streamSnapshot: streamState({
       phase: 'done',
       partialText: 'authoritative projection',

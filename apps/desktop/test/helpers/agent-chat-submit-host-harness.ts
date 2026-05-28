@@ -38,7 +38,7 @@ export type AgentHostHarnessState = {
   bundles: Record<string, AgentLocalThreadBundle | null>;
   threads: AgentLocalThreadSummary[];
   selection: AgentConversationSelection;
-  currentDraftText: string;
+  currentComposerText: string;
   footerByThreadId: Record<string, AgentSubmitFooterState>;
   submittingThreadId: string | null;
 };
@@ -99,7 +99,7 @@ export function createAgentHostHarness(input: {
       localAgentRef: input.initialBundle.thread.localAgentRef,
       targetId: input.initialBundle.thread.localAgentRef,
     },
-    currentDraftText: '',
+    currentComposerText: '',
     footerByThreadId: {},
     submittingThreadId: null,
   };
@@ -113,7 +113,7 @@ export function beginAgentHostSubmit(
   },
 ): AbortController {
   state.submittingThreadId = input.threadId;
-  state.currentDraftText = input.submittedText;
+  state.currentComposerText = input.submittedText;
   delete state.footerByThreadId[input.threadId];
   return startStream(input.threadId);
 }
@@ -135,7 +135,7 @@ function applyHostInteractionPatch(
     state.threads = upsertThreadSummary(state.threads, effects.hostPatchEffect.bundle.thread);
     state.bundles[threadId] = effects.hostPatchEffect.bundle;
     state.selection = effects.hostPatchEffect.selection;
-    state.currentDraftText = effects.hostPatchEffect.draftText;
+    state.currentComposerText = effects.hostPatchEffect.composerText;
     state.footerByThreadId[threadId] = {
       footerState: effects.hostPatchEffect.footerState,
       lifecycle: effects.hostPatchEffect.lifecycle,
@@ -292,7 +292,7 @@ export function applyProjectionRefreshToHarness(input: {
   submitSession: AgentSubmitDriverState;
   threadId: string;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;
-  draftText: string;
+  composerText: string;
 }): AgentSubmitDriverState {
   return applyAgentSubmitDriverEffects(
     input.state,
@@ -300,7 +300,7 @@ export function applyProjectionRefreshToHarness(input: {
     resolveAgentSubmitDriverProjectionRefresh({
       state: input.submitSession,
       refreshedBundle: input.refreshedBundle,
-      draftText: input.draftText,
+      composerText: input.composerText,
       streamSnapshot: getStreamState(input.threadId),
     }),
   );

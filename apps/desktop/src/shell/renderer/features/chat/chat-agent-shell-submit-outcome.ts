@@ -13,7 +13,7 @@ import {
 export type AgentSubmitOutcomeState = {
   bundle: AgentLocalThreadBundle;
   selection: AgentConversationSelection;
-  draftText: string;
+  composerText: string;
 };
 
 function toSelection(thread: AgentLocalThreadRecord): AgentConversationSelection {
@@ -38,7 +38,7 @@ export function resolveCompletedAgentSubmitOutcome(input: {
   return {
     bundle,
     selection: toSelection(bundle.thread),
-    draftText: '',
+    composerText: '',
   };
 }
 
@@ -70,6 +70,6 @@ export function resolveInterruptedAgentSubmitOutcome(input: {
   return {
     bundle,
     selection: toSelection(bundle.thread),
-    draftText: input.submittedText,
+    composerText: input.submittedText,
   };
 }

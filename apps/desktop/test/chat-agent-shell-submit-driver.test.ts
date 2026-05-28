@@ -230,7 +230,7 @@ test('agent submit driver accepts projection refresh in running state and keeps 
   const refresh = resolveAgentSubmitDriverProjectionRefresh({
     state,
     refreshedBundle: authoritativeBundle(),
-    draftText: '',
+    composerText: '',
     streamSnapshot: streamState({
       phase: 'streaming',
       partialText: 'sealed first beat',
@@ -315,7 +315,7 @@ test('agent submit driver applies projection refresh after completed terminal fo
   const followUpRefresh = resolveAgentSubmitDriverProjectionRefresh({
     state,
     refreshedBundle: authoritativeBundle(),
-    draftText: '',
+    composerText: '',
     streamSnapshot: streamState({
       phase: 'done',
       partialText: 'authoritative projection',
@@ -398,7 +398,7 @@ test('agent submit driver keeps sealed first-beat when canceled turn wins over l
   const lateRefresh = resolveAgentSubmitDriverProjectionRefresh({
     state,
     refreshedBundle: authoritativeBundle(),
-    draftText: 'retry this',
+    composerText: 'retry this',
     streamSnapshot: streamState({
       phase: 'cancelled',
       interrupted: true,

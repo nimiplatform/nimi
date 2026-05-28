@@ -284,7 +284,7 @@ export async function createThreadForTarget(
   input.setThreadsCache((current) => upsertThreadSummary(current, thread));
   input.queryClient.setQueryData(bundleQueryKey(thread.id), createEmptyAgentThreadBundle(thread));
   void input.queryClient.invalidateQueries({ queryKey: THREADS_QUERY_KEY });
-  input.currentDraftTextRef.current = '';
+  input.currentComposerTextRef.current = '';
   input.syncSelectionToThread(thread);
   return thread;
 }

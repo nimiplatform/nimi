@@ -629,7 +629,7 @@ test('agent visible state converges to idle composer and hidden footer after com
       submitSession,
       threadId,
       refreshedBundle: authoritativeBundle(),
-      draftText: '',
+      composerText: '',
     });
     submitSession = applySubmitDriverEventToHarness({
       state: harness,
@@ -669,7 +669,7 @@ test('agent visible state converges to idle composer and hidden footer after com
     assert.equal(surfaceState.composer?.disabled, false);
     assert.equal(surfaceState.character.interactionState.phase, 'idle');
     assert.equal(surfaceState.footer.shouldRender, false);
-    assert.equal(harness.currentDraftText, '');
+    assert.equal(harness.currentComposerText, '');
   } finally {
     closeAgentHostHarness(threadId);
   }
@@ -742,7 +742,7 @@ test('agent visible state preserves idle composer and hidden footer after tail c
     assert.equal(surfaceState.character.interactionState.phase, 'idle');
     assert.equal(surfaceState.footer.displayState, 'hidden');
     assert.equal(surfaceState.footer.shouldRender, false);
-    assert.equal(harness.currentDraftText, 'retry this');
+    assert.equal(harness.currentComposerText, 'retry this');
     assert.equal(harness.bundles[threadId]?.messages.at(-1)?.contentText, 'sealed first beat');
   } finally {
     closeAgentHostHarness(threadId);

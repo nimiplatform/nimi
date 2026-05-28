@@ -21,7 +21,7 @@ import type { StreamState } from '../turns/stream-controller';
 export type AgentHostInteractionPatch = {
   bundle: AgentLocalThreadBundle;
   selection: AgentConversationSelection;
-  draftText: string;
+  composerText: string;
   footerState: AgentHostFlowFooterState;
   footerViewState: AgentFooterViewState;
   lifecycle: AgentTurnLifecycleState;
@@ -30,7 +30,7 @@ export type AgentHostInteractionPatch = {
 function createHostInteractionPatch(input: {
   bundle: AgentLocalThreadBundle;
   selection: AgentConversationSelection;
-  draftText: string;
+  composerText: string;
   footerState: AgentHostFlowFooterState;
   lifecycle: AgentTurnLifecycleState;
   streamSnapshot: StreamState;
@@ -38,7 +38,7 @@ function createHostInteractionPatch(input: {
   return {
     bundle: input.bundle,
     selection: input.selection,
-    draftText: input.draftText,
+    composerText: input.composerText,
     footerState: input.footerState,
     footerViewState: resolveAgentFooterViewState({
       streamState: input.streamSnapshot,
@@ -63,7 +63,7 @@ export function resolveCompletedAgentHostInteraction(input: {
   return createHostInteractionPatch({
     bundle: hostFlow.outcome.bundle,
     selection: hostFlow.outcome.selection,
-    draftText: hostFlow.outcome.draftText,
+    composerText: hostFlow.outcome.composerText,
     footerState: hostFlow.footerState,
     lifecycle: input.lifecycle,
     streamSnapshot: input.streamSnapshot,
@@ -89,7 +89,7 @@ export function resolveInterruptedAgentHostInteraction(input: {
   return createHostInteractionPatch({
     bundle: hostFlow.outcome.bundle,
     selection: hostFlow.outcome.selection,
-    draftText: hostFlow.outcome.draftText,
+    composerText: hostFlow.outcome.composerText,
     footerState: hostFlow.footerState,
     lifecycle: input.lifecycle,
     streamSnapshot: input.streamSnapshot,
@@ -100,7 +100,7 @@ export function resolveProjectionRefreshAgentHostInteraction(input: {
   lifecycle: AgentTurnLifecycleState;
   streamSnapshot: StreamState;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;
-  draftText: string;
+  composerText: string;
 }): AgentHostInteractionPatch | null {
   const refreshOutcome = resolveAgentProjectionRefreshOutcome({
     terminal: input.lifecycle.terminal,
@@ -112,7 +112,7 @@ export function resolveProjectionRefreshAgentHostInteraction(input: {
   return createHostInteractionPatch({
     bundle: refreshOutcome.bundle,
     selection: refreshOutcome.selection,
-    draftText: input.draftText,
+    composerText: input.composerText,
     footerState: 'hidden',
     lifecycle: input.lifecycle,
     streamSnapshot: input.streamSnapshot,

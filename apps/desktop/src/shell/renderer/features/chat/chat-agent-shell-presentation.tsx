@@ -309,7 +309,7 @@ export function useAgentConversationPresentation(
           {hostFeedbackNode}
           <AgentCanonicalComposer
             composerKey={input.activeThreadId || 'none'}
-            initialText={input.currentDraftTextRef.current}
+            initialText={input.currentComposerTextRef.current}
             disabled={Boolean(input.submittingThreadId) || schedulingGuard.disabled}
             pendingAttachments={input.pendingAttachments}
             onAttachmentsChange={input.onAttachmentsChange}
@@ -321,7 +321,7 @@ export function useAgentConversationPresentation(
             })}
             placeholder={input.t('Chat.agentComposerPlaceholder', { defaultValue: 'Talk to this agent…' })}
             onInputCaptureText={(text) => {
-              input.currentDraftTextRef.current = text;
+              input.currentComposerTextRef.current = text;
             }}
             thinkingState={input.thinkingSupported
               ? (input.thinkingPreference === 'on' ? 'on' : 'off')
@@ -389,7 +389,7 @@ export function useAgentConversationPresentation(
     input.agentRouteReady,
     input.mutationPendingAction,
     input.behaviorSettings,
-    input.currentDraftTextRef,
+    input.currentComposerTextRef,
     input.handleSubmit,
     input.onAttachmentsChange,
     input.onDismissHostFeedback,

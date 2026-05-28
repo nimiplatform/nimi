@@ -198,7 +198,7 @@ export async function submitAgentConversationTurn(input: {
         lastMessageAtMs: optimisticUserProjection.lastMessageAtMs,
         targetSnapshot: activeTarget,
       };
-      input.hostInput.currentDraftTextRef.current = '';
+      input.hostInput.currentComposerTextRef.current = '';
       input.hostInput.setThreadsCache((current) => upsertThreadSummary(current, optimisticThreadRecord));
       input.hostInput.setBundleCache(effectiveThreadId, (current) => {
         const base = current || createEmptyAgentThreadBundle(optimisticThreadRecord);
@@ -252,7 +252,7 @@ export async function submitAgentConversationTurn(input: {
       updatedAtMs: userProjection.lastMessageAtMs + 1,
     };
 
-    input.hostInput.currentDraftTextRef.current = submittedText;
+    input.hostInput.currentComposerTextRef.current = submittedText;
     let submitSession = createInitialAgentSubmitDriverState({
       fallbackThread: fallbackThreadRecord,
       assistantMessageId,
@@ -364,7 +364,7 @@ export async function submitAgentConversationTurn(input: {
       textMaxOutputTokensRequested: input.hostInput.textMaxOutputTokensRequested,
       target: activeTarget,
       submitSession,
-      currentDraftText: () => input.hostInput.currentDraftTextRef.current,
+      currentComposerText: () => input.hostInput.currentComposerTextRef.current,
       releaseSubmittingIfCurrent,
     });
     safeLogAgentSubmit({
@@ -413,7 +413,7 @@ export async function submitAgentConversationTurn(input: {
       if (activeSubmit.overrideRequested && runtimeError.code === 'OPERATION_ABORTED') {
         return;
       }
-      input.hostInput.currentDraftTextRef.current = submittedText;
+      input.hostInput.currentComposerTextRef.current = submittedText;
       submitSession = input.hostInput.applyDriverEffects(effectiveThreadId, resolveInterruptedAgentSubmitDriverCheckpoint({
         state: submitSession,
         refreshedBundle: null,

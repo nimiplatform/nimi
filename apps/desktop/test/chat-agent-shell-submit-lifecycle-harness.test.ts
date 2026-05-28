@@ -234,7 +234,7 @@ test('agent host submit harness converges completed submit to authoritative bund
       submitSession,
       threadId,
       refreshedBundle: authoritativeBundle(),
-      draftText: '',
+      composerText: '',
     });
 
     submitSession = applySubmitDriverEventToHarness({
@@ -267,7 +267,7 @@ test('agent host submit harness converges completed submit to authoritative bund
 
     assert.equal(harness.submittingThreadId, null);
     assert.equal(harness.selection.threadId, null);
-    assert.equal(harness.currentDraftText, '');
+    assert.equal(harness.currentComposerText, '');
     assert.equal(harness.bundles[threadId]?.messages.at(-1)?.contentText, 'authoritative projection');
     assert.deepEqual(footerViewStateForHarness(harness, threadId), {
       displayState: 'hidden',
@@ -371,11 +371,11 @@ test('agent host submit harness preserves sealed first-beat, restores composer t
       submitSession,
       threadId,
       refreshedBundle: authoritativeBundle(),
-      draftText: 'retry this',
+      composerText: 'retry this',
     });
 
     assert.equal(harness.submittingThreadId, null);
-    assert.equal(harness.currentDraftText, 'retry this');
+    assert.equal(harness.currentComposerText, 'retry this');
     assert.equal(harness.selection.threadId, null);
     assert.equal(harness.bundles[threadId]?.messages.at(-1)?.contentText, 'sealed first beat');
     assert.deepEqual(footerViewStateForHarness(harness, threadId), {
@@ -461,7 +461,7 @@ test('agent host submit harness does not create a pending second text message fo
       submitSession,
       threadId,
       refreshedBundle: authoritativeMultiBeatBundle(),
-      draftText: '',
+      composerText: '',
     });
     submitSession = applySubmitDriverEventToHarness({
       state: harness,
@@ -521,7 +521,7 @@ test('agent host submit harness restores composer text and clears submitting sta
     finishAgentHostSubmit(harness);
 
     assert.equal(harness.submittingThreadId, null);
-    assert.equal(harness.currentDraftText, 'retry this');
+    assert.equal(harness.currentComposerText, 'retry this');
     assert.equal(harness.selection.threadId, null);
     assert.equal(harness.bundles[threadId]?.messages.at(-1)?.error?.message, 'runtime broke');
     assert.deepEqual(footerViewStateForHarness(harness, threadId), {

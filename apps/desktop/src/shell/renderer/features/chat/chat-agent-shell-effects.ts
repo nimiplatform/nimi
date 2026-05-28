@@ -18,7 +18,7 @@ import { setAgentVisibleProjection } from './chat-agent-visible-projection-store
 import { feedStreamEvent } from '../turns/stream-controller';
 
 type UseAgentConversationEffectsInput = {
-  currentDraftTextRef: { current: string };
+  currentComposerTextRef: { current: string };
   queryClient: QueryClient;
   setFooterHostStateByThreadId: Dispatch<SetStateAction<
     Record<string, {
@@ -73,7 +73,7 @@ export function useAgentConversationEffects(input: UseAgentConversationEffectsIn
     setThreadsCache((current) => upsertThreadSummary(current, patch.bundle.thread));
     input.queryClient.setQueryData(bundleQueryKey(threadId), patch.bundle);
     setAgentVisibleProjection(threadId, null);
-    input.currentDraftTextRef.current = patch.draftText;
+    input.currentComposerTextRef.current = patch.composerText;
     input.setSelection(patch.selection);
     setFooterHostState(threadId, {
       footerState: patch.footerState,

@@ -43,7 +43,7 @@ export async function rollbackOptimisticUserProjection(input: {
   }
   const rollbackThreadId = input.optimisticThreadId;
   const rollbackThread = input.optimisticBaseThread;
-  input.hostInput.currentDraftTextRef.current = input.submittedTextForRecovery;
+  input.hostInput.currentComposerTextRef.current = input.submittedTextForRecovery;
   input.hostInput.setThreadsCache((current) => upsertThreadSummary(current, rollbackThread));
   input.hostInput.setBundleCache(rollbackThreadId, (current) => {
     const base = current || createEmptyAgentThreadBundle(rollbackThread);

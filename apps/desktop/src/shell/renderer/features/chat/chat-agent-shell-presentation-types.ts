@@ -29,7 +29,7 @@ export type UseAgentConversationPresentationInput = {
   bundle: AgentLocalThreadBundle | null;
   bundleError: unknown;
   composerReady: boolean;
-  currentDraftTextRef: { current: string };
+  currentComposerTextRef: { current: string };
   currentFooterHostState: {
     footerState: AgentHostFlowFooterState;
     lifecycle: AgentTurnLifecycleState;

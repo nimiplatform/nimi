@@ -148,7 +148,7 @@ test('agent host interaction preserves authoritative content and interrupted foo
       partialText: 'sealed first beat',
     }),
     refreshedBundle: authoritativeBundle(),
-    draftText: '',
+    composerText: '',
   });
   assert.ok(refreshedInteraction);
 
@@ -356,7 +356,7 @@ test('agent host interaction applies projection refresh after terminal completio
       traceId: 'trace-done',
     }),
     refreshedBundle: authoritativeBundle(),
-    draftText: '',
+    composerText: '',
   });
 
   assert.ok(interaction);

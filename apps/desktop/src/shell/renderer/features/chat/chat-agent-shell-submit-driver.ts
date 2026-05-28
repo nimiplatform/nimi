@@ -76,13 +76,13 @@ export function reduceAgentSubmitDriverEvent(input: {
 export function resolveAgentSubmitDriverProjectionRefresh(input: {
   state: AgentSubmitDriverState;
   refreshedBundle: AgentLocalThreadBundle | null | undefined;
-  draftText: string;
+  composerText: string;
   streamSnapshot: StreamState;
 }): AgentSubmitDriverEffectQueue {
   const refreshOutcome = resolveProjectionRefreshAgentSubmitSession({
     state: input.state,
     refreshedBundle: input.refreshedBundle,
-    draftText: input.draftText,
+    composerText: input.composerText,
     streamSnapshot: input.streamSnapshot,
   });
   return createEffectQueue({

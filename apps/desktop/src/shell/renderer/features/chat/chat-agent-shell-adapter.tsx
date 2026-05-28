@@ -114,7 +114,7 @@ export function useAgentConversationModeHost(
     }>
   >({});
   const [pendingAttachmentsByThreadId, setPendingAttachmentsByThreadId] = useState<Record<string, readonly PendingAttachment[]>>({});
-  const currentDraftTextRef = useRef('');
+  const currentComposerTextRef = useRef('');
   const pendingAttachmentsByThreadRef = useRef<Record<string, readonly PendingAttachment[]>>({});
   const registry = useMemo(() => {
     const nextRegistry = new ConversationOrchestrationRegistry();
@@ -303,7 +303,7 @@ export function useAgentConversationModeHost(
     setThreadsCache,
     syncSelectionToThread,
   } = useAgentConversationEffects({
-    currentDraftTextRef,
+    currentComposerTextRef,
     queryClient,
     setFooterHostStateByThreadId,
     setSelection,
@@ -432,8 +432,8 @@ export function useAgentConversationModeHost(
     if (!activeThreadId || !activeConversationAnchorId || input.conversationAnchorId !== activeConversationAnchorId) {
       throw new Error('Voice input is unavailable because no active thread is selected.');
     }
-    currentDraftTextRef.current = input.text;
-  }, [activeConversationAnchorId, activeThreadId, currentDraftTextRef]);
+    currentComposerTextRef.current = input.text;
+  }, [activeConversationAnchorId, activeThreadId, currentComposerTextRef]);
   const {
     handsFreeState,
     onVoiceSessionCancel,
@@ -461,7 +461,7 @@ export function useAgentConversationModeHost(
     aiConfig: agentAiConfig,
     applyDriverEffects,
     bundle,
-    currentDraftTextRef,
+    currentComposerTextRef,
     queryClient,
     reportHostError,
     runAgentTurn: (turnInput) => agentProvider.runTurn({
@@ -532,7 +532,7 @@ export function useAgentConversationModeHost(
     bundle,
     bundleError,
     composerReady,
-    currentDraftTextRef,
+    currentComposerTextRef,
     currentFooterHostState,
     mutationPendingAction,
     onCancelPendingHook: handleCancelPendingHook,

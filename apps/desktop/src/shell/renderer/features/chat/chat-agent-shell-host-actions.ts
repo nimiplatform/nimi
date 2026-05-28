@@ -35,7 +35,7 @@ export function useAgentConversationHostActions(
       return;
     }
     void (async () => {
-      input.currentDraftTextRef.current = '';
+      input.currentComposerTextRef.current = '';
       const normalizedLocalAgentRef = normalizeText(localAgentRef);
       if (!normalizedLocalAgentRef) {
         input.syncSelectionToThread(null);

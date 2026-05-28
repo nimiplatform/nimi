@@ -43,7 +43,7 @@ export async function runActiveAgentSubmit(input: {
   textMaxOutputTokensRequested: number | null;
   target: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['target'];
   submitSession: AgentSubmitDriverState;
-  currentDraftText: () => string;
+  currentComposerText: () => string;
   releaseSubmittingIfCurrent: () => void;
 }): Promise<AgentSubmitDriverState> {
   let submitSession = input.submitSession;
@@ -82,7 +82,7 @@ export async function runActiveAgentSubmit(input: {
             state: submitSession,
             streamSnapshot: getStreamState(input.threadId),
             refreshedBundle: rebuiltBundle,
-            draftText: input.currentDraftText(),
+            composerText: input.currentComposerText(),
           }));
         }
       }
