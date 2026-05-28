@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  buildRuntimeRouteOptionsSnapshot,
   checkRuntimeRouteHealthWithHost,
   describeRuntimeRouteWithHost,
+  parseRuntimeRouteOptions,
   resolveRuntimeRouteBindingFromSnapshot,
   runtimeRouteCallTargetFromResolvedBinding,
   selectRuntimeLocalWarmCandidateFromResolvedBinding,
@@ -93,6 +95,32 @@ test('resolved route projection does not promote resolvedDefault to execution tr
     }),
     /RUNTIME_ROUTE_LOCAL_EVIDENCE_REQUIRED/,
   );
+});
+
+test('route options snapshot does not promote first available local model to resolvedDefault', () => {
+  const snapshot = buildRuntimeRouteOptionsSnapshot({
+    capability: 'text.generate',
+    selectedBinding: null,
+    localModels: localSnapshot.local.models,
+    connectors: [],
+  });
+
+  assert.equal(snapshot.selected, null);
+  assert.equal(snapshot.resolvedDefault, undefined);
+});
+
+test('route options parser ignores external resolvedDefault fallback truth', () => {
+  const parsed = parseRuntimeRouteOptions({
+    capability: 'text.generate',
+    selected: null,
+    resolvedDefault: localSnapshot.selected,
+    local: { models: [] },
+    connectors: [],
+  }, { includeResolvedDefault: true });
+
+  assert.ok(parsed);
+  assert.equal(parsed.selected, null);
+  assert.equal(parsed.resolvedDefault, undefined);
 });
 
 test('resolved route projection builds cloud call target from connector evidence', () => {

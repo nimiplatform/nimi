@@ -105,30 +105,6 @@ function inferCanonicalLocalEngine(
   return canonicalLocalEngine(engineLike) || canonicalLocalEngine(runtimeDefaultEngine);
 }
 
-function firstAvailableBinding(
-  localModels: RuntimeRouteLocalOption[],
-  _connectors: RuntimeRouteConnectorOption[],
-): RuntimeRouteBinding | null {
-  if (localModels.length > 0) {
-    const firstLocal = localModels[0]!;
-    return {
-      source: 'local',
-      connectorId: '',
-      model: firstLocal.model,
-      modelId: firstLocal.modelId,
-      localModelId: firstLocal.localModelId,
-      provider: firstLocal.provider,
-      engine: firstLocal.engine,
-      adapter: firstLocal.adapter,
-      providerHints: firstLocal.providerHints,
-      endpoint: firstLocal.endpoint,
-      goRuntimeLocalModelId: firstLocal.goRuntimeLocalModelId,
-      goRuntimeStatus: firstLocal.goRuntimeStatus,
-    };
-  }
-  return null;
-}
-
 function toLocalBinding(option: RuntimeRouteLocalOption): RuntimeRouteBinding {
   const modelId = String(option.modelId || option.model || '').trim();
   return {
@@ -573,10 +549,7 @@ export function buildRuntimeRouteOptionsSnapshot(input: {
       runtimeDefaultEngine: input.runtimeDefaultEngine,
     })
     : input.selectedOverride;
-  const fallback = firstAvailableBinding(input.localModels, input.connectors);
-  const resolvedDefault = (input.localMetadataDegraded && selected?.source === 'local')
-    ? selected
-    : (fallback || selected || undefined);
+  const resolvedDefault = selected || undefined;
 
   return {
     capability: input.capability,

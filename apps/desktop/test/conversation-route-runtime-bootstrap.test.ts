@@ -37,7 +37,6 @@ function createSnapshot(selected: RuntimeRouteBinding): RuntimeRouteOptionsSnaps
   return {
     capability: 'text.generate',
     selected,
-    resolvedDefault: selected,
     local: {
       models: [{
         localModelId: '01KLOCALGEMMA',
