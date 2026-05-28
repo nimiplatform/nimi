@@ -89,7 +89,6 @@ fn chat_agent_projection_cache_commit_turn_round_trip() {
         assert_eq!(committed.beats.len(), 1);
         assert_eq!(committed.bundle.messages.len(), 1);
         assert_eq!(committed.bundle.messages[0].content_text, "first beat");
-        assert!(committed.projection_version.starts_with("projection:"));
 
         let bundle = get_thread_bundle(&conn, &thread.id)
             .expect("bundle after commit")

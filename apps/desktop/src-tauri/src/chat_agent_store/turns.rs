@@ -4,7 +4,7 @@ use super::codec::{
     turn_role_to_db_value, turn_status_to_db_value,
 };
 use super::crud::{get_thread_bundle, update_thread_metadata};
-use super::projection::{compute_projection_version, upsert_projection_message};
+use super::projection::upsert_projection_message;
 use super::rows::{beat_record_from_row, turn_record_from_row};
 use super::types::*;
 use rusqlite::{params, Connection};
@@ -210,7 +210,6 @@ pub(crate) fn commit_turn_result(
         "commit chat_agent turn failed: missing thread bundle after commit".to_string()
     })?;
 
-    let projection_version = compute_projection_version(&tx, &thread_id)?;
     tx.commit()
         .map_err(|error| format!("commit chat_agent turn transaction failed: {error}"))?;
 
@@ -218,6 +217,5 @@ pub(crate) fn commit_turn_result(
         turn,
         beats,
         bundle,
-        projection_version,
     })
 }

@@ -170,7 +170,6 @@ pub struct ChatAgentCommitTurnResult {
     pub turn: ChatAgentTurnRecord,
     pub beats: Vec<ChatAgentTurnBeatRecord>,
     pub bundle: ChatAgentThreadBundle,
-    pub projection_version: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

@@ -318,7 +318,6 @@ export function parseAgentLocalCommitTurnResult(value: unknown): AgentLocalCommi
       ? record.beats.map((item) => parseAgentLocalTurnBeatRecord(item))
       : (() => { throw new Error('chat_agent commit turn result.beats must be an array'); })(),
     bundle: parseAgentLocalThreadBundle(record.bundle) ?? (() => { throw new Error('chat_agent commit turn result.bundle is invalid'); })(),
-    projectionVersion: parseRequiredString(record.projectionVersion, 'projectionVersion', 'chat_agent commit turn result'),
   };
 }
 

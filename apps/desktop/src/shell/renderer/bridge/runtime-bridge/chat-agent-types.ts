@@ -108,7 +108,6 @@ export type AgentLocalCommitTurnResult = {
   turn: AgentLocalTurnRecord;
   beats: AgentLocalTurnBeatRecord[];
   bundle: AgentLocalThreadBundle;
-  projectionVersion: string;
 };
 
 export type AgentLocalCreateThreadInput = {

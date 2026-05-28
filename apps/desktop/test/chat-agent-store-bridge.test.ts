@@ -256,7 +256,6 @@ test('chat agent projection-cache bridge invokes fixed tauri commands and payloa
               updatedAtMs: 120,
             })],
           },
-          projectionVersion: 'projection:123:t1:b1:s0:m0:r0',
         };
       default:
         return null;

@@ -6,51 +6,6 @@ use super::codec::{
 use super::types::*;
 use rusqlite::{params, Connection};
 
-pub(super) fn compute_projection_version(
-    conn: &Connection,
-    thread_id: &str,
-) -> Result<String, String> {
-    let (turn_count, beat_count, message_count): (i64, i64, i64) = conn
-        .query_row(
-            r#"
-            SELECT
-              (SELECT COUNT(*) FROM agent_turns WHERE thread_id = ?1),
-              (SELECT COUNT(*) FROM agent_turn_beats WHERE turn_id IN (SELECT id FROM agent_turns WHERE thread_id = ?1)),
-              (SELECT COUNT(*) FROM agent_messages WHERE thread_id = ?1)
-            "#,
-            params![thread_id],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-        )
-        .map_err(|error| format!("compute chat_agent projection version counts failed: {error}"))?;
-
-    let latest_projection_ms: i64 = conn
-        .query_row(
-            r#"
-            SELECT COALESCE(MAX(value), 0)
-            FROM (
-              SELECT COALESCE(MAX(started_at_ms), 0) AS value FROM agent_turns WHERE thread_id = ?1
-              UNION ALL
-              SELECT COALESCE(MAX(completed_at_ms), 0) AS value FROM agent_turns WHERE thread_id = ?1
-              UNION ALL
-              SELECT COALESCE(MAX(aborted_at_ms), 0) AS value FROM agent_turns WHERE thread_id = ?1
-              UNION ALL
-              SELECT COALESCE(MAX(created_at_ms), 0) AS value FROM agent_turn_beats WHERE turn_id IN (SELECT id FROM agent_turns WHERE thread_id = ?1)
-              UNION ALL
-              SELECT COALESCE(MAX(delivered_at_ms), 0) AS value FROM agent_turn_beats WHERE turn_id IN (SELECT id FROM agent_turns WHERE thread_id = ?1)
-              UNION ALL
-              SELECT COALESCE(MAX(updated_at_ms), 0) AS value FROM agent_messages WHERE thread_id = ?1
-            )
-            "#,
-            params![thread_id],
-            |row| row.get(0),
-        )
-        .map_err(|error| format!("compute chat_agent projection version timestamp failed: {error}"))?;
-
-    Ok(format!(
-        "projection:{latest_projection_ms}:t{turn_count}:b{beat_count}:msg{message_count}"
-    ))
-}
-
 pub(super) fn upsert_projection_message(
     conn: &Connection,
     input: &ChatAgentProjectionMessageInput,
