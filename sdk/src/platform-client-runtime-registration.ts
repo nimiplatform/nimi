@@ -10,6 +10,8 @@ type RuntimeFullAppRegistrationInput = {
   appInstanceId: string;
   deviceId: string;
   rejectionLabel: string;
+  // K-AUTHSVC-014: declare developer_registration on RegisterApp. Default false.
+  developerRegistration?: boolean;
 };
 
 export function createRuntimeFullAppRegistration(
@@ -28,6 +30,7 @@ export function createRuntimeFullAppRegistration(
         deviceId: input.deviceId,
         appVersion: '1',
         capabilities: [],
+        developerRegistration: input.developerRegistration ?? false,
         modeManifest: {
           appMode: AppMode.FULL,
           runtimeRequired: true,

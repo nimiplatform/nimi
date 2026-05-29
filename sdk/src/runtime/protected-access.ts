@@ -141,6 +141,7 @@ export function createRuntimeProtectedScopeHelper(input: CreateRuntimeProtectedS
         deviceId: 'runtime-protected-access',
         appVersion: '1',
         capabilities: [],
+        developerRegistration: false,
         modeManifest: {
           appMode: AppMode.FULL,
           runtimeRequired: true,

@@ -37,4 +37,9 @@ export type PlatformClientInput = {
   runtimeOptions?: Omit<RuntimeOptions, 'appId' | 'transport' | 'auth' | 'subjectContext' | 'defaults'>;
   realmFetchImpl?: RealmFetchImpl;
   allowAnonymousRealm?: boolean;
+  // K-AUTHSVC-014: when true, the local first-party caller registration declares
+  // developer_registration so the runtime developer-registration gate (off by
+  // default) may admit a not-yet-admitted local app for developer testing. The
+  // runtime gate, not this flag, performs admission.
+  developerRegistration?: boolean;
 };

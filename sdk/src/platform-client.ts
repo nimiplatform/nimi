@@ -546,6 +546,7 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
     appInstanceId: accountCaller.appInstanceId,
     deviceId: accountCaller.deviceId,
     rejectionLabel: 'local first-party Runtime account caller registration rejected',
+    developerRegistration: input.developerRegistration === true,
   });
 
   if (isLocalFirstPartyRuntime) {

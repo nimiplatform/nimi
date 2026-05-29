@@ -124,6 +124,92 @@ test('dev-standalone mode forwards explicit Runtime app session to Runtime calls
   }
 });
 
+test('local-first-party developer registration forwards developer_registration to RegisterApp (K-AUTHSVC-014)', async () => {
+  clearPlatformClient();
+  let forwardedDeveloperRegistration: boolean | undefined;
+  let registerCalls = 0;
+  setNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.auth.registerApp) {
+        registerCalls += 1;
+        const request = RegisterAppRequest.fromBinary(input.request);
+        forwardedDeveloperRegistration = request.developerRegistration;
+        return RegisterAppResponse.toBinary(RegisterAppResponse.create({
+          appInstanceId: request.appInstanceId,
+          accepted: true,
+        }));
+      }
+      return new Uint8Array();
+    },
+    openStream: async () => ({
+      async *[Symbol.asyncIterator]() {
+        // no-op
+      },
+    }),
+    closeStream: async () => {},
+  });
+
+  try {
+    const projection = await createNimiAppRuntimePlatformClient({
+      mode: 'local-first-party',
+      appId: 'app.nimi.shijing',
+      realmBaseUrl: 'https://realm.example',
+      runtimeTransport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      developerRegistration: true,
+    });
+
+    assert.equal(projection.status, 'ready');
+    assert.equal(registerCalls, 1);
+    assert.equal(forwardedDeveloperRegistration, true);
+  } finally {
+    setNodeGrpcBridge(null);
+  }
+});
+
+test('local-first-party without developer registration sends developer_registration false', async () => {
+  clearPlatformClient();
+  let forwardedDeveloperRegistration: boolean | undefined;
+  setNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.auth.registerApp) {
+        const request = RegisterAppRequest.fromBinary(input.request);
+        forwardedDeveloperRegistration = request.developerRegistration;
+        return RegisterAppResponse.toBinary(RegisterAppResponse.create({
+          appInstanceId: request.appInstanceId,
+          accepted: true,
+        }));
+      }
+      return new Uint8Array();
+    },
+    openStream: async () => ({
+      async *[Symbol.asyncIterator]() {
+        // no-op
+      },
+    }),
+    closeStream: async () => {},
+  });
+
+  try {
+    const projection = await createNimiAppRuntimePlatformClient({
+      mode: 'local-first-party',
+      appId: 'app.nimi.shijing',
+      realmBaseUrl: 'https://realm.example',
+      runtimeTransport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+    });
+
+    assert.equal(projection.status, 'ready');
+    assert.equal(forwardedDeveloperRegistration, false);
+  } finally {
+    setNodeGrpcBridge(null);
+  }
+});
+
 test('dev-standalone Runtime AI text.generate issues sdk-v2 protected spend token', async () => {
   clearPlatformClient();
   const calls: string[] = [];

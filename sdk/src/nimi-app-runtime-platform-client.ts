@@ -33,6 +33,10 @@ export type NimiAppRuntimePlatformClientInput =
   SharedNimiAppRuntimePlatformClientInput & (
     | {
         mode: 'local-first-party';
+        // K-AUTHSVC-014: opt into developer registration for local developer
+        // testing. The runtime developer-registration gate (off by default), not
+        // this flag, performs admission. Scaffolds set this only in local dev.
+        developerRegistration?: boolean;
       }
     | {
         mode: 'third-party-nimi-app';
@@ -114,7 +118,10 @@ export async function createNimiAppRuntimePlatformClient(
 
   if (mode === 'local-first-party') {
     try {
-      const client = await createLocalFirstPartyRuntimePlatformClient(toSharedPlatformInput(input));
+      const client = await createLocalFirstPartyRuntimePlatformClient({
+        ...toSharedPlatformInput(input),
+        developerRegistration: input.mode === 'local-first-party' && input.developerRegistration === true,
+      });
       return {
         status: 'ready',
         mode,
