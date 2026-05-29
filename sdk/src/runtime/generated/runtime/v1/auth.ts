@@ -65,6 +65,15 @@ export interface RegisterAppRequest {
      * @generated from protobuf field: nimi.runtime.v1.AppModeManifest mode_manifest = 6
      */
     modeManifest?: AppModeManifest;
+    /**
+     * K-AUTHSVC-014: explicit local developer-registration intent. When true AND
+     * the daemon's auth.developerRegistration.enabled gate is on, RegisterApp may
+     * admit an app_id not present in the Nimi App registry. Default false keeps
+     * production admission fail-closed (APP_NOT_REGISTERED).
+     *
+     * @generated from protobuf field: bool developer_registration = 7
+     */
+    developerRegistration: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.RegisterAppResponse
@@ -408,7 +417,8 @@ class RegisterAppRequest$Type extends MessageType<RegisterAppRequest> {
             { no: 3, name: "device_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "app_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "mode_manifest", kind: "message", T: () => AppModeManifest }
+            { no: 6, name: "mode_manifest", kind: "message", T: () => AppModeManifest },
+            { no: 7, name: "developer_registration", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<RegisterAppRequest>): RegisterAppRequest {
@@ -418,6 +428,7 @@ class RegisterAppRequest$Type extends MessageType<RegisterAppRequest> {
         message.deviceId = "";
         message.appVersion = "";
         message.capabilities = [];
+        message.developerRegistration = false;
         if (value !== undefined)
             reflectionMergePartial<RegisterAppRequest>(this, message, value);
         return message;
@@ -444,6 +455,9 @@ class RegisterAppRequest$Type extends MessageType<RegisterAppRequest> {
                     break;
                 case /* nimi.runtime.v1.AppModeManifest mode_manifest */ 6:
                     message.modeManifest = AppModeManifest.internalBinaryRead(reader, reader.uint32(), options, message.modeManifest);
+                    break;
+                case /* bool developer_registration */ 7:
+                    message.developerRegistration = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -475,6 +489,9 @@ class RegisterAppRequest$Type extends MessageType<RegisterAppRequest> {
         /* nimi.runtime.v1.AppModeManifest mode_manifest = 6; */
         if (message.modeManifest)
             AppModeManifest.internalBinaryWrite(message.modeManifest, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* bool developer_registration = 7; */
+        if (message.developerRegistration !== false)
+            writer.tag(7, WireType.Varint).bool(message.developerRegistration);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

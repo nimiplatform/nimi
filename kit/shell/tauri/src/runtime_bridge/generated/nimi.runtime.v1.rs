@@ -831,6 +831,12 @@ pub struct RegisterAppRequest {
     pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, optional, tag = "6")]
     pub mode_manifest: ::core::option::Option<AppModeManifest>,
+    /// K-AUTHSVC-014: explicit local developer-registration intent. When true AND
+    /// the daemon's auth.developerRegistration.enabled gate is on, RegisterApp may
+    /// admit an app_id not present in the Nimi App registry. Default false keeps
+    /// production admission fail-closed (APP_NOT_REGISTERED).
+    #[prost(bool, tag = "7")]
+    pub developer_registration: bool,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RegisterAppResponse {

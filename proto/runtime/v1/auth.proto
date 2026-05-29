@@ -42,6 +42,11 @@ message RegisterAppRequest {
   string app_version = 4;
   repeated string capabilities = 5;
   AppModeManifest mode_manifest = 6;
+  // K-AUTHSVC-014: explicit local developer-registration intent. When true AND
+  // the daemon's auth.developerRegistration.enabled gate is on, RegisterApp may
+  // admit an app_id not present in the Nimi App registry. Default false keeps
+  // production admission fail-closed (APP_NOT_REGISTERED).
+  bool developer_registration = 7;
 }
 
 message RegisterAppResponse {

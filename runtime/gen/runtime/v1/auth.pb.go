@@ -248,8 +248,13 @@ type RegisterAppRequest struct {
 	AppVersion    string                 `protobuf:"bytes,4,opt,name=app_version,json=appVersion,proto3" json:"app_version,omitempty"`
 	Capabilities  []string               `protobuf:"bytes,5,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
 	ModeManifest  *AppModeManifest       `protobuf:"bytes,6,opt,name=mode_manifest,json=modeManifest,proto3" json:"mode_manifest,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// K-AUTHSVC-014: explicit local developer-registration intent. When true AND
+	// the daemon's auth.developerRegistration.enabled gate is on, RegisterApp may
+	// admit an app_id not present in the Nimi App registry. Default false keeps
+	// production admission fail-closed (APP_NOT_REGISTERED).
+	DeveloperRegistration bool `protobuf:"varint,7,opt,name=developer_registration,json=developerRegistration,proto3" json:"developer_registration,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *RegisterAppRequest) Reset() {
@@ -322,6 +327,13 @@ func (x *RegisterAppRequest) GetModeManifest() *AppModeManifest {
 		return x.ModeManifest
 	}
 	return nil
+}
+
+func (x *RegisterAppRequest) GetDeveloperRegistration() bool {
+	if x != nil {
+		return x.DeveloperRegistration
+	}
+	return false
 }
 
 type RegisterAppResponse struct {
@@ -1033,7 +1045,7 @@ const file_runtime_v1_auth_proto_rawDesc = "" +
 	"\bapp_mode\x18\x01 \x01(\x0e2\x18.nimi.runtime.v1.AppModeR\aappMode\x12)\n" +
 	"\x10runtime_required\x18\x02 \x01(\bR\x0fruntimeRequired\x12%\n" +
 	"\x0erealm_required\x18\x03 \x01(\bR\rrealmRequired\x12E\n" +
-	"\x0eworld_relation\x18\x04 \x01(\x0e2\x1e.nimi.runtime.v1.WorldRelationR\rworldRelation\"\xfc\x01\n" +
+	"\x0eworld_relation\x18\x04 \x01(\x0e2\x1e.nimi.runtime.v1.WorldRelationR\rworldRelation\"\xb3\x02\n" +
 	"\x12RegisterAppRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
 	"\x0fapp_instance_id\x18\x02 \x01(\tR\rappInstanceId\x12\x1b\n" +
@@ -1041,7 +1053,8 @@ const file_runtime_v1_auth_proto_rawDesc = "" +
 	"\vapp_version\x18\x04 \x01(\tR\n" +
 	"appVersion\x12\"\n" +
 	"\fcapabilities\x18\x05 \x03(\tR\fcapabilities\x12E\n" +
-	"\rmode_manifest\x18\x06 \x01(\v2 .nimi.runtime.v1.AppModeManifestR\fmodeManifest\"\x97\x01\n" +
+	"\rmode_manifest\x18\x06 \x01(\v2 .nimi.runtime.v1.AppModeManifestR\fmodeManifest\x125\n" +
+	"\x16developer_registration\x18\a \x01(\bR\x15developerRegistration\"\x97\x01\n" +
 	"\x13RegisterAppResponse\x12&\n" +
 	"\x0fapp_instance_id\x18\x01 \x01(\tR\rappInstanceId\x12\x1a\n" +
 	"\baccepted\x18\x02 \x01(\bR\baccepted\x12<\n" +
