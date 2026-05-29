@@ -18,6 +18,15 @@ func fileConfigAccountField(fileCfg FileConfig, getter func(*FileConfigAccount) 
 	return ""
 }
 
+// fileConfigDeveloperRegistrationEnabled extracts the K-AUTHSVC-014 developer
+// registration gate (*bool) from the optional FileConfig Auth section.
+func fileConfigDeveloperRegistrationEnabled(fileCfg FileConfig) *bool {
+	if fileCfg.Auth != nil && fileCfg.Auth.DeveloperRegistration != nil {
+		return fileCfg.Auth.DeveloperRegistration.Enabled
+	}
+	return nil
+}
+
 func isCanonicalProviderName(raw string) bool {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {

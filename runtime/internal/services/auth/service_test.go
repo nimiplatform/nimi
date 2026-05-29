@@ -328,6 +328,91 @@ func TestRegisterAppChecksNimiAppRegistryProjection(t *testing.T) {
 	}
 }
 
+// TestRegisterAppDeveloperRegistrationDoubleGate verifies the K-AUTHSVC-014
+// developer-registration double gate: a governed app_id absent from the registry
+// (the local-dev shijing case) registers only when BOTH the daemon gate is on
+// AND the caller declares developer_registration. Either condition false keeps
+// the production fail-closed APP_NOT_REGISTERED rejection.
+func TestRegisterAppDeveloperRegistrationDoubleGate(t *testing.T) {
+	const devAppID = "app.nimi.shijing" // governed, not in the registry catalog
+
+	newSvc := func() *Service {
+		svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+		svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalog())
+		return svc
+	}
+	register := func(svc *Service, developer bool) *runtimev1.RegisterAppResponse {
+		resp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+			AppId:                 devAppID,
+			ModeManifest:          validFullAppModeManifest(),
+			DeveloperRegistration: developer,
+		})
+		if err != nil {
+			t.Fatalf("register app: %v", err)
+		}
+		return resp
+	}
+
+	// Gate off (default) + flag set -> fail closed.
+	if resp := register(newSvc(), true); resp.GetAccepted() || resp.GetReasonCode() != runtimev1.ReasonCode_APP_NOT_REGISTERED {
+		t.Fatalf("dev gate off + flag must fail closed, got accepted=%v reason=%v", resp.GetAccepted(), resp.GetReasonCode())
+	}
+
+	// Gate on + no flag -> fail closed.
+	svcGateOnNoFlag := newSvc()
+	svcGateOnNoFlag.SetDeveloperRegistrationEnabled(true)
+	if resp := register(svcGateOnNoFlag, false); resp.GetAccepted() || resp.GetReasonCode() != runtimev1.ReasonCode_APP_NOT_REGISTERED {
+		t.Fatalf("dev gate on + no flag must fail closed, got accepted=%v reason=%v", resp.GetAccepted(), resp.GetReasonCode())
+	}
+
+	// Gate on + flag -> admitted as a normal app session.
+	svcBoth := newSvc()
+	svcBoth.SetDeveloperRegistrationEnabled(true)
+	resp := register(svcBoth, true)
+	if !resp.GetAccepted() {
+		t.Fatalf("dev gate on + flag must admit developer registration, reason=%v", resp.GetReasonCode())
+	}
+	if resp.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("developer registration reason code: %v", resp.GetReasonCode())
+	}
+	if resp.GetAppInstanceId() == "" {
+		t.Fatalf("developer registration must allocate an app instance id")
+	}
+}
+
+func TestRegisterAppDeveloperRegistrationFailureAuditMarksIntent(t *testing.T) {
+	store := auditlog.New(16, 16)
+	svc := NewWithDependencies(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, store, 60, 86400)
+	svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalog())
+
+	resp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:                 "app.nimi.shijing",
+		ModeManifest:          validFullAppModeManifest(),
+		DeveloperRegistration: true,
+	})
+	if err != nil {
+		t.Fatalf("register app: %v", err)
+	}
+	if resp.GetAccepted() || resp.GetReasonCode() != runtimev1.ReasonCode_APP_NOT_REGISTERED {
+		t.Fatalf("developer registration with runtime gate off must fail closed, got accepted=%v reason=%v", resp.GetAccepted(), resp.GetReasonCode())
+	}
+
+	events, err := store.ListEvents(&runtimev1.ListAuditEventsRequest{})
+	if err != nil {
+		t.Fatalf("list audit events: %v", err)
+	}
+	if len(events.GetEvents()) != 1 {
+		t.Fatalf("expected one audit event, got %d", len(events.GetEvents()))
+	}
+	payload := events.GetEvents()[0].GetPayload().AsMap()
+	if payload["developer_registration"] != true {
+		t.Fatalf("expected developer_registration audit marker, got %#v", payload["developer_registration"])
+	}
+	if payload["registry_app_id"] != "nimi.shijing" {
+		t.Fatalf("expected normalized registry_app_id, got %#v", payload["registry_app_id"])
+	}
+}
+
 // Migration-gate behavior is unit-tested in
 // runtime/internal/firstpartymigration/launch_gate_test.go. The auth-service
 // integration of that gate used to be exercised via parentos in a now-retired

@@ -145,6 +145,10 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	cfg.AuthDeveloperRegistrationEnabled, err = readBoolWithFileConfigFallback("NIMI_RUNTIME_AUTH_DEVELOPER_REGISTRATION_ENABLED", fileConfigDeveloperRegistrationEnabled(fileCfg), false)
+	if err != nil {
+		return Config{}, err
+	}
 	cfg.EngineLlamaEnabled, err = readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LLAMA_ENABLED", llamaEnabledFromFile, false)
 	if err != nil {
 		return Config{}, err

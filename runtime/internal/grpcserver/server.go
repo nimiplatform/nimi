@@ -113,6 +113,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	)
 	authSvc.SetNimiAppRegistryCatalog(nimiAppRegistry)
 	authSvc.SetFirstPartyMigrationLaunchGate(defaultFirstPartyMigrationLaunchGate())
+	authSvc.SetDeveloperRegistrationEnabled(cfg.AuthDeveloperRegistrationEnabled)
 	accountSvc := accountservice.NewProduction(logger, accountservice.ProductionConfig{
 		RealmBaseURL:     cfg.AccountRealmBaseURL,
 		AuthorizationURL: cfg.AccountAuthorizationURL,

@@ -77,6 +77,10 @@ type Service struct {
 	ttlMinSeconds int32
 	ttlMaxSeconds int32
 
+	// developerRegistrationEnabled is the daemon-level K-AUTHSVC-014 gate. When
+	// false (default) RegisterApp keeps production-governed admission fail-closed.
+	developerRegistrationEnabled bool
+
 	mu                 sync.RWMutex
 	apps               map[string]appRegistration
 	registeredApps     map[string]int
@@ -126,6 +130,12 @@ func (s *Service) SetFirstPartyMigrationLaunchGate(gate *firstpartymigration.Lau
 	s.migrations = gate
 }
 
+// SetDeveloperRegistrationEnabled wires the K-AUTHSVC-014 daemon developer
+// registration gate (auth.developerRegistration.enabled). Default false.
+func (s *Service) SetDeveloperRegistrationEnabled(enabled bool) {
+	s.developerRegistrationEnabled = enabled
+}
+
 func (s *Service) pruneExpiredSessionsLocked(now time.Time) {
 	for sessionID, session := range s.appSessions {
 		if !session.ExpiresAt.IsZero() && !session.ExpiresAt.After(now) {
@@ -155,15 +165,22 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 			ReasonCode: reasonCode,
 		}, nil
 	}
+	developerAdmission := false
 	if reasonCode, eligibilityReason, ok := s.checkNimiAppRegistryEligibility(req); !ok {
-		s.emitAuditWithPayload(ctx, "RegisterApp", appID, "", reasonCode, map[string]any{
+		payload := map[string]any{
 			"eligibility_reason": eligibilityReason,
 			"registry_app_id":    normalizeNimiAppRegistryID(appID),
-		})
+		}
+		if req.GetDeveloperRegistration() {
+			payload["developer_registration"] = true
+		}
+		s.emitAuditWithPayload(ctx, "RegisterApp", appID, "", reasonCode, payload)
 		return &runtimev1.RegisterAppResponse{
 			Accepted:   false,
 			ReasonCode: reasonCode,
 		}, nil
+	} else if eligibilityReason == developerRegistrationReason {
+		developerAdmission = true
 	}
 	if reasonCode, migrationReason, ok := s.checkFirstPartyMigrationGate(appID); !ok {
 		s.emitAuditWithPayload(ctx, "RegisterApp", appID, "", reasonCode, map[string]any{
@@ -204,14 +221,25 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 	s.apps[appKey] = registration
 	s.mu.Unlock()
 
-	s.emitAudit(ctx, "RegisterApp", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED)
-	s.logger.Info("app registered", "app_id", appID, "app_instance_id", instanceID)
+	if developerAdmission {
+		s.emitAuditWithPayload(ctx, "RegisterApp", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+			"developer_registration": true,
+			"registry_app_id":        normalizeNimiAppRegistryID(appID),
+		})
+	} else {
+		s.emitAudit(ctx, "RegisterApp", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED)
+	}
+	s.logger.Info("app registered", "app_id", appID, "app_instance_id", instanceID, "developer_registration", developerAdmission)
 	return &runtimev1.RegisterAppResponse{
 		AppInstanceId: instanceID,
 		Accepted:      true,
 		ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
 	}, nil
 }
+
+// developerRegistrationReason is the eligibility reason returned when a caller
+// is admitted through the K-AUTHSVC-014 developer-registration double gate.
+const developerRegistrationReason = "developer-registration"
 
 func (s *Service) checkNimiAppRegistryEligibility(req *runtimev1.RegisterAppRequest) (runtimev1.ReasonCode, string, bool) {
 	appID := strings.TrimSpace(req.GetAppId())
@@ -222,6 +250,23 @@ func (s *Service) checkNimiAppRegistryEligibility(req *runtimev1.RegisterAppRequ
 	if registryAppID == "nimi.desktop" {
 		return runtimev1.ReasonCode_ACTION_EXECUTED, "", true
 	}
+
+	reasonCode, reason, ok := s.evaluateNimiAppRegistryEligibility(registryAppID)
+	if ok {
+		return reasonCode, reason, true
+	}
+	// K-AUTHSVC-014: developer-registration double gate. A governed app_id that
+	// is otherwise ineligible may register for local developer testing only when
+	// BOTH the daemon gate (auth.developerRegistration.enabled) is on AND the
+	// caller explicitly declared developer_registration. Either condition false
+	// preserves the production fail-closed rejection (APP_NOT_REGISTERED).
+	if s.developerRegistrationEnabled && req.GetDeveloperRegistration() {
+		return runtimev1.ReasonCode_ACTION_EXECUTED, developerRegistrationReason, true
+	}
+	return reasonCode, reason, false
+}
+
+func (s *Service) evaluateNimiAppRegistryEligibility(registryAppID string) (runtimev1.ReasonCode, string, bool) {
 	if s.nimiApps == nil {
 		return runtimev1.ReasonCode_APP_NOT_REGISTERED, "app-registry-projection-missing", false
 	}

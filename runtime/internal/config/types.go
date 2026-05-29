@@ -108,6 +108,12 @@ type Config struct {
 	// endpoint consulted after successful JWT validation.
 	AuthJWTRevocationURL string
 
+	// AuthDeveloperRegistrationEnabled is the K-AUTHSVC-014 developer
+	// registration gate. When true, RegisterApp may admit a not-yet-admitted
+	// governed app_id that explicitly declares developer_registration, for local
+	// developer testing. Default: false (production admission stays fail-closed).
+	AuthDeveloperRegistrationEnabled bool
+
 	// AccountRealmBaseURL is the Realm API origin used by RuntimeAccountService
 	// to derive OAuth authorize/token endpoints. It is distinct from JWT issuer
 	// because deployments may use an issuer value that is not the API base URL.
@@ -312,8 +318,15 @@ type FileConfigEngine struct {
 
 // FileConfigAuth holds JWT authentication configuration in the config file.
 type FileConfigAuth struct {
-	JWT     *FileConfigJWT     `json:"jwt,omitempty"`
-	Account *FileConfigAccount `json:"account,omitempty"`
+	JWT                   *FileConfigJWT                   `json:"jwt,omitempty"`
+	Account               *FileConfigAccount               `json:"account,omitempty"`
+	DeveloperRegistration *FileConfigDeveloperRegistration `json:"developerRegistration,omitempty"`
+}
+
+// FileConfigDeveloperRegistration holds the K-AUTHSVC-014 developer
+// registration gate (auth.developerRegistration.enabled).
+type FileConfigDeveloperRegistration struct {
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // FileConfigJWT holds JWT-specific authentication configuration.
