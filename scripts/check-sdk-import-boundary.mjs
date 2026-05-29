@@ -12,7 +12,16 @@ const sdkPackageJsonPaths = [
 ].map((relative) => path.join(repoRoot, relative));
 
 const forbiddenExportPattern = /(?:^|\/)(internal|generated)(?:\/|$)/;
-const forbiddenStableImportPattern = /(?:from|import)\s+['"]@nimiplatform\/sdk\/(?:internal|generated)(?:\/|['"])/;
+// Forbid `internal` / `generated` as a path segment anywhere after the package
+// name, e.g. `@nimiplatform/sdk/generated/...` and also a stable subpath followed
+// by a private segment such as `@nimiplatform/sdk/runtime/generated/...`. The
+// optional `(?:[^'"]*\/)?` consumes intervening stable subpath segments while the
+// trailing `(?:\/|['"])` keeps it anchored to a full segment, so legitimate stable
+// subpaths (runtime/realm/world/types/ai/ai-provider/scope/app) are never matched.
+// The leading alternation covers static `from '...'`, static side-effect
+// `import '...'`, and dynamic `import('...')` so a deep private import cannot
+// slip in through the dynamic form.
+const forbiddenStableImportPattern = /(?:from\s+|import\s+|import\s*\(\s*)['"]@nimiplatform\/sdk\/(?:[^'"]*\/)?(?:internal|generated)(?:\/|['"])/;
 const importTargetPattern = /(?:from\s+['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\))/g;
 const consumerSourceRoots = ['apps', 'runtime', 'examples', 'scripts'];
 const sourceExtensions = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);

@@ -15,13 +15,15 @@ import {
 } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service';
 import { createPlatformClient } from '@nimiplatform/sdk';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { GetAccessTokenResponse, RegisterAppResponse, type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
-import { RefreshAccountSessionResponse } from '@nimiplatform/sdk/runtime/generated/runtime/v1/account';
 import {
+  GetAccessTokenResponse,
   ListConnectorModelsResponse,
   ListConnectorsResponse,
   ListProviderCatalogResponse,
-} from '@nimiplatform/sdk/runtime/generated/runtime/v1/connector';
+  RefreshAccountSessionResponse,
+  RegisterAppResponse,
+  type ProviderCatalogEntry,
+} from '@nimiplatform/sdk/runtime';
 
 const CONNECTOR_SERVICE_SOURCE = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service.ts'),

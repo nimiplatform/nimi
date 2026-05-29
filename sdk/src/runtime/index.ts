@@ -31,6 +31,9 @@ export {
   ConnectorKind,
   ConnectorOwnerType,
   ConnectorStatus,
+  ListConnectorsResponse,
+  ListConnectorModelsResponse,
+  ListProviderCatalogResponse,
 } from './generated/runtime/v1/connector.js';
 export {
   CONNECTOR_AUTH_PROFILES,
@@ -139,6 +142,9 @@ export {
   CompanionParticipationStatus,
   CompanionParticipationSurfaceKind,
   CompanionParticipationTriggerSource,
+  ConversationAnchor,
+  ConversationAnchorStatus,
+  GetConversationAnchorSnapshotResponse,
   HookAdmissionState,
   AgentLifecycleStatus,
   AgentTrackType,
@@ -192,6 +198,7 @@ export {
   AccountSessionState,
   GetAccessTokenResponse,
   GetAccountSessionStatusResponse,
+  RefreshAccountSessionResponse,
   WorkspaceBindingPurpose,
   WorkspaceBindingState,
   WorkspaceMembershipState,
@@ -200,10 +207,16 @@ export type * from './generated/runtime/v1/account.js';
 export {
   AppMode,
   ExternalProofType,
+  OpenSessionResponse,
   RegisterAppResponse,
   WorldRelation,
 } from './generated/runtime/v1/auth.js';
-export { PolicyMode, AuthorizationPreset as RuntimeAuthorizationPreset } from './generated/runtime/v1/grant.js';
+export {
+  PolicyMode,
+  AuthorizationPreset as RuntimeAuthorizationPreset,
+  AuthorizeExternalPrincipalResponse,
+} from './generated/runtime/v1/grant.js';
+export { Timestamp } from './generated/google/protobuf/timestamp.js';
 export { WorkflowStatus, WorkflowEventType, WorkflowExecutionMode } from './generated/runtime/v1/workflow.js';
 export { createRuntimeClient } from './core/client.js';
 export { createNodeGrpcTransport, setNodeGrpcBridge, type NodeGrpcBridge } from './transports/node-grpc.js';

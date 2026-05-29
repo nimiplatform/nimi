@@ -2,7 +2,7 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import {
   ConversationAnchorStatus,
   type AgentConversationSummary,
-} from '@nimiplatform/sdk/runtime/generated/runtime/v1/agent_service';
+} from '@nimiplatform/sdk/runtime';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 
 export const RUNTIME_AGENT_CONVERSATION_SUMMARIES_QUERY_KEY = ['chat-agent-runtime-conversation-summaries'] as const;

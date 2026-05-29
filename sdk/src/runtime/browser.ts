@@ -30,6 +30,9 @@ export {
   ConnectorKind,
   ConnectorOwnerType,
   ConnectorStatus,
+  ListConnectorsResponse,
+  ListConnectorModelsResponse,
+  ListProviderCatalogResponse,
 } from './generated/runtime/v1/connector.js';
 export {
   CONNECTOR_AUTH_PROFILES,
@@ -102,6 +105,9 @@ export {
   CompanionParticipationStatus,
   CompanionParticipationSurfaceKind,
   CompanionParticipationTriggerSource,
+  ConversationAnchor,
+  ConversationAnchorStatus,
+  GetConversationAnchorSnapshotResponse,
   HookAdmissionState,
   AgentLifecycleStatus,
   AgentTrackType,
@@ -185,6 +191,7 @@ export {
   AccountCallerMode,
   AccountSessionState,
   AccountReasonCode,
+  RefreshAccountSessionResponse,
   ScopedAppBindingPurpose,
   ScopedAppBindingState,
   WorkspaceBindingPurpose,
@@ -206,8 +213,19 @@ export type {
   RevokeWorkspaceBindingRequest,
   RevokeWorkspaceBindingResponse,
 } from './generated/runtime/v1/account.js';
-export { ExternalProofType, AppMode, WorldRelation } from './generated/runtime/v1/auth.js';
-export { PolicyMode, AuthorizationPreset as RuntimeAuthorizationPreset } from './generated/runtime/v1/grant.js';
+export {
+  ExternalProofType,
+  AppMode,
+  WorldRelation,
+  OpenSessionResponse,
+  RegisterAppResponse,
+} from './generated/runtime/v1/auth.js';
+export {
+  PolicyMode,
+  AuthorizationPreset as RuntimeAuthorizationPreset,
+  AuthorizeExternalPrincipalResponse,
+} from './generated/runtime/v1/grant.js';
+export { Timestamp } from './generated/google/protobuf/timestamp.js';
 export { WorkflowStatus, WorkflowEventType, WorkflowExecutionMode } from './generated/runtime/v1/workflow.js';
 export {
   LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,

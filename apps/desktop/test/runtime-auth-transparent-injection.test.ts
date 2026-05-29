@@ -2,19 +2,15 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { getPlatformClient, createPlatformClient } from '@nimiplatform/sdk';
-import { Timestamp } from '@nimiplatform/sdk/runtime/generated/google/protobuf/timestamp';
-import {
-  OpenSessionResponse,
-  RegisterAppResponse,
-} from '@nimiplatform/sdk/runtime/generated/runtime/v1/auth';
 import {
   AuthorizeExternalPrincipalResponse,
-} from '@nimiplatform/sdk/runtime/generated/runtime/v1/grant';
-import {
   ConversationAnchor,
   ConversationAnchorStatus,
   GetConversationAnchorSnapshotResponse,
-} from '@nimiplatform/sdk/runtime/generated/runtime/v1/agent_service';
+  OpenSessionResponse,
+  RegisterAppResponse,
+  Timestamp,
+} from '@nimiplatform/sdk/runtime';
 
 type TauriInvokeCall = {
   command: string;
