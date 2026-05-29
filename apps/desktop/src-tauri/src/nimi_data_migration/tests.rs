@@ -18,7 +18,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::test_support::with_env;
 
 use super::cleanup::{
-    execute_directory_cleanup, plan_directory_cleanup, reclaim_old_root,
+    execute_directory_cleanup, plan_directory_cleanup, plan_old_root_reclaim, reclaim_old_root,
     DESTRUCTIVE_CLEANUP_CONFIRMATION,
 };
 use super::copy::{compute_signature, copy_tree, verify_copy};
@@ -27,6 +27,17 @@ use super::layout::{enforce_data_root_layout, measure_directory, scan_data_root}
 use super::ownership::{
     first_level_directory_names, first_level_row, CleanupClass, NIMI_DATA_DIRECTORY_MATRIX,
 };
+
+/// Drive an async `#[tauri::command]` body to completion on a fresh
+/// current-thread runtime. `with_env` holds the process-global env mutex, so
+/// each test resolves `~/.nimi/nimi.json` against its own isolated `HOME`.
+fn block_on_command<T>(future: impl std::future::Future<Output = T>) -> T {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("build test runtime")
+        .block_on(future)
+}
 
 fn unique_dir(prefix: &str) -> PathBuf {
     let unique = SystemTime::now()
@@ -215,6 +226,52 @@ fn full_migration_copies_verifies_and_cuts_pointer_over_atomically() {
         assert_eq!(
             fs::read(source_root.join("apps/app-1/data/db.sqlite")).expect("old data intact"),
             b"user-data"
+        );
+
+        // P-MIG-008 reclaim authorization: the completed migration recorded the
+        // old root in the reclaim ledger, and ONLY that recorded path is
+        // reclaimable. An arbitrary renderer-supplied path is never recorded.
+        assert!(
+            crate::desktop_product_control::is_recorded_retained_old_root(&source_root)
+                .expect("ledger lookup"),
+            "the migration must record the retained old root"
+        );
+        let arbitrary = home.join("not-a-migration-root");
+        write_file(&arbitrary.join("important.txt"), b"unrelated user file");
+        assert!(
+            !crate::desktop_product_control::is_recorded_retained_old_root(&arbitrary)
+                .expect("ledger lookup"),
+            "an unrecorded path must never be authorized for reclaim"
+        );
+        // The arbitrary path is not reclaimable even with the token + valid
+        // path guards, because the plan folds in the unrecorded fact. The plan
+        // also must NOT scan it — its real file is never measured / revealed.
+        let arbitrary_plan = plan_old_root_reclaim(&arbitrary, &target_root, false)
+            .expect("plan arbitrary");
+        assert!(!arbitrary_plan.reclaimable);
+        assert_eq!(arbitrary_plan.file_count, 0);
+        assert_eq!(arbitrary_plan.total_bytes, 0);
+
+        // The recorded old root reclaims, and the ledger entry is then consumed.
+        let reclaimed = reclaim_old_root(
+            &source_root,
+            &target_root,
+            Some(DESTRUCTIVE_CLEANUP_CONFIRMATION),
+        )
+        .expect("confirmed reclaim of recorded old root");
+        assert!(reclaimed.removed_files >= 1);
+        assert!(!source_root.exists());
+        crate::desktop_product_control::consume_retained_old_root(&source_root)
+            .expect("consume ledger entry");
+        assert!(
+            !crate::desktop_product_control::is_recorded_retained_old_root(&source_root)
+                .expect("ledger lookup after consume"),
+            "a consumed ledger entry is no longer advertised as reclaimable"
+        );
+        // The unrelated arbitrary file was never touched.
+        assert_eq!(
+            fs::read(arbitrary.join("important.txt")).expect("arbitrary intact"),
+            b"unrelated user file"
         );
     });
 }
@@ -424,6 +481,87 @@ fn old_root_reclaim_requires_confirmation_and_refuses_active_root() {
     .expect("confirmed reclaim");
     assert_eq!(outcome.removed_files, 1);
     assert!(!old_root.exists());
+}
+
+#[test]
+fn old_root_reclaim_plan_surfaces_impact_and_block_conditions() {
+    let base = unique_dir("reclaim-plan");
+    let old_root = base.join("old-nimi-data");
+    let active_root = base.join("active-nimi-data");
+    write_file(&old_root.join("apps/app-1/data/db.sqlite"), b"old-data");
+    write_file(&old_root.join("logs/run.log"), b"log");
+
+    // A distinct old root, recorded in the migration ledger, is reclaimable;
+    // the plan reports the real impact and always requires confirmation (the
+    // old root is always destructive).
+    let plan = plan_old_root_reclaim(&old_root, &active_root, true).expect("reclaim plan");
+    assert_eq!(plan.file_count, 2);
+    assert!(plan.total_bytes > 0);
+    assert!(plan.requires_confirmation);
+    assert!(!plan.same_as_active);
+    assert!(!plan.active_nested_in_old);
+    assert!(plan.recorded);
+    assert!(plan.reclaimable);
+    // Planning deletes nothing.
+    assert!(old_root.join("apps/app-1/data/db.sqlite").exists());
+
+    // The same distinct old root, NOT recorded in the ledger, is never
+    // reclaimable even though the path guards all pass — AND its impact is not
+    // measured, so an unrecorded path cannot be used as a filesystem probe.
+    let unrecorded =
+        plan_old_root_reclaim(&old_root, &active_root, false).expect("plan unrecorded");
+    assert!(!unrecorded.recorded);
+    assert!(!unrecorded.reclaimable);
+    assert_eq!(unrecorded.file_count, 0);
+    assert_eq!(unrecorded.total_bytes, 0);
+
+    // The active root itself is not reclaimable.
+    let same = plan_old_root_reclaim(&active_root, &active_root, true).expect("plan same root");
+    assert!(same.same_as_active);
+    assert!(!same.reclaimable);
+
+    // An old root that contains the active root is not reclaimable.
+    let nested_active = old_root.join("nested-active");
+    let nested =
+        plan_old_root_reclaim(&old_root, &nested_active, true).expect("plan nested active root");
+    assert!(nested.active_nested_in_old);
+    assert!(!nested.reclaimable);
+}
+
+#[test]
+fn reclaim_execute_command_refuses_unrecorded_path_even_with_token() {
+    let home = unique_dir("reclaim-cmd");
+    with_env(&[("HOME", home.to_str())], || {
+        // An active data root must exist so the command can resolve the
+        // backend-authoritative protected root.
+        let active_root = home.join("active-nimi-data");
+        crate::desktop_product_control::select_product_data_root(
+            active_root.to_str().expect("active"),
+        )
+        .expect("select data root");
+
+        // An arbitrary path with real content that the migration ledger never
+        // recorded. A valid `CLEAN` token must NOT make it reclaimable — the
+        // token is confirmation, not authorization.
+        let arbitrary = home.join("unrelated-dir");
+        write_file(&arbitrary.join("important.txt"), b"unrelated user file");
+
+        let payload = super::NimiDataOldRootReclaimPayload {
+            old_root: arbitrary.display().to_string(),
+            confirmation: Some(DESTRUCTIVE_CLEANUP_CONFIRMATION.to_string()),
+        };
+        let error = block_on_command(super::nimi_data_old_root_reclaim_execute(payload))
+            .expect_err("an unrecorded path must be refused by the command");
+        assert!(
+            error.contains("不是已记录的迁移保留旧"),
+            "command must reject on the ledger authorization, got: {error}"
+        );
+        // The command deleted nothing — the unrelated file is intact.
+        assert_eq!(
+            fs::read(arbitrary.join("important.txt")).expect("arbitrary intact"),
+            b"unrelated user file"
+        );
+    });
 }
 
 // --- scan / measure --------------------------------------------------------

@@ -15,6 +15,7 @@ use super::projection::read_product_control_projection;
 use super::record::{
     ProductControlRecordProjection, ProductControlState, ProductDataRootRecord,
     ProductDataRootStatus, ProductFirstRunSetupStatePayload, ProductRepairRecord,
+    RetainedOldRootRecord,
 };
 use super::record_store::{
     empty_record, ensure_data_root_layout, read_existing_record, selected_data_root_path,
@@ -103,6 +104,7 @@ pub fn select_product_data_root(path: &str) -> Result<ProductControlRecordProjec
 /// pointer can never advertise a directory that is not there.
 pub fn migrate_product_data_root_pointer(
     new_data_root: &str,
+    old_data_root: &str,
 ) -> Result<ProductControlRecordProjection, String> {
     let trimmed = new_data_root.trim();
     if trimmed.is_empty() {
@@ -121,6 +123,10 @@ pub fn migrate_product_data_root_pointer(
             normalized.display()
         ));
     }
+    let new_path = normalized.display().to_string();
+    let old_path = normalize_desktop_absolute_path(&PathBuf::from(old_data_root.trim()))
+        .display()
+        .to_string();
     let control_path = product_control_record_path()?;
     let mut record = read_existing_record(&control_path)?.ok_or_else(|| {
         "~/.nimi/nimi.json is missing; a data-root migration requires an existing record"
@@ -130,13 +136,68 @@ pub fn migrate_product_data_root_pointer(
         "~/.nimi/nimi.json has no selected data root; nothing to migrate".to_string()
     })?;
     let now = now_unix_ms();
-    data_root.path = normalized.display().to_string();
+    data_root.path = new_path.clone();
     // The data root is freshly verified by the migration integrity check.
     data_root.verified_at = now_iso_timestamp();
     data_root.verified_at_unix_ms = now;
+    // Record the now-inactive old data root in the P-MIG-008 reclaim ledger so
+    // a later explicit, confirmed reclaim can authorize against it. An old root
+    // that equals the new active root is never recorded (nothing was vacated).
+    if !old_path.is_empty() && old_path != new_path {
+        record
+            .retained_old_data_roots
+            .retain(|entry| entry.path != old_path);
+        record.retained_old_data_roots.push(RetainedOldRootRecord {
+            path: old_path,
+            migrated_to: new_path,
+            recorded_at: now_iso_timestamp(),
+            recorded_at_unix_ms: now,
+        });
+    }
     record.pointers = resolve_product_pointers()?;
     write_record(&control_path, &record)?;
     read_product_control_projection()
+}
+
+/// Whether `path` is a backend-recorded retained post-migration old `nimi_data`
+/// data root (`P-MIG-008` reclaim authorization).
+///
+/// The reclaim path consults this before any deletion — a path not present
+/// here is never reclaimable, so a renderer can never drive a destructive
+/// delete of an arbitrary directory by supplying its path.
+pub fn is_recorded_retained_old_root(path: &Path) -> Result<bool, String> {
+    let normalized = normalize_desktop_absolute_path(path).display().to_string();
+    let control_path = product_control_record_path()?;
+    let Some(record) = read_existing_record(&control_path)? else {
+        return Ok(false);
+    };
+    Ok(record
+        .retained_old_data_roots
+        .iter()
+        .any(|entry| entry.path == normalized))
+}
+
+/// Remove `path` from the retained-old-root reclaim ledger after a confirmed
+/// reclaim deleted it. Returns whether an entry was present.
+///
+/// Best-effort bookkeeping: a missing record / absent entry is not an error
+/// (the on-disk delete already happened), it just means there is nothing left
+/// to advertise as reclaimable.
+pub fn consume_retained_old_root(path: &Path) -> Result<bool, String> {
+    let normalized = normalize_desktop_absolute_path(path).display().to_string();
+    let control_path = product_control_record_path()?;
+    let Some(mut record) = read_existing_record(&control_path)? else {
+        return Ok(false);
+    };
+    let before = record.retained_old_data_roots.len();
+    record
+        .retained_old_data_roots
+        .retain(|entry| entry.path != normalized);
+    let removed = record.retained_old_data_roots.len() != before;
+    if removed {
+        write_record(&control_path, &record)?;
+    }
+    Ok(removed)
 }
 
 pub fn set_first_run_install_level(

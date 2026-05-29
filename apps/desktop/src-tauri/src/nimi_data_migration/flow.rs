@@ -331,6 +331,9 @@ pub fn run_migration(
         target
             .to_str()
             .ok_or_else(|| format!("目标 nimi_data 路径不是有效 UTF-8: {}", target.display()))?,
+        source_root
+            .to_str()
+            .ok_or_else(|| format!("源 nimi_data 路径不是有效 UTF-8: {}", source_root.display()))?,
     ) {
         // The data is copied + verified at the target, but the pointer cutover
         // failed. The source is still intact and still pointed-to, so no data

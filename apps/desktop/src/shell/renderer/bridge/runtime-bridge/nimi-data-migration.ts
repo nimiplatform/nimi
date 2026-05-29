@@ -76,6 +76,28 @@ export interface NimiDataCleanupOutcome {
 }
 
 /**
+ * The `P-MIG-008` impact preview for reclaiming a retained old `nimi_data`
+ * data root. Reclaiming the old root is always destructive, so
+ * `requiresConfirmation` is always `true`. `sameAsActive` / `activeNestedInOld`
+ * are two fail-close conditions that make a reclaim impossible, and `recorded`
+ * reflects whether the backend migration ledger actually retained this path;
+ * `reclaimable` is `recorded && !sameAsActive && !activeNestedInOld`. When not
+ * reclaimable the backend does not scan the path, so `totalBytes` / `fileCount`
+ * are reported as `0` rather than probing an unauthorized location.
+ */
+export interface NimiDataOldRootReclaimPlan {
+  readonly oldRoot: string;
+  readonly activeRoot: string;
+  readonly totalBytes: number;
+  readonly fileCount: number;
+  readonly requiresConfirmation: boolean;
+  readonly sameAsActive: boolean;
+  readonly activeNestedInOld: boolean;
+  readonly recorded: boolean;
+  readonly reclaimable: boolean;
+}
+
+/**
  * The explicit `P-MIG-008` destructive-cleanup confirmation token a UI must
  * collect from the user before a non-pure-cache cleanup. It mirrors the
  * backend `DESTRUCTIVE_CLEANUP_CONFIRMATION` constant.
@@ -172,6 +194,21 @@ function parseCleanupOutcome(value: unknown): NimiDataCleanupOutcome {
   };
 }
 
+function parseOldRootReclaimPlan(value: unknown): NimiDataOldRootReclaimPlan {
+  const record = asRecord(value, 'nimi_data old-root reclaim plan');
+  return {
+    oldRoot: String(record.oldRoot || ''),
+    activeRoot: String(record.activeRoot || ''),
+    totalBytes: Number(record.totalBytes || 0),
+    fileCount: Number(record.fileCount || 0),
+    requiresConfirmation: record.requiresConfirmation === true,
+    sameAsActive: record.sameAsActive === true,
+    activeNestedInOld: record.activeNestedInOld === true,
+    recorded: record.recorded === true,
+    reclaimable: record.reclaimable === true,
+  };
+}
+
 /**
  * `P-MIG-007` preview: compute the size / impact preview for moving the
  * current `nimi_data` data root to `targetRoot`. Moves nothing.
@@ -225,6 +262,45 @@ export async function executeNimiDataCleanup(
   return invokeChecked(
     'nimi_data_cleanup_execute',
     { payload: { directory, confirmation: confirmation ?? null } },
+    parseCleanupOutcome,
+  );
+}
+
+/**
+ * `P-MIG-008` plan: compute the impact preview for reclaiming a retained old
+ * `nimi_data` data root (`MigrationOutcome.previousRoot`, when
+ * `oldRootRetained` is `true`). Deletes nothing. The active (protected) data
+ * root is resolved backend-side, never supplied by the renderer.
+ */
+export async function planNimiDataOldRootReclaim(
+  oldRoot: string,
+): Promise<NimiDataOldRootReclaimPlan> {
+  if (!hasTauriInvoke()) {
+    throw new Error('nimi_data_old_root_reclaim_plan requires Tauri runtime');
+  }
+  return invokeChecked(
+    'nimi_data_old_root_reclaim_plan',
+    { payload: { oldRoot } },
+    parseOldRootReclaimPlan,
+  );
+}
+
+/**
+ * `P-MIG-008` execute: reclaim a retained old `nimi_data` data root. Always
+ * destructive, so `confirmation` must equal
+ * {@link NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION}. Fails closed if the old
+ * root resolves to the active data root or the active root is nested inside it.
+ */
+export async function reclaimNimiDataOldRoot(
+  oldRoot: string,
+  confirmation?: string,
+): Promise<NimiDataCleanupOutcome> {
+  if (!hasTauriInvoke()) {
+    throw new Error('nimi_data_old_root_reclaim_execute requires Tauri runtime');
+  }
+  return invokeChecked(
+    'nimi_data_old_root_reclaim_execute',
+    { payload: { oldRoot, confirmation: confirmation ?? null } },
     parseCleanupOutcome,
   );
 }

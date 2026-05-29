@@ -42,7 +42,8 @@ pub use layout::enforce_data_root_layout;
 use serde::Deserialize;
 
 use cleanup::{
-    execute_directory_cleanup, plan_directory_cleanup, CleanupOutcome, CleanupPlan,
+    execute_directory_cleanup, plan_directory_cleanup, plan_old_root_reclaim, reclaim_old_root,
+    CleanupOutcome, CleanupPlan, OldRootReclaimPlan,
 };
 use flow::{preview_migration, run_migration, MigrationOutcome};
 use preview::MigrationPreview;
@@ -130,6 +131,79 @@ pub async fn nimi_data_cleanup_execute(
             &payload.directory,
             payload.confirmation.as_deref(),
         )
+    })
+    .await
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NimiDataOldRootReclaimPlanPayload {
+    /// Absolute path of the retained old `nimi_data` data root to preview a
+    /// reclaim for. The renderer obtains this from a completed `MigrationOutcome`
+    /// (`previousRoot`, with `oldRootRetained = true`).
+    pub old_root: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NimiDataOldRootReclaimPayload {
+    /// Absolute path of the retained old `nimi_data` data root to reclaim.
+    pub old_root: String,
+    /// Explicit `P-MIG-008` confirmation token. Required — reclaiming the old
+    /// root is always destructive.
+    pub confirmation: Option<String>,
+}
+
+/// `P-MIG-008` plan: compute the impact preview for reclaiming a retained old
+/// `nimi_data` data root. Deletes nothing.
+///
+/// Two backend-authoritative facts gate the reclaim and cannot be spoofed by
+/// the renderer:
+/// - the active (protected) data root is `selected_product_data_root()`, so the
+///   guard against deleting the live data root cannot be bypassed;
+/// - `recorded` comes from the migration reclaim ledger, so only a path a real
+///   completed migration actually retained is ever marked reclaimable.
+#[tauri::command]
+pub async fn nimi_data_old_root_reclaim_plan(
+    payload: NimiDataOldRootReclaimPlanPayload,
+) -> Result<OldRootReclaimPlan, String> {
+    run_blocking(move || {
+        let old_path = std::path::PathBuf::from(payload.old_root.trim());
+        let active_root = crate::desktop_product_control::selected_product_data_root()?;
+        let recorded = crate::desktop_product_control::is_recorded_retained_old_root(&old_path)?;
+        plan_old_root_reclaim(&old_path, &active_root, recorded)
+    })
+    .await
+}
+
+/// `P-MIG-008` execute: reclaim a retained old `nimi_data` data root. Always
+/// requires the confirmation token; refuses to touch the active data root or a
+/// root the active root is nested inside. Fails closed otherwise.
+///
+/// Authorization: the `old_root` MUST be a path the migration reclaim ledger
+/// recorded (`is_recorded_retained_old_root`). A renderer-supplied path the
+/// backend never retained can never drive a destructive delete — the `CLEAN`
+/// token is a deliberate-action gate, not an authorization capability. The
+/// active (protected) data root is the backend-authoritative
+/// `selected_product_data_root()`, not a renderer-supplied value. On success
+/// the ledger entry is consumed so the path is no longer advertised.
+#[tauri::command]
+pub async fn nimi_data_old_root_reclaim_execute(
+    payload: NimiDataOldRootReclaimPayload,
+) -> Result<CleanupOutcome, String> {
+    run_blocking(move || {
+        let old_path = std::path::PathBuf::from(payload.old_root.trim());
+        let active_root = crate::desktop_product_control::selected_product_data_root()?;
+        if !crate::desktop_product_control::is_recorded_retained_old_root(&old_path)? {
+            return Err(format!(
+                "拒绝回收：{} 不是已记录的迁移保留旧 nimi_data 数据根，无法回收",
+                old_path.display()
+            ));
+        }
+        let outcome =
+            reclaim_old_root(&old_path, &active_root, payload.confirmation.as_deref())?;
+        crate::desktop_product_control::consume_retained_old_root(&old_path)?;
+        Ok(outcome)
     })
     .await
 }

@@ -52,6 +52,7 @@ import type {
   NimiDataMigrationOutcome,
   NimiDataCleanupPlan,
   NimiDataCleanupOutcome,
+  NimiDataOldRootReclaimPlan,
   LogsExportResult,
   ProductControlState,
   ProductControlRecord,
@@ -80,6 +81,7 @@ export type {
   NimiDataMigrationOutcome,
   NimiDataCleanupPlan,
   NimiDataCleanupOutcome,
+  NimiDataOldRootReclaimPlan,
   LogsExportResult,
   ProductControlState,
   ProductControlRecord,
@@ -161,6 +163,19 @@ export async function planNimiDataCleanup(_directory: string): Promise<NimiDataC
 
 export async function executeNimiDataCleanup(
   _directory: string,
+  _confirmation?: string,
+): Promise<NimiDataCleanupOutcome> {
+  throw new Error('nimi_data cleanup is only available in desktop runtime');
+}
+
+export async function planNimiDataOldRootReclaim(
+  _oldRoot: string,
+): Promise<NimiDataOldRootReclaimPlan> {
+  throw new Error('nimi_data cleanup is only available in desktop runtime');
+}
+
+export async function reclaimNimiDataOldRoot(
+  _oldRoot: string,
   _confirmation?: string,
 ): Promise<NimiDataCleanupOutcome> {
   throw new Error('nimi_data cleanup is only available in desktop runtime');
@@ -296,6 +311,8 @@ export const desktopBridge = {
   runNimiDataMigration,
   planNimiDataCleanup,
   executeNimiDataCleanup,
+  planNimiDataOldRootReclaim,
+  reclaimNimiDataOldRoot,
   exportDesktopLogs,
   startWindowDrag,
   logRendererEvent,

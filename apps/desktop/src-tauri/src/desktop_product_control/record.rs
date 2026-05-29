@@ -95,6 +95,27 @@ pub struct ProductRepairRecord {
     pub reason: Option<String>,
 }
 
+/// One retained post-migration old `nimi_data` data root awaiting an explicit
+/// `P-MIG-008` reclaim.
+///
+/// An entry is appended only when a migration's `~/.nimi/nimi.json` pointer
+/// cutover actually committed — at that point the old root is a genuine,
+/// no-longer-active recoverable copy. The `P-MIG-008` reclaim path authorizes
+/// against this ledger: a renderer-supplied path that was never recorded here
+/// can never drive a destructive delete.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RetainedOldRootRecord {
+    /// Normalized absolute path of the retained old data root.
+    pub path: String,
+    /// Normalized absolute path of the data root the migration moved to.
+    pub migrated_to: String,
+    /// ISO-8601 timestamp when the migration recorded this retained old root.
+    pub recorded_at: String,
+    /// Unix-ms timestamp when the migration recorded this retained old root.
+    pub recorded_at_unix_ms: u128,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductControlRecord {
@@ -106,6 +127,12 @@ pub struct ProductControlRecord {
     pub first_run: ProductFirstRunRecord,
     pub pointers: ProductPointersRecord,
     pub repair: ProductRepairRecord,
+    /// Ledger of post-migration old `nimi_data` data roots left intact on disk
+    /// awaiting an explicit `P-MIG-008` reclaim. Authorizes the reclaim path —
+    /// it never deletes a path that is not recorded here. `#[serde(default)]`
+    /// keeps pre-ledger `~/.nimi/nimi.json` records readable.
+    #[serde(default)]
+    pub retained_old_data_roots: Vec<RetainedOldRootRecord>,
 }
 
 #[derive(Debug, Clone, Serialize)]

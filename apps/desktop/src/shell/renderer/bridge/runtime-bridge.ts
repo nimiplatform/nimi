@@ -34,7 +34,9 @@ import {
 import {
   executeNimiDataCleanup,
   planNimiDataCleanup,
+  planNimiDataOldRootReclaim,
   previewNimiDataMigration,
+  reclaimNimiDataOldRoot,
   runNimiDataMigration,
 } from './runtime-bridge/nimi-data-migration';
 import { exportDesktopLogs } from './runtime-bridge/support-logs-export';
@@ -58,6 +60,7 @@ export type {
   NimiDataMigrationOutcome,
   NimiDataCleanupPlan,
   NimiDataCleanupOutcome,
+  NimiDataOldRootReclaimPlan,
 } from './runtime-bridge/nimi-data-migration';
 
 export { NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION } from './runtime-bridge/nimi-data-migration';
@@ -120,6 +123,8 @@ export {
   runNimiDataMigration,
   planNimiDataCleanup,
   executeNimiDataCleanup,
+  planNimiDataOldRootReclaim,
+  reclaimNimiDataOldRoot,
   exportDesktopLogs,
   getAppsBridgeProjection,
   getDesktopStorageDirs,

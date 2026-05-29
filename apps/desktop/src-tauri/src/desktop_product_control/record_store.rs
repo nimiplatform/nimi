@@ -22,6 +22,7 @@ pub(crate) fn empty_record(state: ProductControlState) -> Result<ProductControlR
         first_run: ProductFirstRunRecord::default(),
         pointers: resolve_product_pointers()?,
         repair: ProductRepairRecord::default(),
+        retained_old_data_roots: Vec::new(),
     })
 }
 
