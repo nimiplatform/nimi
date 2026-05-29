@@ -136,3 +136,36 @@ Proto 枚举冻结约束：
 - `exp` 过期的 token 统一映射到 `UNAUTHENTICATED` + `AUTH_TOKEN_EXPIRED`。
 - `iss` 不匹配统一映射到 `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`。
 - 不支持的 `proof_type` 返回 `INVALID_ARGUMENT` + `AUTH_UNSUPPORTED_PROOF_TYPE`。
+
+## K-AUTHSVC-014 Developer Registration 准入（dev-mode 双门控）
+
+本规则定义 `RegisterApp` 的本地开发者注册准入路径，用于本地开发者在自有机器上测试尚未经
+平台准入（Nimi App registry / `P-NAPP-*` admission）的本地 app。**不新增 `RuntimeAuthService`
+方法，`K-AUTHSVC-002` 方法集合仍冻结。**
+
+**默认准入语义（不变）**：对 platform-governed（`nimi.*` / 归一化后 `nimi.*`）的 `app_id`，
+`RegisterApp` 默认要求 Nimi App registry 准入（caller eligibility）。未准入时 fail-close，
+返回 `accepted=false` + `APP_NOT_REGISTERED`。本规则不削弱该生产默认。
+
+**双门控放行**：当且仅当以下两条同时成立，`RegisterApp` 才以 developer registration 准入一个
+未入目录 / governed 的 `app_id`：
+
+1. Runtime 配置 `auth.developerRegistration.enabled == true`（默认 `false`，见
+   `config-schema.yaml`，由用户经 Desktop「本地 app 测试」开关授权开启）；**且**
+2. `RegisterAppRequest.developer_registration == true`（调用方显式声明开发者注册意图）。
+
+任一条件不成立 → 维持默认拒绝（`APP_NOT_REGISTERED`），**不得 pseudo-success**、不得静默放行。
+
+**放行后权限**：developer registration 产出的 app session 是**权限正常**的 app session，
+按 `K-AUTHSVC-009` AppMode 矩阵授予 domain/scope，**不降级、不匿名化**——用户开启
+`auth.developerRegistration.enabled` 即视为对本地开发者注册的授权。该 session 不绕过
+`RuntimeGrantService` 授权决策，也不获得超出其 `mode_manifest` 的能力。
+
+**审计（K-AUTHSVC-007）**：developer registration 的成功与失败都必须写审计，且最小字段之外
+必须标记 developer registration（如 `developer_registration=true` 与 registry app id），
+以便事后可见“哪些本地 app 经开发者门被放行”。
+
+**fail-close 与可撤销**：`auth.developerRegistration.enabled` 默认关闭即 fail-close；关闭后
+后续 `RegisterApp` 立即恢复默认拒绝（既有 session 由 daemon 重启/`RevokeSession` 失效）。
+developer registration 仅放宽准入门，绝不使本地 app 成为已准入 first-party 产品行（不写
+Nimi App registry、不改 `P-NAPP-*` admission 真值）。

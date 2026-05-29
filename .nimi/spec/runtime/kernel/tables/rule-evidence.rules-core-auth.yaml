@@ -53,6 +53,7 @@ entries:
   - K-AUTHSVC-011
   - K-AUTHSVC-012
   - K-AUTHSVC-013
+  - K-AUTHSVC-014
   - K-ACCSVC-001
   - K-ACCSVC-002
   - K-ACCSVC-003
@@ -233,6 +234,11 @@ rules:
       - runtime_go_test
     evidence_requirement: required
   - rule_id: K-AUTHSVC-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AUTHSVC-014
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test
