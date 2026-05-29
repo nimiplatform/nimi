@@ -3,6 +3,9 @@ import {
   createNimiError,
   RuntimeReasonCode,
   ConnectorAuthKind,
+  ConnectorKind,
+  ConnectorOwnerType,
+  ConnectorStatus,
   type ProviderCatalogEntry,
   CONNECTOR_AUTH_PROFILES,
   type ConnectorAuthProfileSpec,
@@ -30,9 +33,6 @@ const PROVIDER_CATALOG_CACHE_TTL_MS = 5 * 60 * 1000;
 const CONNECTOR_LIST_CACHE_TTL_MS = 15 * 1000;
 const CONNECTOR_MODEL_CACHE_TTL_MS = 30 * 1000;
 
-const CONNECTOR_KIND_REMOTE_MANAGED = 2;
-const CONNECTOR_OWNER_TYPE_SYSTEM = 1;
-
 let cachedProviderCatalog: ProviderCatalogEntry[] | null = null;
 let cachedProviderCatalogAt = 0;
 let cachedConnectors: ApiConnector[] | null = null;
@@ -46,12 +46,12 @@ type RuntimeConnectorLike = {
   endpoint: string;
   label: string;
   hasCredential: boolean;
-  authKind?: number;
+  authKind?: ConnectorAuthKind;
   providerAuthProfile?: string;
-  ownerType: number;
+  ownerType: ConnectorOwnerType;
   ownerId?: string;
-  kind: number;
-  status: number;
+  kind: ConnectorKind;
+  status: ConnectorStatus;
 };
 
 export type ApiConnectorAuthOption = {
@@ -261,26 +261,14 @@ function resolveCredentialJsonInput(input: {
 }
 
 export function sdkConnectorToApiConnector(
-  connector: {
-    connectorId: string;
-    provider: string;
-    endpoint: string;
-    label: string;
-    hasCredential: boolean;
-    authKind?: number;
-    providerAuthProfile?: string;
-    ownerType: number;
-    ownerId?: string;
-    kind: number;
-    status: number;
-  },
+  connector: RuntimeConnectorLike,
   providerCatalog: ProviderCatalogEntry[],
   models?: string[],
 ): ApiConnector {
   const vendor = providerToVendor(connector.provider);
   const defaultEndpoint = resolveProviderEndpoint(connector.provider, providerCatalog);
   const normalizedOwnerId = String(connector.ownerId || '').trim().toLowerCase();
-  const scope: ApiConnectorScopeV11 = connector.ownerType === CONNECTOR_OWNER_TYPE_SYSTEM
+  const scope: ApiConnectorScopeV11 = connector.ownerType === ConnectorOwnerType.SYSTEM
     ? (normalizedOwnerId === 'machine' ? 'machine-global' : 'runtime-system')
     : 'user';
   return {
@@ -318,8 +306,8 @@ export async function sdkListConnectors(): Promise<ApiConnector[]> {
     const request = {
       pageSize: 0,
       pageToken: '',
-      kindFilter: CONNECTOR_KIND_REMOTE_MANAGED,
-      statusFilter: 0,
+      kindFilter: ConnectorKind.REMOTE_MANAGED,
+      statusFilter: ConnectorStatus.UNSPECIFIED,
       providerFilter: '',
     };
     const response = await runtimeAdmin().listConnectors(request, CONNECTOR_CALL_OPTIONS);
@@ -327,7 +315,7 @@ export async function sdkListConnectors(): Promise<ApiConnector[]> {
       ? (response.connectors as RuntimeConnectorLike[])
       : [];
     const remoteConnectors = connectors.filter(
-      (connector: RuntimeConnectorLike) => connector.kind === CONNECTOR_KIND_REMOTE_MANAGED,
+      (connector: RuntimeConnectorLike) => connector.kind === ConnectorKind.REMOTE_MANAGED,
     );
     const result = remoteConnectors.map((connector: RuntimeConnectorLike) => sdkConnectorToApiConnector(connector, providerCatalog));
     if (cacheGeneration === connectorInventoryCacheGeneration) {
