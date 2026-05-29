@@ -1,0 +1,4 @@
+# Derived build artifact: verbatim snapshot of apps/tester baked at pack time
+# (prepack) by scripts/sync-app-source.mjs. apps/tester is the single source.
+templates/app-source/
+templates/app-source.manifest.json

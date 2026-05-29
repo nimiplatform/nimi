@@ -1,6 +1,0 @@
-fn main() {
-    tauri::Builder::default()
-        .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_runtime_bridge_handler![])
-        .run(tauri::generate_context!())
-        .expect("failed to run Nimi App shell");
-}

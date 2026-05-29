@@ -1,24 +1,52 @@
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { readAppSourceFile, resolveAppSource } from '../scripts/sync-app-source.mjs';
 
 const DEFAULT_APP_ID = 'my-nimi-app';
 const DEFAULT_APP_TITLE = 'My Nimi App';
-export const SCAFFOLD_VERSION = '2026-05-24.wave-4-remediation-b';
+export const SCAFFOLD_VERSION = '2026-05-29.app-source-snapshot';
 export const SCAFFOLD_STATE_DIR = '.nimi/app-scaffold';
 export const SCAFFOLD_INTENT_PATH = `${SCAFFOLD_STATE_DIR}/intent.json`;
 export const SCAFFOLD_LOCK_PATH = `${SCAFFOLD_STATE_DIR}/lock.json`;
 export const SCAFFOLD_SUBMISSION_PATH = '.nimi/admission/submission.yaml';
 export const SCAFFOLD_BUILD_PROFILE_PATH = '.nimi/admission/build-profile.yaml';
 export const SUPPORTED_APP_SCAFFOLD_PROFILES = ['standalone', 'workspace-app'];
-const SCAFFOLD_LICENSE_YEAR = '2026';
 const LOCKFILE_POLICY = 'author-install-generates-lockfile';
-const TEMPLATE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../templates/app-scaffold');
 const MINIMAL_TAURI_ICON_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=',
   'base64',
 );
+
+const CI_WORKFLOW = [
+  'name: pre-submission-self-check',
+  'on:',
+  '  pull_request:',
+  '  push:',
+  'jobs:',
+  '  check:',
+  '    runs-on: ubuntu-latest',
+  '    steps:',
+  '      - uses: actions/checkout@v4',
+  '      - uses: pnpm/action-setup@v4',
+  '        with:',
+  '          version: 9',
+  '      - uses: actions/setup-node@v4',
+  '        with:',
+  '          node-version: 22',
+  '      - run: pnpm install --no-frozen-lockfile',
+  '      - run: pnpm run init',
+  '      - run: pnpm run check',
+  '',
+].join('\n');
+
+let appSourceCache = null;
+
+function loadAppSource() {
+  if (!appSourceCache) {
+    appSourceCache = resolveAppSource();
+  }
+  return appSourceCache;
+}
 
 function jsonFile(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
@@ -99,6 +127,10 @@ function cargoSafeNameFromPackageName(input) {
   return normalized || DEFAULT_APP_ID;
 }
 
+function appSlugFromAppId(appId) {
+  return packageSafeName(appId);
+}
+
 function tauriIdentifierFromAppId(appId) {
   const suffix = String(appId || DEFAULT_APP_ID)
     .toLowerCase()
@@ -106,6 +138,14 @@ function tauriIdentifierFromAppId(appId) {
     .replace(/^\.+|\.+$/g, '')
     .replace(/\.+/g, '.');
   return `ai.nimi.apps.${suffix || DEFAULT_APP_ID.replace(/-/g, '.')}`;
+}
+
+function deriveScaffoldDevPort(appId) {
+  let hash = 0;
+  for (const char of String(appId || DEFAULT_APP_ID)) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 100;
+  }
+  return 1430 + hash;
 }
 
 function buildAppIdentity(profile, appId, appTitle, packageName, author = '') {
@@ -117,16 +157,10 @@ function buildAppIdentity(profile, appId, appTitle, packageName, author = '') {
     packageName: resolvedPackageName,
     cargoPackageName: `${cargoSafeNameFromPackageName(resolvedPackageName)}-shell`,
     tauriIdentifier: tauriIdentifierFromAppId(appId),
+    appSlug: appSlugFromAppId(appId),
+    devPort: deriveScaffoldDevPort(appId),
     author: String(author || '').trim(),
   };
-}
-
-function deriveScaffoldDevPort(appId) {
-  let hash = 0;
-  for (const char of String(appId || DEFAULT_APP_ID)) {
-    hash = (hash * 31 + char.charCodeAt(0)) % 100;
-  }
-  return 1430 + hash;
 }
 
 function resolveProfile(options) {
@@ -138,7 +172,6 @@ function resolveProfile(options) {
 }
 
 function buildPackageJson(profile, versions, identity) {
-  const devPort = deriveScaffoldDevPort(identity.appId);
   const packageJson = {
     name: identity.packageName,
     private: false,
@@ -148,7 +181,7 @@ function buildPackageJson(profile, versions, identity) {
     },
     scripts: {
       dev: 'pnpm run dev:renderer',
-      'dev:renderer': `vite --host 127.0.0.1 --port ${devPort} --strictPort`,
+      'dev:renderer': `vite --host 127.0.0.1 --port ${identity.devPort} --strictPort`,
       'dev:shell': 'node scripts/dev-shell.mjs',
       init: 'nimi-app init',
       typecheck: 'tsc --noEmit',
@@ -193,127 +226,96 @@ function buildPackageJson(profile, versions, identity) {
   return packageJson;
 }
 
-function isNimiTesterIdentity(identity) {
-  return identity.appId === 'nimi.tester';
-}
-
-function shellDependencyForProfile(profile, versions) {
+function cargoShellDependencyLine(profile, versions) {
   if (profile === 'workspace-app') {
-    return '{ path = "../../../kit/shell/tauri" }';
+    return 'nimi-shell-tauri = { path = "../../../kit/shell/tauri" }';
   }
-  return JSON.stringify(versions.nimiShellTauriVersion);
+  return `nimi-shell-tauri = ${JSON.stringify(versions.nimiShellTauriVersion)}`;
 }
 
-function buildTemplateContext(identity, versions) {
-  const isNimiTester = isNimiTesterIdentity(identity);
-  const devPort = deriveScaffoldDevPort(identity.appId);
-  const appOwnedProductCodeYaml = isNimiTester
-    ? [
-        '    - src/shell/routes/product-area.tsx',
-        '    - src/tester/**',
-        '    - src-tauri/src/tester_storage.rs',
-        '    - src-tauri/src/world_tour.rs',
-        '    - test/tester-contract.test.mjs',
-        '    - test/world-tour-contract.test.mjs',
-      ].join('\n')
-    : '    - src/shell/routes/product-area.tsx';
+function targetIdentityMap(identity) {
   return {
-    APP_ID: identity.appId,
-    APP_TITLE: identity.appTitle,
-    PROFILE: identity.profile,
-    PACKAGE_NAME: identity.packageName,
-    CARGO_PACKAGE_NAME: identity.cargoPackageName,
-    TAURI_IDENTIFIER: identity.tauriIdentifier,
-    PACKAGE_AUTHOR_LINE: identity.author ? 'package_author: ' + identity.author + '\n' : '',
-    DEV_PORT: String(devPort),
-    RUNTIME_ACCOUNT_LOGIN_ENABLED: isNimiTesterIdentity(identity) ? 'true' : 'false',
-    NIMI_SHELL_TAURI_DEPENDENCY: shellDependencyForProfile(identity.profile, versions),
-    APP_OWNED_AREA_SENTENCE: isNimiTester
-      ? 'The app-owned area is `src/shell/routes/product-area.tsx`, `src/tester/**`, app-owned tester Tauri modules under `src-tauri/src/{tester_storage.rs,world_tour.rs}`, and tester contract tests.'
-      : 'The app-owned area is `src/shell/routes/product-area.tsx` unless a later scaffold update expands it.',
-    APP_OWNED_PRODUCT_CODE_YAML: appOwnedProductCodeYaml,
-    SCAFFOLD_LICENSE_YEAR,
+    tauriIdentifier: identity.tauriIdentifier,
+    packageName: identity.packageName,
+    cargoPackageName: identity.cargoPackageName,
+    appId: identity.appId,
+    appTitle: identity.appTitle,
+    appSlug: identity.appSlug,
+    devPort: String(identity.devPort),
   };
 }
 
-function renderTemplateString(template, context, templatePath) {
-  const rendered = String(template).replace(/\{\{([A-Z0-9_]+)\}\}/g, (match, key) => {
-    if (!Object.hasOwn(context, key)) {
-      throw new Error('Unknown scaffold template token ' + match + ' in ' + templatePath);
+function applyIdentityReplacement(content, manifest, target) {
+  let rendered = content;
+  for (const field of manifest.identityReplacementOrder) {
+    const from = manifest.sourceIdentity[field];
+    const to = target[field];
+    if (from === undefined || to === undefined) {
+      throw new Error(`Identity replacement field missing: ${field}`);
     }
-    return context[key];
-  });
-  if (/\{\{[A-Z0-9_]+\}\}/.test(rendered)) {
-    throw new Error('Unresolved scaffold template token in ' + templatePath);
+    rendered = rendered.split(from).join(to);
   }
   return rendered;
 }
 
-function renderTemplatePath(relativePath, context) {
-  const withoutExtension = relativePath.endsWith('.tmpl') ? relativePath.slice(0, -'.tmpl'.length) : relativePath;
-  return renderTemplateString(withoutExtension, context, relativePath);
-}
-
-function listTemplateFiles(templateDir) {
-  const entries = readdirSync(templateDir, { withFileTypes: true });
-  const files = [];
-  for (const entry of entries) {
-    const entryPath = path.join(templateDir, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...listTemplateFiles(entryPath));
-      continue;
-    }
-    if (!entry.isFile()) {
-      continue;
-    }
-    if (!entry.name.endsWith('.tmpl')) {
-      throw new Error('Unsupported scaffold template file without .tmpl suffix: ' + entryPath);
-    }
-    files.push(entryPath);
+function applyProfileSeam(relativePath, content, profile, versions, manifest) {
+  if (relativePath === 'nimi.app.yaml') {
+    const source = manifest.sourceIdentity.profile || 'standalone';
+    return content.replace(new RegExp(`^profile: ${source}$`, 'm'), `profile: ${profile}`);
   }
-  return files.sort((left, right) => left.localeCompare(right));
+  if (relativePath === 'src-tauri/Cargo.toml') {
+    const workspaceLine = 'nimi-shell-tauri = { path = "../../../kit/shell/tauri" }';
+    return content.replace(workspaceLine, cargoShellDependencyLine(profile, versions));
+  }
+  return content;
 }
 
-function buildFilesFromTemplateDir(templateDir, context) {
-  return listTemplateFiles(templateDir).map((templatePath) => {
-    const relativeTemplatePath = path.relative(templateDir, templatePath).split(path.sep).join('/');
+function buildSnapshotFiles(identity, profile, versions) {
+  const { baseDir, manifest } = loadAppSource();
+  const target = targetIdentityMap(identity);
+  return manifest.files.map((entry) => {
+    const raw = readAppSourceFile(baseDir, entry.path);
+    const identityApplied = applyIdentityReplacement(raw, manifest, target);
+    const content = applyProfileSeam(entry.path, identityApplied, profile, versions, manifest);
     return {
-      path: renderTemplatePath(relativeTemplatePath, context),
-      content: renderTemplateString(readFileSync(templatePath, 'utf8'), context, templatePath),
+      path: entry.path,
+      content,
+      mutationClass: entry.class,
     };
   });
 }
 
-function buildTemplateFiles(identity, versions) {
-  const context = buildTemplateContext(identity, versions);
-  const productTemplate = isNimiTesterIdentity(identity) ? 'nimi-tester' : 'default';
-  const templateDirs = [
-    path.join(TEMPLATE_ROOT, 'common'),
-    path.join(TEMPLATE_ROOT, 'product', productTemplate),
-  ];
-  if (identity.profile === 'workspace-app') {
-    templateDirs.push(path.join(TEMPLATE_ROOT, 'workspace-app'));
-  }
-  const filesByPath = new Map();
-  for (const templateDir of templateDirs) {
-    for (const file of buildFilesFromTemplateDir(templateDir, context)) {
-      filesByPath.set(file.path, file);
-    }
-  }
-  return [...filesByPath.values()];
-}
-
-function buildStructuredFiles(identity, versions) {
-  return [
+function buildStructuredFiles(identity, profile, versions) {
+  const files = [
     {
       path: 'package.json',
-      content: jsonFile(buildPackageJson(identity.profile, versions, identity)),
+      content: jsonFile(buildPackageJson(profile, versions, identity)),
+      mutationClass: 'scaffold-managed glue',
+    },
+    {
+      path: '.github/workflows/ci.yml',
+      content: CI_WORKFLOW,
+      mutationClass: 'scaffold-managed glue',
     },
     {
       path: 'src-tauri/icons/icon.png',
       content: MINIMAL_TAURI_ICON_PNG,
+      mutationClass: 'scaffold-managed glue',
     },
   ];
+  if (profile === 'workspace-app') {
+    files.push({
+      path: `apps/${identity.packageName}/spec/app-slice.md`,
+      content: [
+        `# ${identity.appId} App Slice`,
+        '',
+        'Workspace-app profile input under P-APP authority. This app-slice file is not public Nimi App admission and does not create ordinary-user visibility.',
+        '',
+      ].join('\n'),
+      mutationClass: 'package-owned projection',
+    });
+  }
+  return files;
 }
 
 function buildScaffoldIntent(identity, versions) {
@@ -330,7 +332,7 @@ function buildScaffoldIntent(identity, versions) {
     packageAuthor: identity.author || null,
     cargoPackageName: identity.cargoPackageName,
     tauriIdentifier: identity.tauriIdentifier,
-    devPort: deriveScaffoldDevPort(identity.appId),
+    devPort: identity.devPort,
     dependencyMatrix: buildDependencyMatrix(identity.profile, versions),
     semantics: {
       role: 'app-scaffold-init-input',
@@ -344,6 +346,7 @@ function buildScaffoldIntentFile(identity, versions) {
   return {
     path: SCAFFOLD_INTENT_PATH,
     content: jsonFile(buildScaffoldIntent(identity, versions)),
+    mutationClass: 'scaffold-managed glue',
   };
 }
 
@@ -369,6 +372,7 @@ function buildScaffoldSubmissionFile(identity) {
       'admission_truth: platform-owned-after-review',
       '',
     ].join('\n'),
+    mutationClass: 'scaffold-managed glue',
   };
 }
 
@@ -388,6 +392,7 @@ function buildScaffoldBuildProfileFile() {
       'profile_role: developer-workflow-input',
       '',
     ].join('\n'),
+    mutationClass: 'scaffold-managed glue',
   };
 }
 
@@ -400,37 +405,13 @@ function buildInitProjectionFiles(identity) {
 
 function buildScaffoldFiles(identity, versions) {
   return [
-    ...buildStructuredFiles(identity, versions),
-    ...buildTemplateFiles(identity, versions),
+    ...buildStructuredFiles(identity, identity.profile, versions),
+    ...buildSnapshotFiles(identity, identity.profile, versions),
   ];
 }
 
 function normalizePathList(paths) {
   return [...paths].sort((left, right) => left.localeCompare(right));
-}
-
-function classifyScaffoldFile(filePath, identity) {
-  if (filePath === 'src/shell/routes/product-area.tsx') {
-    return 'app-owned product code';
-  }
-  if (isNimiTesterIdentity(identity) && (
-    filePath.startsWith('src/tester/')
-    || filePath === 'src-tauri/src/tester_storage.rs'
-    || filePath === 'src-tauri/src/world_tour.rs'
-    || filePath === 'test/tester-contract.test.mjs'
-    || filePath === 'test/world-tour-contract.test.mjs'
-  )) {
-    return 'app-owned product code';
-  }
-  if (
-    filePath.startsWith('.nimi/config/')
-    || filePath.startsWith('.nimi/contracts/')
-    || filePath.startsWith('.nimi/methodology/')
-    || /^apps\/[^/]+\/spec\//.test(filePath)
-  ) {
-    return 'package-owned projection';
-  }
-  return 'scaffold-managed glue';
 }
 
 export function hashScaffoldContent(content) {
@@ -484,7 +465,7 @@ function buildScaffoldLock(identity, versions, files) {
   const appOwnedInitialHashes = {};
 
   for (const file of files) {
-    const mutationClass = classifyScaffoldFile(file.path, identity);
+    const mutationClass = file.mutationClass;
     taxonomy[mutationClass].push(file.path);
     const digest = hashScaffoldContent(file.content);
     if (mutationClass === 'app-owned product code') {
@@ -559,6 +540,7 @@ export function buildAppScaffoldSnapshot({ profile, versions, appId, appTitle, p
     {
       path: SCAFFOLD_LOCK_PATH,
       content: jsonFile(lock),
+      mutationClass: 'scaffold-managed glue',
     },
   ];
   const allFiles = [

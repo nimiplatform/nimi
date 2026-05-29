@@ -1,0 +1,25 @@
+{
+  "productName": "Nimi Tester",
+  "version": "0.1.0",
+  "identifier": "ai.nimi.apps.nimi.tester",
+  "build": {
+    "beforeDevCommand": "pnpm run dev:renderer",
+    "beforeBuildCommand": "pnpm run build",
+    "devUrl": "http://127.0.0.1:1468",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Nimi Tester",
+        "width": 1120,
+        "height": 760
+      }
+    ]
+  },
+  "bundle": {
+    "icon": [
+      "icons/icon.png"
+    ]
+  }
+}

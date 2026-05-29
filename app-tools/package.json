@@ -16,9 +16,17 @@
   "bin": {
     "nimi-app": "./bin/nimi-app.mjs"
   },
+  "scripts": {
+    "build": "node scripts/sync-app-source.mjs --apply",
+    "sync:app-source": "node scripts/sync-app-source.mjs --apply",
+    "prepack": "node scripts/sync-app-source.mjs --apply",
+    "prepublishOnly": "node scripts/sync-app-source.mjs --apply",
+    "test": "node --test test/*.test.mjs"
+  },
   "files": [
     "bin",
     "lib",
+    "scripts",
     "templates",
     "README.md"
   ],

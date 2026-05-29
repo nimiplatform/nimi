@@ -1,0 +1,9 @@
+app_id: dev.nimi.tester
+display_name: Nimi Tester
+profile: standalone
+manifest_role: submitted-input
+permissions:
+  declared_nimi_api_scopes:
+    - scope: app.local.drafts
+      qualifier: app-local-drafts
+      purpose: Store drafts owned by this app during author testing.

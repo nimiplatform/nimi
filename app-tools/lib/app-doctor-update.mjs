@@ -250,7 +250,14 @@ function scanForbiddenPatterns(targetDir) {
   for (const filePath of collectTextFiles(targetDir)) {
     const relativePath = path.relative(targetDir, filePath).split(path.sep).join('/');
     const text = readFileSync(filePath, 'utf8');
+    const isTestFile = relativePath.startsWith('test/') || relativePath.endsWith('.test.mjs');
     for (const [label, pattern] of patterns) {
+      // Test files reference provider/model names to assert behavior (including
+      // negative assertions that forbid hardcoding); only product/glue source is
+      // product truth, so the hardcoding pattern is scoped out of tests.
+      if (label === 'provider/model hardcoding' && isTestFile) {
+        continue;
+      }
       if (pattern.test(text)) {
         findings.push(`${relativePath}: ${label}`);
       }
