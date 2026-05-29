@@ -30,6 +30,7 @@ export {
   ConnectorKind,
   ConnectorOwnerType,
   ConnectorStatus,
+  LocalConnectorCategory,
   ListConnectorsResponse,
   ListConnectorModelsResponse,
   ListProviderCatalogResponse,

@@ -1,5 +1,5 @@
 import type { PlatformClient } from '@nimiplatform/sdk';
-import { ConnectorKind, ConnectorStatus } from '@nimiplatform/sdk/runtime';
+import { ConnectorKind, ConnectorStatus, LocalConnectorCategory } from '@nimiplatform/sdk/runtime';
 import type {
   RouteConnector,
   RouteConnectorModel,
@@ -26,14 +26,6 @@ type RuntimeConnectorRecord = RouteConnector & {
   kind: unknown;
   localCategory: unknown;
 };
-
-const LOCAL_CONNECTOR_CATEGORY_UNSPECIFIED = 0;
-const LOCAL_CONNECTOR_CATEGORY_LLM = 1;
-const LOCAL_CONNECTOR_CATEGORY_VISION = 2;
-const LOCAL_CONNECTOR_CATEGORY_IMAGE = 3;
-const LOCAL_CONNECTOR_CATEGORY_TTS = 4;
-const LOCAL_CONNECTOR_CATEGORY_STT = 5;
-const LOCAL_CONNECTOR_CATEGORY_CUSTOM = 6;
 
 async function requireRuntimeClient(): Promise<PlatformClient> {
   const projection = await getRuntimePlatformProjection();
@@ -86,18 +78,32 @@ function enumToken(value: unknown): string {
   return '';
 }
 
+const LOCAL_CONNECTOR_CATEGORY_TOKEN_PREFIX = 'LOCAL_CONNECTOR_CATEGORY_';
+
+// Normalize the Runtime connector `localCategory` field (which may arrive as a
+// numeric enum, a protobuf-ts member name, or a full proto token depending on
+// transport serialization) into the SDK `LocalConnectorCategory` enum. The enum
+// is the single source of truth; we do not redefine category numerals locally.
+function resolveLocalCategory(value: unknown): LocalConnectorCategory | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value in LocalConnectorCategory ? (value as LocalConnectorCategory) : null;
+  }
+  const token = enumToken(value);
+  if (!token) return null;
+  const memberName = token.startsWith(LOCAL_CONNECTOR_CATEGORY_TOKEN_PREFIX)
+    ? token.slice(LOCAL_CONNECTOR_CATEGORY_TOKEN_PREFIX.length)
+    : token;
+  const resolved = (LocalConnectorCategory as Record<string, unknown>)[memberName];
+  return typeof resolved === 'number' ? (resolved as LocalConnectorCategory) : null;
+}
+
 function isLocalConnector(connector: RuntimeConnectorRecord): boolean {
   const kind = enumToken(connector.kind);
-  const localCategory = enumToken(connector.localCategory);
+  const category = resolveLocalCategory(connector.localCategory);
   return kind === String(ConnectorKind.LOCAL_MODEL)
     || kind === 'LOCAL_MODEL'
     || kind === 'CONNECTOR_KIND_LOCAL_MODEL'
-    || (
-      localCategory !== ''
-      && localCategory !== String(LOCAL_CONNECTOR_CATEGORY_UNSPECIFIED)
-      && localCategory !== 'UNSPECIFIED'
-      && localCategory !== 'LOCAL_CONNECTOR_CATEGORY_UNSPECIFIED'
-    );
+    || (category !== null && category !== LocalConnectorCategory.UNSPECIFIED);
 }
 
 function isRemoteManagedConnector(connector: RuntimeConnectorRecord): boolean {
@@ -108,42 +114,19 @@ function isRemoteManagedConnector(connector: RuntimeConnectorRecord): boolean {
 }
 
 function localEngineFor(connector: RuntimeConnectorRecord): string {
-  const category = enumToken(connector.localCategory);
-  if (
-    category === String(LOCAL_CONNECTOR_CATEGORY_TTS)
-    || category === String(LOCAL_CONNECTOR_CATEGORY_STT)
-    || category === 'TTS'
-    || category === 'STT'
-    || category === 'LOCAL_CONNECTOR_CATEGORY_TTS'
-    || category === 'LOCAL_CONNECTOR_CATEGORY_STT'
-  ) {
-    return 'speech';
+  switch (resolveLocalCategory(connector.localCategory)) {
+    case LocalConnectorCategory.TTS:
+    case LocalConnectorCategory.STT:
+      return 'speech';
+    case LocalConnectorCategory.VISION:
+    case LocalConnectorCategory.IMAGE:
+      return 'media';
+    case LocalConnectorCategory.CUSTOM:
+      return 'sidecar';
+    case LocalConnectorCategory.LLM:
+    default:
+      return 'runtime-local-llm';
   }
-  if (
-    category === String(LOCAL_CONNECTOR_CATEGORY_VISION)
-    || category === String(LOCAL_CONNECTOR_CATEGORY_IMAGE)
-    || category === 'VISION'
-    || category === 'IMAGE'
-    || category === 'LOCAL_CONNECTOR_CATEGORY_VISION'
-    || category === 'LOCAL_CONNECTOR_CATEGORY_IMAGE'
-  ) {
-    return 'media';
-  }
-  if (
-    category === String(LOCAL_CONNECTOR_CATEGORY_CUSTOM)
-    || category === 'CUSTOM'
-    || category === 'LOCAL_CONNECTOR_CATEGORY_CUSTOM'
-  ) {
-    return 'sidecar';
-  }
-  if (
-    category === String(LOCAL_CONNECTOR_CATEGORY_LLM)
-    || category === 'LLM'
-    || category === 'LOCAL_CONNECTOR_CATEGORY_LLM'
-  ) {
-    return 'runtime-local-llm';
-  }
-  return 'runtime-local-llm';
 }
 
 function localStatusFor(connector: RuntimeConnectorRecord, model: RouteConnectorModel): RouteLocalModel['status'] {
