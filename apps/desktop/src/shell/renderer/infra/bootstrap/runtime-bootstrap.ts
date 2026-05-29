@@ -21,6 +21,8 @@ import { getOfflineCoordinator } from '@runtime/offline';
 import { safeErrorMessage } from './runtime-bootstrap-utils';
 import { syncRuntimeStorageConfig } from './runtime-bootstrap-local-models-sync';
 import { syncRuntimeJwtConfig } from './runtime-bootstrap-jwt-sync';
+import { syncRuntimeDeveloperRegistrationConfig } from './runtime-bootstrap-developer-registration-sync';
+import { isDeveloperModeEnabled } from '@renderer/features/developer/developer-mode';
 import { isRuntimeConfigManualRestartRequiredError } from './runtime-bootstrap-config-errors';
 import { reconcileLocalRuntimeBootstrapState } from './runtime-bootstrap-local-ai';
 import { attachOfflineCoordinatorBindings } from './runtime-bootstrap-offline';
@@ -311,6 +313,27 @@ export function bootstrapRuntime(): Promise<void> {
           error,
           flowId,
           step: 'runtime local storage config sync',
+        });
+        bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning ?? warning;
+      }
+      try {
+        // Local app testing (K-AUTHSVC-014): mirror the discoverable Developer
+        // Mode switch (D-DEV-002) into the runtime developer-registration gate.
+        daemonStatus = await syncRuntimeDeveloperRegistrationConfig({
+          daemonStatus,
+          enabled: isDeveloperModeEnabled(),
+          bridge: {
+            getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
+            setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
+            restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
+          },
+        });
+        runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
+      } catch (error) {
+        const warning = await handleRuntimeConfigSyncError({
+          error,
+          flowId,
+          step: 'runtime developer-registration config sync',
         });
         bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning ?? warning;
       }
