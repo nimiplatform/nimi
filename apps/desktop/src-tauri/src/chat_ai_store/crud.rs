@@ -151,13 +151,7 @@ pub(crate) fn create_thread(
           archived_at_ms
         ) VALUES (?1, ?2, ?3, ?4, ?5, NULL)
         "#,
-        params![
-            id,
-            title,
-            created_at_ms,
-            updated_at_ms,
-            last_message_at_ms
-        ],
+        params![id, title, created_at_ms, updated_at_ms, last_message_at_ms],
     ) {
         Ok(_) => Ok(ChatAiThreadRecord {
             id,
@@ -214,12 +208,7 @@ pub(crate) fn update_thread_metadata(
               last_message_at_ms = ?4
             WHERE id = ?1
             "#,
-            params![
-                &id,
-                &title,
-                updated_at_ms,
-                last_message_at_ms
-            ],
+            params![&id, &title, updated_at_ms, last_message_at_ms],
         )
         .map_err(|error| map_sql_error("update chat_ai thread failed", error))?;
     if rows_affected == 0 {

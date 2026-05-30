@@ -200,8 +200,7 @@ pub async fn nimi_data_old_root_reclaim_execute(
                 old_path.display()
             ));
         }
-        let outcome =
-            reclaim_old_root(&old_path, &active_root, payload.confirmation.as_deref())?;
+        let outcome = reclaim_old_root(&old_path, &active_root, payload.confirmation.as_deref())?;
         crate::desktop_product_control::consume_retained_old_root(&old_path)?;
         Ok(outcome)
     })

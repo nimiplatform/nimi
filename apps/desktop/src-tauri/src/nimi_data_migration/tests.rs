@@ -246,8 +246,8 @@ fn full_migration_copies_verifies_and_cuts_pointer_over_atomically() {
         // The arbitrary path is not reclaimable even with the token + valid
         // path guards, because the plan folds in the unrecorded fact. The plan
         // also must NOT scan it — its real file is never measured / revealed.
-        let arbitrary_plan = plan_old_root_reclaim(&arbitrary, &target_root, false)
-            .expect("plan arbitrary");
+        let arbitrary_plan =
+            plan_old_root_reclaim(&arbitrary, &target_root, false).expect("plan arbitrary");
         assert!(!arbitrary_plan.reclaimable);
         assert_eq!(arbitrary_plan.file_count, 0);
         assert_eq!(arbitrary_plan.total_bytes, 0);

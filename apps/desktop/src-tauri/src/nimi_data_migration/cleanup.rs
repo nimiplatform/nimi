@@ -176,7 +176,10 @@ pub fn execute_directory_cleanup(
 /// Returns the normalized `(old, active)` paths plus `same_as_active` (the old
 /// root resolves to the active root) and `active_nested_in_old` (the active
 /// root lives inside the old root). Either condition forbids the reclaim.
-fn classify_old_root_reclaim(old_root: &Path, active_root: &Path) -> (PathBuf, PathBuf, bool, bool) {
+fn classify_old_root_reclaim(
+    old_root: &Path,
+    active_root: &Path,
+) -> (PathBuf, PathBuf, bool, bool) {
     let old = crate::desktop_paths::normalize_desktop_absolute_path(old_root);
     let active = crate::desktop_paths::normalize_desktop_absolute_path(active_root);
     let same_as_active = old == active;
