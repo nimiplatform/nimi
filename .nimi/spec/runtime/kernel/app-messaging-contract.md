@@ -10,14 +10,15 @@
 2. `SubscribeAppMessages` — 订阅应用消息事件流
 3. `InstallApp` — 触发 Runtime-owned Nimi App install lifecycle（见 `K-APP-011`）
 4. `UninstallApp` — 触发 Runtime-owned Nimi App uninstall lifecycle（见 `K-APP-014`）
-5. `GetAppInstallJob` — 读取单个 install job 的 typed projection（见 `K-APP-012`）
-6. `ListAppInstallJobs` — 列出 install job 的 typed projection（见 `K-APP-012`）
-7. `WatchAppInstallJobEvents` — 订阅 install job 进度事件流（见 `K-APP-013`）
-8. `UpdateApp` — 触发 Runtime-owned Nimi App atomic update lifecycle（见 `K-APP-015`）
-9. `HealthRepairApp` — 触发 Runtime-owned Nimi App health/repair lifecycle（见 `K-APP-016`）
+5. `GetAppStorage` — 读取 app-scoped storage truth projection（见 `K-APP-022`）
+6. `GetAppInstallJob` — 读取单个 install job 的 typed projection（见 `K-APP-012`）
+7. `ListAppInstallJobs` — 列出 install job 的 typed projection（见 `K-APP-012`）
+8. `WatchAppInstallJobEvents` — 订阅 install job 进度事件流（见 `K-APP-013`）
+9. `UpdateApp` — 触发 Runtime-owned Nimi App atomic update lifecycle（见 `K-APP-015`）
+10. `HealthRepairApp` — 触发 Runtime-owned Nimi App health/repair lifecycle（见 `K-APP-016`）
 
 App messaging 方法（1–2）与 app install/uninstall/update/repair lifecycle 方法
-（3–9）共用 `RuntimeAppService`，但语义独立：lifecycle 方法不承载 app-to-app
+（3–10）共用 `RuntimeAppService`，但语义独立：lifecycle 方法不承载 app-to-app
 message broker 语义，messaging 方法不承载 install/uninstall/update/repair 语义。
 
 ## K-APP-002 SendAppMessage 语义
@@ -735,3 +736,24 @@ the typed table is the contract face.
 > 实现 wave 落地；本组规则是其 normative 契约面。`K-APP-019` derivation
 > table 与 `K-APP-021` state-to-action mapping table 是 packet-time
 > frozen，不接受 free-form 投影层重新解释。
+
+## K-APP-022 App Storage Truth Projection
+
+`MUST`：`GetAppStorage(app_id)` 是 Runtime-owned app-scoped storage truth
+projection。它从 Runtime `dataRootRef` 和 Platform-admitted
+`nimi_data` app layout 解析以下绝对路径：
+
+- `<nimi_data>/apps/<app-id>/data`
+- `<nimi_data>/apps/<app-id>/cache`
+- `<nimi_data>/apps/<app-id>/tmp`
+- active release root, only when an active installed release pointer resolves
+
+`MUST`：runtime-registered developer apps may receive data/cache/tmp roots even
+when no ordinary release descriptor or active release exists. This projects
+storage truth only; it does not project package install or launch readiness.
+
+`MUST NOT`：apps, Desktop, or SDK consumers must not read `~/.nimi/nimi.json`,
+`~/.nimi/runtime/config.json`, or concatenate `<nimi_data>/apps/<app-id>` as an
+alternate storage authority. Missing `dataRootRef`, invalid app id/path shape,
+symlink/non-directory corruption, or unsupported storage policy must fail
+closed with typed storage state/reason.

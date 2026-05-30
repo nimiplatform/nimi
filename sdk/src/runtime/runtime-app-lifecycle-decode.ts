@@ -8,6 +8,7 @@ import {
   AppLifecycleJobKind as ProtoAppLifecycleJobKind,
   AppOpenFlowStep as ProtoAppOpenFlowStep,
   AppOpenState as ProtoAppOpenState,
+  AppStorageState as ProtoAppStorageState,
 } from './generated/runtime/v1/app.js';
 import type {
   AppInstallJob as ProtoAppInstallJob,
@@ -15,6 +16,7 @@ import type {
   AppInstallStorageProjection as ProtoAppInstallStorageProjection,
   AppOpenProjection as ProtoAppOpenProjection,
   AppOpenScopeRef as ProtoAppOpenScopeRef,
+  AppStorageProjection as ProtoAppStorageProjection,
   AppUninstallResult as ProtoAppUninstallResult,
 } from './generated/runtime/v1/app.js';
 import { ReasonCode as RuntimeReasonCode } from './generated/runtime/v1/common.js';
@@ -30,6 +32,8 @@ import type {
   RuntimeAppOpenProjection,
   RuntimeAppOpenScopeRef,
   RuntimeAppOpenState,
+  RuntimeAppStorageProjection,
+  RuntimeAppStorageState,
   RuntimeAppUninstallResult,
 } from './runtime-app-lifecycle-types.js';
 
@@ -171,6 +175,67 @@ function decodeStorage(
     durableDataRoot: storage.durableDataRoot,
     cacheRoot: storage.cacheRoot,
     tempRoot: storage.tempRoot,
+  };
+}
+
+function decodeStorageState(value: ProtoAppStorageState): RuntimeAppStorageState {
+  switch (value) {
+    case ProtoAppStorageState.READY:
+      return 'ready';
+    case ProtoAppStorageState.INSTALL_REQUIRED:
+      return 'install_required';
+    case ProtoAppStorageState.REPAIR_REQUIRED:
+      return 'repair_required';
+    case ProtoAppStorageState.STORAGE_UNAVAILABLE:
+      return 'storage_unavailable';
+    default:
+      return decodeError(
+        `runtime app storage projection has an unspecified state: ${String(value)}`,
+        ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+      );
+  }
+}
+
+export function decodeStorageProjection(
+  projection: ProtoAppStorageProjection | undefined,
+): RuntimeAppStorageProjection {
+  if (!projection) {
+    return decodeError(
+      'runtime app storage response is missing the storage projection',
+      ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    );
+  }
+  const appId = optionalString(projection.appId);
+  if (!appId) {
+    return decodeError(
+      'runtime app storage projection is missing an app id',
+      ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    );
+  }
+  const state = decodeStorageState(projection.state);
+  const reasonCode = decodeReasonCode(projection.reasonCode as unknown as number);
+  if ((state === 'repair_required' || state === 'storage_unavailable') && !reasonCode) {
+    return decodeError(
+      `runtime app storage projection ${appId} is ${state} without a typed reason code`,
+      ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    );
+  }
+  return {
+    appId,
+    state,
+    appRoot: projection.appRoot,
+    ...(optionalString(projection.activeReleaseRoot)
+      ? { activeReleaseRoot: optionalString(projection.activeReleaseRoot) }
+      : {}),
+    durableDataRoot: projection.durableDataRoot,
+    cacheRoot: projection.cacheRoot,
+    tempRoot: projection.tempRoot,
+    ...(optionalString(projection.activeVersion)
+      ? { activeVersion: optionalString(projection.activeVersion) }
+      : {}),
+    storagePolicyRef: projection.storagePolicyRef,
+    ...(reasonCode ? { reasonCode } : {}),
+    ...(optionalString(projection.detail) ? { detail: optionalString(projection.detail) } : {}),
   };
 }
 

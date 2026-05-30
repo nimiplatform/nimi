@@ -8,6 +8,7 @@ import {
   AppInstallJobState,
   AppInstallSourceKind,
   AppLifecycleJobKind,
+  AppStorageState,
 } from '../../src/runtime/generated/runtime/v1/app.js';
 import { ReasonCode as RuntimeReasonCode } from '../../src/runtime/generated/runtime/v1/common.js';
 import {
@@ -17,6 +18,7 @@ import {
 import type {
   AppInstallJob,
   AppInstallJobEvent,
+  GetAppStorageRequest,
   HealthRepairAppRequest,
   InstallAppRequest,
   OpenAppRequest,
@@ -69,6 +71,7 @@ type MockClientCapture = {
   updateRequest?: UpdateAppRequest;
   healthRepairRequest?: HealthRepairAppRequest;
   openRequest?: OpenAppRequest;
+  storageRequest?: GetAppStorageRequest;
   getJobId?: string;
   listAppId?: string;
   watchJobId?: string;
@@ -86,6 +89,10 @@ function mockCtx(
     uninstallApp: async (request: UninstallAppRequest) => {
       capture.uninstallRequest = request;
       throw new Error('uninstallApp not stubbed');
+    },
+    getAppStorage: async (request: GetAppStorageRequest) => {
+      capture.storageRequest = request;
+      throw new Error('getAppStorage not stubbed');
     },
     getAppInstallJob: async (request: { jobId: string }) => {
       capture.getJobId = request.jobId;
@@ -325,6 +332,36 @@ test('uninstall: fail-closes on a missing result projection', async () => {
       (error as { reasonCode?: string }).reasonCode
       === ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
   );
+});
+
+// ── storage ────────────────────────────────────────────────────────────
+
+test('storage: forwards appId and decodes app storage projection', async () => {
+  const { ctx, capture } = mockCtx({
+    getAppStorage: async (request) => {
+      capture.storageRequest = request;
+      return {
+        projection: {
+          appId: 'app-1',
+          state: AppStorageState.READY,
+          appRoot: '/data/apps/app-1',
+          activeReleaseRoot: '',
+          durableDataRoot: '/data/apps/app-1/data',
+          cacheRoot: '/data/apps/app-1/cache',
+          tempRoot: '/data/apps/app-1/tmp',
+          activeVersion: '',
+          storagePolicyRef: 'nimi-data-app-roots',
+          reasonCode: RuntimeReasonCode.ACTION_EXECUTED,
+          detail: '',
+        },
+      };
+    },
+  });
+  const module = createRuntimeAppLifecycleModule({ ctx });
+  const projection = await module.storage({ appId: 'app-1' });
+  assert.deepEqual(capture.storageRequest, { appId: 'app-1' });
+  assert.equal(projection.state, 'ready');
+  assert.equal(projection.durableDataRoot, '/data/apps/app-1/data');
 });
 
 // ── getJob / listJobs ──────────────────────────────────────────────────

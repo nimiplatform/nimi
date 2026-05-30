@@ -12646,6 +12646,35 @@ pub struct AppInstallStorageProjection {
     #[prost(string, tag = "5")]
     pub temp_root: ::prost::alloc::string::String,
 }
+/// AppStorageProjection is the stable Runtime-owned app storage truth surface
+/// for app consumers (P-NAPP-015 / S-APP-011). data/cache/tmp are app-scoped
+/// absolute roots under selected nimi_data. active_release_root is populated
+/// only when an installed active release pointer resolves.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppStorageProjection {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AppStorageState", tag = "2")]
+    pub state: i32,
+    #[prost(string, tag = "3")]
+    pub app_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub active_release_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub durable_data_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub cache_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub temp_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub active_version: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub storage_policy_ref: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "10")]
+    pub reason_code: i32,
+    #[prost(string, tag = "11")]
+    pub detail: ::prost::alloc::string::String,
+}
 /// AppInstallJob is the typed install job projection. It mirrors the
 /// LocalEnvironmentDependencyJob shape: a stable job id, a typed state, the
 /// resolved descriptor identity, a fail-closed failure detail, and a
@@ -12721,6 +12750,20 @@ pub struct GetAppInstallJobRequest {
 pub struct GetAppInstallJobResponse {
     #[prost(message, optional, tag = "1")]
     pub job: ::core::option::Option<AppInstallJob>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAppStorageRequest {
+    /// app_id resolves the app-scoped storage roots. For ordinary installed apps
+    /// it resolves against the admitted descriptor/active release. For a
+    /// runtime-registered developer app, it still returns data/cache/tmp under
+    /// the selected nimi_data root without projecting an installed release.
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAppStorageResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<AppStorageProjection>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListAppInstallJobsRequest {
@@ -13180,6 +13223,44 @@ impl AppInstallSourceKind {
         }
     }
 }
+/// AppStorageState is the current app-scoped storage truth state. It is
+/// separate from install job state: a dev/runtime-registered app can have
+/// admitted data/cache/tmp roots before it has an active installed release.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppStorageState {
+    Unspecified = 0,
+    Ready = 1,
+    InstallRequired = 2,
+    RepairRequired = 3,
+    StorageUnavailable = 4,
+}
+impl AppStorageState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_STORAGE_STATE_UNSPECIFIED",
+            Self::Ready => "APP_STORAGE_STATE_READY",
+            Self::InstallRequired => "APP_STORAGE_STATE_INSTALL_REQUIRED",
+            Self::RepairRequired => "APP_STORAGE_STATE_REPAIR_REQUIRED",
+            Self::StorageUnavailable => "APP_STORAGE_STATE_STORAGE_UNAVAILABLE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_STORAGE_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_STORAGE_STATE_READY" => Some(Self::Ready),
+            "APP_STORAGE_STATE_INSTALL_REQUIRED" => Some(Self::InstallRequired),
+            "APP_STORAGE_STATE_REPAIR_REQUIRED" => Some(Self::RepairRequired),
+            "APP_STORAGE_STATE_STORAGE_UNAVAILABLE" => Some(Self::StorageUnavailable),
+            _ => None,
+        }
+    }
+}
 /// AppOpenFlowStep is the typed Open-flow step (K-APP-017). It surfaces the
 /// concrete checkpoint the launch is at so a failed Open names the exact step
 /// rather than a generic failure. It is never inferred.
@@ -13477,6 +13558,32 @@ pub mod runtime_app_service_client {
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new("nimi.runtime.v1.RuntimeAppService", "UninstallApp"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_app_storage(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetAppStorageRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAppStorageResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeAppService", "GetAppStorage"),
                 );
             self.inner.unary(req, path, codec).await
         }

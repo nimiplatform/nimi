@@ -202,6 +202,7 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.app.sendAppMessage]: RuntimeClientMethodContract<'app', 'sendAppMessage'>;
   [RuntimeMethodIds.app.installApp]: RuntimeClientMethodContract<'app', 'installApp'>;
   [RuntimeMethodIds.app.uninstallApp]: RuntimeClientMethodContract<'app', 'uninstallApp'>;
+  [RuntimeMethodIds.app.getAppStorage]: RuntimeClientMethodContract<'app', 'getAppStorage'>;
   [RuntimeMethodIds.app.getAppInstallJob]: RuntimeClientMethodContract<'app', 'getAppInstallJob'>;
   [RuntimeMethodIds.app.listAppInstallJobs]: RuntimeClientMethodContract<'app', 'listAppInstallJobs'>;
   [RuntimeMethodIds.app.updateApp]: RuntimeClientMethodContract<'app', 'updateApp'>;

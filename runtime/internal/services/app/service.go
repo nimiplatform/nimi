@@ -54,18 +54,19 @@ type Service struct {
 	runtimev1.UnimplementedRuntimeAppServiceServer
 	logger *slog.Logger
 
-	mu                sync.RWMutex
-	nextSeq           uint64
-	nextSubID         uint64
-	subscribers       map[uint64]subscriber
-	internalConsumers map[string]InternalConsumer
-	now               func() time.Time
-	sessionValidator  sessionValidator
-	bindingValidator  scopedBindingValidator
-	rateLimiter       *appRateLimiter
-	loopDetector      *appLoopDetector
-	installJobs       *installJobManager
-	installRuntime    *installRuntime
+	mu                 sync.RWMutex
+	nextSeq            uint64
+	nextSubID          uint64
+	subscribers        map[uint64]subscriber
+	internalConsumers  map[string]InternalConsumer
+	now                func() time.Time
+	sessionValidator   sessionValidator
+	bindingValidator   scopedBindingValidator
+	rateLimiter        *appRateLimiter
+	loopDetector       *appLoopDetector
+	installJobs        *installJobManager
+	installRuntime     *installRuntime
+	appStorageDataRoot string
 }
 
 func WithSessionValidator(validator sessionValidator) Option {
@@ -93,6 +94,16 @@ func WithClock(now func() time.Time) Option {
 func WithInstallRuntime(runtime *installRuntime) Option {
 	return func(s *Service) {
 		s.installRuntime = runtime
+	}
+}
+
+// WithAppStorageDataRoot injects the product-selected nimi_data root used for
+// app-scoped storage projections. It is independent from installRuntime so
+// runtime-registered developer apps can resolve data/cache/tmp even when no
+// ordinary registry release descriptor is installed.
+func WithAppStorageDataRoot(dataRootRef string) Option {
+	return func(s *Service) {
+		s.appStorageDataRoot = strings.TrimSpace(dataRootRef)
 	}
 }
 

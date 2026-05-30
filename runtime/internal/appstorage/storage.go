@@ -72,18 +72,9 @@ func (p Plan) IsZero() bool {
 }
 
 func Resolve(dataRootRef string, appID string, version string, storagePolicyRef string) (Plan, error) {
-	dataRootRef = filepath.Clean(strings.TrimSpace(dataRootRef))
-	if dataRootRef == "." || dataRootRef == "" {
-		return Plan{}, ErrDataRootRequired
-	}
-	if !filepath.IsAbs(dataRootRef) {
-		return Plan{}, ErrDataRootMustBeAbsolute
-	}
-	if storagePolicyRef != "nimi-data-app-roots" {
-		return Plan{}, ErrStoragePolicyUnsupported
-	}
-	if !safeSegment(appID) {
-		return Plan{}, ErrInvalidAppIDSegment
+	dataRootRef, appID, storagePolicyRef, err := normalizeRootInputs(dataRootRef, appID, storagePolicyRef)
+	if err != nil {
+		return Plan{}, err
 	}
 	if !safeSegment(version) {
 		return Plan{}, ErrInvalidVersionSegment
@@ -107,8 +98,39 @@ func Resolve(dataRootRef string, appID string, version string, storagePolicyRef 
 	return plan, nil
 }
 
+func ResolveAppRoots(dataRootRef string, appID string, storagePolicyRef string) (Plan, error) {
+	dataRootRef, appID, storagePolicyRef, err := normalizeRootInputs(dataRootRef, appID, storagePolicyRef)
+	if err != nil {
+		return Plan{}, err
+	}
+	appRoot := filepath.Join(dataRootRef, "apps", appID)
+	plan := Plan{
+		DataRootRef:      dataRootRef,
+		AppID:            appID,
+		AppRoot:          appRoot,
+		DurableDataRoot:  filepath.Join(appRoot, "data"),
+		CacheRoot:        filepath.Join(appRoot, "cache"),
+		TempRoot:         filepath.Join(appRoot, "tmp"),
+		StoragePolicyRef: storagePolicyRef,
+	}
+	if !within(appRoot, plan.DurableDataRoot) || !within(appRoot, plan.CacheRoot) ||
+		!within(appRoot, plan.TempRoot) {
+		return Plan{}, ErrInvalidAppIDSegment
+	}
+	return plan, nil
+}
+
 func Materialize(plan Plan) error {
 	for _, root := range []string{plan.ReleaseRoot, plan.DurableDataRoot, plan.CacheRoot, plan.TempRoot} {
+		if err := materializeRoot(plan.DataRootRef, root); err != nil {
+			return fmt.Errorf("materialize app storage root %q: %w", root, err)
+		}
+	}
+	return nil
+}
+
+func MaterializeAppRoots(plan Plan) error {
+	for _, root := range []string{plan.DurableDataRoot, plan.CacheRoot, plan.TempRoot} {
 		if err := materializeRoot(plan.DataRootRef, root); err != nil {
 			return fmt.Errorf("materialize app storage root %q: %w", root, err)
 		}
@@ -275,6 +297,23 @@ func safeSegment(value string) bool {
 		return false
 	}
 	return !strings.ContainsAny(trimmed, `/\`)
+}
+
+func normalizeRootInputs(dataRootRef string, appID string, storagePolicyRef string) (string, string, string, error) {
+	dataRootRef = filepath.Clean(strings.TrimSpace(dataRootRef))
+	if dataRootRef == "." || dataRootRef == "" {
+		return "", "", "", ErrDataRootRequired
+	}
+	if !filepath.IsAbs(dataRootRef) {
+		return "", "", "", ErrDataRootMustBeAbsolute
+	}
+	if storagePolicyRef != "nimi-data-app-roots" {
+		return "", "", "", ErrStoragePolicyUnsupported
+	}
+	if !safeSegment(appID) {
+		return "", "", "", ErrInvalidAppIDSegment
+	}
+	return dataRootRef, appID, storagePolicyRef, nil
 }
 
 func within(parent string, child string) bool {

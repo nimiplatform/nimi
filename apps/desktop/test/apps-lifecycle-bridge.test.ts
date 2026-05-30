@@ -75,6 +75,18 @@ function stubModule(
       record('uninstall')(input, options);
       return uninstallResult;
     },
+    async storage(input, options) {
+      record('storage')(input, options);
+      return {
+        appId: 'nimi.notes',
+        state: 'ready',
+        appRoot: '/data/apps/nimi.notes',
+        durableDataRoot: '/data/apps/nimi.notes/data',
+        cacheRoot: '/data/apps/nimi.notes/cache',
+        tempRoot: '/data/apps/nimi.notes/tmp',
+        storagePolicyRef: 'nimi-data-app-roots',
+      };
+    },
     async getJob(input, options) {
       record('getJob')(input, options);
       return installJob();

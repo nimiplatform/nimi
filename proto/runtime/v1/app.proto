@@ -152,6 +152,35 @@ message AppInstallStorageProjection {
   string temp_root = 5;
 }
 
+// AppStorageState is the current app-scoped storage truth state. It is
+// separate from install job state: a dev/runtime-registered app can have
+// admitted data/cache/tmp roots before it has an active installed release.
+enum AppStorageState {
+  APP_STORAGE_STATE_UNSPECIFIED = 0;
+  APP_STORAGE_STATE_READY = 1;
+  APP_STORAGE_STATE_INSTALL_REQUIRED = 2;
+  APP_STORAGE_STATE_REPAIR_REQUIRED = 3;
+  APP_STORAGE_STATE_STORAGE_UNAVAILABLE = 4;
+}
+
+// AppStorageProjection is the stable Runtime-owned app storage truth surface
+// for app consumers (P-NAPP-015 / S-APP-011). data/cache/tmp are app-scoped
+// absolute roots under selected nimi_data. active_release_root is populated
+// only when an installed active release pointer resolves.
+message AppStorageProjection {
+  string app_id = 1;
+  AppStorageState state = 2;
+  string app_root = 3;
+  string active_release_root = 4;
+  string durable_data_root = 5;
+  string cache_root = 6;
+  string temp_root = 7;
+  string active_version = 8;
+  string storage_policy_ref = 9;
+  ReasonCode reason_code = 10;
+  string detail = 11;
+}
+
 // AppInstallJob is the typed install job projection. It mirrors the
 // LocalEnvironmentDependencyJob shape: a stable job id, a typed state, the
 // resolved descriptor identity, a fail-closed failure detail, and a
@@ -204,6 +233,18 @@ message GetAppInstallJobRequest {
 
 message GetAppInstallJobResponse {
   AppInstallJob job = 1;
+}
+
+message GetAppStorageRequest {
+  // app_id resolves the app-scoped storage roots. For ordinary installed apps
+  // it resolves against the admitted descriptor/active release. For a
+  // runtime-registered developer app, it still returns data/cache/tmp under
+  // the selected nimi_data root without projecting an installed release.
+  string app_id = 1;
+}
+
+message GetAppStorageResponse {
+  AppStorageProjection projection = 1;
 }
 
 message ListAppInstallJobsRequest {
@@ -411,6 +452,7 @@ service RuntimeAppService {
   // Nimi App install/uninstall lifecycle (K-APP-011..K-APP-014).
   rpc InstallApp(InstallAppRequest) returns (InstallAppResponse);
   rpc UninstallApp(UninstallAppRequest) returns (UninstallAppResponse);
+  rpc GetAppStorage(GetAppStorageRequest) returns (GetAppStorageResponse);
   rpc GetAppInstallJob(GetAppInstallJobRequest) returns (GetAppInstallJobResponse);
   rpc ListAppInstallJobs(ListAppInstallJobsRequest) returns (ListAppInstallJobsResponse);
   rpc WatchAppInstallJobEvents(WatchAppInstallJobEventsRequest) returns (stream AppInstallJobEvent);

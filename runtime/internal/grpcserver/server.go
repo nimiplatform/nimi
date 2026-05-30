@@ -344,6 +344,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	appSvc := appservice.New(logger,
 		appservice.WithSessionValidator(authSvc),
 		appservice.WithScopedBindingValidator(accountSvc),
+		appservice.WithAppStorageDataRoot(cfg.DataRootRef),
 		appservice.WithInstallRuntime(appInstallRuntime),
 	)
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)

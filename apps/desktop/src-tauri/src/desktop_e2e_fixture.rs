@@ -438,6 +438,7 @@ mod tests {
             app_version: "1".to_string(),
             capabilities: Vec::new(),
             mode_manifest: None,
+            developer_registration: false,
         };
         let payload = RuntimeBridgeUnaryPayload {
             method_id: "/nimi.runtime.v1.RuntimeAuthService/RegisterApp".to_string(),

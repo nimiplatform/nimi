@@ -513,6 +513,23 @@ access-token authority), `K-BIND-001..K-BIND-015` (scoped app binding
 authority), `K-APP-017` (launch authority), `P-NAPP-013` / `P-NAPP-018`
 (public admission and descriptor authority; not redefined).
 
+## S-APP-017 — App Storage Truth Accessor
+
+`MUST`：SDK must expose a typed app storage projection accessor backed by
+Runtime `GetAppStorage` (`K-APP-022`). The projection carries app id, typed
+storage state, app root, durable data root, cache root, temp root, optional
+active release root/version, storage policy ref, and typed reason/detail.
+
+`MUST`：the accessor is the official shortcut for apps, Desktop hosted shell,
+and developer tooling to obtain app storage truth. It preserves `S-APP-011`
+root split and may return data/cache/tmp for a runtime-registered developer app
+before any ordinary active release exists.
+
+`MUST NOT`：SDK must not read `~/.nimi/nimi.json`, parse Runtime config, or
+concatenate `<nimi_data>/apps/<app-id>` as a local fallback. SDK path helpers
+may validate app-relative paths against the returned roots, but enforcement and
+storage truth remain Runtime-owned.
+
 ## Fact Sources
 
 - `.nimi/spec/sdk/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`

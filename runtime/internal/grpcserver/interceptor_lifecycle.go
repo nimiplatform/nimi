@@ -51,6 +51,7 @@ var readOnlyMethods = map[string]bool{
 	"/nimi.runtime.v1.RuntimeModelService/ListModels":                            true,
 	"/nimi.runtime.v1.RuntimeModelService/CheckModelHealth":                      true,
 	"/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages":                    true,
+	"/nimi.runtime.v1.RuntimeAppService/GetAppStorage":                           true,
 	"/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob":                        true,
 	"/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs":                      true,
 	"/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents":                true,

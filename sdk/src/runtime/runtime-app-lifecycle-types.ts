@@ -58,6 +58,28 @@ export type RuntimeAppInstallStorage = {
   tempRoot: string;
 };
 
+export type RuntimeAppStorageState =
+  | 'ready'
+  | 'install_required'
+  | 'repair_required'
+  | 'storage_unavailable';
+
+/** Runtime-owned app-scoped storage truth projection (P-NAPP-015 / S-APP-011). */
+export type RuntimeAppStorageProjection = {
+  appId: string;
+  state: RuntimeAppStorageState;
+  appRoot: string;
+  /** Populated only when an active installed release resolves. */
+  activeReleaseRoot?: string;
+  durableDataRoot: string;
+  cacheRoot: string;
+  tempRoot: string;
+  activeVersion?: string;
+  storagePolicyRef: string;
+  reasonCode?: string;
+  detail?: string;
+};
+
 /**
  * Typed lifecycle job projection. Covers install / update / repair jobs;
  * `kind` distinguishes the operation so it is never inferred from `phase`.
@@ -227,6 +249,11 @@ export type RuntimeAppLifecycleModule = {
     input: RuntimeAppUninstallInput,
     options?: RuntimeCallOptions,
   ): Promise<RuntimeAppUninstallResult>;
+  /** Read the Runtime-owned app-scoped storage truth projection. */
+  storage(
+    input: { appId: string },
+    options?: RuntimeCallOptions,
+  ): Promise<RuntimeAppStorageProjection>;
   /** Read a single lifecycle job's typed projection by id. */
   getJob(
     input: { jobId: string },
