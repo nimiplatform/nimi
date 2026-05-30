@@ -1,0 +1,128 @@
+# Nimi App Ecosystem Responsibility Entrypoint
+
+Status: non-authoritative AI handoff.
+
+Spec Status: alignment against existing `.nimi/spec/**`.
+Authority Owner: `.nimi/spec/**`, plus nearest `AGENTS.md` for local working rules.
+Work Type: alignment unless the task explicitly changes canonical ownership.
+Parallel Truth: forbidden. If this file conflicts with `.nimi/spec/**`, the spec wins.
+
+Use this file when a new AI session needs to audit or refactor Desktop, Tester, or another Nimi app without the prior discussion context.
+
+## Required Reading Order
+
+1. Root `AGENTS.md`.
+2. Nearest app `AGENTS.md`, especially `apps/desktop/AGENTS.md` and `apps/tester/AGENTS.md`.
+3. `.nimi/spec/INDEX.md`.
+4. `.nimi/spec/platform/kernel/nimi-ecosystem-contract.md`.
+5. `.nimi/spec/platform/kernel/nimi-app-admission-contract.md`.
+6. `.nimi/spec/platform/kernel/app-slice-admission-contract.md`.
+7. `.nimi/spec/platform/kernel/kit-contract.md`.
+8. `.nimi/spec/platform/kernel/tables/nimi-data-directory-ownership.yaml`.
+9. `.nimi/spec/runtime/kernel/app-messaging-contract.md`.
+10. `.nimi/spec/runtime/kernel/config-contract.md`.
+11. `.nimi/spec/sdk/kernel/nimi-app-client-contract.md`.
+12. `.nimi/spec/sdk/kernel/runtime-contract.md`.
+13. `.nimi/spec/sdk/kernel/boundary-contract.md`.
+
+Do not start implementation before the reading set is checked against the files touched by the task.
+
+## Responsibility Model
+
+The default ownership chain is:
+
+`Runtime or Realm authority -> SDK projection -> Kit reusable surface where applicable -> app consumer`
+
+Desktop is not the default owner of platform facts. Treat Desktop as a Nimi app by default, with narrow host/bootstrap exceptions only when the spec or app-local AGENTS admits them.
+
+Runtime owns local product authority that requires validation, admission, fail-closed state, execution, materialization, lifecycle, or audit. Examples include app storage truth, runtime app lifecycle, local execution, model routing, readiness, memory, capability facts, and runtime config.
+
+Realm owns cloud canonical business truth and cross-device or multi-user product truth.
+
+SDK owns typed app-facing access to Runtime and Realm. SDK may expose projections, method IDs, schemas, decoders, transport adapters, and reason-code handling. SDK must not become a hidden truth owner.
+
+Kit owns reusable UI, shell, bridge, composition, token, accessibility, and headless product primitives. Apps should consume Kit before forking common UI or bridge behavior locally.
+
+The app owns product-specific screens, user-intent wiring, view-model composition, ephemeral UI state, and product-specific data that is not Runtime-owned or Realm-owned. App Tauri code may own bounded OS helpers, but not platform authority.
+
+## Boundary Decision Algorithm
+
+For every Desktop or Tester behavior under audit, answer these questions before changing code:
+
+1. Is this canonical durable truth?
+   - Cross-device, social, account, entitlement, or backend workflow truth belongs to Realm.
+   - Local execution, local lifecycle, app roots, capability, model, memory, readiness, or validated environment truth belongs to Runtime.
+2. Is the app reading or constructing a platform path, registry, config, method ID, permission, capability, provider, model, app lifecycle state, or admission state?
+   - If yes, it is probably Runtime, SDK, Kit, or spec-owned. Do not leave it as app-local logic without a written authority note.
+3. Does an SDK projection exist?
+   - If yes, the app must use it.
+   - If no and the concept is reusable platform truth, add or extend Runtime/SDK first, then migrate the app.
+4. Is the behavior reusable UI, shell composition, bridge plumbing, design token usage, or headless app primitive?
+   - If yes, prefer Kit or scaffold-managed shell infrastructure.
+5. Is the behavior truly product-specific and bounded to one app?
+   - It may remain in the app only if it does not duplicate Runtime, Realm, SDK, Kit, admission, permission, or config authority.
+
+## Desktop-Specific Audit Targets
+
+Desktop needs extra suspicion because it historically behaved like a single privileged app. Audit these patterns first:
+
+- Direct reads of root config, data roots, app roots, cache roots, temp roots, or product-control state outside admitted bootstrap paths.
+- Renderer-local stores that become executable truth for runtime, model, provider, memory, capability, app lifecycle, chat authority, or permissions.
+- Tauri commands that materialize platform data without going through Runtime/SDK or an admitted OS-helper boundary.
+- Duplicate method IDs, generated client shapes, app registries, capability registries, or hardcoded platform enums.
+- UI primitives or shell behavior copied locally when Kit already owns the pattern.
+- Desktop-only implementation of a concept that Tester or a future app also needs.
+
+## Dual-App Proof Rule
+
+When extracting a Desktop responsibility into Runtime, SDK, or Kit, prove it through two consumers:
+
+1. Desktop uses the new shared surface and removes the app-local ownership.
+2. Tester uses the same shared surface in a different product flow.
+
+The Tester implementation is not a demo. It is the consumer proof that the extracted responsibility is actually ecosystem-level.
+
+## Required Preflight For Refactors
+
+Before implementing a responsibility refactor, write this preflight in the session:
+
+```text
+Spec Status:
+Authority Owner:
+Work Type:
+Parallel Truth:
+Candidate Owner:
+Desktop Current Behavior:
+Tester Proof Path:
+Files To Audit:
+Expected Deletion:
+Verification Gates:
+```
+
+If the candidate owner is unclear, stop at audit and produce an authority fork note instead of patching.
+
+## Implementation Rules
+
+- No legacy shims.
+- No pseudo-success or fake fallback.
+- No direct Runtime or Realm private bypass from apps.
+- No provider/model hardcoding in app code.
+- No app-local path construction for ecosystem storage roots when Runtime/SDK can provide a projection.
+- No moving code into SDK if SDK would become the truth owner instead of a projection layer.
+- No moving UI into Kit unless it is actually reusable across apps.
+- Prefer deletion of duplicated app logic over wrapping it.
+
+## Verification Pattern
+
+Run the narrow gates for touched layers, then broaden if shared contracts changed:
+
+```bash
+pnpm --filter @nimiplatform/sdk test
+pnpm --filter @nimiplatform/desktop typecheck
+pnpm --filter @nimiplatform/tester typecheck
+pnpm --filter @nimiplatform/tester test
+cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
+cargo check --manifest-path apps/tester/src-tauri/Cargo.toml
+```
+
+When proto, Runtime, or spec changes are touched, also run the relevant proto/spec/runtime gates from root `AGENTS.md`.
