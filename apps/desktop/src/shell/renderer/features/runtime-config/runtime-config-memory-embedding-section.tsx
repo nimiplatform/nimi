@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  createDefaultAIScopeRef,
   type MemoryEmbeddingConfig,
+  type RuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/ai';
 import { Surface, cn } from '@nimiplatform/kit/ui';
+import { createDesktopMemoryEmbeddingScopeRef } from '@renderer/app-shell/providers/desktop-memory-embedding-scope';
 import { getDesktopMemoryEmbeddingConfigService } from '@renderer/app-shell/providers/desktop-memory-embedding-config-service';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
+import { loadRuntimeRouteOptions } from '@renderer/infra/bootstrap/runtime-bootstrap-route-options';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import { RuntimeSelect } from './runtime-config-primitives';
 
@@ -40,11 +42,8 @@ type CloudConnectorOption = {
   connectorId: string;
   label: string;
   models: string[];
+  available: boolean;
 };
-
-function hasEmbeddingCapability(capabilities: string[] | undefined): boolean {
-  return Array.isArray(capabilities) && capabilities.some((capability) => capability === 'embedding' || capability === 'text.embed');
-}
 
 function savedConfigLabel(config: MemoryEmbeddingConfig): string {
   if (!config.sourceKind || !config.bindingRef) {
@@ -61,9 +60,11 @@ function savedConfigLabel(config: MemoryEmbeddingConfig): string {
 
 export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEmbeddingSectionProps) {
   const { t } = useTranslation();
-  const scopeRef = useMemo(() => createDefaultAIScopeRef(), []);
+  const scopeRef = useMemo(() => createDesktopMemoryEmbeddingScopeRef(), []);
   const memoryEmbeddingService = useMemo(() => getDesktopMemoryEmbeddingConfigService(), []);
   const [config, setConfig] = useState(() => memoryEmbeddingService.memoryEmbeddingConfig.get(scopeRef));
+  const [routeOptions, setRouteOptions] = useState<RuntimeRouteOptionsSnapshot | null>(null);
+  const [routeOptionsError, setRouteOptionsError] = useState<string | null>(null);
 
   useEffect(() => {
     setConfig(memoryEmbeddingService.memoryEmbeddingConfig.get(scopeRef));
@@ -72,12 +73,30 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
     });
   }, [memoryEmbeddingService, scopeRef]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void loadRuntimeRouteOptions({ capability: 'text.embed' })
+      .then((snapshot) => {
+        if (cancelled) return;
+        setRouteOptions(snapshot);
+        setRouteOptionsError(null);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setRouteOptions(null);
+        setRouteOptionsError(error instanceof Error ? error.message : String(error || 'Failed to load route options.'));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [props.state.connectors, props.state.local.models]);
+
   const localEmbeddingOptions = useMemo(() => {
-    const options = props.state.local.models
-      .filter((model) => model.status === 'active' && model.capabilities.includes('embedding'))
+    const options = (routeOptions?.local.models || [])
       .map((model) => ({
         value: model.model,
-        label: model.model,
+        label: model.label || model.model,
+        status: model.status,
       }));
     if (config.sourceKind === 'local' && config.bindingRef?.kind === 'local') {
       const saved = config.bindingRef.targetId;
@@ -85,21 +104,20 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
         options.unshift({
           value: saved,
           label: `${saved} (${t('runtimeConfig.memory.savedButUnavailable', { defaultValue: 'saved, unavailable' })})`,
+          status: undefined,
         });
       }
     }
     return options;
-  }, [config.bindingRef, config.sourceKind, props.state.local.models, t]);
+  }, [config.bindingRef, config.sourceKind, routeOptions, t]);
 
   const cloudConnectorOptions = useMemo<CloudConnectorOption[]>(() => {
-    const options = props.state.connectors
-      .filter((connector) => connector.status === 'healthy')
+    const options = (routeOptions?.connectors || [])
       .map((connector) => ({
         connectorId: connector.id,
         label: connector.label,
-        models: Object.entries(connector.modelCapabilities || {})
-          .filter(([, capabilities]) => hasEmbeddingCapability(capabilities))
-          .map(([modelId]) => modelId),
+        models: [...connector.models],
+        available: true,
       }))
       .filter((connector) => connector.models.length > 0);
     if (config.sourceKind === 'cloud' && config.bindingRef?.kind === 'cloud') {
@@ -113,11 +131,12 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
           connectorId: savedConnectorId,
           label: `${savedConnectorId} (${t('runtimeConfig.memory.savedButUnavailable', { defaultValue: 'saved, unavailable' })})`,
           models: [savedModelId],
+          available: false,
         });
       }
     }
     return options;
-  }, [config.bindingRef, config.sourceKind, props.state.connectors, t]);
+  }, [config.bindingRef, config.sourceKind, routeOptions, t]);
 
   const selectedCloudConnectorId = config.sourceKind === 'cloud' && config.bindingRef?.kind === 'cloud'
     ? config.bindingRef.connectorId
@@ -137,19 +156,18 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
   }>(() => {
     if (!config.sourceKind || !config.bindingRef) {
       return {
-        tone: 'neutral',
+        tone: routeOptionsError ? 'warning' : 'neutral',
         label: t('runtimeConfig.memory.notConfigured', { defaultValue: 'Not configured' }),
-        hint: t('runtimeConfig.memory.notConfiguredHint', {
+        hint: routeOptionsError || t('runtimeConfig.memory.notConfiguredHint', {
           defaultValue: 'Choose a cloud connector or an active local embedding model. Chat memory upgrades will use this source.',
         }),
       };
     }
     if (config.sourceKind === 'cloud' && config.bindingRef.kind === 'cloud') {
       const cloudBinding = config.bindingRef;
-      const connector = props.state.connectors.find((item) => item.id === cloudBinding.connectorId) || null;
-      const healthy = connector?.status === 'healthy';
-      const supportsEmbedding = hasEmbeddingCapability(connector?.modelCapabilities?.[cloudBinding.modelId]);
-      if (healthy && supportsEmbedding) {
+      const connector = cloudConnectorOptions.find((item) => item.connectorId === cloudBinding.connectorId) || null;
+      const projected = Boolean(connector?.available && connector.models.includes(cloudBinding.modelId));
+      if (projected) {
         return {
           tone: 'success',
           label: t('runtimeConfig.memory.ready', { defaultValue: 'Ready' }),
@@ -168,10 +186,9 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
     }
     if (config.sourceKind === 'local' && config.bindingRef.kind === 'local') {
       const localBinding = config.bindingRef;
-      const activeLocal = props.state.local.models.some((model) => (
-        model.status === 'active'
-        && model.capabilities.includes('embedding')
-        && model.model === localBinding.targetId
+      const activeLocal = (routeOptions?.local.models || []).some((model) => (
+        model.model === localBinding.targetId
+        && String(model.status || '').toLowerCase() === 'active'
       ));
       return activeLocal
         ? {
@@ -196,7 +213,7 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
         defaultValue: 'Choose a cloud connector or an active local embedding model. Chat memory upgrades will use this source.',
       }),
     };
-  }, [config, props.state.connectors, props.state.local.models, t]);
+  }, [cloudConnectorOptions, config, routeOptions, routeOptionsError, t]);
 
   const commitConfig = (next: MemoryEmbeddingConfig) => {
     memoryEmbeddingService.memoryEmbeddingConfig.update(scopeRef, next);

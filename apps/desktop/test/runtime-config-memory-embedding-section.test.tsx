@@ -3,8 +3,9 @@ import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import { createDefaultAIScopeRef, createEmptyMemoryEmbeddingConfig } from '@nimiplatform/sdk/ai';
+import { createEmptyMemoryEmbeddingConfig } from '@nimiplatform/sdk/ai';
 import { getDesktopMemoryEmbeddingConfigService } from '../src/shell/renderer/app-shell/providers/desktop-memory-embedding-config-service';
+import { createDesktopMemoryEmbeddingScopeRef } from '../src/shell/renderer/app-shell/providers/desktop-memory-embedding-scope';
 import { RuntimeConfigMemoryEmbeddingSection } from '../src/shell/renderer/features/runtime-config/runtime-config-memory-embedding-section';
 import { createDefaultStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-defaults';
 
@@ -36,7 +37,7 @@ test('runtime config memory embedding section renders configured cloud selection
   });
 
   try {
-    const scopeRef = createDefaultAIScopeRef();
+    const scopeRef = createDesktopMemoryEmbeddingScopeRef();
     const service = getDesktopMemoryEmbeddingConfigService();
     service.memoryEmbeddingConfig.update(scopeRef, {
       ...createEmptyMemoryEmbeddingConfig(scopeRef),
@@ -74,7 +75,7 @@ test('runtime config memory embedding section renders configured cloud selection
     assert.match(markup, /Memory Embedding/);
     assert.match(markup, /Current selection/);
     assert.match(markup, /conn-gemini \/ gemini-embedding-001/);
-    assert.match(markup, />Ready</);
+    assert.match(markup, />Unavailable</);
   } finally {
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,

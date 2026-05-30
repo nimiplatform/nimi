@@ -25,8 +25,6 @@ export type {
   ModelConfigRouteProviderHandle,
   ModelConfigRouteSource,
   ModelConfigStatusTone,
-  ResolveApplyPathInput,
-  ResolveApplyPathNetworkErrorInput,
   SharedAIConfigService,
   SharedAIConfigSubscribeListener,
   SharedAIConfigUnsubscribe,

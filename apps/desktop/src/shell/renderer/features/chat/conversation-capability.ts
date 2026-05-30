@@ -31,7 +31,6 @@ import type {
 import {
   createAISnapshotExecutionId,
   createAISnapshotRecord,
-  createDefaultAIScopeRef,
 } from '@nimiplatform/sdk/ai';
 
 export const CONVERSATION_CAPABILITIES = [
@@ -516,10 +515,10 @@ export function toRuntimeRouteBindingFromPickerSelection(input: {
 
 export function aiConfigFromSelectionStore(
   store: ConversationCapabilitySelectionStore,
-  scopeRef?: AIScopeRef,
+  scopeRef: AIScopeRef,
 ): AIConfig {
   return {
-    scopeRef: scopeRef || createDefaultAIScopeRef(),
+    scopeRef,
     capabilities: {
       selectedBindings: { ...store.selectedBindings },
       localProfileRefs: {},
@@ -586,4 +585,4 @@ export type {
   AIScopeRef,
   AISnapshot,
 } from '@nimiplatform/sdk/ai';
-export { applyAIProfileToConfig, createDefaultAIScopeRef, createEmptyAIConfig } from '@nimiplatform/sdk/ai';
+export { applyAIProfileToConfig, createEmptyAIConfig } from '@nimiplatform/sdk/ai';

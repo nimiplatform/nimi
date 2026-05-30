@@ -3,7 +3,7 @@ import test from 'node:test';
 import type { TFunction } from 'i18next';
 
 import {
-  createDefaultAIScopeRef,
+  createBuiltInChatAIScopeRef,
   createEmptyAIConfig,
   type AIConfig,
   type AISchedulingJudgement,
@@ -44,7 +44,7 @@ function t(key: string, options?: Record<string, unknown>): string {
 const translate = t as unknown as TFunction;
 
 function createLocalTextSubmitConfig(): AIConfig {
-  const scopeRef = createDefaultAIScopeRef();
+  const scopeRef = createBuiltInChatAIScopeRef('agent');
   const config = createEmptyAIConfig(scopeRef);
   return {
     ...config,

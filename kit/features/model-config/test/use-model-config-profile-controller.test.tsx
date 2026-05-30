@@ -1,7 +1,7 @@
-// Wave 2 prerequisite test — exercises the four canonical apply paths for
+// Wave 2 prerequisite test — exercises the canonical apply paths for
 // useModelConfigProfileController (D-AIPC-005 atomic overwrite contract):
 //   path 1: apply-success
-//   path 2: apply-remote-fail-with-user-profile
+//   path 2: apply-remote-fail-without-user-profile
 //   path 3: apply-remote-fail-without-user-profile
 //   path 4: apply-network-error
 
@@ -249,7 +249,7 @@ describe('useModelConfigProfileController apply paths', () => {
     expect(captured.controller?.preview).toBeNull();
   });
 
-  it('path 2 — apply-remote-fail-with-user-profile previews locally then commits on confirm', async () => {
+  it('path 2 — preview remote failure with user profile fails closed and never commits', async () => {
     let currentConfig = baseConfig;
     const updates: AIConfig[] = [];
     const service: SharedAIConfigService = {
@@ -263,8 +263,6 @@ describe('useModelConfigProfileController apply paths', () => {
       },
       aiProfile: {
         list: async () => [],
-        // Remote preview rejects (profile not in remote catalog); the hook
-        // falls back to a local preview computed from the user profile.
         previewApply: async () => { throw new Error('remote unavailable'); },
         apply: async () => ({
           success: false,
@@ -291,19 +289,9 @@ describe('useModelConfigProfileController apply paths', () => {
       await flush();
       await flush();
     });
-    // Local preview surfaced; no commit yet.
     expect(updates).toHaveLength(0);
-    expect(captured.controller?.preview?.profileId).toBe('local-user-profile');
-
-    await act(async () => {
-      captured.controller?.onConfirmApply();
-      await flush();
-      await flush();
-    });
-
-    expect(updates).toHaveLength(1);
-    expect(updates[0].profileOrigin?.profileId).toBe('local-user-profile');
-    expect(captured.controller?.error).toBeNull();
+    expect(captured.controller?.preview).toBeNull();
+    expect(captured.controller?.error).toBe('remote unavailable');
   });
 
   it('path 3 — preview without a known profile fails closed and never commits', async () => {

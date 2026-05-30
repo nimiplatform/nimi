@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url';
 
 import { setRuntimeLogger } from '../src/runtime/telemetry/logger.js';
 import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store.js';
-import { createEmptyAIConfig } from '@nimiplatform/sdk/ai';
+import { clearPlatformClient, createPlatformClient } from '@nimiplatform/sdk';
+import { createBuiltInChatAIScopeRef, createEmptyAIConfig } from '@nimiplatform/sdk/ai';
 import {
   loadLocalRouteMetadata,
   loadRuntimeRouteOptions,
@@ -14,12 +15,24 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const initialRuntimeFields = { ...useAppStore.getState().runtimeFields };
+const testScopeRef = createBuiltInChatAIScopeRef('agent');
+
+test.beforeEach(async () => {
+  clearPlatformClient();
+  await createPlatformClient({
+    appId: 'nimi.desktop.test.route-options',
+    realmBaseUrl: 'https://realm.example',
+    allowAnonymousRealm: true,
+    runtimeTransport: null,
+  });
+});
 
 test.afterEach(() => {
   setRuntimeLogger(null);
+  clearPlatformClient();
   useAppStore.setState({
     runtimeFields: { ...initialRuntimeFields },
-    aiConfig: createEmptyAIConfig(),
+    aiConfig: createEmptyAIConfig(testScopeRef),
   });
 });
 
@@ -130,7 +143,7 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
       ...useAppStore.getState().runtimeFields,
     },
     aiConfig: {
-      ...createEmptyAIConfig(),
+      ...createEmptyAIConfig(testScopeRef),
       capabilities: {
         selectedBindings: {
           'text.generate': {
@@ -152,7 +165,7 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
     capability: 'text.generate',
     targetId: 'world.nimi.test-ai',
   }, {
-    sdkListConnectors: async () => ([
+    listConnectors: async () => ([
       {
         id: 'connector-openai',
         label: 'OpenAI',
@@ -168,7 +181,7 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
         lastDetail: '',
       },
     ]),
-    sdkListConnectorModelDescriptors: async () => ([
+    listConnectorModelDescriptors: async () => ([
       {
         modelId: 'gpt-4.1-mini',
         capabilities: ['text.generate'],
@@ -200,7 +213,7 @@ test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models 
       ...useAppStore.getState().runtimeFields,
     },
     aiConfig: {
-      ...createEmptyAIConfig(),
+      ...createEmptyAIConfig(testScopeRef),
       capabilities: {
         selectedBindings: {
           'text.generate': {
@@ -223,8 +236,8 @@ test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models 
     capability: 'text.generate',
     targetId: 'world.nimi.test-ai',
   }, {
-    sdkListConnectors: async () => ([]),
-    sdkListConnectorModelDescriptors: async () => ([]),
+    listConnectors: async () => ([]),
+    listConnectorModelDescriptors: async () => ([]),
     loadLocalRouteMetadata: async () => ({
       snapshot: {
         assets: [{
@@ -290,7 +303,7 @@ test('loadRuntimeRouteOptions fetches connector descriptors in parallel', async 
     capability: 'text.generate',
     targetId: 'world.nimi.parallel-route-options',
   }, {
-    sdkListConnectors: async () => ([
+    listConnectors: async () => ([
       {
         id: 'connector-openai',
         label: 'OpenAI',
@@ -302,7 +315,7 @@ test('loadRuntimeRouteOptions fetches connector descriptors in parallel', async 
         provider: 'anthropic',
       },
     ] as never[]),
-    sdkListConnectorModelDescriptors: (async (connectorId: string) => {
+    listConnectorModelDescriptors: (async (connectorId: string) => {
       descriptorCalls.push(connectorId);
       return await new Promise((resolve) => {
         descriptorResolvers.set(connectorId, () => resolve([
@@ -344,7 +357,7 @@ test('loadRuntimeRouteOptions dedupes concurrent capability reads within the sam
   let descriptorCalls = 0;
   let localMetadataCalls = 0;
   const deps = {
-    sdkListConnectors: async () => {
+    listConnectors: async () => {
       connectorListCalls += 1;
       return ([
         {
@@ -354,7 +367,7 @@ test('loadRuntimeRouteOptions dedupes concurrent capability reads within the sam
         },
       ] as never[]);
     },
-    sdkListConnectorModelDescriptors: (async () => {
+    listConnectorModelDescriptors: (async () => {
       descriptorCalls += 1;
       return ([
         {
@@ -399,10 +412,10 @@ test('loadRuntimeRouteOptions preserves local models when connector listing fail
     capability: 'text.generate',
     targetId: 'world.nimi.local-only',
   }, {
-    sdkListConnectors: async () => {
+    listConnectors: async () => {
       throw new Error('dynamic provider catalog offline');
     },
-    sdkListConnectorModelDescriptors: async () => ([]),
+    listConnectorModelDescriptors: async () => ([]),
     loadLocalRouteMetadata: async () => ({
       snapshot: {
         assets: [],
@@ -457,14 +470,14 @@ test('loadRuntimeRouteOptions preserves local models when connector model discov
     capability: 'text.generate',
     targetId: 'world.nimi.local-only',
   }, {
-    sdkListConnectors: async () => ([
+    listConnectors: async () => ([
       {
         id: 'connector-openai',
         label: 'OpenAI',
         provider: 'openai',
       },
     ] as never[]),
-    sdkListConnectorModelDescriptors: async () => {
+    listConnectorModelDescriptors: async () => {
       throw new Error('dynamic provider model discovery failed');
     },
     loadLocalRouteMetadata: async () => ({

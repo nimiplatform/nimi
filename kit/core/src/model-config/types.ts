@@ -181,12 +181,12 @@ export interface ModelConfigProfileOriginRef {
 
 /**
  * Strategy injected into the pure-logic controller core. The react hook in
- * kit/features implements this by calling through `SharedAIConfigService` and
- * optional user-profile fallback (D-AIPC-005 atomic overwrite).
+ * kit/features implements this by calling through `SharedAIConfigService`.
+ * Failed host apply calls fail closed; Kit does not locally materialize or
+ * commit a substitute config.
  */
 export type ModelConfigProfileApplyPath =
   | { kind: 'remote-success'; nextConfig: AIConfig; profileOrigin: AIProfileRef | null }
-  | { kind: 'remote-fail-with-user-profile'; nextConfig: AIConfig; profileOrigin: AIProfileRef | null }
   | { kind: 'remote-fail-without-user-profile'; failureReason: string }
   | { kind: 'network-error'; failureReason: string };
 
@@ -198,18 +198,6 @@ export interface ModelConfigProfileControllerCoreInput {
 
 export interface UserProfilesSource {
   list(): ReadonlyArray<AIProfile>;
-}
-
-export interface ResolveApplyPathInput {
-  readonly profileId: string;
-  readonly remoteResult: AIProfileApplyResult;
-  readonly currentConfigProvider: () => AIConfig;
-  readonly applyLocally: (config: AIConfig, profile: AIProfile) => AIConfig;
-}
-
-export interface ResolveApplyPathNetworkErrorInput {
-  readonly profileId: string;
-  readonly error: unknown;
 }
 
 // ---------------------------------------------------------------------------

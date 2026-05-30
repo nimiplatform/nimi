@@ -3,11 +3,11 @@ import test from 'node:test';
 
 import {
   createAppAIScopeRef,
-  createDefaultAIScopeRef,
   createEmptyMemoryEmbeddingConfig,
   type AIScopeRef,
   type MemoryEmbeddingConfig,
 } from '@nimiplatform/sdk/ai';
+import { createDesktopMemoryEmbeddingScopeRef } from '../src/shell/renderer/app-shell/providers/desktop-memory-embedding-scope';
 
 function createStorageMock(): Storage {
   const store = new Map<string, string>();
@@ -88,7 +88,7 @@ test('desktop memory embedding service exposes fail-closed runtime state for con
   try {
     const { getDesktopMemoryEmbeddingConfigService } = await loadMemoryEmbeddingModules();
     const service = getDesktopMemoryEmbeddingConfigService();
-    const scopeRef: AIScopeRef = createDefaultAIScopeRef();
+    const scopeRef: AIScopeRef = createDesktopMemoryEmbeddingScopeRef();
     const request = {
       scopeRef,
       targetRef: {

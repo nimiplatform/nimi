@@ -275,7 +275,6 @@ export type AISchedulingJudgement = {
 // Factory functions
 // ---------------------------------------------------------------------------
 
-const DEFAULT_SCOPE: AIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
 // ---------------------------------------------------------------------------
 // Built-in first-run chat scopes  (P-AISC-006 / S-AICONF-007)
 // ---------------------------------------------------------------------------
@@ -288,11 +287,6 @@ export type BuiltInChatSurfaceId = 'nimi' | 'agent';
 
 const BUILT_IN_CHAT_SURFACE_IDS: readonly BuiltInChatSurfaceId[] = ['nimi', 'agent'];
 
-/** Create the default app-level scope ref for Phase 1. */
-export function createDefaultAIScopeRef(): AIScopeRef {
-  return { ...DEFAULT_SCOPE };
-}
-
 /**
  * Create a canonical built-in first-run chat AIScopeRef (P-AISC-006).
  *
@@ -301,7 +295,7 @@ export function createDefaultAIScopeRef(): AIScopeRef {
  *   - `agent` -> { kind: 'feature', ownerId: 'desktop.chat', surfaceId: 'agent' }
  *
  * The caller must pass an explicit surface id. There is no omitted-scope
- * inference and the result is never the generic `DEFAULT_SCOPE`.
+ * inference and the result is never a generic desktop chat app scope.
  */
 export function createBuiltInChatAIScopeRef(surfaceId: BuiltInChatSurfaceId): AIScopeRef {
   const normalized = String(surfaceId || '').trim();
@@ -362,6 +356,29 @@ export function assertBuiltInChatAIScopeRef(scopeRef: AIScopeRef | null | undefi
 /** The canonical first-run built-in chat scope set, in stable order (P-AISC-006). */
 export function builtInChatAIScopeRefs(): AIScopeRef[] {
   return BUILT_IN_CHAT_SURFACE_IDS.map((surfaceId) => createBuiltInChatAIScopeRef(surfaceId));
+}
+
+function assertExplicitAIScopeRef(scopeRef: AIScopeRef | null | undefined): AIScopeRef {
+  if (!scopeRef || !String(scopeRef.kind || '').trim() || !String(scopeRef.ownerId || '').trim()) {
+    throw createNimiError({
+      message: 'AIConfig factory requires an explicit AIScopeRef',
+      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+      actionHint: 'provide_explicit_ai_scope_ref',
+      source: 'sdk',
+    });
+  }
+  const surfaceId = scopeRef.surfaceId === undefined ? undefined : String(scopeRef.surfaceId).trim();
+  if (scopeRef.surfaceId !== undefined && !surfaceId) {
+    throw createNimiError({
+      message: 'AIScopeRef surfaceId must be omitted or non-empty',
+      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+      actionHint: 'provide_valid_ai_scope_ref_surface_id',
+      source: 'sdk',
+    });
+  }
+  return surfaceId === undefined
+    ? { kind: scopeRef.kind, ownerId: scopeRef.ownerId }
+    : { kind: scopeRef.kind, ownerId: scopeRef.ownerId, surfaceId };
 }
 
 // ---------------------------------------------------------------------------
@@ -435,7 +452,7 @@ export async function applyFirstRunBuiltInChatAIConfig(input: {
  * host-issued durable evidence refs (S-AICONF-007 / D-AIPC-013).
  *
  * Fails closed if either scope's apply fails — no partial built-in set is
- * returned. The generic `DEFAULT_SCOPE` is never reachable from this path.
+ * returned. The SDK never infers a generic default scope from this path.
  */
 export async function applyFirstRunBuiltInChatAIConfigs(input: {
   profile: AIProfile;
@@ -455,19 +472,19 @@ export async function applyFirstRunBuiltInChatAIConfigs(input: {
 }
 
 /** Create an empty AIConfig for a given scope. */
-export function createEmptyAIConfig(scopeRef?: AIScopeRef): AIConfig {
+export function createEmptyAIConfig(scopeRef: AIScopeRef): AIConfig {
   return {
-    scopeRef: scopeRef || createDefaultAIScopeRef(),
+    scopeRef: assertExplicitAIScopeRef(scopeRef),
     capabilities: { selectedBindings: {}, localProfileRefs: {}, selectedParams: {} },
     profileOrigin: null,
   };
 }
 
 /** Create an empty adjacent memory-embedding config for a given scope. */
-export function createEmptyMemoryEmbeddingConfig(scopeRef?: AIScopeRef): MemoryEmbeddingConfig {
+export function createEmptyMemoryEmbeddingConfig(scopeRef: AIScopeRef): MemoryEmbeddingConfig {
   const now = new Date().toISOString();
   return {
-    scopeRef: scopeRef || createDefaultAIScopeRef(),
+    scopeRef: assertExplicitAIScopeRef(scopeRef),
     sourceKind: null,
     bindingRef: null,
     revisionToken: now,

@@ -27,9 +27,8 @@ This module owns the following shared Nimi app surfaces:
   helpers, and `create*EditorCopy(t)` defaults.
 - The default profile controller factory (`createModelConfigProfileControllerCore`
   in `kit/core/model-config` + `useModelConfigProfileController` react hook)
-  that enforces D-AIPC-005 atomic overwrite semantics across four apply paths:
-  `remote-success`, `remote-fail-with-user-profile`,
-  `remote-fail-without-user-profile`, `network-error`.
+  that enforces D-AIPC-005 atomic overwrite semantics across three apply paths:
+  `remote-success`, `remote-fail-without-user-profile`, `network-error`.
 - The `ModelConfigAiModelHub` composition, including its Header +
   SectionCards + `ModelConfigCapabilityDetail` detail router. Import AI
   Profile renders exactly once inside the hub header action slot via

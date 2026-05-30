@@ -73,7 +73,7 @@ describe('createModelConfigProfileControllerCore', () => {
     }
   });
 
-  it('path 2 — remote-fail-with-user-profile falls through to local apply (D-AIPC-005 atomic)', () => {
+  it('path 2 — remote failure with user profile still fails closed', () => {
     const core = createModelConfigProfileControllerCore({
       scopeRef,
       service: fakeService,
@@ -92,9 +92,9 @@ describe('createModelConfigProfileControllerCore', () => {
       applyAIProfileToConfig: applyAIProfileToConfigStub,
       now: () => 'now',
     });
-    expect(resolution.kind).toBe('remote-fail-with-user-profile');
-    if (resolution.kind === 'remote-fail-with-user-profile') {
-      expect(resolution.nextConfig.profileOrigin?.profileId).toBe('local-profile-1');
+    expect(resolution.kind).toBe('remote-fail-without-user-profile');
+    if (resolution.kind === 'remote-fail-without-user-profile') {
+      expect(resolution.failureReason).toBe('remote unavailable');
     }
   });
 

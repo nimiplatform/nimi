@@ -6,7 +6,10 @@ import {
   createEmptyAIConfig,
   type ConversationCapabilityProjection,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
+import { createBuiltInChatAIScopeRef } from '@nimiplatform/sdk/ai';
 import { transcribeChatAgentVoiceRuntime } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
+
+const testScopeRef = createBuiltInChatAIScopeRef('agent');
 
 function createTranscribeProjection(): ConversationCapabilityProjection {
   return {
@@ -40,7 +43,7 @@ function createTranscribeProjection(): ConversationCapabilityProjection {
 test('agent voice transcribe runtime consumes audio.transcribe snapshot and returns typed transcript', async () => {
   let request: { mimeType?: string; audio?: unknown } | null = null;
   const snapshot = createAISnapshot({
-    config: createEmptyAIConfig(),
+    config: createEmptyAIConfig(testScopeRef),
     capability: 'audio.transcribe',
     projection: createTranscribeProjection(),
   });
@@ -87,7 +90,7 @@ test('agent voice transcribe runtime consumes audio.transcribe snapshot and retu
 
 test('agent voice transcribe runtime fails close when transcript text is empty', async () => {
   const snapshot = createAISnapshot({
-    config: createEmptyAIConfig(),
+    config: createEmptyAIConfig(testScopeRef),
     capability: 'audio.transcribe',
     projection: createTranscribeProjection(),
   });

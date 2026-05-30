@@ -29,7 +29,16 @@ import {
   buildAgentEffectiveCapabilityResolution,
   createAISnapshot,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
-import { createEmptyAIConfig } from '@nimiplatform/sdk/ai';
+import {
+  createBuiltInChatAIScopeRef,
+  createEmptyAIConfig as createSdkEmptyAIConfig,
+} from '@nimiplatform/sdk/ai';
+
+const TEST_CHAT_SCOPE_REF = createBuiltInChatAIScopeRef('agent');
+
+function createEmptyAIConfig() {
+  return createSdkEmptyAIConfig(TEST_CHAT_SCOPE_REF);
+}
 
 function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');

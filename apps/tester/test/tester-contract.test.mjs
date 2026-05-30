@@ -104,7 +104,7 @@ test('tester workbench is app-owned and rejects Desktop private imports', () => 
   assert.doesNotMatch(sources, /pseudo/i);
 });
 
-test('tester kit gallery covers required component families', () => {
+test('tester kit gallery showcases real kit components for third-party apps', () => {
   const gallery = read('src/tester/kit-component-gallery.tsx');
   for (const required of [
     'Button',
@@ -113,117 +113,73 @@ test('tester kit gallery covers required component families', () => {
     'TextareaField',
     'SelectField',
     'Toggle',
-    'NimiTabs',
+    'Checkbox',
     'Slider',
+    'SegmentedControl',
     'ProgressIndicator',
     'InlineAlert',
-    'Dialog',
-    'Popover',
-    'ActionMenu',
     'StatusBadge',
     'Surface',
-    'ScrollArea',
     'EmptyState',
     'LoadingSkeleton',
+    'NimiText',
   ]) {
     assert.match(gallery, new RegExp(`\\b${required}\\b`));
   }
-  assert.match(gallery, /Runtime projection blocked/);
+  // Components are consumed from the kit design authority, not re-implemented.
+  assert.match(gallery, /from '@nimiplatform\/kit\/ui'/);
 });
 
-test('tester UI Recipes stays scenario-first', () => {
+test('tester UI Recipes is an industrial three-pane kit component doc', () => {
   const gallery = read('src/tester/kit-component-gallery.tsx');
-  assert.match(gallery, /const surfaceScenarios: SurfaceScenario\[] = \[/);
-  for (const scenario of [
-    'AI request panel',
-    'Runtime result surface',
-    'SDK blocker state',
-    'Evidence action row',
-    'Settings preference',
-    'Artifact gallery',
-    'Runtime trace inspector',
-  ]) {
-    assert.match(gallery, new RegExp(scenario));
+  // Ontology taxonomy: seven canonical categories.
+  for (const category of ['Foundations', 'Actions', 'Inputs', 'Selection', 'Overlays', 'Layouts', 'Data & Status']) {
+    assert.match(gallery, new RegExp(category));
   }
-  for (const requiredCopy of [
-    'Contract & Imports',
-    'Composition steps',
-    'ready',
-    'loading',
-    'blocked',
-    'unavailable',
-    'Open App Lab',
-    'Open AI Capabilities',
-  ]) {
-    assert.match(gallery, new RegExp(requiredCopy.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  // Foundations show real color tokens + NimiText roles.
+  assert.match(gallery, /Semantic color tokens/);
+  assert.match(gallery, /--nimi-action-primary-bg/);
+  assert.match(gallery, /NimiText roles/);
+  // Glass material tiers are demonstrated.
+  for (const tier of ['glass-thin', 'glass-regular', 'glass-thick', 'glass-chrome']) {
+    assert.match(gallery, new RegExp(tier));
   }
-  assert.doesNotMatch(gallery, /Pick a family, then a recipe/);
-  assert.match(gallery, /Surface Scenario Rail/);
-  assert.match(gallery, /Recipe Composer \/ Preview/);
+  // Three-pane structure: taxonomy library + live canvas + recipe inspector.
+  assert.match(gallery, /kit-doc__library/);
+  assert.match(gallery, /kit-doc__inspector/);
+  assert.match(gallery, /Selected recipe/);
+  assert.match(gallery, /Props snapshot/);
+  assert.match(gallery, /Coverage map/);
+  // It is pure component documentation — no runtime work.
+  assert.match(gallery, /component documentation/);
+  // The scenario-first composer was replaced by a component-first doc.
+  assert.doesNotMatch(gallery, /Surface Scenario Rail|surfaceScenarios|Recipe Composer/);
 });
 
-test('tester Runs page is a capability evidence ledger', () => {
-  const sectionRuns = read('src/tester/workbench/section-runs.tsx');
-  const historyList = read('src/tester/workbench/runs-history-list.tsx');
-
-  for (const requiredCopy of [
-    'Capability run evidence ledger',
-    'Review app-owned run records, runtime results, local fixtures, and boundary observations without claiming missing artifacts.',
-    'total records',
-    'runtime results',
-    'typed blockers/unavailable',
-    'local fixtures',
-    'Capability coverage',
-    'Selected record evidence detail',
-    'Record source',
-    'Runtime result',
-    'Artifact',
-    'Trace',
-    'Boundary',
-    'Retention: last 40 per capability',
-    'app-owned Tauri storage',
-    'Open App Lab',
-    'Open AI Capabilities',
-  ]) {
-    assert.match(sectionRuns, new RegExp(requiredCopy.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  }
-
-  assert.match(sectionRuns, /tester_run_history_load\/save/);
-  assert.match(sectionRuns, /World Tour viewer fixture; not a runtime artifact/);
-  assert.match(sectionRuns, /not captured; current run record has no trace metadata/);
-  assert.match(sectionRuns, /local-fixtures/);
-  assert.match(historyList, /getTesterRunStatusLabel/);
-  assert.doesNotMatch(sectionRuns, /Run lane/);
-  assert.doesNotMatch(sectionRuns, /AI Testing → Run lane/);
-});
-
-test('tester Artifacts page is a real artifact inventory', () => {
-  const sectionArtifacts = read('src/tester/workbench/section-artifacts.tsx');
-  const imageHistory = read('src/tester/tester-image-history.ts');
+test('tester run history is the per-capability evidence surface (no standalone Evidence module)', () => {
+  const capabilities = read('src/tester/workbench/section-ai-testing.tsx');
+  const historyStore = read('src/tester/tester-history.ts');
   const workbench = read('src/tester/tester-workbench.tsx');
 
-  for (const requiredCopy of [
-    'Artifact inventory',
-    'Inspect real runtime media outputs and local fixture references without creating placeholder artifacts.',
-    'total artifacts',
-    'runtime media',
-    'local fixtures',
-    'trace not captured',
-    'Artifact source',
-    'Linked run',
-    'tester_image_history_load/save',
-    '$TMPDIR/nimiapp-tester/tester-image-history.json',
-    'strict boundary active / no REST bypass',
-    'Only real Runtime/SDK artifact records persisted',
-    'World Tour local fixture is not runtime artifact',
-    'World Tour local fixture lives outside runtime artifact inventory',
-    'No placeholder media is created here',
-    'legacy/unknown stored record',
-    'not captured / unknown from stored record',
-    'Open Runs',
-  ]) {
-    assert.match(sectionArtifacts, new RegExp(requiredCopy.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  // Evidence is folded into each capability's test panel as recent local runs,
+  // rendered from the app-owned history store — not a separate Evidence route.
+  assert.match(capabilities, /function CapabilityRunHistory/);
+  assert.match(capabilities, /Recent runs/);
+  assert.match(capabilities, /getTesterRunStatusLabel/);
+  assert.match(capabilities, /No local run records for/);
+  for (const helper of ['getTesterRunStatusLabel', 'getTesterRunStatusTone', 'formatTesterRunTimestamp', 'flattenTesterRunHistory']) {
+    assert.match(historyStore, new RegExp(helper));
   }
+
+  // Single-level capability workspace: no app-lab / evidence / settings routes.
+  assert.match(workbench, /WorkbenchView/);
+  assert.doesNotMatch(workbench, /SectionEvidence|SectionSettings|SectionAppLab/);
+});
+
+test('tester artifact history persistence is real and fail-closed', () => {
+  const imageHistory = read('src/tester/tester-image-history.ts');
+  const workbench = read('src/tester/tester-workbench.tsx');
+  const capabilities = read('src/tester/workbench/section-ai-testing.tsx');
 
   assert.match(imageHistory, /runId\?: string/);
   assert.match(imageHistory, /kind\?: 'runtime-media'/);
@@ -233,38 +189,48 @@ test('tester Artifacts page is a real artifact inventory', () => {
   assert.match(workbench, /shouldPersistTesterArtifactRecord\(result\)/);
   assert.match(workbench, /appendTesterImageHistoryRecord/);
   assert.doesNotMatch(imageHistory, /kind: record\.kind \|\| 'runtime-media'/);
-  assert.doesNotMatch(sectionArtifacts, /artifactCount \|\| 1/);
-  assert.doesNotMatch(sectionArtifacts, /fake thumbnail/i);
+
+  // Real runtime artifacts are previewed from their typed url/mimeType only —
+  // no fabricated placeholder media.
+  assert.match(capabilities, /function ArtifactPreview/);
+  assert.match(capabilities, /mimeType\.startsWith\('image\/'\)/);
+  assert.doesNotMatch(capabilities, /fake thumbnail/i);
 });
 
-test('tester diagnostics page is a contract and trace inspector', () => {
-  const diagnostics = read('src/tester/workbench/section-diagnostics.tsx');
-  const workbench = read('src/tester/tester-workbench.tsx');
+test('tester chat.stream surfaces live deltas through the SDK stream (no fabricated text)', () => {
+  const invokers = read('src/tester/tester-runtime-invokers.ts');
+  const runtime = read('src/tester/tester-runtime.ts');
+  const capabilities = read('src/tester/workbench/section-ai-testing.tsx');
 
-  for (const requiredCopy of [
-    'Contract & trace inspector',
-    'Runtime Trace',
-    'Boundary Checks',
-    'Transport/projection, provider catalog, last trace availability, run/artifact linkage, and storage command provenance.',
-    'Import boundaries, SDK admission, no REST bypass, app-owned storage/viewer commands, and fail-closed rules.',
-    'trace availability',
-    'no trace metadata in persisted records',
-    'tester_run_history_load/save',
-    'tester_image_history_load/save',
-    'World Tour local fixture',
-    'no REST bypass',
-    'storage commands',
-    'SDK Admission Matrix Strip',
-    'tauri-only local fixture, not runtime generation',
-  ]) {
-    assert.match(diagnostics, new RegExp(requiredCopy.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  }
+  // The live-delta callback is threaded from the chat.stream SDK loop, through
+  // runTesterCapability, into the capability panel — only accumulated SDK deltas
+  // are surfaced (no app-fabricated streaming text).
+  assert.match(invokers, /onPartial\?: \(accumulatedText: string\) => void/);
+  assert.match(invokers, /aggregated \+= part\.text;\s*\n\s*input\.onPartial\?\.\(aggregated\)/);
+  assert.match(runtime, /onPartial: input\.onPartial/);
+  assert.match(capabilities, /onPartial: isStreaming \? setStreamingText : undefined/);
+  assert.match(capabilities, /capability\.id === 'chat\.stream'/);
+  assert.match(capabilities, /streamingText=\{streamingText\}/);
+});
 
-  assert.match(workbench, /section=\{section\}/);
-  assert.match(workbench, /history=\{history\}/);
-  assert.match(workbench, /lastResult=\{lastResult\}/);
-  assert.doesNotMatch(diagnostics, /mock.*success/i);
-  assert.doesNotMatch(diagnostics, /pseudo/i);
+test('tester multimodal image input shapes the admitted SDK input (no app transport)', () => {
+  const multimodal = read('src/tester/tester-multimodal-input.tsx');
+  const invokers = read('src/tester/tester-runtime-invokers.ts');
+  const capabilities = read('src/tester/workbench/section-ai-testing.tsx');
+
+  // Attachments are read locally and shaped into the admitted SDK input
+  // (string | TextMessage[] with image_url/video_url parts) — no app-local
+  // upload/transport or fabricated content.
+  assert.match(multimodal, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(multimodal, /type: 'image_url' as const, imageUrl/);
+  assert.match(multimodal, /export function buildMultimodalInput/);
+  // text.generate prepends the optional app-composed tone/length directive to the
+  // prompt before shaping it into the admitted SDK input — still no app transport.
+  assert.match(invokers, /const directedPrompt = input\.directive \? `\$\{input\.directive\}/);
+  assert.match(invokers, /input: buildMultimodalInput\(directedPrompt, input\.attachments \?\? \[\]\)/);
+  assert.match(invokers, /buildMultimodalInput\(prompt, input\.attachments\)/);
+  assert.match(capabilities, /attachments: supportsMedia \? media\.attachments : undefined/);
+  assert.match(capabilities, /<ImageAttachmentStrip/);
 });
 
 test('tester run history labels local fixtures distinctly from runtime results', () => {
@@ -275,9 +241,11 @@ test('tester run history labels local fixtures distinctly from runtime results',
   assert.match(history, /status === 'local-fixture'\) return 'info'/);
 });
 
-test('tester App Lab imports and applies real SDK AIProfiles through Kit AIConfig', () => {
+test('tester AI config is the Kit model-config surface in Settings with real SDK AIProfiles', () => {
   const store = read('src/tester/tester-ai-config-store.ts');
-  const panel = read('src/tester/workbench/app-lab-ai-config-panel.tsx');
+  const surface = read('src/shell/ai/tester-ai-config-settings.tsx');
+  const panel = read('src/tester/workbench/tester-ai-config-settings-panel.tsx');
+  const capabilities = read('src/tester/workbench/section-ai-testing.tsx');
 
   for (const required of [
     'AIProfile',
@@ -297,16 +265,39 @@ test('tester App Lab imports and applies real SDK AIProfiles through Kit AIConfi
     assert.match(store, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 
+  // The kit model-config mechanics live in the scaffold-managed sectioned config
+  // surface skeleton (inherited by every generated app). It composes admitted kit
+  // primitives and accepts an initialSection so a capability gear can deep-link.
   for (const required of [
-    'ModelConfigAiModelHub',
+    'ModelConfigCapabilityDetail',
+    'ProfileConfigSection',
     'useModelConfigProfileController',
     'defaultModelConfigProfileCopy',
     'Import AIProfile JSON',
+    'fail closed',
+    'initialSection',
+  ]) {
+    assert.match(surface, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+
+  // The tester wrapper injects app-scoped wiring into that surface.
+  for (const required of [
+    'TesterAiConfigSettings',
     'createTesterRuntimeModelPickerProvider',
-    "runtime.status !== 'ready'",
+    'importTesterAIProfileJson',
+    "runtime?.status === 'ready'",
   ]) {
     assert.match(panel, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
+
+  // The AI config lives in Settings; the AI Capabilities settings gear deep-links
+  // into the configured capability's section. App Lab no longer owns a bespoke
+  // AIConfig lives in a right slide-over opened by the per-capability settings
+  // gear (full adoption of the canonical kit model-config surface). App Lab's
+  // bespoke AIConfig panel was removed entirely.
+  assert.match(capabilities, /TesterAiConfigSettingsPanel/);
+  assert.match(capabilities, /CAPABILITY_TO_SECTION/);
+  assert.match(capabilities, /onOpenConfig/);
 });
 
 test('tester LLM invokers consume AIConfig bindings and fail closed without binding', () => {
@@ -619,27 +610,39 @@ test('tester local text.generate binding omits runtime connectorId payload', asy
   assert.equal(Object.hasOwn(capturedInput, 'connectorId'), false);
 });
 
-test('tester model picker maps Runtime local connector facades to local models only', async () => {
+test('tester model picker consumes SDK route projection for runtime local assets and remote connectors', async () => {
   const providerModule = await importBehaviorModule('tester/tester-runtime-model-provider.js');
   const calls = [];
-  const localConnectorId = 'runtime-local-llm-facade';
   const remoteConnectorId = 'runtime-cloud-managed';
   const runtimeLocalModelId = 'local.chat.gemma-4-e2b-it.q8-0';
   const provider = providerModule.createTesterRuntimeModelPickerProviderFromClient({
+    runtime: {
+      local: {
+        async listLocalAssets(input) {
+          calls.push({ surface: 'listLocalAssets', input });
+          return {
+            assets: [
+              {
+                localAssetId: runtimeLocalModelId,
+                assetId: runtimeLocalModelId,
+                kind: 1,
+                engine: 'llama',
+                endpoint: 'http://127.0.0.1:11434/v1',
+                status: 2,
+                capabilities: ['text.generate'],
+              },
+            ],
+            nextPageToken: '',
+          };
+        },
+      },
+    },
     domains: {
       runtimeAdmin: {
         async listConnectors(input) {
           calls.push({ surface: 'listConnectors', input });
           return {
             connectors: [
-              {
-                connectorId: localConnectorId,
-                provider: 'local',
-                label: 'Runtime Local LLM',
-                kind: 1,
-                localCategory: 1,
-                status: 1,
-              },
               {
                 connectorId: remoteConnectorId,
                 provider: 'cloud-provider',
@@ -654,19 +657,6 @@ test('tester model picker maps Runtime local connector facades to local models o
         },
         async listConnectorModels(input) {
           calls.push({ surface: 'listConnectorModels', input });
-          if (input.connectorId === localConnectorId) {
-            return {
-              models: [
-                {
-                  modelId: runtimeLocalModelId,
-                  modelLabel: 'Gemma 4 E2B Local',
-                  available: true,
-                  capabilities: ['text.generate'],
-                },
-              ],
-              nextPageToken: '',
-            };
-          }
           return {
             models: [
               {
@@ -691,28 +681,26 @@ test('tester model picker maps Runtime local connector facades to local models o
     {
       localModelId: runtimeLocalModelId,
       modelId: runtimeLocalModelId,
-      label: 'Gemma 4 E2B Local',
-      engine: 'runtime-local-llm',
+      label: runtimeLocalModelId,
+      engine: 'llama',
       status: 'active',
       capabilities: ['text.generate'],
     },
   ]);
   assert.equal(localModels[0].localModelId, runtimeLocalModelId);
   assert.equal(localModels[0].modelId, runtimeLocalModelId);
-  assert.equal(calls.some((call) => call.surface === 'listConnectorModels' && call.input.connectorId === localConnectorId), true);
-  assert.equal(connectors.some((connector) => connector.connectorId === localConnectorId), false);
+  assert.equal(calls.some((call) => call.surface === 'listLocalAssets'), true);
+  assert.equal(calls.some((call) => call.surface === 'listConnectorModels' && call.input.connectorId === remoteConnectorId), true);
 });
 
 test('tester model picker catalog uses runtimeAdmin connector surfaces only', () => {
   const provider = read('src/tester/tester-runtime-model-provider.ts');
   const summary = read('src/tester/tester-ai-config.ts');
 
-  assert.match(provider, /runtimeAdmin\.listConnectors/);
-  assert.match(provider, /runtimeAdmin\.listConnectorModels/);
-  assert.match(provider, /requireRuntimeClient/);
+  assert.match(provider, /listRuntimeRouteOptions/);
+  assert.match(provider, /getRuntimePlatformProjection/);
   assert.match(provider, /model catalog failed closed/);
-  assert.match(provider, /listLocalModels/);
-  assert.match(provider, /ConnectorKind\.REMOTE_MANAGED/);
+  assert.match(provider, /createSnapshotRouteDataProvider/);
   assert.doesNotMatch(provider, /openai|anthropic|gemini|gpt-4|claude|mock.*success/i);
   assert.match(summary, /runtimeAdmin\.listConnectors\/listConnectorModels/);
 });

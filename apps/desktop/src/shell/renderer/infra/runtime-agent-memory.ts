@@ -1,6 +1,5 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  createDefaultAIScopeRef,
   type AIScopeRef,
   type MemoryEmbeddingConfig,
   type MemoryEmbeddingConfigSurface,
@@ -14,6 +13,7 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { getDesktopMemoryEmbeddingConfigService } from '@renderer/app-shell/providers/desktop-memory-embedding-config-service';
+import { createDesktopMemoryEmbeddingScopeRef } from '@renderer/app-shell/providers/desktop-memory-embedding-scope';
 
 export type CanonicalMemoryMode = 'baseline' | 'standard' | 'unavailable';
 
@@ -112,7 +112,7 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
   const getMemoryEmbeddingConfigService = deps.getMemoryEmbeddingConfigService
     ?? (() => getDesktopMemoryEmbeddingConfigService());
   const getMemoryEmbeddingScopeRef = deps.getMemoryEmbeddingScopeRef
-    ?? (() => createDefaultAIScopeRef());
+    ?? (() => createDesktopMemoryEmbeddingScopeRef());
   let protectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
 
   const resolveSubjectUserId = async (): Promise<string> => {

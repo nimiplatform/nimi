@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
-  createDefaultAIScopeRef,
   type MemoryEmbeddingConfig,
   type MemoryEmbeddingConfigSurface,
   type MemoryEmbeddingRuntimeSurface,
@@ -13,6 +12,7 @@ import {
 import {
   createRuntimeAgentMemoryAdapter,
 } from '../src/shell/renderer/infra/runtime-agent-memory';
+import { createDesktopMemoryEmbeddingScopeRef } from '../src/shell/renderer/app-shell/providers/desktop-memory-embedding-scope';
 
 const LOCAL_AGENT_REF = 'local-agent:user-1:agent-1';
 
@@ -74,7 +74,7 @@ function createMemoryEmbeddingServiceMock(input?: {
   requestBind?: MemoryEmbeddingRuntimeSurface['requestBind'];
   requestCutover?: MemoryEmbeddingRuntimeSurface['requestCutover'];
 }) {
-  const scopeRef = createDefaultAIScopeRef();
+  const scopeRef = createDesktopMemoryEmbeddingScopeRef();
   let config: MemoryEmbeddingConfig = {
     scopeRef,
     sourceKind: null,

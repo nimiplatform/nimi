@@ -1,13 +1,16 @@
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { asNimiError, createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { localRuntime, type LocalRuntimeAssetRecord, type LocalRuntimeSnapshot } from '@runtime/local-runtime';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import {
-    listRuntimeRouteOptionsWithHost,
+    listRuntimeRouteOptions,
     runtimeRouteLocalKindForCapability,
     type RuntimeCanonicalCapability,
     type RuntimeRouteHostLocalMetadata,
+    type RuntimeRouteHostOptionsDeps,
+    type RuntimeRouteOptionsClient,
     type RuntimeRouteOptionsSnapshot,
 } from "@nimiplatform/sdk/ai";
 
@@ -139,10 +142,9 @@ export async function loadLocalRouteMetadata(capability: RuntimeCanonicalCapabil
     };
 }
 type LoadRuntimeRouteOptionsDeps = {
-    sdkListConnectors: typeof import('@renderer/features/runtime-config/runtime-config-connector-sdk-service').sdkListConnectors;
-    sdkListConnectorModelDescriptors: typeof import('@renderer/features/runtime-config/runtime-config-connector-sdk-service').sdkListConnectorModelDescriptors;
-    loadLocalRouteMetadata: typeof loadLocalRouteMetadata;
-};
+    platformClient?: RuntimeRouteOptionsClient;
+    loadLocalRouteMetadata?: typeof loadLocalRouteMetadata;
+} & Partial<RuntimeRouteHostOptionsDeps>;
 const DEFAULT_RUNTIME_ROUTE_OPTIONS_DEPS_SCOPE: Record<string, never> = {};
 function toRuntimeRouteHostLocalMetadata(metadata: LocalRouteMetadata): RuntimeRouteHostLocalMetadata {
     return {
@@ -190,28 +192,17 @@ export async function loadRuntimeRouteOptions(input: {
     const selectedBinding = input.capability === 'text.embed'
         ? undefined
         : appStore.aiConfig.capabilities.selectedBindings[input.capability] as import('@nimiplatform/sdk/ai').RuntimeRouteBinding | null | undefined;
-    let connectorService: typeof import('@renderer/features/runtime-config/runtime-config-connector-sdk-service') | null = null;
-    const getConnectorService = async () => {
-        if (!connectorService) {
-            connectorService = await import('@renderer/features/runtime-config/runtime-config-connector-sdk-service');
-        }
-        return connectorService;
-    };
-    const resolvedDeps: LoadRuntimeRouteOptionsDeps = {
-        sdkListConnectors: deps?.sdkListConnectors || (await getConnectorService()).sdkListConnectors,
-        sdkListConnectorModelDescriptors: deps?.sdkListConnectorModelDescriptors || (await getConnectorService()).sdkListConnectorModelDescriptors,
-        loadLocalRouteMetadata,
-        ...deps,
-    };
-    return listRuntimeRouteOptionsWithHost({
+    const localRouteMetadataLoader = deps?.loadLocalRouteMetadata ?? loadLocalRouteMetadata;
+    const platformClient = deps?.platformClient ?? getPlatformClient();
+    return listRuntimeRouteOptions(platformClient, {
         capability: input.capability,
         targetId: input.targetId,
         selectedBinding,
     }, {
         scope: deps || DEFAULT_RUNTIME_ROUTE_OPTIONS_DEPS_SCOPE,
-        listConnectors: resolvedDeps.sdkListConnectors,
-        listConnectorModelDescriptors: (connectorId) => resolvedDeps.sdkListConnectorModelDescriptors(connectorId, false),
-        loadLocalRouteMetadata: async (context) => toRuntimeRouteHostLocalMetadata(await resolvedDeps.loadLocalRouteMetadata(context.capability)),
+        listConnectors: deps?.listConnectors,
+        listConnectorModelDescriptors: deps?.listConnectorModelDescriptors,
+        loadLocalRouteMetadata: async (context) => toRuntimeRouteHostLocalMetadata(await localRouteMetadataLoader(context.capability)),
         onListConnectorsError: (error, context) => {
             const normalized = asNimiError(error, {
                 reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
