@@ -108,6 +108,19 @@ export async function createNimiAppRuntimePlatformClient(
       const client = await createLocalFirstPartyRuntimePlatformClient({
         ...toSharedPlatformInput(input),
         developerRegistration: input.mode === 'local-first-party' && input.developerRegistration === true,
+        // Runtime ExecuteScenario is authz-gated on the `ai.spend.meter` protected
+        // capability (runtime grpc authz interceptor). A Nimi App consumes the
+        // high-level runtime.ai.* surface, so the SDK must auto-issue that
+        // spend-meter token for AI calls; without it every text/embed/media
+        // execution fails closed with PRINCIPAL_UNAUTHORIZED. The Runtime account
+        // login supplies the subject the token is attributed to.
+        runtimeOptions: {
+          ...input.runtimeOptions,
+          protectedAccess: {
+            ...input.runtimeOptions?.protectedAccess,
+            autoIssueForAi: true,
+          },
+        },
       });
       return {
         status: 'ready',

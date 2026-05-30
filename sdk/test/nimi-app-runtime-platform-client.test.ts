@@ -165,3 +165,17 @@ test('helper input source does not expose app-owned auth custody seams', () => {
   assert.equal(thirdPartyBranch.includes('createLocalFirstPartyRuntimePlatformClient'), false);
   assert.equal(thirdPartyBranch.includes('GetAccessToken'), false);
 });
+
+test('local-first-party path auto-issues the ai.spend.meter protected token for AI calls', () => {
+  // Runtime ExecuteScenario is authz-gated on the `ai.spend.meter` protected
+  // capability. A Nimi App consumes the high-level runtime.ai.* surface, so the
+  // local-first-party client must enable autoIssueForAi; otherwise every AI call
+  // fails closed with PRINCIPAL_UNAUTHORIZED. Guards the regression where the
+  // removed dev-standalone branch dropped the only autoIssueForAi wiring.
+  const source = readFileSync(helperSourcePath, 'utf8');
+  const localFirstPartyBranch = source.slice(
+    source.indexOf("if (mode === 'local-first-party')"),
+    source.indexOf("// mode === 'third-party-nimi-app'"),
+  );
+  assert.match(localFirstPartyBranch, /autoIssueForAi:\s*true/);
+});
