@@ -4,21 +4,12 @@ import type { RuntimeClientDefaults, RuntimeOptions, RuntimeTransportConfig } fr
 import { ReasonCode, type ReasonCodeValue } from './types/index.js';
 import {
   createLocalFirstPartyRuntimePlatformClient,
-  createPlatformClient,
   type PlatformClient,
 } from './platform-client.js';
 
 export type NimiAppAuthMode =
   | 'local-first-party'
-  | 'third-party-nimi-app'
-  | 'dev-standalone';
-
-export type NimiAppDeveloperSession = {
-  source: 'runtime-developer-session';
-  sessionId: string;
-  sessionToken: string;
-  expiresAt?: string;
-};
+  | 'third-party-nimi-app';
 
 type SharedNimiAppRuntimePlatformClientInput = {
   appId: string;
@@ -41,10 +32,6 @@ export type NimiAppRuntimePlatformClientInput =
     | {
         mode: 'third-party-nimi-app';
       }
-    | {
-        mode: 'dev-standalone';
-        developerSession?: NimiAppDeveloperSession | null;
-      }
   );
 
 export type NimiAppAuthUnavailable = {
@@ -62,7 +49,7 @@ export type NimiAppAuthProjection =
       client: PlatformClient;
       auth: {
         state: 'ready';
-        source: 'runtime-local-first-party' | 'runtime-developer-session';
+        source: 'runtime-local-first-party';
       };
     }
   | NimiAppAuthUnavailable;
@@ -88,7 +75,7 @@ function normalizeText(value: unknown): string {
 }
 
 function assertSupportedMode(mode: string): asserts mode is NimiAppAuthMode {
-  if (mode === 'local-first-party' || mode === 'third-party-nimi-app' || mode === 'dev-standalone') {
+  if (mode === 'local-first-party' || mode === 'third-party-nimi-app') {
     return;
   }
   throw createNimiError({
@@ -145,68 +132,15 @@ export async function createNimiAppRuntimePlatformClient(
     }
   }
 
-  if (mode === 'third-party-nimi-app') {
-    return unavailable({
-      status: 'unavailable',
-      mode,
-      reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
-      actionHint: 'wait_for_runtime_nimi_app_session_projection',
-      message: 'third-party Nimi App Runtime session projection is not exposed by this SDK/runtime pair',
-    });
-  }
-
-  const developerSession = input.mode === 'dev-standalone' ? input.developerSession : null;
-  if (
-    !developerSession
-    || developerSession.source !== 'runtime-developer-session'
-    || !normalizeText(developerSession.sessionId)
-    || !normalizeText(developerSession.sessionToken)
-  ) {
-    return unavailable({
-      status: 'action-required',
-      mode,
-      reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
-      actionHint: 'provide_runtime_developer_session',
-      message: 'dev-standalone mode requires an explicit Runtime developer app session',
-    });
-  }
-
-  if (input.runtimeTransport === null) {
-    return unavailable({
-      status: 'unavailable',
-      mode,
-      reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
-      actionHint: 'configure_runtime_transport',
-      message: 'dev-standalone mode requires Runtime transport support',
-    });
-  }
-
-  const client = await createPlatformClient({
-    ...toSharedPlatformInput(input),
-    runtimeDefaults: {
-      ...input.runtimeDefaults,
-      callerKind: 'third-party-app',
-    },
-    runtimeOptions: {
-      ...input.runtimeOptions,
-      protectedAccess: {
-        ...input.runtimeOptions?.protectedAccess,
-        autoIssueForAi: true,
-      },
-    },
-    runtimeAppSession: {
-      sessionId: developerSession.sessionId,
-      sessionToken: developerSession.sessionToken,
-    },
-    allowAnonymousRealm: true,
-  });
-  return {
-    status: 'ready',
+  // mode === 'third-party-nimi-app': the productized third-party Runtime app
+  // session projection is not exposed by this SDK/runtime pair yet. Local app
+  // development connects through 'local-first-party' login + the runtime
+  // developer-registration gate, not a separate standalone developer session.
+  return unavailable({
+    status: 'unavailable',
     mode,
-    client,
-    auth: {
-      state: 'ready',
-      source: 'runtime-developer-session',
-    },
-  };
+    reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+    actionHint: 'wait_for_runtime_nimi_app_session_projection',
+    message: 'third-party Nimi App Runtime session projection is not exposed by this SDK/runtime pair',
+  });
 }

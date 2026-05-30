@@ -4,6 +4,15 @@
 @import "@nimiplatform/kit/auth/styles.css";
 @import "tailwindcss";
 
+/* Tailwind v4 prunes utility classes it never sees in source. Kit components
+   (Surface glass materials, backdrop-blur, etc.) emit arbitrary-value classes
+   like bg-[var(--nimi-material-glass-thin-bg)] and
+   backdrop-blur-[var(--nimi-backdrop-blur-thin)] from their COMPILED output, so
+   the consuming app must scan kit's dist or those classes are pruned and kit
+   glass renders flat. This is the standalone-derivable form (also used by
+   generated apps). */
+@source "../node_modules/@nimiplatform/kit/dist/**/*.{js,mjs}";
+
 :root {
   color-scheme: light;
 }
@@ -75,32 +84,23 @@ body {
   font-size: 13px;
 }
 
+/* Scaffold-managed frame: full-bleed canvas hosting a kit AmbientBackground
+   backdrop behind the product area. No app-chrome header / side-panel. */
 .app-shell {
-  min-height: 100vh;
-  padding: 22px;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 18px;
-}
-
-.app-chrome {
-  min-height: 58px;
+  position: relative;
+  /* Fixed viewport shell (Nimi Desktop parity: h-screen + overflow-hidden on the
+     AmbientBackground root). overflow:hidden CLIPS the decorative mesh halos
+     (which extend ~100px past the root via bottom:-100) so they never create a
+     document-level scrollbar / empty band below the shell. Content scrolls
+     internally in the workbench content area, not at the page level. */
+  height: 100vh;
+  overflow: hidden;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 16px;
-  border: 1px solid var(--nimi-border-subtle);
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--nimi-surface-panel) 78%, transparent);
-  backdrop-filter: blur(22px);
-  box-shadow: var(--nimi-elevation-base);
-}
-
-.app-chrome strong {
-  display: block;
-  font-size: 18px;
-  letter-spacing: 0;
+  flex-direction: column;
+  isolation: isolate;
+  /* The ambient mesh root sits over the kit canvas surface so the frosted glass
+     cards read with real depth, not over flat white. */
+  background: var(--nimi-surface-canvas);
 }
 
 .chrome-badges,
@@ -110,14 +110,6 @@ body {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.app-shell__body {
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
-  gap: 18px;
-  align-items: start;
 }
 
 .product-area {
@@ -133,11 +125,9 @@ body {
   justify-content: space-between;
   gap: 24px;
   padding: 28px;
-  border: 1px solid var(--nimi-border-subtle);
-  border-radius: 24px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--nimi-surface-panel) 82%, transparent), color-mix(in srgb, var(--nimi-surface-card) 74%, transparent));
-  backdrop-filter: blur(26px);
-  box-shadow: var(--nimi-elevation-raised);
+  /* Fill / border / blur / elevation come from the kit Surface this class is
+     applied to (world-tour-viewer-route renders material="glass-thick"
+     tone="hero" elevation="floating"); this rule is layout-only. */
 }
 
 .product-hero h1 {

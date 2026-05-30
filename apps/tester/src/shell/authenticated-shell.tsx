@@ -1,33 +1,20 @@
-import { StatusBadge, Surface } from '@nimiplatform/kit/ui';
+import { AmbientBackground } from '@nimiplatform/kit/ui';
 import { ProductArea } from './routes/product-area.js';
-import { SettingsRoute } from './routes/settings.js';
-import { DemoSurfaces } from './routes/demo-surfaces.js';
-import { appTitle, scaffoldProfile } from './auth/runtime-platform.js';
 
+// Scaffold-managed desktop-grade shell frame.
+// The app owns its full canvas directly: a kit AmbientBackground glass backdrop
+// hosts the product area full-bleed. There is no competing scaffold chrome to
+// hide — the previous app-chrome header + side-panel (which the workbench had to
+// CSS-hide) are removed. Product chrome (navigation, command bar, identity) is
+// owned by the product area, not duplicated here.
 export function AuthenticatedShell() {
   return (
-    <main className="app-shell" data-testid="nimi-app-shell">
-      <header className="app-chrome">
-        <div>
-          <p className="eyebrow">Nimi App</p>
-          <strong>{appTitle}</strong>
-        </div>
-        <div className="chrome-badges">
-          <StatusBadge tone="success" shape="dot">runtime-bound</StatusBadge>
-          <StatusBadge tone="neutral">{scaffoldProfile}</StatusBadge>
-        </div>
-      </header>
-      <div className="app-shell__body">
-        <ProductArea />
-        <aside className="side-panel" aria-label="App shell panels">
-          <Surface className="panel-section shell-status-panel" material="glass-thin" tone="panel">
-            <h2>Shell Status</h2>
-            <p>Auth, Runtime, Tauri, manifest, and submission boundaries are scaffold-managed.</p>
-          </Surface>
-          <SettingsRoute />
-          <DemoSurfaces />
-        </aside>
-      </div>
-    </main>
+    <AmbientBackground
+      variant="mesh"
+      className="app-shell"
+      data-testid="nimi-app-shell"
+    >
+      <ProductArea />
+    </AmbientBackground>
   );
 }

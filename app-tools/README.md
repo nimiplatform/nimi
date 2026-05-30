@@ -20,9 +20,13 @@ pinned local `nimicoding sync --apply` projection for `.nimi/{config,contracts,m
 and writes app-scaffold admission/build-profile/lock state. It does not use
 `npx` or mutate `.nimi/**` from package install side effects.
 
-`pnpm dev:shell` requests a short-lived local Runtime developer app session
-before launching Tauri. That local session is development material only; it is
-not listing admission, installed-app truth, or a permission grant.
+`pnpm dev:shell` launches the Tauri shell (`tauri dev`). The generated app
+authenticates through the in-app Runtime account login, exactly like a shipped
+app — there is no standalone developer session. For a not-yet-admitted local
+app, enable Developer Mode in the desktop app; the Runtime developer-registration
+gate then admits the local app under a real logged-in account. This is local
+development material only; it is not listing admission, installed-app truth, or a
+permission grant.
 
 When `--app-id nimi.tester` is used, the generator emits the first-party
 developer tester product surface: Runtime-authenticated shell, Nimi Kit glass

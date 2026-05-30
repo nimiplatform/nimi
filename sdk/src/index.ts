@@ -16,7 +16,6 @@ export type {
   NimiAppAuthMode,
   NimiAppAuthProjection,
   NimiAppAuthUnavailable,
-  NimiAppDeveloperSession,
 } from './nimi-app-runtime-platform-client.js';
 export { withRealmContextLock } from './realm/context-lock.js';
 export type { RealmContextInput } from './realm/context-lock.js';

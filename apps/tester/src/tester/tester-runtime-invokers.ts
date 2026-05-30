@@ -4,17 +4,26 @@
 // translated to typed unavailable using the raw SDK error message so the
 // developer sees verbatim what Runtime returned.
 
-import type { PlatformClient } from '@nimiplatform/sdk';
+import { ReasonCode, type PlatformClient } from '@nimiplatform/sdk';
 import type { AIConfig, RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
 import { createAIConfigEvidence } from '@nimiplatform/sdk/ai';
 import type { TesterCapabilityId } from './tester-capabilities.js';
-import { capabilityUnavailable, type TesterUnavailable } from './tester-unavailable.js';
+import { capabilityUnavailable, type TesterUnavailable, type TesterUnavailableReason } from './tester-unavailable.js';
 import { getTesterCapability } from './tester-capabilities.js';
 import { loadTesterAIConfig } from './tester-ai-config-store.js';
+import { buildMultimodalInput, type MediaAttachment } from './tester-multimodal-input.js';
 
 export type TesterScenarioInput = {
   prompt: string;
   scenarioId: string;
+  /** Optional live-delta callback (chat.stream). Receives the accumulated text
+   *  on each delta so the UI can render the stream token-by-token. */
+  onPartial?: (accumulatedText: string) => void;
+  /** Optional local media attachments for vision/multimodal text capabilities. */
+  attachments?: MediaAttachment[];
+  /** Optional app-composed instruction line (tone/length studio controls) that is
+   *  prepended to the prompt before it is sent to the runtime as real input. */
+  directive?: string;
 };
 
 export type TesterTrace = {
@@ -114,14 +123,37 @@ function describeSdkError(error: unknown): string {
   return String(error);
 }
 
+// Map the SDK ReasonCode to a precise tester reason. The runtime fails closed
+// with a typed reasonCode; the cockpit must surface that class verbatim instead
+// of blanket-labelling everything as a missing SDK method. Only a genuine
+// SDK_RUNTIME_METHOD_UNAVAILABLE is an SDK surface gap.
+function reasonFromSdkError(error: unknown): TesterUnavailableReason {
+  const reasonCode = error && typeof error === 'object' && 'reasonCode' in error
+    ? String((error as { reasonCode?: unknown }).reasonCode || '')
+    : '';
+  switch (reasonCode) {
+    case ReasonCode.AUTH_CONTEXT_MISSING:
+      return 'auth-context-missing';
+    case ReasonCode.PRINCIPAL_UNAUTHORIZED:
+    case ReasonCode.SESSION_EXPIRED:
+    case ReasonCode.APP_TOKEN_EXPIRED:
+    case ReasonCode.APP_TOKEN_REVOKED:
+      return 'principal-unauthorized';
+    case ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE:
+      return 'sdk-method-unavailable';
+    default:
+      return 'runtime-call-failed';
+  }
+}
+
 function unavailableFromError(capabilityId: TesterCapabilityId, error: unknown): TesterUnavailable {
   const capability = getTesterCapability(capabilityId);
-  return capabilityUnavailable(capability, 'sdk-surface-missing', describeSdkError(error));
+  return capabilityUnavailable(capability, reasonFromSdkError(error), describeSdkError(error));
 }
 
 function unavailableFromValidation(capabilityId: TesterCapabilityId, message: string): TesterUnavailable {
   const capability = getTesterCapability(capabilityId);
-  return capabilityUnavailable(capability, 'sdk-surface-missing', message);
+  return capabilityUnavailable(capability, 'input-invalid', message);
 }
 
 function unavailableFromAIConfig(capabilityId: TesterCapabilityId, message: string): TesterUnavailable {
@@ -244,10 +276,11 @@ async function invokeTextGenerate(client: PlatformClient, input: TesterScenarioI
   const resolved = resolveTesterLLMBinding('text.generate');
   if (isTesterUnavailable(resolved)) return resolved;
   const route = routeInput(resolved.binding, resolved.model);
+  const directedPrompt = input.directive ? `${input.directive}\n\n${prompt}` : prompt;
   try {
     const output = await client.runtime.ai.text.generate({
       ...route,
-      input: prompt,
+      input: buildMultimodalInput(directedPrompt, input.attachments ?? []),
       metadata: buildMetadata('dev.nimi.tester.ai.text.generate', resolved.metadata),
     });
     return {
@@ -282,7 +315,9 @@ async function invokeChatStream(client: PlatformClient, input: TesterScenarioInp
   try {
     const opened = await client.runtime.ai.text.stream({
       ...route,
-      input: [{ role: 'user', content: prompt }],
+      input: input.attachments && input.attachments.length
+        ? buildMultimodalInput(prompt, input.attachments)
+        : [{ role: 'user', content: prompt }],
       metadata: buildMetadata('dev.nimi.tester.ai.chat.stream', resolved.metadata),
     });
     let aggregated = '';
@@ -292,6 +327,7 @@ async function invokeChatStream(client: PlatformClient, input: TesterScenarioInp
     for await (const part of opened.stream) {
       if (part.type === 'delta') {
         aggregated += part.text;
+        input.onPartial?.(aggregated);
       } else if (part.type === 'reasoning-delta') {
         // discard reasoning trace for the cockpit; surfaced via trace summary if available
       } else if (part.type === 'finish') {
@@ -299,7 +335,10 @@ async function invokeChatStream(client: PlatformClient, input: TesterScenarioInp
         usage = part.usage || {};
         trace = pickTrace(part.trace);
       } else if (part.type === 'error') {
-        return unavailableFromError('chat.stream', new Error(describeSdkError(part.error)));
+        // Forward the typed NimiError verbatim so its reasonCode survives the
+        // classifier; wrapping it in a bare Error would erase the reasonCode and
+        // misclassify auth failures as generic runtime-call-failed.
+        return unavailableFromError('chat.stream', part.error);
       }
     }
     return {

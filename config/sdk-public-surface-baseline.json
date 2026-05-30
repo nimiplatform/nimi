@@ -21,7 +21,7 @@
       "source": "sdk/src/index.ts",
       "exports": [
         "export * from './ai/index.js';",
-        "export type { NimiAppRuntimePlatformClientInput, NimiAppAuthMode, NimiAppAuthProjection, NimiAppAuthUnavailable, NimiAppDeveloperSession, } from './nimi-app-runtime-platform-client.js';",
+        "export type { NimiAppRuntimePlatformClientInput, NimiAppAuthMode, NimiAppAuthProjection, NimiAppAuthUnavailable, } from './nimi-app-runtime-platform-client.js';",
         "export type { NimiError, VersionCompatibilityStatus} from './types/index.js';",
         "export type { PlatformClient, PlatformClientInput, PlatformAuthSessionStore} from './platform-client.js';",
         "export type { RealmContextInput} from './realm/context-lock.js';",

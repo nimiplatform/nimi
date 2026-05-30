@@ -22,7 +22,7 @@ export type TesterCapability = {
 export const testerCapabilities: TesterCapability[] = [
   {
     id: 'text.generate',
-    label: 'Text Generate',
+    label: 'Text Studio',
     group: 'text',
     summary: 'Prompt → runtime.ai.text.generate (single-shot completion).',
     surface: 'client.runtime.ai.text.generate',

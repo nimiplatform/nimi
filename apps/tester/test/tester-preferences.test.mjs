@@ -170,29 +170,18 @@ test('disabled prompt draft persistence does not save new edits', () => {
   assert.doesNotMatch(storage.snapshot()[TESTER_PROMPT_DRAFTS_STORAGE_KEY], /new draft/);
 });
 
-test('settings control plane avoids fake controls and runtime authority claims', () => {
-  const settings = read('src/tester/workbench/section-settings.tsx');
+test('tester preference plumbing stays wired and fail-closed', () => {
   const workbench = read('src/tester/tester-workbench.tsx');
-  const commandBar = read('src/tester/workbench/workbench-command-bar.tsx');
-  const appLab = read('src/tester/workbench/section-app-lab.tsx');
   const aiTesting = read('src/tester/workbench/section-ai-testing.tsx');
 
-  assert.doesNotMatch(settings, /ProgressIndicator/);
-  assert.doesNotMatch(settings, /continuous/);
-  assert.match(settings, /Manual/);
-  assert.match(settings, /After run/);
-  assert.match(settings, /window\.localStorage/);
-  assert.match(settings, /save prompt edits per capability and scenario/);
-  assert.match(settings, /Settings cannot change Runtime, Auth, Provider, or SDK admission permissions/);
-  assert.match(settings, /Prompt drafts, runs, and artifacts are not cleared/);
+  // Evidence-capture mode + prompt-draft preferences remain wired from the
+  // app-owned localStorage store into the workbench and capability test panel,
+  // even though the standalone Settings control-plane page was removed (model
+  // config is now the gear slide-over; evidence is per-capability history).
   assert.match(workbench, /evidenceCaptureMode === 'after-run'/);
   assert.match(workbench, /handleCaptureEvidence\(\)/);
   assert.match(workbench, /draftPersistence=\{preferenceState\.preferences\.draftPersistence\}/);
-  assert.match(appLab, /loadTesterPromptDraft/);
-  assert.match(appLab, /saveTesterPromptDraft/);
-  assert.match(appLab, /surfaceId: 'app-lab'/);
   assert.match(aiTesting, /loadTesterPromptDraft/);
   assert.match(aiTesting, /saveTesterPromptDraft/);
   assert.match(aiTesting, /surfaceId: 'ai-capabilities'/);
-  assert.match(commandBar, /Capture: after run/);
 });

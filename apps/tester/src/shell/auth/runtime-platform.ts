@@ -13,10 +13,12 @@ function runtimeEnv(): RuntimeEnv {
   return ((import.meta as ImportMeta & { env?: RuntimeEnv }).env || {});
 }
 
-function resolveRuntimeAuthMode(env: RuntimeEnv): NimiAppAuthMode {
-  if (env.VITE_NIMI_APP_AUTH_MODE === 'dev-standalone') {
-    return 'dev-standalone';
-  }
+function resolveRuntimeAuthMode(): NimiAppAuthMode {
+  // Single connection model: a local dev app connects exactly the way a shipped
+  // app does — through runtime account login. There is no separate standalone
+  // developer-session mode; the runtime developer-registration gate (driven by
+  // the desktop Developer Mode toggle) is what admits a not-yet-admitted local
+  // app, not a parallel auth path.
   return runtimeAccountLoginEnabled ? 'local-first-party' : 'third-party-nimi-app';
 }
 
@@ -26,29 +28,17 @@ export function clearRuntimePlatformProjection() {
 
 export function getRuntimePlatformProjection() {
   const env = runtimeEnv();
-  const mode = resolveRuntimeAuthMode(env);
-
-  if (mode === 'dev-standalone') {
-    const developerSessionId = String(env.VITE_NIMI_RUNTIME_DEVELOPER_SESSION_ID || '').trim();
-    const developerSessionToken = String(env.VITE_NIMI_RUNTIME_DEVELOPER_SESSION_TOKEN || '').trim();
-    runtimeProjection ??= createNimiAppRuntimePlatformClient({
-      mode: 'dev-standalone',
-      appId,
-      developerSession: developerSessionId && developerSessionToken
-        ? {
-            source: 'runtime-developer-session',
-            sessionId: developerSessionId,
-            sessionToken: developerSessionToken,
-          }
-        : null,
-    });
-    return runtimeProjection;
-  }
+  const mode = resolveRuntimeAuthMode();
 
   if (mode === 'local-first-party') {
+    // K-AUTHSVC-014: in a local dev build (`vite dev`), declare developer
+    // registration so a not-yet-admitted local app can register once the
+    // desktop Developer Mode / local app testing gate is on. Production builds
+    // (`vite build`) leave this false and follow normal admission.
     runtimeProjection ??= createNimiAppRuntimePlatformClient({
       mode: 'local-first-party',
       appId,
+      developerRegistration: env.DEV === true,
     });
     return runtimeProjection;
   }

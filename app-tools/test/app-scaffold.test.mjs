@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -240,7 +240,8 @@ test('standalone scaffold forks the reference app with rewritten identity', () =
 
     assertTauriIconSupport(generated);
     assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /createNimiAppRuntimePlatformClient/);
-    assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /mode: 'dev-standalone'/);
+    assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /mode: 'local-first-party'/);
+    assert.doesNotMatch(generated.read('src/shell/auth/runtime-platform.ts'), /dev-standalone/);
     assert.match(generated.read('nimi.app.yaml'), /manifest_role: submitted-input/);
     assert.match(generated.read('.nimi/admission/submission.yaml'), /submission_role: developer-submitted-input/);
     assert.match(generated.read('.nimi/admission/build-profile.yaml'), /lockfile_policy: author-install-generates-lockfile/);
@@ -248,6 +249,29 @@ test('standalone scaffold forks the reference app with rewritten identity', () =
     assert.match(ci, /pnpm install --no-frozen-lockfile/);
     assert.match(ci, /pnpm run init/);
     assert.doesNotMatch(ci, /cache: pnpm/);
+  } finally {
+    generated.cleanup();
+  }
+});
+
+test('generated package.json scripts reference only commands and existing local scripts', () => {
+  const generated = scaffold('standalone');
+  try {
+    const packageJson = JSON.parse(generated.read('package.json'));
+    // Single-login model: the app launches its Tauri shell directly and logs in
+    // through the in-app AuthGate. There is no dev-standalone bootstrap script.
+    assert.equal(packageJson.scripts['dev:shell'], 'tauri dev');
+    // Any `node scripts/<file>` script must point at a file the scaffold actually
+    // emits — a dangling reference (e.g. a deleted dev-shell.mjs) makes the
+    // documented command fail on first run.
+    for (const [name, command] of Object.entries(packageJson.scripts)) {
+      const match = /\bnode\s+(scripts\/\S+)/.exec(String(command));
+      if (!match) continue;
+      assert.ok(
+        existsSync(path.join(generated.target, match[1])),
+        `dev script "${name}" references missing file ${match[1]}`,
+      );
+    }
   } finally {
     generated.cleanup();
   }

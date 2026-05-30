@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Component, lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   Button,
+  EmptyState,
+  IconButton,
   SegmentedControl,
+  SelectField,
   StatusBadge,
   Surface,
   TextareaField,
@@ -9,37 +12,43 @@ import {
 import {
   AlertTriangle,
   AudioLines,
-  Boxes,
-  CheckCircle2,
-  CircleDot,
-  ClipboardList,
   Compass,
-  Database,
+  Copy as CopyIcon,
+  Download as DownloadIcon,
   FileText,
   Image as ImageIcon,
   Loader2,
   MessageSquareText,
   Play,
   RefreshCw,
-  Route,
+  Settings,
   ShieldCheck,
   Sparkles,
   TextCursorInput,
   Video,
   type LucideIcon,
 } from 'lucide-react';
+import type { CanonicalCapabilitySectionId } from '@nimiplatform/kit/core/runtime-capabilities';
+import { ImageAttachmentStrip, useMediaAttachments } from '../tester-multimodal-input.js';
 import {
   testerCapabilities,
   type TesterCapability,
   type TesterCapabilityId,
 } from '../tester-capabilities.js';
 import type { TesterAIConfigSummary } from '../tester-ai-config.js';
-import type { TesterRunHistory, TesterRunHistoryRecord } from '../tester-history.js';
+import {
+  formatTesterRunTimestamp,
+  getTesterRunStatusLabel,
+  getTesterRunStatusTone,
+  type TesterRunHistory,
+  type TesterRunHistoryRecord,
+} from '../tester-history.js';
 import {
   runTesterCapability,
   type TesterCapabilityRunResult,
   type TesterRuntimeInspection,
 } from '../tester-runtime.js';
+import { unavailableReasonTitle } from '../tester-unavailable.js';
 import {
   openWorldTourWindow,
   resolveWorldTourFixture,
@@ -49,17 +58,69 @@ import {
   saveTesterPromptDraft,
   type TesterPromptDraftStoreStatus,
 } from '../tester-preferences.js';
+import {
+  composeStudioDirective,
+  countStudioWords,
+  DEFAULT_LENGTH_VALUE,
+  DEFAULT_TONE_VALUE,
+  getCapabilityStudioProfile,
+  LENGTH_OPTIONS,
+  runtimeMethodFor,
+  TONE_OPTIONS,
+} from './capability-studio-profiles.js';
+
+// The model-config drawer (and its runtime model-picker provider) is only needed
+// when the settings gear opens it, so it loads on demand — the always-on studio
+// surface stays decoupled from the heavier config subsystem.
+const TesterAiConfigSettingsPanel = lazy(() =>
+  import('./tester-ai-config-settings-panel.js').then((module) => ({ default: module.TesterAiConfigSettingsPanel })),
+);
+
+// Isolates the on-demand model-config drawer: if the panel module (or one of its
+// runtime model-picker dependencies) fails to load, the drawer degrades to an
+// inline error instead of unmounting the whole studio surface.
+class DrawerErrorBoundary extends Component<{ onClose: () => void; children: ReactNode }, { error: Error | null }> {
+  state: { error: Error | null } = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="section-ai-testing__drawer-error" role="alert">
+          <strong>Model config unavailable</strong>
+          <p>{this.state.error.message || 'The model config surface failed to load.'}</p>
+          <Button type="button" tone="secondary" size="sm" onClick={this.props.onClose}>Close</Button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Maps each tester capability to the canonical AIConfig section its settings
+// gear opens (mirrors the desktop tester CAPABILITY_TO_SECTION).
+const CAPABILITY_TO_SECTION: Record<TesterCapabilityId, CanonicalCapabilitySectionId> = {
+  'text.generate': 'chat',
+  'chat.stream': 'chat',
+  'text.embed': 'embed',
+  'image.generate': 'image',
+  'video.generate': 'video',
+  'audio.synthesize': 'tts',
+  'audio.transcribe': 'stt',
+  'speech.bundle': 'voice',
+  'world.generate': 'world',
+};
 
 type SectionAITestingProps = {
-  activeId: TesterCapabilityId;
-  onSelect: (id: TesterCapabilityId) => void;
   capability: TesterCapability;
   onResult: (result: TesterCapabilityRunResult, prompt: string) => void | Promise<void>;
+  onSelectCapability: (id: TesterCapabilityId) => void;
   summary: TesterAIConfigSummary | null;
   history: TesterRunHistory | null;
   lastResult: TesterCapabilityRunResult | null;
-  historyError: string | null;
-  onOpenKitComponents: () => void;
   verboseConsole: boolean;
   draftPersistence: boolean;
 };
@@ -88,25 +149,53 @@ const capabilityIcons: Record<TesterCapabilityId, LucideIcon> = {
   'world.generate': Compass,
 };
 
-const groupOrder: Array<TesterCapability['group']> = ['text', 'media', 'audio', 'world'];
-const groupLabels: Record<TesterCapability['group'], string> = {
-  text: 'Text & Chat',
-  media: 'Media',
-  audio: 'Audio',
-  world: 'World',
+// Per-capability accent tones for the hero tile (recovered from the desktop
+// tester TONE_PALETTE — decorative content treatment only).
+type CapTone = 'mint' | 'blue' | 'violet' | 'pink';
+const capabilityTones: Record<TesterCapabilityId, CapTone> = {
+  'text.generate': 'mint',
+  'chat.stream': 'mint',
+  'text.embed': 'blue',
+  'image.generate': 'violet',
+  'video.generate': 'pink',
+  'audio.synthesize': 'blue',
+  'audio.transcribe': 'blue',
+  'speech.bundle': 'violet',
+  'world.generate': 'mint',
 };
+const tonePalette: Record<CapTone, { soft: string; glow: string; ink: string }> = {
+  mint: { soft: 'rgba(167,243,208,0.45)', glow: '#a7f3d0', ink: '#065F46' },
+  blue: { soft: 'rgba(191,219,254,0.55)', glow: '#bfdbfe', ink: '#1E3A8A' },
+  violet: { soft: 'rgba(221,214,254,0.55)', glow: '#ddd6fe', ink: '#4C1D95' },
+  pink: { soft: 'rgba(252,231,243,0.55)', glow: '#fce7f3', ink: '#831843' },
+};
+
+function CapHeroTile({ capability, size = 40 }: { capability: TesterCapability; size?: number }) {
+  const Icon = capabilityIcons[capability.id];
+  const tone = tonePalette[capabilityTones[capability.id]];
+  return (
+    <div
+      className="studio__tile"
+      aria-hidden="true"
+      style={{
+        width: size,
+        height: size,
+        background: `radial-gradient(circle at 30% 30%, ${tone.glow}, ${tone.soft})`,
+        color: tone.ink,
+        borderColor: tone.soft,
+      }}
+    >
+      <Icon size={Math.round(size * 0.48)} />
+    </div>
+  );
+}
 
 const scenarioPresets: Partial<Record<TesterCapabilityId, ScenarioPreset[]>> = {
   'text.generate': [
     {
       id: 'acceptance-note',
       label: 'Acceptance note',
-      prompt: 'Write a concise acceptance note for a Runtime-backed Nimi App that uses runtime.ai.text.generate to produce content.',
-    },
-    {
-      id: 'admission-summary',
-      label: 'Admission summary',
-      prompt: 'Explain what a third-party Nimi App should show when a Runtime SDK method is unavailable.',
+      prompt: 'Write a concise acceptance note for a Runtime-backed Nimi App that can generate helpful content.',
     },
   ],
   'chat.stream': [
@@ -167,40 +256,9 @@ const scenarioPresets: Partial<Record<TesterCapabilityId, ScenarioPreset[]>> = {
   ],
 };
 
-function presetsFor(capability: TesterCapability): ScenarioPreset[] {
-  return scenarioPresets[capability.id] || [
-    {
-      id: 'default',
-      label: 'Default',
-      prompt: capability.summary,
-    },
-  ];
-}
-
-function runtimeMethod(capability: TesterCapability): string {
-  const methods: Record<TesterCapabilityId, string> = {
-    'text.generate': 'runtime.ai.text.generate',
-    'chat.stream': 'runtime.ai.text.stream',
-    'text.embed': 'runtime.ai.embedding.generate',
-    'image.generate': 'runtime.media.image.generate',
-    'video.generate': 'runtime.media.video.generate',
-    'audio.synthesize': 'runtime.media.tts.synthesize',
-    'audio.transcribe': 'runtime.media.stt.transcribe',
-    'speech.bundle': 'runtime.media.tts.listVoices',
-    'world.generate': 'tauri.open_world_tour_window',
-  };
-  return methods[capability.id];
-}
-
-function latestRunRecord(history: TesterRunHistory | null): TesterRunHistoryRecord | null {
-  if (!history) return null;
-  return Object.values(history)
-    .flat()
-    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0] ?? null;
-}
-
-function runRecordFor(history: TesterRunHistory | null, capabilityId: TesterCapabilityId): TesterRunHistoryRecord | null {
-  return history?.[capabilityId]?.[0] ?? null;
+function presetFor(capability: TesterCapability): ScenarioPreset {
+  const presets = scenarioPresets[capability.id];
+  return presets?.[0] ?? { id: 'default', label: 'Default', prompt: capability.summary };
 }
 
 function statusForCapability(
@@ -222,7 +280,7 @@ function statusForCapability(
       detail: capability.missingSurface || 'No admitted typed SDK method is available for this capability.',
     };
   }
-  if (lastResult?.capabilityId === capability.id && !lastResult.ok && lastResult.reason === 'sdk-surface-missing') {
+  if (lastResult?.capabilityId === capability.id && !lastResult.ok && lastResult.reason === 'sdk-method-unavailable') {
     return {
       label: 'SDK gap',
       tone: 'warning',
@@ -249,6 +307,14 @@ function statusForCapability(
     detail: 'Runtime session active and SDK admission surface is available.',
   };
 }
+
+const STATUS_PILL_LABEL: Record<CapabilityStatus['label'], string> = {
+  ready: 'Ready',
+  blocked: 'Blocked',
+  'SDK gap': 'SDK gap',
+  'tauri-only': 'Tauri only',
+  checking: 'Checking',
+};
 
 function formatTypedOutput(result: TesterCapabilityRunResult & { ok: true }): string {
   const output = result.output;
@@ -290,234 +356,361 @@ function formatTypedOutput(result: TesterCapabilityRunResult & { ok: true }): st
   }, null, 2);
 }
 
-function resultKind(result: TesterCapabilityRunResult | null, capability: TesterCapability): string {
-  if (!result) return capability.execution === 'standalone-tauri' ? 'viewer idle' : 'no typed result';
-  if (!result.ok) {
-    if (result.reason === 'runtime-not-ready') return 'Runtime unavailable';
-    if (result.reason === 'sdk-surface-missing') return 'SDK method unavailable';
-    return result.reason;
+// Plain-text projection used for Copy / Download. Text and transcript export the
+// raw body; structured results export their typed JSON summary.
+function resultPlainText(result: TesterCapabilityRunResult & { ok: true }): string {
+  if (result.output.kind === 'text') return result.output.text;
+  if (result.output.kind === 'transcript') return result.output.text;
+  return formatTypedOutput(result);
+}
+
+// Rich media preview for runtime artifact results (image / audio / video),
+// recovered from the desktop tester result rendering. Falls back to the typed
+// JSON summary below when the artifact has no previewable URL/MIME.
+function ArtifactPreview({ result }: { result: TesterCapabilityRunResult & { ok: true } }) {
+  if (result.output.kind !== 'artifacts') return null;
+  const artifact = result.output.firstArtifact;
+  const url = artifact?.url;
+  const mimeType = artifact?.mimeType ?? '';
+  if (!url) return null;
+  const label = artifact?.displayName || artifact?.artifactId || result.output.jobId;
+  let media: ReactNode = null;
+  if (mimeType.startsWith('image/')) {
+    media = <img src={url} alt={label} loading="lazy" />;
+  } else if (mimeType.startsWith('audio/')) {
+    media = <audio controls src={url} />;
+  } else if (mimeType.startsWith('video/')) {
+    media = <video controls src={url} />;
   }
-  if (capability.id === 'world.generate') return 'Tauri viewer opened';
-  return `${result.output.kind} result`;
-}
-
-function HeaderSummary({
-  runtime,
-  history,
-  lastResult,
-}: {
-  runtime: TesterRuntimeInspection | null;
-  history: TesterRunHistory | null;
-  lastResult: TesterCapabilityRunResult | null;
-}) {
-  const statuses = testerCapabilities.map((capability) => statusForCapability(capability, runtime, lastResult));
-  const ready = statuses.filter((status) => status.label === 'ready').length;
-  const blocked = statuses.filter((status) => status.label === 'blocked' || status.label === 'SDK gap').length;
-  const lastRun = latestRunRecord(history);
-
+  if (!media) return null;
   return (
-    <div className="ai-capabilities-header__chips" aria-label="Capability summary">
-      <span>total lanes: {testerCapabilities.length}</span>
-      <span>ready: {ready}</span>
-      <span>blocked: {blocked}</span>
-      <span>runtime: {runtime?.mode || 'checking'}</span>
-      <span>last run: {lastRun ? lastRun.capabilityId : 'no record'}</span>
-    </div>
+    <figure className="ai-result__media" data-mime={mimeType}>
+      {media}
+      <figcaption>
+        <span>{label}</span>
+        <span>{mimeType} · {result.output.artifactCount} artifact{result.output.artifactCount === 1 ? '' : 's'}</span>
+      </figcaption>
+    </figure>
   );
 }
 
-function CapabilityRegistry({
-  activeId,
-  runtime,
-  history,
-  lastResult,
-  onSelect,
-}: {
-  activeId: TesterCapabilityId;
-  runtime: TesterRuntimeInspection | null;
-  history: TesterRunHistory | null;
-  lastResult: TesterCapabilityRunResult | null;
-  onSelect: (id: TesterCapabilityId) => void;
-}) {
-  return (
-    <Surface className="ai-capability-registry" material="glass-thin" tone="panel" elevation="base">
-      <header className="ai-panel-head">
-        <div>
-          <p className="eyebrow">Capability Matrix</p>
-          <h3>Runtime and SDK registry</h3>
-        </div>
-        <StatusBadge tone="neutral" shape="dot">{testerCapabilities.length} lanes</StatusBadge>
-      </header>
-      <div className="ai-capability-registry__groups" role="list" aria-label="AI capability registry">
-        {groupOrder.map((group) => {
-          const capabilities = testerCapabilities.filter((item) => item.group === group);
-          if (!capabilities.length) return null;
-          return (
-            <section key={group} className="ai-capability-registry__group" aria-label={groupLabels[group]}>
-              <p>{groupLabels[group]}</p>
-              <div className="ai-capability-registry__rows">
-                {capabilities.map((item) => {
-                  const Icon = capabilityIcons[item.id];
-                  const active = activeId === item.id;
-                  const status = statusForCapability(item, runtime, lastResult);
-                  const record = runRecordFor(history, item.id);
-                  return (
-                    <button
-                      type="button"
-                      key={item.id}
-                      className={active ? 'ai-capability-row ai-capability-row--active' : 'ai-capability-row'}
-                      onClick={() => onSelect(item.id)}
-                      aria-current={active ? 'true' : undefined}
-                    >
-                      <span className="ai-capability-row__icon" aria-hidden="true">
-                        <Icon size={15} />
-                      </span>
-                      <span className="ai-capability-row__main">
-                        <strong>{item.label}</strong>
-                        <code>{runtimeMethod(item)}</code>
-                      </span>
-                      <span className="ai-capability-row__state">
-                        <StatusBadge tone={status.tone} shape="dot">{status.label}</StatusBadge>
-                        <small>{record ? `${record.status} · ${record.createdAt}` : 'no local record'}</small>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
+// Readable body for a successful typed result (light surface), with structured
+// summaries for embedding / voice-catalog rather than raw JSON (which moves to
+// the Runtime details disclosure).
+function ReadyBody({ result }: { result: TesterCapabilityRunResult & { ok: true } }) {
+  const output = result.output;
+  if (output.kind === 'text' || output.kind === 'transcript') {
+    return <div className="studio-result__text">{output.text || '(empty body)'}</div>;
+  }
+  if (output.kind === 'artifacts') {
+    const preview = <ArtifactPreview result={result} />;
+    return (
+      <div className="studio-result__rich">
+        {preview}
+        {!preview ? (
+          <p className="studio-result__plain">
+            Job {output.jobId || '(pending id)'} · {output.jobState} · {output.artifactCount} artifact
+            {output.artifactCount === 1 ? '' : 's'} (no inline preview available).
+          </p>
+        ) : null}
       </div>
-    </Surface>
+    );
+  }
+  if (output.kind === 'embedding') {
+    return (
+      <div className="studio-result__rich">
+        <p className="studio-result__plain">
+          {output.vectorCount} vector{output.vectorCount === 1 ? '' : 's'} · {output.dimensions} dimensions
+          {typeof output.totalTokens === 'number' ? ` · ${output.totalTokens} tokens` : ''}
+        </p>
+        <div className="studio-chips">
+          {output.sample.map((value, index) => (
+            <span key={index} className="studio-chip">{value.toFixed(4)}</span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <ul className="studio-voice-list">
+      {output.sample.map((voice) => (
+        <li key={voice.voiceId}>
+          <strong>{voice.name}</strong>
+          <span>{voice.voiceId} · {voice.lang}</span>
+        </li>
+      ))}
+      {output.sample.length === 0 ? <li><span>No voices returned.</span></li> : null}
+    </ul>
   );
 }
 
-function ResultPanel({
+// Runtime details disclosure — preserves the developer-tester diagnostic surface
+// (runtime method id, admission detail, typed JSON, trace) beneath the product
+// result view. Blockers are returned as typed unavailable results, surfaced here.
+function RuntimeDetails({
+  capability,
+  result,
+  admission,
+  verboseConsole,
+}: {
+  capability: TesterCapability;
+  result: TesterCapabilityRunResult | null;
+  admission: CapabilityStatus;
+  verboseConsole: boolean;
+}) {
+  return (
+    <details className="studio-diag">
+      <summary>Runtime details</summary>
+      <dl className="studio-diag__grid">
+        <div>
+          <dt>Method</dt>
+          <dd><code>{runtimeMethodFor(capability.id)}</code></dd>
+        </div>
+        <div>
+          <dt>Admission</dt>
+          <dd>{admission.detail}</dd>
+        </div>
+        {result && !result.ok ? (
+          <div>
+            <dt>Reason</dt>
+            <dd>{result.reason}</dd>
+          </div>
+        ) : null}
+        {result?.ok && result.trace?.traceId ? (
+          <div>
+            <dt>Trace</dt>
+            <dd><code>{result.trace.traceId}</code>{result.trace.modelResolved ? ` · ${result.trace.modelResolved}` : ''}</dd>
+          </div>
+        ) : null}
+      </dl>
+      {result?.ok ? <pre className="studio-diag__json">{formatTypedOutput(result)}</pre> : null}
+      {verboseConsole ? (
+        <p className="studio-diag__note">
+          Verbose console: capability {capability.id}; {result ? (result.ok ? 'typed success' : `fail-closed ${result.reason}`) : 'no current-session result'}.
+        </p>
+      ) : null}
+    </details>
+  );
+}
+
+function StudioResult({
   result,
   running,
   capability,
+  admission,
+  streamingText,
   verboseConsole,
+  onCopy,
+  onDownload,
 }: {
   result: TesterCapabilityRunResult | null;
   running: boolean;
   capability: TesterCapability;
+  admission: CapabilityStatus;
+  streamingText?: string | null;
   verboseConsole: boolean;
+  onCopy: () => void;
+  onDownload: () => void;
 }) {
+  const profile = getCapabilityStudioProfile(capability.id);
+  const ready = result?.ok ? result : null;
+  const blocked = result && !result.ok ? result : null;
+  const plainText = ready ? resultPlainText(ready) : '';
+  const canExport = Boolean(ready && plainText);
+
+  let metric = '—';
+  if (ready) {
+    const output = ready.output;
+    if (output.kind === 'text' || output.kind === 'transcript') metric = `${countStudioWords(output.text)} words`;
+    else if (output.kind === 'artifacts') metric = `${output.artifactCount} artifact${output.artifactCount === 1 ? '' : 's'}`;
+    else if (output.kind === 'embedding') metric = `${output.dimensions} dims`;
+    else metric = `${output.voiceCount} voices`;
+  }
+
+  let body: ReactNode;
   if (running) {
-    return (
-      <div className="ai-result ai-result--pending">
-        <div className="ai-result__line">
-          <Loader2 size={14} aria-hidden="true" />
-          <span>{capability.execution === 'standalone-tauri' ? 'opening viewer fixture' : 'calling Runtime SDK'}</span>
+    const hasStream = typeof streamingText === 'string';
+    body = (
+      <div className="studio-result__pending">
+        <div className="studio-result__pending-line">
+          <Loader2 size={15} aria-hidden="true" className="studio-spin" />
+          <span>{capability.execution === 'standalone-tauri' ? 'Opening viewer fixture…' : hasStream ? 'Streaming from runtime…' : 'Calling runtime SDK…'}</span>
         </div>
-        <p>{capability.execution === 'standalone-tauri' ? 'Waiting for the app-owned Tauri command.' : 'Waiting for the runtime-backed SDK call to return.'}</p>
-        {verboseConsole ? <p className="ai-result__diagnostic">Verbose console: {capability.execution === 'standalone-tauri' ? 'local viewer command pending.' : `${runtimeMethod(capability)} pending.`}</p> : null}
+        {hasStream ? <div className="studio-result__text studio-result__text--stream" aria-live="polite">{streamingText || '…'}</div> : null}
       </div>
     );
-  }
-  if (!result) {
-    return (
-      <div className="ai-result ai-result--idle">
-        <div className="ai-result__line">
-          <CircleDot size={14} aria-hidden="true" />
-          <span>{capability.execution === 'standalone-tauri' ? 'viewer idle' : 'idle · no typed result yet'}</span>
+  } else if (blocked) {
+    body = (
+      <div className="studio-result__blocked">
+        <div className="studio-result__blocked-line">
+          <AlertTriangle size={15} aria-hidden="true" />
+          <span>{unavailableReasonTitle(blocked.reason)}</span>
         </div>
-        <p>{capability.execution === 'standalone-tauri' ? 'Open the viewer to create a local run record. No runtime artifact is implied.' : 'Run with Runtime to collect a typed result or a fail-closed blocker.'}</p>
-        {verboseConsole ? <p className="ai-result__diagnostic">Verbose console: no current-session result for {capability.id}.</p> : null}
+        <p>{blocked.message}</p>
+        <p className="studio-result__hint">{blocked.actionHint}</p>
       </div>
     );
-  }
-  if (!result.ok) {
-    return (
-      <div className="ai-result ai-result--blocked">
-        <div className="ai-result__line">
-          <AlertTriangle size={14} aria-hidden="true" />
-          <span>{resultKind(result, capability)}</span>
-        </div>
-        <p>{result.message}</p>
-        <p>{result.actionHint}</p>
-        {verboseConsole ? <p className="ai-result__diagnostic">Verbose console: fail-closed reason {result.reason}; no runtime/provider setting was changed.</p> : null}
-      </div>
+  } else if (ready) {
+    body = <ReadyBody result={ready} />;
+  } else {
+    body = (
+      <EmptyState
+        className="studio-empty"
+        icon={<FileText size={18} aria-hidden="true" />}
+        title={profile.emptyTitle}
+        description={profile.emptyHint}
+      />
     );
   }
+
   return (
-    <div className="ai-result ai-result--ready">
-      <div className="ai-result__line">
-        <CheckCircle2 size={14} aria-hidden="true" />
-        <span>{resultKind(result, capability)}</span>
+    <div className="studio-result">
+      <div className="studio-result__body">{body}</div>
+      <div className="studio-result__foot">
+        <span className="studio-result__metric">{metric}</span>
+        <div className="studio-result__actions">
+          <button type="button" className="studio-result__action" onClick={onCopy} disabled={!canExport}>
+            <CopyIcon size={13} aria-hidden="true" /> Copy
+          </button>
+          <button type="button" className="studio-result__action" onClick={onDownload} disabled={!canExport}>
+            <DownloadIcon size={13} aria-hidden="true" /> Download
+          </button>
+        </div>
       </div>
-      <p>{result.message}</p>
-      <pre>{formatTypedOutput(result)}</pre>
-      {verboseConsole ? (
-        <p className="ai-result__diagnostic">
-          Verbose console: capability {result.capabilityId}; trace metadata {result.trace ? 'available' : 'not returned'}.
-        </p>
-      ) : null}
+      <RuntimeDetails capability={capability} result={result} admission={admission} verboseConsole={verboseConsole} />
     </div>
   );
 }
 
-function CapabilityDetail({
+// Per-capability local run history, recovered from the desktop tester history
+// panel. Reads only the app-owned localStorage history store (no runtime claim).
+function badgeToneForRun(record: TesterRunHistoryRecord): 'success' | 'warning' | 'info' | 'neutral' {
+  const tone = getTesterRunStatusTone(record.status);
+  if (tone === 'success') return 'success';
+  if (tone === 'info') return 'info';
+  if (tone === 'danger' || tone === 'warning') return 'warning';
+  return 'neutral';
+}
+
+function CapabilityRunHistory({
+  capability,
+  history,
+}: {
+  capability: TesterCapability;
+  history: TesterRunHistory | null;
+}) {
+  const records = (history?.[capability.id] ?? []).slice(0, 8);
+  return (
+    <Surface className="studio-recent" material="glass-thin" tone="panel" elevation="base" padding="none" aria-label="Recent runs">
+      <div className="studio-recent__head">
+        <div className="studio-card__head">
+          <RefreshCw size={15} aria-hidden="true" />
+          <strong>Recent</strong>
+        </div>
+      </div>
+      {records.length === 0 ? (
+        <p className="studio-recent__empty">No local run records for {capability.label} yet. Run with Runtime to start the app-owned history.</p>
+      ) : (
+        <>
+          <div className="studio-recent__row studio-recent__row--head">
+            <span>Status</span>
+            <span>Prompt</span>
+            <span>Updated</span>
+          </div>
+          <ul className="studio-recent__rows">
+            {records.map((record) => (
+              <li key={record.id} className="studio-recent__row">
+                <StatusBadge tone={badgeToneForRun(record)} shape="dot">{getTesterRunStatusLabel(record.status)}</StatusBadge>
+                <span className="studio-recent__prompt" title={record.prompt || record.message}>
+                  {record.prompt || record.message}
+                </span>
+                <time dateTime={record.createdAt}>{formatTesterRunTimestamp(record.createdAt)}</time>
+              </li>
+            ))}
+          </ul>
+          <p className="studio-recent__count">{records.length} result{records.length === 1 ? '' : 's'}</p>
+        </>
+      )}
+    </Surface>
+  );
+}
+
+function downloadTextFile(filename: string, body: string) {
+  if (typeof document === 'undefined') return;
+  const blob = new Blob([body], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+function CapabilityStudio({
   capability,
   runtime,
   lastResult,
   onResult,
+  onSelectCapability,
   verboseConsole,
   draftPersistence,
+  onOpenConfig,
+  history,
 }: {
   capability: TesterCapability;
   runtime: TesterRuntimeInspection | null;
   lastResult: TesterCapabilityRunResult | null;
   onResult: (result: TesterCapabilityRunResult, prompt: string) => void | Promise<void>;
+  onSelectCapability: (id: TesterCapabilityId) => void;
   verboseConsole: boolean;
   draftPersistence: boolean;
+  onOpenConfig: (section: CanonicalCapabilitySectionId) => void;
+  history: TesterRunHistory | null;
 }) {
-  const presets = useMemo(() => presetsFor(capability), [capability]);
-  const [scenarioId, setScenarioId] = useState(presets[0].id);
-  const [prompt, setPrompt] = useState(presets[0].prompt);
+  const profile = getCapabilityStudioProfile(capability.id);
+  const preset = useMemo(() => presetFor(capability), [capability]);
+  const [prompt, setPrompt] = useState(preset.prompt);
+  const [tone, setTone] = useState(DEFAULT_TONE_VALUE);
+  const [length, setLength] = useState(DEFAULT_LENGTH_VALUE);
   const [draftStatus, setDraftStatus] = useState<TesterPromptDraftStoreStatus>(() => (
     loadTesterPromptDraft({
       surfaceId: 'ai-capabilities',
       capabilityId: capability.id,
-      scenarioId: presets[0].id,
+      scenarioId: preset.id,
     }, draftPersistence).status
   ));
   const [running, setRunning] = useState(false);
+  const [streamingText, setStreamingText] = useState<string | null>(null);
+  const media = useMediaAttachments();
+  const supportsMedia = profile.supportsAttachments;
   const currentResult = lastResult?.capabilityId === capability.id ? lastResult : null;
   const admission = statusForCapability(capability, runtime, currentResult);
   const isWorldTour = capability.execution === 'standalone-tauri';
+  const requiresPrompt = profile.inputKind !== 'none';
 
-  function loadPromptFor(nextScenarioId: string, presetPrompt: string) {
-    const draft = loadTesterPromptDraft({
-      surfaceId: 'ai-capabilities',
-      capabilityId: capability.id,
-      scenarioId: nextScenarioId,
-    }, draftPersistence);
-    setDraftStatus(draft.status);
-    setPrompt(draft.prompt ?? presetPrompt);
-  }
-
-  function updatePrompt(nextPrompt: string, nextScenarioId = scenarioId) {
+  function updatePrompt(nextPrompt: string) {
     setPrompt(nextPrompt);
     const saved = saveTesterPromptDraft({
       surfaceId: 'ai-capabilities',
       capabilityId: capability.id,
-      scenarioId: nextScenarioId,
+      scenarioId: preset.id,
     }, nextPrompt, draftPersistence);
     setDraftStatus(saved.status);
   }
 
   useEffect(() => {
-    setScenarioId(presets[0].id);
-    loadPromptFor(presets[0].id, presets[0].prompt);
-  }, [capability.id, draftPersistence, presets]);
-
-  function selectScenario(nextId: string) {
-    const preset = presets.find((item) => item.id === nextId);
-    if (!preset) return;
-    setScenarioId(nextId);
-    loadPromptFor(nextId, preset.prompt);
-  }
+    const draft = loadTesterPromptDraft({
+      surfaceId: 'ai-capabilities',
+      capabilityId: capability.id,
+      scenarioId: preset.id,
+    }, draftPersistence);
+    setDraftStatus(draft.status);
+    setPrompt(draft.prompt ?? preset.prompt);
+    setTone(DEFAULT_TONE_VALUE);
+    setLength(DEFAULT_LENGTH_VALUE);
+  }, [capability.id, draftPersistence, preset]);
 
   async function run() {
     setRunning(true);
@@ -538,311 +731,253 @@ function CapabilityDetail({
           },
         }, prompt);
       } else {
-        const result = await runTesterCapability({ capabilityId: capability.id, prompt, scenarioId });
+        const isStreaming = capability.id === 'chat.stream';
+        if (isStreaming) setStreamingText('');
+        const directive = profile.controls.includes('tone') || profile.controls.includes('length')
+          ? composeStudioDirective(tone, length)
+          : undefined;
+        const result = await runTesterCapability({
+          capabilityId: capability.id,
+          prompt,
+          scenarioId: preset.id,
+          directive,
+          onPartial: isStreaming ? setStreamingText : undefined,
+          attachments: supportsMedia ? media.attachments : undefined,
+        });
         await onResult(result, prompt);
       }
     } finally {
       setRunning(false);
+      setStreamingText(null);
     }
   }
 
+  function reset() {
+    updatePrompt(preset.prompt);
+    setTone(DEFAULT_TONE_VALUE);
+    setLength(DEFAULT_LENGTH_VALUE);
+    media.clearAttachments();
+  }
+
+  function handleCopy() {
+    if (!currentResult?.ok) return;
+    const text = resultPlainText(currentResult);
+    if (!text) return;
+    try {
+      void navigator.clipboard?.writeText(text);
+    } catch {
+      // Clipboard is best-effort; Download remains the durable export path.
+    }
+  }
+
+  function handleDownload() {
+    if (!currentResult?.ok) return;
+    const text = resultPlainText(currentResult);
+    if (!text) return;
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    downloadTextFile(`${capability.id}-${stamp}.txt`, text);
+  }
+
+  const capabilityOptions = useMemo(
+    () => testerCapabilities.map((item) => ({ value: item.id, label: getCapabilityStudioProfile(item.id).studioTag })),
+    [],
+  );
+
   return (
-    <Surface className="ai-capability-detail" material="glass-thin" tone="panel" elevation="base">
-      <header className="ai-capability-detail__head">
-        <div>
-          <p className="eyebrow">Selected capability</p>
-          <h2>{capability.label}</h2>
-          <code>{runtimeMethod(capability)}</code>
+    <div className="studio">
+      <header className="studio__head">
+        <div className="studio__head-lead">
+          <CapHeroTile capability={capability} />
+          <div className="studio__head-titles">
+            <h2>{capability.label}</h2>
+            <StatusBadge tone={admission.tone} shape="dot">{STATUS_PILL_LABEL[admission.label]}</StatusBadge>
+          </div>
         </div>
-        <StatusBadge tone={admission.tone} shape="dot">{admission.label}</StatusBadge>
+        <div className="studio__head-actions">
+          <span className="studio__capability">
+            <span className="studio__capability-eyebrow">Capability</span>
+            <SelectField
+              options={capabilityOptions}
+              value={capability.id}
+              onValueChange={(id) => onSelectCapability(id as TesterCapabilityId)}
+              aria-label="Switch capability"
+              tone="quiet"
+              selectClassName="studio__capability-trigger"
+            />
+          </span>
+          <IconButton
+            aria-label={`Configure ${capability.label} model`}
+            title="Configure model"
+            tone="ghost"
+            size="sm"
+            icon={<Settings size={15} />}
+            onClick={() => onOpenConfig(CAPABILITY_TO_SECTION[capability.id])}
+          />
+        </div>
       </header>
 
-      <div className="ai-capability-detail__panels">
-        <section className="ai-detail-panel ai-detail-panel--admission" aria-label="Admission">
-          <div className="ai-detail-panel__title">
-            <ShieldCheck size={15} aria-hidden="true" />
-            <strong>Admission</strong>
+      <div className="studio__panels">
+        <Surface className="studio-card studio-card--input" material="glass-thin" tone="panel" elevation="base" padding="none">
+          <div className="studio-card__head">
+            <Sparkles size={16} aria-hidden="true" />
+            <strong>{profile.inputTitle}</strong>
           </div>
-          <StatusBadge tone={admission.tone} shape="dot">{admission.label}</StatusBadge>
-          <p>{admission.detail}</p>
-          <small>{isWorldTour ? 'Viewer fixture only; runtime artifact proof is not claimed.' : 'Third-party app path must use the admitted SDK surface.'}</small>
-        </section>
 
-        <section className="ai-detail-panel ai-detail-panel--request" aria-label="Request">
-          <div className="ai-detail-panel__title">
-            <FileText size={15} aria-hidden="true" />
-            <strong>Request</strong>
-          </div>
-          <SegmentedControl
-            items={presets.map((preset) => ({ value: preset.id, label: preset.label }))}
-            value={scenarioId}
-            onValueChange={selectScenario}
-            ariaLabel="Scenario"
-            size="sm"
-          />
-          <TextareaField
-            rows={5}
-            wrap="soft"
-            aria-label={`${capability.label} request`}
-            value={prompt}
-            onChange={(event) => updatePrompt(event.currentTarget.value)}
-          />
-          <small>drafts: {draftPersistence ? draftStatus.state : 'off'}</small>
-        </section>
+          {requiresPrompt ? (
+            <div className="studio-input">
+              <TextareaField
+                rows={6}
+                wrap="soft"
+                maxLength={2000}
+                aria-label={`${capability.label} request`}
+                placeholder={profile.inputPlaceholder}
+                value={prompt}
+                onChange={(event) => updatePrompt(event.currentTarget.value)}
+              />
+              <span className="studio-input__count">{prompt.length} / 2000</span>
+            </div>
+          ) : (
+            <p className="studio-note">{profile.inputNote}</p>
+          )}
 
-        <section className="ai-detail-panel ai-detail-panel--run" aria-label="Run">
-          <div className="ai-detail-panel__title">
-            <Route size={15} aria-hidden="true" />
-            <strong>Run</strong>
-          </div>
-          <p>{isWorldTour ? 'Open the Tauri fixture viewer and record only the local app-owned run.' : 'Invoke the runtime-backed SDK method. Blockers are returned as typed unavailable results.'}</p>
-          <div className="ai-detail-panel__actions">
+          {supportsMedia ? (
+            <ImageAttachmentStrip
+              attachments={media.attachments}
+              fileInputRef={media.fileInputRef}
+              onAddFiles={media.addFiles}
+              onRemove={media.removeAttachment}
+              onOpenPicker={media.openFilePicker}
+              disabled={running}
+            />
+          ) : null}
+
+          {profile.controls.includes('tone') ? (
+            <div className="studio-field">
+              <span className="studio-field__label">Tone</span>
+              <div className="studio-seg">
+                <SegmentedControl
+                  items={TONE_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+                  value={tone}
+                  onValueChange={setTone}
+                  ariaLabel="Tone"
+                  size="sm"
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {profile.controls.includes('length') ? (
+            <div className="studio-field">
+              <span className="studio-field__label">Length</span>
+              <div className="studio-seg">
+                <SegmentedControl
+                  items={LENGTH_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+                  value={length}
+                  onValueChange={setLength}
+                  ariaLabel="Length"
+                  size="sm"
+                />
+              </div>
+            </div>
+          ) : null}
+
+          <div className="studio-actions">
             <Button
               type="button"
               tone="primary"
               leadingIcon={<Play size={14} />}
               loading={running}
-              disabled={running || (!prompt.trim() && !isWorldTour)}
+              disabled={running || (requiresPrompt && !prompt.trim())}
               onClick={run}
             >
-              {isWorldTour ? 'Open Viewer' : 'Run with Runtime'}
+              {running ? profile.primaryRunningLabel : profile.primaryLabel}
             </Button>
             <Button
               type="button"
               tone="secondary"
               leadingIcon={<RefreshCw size={14} />}
-              onClick={() => {
-                setScenarioId(presets[0].id);
-                updatePrompt(presets[0].prompt, presets[0].id);
-              }}
+              onClick={reset}
             >
-              Reset request
+              Reset
             </Button>
           </div>
-          <small>{admission.label === 'blocked' || admission.label === 'SDK gap' ? 'Fail-closed if invoked; no fabricated success is generated.' : 'Result is persisted through the local run history callback.'}</small>
-        </section>
 
-        <section className="ai-detail-panel ai-detail-panel--result" aria-label="Result">
-          <div className="ai-detail-panel__title">
-            <Database size={15} aria-hidden="true" />
-            <strong>Result</strong>
-          </div>
-          <ResultPanel result={currentResult} running={running} capability={capability} verboseConsole={verboseConsole} />
-        </section>
-      </div>
-    </Surface>
-  );
-}
-
-function BoundaryEvidencePanel({
-  capability,
-  runtime,
-  summary,
-  history,
-  result,
-  historyError,
-}: {
-  capability: TesterCapability;
-  runtime: TesterRuntimeInspection | null;
-  summary: TesterAIConfigSummary | null;
-  history: TesterRunHistory | null;
-  result: TesterCapabilityRunResult | null;
-  historyError: string | null;
-}) {
-  const record = runRecordFor(history, capability.id);
-  const isWorldTour = capability.execution === 'standalone-tauri';
-  const artifactCount = result?.ok && result.output.kind === 'artifacts' && !isWorldTour ? result.output.artifactCount : 0;
-  const hasTrace = Boolean(result?.ok && result.trace);
-  const rows = [
-    {
-      label: 'SDK surface',
-      value: isWorldTour ? 'app-owned Tauri command' : runtimeMethod(capability),
-      detail: capability.surface,
-      tone: isWorldTour ? 'info' : 'success',
-      icon: Boxes,
-    },
-    {
-      label: 'Scheduling owner',
-      value: summary?.schedulingOwner || 'runtime',
-      detail: isWorldTour ? 'Viewer launch is app-owned; provider scheduling is not involved.' : 'Provider selection stays in Runtime.',
-      tone: 'success',
-      icon: Route,
-    },
-    {
-      label: 'App-local defaults',
-      value: summary?.appLocalProviderDefaults === false ? 'forbidden' : 'unknown',
-      detail: 'No app-local provider defaults or direct REST bypass.',
-      tone: summary?.appLocalProviderDefaults === false ? 'success' : 'neutral',
-      icon: ShieldCheck,
-    },
-    {
-      label: 'Local run record',
-      value: record ? record.status : 'no record',
-      detail: record ? `${record.capabilityId} · ${record.createdAt}` : historyError || 'Run this capability first.',
-      tone: record ? 'info' : 'neutral',
-      icon: ClipboardList,
-    },
-    {
-      label: 'Runtime result',
-      value: result ? (result.ok ? (isWorldTour ? 'not invoked' : 'returned') : 'blocked') : 'idle',
-      detail: result ? (isWorldTour ? 'Viewer fixture result only.' : result.message) : 'No result for the active capability.',
-      tone: result ? (result.ok && !isWorldTour ? 'success' : 'warning') : 'neutral',
-      icon: CircleDot,
-    },
-    {
-      label: 'Artifact / trace',
-      value: artifactCount > 0 || hasTrace ? 'partial evidence' : 'not available',
-      detail: artifactCount > 0 ? `${artifactCount} real artifact(s). Trace: ${hasTrace ? 'available' : 'not captured'}` : `Trace: ${hasTrace ? 'available' : 'not captured'}; no real runtime artifact claimed.`,
-      tone: artifactCount > 0 || hasTrace ? 'success' : 'neutral',
-      icon: Database,
-    },
-  ] as const;
-
-  return (
-    <Surface className="ai-boundary-panel" material="glass-thin" tone="panel" elevation="base">
-      <header className="ai-panel-head">
-        <div>
-          <p className="eyebrow">Boundary & Evidence</p>
-          <h3>Capability contract</h3>
-        </div>
-        <StatusBadge tone={runtime?.status === 'ready' ? 'success' : runtime ? 'warning' : 'neutral'} shape="dot">
-          {runtime?.status === 'ready' ? 'runtime active' : runtime ? 'runtime unavailable' : 'checking'}
-        </StatusBadge>
-      </header>
-      <div className="ai-boundary-panel__rows">
-        {rows.map((row) => {
-          const Icon = row.icon;
-          return (
-            <article className="ai-boundary-row" key={row.label}>
-              <span className={`ai-boundary-row__icon ai-boundary-row__icon--${row.tone}`} aria-hidden="true">
-                <Icon size={14} />
-              </span>
-              <div>
-                <span>{row.label}</span>
-                <strong>{row.value}</strong>
-                <p>{row.detail}</p>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    </Surface>
-  );
-}
-
-function DiagnosticsStrip({
-  summary,
-  runtime,
-  historyError,
-  lastResult,
-}: {
-  summary: TesterAIConfigSummary | null;
-  runtime: TesterRuntimeInspection | null;
-  historyError: string | null;
-  lastResult: TesterCapabilityRunResult | null;
-}) {
-  const sdkGaps = testerCapabilities.filter((capability) => capability.execution === 'typed-unavailable').length
-    + (lastResult && !lastResult.ok && lastResult.reason === 'sdk-surface-missing' ? 1 : 0);
-  const rows = [
-    {
-      label: 'Provider catalog',
-      value: summary ? 'loaded' : 'checking',
-      detail: summary?.providerCatalogSurface || 'runtimeAdmin.listConnectors/listConnectorModels',
-      tone: summary ? 'success' : 'neutral',
-    },
-    {
-      label: 'SDK gaps',
-      value: sdkGaps > 0 ? `${sdkGaps} observed` : 'none observed',
-      detail: 'Typed gaps remain fail-closed.',
-      tone: sdkGaps > 0 ? 'warning' : 'success',
-    },
-    {
-      label: 'History persistence',
-      value: historyError ? 'unavailable' : 'available',
-      detail: historyError || 'tester_run_history_save / load',
-      tone: historyError ? 'warning' : 'success',
-    },
-    {
-      label: 'Strict boundary',
-      value: 'active',
-      detail: runtime?.status === 'ready' ? 'Runtime SDK only; REST bypass: no.' : 'Runtime unavailable; app remains fail-closed.',
-      tone: 'success',
-    },
-  ] as const;
-
-  return (
-    <div className="ai-diagnostics-strip" aria-label="Capability diagnostics">
-      {rows.map((row) => (
-        <Surface className="ai-diagnostic-chip" material="glass-thin" tone="card" elevation="base" key={row.label}>
-          <StatusBadge tone={row.tone} shape="dot">{row.value}</StatusBadge>
-          <strong>{row.label}</strong>
-          <span>{row.detail}</span>
+          <p className="studio-foot">
+            <ShieldCheck size={14} aria-hidden="true" />
+            {profile.footnote}
+            {draftPersistence ? <span className="studio-foot__draft"> · drafts: {draftStatus.state}</span> : null}
+          </p>
         </Surface>
-      ))}
+
+        <Surface className="studio-card studio-card--result" material="glass-thin" tone="panel" elevation="base" padding="none">
+          <div className="studio-card__head">
+            <FileText size={16} aria-hidden="true" />
+            <strong>{profile.resultTitle}</strong>
+          </div>
+          <StudioResult
+            result={currentResult}
+            running={running}
+            capability={capability}
+            admission={admission}
+            streamingText={streamingText}
+            verboseConsole={verboseConsole}
+            onCopy={handleCopy}
+            onDownload={handleDownload}
+          />
+        </Surface>
+      </div>
+
+      <CapabilityRunHistory capability={capability} history={history} />
     </div>
   );
 }
 
 export function SectionAITesting({
-  activeId,
-  onSelect,
   capability,
   onResult,
+  onSelectCapability,
   summary,
   history,
   lastResult,
-  historyError,
   verboseConsole,
   draftPersistence,
 }: SectionAITestingProps) {
   const runtime = summary?.runtime ?? null;
-  const currentResult = lastResult?.capabilityId === capability.id ? lastResult : null;
+  const [configSection, setConfigSection] = useState<CanonicalCapabilitySectionId | null>(null);
 
   return (
-    <div className="section-ai-testing" data-testid="nimi-tester-section-ai-testing">
-      <header className="ai-capabilities-header">
-        <div>
-          <p className="eyebrow">AI Capabilities</p>
-          <h1>Runtime-backed capability inspector</h1>
-          <p>Inspect SDK admission, run one lane, and keep fail-closed evidence visible.</p>
-        </div>
-        <HeaderSummary runtime={runtime} history={history} lastResult={lastResult} />
-      </header>
-
-      <div className="ai-capabilities-layout">
-        <div className="ai-capabilities-layout__main">
-          <CapabilityRegistry
-            activeId={activeId}
-            runtime={runtime}
-            history={history}
-            lastResult={lastResult}
-            onSelect={onSelect}
-          />
-          <CapabilityDetail
-            capability={capability}
-            runtime={runtime}
-            lastResult={lastResult}
-            onResult={onResult}
-            verboseConsole={verboseConsole}
-            draftPersistence={draftPersistence}
-          />
-        </div>
-        <BoundaryEvidencePanel
+    <div
+      className="section-ai-testing"
+      data-testid="nimi-tester-section-ai-testing"
+      data-config-open={configSection ? '' : undefined}
+    >
+      <div className="section-ai-testing__main">
+        <CapabilityStudio
           capability={capability}
           runtime={runtime}
-          summary={summary}
+          lastResult={lastResult}
+          onResult={onResult}
+          onSelectCapability={onSelectCapability}
+          verboseConsole={verboseConsole}
+          draftPersistence={draftPersistence}
+          onOpenConfig={setConfigSection}
           history={history}
-          result={currentResult}
-          historyError={historyError}
         />
       </div>
 
-      <DiagnosticsStrip
-        summary={summary}
-        runtime={runtime}
-        historyError={historyError}
-        lastResult={lastResult}
-      />
+      {configSection ? (
+        <aside className="section-ai-testing__drawer" aria-label="Configure model">
+          <DrawerErrorBoundary onClose={() => setConfigSection(null)}>
+            <Suspense fallback={<div className="section-ai-testing__drawer-loading">Loading model config…</div>}>
+              <TesterAiConfigSettingsPanel
+                runtime={runtime}
+                initialSection={configSection}
+                onClose={() => setConfigSection(null)}
+              />
+            </Suspense>
+          </DrawerErrorBoundary>
+        </aside>
+      ) : null}
     </div>
   );
 }

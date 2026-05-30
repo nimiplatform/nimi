@@ -26,10 +26,6 @@ async function resolveGateState(): Promise<GateState> {
     return { kind: 'ready', projection };
   }
 
-  if (projection.mode === 'dev-standalone' || projection.auth.source === 'runtime-developer-session') {
-    return { kind: 'ready', projection };
-  }
-
   try {
     const user = await loadRuntimeAccountUser(projection.client);
     if (user) {

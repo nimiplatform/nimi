@@ -1,67 +1,27 @@
-export type WorkbenchSectionId =
-  | 'app-lab'
-  | 'ai-capabilities'
-  | 'ui-recipes'
-  | 'runs'
-  | 'artifacts'
-  | 'runtime-trace'
-  | 'boundary-checks'
-  | 'settings';
+import type { TesterCapabilityId } from '../tester-capabilities.js';
 
-export type WorkbenchSection = {
-  id: WorkbenchSectionId;
+// The tester shell is a single-level capability workspace (mirrors the Nimi
+// Desktop tester): the left rail IS the capability matrix grouped by family,
+// plus a UI Recipes entry for the kit component gallery. There is no separate
+// App Lab / Evidence / Settings destination — model config is a right slide-over
+// opened by the per-capability settings gear, and run history lives inline under
+// each capability.
+
+export type WorkbenchView =
+  | { kind: 'capability'; capabilityId: TesterCapabilityId }
+  | { kind: 'ui-recipes' };
+
+export type WorkbenchNavGroup = {
   label: string;
-  group: 'workbench' | 'evidence' | 'app';
-  description: string;
+  capabilityIds: TesterCapabilityId[];
 };
 
-export const workbenchSections: WorkbenchSection[] = [
-  {
-    id: 'app-lab',
-    label: 'App Lab',
-    group: 'workbench',
-    description: 'Build, run, compose UI, and capture evidence.',
-  },
-  {
-    id: 'ai-capabilities',
-    label: 'AI Capabilities',
-    group: 'workbench',
-    description: 'Runtime-backed capability lanes.',
-  },
-  {
-    id: 'ui-recipes',
-    label: 'UI Recipes',
-    group: 'workbench',
-    description: 'Reviewed Nimi Kit primitives for third-party apps.',
-  },
-  {
-    id: 'runs',
-    label: 'Runs',
-    group: 'evidence',
-    description: 'Persisted capability run history.',
-  },
-  {
-    id: 'artifacts',
-    label: 'Artifacts',
-    group: 'evidence',
-    description: 'Image, audio, and world artifacts captured by lanes.',
-  },
-  {
-    id: 'runtime-trace',
-    label: 'Runtime Trace',
-    group: 'evidence',
-    description: 'Runtime projection, trace, and provider catalog.',
-  },
-  {
-    id: 'boundary-checks',
-    label: 'Boundary Checks',
-    group: 'evidence',
-    description: 'App boundary policy and SDK admission checks.',
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    group: 'app',
-    description: 'Local drafts, evidence capture, developer toggles.',
-  },
+export const workbenchNavGroups: WorkbenchNavGroup[] = [
+  { label: 'Create', capabilityIds: ['text.generate', 'chat.stream', 'text.embed'] },
+  { label: 'Media', capabilityIds: ['image.generate', 'video.generate'] },
+  { label: 'Voice', capabilityIds: ['audio.synthesize', 'audio.transcribe', 'speech.bundle'] },
 ];
+
+// World Tour is a standalone Tauri viewer rather than a runtime capability lane,
+// so the left rail lists it under Library alongside the UI Recipes gallery.
+export const workbenchLibraryCapabilityId: TesterCapabilityId = 'world.generate';

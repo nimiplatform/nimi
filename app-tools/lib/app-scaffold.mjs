@@ -182,7 +182,7 @@ function buildPackageJson(profile, versions, identity) {
     scripts: {
       dev: 'pnpm run dev:renderer',
       'dev:renderer': `vite --host 127.0.0.1 --port ${identity.devPort} --strictPort`,
-      'dev:shell': 'node scripts/dev-shell.mjs',
+      'dev:shell': 'tauri dev',
       init: 'nimi-app init',
       typecheck: 'tsc --noEmit',
       build: 'tsc --noEmit && vite build',

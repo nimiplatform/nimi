@@ -19,7 +19,7 @@ export const nimiAppTauriOAuthBridge = createTauriOAuthBridge();
 
 function requireRuntimeAccountLogin() {
   if (!runtimeAccountLoginEnabled) {
-    throw new Error('Runtime account browser login is not admitted for this generated third-party app identity. Use dev:shell developer session or an admitted Runtime app session.');
+    throw new Error('Runtime account browser login is not enabled for this app identity. This app uses the single login model; enable runtime account login. There is no standalone developer-session fallback — a not-yet-admitted local app is admitted by the Runtime developer-registration gate (desktop Developer Mode) under a real logged-in account.');
   }
 }
 

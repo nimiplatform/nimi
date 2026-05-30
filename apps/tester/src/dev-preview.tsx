@@ -7,7 +7,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { NimiThemeProvider, TooltipProvider } from '@nimiplatform/kit/ui';
+import { AmbientBackground, NimiThemeProvider, TooltipProvider } from '@nimiplatform/kit/ui';
 import './styles.css';
 import './shell/auth/auth-i18n.js';
 import { TesterWorkbench } from './tester/tester-workbench.js';
@@ -49,11 +49,13 @@ function DevPreview() {
   }, [section]);
 
   return (
-    <div className="app-shell" data-testid="nimi-tester-dev-preview-shell">
-      <div className="app-shell__body">
-        <TesterWorkbench title="Nimi App Lab" />
-      </div>
-    </div>
+    <AmbientBackground
+      variant="mesh"
+      className="app-shell"
+      data-testid="nimi-tester-dev-preview-shell"
+    >
+      <TesterWorkbench title="Nimi App Lab" />
+    </AmbientBackground>
   );
 }
 

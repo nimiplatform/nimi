@@ -1,5 +1,6 @@
 import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
 import { getTesterCapability, type TesterCapabilityId } from './tester-capabilities.js';
+import type { MediaAttachment } from './tester-multimodal-input.js';
 import { capabilityUnavailable, type TesterUnavailable } from './tester-unavailable.js';
 import {
   invokeTesterCapability,
@@ -18,6 +19,12 @@ export type TesterCapabilityRunInput = {
   capabilityId: TesterCapabilityId;
   prompt: string;
   scenarioId?: string;
+  /** Optional live-delta callback forwarded to streaming capabilities. */
+  onPartial?: (accumulatedText: string) => void;
+  /** Optional local media attachments for vision/multimodal text capabilities. */
+  attachments?: MediaAttachment[];
+  /** Optional app-composed instruction line (tone/length) prepended to the prompt. */
+  directive?: string;
 };
 
 export type TesterCapabilityRunResult = TesterTypedSuccess | TesterUnavailable;
@@ -65,6 +72,9 @@ export async function runTesterCapability(input: TesterCapabilityRunInput): Prom
   const result: TesterInvocationResult = await invokeTesterCapability(projection.client, input.capabilityId, {
     prompt: input.prompt,
     scenarioId: input.scenarioId || 'default',
+    onPartial: input.onPartial,
+    attachments: input.attachments,
+    directive: input.directive,
   });
   return result;
 }

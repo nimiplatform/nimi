@@ -13,15 +13,20 @@ const admission = readFileSync(new URL('../ADMISSION.md', import.meta.url), 'utf
 
 test('auth glue uses Nimi App runtime platform helper', () => {
   assert.match(authSource, /createNimiAppRuntimePlatformClient/);
-  assert.match(authSource, /mode: 'dev-standalone'/);
+  assert.match(authSource, /mode: 'local-first-party'/);
   assert.match(authSource, /mode: 'third-party-nimi-app'/);
+  assert.doesNotMatch(authSource, /dev-standalone/);
   assert.match(runtimeLoginSource, /DesktopShellAuthPage/);
   assert.doesNotMatch(authSource, /createPlatformClient\s*\(/);
 });
 
-test('developer session does not require local account login', () => {
-  assert.match(authGateSource, /projection\.mode === 'dev-standalone'/);
-  assert.match(authGateSource, /runtime-developer-session/);
+test('single login model requires runtime account login (no dev-standalone bypass)', () => {
+  // The app connects exactly like a shipped app: through runtime account login.
+  // There is no standalone developer-session bypass; the runtime
+  // developer-registration gate admits a not-yet-admitted local app instead.
+  assert.doesNotMatch(authGateSource, /dev-standalone/);
+  assert.doesNotMatch(authGateSource, /runtime-developer-session/);
+  assert.doesNotMatch(authSource, /VITE_NIMI_RUNTIME_DEVELOPER_SESSION/);
   assert.match(authGateSource, /loadRuntimeAccountUser/);
 });
 
