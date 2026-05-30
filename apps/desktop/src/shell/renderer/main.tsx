@@ -77,11 +77,11 @@ async function preflightRendererAppDependencies(): Promise<void> {
 // They resolve concurrently with the lazy App chunk — well before
 // App mounts and makes its first SDK / i18n call.
 const runtimeReady = Promise.all([
-    loadEntryModule('entry:tauri-runtime-api', () => import('@runtime/tauri-api')),
+    loadEntryModule('entry:shell-runtime-bridge', () => import('@nimiplatform/kit/shell/renderer/bridge')),
     loadEntryModule('entry:sdk-ai', () => import('@nimiplatform/sdk/ai')),
     loadEntryModule('entry:i18n', () => import('@renderer/i18n')),
-]).then(([tauriApi, sdkMod, i18nMod]) => {
-    tauriApi.installSdkTauriRuntimeHook();
+]).then(([shellBridge, sdkMod, i18nMod]) => {
+    shellBridge.installNimiShellRuntimeBridge();
     sdkMod.bindRuntimeI18n(i18nMod.i18n);
     return i18nMod;
 });

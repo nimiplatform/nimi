@@ -4,7 +4,6 @@ import test from 'node:test';
 import {
   hasTauriInvoke,
   hasTauriRuntime,
-  installSdkTauriRuntimeHook,
   invokeTauri,
 } from '../src/runtime/tauri-api.js';
 
@@ -18,9 +17,15 @@ function resetTauriGlobals(): void {
   delete globalRecord.window;
 }
 
-test('installed SDK runtime hook is not treated as native Tauri availability', () => {
+test('the Kit-installed runtime hook is not treated as native Tauri availability', () => {
   resetTauriGlobals();
-  installSdkTauriRuntimeHook();
+  // Simulate the hook installNimiShellRuntimeBridge() publishes. Desktop's
+  // detection probes must still report no native Tauri — the hook is a transport,
+  // not a capability-availability signal.
+  (globalThis as Record<string, unknown>).__NIMI_TAURI_RUNTIME__ = {
+    invoke: async () => null,
+    listen: async () => () => {},
+  };
 
   assert.equal(hasTauriRuntime(), false);
   assert.equal(hasTauriInvoke(), false);

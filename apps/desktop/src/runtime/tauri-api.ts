@@ -79,37 +79,11 @@ function hasNativeTauriListen(): boolean {
   );
 }
 
-function createSdkTauriRuntimeHook(): TauriRuntimeHook {
-  return {
-    invoke: async (command, payload) => {
-      const hook = tauriTestHook()?.invoke;
-      if (hook) {
-        return await hook(command, payload);
-      }
-      return await tauriCoreInvoke(command, payload as InvokeArgs | undefined);
-    },
-    listen: async (eventName, handler) => {
-      const hook = tauriTestHook()?.listen;
-      if (hook) {
-        const unsubscribe = await Promise.resolve(hook(eventName, handler));
-        if (typeof unsubscribe !== 'function') {
-          throw new Error(`Tauri event listener for ${eventName} did not return unsubscribe`);
-        }
-        return unsubscribe;
-      }
-      return await tauriEventListen(eventName, handler);
-    },
-  };
-}
-
-export function installSdkTauriRuntimeHook(): void {
-  const value = tauriGlobal();
-  const hook = createSdkTauriRuntimeHook();
-  value.__NIMI_TAURI_RUNTIME__ = hook;
-  if (value.window && typeof value.window === 'object') {
-    value.window.__NIMI_TAURI_RUNTIME__ = hook;
-  }
-}
+// The runtime-transport hook (`__NIMI_TAURI_RUNTIME__`) is installed by the single
+// platform owner — `installNimiShellRuntimeBridge()` in
+// `@nimiplatform/kit/shell/renderer/bridge` — wired from the renderer entry
+// (`main.tsx`). Desktop only *consumes* that hook below (invokeTauri/listenTauri);
+// it must not publish a second, parallel installer.
 
 export function hasTauriRuntime(): boolean {
   return Boolean(
