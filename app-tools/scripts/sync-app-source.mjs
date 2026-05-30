@@ -37,6 +37,7 @@ const EXCLUDED_DIRS = new Set([
   'node_modules',
   'dist',
   'target',
+  '.tmp',
   '.nimi',
   '.turbo',
   '.vite',

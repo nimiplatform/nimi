@@ -277,6 +277,42 @@ test('generated package.json scripts reference only commands and existing local 
   }
 });
 
+test('generated app installs the Kit runtime-transport bridge at renderer bootstrap', () => {
+  // Streaming (chat.stream) needs the renderer to publish the scoped invoke+listen
+  // runtime hook. That is a single Kit platform contract, so every scaffolded app
+  // must call the Kit bootstrap before render — not hand-roll its own hook.
+  const generated = scaffold('standalone');
+  try {
+    const main = generated.read('src/main.tsx');
+    assert.match(main, /import \{[^}]*installNimiShellRuntimeBridge[^}]*\} from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
+    const bootstrapAt = main.indexOf('installNimiShellRuntimeBridge()');
+    const renderAt = main.indexOf('.render(');
+    assert.ok(bootstrapAt > -1, 'generated main.tsx must call installNimiShellRuntimeBridge()');
+    assert.ok(renderAt > -1, 'generated main.tsx must render the app');
+    assert.ok(bootstrapAt < renderAt, 'bootstrap must run before render');
+    assert.doesNotMatch(main, /__NIMI_TAURI_RUNTIME__/);
+  } finally {
+    generated.cleanup();
+  }
+});
+
+test('generated app grants the Tauri event capability streaming needs', () => {
+  // Installing the listen hook is not enough: calling it invokes the core:event
+  // plugin command, which Tauri v2 gates behind a capability. Without it, stream
+  // open fails closed with SDK_RUNTIME_TAURI_STREAM_OPEN_FAILED ("event.listen not
+  // allowed"). The main window must grant core:event (via core:default).
+  const generated = scaffold('standalone');
+  try {
+    const capability = JSON.parse(generated.read('src-tauri/capabilities/default.json'));
+    assert.ok(capability.windows.includes('main'), 'capability must target the main window');
+    const permissions = capability.permissions.map((entry) => (typeof entry === 'string' ? entry : entry.identifier));
+    const grantsEvent = permissions.some((p) => p === 'core:default' || p === 'core:event:default' || p === 'core:event:allow-listen');
+    assert.ok(grantsEvent, `capability must grant core:event for stream listen; got ${JSON.stringify(permissions)}`);
+  } finally {
+    generated.cleanup();
+  }
+});
+
 test('workspace-app scaffold uses workspace + path deps and writes an app-slice input', () => {
   const generated = scaffold('workspace-app');
   try {

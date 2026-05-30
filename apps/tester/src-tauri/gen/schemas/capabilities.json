@@ -1,1 +1,1 @@
-{}
+{"default":{"identifier":"default","description":"Default capability for the Nimi App main window. Grants the Tauri core baseline — notably core:event (allow-listen), which the @nimiplatform/sdk tauri-ipc transport requires to subscribe to runtime bridge stream events (chat.stream and other openStream paths). App-defined runtime_bridge commands are not ACL-gated and need no entry here.","local":true,"windows":["main"],"permissions":["core:default"]}}

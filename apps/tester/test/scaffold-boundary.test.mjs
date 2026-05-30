@@ -7,6 +7,7 @@ const authGateSource = readFileSync(new URL('../src/shell/auth/auth-gate.tsx', i
 const runtimeLoginSource = readFileSync(new URL('../src/shell/auth/runtime-login-page.tsx', import.meta.url), 'utf8');
 const productSource = readFileSync(new URL('../src/shell/routes/product-area.tsx', import.meta.url), 'utf8');
 const demoSource = readFileSync(new URL('../src/shell/routes/demo-surfaces.tsx', import.meta.url), 'utf8');
+const mainSource = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
 const appSource = [authSource, runtimeLoginSource, productSource, demoSource].join('\n');
 const manifest = readFileSync(new URL('../nimi.app.yaml', import.meta.url), 'utf8');
 const admission = readFileSync(new URL('../ADMISSION.md', import.meta.url), 'utf8');
@@ -28,6 +29,24 @@ test('single login model requires runtime account login (no dev-standalone bypas
   assert.doesNotMatch(authGateSource, /runtime-developer-session/);
   assert.doesNotMatch(authSource, /VITE_NIMI_RUNTIME_DEVELOPER_SESSION/);
   assert.match(authGateSource, /loadRuntimeAccountUser/);
+});
+
+test('renderer bootstrap installs the Kit runtime-transport bridge before render', () => {
+  // The runtime-transport hook is a Kit platform contract: the app consumes the
+  // single Kit bootstrap and must not install or even know the hook details.
+  assert.match(
+    mainSource,
+    /import \{[^}]*installNimiShellRuntimeBridge[^}]*\} from '@nimiplatform\/kit\/shell\/renderer\/bridge'/,
+  );
+  // It must run before the React tree renders (and therefore before any runtime
+  // /platform client construction), so the first stream subscription resolves.
+  const bootstrapAt = mainSource.indexOf('installNimiShellRuntimeBridge()');
+  const renderAt = mainSource.indexOf('.render(');
+  assert.ok(bootstrapAt > -1, 'main.tsx must call installNimiShellRuntimeBridge()');
+  assert.ok(renderAt > -1, 'main.tsx must render the app');
+  assert.ok(bootstrapAt < renderAt, 'bootstrap must run before render');
+  // The app must not reach into the hook global itself — that is Kit-owned glue.
+  assert.doesNotMatch(mainSource, /__NIMI_TAURI_RUNTIME__/);
 });
 
 test('generated shell rejects placeholder and private Desktop imports', () => {
