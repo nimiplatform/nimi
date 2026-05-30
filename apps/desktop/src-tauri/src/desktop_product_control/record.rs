@@ -145,6 +145,16 @@ pub struct ProductControlRecordProjection {
     pub error: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductControlSelectedDataRootProjection {
+    pub path: String,
+    pub exists: bool,
+    pub state: ProductControlState,
+    pub data_root: Option<ProductDataRootRecord>,
+    pub error: Option<String>,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductDataRootSelectPayload {

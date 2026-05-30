@@ -1,4 +1,4 @@
-import { getProductControlRecord } from './product-control';
+import { getProductControlSelectedDataRoot } from './product-control';
 
 export type DesktopStorageDirs = {
   nimiDir: string;
@@ -31,11 +31,11 @@ function dirname(path: string): string {
 }
 
 export async function getDesktopStorageDirs(): Promise<DesktopStorageDirs> {
-  const projection = await getProductControlRecord();
+  const projection = await getProductControlSelectedDataRoot();
   const nimiDir = dirname(projection.path || '');
-  const dataRoot = projection.record?.dataRoot?.path?.trim() || '';
+  const dataRoot = projection.dataRoot?.path?.trim() || '';
   if (!nimiDir || !dataRoot) {
-    throw new Error('desktop storage dirs require an admitted product-control data root');
+    throw new Error(projection.error || 'desktop storage dirs require a selected product-control data root');
   }
 
   return {

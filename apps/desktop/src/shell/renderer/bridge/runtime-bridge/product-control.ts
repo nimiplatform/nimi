@@ -64,6 +64,14 @@ export interface ProductControlRecordProjection {
   readonly error: string | null;
 }
 
+export interface ProductControlSelectedDataRootProjection {
+  readonly path: string;
+  readonly exists: boolean;
+  readonly state: ProductControlState;
+  readonly dataRoot: ProductControlRecord['dataRoot'] | null;
+  readonly error: string | null;
+}
+
 const PRODUCT_CONTROL_STATES = new Set<ProductControlState>([
   'not_logged_in',
   'config_missing',
@@ -178,6 +186,27 @@ function parseProjection(value: unknown): ProductControlRecordProjection {
   };
 }
 
+function parseSelectedDataRootProjection(value: unknown): ProductControlSelectedDataRootProjection {
+  const record = asRecord(value, 'product_control_selected_data_root_get');
+  const dataRoot = record.dataRoot == null ? null : asRecord(record.dataRoot, 'product control selected dataRoot');
+  return {
+    path: String(record.path || ''),
+    exists: record.exists === true,
+    state: parseState(record.state),
+    dataRoot: dataRoot
+      ? {
+          path: String(dataRoot.path || ''),
+          status: parseDataRootStatus(dataRoot.status),
+          selectedAt: String(dataRoot.selectedAt || ''),
+          verifiedAt: String(dataRoot.verifiedAt || ''),
+          selectedAtUnixMs: Number(dataRoot.selectedAtUnixMs || 0),
+          verifiedAtUnixMs: Number(dataRoot.verifiedAtUnixMs || 0),
+        }
+      : null,
+    error: parseOptionalString(record.error),
+  };
+}
+
 export async function getProductControlRecord(): Promise<ProductControlRecordProjection> {
   if (!hasTauriInvoke()) {
     return {
@@ -189,6 +218,19 @@ export async function getProductControlRecord(): Promise<ProductControlRecordPro
     };
   }
   return invokeChecked('product_control_record_get', {}, parseProjection);
+}
+
+export async function getProductControlSelectedDataRoot(): Promise<ProductControlSelectedDataRootProjection> {
+  if (!hasTauriInvoke()) {
+    return {
+      path: '',
+      exists: false,
+      state: 'config_missing',
+      dataRoot: null,
+      error: null,
+    };
+  }
+  return invokeChecked('product_control_selected_data_root_get', {}, parseSelectedDataRootProjection);
 }
 
 export async function selectProductDataRoot(dataRoot: string): Promise<ProductControlRecordProjection> {

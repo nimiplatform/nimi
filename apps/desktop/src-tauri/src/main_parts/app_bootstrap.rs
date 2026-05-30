@@ -307,6 +307,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             desktop_updates::desktop_update_install,
             desktop_updates::desktop_update_restart,
             crate::desktop_product_control::product_control_record_get,
+            crate::desktop_product_control::product_control_selected_data_root_get,
             crate::desktop_product_control::product_control_record_select_data_root,
             crate::desktop_product_control::product_control_pick_data_root_directory,
             crate::desktop_product_control::product_control_default_data_root_directory,

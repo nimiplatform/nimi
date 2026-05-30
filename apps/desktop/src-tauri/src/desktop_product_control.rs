@@ -33,6 +33,12 @@ pub async fn product_control_record_get() -> Result<ProductControlRecordProjecti
 }
 
 #[tauri::command]
+pub fn product_control_selected_data_root_get(
+) -> Result<ProductControlSelectedDataRootProjection, String> {
+    read_selected_product_data_root_projection()
+}
+
+#[tauri::command]
 pub fn product_control_record_select_data_root(
     payload: ProductDataRootSelectPayload,
 ) -> Result<ProductControlRecordProjection, String> {
@@ -114,9 +120,10 @@ pub fn product_control_record_set_first_run_setup_state(
 #[cfg(test)]
 mod tests {
     use super::{
-        product_control_record_path, read_product_control_projection, select_product_data_root,
-        selected_product_data_root, set_first_run_install_level, set_first_run_setup_state,
-        ProductControlState, ProductFirstRunSetupStatePayload,
+        product_control_record_path, product_control_selected_data_root_get,
+        read_product_control_projection, select_product_data_root, selected_product_data_root,
+        set_first_run_install_level, set_first_run_setup_state, ProductControlState,
+        ProductFirstRunSetupStatePayload,
     };
     use crate::test_support::with_env;
     use std::path::PathBuf;
@@ -337,6 +344,52 @@ mod tests {
                 .error
                 .unwrap_or_default()
                 .contains("owner admission verification"));
+        });
+    }
+
+    #[test]
+    fn selected_data_root_projection_does_not_run_ready_admission_verification() {
+        let home = temp_home("selected-root-ready");
+        with_env(&[("HOME", home.to_str())], || {
+            let root = home.join("chosen-nimi-data");
+            select_product_data_root(root.to_str().expect("root")).expect("select root");
+            set_first_run_install_level("minimal", Some("local-speech-ready".to_string()))
+                .expect("install level");
+            let control_path = product_control_record_path().expect("path");
+            let mut record = super::read_existing_record(&control_path)
+                .expect("read")
+                .expect("record");
+            record.state = ProductControlState::ReadyForUse;
+            record.first_run.completed = true;
+            record.first_run.completed_at = Some("2026-05-20T00:00:00.000Z".to_string());
+            record.first_run.initialization_plan_id = Some("plan-1".to_string());
+            record.first_run.baseline_profile_ref = Some("profile:local-baseline".to_string());
+            record.first_run.baseline_commit_id = Some("commit-1".to_string());
+            record.first_run.account_default_profile_ref =
+                Some("account-profile:default".to_string());
+            record.first_run.built_in_ai_config_refs = vec!["aiconfig:chat".to_string()];
+            record.first_run.runtime_baseline_ref = Some("runtime-baseline:local".to_string());
+            record.first_run.execution_evidence_ref = Some("execution:probe-1".to_string());
+            if let Some(data_root) = record.data_root.as_mut() {
+                data_root.status = super::ProductDataRootStatus::Ready;
+            }
+            std::fs::write(
+                &control_path,
+                serde_json::to_string_pretty(&record).expect("json"),
+            )
+            .expect("write fabricated ready");
+
+            let entry_projection = read_product_control_projection().expect("entry projection");
+            assert_ne!(entry_projection.state, ProductControlState::ReadyForUse);
+            assert!(entry_projection.record.is_none());
+
+            let selected = product_control_selected_data_root_get().expect("selected root");
+            assert_eq!(selected.state, ProductControlState::ReadyForUse);
+            assert_eq!(
+                selected.data_root.expect("data root").path,
+                root.to_string_lossy()
+            );
+            assert!(selected.error.is_none());
         });
     }
 }
