@@ -3,6 +3,7 @@ import {
   localRuntime,
   type GgufVariantDescriptor,
   type LocalRuntimeAssetDeclaration,
+  type LocalRuntimeAssetRecord,
   type LocalRuntimeCatalogItemDescriptor,
   type LocalRuntimeDownloadProgressEvent,
 } from '@runtime/local-runtime';
@@ -16,6 +17,7 @@ import { useLocalModelCenterDownloads } from './runtime-config-use-local-model-c
 
 type UseLocalModelCenterImportActionsInput = {
   isProfileTargetMode: boolean;
+  onPrepareImportedAssetEnvironment?: (asset: LocalRuntimeAssetRecord) => Promise<void>;
   onRefreshUnregisteredAssets: () => Promise<void>;
   onRefreshAssetSections: () => Promise<void>;
   onRefreshVerifiedModels: () => Promise<void>;
@@ -55,6 +57,9 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
       void input.props.onDiscover().finally(() => {
         void input.onRefreshAssetSections();
         void input.onRefreshUnregisteredAssets();
+        void localRuntime.listAssets({ kind: 'image' }).then((assets) => Promise.all(
+          assets.map((asset) => input.onPrepareImportedAssetEnvironment?.(asset)),
+        ));
       });
       return;
     }
@@ -100,6 +105,9 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
 
     await input.onRefreshAssetSections();
     await input.onRefreshUnregisteredAssets();
+    if ('asset' in imported) {
+      await input.onPrepareImportedAssetEnvironment?.(imported.asset);
+    }
   }, [input]);
 
   const importManagedModelAssetFromPath = useCallback(async (
@@ -174,9 +182,9 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
       endpoint: String(endpoint || '').trim() || undefined,
     });
     await input.props.onDiscover();
-    void imported;
     await input.onRefreshAssetSections();
     await input.onRefreshUnregisteredAssets();
+    await input.onPrepareImportedAssetEnvironment?.(imported.asset);
   }, [input]);
 
   const importPickedAssetDirectory = useCallback(async (

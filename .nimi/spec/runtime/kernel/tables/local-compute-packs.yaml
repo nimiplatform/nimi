@@ -69,6 +69,10 @@ packs:
       - image.generate.t2i
       - image.generate.i2i
     required_dependency_families:
+      - python.tool.uv
+      - python.runtime
+      - python.venv
+      - python.package-set
       - native-engine-package.stablediffusion-ggml
       - model.asset
       - model.companion-asset

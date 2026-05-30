@@ -78,7 +78,11 @@ test('local runtime asset status parser accepts Runtime wire names and values', 
 });
 
 test('local runtime asset kind capability projection stays runtime-local', () => {
-  assert.deepEqual(localRuntimeCapabilitiesForAssetKind('image'), ['image']);
+  assert.deepEqual(localRuntimeCapabilitiesForAssetKind('image'), ['image.generate']);
+  assert.deepEqual(localRuntimeCapabilitiesForAssetKind('video'), ['video.generate']);
+  assert.deepEqual(localRuntimeCapabilitiesForAssetKind('tts'), ['audio.synthesize']);
+  assert.deepEqual(localRuntimeCapabilitiesForAssetKind('stt'), ['audio.transcribe']);
+  assert.deepEqual(localRuntimeCapabilitiesForAssetKind('embedding'), ['text.embed']);
   assert.deepEqual(localRuntimeCapabilitiesForAssetKind('vae'), ['chat']);
   assert.equal(localRuntimeRunnableAssetKindForCapabilities(['image']), 'image');
   assert.equal(localRuntimeRunnableAssetKindForCapabilities(['text.embed']), 'embedding');

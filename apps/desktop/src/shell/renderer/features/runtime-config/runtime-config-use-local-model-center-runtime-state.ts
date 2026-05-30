@@ -349,6 +349,7 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
     cancelRuntimeDependencyJob,
     refreshRuntimeDependencies,
     repairRuntimeDependency,
+    prepareAssetRuntimeDependencies,
     retryRuntimeDependencyJob,
     runtimeDependencyByAssetId,
     setupRuntimeDependency,
@@ -466,6 +467,7 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
 
   const importActions = useLocalModelCenterImportActions({
     isProfileTargetMode,
+    onPrepareImportedAssetEnvironment: prepareAssetRuntimeDependencies,
     onRefreshUnregisteredAssets: refreshUnregisteredAssets,
     onRefreshAssetSections: refreshAssetSections,
     onRefreshVerifiedModels: refreshVerifiedModels,

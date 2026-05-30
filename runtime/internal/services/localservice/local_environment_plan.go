@@ -434,7 +434,7 @@ func localComputePackDefinitions() []localComputePackDefinition {
 		{
 			PackID:                     "local-image-native",
 			ProductLabel:               "Local image native",
-			RequiredDependencyFamilies: []string{localEnvironmentFamilyNativeSDCPP, localEnvironmentFamilyModelAsset, localEnvironmentFamilyModelCompanion},
+			RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet, localEnvironmentFamilyNativeSDCPP, localEnvironmentFamilyModelAsset, localEnvironmentFamilyModelCompanion},
 			OptionalDependencyFamilies: []string{localEnvironmentFamilyCUDA},
 			CloudOnlyImpact:            "none",
 			HostedCapabilities:         []string{localResolverCapabilityImageGenerate},

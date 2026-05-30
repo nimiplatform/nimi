@@ -36,6 +36,26 @@ export interface ListRuntimeRouteOptionsInput {
   selectedBinding?: RuntimeRouteBinding | null;
 }
 
+export function createRuntimeRouteOptionsPlatformHostDeps(
+  client: RuntimeRouteOptionsClient,
+  overrides?: Partial<RuntimeRouteHostOptionsDeps>,
+): RuntimeRouteHostOptionsDeps {
+  return {
+    scope: overrides?.scope,
+    listConnectors:
+      overrides?.listConnectors ?? (() => defaultListConnectors(client)),
+    listConnectorModelDescriptors:
+      overrides?.listConnectorModelDescriptors ??
+      ((connectorId) => defaultListConnectorModelDescriptors(client, connectorId)),
+    loadLocalRouteMetadata:
+      overrides?.loadLocalRouteMetadata ?? (() => defaultLoadLocalRouteMetadata(client)),
+    onListConnectorsError: overrides?.onListConnectorsError,
+    onListConnectorModelDescriptorsError: overrides?.onListConnectorModelDescriptorsError,
+    onLocalRouteMetadataError: overrides?.onLocalRouteMetadataError,
+    onLocalStatusMismatch: overrides?.onLocalStatusMismatch,
+  };
+}
+
 /**
  * Resolves a runtime route options snapshot using the platform client as the
  * canonical projection data source.
@@ -54,20 +74,7 @@ export async function listRuntimeRouteOptions(
   input: ListRuntimeRouteOptionsInput,
   overrides?: Partial<RuntimeRouteHostOptionsDeps>,
 ): Promise<RuntimeRouteOptionsSnapshot> {
-  const deps: RuntimeRouteHostOptionsDeps = {
-    scope: overrides?.scope,
-    listConnectors:
-      overrides?.listConnectors ?? (() => defaultListConnectors(client)),
-    listConnectorModelDescriptors:
-      overrides?.listConnectorModelDescriptors ??
-      ((connectorId) => defaultListConnectorModelDescriptors(client, connectorId)),
-    loadLocalRouteMetadata:
-      overrides?.loadLocalRouteMetadata ?? (() => defaultLoadLocalRouteMetadata(client)),
-    onListConnectorsError: overrides?.onListConnectorsError,
-    onListConnectorModelDescriptorsError: overrides?.onListConnectorModelDescriptorsError,
-    onLocalRouteMetadataError: overrides?.onLocalRouteMetadataError,
-    onLocalStatusMismatch: overrides?.onLocalStatusMismatch,
-  };
+  const deps = createRuntimeRouteOptionsPlatformHostDeps(client, overrides);
 
   return listRuntimeRouteOptionsWithHost(
     {

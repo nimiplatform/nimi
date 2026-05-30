@@ -3,6 +3,8 @@ import test from 'node:test';
 import { assert, E2E_IDS, createBaseDriver, runDesktopMacosSmokeScenario } from './desktop-macos-smoke-test-helpers';
 import { waitForAvatarCarrierEvidence } from '../src/shell/renderer/infra/bootstrap/desktop-macos-smoke-avatar-evidence';
 
+const AVATAR_CARRIER_FAILURE_EVIDENCE_TIMEOUT_MS = 50;
+
 function createAvatarLocalAssetResolvedRecord(recordedAt = '2026-04-26T00:00:02.000Z') {
   return {
     kind: 'avatar.visual.local-asset-resolved',
@@ -857,7 +859,7 @@ test('desktop macos smoke live2d avatar product scenario fails without local Ava
 
   await assert.rejects(
     runDesktopMacosSmokeScenario('chat.live2d-avatar-product-smoke', createBaseDriver({
-      avatarCarrierEvidenceTimeoutMs: 1,
+      avatarCarrierEvidenceTimeoutMs: AVATAR_CARRIER_FAILURE_EVIDENCE_TIMEOUT_MS,
       async readLocalStorageItem() {
         return JSON.stringify([{
           threadId: 'agent-thread-1',
@@ -953,7 +955,7 @@ test('desktop macos smoke avatar carrier evidence reports pre-anchor runtime bin
 
   await assert.rejects(
     runDesktopMacosSmokeScenario('chat.live2d-avatar-product-smoke', createBaseDriver({
-      avatarCarrierEvidenceTimeoutMs: 1,
+      avatarCarrierEvidenceTimeoutMs: AVATAR_CARRIER_FAILURE_EVIDENCE_TIMEOUT_MS,
       async readLocalStorageItem() {
         return JSON.stringify([{
           threadId: 'agent-thread-1',
@@ -1147,7 +1149,7 @@ test('desktop macos smoke live2d avatar product scenario fails without Runtime c
 
   await assert.rejects(
     runDesktopMacosSmokeScenario('chat.live2d-avatar-product-smoke', createBaseDriver({
-      avatarCarrierEvidenceTimeoutMs: 1,
+      avatarCarrierEvidenceTimeoutMs: AVATAR_CARRIER_FAILURE_EVIDENCE_TIMEOUT_MS,
       async readLocalStorageItem() {
         return JSON.stringify([{
           threadId: 'agent-thread-1',
@@ -1237,7 +1239,7 @@ test('desktop macos smoke live2d avatar product scenario fails without hit-regio
 
   await assert.rejects(
     runDesktopMacosSmokeScenario('chat.live2d-avatar-product-smoke', createBaseDriver({
-      avatarCarrierEvidenceTimeoutMs: 1,
+      avatarCarrierEvidenceTimeoutMs: AVATAR_CARRIER_FAILURE_EVIDENCE_TIMEOUT_MS,
       async readLocalStorageItem() {
         return JSON.stringify([{
           threadId: 'agent-thread-1',

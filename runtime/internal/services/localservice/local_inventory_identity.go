@@ -66,7 +66,7 @@ func isRunnableKind(k runtimev1.LocalAssetKind) bool {
 func defaultCapabilitiesForAssetKind(kind runtimev1.LocalAssetKind) []string {
 	switch kind {
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE:
-		return []string{"image"}
+		return []string{"image.generate"}
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO:
 		return []string{"video.generate"}
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS:
@@ -92,9 +92,23 @@ func normalizeAssetCapabilities(capabilities []string) []string {
 		if trimmed == "" {
 			continue
 		}
+		if strings.EqualFold(trimmed, "chat") {
+			normalized = append(normalized, "chat")
+			continue
+		}
 		switch normalizeLocalCapabilityToken(trimmed) {
+		case "text.generate":
+			normalized = append(normalized, "text.generate")
 		case "text.embed":
 			normalized = append(normalized, "text.embed")
+		case "image.generate":
+			normalized = append(normalized, "image.generate")
+		case "video.generate":
+			normalized = append(normalized, "video.generate")
+		case "audio.synthesize":
+			normalized = append(normalized, "audio.synthesize")
+		case "audio.transcribe":
+			normalized = append(normalized, "audio.transcribe")
 		default:
 			normalized = append(normalized, trimmed)
 		}

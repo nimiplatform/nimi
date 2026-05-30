@@ -248,7 +248,22 @@ export function normalizeLocalRuntimeRunnableAssetKindId(
 }
 
 export function localRuntimeCapabilitiesForAssetKind(kind: LocalRuntimeAssetKindId): string[] {
-  return [isLocalRuntimeRunnableAssetKindId(kind) ? kind : 'chat'];
+  switch (kind) {
+    case 'image':
+      return ['image.generate'];
+    case 'video':
+      return ['video.generate'];
+    case 'tts':
+      return ['audio.synthesize'];
+    case 'stt':
+      return ['audio.transcribe'];
+    case 'embedding':
+      return ['text.embed'];
+    case 'chat':
+      return ['chat'];
+    default:
+      return ['chat'];
+  }
 }
 
 export function localRuntimeRunnableAssetKindForCapabilities(

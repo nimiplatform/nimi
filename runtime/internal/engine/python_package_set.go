@@ -21,6 +21,12 @@ type pythonPackageSetManifest struct {
 func resolvePythonPackageSetManifest(consumer string) (pythonPackageSetManifest, error) {
 	trimmed := strings.TrimSpace(consumer)
 	switch {
+	case strings.HasPrefix(trimmed, "stable-diffusion.cpp."):
+		return pythonPackageSetManifest{
+			ID:           "media-proxy-execution-core",
+			Packages:     nil,
+			ImportProbes: []string{"json"},
+		}, nil
 	case strings.HasPrefix(trimmed, "media."):
 		return pythonPackageSetManifest{
 			ID:           "media-python-pipeline-core",
@@ -210,6 +216,8 @@ func materializePythonPipelineServerScript(root string, consumer string) error {
 		return fmt.Errorf("python pipeline script root is required")
 	}
 	switch {
+	case strings.HasPrefix(strings.TrimSpace(consumer), "stable-diffusion.cpp."):
+		return os.WriteFile(filepath.Join(trimmedRoot, "media_server.py"), []byte(mediaServerScript), 0o755)
 	case strings.HasPrefix(strings.TrimSpace(consumer), "media."):
 		return os.WriteFile(filepath.Join(trimmedRoot, "media_server.py"), []byte(mediaServerScript), 0o755)
 	case strings.HasPrefix(strings.TrimSpace(consumer), "speech."):

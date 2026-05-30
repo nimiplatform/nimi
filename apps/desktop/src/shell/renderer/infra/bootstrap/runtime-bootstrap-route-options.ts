@@ -5,7 +5,8 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { localRuntime, type LocalRuntimeAssetRecord, type LocalRuntimeSnapshot } from '@runtime/local-runtime';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import {
-    listRuntimeRouteOptions,
+    createRuntimeRouteOptionsPlatformHostDeps,
+    listRuntimeRouteOptionsWithHost,
     runtimeRouteLocalKindForCapability,
     type RuntimeCanonicalCapability,
     type RuntimeRouteHostLocalMetadata,
@@ -194,11 +195,11 @@ export async function loadRuntimeRouteOptions(input: {
         : appStore.aiConfig.capabilities.selectedBindings[input.capability] as import('@nimiplatform/sdk/ai').RuntimeRouteBinding | null | undefined;
     const localRouteMetadataLoader = deps?.loadLocalRouteMetadata ?? loadLocalRouteMetadata;
     const platformClient = deps?.platformClient ?? getPlatformClient();
-    return listRuntimeRouteOptions(platformClient, {
+    return listRuntimeRouteOptionsWithHost({
         capability: input.capability,
         targetId: input.targetId,
         selectedBinding,
-    }, {
+    }, createRuntimeRouteOptionsPlatformHostDeps(platformClient, {
         scope: deps || DEFAULT_RUNTIME_ROUTE_OPTIONS_DEPS_SCOPE,
         listConnectors: deps?.listConnectors,
         listConnectorModelDescriptors: deps?.listConnectorModelDescriptors,
@@ -264,5 +265,5 @@ export async function loadRuntimeRouteOptions(input: {
                 },
             });
         },
-    });
+    }));
 }

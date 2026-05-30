@@ -59,8 +59,7 @@ function runtimeDependencyNeedsSetup(
   dependency?: LocalRuntimeEnvironmentPlanDependency,
 ): boolean {
   return (
-    dependency?.dependencyId === 'nvidia-cuda-user-space-runtime'
-    && dependency.state === 'needs_confirmation'
+    dependency?.state === 'needs_confirmation'
     && dependency.confirmationRequired === true
   );
 }
@@ -89,7 +88,7 @@ function assetHasRuntimeDependencyWarning(
     && (
       (
         asset.status === 'unhealthy'
-        && detail.includes('cuda_user_space_runtime')
+        && detail.includes('local environment activation blocked')
         && detail.includes('needs_confirmation')
       )
       || runtimeDependencyNeedsSetup(dependency)
@@ -190,12 +189,12 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-[var(--nimi-status-warning)]">
                 {i18n.t('runtimeConfig.localModelCenter.cudaRuntimeSetupTitle', {
-                  defaultValue: 'Optional local GPU acceleration',
+                  defaultValue: 'Local image runtime setup',
                 })}
               </p>
               <p className="mt-1 text-xs leading-5 text-[color-mix(in_srgb,var(--nimi-status-warning)_82%,var(--nimi-text-secondary))]">
                 {i18n.t('runtimeConfig.localModelCenter.cudaDependencyConfirm', {
-                  defaultValue: 'This PC has an NVIDIA GPU. Install the Nimi-managed CUDA runtime only if you want local models to use GPU acceleration. It stays inside Nimi data and will not change system CUDA, user PATH, or machine PATH.',
+                  defaultValue: 'This image model needs Runtime-managed local environment dependencies before it can run. They stay inside Nimi data and do not change system PATH or machine PATH.',
                 })}
               </p>
               {currentRuntimeDependencyJob ? (

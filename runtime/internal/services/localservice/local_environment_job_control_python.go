@@ -56,7 +56,7 @@ func (s *Service) executePythonRuntimeEnvironmentDependencyJob(ctx context.Conte
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
 		}, nil
 	}
-	consumer := pythonMaterializerConsumerForDependency(job.DependencyID)
+	consumer := pythonMaterializerConsumerForJob(job)
 	// Prerequisite ordering is runtime authority: the desktop fires uv ->
 	// python.runtime concurrently, so wait (bounded, on the job ctx) for uv's
 	// selected-source record rather than failing closed when this job races
@@ -115,7 +115,7 @@ func (s *Service) executePythonVenvEnvironmentDependencyJob(ctx context.Context,
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
 		}, nil
 	}
-	consumer := pythonMaterializerConsumerForDependency(job.DependencyID)
+	consumer := pythonMaterializerConsumerForJob(job)
 	if strings.TrimSpace(consumer) == "" && strings.HasPrefix(strings.TrimSpace(job.DependencyID), "local-speech.") {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateUnsupported,
@@ -189,7 +189,7 @@ func (s *Service) executePythonPackageSetEnvironmentDependencyJob(ctx context.Co
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
 		}, nil
 	}
-	consumer := pythonMaterializerConsumerForDependency(job.DependencyID)
+	consumer := pythonMaterializerConsumerForJob(job)
 	if strings.TrimSpace(consumer) == "" && strings.HasPrefix(strings.TrimSpace(job.DependencyID), "local-speech.") {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateUnsupported,
@@ -230,7 +230,7 @@ func (s *Service) executePythonPackageSetEnvironmentDependencyJob(ctx context.Co
 	if err != nil {
 		return localEnvironmentDependencyJobResult{}, err
 	}
-	if strings.TrimSpace(status.PackageSetID) == "" || strings.TrimSpace(status.LockHash) == "" || len(status.InstalledDistributions) == 0 || len(status.ImportProbes) == 0 {
+	if strings.TrimSpace(status.PackageSetID) == "" || strings.TrimSpace(status.LockHash) == "" || (len(status.Packages) > 0 && len(status.InstalledDistributions) == 0) || len(status.ImportProbes) == 0 {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateRepairRequired,
 			SourceKind:      localEnvironmentSourceManaged,
@@ -287,7 +287,7 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
 		}, nil
 	}
-	consumer := pythonMaterializerConsumerForDependency(job.DependencyID)
+	consumer := pythonMaterializerConsumerForJob(job)
 	if !strings.HasPrefix(strings.TrimSpace(consumer), "media.") {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateUnsupported,
@@ -385,6 +385,8 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 
 func pythonSelectedConsumersForDependency(dependencyID string) []string {
 	switch {
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-image-native."):
+		return []string{"stable-diffusion.cpp.cpu", "stable-diffusion.cpp.metal", "stable-diffusion.cpp.cuda"}
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-image-python."):
 		return []string{"media.diffusers.cpu", "media.diffusers.cuda"}
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-video-python."):
@@ -397,6 +399,9 @@ func pythonSelectedConsumersForDependency(dependencyID string) []string {
 		return []string{"speech.qwen3-asr.python", "speech.qwen3-tts.python"}
 	case strings.TrimSpace(dependencyID) == "python.runtime", strings.TrimSpace(dependencyID) == "uv":
 		return []string{
+			"stable-diffusion.cpp.cpu",
+			"stable-diffusion.cpp.metal",
+			"stable-diffusion.cpp.cuda",
 			"media.diffusers.cpu",
 			"media.diffusers.cuda",
 			"media.video-python.cpu",
@@ -411,6 +416,8 @@ func pythonSelectedConsumersForDependency(dependencyID string) []string {
 
 func pythonMaterializerConsumerForDependency(dependencyID string) string {
 	switch {
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-image-native."):
+		return "stable-diffusion.cpp.metal"
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-image-python."):
 		return "media.diffusers.cuda"
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-video-python."):
@@ -424,6 +431,31 @@ func pythonMaterializerConsumerForDependency(dependencyID string) string {
 	default:
 		return ""
 	}
+}
+
+func pythonMaterializerConsumerForJob(job localEnvironmentDependencyJobState) string {
+	if consumer := pythonMaterializerConsumerForDependency(job.DependencyID); strings.TrimSpace(consumer) != "" {
+		return consumer
+	}
+	consumer := localEnvironmentConsumerScopeFromKey(job.EnvironmentKey)
+	switch {
+	case strings.HasPrefix(consumer, "stable-diffusion.cpp."):
+		return consumer
+	case strings.HasPrefix(consumer, "media."):
+		return consumer
+	case strings.HasPrefix(consumer, "speech."):
+		return consumer
+	default:
+		return ""
+	}
+}
+
+func localEnvironmentConsumerScopeFromKey(environmentKey string) string {
+	parts := strings.Split(strings.TrimSpace(environmentKey), "|")
+	if len(parts) == 0 {
+		return ""
+	}
+	return strings.TrimSpace(parts[len(parts)-1])
 }
 
 func pythonRuntimeEngineTarget(consumer string) (string, string) {

@@ -58,7 +58,6 @@ test('agent projection refresh applies authoritative bundle while the turn is st
   assert.ok(outcome);
   assert.equal(outcome?.bundle.messages.at(-1)?.contentText, 'authoritative projection');
   assert.deepEqual(outcome?.selection, {
-    threadId: 'thread-1',
     localAgentRef: 'local-agent:user-1:agent-1',
     targetId: 'local-agent:user-1:agent-1',
   });

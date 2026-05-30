@@ -532,8 +532,9 @@ func managedMediaEnginePriority(engine string) int {
 }
 
 func hasCapability(capabilities []string, target string) bool {
+	normalizedTarget := normalizeLocalCapabilityToken(target)
 	for _, capability := range capabilities {
-		if strings.EqualFold(strings.TrimSpace(capability), target) {
+		if strings.EqualFold(strings.TrimSpace(capability), target) || normalizeLocalCapabilityToken(capability) == normalizedTarget {
 			return true
 		}
 	}

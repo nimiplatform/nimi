@@ -112,6 +112,10 @@ consumers:
       - local-image-native
       - local-gpu-support
     dependency_families:
+      - python.tool.uv
+      - python.runtime
+      - python.venv
+      - python.package-set
       - native-engine-package.stablediffusion-ggml
       - accelerator.cuda.runtime
       - model.asset
@@ -138,6 +142,10 @@ consumers:
     pack_refs:
       - local-image-native
     dependency_families:
+      - python.tool.uv
+      - python.runtime
+      - python.venv
+      - python.package-set
       - native-engine-package.stablediffusion-ggml
       - model.asset
       - model.companion-asset
@@ -161,6 +169,10 @@ consumers:
     pack_refs:
       - local-image-native
     dependency_families:
+      - python.tool.uv
+      - python.runtime
+      - python.venv
+      - python.package-set
       - native-engine-package.stablediffusion-ggml
       - model.asset
       - model.companion-asset

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   localRuntime,
   type LocalRuntimeAssetRecord,
+  type LocalRuntimeDeviceProfile,
   type LocalRuntimeEnvironmentDependencyJob,
   type LocalRuntimeEnvironmentPlan,
   type LocalRuntimeEnvironmentPlanDependency,
@@ -12,6 +13,55 @@ type RuntimeDependencyInput = {
   refreshAssetInventorySections: () => Promise<void>;
   setAssetBusy: (busy: boolean) => void;
 };
+
+const ACTIVE_RUNTIME_DEPENDENCY_JOB_STATES = new Set(['queued', 'downloading', 'verifying', 'installing']);
+const STARTABLE_RUNTIME_DEPENDENCY_STATES = new Set(['needs_confirmation', 'failed', 'cancelled']);
+
+function imageConsumerScopeForDevice(profile: LocalRuntimeDeviceProfile | undefined): string {
+  const os = String(profile?.os || '').trim().toLowerCase();
+  const arch = String(profile?.arch || '').trim().toLowerCase();
+  const vendor = String(profile?.gpu.vendor || '').trim().toLowerCase();
+  if (os === 'darwin' && arch === 'arm64' && vendor === 'apple') {
+    return 'stable-diffusion.cpp.metal';
+  }
+  if (vendor === 'nvidia') {
+    return 'stable-diffusion.cpp.cuda';
+  }
+  return 'stable-diffusion.cpp.cpu';
+}
+
+function firstImageAsset(assets: LocalRuntimeAssetRecord[]): LocalRuntimeAssetRecord | undefined {
+  return assets.find((asset) => asset.kind === 'image');
+}
+
+function dependencyBlocksSetup(dependency: LocalRuntimeEnvironmentPlanDependency): boolean {
+  if (!dependency.required) {
+    return false;
+  }
+  return dependency.state !== 'ready_managed' && dependency.state !== 'ready_system';
+}
+
+function firstBlockingDependency(plan: LocalRuntimeEnvironmentPlan | undefined): LocalRuntimeEnvironmentPlanDependency | undefined {
+  return plan?.dependencies.find(dependencyBlocksSetup);
+}
+
+function dependencyStartable(
+  dependency: LocalRuntimeEnvironmentPlanDependency,
+  jobs: readonly LocalRuntimeEnvironmentDependencyJob[],
+): boolean {
+  if (!dependency.required || !dependency.environmentKey) {
+    return false;
+  }
+  if (!STARTABLE_RUNTIME_DEPENDENCY_STATES.has(String(dependency.state || ''))) {
+    return false;
+  }
+  return !jobs.some((job) => (
+    job.environmentKey === dependency.environmentKey
+    && job.dependencyFamily === dependency.dependencyFamily
+    && job.dependencyId === dependency.dependencyId
+    && ACTIVE_RUNTIME_DEPENDENCY_JOB_STATES.has(String(job.state || ''))
+  ));
+}
 
 export function useLocalModelCenterRuntimeDependencies({
   assets,
@@ -31,10 +81,23 @@ export function useLocalModelCenterRuntimeDependencies({
 
   useEffect(() => {
     let cancelled = false;
-    void localRuntime.resolveEnvironmentPlan({
-      packId: 'local-gpu-support',
-      consumerScope: 'desktop.local-model-center',
-    }).then((dependency) => {
+    const imageAsset = firstImageAsset(assets);
+    const resolvePlan = async () => {
+      if (!imageAsset) {
+        return localRuntime.resolveEnvironmentPlan({
+          packId: 'local-gpu-support',
+          consumerScope: 'desktop.local-model-center',
+        });
+      }
+      const profile = await localRuntime.collectDeviceProfile();
+      return localRuntime.resolveEnvironmentPlan({
+        packId: 'local-image-native',
+        consumerScope: imageConsumerScopeForDevice(profile),
+        assetId: imageAsset.assetId,
+        localAssetId: imageAsset.localAssetId,
+      });
+    };
+    void resolvePlan().then((dependency) => {
       if (!cancelled && mountedRef.current) {
         setSharedRuntimeEnvironmentPlan(dependency);
       }
@@ -46,12 +109,10 @@ export function useLocalModelCenterRuntimeDependencies({
     return () => {
       cancelled = true;
     };
-  }, [dependencyResolutionNonce]);
+  }, [assets, dependencyResolutionNonce]);
 
   const sharedRuntimeDependency = useMemo(() => (
-    sharedRuntimeEnvironmentPlan?.dependencies.find((dependency) => (
-      dependency.dependencyId === 'nvidia-cuda-user-space-runtime'
-    ))
+    firstBlockingDependency(sharedRuntimeEnvironmentPlan)
   ), [sharedRuntimeEnvironmentPlan]);
 
   const refreshRuntimeDependencyJobs = useCallback(async (
@@ -79,16 +140,32 @@ export function useLocalModelCenterRuntimeDependencies({
   }, []);
 
   useEffect(() => {
-    void refreshRuntimeDependencyJobs(sharedRuntimeDependency);
-  }, [refreshRuntimeDependencyJobs, sharedRuntimeDependency]);
+    const dependencies = sharedRuntimeEnvironmentPlan?.dependencies.filter((dependency) => dependency.environmentKey) || [];
+    if (dependencies.length === 0) {
+      setSharedRuntimeDependencyJobs([]);
+      return;
+    }
+    let cancelled = false;
+    void Promise.all(dependencies.map((dependency) =>
+      localRuntime.listEnvironmentDependencyJobs({ environmentKey: dependency.environmentKey }),
+    )).then((jobGroups) => {
+      if (!cancelled && mountedRef.current) {
+        setSharedRuntimeDependencyJobs(jobGroups.flat());
+      }
+    }).catch(() => {
+      if (!cancelled && mountedRef.current) {
+        setSharedRuntimeDependencyJobs([]);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [sharedRuntimeEnvironmentPlan]);
 
   const runtimeDependencyByAssetId = useMemo(() => {
-    if (!sharedRuntimeDependency) {
-      return {};
-    }
     const next: Record<string, LocalRuntimeEnvironmentPlanDependency> = {};
     for (const asset of assets) {
-      if (asset.kind === 'image') {
+      if (asset.kind === 'image' && sharedRuntimeDependency) {
         next[asset.localAssetId] = sharedRuntimeDependency;
       }
     }
@@ -100,18 +177,20 @@ export function useLocalModelCenterRuntimeDependencies({
   }, []);
 
   const setupRuntimeDependency = useCallback(async () => {
-    if (!sharedRuntimeDependency) {
+    const dependencies = sharedRuntimeEnvironmentPlan?.dependencies || [];
+    const startable = dependencies.filter((dependency) => dependencyStartable(dependency, sharedRuntimeDependencyJobs));
+    if (startable.length === 0) {
       return;
     }
     setAssetBusy(true);
     try {
-      await localRuntime.startEnvironmentDependencyJob({
-        environmentKey: sharedRuntimeDependency.environmentKey,
-        dependencyFamily: sharedRuntimeDependency.dependencyFamily,
-        dependencyId: sharedRuntimeDependency.dependencyId,
-        sourceKind: sharedRuntimeDependency.sourceKind,
+      await Promise.all(startable.map((dependency) => localRuntime.startEnvironmentDependencyJob({
+        environmentKey: dependency.environmentKey,
+        dependencyFamily: dependency.dependencyFamily,
+        dependencyId: dependency.dependencyId,
+        sourceKind: dependency.sourceKind,
         confirmed: true,
-      }, { caller: 'core' });
+      }, { caller: 'core' })));
       await refreshAssetInventorySections();
       refreshRuntimeDependencies();
       await refreshRuntimeDependencyJobs(sharedRuntimeDependency);
@@ -123,8 +202,42 @@ export function useLocalModelCenterRuntimeDependencies({
     refreshRuntimeDependencies,
     refreshRuntimeDependencyJobs,
     setAssetBusy,
+    sharedRuntimeDependencyJobs,
+    sharedRuntimeEnvironmentPlan,
     sharedRuntimeDependency,
   ]);
+
+  const prepareAssetRuntimeDependencies = useCallback(async (asset: LocalRuntimeAssetRecord) => {
+    if (asset.kind !== 'image') {
+      return;
+    }
+    setAssetBusy(true);
+    try {
+      const profile = await localRuntime.collectDeviceProfile();
+      const plan = await localRuntime.resolveEnvironmentPlan({
+        packId: 'local-image-native',
+        consumerScope: imageConsumerScopeForDevice(profile),
+        assetId: asset.assetId,
+        localAssetId: asset.localAssetId,
+      });
+      const jobGroups = await Promise.all(plan.dependencies
+        .filter((dependency) => dependency.environmentKey)
+        .map((dependency) => localRuntime.listEnvironmentDependencyJobs({ environmentKey: dependency.environmentKey })));
+      const jobs = jobGroups.flat();
+      const startable = plan.dependencies.filter((dependency) => dependencyStartable(dependency, jobs));
+      await Promise.all(startable.map((dependency) => localRuntime.startEnvironmentDependencyJob({
+        environmentKey: dependency.environmentKey,
+        dependencyFamily: dependency.dependencyFamily,
+        dependencyId: dependency.dependencyId,
+        sourceKind: dependency.sourceKind,
+        confirmed: true,
+      }, { caller: 'core' })));
+      refreshRuntimeDependencies();
+      await refreshAssetInventorySections();
+    } finally {
+      setAssetBusy(false);
+    }
+  }, [refreshAssetInventorySections, refreshRuntimeDependencies, setAssetBusy]);
 
   const cancelRuntimeDependencyJob = useCallback(async (jobId: string) => {
     setAssetBusy(true);
@@ -175,6 +288,7 @@ export function useLocalModelCenterRuntimeDependencies({
     cancelRuntimeDependencyJob,
     refreshRuntimeDependencies,
     repairRuntimeDependency,
+    prepareAssetRuntimeDependencies,
     retryRuntimeDependencyJob,
     runtimeDependencyByAssetId,
     setupRuntimeDependency,

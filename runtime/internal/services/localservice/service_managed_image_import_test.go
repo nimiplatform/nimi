@@ -195,6 +195,15 @@ func TestLocalImportImageModelDefaultsToSupervisedOnLlamaSupportedHost(t *testin
 	if err != nil {
 		t.Fatalf("expected Windows GGUF manifest import without explicit endpoint to succeed, got %v", err)
 	}
+	if got := resp.GetAsset().GetCapabilities(); len(got) != 1 || got[0] != "image.generate" {
+		t.Fatalf("expected image capability to normalize to image.generate, got %v", got)
+	}
+	if got := resp.GetAsset().GetPreferredEngine(); got != "media" {
+		t.Fatalf("expected image projection preferred engine media, got %q", got)
+	}
+	if got := strings.Join(resp.GetAsset().GetHostRequirements().GetRequiredBackends(), ","); !strings.Contains(got, "stable-diffusion.cpp") {
+		t.Fatalf("expected image projection to require media backend, got %q", got)
+	}
 	if got := svc.modelRuntimeMode(resp.GetAsset().GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		t.Fatalf("expected supervised runtime mode, got %s", got)
 	}
