@@ -32,7 +32,15 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// version or an old version with no registered migration fails closed to a
 /// typed repair outcome through the `local_config_migration` framework
 /// (`P-MIG-002`).
-pub const APPS_PACKAGES_SCHEMA_VERSION: u32 = 1;
+///
+/// v2 carries the Runtime-resolved app storage roots (`dataRoot`, `cacheRoot`,
+/// `tempRoot`) read verbatim from the Runtime `install-evidence.json`, instead
+/// of letting any downstream consumer re-derive the `<nimi_data>/apps/<app-id>`
+/// layout (`K-APP-022`: consumers must not concatenate the app-storage layout
+/// as an alternate authority — `appstorage.Resolve` is the sole owner). A v1
+/// projection lacking the roots fails closed to repair, whose recovery action
+/// is the deterministic [`ensure_apps_packages`] regeneration.
+pub const APPS_PACKAGES_SCHEMA_VERSION: u32 = 2;
 
 /// Governed config-file identity for `~/.nimi/apps/packages.json`
 /// (`local-config-file-registry.yaml` row `packages_json`).
@@ -64,6 +72,13 @@ const PACKAGE_STATE_BLOCKED: &str = "blocked";
 /// `runtime/internal/appstorage/storage.go` `InstallEvidence`. Only the fields
 /// the package projection consumes are deserialized; unknown fields are
 /// ignored so a Runtime-side additive field never breaks the read.
+///
+/// The `durable_data_root` / `cache_root` / `temp_root` fields are the
+/// Runtime-resolved app storage roots written by `appstorage.Resolve`
+/// (`storage.go` — `filepath.Join(appRoot, "data"|"cache"|"tmp")`, validated by
+/// `within()` for symlink/escape safety). They are consumed verbatim so the
+/// projection never re-derives the `<nimi_data>/apps/<app-id>` layout itself
+/// (`K-APP-022`).
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RuntimeInstallEvidence {
@@ -79,11 +94,20 @@ struct RuntimeInstallEvidence {
     sha256: String,
     verification_state: String,
     release_root: String,
+    durable_data_root: String,
+    cache_root: String,
+    temp_root: String,
 }
 
 /// One projected package row. The minimum product fields are fixed by the
 /// manual `~/.nimi/apps/packages.json` schema:
 /// `appId, packageRef, version, state, installRoot, verifiedAt`.
+///
+/// `data_root` / `cache_root` / `temp_root` carry the Runtime-resolved app
+/// storage roots verbatim from the install-evidence file (`K-APP-022`); they
+/// are the authoritative quartet (with `install_root` as the release root) that
+/// downstream consumers project without re-deriving the `<nimi_data>/apps`
+/// layout.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct AppsPackageRow {
@@ -92,6 +116,9 @@ pub struct AppsPackageRow {
     pub version: String,
     pub state: String,
     pub install_root: String,
+    pub data_root: String,
+    pub cache_root: String,
+    pub temp_root: String,
     pub verified_at: String,
 }
 
@@ -170,7 +197,14 @@ fn project_evidence_file(path: &Path) -> Result<Option<AppsPackageRow>, String> 
         || evidence.installed_version.trim().is_empty()
         || evidence.storage_policy_ref.trim().is_empty()
         || evidence.release_root.trim().is_empty()
+        || evidence.durable_data_root.trim().is_empty()
+        || evidence.cache_root.trim().is_empty()
+        || evidence.temp_root.trim().is_empty()
     {
+        // K-APP-022 fail-close: evidence missing any Runtime-resolved storage
+        // root cannot have its app-storage truth projected. The projection does
+        // not invent the missing root by re-deriving the layout — it fails
+        // closed so the package routes to repair.
         return Err(format!(
             "Runtime app install evidence is missing required fields ({})",
             path.display()
@@ -182,6 +216,9 @@ fn project_evidence_file(path: &Path) -> Result<Option<AppsPackageRow>, String> 
         version: evidence.installed_version,
         state: project_package_state(&evidence.verification_state).to_string(),
         install_root: evidence.release_root,
+        data_root: evidence.durable_data_root,
+        cache_root: evidence.cache_root,
+        temp_root: evidence.temp_root,
         verified_at: now_iso_timestamp(),
     }))
 }
@@ -254,10 +291,13 @@ fn validate_record(record: &AppsPackagesRecord) -> Result<(), String> {
             || package.package_ref.trim().is_empty()
             || package.version.trim().is_empty()
             || package.install_root.trim().is_empty()
+            || package.data_root.trim().is_empty()
+            || package.cache_root.trim().is_empty()
+            || package.temp_root.trim().is_empty()
             || package.verified_at.trim().is_empty()
         {
             return Err(
-                "~/.nimi/apps/packages.json package row requires appId, packageRef, version, installRoot, and verifiedAt"
+                "~/.nimi/apps/packages.json package row requires appId, packageRef, version, installRoot, dataRoot, cacheRoot, tempRoot, and verifiedAt"
                     .to_string(),
             );
         }
@@ -428,6 +468,12 @@ mod tests {
             assert_eq!(row.version, "1.0.0");
             assert_eq!(row.state, "installed");
             assert!(row.install_root.contains("releases"));
+            // The Runtime-resolved storage roots are projected verbatim from the
+            // install-evidence file, not re-derived from the release root.
+            assert!(row.data_root.ends_with("data"));
+            assert!(row.cache_root.ends_with("cache"));
+            assert!(row.temp_root.ends_with("tmp"));
+            assert!(row.data_root.contains("nimi.avatar"));
         });
     }
 

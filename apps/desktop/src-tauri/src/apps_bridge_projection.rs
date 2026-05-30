@@ -158,29 +158,18 @@ fn project_install_evidence(package: &AppsPackageRow) -> BridgeInstallEvidenceRo
         sha256: resolve_release_descriptor(&package.package_ref)
             .map(|descriptor| descriptor.sha256.to_string()),
         verification_state: verification_state.to_string(),
-        // Package projection records the release root; the SDK transport needs
-        // the full storage-root quartet to treat evidence as resolved. The
-        // sibling data/cache/tmp roots are derived from the release root's
-        // app-root parent, mirroring `appstorage.Resolve`.
-        storage_roots: derive_storage_roots(&package.install_root),
+        // The SDK transport needs the full storage-root quartet to treat
+        // evidence as resolved. The roots are the Runtime-resolved values
+        // (`appstorage.Resolve` → install-evidence.json) carried verbatim on the
+        // package row; the bridge MUST NOT re-derive the `<nimi_data>/apps`
+        // layout itself (`K-APP-022` — Runtime is the sole storage authority).
+        storage_roots: Some(BridgeStorageRoots {
+            release_root: package.install_root.clone(),
+            data_root: package.data_root.clone(),
+            cache_root: package.cache_root.clone(),
+            temp_root: package.temp_root.clone(),
+        }),
     }
-}
-
-/// Derive the SDK storage-root quartet from a release root.
-///
-/// `appstorage.Resolve` lays out `<dataRoot>/apps/<app-id>/releases/<version>`,
-/// with sibling `data`, `cache`, `tmp` directories under the app root. The
-/// release root recorded in `packages.json` is `.../releases/<version>`; the
-/// app root is its grandparent.
-fn derive_storage_roots(release_root: &str) -> Option<BridgeStorageRoots> {
-    let release_path = std::path::Path::new(release_root);
-    let app_root = release_path.parent()?.parent()?;
-    Some(BridgeStorageRoots {
-        release_root: release_root.to_string(),
-        data_root: app_root.join("data").display().to_string(),
-        cache_root: app_root.join("cache").display().to_string(),
-        temp_root: app_root.join("tmp").display().to_string(),
-    })
 }
 
 /// Build the Apps bridge projection.
@@ -248,7 +237,7 @@ pub async fn apps_bridge_projection_get() -> Result<AppsBridgeProjection, String
 
 #[cfg(test)]
 mod tests {
-    use super::{build_apps_bridge_projection, derive_storage_roots};
+    use super::build_apps_bridge_projection;
     use crate::desktop_product_control::select_product_data_root;
     use crate::test_support::with_env;
     use std::path::PathBuf;
@@ -308,6 +297,7 @@ mod tests {
                 .join("1.0.0");
             let evidence_dir = release_root.join(".nimi");
             std::fs::create_dir_all(&evidence_dir).expect("mkdir");
+            let app_root = data_root.join("apps").join("nimi.avatar");
             let evidence = serde_json::json!({
                 "appId": "nimi.avatar",
                 "releaseDescriptorRef": "nimi.avatar.bundled-with-nimi",
@@ -316,9 +306,9 @@ mod tests {
                 "sha256": "abc123",
                 "verificationState": "digest-verified",
                 "releaseRoot": release_root.display().to_string(),
-                "durableDataRoot": "",
-                "cacheRoot": "",
-                "tempRoot": ""
+                "durableDataRoot": app_root.join("data").display().to_string(),
+                "cacheRoot": app_root.join("cache").display().to_string(),
+                "tempRoot": app_root.join("tmp").display().to_string()
             });
             std::fs::write(
                 evidence_dir.join("install-evidence.json"),
@@ -334,18 +324,15 @@ mod tests {
             assert_eq!(row.verification_state, "digest-verified");
             assert_eq!(row.installed_version.as_deref(), Some("1.0.0"));
             let roots = row.storage_roots.as_ref().expect("storage roots");
-            assert!(roots.release_root.contains("releases"));
-            assert!(roots.data_root.ends_with("data"));
+            // The bridge projects the Runtime-written roots verbatim; it no
+            // longer re-derives the `<nimi_data>/apps` layout (`K-APP-022`).
+            assert_eq!(roots.release_root, release_root.display().to_string());
+            assert_eq!(roots.data_root, app_root.join("data").display().to_string());
+            assert_eq!(
+                roots.cache_root,
+                app_root.join("cache").display().to_string()
+            );
+            assert_eq!(roots.temp_root, app_root.join("tmp").display().to_string());
         });
-    }
-
-    #[test]
-    fn derive_storage_roots_resolves_app_root_siblings() {
-        let roots =
-            derive_storage_roots("/data/apps/nimi.avatar/releases/1.0.0").expect("storage roots");
-        assert_eq!(roots.release_root, "/data/apps/nimi.avatar/releases/1.0.0");
-        assert_eq!(roots.data_root, "/data/apps/nimi.avatar/data");
-        assert_eq!(roots.cache_root, "/data/apps/nimi.avatar/cache");
-        assert_eq!(roots.temp_root, "/data/apps/nimi.avatar/tmp");
     }
 }
