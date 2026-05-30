@@ -4,35 +4,63 @@ use std::path::PathBuf;
 use serde::Deserialize;
 use serde_json::Value;
 
-const TESTER_TMP_DIR: &str = "nimiapp-tester";
 const RUN_HISTORY_FILE: &str = "tester-run-history.json";
 const IMAGE_HISTORY_FILE: &str = "tester-image-history.json";
-const WORLD_TOUR_CACHE_REL: &str = "world-tour";
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TesterHistorySavePayload {
+    storage_root: String,
     records_json: String,
 }
 
-pub(crate) fn tester_app_tmp_root() -> Result<PathBuf, String> {
-    let root = std::env::temp_dir().join(TESTER_TMP_DIR);
-    fs::create_dir_all(&root)
-        .map_err(|error| format!("create tester temp root failed ({}): {error}", root.display()))?;
-    root.canonicalize()
-        .map_err(|error| format!("resolve tester temp root failed: {error}"))
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TesterStorageRootPayload {
+    storage_root: String,
 }
 
-pub(crate) fn tester_world_tour_cache_root() -> Result<PathBuf, String> {
-    let root = tester_app_tmp_root()?.join(WORLD_TOUR_CACHE_REL);
-    fs::create_dir_all(&root)
-        .map_err(|error| format!("create world-tour cache root failed ({}): {error}", root.display()))?;
-    root.canonicalize()
-        .map_err(|error| format!("resolve world-tour cache root failed: {error}"))
+pub(crate) fn canonical_storage_root(root: &str, label: &str) -> Result<PathBuf, String> {
+    let path = PathBuf::from(root.trim());
+    if !path.is_absolute() {
+        return Err(format!(
+            "{label} must be an absolute Runtime app storage root"
+        ));
+    }
+    fs::create_dir_all(&path)
+        .map_err(|error| format!("create {label} failed ({}): {error}", path.display()))?;
+    path.canonicalize()
+        .map_err(|error| format!("resolve {label} failed: {error}"))
 }
 
-fn history_path(file_name: &str) -> Result<PathBuf, String> {
-    Ok(tester_app_tmp_root()?.join(file_name))
+pub(crate) fn scoped_storage_child(
+    root: &str,
+    label: &str,
+    child: &str,
+) -> Result<PathBuf, String> {
+    let root = canonical_storage_root(root, label)?;
+    let child_path = root.join(child);
+    if let Some(parent) = child_path.parent() {
+        fs::create_dir_all(parent).map_err(|error| {
+            format!(
+                "create {label} child directory failed ({}): {error}",
+                parent.display()
+            )
+        })?;
+    }
+    let parent = child_path
+        .parent()
+        .ok_or_else(|| format!("{label} child has no parent"))?
+        .canonicalize()
+        .map_err(|error| format!("resolve {label} child parent failed: {error}"))?;
+    if !parent.starts_with(&root) {
+        return Err(format!("{label} child escapes Runtime app storage root"));
+    }
+    Ok(child_path)
+}
+
+fn history_path(storage_root: &str, file_name: &str) -> Result<PathBuf, String> {
+    scoped_storage_child(storage_root, "tester data root", file_name)
 }
 
 fn read_or_default(path: PathBuf, default_json: &str) -> Result<String, String> {
@@ -53,29 +81,47 @@ fn write_json(path: PathBuf, raw_json: &str, expected_array: bool) -> Result<(),
         return Err("tester storage payload must be an object".to_string());
     }
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|error| format!("create tester storage directory failed ({}): {error}", parent.display()))?;
+        fs::create_dir_all(parent).map_err(|error| {
+            format!(
+                "create tester storage directory failed ({}): {error}",
+                parent.display()
+            )
+        })?;
     }
-    fs::write(&path, serde_json::to_string_pretty(&parsed).unwrap_or_else(|_| raw_json.to_string()))
-        .map_err(|error| format!("write tester storage failed ({}): {error}", path.display()))
+    fs::write(
+        &path,
+        serde_json::to_string_pretty(&parsed).unwrap_or_else(|_| raw_json.to_string()),
+    )
+    .map_err(|error| format!("write tester storage failed ({}): {error}", path.display()))
 }
 
 #[tauri::command]
-pub fn tester_run_history_load() -> Result<String, String> {
-    read_or_default(history_path(RUN_HISTORY_FILE)?, "{}")
+pub fn tester_run_history_load(payload: TesterStorageRootPayload) -> Result<String, String> {
+    read_or_default(history_path(&payload.storage_root, RUN_HISTORY_FILE)?, "{}")
 }
 
 #[tauri::command]
 pub fn tester_run_history_save(payload: TesterHistorySavePayload) -> Result<(), String> {
-    write_json(history_path(RUN_HISTORY_FILE)?, &payload.records_json, false)
+    write_json(
+        history_path(&payload.storage_root, RUN_HISTORY_FILE)?,
+        &payload.records_json,
+        false,
+    )
 }
 
 #[tauri::command]
-pub fn tester_image_history_load() -> Result<String, String> {
-    read_or_default(history_path(IMAGE_HISTORY_FILE)?, "[]")
+pub fn tester_image_history_load(payload: TesterStorageRootPayload) -> Result<String, String> {
+    read_or_default(
+        history_path(&payload.storage_root, IMAGE_HISTORY_FILE)?,
+        "[]",
+    )
 }
 
 #[tauri::command]
 pub fn tester_image_history_save(payload: TesterHistorySavePayload) -> Result<(), String> {
-    write_json(history_path(IMAGE_HISTORY_FILE)?, &payload.records_json, true)
+    write_json(
+        history_path(&payload.storage_root, IMAGE_HISTORY_FILE)?,
+        &payload.records_json,
+        true,
+    )
 }

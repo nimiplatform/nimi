@@ -1,4 +1,5 @@
 import { invokeTesterCommand } from '../tester-tauri.js';
+import { getTesterAppStorageRoots, type TesterAppStorageRoots } from '../tester-app-storage.js';
 
 export type ResolveWorldTourFixtureInput = {
   manifestPath?: string;
@@ -33,26 +34,42 @@ export type WorldTourRenderAcceptance = {
   note?: string;
 };
 
-export function resolveWorldTourFixture(payload: ResolveWorldTourFixtureInput): Promise<ResolvedWorldTourFixture> {
-  return invokeTesterCommand<ResolvedWorldTourFixture>('resolve_world_tour_fixture', { payload });
+async function withStorageRoots<T extends Record<string, unknown>>(payload: T): Promise<T & TesterAppStorageRoots> {
+  return { ...payload, ...(await getTesterAppStorageRoots()) };
 }
 
-export function openWorldTourWindow(payload: OpenWorldTourWindowInput): Promise<OpenWorldTourWindowResponse> {
-  return invokeTesterCommand<OpenWorldTourWindowResponse>('open_world_tour_window', { payload });
+export async function resolveWorldTourFixture(payload: ResolveWorldTourFixtureInput): Promise<ResolvedWorldTourFixture> {
+  return invokeTesterCommand<ResolvedWorldTourFixture>('resolve_world_tour_fixture', {
+    payload: await withStorageRoots({ manifestPath: payload.manifestPath }),
+  });
 }
 
-export function claimWorldTourViewerLaunch(payload: ClaimWorldTourViewerLaunchInput): Promise<ResolvedWorldTourFixture> {
-  return invokeTesterCommand<ResolvedWorldTourFixture>('claim_world_tour_viewer_launch', { payload });
+export async function openWorldTourWindow(payload: OpenWorldTourWindowInput): Promise<OpenWorldTourWindowResponse> {
+  return invokeTesterCommand<OpenWorldTourWindowResponse>('open_world_tour_window', {
+    payload: await withStorageRoots(payload),
+  });
 }
 
-export function saveWorldTourViewerPreset(payload: { manifestPath: string; presetJson: string }): Promise<{ manifestPath: string; presetPath: string }> {
-  return invokeTesterCommand('save_world_tour_viewer_preset', { payload });
+export async function claimWorldTourViewerLaunch(payload: ClaimWorldTourViewerLaunchInput): Promise<ResolvedWorldTourFixture> {
+  return invokeTesterCommand<ResolvedWorldTourFixture>('claim_world_tour_viewer_launch', {
+    payload: await withStorageRoots(payload),
+  });
 }
 
-export function saveWorldTourRenderAcceptance(record: WorldTourRenderAcceptance): Promise<void> {
-  return invokeTesterCommand('world_tour_render_acceptance_save', { payload: record });
+export async function saveWorldTourViewerPreset(payload: { manifestPath: string; presetJson: string }): Promise<{ manifestPath: string; presetPath: string }> {
+  return invokeTesterCommand('save_world_tour_viewer_preset', {
+    payload: await withStorageRoots(payload),
+  });
 }
 
-export function loadWorldTourRenderAcceptance(): Promise<WorldTourRenderAcceptance | null> {
-  return invokeTesterCommand('world_tour_render_acceptance_load');
+export async function saveWorldTourRenderAcceptance(record: WorldTourRenderAcceptance): Promise<void> {
+  return invokeTesterCommand('world_tour_render_acceptance_save', {
+    payload: await withStorageRoots(record),
+  });
+}
+
+export async function loadWorldTourRenderAcceptance(): Promise<WorldTourRenderAcceptance | null> {
+  return invokeTesterCommand('world_tour_render_acceptance_load', {
+    payload: await withStorageRoots({}),
+  });
 }

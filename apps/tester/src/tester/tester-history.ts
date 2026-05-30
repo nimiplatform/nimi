@@ -1,5 +1,6 @@
 import { invokeTesterCommand } from './tester-tauri.js';
 import { getTesterCapability, type TesterCapabilityId } from './tester-capabilities.js';
+import { getTesterAppStorageRoots } from './tester-app-storage.js';
 
 export type TesterRunHistoryRecord = {
   id: string;
@@ -69,11 +70,17 @@ function parseHistory(raw: string): TesterRunHistory {
 }
 
 export async function loadTesterRunHistory(): Promise<TesterRunHistory> {
-  return parseHistory(await invokeTesterCommand<string>('tester_run_history_load'));
+  const roots = await getTesterAppStorageRoots();
+  return parseHistory(await invokeTesterCommand<string>('tester_run_history_load', {
+    payload: { storageRoot: roots.dataRoot },
+  }));
 }
 
 export async function saveTesterRunHistory(history: TesterRunHistory): Promise<void> {
-  await invokeTesterCommand('tester_run_history_save', { payload: { recordsJson: JSON.stringify(history) } });
+  const roots = await getTesterAppStorageRoots();
+  await invokeTesterCommand('tester_run_history_save', {
+    payload: { storageRoot: roots.dataRoot, recordsJson: JSON.stringify(history) },
+  });
 }
 
 export async function appendTesterRunHistory(record: TesterRunHistoryRecord): Promise<TesterRunHistory> {
