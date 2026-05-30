@@ -1,4 +1,5 @@
-export { hasTauriRuntime, invokeTauri } from './tauri-api.js';
+export { hasTauriRuntime, invokeTauri, installNimiShellRuntimeBridge } from './tauri-api.js';
+export type { NimiShellRuntimeBridgeResult } from './tauri-api.js';
 export { hasTauriInvoke } from './env.js';
 export { invoke, invokeChecked, BridgeError } from './invoke.js';
 export { getRuntimeDefaults } from './runtime-defaults.js';
