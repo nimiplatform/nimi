@@ -20,6 +20,7 @@ import {
   mapRuntimeErrorToLocalAiReasonCode,
   ModelHealthStatus,
   projectMemoryEmbeddingRouteAvailability,
+  projectRuntimeAgentCanonicalMemoryBankStatus,
   projectRuntimeRouteCapabilityCoverage,
   resolveRuntimeRouteReasoningConfig,
   resolveRuntimeTextRouteReasoningSupport,
@@ -682,20 +683,21 @@ export function SettingsRoute() {
   const runtimeLocalAiReasonProjection = mapRuntimeErrorToLocalAiReasonCode({
     reasonCode: 'AI_STREAM_BROKEN',
   }) ?? 'unknown';
-  const memoryEmbeddingRouteProjection = projectMemoryEmbeddingRouteAvailability({
-    config: {
-      ...createEmptyMemoryEmbeddingConfig({
-        kind: 'feature',
-        ownerId: 'tester',
-        surfaceId: 'settings-memory-embedding',
-      }),
-      sourceKind: 'cloud',
-      bindingRef: {
-        kind: 'cloud',
-        connectorId: 'tester-cloud',
-        modelId: 'tester-embedding',
-      },
+  const memoryEmbeddingConfig = {
+    ...createEmptyMemoryEmbeddingConfig({
+      kind: 'feature',
+      ownerId: 'tester',
+      surfaceId: 'settings-memory-embedding',
+    }),
+    sourceKind: 'cloud' as const,
+    bindingRef: {
+      kind: 'cloud' as const,
+      connectorId: 'tester-cloud',
+      modelId: 'tester-embedding',
     },
+  };
+  const memoryEmbeddingRouteProjection = projectMemoryEmbeddingRouteAvailability({
+    config: memoryEmbeddingConfig,
     routeOptions: {
       capability: 'text.embed',
       selected: null,
@@ -706,6 +708,35 @@ export function SettingsRoute() {
         provider: 'tester',
         models: ['tester-embedding'],
       }],
+    },
+  });
+  const runtimeAgentMemoryProjection = projectRuntimeAgentCanonicalMemoryBankStatus({
+    config: memoryEmbeddingConfig,
+    bank: {
+      bankId: 'tester-agent-bank',
+      displayName: 'Tester Agent Memory',
+      canonicalAgentScope: true,
+      publicApiWritable: false,
+      embeddingProfile: {
+        provider: 'tester',
+        modelId: 'tester-embedding',
+        version: 'v1',
+        dimension: 768,
+        distanceMetric: 1,
+        migrationPolicy: 1,
+      },
+    },
+    state: {
+      bindingIntentPresent: true,
+      bindingSourceKind: 'cloud',
+      resolutionState: 'resolved',
+      resolvedProfileIdentity: 'tester:tester-embedding:v1',
+      canonicalBankStatus: 'bound_equivalent',
+      blockedReasonCode: null,
+      operationReadiness: {
+        bindAllowed: false,
+        cutoverAllowed: false,
+      },
     },
   });
   const runtimeRouteModelProfileProjection = findRuntimeRouteModelProfile({
@@ -1753,6 +1784,12 @@ export function SettingsRoute() {
         <span>Memory embedding route projection</span>
         <StatusBadge tone={memoryEmbeddingRouteProjection.state === 'ready' ? 'success' : 'warning'}>
           {memoryEmbeddingRouteProjection.sourceKind ?? 'none'}: {memoryEmbeddingRouteProjection.reason}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Runtime agent memory projection</span>
+        <StatusBadge tone={runtimeAgentMemoryProjection.mode === 'standard' ? 'success' : 'warning'}>
+          {runtimeAgentMemoryProjection.mode}: {runtimeAgentMemoryProjection.embeddingProfileModelId ?? 'none'}
         </StatusBadge>
       </div>
       <div className="setting-row">

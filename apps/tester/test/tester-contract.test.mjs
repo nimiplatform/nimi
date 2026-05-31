@@ -1090,9 +1090,11 @@ test('tester settings consumes SDK memory embedding route availability projectio
   const settings = read('src/shell/routes/settings.tsx');
 
   assert.match(settings, /projectMemoryEmbeddingRouteAvailability/);
+  assert.match(settings, /projectRuntimeAgentCanonicalMemoryBankStatus/);
   assert.match(settings, /createEmptyMemoryEmbeddingConfig/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Memory embedding route projection/);
+  assert.match(settings, /Runtime agent memory projection/);
   assert.doesNotMatch(settings, /connector\?\.available/);
   assert.doesNotMatch(settings, /String\(model\.status \|\| ''\)\.toLowerCase\(\) === 'active'/);
 });
