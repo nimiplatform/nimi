@@ -39,6 +39,15 @@ export type RuntimeRouteCapabilityProjectionReasonCode =
   | 'capability_unsupported'
   | 'host_denied';
 
+export type RuntimeRouteCapabilityProjectionIssueKind =
+  | 'needs_selection'
+  | 'binding_unresolved'
+  | 'route_unhealthy'
+  | 'metadata_missing'
+  | 'capability_unsupported'
+  | 'host_denied'
+  | 'unknown';
+
 export type RuntimeRouteCapabilityProjection = {
   capability: RuntimeRouteAppCapability;
   selectedBinding: RuntimeRouteBinding | null;
@@ -174,6 +183,43 @@ export function updateRuntimeRouteCapabilityBinding(
     next.selectedBindings[capability] = binding;
   }
   return next;
+}
+
+export function isRuntimeRouteCapabilityProjectionReady(
+  projection: RuntimeRouteCapabilityProjection | null | undefined,
+): projection is RuntimeRouteCapabilityProjection & { resolvedBinding: RuntimeResolvedBinding } {
+  return Boolean(projection?.supported && projection.resolvedBinding);
+}
+
+export function getRuntimeRouteCapabilityProjectionIssueKind(
+  projection: RuntimeRouteCapabilityProjection | null | undefined,
+): RuntimeRouteCapabilityProjectionIssueKind | null {
+  if (isRuntimeRouteCapabilityProjectionReady(projection)) {
+    return null;
+  }
+  switch (projection?.reasonCode) {
+    case 'selection_missing':
+    case 'selection_cleared':
+      return 'needs_selection';
+    case 'binding_unresolved':
+      return 'binding_unresolved';
+    case 'route_unhealthy':
+      return 'route_unhealthy';
+    case 'metadata_missing':
+      return 'metadata_missing';
+    case 'capability_unsupported':
+      return 'capability_unsupported';
+    case 'host_denied':
+      return 'host_denied';
+    default:
+      return 'unknown';
+  }
+}
+
+export function isRuntimeRouteCapabilityProjectionSelectionRequired(
+  projection: RuntimeRouteCapabilityProjection | null | undefined,
+): boolean {
+  return getRuntimeRouteCapabilityProjectionIssueKind(projection) === 'needs_selection';
 }
 
 export async function buildRuntimeRouteCapabilityProjection(

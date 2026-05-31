@@ -4,6 +4,8 @@ import {
   buildRuntimeRouteCapabilityProjection,
   createEmptyMemoryEmbeddingConfig,
   createDefaultRuntimeRouteCapabilitySelectionStore,
+  getRuntimeRouteCapabilityProjectionIssueKind,
+  isRuntimeRouteCapabilityProjectionReady,
   isRuntimeRouteLocalOptionSelectable,
   projectRuntimeRouteCapabilityCoverage,
   projectMemoryEmbeddingRouteAvailability,
@@ -137,7 +139,7 @@ type CatalogProjectionState =
 
 type RuntimeCapabilityProjectionState =
   | { status: 'loading'; summary: null; error: null }
-  | { status: 'ready'; summary: { capability: string; supported: boolean; reasonCode: string; setupStatus: string }; error: null }
+  | { status: 'ready'; summary: { capability: string; supported: boolean; ready: boolean; issueKind: string; reasonCode: string; setupStatus: string }; error: null }
   | { status: 'error'; summary: null; error: string };
 
 const runtimeConnectorInventory = createRuntimeConnectorInventoryClient({
@@ -620,6 +622,8 @@ export function SettingsRoute() {
         summary: {
           capability: projection.capability,
           supported: projection.supported,
+          ready: isRuntimeRouteCapabilityProjectionReady(projection),
+          issueKind: getRuntimeRouteCapabilityProjectionIssueKind(projection) ?? 'none',
           reasonCode: projection.reasonCode ?? 'ok',
           setupStatus: setupState.status,
         },
@@ -1296,7 +1300,7 @@ export function SettingsRoute() {
         <span>Runtime route capability projection</span>
         <StatusBadge tone={runtimeCapabilityProjection.status === 'ready' && runtimeCapabilityProjection.summary.supported ? 'success' : runtimeCapabilityProjection.status === 'error' ? 'danger' : 'warning'}>
           {runtimeCapabilityProjection.status === 'ready'
-            ? `${runtimeCapabilityProjection.summary.capability}: ${runtimeCapabilityProjection.summary.setupStatus}/${runtimeCapabilityProjection.summary.reasonCode}`
+            ? `${runtimeCapabilityProjection.summary.capability}: ${runtimeCapabilityProjection.summary.ready ? 'ready' : runtimeCapabilityProjection.summary.issueKind}/${runtimeCapabilityProjection.summary.setupStatus}/${runtimeCapabilityProjection.summary.reasonCode}`
             : runtimeCapabilityProjection.status === 'error'
               ? runtimeCapabilityProjection.error
               : 'checking'}

@@ -5,6 +5,9 @@ import {
   buildRuntimeRouteCapabilityProjection,
   buildRuntimeRouteCapabilityProjectionMap,
   createDefaultRuntimeRouteCapabilitySelectionStore,
+  getRuntimeRouteCapabilityProjectionIssueKind,
+  isRuntimeRouteCapabilityProjectionReady,
+  isRuntimeRouteCapabilityProjectionSelectionRequired,
   toRuntimeRouteCanonicalCapability,
   updateRuntimeRouteCapabilityBinding,
   type RuntimeRouteCapabilityRuntime,
@@ -76,6 +79,8 @@ test('runtime route capability projection builds ready projection from injected 
   });
 
   assert.equal(projection.supported, true);
+  assert.equal(isRuntimeRouteCapabilityProjectionReady(projection), true);
+  assert.equal(getRuntimeRouteCapabilityProjectionIssueKind(projection), null);
   assert.equal(projection.reasonCode, null);
   assert.equal(projection.resolvedBinding?.resolvedBindingRef, 'text.generate:resolved');
   assert.equal(projection.metadata?.metadataKind, 'text.generate');
@@ -89,6 +94,8 @@ test('runtime route capability projection fails closed without selection or rout
   });
   assert.equal(missingSelection.supported, false);
   assert.equal(missingSelection.reasonCode, 'selection_missing');
+  assert.equal(isRuntimeRouteCapabilityProjectionSelectionRequired(missingSelection), true);
+  assert.equal(getRuntimeRouteCapabilityProjectionIssueKind(missingSelection), 'needs_selection');
 
   const imageSelection = updateRuntimeRouteCapabilityBinding(
     createDefaultRuntimeRouteCapabilitySelectionStore(),
@@ -102,6 +109,8 @@ test('runtime route capability projection fails closed without selection or rout
   });
   assert.equal(missingMetadata.supported, false);
   assert.equal(missingMetadata.reasonCode, 'metadata_missing');
+  assert.equal(isRuntimeRouteCapabilityProjectionReady(missingMetadata), false);
+  assert.equal(getRuntimeRouteCapabilityProjectionIssueKind(missingMetadata), 'metadata_missing');
   assert.equal(missingMetadata.capability, 'image.edit');
 });
 
@@ -118,6 +127,7 @@ test('runtime route capability projection maps host and capability failures with
     hostAllowed: false,
   });
   assert.equal(denied.reasonCode, 'host_denied');
+  assert.equal(getRuntimeRouteCapabilityProjectionIssueKind(denied), 'host_denied');
 
   const unsupported = await buildRuntimeRouteCapabilityProjection({
     capability: 'video.generate',
@@ -134,6 +144,7 @@ test('runtime route capability projection maps host and capability failures with
     },
   });
   assert.equal(unsupported.reasonCode, 'capability_unsupported');
+  assert.equal(getRuntimeRouteCapabilityProjectionIssueKind(unsupported), 'capability_unsupported');
 });
 
 test('runtime route capability projection map refreshes requested capabilities', async () => {

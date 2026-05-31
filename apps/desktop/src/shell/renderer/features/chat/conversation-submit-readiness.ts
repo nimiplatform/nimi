@@ -1,4 +1,8 @@
 import type { TFunction } from 'i18next';
+import {
+  isRuntimeRouteCapabilityProjectionReady,
+  isRuntimeRouteCapabilityProjectionSelectionRequired,
+} from '@nimiplatform/sdk/ai';
 import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -30,7 +34,7 @@ function resolveAiSubmitRouteUnavailableMessage(
   t: TFunction,
   projection: ConversationCapabilityProjection | null,
 ): string {
-  if (projection?.reasonCode === 'selection_missing' || projection?.reasonCode === 'selection_cleared') {
+  if (isRuntimeRouteCapabilityProjectionSelectionRequired(projection)) {
     return t('Chat.nimiSubmitRouteUnavailable', {
       defaultValue: 'Select a Nimi route before sending a message.',
     });
@@ -77,7 +81,7 @@ export async function ensureAiConversationSubmitRouteReady(input: {
   };
   await deps.refreshConversationCapabilityProjections(['text.generate']);
   const projection = deps.getTextCapabilityProjection();
-  if (projection?.supported && projection.resolvedBinding) {
+  if (isRuntimeRouteCapabilityProjectionReady(projection)) {
     return projection;
   }
   throw new Error(resolveAiSubmitRouteUnavailableMessage(input.t, projection));
@@ -94,11 +98,11 @@ export async function ensureAgentConversationSubmitRouteReady(input: {
   await deps.refreshConversationCapabilityProjections(['text.generate']);
   deps.refreshAgentEffectiveCapabilityResolution();
   const resolution = deps.getAgentResolution();
-  if (resolution?.ready && resolution.textProjection?.supported && resolution.textProjection.resolvedBinding) {
+  if (resolution?.ready && isRuntimeRouteCapabilityProjectionReady(resolution.textProjection)) {
     return resolution;
   }
   const textProjection = deps.getTextCapabilityProjection();
-  if (textProjection?.supported && textProjection.resolvedBinding) {
+  if (isRuntimeRouteCapabilityProjectionReady(textProjection)) {
     const rebuilt = buildAgentEffectiveCapabilityResolution({
       textProjection,
       imageProjection: resolution?.imageProjection || null,

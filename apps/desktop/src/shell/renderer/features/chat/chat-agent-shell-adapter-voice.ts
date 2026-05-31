@@ -7,6 +7,10 @@ import {
   useState,
 } from 'react';
 import type { TFunction } from 'i18next';
+import {
+  getRuntimeRouteCapabilityProjectionIssueKind,
+  isRuntimeRouteCapabilityProjectionReady,
+} from '@nimiplatform/sdk/ai';
 import type { AgentLocalMessageRecord } from '@renderer/bridge/runtime-bridge/types';
 import { cancelStream } from '../turns/stream-controller';
 import {
@@ -139,22 +143,23 @@ export function useAgentConversationVoiceSession(
         defaultValue: 'Voice input is unavailable because the conversation anchor is not ready.',
       });
     }
-    if (input.transcribeCapabilityProjection?.reasonCode === 'selection_missing' || input.transcribeCapabilityProjection?.reasonCode === 'selection_cleared') {
+    const issueKind = getRuntimeRouteCapabilityProjectionIssueKind(input.transcribeCapabilityProjection);
+    if (issueKind === 'needs_selection') {
       return input.t('Chat.voiceSessionRouteRequired', {
         defaultValue: 'Voice input is unavailable because no transcribe route is configured.',
       });
     }
-    if (input.transcribeCapabilityProjection?.reasonCode === 'route_unhealthy') {
+    if (issueKind === 'route_unhealthy') {
       return input.t('Chat.voiceSessionRuntimeUnavailable', {
         defaultValue: 'Voice input is unavailable because the transcribe runtime is not ready.',
       });
     }
-    if (input.transcribeCapabilityProjection?.reasonCode === 'metadata_missing' || input.transcribeCapabilityProjection?.reasonCode === 'binding_unresolved') {
+    if (issueKind === 'metadata_missing' || issueKind === 'binding_unresolved') {
       return input.t('Chat.voiceSessionRouteUnavailable', {
         defaultValue: 'Voice input is unavailable because the selected transcribe route cannot be resolved.',
       });
     }
-    if (!input.transcribeCapabilityProjection?.supported || !input.transcribeCapabilityProjection?.resolvedBinding) {
+    if (!isRuntimeRouteCapabilityProjectionReady(input.transcribeCapabilityProjection)) {
       return input.t('Chat.voiceSessionUnavailable', {
         defaultValue: 'Voice input is unavailable for the current conversation.',
       });

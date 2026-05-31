@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AISchedulingJudgement } from '@nimiplatform/sdk/ai';
-import { applyAIProfileToConfig } from '@nimiplatform/sdk/ai';
+import {
+  applyAIProfileToConfig,
+  getRuntimeRouteCapabilityProjectionIssueKind,
+  isRuntimeRouteCapabilityProjectionReady,
+} from '@nimiplatform/sdk/ai';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-navigation-events';
@@ -138,7 +142,7 @@ function toProjectionStatus(
     return null;
   }
   const hasBinding = Boolean(projection.selectedBinding);
-  if (projection.supported && projection.resolvedBinding) {
+  if (isRuntimeRouteCapabilityProjectionReady(projection)) {
     return {
       supported: true,
       tone: 'ready',
@@ -147,9 +151,8 @@ function toProjectionStatus(
       detail: null,
     };
   }
-  switch (projection.reasonCode) {
-    case 'selection_missing':
-    case 'selection_cleared':
+  switch (getRuntimeRouteCapabilityProjectionIssueKind(projection)) {
+    case 'needs_selection':
       return {
         supported: false,
         tone: 'attention',
