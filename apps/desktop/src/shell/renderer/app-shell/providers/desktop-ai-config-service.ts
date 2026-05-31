@@ -26,14 +26,16 @@ import {
   type AIProfileValidationResult,
   type AIProbeStatus,
   type AIRuntimeEvidence,
-  type AISchedulingEvaluationTarget,
-  type AISchedulingJudgement,
   type AIScopeRef,
   type AISnapshot,
   type AISnapshotSurface,
   type AppFirstLaunchAIConfigResult,
   type AppManifestRequirementGap,
 } from '@nimiplatform/sdk/ai';
+import type {
+  AISchedulingEvaluationTarget,
+  AISchedulingJudgement,
+} from '@nimiplatform/sdk/runtime';
 import {
   loadPlatformAIProfileFactoryCatalog,
   loadPlatformAIProfileFactoryRows,

@@ -6,7 +6,6 @@ import {
 } from '@nimiplatform/sdk/app';
 import {
   createEmptyMemoryEmbeddingConfig,
-  projectMemoryEmbeddingRouteAvailability,
 } from '@nimiplatform/sdk/ai';
 import {
   buildRuntimeRouteCapabilityProjection,
@@ -21,6 +20,7 @@ import {
   mapRuntimeErrorToLocalAiReasonCode,
   ModelHealthStatus,
   projectRuntimeRouteCapabilityCoverage,
+  projectMemoryEmbeddingRouteAvailability,
   resolveRuntimeRouteReasoningConfig,
   resolveRuntimeTextRouteReasoningSupport,
   runtimeRouteBindingsMatch,

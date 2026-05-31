@@ -311,11 +311,13 @@ export type {
   AIProfileRef,
   AIRuntimeEvidence,
   AIRuntimeLocalProfileRef,
-  AISchedulingJudgement,
-  AISchedulingOccupancy,
-  AISchedulingState,
   AIScopeKind,
   AIScopeRef,
   AISnapshot,
 } from '@nimiplatform/sdk/ai';
+export type {
+  AISchedulingJudgement,
+  AISchedulingOccupancy,
+  AISchedulingState,
+} from '@nimiplatform/sdk/runtime';
 export { applyAIProfileToConfig, createEmptyAIConfig } from '@nimiplatform/sdk/ai';

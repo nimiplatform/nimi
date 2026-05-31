@@ -3,11 +3,13 @@ import { useQuery } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 import type {
   AIConfigSDKSurface,
+  AIScopeRef,
+} from '@nimiplatform/sdk/ai';
+import type {
   AISchedulingEvaluationTarget,
   AISchedulingJudgement,
   AISchedulingState,
-  AIScopeRef,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/sdk/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';

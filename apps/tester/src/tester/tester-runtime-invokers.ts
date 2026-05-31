@@ -10,7 +10,6 @@ import {
 } from '@nimiplatform/sdk';
 import type {
   AIConfig,
-  AISchedulingEvaluationTarget,
 } from '@nimiplatform/sdk/ai';
 import {
   createAIConfigEvidence,
@@ -18,6 +17,7 @@ import {
 import {
   peekRuntimeSchedulingBatch,
   resolveRuntimeSchedulingTargetForCapability,
+  type AISchedulingEvaluationTarget,
   type RuntimeRouteBinding,
 } from '@nimiplatform/sdk/runtime';
 import type { TesterCapabilityId } from './tester-capabilities.js';

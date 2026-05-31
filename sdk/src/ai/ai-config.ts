@@ -12,7 +12,11 @@ import { createNimiError } from '../runtime/errors.js';
 import { createNimiUlid } from '../runtime/ids.js';
 import { ReasonCode } from '../types/index.js';
 import type { JsonObject } from '../internal/utils.js';
-import type { RuntimeRouteBinding, RuntimeRouteOptionsSnapshot } from '../runtime/runtime-route.js';
+import type { RuntimeRouteBinding } from '../runtime/runtime-route.js';
+import type {
+  AISchedulingEvaluationTarget,
+  AISchedulingJudgement,
+} from '../runtime/runtime-scheduling-types.js';
 
 // ---------------------------------------------------------------------------
 // AIScopeRef  (P-AISC-001)
@@ -88,10 +92,10 @@ export {
 import { createAIConfigEvidence } from './ai-config-diff.js';
 
 // ---------------------------------------------------------------------------
-// Memory embedding adjacent config / runtime projection
+// Memory embedding adjacent config
 
 // ---------------------------------------------------------------------------
-// Memory embedding adjacent config / runtime projection
+// Memory embedding adjacent config
 // ---------------------------------------------------------------------------
 
 export type MemoryEmbeddingSourceKind = 'cloud' | 'local';
@@ -117,92 +121,6 @@ export type MemoryEmbeddingConfig = {
   bindingRef: MemoryEmbeddingBindingRef | null;
   revisionToken: string;
   updatedAt: string;
-};
-
-export type MemoryEmbeddingResolutionState =
-  | 'missing'
-  | 'resolved'
-  | 'unresolved'
-  | 'unavailable';
-
-export type MemoryEmbeddingCanonicalBankStatus =
-  | 'unbound'
-  | 'bound_equivalent'
-  | 'bound_profile_mismatch'
-  | 'rebuild_pending'
-  | 'cutover_ready';
-
-export type MemoryEmbeddingRuntimeState = {
-  bindingIntentPresent: boolean;
-  bindingSourceKind: MemoryEmbeddingSourceKind | null;
-  resolutionState: MemoryEmbeddingResolutionState;
-  resolvedProfileIdentity: string | null;
-  canonicalBankStatus: MemoryEmbeddingCanonicalBankStatus;
-  blockedReasonCode: string | null;
-  operationReadiness: {
-    bindAllowed: boolean;
-    cutoverAllowed: boolean;
-  };
-  traceId?: string;
-};
-
-export type MemoryEmbeddingRuntimeTargetRef = {
-  kind: 'agent-core';
-  agentId: string;
-};
-
-export type MemoryEmbeddingRuntimeInput = {
-  scopeRef: AIScopeRef;
-  targetRef: MemoryEmbeddingRuntimeTargetRef;
-};
-
-export type MemoryEmbeddingBindOutcome =
-  | 'bound'
-  | 'already_bound'
-  | 'staged_rebuild'
-  | 'rejected';
-
-export type MemoryEmbeddingBindResult = {
-  outcome: MemoryEmbeddingBindOutcome;
-  blockedReasonCode: string | null;
-  canonicalBankStatusAfter: MemoryEmbeddingCanonicalBankStatus;
-  pendingCutover: boolean;
-  traceId?: string;
-};
-
-export type MemoryEmbeddingCutoverOutcome =
-  | 'cutover_committed'
-  | 'already_current'
-  | 'not_ready'
-  | 'rejected';
-
-export type MemoryEmbeddingCutoverResult = {
-  outcome: MemoryEmbeddingCutoverOutcome;
-  blockedReasonCode: string | null;
-  canonicalBankStatusAfter: MemoryEmbeddingCanonicalBankStatus;
-  traceId?: string;
-};
-
-export type MemoryEmbeddingRouteAvailabilityState =
-  | 'unconfigured'
-  | 'ready'
-  | 'unavailable';
-
-export type MemoryEmbeddingRouteAvailabilityReason =
-  | 'binding_missing'
-  | 'source_binding_mismatch'
-  | 'route_options_unavailable'
-  | 'route_options_capability_mismatch'
-  | 'cloud_model_available'
-  | 'cloud_model_unavailable'
-  | 'local_model_active'
-  | 'local_model_unavailable';
-
-export type MemoryEmbeddingRouteAvailabilityProjection = {
-  readonly state: MemoryEmbeddingRouteAvailabilityState;
-  readonly reason: MemoryEmbeddingRouteAvailabilityReason;
-  readonly sourceKind: MemoryEmbeddingSourceKind | null;
-  readonly bindingRef: MemoryEmbeddingBindingRef | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -247,55 +165,6 @@ export type AISnapshot = {
 export type AIRuntimeEvidence = {
   schedulingJudgement: AISchedulingJudgement | null;
 };
-
-// ---------------------------------------------------------------------------
-// Scheduling types  (K-SCHED-001~003)
-// ---------------------------------------------------------------------------
-
-/** K-SCHED-001: Six-value scheduling judgement state. */
-export type AISchedulingState =
-  | 'runnable'
-  | 'queue_required'
-  | 'preemption_risk'
-  | 'slowdown_risk'
-  | 'denied'
-  | 'unknown';
-
-/** K-SCHED-003: Occupancy snapshot at peek time. */
-export type AISchedulingOccupancy = {
-  globalUsed: number;
-  globalCap: number;
-  appUsed: number;
-  appCap: number;
-};
-
-/** K-SCHED-007: Target-scoped resource hint. */
-export type AISchedulingResourceHint = {
-  estimatedVramBytes?: number | null;
-  estimatedRamBytes?: number | null;
-  estimatedDiskBytes?: number | null;
-  engine?: string | null;
-};
-
-/** K-SCHED-002: Atomic scheduling evaluation target. */
-export type AISchedulingEvaluationTarget = {
-  capability: string;
-  targetId?: string | null;
-  profileId?: string | null;
-  resourceHint?: AISchedulingResourceHint | null;
-};
-
-/** K-SCHED-002: Scheduling preflight judgement result. */
-export type AISchedulingJudgement = {
-  state: AISchedulingState;
-  detail: string | null;
-  occupancy: AISchedulingOccupancy | null;
-  resourceWarnings: string[];
-};
-
-// ---------------------------------------------------------------------------
-// Factory functions
-// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // Built-in first-run chat scopes  (P-AISC-006 / S-AICONF-007)
@@ -514,78 +383,6 @@ export function createEmptyMemoryEmbeddingConfig(scopeRef: AIScopeRef): MemoryEm
   };
 }
 
-function memoryEmbeddingTargetMatches(candidate: unknown, targetId: string): boolean {
-  return String(candidate || '').trim() === targetId;
-}
-
-/**
- * Project whether a host-owned memory embedding binding intent is present in
- * the SDK route-options snapshot. This does not resolve Runtime memory bank
- * truth; canonical bind/cutover readiness remains Runtime-owned.
- */
-export function projectMemoryEmbeddingRouteAvailability(input: {
-  readonly config: MemoryEmbeddingConfig;
-  readonly routeOptions?: RuntimeRouteOptionsSnapshot | null;
-}): MemoryEmbeddingRouteAvailabilityProjection {
-  const sourceKind = input.config.sourceKind;
-  const bindingRef = input.config.bindingRef;
-  if (!sourceKind || !bindingRef) {
-    return {
-      state: 'unconfigured',
-      reason: 'binding_missing',
-      sourceKind: null,
-      bindingRef: null,
-    };
-  }
-  if (sourceKind !== bindingRef.kind) {
-    return {
-      state: 'unavailable',
-      reason: 'source_binding_mismatch',
-      sourceKind,
-      bindingRef,
-    };
-  }
-  const routeOptions = input.routeOptions;
-  if (!routeOptions) {
-    return {
-      state: 'unavailable',
-      reason: 'route_options_unavailable',
-      sourceKind,
-      bindingRef,
-    };
-  }
-  if (String(routeOptions.capability || '').trim() !== 'text.embed') {
-    return {
-      state: 'unavailable',
-      reason: 'route_options_capability_mismatch',
-      sourceKind,
-      bindingRef,
-    };
-  }
-  if (bindingRef.kind === 'cloud') {
-    const connector = routeOptions.connectors.find((item) => item.id === bindingRef.connectorId);
-    const available = Boolean(connector?.models.includes(bindingRef.modelId));
-    return {
-      state: available ? 'ready' : 'unavailable',
-      reason: available ? 'cloud_model_available' : 'cloud_model_unavailable',
-      sourceKind,
-      bindingRef,
-    };
-  }
-  const targetId = bindingRef.targetId.trim();
-  const model = routeOptions.local.models.find((item) =>
-    memoryEmbeddingTargetMatches(item.model, targetId)
-    || memoryEmbeddingTargetMatches(item.modelId, targetId)
-    || memoryEmbeddingTargetMatches(item.localModelId, targetId));
-  const active = String(model?.status || '').trim().toLowerCase() === 'active';
-  return {
-    state: active ? 'ready' : 'unavailable',
-    reason: active ? 'local_model_active' : 'local_model_unavailable',
-    sourceKind,
-    bindingRef,
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Probe result types  (S-AICONF-002)
 // ---------------------------------------------------------------------------
@@ -707,12 +504,6 @@ export type MemoryEmbeddingConfigSurface = {
   get(scopeRef: AIScopeRef): MemoryEmbeddingConfig;
   update(scopeRef: AIScopeRef, config: MemoryEmbeddingConfig): void;
   subscribe(scopeRef: AIScopeRef, callback: (config: MemoryEmbeddingConfig) => void): () => void;
-};
-
-export type MemoryEmbeddingRuntimeSurface = {
-  inspect(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingRuntimeState>;
-  requestBind(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingBindResult>;
-  requestCutover(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingCutoverResult>;
 };
 
 /** Aggregate SDK AI config surface (S-AICONF-001~006). */

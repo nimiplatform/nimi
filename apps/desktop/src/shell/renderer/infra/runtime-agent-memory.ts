@@ -3,13 +3,13 @@ import {
   type AIScopeRef,
   type MemoryEmbeddingConfig,
   type MemoryEmbeddingConfigSurface,
-  type MemoryEmbeddingRuntimeState,
-  type MemoryEmbeddingRuntimeSurface,
 } from '@nimiplatform/sdk/ai';
 import {
   asNimiError,
   createRuntimeProtectedScopeHelper,
   MemoryBankScope,
+  type MemoryEmbeddingRuntimeState,
+  type MemoryEmbeddingRuntimeSurface,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { getDesktopMemoryEmbeddingConfigService } from '@renderer/app-shell/providers/desktop-memory-embedding-config-service';

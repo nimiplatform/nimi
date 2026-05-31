@@ -10,7 +10,7 @@ import type { AgentLocalTargetSnapshot, AgentLocalThreadBundle, AgentLocalThread
 import type { AgentRuntimeConversationSummary } from './chat-agent-runtime-conversation-summaries';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
-import type { AISchedulingJudgement } from '@nimiplatform/sdk/ai';
+import type { AISchedulingJudgement } from '@nimiplatform/sdk/runtime';
 import type { AgentConversationSelection } from './chat-shell-types';
 import type { AgentHostFlowFooterState } from './chat-agent-shell-host-flow';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';

@@ -4,10 +4,10 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   type MemoryEmbeddingConfig,
   type MemoryEmbeddingConfigSurface,
-  type MemoryEmbeddingRuntimeSurface,
 } from '@nimiplatform/sdk/ai';
 import {
   MemoryBankScope,
+  type MemoryEmbeddingRuntimeSurface,
 } from '@nimiplatform/sdk/runtime';
 import {
   createRuntimeAgentMemoryAdapter,

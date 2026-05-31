@@ -1,8 +1,4 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
-import type {
-  AISchedulingEvaluationTarget,
-  AISchedulingJudgement,
-} from '@nimiplatform/sdk/ai';
 import {
   normalizeRuntimeSchedulingTarget,
   peekRuntimeAggregateSchedulingJudgement as peekSdkAggregateSchedulingJudgement,
@@ -10,6 +6,8 @@ import {
   resolveRuntimeSchedulingTargetsFromAIConfig,
   resolveRuntimeSchedulingTargetForCapability,
   runtimeSchedulingTargetsEqual,
+  type AISchedulingEvaluationTarget,
+  type AISchedulingJudgement,
   type RuntimeSchedulingBatchPeekResult,
 } from '@nimiplatform/sdk/runtime';
 

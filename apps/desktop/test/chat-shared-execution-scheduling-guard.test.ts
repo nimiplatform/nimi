@@ -6,8 +6,8 @@ import {
   createBuiltInChatAIScopeRef,
   createEmptyAIConfig,
   type AIConfig,
-  type AISchedulingJudgement,
 } from '@nimiplatform/sdk/ai';
+import type { AISchedulingJudgement } from '@nimiplatform/sdk/runtime';
 import { getDesktopAIConfigService } from '../src/shell/renderer/app-shell/providers/desktop-ai-config-service.js';
 import {
   isBusySlowdownRisk,

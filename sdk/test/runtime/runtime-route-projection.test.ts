@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import {
   projectMemoryEmbeddingRouteAvailability,
-} from '../../src/ai/index.js';
+} from '../../src/runtime/index.js';
 import {
   buildRuntimeRouteOptionsSnapshot,
   checkRuntimeRouteHealthWithHost,

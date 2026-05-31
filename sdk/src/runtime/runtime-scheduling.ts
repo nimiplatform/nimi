@@ -1,11 +1,11 @@
 import type {
-  AIConfig,
   AISchedulingEvaluationTarget,
   AISchedulingJudgement,
   AISchedulingOccupancy,
   AISchedulingResourceHint,
   AISchedulingState,
-} from '../ai/ai-config.js';
+} from './runtime-scheduling-types.js';
+import type { AIConfig } from '../ai/ai-config.js';
 
 export type RuntimeSchedulingEvaluationTargetInput = {
   capability: string;

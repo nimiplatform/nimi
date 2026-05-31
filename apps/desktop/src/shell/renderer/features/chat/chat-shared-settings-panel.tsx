@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AISchedulingJudgement } from '@nimiplatform/sdk/ai';
+import type { AISchedulingJudgement } from '@nimiplatform/sdk/runtime';
 import { applyAIProfileToConfig } from '@nimiplatform/sdk/ai';
 import {
   getRuntimeRouteCapabilityProjectionIssueKind,
