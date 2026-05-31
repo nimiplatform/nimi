@@ -1302,6 +1302,12 @@ test('tester settings consumes SDK Runtime agent consumer projections', () => {
   assert.doesNotMatch(settings, /function summarizeRuntimeAgentTimeline/);
 });
 
+test('tester settings consumes SDK Runtime agent inspect projections', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+  const helper = read('src/tester/tester-runtime-agent-inspect-projection.ts');
+  [/createTesterRuntimeAgentInspectProjection/, /Runtime agent inspect projection/, /runtimeAgentInspectProjection\.mutationKinds/].forEach((pattern) => assert.match(settings, pattern));
+  [/projectRuntimeAgentInspectSnapshot/, /projectRuntimeAgentInspectEventSummary/, /projectRuntimeAgentPendingHookInspect/, /buildRuntimeAgentStateMutations/, /readRuntimeAgentPresentationProfile/, /from '@nimiplatform\/sdk\/runtime'/].forEach((pattern) => assert.match(helper, pattern));
+});
 test('tester settings consumes SDK Runtime struct codec projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
 

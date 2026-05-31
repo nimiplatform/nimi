@@ -1,10 +1,22 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { MemoryCanonicalClass, RuntimeReasonCode } from '@nimiplatform/sdk/runtime';
 import { createRuntimeAgentInspectAdapter } from '../src/shell/renderer/infra/runtime-agent-inspect.js';
 
 const LOCAL_AGENT_REF = 'local-agent:user-1:agent-1';
+
+test('runtime agent inspect adapter consumes SDK inspect projection helpers', () => {
+  const source = readFileSync('src/shell/renderer/infra/runtime-agent-inspect.ts', 'utf8');
+  assert.match(source, /projectRuntimeAgentInspectSnapshot/);
+  assert.match(source, /projectRuntimeAgentInspectEventSummary/);
+  assert.match(source, /buildRuntimeAgentStateMutations/);
+  assert.match(source, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.doesNotMatch(source, /function formatLifecycleStatus/);
+  assert.doesNotMatch(source, /function projectCanonicalMemoryInspect/);
+  assert.doesNotMatch(source, /function readAgentPresentationProfile/);
+});
 
 const PROTO_AGENT_AUTONOMY_MODE = {
   OFF: 1,

@@ -1,115 +1,53 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  type AgentStateMutation,
+  buildRuntimeAgentStateMutations,
   createRuntimeProtectedScopeHelper,
+  formatRuntimeAgentHookStatus,
+  HookAdmissionState,
+  HookTriggerFamily,
   MemoryCanonicalClass,
-} from '@nimiplatform/sdk/runtime';
-import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
-import {
-  formatAutonomyMode,
-  formatEventType,
-  formatExecutionState,
-  formatHookStatus,
-  formatLifecycleStatus,
-  formatMemoryReplicationOutcome,
-  normalizeNonNegativeInteger,
-  normalizeOptionalNumber,
-  normalizeRuntimeError,
-  normalizeText,
-  projectCanonicalMemoryInspect,
-  projectPendingHookInspect,
-  readAgentPresentationProfile,
-  timestampToIso,
+  normalizeRuntimeAgentAutonomyModeInput,
+  normalizeRuntimeAgentError,
+  normalizeRuntimeAgentNonNegativeInteger,
+  normalizeRuntimeAgentText,
+  projectRuntimeAgentAutonomySnapshot,
+  projectRuntimeAgentInspectEventSummary,
+  projectRuntimeAgentInspectSnapshot,
+  projectRuntimeAgentPendingHookInspect,
+  projectRuntimeAgentStateSnapshot,
+  readRuntimeAgentPresentationProfile,
+  toRuntimeAgentAutonomyMode,
   type RuntimeAgentAutonomyMode,
+  type RuntimeAgentAutonomySnapshot,
   type RuntimeAgentCanonicalMemoryInspect,
   type RuntimeAgentInspectEventSummary,
+  type RuntimeAgentInspectSnapshot,
   type RuntimeAgentPendingHookInspect,
-} from './runtime-agent-inspect-projection';
-
-export type RuntimeAgentInspectSnapshot = {
-  lifecycleStatus: string | null;
-  presentationProfile?: AvatarPresentationProfile | null;
-  executionState: string | null;
-  statusText: string | null;
-  activeWorldId: string | null;
-  activeUserId: string | null;
-  autonomyMode: RuntimeAgentAutonomyMode | null;
-  autonomyEnabled: boolean | null;
-  autonomyBudgetExhausted: boolean | null;
-  autonomyUsedTokensInWindow: number | null;
-  autonomyDailyTokenBudget: number | null;
-  autonomyMaxTokensPerHook: number | null;
-  autonomyWindowStartedAt: string | null;
-  autonomySuspendedUntil: string | null;
-  pendingHooksCount: number;
-  nextScheduledFor: string | null;
-  pendingHooks: readonly RuntimeAgentPendingHookInspect[];
-  recentTerminalHooks: readonly RuntimeAgentPendingHookInspect[];
-  recentCanonicalMemories: readonly RuntimeAgentCanonicalMemoryInspect[];
-};
-
-export type RuntimeAgentAutonomySnapshot = {
-  mode: RuntimeAgentAutonomyMode | null;
-  enabled: boolean | null;
-  budgetExhausted: boolean | null;
-  usedTokensInWindow: number | null;
-  dailyTokenBudget: number | null;
-  maxTokensPerHook: number | null;
-  windowStartedAt: string | null;
-  suspendedUntil: string | null;
-};
-
-export type RuntimeAgentStateSnapshot = {
-  executionState: string | null;
-  statusText: string | null;
-  activeWorldId: string | null;
-  activeUserId: string | null;
-};
+  type RuntimeAgentStateSnapshot,
+} from '@nimiplatform/sdk/runtime';
+import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 
 export type {
   RuntimeAgentCanonicalMemoryInspect,
   RuntimeAgentInspectEventSummary,
   RuntimeAgentPendingHookInspect,
-} from './runtime-agent-inspect-projection';
+  RuntimeAgentInspectSnapshot,
+  RuntimeAgentAutonomySnapshot,
+  RuntimeAgentStateSnapshot,
+} from '@nimiplatform/sdk/runtime';
 
 const MAX_PENDING_HOOK_PREVIEW = 3;
 const MAX_RECENT_TERMINAL_HOOKS = 6;
 const MAX_RECENT_CANONICAL_MEMORIES = 6;
-const PROTO_HOOK_TRIGGER_FAMILY_UNSPECIFIED = 0;
-const PROTO_HOOK_ADMISSION_STATE_UNSPECIFIED = 0;
-const PROTO_HOOK_ADMISSION_STATE_REJECTED = 3;
-const PROTO_HOOK_ADMISSION_STATE_COMPLETED = 5;
-const PROTO_HOOK_ADMISSION_STATE_FAILED = 6;
-const PROTO_HOOK_ADMISSION_STATE_CANCELED = 7;
-const PROTO_HOOK_ADMISSION_STATE_RESCHEDULED = 8;
 
 type RuntimeClient = ReturnType<typeof getPlatformClient>['runtime'];
-const PROTO_AGENT_AUTONOMY_MODE = {
-  OFF: 1,
-  LOW: 2,
-  MEDIUM: 3,
-  HIGH: 4,
-} as const;
-
-function normalizeAutonomyModeInput(value: unknown): RuntimeAgentAutonomyMode {
-  switch (normalizeText(value).toLowerCase()) {
-    case 'low':
-      return 'low';
-    case 'medium':
-      return 'medium';
-    case 'high':
-      return 'high';
-    default:
-      return 'off';
-  }
-}
 
 function parseLocalAgentIdentity(localAgentRef: string): {
   ownerUserId: string;
   realmAgentId: string;
   localAgentRef: string;
 } {
-  const normalized = normalizeText(localAgentRef);
+  const normalized = normalizeRuntimeAgentText(localAgentRef);
   const parts = normalized.split(':');
   if (parts.length !== 3 || parts[0] !== 'local-agent' || !parts[1] || !parts[2]) {
     throw new Error('runtime agent inspect requires localAgentRef formatted as local-agent:${ownerUserId}:${realmAgentId}');
@@ -129,19 +67,6 @@ function buildAgentRequestContext(runtime: RuntimeClient, subjectUserId: string,
   };
 }
 
-function toProtoAutonomyMode(value: RuntimeAgentAutonomyMode): number {
-  switch (value) {
-    case 'low':
-      return PROTO_AGENT_AUTONOMY_MODE.LOW;
-    case 'medium':
-      return PROTO_AGENT_AUTONOMY_MODE.MEDIUM;
-    case 'high':
-      return PROTO_AGENT_AUTONOMY_MODE.HIGH;
-    default:
-      return PROTO_AGENT_AUTONOMY_MODE.OFF;
-  }
-}
-
 type RuntimeAgentInspectDeps = {
   getRuntime?: () => RuntimeClient;
   getSubjectUserId?: () => string | undefined | Promise<string | undefined>;
@@ -152,7 +77,7 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
   let protectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
 
   const resolveSubjectUserId = async (): Promise<string> => {
-    const subjectUserId = normalizeText(await deps.getSubjectUserId?.());
+    const subjectUserId = normalizeRuntimeAgentText(await deps.getSubjectUserId?.());
     if (!subjectUserId) {
       throw new Error('desktop runtime agent inspect requires authenticated subject user id');
     }
@@ -171,7 +96,7 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
   };
 
   const getPublicInspect = async (agentId: string): Promise<RuntimeAgentInspectSnapshot> => {
-    const normalizedAgentId = normalizeText(agentId);
+    const normalizedAgentId = normalizeRuntimeAgentText(agentId);
     if (!normalizedAgentId) {
       throw new Error('AGENT_ID_REQUIRED');
     }
@@ -179,19 +104,19 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
     const subjectUserId = await resolveSubjectUserId();
     const protectedScopes = getProtectedAccess();
     const context = buildAgentRequestContext(runtime, subjectUserId, normalizedAgentId);
-    const listHooksByStatus = async (admissionStateFilter: number): Promise<RuntimeAgentPendingHookInspect[]> => {
+    const listHooksByStatus = async (admissionStateFilter: HookAdmissionState): Promise<RuntimeAgentPendingHookInspect[]> => {
       let pageToken = '';
       const collected: RuntimeAgentPendingHookInspect[] = [];
       do {
         const response = await protectedScopes.withScopes(['runtime.agent.read'], (options) => runtime.agent.listPendingHooks({
           context,
           agentId: normalizedAgentId,
-          triggerFamilyFilter: PROTO_HOOK_TRIGGER_FAMILY_UNSPECIFIED,
+          triggerFamilyFilter: HookTriggerFamily.UNSPECIFIED,
           admissionStateFilter,
           pageSize: 200,
           pageToken,
         }, options));
-        collected.push(...(response.hooks || []).map(projectPendingHookInspect));
+        collected.push(...(response.hooks || []).map(projectRuntimeAgentPendingHookInspect));
         pageToken = String(response.nextPageToken || '').trim();
       } while (pageToken);
       return collected;
@@ -216,15 +141,15 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
           context,
           agentId: normalizedAgentId,
         }, options)),
-        listHooksByStatus(PROTO_HOOK_ADMISSION_STATE_UNSPECIFIED),
-        listHooksByStatus(PROTO_HOOK_ADMISSION_STATE_COMPLETED),
-        listHooksByStatus(PROTO_HOOK_ADMISSION_STATE_FAILED),
-        listHooksByStatus(PROTO_HOOK_ADMISSION_STATE_CANCELED),
-        listHooksByStatus(PROTO_HOOK_ADMISSION_STATE_RESCHEDULED),
-        listHooksByStatus(PROTO_HOOK_ADMISSION_STATE_REJECTED),
+        listHooksByStatus(HookAdmissionState.UNSPECIFIED),
+        listHooksByStatus(HookAdmissionState.COMPLETED),
+        listHooksByStatus(HookAdmissionState.FAILED),
+        listHooksByStatus(HookAdmissionState.CANCELED),
+        listHooksByStatus(HookAdmissionState.RESCHEDULED),
+        listHooksByStatus(HookAdmissionState.REJECTED),
       ]);
-      const activeWorldId = normalizeText(stateResponse.state?.activeWorldId);
-      const activeUserId = normalizeText(stateResponse.state?.activeUserId);
+      const activeWorldId = normalizeRuntimeAgentText(stateResponse.state?.activeWorldId);
+      const activeUserId = normalizeRuntimeAgentText(stateResponse.state?.activeUserId);
       const canonicalClasses = [
         MemoryCanonicalClass.PUBLIC_SHARED,
         ...(activeWorldId ? [MemoryCanonicalClass.WORLD_SHARED] : []),
@@ -245,53 +170,23 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
         ...canceledHooks,
         ...rescheduledHooks,
         ...rejectedHooks,
-      ]
-        .filter((hook) => hook.hookId)
-        .sort((left, right) => {
-          const leftTime = Date.parse(left.admittedAt || left.scheduledFor || '') || 0;
-          const rightTime = Date.parse(right.admittedAt || right.scheduledFor || '') || 0;
-          if (leftTime !== rightTime) {
-            return rightTime - leftTime;
-          }
-          return String(right.hookId).localeCompare(String(left.hookId));
-        })
-        .slice(0, MAX_RECENT_TERMINAL_HOOKS);
-      const nextScheduledFor = activeHooks[0]?.scheduledFor || null;
-      const recentCanonicalMemories = (recentCanonicalMemoriesResponse.memories || [])
-        .map(projectCanonicalMemoryInspect)
-        .filter(Boolean) as RuntimeAgentCanonicalMemoryInspect[];
-      return {
-        lifecycleStatus: formatLifecycleStatus(agentResponse.agent?.lifecycleStatus),
-        presentationProfile: readAgentPresentationProfile(agentResponse.agent?.metadata),
-        executionState: formatExecutionState(stateResponse.state?.executionState),
-        statusText: normalizeText(stateResponse.state?.statusText) || null,
-        activeWorldId: activeWorldId || null,
-        activeUserId: activeUserId || null,
-        autonomyMode: formatAutonomyMode(agentResponse.agent?.autonomy?.config?.mode),
-        autonomyEnabled: typeof agentResponse.agent?.autonomy?.enabled === 'boolean'
-          ? agentResponse.agent.autonomy.enabled
-          : null,
-        autonomyBudgetExhausted: typeof agentResponse.agent?.autonomy?.budgetExhausted === 'boolean'
-          ? agentResponse.agent.autonomy.budgetExhausted
-          : null,
-        autonomyUsedTokensInWindow: normalizeOptionalNumber(agentResponse.agent?.autonomy?.usedTokensInWindow),
-        autonomyDailyTokenBudget: normalizeOptionalNumber(agentResponse.agent?.autonomy?.config?.dailyTokenBudget),
-        autonomyMaxTokensPerHook: normalizeOptionalNumber(agentResponse.agent?.autonomy?.config?.maxTokensPerHook),
-        autonomyWindowStartedAt: timestampToIso(agentResponse.agent?.autonomy?.windowStartedAt),
-        autonomySuspendedUntil: timestampToIso(agentResponse.agent?.autonomy?.suspendedUntil),
-        pendingHooksCount: activeHooks.length,
-        nextScheduledFor,
-        pendingHooks: activeHooks.slice(0, MAX_PENDING_HOOK_PREVIEW),
-        recentTerminalHooks: terminalHooks,
-        recentCanonicalMemories,
-      };
+      ];
+      return projectRuntimeAgentInspectSnapshot({
+        agent: agentResponse.agent,
+        state: stateResponse.state,
+        activeHooks,
+        terminalHooks,
+        recentCanonicalMemories: recentCanonicalMemoriesResponse.memories || [],
+        maxPendingHookPreview: MAX_PENDING_HOOK_PREVIEW,
+        maxRecentTerminalHooks: MAX_RECENT_TERMINAL_HOOKS,
+      });
     } catch (error) {
-      throw normalizeRuntimeError(error, 'inspect_runtime_agent');
+      throw normalizeRuntimeAgentError(error, 'inspect_runtime_agent');
     }
   };
 
   const getPresentationProfile = async (agentId: string): Promise<AvatarPresentationProfile | null> => {
-    const normalizedAgentId = normalizeText(agentId);
+    const normalizedAgentId = normalizeRuntimeAgentText(agentId);
     if (!normalizedAgentId) {
       throw new Error('AGENT_ID_REQUIRED');
     }
@@ -304,14 +199,14 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
         context,
         agentId: normalizedAgentId,
       }, options));
-      return readAgentPresentationProfile(response.agent?.metadata);
+      return readRuntimeAgentPresentationProfile(response.agent?.metadata);
     } catch (error) {
-      throw normalizeRuntimeError(error, 'inspect_runtime_agent_presentation');
+      throw normalizeRuntimeAgentError(error, 'inspect_runtime_agent_presentation');
     }
   };
 
   const enableAutonomy = async (agentId: string): Promise<RuntimeAgentAutonomySnapshot> => {
-    const normalizedAgentId = normalizeText(agentId);
+    const normalizedAgentId = normalizeRuntimeAgentText(agentId);
     if (!normalizedAgentId) {
       throw new Error('AGENT_ID_REQUIRED');
     }
@@ -326,18 +221,9 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
           agentId: normalizedAgentId,
         }, options)
       ));
-      return {
-        mode: formatAutonomyMode(response.autonomy?.config?.mode),
-        enabled: typeof response.autonomy?.enabled === 'boolean' ? response.autonomy.enabled : null,
-        budgetExhausted: typeof response.autonomy?.budgetExhausted === 'boolean' ? response.autonomy.budgetExhausted : null,
-        usedTokensInWindow: normalizeOptionalNumber(response.autonomy?.usedTokensInWindow),
-        dailyTokenBudget: normalizeOptionalNumber(response.autonomy?.config?.dailyTokenBudget),
-        maxTokensPerHook: normalizeOptionalNumber(response.autonomy?.config?.maxTokensPerHook),
-        windowStartedAt: timestampToIso(response.autonomy?.windowStartedAt),
-        suspendedUntil: timestampToIso(response.autonomy?.suspendedUntil),
-      };
+      return projectRuntimeAgentAutonomySnapshot(response.autonomy);
     } catch (error) {
-      throw normalizeRuntimeError(error, 'enable_runtime_agent_autonomy');
+      throw normalizeRuntimeAgentError(error, 'enable_runtime_agent_autonomy');
     }
   };
 
@@ -349,61 +235,11 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
     userId?: string | null;
     clearDyadicContext?: boolean;
   }): Promise<RuntimeAgentStateSnapshot> => {
-    const normalizedAgentId = normalizeText(input.agentId);
+    const normalizedAgentId = normalizeRuntimeAgentText(input.agentId);
     if (!normalizedAgentId) {
       throw new Error('AGENT_ID_REQUIRED');
     }
-    const mutations: AgentStateMutation[] = [];
-    if (input.statusText !== undefined) {
-      mutations.push({
-        mutation: {
-          oneofKind: 'setStatusText',
-          setStatusText: {
-            statusText: normalizeText(input.statusText),
-          },
-        },
-      });
-    }
-    if (input.clearWorldContext === true) {
-      mutations.push({
-        mutation: {
-          oneofKind: 'clearWorldContext',
-          clearWorldContext: {},
-        },
-      });
-    } else {
-      const worldId = normalizeText(input.worldId);
-      if (worldId) {
-        mutations.push({
-          mutation: {
-            oneofKind: 'setWorldContext',
-            setWorldContext: {
-              worldId,
-            },
-          },
-        });
-      }
-    }
-    if (input.clearDyadicContext === true) {
-      mutations.push({
-        mutation: {
-          oneofKind: 'clearDyadicContext',
-          clearDyadicContext: {},
-        },
-      });
-    } else {
-      const userId = normalizeText(input.userId);
-      if (userId) {
-        mutations.push({
-          mutation: {
-            oneofKind: 'setDyadicContext',
-            setDyadicContext: {
-              userId,
-            },
-          },
-        });
-      }
-    }
+    const mutations = buildRuntimeAgentStateMutations(input);
     if (mutations.length === 0) {
       throw new Error('STATE_MUTATION_REQUIRED');
     }
@@ -419,14 +255,9 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
           mutations,
         }, options)
       ));
-      return {
-        executionState: formatExecutionState(response.state?.executionState),
-        statusText: normalizeText(response.state?.statusText) || null,
-        activeWorldId: normalizeText(response.state?.activeWorldId) || null,
-        activeUserId: normalizeText(response.state?.activeUserId) || null,
-      };
+      return projectRuntimeAgentStateSnapshot(response.state);
     } catch (error) {
-      throw normalizeRuntimeError(error, 'update_runtime_agent_state');
+      throw normalizeRuntimeAgentError(error, 'update_runtime_agent_state');
     }
   };
 
@@ -434,7 +265,7 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
     agentId: string;
     reason: string;
   }): Promise<RuntimeAgentAutonomySnapshot> => {
-    const normalizedAgentId = normalizeText(input.agentId);
+    const normalizedAgentId = normalizeRuntimeAgentText(input.agentId);
     if (!normalizedAgentId) {
       throw new Error('AGENT_ID_REQUIRED');
     }
@@ -447,21 +278,12 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
         runtime.agent.disableAutonomy({
           context,
           agentId: normalizedAgentId,
-          reason: normalizeText(input.reason),
+          reason: normalizeRuntimeAgentText(input.reason),
         }, options)
       ));
-      return {
-        mode: formatAutonomyMode(response.autonomy?.config?.mode),
-        enabled: typeof response.autonomy?.enabled === 'boolean' ? response.autonomy.enabled : null,
-        budgetExhausted: typeof response.autonomy?.budgetExhausted === 'boolean' ? response.autonomy.budgetExhausted : null,
-        usedTokensInWindow: normalizeOptionalNumber(response.autonomy?.usedTokensInWindow),
-        dailyTokenBudget: normalizeOptionalNumber(response.autonomy?.config?.dailyTokenBudget),
-        maxTokensPerHook: normalizeOptionalNumber(response.autonomy?.config?.maxTokensPerHook),
-        windowStartedAt: timestampToIso(response.autonomy?.windowStartedAt),
-        suspendedUntil: timestampToIso(response.autonomy?.suspendedUntil),
-      };
+      return projectRuntimeAgentAutonomySnapshot(response.autonomy);
     } catch (error) {
-      throw normalizeRuntimeError(error, 'disable_runtime_agent_autonomy');
+      throw normalizeRuntimeAgentError(error, 'disable_runtime_agent_autonomy');
     }
   };
 
@@ -470,8 +292,8 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
     hookId: string;
     reason: string;
   }): Promise<{ hookId: string; status: string | null }> => {
-    const normalizedAgentId = normalizeText(input.agentId);
-    const normalizedHookId = normalizeText(input.hookId);
+    const normalizedAgentId = normalizeRuntimeAgentText(input.agentId);
+    const normalizedHookId = normalizeRuntimeAgentText(input.hookId);
     if (!normalizedAgentId) {
       throw new Error('AGENT_ID_REQUIRED');
     }
@@ -488,15 +310,15 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
           context,
           agentId: normalizedAgentId,
           intentId: normalizedHookId,
-          reason: normalizeText(input.reason),
+          reason: normalizeRuntimeAgentText(input.reason),
         }, options)
       ));
       return {
-        hookId: normalizeText(response.outcome?.intent?.intentId) || normalizedHookId,
-        status: formatHookStatus(response.outcome?.intent?.admissionState),
+        hookId: normalizeRuntimeAgentText(response.outcome?.intent?.intentId) || normalizedHookId,
+        status: formatRuntimeAgentHookStatus(response.outcome?.intent?.admissionState),
       };
     } catch (error) {
-      throw normalizeRuntimeError(error, 'cancel_runtime_agent_hook');
+      throw normalizeRuntimeAgentError(error, 'cancel_runtime_agent_hook');
     }
   };
 
@@ -506,8 +328,8 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
     dailyTokenBudget: string | number;
     maxTokensPerHook: string | number;
   }): Promise<RuntimeAgentAutonomySnapshot> => {
-    const normalizedAgentId = normalizeText(input.agentId);
-    const normalizedMode = normalizeAutonomyModeInput(input.mode);
+    const normalizedAgentId = normalizeRuntimeAgentText(input.agentId);
+    const normalizedMode = normalizeRuntimeAgentAutonomyModeInput(input.mode);
     if (!normalizedAgentId) {
       throw new Error('AGENT_ID_REQUIRED');
     }
@@ -521,24 +343,15 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
           context,
           agentId: normalizedAgentId,
           config: {
-            mode: toProtoAutonomyMode(normalizedMode),
-            dailyTokenBudget: normalizeNonNegativeInteger(input.dailyTokenBudget),
-            maxTokensPerHook: normalizeNonNegativeInteger(input.maxTokensPerHook),
+            mode: toRuntimeAgentAutonomyMode(normalizedMode),
+            dailyTokenBudget: normalizeRuntimeAgentNonNegativeInteger(input.dailyTokenBudget),
+            maxTokensPerHook: normalizeRuntimeAgentNonNegativeInteger(input.maxTokensPerHook),
           },
         }, options)
       ));
-      return {
-        mode: formatAutonomyMode(response.autonomy?.config?.mode),
-        enabled: typeof response.autonomy?.enabled === 'boolean' ? response.autonomy.enabled : null,
-        budgetExhausted: typeof response.autonomy?.budgetExhausted === 'boolean' ? response.autonomy.budgetExhausted : null,
-        usedTokensInWindow: normalizeOptionalNumber(response.autonomy?.usedTokensInWindow),
-        dailyTokenBudget: normalizeOptionalNumber(response.autonomy?.config?.dailyTokenBudget),
-        maxTokensPerHook: normalizeOptionalNumber(response.autonomy?.config?.maxTokensPerHook),
-        windowStartedAt: timestampToIso(response.autonomy?.windowStartedAt),
-        suspendedUntil: timestampToIso(response.autonomy?.suspendedUntil),
-      };
+      return projectRuntimeAgentAutonomySnapshot(response.autonomy);
     } catch (error) {
-      throw normalizeRuntimeError(error, 'set_runtime_agent_autonomy_config');
+      throw normalizeRuntimeAgentError(error, 'set_runtime_agent_autonomy_config');
     }
   };
 
@@ -547,7 +360,7 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
     signal?: AbortSignal;
     onEvent: (event: RuntimeAgentInspectEventSummary) => void | Promise<void>;
   }): Promise<void> => {
-    const normalizedAgentId = normalizeText(input.agentId);
+    const normalizedAgentId = normalizeRuntimeAgentText(input.agentId);
     if (!normalizedAgentId) {
       throw new Error('AGENT_ID_REQUIRED');
     }
@@ -570,60 +383,16 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
         if (input.signal?.aborted) {
           break;
         }
-        await input.onEvent({
-          agentId: normalizeText(event.agentId) || normalizedAgentId,
-          eventType: Number(event.eventType) || 0,
-          eventTypeLabel: formatEventType(event.eventType),
-          sequence: String(event.sequence || ''),
-          detailKind: event.detail?.oneofKind || null,
-          timestamp: timestampToIso(event.timestamp),
-          summaryText: event.detail?.oneofKind === 'hook'
-            ? [
-              normalizeText(event.detail.hook?.intent?.intentId) || 'hook',
-              formatHookStatus(event.detail.hook?.family) || 'unknown',
-            ].join(' · ')
-            : event.detail?.oneofKind === 'lifecycle'
-              ? `current=${formatLifecycleStatus(event.detail.lifecycle?.currentStatus) || 'unknown'}`
-              : event.detail?.oneofKind === 'memory'
-                ? [
-                  `accepted=${event.detail.memory?.accepted?.length || 0}`,
-                  `rejected=${event.detail.memory?.rejected?.length || 0}`,
-                ].join(' · ')
-              : event.detail?.oneofKind === 'budget'
-                ? [
-                  `budgetExhausted=${event.detail.budget?.budgetExhausted === true}`,
-                  `remainingTokens=${normalizeOptionalNumber(event.detail.budget?.remainingTokens) ?? '-'}`,
-                ].join(' · ')
-                : event.detail?.oneofKind === 'replication'
-                  ? [
-                    normalizeText(event.detail.replication?.memoryId) || 'memory',
-                    event.detail.replication?.replication?.detail?.oneofKind
-                      || formatMemoryReplicationOutcome(event.detail.replication?.replication?.outcome)
-                      || 'replication',
-                  ].join(' · ')
-                    : null,
-          hookId: event.detail?.oneofKind === 'hook'
-            ? normalizeText(event.detail.hook?.intent?.intentId) || null
-            : null,
-          hookStatus: event.detail?.oneofKind === 'hook'
-            ? formatHookStatus(event.detail.hook?.family)
-            : null,
-          lifecycleStatus: event.detail?.oneofKind === 'lifecycle'
-            ? formatLifecycleStatus(event.detail.lifecycle?.currentStatus)
-            : null,
-          budgetExhausted: event.detail?.oneofKind === 'budget'
-            ? event.detail.budget?.budgetExhausted === true
-            : null,
-          remainingTokens: event.detail?.oneofKind === 'budget'
-            ? normalizeOptionalNumber(event.detail.budget?.remainingTokens)
-            : null,
-        });
+        await input.onEvent(projectRuntimeAgentInspectEventSummary({
+          event,
+          fallbackAgentId: normalizedAgentId,
+        }));
       }
     } catch (error) {
       if (input.signal?.aborted) {
         return;
       }
-      throw normalizeRuntimeError(error, 'subscribe_runtime_agent_events');
+      throw normalizeRuntimeAgentError(error, 'subscribe_runtime_agent_events');
     }
   };
 

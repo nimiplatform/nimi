@@ -129,6 +129,7 @@ import {
 } from '@nimiplatform/kit/features/chat/realm';
 import { Button, ProgressIndicator, StatusBadge, Surface, Toggle } from '@nimiplatform/kit/ui';
 import { createTesterMemoryEmbeddingRuntimeProjection } from '../../tester/tester-memory-embedding-runtime-projection';
+import { createTesterRuntimeAgentInspectProjection } from '../../tester/tester-runtime-agent-inspect-projection';
 import { createTesterLocalRecommendationCopyProjection } from '../../tester/tester-local-recommendation-copy-projection';
 import { createTesterLocalRuntimeAssetKindProjection } from '../../tester/tester-local-runtime-asset-kind-projection';
 
@@ -861,6 +862,7 @@ export function SettingsRoute() {
     },
   });
   const memoryEmbeddingRuntimeProjection = createTesterMemoryEmbeddingRuntimeProjection();
+  const runtimeAgentInspectProjection = createTesterRuntimeAgentInspectProjection();
   const runtimeRouteModelProfileProjection = findRuntimeRouteModelProfile({
     capability: 'text.generate',
     selected: null,
@@ -2054,6 +2056,18 @@ export function SettingsRoute() {
           {runtimeAgentConsumerProjection.recoveryEventCount}
           {' / '}
           {runtimeAgentConsumerProjection.terminalEventName}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Runtime agent inspect projection</span>
+        <StatusBadge tone={runtimeAgentInspectProjection.lifecycleStatus === 'active' ? 'success' : 'warning'}>
+          {runtimeAgentInspectProjection.presentationBackend}
+          {' / '}
+          {runtimeAgentInspectProjection.nextHookStatus ?? 'none'}
+          {' / '}
+          {runtimeAgentInspectProjection.eventSummary ?? 'none'}
+          {' / '}
+          {runtimeAgentInspectProjection.mutationKinds}
         </StatusBadge>
       </div>
       <div className="setting-row">

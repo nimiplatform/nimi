@@ -17,6 +17,7 @@ export * from './model-catalog.js';
 export * from './workflow-builder.js';
 export * from './app-storage.js';
 export * from './runtime-agent-consumer-helpers.js';
+export * from './runtime-agent-inspect-projection.js';
 export * from './runtime-agent-memory.js';
 export * from './runtime-call-options.js';
 export * from './runtime-scheduling-types.js';
@@ -128,6 +129,7 @@ export {
 } from './generated/runtime/v1/memory.js';
 export {
   AgentEventType,
+  AgentAutonomyMode,
   AgentExecutionState,
   AvatarDebugProbeKind,
   AvatarDebugProbeStatus,
