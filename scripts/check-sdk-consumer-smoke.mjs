@@ -81,7 +81,7 @@ async function writeConsumerPackageJson(appDir, sdkTarballPath) {
 async function writeSmokeEntry(appDir) {
   const source = [
     "import { clearPlatformClient, createNimiAppRuntimePlatformClient, createPlatformClient, getPlatformClient } from '@nimiplatform/sdk';",
-    "import { Runtime, buildRuntimeAuthMetadata, createRuntimeClient, createRuntimeRealmBridgeHelpers, fetchRealmGrant, normalizeRuntimeRouteSource } from '@nimiplatform/sdk/runtime';",
+    "import { Runtime, buildRuntimeAuthMetadata, createRuntimeClient, createRuntimeRealmBridgeHelpers, fetchRealmGrant, normalizeRuntimeRouteSource, resolveAIConfigRuntimeSchedulingTargetForCapability } from '@nimiplatform/sdk/runtime';",
     "import { Realm } from '@nimiplatform/sdk/realm';",
     "import { createWorldFacade, generate as worldGenerate, fixture as worldFixture, render as worldRender, session as worldSession } from '@nimiplatform/sdk/world';",
     "import { Modal } from '@nimiplatform/sdk/runtime';",
@@ -108,7 +108,7 @@ async function writeSmokeEntry(appDir) {
     "if (typeof createNimiAiProvider !== 'function') throw new Error('ai-provider export invalid');",
     "if (typeof aiApi.createEmptyAIConfig !== 'function') throw new Error('ai config export invalid');",
     "if (typeof aiApi.createAppAIScopeRef !== 'function') throw new Error('app ai scope export invalid');",
-    "if (typeof aiApi.resolveAIConfigRuntimeSchedulingTargetForCapability !== 'function') throw new Error('ai scheduling projection export invalid');",
+    "if (typeof resolveAIConfigRuntimeSchedulingTargetForCapability !== 'function') throw new Error('runtime scheduling AIConfig projection export invalid');",
     "if (typeof normalizeRuntimeRouteSource !== 'function') throw new Error('runtime route export invalid');",
     "const aiScopeRef = aiApi.createAppAIScopeRef('app.nimi.sdk-smoke', 'default-surface');",
     "if (aiScopeRef.kind !== 'app' || aiScopeRef.ownerId !== 'app.nimi.sdk-smoke' || aiScopeRef.surfaceId !== 'default-surface') throw new Error('app ai scope call invalid');",

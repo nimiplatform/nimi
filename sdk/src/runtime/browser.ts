@@ -19,6 +19,7 @@ export * from './runtime-agent-memory.js';
 export * from './runtime-call-options.js';
 export * from './runtime-scheduling-types.js';
 export * from './runtime-scheduling.js';
+export * from './ai-config-scheduling.js';
 export * from './memory-embedding-runtime.js';
 export * from './runtime-route.js';
 export * from './runtime-route-capability-projection.js';

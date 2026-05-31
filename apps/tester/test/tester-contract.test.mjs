@@ -344,6 +344,7 @@ test('tester LLM invokers consume AIConfig bindings and fail closed without bind
   assert.match(invokers, /aiConfigBindingModel/);
   assert.match(invokers, /aiConfigHash/);
   assert.match(invokers, /resolveAIConfigRuntimeSchedulingTargetForCapability/);
+  assert.match(invokers, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(invokers, /peekRuntimeSchedulingBatch/);
   assert.match(invokers, /client\.runtime\.ai\.peekScheduling/);
 });

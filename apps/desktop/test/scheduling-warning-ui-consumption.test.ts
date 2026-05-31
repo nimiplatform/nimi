@@ -227,6 +227,7 @@ test('no parallel scheduling truth: shared guard module reads scope and submit t
 test('no parallel scheduling truth: Desktop delegates AIConfig scheduling projection to SDK and Runtime Peek', () => {
   const source = readSource(schedulingModulePath);
   assert.match(source, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.doesNotMatch(source, /from '@nimiplatform\/sdk\/ai'/);
   assert.match(source, /resolveAIConfigRuntimeSchedulingTargets/);
   assert.match(source, /getPlatformClient\(\)\.runtime\.ai\.peekScheduling/);
   assert.doesNotMatch(source, /export function resolveAIConfigScopeSchedulingTargets\(/);
