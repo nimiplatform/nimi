@@ -2,8 +2,10 @@ import { useCallback, useMemo } from 'react';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   findLocalRuntimeProfileById,
-  localRuntime,
   normalizeLocalRuntimeProfilesDeclaration,
+} from '@nimiplatform/sdk/runtime';
+import {
+  localRuntime,
   type LocalRuntimeAssetKind,
   type LocalRuntimeCatalogItemDescriptor,
   type LocalRuntimeInstallPayload,

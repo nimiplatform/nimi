@@ -1,63 +1,28 @@
+import type { LocalRuntimeAssetRecord } from './types';
 import type {
-  LocalRuntimeAssetKind,
-  LocalRuntimeAssetRecord,
-} from './types';
-import type { LocalRuntimeRunnableAssetKindId } from '@nimiplatform/sdk/runtime';
+  LocalRuntimeProfileDescriptor,
+  LocalRuntimeProfileEntryDescriptor,
+  LocalRuntimeProfileEntryKind,
+  LocalRuntimeProfileEntryOverride,
+  LocalRuntimeProfileExecutionBridge,
+  LocalRuntimeProfileRequirementDescriptor,
+  LocalRuntimeProfileTargetDescriptor,
+  LocalRuntimeRunnableAssetKindId,
+} from '@nimiplatform/sdk/runtime';
 import type {
-  LocalRuntimeExecutionDeclarationDescriptor,
   LocalRuntimeExecutionApplyResult,
   LocalRuntimeExecutionPlan,
   LocalRuntimeDeviceProfile,
 } from './types-dependencies';
 
-export type LocalRuntimeProfileEntryKind = 'asset' | 'service' | 'node';
-export type LocalRuntimeProfileEntryOverride = {
-  entryId: string;
-  localAssetId: string;
-};
-
-export type LocalRuntimeProfileRequirementDescriptor = {
-  minGpuMemoryGb?: number;
-  minDiskBytes?: number;
-  platforms?: string[];
-  notes?: string[];
-};
-
-export type LocalRuntimeProfileEntryDescriptor = {
-  entryId: string;
-  kind: LocalRuntimeProfileEntryKind;
-  title?: string;
-  description?: string;
-  capability?: LocalRuntimeRunnableAssetKindId | string;
-  required?: boolean;
-  preferred?: boolean;
-  assetId?: string;
-  assetKind?: LocalRuntimeAssetKind;
-  engineSlot?: string;
-  repo?: string;
-  serviceId?: string;
-  nodeId?: string;
-  engine?: string;
-  templateId?: string;
-  revision?: string;
-  tags?: string[];
-};
-
-export type LocalRuntimeProfileDescriptor = {
-  id: string;
-  title: string;
-  description?: string;
-  recommended: boolean;
-  consumeCapabilities: Array<LocalRuntimeRunnableAssetKindId | string>;
-  entries: LocalRuntimeProfileEntryDescriptor[];
-  requirements?: LocalRuntimeProfileRequirementDescriptor;
-};
-
-export type LocalRuntimeProfileTargetDescriptor = {
-  targetId: string;
-  targetName: string;
-  consumeCapabilities: Array<LocalRuntimeRunnableAssetKindId | string>;
-  profiles: LocalRuntimeProfileDescriptor[];
+export type {
+  LocalRuntimeProfileDescriptor,
+  LocalRuntimeProfileEntryDescriptor,
+  LocalRuntimeProfileEntryKind,
+  LocalRuntimeProfileEntryOverride,
+  LocalRuntimeProfileExecutionBridge,
+  LocalRuntimeProfileRequirementDescriptor,
+  LocalRuntimeProfileTargetDescriptor,
 };
 
 export type LocalRuntimeProfileResolutionPlan = {
@@ -108,9 +73,4 @@ export type LocalRuntimeProfileInstallRequestResult = {
   plan?: LocalRuntimeProfileResolutionPlan;
   result?: LocalRuntimeProfileApplyResult;
   reasonCode?: string;
-};
-
-export type LocalRuntimeProfileExecutionBridge = {
-  runtimeEntries?: LocalRuntimeExecutionDeclarationDescriptor;
-  assets: LocalRuntimeProfileEntryDescriptor[];
 };

@@ -40,6 +40,8 @@ import {
   normalizeLocalRecommendationFeedCacheStateId,
   parseLocalRuntimeEnvironmentDependencyJobProjection,
   parseLocalRuntimeEnvironmentPlanProjection,
+  normalizeLocalRuntimeProfilesDeclaration,
+  bridgeLocalRuntimeProfile,
   projectRuntimeLocalAgentIdentity,
   parseRuntimeLocalRecommendationFeedDescriptor,
   parseLocalRecommendationFeedSourceId,
@@ -749,6 +751,25 @@ export function SettingsRoute() {
     statusName: projectRuntimeHealthStatusName(RuntimeHealthStatus.READY) ?? 'unknown',
     sampledAt: toIsoFromTimestamp({ seconds: '1710000000', nanos: 0 }) ?? 'unknown',
   };
+  const localRuntimeProfileProjection = (() => {
+    const [profile] = normalizeLocalRuntimeProfilesDeclaration([
+      {
+        id: 'tester-profile',
+        title: 'Tester Profile',
+        consumeCapabilities: ['chat'],
+        entries: [
+          { entryId: 'tester-service', kind: 'service', capability: 'chat', serviceId: 'tester-runtime' },
+          { entryId: 'tester-asset', kind: 'asset', capability: 'chat', assetId: 'tester/chat-model', assetKind: 'chat' },
+        ],
+      },
+    ]);
+    const bridge = profile ? bridgeLocalRuntimeProfile(profile, 'chat') : null;
+    return {
+      profileCount: profile ? 1 : 0,
+      runtimeEntryCount: bridge?.runtimeEntries?.required?.length ?? 0,
+      assetCount: bridge?.assets.length ?? 0,
+    };
+  })();
   const runtimeAuditWireProjection = {
     callerKindName: projectRuntimeAuditCallerKindName(CallerKind.THIRD_PARTY_APP) ?? 'unknown',
     usageWindowName: projectRuntimeUsageWindowName(UsageWindow.HOUR) ?? 'unknown',
@@ -1417,6 +1438,12 @@ export function SettingsRoute() {
         <span>SDK runtime health wire projection</span>
         <StatusBadge tone="neutral">
           {runtimeHealthWireProjection.statusName}: {runtimeHealthWireProjection.sampledAt}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK local runtime profile projection</span>
+        <StatusBadge tone="neutral">
+          {localRuntimeProfileProjection.profileCount}: {localRuntimeProfileProjection.runtimeEntryCount}/{localRuntimeProfileProjection.assetCount}
         </StatusBadge>
       </div>
       <div className="setting-row">

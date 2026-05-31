@@ -114,13 +114,6 @@ import type {
   LocalRuntimeEnvironmentPlanDependency,
   LocalRuntimeEnvironmentPlanPayload,
 } from './types';
-export {
-  bridgeLocalRuntimeProfile,
-  findLocalRuntimeProfileById,
-  normalizeLocalRuntimeProfilesDeclaration,
-  profileSupportsCapability,
-} from './profile-manifest';
-
 export { listLocalRuntimeAssets };
 
 export type {

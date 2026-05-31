@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { normalizeLocalRuntimeProfilesDeclaration } from '@runtime/local-runtime';
+import { normalizeLocalRuntimeProfilesDeclaration } from '@nimiplatform/sdk/runtime';
 import {
   type CapabilityV11,
   type ProviderStatusV11,

@@ -1,11 +1,81 @@
-import type {
-  LocalRuntimeExecutionOptionDescriptor,
-} from './types-dependencies';
-import type {
-  LocalRuntimeProfileDescriptor,
-  LocalRuntimeProfileEntryDescriptor,
-  LocalRuntimeProfileExecutionBridge,
-} from './types-profiles';
+import {
+  parseLocalRuntimeAssetKindId,
+  type LocalRuntimeAssetKindId,
+  type LocalRuntimeRunnableAssetKindId,
+} from './local-asset-kind.js';
+
+export type LocalRuntimeProfileEntryKind = 'asset' | 'service' | 'node';
+
+export type LocalRuntimeProfileEntryOverride = {
+  entryId: string;
+  localAssetId: string;
+};
+
+export type LocalRuntimeProfileRequirementDescriptor = {
+  minGpuMemoryGb?: number;
+  minDiskBytes?: number;
+  platforms?: string[];
+  notes?: string[];
+};
+
+export type LocalRuntimeProfileEntryDescriptor = {
+  entryId: string;
+  kind: LocalRuntimeProfileEntryKind;
+  title?: string;
+  description?: string;
+  capability?: LocalRuntimeRunnableAssetKindId | string;
+  required?: boolean;
+  preferred?: boolean;
+  assetId?: string;
+  assetKind?: LocalRuntimeAssetKindId;
+  engineSlot?: string;
+  repo?: string;
+  serviceId?: string;
+  nodeId?: string;
+  engine?: string;
+  templateId?: string;
+  revision?: string;
+  tags?: string[];
+};
+
+export type LocalRuntimeProfileDescriptor = {
+  id: string;
+  title: string;
+  description?: string;
+  recommended: boolean;
+  consumeCapabilities: Array<LocalRuntimeRunnableAssetKindId | string>;
+  entries: LocalRuntimeProfileEntryDescriptor[];
+  requirements?: LocalRuntimeProfileRequirementDescriptor;
+};
+
+export type LocalRuntimeProfileTargetDescriptor = {
+  targetId: string;
+  targetName: string;
+  consumeCapabilities: Array<LocalRuntimeRunnableAssetKindId | string>;
+  profiles: LocalRuntimeProfileDescriptor[];
+};
+
+export type LocalRuntimeProfileExecutionOptionDescriptor = {
+  entryId: string;
+  kind: LocalRuntimeProfileEntryKind;
+  capability?: LocalRuntimeRunnableAssetKindId | string;
+  title?: string;
+  assetId?: string;
+  repo?: string;
+  serviceId?: string;
+  nodeId?: string;
+  engine?: string;
+};
+
+export type LocalRuntimeProfileExecutionDeclarationDescriptor = {
+  required?: LocalRuntimeProfileExecutionOptionDescriptor[];
+  optional?: LocalRuntimeProfileExecutionOptionDescriptor[];
+};
+
+export type LocalRuntimeProfileExecutionBridge = {
+  runtimeEntries?: LocalRuntimeProfileExecutionDeclarationDescriptor;
+  assets: LocalRuntimeProfileEntryDescriptor[];
+};
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -23,33 +93,9 @@ function normalizeBoolean(value: unknown, fallback = false): boolean {
   return typeof value === 'boolean' ? value : fallback;
 }
 
-function normalizeAssetKind(value: unknown): LocalRuntimeProfileEntryDescriptor['assetKind'] {
+function normalizeEntryKind(value: unknown): LocalRuntimeProfileEntryKind | null {
   const normalized = String(value || '').trim().toLowerCase();
-  if (
-    normalized === 'chat'
-    || normalized === 'image'
-    || normalized === 'video'
-    || normalized === 'tts'
-    || normalized === 'stt'
-    || normalized === 'embedding'
-    || normalized === 'vae'
-    || normalized === 'clip'
-    || normalized === 'controlnet'
-    || normalized === 'lora'
-    || normalized === 'auxiliary'
-  ) {
-    return normalized;
-  }
-  return undefined;
-}
-
-function normalizeEntryKind(value: unknown): LocalRuntimeProfileEntryDescriptor['kind'] | null {
-  const normalized = String(value || '').trim().toLowerCase();
-  if (
-    normalized === 'asset'
-    || normalized === 'service'
-    || normalized === 'node'
-  ) {
+  if (normalized === 'asset' || normalized === 'service' || normalized === 'node') {
     return normalized;
   }
   return null;
@@ -71,7 +117,7 @@ function normalizeProfileEntry(value: unknown): LocalRuntimeProfileEntryDescript
     required: typeof record.required === 'boolean' ? Boolean(record.required) : undefined,
     preferred: typeof record.preferred === 'boolean' ? Boolean(record.preferred) : undefined,
     assetId: String(record.assetId || '').trim() || undefined,
-    assetKind: normalizeAssetKind(record.assetKind || record.kindHint),
+    assetKind: parseLocalRuntimeAssetKindId(record.assetKind || record.kindHint),
     engineSlot: String(record.engineSlot || '').trim() || undefined,
     repo: String(record.repo || '').trim() || undefined,
     serviceId: String(record.serviceId || '').trim() || undefined,
@@ -144,7 +190,7 @@ export function profileSupportsCapability(
   return profile.entries.some((entry) => String(entry.capability || '').trim() === normalizedCapability);
 }
 
-function toExecutionOption(entry: LocalRuntimeProfileEntryDescriptor): LocalRuntimeExecutionOptionDescriptor {
+function toExecutionOption(entry: LocalRuntimeProfileEntryDescriptor): LocalRuntimeProfileExecutionOptionDescriptor {
   return {
     entryId: entry.entryId,
     kind: entry.kind === 'service' ? 'service' : (entry.kind === 'node' ? 'node' : 'asset'),

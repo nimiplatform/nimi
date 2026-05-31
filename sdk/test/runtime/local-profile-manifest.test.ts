@@ -3,8 +3,10 @@ import test from 'node:test';
 
 import {
   bridgeLocalRuntimeProfile,
+  findLocalRuntimeProfileById,
   normalizeLocalRuntimeProfilesDeclaration,
-} from '@nimiplatform/sdk/runtime';
+  profileSupportsCapability,
+} from '../../src/runtime/index.js';
 
 test('normalizeLocalRuntimeProfilesDeclaration parses profile bundles and asset entries', () => {
   const profiles = normalizeLocalRuntimeProfilesDeclaration([
@@ -43,6 +45,7 @@ test('normalizeLocalRuntimeProfilesDeclaration parses profile bundles and asset 
   assert.equal(profiles.length, 1);
   assert.equal(profiles[0]?.recommended, true);
   assert.equal(profiles[0]?.entries[1]?.kind, 'asset');
+  assert.equal(profiles[0]?.entries[1]?.assetKind, 'vae');
   assert.equal(profiles[0]?.requirements?.minGpuMemoryGb, 12);
 });
 
@@ -111,4 +114,21 @@ test('normalizeLocalRuntimeProfilesDeclaration rejects legacy model and artifact
 
   assert.equal(profiles.length, 1);
   assert.deepEqual(profiles[0]?.entries, []);
+});
+
+test('profile helpers find profiles and project capability support', () => {
+  const profiles = normalizeLocalRuntimeProfilesDeclaration([
+    {
+      id: 'chat-balanced',
+      title: 'Chat Balanced',
+      consumeCapabilities: ['chat'],
+      entries: [{ entryId: 'chat-service', kind: 'service', capability: 'chat' }],
+    },
+  ]);
+  const profile = findLocalRuntimeProfileById(profiles, 'chat-balanced');
+
+  assert.ok(profile);
+  assert.equal(profileSupportsCapability(profile, 'chat'), true);
+  assert.equal(profileSupportsCapability(profile, 'image'), false);
+  assert.equal(findLocalRuntimeProfileById(profiles, 'missing'), null);
 });
