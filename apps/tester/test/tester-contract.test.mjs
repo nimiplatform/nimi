@@ -1308,9 +1308,9 @@ test('tester settings consumes SDK Runtime agent inspect projections', () => {
   [/createTesterRuntimeAgentInspectProjection/, /Runtime agent inspect projection/, /runtimeAgentInspectProjection\.mutationKinds/].forEach((pattern) => assert.match(settings, pattern));
   [/projectRuntimeAgentInspectSnapshot/, /projectRuntimeAgentInspectEventSummary/, /projectRuntimeAgentPendingHookInspect/, /buildRuntimeAgentStateMutations/, /readRuntimeAgentPresentationProfile/, /from '@nimiplatform\/sdk\/runtime'/].forEach((pattern) => assert.match(helper, pattern));
 });
+test('tester settings consumes SDK Runtime external agent projections', () => { const settings = read('src/shell/routes/settings.tsx'); const helper = read('src/tester/tester-external-agent-projection.ts'); [/createTesterExternalAgentProjection/, /Runtime external agent projection/, /externalAgentProjection\.gateway\.actionCount/].forEach((pattern) => assert.match(settings, pattern)); [/projectExternalAgentIssueTokenResult/, /parseExternalAgentTokenLedgerRecord/, /projectExternalAgentGatewayStatus/, /from '@nimiplatform\/sdk\/runtime'/].forEach((pattern) => assert.match(helper, pattern)); });
 test('tester settings consumes SDK Runtime struct codec projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
-
   assert.match(settings, /toProtoStruct/);
   assert.match(settings, /fromProtoStruct/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);

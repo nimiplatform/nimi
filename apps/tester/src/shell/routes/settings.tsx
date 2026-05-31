@@ -128,6 +128,7 @@ import {
   type RealmListChatsResultDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import { Button, ProgressIndicator, StatusBadge, Surface, Toggle } from '@nimiplatform/kit/ui';
+import { createTesterExternalAgentProjection } from '../../tester/tester-external-agent-projection';
 import { createTesterMemoryEmbeddingRuntimeProjection } from '../../tester/tester-memory-embedding-runtime-projection';
 import { createTesterRuntimeAgentInspectProjection } from '../../tester/tester-runtime-agent-inspect-projection';
 import { createTesterLocalRecommendationCopyProjection } from '../../tester/tester-local-recommendation-copy-projection';
@@ -863,6 +864,7 @@ export function SettingsRoute() {
   });
   const memoryEmbeddingRuntimeProjection = createTesterMemoryEmbeddingRuntimeProjection();
   const runtimeAgentInspectProjection = createTesterRuntimeAgentInspectProjection();
+  const externalAgentProjection = createTesterExternalAgentProjection();
   const runtimeRouteModelProfileProjection = findRuntimeRouteModelProfile({
     capability: 'text.generate',
     selected: null,
@@ -2068,6 +2070,16 @@ export function SettingsRoute() {
           {runtimeAgentInspectProjection.eventSummary ?? 'none'}
           {' / '}
           {runtimeAgentInspectProjection.mutationKinds}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Runtime external agent projection</span>
+        <StatusBadge tone={externalAgentProjection.gateway.enabled ? 'success' : 'warning'}>
+          {externalAgentProjection.issued.mode ?? 'none'}
+          {' / '}
+          {externalAgentProjection.token.tokenId}
+          {' / '}
+          {externalAgentProjection.gateway.actionCount}
         </StatusBadge>
       </div>
       <div className="setting-row">

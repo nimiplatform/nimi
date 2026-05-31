@@ -18,9 +18,15 @@ test('external agent token ledger uses SDK Runtime projection instead of Tauri e
   const source = readDesktopFile('src/runtime/external-agent/index.ts');
 
   assert.match(source, /getPlatformClient\(\)\.runtime\.externalAgent\.listTokens/);
+  assert.match(source, /projectExternalAgentTokenLedger/);
+  assert.match(source, /projectExternalAgentIssueTokenResult/);
+  assert.match(source, /projectExternalAgentGatewayStatus/);
+  assert.match(source, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(source, /EXTERNAL_AGENT_TOKEN_LEDGER_INVALID_RESPONSE/);
   assert.doesNotMatch(source, /tauriInvoke/);
   assert.doesNotMatch(source, /external_agent_list_tokens/);
+  assert.doesNotMatch(source, /function parseExternalAgentTokenRecord/);
+  assert.doesNotMatch(source, /function toIsoFromTimestamp/);
 });
 
 test('Runtime External Agent service fails closed while action registry is empty', () => {
