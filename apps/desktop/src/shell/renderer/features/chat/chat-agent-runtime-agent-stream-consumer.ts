@@ -1,4 +1,14 @@
-import type { RuntimeAgentConsumeEvent, RuntimeAgentSessionTurnSnapshot } from '@nimiplatform/sdk/runtime';
+import {
+  isRuntimeAgentProjectionEvent,
+  matchesRuntimeAgentProjectionScope,
+  recoverRuntimeAgentTerminalSnapshot,
+  summarizeRuntimeAgentProjectionEvent,
+  summarizeRuntimeAgentTimeline,
+  type RuntimeAgentConsumeEvent,
+  type RuntimeAgentProjectionSummary,
+  type RuntimeAgentSessionTurnSnapshot,
+  type RuntimeAgentTimelineSummary,
+} from '@nimiplatform/sdk/runtime';
 import type { ConversationRuntimeTrace } from '@nimiplatform/kit/features/chat/headless';
 
 import type { AgentResolvedMessageActionEnvelope } from '@nimiplatform/sdk/runtime';
@@ -8,19 +18,8 @@ import type {
 } from './chat-agent-runtime-turn-types';
 import { normalizeText } from './chat-agent-runtime-normalize';
 import {
-  isRuntimeAgentProjectionEvent,
-  matchesRuntimeAgentProjectionScope,
-  summarizeRuntimeAgentProjectionEvent,
-  type RuntimeAgentProjectionSummary,
-} from './chat-agent-runtime-agent-projection';
-import {
-  summarizeRuntimeAgentTimeline,
-  type RuntimeAgentTimelineSummary,
-} from './chat-agent-runtime-agent-timeline';
-import {
   createRuntimeAgentEventQueue,
   delay,
-  recoverRuntimeAgentTerminalSnapshot,
 } from './chat-agent-runtime-agent-stream';
 import {
   buildRuntimeAgentDiagnostics,

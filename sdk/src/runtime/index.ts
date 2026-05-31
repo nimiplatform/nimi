@@ -11,6 +11,7 @@ export * from './health-coordinator.js';
 export * from './model-catalog.js';
 export * from './workflow-builder.js';
 export * from './app-storage.js';
+export * from './runtime-agent-consumer-helpers.js';
 export {
   Modal,
   ScenarioType,

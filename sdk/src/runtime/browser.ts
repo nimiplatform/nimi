@@ -6,6 +6,7 @@ export * from './reason-code-messages.js';
 export * from './local-environment-dependency-states.js';
 export * from './workflow-builder.js';
 export * from './app-storage.js';
+export * from './runtime-agent-consumer-helpers.js';
 export {
   Modal,
   ScenarioType,

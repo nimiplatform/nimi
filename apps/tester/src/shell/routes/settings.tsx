@@ -13,12 +13,15 @@ import {
   createRuntimeConnectorInventoryClient,
   createRuntimeModelCatalogClient,
   CatalogModelSource,
+  buildRuntimeAgentSnapshotRecoveryEvents,
   isLocalRuntimeEnvironmentDependencyJobActiveState,
   isLocalRuntimeEnvironmentDependencyJobRetryableState,
   isLocalRuntimeEnvironmentDependencyJobTransferringState,
   isLocalRuntimeEnvironmentDependencyRepairRequiredState,
   isLocalRuntimeEnvironmentDependencyStartableState,
+  isRuntimeAgentProjectionEvent,
   localRecommendationTierToRunGrade,
+  matchesRuntimeAgentProjectionScope,
   normalizeLocalRecommendationFeedCacheStateId,
   parseLocalRuntimeEnvironmentDependencyJobProjection,
   parseLocalRuntimeEnvironmentPlanProjection,
@@ -30,7 +33,10 @@ import {
   normalizeRuntimeReasonCode,
   RuntimeHealthCoordinator,
   summarizeLocalRecommendationFeedCacheState,
+  summarizeRuntimeAgentProjectionEvent,
+  summarizeRuntimeAgentTimeline,
   type RuntimeConnectorProjection,
+  type RuntimeAgentConsumeEvent,
   type RuntimeModelCatalogConnectorClient,
   type RuntimeModelCatalogProvider,
 } from '@nimiplatform/sdk/runtime';
@@ -464,6 +470,79 @@ export function SettingsRoute() {
     provider: 'tester',
   });
   const runtimeHealthCoordinatorProjection = runtimeHealthCoordinatorDiagnostics.getSnapshot();
+  const runtimeAgentConsumerProjection = (() => {
+    const projectionEvent = {
+      eventName: 'runtime.agent.hook.pending',
+      localAgentRef: 'local-agent:tester-owner:tester-agent',
+      conversationAnchorId: 'tester-anchor',
+      originatingTurnId: 'tester-turn',
+      originatingStreamId: 'tester-stream',
+      detail: { intentId: 'tester-hook' },
+    } as RuntimeAgentConsumeEvent;
+    const timelineEvent = {
+      eventName: 'runtime.agent.turn.text_delta',
+      localAgentRef: 'local-agent:tester-owner:tester-agent',
+      conversationAnchorId: 'tester-anchor',
+      turnId: 'tester-turn',
+      streamId: 'tester-stream',
+      timeline: {
+        turnId: 'tester-turn',
+        streamId: 'tester-stream',
+        channel: 'text',
+        offsetMs: 24,
+        sequence: 2,
+        startedAtWall: '2026-05-31T00:00:00.000Z',
+        observedAtWall: '2026-05-31T00:00:00.024Z',
+        timebaseOwner: 'runtime',
+        projectionRuleId: 'K-AGCORE-051',
+        clockBasis: 'monotonic_with_wall_anchor',
+        providerNeutral: true,
+        appLocalAuthority: false,
+      },
+      detail: { text: 'tester' },
+    } as RuntimeAgentConsumeEvent;
+    const recoveryEvents = buildRuntimeAgentSnapshotRecoveryEvents({
+      turn: {
+        turnId: 'tester-turn',
+        status: 'completed',
+        messageId: 'tester-message',
+        text: 'tester done',
+        structured: {
+          message: {
+            message_id: 'tester-message',
+            text: 'tester done',
+          },
+        },
+        finishReason: 'stop',
+      },
+      ownerUserId: 'tester-owner',
+      realmAgentId: 'tester-agent',
+      localAgentRef: 'local-agent:tester-owner:tester-agent',
+      conversationAnchorId: 'tester-anchor',
+      requestId: 'tester-request',
+      requestMessageId: '',
+      currentTurnAccepted: false,
+      currentRuntimeTurnId: '',
+      currentRuntimeStreamId: '',
+      hasStructuredEnvelope: false,
+      hasCommittedMessage: false,
+    });
+    const projectionSummary = summarizeRuntimeAgentProjectionEvent(projectionEvent);
+    const timelineSummary = summarizeRuntimeAgentTimeline(timelineEvent);
+    const terminal = recoveryEvents[recoveryEvents.length - 1];
+    return {
+      projectionScoped: isRuntimeAgentProjectionEvent(projectionEvent) && matchesRuntimeAgentProjectionScope({
+        event: projectionEvent,
+        conversationAnchorId: 'tester-anchor',
+        currentTurnAccepted: true,
+        currentRuntimeTurnId: 'tester-turn',
+      }),
+      projectionEventName: projectionSummary.eventName,
+      timelineChannel: timelineSummary?.channel ?? 'none',
+      recoveryEventCount: recoveryEvents.length,
+      terminalEventName: terminal?.eventName ?? 'none',
+    };
+  })();
   const avatarVoiceCueProjection = resolveAgentVoicePlaybackCue(
     new Uint8Array([128, 208, 232, 208, 128, 48, 24, 48]),
     0.24,
@@ -907,6 +986,18 @@ export function SettingsRoute() {
         <span>SDK runtime health coordinator projection</span>
         <StatusBadge tone={runtimeHealthCoordinatorProjection.stale ? 'warning' : 'success'}>
           {runtimeHealthCoordinatorProjection.started ? 'started' : 'not started'} / {runtimeHealthCoordinatorProjection.stale ? 'stale' : 'fresh'}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Runtime agent consumer projection</span>
+        <StatusBadge tone={runtimeAgentConsumerProjection.projectionScoped ? 'success' : 'warning'}>
+          {runtimeAgentConsumerProjection.projectionEventName}
+          {' / '}
+          {runtimeAgentConsumerProjection.timelineChannel}
+          {' / '}
+          {runtimeAgentConsumerProjection.recoveryEventCount}
+          {' / '}
+          {runtimeAgentConsumerProjection.terminalEventName}
         </StatusBadge>
       </div>
       <div className="setting-row">

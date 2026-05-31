@@ -1062,6 +1062,20 @@ test('tester settings consumes SDK Runtime health coordinator diagnostics', () =
   assert.doesNotMatch(settings, /HEALTH_WATCHDOG_INTERVAL_MS/);
 });
 
+test('tester settings consumes SDK Runtime agent consumer projections', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /buildRuntimeAgentSnapshotRecoveryEvents/);
+  assert.match(settings, /summarizeRuntimeAgentProjectionEvent/);
+  assert.match(settings, /summarizeRuntimeAgentTimeline/);
+  assert.match(settings, /matchesRuntimeAgentProjectionScope/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(settings, /Runtime agent consumer projection/);
+  assert.match(settings, /runtimeAgentConsumerProjection\.terminalEventName/);
+  assert.doesNotMatch(settings, /function buildRuntimeAgentSnapshotRecoveryEvents/);
+  assert.doesNotMatch(settings, /function summarizeRuntimeAgentTimeline/);
+});
+
 test('tester settings consumes SDK local route option binding projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
 

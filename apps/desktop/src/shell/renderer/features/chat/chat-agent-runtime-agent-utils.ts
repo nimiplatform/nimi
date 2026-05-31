@@ -5,12 +5,10 @@ import {
   cloneAgentResolvedMessageActionEnvelopeWithCommittedMessage,
   parseRuntimeAgentStructuredMessageActionEnvelope,
   type AgentResolvedMessageActionEnvelope,
+  type RuntimeAgentTimelineSummary,
 } from '@nimiplatform/sdk/runtime';
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
-import type {
-  RuntimeAgentTimelineSummary,
-} from './chat-agent-runtime-agent-timeline';
 
 export type PendingCommittedMessage = {
   messageId: string;

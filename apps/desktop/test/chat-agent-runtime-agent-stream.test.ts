@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import type { RuntimeAgentConsumeEvent } from '@nimiplatform/sdk/runtime';
 import {
   recoverRuntimeAgentTerminalSnapshot,
-} from '../src/shell/renderer/features/chat/chat-agent-runtime-agent-stream';
+} from '@nimiplatform/sdk/runtime';
 import type { AgentRuntimeChatTurnRequest } from '../src/shell/renderer/features/chat/chat-agent-runtime-turn-types';
 
 function createRequest(): AgentRuntimeChatTurnRequest {
