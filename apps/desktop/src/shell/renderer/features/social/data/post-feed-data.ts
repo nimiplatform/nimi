@@ -8,8 +8,8 @@ import {
   filterBlockedPosts,
   isBlockedUser,
   isPostHiddenByBlockedAuthor,
-} from '../blocked-content';
-import { queueSocialMutation } from '../offline-social-outbox';
+} from './blocked-content';
+import { queueSocialMutation } from './offline-social-outbox';
 
 type CreateReportDto = RealmModel<'CreateReportDto'>;
 type CreatePostDto = RealmModel<'CreatePostDto'>;
@@ -18,8 +18,8 @@ type FeedResponseDto = RealmModel<'FeedResponseDto'>;
 type PostDto = RealmModel<'PostDto'>;
 type ReportResponseDto = RealmModel<'ReportResponseDto'>;
 
-type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
-type DataSyncErrorEmitter = (
+type RealmApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type RealmDataErrorEmitter = (
   action: string,
   error: unknown,
   details?: Record<string, unknown>,
@@ -65,8 +65,8 @@ function filterFeedResponse(response: FeedResponseDto): FeedResponseDto {
 }
 
 export async function loadPostFeed(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
   input: LoadPostFeedInput,
 ): Promise<FeedResponseDto> {
   const normalized: LoadPostFeedInput = {
@@ -102,8 +102,8 @@ export async function loadPostFeed(
 }
 
 export async function loadLikedPosts(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
   profileId: string,
   limit = 20,
   cursor?: string,
@@ -127,8 +127,8 @@ export async function loadLikedPosts(
 }
 
 export async function loadPostById(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
   postId: string,
 ): Promise<PostDto> {
   const normalizedPostId = String(postId || '').trim();
@@ -149,8 +149,8 @@ export async function loadPostById(
 }
 
 export async function createPost(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
   payload: CreatePostDto,
 ): Promise<PostDto> {
   try {
@@ -168,8 +168,8 @@ export async function createPost(
 }
 
 export async function deletePost(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
   postId: string,
 ): Promise<void> {
   try {
@@ -184,8 +184,8 @@ export async function deletePost(
 }
 
 export async function updatePostVisibility(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
   postId: string,
   visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE',
 ): Promise<PostDto> {
@@ -204,8 +204,8 @@ export async function updatePostVisibility(
 }
 
 export async function likePost(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
   postId: string,
 ): Promise<void> {
   try {
@@ -228,8 +228,8 @@ export async function likePost(
 }
 
 export async function unlikePost(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
   postId: string,
 ): Promise<void> {
   try {
@@ -252,8 +252,8 @@ export async function unlikePost(
 }
 
 export async function createReport(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
   payload: CreateReportDto,
 ): Promise<ReportResponseDto> {
   try {

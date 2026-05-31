@@ -7,8 +7,8 @@ import {
   type SocialMutationKind,
 } from '@runtime/offline';
 
-type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
-type DataSyncErrorEmitter = (
+type RealmApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type RealmDataErrorEmitter = (
   action: string,
   error: unknown,
   details?: Record<string, unknown>,
@@ -44,7 +44,7 @@ export async function countPendingSocialMutations(): Promise<number> {
 }
 
 async function executeSocialMutation(
-  callApi: DataSyncApiCaller,
+  callApi: RealmApiCaller,
   entry: PersistentSocialMutationEntry,
 ): Promise<void> {
   if (entry.kind === 'friend-add') {
@@ -82,8 +82,8 @@ async function executeSocialMutation(
 }
 
 export async function flushPendingSocialMutations(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
 ): Promise<void> {
   const manager = await getOfflineCacheManager();
   const entries = await manager.getSocialMutationEntries();

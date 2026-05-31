@@ -1,15 +1,15 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 // RealmAgent friend-state → primary-action model.
 //
 // Authority: `.nimi/spec/desktop/kernel/explore-surface-contract.md` D-EXPL-005,
 // D-EXPL-006, D-EXPL-007 and `tables/realm-agent-friend-actions.yaml`.
 //
 // `friendState` is a deterministic projection of Realm social truth
-// (the Friendship / AgentFriend graph exposed through `dataSync.loadSocialSnapshot`)
+// (the Friendship / AgentFriend graph exposed through `realmSocialData.loadSocialSnapshot`)
 // plus the account Agent-friend quota. It is NOT a renderer-local guess: every
 // RealmAgent card consumes this single resolver so the four typed states
 // (`not_friend` / `pending` / `friend` / `limit_reached`) stay consistent.
 
-import { dataSync } from '@runtime/data-sync';
 import { i18n } from '@renderer/i18n';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { AgentFriendLimit } from '../relationship/agent-friend-limit';
@@ -104,7 +104,7 @@ function recordId(value: unknown): string {
 // `resolveRealmAgentFriendState` below is a pure projection on top of it.
 export async function loadRealmAgentSocialProjection(): Promise<RealmAgentSocialProjection> {
   const [snapshot, limit] = await Promise.all([
-    dataSync.loadSocialSnapshot(),
+    realmSocialData.loadSocialSnapshot(),
     resolveAgentFriendLimit(),
   ]);
   const friendIds = new Set<string>();

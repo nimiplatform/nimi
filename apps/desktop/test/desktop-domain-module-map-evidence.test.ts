@@ -87,10 +87,10 @@ test('External Agent module map admits the Access panel evidence', () => {
   assertRepoFile('apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-external-agent-access.tsx');
 });
 
-test('Home module map resolves Feed to the existing D-DSYNC-007 owner', () => {
-  assert.match(facadeActionsSource, /from '\.\/flows\/post-attachment-flow';/);
+test('Home module map resolves Feed outside the retired dataSync facade', () => {
+  assert.doesNotMatch(facadeActionsSource, /post-attachment-flow/);
   assert.doesNotMatch(facadeActionsSource, /from '\.\/flows\/feed-flow';/);
-  assertRepoFile('apps/desktop/src/runtime/data-sync/flows/post-attachment-flow.ts');
+  assertRepoFile('apps/desktop/src/shell/renderer/features/social/data/post-feed-data.ts');
 });
 
 test('Desktop runtime bridge commands resolve through the shared Tauri shell authority', () => {

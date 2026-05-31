@@ -1,3 +1,4 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 // RealmAgent Add Friend dual-effect + friend → Open Agent Chat launch.
 //
 // Authority: `.nimi/spec/desktop/kernel/explore-surface-contract.md` D-EXPL-006,
@@ -13,7 +14,6 @@
 // Add Friend never mutates RealmAgent canonical truth: it creates the
 // AgentFriend Friendship row and forks an owner-scoped LocalAgent projection.
 
-import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
@@ -88,7 +88,7 @@ export async function addRealmAgentFriend(
   const ownerUserId = requireOwnerUserId();
   const localAgentTarget = toLocalAgentTarget(target, ownerUserId);
   // Effect 1 — create the AgentFriend Realm social relation.
-  await dataSync.requestOrAcceptFriend(localAgentTarget.realmAgentId, message);
+  await realmSocialData.requestOrAcceptFriend(localAgentTarget.realmAgentId, message);
   // Effect 2 — ensure the one idempotent account-scoped LocalAgent projection.
   // If the projection cannot be ensured the error propagates: the caller must
   // surface it as a typed failure rather than projecting a usable `friend`

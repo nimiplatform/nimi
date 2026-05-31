@@ -1,8 +1,9 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { type RealmFeedScope } from '@nimiplatform/sdk/realm';
-import { BLOCKED_USERS_UPDATED_EVENT, dataSync } from '@runtime/data-sync';
+import { BLOCKED_USERS_UPDATED_EVENT } from '@renderer/features/social/data/blocked-content';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ProfileDetailModal } from '@renderer/features/relationship/profile-detail-modal.js';
 import { CreatePostModal } from '../profile/create-post-modal.js';
@@ -103,7 +104,7 @@ export function HomeView(props: HomeViewProps) {
 
   const fetchPage = useCallback(
     async (cursorArg: string | null) => {
-      const data = await dataSync.loadPostFeed({
+      const data = await realmSocialData.loadPostFeed({
         scope: props.feedScope,
         limit: PAGE_SIZE,
         cursor: cursorArg ?? undefined,

@@ -1,8 +1,8 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@nimiplatform/kit/ui';
-import { dataSync } from '@runtime/data-sync';
 
 type FriendEntry = {
   id: string;
@@ -26,7 +26,7 @@ export function ChatGroupCreateModal(props: {
   const friendsQuery = useQuery({
     queryKey: ['group-create-friends'],
     queryFn: async () => {
-      const snapshot = await dataSync.loadSocialSnapshot();
+      const snapshot = await realmSocialData.loadSocialSnapshot();
       const friends: FriendEntry[] = [];
       const items = Array.isArray((snapshot as { friends?: unknown[] })?.friends)
         ? ((snapshot as { friends: unknown[] }).friends)

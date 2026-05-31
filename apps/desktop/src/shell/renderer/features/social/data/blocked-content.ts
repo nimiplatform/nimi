@@ -1,5 +1,5 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { getCachedContacts } from './flows/profile-flow-social';
+import { getCachedContacts } from './social-snapshot';
 
 type PostDto = RealmModel<'PostDto'>;
 

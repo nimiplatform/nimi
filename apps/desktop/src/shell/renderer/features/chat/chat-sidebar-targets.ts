@@ -1,3 +1,4 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -23,7 +24,7 @@ import {
   type GroupChatViewDto,
 } from './chat-group-thread-model';
 
-type SocialSnapshot = Awaited<ReturnType<typeof dataSync.loadSocialSnapshot>>;
+type SocialSnapshot = Awaited<ReturnType<typeof realmSocialData.loadSocialSnapshot>>;
 
 export function toHumanTargetSummary(chat: HumanChatViewDto): ConversationTargetSummary {
   return {
@@ -71,7 +72,7 @@ export function useChatTargetsForSidebar(
   const agentTargetsQuery = useQuery({
     queryKey: [...TARGETS_QUERY_KEY, authStatus],
     queryFn: async (): Promise<ReturnType<typeof toAgentFriendTargetsFromSocialSnapshot>> => {
-      const snapshot = await dataSync.loadSocialSnapshot() as SocialSnapshot;
+      const snapshot = await realmSocialData.loadSocialSnapshot() as SocialSnapshot;
       return toAgentFriendTargetsFromSocialSnapshot({ ...((snapshot as Record<string, unknown> | null) || {}), ownerUserId });
     },
     enabled: authStatus === 'authenticated',

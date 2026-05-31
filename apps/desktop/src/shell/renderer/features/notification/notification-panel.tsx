@@ -1,3 +1,4 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useEffect, useMemo, useState } from 'react';
 import { Button, ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { getPlatformClient } from '@nimiplatform/sdk';
@@ -11,7 +12,6 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { ReviewRating as ReviewRatingEnum } from '@nimiplatform/sdk/realm';
-import { dataSync } from '@runtime/data-sync';
 import {
   acceptRealmGift,
   createRealmGiftReview,
@@ -304,7 +304,7 @@ export function NotificationPanel() {
       item,
       action: 'friend-accept',
       task: async () => {
-        await dataSync.requestOrAcceptFriend(actorId);
+        await realmSocialData.requestOrAcceptFriend(actorId);
       },
       errorMessage: t('Relationship.acceptRequestFailed', { defaultValue: 'Failed to accept friend request' }),
     });
@@ -324,7 +324,7 @@ export function NotificationPanel() {
       item,
       action: 'friend-reject',
       task: async () => {
-        await dataSync.rejectOrRemoveFriend(actorId);
+        await realmSocialData.rejectOrRemoveFriend(actorId);
       },
       errorMessage: t('Relationship.rejectRequestFailed', { defaultValue: 'Failed to reject friend request' }),
     });

@@ -10,20 +10,20 @@ import {
   fetchAgentFriendLimit,
   fetchPendingFriendRequests,
   loadMergedSocialSnapshot,
-  type DataSyncApiCaller,
-  type DataSyncErrorEmitter,
+  type RealmApiCaller,
+  type RealmDataErrorEmitter,
   type SocialContactSnapshot,
-} from './profile-flow-social';
-import { queueSocialMutation } from '../offline-social-outbox';
-import { dispatchBlockedUsersUpdated } from '../blocked-content';
+} from './social-snapshot';
+import { queueSocialMutation } from './offline-social-outbox';
+import { dispatchBlockedUsersUpdated } from './blocked-content';
 
 type UserProfileDto = RealmModel<'UserProfileDto'>;
 
-export type { SocialContactSnapshot } from './profile-flow-social';
+export type { SocialContactSnapshot } from './social-snapshot';
 
 export async function loadCurrentUserProfile(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
 ) {
   try {
     return await callApi((realm) => realm.services.MeService.getMe(), '获取当前用户失败');
@@ -34,8 +34,8 @@ export async function loadCurrentUserProfile(
 }
 
 export async function updateCurrentUserProfile(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
   data: JsonObject,
 ) {
   try {
@@ -47,8 +47,8 @@ export async function updateCurrentUserProfile(
 }
 
 export async function loadContactList(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
 ): Promise<SocialContactSnapshot> {
   try {
     return await loadMergedSocialSnapshot(callApi, emitDataSyncError);
@@ -59,8 +59,8 @@ export async function loadContactList(
 }
 
 export async function loadSocialSnapshot(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
 ): Promise<SocialContactSnapshot> {
   try {
     return await loadMergedSocialSnapshot(callApi, emitDataSyncError);
@@ -71,22 +71,22 @@ export async function loadSocialSnapshot(
 }
 
 export async function loadPendingFriendRequests(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
 ) {
   return fetchPendingFriendRequests(callApi, emitDataSyncError);
 }
 
 export async function loadAgentFriendLimit(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
 ) {
   return fetchAgentFriendLimit(callApi, emitDataSyncError);
 }
 
 export async function loadUserProfileById(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
   id: string,
 ): Promise<UserProfileDto> {
   try {
@@ -116,7 +116,7 @@ export async function loadUserProfileById(
 }
 
 export async function addFriendById(
-  callApi: DataSyncApiCaller,
+  callApi: RealmApiCaller,
   userId: string,
   message?: string,
 ) {
@@ -131,7 +131,7 @@ export async function addFriendById(
 }
 
 export async function removeFriendById(
-  callApi: DataSyncApiCaller,
+  callApi: RealmApiCaller,
   userId: string,
 ) {
   if (!userId) {
@@ -144,7 +144,7 @@ export async function removeFriendById(
 }
 
 export async function addFriendByIdentifier(input: {
-  callApi: DataSyncApiCaller;
+  callApi: RealmApiCaller;
   userId: string;
   reloadContacts: () => Promise<void>;
 }) {
@@ -154,7 +154,7 @@ export async function addFriendByIdentifier(input: {
 }
 
 export async function requestOrAcceptFriend(input: {
-  callApi: DataSyncApiCaller;
+  callApi: RealmApiCaller;
   userId: string;
   message?: string;
   reloadContacts: () => Promise<void>;
@@ -177,7 +177,7 @@ export async function requestOrAcceptFriend(input: {
 }
 
 export async function removeFriend(input: {
-  callApi: DataSyncApiCaller;
+  callApi: RealmApiCaller;
   userId: string;
   reloadContacts: () => Promise<void>;
 }) {
@@ -198,7 +198,7 @@ export async function removeFriend(input: {
 }
 
 export async function rejectOrRemoveFriend(input: {
-  callApi: DataSyncApiCaller;
+  callApi: RealmApiCaller;
   userId: string;
   reloadContacts: () => Promise<void>;
 }) {
@@ -220,7 +220,7 @@ export async function rejectOrRemoveFriend(input: {
 }
 
 export async function blockUser(
-  callApi: DataSyncApiCaller,
+  callApi: RealmApiCaller,
   contact: JsonObject,
   reloadContacts: () => Promise<void>,
 ) {
@@ -240,7 +240,7 @@ export async function blockUser(
 }
 
 export async function unblockUser(
-  callApi: DataSyncApiCaller,
+  callApi: RealmApiCaller,
   contact: JsonObject,
   reloadContacts: () => Promise<void>,
 ) {

@@ -1,3 +1,4 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
 import { useQuery } from '@tanstack/react-query';
@@ -123,7 +124,7 @@ function ChatComposerAvatarHoverPreview(props: {
     queryFn: async () => {
       const result = props.kind === 'agent'
         ? await dataSync.loadAgentDetails(props.targetId)
-        : await dataSync.loadUserProfile(props.targetId);
+        : await realmSocialData.loadUserProfile(props.targetId);
       return result as Record<string, unknown>;
     },
     enabled: open && authStatus === 'authenticated' && Boolean(props.targetId),

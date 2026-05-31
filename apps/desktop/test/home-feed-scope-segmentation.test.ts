@@ -6,7 +6,7 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import {
   loadPostFeed,
   type PostFeedScope,
-} from '../src/runtime/data-sync/flows/post-attachment-flow';
+} from '../src/shell/renderer/features/social/data/post-feed-data';
 
 type PostDto = RealmModel<'PostDto'>;
 
@@ -118,9 +118,9 @@ test('Home feed controls present exactly the three canonical feed scopes (D-HOME
 });
 
 test('HomeView reads each scope through the SDK typed feed projection (D-HOMEFEED-006)', () => {
-  // The feed read goes through dataSync.loadPostFeed (SDK typed Realm path),
+  // The feed read goes through realmSocialData.loadPostFeed (SDK typed Realm path),
   // carrying the active scope. No renderer-local REST fetch.
-  assert.match(homeViewSource, /dataSync\.loadPostFeed\(\{\s*scope:\s*props\.feedScope,/s);
+  assert.match(homeViewSource, /realmSocialData\.loadPostFeed\(\{\s*scope:\s*props\.feedScope,/s);
   assert.doesNotMatch(homeViewSource, /\bfetch\(/);
 });
 

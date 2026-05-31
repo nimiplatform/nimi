@@ -1,8 +1,5 @@
-import {
-  dataSync,
-  getCachedContacts,
-  isFriendInContacts,
-} from '@runtime/data-sync';
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { dataSync } from '@runtime/data-sync';
 import {
   clearPlatformClient,
   createLocalFirstPartyRuntimePlatformClient,
@@ -70,7 +67,7 @@ function bindOfflineCoordinator(): void {
       if (authStatus !== 'authenticated') {
         return false;
       }
-      await dataSync.loadCurrentUser();
+      await realmSocialData.loadCurrentUser();
       return true;
     },
     probeRuntimeReachability: async () => {
@@ -79,9 +76,9 @@ function bindOfflineCoordinator(): void {
     },
     hasPendingRealmRecoveryWork: async () => (
       await countPendingChatOutboxEntries()
-    ) > 0 || await dataSync.hasPendingOfflineRecoveryWork(),
+    ) > 0 || await realmSocialData.hasPendingOfflineRecoveryWork(),
     flushChatOutbox: async () => { await flushPendingChatOutbox(); },
-    flushSocialOutbox: async () => dataSync.flushSocialOutbox(),
+    flushSocialOutbox: async () => realmSocialData.flushSocialOutbox(),
     invalidateRealmQueries: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['chats'] }),
@@ -575,7 +572,6 @@ export function bootstrapRuntime(): Promise<void> {
       getCurrentUser: () => {
         return useAppStore.getState().auth.user;
       },
-      isFriend: (userId: string) => isFriendInContacts(getCachedContacts(), userId),
     });
 
     if (accountProjection?.accountId) {

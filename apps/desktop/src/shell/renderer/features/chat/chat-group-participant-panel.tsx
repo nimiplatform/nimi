@@ -1,3 +1,4 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useEffect, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
@@ -78,7 +79,7 @@ export function ChatGroupParticipantPanel(props: {
 
   const socialQuery = useQuery({
     queryKey: ['social-snapshot-for-group-agents'],
-    queryFn: async () => dataSync.loadSocialSnapshot(),
+    queryFn: async () => realmSocialData.loadSocialSnapshot(),
     enabled: showAddAgentPicker,
     staleTime: 30_000,
   });

@@ -24,7 +24,7 @@ test('product-side profile and contacts models do not infer agent identity from 
 });
 
 test('product-side social and explore flows do not infer agent identity from handle prefixes', () => {
-  const socialProfileFlowSource = readSource('../src/runtime/data-sync/flows/profile-flow-social.ts');
+  const socialProfileFlowSource = readSource('../src/shell/renderer/features/social/data/social-snapshot.ts');
   const explorePanelSource = readSource('../src/shell/renderer/features/explore/explore-panel.tsx');
   const agentRuntimeFlowSource = readSource('../src/runtime/data-sync/flows/agent-runtime-flow.ts');
   const socialFlowSource = readSource('../src/runtime/data-sync/flows/social-flow.ts');

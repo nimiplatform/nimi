@@ -1,3 +1,4 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getPlatformClient } from '@nimiplatform/sdk';
@@ -6,7 +7,6 @@ import { CanonicalComposer } from '@nimiplatform/kit/features/chat/components/ca
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
 import { createRealmChatComposerAdapter } from '@nimiplatform/kit/features/chat/realm';
 import { useTranslation } from 'react-i18next';
-import { dataSync } from '@runtime/data-sync';
 import { sendChatMessage } from './data/realm-human-chat-data';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -347,7 +347,7 @@ export function HumanCanonicalProfileDrawer(props: {
       if (!profileTargetId) {
         return null;
       }
-      const result = await dataSync.loadUserProfile(profileTargetId);
+      const result = await realmSocialData.loadUserProfile(profileTargetId);
       return result as Record<string, unknown>;
     },
     enabled: authStatus === 'authenticated' && profilePanelTarget !== null && Boolean(profileTargetId),

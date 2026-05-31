@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { loadContactList, loadSocialSnapshot } from '../src/runtime/data-sync/flows/profile-flow.js';
+import { loadContactList, loadSocialSnapshot } from '../src/shell/renderer/features/social/data/profile-data.js';
 
 type DataSyncError = {
   action: string;

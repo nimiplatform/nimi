@@ -1,3 +1,4 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useMemo } from 'react';
 import type { QueryKey } from '@tanstack/react-query';
 import { io } from 'socket.io-client';
@@ -20,7 +21,6 @@ import {
   useRealmChatRealtimeController,
 } from '@nimiplatform/kit/features/chat/realm';
 import { projectRealmRealtimeUrl } from '@nimiplatform/sdk/realm';
-import { dataSync } from '@runtime/data-sync';
 import { getOfflineCoordinator } from '@runtime/offline';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { queryClient } from '@renderer/infra/query-client/query-client';
@@ -273,7 +273,7 @@ export function useChatRealtimeSync(): void {
       offlineCoordinator.markRealmSocketReachable(reachable);
     },
     flushChatOutbox: async () => { await flushPendingChatOutbox(); },
-    flushSocialOutbox: () => dataSync.flushSocialOutbox(),
+    flushSocialOutbox: () => realmSocialData.flushSocialOutbox(),
     invalidateChats: () => queryClient.invalidateQueries({ queryKey: ['chats'] }),
     invalidateMessages: (chatId) => queryClient.invalidateQueries({ queryKey: ['messages', chatId] }),
     invalidateNotifications: () => invalidateNotificationQueries(),

@@ -9,8 +9,8 @@ type EnrichedUserProfile = UserProfileDto & {
   world?: JsonObject;
 };
 
-export type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
-export type DataSyncErrorEmitter = (
+export type RealmApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
+export type RealmDataErrorEmitter = (
   action: string,
   error: unknown,
   details?: JsonObject,
@@ -118,7 +118,7 @@ function extractWorldName(profile: JsonObject): string | null {
 }
 
 export async function enrichProfileWithWorldBanner(
-  callApi: DataSyncApiCaller,
+  callApi: RealmApiCaller,
   profile: JsonObject,
 ): Promise<EnrichedUserProfile> {
   const typedProfile = profile as EnrichedUserProfile;
@@ -180,7 +180,7 @@ function toPendingRequestMap(items: PendingFriendRequestDto[] | undefined): Map<
 }
 
 async function resolvePendingRequestProfiles(
-  callApi: DataSyncApiCaller,
+  callApi: RealmApiCaller,
   userMap: Map<string, PendingRequestMapValue>,
   direction: 'received' | 'sent',
 ): Promise<SocialContactRecord[]> {
@@ -235,8 +235,8 @@ async function resolvePendingRequestProfiles(
 }
 
 export async function fetchPendingFriendRequests(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
 ): Promise<PendingFriendRequestListDto> {
   try {
     return await callApi(
@@ -257,8 +257,8 @@ export async function fetchPendingFriendRequests(
  * hardcoded in the renderer — it is sourced verbatim from this projection.
  */
 export async function fetchAgentFriendLimit(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
 ): Promise<RealmModel<'AgentFriendLimitDto'>> {
   try {
     return await callApi(
@@ -272,8 +272,8 @@ export async function fetchAgentFriendLimit(
 }
 
 async function fetchBlockedUsers(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
 ): Promise<SocialContactRecord[]> {
   try {
     const response = await callApi(
@@ -310,8 +310,8 @@ async function fetchBlockedUsers(
 }
 
 async function loadSocialSnapshotInternal(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
 ): Promise<SocialContactSnapshot> {
   const [friendsResult, pendingResult, blockedUsers] = await Promise.all([
     callApi(
@@ -350,8 +350,8 @@ function mergeWithLocalContacts(snapshot: SocialContactSnapshot): SocialContactS
 const inflightSnapshots = new Map<string, Promise<SocialContactSnapshot>>();
 
 export async function loadMergedSocialSnapshot(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmApiCaller,
+  emitDataSyncError: RealmDataErrorEmitter,
 ): Promise<SocialContactSnapshot> {
   const key = 'social';
   const existing = inflightSnapshots.get(key);
@@ -385,4 +385,12 @@ export function isPendingSentRequestInContacts(
 
 export function updateCachedContacts(snapshot: SocialContactSnapshot) {
   cachedContacts = { ...snapshot };
+}
+
+export function isFriendInContacts(
+  contacts: { friends?: Array<Record<string, unknown>> } | undefined,
+  userId: string,
+): boolean {
+  if (!contacts?.friends?.length) return false;
+  return contacts.friends.some((friend: Record<string, unknown>) => friend.id === userId);
 }

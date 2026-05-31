@@ -1,3 +1,4 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -7,7 +8,6 @@ import {
   updateRealmPassword,
 } from '@nimiplatform/sdk/realm';
 import { getPlatformClient } from '@nimiplatform/sdk';
-import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
@@ -73,7 +73,7 @@ export function SecurityPage() {
   ]);
 
   const refreshCurrentUser = async () => {
-    const latest = await dataSync.loadCurrentUser();
+    const latest = await realmSocialData.loadCurrentUser();
     const normalized = parseOptionalJsonObject(latest) ?? null;
     setAuthSession(normalized, authToken, refreshToken || undefined);
   };

@@ -20,7 +20,6 @@ import { normalizeApiError, tryParseJsonLike } from './api-core';
 import type { PasswordAuthDebug } from './auth';
 import { readDataSyncHotState, writeDataSyncHotState } from './facade-hot-state';
 import { DataSyncPollingManager } from './polling-manager';
-import { isBlockedUser } from './blocked-content';
 import type {
   TransitDetailDto,
   TransitStatus,
@@ -28,7 +27,6 @@ import type {
 } from './flows/transit-flow';
 import { createDataSyncActions } from './facade-actions';
 import type { CreateMasterAgentInput } from './flows/social-flow';
-import type { PostFeedScope } from './flows/post-attachment-flow';
 import {
   COURIER_POLLING_KEY,
   COURIER_POLL_INTERVAL_MS,
@@ -42,8 +40,6 @@ import {
   type LocalAgentProvisionCourierPassResult,
 } from './local-agent-provision-courier';
 
-type CreatePostDto = RealmModel<'CreatePostDto'>;
-type CreateReportDto = RealmModel<'CreateReportDto'>;
 type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;
@@ -54,7 +50,6 @@ export type DataSyncAuthCallbacks = {
   setAuth: (user: Record<string, unknown> | null | undefined, token: string, refreshToken?: string) => void;
   clearAuth: () => void | Promise<void>;
   getCurrentUser: () => Record<string, unknown> | null;
-  isFriend: (userId: string) => boolean;
 };
 
 export class DataSync {
@@ -81,7 +76,6 @@ export class DataSync {
     setAuth: (user, token, refreshToken) => this.authCallbacks?.setAuth(user, token, refreshToken),
     clearAuth: () => this.authCallbacks?.clearAuth(),
     stopAllPolling: () => this.stopAllPolling(),
-    isFriend: (userId) => this.isFriend(userId),
     getCurrentUser: () => this.authCallbacks?.getCurrentUser() || null,
   });
 
@@ -281,18 +275,6 @@ export class DataSync {
     });
   }
 
-  async loadInitialData() { await this.loadCurrentUser(); await this.loadContacts(); }
-
-  loadCurrentUser() {
-    return this.actions.loadCurrentUser();
-  }
-  updateUserProfile(data: Record<string, unknown>) { return this.actions.updateUserProfile(data); }
-  async flushSocialOutbox(): Promise<void> {
-    await this.actions.flushSocialOutbox();
-  }
-  async hasPendingOfflineRecoveryWork(): Promise<boolean> {
-    return (await this.actions.countPendingRealmRecoveryWork()) > 0;
-  }
   loadGroupChats(limit = 20) { return this.actions.loadGroupChats(Math.min(limit, 100)); }
   loadGroupChat(chatId: string) { return this.actions.loadGroupChat(chatId); }
   loadGroupMessages(chatId: string, limit = 50) { return this.actions.loadGroupMessages(chatId, Math.min(limit, 100)); }
@@ -305,47 +287,6 @@ export class DataSync {
   syncGroupEvents(chatId: string, afterSeq: number, limit = 100) { return this.actions.syncGroupEvents(chatId, afterSeq, Math.min(limit, 100)); }
   addGroupAgent(chatId: string, agentAccountId: string) { return this.actions.addGroupAgent(chatId, agentAccountId); }
   removeGroupAgent(chatId: string, agentAccountId: string) { return this.actions.removeGroupAgent(chatId, agentAccountId); }
-  async loadContacts() {
-    await this.actions.loadContacts();
-  }
-  loadSocialSnapshot() { return this.actions.loadSocialSnapshot(); }
-  loadAgentFriendLimit() { return this.actions.loadAgentFriendLimit(); }
-  searchUser(identifierInput: string) { return this.actions.searchUser(identifierInput); }
-
-  isFriend(userId: string): boolean { return this.authCallbacks?.isFriend(userId) ?? false; }
-  isBlockedUser(userId: string): boolean { return isBlockedUser(userId); }
-
-  async removeFriend(userId: string) {
-    await this.actions.removeFriend(userId);
-    // R-SOC-008 triggered pass: a HUMAN_AGENT removal wrote an OPEN termination
-    // intent in the same backend transaction; kick a courier pass so the common
-    // same-device case converges within ~1s instead of waiting for the tick.
-    // For a HUMAN_HUMAN removal the viewer-scoped list returns no new intent, so
-    // the pass is a cheap no-op — the courier owns no decision about which
-    // removals produce an intent.
-    void this.runLocalAgentTerminationCourierPass().catch(() => {
-      // Transport/offline failures are expected and telemetered by the courier;
-      // the intent stays OPEN server-side for the periodic tick / next startup.
-    });
-  }
-  async requestOrAcceptFriend(userId: string, message?: string) {
-    const result = await this.actions.requestOrAcceptFriend(userId, message);
-    // R-SOC-009 triggered pass: a HUMAN_AGENT add / accept-request wrote an OPEN
-    // provision intent in the same backend transaction; kick a courier pass so
-    // the common same-device case converges within ~1s instead of waiting for
-    // the tick. For a HUMAN_HUMAN add the viewer-scoped list returns no new
-    // intent, so the pass is a cheap no-op — the courier owns no decision about
-    // which creations produce an intent.
-    void this.runLocalAgentProvisionCourierPass().catch(() => {
-      // Transport/offline failures are expected and telemetered by the courier;
-      // the intent stays OPEN server-side for the periodic tick / next startup.
-    });
-    return result;
-  }
-  rejectOrRemoveFriend(userId: string) { return this.actions.rejectOrRemoveFriend(userId); }
-  blockUser(contact: Record<string, unknown>) { return this.actions.blockUser(contact); }
-  unblockUser(contact: Record<string, unknown>) { return this.actions.unblockUser(contact); }
-  loadUserProfile(id: string) { return this.actions.loadUserProfile(id); }
   loadWorlds(status?: 'DRAFT' | 'PENDING_REVIEW' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED') { return this.actions.loadWorlds(status); }
   loadWorldDetailById(worldId: string) { return this.actions.loadWorldDetailById(worldId); }
   loadWorldSemanticBundle(worldId: string) { return this.actions.loadWorldSemanticBundle(worldId); }
@@ -388,29 +329,8 @@ export class DataSync {
   abandonWorldTransit(transitId: string): Promise<TransitDetailDto> {
     return this.actions.abandonWorldTransit(transitId);
   }
-  loadPostFeed(payload: {
-    visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
-    worldId?: string;
-    authorId?: string;
-    limit?: number;
-    cursor?: string;
-    scope?: PostFeedScope;
-  }) { return this.actions.loadPostFeed(payload); }
-  loadLikedPosts(profileId: string, limit = 20, cursor?: string) {
-    return this.actions.loadLikedPosts(profileId, limit, cursor);
-  }
-  loadPostById(postId: string) { return this.actions.loadPostById(postId); }
-  createPost(payload: CreatePostDto) { return this.actions.createPost(payload); }
-  deletePost(postId: string) { return this.actions.deletePost(postId); }
-  updatePostVisibility(postId: string, visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE') {
-    return this.actions.updatePostVisibility(postId, visibility);
-  }
-  likePost(postId: string): Promise<void> { return this.actions.likePost(postId); }
-  unlikePost(postId: string): Promise<void> { return this.actions.unlikePost(postId); }
-  createReport(payload: CreateReportDto) { return this.actions.createReport(payload); }
   loadMyAgents() { return this.actions.loadMyAgents(); }
   createAgent(input: CreateMasterAgentInput) { return this.actions.createAgent(input); }
-  loadFriendRequests() { return this.actions.loadFriendRequests(); }
   loadExploreAgents(input: { tag?: string | null; query?: string | null; limit?: number } = {}) {
     return this.actions.loadExploreAgents({ ...input, limit: Math.min(input.limit ?? 20, 100) });
   }

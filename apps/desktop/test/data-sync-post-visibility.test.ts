@@ -1,16 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { filterBlockedPosts, getPostAuthorId } from '../src/runtime/data-sync/blocked-content';
+import { filterBlockedPosts, getPostAuthorId } from '../src/shell/renderer/features/social/data/blocked-content';
 import {
   loadLikedPosts,
   loadPostById,
   loadPostFeed,
-} from '../src/runtime/data-sync/flows/post-attachment-flow';
+} from '../src/shell/renderer/features/social/data/post-feed-data';
 import {
   getCachedContacts,
   updateCachedContacts,
-} from '../src/runtime/data-sync/flows/profile-flow-social';
+} from '../src/shell/renderer/features/social/data/social-snapshot';
 
 type PostDto = RealmModel<'PostDto'>;
 

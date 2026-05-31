@@ -1,6 +1,6 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { i18n } from '@renderer/i18n';
 import { AddFriendModal } from './add-friend-modal';
@@ -29,14 +29,14 @@ export function usePostCardActionAdapter(): PostCardActionAdapter {
     realmBaseUrl,
     authStatus,
     currentUserId,
-    isFriend: (authorId) => dataSync.isFriend(authorId),
-    blockUser: (author) => dataSync.blockUser(author),
-    createReport: (payload) => dataSync.createReport(payload),
-    likePost: (postId) => dataSync.likePost(postId),
-    unlikePost: (postId) => dataSync.unlikePost(postId),
-    updatePostVisibility: (postId, visibility) => dataSync.updatePostVisibility(postId, visibility),
-    deletePost: (postId) => dataSync.deletePost(postId),
-    requestOrAcceptFriend: (authorId, message) => dataSync.requestOrAcceptFriend(authorId, message),
+    isFriend: (authorId) => realmSocialData.isFriend(authorId),
+    blockUser: (author) => realmSocialData.blockUser(author),
+    createReport: (payload) => realmSocialData.createReport(payload),
+    likePost: (postId) => realmSocialData.likePost(postId),
+    unlikePost: (postId) => realmSocialData.unlikePost(postId),
+    updatePostVisibility: (postId, visibility) => realmSocialData.updatePostVisibility(postId, visibility),
+    deletePost: (postId) => realmSocialData.deletePost(postId),
+    requestOrAcceptFriend: (authorId, message) => realmSocialData.requestOrAcceptFriend(authorId, message),
     invalidateContacts: () => queryClient.invalidateQueries({ queryKey: ['contacts'] }),
     openChat: async ({ authorId }) => {
       const result = await startChatWithTarget(authorId);

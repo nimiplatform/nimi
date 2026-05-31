@@ -1,13 +1,13 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { Surface } from '@nimiplatform/kit/ui';
 import {
-  dataSync,
   getCachedContacts,
   isPendingSentRequestInContacts,
   type SocialContactSnapshot,
-} from '@runtime/data-sync';
+} from '@renderer/features/social/data/social-snapshot';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ProfileDetailView, type EditableProfileDraft } from '@renderer/features/relationship/profile-detail-view.js';
@@ -66,10 +66,10 @@ export function ProfilePanel() {
     queryKey: ['user-profile', selectedProfileId],
     queryFn: async () => {
       try {
-        const result = await dataSync.loadUserProfile(selectedProfileId!);
+        const result = await realmSocialData.loadUserProfile(selectedProfileId!);
         const data: ProfileSource = result;
         // API may not return isFriend — check local contacts
-        if (data.isFriend !== true && (dataSync.isFriend(selectedProfileId!) || Boolean(getContactFromCache(selectedProfileId!)))) {
+        if (data.isFriend !== true && (realmSocialData.isFriend(selectedProfileId!) || Boolean(getContactFromCache(selectedProfileId!)))) {
           return { ...data, isFriend: true };
         }
         // Check if a pending sent request exists in local cache
@@ -131,7 +131,7 @@ export function ProfilePanel() {
   const addFriendBlocked = Boolean(
     profile?.isAgent && agentLimitQuery.data && !agentLimitQuery.data.canAdd,
   );
-  const isBlockedProfile = Boolean(!isOwnProfile && profile && dataSync.isBlockedUser(profile.id));
+  const isBlockedProfile = Boolean(!isOwnProfile && profile && realmSocialData.isBlockedUser(profile.id));
   // D-CONTACTS-006: the hint is the typed reason from the single-baseline quota
   // projection; no renderer-rebuilt tier-coupled message.
   const addFriendHint = profile?.isAgent ? (agentLimitQuery.data?.reason ?? null) : null;
@@ -169,7 +169,7 @@ export function ProfilePanel() {
       if (profile?.isAgent && addFriendBlocked) {
         throw new Error(addFriendHint || i18n.t('Relationship.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }));
       }
-      await dataSync.requestOrAcceptFriend(selectedProfileId);
+      await realmSocialData.requestOrAcceptFriend(selectedProfileId);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
@@ -190,7 +190,7 @@ export function ProfilePanel() {
       return;
     }
     try {
-      await dataSync.blockUser({
+      await realmSocialData.blockUser({
         id: profile.id,
         displayName: profile.displayName,
         handle: profile.handle,
@@ -218,7 +218,7 @@ export function ProfilePanel() {
       return;
     }
     try {
-      await dataSync.removeFriend(profile.id);
+      await realmSocialData.removeFriend(profile.id);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['chats'], exact: false }),
@@ -248,7 +248,7 @@ export function ProfilePanel() {
           .map((item) => item.trim())
           .filter(Boolean);
 
-      const updated = await dataSync.updateUserProfile({
+      const updated = await realmSocialData.updateUserProfile({
         displayName: nextDisplayName,
         avatarUrl: draft.avatarUrl.trim() || null,
         bio: draft.bio.trim() || null,

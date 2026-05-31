@@ -1,4 +1,4 @@
-import { dataSync } from '@runtime/data-sync';
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 
@@ -56,7 +56,7 @@ export async function hydrateDesktopAccountProfile(input: {
   if (!readNonEmptyString(input.accountProjection.accountId)) {
     return;
   }
-  const realmProfile: unknown = await dataSync.loadCurrentUser();
+  const realmProfile: unknown = await realmSocialData.loadCurrentUser();
   const hydratedUser = mergeRuntimeAccountProjectionWithRealmProfile({
     accountProjection: input.accountProjection,
     realmProfile,

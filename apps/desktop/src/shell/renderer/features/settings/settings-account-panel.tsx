@@ -1,3 +1,4 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useEffect, useRef, useState } from 'react';
 import {
   linkRealmOAuth,
@@ -8,7 +9,6 @@ import {
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { ShellAuthWindow } from '@nimiplatform/kit/auth';
 import { getGoogleClientId, loadGoogleScript } from '@nimiplatform/kit/auth';
@@ -74,7 +74,7 @@ export function ProfilePage() {
   };
 
   const refreshCurrentUser = async () => {
-    const latest = await dataSync.loadCurrentUser();
+    const latest = await realmSocialData.loadCurrentUser();
     const updatedUser = parseOptionalJsonObject(latest) ?? null;
     setAuthSession(updatedUser, authToken, authRefreshToken || undefined);
   };
@@ -247,7 +247,7 @@ export function ProfilePage() {
         avatarUrl: profileDraft.avatarUrl,
         bio: profileDraft.bio,
       };
-      const updated = await dataSync.updateUserProfile(payload);
+      const updated = await realmSocialData.updateUserProfile(payload);
       const updatedUser = parseOptionalJsonObject(updated) ?? null;
       if (updatedUser) {
         if (typeof updatedUser.avatarUrl !== 'string') {

@@ -6,19 +6,19 @@ import {
   blockUser,
   loadSocialSnapshot,
   unblockUser,
-} from '../src/runtime/data-sync/flows/profile-flow.js';
+} from '../src/shell/renderer/features/social/data/profile-data.js';
 import {
   getCachedContacts,
   updateCachedContacts,
-} from '../src/runtime/data-sync/flows/profile-flow-social.js';
+} from '../src/shell/renderer/features/social/data/social-snapshot.js';
 
 const profileFlowSource = readFileSync(
-  resolve(import.meta.dirname, '../src/runtime/data-sync/flows/profile-flow.ts'),
+  resolve(import.meta.dirname, '../src/shell/renderer/features/social/data/profile-data.ts'),
   'utf8',
 );
 
 const profileFlowSocialSource = readFileSync(
-  resolve(import.meta.dirname, '../src/runtime/data-sync/flows/profile-flow-social.ts'),
+  resolve(import.meta.dirname, '../src/shell/renderer/features/social/data/social-snapshot.ts'),
   'utf8',
 );
 

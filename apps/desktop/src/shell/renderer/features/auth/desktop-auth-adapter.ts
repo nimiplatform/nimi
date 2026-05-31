@@ -1,3 +1,4 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import {
   clearPersistedAccessToken,
   persistAuthSessionMetadata,
@@ -253,7 +254,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
     loadCurrentUser: async () => {
       if (isWebShellMode()) {
         try {
-          const user = await dataSync.loadCurrentUser();
+          const user = await realmSocialData.loadCurrentUser();
           return toAuthUserRecord(user);
         } catch (error) {
           if (isExpectedAnonymousSessionError(error)) {

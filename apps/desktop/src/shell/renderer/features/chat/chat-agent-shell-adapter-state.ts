@@ -1,3 +1,4 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
@@ -6,7 +7,6 @@ import {
   findRuntimeRouteModelProfile,
   type RuntimeRouteBinding,
 } from '@nimiplatform/sdk/ai';
-import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type {
   AgentLocalMessageRecord,
@@ -44,7 +44,7 @@ import {
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { loadDesktopRouteOptions } from '../runtime-config/desktop-route-options-service';
 
-type SocialSnapshot = Awaited<ReturnType<typeof dataSync.loadSocialSnapshot>>;
+type SocialSnapshot = Awaited<ReturnType<typeof realmSocialData.loadSocialSnapshot>>;
 
 function synthesizeAgentThreadSummaryFromRuntimeSummary(
   summary: AgentRuntimeConversationSummary,
@@ -175,7 +175,7 @@ export function useAgentConversationShellState(
   const targetsQuery = useQuery({
     queryKey: [...TARGETS_QUERY_KEY, input.authStatus],
     queryFn: async (): Promise<AgentLocalTargetSnapshot[]> => {
-      const snapshot = await dataSync.loadSocialSnapshot() as SocialSnapshot;
+      const snapshot = await realmSocialData.loadSocialSnapshot() as SocialSnapshot;
       const ownerUserId = String((useAppStore.getState().auth.user as Record<string, unknown> | null)?.id || '').trim();
       return toAgentFriendTargetsFromSocialSnapshot({ ...((snapshot as Record<string, unknown> | null) || {}), ownerUserId });
     },

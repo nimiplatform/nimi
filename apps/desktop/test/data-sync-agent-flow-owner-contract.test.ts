@@ -12,7 +12,7 @@ const socialFlowSource = fs.readFileSync(
   'utf8',
 );
 const profileFlowSocialSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/runtime/data-sync/flows/profile-flow-social.ts'),
+  path.join(import.meta.dirname, '../src/shell/renderer/features/social/data/social-snapshot.ts'),
   'utf8',
 );
 const agentFlowSource = fs.readFileSync(

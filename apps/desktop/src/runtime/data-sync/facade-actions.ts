@@ -15,29 +15,8 @@ import {
   removeGroupChatAgent,
 } from './flows/group-chat-flow';
 
-type CreatePostDto = RealmModel<'CreatePostDto'>;
-type CreateReportDto = RealmModel<'CreateReportDto'>;
 type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
-import {
-  countPendingSocialMutations,
-  flushPendingSocialMutations,
-} from './offline-social-outbox';
-import {
-  blockUser,
-  loadAgentFriendLimit,
-  loadContactList,
-  loadCurrentUserProfile,
-  loadPendingFriendRequests,
-  loadSocialSnapshot,
-  loadUserProfileById,
-  rejectOrRemoveFriend,
-  removeFriend,
-  requestOrAcceptFriend,
-  unblockUser,
-  updateCurrentUserProfile,
-} from './flows/profile-flow';
-import { searchUserByIdentifier } from './flows/social-flow';
 import { createMasterAgent, loadCreatorAgents } from './flows/agent-flow';
 import type { CreateMasterAgentInput } from './flows/social-flow';
 import { loadExploreAgents, loadExploreFeedItems, loadMoreExploreFeedItems, type LoadExploreAgentsInput } from './flows/explore-flow';
@@ -67,19 +46,6 @@ import {
   type TransitStatus,
   type TransitType,
 } from './flows/transit-flow';
-import {
-  createReport,
-  createPost,
-  deletePost,
-  likePost,
-  loadLikedPosts,
-  loadPostById,
-  loadPostFeed,
-  unlikePost,
-  updatePostVisibility,
-} from './flows/post-attachment-flow';
-import type { PostFeedScope } from './flows/post-attachment-flow';
-
 export type DataSyncCallApi = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 export type DataSyncEmitError = (
   action: string,
@@ -95,17 +61,11 @@ type CreateDataSyncActionsInput = {
   setAuth: (user: Record<string, unknown> | null | undefined, token: string, refreshToken?: string) => void;
   clearAuth: () => void;
   stopAllPolling: () => void;
-  isFriend: (userId: string) => boolean;
   getCurrentUser: () => Record<string, unknown> | null;
 };
 
 export function createDataSyncActions(input: CreateDataSyncActionsInput) {
-  const loadContacts = async () => loadContactList(input.callApiTask, input.emitFacadeError);
-
   return {
-    loadCurrentUser: async () => loadCurrentUserProfile(input.callApiTask, input.emitFacadeError),
-    updateUserProfile: async (data: Record<string, unknown>) =>
-      updateCurrentUserProfile(input.callApiTask, input.emitFacadeError, data),
     loadGroupChats: async (limit = 20) =>
       loadGroupChatList(input.callApiTask, input.emitFacadeError, limit),
     loadGroupChat: async (chatId: string) =>
@@ -137,67 +97,9 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       addGroupChatAgent(input.callApiTask, input.emitFacadeError, chatId, agentAccountId),
     removeGroupAgent: async (chatId: string, agentAccountId: string) =>
       removeGroupChatAgent(input.callApiTask, input.emitFacadeError, chatId, agentAccountId),
-    flushSocialOutbox: async () =>
-      flushPendingSocialMutations(
-        input.callApiTask,
-        input.emitFacadeError,
-      ),
-    countPendingRealmRecoveryWork: async () => {
-      return await countPendingSocialMutations();
-    },
-    loadContacts,
-    loadSocialSnapshot: async () => loadSocialSnapshot(input.callApiTask, input.emitFacadeError),
-    loadAgentFriendLimit: async () =>
-      loadAgentFriendLimit(input.callApiTask, input.emitFacadeError),
-    searchUser: async (identifierInput: string) =>
-      searchUserByIdentifier(input.callApiTask, identifierInput, (userId) => input.isFriend(userId)),
-    removeFriend: async (userId: string) =>
-      removeFriend({
-        callApi: input.callApiTask,
-        userId,
-        reloadContacts: async () => {
-          await loadContacts();
-        },
-      }),
-    requestOrAcceptFriend: async (userId: string, message?: string) =>
-      requestOrAcceptFriend({
-        callApi: input.callApiTask,
-        userId,
-        message,
-        reloadContacts: async () => {
-          await loadContacts();
-        },
-      }),
-    rejectOrRemoveFriend: async (userId: string) =>
-      rejectOrRemoveFriend({
-        callApi: input.callApiTask,
-        userId,
-        reloadContacts: async () => {
-          await loadContacts();
-        },
-      }),
-    blockUser: async (contact: Record<string, unknown>) =>
-      blockUser(
-        input.callApiTask,
-        contact,
-        async () => {
-          await loadContacts();
-        },
-      ),
-    unblockUser: async (contact: Record<string, unknown>) =>
-      unblockUser(
-        input.callApiTask,
-        contact,
-        async () => {
-          await loadContacts();
-        },
-      ),
-    loadUserProfile: async (id: string) =>
-      loadUserProfileById(input.callApiTask, input.emitFacadeError, id),
     loadMyAgents: async () => loadCreatorAgents(input.callApiTask),
     createAgent: async (agentInput: CreateMasterAgentInput) =>
       createMasterAgent(input.callApiTask, agentInput),
-    loadFriendRequests: async () => loadPendingFriendRequests(input.callApiTask, input.emitFacadeError),
     loadExploreAgents: async (agentInput: LoadExploreAgentsInput = {}) =>
       loadExploreAgents(input.callApiTask, input.emitFacadeError, agentInput),
     loadExploreFeed: async (tag: string | null = null, limit = 20) =>
@@ -247,34 +149,6 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       completeWorldTransit(input.callApiTask, input.emitFacadeError, transitId),
     abandonWorldTransit: async (transitId: string): Promise<TransitDetailDto> =>
       abandonWorldTransit(input.callApiTask, input.emitFacadeError, transitId),
-    loadPostFeed: async (payload: {
-      visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
-      worldId?: string;
-      authorId?: string;
-      limit?: number;
-      cursor?: string;
-      scope?: PostFeedScope;
-    }) =>
-      loadPostFeed(input.callApiTask, input.emitFacadeError, payload),
-    loadLikedPosts: async (profileId: string, limit = 20, cursor?: string) =>
-      loadLikedPosts(input.callApiTask, input.emitFacadeError, profileId, limit, cursor),
-    loadPostById: async (postId: string) =>
-      loadPostById(input.callApiTask, input.emitFacadeError, postId),
-    createPost: async (payload: CreatePostDto) =>
-      createPost(input.callApiTask, input.emitFacadeError, payload),
-    deletePost: async (postId: string) =>
-      deletePost(input.callApiTask, input.emitFacadeError, postId),
-    updatePostVisibility: async (
-      postId: string,
-      visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE',
-    ) =>
-      updatePostVisibility(input.callApiTask, input.emitFacadeError, postId, visibility),
-    likePost: async (postId: string) =>
-      likePost(input.callApiTask, input.emitFacadeError, postId),
-    unlikePost: async (postId: string) =>
-      unlikePost(input.callApiTask, input.emitFacadeError, postId),
-    createReport: async (payload: CreateReportDto) =>
-      createReport(input.callApiTask, input.emitFacadeError, payload),
     loadAgentDetails: async (agentIdentifier: string) =>
       loadAgentDetails(input.callApiTask, input.emitFacadeError, agentIdentifier, {
         viewerUserId: String(input.getCurrentUser()?.id || '').trim() || undefined,

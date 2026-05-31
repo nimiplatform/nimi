@@ -60,7 +60,7 @@ test('the AgentFriendLimit type carries no subscription-tier field', () => {
 });
 
 test('data-sync exposes a loadAgentFriendLimit projection action', () => {
-  const flowSource = read('runtime/data-sync/flows/profile-flow-social.ts');
+  const flowSource = read('shell/renderer/features/social/data/social-snapshot.ts');
   assert.match(flowSource, /MeService\.getMyAgentFriendLimit\(\)/);
   const facadeSource = read('runtime/data-sync/facade.ts');
   assert.match(facadeSource, /loadAgentFriendLimit\(\)/);

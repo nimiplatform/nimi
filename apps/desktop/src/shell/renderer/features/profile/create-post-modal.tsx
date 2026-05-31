@@ -1,3 +1,4 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getPlatformClient } from '@nimiplatform/sdk';
@@ -322,7 +323,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
         resourceId = activeAttachment.id;
       }
 
-      const createdPost = await dataSync.createPost({
+      const createdPost = await realmSocialData.createPost({
         attachments: [{
           targetType: 'RESOURCE',
           targetId: resourceId,
@@ -337,9 +338,9 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
           if (!createdPostId) {
             throw new Error('Updated post was created without an id, visibility could not be restored.');
           }
-          await dataSync.updatePostVisibility(createdPostId, initialPost.visibility);
+          await realmSocialData.updatePostVisibility(createdPostId, initialPost.visibility);
         }
-        await dataSync.deletePost(initialPost.postId);
+        await realmSocialData.deletePost(initialPost.postId);
       }
 
       onComplete({ success: true, mode: isEditMode ? 'edit' : 'create' });

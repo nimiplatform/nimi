@@ -1,3 +1,4 @@
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { OverlayShell } from '@nimiplatform/kit/ui';
@@ -105,7 +106,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
       try {
         const result = props.profileSeed?.isAgent
           ? await dataSync.loadAgentDetails(props.profileId)
-          : await dataSync.loadUserProfile(props.profileId);
+          : await realmSocialData.loadUserProfile(props.profileId);
         return toProfileData(result as ProfileSource);
       } catch (error) {
         if (props.profileSeed && !props.profileSeed.isAgent && isPrivateProfileAccessError(error)) {
@@ -119,7 +120,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
   });
 
   const profile: ProfileData | null = profileQuery.data ?? null;
-  const isBlockedProfile = Boolean(profile && dataSync.isBlockedUser(profile.id));
+  const isBlockedProfile = Boolean(profile && realmSocialData.isBlockedUser(profile.id));
 
   const handleMessage = useCallback(async () => {
     if (!profile) {
@@ -188,7 +189,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
       return;
     }
     try {
-      await dataSync.blockUser({
+      await realmSocialData.blockUser({
         id: profile.id,
         displayName: profile.displayName,
         handle: profile.handle,
@@ -220,7 +221,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     }
     try {
       setRemoveMutationPending(true);
-      await dataSync.removeFriend(profile.id);
+      await realmSocialData.removeFriend(profile.id);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['chats'], exact: false }),

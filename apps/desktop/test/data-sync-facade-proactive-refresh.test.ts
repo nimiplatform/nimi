@@ -56,7 +56,6 @@ test('DataSync Runtime token provider keeps tokens out of hot state and disables
         clearAuthCalls += 1;
       },
       getCurrentUser: () => ({ id: 'user-1' }),
-      isFriend: () => false,
     });
     dataSync.stopAllPolling = (() => {
       stopAllPollingCalls += 1;
@@ -112,7 +111,6 @@ test('DataSync legacy refresh path remains unavailable when Runtime provider own
         clearAuthCalls += 1;
       },
       getCurrentUser: () => ({ id: 'user-1' }),
-      isFriend: () => false,
     });
     dataSync.stopAllPolling = (() => {
       stopAllPollingCalls += 1;
@@ -186,7 +184,6 @@ test('DataSync keeps Desktop auth projection when Runtime account token is tempo
       clearAuthCalls += 1;
     },
     getCurrentUser: () => ({ id: 'user-1' }),
-    isFriend: () => false,
   });
   dataSync.stopAllPolling = (() => {
     stopAllPollingCalls += 1;
@@ -220,7 +217,6 @@ test('DataSync clears Desktop auth projection when Realm access requires reauthe
       clearAuthCalls += 1;
     },
     getCurrentUser: () => ({ id: 'user-1' }),
-    isFriend: () => false,
   });
   dataSync.stopAllPolling = (() => {
     stopAllPollingCalls += 1;
@@ -266,7 +262,6 @@ test('DataSync clears Desktop auth projection for Realm AUTH_REQUIRED responses'
       lifecycle.push('clearAuth:done');
     },
     getCurrentUser: () => ({ id: 'user-1' }),
-    isFriend: () => false,
   });
   dataSync.stopAllPolling = (() => {
     stopAllPollingCalls += 1;
@@ -311,7 +306,6 @@ test('DataSync keeps Desktop auth projection when Realm denies data access', asy
       clearAuthCalls += 1;
     },
     getCurrentUser: () => ({ id: 'user-1' }),
-    isFriend: () => false,
   });
   dataSync.stopAllPolling = (() => {
     stopAllPollingCalls += 1;
@@ -353,7 +347,6 @@ test('DataSync does not treat generic AUTH_DENIED as a session lifecycle signal'
       clearAuthCalls += 1;
     },
     getCurrentUser: () => ({ id: 'user-1' }),
-    isFriend: () => false,
   });
   dataSync.stopAllPolling = (() => {
     stopAllPollingCalls += 1;

@@ -1,4 +1,4 @@
-import { dataSync } from '@runtime/data-sync';
+import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { i18n } from '@renderer/i18n';
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 
@@ -33,7 +33,7 @@ export type AgentFriendLimit =
 export async function resolveAgentFriendLimit(): Promise<AgentFriendLimit> {
   let projection: JsonObject | null;
   try {
-    projection = parseOptionalJsonObject(await dataSync.loadAgentFriendLimit()) ?? null;
+    projection = parseOptionalJsonObject(await realmSocialData.loadAgentFriendLimit()) ?? null;
   } catch {
     projection = null;
   }
