@@ -4,6 +4,7 @@ import type {
   GetRuntimeHealthResponse,
   RuntimeHealthEvent,
 } from './generated/runtime/v1/audit.js';
+import { RuntimeHealthStatus } from './generated/runtime/v1/audit.js';
 
 const HEALTH_STALE_MS = 60_000;
 const HEALTH_WATCHDOG_INTERVAL_MS = 60_000;
@@ -37,6 +38,17 @@ export type RuntimeHealthCoordinatorState = {
   started: boolean;
 };
 
+export type RuntimeHealthProjectionStatus = 'healthy' | 'degraded' | 'unreachable' | 'idle';
+
+export type RuntimeHealthProjection = {
+  health: {
+    status: Exclude<RuntimeHealthProjectionStatus, 'idle'>;
+    detail: string;
+    checkedAt: string;
+  };
+  normalizedStatus: RuntimeHealthProjectionStatus;
+};
+
 function buildDefaultState(): RuntimeHealthCoordinatorState {
   return {
     runtimeHealth: null,
@@ -66,6 +78,42 @@ function toErrorMessage(error: unknown, fallback: string): string {
     }
   }
   return fallback;
+}
+
+function timestampToIsoString(ts?: { seconds: string; nanos: number }): string {
+  if (!ts) {
+    return new Date().toISOString();
+  }
+  const ms = Number(ts.seconds) * 1000 + Math.floor(Number(ts.nanos || 0) / 1_000_000);
+  if (Number.isNaN(ms)) {
+    return new Date().toISOString();
+  }
+  return new Date(ms).toISOString();
+}
+
+export function projectRuntimeHealthStatus(status: unknown): RuntimeHealthProjectionStatus {
+  if (status === RuntimeHealthStatus.READY) {
+    return 'healthy';
+  }
+  if (status === RuntimeHealthStatus.DEGRADED) {
+    return 'degraded';
+  }
+  if (status === RuntimeHealthStatus.STOPPED || status === RuntimeHealthStatus.STOPPING) {
+    return 'unreachable';
+  }
+  return 'idle';
+}
+
+export function projectRuntimeHealthSummary(result: GetRuntimeHealthResponse): RuntimeHealthProjection {
+  const normalizedStatus = projectRuntimeHealthStatus(result.status);
+  return {
+    health: {
+      status: normalizedStatus === 'idle' ? 'healthy' : normalizedStatus,
+      detail: String(result.reason || '').trim() || `runtime health ${normalizedStatus}`,
+      checkedAt: timestampToIsoString(result.sampledAt),
+    },
+    normalizedStatus,
+  };
 }
 
 function mapRuntimeHealthEventToSnapshot(event: RuntimeHealthEvent): GetRuntimeHealthResponse {

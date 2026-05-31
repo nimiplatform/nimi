@@ -7,7 +7,12 @@ import type {
   GetRuntimeHealthResponse,
   RuntimeHealthEvent,
 } from '../../src/runtime/index.js';
-import { RuntimeHealthCoordinator } from '../../src/runtime/index.js';
+import {
+  RuntimeHealthCoordinator,
+  RuntimeHealthStatus,
+  projectRuntimeHealthStatus,
+  projectRuntimeHealthSummary,
+} from '../../src/runtime/index.js';
 
 function flushMicrotasks(): Promise<void> {
   return new Promise((resolve) => {
@@ -99,6 +104,30 @@ function runtimeEventDeps() {
 }
 
 describe('RuntimeHealthCoordinator', () => {
+  test('projects runtime health status without app-local enum tables', () => {
+    assert.equal(projectRuntimeHealthStatus(RuntimeHealthStatus.READY), 'healthy');
+    assert.equal(projectRuntimeHealthStatus(RuntimeHealthStatus.DEGRADED), 'degraded');
+    assert.equal(projectRuntimeHealthStatus(RuntimeHealthStatus.STOPPED), 'unreachable');
+    assert.equal(projectRuntimeHealthStatus(RuntimeHealthStatus.STOPPING), 'unreachable');
+    assert.equal(projectRuntimeHealthStatus(RuntimeHealthStatus.STARTING), 'idle');
+    assert.equal(projectRuntimeHealthStatus(RuntimeHealthStatus.UNSPECIFIED), 'idle');
+
+    const ready = projectRuntimeHealthSummary(makeRuntimeHealth(RuntimeHealthStatus.READY, 'ready'));
+    assert.deepEqual(ready, {
+      normalizedStatus: 'healthy',
+      health: {
+        status: 'healthy',
+        detail: 'ready',
+        checkedAt: '2024-03-09T16:00:00.000Z',
+      },
+    });
+
+    const starting = projectRuntimeHealthSummary(makeRuntimeHealth(RuntimeHealthStatus.STARTING));
+    assert.equal(starting.normalizedStatus, 'idle');
+    assert.equal(starting.health.status, 'healthy');
+    assert.equal(starting.health.detail, 'runtime health idle');
+  });
+
   test('hydrates shared state once on startup', async () => {
     const healthStream = createAsyncStream<RuntimeHealthEvent>();
     const providerStream = createAsyncStream<AIProviderHealthEvent>();

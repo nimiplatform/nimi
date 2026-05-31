@@ -29,6 +29,9 @@ test('runtime config connector discovery validates node capabilities without as 
   assert.match(connectorDiscoverySource, /type RuntimeNodeCapability = LocalRuntimeRunnableAssetKindId/);
   assert.match(connectorDiscoverySource, /function normalizeRuntimeNodeCapability/);
   assert.match(connectorDiscoverySource, /normalizeLocalRuntimeRunnableAssetKindId/);
+  assert.match(connectorDiscoverySource, /projectRuntimeHealthSummary/);
+  assert.doesNotMatch(connectorDiscoverySource, /RuntimeHealthStatus enum: 0=UNSPECIFIED/);
+  assert.doesNotMatch(connectorDiscoverySource, /function statusFromRuntimeHealth/);
   assert.doesNotMatch(connectorDiscoverySource, /capability: \(\(\(n\.capabilities \|\| \[\]\)\[0\] \|\| 'chat'\) as any/);
 });
 

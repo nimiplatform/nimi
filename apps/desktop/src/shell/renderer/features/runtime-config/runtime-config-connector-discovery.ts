@@ -13,6 +13,7 @@ import {
   asNimiError,
   isLocalRuntimeRunnableAssetKindId,
   normalizeLocalRuntimeRunnableAssetKindId,
+  projectRuntimeHealthSummary,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
@@ -37,36 +38,14 @@ function normalizeRuntimeNodeAdapter(value: unknown): LocalProviderAdapterId | u
   return normalizeLocalProviderAdapterId(value);
 }
 
-function statusFromRuntimeHealth(status: number): ProviderStatusV11 {
-  // RuntimeHealthStatus enum: 0=UNSPECIFIED, 1=STOPPED, 2=STARTING, 3=READY, 4=DEGRADED, 5=STOPPING
-  if (status === 3) return 'healthy';
-  if (status === 4) return 'degraded';
-  if (status === 1 || status === 5) return 'unreachable';
-  return 'idle';
-}
-
-function timestampToIsoString(ts?: { seconds: string; nanos: number }): string {
-  if (!ts) {
-    return new Date().toISOString();
-  }
-  const ms = Number(ts.seconds) * 1000 + Math.floor(ts.nanos / 1_000_000);
-  if (Number.isNaN(ms)) {
-    return new Date().toISOString();
-  }
-  return new Date(ms).toISOString();
-}
-
 export function normalizeRuntimeHealthResult(result: GetRuntimeHealthResponse): {
   health: HealthResult;
   normalizedStatus: ProviderStatusV11;
 } {
-  const normalizedStatus = statusFromRuntimeHealth(result.status);
+  const projection = projectRuntimeHealthSummary(result);
+  const normalizedStatus = projection.normalizedStatus as ProviderStatusV11;
   return {
-    health: {
-      status: normalizedStatus === 'idle' ? 'healthy' : normalizedStatus as HealthResult['status'],
-      detail: String(result.reason || '').trim() || `runtime health ${normalizedStatus}`,
-      checkedAt: timestampToIsoString(result.sampledAt),
-    },
+    health: projection.health,
     normalizedStatus,
   };
 }

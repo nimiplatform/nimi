@@ -1105,10 +1105,15 @@ test('tester settings consumes SDK Runtime health coordinator diagnostics', () =
   const settings = read('src/shell/routes/settings.tsx');
 
   assert.match(settings, /RuntimeHealthCoordinator/);
+  assert.match(settings, /RuntimeHealthStatus/);
+  assert.match(settings, /projectRuntimeHealthSummary/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(settings, /SDK runtime health summary projection/);
+  assert.match(settings, /runtimeHealthSummaryProjection\.health\.checkedAt/);
   assert.match(settings, /SDK runtime health coordinator projection/);
   assert.match(settings, /runtimeHealthCoordinatorDiagnostics\.getSnapshot/);
   assert.doesNotMatch(settings, /class RuntimeHealthCoordinator/);
+  assert.doesNotMatch(settings, /RuntimeHealthStatus enum: 0=UNSPECIFIED/);
   assert.doesNotMatch(settings, /HEALTH_WATCHDOG_INTERVAL_MS/);
 });
 

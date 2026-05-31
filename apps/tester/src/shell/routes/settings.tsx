@@ -47,6 +47,8 @@ import {
   ModelCatalogProviderSource,
   normalizeRuntimeReasonCode,
   RuntimeHealthCoordinator,
+  RuntimeHealthStatus,
+  projectRuntimeHealthSummary,
   summarizeLocalRecommendationFeedCacheState,
   summarizeRuntimeAgentProjectionEvent,
   summarizeRuntimeAgentTimeline,
@@ -726,6 +728,17 @@ export function SettingsRoute() {
     provider: 'tester',
   });
   const modelConfigBindingSummaryProjection = summarizeBinding(modelConfigBindingProjection);
+  const runtimeHealthSummaryProjection = projectRuntimeHealthSummary({
+    status: RuntimeHealthStatus.READY,
+    reason: 'tester runtime ready',
+    queueDepth: 0,
+    activeWorkflows: 0,
+    activeInferenceJobs: 0,
+    cpuMilli: '0',
+    memoryBytes: '0',
+    vramBytes: '0',
+    sampledAt: { seconds: '1710000000', nanos: 0 },
+  });
   const runtimeHealthCoordinatorProjection = runtimeHealthCoordinatorDiagnostics.getSnapshot();
   const runtimeAgentConsumerProjection = (() => {
     const projectionEvent = {
@@ -1378,6 +1391,12 @@ export function SettingsRoute() {
         <span>Runtime route reasoning projection</span>
         <StatusBadge tone={runtimeRouteReasoningProjection.supported ? 'success' : 'warning'}>
           {runtimeRouteReasoningProjection.reason}: {runtimeRouteReasoningProjection.traceMode}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK runtime health summary projection</span>
+        <StatusBadge tone={runtimeHealthSummaryProjection.normalizedStatus === 'healthy' ? 'success' : 'warning'}>
+          {runtimeHealthSummaryProjection.normalizedStatus}: {runtimeHealthSummaryProjection.health.checkedAt}
         </StatusBadge>
       </div>
       <div className="setting-row">
