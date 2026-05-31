@@ -44,13 +44,6 @@ function userSource(profiles: AIProfile[]): UserProfilesSource {
   return { list: () => profiles };
 }
 
-function applyAIProfileToConfigStub(config: AIConfig, profile: AIProfile): AIConfig {
-  return {
-    ...config,
-    profileOrigin: { profileId: profile.profileId, title: profile.title, appliedAt: 'stub' },
-  };
-}
-
 describe('createModelConfigProfileControllerCore', () => {
   it('path 1 — remote-success returns config from remote result without placeholder', () => {
     const core = createModelConfigProfileControllerCore({ scopeRef, service: fakeService });
@@ -64,7 +57,6 @@ describe('createModelConfigProfileControllerCore', () => {
       profileId: 'remote',
       remoteResult,
       currentConfig: baseConfig,
-      applyAIProfileToConfig: applyAIProfileToConfigStub,
       now: () => 'now',
     });
     expect(resolution.kind).toBe('remote-success');
@@ -89,7 +81,6 @@ describe('createModelConfigProfileControllerCore', () => {
       profileId: 'local-profile-1',
       remoteResult,
       currentConfig: baseConfig,
-      applyAIProfileToConfig: applyAIProfileToConfigStub,
       now: () => 'now',
     });
     expect(resolution.kind).toBe('remote-fail-without-user-profile');
@@ -114,7 +105,6 @@ describe('createModelConfigProfileControllerCore', () => {
       profileId: 'unknown',
       remoteResult,
       currentConfig: baseConfig,
-      applyAIProfileToConfig: applyAIProfileToConfigStub,
       now: () => 'now',
     });
     expect(resolution.kind).toBe('remote-fail-without-user-profile');
@@ -144,7 +134,6 @@ describe('createModelConfigProfileControllerCore', () => {
       profileId: 'missing',
       remoteResult,
       currentConfig: baseConfig,
-      applyAIProfileToConfig: applyAIProfileToConfigStub,
       now: () => 'now',
     });
     expect(resolution.kind).not.toBe('remote-success');

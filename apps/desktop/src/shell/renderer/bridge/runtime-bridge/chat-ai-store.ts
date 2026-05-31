@@ -1,7 +1,6 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { attachRuntimeAppDataStorageRoot } from '@nimiplatform/sdk/runtime';
-import { hasTauriInvoke } from './env';
-import { invokeChecked } from './invoke';
+import { hasTauriInvoke, invokeChecked } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   parseChatAiCreateMessageInput,
   parseChatAiCreateThreadInput,

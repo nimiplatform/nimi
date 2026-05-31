@@ -1,5 +1,5 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export function invokeTesterCommand<T>(command: string, args?: Record<string, unknown>): Promise<T> {
-  return invoke<T>(command, args);
+  return invoke(command, args || {}) as Promise<T>;
 }

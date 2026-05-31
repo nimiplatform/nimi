@@ -3,14 +3,19 @@ import {
   createRuntimeRouteModelPickerProvider,
   createRuntimeRouteModelPickerProviderCache,
 } from '../src/runtime.js';
+import type {
+  RuntimeCanonicalCapability,
+  RuntimeRouteOptionsSnapshot,
+} from '@nimiplatform/kit/core/sdk-contract';
 
 function makeRouteOptionsLoader() {
   let calls = 0;
+  type RouteOptionsInput = { capability: RuntimeCanonicalCapability };
   return {
     get calls() {
       return calls;
     },
-    async loadOptions(input: { capability: string }) {
+    async loadOptions(input: RouteOptionsInput): Promise<RuntimeRouteOptionsSnapshot> {
       calls += 1;
       return {
         capability: input.capability,

@@ -207,9 +207,12 @@ test('tester artifact history persistence is real and fail-closed', () => {
   const imageHistory = read('src/tester/tester-image-history.ts');
   const workbench = read('src/tester/tester-workbench.tsx');
   const capabilities = read('src/tester/workbench/section-ai-testing.tsx');
+  const tauri = read('src/tester/tester-tauri.ts');
 
   assert.match(imageHistory, /runId\?: string/);
   assert.match(imageHistory, /kind\?: 'runtime-media'/);
+  assert.match(tauri, /@nimiplatform\/kit\/shell\/renderer\/bridge/);
+  assert.doesNotMatch(tauri, /@tauri-apps\/api\/core/);
   assert.match(imageHistory, /artifactCount\?: number/);
   assert.match(imageHistory, /traceState\?: 'captured' \| 'not-captured'/);
   assert.match(imageHistory, /records\.slice\(0, 80\)/);
