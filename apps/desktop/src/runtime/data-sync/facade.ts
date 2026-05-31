@@ -1,6 +1,6 @@
 import { withRealmContextLock } from '@nimiplatform/sdk';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import type { RealmTokenRefreshResult } from '@nimiplatform/sdk/realm';
+import type { RealmResourceUploadResult, RealmTokenRefreshResult } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { Realm, normalizeRealmBaseUrl } from '@nimiplatform/sdk/realm';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
@@ -29,7 +29,7 @@ import type {
 } from './flows/transit-flow';
 import { createDataSyncActions } from './facade-actions';
 import type { CreateMasterAgentInput } from './flows/social-flow';
-import type { PostFeedScope } from './flows/post-attachment-flow';
+import type { PostFeedScope, UploadResourceFileOptions } from './flows/post-attachment-flow';
 import {
   COURIER_POLLING_KEY,
   COURIER_POLL_INTERVAL_MS,
@@ -441,6 +441,12 @@ export class DataSync {
   createVideoDirectUpload() { return this.actions.createVideoDirectUpload(); }
   finalizeResource(resourceId: string, payload: FinalizeResourceDto): Promise<ResourceDetailDto> {
     return this.actions.finalizeResource(resourceId, payload);
+  }
+  uploadImageResourceFile(file: Blob, options?: UploadResourceFileOptions): Promise<RealmResourceUploadResult> {
+    return this.actions.uploadImageResourceFile(file, options);
+  }
+  uploadVideoResourceFile(file: Blob, options?: UploadResourceFileOptions): Promise<RealmResourceUploadResult> {
+    return this.actions.uploadVideoResourceFile(file, options);
   }
   deletePost(postId: string) { return this.actions.deletePost(postId); }
   updatePostVisibility(postId: string, visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE') {

@@ -298,18 +298,10 @@ export function ProfilePage() {
 
     setUploadingAvatar(true);
     try {
-      const upload = await dataSync.createImageDirectUpload();
-      const formData = new FormData();
-      formData.append('file', file);
-      const response = await fetch(upload.uploadUrl, {
-        method: 'POST',
-        body: formData,
+      const uploaded = await dataSync.uploadImageResourceFile(file, {
+        failureMessage: t('Profile.avatarUploadFailed'),
       });
-      if (!response.ok) {
-        throw new Error(t('Profile.avatarUploadFailed'));
-      }
-      const finalized = await dataSync.finalizeResource(upload.resourceId, {});
-      const nextAvatarUrl = finalized.url;
+      const nextAvatarUrl = uploaded.resource.url;
       if (!nextAvatarUrl) {
         throw new Error(t('Profile.avatarUploadFailed'));
       }

@@ -310,31 +310,15 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
       
       if ('file' in activeAttachment) {
         if (activeAttachment.type === 'image') {
-          const upload = await dataSync.createImageDirectUpload();
-          const formData = new FormData();
-          formData.append('file', activeAttachment.file);
-          const uploadResponse = await fetch(upload.uploadUrl, {
-            method: 'POST',
-            body: formData,
+          const upload = await dataSync.uploadImageResourceFile(activeAttachment.file, {
+            failureMessage: 'Image upload failed',
           });
-          if (!uploadResponse.ok) {
-            throw new Error('Image upload failed');
-          }
-          await dataSync.finalizeResource(upload.resourceId, {});
           resourceId = upload.resourceId;
         } else {
-          const uploadData = await dataSync.createVideoDirectUpload();
-          const formData = new FormData();
-          formData.append('file', activeAttachment.file);
-          const uploadResponse = await fetch(uploadData.uploadUrl, {
-            method: 'POST',
-            body: formData,
+          const upload = await dataSync.uploadVideoResourceFile(activeAttachment.file, {
+            failureMessage: 'Video upload failed',
           });
-          if (!uploadResponse.ok) {
-            throw new Error('Video upload failed');
-          }
-          await dataSync.finalizeResource(uploadData.resourceId, {});
-          resourceId = uploadData.resourceId;
+          resourceId = upload.resourceId;
         }
       } else {
         resourceId = activeAttachment.id;

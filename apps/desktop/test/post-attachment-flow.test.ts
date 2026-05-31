@@ -29,8 +29,11 @@ test('create post modal writes targetType-targetId attachments payloads for new 
   assert.doesNotMatch(createPostModalSource, /createPost\(\{\s*attachments:\s*\[\{[\s\S]*videoId:/s);
 });
 
-test('create post modal calls finalizeResource after direct upload', () => {
-  assert.match(createPostModalSource, /finalizeResource\(/);
+test('create post modal uses shared Realm upload helper instead of owning direct upload transport', () => {
+  assert.match(createPostModalSource, /uploadImageResourceFile/);
+  assert.match(createPostModalSource, /uploadVideoResourceFile/);
+  assert.doesNotMatch(createPostModalSource, /fetch\([^)]*uploadUrl/);
+  assert.doesNotMatch(createPostModalSource, /finalizeResource\(/);
 });
 
 test('create post modal revokes blob preview URLs on unmount', () => {

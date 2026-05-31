@@ -1,6 +1,11 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import {
+  uploadRealmResourceFile,
+  type RealmResourceUploadResult,
+  type RealmResourceUploadTransportMode,
+} from '@nimiplatform/sdk/realm';
+import {
   getOfflineCoordinator,
   isRealmOfflineError,
 } from '@runtime/offline';
@@ -215,6 +220,55 @@ export async function finalizeResource(
     emitDataSyncError('finalize-resource', error, { resourceId });
     throw error;
   }
+}
+
+export type UploadResourceFileOptions = {
+  failureMessage?: string;
+  transportMode?: RealmResourceUploadTransportMode;
+};
+
+async function uploadResourceFile(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  kind: 'image' | 'video',
+  file: Blob,
+  options: UploadResourceFileOptions = {},
+): Promise<RealmResourceUploadResult> {
+  try {
+    return await uploadRealmResourceFile({
+      kind,
+      file,
+      client: {
+        createImageDirectUpload: () => createImageDirectUpload(callApi, emitDataSyncError),
+        createVideoDirectUpload: () => createVideoDirectUpload(callApi, emitDataSyncError),
+        finalizeResource: (resourceId, payload) =>
+          finalizeResource(callApi, emitDataSyncError, resourceId, payload),
+      },
+      failureMessage: options.failureMessage,
+      transportMode: options.transportMode,
+    });
+  } catch (error) {
+    emitDataSyncError('upload-resource-file', error, { kind });
+    throw error;
+  }
+}
+
+export async function uploadImageResourceFile(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  file: Blob,
+  options?: UploadResourceFileOptions,
+): Promise<RealmResourceUploadResult> {
+  return uploadResourceFile(callApi, emitDataSyncError, 'image', file, options);
+}
+
+export async function uploadVideoResourceFile(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  file: Blob,
+  options?: UploadResourceFileOptions,
+): Promise<RealmResourceUploadResult> {
+  return uploadResourceFile(callApi, emitDataSyncError, 'video', file, options);
 }
 
 export async function deletePost(

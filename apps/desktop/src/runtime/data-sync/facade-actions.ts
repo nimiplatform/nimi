@@ -121,9 +121,11 @@ import {
   loadPostById,
   loadPostFeed,
   unlikePost,
+  uploadImageResourceFile,
+  uploadVideoResourceFile,
   updatePostVisibility,
 } from './flows/post-attachment-flow';
-import type { PostFeedScope } from './flows/post-attachment-flow';
+import type { PostFeedScope, UploadResourceFileOptions } from './flows/post-attachment-flow';
 import {
   disableTwoFactor,
   enableTwoFactor,
@@ -382,6 +384,10 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       createVideoDirectUpload(input.callApiTask, input.emitFacadeError),
     finalizeResource: async (resourceId: string, payload: FinalizeResourceDto) =>
       finalizeResource(input.callApiTask, input.emitFacadeError, resourceId, payload),
+    uploadImageResourceFile: async (file: Blob, options?: UploadResourceFileOptions) =>
+      uploadImageResourceFile(input.callApiTask, input.emitFacadeError, file, options),
+    uploadVideoResourceFile: async (file: Blob, options?: UploadResourceFileOptions) =>
+      uploadVideoResourceFile(input.callApiTask, input.emitFacadeError, file, options),
     deletePost: async (postId: string) =>
       deletePost(input.callApiTask, input.emitFacadeError, postId),
     updatePostVisibility: async (

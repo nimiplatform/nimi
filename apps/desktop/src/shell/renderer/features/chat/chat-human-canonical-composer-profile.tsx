@@ -118,36 +118,18 @@ export function HumanCanonicalComposer(props: {
 
     const { file, kind } = attachment;
     const isImage = kind === 'image';
-    const uploadInfo = isImage
-      ? await dataSync.createImageDirectUpload()
-      : await dataSync.createVideoDirectUpload();
-    const uploadUrl = uploadInfo.uploadUrl;
-    const attachmentTargetId = extractChatAttachmentTargetId(uploadInfo);
-    if (!uploadUrl) {
-      throw new Error(t('TurnInput.uploadFailed'));
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-    let uploadResponse = await fetch(uploadUrl, {
-      method: 'POST',
-      body: formData,
-    });
-    if (!uploadResponse.ok) {
-      uploadResponse = await fetch(uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type,
-        },
+    const uploaded = isImage
+      ? await dataSync.uploadImageResourceFile(file, {
+        failureMessage: t('TurnInput.uploadFailed'),
+        transportMode: 'multipartPostThenBinaryPut',
+      })
+      : await dataSync.uploadVideoResourceFile(file, {
+        failureMessage: t('TurnInput.uploadFailed'),
+        transportMode: 'multipartPostThenBinaryPut',
       });
-    }
-    if (!uploadResponse.ok) {
-      throw new Error(t('TurnInput.uploadFailed'));
-    }
-
-    const finalized = await dataSync.finalizeResource(attachmentTargetId, {});
-    const finalizedAttachmentTargetId = String(finalized.id || '').trim();
+    const finalizedAttachmentTargetId = String(uploaded.resource.id || '').trim()
+      || extractChatAttachmentTargetId(uploaded.session)
+      || uploaded.resourceId;
     if (!finalizedAttachmentTargetId) {
       throw new Error(t('TurnInput.uploadFailed'));
     }

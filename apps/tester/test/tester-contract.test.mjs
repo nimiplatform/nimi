@@ -883,6 +883,18 @@ test('tester settings consumes the SDK Realm media URL projection', () => {
   assert.doesNotMatch(settings, /new URL\([^)]*api\/resources/);
 });
 
+test('tester settings consumes the SDK Realm resource upload orchestration helper', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /uploadRealmResourceFile/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
+  assert.match(settings, /Realm resource upload projection/);
+  assert.match(settings, /resourceUploadProjection\.summary\.resourceId/);
+  assert.match(settings, /fetchImpl: async \(\) => new Response/);
+  assert.doesNotMatch(settings, /fetch\(uploadUrl/);
+  assert.doesNotMatch(settings, /finalizeResource\(.*tester-resource-upload/);
+});
+
 test('tester settings consumes the SDK Realm endpoint projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
 

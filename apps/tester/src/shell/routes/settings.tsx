@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
   createEmptyMemoryEmbeddingConfig,
@@ -50,6 +50,7 @@ import {
   projectRealmRealtimeUrl,
   requestDataExport,
   resolveRealmMediaUrl,
+  uploadRealmResourceFile,
   type RequestDataExportOutput,
   type RealmNotificationListResultDto,
   type RealmNotificationUnreadProjection,
@@ -93,6 +94,12 @@ type NotificationListProjectionState =
   | { status: 'loading'; list: RealmNotificationListResultDto | null; error: null }
   | { status: 'ready'; list: RealmNotificationListResultDto; error: null }
   | { status: 'error'; list: null; error: string };
+
+type ResourceUploadProjectionState =
+  | { status: 'idle'; summary: null; error: null }
+  | { status: 'loading'; summary: null; error: null }
+  | { status: 'ready'; summary: { resourceId: string; status: string }; error: null }
+  | { status: 'error'; summary: null; error: string };
 
 type AccountDataProjectionState =
   | { status: 'idle'; exportRequest: null; error: null }
@@ -279,6 +286,11 @@ export function SettingsRoute() {
     list: null,
     error: null,
   });
+  const [resourceUploadProjection, setResourceUploadProjection] = useState<ResourceUploadProjectionState>({
+    status: 'idle',
+    summary: null,
+    error: null,
+  });
   const [accountDataProjection, setAccountDataProjection] = useState<AccountDataProjectionState>({
     status: 'idle',
     exportRequest: null,
@@ -294,6 +306,60 @@ export function SettingsRoute() {
     providers: [],
     error: null,
   });
+  useEffect(() => {
+    let cancelled = false;
+    setResourceUploadProjection({ status: 'loading', summary: null, error: null });
+    void uploadRealmResourceFile({
+      kind: 'image',
+      file: new Blob(['tester-settings-resource-upload'], { type: 'image/png' }),
+      client: {
+        async createImageDirectUpload() {
+          return {
+            deliveryAccess: 'SIGNED',
+            provider: 'S3_OBJECT',
+            resourceId: 'tester-resource-upload',
+            resourceType: 'IMAGE',
+            status: 'PENDING',
+            storageRef: 'tester/settings/resource-upload',
+            uploadUrl: 'https://upload.nimi.test/tester-resource-upload',
+          };
+        },
+        async finalizeResource(resourceId) {
+          return {
+            id: resourceId,
+            status: 'READY',
+            type: 'IMAGE',
+            url: 'https://media.nimi.test/resources/tester-resource-upload',
+          } as never;
+        },
+      },
+      fetchImpl: async () => new Response(null, { status: 204 }),
+    }).then((result) => {
+      if (cancelled) {
+        return;
+      }
+      setResourceUploadProjection({
+        status: 'ready',
+        summary: {
+          resourceId: result.resourceId,
+          status: String(result.resource.status || 'unknown'),
+        },
+        error: null,
+      });
+    }).catch((error: unknown) => {
+      if (cancelled) {
+        return;
+      }
+      setResourceUploadProjection({
+        status: 'error',
+        summary: null,
+        error: errorMessage(error),
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const recommendationFeedProjection = {
     cacheState: summarizeLocalRecommendationFeedCacheState({
       cacheState: normalizeLocalRecommendationFeedCacheStateId('LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH'),
@@ -843,6 +909,16 @@ export function SettingsRoute() {
       <div className="setting-row">
         <span>Realm media URL projection</span>
         <StatusBadge tone="neutral">{realmMediaUrlProjection}</StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Realm resource upload projection</span>
+        <StatusBadge tone={resourceUploadProjection.status === 'ready' ? 'success' : resourceUploadProjection.status === 'error' ? 'danger' : 'neutral'}>
+          {resourceUploadProjection.status === 'ready'
+            ? `${resourceUploadProjection.summary.resourceId}: ${resourceUploadProjection.summary.status}`
+            : resourceUploadProjection.status === 'error'
+              ? resourceUploadProjection.error
+              : 'checking'}
+        </StatusBadge>
       </div>
       <div className="setting-row">
         <span>Realm account-data export projection</span>

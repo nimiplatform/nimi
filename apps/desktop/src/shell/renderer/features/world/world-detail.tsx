@@ -205,17 +205,12 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
       }
       let resolvedImageUrl: string | undefined;
       if (input.avatarFile) {
-        const upload = await dataSync.createImageDirectUpload();
-        const formData = new FormData();
-        formData.append('file', input.avatarFile);
-        const response = await fetch(upload.uploadUrl, { method: 'POST', body: formData });
-        if (!response.ok) {
-          throw new Error(i18n.t('World.createAgent.avatarUploadFailed', {
+        const uploaded = await dataSync.uploadImageResourceFile(input.avatarFile, {
+          failureMessage: i18n.t('World.createAgent.avatarUploadFailed', {
             defaultValue: 'Avatar upload failed, please retry.',
-          }));
-        }
-        const finalized = await dataSync.finalizeResource(upload.resourceId, {});
-        resolvedImageUrl = finalized.url ?? undefined;
+          }),
+        });
+        resolvedImageUrl = uploaded.resource.url ?? undefined;
       }
       const payload = buildRealmAgentWritePayload(input.draft, resolvedImageUrl);
       return dataSync.createAgent({

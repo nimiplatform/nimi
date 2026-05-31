@@ -178,18 +178,10 @@ export function useProfileDetailViewController(props: ProfileDetailViewProps, re
     setIsUploadingAvatar(true);
     setSaveError(null);
     try {
-      const upload = await dataSync.createImageDirectUpload();
-      const formData = new FormData();
-      formData.append('file', file);
-      const response = await fetch(upload.uploadUrl, {
-        method: 'POST',
-        body: formData,
+      const uploaded = await dataSync.uploadImageResourceFile(file, {
+        failureMessage: i18n.t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }),
       });
-      if (!response.ok) {
-        throw new Error(i18n.t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));
-      }
-      const finalized = await dataSync.finalizeResource(upload.resourceId, {});
-      const avatarUrl = finalized.url;
+      const avatarUrl = uploaded.resource.url;
       if (!avatarUrl) {
         throw new Error(i18n.t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));
       }

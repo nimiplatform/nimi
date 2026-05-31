@@ -332,29 +332,13 @@ export async function uploadPendingAttachment(
       defaultValue: 'Agent chat currently supports image attachments only.',
     }));
   }
-  const upload = await dataSync.createImageDirectUpload();
-  const formData = new FormData();
-  formData.append('file', attachment.file);
-  let response = await fetch(upload.uploadUrl, {
-    method: 'POST',
-    body: formData,
-  });
-  if (!response.ok) {
-    response = await fetch(upload.uploadUrl, {
-      method: 'PUT',
-      body: attachment.file,
-      headers: {
-        'Content-Type': attachment.file.type,
-      },
-    });
-  }
-  if (!response.ok) {
-    throw new Error(input.t('Chat.agentAttachmentUploadFailed', {
+  const uploaded = await dataSync.uploadImageResourceFile(attachment.file, {
+    failureMessage: input.t('Chat.agentAttachmentUploadFailed', {
       defaultValue: 'Failed to upload image attachment.',
-    }));
-  }
-  const finalized = await dataSync.finalizeResource(upload.resourceId, {});
-  const url = normalizeText(finalized.url);
+    }),
+    transportMode: 'multipartPostThenBinaryPut',
+  });
+  const url = normalizeText(uploaded.resource.url);
   if (!url) {
     throw new Error(input.t('Chat.agentAttachmentUploadFailed', {
       defaultValue: 'Failed to upload image attachment.',
@@ -363,8 +347,8 @@ export async function uploadPendingAttachment(
   return {
     kind: 'image',
     url,
-    mimeType: normalizeText(finalized.mimeType) || attachment.file.type || null,
+    mimeType: normalizeText(uploaded.resource.mimeType) || attachment.file.type || null,
     name: attachment.name,
-    resourceId: normalizeText(finalized.id) || normalizeText(upload.resourceId) || null,
+    resourceId: normalizeText(uploaded.resource.id) || normalizeText(uploaded.resourceId) || null,
   };
 }
