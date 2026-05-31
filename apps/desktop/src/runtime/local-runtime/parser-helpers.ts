@@ -1,52 +1,11 @@
+import { fromProtoStruct } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { emitRuntimeLog } from '../telemetry/logger';
 import type { LocalRuntimeWriteOptions } from './types';
-import { asRecord, asString } from './parser-primitives';
-
-function decodeProtoDynamic(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => decodeProtoDynamic(item));
-  }
-  const record = asRecord(value);
-  if (Object.keys(record).length === 0) {
-    return value;
-  }
-  const kind = asRecord(record.kind);
-  const oneofKind = asString(kind.oneofKind);
-  switch (oneofKind) {
-    case 'nullValue':
-      return null;
-    case 'numberValue':
-      return typeof kind.numberValue === 'number' ? kind.numberValue : Number(kind.numberValue || 0);
-    case 'stringValue':
-      return asString(kind.stringValue);
-    case 'boolValue':
-      return Boolean(kind.boolValue);
-    case 'structValue':
-      return decodeProtoDynamic(kind.structValue);
-    case 'listValue': {
-      const values = Array.isArray(asRecord(kind.listValue).values)
-        ? (asRecord(kind.listValue).values as unknown[])
-        : [];
-      return values.map((item) => decodeProtoDynamic(item));
-    }
-    default:
-      break;
-  }
-  const fields = asRecord(record.fields);
-  if (Object.keys(fields).length > 0 && Object.keys(record).every((key) => key === 'fields')) {
-    return Object.fromEntries(
-      Object.entries(fields).map(([key, entry]) => [key, decodeProtoDynamic(entry)]),
-    );
-  }
-  return Object.fromEntries(
-    Object.entries(record).map(([key, entry]) => [key, decodeProtoDynamic(entry)]),
-  );
-}
+import { asString } from './parser-primitives';
 
 export function asPlainObject(value: unknown): Record<string, unknown> | undefined {
-  const decoded = decodeProtoDynamic(value);
-  const record = asRecord(decoded);
+  const record = fromProtoStruct(value);
   return Object.keys(record).length > 0 ? record : undefined;
 }
 

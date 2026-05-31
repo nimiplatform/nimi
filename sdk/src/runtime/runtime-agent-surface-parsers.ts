@@ -1,18 +1,12 @@
-import { Struct } from './generated/google/protobuf/struct.js';
-import { normalizeText } from './helpers.js';
+import { fromProtoStruct, normalizeText } from './helpers.js';
 import type { RuntimeAgentConsumeEvent, RuntimeAgentConsumeRequest } from './types-runtime-agent.js';
 import { optionalString } from './runtime-agent-surface-parser-common.js';
 
+export { fromProtoStruct };
 export { parseAgentConsumeEvent } from './runtime-agent-agent-event-parsers.js';
 export { parseAppConsumeEvent } from './runtime-agent-app-event-parsers.js';
 export { parseSessionSnapshot } from './runtime-agent-snapshot-parsers.js';
 
-export function fromProtoStruct(payload?: Struct): Record<string, unknown> {
-  if (!payload) {
-    return {};
-  }
-  return Struct.toJson(payload) as Record<string, unknown>;
-}
 function eventHasConversationAnchor(
   event: RuntimeAgentConsumeEvent,
 ): event is RuntimeAgentConsumeEvent & { conversationAnchorId: string } {

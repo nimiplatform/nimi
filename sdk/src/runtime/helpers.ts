@@ -520,6 +520,53 @@ export function toProtoStruct(input: Record<string, unknown> | undefined): Struc
   }
 }
 
+function decodeProtoStructDynamic(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => decodeProtoStructDynamic(item));
+  }
+  const record = asRecord(value);
+  if (Object.keys(record).length === 0) {
+    return value;
+  }
+  const kind = asRecord(record.kind);
+  const oneofKind = normalizeText(kind.oneofKind);
+  switch (oneofKind) {
+    case 'nullValue':
+      return null;
+    case 'numberValue':
+      return typeof kind.numberValue === 'number' ? kind.numberValue : Number(kind.numberValue || 0);
+    case 'stringValue':
+      return normalizeText(kind.stringValue);
+    case 'boolValue':
+      return Boolean(kind.boolValue);
+    case 'structValue':
+      return decodeProtoStructDynamic(kind.structValue);
+    case 'listValue': {
+      const values = Array.isArray(asRecord(kind.listValue).values)
+        ? (asRecord(kind.listValue).values as unknown[])
+        : [];
+      return values.map((item) => decodeProtoStructDynamic(item));
+    }
+    default:
+      break;
+  }
+  const fields = asRecord(record.fields);
+  if (Object.keys(fields).length > 0 && Object.keys(record).every((key) => key === 'fields')) {
+    return Object.fromEntries(
+      Object.entries(fields).map(([key, entry]) => [key, decodeProtoStructDynamic(entry)]),
+    );
+  }
+  return Object.fromEntries(
+    Object.entries(record).map(([key, entry]) => [key, decodeProtoStructDynamic(entry)]),
+  );
+}
+
+export function fromProtoStruct(input: unknown): Record<string, unknown> {
+  const decoded = decodeProtoStructDynamic(input);
+  const record = asRecord(decoded);
+  return Object.keys(record).length > 0 ? record : {};
+}
+
 export function toLabels(input: unknown): Record<string, string> {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     return {};

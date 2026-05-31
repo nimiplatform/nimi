@@ -323,7 +323,7 @@ export {
 export { createTauriIpcTransport } from './transports/tauri-ipc.js';
 export { createRuntimeClient } from './core/client.js';
 export { createRuntimeProtectedScopeHelper } from './protected-access.js';
-export { toProtoStruct } from './helpers.js';
+export { fromProtoStruct, toProtoStruct } from './helpers.js';
 export { Runtime } from './runtime.js';
 export {
   decodeCompanionParticipationProjection,

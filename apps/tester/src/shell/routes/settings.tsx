@@ -14,6 +14,7 @@ import {
   createRuntimeModelCatalogClient,
   CatalogModelSource,
   buildRuntimeAgentSnapshotRecoveryEvents,
+  fromProtoStruct,
   isLocalRuntimeEnvironmentDependencyJobActiveState,
   isLocalRuntimeEnvironmentDependencyJobRetryableState,
   isLocalRuntimeEnvironmentDependencyJobTransferringState,
@@ -35,6 +36,7 @@ import {
   summarizeLocalRecommendationFeedCacheState,
   summarizeRuntimeAgentProjectionEvent,
   summarizeRuntimeAgentTimeline,
+  toProtoStruct,
   type RuntimeConnectorProjection,
   type RuntimeAgentConsumeEvent,
   type RuntimeModelCatalogConnectorClient,
@@ -543,6 +545,25 @@ export function SettingsRoute() {
       terminalEventName: terminal?.eventName ?? 'none',
     };
   })();
+  const runtimeStructProjection = (() => {
+    const encoded = toProtoStruct({
+      surfaceId: 'tester.settings',
+      audit: {
+        kind: 'diagnostic',
+        retryable: false,
+      },
+      tags: ['runtime', 'settings'],
+    });
+    const decoded = fromProtoStruct(encoded);
+    const audit = decoded.audit && typeof decoded.audit === 'object'
+      ? decoded.audit as Record<string, unknown>
+      : {};
+    return {
+      surfaceId: String(decoded.surfaceId || 'unknown'),
+      auditKind: String(audit.kind || 'unknown'),
+      tagCount: Array.isArray(decoded.tags) ? decoded.tags.length : 0,
+    };
+  })();
   const avatarVoiceCueProjection = resolveAgentVoicePlaybackCue(
     new Uint8Array([128, 208, 232, 208, 128, 48, 24, 48]),
     0.24,
@@ -998,6 +1019,12 @@ export function SettingsRoute() {
           {runtimeAgentConsumerProjection.recoveryEventCount}
           {' / '}
           {runtimeAgentConsumerProjection.terminalEventName}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Runtime struct codec projection</span>
+        <StatusBadge tone={runtimeStructProjection.tagCount > 0 ? 'success' : 'warning'}>
+          {runtimeStructProjection.surfaceId}: {runtimeStructProjection.auditKind} / {runtimeStructProjection.tagCount}
         </StatusBadge>
       </div>
       <div className="setting-row">

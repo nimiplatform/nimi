@@ -6,6 +6,7 @@ import {
   extractEmbeddingVectors,
   extractGenerateText,
   extractSpeechTranscription,
+  fromProtoStruct,
   toProtoStruct,
 } from '../../src/runtime/helpers.js';
 import { ReasonCode } from '../../src/types/index.js';
@@ -92,6 +93,20 @@ test('toProtoStruct fails closed on non-JSON-safe runtime extensions', () => {
       return true;
     },
   );
+});
+
+test('fromProtoStruct decodes nested protobuf Struct values', () => {
+  const input = {
+    routeSource: 'desktop',
+    traceId: 'trace-1',
+    nested: {
+      retryable: true,
+      count: 2,
+      tags: ['audit', 'runtime'],
+    },
+  };
+
+  assert.deepEqual(fromProtoStruct(toProtoStruct(input)), input);
 });
 
 test('decodeUtf8 uses TextDecoder when Buffer is unavailable', () => {
