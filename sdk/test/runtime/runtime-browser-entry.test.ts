@@ -15,6 +15,12 @@ test('browser runtime entry exports delegated control enum values for Desktop co
   assert.equal(runtimeBrowser.DelegatedTransportKind.STDIO_COMMAND, 1);
 });
 
+test('browser runtime entry exports renderer runtime dependency clients', () => {
+  assert.equal(typeof runtimeBrowser.createRuntimeConnectorInventoryClient, 'function');
+  assert.equal(typeof runtimeBrowser.createRuntimeModelCatalogClient, 'function');
+  assert.equal(typeof runtimeBrowser.RuntimeHealthCoordinator, 'function');
+});
+
 test('runtime entry exports delegated control enum values for Desktop controls', () => {
   assert.equal(runtimeIndex.DelegatedProviderKind.MCP_TOOL_PROVIDER, 1);
   assert.equal(runtimeIndex.DelegatedProviderState.READY, 3);
