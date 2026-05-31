@@ -22,9 +22,11 @@ test('runtime agent memory adapter does not touch platform runtime before first 
 });
 
 test('desktop agent memory adapter does not preserve retired write/query/sidecar policy paths', () => {
-  assert.match(runtimeAgentMemorySource, /projectRuntimeAgentCanonicalMemoryBankStatus/);
-  assert.match(runtimeAgentMemorySource, /buildRuntimeAgentCoreMemoryBankLocator/);
-  assert.match(runtimeAgentMemorySource, /projectRuntimeLocalAgentIdentityFromRef/);
+  assert.match(runtimeAgentMemorySource, /createHostRuntimeAgentMemorySurface/);
+  assert.doesNotMatch(runtimeAgentMemorySource, /projectRuntimeAgentCanonicalMemoryBankStatus/);
+  assert.doesNotMatch(runtimeAgentMemorySource, /buildRuntimeAgentCoreMemoryBankLocator/);
+  assert.doesNotMatch(runtimeAgentMemorySource, /projectRuntimeLocalAgentIdentityFromRef/);
+  assert.doesNotMatch(runtimeAgentMemorySource, /createRuntimeProtectedScopeHelper/);
   assert.doesNotMatch(runtimeAgentMemorySource, /function parseLocalAgentIdentity/);
   assert.doesNotMatch(runtimeAgentMemorySource, /function isRuntimeMemoryUnavailable/);
   assert.doesNotMatch(runtimeAgentMemorySource, /writeDyadicObservation/);
