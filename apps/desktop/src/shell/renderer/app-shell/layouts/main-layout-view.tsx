@@ -13,7 +13,7 @@ import {
   notificationQueryKeys,
   resolveNotificationIdentityRef,
 } from '@renderer/features/notification/notification-query.js';
-import type { PostFeedScope } from '@runtime/data-sync';
+import type { RealmFeedScope } from '@nimiplatform/sdk/realm';
 import { DEFAULT_HOME_FEED_SCOPE } from '@renderer/features/home/home-feed-controls';
 import type { ExploreSectionId } from '@renderer/features/explore/explore-section-nav';
 import {
@@ -387,7 +387,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
           <MainLayoutTitlebarContent
             activeTab={props.activeTab}
             homeFeedScope={homeFeedScope}
-            onHomeFeedScopeChange={(scope: PostFeedScope) => setHomeFeedScope(scope)}
+            onHomeFeedScopeChange={(scope: RealmFeedScope) => setHomeFeedScope(scope)}
             exploreActiveSection={exploreActiveSection}
             onExploreSectionChange={setExploreActiveSection}
             exploreSearchText={exploreSearchText}

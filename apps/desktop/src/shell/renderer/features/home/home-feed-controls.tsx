@@ -1,4 +1,4 @@
-import type { PostFeedScope } from '@runtime/data-sync';
+import { REALM_FEED_SCOPES, type RealmFeedScope } from '@nimiplatform/sdk/realm';
 import { Tooltip } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 
@@ -7,10 +7,10 @@ import { useTranslation } from 'react-i18next';
  * Source of truth: `.nimi/spec/desktop/kernel/tables/home-feed-scopes.yaml`
  * (D-HOMEFEED-004) over Realm `R-FEED-005`.
  */
-export const HOME_FEED_SCOPES: readonly PostFeedScope[] = ['personal', 'friends', 'agent_activity'];
-export const DEFAULT_HOME_FEED_SCOPE: PostFeedScope = 'friends';
+export const HOME_FEED_SCOPES = REALM_FEED_SCOPES;
+export const DEFAULT_HOME_FEED_SCOPE: RealmFeedScope = 'friends';
 
-function scopeLabelDefault(scope: PostFeedScope): string {
+function scopeLabelDefault(scope: RealmFeedScope): string {
   if (scope === 'personal') return 'Me';
   if (scope === 'friends') return 'Friends';
   return 'Agent';
@@ -20,8 +20,8 @@ export function HomeFeedScopeNav({
   active,
   onSelect,
 }: {
-  active: PostFeedScope;
-  onSelect: (scope: PostFeedScope) => void;
+  active: RealmFeedScope;
+  onSelect: (scope: RealmFeedScope) => void;
 }) {
   const { t } = useTranslation();
   return (

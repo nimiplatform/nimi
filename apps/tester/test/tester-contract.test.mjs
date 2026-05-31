@@ -903,11 +903,15 @@ test('tester settings consumes the SDK Realm endpoint projection', () => {
 
   assert.match(settings, /projectRealmBaseUrl/);
   assert.match(settings, /projectRealmRealtimeUrl/);
+  assert.match(settings, /REALM_FEED_SCOPES/);
+  assert.match(settings, /isRealmFeedScope/);
   assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
   assert.match(settings, /Realm endpoint projection/);
   assert.match(settings, /Realm realtime projection/);
+  assert.match(settings, /Realm feed scope projection/);
   assert.match(settings, /realmEndpointProjection/);
   assert.match(settings, /realmRealtimeProjection/);
+  assert.match(settings, /realmFeedScopeProjection/);
   assert.doesNotMatch(settings, /function normalizeRealmBaseUrl/);
   assert.doesNotMatch(settings, /new URL\([^)]*realmBaseUrl/);
 });

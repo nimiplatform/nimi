@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
-import { BLOCKED_USERS_UPDATED_EVENT, dataSync, type PostFeedScope } from '@runtime/data-sync';
+import { type RealmFeedScope } from '@nimiplatform/sdk/realm';
+import { BLOCKED_USERS_UPDATED_EVENT, dataSync } from '@runtime/data-sync';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ProfileDetailModal } from '@renderer/features/relationship/profile-detail-modal.js';
 import { CreatePostModal } from '../profile/create-post-modal.js';
@@ -82,7 +83,7 @@ const PAGE_SIZE = 15;
 
 type HomeViewProps = {
   createPostRequestKey?: number;
-  feedScope: PostFeedScope;
+  feedScope: RealmFeedScope;
 };
 
 export function HomeView(props: HomeViewProps) {

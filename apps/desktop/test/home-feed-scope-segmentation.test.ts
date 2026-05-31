@@ -110,10 +110,11 @@ const mainLayoutTitlebarContentSource = readWorkspaceFile('src/shell/renderer/ap
 const mainLayoutTopBarSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx');
 
 test('Home feed controls present exactly the three canonical feed scopes (D-HOMEFEED-004)', () => {
-  assert.match(
-    homeFeedControlsSource,
-    /HOME_FEED_SCOPES:\s*readonly PostFeedScope\[\]\s*=\s*\[\s*'personal',\s*'friends',\s*'agent_activity',?\s*\]/,
-  );
+  assert.match(homeFeedControlsSource, /REALM_FEED_SCOPES/);
+  assert.match(homeFeedControlsSource, /HOME_FEED_SCOPES\s*=\s*REALM_FEED_SCOPES/);
+  assert.match(homeFeedControlsSource, /from '@nimiplatform\/sdk\/realm'/);
+  assert.doesNotMatch(homeFeedControlsSource, /PostFeedScope/);
+  assert.doesNotMatch(homeFeedControlsSource, /@runtime\/data-sync/);
 });
 
 test('HomeView reads each scope through the SDK typed feed projection (D-HOMEFEED-006)', () => {

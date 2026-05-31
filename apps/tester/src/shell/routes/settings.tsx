@@ -58,10 +58,12 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { classifyOfflineError, classifyOfflineReasonCode, ReasonCode } from '@nimiplatform/sdk/types';
 import {
+  isRealmFeedScope,
   loadRealmNotificationUnreadCount,
   loadRealmNotifications,
   projectRealmBaseUrl,
   projectRealmRealtimeUrl,
+  REALM_FEED_SCOPES,
   requestDataExport,
   resolveRealmMediaUrl,
   uploadRealmResourceFile,
@@ -474,6 +476,11 @@ export function SettingsRoute() {
   const realmRealtimeProjection = projectRealmRealtimeUrl({
     realmBaseUrl: 'http://127.0.0.1:3002/api',
   });
+  const realmFeedScopeProjection = {
+    count: REALM_FEED_SCOPES.length,
+    agentActivityAdmitted: isRealmFeedScope('agent_activity'),
+    localAgentActivityAdmitted: isRealmFeedScope('local_agent_activity'),
+  };
   const realmChatAttachmentPayloadProjection = createRealmChatResourceAttachmentPayload('tester-resource-preview');
   const realmChatAttachmentProjection = {
     mediaUrl: resolveRealmChatMediaUrl({
@@ -1190,6 +1197,12 @@ export function SettingsRoute() {
       <div className="setting-row">
         <span>Realm realtime projection</span>
         <StatusBadge tone="neutral">{realmRealtimeProjection}</StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Realm feed scope projection</span>
+        <StatusBadge tone={realmFeedScopeProjection.agentActivityAdmitted && !realmFeedScopeProjection.localAgentActivityAdmitted ? 'success' : 'warning'}>
+          {realmFeedScopeProjection.count} scopes / {realmFeedScopeProjection.agentActivityAdmitted ? 'agent activity' : 'missing'}
+        </StatusBadge>
       </div>
       <div className="setting-row">
         <span>Realm chat attachment projection</span>

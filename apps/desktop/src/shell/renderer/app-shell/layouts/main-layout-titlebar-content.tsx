@@ -1,4 +1,4 @@
-import type { PostFeedScope } from '@runtime/data-sync';
+import type { RealmFeedScope } from '@nimiplatform/sdk/realm';
 import {
   ExploreSearchField,
   ExploreSectionNav,
@@ -12,8 +12,8 @@ import { useTranslation } from 'react-i18next';
 
 type MainLayoutTitlebarContentProps = {
   activeTab: AppTab;
-  homeFeedScope: PostFeedScope;
-  onHomeFeedScopeChange: (scope: PostFeedScope) => void;
+  homeFeedScope: RealmFeedScope;
+  onHomeFeedScopeChange: (scope: RealmFeedScope) => void;
   exploreActiveSection: ExploreSectionId;
   onExploreSectionChange: (section: ExploreSectionId) => void;
   exploreSearchText: string;
