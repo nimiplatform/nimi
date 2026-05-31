@@ -17,6 +17,10 @@ test('desktop consumes Kit avatar voice playback cues instead of owning the esti
     existsSync(resolve(chatSourceRoot, 'chat-agent-voice-playback-state.ts')),
     false,
   );
+  assert.equal(
+    existsSync(resolve(chatSourceRoot, 'chat-agent-voice-playback-envelope.ts')),
+    false,
+  );
 
   assert.match(
     readChatSource('chat-agent-voice-capture.ts'),
@@ -24,10 +28,6 @@ test('desktop consumes Kit avatar voice playback cues instead of owning the esti
   );
   assert.match(
     readChatSource('chat-shared-runtime-stream-ui.tsx'),
-    /from '@nimiplatform\/kit\/features\/avatar\/headless'/,
-  );
-  assert.match(
-    readChatSource('chat-agent-voice-playback-envelope.ts'),
-    /from '@nimiplatform\/kit\/features\/avatar\/headless'/,
+    /from '@nimiplatform\/kit\/features\/avatar\/runtime'/,
   );
 });

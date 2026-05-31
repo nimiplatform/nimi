@@ -6,7 +6,7 @@ import {
   resolveRuntimeAgentVoicePlaybackDecision,
   resolveAgentVoicePlaybackCueFromEnvelope,
   toAgentVoicePlaybackCueEnvelopeJson,
-} from '../src/shell/renderer/features/chat/chat-agent-voice-playback-envelope.js';
+} from '@nimiplatform/kit/features/avatar/runtime';
 import type {
   RuntimeAgentPresentationLipsyncFrameBatchEvent,
   RuntimeAgentPresentationVoicePlaybackRequestedEvent,

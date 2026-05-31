@@ -14,13 +14,9 @@ import {
 import { parseAgentTextTurnDebugMetadata } from './chat-agent-debug-metadata';
 import {
   parseAgentVoicePlaybackCueEnvelope,
-  resolveAgentVoicePlaybackCueFromEnvelope,
+  resolveRuntimeVoicePlaybackFrameCue,
   type AgentVoicePlaybackCueEnvelope,
-} from './chat-agent-voice-playback-envelope';
-import {
-  resolveAgentVoicePlaybackCue,
-  resolveAgentVoicePlaybackEstimatedFrame,
-} from '@nimiplatform/kit/features/avatar/headless';
+} from '@nimiplatform/kit/features/avatar/runtime';
 
 function normalizeReasoningText(value: unknown): string | null {
   const normalized = typeof value === 'string' ? value.trim() : '';
@@ -207,22 +203,13 @@ export function RuntimeVoiceMessageContent(props: {
     timeDomainSamples: Uint8Array;
     frequencySamples?: Uint8Array;
   }) => {
-    if (input.playbackCueEnvelope) {
-      return {
-        source: 'envelope' as const,
-        cue: resolveAgentVoicePlaybackCueFromEnvelope(
-          input.playbackCueEnvelope,
-          input.currentTimeSeconds,
-        ),
-      };
-    }
+    const frame = resolveRuntimeVoicePlaybackFrameCue({
+      ...input,
+      previousEstimatorFrame: null,
+    });
     return {
-      source: 'estimator' as const,
-      cue: resolveAgentVoicePlaybackCue(
-        input.timeDomainSamples,
-        input.currentTimeSeconds,
-        input.frequencySamples,
-      ),
+      source: frame.source,
+      cue: frame.cue,
     };
   }, []);
 
@@ -348,44 +335,6 @@ export function RuntimeVoiceMessageContent(props: {
       </div>
     </div>
   );
-}
-
-export function resolveRuntimeVoicePlaybackFrameCue(input: {
-  playbackCueEnvelope: AgentVoicePlaybackCueEnvelope | null;
-  currentTimeSeconds: number;
-  timeDomainSamples: Uint8Array;
-  frequencySamples?: Uint8Array;
-  previousEstimatorFrame?: {
-    cue: {
-      amplitude: number;
-      visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null;
-    };
-    stableFrames: number;
-  } | null;
-}) {
-  if (input.playbackCueEnvelope) {
-    return {
-      source: 'envelope' as const,
-      cue: resolveAgentVoicePlaybackCueFromEnvelope(
-        input.playbackCueEnvelope,
-        input.currentTimeSeconds,
-      ),
-      estimatorFrame: null,
-    };
-  }
-  const estimatorFrame = resolveAgentVoicePlaybackEstimatedFrame({
-    previous: input.previousEstimatorFrame || null,
-    nextCue: resolveAgentVoicePlaybackCue(
-      input.timeDomainSamples,
-      input.currentTimeSeconds,
-      input.frequencySamples,
-    ),
-  });
-  return {
-    source: 'estimator' as const,
-    cue: estimatorFrame.cue,
-    estimatorFrame,
-  };
 }
 
 export function RuntimeAgentDebugMessageAccessory(props: {

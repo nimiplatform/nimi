@@ -159,6 +159,9 @@ export type {
   RuntimeModelCatalogClient,
   RuntimeModelCatalogProvider,
   RuntimeModelCatalogProviderSource,
+  RuntimeAgentPresentationLipsyncFrameBatchEvent,
+  RuntimeAgentPresentationVoicePlaybackRequestedEvent,
+  RuntimeAgentTimelineEnvelope,
 } from '@nimiplatform/sdk/runtime';
 
 // --- Realm type family ------------------------------------------------------

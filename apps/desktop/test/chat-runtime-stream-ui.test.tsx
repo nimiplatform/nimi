@@ -36,7 +36,7 @@ async function loadResolveRuntimeVoicePlaybackFrameCue() {
     value: React,
     configurable: true,
   });
-  const module = await import('../src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.js');
+  const module = await import('@nimiplatform/kit/features/avatar/runtime');
   return module.resolveRuntimeVoicePlaybackFrameCue;
 }
 

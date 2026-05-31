@@ -1119,6 +1119,16 @@ test('tester settings consumes Kit model picker binding projection', () => {
   assert.doesNotMatch(settings, /toRuntimeRouteBindingFromPickerSelection/);
 });
 
+test('tester settings consumes Kit runtime avatar voice projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /resolveRuntimeAgentVoicePlaybackDecision/);
+  assert.match(settings, /from '@nimiplatform\/kit\/features\/avatar\/runtime'/);
+  assert.match(settings, /Kit runtime avatar voice projection/);
+  assert.match(settings, /runtimeAvatarVoiceProjection\.cueCount/);
+  assert.doesNotMatch(settings, /function resolveRuntimeAgentVoicePlaybackDecision/);
+});
+
 test('tester app-owned Tauri commands are registered in standalone shell', () => {
   const main = read('src-tauri/src/main.rs');
   assert.match(main, /tester_run_history_load/);
