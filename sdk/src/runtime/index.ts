@@ -7,6 +7,7 @@ export * from './reason-code-messages.js';
 export * from './local-environment-dependency-states.js';
 export * from './connector-inventory.js';
 export * from './local-agent-identity.js';
+export * from './audit-projections.js';
 export * from './health-coordinator.js';
 export * from './model-catalog.js';
 export * from './workflow-builder.js';

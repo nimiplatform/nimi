@@ -1,4 +1,8 @@
-import { toIsoFromTimestamp } from '@nimiplatform/sdk/runtime';
+import {
+  projectRuntimeAuditCallerKindName,
+  projectRuntimeUsageWindowName,
+  toIsoFromTimestamp,
+} from '@nimiplatform/sdk/runtime';
 import { formatRelativeLocaleTime } from '@renderer/i18n';
 
 export function runtimeHealthStatusLabel(status: number): string {
@@ -47,19 +51,19 @@ export function formatCpuMilli(milliStr: string): string {
 }
 
 export function callerKindLabel(kind: number): string {
-  switch (kind) {
-    case 1: return 'Desktop Core';
-    case 3: return 'Third-Party App';
-    case 4: return 'Third-Party Service';
+  switch (projectRuntimeAuditCallerKindName(kind)) {
+    case 'DESKTOP_CORE': return 'Desktop Core';
+    case 'THIRD_PARTY_APP': return 'Third-Party App';
+    case 'THIRD_PARTY_SERVICE': return 'Third-Party Service';
     default: return '-';
   }
 }
 
 export function usageWindowLabel(window: number): string {
-  switch (window) {
-    case 1: return 'Minute';
-    case 2: return 'Hour';
-    case 3: return 'Day';
+  switch (projectRuntimeUsageWindowName(window)) {
+    case 'MINUTE': return 'Minute';
+    case 'HOUR': return 'Hour';
+    case 'DAY': return 'Day';
     default: return '-';
   }
 }

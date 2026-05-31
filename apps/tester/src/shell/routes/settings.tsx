@@ -44,12 +44,16 @@ import {
   parseRuntimeLocalRecommendationFeedDescriptor,
   parseLocalRecommendationFeedSourceId,
   extractRuntimeReasonCodeFromError,
+  CallerKind,
   ModelCatalogProviderSource,
   normalizeRuntimeReasonCode,
   RuntimeHealthCoordinator,
   RuntimeHealthStatus,
+  UsageWindow,
+  projectRuntimeAuditCallerKindName,
   projectRuntimeHealthStatusName,
   projectRuntimeHealthSummary,
+  projectRuntimeUsageWindowName,
   summarizeLocalRecommendationFeedCacheState,
   summarizeRuntimeAgentProjectionEvent,
   summarizeRuntimeAgentTimeline,
@@ -745,6 +749,10 @@ export function SettingsRoute() {
     statusName: projectRuntimeHealthStatusName(RuntimeHealthStatus.READY) ?? 'unknown',
     sampledAt: toIsoFromTimestamp({ seconds: '1710000000', nanos: 0 }) ?? 'unknown',
   };
+  const runtimeAuditWireProjection = {
+    callerKindName: projectRuntimeAuditCallerKindName(CallerKind.THIRD_PARTY_APP) ?? 'unknown',
+    usageWindowName: projectRuntimeUsageWindowName(UsageWindow.HOUR) ?? 'unknown',
+  };
   const runtimeHealthCoordinatorProjection = runtimeHealthCoordinatorDiagnostics.getSnapshot();
   const runtimeAgentConsumerProjection = (() => {
     const projectionEvent = {
@@ -1409,6 +1417,12 @@ export function SettingsRoute() {
         <span>SDK runtime health wire projection</span>
         <StatusBadge tone="neutral">
           {runtimeHealthWireProjection.statusName}: {runtimeHealthWireProjection.sampledAt}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK runtime audit wire projection</span>
+        <StatusBadge tone="neutral">
+          {runtimeAuditWireProjection.callerKindName}: {runtimeAuditWireProjection.usageWindowName}
         </StatusBadge>
       </div>
       <div className="setting-row">
