@@ -5,11 +5,11 @@ import type {
   SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
-  createNimiError,
   Runtime,
   type RuntimeCallOptions,
   type RuntimeStreamCallOptions,
 } from '../runtime/browser.js';
+import { createNimiError } from '../core/errors.js';
 import {
   Struct,
 } from '../runtime/generated/google/protobuf/struct.js';

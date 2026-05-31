@@ -1,4 +1,4 @@
-import { createNimiError } from '../errors.js';
+import { createNimiError } from '../../core/errors.js';
 import { ReasonCode } from '../../types/index.js';
 import { RuntimeMethodIds } from '../method-ids.js';
 import {

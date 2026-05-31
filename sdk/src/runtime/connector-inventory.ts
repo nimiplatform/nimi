@@ -1,5 +1,5 @@
 import { ReasonCode } from '../types/index.js';
-import { createNimiError } from './errors.js';
+import { createNimiError } from '../core/errors.js';
 import type { RuntimeCallOptions } from './types.js';
 import {
   ConnectorAuthKind,

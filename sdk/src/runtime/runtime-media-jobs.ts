@@ -1,6 +1,6 @@
 import { ReasonCode } from '../types/index.js';
 import type { JsonObject } from '../internal/utils.js';
-import { createNimiError } from './errors.js';
+import { createNimiError } from '../core/errors.js';
 import {
   ScenarioJobStatus,
   type ScenarioArtifact,

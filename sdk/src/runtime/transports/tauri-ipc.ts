@@ -1,4 +1,4 @@
-import { asNimiError, createNimiError } from '../errors';
+import { asNimiError, createNimiError } from '../../core/errors.js';
 import { ReasonCode } from '../../types/index.js';
 import type {
   RuntimeOpenStreamCall,

@@ -1,5 +1,5 @@
 import { asRecord, readString } from '../internal/utils.js';
-import { createNimiError } from '../runtime/errors.js';
+import { createNimiError } from '../core/errors.js';
 import { ReasonCode } from '../types/index.js';
 import type { PlatformClient } from '../platform-client.js';
 import type {

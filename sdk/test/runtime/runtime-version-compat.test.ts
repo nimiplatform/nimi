@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { Runtime, RuntimeMethodIds, setNodeGrpcBridge, type NodeGrpcBridge } from '../../src/runtime/index.js';
-import { asNimiError } from '../../src/runtime/errors.js';
+import { asNimiError } from '../../src/core/errors.js';
 import { ReasonCode } from '../../src/types/index.js';
 import {
   ExecuteScenarioResponse,

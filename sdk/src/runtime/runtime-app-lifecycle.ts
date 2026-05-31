@@ -15,7 +15,7 @@
 //     read straight from the runtime projection, never inferred.
 
 import { ReasonCode } from '../types/index.js';
-import { createNimiError } from './errors.js';
+import { createNimiError } from '../core/errors.js';
 import { AppHealthRepairAction } from './generated/runtime/v1/app.js';
 import type {
   AppOpenScopeRef as ProtoAppOpenScopeRef,

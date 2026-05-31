@@ -1,4 +1,4 @@
-import { createNimiError } from '../runtime/errors.js';
+import { createNimiError } from '../core/errors.js';
 import { ReasonCode } from '../types/index.js';
 import type { RealmAuthOptions } from './client-types.js';
 

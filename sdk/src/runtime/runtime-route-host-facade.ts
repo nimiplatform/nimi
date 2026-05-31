@@ -7,7 +7,7 @@ import {
   ScenarioType,
 } from './generated/runtime/v1/ai.js';
 import { toProtoStruct } from './helpers.js';
-import { createNimiError } from './errors.js';
+import { createNimiError } from '../core/errors.js';
 import type {
   RuntimeAiExecuteScenarioRequestInput,
 } from './types-runtime-modules.js';

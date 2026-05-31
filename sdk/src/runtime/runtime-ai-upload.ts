@@ -1,4 +1,4 @@
-import { createNimiError } from './errors.js';
+import { createNimiError } from '../core/errors.js';
 import { ReasonCode } from '../types/index.js';
 import type { RuntimeInternalContext } from './internal-context.js';
 import type { RuntimeAiUploadArtifactInput } from './types-runtime-modules.js';

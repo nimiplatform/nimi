@@ -2,7 +2,7 @@ import createClient from 'openapi-fetch';
 import { createEventBus } from '../internal/event-bus.js';
 import type { JsonObject } from '../internal/utils.js';
 import { ReasonCode } from '../types/index.js';
-import { asNimiError, createNimiError } from '../runtime/errors.js';
+import { asNimiError, createNimiError } from '../core/errors.js';
 import type { NimiError } from '../types/index.js';
 import type { paths } from './generated/schema.js';
 import {

@@ -3,7 +3,7 @@ import type {
   RuntimeAppLifecycleModule,
   RuntimeAppStorageProjection,
 } from './runtime-app-lifecycle-types.js';
-import { createNimiError } from './errors.js';
+import { createNimiError } from '../core/errors.js';
 import { ReasonCode } from '../types/index.js';
 
 export type RuntimeAppStorageRoots = {

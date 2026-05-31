@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ReasonCode } from '../../src/types/index.js';
 import { createTauriIpcTransport } from '../../src/runtime/transports/tauri-ipc';
-import { asNimiError } from '../../src/runtime/errors';
+import { asNimiError } from '../../src/core/errors';
 import type { RuntimeUnaryCall, RuntimeOpenStreamCall } from '../../src/runtime/types';
 
 // SDK half of the runtime-transport bridge contract. The renderer platform owner

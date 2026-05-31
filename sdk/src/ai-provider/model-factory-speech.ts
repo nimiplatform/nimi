@@ -3,7 +3,7 @@ import type {
   RuntimeDefaults,
   RuntimeForAiProvider,
 } from './types.js';
-import { createNimiError } from '../runtime/browser.js';
+import { createNimiError } from '../core/errors.js';
 import {
   ensureText,
   executeScenarioJob,

@@ -1,5 +1,5 @@
 import { type NimiError, ReasonCode } from '../types/index.js';
-import { createNimiError } from './errors.js';
+import { createNimiError } from '../core/errors.js';
 import {
   DEFAULT_RETRY_BACKOFF_MS,
   DEFAULT_RETRY_MAX_ATTEMPTS,

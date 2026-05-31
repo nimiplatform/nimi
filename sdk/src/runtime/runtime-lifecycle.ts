@@ -1,6 +1,6 @@
 import { ReasonCode } from '../types/index.js';
 import type { JsonObject } from '../internal/utils.js';
-import { createNimiError } from './errors.js';
+import { createNimiError } from '../core/errors.js';
 import { createRuntimeClient } from './core/client.js';
 import { normalizeText, nowIso } from './helpers.js';
 import { withTimeout } from './runtime-infra.js';

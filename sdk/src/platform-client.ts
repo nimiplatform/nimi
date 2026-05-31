@@ -8,7 +8,7 @@ import {
 import { Realm } from './realm/client.js';
 import type { RealmTokenRefreshResult } from './realm/client-types.js';
 import type { RealmServiceArgs, RealmServiceResult } from './realm/generated/type-helpers.js';
-import { asNimiError, createNimiError } from './runtime/errors.js';
+import { asNimiError, createNimiError } from './core/errors.js';
 import { AccountCallerMode, AccountSessionState } from './runtime/generated/runtime/v1/account.js';
 import { Runtime } from './runtime/runtime.js';
 import type { ListConnectorsRequest, ListConnectorsResponse } from './runtime/generated/runtime/v1/connector.js';

@@ -1,5 +1,5 @@
 import { ReasonCode } from '../types/index.js';
-import { asNimiError, createNimiError } from '../runtime/errors.js';
+import { asNimiError, createNimiError } from '../core/errors.js';
 import { asRecord, normalizeText, nowIso, readString } from '../internal/utils.js';
 import type { JsonObject } from '../internal/utils.js';
 import type { NimiError } from '../types/index.js';

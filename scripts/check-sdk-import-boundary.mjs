@@ -23,6 +23,7 @@ const forbiddenExportPattern = /(?:^|\/)(internal|generated)(?:\/|$)/;
 // slip in through the dynamic form.
 const forbiddenStableImportPattern = /(?:from\s+|import\s+|import\s*\(\s*)['"]@nimiplatform\/sdk\/(?:[^'"]*\/)?(?:internal|generated)(?:\/|['"])/;
 const importTargetPattern = /(?:from\s+['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\))/g;
+const forbiddenSdkRuntimeUtilitySegments = new Set(['errors', 'ids', 'helpers']);
 const consumerSourceRoots = ['apps', 'runtime', 'examples', 'scripts'];
 const sourceExtensions = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
 const skippedDirectories = new Set(['node_modules', 'dist', 'build', 'coverage', '.next', '.turbo', 'target']);
@@ -100,6 +101,31 @@ function hasForbiddenRelativeSdkImport(file, raw) {
   return null;
 }
 
+function findForbiddenSdkRuntimeUtilityImport(file, raw) {
+  const normalizedFile = file.split(path.sep).join('/');
+  if (
+    normalizedFile.includes('/sdk/src/runtime/')
+    || normalizedFile.includes('/sdk/test/runtime/')
+  ) {
+    return null;
+  }
+  for (const match of raw.matchAll(importTargetPattern)) {
+    const target = match[1] || match[2] || '';
+    if (!target.startsWith('.') && !path.isAbsolute(target)) {
+      continue;
+    }
+    const resolved = path.normalize(
+      path.isAbsolute(target) ? target : path.resolve(path.dirname(file), target),
+    );
+    const normalizedTarget = resolved.split(path.sep).join('/');
+    const sdkRuntimeMatch = normalizedTarget.match(/\/sdk\/src\/runtime\/([^/]+?)(?:\.js|\.ts)?$/);
+    if (sdkRuntimeMatch && forbiddenSdkRuntimeUtilitySegments.has(sdkRuntimeMatch[1])) {
+      return normalizedTarget;
+    }
+  }
+  return null;
+}
+
 async function main() {
   const violations = [];
 
@@ -122,6 +148,24 @@ async function main() {
     const raw = await fs.readFile(file, 'utf8');
     if (hasForbiddenSdkDeepImport(raw)) {
       violations.push(`forbidden stable import in ${path.relative(repoRoot, file)}`);
+    }
+    const forbiddenRuntimeUtilityImport = findForbiddenSdkRuntimeUtilityImport(file, raw);
+    if (forbiddenRuntimeUtilityImport) {
+      violations.push(
+        `forbidden sdk cross-subpath runtime utility import in ${path.relative(repoRoot, file)} -> ${path.relative(repoRoot, forbiddenRuntimeUtilityImport)}`,
+      );
+    }
+  }
+
+  const sdkTestRoot = path.join(repoRoot, 'sdk', 'test');
+  const sdkTestFiles = await collectSourceFiles(sdkTestRoot);
+  for (const file of sdkTestFiles) {
+    const raw = await fs.readFile(file, 'utf8');
+    const forbiddenRuntimeUtilityImport = findForbiddenSdkRuntimeUtilityImport(file, raw);
+    if (forbiddenRuntimeUtilityImport) {
+      violations.push(
+        `forbidden sdk test runtime utility import in ${path.relative(repoRoot, file)} -> ${path.relative(repoRoot, forbiddenRuntimeUtilityImport)}`,
+      );
     }
   }
 

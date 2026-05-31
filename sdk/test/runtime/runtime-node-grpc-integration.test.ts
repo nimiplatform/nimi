@@ -12,7 +12,7 @@ import type {
 } from '@grpc/grpc-js';
 
 import { createRuntimeClient } from '../../src/runtime/core/client';
-import { asNimiError } from '../../src/runtime/errors';
+import { asNimiError } from '../../src/core/errors';
 import { RuntimeMethodIds } from '../../src/runtime/method-ids';
 import { setNodeGrpcBridge } from '../../src/runtime/transports/node-grpc';
 import type { RuntimeClientConfig } from '../../src/runtime/types';

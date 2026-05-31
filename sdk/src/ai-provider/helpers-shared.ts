@@ -1,4 +1,5 @@
-import { createNimiError, type RuntimeCallOptions } from '../runtime/browser.js';
+import type { RuntimeCallOptions } from '../runtime/browser.js';
+import { createNimiError } from '../core/errors.js';
 import { ReasonCode, type AiRoutePolicy } from '../types/index.js';
 import { normalizeText } from '../internal/utils.js';
 import { ROUTE_POLICY_CLOUD, type RuntimeDefaults } from './types.js';

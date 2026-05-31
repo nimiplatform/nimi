@@ -1,4 +1,4 @@
-export * from './errors.js';
+export * from '../core/errors.js';
 export * from './types.js';
 export type * from './world-evolution-selector-read.js';
 export * from './method-ids.js';

@@ -1,7 +1,7 @@
 import type { JsonObject } from '../internal/utils.js';
 import { ReasonCode } from '../types/index.js';
 import type { NimiError, VersionCompatibilityStatus } from '../types/index.js';
-import { asNimiError, createNimiError } from './errors.js';
+import { asNimiError, createNimiError } from '../core/errors.js';
 import {
   isRuntimeMethodAllowlisted,
   RuntimeMethodIds,

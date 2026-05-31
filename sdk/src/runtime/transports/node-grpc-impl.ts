@@ -1,4 +1,4 @@
-import { asNimiError, createNimiError } from '../errors.js';
+import { asNimiError, createNimiError } from '../../core/errors.js';
 import { asRecord, readString } from '../../internal/utils.js';
 import { ReasonCode } from '../../types/index.js';
 import type {

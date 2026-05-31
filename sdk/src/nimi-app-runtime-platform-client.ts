@@ -1,5 +1,5 @@
 import type { RealmFetchImpl } from './realm/client-types.js';
-import { createNimiError } from './runtime/errors.js';
+import { createNimiError } from './core/errors.js';
 import type { RuntimeClientDefaults, RuntimeOptions, RuntimeTransportConfig } from './runtime/types.js';
 import { ReasonCode, type ReasonCodeValue } from './types/index.js';
 import {

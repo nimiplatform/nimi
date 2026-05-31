@@ -1,5 +1,5 @@
 import { ReasonCode, type NimiError } from '../types/index.js';
-import { createNimiError } from './errors.js';
+import { createNimiError } from '../core/errors.js';
 import {
   ChatContentPartType,
   FallbackPolicy,

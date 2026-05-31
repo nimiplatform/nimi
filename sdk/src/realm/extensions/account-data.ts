@@ -1,5 +1,5 @@
-import { asNimiError } from '../../runtime/errors.js';
-import { createNimiError } from '../../runtime/errors.js';
+import { asNimiError } from '../../core/errors.js';
+import { createNimiError } from '../../core/errors.js';
 import { asRecord } from '../../internal/utils.js';
 import type { JsonObject } from '../../internal/utils.js';
 import { ReasonCode } from '../../types/index.js';

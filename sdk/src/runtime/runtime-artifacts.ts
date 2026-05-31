@@ -18,7 +18,7 @@
 import type { RuntimeInternalContext } from './internal-context.js';
 import type { RuntimeCallOptions } from './types.js';
 import { ReasonCode } from '../types/index.js';
-import { createNimiError } from './errors.js';
+import { createNimiError } from '../core/errors.js';
 
 export interface RuntimeArtifactsReadBytesInput {
   /** Runtime-owned artifact identity (e.g. voice_playback_requested.audio_artifact_id). Required. */

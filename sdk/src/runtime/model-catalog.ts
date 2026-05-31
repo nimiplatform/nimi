@@ -1,5 +1,5 @@
 import { ReasonCode } from '../types/index.js';
-import { asNimiError } from './errors.js';
+import { asNimiError } from '../core/errors.js';
 import type { RuntimeCallOptions } from './types.js';
 import {
   CatalogModelSource,

@@ -8,8 +8,8 @@
  *   S-AICONF-001~006 SDK surface contract
  */
 
-import { createNimiError } from '../runtime/errors.js';
-import { createNimiUlid } from '../runtime/ids.js';
+import { createNimiError } from '../core/errors.js';
+import { createNimiUlid } from '../core/ids.js';
 import { ReasonCode } from '../types/index.js';
 import type { JsonObject } from '../internal/utils.js';
 import type {

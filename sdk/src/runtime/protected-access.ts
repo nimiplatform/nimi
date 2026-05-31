@@ -2,7 +2,7 @@ import { AppMode, WorldRelation } from './generated/runtime/v1/auth.js';
 import { ExternalPrincipalType, type ResourceSelectors as RuntimeResourceSelectors } from './generated/runtime/v1/common.js';
 import { AuthorizationPreset, PolicyMode } from './generated/runtime/v1/grant.js';
 import { createRuntimeClient } from './core/client.js';
-import { asNimiError, createNimiError } from './errors.js';
+import { asNimiError, createNimiError } from '../core/errors.js';
 import type {
   RuntimeCallOptions,
   RuntimeAuthClient,

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { asNimiError } from '../../src/runtime/errors';
+import { asNimiError } from '../../src/core/errors';
 import { createRuntimeClient } from '../../src/runtime/core/client';
 import type {
   RuntimeOpenStreamCall,

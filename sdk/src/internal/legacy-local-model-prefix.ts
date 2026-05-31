@@ -1,5 +1,5 @@
 import { normalizeText } from './utils.js';
-import { createNimiError } from '../runtime/errors.js';
+import { createNimiError } from '../core/errors.js';
 import { ReasonCode } from '../types/index.js';
 
 const LEGACY_LOCAL_MODEL_PREFIXES = new Set([

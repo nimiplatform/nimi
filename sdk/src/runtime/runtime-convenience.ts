@@ -1,7 +1,7 @@
 import type { AiRoutePolicy, NimiError } from '../types/index.js';
 import { ReasonCode } from '../types/index.js';
 import { assertNoLegacyLocalModelPrefix } from '../internal/legacy-local-model-prefix.js';
-import { createNimiError } from './errors.js';
+import { createNimiError } from '../core/errors.js';
 import type { RuntimeMetadata } from './types.js';
 import type {
   NimiFinishReason,

@@ -1,5 +1,5 @@
 import { asRecord, normalizeText } from './internal/utils.js';
-import { createNimiError } from './runtime/errors.js';
+import { createNimiError } from './core/errors.js';
 import { Runtime } from './runtime/runtime.js';
 import { ReasonCode } from './types/index.js';
 

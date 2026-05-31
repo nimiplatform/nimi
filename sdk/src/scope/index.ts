@@ -1,5 +1,5 @@
-import { createNimiError } from '../runtime/browser.js';
-import { normalizeText } from '../runtime/helpers.js';
+import { createNimiError } from '../core/errors.js';
+import { normalizeText } from '../internal/utils.js';
 import type {
   CatalogHash,
   ScopeCatalogDescriptor,

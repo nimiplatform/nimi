@@ -1,6 +1,6 @@
 import { asRecord, normalizeText } from './utils.js';
 import type { JsonObject } from './utils.js';
-import { asNimiError, createNimiError } from '../runtime/errors.js';
+import { asNimiError, createNimiError } from '../core/errors.js';
 import type {
   WorldEvolutionSelectorReadMethodId,
   WorldEvolutionSelectorReadRejectionCategory,

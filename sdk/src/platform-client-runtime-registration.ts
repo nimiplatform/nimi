@@ -1,4 +1,4 @@
-import { createNimiError } from './runtime/errors.js';
+import { createNimiError } from './core/errors.js';
 import { AppMode, WorldRelation } from './runtime/generated/runtime/v1/auth.js';
 import type { Runtime } from './runtime/runtime.js';
 import { ReasonCode } from './types/index.js';

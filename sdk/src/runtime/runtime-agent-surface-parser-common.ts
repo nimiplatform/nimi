@@ -1,5 +1,5 @@
 import { ReasonCode } from '../types/index.js';
-import { createNimiError } from './errors.js';
+import { createNimiError } from '../core/errors.js';
 import { normalizeText, parseCount } from './helpers.js';
 
 export function expectString(value: unknown, fieldName: string, messageType: string): string {

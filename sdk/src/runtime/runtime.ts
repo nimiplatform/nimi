@@ -2,7 +2,7 @@ import { createEventBus } from '../internal/event-bus.js';
 import type { JsonObject } from '../internal/utils.js';
 import { createScopeModule, type ScopeModule } from '../scope/index.js';
 import { ReasonCode, type VersionCompatibilityStatus } from '../types/index.js';
-import { asNimiError, createNimiError } from './errors.js';
+import { asNimiError, createNimiError } from '../core/errors.js';
 import { RuntimeMethodIds } from './method-ids.js';
 import type {
   RuntimeMethodId,

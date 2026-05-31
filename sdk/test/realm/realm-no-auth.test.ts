@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { asNimiError } from '../../src/runtime/errors.js';
+import { asNimiError } from '../../src/core/errors.js';
 import { Realm } from '../../src/realm/index.js';
 import { ReasonCode } from '../../src/types/index.js';
 

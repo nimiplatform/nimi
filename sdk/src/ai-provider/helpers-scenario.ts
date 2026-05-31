@@ -1,8 +1,5 @@
-import {
-  asNimiError,
-  createNimiError,
-  type RuntimeAiSubmitScenarioJobRequestInput,
-} from '../runtime/browser.js';
+import type { RuntimeAiSubmitScenarioJobRequestInput } from '../runtime/browser.js';
+import { asNimiError, createNimiError } from '../core/errors.js';
 import type {
   Value as ProtoValue,
 } from '../runtime/generated/google/protobuf/struct.js';

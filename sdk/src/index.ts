@@ -1,5 +1,5 @@
-export { asNimiError } from './runtime/errors.js';
-export { createNimiUlid } from './runtime/ids.js';
+export { asNimiError } from './core/errors.js';
+export { createNimiUlid } from './core/ids.js';
 export type { NimiError, VersionCompatibilityStatus } from './types/index.js';
 export { ReasonCode, isRetryableReasonCode } from './types/index.js';
 export {

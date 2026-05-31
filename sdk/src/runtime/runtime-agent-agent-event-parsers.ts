@@ -1,5 +1,5 @@
 import { ReasonCode } from '../types/index.js';
-import { createNimiError } from './errors.js';
+import { createNimiError } from '../core/errors.js';
 import { asRecord, normalizeText, parseCount, toIsoFromTimestamp } from './helpers.js';
 import {
   AgentPresentationEventFamily,

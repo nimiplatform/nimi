@@ -6,7 +6,7 @@ import {
   getPlatformClient,
   clearPlatformClient,
 } from '../../src/platform-client.js';
-import { asNimiError } from '../../src/runtime/errors.js';
+import { asNimiError } from '../../src/core/errors.js';
 import { ReasonCode } from '../../src/types/index.js';
 
 test('getPlatformClient throws SDK_PLATFORM_CLIENT_NOT_READY before init', async () => {

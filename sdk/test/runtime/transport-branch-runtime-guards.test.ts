@@ -6,7 +6,7 @@ import {
   createNodeGrpcTransport,
   setNodeGrpcBridge,
 } from '../../src/runtime/transports/node-grpc';
-import { asNimiError, createNimiError } from '../../src/runtime/errors';
+import { asNimiError, createNimiError } from '../../src/core/errors';
 import {
   checkRuntimeVersionCompatibility,
   assertRuntimeMethodAvailable,

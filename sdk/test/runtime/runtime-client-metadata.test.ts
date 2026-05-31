@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ReasonCode } from '../../src/types/index.js';
-import { asNimiError, isNimiError } from '../../src/runtime/errors';
+import { asNimiError, isNimiError } from '../../src/core/errors';
 import { createRuntimeClient } from '../../src/runtime/core/client';
 import { mergeRuntimeMetadata } from '../../src/runtime/core/metadata';
 import { ListConnectorsResponse } from '../../src/runtime/generated/runtime/v1/connector';

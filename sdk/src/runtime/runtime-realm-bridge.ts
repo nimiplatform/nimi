@@ -3,7 +3,7 @@ import type {
   RuntimeRealmBridgeContext,
   RuntimeRealmBridgeHelpers,
 } from './types.js';
-import { createNimiError } from './errors.js';
+import { createNimiError } from '../core/errors.js';
 import { normalizeText, ensureText } from './helpers.js';
 import { ReasonCode } from '../types/index.js';
 

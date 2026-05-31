@@ -1,5 +1,5 @@
 import type { ScenarioOutput } from '../runtime/generated/runtime/v1/ai.js';
-import { createNimiError } from '../runtime/errors.js';
+import { createNimiError } from '../core/errors.js';
 import { ReasonCode } from '../types/index.js';
 import { normalizeText } from './utils.js';
 
