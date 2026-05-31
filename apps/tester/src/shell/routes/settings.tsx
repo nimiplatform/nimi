@@ -5,7 +5,11 @@ import {
   isRuntimeRouteLocalOptionSelectable,
   projectRuntimeRouteCapabilityCoverage,
   projectMemoryEmbeddingRouteAvailability,
+  resolveRuntimeRouteReasoningConfig,
+  resolveRuntimeTextRouteReasoningSupport,
   runtimeRouteLocalOptionToBinding,
+  type RuntimeResolvedBinding,
+  type RuntimeRouteDescribeResult,
 } from '@nimiplatform/sdk/ai';
 import { pickerSelectionToBinding } from '@nimiplatform/kit/features/model-config';
 import {
@@ -537,6 +541,41 @@ export function SettingsRoute() {
       },
     }],
   });
+  const runtimeRouteReasoningProjection = (() => {
+    const resolvedBinding: RuntimeResolvedBinding = {
+      capability: 'text.generate',
+      source: 'cloud',
+      connectorId: 'tester-cloud',
+      provider: 'tester',
+      model: 'tester-reasoning-model',
+      modelId: 'tester-reasoning-model',
+      resolvedBindingRef: 'binding:tester-reasoning',
+    };
+    const metadata: RuntimeRouteDescribeResult = {
+      capability: 'text.generate',
+      metadataVersion: 'v1',
+      resolvedBindingRef: 'binding:tester-reasoning',
+      metadataKind: 'text.generate',
+      metadata: {
+        supportsThinking: true,
+        traceModeSupport: 'separate',
+        supportsImageInput: false,
+        supportsAudioInput: false,
+        supportsVideoInput: false,
+        supportsArtifactRefInput: false,
+      },
+    };
+    const support = resolveRuntimeTextRouteReasoningSupport({
+      resolvedBinding,
+      metadata,
+    });
+    const config = resolveRuntimeRouteReasoningConfig('on', support);
+    return {
+      supported: support.supported,
+      reason: support.reason ?? 'ok',
+      traceMode: config.traceMode ?? 'none',
+    };
+  })();
   const modelConfigBindingProjection = pickerSelectionToBinding({
     source: 'cloud',
     connectorId: 'tester-cloud',
@@ -1153,6 +1192,12 @@ export function SettingsRoute() {
         <span>Runtime capability coverage projection</span>
         <StatusBadge tone={runtimeCapabilityCoverageProjection.cloudAvailable ? 'success' : 'warning'}>
           {runtimeCapabilityCoverageProjection.capability}: {runtimeCapabilityCoverageProjection.cloudAvailable ? 'cloud' : 'unavailable'}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Runtime route reasoning projection</span>
+        <StatusBadge tone={runtimeRouteReasoningProjection.supported ? 'success' : 'warning'}>
+          {runtimeRouteReasoningProjection.reason}: {runtimeRouteReasoningProjection.traceMode}
         </StatusBadge>
       </div>
       <div className="setting-row">

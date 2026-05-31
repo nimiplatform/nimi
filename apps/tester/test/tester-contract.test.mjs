@@ -1110,6 +1110,17 @@ test('tester settings consumes SDK local route option binding projection', () =>
   assert.doesNotMatch(settings, /source:\s*'local',\s*connectorId:\s*''/);
 });
 
+test('tester settings consumes SDK runtime route reasoning projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /resolveRuntimeTextRouteReasoningSupport/);
+  assert.match(settings, /resolveRuntimeRouteReasoningConfig/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/ai'/);
+  assert.match(settings, /Runtime route reasoning projection/);
+  assert.match(settings, /runtimeRouteReasoningProjection\.traceMode/);
+  assert.doesNotMatch(settings, /function resolveRuntimeTextRouteReasoningSupport/);
+});
+
 test('tester settings consumes Kit model picker binding projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
 

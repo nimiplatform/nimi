@@ -1,16 +1,20 @@
+import {
+  normalizeRuntimeRouteReasoningPreference,
+  resolveRuntimeRouteReasoningConfig,
+  resolveRuntimeTextRouteReasoningSupport,
+  type RuntimeRouteReasoningPreference,
+  type RuntimeTextRouteReasoningSupportReason,
+} from '@nimiplatform/sdk/ai';
 import type { NimiReasoningConfig } from '@nimiplatform/sdk/runtime';
 import type {
   ConversationCapabilityProjection,
   ConversationExecutionSnapshot,
 } from './conversation-capability';
 
-export type ChatThinkingPreference = 'off' | 'on';
+export type ChatThinkingPreference = RuntimeRouteReasoningPreference;
 
 export type ChatThinkingSupportReason =
-  | 'missing_route'
-  | 'metadata_missing'
-  | 'trace_mode_unsupported'
-  | 'thinking_unsupported'
+  | RuntimeTextRouteReasoningSupportReason
   | 'agent_route_unsupported';
 
 export type ChatThinkingSupport = {
@@ -18,51 +22,14 @@ export type ChatThinkingSupport = {
   reason: ChatThinkingSupportReason | null;
 };
 
-const THINKING_OFF_CONFIG: NimiReasoningConfig = {
-  mode: 'off',
-  traceMode: 'hide',
-};
-
-const THINKING_ON_CONFIG: NimiReasoningConfig = {
-  mode: 'on',
-  traceMode: 'separate',
-};
-
 export function normalizeChatThinkingPreference(value: unknown): ChatThinkingPreference {
-  return value === 'on' ? 'on' : 'off';
+  return normalizeRuntimeRouteReasoningPreference(value);
 }
 
 export function resolveTextProjectionThinkingSupport(
   projection: ConversationCapabilityProjection | null | undefined,
 ): ChatThinkingSupport {
-  if (!projection?.resolvedBinding) {
-    return {
-      supported: false,
-      reason: 'missing_route',
-    };
-  }
-  if (projection.metadata?.metadataKind !== 'text.generate') {
-    return {
-      supported: false,
-      reason: 'metadata_missing',
-    };
-  }
-  if (!projection.metadata.metadata.supportsThinking) {
-    return {
-      supported: false,
-      reason: 'thinking_unsupported',
-    };
-  }
-  if (projection.metadata.metadata.traceModeSupport !== 'separate') {
-    return {
-      supported: false,
-      reason: 'trace_mode_unsupported',
-    };
-  }
-  return {
-    supported: true,
-    reason: null,
-  };
+  return resolveRuntimeTextRouteReasoningSupport(projection);
 }
 
 export function resolveAiThinkingSupportFromProjection(
@@ -74,34 +41,7 @@ export function resolveAiThinkingSupportFromProjection(
 export function resolveTextExecutionSnapshotThinkingSupport(
   snapshot: Pick<ConversationExecutionSnapshot, 'resolvedBinding' | 'metadata'> | null | undefined,
 ): ChatThinkingSupport {
-  if (!snapshot?.resolvedBinding) {
-    return {
-      supported: false,
-      reason: 'missing_route',
-    };
-  }
-  if (snapshot.metadata?.metadataKind !== 'text.generate') {
-    return {
-      supported: false,
-      reason: 'metadata_missing',
-    };
-  }
-  if (!snapshot.metadata.metadata.supportsThinking) {
-    return {
-      supported: false,
-      reason: 'thinking_unsupported',
-    };
-  }
-  if (snapshot.metadata.metadata.traceModeSupport !== 'separate') {
-    return {
-      supported: false,
-      reason: 'trace_mode_unsupported',
-    };
-  }
-  return {
-    supported: true,
-    reason: null,
-  };
+  return resolveRuntimeTextRouteReasoningSupport(snapshot);
 }
 
 export function resolveAgentThinkingSupportFromProjection(
@@ -121,10 +61,10 @@ export function resolveChatThinkingConfig(
   preference: ChatThinkingPreference,
   support: ChatThinkingSupport,
 ): NimiReasoningConfig {
-  if (preference === 'on' && support.supported) {
-    return { ...THINKING_ON_CONFIG };
-  }
-  return { ...THINKING_OFF_CONFIG };
+  return resolveRuntimeRouteReasoningConfig(preference, {
+    supported: support.supported,
+    reason: support.reason === 'agent_route_unsupported' ? 'thinking_unsupported' : support.reason,
+  });
 }
 
 export function getChatThinkingUnsupportedCopy(
