@@ -7,7 +7,7 @@ import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import type {
   AgentVoicePlaybackCue,
   AgentVoicePlaybackVisemeId,
-} from './chat-agent-voice-playback-state';
+} from '@nimiplatform/kit/features/avatar/headless';
 import type {
   RuntimeAgentPresentationLipsyncFrameBatchEvent,
   RuntimeAgentPresentationVoicePlaybackRequestedEvent,

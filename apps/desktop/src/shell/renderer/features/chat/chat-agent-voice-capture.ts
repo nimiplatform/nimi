@@ -1,4 +1,4 @@
-import { resolveAgentVoicePlaybackAmplitude } from './chat-agent-voice-playback-state';
+import { resolveAgentVoicePlaybackAmplitude } from '@nimiplatform/kit/features/avatar/headless';
 
 type MediaStreamTrackLike = {
   stop: () => void;

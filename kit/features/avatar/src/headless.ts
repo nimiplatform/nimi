@@ -17,6 +17,17 @@ export type {
   RuntimeAgentPresentationAdapter,
   RuntimeAgentPresentationRecord,
 } from './types.js';
+export type {
+  AgentVoicePlaybackCue,
+  AgentVoicePlaybackEstimatorFrame,
+  AgentVoicePlaybackVisemeId,
+} from './voice-playback.js';
+export {
+  resolveAgentVoicePlaybackAmplitude,
+  resolveAgentVoicePlaybackCue,
+  resolveAgentVoicePlaybackEstimatedFrame,
+  resolveAgentVoicePlaybackVisemeId,
+} from './voice-playback.js';
 
 import type {
   AvatarBackendKind,

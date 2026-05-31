@@ -20,7 +20,7 @@ import {
 import {
   resolveAgentVoicePlaybackCue,
   resolveAgentVoicePlaybackEstimatedFrame,
-} from './chat-agent-voice-playback-state';
+} from '@nimiplatform/kit/features/avatar/headless';
 
 function normalizeReasoningText(value: unknown): string | null {
   const normalized = typeof value === 'string' ? value.trim() : '';
