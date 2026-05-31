@@ -82,7 +82,7 @@ const runtimeReady = Promise.all([
     loadEntryModule('entry:i18n', () => import('@renderer/i18n')),
 ]).then(([shellBridge, sdkMod, i18nMod]) => {
     shellBridge.installNimiShellRuntimeBridge();
-    sdkMod.bindRuntimeI18n(i18nMod.i18n);
+    sdkMod.bindSdkI18n(i18nMod.i18n);
     return i18nMod;
 });
 const entryBootCopy = bootstrapEntryCopy as {

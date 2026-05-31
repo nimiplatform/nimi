@@ -4,9 +4,9 @@ import type {
   PersistentSocialMutationEntry,
 } from './types.js';
 import {
-  OUTBOX_MAX_ENTRIES,
-  CACHE_MAX_CHATS,
-  CACHE_MAX_MESSAGES_PER_CHAT,
+  OFFLINE_OUTBOX_MAX_ENTRIES,
+  OFFLINE_CACHE_MAX_CHATS,
+  OFFLINE_CACHE_MAX_MESSAGES_PER_CHAT,
 } from './types.js';
 
 const DB_NAME = 'nimi-offline-cache';
@@ -167,7 +167,7 @@ export class OfflineCacheManager {
   }
 
   async syncChatList<T extends JsonObject>(chats: T[]): Promise<void> {
-    const limited = chats.slice(0, CACHE_MAX_CHATS);
+    const limited = chats.slice(0, OFFLINE_CACHE_MAX_CHATS);
     if (this.memory) {
       const memory = this.ensureMemory();
       memory.chatList.clear();
@@ -196,7 +196,7 @@ export class OfflineCacheManager {
   }
 
   async syncChatMessages<T extends JsonObject>(chatId: string, messages: T[]): Promise<void> {
-    const limited = messages.slice(0, CACHE_MAX_MESSAGES_PER_CHAT);
+    const limited = messages.slice(0, OFFLINE_CACHE_MAX_MESSAGES_PER_CHAT);
     if (this.memory) {
       const memory = this.ensureMemory();
       const byId = new Map<string, JsonObject>();
@@ -254,8 +254,8 @@ export class OfflineCacheManager {
   async upsertChatOutboxEntry(entry: PersistentOutboxEntry): Promise<void> {
     const count = await this.getChatOutboxCount();
     const existing = await this.getChatOutboxEntry(entry.clientMessageId);
-    if (!existing && count >= OUTBOX_MAX_ENTRIES) {
-      throw new Error(`Outbox full (${OUTBOX_MAX_ENTRIES} entries). Cannot queue more messages offline.`);
+    if (!existing && count >= OFFLINE_OUTBOX_MAX_ENTRIES) {
+      throw new Error(`Outbox full (${OFFLINE_OUTBOX_MAX_ENTRIES} entries). Cannot queue more messages offline.`);
     }
     if (this.memory) {
       this.ensureMemory().chatOutbox.set(entry.clientMessageId, entry);

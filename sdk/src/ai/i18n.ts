@@ -1,15 +1,15 @@
 import type { i18n as I18nInstance } from 'i18next';
 
-type RuntimeI18nLike = Pick<I18nInstance, 'addResourceBundle'> & {
+type SdkI18nLike = Pick<I18nInstance, 'addResourceBundle'> & {
   language?: string;
   resolvedLanguage?: string;
 };
 
-let runtimeI18nBinding: RuntimeI18nLike | null = null;
+let sdkI18nBinding: SdkI18nLike | null = null;
 
-function normalizeRuntimeI18n(value: unknown): RuntimeI18nLike | null {
+function normalizeSdkI18n(value: unknown): SdkI18nLike | null {
   if (value && typeof value === 'object') {
-    const candidate = value as RuntimeI18nLike;
+    const candidate = value as SdkI18nLike;
     if (typeof candidate.addResourceBundle === 'function') {
       return candidate;
     }
@@ -17,17 +17,17 @@ function normalizeRuntimeI18n(value: unknown): RuntimeI18nLike | null {
   return null;
 }
 
-export function bindRuntimeI18n(instance: RuntimeI18nLike | null | undefined): void {
-  runtimeI18nBinding = normalizeRuntimeI18n(instance);
+export function bindSdkI18n(instance: SdkI18nLike | null | undefined): void {
+  sdkI18nBinding = normalizeSdkI18n(instance);
 }
 
-export function unbindRuntimeI18n(): void {
-  runtimeI18nBinding = null;
+export function unbindSdkI18n(): void {
+  sdkI18nBinding = null;
 }
 
 export type PromptLocale = 'en' | 'zh';
 
 export function getPromptLocale(): PromptLocale {
-  const language = runtimeI18nBinding?.language || runtimeI18nBinding?.resolvedLanguage || '';
+  const language = sdkI18nBinding?.language || sdkI18nBinding?.resolvedLanguage || '';
   return language.startsWith('zh') ? 'zh' : 'en';
 }

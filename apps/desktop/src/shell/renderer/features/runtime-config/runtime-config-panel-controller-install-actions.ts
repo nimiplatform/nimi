@@ -14,7 +14,7 @@ import {
   type LocalRuntimeProfileDescriptor,
   type LocalRuntimeProfileResolutionPlan,
 } from '@runtime/local-runtime';
-import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
+import { createOfflineError, getOfflineCoordinator } from '@renderer/infra/offline';
 import { i18n } from '@renderer/i18n';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import { asRecord } from './runtime-config-panel-controller-utils';

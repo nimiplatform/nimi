@@ -1,19 +1,38 @@
-import {
-  RECONNECT_INITIAL_DELAY_MS,
-  RECONNECT_MAX_DELAY_MS,
-  type ConnectivityStatus,
-  type OfflineTier,
-  type OfflineTierChange,
-} from './types.js';
-import { ConnectivityMonitor } from './connectivity-monitor.js';
-import { OfflineStateManager } from './offline-state-manager.js';
+export type OfflineTier = 'L0' | 'L1' | 'L2';
 
-type TierListener = (change: OfflineTierChange) => void;
+export type OfflineTierChangeReason =
+  | 'realm_offline'
+  | 'realm_reconnect'
+  | 'runtime_offline'
+  | 'runtime_reconnect';
+
+export type OfflineTierChange = {
+  from: OfflineTier;
+  to: OfflineTier;
+  timestamp: number;
+  reason: OfflineTierChangeReason;
+};
+
+export type ConnectivityStatus = {
+  realm: {
+    restReachable: boolean;
+    socketReachable: boolean;
+    lastRestCheckedAt: number;
+    lastSocketCheckedAt: number;
+  };
+  runtime: { reachable: boolean; lastCheckedAt: number };
+};
+
+export const OFFLINE_RECONNECT_INITIAL_DELAY_MS = 1000;
+export const OFFLINE_RECONNECT_MAX_DELAY_MS = 30_000;
+
+type ConnectivityListener = (status: ConnectivityStatus) => void;
+type TierChangeListener = (change: OfflineTierChange) => void;
 type RuntimeReconnectListener = () => Promise<void> | void;
 type RealmReconnectListener = () => Promise<void> | void;
 type OfflineTimerHandle = unknown;
 
-type OfflineReconnectHandlers = {
+export type OfflineCoordinatorReconnectHandlers = {
   probeRealmReachability?: () => Promise<boolean>;
   probeRealmSocketReachability?: () => Promise<boolean>;
   probeRuntimeReachability?: () => Promise<boolean>;
@@ -31,20 +50,141 @@ const defaultOfflineCoordinatorTimer: OfflineCoordinatorTimer = {
   clearTimeout: (handle) => globalThis.clearTimeout(handle as ReturnType<typeof setTimeout>),
 };
 
+export class ConnectivityMonitor {
+  private realmRestReachable = true;
+  private realmSocketReachable = true;
+  private runtimeReachable = true;
+  private realmRestLastCheckedAt = Date.now();
+  private realmSocketLastCheckedAt = Date.now();
+  private runtimeLastCheckedAt = Date.now();
+  private readonly listeners = new Set<ConnectivityListener>();
+
+  setRealmSocketConnected(connected: boolean): void {
+    this.realmSocketReachable = connected;
+    this.realmSocketLastCheckedAt = Date.now();
+    this.emit();
+  }
+
+  setRealmRestReachable(reachable: boolean): void {
+    this.realmRestReachable = reachable;
+    this.realmRestLastCheckedAt = Date.now();
+    this.emit();
+  }
+
+  setRuntimeReachable(reachable: boolean): void {
+    this.runtimeReachable = reachable;
+    this.runtimeLastCheckedAt = Date.now();
+    this.emit();
+  }
+
+  getStatus(): ConnectivityStatus {
+    return {
+      realm: {
+        restReachable: this.realmRestReachable,
+        socketReachable: this.realmSocketReachable,
+        lastRestCheckedAt: this.realmRestLastCheckedAt,
+        lastSocketCheckedAt: this.realmSocketLastCheckedAt,
+      },
+      runtime: { reachable: this.runtimeReachable, lastCheckedAt: this.runtimeLastCheckedAt },
+    };
+  }
+
+  onChange(listener: ConnectivityListener): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  private emit(): void {
+    const status = this.getStatus();
+    for (const listener of this.listeners) {
+      try {
+        listener(status);
+      } catch {
+        // Listener failures must not corrupt the shared connectivity projection.
+      }
+    }
+  }
+}
+
+export class OfflineStateManager {
+  private currentTier: OfflineTier = 'L0';
+  private readonly listeners = new Set<TierChangeListener>();
+  private unsubscribeMonitor: (() => void) | null = null;
+
+  constructor(private readonly monitor: ConnectivityMonitor) {}
+
+  start(): void {
+    this.recalculateTier();
+    this.unsubscribeMonitor = this.monitor.onChange(() => this.recalculateTier());
+  }
+
+  stop(): void {
+    if (this.unsubscribeMonitor) {
+      this.unsubscribeMonitor();
+      this.unsubscribeMonitor = null;
+    }
+  }
+
+  getCurrentTier(): OfflineTier {
+    return this.currentTier;
+  }
+
+  onChange(listener: TierChangeListener): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  private recalculateTier(): void {
+    const { realm, runtime } = this.monitor.getStatus();
+    const nextTier: OfflineTier = !runtime.reachable
+      ? 'L2'
+      : !realm.restReachable || !realm.socketReachable
+        ? 'L1'
+        : 'L0';
+
+    if (nextTier === this.currentTier) return;
+
+    const previousTier = this.currentTier;
+    this.currentTier = nextTier;
+
+    const change: OfflineTierChange = {
+      from: previousTier,
+      to: nextTier,
+      timestamp: Date.now(),
+      reason: this.inferReason(previousTier, nextTier),
+    };
+
+    for (const listener of this.listeners) {
+      try {
+        listener(change);
+      } catch {
+        // Listener failures must not corrupt the shared tier projection.
+      }
+    }
+  }
+
+  private inferReason(from: OfflineTier, to: OfflineTier): OfflineTierChangeReason {
+    if (to === 'L2') return 'runtime_offline';
+    if (from === 'L2') return 'runtime_reconnect';
+    if (to === 'L1') return 'realm_offline';
+    return 'realm_reconnect';
+  }
+}
+
 export class OfflineCoordinator {
   private readonly monitor: ConnectivityMonitor;
   private readonly stateManager: OfflineStateManager;
   private readonly timer: OfflineCoordinatorTimer;
-  private readonly tierListeners = new Set<TierListener>();
+  private readonly tierListeners = new Set<TierChangeListener>();
   private readonly runtimeReconnectListeners = new Set<RuntimeReconnectListener>();
   private readonly realmReconnectListeners = new Set<RealmReconnectListener>();
-  private readonly statusListeners = new Set<(status: ConnectivityStatus) => void>();
+  private readonly statusListeners = new Set<ConnectivityListener>();
   private started = false;
   private realmReconnectTimer: OfflineTimerHandle | null = null;
   private runtimeReconnectTimer: OfflineTimerHandle | null = null;
-  private realmReconnectDelayMs = RECONNECT_INITIAL_DELAY_MS;
-  private runtimeReconnectDelayMs = RECONNECT_INITIAL_DELAY_MS;
-  private reconnectHandlers: OfflineReconnectHandlers = {};
+  private realmReconnectDelayMs = OFFLINE_RECONNECT_INITIAL_DELAY_MS;
+  private runtimeReconnectDelayMs = OFFLINE_RECONNECT_INITIAL_DELAY_MS;
+  private reconnectHandlers: OfflineCoordinatorReconnectHandlers = {};
   private cacheFallbackActive = false;
 
   constructor(input: { timer?: OfflineCoordinatorTimer } = {}) {
@@ -54,16 +194,14 @@ export class OfflineCoordinator {
   }
 
   start(): void {
-    if (this.started) {
-      return;
-    }
+    if (this.started) return;
     this.started = true;
     this.monitor.onChange((status) => {
       for (const listener of this.statusListeners) {
         try {
           listener(status);
         } catch {
-          // swallow listener errors
+          // Listener failures must not corrupt the shared status projection.
         }
       }
     });
@@ -72,7 +210,7 @@ export class OfflineCoordinator {
         try {
           listener(change);
         } catch {
-          // swallow listener errors
+          // Listener failures must not corrupt the shared tier projection.
         }
       }
       if (change.reason === 'realm_offline') {
@@ -81,7 +219,7 @@ export class OfflineCoordinator {
       if (change.reason === 'realm_reconnect') {
         this.cacheFallbackActive = false;
         this.clearRealmReconnectTimer();
-        this.realmReconnectDelayMs = RECONNECT_INITIAL_DELAY_MS;
+        this.realmReconnectDelayMs = OFFLINE_RECONNECT_INITIAL_DELAY_MS;
         void this.emitRealmReconnect();
       }
       if (change.reason === 'runtime_offline') {
@@ -89,14 +227,14 @@ export class OfflineCoordinator {
       }
       if (change.reason === 'runtime_reconnect') {
         this.clearRuntimeReconnectTimer();
-        this.runtimeReconnectDelayMs = RECONNECT_INITIAL_DELAY_MS;
+        this.runtimeReconnectDelayMs = OFFLINE_RECONNECT_INITIAL_DELAY_MS;
         void this.emitRuntimeReconnect();
       }
     });
     this.stateManager.start();
   }
 
-  configureReconnectHandlers(input: OfflineReconnectHandlers): void {
+  configureReconnectHandlers(input: OfflineCoordinatorReconnectHandlers): void {
     this.reconnectHandlers = input;
   }
 
@@ -140,13 +278,13 @@ export class OfflineCoordinator {
     return this.monitor.getStatus();
   }
 
-  subscribeTier(listener: TierListener): () => void {
+  subscribeTier(listener: TierChangeListener): () => void {
     this.start();
     this.tierListeners.add(listener);
     return () => this.tierListeners.delete(listener);
   }
 
-  subscribeStatus(listener: (status: ConnectivityStatus) => void): () => void {
+  subscribeStatus(listener: ConnectivityListener): () => void {
     this.start();
     this.statusListeners.add(listener);
     return () => this.statusListeners.delete(listener);
@@ -225,11 +363,11 @@ export class OfflineCoordinator {
         return;
       }
     } catch {
-      // keep offline until a probe succeeds
+      // Keep offline until a probe succeeds.
     }
     this.realmReconnectDelayMs = Math.min(
       this.realmReconnectDelayMs * 2,
-      RECONNECT_MAX_DELAY_MS,
+      OFFLINE_RECONNECT_MAX_DELAY_MS,
     );
     void this.scheduleRealmReconnect();
   }
@@ -260,11 +398,11 @@ export class OfflineCoordinator {
         return;
       }
     } catch {
-      // keep offline until a probe succeeds
+      // Keep offline until a probe succeeds.
     }
     this.runtimeReconnectDelayMs = Math.min(
       this.runtimeReconnectDelayMs * 2,
-      RECONNECT_MAX_DELAY_MS,
+      OFFLINE_RECONNECT_MAX_DELAY_MS,
     );
     void this.scheduleRuntimeReconnect();
   }
@@ -288,7 +426,7 @@ export class OfflineCoordinator {
       try {
         await listener();
       } catch {
-        // swallow listener errors
+        // Reconnect listener failures must stay app-local.
       }
     }
   }
@@ -298,18 +436,8 @@ export class OfflineCoordinator {
       try {
         await listener();
       } catch {
-        // swallow listener errors
+        // Reconnect listener failures must stay app-local.
       }
     }
   }
-}
-
-let offlineCoordinator: OfflineCoordinator | null = null;
-
-export function getOfflineCoordinator(): OfflineCoordinator {
-  if (!offlineCoordinator) {
-    offlineCoordinator = new OfflineCoordinator();
-  }
-  offlineCoordinator.start();
-  return offlineCoordinator;
 }

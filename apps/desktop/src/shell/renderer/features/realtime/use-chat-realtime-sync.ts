@@ -21,7 +21,7 @@ import {
   useRealmChatRealtimeController,
 } from '@nimiplatform/kit/features/chat/realm';
 import { projectRealmRealtimeUrl } from '@nimiplatform/sdk/realm';
-import { getOfflineCoordinator } from '@runtime/offline';
+import { getOfflineCoordinator } from '@renderer/infra/offline';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { invalidateNotificationQueries } from '@renderer/features/notification/notification-query.js';

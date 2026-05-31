@@ -6,7 +6,7 @@ import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import {
   getOfflineCoordinator,
   isRealmOfflineError,
-} from '@runtime/offline';
+} from '@renderer/infra/offline';
 import { normalizeApiError } from '@runtime/net/error-normalize';
 
 export type RealmApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;

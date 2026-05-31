@@ -11,7 +11,7 @@ import {
   getOfflineCoordinator,
   isRealmOfflineError,
   type PersistentOutboxEntry,
-} from '@runtime/offline';
+} from '@renderer/infra/offline';
 
 type MessageType = RealmModel<'MessageType'>;
 type SendMessageInputDto = RealmModel<'SendMessageInputDto'>;

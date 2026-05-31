@@ -5,7 +5,7 @@ import {
   createRuntimeProtectedScopeHelper,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { isRealmOfflineError, isRuntimeOfflineError } from '@runtime/offline';
+import { isRealmOfflineError, isRuntimeOfflineError } from '@renderer/infra/offline';
 import type { JsonObject } from '@runtime/net/json';
 
 type LocalAgentTerminationIntentDto = RealmModel<'LocalAgentTerminationIntentDto'>;

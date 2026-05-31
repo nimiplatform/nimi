@@ -6,7 +6,7 @@ import {
   getOfflineCacheManager,
   getOfflineCoordinator,
   isRealmOfflineError,
-} from '@runtime/offline';
+} from '@renderer/infra/offline';
 
 type RealmAgentDetailApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type RealmAgentDetailErrorEmitter = (

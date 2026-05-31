@@ -5,7 +5,7 @@ import {
   isRealmOfflineError,
   type PersistentSocialMutationEntry,
   type SocialMutationKind,
-} from '@runtime/offline';
+} from '@renderer/infra/offline';
 
 type RealmApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type RealmDataErrorEmitter = (

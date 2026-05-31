@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { desktopBridge } from '@renderer/bridge';
 import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import { getOfflineCoordinator } from '@runtime/offline';
+import { getOfflineCoordinator } from '@renderer/infra/offline';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
   applyRuntimeBridgeConfigToState,

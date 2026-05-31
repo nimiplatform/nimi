@@ -1,8 +1,8 @@
 import { describe, test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { ConnectivityMonitor } from '../src/runtime/offline/connectivity-monitor.js';
-import { OfflineStateManager } from '../src/runtime/offline/offline-state-manager.js';
-import type { OfflineTierChange } from '../src/runtime/offline/types.js';
+import { ConnectivityMonitor } from '../../../kit/core/src/offline-coordinator.js';
+import { OfflineStateManager } from '../../../kit/core/src/offline-coordinator.js';
+import type { OfflineTierChange } from '../../../kit/core/src/offline-coordinator.js';
 
 describe('D-OFFLINE-001: offline degradation tier system', () => {
   let monitor: ConnectivityMonitor;

@@ -1,7 +1,7 @@
 import { beforeEach, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { OfflineCoordinator, type OfflineCoordinatorTimer } from '../src/runtime/offline/coordinator.js';
+import { OfflineCoordinator, type OfflineCoordinatorTimer } from '../../../kit/core/src/offline-coordinator.js';
 import { attachOfflineCoordinatorBindings } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-offline.js';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';

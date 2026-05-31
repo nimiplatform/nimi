@@ -11,6 +11,7 @@ export * from './local-agent-identity.js';
 export * from './audit-projections.js';
 export * from './health-coordinator.js';
 export * from './local-profile-manifest.js';
+export * from './runtime-local-profile-ref.js';
 export * from './model-catalog.js';
 export * from './workflow-builder.js';
 export * from './app-storage.js';

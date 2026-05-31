@@ -11,7 +11,7 @@ import {
   loadWorldLorebooks,
   loadWorldSemanticBundle,
 } from '../src/shell/renderer/features/world/data/realm-world-data.js';
-import { createOfflineError, getOfflineCacheManager } from '../src/runtime/offline/index.js';
+import { createOfflineError, getOfflineCacheManager } from '../src/shell/renderer/infra/offline/index.js';
 
 type RealmWorldDataError = {
   action: string;

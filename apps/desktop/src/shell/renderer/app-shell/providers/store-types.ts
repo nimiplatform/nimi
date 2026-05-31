@@ -9,7 +9,7 @@ import type {
   ConversationSetupState,
   ConversationViewMode,
 } from '@nimiplatform/kit/features/chat/headless';
-import type { OfflineTier } from '@runtime/offline/types.js';
+import type { OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
 import type {
   NimiConversationSelection,
   AgentConversationSelection,

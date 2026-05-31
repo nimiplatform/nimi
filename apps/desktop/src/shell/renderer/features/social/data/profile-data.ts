@@ -4,7 +4,7 @@ import {
   getOfflineCacheManager,
   getOfflineCoordinator,
   isRealmOfflineError,
-} from '@runtime/offline';
+} from '@renderer/infra/offline';
 import {
   enrichProfileWithWorldBanner,
   fetchAgentFriendLimit,

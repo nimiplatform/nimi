@@ -76,6 +76,11 @@
       "import": "./dist/core/storage-json.js",
       "default": "./dist/core/storage-json.js"
     },
+    "./core/offline-coordinator": {
+      "types": "./dist/core/offline-coordinator.d.ts",
+      "import": "./dist/core/offline-coordinator.js",
+      "default": "./dist/core/offline-coordinator.js"
+    },
     "./core/runtime-capabilities": {
       "types": "./dist/core/runtime-capabilities/index.d.ts",
       "import": "./dist/core/runtime-capabilities/index.js",

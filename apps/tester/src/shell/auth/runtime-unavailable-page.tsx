@@ -1,14 +1,16 @@
 import type { NimiAppAuthUnavailable } from '@nimiplatform/sdk';
+import type { OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
 import { Button, InlineAlert, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import { appTitle } from './runtime-platform.js';
 
 type RuntimeUnavailablePageProps = {
   projection?: NimiAppAuthUnavailable;
   message?: string;
+  offlineTier?: OfflineTier;
   onRetry: () => void;
 };
 
-export function RuntimeUnavailablePage({ projection, message, onRetry }: RuntimeUnavailablePageProps) {
+export function RuntimeUnavailablePage({ projection, message, offlineTier, onRetry }: RuntimeUnavailablePageProps) {
   const body = message || projection?.message || 'Runtime session projection is not ready.';
   return (
     <main className="runtime-unavailable-screen">
@@ -23,6 +25,7 @@ export function RuntimeUnavailablePage({ projection, message, onRetry }: Runtime
             <span>{body}</span>
           </div>
         </InlineAlert>
+        {offlineTier ? <p className="runtime-action-hint">Offline tier: {offlineTier}</p> : null}
         {projection?.actionHint ? <p className="runtime-action-hint">{projection.actionHint}</p> : null}
         <Button type="button" tone="primary" onClick={onRetry}>Retry Runtime check</Button>
       </Surface>

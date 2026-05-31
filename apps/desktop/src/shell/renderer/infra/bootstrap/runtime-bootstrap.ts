@@ -13,7 +13,7 @@ import { queryClient } from '@renderer/infra/query-client/query-client';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { initializeBuiltInChatScopesFromProductControl } from '@renderer/app-shell/providers/desktop-ai-config-service';
-import { getOfflineCoordinator } from '@runtime/offline';
+import { getOfflineCoordinator } from '@renderer/infra/offline';
 import { safeErrorMessage } from './runtime-bootstrap-utils';
 import { syncRuntimeStorageConfig } from './runtime-bootstrap-local-models-sync';
 import { syncRuntimeJwtConfig } from './runtime-bootstrap-jwt-sync';

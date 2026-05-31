@@ -1,5 +1,5 @@
 import { startTransition } from 'react';
-import type { OfflineTier } from '@runtime/offline/types.js';
+import type { OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
 import {
   DEFAULT_CHAT_SOURCE_FILTER,
   DEFAULT_CHAT_SETUP_STATE,

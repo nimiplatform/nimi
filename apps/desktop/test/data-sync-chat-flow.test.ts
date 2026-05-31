@@ -12,7 +12,7 @@ import {
   sendChatMessage,
   startChatWithTarget,
 } from '../src/shell/renderer/features/chat/data/realm-human-chat-data.js';
-import { createOfflineError, getOfflineCacheManager } from '../src/runtime/offline/index.js';
+import { createOfflineError, getOfflineCacheManager } from '../src/shell/renderer/infra/offline/index.js';
 
 type MessageViewDto = RealmModel<'MessageViewDto'>;
 

@@ -115,6 +115,17 @@ test('tester auth and runtime bootstrap consume Kit shell bridge primitives', ()
   assert.doesNotMatch(runtimeAccountAuth, /@renderer\/bridge|runtime-bridge/);
 });
 
+test('tester runtime unavailable flow consumes Kit offline coordinator', () => {
+  const authGate = read('src/shell/auth/auth-gate.tsx');
+  const unavailablePage = read('src/shell/auth/runtime-unavailable-page.tsx');
+
+  assert.match(authGate, /from '@nimiplatform\/kit\/core\/offline-coordinator'/);
+  assert.match(authGate, /new OfflineCoordinator\(\)/);
+  assert.match(authGate, /markRuntimeReachable\(false\)/);
+  assert.match(authGate, /markRuntimeReachable\(true\)/);
+  assert.match(unavailablePage, /Offline tier: \{offlineTier\}/);
+});
+
 test('tester kit gallery showcases real kit components for third-party apps', () => {
   const gallery = read('src/tester/kit-component-gallery.tsx');
   for (const required of [

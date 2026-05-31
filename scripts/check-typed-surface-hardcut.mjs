@@ -83,8 +83,8 @@ const checks = [
     description: 'desktop offline cache surfaces must use typed cache contracts instead of raw record casts',
     pattern: 'Promise<unknown>|Record<string, unknown>|as unknown as',
     paths: [
-      'apps/desktop/src/runtime/offline/cache-manager.ts',
-      'apps/desktop/src/runtime/offline/types.ts',
+      'apps/desktop/src/shell/renderer/infra/offline/cache-manager.ts',
+      'apps/desktop/src/shell/renderer/infra/offline/types.ts',
       'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-connector-discover-command.ts',
     ],
   },

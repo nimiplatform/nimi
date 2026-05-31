@@ -21,6 +21,7 @@ import type {
   AISchedulingEvaluationTarget,
   AISchedulingJudgement,
   AIRuntimeEvidence,
+  RuntimeLocalProfileRef,
   RuntimeRouteBinding,
 } from '../runtime/index.js';
 export type { AIRuntimeEvidence } from '../runtime/index.js';
@@ -37,21 +38,12 @@ export {
 } from '../scope/ai-scope.js';
 
 // ---------------------------------------------------------------------------
-// RuntimeLocalProfileRef  (shared identity for local profile references)
-// ---------------------------------------------------------------------------
-
-export type AIRuntimeLocalProfileRef = {
-  targetId: string;
-  profileId: string;
-};
-
-// ---------------------------------------------------------------------------
 // AIProfile  (D-AIPC-002) — portable template
 // ---------------------------------------------------------------------------
 
 export type AIProfileCapabilityIntent = {
   binding?: RuntimeRouteBinding | null;
-  localProfileRef?: AIRuntimeLocalProfileRef | null;
+  localProfileRef?: RuntimeLocalProfileRef | null;
   params?: JsonObject;
 };
 
@@ -77,7 +69,7 @@ export type AIProfileRef = {
 
 export type AIConfigCapabilities = {
   selectedBindings: Partial<Record<string, RuntimeRouteBinding | null>>;
-  localProfileRefs: Partial<Record<string, AIRuntimeLocalProfileRef | null>>;
+  localProfileRefs: Partial<Record<string, RuntimeLocalProfileRef | null>>;
   selectedParams: Partial<Record<string, JsonObject>>;
 };
 

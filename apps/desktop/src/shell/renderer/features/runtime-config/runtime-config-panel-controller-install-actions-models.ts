@@ -6,7 +6,7 @@ import {
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { localRuntime, type LocalRuntimeAssetRecord } from '@runtime/local-runtime';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
-import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
+import { createOfflineError, getOfflineCoordinator } from '@renderer/infra/offline';
 import { i18n } from '@renderer/i18n';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';

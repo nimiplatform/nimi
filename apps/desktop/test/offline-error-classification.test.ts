@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
-import { isRealmOfflineError, isRuntimeOfflineError } from '../src/runtime/offline/errors.js';
+import { isRealmOfflineError, isRuntimeOfflineError } from '../src/shell/renderer/infra/offline/errors.js';
 import { resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 
@@ -55,7 +55,7 @@ describe('D-OFFLINE-001: realm offline error classification', () => {
 
   test('Desktop consumes SDK offline reason-code projections instead of local Sets', () => {
     const offlineErrorSource = readFileSync(
-      resolve(import.meta.dirname, '../src/runtime/offline/errors.ts'),
+      resolve(import.meta.dirname, '../src/shell/renderer/infra/offline/errors.ts'),
       'utf8',
     );
 

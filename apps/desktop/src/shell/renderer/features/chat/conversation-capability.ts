@@ -59,11 +59,6 @@ export type AgentVoiceWorkflowType = 'voice_clone' | 'voice_design';
 
 export const toRuntimeCanonicalCapability = toRuntimeRouteCanonicalCapability;
 
-export type RuntimeLocalProfileRef = {
-  targetId: string;
-  profileId: string;
-};
-
 export type ConversationCapabilitySelectionStore = RuntimeRouteCapabilitySelectionStore;
 
 export type ConversationCapabilityProjectionReasonCode = RuntimeRouteCapabilityProjectionReasonCode;
@@ -309,7 +304,6 @@ export type {
   AIProfile,
   AIProfileCapabilityIntent,
   AIProfileRef,
-  AIRuntimeLocalProfileRef,
   AIScopeKind,
   AIScopeRef,
   AISnapshot,

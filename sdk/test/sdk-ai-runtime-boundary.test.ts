@@ -38,6 +38,8 @@ test('sdk ai subpath does not host runtime implementation helpers', () => {
     const source = readSource(aiDir, file);
     assert.doesNotMatch(source, /from ['"]\.\.\/runtime\/(?!index\.js['"])/);
     assert.doesNotMatch(source, /RuntimeMethodIds|MemoryBankScope|MemoryRequestContext/);
+    assert.doesNotMatch(source, /\bAIRuntimeLocalProfileRef\b/);
+    assert.doesNotMatch(source, /\bbindRuntimeI18n\b|\bunbindRuntimeI18n\b|\bRuntimeI18nLike\b|\bruntimeI18nBinding\b/);
   }
 });
 
@@ -69,4 +71,12 @@ test('AI runtime execution evidence projection lives on the runtime subpath', ()
   assert.doesNotMatch(readSource(aiDir, 'ai-config.ts'), /export type AIRuntimeEvidence =/);
   assert.match(readSource(runtimeDir, 'index.ts'), /ai-execution-evidence\.js/);
   assert.match(readSource(runtimeDir, 'browser.ts'), /ai-execution-evidence\.js/);
+});
+
+test('AIConfig consumes Runtime local profile identity from the runtime subpath', () => {
+  const runtimeFiles = listFiles(runtimeDir);
+  assert.ok(runtimeFiles.includes('runtime-local-profile-ref.ts'));
+  assert.match(readSource(runtimeDir, 'index.ts'), /runtime-local-profile-ref\.js/);
+  assert.match(readSource(runtimeDir, 'browser.ts'), /runtime-local-profile-ref\.js/);
+  assert.match(readSource(aiDir, 'ai-config.ts'), /RuntimeLocalProfileRef/);
 });

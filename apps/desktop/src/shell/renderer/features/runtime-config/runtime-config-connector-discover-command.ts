@@ -2,7 +2,7 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeConfigStateUpdater } from './runtime-config-types';
-import { getOfflineCacheManager } from '@runtime/offline';
+import { getOfflineCacheManager } from '@renderer/infra/offline';
 import { discoverLocalModelsFromEndpoint } from './runtime-config-connector-discovery';
 import { localRuntime } from '@runtime/local-runtime';
 

@@ -1,4 +1,4 @@
-import type { OfflineCoordinator, OfflineTier } from '@runtime/offline';
+import type { OfflineCoordinator, OfflineTier } from '@renderer/infra/offline';
 
 export type OfflineCoordinatorBindingsInput = {
   coordinator: OfflineCoordinator;

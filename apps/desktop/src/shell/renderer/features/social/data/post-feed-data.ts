@@ -3,7 +3,7 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import {
   getOfflineCoordinator,
   isRealmOfflineError,
-} from '@runtime/offline';
+} from '@renderer/infra/offline';
 import {
   filterBlockedPosts,
   isBlockedUser,

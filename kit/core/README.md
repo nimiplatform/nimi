@@ -7,6 +7,7 @@ Pure shared logic module for shell-mode detection, env helpers, OAuth utilities,
 - `@nimiplatform/kit/core/shell-mode`
 - `@nimiplatform/kit/core/oauth`
 - `@nimiplatform/kit/core/storage-json`
+- `@nimiplatform/kit/core/offline-coordinator`
 - Current surfaces:
   - `headless`: active
   - `ui`: none
@@ -16,6 +17,8 @@ Pure shared logic module for shell-mode detection, env helpers, OAuth utilities,
 ## When To Use It
 - Share logic that must stay UI-free and framework-light.
 - Parameterize OAuth or capability logic without app bindings.
+- Coordinate app-shell connectivity/reconnect state without owning Runtime or
+  Realm reachability truth.
 
 ## What Stays Outside
 - React hooks and CSS.

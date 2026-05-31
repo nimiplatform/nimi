@@ -5,7 +5,7 @@ import {
   getOfflineCacheManager,
   getOfflineCoordinator,
   isRealmOfflineError,
-} from '@runtime/offline';
+} from '@renderer/infra/offline';
 
 type WorldDetailDto = RealmModel<'WorldDetailDto'>;
 type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;

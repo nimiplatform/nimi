@@ -1,7 +1,7 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { OfflineCacheManager } from '../src/runtime/offline/cache-manager.js';
+import { OfflineCacheManager } from '../src/shell/renderer/infra/offline/cache-manager.js';
 
 describe('D-OFFLINE-002: outbox queue/send/fail behavior', () => {
   test('queueOutboxEntry rejects when outbox full', async () => {
