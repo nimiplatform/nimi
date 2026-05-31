@@ -128,6 +128,7 @@ import {
   type RealmListChatsResultDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import { Button, ProgressIndicator, StatusBadge, Surface, Toggle } from '@nimiplatform/kit/ui';
+import { createTesterLocalRuntimeAssetKindProjection } from '../../tester/tester-local-runtime-asset-kind-projection';
 
 type WalletProjectionState =
   | { status: 'idle'; balances: null; error: null }
@@ -784,6 +785,7 @@ export function SettingsRoute() {
     assetId: toCanonicalLocalRuntimeAssetId('local/tester-model'),
     lookupKey: toCanonicalLocalRuntimeAssetLookupKey('LOCAL/Tester-Model'),
   };
+  const localRuntimeAssetKindProjection = createTesterLocalRuntimeAssetKindProjection();
   const runtimeTargetCallOptionsProjection = buildRuntimeTargetCallOptions({
     targetId: 'tester.settings.runtime-route',
     timeoutMs: 5000,
@@ -1874,8 +1876,10 @@ export function SettingsRoute() {
       </div>
       <div className="setting-row">
         <span>Local runtime asset id projection</span>
-        <StatusBadge tone="neutral">
+        <StatusBadge tone={localRuntimeAssetKindProjection.auxiliaryImportable ? 'success' : 'neutral'}>
           {localRuntimeAssetIdProjection.assetId} / {localRuntimeAssetIdProjection.lookupKey}
+          {' / '}
+          {localRuntimeAssetKindProjection.label}: {localRuntimeAssetKindProjection.runnableAssetKind}/{localRuntimeAssetKindProjection.dependencyAssetKind}
         </StatusBadge>
       </div>
       <div className="setting-row">

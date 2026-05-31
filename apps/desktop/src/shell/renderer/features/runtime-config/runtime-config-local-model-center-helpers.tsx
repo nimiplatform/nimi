@@ -8,6 +8,8 @@ import type {
 import {
   LOCAL_RUNTIME_ASSET_KIND_IDS,
   LOCAL_RUNTIME_PASSIVE_ASSET_KIND_IDS,
+  compareLocalRuntimeAssetKindForDisplay,
+  formatLocalRuntimeAssetKindLabel,
 } from '@nimiplatform/sdk/runtime';
 import { formatRelativeLocaleTime, i18n } from '@renderer/i18n';
 import { parseTimestamp } from './runtime-config-model-center-utils';
@@ -35,32 +37,7 @@ export const ASSET_KIND_OPTIONS = LOCAL_RUNTIME_PASSIVE_ASSET_KIND_IDS;
 export const ALL_ASSET_KIND_OPTIONS = LOCAL_RUNTIME_ASSET_KIND_IDS;
 
 export function formatAssetKindLabel(value: LocalRuntimeAssetKind): string {
-  switch (value) {
-    case 'chat':
-      return 'Chat';
-    case 'image':
-      return 'Image';
-    case 'video':
-      return 'Video';
-    case 'tts':
-      return 'TTS';
-    case 'stt':
-      return 'STT';
-    case 'embedding':
-      return 'Embedding';
-    case 'vae':
-      return 'VAE';
-    case 'clip':
-      return 'CLIP';
-    case 'controlnet':
-      return 'ControlNet';
-    case 'lora':
-      return 'LoRA';
-    case 'auxiliary':
-      return 'Auxiliary';
-    default:
-      return value;
-  }
+  return formatLocalRuntimeAssetKindLabel(value);
 }
 
 const GENERIC_MODEL_TAGS = new Set([
@@ -134,10 +111,6 @@ export function sortVerifiedAssetsForDisplay(
   });
 }
 
-const ASSET_KIND_RANK: Partial<Record<LocalRuntimeAssetKind, number>> = Object.fromEntries(
-  ALL_ASSET_KIND_OPTIONS.map((kind, index) => [kind, index]),
-) as Partial<Record<LocalRuntimeAssetKind, number>>;
-
 export function sortVerifiedPassiveAssetsForDisplay(
   assets: LocalRuntimeVerifiedAssetDescriptor[],
 ): LocalRuntimeVerifiedAssetDescriptor[] {
@@ -147,10 +120,9 @@ export function sortVerifiedPassiveAssetsForDisplay(
     if (leftRecommended !== rightRecommended) {
       return leftRecommended ? -1 : 1;
     }
-    const leftKindRank = ASSET_KIND_RANK[left.kind] ?? Number.MAX_SAFE_INTEGER;
-    const rightKindRank = ASSET_KIND_RANK[right.kind] ?? Number.MAX_SAFE_INTEGER;
-    if (leftKindRank !== rightKindRank) {
-      return leftKindRank - rightKindRank;
+    const byKind = compareLocalRuntimeAssetKindForDisplay(left.kind, right.kind);
+    if (byKind !== 0) {
+      return byKind;
     }
     return compareDescriptorTitles(left.title, left.templateId, right.title, right.templateId);
   });

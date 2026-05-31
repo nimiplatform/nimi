@@ -3,15 +3,22 @@ import test from 'node:test';
 
 import {
   LOCAL_RUNTIME_ASSET_KIND_IDS,
+  LOCAL_RUNTIME_ASSET_KIND_LABELS,
   LOCAL_RUNTIME_ASSET_STATUS_IDS,
   LOCAL_RUNTIME_PASSIVE_ASSET_KIND_IDS,
   LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS,
+  canImportLocalRuntimeAssetDeclaration,
+  compareLocalRuntimeAssetKindForDisplay,
+  formatLocalRuntimeAssetKindLabel,
   isLocalRuntimePassiveAssetKindId,
   isLocalRuntimeRunnableAssetKindId,
   localRuntimeCapabilitiesForAssetKind,
   localRuntimeRunnableAssetKindForCapabilities,
+  normalizeLocalRuntimeAssetDeclaration,
   normalizeLocalRuntimeAssetStatusId,
   normalizeLocalRuntimeAssetKindId,
+  normalizeLocalRuntimeDependencyAssetDeclaration,
+  normalizeLocalRuntimePassiveAssetKindId,
   normalizeLocalRuntimeRunnableAssetKindId,
   parseLocalProfileEntryKindId,
   parseLocalRuntimeGpuMemoryModelId,
@@ -64,8 +71,32 @@ test('local runtime asset kind predicates and normalizers fail closed', () => {
   assert.equal(isLocalRuntimePassiveAssetKindId('chat'), false);
   assert.equal(normalizeLocalRuntimeAssetKindId('LOCAL_ASSET_KIND_CONTROLNET'), 'controlnet');
   assert.equal(normalizeLocalRuntimeAssetKindId('music'), 'chat');
+  assert.equal(normalizeLocalRuntimePassiveAssetKindId('lora'), 'lora');
+  assert.equal(normalizeLocalRuntimePassiveAssetKindId('chat'), 'vae');
   assert.equal(normalizeLocalRuntimeRunnableAssetKindId('embedding'), 'embedding');
   assert.equal(normalizeLocalRuntimeRunnableAssetKindId('vae'), 'chat');
+});
+
+test('local runtime asset kind DX helpers stay in the SDK projection', () => {
+  assert.equal(LOCAL_RUNTIME_ASSET_KIND_LABELS.controlnet, 'ControlNet');
+  assert.equal(formatLocalRuntimeAssetKindLabel('LOCAL_ASSET_KIND_TTS'), 'TTS');
+  assert.equal(formatLocalRuntimeAssetKindLabel('unknown-kind'), 'unknown-kind');
+  assert.deepEqual(
+    ['lora', 'chat', 'auxiliary', 'image'].sort(compareLocalRuntimeAssetKindForDisplay),
+    ['chat', 'image', 'lora', 'auxiliary'],
+  );
+  assert.deepEqual(
+    normalizeLocalRuntimeAssetDeclaration({ assetKind: 'LOCAL_ASSET_KIND_IMAGE', engine: ' media ' }),
+    { assetKind: 'image', engine: 'media' },
+  );
+  assert.deepEqual(
+    normalizeLocalRuntimeDependencyAssetDeclaration({ assetKind: 'chat', engine: ' sidecar ' }),
+    { assetKind: 'vae', engine: 'sidecar' },
+  );
+  assert.equal(canImportLocalRuntimeAssetDeclaration({ assetKind: 'auxiliary' }), false);
+  assert.equal(canImportLocalRuntimeAssetDeclaration({ assetKind: 'auxiliary', engine: 'sidecar' }), true);
+  assert.equal(canImportLocalRuntimeAssetDeclaration({ assetKind: 'chat' }), true);
+  assert.equal(canImportLocalRuntimeAssetDeclaration({ assetKind: 'missing' }), false);
 });
 
 test('local runtime asset status parser accepts Runtime wire names and values', () => {

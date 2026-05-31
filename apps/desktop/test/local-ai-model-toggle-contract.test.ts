@@ -31,6 +31,10 @@ const localModelCenterImportFilePlanPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-import-file-plan.ts',
 );
+const localModelCenterUseHelpersPath = path.resolve(
+  process.cwd(),
+  'src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-helpers.ts',
+);
 const localModelCenterSectionsPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-sections.tsx',
@@ -97,6 +101,7 @@ const localModelCenterStateSource = readFileSync(localModelCenterStatePath, 'utf
 const localModelCenterInstalledAssetsSource = readFileSync(localModelCenterInstalledAssetsPath, 'utf-8');
 const localModelCenterImportActionsSource = readFileSync(localModelCenterImportActionsPath, 'utf-8');
 const localModelCenterImportFilePlanSource = readFileSync(localModelCenterImportFilePlanPath, 'utf-8');
+const localModelCenterUseHelpersSource = readFileSync(localModelCenterUseHelpersPath, 'utf-8');
 const localModelCenterSectionsSource = readFileSync(localModelCenterSectionsPath, 'utf-8');
 const localModelCenterUtilsSource = readFileSync(localModelCenterUtilsPath, 'utf-8');
 const localModelCenterProgressCacheSource = readFileSync(localModelCenterProgressCachePath, 'utf-8');
@@ -133,6 +138,20 @@ test('local model center hides removed tombstones from installed sections and re
   assert.match(localModelCenterStateSource, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(localModelCenterStateSource, /new Map\(visibleInstalledAssets\.map\(\(asset\) => \[toCanonicalLocalRuntimeAssetLookupKey\(asset\.assetId\), asset\] as const\)\)/);
   assert.doesNotMatch(localModelCenterStateSource, /@runtime\/local-runtime\/local-id/);
+});
+
+test('local model center consumes SDK local runtime asset-kind DX helpers', () => {
+  assert.match(localModelCenterSectionsSource, /formatAssetKindLabel/);
+  assert.match(localModelCenterUseHelpersSource, /LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS/);
+  assert.match(localModelCenterUseHelpersSource, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(localModelCenterUseHelpersSource, /canImportLocalRuntimeAssetDeclaration/);
+  assert.match(localModelCenterUseHelpersSource, /normalizeLocalRuntimeAssetDeclaration/);
+  assert.match(localModelCenterUseHelpersSource, /normalizeLocalRuntimeDependencyAssetDeclaration/);
+  assert.match(localModelCenterUseHelpersSource, /localRuntimeCapabilitiesForAssetKind/);
+  assert.match(localModelCenterStateSource, /normalizeAssetDeclaration/);
+  assert.doesNotMatch(localModelCenterUseHelpersSource, /ASSET_KIND_OPTIONS\.find/);
+  assert.doesNotMatch(localModelCenterUseHelpersSource, /assetKind === 'auxiliary'/);
+  assert.doesNotMatch(localModelCenterStateSource, /case 'controlnet'/);
 });
 
 test('dismissed transfer sessions persist across renderer reloads', () => {

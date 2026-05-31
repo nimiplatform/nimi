@@ -24,6 +24,16 @@ export type LocalRuntimeAssetKindId =
   | LocalRuntimeRunnableAssetKindId
   | LocalRuntimePassiveAssetKindId;
 
+export type LocalRuntimeAssetDeclarationLike = {
+  assetKind?: LocalRuntimeAssetKindId | string | null;
+  engine?: string | null;
+};
+
+export type NormalizedLocalRuntimeAssetDeclaration = {
+  assetKind: LocalRuntimeAssetKindId;
+  engine?: string;
+};
+
 export type LocalRuntimeAssetStatusId = 'installed' | 'active' | 'unhealthy' | 'removed';
 export type LocalProfileEntryKindId = 'service' | 'node' | 'asset';
 export type LocalRuntimeGpuMemoryModelId = 'discrete' | 'unified';
@@ -98,6 +108,20 @@ export const LOCAL_RUNTIME_ASSET_KIND_IDS = Object.freeze(
 export const LOCAL_RUNTIME_ASSET_STATUS_IDS = Object.freeze(
   LOCAL_RUNTIME_ASSET_STATUS_PAIRS.map(([, id]) => id),
 ) as readonly LocalRuntimeAssetStatusId[];
+
+export const LOCAL_RUNTIME_ASSET_KIND_LABELS = Object.freeze({
+  chat: 'Chat',
+  image: 'Image',
+  video: 'Video',
+  tts: 'TTS',
+  stt: 'STT',
+  embedding: 'Embedding',
+  vae: 'VAE',
+  clip: 'CLIP',
+  lora: 'LoRA',
+  controlnet: 'ControlNet',
+  auxiliary: 'Auxiliary',
+} satisfies Record<LocalRuntimeAssetKindId, string>);
 
 export function parseLocalRuntimeAssetKindId(value: unknown): LocalRuntimeAssetKindId | undefined {
   const raw = String(value ?? '').trim();
@@ -245,6 +269,67 @@ export function normalizeLocalRuntimeRunnableAssetKindId(
 ): LocalRuntimeRunnableAssetKindId {
   const parsed = parseLocalRuntimeAssetKindId(value);
   return parsed && isLocalRuntimeRunnableAssetKindId(parsed) ? parsed : fallback;
+}
+
+export function normalizeLocalRuntimePassiveAssetKindId(
+  value: unknown,
+  fallback: LocalRuntimePassiveAssetKindId = 'vae',
+): LocalRuntimePassiveAssetKindId {
+  const parsed = parseLocalRuntimeAssetKindId(value);
+  return parsed && isLocalRuntimePassiveAssetKindId(parsed) ? parsed : fallback;
+}
+
+export function formatLocalRuntimeAssetKindLabel(value: unknown): string {
+  const parsed = parseLocalRuntimeAssetKindId(value);
+  return parsed ? LOCAL_RUNTIME_ASSET_KIND_LABELS[parsed] : String(value ?? '').trim();
+}
+
+export function compareLocalRuntimeAssetKindForDisplay(left: unknown, right: unknown): number {
+  const leftKind = parseLocalRuntimeAssetKindId(left);
+  const rightKind = parseLocalRuntimeAssetKindId(right);
+  const leftRank = leftKind ? LOCAL_RUNTIME_ASSET_KIND_IDS.indexOf(leftKind) : Number.MAX_SAFE_INTEGER;
+  const rightRank = rightKind ? LOCAL_RUNTIME_ASSET_KIND_IDS.indexOf(rightKind) : Number.MAX_SAFE_INTEGER;
+  if (leftRank !== rightRank) {
+    return leftRank - rightRank;
+  }
+  return String(left ?? '').localeCompare(String(right ?? ''), undefined, { sensitivity: 'base' });
+}
+
+export function normalizeLocalRuntimeAssetDeclaration(
+  declaration?: LocalRuntimeAssetDeclarationLike | null,
+  fallback: LocalRuntimeAssetKindId = 'chat',
+): NormalizedLocalRuntimeAssetDeclaration {
+  const normalizedKind = normalizeLocalRuntimeAssetKindId(declaration?.assetKind, fallback);
+  const engine = String(declaration?.engine || '').trim();
+  return {
+    assetKind: normalizedKind,
+    ...(engine ? { engine } : {}),
+  };
+}
+
+export function normalizeLocalRuntimeDependencyAssetDeclaration(
+  declaration?: LocalRuntimeAssetDeclarationLike | null,
+  fallback: LocalRuntimePassiveAssetKindId = 'vae',
+): NormalizedLocalRuntimeAssetDeclaration {
+  const normalizedKind = normalizeLocalRuntimePassiveAssetKindId(declaration?.assetKind, fallback);
+  const engine = String(declaration?.engine || '').trim();
+  return {
+    assetKind: normalizedKind,
+    ...(engine ? { engine } : {}),
+  };
+}
+
+export function canImportLocalRuntimeAssetDeclaration(
+  declaration?: LocalRuntimeAssetDeclarationLike | null,
+): boolean {
+  const assetKind = parseLocalRuntimeAssetKindId(declaration?.assetKind);
+  if (!assetKind) {
+    return false;
+  }
+  if (assetKind === 'auxiliary') {
+    return Boolean(String(declaration?.engine || '').trim());
+  }
+  return true;
 }
 
 export function localRuntimeCapabilitiesForAssetKind(kind: LocalRuntimeAssetKindId): string[] {

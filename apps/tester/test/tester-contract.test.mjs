@@ -1142,12 +1142,23 @@ test('tester settings consumes SDK Runtime dependency parser projections', () =>
 
 test('tester settings consumes SDK local runtime asset id projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
+  const assetKindProjection = read('src/tester/tester-local-runtime-asset-kind-projection.ts');
 
   assert.match(settings, /toCanonicalLocalRuntimeAssetId/);
   assert.match(settings, /toCanonicalLocalRuntimeAssetLookupKey/);
+  assert.match(settings, /createTesterLocalRuntimeAssetKindProjection/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Local runtime asset id projection/);
   assert.match(settings, /localRuntimeAssetIdProjection\.lookupKey/);
+  assert.match(settings, /localRuntimeAssetKindProjection\.dependencyAssetKind/);
+  for (const helper of [
+    'formatLocalRuntimeAssetKindLabel',
+    'normalizeLocalRuntimeAssetDeclaration',
+    'normalizeLocalRuntimeDependencyAssetDeclaration',
+    'canImportLocalRuntimeAssetDeclaration',
+  ]) {
+    assert.match(assetKindProjection, new RegExp(helper));
+  }
   assert.doesNotMatch(settings, /@runtime\/local-runtime\/local-id/);
 });
 
