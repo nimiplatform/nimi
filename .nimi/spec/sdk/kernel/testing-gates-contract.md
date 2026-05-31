@@ -89,3 +89,19 @@ CI 一致性守护额外检查：
 
 - `pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency`
 - `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check`
+
+## S-GATE-092 SDKS Core Family Conformance Admission
+
+`sdks/` core-family conformance is a Phase 1 release blocker after
+`sdks/conformance` exists and its runners are admitted. Before that admission,
+the SDK spec must not list fake runnable conformance commands, and release gate
+tables must not imply that cross-language conformance already exists.
+
+Admitted conformance must be language-neutral for shared semantics and
+language-specific only at the harness binding layer. It must cover Runtime and
+Realm together for each Phase 1 core language: TypeScript, Python, Go, and
+Rust.
+
+Until `sdks/conformance` is admitted, current `sdk/` gates remain the runnable
+TypeScript package gates. They do not prove `sdks/` core readiness and must not
+be used as a substitute for core-family conformance.

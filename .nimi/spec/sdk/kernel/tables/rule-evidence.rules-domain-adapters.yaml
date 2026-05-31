@@ -51,6 +51,7 @@ entries:
 - S-PKG-002
 - S-PKG-003
 - S-PKG-004
+- S-PKG-005
 rules:
 - rule_id: S-REALM-010
   evidence_refs:
@@ -199,4 +200,9 @@ rules:
   evidence_refs:
   - sdk_kernel_consistency
   note: Spec-first audit evidence admission is validated by audit-sweep plan validation and platform audit evidence root gate.
+  evidence_requirement: required
+- rule_id: S-PKG-005
+  evidence_refs:
+  - sdk_kernel_consistency
+  note: sdks/ family metadata is separate from current sdk/ package metadata and cannot introduce package or release truth before generator/conformance admission.
   evidence_requirement: required

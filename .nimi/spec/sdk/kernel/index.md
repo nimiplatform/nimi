@@ -1,6 +1,8 @@
 # SDK Kernel Contracts
 
-> Scope: `@nimiplatform/sdk` 跨域契约（Runtime / Realm / Scope / AI Provider / Testing Gates）。
+> Scope: current `@nimiplatform/sdk` TypeScript package contracts and future
+> `sdks/` core-family contracts for Runtime / Realm / Scope / AI Provider /
+> Testing Gates.
 
 ## 1. 目标
 
@@ -22,7 +24,7 @@
 
 | 文档 | Domain | 说明 |
 |---|---|---|
-| `surface-contract.md` | `S-SURFACE-*` | SDK 子路径、导出面、Runtime 方法投影分组、World Evolution Engine logical facade placement、selector-read stable placement、developer-experience layer、non-authoritative client orchestration、canonical commit boundary、integration adapter admission |
+| `surface-contract.md` | `S-SURFACE-*` | SDK 子路径、导出面、Runtime 方法投影分组、World Evolution Engine logical facade placement、selector-read stable placement、developer-experience layer、non-authoritative client orchestration、canonical commit boundary、integration adapter admission、`sdks/` core-family placement |
 | `transport-contract.md` | `S-TRANSPORT-*` | Runtime/Realm 传输模型、流行为边界 |
 | `error-projection.md` | `S-ERROR-*` | 错误投影、重试语义、合成码治理 |
 | `boundary-contract.md` | `S-BOUNDARY-*` | 跨包导入边界、禁止路径、developer ergonomics vs truth ownership、client orchestration promotion rule |
@@ -41,8 +43,8 @@
 | `realm-contract.md` | `S-REALM-*` | realm 子路径实例隔离、刷新策略、实时边界 |
 | `ai-provider-contract.md` | `S-AIP-*` | ai-provider 子路径适配、投影约束、external AI framework adapter boundary |
 | `scope-contract.md` | `S-SCOPE-*` | scope 子路径 catalog 与边界语义 |
-| `testing-gates-contract.md` | `S-GATE-*` | SDK 门禁层次、发布同级策略 |
-| `package-governance-contract.md` | `S-PKG-*` | SDK root package metadata (`S-PKG-001`), support docs (`S-PKG-002`), release gate alignment (`S-PKG-003`), and audit evidence admission (`S-PKG-004`) |
+| `testing-gates-contract.md` | `S-GATE-*` | SDK 门禁层次、发布同级策略、`sdks/` core-family conformance admission |
+| `package-governance-contract.md` | `S-PKG-*` | SDK root package metadata (`S-PKG-001`), support docs (`S-PKG-002`), release gate alignment (`S-PKG-003`), audit evidence admission (`S-PKG-004`), and `sdks/` family metadata boundary (`S-PKG-005`) |
 | `ai-config-surface-contract.md` | `S-AICONF-*` | SDK typed AI config / profile / snapshot surface, host-local persistence boundary, scheduling probe categories, and no-fallback rule |
 | `nimi-app-client-contract.md` | `S-APP-*` | SDK typed Nimi App client surface: list/get/install/update/uninstall/launch/status/subscribe/healthRepair logical operations, ordinary-visible filtering, mandatory `AIScopeRef` on launch, typed projection state aligned with `P-NAPP-008`, immutable release descriptor digest verification before install, app storage projection, non-owner rule for installers / source-selectors / marketplace truth, no-fallback rule, subscription scope limited to lifecycle events, and generated-app Runtime platform client auth helper `createNimiAppRuntimePlatformClient` with `local-first-party` / `third-party-nimi-app` / `dev-standalone` modes |
 | `nimi-permission-client-contract.md` | `S-PERM-*` | SDK typed permission client surface for Realm `R-PERM-*` grant lifecycle and Cognition `C-APMEM-*` access policy: list/get/request/revoke/subscribe/status logical operations, mandatory `AIScopeRef`, fail-closed typed denial states, no fallback knob, no private path, subscription limited to grant lifecycle events, closed `permission_scope_ref` shape |
@@ -75,3 +77,8 @@
 ## 8. Domain Activation Overview
 
 SDK active domains are `runtime`, `realm`, and `ai-provider`. `world` and `scope` remain defined SDK domains whose API surface grows only through kernel contracts and structured tables.
+
+The current `sdk/` tree remains the active TypeScript package for existing app
+consumers. Phase 1 cross-language core-family work targets `sdks/` under
+`S-SURFACE-019`; it does not move Desktop/Web imports and does not cut over the
+current TypeScript package.

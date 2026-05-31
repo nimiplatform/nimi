@@ -2,9 +2,9 @@
 
 > Owner Domain: `S-SURFACE-*`
 
-## S-SURFACE-001 SDK 子路径集合
+## S-SURFACE-001 Current TypeScript SDK Subpath Set
 
-公开 SDK 子路径固定为：
+Current `sdk/` TypeScript package public SDK subpaths are fixed to:
 
 - `@nimiplatform/sdk`
 - `@nimiplatform/sdk/runtime`
@@ -14,9 +14,19 @@
 - `@nimiplatform/sdk/scope`
 - `@nimiplatform/sdk/types`
 
-SDK 必须维持单一 package layout；公开子路径只允许在 `@nimiplatform/sdk` 包内投影，不得漂移为多 package 或多根布局。
+The current TypeScript package must maintain a single package layout; public
+subpaths may only be projected inside the `@nimiplatform/sdk` package and must
+not drift into multiple npm packages or multiple public roots.
 
-其中 `@nimiplatform/sdk` 根入口是 app 级组合面与第一方 docs/examples 的推荐入口；子路径继续作为显式 low-level escape hatch 或专用 domain 入口保留。
+This rule governs the current `sdk/` package consumed by Desktop/Web and other
+existing TypeScript consumers. It is not the repository layout authority for
+the Phase 1 cross-language core family under `sdks/` (`S-SURFACE-019`), and it
+must not be used to reject `sdks/typescript`, `sdks/python`, `sdks/go`,
+`sdks/rust`, `sdks/generators`, or `sdks/conformance`.
+
+The `@nimiplatform/sdk` root entrypoint is the recommended app-level
+composition surface for first-party docs/examples; subpaths remain explicit
+low-level escape hatches or dedicated domain entrypoints.
 
 执行命令：
 
@@ -24,7 +34,18 @@ SDK 必须维持单一 package layout；公开子路径只允许在 `@nimiplatfo
 
 ## S-SURFACE-002 Runtime SDK 对外方法投影
 
-Runtime SDK 对外方法投影按服务分组，方法集合必须与 `.nimi/spec/runtime/kernel/tables/rpc-methods.yaml` 对应服务对齐，采用 design 名称。服务完整列表与方法集合以 `tables/runtime-method-groups.yaml` 为唯一事实源（S-SURFACE-009），每个 group 独立追踪对齐状态与 phase。
+Current `sdk/` TypeScript app-facing Runtime facade projection groups methods
+by service. Method names must align with the corresponding service entries in
+`.nimi/spec/runtime/kernel/tables/rpc-methods.yaml` and use design names. For
+the current TypeScript facade only, the service list and projected method set
+are governed by `tables/runtime-method-groups.yaml` (S-SURFACE-009); each group
+tracks alignment status and phase independently.
+
+`tables/runtime-method-groups.yaml` is not the `sdks/` cross-language core
+method source. Cross-language core method truth comes from Runtime proto plus
+admitted generator/spec inputs under `S-SURFACE-019`, and generated Runtime
+bindings must not use the current TypeScript facade table as selective omission
+authority.
 
 app-facing `runtime.route.*` route projection surface 是例外的 host-typed logical surface，遵循 `runtime-route-contract.md`（`S-RUNTIME-074` ~ `S-RUNTIME-078`）。该例外覆盖 `listOptions / resolve / checkHealth / describe` 的 app-facing facade，但不得被误写成新增 daemon 顶层 RPC 投影，且不得把 SDK projection 升级为 catalog、readiness、capability 或 fallback policy authority。
 
@@ -117,10 +138,22 @@ Realm SDK 公开符号（类型名、service 名、公开方法名、property-en
 
 ## S-SURFACE-009 Runtime 方法投影表治理
 
-`tables/runtime-method-groups.yaml` 是 SDK 对外方法投影的结构化事实源，采用”显式维护 + 一致性校验”模式：
+`tables/runtime-method-groups.yaml` is the structured fact source for the
+current `sdk/` TypeScript app-facing Runtime facade projection only. It uses an
+explicit-maintenance plus consistency-check model:
 
-- 显式维护：表内只列当前 SDK 对外投影集合，不要求机械等于 runtime kernel 全量 proto 面。
-- 一致性校验：每个 group 必须声明对应 runtime service，且方法名必须在 `.nimi/spec/runtime/kernel/tables/rpc-methods.yaml` 中可解析；校验脚本负责阻断漂移。
+- explicit maintenance: the table lists only the current TypeScript SDK
+  app-facing projection set and is not required to mechanically equal the full
+  runtime kernel proto surface.
+- consistency check: every group must declare its corresponding runtime
+  service, and method names must be resolvable in
+  `.nimi/spec/runtime/kernel/tables/rpc-methods.yaml`; the check script blocks
+  drift.
+
+The table is not a cross-language core method source, not an omission list for
+generated Runtime bindings, and not a release waiver for any `sdks/` core
+language. `sdks/` generated Runtime bindings derive their core method truth
+from Runtime proto plus admitted generator/spec inputs under `S-SURFACE-019`.
 
 ## S-SURFACE-010 Realm Dynamic Envelope Allowlist
 
@@ -286,3 +319,45 @@ Adapters for Vercel AI SDK, LangChain, Agno, Python, or other ecosystems must:
 An adapter may provide migration convenience. It must not become an alternate
 OpenAI-compatible Runtime endpoint, a shadow agent runtime, or a parallel app
 permission / memory / session system.
+
+## S-SURFACE-019 SDKS Core Family Placement
+
+Phase 1 cross-language core SDK family work targets `sdks/`, not
+`sdk/typescript` and not the current `sdk/` package root.
+
+Required Phase 1 family roots:
+
+- `sdks/generators`
+- `sdks/conformance`
+- `sdks/typescript`
+- `sdks/python`
+- `sdks/go`
+- `sdks/rust`
+
+Core SDK means Runtime and Realm public interface coverage together for a
+language. A Runtime-only package, Realm-only package, partial method package,
+or derivative adapter is not core-ready.
+
+`sdks/generators` owns generated core facts for the family, including Runtime
+method IDs, method allowlists, unary/stream codec maps, request/response
+contract maps, Realm operation maps, Realm service registries, Realm model
+maps/property enums, reason-code tables, and core export manifests. These facts
+must be generated from admitted inputs such as Runtime proto, Realm OpenAPI,
+and SDK/Runtime/Realm spec tables; they must not be hand-copied from
+`sdk/src/**`.
+
+`sdks/conformance` owns language-neutral core conformance fixtures and expected
+protocol traces. Each language owns only its harness binding. A language is
+core-ready only when shared conformance passes for Runtime and Realm together.
+
+The current `sdk/` tree remains the active TypeScript implementation for
+existing Desktop/Web and non-core SDK refactor work during Phase 1. Phase 1
+must not switch Desktop imports, create forwarding packages, move the current
+TypeScript package to `sdk/typescript`, or claim compatibility through shims or
+fake success.
+
+Derivative surfaces are excluded from Phase 1 core readiness unless admitted
+by a later rule. Excluded surfaces include `@nimiplatform/sdk/ai-provider`,
+`@nimiplatform/sdk/world`, app clients, permission clients, AI config helpers,
+runtime route helpers, local environment helpers, external framework adapters,
+and other developer-experience surfaces.

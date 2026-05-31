@@ -42,10 +42,10 @@ Core SDK means full Runtime and full Realm public interface coverage for a
 language. A Runtime-only package, Realm-only package, or partial method package
 is not a core SDK release.
 
-Final repository layout:
+Phase 1 core-family repository layout:
 
 ```text
-sdk/
+sdks/
   generators/
   conformance/
   typescript/
@@ -54,14 +54,15 @@ sdk/
   rust/
 ```
 
-The current `sdk/` TypeScript package is pre-split implementation state. The
-target cutover moves it to `sdk/typescript` without forwarding packages,
-compatibility shims, or duplicate public roots.
+The current `sdk/` TypeScript package remains active for existing Desktop/Web
+consumers and non-core SDK refactor work during Phase 1. Phase 1 does not move
+it to `sdk/typescript`, does not switch Desktop imports, and does not create
+forwarding packages, compatibility shims, or duplicate public roots.
 
 Current TypeScript constraints, including the single npm package layout and
 `@nimiplatform/sdk/*` subpaths, apply only to the pre-split TypeScript package.
-They must not be used to reject `sdk/python`, `sdk/go`, `sdk/rust`,
-`sdk/generators`, or `sdk/conformance`.
+They must not be used to reject `sdks/typescript`, `sdks/python`, `sdks/go`,
+`sdks/rust`, `sdks/generators`, or `sdks/conformance`.
 
 `tables/runtime-method-groups.yaml` is the TypeScript app-facing Runtime facade
 grouping table. It is not the cross-language core method source and must not be
@@ -139,9 +140,10 @@ cross-app policy belongs upstream of SDK.
 Core tests are language-neutral.
 
 The conformance model is a required release blocker, not an already implemented
-runner. Do not add fake runnable gate commands before `sdk/conformance` exists.
+runner. Do not add fake runnable gate commands before `sdks/conformance`
+exists.
 
-`sdk/conformance` owns:
+`sdks/conformance` owns:
 
 - fixture inputs
 - expected protocol traces
@@ -168,22 +170,25 @@ Wave 0: Authority hardcut.
 
 Wave 1: Generator and conformance foundation.
 
-- Create `sdk/generators`.
-- Create `sdk/conformance`.
+- Create `sdks/generators`.
+- Create `sdks/conformance`.
 - Admit concrete conformance runners before adding them to runnable gate tables.
 - Generate Runtime method IDs, method allowlists, codec maps, contract maps,
   Realm operation maps, Realm registries, error tables, and export manifests.
 - Add shared conformance fixtures before admitting non-TypeScript core packages.
 
-Wave 2: TypeScript split.
+Wave 2: TypeScript core-family skeleton.
 
-- Move the current TypeScript SDK to `sdk/typescript`.
+- Create the `sdks/typescript` core-family skeleton from generated Runtime and
+  Realm core facts.
 - Delete hand-maintained mechanical core maps after generated replacements
-  exist.
-- Keep TypeScript DX and Vercel AI adapter as derivative surfaces.
-- Do not leave root forwarding packages.
-- Treat `@nimiplatform/sdk/ai-provider` and `sdk/world` as TypeScript
-  derivative surfaces, not cross-language core requirements.
+  exist in the core family.
+- Keep the current `sdk/` package active for Desktop/Web consumers and ongoing
+  derivative TypeScript surfaces.
+- Keep TypeScript DX, Vercel AI adapter, `@nimiplatform/sdk/ai-provider`, and
+  `@nimiplatform/sdk/world` as derivative surfaces outside Phase 1 core
+  readiness.
+- Do not create forwarding packages or switch Desktop imports.
 
 Wave 3: Python core.
 

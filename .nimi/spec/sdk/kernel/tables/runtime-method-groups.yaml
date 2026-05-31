@@ -2,6 +2,12 @@ version: 1
 table_family: product_catalog
 owner: sdk
 catalog_id: sdk_runtime_method_groups
+scope_note: >
+  Current sdk/ TypeScript app-facing Runtime facade projection only. This table
+  is not a cross-language core method source and must not be used as selective
+  omission authority for sdks/ generated Runtime bindings; sdks/ core method
+  truth comes from Runtime proto plus admitted generator/spec inputs under
+  S-SURFACE-019.
 entries:
   - AIService
   - ConnectorService

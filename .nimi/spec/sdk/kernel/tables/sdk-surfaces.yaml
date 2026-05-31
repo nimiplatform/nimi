@@ -2,6 +2,9 @@ version: 1
 table_family: protocol_surface
 owner: sdk
 protocol_id: sdk_sdk_surfaces
+# Current TypeScript package public subpaths only. The Phase 1 cross-language
+# core family under sdks/ is governed by S-SURFACE-019 and is not represented as
+# npm package_subpath entries in this table.
 surfaces:
   - path: .nimi/spec/sdk/index.md
     package_subpath: "@nimiplatform/sdk"

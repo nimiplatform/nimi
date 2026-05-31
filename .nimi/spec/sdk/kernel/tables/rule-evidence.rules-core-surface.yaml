@@ -64,6 +64,7 @@ entries:
 - S-GATE-080
 - S-GATE-090
 - S-GATE-091
+- S-GATE-092
 - S-SCOPE-001
 - S-SCOPE-002
 - S-SCOPE-003
@@ -87,6 +88,7 @@ entries:
 - S-SURFACE-016
 - S-SURFACE-017
 - S-SURFACE-018
+- S-SURFACE-019
 - S-TRANSPORT-001
 - S-TRANSPORT-002
 - S-TRANSPORT-003
@@ -343,6 +345,11 @@ rules:
   - sdk_kernel_consistency
   note: 'Meta-rule: docs drift gate; pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check enforces'
   evidence_requirement: required
+- rule_id: S-GATE-092
+  evidence_refs:
+  - sdk_kernel_consistency
+  note: 'Meta-rule: sdks/ conformance is future admitted gate authority; no fake runnable command may be listed before sdks/conformance exists'
+  evidence_requirement: required
 - rule_id: S-SCOPE-001
   evidence_refs:
   - sdk_behavioral_test
@@ -477,6 +484,11 @@ rules:
   evidence_refs:
   - sdk_kernel_consistency
   note: External framework adapters may ease migration but must not create OpenAI-compatible runtime endpoints, shadow agent runtimes, or parallel permission/memory/session systems
+  evidence_requirement: required
+- rule_id: S-SURFACE-019
+  evidence_refs:
+  - sdk_kernel_consistency
+  note: Phase 1 cross-language core family targets sdks/ while current sdk/ remains the active TypeScript package for existing app consumers
   evidence_requirement: required
 - rule_id: S-TRANSPORT-001
   evidence_refs:
