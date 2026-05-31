@@ -1,12 +1,19 @@
 import type { LocalRuntimeCatalogRecommendation } from '@runtime/local-runtime';
 import {
-  normalizeLocalProviderAdapterId,
-  type LocalProviderAdapterId,
   LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS,
-  isLocalRuntimeRunnableAssetKindId,
   normalizeLocalRuntimeRunnableAssetKindId,
   type LocalRuntimeRunnableAssetKindId,
   createNimiClientId,
+  RUNTIME_CONFIG_DEFAULT_LOCAL_ENDPOINT,
+  normalizeRuntimeConfigEndpoint,
+  normalizeRuntimeConfigLocalModelProjection,
+  normalizeRuntimeConfigLocalNodeMatrixEntryProjection,
+  normalizeRuntimeConfigStringList,
+  type LocalProviderAdapterId,
+  type RuntimeConfigLocalModelProjection,
+  type RuntimeConfigLocalNodeCapability,
+  type RuntimeConfigLocalNodeMatrixEntryProjection,
+  type RuntimeConfigLocalProviderHints,
 } from '@nimiplatform/sdk/runtime';
 
 type JsonObject = Record<string, unknown>;
@@ -41,52 +48,17 @@ export type ApiConnectorScopeV11 = 'user' | 'machine-global' | 'runtime-system';
 export type ApiVendor = string;
 export type ApiConnectorAuthModeV11 = 'api_key' | 'oauth_managed';
 
-export type LocalModelOptionV11 = {
-  localModelId: string;
-  engine: string;
-  model: string;
-  endpoint: string;
-  capabilities: CapabilityV11[];
-  status: 'installed' | 'active' | 'unhealthy' | 'removed';
-  integrityMode?: 'verified' | 'local_unverified';
-  hash?: string;
-  installedAt?: string;
-  updatedAt?: string;
+export type LocalModelOptionV11 = RuntimeConfigLocalModelProjection & {
   recommendation?: LocalRuntimeCatalogRecommendation;
 };
 
-export type NodeCapabilityV11 = CapabilityV11 | 'rerank' | 'cv' | 'diarize';
+export type NodeCapabilityV11 = RuntimeConfigLocalNodeCapability;
 
-export type LocalProviderHintsV11 = {
-  llama?: {
-    backend?: string;
-    preferredAdapter?: LocalProviderAdapterId | string;
-    whisperVariant?: string;
-  };
-  media?: {
-    preferredAdapter?: LocalProviderAdapterId | string;
-    driver?: string;
-    family?: string;
-  };
-  speech?: {
-    preferredAdapter?: LocalProviderAdapterId | string;
-    backend?: string;
-    family?: string;
-  };
-  extra?: JsonObject;
-} & JsonObject;
+export type LocalProviderHintsV11 = RuntimeConfigLocalProviderHints & JsonObject;
 
-export type LocalNodeMatrixEntryV11 = {
-  nodeId: string;
+export type LocalNodeMatrixEntryV11 = RuntimeConfigLocalNodeMatrixEntryProjection & {
   capability: NodeCapabilityV11;
-  serviceId: string;
-  provider: string;
   adapter?: LocalProviderAdapterId;
-  backend?: string;
-  backendSource?: string;
-  available: boolean;
-  reasonCode?: string;
-  policyGate?: string;
   providerHints?: LocalProviderHintsV11;
 };
 
@@ -131,7 +103,7 @@ export type RuntimeConfigStateV11 = {
   selectedConnectorId: string;
 };
 
-export const DEFAULT_LOCAL_ENDPOINT_V11 = '';
+export const DEFAULT_LOCAL_ENDPOINT_V11 = RUNTIME_CONFIG_DEFAULT_LOCAL_ENDPOINT;
 export const DEFAULT_CONNECTOR_ENDPOINT_V11 = '';
 
 function humanizeVendorId(value: string): string {
@@ -204,7 +176,7 @@ export function statusClassV11(status: ProviderStatusV11): string {
 }
 
 export function dedupeStringsV11(values: string[]): string[] {
-  return Array.from(new Set(values.map((item) => String(item || '').trim()).filter(Boolean)));
+  return normalizeRuntimeConfigStringList(values);
 }
 
 export function getVendorLabelV11(vendor: ApiVendor): string {
@@ -212,7 +184,7 @@ export function getVendorLabelV11(vendor: ApiVendor): string {
 }
 
 export function normalizeEndpointV11(value: string, fallback: string): string {
-  return (String(value || '').trim() || fallback).replace(/\/+$/, '');
+  return normalizeRuntimeConfigEndpoint(value, fallback);
 }
 
 export function randomIdV11(prefix: string): string {
@@ -281,57 +253,11 @@ export function normalizeConnectorV11(raw: Partial<ApiConnector>): ApiConnector 
 }
 
 export function normalizeLocalModelV11(raw: Partial<LocalModelOptionV11>): LocalModelOptionV11 {
-  const localModelId = String(raw.localModelId || raw.model || randomIdV11('local-model')).trim();
-  const capabilities = (Array.isArray(raw.capabilities) ? raw.capabilities : [])
-    .map((value) => String(value || '').trim())
-    .filter(isLocalRuntimeRunnableAssetKindId);
-  const engine = String(raw.engine || '').trim();
-  return {
-    localModelId,
-    engine,
-    model: String(raw.model || localModelId).trim() || localModelId,
-    endpoint: normalizeEndpointV11(String(raw.endpoint || DEFAULT_LOCAL_ENDPOINT_V11), DEFAULT_LOCAL_ENDPOINT_V11),
-    capabilities: capabilities.length > 0 ? capabilities : ['chat'],
-    status: raw.status === 'active' || raw.status === 'unhealthy' || raw.status === 'removed' ? raw.status : 'installed',
-    integrityMode: raw.integrityMode === 'local_unverified' ? 'local_unverified' : 'verified',
-    hash: String(raw.hash || '').trim() || undefined,
-    installedAt: String(raw.installedAt || '').trim() || undefined,
-    updatedAt: String(raw.updatedAt || '').trim() || undefined,
-    recommendation: raw.recommendation,
-  };
+  return normalizeRuntimeConfigLocalModelProjection(raw) as LocalModelOptionV11;
 }
 
 export function normalizeLocalNodeMatrixEntryV11(
   raw: Partial<LocalNodeMatrixEntryV11>,
 ): LocalNodeMatrixEntryV11 {
-  const capability = String(raw.capability || '').trim().toLowerCase();
-  const normalizedCapability: NodeCapabilityV11 = (
-    isLocalRuntimeRunnableAssetKindId(capability)
-    || capability === 'rerank'
-    || capability === 'cv'
-    || capability === 'diarize'
-  ) ? capability : 'chat';
-  const normalizedProvider = String(raw.provider || '').trim().toLowerCase();
-  const adapterRaw = String(raw.adapter || '').trim().toLowerCase();
-  const normalizedAdapter = normalizeLocalProviderAdapterId(adapterRaw);
-  const hints = (
-    raw.providerHints
-    && typeof raw.providerHints === 'object'
-    && !Array.isArray(raw.providerHints)
-  )
-    ? raw.providerHints as LocalProviderHintsV11
-    : undefined;
-  return {
-    nodeId: String(raw.nodeId || '').trim() || randomIdV11('node'),
-    capability: normalizedCapability,
-    serviceId: String(raw.serviceId || '').trim(),
-    provider: normalizedProvider,
-    adapter: normalizedAdapter,
-    backend: String(raw.backend || '').trim() || undefined,
-    backendSource: String(raw.backendSource || '').trim() || undefined,
-    available: Boolean(raw.available),
-    reasonCode: String(raw.reasonCode || '').trim() || undefined,
-    policyGate: String(raw.policyGate || '').trim() || undefined,
-    providerHints: hints,
-  };
+  return normalizeRuntimeConfigLocalNodeMatrixEntryProjection(raw) as LocalNodeMatrixEntryV11;
 }

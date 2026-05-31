@@ -1,6 +1,5 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
-import { asNimiError } from '@nimiplatform/sdk/runtime';
-import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import { asNimiError, createNimiClientId } from '@nimiplatform/sdk/runtime';
 import type {
   AgentRuntimeChatTurnRequest,
   AgentRuntimeChatTurnStreamPart,
@@ -22,7 +21,7 @@ export async function streamChatAgentRuntimeAgentTurn(
   request: AgentRuntimeChatTurnRequest,
 ): Promise<{ stream: AsyncIterable<AgentRuntimeChatTurnStreamPart> }> {
   const runtime = getPlatformClient().runtime;
-  const requestId = randomIdV11('runtime-agent-turn-request');
+  const requestId = createNimiClientId('runtime-agent-turn-request');
   safeLogRuntimeAgentEvent({
     level: 'info',
     area: 'agent-chat-runtime',

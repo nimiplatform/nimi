@@ -39,6 +39,7 @@ export * from './runtime-route-client-loader.js';
 export * from './runtime-route-options.js';
 export * from './runtime-route-types.js';
 export * from './runtime-route-provider-health.js';
+export * from './runtime-config-local-projection.js';
 export {
   Modal,
   ScenarioType,

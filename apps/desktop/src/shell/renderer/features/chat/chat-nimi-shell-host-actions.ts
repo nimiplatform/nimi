@@ -13,7 +13,7 @@ import {
   type ChatAiThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import { chatAiStoreClient } from '@renderer/bridge/runtime-bridge/chat-ai-store';
-import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import { createNimiClientId } from '@nimiplatform/sdk/runtime';
 import { toChatAiRuntimeError } from './chat-nimi-runtime';
 import {
   AI_NEW_CONVERSATION_TITLE,
@@ -173,7 +173,7 @@ export function useAiConversationHostActions(
     }
     const timestampMs = Date.now();
     const thread: ChatAiThreadRecord = {
-      id: randomIdV11('ai-thread'),
+      id: createNimiClientId('ai-thread'),
       title: AI_NEW_CONVERSATION_TITLE,
       createdAtMs: timestampMs,
       updatedAtMs: timestampMs,
@@ -221,7 +221,7 @@ export function useAiConversationHostActions(
 
     if (!effectiveThreadId || !effectiveThreadRecord) {
       const localThread: ChatAiThreadRecord = {
-        id: randomIdV11('ai-thread'),
+        id: createNimiClientId('ai-thread'),
         title: AI_NEW_CONVERSATION_TITLE,
         createdAtMs,
         updatedAtMs: createdAtMs,
@@ -244,8 +244,8 @@ export function useAiConversationHostActions(
         ...effectiveThreadRecord,
         createdAtMs,
       };
-    const userMessageId = randomIdV11('ai-message-user');
-    const assistantMessageId = randomIdV11('ai-message-assistant');
+    const userMessageId = createNimiClientId('ai-message-user');
+    const assistantMessageId = createNimiClientId('ai-message-assistant');
     const userMessage: ChatAiMessageRecord = {
       id: userMessageId,
       threadId: effectiveThreadId,

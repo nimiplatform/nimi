@@ -3,10 +3,6 @@ import type {
   ConversationThreadSummary,
 } from '@nimiplatform/kit/features/chat/headless';
 import type {
-  LocalModelOptionV11,
-  RuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/runtime-config-state-types';
-import type {
   ChatAiMessageContent,
   ChatAiMessageError,
   ChatAiMessageRecord,
@@ -22,24 +18,6 @@ function toIsoString(timestampMs: number): string {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function hasChatCapability(capabilities: readonly string[]): boolean {
-  return capabilities.includes('chat');
-}
-
-function compareLocalModels(left: LocalModelOptionV11, right: LocalModelOptionV11): number {
-  const rank = (status: LocalModelOptionV11['status']) => {
-    if (status === 'active') return 0;
-    if (status === 'installed') return 1;
-    if (status === 'unhealthy') return 2;
-    return 3;
-  };
-  const rankDelta = rank(left.status) - rank(right.status);
-  if (rankDelta !== 0) {
-    return rankDelta;
-  }
-  return left.model.localeCompare(right.model);
 }
 
 export function hasAiConversationThread(
@@ -65,18 +43,6 @@ export function resolveAiConversationActiveThreadId(input: {
     return normalizeText(input.lastSelectedThreadId);
   }
   return null;
-}
-
-export function pickPreferredChatLocalModel(
-  state: RuntimeConfigStateV11 | null,
-): LocalModelOptionV11 | null {
-  if (!state) {
-    return null;
-  }
-  const models = state.local.models
-    .filter((model) => model.status !== 'removed' && hasChatCapability(model.capabilities))
-    .sort(compareLocalModels);
-  return models[0] || null;
 }
 
 export function toConversationThreadSummary(

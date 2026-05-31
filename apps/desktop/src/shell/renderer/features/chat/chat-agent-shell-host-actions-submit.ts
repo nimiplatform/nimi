@@ -3,7 +3,7 @@ import type {
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
-import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import { createNimiClientId } from '@nimiplatform/sdk/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
@@ -163,8 +163,8 @@ export async function submitAgentConversationTurn(input: {
       }
     }
 
-    const userTurnId = randomIdV11('agent-turn-user');
-    const assistantTurnId = randomIdV11('agent-turn');
+    const userTurnId = createNimiClientId('agent-turn-user');
+    const assistantTurnId = createNimiClientId('agent-turn');
     const assistantMessageId = `${assistantTurnId}:message:0`;
     const createdAtMs = Date.now();
     const optimisticPreviewAttachments = input.payload.attachments
