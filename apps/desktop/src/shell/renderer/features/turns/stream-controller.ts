@@ -1,5 +1,5 @@
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 
 export const STREAM_FIRST_PACKET_TIMEOUT_MS = 60_000;
 export const STREAM_IDLE_TIMEOUT_MS = 30_000;

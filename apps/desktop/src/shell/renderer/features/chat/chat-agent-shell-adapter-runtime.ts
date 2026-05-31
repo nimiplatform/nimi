@@ -9,7 +9,7 @@ import {
 } from 'react';
 import type { TFunction } from 'i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { confirmDialog } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';

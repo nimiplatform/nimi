@@ -203,6 +203,16 @@ test('tester run history is the per-capability evidence surface (no standalone E
   assert.doesNotMatch(workbench, /SectionEvidence|SectionSettings|SectionAppLab/);
 });
 
+test('tester capability runs consume Kit renderer telemetry', () => {
+  const workbench = read('src/tester/tester-workbench.tsx');
+
+  assert.match(workbench, /from '@nimiplatform\/kit\/telemetry'/);
+  assert.match(workbench, /createRendererFlowId\('tester-capability-run'\)/);
+  assert.match(workbench, /logRendererEvent\(/);
+  assert.match(workbench, /action:tester-capability-run:recorded/);
+  assert.doesNotMatch(workbench, /runtime-bridge\/logging|@renderer\/.*telemetry/);
+});
+
 test('tester artifact history persistence is real and fail-closed', () => {
   const imageHistory = read('src/tester/tester-image-history.ts');
   const workbench = read('src/tester/tester-workbench.tsx');

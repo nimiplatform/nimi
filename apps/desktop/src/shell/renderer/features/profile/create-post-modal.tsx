@@ -5,7 +5,7 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { uploadRealmResourceFileWithRealm } from '@nimiplatform/sdk/realm';
 import { OverlayShell } from '@nimiplatform/kit/ui';
 import { realmWorldData } from '@renderer/features/world/data/realm-world-data';
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   ACCEPTED_IMAGE_TYPES,

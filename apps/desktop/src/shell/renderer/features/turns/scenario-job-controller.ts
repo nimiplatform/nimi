@@ -1,4 +1,4 @@
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 
 // D-STRM-010 polling recovery constants (spec: 2s interval, 30 retries, 60s total)
 export const JOB_POLL_INTERVAL_MS = 2_000;

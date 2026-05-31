@@ -7,7 +7,7 @@ import {
   subscribeStoredPerformancePreferences,
   type PerformancePreferences,
 } from '@renderer/features/settings/settings-storage';
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 
 const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const IDLE_CHECK_TIMEOUT_MS = 2_000;

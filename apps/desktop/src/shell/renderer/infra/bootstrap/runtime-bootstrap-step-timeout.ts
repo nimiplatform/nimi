@@ -1,4 +1,4 @@
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { safeErrorMessage } from './runtime-bootstrap-utils';
 
 export const NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS = 5_000;

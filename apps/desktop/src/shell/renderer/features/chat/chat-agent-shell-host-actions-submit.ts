@@ -5,7 +5,7 @@ import type {
 } from '@renderer/bridge/runtime-bridge/types';
 import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   peekDesktopAISchedulingForEvidence,
   recordDesktopAISnapshot,

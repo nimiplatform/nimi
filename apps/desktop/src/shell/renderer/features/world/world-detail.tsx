@@ -6,7 +6,7 @@ import { realmAgentCreateData } from './data/realm-agent-create-data';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollArea } from '@nimiplatform/kit/ui';
-import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { i18n } from '@renderer/i18n';
 import {

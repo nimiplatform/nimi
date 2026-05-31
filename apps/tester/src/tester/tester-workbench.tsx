@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import './tester-workbench.css';
+import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
 import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
 import { appendTesterRunHistory, loadTesterRunHistory, type TesterRunHistory } from './tester-history.js';
@@ -34,6 +35,10 @@ function makeRecordId() {
 function hasTraceMetadata(result: TesterCapabilityRunResult): boolean {
   if (!result.ok || !result.trace) return false;
   return Boolean(result.trace.traceId || result.trace.modelResolved || result.trace.routeDecision);
+}
+
+function getResultTraceId(result: TesterCapabilityRunResult): string | undefined {
+  return result.ok ? result.trace?.traceId : undefined;
 }
 
 export function TesterWorkbench(_props: TesterWorkbenchProps) {
@@ -103,6 +108,8 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
     async (result: TesterCapabilityRunResult, prompt: string) => {
       setLastResult(result);
       const runId = makeRecordId();
+      const flowId = createRendererFlowId('tester-capability-run');
+      const traceId = getResultTraceId(result);
       const createdAt = new Date().toISOString();
       try {
         const next = await appendTesterRunHistory({
@@ -134,10 +141,36 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
             jobState: result.output.jobState,
             message: result.message,
             traceState: hasTraceMetadata(result) ? 'captured' : 'not-captured',
-            traceId: result.trace?.traceId,
+            traceId,
           });
         }
+        logRendererEvent({
+          level: result.ok ? 'info' : 'warn',
+          area: 'tester.capability-run',
+          message: result.ok ? 'action:tester-capability-run:recorded' : 'action:tester-capability-run:unavailable',
+          flowId,
+          traceId,
+          details: {
+            runId,
+            capabilityId: result.capabilityId,
+            status: result.ok ? 'ready' : 'unavailable',
+            artifactPersisted: shouldPersistTesterArtifactRecord(result),
+            traceState: hasTraceMetadata(result) ? 'captured' : 'not-captured',
+          },
+        });
       } catch (error) {
+        logRendererEvent({
+          level: 'error',
+          area: 'tester.capability-run',
+          message: 'action:tester-capability-run:persistence-failed',
+          flowId,
+          traceId,
+          details: {
+            runId,
+            capabilityId: result.capabilityId,
+            error: error instanceof Error ? error.message : String(error || 'History persistence failed.'),
+          },
+        });
         setHistoryError(error instanceof Error ? error.message : String(error || 'History persistence failed.'));
       }
       if (preferenceState.preferences.evidenceCaptureMode === 'after-run') {

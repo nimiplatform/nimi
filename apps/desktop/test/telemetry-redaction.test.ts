@@ -2,16 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  getRendererDebugLogsForTest as getShellTelemetryDebugLogsForTest,
+  getRendererDebugLogsForTest,
   resetRendererDebugBufferForTest,
   sanitizeLogDetails,
 } from '../../../kit/telemetry/src/telemetry/debug-buffer.js';
-import {
-  getRendererDebugLogsForTest,
-  logRendererEvent,
-  resetRendererTelemetryStateForTest,
-} from '../src/shell/renderer/bridge/runtime-bridge/logging';
-import { logRendererEvent as logInfraRendererEvent } from '../src/shell/renderer/infra/telemetry/renderer-log';
+import { resetRendererEmitStateForTest } from '../../../kit/telemetry/src/telemetry/emit.js';
+import { resetRendererSessionTraceIdForTest } from '../../../kit/telemetry/src/telemetry/session-trace.js';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 
 type StorageLike = {
   getItem: (key: string) => string | null;
@@ -55,6 +52,12 @@ function installRendererGlobals(): () => void {
       configurable: true,
     });
   };
+}
+
+function resetRendererTelemetryStateForTest(): void {
+  resetRendererEmitStateForTest();
+  resetRendererDebugBufferForTest();
+  resetRendererSessionTraceIdForTest();
 }
 
 test('shell telemetry sanitizeLogDetails recursively redacts sensitive keys', () => {
@@ -114,7 +117,7 @@ test('desktop renderer debug logs redact sensitive payload details', () => {
     };
     assert.equal(record.details?.authorization, '[REDACTED]');
     assert.equal(record.details?.nested?.cookie, '[REDACTED]');
-    assert.equal(getShellTelemetryDebugLogsForTest().length, 0);
+    assert.equal(getRendererDebugLogsForTest().length, 1);
   } finally {
     resetRendererTelemetryStateForTest();
     resetRendererDebugBufferForTest();
@@ -126,7 +129,7 @@ test('renderer telemetry wrapper forwards upstream traceId as top-level payload 
   const restoreGlobals = installRendererGlobals();
   resetRendererTelemetryStateForTest();
   try {
-    logInfraRendererEvent({
+    logRendererEvent({
       area: 'runtime',
       message: 'action:trace-preserve',
       traceId: 'trace-upstream-001',

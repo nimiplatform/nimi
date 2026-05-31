@@ -5,9 +5,13 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import { invoke } from '../src/shell/renderer/bridge/runtime-bridge/invoke.js';
 import {
   getRendererDebugLogsForTest,
-  resetRendererTelemetryStateForTest,
-} from '../src/shell/renderer/bridge/runtime-bridge/logging.js';
-import { createRendererFlowId } from '../src/shell/renderer/infra/telemetry/renderer-log.js';
+  resetRendererDebugBufferForTest,
+} from '../../../kit/telemetry/src/telemetry/debug-buffer.js';
+import { resetRendererEmitStateForTest } from '../../../kit/telemetry/src/telemetry/emit.js';
+import {
+  createRendererFlowId,
+  resetRendererSessionTraceIdForTest,
+} from '../../../kit/telemetry/src/telemetry/session-trace.js';
 import { emitRuntimeLog, setRuntimeLogger } from '../src/runtime/telemetry/logger.js';
 
 type TauriInvoke = (command: string, payload?: unknown) => Promise<unknown>;
@@ -45,7 +49,9 @@ function clearTelemetryTestState(): void {
   const globalRecord = globalThis as unknown as Record<string, unknown>;
   const windowRecord = globalThis.window as unknown as Record<string, unknown>;
   setRuntimeLogger(null);
-  resetRendererTelemetryStateForTest();
+  resetRendererDebugBufferForTest();
+  resetRendererEmitStateForTest();
+  resetRendererSessionTraceIdForTest();
   (globalThis.sessionStorage as { clear?: () => void }).clear?.();
   delete globalRecord.__NIMI_RENDERER_ENV__;
   delete globalRecord.__NIMI_TAURI_TEST__;
@@ -148,13 +154,7 @@ test('D-TEL-004: createRendererFlowId uses the real exported formatter and yield
   const ids = Array.from({ length: 20 }, () => createRendererFlowId('uniq'));
   const unique = new Set(ids);
 
-  const parts = flowId.split('-');
-  const randomPart = parts[parts.length - 1];
-  const timestampPart = parts[parts.length - 2];
-
-  assert.ok(parts.length >= 4, `expected prefixed flow ID, got ${flowId}`);
-  assert.match(randomPart || '', /^[0-9a-z]+$/, 'random segment must be base36');
-  assert.match(timestampPart || '', /^[0-9a-z]+$/, 'timestamp segment must be base36');
+  assert.match(flowId, /^test-flow-[0-9a-f]+$/, `expected secure prefixed flow ID, got ${flowId}`);
   assert.equal(unique.size, ids.length, 'flow IDs must be unique across repeated calls');
 });
 

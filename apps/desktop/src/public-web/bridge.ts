@@ -1,7 +1,7 @@
 // Desktop public-for-web boundary: bridge types and functions.
 // Web adapters import from here instead of reaching into desktop bridge internals.
 
-export { logRendererEvent, toRendererLogMessage } from '../shell/renderer/bridge/runtime-bridge/logging';
+export { logRendererEvent, toRendererLogMessage } from '@nimiplatform/kit/telemetry';
 export { completeMenuBarQuit, syncMenuBarRuntimeHealth } from '../shell/renderer/bridge/runtime-bridge/menu-bar';
 export { proxyHttp } from '../shell/renderer/bridge/runtime-bridge/http';
 export { getSystemResourceSnapshot } from '../shell/renderer/bridge/runtime-bridge/system-resources';

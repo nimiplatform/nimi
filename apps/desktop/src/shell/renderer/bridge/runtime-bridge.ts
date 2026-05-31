@@ -1,5 +1,5 @@
 import { hasTauriInvoke } from './runtime-bridge/env';
-import { logRendererEvent, toRendererLogMessage } from './runtime-bridge/logging';
+import { logRendererEvent, toRendererLogMessage } from '@nimiplatform/kit/telemetry';
 import {
   desktopUpdateCheck,
   desktopUpdateDownload,

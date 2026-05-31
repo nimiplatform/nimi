@@ -6,7 +6,7 @@ import {
   writeDesktopMacosSmokeReport,
 } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import type { DesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/types';
-import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   type DesktopMacosSmokeFailureReportPayload,
   SMOKE_BOOTSTRAP_TIMEOUT_MS,

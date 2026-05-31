@@ -52,7 +52,7 @@ import { useAgentConversationEffects } from './chat-agent-shell-effects';
 import { useAgentConversationCapabilityEffects } from './chat-agent-shell-capability-effects';
 import { useSchedulingFeasibility } from './chat-shared-execution-scheduling-guard';
 import { useAgentConversationHostActions } from './chat-agent-shell-host-actions';
-import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { clearPendingAttachments } from '../turns/turn-input-attachments';
 import { ChatAgentCognitionPanel } from './chat-agent-cognition-panel';

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { realmExploreData } from './data/realm-explore-data';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { ProfileDetailModal, type ProfileDetailSeed } from '@renderer/features/relationship/profile-detail-modal.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';

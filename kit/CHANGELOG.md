@@ -7,6 +7,19 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 with the pre-1.0 discipline documented in `kit/AGENTS.md` §Semver
 Discipline.
 
+## [Unreleased]
+
+### Added
+
+- Exported `emitRendererLog` from `@nimiplatform/kit/telemetry` so renderer
+  bridge code can use the shared telemetry normalizer directly.
+
+### Fixed
+
+- Renderer telemetry now forwards through the installed Nimi shell runtime
+  bridge/test hook when available, without importing Tauri bridge code from
+  `kit/telemetry`.
+
 ## [0.1.3] - 2026-05-27
 
 ### Changed

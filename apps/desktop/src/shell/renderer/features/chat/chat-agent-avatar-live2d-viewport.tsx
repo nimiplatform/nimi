@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { AvatarLive2dViewportComponentProps } from '@nimiplatform/kit/features/avatar/live2d';
 import { cn } from '@nimiplatform/kit/ui';
-import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createOfficialLive2dCubismModel } from './chat-agent-avatar-live2d-cubism-runtime';
 import type { ChatAgentAvatarLive2dFramingIntent } from './chat-agent-avatar-live2d-framing';
 import {

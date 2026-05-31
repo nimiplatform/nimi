@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
 import { getPlatformClient } from '@nimiplatform/sdk';
-import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type {
   AgentLocalThreadBundle,
   AgentLocalThreadSummary,

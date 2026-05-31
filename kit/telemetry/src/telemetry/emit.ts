@@ -2,6 +2,7 @@ import {
   hasTauriInvoke,
   RENDERER_DEBUG_ENABLED,
   isRendererDebugEnabledForCurrentEnv,
+  resolveRendererTelemetryInvoke,
   shouldForwardRendererLogLevel,
 } from './env.js';
 import { persistRendererLogForDebug, sanitizeLogDetails } from './debug-buffer.js';
@@ -104,8 +105,8 @@ export async function emitRendererLog(payload: RendererLogPayload): Promise<void
     return;
   }
 
-  const invokeFn = window.__TAURI__?.core?.invoke;
-  if (typeof invokeFn !== 'function') {
+  const invokeFn = resolveRendererTelemetryInvoke();
+  if (!invokeFn) {
     return;
   }
 

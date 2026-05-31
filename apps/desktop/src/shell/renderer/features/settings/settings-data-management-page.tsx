@@ -7,7 +7,7 @@ import { queryClient } from '@renderer/infra/query-client/query-client';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
 import { desktopBridge } from '@renderer/bridge';
 import type { DesktopStorageDirs } from '@renderer/bridge';
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   Button,
   FormFeedback,

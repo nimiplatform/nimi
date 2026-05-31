@@ -1,6 +1,6 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 
 export type RuntimeAccountProjection = {
   accountId?: string;

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { shouldForwardRendererLogLevel } from '../src/shell/renderer/bridge/runtime-bridge/env.js';
+import { shouldForwardRendererLogLevel } from '../../../kit/telemetry/src/telemetry/env.js';
 
 test('renderer log forwarding keeps warn/error by default', () => {
   assert.equal(shouldForwardRendererLogLevel('warn'), true);

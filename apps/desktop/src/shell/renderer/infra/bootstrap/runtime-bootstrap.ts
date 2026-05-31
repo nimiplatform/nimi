@@ -10,7 +10,7 @@ import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { desktopBridge, toRendererLogMessage } from '@renderer/bridge';
 import { createProxyFetch } from '@renderer/infra/bridge/proxy-fetch';
 import { queryClient } from '@renderer/infra/query-client/query-client';
-import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { initializeBuiltInChatScopesFromProductControl } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { getOfflineCoordinator } from '@renderer/infra/offline';

@@ -3,7 +3,7 @@ import type { ConversationSetupAction } from '@nimiplatform/kit/features/chat/he
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { dispatchRuntimeConfigOpenPage } from '@renderer/features/runtime-config/runtime-config-navigation-events';
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ChatRelationshipRail } from './chat-relationship-rail';
 import { useChatTargetsForSidebar } from './chat-sidebar-targets';

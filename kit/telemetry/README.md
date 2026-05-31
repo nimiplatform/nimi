@@ -22,6 +22,7 @@ Renderer-safe infrastructure module for shared emitters and error boundaries.
 
 ## Current Consumers
 - `desktop`
+- `tester`
 - `web`
 
 ## Verification

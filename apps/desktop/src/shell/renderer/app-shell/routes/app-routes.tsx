@@ -6,7 +6,7 @@ import { AmbientBackground, ProgressIndicator, Surface } from '@nimiplatform/kit
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { desktopBridge } from '@renderer/bridge';
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
 
 const LoginPage = lazy(async () => {

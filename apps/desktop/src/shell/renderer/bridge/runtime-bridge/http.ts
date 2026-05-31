@@ -2,7 +2,7 @@ import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { assertRecord, parseOptionalJsonObject } from './shared.js';
 import { hasTauriInvoke, nativeFetch } from './env';
 import { invokeChecked } from './invoke';
-import { resolveRendererSessionTraceId } from './logging';
+import { resolveRendererSessionTraceId } from '@nimiplatform/kit/telemetry';
 
 type ProxyHttpPayload = {
   url: string;

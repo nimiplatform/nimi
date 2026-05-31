@@ -5,7 +5,7 @@ import { AppProviders } from '@renderer/app-shell/providers/app-providers';
 import { AppRoutes } from '@renderer/app-shell/routes/app-routes';
 import { AppErrorBoundary } from '@renderer/infra/error-boundary/app-error-boundary';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { onI18nIssue } from '@renderer/i18n';
 import { useMenuBarNavigationListener } from '@renderer/infra/menu-bar/menu-bar-navigation-listener';
 import { useMenuBarRuntimeSync } from '@renderer/infra/menu-bar/menu-bar-runtime-sync';

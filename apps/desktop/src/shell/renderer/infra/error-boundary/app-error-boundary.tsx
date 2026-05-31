@@ -1,5 +1,5 @@
 import React, { type PropsWithChildren } from 'react';
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { getCurrentLocale, i18n } from '@renderer/i18n';
 
 type ErrorBoundaryState = {

@@ -3,7 +3,7 @@ import { ReasonCode, type NimiError } from '@nimiplatform/sdk/types';
 import { invokeTauri } from '@nimiplatform/kit/shell/renderer/bridge';
 import { i18n } from '@renderer/i18n';
 import { hasTauriInvoke } from './env';
-import { emitRendererLog, resolveRendererSessionTraceId, toRendererLogMessage } from './logging';
+import { emitRendererLog, resolveRendererSessionTraceId, toRendererLogMessage } from '@nimiplatform/kit/telemetry';
 import { parseOptionalJsonObject } from './shared.js';
 import type { RuntimeBridgeStructuredError } from './types';
 import type { JsonObject } from './types';

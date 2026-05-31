@@ -1,4 +1,4 @@
-import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeConfigStateUpdater } from './runtime-config-types';

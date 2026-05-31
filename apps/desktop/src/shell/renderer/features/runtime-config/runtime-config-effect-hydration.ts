@@ -1,7 +1,7 @@
 import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
 import { i18n } from '@renderer/i18n';
-import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   RUNTIME_CONFIG_STORAGE_KEY_V11,
   RUNTIME_CONFIG_STORAGE_KEY_V12,

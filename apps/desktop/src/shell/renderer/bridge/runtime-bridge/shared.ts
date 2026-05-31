@@ -1,4 +1,3 @@
-import type { RuntimeLogMessage } from '@runtime/telemetry/logger';
 import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 export type {
   JsonPrimitive,
@@ -16,19 +15,11 @@ export {
 
 export type JsonArray = unknown[];
 
-export type RendererLogLevel = 'debug' | 'info' | 'warn' | 'error';
-export type RendererLogMessage = RuntimeLogMessage;
-
-export type RendererLogPayload = {
-  level: RendererLogLevel;
-  area: string;
-  message: RendererLogMessage;
-  traceId?: string;
-  flowId?: string;
-  source?: string;
-  costMs?: number;
-  details?: JsonObject;
-};
+export type {
+  RendererLogLevel,
+  RendererLogMessage,
+  RendererLogPayload,
+} from '@nimiplatform/kit/telemetry';
 
 export type RuntimeBridgeStructuredError = {
   code?: string;

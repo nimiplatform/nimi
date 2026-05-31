@@ -4,7 +4,7 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { realmGroupChatData } from './data/realm-group-chat-data';
 
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;

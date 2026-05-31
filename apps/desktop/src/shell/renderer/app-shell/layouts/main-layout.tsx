@@ -4,7 +4,7 @@ import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   isDeveloperModeEnabled,
   subscribeDeveloperMode,

@@ -7,7 +7,7 @@ import {
   startLocalAgentTerminationCourier,
   stopLocalAgentCouriers,
 } from '@renderer/infra/local-agent-courier';
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 
 type AuthSnapshot = { status: string; token: string; refreshToken: string };
 

@@ -1,4 +1,4 @@
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { DESKTOP_VERSION_FALLBACK } from './desktop-version';
 
 export type VersionCheckResult = {

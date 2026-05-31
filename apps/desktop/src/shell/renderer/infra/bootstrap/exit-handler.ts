@@ -1,7 +1,7 @@
 import { hasTauriRuntime, listenTauri } from '@nimiplatform/kit/shell/renderer/bridge';
 import { completeMenuBarQuit, stopRuntimeBridge } from '@renderer/bridge';
 import { stopLocalAgentCouriers } from '@renderer/infra/local-agent-courier';
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { stopAuthStateWatcher } from './auth-state-watcher';
 
 let registered = false;

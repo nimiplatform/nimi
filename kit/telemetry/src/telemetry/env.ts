@@ -41,6 +41,58 @@ export function shouldForwardRendererLogLevel(level: 'debug' | 'info' | 'warn' |
   return isRendererVerboseEnabled();
 }
 
+type RendererTelemetryInvoke = (command: string, payload?: unknown) => Promise<unknown>;
+type RendererTelemetryHook = {
+  invoke?: RendererTelemetryInvoke;
+};
+type RendererTelemetryGlobal = typeof globalThis & {
+  __NIMI_TAURI_TEST__?: RendererTelemetryHook;
+  __NIMI_TAURI_RUNTIME__?: RendererTelemetryHook;
+  __TAURI__?: {
+    core?: RendererTelemetryHook;
+    invoke?: RendererTelemetryInvoke;
+  };
+  window?: Window & {
+    __NIMI_TAURI_TEST__?: RendererTelemetryHook;
+    __NIMI_TAURI_RUNTIME__?: RendererTelemetryHook;
+    __TAURI__?: {
+      core?: RendererTelemetryHook;
+      invoke?: RendererTelemetryInvoke;
+    };
+  };
+};
+
+function telemetryGlobal(): RendererTelemetryGlobal {
+  return globalThis as RendererTelemetryGlobal;
+}
+
+function invokeFromHook(hook: RendererTelemetryHook | undefined): RendererTelemetryInvoke | null {
+  return typeof hook?.invoke === 'function' ? hook.invoke : null;
+}
+
+function invokeFromTauriGlobal(): RendererTelemetryInvoke | null {
+  const value = telemetryGlobal();
+  const tauri = value.__TAURI__ || value.window?.__TAURI__;
+  if (typeof tauri?.core?.invoke === 'function') {
+    return tauri.core.invoke.bind(tauri.core);
+  }
+  if (typeof tauri?.invoke === 'function') {
+    return tauri.invoke.bind(tauri);
+  }
+  return null;
+}
+
+export function resolveRendererTelemetryInvoke(): RendererTelemetryInvoke | null {
+  const value = telemetryGlobal();
+  return (
+    invokeFromHook(value.__NIMI_TAURI_TEST__)
+    || invokeFromHook(value.window?.__NIMI_TAURI_TEST__)
+    || invokeFromHook(value.__NIMI_TAURI_RUNTIME__)
+    || invokeFromHook(value.window?.__NIMI_TAURI_RUNTIME__)
+    || invokeFromTauriGlobal()
+  );
+}
+
 export function hasTauriInvoke(): boolean {
-  return typeof window.__TAURI__?.core?.invoke === 'function';
+  return Boolean(resolveRendererTelemetryInvoke());
 }

@@ -3,7 +3,7 @@ import type {
   ConversationTurnEvent,
   ConversationTurnInput,
 } from '@nimiplatform/kit/features/chat/headless';
-import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type { AgentResolvedMessageActionEnvelope } from '@nimiplatform/sdk/runtime';
 import { feedStreamEvent } from '../turns/stream-controller';
 import {
