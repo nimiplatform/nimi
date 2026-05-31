@@ -63,6 +63,16 @@ test('delegated capability panel preserves gateway firewall and runtime diagnost
   }
 });
 
+test('delegated capability Desktop service delegates Runtime control-plane composition to SDK', () => {
+  const serviceSource = readDesktopFile('src/shell/renderer/features/runtime-config/runtime-config-delegated-capability-service.ts');
+  assert.match(serviceSource, /createHostRuntimeAgentDelegatedCapabilitySurface/);
+  assert.doesNotMatch(serviceSource, /createRuntimeProtectedScopeHelper/);
+  assert.doesNotMatch(serviceSource, /buildRuntimeAgentRequestContext/);
+  assert.doesNotMatch(serviceSource, /runtime\.agent\.getDelegatedControlSurfaceSnapshot/);
+  assert.doesNotMatch(serviceSource, /runtime\.agent\.upsertDelegatedProviderProfile/);
+  assert.doesNotMatch(serviceSource, /runtime\.agent\.submitDelegatedApprovalDecision/);
+});
+
 test('delegated diagnostic rpc maps audit evidence fields without dropping runtime proof ids', () => {
   const serviceSource = readRepoFile('runtime/internal/services/runtimeagent/delegated_control_surface_rpc.go');
   for (const field of [
