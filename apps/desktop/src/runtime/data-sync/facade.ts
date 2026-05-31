@@ -27,8 +27,6 @@ import type {
 import { createDataSyncActions } from './facade-actions';
 import type { CreateMasterAgentInput } from './flows/social-flow';
 
-type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;
-type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;
 type WorldAgentSummaryDto = RealmModel<'WorldAgentSummaryDto'>;
 type WorldDetailWithAgentsDto = RealmModel<'WorldDetailWithAgentsDto'>;
@@ -258,18 +256,6 @@ export class DataSync {
     });
   }
 
-  loadGroupChats(limit = 20) { return this.actions.loadGroupChats(Math.min(limit, 100)); }
-  loadGroupChat(chatId: string) { return this.actions.loadGroupChat(chatId); }
-  loadGroupMessages(chatId: string, limit = 50) { return this.actions.loadGroupMessages(chatId, Math.min(limit, 100)); }
-  sendGroupMessage(chatId: string, content: string) { return this.actions.sendGroupMessage(chatId, content); }
-  commitRealmGroupMessageCandidate(chatId: string, participant: GroupParticipantDto, triggerMessage: GroupMessageViewDto) {
-    return this.actions.commitRealmGroupMessageCandidate(chatId, participant, triggerMessage);
-  }
-  async markGroupRead(chatId: string) { await this.actions.markGroupRead(chatId); }
-  createGroup(title: string, participantIds: string[], initialMessage?: string) { return this.actions.createGroup(title, participantIds, initialMessage); }
-  syncGroupEvents(chatId: string, afterSeq: number, limit = 100) { return this.actions.syncGroupEvents(chatId, afterSeq, Math.min(limit, 100)); }
-  addGroupAgent(chatId: string, agentAccountId: string) { return this.actions.addGroupAgent(chatId, agentAccountId); }
-  removeGroupAgent(chatId: string, agentAccountId: string) { return this.actions.removeGroupAgent(chatId, agentAccountId); }
   loadWorlds(status?: 'DRAFT' | 'PENDING_REVIEW' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED') { return this.actions.loadWorlds(status); }
   loadWorldDetailById(worldId: string) { return this.actions.loadWorldDetailById(worldId); }
   loadWorldSemanticBundle(worldId: string) { return this.actions.loadWorldSemanticBundle(worldId); }

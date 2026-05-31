@@ -3,9 +3,9 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
-import { dataSync } from '@runtime/data-sync';
 import { loadChatList } from './data/realm-human-chat-data';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { realmGroupChatData } from './data/realm-group-chat-data';
 import {
   collapseHumanChatsToTargets,
   compareHumanChatsByRecency,
@@ -64,7 +64,7 @@ export function useChatTargetsForSidebar(
 
   const groupChatsQuery = useQuery({
     queryKey: ['group-chats', authStatus],
-    queryFn: async () => dataSync.loadGroupChats(),
+    queryFn: async () => realmGroupChatData.loadGroupChats(),
     enabled: authStatus === 'authenticated',
     staleTime: 30_000,
   });

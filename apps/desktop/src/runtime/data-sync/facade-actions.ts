@@ -1,22 +1,6 @@
 import type { PasswordAuthDebug } from './auth';
 import type { Realm } from '@nimiplatform/sdk/realm';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { loginWithPassword, logoutWithCleanup, registerWithPassword } from './flows/auth-flow';
-import {
-  loadGroupChatList,
-  loadGroupChat,
-  loadGroupChatMessages,
-  sendGroupChatMessage,
-  commitRealmGroupMessageCandidateHandoff,
-  markGroupChatRead,
-  createGroupChat,
-  syncGroupChatEvents,
-  addGroupChatAgent,
-  removeGroupChatAgent,
-} from './flows/group-chat-flow';
-
-type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;
-type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 import { createMasterAgent, loadCreatorAgents } from './flows/agent-flow';
 import type { CreateMasterAgentInput } from './flows/social-flow';
 import { loadExploreAgents, loadExploreFeedItems, loadMoreExploreFeedItems, type LoadExploreAgentsInput } from './flows/explore-flow';
@@ -65,37 +49,6 @@ type CreateDataSyncActionsInput = {
 
 export function createDataSyncActions(input: CreateDataSyncActionsInput) {
   return {
-    loadGroupChats: async (limit = 20) =>
-      loadGroupChatList(input.callApiTask, input.emitFacadeError, limit),
-    loadGroupChat: async (chatId: string) =>
-      loadGroupChat(input.callApiTask, input.emitFacadeError, chatId),
-    loadGroupMessages: async (chatId: string, limit = 50) =>
-      loadGroupChatMessages(input.callApiTask, input.emitFacadeError, chatId, limit),
-    sendGroupMessage: async (chatId: string, content: string) =>
-      sendGroupChatMessage(input.callApiTask, input.emitFacadeError, chatId, content),
-    commitRealmGroupMessageCandidate: async (
-      chatId: string,
-      participant: GroupParticipantDto,
-      triggerMessage: GroupMessageViewDto,
-    ) =>
-      commitRealmGroupMessageCandidateHandoff(
-        input.callApiTask,
-        input.emitFacadeError,
-        input.getCurrentUser,
-        chatId,
-        participant,
-        triggerMessage,
-      ),
-    markGroupRead: async (chatId: string) =>
-      markGroupChatRead(input.callApiTask, input.emitFacadeError, chatId),
-    createGroup: async (title: string, participantIds: string[], initialMessage?: string) =>
-      createGroupChat(input.callApiTask, input.emitFacadeError, title, participantIds, initialMessage),
-    syncGroupEvents: async (chatId: string, afterSeq: number, limit = 200) =>
-      syncGroupChatEvents(input.callApiTask, input.emitFacadeError, chatId, afterSeq, limit),
-    addGroupAgent: async (chatId: string, agentAccountId: string) =>
-      addGroupChatAgent(input.callApiTask, input.emitFacadeError, chatId, agentAccountId),
-    removeGroupAgent: async (chatId: string, agentAccountId: string) =>
-      removeGroupChatAgent(input.callApiTask, input.emitFacadeError, chatId, agentAccountId),
     loadMyAgents: async () => loadCreatorAgents(input.callApiTask),
     createAgent: async (agentInput: CreateMasterAgentInput) =>
       createMasterAgent(input.callApiTask, agentInput),

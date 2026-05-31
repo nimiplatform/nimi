@@ -1,6 +1,8 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
+import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
   RealmGroupMessageCandidateCommitDisposition,
   createRuntimeProtectedScopeHelper,
@@ -17,8 +19,8 @@ type MessageType = RealmModel<'MessageType'>;
 
 export type { GroupChatViewDto, GroupMessageViewDto };
 
-type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
-type DataSyncErrorEmitter = (
+type RealmGroupChatApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type RealmGroupChatErrorEmitter = (
   action: string,
   error: unknown,
   details?: JsonObject,
@@ -180,8 +182,8 @@ function assertCandidateEvidenceMatchesHandle(input: {
 }
 
 export async function loadGroupChatList(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmGroupChatApiCaller,
+  emitRealmGroupChatError: RealmGroupChatErrorEmitter,
   limit = 20,
 ): Promise<ListGroupChatsResultDto> {
   try {
@@ -191,14 +193,14 @@ export async function loadGroupChatList(
     );
     return result;
   } catch (error) {
-    emitDataSyncError('load-group-chats', error);
+    emitRealmGroupChatError('load-group-chats', error);
     throw error;
   }
 }
 
 export async function loadGroupChat(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmGroupChatApiCaller,
+  emitRealmGroupChatError: RealmGroupChatErrorEmitter,
   chatId: string,
 ): Promise<GroupChatViewDto> {
   try {
@@ -208,14 +210,14 @@ export async function loadGroupChat(
     );
     return result;
   } catch (error) {
-    emitDataSyncError('load-group-chat', error, { chatId });
+    emitRealmGroupChatError('load-group-chat', error, { chatId });
     throw error;
   }
 }
 
 export async function loadGroupChatMessages(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmGroupChatApiCaller,
+  emitRealmGroupChatError: RealmGroupChatErrorEmitter,
   chatId: string,
   limit: number,
 ): Promise<ListGroupMessagesResultDto> {
@@ -226,14 +228,14 @@ export async function loadGroupChatMessages(
     );
     return result;
   } catch (error) {
-    emitDataSyncError('load-group-messages', error, { chatId });
+    emitRealmGroupChatError('load-group-messages', error, { chatId });
     throw error;
   }
 }
 
 export async function sendGroupChatMessage(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmGroupChatApiCaller,
+  emitRealmGroupChatError: RealmGroupChatErrorEmitter,
   chatId: string,
   content: string,
 ) {
@@ -250,14 +252,14 @@ export async function sendGroupChatMessage(
     );
     return message;
   } catch (error) {
-    emitDataSyncError('send-group-message', error, { chatId });
+    emitRealmGroupChatError('send-group-message', error, { chatId });
     throw error;
   }
 }
 
 export async function commitRealmGroupMessageCandidateHandoff(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmGroupChatApiCaller,
+  emitRealmGroupChatError: RealmGroupChatErrorEmitter,
   getCurrentUser: CurrentUserReader,
   chatId: string,
   participant: GroupParticipantDto,
@@ -360,7 +362,7 @@ export async function commitRealmGroupMessageCandidateHandoff(
     );
     return result;
   } catch (error) {
-    emitDataSyncError('commit-realm-group-message-candidate', error, {
+    emitRealmGroupChatError('commit-realm-group-message-candidate', error, {
       chatId,
       realmGroupAgentSlotId: slot.realmGroupAgentSlotId,
       localAgentRef: slot.localAgentRef,
@@ -370,8 +372,8 @@ export async function commitRealmGroupMessageCandidateHandoff(
 }
 
 export async function markGroupChatRead(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmGroupChatApiCaller,
+  emitRealmGroupChatError: RealmGroupChatErrorEmitter,
   chatId: string,
 ) {
   try {
@@ -379,13 +381,13 @@ export async function markGroupChatRead(
       (realm) => realm.services.GroupChatsService.markGroupRead(chatId),
     );
   } catch (error) {
-    emitDataSyncError('mark-group-read', error, { chatId });
+    emitRealmGroupChatError('mark-group-read', error, { chatId });
   }
 }
 
 export async function createGroupChat(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmGroupChatApiCaller,
+  emitRealmGroupChatError: RealmGroupChatErrorEmitter,
   title: string,
   participantIds: string[],
   initialMessage?: string,
@@ -401,7 +403,7 @@ export async function createGroupChat(
     );
     return result;
   } catch (error) {
-    emitDataSyncError('create-group', error, {
+    emitRealmGroupChatError('create-group', error, {
       title,
       participantCount: participantIds.length,
     });
@@ -410,8 +412,8 @@ export async function createGroupChat(
 }
 
 export async function addGroupChatAgent(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmGroupChatApiCaller,
+  emitRealmGroupChatError: RealmGroupChatErrorEmitter,
   chatId: string,
   agentAccountId: string,
 ) {
@@ -422,14 +424,14 @@ export async function addGroupChatAgent(
     );
     return result;
   } catch (error) {
-    emitDataSyncError('add-group-agent', error, { chatId, agentAccountId });
+    emitRealmGroupChatError('add-group-agent', error, { chatId, agentAccountId });
     throw error;
   }
 }
 
 export async function removeGroupChatAgent(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmGroupChatApiCaller,
+  emitRealmGroupChatError: RealmGroupChatErrorEmitter,
   chatId: string,
   agentAccountId: string,
 ) {
@@ -439,14 +441,14 @@ export async function removeGroupChatAgent(
       '移除群组 Agent 失败',
     );
   } catch (error) {
-    emitDataSyncError('remove-group-agent', error, { chatId, agentAccountId });
+    emitRealmGroupChatError('remove-group-agent', error, { chatId, agentAccountId });
     throw error;
   }
 }
 
 export async function syncGroupChatEvents(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmGroupChatApiCaller,
+  emitRealmGroupChatError: RealmGroupChatErrorEmitter,
   chatId: string,
   afterSeq: number,
   limit = 200,
@@ -460,7 +462,45 @@ export async function syncGroupChatEvents(
     );
     return result;
   } catch (error) {
-    emitDataSyncError('sync-group-events', error, { chatId, afterSeq: normalizedAfterSeq });
+    emitRealmGroupChatError('sync-group-events', error, { chatId, afterSeq: normalizedAfterSeq });
     throw error;
   }
 }
+
+function getCurrentUser(): Record<string, unknown> | null {
+  return useAppStore.getState().auth.user;
+}
+
+export const realmGroupChatData = {
+  loadGroupChats: (limit = 20) =>
+    loadGroupChatList(callRealmApi, emitRealmDataError, Math.min(limit, 100)),
+  loadGroupChat: (chatId: string) =>
+    loadGroupChat(callRealmApi, emitRealmDataError, chatId),
+  loadGroupMessages: (chatId: string, limit = 50) =>
+    loadGroupChatMessages(callRealmApi, emitRealmDataError, chatId, Math.min(limit, 100)),
+  sendGroupMessage: (chatId: string, content: string) =>
+    sendGroupChatMessage(callRealmApi, emitRealmDataError, chatId, content),
+  commitRealmGroupMessageCandidate: (
+    chatId: string,
+    participant: GroupParticipantDto,
+    triggerMessage: GroupMessageViewDto,
+  ) =>
+    commitRealmGroupMessageCandidateHandoff(
+      callRealmApi,
+      emitRealmDataError,
+      getCurrentUser,
+      chatId,
+      participant,
+      triggerMessage,
+    ),
+  markGroupRead: (chatId: string) =>
+    markGroupChatRead(callRealmApi, emitRealmDataError, chatId),
+  createGroup: (title: string, participantIds: string[], initialMessage?: string) =>
+    createGroupChat(callRealmApi, emitRealmDataError, title, participantIds, initialMessage),
+  syncGroupEvents: (chatId: string, afterSeq: number, limit = 100) =>
+    syncGroupChatEvents(callRealmApi, emitRealmDataError, chatId, afterSeq, Math.min(limit, 100)),
+  addGroupAgent: (chatId: string, agentAccountId: string) =>
+    addGroupChatAgent(callRealmApi, emitRealmDataError, chatId, agentAccountId),
+  removeGroupAgent: (chatId: string, agentAccountId: string) =>
+    removeGroupChatAgent(callRealmApi, emitRealmDataError, chatId, agentAccountId),
+};

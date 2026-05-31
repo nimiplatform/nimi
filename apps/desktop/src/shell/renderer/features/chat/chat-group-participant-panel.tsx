@@ -4,8 +4,8 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { dataSync } from '@runtime/data-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { realmGroupChatData } from './data/realm-group-chat-data';
 
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 
@@ -103,7 +103,7 @@ export function ChatGroupParticipantPanel(props: {
     setPendingAction(agentAccountId);
     setPanelError(null);
     try {
-      await dataSync.addGroupAgent(chatId, agentAccountId);
+      await realmGroupChatData.addGroupAgent(chatId, agentAccountId);
       void queryClient.invalidateQueries({ queryKey: ['group-chats'] });
       onAgentSlotChanged?.();
       setAddAgentOpen(false);
@@ -132,7 +132,7 @@ export function ChatGroupParticipantPanel(props: {
     setPendingAction(agentAccountId);
     setPanelError(null);
     try {
-      await dataSync.removeGroupAgent(chatId, agentAccountId);
+      await realmGroupChatData.removeGroupAgent(chatId, agentAccountId);
       void queryClient.invalidateQueries({ queryKey: ['group-chats'] });
       onAgentSlotChanged?.();
     } catch (error) {

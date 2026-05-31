@@ -50,10 +50,10 @@ test('group composer mention surface is text insertion posture only', () => {
 test('group adapter feeds committed Realm agent slots into split candidate handoff', () => {
   assert.match(groupAdapterSource, /const participants: GroupParticipantDto\[] = selectedGroup\?\.participants \|\| \[];/);
   assert.match(groupAdapterSource, /<ChatGroupComposer[\s\S]*agentParticipants=\{participants\}/);
-  assert.match(groupAdapterSource, /dataSync\.sendGroupMessage\(chatId, content\)/);
+  assert.match(groupAdapterSource, /realmGroupChatData\.sendGroupMessage\(chatId, content\)/);
   assert.match(groupAdapterSource, /resolveInvokableGroupAgentMention/);
   assert.match(groupAdapterSource, /normalizeText\(participant\.agentOwnerId\) === userId/);
-  assert.match(groupAdapterSource, /dataSync\.commitRealmGroupMessageCandidate/);
+  assert.match(groupAdapterSource, /realmGroupChatData\.commitRealmGroupMessageCandidate/);
   assert.doesNotMatch(groupAdapterSource, /sendGroupAgentMessage|sendGroupAgentChatMessage/);
   assert.doesNotMatch(groupAdapterSource, /candidate output|runtime\.orchestration|GROUP_LIMITED/);
 });

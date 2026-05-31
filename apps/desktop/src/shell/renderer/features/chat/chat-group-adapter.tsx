@@ -3,9 +3,9 @@ import { createReadyConversationSetupState } from '@nimiplatform/kit/features/ch
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { setGroupLocalAgentParticipationActive } from './chat-shared-active-ai-config-scope';
+import { realmGroupChatData } from './data/realm-group-chat-data';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import { ChatGroupParticipantPanel } from './chat-group-participant-panel';
 import { ChatGroupComposer } from './chat-group-composer';
@@ -118,7 +118,7 @@ export function useGroupConversationModeHost(
 
   const groupChatsQuery = useQuery({
     queryKey: [...GROUP_CHATS_QUERY_KEY, authStatus],
-    queryFn: async () => dataSync.loadGroupChats(),
+    queryFn: async () => realmGroupChatData.loadGroupChats(),
     enabled: authStatus === 'authenticated',
     staleTime: 30_000,
   });
@@ -139,8 +139,8 @@ export function useGroupConversationModeHost(
     queryKey: ['group-messages', selectedGroupId],
     queryFn: async () => {
       if (!selectedGroupId) return { items: [] };
-      const result = await dataSync.loadGroupMessages(selectedGroupId);
-      void dataSync.markGroupRead(selectedGroupId);
+      const result = await realmGroupChatData.loadGroupMessages(selectedGroupId);
+      void realmGroupChatData.markGroupRead(selectedGroupId);
       return result;
     },
     enabled: Boolean(selectedGroupId) && authStatus === 'authenticated',
@@ -166,7 +166,7 @@ export function useGroupConversationModeHost(
 
   const sendMutation = useMutation({
     mutationFn: async ({ chatId, content }: { chatId: string; content: string }) => {
-      return dataSync.sendGroupMessage(chatId, content);
+      return realmGroupChatData.sendGroupMessage(chatId, content);
     },
     onSettled: (_sentMessage, _error, variables) => {
       const sentChatId = String(variables.chatId || '');
@@ -186,7 +186,7 @@ export function useGroupConversationModeHost(
       chatId: string;
       participant: GroupParticipantDto;
       triggerMessage: GroupMessageViewDto;
-    }) => dataSync.commitRealmGroupMessageCandidate(chatId, participant, triggerMessage),
+    }) => realmGroupChatData.commitRealmGroupMessageCandidate(chatId, participant, triggerMessage),
     onSettled: (_result, _error, variables) => {
       const sentChatId = String(variables.chatId || '');
       if (sentChatId) {

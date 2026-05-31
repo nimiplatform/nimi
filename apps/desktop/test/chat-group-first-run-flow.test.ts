@@ -38,7 +38,7 @@ test('group create controller fails closed on contract violation and routes to n
   assert.match(chatGroupCreateControllerSource, /import \{ ChatGroupCreateModal \} from '\.\/chat-group-create-modal';/);
   assert.match(chatGroupCreateControllerSource, /const setChatMode = useAppStore\(\(state\) => state\.setChatMode\);/);
   assert.match(chatGroupCreateControllerSource, /const setSelectedTargetForSource = useAppStore\(\(state\) => state\.setSelectedTargetForSource\);/);
-  assert.match(chatGroupCreateControllerSource, /const result = await dataSync\.createGroup\(title, participantIds\);/);
+  assert.match(chatGroupCreateControllerSource, /const result = await realmGroupChatData\.createGroup\(title, participantIds\);/);
   assert.match(chatGroupCreateControllerSource, /throw new Error\('chat-group-create:contract-violation:missing-id'\);/);
   assert.match(chatGroupCreateControllerSource, /typeof rawId !== 'string'/);
   assert.match(chatGroupCreateControllerSource, /throw new Error\('chat-group-create:contract-violation:invalid-id'\);/);
@@ -49,7 +49,7 @@ test('group create controller fails closed on contract violation and routes to n
 });
 
 test('group create controller validates created group id before success projection', () => {
-  const createCall = chatGroupCreateControllerSource.indexOf('const result = await dataSync.createGroup(title, participantIds);');
+  const createCall = chatGroupCreateControllerSource.indexOf('const result = await realmGroupChatData.createGroup(title, participantIds);');
   const idValidation = chatGroupCreateControllerSource.indexOf('const newId = resolveCreatedGroupId(result);');
   const modeSelection = chatGroupCreateControllerSource.indexOf("setSelectedTargetForSource('group', newId);");
   const invalidation = chatGroupCreateControllerSource.indexOf('void queryClient.invalidateQueries({ queryKey: GROUP_CHATS_QUERY_KEY });');

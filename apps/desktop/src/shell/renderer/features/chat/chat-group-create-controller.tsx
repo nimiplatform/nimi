@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ChatGroupCreateModal } from './chat-group-create-modal';
+import { realmGroupChatData } from './data/realm-group-chat-data';
 
 const GROUP_CHATS_QUERY_KEY = ['group-chats'] as const;
 
@@ -43,7 +43,7 @@ export function useChatGroupCreateController(): ChatGroupCreateController {
   }, []);
 
   const handleCreateGroup = useCallback(async (title: string, participantIds: string[]) => {
-    const result = await dataSync.createGroup(title, participantIds);
+    const result = await realmGroupChatData.createGroup(title, participantIds);
     const newId = resolveCreatedGroupId(result);
     setChatMode('group');
     setSelectedTargetForSource('group', newId);
