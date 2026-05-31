@@ -1,4 +1,5 @@
-import { ReasonCode, type NimiError } from '@nimiplatform/sdk/types';
+import { extractRuntimeReasonCodeFromError } from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 const RUNTIME_REASON_CODE_TO_LOCAL_AI: Record<string, string> = {
   AI_MODEL_NOT_FOUND: ReasonCode.AI_MODEL_NOT_FOUND,
@@ -15,71 +16,12 @@ const RUNTIME_REASON_CODE_TO_LOCAL_AI: Record<string, string> = {
   AI_CONTENT_FILTER_BLOCKED: 'LOCAL_AI_CAPABILITY_MISSING',
 };
 
-const AI_REASON_CODE_NUMERIC: Record<number, string> = {
-  200: 'AI_MODEL_NOT_FOUND',
-  201: 'AI_MODEL_NOT_READY',
-  202: 'AI_PROVIDER_UNAVAILABLE',
-  203: 'AI_PROVIDER_TIMEOUT',
-  204: 'AI_ROUTE_UNSUPPORTED',
-  205: 'AI_ROUTE_FALLBACK_DENIED',
-  206: 'AI_INPUT_INVALID',
-  207: 'AI_OUTPUT_INVALID',
-  208: 'AI_STREAM_BROKEN',
-  209: 'AI_CONTENT_FILTER_BLOCKED',
-  351: 'AI_MODALITY_NOT_SUPPORTED',
-  411: 'AI_MEDIA_OPTION_UNSUPPORTED',
-  560: 'AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED',
-  561: 'AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED',
-  562: 'AI_LOCAL_SPEECH_ENV_INIT_FAILED',
-  563: 'AI_LOCAL_SPEECH_HOST_INIT_FAILED',
-  564: 'AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED',
-  565: 'AI_LOCAL_SPEECH_BUNDLE_DEGRADED',
-};
-
-function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-  return value as Record<string, unknown>;
-}
-
-function extractReasonCodeCandidate(value: unknown): string | null {
-  if (typeof value === 'string') {
-    const normalized = value.trim();
-    if (!normalized) return null;
-    if (/^\d+$/.test(normalized)) return AI_REASON_CODE_NUMERIC[Number(normalized)] || null;
-    return normalized;
-  }
-  if (typeof value === 'number' && Number.isFinite(value)) return AI_REASON_CODE_NUMERIC[value] || null;
-  return null;
-}
-
 export function extractRuntimeReasonCode(error: unknown): string | null {
-  if (isRuntimeNimiError(error)) {
-    const fromNimiError = extractReasonCodeCandidate(error.reasonCode);
-    if (fromNimiError) return fromNimiError;
-  }
-  const record = asRecord(error);
-  const direct = extractReasonCodeCandidate(record.reasonCode);
-  if (direct) return direct;
-  const message = String(record.message || (error instanceof Error ? error.message : '') || '').trim();
-  if (!message) return null;
-  const explicit = message.match(/\b(AI_[A-Z_]+)\b/);
-  if (explicit?.[1]) return explicit[1];
-  const numeric = message.match(/\b(\d{3})\b/);
-  if (numeric?.[1]) {
-    const mapped = AI_REASON_CODE_NUMERIC[Number(numeric[1])];
-    if (mapped) return mapped;
-  }
-  return null;
+  return extractRuntimeReasonCodeFromError(error);
 }
 
 export function toLocalRuntimeReasonCode(error: unknown): string | null {
   const runtimeCode = extractRuntimeReasonCode(error);
   if (!runtimeCode) return null;
   return RUNTIME_REASON_CODE_TO_LOCAL_AI[runtimeCode] || null;
-}
-
-function isRuntimeNimiError(error: unknown): error is NimiError {
-  if (!error || typeof error !== 'object') return false;
-  const record = error as Record<string, unknown>;
-  return typeof record.reasonCode === 'string' && typeof record.actionHint === 'string';
 }

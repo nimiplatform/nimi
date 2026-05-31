@@ -9,7 +9,7 @@ import {
   type ScenarioJobEvent,
 } from './generated/runtime/v1/ai';
 import { Struct as ProtoStruct } from './generated/google/protobuf/struct.js';
-import { ReasonCode as RuntimeReasonCode } from './generated/runtime/v1/common';
+import { normalizeRuntimeReasonCode } from './reason-code-messages.js';
 import type { RuntimeInternalContext } from './internal-context.js';
 import type { ScenarioJobSubmitInput } from './types.js';
 import {
@@ -60,14 +60,7 @@ export async function runtimeSubmitScenarioJobForMedia(
 }
 
 function normalizeScenarioJobReasonCode(value: unknown): string {
-  const numeric = Number(value);
-  if (Number.isFinite(numeric)) {
-    const enumName = RuntimeReasonCode[numeric as RuntimeReasonCode];
-    if (enumName && enumName !== 'REASON_CODE_UNSPECIFIED') {
-      return String(enumName).trim();
-    }
-  }
-  return normalizeText(value);
+  return normalizeRuntimeReasonCode(value);
 }
 
 function scenarioJobReasonDetails(job: ScenarioJob): JsonObject | undefined {

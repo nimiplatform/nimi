@@ -1,4 +1,5 @@
 import { ReasonCode } from '../types/index.js';
+import { ReasonCode as RuntimeReasonCode } from './generated/runtime/v1/common.js';
 
 export type RuntimeReasonCodeMessageProjection = {
   reasonCode: string;
@@ -80,4 +81,68 @@ export function getRuntimeReasonCodeMessage(reasonCode: unknown): RuntimeReasonC
 
 export function getRuntimeReasonCodeDefaultMessage(reasonCode: unknown): string | null {
   return getRuntimeReasonCodeMessage(reasonCode)?.defaultMessage || null;
+}
+
+function asRuntimeReasonRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function readRuntimeReasonField(record: Record<string, unknown>, keys: readonly string[]): unknown {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' || typeof value === 'number') {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+export function normalizeRuntimeReasonCode(value: unknown): string {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const enumName = (RuntimeReasonCode as unknown as Record<number, string>)[value];
+    return enumName && enumName !== 'REASON_CODE_UNSPECIFIED' ? String(enumName).trim() : '';
+  }
+  if (typeof value !== 'string') {
+    return '';
+  }
+  const normalized = value.trim();
+  if (!normalized) {
+    return '';
+  }
+  if (/^\d+$/.test(normalized)) {
+    return normalizeRuntimeReasonCode(Number(normalized));
+  }
+  return normalized;
+}
+
+export function extractRuntimeReasonCodeFromError(error: unknown): string | null {
+  const record = asRuntimeReasonRecord(error);
+  const direct = normalizeRuntimeReasonCode(readRuntimeReasonField(record, [
+    'reasonCode',
+    'reason_code',
+    'reason',
+    'code',
+  ]));
+  if (direct) {
+    return direct;
+  }
+
+  const message = String(record.message || (error instanceof Error ? error.message : '') || '').trim();
+  if (!message) {
+    return null;
+  }
+  const explicit = message.match(/\b(AI_[A-Z_]+|RUNTIME_[A-Z_]+|AUTH_[A-Z_]+|SESSION_[A-Z_]+)\b/);
+  if (explicit?.[1]) {
+    return explicit[1];
+  }
+  const numeric = message.match(/\b(\d{3})\b/);
+  if (numeric?.[1]) {
+    const mapped = normalizeRuntimeReasonCode(numeric[1]);
+    if (mapped) {
+      return mapped;
+    }
+  }
+  return null;
 }

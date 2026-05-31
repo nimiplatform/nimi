@@ -6,6 +6,8 @@ import {
   extractRuntimeReasonCode,
   toLocalRuntimeReasonCode,
 } from '../src/runtime/llm-adapter/execution/runtime-ai-bridge';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 test('runtime ai bridge keeps model-not-found reason distinguishable', () => {
   const mapped = toLocalRuntimeReasonCode({
@@ -44,4 +46,15 @@ test('runtime ai bridge keeps generic AI_INPUT_INVALID distinguishable', () => {
     source: 'runtime',
   });
   assert.equal(mapped, ReasonCode.AI_INPUT_INVALID);
+});
+
+test('runtime ai bridge delegates Runtime reason-code parsing to SDK', () => {
+  const source = readFileSync(
+    resolve(import.meta.dirname, '../src/runtime/llm-adapter/execution/runtime-ai-bridge-output.ts'),
+    'utf8',
+  );
+
+  assert.match(source, /extractRuntimeReasonCodeFromError/);
+  assert.doesNotMatch(source, /AI_REASON_CODE_NUMERIC/);
+  assert.doesNotMatch(source, /reason=351/);
 });

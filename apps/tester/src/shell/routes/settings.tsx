@@ -25,7 +25,9 @@ import {
   projectRuntimeLocalAgentIdentity,
   parseRuntimeLocalRecommendationFeedDescriptor,
   parseLocalRecommendationFeedSourceId,
+  extractRuntimeReasonCodeFromError,
   ModelCatalogProviderSource,
+  normalizeRuntimeReasonCode,
   RuntimeHealthCoordinator,
   summarizeLocalRecommendationFeedCacheState,
   type RuntimeConnectorProjection,
@@ -312,6 +314,8 @@ export function SettingsRoute() {
     reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
     message: getRuntimeReasonCodeDefaultMessage(ReasonCode.AI_PROVIDER_TIMEOUT) ?? 'unknown',
     credentialMissing: getRuntimeReasonCodeDefaultMessage(ReasonCode.AI_CONNECTOR_CREDENTIAL_MISSING) ?? 'unknown',
+    numeric: normalizeRuntimeReasonCode(351) || 'unknown',
+    extracted: extractRuntimeReasonCodeFromError(new Error('runtime failed: reason=411')) ?? 'unknown',
   };
   const runtimeLocalAgentIdentityProjection = projectRuntimeLocalAgentIdentity({
     ownerUserId: 'tester-owner',
@@ -844,7 +848,7 @@ export function SettingsRoute() {
       <div className="setting-row">
         <span>Runtime reason projection</span>
         <StatusBadge tone="neutral">
-          {runtimeReasonProjection.reasonCode}: {runtimeReasonProjection.message} / {runtimeReasonProjection.credentialMissing}
+          {runtimeReasonProjection.reasonCode}: {runtimeReasonProjection.message} / {runtimeReasonProjection.credentialMissing} / {runtimeReasonProjection.numeric} / {runtimeReasonProjection.extracted}
         </StatusBadge>
       </div>
       <div className="setting-row">

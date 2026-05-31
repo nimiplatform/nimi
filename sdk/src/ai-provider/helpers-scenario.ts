@@ -20,7 +20,6 @@ import {
   fromRouteDecision,
   toCallOptions,
 } from './helpers-shared.js';
-import { ReasonCode as RuntimeReasonCode } from '../runtime/generated/runtime/v1/common.js';
 import {
   type CancelScenarioJobRequest,
   ExecutionMode,
@@ -31,6 +30,7 @@ import {
   type ScenarioArtifact,
   type ScenarioOutput,
 } from '../runtime/generated/runtime/v1/ai.js';
+import { normalizeRuntimeReasonCode } from '../runtime/reason-code-messages.js';
 
 type ScenarioJobExecution = {
   artifacts: NimiArtifact[];
@@ -41,14 +41,7 @@ type ScenarioJobExecution = {
 };
 
 function ensureScenarioJobReasonCode(value: unknown): string {
-  const numeric = Number(value);
-  if (Number.isFinite(numeric)) {
-    const enumName = (RuntimeReasonCode as unknown as Record<number, string>)[numeric];
-    if (enumName && enumName !== 'REASON_CODE_UNSPECIFIED') {
-      return String(enumName).trim();
-    }
-  }
-  const reasonCode = normalizeText(value);
+  const reasonCode = normalizeRuntimeReasonCode(value);
   if (reasonCode) {
     return reasonCode;
   }

@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  extractRuntimeReasonCodeFromError,
   getRuntimeReasonCodeDefaultMessage,
   getRuntimeReasonCodeMessage,
+  normalizeRuntimeReasonCode,
   RUNTIME_REASON_CODE_MESSAGE_MAP,
 } from '../../src/runtime/reason-code-messages.js';
 import { ReasonCode } from '../../src/types/index.js';
@@ -64,4 +66,28 @@ test('runtime reason-code message map keeps Runtime projection lookup immutable 
     RUNTIME_REASON_CODE_MESSAGE_MAP[ReasonCode.LOCAL_LIFECYCLE_WRITE_DENIED]?.defaultMessage,
     'The current source is not allowed to perform local model lifecycle writes.',
   );
+});
+
+test('runtime reason-code projection normalizes numeric and string enum values', () => {
+  assert.equal(normalizeRuntimeReasonCode(351), ReasonCode.AI_MODALITY_NOT_SUPPORTED);
+  assert.equal(normalizeRuntimeReasonCode('411'), ReasonCode.AI_MEDIA_OPTION_UNSUPPORTED);
+  assert.equal(normalizeRuntimeReasonCode('AI_PROVIDER_TIMEOUT'), ReasonCode.AI_PROVIDER_TIMEOUT);
+  assert.equal(normalizeRuntimeReasonCode(0), '');
+  assert.equal(normalizeRuntimeReasonCode(''), '');
+});
+
+test('runtime reason-code projection extracts structured and message-carried errors', () => {
+  assert.equal(
+    extractRuntimeReasonCodeFromError({ reasonCode: 561 }),
+    ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED,
+  );
+  assert.equal(
+    extractRuntimeReasonCodeFromError(new Error('rpc error reason=351')),
+    ReasonCode.AI_MODALITY_NOT_SUPPORTED,
+  );
+  assert.equal(
+    extractRuntimeReasonCodeFromError(new Error('runtime failed: AI_PROVIDER_TIMEOUT')),
+    ReasonCode.AI_PROVIDER_TIMEOUT,
+  );
+  assert.equal(extractRuntimeReasonCodeFromError(new Error('plain failure')), null);
 });

@@ -8,7 +8,8 @@ import {
   ConnectorStatus,
   type ProviderCatalogEntry,
 } from './generated/runtime/v1/connector.js';
-import { ReasonCode as RuntimeReasonCode } from './generated/runtime/v1/common.js';
+import type { ReasonCode as RuntimeReasonCode } from './generated/runtime/v1/common.js';
+import { normalizeRuntimeReasonCode } from './reason-code-messages.js';
 import {
   CONNECTOR_AUTH_PROFILES,
   type ConnectorAuthProfileSpec,
@@ -212,14 +213,7 @@ function normalizeProviderAuthProfile(value: string): string {
 }
 
 function runtimeReasonCodeName(value: unknown): string {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return '';
-  }
-  const enumName = (RuntimeReasonCode as unknown as Record<number, string>)[value];
-  if (!enumName || enumName === 'REASON_CODE_UNSPECIFIED') {
-    return '';
-  }
-  return String(enumName || '').trim();
+  return normalizeRuntimeReasonCode(value);
 }
 
 function buildCredentialJsonFromSecret(secret: string): string {
