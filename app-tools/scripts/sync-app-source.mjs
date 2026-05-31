@@ -156,23 +156,23 @@ function applySnapshot() {
   return files;
 }
 
-// Source resolver used by the generator. Prefers a baked snapshot (published
-// tarball, or after `--apply`); otherwise reads the live apps/tester tree, so a
-// monorepo checkout needs no build step and keeps exactly one copy in git.
+// Source resolver used by the generator. In the monorepo it reads apps/tester
+// live so scaffold checks use the second consumer proof directly. Published
+// tarballs fall back to the baked snapshot because apps/tester is not present.
 function resolveAppSource() {
+  if (existsSync(SOURCE_APP_DIR)) {
+    return {
+      baseDir: SOURCE_APP_DIR,
+      manifest: buildManifest(collectSnapshotFiles(SOURCE_APP_DIR)),
+    };
+  }
   if (existsSync(SNAPSHOT_DIR) && existsSync(MANIFEST_PATH)) {
     return {
       baseDir: SNAPSHOT_DIR,
       manifest: JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')),
     };
   }
-  if (!existsSync(SOURCE_APP_DIR)) {
-    throw new Error(`No baked app-source snapshot and reference app missing: ${SOURCE_APP_DIR}`);
-  }
-  return {
-    baseDir: SOURCE_APP_DIR,
-    manifest: buildManifest(collectSnapshotFiles(SOURCE_APP_DIR)),
-  };
+  throw new Error(`No baked app-source snapshot and reference app missing: ${SOURCE_APP_DIR}`);
 }
 
 function readAppSourceFile(baseDir, relativePath) {

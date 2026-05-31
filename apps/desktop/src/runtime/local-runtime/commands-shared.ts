@@ -1,5 +1,6 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
+  toCanonicalLocalRuntimeAssetLookupKey,
   toLocalRuntimeAssetKindRequestValue,
   toLocalRuntimeAssetStatusRequestValue,
 } from '@nimiplatform/sdk/runtime';
@@ -7,7 +8,6 @@ import type {
   LocalRuntimeAssetRecord,
   LocalRuntimeListAssetsPayload,
 } from './types';
-import { toCanonicalLocalLookupKey } from './local-id';
 
 type LocalClient = ReturnType<typeof getPlatformClient>['runtime']['local'];
 
@@ -46,7 +46,7 @@ export function assetLookupKey(
   asset: Pick<LocalRuntimeAssetRecord, 'assetId' | 'kind' | 'engine'>,
 ): string {
   return [
-    toCanonicalLocalLookupKey(asset.assetId),
+    toCanonicalLocalRuntimeAssetLookupKey(asset.assetId),
     String(asset.kind || '').trim().toLowerCase(),
     String(asset.engine || '').trim().toLowerCase(),
   ].join('::');

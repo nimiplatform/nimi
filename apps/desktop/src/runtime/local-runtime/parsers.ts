@@ -22,10 +22,10 @@ import {
   parseExecutionStageResult as parseSdkExecutionStageResult,
   parsePreflightDecision as parseSdkPreflightDecision,
   parseServiceDescriptor as parseSdkServiceDescriptor,
+  toCanonicalLocalRuntimeAssetId,
 } from '@nimiplatform/sdk/runtime';
 import { asRecord, asString } from './parser-primitives';
 import { asPlainObject } from './parser-helpers';
-import { toCanonicalLocalId } from './local-id';
 import { parseCatalogRecommendation } from './parsers-runtime-events';
 export { asRecord, asString } from './parser-primitives';
 export {
@@ -110,7 +110,7 @@ export function parseAssetRecord(value: unknown): LocalRuntimeAssetRecord {
   const capabilities = normalizeCapabilities(record.capabilities);
   return {
     localAssetId: asString(record.localAssetId),
-    assetId: toCanonicalLocalId(record.assetId),
+    assetId: toCanonicalLocalRuntimeAssetId(record.assetId),
     kind: effectiveAssetKind(normalizeAssetKind(record.kind), capabilities),
     engine: asString(record.engine),
     engineRuntimeMode: record.engineRuntimeMode == null
@@ -243,7 +243,7 @@ function parseProfileEntryDescriptor(value: unknown): LocalRuntimeProfileEntryDe
     capability: asString(record.capability) || undefined,
     required: typeof record.required === 'boolean' ? Boolean(record.required) : undefined,
     preferred: typeof record.preferred === 'boolean' ? Boolean(record.preferred) : undefined,
-    assetId: toCanonicalLocalId(record.assetId) || undefined,
+    assetId: toCanonicalLocalRuntimeAssetId(record.assetId) || undefined,
     assetKind: asString(record.assetKind) as LocalRuntimeProfileEntryDescriptor['assetKind'] || undefined,
     engineSlot: asString(record.engineSlot) || undefined,
     repo: asString(record.repo) || undefined,

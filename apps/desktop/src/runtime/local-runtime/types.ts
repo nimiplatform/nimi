@@ -10,6 +10,13 @@ import type {
   LocalRecommendationFeedSourceId,
   LocalRecommendationFormatId,
   LocalRecommendationHostSupportClassId,
+  LocalRecommendationActionStateProjection,
+  LocalRecommendationCatalogProjection,
+  LocalRecommendationFeedEntryProjection,
+  LocalRecommendationFeedItemProjection,
+  LocalRecommendationFeedProjection,
+  LocalRecommendationInstalledStateProjection,
+  LocalRecommendationSuggestedAssetProjection,
   LocalRecommendationSourceId,
   LocalRecommendationTierId,
   LocalRuntimeAssetKindId,
@@ -142,77 +149,13 @@ export type LocalRuntimeRecommendationFeedCacheState = LocalRecommendationFeedCa
 export type LocalRuntimeRecommendationFeedCapability = LocalRecommendationFeedCapabilityId;
 export type LocalRuntimeRecommendationFeedSource = LocalRecommendationFeedSourceId;
 
-export type LocalRuntimeSuggestedAsset = {
-  templateId?: string;
-  assetId?: string;
-  kind: string;
-  family?: string;
-};
-
-export type LocalRuntimeCatalogRecommendation = {
-  source: LocalRuntimeRecommendationSource;
-  format?: LocalRuntimeRecommendationFormat;
-  tier?: LocalRuntimeRecommendationTier;
-  hostSupportClass?: LocalRuntimeRecommendationHostSupportClass;
-  confidence?: LocalRuntimeRecommendationConfidence;
-  reasonCodes: string[];
-  recommendedEntry?: string;
-  fallbackEntries: string[];
-  suggestedAssets: LocalRuntimeSuggestedAsset[];
-  suggestedNotes: string[];
-  baseline?: LocalRuntimeRecommendationBaseline;
-};
-
-export type LocalRuntimeRecommendationFeedEntryDescriptor = {
-  entryId: string;
-  format: LocalRuntimeRecommendationFormat;
-  entry: string;
-  files: string[];
-  totalSizeBytes: number;
-  sha256?: string;
-};
-
-export type LocalRuntimeRecommendationInstalledState = {
-  installed: boolean;
-  localAssetId?: string;
-  status?: LocalRuntimeAssetStatus;
-};
-
-export type LocalRuntimeRecommendationActionState = {
-  canReviewInstallPlan: boolean;
-  canOpenVariants: boolean;
-  canOpenLocalAsset: boolean;
-};
-
-export type LocalRuntimeRecommendationFeedItemDescriptor = {
-  itemId: string;
-  source: LocalRuntimeRecommendationFeedSource;
-  repo: string;
-  revision: string;
-  title: string;
-  description?: string;
-  capabilities: string[];
-  tags: string[];
-  formats: LocalRuntimeRecommendationFormat[];
-  downloads?: number;
-  likes?: number;
-  lastModified?: string;
-  preferredEngine: string;
-  verified: boolean;
-  entries: LocalRuntimeRecommendationFeedEntryDescriptor[];
-  recommendation?: LocalRuntimeCatalogRecommendation;
-  installedState: LocalRuntimeRecommendationInstalledState;
-  actionState: LocalRuntimeRecommendationActionState;
-  installPayload: LocalRuntimeInstallPayload;
-};
-
-export type LocalRuntimeRecommendationFeedDescriptor = {
-  deviceProfile: LocalRuntimeDeviceProfile;
-  activeCapability: LocalRuntimeRecommendationFeedCapability;
-  generatedAt?: string;
-  cacheState: LocalRuntimeRecommendationFeedCacheState;
-  items: LocalRuntimeRecommendationFeedItemDescriptor[];
-};
+export type LocalRuntimeSuggestedAsset = LocalRecommendationSuggestedAssetProjection;
+export type LocalRuntimeCatalogRecommendation = LocalRecommendationCatalogProjection;
+export type LocalRuntimeRecommendationFeedEntryDescriptor = LocalRecommendationFeedEntryProjection;
+export type LocalRuntimeRecommendationInstalledState = LocalRecommendationInstalledStateProjection;
+export type LocalRuntimeRecommendationActionState = LocalRecommendationActionStateProjection;
+export type LocalRuntimeRecommendationFeedItemDescriptor = LocalRecommendationFeedItemProjection;
+export type LocalRuntimeRecommendationFeedDescriptor = LocalRecommendationFeedProjection<LocalRuntimeDeviceProfile>;
 
 export type LocalRuntimeCatalogItemDescriptor = {
   itemId: string;

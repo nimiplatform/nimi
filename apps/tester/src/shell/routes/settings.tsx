@@ -644,7 +644,7 @@ export function SettingsRoute() {
     etaSeconds: '2',
   });
   const localRuntimeAssetIdProjection = {
-    assetId: toCanonicalLocalRuntimeAssetId('llama/tester-model'),
+    assetId: toCanonicalLocalRuntimeAssetId('local/tester-model'),
     lookupKey: toCanonicalLocalRuntimeAssetLookupKey('LOCAL/Tester-Model'),
   };
   const memoryEmbeddingRouteProjection = projectMemoryEmbeddingRouteAvailability({

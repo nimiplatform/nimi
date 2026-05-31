@@ -2,12 +2,6 @@ import type {
   GgufVariantDescriptor,
   LocalRuntimeAssetDeclaration,
   LocalRuntimeAuditEvent,
-  LocalRuntimeCatalogRecommendation,
-  LocalRuntimeRecommendationActionState,
-  LocalRuntimeRecommendationFeedDescriptor,
-  LocalRuntimeRecommendationFeedEntryDescriptor,
-  LocalRuntimeRecommendationFeedItemDescriptor,
-  LocalRuntimeRecommendationInstalledState,
   LocalRuntimeDownloadState,
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeDownloadSessionSummary,
@@ -18,27 +12,15 @@ import type {
   LocalRuntimeUnregisteredAssetDescriptor,
 } from './types';
 import {
-  LOCAL_RECOMMENDATION_BASELINE_IDS,
-  LOCAL_RECOMMENDATION_CONFIDENCE_IDS,
-  LOCAL_RECOMMENDATION_FORMAT_IDS,
-  LOCAL_RECOMMENDATION_HOST_SUPPORT_CLASS_IDS,
-  LOCAL_RECOMMENDATION_SOURCE_IDS,
-  LOCAL_RECOMMENDATION_TIER_IDS,
-  parseLocalRecommendationBaselineId,
-  parseLocalRecommendationFeedCapabilityId,
-  parseLocalRecommendationFeedCacheStateId,
-  parseLocalRecommendationFeedSourceId,
-  parseLocalRecommendationFormatId,
-  parseLocalRecommendationHostSupportClassId,
-  parseLocalRecommendationConfidenceId,
-  parseLocalRecommendationSourceId,
-  parseLocalRecommendationTierId,
   parseLocalRuntimeEnvironmentDependencyJobProjection,
   parseLocalRuntimeEnvironmentPlanDependencyProjection,
   parseLocalRuntimeEnvironmentPlanProjection,
+  parseRuntimeLocalCatalogRecommendation,
+  parseRuntimeLocalRecommendationFeedDescriptor,
+  parseRuntimeLocalRecommendationFeedItem,
+  toCanonicalLocalRuntimeAssetId,
 } from '@nimiplatform/sdk/runtime';
 import { asRecord, asString } from './parser-primitives';
-import { toCanonicalLocalId } from './local-id';
 import { normalizeAssetKind, normalizeAssetStatus } from './parsers';
 
 export {
@@ -47,47 +29,9 @@ export {
   parseLocalRuntimeEnvironmentPlanProjection as parseLocalRuntimeEnvironmentPlan,
 };
 
-const RECOMMENDATION_SOURCES = new Set<LocalRuntimeCatalogRecommendation['source']>(LOCAL_RECOMMENDATION_SOURCE_IDS);
-const RECOMMENDATION_FORMATS = new Set<NonNullable<LocalRuntimeCatalogRecommendation['format']>>(LOCAL_RECOMMENDATION_FORMAT_IDS);
-const RECOMMENDATION_TIERS = new Set<NonNullable<LocalRuntimeCatalogRecommendation['tier']>>(LOCAL_RECOMMENDATION_TIER_IDS);
-const RECOMMENDATION_HOST_SUPPORT = new Set<NonNullable<LocalRuntimeCatalogRecommendation['hostSupportClass']>>(LOCAL_RECOMMENDATION_HOST_SUPPORT_CLASS_IDS);
-const RECOMMENDATION_CONFIDENCE = new Set<NonNullable<LocalRuntimeCatalogRecommendation['confidence']>>(LOCAL_RECOMMENDATION_CONFIDENCE_IDS);
-const RECOMMENDATION_BASELINES = new Set<NonNullable<LocalRuntimeCatalogRecommendation['baseline']>>(LOCAL_RECOMMENDATION_BASELINE_IDS);
-
-function parseEnumValue<T extends string>(value: unknown, allowed: Set<T>): T | undefined {
-  if (allowed === RECOMMENDATION_SOURCES) {
-    return parseLocalRecommendationSourceId(value) as T | undefined;
-  }
-  if (allowed === RECOMMENDATION_FORMATS) {
-    return parseLocalRecommendationFormatId(value) as T | undefined;
-  }
-  if (allowed === RECOMMENDATION_TIERS) {
-    return parseLocalRecommendationTierId(value) as T | undefined;
-  }
-  if (allowed === RECOMMENDATION_HOST_SUPPORT) {
-    return parseLocalRecommendationHostSupportClassId(value) as T | undefined;
-  }
-  if (allowed === RECOMMENDATION_CONFIDENCE) {
-    return parseLocalRecommendationConfidenceId(value) as T | undefined;
-  }
-  if (allowed === RECOMMENDATION_BASELINES) {
-    return parseLocalRecommendationBaselineId(value) as T | undefined;
-  }
-  const normalized = asString(value);
-  return allowed.has(normalized as T) ? normalized as T : undefined;
-}
-
-function requiredEnumValue<T extends string>(
-  field: string,
-  value: unknown,
-  allowed: Set<T>,
-): T {
-  const normalized = parseEnumValue(value, allowed);
-  if (!normalized) {
-    throw new Error(`Invalid local runtime field: ${field}`);
-  }
-  return normalized;
-}
+export const parseCatalogRecommendation = parseRuntimeLocalCatalogRecommendation;
+export const parseRecommendationFeedItemDescriptor = parseRuntimeLocalRecommendationFeedItem;
+export const parseRecommendationFeedDescriptor = parseRuntimeLocalRecommendationFeedDescriptor;
 
 function requiredString(field: string, value: unknown): string {
   const normalized = asString(value);
@@ -95,51 +39,6 @@ function requiredString(field: string, value: unknown): string {
     throw new Error(`Missing local runtime field: ${field}`);
   }
   return normalized;
-}
-
-export function parseCatalogRecommendation(value: unknown): LocalRuntimeCatalogRecommendation | undefined {
-  const record = asRecord(value);
-  if (Object.keys(record).length === 0) {
-    return undefined;
-  }
-  const source = parseEnumValue(record.source, RECOMMENDATION_SOURCES);
-  if (!source) {
-    return undefined;
-  }
-  const reasonCodes = Array.isArray(record.reasonCodes)
-    ? record.reasonCodes.map((item) => asString(item)).filter(Boolean)
-    : [];
-  const fallbackEntries = Array.isArray(record.fallbackEntries)
-    ? record.fallbackEntries.map((item) => asString(item)).filter(Boolean)
-    : [];
-  const rawSuggestedAssets = record.suggestedAssets;
-  const suggestedAssets = Array.isArray(rawSuggestedAssets)
-    ? rawSuggestedAssets.map((item: unknown) => {
-      const row = asRecord(item);
-      return {
-        templateId: asString(row.templateId) || undefined,
-        assetId: asString(row.assetId || row.assetId) || undefined,
-        kind: asString(row.kind),
-        family: asString(row.family) || undefined,
-      };
-    }).filter((item) => item.kind)
-    : [];
-  const suggestedNotes = Array.isArray(record.suggestedNotes)
-    ? record.suggestedNotes.map((item) => asString(item)).filter(Boolean)
-    : [];
-  return {
-    source,
-    format: parseEnumValue(record.format, RECOMMENDATION_FORMATS),
-    tier: parseEnumValue(record.tier, RECOMMENDATION_TIERS),
-    hostSupportClass: parseEnumValue(record.hostSupportClass, RECOMMENDATION_HOST_SUPPORT),
-    confidence: parseEnumValue(record.confidence, RECOMMENDATION_CONFIDENCE),
-    reasonCodes,
-    recommendedEntry: asString(record.recommendedEntry) || undefined,
-    fallbackEntries,
-    suggestedAssets,
-    suggestedNotes,
-    baseline: parseEnumValue(record.baseline, RECOMMENDATION_BASELINES),
-  };
 }
 
 export function parseAssetHealth(value: unknown): LocalRuntimeAssetHealth {
@@ -164,138 +63,6 @@ export function parseGgufVariantDescriptor(value: unknown): GgufVariantDescripto
     sizeBytes: Number.isFinite(sizeBytes) && sizeBytes > 0 ? sizeBytes : undefined,
     sha256: asString(record.sha256) || undefined,
     recommendation: parseCatalogRecommendation(record.recommendation),
-  };
-}
-
-function parseRecommendationFeedEntryDescriptor(value: unknown): LocalRuntimeRecommendationFeedEntryDescriptor {
-  const record = asRecord(value);
-  const totalSizeBytes = Number(record.totalSizeBytes);
-  return {
-    entryId: requiredString('recommendationFeed.entries[].entryId', record.entryId),
-    format: requiredEnumValue(
-      'recommendationFeed.entries[].format',
-      record.format,
-      RECOMMENDATION_FORMATS,
-    ),
-    entry: requiredString('recommendationFeed.entries[].entry', record.entry),
-    files: Array.isArray(record.files) ? record.files.map((item) => asString(item)).filter(Boolean) : [],
-    totalSizeBytes: Number.isFinite(totalSizeBytes) && totalSizeBytes > 0 ? totalSizeBytes : 0,
-    sha256: asString(record.sha256) || undefined,
-  };
-}
-
-function parseRecommendationInstalledState(value: unknown): LocalRuntimeRecommendationInstalledState {
-  const record = asRecord(value);
-  return {
-    installed: Boolean(record.installed),
-    localAssetId: asString(record.localAssetId || record.localModelId) || undefined,
-    status: record.status ? normalizeAssetStatus(record.status) : undefined,
-  };
-}
-
-function parseRecommendationActionState(value: unknown): LocalRuntimeRecommendationActionState {
-  const record = asRecord(value);
-  return {
-    canReviewInstallPlan: Boolean(record.canReviewInstallPlan),
-    canOpenVariants: Boolean(record.canOpenVariants),
-    canOpenLocalAsset: Boolean(record.canOpenLocalAsset || record.canOpenLocalModel),
-  };
-}
-
-export function parseRecommendationFeedItemDescriptor(value: unknown): LocalRuntimeRecommendationFeedItemDescriptor | undefined {
-  const record = asRecord(value);
-  const installPayload = asRecord(record.installPayload);
-  const source = parseLocalRecommendationFeedSourceId(record.source);
-  const itemId = asString(record.itemId);
-  const repo = asString(record.repo);
-  const title = asString(record.title);
-  const preferredEngine = asString(record.preferredEngine);
-  const installModelId = asString(installPayload.modelId || installPayload.assetId);
-  const installRepo = asString(installPayload.repo);
-  if (!source || !itemId || !repo || !title || !preferredEngine || !installModelId || !installRepo) {
-    return undefined;
-  }
-  const downloads = Number(record.downloads);
-  const likes = Number(record.likes);
-  const entries = Array.isArray(record.entries)
-    ? record.entries.map((item) => {
-      try {
-        return parseRecommendationFeedEntryDescriptor(item);
-      } catch {
-        return undefined;
-      }
-    }).filter((item): item is LocalRuntimeRecommendationFeedEntryDescriptor => Boolean(item))
-    : [];
-  const formats = Array.isArray(record.formats)
-    ? record.formats
-      .map((item) => parseEnumValue(item, RECOMMENDATION_FORMATS))
-      .filter((item): item is NonNullable<LocalRuntimeRecommendationFeedItemDescriptor['formats'][number]> => Boolean(item))
-    : [];
-  return {
-    itemId,
-    source,
-    repo,
-    revision: asString(record.revision),
-    title,
-    description: asString(record.description) || undefined,
-    capabilities: Array.isArray(record.capabilities) ? record.capabilities.map((item) => asString(item)).filter(Boolean) : [],
-    tags: Array.isArray(record.tags) ? record.tags.map((item) => asString(item)).filter(Boolean) : [],
-    formats,
-    downloads: Number.isFinite(downloads) && downloads >= 0 ? downloads : undefined,
-    likes: Number.isFinite(likes) && likes >= 0 ? likes : undefined,
-    lastModified: asString(record.lastModified) || undefined,
-    preferredEngine,
-    verified: Boolean(record.verified),
-    entries,
-    recommendation: parseCatalogRecommendation(record.recommendation),
-    installedState: parseRecommendationInstalledState(record.installedState),
-    actionState: parseRecommendationActionState(record.actionState),
-    installPayload: {
-      modelId: installModelId,
-      kind: normalizeAssetKind(installPayload.kind),
-      repo: installRepo,
-      revision: asString(installPayload.revision) || undefined,
-      capabilities: Array.isArray(installPayload.capabilities)
-        ? (installPayload.capabilities as unknown[]).map((item) => asString(item)).filter(Boolean)
-        : undefined,
-      engine: asString(installPayload.engine) || undefined,
-      entry: asString(installPayload.entry) || undefined,
-      files: Array.isArray(installPayload.files)
-        ? (installPayload.files as unknown[]).map((item) => asString(item)).filter(Boolean)
-        : undefined,
-      license: asString(installPayload.license) || undefined,
-      hashes: Object.fromEntries(
-        Object.entries(asRecord(installPayload.hashes)).map(([key, item]) => [key, asString(item)]),
-      ),
-      endpoint: asString(installPayload.endpoint) || undefined,
-      engineConfig: undefined,
-    },
-  };
-}
-
-export function parseRecommendationFeedDescriptor(
-  value: unknown,
-  parseDeviceProfile: (value: unknown) => LocalRuntimeRecommendationFeedDescriptor['deviceProfile'],
-): LocalRuntimeRecommendationFeedDescriptor {
-  const record = asRecord(value);
-  const activeCapability = parseLocalRecommendationFeedCapabilityId(record.activeCapability);
-  if (!activeCapability) {
-    throw new Error('Invalid local runtime field: recommendationFeed.activeCapability');
-  }
-  const cacheState = parseLocalRecommendationFeedCacheStateId(record.cacheState);
-  if (!cacheState) {
-    throw new Error('Invalid local runtime field: recommendationFeed.cacheState');
-  }
-  return {
-    deviceProfile: parseDeviceProfile(record.deviceProfile),
-    activeCapability,
-    generatedAt: asString(record.generatedAt) || undefined,
-    cacheState,
-    items: Array.isArray(record.items)
-      ? record.items
-        .map((item) => parseRecommendationFeedItemDescriptor(item))
-        .filter((item): item is LocalRuntimeRecommendationFeedItemDescriptor => Boolean(item))
-      : [],
   };
 }
 
@@ -340,7 +107,7 @@ export function parseAuditEvent(value: unknown): LocalRuntimeAuditEvent {
     modality,
     reasonCode,
     detail,
-    modelId: toCanonicalLocalId(record.modelId || record.assetId) || undefined,
+    modelId: toCanonicalLocalRuntimeAssetId(record.modelId || record.assetId) || undefined,
     localModelId: asString(record.localModelId || record.localAssetId) || undefined,
     payload,
   };
@@ -383,7 +150,7 @@ export function parseDownloadProgressEvent(value: unknown): LocalRuntimeDownload
   const retryable = typeof record.retryable === 'boolean' ? Boolean(record.retryable) : undefined;
   return {
     installSessionId: asString(record.installSessionId),
-    modelId: toCanonicalLocalId(record.modelId || record.assetId),
+    modelId: toCanonicalLocalRuntimeAssetId(record.modelId || record.assetId),
     localModelId: asString(record.localModelId || record.localAssetId) || undefined,
     sessionKind: normalizeTransferSessionKind(record.sessionKind),
     phase: asString(record.phase) || 'download',
@@ -408,7 +175,7 @@ export function parseDownloadSessionSummary(value: unknown): LocalRuntimeDownloa
   const etaRaw = Number(record.etaSeconds);
   return {
     installSessionId: asString(record.installSessionId),
-    modelId: toCanonicalLocalId(record.modelId || record.assetId),
+    modelId: toCanonicalLocalRuntimeAssetId(record.modelId || record.assetId),
     localModelId: asString(record.localModelId || record.localAssetId),
     sessionKind: normalizeTransferSessionKind(record.sessionKind),
     phase: asString(record.phase) || 'download',
@@ -429,7 +196,7 @@ export function parseTransferAccepted(value: unknown): LocalRuntimeTransferAccep
   const record = asRecord(value);
   return {
     installSessionId: requiredString('installSessionId', record.installSessionId),
-    modelId: toCanonicalLocalId(requiredString('modelId', record.modelId || record.assetId)),
+    modelId: toCanonicalLocalRuntimeAssetId(requiredString('modelId', record.modelId || record.assetId)),
     localModelId: requiredString('localModelId', record.localModelId || record.localAssetId),
   };
 }
@@ -438,7 +205,7 @@ export function parseScaffoldAssetResult(value: unknown): LocalRuntimeScaffoldAs
   const record = asRecord(value);
   return {
     manifestPath: asString(record.manifestPath),
-    assetId: toCanonicalLocalId(record.assetId),
+    assetId: toCanonicalLocalRuntimeAssetId(record.assetId),
     kind: normalizeAssetKind(record.kind),
   };
 }
