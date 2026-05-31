@@ -1,6 +1,5 @@
-import type { NimiError } from '@nimiplatform/sdk/types';
+import { tryParseJsonLike, type NimiError } from '@nimiplatform/sdk/types';
 import { extractRuntimeErrorFields } from '../telemetry/error-fields';
-import { tryParseJsonLike } from './json';
 
 type ApiErrorLike = {
   status: number;

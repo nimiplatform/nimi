@@ -1,3 +1,15 @@
+export type {
+  JsonPrimitive,
+  JsonValue,
+  JsonObject,
+} from './json.js';
+export {
+  isJsonObject,
+  asJsonObject,
+  parseJsonObjectResponse,
+  tryParseJsonLike,
+} from './json.js';
+
 export type NimiErrorSource = 'realm' | 'runtime' | 'sdk';
 
 export type NimiError = Error & {

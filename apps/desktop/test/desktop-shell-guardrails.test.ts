@@ -154,6 +154,7 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
     path.join(import.meta.dirname, '../src-tauri/tauri.conf.json'),
     'utf8',
   );
+  const desktopRendererRoot = path.join(import.meta.dirname, '../src/shell/renderer');
   const authMenuSource = fs.readFileSync(
     path.join(import.meta.dirname, '../src/shell/renderer/features/auth/web-auth-menu.tsx'),
     'utf8',
@@ -185,4 +186,22 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
   assert.match(systemResourcesSource, /static MACOS_CPU_COUNT: OnceLock<f64> = OnceLock::new\(\);/);
   assert.match(systemResourcesSource, /MACOS_CPU_COUNT\.get_or_init/);
   assert.doesNotMatch(systemResourcesSource, /collect_cpu_percent\(\)[\s\S]*read_command_output\("sysctl", &\["-n", "hw\.ncpu"\]\)/);
+  assert.equal(fs.existsSync(path.join(import.meta.dirname, '../src/runtime/net/json.ts')), false);
+  for (const sourcePath of [
+    'infra/offline/cache-manager.ts',
+    'infra/offline/types.ts',
+    'infra/local-agent-courier/provision-courier.ts',
+    'infra/local-agent-courier/termination-courier.ts',
+    'infra/realm/realm-api.ts',
+    'features/chat/data/realm-human-chat-data.ts',
+    'features/chat/data/realm-group-chat-data.ts',
+    'features/social/data/profile-data.ts',
+    'features/social/data/realm-social-data.ts',
+    'features/agent-detail/data/realm-agent-detail-data.ts',
+    'features/world/data/realm-world-data.ts',
+  ]) {
+    const source = fs.readFileSync(path.join(desktopRendererRoot, sourcePath), 'utf8');
+    assert.doesNotMatch(source, /@runtime\/net\/json/);
+    assert.match(source, /@nimiplatform\/sdk\/types/);
+  }
 });

@@ -18,7 +18,7 @@ import {
   type RealmWorldSceneListPayload,
   type RealmWorldSemanticBundle,
 } from '@nimiplatform/sdk/realm';
-import { type JsonObject } from '@runtime/net/json';
+import type { JsonObject } from '@nimiplatform/sdk/types';
 import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
 import {
   getOfflineCacheManager,

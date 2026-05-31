@@ -7,7 +7,7 @@ import {
   RealmGroupMessageCandidateCommitDisposition,
   createRuntimeProtectedScopeHelper,
 } from '@nimiplatform/sdk/runtime';
-import type { JsonObject } from '@runtime/net/json';
+import type { JsonObject } from '@nimiplatform/sdk/types';
 
 type GroupChatViewDto = RealmModel<'GroupChatViewDto'>;
 type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;

@@ -1,6 +1,6 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type { Realm } from '@nimiplatform/sdk/realm';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import { ReasonCode, tryParseJsonLike } from '@nimiplatform/sdk/types';
 import { extractRuntimeErrorFields } from '@runtime/telemetry/error-fields';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import {
@@ -15,30 +15,6 @@ export type RealmDataErrorEmitter = (
   error: unknown,
   details?: Record<string, unknown>,
 ) => void;
-
-export function tryParseJsonLike<T>(value: T): T {
-  if (typeof value !== 'string') {
-    return value;
-  }
-
-  const text = value.trim();
-  if (!text) {
-    return value;
-  }
-
-  if (
-    (text.startsWith('{') && text.endsWith('}')) ||
-    (text.startsWith('[') && text.endsWith(']'))
-  ) {
-    try {
-      return JSON.parse(text) as T;
-    } catch {
-      return value;
-    }
-  }
-
-  return value;
-}
 
 export async function callRealmApi<T>(
   task: (realm: Realm) => Promise<T>,

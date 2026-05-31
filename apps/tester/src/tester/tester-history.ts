@@ -1,7 +1,7 @@
 import { invokeTesterCommand } from './tester-tauri.js';
 import { getTesterCapability, type TesterCapabilityId } from './tester-capabilities.js';
 import { withTesterDataStorageRoot } from './tester-app-storage.js';
-import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
+import { isJsonObject } from '@nimiplatform/sdk/types';
 
 export type TesterRunHistoryRecord = {
   id: string;
@@ -64,11 +64,10 @@ export function formatTesterRunTimestamp(value: string): string {
 
 function parseHistory(raw: string): TesterRunHistory {
   const parsed = JSON.parse(raw || '{}');
-  const record = parseOptionalJsonObject(parsed);
-  if (!record) {
+  if (!isJsonObject(parsed)) {
     throw new Error('Tester run history payload must be an object.');
   }
-  return record as TesterRunHistory;
+  return parsed as TesterRunHistory;
 }
 
 export async function loadTesterRunHistory(): Promise<TesterRunHistory> {

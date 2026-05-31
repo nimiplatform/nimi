@@ -1,4 +1,4 @@
-import { tryParseJsonLike } from '../net/json';
+import { tryParseJsonLike } from '@nimiplatform/sdk/types';
 
 export type RuntimeErrorFields = {
   code?: string;

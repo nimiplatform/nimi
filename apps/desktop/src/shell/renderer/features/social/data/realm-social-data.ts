@@ -1,4 +1,4 @@
-import type { JsonObject } from '@runtime/net/json';
+import type { JsonObject } from '@nimiplatform/sdk/types';
 import {
   runLocalAgentProvisionCourierPass,
   runLocalAgentTerminationCourierPass,

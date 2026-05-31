@@ -6,7 +6,7 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { isRealmOfflineError, isRuntimeOfflineError } from '@renderer/infra/offline';
-import type { JsonObject } from '@runtime/net/json';
+import type { JsonObject } from '@nimiplatform/sdk/types';
 
 type LocalAgentProvisionIntentDto = RealmModel<'LocalAgentProvisionIntentDto'>;
 type LocalAgentProvisionIntentAckDto = RealmModel<'LocalAgentProvisionIntentAckDto'>;

@@ -4,7 +4,7 @@ import {
   realmChatService,
   type RealmChatService,
 } from '@nimiplatform/kit/features/chat/realm';
-import { isJsonObject, type JsonObject } from '@runtime/net/json';
+import { isJsonObject, type JsonObject } from '@nimiplatform/sdk/types';
 import {
   getErrorMessage,
   getOfflineCacheManager,
