@@ -1,5 +1,5 @@
 import { i18n } from '@renderer/i18n';
-import { toCanonicalLocalLookupKey } from '@runtime/local-runtime/local-id';
+import { toCanonicalLocalRuntimeAssetLookupKey } from '@nimiplatform/sdk/runtime';
 import type {
   LocalRuntimeAssetRecord,
   LocalRuntimeDownloadProgressEvent,
@@ -40,7 +40,7 @@ function AssetRequirementBadges(props: AssetRequirementBadgesProps) {
   }
 
   const missingAssets = props.relatedAssets.filter((asset) => (
-    !props.installedAssetsById.has(toCanonicalLocalLookupKey(asset.assetId))
+    !props.installedAssetsById.has(toCanonicalLocalRuntimeAssetLookupKey(asset.assetId))
   ));
   const hasPendingMissingAssets = missingAssets.some((asset) => props.isAssetPending(asset.templateId));
 
@@ -62,7 +62,7 @@ function AssetRequirementBadges(props: AssetRequirementBadgesProps) {
         </button>
       ) : null}
       {props.relatedAssets.map((asset) => {
-        const installed = props.installedAssetsById.get(toCanonicalLocalLookupKey(asset.assetId)) || null;
+        const installed = props.installedAssetsById.get(toCanonicalLocalRuntimeAssetLookupKey(asset.assetId)) || null;
         const pending = props.isAssetPending(asset.templateId);
         return (
           <div

@@ -340,6 +340,10 @@ export {
   type LocalRuntimeRunnableAssetKindId,
 } from './local-asset-kind.js';
 export {
+  toCanonicalLocalRuntimeAssetId,
+  toCanonicalLocalRuntimeAssetLookupKey,
+} from './local-asset-id.js';
+export {
   LOCAL_RUNTIME_ENGINE_IDS,
   LOCAL_RUNTIME_ENGINE_RUNTIME_MODE_IDS,
   isLocalRuntimeEngineId,

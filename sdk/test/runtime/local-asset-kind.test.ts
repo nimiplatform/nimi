@@ -17,6 +17,8 @@ import {
   parseLocalRuntimeGpuMemoryModelId,
   parseLocalRuntimeAssetKindId,
   parseLocalRuntimeAssetStatusId,
+  toCanonicalLocalRuntimeAssetId,
+  toCanonicalLocalRuntimeAssetLookupKey,
   toLocalProfileEntryKindRequestValue,
   toLocalRuntimeAssetKindRequestValue,
   toLocalRuntimeAssetStatusRequestValue,
@@ -88,6 +90,17 @@ test('local runtime asset kind capability projection stays runtime-local', () =>
   assert.equal(localRuntimeRunnableAssetKindForCapabilities(['text.embed']), 'embedding');
   assert.equal(localRuntimeRunnableAssetKindForCapabilities(['audio.synthesize']), 'tts');
   assert.equal(localRuntimeRunnableAssetKindForCapabilities(['unknown']), 'chat');
+});
+
+test('local runtime asset id projection normalizes admitted local aliases', () => {
+  assert.equal(toCanonicalLocalRuntimeAssetId('gemma/model'), 'local/gemma/model');
+  assert.equal(toCanonicalLocalRuntimeAssetId('local/gemma/model'), 'local/gemma/model');
+  assert.equal(toCanonicalLocalRuntimeAssetId('llama/gemma/model'), 'local/gemma/model');
+  assert.equal(toCanonicalLocalRuntimeAssetId('media/sdxl'), 'local/sdxl');
+  assert.equal(toCanonicalLocalRuntimeAssetId('speech/voice'), 'local/voice');
+  assert.equal(toCanonicalLocalRuntimeAssetId('sidecar/embedding'), 'local/embedding');
+  assert.equal(toCanonicalLocalRuntimeAssetId(''), '');
+  assert.equal(toCanonicalLocalRuntimeAssetLookupKey('LOCAL/Gemma/Model'), 'local/gemma/model');
 });
 
 test('local runtime write-side enum helpers return Runtime proto enum values', () => {

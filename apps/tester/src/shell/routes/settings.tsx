@@ -50,6 +50,8 @@ import {
   summarizeLocalRecommendationFeedCacheState,
   summarizeRuntimeAgentProjectionEvent,
   summarizeRuntimeAgentTimeline,
+  toCanonicalLocalRuntimeAssetId,
+  toCanonicalLocalRuntimeAssetLookupKey,
   toProtoStruct,
   type RuntimeConnectorProjection,
   type RuntimeAgentConsumeEvent,
@@ -552,6 +554,10 @@ export function SettingsRoute() {
     speedBytesPerSec: '256',
     etaSeconds: '2',
   });
+  const localRuntimeAssetIdProjection = {
+    assetId: toCanonicalLocalRuntimeAssetId('llama/tester-model'),
+    lookupKey: toCanonicalLocalRuntimeAssetLookupKey('LOCAL/Tester-Model'),
+  };
   const memoryEmbeddingRouteProjection = projectMemoryEmbeddingRouteAvailability({
     config: {
       ...createEmptyMemoryEmbeddingConfig({
@@ -1318,6 +1324,12 @@ export function SettingsRoute() {
           {runtimeDependencyPlanProjection.packId}: {runtimeDependencyPlanProjection.dependencies[0]?.dependencyId ?? 'none'}
           {' / '}
           {runtimeDependencyJobProjection.percent}%
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Local runtime asset id projection</span>
+        <StatusBadge tone="neutral">
+          {localRuntimeAssetIdProjection.assetId} / {localRuntimeAssetIdProjection.lookupKey}
         </StatusBadge>
       </div>
       <div className="setting-row">

@@ -33,7 +33,7 @@ import {
 import {
   useLocalModelCenterImportFilePlan,
 } from './runtime-config-use-local-model-center-import-file-plan';
-import { toCanonicalLocalLookupKey } from '@runtime/local-runtime/local-id';
+import { toCanonicalLocalRuntimeAssetLookupKey } from '@nimiplatform/sdk/runtime';
 import { useLocalModelCenterImportActions } from './runtime-config-use-local-model-center-import-actions';
 import {
   useLocalModelCenterRuntimeDependencies,
@@ -103,17 +103,17 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
   });
 
   const installedRunnableAssetIds = useMemo(
-    () => new Set(sortedInstalledRunnableAssets.map((asset) => toCanonicalLocalLookupKey(asset.assetId)).filter(Boolean)),
+    () => new Set(sortedInstalledRunnableAssets.map((asset) => toCanonicalLocalRuntimeAssetLookupKey(asset.assetId)).filter(Boolean)),
     [sortedInstalledRunnableAssets],
   );
 
   const installedAssetsById = useMemo(
-    () => new Map(visibleInstalledAssets.map((asset) => [toCanonicalLocalLookupKey(asset.assetId), asset] as const)),
+    () => new Map(visibleInstalledAssets.map((asset) => [toCanonicalLocalRuntimeAssetLookupKey(asset.assetId), asset] as const)),
     [visibleInstalledAssets],
   );
 
   const isRunnableAssetInstalled = useCallback((assetId: string) => (
-    installedRunnableAssetIds.has(toCanonicalLocalLookupKey(assetId))
+    installedRunnableAssetIds.has(toCanonicalLocalRuntimeAssetLookupKey(assetId))
   ), [installedRunnableAssetIds]);
 
   const inferredCatalogCapability = useCallback((item: LocalRuntimeCatalogItemDescriptor): CapabilityOption => (
@@ -306,7 +306,7 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
       if (assetKindFilter !== 'all' && asset.kind !== assetKindFilter) {
         return false;
       }
-      if (installedAssetsById.has(toCanonicalLocalLookupKey(asset.assetId))) {
+      if (installedAssetsById.has(toCanonicalLocalRuntimeAssetLookupKey(asset.assetId))) {
         return false;
       }
       if (!query) {
@@ -435,7 +435,7 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
   }, [markAssetPending, props, refreshAssetSections, upsertAssetTask]);
 
   const installMissingAssetsForModel = useCallback(async (assets: LocalRuntimeVerifiedAssetDescriptor[]) => {
-    const missing = assets.filter((asset) => !installedAssetsById.has(toCanonicalLocalLookupKey(asset.assetId)));
+    const missing = assets.filter((asset) => !installedAssetsById.has(toCanonicalLocalRuntimeAssetLookupKey(asset.assetId)));
     for (const asset of missing) {
       await installVerifiedAsset(asset.templateId);
     }

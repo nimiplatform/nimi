@@ -1049,6 +1049,17 @@ test('tester settings consumes SDK Runtime dependency parser projections', () =>
   assert.match(settings, /Runtime dependency parser projection/);
 });
 
+test('tester settings consumes SDK local runtime asset id projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /toCanonicalLocalRuntimeAssetId/);
+  assert.match(settings, /toCanonicalLocalRuntimeAssetLookupKey/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(settings, /Local runtime asset id projection/);
+  assert.match(settings, /localRuntimeAssetIdProjection\.lookupKey/);
+  assert.doesNotMatch(settings, /@runtime\/local-runtime\/local-id/);
+});
+
 test('tester settings consumes SDK memory embedding route availability projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
 

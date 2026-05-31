@@ -130,7 +130,9 @@ test('local model center hides removed tombstones from installed sections and re
   assert.match(localModelCenterInstalledAssetsSource, /const visibleInstalledAssets = useMemo\(/);
   assert.match(localModelCenterInstalledAssetsSource, /sortedInstalledAssets\.filter\(\(asset\) => asset\.status !== 'removed'\)/);
   assert.match(localModelCenterInstalledAssetsSource, /visibleInstalledAssets\.filter\(\(asset\) => isRunnableAssetKind\(asset\.kind\)\)/);
-  assert.match(localModelCenterStateSource, /new Map\(visibleInstalledAssets\.map\(\(asset\) => \[toCanonicalLocalLookupKey\(asset\.assetId\), asset\] as const\)\)/);
+  assert.match(localModelCenterStateSource, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(localModelCenterStateSource, /new Map\(visibleInstalledAssets\.map\(\(asset\) => \[toCanonicalLocalRuntimeAssetLookupKey\(asset\.assetId\), asset\] as const\)\)/);
+  assert.doesNotMatch(localModelCenterStateSource, /@runtime\/local-runtime\/local-id/);
 });
 
 test('dismissed transfer sessions persist across renderer reloads', () => {
