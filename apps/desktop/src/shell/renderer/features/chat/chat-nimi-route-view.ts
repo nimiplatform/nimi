@@ -1,5 +1,5 @@
 import {
-  createReadyConversationSetupState,
+  resolveConversationRuntimeRouteSetupStateFromProjection,
   type ConversationSetupState,
 } from '@nimiplatform/kit/features/chat/headless';
 import {
@@ -159,44 +159,16 @@ export function resolveAgentChatRequestedMaxOutputTokens(
   return Math.floor(maxOutputTokens);
 }
 
-function setupDetailForReasonCode(
-  reasonCode: ConversationCapabilityProjection['reasonCode'],
-): string {
-  if (reasonCode === 'selection_missing' || reasonCode === 'selection_cleared') {
-    return 'Select an AI route before sending a message.';
-  }
-  if (reasonCode === 'binding_unresolved') {
-    return 'The selected AI route is unavailable. Pick another route.';
-  }
-  if (reasonCode === 'route_unhealthy') {
-    return 'The selected AI route is unhealthy. Pick another route.';
-  }
-  if (reasonCode === 'metadata_missing') {
-    return 'The selected AI route metadata is unavailable. Pick another route.';
-  }
-  return 'The selected AI route is unavailable. Pick another route.';
-}
-
 export function resolveAiConversationSetupStateFromProjection(
   projection: ConversationCapabilityProjection | null,
 ): ConversationSetupState {
-  if (projection?.supported) {
-    return createReadyConversationSetupState('ai');
-  }
-
-  return {
+  return resolveConversationRuntimeRouteSetupStateFromProjection({
     mode: 'ai',
-    status: 'setup-required',
-    issues: [{
-      code: 'ai-thread-route-unavailable',
-      detail: setupDetailForReasonCode(projection?.reasonCode || null),
-    }],
-    primaryAction: {
-      kind: 'open-settings',
-      targetId: 'runtime-overview',
-      returnToMode: 'ai',
-    },
-  };
+    projection,
+    issueCode: 'ai-thread-route-unavailable',
+    actionTargetId: 'runtime-overview',
+    returnToMode: 'ai',
+  });
 }
 
 function summarizeBinding(binding: RuntimeRouteBinding): { label: string; detail: string | null } {

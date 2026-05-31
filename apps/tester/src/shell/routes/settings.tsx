@@ -17,6 +17,7 @@ import {
   type RuntimeRouteDescribeResult,
 } from '@nimiplatform/sdk/ai';
 import { pickerSelectionToBinding } from '@nimiplatform/kit/features/model-config';
+import { resolveConversationRuntimeRouteSetupStateFromProjection } from '@nimiplatform/kit/features/chat/headless';
 import {
   getRuntimeReasonCodeDefaultMessage,
   createRuntimeConnectorInventoryClient,
@@ -136,7 +137,7 @@ type CatalogProjectionState =
 
 type RuntimeCapabilityProjectionState =
   | { status: 'loading'; summary: null; error: null }
-  | { status: 'ready'; summary: { capability: string; supported: boolean; reasonCode: string }; error: null }
+  | { status: 'ready'; summary: { capability: string; supported: boolean; reasonCode: string; setupStatus: string }; error: null }
   | { status: 'error'; summary: null; error: string };
 
 const runtimeConnectorInventory = createRuntimeConnectorInventoryClient({
@@ -610,12 +611,17 @@ export function SettingsRoute() {
       if (cancelled) {
         return;
       }
+      const setupState = resolveConversationRuntimeRouteSetupStateFromProjection({
+        mode: 'ai',
+        projection,
+      });
       setRuntimeCapabilityProjection({
         status: 'ready',
         summary: {
           capability: projection.capability,
           supported: projection.supported,
           reasonCode: projection.reasonCode ?? 'ok',
+          setupStatus: setupState.status,
         },
         error: null,
       });
@@ -1290,7 +1296,7 @@ export function SettingsRoute() {
         <span>Runtime route capability projection</span>
         <StatusBadge tone={runtimeCapabilityProjection.status === 'ready' && runtimeCapabilityProjection.summary.supported ? 'success' : runtimeCapabilityProjection.status === 'error' ? 'danger' : 'warning'}>
           {runtimeCapabilityProjection.status === 'ready'
-            ? `${runtimeCapabilityProjection.summary.capability}: ${runtimeCapabilityProjection.summary.reasonCode}`
+            ? `${runtimeCapabilityProjection.summary.capability}: ${runtimeCapabilityProjection.summary.setupStatus}/${runtimeCapabilityProjection.summary.reasonCode}`
             : runtimeCapabilityProjection.status === 'error'
               ? runtimeCapabilityProjection.error
               : 'checking'}

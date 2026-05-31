@@ -6,6 +6,7 @@ import {
   hasConversationSetupBlockingState,
   hasConversationComposer,
   isConversationMode,
+  resolveConversationRuntimeRouteSetupStateFromProjection,
   resolveConversationThreadById,
 } from '../src/headless.js';
 
@@ -34,6 +35,51 @@ describe('conversation headless contract', () => {
       issues: [{ code: 'agent-contract-unavailable' }],
       primaryAction: null,
     })).toBe(true);
+  });
+
+  it('maps Runtime route projections to reusable setup state without owning route truth', () => {
+    expect(resolveConversationRuntimeRouteSetupStateFromProjection({
+      projection: { supported: true, reasonCode: null },
+    })).toEqual(createReadyConversationSetupState('ai'));
+
+    expect(resolveConversationRuntimeRouteSetupStateFromProjection({
+      projection: { supported: false, reasonCode: 'metadata_missing' },
+    })).toEqual({
+      mode: 'ai',
+      status: 'setup-required',
+      issues: [{
+        code: 'ai-thread-route-unavailable',
+        detail: 'The selected AI route metadata is unavailable. Pick another route.',
+      }],
+      primaryAction: {
+        kind: 'open-settings',
+        targetId: 'runtime-overview',
+        returnToMode: 'ai',
+      },
+    });
+
+    expect(resolveConversationRuntimeRouteSetupStateFromProjection({
+      mode: 'agent',
+      projection: { supported: false, reasonCode: 'host_denied' },
+      issueCode: 'agent-contract-unavailable',
+      actionTargetId: 'runtime-local',
+      returnToMode: 'agent',
+      detailByReasonCode: {
+        host_denied: 'Runtime host denied this route.',
+      },
+    })).toEqual({
+      mode: 'agent',
+      status: 'setup-required',
+      issues: [{
+        code: 'agent-contract-unavailable',
+        detail: 'Runtime host denied this route.',
+      }],
+      primaryAction: {
+        kind: 'open-settings',
+        targetId: 'runtime-local',
+        returnToMode: 'agent',
+      },
+    });
   });
 
   it('fails closed when the active thread is missing', () => {

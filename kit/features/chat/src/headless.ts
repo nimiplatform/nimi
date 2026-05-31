@@ -107,6 +107,7 @@ import type {
   ConversationComposerAdapter,
   ConversationMode,
   ConversationModeAvailability,
+  ConversationSetupIssueCode,
   ConversationSetupState,
   ConversationShellAdapter,
   ConversationShellViewModel,
@@ -135,6 +136,60 @@ export function hasConversationSetupBlockingState(
   state: ConversationSetupState | null | undefined,
 ): boolean {
   return Boolean(state && state.status !== 'ready');
+}
+
+export type ConversationRuntimeRouteProjectionLike = {
+  supported?: boolean;
+  reasonCode?: string | null;
+} | null | undefined;
+
+export type ConversationRuntimeRouteSetupStateOptions = {
+  mode?: ConversationMode;
+  projection: ConversationRuntimeRouteProjectionLike;
+  issueCode?: ConversationSetupIssueCode;
+  actionTargetId?: 'runtime-overview' | 'runtime-local' | 'runtime-cloud';
+  returnToMode?: ConversationMode;
+  detailByReasonCode?: Partial<Record<string, string>>;
+};
+
+const DEFAULT_RUNTIME_ROUTE_SETUP_DETAIL_BY_REASON_CODE: Record<string, string> = {
+  selection_missing: 'Select an AI route before sending a message.',
+  selection_cleared: 'Select an AI route before sending a message.',
+  binding_unresolved: 'The selected AI route is unavailable. Pick another route.',
+  route_unhealthy: 'The selected AI route is unhealthy. Pick another route.',
+  metadata_missing: 'The selected AI route metadata is unavailable. Pick another route.',
+};
+
+const DEFAULT_RUNTIME_ROUTE_SETUP_DETAIL = 'The selected AI route is unavailable. Pick another route.';
+
+export function resolveConversationRuntimeRouteSetupStateFromProjection(
+  input: ConversationRuntimeRouteSetupStateOptions,
+): ConversationSetupState {
+  const mode = input.mode ?? 'ai';
+  if (input.projection?.supported) {
+    return createReadyConversationSetupState(mode);
+  }
+
+  const reasonCode = typeof input.projection?.reasonCode === 'string'
+    ? input.projection.reasonCode
+    : '';
+  const detail = input.detailByReasonCode?.[reasonCode]
+    ?? DEFAULT_RUNTIME_ROUTE_SETUP_DETAIL_BY_REASON_CODE[reasonCode]
+    ?? DEFAULT_RUNTIME_ROUTE_SETUP_DETAIL;
+
+  return {
+    mode,
+    status: 'setup-required',
+    issues: [{
+      code: input.issueCode ?? 'ai-thread-route-unavailable',
+      detail,
+    }],
+    primaryAction: {
+      kind: 'open-settings',
+      targetId: input.actionTargetId ?? 'runtime-overview',
+      returnToMode: input.returnToMode ?? mode,
+    },
+  };
 }
 
 export function resolveConversationThreadById(
