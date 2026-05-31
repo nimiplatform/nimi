@@ -1,5 +1,5 @@
 import { dataSync } from '@runtime/data-sync';
-import { hasTauriRuntime, listenTauri } from '@runtime/tauri-api';
+import { hasTauriRuntime, listenTauri } from '@nimiplatform/kit/shell/renderer/bridge';
 import { completeMenuBarQuit, stopRuntimeBridge } from '@renderer/bridge';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { stopAuthStateWatcher } from './auth-state-watcher';

@@ -5,7 +5,7 @@ import {
   hasTauriInvoke,
   hasTauriRuntime,
   invokeTauri,
-} from '../src/runtime/tauri-api.js';
+} from '@nimiplatform/kit/shell/renderer/bridge';
 
 function resetTauriGlobals(): void {
   const globalRecord = globalThis as Record<string, unknown>;

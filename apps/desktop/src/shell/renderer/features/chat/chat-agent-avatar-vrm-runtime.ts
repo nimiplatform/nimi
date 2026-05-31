@@ -1,4 +1,4 @@
-import { hasTauriRuntime } from '@runtime/tauri-api';
+import { hasTauriRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { VRM } from '@pixiv/three-vrm';
 
 import type { DesktopAgentAvatarAssetRef } from './chat-agent-avatar-vrm-viewport-state';

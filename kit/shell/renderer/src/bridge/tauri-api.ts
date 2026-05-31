@@ -1,4 +1,4 @@
-import { invoke as tauriCoreInvoke, isTauri, type InvokeArgs } from '@tauri-apps/api/core';
+import { convertFileSrc as tauriConvertFileSrc, invoke as tauriCoreInvoke, isTauri, type InvokeArgs } from '@tauri-apps/api/core';
 import { listen as tauriEventListen } from '@tauri-apps/api/event';
 
 type TauriInvoke = (command: string, payload?: unknown) => Promise<unknown>;
@@ -52,12 +52,15 @@ function testInvoke(): TauriInvoke | undefined {
   return testHook()?.invoke;
 }
 
-export function hasTauriRuntime(): boolean {
+function runtimeHook(): NimiShellRuntimeHook | undefined {
+  const value = tauriGlobal();
+  return value.__NIMI_TAURI_RUNTIME__ || value.window?.__NIMI_TAURI_RUNTIME__;
+}
+
+function hasNativeTauriRuntime(): boolean {
   const value = tauriGlobal();
   return Boolean(
-    testInvoke()
-      || testHook()?.listen
-      || isTauri()
+    isTauri()
       || value.__TAURI_INTERNALS__
       || value.__TAURI_IPC__
       || value.window?.__TAURI_INTERNALS__
@@ -65,12 +68,42 @@ export function hasTauriRuntime(): boolean {
   );
 }
 
+export function hasTauriRuntime(): boolean {
+  return Boolean(
+    testInvoke()
+      || testHook()?.listen
+      || hasNativeTauriRuntime(),
+  );
+}
+
 export async function invokeTauri<T>(command: string, payload: unknown = {}): Promise<T> {
-  const invoke = testInvoke();
+  const invoke = testInvoke() ?? runtimeHook()?.invoke;
   if (invoke) {
     return await invoke(command, payload) as T;
   }
   return await tauriCoreInvoke<T>(command, payload as InvokeArgs | undefined);
+}
+
+export async function listenTauri(
+  eventName: string,
+  handler: (event: { event?: string; id?: number; payload: unknown }) => void,
+): Promise<TauriEventUnsubscribe> {
+  const listen = testHook()?.listen ?? runtimeHook()?.listen;
+  if (listen) {
+    const unsubscribe = await Promise.resolve(listen(eventName, handler));
+    if (typeof unsubscribe !== 'function') {
+      throw new Error(`Tauri event listener for "${eventName}" did not return an unsubscribe function`);
+    }
+    return unsubscribe;
+  }
+  return await tauriEventListen(eventName, (event) => handler(event));
+}
+
+export function convertTauriFileSrc(fileUrl: string): string {
+  if (!hasNativeTauriRuntime()) {
+    return fileUrl;
+  }
+  return tauriConvertFileSrc(fileUrl);
 }
 
 // The single authoritative runtime-transport hook for every Nimi Tauri app.

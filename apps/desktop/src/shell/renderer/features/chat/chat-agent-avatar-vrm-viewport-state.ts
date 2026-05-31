@@ -8,7 +8,7 @@ import {
   resolveAvatarVrmExpressionWeights,
   resolveAvatarVrmViewportState,
 } from '@nimiplatform/kit/features/avatar/vrm';
-import { convertTauriFileSrc, hasTauriRuntime } from '@runtime/tauri-api';
+import { convertTauriFileSrc, hasTauriRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { ChatAgentAvatarAttentionState } from './chat-agent-avatar-attention-state';
 
 export type ChatAgentAvatarVrmViewportState = AvatarVrmViewportState;

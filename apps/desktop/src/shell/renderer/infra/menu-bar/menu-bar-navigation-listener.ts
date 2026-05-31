@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
-import { hasTauriRuntime, listenTauri } from '@runtime/tauri-api';
+import { hasTauriRuntime, listenTauri } from '@nimiplatform/kit/shell/renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
   loadRuntimeConfigStateV11,

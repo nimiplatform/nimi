@@ -1,12 +1,10 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
-const tauriApiSource = readFileSync(
-  fileURLToPath(new URL('../src/runtime/tauri-api.ts', import.meta.url)),
-  'utf8',
-);
+const desktopTauriApiPath = fileURLToPath(new URL('../src/runtime/tauri-api.ts', import.meta.url));
 const mainSource = readFileSync(
   fileURLToPath(new URL('../src/shell/renderer/main.tsx', import.meta.url)),
   'utf8',
@@ -18,10 +16,7 @@ const mainSource = readFileSync(
 // parallel `__NIMI_TAURI_RUNTIME__` installer.
 
 test('desktop does not publish a parallel runtime-transport hook installer', () => {
-  // No assignment to the hook global anywhere in desktop's tauri-api (reads for
-  // consuming the Kit-installed hook are allowed; assignment = a second owner).
-  assert.doesNotMatch(tauriApiSource, /__NIMI_TAURI_RUNTIME__\s*=/);
-  assert.doesNotMatch(tauriApiSource, /installSdkTauriRuntimeHook/);
+  assert.equal(existsSync(desktopTauriApiPath), false);
 });
 
 test('desktop renderer entry installs the Kit-owned runtime bridge', () => {

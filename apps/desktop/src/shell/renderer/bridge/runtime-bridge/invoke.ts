@@ -1,6 +1,6 @@
 import { asNimiError, createNimiError, getRuntimeReasonCodeMessage, isNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode, type NimiError } from '@nimiplatform/sdk/types';
-import { invokeTauri } from '@runtime/tauri-api';
+import { invokeTauri } from '@nimiplatform/kit/shell/renderer/bridge';
 import { i18n } from '@renderer/i18n';
 import { hasTauriInvoke } from './env';
 import { emitRendererLog, resolveRendererSessionTraceId, toRendererLogMessage } from './logging';

@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { hasTauriRuntime, installNimiShellRuntimeBridge } from '../src/bridge/index.js';
+import {
+  convertTauriFileSrc,
+  hasTauriRuntime,
+  invokeTauri,
+  listenTauri,
+  installNimiShellRuntimeBridge,
+} from '../src/bridge/index.js';
 
 type TauriEventHandler = (event: { event?: string; id?: number; payload: unknown }) => void;
 
@@ -74,5 +80,31 @@ describe('installNimiShellRuntimeBridge', () => {
     installNimiShellRuntimeBridge();
     const hook = testGlobal.__NIMI_TAURI_RUNTIME__;
     await expect(hook!.listen('evt', () => {})).rejects.toThrow(/unsubscribe/);
+  });
+
+  it('lets apps consume the scoped runtime hook without treating it as native Tauri', async () => {
+    const invokeCalls: Array<{ command: string; payload: unknown }> = [];
+    const listenCalls: string[] = [];
+    testGlobal.__NIMI_TAURI_RUNTIME__ = {
+      invoke: async (command, payload) => {
+        invokeCalls.push({ command, payload });
+        return { command, payload };
+      },
+      listen: async (eventName) => {
+        listenCalls.push(eventName);
+        return () => undefined;
+      },
+    };
+
+    expect(hasTauriRuntime()).toBe(false);
+    await expect(invokeTauri('desktop_command', { ok: true })).resolves.toEqual({
+      command: 'desktop_command',
+      payload: { ok: true },
+    });
+    const unsubscribe = await listenTauri('menu-bar://quit-requested', () => {});
+    expect(typeof unsubscribe).toBe('function');
+    expect(invokeCalls).toEqual([{ command: 'desktop_command', payload: { ok: true } }]);
+    expect(listenCalls).toEqual(['menu-bar://quit-requested']);
+    expect(convertTauriFileSrc('file:///tmp/avatar.vrm')).toBe('file:///tmp/avatar.vrm');
   });
 });

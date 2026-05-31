@@ -8,7 +8,7 @@ import {
   resolvePreferredLive2dSpeechMotionGroup,
 } from '@nimiplatform/kit/features/avatar/live2d';
 import { formatAvatarVrmAssetLabel } from '@nimiplatform/kit/features/avatar/vrm';
-import { convertTauriFileSrc, hasTauriRuntime } from '@runtime/tauri-api';
+import { convertTauriFileSrc, hasTauriRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 
 type GlobalBase64Decoder = {
   atob?: (value: string) => string;

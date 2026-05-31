@@ -1,4 +1,4 @@
-import { invokeTauri } from '@runtime/tauri-api';
+import { invokeTauri } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   hasTauriInvoke,
   RENDERER_DEBUG_ENABLED,

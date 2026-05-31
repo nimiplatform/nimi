@@ -1,4 +1,4 @@
-import { listenTauri } from '@runtime/tauri-api';
+import { listenTauri } from '@nimiplatform/kit/shell/renderer/bridge';
 import { hasTauriInvoke } from './env';
 import { invokeChecked } from './invoke';
 import {

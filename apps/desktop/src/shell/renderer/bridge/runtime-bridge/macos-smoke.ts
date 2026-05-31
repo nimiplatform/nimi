@@ -1,6 +1,6 @@
 import { hasTauriInvoke } from './env';
 import { invokeChecked } from './invoke';
-import { invokeTauri } from '@runtime/tauri-api';
+import { invokeTauri } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { JsonObject } from './shared.js';
 import {
   parseDesktopMacosSmokeContext,

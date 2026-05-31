@@ -1,4 +1,4 @@
-import { hasTauriInvoke as hasTauriRuntimeInvoke, invokeTauri } from '../tauri-api';
+import { hasTauriInvoke as hasTauriRuntimeInvoke, invokeTauri } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export function hasTauriInvoke() {
   return hasTauriRuntimeInvoke();
