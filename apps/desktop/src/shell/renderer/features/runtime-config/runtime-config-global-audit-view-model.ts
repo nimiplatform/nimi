@@ -1,28 +1,29 @@
 import {
   projectRuntimeAuditCallerKindName,
+  projectRuntimeHealthStatusName,
   projectRuntimeUsageWindowName,
   toIsoFromTimestamp,
 } from '@nimiplatform/sdk/runtime';
 import { formatRelativeLocaleTime } from '@renderer/i18n';
 
 export function runtimeHealthStatusLabel(status: number): string {
-  switch (status) {
-    case 1: return 'Stopped';
-    case 2: return 'Starting';
-    case 3: return 'Ready';
-    case 4: return 'Degraded';
-    case 5: return 'Stopping';
+  switch (projectRuntimeHealthStatusName(status)) {
+    case 'STOPPED': return 'Stopped';
+    case 'STARTING': return 'Starting';
+    case 'READY': return 'Ready';
+    case 'DEGRADED': return 'Degraded';
+    case 'STOPPING': return 'Stopping';
     default: return 'Unspecified';
   }
 }
 
 export function runtimeHealthStatusColor(status: number): string {
-  switch (status) {
-    case 3: return 'tone-green text-[var(--nimi-status-success)] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)]';
-    case 4: return 'tone-yellow text-[var(--nimi-status-warning)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)]';
-    case 1: return 'tone-red text-[var(--nimi-status-danger)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)]';
-    case 2:
-    case 5: return 'tone-blue text-[var(--nimi-status-info)] bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] border-[color-mix(in_srgb,var(--nimi-status-info)_28%,transparent)]';
+  switch (projectRuntimeHealthStatusName(status)) {
+    case 'READY': return 'tone-green text-[var(--nimi-status-success)] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)]';
+    case 'DEGRADED': return 'tone-yellow text-[var(--nimi-status-warning)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)]';
+    case 'STOPPED': return 'tone-red text-[var(--nimi-status-danger)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)]';
+    case 'STARTING':
+    case 'STOPPING': return 'tone-blue text-[var(--nimi-status-info)] bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] border-[color-mix(in_srgb,var(--nimi-status-info)_28%,transparent)]';
     default: return 'tone-gray text-[var(--nimi-text-secondary)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] border-[var(--nimi-border-subtle)]';
   }
 }
