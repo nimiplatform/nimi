@@ -7,13 +7,14 @@ import { createRuntimeAgentInspectAdapter } from '../src/shell/renderer/infra/ru
 
 const LOCAL_AGENT_REF = 'local-agent:user-1:agent-1';
 
-test('runtime agent inspect adapter consumes SDK inspect projection helpers', () => {
+test('runtime agent inspect adapter delegates Runtime orchestration to SDK', () => {
   const source = readFileSync('src/shell/renderer/infra/runtime-agent-inspect.ts', 'utf8');
-  assert.match(source, /projectRuntimeAgentInspectSnapshot/);
-  assert.match(source, /projectRuntimeAgentInspectEventSummary/);
-  assert.match(source, /buildRuntimeAgentStateMutations/);
-  assert.match(source, /buildRuntimeAgentRequestContext/);
+  assert.match(source, /createHostRuntimeAgentInspectSurface/);
   assert.match(source, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.doesNotMatch(source, /projectRuntimeAgentInspectSnapshot/);
+  assert.doesNotMatch(source, /projectRuntimeAgentInspectEventSummary/);
+  assert.doesNotMatch(source, /buildRuntimeAgentStateMutations/);
+  assert.doesNotMatch(source, /buildRuntimeAgentRequestContext/);
   assert.doesNotMatch(source, /function formatLifecycleStatus/);
   assert.doesNotMatch(source, /function projectCanonicalMemoryInspect/);
   assert.doesNotMatch(source, /function readAgentPresentationProfile/);

@@ -20,6 +20,7 @@ export * from './workflow-builder.js';
 export * from './app-storage.js';
 export * from './runtime-agent-consumer-helpers.js';
 export * from './runtime-agent-inspect-projection.js';
+export * from './runtime-agent-inspect-surface.js';
 export * from './runtime-agent-memory.js';
 export * from './runtime-external-agent.js';
 export * from './runtime-agent-presentation-profile.js';

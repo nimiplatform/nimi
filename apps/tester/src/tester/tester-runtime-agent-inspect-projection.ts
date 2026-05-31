@@ -7,6 +7,7 @@ import {
   HookTriggerFamily,
   MemoryReplicationOutcome,
   buildRuntimeAgentStateMutations,
+  createHostRuntimeAgentInspectSurface,
   projectRuntimeAgentInspectEventSummary,
   projectRuntimeAgentInspectSnapshot,
   projectRuntimeAgentPendingHookInspect,
@@ -21,6 +22,98 @@ export type TesterRuntimeAgentInspectProjection = {
   eventSummary: string | null;
   mutationKinds: string;
 };
+
+export function createTesterRuntimeAgentInspectSurface() {
+  return createHostRuntimeAgentInspectSurface({
+    getRuntime: () => ({
+      appId: 'dev.nimi.tester',
+      auth: {
+        async registerApp() {
+          return { accepted: true };
+        },
+      },
+      appAuth: {
+        async authorizeExternalPrincipal() {
+          return { tokenId: 'tester-token', secret: 'tester-secret' };
+        },
+      },
+      agent: {
+        async getAgent() {
+          return {
+            agent: {
+              lifecycleStatus: AgentLifecycleStatus.ACTIVE,
+              metadata: toProtoStruct({
+                presentationProfile: {
+                  backendKind: 'vrm',
+                  avatarAssetRef: 'asset://tester/vrm-agent',
+                },
+              }),
+            },
+          };
+        },
+        async getAgentState() {
+          return {
+            state: {
+              executionState: AgentExecutionState.IDLE,
+              statusText: 'tester ready',
+              activeWorldId: '',
+              activeUserId: 'tester-user',
+            },
+          };
+        },
+        async listPendingHooks() {
+          return { hooks: [], nextPageToken: '' };
+        },
+        async queryMemory() {
+          return { memories: [] };
+        },
+        async updateAgentState() {
+          return { state: { executionState: AgentExecutionState.IDLE, statusText: 'updated' } };
+        },
+        async enableAutonomy() {
+          return { autonomy: { enabled: true, config: { mode: AgentAutonomyMode.LOW } } };
+        },
+        async disableAutonomy() {
+          return { autonomy: { enabled: false, config: { mode: AgentAutonomyMode.OFF } } };
+        },
+        async setAutonomyConfig(input: { config?: { mode?: AgentAutonomyMode } }) {
+          return { autonomy: { enabled: true, config: { mode: input.config?.mode } } };
+        },
+        async cancelHook(input: { intentId?: string }) {
+          return {
+            outcome: {
+              intent: {
+                intentId: input.intentId || 'tester-hook',
+                admissionState: HookAdmissionState.CANCELED,
+              },
+            },
+          };
+        },
+        async subscribeEvents() {
+          async function* stream() {}
+          return stream();
+        },
+      },
+    }) as never,
+    getSubjectUserId: () => 'tester-user',
+  });
+}
+
+export async function inspectTesterRuntimeAgentSurfaceProjection(): Promise<{
+  lifecycleStatus: string | null;
+  presentationBackend: string;
+  stateStatusText: string | null;
+}> {
+  const surface = createTesterRuntimeAgentInspectSurface();
+  const localAgentRef = 'local-agent:tester-user:tester-agent';
+  const snapshot = await surface.getPublicInspect(localAgentRef);
+  const presentation = await surface.getPresentationProfile(localAgentRef);
+  return {
+    lifecycleStatus: snapshot.lifecycleStatus,
+    presentationBackend: presentation?.backendKind ?? 'none',
+    stateStatusText: snapshot.statusText,
+  };
+}
 
 export function createTesterRuntimeAgentInspectProjection(): TesterRuntimeAgentInspectProjection {
   const metadata = toProtoStruct({
