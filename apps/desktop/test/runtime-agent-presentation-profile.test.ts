@@ -1,14 +1,38 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 import {
+  AgentPresentationBackendKind,
   normalizeRuntimeAgentPresentationBackendKind,
   normalizeRuntimeAgentPresentationDefaultVoiceReference,
-} from '../src/shell/renderer/infra/runtime-agent-presentation-profile';
+} from '@nimiplatform/sdk/runtime';
+
+const runtimeAgentPresentationProfileSource = () => readFileSync(
+  resolve(process.cwd(), 'src/shell/renderer/infra/runtime-agent-presentation-profile.ts'),
+  'utf8',
+);
+const chatAgentHostActionsSource = () => readFileSync(
+  resolve(process.cwd(), 'src/shell/renderer/features/chat/chat-agent-shell-host-actions-helpers.ts'),
+  'utf8',
+);
+
+test('desktop runtime agent presentation adapter consumes SDK request projection', () => {
+  const source = runtimeAgentPresentationProfileSource();
+  const chatHostActions = chatAgentHostActionsSource();
+  assert.match(source, /buildSetRuntimeAgentPresentationProfileRequest/);
+  assert.match(chatHostActions, /buildSetRuntimeAgentPresentationProfileRequest/);
+  assert.match(source, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.doesNotMatch(source, /function toSetPresentationProfileRequest/);
+  assert.doesNotMatch(chatHostActions, /defaultVoiceReference:\s*normalizeRuntimeAgentPresentationDefaultVoiceReference/);
+  assert.doesNotMatch(source, /function parseLocalAgentIdentity/);
+  assert.doesNotMatch(source, /RUNTIME_AGENT_PRESENTATION_VOICE_REFERENCE_PREFIXES/);
+});
 
 test('runtime agent presentation profile admits only runtime backend kinds', () => {
-  assert.equal(normalizeRuntimeAgentPresentationBackendKind('vrm'), 1);
-  assert.equal(normalizeRuntimeAgentPresentationBackendKind('live2d'), 2);
+  assert.equal(normalizeRuntimeAgentPresentationBackendKind('vrm'), AgentPresentationBackendKind.VRM);
+  assert.equal(normalizeRuntimeAgentPresentationBackendKind('live2d'), AgentPresentationBackendKind.LIVE2D);
   assert.equal(normalizeRuntimeAgentPresentationBackendKind('unknown' as 'vrm'), null);
 });
 

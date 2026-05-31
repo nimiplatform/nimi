@@ -2,7 +2,9 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { uploadRealmResourceFileWithRealm } from '@nimiplatform/sdk/realm';
 import {
   asNimiError,
+  buildSetRuntimeAgentPresentationProfileRequest,
   createRuntimeProtectedScopeHelper,
+  normalizeRuntimeAgentPresentationBackendKind,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -30,11 +32,6 @@ import {
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import type { UseAgentConversationHostActionsInput } from './chat-agent-shell-host-actions-types';
-import {
-  normalizeRuntimeAgentPresentationBackendKind,
-  normalizeRuntimeAgentPresentationDefaultVoiceReference,
-} from '@renderer/infra/runtime-agent-presentation-profile';
-
 let runtimeProtectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
 
 export function isAbortLikeSubmitError(error: unknown): boolean {
@@ -105,21 +102,17 @@ async function syncRuntimePresentationProfile(input: {
   const runtimeProfile = profile;
   const runtime = getPlatformClient().runtime;
   const protectedAccess = getRuntimeProtectedAccess();
-  await protectedAccess.withScopes(['runtime.agent.write'], (options) => runtime.agent.setPresentationProfile({
-    context: input.context,
-    agentId: input.target.localAgentRef,
-    mutation: {
-      oneofKind: 'profile',
-      profile: {
-        backendKind,
-        avatarAssetRef,
-        expressionProfileRef: runtimeProfile.expressionProfileRef || '',
-        idlePreset: runtimeProfile.idlePreset || '',
-        interactionPolicyRef: runtimeProfile.interactionPolicyRef || '',
-        defaultVoiceReference: normalizeRuntimeAgentPresentationDefaultVoiceReference(runtimeProfile.defaultVoiceReference),
+  await protectedAccess.withScopes(['runtime.agent.write'], (options) => runtime.agent.setPresentationProfile(
+    buildSetRuntimeAgentPresentationProfileRequest({
+      context: {
+        appId: input.context.appId,
+        subjectUserId: input.context.subjectUserId,
       },
-    },
-  }, options));
+      agentId: input.target.localAgentRef,
+      profile: runtimeProfile,
+    }),
+    options,
+  ));
 }
 
 export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot): Promise<void> {

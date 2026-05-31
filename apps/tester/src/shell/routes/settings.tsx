@@ -130,6 +130,7 @@ import {
 import { Button, ProgressIndicator, StatusBadge, Surface, Toggle } from '@nimiplatform/kit/ui';
 import { createTesterExternalAgentProjection } from '../../tester/tester-external-agent-projection';
 import { createTesterMemoryEmbeddingRuntimeProjection } from '../../tester/tester-memory-embedding-runtime-projection';
+import { createTesterRuntimeAgentPresentationProfileProjection } from '../../tester/tester-runtime-agent-presentation-profile';
 import { createTesterRuntimeAgentInspectProjection } from '../../tester/tester-runtime-agent-inspect-projection';
 import { createTesterLocalRecommendationCopyProjection } from '../../tester/tester-local-recommendation-copy-projection';
 import { createTesterLocalRuntimeAssetKindProjection } from '../../tester/tester-local-runtime-asset-kind-projection';
@@ -864,6 +865,7 @@ export function SettingsRoute() {
   });
   const memoryEmbeddingRuntimeProjection = createTesterMemoryEmbeddingRuntimeProjection();
   const runtimeAgentInspectProjection = createTesterRuntimeAgentInspectProjection();
+  const runtimeAgentPresentationProfileProjection = createTesterRuntimeAgentPresentationProfileProjection();
   const externalAgentProjection = createTesterExternalAgentProjection();
   const runtimeRouteModelProfileProjection = findRuntimeRouteModelProfile({
     capability: 'text.generate',
@@ -2080,6 +2082,16 @@ export function SettingsRoute() {
           {externalAgentProjection.token.tokenId}
           {' / '}
           {externalAgentProjection.gateway.actionCount}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Runtime agent presentation profile projection</span>
+        <StatusBadge tone={runtimeAgentPresentationProfileProjection.mutationKind === 'profile' ? 'success' : 'warning'}>
+          {runtimeAgentPresentationProfileProjection.localAgentOwner}
+          {' / '}
+          {runtimeAgentPresentationProfileProjection.backendKind}
+          {' / '}
+          {runtimeAgentPresentationProfileProjection.defaultVoiceReference}
         </StatusBadge>
       </div>
       <div className="setting-row">
