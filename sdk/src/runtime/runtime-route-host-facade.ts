@@ -749,14 +749,14 @@ export function buildRuntimeRouteDescribeExecuteScenarioRequest(input: {
     capability: input.capability,
     modelId,
   });
-  const payload = toProtoStruct({
+  const payload = toProtoStruct(Object.fromEntries(Object.entries({
     version: 'v1',
     resolvedBindingRef: input.resolvedBindingRef,
     localModelId: normalizeText(input.resolved.localModelId) || undefined,
     goRuntimeLocalModelId: normalizeText(input.resolved.goRuntimeLocalModelId) || undefined,
     engine: normalizeText(input.resolved.engine || input.resolved.provider) || undefined,
     modelId,
-  });
+  }).filter(([, value]) => value !== undefined)));
   if (!payload) {
     throw new Error('RUNTIME_ROUTE_DESCRIBE_PAYLOAD_INVALID');
   }

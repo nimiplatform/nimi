@@ -1,17 +1,10 @@
 import {
-  checkRuntimeRouteHealthWithHost,
-  describeRuntimeRouteWithHost,
-  resolveRuntimeRouteBindingFromSnapshot,
-  type RuntimeResolvedBinding,
-  type RuntimeRouteBinding,
-} from '@nimiplatform/sdk/runtime';
-import {
+  createRuntimeRouteCapabilityRuntimeWithHost,
   type Runtime,
 } from '@nimiplatform/sdk/runtime';
 import {
   setConversationCapabilityRouteRuntime,
   toRuntimeCanonicalCapability,
-  type ConversationCapability,
   type ConversationCapabilityRouteRuntime,
 } from '@renderer/features/chat/conversation-capability';
 import {
@@ -41,67 +34,29 @@ const DEFAULT_DEPS: DesktopConversationCapabilityRouteRuntimeDeps = {
   getRuntimeClient,
 };
 
-function normalizeText(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
 export function createDesktopConversationCapabilityRouteRuntime(
   depsInput: Partial<DesktopConversationCapabilityRouteRuntimeDeps> = {},
 ): ConversationCapabilityRouteRuntime {
   const deps = { ...DEFAULT_DEPS, ...depsInput };
-  const resolvedByRef = new Map<string, RuntimeResolvedBinding>();
-
-  async function resolve(input: {
-    capability: ConversationCapability;
-    binding?: RuntimeRouteBinding;
-  }): Promise<RuntimeResolvedBinding> {
-    if (!input.binding) {
-      throw new Error('RUNTIME_ROUTE_BINDING_REQUIRED');
-    }
-    const capability = toRuntimeCanonicalCapability(input.capability);
-    const snapshot = await deps.loadRuntimeRouteOptions({ capability });
-    const resolved = resolveRuntimeRouteBindingFromSnapshot({
-      capability,
-      binding: input.binding,
-      snapshot,
-    });
-    if (resolved.resolvedBindingRef) {
-      resolvedByRef.set(resolved.resolvedBindingRef, resolved);
-    }
-    return resolved;
-  }
-
-  return {
-    resolve,
-    checkHealth: async (input) => {
-      const resolved = await resolve(input);
-      return checkRuntimeRouteHealthWithHost({
-        resolved,
-        checkHealth: deps.checkLocalLlmHealth,
-      });
-    },
-    describe: async (input) => {
-      const capability = toRuntimeCanonicalCapability(input.capability);
-      const resolvedBindingRef = normalizeText(input.resolvedBindingRef);
-      const resolved = resolvedByRef.get(resolvedBindingRef);
-      if (!resolved) {
-        throw new Error('RUNTIME_ROUTE_DESCRIBE_BINDING_REF_MISSING');
-      }
+  return createRuntimeRouteCapabilityRuntimeWithHost({
+    loadRuntimeRouteOptions: async (input) => deps.loadRuntimeRouteOptions({
+      capability: toRuntimeCanonicalCapability(input.capability),
+      targetId: input.targetId,
+    }),
+    checkHealth: deps.checkLocalLlmHealth,
+    describeTargetId: 'core.chat.agent',
+    buildDescribeCallOptions: deps.buildRuntimeCallOptions,
+    getDescribeHost: () => {
       const runtime = deps.getRuntimeClient();
-      return describeRuntimeRouteWithHost({
+      return {
         appId: runtime.appId,
-        targetId: 'core.chat.agent',
-        capability,
-        resolvedBindingRef,
-        resolved,
-        buildCallOptions: deps.buildRuntimeCallOptions,
         executeScenario: (request, options) => runtime.ai.executeScenario(
           request,
           options as Parameters<Runtime['ai']['executeScenario']>[1],
         ),
-      });
+      };
     },
-  };
+  });
 }
 
 export function bindDesktopConversationCapabilityRouteRuntime(
