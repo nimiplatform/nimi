@@ -1,9 +1,7 @@
 import {
-  applyAIProfileToConfig,
   aiConfigScopeKeyFromRef,
-  computeAIConfigDiff,
-  computeAIConfigVersion,
   createAppAIScopeRef,
+  createHostAIProfileSurface,
   createAIConfigSubscriptionRegistry,
   createScopedAIConfigStore,
   parseAIProfile,
@@ -12,8 +10,6 @@ import {
   type AIConfig,
   type AIConfigStorageLike,
   type AIProfile,
-  type AIProfileApplyResult,
-  type AIProfilePreviewResult,
   type AIScopeRef,
 } from '@nimiplatform/sdk/ai';
 import type {
@@ -209,25 +205,14 @@ export function saveTesterAIConfig(
   return saved;
 }
 
-function profileById(profileId: string): AIProfile | null {
-  const normalized = String(profileId || '').trim();
-  if (!normalized) return null;
-  return listTesterAIProfiles().find((profile) => profile.profileId === normalized) || null;
-}
-
-function requireProfile(profileId: string): AIProfile {
-  const profile = profileById(profileId);
-  if (!profile) {
-    throw new Error(`AIProfile ${profileId} is not in the App Lab profile library.`);
-  }
-  try {
-    return parseAIProfile(profile);
-  } catch (error) {
-    throw new Error(`AIProfile ${profileId} is invalid: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
 export function createTesterAIConfigService(): SharedAIConfigService {
+  const aiProfile = createHostAIProfileSurface({
+    listProfiles: () => listTesterAIProfiles(),
+    loadConfig: (scopeRef) => loadTesterAIConfig(scopeRef),
+    saveConfig: (scopeRef, next) => saveTesterAIConfig(next, scopeRef),
+    missingProfileMessage: (profileId) =>
+      `AIProfile ${profileId} is not in the App Lab profile library.`,
+  });
   return {
     aiConfig: {
       get(scopeRef: AIScopeRef) {
@@ -243,31 +228,13 @@ export function createTesterAIConfigService(): SharedAIConfigService {
     },
     aiProfile: {
       async list() {
-        return listTesterAIProfiles();
+        return aiProfile.list();
       },
-      async previewApply(scopeRef: AIScopeRef, profileId: string): Promise<AIProfilePreviewResult> {
-        const profile = requireProfile(profileId);
-        const before = loadTesterAIConfig(scopeRef);
-        const after = applyAIProfileToConfig(before, profile);
-        return {
-          before,
-          after,
-          diff: computeAIConfigDiff(before, after),
-          baseVersion: computeAIConfigVersion(before),
-          probeWarnings: [],
-        };
+      async previewApply(scopeRef: AIScopeRef, profileId: string) {
+        return aiProfile.previewApply(scopeRef, profileId);
       },
-      async apply(scopeRef: AIScopeRef, profileId: string): Promise<AIProfileApplyResult> {
-        const profile = requireProfile(profileId);
-        const current = loadTesterAIConfig(scopeRef);
-        const next = applyAIProfileToConfig(current, profile);
-        const committed = saveTesterAIConfig(next, scopeRef);
-        return {
-          success: true,
-          config: committed,
-          failureReason: null,
-          probeWarnings: [],
-        };
+      async apply(scopeRef: AIScopeRef, profileId: string) {
+        return aiProfile.apply(scopeRef, profileId);
       },
     },
   };

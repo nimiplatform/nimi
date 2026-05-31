@@ -9,10 +9,9 @@
 import {
   applyAIProfileToConfig,
   assertAppAIScopeRef,
-  computeAIConfigDiff,
-  computeAIConfigVersion,
   createBuiltInChatAIScopeRef,
   createEmptyAIConfig,
+  createHostAIProfileSurface,
   ensureAppFirstLaunchAIConfig as ensureAppFirstLaunchAIConfig_sdk,
   validateAIProfile,
   type AIConfig,
@@ -20,10 +19,7 @@ import {
   type AIConfigSDKSurface,
   type AIConfigSurface,
   type AIProfile,
-  type AIProfileApplyResult,
-  type AIProfilePreviewResult,
   type AIProfileSurface,
-  type AIProfileValidationResult,
   type AIProbeStatus,
   type AIScopeRef,
   type AISnapshot,
@@ -401,102 +397,15 @@ export async function ensureAppFirstLaunchAIConfig(
 // ---------------------------------------------------------------------------
 
 function createAIProfileSurface(): AIProfileSurface {
-  return {
-    async list(): Promise<AIProfile[]> {
-      return loadPlatformAIProfileFactoryCatalog().map((profile) => cloneAIProfile(profile));
+  return createHostAIProfileSurface({
+    listProfiles: () => loadPlatformAIProfileFactoryCatalog(),
+    hasConfig: (scopeRef) => scopeHasPersistedConfig(scopeRef),
+    loadConfig: (scopeRef) => getConfigForScope(scopeRef),
+    saveConfig: (_scopeRef, config) => {
+      commitConfig(config);
+      return config;
     },
-
-    async get(profileId: string): Promise<AIProfile | null> {
-      const matched = loadPlatformAIProfileFactoryCatalog().find((profile) => profile.profileId === profileId);
-      return matched ? cloneAIProfile(matched) : null;
-    },
-
-    validate(profile: AIProfile): AIProfileValidationResult {
-      return validateAIProfile(profile);
-    },
-
-    async previewApply(
-      scopeRef: AIScopeRef,
-      profileId: string,
-    ): Promise<AIProfilePreviewResult> {
-      // D-AIPC-014 / S-AICONF-008: non-committing apply preview.
-      // Computes the before→after AIConfig diff a D-AIPC-005 apply would
-      // produce, with the SAME full-materialization overwrite semantics.
-      // It MUST NOT commitConfig / persist / notify subscribers / record a
-      // snapshot. Fails closed on schema-invalid input.
-      const profile = await this.get(profileId);
-      if (!profile) {
-        throw new Error(`Profile not found: ${profileId}`);
-      }
-
-      const validation = this.validate(profile);
-      if (!validation.valid) {
-        throw new Error(`Profile schema invalid: ${validation.errors.join(', ')}`);
-      }
-
-      // `before` is the scope's current AIConfig, or explicit null on first
-      // apply (D-AIPC-014: diff represents full creation).
-      const before = scopeHasPersistedConfig(scopeRef)
-        ? getConfigForScope(scopeRef)
-        : null;
-
-      // `after` uses the exact D-AIPC-005 materialization. The base config a
-      // commit would overwrite is the current config (or an empty one for
-      // first apply); apply is a full overwrite, not a merge.
-      const baseConfig = before ?? getConfigForScope(scopeRef);
-      const after = applyAIProfileToConfig(baseConfig, profile);
-
-      // baseVersion is the CAS freshness token for `before` (or for an empty
-      // config when there is no current config).
-      const baseVersion = computeAIConfigVersion(baseConfig);
-
-      const probeWarnings = collectProfileSchemaProbeWarnings(profile);
-
-      return {
-        before,
-        after,
-        diff: computeAIConfigDiff(before, after),
-        baseVersion,
-        probeWarnings,
-      };
-    },
-
-    async apply(scopeRef: AIScopeRef, profileId: string): Promise<AIProfileApplyResult> {
-      const profile = await this.get(profileId);
-      if (!profile) {
-        return {
-          success: false,
-          config: null,
-          failureReason: `Profile not found: ${profileId}`,
-          probeWarnings: [],
-        };
-      }
-
-      const validation = this.validate(profile);
-      if (!validation.valid) {
-        return {
-          success: false,
-          config: null,
-          failureReason: `Profile schema invalid: ${validation.errors.join(', ')}`,
-          probeWarnings: [],
-        };
-      }
-
-      // Atomic overwrite (D-AIPC-005)
-      const baseConfig = getConfigForScope(scopeRef);
-      const nextConfig = applyAIProfileToConfig(baseConfig, profile);
-
-      commitConfig(nextConfig);
-
-      return {
-        success: true,
-        config: nextConfig,
-        failureReason: null,
-        probeWarnings: [],
-      };
-    },
-
-    async resolveLocalDependencies(profileId: string): Promise<unknown[]> {
+    resolveLocalDependencies: async (profileId: string): Promise<unknown[]> => {
       const row = loadPlatformAIProfileFactoryRows().find((candidate) => candidate.alias === profileId);
       if (!row) {
         return [];
@@ -506,34 +415,7 @@ function createAIProfileSurface(): AIProfileSurface {
         ...row.dependencyFamilyRefs.map((ref) => ({ kind: 'dependency-family', ref })),
       ];
     },
-  };
-}
-
-/**
- * Static-schema preview warnings (D-AIPC-012 layer 1 / D-AIPC-014).
- *
- * Preview may carry availability / feasibility warnings without blocking the
- * diff. This collects only the static-schema-derivable ones — capability
- * intents that would materialize with no binding and no local profile ref,
- * i.e. an unexecutable capability. Runtime availability / resource feasibility
- * remain D-AIPC-005 commit-time concerns; preview does not go online.
- */
-function collectProfileSchemaProbeWarnings(profile: AIProfile): string[] {
-  const warnings: string[] = [];
-  for (const capability of Object.keys(profile.capabilities).sort()) {
-    const intent = profile.capabilities[capability];
-    if (!intent) {
-      continue;
-    }
-    const hasBinding = intent.binding !== undefined && intent.binding !== null;
-    const hasLocalRef = intent.localProfileRef !== undefined && intent.localProfileRef !== null;
-    if (!hasBinding && !hasLocalRef) {
-      warnings.push(
-        `Capability "${capability}" has no model binding; it will not be executable until configured.`,
-      );
-    }
-  }
-  return warnings;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -773,25 +655,4 @@ async function probeConfigAvailability(
   else status = 'unavailable';
 
   return { status, capabilityStatuses };
-}
-
-// ---------------------------------------------------------------------------
-// Internal: factory AIProfile clone
-// ---------------------------------------------------------------------------
-
-function cloneAIProfile(raw: AIProfile): AIProfile {
-  return {
-    ...raw,
-    tags: [...raw.tags],
-    capabilities: Object.fromEntries(
-      Object.entries(raw.capabilities).map(([capability, intent]) => [
-        capability,
-        intent ? {
-          ...intent,
-          localProfileRef: intent.localProfileRef ? { ...intent.localProfileRef } : undefined,
-          binding: intent.binding ? { ...intent.binding } : intent.binding ?? undefined,
-        } : intent,
-      ]),
-    ),
-  };
 }
