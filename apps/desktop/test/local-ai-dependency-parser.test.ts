@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
+import { parseExecutionPlan } from '@nimiplatform/sdk/runtime';
 import {
   parseCatalogItemDescriptor,
   parseExecutionApplyResult,
-  parseExecutionPlan,
   parseInstallPlanDescriptor,
   parseNodeDescriptor,
   parseProfileResolutionPlan,

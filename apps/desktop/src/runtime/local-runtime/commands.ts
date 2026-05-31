@@ -4,6 +4,7 @@ import {
   toLocalRuntimeAssetKindRequestValue,
   toLocalRuntimeGpuMemoryModelRequestValue,
   toProtoStruct,
+  parseDeviceProfile,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
@@ -34,7 +35,6 @@ import {
   parseCatalogItemDescriptor,
   parseGgufVariantDescriptor,
   parseInstallPlanDescriptor,
-  parseDeviceProfile,
   parseProfileApplyResult,
   parseProfileResolutionPlan,
   parseRecommendationFeedDescriptor,

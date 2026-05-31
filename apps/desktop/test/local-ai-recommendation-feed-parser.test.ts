@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { parseDeviceProfile, parseRecommendationFeedDescriptor } from '../src/runtime/local-runtime/parsers.js';
+import { parseDeviceProfile } from '@nimiplatform/sdk/runtime';
+import { parseRecommendationFeedDescriptor } from '../src/runtime/local-runtime/parsers.js';
 
 function deviceProfileFixture() {
   return {

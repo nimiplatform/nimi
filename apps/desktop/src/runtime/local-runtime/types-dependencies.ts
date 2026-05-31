@@ -1,122 +1,26 @@
 import type { LocalRuntimeAssetRecord, LocalRuntimeServiceDescriptor } from './types';
-import type { LocalRuntimeRunnableAssetKindId } from '@nimiplatform/sdk/runtime';
+import type {
+  LocalRuntimeExecutionEntryDescriptor,
+  LocalRuntimeExecutionStageResult,
+  LocalRuntimePreflightDecision,
+} from '@nimiplatform/sdk/runtime';
 
-export type LocalRuntimeExecutionEntryKind = 'asset' | 'service' | 'node';
-
-export type LocalRuntimeExecutionOptionDescriptor = {
-  entryId: string;
-  kind: LocalRuntimeExecutionEntryKind;
-  capability?: LocalRuntimeRunnableAssetKindId | string;
-  title?: string;
-  assetId?: string;
-  repo?: string;
-  serviceId?: string;
-  nodeId?: string;
-  engine?: string;
-};
-
-export type LocalRuntimeExecutionAlternativeDescriptor = {
-  alternativeId: string;
-  preferredEntryId?: string;
-  options: LocalRuntimeExecutionOptionDescriptor[];
-};
-
-export type LocalRuntimeExecutionDeclarationDescriptor = {
-  required?: LocalRuntimeExecutionOptionDescriptor[];
-  optional?: LocalRuntimeExecutionOptionDescriptor[];
-  alternatives?: LocalRuntimeExecutionAlternativeDescriptor[];
-  preferred?: Partial<Record<LocalRuntimeRunnableAssetKindId, string>>;
-};
-
-export type LocalRuntimeExecutionEntryDescriptor = {
-  entryId: string;
-  kind: LocalRuntimeExecutionEntryKind;
-  capability?: string;
-  required: boolean;
-  selected: boolean;
-  preferred: boolean;
-  modelId?: string;
-  repo?: string;
-  engine?: string;
-  serviceId?: string;
-  nodeId?: string;
-  reasonCode?: string;
-  warnings: string[];
-};
-
-export type LocalRuntimeGpuProfile = {
-  available: boolean;
-  vendor?: string;
-  model?: string;
-  totalVramBytes?: number;
-  availableVramBytes?: number;
-  memoryModel?: 'discrete' | 'unified' | 'unknown';
-};
-
-export type LocalRuntimePythonProfile = {
-  available: boolean;
-  version?: string;
-};
-
-export type LocalRuntimeNpuProfile = {
-  available: boolean;
-  ready: boolean;
-  vendor?: string;
-  runtime?: string;
-  detail?: string;
-};
-
-export type LocalRuntimePortAvailability = {
-  port: number;
-  available: boolean;
-};
-
-export type LocalRuntimeDeviceProfile = {
-  os: string;
-  arch: string;
-  totalRamBytes: number;
-  availableRamBytes: number;
-  gpu: LocalRuntimeGpuProfile;
-  python: LocalRuntimePythonProfile;
-  npu: LocalRuntimeNpuProfile;
-  diskFreeBytes: number;
-  ports: LocalRuntimePortAvailability[];
-};
-
-export type LocalRuntimePreflightDecision = {
-  entryId?: string;
-  target: string;
-  check: string;
-  ok: boolean;
-  reasonCode: string;
-  detail: string;
-};
-
-export type LocalRuntimeExecutionSelectionRationale = {
-  entryId: string;
-  selected: boolean;
-  reasonCode: string;
-  detail: string;
-};
-
-export type LocalRuntimeExecutionStageResult = {
-  stage: string;
-  ok: boolean;
-  reasonCode?: string;
-  detail?: string;
-};
-
-export type LocalRuntimeExecutionPlan = {
-  planId: string;
-  targetId: string;
-  capability?: string;
-  deviceProfile: LocalRuntimeDeviceProfile;
-  entries: LocalRuntimeExecutionEntryDescriptor[];
-  selectionRationale: LocalRuntimeExecutionSelectionRationale[];
-  preflightDecisions: LocalRuntimePreflightDecision[];
-  warnings: string[];
-  reasonCode?: string;
-};
+export type {
+  LocalRuntimeDeviceProfile,
+  LocalRuntimeExecutionAlternativeDescriptor,
+  LocalRuntimeExecutionDeclarationDescriptor,
+  LocalRuntimeExecutionEntryDescriptor,
+  LocalRuntimeExecutionEntryKind,
+  LocalRuntimeExecutionOptionDescriptor,
+  LocalRuntimeExecutionPlan,
+  LocalRuntimeExecutionSelectionRationale,
+  LocalRuntimeExecutionStageResult,
+  LocalRuntimeGpuProfile,
+  LocalRuntimeNpuProfile,
+  LocalRuntimePortAvailability,
+  LocalRuntimePreflightDecision,
+  LocalRuntimePythonProfile,
+} from '@nimiplatform/sdk/runtime';
 
 export type LocalRuntimeExecutionApplyResult = {
   planId: string;

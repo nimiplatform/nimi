@@ -21,6 +21,10 @@ import {
   normalizeLocalRuntimeAssetKindId,
   normalizeLocalRuntimeAssetStatusId,
   normalizeLocalRuntimeEngineRuntimeModeId,
+  parseExecutionEntryDescriptor as parseSdkExecutionEntryDescriptor,
+  parseExecutionPlan as parseSdkExecutionPlan,
+  parseExecutionStageResult as parseSdkExecutionStageResult,
+  parsePreflightDecision as parseSdkPreflightDecision,
 } from '@nimiplatform/sdk/runtime';
 import {
   DEFAULT_LOCAL_PROVIDER_ADAPTER_ID,
@@ -30,12 +34,6 @@ import { asRecord, asString } from './parser-primitives';
 import { asPlainObject } from './parser-helpers';
 import { toCanonicalLocalId } from './local-id';
 import { parseCatalogRecommendation } from './parsers-runtime-events';
-import {
-  parseExecutionStageResult,
-  parseExecutionEntryDescriptor,
-  parseExecutionPlan,
-  parsePreflightDecision,
-} from './parsers-dependencies';
 export { asRecord, asString } from './parser-primitives';
 export {
   assertLifecycleWriteAllowed,
@@ -49,7 +47,7 @@ export {
   parseDeviceProfile,
   parsePreflightDecision,
   parseExecutionSelectionRationale,
-} from './parsers-dependencies';
+} from '@nimiplatform/sdk/runtime';
 export {
   normalizeDownloadState,
   parseAuditEvent,
@@ -284,7 +282,7 @@ export function parseProfileResolutionPlan(value: unknown): LocalRuntimeProfileR
       ? record.consumeCapabilities.map((item) => asString(item)).filter(Boolean)
       : [],
     requirements: parseProfileRequirementDescriptor(record.requirements),
-    executionPlan: parseExecutionPlan(record.executionPlan),
+    executionPlan: parseSdkExecutionPlan(record.executionPlan),
     assetEntries,
     warnings,
     reasonCode: asString(record.reasonCode) || undefined,
@@ -470,7 +468,7 @@ export function parseInstallPlanDescriptor(value: unknown): LocalRuntimeInstallP
 export function parseExecutionApplyResult(value: unknown): LocalRuntimeExecutionApplyResult {
   const record = asRecord(value);
   const entries = Array.isArray(record.entries)
-    ? record.entries.map((item) => parseExecutionEntryDescriptor(item))
+    ? record.entries.map((item) => parseSdkExecutionEntryDescriptor(item))
     : [];
   const installedAssets = Array.isArray(record.installedAssets)
     ? record.installedAssets.map((item: unknown) => parseAssetRecord(item))
@@ -482,10 +480,10 @@ export function parseExecutionApplyResult(value: unknown): LocalRuntimeExecution
     ? record.capabilities.map((item) => asString(item)).filter(Boolean)
     : [];
   const stageResults = Array.isArray(record.stageResults)
-    ? record.stageResults.map((item) => parseExecutionStageResult(item))
+    ? record.stageResults.map((item) => parseSdkExecutionStageResult(item))
     : [];
   const preflightDecisions = Array.isArray(record.preflightDecisions)
-    ? record.preflightDecisions.map((item) => parsePreflightDecision(item))
+    ? record.preflightDecisions.map((item) => parseSdkPreflightDecision(item))
     : [];
   const warnings = Array.isArray(record.warnings)
     ? record.warnings.map((item) => asString(item)).filter(Boolean)

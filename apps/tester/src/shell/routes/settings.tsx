@@ -40,6 +40,7 @@ import {
   normalizeLocalRecommendationFeedCacheStateId,
   parseLocalRuntimeEnvironmentDependencyJobProjection,
   parseLocalRuntimeEnvironmentPlanProjection,
+  parseLocalRuntimeExecutionPlan,
   normalizeLocalRuntimeProfilesDeclaration,
   bridgeLocalRuntimeProfile,
   projectRuntimeLocalAgentIdentity,
@@ -770,6 +771,43 @@ export function SettingsRoute() {
       assetCount: bridge?.assets.length ?? 0,
     };
   })();
+  const localRuntimeExecutionPlanProjection = parseLocalRuntimeExecutionPlan({
+    planId: 'tester-execution-plan',
+    targetId: 'tester-runtime',
+    capability: 'chat',
+    deviceProfile: {
+      os: 'darwin',
+      arch: 'arm64',
+      gpu: { available: true, memoryModel: 'unified' },
+      python: { available: true, version: '3.12' },
+      npu: { available: false, ready: false },
+      diskFreeBytes: 1024,
+      ports: [{ port: 7341, available: true }],
+    },
+    entries: [{
+      entryId: 'tester-service',
+      kind: 'LOCAL_EXECUTION_ENTRY_KIND_SERVICE',
+      capability: 'chat',
+      required: true,
+      selected: true,
+      preferred: true,
+    }],
+    selectionRationale: [{
+      entryId: 'tester-service',
+      selected: true,
+      reasonCode: ReasonCode.ACTION_EXECUTED,
+      detail: 'tester selected SDK execution decoder path',
+    }],
+    preflightDecisions: [{
+      entryId: 'tester-service',
+      target: 'port',
+      check: 'port_available',
+      ok: true,
+      reasonCode: ReasonCode.ACTION_EXECUTED,
+      detail: 'tester port available',
+    }],
+    warnings: [],
+  });
   const runtimeAuditWireProjection = {
     callerKindName: projectRuntimeAuditCallerKindName(CallerKind.THIRD_PARTY_APP) ?? 'unknown',
     usageWindowName: projectRuntimeUsageWindowName(UsageWindow.HOUR) ?? 'unknown',
@@ -1444,6 +1482,12 @@ export function SettingsRoute() {
         <span>SDK local runtime profile projection</span>
         <StatusBadge tone="neutral">
           {localRuntimeProfileProjection.profileCount}: {localRuntimeProfileProjection.runtimeEntryCount}/{localRuntimeProfileProjection.assetCount}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK local runtime execution plan projection</span>
+        <StatusBadge tone="neutral">
+          {localRuntimeExecutionPlanProjection.entries[0]?.kind ?? 'none'}: {localRuntimeExecutionPlanProjection.deviceProfile.arch}
         </StatusBadge>
       </div>
       <div className="setting-row">
