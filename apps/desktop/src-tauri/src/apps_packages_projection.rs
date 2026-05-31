@@ -24,14 +24,13 @@ use nimi_shell_tauri::governed_config::{
     read_governed_config, write_governed_json_config, ConfigReadOutcome, GovernedConfigFile,
 };
 use nimi_shell_tauri::platform_projection::apps_packages::{
-    build_apps_packages_record_from_rows, project_package_state, validate_apps_packages_record,
+    build_apps_packages_record_from_runtime_install_evidence, validate_apps_packages_record,
 };
 pub use nimi_shell_tauri::platform_projection::apps_packages::{
     AppsPackageRow, AppsPackagesRecord, APPS_PACKAGES_POINTER, APPS_PACKAGES_SCHEMA_VERSION,
 };
-use serde::{Deserialize, Serialize};
-use std::fs;
-use std::path::{Path, PathBuf};
+use serde::Serialize;
+use std::path::PathBuf;
 
 /// Governed config-file identity for `~/.nimi/apps/packages.json`
 /// (`local-config-file-registry.yaml` row `packages_json`).
@@ -41,46 +40,11 @@ const PACKAGES_CONFIG_FILE: GovernedConfigFile = GovernedConfigFile::new(
     APPS_PACKAGES_SCHEMA_VERSION,
 );
 
-/// The Runtime-owned install-evidence file shape, mirrored from
-/// `runtime/internal/appstorage/storage.go` `InstallEvidence`. Only the fields
-/// the package projection consumes are deserialized; unknown fields are
-/// ignored so a Runtime-side additive field never breaks the read.
-///
-/// The `durable_data_root` / `cache_root` / `temp_root` fields are the
-/// Runtime-resolved app storage roots written by `appstorage.Resolve`
-/// (`storage.go` — `filepath.Join(appRoot, "data"|"cache"|"tmp")`, validated by
-/// `within()` for symlink/escape safety). They are consumed verbatim so the
-/// projection never re-derives the `<nimi_data>/apps/<app-id>` layout itself
-/// (`K-APP-022`).
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct RuntimeInstallEvidence {
-    app_id: String,
-    release_descriptor_ref: String,
-    storage_policy_ref: String,
-    installed_version: String,
-    // Mirrors `appstorage.InstallEvidence.SHA256`; retained for shape parity
-    // with the Runtime-written file. Package readiness is derived from
-    // `verification_state`, so the digest itself is not consumed here.
-    #[allow(dead_code)]
-    #[serde(default)]
-    sha256: String,
-    verification_state: String,
-    release_root: String,
-    durable_data_root: String,
-    cache_root: String,
-    temp_root: String,
-}
-
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppsPackagesProjection {
     pub path: String,
     pub record: AppsPackagesRecord,
-}
-
-fn now_iso_timestamp() -> String {
-    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
 }
 
 /// On-disk path of the package projection, fixed under the `~/.nimi` CONTROL
@@ -91,57 +55,6 @@ pub fn apps_packages_path() -> Result<PathBuf, String> {
         path.push(segment);
     }
     Ok(path)
-}
-
-/// Scan one Runtime install-evidence file and project a package row.
-///
-/// Returns `Ok(None)` when the file does not exist; fails closed on a parse
-/// failure (a corrupt evidence file is a real readiness fault, not absence).
-fn project_evidence_file(path: &Path) -> Result<Option<AppsPackageRow>, String> {
-    if !path.exists() {
-        return Ok(None);
-    }
-    let raw = fs::read_to_string(path).map_err(|error| {
-        format!(
-            "read Runtime app install evidence failed ({}): {error}",
-            path.display()
-        )
-    })?;
-    let evidence = serde_json::from_str::<RuntimeInstallEvidence>(&raw).map_err(|error| {
-        format!(
-            "parse Runtime app install evidence failed ({}): {error}",
-            path.display()
-        )
-    })?;
-    if evidence.app_id.trim().is_empty()
-        || evidence.release_descriptor_ref.trim().is_empty()
-        || evidence.installed_version.trim().is_empty()
-        || evidence.storage_policy_ref.trim().is_empty()
-        || evidence.release_root.trim().is_empty()
-        || evidence.durable_data_root.trim().is_empty()
-        || evidence.cache_root.trim().is_empty()
-        || evidence.temp_root.trim().is_empty()
-    {
-        // K-APP-022 fail-close: evidence missing any Runtime-resolved storage
-        // root cannot have its app-storage truth projected. The projection does
-        // not invent the missing root by re-deriving the layout — it fails
-        // closed so the package routes to repair.
-        return Err(format!(
-            "Runtime app install evidence is missing required fields ({})",
-            path.display()
-        ));
-    }
-    Ok(Some(AppsPackageRow {
-        app_id: evidence.app_id,
-        package_ref: evidence.release_descriptor_ref,
-        version: evidence.installed_version,
-        state: project_package_state(&evidence.verification_state).to_string(),
-        install_root: evidence.release_root,
-        data_root: evidence.durable_data_root,
-        cache_root: evidence.cache_root,
-        temp_root: evidence.temp_root,
-        verified_at: now_iso_timestamp(),
-    }))
 }
 
 /// Build the package projection record by scanning the Runtime-written install
@@ -155,39 +68,7 @@ pub fn build_apps_packages_record() -> Result<AppsPackagesRecord, String> {
     let registry = read_apps_registry()?.ok_or_else(|| {
         "~/.nimi/apps/registry.json is required before package projection".to_string()
     })?;
-    let mut packages = Vec::new();
-    for app in &registry.apps {
-        let releases_root = data_root.join("apps").join(&app.app_id).join("releases");
-        let Ok(entries) = fs::read_dir(&releases_root) else {
-            // No releases directory for this app yet — no package row.
-            continue;
-        };
-        for entry in entries.flatten() {
-            let version_dir = entry.path();
-            if !version_dir.is_dir() {
-                continue;
-            }
-            let evidence_path = version_dir.join(".nimi").join("install-evidence.json");
-            if let Some(row) = project_evidence_file(&evidence_path)? {
-                if row.app_id != app.app_id {
-                    return Err(format!(
-                        "Runtime app install evidence appId {} does not match release root app {}",
-                        row.app_id, app.app_id
-                    ));
-                }
-                packages.push(row);
-            }
-        }
-    }
-    packages.sort_by(|a, b| {
-        a.app_id
-            .cmp(&b.app_id)
-            .then_with(|| a.version.cmp(&b.version))
-    });
-    Ok(build_apps_packages_record_from_rows(
-        now_iso_timestamp(),
-        packages,
-    ))
+    build_apps_packages_record_from_runtime_install_evidence(&data_root, &registry)
 }
 
 /// Read the installed package projection through the shared `~/.nimi`
