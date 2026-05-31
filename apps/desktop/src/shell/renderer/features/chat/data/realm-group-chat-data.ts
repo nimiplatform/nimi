@@ -5,6 +5,7 @@ import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-ap
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
   RealmGroupMessageCandidateCommitDisposition,
+  buildRuntimeLocalAgentRef,
   createNimiClientId,
   createRuntimeProtectedScopeHelper,
 } from '@nimiplatform/sdk/runtime';
@@ -83,7 +84,7 @@ function requireOwnedAgentSlot(input: {
   if (ownerUserId !== input.currentUserId) {
     throw new Error('group agent candidate handoff requires the current user to own the local agent slot');
   }
-  const expectedLocalAgentRef = `local-agent:${ownerUserId}:${realmAgentId}`;
+  const expectedLocalAgentRef = buildRuntimeLocalAgentRef({ ownerUserId, realmAgentId });
   if (localAgentRef !== expectedLocalAgentRef) {
     throw new Error('group agent candidate handoff local agent ref does not match Realm slot identity');
   }

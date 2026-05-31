@@ -1,3 +1,4 @@
+import { buildRuntimeLocalAgentRef, isRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
 import { createDefaultAgentCenterAvatarAssetModule } from './chat-agent-center-avatar-config-types';
 import type { AgentCenterAvatarAssetModule } from './chat-agent-center-avatar-config-types';
 import { validateAvatarAssetModule } from './chat-agent-center-avatar-config-validation';
@@ -212,11 +213,11 @@ function validateLocalAgentRef(
     errors.push(`${path}: must not be a bare realmAgentId`);
     return localAgentRef;
   }
-  if (!localAgentRef.startsWith('local-agent:')) {
+  if (!isRuntimeLocalAgentRef(localAgentRef)) {
     errors.push(`${path}: must start with local-agent:`);
     return localAgentRef;
   }
-  const expected = `local-agent:${ownerUserId}:${realmAgentId}`;
+  const expected = buildRuntimeLocalAgentRef({ ownerUserId, realmAgentId });
   if (localAgentRef !== expected) {
     errors.push(`${path}: must equal local-agent:\${ownerUserId}:\${realmAgentId}`);
   }

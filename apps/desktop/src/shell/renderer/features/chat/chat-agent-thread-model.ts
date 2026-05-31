@@ -6,6 +6,7 @@ import type {
   AgentLocalMessageRecord,
   AgentLocalTargetSnapshot,
 } from '@renderer/bridge/runtime-bridge/types';
+import { buildRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
 import {
   assertRecord,
   parseOptionalJsonObject,
@@ -23,10 +24,6 @@ function toIsoString(timestampMs: number): string {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function buildLocalAgentRef(ownerUserId: string, realmAgentId: string): string {
-  return `local-agent:${ownerUserId}:${realmAgentId}`;
 }
 
 function parseOwnerUserId(snapshot: { ownerUserId?: unknown; currentUserId?: unknown; userId?: unknown; viewerId?: unknown }): string {
@@ -197,7 +194,7 @@ function parseAgentFriendTarget(value: unknown, ownerUserId: string): AgentLocal
   return {
     ownerUserId,
     realmAgentId,
-    localAgentRef: buildLocalAgentRef(ownerUserId, realmAgentId),
+    localAgentRef: buildRuntimeLocalAgentRef({ ownerUserId, realmAgentId }),
     displayName: parseRequiredString(record.displayName, 'displayName', 'agent friend target'),
     handle: parseRequiredString(record.handle, 'handle', 'agent friend target'),
     avatarUrl,

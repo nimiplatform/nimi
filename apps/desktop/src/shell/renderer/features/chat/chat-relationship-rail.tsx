@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { ScrollArea } from '@nimiplatform/kit/ui';
+import { parseRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { DesktopIconToggleAction } from '@renderer/components/action';
@@ -83,8 +84,11 @@ function getMetadataText(target: ConversationTargetSummary, key: string): string
 }
 
 function parseRealmAgentIdFromLocalRef(localAgentRef: string): string {
-  const parts = localAgentRef.split(':');
-  return parts.length >= 3 && parts[0] === 'local-agent' ? parts.slice(2).join(':').trim() : '';
+  try {
+    return parseRuntimeLocalAgentIdentity(localAgentRef).realmAgentId;
+  } catch {
+    return '';
+  }
 }
 
 function resolveProfileTargetId(target: ConversationTargetSummary): string {

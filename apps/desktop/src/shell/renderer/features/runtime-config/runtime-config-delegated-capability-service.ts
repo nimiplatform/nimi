@@ -1,5 +1,6 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
+  buildRuntimeAgentRequestContext,
   createRuntimeProtectedScopeHelper,
   DelegatedApprovalDecision,
   DelegatedProviderKind,
@@ -75,19 +76,13 @@ export function createDesktopDelegatedCapabilityService(deps: DelegatedCapabilit
   const buildContext = async (agentId: string) => {
     const runtime = getRuntime();
     const normalizedAgentId = requireText(agentId, 'agent_id');
-    const [, ownerUserId, realmAgentId] = normalizedAgentId.split(':');
-    if (!ownerUserId || !realmAgentId || !normalizedAgentId.startsWith('local-agent:')) {
-      throw new Error('delegated capability runtime agent requires localAgentRef formatted as local-agent:${ownerUserId}:${realmAgentId}');
-    }
     return {
       runtime,
-      context: {
-        appId: runtime.appId,
+      context: buildRuntimeAgentRequestContext({
+        runtimeAppId: runtime.appId,
         subjectUserId: await resolveSubjectUserId(),
-        ownerUserId,
-        realmAgentId,
         localAgentRef: normalizedAgentId,
-      },
+      }),
     };
   };
 
