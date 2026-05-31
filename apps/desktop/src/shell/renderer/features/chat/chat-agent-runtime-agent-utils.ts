@@ -8,7 +8,7 @@ import {
   type RuntimeAgentTimelineSummary,
 } from '@nimiplatform/sdk/runtime';
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
-import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
+import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type PendingCommittedMessage = {
   messageId: string;

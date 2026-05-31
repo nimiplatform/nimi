@@ -27,4 +27,13 @@ export type {
   RuntimeBridgeDaemonStatus,
 } from './types.js';
 export type { SharedDesktopAuthSessionWatchOptions } from './auth-session.js';
-export { parseRuntimeDefaults, parseRuntimeBridgeDaemonStatus } from './types.js';
+export {
+  assertRecord,
+  isJsonObject,
+  parseOptionalJsonObject,
+  parseOptionalNumber,
+  parseOptionalString,
+  parseRequiredString,
+  parseRuntimeDefaults,
+  parseRuntimeBridgeDaemonStatus,
+} from './types.js';

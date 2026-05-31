@@ -8,7 +8,7 @@ import type { ShellAuthWindow } from '@nimiplatform/kit/auth';
 import { getGoogleClientId, loadGoogleScript } from '@nimiplatform/kit/auth';
 import { resolveSocialOauthConfig, startSocialOauth } from '@nimiplatform/kit/auth';
 import { desktopOAuthBridge } from '@renderer/features/auth/desktop-auth-adapter.js';
-import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
+import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   BIO_MAX,
   ICON_CAMERA,

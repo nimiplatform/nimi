@@ -11,7 +11,7 @@ import {
   parseOptionalJsonObject,
   parseOptionalString,
   parseRequiredString,
-} from '@renderer/bridge/runtime-bridge/shared';
+} from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   projectRealmAgentBuiltinDocsContext,
   projectRealmAgentGreeting,

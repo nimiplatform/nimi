@@ -1,5 +1,5 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
+import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 
 type NotificationDto = RealmModel<'NotificationDto'>;
 type NotificationListResultDto = RealmModel<'NotificationListResultDto'>;

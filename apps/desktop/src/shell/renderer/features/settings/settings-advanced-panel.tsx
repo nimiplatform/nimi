@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { desktopBridge } from '@renderer/bridge';
-import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
+import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import { formatLocaleDateTime, formatLocaleNumber } from '@renderer/i18n';
 import { PageShell, SectionTitle } from './settings-layout-components.js';
 

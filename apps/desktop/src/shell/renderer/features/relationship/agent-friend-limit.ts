@@ -1,6 +1,6 @@
 import { dataSync } from '@runtime/data-sync';
 import { i18n } from '@renderer/i18n';
-import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
+import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 
 /**
  * Agent-friend quota — Desktop projection (`D-CONTACTS-006`).

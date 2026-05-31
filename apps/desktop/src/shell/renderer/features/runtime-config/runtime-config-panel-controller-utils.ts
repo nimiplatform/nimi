@@ -1,4 +1,4 @@
-import type { JsonObject } from '@runtime/net/json';
+import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type RuntimeConfigBanner = {
   kind: 'success' | 'warning' | 'error' | 'info';

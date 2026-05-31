@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
+import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { FormFeedback, PageShell, SaveFooter, SectionTitle } from './settings-layout-components.js';
 

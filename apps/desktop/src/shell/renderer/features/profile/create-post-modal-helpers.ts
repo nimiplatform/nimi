@@ -1,4 +1,4 @@
-import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
+import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type SelectedFile = {
   file: File;

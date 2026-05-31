@@ -3,7 +3,7 @@ import type {
   ConversationRuntimeUsage,
   ConversationTurnError,
 } from '@nimiplatform/kit/features/chat';
-import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
+import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { AgentResolvedMessageActionEnvelope } from '@nimiplatform/sdk/runtime';
 
 export const AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES = {

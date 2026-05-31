@@ -1,4 +1,4 @@
-import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
+import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type ContactRecord = {
   id: string;

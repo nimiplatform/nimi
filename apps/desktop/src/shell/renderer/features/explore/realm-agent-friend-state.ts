@@ -11,7 +11,7 @@
 
 import { dataSync } from '@runtime/data-sync';
 import { i18n } from '@renderer/i18n';
-import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
+import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { AgentFriendLimit } from '../relationship/agent-friend-limit';
 import { resolveAgentFriendLimit } from '../relationship/agent-friend-limit';
 

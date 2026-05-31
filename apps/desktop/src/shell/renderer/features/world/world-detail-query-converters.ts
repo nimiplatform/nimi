@@ -1,6 +1,6 @@
 import { dataSync } from '@runtime/data-sync';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import type { JsonObject } from '@runtime/net/json';
+import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { WorldTruthDetail, WorldTruthRecommendedAgent } from '@nimiplatform/sdk/world';
 import type {
   WorldAuditItem,

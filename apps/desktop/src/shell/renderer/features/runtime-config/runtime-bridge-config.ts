@@ -4,7 +4,7 @@ import {
   projectRuntimeBridgeLocalEndpoint,
   serializeRuntimeBridgeLocalEndpointProjection,
 } from '@nimiplatform/sdk/runtime';
-import type { JsonObject } from '@runtime/net/json';
+import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 
 /**
  * Extract local runtime endpoint from bridge config.

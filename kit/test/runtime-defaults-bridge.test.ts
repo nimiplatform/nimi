@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { getRuntimeDefaults, parseRuntimeDefaults } from '../shell/renderer/src/bridge/index.js';
+import {
+  getRuntimeDefaults,
+  parseOptionalJsonObject,
+  parseOptionalNumber,
+  parseOptionalString,
+  parseRequiredString,
+  parseRuntimeDefaults,
+} from '../shell/renderer/src/bridge/index.js';
 
 const VALID_RUNTIME_DEFAULTS = {
   realm: {
@@ -49,6 +56,20 @@ describe('parseRuntimeDefaults', () => {
         accessToken: '',
       }),
     ).toThrow(/runtime_defaults realm payload is invalid/);
+  });
+});
+
+describe('shell bridge JSON helpers', () => {
+  it('projects reusable shell JSON records and scalar fields', () => {
+    expect(parseOptionalJsonObject({ ok: true })?.ok).toBe(true);
+    expect(parseOptionalJsonObject(null)).toBeUndefined();
+    expect(parseOptionalJsonObject([])).toBeUndefined();
+    expect(parseOptionalString(' value ')).toBe('value');
+    expect(parseOptionalString('')).toBeUndefined();
+    expect(parseOptionalNumber('12')).toBe(12);
+    expect(parseOptionalNumber('not-a-number')).toBeUndefined();
+    expect(parseRequiredString('abc', 'field', 'shell')).toBe('abc');
+    expect(() => parseRequiredString('', 'field', 'shell')).toThrow(/shell: field is required/);
   });
 });
 

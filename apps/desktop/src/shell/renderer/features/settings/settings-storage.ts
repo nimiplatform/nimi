@@ -1,4 +1,4 @@
-import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
+import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export const SETTINGS_SELECTED_STORAGE_KEY = 'nimi.settings.selected';
 export const SETTINGS_SELECTED_TARGET_ID_STORAGE_KEY = 'nimi.settings.targetId';

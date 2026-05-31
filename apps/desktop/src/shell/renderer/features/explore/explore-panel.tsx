@@ -8,7 +8,7 @@ import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { ProfileDetailModal, type ProfileDetailSeed } from '@renderer/features/relationship/profile-detail-modal.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
-import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
+import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import { ExploreView } from './explore-view';
 import type { ExploreAgentCardData } from './explore-cards';
 import type { ExploreSectionId } from './explore-section-nav';

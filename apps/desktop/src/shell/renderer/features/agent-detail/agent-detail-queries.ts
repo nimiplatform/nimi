@@ -1,5 +1,5 @@
 import { dataSync } from '@runtime/data-sync';
-import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
+import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   loadRealmAgentSocialProjection,
   resolveRealmAgentFriendState,

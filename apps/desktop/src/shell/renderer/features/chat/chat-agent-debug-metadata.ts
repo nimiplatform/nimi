@@ -1,4 +1,4 @@
-import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
+import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type {
   AgentModelOutputDiagnostics,
 } from './chat-agent-runtime-output-types';

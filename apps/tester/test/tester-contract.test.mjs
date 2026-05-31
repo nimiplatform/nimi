@@ -242,6 +242,8 @@ test('tester run history labels local fixtures distinctly from runtime results',
   assert.match(history, /if \(status === 'unavailable'\) return 'sdk unavailable'/);
   assert.match(history, /return 'local fixture'/);
   assert.match(history, /status === 'local-fixture'\) return 'info'/);
+  assert.match(history, /parseOptionalJsonObject/);
+  assert.match(history, /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
 });
 
 test('tester AI config is the Kit model-config surface in Settings with real SDK AIProfiles', () => {

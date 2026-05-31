@@ -14,7 +14,7 @@
 // profile content. It carries no guide-specific identifier and takes no
 // guide-special branch.
 
-import { parseOptionalJsonObject, parseOptionalString } from '@renderer/bridge/runtime-bridge/shared';
+import { parseOptionalJsonObject, parseOptionalString } from '@nimiplatform/kit/shell/renderer/bridge';
 
 /** The `dna.knowledge` corpus payload format authored by the backend. */
 const GUIDE_DOCS_KNOWLEDGE_FORMAT = 'nimi-guide-docs-v1';

@@ -12,7 +12,7 @@
  * a corrupt preference blob from being masked as a healthy default.
  */
 
-import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
+import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 
 /* ------------------------------------------------------------------ */
 /*  Storage keys + events                                             */

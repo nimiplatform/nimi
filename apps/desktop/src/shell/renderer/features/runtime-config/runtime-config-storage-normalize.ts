@@ -9,13 +9,9 @@ import {
   normalizeUiModeV11,
   type RuntimeConfigStateV11,
 } from './runtime-config-state-types';
-import type { JsonObject } from '@runtime/net/json';
+import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { StoredStateV11 } from './runtime-config-storage-defaults';
 import { createDefaultStateV11 } from './runtime-config-storage-defaults';
-
-function parseOptionalJsonObject(value: unknown): JsonObject | undefined {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonObject : undefined;
-}
 
 function normalizeLocalFromAny(
   parsed: StoredStateV11 & JsonObject,

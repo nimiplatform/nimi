@@ -1,9 +1,20 @@
 import type { RuntimeLogMessage } from '@runtime/telemetry/logger';
+import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
+export type {
+  JsonPrimitive,
+  JsonValue,
+  JsonObject,
+} from '@nimiplatform/kit/shell/renderer/bridge';
+export {
+  assertRecord,
+  isJsonObject,
+  parseOptionalJsonObject,
+  parseOptionalNumber,
+  parseOptionalString,
+  parseRequiredString,
+} from '@nimiplatform/kit/shell/renderer/bridge';
 
-export type JsonPrimitive = string | number | boolean | null;
-export type JsonValue = unknown;
-export type JsonObject = Record<string, unknown>;
-export type JsonArray = JsonValue[];
+export type JsonArray = unknown[];
 
 export type RendererLogLevel = 'debug' | 'info' | 'warn' | 'error';
 export type RendererLogMessage = RuntimeLogMessage;
@@ -28,40 +39,3 @@ export type RuntimeBridgeStructuredError = {
   message?: string;
   details?: JsonObject;
 };
-
-export function isJsonObject(value: unknown): value is JsonObject {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
-export function assertRecord(value: unknown, errorMessage: string): JsonObject {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(errorMessage);
-  }
-  return value as JsonObject;
-}
-
-export function parseOptionalJsonObject(value: unknown): JsonObject | undefined {
-  return isJsonObject(value) ? value : undefined;
-}
-
-export function parseRequiredString(
-  value: unknown,
-  fieldName: string,
-  errorPrefix: string,
-): string {
-  const normalized = String(value || '').trim();
-  if (!normalized) {
-    throw new Error(`${errorPrefix}: ${fieldName} is required`);
-  }
-  return normalized;
-}
-
-export function parseOptionalString(value: unknown): string | undefined {
-  const normalized = String(value || '').trim();
-  return normalized || undefined;
-}
-
-export function parseOptionalNumber(value: unknown): number | undefined {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : undefined;
-}
