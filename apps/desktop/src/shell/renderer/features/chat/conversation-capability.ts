@@ -17,7 +17,6 @@
  */
 import type {
   AIConfig,
-  AIRuntimeEvidence,
   AIScopeRef,
   AISnapshot,
 } from '@nimiplatform/sdk/ai';
@@ -30,6 +29,7 @@ import type {
   RuntimeRouteBinding,
   RuntimeRouteDescribeResult,
   RuntimeRouteHealthResult,
+  AIRuntimeEvidence,
 } from '@nimiplatform/sdk/runtime';
 import {
   RUNTIME_ROUTE_APP_CAPABILITIES,
@@ -309,7 +309,6 @@ export type {
   AIProfile,
   AIProfileCapabilityIntent,
   AIProfileRef,
-  AIRuntimeEvidence,
   AIRuntimeLocalProfileRef,
   AIScopeKind,
   AIScopeRef,
@@ -319,5 +318,6 @@ export type {
   AISchedulingJudgement,
   AISchedulingOccupancy,
   AISchedulingState,
+  AIRuntimeEvidence,
 } from '@nimiplatform/sdk/runtime';
 export { applyAIProfileToConfig, createEmptyAIConfig } from '@nimiplatform/sdk/ai';

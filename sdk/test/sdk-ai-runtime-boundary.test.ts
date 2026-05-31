@@ -62,3 +62,11 @@ test('AIConfig scheduling projection lives on the runtime subpath, not AI', () =
   assert.doesNotMatch(readSource(aiDir, 'index.ts'), /ai-config-scheduling\.js/);
   assert.match(readSource(runtimeDir, 'index.ts'), /ai-config-scheduling\.js/);
 });
+
+test('AI runtime execution evidence projection lives on the runtime subpath', () => {
+  const runtimeFiles = listFiles(runtimeDir);
+  assert.ok(runtimeFiles.includes('ai-execution-evidence.ts'));
+  assert.doesNotMatch(readSource(aiDir, 'ai-config.ts'), /export type AIRuntimeEvidence =/);
+  assert.match(readSource(runtimeDir, 'index.ts'), /ai-execution-evidence\.js/);
+  assert.match(readSource(runtimeDir, 'browser.ts'), /ai-execution-evidence\.js/);
+});

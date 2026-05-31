@@ -15,7 +15,9 @@ import {
   createAIConfigEvidence,
 } from '@nimiplatform/sdk/ai';
 import {
+  createAIRuntimeEvidence,
   peekRuntimeSchedulingBatch,
+  projectAIRuntimeEvidenceMetadata,
   resolveAIConfigRuntimeSchedulingTargetForCapability,
   type AISchedulingEvaluationTarget,
   type RuntimeRouteBinding,
@@ -109,6 +111,11 @@ type ResolvedLLMBinding = {
   model: string;
   schedulingTarget: AISchedulingEvaluationTarget | null;
   metadata: Record<string, string>;
+};
+
+type SchedulingPreflightResult = {
+  unavailable: TesterUnavailable | null;
+  evidenceMetadata: Record<string, string>;
 };
 
 function isTesterUnavailable(value: ResolvedLLMBinding | TesterUnavailable): value is TesterUnavailable {
@@ -258,9 +265,9 @@ async function ensureSchedulingPreflight(
   client: PlatformClient,
   capabilityId: TesterCapabilityId,
   resolved: ResolvedLLMBinding,
-): Promise<TesterUnavailable | null> {
+): Promise<SchedulingPreflightResult> {
   if (!resolved.schedulingTarget) {
-    return null;
+    return { unavailable: null, evidenceMetadata: {} };
   }
   try {
     const batch = await peekRuntimeSchedulingBatch({
@@ -269,16 +276,22 @@ async function ensureSchedulingPreflight(
       peekScheduling: (request, options) => client.runtime.ai.peekScheduling(request, options),
     });
     const judgement = batch?.aggregateJudgement ?? null;
+    const evidenceMetadata = projectAIRuntimeEvidenceMetadata(
+      createAIRuntimeEvidence({ schedulingJudgement: judgement }),
+    );
     if (judgement?.state === 'denied') {
-      return capabilityUnavailable(
-        getTesterCapability(capabilityId),
-        'runtime-call-failed',
-        `Runtime scheduling denied ${resolved.bindingCapabilityId}: ${judgement.detail || 'denied'}`,
-      );
+      return {
+        unavailable: capabilityUnavailable(
+          getTesterCapability(capabilityId),
+          'runtime-call-failed',
+          `Runtime scheduling denied ${resolved.bindingCapabilityId}: ${judgement.detail || 'denied'}`,
+        ),
+        evidenceMetadata,
+      };
     }
-    return null;
+    return { unavailable: null, evidenceMetadata };
   } catch (error) {
-    return unavailableFromError(capabilityId, error);
+    return { unavailable: unavailableFromError(capabilityId, error), evidenceMetadata: {} };
   }
 }
 
@@ -318,15 +331,18 @@ async function invokeTextGenerate(client: PlatformClient, input: TesterScenarioI
   }
   const resolved = resolveTesterLLMBinding('text.generate');
   if (isTesterUnavailable(resolved)) return resolved;
-  const schedulingUnavailable = await ensureSchedulingPreflight(client, 'text.generate', resolved);
-  if (schedulingUnavailable) return schedulingUnavailable;
+  const schedulingPreflight = await ensureSchedulingPreflight(client, 'text.generate', resolved);
+  if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
   const route = routeInput(resolved.binding, resolved.model);
   const directedPrompt = input.directive ? `${input.directive}\n\n${prompt}` : prompt;
   try {
     const output = await client.runtime.ai.text.generate({
       ...route,
       input: buildMultimodalInput(directedPrompt, input.attachments ?? []),
-      metadata: buildMetadata('dev.nimi.tester.ai.text.generate', resolved.metadata),
+      metadata: buildMetadata('dev.nimi.tester.ai.text.generate', {
+        ...resolved.metadata,
+        ...schedulingPreflight.evidenceMetadata,
+      }),
     });
     return {
       ok: true,
@@ -356,8 +372,8 @@ async function invokeChatStream(client: PlatformClient, input: TesterScenarioInp
   }
   const resolved = resolveTesterLLMBinding('chat.stream');
   if (isTesterUnavailable(resolved)) return resolved;
-  const schedulingUnavailable = await ensureSchedulingPreflight(client, 'chat.stream', resolved);
-  if (schedulingUnavailable) return schedulingUnavailable;
+  const schedulingPreflight = await ensureSchedulingPreflight(client, 'chat.stream', resolved);
+  if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
   const route = routeInput(resolved.binding, resolved.model);
   try {
     const opened = await client.runtime.ai.text.stream({
@@ -365,7 +381,10 @@ async function invokeChatStream(client: PlatformClient, input: TesterScenarioInp
       input: input.attachments && input.attachments.length
         ? buildMultimodalInput(prompt, input.attachments)
         : [{ role: 'user', content: prompt }],
-      metadata: buildMetadata('dev.nimi.tester.ai.chat.stream', resolved.metadata),
+      metadata: buildMetadata('dev.nimi.tester.ai.chat.stream', {
+        ...resolved.metadata,
+        ...schedulingPreflight.evidenceMetadata,
+      }),
     });
     let aggregated = '';
     let finishReason = 'stop';
@@ -416,14 +435,17 @@ async function invokeEmbedding(client: PlatformClient, input: TesterScenarioInpu
   }
   const resolved = resolveTesterLLMBinding('text.embed');
   if (isTesterUnavailable(resolved)) return resolved;
-  const schedulingUnavailable = await ensureSchedulingPreflight(client, 'text.embed', resolved);
-  if (schedulingUnavailable) return schedulingUnavailable;
+  const schedulingPreflight = await ensureSchedulingPreflight(client, 'text.embed', resolved);
+  if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
   const route = routeInput(resolved.binding, resolved.model);
   try {
     const output = await client.runtime.ai.embedding.generate({
       ...route,
       input: prompt,
-      metadata: buildMetadata('dev.nimi.tester.ai.embedding.generate', resolved.metadata),
+      metadata: buildMetadata('dev.nimi.tester.ai.embedding.generate', {
+        ...resolved.metadata,
+        ...schedulingPreflight.evidenceMetadata,
+      }),
     });
     const first = output.vectors[0] || [];
     return {

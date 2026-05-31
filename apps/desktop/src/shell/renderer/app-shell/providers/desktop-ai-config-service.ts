@@ -25,7 +25,6 @@ import {
   type AIProfileSurface,
   type AIProfileValidationResult,
   type AIProbeStatus,
-  type AIRuntimeEvidence,
   type AIScopeRef,
   type AISnapshot,
   type AISnapshotSurface,
@@ -35,6 +34,10 @@ import {
 import type {
   AISchedulingEvaluationTarget,
   AISchedulingJudgement,
+  AIRuntimeEvidence,
+} from '@nimiplatform/sdk/runtime';
+import {
+  createAIRuntimeEvidence,
 } from '@nimiplatform/sdk/runtime';
 import {
   loadPlatformAIProfileFactoryCatalog,
@@ -716,7 +719,7 @@ export async function peekDesktopAISchedulingForEvidence(input: {
     input.scopeRef,
     target,
   );
-  return judgement ? { schedulingJudgement: judgement } : null;
+  return createAIRuntimeEvidence({ schedulingJudgement: judgement });
 }
 
 // ---------------------------------------------------------------------------

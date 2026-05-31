@@ -21,6 +21,7 @@ export * from './runtime-call-options.js';
 export * from './runtime-scheduling-types.js';
 export * from './runtime-scheduling.js';
 export * from './ai-config-scheduling.js';
+export * from './ai-execution-evidence.js';
 export * from './memory-embedding-config.js';
 export * from './memory-embedding-runtime.js';
 export * from './memory-embedding-route-availability.js';

@@ -20,8 +20,10 @@ import {
 import type {
   AISchedulingEvaluationTarget,
   AISchedulingJudgement,
+  AIRuntimeEvidence,
   RuntimeRouteBinding,
 } from '../runtime/index.js';
+export type { AIRuntimeEvidence } from '../runtime/index.js';
 export type {
   AIScopeKind,
   AIScopeRef,
@@ -126,15 +128,6 @@ export type AISnapshot = {
   conversationCapabilitySlice: AIConversationExecutionSlice;
   runtimeEvidence: AIRuntimeEvidence | null;
   createdAt: string;
-};
-
-// ---------------------------------------------------------------------------
-// AIRuntimeEvidence  (D-AIPC-004 runtimeEvidence)
-// ---------------------------------------------------------------------------
-
-/** Runtime-side execution evidence container. */
-export type AIRuntimeEvidence = {
-  schedulingJudgement: AISchedulingJudgement | null;
 };
 
 function assertExplicitAIScopeRef(scopeRef: AIScopeRef | null | undefined): AIScopeRef {

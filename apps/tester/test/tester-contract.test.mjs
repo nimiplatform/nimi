@@ -592,6 +592,8 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
   assert.equal(Object.hasOwn(captured[3].input, 'connectorId'), false);
   assert.equal(captured[3].input.route, 'local');
   assert.equal(captured[3].input.metadata.aiConfigBindingCapabilityId, 'text.embed');
+  assert.equal(captured[3].input.metadata.runtimeSchedulingState, 'runnable');
+  assert.equal(Object.hasOwn(captured[3].input.metadata, 'runtimeSchedulingDetail'), false);
 });
 
 test('tester local text.generate binding omits runtime connectorId payload', async () => {
@@ -678,6 +680,8 @@ test('tester local text.generate binding omits runtime connectorId payload', asy
     targetId: 'core:runtime',
     profileId: 'text-local-profile',
   }]);
+  assert.equal(capturedInput.metadata.runtimeSchedulingState, 'runnable');
+  assert.equal(Object.hasOwn(capturedInput.metadata, 'runtimeSchedulingDetail'), false);
 });
 
 test('tester local LLM scheduling denial fails closed before Runtime execution', async () => {
