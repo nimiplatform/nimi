@@ -1046,11 +1046,17 @@ test('tester settings consumes SDK Runtime recommendation enum projections', () 
 
 test('tester settings consumes SDK Runtime recommendation feed parser projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
+  const recommendationCopyProjection = read('src/tester/tester-local-recommendation-copy-projection.ts');
 
   assert.match(settings, /parseRuntimeLocalRecommendationFeedDescriptor/);
+  assert.match(settings, /createTesterLocalRecommendationCopyProjection/);
+  assert.match(recommendationCopyProjection, /summarizeLocalCatalogRecommendation/);
+  assert.match(recommendationCopyProjection, /formatLocalRecommendationReasonLabel/);
+  assert.match(recommendationCopyProjection, /buildLocalRecommendationDetailItems/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Runtime recommendation feed parser/);
   assert.doesNotMatch(settings, /function parseRecommendationFeedDescriptor/);
+  assert.doesNotMatch(settings, /function recommendationReasonLabel/);
   assert.doesNotMatch(settings, /new Set\([^)]*LOCAL_RECOMMENDATION/);
 });
 

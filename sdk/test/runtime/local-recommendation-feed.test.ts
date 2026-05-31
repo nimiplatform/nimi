@@ -4,6 +4,11 @@ import test from 'node:test';
 import {
   LOCAL_RECOMMENDATION_FORMAT_IDS,
   LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,
+  buildLocalRecommendationDetailItems,
+  formatLocalRecommendationBaselineLabel,
+  formatLocalRecommendationConfidenceLabel,
+  formatLocalRecommendationHostSupportLabel,
+  formatLocalRecommendationReasonLabel,
   formatLocalRecommendationRepoOwner,
   localRecommendationFeedMatchesQuery,
   localRecommendationTierToRunGrade,
@@ -19,6 +24,7 @@ import {
   parseRuntimeLocalCatalogRecommendation,
   parseRuntimeLocalRecommendationFeedDescriptor,
   selectLocalRecommendationPrimaryEntrySize,
+  summarizeLocalCatalogRecommendation,
   summarizeLocalRecommendationFeedCacheState,
   toLocalRecommendationFeedCapabilityRequestValue,
 } from '../../src/runtime/index.js';
@@ -97,6 +103,43 @@ test('local recommendation feed projection utilities preserve Runtime feed seman
   assert.equal(selectLocalRecommendationPrimaryEntrySize(item), 4);
   assert.equal(localRecommendationFeedMatchesQuery(item, 'small-chat-q4'), true);
   assert.equal(localRecommendationFeedMatchesQuery(item, 'speech'), false);
+});
+
+test('local recommendation feed copy helpers stay in the SDK projection', () => {
+  const recommendation = parseRuntimeLocalCatalogRecommendation({
+    source: 'LOCAL_RECOMMENDATION_SOURCE_MEDIA_FIT',
+    tier: 'LOCAL_RECOMMENDATION_TIER_RUNNABLE',
+    hostSupportClass: 'LOCAL_HOST_SUPPORT_CLASS_ATTACHED_ONLY',
+    confidence: 'LOCAL_RECOMMENDATION_CONFIDENCE_MEDIUM',
+    baseline: 'LOCAL_RECOMMENDATION_BASELINE_IMAGE_DEFAULT_V1',
+    reasonCodes: ['memory_headroom_runnable'],
+    recommendedEntry: 'q4.gguf',
+    fallbackEntries: ['q5.gguf', 'q8.gguf', 'fp16.safetensors'],
+    suggestedNotes: ['prefer q4'],
+  });
+
+  assert.ok(recommendation);
+  assert.equal(formatLocalRecommendationHostSupportLabel(recommendation.hostSupportClass), 'Attached Only');
+  assert.equal(formatLocalRecommendationConfidenceLabel(recommendation.confidence), 'Medium confidence');
+  assert.equal(formatLocalRecommendationBaselineLabel(recommendation.baseline), 'image-default-v1 (1024x1024 text-to-image)');
+  assert.equal(formatLocalRecommendationReasonLabel('memory_headroom_runnable'), 'Available memory is enough, but with limited headroom.');
+  assert.equal(formatLocalRecommendationReasonLabel('runtime-owned-new-code'), 'runtime-owned-new-code');
+  assert.equal(
+    summarizeLocalCatalogRecommendation(recommendation),
+    'Should run for image generation, but with less headroom. Requires an attached endpoint for this engine. Best variant: q4.gguf. Assessed with image-default-v1 (1024x1024 text-to-image).',
+  );
+  assert.deepEqual(buildLocalRecommendationDetailItems(recommendation, { maxFallbackEntries: 2 }), [
+    { key: 'recommendedEntry', label: 'Recommended entry', value: 'q4.gguf' },
+    { key: 'fallbackEntries', label: 'Fallback entries', value: 'q5.gguf, q8.gguf +1 more' },
+    { key: 'baseline', label: 'Baseline', value: 'image-default-v1 (1024x1024 text-to-image)' },
+    { key: 'note', label: 'Note', value: 'prefer q4' },
+  ]);
+  assert.equal(
+    summarizeLocalCatalogRecommendation(recommendation, {
+      translate: (key, options) => `${key}:${options.defaultValue}`,
+    }),
+    'runtimeConfig.local.recommendationSummaryRunnable:Should run for {{workload}}, but with less headroom. runtimeConfig.local.recommendationSummaryAttached:Requires an attached endpoint for this engine. runtimeConfig.local.recommendationSummaryVariant:Best variant: {{entry}}. runtimeConfig.local.recommendationSummaryBaseline:Assessed with {{baseline}}.',
+  );
 });
 
 test('local recommendation catalog parser fails closed on invalid source', () => {

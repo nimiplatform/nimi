@@ -35,6 +35,10 @@ const localModelCenterUseHelpersPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-helpers.ts',
 );
+const localModelCenterHelpersPath = path.resolve(
+  process.cwd(),
+  'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-helpers.tsx',
+);
 const localModelCenterSectionsPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-sections.tsx',
@@ -102,6 +106,7 @@ const localModelCenterInstalledAssetsSource = readFileSync(localModelCenterInsta
 const localModelCenterImportActionsSource = readFileSync(localModelCenterImportActionsPath, 'utf-8');
 const localModelCenterImportFilePlanSource = readFileSync(localModelCenterImportFilePlanPath, 'utf-8');
 const localModelCenterUseHelpersSource = readFileSync(localModelCenterUseHelpersPath, 'utf-8');
+const localModelCenterHelpersSource = readFileSync(localModelCenterHelpersPath, 'utf-8');
 const localModelCenterSectionsSource = readFileSync(localModelCenterSectionsPath, 'utf-8');
 const localModelCenterUtilsSource = readFileSync(localModelCenterUtilsPath, 'utf-8');
 const localModelCenterProgressCacheSource = readFileSync(localModelCenterProgressCachePath, 'utf-8');
@@ -152,6 +157,19 @@ test('local model center consumes SDK local runtime asset-kind DX helpers', () =
   assert.doesNotMatch(localModelCenterUseHelpersSource, /ASSET_KIND_OPTIONS\.find/);
   assert.doesNotMatch(localModelCenterUseHelpersSource, /assetKind === 'auxiliary'/);
   assert.doesNotMatch(localModelCenterStateSource, /case 'controlnet'/);
+});
+
+test('local model center consumes SDK local recommendation DX helpers', () => {
+  assert.match(localModelCenterHelpersSource, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(localModelCenterHelpersSource, /formatLocalRecommendationHostSupportLabel/);
+  assert.match(localModelCenterHelpersSource, /formatLocalRecommendationConfidenceLabel/);
+  assert.match(localModelCenterHelpersSource, /formatLocalRecommendationBaselineLabel/);
+  assert.match(localModelCenterHelpersSource, /formatLocalRecommendationReasonLabel/);
+  assert.match(localModelCenterHelpersSource, /summarizeLocalCatalogRecommendation/);
+  assert.match(localModelCenterHelpersSource, /buildLocalRecommendationDetailItems/);
+  assert.doesNotMatch(localModelCenterHelpersSource, /switch \(String\(code \|\| ''\)\.trim\(\)\)/);
+  assert.doesNotMatch(localModelCenterHelpersSource, /case 'llmfit_vision_model'/);
+  assert.doesNotMatch(localModelCenterHelpersSource, /function recommendationWorkloadLabel/);
 });
 
 test('dismissed transfer sessions persist across renderer reloads', () => {

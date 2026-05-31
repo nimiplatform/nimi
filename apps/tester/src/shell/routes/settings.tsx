@@ -128,6 +128,7 @@ import {
   type RealmListChatsResultDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import { Button, ProgressIndicator, StatusBadge, Surface, Toggle } from '@nimiplatform/kit/ui';
+import { createTesterLocalRecommendationCopyProjection } from '../../tester/tester-local-recommendation-copy-projection';
 import { createTesterLocalRuntimeAssetKindProjection } from '../../tester/tester-local-runtime-asset-kind-projection';
 
 type WalletProjectionState =
@@ -684,6 +685,7 @@ export function SettingsRoute() {
       },
     }],
   }, (value: unknown) => value as { surface: string });
+  const recommendationCopyProjection = createTesterLocalRecommendationCopyProjection();
   const runtimeReasonProjection = {
     reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
     message: getRuntimeReasonCodeDefaultMessage(ReasonCode.AI_PROVIDER_TIMEOUT) ?? 'unknown',
@@ -1779,7 +1781,7 @@ export function SettingsRoute() {
       <div className="setting-row">
         <span>Runtime recommendation projection</span>
         <StatusBadge tone="neutral">
-          {recommendationFeedProjection.source} / {recommendationFeedProjection.cacheState} / {recommendationFeedProjection.grade}
+          {recommendationFeedProjection.source} / {recommendationFeedProjection.cacheState} / {recommendationFeedProjection.grade} / {recommendationCopyProjection.detailCount}: {recommendationCopyProjection.summary || recommendationCopyProjection.reason}
         </StatusBadge>
       </div>
       <div className="setting-row">

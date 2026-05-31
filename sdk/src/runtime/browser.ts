@@ -307,6 +307,19 @@ export {
   type LocalRecommendationTierId,
 } from './local-recommendation-feed.js';
 export {
+  buildLocalRecommendationDetailItems,
+  formatLocalRecommendationBaselineLabel,
+  formatLocalRecommendationConfidenceLabel,
+  formatLocalRecommendationFallbackEntries,
+  formatLocalRecommendationHostSupportLabel,
+  formatLocalRecommendationReasonLabel,
+  summarizeLocalCatalogRecommendation,
+  type LocalRecommendationCopyOptions,
+  type LocalRecommendationCopyTranslator,
+  type LocalRecommendationDetailItem,
+  type LocalRecommendationDetailOptions,
+} from './local-recommendation-copy.js';
+export {
   LOCAL_RUNTIME_ASSET_KIND_IDS,
   LOCAL_RUNTIME_ASSET_KIND_LABELS,
   LOCAL_RUNTIME_ASSET_STATUS_IDS,
