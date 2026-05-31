@@ -257,7 +257,7 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
     'AIConfig',
     'createAppAIScopeRef',
     'createEmptyAIConfig',
-    'validateAIProfile',
+    'parseAIProfile',
     'applyAIProfileToConfig',
     'computeAIConfigDiff',
     'computeAIConfigVersion',
@@ -270,6 +270,7 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   ]) {
     assert.match(store, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
+  assert.doesNotMatch(store, /validateAIProfile,\n/);
 
   // The kit model-config mechanics live in the scaffold-managed sectioned config
   // surface skeleton (inherited by every generated app). It composes admitted kit

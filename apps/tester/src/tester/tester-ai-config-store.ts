@@ -12,7 +12,7 @@ import {
   computeAIConfigVersion,
   createAppAIScopeRef,
   createEmptyAIConfig,
-  validateAIProfile,
+  parseAIProfile,
 } from '@nimiplatform/sdk/ai';
 import type {
   SharedAIConfigService,
@@ -170,15 +170,17 @@ function parseStoredProfileLibrary(raw: string): TesterAIProfileLibraryStore {
   }
   const profiles: AIProfile[] = [];
   for (const profile of parsed.profiles) {
-    const validation = validateAIProfile(profile);
-    if (!validation.valid) {
-      throw new Error(`Stored AIProfile is invalid: ${validation.errors.join('; ')}`);
+    let parsedProfile: AIProfile;
+    try {
+      parsedProfile = parseAIProfile(profile);
+    } catch (error) {
+      throw new Error(`Stored AIProfile is invalid: ${error instanceof Error ? error.message : String(error)}`);
     }
-    const bindingErrors = validateAIProfileRuntimeBindings(profile as AIProfile);
+    const bindingErrors = validateAIProfileRuntimeBindings(parsedProfile);
     if (bindingErrors.length > 0) {
       throw new Error(`Stored AIProfile binding is invalid: ${bindingErrors.join('; ')}`);
     }
-    profiles.push(profile as AIProfile);
+    profiles.push(parsedProfile);
   }
   return {
     schemaVersion: TESTER_AI_PROFILE_LIBRARY_SCHEMA_VERSION,
@@ -222,16 +224,17 @@ export function importTesterAIProfileJson(rawJson: string): TesterAIProfileImpor
     };
   }
 
-  const validation = validateAIProfile(parsed);
-  if (!validation.valid) {
+  let profile: AIProfile;
+  try {
+    profile = parseAIProfile(parsed);
+  } catch (error) {
     return {
       ok: false,
-      errors: validation.errors,
+      errors: [error instanceof Error ? error.message : String(error)],
       message: 'AIProfile validation failed.',
     };
   }
 
-  const profile = parsed as AIProfile;
   const bindingErrors = validateAIProfileRuntimeBindings(profile);
   if (bindingErrors.length > 0) {
     return {
@@ -316,11 +319,11 @@ function requireProfile(profileId: string): AIProfile {
   if (!profile) {
     throw new Error(`AIProfile ${profileId} is not in the App Lab profile library.`);
   }
-  const validation = validateAIProfile(profile);
-  if (!validation.valid) {
-    throw new Error(`AIProfile ${profileId} is invalid: ${validation.errors.join('; ')}`);
+  try {
+    return parseAIProfile(profile);
+  } catch (error) {
+    throw new Error(`AIProfile ${profileId} is invalid: ${error instanceof Error ? error.message : String(error)}`);
   }
-  return profile;
 }
 
 export function createTesterAIConfigService(): SharedAIConfigService {
