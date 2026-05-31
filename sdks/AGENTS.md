@@ -7,6 +7,9 @@
 - Phase 1 means generated Runtime/Realm core implementation plus behavior
   conformance. Manifest-only parity, directory presence, and thin skeletons are
   not sufficient completion evidence.
+- Phase 1B means generated named typed Runtime and Realm APIs. Generic
+  descriptor calls such as `call(methodId, body)` or `operation(operationId,
+  body)` are low-level support, not core-ready public API proof.
 
 ## Boundaries
 
@@ -27,8 +30,12 @@
   Runtime proto; external framework semantics are not.
 - Conformance must invoke generated clients through fake transports. Do not
   count manifest comparison or file-existence checks as core readiness.
+- Typed-core conformance must invoke generated named typed methods/operations,
+  not generic descriptor calls.
 
 ## Verification
 
 - `node sdks/generators/generate.mjs --check`
 - `node sdks/conformance/run.mjs --language all`
+- `node sdks/conformance/run.mjs --language all --profile typed-core` once
+  Phase 1B is implemented.

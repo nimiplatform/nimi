@@ -9,6 +9,15 @@
   "cases": {
     "runtime_unary": {
       "method_id": "/runtime.v1.RuntimeAccountService/BeginLogin",
+      "method": "BeginLogin",
+      "typed_names": {
+        "typescript": "beginLogin",
+        "python": "begin_login",
+        "go": "BeginLogin",
+        "rust": "begin_login"
+      },
+      "request_type": "BeginLoginRequest",
+      "response_type": "BeginLoginResponse",
       "kind": "unary",
       "request_body": {
         "hello": "runtime"
@@ -20,6 +29,15 @@
     },
     "runtime_stream": {
       "method_id": "/runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
+      "method": "SubscribeAccountSessionEvents",
+      "typed_names": {
+        "typescript": "subscribeAccountSessionEvents",
+        "python": "subscribe_account_session_events",
+        "go": "SubscribeAccountSessionEvents",
+        "rust": "subscribe_account_session_events"
+      },
+      "request_type": "SubscribeAccountSessionEventsRequest",
+      "response_type": "AccountSessionEvent",
       "kind": "server_stream",
       "request_body": {
         "hello": "stream"
@@ -37,8 +55,25 @@
     },
     "realm_operation": {
       "operation_id": "ackMyLocalAgentProvisionIntent",
+      "typed_names": {
+        "typescript": "ackMyLocalAgentProvisionIntent",
+        "python": "ack_my_local_agent_provision_intent",
+        "go": "AckMyLocalAgentProvisionIntent",
+        "rust": "ack_my_local_agent_provision_intent"
+      },
+      "request_type": "RealmAckMyLocalAgentProvisionIntentOperationRequest",
+      "response_type": "RealmAckMyLocalAgentProvisionIntentOperationResponse",
       "method": "POST",
       "path": "/api/human/me/local-agent-provision-intents/{intentId}/ack",
+      "path_params": {
+        "intentId": "intent-conformance"
+      },
+      "query": {
+        "include": "projection"
+      },
+      "headers": {
+        "x-nimi-realm": "conformance"
+      },
       "request_body": {
         "hello": "realm"
       },
@@ -58,6 +93,16 @@
     "timeout_ms": 1234,
     "cancellation": {
       "reason_code": "OPERATION_ABORTED"
+    },
+    "structured_error": {
+      "reason_code": "SDK_RUNTIME_METHOD_UNAVAILABLE",
+      "message": "typed conformance error",
+      "details": {
+        "fixture": "typed-core"
+      },
+      "request_body": {
+        "force_error": "structured"
+      }
     }
   }
 }

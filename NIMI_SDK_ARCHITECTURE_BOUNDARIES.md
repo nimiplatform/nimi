@@ -43,6 +43,13 @@ plus behavior conformance for a language. A Runtime-only package, Realm-only
 package, partial method package, manifest-only package, or skeleton-only
 package is not a core SDK release.
 
+Descriptor-driven clients that require application developers to pass raw
+Runtime method IDs, raw Realm operation IDs, and untyped request bodies are a
+foundation milestone, not core-ready public SDK completion. Core-ready public
+interfaces require generated, named, typed methods and operation functions for
+normal usage. Descriptor access may exist only as an explicit low-level or
+unsafe escape hatch.
+
 Phase 1 core-family repository layout:
 
 ```text
@@ -183,6 +190,20 @@ Wave 1: Generated core and conformance foundation.
   projections, error tables, and export manifests.
 - Add shared conformance fixtures and fake transports that exercise generated
   clients before admitting non-TypeScript core packages.
+
+Wave 1B: Typed generated core hardening.
+
+- Generate named Runtime methods for every admitted Runtime RPC in TypeScript,
+  Python, Go, and Rust.
+- Generate named Realm operation functions for every admitted Realm operation
+  in TypeScript, Python, Go, and Rust.
+- Generate request, response, and stream item types for the normal public core
+  path in every Phase 1 language.
+- Update shared conformance so typed Runtime methods and typed Realm operation
+  functions, not generic descriptor calls, are the primary behavior proof.
+- Keep descriptor clients as explicit low-level/unsafe support only.
+- Do not switch Desktop/Web imports, move the current `sdk/` package, or add
+  derivative adapters.
 
 Wave 2: TypeScript generated core implementation.
 

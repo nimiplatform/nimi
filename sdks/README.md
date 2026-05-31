@@ -40,3 +40,10 @@ per-language behavior checks for unary calls, server streams, Realm operations,
 metadata propagation, timeout/cancellation posture, error projection, and unsafe
 raw transport access. These commands are local Phase 1 foundation checks. They
 are not wired into the repo release gates until admitted by the SDK kernel.
+
+Phase 1B raises the completion bar from descriptor-driven generated clients to
+typed public core APIs. For Phase 1B, generated clients must expose named,
+typed Runtime methods and Realm operation functions in TypeScript, Python, Go,
+and Rust. Shared conformance must invoke those typed APIs through fake
+transports. Generic descriptor calls remain low-level support and are not
+normal core-ready proof.

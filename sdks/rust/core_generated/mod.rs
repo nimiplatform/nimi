@@ -3,3 +3,4 @@
 
 pub mod realm_client;
 pub mod runtime_client;
+pub mod typed_clients;

@@ -35,6 +35,19 @@ function parseLanguageArg() {
   return value === 'all' ? languages : value.split(',').map((item) => item.trim()).filter(Boolean);
 }
 
+function parseProfileArg() {
+  const idx = process.argv.indexOf('--profile');
+  if (idx === -1) return 'descriptor-foundation';
+  const value = process.argv[idx + 1];
+  if (!value) {
+    throw new Error('--profile requires a value');
+  }
+  if (!['descriptor-foundation', 'typed-core'].includes(value)) {
+    throw new Error(`unsupported conformance profile: ${value}`);
+  }
+  return value;
+}
+
 function generatedDir(language) {
   if (language === 'go') return 'sdks/go/coregenerated';
   return `sdks/${language}/${language === 'typescript' ? 'core-generated' : 'core_generated'}`;
@@ -47,6 +60,8 @@ function skeletonFiles(language) {
         'sdks/typescript/core-client/index.ts',
         'sdks/typescript/core-generated/runtime-client.ts',
         'sdks/typescript/core-generated/realm-client.ts',
+        'sdks/typescript/core-generated/runtime-typed-client.ts',
+        'sdks/typescript/core-generated/realm-typed-client.ts',
         'sdks/typescript/runtime/index.ts',
         'sdks/typescript/realm/index.ts',
         'sdks/typescript/types/index.ts',
@@ -55,6 +70,8 @@ function skeletonFiles(language) {
       return [
         'sdks/python/core_generated/runtime_client.py',
         'sdks/python/core_generated/realm_client.py',
+        'sdks/python/core_generated/runtime_typed_client.py',
+        'sdks/python/core_generated/realm_typed_client.py',
         'sdks/python/core_client/__init__.py',
         'sdks/python/runtime/__init__.py',
         'sdks/python/realm/__init__.py',
@@ -64,6 +81,7 @@ function skeletonFiles(language) {
       return [
         'sdks/go/coregenerated/runtime_client.go',
         'sdks/go/coregenerated/realm_client.go',
+        'sdks/go/coregenerated/typed_clients.go',
         'sdks/go/coregenerated/behavior_test.go',
         'sdks/go/coreclient/client.go',
         'sdks/go/runtime/runtime.go',
@@ -75,6 +93,7 @@ function skeletonFiles(language) {
         'sdks/rust/core_generated/mod.rs',
         'sdks/rust/core_generated/runtime_client.rs',
         'sdks/rust/core_generated/realm_client.rs',
+        'sdks/rust/core_generated/typed_clients.rs',
         'sdks/rust/core_client/mod.rs',
         'sdks/rust/runtime/mod.rs',
         'sdks/rust/realm/mod.rs',
@@ -156,23 +175,23 @@ function run(command, args, options = {}) {
   });
 }
 
-function runTypescriptBehavior() {
+function runTypescriptBehavior(profile) {
   run('pnpm', [
     '--filter',
     '@nimiplatform/sdk',
     'exec',
     'tsx',
     '../sdks/conformance/behavior/typescript.ts',
-  ]);
+  ], { env: { SDKS_CONFORMANCE_PROFILE: profile } });
 }
 
-function runPythonBehavior() {
+function runPythonBehavior(profile) {
   run('python3', ['sdks/conformance/behavior/python.py'], {
-    env: { PYTHONPATH: repoRoot },
+    env: { PYTHONPATH: repoRoot, SDKS_CONFORMANCE_PROFILE: profile },
   });
 }
 
-function runGoBehavior() {
+function runGoBehavior(profile) {
   const dir = mkdtempSync(path.join(tmpdir(), 'sdks-go-conformance-'));
   try {
     cpSync(path.join(repoRoot, 'sdks/go'), dir, { recursive: true });
@@ -188,13 +207,14 @@ function runGoBehavior() {
     execFileSync('go', ['test', './...'], {
       cwd: dir,
       stdio: 'inherit',
+      env: { ...process.env, SDKS_CONFORMANCE_PROFILE: profile },
     });
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 }
 
-function runRustBehavior() {
+function runRustBehavior(profile) {
   const dir = mkdtempSync(path.join(tmpdir(), 'sdks-rust-conformance-'));
   try {
     cpSync(path.join(repoRoot, 'sdks/rust/core_client'), path.join(dir, 'core_client'), { recursive: true });
@@ -223,25 +243,26 @@ function runRustBehavior() {
     execFileSync(path.join(dir, 'sdks_rust_behavior_test'), [], {
       cwd: dir,
       stdio: 'inherit',
+      env: { ...process.env, SDKS_CONFORMANCE_PROFILE: profile },
     });
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 }
 
-function runBehavior(language) {
+function runBehavior(language, profile) {
   switch (language) {
     case 'typescript':
-      runTypescriptBehavior();
+      runTypescriptBehavior(profile);
       return;
     case 'python':
-      runPythonBehavior();
+      runPythonBehavior(profile);
       return;
     case 'go':
-      runGoBehavior();
+      runGoBehavior(profile);
       return;
     case 'rust':
-      runRustBehavior();
+      runRustBehavior(profile);
       return;
     default:
       throw new Error(`unknown behavior language: ${language}`);
@@ -250,13 +271,14 @@ function runBehavior(language) {
 
 function main() {
   const requested = parseLanguageArg();
+  const profile = parseProfileArg();
   const selected = requested.includes('all') ? languages : requested;
   const shared = validateSharedManifests();
   for (const language of selected) {
     validateLanguage(language, shared);
-    runBehavior(language);
+    runBehavior(language, profile);
   }
-  process.stdout.write(`sdks conformance: OK (${selected.join(', ')})\n`);
+  process.stdout.write(`sdks conformance: OK (${selected.join(', ')}; profile=${profile})\n`);
 }
 
 try {

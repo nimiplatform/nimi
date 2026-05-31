@@ -43,6 +43,16 @@ type fakeTransport struct {
 	streamCalls []sdkstypes.CoreStreamRequest
 }
 
+type structuredCoreError struct {
+	Code    string
+	Message string
+	Details map[string]any
+}
+
+func (e structuredCoreError) Error() string {
+	return e.Code + ": " + e.Message
+}
+
 type fakeStream struct {
 	events [][]byte
 	index  int
@@ -64,10 +74,37 @@ func (t *fakeTransport) Unary(ctx context.Context, req sdkstypes.CoreUnaryReques
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	var body map[string]any
+	if err := json.Unmarshal(req.Body, &body); err == nil && body["redirect_uri"] == "force-error" {
+		return nil, structuredCoreError{
+			Code:    "SDK_RUNTIME_METHOD_UNAVAILABLE",
+			Message: "typed conformance error",
+			Details: map[string]any{"fixture": "typed-core"},
+		}
+	}
 	switch req.MethodID {
 	case t.fixtures.Cases.RuntimeUnary.MethodID:
+		if os.Getenv("SDKS_CONFORMANCE_PROFILE") == "typed-core" {
+			return json.Marshal(BeginLoginResponse{
+				Accepted:       true,
+				LoginAttemptId: "login-conformance",
+				CallbackOrigin: "https://app.example",
+			})
+		}
 		return json.Marshal(t.fixtures.Cases.RuntimeUnary.ResponseBody)
 	case t.fixtures.Cases.RealmOperation.OperationID:
+		if os.Getenv("SDKS_CONFORMANCE_PROFILE") == "typed-core" {
+			return json.Marshal(LocalAgentProvisionIntentDto{
+				Id:             "intent-conformance",
+				Status:         "ACKED",
+				LocalAgentRef:  "local-agent",
+				OwnerUserId:    "owner",
+				RealmAgentId:   "realm-agent",
+				Attempts:       1,
+				AvailableAt:    "2026-01-01T00:00:00Z",
+				CreatedAt:      "2026-01-01T00:00:00Z",
+			})
+		}
 		return json.Marshal(t.fixtures.Cases.RealmOperation.ResponseBody)
 	default:
 		return nil, errors.New("unexpected unary")
@@ -81,7 +118,15 @@ func (t *fakeTransport) ServerStream(ctx context.Context, req sdkstypes.CoreStre
 	}
 	events := make([][]byte, 0, len(t.fixtures.Cases.RuntimeStream.Events))
 	for _, event := range t.fixtures.Cases.RuntimeStream.Events {
-		encoded, err := json.Marshal(event)
+		value := any(event)
+		if os.Getenv("SDKS_CONFORMANCE_PROFILE") == "typed-core" {
+			value = AccountSessionEvent{
+				EventId:   "event-1",
+				Sequence:  uint64(len(events) + 1),
+				EventType: "ACCOUNT_EVENT_TYPE_LOGIN_STARTED",
+			}
+		}
+		encoded, err := json.Marshal(value)
 		if err != nil {
 			return nil, err
 		}
@@ -111,6 +156,103 @@ func TestGeneratedClientsWithFakeTransport(t *testing.T) {
 	})
 	runtimeClient := NewRuntimeGeneratedClient(core)
 	realmClient := NewRealmGeneratedClient(core)
+
+	if os.Getenv("SDKS_CONFORMANCE_PROFILE") == "typed-core" {
+		typedRuntime := NewRuntimeTypedClient(core)
+		typedRealm := NewRealmTypedClient(core)
+		response, err := typedRuntime.BeginLogin(
+			context.Background(),
+			BeginLoginRequest{
+				Caller: &AccountCaller{
+					AppId:  "app-conformance",
+					Mode:   "ACCOUNT_CALLER_MODE_DESKTOP_SHELL",
+					Scopes: []string{"account.login"},
+				},
+				RedirectUri:     "https://app.example/callback",
+				CallbackOrigin:  "https://app.example",
+				RequestedScopes: []string{"openid", "profile"},
+				TtlSeconds:      60,
+			},
+			fixtures.Cases.Metadata.Caller,
+			fixtures.Cases.TimeoutMS,
+		)
+		if err != nil {
+			t.Fatalf("typed runtime call: %v", err)
+		}
+		if !response.Accepted || response.LoginAttemptId != "login-conformance" {
+			t.Fatalf("typed runtime response mismatch: %#v", response)
+		}
+		if transport.unaryCalls[0].MethodID != fixtures.Cases.RuntimeUnary.MethodID {
+			t.Fatalf("typed runtime method mismatch: %s", transport.unaryCalls[0].MethodID)
+		}
+		if transport.unaryCalls[0].TimeoutMS != fixtures.Cases.TimeoutMS {
+			t.Fatalf("typed timeout not propagated")
+		}
+		if transport.unaryCalls[0].Metadata["authorization"] != fixtures.Cases.Metadata.Auth["authorization"] {
+			t.Fatalf("typed auth metadata not propagated")
+		}
+		if transport.unaryCalls[0].Metadata["x-nimi-caller"] != fixtures.Cases.Metadata.Caller["x-nimi-caller"] {
+			t.Fatalf("typed caller metadata not propagated")
+		}
+
+		stream, err := typedRuntime.SubscribeAccountSessionEvents(
+			context.Background(),
+			SubscribeAccountSessionEventsRequest{Caller: &AccountCaller{AppId: "app-conformance"}, AfterSequence: 0},
+			nil,
+			0,
+		)
+		if err != nil {
+			t.Fatalf("typed runtime stream: %v", err)
+		}
+		for range fixtures.Cases.RuntimeStream.Events {
+			event, err := stream.Recv(context.Background())
+			if err != nil {
+				t.Fatalf("typed stream recv: %v", err)
+			}
+			if event.EventType == "" {
+				t.Fatalf("typed stream event mismatch: %#v", event)
+			}
+		}
+		if _, err := stream.Recv(context.Background()); !errors.Is(err, io.EOF) {
+			t.Fatalf("expected typed EOF, got %v", err)
+		}
+
+		realmResponse, err := typedRealm.AckMyLocalAgentProvisionIntent(
+			context.Background(),
+			RealmAckMyLocalAgentProvisionIntentOperationRequest{
+				Path:    RealmAckMyLocalAgentProvisionIntentOperationPath{IntentId: "intent-conformance"},
+				Body:    LocalAgentProvisionIntentAckDto{Outcome: "established", Detail: "ok"},
+			},
+			nil,
+			0,
+		)
+		if err != nil {
+			t.Fatalf("typed realm operation: %v", err)
+		}
+		if realmResponse.Id != "intent-conformance" {
+			t.Fatalf("typed realm response mismatch: %#v", realmResponse)
+		}
+		if transport.unaryCalls[1].MethodID != fixtures.Cases.RealmOperation.OperationID {
+			t.Fatalf("typed realm operation mismatch: %s", transport.unaryCalls[1].MethodID)
+		}
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		if _, err := typedRuntime.BeginLogin(ctx, BeginLoginRequest{}, nil, 0); !errors.Is(err, context.Canceled) {
+			t.Fatalf("expected typed context cancellation, got %v", err)
+		}
+		_, err = typedRuntime.BeginLogin(context.Background(), BeginLoginRequest{RedirectUri: "force-error"}, nil, 0)
+		var shaped structuredCoreError
+		if !errors.As(err, &shaped) {
+			t.Fatalf("expected typed structured error, got %v", err)
+		}
+		if shaped.Code != "SDK_RUNTIME_METHOD_UNAVAILABLE" || shaped.Message != "typed conformance error" || shaped.Details["fixture"] != "typed-core" {
+			t.Fatalf("typed structured error mismatch: %#v", shaped)
+		}
+		if runtimeClient.UnsafeRaw() != transport || realmClient.UnsafeRaw() != transport {
+			t.Fatalf("unsafe raw transport mismatch")
+		}
+		return
+	}
 
 	requestBody, _ := json.Marshal(fixtures.Cases.RuntimeUnary.RequestBody)
 	response, err := runtimeClient.Call(context.Background(), fixtures.Cases.RuntimeUnary.MethodID, requestBody, fixtures.Cases.Metadata.Caller, fixtures.Cases.TimeoutMS)
