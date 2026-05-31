@@ -1,6 +1,10 @@
 import { hasTauriInvoke } from './env';
 import { invokeChecked } from './invoke';
-import type { AIConfig } from '@nimiplatform/sdk/ai';
+import {
+  parseAIProfile,
+  type AIConfig,
+  type AIProfile,
+} from '@nimiplatform/sdk/ai';
 
 export type ProductControlState =
   | 'not_logged_in'
@@ -333,38 +337,7 @@ export async function setProductFirstRunSetupState(input: {
 }
 
 /** The Account Default Profile projected as a portable AIProfile payload. */
-export interface AccountDefaultProfileAIProfile {
-  readonly profileId: string;
-  readonly title: string;
-  readonly description: string;
-  readonly tags: readonly string[];
-  readonly capabilities: Record<string, unknown>;
-}
-
-function parseAccountDefaultProfileAIProfile(value: unknown): AccountDefaultProfileAIProfile {
-  const record = asRecord(value, 'account_default_profile_for_scope_init');
-  const profileId = String(record.profileId || '').trim();
-  const title = String(record.title || '').trim();
-  if (!profileId) {
-    throw new Error('Account Default Profile payload is missing profileId');
-  }
-  if (!title) {
-    throw new Error('Account Default Profile payload is missing title');
-  }
-  if (!record.capabilities || typeof record.capabilities !== 'object'
-    || Array.isArray(record.capabilities)) {
-    throw new Error('Account Default Profile payload capabilities must be an object');
-  }
-  return {
-    profileId,
-    title,
-    description: typeof record.description === 'string' ? record.description : '',
-    tags: Array.isArray(record.tags)
-      ? record.tags.map((tag) => String(tag || '')).filter(Boolean)
-      : [],
-    capabilities: record.capabilities as Record<string, unknown>,
-  };
-}
+export type AccountDefaultProfileAIProfile = AIProfile;
 
 /**
  * Read + verify the Account Default Profile as a portable AIProfile payload.
@@ -381,7 +354,10 @@ export async function getAccountDefaultProfileForScopeInit(): Promise<AccountDef
   return invokeChecked(
     'account_default_profile_for_scope_init',
     {},
-    parseAccountDefaultProfileAIProfile,
+    (value) => parseAIProfile(value, {
+      label: 'Account Default Profile payload',
+      allowMissingOptionalFields: true,
+    }),
   );
 }
 

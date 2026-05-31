@@ -125,6 +125,10 @@ test('Wave 7: bridge exposes a backend-only admitProductReadyForUse request', ()
   assert.match(productControlBridgeSource, /invokeChecked\('product_control_record_admit_ready_for_use', \{\}, parseProjection\)/);
   // Fails closed when the Tauri runtime is unavailable.
   assert.match(productControlBridgeSource, /product_control_record_admit_ready_for_use requires Tauri runtime/);
+  // Account Default Profile payload decoding is shared SDK AIProfile parsing;
+  // product-control remains the command/state authority, not the profile parser.
+  assert.match(productControlBridgeSource, /parseAIProfile/);
+  assert.doesNotMatch(productControlBridgeSource, /function parseAccountDefaultProfileAIProfile/);
   // setProductFirstRunSetupState keeps ready_for_use and local_ai_ready out of
   // its Exclude<...> input type — the renderer cannot write either state.
   assert.match(
