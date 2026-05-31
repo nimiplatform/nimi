@@ -32,7 +32,7 @@ import {
   type RuntimeModelCatalogConnectorClient,
   type RuntimeModelCatalogProvider,
 } from '@nimiplatform/sdk/runtime';
-import { classifyOfflineReasonCode, ReasonCode } from '@nimiplatform/sdk/types';
+import { classifyOfflineError, classifyOfflineReasonCode, ReasonCode } from '@nimiplatform/sdk/types';
 import {
   loadRealmNotificationUnreadCount,
   loadRealmNotifications,
@@ -353,6 +353,11 @@ export function SettingsRoute() {
   const offlineReasonProjection = {
     reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
     owner: classifyOfflineReasonCode(ReasonCode.RUNTIME_UNAVAILABLE) ?? 'unknown',
+    errorOwner: classifyOfflineError({
+      reasonCode: ReasonCode.REALM_UNAVAILABLE,
+      actionHint: 'retry_realm_request',
+      retryable: true,
+    }) ?? 'unknown',
   };
   const runtimeDependencyStateProjection = {
     dependencyStartable: isLocalRuntimeEnvironmentDependencyStartableState('needs_confirmation'),
@@ -851,7 +856,7 @@ export function SettingsRoute() {
       <div className="setting-row">
         <span>Offline reason projection</span>
         <StatusBadge tone="neutral">
-          {offlineReasonProjection.owner}: {offlineReasonProjection.reasonCode}
+          {offlineReasonProjection.owner}: {offlineReasonProjection.reasonCode} / {offlineReasonProjection.errorOwner}
         </StatusBadge>
       </div>
       <div className="setting-row">

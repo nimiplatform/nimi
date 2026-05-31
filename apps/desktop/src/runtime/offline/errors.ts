@@ -1,10 +1,11 @@
+import { createNimiError } from '@nimiplatform/sdk/runtime';
 import {
-  isRealmOfflineReasonCode,
-  isRuntimeOfflineReasonCode,
+  classifyOfflineError,
   type NimiError,
   type NimiErrorSource,
 } from '@nimiplatform/sdk/types';
-import { asRecord } from '@runtime/net/json';
+
+export { isNimiErrorLike } from '@nimiplatform/sdk/types';
 
 function randomTraceId(): string {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
@@ -22,28 +23,12 @@ export function getErrorMessage(error: unknown, fallback: string): string {
   return message || fallback;
 }
 
-export function isNimiErrorLike(error: unknown): error is NimiError {
-  if (!error || typeof error !== 'object') {
-    return false;
-  }
-  const record = asRecord(error);
-  return typeof record.reasonCode === 'string' && typeof record.actionHint === 'string';
-}
-
 export function isRealmOfflineError(error: unknown): boolean {
-  if (isNimiErrorLike(error)) {
-    return isRealmOfflineReasonCode(error.reasonCode);
-  }
-  const message = getErrorMessage(error, '');
-  return /REALM_UNAVAILABLE|network|fetch failed|failed to fetch|load failed|timeout/i.test(message);
+  return classifyOfflineError(error, { transportOwner: 'realm' }) === 'realm';
 }
 
 export function isRuntimeOfflineError(error: unknown): boolean {
-  if (isNimiErrorLike(error)) {
-    return Boolean(error.retryable) || isRuntimeOfflineReasonCode(error.reasonCode);
-  }
-  const message = getErrorMessage(error, '');
-  return /RUNTIME_UNAVAILABLE|runtime unavailable|daemon unavailable|bridge unavailable/i.test(message);
+  return classifyOfflineError(error, { transportOwner: 'runtime' }) === 'runtime';
 }
 
 export function createOfflineError(input: {
@@ -53,13 +38,14 @@ export function createOfflineError(input: {
   actionHint: string;
   retryable?: boolean;
 }): NimiError {
-  const error = new Error(input.message) as NimiError;
-  error.code = input.reasonCode;
-  error.reasonCode = input.reasonCode;
-  error.actionHint = input.actionHint;
-  error.traceId = randomTraceId();
-  error.retryable = input.retryable !== false;
-  error.source = input.source;
-  error.details = {};
-  return error;
+  return createNimiError({
+    message: input.message,
+    code: input.reasonCode,
+    reasonCode: input.reasonCode,
+    actionHint: input.actionHint,
+    traceId: randomTraceId(),
+    retryable: input.retryable !== false,
+    source: input.source,
+    details: {},
+  });
 }

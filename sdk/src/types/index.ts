@@ -492,6 +492,10 @@ const RUNTIME_OFFLINE_REASON_CODES: ReadonlySet<ReasonCodeValue> = new Set([
 
 export type OfflineReasonCodeOwner = 'realm' | 'runtime';
 
+export type OfflineErrorClassificationOptions = {
+  transportOwner?: OfflineReasonCodeOwner;
+};
+
 export function isRetryableReasonCode(code: string): boolean {
   return RETRYABLE_REASON_CODES.has(code as ReasonCodeValue);
 }
@@ -512,4 +516,80 @@ export function classifyOfflineReasonCode(code: unknown): OfflineReasonCodeOwner
     return 'runtime';
   }
   return null;
+}
+
+function readErrorString(record: Record<string, unknown>, keys: readonly string[]): string {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string') {
+      const normalized = value.trim();
+      if (normalized) {
+        return normalized;
+      }
+    }
+  }
+  return '';
+}
+
+function errorRecord(error: unknown): Record<string, unknown> {
+  return error && typeof error === 'object' && !Array.isArray(error)
+    ? error as Record<string, unknown>
+    : {};
+}
+
+function offlineErrorReasonCode(error: unknown): string {
+  const record = errorRecord(error);
+  return readErrorString(record, ['reasonCode', 'reason_code', 'reason', 'code']);
+}
+
+function offlineErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return String(error.message || '').trim();
+  }
+  const record = errorRecord(error);
+  const message = readErrorString(record, ['message', 'detail', 'reasonDetail']);
+  if (message) {
+    return message;
+  }
+  return String(error || '').trim();
+}
+
+export function classifyOfflineError(
+  error: unknown,
+  options: OfflineErrorClassificationOptions = {},
+): OfflineReasonCodeOwner | null {
+  const reasonOwner = classifyOfflineReasonCode(offlineErrorReasonCode(error));
+  if (reasonOwner) {
+    return reasonOwner;
+  }
+
+  const message = offlineErrorMessage(error);
+  if (!message) {
+    return null;
+  }
+
+  if (/\bREALM_UNAVAILABLE\b|realm unavailable/i.test(message)) {
+    return 'realm';
+  }
+  if (/\bRUNTIME_UNAVAILABLE\b|runtime unavailable|daemon unavailable|bridge unavailable/i.test(message)) {
+    return 'runtime';
+  }
+  if (/network|fetch failed|failed to fetch|load failed|timeout/i.test(message)) {
+    return options.transportOwner ?? null;
+  }
+  return null;
+}
+
+export function isRealmOfflineErrorLike(
+  error: unknown,
+  options: OfflineErrorClassificationOptions = {},
+): boolean {
+  return classifyOfflineError(error, options) === 'realm';
+}
+
+export function isRuntimeOfflineErrorLike(
+  error: unknown,
+  options: OfflineErrorClassificationOptions = {},
+): boolean {
+  return classifyOfflineError(error, options) === 'runtime';
 }

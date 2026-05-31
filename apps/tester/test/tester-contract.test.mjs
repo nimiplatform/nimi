@@ -991,10 +991,13 @@ test('tester settings consumes SDK Runtime LocalAgent identity projection', () =
 test('tester settings consumes SDK offline reason-code projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
 
+  assert.match(settings, /classifyOfflineError/);
   assert.match(settings, /classifyOfflineReasonCode/);
   assert.match(settings, /from '@nimiplatform\/sdk\/types'/);
+  assert.match(settings, /ReasonCode\.REALM_UNAVAILABLE/);
   assert.match(settings, /ReasonCode\.RUNTIME_UNAVAILABLE/);
   assert.match(settings, /Offline reason projection/);
+  assert.match(settings, /offlineReasonProjection\.errorOwner/);
   assert.doesNotMatch(settings, /new Set\(\[/);
   assert.doesNotMatch(settings, /REALM_OFFLINE_REASON_CODES|RUNTIME_OFFLINE_REASON_CODES/);
 });

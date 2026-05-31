@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
-import { isRealmOfflineError } from '../src/runtime/offline/errors.js';
+import { isRealmOfflineError, isRuntimeOfflineError } from '../src/runtime/offline/errors.js';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -33,6 +33,16 @@ describe('D-OFFLINE-001: realm offline error classification', () => {
     assert.equal(isRealmOfflineError(error), false);
   });
 
+  test('retryable provider errors are not treated as Runtime offline', () => {
+    const error = Object.assign(new Error('provider timed out'), {
+      reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
+      actionHint: 'retry_provider_request',
+      retryable: true,
+    });
+
+    assert.equal(isRuntimeOfflineError(error), false);
+  });
+
   test('transport failures are treated as offline', () => {
     assert.equal(isRealmOfflineError(new Error('fetch failed')), true);
     assert.equal(isRealmOfflineError(new Error('network timeout while loading realm')), true);
@@ -54,10 +64,12 @@ describe('D-OFFLINE-001: realm offline error classification', () => {
       'utf8',
     );
 
-    assert.match(offlineErrorSource, /isRealmOfflineReasonCode/);
-    assert.match(offlineErrorSource, /isRuntimeOfflineReasonCode/);
+    assert.match(offlineErrorSource, /classifyOfflineError/);
+    assert.doesNotMatch(offlineErrorSource, /isRealmOfflineReasonCode/);
+    assert.doesNotMatch(offlineErrorSource, /isRuntimeOfflineReasonCode/);
     assert.doesNotMatch(offlineErrorSource, /REALM_OFFLINE_REASON_CODES/);
     assert.doesNotMatch(offlineErrorSource, /RUNTIME_OFFLINE_REASON_CODES/);
+    assert.doesNotMatch(offlineErrorSource, /fetch failed\|failed to fetch/);
   });
 
   test('DataSync facade projects Realm unavailable errors from its unified error outlet', () => {
