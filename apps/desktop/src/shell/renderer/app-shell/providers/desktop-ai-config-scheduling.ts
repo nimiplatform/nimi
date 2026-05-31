@@ -2,7 +2,7 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import {
   resolveAIConfigRuntimeSchedulingTargetForCapability,
   resolveAIConfigRuntimeSchedulingTargets,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/sdk/runtime';
 import {
   normalizeRuntimeSchedulingTarget,
   peekRuntimeAggregateSchedulingJudgement as peekSdkAggregateSchedulingJudgement,

@@ -1,5 +1,5 @@
-import type { AIConfig } from './ai-config.js';
-import type { AISchedulingEvaluationTarget } from '../runtime/index.js';
+import type { AIConfig } from '../ai/index.js';
+import type { AISchedulingEvaluationTarget } from './runtime-scheduling-types.js';
 
 /**
  * Project scope-owned AIConfig local bindings into Runtime scheduling targets.

@@ -2,8 +2,8 @@ import type {
   MemoryEmbeddingBindingRef,
   MemoryEmbeddingConfig,
   MemoryEmbeddingSourceKind,
-} from './ai-config.js';
-import type { RuntimeRouteOptionsSnapshot } from '../runtime/index.js';
+} from '../ai/index.js';
+import type { RuntimeRouteOptionsSnapshot } from './runtime-route.js';
 
 export type MemoryEmbeddingRouteAvailabilityState =
   | 'unconfigured'

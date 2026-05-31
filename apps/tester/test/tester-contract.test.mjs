@@ -1091,7 +1091,7 @@ test('tester settings consumes SDK memory embedding route availability projectio
 
   assert.match(settings, /projectMemoryEmbeddingRouteAvailability/);
   assert.match(settings, /createEmptyMemoryEmbeddingConfig/);
-  assert.match(settings, /from '@nimiplatform\/sdk\/ai'/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Memory embedding route projection/);
   assert.doesNotMatch(settings, /connector\?\.available/);
   assert.doesNotMatch(settings, /String\(model\.status \|\| ''\)\.toLowerCase\(\) === 'active'/);

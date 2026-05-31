@@ -5,9 +5,9 @@ import {
 import { useTranslation } from 'react-i18next';
 import {
   type MemoryEmbeddingConfig,
-  projectMemoryEmbeddingRouteAvailability,
 } from '@nimiplatform/sdk/ai';
 import {
+  projectMemoryEmbeddingRouteAvailability,
   type RuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/runtime';
 import { Surface, cn } from '@nimiplatform/kit/ui';

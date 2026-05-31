@@ -93,7 +93,7 @@ test('runtime config memory embedding section renders configured cloud selection
 
 test('runtime config memory embedding availability consumes the SDK route projection', () => {
   assert.match(memoryEmbeddingSectionSource, /projectMemoryEmbeddingRouteAvailability/);
-  assert.match(memoryEmbeddingSectionSource, /from '@nimiplatform\/sdk\/ai'/);
+  assert.match(memoryEmbeddingSectionSource, /from '@nimiplatform\/sdk\/runtime'/);
   assert.doesNotMatch(memoryEmbeddingSectionSource, /connector\?\.available/);
   assert.doesNotMatch(memoryEmbeddingSectionSource, /String\(model\.status \|\| ''\)\.toLowerCase\(\) === 'active'/);
 });

@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import {
   projectMemoryEmbeddingRouteAvailability,
-} from '../src/ai/index.js';
+} from '../src/runtime/index.js';
 import type { RuntimeRouteOptionsSnapshot } from '../src/runtime/index.js';
 
 const localSnapshot: RuntimeRouteOptionsSnapshot = {
