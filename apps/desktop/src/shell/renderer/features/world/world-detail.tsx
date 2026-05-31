@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { getPlatformClient } from '@nimiplatform/sdk';
+import { uploadRealmResourceFileWithRealm } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -205,7 +207,10 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
       }
       let resolvedImageUrl: string | undefined;
       if (input.avatarFile) {
-        const uploaded = await dataSync.uploadImageResourceFile(input.avatarFile, {
+        const uploaded = await uploadRealmResourceFileWithRealm({
+          realm: getPlatformClient().realm,
+          kind: 'image',
+          file: input.avatarFile,
           failureMessage: i18n.t('World.createAgent.avatarUploadFailed', {
             defaultValue: 'Avatar upload failed, please retry.',
           }),

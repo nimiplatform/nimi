@@ -3,6 +3,7 @@ import {
   linkRealmOAuth,
   OAuthProvider,
   unlinkRealmOAuth,
+  uploadRealmResourceFileWithRealm,
 } from '@nimiplatform/sdk/realm';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { useTranslation } from 'react-i18next';
@@ -303,7 +304,10 @@ export function ProfilePage() {
 
     setUploadingAvatar(true);
     try {
-      const uploaded = await dataSync.uploadImageResourceFile(file, {
+      const uploaded = await uploadRealmResourceFileWithRealm({
+        realm: getPlatformClient().realm,
+        kind: 'image',
+        file,
         failureMessage: t('Profile.avatarUploadFailed'),
       });
       const nextAvatarUrl = uploaded.resource.url;

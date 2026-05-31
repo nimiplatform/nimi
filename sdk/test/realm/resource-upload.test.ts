@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   uploadRealmResourceFile,
+  uploadRealmResourceFileWithRealm,
   type RealmResourceUploadClient,
 } from '../../src/realm/index.js';
 
@@ -113,4 +114,35 @@ test('uploadRealmResourceFile fails closed before finalize when upload transport
   );
 
   assert.deepEqual(events, ['create:image', 'fetch']);
+});
+
+test('uploadRealmResourceFileWithRealm builds the SDK Realm resource client adapter', async () => {
+  const events: string[] = [];
+  const result = await uploadRealmResourceFileWithRealm({
+    realm: {
+      services: {
+        ResourcesService: {
+          createImageDirectUpload: createClient(events).createImageDirectUpload,
+          createVideoDirectUpload: createClient(events).createVideoDirectUpload,
+          createAudioDirectUpload: async () => {
+            throw new Error('audio not used');
+          },
+          finalizeResource: createClient(events).finalizeResource,
+        },
+      },
+    } as never,
+    kind: 'image',
+    file: new Blob(['image'], { type: 'image/png' }),
+    fetchImpl: async (url, init) => {
+      events.push(`fetch:${String(init?.method)}:${url}`);
+      return new Response(null, { status: 204 });
+    },
+  });
+
+  assert.equal(result.resourceId, 'resource-image-1');
+  assert.deepEqual(events, [
+    'create:image',
+    'fetch:POST:https://upload.nimi.test/image-1',
+    'finalize:resource-image-1',
+  ]);
 });

@@ -86,7 +86,7 @@ import {
   REALM_FEED_SCOPES,
   requestDataExport,
   resolveRealmMediaUrl,
-  uploadRealmResourceFile,
+  uploadRealmResourceFileWithRealm,
   type RequestDataExportOutput,
   type RealmCreatorEligibilityDto,
   type RealmNotificationListResultDto,
@@ -461,30 +461,40 @@ export function SettingsRoute() {
   useEffect(() => {
     let cancelled = false;
     setResourceUploadProjection({ status: 'loading', summary: null, error: null });
-    void uploadRealmResourceFile({
+    void uploadRealmResourceFileWithRealm({
       kind: 'image',
       file: new Blob(['tester-settings-resource-upload'], { type: 'image/png' }),
-      client: {
-        async createImageDirectUpload() {
-          return {
-            deliveryAccess: 'SIGNED',
-            provider: 'S3_OBJECT',
-            resourceId: 'tester-resource-upload',
-            resourceType: 'IMAGE',
-            status: 'PENDING',
-            storageRef: 'tester/settings/resource-upload',
-            uploadUrl: 'https://upload.nimi.test/tester-resource-upload',
-          };
+      realm: {
+        services: {
+          ResourcesService: {
+            async createImageDirectUpload() {
+              return {
+                deliveryAccess: 'SIGNED',
+                provider: 'S3_OBJECT',
+                resourceId: 'tester-resource-upload',
+                resourceType: 'IMAGE',
+                status: 'PENDING',
+                storageRef: 'tester/settings/resource-upload',
+                uploadUrl: 'https://upload.nimi.test/tester-resource-upload',
+              };
+            },
+            async createVideoDirectUpload() {
+              throw new Error('tester settings resource upload only exercises image upload');
+            },
+            async createAudioDirectUpload() {
+              throw new Error('tester settings resource upload only exercises image upload');
+            },
+            async finalizeResource(resourceId: string) {
+              return {
+                id: resourceId,
+                status: 'READY',
+                type: 'IMAGE',
+                url: 'https://media.nimi.test/resources/tester-resource-upload',
+              } as never;
+            },
+          },
         },
-        async finalizeResource(resourceId) {
-          return {
-            id: resourceId,
-            status: 'READY',
-            type: 'IMAGE',
-            url: 'https://media.nimi.test/resources/tester-resource-upload',
-          } as never;
-        },
-      },
+      } as never,
       fetchImpl: async () => new Response(null, { status: 204 }),
     }).then((result) => {
       if (cancelled) {

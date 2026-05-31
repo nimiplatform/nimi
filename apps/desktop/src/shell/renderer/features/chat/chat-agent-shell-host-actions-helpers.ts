@@ -1,5 +1,6 @@
 import { dataSync } from '@runtime/data-sync';
 import { getPlatformClient } from '@nimiplatform/sdk';
+import { uploadRealmResourceFileWithRealm } from '@nimiplatform/sdk/realm';
 import {
   asNimiError,
   createRuntimeProtectedScopeHelper,
@@ -332,7 +333,10 @@ export async function uploadPendingAttachment(
       defaultValue: 'Agent chat currently supports image attachments only.',
     }));
   }
-  const uploaded = await dataSync.uploadImageResourceFile(attachment.file, {
+  const uploaded = await uploadRealmResourceFileWithRealm({
+    realm: getPlatformClient().realm,
+    kind: 'image',
+    file: attachment.file,
     failureMessage: input.t('Chat.agentAttachmentUploadFailed', {
       defaultValue: 'Failed to upload image attachment.',
     }),

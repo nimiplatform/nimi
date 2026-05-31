@@ -43,14 +43,14 @@ export type { RealmBaseUrlProjectionInput, RealmRealtimeUrlProjectionInput } fro
 export type { RealmFeedScope } from './extensions/feed.js';
 export type { RealmMediaUrlProjectionInput } from './extensions/media-url.js';
 export type { RealmMarkNotificationsReadInputDto, RealmNotificationDto, RealmNotificationListOptions, RealmNotificationListResultDto, RealmNotificationReadProjection, RealmNotificationType, RealmNotificationsReadProjection, RealmNotificationUnreadProjection, RealmUnreadNotificationCountDto } from './extensions/notifications.js';
-export type { RealmResourceDetail, RealmResourceDirectUploadSession, RealmResourceFinalizeInput, RealmResourceUploadClient, RealmResourceUploadInput, RealmResourceUploadKind, RealmResourceUploadResult, RealmResourceUploadTransportMode } from './extensions/resource-upload.js';
+export type { RealmResourceDetail, RealmResourceDirectUploadSession, RealmResourceFinalizeInput, RealmResourceUploadClient, RealmResourceUploadInput, RealmResourceUploadKind, RealmResourceUploadResult, RealmResourceUploadTransportMode, RealmResourceUploadWithRealmInput } from './extensions/resource-upload.js';
 export { disableRealmTwoFactor, enableRealmTwoFactor, linkRealmOAuth, loadRealmCreatorEligibility, loadRealmUserNotificationSettings, loadRealmUserSettings, prepareRealmTwoFactor, unlinkRealmOAuth, updateRealmPassword, updateRealmUserNotificationSettings, updateRealmUserSettings } from './extensions/account-settings.js';
 export { requestDataExport, requestAccountDeletion } from './extensions/account-data.js';
 export { normalizeRealmBaseUrl, projectRealmBaseUrl, projectRealmRealtimeUrl } from './extensions/endpoint.js';
 export { REALM_FEED_SCOPES, isRealmFeedScope } from './extensions/feed.js';
 export { resolveRealmMediaUrl } from './extensions/media-url.js';
 export { loadRealmNotificationUnreadCount, loadRealmNotifications, markRealmNotificationRead, markRealmNotificationsRead, normalizeRealmNotificationUnreadCount } from './extensions/notifications.js';
-export { uploadRealmResourceFile } from './extensions/resource-upload.js';
+export { uploadRealmResourceFile, uploadRealmResourceFileWithRealm } from './extensions/resource-upload.js';
 
 // Realm client exports.
 export { Realm } from './client.js';

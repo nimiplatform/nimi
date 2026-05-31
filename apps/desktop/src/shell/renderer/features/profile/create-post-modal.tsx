@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getPlatformClient } from '@nimiplatform/sdk';
+import { uploadRealmResourceFileWithRealm } from '@nimiplatform/sdk/realm';
 import { OverlayShell } from '@nimiplatform/kit/ui';
 import { dataSync } from '@runtime/data-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
@@ -309,17 +311,13 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
       let resourceId: string;
       
       if ('file' in activeAttachment) {
-        if (activeAttachment.type === 'image') {
-          const upload = await dataSync.uploadImageResourceFile(activeAttachment.file, {
-            failureMessage: 'Image upload failed',
-          });
-          resourceId = upload.resourceId;
-        } else {
-          const upload = await dataSync.uploadVideoResourceFile(activeAttachment.file, {
-            failureMessage: 'Video upload failed',
-          });
-          resourceId = upload.resourceId;
-        }
+        const upload = await uploadRealmResourceFileWithRealm({
+          realm: getPlatformClient().realm,
+          kind: activeAttachment.type === 'image' ? 'image' : 'video',
+          file: activeAttachment.file,
+          failureMessage: activeAttachment.type === 'image' ? 'Image upload failed' : 'Video upload failed',
+        });
+        resourceId = upload.resourceId;
       } else {
         resourceId = activeAttachment.id;
       }

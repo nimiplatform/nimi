@@ -1,11 +1,6 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import {
-  uploadRealmResourceFile,
-  type RealmResourceUploadResult,
-  type RealmResourceUploadTransportMode,
-} from '@nimiplatform/sdk/realm';
-import {
   getOfflineCoordinator,
   isRealmOfflineError,
 } from '@runtime/offline';
@@ -20,9 +15,6 @@ type CreateReportDto = RealmModel<'CreateReportDto'>;
 type CreatePostDto = RealmModel<'CreatePostDto'>;
 type FeedPageMetaDto = RealmModel<'FeedPageMetaDto'>;
 type FeedResponseDto = RealmModel<'FeedResponseDto'>;
-type FinalizeResourceDto = RealmModel<'FinalizeResourceDto'>;
-type ResourceDetailDto = RealmModel<'ResourceDetailDto'>;
-type ResourceDirectUploadSessionDto = RealmModel<'ResourceDirectUploadSessionDto'>;
 type PostDto = RealmModel<'PostDto'>;
 type ReportResponseDto = RealmModel<'ReportResponseDto'>;
 
@@ -173,102 +165,6 @@ export async function createPost(
     });
     throw error;
   }
-}
-
-export async function createImageDirectUpload(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-): Promise<ResourceDirectUploadSessionDto> {
-  try {
-    return await callApi(
-      (realm) => realm.services.ResourcesService.createImageDirectUpload(),
-      'Failed to create image upload',
-    );
-  } catch (error) {
-    emitDataSyncError('create-image-direct-upload', error);
-    throw error;
-  }
-}
-
-export async function createVideoDirectUpload(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-): Promise<ResourceDirectUploadSessionDto> {
-  try {
-    return await callApi(
-      (realm) => realm.services.ResourcesService.createVideoDirectUpload(),
-      'Failed to create video upload',
-    );
-  } catch (error) {
-    emitDataSyncError('create-video-direct-upload', error);
-    throw error;
-  }
-}
-
-export async function finalizeResource(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-  resourceId: string,
-  payload: FinalizeResourceDto,
-): Promise<ResourceDetailDto> {
-  try {
-    return await callApi(
-      (realm) => realm.services.ResourcesService.finalizeResource(resourceId, payload),
-      'Failed to finalize resource',
-    );
-  } catch (error) {
-    emitDataSyncError('finalize-resource', error, { resourceId });
-    throw error;
-  }
-}
-
-export type UploadResourceFileOptions = {
-  failureMessage?: string;
-  transportMode?: RealmResourceUploadTransportMode;
-};
-
-async function uploadResourceFile(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-  kind: 'image' | 'video',
-  file: Blob,
-  options: UploadResourceFileOptions = {},
-): Promise<RealmResourceUploadResult> {
-  try {
-    return await uploadRealmResourceFile({
-      kind,
-      file,
-      client: {
-        createImageDirectUpload: () => createImageDirectUpload(callApi, emitDataSyncError),
-        createVideoDirectUpload: () => createVideoDirectUpload(callApi, emitDataSyncError),
-        finalizeResource: (resourceId, payload) =>
-          finalizeResource(callApi, emitDataSyncError, resourceId, payload),
-      },
-      failureMessage: options.failureMessage,
-      transportMode: options.transportMode,
-    });
-  } catch (error) {
-    emitDataSyncError('upload-resource-file', error, { kind });
-    throw error;
-  }
-}
-
-export async function uploadImageResourceFile(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-  file: Blob,
-  options?: UploadResourceFileOptions,
-): Promise<RealmResourceUploadResult> {
-  return uploadResourceFile(callApi, emitDataSyncError, 'image', file, options);
-}
-
-export async function uploadVideoResourceFile(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-  file: Blob,
-  options?: UploadResourceFileOptions,
-): Promise<RealmResourceUploadResult> {
-  return uploadResourceFile(callApi, emitDataSyncError, 'video', file, options);
 }
 
 export async function deletePost(

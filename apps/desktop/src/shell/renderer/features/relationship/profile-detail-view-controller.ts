@@ -1,5 +1,6 @@
 import { type ChangeEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { dataSync } from '@runtime/data-sync';
+import { getPlatformClient } from '@nimiplatform/sdk';
+import { uploadRealmResourceFileWithRealm } from '@nimiplatform/sdk/realm';
 import { i18n } from '@renderer/i18n';
 import type { ProfileData, ProfileTab } from '@renderer/features/profile/profile-model';
 import { buildEditableDraft, type EditableProfileDraft } from './profile-detail-view-parts.js';
@@ -178,7 +179,10 @@ export function useProfileDetailViewController(props: ProfileDetailViewProps, re
     setIsUploadingAvatar(true);
     setSaveError(null);
     try {
-      const uploaded = await dataSync.uploadImageResourceFile(file, {
+      const uploaded = await uploadRealmResourceFileWithRealm({
+        realm: getPlatformClient().realm,
+        kind: 'image',
+        file,
         failureMessage: i18n.t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }),
       });
       const avatarUrl = uploaded.resource.url;

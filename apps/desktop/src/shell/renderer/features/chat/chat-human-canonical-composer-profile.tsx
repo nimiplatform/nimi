@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { MessageType } from '@nimiplatform/sdk/realm';
+import { getPlatformClient } from '@nimiplatform/sdk';
+import { MessageType, uploadRealmResourceFileWithRealm } from '@nimiplatform/sdk/realm';
 import { CanonicalComposer } from '@nimiplatform/kit/features/chat/components/canonical-composer';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
 import { createRealmChatComposerAdapter } from '@nimiplatform/kit/features/chat/realm';
@@ -119,15 +120,13 @@ export function HumanCanonicalComposer(props: {
 
     const { file, kind } = attachment;
     const isImage = kind === 'image';
-    const uploaded = isImage
-      ? await dataSync.uploadImageResourceFile(file, {
-        failureMessage: t('TurnInput.uploadFailed'),
-        transportMode: 'multipartPostThenBinaryPut',
-      })
-      : await dataSync.uploadVideoResourceFile(file, {
-        failureMessage: t('TurnInput.uploadFailed'),
-        transportMode: 'multipartPostThenBinaryPut',
-      });
+    const uploaded = await uploadRealmResourceFileWithRealm({
+      realm: getPlatformClient().realm,
+      kind: isImage ? 'image' : 'video',
+      file,
+      failureMessage: t('TurnInput.uploadFailed'),
+      transportMode: 'multipartPostThenBinaryPut',
+    });
     const finalizedAttachmentTargetId = String(uploaded.resource.id || '').trim()
       || extractChatAttachmentTargetId(uploaded.session)
       || uploaded.resourceId;

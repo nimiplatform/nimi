@@ -1,4 +1,5 @@
 import type { RealmModel } from '../generated/type-helpers.js';
+import type { Realm } from '../client.js';
 
 export type RealmResourceUploadKind = 'image' | 'video' | 'audio';
 
@@ -31,6 +32,10 @@ export type RealmResourceUploadInput = {
   finalizePayload?: RealmResourceFinalizeInput;
   transportMode?: RealmResourceUploadTransportMode;
   failureMessage?: string;
+};
+
+export type RealmResourceUploadWithRealmInput = Omit<RealmResourceUploadInput, 'client'> & {
+  realm: Realm;
 };
 
 export type RealmResourceUploadResult = {
@@ -167,4 +172,19 @@ export async function uploadRealmResourceFile(
     session,
     resource,
   };
+}
+
+export async function uploadRealmResourceFileWithRealm(
+  input: RealmResourceUploadWithRealmInput,
+): Promise<RealmResourceUploadResult> {
+  return uploadRealmResourceFile({
+    ...input,
+    client: {
+      createImageDirectUpload: () => input.realm.services.ResourcesService.createImageDirectUpload(),
+      createVideoDirectUpload: () => input.realm.services.ResourcesService.createVideoDirectUpload(),
+      createAudioDirectUpload: () => input.realm.services.ResourcesService.createAudioDirectUpload({}),
+      finalizeResource: (resourceId, payload) =>
+        input.realm.services.ResourcesService.finalizeResource(resourceId, payload),
+    },
+  });
 }

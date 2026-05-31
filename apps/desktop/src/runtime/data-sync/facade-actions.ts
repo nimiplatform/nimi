@@ -17,7 +17,6 @@ import {
 
 type CreatePostDto = RealmModel<'CreatePostDto'>;
 type CreateReportDto = RealmModel<'CreateReportDto'>;
-type FinalizeResourceDto = RealmModel<'FinalizeResourceDto'>;
 type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 import {
@@ -70,21 +69,16 @@ import {
 } from './flows/transit-flow';
 import {
   createReport,
-  createImageDirectUpload,
   createPost,
-  createVideoDirectUpload,
   deletePost,
-  finalizeResource,
   likePost,
   loadLikedPosts,
   loadPostById,
   loadPostFeed,
   unlikePost,
-  uploadImageResourceFile,
-  uploadVideoResourceFile,
   updatePostVisibility,
 } from './flows/post-attachment-flow';
-import type { PostFeedScope, UploadResourceFileOptions } from './flows/post-attachment-flow';
+import type { PostFeedScope } from './flows/post-attachment-flow';
 
 export type DataSyncCallApi = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 export type DataSyncEmitError = (
@@ -268,16 +262,6 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       loadPostById(input.callApiTask, input.emitFacadeError, postId),
     createPost: async (payload: CreatePostDto) =>
       createPost(input.callApiTask, input.emitFacadeError, payload),
-    createImageDirectUpload: async () =>
-      createImageDirectUpload(input.callApiTask, input.emitFacadeError),
-    createVideoDirectUpload: async () =>
-      createVideoDirectUpload(input.callApiTask, input.emitFacadeError),
-    finalizeResource: async (resourceId: string, payload: FinalizeResourceDto) =>
-      finalizeResource(input.callApiTask, input.emitFacadeError, resourceId, payload),
-    uploadImageResourceFile: async (file: Blob, options?: UploadResourceFileOptions) =>
-      uploadImageResourceFile(input.callApiTask, input.emitFacadeError, file, options),
-    uploadVideoResourceFile: async (file: Blob, options?: UploadResourceFileOptions) =>
-      uploadVideoResourceFile(input.callApiTask, input.emitFacadeError, file, options),
     deletePost: async (postId: string) =>
       deletePost(input.callApiTask, input.emitFacadeError, postId),
     updatePostVisibility: async (
