@@ -1,17 +1,22 @@
 import {
   applyAIProfileToConfig,
+  aiConfigScopeKeyFromRef,
+  cloneAIConfig,
   computeAIConfigDiff,
   computeAIConfigVersion,
   createAppAIScopeRef,
+  createAIConfigSubscriptionRegistry,
   createEmptyAIConfig,
+  parseAIConfig,
   parseAIProfile,
+  validateAIConfigRuntimeBindings,
+  validateAIProfileRuntimeBindings,
   type AIConfig,
   type AIProfile,
   type AIProfileApplyResult,
   type AIProfilePreviewResult,
   type AIScopeRef,
 } from '@nimiplatform/sdk/ai';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
 import type {
   SharedAIConfigService,
   SharedAIConfigSubscribeListener,
@@ -43,7 +48,10 @@ type TesterAIProfileLibraryStore = {
 };
 
 const memoryConfigs = new Map<string, AIConfig>();
-const listeners = new Map<string, Set<SharedAIConfigSubscribeListener>>();
+const configSubscriptions = createAIConfigSubscriptionRegistry({
+  resolveScopeKey: (config) => scopeKey(config.scopeRef),
+  cloneOnNotify: true,
+});
 let memoryProfiles: AIProfile[] = [];
 
 export function createTesterAppLabAIScopeRef(): AIScopeRef {
@@ -51,7 +59,7 @@ export function createTesterAppLabAIScopeRef(): AIScopeRef {
 }
 
 function scopeKey(scopeRef: AIScopeRef): string {
-  return `${scopeRef.kind}:${scopeRef.ownerId}:${scopeRef.surfaceId || ''}`;
+  return aiConfigScopeKeyFromRef(scopeRef);
 }
 
 function getStorage(): Storage | null {
@@ -63,70 +71,6 @@ function getStorage(): Storage | null {
   }
 }
 
-function cloneConfig(config: AIConfig): AIConfig {
-  return {
-    scopeRef: { ...config.scopeRef },
-    capabilities: {
-      selectedBindings: { ...config.capabilities.selectedBindings },
-      localProfileRefs: { ...config.capabilities.localProfileRefs },
-      selectedParams: { ...config.capabilities.selectedParams },
-    },
-    profileOrigin: config.profileOrigin ? { ...config.profileOrigin } : null,
-  };
-}
-
-function validateRuntimeRouteBinding(value: unknown, path: string): string[] {
-  const errors: string[] = [];
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return [`${path} binding must be a non-null object`];
-  }
-  const binding = value as Partial<RuntimeRouteBinding>;
-  if (binding.source !== 'local' && binding.source !== 'cloud') {
-    errors.push(`${path}.source must be "local" or "cloud"`);
-  }
-  if (typeof binding.connectorId !== 'string') {
-    errors.push(`${path}.connectorId must be a string`);
-  } else if (binding.source === 'local' && binding.connectorId.trim()) {
-    errors.push(`${path}.connectorId must be empty for local Runtime bindings`);
-  } else if (binding.source === 'cloud' && !binding.connectorId.trim()) {
-    errors.push(`${path}.connectorId is required for cloud Runtime bindings`);
-  }
-  if (typeof binding.model !== 'string' || !binding.model.trim()) {
-    errors.push(`${path}.model is required`);
-  }
-  if (binding.modelLabel !== undefined && typeof binding.modelLabel !== 'string') {
-    errors.push(`${path}.modelLabel must be a string when provided`);
-  }
-  if (binding.modelId !== undefined && typeof binding.modelId !== 'string') {
-    errors.push(`${path}.modelId must be a string when provided`);
-  }
-  if (binding.provider !== undefined && typeof binding.provider !== 'string') {
-    errors.push(`${path}.provider must be a string when provided`);
-  }
-  if (binding.localModelId !== undefined && typeof binding.localModelId !== 'string') {
-    errors.push(`${path}.localModelId must be a string when provided`);
-  }
-  return errors;
-}
-
-function validateAIProfileRuntimeBindings(profile: AIProfile): string[] {
-  const errors: string[] = [];
-  for (const [capabilityId, intent] of Object.entries(profile.capabilities || {})) {
-    if (!intent || intent.binding === undefined || intent.binding === null) continue;
-    errors.push(...validateRuntimeRouteBinding(intent.binding, `capabilities.${capabilityId}.binding`));
-  }
-  return errors;
-}
-
-function validateAIConfigRuntimeBindings(config: AIConfig): string[] {
-  const errors: string[] = [];
-  for (const [capabilityId, binding] of Object.entries(config.capabilities?.selectedBindings || {})) {
-    if (binding === undefined || binding === null) continue;
-    errors.push(...validateRuntimeRouteBinding(binding, `capabilities.selectedBindings.${capabilityId}`));
-  }
-  return errors;
-}
-
 function defaultProfileStore(): TesterAIProfileLibraryStore {
   return {
     schemaVersion: TESTER_AI_PROFILE_LIBRARY_SCHEMA_VERSION,
@@ -135,27 +79,21 @@ function defaultProfileStore(): TesterAIProfileLibraryStore {
 }
 
 function parseStoredConfig(raw: string, scopeRef: AIScopeRef): AIConfig {
-  const parsed = JSON.parse(raw) as AIConfig;
-  if (!parsed || typeof parsed !== 'object') {
-    throw new Error('Stored AIConfig is not an object.');
+  try {
+    return parseAIConfig(JSON.parse(raw), {
+      scopeRef,
+      validateRuntimeBindings: true,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.startsWith('AIConfig binding is invalid: ')) {
+      throw new Error(`Stored ${message}`);
+    }
+    if (message === 'AIConfig schema is invalid.') {
+      throw new Error('Stored AIConfig scope does not match App Lab.');
+    }
+    throw error;
   }
-  if (scopeKey(parsed.scopeRef) !== scopeKey(scopeRef)) {
-    throw new Error('Stored AIConfig scope does not match App Lab.');
-  }
-  const normalized = {
-    scopeRef,
-    capabilities: {
-      selectedBindings: { ...(parsed.capabilities?.selectedBindings || {}) },
-      localProfileRefs: { ...(parsed.capabilities?.localProfileRefs || {}) },
-      selectedParams: { ...(parsed.capabilities?.selectedParams || {}) },
-    },
-    profileOrigin: parsed.profileOrigin ? { ...parsed.profileOrigin } : null,
-  };
-  const bindingErrors = validateAIConfigRuntimeBindings(normalized);
-  if (bindingErrors.length > 0) {
-    throw new Error(`Stored AIConfig binding is invalid: ${bindingErrors.join('; ')}`);
-  }
-  return normalized;
 }
 
 function parseStoredProfileLibrary(raw: string): TesterAIProfileLibraryStore {
@@ -264,10 +202,10 @@ export function loadTesterAIConfig(scopeRef: AIScopeRef = createTesterAppLabAISc
   const storage = getStorage();
   if (!storage) {
     const cached = memoryConfigs.get(key);
-    if (cached) return cloneConfig(cached);
+    if (cached) return cloneAIConfig(cached);
     const empty = createEmptyAIConfig(scopeRef);
     memoryConfigs.set(key, empty);
-    return cloneConfig(empty);
+    return cloneAIConfig(empty);
   }
 
   const raw = storage.getItem(TESTER_AI_CONFIG_STORAGE_KEY);
@@ -275,20 +213,12 @@ export function loadTesterAIConfig(scopeRef: AIScopeRef = createTesterAppLabAISc
   return parseStoredConfig(raw, scopeRef);
 }
 
-function notifyConfig(scopeRef: AIScopeRef, next: AIConfig): void {
-  const set = listeners.get(scopeKey(scopeRef));
-  if (!set) return;
-  for (const listener of set) {
-    listener(cloneConfig(next));
-  }
-}
-
 export function saveTesterAIConfig(
   next: AIConfig,
   scopeRef: AIScopeRef = createTesterAppLabAIScopeRef(),
 ): AIConfig {
   const normalized = {
-    ...cloneConfig(next),
+    ...cloneAIConfig(next),
     scopeRef,
   };
   const bindingErrors = validateAIConfigRuntimeBindings(normalized);
@@ -302,8 +232,8 @@ export function saveTesterAIConfig(
   } else {
     memoryConfigs.set(key, normalized);
   }
-  notifyConfig(scopeRef, normalized);
-  return cloneConfig(normalized);
+  configSubscriptions.notify(normalized);
+  return cloneAIConfig(normalized);
 }
 
 function profileById(profileId: string): AIProfile | null {
@@ -335,13 +265,7 @@ export function createTesterAIConfigService(): SharedAIConfigService {
       },
       subscribe(scopeRef: AIScopeRef, listener: SharedAIConfigSubscribeListener): SharedAIConfigUnsubscribe {
         const key = scopeKey(scopeRef);
-        const set = listeners.get(key) ?? new Set<SharedAIConfigSubscribeListener>();
-        set.add(listener);
-        listeners.set(key, set);
-        return () => {
-          set.delete(listener);
-          if (set.size === 0) listeners.delete(key);
-        };
+        return configSubscriptions.subscribe(key, listener);
       },
     },
     aiProfile: {

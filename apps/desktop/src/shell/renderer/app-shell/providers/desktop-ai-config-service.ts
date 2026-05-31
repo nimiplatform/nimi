@@ -30,6 +30,7 @@ import {
   type AISnapshotSurface,
   type AppFirstLaunchAIConfigResult,
   type AppManifestRequirementGap,
+  createAIConfigSubscriptionRegistry,
 } from '@nimiplatform/sdk/ai';
 import type {
   AISchedulingEvaluationTarget,
@@ -61,7 +62,6 @@ import {
 
 import { createSnapshotStore, storeSnapshot } from './desktop-ai-config-snapshot-store.js';
 
-import { createConfigSubscriptionRegistry } from './desktop-ai-config-subscriptions.js';
 import {
   normalizeRuntimeSchedulingTarget,
   peekDesktopRuntimeAggregateSchedulingJudgement,
@@ -75,7 +75,9 @@ import {
 // ---------------------------------------------------------------------------
 
 const snapshotStore = createSnapshotStore();
-const configSubscriptions = createConfigSubscriptionRegistry((config) => scopeKey(config.scopeRef));
+const configSubscriptions = createAIConfigSubscriptionRegistry({
+  resolveScopeKey: (config) => scopeKey(config.scopeRef),
+});
 
 function scopeKey(ref: AIScopeRef): string {
   return scopeKeyFromRef(ref);

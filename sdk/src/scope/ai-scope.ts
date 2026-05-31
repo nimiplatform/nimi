@@ -10,6 +10,63 @@ export type AIScopeRef = {
   surfaceId?: string;
 };
 
+function encodeAIScopeRefKeySegment(value: string | undefined): string {
+  return encodeURIComponent(String(value || ''));
+}
+
+function decodeAIScopeRefKeySegment(value: string): string | null {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Stable storage/subscription key for an AIScopeRef.
+ *
+ * This is an SDK codec only: it does not make SDK the owner of any
+ * scope-bound AIConfig persistence.
+ */
+export function encodeAIScopeRefKey(ref: AIScopeRef): string {
+  return [
+    encodeAIScopeRefKeySegment(ref.kind),
+    encodeAIScopeRefKeySegment(ref.ownerId),
+    encodeAIScopeRefKeySegment(ref.surfaceId),
+  ].join(':');
+}
+
+/** Parse a key produced by `encodeAIScopeRefKey`. */
+export function parseAIScopeRefKey(key: string): AIScopeRef | null {
+  const parts = String(key || '').split(':');
+  if (parts.length !== 3) {
+    return null;
+  }
+  const decodedKind = decodeAIScopeRefKeySegment(parts[0] ?? '');
+  const decodedOwnerId = decodeAIScopeRefKeySegment(parts[1] ?? '');
+  const decodedSurfaceId = decodeAIScopeRefKeySegment(parts[2] ?? '');
+  if (decodedKind === null || decodedOwnerId === null || decodedSurfaceId === null) {
+    return null;
+  }
+  const kind = decodedKind as AIScopeKind;
+  const ownerId = decodedOwnerId;
+  const surfaceId = decodedSurfaceId || undefined;
+  if (!kind || !ownerId) {
+    return null;
+  }
+  return surfaceId ? { kind, ownerId, surfaceId } : { kind, ownerId };
+}
+
+export function areAIScopeRefsEqual(
+  left: AIScopeRef | null | undefined,
+  right: AIScopeRef | null | undefined,
+): boolean {
+  if (!left || !right) {
+    return false;
+  }
+  return encodeAIScopeRefKey(left) === encodeAIScopeRefKey(right);
+}
+
 /** Canonical owner of the two built-in first-run chat feature surfaces. */
 const BUILT_IN_CHAT_FEATURE_OWNER_ID = 'desktop.chat';
 

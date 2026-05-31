@@ -32,10 +32,13 @@ export type {
   BuiltInChatSurfaceId,
 } from './ai-scope.js';
 export {
+  areAIScopeRefsEqual,
   assertBuiltInChatAIScopeRef,
   builtInChatAIScopeRefs,
   createBuiltInChatAIScopeRef,
+  encodeAIScopeRefKey,
   isBuiltInChatAIScopeRef,
+  parseAIScopeRefKey,
 } from './ai-scope.js';
 
 const DEFAULT_REALM_SCOPES: readonly ScopeName[] = normalizeScopeList(GENERATED_REALM_SCOPES);

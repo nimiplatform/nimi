@@ -9,7 +9,12 @@
  */
 
 import type { AIConfig, AIScopeRef } from '@nimiplatform/sdk/ai';
-import { createEmptyAIConfig } from '@nimiplatform/sdk/ai';
+import {
+  aiConfigScopeKeyFromRef,
+  createEmptyAIConfig,
+  normalizeAIConfig,
+  parseAIConfigScopeKey,
+} from '@nimiplatform/sdk/ai';
 
 // ---------------------------------------------------------------------------
 // Storage helpers
@@ -30,24 +35,8 @@ function getStorage(): Storage | undefined {
   }
 }
 
-function encodeScopeSegment(value: string | undefined): string {
-  return encodeURIComponent(String(value || ''));
-}
-
-function decodeScopeSegment(value: string): string | null {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return null;
-  }
-}
-
 export function scopeKeyFromRef(ref: AIScopeRef): string {
-  return [
-    encodeScopeSegment(ref.kind),
-    encodeScopeSegment(ref.ownerId),
-    encodeScopeSegment(ref.surfaceId),
-  ].join(':');
+  return aiConfigScopeKeyFromRef(ref);
 }
 
 function storageKeyForScope(scopeKey: string): string {
@@ -56,41 +45,6 @@ function storageKeyForScope(scopeKey: string): string {
 
 // ---------------------------------------------------------------------------
 // Normalize / parse
-// ---------------------------------------------------------------------------
-
-function normalizeAIConfig(raw: unknown): AIConfig | null {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const record = raw as Record<string, unknown>;
-  const scopeRef = record.scopeRef;
-  if (!scopeRef || typeof scopeRef !== 'object') return null;
-  const sr = scopeRef as Record<string, unknown>;
-  if (!sr.kind || !sr.ownerId) return null;
-  const caps = record.capabilities;
-  if (!caps || typeof caps !== 'object') return null;
-  const c = caps as Record<string, unknown>;
-  return {
-    scopeRef: {
-      kind: sr.kind as AIConfig['scopeRef']['kind'],
-      ownerId: String(sr.ownerId),
-      surfaceId: sr.surfaceId ? String(sr.surfaceId) : undefined,
-    },
-    capabilities: {
-      selectedBindings: (c.selectedBindings && typeof c.selectedBindings === 'object'
-        ? c.selectedBindings
-        : {}) as AIConfig['capabilities']['selectedBindings'],
-      localProfileRefs: (c.localProfileRefs && typeof c.localProfileRefs === 'object'
-        ? c.localProfileRefs
-        : {}) as AIConfig['capabilities']['localProfileRefs'],
-      selectedParams: (c.selectedParams && typeof c.selectedParams === 'object'
-        ? c.selectedParams
-        : {}) as AIConfig['capabilities']['selectedParams'],
-    },
-    profileOrigin: record.profileOrigin as AIConfig['profileOrigin'] ?? null,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Scope index
 // ---------------------------------------------------------------------------
 
 function loadScopeIndex(storage: Storage): string[] {
@@ -157,17 +111,5 @@ export function listPersistedScopeKeys(): string[] {
 
 /** Parse a scope key string back to AIScopeRef. */
 export function parseScopeKey(key: string): AIScopeRef | null {
-  const parts = key.split(':');
-  if (parts.length !== 3) return null;
-  const decodedKind = decodeScopeSegment(parts[0] ?? '');
-  const decodedOwnerId = decodeScopeSegment(parts[1] ?? '');
-  const decodedSurfaceId = decodeScopeSegment(parts[2] ?? '');
-  if (decodedKind === null || decodedOwnerId === null || decodedSurfaceId === null) {
-    return null;
-  }
-  const kind = decodedKind as AIScopeRef['kind'];
-  const ownerId = decodedOwnerId;
-  const surfaceId = decodedSurfaceId || undefined;
-  if (!kind || !ownerId) return null;
-  return { kind, ownerId, surfaceId };
+  return parseAIConfigScopeKey(key);
 }

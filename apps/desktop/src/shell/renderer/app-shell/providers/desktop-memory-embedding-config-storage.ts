@@ -14,6 +14,10 @@ import { createEmptyMemoryEmbeddingConfig } from '@nimiplatform/sdk/runtime';
 import type {
   AIScopeRef,
 } from '@nimiplatform/sdk/scope';
+import {
+  encodeAIScopeRefKey,
+  parseAIScopeRefKey,
+} from '@nimiplatform/sdk/scope';
 
 const SCOPE_INDEX_KEY = 'nimi.memory-embedding.scope-index.v1';
 const SCOPE_CONFIG_PREFIX = 'nimi.memory-embedding.scope.';
@@ -30,24 +34,8 @@ function getStorage(): Storage | undefined {
   }
 }
 
-function encodeScopeSegment(value: string | undefined): string {
-  return encodeURIComponent(String(value || ''));
-}
-
-function decodeScopeSegment(value: string): string | null {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return null;
-  }
-}
-
 export function scopeKeyFromRef(ref: AIScopeRef): string {
-  return [
-    encodeScopeSegment(ref.kind),
-    encodeScopeSegment(ref.ownerId),
-    encodeScopeSegment(ref.surfaceId),
-  ].join(':');
+  return encodeAIScopeRefKey(ref);
 }
 
 function storageKeyForScope(scopeKey: string): string {
@@ -78,12 +66,6 @@ function normalizeBindingRef(raw: unknown): MemoryEmbeddingBindingRef | null {
   return null;
 }
 
-function normalizeScopeRef(kind: string, ownerId: string, surfaceId: string | undefined): AIScopeRef {
-  return surfaceId
-    ? { kind: kind as AIScopeRef['kind'], ownerId, surfaceId }
-    : { kind: kind as AIScopeRef['kind'], ownerId };
-}
-
 function normalizeMemoryEmbeddingConfig(raw: unknown): MemoryEmbeddingConfig | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return null;
@@ -106,12 +88,11 @@ function normalizeMemoryEmbeddingConfig(raw: unknown): MemoryEmbeddingConfig | n
   const bindingRef = normalizeBindingRef(record.bindingRef);
   const updatedAt = String(record.updatedAt || '').trim() || new Date().toISOString();
   const revisionToken = String(record.revisionToken || '').trim() || updatedAt;
+  const surfaceId = sr.surfaceId ? String(sr.surfaceId).trim() : '';
   return {
-    scopeRef: normalizeScopeRef(
-      kind,
-      ownerId,
-      sr.surfaceId ? String(sr.surfaceId).trim() || undefined : undefined,
-    ),
+    scopeRef: surfaceId
+      ? { kind: kind as AIScopeRef['kind'], ownerId, surfaceId }
+      : { kind: kind as AIScopeRef['kind'], ownerId },
     sourceKind,
     bindingRef,
     revisionToken,
@@ -193,21 +174,5 @@ export function listPersistedMemoryEmbeddingScopeKeys(): string[] {
 }
 
 export function parseMemoryEmbeddingScopeKey(key: string): AIScopeRef | null {
-  const parts = key.split(':');
-  if (parts.length !== 3) {
-    return null;
-  }
-  const decodedKind = decodeScopeSegment(parts[0] ?? '');
-  const decodedOwnerId = decodeScopeSegment(parts[1] ?? '');
-  const decodedSurfaceId = decodeScopeSegment(parts[2] ?? '');
-  if (decodedKind === null || decodedOwnerId === null || decodedSurfaceId === null) {
-    return null;
-  }
-  const kind = decodedKind as AIScopeRef['kind'];
-  const ownerId = decodedOwnerId;
-  const surfaceId = decodedSurfaceId || undefined;
-  if (!kind || !ownerId) {
-    return null;
-  }
-  return normalizeScopeRef(kind, ownerId, surfaceId);
+  return parseAIScopeRefKey(key);
 }
