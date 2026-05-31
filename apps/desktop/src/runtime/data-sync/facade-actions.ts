@@ -36,14 +36,9 @@ type OAuthProvider = RealmModel<'OAuthProvider'>;
 type SendMessageInputDto = RealmModel<'SendMessageInputDto'>;
 type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
-type CreateReviewDto = RealmModel<'CreateReviewDto'>;
-type CreateSparkCheckoutDto = RealmModel<'CreateSparkCheckoutDto'>;
-type CreateWithdrawalDto = RealmModel<'CreateWithdrawalDto'>;
 type UpdatePasswordRequestDto = RealmModel<'UpdatePasswordRequestDto'>;
 type UpdateUserNotificationSettingsDto = RealmModel<'UpdateUserNotificationSettingsDto'>;
 type UpdateUserSettingsDto = RealmModel<'UpdateUserSettingsDto'>;
-type RejectGiftDto = RealmModel<'RejectGiftDto'>;
-type SendGiftDto = RealmModel<'SendGiftDto'>;
 import {
   countPendingSocialMutations,
   flushPendingSocialMutations,
@@ -92,23 +87,6 @@ import {
   type TransitStatus,
   type TransitType,
 } from './flows/transit-flow';
-import {
-  acceptGift,
-  createGiftReview,
-  createSparkCheckout,
-  createWithdrawal,
-  loadGemTransactionHistory,
-  loadGiftCatalog,
-  loadReceivedGifts,
-  loadSparkPackages,
-  loadCurrencyBalances,
-  loadSparkTransactionHistory,
-  loadSubscriptionStatus,
-  loadWithdrawalEligibility,
-  loadWithdrawalHistory,
-  rejectGift,
-  sendGift,
-} from './flows/economy-notification-flow';
 import {
   createReport,
   createImageDirectUpload,
@@ -401,36 +379,6 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       unlikePost(input.callApiTask, input.emitFacadeError, postId),
     createReport: async (payload: CreateReportDto) =>
       createReport(input.callApiTask, input.emitFacadeError, payload),
-    loadCurrencyBalances: async () =>
-      loadCurrencyBalances(input.callApiTask, input.emitFacadeError),
-    loadSparkTransactionHistory: async (limit = 30, cursor?: string) =>
-      loadSparkTransactionHistory(input.callApiTask, input.emitFacadeError, limit, cursor),
-    loadGemTransactionHistory: async (limit = 30, cursor?: string) =>
-      loadGemTransactionHistory(input.callApiTask, input.emitFacadeError, limit, cursor),
-    loadSubscriptionStatus: async () =>
-      loadSubscriptionStatus(input.callApiTask, input.emitFacadeError),
-    loadSparkPackages: async () =>
-      loadSparkPackages(input.callApiTask, input.emitFacadeError),
-    createSparkCheckout: async (payload: CreateSparkCheckoutDto) =>
-      createSparkCheckout(input.callApiTask, input.emitFacadeError, payload),
-    loadWithdrawalEligibility: async () =>
-      loadWithdrawalEligibility(input.callApiTask, input.emitFacadeError),
-    loadWithdrawalHistory: async (limit = 20, cursor?: string) =>
-      loadWithdrawalHistory(input.callApiTask, input.emitFacadeError, limit, cursor),
-    createWithdrawal: async (payload: CreateWithdrawalDto) =>
-      createWithdrawal(input.callApiTask, input.emitFacadeError, payload),
-    loadGiftCatalog: async () =>
-      loadGiftCatalog(input.callApiTask, input.emitFacadeError),
-    loadReceivedGifts: async (limit = 20, cursor?: string) =>
-      loadReceivedGifts(input.callApiTask, input.emitFacadeError, limit, cursor),
-    sendGift: async (payload: SendGiftDto) =>
-      sendGift(input.callApiTask, input.emitFacadeError, payload),
-    acceptGift: async (giftTransactionId: string) =>
-      acceptGift(input.callApiTask, input.emitFacadeError, giftTransactionId),
-    rejectGift: async (giftTransactionId: string, payload: RejectGiftDto) =>
-      rejectGift(input.callApiTask, input.emitFacadeError, giftTransactionId, payload),
-    createGiftReview: async (payload: CreateReviewDto) =>
-      createGiftReview(input.callApiTask, input.emitFacadeError, payload),
     loadMySettings: async () =>
       loadMySettings(input.callApiTask, input.emitFacadeError),
     updateMySettings: async (payload: UpdateUserSettingsDto) =>

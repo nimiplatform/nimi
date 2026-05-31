@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CommerceGiftTransaction } from '@nimiplatform/kit/features/commerce';
-import { loadRealmGiftTransaction } from '@nimiplatform/kit/features/commerce/realm';
+import {
+  acceptRealmGift,
+  loadRealmGiftTransaction,
+  rejectRealmGift,
+} from '@nimiplatform/kit/features/commerce/realm';
 import { useTranslation } from 'react-i18next';
-import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { persistStoredSettingsSelected } from '@renderer/features/settings/settings-storage';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
@@ -47,7 +50,7 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
   const handleAccept = async () => {
     setActionLoading('accept');
     try {
-      await dataSync.acceptGift(payload.giftTransactionId);
+      await acceptRealmGift(payload.giftTransactionId);
       await queryClient.invalidateQueries({ queryKey: ['gift-transaction', payload.giftTransactionId] });
       setFeedback(null);
     } catch (error) {
@@ -70,7 +73,7 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
   const handleReject = async () => {
     setActionLoading('reject');
     try {
-      await dataSync.rejectGift(payload.giftTransactionId, {});
+      await rejectRealmGift(payload.giftTransactionId, {});
       await queryClient.invalidateQueries({ queryKey: ['gift-transaction', payload.giftTransactionId] });
       setFeedback(null);
     } catch (error) {

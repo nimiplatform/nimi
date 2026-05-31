@@ -26,9 +26,13 @@ describe('notification panel action wiring', () => {
     assert.match(source, /dataSync\.rejectOrRemoveFriend\(actorId\)/);
   });
 
-  test('gift actions use explicit accept and reject flows', () => {
-    assert.match(source, /dataSync\.acceptGift\(item\.giftTransactionId as string\)/);
-    assert.match(source, /dataSync\.rejectGift\(rejectingItem\.giftTransactionId as string/);
+  test('gift actions use Kit commerce Realm helpers', () => {
+    assert.match(source, /acceptRealmGift\(item\.giftTransactionId as string\)/);
+    assert.match(source, /rejectRealmGift\(rejectingItem\.giftTransactionId as string/);
+    assert.match(source, /createRealmGiftReview\(\{/);
+    assert.doesNotMatch(source, /dataSync\.acceptGift/);
+    assert.doesNotMatch(source, /dataSync\.rejectGift/);
+    assert.doesNotMatch(source, /dataSync\.createGiftReview/);
     assert.match(source, /navigateToGiftInbox\(item\.giftTransactionId\)/);
   });
 

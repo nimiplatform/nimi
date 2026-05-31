@@ -22,6 +22,10 @@ test('gift actions require loaded Realm transaction evidence', () => {
 });
 
 test('wallet checkout return does not claim local success before Realm evidence', () => {
+  assert.match(walletPageSource, /loadRealmCurrencyBalances/);
+  assert.match(walletPageSource, /from '@nimiplatform\/kit\/features\/commerce\/realm'/);
+  assert.match(walletPageSource, /queryFn:\s*async \(\) => loadRealmCurrencyBalances\(\)/);
+  assert.doesNotMatch(walletPageSource, /dataSync\.loadCurrencyBalances/);
   assert.match(walletPageSource, /Wallet\.rechargeReturnRequiresRealmEvidence/);
   assert.match(walletPageSource, /void refreshSparkWalletSnapshot\(\)/);
   assert.doesNotMatch(walletPageSource, /checkoutStatus === 'success'\s*\?\s*t\('Wallet\.rechargeCheckoutSuccess'/);

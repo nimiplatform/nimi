@@ -336,12 +336,48 @@ const testerSentGiftFeedProjection = {
 
 const testerGiftTransactionProjectionService: RealmCommerceGiftService = {
   getBalances: async () => ({ sparkBalance: '0', gemBalance: '0' }),
+  listSparkTransactionHistory: async () => ({ items: [], nextCursor: '' }),
+  listGemTransactionHistory: async () => ({ items: [], nextCursor: '' }),
+  getSubscriptionStatus: async () => ({
+    id: 'tester-subscription',
+    status: 'ACTIVE',
+    tier: 'FREE',
+    tierConfig: {
+      features: [],
+      priceUsd: 0,
+      tier: 'FREE',
+    },
+    cancelAtPeriodEnd: false,
+  }),
+  listSparkPackages: async () => [],
+  createSparkCheckout: async () => ({
+    sessionId: 'tester-checkout',
+    url: 'https://tester.invalid/checkout',
+  }),
+  getWithdrawalEligibility: async () => ({
+    balance: '0',
+    canWithdraw: false,
+    connectStatus: 'NOT_CREATED',
+    reason: 'tester_projection_only',
+    minAmount: '0',
+  }),
+  listWithdrawalHistory: async () => ({ items: [], nextCursor: '' }),
+  createWithdrawal: async () => ({
+    id: 'tester-withdrawal',
+    gemAmount: '0',
+    feeAmount: '0',
+    netAmount: '0',
+    usdAmount: 0,
+    status: 'PENDING',
+    createdAt: '2026-05-31T00:00:00Z',
+  }),
   listGiftCatalog: async () => testerGiftCatalogProjection,
   sendGift: async () => {},
   listReceivedGifts: async () => testerEmptyGiftFeedProjection,
   listSentGifts: async () => testerSentGiftFeedProjection,
   acceptGift: async () => {},
   rejectGift: async () => {},
+  createGiftReview: async () => {},
 };
 
 function errorMessage(error: unknown): string {

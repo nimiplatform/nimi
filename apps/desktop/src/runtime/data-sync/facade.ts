@@ -48,20 +48,12 @@ type CreatePostDto = RealmModel<'CreatePostDto'>;
 type CreateReportDto = RealmModel<'CreateReportDto'>;
 type FinalizeResourceDto = RealmModel<'FinalizeResourceDto'>;
 type ResourceDetailDto = RealmModel<'ResourceDetailDto'>;
-type CreateReviewDto = RealmModel<'CreateReviewDto'>;
-type CreateSparkCheckoutDto = RealmModel<'CreateSparkCheckoutDto'>;
-type CreateWithdrawalDto = RealmModel<'CreateWithdrawalDto'>;
 type MeTwoFactorPrepareOutput = RealmModel<'MeTwoFactorPrepareOutput'>;
 type MeTwoFactorVerifyInput = RealmModel<'MeTwoFactorVerifyInput'>;
 type OAuthProvider = RealmModel<'OAuthProvider'>;
-type RejectGiftDto = RealmModel<'RejectGiftDto'>;
-type ReceivedGiftsResponseDto = RealmModel<'ReceivedGiftsResponseDto'>;
-type SendGiftDto = RealmModel<'SendGiftDto'>;
 type SendMessageInputDto = RealmModel<'SendMessageInputDto'>;
 type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
-type SparkCheckoutSessionDto = RealmModel<'SparkCheckoutSessionDto'>;
-type SparkPackageDto = RealmModel<'SparkPackageDto'>;
 type UpdatePasswordRequestDto = RealmModel<'UpdatePasswordRequestDto'>;
 type UpdateUserNotificationSettingsDto = RealmModel<'UpdateUserNotificationSettingsDto'>;
 type UpdateUserSettingsDto = RealmModel<'UpdateUserSettingsDto'>;
@@ -455,31 +447,6 @@ export class DataSync {
   likePost(postId: string): Promise<void> { return this.actions.likePost(postId); }
   unlikePost(postId: string): Promise<void> { return this.actions.unlikePost(postId); }
   createReport(payload: CreateReportDto) { return this.actions.createReport(payload); }
-  loadCurrencyBalances() { return this.actions.loadCurrencyBalances(); }
-  loadSparkTransactionHistory(limit = 30, cursor?: string) {
-    return this.actions.loadSparkTransactionHistory(limit, cursor);
-  }
-  loadGemTransactionHistory(limit = 30, cursor?: string) {
-    return this.actions.loadGemTransactionHistory(limit, cursor);
-  }
-  loadSubscriptionStatus() { return this.actions.loadSubscriptionStatus(); }
-  loadSparkPackages(): Promise<SparkPackageDto[]> { return this.actions.loadSparkPackages(); }
-  createSparkCheckout(payload: CreateSparkCheckoutDto): Promise<SparkCheckoutSessionDto> { return this.actions.createSparkCheckout(payload); }
-  loadWithdrawalEligibility() { return this.actions.loadWithdrawalEligibility(); }
-  loadWithdrawalHistory(limit = 20, cursor?: string) {
-    return this.actions.loadWithdrawalHistory(limit, cursor);
-  }
-  createWithdrawal(payload: CreateWithdrawalDto) { return this.actions.createWithdrawal(payload); }
-  loadGiftCatalog() { return this.actions.loadGiftCatalog(); }
-  loadReceivedGifts(limit = 20, cursor?: string): Promise<ReceivedGiftsResponseDto> {
-    return this.actions.loadReceivedGifts(limit, cursor);
-  }
-  sendGift(payload: SendGiftDto) { return this.actions.sendGift(payload); }
-  acceptGift(giftTransactionId: string) { return this.actions.acceptGift(giftTransactionId); }
-  rejectGift(giftTransactionId: string, payload: RejectGiftDto) {
-    return this.actions.rejectGift(giftTransactionId, payload);
-  }
-  createGiftReview(payload: CreateReviewDto) { return this.actions.createGiftReview(payload); }
   loadMySettings(): Promise<UserSettingsDto> { return this.actions.loadMySettings(); }
   updateMySettings(payload: UpdateUserSettingsDto): Promise<UserSettingsDto> { return this.actions.updateMySettings(payload); }
   loadMyNotificationSettings(): Promise<UserNotificationSettingsDto> { return this.actions.loadMyNotificationSettings(); }

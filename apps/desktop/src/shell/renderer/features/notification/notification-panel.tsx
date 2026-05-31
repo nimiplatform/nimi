@@ -12,6 +12,11 @@ import { useTranslation } from 'react-i18next';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { ReviewRating as ReviewRatingEnum } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
+import {
+  acceptRealmGift,
+  createRealmGiftReview,
+  rejectRealmGift,
+} from '@nimiplatform/kit/features/commerce/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { DesktopCardSurface } from '@renderer/components/surface';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
@@ -334,7 +339,7 @@ export function NotificationPanel() {
       item,
       action: 'gift-accept',
       task: async () => {
-        await dataSync.acceptGift(item.giftTransactionId as string);
+        await acceptRealmGift(item.giftTransactionId as string);
       },
       errorMessage: t('NotificationPanel.acceptError', { defaultValue: 'Failed to accept gift' }),
     });
@@ -349,7 +354,7 @@ export function NotificationPanel() {
       item: rejectingItem,
       action: 'gift-reject',
       task: async () => {
-        await dataSync.rejectGift(rejectingItem.giftTransactionId as string, {
+        await rejectRealmGift(rejectingItem.giftTransactionId as string, {
           reason: rejectReason.trim() || undefined,
         });
       },
@@ -369,7 +374,7 @@ export function NotificationPanel() {
       item,
       action,
       task: async () => {
-        await dataSync.createGiftReview({
+        await createRealmGiftReview({
           giftTransactionId: item.giftTransactionId as string,
           rating,
         });
