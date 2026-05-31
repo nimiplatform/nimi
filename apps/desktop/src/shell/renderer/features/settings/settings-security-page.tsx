@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  disableRealmTwoFactor,
+  enableRealmTwoFactor,
+  prepareRealmTwoFactor,
+  updateRealmPassword,
+} from '@nimiplatform/sdk/realm';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
@@ -42,7 +49,7 @@ export function SecurityPage() {
       return;
     }
     setPreparingTwoFactor(true);
-    void dataSync.prepareTwoFactor()
+    void prepareRealmTwoFactor(getPlatformClient().realm)
       .then((payload) => {
         setTwoFactorSecret(String(payload.secret || ''));
         setTwoFactorUri(String(payload.otpauthUri || ''));
@@ -110,7 +117,7 @@ export function SecurityPage() {
     setSaving(true);
     try {
       if (newPw.trim()) {
-        await dataSync.updatePassword({
+        await updateRealmPassword(getPlatformClient().realm, {
           oldPassword: currentPw.trim() || undefined,
           newPassword: newPw.trim(),
         });
@@ -121,9 +128,9 @@ export function SecurityPage() {
           code: twoFactorCode.trim(),
         };
         if (twoFactor) {
-          await dataSync.enableTwoFactor(payload);
+          await enableRealmTwoFactor(getPlatformClient().realm, payload);
         } else {
-          await dataSync.disableTwoFactor(payload);
+          await disableRealmTwoFactor(getPlatformClient().realm, payload);
         }
       }
 

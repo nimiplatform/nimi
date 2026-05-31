@@ -12,7 +12,7 @@ function readDesktopFile(relativePath: string): string {
 }
 
 test('core chat flow filters agent threads out of product chat data', () => {
-  const source = readDesktopFile('src/runtime/data-sync/flows/chat-flow.ts');
+  const source = readDesktopFile('src/shell/renderer/features/chat/data/realm-human-chat-data.ts');
   assert.match(source, /function isHumanChatThread/);
   assert.match(source, /isAgent\?: unknown/);
   assert.match(source, /\.isAgent === false/);

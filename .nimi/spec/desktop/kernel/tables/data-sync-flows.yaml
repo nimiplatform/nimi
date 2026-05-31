@@ -1,168 +1,86 @@
 table_family: protocol_surface
 owner: desktop
-protocol_id: desktop_data_sync_flows
+protocol_id: desktop_data_sync_retirement_map
 surfaces:
-  - flows_1
-  - flows_2
-  - flows_3
-  - flows_4
-  - flows_5
-  - flows_6
-  - flows_7
-  - flows_8
-  - flows_9
-  - flows_10
-  - flows_11
-  - flows_12
-  - flows_13
-# Desktop DataSync Flow Enumeration
-# Source: apps/desktop/src/runtime/data-sync/facade.ts (DataSync class methods)
+  - retired_infrastructure
+  - retired_auth
+  - retired_account_profile
+  - retired_human_chat
+  - retired_social
+  - retired_world
+  - retired_economy
+  - retired_feed_resource
+  - retired_explore
+  - retired_notification
+  - retired_settings
+  - retired_agent
+  - retired_transit
+# Desktop DataSync Retirement Flow Enumeration
+# Source: .nimi/spec/desktop/kernel/data-sync-contract.md
 
 flows:
   - flow: infrastructure
-    methods:
-      - initApi
-      - readDataSyncHotState
-      - writeDataSyncHotState
-      - callApi
-      - startPolling
-      - stopPolling
-      - stopAllPolling
-      - emitDataSyncError
-      - loadInitialData
-    description: DataSync API initialization, hot state, polling, error emission, and initial-load infrastructure
+    methods: []
+    replacement_owner: SDK projection / SDK DX-client-orchestration / shell-scaffold
+    description: Realm transport, auth custody, reason-code handling, hot-state, and polling authority are retired from Desktop DataSync; bounded HMR/query/offline scaffold may remain outside DataSync
     source_rule: D-DSYNC-000
   - flow: auth
-    methods:
-      - login
-      - register
-      - logout
-    description: Authentication flows (credential exchange, session teardown)
+    methods: []
+    replacement_owner: Runtime / Realm / SDK DX-client-orchestration / Kit auth shell
+    description: Credential exchange, session truth, token custody, password, OAuth, OTP, 2FA, and logout authority are not Desktop DataSync responsibilities
     source_rule: D-DSYNC-001
-
-  - flow: user
-    methods:
-      - loadCurrentUser
-      - updateUserProfile
-      - loadUserProfile
-    description: User profile read/write
+  - flow: account_profile
+    methods: []
+    replacement_owner: Realm / SDK projection / SDK DX-client-orchestration
+    description: Current-user, profile, account settings, creator eligibility, and account-data actions move to SDK Realm helpers or Platform Client domains
     source_rule: D-DSYNC-002
-
-  - flow: chat
-    methods:
-      - loadChats
-      - loadMoreChats
-      - startChat
-      - loadMessages
-      - loadMoreMessages
-      - sendMessage
-      - syncChatEvents
-      - flushChatOutbox
-      - markChatRead
-    description: Chat list, message timeline, outbox, event sync
+  - flow: human_chat
+    methods: []
+    replacement_owner: Realm / Kit chat / SDK projection / shell-scaffold
+    description: Human chat typed access and realtime assembly are Kit/SDK surfaces; Desktop may keep local offline cache/outbox scaffold outside DataSync
     source_rule: D-DSYNC-003
-
   - flow: social
-    methods:
-      - loadContacts
-      - loadSocialSnapshot
-      - searchUser
-      - requestOrAcceptFriend
-      - rejectOrRemoveFriend
-      - removeFriend
-      - blockUser
-      - unblockUser
-      - loadFriendRequests
-    description: Relationship list, friend requests, social graph
+    methods: []
+    replacement_owner: Realm / SDK projection / Kit headless / shell-scaffold
+    description: Relationship graph and social mutation truth belong to Realm; Desktop may keep UI confirmation and offline mutation scaffold outside DataSync
     source_rule: D-DSYNC-004
-
   - flow: world
-    methods:
-      - loadWorlds
-      - loadWorldDetailById
-      - loadWorldAgents
-      - loadWorldDetailWithAgents
-      - loadWorldSemanticBundle
-      - loadWorldEvents
-      - loadWorldLorebooks
-      - loadWorldResourceBindings
-      - loadMainWorld
-      - loadWorldLevelAudits
-    description: World raw read surfaces for listing, detail, semantic and audit data; page-level display authority stays downstream in bounded consumer seams
+    methods: []
+    replacement_owner: Realm / SDK projection / Kit headless
+    description: World list, detail, semantic, lore, binding, scene, and audit reads are not Desktop DataSync authority
     source_rule: D-DSYNC-005
-
-  - flow: transit
-    methods:
-      - startWorldTransit
-      - listWorldTransits
-      - getActiveWorldTransit
-      - startTransitSession
-      - addTransitCheckpoint
-      - completeWorldTransit
-      - abandonWorldTransit
-    description: World transit management
-    source_rule: D-DSYNC-012
-
   - flow: economy
-    methods:
-      - loadCurrencyBalances
-      - loadSparkTransactionHistory
-      - loadGemTransactionHistory
-      - loadSubscriptionStatus
-      - loadSparkPackages
-      - createSparkCheckout
-      - loadWithdrawalEligibility
-      - loadWithdrawalHistory
-      - createWithdrawal
-      - loadGiftCatalog
-      - loadReceivedGifts
-      - sendGift
-      - acceptGift
-      - rejectGift
-      - createGiftReview
-    description: Currency, transactions, subscriptions, gifts
+    methods: []
+    replacement_owner: Realm / Kit commerce
+    description: Currency, transactions, subscriptions, gifts, checkout, withdrawal, and gift-review flows are Realm truth consumed through Kit commerce Realm helpers
     source_rule: D-DSYNC-006
-
-  - flow: feed
-    methods:
-      - loadPostFeed
-      - loadPostById
-      - loadLikedPosts
-      - createPost
-      - createImageDirectUpload
-      - createVideoDirectUpload
-      - finalizeResource
-      - likePost
-      - unlikePost
-      - updatePostVisibility
-      - deletePost
-      - createReport
-    description: Social feed posts, post-local interactions, moderation entry
-      points, and resource uploads; direct-upload sessions require finalizeResource
-      after S3 upload before createPost; createPost references resourceId only
+  - flow: feed_resource
+    methods: []
+    replacement_owner: Realm / SDK projection / SDK DX-client-orchestration / Kit headless
+    description: Feed, post interactions, governance reports, direct upload sessions, resource finalization, and attachment request helpers are retired from Desktop DataSync
     source_rule: D-DSYNC-007
-
   - flow: explore
-    methods:
-      - loadExploreAgents
-      - loadExploreFeed
-      - loadMoreExploreFeed
-      - loadAgentDetails
-    description: Explore public agent recommendations/search, discovery feed pagination, plus raw public agent detail read used by preview and downstream display seams
+    methods: []
+    replacement_owner: Realm / SDK projection / Kit headless
+    description: Explore search, recommendations, discovery feed, and public agent profile reads are not Desktop DataSync authority
     source_rule: D-DSYNC-008
-
+  - flow: notification
+    methods: []
+    replacement_owner: Realm / SDK projection
+    description: Notification unread/list/read mutations are Realm truth consumed through SDK Realm notification helpers
+    source_rule: D-DSYNC-009
   - flow: settings
-    methods:
-      - loadMySettings
-      - updateMySettings
-      - loadMyNotificationSettings
-      - updateMyNotificationSettings
-      - loadMyCreatorEligibility
-    description: User settings and notification preferences
+    methods: []
+    replacement_owner: Realm / SDK projection / SDK DX-client-orchestration
+    description: User settings, notification preferences, creator eligibility, password, OAuth, and 2FA flows are Realm truth consumed through SDK Realm account/settings helpers
     source_rule: D-DSYNC-010
-
   - flow: agent
-    methods:
-      - loadMyAgents
-    description: Agent listing only; final agent-detail display authority stays downstream in bounded display seams, and Agent LLM route/memory stays outside Desktop core DataSync ownership
+    methods: []
+    replacement_owner: Realm / Runtime / Cognition / SDK projection
+    description: Creator agent reads belong to Realm helpers; local lifecycle, execution, memory, and route truth belong to Runtime/Cognition
     source_rule: D-DSYNC-011
+  - flow: transit
+    methods: []
+    replacement_owner: Realm / Runtime / SDK projection / Kit headless
+    description: World transit state is not Desktop DataSync authority
+    source_rule: D-DSYNC-012

@@ -1,6 +1,9 @@
-import type { Realm } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { normalizeRealmMessagePayload } from '@nimiplatform/kit/features/chat/headless';
+import {
+  realmChatService,
+  type RealmChatService,
+} from '@nimiplatform/kit/features/chat/realm';
 import { isJsonObject, type JsonObject } from '@runtime/net/json';
 import {
   getErrorMessage,
@@ -16,12 +19,15 @@ type StartChatInputDto = RealmModel<'StartChatInputDto'>;
 type ChatSyncResultDto = RealmModel<'ChatSyncResultDto'>;
 type MessageViewDto = RealmModel<'MessageViewDto'>;
 
-type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
-type DataSyncErrorEmitter = (
+type DesktopChatErrorEmitter = (
   action: string,
   error: unknown,
   details?: JsonObject,
 ) => void;
+
+type DesktopRealmHumanChatService = RealmChatService;
+
+function emitNoop() {}
 
 function isHumanChatThread(chat: unknown): boolean {
   if (!chat || typeof chat !== 'object') {
@@ -110,15 +116,12 @@ export function sameMessageIdentity(left: MessageViewDto, right: MessageViewDto)
 }
 
 export async function loadChatList(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  service: Pick<DesktopRealmHumanChatService, 'listChats'> = realmChatService,
+  emitChatError: DesktopChatErrorEmitter = emitNoop,
   limit = 20,
 ) {
   try {
-    const result = await callApi(
-      (realm) => realm.services.HumanChatsService.listChats(limit),
-      '加载会话列表失败',
-    );
+    const result = await service.listChats(limit);
     const manager = await getOfflineCacheManager();
     const items = filterHumanChatItems(result?.items);
     await manager.syncChatList(items);
@@ -134,38 +137,35 @@ export async function loadChatList(
         items: filterHumanChatItems(await manager.getCachedChatList()),
       };
     }
-    emitDataSyncError('load-chats', error);
+    emitChatError('load-chats', error);
     throw error;
   }
 }
 
 export async function loadMoreChatList(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  service: Pick<DesktopRealmHumanChatService, 'listChats'> = realmChatService,
+  emitChatError: DesktopChatErrorEmitter = emitNoop,
   cursor?: string,
 ) {
   if (!cursor) return undefined;
 
   try {
-    const result = await callApi(
-      (realm) => realm.services.HumanChatsService.listChats(20, cursor),
-      '加载更多会话失败',
-    );
+    const result = await service.listChats(20, cursor);
     return {
       ...result,
       items: filterHumanChatItems(result?.items),
     };
   } catch (error) {
-    emitDataSyncError('load-more-chats', error);
+    emitChatError('load-more-chats', error);
     throw error;
   }
 }
 
 export async function startChatWithTarget(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
   targetAccountId: string,
   initialMessage: string | null = null,
+  service: Pick<DesktopRealmHumanChatService, 'startChat' | 'getChatById'> = realmChatService,
+  emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   try {
     const data: StartChatInputDto = {
@@ -178,17 +178,11 @@ export async function startChatWithTarget(
       data.payload = createCanonicalTextPayload(normalizedMessage) as StartChatInputDto['payload'];
     }
 
-    const result = await callApi(
-      (realm) => realm.services.HumanChatsService.startChat(data),
-      '创建会话失败',
-    );
-    const chat = await callApi(
-      (realm) => realm.services.HumanChatsService.getChatById(result.chatId),
-      '加载新会话详情失败',
-    );
+    const result = await service.startChat(data);
+    const chat = await service.getChatById(result.chatId);
     return { ...result, chat };
   } catch (error) {
-    emitDataSyncError('start-chat', error, {
+    emitChatError('start-chat', error, {
       targetAccountId,
       hasInitialMessage: Boolean(initialMessage),
     });
@@ -197,17 +191,14 @@ export async function startChatWithTarget(
 }
 
 export async function loadChatMessages(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
   chatId: string,
   limit: number,
   markChatRead?: (chatId: string) => Promise<void>,
+  service: Pick<DesktopRealmHumanChatService, 'listMessages'> = realmChatService,
+  emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   try {
-    const result = await callApi(
-      (realm) => realm.services.HumanChatsService.listMessages(chatId, limit),
-      '加载消息失败',
-    );
+    const result = await service.listMessages(chatId, limit);
     const manager = await getOfflineCacheManager();
     const items = Array.isArray(result?.items) ? result.items : [];
     await manager.syncChatMessages(chatId, items);
@@ -227,35 +218,26 @@ export async function loadChatMessages(
         offlineOutbox: await manager.getChatOutboxEntries(chatId),
       };
     }
-    emitDataSyncError('load-messages', error, { chatId });
+    emitChatError('load-messages', error, { chatId });
     throw error;
   }
 }
 
 export async function loadMoreChatMessages(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
   chatId: string,
   cursor?: string,
   pageSize = 20,
+  service: Pick<DesktopRealmHumanChatService, 'listMessages'> = realmChatService,
+  emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   if (!cursor) return undefined;
   const resolvedPageSize = normalizeDataSyncPageSize(pageSize);
 
   try {
-    const result = await callApi(
-      (realm) => realm.services.HumanChatsService.listMessages(
-        chatId,
-        resolvedPageSize,
-        undefined,
-        undefined,
-        cursor,
-      ),
-      '加载更多消息失败',
-    );
+    const result = await service.listMessages(chatId, resolvedPageSize, cursor);
     return result;
   } catch (error) {
-    emitDataSyncError('load-more-messages', error, { chatId });
+    emitChatError('load-more-messages', error, { chatId });
     throw error;
   }
 }
@@ -268,11 +250,11 @@ function normalizeDataSyncPageSize(pageSize: number): number {
 }
 
 export async function sendChatMessage(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
   chatId: string,
   content: string,
   options: Partial<SendMessageInputDto>,
+  service: Pick<DesktopRealmHumanChatService, 'sendMessage'> = realmChatService,
+  emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   const clientMessageId = String(options.clientMessageId || '').trim() || createClientMessageId();
   try {
@@ -292,10 +274,7 @@ export async function sendChatMessage(
     });
     await manager.upsertChatOutboxEntry(entry);
 
-    const message = await callApi(
-      (realm) => realm.services.HumanChatsService.sendMessage(chatId, data),
-      '发送消息失败',
-    );
+    const message = await service.sendMessage(chatId, data);
     await manager.markChatOutboxSent(data.clientMessageId);
     return message;
   } catch (error) {
@@ -318,15 +297,15 @@ export async function sendChatMessage(
         getErrorMessage(error, '发送消息失败'),
       );
     }
-    emitDataSyncError('send-message', error, { chatId });
+    emitChatError('send-message', error, { chatId });
     throw error;
   }
 }
 
 export async function flushPendingChatOutbox(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
   chatId?: string,
+  service: Pick<DesktopRealmHumanChatService, 'sendMessage'> = realmChatService,
+  emitChatError: DesktopChatErrorEmitter = emitNoop,
 ): Promise<MessageViewDto[]> {
   const manager = await getOfflineCacheManager();
   const pending = await manager.getChatOutboxEntries(chatId);
@@ -336,10 +315,7 @@ export async function flushPendingChatOutbox(
       continue;
     }
     try {
-      const message = await callApi(
-        (realm) => realm.services.HumanChatsService.sendMessage(entry.chatId, entry.body as SendMessageInputDto),
-        '重放聊天消息失败',
-      );
+      const message = await service.sendMessage(entry.chatId, entry.body as SendMessageInputDto);
       await manager.markChatOutboxSent(entry.clientMessageId);
       flushed.push(message);
     } catch (error) {
@@ -355,7 +331,7 @@ export async function flushPendingChatOutbox(
         entry.clientMessageId,
         getErrorMessage(error, '重放聊天消息失败'),
       );
-      emitDataSyncError('flush-chat-outbox', error, {
+      emitChatError('flush-chat-outbox', error, {
         chatId: entry.chatId,
         clientMessageId: entry.clientMessageId,
       });
@@ -365,35 +341,32 @@ export async function flushPendingChatOutbox(
 }
 
 export async function markChatAsRead(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
   chatId: string,
+  service: Pick<DesktopRealmHumanChatService, 'markChatRead'> = realmChatService,
+  emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   try {
-    await callApi((realm) => realm.services.HumanChatsService.markChatRead(chatId));
+    await service.markChatRead(chatId);
   } catch (error) {
-    emitDataSyncError('mark-chat-read', error, { chatId });
+    emitChatError('mark-chat-read', error, { chatId });
   }
 }
 
 export async function syncChatEventWindow(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
   chatId: string,
   afterSeq: number,
   limit = 200,
+  service: Pick<DesktopRealmHumanChatService, 'syncChatEvents'> = realmChatService,
+  emitChatError: DesktopChatErrorEmitter = emitNoop,
 ): Promise<ChatSyncResultDto> {
   const normalizedAfterSeq = Number.isFinite(afterSeq) ? Math.max(0, Math.floor(afterSeq)) : 0;
   const normalizedLimit = Number.isFinite(limit) ? Math.min(500, Math.max(1, Math.floor(limit))) : 200;
 
   try {
-    const result = await callApi(
-      (realm) => realm.services.HumanChatsService.syncChatEvents(chatId, normalizedLimit, normalizedAfterSeq),
-      '同步聊天事件失败',
-    );
+    const result = await service.syncChatEvents(chatId, normalizedAfterSeq, normalizedLimit);
     return result;
   } catch (error) {
-    emitDataSyncError('sync-chat-events', error, {
+    emitChatError('sync-chat-events', error, {
       chatId,
       afterSeq: normalizedAfterSeq,
       limit: normalizedLimit,

@@ -78,6 +78,7 @@ import {
 import { classifyOfflineError, classifyOfflineReasonCode, ReasonCode } from '@nimiplatform/sdk/types';
 import {
   isRealmFeedScope,
+  loadRealmCreatorEligibility,
   loadRealmNotificationUnreadCount,
   loadRealmNotifications,
   projectRealmBaseUrl,
@@ -87,6 +88,7 @@ import {
   resolveRealmMediaUrl,
   uploadRealmResourceFile,
   type RequestDataExportOutput,
+  type RealmCreatorEligibilityDto,
   type RealmNotificationListResultDto,
   type RealmNotificationUnreadProjection,
 } from '@nimiplatform/sdk/realm';
@@ -107,8 +109,10 @@ import {
 } from '@nimiplatform/kit/features/avatar/runtime';
 import {
   createRealmChatResourceAttachmentPayload,
+  listRealmChats,
   resolveRealmChatAttachmentPreviewText,
   resolveRealmChatMediaUrl,
+  type RealmListChatsResultDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import { Button, ProgressIndicator, StatusBadge, Surface, Toggle } from '@nimiplatform/kit/ui';
 
@@ -147,6 +151,18 @@ type AccountDataProjectionState =
   | { status: 'loading'; exportRequest: RequestDataExportOutput | null; error: null }
   | { status: 'ready'; exportRequest: RequestDataExportOutput; error: null }
   | { status: 'error'; exportRequest: null; error: string };
+
+type AccountSettingsProjectionState =
+  | { status: 'idle'; eligibility: null; error: null }
+  | { status: 'loading'; eligibility: RealmCreatorEligibilityDto | null; error: null }
+  | { status: 'ready'; eligibility: RealmCreatorEligibilityDto; error: null }
+  | { status: 'error'; eligibility: null; error: string };
+
+type HumanChatProjectionState =
+  | { status: 'idle'; chats: null; error: null }
+  | { status: 'loading'; chats: RealmListChatsResultDto | null; error: null }
+  | { status: 'ready'; chats: RealmListChatsResultDto; error: null }
+  | { status: 'error'; chats: null; error: string };
 
 type ConnectorProjectionState =
   | { status: 'idle'; connectors: RuntimeConnectorProjection[]; error: null }
@@ -415,6 +431,16 @@ export function SettingsRoute() {
   const [accountDataProjection, setAccountDataProjection] = useState<AccountDataProjectionState>({
     status: 'idle',
     exportRequest: null,
+    error: null,
+  });
+  const [accountSettingsProjection, setAccountSettingsProjection] = useState<AccountSettingsProjectionState>({
+    status: 'idle',
+    eligibility: null,
+    error: null,
+  });
+  const [humanChatProjection, setHumanChatProjection] = useState<HumanChatProjectionState>({
+    status: 'idle',
+    chats: null,
     error: null,
   });
   const [connectorProjection, setConnectorProjection] = useState<ConnectorProjectionState>({
@@ -1215,6 +1241,48 @@ export function SettingsRoute() {
       });
     }
   };
+  const refreshAccountSettingsProjection = async () => {
+    setAccountSettingsProjection((current) => ({
+      status: 'loading',
+      eligibility: current.eligibility,
+      error: null,
+    }));
+    try {
+      const eligibility = await loadRealmCreatorEligibility(getPlatformClient().realm);
+      setAccountSettingsProjection({
+        status: 'ready',
+        eligibility,
+        error: null,
+      });
+    } catch (error) {
+      setAccountSettingsProjection({
+        status: 'error',
+        eligibility: null,
+        error: errorMessage(error),
+      });
+    }
+  };
+  const refreshHumanChatProjection = async () => {
+    setHumanChatProjection((current) => ({
+      status: 'loading',
+      chats: current.chats,
+      error: null,
+    }));
+    try {
+      const chats = await listRealmChats(20);
+      setHumanChatProjection({
+        status: 'ready',
+        chats,
+        error: null,
+      });
+    } catch (error) {
+      setHumanChatProjection({
+        status: 'error',
+        chats: null,
+        error: errorMessage(error),
+      });
+    }
+  };
   const refreshConnectorProjection = async () => {
     setConnectorProjection((current) => ({
       status: 'loading',
@@ -1401,6 +1469,52 @@ export function SettingsRoute() {
             }}
           >
             Request
+          </Button>
+        </div>
+      </div>
+      <div className="setting-row">
+        <span>SDK Realm account settings projection</span>
+        <div className="inline-flex items-center gap-2">
+          <StatusBadge tone={accountSettingsProjection.status === 'error' ? 'danger' : 'info'}>
+            {accountSettingsProjection.status === 'ready'
+              ? `${accountSettingsProjection.eligibility.tier}: ${accountSettingsProjection.eligibility.status}`
+              : accountSettingsProjection.status === 'error'
+                ? accountSettingsProjection.error
+                : 'not loaded'}
+          </StatusBadge>
+          <Button
+            type="button"
+            size="sm"
+            tone="secondary"
+            loading={accountSettingsProjection.status === 'loading'}
+            onClick={() => {
+              void refreshAccountSettingsProjection();
+            }}
+          >
+            Refresh
+          </Button>
+        </div>
+      </div>
+      <div className="setting-row">
+        <span>Kit Realm human chat projection</span>
+        <div className="inline-flex items-center gap-2">
+          <StatusBadge tone={humanChatProjection.status === 'error' ? 'danger' : 'info'}>
+            {humanChatProjection.status === 'ready'
+              ? `${humanChatProjection.chats.items.length} chat${humanChatProjection.chats.items.length === 1 ? '' : 's'}`
+              : humanChatProjection.status === 'error'
+                ? humanChatProjection.error
+                : 'not loaded'}
+          </StatusBadge>
+          <Button
+            type="button"
+            size="sm"
+            tone="secondary"
+            loading={humanChatProjection.status === 'loading'}
+            onClick={() => {
+              void refreshHumanChatProjection();
+            }}
+          >
+            Refresh
           </Button>
         </div>
       </div>

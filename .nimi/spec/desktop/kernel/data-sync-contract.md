@@ -1,180 +1,176 @@
-# Data Sync Contract
+# Data Sync Retirement Contract
 
 > Authority: Desktop Kernel
 
 ## Scope
 
-Desktop DataSync facade 契约。定义统一数据同步层的业务流规则，每条规则对应一个独立的数据流域。
+Desktop previously exposed `apps/desktop/src/runtime/data-sync/**` as a
+Realm-facing product data facade. That module is retired as platform authority.
+Desktop is a Nimi ecosystem app: it may compose product views and own bounded
+shell/scaffold concerns, but it must not own Realm, Runtime, Cognition, SDK, or
+Kit truth.
 
-## D-DSYNC-000 — DataSync 基础设施
+This contract keeps the historical `D-DSYNC-*` rule IDs as an owner map for
+retirement. New work must not add Desktop DataSync business methods. Existing
+callers must migrate to the replacement owner surface and delete the
+corresponding app-local DataSync flow.
 
-DataSync facade 提供以下基础设施能力，业务流规则按需使用：
+## D-DSYNC-000 — Retired Facade Infrastructure
 
-- **API 初始化** — `dataSync.initApi(config)` 设置 realm 连接参数（`realmBaseUrl`、`accessToken`、`fetchImpl`），持久化到 `globalThis.__NIMI_DATA_SYNC_API_CONFIG__` 热状态。
-- **热状态** — `readDataSyncHotState()` / `writeDataSyncHotState()` 跨 HMR 重载保持 API 连接状态。Store 热状态通过 `globalThis` 键保持 HMR 连续性；它不是 desktop 长期登录态真源。
-- **上下文锁** — `callApi()` 内部使用 SDK `withRealmContextLock` 确保同一时刻只有一个 Realm 客户端上下文激活，响应通过 JSON 解析归一化，错误通过 `normalizeApiError` 归一化（错误格式参考 `D-NET-005`）。
-- **轮询管理** — `DataSyncPollingManager` 提供 key-based 轮询：`startPolling(key, callback, intervalMs)`、`stopPolling(key)`、`stopAllPolling()`。
-- **错误日志** — `emitDataSyncError` 通过 runtime telemetry 记录错误（日志区域 `datasync`，消息格式 `action:${actionName}:failed`）。
-- **初始数据加载** — `loadInitialData()` 按序加载 `loadCurrentUser()` → `loadChats()` → relationship/social snapshot。
-- **Facade 委托** — 所有业务操作委托给 `createDataSyncActions` 工厂创建的 actions 对象，注入 `callApiTask`、`emitFacadeError`、`setToken`、`clearAuth`、`stopAllPolling`、`isFriend`。
-- **分页基础设施** — 所有 `loadMore*` 方法遵循统一分页契约：
-  - 默认 `pageSize: 20`（可由调用方覆盖），上限 `100`（超过 100 截断为 100）。
-  - Cursor 传递：首次请求不传 cursor；后续请求传递上一次响应返回的 `nextCursor`。
-  - 末页检测：响应中 `hasMore=false` 或返回结果数量 < `pageSize` 时标记为末页，UI 停止触发加载。
-  - 适用方法：`loadMoreChats`、`loadMoreMessages`、`loadMoreExploreFeed` 及其他分页场景。
-  - **跨域分页参数说明**：D-DSYNC-000 的 `pageSize: 20` 是 Desktop DataSync 层面向 Realm REST API 的客户端默认值。Runtime gRPC List RPC 的分页默认值（K-PAGE-005: page_size=50, max=200）独立于此，由 SDK runtime.md S-RUNTIME-066 投影。两者服务不同传输域，差异为设计意图。
+The DataSync facade infrastructure is not a durable Desktop platform layer.
 
-## D-DSYNC-001 — Auth 数据流
+- Realm transport, auth custody, token refresh, generated service access,
+  request parsing, and reason-code handling belong to SDK Realm/Platform Client.
+- Reusable chat, commerce, shell, bridge, accessibility, UI, and headless
+  interaction patterns belong to Kit.
+- Desktop may keep bounded shell/scaffold adapters for offline cache, query
+  invalidation, local upload placeholders, and product-specific view-model
+  composition.
+- Desktop shell/scaffold adapters must consume SDK/Kit public surfaces; they
+  must not re-wrap generated Realm services as a second platform API.
+- `globalThis` hot state may only preserve process/HMR continuity for admitted
+  shell state. It is not session truth and must not carry durable auth custody.
 
-认证流方法：`login`、`register`、`logout`。
+## D-DSYNC-001 — Auth Owner Map
 
-- 使用基础设施：上下文锁、错误日志。
-- `login`/`register` 成功后通过 `setToken()` 更新热状态和 store。
-- `logout` 触发 `clearAuth()` + `stopAllPolling()`。
+Auth credential exchange, session truth, token custody, and local first-party
+Runtime account state belong to Runtime/Realm through SDK Platform Client and
+Kit auth shell helpers.
 
-## D-DSYNC-002 — User 数据流
+- Desktop may wire auth UI intent and post-auth navigation.
+- Desktop DataSync must not expose `login`, `register`, `logout`, password,
+  OAuth, OTP, 2FA, or token-refresh authority.
 
-用户资料读写方法：`loadCurrentUser`、`updateUserProfile`、`loadUserProfile`。
+## D-DSYNC-002 — Account/Profile Owner Map
 
-- 使用基础设施：上下文锁、错误日志、初始数据加载。
-- `loadCurrentUser` 在 `loadInitialData()` 中首先执行。
+Current-user, public-user profile, account settings, notification preferences,
+creator eligibility, and account data actions are Realm truth surfaced through
+SDK Realm helpers or SDK Platform Client domains.
 
-## D-DSYNC-003 — Chat 数据流
+- Desktop may own product-specific profile panels, form state, validation, and
+  query invalidation.
+- Desktop DataSync must not wrap `MeService`, `UserService`, `AuthService`, or
+  account-data services as app-local platform access.
 
-聊天数据流方法：`loadChats`、`loadMoreChats`、`startChat`、`loadMessages`、`loadMoreMessages`、`sendMessage`、`syncChatEvents`、`flushChatOutbox`、`markChatRead`。
+## D-DSYNC-003 — Human Chat Owner Map
 
-- 使用基础设施：上下文锁、轮询管理、错误日志、初始数据加载。
-- `syncChatEvents` 通过 `PollingManager` 定期轮询。
-- `flushChatOutbox` 处理离线消息队列。
-- Desktop chat surface 可以承载 `human`、`ai`、`agent` 三类会话宿主，但 human chat 的会话列表与消息流只消费 Realm typed DTO。Agent / AI thread 不得伪装成 human `ChatViewDto` 进入 core data-sync contract。
+Human chat canonical truth belongs to Realm. Typed chat access, realtime event
+assembly, composer adapters, timeline parsing, and reusable chat primitives
+belong to Kit/SDK.
 
-## D-DSYNC-004 — Social 数据流
+- Desktop may own local offline cache/outbox scaffold, upload placeholders,
+  selected-chat UI state, and product-specific query wiring.
+- Desktop human chat UI must consume Kit Realm chat helpers or a bounded
+  Desktop scaffold that itself consumes Kit/SDK public surfaces.
+- Desktop DataSync must not expose `loadChats`, `startChat`, `loadMessages`,
+  `sendMessage`, `syncChatEvents`, `flushChatOutbox`, or `markChatRead`.
 
-社交数据流方法：relationship list/snapshot、`searchUser`、`requestOrAcceptFriend`、`rejectOrRemoveFriend`、`removeFriend`、`blockUser`、`unblockUser`、`loadFriendRequests`。
+## D-DSYNC-004 — Social Owner Map
 
-- 使用基础设施：上下文锁、错误日志、初始数据加载。
-- 辅助方法：`isFriend(userId)` 在 relationship/social 状态中检查好友关系。
+Relationship graph, friend requests, block state, social snapshots, and
+friend-quota truth belong to Realm. Reusable typed access belongs to SDK or Kit
+headless surfaces.
 
-## D-DSYNC-005 — World 数据流
+- Desktop may own relationship UI, confirmation dialogs, optimistic query
+  invalidation, and local offline mutation scaffold.
+- Desktop DataSync must not remain the product authority for relationship or
+  social graph operations.
 
-世界数据流方法：`loadWorlds`、`loadWorldDetailById`、`loadWorldAgents`、`loadWorldDetailWithAgents`、`loadWorldSemanticBundle`、`loadWorldEvents`、`loadWorldLorebooks`、`loadWorldResourceBindings`、`loadMainWorld`、`loadWorldLevelAudits`。
+## D-DSYNC-005 — World Owner Map
 
-- 使用基础设施：上下文锁、错误日志。
-- 本规则定义的是 Desktop 可消费的 world raw read surfaces，不直接宣称 page-level 最终展示 authority。
-- `world detail` 页面主展示 authority 必须由下游 bounded display seam 承接；Desktop page 不得把 `loadWorldDetailWithAgents`、`loadWorldSemanticBundle`、`loadWorldLorebooks`、`loadWorldLevelAudits` 等 raw read 重新当作多个并列主语义来源。
-- `loadWorldSemanticBundle` 返回的 `worldview.coreSystem.rules` 必须是 ordered rule item array（`key / title / value`），不得回退为 JSON object map。
-- creator audit 读取统一来自 `WorldStateDto.items` 与 `WorldHistoryListDto.items`；Desktop 不再定义独立 world mutation 读取面。
+World list/detail/history/lore/binding/scene/audit canonical truth belongs to
+Realm. Typed read helpers belong to SDK; reusable world display/headless
+composition belongs to Kit when shared by multiple apps.
 
-## D-DSYNC-006 — Economy 数据流
+- Desktop may own product page composition and navigation state.
+- Desktop DataSync must not act as a second world service registry.
 
-经济数据流方法：
+## D-DSYNC-006 — Economy Owner Map
 
-- 余额：`loadCurrencyBalances`
-- 交易：`loadSparkTransactionHistory`、`loadGemTransactionHistory`
-- 订阅：`loadSubscriptionStatus`
-- 充值：`loadSparkPackages`、`createSparkCheckout`
-- 提现：`loadWithdrawalEligibility`、`loadWithdrawalHistory`、`createWithdrawal`
-- 礼物：`loadGiftCatalog`、`loadReceivedGifts`、`sendGift`、`acceptGift`、`rejectGift`、`createGiftReview`
+Economy canonical truth belongs to Realm. Desktop economy surfaces consume Kit
+commerce Realm helpers from `@nimiplatform/kit/features/commerce/realm` for
+balances, transaction history, subscription reads, Spark checkout, withdrawal,
+gift actions, and gift review writes.
 
-- 使用基础设施：上下文锁、错误日志。
+- Desktop may own Wallet/Notification/Gift UI state, query cadence, checkout
+  redirect handling, and user-intent wiring.
+- Desktop DataSync must not expose economy facade methods or re-wrap
+  `EconomyCurrencyGiftsService` / `ReviewsEconomyTrustService`.
 
-## D-DSYNC-007 — Feed 数据流
+## D-DSYNC-007 — Feed/Resource Owner Map
 
-社交 feed 方法：`loadPostFeed`、`loadPostById`、`loadLikedPosts`、`createPost`、
-`createImageDirectUpload`、`createVideoDirectUpload`、`finalizeResource`、
-`likePost`、`unlikePost`、`updatePostVisibility`、`deletePost`、`createReport`。
+Post, feed, like, moderation-report, resource-upload, and attachment truth
+belong to Realm. Upload transport helpers and request builders belong to SDK;
+reusable composer/headless primitives belong to Kit.
 
-- 使用基础设施：上下文锁、错误日志。
-- `likePost` / `unlikePost` 是 post-local interaction；离线时可进入 social outbox，
-  但 owner 仍是 feed/post interaction surface，不得由 Home renderer card 直接
-  解释为 relationship-local state。
-- `createReport` 仅作为 feed card 针对 post 的治理入口；report contract 仍由
-  Realm GovernanceService 承担，Desktop 不得在 Home 层合成本地举报成功。
-- Home renderer `PostCard` 是 projection surface：它只能消费 D-DSYNC-007 action
-  adapter 与跨域 owner callback，不得直接 import DataSync facade、relationship/Chat/
-  Economy/Profile modal 或把跨域 side effect 内联为 Home card state。
-- `createImageDirectUpload` / `createVideoDirectUpload` 返回 `ResourceDirectUploadSessionDto` 语义：
-  - `resourceId` 可用于后续 `createPost` 写入 `attachments[].targetId`
-  - `storageRef` 是 provider 传输层引用，仅供上传 transport 路径使用，不得作为新 post 的附件主键
-- `finalizeResource` 在 S3 直传完成后调用，将资源状态从 PENDING 转为 READY；
-  调用前后均不需要写入资源 URL，仅通过 `resourceId` 引用资源
-- `createPost` 的 post attachment 写入规则：
-  - `attachments[]` 采用 canonical attachment envelope，正式字段为 `targetType + targetId`
-  - 资源上传快捷路径写入 `targetType='RESOURCE'` 且 `targetId=resourceId`
-  - 不通过 `resource-bindings` 反查资源
-  - 不再写入 `resourceId` / `assetId` / `imageId` / `videoId` / `uid` / `key`
+- Desktop may own create-post modal state, local attachment previews, query
+  invalidation, and product-specific error presentation.
+- Desktop DataSync must not remain the canonical post/resource facade.
 
-## D-DSYNC-008 — Explore 数据流
+## D-DSYNC-008 — Explore/Agent Discovery Owner Map
 
-探索发现方法：`loadExploreAgents`、`loadExploreFeed`、`loadMoreExploreFeed`、`loadAgentDetails`。
+Explore search, public recommendation, public agent profile, and discovery feed
+truth belong to Realm. Typed helpers belong to SDK/Kit.
 
-- 使用基础设施：上下文锁、错误日志。
-- `loadExploreAgents` owns public agent recommendation/search service invocation
-  and argument ordering for Explore recommendation surfaces; renderer Explore
-  components must consume the DataSync facade method instead of calling
-  `SearchService` directly.
-- `loadAgentDetails` 是公开 Agent 详情 raw read surface，可用于 Explore preview 与下游 consumer seam 构建；它本身不是 Agent Detail page 的最终展示 authority。
+- Desktop may own Explore panel state and preview composition.
+- Desktop DataSync must not wrap Search/Explore/Agents services as app-local
+  platform truth.
 
-## D-DSYNC-009 — Notification 数据流
+## D-DSYNC-009 — Notification Owner Map
 
 Notification canonical list and read-state truth belongs to Realm. Desktop
-notification surfaces must consume the SDK Realm notification helpers for
-`loadRealmNotificationUnreadCount`、`loadRealmNotifications`、
-`markRealmNotificationsRead`、`markRealmNotificationRead` rather than owning a
-Desktop data-sync flow.
+notification surfaces consume SDK Realm notification helpers for unread count,
+list, and read mutations.
 
-- Desktop may own panel-specific optimistic read overrides, query invalidation,
-  filtering tabs, and user-intent wiring.
-- Desktop must not expose notification list/read mutations from the DataSync
-  facade or re-wrap `NotificationsService` as app-local platform access.
-- Polling/query cadence belongs to the consumer surface; notification truth and
-  request shape remain Realm-through-SDK.
+- Desktop may own panel filtering, optimistic read overrides, and query
+  invalidation.
+- Desktop DataSync must not expose notification list/read mutations.
 
-## D-DSYNC-010 — Settings 数据流
+## D-DSYNC-010 — Settings Owner Map
 
-设置方法：`loadMySettings`、`updateMySettings`、`loadMyNotificationSettings`、`updateMyNotificationSettings`、`loadMyCreatorEligibility`。
+Account settings, notification preferences, creator eligibility, password
+updates, OAuth linking, and two-factor authentication truth belong to Realm.
+Desktop settings surfaces consume SDK Realm account/settings helpers.
 
-- 使用基础设施：上下文锁、错误日志。
+- Desktop may own settings form state, autosave timers, input validation,
+  localized messages, and post-mutation query/session refresh wiring.
+- Desktop DataSync must not expose settings/security/OAuth facade methods.
 
-## D-DSYNC-011 — Agent 数据流
+## D-DSYNC-011 — Agent Owner Map
 
-Agent 方法：`loadMyAgents`。
+Creator agent lists and public agent profile reads belong to Realm. Agent
+execution, local agent lifecycle, LLM routing, memory, and Runtime substrate
+state belong to Runtime/Cognition.
 
-- Agent Detail page 的最终展示 authority 必须由下游 bounded display seam 承接，不得由 page 直接把 `loadAgentDetails` 的 mixed envelope 当作最终语义。
-- Agent LLM 相关的聊天路由与记忆读取不属于 Desktop core product DataSync contract。
-- host memory capability 采用 cache-only 语义：只有本地已缓存并满足请求的 slice/stats 才允许返回 `local-index-only`；否则必须依赖远端成功结果。
-- host memory capability 在缺少 `agentId` / `entityId`、远端失败、或无法完成 recall/backfill 时必须 fail-close，不得返回空数组、空 recall 结果、或基于本地 slice 合成统计。
+- Desktop may own product-specific create-agent drawers and display pages.
+- Desktop DataSync must not own Agent LLM route, memory, lifecycle, or mixed
+  runtime/realm authority.
 
-- 使用基础设施：上下文锁、错误日志。
+## D-DSYNC-012 — Transit Owner Map
 
-## D-DSYNC-012 — Transit 数据流
+World transit canonical state belongs to Realm and admitted Runtime/Realm
+workflow contracts. Typed access belongs to SDK/Kit when reused.
 
-世界穿越方法：`startWorldTransit`、`listWorldTransits`、`getActiveWorldTransit`、`startTransitSession`、`addTransitCheckpoint`、`completeWorldTransit`、`abandonWorldTransit`。
+- Desktop may own transit UI intent wiring and display state.
+- Desktop DataSync must not remain the transit service authority.
 
-- 使用基础设施：上下文锁、错误日志。
+## D-DSYNC-013 — Replacement Path Guidance
 
-## D-DSYNC-013 — DataSync 与 Runtime 数据路径选择指导
+Replacement owner order is mandatory:
 
-Desktop 存在两套并行数据获取架构：
+| Responsibility | Owner |
+|---|---|
+| canonical Realm business truth | Realm |
+| Runtime execution, readiness, state, jobs, local lifecycle | Runtime |
+| memory/knowledge/skill access policy and records | Cognition |
+| typed access, schemas, decoders, transport, method IDs, request builders, response parsers, stream assemblers, test harnesses, non-authoritative client orchestration | SDK |
+| reusable UI, shell, bridge, accessibility, token, headless product primitives | Kit |
+| product screens, user-intent wiring, view-model composition, ephemeral UI state, bounded OS helpers | Desktop |
 
-| 路径 | 传输 | 适用数据域 | 统一设施 |
-|---|---|---|---|
-| **DataSync Facade**（D-DSYNC-000~012） | Realm REST API | 社交、聊天、世界、经济、Feed、通知 | 上下文锁、轮询管理器、normalizeApiError |
-| **Runtime 数据路径** | SDK Runtime gRPC / D-IPC commands | 本地模型、健康状态、provider 状态、AI 推理 | 无统一 facade（各 D-IPC command 独立调用） |
-
-两套架构使用不同的重试策略（D-NET-002 vs S-RUNTIME-045）、错误归一化（normalizeApiError vs toBridgeNimiError）、状态管理（DataSync Zustand slices vs Runtime store slices）。此双轨设计为有意：Realm REST 和 Runtime gRPC 是不同传输域，强行统一会引入不必要的抽象层。
-
-**Phase 2 服务路径选择规则**：
-
-| 新服务 | 推荐路径 | 理由 |
-|---|---|---|
-| Workflow UI（K-WF-012） | Runtime 数据路径 | Workflow 数据来源为 Runtime gRPC（SubscribeWorkflowEvents），不经过 Realm |
-| Audit UI（K-AUDIT-013） | Runtime 数据路径 | 审计数据来源为 Runtime gRPC（ListAuditEvents/ExportAuditEvents）。注：Phase 2 Audit UI 应通过 SDK gRPC 路径消费全局审计（K-AUDIT-013: ListAuditEvents 20k ring buffer），本地 AI 调试视图也必须经 SDK RuntimeLocalService 投影，不得保留 Desktop/Tauri audit IPC 真源。 |
-| Cognition / knowledge infra | 不作为 Desktop Runtime Config 管理页暴露 | Knowledge bank/page/search/graph 是 RuntimeCognitionService absorbed infra API；Desktop cognition UX 需要新的产品 admission |
-| AppMessage UI（K-APP-006a） | Runtime 数据路径 | 应用消息来源为 Runtime gRPC（SubscribeAppMessages） |
-
-Runtime 数据路径当前缺少统一 facade。Phase 2 服务较多地使用 Runtime 路径时，应评估是否创建类似 DataSync 的 RuntimeSync facade（提供统一的错误归一化、重试、状态管理）。Desktop cognition UX 必须另行 admission，不得把 RuntimeCognitionService infra API 直接包装成 Runtime Config 管理页。
+For every retired DataSync flow, Desktop must consume the replacement shared
+surface and Tester must prove the same surface through a materially different
+consumer flow.
 
 ## Fact Sources
 
-- `tables/data-sync-flows.yaml` — DataSync 流枚举
+- `tables/data-sync-flows.yaml` — retired DataSync flow owner map

@@ -6,6 +6,7 @@ import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-sh
 import { createRealmChatComposerAdapter } from '@nimiplatform/kit/features/chat/realm';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
+import { sendChatMessage } from './data/realm-human-chat-data';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
@@ -102,7 +103,7 @@ export function HumanCanonicalComposer(props: {
     }
   }, []);
 
-  const mergeSentMessageIntoCache = (message: Awaited<ReturnType<typeof dataSync.sendMessage>>) => {
+  const mergeSentMessageIntoCache = (message: Awaited<ReturnType<typeof sendChatMessage>>) => {
     mergeSentRealmChatMessageIntoCache({
       queryClient,
       message,
@@ -134,7 +135,7 @@ export function HumanCanonicalComposer(props: {
       throw new Error(t('TurnInput.uploadFailed'));
     }
 
-    return await dataSync.sendMessage(props.selectedChatId, '', {
+    return await sendChatMessage(props.selectedChatId, '', {
       type: MessageType.ATTACHMENT,
       payload: createCanonicalChatAttachmentPayload(finalizedAttachmentTargetId),
     });
@@ -225,7 +226,7 @@ export function HumanCanonicalComposer(props: {
   const textSendAdapter = useMemo(() => createRealmChatComposerAdapter({
     chatId: props.selectedChatId || '',
     service: {
-      sendMessage: async (chatId, input) => dataSync.sendMessage(chatId, String(input.text || ''), input),
+      sendMessage: async (chatId, input) => sendChatMessage(chatId, String(input.text || ''), input),
     },
     onResponse: async (message) => {
       mergeSentMessageIntoCache(message);

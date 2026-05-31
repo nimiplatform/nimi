@@ -20,6 +20,7 @@ import {
 } from './profile-private-state.js';
 import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
 import { toAgentContactLaunchTargetFromProfile } from './agent-contact-launch-target.js';
+import { startChatWithTarget } from '@renderer/features/chat/data/realm-human-chat-data';
 
 export type ProfileDetailSeed = {
   id: string;
@@ -144,7 +145,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
         return;
       }
 
-      const result = await dataSync.startChat(profile.id);
+      const result = await startChatWithTarget(profile.id);
       if (!result?.chatId) {
         throw new Error(INTERNAL_OPEN_CHAT_ERROR_CODE);
       }

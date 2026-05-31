@@ -7,7 +7,7 @@ import {
 } from '@nimiplatform/kit/auth';
 import type { TauriOAuthBridge } from '@nimiplatform/kit/core/oauth';
 import { isWebShellMode } from '@nimiplatform/kit/core/shell-mode';
-import { OAuthProvider, type RealmModel } from '@nimiplatform/sdk/realm';
+import { OAuthProvider, updateRealmPassword, type RealmModel } from '@nimiplatform/sdk/realm';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/browser';
 import { dataSync } from '@runtime/data-sync';
@@ -247,7 +247,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
 
     updatePassword: async (newPassword) => {
       await ensureAuthApiReady();
-      await dataSync.updatePassword({ newPassword });
+      await updateRealmPassword(getPlatformClient().realm, { newPassword });
     },
 
     loadCurrentUser: async () => {

@@ -25,6 +25,12 @@ import { getOfflineCoordinator } from '@runtime/offline';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { invalidateNotificationQueries } from '@renderer/features/notification/notification-query.js';
+import {
+  flushPendingChatOutbox,
+  loadChatMessages,
+  markChatAsRead,
+  syncChatEventWindow,
+} from '@renderer/features/chat/data/realm-human-chat-data';
 
 const CHAT_SOCKET_PATH = '/socket.io/';
 
@@ -193,7 +199,7 @@ function applyChatEventToCache(input: ApplyChatEventInput): void {
       invalidateGroupChatQueries(input.event.chatId);
     }
     if (chatMerge.shouldMarkRead) {
-      void dataSync.markChatRead(message.chatId);
+      void markChatAsRead(message.chatId);
     }
     return;
   }
@@ -266,13 +272,13 @@ export function useChatRealtimeSync(): void {
     onSocketReachableChange: (reachable) => {
       offlineCoordinator.markRealmSocketReachable(reachable);
     },
-    flushChatOutbox: () => dataSync.flushChatOutbox(),
+    flushChatOutbox: async () => { await flushPendingChatOutbox(); },
     flushSocialOutbox: () => dataSync.flushSocialOutbox(),
     invalidateChats: () => queryClient.invalidateQueries({ queryKey: ['chats'] }),
     invalidateMessages: (chatId) => queryClient.invalidateQueries({ queryKey: ['messages', chatId] }),
     invalidateNotifications: () => invalidateNotificationQueries(),
-    syncChatEvents: (chatId, afterSeq, limit) => dataSync.syncChatEvents(chatId, afterSeq, limit),
-    loadMessages: (chatId) => dataSync.loadMessages(chatId),
+    syncChatEvents: (chatId, afterSeq, limit) => syncChatEventWindow(chatId, afterSeq, limit),
+    loadMessages: (chatId) => loadChatMessages(chatId, 50),
     applyChatEvent: ({ event, selectedChatId: activeChatId, currentUserId: activeUserId }) => {
       applyChatEventToCache({
         event,

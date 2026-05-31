@@ -1,8 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
+import {
+  loadRealmUserNotificationSettings,
+  updateRealmUserNotificationSettings,
+} from '@nimiplatform/sdk/realm';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { dataSync } from '@runtime/data-sync';
 import {
   FormFeedback,
   PageShell,
@@ -144,7 +148,7 @@ export function NotificationsPage() {
 
   const settingsQuery = useQuery({
     queryKey: ['settings-notification'],
-    queryFn: async () => dataSync.loadMyNotificationSettings(),
+    queryFn: async () => loadRealmUserNotificationSettings(getPlatformClient().realm),
   });
 
   useEffect(() => {
@@ -176,7 +180,7 @@ export function NotificationsPage() {
     }
     setSaving(true);
     try {
-      await dataSync.updateMyNotificationSettings(toNotificationPayload(form));
+      await updateRealmUserNotificationSettings(getPlatformClient().realm, toNotificationPayload(form));
       await settingsQuery.refetch();
       if (!silentSuccess) {
         setFeedback({

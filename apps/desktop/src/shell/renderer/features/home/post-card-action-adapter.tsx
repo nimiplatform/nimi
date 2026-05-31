@@ -6,6 +6,10 @@ import { i18n } from '@renderer/i18n';
 import { AddFriendModal } from './add-friend-modal';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { CreatePostModal } from '@renderer/features/profile/create-post-modal.js';
+import {
+  loadChatList,
+  startChatWithTarget,
+} from '@renderer/features/chat/data/realm-human-chat-data';
 import type { PostCardActionAdapter } from './post-card';
 
 function createOpenChatError(): Error {
@@ -35,7 +39,7 @@ export function usePostCardActionAdapter(): PostCardActionAdapter {
     requestOrAcceptFriend: (authorId, message) => dataSync.requestOrAcceptFriend(authorId, message),
     invalidateContacts: () => queryClient.invalidateQueries({ queryKey: ['contacts'] }),
     openChat: async ({ authorId }) => {
-      const result = await dataSync.startChat(authorId);
+      const result = await startChatWithTarget(authorId);
       if (!result?.chatId) {
         throw createOpenChatError();
       }
@@ -48,7 +52,7 @@ export function usePostCardActionAdapter(): PostCardActionAdapter {
       if (!requestedChatId) {
         throw createOpenChatError();
       }
-      const chatsSnapshot = await dataSync.loadChats();
+      const chatsSnapshot = await loadChatList();
       const createdChat = result.chat && typeof result.chat === 'object'
         ? ({
           ...(result.chat as Record<string, unknown>),

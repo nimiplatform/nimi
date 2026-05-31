@@ -38,7 +38,6 @@ import {
 } from '@nimiplatform/kit/features/chat/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
-import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { GiftMessageBubble, type GiftMessagePayload } from '@renderer/features/economy/gift-message-bubble.js';
@@ -50,6 +49,7 @@ import {
   resolveCanonicalChatAttachmentPreviewText,
   resolveCanonicalChatAttachmentUrl,
 } from '../turns/chat-attachment-contract.js';
+import { loadChatMessages } from './data/realm-human-chat-data';
 import { cancelStream, getStreamState, subscribeStream, type StreamState } from '../turns/stream-controller';
 export { HumanCanonicalComposer, HumanCanonicalProfileDrawer } from './chat-human-canonical-composer-profile';
 
@@ -103,7 +103,7 @@ function useHumanTimelineModel(selectedChatId: string | null, selectedChat: Huma
       if (!selectedChatId) {
         return null;
       }
-      return await dataSync.loadMessages(selectedChatId);
+      return await loadChatMessages(selectedChatId, 50);
     },
     enabled: authStatus === 'authenticated' && Boolean(selectedChatId),
   });

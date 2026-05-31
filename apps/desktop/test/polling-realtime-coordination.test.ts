@@ -19,11 +19,11 @@ describe('D-NET-007: polling/realtime coordination', () => {
   });
 
   test('D-NET-007: controller wiring flushes chat outbox on reconnect path', () => {
-    assert.match(source, /flushChatOutbox:\s*\(\)\s*=>\s*dataSync\.flushChatOutbox\(\)/);
+    assert.match(source, /flushChatOutbox:\s*async\s*\(\)\s*=>\s*\{\s*await flushPendingChatOutbox\(\);?\s*\}/);
   });
 
   test('D-NET-007: controller wiring exposes syncChatEvents and message invalidation', () => {
-    assert.match(source, /syncChatEvents:\s*\(chatId,\s*afterSeq,\s*limit\)\s*=>\s*dataSync\.syncChatEvents\(chatId,\s*afterSeq,\s*limit\)/);
+    assert.match(source, /syncChatEvents:\s*\(chatId,\s*afterSeq,\s*limit\)\s*=>\s*syncChatEventWindow\(chatId,\s*afterSeq,\s*limit\)/);
     assert.match(source, /invalidateMessages:\s*\(chatId\)\s*=>\s*queryClient\.invalidateQueries\(\{ queryKey: \['messages', chatId\] \}\)/);
   });
 

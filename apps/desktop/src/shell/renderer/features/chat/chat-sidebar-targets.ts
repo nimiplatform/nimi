@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { dataSync } from '@runtime/data-sync';
+import { loadChatList } from './data/realm-human-chat-data';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
   collapseHumanChatsToTargets,
@@ -55,7 +56,7 @@ export function useChatTargetsForSidebar(
 
   const humanChatsQuery = useQuery({
     queryKey: ['chats', authStatus],
-    queryFn: async () => dataSync.loadChats(),
+    queryFn: async () => loadChatList(),
     enabled: authStatus === 'authenticated',
     staleTime: 30_000,
   });

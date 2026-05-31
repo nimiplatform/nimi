@@ -15,11 +15,11 @@ function assertGuardedCall(handlerName: string): void {
   const nextHandlerIndex = authAdapterSource.indexOf('\n\n', start);
   const searchEnd = nextHandlerIndex === -1 ? authAdapterSource.length : nextHandlerIndex;
   const runtimeProjectionIndex = authAdapterSource.indexOf('runtime.account.getAccountSessionStatus', start);
-  const dataSyncCallIndex = authAdapterSource.indexOf('dataSync.updatePassword', start);
-  const guardedIndex = [runtimeProjectionIndex, dataSyncCallIndex]
+  const realmSecurityProjectionIndex = authAdapterSource.indexOf('updateRealmPassword', start);
+  const guardedIndex = [runtimeProjectionIndex, realmSecurityProjectionIndex]
     .filter((index) => index !== -1 && index < searchEnd)
     .at(0);
-  assert.notEqual(guardedIndex, undefined, `${handlerName} must call a guarded Runtime/DataSync auth surface`);
+  assert.notEqual(guardedIndex, undefined, `${handlerName} must call a guarded Runtime/SDK auth surface`);
   assert.ok(guardIndex < guardedIndex!, `${handlerName} must guard before the auth surface call`);
 }
 

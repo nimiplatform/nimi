@@ -22,7 +22,7 @@ Bootstrap 阶段检测到 Runtime 不可达时执行 D-BOOT-008 错误/降级路
 
 Realm 不可达时的行为规则：
 
-- 聊天消息写入本地 outbox 队列（参考 D-DSYNC-003 `flushChatOutbox`）。
+- 聊天消息写入 Desktop bounded chat shell scaffold 的本地 outbox 队列（参考 D-DSYNC-003 owner map）。
 - outbox 消息按 FIFO 顺序排列，每条消息附带 `enqueued_at` 时间戳。
 - outbox 最大容量 1000 条消息；超出后拒绝新写入并提示用户。
 - 社交操作（关注、评论、点赞）静默排队，重连后批量提交。
@@ -45,7 +45,7 @@ Runtime 和 Realm 均不可达时的行为规则：
 - 使用指数退避重连，初始间隔 1s，最大间隔 30s。
   - **适用范围**: Realm REST 断联重连 + Socket.IO 断联重连。
   - **与 D-NET-002 的区别**: D-NET-002 定义单次 HTTP 请求重试退避（120ms/900ms），本规则定义连接级别恢复退避（1s/30s），两者独立。
-- Realm 重连成功后立即触发 outbox flush（D-DSYNC-003）。
+- Realm 重连成功后立即触发 Desktop chat shell scaffold outbox flush（D-DSYNC-003 owner map）。
 - 冲突解决策略：Last-Write-Wins（LWW）based on server timestamp。
 - outbox 消息发送失败（非网络原因）时标记为 `failed`，不重试，向用户展示失败原因。
 - Runtime 重连成功后重新初始化 SDK session（D-BOOT-004 re-bootstrap），遵循 `S-RUNTIME-070` session recovery 协议执行 `connect()` + `OpenSession()`。

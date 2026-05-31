@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { OAuthProvider } from '@nimiplatform/sdk/realm';
+import {
+  linkRealmOAuth,
+  OAuthProvider,
+  unlinkRealmOAuth,
+} from '@nimiplatform/sdk/realm';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { dataSync } from '@runtime/data-sync';
@@ -135,7 +140,7 @@ export function ProfilePage() {
     setLinkingProvider(provider);
     try {
       const accessToken = await resolveProviderAccessToken(provider);
-      await dataSync.linkOauth(provider, accessToken);
+      await linkRealmOAuth(getPlatformClient().realm, provider, accessToken);
       await refreshCurrentUser();
       setFeedback(null);
     } catch (error) {
@@ -154,7 +159,7 @@ export function ProfilePage() {
     }
     setUnlinkingProvider(provider);
     try {
-      await dataSync.unlinkOauth(provider);
+      await unlinkRealmOAuth(getPlatformClient().realm, provider);
       await refreshCurrentUser();
       setFeedback(null);
     } catch (error) {

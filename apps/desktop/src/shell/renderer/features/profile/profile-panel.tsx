@@ -21,6 +21,10 @@ import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { toProfileData, type ProfileSource } from './profile-model.js';
 import { toFriendContact, type ContactRecord } from '@renderer/features/relationship/relationship-model';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import {
+  loadChatList,
+  startChatWithTarget,
+} from '@renderer/features/chat/data/realm-human-chat-data';
 
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
@@ -138,11 +142,11 @@ export function ProfilePanel() {
     }
 
     try {
-      const result = await dataSync.startChat(profile.id);
+      const result = await startChatWithTarget(profile.id);
       if (result?.chatId) {
         setSelectedChatId(String(result.chatId));
       }
-      const chatsSnapshot = await dataSync.loadChats();
+      const chatsSnapshot = await loadChatList();
       queryClient.setQueriesData({ queryKey: ['chats'] }, () => chatsSnapshot);
       setRuntimeFields({
         targetType: 'FRIEND',

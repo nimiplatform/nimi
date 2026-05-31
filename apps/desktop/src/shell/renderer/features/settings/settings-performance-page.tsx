@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { dataSync } from '@runtime/data-sync';
+import { loadRealmCreatorEligibility } from '@nimiplatform/sdk/realm';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
   runDesktopUpdateCheck,
@@ -52,7 +53,7 @@ export function PerformancePage() {
 
   const eligibilityQuery = useQuery({
     queryKey: ['settings-creator-eligibility'],
-    queryFn: async () => dataSync.loadMyCreatorEligibility(),
+    queryFn: async () => loadRealmCreatorEligibility(getPlatformClient().realm),
   });
 
   const hasChanges = useMemo(() => !performanceEqual(preferences, baseline), [preferences, baseline]);

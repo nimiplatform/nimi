@@ -21,7 +21,6 @@ import type { PasswordAuthDebug } from './auth';
 import { readDataSyncHotState, writeDataSyncHotState } from './facade-hot-state';
 import { DataSyncPollingManager } from './polling-manager';
 import { isBlockedUser } from './blocked-content';
-import type { CreatorEligibility } from './flows/settings-flow';
 import type {
   TransitDetailDto,
   TransitStatus,
@@ -43,22 +42,12 @@ import {
   type LocalAgentProvisionCourierPassResult,
 } from './local-agent-provision-courier';
 
-type ChatSyncResultDto = RealmModel<'ChatSyncResultDto'>;
 type CreatePostDto = RealmModel<'CreatePostDto'>;
 type CreateReportDto = RealmModel<'CreateReportDto'>;
 type FinalizeResourceDto = RealmModel<'FinalizeResourceDto'>;
 type ResourceDetailDto = RealmModel<'ResourceDetailDto'>;
-type MeTwoFactorPrepareOutput = RealmModel<'MeTwoFactorPrepareOutput'>;
-type MeTwoFactorVerifyInput = RealmModel<'MeTwoFactorVerifyInput'>;
-type OAuthProvider = RealmModel<'OAuthProvider'>;
-type SendMessageInputDto = RealmModel<'SendMessageInputDto'>;
 type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
-type UpdatePasswordRequestDto = RealmModel<'UpdatePasswordRequestDto'>;
-type UpdateUserNotificationSettingsDto = RealmModel<'UpdateUserNotificationSettingsDto'>;
-type UpdateUserSettingsDto = RealmModel<'UpdateUserSettingsDto'>;
-type UserNotificationSettingsDto = RealmModel<'UserNotificationSettingsDto'>;
-type UserSettingsDto = RealmModel<'UserSettingsDto'>;
 type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;
 type WorldAgentSummaryDto = RealmModel<'WorldAgentSummaryDto'>;
 type WorldDetailWithAgentsDto = RealmModel<'WorldDetailWithAgentsDto'>;
@@ -294,33 +283,18 @@ export class DataSync {
     });
   }
 
-  async loadInitialData() { await this.loadCurrentUser(); await this.loadChats(); await this.loadContacts(); }
+  async loadInitialData() { await this.loadCurrentUser(); await this.loadContacts(); }
 
   loadCurrentUser() {
     return this.actions.loadCurrentUser();
   }
   updateUserProfile(data: Record<string, unknown>) { return this.actions.updateUserProfile(data); }
-  loadChats(limit = 20) {
-    return this.actions.loadChats(Math.min(limit, 100));
-  }
-  loadMoreChats(cursor?: string) { return this.actions.loadMoreChats(cursor); }
-  startChat(targetAccountId: string, initialMessage: string | null = null) { return this.actions.startChat(targetAccountId, initialMessage); }
-  loadMessages(chatId: string, limit = 50) {
-    return this.actions.loadMessages(chatId, Math.min(limit, 100), (id) => this.markChatRead(id));
-  }
-  loadMoreMessages(chatId: string, cursor?: string, limit = 20) { return this.actions.loadMoreMessages(chatId, cursor, Math.min(limit, 100)); }
-  sendMessage(chatId: string, content: string, options: Partial<SendMessageInputDto> = {}) { return this.actions.sendMessage(chatId, content, options); }
-  syncChatEvents(chatId: string, afterSeq: number, limit = 100): Promise<ChatSyncResultDto> { return this.actions.syncChatEvents(chatId, afterSeq, Math.min(limit, 100)); }
-  async flushChatOutbox(chatId?: string): Promise<void> {
-    await this.actions.flushChatOutbox(chatId);
-  }
   async flushSocialOutbox(): Promise<void> {
     await this.actions.flushSocialOutbox();
   }
   async hasPendingOfflineRecoveryWork(): Promise<boolean> {
     return (await this.actions.countPendingRealmRecoveryWork()) > 0;
   }
-  async markChatRead(chatId: string) { await this.actions.markChatRead(chatId); }
   loadGroupChats(limit = 20) { return this.actions.loadGroupChats(Math.min(limit, 100)); }
   loadGroupChat(chatId: string) { return this.actions.loadGroupChat(chatId); }
   loadGroupMessages(chatId: string, limit = 50) { return this.actions.loadGroupMessages(chatId, Math.min(limit, 100)); }
@@ -447,17 +421,6 @@ export class DataSync {
   likePost(postId: string): Promise<void> { return this.actions.likePost(postId); }
   unlikePost(postId: string): Promise<void> { return this.actions.unlikePost(postId); }
   createReport(payload: CreateReportDto) { return this.actions.createReport(payload); }
-  loadMySettings(): Promise<UserSettingsDto> { return this.actions.loadMySettings(); }
-  updateMySettings(payload: UpdateUserSettingsDto): Promise<UserSettingsDto> { return this.actions.updateMySettings(payload); }
-  loadMyNotificationSettings(): Promise<UserNotificationSettingsDto> { return this.actions.loadMyNotificationSettings(); }
-  updateMyNotificationSettings(payload: UpdateUserNotificationSettingsDto): Promise<UserNotificationSettingsDto> { return this.actions.updateMyNotificationSettings(payload); }
-  loadMyCreatorEligibility(): Promise<CreatorEligibility> { return this.actions.loadMyCreatorEligibility(); }
-  updatePassword(payload: UpdatePasswordRequestDto): Promise<{ success: boolean }> { return this.actions.updatePassword(payload); }
-  prepareTwoFactor(): Promise<MeTwoFactorPrepareOutput> { return this.actions.prepareTwoFactor(); }
-  enableTwoFactor(payload: MeTwoFactorVerifyInput): Promise<{ enabled: boolean }> { return this.actions.enableTwoFactor(payload); }
-  disableTwoFactor(payload: MeTwoFactorVerifyInput): Promise<{ enabled: boolean }> { return this.actions.disableTwoFactor(payload); }
-  linkOauth(provider: OAuthProvider, accessToken: string): Promise<{ linked: boolean }> { return this.actions.linkOauth(provider, accessToken); }
-  unlinkOauth(provider: OAuthProvider): Promise<{ linked: boolean }> { return this.actions.unlinkOauth(provider); }
   loadMyAgents() { return this.actions.loadMyAgents(); }
   createAgent(input: CreateMasterAgentInput) { return this.actions.createAgent(input); }
   loadFriendRequests() { return this.actions.loadFriendRequests(); }

@@ -37,12 +37,14 @@ export { WithdrawalStatus } from './generated/models/WithdrawalStatus.js';
 export type { RealmModels, RealmModelName, RealmModel, RealmOperations, RealmOperationName, RealmOperation, RealmServiceName, RealmServiceMethod, RealmServiceArgs, RealmServiceResult } from './generated/type-helpers.js';
 
 // Typed adapter exports.
+export type { RealmCreatorEligibilityDto, RealmOAuthLinkProjection, RealmOAuthProvider, RealmPasswordUpdateProjection, RealmTwoFactorPrepareOutput, RealmTwoFactorProjection, RealmTwoFactorVerifyInput, RealmUpdatePasswordInput, RealmUpdateUserNotificationSettingsInput, RealmUpdateUserSettingsInput, RealmUserNotificationSettingsDto, RealmUserSettingsDto } from './extensions/account-settings.js';
 export type { AccountDataTaskStatus, RequestDataExportInput, RequestDataExportOutput, RequestAccountDeletionInput, RequestAccountDeletionOutput } from './extensions/account-data.js';
 export type { RealmBaseUrlProjectionInput, RealmRealtimeUrlProjectionInput } from './extensions/endpoint.js';
 export type { RealmFeedScope } from './extensions/feed.js';
 export type { RealmMediaUrlProjectionInput } from './extensions/media-url.js';
 export type { RealmMarkNotificationsReadInputDto, RealmNotificationDto, RealmNotificationListOptions, RealmNotificationListResultDto, RealmNotificationReadProjection, RealmNotificationType, RealmNotificationsReadProjection, RealmNotificationUnreadProjection, RealmUnreadNotificationCountDto } from './extensions/notifications.js';
 export type { RealmResourceDetail, RealmResourceDirectUploadSession, RealmResourceFinalizeInput, RealmResourceUploadClient, RealmResourceUploadInput, RealmResourceUploadKind, RealmResourceUploadResult, RealmResourceUploadTransportMode } from './extensions/resource-upload.js';
+export { disableRealmTwoFactor, enableRealmTwoFactor, linkRealmOAuth, loadRealmCreatorEligibility, loadRealmUserNotificationSettings, loadRealmUserSettings, prepareRealmTwoFactor, unlinkRealmOAuth, updateRealmPassword, updateRealmUserNotificationSettings, updateRealmUserSettings } from './extensions/account-settings.js';
 export { requestDataExport, requestAccountDeletion } from './extensions/account-data.js';
 export { normalizeRealmBaseUrl, projectRealmBaseUrl, projectRealmRealtimeUrl } from './extensions/endpoint.js';
 export { REALM_FEED_SCOPES, isRealmFeedScope } from './extensions/feed.js';

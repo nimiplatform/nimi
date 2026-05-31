@@ -39,6 +39,10 @@ import {
   bindDesktopConversationCapabilityRouteRuntime,
   clearDesktopConversationCapabilityRouteRuntime,
 } from './runtime-bootstrap-conversation-route-runtime';
+import {
+  countPendingChatOutboxEntries,
+  flushPendingChatOutbox,
+} from '@renderer/features/chat/data/realm-human-chat-data';
 
 let bootstrapPromise: Promise<void> | null = null;
 let rebootstrapPromise: Promise<void> | null = null;
@@ -73,8 +77,10 @@ function bindOfflineCoordinator(): void {
       const daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
       return isRuntimeDaemonReachable(daemonStatus);
     },
-    hasPendingRealmRecoveryWork: async () => dataSync.hasPendingOfflineRecoveryWork(),
-    flushChatOutbox: async () => dataSync.flushChatOutbox(),
+    hasPendingRealmRecoveryWork: async () => (
+      await countPendingChatOutboxEntries()
+    ) > 0 || await dataSync.hasPendingOfflineRecoveryWork(),
+    flushChatOutbox: async () => { await flushPendingChatOutbox(); },
     flushSocialOutbox: async () => dataSync.flushSocialOutbox(),
     invalidateRealmQueries: async () => {
       await Promise.all([

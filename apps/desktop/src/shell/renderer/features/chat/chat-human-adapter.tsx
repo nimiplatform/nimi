@@ -2,8 +2,8 @@ import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { createReadyConversationSetupState } from '@nimiplatform/kit/features/chat/headless';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { dataSync } from '@runtime/data-sync';
 import { HumanConversationGiftModal } from '@renderer/features/turns/human-conversation-gift-modal';
+import { loadChatList } from './data/realm-human-chat-data';
 import {
   compareHumanChatsByRecency,
   collapseHumanChatsToTargets,
@@ -52,7 +52,7 @@ export function useHumanConversationModeHost(
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const chatsQuery = useQuery({
     queryKey: ['chats', authStatus],
-    queryFn: async () => dataSync.loadChats(),
+    queryFn: async () => loadChatList(),
     enabled: authStatus === 'authenticated',
   });
 

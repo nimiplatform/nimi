@@ -876,6 +876,30 @@ test('tester settings consumes the SDK Realm account-data export helper', () => 
   assert.doesNotMatch(settings, /requestAccountDeletion/);
 });
 
+test('tester settings consumes the SDK Realm account settings helper', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /loadRealmCreatorEligibility/);
+  assert.match(settings, /type RealmCreatorEligibilityDto/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
+  assert.match(settings, /SDK Realm account settings projection/);
+  assert.match(settings, /refreshAccountSettingsProjection/);
+  assert.match(settings, /loadRealmCreatorEligibility\(getPlatformClient\(\)\.realm\)/);
+  assert.doesNotMatch(settings, /@runtime\/data-sync|dataSync\.loadMyCreatorEligibility/);
+});
+
+test('tester settings consumes the Kit Realm human chat helper', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /listRealmChats/);
+  assert.match(settings, /type RealmListChatsResultDto/);
+  assert.match(settings, /from '@nimiplatform\/kit\/features\/chat\/realm'/);
+  assert.match(settings, /Kit Realm human chat projection/);
+  assert.match(settings, /refreshHumanChatProjection/);
+  assert.match(settings, /const chats = await listRealmChats\(20\)/);
+  assert.doesNotMatch(settings, /@runtime\/data-sync|dataSync\.loadChats/);
+});
+
 test('tester settings consumes the SDK Realm media URL projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
 

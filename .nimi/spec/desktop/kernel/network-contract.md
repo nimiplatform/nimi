@@ -79,7 +79,10 @@ Socket.IO WebSocket 传输层：
 
 ## D-NET-007 — 轮询与实时传输协同
 
-D-DSYNC-003 的 `syncChatEvents` 轮询与 D-NET-006 的 Socket.IO 实时传输操作同一数据域（聊天消息）。两个通道的协同规则：
+Kit Realm chat realtime controller 的 `syncChatEvents` 增量回填与 D-NET-006
+的 Socket.IO 实时传输操作同一数据域（聊天消息）。Desktop may wire these
+through bounded chat shell scaffold, but DataSync is not the chat authority.
+两个通道的协同规则：
 
 **主/辅通道关系**：
 
@@ -93,9 +96,9 @@ D-DSYNC-003 的 `syncChatEvents` 轮询与 D-NET-006 的 Socket.IO 实时传输�
 - 去重机制统一使用 D-NET-006 的 `seenEvents` LRU 映射（上限 3000 条）。轮询结果和实时事件共享同一 LRU 实例。
 - 去重键：消息/事件的唯一 ID。已在 `seenEvents` 中存在的事件静默丢弃。
 
-**通知轮询不受影响**：D-DSYNC-009 的 `loadNotificationUnreadCount` 轮询独立于实时连接状态，始终按固定间隔执行。
+**通知轮询不受影响**：SDK Realm notification helper 的 unread-count 轮询独立于实时连接状态，始终按固定间隔执行。
 
-**跨层引用**：D-DSYNC-003（chat 轮询）、D-DSYNC-009（通知轮询）、D-NET-006（实时传输）。
+**跨层引用**：D-DSYNC-003（human chat owner map）、D-DSYNC-009（notification owner map）、D-NET-006（实时传输）。
 
 ## Fact Sources
 

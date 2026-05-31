@@ -1,8 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
+import {
+  loadRealmUserSettings,
+  updateRealmUserSettings,
+} from '@nimiplatform/sdk/realm';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { dataSync } from '@runtime/data-sync';
 import { FormFeedback, PageShell, SectionTitle } from './settings-layout-components.js';
 
 type UpdateUserSettingsDto = RealmModel<'UpdateUserSettingsDto'>;
@@ -158,7 +162,7 @@ export function PrivacyPage() {
 
   const settingsQuery = useQuery({
     queryKey: ['settings-privacy'],
-    queryFn: async () => dataSync.loadMySettings(),
+    queryFn: async () => loadRealmUserSettings(getPlatformClient().realm),
   });
 
   useEffect(() => {
@@ -190,7 +194,7 @@ export function PrivacyPage() {
     }
     setSaving(true);
     try {
-      await dataSync.updateMySettings(toUpdatePayload(form));
+      await updateRealmUserSettings(getPlatformClient().realm, toUpdatePayload(form));
       await settingsQuery.refetch();
       if (!silentSuccess) {
         setFeedback({

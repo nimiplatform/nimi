@@ -3,18 +3,6 @@ import type { Realm } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { loginWithPassword, logoutWithCleanup, registerWithPassword } from './flows/auth-flow';
 import {
-  countPendingChatOutboxEntries,
-  flushPendingChatOutbox,
-  loadChatList,
-  loadChatMessages,
-  loadMoreChatList,
-  loadMoreChatMessages,
-  markChatAsRead,
-  sendChatMessage,
-  syncChatEventWindow,
-  startChatWithTarget,
-} from './flows/chat-flow';
-import {
   loadGroupChatList,
   loadGroupChat,
   loadGroupChatMessages,
@@ -30,15 +18,8 @@ import {
 type CreatePostDto = RealmModel<'CreatePostDto'>;
 type CreateReportDto = RealmModel<'CreateReportDto'>;
 type FinalizeResourceDto = RealmModel<'FinalizeResourceDto'>;
-type MeTwoFactorPrepareOutput = RealmModel<'MeTwoFactorPrepareOutput'>;
-type MeTwoFactorVerifyInput = RealmModel<'MeTwoFactorVerifyInput'>;
-type OAuthProvider = RealmModel<'OAuthProvider'>;
-type SendMessageInputDto = RealmModel<'SendMessageInputDto'>;
 type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
-type UpdatePasswordRequestDto = RealmModel<'UpdatePasswordRequestDto'>;
-type UpdateUserNotificationSettingsDto = RealmModel<'UpdateUserNotificationSettingsDto'>;
-type UpdateUserSettingsDto = RealmModel<'UpdateUserSettingsDto'>;
 import {
   countPendingSocialMutations,
   flushPendingSocialMutations,
@@ -104,19 +85,6 @@ import {
   updatePostVisibility,
 } from './flows/post-attachment-flow';
 import type { PostFeedScope, UploadResourceFileOptions } from './flows/post-attachment-flow';
-import {
-  disableTwoFactor,
-  enableTwoFactor,
-  linkOauth,
-  loadMyCreatorEligibility,
-  loadMyNotificationSettings,
-  loadMySettings,
-  prepareTwoFactor,
-  unlinkOauth,
-  updatePassword,
-  updateMyNotificationSettings,
-  updateMySettings,
-} from './flows/settings-flow';
 
 export type DataSyncCallApi = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 export type DataSyncEmitError = (
@@ -144,58 +112,6 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
     loadCurrentUser: async () => loadCurrentUserProfile(input.callApiTask, input.emitFacadeError),
     updateUserProfile: async (data: Record<string, unknown>) =>
       updateCurrentUserProfile(input.callApiTask, input.emitFacadeError, data),
-    loadChats: async (limit = 20) =>
-      loadChatList(input.callApiTask, input.emitFacadeError, limit),
-    loadMoreChats: async (cursor?: string) => loadMoreChatList(input.callApiTask, input.emitFacadeError, cursor),
-    startChat: async (targetAccountId: string, initialMessage: string | null = null) =>
-      startChatWithTarget(
-        input.callApiTask,
-        input.emitFacadeError,
-        targetAccountId,
-        initialMessage,
-      ),
-    loadMessages: async (
-      chatId: string,
-      limit = 50,
-      markChatRead?: (chatId: string) => Promise<void>,
-    ) =>
-      loadChatMessages(
-        input.callApiTask,
-        input.emitFacadeError,
-        chatId,
-        limit,
-        markChatRead,
-      ),
-    loadMoreMessages: async (chatId: string, cursor?: string, pageSize = 20) =>
-      loadMoreChatMessages(input.callApiTask, input.emitFacadeError, chatId, cursor, pageSize),
-    sendMessage: async (
-      chatId: string,
-      content: string,
-      options: Partial<SendMessageInputDto> = {},
-    ) =>
-      sendChatMessage(
-        input.callApiTask,
-        input.emitFacadeError,
-        chatId,
-        content,
-        options,
-      ),
-    markChatRead: async (chatId: string) =>
-      markChatAsRead(input.callApiTask, input.emitFacadeError, chatId),
-    syncChatEvents: async (chatId: string, afterSeq: number, limit = 200) =>
-      syncChatEventWindow(
-        input.callApiTask,
-        input.emitFacadeError,
-        chatId,
-        afterSeq,
-        limit,
-      ),
-    flushChatOutbox: async (chatId?: string) =>
-      flushPendingChatOutbox(
-        input.callApiTask,
-        input.emitFacadeError,
-        chatId,
-      ),
     loadGroupChats: async (limit = 20) =>
       loadGroupChatList(input.callApiTask, input.emitFacadeError, limit),
     loadGroupChat: async (chatId: string) =>
@@ -233,11 +149,7 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
         input.emitFacadeError,
       ),
     countPendingRealmRecoveryWork: async () => {
-      const [pendingChats, pendingSocial] = await Promise.all([
-        countPendingChatOutboxEntries(),
-        countPendingSocialMutations(),
-      ]);
-      return pendingChats + pendingSocial;
+      return await countPendingSocialMutations();
     },
     loadContacts,
     loadSocialSnapshot: async () => loadSocialSnapshot(input.callApiTask, input.emitFacadeError),
@@ -379,28 +291,6 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       unlikePost(input.callApiTask, input.emitFacadeError, postId),
     createReport: async (payload: CreateReportDto) =>
       createReport(input.callApiTask, input.emitFacadeError, payload),
-    loadMySettings: async () =>
-      loadMySettings(input.callApiTask, input.emitFacadeError),
-    updateMySettings: async (payload: UpdateUserSettingsDto) =>
-      updateMySettings(input.callApiTask, input.emitFacadeError, payload),
-    loadMyNotificationSettings: async () =>
-      loadMyNotificationSettings(input.callApiTask, input.emitFacadeError),
-    updateMyNotificationSettings: async (payload: UpdateUserNotificationSettingsDto) =>
-      updateMyNotificationSettings(input.callApiTask, input.emitFacadeError, payload),
-    loadMyCreatorEligibility: async () =>
-      loadMyCreatorEligibility(input.callApiTask, input.emitFacadeError),
-    updatePassword: async (payload: UpdatePasswordRequestDto) =>
-      updatePassword(input.callApiTask, input.emitFacadeError, payload),
-    prepareTwoFactor: async (): Promise<MeTwoFactorPrepareOutput> =>
-      prepareTwoFactor(input.callApiTask, input.emitFacadeError),
-    enableTwoFactor: async (payload: MeTwoFactorVerifyInput) =>
-      enableTwoFactor(input.callApiTask, input.emitFacadeError, payload),
-    disableTwoFactor: async (payload: MeTwoFactorVerifyInput) =>
-      disableTwoFactor(input.callApiTask, input.emitFacadeError, payload),
-    linkOauth: async (provider: OAuthProvider, accessToken: string) =>
-      linkOauth(input.callApiTask, input.emitFacadeError, provider, accessToken),
-    unlinkOauth: async (provider: OAuthProvider) =>
-      unlinkOauth(input.callApiTask, input.emitFacadeError, provider),
     loadAgentDetails: async (agentIdentifier: string) =>
       loadAgentDetails(input.callApiTask, input.emitFacadeError, agentIdentifier, {
         viewerUserId: String(input.getCurrentUser()?.id || '').trim() || undefined,
