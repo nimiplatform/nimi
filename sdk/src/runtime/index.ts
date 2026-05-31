@@ -114,10 +114,15 @@ export {
   buildRuntimeBridgeConfigWithLocalEndpoint,
   buildRuntimeBridgeLoopbackEndpoint,
   extractRuntimeBridgeEndpointPort,
+  mergeRuntimeBridgeDataRootConfig,
+  mergeRuntimeBridgeDeveloperRegistrationConfig,
+  mergeRuntimeBridgeRealmJwtConfig,
   normalizeRuntimeBridgeEndpoint,
   projectRuntimeBridgeLocalEndpoint,
   serializeRuntimeBridgeLocalEndpointProjection,
   type RuntimeBridgeConfigJson,
+  type RuntimeBridgeConfigProjectionResult,
+  type RuntimeBridgeRealmConfigDefaults,
 } from './runtime-bridge-config-projection.js';
 export type {
   CatalogModelDetail,

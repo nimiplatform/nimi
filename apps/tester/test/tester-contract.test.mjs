@@ -1344,7 +1344,7 @@ test('tester settings consumes SDK runtime route reasoning projection', () => {
 });
 
 test('tester settings consumes SDK runtime route DX helpers from runtime surface', () => {
-  const settings = read('src/shell/routes/settings.tsx');
+  const settings = read('src/shell/routes/settings.tsx'); const runtimeConfigProjection = read('src/tester/tester-runtime-config-projection.ts');
 
   assert.match(settings, /buildRuntimeTargetCallOptions/);
   assert.match(settings, /buildRuntimeRequestMetadata/);
@@ -1352,12 +1352,12 @@ test('tester settings consumes SDK runtime route DX helpers from runtime surface
   assert.match(settings, /checkRuntimeRouteProviderHealth/);
   assert.match(settings, /ModelHealthStatus/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.match(settings, /Runtime call options projection/);
+  assert.match(settings, /Runtime call options projection/); assert.match(settings, /Runtime config projection/); assert.match(settings, /createTesterRuntimeConfigProjection/);
   assert.match(settings, /Runtime request metadata projection/);
   assert.match(settings, /Runtime local AI reason projection/);
   assert.match(settings, /Runtime route provider health projection/);
   assert.doesNotMatch(settings, /function buildRuntimeTargetCallOptions/);
-  assert.doesNotMatch(settings, /function checkRuntimeRouteProviderHealth/);
+  assert.doesNotMatch(settings, /function checkRuntimeRouteProviderHealth/); [/mergeRuntimeBridgeDataRootConfig/, /mergeRuntimeBridgeRealmJwtConfig/, /mergeRuntimeBridgeDeveloperRegistrationConfig/, /from '@nimiplatform\/sdk\/runtime'/].forEach((pattern) => assert.match(runtimeConfigProjection, pattern));
 });
 
 test('tester settings consumes Kit model picker binding projection', () => {

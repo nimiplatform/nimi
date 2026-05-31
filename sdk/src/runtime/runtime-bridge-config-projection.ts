@@ -1,6 +1,17 @@
 import { RUNTIME_BRIDGE_CONFIG_DEFAULTS } from './runtime-config-defaults.js';
 
 export type RuntimeBridgeConfigJson = Record<string, unknown>;
+export type RuntimeBridgeConfigProjectionResult = {
+  nextConfig: RuntimeBridgeConfigJson;
+  changed: boolean;
+};
+export type RuntimeBridgeRealmConfigDefaults = {
+  realmBaseUrl?: unknown;
+  jwtIssuer?: unknown;
+  jwtAudience?: unknown;
+  jwksUrl?: unknown;
+  revocationUrl?: unknown;
+};
 
 function asRecord(value: unknown): RuntimeBridgeConfigJson {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as RuntimeBridgeConfigJson : {};
@@ -89,4 +100,133 @@ export function serializeRuntimeBridgeLocalEndpointProjection(localEndpoint: unk
   return JSON.stringify({
     localEndpoint: normalizeRuntimeBridgeEndpoint(localEndpoint),
   });
+}
+
+export function mergeRuntimeBridgeDataRootConfig(
+  baseConfig: RuntimeBridgeConfigJson,
+  dataRootPath: unknown,
+  localModelsPath: unknown,
+  localStatePath?: unknown,
+): RuntimeBridgeConfigProjectionResult {
+  const currentConfig = asRecord(baseConfig);
+  const currentDataRootRef = readString(currentConfig.dataRootRef);
+  const currentManagedRoots = asRecord(currentConfig.managedRoots);
+  const nextLocalModelsPath = readString(localModelsPath);
+  const nextDataRootRef = readString(dataRootPath);
+  const currentLocalStatePath = readString(currentConfig.localStatePath);
+  const nextLocalStatePath = readString(localStatePath);
+  const nextManagedRoots = {
+    ...currentManagedRoots,
+    ...(nextLocalModelsPath ? { models: nextLocalModelsPath } : {}),
+    ...(nextDataRootRef ? {
+      dependencies: `${nextDataRootRef}/dependencies`,
+      environments: `${nextDataRootRef}/environments`,
+      logs: `${nextDataRootRef}/logs`,
+      audit: `${nextDataRootRef}/audit`,
+    } : {}),
+  };
+
+  const hasLegacyLocalModelsPath = readString(currentConfig.localModelsPath) !== '';
+  const shouldUpdateDataRootRef = Boolean(nextDataRootRef) && currentDataRootRef !== nextDataRootRef;
+  const shouldUpdateManagedRoots = JSON.stringify(currentManagedRoots) !== JSON.stringify(nextManagedRoots);
+  const shouldUpdateLocalStatePath = Boolean(nextLocalStatePath) && currentLocalStatePath !== nextLocalStatePath;
+
+  if (!hasLegacyLocalModelsPath && !shouldUpdateDataRootRef && !shouldUpdateManagedRoots && !shouldUpdateLocalStatePath) {
+    return {
+      nextConfig: currentConfig,
+      changed: false,
+    };
+  }
+
+  const { localModelsPath: _removedLocalModelsPath, ...configWithoutLegacyLocalModelsPath } = currentConfig;
+  return {
+    nextConfig: {
+      ...configWithoutLegacyLocalModelsPath,
+      ...(shouldUpdateDataRootRef ? { dataRootRef: nextDataRootRef } : {}),
+      managedRoots: nextManagedRoots,
+      ...(shouldUpdateLocalStatePath ? { localStatePath: nextLocalStatePath } : {}),
+    },
+    changed: true,
+  };
+}
+
+export function mergeRuntimeBridgeRealmJwtConfig(
+  baseConfig: RuntimeBridgeConfigJson,
+  realmDefaults: RuntimeBridgeRealmConfigDefaults,
+): RuntimeBridgeConfigProjectionResult {
+  const currentConfig = asRecord(baseConfig);
+  const currentAuth = asRecord(currentConfig.auth);
+  const currentJwt = asRecord(currentAuth.jwt);
+  const currentAccount = asRecord(currentAuth.account);
+
+  const nextRealmBaseUrl = readString(realmDefaults.realmBaseUrl);
+  const nextIssuer = readString(realmDefaults.jwtIssuer);
+  const nextAudience = readString(realmDefaults.jwtAudience);
+  const nextJwksUrl = readString(realmDefaults.jwksUrl);
+  const nextRevocationUrl = readString(realmDefaults.revocationUrl);
+
+  const changed = readString(currentAccount.realmBaseUrl) !== nextRealmBaseUrl
+    || readString(currentJwt.issuer) !== nextIssuer
+    || readString(currentJwt.audience) !== nextAudience
+    || readString(currentJwt.jwksUrl) !== nextJwksUrl
+    || readString(currentJwt.revocationUrl) !== nextRevocationUrl;
+
+  if (!changed) {
+    return {
+      nextConfig: currentConfig,
+      changed: false,
+    };
+  }
+
+  return {
+    nextConfig: {
+      ...currentConfig,
+      auth: {
+        ...currentAuth,
+        account: {
+          ...currentAccount,
+          realmBaseUrl: nextRealmBaseUrl,
+        },
+        jwt: {
+          ...currentJwt,
+          issuer: nextIssuer,
+          audience: nextAudience,
+          jwksUrl: nextJwksUrl,
+          revocationUrl: nextRevocationUrl,
+        },
+      },
+    },
+    changed: true,
+  };
+}
+
+export function mergeRuntimeBridgeDeveloperRegistrationConfig(
+  baseConfig: RuntimeBridgeConfigJson,
+  enabled: boolean,
+): RuntimeBridgeConfigProjectionResult {
+  const currentConfig = asRecord(baseConfig);
+  const currentAuth = asRecord(currentConfig.auth);
+  const currentDeveloperRegistration = asRecord(currentAuth.developerRegistration);
+  const currentEnabled = currentDeveloperRegistration.enabled === true;
+
+  if (currentEnabled === enabled) {
+    return {
+      nextConfig: currentConfig,
+      changed: false,
+    };
+  }
+
+  return {
+    nextConfig: {
+      ...currentConfig,
+      auth: {
+        ...currentAuth,
+        developerRegistration: {
+          ...currentDeveloperRegistration,
+          enabled,
+        },
+      },
+    },
+    changed: true,
+  };
 }

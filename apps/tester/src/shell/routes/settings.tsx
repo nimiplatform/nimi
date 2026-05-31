@@ -143,12 +143,12 @@ import { createTesterRuntimeAgentInspectProjection } from '../../tester/tester-r
 import { createTesterLocalRecommendationCopyProjection } from '../../tester/tester-local-recommendation-copy-projection';
 import { createTesterLocalRuntimeAssetKindProjection } from '../../tester/tester-local-runtime-asset-kind-projection';
 import { createTesterWorldDisplayProjection } from '../../tester/tester-world-display-projection';
+import { createTesterRuntimeConfigProjection } from '../../tester/tester-runtime-config-projection';
 type WalletProjectionState =
   | { status: 'idle'; balances: null; error: null }
   | { status: 'loading'; balances: CommerceCurrencyBalances | null; error: null }
   | { status: 'ready'; balances: CommerceCurrencyBalances; error: null }
   | { status: 'error'; balances: null; error: string };
-
 type GiftTransactionProjectionState =
   | { status: 'idle'; gift: null; error: null }
   | { status: 'loading'; gift: { id: string; giftStatus: string } | null; error: null }
@@ -846,11 +846,9 @@ export function SettingsRoute() {
     repairableDependencies: repairableFirstRunMaterializationDependencies(runtimeFirstRunRepairProjection).length,
     percent: runtimeFirstRunMaterializationProgress?.percent ?? null,
   };
-  const localRuntimeAssetIdProjection = {
-    assetId: toCanonicalLocalRuntimeAssetId('local/tester-model'),
-    lookupKey: toCanonicalLocalRuntimeAssetLookupKey('LOCAL/Tester-Model'),
-  };
+  const localRuntimeAssetIdProjection = { assetId: toCanonicalLocalRuntimeAssetId('local/tester-model'), lookupKey: toCanonicalLocalRuntimeAssetLookupKey('LOCAL/Tester-Model') };
   const localRuntimeAssetKindProjection = createTesterLocalRuntimeAssetKindProjection();
+  const runtimeConfigProjection = createTesterRuntimeConfigProjection();
   const runtimeTargetCallOptionsProjection = buildRuntimeTargetCallOptions({
     targetId: 'tester.settings.runtime-route',
     timeoutMs: 5000,
@@ -1984,9 +1982,9 @@ export function SettingsRoute() {
         </StatusBadge>
       </div>
       <div className="setting-row">
-        <span>Runtime call options projection</span>
+        <span>Runtime call options projection / Runtime config projection</span>
         <StatusBadge tone={runtimeTargetCallOptionsProjection.metadata.keySource === 'managed' ? 'success' : 'neutral'}>
-          {runtimeTargetCallOptionsProjection.metadata.callerId}: {runtimeTargetCallOptionsProjection.metadata.traceId}
+          {runtimeTargetCallOptionsProjection.metadata.callerId}: {runtimeTargetCallOptionsProjection.metadata.traceId} / {runtimeConfigProjection.jwtIssuer}
         </StatusBadge>
       </div>
       <div className="setting-row">

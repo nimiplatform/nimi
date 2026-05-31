@@ -5,6 +5,9 @@ import {
   RUNTIME_BRIDGE_CONFIG_DEFAULTS,
   buildRuntimeBridgeConfigWithLocalEndpoint,
   extractRuntimeBridgeEndpointPort,
+  mergeRuntimeBridgeDataRootConfig,
+  mergeRuntimeBridgeDeveloperRegistrationConfig,
+  mergeRuntimeBridgeRealmJwtConfig,
   projectRuntimeBridgeLocalEndpoint,
   serializeRuntimeBridgeLocalEndpointProjection,
 } from '../../src/runtime/index.js';
@@ -87,4 +90,63 @@ test('runtime bridge config projection extracts endpoint ports and serializes di
     serializeRuntimeBridgeLocalEndpointProjection('http://127.0.0.1:11434/v1/'),
     JSON.stringify({ localEndpoint: 'http://127.0.0.1:11434/v1' }),
   );
+});
+
+test('runtime bridge config projection builds runtime data root managed roots', () => {
+  const { nextConfig, changed } = mergeRuntimeBridgeDataRootConfig(
+    {
+      schemaVersion: 1,
+      localModelsPath: 'C:\\Users\\Eric\\.nimi\\data\\models',
+      managedRoots: { cache: 'preserved' },
+    },
+    'D:\\nimi_data',
+    'D:\\nimi_data\\models',
+    'D:\\nimi_data\\state.json',
+  );
+
+  assert.equal(changed, true);
+  assert.equal(nextConfig.localModelsPath, undefined);
+  assert.equal(nextConfig.dataRootRef, 'D:\\nimi_data');
+  assert.deepEqual(nextConfig.managedRoots, {
+    cache: 'preserved',
+    models: 'D:\\nimi_data\\models',
+    dependencies: 'D:\\nimi_data/dependencies',
+    environments: 'D:\\nimi_data/environments',
+    logs: 'D:\\nimi_data/logs',
+    audit: 'D:\\nimi_data/audit',
+  });
+  assert.equal(nextConfig.localStatePath, 'D:\\nimi_data\\state.json');
+});
+
+test('runtime bridge config projection builds Realm JWT config without owning config writes', () => {
+  const { nextConfig, changed } = mergeRuntimeBridgeRealmJwtConfig({ schemaVersion: 1 }, {
+    realmBaseUrl: 'http://localhost:3002',
+    jwtIssuer: 'http://localhost:3002',
+    jwtAudience: 'nimi-runtime',
+    jwksUrl: 'http://localhost:3002/api/auth/jwks',
+    revocationUrl: 'http://localhost:3002/api/auth/sessions/introspect',
+  });
+
+  assert.equal(changed, true);
+  const auth = asRecord(nextConfig.auth);
+  const account = asRecord(auth.account);
+  const jwt = asRecord(auth.jwt);
+  assert.equal(account.realmBaseUrl, 'http://localhost:3002');
+  assert.equal(jwt.issuer, 'http://localhost:3002');
+  assert.equal(jwt.audience, 'nimi-runtime');
+  assert.equal(jwt.jwksUrl, 'http://localhost:3002/api/auth/jwks');
+  assert.equal(jwt.revocationUrl, 'http://localhost:3002/api/auth/sessions/introspect');
+});
+
+test('runtime bridge config projection toggles developer registration and preserves auth siblings', () => {
+  const { nextConfig, changed } = mergeRuntimeBridgeDeveloperRegistrationConfig(
+    { schemaVersion: 1, auth: { jwt: { issuer: 'https://realm.example' } } },
+    true,
+  );
+
+  assert.equal(changed, true);
+  const auth = asRecord(nextConfig.auth);
+  assert.equal(asRecord(auth.jwt).issuer, 'https://realm.example');
+  assert.equal(asRecord(auth.developerRegistration).enabled, true);
+  assert.equal(mergeRuntimeBridgeDeveloperRegistrationConfig(nextConfig, true).changed, false);
 });

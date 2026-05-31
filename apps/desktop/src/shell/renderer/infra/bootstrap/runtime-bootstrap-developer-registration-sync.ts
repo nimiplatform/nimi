@@ -3,6 +3,7 @@ import type {
   RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
 } from '@renderer/bridge';
+import { mergeRuntimeBridgeDeveloperRegistrationConfig } from '@nimiplatform/sdk/runtime';
 import { createRuntimeConfigManualRestartRequiredError } from './runtime-bootstrap-config-errors';
 
 const CONFIG_RESTART_REQUIRED = 'CONFIG_RESTART_REQUIRED';
@@ -13,12 +14,6 @@ export type RuntimeDeveloperRegistrationSyncBridge = {
   restartRuntimeBridge: () => Promise<RuntimeBridgeDaemonStatus>;
 };
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
-}
-
 /**
  * Reconcile `auth.developerRegistration.enabled` (runtime K-AUTHSVC-014 gate)
  * with the desktop "local app testing" intent. The desktop control is the
@@ -26,36 +21,7 @@ function asRecord(value: unknown): Record<string, unknown> {
  * runtime developer-registration gate so a local developer's not-yet-admitted
  * app can register; off restores the production fail-closed default.
  */
-export function mergeRuntimeDeveloperRegistrationConfig(
-  baseConfig: Record<string, unknown>,
-  enabled: boolean,
-): { nextConfig: Record<string, unknown>; changed: boolean } {
-  const currentConfig = asRecord(baseConfig);
-  const currentAuth = asRecord(currentConfig.auth);
-  const currentDeveloperRegistration = asRecord(currentAuth.developerRegistration);
-  const currentEnabled = currentDeveloperRegistration.enabled === true;
-
-  if (currentEnabled === enabled) {
-    return {
-      nextConfig: currentConfig,
-      changed: false,
-    };
-  }
-
-  return {
-    nextConfig: {
-      ...currentConfig,
-      auth: {
-        ...currentAuth,
-        developerRegistration: {
-          ...currentDeveloperRegistration,
-          enabled,
-        },
-      },
-    },
-    changed: true,
-  };
-}
+export const mergeRuntimeDeveloperRegistrationConfig = mergeRuntimeBridgeDeveloperRegistrationConfig;
 
 export async function syncRuntimeDeveloperRegistrationConfig(input: {
   daemonStatus: RuntimeBridgeDaemonStatus;

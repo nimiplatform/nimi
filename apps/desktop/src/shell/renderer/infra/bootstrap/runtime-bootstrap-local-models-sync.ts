@@ -4,6 +4,7 @@ import type {
   RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
 } from '@renderer/bridge';
+import { mergeRuntimeBridgeDataRootConfig } from '@nimiplatform/sdk/runtime';
 import { createRuntimeConfigManualRestartRequiredError } from './runtime-bootstrap-config-errors';
 
 const CONFIG_RESTART_REQUIRED = 'CONFIG_RESTART_REQUIRED';
@@ -25,63 +26,7 @@ export type RuntimeStorageConfigSyncBridge = RuntimeLocalModelsConfigSyncBridge 
   getDesktopStorageDirs: () => Promise<DesktopStorageDirs>;
 };
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
-}
-
-function normalize(value: unknown): string {
-  return String(value || '').trim();
-}
-
-export function mergeRuntimeLocalModelsConfig(
-  baseConfig: Record<string, unknown>,
-  dataRootPath: string,
-  localModelsPath: string,
-  localStatePath?: string,
-): { nextConfig: Record<string, unknown>; changed: boolean } {
-  const currentConfig = asRecord(baseConfig);
-  const currentDataRootRef = normalize(currentConfig.dataRootRef);
-  const currentManagedRoots = asRecord(currentConfig.managedRoots);
-  const nextLocalModelsPath = normalize(localModelsPath);
-  const nextDataRootRef = normalize(dataRootPath);
-  const currentLocalStatePath = normalize(currentConfig.localStatePath);
-  const nextLocalStatePath = normalize(localStatePath);
-  const nextManagedRoots = {
-    ...currentManagedRoots,
-    ...(nextLocalModelsPath ? { models: nextLocalModelsPath } : {}),
-    ...(nextDataRootRef ? {
-      dependencies: `${nextDataRootRef}/dependencies`,
-      environments: `${nextDataRootRef}/environments`,
-      logs: `${nextDataRootRef}/logs`,
-      audit: `${nextDataRootRef}/audit`,
-    } : {}),
-  };
-
-  const hasLegacyLocalModelsPath = normalize(currentConfig.localModelsPath) !== '';
-  const shouldUpdateDataRootRef = nextDataRootRef && currentDataRootRef !== nextDataRootRef;
-  const shouldUpdateManagedRoots = JSON.stringify(currentManagedRoots) !== JSON.stringify(nextManagedRoots);
-  const shouldUpdateLocalStatePath = nextLocalStatePath && currentLocalStatePath !== nextLocalStatePath;
-
-  if (!hasLegacyLocalModelsPath && !shouldUpdateDataRootRef && !shouldUpdateManagedRoots && !shouldUpdateLocalStatePath) {
-    return {
-      nextConfig: currentConfig,
-      changed: false,
-    };
-  }
-  const { localModelsPath: _removedLocalModelsPath, ...configWithoutLegacyLocalModelsPath } = currentConfig;
-
-  return {
-    nextConfig: {
-      ...configWithoutLegacyLocalModelsPath,
-      ...(shouldUpdateDataRootRef ? { dataRootRef: nextDataRootRef } : {}),
-      managedRoots: nextManagedRoots,
-      ...(shouldUpdateLocalStatePath ? { localStatePath: nextLocalStatePath } : {}),
-    },
-    changed: true,
-  };
-}
+export const mergeRuntimeLocalModelsConfig = mergeRuntimeBridgeDataRootConfig;
 
 export async function syncRuntimeLocalModelsConfig(input: {
   daemonStatus: RuntimeBridgeDaemonStatus;

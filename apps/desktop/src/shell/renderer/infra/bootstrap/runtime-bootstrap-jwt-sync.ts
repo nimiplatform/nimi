@@ -4,6 +4,7 @@ import type {
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
 } from '@renderer/bridge';
+import { mergeRuntimeBridgeRealmJwtConfig } from '@nimiplatform/sdk/runtime';
 import { createRuntimeConfigManualRestartRequiredError } from './runtime-bootstrap-config-errors';
 
 const CONFIG_RESTART_REQUIRED = 'CONFIG_RESTART_REQUIRED';
@@ -14,71 +15,7 @@ export type RuntimeJwtSyncBridge = {
   restartRuntimeBridge: () => Promise<RuntimeBridgeDaemonStatus>;
 };
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
-}
-
-function normalize(value: unknown): string {
-  return String(value || '').trim();
-}
-
-export function mergeRuntimeJwtConfig(
-  baseConfig: Record<string, unknown>,
-  realmDefaults: RuntimeDefaults['realm'],
-): { nextConfig: Record<string, unknown>; changed: boolean } {
-  const currentConfig = asRecord(baseConfig);
-  const currentAuth = asRecord(currentConfig.auth);
-  const currentJwt = asRecord(currentAuth.jwt);
-  const currentAccount = asRecord(currentAuth.account);
-
-  const nextRealmBaseUrl = normalize(realmDefaults.realmBaseUrl);
-  const nextIssuer = normalize(realmDefaults.jwtIssuer);
-  const nextAudience = normalize(realmDefaults.jwtAudience);
-  const nextJwksUrl = normalize(realmDefaults.jwksUrl);
-  const nextRevocationUrl = normalize(realmDefaults.revocationUrl);
-
-  const currentRealmBaseUrl = normalize(currentAccount.realmBaseUrl);
-  const currentIssuer = normalize(currentJwt.issuer);
-  const currentAudience = normalize(currentJwt.audience);
-  const currentJwksUrl = normalize(currentJwt.jwksUrl);
-  const currentRevocationUrl = normalize(currentJwt.revocationUrl);
-
-  const changed = currentIssuer !== nextIssuer
-    || currentAudience !== nextAudience
-    || currentJwksUrl !== nextJwksUrl
-    || currentRevocationUrl !== nextRevocationUrl
-    || currentRealmBaseUrl !== nextRealmBaseUrl;
-
-  if (!changed) {
-    return {
-      nextConfig: currentConfig,
-      changed: false,
-    };
-  }
-
-  return {
-    nextConfig: {
-      ...currentConfig,
-      auth: {
-        ...currentAuth,
-        account: {
-          ...currentAccount,
-          realmBaseUrl: nextRealmBaseUrl,
-        },
-        jwt: {
-          ...currentJwt,
-          issuer: nextIssuer,
-          audience: nextAudience,
-          jwksUrl: nextJwksUrl,
-          revocationUrl: nextRevocationUrl,
-        },
-      },
-    },
-    changed: true,
-  };
-}
+export const mergeRuntimeJwtConfig = mergeRuntimeBridgeRealmJwtConfig;
 
 export async function syncRuntimeJwtConfig(input: {
   daemonStatus: RuntimeBridgeDaemonStatus;
