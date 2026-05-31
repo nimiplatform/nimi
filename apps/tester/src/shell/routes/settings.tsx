@@ -20,7 +20,7 @@ import {
   type RuntimeResolvedBinding,
   type RuntimeRouteDescribeResult,
 } from '@nimiplatform/sdk/ai';
-import { pickerSelectionToBinding } from '@nimiplatform/kit/features/model-config';
+import { pickerSelectionToBinding, summarizeBinding } from '@nimiplatform/kit/features/model-config/headless';
 import { resolveConversationRuntimeRouteSetupStateFromProjection } from '@nimiplatform/kit/features/chat/headless';
 import {
   getRuntimeReasonCodeDefaultMessage,
@@ -712,6 +712,7 @@ export function SettingsRoute() {
     model: 'tester-config-model',
     provider: 'tester',
   });
+  const modelConfigBindingSummaryProjection = summarizeBinding(modelConfigBindingProjection);
   const runtimeHealthCoordinatorProjection = runtimeHealthCoordinatorDiagnostics.getSnapshot();
   const runtimeAgentConsumerProjection = (() => {
     const projectionEvent = {
@@ -1382,6 +1383,12 @@ export function SettingsRoute() {
         <span>Model picker binding projection</span>
         <StatusBadge tone={modelConfigBindingProjection ? 'success' : 'warning'}>
           {modelConfigBindingProjection?.source ?? 'none'}: {modelConfigBindingProjection?.model ?? 'missing'}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Kit model binding summary projection</span>
+        <StatusBadge tone={modelConfigBindingSummaryProjection.detail ? 'success' : 'warning'}>
+          {modelConfigBindingSummaryProjection.label}: {modelConfigBindingSummaryProjection.detail ?? 'none'}
         </StatusBadge>
       </div>
     </Surface>

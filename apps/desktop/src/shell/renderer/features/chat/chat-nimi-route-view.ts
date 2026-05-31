@@ -2,6 +2,7 @@ import {
   resolveConversationRuntimeRouteSetupStateFromProjection,
   type ConversationSetupState,
 } from '@nimiplatform/kit/features/chat/headless';
+import { summarizeBinding } from '@nimiplatform/kit/features/model-config/headless';
 import {
   isRuntimeRouteLocalOptionSelectable,
   runtimeRouteBindingsMatch,
@@ -117,14 +118,6 @@ export function resolveAiConversationSetupStateFromProjection(
     actionTargetId: 'runtime-overview',
     returnToMode: 'ai',
   });
-}
-
-function summarizeBinding(binding: RuntimeRouteBinding): { label: string; detail: string | null } {
-  const option = toRouteOption(binding);
-  return {
-    label: option.label,
-    detail: option.detail || null,
-  };
 }
 
 export function buildAiConversationRouteSummary(input: {

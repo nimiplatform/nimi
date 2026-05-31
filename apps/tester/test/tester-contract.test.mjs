@@ -1147,8 +1147,10 @@ test('tester settings consumes Kit model picker binding projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
 
   assert.match(settings, /pickerSelectionToBinding/);
-  assert.match(settings, /from '@nimiplatform\/kit\/features\/model-config'/);
+  assert.match(settings, /summarizeBinding/);
+  assert.match(settings, /from '@nimiplatform\/kit\/features\/model-config\/headless'/);
   assert.match(settings, /Model picker binding projection/);
+  assert.match(settings, /Kit model binding summary projection/);
   assert.doesNotMatch(settings, /toRuntimeRouteBindingFromPickerSelection/);
 });
 
