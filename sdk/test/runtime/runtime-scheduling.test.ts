@@ -1,53 +1,41 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 
 import {
   normalizeRuntimeSchedulingTarget,
   parseRuntimeSchedulingBatchPeekResult,
   peekRuntimeSchedulingBatch,
-  resolveRuntimeSchedulingTargetsFromAIConfig,
-  resolveRuntimeSchedulingTargetForCapability,
   runtimeSchedulingTargetsEqual,
   toRuntimeSchedulingPeekTarget,
+  type AISchedulingEvaluationTarget,
 } from '../../src/runtime/index.js';
-import type { AIConfig } from '../../src/ai/index.js';
 
-const CONFIG: AIConfig = {
-  scopeRef: { kind: 'app', ownerId: 'dev.nimi.test' },
-  capabilities: {
-    selectedBindings: {
-      'image.generate': { source: 'cloud', connectorId: 'cloud-1', model: 'image-cloud' },
-      'text.embed': { source: 'local', connectorId: '', model: 'embed-local', modelId: 'embed-local' },
-      'text.generate': { source: 'local', connectorId: '', model: 'chat-local', modelId: 'chat-local' },
-    },
-    localProfileRefs: {
-      'text.generate': { targetId: 'target-chat', profileId: 'profile-chat' },
-      'text.embed': { targetId: 'target-embed', profileId: 'profile-embed' },
-    },
-    selectedParams: {},
+const TARGETS: AISchedulingEvaluationTarget[] = [
+  {
+    capability: 'text.embed',
+    targetId: 'target-embed',
+    profileId: 'profile-embed',
+    resourceHint: null,
   },
-  profileOrigin: null,
-};
+  {
+    capability: 'text.generate',
+    targetId: 'target-chat',
+    profileId: 'profile-chat',
+    resourceHint: null,
+  },
+];
 
-test('runtime scheduling target projection keeps only local AIConfig bindings', () => {
-  const targets = resolveRuntimeSchedulingTargetsFromAIConfig(CONFIG);
-
-  assert.deepEqual(targets, [
-    {
-      capability: 'text.embed',
-      targetId: 'target-embed',
-      profileId: 'profile-embed',
-      resourceHint: null,
-    },
-    {
-      capability: 'text.generate',
-      targetId: 'target-chat',
-      profileId: 'profile-chat',
-      resourceHint: null,
-    },
-  ]);
-  assert.deepEqual(resolveRuntimeSchedulingTargetForCapability(CONFIG, 'text.generate'), targets[1]);
-  assert.equal(resolveRuntimeSchedulingTargetForCapability(CONFIG, 'image.generate'), null);
+test('runtime scheduling module does not import AIConfig projection helpers', () => {
+  const source = fs.readFileSync(
+    path.resolve(import.meta.dirname, '../../src/runtime/runtime-scheduling.ts'),
+    'utf8',
+  );
+  assert.doesNotMatch(source, /from ['"].*\/ai\//);
+  assert.doesNotMatch(source, /AIConfig/);
+  const retiredProjectionName = 'resolve' + 'RuntimeSchedulingTargetsFromAIConfig';
+  assert.equal(source.includes(retiredProjectionName), false);
 });
 
 test('runtime scheduling target adapter normalizes and maps runtime request shape', () => {
@@ -96,7 +84,7 @@ test('runtime scheduling peek helper calls Runtime and decodes judgement states'
   const calls: unknown[] = [];
   const result = await peekRuntimeSchedulingBatch({
     appId: 'dev.nimi.test',
-    targets: resolveRuntimeSchedulingTargetsFromAIConfig(CONFIG),
+    targets: TARGETS,
     peekScheduling: async (request) => {
       calls.push(request);
       return {

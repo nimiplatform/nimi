@@ -13,10 +13,10 @@ import type {
 } from '@nimiplatform/sdk/ai';
 import {
   createAIConfigEvidence,
+  resolveAIConfigRuntimeSchedulingTargetForCapability,
 } from '@nimiplatform/sdk/ai';
 import {
   peekRuntimeSchedulingBatch,
-  resolveRuntimeSchedulingTargetForCapability,
   type AISchedulingEvaluationTarget,
   type RuntimeRouteBinding,
 } from '@nimiplatform/sdk/runtime';
@@ -236,7 +236,7 @@ export function resolveTesterLLMBinding(
     bindingCapabilityId,
     binding,
     model,
-    schedulingTarget: resolveRuntimeSchedulingTargetForCapability(config, bindingCapabilityId),
+    schedulingTarget: resolveAIConfigRuntimeSchedulingTargetForCapability(config, bindingCapabilityId),
     metadata: {
       aiConfigScopeKind: scopeRef.kind,
       aiConfigScopeOwnerId: scopeRef.ownerId,

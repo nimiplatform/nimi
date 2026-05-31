@@ -63,7 +63,7 @@ import {
   normalizeRuntimeSchedulingTarget,
   peekDesktopRuntimeAggregateSchedulingJudgement,
   peekDesktopRuntimeSchedulingBatch,
-  resolveRuntimeSchedulingTargetsFromAIConfig,
+  resolveAIConfigRuntimeSchedulingTargets,
   runtimeSchedulingTargetsEqual,
 } from './desktop-ai-config-scheduling.js';
 
@@ -579,7 +579,7 @@ function createAIConfigSurface(): AIConfigSurface {
         return { status: 'unknown', capabilityStatuses: {}, schedulingJudgement: null };
       }
       const availabilityResult = await probeConfigAvailability(config, routeRuntime);
-      const targets = resolveRuntimeSchedulingTargetsFromAIConfig(config);
+      const targets = resolveAIConfigRuntimeSchedulingTargets(config);
       const schedulingJudgement = targets.length > 0
         ? await peekDesktopRuntimeAggregateSchedulingJudgement(CORE_RUNTIME_PROFILE_OWNER_ID, DESKTOP_RUNTIME_APP_ID, targets)
         : null;
@@ -694,8 +694,8 @@ export function recordDesktopAISnapshot(snapshot: AISnapshot): void {
 // ---------------------------------------------------------------------------
 
 export {
-  resolveRuntimeSchedulingTargetForCapability,
-  resolveRuntimeSchedulingTargetsFromAIConfig,
+  resolveAIConfigRuntimeSchedulingTargetForCapability,
+  resolveAIConfigRuntimeSchedulingTargets,
 } from './desktop-ai-config-scheduling.js';
 
 /**

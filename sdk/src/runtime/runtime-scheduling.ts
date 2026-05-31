@@ -5,7 +5,6 @@ import type {
   AISchedulingResourceHint,
   AISchedulingState,
 } from './runtime-scheduling-types.js';
-import type { AIConfig } from '../ai/ai-config.js';
 
 export type RuntimeSchedulingEvaluationTargetInput = {
   capability: string;
@@ -119,46 +118,6 @@ function toRuntimeSchedulingResourceHint(
     estimatedRamBytes: int64String(normalized.estimatedRamBytes),
     estimatedDiskBytes: int64String(normalized.estimatedDiskBytes),
     engine,
-  };
-}
-
-export function resolveRuntimeSchedulingTargetsFromAIConfig(
-  config: AIConfig,
-): AISchedulingEvaluationTarget[] {
-  const localRefs = config.capabilities.localProfileRefs || {};
-  const selectedBindings = config.capabilities.selectedBindings || {};
-  const targets: AISchedulingEvaluationTarget[] = [];
-  const capabilities = Object.keys(selectedBindings).sort((left, right) => left.localeCompare(right));
-  for (const capability of capabilities) {
-    const binding = selectedBindings[capability];
-    if (!binding || binding.source !== 'local') {
-      continue;
-    }
-    const ref = localRefs[capability];
-    targets.push({
-      capability,
-      targetId: ref?.targetId || null,
-      profileId: ref?.profileId || null,
-      resourceHint: null,
-    });
-  }
-  return targets;
-}
-
-export function resolveRuntimeSchedulingTargetForCapability(
-  config: AIConfig,
-  capability: string,
-): AISchedulingEvaluationTarget | null {
-  const binding = config.capabilities.selectedBindings?.[capability];
-  if (!binding || binding.source !== 'local') {
-    return null;
-  }
-  const ref = config.capabilities.localProfileRefs?.[capability];
-  return {
-    capability,
-    targetId: ref?.targetId || null,
-    profileId: ref?.profileId || null,
-    resourceHint: null,
   };
 }
 

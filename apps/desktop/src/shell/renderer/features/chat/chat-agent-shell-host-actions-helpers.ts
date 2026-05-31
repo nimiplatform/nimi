@@ -12,7 +12,7 @@ import type {
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import {
-  resolveRuntimeSchedulingTargetForCapability,
+  resolveAIConfigRuntimeSchedulingTargetForCapability,
 } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import {
   bundleQueryKey,
@@ -176,7 +176,7 @@ export async function assertAgentSubmitSchedulingAllowed(input: {
   aiConfig: UseAgentConversationHostActionsInput['aiConfig'];
   t: UseAgentConversationHostActionsInput['t'];
 }): Promise<void> {
-  const target = resolveRuntimeSchedulingTargetForCapability(input.aiConfig, 'text.generate');
+  const target = resolveAIConfigRuntimeSchedulingTargetForCapability(input.aiConfig, 'text.generate');
   const schedulingGuard = await probeExecutionSchedulingGuard({
     scopeRef: input.aiConfig.scopeRef,
     target,

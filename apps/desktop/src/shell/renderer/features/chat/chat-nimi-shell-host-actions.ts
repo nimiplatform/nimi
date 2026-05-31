@@ -22,7 +22,7 @@ import {
   resolveThreadTitleAfterFirstSend,
 } from './chat-nimi-thread-model';
 import type { AIConfig } from './conversation-capability';
-import { resolveRuntimeSchedulingTargetForCapability } from '@renderer/app-shell/providers/desktop-ai-config-service';
+import { resolveAIConfigRuntimeSchedulingTargetForCapability } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { probeExecutionSchedulingGuard } from './chat-shared-execution-scheduling-guard';
 import {
   feedStreamEvent,
@@ -83,7 +83,7 @@ export async function assertAiSubmitSchedulingAllowed(input: {
   aiConfig: AIConfig;
   t: TFunction;
 }): Promise<void> {
-  const target = resolveRuntimeSchedulingTargetForCapability(input.aiConfig, 'text.generate');
+  const target = resolveAIConfigRuntimeSchedulingTargetForCapability(input.aiConfig, 'text.generate');
   const schedulingGuard = await probeExecutionSchedulingGuard({
     scopeRef: input.aiConfig.scopeRef,
     target,

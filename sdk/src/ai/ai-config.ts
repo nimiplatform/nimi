@@ -12,11 +12,11 @@ import { createNimiError } from '../runtime/errors.js';
 import { createNimiUlid } from '../runtime/ids.js';
 import { ReasonCode } from '../types/index.js';
 import type { JsonObject } from '../internal/utils.js';
-import type { RuntimeRouteBinding } from '../runtime/runtime-route.js';
 import type {
   AISchedulingEvaluationTarget,
   AISchedulingJudgement,
-} from '../runtime/runtime-scheduling-types.js';
+  RuntimeRouteBinding,
+} from '../runtime/index.js';
 
 // ---------------------------------------------------------------------------
 // AIScopeRef  (P-AISC-001)
