@@ -5,7 +5,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import {
   type MemoryEmbeddingConfig,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/sdk/runtime';
 import {
   projectMemoryEmbeddingRouteAvailability,
   type RuntimeRouteOptionsSnapshot,

@@ -5,9 +5,6 @@ import {
   parseNimiAppBridgeProjection,
 } from '@nimiplatform/sdk/app';
 import {
-  createEmptyMemoryEmbeddingConfig,
-} from '@nimiplatform/sdk/ai';
-import {
   buildRuntimeRouteCapabilityProjection,
   buildRuntimeRequestMetadata,
   buildRuntimeTargetCallOptions,
@@ -19,6 +16,7 @@ import {
   isRuntimeRouteLocalOptionSelectable,
   mapRuntimeErrorToLocalAiReasonCode,
   ModelHealthStatus,
+  createEmptyMemoryEmbeddingConfig,
   projectMemoryEmbeddingRouteAvailability,
   projectRuntimeAgentCanonicalMemoryBankStatus,
   projectRuntimeRouteCapabilityCoverage,

@@ -3,10 +3,12 @@ import test from 'node:test';
 
 import {
   createAppAIScopeRef,
-  createEmptyMemoryEmbeddingConfig,
   type AIScopeRef,
-  type MemoryEmbeddingConfig,
 } from '@nimiplatform/sdk/ai';
+import {
+  createEmptyMemoryEmbeddingConfig,
+  type MemoryEmbeddingConfig,
+} from '@nimiplatform/sdk/runtime';
 import { createDesktopMemoryEmbeddingScopeRef } from '../src/shell/renderer/app-shell/providers/desktop-memory-embedding-scope';
 
 function createStorageMock(): Storage {

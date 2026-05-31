@@ -20,6 +20,7 @@ export * from './runtime-agent-memory.js';
 export * from './runtime-call-options.js';
 export * from './runtime-scheduling-types.js';
 export * from './runtime-scheduling.js';
+export * from './memory-embedding-config.js';
 export * from './memory-embedding-runtime.js';
 export * from './memory-embedding-route-availability.js';
 export * from './runtime-route.js';

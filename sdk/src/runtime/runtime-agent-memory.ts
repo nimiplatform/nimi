@@ -3,7 +3,7 @@ import { ReasonCode } from '../types/index.js';
 import type {
   MemoryEmbeddingConfig,
   MemoryEmbeddingSourceKind,
-} from '../ai/index.js';
+} from './memory-embedding-config.js';
 import type {
   MemoryBank,
   MemoryBankLocator,

@@ -25,15 +25,15 @@ import {
   type MemoryEmbeddingRuntimeInput,
   type MemoryEmbeddingRuntimeState,
   type MemoryEmbeddingRuntimeSurface,
-  type RuntimeCallOptions,
-} from '@nimiplatform/sdk/runtime';
-import {
   createEmptyMemoryEmbeddingConfig,
-  type AIScopeRef,
   type MemoryEmbeddingConfig,
   type MemoryEmbeddingConfigSurface,
   type MemoryEmbeddingSourceKind,
-} from '@nimiplatform/sdk/ai';
+  type RuntimeCallOptions,
+} from '@nimiplatform/sdk/runtime';
+import {
+  type AIScopeRef,
+} from '@nimiplatform/sdk/scope';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from './app-store.js';
 import {

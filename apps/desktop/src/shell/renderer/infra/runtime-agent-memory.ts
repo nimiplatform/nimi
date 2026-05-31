@@ -1,9 +1,11 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
   type AIScopeRef,
+} from '@nimiplatform/sdk/scope';
+import {
   type MemoryEmbeddingConfig,
   type MemoryEmbeddingConfigSurface,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/sdk/runtime';
 import {
   buildRuntimeAgentCoreMemoryBankLocator,
   buildRuntimeMemoryRequestContext,

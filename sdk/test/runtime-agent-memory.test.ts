@@ -12,9 +12,9 @@ import {
   projectRuntimeLocalAgentIdentityFromRef,
   runtimeMemoryEmbeddingConfigHasBindingIntent,
   type MemoryBank,
+  type MemoryEmbeddingConfig,
 } from '../src/runtime/index.js';
 import { ReasonCode } from '../src/types/index.js';
-import type { MemoryEmbeddingConfig } from '../src/ai/index.js';
 
 const CONFIG: MemoryEmbeddingConfig = {
   scopeRef: { kind: 'feature', ownerId: 'desktop', surfaceId: 'memory-embedding' },

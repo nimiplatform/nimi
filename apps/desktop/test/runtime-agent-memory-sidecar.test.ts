@@ -2,11 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
+  MemoryBankScope,
   type MemoryEmbeddingConfig,
   type MemoryEmbeddingConfigSurface,
-} from '@nimiplatform/sdk/ai';
-import {
-  MemoryBankScope,
   type MemoryEmbeddingRuntimeSurface,
 } from '@nimiplatform/sdk/runtime';
 import {

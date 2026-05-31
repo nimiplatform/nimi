@@ -150,6 +150,7 @@
         "export * from './local-execution-plan.js';",
         "export * from './local-node-service.js';",
         "export * from './local-profile-manifest.js';",
+        "export * from './memory-embedding-config.js';",
         "export * from './memory-embedding-route-availability.js';",
         "export * from './memory-embedding-runtime.js';",
         "export * from './method-ids.js';",
@@ -325,6 +326,8 @@
       "exportKey": "./scope",
       "source": "sdk/src/scope/index.ts",
       "exports": [
+        "export type { AIScopeKind, AIScopeRef, BuiltInChatSurfaceId, } from './ai-scope.js';",
+        "export { assertBuiltInChatAIScopeRef, builtInChatAIScopeRefs, createBuiltInChatAIScopeRef, isBuiltInChatAIScopeRef, } from './ai-scope.js';",
         "function createScopeModule",
         "type ScopeModule"
       ]

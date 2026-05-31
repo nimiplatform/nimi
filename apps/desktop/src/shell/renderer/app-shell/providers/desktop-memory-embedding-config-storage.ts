@@ -9,9 +9,11 @@
 import type {
   MemoryEmbeddingBindingRef,
   MemoryEmbeddingConfig,
+} from '@nimiplatform/sdk/runtime';
+import { createEmptyMemoryEmbeddingConfig } from '@nimiplatform/sdk/runtime';
+import type {
   AIScopeRef,
-} from '@nimiplatform/sdk/ai';
-import { createEmptyMemoryEmbeddingConfig } from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/sdk/scope';
 
 const SCOPE_INDEX_KEY = 'nimi.memory-embedding.scope-index.v1';
 const SCOPE_CONFIG_PREFIX = 'nimi.memory-embedding.scope.';

@@ -1,7 +1,5 @@
-import type {
-  AIScopeRef,
-  MemoryEmbeddingSourceKind,
-} from '../ai/index.js';
+import type { AIScopeRef } from '../scope/ai-scope.js';
+import type { MemoryEmbeddingSourceKind } from './memory-embedding-config.js';
 
 export type MemoryEmbeddingResolutionState =
   | 'missing'

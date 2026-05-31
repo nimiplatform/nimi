@@ -26,6 +26,18 @@ import {
 } from './generated/catalog.js';
 import { sha256Hex } from './sha256.js';
 
+export type {
+  AIScopeKind,
+  AIScopeRef,
+  BuiltInChatSurfaceId,
+} from './ai-scope.js';
+export {
+  assertBuiltInChatAIScopeRef,
+  builtInChatAIScopeRefs,
+  createBuiltInChatAIScopeRef,
+  isBuiltInChatAIScopeRef,
+} from './ai-scope.js';
+
 const DEFAULT_REALM_SCOPES: readonly ScopeName[] = normalizeScopeList(GENERATED_REALM_SCOPES);
 const DEFAULT_RUNTIME_SCOPES: readonly ScopeName[] = normalizeScopeList(GENERATED_RUNTIME_SCOPES);
 

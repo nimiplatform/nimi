@@ -5,7 +5,7 @@ import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import { createEmptyMemoryEmbeddingConfig } from '@nimiplatform/sdk/ai';
+import { createEmptyMemoryEmbeddingConfig } from '@nimiplatform/sdk/runtime';
 import { getDesktopMemoryEmbeddingConfigService } from '../src/shell/renderer/app-shell/providers/desktop-memory-embedding-config-service';
 import { createDesktopMemoryEmbeddingScopeRef } from '../src/shell/renderer/app-shell/providers/desktop-memory-embedding-scope';
 import { RuntimeConfigMemoryEmbeddingSection } from '../src/shell/renderer/features/runtime-config/runtime-config-memory-embedding-section';

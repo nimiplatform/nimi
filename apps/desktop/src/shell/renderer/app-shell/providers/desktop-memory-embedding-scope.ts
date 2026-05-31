@@ -1,4 +1,4 @@
-import type { AIScopeRef } from '@nimiplatform/sdk/ai';
+import type { AIScopeRef } from '@nimiplatform/sdk/scope';
 
 const DESKTOP_MEMORY_EMBEDDING_SCOPE_REF: AIScopeRef = {
   kind: 'feature',
