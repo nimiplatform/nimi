@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 
 import {
@@ -10,6 +12,11 @@ import {
   type MemoryEmbeddingConfig,
 } from '@nimiplatform/sdk/runtime';
 import { createDesktopMemoryEmbeddingScopeRef } from '../src/shell/renderer/app-shell/providers/desktop-memory-embedding-scope';
+
+const desktopMemoryEmbeddingServiceSource = readFileSync(
+  path.resolve(process.cwd(), 'src/shell/renderer/app-shell/providers/desktop-memory-embedding-config-service.ts'),
+  'utf-8',
+);
 
 function createStorageMock(): Storage {
   const store = new Map<string, string>();
@@ -137,4 +144,16 @@ test('desktop memory embedding service exposes fail-closed runtime state for con
       value: previousLocalStorage,
     });
   }
+});
+
+test('desktop memory embedding runtime service consumes SDK projection helpers', () => {
+  assert.match(desktopMemoryEmbeddingServiceSource, /buildMemoryEmbeddingAgentCoreLocator/);
+  assert.match(desktopMemoryEmbeddingServiceSource, /buildMemoryEmbeddingBindingIntentSnapshot/);
+  assert.match(desktopMemoryEmbeddingServiceSource, /projectMemoryEmbeddingRuntimeState/);
+  assert.match(desktopMemoryEmbeddingServiceSource, /projectMemoryEmbeddingBindResult/);
+  assert.match(desktopMemoryEmbeddingServiceSource, /projectMemoryEmbeddingCutoverResult/);
+  assert.match(desktopMemoryEmbeddingServiceSource, /projectUnavailableMemoryEmbeddingRuntimeState/);
+  assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /function normalizeResolutionState/);
+  assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /function normalizeCanonicalBankStatus/);
+  assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /function runtimeReasonCodeName/);
 });

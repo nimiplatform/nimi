@@ -128,6 +128,7 @@ import {
   type RealmListChatsResultDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import { Button, ProgressIndicator, StatusBadge, Surface, Toggle } from '@nimiplatform/kit/ui';
+import { createTesterMemoryEmbeddingRuntimeProjection } from '../../tester/tester-memory-embedding-runtime-projection';
 import { createTesterLocalRecommendationCopyProjection } from '../../tester/tester-local-recommendation-copy-projection';
 import { createTesterLocalRuntimeAssetKindProjection } from '../../tester/tester-local-runtime-asset-kind-projection';
 
@@ -859,6 +860,7 @@ export function SettingsRoute() {
       },
     },
   });
+  const memoryEmbeddingRuntimeProjection = createTesterMemoryEmbeddingRuntimeProjection();
   const runtimeRouteModelProfileProjection = findRuntimeRouteModelProfile({
     capability: 'text.generate',
     selected: null,
@@ -1926,6 +1928,8 @@ export function SettingsRoute() {
         <span>Memory embedding route projection</span>
         <StatusBadge tone={memoryEmbeddingRouteProjection.state === 'ready' ? 'success' : 'warning'}>
           {memoryEmbeddingRouteProjection.sourceKind ?? 'none'}: {memoryEmbeddingRouteProjection.reason}
+          {' / '}
+          {memoryEmbeddingRuntimeProjection.agentId}: {memoryEmbeddingRuntimeProjection.resolutionState}/{memoryEmbeddingRuntimeProjection.bindOutcome}
         </StatusBadge>
       </div>
       <div className="setting-row">

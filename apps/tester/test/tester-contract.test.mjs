@@ -1189,10 +1189,16 @@ test('tester settings consumes SDK Realm data sync DX surface', () => {
 
 test('tester settings consumes SDK memory embedding route availability projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
+  const runtimeProjection = read('src/tester/tester-memory-embedding-runtime-projection.ts');
 
   assert.match(settings, /projectMemoryEmbeddingRouteAvailability/);
   assert.match(settings, /projectRuntimeAgentCanonicalMemoryBankStatus/);
   assert.match(settings, /createEmptyMemoryEmbeddingConfig/);
+  assert.match(settings, /createTesterMemoryEmbeddingRuntimeProjection/);
+  assert.match(runtimeProjection, /buildMemoryEmbeddingAgentCoreLocator/);
+  assert.match(runtimeProjection, /buildMemoryEmbeddingBindingIntentSnapshot/);
+  assert.match(runtimeProjection, /projectMemoryEmbeddingRuntimeState/);
+  assert.match(runtimeProjection, /projectMemoryEmbeddingBindResult/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Memory embedding route projection/);
   assert.match(settings, /Runtime agent memory projection/);
