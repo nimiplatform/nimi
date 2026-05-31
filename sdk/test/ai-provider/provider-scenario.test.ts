@@ -95,6 +95,7 @@ test('createNimiAiProvider maps runtime failures and exposes video/tts/stt exten
     runtime,
     appId: APP_ID,
     subjectUserId: SUBJECT_USER_ID,
+    routePolicy: 'local',
   });
 
   let thrown: unknown = null;
@@ -180,6 +181,7 @@ test('createNimiAiProvider abort signal cancels scenario job before throwing', a
     runtime,
     appId: APP_ID,
     subjectUserId: SUBJECT_USER_ID,
+    routePolicy: 'local',
   });
   await assert.rejects(async () => {
     await nimi.video('video/default').generate({
@@ -238,6 +240,7 @@ test('createNimiAiProvider forwards requestId/idempotencyKey/labels to submitSce
     runtime,
     appId: APP_ID,
     subjectUserId: SUBJECT_USER_ID,
+    routePolicy: 'local',
   });
   await nimi.video('video/default').generate({
     mode: 't2v',

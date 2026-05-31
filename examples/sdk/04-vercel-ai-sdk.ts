@@ -12,7 +12,7 @@ import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
 const { runtime } = await createPlatformClient({
   appId: 'example.sdk.vercel-ai',
 });
-const nimi = createNimiAiProvider({ runtime });
+const nimi = createNimiAiProvider({ runtime, routePolicy: 'cloud' });
 
 const { text } = await generateText({
   model: nimi.text('gemini/default'),

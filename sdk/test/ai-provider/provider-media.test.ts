@@ -76,6 +76,7 @@ test('createNimiAiProvider embedding and image models map runtime responses', as
     runtime,
     appId: APP_ID,
     subjectUserId: SUBJECT_USER_ID,
+    routePolicy: 'local',
   });
 
   const embeddingResult = await nimi.embedding('embed/default').doEmbed({
@@ -137,6 +138,7 @@ test('createNimiAiProvider image model flattens providerOptions and maps files/m
     runtime,
     appId: APP_ID,
     subjectUserId: SUBJECT_USER_ID,
+    routePolicy: 'local',
   });
 
   await nimi.image('image/default').doGenerate({
@@ -206,6 +208,7 @@ test('createNimiAiProvider image model rejects file payloads without mediaType',
     runtime,
     appId: APP_ID,
     subjectUserId: SUBJECT_USER_ID,
+    routePolicy: 'local',
   });
 
   await assert.rejects(

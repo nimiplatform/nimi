@@ -27,7 +27,7 @@ export function createVideoModelImpl(
   return {
     generate: async (options) => {
       try {
-        const resolvedRoute = options.routePolicy || defaults.routePolicy;
+        const resolvedRoute = options.routePolicy ?? defaults.routePolicy;
         const timeoutMs = options.timeoutMs || defaults.timeoutMs || 0;
         const prompt = options.mode === 't2v'
           ? ensureText(options.prompt, 'prompt')

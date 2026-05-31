@@ -44,7 +44,7 @@ export function createTranscriptionModelImpl(
             source: 'sdk',
           });
         }
-        const resolvedRoute = options.routePolicy || defaults.routePolicy;
+        const resolvedRoute = options.routePolicy ?? defaults.routePolicy;
         const timeoutMs = options.timeoutMs || defaults.timeoutMs || 0;
         const audioChunks = Array.isArray(options.audioChunks)
           ? options.audioChunks.filter((chunk): chunk is Uint8Array => chunk instanceof Uint8Array && chunk.length > 0)

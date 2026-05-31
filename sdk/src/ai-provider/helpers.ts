@@ -56,8 +56,21 @@ export function parseCount(value: unknown): number | undefined {
   return undefined;
 }
 
-export function resolveRoutePolicy(value: AiRoutePolicy | undefined): number {
-  return value === 'cloud'
+export function assertAiProviderRoutePolicy(value: unknown): AiRoutePolicy {
+  const normalized = normalizeText(value);
+  if (normalized === 'local' || normalized === 'cloud') {
+    return normalized;
+  }
+  throw createNimiError({
+    message: 'createNimiAiProvider requires explicit routePolicy local or cloud',
+    reasonCode: ReasonCode.SDK_AI_PROVIDER_CONFIG_INVALID,
+    actionHint: 'set_route_policy_local_or_cloud',
+    source: 'sdk',
+  });
+}
+
+export function resolveRoutePolicy(value: AiRoutePolicy): number {
+  return assertAiProviderRoutePolicy(value) === 'cloud'
     ? ROUTE_POLICY_CLOUD
     : ROUTE_POLICY_LOCAL;
 }
@@ -508,7 +521,7 @@ export function ensureRuntime(config: NimiAiProviderConfig): {
     defaults: {
       appId: ensureText(config.appId || config.runtime.appId, 'appId'),
       subjectUserId,
-      routePolicy: config.routePolicy || 'local',
+      routePolicy: assertAiProviderRoutePolicy(config.routePolicy),
       timeoutMs: config.timeoutMs,
       metadata: config.metadata,
     },

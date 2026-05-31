@@ -15,6 +15,7 @@ test('createNimiAiProvider requires Runtime class instance', () => {
       runtime: { ai: {} } as unknown as Runtime,
       appId: APP_ID,
       subjectUserId: SUBJECT_USER_ID,
+      routePolicy: 'local',
     });
   } catch (error) {
     thrown = error;
@@ -23,6 +24,26 @@ test('createNimiAiProvider requires Runtime class instance', () => {
   assert.ok(thrown);
   const nimiError = asNimiError(thrown, { source: 'sdk' });
   assert.equal(nimiError.reasonCode, ReasonCode.SDK_AI_PROVIDER_RUNTIME_REQUIRED);
+});
+
+test('createNimiAiProvider requires explicit routePolicy', () => {
+  const runtime = createRuntimeStub({});
+  let thrown: unknown = null;
+
+  try {
+    createNimiAiProvider({
+      runtime,
+      appId: APP_ID,
+      subjectUserId: SUBJECT_USER_ID,
+    } as Parameters<typeof createNimiAiProvider>[0]);
+  } catch (error) {
+    thrown = error;
+  }
+
+  assert.ok(thrown);
+  const nimiError = asNimiError(thrown, { source: 'sdk' });
+  assert.equal(nimiError.reasonCode, ReasonCode.SDK_AI_PROVIDER_CONFIG_INVALID);
+  assert.equal(nimiError.actionHint, 'set_route_policy_local_or_cloud');
 });
 
 test('createNimiAiProvider accepts missing subjectUserId and keeps request subject unset', async () => {
@@ -47,6 +68,7 @@ test('createNimiAiProvider accepts missing subjectUserId and keeps request subje
   const nimi = createNimiAiProvider({
     runtime,
     appId: APP_ID,
+    routePolicy: 'local',
   });
 
   const model = nimi('chat/default');
@@ -89,6 +111,7 @@ test('createNimiAiProvider text model maps runtime generate response', async () 
     runtime,
     appId: APP_ID,
     subjectUserId: SUBJECT_USER_ID,
+    routePolicy: 'local',
   });
 
   const model = nimi('chat/default');
@@ -140,6 +163,7 @@ test('createNimiAiProvider text model rejects video chat parts for text chat v1'
     runtime,
     appId: APP_ID,
     subjectUserId: SUBJECT_USER_ID,
+    routePolicy: 'local',
   })('chat/default');
 
   await model.doGenerate({
@@ -220,6 +244,7 @@ test('createNimiAiProvider text streaming maps delta and finish events', async (
     runtime,
     appId: APP_ID,
     subjectUserId: SUBJECT_USER_ID,
+    routePolicy: 'local',
   })('chat/default');
   const streamResult = await model.doStream({
     prompt: [{
@@ -286,6 +311,7 @@ test('createNimiAiProvider text streaming falls back to completed usage when the
     runtime,
     appId: APP_ID,
     subjectUserId: SUBJECT_USER_ID,
+    routePolicy: 'local',
   })('chat/default');
   const streamResult = await model.doStream({
     prompt: [{
@@ -335,6 +361,7 @@ test('createNimiAiProvider text streaming returns empty usage totals when the st
     runtime,
     appId: APP_ID,
     subjectUserId: SUBJECT_USER_ID,
+    routePolicy: 'local',
   })('chat/default');
   const streamResult = await model.doStream({
     prompt: [{
@@ -407,6 +434,7 @@ test('createNimiAiProvider stream interruption requires explicit resubscribe', a
     runtime,
     appId: APP_ID,
     subjectUserId: SUBJECT_USER_ID,
+    routePolicy: 'local',
   })('chat/default');
 
   const first = await model.doStream({

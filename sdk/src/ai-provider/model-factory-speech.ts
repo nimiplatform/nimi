@@ -25,7 +25,7 @@ export function createSpeechModelImpl(
   return {
     synthesize: async (options) => {
       try {
-        const resolvedRoute = options.routePolicy || defaults.routePolicy;
+        const resolvedRoute = options.routePolicy ?? defaults.routePolicy;
         const timeoutMs = options.timeoutMs || defaults.timeoutMs || 0;
         const request = withOptionalHeadSubjectUserId({
           head: {

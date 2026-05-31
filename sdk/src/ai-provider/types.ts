@@ -22,7 +22,7 @@ export type NimiAiProviderConfig = {
   runtime: Runtime;
   appId?: string;
   subjectUserId?: string;
-  routePolicy?: AiRoutePolicy;
+  routePolicy: AiRoutePolicy;
   timeoutMs?: number;
   metadata?: RuntimeCallOptions['metadata'];
 };
