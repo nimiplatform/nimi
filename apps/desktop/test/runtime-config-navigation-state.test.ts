@@ -4,6 +4,7 @@ import test from 'node:test';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   DEFAULT_LOCAL_ENDPOINT_V11,
+  normalizeConnectorV11,
   normalizeLocalModelV11,
   normalizePageIdV11,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types';
@@ -355,4 +356,21 @@ test('normalizeLocalModelV11: embedding models keep blank endpoint when Runtime 
 
   assert.equal(embedding.engine, '');
   assert.equal(embedding.endpoint, DEFAULT_LOCAL_ENDPOINT_V11);
+});
+
+test('normalizeConnectorV11: preserves model capability evidence for SDK coverage projection', () => {
+  const connector = normalizeConnectorV11({
+    id: 'conn-image',
+    label: 'Image Cloud',
+    models: ['image-model', 'empty-model'],
+    modelCapabilities: {
+      'image-model': ['image.generate', 'image.generate'],
+      'empty-model': [],
+    },
+    status: 'healthy',
+  });
+
+  assert.deepEqual(connector.modelCapabilities, {
+    'image-model': ['image.generate'],
+  });
 });

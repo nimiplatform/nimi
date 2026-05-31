@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 
 import type {
@@ -16,6 +18,10 @@ import {
   updateConversationCapabilityBinding,
   type ConversationCapabilityRouteRuntime,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
+
+function readSource(relativePath: string): string {
+  return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
+}
 
 function createLocalResolvedBinding(
   capability: RuntimeCanonicalCapability,
@@ -521,6 +527,12 @@ test('toRuntimeCanonicalCapability maps image.edit to image.generate for host bo
   assert.equal(toRuntimeCanonicalCapability('image.generate'), 'image.generate');
   assert.equal(toRuntimeCanonicalCapability('audio.synthesize'), 'audio.synthesize');
   assert.equal(toRuntimeCanonicalCapability('voice_workflow.voice_clone'), 'voice_workflow.voice_clone');
+});
+
+test('conversation capability canonicalization is delegated to SDK projection', () => {
+  const source = readSource('src/shell/renderer/features/chat/conversation-capability.ts');
+  assert.match(source, /normalizeRuntimeRouteCapabilityToken/);
+  assert.doesNotMatch(source, /CONVERSATION_CAPABILITY_RUNTIME_MAP/);
 });
 
 test('image.edit projection fails closed when selection missing', async () => {

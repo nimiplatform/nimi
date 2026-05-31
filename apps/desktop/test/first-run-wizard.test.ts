@@ -23,7 +23,7 @@ import { projectDeviceSummary } from '../src/shell/renderer/first-run/first-run-
 import {
   PLATFORM_AI_PROFILE_FACTORY_ROWS,
   type PlatformAIProfileFactoryRow,
-} from '../src/runtime/platform-catalog/index.js';
+} from '@nimiplatform/sdk/platform-catalog';
 import { selectFactoryAIProfileForFirstRun } from '../src/shell/renderer/first-run/install-level-policy.js';
 import type {
   ProductControlRecord,

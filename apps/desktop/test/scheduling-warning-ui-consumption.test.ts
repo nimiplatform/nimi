@@ -17,6 +17,7 @@ import { readDesktopLocale } from './helpers/read-desktop-locale';
 
 const desktopDir = path.resolve(import.meta.dirname, '..');
 const guardModulePath = 'src/shell/renderer/features/chat/chat-shared-execution-scheduling-guard.ts';
+const schedulingModulePath = 'src/shell/renderer/app-shell/providers/desktop-ai-config-scheduling.ts';
 
 function readSource(relativePath: string): string {
   return fs.readFileSync(path.join(desktopDir, relativePath), 'utf8');
@@ -221,4 +222,13 @@ test('no parallel scheduling truth: shared guard module reads scope and submit t
   assert.match(source, /probeFeasibility/);
   assert.match(source, /probeSchedulingTarget/);
   assert.doesNotMatch(source, /scheduler\.peek/);
+});
+
+test('no parallel scheduling truth: Desktop delegates AIConfig scheduling projection to SDK and Runtime Peek', () => {
+  const source = readSource(schedulingModulePath);
+  assert.match(source, /from '@nimiplatform\/sdk\/ai'/);
+  assert.match(source, /getPlatformClient\(\)\.runtime\.ai\.peekScheduling/);
+  assert.doesNotMatch(source, /export function resolveAIConfigScopeSchedulingTargets\(/);
+  assert.doesNotMatch(source, /export function resolveAIConfigSchedulingTargetForCapability\(/);
+  assert.doesNotMatch(source, /return null;/);
 });

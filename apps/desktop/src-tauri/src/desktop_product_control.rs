@@ -143,18 +143,22 @@ mod tests {
         format!("{}{}", "local_", tail)
     }
     #[test]
-    fn missing_control_record_auto_creates_data_root_missing() {
+    fn missing_control_record_routes_config_missing_without_writing() {
         let home = temp_home("missing");
         with_env(&[("HOME", home.to_str())], || {
             let projection = read_product_control_projection().expect("projection");
-            assert!(projection.exists);
-            assert_eq!(projection.state, ProductControlState::DataRootMissing);
-            assert!(projection.record.is_some());
+            assert!(!projection.exists);
+            assert_eq!(projection.state, ProductControlState::ConfigMissing);
+            assert!(projection.record.is_none());
+            assert!(projection
+                .error
+                .unwrap_or_default()
+                .contains("first-run data-root selection"));
             assert_eq!(
                 product_control_record_path().expect("path"),
                 home.join(".nimi").join("nimi.json")
             );
-            assert!(home.join(".nimi").join("nimi.json").exists());
+            assert!(!home.join(".nimi").join("nimi.json").exists());
         });
     }
     #[test]
@@ -206,6 +210,70 @@ mod tests {
             assert_eq!(
                 record.first_run.install_level.as_deref(),
                 Some("recommended")
+            );
+        });
+    }
+
+    #[test]
+    fn data_root_can_only_be_reselected_before_heavy_setup_evidence() {
+        let home = temp_home("reselect-root");
+        let first_root = home.join("first-nimi-data");
+        let second_root = home.join("second-nimi-data");
+        let late_root = home.join("late-nimi-data");
+        with_env(&[("HOME", home.to_str())], || {
+            select_product_data_root(first_root.to_str().expect("first root"))
+                .expect("select first root");
+            set_first_run_install_level("minimal", Some("local-speech-ready".to_string()))
+                .expect("install level");
+
+            let reselection = select_product_data_root(second_root.to_str().expect("second root"))
+                .expect("early reselection");
+            assert_eq!(reselection.state, ProductControlState::DataRootSelected);
+            assert_eq!(selected_product_data_root().expect("selected"), second_root);
+
+            let control_path = product_control_record_path().expect("path");
+            let mut record = super::read_existing_record(&control_path)
+                .expect("read")
+                .expect("record");
+            record.state = ProductControlState::LocalAiProfileSelectedAssetsMissing;
+            record.first_run.initialization_plan_id = Some("plan-1".to_string());
+            super::write_record(&control_path, &record).expect("write heavy setup record");
+
+            let error = select_product_data_root(late_root.to_str().expect("late root"))
+                .expect_err("late reselection must fail");
+            assert!(error.contains("data-root selection is first-run only"));
+            assert_eq!(selected_product_data_root().expect("selected"), second_root);
+        });
+    }
+
+    #[test]
+    fn unknown_product_control_fields_route_repair_required() {
+        let home = temp_home("unknown-field");
+        let root = home.join("chosen-nimi-data");
+        with_env(&[("HOME", home.to_str())], || {
+            select_product_data_root(root.to_str().expect("root")).expect("select root");
+            let control_path = product_control_record_path().expect("path");
+            let mut record = serde_json::from_str::<serde_json::Value>(
+                &std::fs::read_to_string(&control_path).expect("read record"),
+            )
+            .expect("parse record");
+            record
+                .as_object_mut()
+                .expect("object")
+                .insert("legacyShadow".to_string(), serde_json::Value::Bool(true));
+            let raw = serde_json::to_string_pretty(&record).expect("json");
+            std::fs::write(&control_path, &raw).expect("write unknown field");
+
+            let projection = read_product_control_projection().expect("projection");
+            assert_eq!(projection.state, ProductControlState::RepairRequired);
+            assert!(projection.record.is_none());
+            assert!(projection
+                .error
+                .unwrap_or_default()
+                .contains("unknown field"));
+            assert_eq!(
+                std::fs::read_to_string(&control_path).expect("read after"),
+                raw
             );
         });
     }

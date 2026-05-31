@@ -7,6 +7,10 @@ const invokeSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/invoke.ts'),
   'utf8',
 );
+const sdkRuntimeReasonProjectionSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../../../sdk/src/runtime/reason-code-messages.ts'),
+  'utf8',
+);
 
 const phase1CriticalCodes = [
   'AI_PROVIDER_TIMEOUT',
@@ -53,21 +57,27 @@ const phase1CriticalCodes = [
 ];
 
 for (const code of phase1CriticalCodes) {
-  test(`D-ERR-007: Phase 1 ReasonCode '${code}' is mapped in BRIDGE_ERROR_CODE_MAP`, () => {
+  test(`D-ERR-007: Phase 1 ReasonCode '${code}' is mapped through SDK Runtime reason projection`, () => {
     assert.ok(
-      invokeSource.includes(code),
-      `BRIDGE_ERROR_CODE_MAP must contain '${code}'`,
+      sdkRuntimeReasonProjectionSource.includes(code),
+      `SDK Runtime reason-code projection must contain '${code}'`,
     );
   });
 }
 
+test('D-ERR-007: Desktop bridge consumes SDK reason projection instead of re-owning Phase 1 reason map', () => {
+  assert.match(invokeSource, /getRuntimeReasonCodeMessage/);
+  assert.doesNotMatch(invokeSource, /AI_PROVIDER_TIMEOUT:\s*\{/);
+  assert.match(invokeSource, /DESKTOP_HTTP_METHOD_INVALID:\s*\{/);
+});
+
 test('D-ERR-007: Phase 2 codes excluded (GRANT_*, WORKFLOW_*, APP_MESSAGE_*, SCRIPT_*)', () => {
   const phase2Patterns = ['GRANT_', 'WORKFLOW_', 'APP_MESSAGE_', 'SCRIPT_'];
   for (const prefix of phase2Patterns) {
-    const mapSection = invokeSource.match(/BRIDGE_ERROR_CODE_MAP[^}]+}/s)?.[0] || '';
+    const mapSection = sdkRuntimeReasonProjectionSource;
     assert.ok(
       !mapSection.includes(prefix),
-      `BRIDGE_ERROR_CODE_MAP should not include Phase 2 prefix '${prefix}'`,
+      `SDK Runtime reason-code projection should not include Phase 2 prefix '${prefix}'`,
     );
   }
 });

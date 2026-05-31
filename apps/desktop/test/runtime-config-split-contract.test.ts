@@ -1,7 +1,28 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { parseRuntimeDefaults } from '../src/shell/renderer/bridge/runtime-bridge/types';
+
+const runtimeDefaultsSource = readFileSync(
+  new URL('../src/shell/renderer/bridge/runtime-bridge/runtime-defaults.ts', import.meta.url),
+  'utf8',
+);
+
+test('runtime defaults bridge is delegated to Kit', () => {
+  assert.match(
+    runtimeDefaultsSource,
+    /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/,
+  );
+  assert.doesNotMatch(
+    runtimeDefaultsSource,
+    /function\s+(readEnv|resolveRealmBaseUrlFallback|readRuntimeDefaultsFallback|applyEnvOverrides)\b/,
+  );
+  assert.doesNotMatch(
+    runtimeDefaultsSource,
+    /deriveDefaultJwksUrl|deriveDefaultRevocationUrl|normalizeLoopbackHttpUrl/,
+  );
+});
 
 test('parseRuntimeDefaults requires split realm/runtime payload', () => {
   const parsed = parseRuntimeDefaults({

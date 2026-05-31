@@ -31,7 +31,7 @@
   "repairPointerAppRegistry": "应用注册表",
   "repairPointerAppPackages": "应用包",
   "repairCleanupTitle": "数据目录清理",
-  "repairCleanupDescription": "规划并执行已确认的 nimi_data 目录清理。清理委托给受管迁移流程。",
+  "repairCleanupDescription": "规划并执行已确认的 nimi_data 目录清理。清理委托给受治理的目录所有权矩阵。",
   "repairCleanupDataRootLabel": "数据根",
   "repairCleanupDirectoryPlaceholder": "nimi_data 目录 id（如 shared_cache）",
   "repairCleanupDirectoryRequired": "请先输入目录 id。",

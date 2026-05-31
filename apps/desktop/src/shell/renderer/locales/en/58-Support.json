@@ -31,7 +31,7 @@
   "repairPointerAppRegistry": "App registry",
   "repairPointerAppPackages": "App packages",
   "repairCleanupTitle": "Data directory cleanup",
-  "repairCleanupDescription": "Plan and run a confirmed cleanup of a nimi_data directory. Cleanup is delegated to the managed migration flow.",
+  "repairCleanupDescription": "Plan and run a confirmed cleanup of a nimi_data directory. Cleanup is delegated to the governed directory owner matrix.",
   "repairCleanupDataRootLabel": "Data root",
   "repairCleanupDirectoryPlaceholder": "nimi_data directory id (e.g. shared_cache)",
   "repairCleanupDirectoryRequired": "Enter a directory id first.",

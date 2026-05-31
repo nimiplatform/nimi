@@ -37,7 +37,7 @@ import {
 import {
   loadPlatformAIProfileFactoryCatalog,
   loadPlatformAIProfileFactoryRows,
-} from '@runtime/platform-catalog';
+} from '@nimiplatform/sdk/platform-catalog';
 import {
   listPersistedScopeKeys,
   loadAIConfigForScope,

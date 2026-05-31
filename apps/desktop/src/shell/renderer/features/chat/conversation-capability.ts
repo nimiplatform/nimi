@@ -31,6 +31,7 @@ import type {
 import {
   createAISnapshotExecutionId,
   createAISnapshotRecord,
+  normalizeRuntimeRouteCapabilityToken,
 } from '@nimiplatform/sdk/ai';
 
 export const CONVERSATION_CAPABILITIES = [
@@ -53,12 +54,12 @@ export const AGENT_VOICE_WORKFLOW_CAPABILITIES = [
 export type AgentVoiceWorkflowCapability = (typeof AGENT_VOICE_WORKFLOW_CAPABILITIES)[number];
 export type AgentVoiceWorkflowType = 'voice_clone' | 'voice_design';
 
-const CONVERSATION_CAPABILITY_RUNTIME_MAP: Partial<Record<ConversationCapability, RuntimeCanonicalCapability>> = {
-  'image.edit': 'image.generate',
-};
-
 export function toRuntimeCanonicalCapability(capability: ConversationCapability): RuntimeCanonicalCapability {
-  return (CONVERSATION_CAPABILITY_RUNTIME_MAP[capability] || capability) as RuntimeCanonicalCapability;
+  const normalized = normalizeRuntimeRouteCapabilityToken(capability);
+  if (!normalized) {
+    throw new Error(`UNSUPPORTED_RUNTIME_CAPABILITY:${capability}`);
+  }
+  return normalized;
 }
 export type RuntimeLocalProfileRef = {
   targetId: string;
@@ -464,50 +465,6 @@ export function createConversationExecutionSnapshot(input: {
   };
 }
 
-export function toRuntimeRouteBindingFromPickerSelection(input: {
-  capability: ConversationCapability;
-  selection: {
-    source: 'local' | 'cloud';
-    connectorId: string;
-    model: string;
-    modelLabel?: string;
-    localModelId?: string;
-    engine?: string;
-    modelId?: string;
-  };
-  provider?: string | null;
-}): RuntimeRouteBinding | null {
-  const model = normalizeText(input.selection.model);
-  if (!model) {
-    return null;
-  }
-  const modelLabel = normalizeText(input.selection.modelLabel) || undefined;
-  if (input.selection.source === 'local') {
-    const localModelId = normalizeText(input.selection.localModelId) || model;
-    const engine = normalizeText(input.selection.engine) || undefined;
-    return {
-      source: 'local',
-      connectorId: '',
-      model,
-      modelLabel,
-      localModelId,
-      engine,
-      provider: engine || undefined,
-      goRuntimeLocalModelId: localModelId,
-    };
-  }
-  const connectorId = normalizeText(input.selection.connectorId);
-  if (!connectorId) {
-    return null;
-  }
-  return {
-    source: 'cloud',
-    connectorId,
-    model,
-    modelLabel,
-    provider: normalizeText(input.provider) || undefined,
-  };
-}
 
 // ---------------------------------------------------------------------------
 // AIConfig <-> ConversationCapabilitySelectionStore bridge  (D-AIPC-010)

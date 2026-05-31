@@ -42,6 +42,7 @@ import { projectAppsPanel } from '../src/shell/renderer/features/apps/apps-panel
 import type {
   DesktopAppLifecycleBridge,
   RuntimeAppInstallJob,
+  RuntimeAppStorageProjection,
 } from '../src/shell/renderer/features/apps/apps-lifecycle-bridge.js';
 
 // ---------------------------------------------------------------------------
@@ -73,6 +74,20 @@ function job(overrides: Partial<RuntimeAppInstallJob>): RuntimeAppInstallJob {
 
 function status(overrides: Partial<NimiAppStatus> = {}): NimiAppStatus {
   return { appId: 'nimi.notes', launchReadiness: 'ready', ...overrides };
+}
+
+function storageProjection(appId = 'nimi.notes'): RuntimeAppStorageProjection {
+  return {
+    appId,
+    state: 'ready',
+    appRoot: `/data/apps/${appId}`,
+    activeReleaseRoot: `/data/apps/${appId}/releases/1.0.0`,
+    durableDataRoot: `/data/apps/${appId}/data`,
+    cacheRoot: `/data/apps/${appId}/cache`,
+    tempRoot: `/data/apps/${appId}/tmp`,
+    activeVersion: '1.0.0',
+    storagePolicyRef: 'nimi-data-app-roots',
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -230,6 +245,7 @@ function recordingLifecycle(): {
     uninstall: record('uninstall'),
     getJob: record('getJob'),
     listJobs: record('listJobs'),
+    storage: record('storage'),
     watchJobEvents: record('watchJobEvents'),
     update: record('update'),
     healthRepair: record('healthRepair'),
@@ -340,10 +356,66 @@ describe('projectAppsPanel — fail-closed on a missing job projection', () => {
       async listJobs() {
         return [job({ appId: 'nimi.notes', kind: 'install', state: 'in_progress', phase: 'download' })];
       },
+      async storage(input) {
+        return storageProjection(input.appId);
+      },
     };
     const projection = await projectAppsPanel(makeClient(), withJob);
     assert.equal(projection.status, 'loaded');
     if (projection.status !== 'loaded') return;
     assert.equal(projection.entries[0]!.cardState, 'installing');
+  });
+
+  it('uses Runtime GetAppStorage for detail roots instead of registry install evidence', async () => {
+    const { bridge } = recordingLifecycle();
+    const lifecycle: DesktopAppLifecycleBridge = {
+      ...bridge,
+      async listJobs() {
+        return [];
+      },
+      async storage(input) {
+        return storageProjection(input.appId);
+      },
+    };
+    const client = makeClient({
+      status: {
+        appId: 'nimi.notes',
+        launchReadiness: 'ready',
+        storageRoots: {
+          releaseRoot: '/desktop-scanned/releases/1.0.0',
+          dataRoot: '/desktop-scanned/data',
+          cacheRoot: '/desktop-scanned/cache',
+          tempRoot: '/desktop-scanned/tmp',
+        },
+      },
+    });
+
+    const projection = await projectAppsPanel(client, lifecycle);
+    assert.equal(projection.status, 'loaded');
+    if (projection.status !== 'loaded') return;
+    assert.deepEqual(projection.entries[0]!.status?.storageRoots, {
+      releaseRoot: '/data/apps/nimi.notes/releases/1.0.0',
+      dataRoot: '/data/apps/nimi.notes/data',
+      cacheRoot: '/data/apps/nimi.notes/cache',
+      tempRoot: '/data/apps/nimi.notes/tmp',
+    });
+  });
+
+  it('fails the whole panel closed when Runtime storage projection cannot load', async () => {
+    const { bridge } = recordingLifecycle();
+    const lifecycle: DesktopAppLifecycleBridge = {
+      ...bridge,
+      async listJobs() {
+        return [];
+      },
+      async storage() {
+        throw new Error('storage projection boom');
+      },
+    };
+    const projection = await projectAppsPanel(makeClient(), lifecycle);
+    assert.equal(projection.status, 'error');
+    if (projection.status === 'error') {
+      assert.match(projection.detail, /storage projection boom/);
+    }
   });
 });

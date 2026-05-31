@@ -21,8 +21,10 @@ import type {
   AppLaunchReadiness,
   NimiAppClient,
   NimiAppRow,
+  NimiAppStorageRoots,
   NimiAppStatus,
 } from '@nimiplatform/sdk/app';
+import { resolveRuntimeAppActiveStorageRoots } from '@nimiplatform/sdk/runtime';
 import {
   CANONICAL_APP_CARD_STATES,
   deriveAppCardState,
@@ -121,21 +123,50 @@ export async function projectAppsPanel(
     }
 
     const job = selectLatestJobForApp(app.appId, jobs);
+    let storageRoots: NimiAppStorageRoots | undefined;
+    if (lifecycle) {
+      try {
+        storageRoots = await resolveRuntimeStatusStorageRoots(lifecycle, app.appId);
+      } catch (error) {
+        return { status: 'error', detail: `storage projection failed: ${errorMessage(error)}` };
+      }
+    }
+    const statusWithRuntimeStorage = storageRoots
+      ? { ...status, storageRoots }
+      : status;
     const cardState = deriveAppCardState({
-      readiness: status.launchReadiness,
-      status,
+      readiness: statusWithRuntimeStorage.launchReadiness,
+      status: statusWithRuntimeStorage,
       job,
     });
     entries.push({
       app,
-      status,
+      status: statusWithRuntimeStorage,
       ...(job ? { job } : {}),
       cardState,
-      ...(status.detail ? { detail: status.detail } : {}),
+      ...(statusWithRuntimeStorage.detail ? { detail: statusWithRuntimeStorage.detail } : {}),
     });
   }
 
   return { status: 'loaded', entries };
+}
+
+async function resolveRuntimeStatusStorageRoots(
+  lifecycle: DesktopAppLifecycleBridge,
+  appId: string,
+): Promise<NimiAppStorageRoots | undefined> {
+  return resolveRuntimeAppActiveStorageRoots({
+    appLifecycle: lifecycle,
+    appId,
+    label: 'desktop Apps app',
+    options: {
+      metadata: {
+        callerKind: 'desktop-core',
+        callerId: 'desktop.apps.storage',
+        surfaceId: 'desktop.apps',
+      },
+    },
+  });
 }
 
 /**

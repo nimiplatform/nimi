@@ -5,6 +5,14 @@ import type {
 import type { LocalProviderAdapter } from '@nimiplatform/sdk/ai';
 import type {
   LocalRecommendationFeedCapabilityId,
+  LocalRecommendationBaselineId,
+  LocalRecommendationConfidenceId,
+  LocalRecommendationFeedCacheStateId,
+  LocalRecommendationFeedSourceId,
+  LocalRecommendationFormatId,
+  LocalRecommendationHostSupportClassId,
+  LocalRecommendationSourceId,
+  LocalRecommendationTierId,
   LocalRuntimeAssetKindId,
   LocalRuntimeEngineRuntimeModeId,
   LocalRuntimeRunnableAssetKindId,
@@ -142,15 +150,15 @@ export type LocalRuntimeProviderHints = {
   extra?: Record<string, unknown>;
 } & Record<string, unknown>;
 
-export type LocalRuntimeRecommendationSource = 'llmfit' | 'media-fit';
-export type LocalRuntimeRecommendationFormat = 'gguf' | 'safetensors';
-export type LocalRuntimeRecommendationTier = 'recommended' | 'runnable' | 'tight' | 'not_recommended';
-export type LocalRuntimeRecommendationHostSupportClass = 'supported_supervised' | 'attached_only' | 'unsupported';
-export type LocalRuntimeRecommendationConfidence = 'high' | 'medium' | 'low';
-export type LocalRuntimeRecommendationBaseline = 'image-default-v1' | 'video-default-v1';
-export type LocalRuntimeRecommendationFeedCacheState = 'fresh' | 'stale' | 'empty';
+export type LocalRuntimeRecommendationSource = LocalRecommendationSourceId;
+export type LocalRuntimeRecommendationFormat = LocalRecommendationFormatId;
+export type LocalRuntimeRecommendationTier = LocalRecommendationTierId;
+export type LocalRuntimeRecommendationHostSupportClass = LocalRecommendationHostSupportClassId;
+export type LocalRuntimeRecommendationConfidence = LocalRecommendationConfidenceId;
+export type LocalRuntimeRecommendationBaseline = LocalRecommendationBaselineId;
+export type LocalRuntimeRecommendationFeedCacheState = LocalRecommendationFeedCacheStateId;
 export type LocalRuntimeRecommendationFeedCapability = LocalRecommendationFeedCapabilityId;
-export type LocalRuntimeRecommendationFeedSource = 'model-index';
+export type LocalRuntimeRecommendationFeedSource = LocalRecommendationFeedSourceId;
 
 export type LocalRuntimeSuggestedAsset = {
   templateId?: string;

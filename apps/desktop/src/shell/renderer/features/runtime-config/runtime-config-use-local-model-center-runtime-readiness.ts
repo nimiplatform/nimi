@@ -7,15 +7,17 @@ import {
   type LocalRuntimeEnvironmentPlan,
   type LocalRuntimeEnvironmentPlanDependency,
 } from '@runtime/local-runtime';
+import {
+  isLocalRuntimeEnvironmentDependencyJobActiveState,
+  isLocalRuntimeEnvironmentDependencyReadyState,
+  isLocalRuntimeEnvironmentDependencyStartableState,
+} from '@nimiplatform/sdk/runtime';
 
 type RuntimeDependencyInput = {
   assets: LocalRuntimeAssetRecord[];
   refreshAssetInventorySections: () => Promise<void>;
   setAssetBusy: (busy: boolean) => void;
 };
-
-const ACTIVE_RUNTIME_DEPENDENCY_JOB_STATES = new Set(['queued', 'downloading', 'verifying', 'installing']);
-const STARTABLE_RUNTIME_DEPENDENCY_STATES = new Set(['needs_confirmation', 'failed', 'cancelled']);
 
 function imageConsumerScopeForDevice(profile: LocalRuntimeDeviceProfile | undefined): string {
   const os = String(profile?.os || '').trim().toLowerCase();
@@ -38,7 +40,7 @@ function dependencyBlocksSetup(dependency: LocalRuntimeEnvironmentPlanDependency
   if (!dependency.required) {
     return false;
   }
-  return dependency.state !== 'ready_managed' && dependency.state !== 'ready_system';
+  return !isLocalRuntimeEnvironmentDependencyReadyState(dependency.state);
 }
 
 function firstBlockingDependency(plan: LocalRuntimeEnvironmentPlan | undefined): LocalRuntimeEnvironmentPlanDependency | undefined {
@@ -52,14 +54,14 @@ function dependencyStartable(
   if (!dependency.required || !dependency.environmentKey) {
     return false;
   }
-  if (!STARTABLE_RUNTIME_DEPENDENCY_STATES.has(String(dependency.state || ''))) {
+  if (!isLocalRuntimeEnvironmentDependencyStartableState(dependency.state)) {
     return false;
   }
   return !jobs.some((job) => (
     job.environmentKey === dependency.environmentKey
     && job.dependencyFamily === dependency.dependencyFamily
     && job.dependencyId === dependency.dependencyId
-    && ACTIVE_RUNTIME_DEPENDENCY_JOB_STATES.has(String(job.state || ''))
+    && isLocalRuntimeEnvironmentDependencyJobActiveState(job.state)
   ));
 }
 

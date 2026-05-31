@@ -10,14 +10,14 @@ import {
   type NimiAppStatus,
   type NimiAppTransport,
 } from '@nimiplatform/sdk/app';
-// T4 Fork C: the live Apps bridge no longer reads `platform-catalog/index.ts`
-// for the Nimi App registry — it reads the runtime `~/.nimi/apps` projections.
+// T4 Fork C: the live Apps bridge reads the runtime `~/.nimi/apps`
+// projections, not the SDK Platform catalog.
 // These transport-filter tests still exercise the SDK ordinary-visible filter
 // against the generated catalog projection used purely as a row fixture.
 import {
   loadPlatformNimiAppReleaseDescriptorRows,
   loadPlatformNimiAppRegistryRows,
-} from '../src/runtime/platform-catalog/generated.js';
+} from '@nimiplatform/sdk/platform-catalog';
 import {
   DESKTOP_APPS_CARD_STATES,
   mapLaunchReadinessToAppsCardState,

@@ -37,6 +37,11 @@ test('local model center resolves shared runtime dependency readiness before any
   assert.match(runtimeProjectionSources, /sharedRuntimeDependencyJobs/);
   assert.match(runtimeProjectionSources, /setupRuntimeDependency/);
   assert.match(runtimeProjectionSources, /localRuntime\.startEnvironmentDependencyJob/);
+  assert.match(runtimeReadinessSource, /isLocalRuntimeEnvironmentDependencyReadyState/);
+  assert.match(runtimeReadinessSource, /isLocalRuntimeEnvironmentDependencyStartableState/);
+  assert.match(runtimeReadinessSource, /isLocalRuntimeEnvironmentDependencyJobActiveState/);
+  assert.doesNotMatch(runtimeReadinessSource, /ACTIVE_RUNTIME_DEPENDENCY_JOB_STATES/);
+  assert.doesNotMatch(runtimeReadinessSource, /STARTABLE_RUNTIME_DEPENDENCY_STATES/);
   assert.doesNotMatch(runtimeReadinessSource, /localRuntime\.startDependencySetup/);
   assert.doesNotMatch(runtimeReadinessSource, /localRuntime\.resolveDependency/);
   assert.match(runtimeReadinessSource, /imageConsumerScopeForDevice/);
@@ -52,6 +57,10 @@ test('local model center setup CTA projects shared dependency resolver truth at 
   assert.match(installedSectionSource, /props\.onCancelRuntimeDependencyJob/);
   assert.match(installedSectionSource, /props\.onRetryRuntimeDependencyJob/);
   assert.match(installedSectionSource, /props\.onRepairRuntimeDependency/);
+  assert.match(installedSectionSource, /isLocalRuntimeEnvironmentDependencyJobActiveState/);
+  assert.match(installedSectionSource, /isLocalRuntimeEnvironmentDependencyJobRetryableState/);
+  assert.doesNotMatch(installedSectionSource, /ACTIVE_RUNTIME_DEPENDENCY_JOB_STATES/);
+  assert.doesNotMatch(installedSectionSource, /RETRYABLE_RUNTIME_DEPENDENCY_JOB_STATES/);
   assert.match(installedSectionSource, /dependency\?\.state === 'needs_confirmation'/);
   assert.match(installedSectionSource, /dependency\.confirmationRequired === true/);
   assert.match(installedSectionSource, /cudaModelWaitingForSetup/);

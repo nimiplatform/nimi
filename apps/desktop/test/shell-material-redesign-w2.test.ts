@@ -12,7 +12,6 @@ const mainLayoutViewSource = readWorkspaceFile('src/shell/renderer/app-shell/lay
 const mainLayoutSettingsMenuSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-settings-menu.tsx');
 const mainLayoutTopbarSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx');
 const navConfigSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/navigation-config.tsx');
-const sidebarTooltipSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-sidebar-tooltip-button.tsx');
 
 test('W2 shell redesign: shared status shell adopts AmbientBackground and glass host', () => {
   assert.match(appRoutesSource, /import \{ AmbientBackground, ProgressIndicator, Surface \} from '@nimiplatform\/kit\/ui';/);
@@ -23,7 +22,7 @@ test('W2 shell redesign: shared status shell adopts AmbientBackground and glass 
 });
 
 test('W2 shell redesign: main layout owns ambient root and glass shell hosts', () => {
-  assert.match(mainLayoutViewSource, /import \{ AmbientBackground, ScrollArea \} from '@nimiplatform\/kit\/ui';/);
+  assert.match(mainLayoutViewSource, /import \{ AmbientBackground, ScrollArea, Tooltip \} from '@nimiplatform\/kit\/ui';/);
   assert.match(mainLayoutViewSource, /<AmbientBackground[\s\S]*data-testid=\{E2E_IDS\.mainShell\}[\s\S]*variant="mesh"/);
   assert.match(mainLayoutViewSource, /<aside[\s\S]*data-testid=\{E2E_IDS\.shellSidebarRail\}/);
   assert.match(mainLayoutViewSource, /<MainLayoutSettingsMenu/);
@@ -34,8 +33,8 @@ test('W2 shell redesign: shell chrome tooltips and topbar use shared material la
   assert.match(mainLayoutTopbarSource, /import \{ Tooltip \} from '@nimiplatform\/kit\/ui';/);
   assert.match(mainLayoutTopbarSource, /SHELL_CHROME_ACTION_CELL_CLASS/);
   assert.match(mainLayoutTopbarSource, /SHELL_TOPBAR_ASSET_CELL_CLASS/);
-  assert.match(navConfigSource, /import \{ Surface \} from '@nimiplatform\/kit\/ui';/);
-  assert.match(navConfigSource, /<Surface[\s\S]*tone="overlay"[\s\S]*material="glass-thick"/);
-  assert.match(sidebarTooltipSource, /import \{ Surface \} from '@nimiplatform\/kit\/ui';/);
-  assert.match(sidebarTooltipSource, /<Surface[\s\S]*tone="overlay"[\s\S]*material="glass-thick"/);
+  assert.match(navConfigSource, /import \{ Tooltip \} from '@nimiplatform\/kit\/ui';/);
+  assert.match(navConfigSource, /<Tooltip[\s\S]*placement="right"[\s\S]*contentClassName=\{SHELL_CHROME_TOOLTIP_CLASS\}/);
+  assert.match(mainLayoutViewSource, /import \{ AmbientBackground, ScrollArea, Tooltip \} from '@nimiplatform\/kit\/ui';/);
+  assert.match(mainLayoutViewSource, /<Tooltip[\s\S]*placement="right"[\s\S]*contentClassName=\{SHELL_CHROME_TOOLTIP_CLASS\}/);
 });

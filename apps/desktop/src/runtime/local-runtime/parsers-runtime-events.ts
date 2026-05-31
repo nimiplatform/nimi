@@ -4,12 +4,9 @@ import type {
   LocalRuntimeAuditEvent,
   LocalRuntimeCatalogRecommendation,
   LocalRuntimeRecommendationActionState,
-  LocalRuntimeRecommendationFeedCapability,
-  LocalRuntimeRecommendationFeedCacheState,
   LocalRuntimeRecommendationFeedDescriptor,
   LocalRuntimeRecommendationFeedEntryDescriptor,
   LocalRuntimeRecommendationFeedItemDescriptor,
-  LocalRuntimeRecommendationFeedSource,
   LocalRuntimeRecommendationInstalledState,
   LocalRuntimeDownloadState,
   LocalRuntimeDownloadProgressEvent,
@@ -24,89 +21,54 @@ import type {
   LocalRuntimeUnregisteredAssetDescriptor,
 } from './types';
 import {
-  LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,
+  LOCAL_RECOMMENDATION_BASELINE_IDS,
+  LOCAL_RECOMMENDATION_CONFIDENCE_IDS,
+  LOCAL_RECOMMENDATION_FORMAT_IDS,
+  LOCAL_RECOMMENDATION_HOST_SUPPORT_CLASS_IDS,
+  LOCAL_RECOMMENDATION_SOURCE_IDS,
+  LOCAL_RECOMMENDATION_TIER_IDS,
+  parseLocalRecommendationBaselineId,
   parseLocalRecommendationFeedCapabilityId,
+  parseLocalRecommendationFeedCacheStateId,
+  parseLocalRecommendationFeedSourceId,
+  parseLocalRecommendationFormatId,
+  parseLocalRecommendationHostSupportClassId,
+  parseLocalRecommendationConfidenceId,
+  parseLocalRecommendationSourceId,
+  parseLocalRecommendationTierId,
 } from '@nimiplatform/sdk/runtime';
 import { asRecord, asString } from './parser-primitives';
 import { toCanonicalLocalId } from './local-id';
 import { normalizeAssetKind, normalizeAssetStatus } from './parsers';
 
-const RECOMMENDATION_SOURCES = new Set<LocalRuntimeCatalogRecommendation['source']>(['llmfit', 'media-fit']);
-const RECOMMENDATION_FORMATS = new Set<NonNullable<LocalRuntimeCatalogRecommendation['format']>>(['gguf', 'safetensors']);
-const RECOMMENDATION_TIERS = new Set<NonNullable<LocalRuntimeCatalogRecommendation['tier']>>([
-  'recommended',
-  'runnable',
-  'tight',
-  'not_recommended',
-]);
-const RECOMMENDATION_HOST_SUPPORT = new Set<NonNullable<LocalRuntimeCatalogRecommendation['hostSupportClass']>>([
-  'supported_supervised',
-  'attached_only',
-  'unsupported',
-]);
-const RECOMMENDATION_CONFIDENCE = new Set<NonNullable<LocalRuntimeCatalogRecommendation['confidence']>>([
-  'high',
-  'medium',
-  'low',
-]);
-const RECOMMENDATION_BASELINES = new Set<NonNullable<LocalRuntimeCatalogRecommendation['baseline']>>([
-  'image-default-v1',
-  'video-default-v1',
-]);
-const RECOMMENDATION_FEED_CAPABILITIES = new Set<LocalRuntimeRecommendationFeedCapability>(
-  LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,
-);
-const RECOMMENDATION_FEED_CACHE_STATES = new Set<LocalRuntimeRecommendationFeedCacheState>(['fresh', 'stale', 'empty']);
-const RECOMMENDATION_FEED_SOURCES = new Set<LocalRuntimeRecommendationFeedSource>(['model-index']);
+const RECOMMENDATION_SOURCES = new Set<LocalRuntimeCatalogRecommendation['source']>(LOCAL_RECOMMENDATION_SOURCE_IDS);
+const RECOMMENDATION_FORMATS = new Set<NonNullable<LocalRuntimeCatalogRecommendation['format']>>(LOCAL_RECOMMENDATION_FORMAT_IDS);
+const RECOMMENDATION_TIERS = new Set<NonNullable<LocalRuntimeCatalogRecommendation['tier']>>(LOCAL_RECOMMENDATION_TIER_IDS);
+const RECOMMENDATION_HOST_SUPPORT = new Set<NonNullable<LocalRuntimeCatalogRecommendation['hostSupportClass']>>(LOCAL_RECOMMENDATION_HOST_SUPPORT_CLASS_IDS);
+const RECOMMENDATION_CONFIDENCE = new Set<NonNullable<LocalRuntimeCatalogRecommendation['confidence']>>(LOCAL_RECOMMENDATION_CONFIDENCE_IDS);
+const RECOMMENDATION_BASELINES = new Set<NonNullable<LocalRuntimeCatalogRecommendation['baseline']>>(LOCAL_RECOMMENDATION_BASELINE_IDS);
 
 function parseEnumValue<T extends string>(value: unknown, allowed: Set<T>): T | undefined {
-  const normalized = normalizeRecommendationEnumValue(value, allowed) as T;
-  return allowed.has(normalized) ? normalized : undefined;
-}
-
-function normalizeRecommendationEnumValue<T extends string>(value: unknown, allowed: Set<T>): string {
-  const raw = asString(value);
-  const lower = raw.toLowerCase();
   if (allowed === RECOMMENDATION_SOURCES) {
-    if (raw === '1' || lower === 'local_recommendation_source_llmfit') return 'llmfit';
-    if (raw === '2' || lower === 'local_recommendation_source_media_fit') return 'media-fit';
+    return parseLocalRecommendationSourceId(value) as T | undefined;
   }
   if (allowed === RECOMMENDATION_FORMATS) {
-    if (raw === '1' || lower === 'local_recommendation_format_gguf') return 'gguf';
-    if (raw === '2' || lower === 'local_recommendation_format_safetensors') return 'safetensors';
+    return parseLocalRecommendationFormatId(value) as T | undefined;
   }
   if (allowed === RECOMMENDATION_TIERS) {
-    if (raw === '1' || lower === 'local_recommendation_tier_recommended') return 'recommended';
-    if (raw === '2' || lower === 'local_recommendation_tier_runnable') return 'runnable';
-    if (raw === '3' || lower === 'local_recommendation_tier_tight') return 'tight';
-    if (raw === '4' || lower === 'local_recommendation_tier_not_recommended') return 'not_recommended';
+    return parseLocalRecommendationTierId(value) as T | undefined;
   }
   if (allowed === RECOMMENDATION_HOST_SUPPORT) {
-    if (raw === '1' || lower === 'local_host_support_class_supported_supervised') return 'supported_supervised';
-    if (raw === '2' || lower === 'local_host_support_class_attached_only') return 'attached_only';
-    if (raw === '3' || lower === 'local_host_support_class_unsupported') return 'unsupported';
+    return parseLocalRecommendationHostSupportClassId(value) as T | undefined;
   }
   if (allowed === RECOMMENDATION_CONFIDENCE) {
-    if (raw === '1' || lower === 'local_recommendation_confidence_high') return 'high';
-    if (raw === '2' || lower === 'local_recommendation_confidence_medium') return 'medium';
-    if (raw === '3' || lower === 'local_recommendation_confidence_low') return 'low';
+    return parseLocalRecommendationConfidenceId(value) as T | undefined;
   }
   if (allowed === RECOMMENDATION_BASELINES) {
-    if (raw === '1' || lower === 'local_recommendation_baseline_image_default_v1') return 'image-default-v1';
-    if (raw === '2' || lower === 'local_recommendation_baseline_video_default_v1') return 'video-default-v1';
+    return parseLocalRecommendationBaselineId(value) as T | undefined;
   }
-  if (allowed === RECOMMENDATION_FEED_CAPABILITIES) {
-    return parseLocalRecommendationFeedCapabilityId(value) || raw;
-  }
-  if (allowed === RECOMMENDATION_FEED_CACHE_STATES) {
-    if (raw === '1' || lower === 'local_recommendation_feed_cache_state_fresh') return 'fresh';
-    if (raw === '2' || lower === 'local_recommendation_feed_cache_state_stale') return 'stale';
-    if (raw === '3' || lower === 'local_recommendation_feed_cache_state_empty') return 'empty';
-  }
-  if (allowed === RECOMMENDATION_FEED_SOURCES) {
-    if (raw === '1' || lower === 'local_recommendation_feed_source_model_index') return 'model-index';
-  }
-  return raw;
+  const normalized = asString(value);
+  return allowed.has(normalized as T) ? normalized as T : undefined;
 }
 
 function requiredEnumValue<T extends string>(
@@ -311,7 +273,7 @@ function parseRecommendationActionState(value: unknown): LocalRuntimeRecommendat
 export function parseRecommendationFeedItemDescriptor(value: unknown): LocalRuntimeRecommendationFeedItemDescriptor | undefined {
   const record = asRecord(value);
   const installPayload = asRecord(record.installPayload);
-  const source = parseEnumValue(record.source, RECOMMENDATION_FEED_SOURCES);
+  const source = parseLocalRecommendationFeedSourceId(record.source);
   const itemId = asString(record.itemId);
   const repo = asString(record.repo);
   const title = asString(record.title);
@@ -384,16 +346,14 @@ export function parseRecommendationFeedDescriptor(
   parseDeviceProfile: (value: unknown) => LocalRuntimeRecommendationFeedDescriptor['deviceProfile'],
 ): LocalRuntimeRecommendationFeedDescriptor {
   const record = asRecord(value);
-  const activeCapability = requiredEnumValue(
-    'recommendationFeed.activeCapability',
-    record.activeCapability,
-    RECOMMENDATION_FEED_CAPABILITIES,
-  );
-  const cacheState = requiredEnumValue(
-    'recommendationFeed.cacheState',
-    record.cacheState,
-    RECOMMENDATION_FEED_CACHE_STATES,
-  );
+  const activeCapability = parseLocalRecommendationFeedCapabilityId(record.activeCapability);
+  if (!activeCapability) {
+    throw new Error('Invalid local runtime field: recommendationFeed.activeCapability');
+  }
+  const cacheState = parseLocalRecommendationFeedCacheStateId(record.cacheState);
+  if (!cacheState) {
+    throw new Error('Invalid local runtime field: recommendationFeed.cacheState');
+  }
   return {
     deviceProfile: parseDeviceProfile(record.deviceProfile),
     activeCapability,

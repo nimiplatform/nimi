@@ -49,6 +49,7 @@ import {
 import type {
   DesktopAppLifecycleBridge,
   RuntimeAppInstallJob,
+  RuntimeAppStorageProjection,
   RuntimeAppUninstallInput,
   RuntimeAppUninstallResult,
 } from '../src/shell/renderer/features/apps/apps-lifecycle-bridge.js';
@@ -373,6 +374,20 @@ function uninstallJob(): RuntimeAppInstallJob {
   };
 }
 
+function storageProjection(appId = 'nimi.example-app'): RuntimeAppStorageProjection {
+  return {
+    appId,
+    state: 'ready',
+    appRoot: `/data/apps/${appId}`,
+    activeReleaseRoot: `/data/apps/${appId}/releases/1.0.0`,
+    durableDataRoot: `/data/apps/${appId}/data`,
+    cacheRoot: `/data/apps/${appId}/cache`,
+    tempRoot: `/data/apps/${appId}/tmp`,
+    activeVersion: '1.0.0',
+    storagePolicyRef: 'nimi-data-app-roots',
+  };
+}
+
 /**
  * A `DesktopAppLifecycleBridge` stub that records every `uninstall` input so
  * the data-retention proof can assert on the durable-data flags.
@@ -401,6 +416,9 @@ function recordingLifecycle(): {
     },
     async listJobs() {
       return [];
+    },
+    async storage(input) {
+      return storageProjection(input.appId);
     },
     async watchJobEvents() {
       return {

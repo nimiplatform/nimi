@@ -12,9 +12,12 @@ const walletPageSource = readSource('../src/shell/renderer/features/settings/set
 const exploreRecommendationSource = readSource('../src/shell/renderer/features/explore/explore-agent-recommendation-card.tsx');
 
 test('gift actions require loaded Realm transaction evidence', () => {
+  assert.match(giftBubbleSource, /loadRealmGiftTransaction/);
+  assert.match(giftBubbleSource, /from '@nimiplatform\/kit\/features\/commerce\/realm'/);
   assert.match(giftBubbleSource, /const hasRealmTransactionEvidence = Boolean\(tx\?\.id\)/);
   assert.match(giftBubbleSource, /txQuery\.isError \|\| !hasRealmTransactionEvidence/);
   assert.match(giftBubbleSource, /GiftBubble\.realmEvidenceRequired/);
+  assert.doesNotMatch(giftBubbleSource, /dataSync\.loadGiftTransaction/);
   assert.doesNotMatch(giftBubbleSource, /const isReceiver = tx \? tx\.receiverId === currentUserId : !isMe/);
 });
 

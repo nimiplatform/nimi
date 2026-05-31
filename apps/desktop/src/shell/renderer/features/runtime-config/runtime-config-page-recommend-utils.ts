@@ -5,8 +5,15 @@ import type {
 } from '@runtime/local-runtime';
 import {
   LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,
+  LOCAL_RECOMMENDATION_RUN_GRADE_IDS,
+  formatLocalRecommendationRepoOwner,
+  localRecommendationFeedMatchesQuery,
+  localRecommendationTierToRunGrade,
   normalizeLocalRecommendationFeedCapabilityId,
+  selectLocalRecommendationPrimaryEntrySize,
+  summarizeLocalRecommendationFeedCacheState,
   type LocalRecommendationFeedCapabilityId,
+  type LocalRecommendationRunGradeId,
 } from '@nimiplatform/sdk/runtime';
 import type { CapabilityV11 } from './runtime-config-state-types';
 
@@ -25,24 +32,12 @@ export type RecommendationFeedSections = {
 // Grade (display tier) — maps internal tiers to CanIRun-style labels
 // ---------------------------------------------------------------------------
 
-export type RecommendGrade = 'runs_great' | 'runs_well' | 'tight_fit' | 'not_recommended';
+export type RecommendGrade = LocalRecommendationRunGradeId;
 
-export const RECOMMEND_GRADES: RecommendGrade[] = [
-  'runs_great',
-  'runs_well',
-  'tight_fit',
-  'not_recommended',
-];
-
-const TIER_TO_GRADE: Record<string, RecommendGrade> = {
-  recommended: 'runs_great',
-  runnable: 'runs_well',
-  tight: 'tight_fit',
-  not_recommended: 'not_recommended',
-};
+export const RECOMMEND_GRADES: readonly RecommendGrade[] = LOCAL_RECOMMENDATION_RUN_GRADE_IDS;
 
 export function tierToGrade(tier?: LocalRuntimeCatalogRecommendation['tier']): RecommendGrade {
-  return TIER_TO_GRADE[tier || ''] || 'not_recommended';
+  return localRecommendationTierToRunGrade(tier);
 }
 
 export function gradeLabel(grade: RecommendGrade): string {
@@ -120,15 +115,7 @@ export function licenseColorClass(label: string): string {
 }
 
 export function formatRepoOwnerFromRepo(repo: string): string {
-  const org = repo.split('/')[0]?.trim() || '';
-  if (!org) {
-    return 'Unknown';
-  }
-  return org
-    .replace(/[_-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/\b\w/g, (segment) => segment.toUpperCase());
+  return formatLocalRecommendationRepoOwner(repo);
 }
 
 // ---------------------------------------------------------------------------
@@ -136,15 +123,7 @@ export function formatRepoOwnerFromRepo(repo: string): string {
 // ---------------------------------------------------------------------------
 
 export function primaryEntrySize(item: LocalRuntimeRecommendationFeedItemDescriptor): number {
-  const entries = item.entries;
-  if (!entries || entries.length === 0) return 0;
-  const recommended = item.recommendation?.recommendedEntry;
-  if (recommended) {
-    const match = entries.find((e) => e.entry === recommended);
-    if (match) return match.totalSizeBytes;
-  }
-  const first = entries[0];
-  return first ? first.totalSizeBytes : 0;
+  return selectLocalRecommendationPrimaryEntrySize(item);
 }
 
 export function computeVramPercentage(
@@ -340,21 +319,7 @@ export function recommendationFeedMatchesQuery(
   item: LocalRuntimeRecommendationFeedItemDescriptor,
   query: string,
 ): boolean {
-  const normalized = String(query || '').trim().toLowerCase();
-  if (!normalized) {
-    return true;
-  }
-  const fields = [
-    item.title,
-    item.repo,
-    item.description,
-    item.installPayload.modelId,
-    item.recommendation?.recommendedEntry,
-    ...(item.tags || []),
-    ...(item.capabilities || []),
-    ...(item.formats || []),
-  ];
-  return fields.some((value) => String(value || '').toLowerCase().includes(normalized));
+  return localRecommendationFeedMatchesQuery(item, query);
 }
 
 export function filterRecommendationFeedItems(
@@ -400,8 +365,5 @@ export function splitRecommendationFeedItems(
 export function recommendationFeedCacheSummary(
   feed: LocalRuntimeRecommendationFeedDescriptor | null,
 ): 'fresh' | 'stale' | 'empty' {
-  if (!feed) {
-    return 'empty';
-  }
-  return feed.cacheState;
+  return summarizeLocalRecommendationFeedCacheState(feed);
 }

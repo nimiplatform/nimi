@@ -6,8 +6,8 @@
 //!
 //! This file is a READ-ONLY projection of Platform catalog truth. It is
 //! regenerated deterministically from the packaged Platform Nimi App registry
-//! catalog (`platform_nimi_app_registry.rs`, itself generated from
-//! `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml` +
+//! catalog (`nimi_shell_tauri::platform_catalog::nimi_app_registry`, itself
+//! generated from `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml` +
 //! `nimi-app-release-descriptors.yaml`). It is never hand-edited.
 //!
 //! It is the source the Desktop Apps bridge reads — `generated.ts` is retired
@@ -21,104 +21,29 @@
 //! consuming bridge transport.
 
 use crate::desktop_paths::resolve_nimi_dir;
-use crate::local_config_migration::{
-    read_governed_config, ConfigReadOutcome, GovernedConfigFile, MigrationRegistry,
+use nimi_shell_tauri::governed_config::{
+    read_governed_config, write_governed_json_config, ConfigReadOutcome, GovernedConfigFile,
 };
-use crate::platform_nimi_app_registry::{
-    resolve_release_descriptor, PlatformNimiAppRegistryRow, PLATFORM_NIMI_APP_REGISTRY_CATALOG_ID,
-    PLATFORM_NIMI_APP_REGISTRY_CATALOG_VERSION, PLATFORM_NIMI_APP_REGISTRY_ROWS,
+use nimi_shell_tauri::platform_projection::apps_registry::{
+    build_apps_registry_record, validate_apps_registry_record, AppsRegistryRecord,
+    APPS_REGISTRY_POINTER, APPS_REGISTRY_SCHEMA_VERSION,
 };
-use serde::{Deserialize, Serialize};
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
-
-/// Supported `~/.nimi/apps/registry.json` schema version. An unknown future
-/// version or an old version with no registered migration fails closed to a
-/// typed repair outcome through the `local_config_migration` framework
-/// (`P-MIG-002`).
-pub const APPS_REGISTRY_SCHEMA_VERSION: u32 = 1;
+use serde::Serialize;
+use std::path::PathBuf;
 
 /// Governed config-file identity for `~/.nimi/apps/registry.json`
 /// (`local-config-file-registry.yaml` row `registry_json`).
-const REGISTRY_CONFIG_FILE: GovernedConfigFile =
-    GovernedConfigFile::new("registry_json", "~/.nimi/apps/registry.json");
-
-/// The shared-framework migration registry for `~/.nimi/apps/registry.json`.
-///
-/// The registry projection is a deterministic read-only derivation of the
-/// packaged Platform catalog: a schema bump's forward migration is owned by
-/// the registry's T4 schema owner and registered here. No version has been
-/// bumped yet, so the ordered step set is empty — a file found below the
-/// current version then correctly fails closed to repair (`P-MIG-002`), and
-/// the repair action for this projection is the deterministic
-/// [`ensure_apps_registry`] regeneration.
-const REGISTRY_MIGRATIONS: MigrationRegistry =
-    MigrationRegistry::new("registry_json", APPS_REGISTRY_SCHEMA_VERSION, &[]);
-
-/// `~/.nimi`-relative location of the registry projection. This is the manual
-/// `~/.nimi/nimi.json` `pointers.appRegistry` value.
-pub const APPS_REGISTRY_POINTER: &str = "apps/registry.json";
-
-/// Closed product-level row `installState` vocabulary. T4-W1 owns config truth
-/// only; the actual install/open/update/uninstall lifecycle is T4-W2. The
-/// registry projection records the admission-derived baseline state.
-const INSTALL_STATE_NOT_INSTALLED: &str = "not_installed";
-const INSTALL_STATE_BUNDLED: &str = "bundled";
-const INSTALL_STATE_BLOCKED: &str = "blocked";
-
-/// Closed product-level `visibility` vocabulary projected from the catalog
-/// `ordinary_visibility` axis.
-const VISIBILITY_ORDINARY: &str = "ordinary";
-const VISIBILITY_HIDDEN_INTERNAL: &str = "hidden-internal";
-const VISIBILITY_DEVELOPER_ONLY: &str = "developer-only";
-const VISIBILITY_NOT_ADMITTED: &str = "not-admitted-visible";
-
-/// One projected Nimi App registry row. The minimum product fields are fixed by
-/// the manual `~/.nimi/apps/registry.json` schema:
-/// `appId, displayName, visibility, trustTier, installState, packageRef,
-/// manifestRef, recommendedProfileRef, requirementsRef`.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct AppsRegistryRow {
-    pub app_id: String,
-    pub display_name: String,
-    pub visibility: String,
-    pub trust_tier: String,
-    pub install_state: String,
-    pub package_ref: String,
-    pub manifest_ref: String,
-    pub recommended_profile_ref: Option<String>,
-    pub requirements_ref: String,
-}
-
-/// `~/.nimi/apps/registry.json` record shape.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct AppsRegistryRecord {
-    pub schema_version: u32,
-    pub catalog_id: String,
-    pub catalog_version: u32,
-    pub updated_at: String,
-    pub apps: Vec<AppsRegistryRow>,
-}
+const REGISTRY_CONFIG_FILE: GovernedConfigFile = GovernedConfigFile::new(
+    "registry_json",
+    "~/.nimi/apps/registry.json",
+    APPS_REGISTRY_SCHEMA_VERSION,
+);
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppsRegistryProjection {
     pub path: String,
     pub record: AppsRegistryRecord,
-}
-
-fn now_iso_timestamp() -> String {
-    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
-}
-
-fn now_unix_ms() -> u128 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis()
 }
 
 /// On-disk path of the installed registry projection, fixed under the `~/.nimi`
@@ -131,212 +56,8 @@ pub fn apps_registry_path() -> Result<PathBuf, String> {
     Ok(path)
 }
 
-/// Project the catalog `ordinary_visibility` axis onto the product-facing
-/// `visibility` field. Avatar stays `hidden-internal`.
-/// `developer-only` — neither is ever projected as `ordinary`.
-fn project_visibility(ordinary_visibility: &str) -> Result<&'static str, String> {
-    match ordinary_visibility {
-        "ordinary-visible" => Ok(VISIBILITY_ORDINARY),
-        "hidden-internal" => Ok(VISIBILITY_HIDDEN_INTERNAL),
-        "developer-only" => Ok(VISIBILITY_DEVELOPER_ONLY),
-        "not-admitted-visible" => Ok(VISIBILITY_NOT_ADMITTED),
-        other => Err(format!(
-            "Nimi App registry row has an unknown ordinary_visibility: {other}"
-        )),
-    }
-}
-
-/// Derive the registry projection `installState` baseline from the catalog row.
-///
-/// A bundled-with-nimi descriptor is installed with the atomic Nimi release; an
-/// admitted externally-installable app is `not_installed` until T4-W2 install
-/// lands; an app whose admission is gated routes to `blocked`.
-fn project_install_state(row: &PlatformNimiAppRegistryRow) -> Result<&'static str, String> {
-    let descriptor = resolve_release_descriptor(row.release_descriptor_ref).ok_or_else(|| {
-        format!(
-            "Nimi App registry row {} release descriptor does not resolve: {}",
-            row.app_id, row.release_descriptor_ref
-        )
-    })?;
-    match row.admission_status {
-        "admitted" => {
-            if descriptor.descriptor_class == "bundled-with-nimi" {
-                Ok(INSTALL_STATE_BUNDLED)
-            } else {
-                Ok(INSTALL_STATE_NOT_INSTALLED)
-            }
-        }
-        "gated_by_avatar_master_gate" | "pending_wave_4" | "deferred" | "retired" => {
-            Ok(INSTALL_STATE_BLOCKED)
-        }
-        other => Err(format!(
-            "Nimi App registry row {} has an unknown admission_status: {other}",
-            row.app_id
-        )),
-    }
-}
-
-fn project_row(row: &PlatformNimiAppRegistryRow) -> Result<AppsRegistryRow, String> {
-    let descriptor = resolve_release_descriptor(row.release_descriptor_ref).ok_or_else(|| {
-        format!(
-            "Nimi App registry row {} release descriptor does not resolve: {}",
-            row.app_id, row.release_descriptor_ref
-        )
-    })?;
-    if descriptor.app_id != row.app_id {
-        return Err(format!(
-            "Nimi App registry row {} release descriptor resolves to a different app: {}",
-            row.app_id, descriptor.app_id
-        ));
-    }
-    if descriptor.storage_policy_ref != row.install_storage_policy_ref {
-        return Err(format!(
-            "Nimi App registry row {} install storage policy does not match release descriptor",
-            row.app_id
-        ));
-    }
-    Ok(AppsRegistryRow {
-        app_id: row.app_id.to_string(),
-        display_name: row.display_name.to_string(),
-        visibility: project_visibility(row.ordinary_visibility)?.to_string(),
-        trust_tier: row.trust_tier.to_string(),
-        install_state: project_install_state(row)?.to_string(),
-        package_ref: row.release_descriptor_ref.to_string(),
-        // The Platform release descriptor is the installable-version manifest
-        // for the app; the registry projection points the manifestRef at the
-        // same admitted descriptor identity. App-local manifest validation is
-        // an app-first-launch concern (T4-W3), not this projection.
-        manifest_ref: row.release_descriptor_ref.to_string(),
-        // T4-W1 owns config truth only. The recommended AIProfile binding for an
-        // app is resolved by app first-launch (T4-W3); the registry projection
-        // does not embed it.
-        recommended_profile_ref: None,
-        // The Platform catalog `source_rule` is the requirements-admission
-        // anchor for the row; T4-W1 records the ref, not the resolved
-        // requirement set.
-        requirements_ref: row.source_rule.to_string(),
-    })
-}
-
-/// Build the registry projection record from the packaged Platform Nimi App
-/// registry catalog. The record is derived purely from catalog truth — no row
-/// is invented and no user state is read.
-pub fn build_apps_registry_record() -> Result<AppsRegistryRecord, String> {
-    let mut apps = Vec::with_capacity(PLATFORM_NIMI_APP_REGISTRY_ROWS.len());
-    for row in PLATFORM_NIMI_APP_REGISTRY_ROWS {
-        apps.push(project_row(row)?);
-    }
-    if apps.is_empty() {
-        return Err("Platform Nimi App registry catalog projected zero rows".to_string());
-    }
-    Ok(AppsRegistryRecord {
-        schema_version: APPS_REGISTRY_SCHEMA_VERSION,
-        catalog_id: PLATFORM_NIMI_APP_REGISTRY_CATALOG_ID.to_string(),
-        catalog_version: PLATFORM_NIMI_APP_REGISTRY_CATALOG_VERSION,
-        updated_at: now_iso_timestamp(),
-        apps,
-    })
-}
-
-/// Structural validation of a registry record.
-///
-/// `schemaVersion` fail-closed / migration routing is owned by the
-/// `local_config_migration` framework (`P-MIG-002`); by the time this runs the
-/// document is already at `APPS_REGISTRY_SCHEMA_VERSION`. This is a defensive
-/// post-migration assertion plus the field-level structural checks. A failure
-/// here routes the read to `repair_required` via the framework, never a raw
-/// `Err` at the renderer boundary.
-fn validate_record(record: &AppsRegistryRecord) -> Result<(), String> {
-    if record.schema_version != APPS_REGISTRY_SCHEMA_VERSION {
-        return Err(format!(
-            "unsupported ~/.nimi/apps/registry.json schemaVersion={} expected={APPS_REGISTRY_SCHEMA_VERSION}",
-            record.schema_version
-        ));
-    }
-    if record.catalog_id.trim().is_empty() {
-        return Err("~/.nimi/apps/registry.json catalogId is required".to_string());
-    }
-    if record.updated_at.trim().is_empty() {
-        return Err("~/.nimi/apps/registry.json updatedAt is required".to_string());
-    }
-    if record.apps.is_empty() {
-        return Err("~/.nimi/apps/registry.json must project at least one app row".to_string());
-    }
-    for app in &record.apps {
-        if app.app_id.trim().is_empty() {
-            return Err("~/.nimi/apps/registry.json app row requires appId".to_string());
-        }
-        if app.display_name.trim().is_empty() {
-            return Err(format!(
-                "~/.nimi/apps/registry.json app row {} requires displayName",
-                app.app_id
-            ));
-        }
-        if !matches!(
-            app.visibility.as_str(),
-            VISIBILITY_ORDINARY
-                | VISIBILITY_HIDDEN_INTERNAL
-                | VISIBILITY_DEVELOPER_ONLY
-                | VISIBILITY_NOT_ADMITTED
-        ) {
-            return Err(format!(
-                "~/.nimi/apps/registry.json app row {} has an unknown visibility: {}",
-                app.app_id, app.visibility
-            ));
-        }
-        if !matches!(
-            app.install_state.as_str(),
-            INSTALL_STATE_NOT_INSTALLED | INSTALL_STATE_BUNDLED | INSTALL_STATE_BLOCKED
-        ) {
-            return Err(format!(
-                "~/.nimi/apps/registry.json app row {} has an unknown installState: {}",
-                app.app_id, app.install_state
-            ));
-        }
-        if app.package_ref.trim().is_empty()
-            || app.manifest_ref.trim().is_empty()
-            || app.requirements_ref.trim().is_empty()
-        {
-            return Err(format!(
-                "~/.nimi/apps/registry.json app row {} requires packageRef, manifestRef, and requirementsRef",
-                app.app_id
-            ));
-        }
-    }
-    Ok(())
-}
-
-fn write_record(path: &Path, record: &AppsRegistryRecord) -> Result<(), String> {
-    validate_record(record)?;
-    let parent = path
-        .parent()
-        .ok_or_else(|| "~/.nimi/apps/registry.json path has no parent directory".to_string())?;
-    fs::create_dir_all(parent).map_err(|error| {
-        format!(
-            "create ~/.nimi/apps directory failed ({}): {error}",
-            parent.display()
-        )
-    })?;
-    let raw = serde_json::to_string_pretty(record)
-        .map_err(|error| format!("serialize ~/.nimi/apps/registry.json failed: {error}"))?;
-    let tmp_path =
-        path.with_extension(format!("json.tmp.{}.{}", std::process::id(), now_unix_ms()));
-    fs::write(&tmp_path, raw).map_err(|error| {
-        format!(
-            "write ~/.nimi/apps/registry.json temporary file failed ({}): {error}",
-            tmp_path.display()
-        )
-    })?;
-    fs::rename(&tmp_path, path).map_err(|error| {
-        format!(
-            "commit ~/.nimi/apps/registry.json failed ({}): {error}",
-            path.display()
-        )
-    })
-}
-
 /// Read the installed registry projection through the shared `~/.nimi`
-/// migration / repair framework.
+/// current-schema repair framework.
 ///
 /// Routes a parse failure, a missing / unknown `schemaVersion`, or a structural
 /// fault to a typed `ConfigReadOutcome::Repair` (`P-MIG-004`) instead of a raw
@@ -346,17 +67,12 @@ fn write_record(path: &Path, record: &AppsRegistryRecord) -> Result<(), String> 
 /// file is faulted and was left intact for a guided repair.
 pub fn read_apps_registry_governed() -> Result<ConfigReadOutcome<AppsRegistryRecord>, String> {
     let path = apps_registry_path()?;
-    read_governed_config(
-        &REGISTRY_CONFIG_FILE,
-        &path,
-        &REGISTRY_MIGRATIONS,
-        |document| {
-            let record: AppsRegistryRecord = serde_json::from_value(document.clone())
-                .map_err(|error| format!("registry projection cannot be deserialized: {error}"))?;
-            validate_record(&record)?;
-            Ok(record)
-        },
-    )
+    read_governed_config(&REGISTRY_CONFIG_FILE, &path, |document| {
+        let record: AppsRegistryRecord = serde_json::from_value(document.clone())
+            .map_err(|error| format!("registry projection cannot be deserialized: {error}"))?;
+        validate_apps_registry_record(&record)?;
+        Ok(record)
+    })
 }
 
 /// Read the installed registry projection, if present.
@@ -381,7 +97,7 @@ pub fn read_apps_registry() -> Result<Option<AppsRegistryRecord>, String> {
 pub fn ensure_apps_registry() -> Result<AppsRegistryProjection, String> {
     let path = apps_registry_path()?;
     let record = build_apps_registry_record()?;
-    write_record(&path, &record)?;
+    write_governed_json_config(&path, &record, validate_apps_registry_record)?;
     Ok(AppsRegistryProjection {
         path: path.display().to_string(),
         record,
@@ -395,8 +111,9 @@ mod tests {
         read_apps_registry_governed, AppsRegistryRecord, APPS_REGISTRY_POINTER,
         APPS_REGISTRY_SCHEMA_VERSION,
     };
-    use crate::local_config_migration::{ConfigReadOutcome, ConfigRepairSeverity};
     use crate::test_support::with_env;
+    use nimi_shell_tauri::governed_config::{ConfigReadOutcome, ConfigRepairSeverity};
+    use nimi_shell_tauri::platform_catalog::nimi_app_registry::PLATFORM_NIMI_APP_REGISTRY_ROWS;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -413,10 +130,7 @@ mod tests {
     #[test]
     fn projection_sources_every_catalog_row_without_inventing_rows() {
         let record = build_apps_registry_record().expect("record");
-        assert_eq!(
-            record.apps.len(),
-            super::PLATFORM_NIMI_APP_REGISTRY_ROWS.len()
-        );
+        assert_eq!(record.apps.len(), PLATFORM_NIMI_APP_REGISTRY_ROWS.len());
         assert_eq!(record.schema_version, APPS_REGISTRY_SCHEMA_VERSION);
     }
 

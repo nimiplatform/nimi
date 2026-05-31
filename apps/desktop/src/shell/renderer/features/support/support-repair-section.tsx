@@ -18,7 +18,7 @@ import {
 import {
   NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION,
   type NimiDataCleanupPlan,
-} from '@renderer/bridge/runtime-bridge/nimi-data-migration';
+} from '@renderer/bridge/runtime-bridge/nimi-data-directory';
 import { useSupportProjection } from './support-projection.js';
 import {
   SupportCard,

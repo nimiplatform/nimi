@@ -1,8 +1,8 @@
 // Desktop Apps bridge projection client.
 //
 // T4 Fork C: the Desktop Apps bridge reads the runtime `~/.nimi/apps`
-// projections (`registry.json` + `packages.json`) — not the build-time
-// `apps/desktop/src/runtime/platform-catalog/generated.ts` catalog. This
+// projections (`registry.json` + `packages.json`) — not the SDK Platform
+// catalog fixture. This
 // module is the renderer half of that seam: it invokes the
 // `apps_bridge_projection_get` Tauri command, which materializes both
 // `~/.nimi/apps` projections from catalog + Runtime install-evidence truth and
@@ -190,17 +190,6 @@ function parseInstallEvidenceRow(value: unknown, index: number): NimiAppInstallE
   if (!VERIFICATION_STATES.has(verificationState as NimiAppInstallVerificationState)) {
     throw new Error(`installEvidence[${index}].verificationState is invalid: ${verificationState}`);
   }
-  const storageRootsRaw = record.storageRoots;
-  let storageRoots: NimiAppInstallEvidenceRow['storageRoots'];
-  if (storageRootsRaw != null) {
-    const roots = asRecord(storageRootsRaw, `installEvidence[${index}].storageRoots`);
-    storageRoots = {
-      releaseRoot: requireString(roots.releaseRoot, `installEvidence[${index}].storageRoots.releaseRoot`),
-      dataRoot: requireString(roots.dataRoot, `installEvidence[${index}].storageRoots.dataRoot`),
-      cacheRoot: requireString(roots.cacheRoot, `installEvidence[${index}].storageRoots.cacheRoot`),
-      tempRoot: requireString(roots.tempRoot, `installEvidence[${index}].storageRoots.tempRoot`),
-    };
-  }
   return {
     appId: requireString(record.appId, `installEvidence[${index}].appId`),
     releaseDescriptorRef: requireString(
@@ -214,7 +203,6 @@ function parseInstallEvidenceRow(value: unknown, index: number): NimiAppInstallE
     installedVersion: optionalString(record.installedVersion),
     sha256: optionalString(record.sha256),
     verificationState: verificationState as NimiAppInstallVerificationState,
-    storageRoots,
   };
 }
 

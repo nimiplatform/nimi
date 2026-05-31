@@ -1,14 +1,10 @@
-import type { NimiError, NimiErrorSource } from '@nimiplatform/sdk/types';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import {
+  isRealmOfflineReasonCode,
+  isRuntimeOfflineReasonCode,
+  type NimiError,
+  type NimiErrorSource,
+} from '@nimiplatform/sdk/types';
 import { asRecord } from '@runtime/net/json';
-
-const REALM_OFFLINE_REASON_CODES = new Set<string>([
-  ReasonCode.REALM_UNAVAILABLE,
-]);
-
-const RUNTIME_OFFLINE_REASON_CODES = new Set<string>([
-  ReasonCode.RUNTIME_UNAVAILABLE,
-]);
 
 function randomTraceId(): string {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
@@ -36,7 +32,7 @@ export function isNimiErrorLike(error: unknown): error is NimiError {
 
 export function isRealmOfflineError(error: unknown): boolean {
   if (isNimiErrorLike(error)) {
-    return REALM_OFFLINE_REASON_CODES.has(error.reasonCode);
+    return isRealmOfflineReasonCode(error.reasonCode);
   }
   const message = getErrorMessage(error, '');
   return /REALM_UNAVAILABLE|network|fetch failed|failed to fetch|load failed|timeout/i.test(message);
@@ -44,7 +40,7 @@ export function isRealmOfflineError(error: unknown): boolean {
 
 export function isRuntimeOfflineError(error: unknown): boolean {
   if (isNimiErrorLike(error)) {
-    return Boolean(error.retryable) || RUNTIME_OFFLINE_REASON_CODES.has(error.reasonCode);
+    return Boolean(error.retryable) || isRuntimeOfflineReasonCode(error.reasonCode);
   }
   const message = getErrorMessage(error, '');
   return /RUNTIME_UNAVAILABLE|runtime unavailable|daemon unavailable|bridge unavailable/i.test(message);

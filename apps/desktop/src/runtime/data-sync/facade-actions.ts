@@ -1,5 +1,5 @@
 import type { PasswordAuthDebug } from './auth';
-import type { Realm, RequestAccountDeletionInput, RequestAccountDeletionOutput, RequestDataExportInput, RequestDataExportOutput } from '@nimiplatform/sdk/realm';
+import type { Realm } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { loginWithPassword, logoutWithCleanup, registerWithPassword } from './flows/auth-flow';
 import {
@@ -39,13 +39,9 @@ type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 type CreateReviewDto = RealmModel<'CreateReviewDto'>;
 type CreateSparkCheckoutDto = RealmModel<'CreateSparkCheckoutDto'>;
 type CreateWithdrawalDto = RealmModel<'CreateWithdrawalDto'>;
-type NotificationDto = RealmModel<'NotificationDto'>;
-type NotificationListResultDto = RealmModel<'NotificationListResultDto'>;
 type UpdatePasswordRequestDto = RealmModel<'UpdatePasswordRequestDto'>;
 type UpdateUserNotificationSettingsDto = RealmModel<'UpdateUserNotificationSettingsDto'>;
 type UpdateUserSettingsDto = RealmModel<'UpdateUserSettingsDto'>;
-type UnreadNotificationCountDto = RealmModel<'UnreadNotificationCountDto'>;
-type MarkNotificationsReadInputDto = RealmModel<'MarkNotificationsReadInputDto'>;
 type RejectGiftDto = RealmModel<'RejectGiftDto'>;
 type SendGiftDto = RealmModel<'SendGiftDto'>;
 import {
@@ -103,7 +99,6 @@ import {
   createWithdrawal,
   loadGemTransactionHistory,
   loadGiftCatalog,
-  loadGiftTransaction,
   loadReceivedGifts,
   loadSparkPackages,
   loadCurrencyBalances,
@@ -114,12 +109,6 @@ import {
   rejectGift,
   sendGift,
 } from './flows/economy-notification-flow';
-import {
-  loadNotificationUnreadCount,
-  loadNotifications,
-  markNotificationRead,
-  markNotificationsRead,
-} from './flows/notification-flow';
 import {
   createReport,
   createImageDirectUpload,
@@ -143,8 +132,6 @@ import {
   loadMyNotificationSettings,
   loadMySettings,
   prepareTwoFactor,
-  requestAccountDeletion,
-  requestDataExport,
   unlinkOauth,
   updatePassword,
   updateMyNotificationSettings,
@@ -169,8 +156,6 @@ type CreateDataSyncActionsInput = {
   isFriend: (userId: string) => boolean;
   getCurrentUser: () => Record<string, unknown> | null;
 };
-
-type DataSyncNotificationType = NonNullable<NotificationDto['type']>;
 
 export function createDataSyncActions(input: CreateDataSyncActionsInput) {
   const loadContacts = async () => loadContactList(input.callApiTask, input.emitFacadeError);
@@ -430,8 +415,6 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       createWithdrawal(input.callApiTask, input.emitFacadeError, payload),
     loadGiftCatalog: async () =>
       loadGiftCatalog(input.callApiTask, input.emitFacadeError),
-    loadGiftTransaction: async (id: string) =>
-      loadGiftTransaction(input.callApiTask, input.emitFacadeError, id),
     loadReceivedGifts: async (limit = 20, cursor?: string) =>
       loadReceivedGifts(input.callApiTask, input.emitFacadeError, limit, cursor),
     sendGift: async (payload: SendGiftDto) =>
@@ -442,21 +425,6 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       rejectGift(input.callApiTask, input.emitFacadeError, giftTransactionId, payload),
     createGiftReview: async (payload: CreateReviewDto) =>
       createGiftReview(input.callApiTask, input.emitFacadeError, payload),
-    loadNotificationUnreadCount: async (): Promise<UnreadNotificationCountDto> =>
-      loadNotificationUnreadCount(input.callApiTask, input.emitFacadeError),
-    loadNotifications: async (
-      options?: {
-        type?: DataSyncNotificationType;
-        unreadOnly?: boolean;
-        limit?: number;
-        cursor?: string;
-      },
-    ): Promise<NotificationListResultDto> =>
-      loadNotifications(input.callApiTask, input.emitFacadeError, options),
-    markNotificationsRead: async (payload: MarkNotificationsReadInputDto) =>
-      markNotificationsRead(input.callApiTask, input.emitFacadeError, payload),
-    markNotificationRead: async (notificationId: string) =>
-      markNotificationRead(input.callApiTask, input.emitFacadeError, notificationId),
     loadMySettings: async () =>
       loadMySettings(input.callApiTask, input.emitFacadeError),
     updateMySettings: async (payload: UpdateUserSettingsDto) =>
@@ -479,12 +447,6 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       linkOauth(input.callApiTask, input.emitFacadeError, provider, accessToken),
     unlinkOauth: async (provider: OAuthProvider) =>
       unlinkOauth(input.callApiTask, input.emitFacadeError, provider),
-    requestDataExport: async (payload: RequestDataExportInput): Promise<RequestDataExportOutput> =>
-      requestDataExport(input.callApiTask, input.emitFacadeError, payload),
-    requestAccountDeletion: async (
-      payload: RequestAccountDeletionInput,
-    ): Promise<RequestAccountDeletionOutput> =>
-      requestAccountDeletion(input.callApiTask, input.emitFacadeError, payload),
     loadAgentDetails: async (agentIdentifier: string) =>
       loadAgentDetails(input.callApiTask, input.emitFacadeError, agentIdentifier, {
         viewerUserId: String(input.getCurrentUser()?.id || '').trim() || undefined,

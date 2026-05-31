@@ -1,4 +1,4 @@
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import { resolveRealmMediaUrl, type RealmModel } from '@nimiplatform/sdk/realm';
 
 type PostDto = RealmModel<'PostDto'>;
 export type MediaDisplayKind = 'IMAGE' | 'VIDEO';
@@ -36,21 +36,6 @@ export function resolveRenderableMediaAttachment(
     : null;
 }
 
-function resolveRealmMediaPath(realmBaseUrl: string, path: string): string | undefined {
-  const normalizedBase = String(realmBaseUrl || '').trim().replace(/\/$/, '');
-  const normalizedPath = String(path || '').trim();
-  if (!normalizedPath) {
-    return undefined;
-  }
-  if (/^https?:\/\//i.test(normalizedPath)) {
-    return normalizedPath;
-  }
-  if (normalizedPath.startsWith('/')) {
-    return normalizedBase ? `${normalizedBase}${normalizedPath}` : undefined;
-  }
-  return normalizedPath;
-}
-
 export function resolveMediaUrl(
   media: PostDto['attachments'][number] | null | undefined,
   realmBaseUrl: string,
@@ -59,7 +44,7 @@ export function resolveMediaUrl(
   if (!renderable) {
     return undefined;
   }
-  const directUrl = resolveRealmMediaPath(realmBaseUrl, renderable.url || '');
+  const directUrl = resolveRealmMediaUrl({ realmBaseUrl, mediaUrl: renderable.url || '' });
   if (directUrl) {
     return directUrl;
   }
@@ -74,7 +59,7 @@ export function resolveMediaThumbnailUrl(
   if (!renderable) {
     return undefined;
   }
-  return resolveRealmMediaPath(realmBaseUrl, renderable.thumbnail || '');
+  return resolveRealmMediaUrl({ realmBaseUrl, mediaUrl: renderable.thumbnail || '' });
 }
 
 export function resolveVideoPlaybackSource(rawUrl?: string): VideoPlaybackSource | null {

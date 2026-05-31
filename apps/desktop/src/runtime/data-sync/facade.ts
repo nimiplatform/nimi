@@ -1,8 +1,8 @@
 import { withRealmContextLock } from '@nimiplatform/sdk';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import type { RealmTokenRefreshResult, RequestAccountDeletionInput, RequestAccountDeletionOutput, RequestDataExportInput, RequestDataExportOutput } from '@nimiplatform/sdk/realm';
+import type { RealmTokenRefreshResult } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { Realm } from '@nimiplatform/sdk/realm';
+import { Realm, normalizeRealmBaseUrl } from '@nimiplatform/sdk/realm';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import { extractRuntimeErrorFields } from '@runtime/telemetry/error-fields';
 import {
@@ -16,7 +16,7 @@ import type {
   WorldBindingListPayload,
   WorldSceneListPayload,
 } from './flows/world-flow';
-import { normalizeRealmBaseUrl, normalizeApiError, tryParseJsonLike } from './api-core';
+import { normalizeApiError, tryParseJsonLike } from './api-core';
 import type { PasswordAuthDebug } from './auth';
 import { readDataSyncHotState, writeDataSyncHotState } from './facade-hot-state';
 import { DataSyncPollingManager } from './polling-manager';
@@ -51,11 +51,8 @@ type ResourceDetailDto = RealmModel<'ResourceDetailDto'>;
 type CreateReviewDto = RealmModel<'CreateReviewDto'>;
 type CreateSparkCheckoutDto = RealmModel<'CreateSparkCheckoutDto'>;
 type CreateWithdrawalDto = RealmModel<'CreateWithdrawalDto'>;
-type GiftTransactionRichDto = RealmModel<'GiftTransactionRichDto'>;
 type MeTwoFactorPrepareOutput = RealmModel<'MeTwoFactorPrepareOutput'>;
 type MeTwoFactorVerifyInput = RealmModel<'MeTwoFactorVerifyInput'>;
-type NotificationDto = RealmModel<'NotificationDto'>;
-type NotificationListResultDto = RealmModel<'NotificationListResultDto'>;
 type OAuthProvider = RealmModel<'OAuthProvider'>;
 type RejectGiftDto = RealmModel<'RejectGiftDto'>;
 type ReceivedGiftsResponseDto = RealmModel<'ReceivedGiftsResponseDto'>;
@@ -65,7 +62,6 @@ type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 type SparkCheckoutSessionDto = RealmModel<'SparkCheckoutSessionDto'>;
 type SparkPackageDto = RealmModel<'SparkPackageDto'>;
-type UnreadNotificationCountDto = RealmModel<'UnreadNotificationCountDto'>;
 type UpdatePasswordRequestDto = RealmModel<'UpdatePasswordRequestDto'>;
 type UpdateUserNotificationSettingsDto = RealmModel<'UpdateUserNotificationSettingsDto'>;
 type UpdateUserSettingsDto = RealmModel<'UpdateUserSettingsDto'>;
@@ -81,8 +77,6 @@ export type DataSyncAuthCallbacks = {
   getCurrentUser: () => Record<string, unknown> | null;
   isFriend: (userId: string) => boolean;
 };
-
-type DataSyncNotificationType = NonNullable<NotificationDto['type']>;
 
 export class DataSync {
   private realmBaseUrl = '';
@@ -471,7 +465,6 @@ export class DataSync {
   }
   createWithdrawal(payload: CreateWithdrawalDto) { return this.actions.createWithdrawal(payload); }
   loadGiftCatalog() { return this.actions.loadGiftCatalog(); }
-  loadGiftTransaction(id: string): Promise<GiftTransactionRichDto> { return this.actions.loadGiftTransaction(id); }
   loadReceivedGifts(limit = 20, cursor?: string): Promise<ReceivedGiftsResponseDto> {
     return this.actions.loadReceivedGifts(limit, cursor);
   }
@@ -481,17 +474,6 @@ export class DataSync {
     return this.actions.rejectGift(giftTransactionId, payload);
   }
   createGiftReview(payload: CreateReviewDto) { return this.actions.createGiftReview(payload); }
-  loadNotificationUnreadCount(): Promise<UnreadNotificationCountDto> { return this.actions.loadNotificationUnreadCount(); }
-  loadNotifications(options?: {
-    type?: DataSyncNotificationType;
-    unreadOnly?: boolean;
-    limit?: number;
-    cursor?: string;
-  }): Promise<NotificationListResultDto> { return this.actions.loadNotifications(options); }
-  markNotificationsRead(payload: { ids?: string[]; markAllBefore?: string }) {
-    return this.actions.markNotificationsRead(payload);
-  }
-  markNotificationRead(notificationId: string) { return this.actions.markNotificationRead(notificationId); }
   loadMySettings(): Promise<UserSettingsDto> { return this.actions.loadMySettings(); }
   updateMySettings(payload: UpdateUserSettingsDto): Promise<UserSettingsDto> { return this.actions.updateMySettings(payload); }
   loadMyNotificationSettings(): Promise<UserNotificationSettingsDto> { return this.actions.loadMyNotificationSettings(); }
@@ -503,8 +485,6 @@ export class DataSync {
   disableTwoFactor(payload: MeTwoFactorVerifyInput): Promise<{ enabled: boolean }> { return this.actions.disableTwoFactor(payload); }
   linkOauth(provider: OAuthProvider, accessToken: string): Promise<{ linked: boolean }> { return this.actions.linkOauth(provider, accessToken); }
   unlinkOauth(provider: OAuthProvider): Promise<{ linked: boolean }> { return this.actions.unlinkOauth(provider); }
-  requestDataExport(payload: RequestDataExportInput): Promise<RequestDataExportOutput> { return this.actions.requestDataExport(payload); }
-  requestAccountDeletion(payload: RequestAccountDeletionInput): Promise<RequestAccountDeletionOutput> { return this.actions.requestAccountDeletion(payload); }
   loadMyAgents() { return this.actions.loadMyAgents(); }
   createAgent(input: CreateMasterAgentInput) { return this.actions.createAgent(input); }
   loadFriendRequests() { return this.actions.loadFriendRequests(); }

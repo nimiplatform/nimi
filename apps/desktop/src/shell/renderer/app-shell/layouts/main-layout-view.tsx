@@ -2,9 +2,12 @@ import { Suspense, lazy, useEffect, useMemo, useRef, useState, type MouseEvent }
 import logoImage from '../../assets/logo.svg';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import { getPlatformClient } from '@nimiplatform/sdk';
+import { loadRealmNotificationUnreadCount } from '@nimiplatform/sdk/realm';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { AmbientBackground, ScrollArea } from '@nimiplatform/kit/ui';
+import { AmbientBackground, ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
+import { loadRealmCurrencyBalances } from '@nimiplatform/kit/features/commerce/realm';
 import { StatusBanner } from '@renderer/ui/feedback/status-banner';
 import {
   notificationQueryKeys,
@@ -27,10 +30,10 @@ import { DesktopReleaseStrip } from './desktop-release-strip';
 import { MainLayoutTopBar } from './main-layout-topbar';
 import { MainLayoutSettingsMenu, type SettingsSubmenuItemId } from './main-layout-settings-menu';
 import { MainLayoutTitlebarContent } from './main-layout-titlebar-content';
-import { SidebarTooltipButton } from './main-layout-sidebar-tooltip-button';
 import { OfflineShellStrip } from './offline-shell-strip';
 import {
   SHELL_CHROME_INTERACTIVE_RADIUS_CLASS,
+  SHELL_CHROME_TOOLTIP_CLASS,
 } from './shell-chrome-classes';
 import {
   getCoreNavItems,
@@ -99,14 +102,6 @@ const TermsOfServiceView = lazy(async () => {
   const mod = await import('@renderer/features/legal/terms-of-service-view');
   return { default: mod.TermsOfServiceView };
 });
-function parseBalanceValue(input: unknown): number {
-  const raw = typeof input === 'string' ? Number(input) : (typeof input === 'number' ? input : 0);
-  if (!Number.isFinite(raw) || raw < 0) {
-    return 0;
-  }
-  return raw;
-}
-
 /** Track window focus so polling queries can pause when the app is not focused. */
 function useWindowFocused(): boolean {
   const [focused, setFocused] = useState(() => typeof document !== 'undefined' && document.hasFocus());
@@ -121,32 +116,6 @@ function useWindowFocused(): boolean {
     };
   }, []);
   return focused;
-}
-
-function parseUnreadCount(input: unknown): number {
-  if (typeof input === 'number' && Number.isFinite(input)) {
-    return Math.max(0, Math.floor(input));
-  }
-  if (input && typeof input === 'object') {
-    const payload = input as Record<string, unknown>;
-    const candidates = [
-      payload.unreadCount,
-      payload.count,
-      payload.total,
-    ];
-    for (const candidate of candidates) {
-      if (typeof candidate === 'number' && Number.isFinite(candidate)) {
-        return Math.max(0, Math.floor(candidate));
-      }
-      if (typeof candidate === 'string' && candidate.trim()) {
-        const parsed = Number(candidate);
-        if (Number.isFinite(parsed)) {
-          return Math.max(0, Math.floor(parsed));
-        }
-      }
-    }
-  }
-  return 0;
 }
 
 type MainLayoutViewProps = {
@@ -214,28 +183,22 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const windowFocused = useWindowFocused();
   const balancesQuery = useQuery({
     queryKey: ['topbar-currency-balances'],
-    queryFn: async () => {
-      const { dataSync } = await import('@runtime/data-sync');
-      return dataSync.loadCurrencyBalances() as Promise<Record<string, unknown>>;
-    },
+    queryFn: async () => loadRealmCurrencyBalances(),
     enabled: props.authStatus === 'authenticated',
     staleTime: 30_000,
     refetchInterval: windowFocused ? 60_000 : false,
   });
   const unreadCountQuery = useQuery({
     queryKey: notificationQueryKeys.topbarUnreadCount(notificationQueryIdentityRef),
-    queryFn: async () => {
-      const { dataSync } = await import('@runtime/data-sync');
-      return dataSync.loadNotificationUnreadCount();
-    },
+    queryFn: async () => loadRealmNotificationUnreadCount(getPlatformClient().realm),
     enabled: props.authStatus === 'authenticated' && Boolean(notificationIdentityRef),
     staleTime: 15_000,
     refetchInterval: windowFocused ? 30_000 : false,
   });
 
-  const sparkBalance = parseBalanceValue((balancesQuery.data as Record<string, unknown> | undefined)?.sparkBalance);
-  const gemBalance = parseBalanceValue((balancesQuery.data as Record<string, unknown> | undefined)?.gemBalance);
-  const unreadCount = parseUnreadCount(unreadCountQuery.data);
+  const sparkBalance = balancesQuery.data?.sparkBalance ?? 0;
+  const gemBalance = balancesQuery.data?.gemBalance ?? 0;
+  const unreadCount = unreadCountQuery.data?.total ?? 0;
 
   useEffect(() => {
     if (!settingsMenuOpen) {
@@ -456,17 +419,24 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             className={`flex h-full shrink-0 flex-col transition-[width] duration-200 ${sidebarWidthClass}`}
           >
             <div className="flex h-16 shrink-0 items-center justify-center">
-              <SidebarTooltipButton
-                label={t('Navigation.home', { defaultValue: 'Home' })}
-                dataTestId={E2E_IDS.navTab('home')}
-                className={`flex h-11 w-11 items-center justify-center transition-transform duration-150 hover:-translate-y-0.5 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS}`}
-                onClick={() => {
-                  setSettingsMenuOpen(false);
-                  props.onNav('home');
-                }}
+              <Tooltip
+                content={t('Navigation.home', { defaultValue: 'Home' })}
+                placement="right"
+                contentClassName={SHELL_CHROME_TOOLTIP_CLASS}
               >
-                {nimiHomeNode}
-              </SidebarTooltipButton>
+                <button
+                  type="button"
+                  data-testid={E2E_IDS.navTab('home')}
+                  className={`flex h-11 w-11 items-center justify-center transition-transform duration-150 hover:-translate-y-0.5 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS}`}
+                  aria-label={t('Navigation.home', { defaultValue: 'Home' })}
+                  onClick={() => {
+                    setSettingsMenuOpen(false);
+                    props.onNav('home');
+                  }}
+                >
+                  {nimiHomeNode}
+                </button>
+              </Tooltip>
             </div>
             <nav className="flex-1">
               <ScrollArea className="flex-1" viewportClassName="pt-2">

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { projectRuntimeRouteCapabilityCoverageList } from '@nimiplatform/sdk/ai';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { CAPABILITIES_V11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { desktopBridge } from '@renderer/bridge';
 import { Surface, StatusBadge as KitStatusBadge, Tooltip, cn } from '@nimiplatform/kit/ui';
 import { formatLocaleDateTime } from '@renderer/i18n';
@@ -162,28 +162,11 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
     runtimeDaemonError: model.runtimeDaemonError,
   });
 
-  // Capability summary
   const capabilitySummary = useMemo(() => {
-    return CAPABILITIES_V11.map((capability) => {
-      const localNode = state.local.nodeMatrix.find(
-        (node) => node.capability === capability && node.available,
-      );
-      const hasLocalModel = state.local.models.some(
-        (m) => m.status === 'active' && m.capabilities.includes(capability),
-      );
-      const cloudAvailable = state.connectors.some((c) => c.status === 'healthy');
-      const errorNode = !localNode && !hasLocalModel && !cloudAvailable
-        ? state.local.nodeMatrix.find(
-          (node) => node.capability === capability && !node.available && node.reasonCode,
-        )
-        : undefined;
-      return {
-        capability,
-        localAvailable: Boolean(localNode) || hasLocalModel,
-        cloudAvailable,
-        localProvider: localNode?.provider,
-        errorReason: errorNode?.reasonCode ? String(errorNode.reasonCode) : undefined,
-      };
+    return projectRuntimeRouteCapabilityCoverageList({
+      localNodes: state.local.nodeMatrix,
+      localModels: state.local.models,
+      connectors: state.connectors,
     });
   }, [state]);
 

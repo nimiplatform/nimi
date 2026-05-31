@@ -1,5 +1,15 @@
 import { localRuntime, type LocalRuntimeEnvironmentDependencyJob, type LocalRuntimeEnvironmentPlanDependency, type LocalRuntimeFacade } from '../../../runtime/local-runtime/index.js';
-import type { PlatformAIProfileFactoryRow } from '../../../runtime/platform-catalog/index.js';
+import type { PlatformAIProfileFactoryRow } from '@nimiplatform/sdk/platform-catalog';
+import {
+  isLocalRuntimeEnvironmentDependencyJobActiveState,
+  isLocalRuntimeEnvironmentDependencyJobCancelledState,
+  isLocalRuntimeEnvironmentDependencyJobFailedState,
+  isLocalRuntimeEnvironmentDependencyJobTransferringState,
+  isLocalRuntimeEnvironmentDependencyNeedsConfirmationState,
+  isLocalRuntimeEnvironmentDependencyReadyState,
+  isLocalRuntimeEnvironmentDependencyRepairRequiredState,
+  isLocalRuntimeEnvironmentDependencyUnsupportedState,
+} from '@nimiplatform/sdk/runtime';
 import type { ProductControlState } from '@renderer/bridge';
 
 export const FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE = 'first-run';
@@ -82,16 +92,15 @@ function latestJob(
 }
 
 function dependencyReady(dependency: LocalRuntimeEnvironmentPlanDependency): boolean {
-  const state = normalizeState(dependency.state);
   // Runtime materializer authority defines dependency readiness as verified
   // ready_system or ready_managed. A selected source record id or candidate
   // state is not readiness; backend first-run admission remains the final
   // product local_ai_ready evidence.
-  return state === 'ready_system' || state === 'ready_managed';
+  return isLocalRuntimeEnvironmentDependencyReadyState(dependency.state);
 }
 
 function dependencyNeedsConfirmation(dependency: LocalRuntimeEnvironmentPlanDependency): boolean {
-  return normalizeState(dependency.state) === 'needs_confirmation'
+  return isLocalRuntimeEnvironmentDependencyNeedsConfirmationState(dependency.state)
     && dependency.confirmationRequired === true;
 }
 
@@ -100,20 +109,15 @@ function dependencyStartable(
   job: LocalRuntimeEnvironmentDependencyJob | null,
 ): boolean {
   if (dependencyReady(dependency) || !dependencyNeedsConfirmation(dependency) || jobActive(job)) return false;
-  const jobState = normalizeState(job?.state);
-  return !job && jobState !== 'failed' && jobState !== 'cancelled' && jobState !== 'unsupported' && jobState !== 'repair_required';
+  return !job;
 }
 
 function jobActive(job: LocalRuntimeEnvironmentDependencyJob | null): boolean {
-  const state = normalizeState(job?.state);
-  return state === 'needs_confirmation'
-    || state === 'queued'
-    || state === 'starting'
-    || state === 'running'
-    || state === 'in_progress'
-    || state === 'downloading'
-    || state === 'verifying'
-    || state === 'installing';
+  return Boolean(job)
+    && (
+      isLocalRuntimeEnvironmentDependencyNeedsConfirmationState(job?.state)
+      || isLocalRuntimeEnvironmentDependencyJobActiveState(job?.state)
+    );
 }
 
 /**
@@ -122,8 +126,6 @@ function jobActive(job: LocalRuntimeEnvironmentDependencyJob | null): boolean {
  * gate any %/rate/ETA display on these states; for every other state the
  * progress fields are zero/absent and a percentage must not be rendered.
  */
-const JOB_TRANSFERRING_STATES = new Set(['downloading', 'verifying']);
-
 /**
  * The aggregate download-progress projection across the materialization jobs
  * that are actively transferring bytes. It is a faithful projection of the
@@ -154,7 +156,7 @@ export function aggregateMaterializationDownloadProgress(
   const transferring = dependencies
     .map(({ job }) => job)
     .filter((job): job is LocalRuntimeEnvironmentDependencyJob =>
-      Boolean(job) && JOB_TRANSFERRING_STATES.has(normalizeState(job?.state)));
+      job !== null && isLocalRuntimeEnvironmentDependencyJobTransferringState(job.state));
   if (transferring.length === 0) return null;
 
   let bytesReceived = 0;
@@ -196,17 +198,23 @@ function statusFor(
   if (missingDependencyFamilies.length > 0 || dependencies.length === 0) return 'blocked';
   if (dependencies.some(({ dependency, job }) =>
     !dependencyReady(dependency)
-    && (normalizeState(dependency.state) === 'unsupported' || normalizeState(job?.state) === 'unsupported'),
+    && (
+      isLocalRuntimeEnvironmentDependencyUnsupportedState(dependency.state)
+      || isLocalRuntimeEnvironmentDependencyUnsupportedState(job?.state)
+    ),
   )) return 'unsupported';
   if (dependencies.some(({ dependency, job }) =>
     !dependencyReady(dependency)
-    && (normalizeState(dependency.state) === 'repair_required' || normalizeState(job?.state) === 'repair_required'),
+    && (
+      isLocalRuntimeEnvironmentDependencyRepairRequiredState(dependency.state)
+      || isLocalRuntimeEnvironmentDependencyRepairRequiredState(job?.state)
+    ),
   )) return 'repair_required';
   if (dependencies.some(({ dependency, job }) =>
-    !dependencyReady(dependency) && normalizeState(job?.state) === 'failed',
+    !dependencyReady(dependency) && isLocalRuntimeEnvironmentDependencyJobFailedState(job?.state),
   )) return 'failed';
   if (dependencies.some(({ dependency, job }) =>
-    !dependencyReady(dependency) && normalizeState(job?.state) === 'cancelled',
+    !dependencyReady(dependency) && isLocalRuntimeEnvironmentDependencyJobCancelledState(job?.state),
   )) return 'cancelled';
   if (dependencies.some(({ dependency, job }) =>
     !dependencyReady(dependency) && dependencyNeedsConfirmation(dependency) && !job,
@@ -256,8 +264,10 @@ function dependencyInMaterializationScope(
 
 function isAutoRecoverableMaterializationFailure(job: LocalRuntimeEnvironmentDependencyJob): boolean {
   const family = normalizeState(job.dependencyFamily);
-  const state = normalizeState(job.state);
-  if (state !== 'failed' && state !== 'cancelled') return false;
+  if (
+    !isLocalRuntimeEnvironmentDependencyJobFailedState(job.state)
+    && !isLocalRuntimeEnvironmentDependencyJobCancelledState(job.state)
+  ) return false;
   if (!job.retryable) return false;
   const detail = normalizeState(job.failureDetail);
   const interrupted = detail.includes('local_environment_dependency_job_interrupted')
@@ -307,8 +317,10 @@ export function repairableConfirmedFirstRunMaterializationDependencies(
   if (projection.status !== 'repair_required') return [];
   return projection.dependencies.filter(({ dependency, job }) =>
     !dependencyReady(dependency)
-    && (normalizeState(dependency.state) === 'repair_required'
-    || normalizeState(job?.state) === 'repair_required'));
+    && (
+      isLocalRuntimeEnvironmentDependencyRepairRequiredState(dependency.state)
+      || isLocalRuntimeEnvironmentDependencyRepairRequiredState(job?.state)
+    ));
 }
 
 function reasonForStatus(

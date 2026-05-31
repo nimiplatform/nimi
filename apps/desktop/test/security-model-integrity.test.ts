@@ -25,6 +25,11 @@ const LOCAL_RUNTIME_COMMANDS_PATH = path.resolve(
   '../src-tauri/src/local_runtime/commands/mod.rs',
 );
 const localRuntimeCommandsSource = fs.readFileSync(LOCAL_RUNTIME_COMMANDS_PATH, 'utf-8');
+const KIT_RUNTIME_LOCAL_ASSETS_PATH = path.resolve(
+  import.meta.dirname ?? __dirname,
+  '../../../kit/shell/tauri/src/runtime_local_assets.rs',
+);
+const kitRuntimeLocalAssetsSource = fs.readFileSync(KIT_RUNTIME_LOCAL_ASSETS_PATH, 'utf-8');
 
 // ---------------------------------------------------------------------------
 // D-SEC-006: Runtime-owned integrity errors still project through bridge map
@@ -50,18 +55,22 @@ test('D-SEC-006: verified empty hash list projects LOCAL_AI_MODEL_HASHES_EMPTY e
 // D-SEC-006: manifest path validation remains shell-local; content hashes do not
 // ---------------------------------------------------------------------------
 
-test('D-SEC-006: Desktop Tauri helper validates only selected manifest containment', () => {
+test('D-SEC-006: Kit Tauri helper validates only selected manifest containment', () => {
   assert.ok(
-    localRuntimeCommandsSource.includes('fn canonical_manifest_path('),
-    'Tauri helper must keep shell-local selected manifest path containment',
+    kitRuntimeLocalAssetsSource.includes('pub fn canonical_asset_manifest_path('),
+    'Kit Tauri helper must keep shell-local selected manifest path containment',
   );
   assert.ok(
-    localRuntimeCommandsSource.includes('ASSET_MANIFEST_FILE_NAME'),
-    'Tauri helper must require the canonical asset manifest filename',
+    kitRuntimeLocalAssetsSource.includes('ASSET_MANIFEST_FILE_NAME'),
+    'Kit Tauri helper must require the canonical asset manifest filename',
   );
   assert.ok(
-    localRuntimeCommandsSource.includes('LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT'),
-    'Tauri helper must keep runtime-root containment checks',
+    kitRuntimeLocalAssetsSource.includes('LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT'),
+    'Kit Tauri helper must keep runtime-root containment checks',
+  );
+  assert.ok(
+    localRuntimeCommandsSource.includes('canonical_asset_manifest_path(&path, &models_root)'),
+    'Desktop Tauri command must delegate manifest containment to Kit',
   );
   assert.doesNotMatch(localRuntimeCommandsSource, /"resolved"/);
 });

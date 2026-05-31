@@ -20,53 +20,26 @@
 use crate::apps_registry_projection::read_apps_registry;
 use crate::desktop_paths::resolve_nimi_dir;
 use crate::desktop_product_control::selected_product_data_root;
-use crate::local_config_migration::{
-    read_governed_config, ConfigReadOutcome, GovernedConfigFile, MigrationRegistry,
+use nimi_shell_tauri::governed_config::{
+    read_governed_config, write_governed_json_config, ConfigReadOutcome, GovernedConfigFile,
+};
+use nimi_shell_tauri::platform_projection::apps_packages::{
+    build_apps_packages_record_from_rows, project_package_state, validate_apps_packages_record,
+};
+pub use nimi_shell_tauri::platform_projection::apps_packages::{
+    AppsPackageRow, AppsPackagesRecord, APPS_PACKAGES_POINTER, APPS_PACKAGES_SCHEMA_VERSION,
 };
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
-
-/// Supported `~/.nimi/apps/packages.json` schema version. An unknown future
-/// version or an old version with no registered migration fails closed to a
-/// typed repair outcome through the `local_config_migration` framework
-/// (`P-MIG-002`).
-///
-/// v2 carries the Runtime-resolved app storage roots (`dataRoot`, `cacheRoot`,
-/// `tempRoot`) read verbatim from the Runtime `install-evidence.json`, instead
-/// of letting any downstream consumer re-derive the `<nimi_data>/apps/<app-id>`
-/// layout (`K-APP-022`: consumers must not concatenate the app-storage layout
-/// as an alternate authority — `appstorage.Resolve` is the sole owner). A v1
-/// projection lacking the roots fails closed to repair, whose recovery action
-/// is the deterministic [`ensure_apps_packages`] regeneration.
-pub const APPS_PACKAGES_SCHEMA_VERSION: u32 = 2;
 
 /// Governed config-file identity for `~/.nimi/apps/packages.json`
 /// (`local-config-file-registry.yaml` row `packages_json`).
-const PACKAGES_CONFIG_FILE: GovernedConfigFile =
-    GovernedConfigFile::new("packages_json", "~/.nimi/apps/packages.json");
-
-/// The shared-framework migration registry for `~/.nimi/apps/packages.json`.
-///
-/// The package projection is deterministically rebuilt from Runtime-written
-/// install evidence; a schema bump's forward migration is owned by its T4
-/// schema owner and registered here. No version has been bumped yet, so the
-/// step set is empty — an old/unknown version then fails closed to repair
-/// (`P-MIG-002`), and the repair action is the deterministic
-/// [`ensure_apps_packages`] regeneration.
-const PACKAGES_MIGRATIONS: MigrationRegistry =
-    MigrationRegistry::new("packages_json", APPS_PACKAGES_SCHEMA_VERSION, &[]);
-
-/// `~/.nimi`-relative location of the package projection. This is the manual
-/// `~/.nimi/nimi.json` `pointers.appPackages` value.
-pub const APPS_PACKAGES_POINTER: &str = "apps/packages.json";
-
-/// Closed product-level package `state` vocabulary. Mirrors the
-/// `appstorage.InstallEvidence` `verificationState` floor.
-const PACKAGE_STATE_INSTALLED: &str = "installed";
-const PACKAGE_STATE_REPAIR_REQUIRED: &str = "repair_required";
-const PACKAGE_STATE_BLOCKED: &str = "blocked";
+const PACKAGES_CONFIG_FILE: GovernedConfigFile = GovernedConfigFile::new(
+    "packages_json",
+    "~/.nimi/apps/packages.json",
+    APPS_PACKAGES_SCHEMA_VERSION,
+);
 
 /// The Runtime-owned install-evidence file shape, mirrored from
 /// `runtime/internal/appstorage/storage.go` `InstallEvidence`. Only the fields
@@ -99,38 +72,6 @@ struct RuntimeInstallEvidence {
     temp_root: String,
 }
 
-/// One projected package row. The minimum product fields are fixed by the
-/// manual `~/.nimi/apps/packages.json` schema:
-/// `appId, packageRef, version, state, installRoot, verifiedAt`.
-///
-/// `data_root` / `cache_root` / `temp_root` carry the Runtime-resolved app
-/// storage roots verbatim from the install-evidence file (`K-APP-022`); they
-/// are the authoritative quartet (with `install_root` as the release root) that
-/// downstream consumers project without re-deriving the `<nimi_data>/apps`
-/// layout.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct AppsPackageRow {
-    pub app_id: String,
-    pub package_ref: String,
-    pub version: String,
-    pub state: String,
-    pub install_root: String,
-    pub data_root: String,
-    pub cache_root: String,
-    pub temp_root: String,
-    pub verified_at: String,
-}
-
-/// `~/.nimi/apps/packages.json` record shape.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct AppsPackagesRecord {
-    pub schema_version: u32,
-    pub updated_at: String,
-    pub packages: Vec<AppsPackageRow>,
-}
-
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppsPackagesProjection {
@@ -142,13 +83,6 @@ fn now_iso_timestamp() -> String {
     chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
 }
 
-fn now_unix_ms() -> u128 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis()
-}
-
 /// On-disk path of the package projection, fixed under the `~/.nimi` CONTROL
 /// root at `apps/packages.json`.
 pub fn apps_packages_path() -> Result<PathBuf, String> {
@@ -157,19 +91,6 @@ pub fn apps_packages_path() -> Result<PathBuf, String> {
         path.push(segment);
     }
     Ok(path)
-}
-
-/// Map the Runtime `appstorage` `verificationState` onto the product-level
-/// package `state`.
-fn project_package_state(verification_state: &str) -> &'static str {
-    match verification_state {
-        "digest-verified" => PACKAGE_STATE_INSTALLED,
-        "digest-mismatch" => PACKAGE_STATE_REPAIR_REQUIRED,
-        // `not-installed`, `blocked`, `unsupported`, or any unexpected value
-        // fail closed: a package whose Runtime evidence is not verified is not
-        // projected as installed.
-        _ => PACKAGE_STATE_BLOCKED,
-    }
 }
 
 /// Scan one Runtime install-evidence file and project a package row.
@@ -263,88 +184,14 @@ pub fn build_apps_packages_record() -> Result<AppsPackagesRecord, String> {
             .cmp(&b.app_id)
             .then_with(|| a.version.cmp(&b.version))
     });
-    Ok(AppsPackagesRecord {
-        schema_version: APPS_PACKAGES_SCHEMA_VERSION,
-        updated_at: now_iso_timestamp(),
+    Ok(build_apps_packages_record_from_rows(
+        now_iso_timestamp(),
         packages,
-    })
-}
-
-/// Structural validation of a package record.
-///
-/// `schemaVersion` fail-closed / migration routing is owned by the
-/// `local_config_migration` framework (`P-MIG-002`); the `schemaVersion` check
-/// here is a defensive post-migration assertion. A failure routes the read to
-/// `repair_required`, never a raw `Err`.
-fn validate_record(record: &AppsPackagesRecord) -> Result<(), String> {
-    if record.schema_version != APPS_PACKAGES_SCHEMA_VERSION {
-        return Err(format!(
-            "unsupported ~/.nimi/apps/packages.json schemaVersion={} expected={APPS_PACKAGES_SCHEMA_VERSION}",
-            record.schema_version
-        ));
-    }
-    if record.updated_at.trim().is_empty() {
-        return Err("~/.nimi/apps/packages.json updatedAt is required".to_string());
-    }
-    for package in &record.packages {
-        if package.app_id.trim().is_empty()
-            || package.package_ref.trim().is_empty()
-            || package.version.trim().is_empty()
-            || package.install_root.trim().is_empty()
-            || package.data_root.trim().is_empty()
-            || package.cache_root.trim().is_empty()
-            || package.temp_root.trim().is_empty()
-            || package.verified_at.trim().is_empty()
-        {
-            return Err(
-                "~/.nimi/apps/packages.json package row requires appId, packageRef, version, installRoot, dataRoot, cacheRoot, tempRoot, and verifiedAt"
-                    .to_string(),
-            );
-        }
-        if !matches!(
-            package.state.as_str(),
-            PACKAGE_STATE_INSTALLED | PACKAGE_STATE_REPAIR_REQUIRED | PACKAGE_STATE_BLOCKED
-        ) {
-            return Err(format!(
-                "~/.nimi/apps/packages.json package row {} has an unknown state: {}",
-                package.app_id, package.state
-            ));
-        }
-    }
-    Ok(())
-}
-
-fn write_record(path: &Path, record: &AppsPackagesRecord) -> Result<(), String> {
-    validate_record(record)?;
-    let parent = path
-        .parent()
-        .ok_or_else(|| "~/.nimi/apps/packages.json path has no parent directory".to_string())?;
-    fs::create_dir_all(parent).map_err(|error| {
-        format!(
-            "create ~/.nimi/apps directory failed ({}): {error}",
-            parent.display()
-        )
-    })?;
-    let raw = serde_json::to_string_pretty(record)
-        .map_err(|error| format!("serialize ~/.nimi/apps/packages.json failed: {error}"))?;
-    let tmp_path =
-        path.with_extension(format!("json.tmp.{}.{}", std::process::id(), now_unix_ms()));
-    fs::write(&tmp_path, raw).map_err(|error| {
-        format!(
-            "write ~/.nimi/apps/packages.json temporary file failed ({}): {error}",
-            tmp_path.display()
-        )
-    })?;
-    fs::rename(&tmp_path, path).map_err(|error| {
-        format!(
-            "commit ~/.nimi/apps/packages.json failed ({}): {error}",
-            path.display()
-        )
-    })
+    ))
 }
 
 /// Read the installed package projection through the shared `~/.nimi`
-/// migration / repair framework.
+/// current-schema repair framework.
 ///
 /// Routes a parse failure, a missing / unknown `schemaVersion`, or a structural
 /// fault to a typed `ConfigReadOutcome::Repair` (`P-MIG-004`) instead of a raw
@@ -354,17 +201,12 @@ fn write_record(path: &Path, record: &AppsPackagesRecord) -> Result<(), String> 
 #[allow(dead_code)]
 pub fn read_apps_packages_governed() -> Result<ConfigReadOutcome<AppsPackagesRecord>, String> {
     let path = apps_packages_path()?;
-    read_governed_config(
-        &PACKAGES_CONFIG_FILE,
-        &path,
-        &PACKAGES_MIGRATIONS,
-        |document| {
-            let record: AppsPackagesRecord = serde_json::from_value(document.clone())
-                .map_err(|error| format!("package projection cannot be deserialized: {error}"))?;
-            validate_record(&record)?;
-            Ok(record)
-        },
-    )
+    read_governed_config(&PACKAGES_CONFIG_FILE, &path, |document| {
+        let record: AppsPackagesRecord = serde_json::from_value(document.clone())
+            .map_err(|error| format!("package projection cannot be deserialized: {error}"))?;
+        validate_apps_packages_record(&record)?;
+        Ok(record)
+    })
 }
 
 /// Read the installed package projection, if present.
@@ -386,7 +228,7 @@ pub fn read_apps_packages() -> Result<Option<AppsPackagesRecord>, String> {
 pub fn ensure_apps_packages() -> Result<AppsPackagesProjection, String> {
     let path = apps_packages_path()?;
     let record = build_apps_packages_record()?;
-    write_record(&path, &record)?;
+    write_governed_json_config(&path, &record, validate_apps_packages_record)?;
     Ok(AppsPackagesProjection {
         path: path.display().to_string(),
         record,
@@ -400,8 +242,8 @@ mod tests {
         APPS_PACKAGES_POINTER, APPS_PACKAGES_SCHEMA_VERSION,
     };
     use crate::desktop_product_control::select_product_data_root;
-    use crate::local_config_migration::{ConfigReadOutcome, ConfigRepairSeverity};
     use crate::test_support::with_env;
+    use nimi_shell_tauri::governed_config::{ConfigReadOutcome, ConfigRepairSeverity};
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
 

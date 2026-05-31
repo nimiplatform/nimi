@@ -13,6 +13,10 @@ const messageTimelineUtilsSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/turns/message-timeline-utils.tsx'),
   'utf8',
 );
+const chatAttachmentContractSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/turns/chat-attachment-contract.ts'),
+  'utf8',
+);
 
 test('chat attachment payloads are canonical resource-backed writes', () => {
   assert.deepEqual(createCanonicalChatAttachmentPayload(' resource-1 '), {
@@ -79,4 +83,13 @@ test('message timeline utilities do not synthesize legacy media endpoints', () =
   assert.doesNotMatch(messageTimelineUtilsSource, /\/api\/media\/videos\//);
   assert.doesNotMatch(messageTimelineUtilsSource, /\bimageId\b/);
   assert.doesNotMatch(messageTimelineUtilsSource, /\bvideoId\b/);
+});
+
+test('Desktop chat attachment contract consumes Kit Realm chat primitives', () => {
+  assert.match(chatAttachmentContractSource, /from '@nimiplatform\/kit\/features\/chat\/realm'/);
+  assert.match(chatAttachmentContractSource, /createRealmChatResourceAttachmentPayload/);
+  assert.match(chatAttachmentContractSource, /resolveRealmChatMediaUrl/);
+  assert.match(chatAttachmentContractSource, /resolveRealmChatAttachmentPreviewText/);
+  assert.doesNotMatch(chatAttachmentContractSource, /function resolveRealmAttachmentUrl/);
+  assert.doesNotMatch(chatAttachmentContractSource, /\$\{normalizedBaseUrl\}\$\{url\}/);
 });

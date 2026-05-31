@@ -244,6 +244,21 @@ export function normalizeConnectorModelsV11(vendor: ApiVendor, rawModels: unknow
   return dedupeStringsV11(Array.isArray(rawModels) ? rawModels : []);
 }
 
+function normalizeConnectorModelCapabilitiesV11(value: unknown): Record<string, string[]> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+  const normalized: Record<string, string[]> = {};
+  for (const [modelId, rawCapabilities] of Object.entries(value)) {
+    const normalizedModelId = String(modelId || '').trim();
+    const capabilities = dedupeStringsV11(Array.isArray(rawCapabilities) ? rawCapabilities.map((item) => String(item || '').trim()) : []);
+    if (normalizedModelId && capabilities.length > 0) {
+      normalized[normalizedModelId] = capabilities;
+    }
+  }
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
 export function normalizeConnectorV11(raw: Partial<ApiConnector>): ApiConnector {
   const vendor = normalizeVendorV11(raw.vendor);
   const scope = normalizeConnectorScopeV11(raw.scope);
@@ -259,6 +274,7 @@ export function normalizeConnectorV11(raw: Partial<ApiConnector>): ApiConnector 
     hasCredential: Boolean(raw.hasCredential),
     isSystemOwned: scope !== 'user' || Boolean(raw.isSystemOwned),
     models: normalizeConnectorModelsV11(vendor, raw.models),
+    modelCapabilities: normalizeConnectorModelCapabilitiesV11(raw.modelCapabilities),
     status: normalizeStatusV11(raw.status),
     lastCheckedAt: raw.lastCheckedAt || null,
     lastDetail: String(raw.lastDetail || ''),

@@ -11,7 +11,6 @@ const mainLayoutViewSource = readWorkspaceFile('src/shell/renderer/app-shell/lay
 const mainLayoutSettingsMenuSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-settings-menu.tsx');
 const mainLayoutTopbarSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx');
 const navConfigSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/navigation-config.tsx');
-const sidebarTooltipSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-sidebar-tooltip-button.tsx');
 const shellChromeClassesSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/shell-chrome-classes.ts');
 
 test('shell chrome retune: rail and topbar shells stay transparent chrome without shell dividers', () => {
@@ -31,7 +30,8 @@ test('shell chrome retune: shell chrome classes tighten radius scale', () => {
 });
 
 test('shell chrome retune: nav, home launcher, account menu, and tooltips consume the tighter shell scale', () => {
-  assert.match(mainLayoutViewSource, /SidebarTooltipButton[\s\S]*SHELL_CHROME_INTERACTIVE_RADIUS_CLASS/);
+  assert.match(mainLayoutViewSource, /<Tooltip[\s\S]*placement="right"[\s\S]*SHELL_CHROME_TOOLTIP_CLASS/);
+  assert.match(mainLayoutViewSource, /<button[\s\S]*SHELL_CHROME_INTERACTIVE_RADIUS_CLASS/);
   assert.match(mainLayoutSettingsMenuSource, /<Surface[\s\S]*tone="overlay"[\s\S]*material="glass-thick"[\s\S]*SHELL_CHROME_OVERLAY_CLASS/);
   assert.match(mainLayoutViewSource, /avatarNode[\s\S]*sizeClassName="h-9 w-9"/u);
   assert.match(mainLayoutSettingsMenuSource, /SHELL_CHROME_MENU_ITEM_BASE_CLASS/);
@@ -42,11 +42,10 @@ test('shell chrome retune: nav, home launcher, account menu, and tooltips consum
   assert.match(mainLayoutTopbarSource, /openAccountMenu[\s\S]*className="flex h-9 items-center"/u);
   assert.match(mainLayoutTopbarSource, /openAccountMenu[\s\S]*className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-black\/5 bg-white p-0 text-\[var\(--nimi-text-primary\)\] shadow-\[0_2px_8px_rgba\(0,0,0,0\.04\)\] transition-transform duration-150 hover:scale-\[1\.03\]"/u);
   assert.match(navConfigSource, /SHELL_CHROME_INTERACTIVE_RADIUS_CLASS/);
-  assert.match(navConfigSource, /SHELL_CHROME_TOOLTIP_CLASS/);
-  assert.match(sidebarTooltipSource, /SHELL_CHROME_TOOLTIP_CLASS/);
+  assert.match(navConfigSource, /<Tooltip[\s\S]*placement="right"[\s\S]*SHELL_CHROME_TOOLTIP_CLASS/);
+  assert.doesNotMatch(navConfigSource, /useRef|useState|getBoundingClientRect|setTooltipPos/u);
   assert.doesNotMatch(mainLayoutViewSource, /rounded-\[32px\]|rounded-\[24px\]|rounded-\[18px\]/u);
   assert.doesNotMatch(mainLayoutSettingsMenuSource, /rounded-\[32px\]|rounded-\[24px\]|rounded-\[18px\]/u);
   assert.doesNotMatch(mainLayoutTopbarSource, /rounded-\[24px\]|rounded-\[14px\]/u);
   assert.doesNotMatch(navConfigSource, /rounded-\[18px\]|rounded-\[16px\]|rounded-xl/u);
-  assert.doesNotMatch(sidebarTooltipSource, /rounded-xl/u);
 });

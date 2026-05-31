@@ -23,11 +23,7 @@
   },
   "environment": {
     "tabDependencies": "Dependencies & Engines",
-    "tabData": "Data & Storage",
-    "migrationTitle": "Data Root Migration",
-    "migrationDescription": "Moving the nimi_data root to a new location is not yet available.",
-    "migrationUnavailable": "Data root migration is not yet available. This will be enabled in a future release; no partial migration is performed.",
-    "migrationButton": "Migrate Data Root"
+    "tabData": "Data & Storage"
   },
   "advanced": {
     "tabPreferences": "Preferences & Updates",

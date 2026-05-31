@@ -43,7 +43,8 @@ test('chat unified shell a2: main layout mounts the dedicated chat page host', (
 test('chat unified shell a2: AI host stays enterable and submit-time route gating owns readiness', () => {
   assert.match(chatAiAdapterSource, /createReadyConversationSetupState\('ai'\)/);
   assert.doesNotMatch(chatAiAdapterSource, /resolveAiConversationSetupStateFromProjection/);
-  assert.match(chatAiAdapterSource, /toRuntimeRouteBindingFromPickerSelection/);
+  assert.match(chatAiAdapterSource, /pickerSelectionToBinding/);
+  assert.match(chatAiAdapterSource, /@nimiplatform\/kit\/features\/model-config/);
   assert.match(chatAiAdapterSource, /handleModelSelectionChange/);
   assert.match(chatAiModeContentSource, /ChatNimiThreadListSheet/);
   assert.match(chatAiModeContentSource, /ChatSideSheet/);

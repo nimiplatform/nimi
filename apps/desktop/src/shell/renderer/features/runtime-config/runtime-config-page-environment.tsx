@@ -5,10 +5,9 @@
  * (Runtime Surface Cleanup table): Nimi-managed dependencies, engines, data
  * root, storage, and repair.
  *
- * The nimi_data data-root migration entry is shipped as a fail-closed stub.
- * Migration mechanics are owned by portfolio topic T10 — this surface only
- * routes to a "not yet available" state and never performs a partial
- * migration.
+ * Data-root relocation is not an admitted ordinary Desktop feature. This
+ * surface shows current storage and repair controls without exposing a
+ * placeholder migration path.
  */
 
 import { useState } from 'react';
@@ -17,7 +16,6 @@ import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/ru
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { RuntimePage } from './runtime-config-page-runtime';
 import { DataManagementPage } from '../settings/settings-data-management-page';
-import { RuntimePageShell } from './runtime-config-page-shell';
 
 type EnvironmentSubTabId = 'dependencies' | 'data';
 
@@ -30,50 +28,6 @@ const SUB_TABS: Array<{ id: EnvironmentSubTabId; labelKey: string; defaultLabel:
   { id: 'dependencies', labelKey: 'runtimeConfig.environment.tabDependencies', defaultLabel: 'Dependencies & Engines' },
   { id: 'data', labelKey: 'runtimeConfig.environment.tabData', defaultLabel: 'Data & Storage' },
 ];
-
-/**
- * Fail-closed nimi_data migration entry. T10 owns the migration mechanics; this
- * stub clearly routes to "not yet available" and performs no partial work.
- */
-function DataRootMigrationStub() {
-  const { t } = useTranslation();
-  const [showUnavailable, setShowUnavailable] = useState(false);
-
-  return (
-    <section data-testid="runtime-environment-data-migration">
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-gray-900">
-          {t('runtimeConfig.environment.migrationTitle', { defaultValue: 'Data Root Migration' })}
-        </h3>
-        <p className="mt-1 text-xs leading-relaxed text-gray-500">
-          {t('runtimeConfig.environment.migrationDescription', {
-            defaultValue: 'Moving the nimi_data root to a new location is not yet available.',
-          })}
-        </p>
-        <button
-          type="button"
-          data-testid="runtime-environment-data-migration-trigger"
-          onClick={() => setShowUnavailable(true)}
-          className="mt-4 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-400 shadow-sm"
-        >
-          {t('runtimeConfig.environment.migrationButton', { defaultValue: 'Migrate Data Root' })}
-        </button>
-        {showUnavailable ? (
-          <p
-            className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"
-            role="status"
-            data-testid="runtime-environment-data-migration-unavailable"
-          >
-            {t('runtimeConfig.environment.migrationUnavailable', {
-              defaultValue:
-                'Data root migration is not yet available. This will be enabled in a future release; no partial migration is performed.',
-            })}
-          </p>
-        ) : null}
-      </div>
-    </section>
-  );
-}
 
 export function EnvironmentPage({ model, state }: EnvironmentPageProps) {
   const { t } = useTranslation();
@@ -114,9 +68,6 @@ export function EnvironmentPage({ model, state }: EnvironmentPageProps) {
         {subTab === 'data' ? (
           <div data-testid="runtime-environment-pane:data" className="min-w-0">
             <DataManagementPage />
-            <RuntimePageShell maxWidth="4xl">
-              <DataRootMigrationStub />
-            </RuntimePageShell>
           </div>
         ) : null}
       </div>

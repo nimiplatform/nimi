@@ -8,7 +8,7 @@
 // capability the admitted plan does not carry. There is no hardcoded
 // capability list that could contradict the policy.
 
-import type { PlatformAIProfileFactoryRow } from '../../../runtime/platform-catalog/index.js';
+import type { PlatformAIProfileFactoryRow } from '@nimiplatform/sdk/platform-catalog';
 import type { FirstRunInstallLevel } from './install-level-policy.js';
 
 /**

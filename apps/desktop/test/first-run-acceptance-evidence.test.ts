@@ -8,7 +8,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import {
   PLATFORM_AI_PROFILE_FACTORY_ROWS,
   type PlatformAIProfileFactoryRow,
-} from '../src/runtime/platform-catalog/index.js';
+} from '@nimiplatform/sdk/platform-catalog';
 import { ProductControlWorkflow } from '../src/shell/renderer/first-run/product-control-workflow.js';
 import {
   FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
@@ -66,6 +66,10 @@ const productControlWorkflowSource = readFileSync(
 );
 const runtimeMaterializationSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/first-run/runtime-materialization.ts'),
+  'utf8',
+);
+const firstRunSetupChecklistSource = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/first-run/first-run-setup-checklist.ts'),
   'utf8',
 );
 const runtimeClientInterfaceSource = readFileSync(
@@ -364,6 +368,15 @@ test('Runtime materialization orchestration is wired through SDK/localRuntime an
   assert.match(runtimeMaterializationSource, /cancelEnvironmentDependencyJob/);
   assert.match(runtimeMaterializationSource, /retryEnvironmentDependencyJob/);
   assert.match(runtimeMaterializationSource, /repairEnvironmentDependency/);
+  assert.match(runtimeMaterializationSource, /isLocalRuntimeEnvironmentDependencyReadyState/);
+  assert.match(runtimeMaterializationSource, /isLocalRuntimeEnvironmentDependencyJobTransferringState/);
+  assert.match(runtimeMaterializationSource, /isLocalRuntimeEnvironmentDependencyRepairRequiredState/);
+  assert.match(firstRunSetupChecklistSource, /isLocalRuntimeEnvironmentDependencyReadyState/);
+  assert.match(firstRunSetupChecklistSource, /isLocalRuntimeEnvironmentDependencyJobActiveState/);
+  assert.match(firstRunSetupChecklistSource, /isLocalRuntimeEnvironmentDependencyJobFailedState/);
+  assert.doesNotMatch(runtimeMaterializationSource, /JOB_TRANSFERRING_STATES/);
+  assert.doesNotMatch(firstRunSetupChecklistSource, /JOB_ACTIVE_STATES|JOB_FAILED_STATES/);
+  assert.doesNotMatch(firstRunSetupChecklistSource, /'starting'|'running'|'in_progress'/);
   assert.match(productControlWorkflowSource, /setProductFirstRunSetupState/);
   assert.match(productControlWorkflowSource, /startFirstRunMaterialization/);
   assert.doesNotMatch(productControlWorkflowSource, /markProductReadyForUse/);

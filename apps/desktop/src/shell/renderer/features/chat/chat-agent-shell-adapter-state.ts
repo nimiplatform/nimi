@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
+import { pickerSelectionToBinding } from '@nimiplatform/kit/features/model-config';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -36,7 +37,6 @@ import {
   type AgentRuntimeConversationSummary,
 } from './chat-agent-runtime-conversation-summaries';
 import {
-  toRuntimeRouteBindingFromPickerSelection,
   type AIConfig,
 } from './conversation-capability';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
@@ -144,10 +144,7 @@ export function useAgentConversationShellState(
     ) {
       return;
     }
-    const binding = toRuntimeRouteBindingFromPickerSelection({
-      capability: 'text.generate',
-      selection,
-    });
+    const binding = pickerSelectionToBinding(selection);
     if (!binding) {
       return;
     }

@@ -6,7 +6,7 @@ import test from 'node:test';
 import {
   PLATFORM_AI_PROFILE_FACTORY_ROWS,
   loadPlatformAIProfileFactoryRows,
-} from '../src/runtime/platform-catalog/index.js';
+} from '@nimiplatform/sdk/platform-catalog';
 
 const appRoutesSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/app-shell/routes/app-routes.tsx'),

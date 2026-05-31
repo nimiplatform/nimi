@@ -477,24 +477,27 @@ test('phase 7: desktop source must not reference relay-specific route types', ()
   }
 });
 
-test('phase 7: chat_ai_store Rust migration scaffolding must exist until deliberate sunset', () => {
-  // The legacy route column drop migration in schema.rs is required for users
-  // upgrading from pre-hard-cut DB schemas. Premature removal would leave
-  // orphaned columns. This guard prevents accidental deletion — remove this
-  // test only when: (a) schema version is bumped to >= 3 with a superseding
-  // migration, or (b) minimum app version policy guarantees no pre-hard-cut DBs.
+test('phase 7: chat_ai_store Rust legacy route migration stays hard-cut', () => {
+  // This product is pre-launch. Legacy route-column schemas must fail closed
+  // instead of being migrated or normalized into the current app-storage truth.
   const schemaRsPath = path.join(
     desktopDir,
     'src-tauri/src/chat_ai_store/schema.rs',
   );
   const schemaRs = fs.readFileSync(schemaRsPath, 'utf8');
-  assert.ok(
+  assert.equal(
     /AI_THREAD_LEGACY_ROUTE_COLUMNS/.test(schemaRs),
-    'schema.rs must contain AI_THREAD_LEGACY_ROUTE_COLUMNS — migration scaffolding required for pre-hard-cut DB upgrade',
+    false,
+    'schema.rs must not restore AI_THREAD_LEGACY_ROUTE_COLUMNS migration scaffolding',
+  );
+  assert.equal(
+    /drop_legacy_route_columns_from_ai_threads/.test(schemaRs),
+    false,
+    'schema.rs must not restore drop_legacy_route_columns_from_ai_threads migration scaffolding',
   );
   assert.ok(
-    /drop_legacy_route_columns_from_ai_threads/.test(schemaRs),
-    'schema.rs must contain drop_legacy_route_columns_from_ai_threads — migration scaffolding required for pre-hard-cut DB upgrade',
+    /CHAT_AI_SCHEMA_MISMATCH/.test(schemaRs),
+    'schema.rs must fail closed on legacy route columns instead of migrating them',
   );
 });
 

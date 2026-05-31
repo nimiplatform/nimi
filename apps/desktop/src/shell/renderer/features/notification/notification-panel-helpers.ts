@@ -1,15 +1,4 @@
 import { formatLocaleDate, formatRelativeLocaleTime } from '@renderer/i18n';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
-
-type UnreadNotificationCountDto = RealmModel<'UnreadNotificationCountDto'>;
-
-export function parseUnreadCount(value: UnreadNotificationCountDto | null | undefined): number {
-  const total = Number(value?.total);
-  if (!Number.isFinite(total) || total < 0) {
-    return 0;
-  }
-  return Math.floor(total);
-}
 
 export function formatNotificationTime(input: string): string {
   const date = new Date(input);

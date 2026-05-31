@@ -1,5 +1,5 @@
+import { normalizeRealmBaseUrl } from '@nimiplatform/sdk/realm';
 import type { FetchImpl } from './api-core';
-import { normalizeRealmBaseUrl } from './api-core';
 
 const DATA_SYNC_HOT_STATE_KEY = '__NIMI_DATA_SYNC_API_CONFIG__' as const;
 

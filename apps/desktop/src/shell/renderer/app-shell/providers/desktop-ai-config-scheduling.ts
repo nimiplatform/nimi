@@ -1,104 +1,35 @@
-import type {
-  AIConfig,
-  AISchedulingEvaluationTarget,
-  AISchedulingJudgement,
+import { getPlatformClient } from '@nimiplatform/sdk';
+import {
+  normalizeSchedulingTarget,
+  peekAggregateSchedulingJudgement as peekSdkAggregateSchedulingJudgement,
+  peekSchedulingBatch as peekSdkSchedulingBatch,
+  resolveAIConfigScopeSchedulingTargets,
+  resolveAIConfigSchedulingTargetForCapability,
+  schedulingTargetsEqual,
+  type AIConfigSchedulingBatchPeekResult,
+  type AISchedulingEvaluationTarget,
+  type AISchedulingJudgement,
 } from '@nimiplatform/sdk/ai';
 
-export function resolveAIConfigScopeSchedulingTargets(
-  config: AIConfig,
-): AISchedulingEvaluationTarget[] {
-  const localRefs = config.capabilities.localProfileRefs || {};
-  const selectedBindings = config.capabilities.selectedBindings || {};
-  const targets: AISchedulingEvaluationTarget[] = [];
-  const capabilities = Object.keys(selectedBindings).sort((left, right) => left.localeCompare(right));
-  for (const capability of capabilities) {
-    const binding = selectedBindings[capability];
-    if (!binding || binding.source !== 'local') {
-      continue;
-    }
-    const ref = localRefs[capability];
-    targets.push({
-      capability,
-      targetId: ref?.targetId || null,
-      profileId: ref?.profileId || null,
-      resourceHint: null,
-    });
-  }
-  return targets;
-}
-
-export function resolveAIConfigSchedulingTargetForCapability(
-  config: AIConfig,
-  capability: string,
-): AISchedulingEvaluationTarget | null {
-  const binding = config.capabilities.selectedBindings?.[capability];
-  if (!binding || binding.source !== 'local') {
-    return null;
-  }
-  const ref = config.capabilities.localProfileRefs?.[capability];
-  return {
-    capability,
-    targetId: ref?.targetId || null,
-    profileId: ref?.profileId || null,
-    resourceHint: null,
-  };
-}
-
-type SchedulingBatchPeekResult = {
-  occupancy: AISchedulingJudgement['occupancy'];
-  aggregateJudgement: AISchedulingJudgement | null;
-  targetJudgements: Array<{
-    target: AISchedulingEvaluationTarget;
-    judgement: AISchedulingJudgement;
-  }>;
+export {
+  normalizeSchedulingTarget,
+  resolveAIConfigScopeSchedulingTargets,
+  resolveAIConfigSchedulingTargetForCapability,
+  schedulingTargetsEqual,
 };
-
-export function normalizeSchedulingTarget(
-  target: AISchedulingEvaluationTarget | null | undefined,
-): AISchedulingEvaluationTarget | null {
-  if (!target) {
-    return null;
-  }
-  const capability = String(target.capability || '').trim();
-  if (!capability) {
-    return null;
-  }
-  return {
-    capability,
-    targetId: String(target.targetId || '').trim() || null,
-    profileId: String(target.profileId || '').trim() || null,
-    resourceHint: target.resourceHint ? {
-      estimatedVramBytes: target.resourceHint.estimatedVramBytes ?? null,
-      estimatedRamBytes: target.resourceHint.estimatedRamBytes ?? null,
-      estimatedDiskBytes: target.resourceHint.estimatedDiskBytes ?? null,
-      engine: target.resourceHint.engine ?? null,
-    } : null,
-  };
-}
-
-export function schedulingTargetsEqual(
-  left: AISchedulingEvaluationTarget,
-  right: AISchedulingEvaluationTarget,
-): boolean {
-  return left.capability === right.capability
-    && (left.targetId || null) === (right.targetId || null)
-    && (left.profileId || null) === (right.profileId || null);
-}
 
 export async function peekSchedulingBatch(
   runtimePackageId: string,
   appId: string,
   targets: AISchedulingEvaluationTarget[],
-): Promise<SchedulingBatchPeekResult | null> {
+): Promise<AIConfigSchedulingBatchPeekResult | null> {
   void runtimePackageId;
-  void appId;
-  const normalizedTargets = targets
-    .map((target) => normalizeSchedulingTarget(target))
-    .filter((target): target is AISchedulingEvaluationTarget => target !== null);
-  if (normalizedTargets.length === 0) {
-    return null;
-  }
-  return null;
+  return peekSdkSchedulingBatch({
+    appId,
+    targets,
+    peekScheduling: (request, options) =>
+      getPlatformClient().runtime.ai.peekScheduling(request, options),
+  });
 }
 
 export async function peekAggregateSchedulingJudgement(
@@ -106,6 +37,11 @@ export async function peekAggregateSchedulingJudgement(
   appId: string,
   targets: AISchedulingEvaluationTarget[],
 ): Promise<AISchedulingJudgement | null> {
-  const batchResult = await peekSchedulingBatch(runtimePackageId, appId, targets);
-  return batchResult?.aggregateJudgement ?? null;
+  void runtimePackageId;
+  return peekSdkAggregateSchedulingJudgement({
+    appId,
+    targets,
+    peekScheduling: (request, options) =>
+      getPlatformClient().runtime.ai.peekScheduling(request, options),
+  });
 }

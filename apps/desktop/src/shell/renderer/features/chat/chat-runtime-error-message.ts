@@ -1,31 +1,6 @@
-import { asNimiError } from '@nimiplatform/sdk/runtime';
+import { asNimiError, getRuntimeReasonCodeMessage } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { i18n } from '@renderer/i18n';
-
-const CHAT_RUNTIME_REASON_MESSAGE_MAP: Record<string, { key: string; defaultValue: string }> = {
-  AI_PROVIDER_TIMEOUT: { key: 'BridgeErrors.codes.AI_PROVIDER_TIMEOUT', defaultValue: 'AI provider request timed out.' },
-  AI_PROVIDER_UNAVAILABLE: { key: 'BridgeErrors.codes.AI_PROVIDER_UNAVAILABLE', defaultValue: 'AI provider is unavailable.' },
-  AI_PROVIDER_RATE_LIMITED: { key: 'BridgeErrors.codes.AI_PROVIDER_RATE_LIMITED', defaultValue: 'AI provider rate limit was reached.' },
-  AI_PROVIDER_INTERNAL: { key: 'BridgeErrors.codes.AI_PROVIDER_INTERNAL', defaultValue: 'AI provider returned an internal error.' },
-  AI_PROVIDER_ENDPOINT_FORBIDDEN: { key: 'BridgeErrors.codes.AI_PROVIDER_ENDPOINT_FORBIDDEN', defaultValue: 'AI provider endpoint is forbidden.' },
-  AI_PROVIDER_AUTH_FAILED: { key: 'BridgeErrors.codes.AI_PROVIDER_AUTH_FAILED', defaultValue: 'AI provider authentication failed.' },
-  AI_STREAM_BROKEN: { key: 'BridgeErrors.codes.AI_STREAM_BROKEN', defaultValue: 'AI streaming response was interrupted.' },
-  AI_CONNECTOR_CREDENTIAL_MISSING: { key: 'BridgeErrors.codes.AI_CONNECTOR_CREDENTIAL_MISSING', defaultValue: 'AI connector credentials are missing.' },
-  AI_CONNECTOR_DISABLED: { key: 'BridgeErrors.codes.AI_CONNECTOR_DISABLED', defaultValue: 'AI connector is disabled.' },
-  AI_CONNECTOR_NOT_FOUND: { key: 'BridgeErrors.codes.AI_CONNECTOR_NOT_FOUND', defaultValue: 'AI connector was not found.' },
-  AI_CONNECTOR_INVALID: { key: 'BridgeErrors.codes.AI_CONNECTOR_INVALID', defaultValue: 'AI connector configuration is invalid.' },
-  AI_MODEL_NOT_FOUND: { key: 'BridgeErrors.codes.AI_MODEL_NOT_FOUND', defaultValue: 'AI model was not found.' },
-  AI_MODALITY_NOT_SUPPORTED: { key: 'BridgeErrors.codes.AI_MODALITY_NOT_SUPPORTED', defaultValue: 'AI modality is not supported.' },
-  AI_MODEL_PROVIDER_MISMATCH: { key: 'BridgeErrors.codes.AI_MODEL_PROVIDER_MISMATCH', defaultValue: 'AI model does not match the selected provider.' },
-  AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED', defaultValue: 'Local Speech cannot initialize until local prerequisites are satisfied.' },
-  AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED', defaultValue: 'Local Speech requires explicit download confirmation before continuing.' },
-  AI_LOCAL_SPEECH_ENV_INIT_FAILED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_ENV_INIT_FAILED', defaultValue: 'Local Speech environment initialization failed. Retry or repair the local speech setup.' },
-  AI_LOCAL_SPEECH_HOST_INIT_FAILED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_HOST_INIT_FAILED', defaultValue: 'Local Speech service startup failed. Check the local speech environment and try again.' },
-  AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED', defaultValue: 'The required Local Speech capability download failed. Retry that capability download.' },
-  AI_LOCAL_SPEECH_BUNDLE_DEGRADED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_BUNDLE_DEGRADED', defaultValue: 'Local Speech is degraded and must be repaired before continuing.' },
-  RUNTIME_UNAVAILABLE: { key: 'BridgeErrors.codes.RUNTIME_UNAVAILABLE', defaultValue: 'Runtime is unavailable.' },
-  RUNTIME_BRIDGE_DAEMON_UNAVAILABLE: { key: 'BridgeErrors.codes.RUNTIME_BRIDGE_DAEMON_UNAVAILABLE', defaultValue: 'Runtime daemon is unavailable.' },
-};
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -42,11 +17,11 @@ function translateMessage(key: string, defaultValue: string): string {
 }
 
 export function chatRuntimeReasonCodeMessage(reasonCode: string): string | null {
-  const entry = CHAT_RUNTIME_REASON_MESSAGE_MAP[reasonCode];
+  const entry = getRuntimeReasonCodeMessage(reasonCode);
   if (!entry) {
     return null;
   }
-  return translateMessage(entry.key, entry.defaultValue);
+  return translateMessage(`BridgeErrors.codes.${entry.reasonCode}`, entry.defaultMessage);
 }
 
 function shouldUseRawMessage(rawMessage: string, actionHint: string, fallbackMessage: string): boolean {

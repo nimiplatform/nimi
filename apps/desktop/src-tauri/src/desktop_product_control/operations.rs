@@ -13,9 +13,9 @@ use super::paths::{now_iso_timestamp, now_unix_ms, product_control_record_path};
 use super::pointers::resolve_product_pointers;
 use super::projection::read_product_control_projection;
 use super::record::{
-    ProductControlRecordProjection, ProductControlState, ProductDataRootRecord,
-    ProductDataRootStatus, ProductFirstRunSetupStatePayload, ProductRepairRecord,
-    RetainedOldRootRecord,
+    ProductControlRecord, ProductControlRecordProjection, ProductControlState,
+    ProductDataRootRecord, ProductDataRootStatus, ProductFirstRunRecord,
+    ProductFirstRunSetupStatePayload, ProductRepairRecord,
 };
 use super::record_store::{
     empty_record, ensure_data_root_layout, read_existing_record, selected_data_root_path,
@@ -65,10 +65,16 @@ pub fn select_product_data_root(path: &str) -> Result<ProductControlRecordProjec
         return Err(format!("nimi_data path must be absolute, got: {trimmed}"));
     }
     let normalized = normalize_desktop_absolute_path(&candidate);
-    ensure_data_root_layout(&normalized)?;
     let control_path = product_control_record_path()?;
-    let mut record = read_existing_record(&control_path)?
-        .unwrap_or(empty_record(ProductControlState::DataRootMissing)?);
+    let mut record = match read_existing_record(&control_path)? {
+        Some(mut record) => {
+            ensure_first_run_data_root_selection_allowed(&record)?;
+            record.first_run = ProductFirstRunRecord::default();
+            record
+        }
+        None => empty_record(ProductControlState::DataRootMissing)?,
+    };
+    ensure_data_root_layout(&normalized)?;
     let now = now_unix_ms();
     record.state = ProductControlState::DataRootSelected;
     record.data_root = Some(ProductDataRootRecord {
@@ -85,119 +91,47 @@ pub fn select_product_data_root(path: &str) -> Result<ProductControlRecordProjec
     read_product_control_projection()
 }
 
-/// Commit a `nimi_data` data-root pointer cutover for the `P-MIG-007`
-/// migration flow.
-///
-/// Unlike [`select_product_data_root`], this is NOT a first-run selection: it
-/// is the last atomic step of a completed-and-verified data-root migration. It
-/// rewrites only the `dataRoot.path` (and the discovery `pointers`) on the
-/// existing record and preserves every `firstRun` evidence field, the product
-/// `state`, and the `installId` — moving the data root must not reset
-/// first-run progress.
-///
-/// `P-MIG-007` "pointer commit last": the caller (the migration flow) only
-/// invokes this after the data has been copied to `new_data_root` and the
-/// integrity check passed. It requires an existing record that already has a
-/// selected data root — a migration has no meaning before first-run data-root
-/// selection. The new path must be absolute and must already exist on disk
-/// (the migration created it); a non-existent target fails closed so the
-/// pointer can never advertise a directory that is not there.
-pub fn migrate_product_data_root_pointer(
-    new_data_root: &str,
-    old_data_root: &str,
-) -> Result<ProductControlRecordProjection, String> {
-    let trimmed = new_data_root.trim();
-    if trimmed.is_empty() {
-        return Err("nimi_data migration target path is required".to_string());
-    }
-    let candidate = PathBuf::from(trimmed);
-    if !candidate.is_absolute() {
+fn ensure_first_run_data_root_selection_allowed(
+    record: &ProductControlRecord,
+) -> Result<(), String> {
+    if !matches!(
+        record.state,
+        ProductControlState::ConfigMissing
+            | ProductControlState::DataRootMissing
+            | ProductControlState::DataRootSelected
+            | ProductControlState::AiEnvironmentUnconfigured
+    ) {
         return Err(format!(
-            "nimi_data migration target path must be absolute, got: {trimmed}"
+            "nimi_data data root is already beyond first-run selection state ({:?}); data-root selection is first-run only",
+            record.state
         ));
     }
-    let normalized = normalize_desktop_absolute_path(&candidate);
-    if !normalized.is_dir() {
-        return Err(format!(
-            "nimi_data migration target does not exist on disk: {}",
-            normalized.display()
-        ));
+    if record
+        .data_root
+        .as_ref()
+        .is_some_and(|data_root| matches!(data_root.status, ProductDataRootStatus::Ready))
+    {
+        return Err(
+            "nimi_data data root is already ready; data-root selection is first-run only"
+                .to_string(),
+        );
     }
-    let new_path = normalized.display().to_string();
-    let old_path = normalize_desktop_absolute_path(&PathBuf::from(old_data_root.trim()))
-        .display()
-        .to_string();
-    let control_path = product_control_record_path()?;
-    let mut record = read_existing_record(&control_path)?.ok_or_else(|| {
-        "~/.nimi/nimi.json is missing; a data-root migration requires an existing record"
-            .to_string()
-    })?;
-    let data_root = record.data_root.as_mut().ok_or_else(|| {
-        "~/.nimi/nimi.json has no selected data root; nothing to migrate".to_string()
-    })?;
-    let now = now_unix_ms();
-    data_root.path = new_path.clone();
-    // The data root is freshly verified by the migration integrity check.
-    data_root.verified_at = now_iso_timestamp();
-    data_root.verified_at_unix_ms = now;
-    // Record the now-inactive old data root in the P-MIG-008 reclaim ledger so
-    // a later explicit, confirmed reclaim can authorize against it. An old root
-    // that equals the new active root is never recorded (nothing was vacated).
-    if !old_path.is_empty() && old_path != new_path {
-        record
-            .retained_old_data_roots
-            .retain(|entry| entry.path != old_path);
-        record.retained_old_data_roots.push(RetainedOldRootRecord {
-            path: old_path,
-            migrated_to: new_path,
-            recorded_at: now_iso_timestamp(),
-            recorded_at_unix_ms: now,
-        });
+    let first_run = &record.first_run;
+    let has_heavy_setup_evidence = first_run.completed
+        || first_run.completed_at.is_some()
+        || first_run.initialization_plan_id.is_some()
+        || first_run.baseline_profile_ref.is_some()
+        || first_run.baseline_commit_id.is_some()
+        || first_run.account_default_profile_ref.is_some()
+        || !first_run.built_in_ai_config_refs.is_empty()
+        || first_run.runtime_baseline_ref.is_some()
+        || first_run.execution_evidence_ref.is_some();
+    if has_heavy_setup_evidence {
+        return Err(
+            "nimi_data data root cannot be changed after first-run evidence exists".to_string(),
+        );
     }
-    record.pointers = resolve_product_pointers()?;
-    write_record(&control_path, &record)?;
-    read_product_control_projection()
-}
-
-/// Whether `path` is a backend-recorded retained post-migration old `nimi_data`
-/// data root (`P-MIG-008` reclaim authorization).
-///
-/// The reclaim path consults this before any deletion — a path not present
-/// here is never reclaimable, so a renderer can never drive a destructive
-/// delete of an arbitrary directory by supplying its path.
-pub fn is_recorded_retained_old_root(path: &Path) -> Result<bool, String> {
-    let normalized = normalize_desktop_absolute_path(path).display().to_string();
-    let control_path = product_control_record_path()?;
-    let Some(record) = read_existing_record(&control_path)? else {
-        return Ok(false);
-    };
-    Ok(record
-        .retained_old_data_roots
-        .iter()
-        .any(|entry| entry.path == normalized))
-}
-
-/// Remove `path` from the retained-old-root reclaim ledger after a confirmed
-/// reclaim deleted it. Returns whether an entry was present.
-///
-/// Best-effort bookkeeping: a missing record / absent entry is not an error
-/// (the on-disk delete already happened), it just means there is nothing left
-/// to advertise as reclaimable.
-pub fn consume_retained_old_root(path: &Path) -> Result<bool, String> {
-    let normalized = normalize_desktop_absolute_path(path).display().to_string();
-    let control_path = product_control_record_path()?;
-    let Some(mut record) = read_existing_record(&control_path)? else {
-        return Ok(false);
-    };
-    let before = record.retained_old_data_roots.len();
-    record
-        .retained_old_data_roots
-        .retain(|entry| entry.path != normalized);
-    let removed = record.retained_old_data_roots.len() != before;
-    if removed {
-        write_record(&control_path, &record)?;
-    }
-    Ok(removed)
+    Ok(())
 }
 
 pub fn set_first_run_install_level(
@@ -221,7 +155,7 @@ pub fn set_first_run_install_level(
     let alias = normalized_alias
         .as_deref()
         .ok_or_else(|| "first-run aiProfileAlias is required".to_string())?;
-    crate::platform_ai_profile_factory_catalog::verify_first_run_factory_ai_profile(
+    nimi_shell_tauri::platform_catalog::ai_profile_factory::verify_first_run_factory_ai_profile(
         alias,
         &normalized,
     )?;
@@ -318,7 +252,7 @@ pub async fn ensure_account_default_profile_for_product_control(
             "first-run aiProfileAlias is required before Account Default Profile".to_string()
         })?
         .to_string();
-    crate::platform_ai_profile_factory_catalog::verify_first_run_factory_ai_profile(
+    nimi_shell_tauri::platform_catalog::ai_profile_factory::verify_first_run_factory_ai_profile(
         &ai_profile_alias,
         &install_level,
     )?;
@@ -427,7 +361,7 @@ pub async fn read_built_in_ai_config_for_scope_init(
         .filter(|value| !value.is_empty())
         .ok_or_else(|| "first-run aiProfileAlias is required before built-in AIConfig".to_string())?
         .to_string();
-    crate::platform_ai_profile_factory_catalog::verify_first_run_factory_ai_profile(
+    nimi_shell_tauri::platform_catalog::ai_profile_factory::verify_first_run_factory_ai_profile(
         &ai_profile_alias,
         &install_level,
     )?;
@@ -488,7 +422,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
         })?
         .to_string();
     let factory_row =
-        crate::platform_ai_profile_factory_catalog::verify_first_run_factory_ai_profile(
+        nimi_shell_tauri::platform_catalog::ai_profile_factory::verify_first_run_factory_ai_profile(
             &ai_profile_alias,
             &install_level,
         )?;
@@ -674,7 +608,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
 }
 
 fn recommended_first_run_capabilities(
-    row: &crate::platform_ai_profile_factory_catalog::PlatformAIProfileFactoryRow,
+    row: &nimi_shell_tauri::platform_catalog::ai_profile_factory::PlatformAIProfileFactoryRow,
     install_level: &str,
 ) -> Vec<String> {
     if install_level.trim() != "recommended" {

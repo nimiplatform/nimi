@@ -5,6 +5,10 @@ import type {
   LocalRuntimeEnvironmentDependencyJob,
   LocalRuntimeEnvironmentPlanDependency,
 } from '@runtime/local-runtime';
+import {
+  isLocalRuntimeEnvironmentDependencyJobActiveState,
+  isLocalRuntimeEnvironmentDependencyJobRetryableState,
+} from '@nimiplatform/sdk/runtime';
 import { i18n } from '@renderer/i18n';
 import { RuntimeSelect } from './runtime-config-primitives';
 import {
@@ -63,9 +67,6 @@ function runtimeDependencyNeedsSetup(
     && dependency.confirmationRequired === true
   );
 }
-
-const ACTIVE_RUNTIME_DEPENDENCY_JOB_STATES = new Set(['queued', 'downloading', 'verifying', 'installing']);
-const RETRYABLE_RUNTIME_DEPENDENCY_JOB_STATES = new Set(['failed', 'cancelled', 'unsupported']);
 
 function runtimeDependencyJobUpdatedAtMs(job: LocalRuntimeEnvironmentDependencyJob): number {
   const updatedAtMs = Date.parse(String(job.updatedAt || job.createdAt || ''));
@@ -129,12 +130,12 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
   const currentRuntimeDependencyJobState = String(currentRuntimeDependencyJob?.state || '');
   const canCancelRuntimeDependencyJob = Boolean(
     currentRuntimeDependencyJob?.jobId
-    && ACTIVE_RUNTIME_DEPENDENCY_JOB_STATES.has(currentRuntimeDependencyJobState),
+    && isLocalRuntimeEnvironmentDependencyJobActiveState(currentRuntimeDependencyJobState),
   );
   const canRetryRuntimeDependencyJob = Boolean(
     currentRuntimeDependencyJob?.jobId
     && currentRuntimeDependencyJob.retryable
-    && RETRYABLE_RUNTIME_DEPENDENCY_JOB_STATES.has(currentRuntimeDependencyJobState),
+    && isLocalRuntimeEnvironmentDependencyJobRetryableState(currentRuntimeDependencyJobState),
   );
   const canRepairRuntimeDependency = Boolean(
     props.sharedRuntimeDependency

@@ -6,8 +6,10 @@ import {
   cn,
 } from '@nimiplatform/kit/ui';
 import {
-  CAPABILITIES_V11,
-  type CapabilityV11,
+  projectRuntimeRouteCapabilityCoverageList,
+  type RuntimeRouteCapabilityCoverageProjection,
+} from '@nimiplatform/sdk/ai';
+import {
   type RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { formatLocaleDateTime, formatLocaleNumber } from '@renderer/i18n';
@@ -22,13 +24,6 @@ import { useUsageEstimate } from './runtime-config-cost-estimator';
 type OverviewPageProps = {
   model: RuntimeConfigPanelControllerModel;
   state: RuntimeConfigStateV11;
-};
-
-type CapabilityStatus = {
-  capability: CapabilityV11;
-  localAvailable: boolean;
-  cloudAvailable: boolean;
-  localProvider?: string;
 };
 
 type RuntimeTone = 'neutral' | 'success' | 'warning' | 'danger';
@@ -82,21 +77,11 @@ const PROGRESS_STYLES: Record<ProgressTone, { track: string; fill: string }> = {
   },
 };
 
-function deriveCapabilityStatuses(state: RuntimeConfigStateV11): CapabilityStatus[] {
-  return CAPABILITIES_V11.map((capability) => {
-    const localNode = state.local.nodeMatrix.find(
-      (node) => node.capability === capability && node.available,
-    );
-    const hasLocalModel = state.local.models.some(
-      (m) => m.status === 'active' && m.capabilities.includes(capability),
-    );
-    const cloudAvailable = state.connectors.some((c) => c.status === 'healthy');
-    return {
-      capability,
-      localAvailable: Boolean(localNode) || hasLocalModel,
-      cloudAvailable,
-      localProvider: localNode?.provider,
-    };
+function deriveCapabilityStatuses(state: RuntimeConfigStateV11): RuntimeRouteCapabilityCoverageProjection[] {
+  return projectRuntimeRouteCapabilityCoverageList({
+    localNodes: state.local.nodeMatrix,
+    localModels: state.local.models,
+    connectors: state.connectors,
   });
 }
 

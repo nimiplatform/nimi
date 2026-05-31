@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
-import { loadPlatformAIProfileFactoryRows } from '../../../runtime/platform-catalog/index.js';
+import { loadPlatformAIProfileFactoryRows } from '@nimiplatform/sdk/platform-catalog';
 import { localRuntime, type LocalRuntimeDeviceProfile } from '../../../runtime/local-runtime/index.js';
 import { desktopBridge, type ProductControlRecordProjection, type ProductControlState } from '@renderer/bridge';
 import { FirstRunFinalization } from './first-run-finalization.js';

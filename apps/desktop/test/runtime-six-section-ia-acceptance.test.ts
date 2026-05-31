@@ -280,13 +280,12 @@ test('ordinary task 7: configure Cloud connectors after first-run (Cloud Connect
   assert.match(cloudPageSource, /sdkDeleteConnector/);
 });
 
-test('ordinary task 8: nimi_data migration entry — fail-closed stub (Environment)', () => {
-  // The migration entry is reachable inside Environment > Data & Storage and is
-  // a fail-closed stub: it routes to "not yet available" and performs no work.
-  assert.match(environmentPageSource, /runtime-environment-data-migration/);
-  assert.match(environmentPageSource, /runtime-environment-data-migration-trigger/);
-  assert.match(environmentPageSource, /runtime-environment-data-migration-unavailable/);
-  assert.match(environmentPageSource, /no partial migration is performed/);
+test('ordinary task 8: Environment exposes no ordinary data-root migration stub', () => {
+  // Data-root relocation is not an admitted ordinary Desktop feature. The
+  // Environment page must not ship a placeholder or pseudo action for it.
+  assert.doesNotMatch(environmentPageSource, /runtime-environment-data-migration/);
+  assert.doesNotMatch(environmentPageSource, /DataRootMigrationStub/);
+  assert.doesNotMatch(environmentPageSource, /previewNimiDataMigration|runNimiDataMigration/);
 });
 
 test('ordinary task 9: see why an app/model/profile is unusable without raw logs', () => {

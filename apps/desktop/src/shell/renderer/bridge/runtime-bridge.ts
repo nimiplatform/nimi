@@ -35,11 +35,7 @@ import {
 import {
   executeNimiDataCleanup,
   planNimiDataCleanup,
-  planNimiDataOldRootReclaim,
-  previewNimiDataMigration,
-  reclaimNimiDataOldRoot,
-  runNimiDataMigration,
-} from './runtime-bridge/nimi-data-migration';
+} from './runtime-bridge/nimi-data-directory';
 import { exportDesktopLogs } from './runtime-bridge/support-logs-export';
 import { getAppsBridgeProjection } from './runtime-bridge/apps-projection';
 import { getDesktopStorageDirs } from './runtime-bridge/desktop-storage';
@@ -55,16 +51,11 @@ export type {
 } from './runtime-bridge/product-control';
 
 export type {
-  NimiDataMigrationState,
-  NimiDataDirectoryImpact,
-  NimiDataMigrationPreview,
-  NimiDataMigrationOutcome,
   NimiDataCleanupPlan,
   NimiDataCleanupOutcome,
-  NimiDataOldRootReclaimPlan,
-} from './runtime-bridge/nimi-data-migration';
+} from './runtime-bridge/nimi-data-directory';
 
-export { NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION } from './runtime-bridge/nimi-data-migration';
+export { NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION } from './runtime-bridge/nimi-data-directory';
 
 export type { LogsExportResult } from './runtime-bridge/support-logs-export';
 
@@ -121,12 +112,8 @@ export {
   prepareProductFirstRunLocalAiReady,
   admitProductReadyForUse,
   getAccountDefaultProfileForScopeInit,
-  previewNimiDataMigration,
-  runNimiDataMigration,
   planNimiDataCleanup,
   executeNimiDataCleanup,
-  planNimiDataOldRootReclaim,
-  reclaimNimiDataOldRoot,
   exportDesktopLogs,
   getAppsBridgeProjection,
   getDesktopStorageDirs,

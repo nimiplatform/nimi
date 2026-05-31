@@ -1,9 +1,5 @@
-import type { Realm, RequestAccountDeletionInput, RequestAccountDeletionOutput, RequestDataExportInput, RequestDataExportOutput } from '@nimiplatform/sdk/realm';
+import type { Realm } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import {
-  requestAccountDeletion as requestRealmAccountDeletion,
-  requestDataExport as requestRealmDataExport,
-} from '@nimiplatform/sdk/realm';
 
 type MeTwoFactorPrepareOutput = RealmModel<'MeTwoFactorPrepareOutput'>;
 type MeTwoFactorVerifyInput = RealmModel<'MeTwoFactorVerifyInput'>;
@@ -241,38 +237,6 @@ export async function unlinkOauth(
     };
   } catch (error) {
     emitDataSyncError('unlink-oauth', error, { provider });
-    throw error;
-  }
-}
-
-export async function requestDataExport(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-  payload: RequestDataExportInput,
-): Promise<RequestDataExportOutput> {
-  try {
-    return await callApi(
-      (realm) => requestRealmDataExport(realm, payload),
-      '请求数据导出失败',
-    );
-  } catch (error) {
-    emitDataSyncError('request-data-export', error);
-    throw error;
-  }
-}
-
-export async function requestAccountDeletion(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-  payload: RequestAccountDeletionInput,
-): Promise<RequestAccountDeletionOutput> {
-  try {
-    return await callApi(
-      (realm) => requestRealmAccountDeletion(realm, payload),
-      '请求删除账号失败',
-    );
-  } catch (error) {
-    emitDataSyncError('request-account-deletion', error);
     throw error;
   }
 }

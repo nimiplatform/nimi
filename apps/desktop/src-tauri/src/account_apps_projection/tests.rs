@@ -4,8 +4,8 @@ use super::{
     read_account_grants_governed, AccountAppLibraryMutation, ACCOUNT_APP_LIBRARY_SCHEMA_VERSION,
     ACCOUNT_GRANTS_SCHEMA_VERSION,
 };
-use crate::local_config_migration::{ConfigReadOutcome, ConfigRepairSeverity};
 use crate::test_support::with_env;
+use nimi_shell_tauri::governed_config::{ConfigReadOutcome, ConfigRepairSeverity};
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 

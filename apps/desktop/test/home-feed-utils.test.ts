@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import test, { describe } from 'node:test';
 
-type PostDto = RealmModel<'PostDto'>;
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 
 import {
   prepareHomeFeedItems,
@@ -10,6 +11,13 @@ import {
   resolveMediaThumbnailUrl,
   resolveMediaUrl,
 } from '../src/shell/renderer/features/home/utils.js';
+
+type PostDto = RealmModel<'PostDto'>;
+
+const HOME_UTILS_SOURCE = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/features/home/utils.ts'),
+  'utf8',
+);
 
 function makePost(input: {
   id: string;
@@ -62,6 +70,12 @@ describe('prepareHomeFeedItems', () => {
 });
 
 describe('media url resolution', () => {
+  test('uses the SDK Realm media URL projection instead of app-local URL joining', () => {
+    assert.match(HOME_UTILS_SOURCE, /resolveRealmMediaUrl/);
+    assert.doesNotMatch(HOME_UTILS_SOURCE, /function resolveRealmMediaPath/);
+    assert.doesNotMatch(HOME_UTILS_SOURCE, /\$\{normalizedBase\}\$\{normalizedPath\}/);
+  });
+
   test('expands relative media urls against the configured realm base url', () => {
     const media = {
       targetType: 'RESOURCE',

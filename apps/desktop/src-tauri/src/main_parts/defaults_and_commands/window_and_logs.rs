@@ -104,56 +104,6 @@ fn build_avatar_close_handoff_uri(
     ))
 }
 
-fn open_avatar_handoff_uri(uri: &str) -> Result<(), String> {
-    #[cfg(target_os = "macos")]
-    {
-        Command::new("open")
-            .arg(uri)
-            .status()
-            .map_err(|error| error.to_string())
-            .and_then(|status| {
-                if status.success() {
-                    Ok(())
-                } else {
-                    Err(format!("open exited with status {}", status))
-                }
-            })?;
-        return Ok(());
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        Command::new("cmd")
-            .args(["/C", "start", "", uri])
-            .status()
-            .map_err(|error| error.to_string())
-            .and_then(|status| {
-                if status.success() {
-                    Ok(())
-                } else {
-                    Err(format!("cmd start exited with status {}", status))
-                }
-            })?;
-        return Ok(());
-    }
-
-    #[cfg(all(unix, not(target_os = "macos")))]
-    {
-        Command::new("xdg-open")
-            .arg(uri)
-            .status()
-            .map_err(|error| error.to_string())
-            .and_then(|status| {
-                if status.success() {
-                    Ok(())
-                } else {
-                    Err(format!("xdg-open exited with status {}", status))
-                }
-            })?;
-        return Ok(());
-    }
-}
-
 fn spawn_avatar_handoff_binary(path: PathBuf, uri: &str) -> Result<(), String> {
     if !path.is_absolute() {
         return Err(format!(
@@ -186,11 +136,20 @@ fn open_avatar_handoff_binary(uri: &str) -> Result<(), String> {
 
 fn avatar_runtime_env_pairs() -> Result<Vec<(&'static str, String)>, String> {
     let defaults = runtime_defaults()?;
-    let nimi_data_root = crate::desktop_paths::resolve_nimi_data_dir()?
-        .display()
-        .to_string();
+    let avatar_storage_roots = crate::desktop_avatar_instance_registry::avatar_app_storage_roots()?;
     let mut pairs = vec![
-        ("NIMI_DATA_ROOT", nimi_data_root),
+        (
+            "NIMI_APP_DATA_ROOT",
+            avatar_storage_roots.data_root.display().to_string(),
+        ),
+        (
+            "NIMI_APP_CACHE_ROOT",
+            avatar_storage_roots.cache_root.display().to_string(),
+        ),
+        (
+            "NIMI_APP_TEMP_ROOT",
+            avatar_storage_roots.temp_root.display().to_string(),
+        ),
         ("NIMI_TARGET_TYPE", defaults.runtime.target_type),
         ("NIMI_TARGET_ACCOUNT_ID", defaults.runtime.target_account_id),
         ("NIMI_AGENT_ID", defaults.runtime.agent_id),
@@ -561,16 +520,13 @@ fn open_avatar_handoff_uri_or_binary(uri: &str) -> Result<(), String> {
 
     match open_inferred_avatar_handoff_target(uri) {
         Ok(()) => Ok(()),
-        Err(inferred_error) => match open_avatar_handoff_uri(uri) {
+        Err(inferred_error) => match open_avatar_handoff_app(uri) {
             Ok(()) => Ok(()),
-            Err(primary_error) => match open_avatar_handoff_app(uri) {
-                Ok(()) => Ok(()),
-                Err(app_error) => open_avatar_handoff_binary(uri).map_err(|binary_error| {
-                    format!(
-                        "inferred target failed: {inferred_error}; {primary_error}; app fallback failed: {app_error}; binary fallback failed: {binary_error}"
-                    )
-                }),
-            },
+            Err(app_error) => open_avatar_handoff_binary(uri).map_err(|binary_error| {
+                format!(
+                    "inferred target failed: {inferred_error}; app fallback failed: {app_error}; binary fallback failed: {binary_error}"
+                )
+            }),
         },
     }
 }

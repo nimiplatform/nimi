@@ -16,6 +16,7 @@ mod session_logging;
 mod tests;
 
 pub(crate) use app_bootstrap::run;
+pub(crate) use nimi_shell_tauri::runtime_defaults::RuntimeDefaults;
 
 #[cfg(test)]
 use app_bootstrap::normalize_runtime_config_page_id;
@@ -35,35 +36,6 @@ use session_logging::{
 };
 #[cfg(target_os = "macos")]
 use session_logging::{apply_macos_traffic_light_position, schedule_macos_traffic_light_reapply};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct RealmDefaults {
-    pub(crate) realm_base_url: String,
-    pub(crate) realtime_url: String,
-    pub(crate) access_token: String,
-    pub(crate) jwks_url: String,
-    pub(crate) revocation_url: String,
-    pub(crate) jwt_issuer: String,
-    pub(crate) jwt_audience: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct RuntimeExecutionDefaults {
-    pub(crate) target_type: String,
-    pub(crate) target_account_id: String,
-    pub(crate) agent_id: String,
-    pub(crate) world_id: String,
-    pub(crate) user_confirmed_upload: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct RuntimeDefaults {
-    pub(crate) realm: RealmDefaults,
-    pub(crate) runtime: RuntimeExecutionDefaults,
-}
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]

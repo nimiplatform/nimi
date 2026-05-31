@@ -48,6 +48,18 @@ describe('D-OFFLINE-001: realm offline error classification', () => {
     assert.equal(isRealmOfflineError(error), true);
   });
 
+  test('Desktop consumes SDK offline reason-code projections instead of local Sets', () => {
+    const offlineErrorSource = readFileSync(
+      resolve(import.meta.dirname, '../src/runtime/offline/errors.ts'),
+      'utf8',
+    );
+
+    assert.match(offlineErrorSource, /isRealmOfflineReasonCode/);
+    assert.match(offlineErrorSource, /isRuntimeOfflineReasonCode/);
+    assert.doesNotMatch(offlineErrorSource, /REALM_OFFLINE_REASON_CODES/);
+    assert.doesNotMatch(offlineErrorSource, /RUNTIME_OFFLINE_REASON_CODES/);
+  });
+
   test('DataSync facade projects Realm unavailable errors from its unified error outlet', () => {
     assert.match(DATASYNC_FACADE_SOURCE, /emitDataSyncError\(action: string, error: unknown/);
     assert.match(DATASYNC_FACADE_SOURCE, /errorFields\.reasonCode === ReasonCode\.REALM_UNAVAILABLE/);

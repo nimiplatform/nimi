@@ -1,9 +1,10 @@
 use super::types::{DesktopAvatarInstanceRegistryFile, DesktopAvatarInstanceRegistryRecord};
-use crate::desktop_paths::resolve_nimi_data_dir;
+use crate::apps_packages_projection::{ensure_apps_packages, AppsPackageRow};
 use std::fs;
 use std::path::{Path, PathBuf};
 use sysinfo::{Pid, ProcessesToUpdate, System};
 
+const AVATAR_APP_ID: &str = "nimi.avatar";
 const AVATAR_INSTANCE_REGISTRY_DIR: &str = "avatar-instance-registry";
 const AVATAR_INSTANCE_REGISTRY_FILE: &str = "instances.json";
 const PROCESS_START_TIME_SKEW_MS: i64 = 1_000;
@@ -18,8 +19,65 @@ pub(crate) struct AvatarInstanceLocalAgentScope {
     pub(crate) local_agent_ref: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct AvatarAppStorageRoots {
+    pub(crate) data_root: PathBuf,
+    pub(crate) cache_root: PathBuf,
+    pub(crate) temp_root: PathBuf,
+}
+
+fn absolute_package_path(value: &str, field: &str) -> Result<PathBuf, String> {
+    let path = PathBuf::from(value.trim());
+    if path.as_os_str().is_empty() {
+        return Err(format!("nimi.avatar app storage {field} is required"));
+    }
+    if !path.is_absolute() {
+        return Err(format!(
+            "nimi.avatar app storage {field} must be an absolute Runtime-projected path"
+        ));
+    }
+    Ok(path)
+}
+
+fn avatar_app_storage_roots_from_package(
+    package: &AppsPackageRow,
+) -> Result<AvatarAppStorageRoots, String> {
+    if package.app_id != AVATAR_APP_ID {
+        return Err(format!(
+            "avatar storage projection expected {AVATAR_APP_ID}, got {}",
+            package.app_id
+        ));
+    }
+    if package.state != "installed" {
+        return Err(format!(
+            "avatar storage projection requires installed package state, got {}",
+            package.state
+        ));
+    }
+    Ok(AvatarAppStorageRoots {
+        data_root: absolute_package_path(&package.data_root, "dataRoot")?,
+        cache_root: absolute_package_path(&package.cache_root, "cacheRoot")?,
+        temp_root: absolute_package_path(&package.temp_root, "tempRoot")?,
+    })
+}
+
+pub(crate) fn avatar_app_storage_roots() -> Result<AvatarAppStorageRoots, String> {
+    let packages = ensure_apps_packages()?;
+    let package = packages
+        .record
+        .packages
+        .iter()
+        .find(|package| package.app_id == AVATAR_APP_ID)
+        .ok_or_else(|| {
+            "Runtime app storage projection is missing installed package evidence for nimi.avatar"
+                .to_string()
+        })?;
+    avatar_app_storage_roots_from_package(package)
+}
+
 fn registry_path() -> Result<PathBuf, String> {
-    Ok(resolve_nimi_data_dir()?
+    Ok(avatar_app_storage_roots()?
+        .data_root
         .join(AVATAR_INSTANCE_REGISTRY_DIR)
         .join(AVATAR_INSTANCE_REGISTRY_FILE))
 }
@@ -221,7 +279,8 @@ mod tests {
     use std::fs;
 
     use super::{
-        list_instances_from_file, list_instances_from_file_at, load_registry_from_path,
+        avatar_app_storage_roots_from_package, list_instances_from_file,
+        list_instances_from_file_at, load_registry_from_path,
         process_start_time_matches_projection, projection_is_fresh, validate_local_agent_scope,
         DesktopAvatarInstanceRegistryFile,
     };
@@ -253,6 +312,20 @@ mod tests {
             realm_agent_id: "agent-1".to_string(),
             local_agent_ref: "local-agent:owner-1:agent-1".to_string(),
             launch_source: Some("desktop-agent-chat".to_string()),
+        }
+    }
+
+    fn package_row() -> crate::apps_packages_projection::AppsPackageRow {
+        crate::apps_packages_projection::AppsPackageRow {
+            app_id: "nimi.avatar".to_string(),
+            package_ref: "nimi.avatar.bundled-with-nimi".to_string(),
+            version: "1.0.0".to_string(),
+            state: "installed".to_string(),
+            install_root: "/tmp/nimi-data/apps/nimi.avatar/releases/1.0.0".to_string(),
+            data_root: "/tmp/nimi-data/apps/nimi.avatar/data".to_string(),
+            cache_root: "/tmp/nimi-data/apps/nimi.avatar/cache".to_string(),
+            temp_root: "/tmp/nimi-data/apps/nimi.avatar/tmp".to_string(),
+            verified_at: "2026-05-31T00:00:00.000Z".to_string(),
         }
     }
 
@@ -290,6 +363,40 @@ mod tests {
         let loaded = load_registry_from_path(&path).expect("load empty registry");
 
         assert!(loaded.instances.is_empty());
+    }
+
+    #[test]
+    fn avatar_storage_roots_consume_runtime_projected_package_roots() {
+        let roots =
+            avatar_app_storage_roots_from_package(&package_row()).expect("avatar storage roots");
+
+        assert_eq!(
+            roots.data_root,
+            std::path::PathBuf::from("/tmp/nimi-data/apps/nimi.avatar/data")
+        );
+        assert_eq!(
+            roots.cache_root,
+            std::path::PathBuf::from("/tmp/nimi-data/apps/nimi.avatar/cache")
+        );
+        assert_eq!(
+            roots.temp_root,
+            std::path::PathBuf::from("/tmp/nimi-data/apps/nimi.avatar/tmp")
+        );
+    }
+
+    #[test]
+    fn avatar_storage_roots_reject_non_installed_or_relative_package_roots() {
+        let mut blocked = package_row();
+        blocked.state = "blocked".to_string();
+        assert!(avatar_app_storage_roots_from_package(&blocked)
+            .expect_err("blocked package must fail")
+            .contains("installed package state"));
+
+        let mut relative = package_row();
+        relative.data_root = "relative/avatar-data".to_string();
+        assert!(avatar_app_storage_roots_from_package(&relative)
+            .expect_err("relative root must fail")
+            .contains("absolute Runtime-projected path"));
     }
 
     #[test]

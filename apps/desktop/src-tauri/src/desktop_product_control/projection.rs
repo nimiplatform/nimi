@@ -8,9 +8,7 @@ use super::ready_verification::ready_for_use_local_owner_verification_state;
 use super::record::{
     ProductControlRecordProjection, ProductControlSelectedDataRootProjection, ProductControlState,
 };
-use super::record_store::{
-    empty_record, read_existing_record, selected_data_root_path, write_record,
-};
+use super::record_store::{read_existing_record, selected_data_root_path};
 
 pub fn read_product_control_projection() -> Result<ProductControlRecordProjection, String> {
     let path = product_control_record_path()?;
@@ -47,14 +45,12 @@ pub fn read_product_control_projection() -> Result<ProductControlRecordProjectio
             })
         }
         Ok(None) => {
-            let record = empty_record(ProductControlState::DataRootMissing)?;
-            write_record(&path, &record)?;
             Ok(ProductControlRecordProjection {
                 path: path.display().to_string(),
-                exists: true,
-                state: record.state.clone(),
-                record: Some(record),
-                error: None,
+                exists: false,
+                state: ProductControlState::ConfigMissing,
+                record: None,
+                error: Some("~/.nimi/nimi.json is missing; first-run data-root selection has not initialized product control".to_string()),
             })
         }
         Err(error) => Ok(ProductControlRecordProjection {

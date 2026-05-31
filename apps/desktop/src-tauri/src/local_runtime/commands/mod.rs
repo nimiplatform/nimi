@@ -4,9 +4,6 @@ use std::process::Command;
 use serde::Deserialize;
 use tauri::AppHandle;
 
-const ASSET_MANIFEST_FILE_NAME: &str = "asset.manifest.json";
-const LOCAL_AI_RUNTIME_MODELS_DIR: &str = "models";
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalAiAssetIdPayload {
@@ -18,65 +15,13 @@ fn runtime_root_dir() -> Result<PathBuf, String> {
 }
 
 fn runtime_models_dir() -> Result<PathBuf, String> {
-    let dir = runtime_root_dir()?.join(LOCAL_AI_RUNTIME_MODELS_DIR);
-    std::fs::create_dir_all(&dir)
-        .map_err(|e| format!("failed to create runtime models dir: {e}"))?;
-    Ok(dir)
+    Ok(nimi_shell_tauri::runtime_local_assets::runtime_models_dir(
+        &runtime_root_dir()?,
+    ))
 }
 
 fn picker_start_dir() -> PathBuf {
     dirs::home_dir().unwrap_or_else(|| runtime_models_dir().unwrap_or_default())
-}
-
-fn canonical_manifest_path(path: &Path, models_root: &Path) -> Result<PathBuf, String> {
-    let file_name = path
-        .file_name()
-        .and_then(|value| value.to_str())
-        .unwrap_or("");
-    if file_name != ASSET_MANIFEST_FILE_NAME {
-        return Err(
-            "LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID: only asset.manifest.json can be imported"
-                .to_string(),
-        );
-    }
-
-    let canonical_models_root = models_root
-        .canonicalize()
-        .map_err(|e| format!("LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT: {e}"))?;
-    let canonical_path = path
-        .canonicalize()
-        .map_err(|e| format!("LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT: {e}"))?;
-    if !canonical_path.starts_with(&canonical_models_root) {
-        return Err(
-            "LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT: manifest must live under the runtime models root"
-                .to_string(),
-        );
-    }
-    Ok(canonical_path)
-}
-
-fn safe_local_asset_dir(models_root: &Path, local_asset_id: &str) -> Option<PathBuf> {
-    let trimmed = local_asset_id.trim();
-    if trimmed.is_empty()
-        || trimmed == "."
-        || trimmed == ".."
-        || !trimmed
-            .chars()
-            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.'))
-    {
-        return None;
-    }
-
-    let candidate = models_root.join(trimmed);
-    if candidate.starts_with(models_root) && candidate.exists() {
-        Some(candidate)
-    } else {
-        None
-    }
-}
-
-fn reveal_target_for_asset(models_root: &Path, local_asset_id: &str) -> PathBuf {
-    safe_local_asset_dir(models_root, local_asset_id).unwrap_or_else(|| models_root.to_path_buf())
 }
 
 fn reveal_path_in_os(path: &Path) -> Result<(), String> {
@@ -130,7 +75,7 @@ pub fn runtime_local_pick_asset_manifest_path(_app: AppHandle) -> Result<Option<
         return Ok(None);
     };
     Ok(Some(
-        canonical_manifest_path(&path, &models_root)?
+        nimi_shell_tauri::runtime_local_assets::canonical_asset_manifest_path(&path, &models_root)?
             .to_string_lossy()
             .to_string(),
     ))
@@ -154,7 +99,10 @@ pub fn runtime_local_assets_reveal_in_folder(
         return Err("LOCAL_AI_ASSET_ID_REQUIRED".to_string());
     }
     let models_root = runtime_models_dir()?;
-    let target = reveal_target_for_asset(&models_root, &payload.local_asset_id);
+    let target = nimi_shell_tauri::runtime_local_assets::reveal_target_for_asset(
+        &models_root,
+        &payload.local_asset_id,
+    );
     reveal_path_in_os(&target)
 }
 
@@ -166,7 +114,9 @@ pub fn runtime_local_assets_reveal_root_folder(_app: AppHandle) -> Result<(), St
 
 #[cfg(test)]
 mod tests {
-    use super::{canonical_manifest_path, reveal_target_for_asset, ASSET_MANIFEST_FILE_NAME};
+    use nimi_shell_tauri::runtime_local_assets::{
+        canonical_asset_manifest_path, reveal_target_for_asset, ASSET_MANIFEST_FILE_NAME,
+    };
 
     #[test]
     fn manifest_picker_accepts_only_runtime_root_manifest() {
@@ -176,7 +126,7 @@ mod tests {
         let manifest = root.join(ASSET_MANIFEST_FILE_NAME);
         std::fs::write(&manifest, "{}").expect("manifest");
 
-        let resolved = canonical_manifest_path(&manifest, &root).expect("manifest accepted");
+        let resolved = canonical_asset_manifest_path(&manifest, &root).expect("manifest accepted");
         assert_eq!(
             resolved,
             manifest.canonicalize().expect("canonical manifest")
@@ -191,7 +141,7 @@ mod tests {
         let manifest = root.join("manifest.json");
         std::fs::write(&manifest, "{}").expect("manifest");
 
-        let error = canonical_manifest_path(&manifest, &root).expect_err("wrong filename");
+        let error = canonical_asset_manifest_path(&manifest, &root).expect_err("wrong filename");
         assert!(error.starts_with("LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID"));
     }
 
@@ -205,7 +155,7 @@ mod tests {
         let manifest = outside.join(ASSET_MANIFEST_FILE_NAME);
         std::fs::write(&manifest, "{}").expect("manifest");
 
-        let error = canonical_manifest_path(&manifest, &root).expect_err("outside root");
+        let error = canonical_asset_manifest_path(&manifest, &root).expect_err("outside root");
         assert!(error.starts_with("LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT"));
     }
 

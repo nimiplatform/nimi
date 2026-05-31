@@ -1,4 +1,4 @@
-import type { PlatformAIProfileFactoryRow } from '../../../runtime/platform-catalog/index.js';
+import type { PlatformAIProfileFactoryRow } from '@nimiplatform/sdk/platform-catalog';
 
 export type FirstRunInstallLevel = 'minimal' | 'recommended';
 

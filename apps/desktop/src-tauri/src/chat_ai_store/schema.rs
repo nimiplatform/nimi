@@ -10,7 +10,7 @@ const AI_THREAD_REQUIRED_COLUMNS: &[&str] = &[
     "archived_at_ms",
 ];
 
-const AI_THREAD_LEGACY_ROUTE_COLUMNS: &[&str] = &[
+const AI_THREAD_FORBIDDEN_LEGACY_ROUTE_COLUMNS: &[&str] = &[
     "route_kind",
     "connector_id",
     "provider",
@@ -65,9 +65,8 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
     )
     .map_err(|error| format!("初始化 chat_ai schema 失败: {error}"))?;
 
-    drop_legacy_route_columns_from_ai_threads(conn)?;
-
     ensure_required_columns(conn, "ai_threads", AI_THREAD_REQUIRED_COLUMNS)?;
+    ensure_absent_columns(conn, "ai_threads", AI_THREAD_FORBIDDEN_LEGACY_ROUTE_COLUMNS)?;
     ensure_required_columns(
         conn,
         "ai_messages",
@@ -113,32 +112,24 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
     Ok(())
 }
 
-fn drop_legacy_route_columns_from_ai_threads(conn: &Connection) -> Result<(), String> {
+fn ensure_absent_columns(
+    conn: &Connection,
+    table_name: &str,
+    forbidden_columns: &[&str],
+) -> Result<(), String> {
     let mut legacy_columns_present = Vec::new();
-    for column_name in AI_THREAD_LEGACY_ROUTE_COLUMNS {
-        if has_column(conn, "ai_threads", column_name)? {
+    for column_name in forbidden_columns {
+        if has_column(conn, table_name, column_name)? {
             legacy_columns_present.push(*column_name);
         }
     }
     if legacy_columns_present.is_empty() {
         return Ok(());
     }
-
-    let mut migration_sql = String::from("BEGIN IMMEDIATE;");
-    for column_name in &legacy_columns_present {
-        migration_sql
-            .push_str(format!("ALTER TABLE ai_threads DROP COLUMN {column_name};").as_str());
-    }
-    migration_sql.push_str("COMMIT;");
-
-    if let Err(error) = conn.execute_batch(&migration_sql) {
-        let _ = conn.execute_batch("ROLLBACK;");
-        return Err(format!(
-            "迁移 chat_ai ai_threads 删除兼容列失败: columns={} error={error}",
-            legacy_columns_present.join(",")
-        ));
-    }
-    Ok(())
+    Err(format!(
+        "CHAT_AI_SCHEMA_MISMATCH: table={table_name} forbidden_legacy_columns={} actionHint=delete_local_chat_ai_db_and_restart",
+        legacy_columns_present.join(",")
+    ))
 }
 
 fn upsert_store_meta(

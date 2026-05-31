@@ -19,12 +19,12 @@ import {
   rememberRealmChatSeenEvent,
   useRealmChatRealtimeController,
 } from '@nimiplatform/kit/features/chat/realm';
+import { projectRealmRealtimeUrl } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { getOfflineCoordinator } from '@runtime/offline';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { invalidateNotificationQueries } from '@renderer/features/notification/notification-query.js';
-import { resolveRealtimeUrl } from './resolve-realtime-url';
 
 const CHAT_SOCKET_PATH = '/socket.io/';
 
@@ -240,7 +240,7 @@ export function useChatRealtimeSync(): void {
   const offlineCoordinator = getOfflineCoordinator();
 
   const realtimeBaseUrl = useMemo(
-    () => resolveRealtimeUrl({
+    () => projectRealmRealtimeUrl({
       realmBaseUrl: runtimeDefaults?.realm.realmBaseUrl,
       realtimeUrl: runtimeDefaults?.realm.realtimeUrl,
     }),

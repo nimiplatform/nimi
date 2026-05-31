@@ -22,7 +22,6 @@ pub(crate) fn empty_record(state: ProductControlState) -> Result<ProductControlR
         first_run: ProductFirstRunRecord::default(),
         pointers: resolve_product_pointers()?,
         repair: ProductRepairRecord::default(),
-        retained_old_data_roots: Vec::new(),
     })
 }
 
@@ -187,11 +186,11 @@ pub(crate) fn write_record(path: &Path, record: &ProductControlRecord) -> Result
 
 /// Materialize the `nimi_data` data-root layout.
 ///
-/// Delegates to [`crate::nimi_data_migration::enforce_data_root_layout`], the
+/// Delegates to [`crate::nimi_data_directory::enforce_data_root_layout`], the
 /// single authoritative `P-MIG-006` layout builder: it creates exactly the
 /// first-level directories declared in the `nimi_data` directory ownership
 /// matrix (`tables/nimi-data-directory-ownership.yaml`), so the on-disk layout
 /// can never drift from the kernel ownership table.
 pub(crate) fn ensure_data_root_layout(path: &Path) -> Result<(), String> {
-    crate::nimi_data_migration::enforce_data_root_layout(path)
+    crate::nimi_data_directory::enforce_data_root_layout(path)
 }

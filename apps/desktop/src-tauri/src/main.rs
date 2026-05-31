@@ -24,13 +24,10 @@ mod desktop_product_control_admission;
 mod desktop_release;
 mod desktop_updates;
 mod factory_profile_index;
-mod local_config_migration;
 mod local_runtime;
 mod main_parts;
 mod menu_bar_shell;
-mod nimi_data_migration;
-mod platform_ai_profile_factory_catalog;
-mod platform_nimi_app_registry;
+mod nimi_data_directory;
 #[cfg(test)]
 mod test_support;
 

@@ -1,9 +1,10 @@
 use super::{
     create_message, create_thread, delete_draft, get_draft, get_thread_bundle, list_threads,
     open_db, put_draft, update_message, update_thread_metadata, ChatAiCreateMessageInput,
-    ChatAiCreateThreadInput, ChatAiDeleteDraftInput, ChatAiDraftRecord, ChatAiMessageRecord,
-    ChatAiPutDraftInput, ChatAiThreadBundle, ChatAiThreadLookupPayload, ChatAiThreadRecord,
-    ChatAiThreadSummary, ChatAiUpdateMessageInput, ChatAiUpdateThreadMetadataInput,
+    ChatAiCreateThreadInput, ChatAiDraftRecord, ChatAiMessageRecord, ChatAiPutDraftInput,
+    ChatAiStorageEnvelope, ChatAiStoragePayload, ChatAiThreadBundle, ChatAiThreadLookupPayload,
+    ChatAiThreadRecord, ChatAiThreadSummary, ChatAiUpdateMessageInput,
+    ChatAiUpdateThreadMetadataInput,
 };
 
 async fn run_chat_ai_store<T, F>(operation: F) -> Result<T, String>
@@ -17,9 +18,11 @@ where
 }
 
 #[tauri::command]
-pub(crate) async fn chat_ai_list_threads() -> Result<Vec<ChatAiThreadSummary>, String> {
-    run_chat_ai_store(|| {
-        let conn = open_db()?;
+pub(crate) async fn chat_ai_list_threads(
+    payload: ChatAiStoragePayload,
+) -> Result<Vec<ChatAiThreadSummary>, String> {
+    run_chat_ai_store(move || {
+        let conn = open_db(&payload.storage_root)?;
         list_threads(&conn)
     })
     .await
@@ -27,86 +30,88 @@ pub(crate) async fn chat_ai_list_threads() -> Result<Vec<ChatAiThreadSummary>, S
 
 #[tauri::command]
 pub(crate) async fn chat_ai_get_thread_bundle(
-    payload: ChatAiThreadLookupPayload,
+    payload: ChatAiStorageEnvelope<ChatAiThreadLookupPayload>,
 ) -> Result<Option<ChatAiThreadBundle>, String> {
     run_chat_ai_store(move || {
-        let conn = open_db()?;
-        get_thread_bundle(&conn, &payload.thread_id)
+        let conn = open_db(&payload.storage_root)?;
+        get_thread_bundle(&conn, &payload.input.thread_id)
     })
     .await
 }
 
 #[tauri::command]
 pub(crate) async fn chat_ai_create_thread(
-    payload: ChatAiCreateThreadInput,
+    payload: ChatAiStorageEnvelope<ChatAiCreateThreadInput>,
 ) -> Result<ChatAiThreadRecord, String> {
     run_chat_ai_store(move || {
-        let conn = open_db()?;
-        create_thread(&conn, &payload)
+        let conn = open_db(&payload.storage_root)?;
+        create_thread(&conn, &payload.input)
     })
     .await
 }
 
 #[tauri::command]
 pub(crate) async fn chat_ai_update_thread_metadata(
-    payload: ChatAiUpdateThreadMetadataInput,
+    payload: ChatAiStorageEnvelope<ChatAiUpdateThreadMetadataInput>,
 ) -> Result<ChatAiThreadRecord, String> {
     run_chat_ai_store(move || {
-        let conn = open_db()?;
-        update_thread_metadata(&conn, &payload)
+        let conn = open_db(&payload.storage_root)?;
+        update_thread_metadata(&conn, &payload.input)
     })
     .await
 }
 
 #[tauri::command]
 pub(crate) async fn chat_ai_create_message(
-    payload: ChatAiCreateMessageInput,
+    payload: ChatAiStorageEnvelope<ChatAiCreateMessageInput>,
 ) -> Result<ChatAiMessageRecord, String> {
     run_chat_ai_store(move || {
-        let conn = open_db()?;
-        create_message(&conn, &payload)
+        let conn = open_db(&payload.storage_root)?;
+        create_message(&conn, &payload.input)
     })
     .await
 }
 
 #[tauri::command]
 pub(crate) async fn chat_ai_update_message(
-    payload: ChatAiUpdateMessageInput,
+    payload: ChatAiStorageEnvelope<ChatAiUpdateMessageInput>,
 ) -> Result<ChatAiMessageRecord, String> {
     run_chat_ai_store(move || {
-        let conn = open_db()?;
-        update_message(&conn, &payload)
+        let conn = open_db(&payload.storage_root)?;
+        update_message(&conn, &payload.input)
     })
     .await
 }
 
 #[tauri::command]
 pub(crate) async fn chat_ai_get_draft(
-    payload: ChatAiThreadLookupPayload,
+    payload: ChatAiStorageEnvelope<ChatAiThreadLookupPayload>,
 ) -> Result<Option<ChatAiDraftRecord>, String> {
     run_chat_ai_store(move || {
-        let conn = open_db()?;
-        get_draft(&conn, &payload.thread_id)
+        let conn = open_db(&payload.storage_root)?;
+        get_draft(&conn, &payload.input.thread_id)
     })
     .await
 }
 
 #[tauri::command]
 pub(crate) async fn chat_ai_put_draft(
-    payload: ChatAiPutDraftInput,
+    payload: ChatAiStorageEnvelope<ChatAiPutDraftInput>,
 ) -> Result<ChatAiDraftRecord, String> {
     run_chat_ai_store(move || {
-        let conn = open_db()?;
-        put_draft(&conn, &payload)
+        let conn = open_db(&payload.storage_root)?;
+        put_draft(&conn, &payload.input)
     })
     .await
 }
 
 #[tauri::command]
-pub(crate) async fn chat_ai_delete_draft(payload: ChatAiDeleteDraftInput) -> Result<(), String> {
+pub(crate) async fn chat_ai_delete_draft(
+    payload: ChatAiStorageEnvelope<ChatAiThreadLookupPayload>,
+) -> Result<(), String> {
     run_chat_ai_store(move || {
-        let conn = open_db()?;
-        delete_draft(&conn, &payload.thread_id)
+        let conn = open_db(&payload.storage_root)?;
+        delete_draft(&conn, &payload.input.thread_id)
     })
     .await
 }

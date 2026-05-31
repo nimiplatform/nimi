@@ -2,6 +2,10 @@ import {
   createReadyConversationSetupState,
   type ConversationSetupState,
 } from '@nimiplatform/kit/features/chat/headless';
+import {
+  isRuntimeRouteLocalOptionSelectable,
+  runtimeRouteLocalOptionToBinding,
+} from '@nimiplatform/sdk/ai';
 import type {
   RuntimeRouteBinding,
   RuntimeRouteModelProfile,
@@ -58,21 +62,10 @@ export function buildAiConversationRouteOptions(
   }
 
   const localOptions = snapshot.local.models
-    .filter((model) => normalizeText(model.localModelId) && normalizeText(model.status).toLowerCase() !== 'removed')
-    .map((model) => toRouteOption({
-      source: 'local',
-      connectorId: '',
-      model: normalizeText(model.modelId) || normalizeText(model.model),
-      modelId: normalizeText(model.modelId) || normalizeText(model.model) || undefined,
-      localModelId: normalizeText(model.localModelId) || undefined,
-      provider: normalizeText(model.provider) || normalizeText(model.engine) || undefined,
-      engine: normalizeText(model.engine) || undefined,
-      adapter: model.adapter,
-      providerHints: model.providerHints,
-      endpoint: normalizeText(model.endpoint) || snapshot.local.defaultEndpoint || undefined,
-      goRuntimeLocalModelId: normalizeText(model.goRuntimeLocalModelId) || undefined,
-      goRuntimeStatus: normalizeText(model.goRuntimeStatus) || undefined,
-    }));
+    .filter(isRuntimeRouteLocalOptionSelectable)
+    .map((model) => toRouteOption(runtimeRouteLocalOptionToBinding(model, {
+      defaultEndpoint: snapshot.local.defaultEndpoint,
+    })));
 
   const cloudOptions = snapshot.connectors.flatMap((connector) => connector.models
     .map((modelId) => normalizeText(modelId))

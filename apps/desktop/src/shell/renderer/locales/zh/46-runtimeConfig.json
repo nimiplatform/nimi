@@ -23,11 +23,7 @@
   },
   "environment": {
     "tabDependencies": "依赖与引擎",
-    "tabData": "数据与存储",
-    "migrationTitle": "数据根目录迁移",
-    "migrationDescription": "将 nimi_data 根目录移动到新位置的功能尚不可用。",
-    "migrationUnavailable": "数据根目录迁移功能尚不可用。该功能将在未来版本中启用；不会执行部分迁移。",
-    "migrationButton": "迁移数据根目录"
+    "tabData": "数据与存储"
   },
   "advanced": {
     "tabPreferences": "偏好与更新",

@@ -201,3 +201,10 @@ test('bridge local speech error projection does not retain provider-specific dis
   assert.doesNotMatch(invokeSource, new RegExp(['LOCAL_AI', 'QWEN'].join('_')));
   assert.doesNotMatch(invokeSource, new RegExp(['Qwen', 'TTS'].join(' ')));
 });
+
+test('bridge runtime reason messages consume SDK projection before app-local shell errors', () => {
+  assert.match(invokeSource, /getRuntimeReasonCodeMessage/);
+  assert.doesNotMatch(invokeSource, /AI_PROVIDER_TIMEOUT:\s*\{/);
+  assert.doesNotMatch(invokeSource, /AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED:\s*\{/);
+  assert.match(invokeSource, /DESKTOP_HTTP_METHOD_INVALID:\s*\{/);
+});

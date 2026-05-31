@@ -1,7 +1,7 @@
 use super::{
     avatar_runtime_env_pairs, build_avatar_close_handoff_uri, build_avatar_handoff_uri,
-    confirm_dialog, require_fresh_inferred_avatar_target, ConfirmDialogPayload,
-    DesktopAvatarCloseHandoffPayload, DesktopAvatarLaunchHandoffPayload,
+    confirm_dialog, open_avatar_handoff_uri_or_binary, require_fresh_inferred_avatar_target,
+    ConfirmDialogPayload, DesktopAvatarCloseHandoffPayload, DesktopAvatarLaunchHandoffPayload,
 };
 use crate::test_support::test_guard;
 use std::time::Duration;
@@ -150,18 +150,47 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         "NIMI_RUNTIME_BRIDGE_DEBUG",
         "NIMI_E2E_BACKEND_LOG_PATH",
         "NIMI_DATA_ROOT",
+        "NIMI_APP_DATA_ROOT",
+        "NIMI_APP_CACHE_ROOT",
+        "NIMI_APP_TEMP_ROOT",
         "NIMI_LOCAL_PROVIDER_ENDPOINT",
         "NIMI_LOCAL_PROVIDER_MODEL",
         "NIMI_LOCAL_OPENAI_ENDPOINT",
         "NIMI_CONNECTOR_ID",
         "NIMI_PROVIDER",
+        "HOME",
     ];
     let saved: Vec<(&str, Option<String>)> = keys
         .iter()
         .map(|key| (*key, std::env::var(key).ok()))
         .collect();
     let fixture_dir = make_temp_dir("avatar-runtime-env");
+    let home_dir = fixture_dir.join("home");
     let selected_data_root = fixture_dir.join("selected-nimi-data");
+    let avatar_app_root = selected_data_root.join("apps").join("nimi.avatar");
+    let avatar_release_root = avatar_app_root.join("releases").join("1.0.0");
+    let avatar_evidence_dir = avatar_release_root.join(".nimi");
+    let avatar_data_root = avatar_app_root.join("data");
+    let avatar_cache_root = avatar_app_root.join("cache");
+    let avatar_temp_root = avatar_app_root.join("tmp");
+    fs::create_dir_all(&avatar_evidence_dir).expect("create avatar install evidence dir");
+    fs::write(
+        avatar_evidence_dir.join("install-evidence.json"),
+        serde_json::to_string_pretty(&serde_json::json!({
+            "appId": "nimi.avatar",
+            "releaseDescriptorRef": "nimi.avatar.bundled-with-nimi",
+            "storagePolicyRef": "nimi-data-app-roots",
+            "installedVersion": "1.0.0",
+            "sha256": "avatar-fixture",
+            "verificationState": "digest-verified",
+            "releaseRoot": avatar_release_root.display().to_string(),
+            "durableDataRoot": avatar_data_root.display().to_string(),
+            "cacheRoot": avatar_cache_root.display().to_string(),
+            "tempRoot": avatar_temp_root.display().to_string()
+        }))
+        .expect("avatar evidence json"),
+    )
+    .expect("write avatar install evidence");
     let fixture_path = fixture_dir.join("fixture.json");
     fs::write(
         &fixture_path,
@@ -209,6 +238,7 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     )
     .expect("write fixture");
     std::env::remove_var("NIMI_E2E_FIXTURE_PATH");
+    std::env::set_var("HOME", home_dir.as_os_str());
     std::env::set_var("NIMI_REALM_URL", "http://127.0.0.1:50803");
     std::env::set_var(
         "NIMI_REALM_JWKS_URL",
@@ -253,6 +283,7 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         "NIMI_E2E_BACKEND_LOG_PATH",
         fixture_dir.join("backend.log").as_os_str(),
     );
+    crate::apps_registry_projection::ensure_apps_registry().expect("ensure app registry");
 
     let pairs = avatar_runtime_env_pairs().expect("avatar env pairs");
 
@@ -296,13 +327,22 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     assert!(pairs.contains(&("NIMI_RUNTIME_BRIDGE_MODE", "RUNTIME".to_string())));
     assert!(!pairs.contains(&("NIMI_RUNTIME_BRIDGE_MODE", "RELEASE".to_string())));
     assert!(pairs.contains(&(
-        "NIMI_DATA_ROOT",
-        selected_data_root.to_string_lossy().to_string()
+        "NIMI_APP_DATA_ROOT",
+        avatar_data_root.to_string_lossy().to_string()
+    )));
+    assert!(pairs.contains(&(
+        "NIMI_APP_CACHE_ROOT",
+        avatar_cache_root.to_string_lossy().to_string()
+    )));
+    assert!(pairs.contains(&(
+        "NIMI_APP_TEMP_ROOT",
+        avatar_temp_root.to_string_lossy().to_string()
     )));
     assert!(!pairs.contains(&(
         "NIMI_DATA_ROOT",
         "/tmp/must-not-forward-raw-env".to_string()
     )));
+    assert!(!pairs.iter().any(|(key, _)| *key == "NIMI_DATA_ROOT"));
     assert!(pairs.contains(&(
         "NIMI_E2E_BACKEND_LOG_PATH",
         fixture_dir
@@ -326,6 +366,35 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         );
     }
     let _ = fs::remove_dir_all(fixture_dir);
+}
+
+#[test]
+fn avatar_handoff_without_controlled_spawn_target_fails_closed() {
+    let _guard = test_guard();
+    let saved_app_path = std::env::var("NIMI_AVATAR_APP_PATH").ok();
+    let saved_binary_path = std::env::var("NIMI_AVATAR_BINARY_PATH").ok();
+    std::env::set_var(
+        "NIMI_AVATAR_APP_PATH",
+        "/tmp/nimi-avatar-app-path-that-must-not-exist.app",
+    );
+    std::env::remove_var("NIMI_AVATAR_BINARY_PATH");
+
+    let error = open_avatar_handoff_uri_or_binary("nimi-avatar://launch?agent_id=agent")
+        .expect_err("scheme fallback must not report success");
+
+    match saved_app_path {
+        Some(value) => std::env::set_var("NIMI_AVATAR_APP_PATH", value),
+        None => std::env::remove_var("NIMI_AVATAR_APP_PATH"),
+    }
+    match saved_binary_path {
+        Some(value) => std::env::set_var("NIMI_AVATAR_BINARY_PATH", value),
+        None => std::env::remove_var("NIMI_AVATAR_BINARY_PATH"),
+    }
+    assert!(error.contains("app fallback failed"));
+    assert!(error.contains("binary fallback failed"));
+    assert!(!error.contains("xdg-open"));
+    assert!(!error.contains("cmd start"));
+    assert!(!error.contains("open exited"));
 }
 
 #[test]

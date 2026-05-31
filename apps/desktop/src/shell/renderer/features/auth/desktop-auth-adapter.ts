@@ -2,6 +2,7 @@ import {
   clearPersistedAccessToken,
   persistAuthSessionMetadata,
   resolveSessionExpiry,
+  validateRuntimeOAuthAuthorizationUrl,
   type AuthPlatformAdapter,
 } from '@nimiplatform/kit/auth';
 import type { TauriOAuthBridge } from '@nimiplatform/kit/core/oauth';
@@ -21,7 +22,6 @@ import {
   toCheckEmailResponseDto,
   toOAuthLoginResultDto,
 } from './auth-session-utils.js';
-import { validateRuntimeOAuthAuthorizationUrl } from './desktop-runtime-oauth-url.js';
 
 export const desktopOAuthBridge: TauriOAuthBridge = {
   hasTauriInvoke: () => desktopBridge.hasTauriInvoke(),

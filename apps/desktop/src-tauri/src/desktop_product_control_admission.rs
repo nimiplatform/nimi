@@ -309,7 +309,7 @@ async fn compose_admission<R: AdmissionRuntimeResolvers>(
     // backend-derived from the owner-verified Account Default Profile evidence
     // (profile_id / content_hash) — the recorded fields are never trusted.
     if let Err(error) =
-        crate::platform_ai_profile_factory_catalog::verify_first_run_factory_ai_profile(
+        nimi_shell_tauri::platform_catalog::ai_profile_factory::verify_first_run_factory_ai_profile(
             &ai_profile_alias,
             &install_level,
         )

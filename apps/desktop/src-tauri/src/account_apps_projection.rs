@@ -20,15 +20,14 @@
 //! writes are T4-W2; this wave does not implement enable/disable/open mutation.
 
 use crate::desktop_paths::resolve_nimi_dir;
-use crate::local_config_migration::{
-    read_governed_config, ConfigReadOutcome, GovernedConfigFile, MigrationRegistry,
+use nimi_shell_tauri::governed_config::{
+    read_governed_config, ConfigReadOutcome, GovernedConfigFile,
 };
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-/// Supported `library.json` schema version. An unknown future version or an
-/// old version with no registered migration fails closed to a typed repair
-/// outcome through the `local_config_migration` framework (`P-MIG-002`).
+/// Supported `library.json` schema version. Any other version fails closed to
+/// typed repair through the current-schema framework.
 pub const ACCOUNT_APP_LIBRARY_SCHEMA_VERSION: u32 = 1;
 
 /// Supported `grants.json` schema version.
@@ -39,30 +38,16 @@ pub const ACCOUNT_GRANTS_SCHEMA_VERSION: u32 = 1;
 const LIBRARY_CONFIG_FILE: GovernedConfigFile = GovernedConfigFile::new(
     "library_json",
     "~/.nimi/accounts/<account-id>/apps/library.json",
+    ACCOUNT_APP_LIBRARY_SCHEMA_VERSION,
 );
-
-/// The shared-framework migration registry for `library.json`.
-///
-/// Per-file migration steps are owned by the account app-library's T4 schema
-/// owner and registered here on a version bump. No version has been bumped
-/// yet, so the step set is empty — an old/unknown version fails closed to
-/// repair (`P-MIG-002`).
-const LIBRARY_MIGRATIONS: MigrationRegistry =
-    MigrationRegistry::new("library_json", ACCOUNT_APP_LIBRARY_SCHEMA_VERSION, &[]);
 
 /// Governed config-file identity for the permission/grant projection
 /// (`local-config-file-registry.yaml` row `grants_json`).
 const GRANTS_CONFIG_FILE: GovernedConfigFile = GovernedConfigFile::new(
     "grants_json",
     "~/.nimi/accounts/<account-id>/permissions/grants.json",
+    ACCOUNT_GRANTS_SCHEMA_VERSION,
 );
-
-/// The shared-framework migration registry for `grants.json`.
-///
-/// Per-file migration steps are owned by the permission/grant projection's T4
-/// schema owner. No version has been bumped yet, so the step set is empty.
-const GRANTS_MIGRATIONS: MigrationRegistry =
-    MigrationRegistry::new("grants_json", ACCOUNT_GRANTS_SCHEMA_VERSION, &[]);
 
 /// Closed account app-library `libraryState` vocabulary.
 const LIBRARY_STATE_ENABLED: &str = "enabled";
@@ -195,7 +180,7 @@ fn validate_app_library_record(
 }
 
 /// Read the account app-library projection through the shared `~/.nimi`
-/// migration / repair framework.
+/// current-schema repair framework.
 ///
 /// Routes a parse failure, a missing / unknown `schemaVersion`, an account-id
 /// mismatch, or a structural fault to a typed `ConfigReadOutcome::Repair`
@@ -207,17 +192,12 @@ pub fn read_account_app_library_governed(
 ) -> Result<ConfigReadOutcome<AccountAppLibraryRecord>, String> {
     let normalized = validate_account_id(account_id)?;
     let path = account_app_library_path(&normalized)?;
-    read_governed_config(
-        &LIBRARY_CONFIG_FILE,
-        &path,
-        &LIBRARY_MIGRATIONS,
-        |document| {
-            let record: AccountAppLibraryRecord = serde_json::from_value(document.clone())
-                .map_err(|error| format!("library.json cannot be deserialized: {error}"))?;
-            validate_app_library_record(&record, &normalized)?;
-            Ok(record)
-        },
-    )
+    read_governed_config(&LIBRARY_CONFIG_FILE, &path, |document| {
+        let record: AccountAppLibraryRecord = serde_json::from_value(document.clone())
+            .map_err(|error| format!("library.json cannot be deserialized: {error}"))?;
+        validate_app_library_record(&record, &normalized)?;
+        Ok(record)
+    })
 }
 
 /// Read the account app-library projection, if present.
@@ -491,7 +471,7 @@ pub struct AccountGrantsProjection {
 /// Structural + staleness validation of a grants record.
 ///
 /// `schemaVersion` fail-closed / migration routing is owned by the
-/// `local_config_migration` framework; this checks the account-id binding,
+/// shared governed-config framework; this checks the account-id binding,
 /// per-row structure, and the wall-clock staleness invariant (an already-
 /// expired `granted` row makes the whole projection stale). A failure routes
 /// the read to `repair_required`.
@@ -538,7 +518,7 @@ pub fn read_account_grants_governed(
 ) -> Result<ConfigReadOutcome<AccountGrantsProjection>, String> {
     let normalized = validate_account_id(account_id)?;
     let path = account_grants_path(&normalized)?;
-    read_governed_config(&GRANTS_CONFIG_FILE, &path, &GRANTS_MIGRATIONS, |document| {
+    read_governed_config(&GRANTS_CONFIG_FILE, &path, |document| {
         let record: AccountGrantsRecord = serde_json::from_value(document.clone())
             .map_err(|error| format!("grants.json cannot be deserialized: {error}"))?;
         validate_grants_record_freshness(&record, &normalized)?;

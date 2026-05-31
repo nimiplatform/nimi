@@ -1,4 +1,4 @@
-import { asNimiError, createNimiError, isNimiError } from '@nimiplatform/sdk/runtime';
+import { asNimiError, createNimiError, getRuntimeReasonCodeMessage, isNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode, type NimiError } from '@nimiplatform/sdk/types';
 import { invokeTauri } from '@runtime/tauri-api';
 import { i18n } from '@renderer/i18n';
@@ -30,14 +30,12 @@ const BRIDGE_ERROR_CODE_MAP: Record<string, { key: string; defaultValue: string 
   LOCAL_AI_MODEL_HASHES_EMPTY: { key: 'BridgeErrors.codes.LOCAL_AI_MODEL_HASHES_EMPTY', defaultValue: 'The model has not completed integrity verification and cannot be started.' },
   LOCAL_AI_MODEL_CAPABILITY_INVALID: { key: 'BridgeErrors.codes.LOCAL_AI_MODEL_CAPABILITY_INVALID', defaultValue: 'Model capability configuration is invalid. Please inspect `manifest.capabilities`.' },
   LOCAL_AI_HF_DOWNLOAD_INTERRUPTED: { key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_INTERRUPTED', defaultValue: 'Download was interrupted. Resume the task manually after restarting.' },
-  LOCAL_AI_HF_DOWNLOAD_PAUSED: { key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_PAUSED', defaultValue: 'Download is paused and can be resumed later.' },
   LOCAL_AI_HF_DOWNLOAD_CANCELLED: { key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_CANCELLED', defaultValue: 'Download has been canceled.' },
   LOCAL_AI_HF_DOWNLOAD_DISK_FULL: { key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_DISK_FULL', defaultValue: 'Insufficient disk space. Free up space and try the download again.' },
   LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH: { key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH', defaultValue: 'Model file verification failed. Please download it again.' },
   LOCAL_AI_HF_DOWNLOAD_NOT_RESUMABLE: { key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_NOT_RESUMABLE', defaultValue: 'The current download session cannot be resumed. Reinstall the model instead.' },
   LOCAL_AI_HF_DOWNLOAD_SESSION_EXISTS: { key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_SESSION_EXISTS', defaultValue: 'A download task for this model is already in progress.' },
   LOCAL_AI_DOWNLOAD_SESSION_NOT_FOUND: { key: 'BridgeErrors.codes.LOCAL_AI_DOWNLOAD_SESSION_NOT_FOUND', defaultValue: 'Download session was not found. Refresh and try again.' },
-  LOCAL_LIFECYCLE_WRITE_DENIED: { key: 'BridgeErrors.codes.LOCAL_LIFECYCLE_WRITE_DENIED', defaultValue: 'The current source is not allowed to perform local model lifecycle writes.' },
   RUNTIME_ROUTE_CAPABILITY_MISMATCH: { key: 'BridgeErrors.codes.RUNTIME_ROUTE_CAPABILITY_MISMATCH', defaultValue: 'The current route is bound to a model with incompatible capabilities. Switch to a matching model.' },
   DESKTOP_HTTP_PAYLOAD_INVALID: { key: 'BridgeErrors.codes.DESKTOP_HTTP_PAYLOAD_INVALID', defaultValue: 'Request payload is invalid. Please try again.' },
   DESKTOP_HTTP_METHOD_INVALID: { key: 'BridgeErrors.codes.DESKTOP_HTTP_METHOD_INVALID', defaultValue: 'Unsupported request method. Please review the request configuration.' },
@@ -57,63 +55,6 @@ const BRIDGE_ERROR_CODE_MAP: Record<string, { key: string; defaultValue: string 
   LOCAL_AI_SPEECH_PYTHON_REQUIRED: { key: 'BridgeErrors.codes.LOCAL_AI_SPEECH_PYTHON_REQUIRED', defaultValue: 'Local Speech requires Python 3.10+.' },
   LOCAL_AI_SPEECH_PYTHON_VERSION_UNSUPPORTED: { key: 'BridgeErrors.codes.LOCAL_AI_SPEECH_PYTHON_VERSION_UNSUPPORTED', defaultValue: 'Local Speech requires Python 3.10+. The current version is unsupported.' },
   LOCAL_AI_SPEECH_BOOTSTRAP_FAILED: { key: 'BridgeErrors.codes.LOCAL_AI_SPEECH_BOOTSTRAP_FAILED', defaultValue: 'Local Speech environment setup failed. Please check Python, dependencies, and network access.' },
-
-  // Phase 1: AI Provider reason codes (D-ERR-007)
-  AI_PROVIDER_TIMEOUT: { key: 'BridgeErrors.codes.AI_PROVIDER_TIMEOUT', defaultValue: 'AI provider request timed out.' },
-  AI_PROVIDER_UNAVAILABLE: { key: 'BridgeErrors.codes.AI_PROVIDER_UNAVAILABLE', defaultValue: 'AI provider is unavailable.' },
-  AI_PROVIDER_RATE_LIMITED: { key: 'BridgeErrors.codes.AI_PROVIDER_RATE_LIMITED', defaultValue: 'AI provider rate limit was reached.' },
-  AI_PROVIDER_INTERNAL: { key: 'BridgeErrors.codes.AI_PROVIDER_INTERNAL', defaultValue: 'AI provider returned an internal error.' },
-  AI_PROVIDER_ENDPOINT_FORBIDDEN: { key: 'BridgeErrors.codes.AI_PROVIDER_ENDPOINT_FORBIDDEN', defaultValue: 'AI provider endpoint is forbidden.' },
-  AI_PROVIDER_AUTH_FAILED: { key: 'BridgeErrors.codes.AI_PROVIDER_AUTH_FAILED', defaultValue: 'AI provider authentication failed.' },
-  AI_STREAM_BROKEN: { key: 'BridgeErrors.codes.AI_STREAM_BROKEN', defaultValue: 'AI streaming response was interrupted.' },
-
-  // Phase 1: AI Connector reason codes
-  AI_CONNECTOR_CREDENTIAL_MISSING: { key: 'BridgeErrors.codes.AI_CONNECTOR_CREDENTIAL_MISSING', defaultValue: 'AI connector credentials are missing.' },
-  AI_CONNECTOR_DISABLED: { key: 'BridgeErrors.codes.AI_CONNECTOR_DISABLED', defaultValue: 'AI connector is disabled.' },
-  AI_CONNECTOR_NOT_FOUND: { key: 'BridgeErrors.codes.AI_CONNECTOR_NOT_FOUND', defaultValue: 'AI connector was not found.' },
-  AI_CONNECTOR_INVALID: { key: 'BridgeErrors.codes.AI_CONNECTOR_INVALID', defaultValue: 'AI connector configuration is invalid.' },
-  AI_CONNECTOR_IMMUTABLE: { key: 'BridgeErrors.codes.AI_CONNECTOR_IMMUTABLE', defaultValue: 'AI connector cannot be modified.' },
-  AI_CONNECTOR_LIMIT_EXCEEDED: { key: 'BridgeErrors.codes.AI_CONNECTOR_LIMIT_EXCEEDED', defaultValue: 'AI connector limit has been exceeded.' },
-
-  // Phase 1: AI Model reason codes
-  AI_MODEL_NOT_FOUND: { key: 'BridgeErrors.codes.AI_MODEL_NOT_FOUND', defaultValue: 'AI model was not found.' },
-  AI_MODALITY_NOT_SUPPORTED: { key: 'BridgeErrors.codes.AI_MODALITY_NOT_SUPPORTED', defaultValue: 'AI modality is not supported.' },
-  AI_MODEL_PROVIDER_MISMATCH: { key: 'BridgeErrors.codes.AI_MODEL_PROVIDER_MISMATCH', defaultValue: 'AI model does not match the selected provider.' },
-
-  // Phase 1: AI Media reason codes
-  AI_MEDIA_IDEMPOTENCY_CONFLICT: { key: 'BridgeErrors.codes.AI_MEDIA_IDEMPOTENCY_CONFLICT', defaultValue: 'Media task idempotency conflict occurred.' },
-  AI_MEDIA_JOB_NOT_FOUND: { key: 'BridgeErrors.codes.AI_MEDIA_JOB_NOT_FOUND', defaultValue: 'Media task was not found.' },
-  AI_MEDIA_SPEC_INVALID: { key: 'BridgeErrors.codes.AI_MEDIA_SPEC_INVALID', defaultValue: 'Media specification is invalid.' },
-  AI_MEDIA_OPTION_UNSUPPORTED: { key: 'BridgeErrors.codes.AI_MEDIA_OPTION_UNSUPPORTED', defaultValue: 'Media option is not supported.' },
-  AI_MEDIA_JOB_NOT_CANCELLABLE: { key: 'BridgeErrors.codes.AI_MEDIA_JOB_NOT_CANCELLABLE', defaultValue: 'Media task cannot be canceled.' },
-
-  // Phase 1: AI Local Model reason codes
-  AI_LOCAL_MODEL_UNAVAILABLE: { key: 'BridgeErrors.codes.AI_LOCAL_MODEL_UNAVAILABLE', defaultValue: 'Local AI model is unavailable.' },
-  AI_LOCAL_MODEL_PROFILE_MISSING: { key: 'BridgeErrors.codes.AI_LOCAL_MODEL_PROFILE_MISSING', defaultValue: 'Local AI model profile is missing.' },
-  AI_LOCAL_ASSET_ALREADY_INSTALLED: { key: 'BridgeErrors.codes.AI_LOCAL_ASSET_ALREADY_INSTALLED', defaultValue: 'Local AI asset is already installed.' },
-  AI_LOCAL_ENDPOINT_REQUIRED: { key: 'BridgeErrors.codes.AI_LOCAL_ENDPOINT_REQUIRED', defaultValue: 'Local AI endpoint configuration is missing.' },
-  AI_LOCAL_TEMPLATE_NOT_FOUND: { key: 'BridgeErrors.codes.AI_LOCAL_TEMPLATE_NOT_FOUND', defaultValue: 'Local AI template was not found.' },
-  AI_LOCAL_MANIFEST_INVALID: { key: 'BridgeErrors.codes.AI_LOCAL_MANIFEST_INVALID', defaultValue: 'Local AI manifest is invalid.' },
-  AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED', defaultValue: 'Local Speech cannot initialize until local prerequisites are satisfied.' },
-  AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED', defaultValue: 'Local Speech requires explicit download confirmation before continuing.' },
-  AI_LOCAL_SPEECH_ENV_INIT_FAILED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_ENV_INIT_FAILED', defaultValue: 'Local Speech environment initialization failed. Retry or repair the local speech setup.' },
-  AI_LOCAL_SPEECH_HOST_INIT_FAILED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_HOST_INIT_FAILED', defaultValue: 'Local Speech service startup failed. Check the local speech environment and try again.' },
-  AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED', defaultValue: 'The required Local Speech capability download failed. Retry that capability download.' },
-  AI_LOCAL_SPEECH_BUNDLE_DEGRADED: { key: 'BridgeErrors.codes.AI_LOCAL_SPEECH_BUNDLE_DEGRADED', defaultValue: 'Local Speech is degraded and must be repaired before continuing.' },
-
-  // Phase 1: Auth & Session reason codes
-  AUTH_REVOCATION_UNAVAILABLE: { key: 'BridgeErrors.codes.AUTH_REVOCATION_UNAVAILABLE', defaultValue: 'Authentication revocation check is temporarily unavailable.' },
-  AUTH_TOKEN_INVALID: { key: 'BridgeErrors.codes.AUTH_TOKEN_INVALID', defaultValue: 'Authentication token is invalid.' },
-  SESSION_EXPIRED: { key: 'BridgeErrors.codes.SESSION_EXPIRED', defaultValue: 'Session has expired.' },
-
-  // Phase 1: App Mode reason codes
-  APP_MODE_DOMAIN_FORBIDDEN: { key: 'BridgeErrors.codes.APP_MODE_DOMAIN_FORBIDDEN', defaultValue: 'App mode domain is forbidden.' },
-  APP_MODE_SCOPE_FORBIDDEN: { key: 'BridgeErrors.codes.APP_MODE_SCOPE_FORBIDDEN', defaultValue: 'App mode scope is forbidden.' },
-  APP_MODE_MANIFEST_INVALID: { key: 'BridgeErrors.codes.APP_MODE_MANIFEST_INVALID', defaultValue: 'App mode manifest is invalid.' },
-
-  // Phase 1: Runtime reason codes
-  RUNTIME_UNAVAILABLE: { key: 'BridgeErrors.codes.RUNTIME_UNAVAILABLE', defaultValue: 'Runtime is unavailable.' },
-  RUNTIME_BRIDGE_DAEMON_UNAVAILABLE: { key: 'BridgeErrors.codes.RUNTIME_BRIDGE_DAEMON_UNAVAILABLE', defaultValue: 'Runtime daemon is unavailable.' },
 };
 
 const BRIDGE_ERROR_MAP: Array<{ pattern: RegExp; key: string; defaultValue: string }> = [
@@ -218,6 +159,13 @@ export function toBridgeUserMessage(error: unknown): string {
   const codeFromNimiError = isNimiError(error) ? String(error.reasonCode || '').trim() : '';
   const codeFromPayload = parseBridgeJsonPayload(error)?.reasonCode || '';
   const errorCode = codeFromNimiError || codeFromPayload || extractBridgeErrorCode(raw);
+  const runtimeReasonProjection = getRuntimeReasonCodeMessage(errorCode);
+  if (runtimeReasonProjection) {
+    return translateBridgeMessage(
+      `BridgeErrors.codes.${runtimeReasonProjection.reasonCode}`,
+      runtimeReasonProjection.defaultMessage,
+    );
+  }
   if (errorCode && BRIDGE_ERROR_CODE_MAP[errorCode]) {
     return translateBridgeMessage(
       BRIDGE_ERROR_CODE_MAP[errorCode].key,

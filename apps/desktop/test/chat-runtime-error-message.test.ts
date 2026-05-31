@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 
 import { createNimiError } from '@nimiplatform/sdk/runtime';
@@ -71,4 +73,15 @@ test('chat runtime error message maps local speech bundle reasons to user-facing
     code: ReasonCode.AI_LOCAL_SPEECH_BUNDLE_DEGRADED,
     message: 'Local Speech is degraded and must be repaired before continuing.',
   });
+});
+
+test('chat runtime error message consumes SDK reason-code message projection', () => {
+  const source = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/features/chat/chat-runtime-error-message.ts'),
+    'utf8',
+  );
+
+  assert.match(source, /getRuntimeReasonCodeMessage/);
+  assert.doesNotMatch(source, /CHAT_RUNTIME_REASON_MESSAGE_MAP/);
+  assert.doesNotMatch(source, /AI_PROVIDER_TIMEOUT:\s*\{/);
 });

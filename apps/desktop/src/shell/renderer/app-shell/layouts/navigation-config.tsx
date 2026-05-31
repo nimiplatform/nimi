@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
-import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Surface } from '@nimiplatform/kit/ui';
+import { Tooltip } from '@nimiplatform/kit/ui';
 import type { AppTab } from '@renderer/app-shell/providers/app-store';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
@@ -190,30 +189,12 @@ export function NavLink({
   badge?: ReactNode;
 }) {
   const { t } = useTranslation();
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
   const translatedLabel = t(`Navigation.${String(item.id)}`, { defaultValue: item.label });
-  const handleMouseEnter = () => {
-    if (buttonRef.current && collapsed) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setTooltipPos({
-        top: rect.top + rect.height / 2,
-        left: rect.right + 8,
-      });
-    }
-  };
-  const handleMouseLeave = () => {
-    setTooltipPos(null);
-  };
-  return (
-    <>
+  const button = (
       <button
-        ref={buttonRef}
         type="button"
         data-testid={E2E_IDS.navTab(String(item.id))}
         onClick={onClick}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
         className={`relative flex items-center text-sm transition-all duration-150 ${
           active
             ? 'font-semibold text-[var(--nimi-text-primary)]'
@@ -244,24 +225,21 @@ export function NavLink({
           <span className="sr-only">{translatedLabel}</span>
         ) : null}
       </button>
-      {/* Custom Tooltip - Fixed position to escape overflow */}
-      {collapsed && tooltipPos ? (
-        <Surface
-          as="span"
-          tone="overlay"
-          material="glass-thick"
-          padding="none"
-          className={SHELL_CHROME_TOOLTIP_CLASS}
-          style={{
-            top: tooltipPos.top,
-            left: tooltipPos.left,
-            transform: 'translateY(-50%)',
-          }}
-        >
-          {translatedLabel}
-        </Surface>
-      ) : null}
-    </>
+  );
+
+  if (!collapsed) {
+    return button;
+  }
+
+  return (
+    <Tooltip
+      content={translatedLabel}
+      placement="right"
+      className="mx-auto"
+      contentClassName={SHELL_CHROME_TOOLTIP_CLASS}
+    >
+      {button}
+    </Tooltip>
   );
 }
 

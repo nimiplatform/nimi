@@ -35,6 +35,7 @@ import type {
   RuntimeAppLifecycleModule,
   RuntimeAppOpenInput,
   RuntimeAppOpenProjection,
+  RuntimeAppStorageProjection,
   RuntimeAppUninstallInput,
   RuntimeAppUninstallResult,
   RuntimeAppUpdateInput,
@@ -60,6 +61,7 @@ export type {
   RuntimeAppOpenProjection,
   RuntimeAppOpenScopeRef,
   RuntimeAppOpenState,
+  RuntimeAppStorageProjection,
   RuntimeAppUninstallInput,
   RuntimeAppUninstallResult,
   RuntimeAppUpdateInput,
@@ -149,6 +151,11 @@ export interface DesktopAppLifecycleBridge {
   getJob(jobId: string): Promise<RuntimeAppInstallJob>;
   /** List lifecycle job projections, optionally filtered to a single app. */
   listJobs(appId?: string): Promise<RuntimeAppInstallJob[]>;
+  /** Read the Runtime-owned app-scoped storage truth projection. */
+  storage(
+    input: { appId: string },
+    options?: Parameters<RuntimeAppLifecycleModule['storage']>[1],
+  ): Promise<RuntimeAppStorageProjection>;
   /**
    * Subscribe to the typed job-event stream. Each frame carries a monotonic
    * sequence and the full job snapshot, so the consumer never rebuilds state
@@ -229,6 +236,13 @@ export function createDesktopAppLifecycleBridge(deps?: {
           filterAppId ? { appId: filterAppId } : {},
           APP_LIFECYCLE_CALL_OPTIONS,
         );
+      } catch (error) {
+        throw asAppLifecycleNimiError(error);
+      }
+    },
+    async storage(input, options) {
+      try {
+        return await getModule().storage(input, options ?? APP_LIFECYCLE_CALL_OPTIONS);
       } catch (error) {
         throw asAppLifecycleNimiError(error);
       }

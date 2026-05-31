@@ -1,8 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { RealmNotificationUnreadProjection } from '@nimiplatform/sdk/realm';
 import { queryClient } from '@renderer/infra/query-client/query-client';
-
-type UnreadNotificationCountDto = RealmModel<'UnreadNotificationCountDto'>;
 
 export const notificationQueryKeys = {
   pageRoot: ['notification-page'] as const,
@@ -42,11 +40,13 @@ export function patchNotificationUnreadCaches(
 
   client.setQueryData(
     notificationQueryKeys.unreadCount(identityRef),
-    (current: unknown): UnreadNotificationCountDto => {
+    (current: unknown): RealmNotificationUnreadProjection => {
       if (current && typeof current === 'object' && !Array.isArray(current)) {
+        const currentProjection = current as Partial<RealmNotificationUnreadProjection>;
         return {
-          ...(current as UnreadNotificationCountDto),
+          ...currentProjection,
           total: nextUnreadCount,
+          byType: currentProjection.byType ?? {},
         };
       }
       return {
@@ -58,19 +58,18 @@ export function patchNotificationUnreadCaches(
 
   client.setQueryData(
     notificationQueryKeys.topbarUnreadCount(identityRef),
-    (current: unknown) => {
+    (current: unknown): RealmNotificationUnreadProjection => {
       if (current && typeof current === 'object' && !Array.isArray(current)) {
+        const currentProjection = current as Partial<RealmNotificationUnreadProjection>;
         return {
-          ...current,
+          ...currentProjection,
           total: nextUnreadCount,
-          unreadCount: nextUnreadCount,
-          count: nextUnreadCount,
+          byType: currentProjection.byType ?? {},
         };
       }
       return {
         total: nextUnreadCount,
-        unreadCount: nextUnreadCount,
-        count: nextUnreadCount,
+        byType: {},
       };
     },
   );

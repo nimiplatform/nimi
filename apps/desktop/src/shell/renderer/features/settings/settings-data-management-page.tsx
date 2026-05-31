@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { getPlatformClient } from '@nimiplatform/sdk';
+import { requestAccountDeletion } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useTranslation } from 'react-i18next';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
-import { dataSync } from '@runtime/data-sync';
 import { desktopBridge } from '@renderer/bridge';
-import type { DesktopStorageDirs, NimiDataMigrationPreview } from '@renderer/bridge';
-import { syncRuntimeLocalModelsConfig } from '@renderer/infra/bootstrap/runtime-bootstrap-local-models-sync';
+import type { DesktopStorageDirs } from '@renderer/bridge';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import {
   Button,
@@ -15,14 +15,6 @@ import {
   SectionTitle,
 } from './settings-layout-components.js';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-
-function formatMigrationBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
-  if (bytes < 1024) return `${bytes.toFixed(0)} B`;
-  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
-  return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
-}
 
 type StorageSnapshot = {
   queryCacheBytes: number;
@@ -77,12 +69,6 @@ export function DataManagementPage() {
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
-  const [nimiDataDirInput, setNimiDataDirInput] = useState('');
-  // P-MIG-007 data-root migration flow state. The data root is NOT changed by
-  // a casual pointer rewrite — the user previews the size/impact, then
-  // explicitly confirms, then a staged integrity-checked migration runs.
-  const [migrationPreview, setMigrationPreview] = useState<NimiDataMigrationPreview | null>(null);
-  const [migrationBusy, setMigrationBusy] = useState(false);
   const [resolvedNimiDir, setResolvedNimiDir] = useState('');
   const [resolvedNimiDataDir, setResolvedNimiDataDir] = useState('');
   const [resolvedLocalModelsDir, setResolvedLocalModelsDir] = useState('');
@@ -126,7 +112,6 @@ export function DataManagementPage() {
     setResolvedNimiDataDir(dirs.nimiDataDir);
     setResolvedLocalModelsDir(dirs.localModelsDir);
     setResolvedLocalRuntimeStatePath(dirs.localRuntimeStatePath);
-    setNimiDataDirInput(dirs.nimiDataDir);
   }, []);
 
   useEffect(() => {
@@ -160,87 +145,6 @@ export function DataManagementPage() {
     void refreshStorageSnapshot();
   };
 
-  // P-MIG-007 step 1 — preview. Computes the real size / impact of moving the
-  // data root to the requested target; moves nothing. The user must see this
-  // before confirming.
-  const handlePreviewMigration = async () => {
-    const normalized = nimiDataDirInput.trim();
-    if (!normalized) {
-      setFeedback({ kind: 'warning', message: t('DataManagement.enterDataDirFirst') });
-      return;
-    }
-    setMigrationBusy(true);
-    setMigrationPreview(null);
-    try {
-      const preview = await desktopBridge.previewNimiDataMigration(normalized);
-      setMigrationPreview(preview);
-      setFeedback(null);
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: error instanceof Error ? error.message : t('DataManagement.dataDirUpdateFailed'),
-      });
-    } finally {
-      setMigrationBusy(false);
-    }
-  };
-
-  // P-MIG-007 step 2 — confirmed run. Executes the staged, integrity-checked
-  // migration with an atomic pointer cutover committed last. Only invoked
-  // after the user has seen the preview and explicitly confirmed.
-  const handleConfirmMigration = async () => {
-    if (!migrationPreview) {
-      return;
-    }
-    setMigrationBusy(true);
-    try {
-      const outcome = await desktopBridge.runNimiDataMigration(migrationPreview.targetRoot);
-      if (outcome.state !== 'completed') {
-        // A failed / repair-routed migration leaves the old data root intact
-        // and still authoritative — surface the typed error, do not pretend
-        // success.
-        setFeedback({
-          kind: 'error',
-          message:
-            outcome.error
-            || t('DataManagement.dataDirUpdateFailed'),
-        });
-        return;
-      }
-      // The data is migrated + verified and ~/.nimi/nimi.json is cut over.
-      // Re-sync the Runtime config dataRootRef (a K-CFG-* mechanism) so the
-      // Runtime follows the new root.
-      const dirs = await desktopBridge.getDesktopStorageDirs();
-      applyStorageDirs(dirs);
-      let feedbackMessage = t('DataManagement.dataDirUpdated');
-      try {
-        const daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
-        await syncRuntimeLocalModelsConfig({
-          daemonStatus,
-          dataRootPath: dirs.nimiDataDir,
-          localModelsPath: dirs.localModelsDir,
-          localStatePath: dirs.localRuntimeStatePath,
-          bridge: {
-            getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
-            setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
-            restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
-          },
-        });
-      } catch (error) {
-        feedbackMessage = error instanceof Error ? error.message : t('DataManagement.dataDirUpdated');
-      }
-      setMigrationPreview(null);
-      setFeedback({ kind: 'warning', message: feedbackMessage });
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: error instanceof Error ? error.message : t('DataManagement.dataDirUpdateFailed'),
-      });
-    } finally {
-      setMigrationBusy(false);
-    }
-  };
-
   const handleDeleteAccount = async () => {
     if (deleting) {
       return;
@@ -251,9 +155,12 @@ export function DataManagementPage() {
     }
     setDeleting(true);
     try {
-      const result = await dataSync.requestAccountDeletion({
-        reason: 'user_request',
-      });
+      const result = await requestAccountDeletion(
+        getPlatformClient().realm,
+        {
+          reason: 'user_request',
+        },
+      );
       if (!result.accepted) {
         setFeedback({
           kind: 'warning',
@@ -332,91 +239,9 @@ export function DataManagementPage() {
             <p>{t('DataManagement.localModelsDirLabel')}: <span className="break-all text-gray-700">{resolvedLocalModelsDir || '-'}</span></p>
             <p>{t('DataManagement.localRuntimeStatePathLabel')}: <span className="break-all text-gray-700">{resolvedLocalRuntimeStatePath || '-'}</span></p>
           </div>
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-            <input
-              value={nimiDataDirInput}
-              onChange={(event) => {
-                setNimiDataDirInput(event.target.value);
-                // A new target invalidates any preview the user has not yet
-                // confirmed — never run a migration against a stale preview.
-                setMigrationPreview(null);
-              }}
-              placeholder={t('DataManagement.dataDirPlaceholder')}
-              className="rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
-              data-testid="settings-data-root-target-input"
-            />
-            <Button
-              onClick={() => { void handlePreviewMigration(); }}
-              disabled={migrationBusy}
-              data-testid="settings-data-root-preview-button"
-            >
-              {t('DataManagement.previewMigrationButton')}
-            </Button>
-          </div>
           <p className="text-xs text-amber-700">
             {t('DataManagement.dataDirHelp')}
           </p>
-          {migrationPreview ? (
-            <div
-              className="rounded-xl border border-amber-200 bg-amber-50/60 p-4"
-              data-testid="settings-data-root-migration-preview"
-            >
-              <h4 className="text-sm font-semibold text-amber-800">
-                {t('DataManagement.migrationPreviewTitle')}
-              </h4>
-              <p className="mt-1 text-xs text-gray-600 break-all">
-                {migrationPreview.sourceRoot} → {migrationPreview.targetRoot}
-              </p>
-              <ul className="mt-2 space-y-1 text-xs text-gray-700">
-                <li>
-                  {t('DataManagement.migrationPreviewVolume', {
-                    size: formatMigrationBytes(migrationPreview.totalBytes),
-                    files: migrationPreview.totalFiles,
-                  })}
-                </li>
-                {migrationPreview.directories
-                  .filter((entry) => entry.totalBytes > 0)
-                  .map((entry) => (
-                    <li key={entry.directory} className="flex justify-between gap-3">
-                      <span>
-                        {entry.directory} ({entry.owner})
-                      </span>
-                      <span className="font-medium">{formatMigrationBytes(entry.totalBytes)}</span>
-                    </li>
-                  ))}
-              </ul>
-              {migrationPreview.includesRuntimeOwnedData ? (
-                <p className="mt-2 text-xs text-amber-700">
-                  {t('DataManagement.migrationPreviewRuntimeOwned')}
-                </p>
-              ) : null}
-              {migrationPreview.unownedDirectories.length > 0 ? (
-                <p className="mt-2 text-xs text-amber-700">
-                  {t('DataManagement.migrationPreviewUnowned', {
-                    directories: migrationPreview.unownedDirectories.join(', '),
-                  })}
-                </p>
-              ) : null}
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => setMigrationPreview(null)}
-                  disabled={migrationBusy}
-                >
-                  {t('DataManagement.migrationCancelButton')}
-                </Button>
-                <Button
-                  onClick={() => { void handleConfirmMigration(); }}
-                  disabled={migrationBusy}
-                  data-testid="settings-data-root-migration-confirm-button"
-                >
-                  {migrationBusy
-                    ? t('DataManagement.migrationRunning')
-                    : t('DataManagement.migrationConfirmButton')}
-                </Button>
-              </div>
-            </div>
-          ) : null}
         </div>
       </section>
 

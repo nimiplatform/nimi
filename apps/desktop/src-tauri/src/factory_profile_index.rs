@@ -7,9 +7,9 @@
 //!
 //! This file is a READ-ONLY projection of official catalog truth. It is
 //! regenerated deterministically from the packaged Platform factory catalog
-//! (`platform_ai_profile_factory_catalog.rs`, itself generated from
-//! `.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml`). It is
-//! never hand-edited and never carries user edits.
+//! (`nimi_shell_tauri::platform_catalog::ai_profile_factory`, itself generated
+//! from `.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml`).
+//! It is never hand-edited and never carries user edits.
 //!
 //! It is NOT the user's editable profile library and it does NOT own or mutate
 //! the Account Default Profile (`~/.nimi/accounts/<id>/profiles/default.json`,
@@ -18,97 +18,29 @@
 //! module never writes account-scoped records.
 
 use crate::desktop_paths::resolve_nimi_dir;
-use crate::local_config_migration::{
-    read_governed_config, ConfigReadOutcome, GovernedConfigFile, MigrationRegistry,
+use nimi_shell_tauri::governed_config::{
+    read_governed_config, write_governed_json_config, ConfigReadOutcome, GovernedConfigFile,
 };
-use crate::platform_ai_profile_factory_catalog::{
-    PlatformAIProfileFactoryRow, PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION,
-    PLATFORM_AI_PROFILE_FACTORY_ROWS, PLATFORM_AI_PROFILE_SELECTION_POLICY_REF,
+use nimi_shell_tauri::platform_projection::factory_profile_index::{
+    build_factory_profile_index_record, validate_factory_profile_index_record,
+    FactoryProfileIndexRecord, FACTORY_PROFILE_INDEX_POINTER, FACTORY_PROFILE_INDEX_SCHEMA_VERSION,
 };
-use serde::{Deserialize, Serialize};
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
-
-const FACTORY_PROFILE_INDEX_SCHEMA_VERSION: u32 = 1;
+use serde::Serialize;
+use std::path::PathBuf;
 
 /// Governed config-file identity for `~/.nimi/profiles/factory-index.json`
 /// (`local-config-file-registry.yaml` row `factory_index_json`).
-const FACTORY_INDEX_CONFIG_FILE: GovernedConfigFile =
-    GovernedConfigFile::new("factory_index_json", "~/.nimi/profiles/factory-index.json");
-
-/// The shared-framework migration registry for the factory profile index.
-///
-/// The index is a deterministic read-only catalog projection; a schema bump's
-/// forward migration is owned by its T2 schema owner and registered here. No
-/// version has been bumped yet, so the step set is empty — an old/unknown
-/// version then fails closed to repair (`P-MIG-002`), and the repair action is
-/// the deterministic [`ensure_factory_profile_index`] regeneration.
-const FACTORY_INDEX_MIGRATIONS: MigrationRegistry = MigrationRegistry::new(
+const FACTORY_INDEX_CONFIG_FILE: GovernedConfigFile = GovernedConfigFile::new(
     "factory_index_json",
+    "~/.nimi/profiles/factory-index.json",
     FACTORY_PROFILE_INDEX_SCHEMA_VERSION,
-    &[],
 );
-/// Stable typed ref prefix for a factory `AIProfile` row. The catalog `alias`
-/// is the readable projection of the four-dimensional matrix; it is not a
-/// schema owner, so the projected `profileRef` keeps the catalog id + alias
-/// rather than re-using the alias as a bare identifier.
-const FACTORY_PROFILE_REF_PREFIX: &str = "factory-ai-profile";
-/// `~/.nimi`-relative location of the factory profile index projection. This
-/// is the manual `~/.nimi/nimi.json` `pointers.factoryProfileIndex` value and
-/// is used to assert the resolved on-disk path stays under `~/.nimi/profiles`.
-pub const FACTORY_PROFILE_INDEX_POINTER: &str = "profiles/factory-index.json";
-
-/// One projected factory profile row. The minimum product fields are fixed by
-/// the manual `~/.nimi/profiles/factory-index.json` schema.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct FactoryProfileIndexRow {
-    pub profile_ref: String,
-    pub alias: String,
-    pub mode: String,
-    pub os: Vec<String>,
-    pub device_class: String,
-    pub capabilities: Vec<String>,
-    pub applicable_scopes: Vec<String>,
-    pub first_run_install_levels: Vec<String>,
-}
-
-/// Official selection policy refs projected alongside the catalog rows.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct FactoryProfileIndexPolicies {
-    pub baseline: String,
-    pub recommended: String,
-}
-
-/// `~/.nimi/profiles/factory-index.json` record shape.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct FactoryProfileIndexRecord {
-    pub schema_version: u32,
-    pub catalog_version: String,
-    pub updated_at: String,
-    pub policies: FactoryProfileIndexPolicies,
-    pub profiles: Vec<FactoryProfileIndexRow>,
-}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FactoryProfileIndexProjection {
     pub path: String,
     pub record: FactoryProfileIndexRecord,
-}
-
-fn now_iso_timestamp() -> String {
-    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
-}
-
-fn now_unix_ms() -> u128 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis()
 }
 
 /// On-disk path of the installed factory profile index projection.
@@ -124,213 +56,8 @@ pub fn factory_profile_index_path() -> Result<PathBuf, String> {
     Ok(path)
 }
 
-/// Stable typed `profileRef` for a factory catalog row.
-fn profile_ref_for_alias(alias: &str) -> String {
-    format!("{FACTORY_PROFILE_REF_PREFIX}:v{PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION}:{alias}")
-}
-
-/// Derive the projected OS list from the catalog row's
-/// `host_capability_profile_refs`. The catalog keys hosts by
-/// `<os>-<arch>-<accelerator>` profile refs; the product-facing index projects
-/// only the deduplicated OS axis (`macos` | `windows` | `linux`).
-fn os_axis_from_host_refs(host_refs: &[&'static str]) -> Vec<String> {
-    let mut out: Vec<String> = Vec::new();
-    for host_ref in host_refs {
-        let os = match host_ref.split('-').next().unwrap_or_default() {
-            "darwin" | "macos" => "macos",
-            "windows" => "windows",
-            "linux" => "linux",
-            _ => continue,
-        };
-        let os = os.to_string();
-        if !out.contains(&os) {
-            out.push(os);
-        }
-    }
-    out
-}
-
-/// Derive the product-facing `deviceClass` from the catalog row's
-/// `compute_posture`. `compute_posture` is the Platform-owned closed enum
-/// (`cpu-only | metal-capable | cuda-capable | cloud-only`); the index projects
-/// it to the manual device-class vocabulary.
-fn device_class_from_compute_posture(compute_posture: &str) -> Result<String, String> {
-    let class = match compute_posture {
-        "cpu-only" => "cpu-standard",
-        "metal-capable" => "apple-silicon",
-        "cuda-capable" => "gpu-recommended",
-        "cloud-only" => "cloud-only",
-        other => {
-            return Err(format!(
-                "factory catalog row has an unknown compute_posture: {other}"
-            ));
-        }
-    };
-    Ok(class.to_string())
-}
-
-/// Derive the projected `mode` for a catalog row.
-///
-/// `recommended` install level wins over `minimal` (a `recommended`-capable row
-/// is the device-aware highlighted choice); a row with no first-run install
-/// level is projected as a `scope-bound` factory profile, not a first-run
-/// baseline.
-fn mode_from_install_levels(first_run_install_levels: &[&'static str]) -> String {
-    if first_run_install_levels.contains(&"recommended") {
-        "recommended".to_string()
-    } else if first_run_install_levels.contains(&"minimal") {
-        "baseline".to_string()
-    } else {
-        "scope-bound".to_string()
-    }
-}
-
-fn project_row(row: &PlatformAIProfileFactoryRow) -> Result<FactoryProfileIndexRow, String> {
-    Ok(FactoryProfileIndexRow {
-        profile_ref: profile_ref_for_alias(row.alias),
-        alias: row.alias.to_string(),
-        mode: mode_from_install_levels(row.first_run_install_levels),
-        os: os_axis_from_host_refs(row.host_capability_profile_refs),
-        device_class: device_class_from_compute_posture(row.compute_posture)?,
-        capabilities: row
-            .capability_set
-            .iter()
-            .map(|value| value.to_string())
-            .collect(),
-        applicable_scopes: row
-            .applicable_scopes
-            .iter()
-            .map(|value| value.to_string())
-            .collect(),
-        first_run_install_levels: row
-            .first_run_install_levels
-            .iter()
-            .map(|value| value.to_string())
-            .collect(),
-    })
-}
-
-/// Build the factory profile index record from the packaged Platform factory
-/// catalog. The record is derived purely from catalog truth — no row is
-/// invented and no user state is read.
-pub fn build_factory_profile_index_record() -> Result<FactoryProfileIndexRecord, String> {
-    let mut profiles = Vec::with_capacity(PLATFORM_AI_PROFILE_FACTORY_ROWS.len());
-    for row in PLATFORM_AI_PROFILE_FACTORY_ROWS {
-        profiles.push(project_row(row)?);
-    }
-    if profiles.is_empty() {
-        return Err("Platform factory catalog projected zero profile rows".to_string());
-    }
-    Ok(FactoryProfileIndexRecord {
-        schema_version: FACTORY_PROFILE_INDEX_SCHEMA_VERSION,
-        catalog_version: format!("v{PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION}"),
-        updated_at: now_iso_timestamp(),
-        policies: FactoryProfileIndexPolicies {
-            // Baseline and recommended first-run plans are both governed by the
-            // single Platform-owned AIProfile selection policy (P-AIPS-004).
-            baseline: PLATFORM_AI_PROFILE_SELECTION_POLICY_REF.to_string(),
-            recommended: PLATFORM_AI_PROFILE_SELECTION_POLICY_REF.to_string(),
-        },
-        profiles,
-    })
-}
-
-/// Structural validation of a factory profile index record.
-///
-/// `schemaVersion` fail-closed / migration routing is owned by the
-/// `local_config_migration` framework (`P-MIG-002`); by the time this runs the
-/// document is already at `FACTORY_PROFILE_INDEX_SCHEMA_VERSION`. The
-/// `schemaVersion` check is kept as a defensive post-migration assertion. A
-/// failure here routes the read to `repair_required`, never a raw `Err`.
-fn validate_record(record: &FactoryProfileIndexRecord) -> Result<(), String> {
-    if record.schema_version != FACTORY_PROFILE_INDEX_SCHEMA_VERSION {
-        return Err(format!(
-            "unsupported ~/.nimi/profiles/factory-index.json schemaVersion={} expected={FACTORY_PROFILE_INDEX_SCHEMA_VERSION}",
-            record.schema_version
-        ));
-    }
-    if record.catalog_version.trim().is_empty() {
-        return Err("~/.nimi/profiles/factory-index.json catalogVersion is required".to_string());
-    }
-    if record.updated_at.trim().is_empty() {
-        return Err("~/.nimi/profiles/factory-index.json updatedAt is required".to_string());
-    }
-    if record.policies.baseline.trim().is_empty() || record.policies.recommended.trim().is_empty() {
-        return Err(
-            "~/.nimi/profiles/factory-index.json policies.baseline and policies.recommended are required"
-                .to_string(),
-        );
-    }
-    if record.profiles.is_empty() {
-        return Err(
-            "~/.nimi/profiles/factory-index.json must project at least one factory profile row"
-                .to_string(),
-        );
-    }
-    for profile in &record.profiles {
-        if profile.profile_ref.trim().is_empty() {
-            return Err(
-                "~/.nimi/profiles/factory-index.json profile row requires profileRef".to_string(),
-            );
-        }
-        if profile.mode.trim().is_empty() {
-            return Err(
-                "~/.nimi/profiles/factory-index.json profile row requires mode".to_string(),
-            );
-        }
-        if profile.device_class.trim().is_empty() {
-            return Err(
-                "~/.nimi/profiles/factory-index.json profile row requires deviceClass".to_string(),
-            );
-        }
-        if profile.os.is_empty() {
-            return Err(
-                "~/.nimi/profiles/factory-index.json profile row requires a non-empty os list"
-                    .to_string(),
-            );
-        }
-        if profile.capabilities.is_empty() {
-            return Err(
-                "~/.nimi/profiles/factory-index.json profile row requires a non-empty capabilities list"
-                    .to_string(),
-            );
-        }
-    }
-    Ok(())
-}
-
-fn write_record(path: &Path, record: &FactoryProfileIndexRecord) -> Result<(), String> {
-    validate_record(record)?;
-    let parent = path.parent().ok_or_else(|| {
-        "~/.nimi/profiles/factory-index.json path has no parent directory".to_string()
-    })?;
-    fs::create_dir_all(parent).map_err(|error| {
-        format!(
-            "create ~/.nimi/profiles directory failed ({}): {error}",
-            parent.display()
-        )
-    })?;
-    let raw = serde_json::to_string_pretty(record).map_err(|error| {
-        format!("serialize ~/.nimi/profiles/factory-index.json failed: {error}")
-    })?;
-    let tmp_path =
-        path.with_extension(format!("json.tmp.{}.{}", std::process::id(), now_unix_ms()));
-    fs::write(&tmp_path, raw).map_err(|error| {
-        format!(
-            "write ~/.nimi/profiles/factory-index.json temporary file failed ({}): {error}",
-            tmp_path.display()
-        )
-    })?;
-    fs::rename(&tmp_path, path).map_err(|error| {
-        format!(
-            "commit ~/.nimi/profiles/factory-index.json failed ({}): {error}",
-            path.display()
-        )
-    })
-}
-
 /// Read the installed factory profile index projection through the shared
-/// `~/.nimi` migration / repair framework.
+/// `~/.nimi` current-schema repair framework.
 ///
 /// Routes a parse failure, a missing / unknown `schemaVersion`, or a structural
 /// fault to a typed `ConfigReadOutcome::Repair` (`P-MIG-004`) instead of a raw
@@ -341,19 +68,12 @@ fn write_record(path: &Path, record: &FactoryProfileIndexRecord) -> Result<(), S
 pub fn read_factory_profile_index_governed(
 ) -> Result<ConfigReadOutcome<FactoryProfileIndexRecord>, String> {
     let path = factory_profile_index_path()?;
-    read_governed_config(
-        &FACTORY_INDEX_CONFIG_FILE,
-        &path,
-        &FACTORY_INDEX_MIGRATIONS,
-        |document| {
-            let record: FactoryProfileIndexRecord = serde_json::from_value(document.clone())
-                .map_err(|error| {
-                    format!("factory profile index cannot be deserialized: {error}")
-                })?;
-            validate_record(&record)?;
-            Ok(record)
-        },
-    )
+    read_governed_config(&FACTORY_INDEX_CONFIG_FILE, &path, |document| {
+        let record: FactoryProfileIndexRecord = serde_json::from_value(document.clone())
+            .map_err(|error| format!("factory profile index cannot be deserialized: {error}"))?;
+        validate_factory_profile_index_record(&record)?;
+        Ok(record)
+    })
 }
 
 /// Read the installed factory profile index projection, if present.
@@ -379,7 +99,7 @@ pub fn read_factory_profile_index() -> Result<Option<FactoryProfileIndexRecord>,
 pub fn ensure_factory_profile_index() -> Result<FactoryProfileIndexProjection, String> {
     let path = factory_profile_index_path()?;
     let record = build_factory_profile_index_record()?;
-    write_record(&path, &record)?;
+    write_governed_json_config(&path, &record, validate_factory_profile_index_record)?;
     Ok(FactoryProfileIndexProjection {
         path: path.display().to_string(),
         record,
@@ -392,10 +112,14 @@ mod tests {
         build_factory_profile_index_record, ensure_factory_profile_index,
         factory_profile_index_path, read_factory_profile_index,
         read_factory_profile_index_governed, FactoryProfileIndexRecord,
-        FACTORY_PROFILE_INDEX_POINTER,
+        FACTORY_PROFILE_INDEX_POINTER, FACTORY_PROFILE_INDEX_SCHEMA_VERSION,
     };
-    use crate::local_config_migration::{ConfigReadOutcome, ConfigRepairSeverity};
     use crate::test_support::with_env;
+    use nimi_shell_tauri::governed_config::{ConfigReadOutcome, ConfigRepairSeverity};
+    use nimi_shell_tauri::platform_catalog::ai_profile_factory::{
+        PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION, PLATFORM_AI_PROFILE_FACTORY_ROWS,
+        PLATFORM_AI_PROFILE_SELECTION_POLICY_REF,
+    };
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -416,21 +140,18 @@ mod tests {
         // catalog: one row per catalog row, no invented entries.
         assert_eq!(
             record.profiles.len(),
-            super::PLATFORM_AI_PROFILE_FACTORY_ROWS.len()
+            PLATFORM_AI_PROFILE_FACTORY_ROWS.len()
         );
-        assert_eq!(
-            record.schema_version,
-            super::FACTORY_PROFILE_INDEX_SCHEMA_VERSION
-        );
+        assert_eq!(record.schema_version, FACTORY_PROFILE_INDEX_SCHEMA_VERSION);
         assert_eq!(
             record.catalog_version,
-            format!("v{}", super::PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION)
+            format!("v{PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION}")
         );
         assert_eq!(
             record.policies.baseline,
-            super::PLATFORM_AI_PROFILE_SELECTION_POLICY_REF
+            PLATFORM_AI_PROFILE_SELECTION_POLICY_REF
         );
-        for catalog_row in super::PLATFORM_AI_PROFILE_FACTORY_ROWS {
+        for catalog_row in PLATFORM_AI_PROFILE_FACTORY_ROWS {
             let projected = record
                 .profiles
                 .iter()

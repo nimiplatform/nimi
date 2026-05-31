@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { validateRuntimeOAuthAuthorizationUrl } from '../src/shell/renderer/features/auth/desktop-runtime-oauth-url';
+import { validateRuntimeOAuthAuthorizationUrl } from '@nimiplatform/kit/auth';
 
-test('desktop runtime account authorize URL validator accepts OAuth authorize shape only', () => {
+test('desktop runtime account authorize URL validator uses Kit OAuth helper', () => {
   const accepted = validateRuntimeOAuthAuthorizationUrl(
     'https://realm.nimi.test/api/auth/oauth/authorize?response_type=code&client_id=nimi-desktop',
   );
@@ -13,7 +13,7 @@ test('desktop runtime account authorize URL validator accepts OAuth authorize sh
   );
 });
 
-test('desktop runtime account authorize URL validator rejects missing and invalid runtime URLs cleanly', () => {
+test('Kit runtime account authorize URL validator rejects missing and invalid runtime URLs cleanly', () => {
   for (const value of [
     '',
     'not a url',

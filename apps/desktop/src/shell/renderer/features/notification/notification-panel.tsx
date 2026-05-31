@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button, ScrollArea, Surface } from '@nimiplatform/kit/ui';
+import { getPlatformClient } from '@nimiplatform/sdk';
+import {
+  loadRealmNotifications,
+  loadRealmNotificationUnreadCount,
+  markRealmNotificationRead,
+  markRealmNotificationsRead,
+} from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
@@ -26,7 +33,7 @@ import {
   patchNotificationUnreadCaches,
   resolveNotificationIdentityRef,
 } from './notification-query.js';
-import { formatNotificationTime, parseUnreadCount, toErrorMessage } from './notification-panel-helpers.js';
+import { formatNotificationTime, toErrorMessage } from './notification-panel-helpers.js';
 import { RejectGiftDialog } from './notification-reject-gift-dialog.js';
 import { getActionLabel, getBadgeDefaultLabel } from './notification-panel-labels.js';
 
@@ -75,11 +82,14 @@ export function NotificationPanel() {
   const notificationsQuery = useInfiniteQuery({
     queryKey: notificationQueryKeys.page(notificationQueryIdentityRef, serverFilter),
     initialPageParam: '',
-    queryFn: async ({ pageParam }) => dataSync.loadNotifications({
-      limit: PAGE_SIZE,
-      ...(pageParam ? { cursor: String(pageParam) } : {}),
-      ...(serverFilter ? { type: serverFilter } : {}),
-    }),
+    queryFn: async ({ pageParam }) => loadRealmNotifications(
+      getPlatformClient().realm,
+      {
+        limit: PAGE_SIZE,
+        ...(pageParam ? { cursor: String(pageParam) } : {}),
+        ...(serverFilter ? { type: serverFilter } : {}),
+      },
+    ),
     enabled: authStatus === 'authenticated' && Boolean(notificationIdentityRef),
     getNextPageParam: (lastPage) => {
       const parsed = toNotificationListView(
@@ -92,14 +102,14 @@ export function NotificationPanel() {
   });
   const unreadCountQuery = useQuery({
     queryKey: notificationQueryKeys.topbarUnreadCount(notificationQueryIdentityRef),
-    queryFn: async () => dataSync.loadNotificationUnreadCount(),
+    queryFn: async () => loadRealmNotificationUnreadCount(getPlatformClient().realm),
     enabled: authStatus === 'authenticated' && Boolean(notificationIdentityRef),
     staleTime: 15_000,
     refetchInterval: 30_000,
   });
 
   useEffect(() => {
-    if (unreadCountQuery.data) {
+    if (unreadCountQuery.data !== undefined) {
       setOptimisticUnreadCount(null);
     }
   }, [unreadCountQuery.data]);
@@ -108,7 +118,7 @@ export function NotificationPanel() {
     setReadOverrides({});
   }, [authStatus, notificationIdentityRef, serverFilter]);
 
-  const unreadCount = optimisticUnreadCount ?? parseUnreadCount(unreadCountQuery.data);
+  const unreadCount = optimisticUnreadCount ?? unreadCountQuery.data?.total ?? 0;
 
   const items = useMemo(() => {
     if (!notificationsQuery.data) {
@@ -177,7 +187,7 @@ export function NotificationPanel() {
     updateUnreadCount(Math.max(0, previousUnreadCount - 1));
 
     try {
-      await dataSync.markNotificationRead(notificationId);
+      await markRealmNotificationRead(getPlatformClient().realm, notificationId);
       await refreshNotifications();
     } catch (error) {
       setReadOverrides((previous) => {
@@ -215,7 +225,10 @@ export function NotificationPanel() {
     updateUnreadCount(0);
 
     try {
-      await dataSync.markNotificationsRead({ markAllBefore: new Date().toISOString() });
+      await markRealmNotificationsRead(
+        getPlatformClient().realm,
+        { markAllBefore: new Date().toISOString() },
+      );
       await refreshNotifications();
     } catch (error) {
       setReadOverrides(previousReadOverrides);

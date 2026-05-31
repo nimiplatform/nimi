@@ -2,7 +2,6 @@ import {
   checkRuntimeRouteHealthWithHost,
   describeRuntimeRouteWithHost,
   resolveRuntimeRouteBindingFromSnapshot,
-  type RuntimeCanonicalCapability,
   type RuntimeResolvedBinding,
   type RuntimeRouteBinding,
 } from '@nimiplatform/sdk/ai';
@@ -11,6 +10,7 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import {
   setConversationCapabilityRouteRuntime,
+  toRuntimeCanonicalCapability,
   type ConversationCapability,
   type ConversationCapabilityRouteRuntime,
 } from '@renderer/features/chat/conversation-capability';
@@ -58,7 +58,7 @@ export function createDesktopConversationCapabilityRouteRuntime(
     if (!input.binding) {
       throw new Error('RUNTIME_ROUTE_BINDING_REQUIRED');
     }
-    const capability = input.capability as RuntimeCanonicalCapability;
+    const capability = toRuntimeCanonicalCapability(input.capability);
     const snapshot = await deps.loadRuntimeRouteOptions({ capability });
     const resolved = resolveRuntimeRouteBindingFromSnapshot({
       capability,
@@ -81,7 +81,7 @@ export function createDesktopConversationCapabilityRouteRuntime(
       });
     },
     describe: async (input) => {
-      const capability = input.capability as RuntimeCanonicalCapability;
+      const capability = toRuntimeCanonicalCapability(input.capability);
       const resolvedBindingRef = normalizeText(input.resolvedBindingRef);
       const resolved = resolvedByRef.get(resolvedBindingRef);
       if (!resolved) {

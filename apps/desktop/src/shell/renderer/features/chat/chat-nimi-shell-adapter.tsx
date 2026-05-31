@@ -45,13 +45,13 @@ import {
 } from './chat-nimi-shell-core';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
+import { pickerSelectionToBinding } from '@nimiplatform/kit/features/model-config';
 import { useAiConversationPresentation } from './chat-nimi-shell-presentation';
 import { createChatAiConversationRuntimeAdapter } from './chat-nimi-shell-runtime-adapter';
 import { useAiConversationEffects } from './chat-nimi-shell-effects';
 import { useAiConversationCapabilityEffects } from './chat-nimi-shell-capability-effects';
 import { useSchedulingFeasibility } from './chat-shared-execution-scheduling-guard';
 import { useAiConversationHostActions } from './chat-nimi-shell-host-actions';
-import { toRuntimeRouteBindingFromPickerSelection } from './conversation-capability';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 
 type UseAiConversationModeHostInput = {
@@ -141,10 +141,7 @@ export function useAiConversationModeHost(
     ) {
       return;
     }
-    const binding = toRuntimeRouteBindingFromPickerSelection({
-      capability: 'text.generate',
-      selection,
-    });
+    const binding = pickerSelectionToBinding(selection);
     if (binding) {
       // Write through AIConfig surface (D-AIPC-003) — the formal config owner.
       const surface = getDesktopAIConfigService();

@@ -5,6 +5,8 @@
       "@runtime/*": ["./src/runtime/*"],
       "@renderer/*": ["./src/shell/renderer/*"],
       "@nimiplatform/sdk": ["../../sdk/src/index.ts"],
+      "@nimiplatform/sdk/platform-catalog": ["../../sdk/src/platform-catalog/index.ts"],
+      "@nimiplatform/sdk/platform-catalog/*": ["../../sdk/src/platform-catalog/*"],
       "@nimiplatform/sdk/*": ["../../sdk/src/*"],
       "@nimiplatform/kit/ui": ["../../kit/ui/src/index.ts"],
       "@nimiplatform/kit/ui/*": ["../../kit/ui/src/*"],

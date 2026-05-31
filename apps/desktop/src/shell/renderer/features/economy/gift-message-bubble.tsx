@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { CommerceGiftTransaction } from '@nimiplatform/kit/features/commerce';
+import { loadRealmGiftTransaction } from '@nimiplatform/kit/features/commerce/realm';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -14,16 +16,6 @@ export interface GiftMessagePayload {
   sparkCost: string;
   gemToReceiver: string;
   senderMessage: string | null;
-}
-
-type GiftStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'REFUNDED';
-
-interface GiftTransactionResult {
-  id: string;
-  status: GiftStatus;
-  senderId: string;
-  receiverId: string;
-  [key: string]: unknown;
 }
 
 interface GiftMessageBubbleProps {
@@ -41,17 +33,15 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
 
   const txQuery = useQuery({
     queryKey: ['gift-transaction', payload.giftTransactionId],
-    queryFn: async () => {
-      const result = await dataSync.loadGiftTransaction(payload.giftTransactionId);
-      return result as GiftTransactionResult;
-    },
+    queryFn: async (): Promise<CommerceGiftTransaction> =>
+      loadRealmGiftTransaction(payload.giftTransactionId),
     staleTime: 30_000,
   });
 
   const tx = txQuery.data;
   const hasRealmTransactionEvidence = Boolean(tx?.id);
-  const status: GiftStatus | null = hasRealmTransactionEvidence ? (tx?.status as GiftStatus) : null;
-  const isReceiver = Boolean(tx && tx.receiverId === currentUserId);
+  const status = hasRealmTransactionEvidence ? tx?.status ?? null : null;
+  const isReceiver = Boolean(tx?.receiver?.id && tx.receiver.id === currentUserId);
   const isPending = status === 'PENDING';
 
   const handleAccept = async () => {

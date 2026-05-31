@@ -14,6 +14,15 @@
 
 import type { ProductControlState } from '@renderer/bridge';
 import {
+  isLocalRuntimeEnvironmentDependencyJobActiveState,
+  isLocalRuntimeEnvironmentDependencyJobCancelledState,
+  isLocalRuntimeEnvironmentDependencyJobFailedState,
+  isLocalRuntimeEnvironmentDependencyNeedsConfirmationState,
+  isLocalRuntimeEnvironmentDependencyReadyState,
+  isLocalRuntimeEnvironmentDependencyRepairRequiredState,
+  isLocalRuntimeEnvironmentDependencyUnsupportedState,
+} from '@nimiplatform/sdk/runtime';
+import {
   aggregateMaterializationDownloadProgress,
   type FirstRunMaterializationDependencyProjection,
   type FirstRunMaterializationDownloadProgress,
@@ -72,22 +81,6 @@ export type FirstRunSetupChecklist = {
   readonly hasFailure: boolean;
 };
 
-const JOB_ACTIVE_STATES = new Set([
-  'needs_confirmation',
-  'queued',
-  'starting',
-  'running',
-  'in_progress',
-  'downloading',
-  'verifying',
-  'installing',
-]);
-const JOB_FAILED_STATES = new Set(['failed', 'cancelled', 'repair_required']);
-
-function normalize(value: string | undefined): string {
-  return String(value || '').trim().toLowerCase();
-}
-
 /**
  * Builds the setup checklist for a materialization projection.
  *
@@ -102,15 +95,15 @@ function projectFromMaterialization(
   const deps = materialization.dependencies;
   const failingDep = deps.find(
     (item) =>
-      JOB_FAILED_STATES.has(normalize(item.job?.state))
-      || normalize(item.dependency.state) === 'repair_required'
-      || normalize(item.dependency.state) === 'unsupported',
+      isLocalRuntimeEnvironmentDependencyJobFailedState(item.job?.state)
+      || isLocalRuntimeEnvironmentDependencyJobCancelledState(item.job?.state)
+      || isLocalRuntimeEnvironmentDependencyRepairRequiredState(item.job?.state)
+      || isLocalRuntimeEnvironmentDependencyUnsupportedState(item.job?.state)
+      || isLocalRuntimeEnvironmentDependencyRepairRequiredState(item.dependency.state)
+      || isLocalRuntimeEnvironmentDependencyUnsupportedState(item.dependency.state),
   ) ?? null;
   const allAssetsReady = deps.length > 0
-    && deps.every((item) => {
-      const state = normalize(item.dependency.state);
-      return state === 'ready_system' || state === 'ready_managed';
-    });
+    && deps.every((item) => isLocalRuntimeEnvironmentDependencyReadyState(item.dependency.state));
 
   // The materialization status is the authoritative phase signal; the four
   // sub-step statuses are a faithful projection of it.
@@ -162,17 +155,18 @@ function projectFromMaterialization(
     : null;
 
   const canCancel = failingDep?.job
-    ? JOB_ACTIVE_STATES.has(normalize(failingDep.job.state))
+    ? isLocalRuntimeEnvironmentDependencyNeedsConfirmationState(failingDep.job.state)
+      || isLocalRuntimeEnvironmentDependencyJobActiveState(failingDep.job.state)
     : false;
   const canRetry = failingDep?.job
     ? Boolean(failingDep.job.retryable)
-      || normalize(failingDep.job.state) === 'failed'
-      || normalize(failingDep.job.state) === 'cancelled'
+      || isLocalRuntimeEnvironmentDependencyJobFailedState(failingDep.job.state)
+      || isLocalRuntimeEnvironmentDependencyJobCancelledState(failingDep.job.state)
     : false;
   const canRepair = failingDep
-    ? normalize(failingDep.dependency.state) === 'repair_required'
-      || normalize(failingDep.job?.state) === 'failed'
-      || normalize(failingDep.job?.state) === 'repair_required'
+    ? isLocalRuntimeEnvironmentDependencyRepairRequiredState(failingDep.dependency.state)
+      || isLocalRuntimeEnvironmentDependencyJobFailedState(failingDep.job?.state)
+      || isLocalRuntimeEnvironmentDependencyRepairRequiredState(failingDep.job?.state)
     : false;
 
   const baseStatuses: Record<FirstRunSetupStepId, FirstRunSetupStepStatus> = {

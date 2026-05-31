@@ -3,6 +3,20 @@ use serde_json::{Map as JsonMap, Value as JsonValue};
 
 pub(crate) const CHAT_AI_DB_SCHEMA_VERSION: i64 = 2;
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ChatAiStoragePayload {
+    pub(crate) storage_root: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ChatAiStorageEnvelope<T> {
+    pub(crate) storage_root: String,
+    #[serde(flatten)]
+    pub(crate) input: T,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ChatAiMessageRole {
@@ -189,10 +203,4 @@ pub struct ChatAiPutDraftInput {
     pub text: String,
     pub attachments: Vec<ChatAiAttachment>,
     pub updated_at_ms: i64,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChatAiDeleteDraftInput {
-    pub thread_id: String,
 }

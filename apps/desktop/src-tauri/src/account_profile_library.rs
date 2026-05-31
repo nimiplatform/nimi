@@ -1,5 +1,5 @@
 use crate::desktop_paths::resolve_nimi_dir;
-use crate::platform_ai_profile_factory_catalog::{
+use nimi_shell_tauri::platform_catalog::ai_profile_factory::{
     verify_first_run_factory_ai_profile, PlatformAIProfileFactoryRow,
     PLATFORM_AI_PROFILE_FACTORY_CATALOG_ID, PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION,
     PLATFORM_AI_PROFILE_SELECTION_POLICY_REF,

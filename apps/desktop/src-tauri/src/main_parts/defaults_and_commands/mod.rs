@@ -4,43 +4,6 @@ pub(crate) mod macos_smoke;
 pub(crate) mod system_resources;
 pub(crate) mod window_and_logs;
 
-fn normalize_loopback_http_url(raw: &str, default_port: u16, trim_trailing_slash: bool) -> String {
-    let value = raw.trim();
-    if value.is_empty() {
-        return String::new();
-    }
-
-    let mut normalized = match Url::parse(value) {
-        Ok(mut parsed) => {
-            let host = parsed
-                .host_str()
-                .map(|text| text.to_ascii_lowercase())
-                .unwrap_or_default();
-            let has_explicit_port = parsed.port().is_some();
-            let is_loopback_http =
-                parsed.scheme() == "http" && (host == "localhost" || host == "127.0.0.1");
-            if is_loopback_http && !has_explicit_port {
-                let _ = parsed.set_port(Some(default_port));
-            }
-            parsed.to_string()
-        }
-        Err(_) => value.to_string(),
-    };
-
-    if trim_trailing_slash {
-        normalized = normalized.trim_end_matches('/').to_string();
-    }
-
-    normalized
-}
-
-fn resolve_realm_default_port(realm_base_url: &str) -> u16 {
-    Url::parse(realm_base_url)
-        .ok()
-        .and_then(|parsed| parsed.port_or_known_default())
-        .unwrap_or(3002)
-}
-
 pub(crate) const HTTP_REQUEST_RATE_LIMIT_BURST: usize = 32;
 pub(crate) const HTTP_REQUEST_RATE_LIMIT_WINDOW: Duration = Duration::from_secs(5);
 
@@ -95,57 +58,7 @@ pub(crate) fn runtime_defaults() -> Result<RuntimeDefaults, String> {
     if let Some(override_defaults) = crate::desktop_e2e_fixture::runtime_defaults_override()? {
         return Ok(override_defaults);
     }
-    let realm_base_url = normalize_loopback_http_url(
-        env_value("NIMI_REALM_URL", "http://localhost:3002").as_str(),
-        3002,
-        true,
-    );
-    let realm_default_port = resolve_realm_default_port(realm_base_url.as_str());
-    let normalized_realm_base_url = realm_base_url.trim_end_matches('/');
-    let default_jwks_url = if normalized_realm_base_url.is_empty() {
-        "http://localhost:3002/api/auth/jwks".to_string()
-    } else {
-        format!("{}/api/auth/jwks", normalized_realm_base_url)
-    };
-    let default_revocation_url = if normalized_realm_base_url.is_empty() {
-        "http://localhost:3002/api/auth/sessions/introspect".to_string()
-    } else {
-        format!("{}/api/auth/sessions/introspect", normalized_realm_base_url)
-    };
-    let jwks_url = normalize_loopback_http_url(
-        env_value("NIMI_REALM_JWKS_URL", default_jwks_url.as_str()).as_str(),
-        realm_default_port,
-        true,
-    );
-    let revocation_url = normalize_loopback_http_url(
-        env_value("NIMI_REALM_REVOCATION_URL", default_revocation_url.as_str()).as_str(),
-        realm_default_port,
-        true,
-    );
-    let jwt_issuer = normalize_loopback_http_url(
-        env_value("NIMI_REALM_JWT_ISSUER", realm_base_url.as_str()).as_str(),
-        realm_default_port,
-        true,
-    );
-
-    let defaults = RuntimeDefaults {
-        realm: RealmDefaults {
-            realm_base_url: realm_base_url.clone(),
-            realtime_url: env_value("NIMI_REALTIME_URL", ""),
-            access_token: env_value("NIMI_ACCESS_TOKEN", ""),
-            jwks_url,
-            revocation_url,
-            jwt_issuer,
-            jwt_audience: env_value("NIMI_REALM_JWT_AUDIENCE", "nimi-runtime"),
-        },
-        runtime: RuntimeExecutionDefaults {
-            target_type: env_value("NIMI_TARGET_TYPE", ""),
-            target_account_id: env_value("NIMI_TARGET_ACCOUNT_ID", ""),
-            agent_id: env_value("NIMI_AGENT_ID", ""),
-            world_id: env_value("NIMI_WORLD_ID", ""),
-            user_confirmed_upload: env_value("NIMI_USER_CONFIRMED_UPLOAD", "") == "1",
-        },
-    };
+    let defaults = nimi_shell_tauri::runtime_defaults::runtime_defaults();
 
     #[cfg(debug_assertions)]
     {

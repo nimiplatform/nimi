@@ -10,14 +10,9 @@ export { startWindowDrag } from '../shell/renderer/bridge/runtime-bridge/ui';
 export type { AppsBridgeProjection } from '../shell/renderer/bridge/runtime-bridge/apps-projection';
 
 export type {
-  NimiDataMigrationState,
-  NimiDataDirectoryImpact,
-  NimiDataMigrationPreview,
-  NimiDataMigrationOutcome,
   NimiDataCleanupPlan,
   NimiDataCleanupOutcome,
-  NimiDataOldRootReclaimPlan,
-} from '../shell/renderer/bridge/runtime-bridge/nimi-data-migration';
+} from '../shell/renderer/bridge/runtime-bridge/nimi-data-directory';
 
 export type { LogsExportResult } from '../shell/renderer/bridge/runtime-bridge/support-logs-export';
 

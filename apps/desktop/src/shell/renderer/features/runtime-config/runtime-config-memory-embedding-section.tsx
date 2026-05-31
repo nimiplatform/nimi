@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  projectMemoryEmbeddingRouteAvailability,
   type MemoryEmbeddingConfig,
   type RuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/ai';
@@ -42,7 +43,6 @@ type CloudConnectorOption = {
   connectorId: string;
   label: string;
   models: string[];
-  available: boolean;
 };
 
 function savedConfigLabel(config: MemoryEmbeddingConfig): string {
@@ -117,7 +117,6 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
         connectorId: connector.id,
         label: connector.label,
         models: [...connector.models],
-        available: true,
       }))
       .filter((connector) => connector.models.length > 0);
     if (config.sourceKind === 'cloud' && config.bindingRef?.kind === 'cloud') {
@@ -131,7 +130,6 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
           connectorId: savedConnectorId,
           label: `${savedConnectorId} (${t('runtimeConfig.memory.savedButUnavailable', { defaultValue: 'saved, unavailable' })})`,
           models: [savedModelId],
-          available: false,
         });
       }
     }
@@ -163,11 +161,9 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
         }),
       };
     }
+    const projected = projectMemoryEmbeddingRouteAvailability({ config, routeOptions });
     if (config.sourceKind === 'cloud' && config.bindingRef.kind === 'cloud') {
-      const cloudBinding = config.bindingRef;
-      const connector = cloudConnectorOptions.find((item) => item.connectorId === cloudBinding.connectorId) || null;
-      const projected = Boolean(connector?.available && connector.models.includes(cloudBinding.modelId));
-      if (projected) {
+      if (projected.state === 'ready') {
         return {
           tone: 'success',
           label: t('runtimeConfig.memory.ready', { defaultValue: 'Ready' }),
@@ -185,12 +181,7 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
       };
     }
     if (config.sourceKind === 'local' && config.bindingRef.kind === 'local') {
-      const localBinding = config.bindingRef;
-      const activeLocal = (routeOptions?.local.models || []).some((model) => (
-        model.model === localBinding.targetId
-        && String(model.status || '').toLowerCase() === 'active'
-      ));
-      return activeLocal
+      return projected.state === 'ready'
         ? {
             tone: 'success',
             label: t('runtimeConfig.memory.ready', { defaultValue: 'Ready' }),
@@ -213,7 +204,7 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
         defaultValue: 'Choose a cloud connector or an active local embedding model. Chat memory upgrades will use this source.',
       }),
     };
-  }, [cloudConnectorOptions, config, routeOptions, routeOptionsError, t]);
+  }, [config, routeOptions, routeOptionsError, t]);
 
   const commitConfig = (next: MemoryEmbeddingConfig) => {
     memoryEmbeddingService.memoryEmbeddingConfig.update(scopeRef, next);
