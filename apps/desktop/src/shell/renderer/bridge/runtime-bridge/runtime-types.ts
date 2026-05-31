@@ -85,52 +85,6 @@ export type MenuBarRuntimeHealthSyncPayload = {
   updatedAt?: string;
 };
 
-export type OpenExternalUrlResult = {
-  opened: boolean;
-};
-
-export type OauthTokenExchangeProvider = 'CODEX' | 'TWITTER' | 'TIKTOK';
-
-export type OauthTokenExchangePayload = {
-  provider: OauthTokenExchangeProvider;
-  clientId: string;
-  code: string;
-  codeVerifier?: string;
-  redirectUri?: string;
-};
-
-export type OauthTokenExchangeResult = {
-  accessToken: string;
-  refreshToken?: string;
-  tokenType?: string;
-  expiresIn?: number;
-  scope?: string;
-  raw: JsonObject;
-};
-
-export type OauthListenForCodePayload = {
-  redirectUri: string;
-  timeoutMs?: number;
-};
-
-export type OauthListenForCodeResult = {
-  callbackUrl: string;
-  code?: string;
-  refreshToken?: string;
-  state?: string;
-  error?: string;
-};
-
-export type ConfirmDialogPayload = {
-  title: string;
-  description: string;
-  level?: 'info' | 'warning' | 'error';
-};
-
-export type ConfirmDialogResult = {
-  confirmed: boolean;
-};
-
 export type DesktopMacosSmokeContext = {
   enabled: boolean;
   scenarioId?: string;

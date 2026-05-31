@@ -40,9 +40,14 @@ import {
 import { exportDesktopLogs } from './runtime-bridge/support-logs-export';
 import { getAppsBridgeProjection } from './runtime-bridge/apps-projection';
 import { getDesktopStorageDirs } from './runtime-bridge/desktop-storage';
-import { oauthListenForCode, oauthTokenExchange } from './runtime-bridge/oauth';
 import { completeMenuBarQuit, syncMenuBarRuntimeHealth } from './runtime-bridge/menu-bar';
-import { focusMainWindow, openExternalUrl, startWindowDrag } from './runtime-bridge/ui';
+import {
+  focusMainWindow,
+  oauthListenForCode,
+  oauthTokenExchange,
+  openExternalUrl,
+  startWindowDrag,
+} from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type {
   ProductControlRecord,
@@ -74,14 +79,17 @@ export type {
   RuntimeBridgeConfigSetResult,
   RuntimeDefaults,
   SystemResourceSnapshot,
+  MenuBarProviderSummary,
+  MenuBarRuntimeHealthSyncPayload,
+} from './runtime-bridge/types';
+
+export type {
   OpenExternalUrlResult,
   OauthTokenExchangePayload,
   OauthTokenExchangeResult,
   OauthListenForCodePayload,
   OauthListenForCodeResult,
-  MenuBarProviderSummary,
-  MenuBarRuntimeHealthSyncPayload,
-} from './runtime-bridge/types';
+} from '@nimiplatform/kit/core/oauth';
 
 export {
   getDesktopReleaseInfo,

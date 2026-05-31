@@ -1,23 +1,26 @@
-import { hasTauriInvoke } from './env';
-import { invokeChecked } from './invoke';
+import {
+  parseOpenExternalUrlResult,
+  type OpenExternalUrlResult,
+} from '@nimiplatform/kit/core/oauth';
+import { hasTauriInvoke } from './env.js';
+import { invoke, invokeChecked } from './invoke.js';
 import {
   parseConfirmDialogResult,
-  parseOpenExternalUrlResult,
   type ConfirmDialogPayload,
   type ConfirmDialogResult,
-  type OpenExternalUrlResult,
-} from './types';
+} from './types.js';
 
-function normalizeExternalUrl(url: string): string {
+function windowLike(): (Window & typeof globalThis) | undefined {
+  return typeof window !== 'undefined' ? window : undefined;
+}
+
+export function normalizeShellExternalUrl(url: string): string {
   const normalized = String(url || '').trim();
   if (!normalized) {
     throw new Error('URL is required');
   }
 
-  const baseUrl =
-    typeof window !== 'undefined' && window.location
-      ? window.location.href
-      : 'https://nimi.invalid';
+  const baseUrl = windowLike()?.location?.href || 'https://nimi.invalid';
   const parsed = new URL(normalized, baseUrl);
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error(`Only http/https URLs are supported: ${parsed.protocol}`);
@@ -26,27 +29,22 @@ function normalizeExternalUrl(url: string): string {
 }
 
 export async function openExternalUrl(url: string): Promise<OpenExternalUrlResult> {
-  const normalized = normalizeExternalUrl(url);
-
+  const normalized = normalizeShellExternalUrl(url);
   if (!hasTauriInvoke()) {
-    const openedWindow = window.open(normalized, '_blank', 'noopener,noreferrer');
+    const openedWindow = windowLike()?.open?.(normalized, '_blank', 'noopener,noreferrer');
     return { opened: Boolean(openedWindow) };
   }
-
   return invokeChecked('open_external_url', {
-    payload: {
-      url: normalized,
-    },
+    payload: { url: normalized },
   }, parseOpenExternalUrlResult);
 }
 
 export async function confirmDialog(payload: ConfirmDialogPayload): Promise<ConfirmDialogResult> {
   if (!hasTauriInvoke()) {
     return {
-      confirmed: window.confirm(payload.description),
+      confirmed: Boolean(windowLike()?.confirm?.(payload.description)),
     };
   }
-
   return invokeChecked('confirm_dialog', { payload }, parseConfirmDialogResult);
 }
 
@@ -59,8 +57,12 @@ export async function startWindowDrag(): Promise<void> {
 
 export async function focusMainWindow(): Promise<void> {
   if (!hasTauriInvoke()) {
-    window.focus();
+    windowLike()?.focus?.();
     return;
   }
-  await invokeChecked('focus_main_window', {}, () => undefined);
+  try {
+    await invoke('focus_main_window', {});
+  } catch {
+    // Some scaffold shells do not expose focus_main_window; focusing is advisory.
+  }
 }

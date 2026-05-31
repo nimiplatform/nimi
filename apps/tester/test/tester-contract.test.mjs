@@ -104,6 +104,17 @@ test('tester workbench is app-owned and rejects Desktop private imports', () => 
   assert.doesNotMatch(sources, /pseudo/i);
 });
 
+test('tester auth and runtime bootstrap consume Kit shell bridge primitives', () => {
+  const main = read('src/main.tsx');
+  const runtimeAccountAuth = read('src/shell/auth/runtime-account-auth.ts');
+
+  assert.match(main, /installNimiShellRuntimeBridge/);
+  assert.match(main, /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
+  assert.match(runtimeAccountAuth, /createTauriOAuthBridge/);
+  assert.match(runtimeAccountAuth, /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
+  assert.doesNotMatch(runtimeAccountAuth, /@renderer\/bridge|runtime-bridge/);
+});
+
 test('tester kit gallery showcases real kit components for third-party apps', () => {
   const gallery = read('src/tester/kit-component-gallery.tsx');
   for (const required of [

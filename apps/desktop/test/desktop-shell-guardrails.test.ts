@@ -4,7 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { isExpectedAnonymousSessionError, toAuthUserRecord } from '../src/shell/renderer/features/auth/auth-session-utils';
-import { confirmDialog, openExternalUrl } from '../src/shell/renderer/bridge/runtime-bridge/ui';
+import { confirmDialog, openExternalUrl } from '@nimiplatform/kit/shell/renderer/bridge';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 type WindowLike = {

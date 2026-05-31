@@ -22,17 +22,10 @@ export type {
   RuntimeBridgeConfigSetResult,
   MenuBarProviderSummary,
   MenuBarRuntimeHealthSyncPayload,
-  OpenExternalUrlResult,
   DesktopMacosSmokeContext,
   DesktopMacosSmokeAvatarEvidenceReadResult,
   DesktopMacosSmokeReportPayload,
   DesktopMacosSmokeReportResult,
-  OauthTokenExchangePayload,
-  OauthTokenExchangeResult,
-  OauthListenForCodePayload,
-  OauthListenForCodeResult,
-  ConfirmDialogPayload,
-  ConfirmDialogResult,
 } from './runtime-types.js';
 
 export {
@@ -45,13 +38,9 @@ export {
   parseRuntimeBridgeConfigGetResult,
   parseRuntimeBridgeConfigSetResult,
   parseMenuBarProviderSummary,
-  parseOpenExternalUrlResult,
   parseDesktopMacosSmokeContext,
   parseDesktopMacosSmokeAvatarEvidenceReadResult,
   parseDesktopMacosSmokeReportResult,
-  parseConfirmDialogResult,
-  parseOauthTokenExchangeResult,
-  parseOauthListenForCodeResult,
 } from './runtime-parsers.js';
 
 export type {

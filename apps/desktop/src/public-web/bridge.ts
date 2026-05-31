@@ -5,7 +5,7 @@ export { logRendererEvent, toRendererLogMessage } from '../shell/renderer/bridge
 export { completeMenuBarQuit, syncMenuBarRuntimeHealth } from '../shell/renderer/bridge/runtime-bridge/menu-bar';
 export { proxyHttp } from '../shell/renderer/bridge/runtime-bridge/http';
 export { getSystemResourceSnapshot } from '../shell/renderer/bridge/runtime-bridge/system-resources';
-export { startWindowDrag } from '../shell/renderer/bridge/runtime-bridge/ui';
+export { startWindowDrag } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type { AppsBridgeProjection } from '../shell/renderer/bridge/runtime-bridge/apps-projection';
 
@@ -28,17 +28,23 @@ export type {
   DesktopReleaseInfo,
   DesktopUpdateCheckResult,
   DesktopUpdateState,
-  MenuBarProviderSummary,
-  MenuBarRuntimeHealthSyncPayload,
-  OpenExternalUrlResult,
-  OauthListenForCodePayload,
-  OauthListenForCodeResult,
-  OauthTokenExchangePayload,
-  OauthTokenExchangeResult,
   RendererLogMessage,
   RuntimeBridgeConfigGetResult,
   RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
   SystemResourceSnapshot,
+} from '../shell/renderer/bridge/runtime-bridge/types';
+
+export type {
+  OpenExternalUrlResult,
+  OauthListenForCodePayload,
+  OauthListenForCodeResult,
+  OauthTokenExchangePayload,
+  OauthTokenExchangeResult,
+} from '@nimiplatform/kit/core/oauth';
+
+export type {
+  MenuBarProviderSummary,
+  MenuBarRuntimeHealthSyncPayload,
 } from '../shell/renderer/bridge/runtime-bridge/types';

@@ -3,7 +3,7 @@ import { cn } from '@nimiplatform/kit/ui';
 import { DesktopCompactAction } from '@renderer/components/action';
 import { DesktopCardSurface } from '@renderer/components/surface';
 import { useTranslation } from 'react-i18next';
-import { confirmDialog } from '@renderer/bridge/runtime-bridge/ui';
+import { confirmDialog } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { CanonicalMemoryBankStatus } from '@renderer/infra/runtime-agent-memory';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 

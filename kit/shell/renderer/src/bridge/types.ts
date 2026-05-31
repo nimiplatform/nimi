@@ -36,6 +36,16 @@ export type RuntimeBridgeDaemonStatus = {
   debugLogPath?: string;
 };
 
+export type ConfirmDialogPayload = {
+  title: string;
+  description: string;
+  level?: 'info' | 'warning' | 'error';
+};
+
+export type ConfirmDialogResult = {
+  confirmed: boolean;
+};
+
 export function isJsonObject(value: unknown): value is JsonObject {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -124,5 +134,12 @@ export function parseRuntimeBridgeDaemonStatus(value: unknown): RuntimeBridgeDae
     version: parseOptionalString(record.version),
     lastError: parseOptionalString(record.lastError),
     debugLogPath: parseOptionalString(record.debugLogPath),
+  };
+}
+
+export function parseConfirmDialogResult(value: unknown): ConfirmDialogResult {
+  const record = assertBridgeRecord(value, 'confirm_dialog returned invalid payload');
+  return {
+    confirmed: Boolean(record.confirmed),
   };
 }

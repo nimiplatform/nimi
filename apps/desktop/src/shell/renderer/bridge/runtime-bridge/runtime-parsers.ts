@@ -13,11 +13,7 @@ import type {
   DesktopMacosSmokeContext,
   DesktopMacosSmokeAvatarEvidenceReadResult,
   DesktopMacosSmokeReportResult,
-  ConfirmDialogResult,
   MenuBarProviderSummary,
-  OauthListenForCodeResult,
-  OauthTokenExchangeResult,
-  OpenExternalUrlResult,
   RuntimeBridgeConfigGetResult,
   RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
@@ -146,20 +142,6 @@ export function parseMenuBarProviderSummary(value: unknown): MenuBarProviderSumm
   };
 }
 
-export function parseOpenExternalUrlResult(value: unknown): OpenExternalUrlResult {
-  const record = assertRecord(value, 'open_external_url returned invalid payload');
-  return {
-    opened: Boolean(record.opened),
-  };
-}
-
-export function parseConfirmDialogResult(value: unknown): ConfirmDialogResult {
-  const record = assertRecord(value, 'confirm_dialog returned invalid payload');
-  return {
-    confirmed: Boolean(record.confirmed),
-  };
-}
-
 export function parseDesktopMacosSmokeContext(value: unknown): DesktopMacosSmokeContext {
   const record = assertRecord(value, 'desktop_macos_smoke_context_get returned invalid payload');
   return {
@@ -186,29 +168,5 @@ export function parseDesktopMacosSmokeAvatarEvidenceReadResult(value: unknown): 
   return {
     evidencePath: parseRequiredString(record.evidencePath, 'evidencePath', 'desktop_macos_smoke_avatar_evidence_read'),
     evidence: parseOptionalJsonObject(record.evidence) || {},
-  };
-}
-
-export function parseOauthTokenExchangeResult(value: unknown): OauthTokenExchangeResult {
-  const record = assertRecord(value, 'oauth_token_exchange returned invalid payload');
-  const raw = parseOptionalJsonObject(record.raw) || {};
-  return {
-    accessToken: parseRequiredString(record.accessToken, 'accessToken', 'oauth_token_exchange'),
-    refreshToken: parseOptionalString(record.refreshToken),
-    tokenType: parseOptionalString(record.tokenType),
-    expiresIn: Number.isFinite(Number(record.expiresIn)) ? Number(record.expiresIn) : undefined,
-    scope: parseOptionalString(record.scope),
-    raw,
-  };
-}
-
-export function parseOauthListenForCodeResult(value: unknown): OauthListenForCodeResult {
-  const record = assertRecord(value, 'oauth_listen_for_code returned invalid payload');
-  return {
-    callbackUrl: parseRequiredString(record.callbackUrl, 'callbackUrl', 'oauth_listen_for_code'),
-    code: parseOptionalString(record.code),
-    refreshToken: parseOptionalString(record.refreshToken),
-    state: parseOptionalString(record.state),
-    error: parseOptionalString(record.error),
   };
 }

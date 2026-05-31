@@ -10,7 +10,7 @@ import {
 import type { TFunction } from 'i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
-import { confirmDialog } from '@renderer/bridge/runtime-bridge/ui';
+import { confirmDialog } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { ensureRuntimeAgentExists } from './chat-agent-shell-host-actions-helpers';

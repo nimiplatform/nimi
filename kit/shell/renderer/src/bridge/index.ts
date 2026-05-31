@@ -19,10 +19,15 @@ export { getDaemonStatus, startDaemon, stopDaemon, restartDaemon } from './runti
 export {
   oauthTokenExchange,
   oauthListenForCode,
-  openExternalUrl,
-  focusMainWindow,
   createTauriOAuthBridge,
 } from './oauth.js';
+export {
+  normalizeShellExternalUrl,
+  openExternalUrl,
+  confirmDialog,
+  startWindowDrag,
+  focusMainWindow,
+} from './ui.js';
 export type {
   JsonPrimitive,
   JsonValue,
@@ -31,6 +36,8 @@ export type {
   RealmDefaults,
   RuntimeExecutionDefaults,
   RuntimeBridgeDaemonStatus,
+  ConfirmDialogPayload,
+  ConfirmDialogResult,
 } from './types.js';
 export type { SharedDesktopAuthSessionWatchOptions } from './auth-session.js';
 export {
@@ -42,4 +49,5 @@ export {
   parseRequiredString,
   parseRuntimeDefaults,
   parseRuntimeBridgeDaemonStatus,
+  parseConfirmDialogResult,
 } from './types.js';

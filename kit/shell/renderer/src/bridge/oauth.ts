@@ -1,16 +1,15 @@
 import { hasTauriInvoke } from './env.js';
-import { invoke, invokeChecked } from './invoke.js';
+import { invokeChecked } from './invoke.js';
 import {
   parseOauthTokenExchangeResult,
   parseOauthListenForCodeResult,
-  parseOpenExternalUrlResult,
   type TauriOAuthBridge,
   type OauthTokenExchangePayload,
   type OauthTokenExchangeResult,
   type OauthListenForCodePayload,
   type OauthListenForCodeResult,
-  type OpenExternalUrlResult,
 } from '@nimiplatform/kit/core/oauth';
+import { focusMainWindow, openExternalUrl } from './ui.js';
 
 export async function oauthTokenExchange(
   payload: OauthTokenExchangePayload,
@@ -35,22 +34,6 @@ export async function oauthListenForCode(
       timeoutMs: payload.timeoutMs,
     },
   }, parseOauthListenForCodeResult);
-}
-
-export async function openExternalUrl(
-  url: string,
-): Promise<OpenExternalUrlResult> {
-  return invokeChecked('open_external_url', {
-    payload: { url },
-  }, parseOpenExternalUrlResult);
-}
-
-export async function focusMainWindow(): Promise<void> {
-  try {
-    await invoke('focus_main_window', {});
-  } catch {
-    // Focus is best-effort; not all apps have this command
-  }
 }
 
 export function createTauriOAuthBridge(): TauriOAuthBridge {
