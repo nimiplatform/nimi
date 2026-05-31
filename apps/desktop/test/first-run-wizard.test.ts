@@ -17,14 +17,14 @@ import {
   projectSetupChecklist,
 } from '../src/shell/renderer/first-run/first-run-setup-checklist.js';
 import { PhaseSetup } from '../src/shell/renderer/first-run/phase-setup.js';
-import { aggregateMaterializationDownloadProgress } from '../src/shell/renderer/first-run/runtime-materialization.js';
+import { aggregateMaterializationDownloadProgress } from '@nimiplatform/sdk/runtime';
 import { projectInstallLevelCard } from '../src/shell/renderer/first-run/first-run-install-level-cards.js';
 import { projectDeviceSummary } from '../src/shell/renderer/first-run/first-run-device-summary.js';
 import {
   PLATFORM_AI_PROFILE_FACTORY_ROWS,
+  selectFactoryAIProfileForFirstRun,
   type PlatformAIProfileFactoryRow,
 } from '@nimiplatform/sdk/platform-catalog';
-import { selectFactoryAIProfileForFirstRun } from '../src/shell/renderer/first-run/install-level-policy.js';
 import type {
   ProductControlRecord,
   ProductControlRecordProjection,

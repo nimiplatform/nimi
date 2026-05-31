@@ -32,11 +32,11 @@ export type {
   FirstRunSetupStepStatus,
 } from './first-run-setup-checklist.js';
 export { projectDeviceSummary } from './first-run-device-summary.js';
-export type { FirstRunInstallLevel } from './install-level-policy.js';
+export type { FirstRunInstallLevel } from '@nimiplatform/sdk/platform-catalog';
 export {
   isAdmittedFirstRunLocalBaseline,
   selectFactoryAIProfileForFirstRun,
-} from './install-level-policy.js';
+} from '@nimiplatform/sdk/platform-catalog';
 export {
   FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
   cancelFirstRunMaterializationJob,

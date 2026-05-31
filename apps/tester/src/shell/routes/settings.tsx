@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
+  PLATFORM_AI_PROFILE_FACTORY_ROWS,
+  selectFactoryAIProfileForFirstRun,
+} from '@nimiplatform/sdk/platform-catalog';
+import {
   parseAccountAppLibraryRecord,
   parseNimiAppBridgeProjection,
 } from '@nimiplatform/sdk/app';
 import {
   buildRuntimeRouteCapabilityProjection,
+  aggregateMaterializationDownloadProgress,
   buildRuntimeRequestMetadata,
   buildRuntimeTargetCallOptions,
   bindLocalRuntimeServiceClientProvider,
@@ -54,6 +59,8 @@ import {
   normalizeLocalRecommendationFeedCacheStateId,
   parseLocalRuntimeEnvironmentDependencyJobProjection,
   parseLocalRuntimeEnvironmentPlanProjection,
+  repairableFirstRunMaterializationDependencies,
+  retryableInterruptedFirstRunMaterializationJobs,
   parseLocalRuntimeExecutionPlan,
   parseLocalRuntimeNodeDescriptor,
   parseLocalRuntimeServiceDescriptor,
@@ -793,6 +800,52 @@ export function SettingsRoute() {
     speedBytesPerSec: '256',
     etaSeconds: '2',
   });
+  const firstRunProfileProjection = {
+    minimal: selectFactoryAIProfileForFirstRun(PLATFORM_AI_PROFILE_FACTORY_ROWS, 'minimal')?.alias ?? 'none',
+    recommended: selectFactoryAIProfileForFirstRun(PLATFORM_AI_PROFILE_FACTORY_ROWS, 'recommended')?.alias ?? 'none',
+  };
+  const runtimeDependencyPlanItem = runtimeDependencyPlanProjection.dependencies[0]!;
+  const runtimeFirstRunDependency = {
+    ...runtimeDependencyPlanItem,
+    dependencyFamily: 'model.asset',
+    state: 'needs_confirmation',
+  };
+  const runtimeFirstRunFailedJob = {
+    ...runtimeDependencyJobProjection,
+    dependencyFamily: 'model.asset',
+    state: 'failed',
+    failureDetail: 'unexpected eof while reading body',
+  };
+  const runtimeFirstRunMaterializationProjection = {
+    status: 'failed' as const,
+    reason: 'runtime_materialization_job_failed',
+    missingDependencyFamilies: [],
+    dependencies: [{
+      packId: runtimeDependencyPlanProjection.packId,
+      dependency: runtimeFirstRunDependency,
+      job: runtimeFirstRunFailedJob,
+    }],
+  };
+  const runtimeFirstRunRepairProjection = {
+    ...runtimeFirstRunMaterializationProjection,
+    status: 'repair_required' as const,
+    reason: 'runtime_materialization_repair_required',
+    dependencies: [{
+      packId: runtimeDependencyPlanProjection.packId,
+      dependency: { ...runtimeFirstRunDependency, state: 'repair_required' },
+      job: null,
+    }],
+  };
+  const runtimeFirstRunMaterializationProgress = aggregateMaterializationDownloadProgress([{
+    packId: runtimeDependencyPlanProjection.packId,
+    dependency: runtimeFirstRunDependency,
+    job: runtimeDependencyJobProjection,
+  }]);
+  const runtimeFirstRunMaterializationSummary = {
+    retryableJobs: retryableInterruptedFirstRunMaterializationJobs(runtimeFirstRunMaterializationProjection).length,
+    repairableDependencies: repairableFirstRunMaterializationDependencies(runtimeFirstRunRepairProjection).length,
+    percent: runtimeFirstRunMaterializationProgress?.percent ?? null,
+  };
   const localRuntimeAssetIdProjection = {
     assetId: toCanonicalLocalRuntimeAssetId('local/tester-model'),
     lookupKey: toCanonicalLocalRuntimeAssetLookupKey('LOCAL/Tester-Model'),
@@ -1888,6 +1941,18 @@ export function SettingsRoute() {
           {runtimeDependencyPlanProjection.packId}: {runtimeDependencyPlanProjection.dependencies[0]?.dependencyId ?? 'none'}
           {' / '}
           {runtimeDependencyJobProjection.percent}%
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>First-run materialization projection</span>
+        <StatusBadge tone={runtimeFirstRunMaterializationSummary.retryableJobs > 0 ? 'warning' : 'neutral'}>
+          {firstRunProfileProjection.minimal}/{firstRunProfileProjection.recommended}
+          {' / '}
+          retry {runtimeFirstRunMaterializationSummary.retryableJobs}
+          {' / '}
+          repair {runtimeFirstRunMaterializationSummary.repairableDependencies}
+          {' / '}
+          {runtimeFirstRunMaterializationSummary.percent ?? 'indeterminate'}%
         </StatusBadge>
       </div>
       <div className="setting-row">

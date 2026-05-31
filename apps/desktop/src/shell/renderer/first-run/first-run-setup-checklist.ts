@@ -14,6 +14,7 @@
 
 import type { ProductControlState } from '@renderer/bridge';
 import {
+  aggregateMaterializationDownloadProgress,
   isLocalRuntimeEnvironmentDependencyJobActiveState,
   isLocalRuntimeEnvironmentDependencyJobCancelledState,
   isLocalRuntimeEnvironmentDependencyJobFailedState,
@@ -21,13 +22,10 @@ import {
   isLocalRuntimeEnvironmentDependencyReadyState,
   isLocalRuntimeEnvironmentDependencyRepairRequiredState,
   isLocalRuntimeEnvironmentDependencyUnsupportedState,
-} from '@nimiplatform/sdk/runtime';
-import {
-  aggregateMaterializationDownloadProgress,
   type FirstRunMaterializationDependencyProjection,
   type FirstRunMaterializationDownloadProgress,
   type FirstRunMaterializationProjection,
-} from './runtime-materialization.js';
+} from '@nimiplatform/sdk/runtime';
 
 /**
  * The four design sub-steps. Ordering matches the materialization →

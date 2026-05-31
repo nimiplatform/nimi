@@ -8,8 +8,13 @@ export {
   loadPlatformNimiAppRegistryRows,
   loadPlatformNimiAppReleaseDescriptorRows,
 } from './generated.js';
+export {
+  isAdmittedFirstRunLocalBaseline,
+  selectFactoryAIProfileForFirstRun,
+} from './first-run.js';
 
 export type {
   PlatformAIProfileFactoryRow,
   PlatformNimiAppReleaseDescriptorRow,
 } from './generated.js';
+export type { FirstRunInstallLevel } from './first-run.js';

@@ -1,4 +1,4 @@
-import type { PlatformAIProfileFactoryRow } from '@nimiplatform/sdk/platform-catalog';
+import type { PlatformAIProfileFactoryRow } from './generated.js';
 
 export type FirstRunInstallLevel = 'minimal' | 'recommended';
 
@@ -27,8 +27,7 @@ export function selectFactoryAIProfileForFirstRun(
   installLevel: FirstRunInstallLevel = 'minimal',
 ): PlatformAIProfileFactoryRow | null {
   const candidates = rows.filter((row) =>
-    isAdmittedFirstRunLocalBaseline(row) && row.firstRunInstallLevels.includes(installLevel),
-  );
+    isAdmittedFirstRunLocalBaseline(row) && row.firstRunInstallLevels.includes(installLevel));
   if (installLevel === 'recommended') {
     return candidates.find((row) => !row.firstRunInstallLevels.includes('minimal')) ?? candidates[0] ?? null;
   }

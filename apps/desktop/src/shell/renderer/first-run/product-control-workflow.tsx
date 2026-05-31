@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { loadPlatformAIProfileFactoryRows } from '@nimiplatform/sdk/platform-catalog';
+import {
+  loadPlatformAIProfileFactoryRows,
+  selectFactoryAIProfileForFirstRun,
+  type FirstRunInstallLevel,
+} from '@nimiplatform/sdk/platform-catalog';
 import { localRuntime, type LocalRuntimeDeviceProfile } from '../../../runtime/local-runtime/index.js';
 import { desktopBridge, type ProductControlRecordProjection, type ProductControlState } from '@renderer/bridge';
 import { FirstRunFinalization } from './first-run-finalization.js';
-import { selectFactoryAIProfileForFirstRun, type FirstRunInstallLevel } from './install-level-policy.js';
 import {
   cancelFirstRunMaterializationJob,
   repairFirstRunMaterializationDependency,

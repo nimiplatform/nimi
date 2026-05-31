@@ -17,7 +17,7 @@ const firstRunGatePanelSource = fs.readFileSync(
   'utf8',
 );
 const installLevelPolicySource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/first-run/install-level-policy.ts'),
+  path.join(import.meta.dirname, '../../../sdk/src/platform-catalog/first-run.ts'),
   'utf8',
 );
 const productControlWorkflowSource = fs.readFileSync(
@@ -79,6 +79,8 @@ test('Nimi Home first-run selection is install-level aware and fail-closed again
   assert.match(installLevelPolicySource, /row\.routingPolicy === 'cloud-first'/);
   assert.match(installLevelPolicySource, /row\.routingPolicy === 'hybrid-explicit'/);
   assert.match(installLevelPolicySource, /row\.capabilitySet\.includes\('video\.generate'\)/);
+  assert.match(productControlWorkflowSource, /from '@nimiplatform\/sdk\/platform-catalog'/);
+  assert.doesNotMatch(productControlWorkflowSource, /install-level-policy/);
 });
 
 test('first-run wizard exposes data root selection, install levels, and no mark-ready shortcut', () => {

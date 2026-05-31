@@ -5,6 +5,7 @@ export type * from './world-evolution-selector-read.js';
 export * from './method-ids.js';
 export * from './reason-code-messages.js';
 export * from './local-environment-dependency-states.js';
+export * from './first-run-materialization.js';
 export * from './local-execution-plan.js';
 export * from './local-runtime-client/index.js';
 export * from './local-node-service.js';

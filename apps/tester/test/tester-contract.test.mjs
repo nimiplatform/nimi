@@ -1136,16 +1136,15 @@ test('tester settings consumes SDK Runtime dependency state projections', () => 
   assert.doesNotMatch(settings, /STARTABLE_RUNTIME_DEPENDENCY_STATES/);
   assert.doesNotMatch(settings, /JOB_TRANSFERRING_STATES/);
 });
-
-test('tester settings consumes SDK Runtime dependency parser projections', () => {
+test('tester settings consumes SDK Runtime dependency parser and first-run materialization projections', () => {
   const settings = read('src/shell/routes/settings.tsx');
-
-  assert.match(settings, /parseLocalRuntimeEnvironmentPlanProjection/);
-  assert.match(settings, /parseLocalRuntimeEnvironmentDependencyJobProjection/);
-  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.match(settings, /Runtime dependency parser projection/);
+  assert.match(settings, /parseLocalRuntimeEnvironmentPlanProjection[\s\S]*parseLocalRuntimeEnvironmentDependencyJobProjection/);
+  assert.match(settings, /selectFactoryAIProfileForFirstRun[\s\S]*PLATFORM_AI_PROFILE_FACTORY_ROWS/);
+  assert.match(settings, /aggregateMaterializationDownloadProgress[\s\S]*retryableInterruptedFirstRunMaterializationJobs[\s\S]*repairableFirstRunMaterializationDependencies/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/platform-catalog'[\s\S]*from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(settings, /Runtime dependency parser projection[\s\S]*First-run materialization projection/);
+  assert.doesNotMatch(settings, /install-level-policy|JOB_TRANSFERRING_STATES/);
 });
-
 test('tester settings consumes SDK local runtime asset id projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
   const assetKindProjection = read('src/tester/tester-local-runtime-asset-kind-projection.ts');

@@ -9,7 +9,7 @@
 // capability list that could contradict the policy.
 
 import type { PlatformAIProfileFactoryRow } from '@nimiplatform/sdk/platform-catalog';
-import type { FirstRunInstallLevel } from './install-level-policy.js';
+import type { FirstRunInstallLevel } from '@nimiplatform/sdk/platform-catalog';
 
 /**
  * A capability highlight bullet identity. The renderer maps each id to a

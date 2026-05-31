@@ -1,30 +1,27 @@
-import { localRuntime, type LocalRuntimeEnvironmentDependencyJob, type LocalRuntimeEnvironmentPlanDependency, type LocalRuntimeFacade } from '../../../runtime/local-runtime/index.js';
-import type { PlatformAIProfileFactoryRow } from '@nimiplatform/sdk/platform-catalog';
-import {
-  isLocalRuntimeEnvironmentDependencyJobActiveState,
-  isLocalRuntimeEnvironmentDependencyJobCancelledState,
-  isLocalRuntimeEnvironmentDependencyJobFailedState,
-  isLocalRuntimeEnvironmentDependencyJobTransferringState,
-  isLocalRuntimeEnvironmentDependencyNeedsConfirmationState,
-  isLocalRuntimeEnvironmentDependencyReadyState,
-  isLocalRuntimeEnvironmentDependencyRepairRequiredState,
-  isLocalRuntimeEnvironmentDependencyUnsupportedState,
-} from '@nimiplatform/sdk/runtime';
+import { localRuntime } from '../../../runtime/local-runtime/index.js';
 import type { ProductControlState } from '@renderer/bridge';
+import {
+  cancelFirstRunMaterializationJob as cancelSdkFirstRunMaterializationJob,
+  repairableFirstRunMaterializationDependencies as sdkRepairableFirstRunMaterializationDependencies,
+  repairFirstRunMaterializationDependency as repairSdkFirstRunMaterializationDependency,
+  resolveFirstRunMaterializationProjection as resolveSdkFirstRunMaterializationProjection,
+  retryableInterruptedFirstRunMaterializationJobs as sdkRetryableInterruptedFirstRunMaterializationJobs,
+  retryFirstRunMaterializationJob as retrySdkFirstRunMaterializationJob,
+  startFirstRunMaterialization as startSdkFirstRunMaterialization,
+  type FirstRunMaterializationDependencyProjection,
+  type FirstRunMaterializationInput as SdkFirstRunMaterializationInput,
+  type FirstRunMaterializationProjection as SdkFirstRunMaterializationProjection,
+  type FirstRunMaterializationRuntime,
+  type FirstRunMaterializationStatus,
+} from '@nimiplatform/sdk/runtime';
+import type { LocalRuntimeEnvironmentPlanDependency } from '@nimiplatform/sdk/runtime';
 
-export const FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE = 'first-run';
-
-export type FirstRunMaterializationStatus =
-  | 'needs_confirmation'
-  | 'starting'
-  | 'in_progress'
-  | 'activation_pending'
-  | 'local_ai_ready'
-  | 'repair_required'
-  | 'failed'
-  | 'cancelled'
-  | 'unsupported'
-  | 'blocked';
+export { FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE } from '@nimiplatform/sdk/runtime';
+export type {
+  FirstRunMaterializationDependencyProjection,
+  FirstRunMaterializationDownloadProgress,
+  FirstRunMaterializationStatus,
+} from '@nimiplatform/sdk/runtime';
 
 export type FirstRunMaterializationProductState = Extract<
   ProductControlState,
@@ -36,193 +33,13 @@ export type FirstRunMaterializationProductState = Extract<
   | 'blocked'
 >;
 
-export type FirstRunMaterializationDependencyProjection = {
-  readonly packId: string;
-  readonly dependency: LocalRuntimeEnvironmentPlanDependency;
-  readonly job: LocalRuntimeEnvironmentDependencyJob | null;
-};
-
-export type FirstRunMaterializationProjection = {
-  readonly status: FirstRunMaterializationStatus;
+export type FirstRunMaterializationProjection = SdkFirstRunMaterializationProjection & {
   readonly productState: FirstRunMaterializationProductState;
-  readonly reason: string;
-  readonly missingDependencyFamilies: readonly string[];
-  readonly dependencies: readonly FirstRunMaterializationDependencyProjection[];
 };
 
-export type FirstRunMaterializationInput = {
-  readonly profile: PlatformAIProfileFactoryRow;
-  readonly runtimeDataRoot?: string | null;
-  // installLevel is the user's first-run Minimal/Recommended choice. It is
-  // relayed to Runtime's ResolveLocalEnvironmentPlan so Runtime resolves the
-  // pack's model.asset / model.companion-asset dependencies internally via the
-  // K-MCAT-034 deterministic resolver — the desktop never receives or relays
-  // model identity (design/05 desktop passthrough).
-  readonly installLevel?: string | null;
-  readonly runtime?: Pick<
-    LocalRuntimeFacade,
-    | 'resolveEnvironmentPlan'
-    | 'listEnvironmentDependencyJobs'
-    | 'startEnvironmentDependencyJob'
-    | 'cancelEnvironmentDependencyJob'
-    | 'retryEnvironmentDependencyJob'
-    | 'repairEnvironmentDependency'
-  >;
+export type FirstRunMaterializationInput = Omit<SdkFirstRunMaterializationInput, 'runtime'> & {
+  readonly runtime?: FirstRunMaterializationRuntime;
 };
-
-function normalizeState(value: string | undefined): string {
-  return String(value || '').trim().toLowerCase();
-}
-
-function unique(values: readonly string[]): string[] {
-  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
-}
-
-function latestJob(
-  jobs: readonly LocalRuntimeEnvironmentDependencyJob[],
-  dependency: LocalRuntimeEnvironmentPlanDependency,
-): LocalRuntimeEnvironmentDependencyJob | null {
-  return jobs
-    .filter((job) =>
-      job.environmentKey === dependency.environmentKey
-      && job.dependencyFamily === dependency.dependencyFamily
-      && job.dependencyId === dependency.dependencyId,
-    )
-    .sort((left, right) => String(right.updatedAt || right.createdAt || '').localeCompare(String(left.updatedAt || left.createdAt || '')))[0] ?? null;
-}
-
-function dependencyReady(dependency: LocalRuntimeEnvironmentPlanDependency): boolean {
-  // Runtime materializer authority defines dependency readiness as verified
-  // ready_system or ready_managed. A selected source record id or candidate
-  // state is not readiness; backend first-run admission remains the final
-  // product local_ai_ready evidence.
-  return isLocalRuntimeEnvironmentDependencyReadyState(dependency.state);
-}
-
-function dependencyNeedsConfirmation(dependency: LocalRuntimeEnvironmentPlanDependency): boolean {
-  return isLocalRuntimeEnvironmentDependencyNeedsConfirmationState(dependency.state)
-    && dependency.confirmationRequired === true;
-}
-
-function dependencyStartable(
-  dependency: LocalRuntimeEnvironmentPlanDependency,
-  job: LocalRuntimeEnvironmentDependencyJob | null,
-): boolean {
-  if (dependencyReady(dependency) || !dependencyNeedsConfirmation(dependency) || jobActive(job)) return false;
-  return !job;
-}
-
-function jobActive(job: LocalRuntimeEnvironmentDependencyJob | null): boolean {
-  return Boolean(job)
-    && (
-      isLocalRuntimeEnvironmentDependencyNeedsConfirmationState(job?.state)
-      || isLocalRuntimeEnvironmentDependencyJobActiveState(job?.state)
-    );
-}
-
-/**
- * Job states for which the K-RPC-025 download-progress projection is
- * meaningful — the job is actively streaming artifact bytes. A consumer must
- * gate any %/rate/ETA display on these states; for every other state the
- * progress fields are zero/absent and a percentage must not be rendered.
- */
-/**
- * The aggregate download-progress projection across the materialization jobs
- * that are actively transferring bytes. It is a faithful projection of the
- * Runtime job-progress fields — never a renderer-invented estimate.
- *
- * `percent` is the byte-weighted completion across transferring jobs and is
- * only defined when at least one job reports a known `bytesTotal`; when no
- * total is known it is `null` and the consumer renders an indeterminate state.
- * `speedBytesPerSec` / `etaSeconds` are `null` unless Runtime projected a
- * concrete rate — they are never fabricated.
- */
-export type FirstRunMaterializationDownloadProgress = {
-  readonly bytesReceived: number;
-  readonly bytesTotal: number;
-  readonly percent: number | null;
-  readonly speedBytesPerSec: number | null;
-  readonly etaSeconds: number | null;
-};
-
-/**
- * Aggregates the download-progress projection across the jobs that are
- * actively transferring bytes. Returns `null` when no job is transferring
- * (nothing to render a concrete progress for).
- */
-export function aggregateMaterializationDownloadProgress(
-  dependencies: readonly FirstRunMaterializationDependencyProjection[],
-): FirstRunMaterializationDownloadProgress | null {
-  const transferring = dependencies
-    .map(({ job }) => job)
-    .filter((job): job is LocalRuntimeEnvironmentDependencyJob =>
-      job !== null && isLocalRuntimeEnvironmentDependencyJobTransferringState(job.state));
-  if (transferring.length === 0) return null;
-
-  let bytesReceived = 0;
-  let bytesTotal = 0;
-  let speed = 0;
-  let speedKnown = false;
-  let knownTotalCount = 0;
-  for (const job of transferring) {
-    const received = Math.max(0, Number(job.bytesReceived) || 0);
-    const total = Math.max(0, Number(job.bytesTotal) || 0);
-    bytesReceived += received;
-    if (total > 0) {
-      bytesTotal += total;
-      knownTotalCount += 1;
-    }
-    const jobSpeed = Math.max(0, Number(job.speedBytesPerSec) || 0);
-    if (jobSpeed > 0) {
-      speed += jobSpeed;
-      speedKnown = true;
-    }
-  }
-  // A percentage is projected only when every transferring job's total is
-  // known — a partial total would understate completion and read as a stall.
-  const percent = knownTotalCount === transferring.length && bytesTotal > 0
-    ? Math.min(100, Math.round((bytesReceived / bytesTotal) * 100))
-    : null;
-  const speedBytesPerSec = speedKnown ? speed : null;
-  // ETA is projected only when the remaining bytes and a rate are both known.
-  const etaSeconds = percent !== null && speedBytesPerSec !== null && bytesReceived < bytesTotal
-    ? Math.max(0, Math.round((bytesTotal - bytesReceived) / speedBytesPerSec))
-    : null;
-  return { bytesReceived, bytesTotal, percent, speedBytesPerSec, etaSeconds };
-}
-
-function statusFor(
-  missingDependencyFamilies: readonly string[],
-  dependencies: readonly FirstRunMaterializationDependencyProjection[],
-): FirstRunMaterializationStatus {
-  if (missingDependencyFamilies.length > 0 || dependencies.length === 0) return 'blocked';
-  if (dependencies.some(({ dependency, job }) =>
-    !dependencyReady(dependency)
-    && (
-      isLocalRuntimeEnvironmentDependencyUnsupportedState(dependency.state)
-      || isLocalRuntimeEnvironmentDependencyUnsupportedState(job?.state)
-    ),
-  )) return 'unsupported';
-  if (dependencies.some(({ dependency, job }) =>
-    !dependencyReady(dependency)
-    && (
-      isLocalRuntimeEnvironmentDependencyRepairRequiredState(dependency.state)
-      || isLocalRuntimeEnvironmentDependencyRepairRequiredState(job?.state)
-    ),
-  )) return 'repair_required';
-  if (dependencies.some(({ dependency, job }) =>
-    !dependencyReady(dependency) && isLocalRuntimeEnvironmentDependencyJobFailedState(job?.state),
-  )) return 'failed';
-  if (dependencies.some(({ dependency, job }) =>
-    !dependencyReady(dependency) && isLocalRuntimeEnvironmentDependencyJobCancelledState(job?.state),
-  )) return 'cancelled';
-  if (dependencies.some(({ dependency, job }) =>
-    !dependencyReady(dependency) && dependencyNeedsConfirmation(dependency) && !job,
-  )) return 'needs_confirmation';
-  if (dependencies.some(({ job }) => jobActive(job))) return 'in_progress';
-  if (dependencies.every(({ dependency }) => dependencyReady(dependency))) return 'local_ai_ready';
-  return 'activation_pending';
-}
 
 export function productStateForMaterializationStatus(
   status: FirstRunMaterializationStatus,
@@ -234,6 +51,21 @@ export function productStateForMaterializationStatus(
   if (status === 'activation_pending') return 'local_ai_profile_selected_environment_not_ready';
   if (status === 'local_ai_ready') return 'local_ai_ready';
   return 'local_ai_profile_selected_assets_missing';
+}
+
+function withProductState(
+  projection: SdkFirstRunMaterializationProjection,
+): FirstRunMaterializationProjection {
+  return {
+    ...projection,
+    productState: productStateForMaterializationStatus(projection.status),
+  };
+}
+
+function materializationRuntime(
+  input: FirstRunMaterializationInput,
+): FirstRunMaterializationRuntime {
+  return input.runtime ?? localRuntime;
 }
 
 export function shouldResumeConfirmedFirstRunMaterialization(
@@ -254,59 +86,12 @@ function isConfirmedFirstRunSetupState(productState: ProductControlState): boole
     || productState === 'local_ai_ready';
 }
 
-function dependencyInMaterializationScope(
-  dependency: LocalRuntimeEnvironmentPlanDependency,
-  profileDependencyFamilies: readonly string[],
-): boolean {
-  if (dependency.required) return true;
-  return profileDependencyFamilies.includes(dependency.dependencyFamily);
-}
-
-function isAutoRecoverableMaterializationFailure(job: LocalRuntimeEnvironmentDependencyJob): boolean {
-  const family = normalizeState(job.dependencyFamily);
-  if (
-    !isLocalRuntimeEnvironmentDependencyJobFailedState(job.state)
-    && !isLocalRuntimeEnvironmentDependencyJobCancelledState(job.state)
-  ) return false;
-  if (!job.retryable) return false;
-  const detail = normalizeState(job.failureDetail);
-  const interrupted = detail.includes('local_environment_dependency_job_interrupted')
-    || detail.includes('unexpected eof')
-    || detail.includes('client.timeout')
-    || detail.includes('context deadline exceeded')
-    || detail.includes('connection reset')
-    || detail.includes('connection refused')
-    || detail.includes('broken pipe')
-    || detail.includes('tls handshake timeout')
-    || detail.includes('timeout while reading body');
-  if (family === 'model.asset' || family === 'model.companion-asset') return interrupted;
-  if (
-    family === 'python.runtime'
-    || family === 'python.venv'
-    || family === 'python.package-set'
-    || family === 'python.torch-wheel'
-  ) {
-    return interrupted
-      || detail.includes('no virtual environment or system python installation found')
-      || detail.includes('system cannot find the path specified')
-      || detail.includes('cannot find the path specified')
-      || detail.includes('no such file or directory')
-      || detail.includes('waiting for lock on uv cache');
-  }
-  return false;
-}
-
 export function retryableInterruptedFirstRunMaterializationJobs(
   productState: ProductControlState,
   projection: FirstRunMaterializationProjection,
-): readonly LocalRuntimeEnvironmentDependencyJob[] {
+) {
   if (!isConfirmedFirstRunSetupState(productState)) return [];
-  if (projection.status !== 'failed' && projection.status !== 'cancelled') return [];
-  return projection.dependencies
-    .filter(({ dependency }) => !dependencyReady(dependency))
-    .map(({ job }) => job)
-    .filter((job): job is LocalRuntimeEnvironmentDependencyJob =>
-      job !== null && isAutoRecoverableMaterializationFailure(job));
+  return sdkRetryableInterruptedFirstRunMaterializationJobs(projection);
 }
 
 export function repairableConfirmedFirstRunMaterializationDependencies(
@@ -314,125 +99,43 @@ export function repairableConfirmedFirstRunMaterializationDependencies(
   projection: FirstRunMaterializationProjection,
 ): readonly FirstRunMaterializationDependencyProjection[] {
   if (!isConfirmedFirstRunSetupState(productState)) return [];
-  if (projection.status !== 'repair_required') return [];
-  return projection.dependencies.filter(({ dependency, job }) =>
-    !dependencyReady(dependency)
-    && (
-      isLocalRuntimeEnvironmentDependencyRepairRequiredState(dependency.state)
-      || isLocalRuntimeEnvironmentDependencyRepairRequiredState(job?.state)
-    ));
-}
-
-function reasonForStatus(
-  status: FirstRunMaterializationStatus,
-  missingDependencyFamilies: readonly string[],
-): string {
-  if (missingDependencyFamilies.length > 0) {
-    return `missing_dependency_families:${missingDependencyFamilies.join(',')}`;
-  }
-  switch (status) {
-    case 'needs_confirmation': return 'materialization_requires_confirmation';
-    case 'starting': return 'runtime_materialization_jobs_started';
-    case 'in_progress': return 'runtime_materialization_jobs_in_progress';
-    case 'activation_pending': return 'runtime_activation_gate_not_ready';
-    case 'local_ai_ready': return 'runtime_local_ai_ready_evidence_projected';
-    case 'repair_required': return 'runtime_materialization_repair_required';
-    case 'failed': return 'runtime_materialization_job_failed';
-    case 'cancelled': return 'runtime_materialization_job_cancelled';
-    case 'unsupported': return 'runtime_materialization_unsupported';
-    case 'blocked': return 'runtime_materialization_blocked';
-  }
+  return sdkRepairableFirstRunMaterializationDependencies(projection);
 }
 
 export async function resolveFirstRunMaterializationProjection(
   input: FirstRunMaterializationInput,
 ): Promise<FirstRunMaterializationProjection> {
-  const runtime = input.runtime ?? localRuntime;
-  const packIds = unique(input.profile.localComputePackRefs);
-  const requiredFamilies = unique(input.profile.dependencyFamilyRefs);
-  const plans = await Promise.all(packIds.map((packId) =>
-    runtime.resolveEnvironmentPlan({
-      packId,
-      consumerScope: FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
-      runtimeDataRoot: input.runtimeDataRoot || undefined,
-      installLevel: input.installLevel || undefined,
-    }),
-  ));
-  const dependencyByKey = new Map<string, FirstRunMaterializationDependencyProjection>();
-  for (const plan of plans) {
-    for (const dependency of plan.dependencies) {
-      if (!dependencyInMaterializationScope(dependency, requiredFamilies)) continue;
-      dependencyByKey.set(`${dependency.environmentKey}:${dependency.dependencyFamily}:${dependency.dependencyId}`, {
-        packId: plan.packId,
-        dependency,
-        job: null,
-      });
-    }
-  }
-  const dependencies = await Promise.all(Array.from(dependencyByKey.values()).map(async (item) => {
-    const jobs = await runtime.listEnvironmentDependencyJobs({ environmentKey: item.dependency.environmentKey });
-    return { ...item, job: latestJob(jobs, item.dependency) };
+  return withProductState(await resolveSdkFirstRunMaterializationProjection({
+    ...input,
+    runtime: materializationRuntime(input),
   }));
-  const foundFamilies = new Set(dependencies.map(({ dependency }) => dependency.dependencyFamily));
-  const missingDependencyFamilies = requiredFamilies.filter((family) => !foundFamilies.has(family));
-  const status = statusFor(missingDependencyFamilies, dependencies);
-  return {
-    status,
-    productState: productStateForMaterializationStatus(status),
-    reason: reasonForStatus(status, missingDependencyFamilies),
-    missingDependencyFamilies,
-    dependencies,
-  };
 }
 
 export async function startFirstRunMaterialization(
   input: FirstRunMaterializationInput & { readonly confirmed: boolean },
 ): Promise<FirstRunMaterializationProjection> {
-  const runtime = input.runtime ?? localRuntime;
-  const before = await resolveFirstRunMaterializationProjection({ ...input, runtime });
-  if (input.profile.materializationConfirmationRequired && !input.confirmed) {
-    return {
-      ...before,
-      status: 'needs_confirmation',
-      productState: productStateForMaterializationStatus('needs_confirmation'),
-      reason: 'materialization_requires_confirmation',
-    };
-  }
-  const startable = before.dependencies.filter(({ dependency, job }) => dependencyStartable(dependency, job));
-  await Promise.all(startable.map(({ dependency }) =>
-    runtime.startEnvironmentDependencyJob({
-      environmentKey: dependency.environmentKey,
-      dependencyFamily: dependency.dependencyFamily,
-      dependencyId: dependency.dependencyId,
-      sourceKind: dependency.sourceKind,
-      confirmed: input.confirmed,
-    }, { caller: 'core' }),
-  ));
-  const after = await resolveFirstRunMaterializationProjection({ ...input, runtime });
-  return startable.length > 0
-    ? {
-        ...after,
-        status: after.status === 'needs_confirmation' ? 'starting' : after.status,
-        productState: productStateForMaterializationStatus(after.status === 'needs_confirmation' ? 'starting' : after.status),
-        reason: 'runtime_materialization_jobs_started',
-      }
-    : after;
+  return withProductState(await startSdkFirstRunMaterialization({
+    ...input,
+    runtime: materializationRuntime(input),
+  }));
 }
 
 export async function cancelFirstRunMaterializationJob(
   input: FirstRunMaterializationInput & { readonly jobId: string },
 ): Promise<FirstRunMaterializationProjection> {
-  const runtime = input.runtime ?? localRuntime;
-  await runtime.cancelEnvironmentDependencyJob({ jobId: input.jobId }, { caller: 'core' });
-  return resolveFirstRunMaterializationProjection({ ...input, runtime });
+  return withProductState(await cancelSdkFirstRunMaterializationJob({
+    ...input,
+    runtime: materializationRuntime(input),
+  }));
 }
 
 export async function retryFirstRunMaterializationJob(
   input: FirstRunMaterializationInput & { readonly jobId: string; readonly confirmed: boolean },
 ): Promise<FirstRunMaterializationProjection> {
-  const runtime = input.runtime ?? localRuntime;
-  await runtime.retryEnvironmentDependencyJob({ jobId: input.jobId, confirmed: input.confirmed }, { caller: 'core' });
-  return resolveFirstRunMaterializationProjection({ ...input, runtime });
+  return withProductState(await retrySdkFirstRunMaterializationJob({
+    ...input,
+    runtime: materializationRuntime(input),
+  }));
 }
 
 export async function repairFirstRunMaterializationDependency(
@@ -442,13 +145,8 @@ export async function repairFirstRunMaterializationDependency(
     readonly reasonCode?: string;
   },
 ): Promise<FirstRunMaterializationProjection> {
-  const runtime = input.runtime ?? localRuntime;
-  await runtime.repairEnvironmentDependency({
-    environmentKey: input.dependency.environmentKey,
-    dependencyFamily: input.dependency.dependencyFamily,
-    dependencyId: input.dependency.dependencyId,
-    confirmed: input.confirmed,
-    reasonCode: input.reasonCode,
-  }, { caller: 'core' });
-  return resolveFirstRunMaterializationProjection({ ...input, runtime });
+  return withProductState(await repairSdkFirstRunMaterializationDependency({
+    ...input,
+    runtime: materializationRuntime(input),
+  }));
 }
