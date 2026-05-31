@@ -1,11 +1,12 @@
 # Kit Core
 
 ## What It Is
-Pure shared logic module for shell-mode detection, env helpers, and OAuth utilities.
+Pure shared logic module for shell-mode detection, env helpers, OAuth utilities, and renderer-safe storage JSON helpers.
 
 ## Public Surfaces
 - `@nimiplatform/kit/core/shell-mode`
 - `@nimiplatform/kit/core/oauth`
+- `@nimiplatform/kit/core/storage-json`
 - Current surfaces:
   - `headless`: active
   - `ui`: none

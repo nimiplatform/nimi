@@ -11,13 +11,28 @@ function read(relativePath) {
 }
 
 const source = read('src/tester/tester-preferences.ts');
+const storageJsonSource = readFileSync(
+  path.resolve(root, '../../kit/core/src/storage-json.ts'),
+  'utf8',
+);
+const storageJsonOutput = ts.transpileModule(storageJsonSource, {
+  compilerOptions: {
+    module: ts.ModuleKind.ES2022,
+    target: ts.ScriptTarget.ES2022,
+  },
+}).outputText;
+const storageJsonModuleUrl = `data:text/javascript;base64,${Buffer.from(storageJsonOutput).toString('base64')}`;
 const { outputText } = ts.transpileModule(source, {
   compilerOptions: {
     module: ts.ModuleKind.ES2022,
     target: ts.ScriptTarget.ES2022,
   },
 });
-const moduleUrl = `data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`;
+const rewrittenOutput = outputText.replace(
+  /from\s+['"]@nimiplatform\/kit\/core\/storage-json['"]/g,
+  `from ${JSON.stringify(storageJsonModuleUrl)}`,
+);
+const moduleUrl = `data:text/javascript;base64,${Buffer.from(rewrittenOutput).toString('base64')}`;
 const preferencesModule = await import(moduleUrl);
 
 function createStorage(seed = {}) {
@@ -173,6 +188,7 @@ test('disabled prompt draft persistence does not save new edits', () => {
 test('tester preference plumbing stays wired and fail-closed', () => {
   const workbench = read('src/tester/tester-workbench.tsx');
   const aiTesting = read('src/tester/workbench/section-ai-testing.tsx');
+  const preferences = read('src/tester/tester-preferences.ts');
 
   // Evidence-capture mode + prompt-draft preferences remain wired from the
   // app-owned localStorage store into the workbench and capability test panel,
@@ -184,4 +200,7 @@ test('tester preference plumbing stays wired and fail-closed', () => {
   assert.match(aiTesting, /loadTesterPromptDraft/);
   assert.match(aiTesting, /saveTesterPromptDraft/);
   assert.match(aiTesting, /surfaceId: 'ai-capabilities'/);
+  assert.match(preferences, /@nimiplatform\/kit\/core\/storage-json/);
+  assert.doesNotMatch(preferences, /JSON\.parse\(raw\)/);
+  assert.doesNotMatch(preferences, /JSON\.stringify\(normalized\)/);
 });

@@ -71,6 +71,11 @@
       "import": "./dist/core/oauth/index.js",
       "default": "./dist/core/oauth/index.js"
     },
+    "./core/storage-json": {
+      "types": "./dist/core/storage-json.d.ts",
+      "import": "./dist/core/storage-json.js",
+      "default": "./dist/core/storage-json.js"
+    },
     "./core/runtime-capabilities": {
       "types": "./dist/core/runtime-capabilities/index.d.ts",
       "import": "./dist/core/runtime-capabilities/index.js",

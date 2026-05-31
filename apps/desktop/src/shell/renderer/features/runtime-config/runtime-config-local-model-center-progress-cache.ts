@@ -1,4 +1,4 @@
-import { loadStorageJsonFrom, saveStorageJsonTo } from '@nimiplatform/sdk/ai';
+import { readStorageJsonFrom, writeStorageJsonTo } from '@nimiplatform/kit/core/storage-json';
 import type { ProgressSessionState } from './runtime-config-model-center-utils';
 
 const downloadSessionSnapshotCache: Record<string, ProgressSessionState> = {};
@@ -62,14 +62,15 @@ function normalizeDismissedSessionIds(value: unknown): string[] {
 }
 
 function loadDismissedSessionIds(): string[] {
+  const result = readStorageJsonFrom(resolveStorage(), DISMISSED_SESSION_STORAGE_KEY);
   return normalizeDismissedSessionIds(
-    loadStorageJsonFrom(resolveStorage(), DISMISSED_SESSION_STORAGE_KEY),
+    result.state === 'ready' ? result.value : null,
   );
 }
 
 function persistDismissedSessionIds(sessionIds: Iterable<string>): void {
   const installSessionIds = normalizeDismissedSessionIds([...sessionIds]);
-  saveStorageJsonTo(resolveStorage(), DISMISSED_SESSION_STORAGE_KEY, {
+  writeStorageJsonTo(resolveStorage(), DISMISSED_SESSION_STORAGE_KEY, {
     version: 1,
     installSessionIds,
   } satisfies DismissedTransferSessionStorageRecord);

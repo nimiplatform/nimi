@@ -41,6 +41,12 @@ test('sdk ai subpath does not host runtime implementation helpers', () => {
   }
 });
 
+test('sdk ai subpath does not host generic storage helpers', () => {
+  const aiFiles = listFiles(aiDir);
+  assert.equal(aiFiles.includes('local-storage.ts'), false);
+  assert.doesNotMatch(readSource(aiDir, 'index.ts'), /local-storage/);
+});
+
 test('runtime agent memory helpers live on the runtime subpath', () => {
   const runtimeFiles = listFiles(runtimeDir);
   assert.ok(runtimeFiles.includes('runtime-agent-memory.ts'));

@@ -1,3 +1,4 @@
+import { readStorageJsonFrom, writeStorageJsonTo } from '@nimiplatform/kit/core/storage-json';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import {
   RUNTIME_CONFIG_STORAGE_KEY_V11,
@@ -6,14 +7,15 @@ import {
   type StoredStateV11,
 } from './runtime-config-storage-defaults';
 import { normalizeStoredStateV11 } from './runtime-config-storage-normalize';
-import { loadStorageJsonFrom, saveStorageJsonTo } from '@nimiplatform/sdk/ai';
 
 export function loadRuntimeConfigStateV11(): RuntimeConfigStateV11 {
   const storage = typeof globalThis !== 'undefined' ? (globalThis.localStorage as Storage | undefined) : undefined;
-  const parsedUnknown = loadStorageJsonFrom(storage, RUNTIME_CONFIG_STORAGE_KEY_V12)
-    || loadStorageJsonFrom(storage, RUNTIME_CONFIG_STORAGE_KEY_V11);
-  if (parsedUnknown && typeof parsedUnknown === 'object') {
-    const parsed = parsedUnknown as StoredStateV11;
+  const v12 = readStorageJsonFrom<StoredStateV11>(storage, RUNTIME_CONFIG_STORAGE_KEY_V12);
+  const v11 = v12.state === 'ready'
+    ? v12
+    : readStorageJsonFrom<StoredStateV11>(storage, RUNTIME_CONFIG_STORAGE_KEY_V11);
+  if (v11.state === 'ready' && v11.value && typeof v11.value === 'object') {
+    const parsed = v11.value;
     if (parsed.version === 11 || parsed.version === 12) {
       return normalizeStoredStateV11(parsed);
     }
@@ -42,7 +44,7 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
       lastDetail: '',
     },
   };
-  saveStorageJsonTo(
+  writeStorageJsonTo(
     typeof globalThis !== 'undefined' ? (globalThis.localStorage as Storage | undefined) : undefined,
     RUNTIME_CONFIG_STORAGE_KEY_V12,
     payload,

@@ -1,3 +1,10 @@
+import {
+  readStorageJsonFrom,
+  removeStorageKeyFrom,
+  resolveBrowserStorage,
+  writeStorageJsonTo,
+} from '@nimiplatform/kit/core/storage-json';
+
 export const TESTER_PREFERENCES_STORAGE_KEY = 'nimiapp-tester:workbench-preferences:v1';
 export const TESTER_PREFERENCES_SCHEMA_VERSION = 1;
 export const TESTER_PROMPT_DRAFTS_STORAGE_KEY = 'nimiapp-tester:prompt-drafts:v1';
@@ -122,20 +129,15 @@ function draftStorageUnavailableResult(error?: string): TesterPromptDraftLoadRes
 }
 
 function getLocalPreferenceStorage(): Storage | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    return window.localStorage || null;
-  } catch {
-    return null;
-  }
+  return resolveBrowserStorage('local');
 }
 
 function isEvidenceCaptureMode(value: unknown): value is TesterEvidenceCaptureMode {
   return value === 'manual' || value === 'after-run';
 }
 
-function parseTesterPreferences(raw: string): TesterPreferences {
-  const parsed = JSON.parse(raw) as Partial<TesterPreferences>;
+function parseTesterPreferences(value: unknown): TesterPreferences {
+  const parsed = value as Partial<TesterPreferences>;
   if (
     parsed.schemaVersion !== TESTER_PREFERENCES_SCHEMA_VERSION
     || typeof parsed.draftPersistence !== 'boolean'
@@ -163,8 +165,8 @@ function defaultTesterPromptDraftStore(): TesterPromptDraftStore {
   };
 }
 
-function parseTesterPromptDraftStore(raw: string): TesterPromptDraftStore {
-  const parsed = JSON.parse(raw) as Partial<TesterPromptDraftStore>;
+function parseTesterPromptDraftStore(value: unknown): TesterPromptDraftStore {
+  const parsed = value as Partial<TesterPromptDraftStore>;
   if (
     parsed.schemaVersion !== TESTER_PROMPT_DRAFTS_SCHEMA_VERSION
     || !parsed.drafts
@@ -188,15 +190,18 @@ function loadTesterPromptDraftStore(storage: Storage): {
   store: TesterPromptDraftStore;
   status: TesterPromptDraftStoreStatus;
 } {
-  const raw = storage.getItem(TESTER_PROMPT_DRAFTS_STORAGE_KEY);
-  if (!raw) {
+  const loaded = readStorageJsonFrom(storage, TESTER_PROMPT_DRAFTS_STORAGE_KEY, parseTesterPromptDraftStore);
+  if (loaded.state === 'missing') {
     return {
       store: defaultTesterPromptDraftStore(),
       status: defaultDraftStatus('defaulted', 'No saved prompt drafts found; preset prompt is active.'),
     };
   }
+  if (loaded.state !== 'ready') {
+    throw new Error(loaded.error || `Prompt draft storage ${loaded.state}.`);
+  }
   return {
-    store: parseTesterPromptDraftStore(raw),
+    store: loaded.value,
     status: defaultDraftStatus('ready', 'Prompt draft store loaded.'),
   };
 }
@@ -205,15 +210,18 @@ export function loadTesterPreferences(storage: Storage | null = getLocalPreferen
   if (!storage) return storageUnavailableResult();
 
   try {
-    const raw = storage.getItem(TESTER_PREFERENCES_STORAGE_KEY);
-    if (!raw) {
+    const loaded = readStorageJsonFrom(storage, TESTER_PREFERENCES_STORAGE_KEY, parseTesterPreferences);
+    if (loaded.state === 'missing') {
       return {
         preferences: defaultTesterPreferences(),
         status: defaultStatus('defaulted', 'No saved preferences found; defaults are active.'),
       };
     }
+    if (loaded.state !== 'ready') {
+      throw new Error(loaded.error || `Preference storage ${loaded.state}.`);
+    }
     return {
-      preferences: parseTesterPreferences(raw),
+      preferences: loaded.value,
       status: defaultStatus('ready', 'Local preference store loaded.'),
     };
   } catch (error) {
@@ -244,7 +252,10 @@ export function saveTesterPreferences(
   };
 
   try {
-    storage.setItem(TESTER_PREFERENCES_STORAGE_KEY, JSON.stringify(normalized));
+    const write = writeStorageJsonTo(storage, TESTER_PREFERENCES_STORAGE_KEY, normalized);
+    if (write.state !== 'saved') {
+      throw new Error(write.error || `Preference storage ${write.state}.`);
+    }
     return {
       preferences: normalized,
       status: defaultStatus('ready', 'Local preference store saved.'),
@@ -265,7 +276,10 @@ export function resetTesterPreferences(storage: Storage | null = getLocalPrefere
   if (!storage) return storageUnavailableResult();
 
   try {
-    storage.removeItem(TESTER_PREFERENCES_STORAGE_KEY);
+    const removed = removeStorageKeyFrom(storage, TESTER_PREFERENCES_STORAGE_KEY);
+    if (removed.state !== 'removed') {
+      throw new Error(removed.error || `Preference storage ${removed.state}.`);
+    }
     return {
       preferences: defaultTesterPreferences(),
       status: defaultStatus('reset', 'Local preferences reset. Run and artifact evidence was not changed.'),
@@ -339,7 +353,10 @@ export function saveTesterPromptDraft(
         [makePromptDraftId(key)]: prompt,
       },
     };
-    storage.setItem(TESTER_PROMPT_DRAFTS_STORAGE_KEY, JSON.stringify(next));
+    const write = writeStorageJsonTo(storage, TESTER_PROMPT_DRAFTS_STORAGE_KEY, next);
+    if (write.state !== 'saved') {
+      throw new Error(write.error || `Prompt draft storage ${write.state}.`);
+    }
     return {
       status: defaultDraftStatus('ready', 'Prompt draft saved.'),
     };

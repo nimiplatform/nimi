@@ -101,24 +101,27 @@ modules:
     kind: logic
     surface_level: logic
     adapter_contract: none
-    description: Pure-logic utilities (OAuth, env, shell-mode, Character Card V2 parsing)
+    description: Pure-logic utilities (OAuth, env, shell-mode, Character Card V2 parsing, renderer-safe storage JSON helpers)
     dependencies: []
     peer_dependencies: []
     exports:
       - ./core/shell-mode
       - ./core/oauth
       - ./core/character-card
+      - ./core/storage-json
       - ./core/sdk-contract
     headless_exports:
       - ./core/shell-mode
       - ./core/oauth
       - ./core/character-card
+      - ./core/storage-json
       - ./core/sdk-contract
     ui_exports: []
     reuse_entrypoints:
       - ./core/shell-mode
       - ./core/oauth
       - ./core/character-card
+      - ./core/storage-json
       - ./core/sdk-contract
     admission_status: active
     owner: platform

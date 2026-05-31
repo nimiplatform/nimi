@@ -32,7 +32,6 @@ const checks = [
       'sdk/src/ai/ai-config-diff.ts',
       'sdk/src/ai/app-ai-config.ts',
       'sdk/src/ai/i18n.ts',
-      'sdk/src/ai/local-storage.ts',
       'sdk/src/runtime/runtime-route-host-facade.ts',
       'sdk/src/runtime/runtime-route-options.ts',
       'sdk/src/runtime/runtime-route.ts',
