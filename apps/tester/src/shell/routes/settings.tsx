@@ -41,6 +41,8 @@ import {
   parseLocalRuntimeEnvironmentDependencyJobProjection,
   parseLocalRuntimeEnvironmentPlanProjection,
   parseLocalRuntimeExecutionPlan,
+  parseLocalRuntimeNodeDescriptor,
+  parseLocalRuntimeServiceDescriptor,
   normalizeLocalRuntimeProfilesDeclaration,
   bridgeLocalRuntimeProfile,
   projectRuntimeLocalAgentIdentity,
@@ -808,6 +810,28 @@ export function SettingsRoute() {
     }],
     warnings: [],
   });
+  const localRuntimeServiceNodeProjection = {
+    service: parseLocalRuntimeServiceDescriptor({
+      serviceId: 'tester-service',
+      title: 'Tester Service',
+      engine: 'speech',
+      artifactType: 'attached-endpoint',
+      capabilities: ['audio.synthesize'],
+      status: 'LOCAL_SERVICE_STATUS_ACTIVE',
+      reasonCode: ReasonCode.ACTION_EXECUTED,
+      installedAt: '2026-05-31T00:00:00Z',
+      updatedAt: '2026-05-31T00:00:00Z',
+    }),
+    node: parseLocalRuntimeNodeDescriptor({
+      nodeId: 'tester-node',
+      title: 'Tester Node',
+      serviceId: 'tester-service',
+      capabilities: ['audio.synthesize'],
+      adapter: 'SPEECH_NATIVE_ADAPTER',
+      available: true,
+      readOnly: true,
+    }),
+  };
   const runtimeAuditWireProjection = {
     callerKindName: projectRuntimeAuditCallerKindName(CallerKind.THIRD_PARTY_APP) ?? 'unknown',
     usageWindowName: projectRuntimeUsageWindowName(UsageWindow.HOUR) ?? 'unknown',
@@ -1488,6 +1512,12 @@ export function SettingsRoute() {
         <span>SDK local runtime execution plan projection</span>
         <StatusBadge tone="neutral">
           {localRuntimeExecutionPlanProjection.entries[0]?.kind ?? 'none'}: {localRuntimeExecutionPlanProjection.deviceProfile.arch}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK local runtime service/node projection</span>
+        <StatusBadge tone={localRuntimeServiceNodeProjection.node.available ? 'success' : 'warning'}>
+          {localRuntimeServiceNodeProjection.service.status}: {localRuntimeServiceNodeProjection.node.adapter}
         </StatusBadge>
       </div>
       <div className="setting-row">

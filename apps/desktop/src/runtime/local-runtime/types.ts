@@ -2,7 +2,6 @@ import type {
   LocalRuntimeExecutionDeclarationDescriptor,
   LocalRuntimeDeviceProfile,
 } from './types-dependencies';
-import type { LocalProviderAdapter } from '@nimiplatform/sdk/ai';
 import type {
   LocalRecommendationFeedCapabilityId,
   LocalRecommendationBaselineId,
@@ -19,6 +18,11 @@ import type {
   LocalRuntimeEnvironmentDependencyJobProjection,
   LocalRuntimeEnvironmentPlanDependencyProjection,
   LocalRuntimeEnvironmentPlanProjection,
+  LocalRuntimeNodeDescriptor,
+  LocalRuntimeProviderAdapter,
+  LocalRuntimeProviderHints,
+  LocalRuntimeServiceDescriptor,
+  LocalRuntimeServiceStatus,
 } from '@nimiplatform/sdk/runtime';
 import type {
   LocalRuntimeProfileResolvePayload,
@@ -116,42 +120,17 @@ export type LocalRuntimeVerifiedAssetDescriptor = {
 };
 
 export type LocalRuntimeEngineRuntimeMode = LocalRuntimeEngineRuntimeModeId;
-
-export type LocalRuntimeProviderAdapter = LocalProviderAdapter;
-
-export type LocalRuntimeProviderLlamaHints = {
-  preferredAdapter?: LocalRuntimeProviderAdapter;
-  whisperVariant?: string;
-};
-
-export type LocalRuntimeProviderMediaHints = {
-  preferredAdapter?: LocalRuntimeProviderAdapter;
-  deviceId?: string;
-  driver?: string;
-  family?: string;
-  policyGate?: string;
-};
-
-export type LocalRuntimeProviderSpeechHints = {
-  preferredAdapter?: LocalRuntimeProviderAdapter;
-  backend?: string;
-  family?: string;
-  driver?: string;
-  deviceId?: string;
-  policyGate?: string;
-};
-
-export type LocalRuntimeProviderSidecarHints = {
-  preferredAdapter?: LocalRuntimeProviderAdapter;
-};
-
-export type LocalRuntimeProviderHints = {
-  llama?: LocalRuntimeProviderLlamaHints;
-  media?: LocalRuntimeProviderMediaHints;
-  speech?: LocalRuntimeProviderSpeechHints;
-  sidecar?: LocalRuntimeProviderSidecarHints;
-  extra?: Record<string, unknown>;
-} & Record<string, unknown>;
+export type {
+  LocalRuntimeNodeDescriptor,
+  LocalRuntimeProviderAdapter,
+  LocalRuntimeProviderHints,
+  LocalRuntimeProviderLlamaHints,
+  LocalRuntimeProviderMediaHints,
+  LocalRuntimeProviderSidecarHints,
+  LocalRuntimeProviderSpeechHints,
+  LocalRuntimeServiceDescriptor,
+  LocalRuntimeServiceStatus,
+} from '@nimiplatform/sdk/runtime';
 
 export type LocalRuntimeRecommendationSource = LocalRecommendationSourceId;
 export type LocalRuntimeRecommendationFormat = LocalRecommendationFormatId;
@@ -381,23 +360,6 @@ export type LocalRuntimeExecutionResolvePayload = {
 
 export type LocalRuntimeProfilesResolvePayload = LocalRuntimeProfileResolvePayload;
 
-export type LocalRuntimeServiceStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
-
-export type LocalRuntimeServiceDescriptor = {
-  serviceId: string;
-  title: string;
-  engine: string;
-  artifactType?: 'python-env' | 'binary' | 'attached-endpoint';
-  endpoint?: string;
-  capabilities: string[];
-  localAssetId?: string;
-  status: LocalRuntimeServiceStatus;
-  detail?: string;
-  reasonCode?: string;
-  installedAt: string;
-  updatedAt: string;
-};
-
 export type LocalRuntimeServicesInstallPayload = {
   serviceId: string;
   title?: string;
@@ -411,25 +373,6 @@ export type LocalRuntimeNodesCatalogListPayload = {
   capability?: LocalRuntimeCapabilityToken;
   serviceId?: string;
   provider?: string;
-};
-
-export type LocalRuntimeNodeDescriptor = {
-  nodeId: string;
-  title: string;
-  serviceId: string;
-  capabilities: string[];
-  provider: string;
-  adapter: LocalRuntimeProviderAdapter;
-  backend?: string;
-  backendSource?: string;
-  available: boolean;
-  reasonCode?: string;
-  providerHints?: LocalRuntimeProviderHints;
-  policyGate?: string;
-  apiPath?: string;
-  inputSchema?: Record<string, unknown>;
-  outputSchema?: Record<string, unknown>;
-  readOnly: boolean;
 };
 
 export type LocalRuntimeCapabilityMatrixEntry = {

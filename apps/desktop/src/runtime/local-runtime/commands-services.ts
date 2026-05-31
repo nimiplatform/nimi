@@ -1,4 +1,4 @@
-import { toProtoStruct } from '@nimiplatform/sdk/runtime';
+import { parseNodeDescriptor, toProtoStruct } from '@nimiplatform/sdk/runtime';
 import type {
   LocalRuntimeAuditEvent,
   LocalRuntimeAuditPayload,
@@ -7,10 +7,7 @@ import type {
   LocalRuntimeNodeDescriptor,
   LocalRuntimeNodesCatalogListPayload,
 } from './types';
-import {
-  parseAuditEvent,
-  parseNodeDescriptor,
-} from './parsers';
+import { parseAuditEvent } from './parsers';
 import { asRecord, requireSdkLocal } from './commands-shared';
 
 export async function listLocalRuntimeNodesCatalog(

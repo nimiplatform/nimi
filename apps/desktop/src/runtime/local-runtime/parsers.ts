@@ -4,8 +4,6 @@ import type {
   LocalRuntimeAssetRecord,
   LocalRuntimeVerifiedAssetDescriptor,
   LocalRuntimeEngineRuntimeMode,
-  LocalRuntimeProviderAdapter,
-  LocalRuntimeProviderHints,
   LocalRuntimeCatalogItemDescriptor,
   LocalRuntimeInstallPlanDescriptor,
   LocalRuntimeExecutionApplyResult,
@@ -13,23 +11,18 @@ import type {
   LocalRuntimeProfileEntryDescriptor,
   LocalRuntimeProfileRequirementDescriptor,
   LocalRuntimeProfileResolutionPlan,
-  LocalRuntimeServiceStatus,
-  LocalRuntimeServiceDescriptor,
-  LocalRuntimeNodeDescriptor,
 } from './types';
 import {
   normalizeLocalRuntimeAssetKindId,
   normalizeLocalRuntimeAssetStatusId,
   normalizeLocalRuntimeEngineRuntimeModeId,
+  parseLocalRuntimeProviderHints as parseSdkProviderHints,
   parseExecutionEntryDescriptor as parseSdkExecutionEntryDescriptor,
   parseExecutionPlan as parseSdkExecutionPlan,
   parseExecutionStageResult as parseSdkExecutionStageResult,
   parsePreflightDecision as parseSdkPreflightDecision,
+  parseServiceDescriptor as parseSdkServiceDescriptor,
 } from '@nimiplatform/sdk/runtime';
-import {
-  DEFAULT_LOCAL_PROVIDER_ADAPTER_ID,
-  normalizeLocalProviderAdapterId,
-} from '@nimiplatform/sdk/ai';
 import { asRecord, asString } from './parser-primitives';
 import { asPlainObject } from './parser-helpers';
 import { toCanonicalLocalId } from './local-id';
@@ -313,72 +306,6 @@ export function normalizeEngineRuntimeMode(value: unknown): LocalRuntimeEngineRu
   return normalizeLocalRuntimeEngineRuntimeModeId(value);
 }
 
-export function normalizeProviderAdapter(value: unknown): LocalRuntimeProviderAdapter {
-  const raw = asString(value);
-  return normalizeLocalProviderAdapterId(raw, DEFAULT_LOCAL_PROVIDER_ADAPTER_ID) ?? DEFAULT_LOCAL_PROVIDER_ADAPTER_ID;
-}
-
-function parseProviderHints(value: unknown): LocalRuntimeProviderHints | undefined {
-  const record = asRecord(value);
-  const llama = asRecord(record.llama);
-  const media = asRecord(record.media);
-  const speech = asRecord(record.speech);
-  const sidecar = asRecord(record.sidecar);
-  const passthrough = Object.fromEntries(
-    Object.entries(record).filter(([key]) => key !== 'llama' && key !== 'media' && key !== 'speech' && key !== 'sidecar'),
-  );
-  if (
-    Object.keys(llama).length === 0
-    && Object.keys(media).length === 0
-    && Object.keys(speech).length === 0
-    && Object.keys(sidecar).length === 0
-    && Object.keys(passthrough).length === 0
-  ) {
-    return undefined;
-  }
-  const llamaPreferredAdapter = asString(llama.preferredAdapter || llama.preferred_adapter);
-  const mediaPreferredAdapter = asString(media.preferredAdapter || media.preferred_adapter);
-  const speechPreferredAdapter = asString(speech.preferredAdapter || speech.preferred_adapter);
-  const sidecarPreferredAdapter = asString(sidecar.preferredAdapter || sidecar.preferred_adapter);
-  const parsed: LocalRuntimeProviderHints = { ...passthrough };
-  if (Object.keys(llama).length > 0) {
-    parsed.llama = {
-      preferredAdapter: llamaPreferredAdapter ? normalizeProviderAdapter(llamaPreferredAdapter) : undefined,
-      whisperVariant: asString(llama.whisperVariant || llama.whisper_variant) || undefined,
-    };
-  }
-  if (Object.keys(media).length > 0) {
-    parsed.media = {
-      preferredAdapter: mediaPreferredAdapter ? normalizeProviderAdapter(mediaPreferredAdapter) : undefined,
-      driver: asString(media.driver) || undefined,
-      family: asString(media.family) || undefined,
-      deviceId: asString(media.deviceId || media.device_id) || undefined,
-      policyGate: asString(media.policyGate || media.policy_gate) || undefined,
-    };
-  }
-  if (Object.keys(speech).length > 0) {
-    parsed.speech = {
-      preferredAdapter: speechPreferredAdapter ? normalizeProviderAdapter(speechPreferredAdapter) : undefined,
-      backend: asString(speech.backend) || undefined,
-      family: asString(speech.family) || undefined,
-      driver: asString(speech.driver) || undefined,
-      deviceId: asString(speech.deviceId || speech.device_id) || undefined,
-      policyGate: asString(speech.policyGate || speech.policy_gate) || undefined,
-    };
-  }
-  if (Object.keys(sidecar).length > 0) {
-    parsed.sidecar = {
-      preferredAdapter: sidecarPreferredAdapter
-        ? normalizeProviderAdapter(sidecarPreferredAdapter)
-        : undefined,
-    };
-  }
-  if (record.extra && typeof record.extra === 'object' && !Array.isArray(record.extra)) {
-    parsed.extra = asPlainObject(record.extra) || undefined;
-  }
-  return parsed;
-}
-
 export function parseCatalogItemDescriptor(value: unknown): LocalRuntimeCatalogItemDescriptor {
   const record = asRecord(value);
   const hashes = asRecord(record.hashes);
@@ -408,7 +335,7 @@ export function parseCatalogItemDescriptor(value: unknown): LocalRuntimeCatalogI
     installKind: asString(record.installKind),
     installAvailable: Boolean(record.installAvailable),
     endpoint: asString(record.endpoint) || undefined,
-    providerHints: parseProviderHints(record.providerHints),
+    providerHints: parseSdkProviderHints(record.providerHints),
     entry: asString(record.entry) || undefined,
     files,
     license: asString(record.license) || undefined,
@@ -451,7 +378,7 @@ export function parseInstallPlanDescriptor(value: unknown): LocalRuntimeInstallP
     installKind: asString(record.installKind),
     installAvailable: Boolean(record.installAvailable),
     endpoint: asString(record.endpoint),
-    providerHints: parseProviderHints(record.providerHints),
+    providerHints: parseSdkProviderHints(record.providerHints),
     entry: asString(record.entry),
     files,
     license: asString(record.license),
@@ -474,7 +401,7 @@ export function parseExecutionApplyResult(value: unknown): LocalRuntimeExecution
     ? record.installedAssets.map((item: unknown) => parseAssetRecord(item))
     : [];
   const services = Array.isArray(record.services)
-    ? record.services.map((item) => parseServiceDescriptor(item))
+    ? record.services.map((item) => parseSdkServiceDescriptor(item))
     : [];
   const capabilities = Array.isArray(record.capabilities)
     ? record.capabilities.map((item) => asString(item)).filter(Boolean)
@@ -500,81 +427,5 @@ export function parseExecutionApplyResult(value: unknown): LocalRuntimeExecution
     rollbackApplied: Boolean(record.rollbackApplied),
     warnings,
     reasonCode: asString(record.reasonCode) || undefined,
-  };
-}
-
-function normalizeServiceStatus(value: unknown): LocalRuntimeServiceStatus {
-  if (typeof value === 'number') {
-    if (value === 2) return 'active';
-    if (value === 3) return 'unhealthy';
-    if (value === 4) return 'removed';
-    return 'installed';
-  }
-  const raw = asString(value).toLowerCase();
-  if (raw === 'local_service_status_active' || raw === '2') return 'active';
-  if (raw === 'local_service_status_unhealthy' || raw === '3') return 'unhealthy';
-  if (raw === 'local_service_status_removed' || raw === '4') return 'removed';
-  if (raw === 'active' || raw === 'unhealthy' || raw === 'removed') {
-    return raw;
-  }
-  return 'installed';
-}
-
-function normalizeServiceArtifactType(
-  value: unknown,
-): LocalRuntimeServiceDescriptor['artifactType'] {
-  const raw = asString(value).toLowerCase();
-  if (raw === 'python-env' || raw === 'binary' || raw === 'attached-endpoint') {
-    return raw;
-  }
-  return undefined;
-}
-
-export function parseServiceDescriptor(value: unknown): LocalRuntimeServiceDescriptor {
-  const record = asRecord(value);
-  const capabilities = Array.isArray(record.capabilities)
-    ? record.capabilities.map((item) => asString(item)).filter(Boolean)
-    : [];
-  return {
-    serviceId: asString(record.serviceId),
-    title: asString(record.title),
-    engine: asString(record.engine),
-    artifactType: normalizeServiceArtifactType(record.artifactType),
-    endpoint: asString(record.endpoint) || undefined,
-    capabilities,
-    localAssetId: asString(record.localAssetId) || undefined,
-    status: normalizeServiceStatus(record.status),
-    detail: asString(record.detail) || undefined,
-    reasonCode: asString(record.reasonCode) || undefined,
-    installedAt: asString(record.installedAt),
-    updatedAt: asString(record.updatedAt),
-  };
-}
-
-export function parseNodeDescriptor(value: unknown): LocalRuntimeNodeDescriptor {
-  const record = asRecord(value);
-  return {
-    nodeId: asString(record.nodeId),
-    title: asString(record.title),
-    serviceId: asString(record.serviceId),
-    capabilities: Array.isArray(record.capabilities)
-      ? record.capabilities.map((item) => asString(item)).filter(Boolean)
-      : [],
-    provider: asString(record.provider),
-    adapter: normalizeProviderAdapter(record.adapter),
-    backend: asString(record.backend) || undefined,
-    backendSource: asString(record.backendSource) || undefined,
-    available: Boolean(record.available),
-    reasonCode: asString(record.reasonCode) || undefined,
-    providerHints: parseProviderHints(record.providerHints),
-    policyGate: asString(record.policyGate) || undefined,
-    apiPath: asString(record.apiPath) || undefined,
-    inputSchema: record.inputSchema && typeof record.inputSchema === 'object' && !Array.isArray(record.inputSchema)
-      ? record.inputSchema as Record<string, unknown>
-      : undefined,
-    outputSchema: record.outputSchema && typeof record.outputSchema === 'object' && !Array.isArray(record.outputSchema)
-      ? record.outputSchema as Record<string, unknown>
-      : undefined,
-    readOnly: Boolean(record.readOnly),
   };
 }

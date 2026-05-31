@@ -2,17 +2,19 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { parseExecutionPlan } from '@nimiplatform/sdk/runtime';
+import {
+  normalizeProviderAdapter,
+  parseExecutionPlan,
+  parseNodeDescriptor,
+} from '@nimiplatform/sdk/runtime';
 import {
   parseCatalogItemDescriptor,
   parseExecutionApplyResult,
   parseInstallPlanDescriptor,
-  parseNodeDescriptor,
   parseProfileResolutionPlan,
   parseUnregisteredAssetDescriptor,
   normalizeAssetStatus,
   normalizeEngineRuntimeMode,
-  normalizeProviderAdapter,
 } from '../src/runtime/local-runtime/parsers.js';
 
 test('parseExecutionPlan normalizes device profile and selections', () => {

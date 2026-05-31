@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+import { parseServiceDescriptor } from '@nimiplatform/sdk/runtime';
 
-import {
-  parseAssetRecord,
-  parseServiceDescriptor,
-} from '../src/runtime/local-runtime/parsers.js';
+import { parseAssetRecord } from '../src/runtime/local-runtime/parsers.js';
 import { parseAssetHealth } from '../src/runtime/local-runtime/parsers-runtime-events.js';
 
 test('local runtime parsers preserve projection reasonCode for assets, health, and services', () => {

@@ -1111,6 +1111,8 @@ test('tester settings consumes SDK Runtime health coordinator diagnostics', () =
   assert.match(settings, /bridgeLocalRuntimeProfile/);
   assert.match(settings, /normalizeLocalRuntimeProfilesDeclaration/);
   assert.match(settings, /parseLocalRuntimeExecutionPlan/);
+  assert.match(settings, /parseLocalRuntimeServiceDescriptor/);
+  assert.match(settings, /parseLocalRuntimeNodeDescriptor/);
   assert.match(settings, /projectRuntimeAuditCallerKindName/);
   assert.match(settings, /projectRuntimeHealthStatusName/);
   assert.match(settings, /projectRuntimeHealthSummary/);
@@ -1121,11 +1123,13 @@ test('tester settings consumes SDK Runtime health coordinator diagnostics', () =
   assert.match(settings, /SDK runtime health wire projection/);
   assert.match(settings, /SDK local runtime profile projection/);
   assert.match(settings, /SDK local runtime execution plan projection/);
+  assert.match(settings, /SDK local runtime service\/node projection/);
   assert.match(settings, /SDK runtime audit wire projection/);
   assert.match(settings, /runtimeHealthSummaryProjection\.health\.checkedAt/);
   assert.match(settings, /runtimeHealthWireProjection\.statusName/);
   assert.match(settings, /localRuntimeProfileProjection\.runtimeEntryCount/);
   assert.match(settings, /localRuntimeExecutionPlanProjection\.deviceProfile\.arch/);
+  assert.match(settings, /localRuntimeServiceNodeProjection\.node\.adapter/);
   assert.match(settings, /runtimeAuditWireProjection\.callerKindName/);
   assert.match(settings, /SDK runtime health coordinator projection/);
   assert.match(settings, /runtimeHealthCoordinatorDiagnostics\.getSnapshot/);
