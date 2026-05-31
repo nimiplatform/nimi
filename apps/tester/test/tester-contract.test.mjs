@@ -1138,6 +1138,17 @@ test('tester settings consumes SDK Runtime health coordinator diagnostics', () =
   assert.doesNotMatch(settings, /HEALTH_WATCHDOG_INTERVAL_MS/);
 });
 
+test('tester settings consumes SDK Nimi App bridge projection parser', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /parseNimiAppBridgeProjection/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/app'/);
+  assert.match(settings, /SDK Nimi App bridge projection/);
+  assert.match(settings, /appBridgeProjection\.installEvidence/);
+  assert.doesNotMatch(settings, /apps-projection/);
+  assert.doesNotMatch(settings, /ADMISSION_STATUSES|RELEASE_DESCRIPTOR_CLASSES|VERIFICATION_STATES/);
+});
+
 test('tester settings consumes SDK Runtime agent consumer projections', () => {
   const settings = read('src/shell/routes/settings.tsx');
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getPlatformClient } from '@nimiplatform/sdk';
+import { parseNimiAppBridgeProjection } from '@nimiplatform/sdk/app';
 import {
   buildRuntimeRouteCapabilityProjection,
   createEmptyMemoryEmbeddingConfig,
@@ -832,6 +833,53 @@ export function SettingsRoute() {
       readOnly: true,
     }),
   };
+  const appBridgeProjection = parseNimiAppBridgeProjection({
+    registryPath: '/tester/.nimi/apps/registry.json',
+    packagesPath: '/tester/.nimi/apps/packages.json',
+    registryRows: [{
+      appId: 'tester.app',
+      appKind: 'nimi-app',
+      displayName: 'Tester App',
+      publisher: 'Tester',
+      trustTier: 'nimi-community',
+      ordinaryVisibility: 'ordinary-visible',
+      releaseDescriptorRef: 'tester.app.descriptor',
+      installStoragePolicyRef: 'tester.storage',
+      sourceRule: 'tester-fixture',
+      admissionStatus: 'admitted',
+      installedVersion: '1.0.0',
+    }],
+    releaseDescriptors: [{
+      descriptorId: 'tester.app.descriptor',
+      appId: 'tester.app',
+      version: '1.0.0',
+      descriptorClass: 'external-immutable-artifact',
+      sourceKind: 'github-release',
+      sourceRef: 'https://example.test/tester/releases/v1',
+      artifactLocator: 'https://example.test/tester/releases/v1/app.tar.zst',
+      digestAlgorithm: 'sha256',
+      sha256: 'b'.repeat(64),
+      size: '1024',
+      provenanceRef: 'tester.provenance',
+      packageKind: 'nimi-app',
+      entryRef: 'index.html',
+      sandboxRef: 'tester.sandbox',
+      permissionsRef: 'tester.permissions',
+      storagePolicyRef: 'tester.storage',
+      admissionPath: 'tester-sdk-parser-proof',
+      mutableSourceAllowed: false,
+      installDigestVerificationRequired: 'required',
+      sourceRule: 'tester-fixture',
+    }],
+    installEvidence: [{
+      appId: 'tester.app',
+      releaseDescriptorRef: 'tester.app.descriptor',
+      storagePolicyRef: 'tester.storage',
+      installedVersion: '1.0.0',
+      sha256: 'b'.repeat(64),
+      verificationState: 'digest-verified',
+    }],
+  });
   const runtimeAuditWireProjection = {
     callerKindName: projectRuntimeAuditCallerKindName(CallerKind.THIRD_PARTY_APP) ?? 'unknown',
     usageWindowName: projectRuntimeUsageWindowName(UsageWindow.HOUR) ?? 'unknown',
@@ -1518,6 +1566,12 @@ export function SettingsRoute() {
         <span>SDK local runtime service/node projection</span>
         <StatusBadge tone={localRuntimeServiceNodeProjection.node.available ? 'success' : 'warning'}>
           {localRuntimeServiceNodeProjection.service.status}: {localRuntimeServiceNodeProjection.node.adapter}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK Nimi App bridge projection</span>
+        <StatusBadge tone="neutral">
+          {appBridgeProjection.registryRows[0]?.appId ?? 'none'}: {appBridgeProjection.installEvidence[0]?.verificationState ?? 'none'}
         </StatusBadge>
       </div>
       <div className="setting-row">

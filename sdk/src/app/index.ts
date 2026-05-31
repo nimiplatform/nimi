@@ -3,6 +3,12 @@ export {
   NimiAppRegistryTransportError,
   createNimiAppRegistryTransport,
 } from './registry-transport.js';
+export {
+  parseNimiAppBridgeInstallEvidenceRow,
+  parseNimiAppBridgeProjection,
+  parseNimiAppBridgeRegistryRow,
+  parseNimiAppBridgeReleaseDescriptorRow,
+} from './bridge-projection.js';
 export type { NimiAppTransport } from './transport.js';
 export type {
   AppKind,
@@ -18,6 +24,7 @@ export type {
   NimiAppStorageRoots,
   TrustTierId,
 } from './types.js';
+export type { NimiAppBridgeProjection } from './bridge-projection.js';
 export type {
   NimiAppAdmissionStatus,
   NimiAppRegistrySourceRow,
