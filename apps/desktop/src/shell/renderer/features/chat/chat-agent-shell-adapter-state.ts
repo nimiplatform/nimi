@@ -2,7 +2,10 @@ import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
 import { pickerSelectionToBinding } from '@nimiplatform/kit/features/model-config';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
+import {
+  findRuntimeRouteModelProfile,
+  type RuntimeRouteBinding,
+} from '@nimiplatform/sdk/ai';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type {
@@ -16,7 +19,6 @@ import {
   toAgentFriendTargetsFromSocialSnapshot,
   toConversationMessageViewModel,
 } from './chat-agent-thread-model';
-import { findRuntimeRouteModelProfile } from './chat-nimi-route-view';
 import type { AgentConversationSelection } from './chat-shell-types';
 import { useAgentVisibleProjection } from './chat-agent-visible-projection-store';
 import { useConversationStreamState } from './chat-shared-runtime-stream-ui';

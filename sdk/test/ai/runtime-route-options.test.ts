@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  findRuntimeRouteModelProfile,
   normalizeRuntimeRouteCapabilityToken,
   projectRuntimeRouteCapabilityCoverage,
   projectRuntimeRouteCapabilityCoverageList,
@@ -103,4 +104,60 @@ test('runtime route capability coverage list keeps runnable asset kind order', (
   assert.deepEqual(coverage.map((item) => item.capability), ['chat', 'image', 'video', 'tts', 'stt', 'embedding']);
   assert.equal(coverage.find((item) => item.capability === 'tts')?.localAvailable, true);
   assert.equal(coverage.find((item) => item.capability === 'chat')?.localAvailable, false);
+});
+
+test('runtime route model profile lookup projects binding and connector metadata without owning routing truth', () => {
+  const snapshot = {
+    capability: 'text.generate',
+    selected: null,
+    local: { models: [], defaultEndpoint: '' },
+    connectors: [{
+      id: 'connector-openai',
+      label: 'OpenAI',
+      provider: 'openai',
+      models: ['gpt-a', 'gpt-b'],
+      modelCapabilities: {
+        'gpt-a': ['text.generate'],
+        'gpt-b': ['text.generate'],
+      },
+      modelProfiles: [{
+        model: 'gpt-b',
+        maxContextTokens: 128000,
+        maxOutputTokens: 4096,
+        contextSource: 'provider-api' as const,
+      }],
+    }],
+  };
+
+  assert.deepEqual(findRuntimeRouteModelProfile(snapshot, {
+    source: 'cloud',
+    connectorId: 'connector-openai',
+    model: 'gpt-b',
+  }), {
+    model: 'gpt-b',
+    maxContextTokens: 128000,
+    maxOutputTokens: 4096,
+    contextSource: 'provider-api',
+  });
+  assert.deepEqual(findRuntimeRouteModelProfile(snapshot, {
+    source: 'cloud',
+    connectorId: 'connector-openai',
+    model: 'inline-profile',
+    maxContextTokens: 32000,
+    maxOutputTokens: 1200,
+  }), {
+    model: 'inline-profile',
+    maxContextTokens: 32000,
+    maxOutputTokens: 1200,
+  });
+  assert.equal(findRuntimeRouteModelProfile(snapshot, {
+    source: 'cloud',
+    connectorId: 'missing',
+    model: 'gpt-b',
+  }), null);
+  assert.equal(findRuntimeRouteModelProfile(snapshot, {
+    source: 'local',
+    connectorId: '',
+    model: 'local-model',
+  }), null);
 });

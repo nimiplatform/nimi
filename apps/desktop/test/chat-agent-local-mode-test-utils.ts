@@ -12,7 +12,6 @@ import {
   streamChatAgentRuntimeAgentTurn,
 } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
 import {
-  findRuntimeRouteModelProfile,
   resolveAgentChatRequestedMaxOutputTokens,
 } from '../src/shell/renderer/features/chat/chat-nimi-route-view.js';
 import { resolveAgentTurnTotalTimeoutMs } from '../src/shell/renderer/features/chat/chat-agent-timeouts.js';
@@ -32,6 +31,7 @@ import {
 import {
   createBuiltInChatAIScopeRef,
   createEmptyAIConfig as createSdkEmptyAIConfig,
+  findRuntimeRouteModelProfile,
 } from '@nimiplatform/sdk/ai';
 
 const TEST_CHAT_SCOPE_REF = createBuiltInChatAIScopeRef('agent');

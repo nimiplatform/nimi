@@ -1068,6 +1068,7 @@ test('tester settings consumes SDK Runtime route capability projection builder',
 
   assert.match(settings, /buildRuntimeRouteCapabilityProjection/);
   assert.match(settings, /createDefaultRuntimeRouteCapabilitySelectionStore/);
+  assert.match(settings, /findRuntimeRouteModelProfile/);
   assert.match(settings, /getRuntimeRouteCapabilityProjectionIssueKind/);
   assert.match(settings, /isRuntimeRouteCapabilityProjectionReady/);
   assert.match(settings, /updateRuntimeRouteCapabilityBinding/);
@@ -1075,6 +1076,7 @@ test('tester settings consumes SDK Runtime route capability projection builder',
   assert.match(settings, /resolveConversationRuntimeRouteSetupStateFromProjection/);
   assert.match(settings, /from '@nimiplatform\/kit\/features\/chat\/headless'/);
   assert.match(settings, /Runtime route capability projection/);
+  assert.match(settings, /Runtime route model profile projection/);
   assert.match(settings, /runtimeCapabilityProjection\.summary\.reasonCode/);
   assert.match(settings, /runtimeCapabilityProjection\.summary\.issueKind/);
   assert.match(settings, /runtimeCapabilityProjection\.summary\.setupStatus/);

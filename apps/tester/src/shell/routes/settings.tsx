@@ -4,6 +4,7 @@ import {
   buildRuntimeRouteCapabilityProjection,
   createEmptyMemoryEmbeddingConfig,
   createDefaultRuntimeRouteCapabilitySelectionStore,
+  findRuntimeRouteModelProfile,
   getRuntimeRouteCapabilityProjectionIssueKind,
   isRuntimeRouteCapabilityProjectionReady,
   isRuntimeRouteLocalOptionSelectable,
@@ -568,6 +569,27 @@ export function SettingsRoute() {
         models: ['tester-embedding'],
       }],
     },
+  });
+  const runtimeRouteModelProfileProjection = findRuntimeRouteModelProfile({
+    capability: 'text.generate',
+    selected: null,
+    local: { models: [] },
+    connectors: [{
+      id: 'tester-cloud',
+      label: 'Tester Cloud',
+      provider: 'tester',
+      models: ['tester-text'],
+      modelProfiles: [{
+        model: 'tester-text',
+        maxContextTokens: 32000,
+        maxOutputTokens: 2048,
+        contextSource: 'provider-api',
+      }],
+    }],
+  }, {
+    source: 'cloud',
+    connectorId: 'tester-cloud',
+    model: 'tester-text',
   });
   const localRouteOptionProjection = (() => {
     const option = {
@@ -1288,6 +1310,14 @@ export function SettingsRoute() {
         <span>Local route option projection</span>
         <StatusBadge tone={localRouteOptionProjection.selectable ? 'success' : 'warning'}>
           {localRouteOptionProjection.binding.source}: {localRouteOptionProjection.binding.localModelId}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Runtime route model profile projection</span>
+        <StatusBadge tone={runtimeRouteModelProfileProjection ? 'success' : 'warning'}>
+          {runtimeRouteModelProfileProjection
+            ? `${runtimeRouteModelProfileProjection.model}: ${runtimeRouteModelProfileProjection.maxOutputTokens ?? 'unknown'}`
+            : 'unavailable'}
         </StatusBadge>
       </div>
       <div className="setting-row">
