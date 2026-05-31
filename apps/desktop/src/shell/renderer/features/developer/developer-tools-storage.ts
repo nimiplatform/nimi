@@ -7,6 +7,11 @@
  */
 
 import {
+  readStorageTextFrom,
+  resolveBrowserStorage,
+  writeStorageTextTo,
+} from '@nimiplatform/kit/core/storage-json';
+import {
   resolveDeveloperToolsSection,
   type DeveloperToolsSectionId,
 } from './developer-tools-sections.js';
@@ -15,20 +20,11 @@ export const DEVELOPER_TOOLS_SELECTED_STORAGE_KEY = 'nimi.developer-tools.select
 
 /** Read the persisted Developer Tools sub-area, falling back to diagnostics. */
 export function loadStoredDeveloperToolsSection(): DeveloperToolsSectionId {
-  try {
-    return resolveDeveloperToolsSection(
-      localStorage.getItem(DEVELOPER_TOOLS_SELECTED_STORAGE_KEY),
-    );
-  } catch {
-    return 'diagnostics';
-  }
+  const result = readStorageTextFrom(resolveBrowserStorage('local'), DEVELOPER_TOOLS_SELECTED_STORAGE_KEY);
+  return resolveDeveloperToolsSection(result.state === 'ready' ? result.value : null);
 }
 
 /** Persist the active Developer Tools sub-area. */
 export function persistStoredDeveloperToolsSection(section: DeveloperToolsSectionId): void {
-  try {
-    localStorage.setItem(DEVELOPER_TOOLS_SELECTED_STORAGE_KEY, section);
-  } catch {
-    // localStorage is best-effort; a write failure must never break the surface.
-  }
+  writeStorageTextTo(resolveBrowserStorage('local'), DEVELOPER_TOOLS_SELECTED_STORAGE_KEY, section);
 }

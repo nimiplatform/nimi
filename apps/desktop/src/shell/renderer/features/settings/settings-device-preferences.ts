@@ -12,6 +12,11 @@
  * a corrupt preference blob from being masked as a healthy default.
  */
 
+import {
+  readStorageJsonFrom,
+  resolveBrowserStorage,
+  writeStorageJsonTo,
+} from '@nimiplatform/kit/core/storage-json';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 
 /* ------------------------------------------------------------------ */
@@ -105,23 +110,11 @@ export const DEFAULT_DOWNLOAD_PREFERENCES: DownloadPreferences = {
 /* ------------------------------------------------------------------ */
 
 function resolveStorage(storageKey: string): Storage {
-  const storage = globalThis.localStorage;
+  const storage = resolveBrowserStorage('local');
   if (!storage) {
     throw new DevicePreferenceProjectionError(storageKey, 'localStorage unavailable');
   }
   return storage;
-}
-
-function readRawProjection(storageKey: string): string | null {
-  const storage = resolveStorage(storageKey);
-  try {
-    return storage.getItem(storageKey);
-  } catch (error) {
-    throw new DevicePreferenceProjectionError(
-      storageKey,
-      error instanceof Error ? error.message : 'storage read rejected',
-    );
-  }
 }
 
 /**
@@ -135,24 +128,24 @@ function loadProjection<T>(
   defaults: T,
   project: (payload: Record<string, unknown>) => T,
 ): T {
-  const raw = readRawProjection(storageKey);
-  if (raw === null || raw.trim() === '') {
+  const storage = resolveStorage(storageKey);
+  const result = readStorageJsonFrom(storage, storageKey, (parsed) => {
+    const payload = parseOptionalJsonObject(parsed);
+    if (!payload) {
+      throw new Error('projection is not an object');
+    }
+    return project(payload);
+  });
+  if (result.state === 'missing') {
     return { ...defaults };
   }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (error) {
+  if (result.state !== 'ready') {
     throw new DevicePreferenceProjectionError(
       storageKey,
-      error instanceof Error ? error.message : 'invalid JSON',
+      result.error || (result.state === 'unavailable' ? 'localStorage unavailable' : 'storage read rejected'),
     );
   }
-  const payload = parseOptionalJsonObject(parsed);
-  if (!payload) {
-    throw new DevicePreferenceProjectionError(storageKey, 'projection is not an object');
-  }
-  return project(payload);
+  return result.value;
 }
 
 function persistProjection<T>(
@@ -162,12 +155,11 @@ function persistProjection<T>(
   value: T,
 ): void {
   const storage = resolveStorage(storageKey);
-  try {
-    storage.setItem(storageKey, JSON.stringify(value));
-  } catch (error) {
+  const result = writeStorageJsonTo(storage, storageKey, value);
+  if (result.state !== 'saved') {
     throw new DevicePreferenceProjectionError(
       storageKey,
-      error instanceof Error ? error.message : 'storage write rejected',
+      result.error || (result.state === 'unavailable' ? 'localStorage unavailable' : 'storage write rejected'),
     );
   }
   for (const subscriber of subscribers) {

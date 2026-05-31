@@ -10,6 +10,11 @@
 
 import type { AIConfig, AIScopeRef } from '@nimiplatform/sdk/ai';
 import {
+  readStorageJsonFrom,
+  resolveBrowserStorage,
+  writeStorageJsonTo,
+} from '@nimiplatform/kit/core/storage-json';
+import {
   aiConfigScopeKeyFromRef,
   createEmptyAIConfig,
   normalizeAIConfig,
@@ -25,14 +30,7 @@ const SCOPE_CONFIG_PREFIX = 'nimi.ai-config.scope.';
 const SCOPE_CONFIG_SUFFIX = '.v2';
 
 function getStorage(): Storage | undefined {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      return window.localStorage;
-    }
-    return globalThis.localStorage as Storage | undefined;
-  } catch {
-    return undefined;
-  }
+  return resolveBrowserStorage('local') || undefined;
 }
 
 export function scopeKeyFromRef(ref: AIScopeRef): string {
@@ -48,20 +46,15 @@ function storageKeyForScope(scopeKey: string): string {
 // ---------------------------------------------------------------------------
 
 function loadScopeIndex(storage: Storage): string[] {
-  try {
-    const raw = storage.getItem(SCOPE_INDEX_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed.filter((s): s is string => typeof s === 'string');
-    }
-  } catch { /* ignore */ }
+  const result = readStorageJsonFrom(storage, SCOPE_INDEX_KEY);
+  if (result.state === 'ready' && Array.isArray(result.value)) {
+    return result.value.filter((s): s is string => typeof s === 'string');
+  }
   return [];
 }
 
 function persistScopeIndex(storage: Storage, scopeKeys: string[]): void {
-  try {
-    storage.setItem(SCOPE_INDEX_KEY, JSON.stringify(scopeKeys));
-  } catch { /* ignore */ }
+  writeStorageJsonTo(storage, SCOPE_INDEX_KEY, scopeKeys);
 }
 
 function ensureScopeInIndex(storage: Storage, scopeKey: string): void {
@@ -81,13 +74,8 @@ export function loadAIConfigForScope(scopeRef: AIScopeRef): AIConfig {
   const storage = getStorage();
   if (!storage) return createEmptyAIConfig(scopeRef);
   const key = scopeKeyFromRef(scopeRef);
-  try {
-    const raw = storage.getItem(storageKeyForScope(key));
-    if (raw) {
-      const parsed = normalizeAIConfig(JSON.parse(raw));
-      if (parsed) return parsed;
-    }
-  } catch { /* ignore */ }
+  const result = readStorageJsonFrom(storage, storageKeyForScope(key), normalizeAIConfig);
+  if (result.state === 'ready' && result.value) return result.value;
   return createEmptyAIConfig(scopeRef);
 }
 
@@ -96,10 +84,10 @@ export function persistAIConfigForScope(config: AIConfig): void {
   const storage = getStorage();
   if (!storage) return;
   const key = scopeKeyFromRef(config.scopeRef);
-  try {
-    storage.setItem(storageKeyForScope(key), JSON.stringify(config));
+  const result = writeStorageJsonTo(storage, storageKeyForScope(key), config);
+  if (result.state === 'saved') {
     ensureScopeInIndex(storage, key);
-  } catch { /* ignore */ }
+  }
 }
 
 /** List all known scope keys from the index. */

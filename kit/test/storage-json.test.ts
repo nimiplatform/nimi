@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   readStorageJsonFrom,
+  readStorageTextFrom,
   removeStorageKeyFrom,
+  writeStorageTextTo,
   writeStorageJsonTo,
 } from '../core/src/storage-json.js';
 
@@ -64,5 +66,19 @@ describe('kit core storage-json', () => {
     expect(storage.snapshot()).toEqual({ prefs: '{"ok":true}' });
     expect(removeStorageKeyFrom(storage, 'prefs').state).toBe('removed');
     expect(storage.snapshot()).toEqual({});
+  });
+
+  it('reads and writes caller-owned text without schema meaning', () => {
+    const storage = createStorage({ selected: 'diagnostics' });
+    expect(readStorageTextFrom(storage, 'selected')).toEqual({
+      state: 'ready',
+      value: 'diagnostics',
+    });
+    expect(readStorageTextFrom(storage, 'missing')).toEqual({
+      state: 'missing',
+      value: null,
+    });
+    expect(writeStorageTextTo(storage, 'selected', 'repair').state).toBe('saved');
+    expect(storage.snapshot()).toMatchObject({ selected: 'repair' });
   });
 });

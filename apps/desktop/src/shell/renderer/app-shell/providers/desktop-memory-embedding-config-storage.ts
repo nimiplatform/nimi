@@ -11,6 +11,11 @@ import type {
   MemoryEmbeddingConfig,
 } from '@nimiplatform/sdk/runtime';
 import { createEmptyMemoryEmbeddingConfig } from '@nimiplatform/sdk/runtime';
+import {
+  readStorageJsonFrom,
+  resolveBrowserStorage,
+  writeStorageJsonTo,
+} from '@nimiplatform/kit/core/storage-json';
 import type {
   AIScopeRef,
 } from '@nimiplatform/sdk/scope';
@@ -24,14 +29,7 @@ const SCOPE_CONFIG_PREFIX = 'nimi.memory-embedding.scope.';
 const SCOPE_CONFIG_SUFFIX = '.v1';
 
 function getStorage(): Storage | undefined {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      return window.localStorage;
-    }
-    return globalThis.localStorage as Storage | undefined;
-  } catch {
-    return undefined;
-  }
+  return resolveBrowserStorage('local') || undefined;
 }
 
 export function scopeKeyFromRef(ref: AIScopeRef): string {
@@ -101,26 +99,15 @@ function normalizeMemoryEmbeddingConfig(raw: unknown): MemoryEmbeddingConfig | n
 }
 
 function loadScopeIndex(storage: Storage): string[] {
-  try {
-    const raw = storage.getItem(SCOPE_INDEX_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        return parsed.filter((value): value is string => typeof value === 'string');
-      }
-    }
-  } catch {
-    // ignore
+  const result = readStorageJsonFrom(storage, SCOPE_INDEX_KEY);
+  if (result.state === 'ready' && Array.isArray(result.value)) {
+    return result.value.filter((value): value is string => typeof value === 'string');
   }
   return [];
 }
 
 function persistScopeIndex(storage: Storage, scopeKeys: string[]): void {
-  try {
-    storage.setItem(SCOPE_INDEX_KEY, JSON.stringify(scopeKeys));
-  } catch {
-    // ignore
-  }
+  writeStorageJsonTo(storage, SCOPE_INDEX_KEY, scopeKeys);
 }
 
 function ensureScopeInIndex(storage: Storage, scopeKey: string): void {
@@ -137,16 +124,9 @@ export function loadMemoryEmbeddingConfigForScope(scopeRef: AIScopeRef): MemoryE
     return createEmptyMemoryEmbeddingConfig(scopeRef);
   }
   const key = scopeKeyFromRef(scopeRef);
-  try {
-    const raw = storage.getItem(storageKeyForScope(key));
-    if (raw) {
-      const parsed = normalizeMemoryEmbeddingConfig(JSON.parse(raw));
-      if (parsed) {
-        return parsed;
-      }
-    }
-  } catch {
-    // ignore
+  const result = readStorageJsonFrom(storage, storageKeyForScope(key), normalizeMemoryEmbeddingConfig);
+  if (result.state === 'ready' && result.value) {
+    return result.value;
   }
   return createEmptyMemoryEmbeddingConfig(scopeRef);
 }
@@ -157,11 +137,9 @@ export function persistMemoryEmbeddingConfigForScope(config: MemoryEmbeddingConf
     return;
   }
   const key = scopeKeyFromRef(config.scopeRef);
-  try {
-    storage.setItem(storageKeyForScope(key), JSON.stringify(config));
+  const result = writeStorageJsonTo(storage, storageKeyForScope(key), config);
+  if (result.state === 'saved') {
     ensureScopeInIndex(storage, key);
-  } catch {
-    // ignore
   }
 }
 

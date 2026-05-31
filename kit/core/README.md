@@ -27,6 +27,7 @@ Pure shared logic module for shell-mode detection, env helpers, OAuth utilities,
 
 ## Current Consumers
 - `desktop`
+- `tester`
 - `web`
 
 ## Verification

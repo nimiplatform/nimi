@@ -138,8 +138,8 @@ test('local model center hides removed tombstones from installed sections and re
 test('dismissed transfer sessions persist across renderer reloads', () => {
   assert.match(localModelCenterProgressCacheSource, /DISMISSED_SESSION_STORAGE_KEY = 'nimi\.runtime\.local-model-center\.dismissed-transfer-sessions\.v1'/);
   assert.match(localModelCenterProgressCacheSource, /from '@nimiplatform\/kit\/core\/storage-json'/);
-  assert.match(localModelCenterProgressCacheSource, /readStorageJsonFrom\(resolveStorage\(\), DISMISSED_SESSION_STORAGE_KEY\)/);
-  assert.match(localModelCenterProgressCacheSource, /writeStorageJsonTo\(resolveStorage\(\), DISMISSED_SESSION_STORAGE_KEY,/);
+  assert.match(localModelCenterProgressCacheSource, /readStorageJsonFrom\(resolveBrowserStorage\('local'\), DISMISSED_SESSION_STORAGE_KEY\)/);
+  assert.match(localModelCenterProgressCacheSource, /writeStorageJsonTo\(resolveBrowserStorage\('local'\), DISMISSED_SESSION_STORAGE_KEY,/);
   assert.match(localModelCenterProgressCacheSource, /const dismissedSessionIdsCache = new Set<string>\(loadDismissedSessionIds\(\)\)/);
   assert.match(localModelCenterProgressCacheSource, /persistDismissedSessionIds\(dismissedSessionIdsCache\)/);
 });

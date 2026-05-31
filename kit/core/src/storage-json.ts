@@ -18,6 +18,21 @@ export type StorageJsonWriteResult =
   | { readonly state: 'saved' }
   | { readonly state: 'unavailable' | 'write-error'; readonly error?: string };
 
+export type StorageTextReadResult =
+  | {
+      readonly state: 'ready';
+      readonly value: string;
+    }
+  | {
+      readonly state: 'missing' | 'unavailable' | 'read-error';
+      readonly value: null;
+      readonly error?: string;
+    };
+
+export type StorageTextWriteResult =
+  | { readonly state: 'saved' }
+  | { readonly state: 'unavailable' | 'write-error'; readonly error?: string };
+
 export type StorageKeyRemoveResult =
   | { readonly state: 'removed' }
   | { readonly state: 'unavailable' | 'write-error'; readonly error?: string };
@@ -80,6 +95,24 @@ export function readStorageJsonFrom<T = unknown>(
   }
 }
 
+export function readStorageTextFrom(
+  storage: Pick<Storage, 'getItem'> | null | undefined,
+  key: string,
+): StorageTextReadResult {
+  if (!storage) {
+    return { state: 'unavailable', value: null };
+  }
+
+  try {
+    const value = storage.getItem(normalizeKey(key));
+    return value === null
+      ? { state: 'missing', value: null }
+      : { state: 'ready', value };
+  } catch (error) {
+    return { state: 'read-error', value: null, error: errorMessage(error) };
+  }
+}
+
 export function writeStorageJsonTo(
   storage: Pick<Storage, 'setItem'> | null | undefined,
   key: string,
@@ -90,6 +123,22 @@ export function writeStorageJsonTo(
   }
   try {
     storage.setItem(normalizeKey(key), JSON.stringify(value));
+    return { state: 'saved' };
+  } catch (error) {
+    return { state: 'write-error', error: errorMessage(error) };
+  }
+}
+
+export function writeStorageTextTo(
+  storage: Pick<Storage, 'setItem'> | null | undefined,
+  key: string,
+  value: string,
+): StorageTextWriteResult {
+  if (!storage) {
+    return { state: 'unavailable' };
+  }
+  try {
+    storage.setItem(normalizeKey(key), value);
     return { state: 'saved' };
   } catch (error) {
     return { state: 'write-error', error: errorMessage(error) };

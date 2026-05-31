@@ -11,6 +11,9 @@ Discipline.
 
 ### Added
 
+- Added renderer-safe text storage helpers to `@nimiplatform/kit/core/storage-json`
+  so apps can share browser storage access mechanics without moving schema
+  ownership into Kit.
 - Exported `emitRendererLog` from `@nimiplatform/kit/telemetry` so renderer
   bridge code can use the shared telemetry normalizer directly.
 

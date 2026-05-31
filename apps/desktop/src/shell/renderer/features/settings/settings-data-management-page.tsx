@@ -7,6 +7,7 @@ import { queryClient } from '@renderer/infra/query-client/query-client';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
 import { desktopBridge } from '@renderer/bridge';
 import type { DesktopStorageDirs } from '@renderer/bridge';
+import { resolveBrowserStorage } from '@nimiplatform/kit/core/storage-json';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   Button,
@@ -36,14 +37,15 @@ function formatBytes(bytes: number): string {
 }
 
 function estimateLocalStorageBytes(): number {
-  if (typeof window === 'undefined' || !window.localStorage) {
+  const storage = resolveBrowserStorage('local');
+  if (!storage) {
     return 0;
   }
   let total = 0;
-  for (let i = 0; i < window.localStorage.length; i += 1) {
-    const key = window.localStorage.key(i);
+  for (let i = 0; i < storage.length; i += 1) {
+    const key = storage.key(i);
     if (!key) continue;
-    const value = window.localStorage.getItem(key) || '';
+    const value = storage.getItem(key) || '';
     total += (key.length + value.length) * 2;
   }
   return total;

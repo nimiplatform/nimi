@@ -1,3 +1,8 @@
+import {
+  readStorageTextFrom,
+  resolveBrowserStorage,
+  writeStorageTextTo,
+} from '@nimiplatform/kit/core/storage-json';
 import { normalizeChatThinkingPreference, type ChatThinkingPreference } from './chat-shared-thinking';
 
 export const CHAT_THINKING_PREFERENCE_STORAGE_KEY = 'nimi.chat.settings.thinking.v1';
@@ -33,20 +38,14 @@ export function createDefaultAgentChatExperienceSettings(): AgentChatExperienceS
 }
 
 export function loadStoredChatThinkingPreference(): ChatThinkingPreference {
-  try {
-    return normalizeChatThinkingPreference(localStorage.getItem(CHAT_THINKING_PREFERENCE_STORAGE_KEY));
-  } catch {
-    return 'off';
-  }
+  const result = readStorageTextFrom(resolveBrowserStorage('local'), CHAT_THINKING_PREFERENCE_STORAGE_KEY);
+  return normalizeChatThinkingPreference(result.state === 'ready' ? result.value : null);
 }
 
 export function persistStoredChatThinkingPreference(preference: ChatThinkingPreference): void {
-  try {
-    localStorage.setItem(
-      CHAT_THINKING_PREFERENCE_STORAGE_KEY,
-      normalizeChatThinkingPreference(preference),
-    );
-  } catch {
-    // ignore
-  }
+  writeStorageTextTo(
+    resolveBrowserStorage('local'),
+    CHAT_THINKING_PREFERENCE_STORAGE_KEY,
+    normalizeChatThinkingPreference(preference),
+  );
 }

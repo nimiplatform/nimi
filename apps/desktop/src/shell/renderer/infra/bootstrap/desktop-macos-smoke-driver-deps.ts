@@ -15,6 +15,10 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { createRuntimeProtectedScopeHelper } from '@nimiplatform/sdk/runtime';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/browser';
 import {
+  readStorageTextFrom,
+  resolveBrowserStorage,
+} from '@nimiplatform/kit/core/storage-json';
+import {
   type DesktopMacosSmokeCanvasStats,
   type DesktopMacosSmokeDriverDeps,
   LIVE2D_VIEWPORT_SELECTOR,
@@ -274,7 +278,8 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
       element.dispatchEvent(new Event('change', { bubbles: true }));
     },
     async readLocalStorageItem(key: string) {
-      return window.localStorage.getItem(key);
+      const result = readStorageTextFrom(resolveBrowserStorage('local'), key);
+      return result.state === 'ready' ? result.value : null;
     },
     async clearAgentConversationAnchorBindings() {
       clearAllAgentConversationAnchorBindings();

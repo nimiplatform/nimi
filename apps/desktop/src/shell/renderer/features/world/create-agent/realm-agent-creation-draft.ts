@@ -11,6 +11,13 @@
  * bypass a required field.
  */
 
+import {
+  readStorageJsonFrom,
+  removeStorageKeyFrom,
+  resolveBrowserStorage,
+  writeStorageJsonTo,
+} from '@nimiplatform/kit/core/storage-json';
+
 export type RealmAgentCreationMode =
   | 'manual_quick_create'
   | 'character_card_import'
@@ -181,28 +188,24 @@ export function persistDraft(draft: RealmAgentCreationDraft): void {
   if (!draft.worldId) {
     return;
   }
-  try {
-    const persisted: RealmAgentCreationDraft = {
-      ...draft,
-      fields: { ...draft.fields, avatarPreviewUrl: '' },
-      warnings: draft.warnings.slice(0, MAX_PERSISTED_WARNINGS),
-    };
-    localStorage.setItem(draftStorageKey(draft.worldId), JSON.stringify(persisted));
-  } catch {
-    // Local persistence is best-effort; the in-memory draft remains authoritative.
-  }
+  const persisted: RealmAgentCreationDraft = {
+    ...draft,
+    fields: { ...draft.fields, avatarPreviewUrl: '' },
+    warnings: draft.warnings.slice(0, MAX_PERSISTED_WARNINGS),
+  };
+  writeStorageJsonTo(resolveBrowserStorage('local'), draftStorageKey(draft.worldId), persisted);
 }
 
 export function loadPersistedDraft(worldId: string): RealmAgentCreationDraft | null {
   if (!worldId) {
     return null;
   }
+  const result = readStorageJsonFrom<Record<string, unknown>>(resolveBrowserStorage('local'), draftStorageKey(worldId));
+  if (result.state !== 'ready') {
+    return null;
+  }
   try {
-    const raw = localStorage.getItem(draftStorageKey(worldId));
-    if (!raw) {
-      return null;
-    }
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const parsed = result.value;
     const fields = (parsed.fields && typeof parsed.fields === 'object'
       ? parsed.fields
       : {}) as Record<string, unknown>;
@@ -263,9 +266,5 @@ export function clearPersistedDraft(worldId: string): void {
   if (!worldId) {
     return;
   }
-  try {
-    localStorage.removeItem(draftStorageKey(worldId));
-  } catch {
-    // ignore
-  }
+  removeStorageKeyFrom(resolveBrowserStorage('local'), draftStorageKey(worldId));
 }

@@ -351,6 +351,23 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   assert.match(capabilities, /onOpenConfig/);
 });
 
+test('tester product-local persistence consumes Kit core storage helpers', () => {
+  const preferences = read('src/tester/tester-preferences.ts');
+  const store = read('src/tester/tester-ai-config-store.ts');
+
+  assert.match(preferences, /from '@nimiplatform\/kit\/core\/storage-json'/);
+  for (const helper of [
+    'resolveBrowserStorage',
+    'readStorageJsonFrom',
+    'writeStorageJsonTo',
+    'removeStorageKeyFrom',
+  ]) {
+    assert.match(preferences, new RegExp(helper));
+  }
+  assert.match(store, /from '@nimiplatform\/kit\/core\/storage-json'/);
+  assert.match(store, /resolveBrowserStorage\('local'\)/);
+});
+
 test('tester LLM invokers consume AIConfig bindings and fail closed without binding', () => {
   const invokers = read('src/tester/tester-runtime-invokers.ts');
   const unavailable = read('src/tester/tester-unavailable.ts');

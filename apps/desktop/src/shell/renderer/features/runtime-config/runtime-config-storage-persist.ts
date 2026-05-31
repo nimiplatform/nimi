@@ -1,4 +1,8 @@
-import { readStorageJsonFrom, writeStorageJsonTo } from '@nimiplatform/kit/core/storage-json';
+import {
+  readStorageJsonFrom,
+  resolveBrowserStorage,
+  writeStorageJsonTo,
+} from '@nimiplatform/kit/core/storage-json';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import {
   RUNTIME_CONFIG_STORAGE_KEY_V11,
@@ -9,7 +13,7 @@ import {
 import { normalizeStoredStateV11 } from './runtime-config-storage-normalize';
 
 export function loadRuntimeConfigStateV11(): RuntimeConfigStateV11 {
-  const storage = typeof globalThis !== 'undefined' ? (globalThis.localStorage as Storage | undefined) : undefined;
+  const storage = resolveBrowserStorage('local');
   const v12 = readStorageJsonFrom<StoredStateV11>(storage, RUNTIME_CONFIG_STORAGE_KEY_V12);
   const v11 = v12.state === 'ready'
     ? v12
@@ -45,7 +49,7 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
     },
   };
   writeStorageJsonTo(
-    typeof globalThis !== 'undefined' ? (globalThis.localStorage as Storage | undefined) : undefined,
+    resolveBrowserStorage('local'),
     RUNTIME_CONFIG_STORAGE_KEY_V12,
     payload,
   );

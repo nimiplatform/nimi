@@ -1,3 +1,10 @@
+import {
+  readStorageTextFrom,
+  removeStorageKeyFrom,
+  resolveBrowserStorage,
+  writeStorageTextTo,
+} from '@nimiplatform/kit/core/storage-json';
+
 export const AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY = 'nimi.chat.agent.anchor-bindings.v2';
 
 export type AgentConversationAnchorBinding = {
@@ -50,15 +57,6 @@ function normalizeBinding(
   };
 }
 
-function readBrowserStorage(): Storage | null {
-  try {
-    const storage = globalThis.localStorage;
-    return storage && typeof storage.getItem === 'function' ? storage : null;
-  } catch {
-    return null;
-  }
-}
-
 function notifyAnchorBindingListeners(): void {
   anchorBindingVersion += 1;
   for (const listener of anchorBindingListeners) {
@@ -80,16 +78,11 @@ function serializeBindings(): string {
 }
 
 function hydrateBindingsFromStorage(): void {
-  const storage = readBrowserStorage();
-  if (!storage) {
+  const result = readStorageTextFrom(resolveBrowserStorage('local'), AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY);
+  if (result.state !== 'ready' && result.state !== 'missing') {
     return;
   }
-  let raw: string;
-  try {
-    raw = storage.getItem(AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY) || '';
-  } catch {
-    return;
-  }
+  const raw = result.state === 'ready' ? result.value : '';
   if (raw === storageSnapshot) {
     return;
   }
@@ -119,21 +112,21 @@ function hydrateBindingsFromStorage(): void {
 }
 
 function persistBindingsToStorage(): void {
-  const storage = readBrowserStorage();
+  const storage = resolveBrowserStorage('local');
   if (!storage) {
     return;
   }
   const serialized = serializeBindings();
-  try {
-    if (anchorBindingsByLocalAgentRef.size === 0) {
-      storage.removeItem(AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY);
+  if (anchorBindingsByLocalAgentRef.size === 0) {
+    const result = removeStorageKeyFrom(storage, AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY);
+    if (result.state === 'removed') {
       storageSnapshot = '';
-      return;
     }
-    storage.setItem(AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY, serialized);
+    return;
+  }
+  const result = writeStorageTextTo(storage, AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY, serialized);
+  if (result.state === 'saved') {
     storageSnapshot = serialized;
-  } catch {
-    // Persistence is a reload hint only; Runtime snapshot validation remains authoritative.
   }
 }
 

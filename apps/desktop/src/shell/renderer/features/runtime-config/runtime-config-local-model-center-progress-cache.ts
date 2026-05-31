@@ -1,4 +1,8 @@
-import { readStorageJsonFrom, writeStorageJsonTo } from '@nimiplatform/kit/core/storage-json';
+import {
+  readStorageJsonFrom,
+  resolveBrowserStorage,
+  writeStorageJsonTo,
+} from '@nimiplatform/kit/core/storage-json';
 import type { ProgressSessionState } from './runtime-config-model-center-utils';
 
 const downloadSessionSnapshotCache: Record<string, ProgressSessionState> = {};
@@ -31,16 +35,6 @@ type DismissedTransferSessionStorageRecord = {
   installSessionIds: string[];
 };
 
-function resolveStorage(): Storage | undefined {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    return window.localStorage;
-  }
-  if (typeof globalThis === 'undefined') {
-    return undefined;
-  }
-  return globalThis.localStorage as Storage | undefined;
-}
-
 function normalizeDismissedSessionIds(value: unknown): string[] {
   const raw = value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Partial<DismissedTransferSessionStorageRecord>).installSessionIds
@@ -62,7 +56,7 @@ function normalizeDismissedSessionIds(value: unknown): string[] {
 }
 
 function loadDismissedSessionIds(): string[] {
-  const result = readStorageJsonFrom(resolveStorage(), DISMISSED_SESSION_STORAGE_KEY);
+  const result = readStorageJsonFrom(resolveBrowserStorage('local'), DISMISSED_SESSION_STORAGE_KEY);
   return normalizeDismissedSessionIds(
     result.state === 'ready' ? result.value : null,
   );
@@ -70,7 +64,7 @@ function loadDismissedSessionIds(): string[] {
 
 function persistDismissedSessionIds(sessionIds: Iterable<string>): void {
   const installSessionIds = normalizeDismissedSessionIds([...sessionIds]);
-  writeStorageJsonTo(resolveStorage(), DISMISSED_SESSION_STORAGE_KEY, {
+  writeStorageJsonTo(resolveBrowserStorage('local'), DISMISSED_SESSION_STORAGE_KEY, {
     version: 1,
     installSessionIds,
   } satisfies DismissedTransferSessionStorageRecord);

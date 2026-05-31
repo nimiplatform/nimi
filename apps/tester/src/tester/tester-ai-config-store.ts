@@ -22,6 +22,7 @@ import type {
   SharedAIConfigSubscribeListener,
   SharedAIConfigUnsubscribe,
 } from '@nimiplatform/kit/features/model-config/headless';
+import { resolveBrowserStorage } from '@nimiplatform/kit/core/storage-json';
 import { appId } from '../shell/auth/runtime-platform.js';
 
 export const TESTER_APP_LAB_AI_SURFACE_ID = 'app-lab';
@@ -63,12 +64,7 @@ function scopeKey(scopeRef: AIScopeRef): string {
 }
 
 function getStorage(): Storage | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    return window.localStorage || null;
-  } catch {
-    return null;
-  }
+  return resolveBrowserStorage('local');
 }
 
 function defaultProfileStore(): TesterAIProfileLibraryStore {

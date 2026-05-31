@@ -1,3 +1,10 @@
+import {
+  readStorageJsonFrom,
+  readStorageTextFrom,
+  resolveBrowserStorage,
+  writeStorageJsonTo,
+  writeStorageTextTo,
+} from '@nimiplatform/kit/core/storage-json';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export const SETTINGS_SELECTED_STORAGE_KEY = 'nimi.settings.selected';
@@ -6,36 +13,23 @@ export const SETTINGS_PERFORMANCE_PREFERENCES_STORAGE_KEY = 'nimi.settings.perfo
 export const SETTINGS_PERFORMANCE_PREFERENCES_EVENT = 'nimi:settings:performance-preferences-changed';
 
 export function loadStoredSettingsSelected(fallback: string): string {
-  try {
-    const value = localStorage.getItem(SETTINGS_SELECTED_STORAGE_KEY);
-    return String(value || '').trim() || fallback;
-  } catch {
-    return fallback;
-  }
+  const result = readStorageTextFrom(resolveBrowserStorage('local'), SETTINGS_SELECTED_STORAGE_KEY);
+  return result.state === 'ready'
+    ? String(result.value || '').trim() || fallback
+    : fallback;
 }
 
 export function persistStoredSettingsSelected(id: string): void {
-  try {
-    localStorage.setItem(SETTINGS_SELECTED_STORAGE_KEY, String(id || '').trim());
-  } catch {
-    // ignore
-  }
+  writeStorageTextTo(resolveBrowserStorage('local'), SETTINGS_SELECTED_STORAGE_KEY, String(id || '').trim());
 }
 
 export function loadStoredSettingsTargetId(): string {
-  try {
-    return String(localStorage.getItem(SETTINGS_SELECTED_TARGET_ID_STORAGE_KEY) || '').trim();
-  } catch {
-    return '';
-  }
+  const result = readStorageTextFrom(resolveBrowserStorage('local'), SETTINGS_SELECTED_TARGET_ID_STORAGE_KEY);
+  return result.state === 'ready' ? String(result.value || '').trim() : '';
 }
 
 export function persistStoredSettingsTargetId(targetId: string): void {
-  try {
-    localStorage.setItem(SETTINGS_SELECTED_TARGET_ID_STORAGE_KEY, String(targetId || '').trim());
-  } catch {
-    // ignore
-  }
+  writeStorageTextTo(resolveBrowserStorage('local'), SETTINGS_SELECTED_TARGET_ID_STORAGE_KEY, String(targetId || '').trim());
 }
 
 export type PerformancePreferences = {
@@ -55,25 +49,25 @@ const DEFAULT_PERFORMANCE_PREFERENCES: PerformancePreferences = {
 const performancePreferenceSubscribers = new Set<(prefs: PerformancePreferences) => void>();
 
 export function loadStoredPerformancePreferences(): PerformancePreferences {
-  try {
-    const raw = localStorage.getItem(SETTINGS_PERFORMANCE_PREFERENCES_STORAGE_KEY);
-    if (!raw) {
-      return { ...DEFAULT_PERFORMANCE_PREFERENCES };
-    }
-    const parsed = JSON.parse(raw);
-    const payload = parseOptionalJsonObject(parsed);
-    if (!payload) {
-      return { ...DEFAULT_PERFORMANCE_PREFERENCES };
+  const result = readStorageJsonFrom(
+    resolveBrowserStorage('local'),
+    SETTINGS_PERFORMANCE_PREFERENCES_STORAGE_KEY,
+    (parsed) => {
+      const payload = parseOptionalJsonObject(parsed);
+      if (!payload) {
+        return { ...DEFAULT_PERFORMANCE_PREFERENCES };
     }
     return {
       hardwareAcceleration: payload.hardwareAcceleration !== false,
       reduceAnimations: payload.reduceAnimations === true,
-      autoUpdate: payload.autoUpdate !== false,
-      developerMode: payload.developerMode === true,
-    };
-  } catch {
-    return { ...DEFAULT_PERFORMANCE_PREFERENCES };
-  }
+        autoUpdate: payload.autoUpdate !== false,
+        developerMode: payload.developerMode === true,
+      };
+    },
+  );
+  return result.state === 'ready'
+    ? result.value
+    : { ...DEFAULT_PERFORMANCE_PREFERENCES };
 }
 
 export function persistStoredPerformancePreferences(prefs: PerformancePreferences): void {
@@ -84,10 +78,14 @@ export function persistStoredPerformancePreferences(prefs: PerformancePreference
       autoUpdate: prefs.autoUpdate === true,
       developerMode: prefs.developerMode === true,
     };
-    localStorage.setItem(
+    const result = writeStorageJsonTo(
+      resolveBrowserStorage('local'),
       SETTINGS_PERFORMANCE_PREFERENCES_STORAGE_KEY,
-      JSON.stringify(normalized),
+      normalized,
     );
+    if (result.state !== 'saved') {
+      return;
+    }
     for (const subscriber of performancePreferenceSubscribers) {
       subscriber(normalized);
     }

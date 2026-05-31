@@ -1,5 +1,10 @@
 import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import {
+  readStorageTextFrom,
+  resolveBrowserStorage,
+  writeStorageTextTo,
+} from '@nimiplatform/kit/core/storage-json';
 
 export const SUPPORTED_LOCALES = ['en', 'zh'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
@@ -86,13 +91,10 @@ export function getLocaleLabel(locale: SupportedLocale): string {
 }
 
 function readStoredLocale(): SupportedLocale {
-  try {
-    const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
-    if (stored && (SUPPORTED_LOCALES as readonly string[]).includes(stored)) {
-      return stored as SupportedLocale;
-    }
-  } catch {
-    // no-op
+  const result = readStorageTextFrom(resolveBrowserStorage('local'), LOCALE_STORAGE_KEY);
+  const stored = result.state === 'ready' ? result.value : '';
+  if (stored && (SUPPORTED_LOCALES as readonly string[]).includes(stored)) {
+    return stored as SupportedLocale;
   }
   return 'en';
 }
@@ -262,11 +264,7 @@ export async function changeLocale(locale: SupportedLocale): Promise<void> {
   }
   await i18n.changeLanguage(locale);
   syncDocumentState(locale);
-  try {
-    localStorage.setItem(LOCALE_STORAGE_KEY, locale);
-  } catch {
-    // no-op
-  }
+  writeStorageTextTo(resolveBrowserStorage('local'), LOCALE_STORAGE_KEY, locale);
 }
 
 export function getCurrentLocale(): SupportedLocale {
