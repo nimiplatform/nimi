@@ -5,6 +5,7 @@ import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-ap
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
   RealmGroupMessageCandidateCommitDisposition,
+  createNimiClientId,
   createRuntimeProtectedScopeHelper,
 } from '@nimiplatform/sdk/runtime';
 import type { JsonObject } from '@nimiplatform/sdk/types';
@@ -34,10 +35,7 @@ function normalizeText(value: unknown): string {
 }
 
 function createStableClientId(prefix: string): string {
-  const random = typeof globalThis.crypto?.randomUUID === 'function'
-    ? globalThis.crypto.randomUUID()
-    : `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-  return `${prefix}_${random.replaceAll('-', '')}`;
+  return createNimiClientId(prefix);
 }
 
 function requireCurrentUserId(getCurrentUser: CurrentUserReader): string {

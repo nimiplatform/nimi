@@ -1,3 +1,4 @@
+import { createNimiClientId } from '@nimiplatform/sdk/runtime';
 import { invokeChecked } from './invoke';
 
 export type DesktopAvatarLaunchHandoffInput = {
@@ -260,7 +261,7 @@ export function buildDesktopAvatarEphemeralInstanceId(input: {
 }): string {
   const baseId = buildDesktopAvatarInstanceId(input);
   const nonce = sanitizeInstanceSegment(
-    input.nonce || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    input.nonce || createNimiClientId('avatar-nonce'),
   );
   return `${baseId}-${nonce}`;
 }

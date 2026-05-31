@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import './tester-workbench.css';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
+import { createNimiClientId } from '@nimiplatform/sdk/runtime';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
 import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
 import { appendTesterRunHistory, loadTesterRunHistory, type TesterRunHistory } from './tester-history.js';
@@ -29,7 +30,7 @@ type TesterWorkbenchProps = {
 };
 
 function makeRecordId() {
-  return `run-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  return createNimiClientId('run');
 }
 
 function hasTraceMetadata(result: TesterCapabilityRunResult): boolean {

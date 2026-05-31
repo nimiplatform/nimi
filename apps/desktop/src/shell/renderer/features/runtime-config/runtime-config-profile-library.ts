@@ -25,6 +25,7 @@
  */
 
 import type { AIProfile } from '@nimiplatform/sdk/ai';
+import { createNimiClientId } from '@nimiplatform/sdk/runtime';
 import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
 import {
   createAccountProfileLibraryProfile,
@@ -152,11 +153,7 @@ export function getCachedAccountProfileLibrary(): AccountProfileLibraryProjectio
  * path-safe id.
  */
 export function generateLibraryProfileId(): string {
-  const random = (typeof globalThis.crypto !== 'undefined'
-    && typeof globalThis.crypto.randomUUID === 'function')
-    ? globalThis.crypto.randomUUID().replace(/-/g, '')
-    : Math.random().toString(36).slice(2, 14);
-  return `user-${Date.now().toString(36)}-${random.slice(0, 8)}`;
+  return createNimiClientId('user');
 }
 
 /** Create an empty editable library profile shell for the create flow. */

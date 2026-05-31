@@ -1,4 +1,5 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm';
+import { createNimiClientId } from '@nimiplatform/sdk/runtime';
 import { normalizeRealmMessagePayload } from '@nimiplatform/kit/features/chat/headless';
 import {
   realmChatService,
@@ -52,10 +53,7 @@ type PendingChatOutboxEntry = {
 };
 
 function createClientMessageId(): string {
-  if (typeof globalThis.crypto?.randomUUID === 'function') {
-    return globalThis.crypto.randomUUID();
-  }
-  return `cm_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  return createNimiClientId('cm');
 }
 
 function createCanonicalTextPayload(

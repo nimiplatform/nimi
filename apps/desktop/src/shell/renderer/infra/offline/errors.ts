@@ -1,4 +1,4 @@
-import { createNimiError } from '@nimiplatform/sdk/runtime';
+import { createNimiClientId, createNimiError } from '@nimiplatform/sdk/runtime';
 import {
   classifyOfflineError,
   type NimiError,
@@ -8,10 +8,7 @@ import {
 export { isNimiErrorLike } from '@nimiplatform/sdk/types';
 
 function randomTraceId(): string {
-  if (typeof globalThis.crypto?.randomUUID === 'function') {
-    return globalThis.crypto.randomUUID();
-  }
-  return `offline:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`;
+  return createNimiClientId('offline');
 }
 
 export function getErrorMessage(error: unknown, fallback: string): string {

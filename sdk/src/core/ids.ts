@@ -56,3 +56,17 @@ export function createNimiUlid(nowMs: number = Date.now()): string {
 
   return `${timePart}${randomPart}`;
 }
+
+/** Create a stable app-facing client identifier with a caller-owned prefix. */
+export function createNimiClientId(prefix: string, nowMs: number = Date.now()): string {
+  const normalizedPrefix = String(prefix || '').trim();
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,95}$/.test(normalizedPrefix)) {
+    throw createNimiError({
+      message: 'Nimi client ID prefix is invalid',
+      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+      actionHint: 'provide_non_empty_safe_id_prefix',
+      source: 'sdk',
+    });
+  }
+  return `${normalizedPrefix}-${createNimiUlid(nowMs)}`;
+}

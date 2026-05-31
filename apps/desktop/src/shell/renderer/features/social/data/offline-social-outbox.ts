@@ -1,4 +1,5 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
+import { createNimiClientId } from '@nimiplatform/sdk/runtime';
 import {
   getErrorMessage,
   getOfflineCacheManager,
@@ -15,10 +16,7 @@ type RealmDataErrorEmitter = (
 ) => void;
 
 function createId(prefix: string): string {
-  if (typeof globalThis.crypto?.randomUUID === 'function') {
-    return `${prefix}:${globalThis.crypto.randomUUID()}`;
-  }
-  return `${prefix}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`;
+  return createNimiClientId(prefix);
 }
 
 export async function queueSocialMutation(input: {

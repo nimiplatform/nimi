@@ -207,10 +207,13 @@ test('tester capability runs consume Kit renderer telemetry', () => {
   const workbench = read('src/tester/tester-workbench.tsx');
 
   assert.match(workbench, /from '@nimiplatform\/kit\/telemetry'/);
+  assert.match(workbench, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(workbench, /createNimiClientId\('run'\)/);
   assert.match(workbench, /createRendererFlowId\('tester-capability-run'\)/);
   assert.match(workbench, /logRendererEvent\(/);
   assert.match(workbench, /action:tester-capability-run:recorded/);
   assert.doesNotMatch(workbench, /runtime-bridge\/logging|@renderer\/.*telemetry/);
+  assert.doesNotMatch(workbench, /Math\.random\(\)/);
 });
 
 test('tester artifact history persistence is real and fail-closed', () => {
@@ -262,8 +265,10 @@ test('tester multimodal image input shapes the admitted SDK input (no app transp
   // (string | TextMessage[] with image_url/video_url parts) — no app-local
   // upload/transport or fabricated content.
   assert.match(multimodal, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(multimodal, /createNimiClientId\('tester-attachment'\)/);
   assert.match(multimodal, /type: 'image_url' as const, imageUrl/);
   assert.match(multimodal, /export function buildMultimodalInput/);
+  assert.doesNotMatch(multimodal, /Math\.random\(\)/);
   // text.generate prepends the optional app-composed tone/length directive to the
   // prompt before shaping it into the admitted SDK input — still no app transport.
   assert.match(invokers, /const directedPrompt = input\.directive \? `\$\{input\.directive\}/);

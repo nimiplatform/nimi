@@ -1,5 +1,5 @@
 import React from 'react';
-import type { TextMessage, TextMessageContentPart } from '@nimiplatform/sdk/runtime';
+import { createNimiClientId, type TextMessage, type TextMessageContentPart } from '@nimiplatform/sdk/runtime';
 
 // App-owned multimodal input for runtime-backed text capabilities (vision /
 // image→text). Recovered from the desktop tester. Attachments are read locally
@@ -31,7 +31,7 @@ function readMediaFile(file: File, callback: (attachment: MediaAttachment) => vo
   const reader = new FileReader();
   reader.onload = () => {
     callback({
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: createNimiClientId('tester-attachment'),
       kind,
       name: file.name || (kind === 'image' ? 'pasted-image.png' : 'pasted-video.mp4'),
       dataUrl: reader.result as string,

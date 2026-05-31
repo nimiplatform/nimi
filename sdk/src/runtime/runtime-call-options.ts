@@ -3,6 +3,7 @@ import type {
   RuntimeMetadata,
   RuntimeStreamCallOptions,
 } from './types.js';
+import { createNimiClientId } from '../core/ids.js';
 
 export type RuntimeTraceIdFactory = (prefix?: string) => string;
 
@@ -42,7 +43,7 @@ function normalizeText(value: unknown): string {
 
 export function createRuntimeTraceId(prefix = 'runtime-call'): string {
   const normalizedPrefix = normalizeText(prefix) || 'runtime-call';
-  return `${normalizedPrefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  return createNimiClientId(normalizedPrefix);
 }
 
 function resolveTraceId(input: RuntimeRequestMetadataInput): string {

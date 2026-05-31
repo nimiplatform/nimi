@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   buildRuntimeRequestMetadata,
   buildRuntimeTargetCallOptions,
+  createRuntimeTraceId,
 } from '../../src/runtime/runtime-call-options.js';
 
 test('runtime call options build app-facing metadata without owning route truth', () => {
@@ -54,4 +55,9 @@ test('runtime call options support explicit trace and idempotency keys', () => {
   assert.equal(options.metadata.traceId, 'trace-explicit');
   assert.equal(options.metadata.callerId, 'target:unknown');
   assert.equal(options.metadata.keySource, undefined);
+});
+
+test('createRuntimeTraceId uses SDK client IDs', () => {
+  assert.match(createRuntimeTraceId('runtime-call'), /^runtime-call-[0-9A-HJKMNP-TV-Z]{26}$/);
+  assert.match(createRuntimeTraceId('runtime-idem'), /^runtime-idem-[0-9A-HJKMNP-TV-Z]{26}$/);
 });

@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { createNimiClientId } from '@nimiplatform/sdk/runtime';
 
 export type ChatUploadPlaceholder = {
   id: string;
@@ -33,10 +34,7 @@ function emitChange() {
 }
 
 function buildPlaceholderId() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `upload-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return createNimiClientId('upload');
 }
 
 export function createChatUploadPlaceholder(input: UploadPlaceholderInput): ChatUploadPlaceholder {

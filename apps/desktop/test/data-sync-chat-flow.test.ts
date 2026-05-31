@@ -20,6 +20,10 @@ const chatFlowSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/chat/data/realm-human-chat-data.ts'),
   'utf8',
 );
+const groupChatFlowSource = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/features/chat/data/realm-group-chat-data.ts'),
+  'utf8',
+);
 
 describe('desktop human chat scaffold source scanning', () => {
   test('sendChatMessage includes clientMessageId', () => {
@@ -31,6 +35,13 @@ describe('desktop human chat scaffold source scanning', () => {
       fnBody.includes('clientMessageId'),
       'sendChatMessage must include clientMessageId in its body',
     );
+  });
+
+  test('chat client correlation ids use SDK client ID generation', () => {
+    assert.match(chatFlowSource, /createNimiClientId\('cm'\)/);
+    assert.match(groupChatFlowSource, /createNimiClientId\(prefix\)/);
+    assert.doesNotMatch(chatFlowSource, /Math\.random\(\)/);
+    assert.doesNotMatch(groupChatFlowSource, /Math\.random\(\)/);
   });
 
   test('failed send queues to outbox with attempts tracking', async () => {

@@ -6,6 +6,7 @@ import {
   isLocalRuntimeRunnableAssetKindId,
   normalizeLocalRuntimeRunnableAssetKindId,
   type LocalRuntimeRunnableAssetKindId,
+  createNimiClientId,
 } from '@nimiplatform/sdk/runtime';
 
 type JsonObject = Record<string, unknown>;
@@ -215,7 +216,7 @@ export function normalizeEndpointV11(value: string, fallback: string): string {
 }
 
 export function randomIdV11(prefix: string): string {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  return createNimiClientId(prefix);
 }
 
 export function createConnectorV11(vendor: ApiVendor = 'custom', label?: string): ApiConnector {
