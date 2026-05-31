@@ -213,6 +213,41 @@ export function findRuntimeRouteModelProfile(
   )) || null;
 }
 
+function routeBindingModelToken(binding: RuntimeRouteBinding): string {
+  return normalizeText(binding.modelId) || normalizeText(binding.model);
+}
+
+export function runtimeRouteBindingsMatch(
+  left: RuntimeRouteBinding | null | undefined,
+  right: RuntimeRouteBinding | null | undefined,
+): boolean {
+  if (!left || !right || left.source !== right.source) {
+    return false;
+  }
+  if (left.source === 'local') {
+    const leftLocalModelId = normalizeText(left.localModelId);
+    const rightLocalModelId = normalizeText(right.localModelId);
+    if (leftLocalModelId && rightLocalModelId) {
+      return leftLocalModelId === rightLocalModelId;
+    }
+    const leftModel = routeBindingModelToken(left);
+    const rightModel = routeBindingModelToken(right);
+    return Boolean(leftModel && rightModel && leftModel === rightModel);
+  }
+  const leftConnectorId = normalizeText(left.connectorId);
+  const rightConnectorId = normalizeText(right.connectorId);
+  const leftModel = routeBindingModelToken(left);
+  const rightModel = routeBindingModelToken(right);
+  return Boolean(
+    leftConnectorId
+    && rightConnectorId
+    && leftConnectorId === rightConnectorId
+    && leftModel
+    && rightModel
+    && leftModel === rightModel,
+  );
+}
+
 function bindingKey(input: RuntimeRouteBinding | null | undefined): string {
   if (!input) {
     return '';

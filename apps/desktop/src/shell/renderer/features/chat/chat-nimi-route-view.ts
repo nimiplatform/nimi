@@ -4,6 +4,7 @@ import {
 } from '@nimiplatform/kit/features/chat/headless';
 import {
   isRuntimeRouteLocalOptionSelectable,
+  runtimeRouteBindingsMatch,
   runtimeRouteLocalOptionToBinding,
 } from '@nimiplatform/sdk/ai';
 import type {
@@ -85,21 +86,7 @@ export function isAiConversationRouteOptionSelected(
   option: AiConversationRouteOption,
   binding: RuntimeRouteBinding | null | undefined,
 ): boolean {
-  if (!binding || option.binding.source !== binding.source) {
-    return false;
-  }
-  if (binding.source === 'local') {
-    const optionLocalModelId = normalizeText(option.binding.localModelId);
-    const bindingLocalModelId = normalizeText(binding.localModelId);
-    if (optionLocalModelId && bindingLocalModelId) {
-      return optionLocalModelId === bindingLocalModelId;
-    }
-    return (normalizeText(option.binding.modelId) || normalizeText(option.binding.model))
-      === (normalizeText(binding.modelId) || normalizeText(binding.model));
-  }
-  return normalizeText(option.binding.connectorId) === normalizeText(binding.connectorId)
-    && (normalizeText(option.binding.modelId) || normalizeText(option.binding.model))
-      === (normalizeText(binding.modelId) || normalizeText(binding.model));
+  return runtimeRouteBindingsMatch(option.binding, binding);
 }
 
 export function resolveAgentChatRequestedMaxOutputTokens(

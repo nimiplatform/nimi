@@ -1125,8 +1125,10 @@ test('tester settings consumes SDK local route option binding projection', () =>
 
   assert.match(settings, /isRuntimeRouteLocalOptionSelectable/);
   assert.match(settings, /runtimeRouteLocalOptionToBinding/);
+  assert.match(settings, /runtimeRouteBindingsMatch/);
   assert.match(settings, /from '@nimiplatform\/sdk\/ai'/);
   assert.match(settings, /Local route option projection/);
+  assert.match(settings, /Runtime route binding match projection/);
   assert.doesNotMatch(settings, /source:\s*'local',\s*connectorId:\s*''/);
 });
 

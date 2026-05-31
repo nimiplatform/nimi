@@ -6,6 +6,7 @@ import {
   normalizeRuntimeRouteCapabilityToken,
   projectRuntimeRouteCapabilityCoverage,
   projectRuntimeRouteCapabilityCoverageList,
+  runtimeRouteBindingsMatch,
   runtimeRouteLocalKindForCapability,
   runtimeRouteLocalKindSupportsCapability,
   runtimeRouteModalityForCapability,
@@ -160,4 +161,60 @@ test('runtime route model profile lookup projects binding and connector metadata
     connectorId: '',
     model: 'local-model',
   }), null);
+});
+
+test('runtime route binding match projects selected route target equality', () => {
+  assert.equal(runtimeRouteBindingsMatch({
+    source: 'local',
+    connectorId: '',
+    model: 'local/model-a',
+    localModelId: 'local-a',
+  }, {
+    source: 'local',
+    connectorId: '',
+    model: 'renamed-local/model-a',
+    localModelId: 'local-a',
+  }), true);
+
+  assert.equal(runtimeRouteBindingsMatch({
+    source: 'local',
+    connectorId: '',
+    model: 'local/model-a',
+    modelId: 'local/model-a',
+  }, {
+    source: 'local',
+    connectorId: '',
+    model: 'ignored',
+    modelId: 'local/model-a',
+  }), true);
+
+  assert.equal(runtimeRouteBindingsMatch({
+    source: 'cloud',
+    connectorId: 'connector-a',
+    model: 'model-a',
+  }, {
+    source: 'cloud',
+    connectorId: 'connector-a',
+    modelId: 'model-a',
+  }), true);
+
+  assert.equal(runtimeRouteBindingsMatch({
+    source: 'cloud',
+    connectorId: 'connector-a',
+    model: 'model-a',
+  }, {
+    source: 'cloud',
+    connectorId: 'connector-b',
+    model: 'model-a',
+  }), false);
+
+  assert.equal(runtimeRouteBindingsMatch({
+    source: 'cloud',
+    connectorId: '',
+    model: 'model-a',
+  }, {
+    source: 'cloud',
+    connectorId: '',
+    model: 'model-a',
+  }), false);
 });

@@ -12,6 +12,7 @@ import {
   projectMemoryEmbeddingRouteAvailability,
   resolveRuntimeRouteReasoningConfig,
   resolveRuntimeTextRouteReasoningSupport,
+  runtimeRouteBindingsMatch,
   runtimeRouteLocalOptionToBinding,
   toRuntimeRouteCanonicalCapability,
   updateRuntimeRouteCapabilityBinding,
@@ -608,6 +609,11 @@ export function SettingsRoute() {
       }),
     };
   })();
+  const runtimeRouteBindingMatchProjection = runtimeRouteBindingsMatch(localRouteOptionProjection.binding, {
+    ...localRouteOptionProjection.binding,
+    model: 'local/tester-embedding',
+    localModelId: 'tester-local-embedding',
+  });
   const runtimeCapabilityCoverageProjection = projectRuntimeRouteCapabilityCoverage({
     capability: 'image',
     localNodes: [],
@@ -1310,6 +1316,12 @@ export function SettingsRoute() {
         <span>Local route option projection</span>
         <StatusBadge tone={localRouteOptionProjection.selectable ? 'success' : 'warning'}>
           {localRouteOptionProjection.binding.source}: {localRouteOptionProjection.binding.localModelId}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Runtime route binding match projection</span>
+        <StatusBadge tone={runtimeRouteBindingMatchProjection ? 'success' : 'warning'}>
+          {runtimeRouteBindingMatchProjection ? 'matched' : 'not matched'}
         </StatusBadge>
       </div>
       <div className="setting-row">
