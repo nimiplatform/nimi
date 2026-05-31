@@ -7,6 +7,7 @@ import {
   resolveRuntimeConnectorProviderEndpoint,
   runtimeConnectorAuthProfileForId,
   runtimeConnectorToProjection,
+  runtimeConnectorProjectionToRuntimeConfigConnector,
   runtimeConnectorVendorToProvider,
   type ConnectorAuthProfileSpec,
   type ProviderCatalogEntry,
@@ -19,7 +20,6 @@ import {
 import type {
   ApiConnector,
   ApiConnectorAuthModeV11,
-  ApiConnectorScopeV11,
   ApiVendor,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
 
@@ -49,22 +49,7 @@ const runtimeConnectorInventory = createRuntimeConnectorInventoryClient({
 function runtimeConnectorProjectionToApiConnector(
   connector: RuntimeConnectorProjection,
 ): ApiConnector {
-  return {
-    id: connector.id,
-    label: connector.label,
-    vendor: connector.vendor as ApiVendor,
-    provider: connector.provider,
-    authMode: connector.authMode,
-    providerAuthProfile: connector.providerAuthProfile,
-    endpoint: connector.endpoint,
-    scope: connector.scope as ApiConnectorScopeV11,
-    hasCredential: connector.hasCredential,
-    isSystemOwned: connector.isSystemOwned,
-    models: [...connector.models],
-    status: 'idle',
-    lastCheckedAt: null,
-    lastDetail: '',
-  };
+  return runtimeConnectorProjectionToRuntimeConfigConnector(connector);
 }
 
 function runtimeConnectorAuthOptionToApiOption(
