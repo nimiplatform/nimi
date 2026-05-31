@@ -37,6 +37,7 @@ import {
   planNimiDataCleanup,
   executeNimiDataCleanup,
   exportDesktopLogs,
+  ensureProductControlRecordCreated,
   toRendererLogMessage,
 } from '@renderer/bridge/runtime-bridge';
 import type {
@@ -119,6 +120,7 @@ export const desktopBridge = {
   setRuntimeBridgeConfig,
   getRuntimeDefaults,
   getProductControlRecord,
+  ensureProductControlRecordCreated,
   getDesktopStorageDirs,
   pickProductDataRootDirectory,
   defaultProductDataRootDirectory,

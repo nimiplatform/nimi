@@ -62,6 +62,13 @@ test('bootstrap failure performs teardown before auth reset and surfaces cleanup
   );
 });
 
+test('fresh first-run storage sync skip does not surface a runtime config warning', () => {
+  assert.match(bootstrapSource, /isFirstRunDataRootSelectionPendingMessage/);
+  assert.match(bootstrapSource, /phase:runtime-config-sync:skipped-first-run-data-root/);
+  assert.match(bootstrapSource, /projection\.state === 'config_missing' \|\| projection\.state === 'data_root_missing'/);
+  assert.match(bootstrapSource, /if \(warning\) bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning \?\? warning/);
+});
+
 test('external agent runtime facade has no desktop action bridge residue', () => {
   assert.doesNotMatch(
     externalAgentSource,

@@ -143,11 +143,60 @@ async function shouldDegradeRuntimeConfigManualRestartForProductSetup(flowId: st
   }
 }
 
+function isFirstRunDataRootSelectionPendingMessage(message: string): boolean {
+  return message.includes('selected nimi_data is not ready')
+    || message.includes('first-run data-root selection has not initialized product control')
+    || message.includes('has no selected absolute dataRoot.path');
+}
+
+async function shouldSkipRuntimeStorageConfigWarningForFirstRun(input: {
+  errorMessage: string;
+  flowId: string;
+  step: string;
+}): Promise<boolean> {
+  if (
+    input.step !== 'runtime local storage config sync'
+    || !desktopBridge.hasTauriInvoke()
+    || !isFirstRunDataRootSelectionPendingMessage(input.errorMessage)
+  ) {
+    return false;
+  }
+  try {
+    const projection = await desktopBridge.getProductControlRecord();
+    const pendingFirstRunDataRoot =
+      projection.state === 'config_missing' || projection.state === 'data_root_missing';
+    if (pendingFirstRunDataRoot) {
+      logRendererEvent({
+        level: 'info',
+        area: 'renderer-bootstrap',
+        message: 'phase:runtime-config-sync:skipped-first-run-data-root',
+        flowId: input.flowId,
+        details: {
+          step: input.step,
+          productControlState: projection.state,
+        },
+      });
+    }
+    return pendingFirstRunDataRoot;
+  } catch (error) {
+    logRendererEvent({
+      level: 'warn',
+      area: 'renderer-bootstrap',
+      message: 'phase:product-control:read-for-storage-sync-skip-failed',
+      flowId: input.flowId,
+      details: {
+        error: safeErrorMessage(error),
+      },
+    });
+    return false;
+  }
+}
+
 async function handleRuntimeConfigSyncError(input: {
   error: unknown;
   flowId: string;
   step: string;
-}): Promise<string> {
+}): Promise<string | null> {
   const message = safeErrorMessage(input.error);
   if (isRuntimeConfigManualRestartRequiredError(input.error)) {
     const degradeForProductSetup = await shouldDegradeRuntimeConfigManualRestartForProductSetup(input.flowId);
@@ -166,6 +215,13 @@ async function handleRuntimeConfigSyncError(input: {
       },
     });
     return message;
+  }
+  if (await shouldSkipRuntimeStorageConfigWarningForFirstRun({
+    errorMessage: message,
+    flowId: input.flowId,
+    step: input.step,
+  })) {
+    return null;
   }
   logRendererEvent({
     level: 'warn',
@@ -287,7 +343,7 @@ export function bootstrapRuntime(): Promise<void> {
           flowId,
           step: 'runtime account auth config sync',
         });
-        bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning ?? warning;
+        if (warning) bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning ?? warning;
       }
       try {
         const preserveMacosSmokeRuntimeStatePath =
@@ -314,7 +370,7 @@ export function bootstrapRuntime(): Promise<void> {
           flowId,
           step: 'runtime local storage config sync',
         });
-        bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning ?? warning;
+        if (warning) bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning ?? warning;
       }
       try {
         // Local app testing (K-AUTHSVC-014): mirror the discoverable Developer
@@ -335,7 +391,7 @@ export function bootstrapRuntime(): Promise<void> {
           flowId,
           step: 'runtime developer-registration config sync',
         });
-        bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning ?? warning;
+        if (warning) bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning ?? warning;
       }
     }
     if (desktopBridge.hasTauriInvoke() && runtimeUnavailable) {
@@ -517,25 +573,27 @@ export function bootstrapRuntime(): Promise<void> {
     });
 
     if (accountProjection?.accountId) {
-      await withBootstrapStepTimeout(
-        'account profile hydrate',
-        hydrateDesktopAccountProfile({
-          accountProjection,
-          flowId,
-        }),
-        NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
-      ).catch((error) => {
-        logRendererEvent({
-          level: 'warn',
-          area: 'renderer-bootstrap',
-          message: 'phase:account-profile:hydrate-deferred',
-          flowId,
-          details: {
-            accountId: accountProjection.accountId,
-            error: safeErrorMessage(error),
-          },
+      if (accountTokenAvailable) {
+        await withBootstrapStepTimeout(
+          'account profile hydrate',
+          hydrateDesktopAccountProfile({
+            accountProjection,
+            flowId,
+          }),
+          NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
+        ).catch((error) => {
+          logRendererEvent({
+            level: 'warn',
+            area: 'renderer-bootstrap',
+            message: 'phase:account-profile:hydrate-deferred',
+            flowId,
+            details: {
+              accountId: accountProjection.accountId,
+              error: safeErrorMessage(error),
+            },
+          });
         });
-      });
+      }
       await withBootstrapStepTimeout(
         'built-in chat AIConfig init',
         initializeBuiltInChatScopesAfterReadyAdmission(flowId),

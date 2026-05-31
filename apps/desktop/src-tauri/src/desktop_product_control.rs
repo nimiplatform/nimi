@@ -39,6 +39,11 @@ pub fn product_control_selected_data_root_get(
 }
 
 #[tauri::command]
+pub fn product_control_record_ensure_created() -> Result<ProductControlRecordProjection, String> {
+    ensure_product_control_record_created()
+}
+
+#[tauri::command]
 pub fn product_control_record_select_data_root(
     payload: ProductDataRootSelectPayload,
 ) -> Result<ProductControlRecordProjection, String> {
@@ -120,10 +125,10 @@ pub fn product_control_record_set_first_run_setup_state(
 #[cfg(test)]
 mod tests {
     use super::{
-        product_control_record_path, product_control_selected_data_root_get,
-        read_product_control_projection, select_product_data_root, selected_product_data_root,
-        set_first_run_install_level, set_first_run_setup_state, ProductControlState,
-        ProductFirstRunSetupStatePayload,
+        ensure_product_control_record_created, product_control_record_path,
+        product_control_selected_data_root_get, read_product_control_projection,
+        select_product_data_root, selected_product_data_root, set_first_run_install_level,
+        set_first_run_setup_state, ProductControlState, ProductFirstRunSetupStatePayload,
     };
     use crate::test_support::with_env;
     use std::path::PathBuf;
@@ -161,6 +166,20 @@ mod tests {
             assert!(!home.join(".nimi").join("nimi.json").exists());
         });
     }
+
+    #[test]
+    fn internal_creation_writes_empty_data_root_missing_record() {
+        let home = temp_home("ensure-created");
+        with_env(&[("HOME", home.to_str())], || {
+            let projection =
+                ensure_product_control_record_created().expect("ensure product control record");
+            assert!(projection.exists);
+            assert_eq!(projection.state, ProductControlState::DataRootMissing);
+            assert!(projection.record.expect("record").data_root.is_none());
+            assert!(home.join(".nimi").join("nimi.json").exists());
+        });
+    }
+
     #[test]
     fn selecting_data_root_writes_control_record_and_required_layout() {
         let home = temp_home("select-root");

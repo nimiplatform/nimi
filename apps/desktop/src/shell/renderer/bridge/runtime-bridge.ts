@@ -23,6 +23,7 @@ import { getRuntimeDefaults } from './runtime-bridge/runtime-defaults';
 import {
   admitProductReadyForUse,
   defaultProductDataRootDirectory,
+  ensureProductControlRecordCreated,
   getAccountDefaultProfileForScopeInit,
   getProductControlRecord,
   getProductControlSelectedDataRoot,
@@ -104,6 +105,7 @@ export {
   getRuntimeDefaults,
   getProductControlRecord,
   getProductControlSelectedDataRoot,
+  ensureProductControlRecordCreated,
   pickProductDataRootDirectory,
   defaultProductDataRootDirectory,
   selectProductDataRoot,

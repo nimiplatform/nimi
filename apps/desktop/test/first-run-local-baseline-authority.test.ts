@@ -134,8 +134,13 @@ test('config_missing is an internal transient and does not expose the data-root 
     path.join(import.meta.dirname, '../src/shell/renderer/first-run/phase-storage.tsx'),
     'utf8',
   );
+  const workflowSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/first-run/product-control-workflow.tsx'),
+    'utf8',
+  );
   assert.match(storagePhaseSource, /props\.transient/);
   assert.match(storagePhaseSource, /first-run-storage-choose-folder/);
+  assert.match(workflowSource, /ensureProductControlRecordCreated/);
   assert.match(desktopProductControlSource, /empty_record\(ProductControlState::DataRootMissing\)/);
 });
 

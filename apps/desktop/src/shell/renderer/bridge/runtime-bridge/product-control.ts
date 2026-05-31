@@ -233,6 +233,13 @@ export async function getProductControlSelectedDataRoot(): Promise<ProductContro
   return invokeChecked('product_control_selected_data_root_get', {}, parseSelectedDataRootProjection);
 }
 
+export async function ensureProductControlRecordCreated(): Promise<ProductControlRecordProjection> {
+  if (!hasTauriInvoke()) {
+    throw new Error('product_control_record_ensure_created requires Tauri runtime');
+  }
+  return invokeChecked('product_control_record_ensure_created', {}, parseProjection);
+}
+
 export async function selectProductDataRoot(dataRoot: string): Promise<ProductControlRecordProjection> {
   if (!hasTauriInvoke()) {
     throw new Error('product_control_record_select_data_root requires Tauri runtime');

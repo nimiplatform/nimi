@@ -28,6 +28,27 @@ pub struct ProductBuiltInAiConfigScopePayload {
     pub surface_id: String,
 }
 
+pub fn ensure_product_control_record_created() -> Result<ProductControlRecordProjection, String> {
+    let control_path = product_control_record_path()?;
+    match read_existing_record(&control_path) {
+        Ok(Some(_)) => read_product_control_projection(),
+        Ok(None) => {
+            let record = empty_record(ProductControlState::DataRootMissing)?;
+            if let Err(error) = write_record(&control_path, &record) {
+                return Ok(ProductControlRecordProjection {
+                    path: control_path.display().to_string(),
+                    exists: false,
+                    state: ProductControlState::Blocked,
+                    record: None,
+                    error: Some(format!("~/.nimi/nimi.json could not be created: {error}")),
+                });
+            }
+            read_product_control_projection()
+        }
+        Err(_) => read_product_control_projection(),
+    }
+}
+
 async fn runtime_bridge_unary_decode<Req, Resp>(
     method_id: &str,
     request: Req,

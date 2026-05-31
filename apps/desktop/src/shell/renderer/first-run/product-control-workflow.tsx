@@ -169,6 +169,39 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     setError(projection?.error ?? null);
   }, [projection]);
 
+  // `config_missing` is an internal first-run state: the backend creates the
+  // empty product-control record, then the user-visible Storage phase starts
+  // from `data_root_missing`.
+  useEffect(() => {
+    if (state !== 'config_missing' || !desktopBridge.hasTauriInvoke()) {
+      return;
+    }
+    let disposed = false;
+    setPendingAction('create-product-control-record');
+    setError(null);
+    void desktopBridge.ensureProductControlRecordCreated()
+      .then((next) => {
+        if (!disposed) notifyProjectionChange(next);
+      })
+      .catch((nextError) => {
+        if (!disposed) {
+          setError(
+            nextError instanceof Error
+              ? nextError.message
+              : t('FirstRun.errors.productControlCreateFailed', {
+                  defaultValue: 'Failed to create the local Nimi product record.',
+                }),
+          );
+        }
+      })
+      .finally(() => {
+        if (!disposed) setPendingAction(null);
+      });
+    return () => {
+      disposed = true;
+    };
+  }, [state, notifyProjectionChange, t]);
+
   // Pre-fill the Storage phase with the OS-conventional default `nimi_data`
   // location so a first-time user never faces an empty field. Fetched once on
   // mount and kept independent of projection updates, so the proposal is never

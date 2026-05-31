@@ -28,6 +28,10 @@ test('desktop bootstrap only projects authenticated when Runtime account token c
     runtimeBootstrapSource,
     /if \(accountProjection\?\.accountId && accountTokenAvailable\) \{\s*useAppStore\.getState\(\)\.setAuthSession/s,
   );
+  assert.match(
+    runtimeBootstrapSource,
+    /if \(accountProjection\?\.accountId\) \{\s*if \(accountTokenAvailable\) \{\s*await withBootstrapStepTimeout\(\s*'account profile hydrate'/s,
+  );
   assert.doesNotMatch(
     runtimeBootstrapSource,
     /if \(accountProjection\?\.accountId\) \{\s*useAppStore\.getState\(\)\.setAuthSession/s,

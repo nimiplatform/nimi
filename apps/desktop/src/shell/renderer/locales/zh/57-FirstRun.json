@@ -135,6 +135,7 @@
     "text.generate.vision": "本地视觉文本"
   },
   "errors": {
+    "productControlCreateFailed": "无法创建本地 Nimi 产品记录。",
     "dataRootMissing": "请先为 Nimi 选择一个文件夹再继续。",
     "dataRootPickFailed": "打开文件夹选择器失败。",
     "dataRootRecordFailed": "记录 nimi_data 失败。",

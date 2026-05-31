@@ -135,6 +135,7 @@
     "text.generate.vision": "local vision text"
   },
   "errors": {
+    "productControlCreateFailed": "Failed to create the local Nimi product record.",
     "dataRootMissing": "Choose a folder for Nimi before continuing.",
     "dataRootPickFailed": "Failed to open the folder picker.",
     "dataRootRecordFailed": "Failed to record nimi_data.",
