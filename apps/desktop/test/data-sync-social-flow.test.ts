@@ -22,6 +22,11 @@ const profileFlowSocialSource = readFileSync(
   'utf8',
 );
 
+const sdkRealmSocialSource = readFileSync(
+  resolve(import.meta.dirname, '../../../sdk/src/realm/extensions/social-snapshot.ts'),
+  'utf8',
+);
+
 function resetCachedContacts() {
   updateCachedContacts({
     friends: [],
@@ -65,8 +70,16 @@ describe('D-DSYNC-004: social flow source scanning', () => {
   test('D-DSYNC-004: social graph flow does not promote test or fallback contacts', () => {
     assert.doesNotMatch(profileFlowSource, /startsWith\('test-'\)/);
     assert.doesNotMatch(profileFlowSocialSource, /startsWith\('test-'\)/);
+    assert.doesNotMatch(sdkRealmSocialSource, /startsWith\('test-'\)/);
     assert.doesNotMatch(profileFlowSource, /__localFallbackUntil/);
     assert.doesNotMatch(profileFlowSocialSource, /__localFallbackUntil/);
+    assert.doesNotMatch(sdkRealmSocialSource, /__localFallbackUntil/);
+  });
+
+  test('D-DSYNC-004: reusable social snapshot DX lives in SDK Realm extension', () => {
+    assert.match(sdkRealmSocialSource, /export async function loadRealmSocialSnapshot/);
+    assert.match(profileFlowSocialSource, /loadRealmSocialSnapshot/);
+    assert.doesNotMatch(profileFlowSocialSource, /realm\.services\.MeService\.listMyFriendsWithDetails/);
   });
 });
 

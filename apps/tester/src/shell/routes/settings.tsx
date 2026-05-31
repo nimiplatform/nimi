@@ -91,12 +91,15 @@ import {
   loadRealmCreatorEligibility,
   loadRealmNotificationUnreadCount,
   loadRealmNotifications,
+  loadRealmSocialSnapshot,
+  loadRealmWorldSemanticBundle,
   projectRealmBaseUrl,
   projectRealmRealtimeUrl,
   REALM_FEED_SCOPES,
   requestDataExport,
   resolveRealmMediaUrl,
   uploadRealmResourceFileWithRealm,
+  type Realm,
   type RequestDataExportOutput,
   type RealmCreatorEligibilityDto,
   type RealmNotificationListResultDto,
@@ -201,6 +204,11 @@ type LocalRuntimeFacadeProjectionState =
   | { status: 'ready'; assetId: string; error: null }
   | { status: 'error'; assetId: null; error: string };
 
+type RealmDataSyncProjectionState =
+  | { status: 'loading'; summary: null; error: null }
+  | { status: 'ready'; summary: string; error: null }
+  | { status: 'error'; summary: null; error: string };
+
 async function resolveTesterLocalRuntimeFacadeProjection(): Promise<string> {
   const unbind = bindLocalRuntimeServiceClientProvider(() => ({
     async listLocalAssets() {
@@ -229,6 +237,37 @@ async function resolveTesterLocalRuntimeFacadeProjection(): Promise<string> {
   } finally {
     unbind();
   }
+}
+
+async function resolveTesterRealmDataSyncProjection(): Promise<string> {
+  const callRealm = async <T,>(task: (realm: Realm) => Promise<T>): Promise<T> => task({
+    services: {
+      MeService: {
+        listMyFriendsWithDetails: async () => ({ items: [{ id: 'tester-friend' }] }),
+        getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
+        getMyBlockedUsers: async () => ({ items: [{ id: 'tester-blocked' }] }),
+      },
+      UserService: {
+        getUser: async () => ({ id: 'tester-user' }),
+      },
+      WorldsService: {
+        worldControllerGetWorldview: async () => ({ id: 'tester-worldview', coreSystem: null }),
+      },
+    },
+  } as unknown as Realm);
+  const errors: string[] = [];
+  const [social, world] = await Promise.all([
+    loadRealmSocialSnapshot(callRealm, (action) => {
+      errors.push(action);
+    }),
+    loadRealmWorldSemanticBundle(callRealm, (action) => {
+      errors.push(action);
+    }, 'tester-world'),
+  ]);
+  if (errors.length > 0) {
+    throw new Error(errors.join(', '));
+  }
+  return `${social.friends.length}/${social.blocked.length}/${world.worldview?.id ?? 'none'}`;
 }
 
 const runtimeConnectorInventory = createRuntimeConnectorInventoryClient({
@@ -520,6 +559,12 @@ export function SettingsRoute() {
       assetId: null,
       error: null,
     });
+  const [realmDataSyncProjection, setRealmDataSyncProjection] =
+    useState<RealmDataSyncProjectionState>({
+      status: 'loading',
+      summary: null,
+      error: null,
+    });
   useEffect(() => {
     let cancelled = false;
     void resolveTesterLocalRuntimeFacadeProjection().then((assetId) => {
@@ -529,6 +574,21 @@ export function SettingsRoute() {
     }).catch((error: unknown) => {
       if (!cancelled) {
         setLocalRuntimeFacadeProjection({ status: 'error', assetId: null, error: errorMessage(error) });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    void resolveTesterRealmDataSyncProjection().then((summary) => {
+      if (!cancelled) {
+        setRealmDataSyncProjection({ status: 'ready', summary, error: null });
+      }
+    }).catch((error: unknown) => {
+      if (!cancelled) {
+        setRealmDataSyncProjection({ status: 'error', summary: null, error: errorMessage(error) });
       }
     });
     return () => {
@@ -1825,6 +1885,16 @@ export function SettingsRoute() {
             ? localRuntimeFacadeProjection.assetId
             : localRuntimeFacadeProjection.status === 'error'
               ? localRuntimeFacadeProjection.error
+              : 'checking'}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK Realm data sync projection</span>
+        <StatusBadge tone={realmDataSyncProjection.status === 'ready' ? 'success' : realmDataSyncProjection.status === 'error' ? 'danger' : 'warning'}>
+          {realmDataSyncProjection.status === 'ready'
+            ? realmDataSyncProjection.summary
+            : realmDataSyncProjection.status === 'error'
+              ? realmDataSyncProjection.error
               : 'checking'}
         </StatusBadge>
       </div>

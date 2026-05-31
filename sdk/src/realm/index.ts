@@ -44,6 +44,8 @@ export type { RealmFeedScope } from './extensions/feed.js';
 export type { RealmMediaUrlProjectionInput } from './extensions/media-url.js';
 export type { RealmMarkNotificationsReadInputDto, RealmNotificationDto, RealmNotificationListOptions, RealmNotificationListResultDto, RealmNotificationReadProjection, RealmNotificationType, RealmNotificationsReadProjection, RealmNotificationUnreadProjection, RealmUnreadNotificationCountDto } from './extensions/notifications.js';
 export type { RealmResourceDetail, RealmResourceDirectUploadSession, RealmResourceFinalizeInput, RealmResourceUploadClient, RealmResourceUploadInput, RealmResourceUploadKind, RealmResourceUploadResult, RealmResourceUploadTransportMode, RealmResourceUploadWithRealmInput } from './extensions/resource-upload.js';
+export type { RealmSocialApiCaller, RealmSocialContactSnapshot, RealmSocialErrorEmitter } from './extensions/social-snapshot.js';
+export type { RealmWorldApiCaller, RealmWorldBindingListPayload, RealmWorldErrorEmitter, RealmWorldHistoryPayload, RealmWorldLorebookListPayload, RealmWorldSceneListPayload, RealmWorldSemanticBundle } from './extensions/world-data.js';
 export { disableRealmTwoFactor, enableRealmTwoFactor, linkRealmOAuth, loadRealmCreatorEligibility, loadRealmUserNotificationSettings, loadRealmUserSettings, prepareRealmTwoFactor, unlinkRealmOAuth, updateRealmPassword, updateRealmUserNotificationSettings, updateRealmUserSettings } from './extensions/account-settings.js';
 export { requestDataExport, requestAccountDeletion } from './extensions/account-data.js';
 export { normalizeRealmBaseUrl, projectRealmBaseUrl, projectRealmRealtimeUrl } from './extensions/endpoint.js';
@@ -51,6 +53,8 @@ export { REALM_FEED_SCOPES, isRealmFeedScope } from './extensions/feed.js';
 export { resolveRealmMediaUrl } from './extensions/media-url.js';
 export { loadRealmNotificationUnreadCount, loadRealmNotifications, markRealmNotificationRead, markRealmNotificationsRead, normalizeRealmNotificationUnreadCount } from './extensions/notifications.js';
 export { uploadRealmResourceFile, uploadRealmResourceFileWithRealm } from './extensions/resource-upload.js';
+export { enrichRealmProfileWithWorldBanner, fetchRealmAgentFriendLimit, fetchRealmPendingFriendRequests, loadRealmSocialSnapshot } from './extensions/social-snapshot.js';
+export { buildRealmWorldDetailWithAgentsCacheKey, loadRealmMainWorld, loadRealmWorldAgents, loadRealmWorldBindings, loadRealmWorldDetailById, loadRealmWorldDetailWithAgents, loadRealmWorldHistory, loadRealmWorldLevelAudits, loadRealmWorldList, loadRealmWorldLorebooks, loadRealmWorldScenes, loadRealmWorldSemanticBundle } from './extensions/world-data.js';
 
 // Realm client exports.
 export { Realm } from './client.js';

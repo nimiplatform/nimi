@@ -1123,6 +1123,15 @@ test('tester settings consumes SDK local runtime facade DX surface', () => {
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
 });
 
+test('tester settings consumes SDK Realm data sync DX surface', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /loadRealmSocialSnapshot/);
+  assert.match(settings, /loadRealmWorldSemanticBundle/);
+  assert.match(settings, /SDK Realm data sync projection/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
+});
+
 test('tester settings consumes SDK memory embedding route availability projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
 
