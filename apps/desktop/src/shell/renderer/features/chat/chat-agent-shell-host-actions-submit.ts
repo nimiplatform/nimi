@@ -9,7 +9,7 @@ import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 import {
   peekDesktopAISchedulingForEvidence,
   recordDesktopAISnapshot,
-  resolveAIConfigSchedulingTargetForCapability,
+  resolveRuntimeSchedulingTargetForCapability,
 } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import {
   createInitialAgentSubmitDriverState,
@@ -276,7 +276,7 @@ export async function submitAgentConversationTurn(input: {
 
     const runtimeEvidence = await peekDesktopAISchedulingForEvidence({
       scopeRef: input.hostInput.aiConfig.scopeRef,
-      target: resolveAIConfigSchedulingTargetForCapability(input.hostInput.aiConfig, 'text.generate'),
+      target: resolveRuntimeSchedulingTargetForCapability(input.hostInput.aiConfig, 'text.generate'),
     });
     const textExecutionSnapshot = createAISnapshot({
       config: input.hostInput.aiConfig,

@@ -332,8 +332,8 @@ test('tester LLM invokers consume AIConfig bindings and fail closed without bind
   assert.match(invokers, /aiConfigBindingCapabilityId/);
   assert.match(invokers, /aiConfigBindingModel/);
   assert.match(invokers, /aiConfigHash/);
-  assert.match(invokers, /resolveAIConfigSchedulingTargetForCapability/);
-  assert.match(invokers, /peekSchedulingBatch/);
+  assert.match(invokers, /resolveRuntimeSchedulingTargetForCapability/);
+  assert.match(invokers, /peekRuntimeSchedulingBatch/);
   assert.match(invokers, /client\.runtime\.ai\.peekScheduling/);
 });
 

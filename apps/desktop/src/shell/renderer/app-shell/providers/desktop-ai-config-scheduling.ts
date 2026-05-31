@@ -1,28 +1,30 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
-import {
-  normalizeSchedulingTarget,
-  peekAggregateSchedulingJudgement as peekSdkAggregateSchedulingJudgement,
-  peekSchedulingBatch as peekSdkSchedulingBatch,
-  resolveAIConfigScopeSchedulingTargets,
-  resolveAIConfigSchedulingTargetForCapability,
-  schedulingTargetsEqual,
-  type AIConfigSchedulingBatchPeekResult,
-  type AISchedulingEvaluationTarget,
-  type AISchedulingJudgement,
+import type {
+  AISchedulingEvaluationTarget,
+  AISchedulingJudgement,
 } from '@nimiplatform/sdk/ai';
+import {
+  normalizeRuntimeSchedulingTarget,
+  peekRuntimeAggregateSchedulingJudgement as peekSdkAggregateSchedulingJudgement,
+  peekRuntimeSchedulingBatch as peekSdkSchedulingBatch,
+  resolveRuntimeSchedulingTargetsFromAIConfig,
+  resolveRuntimeSchedulingTargetForCapability,
+  runtimeSchedulingTargetsEqual,
+  type RuntimeSchedulingBatchPeekResult,
+} from '@nimiplatform/sdk/runtime';
 
 export {
-  normalizeSchedulingTarget,
-  resolveAIConfigScopeSchedulingTargets,
-  resolveAIConfigSchedulingTargetForCapability,
-  schedulingTargetsEqual,
+  normalizeRuntimeSchedulingTarget,
+  resolveRuntimeSchedulingTargetsFromAIConfig,
+  resolveRuntimeSchedulingTargetForCapability,
+  runtimeSchedulingTargetsEqual,
 };
 
-export async function peekSchedulingBatch(
+export async function peekDesktopRuntimeSchedulingBatch(
   runtimePackageId: string,
   appId: string,
   targets: AISchedulingEvaluationTarget[],
-): Promise<AIConfigSchedulingBatchPeekResult | null> {
+): Promise<RuntimeSchedulingBatchPeekResult | null> {
   void runtimePackageId;
   return peekSdkSchedulingBatch({
     appId,
@@ -32,7 +34,7 @@ export async function peekSchedulingBatch(
   });
 }
 
-export async function peekAggregateSchedulingJudgement(
+export async function peekDesktopRuntimeAggregateSchedulingJudgement(
   runtimePackageId: string,
   appId: string,
   targets: AISchedulingEvaluationTarget[],

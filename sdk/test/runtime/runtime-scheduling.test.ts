@@ -2,15 +2,15 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  normalizeSchedulingTarget,
-  parseAIConfigSchedulingBatchPeekResult,
-  peekSchedulingBatch,
-  resolveAIConfigScopeSchedulingTargets,
-  resolveAIConfigSchedulingTargetForCapability,
-  schedulingTargetsEqual,
-  toRuntimeSchedulingTarget,
-  type AIConfig,
-} from '../../src/ai/index.js';
+  normalizeRuntimeSchedulingTarget,
+  parseRuntimeSchedulingBatchPeekResult,
+  peekRuntimeSchedulingBatch,
+  resolveRuntimeSchedulingTargetsFromAIConfig,
+  resolveRuntimeSchedulingTargetForCapability,
+  runtimeSchedulingTargetsEqual,
+  toRuntimeSchedulingPeekTarget,
+} from '../../src/runtime/index.js';
+import type { AIConfig } from '../../src/ai/index.js';
 
 const CONFIG: AIConfig = {
   scopeRef: { kind: 'app', ownerId: 'dev.nimi.test' },
@@ -29,8 +29,8 @@ const CONFIG: AIConfig = {
   profileOrigin: null,
 };
 
-test('AIConfig scheduling target projection keeps only local bindings', () => {
-  const targets = resolveAIConfigScopeSchedulingTargets(CONFIG);
+test('runtime scheduling target projection keeps only local AIConfig bindings', () => {
+  const targets = resolveRuntimeSchedulingTargetsFromAIConfig(CONFIG);
 
   assert.deepEqual(targets, [
     {
@@ -46,12 +46,12 @@ test('AIConfig scheduling target projection keeps only local bindings', () => {
       resourceHint: null,
     },
   ]);
-  assert.deepEqual(resolveAIConfigSchedulingTargetForCapability(CONFIG, 'text.generate'), targets[1]);
-  assert.equal(resolveAIConfigSchedulingTargetForCapability(CONFIG, 'image.generate'), null);
+  assert.deepEqual(resolveRuntimeSchedulingTargetForCapability(CONFIG, 'text.generate'), targets[1]);
+  assert.equal(resolveRuntimeSchedulingTargetForCapability(CONFIG, 'image.generate'), null);
 });
 
-test('AIConfig scheduling target adapter normalizes and maps runtime request shape', () => {
-  const normalized = normalizeSchedulingTarget({
+test('runtime scheduling target adapter normalizes and maps runtime request shape', () => {
+  const normalized = normalizeRuntimeSchedulingTarget({
     capability: ' text.generate ',
     targetId: ' target-chat ',
     profileId: ' profile-chat ',
@@ -74,12 +74,12 @@ test('AIConfig scheduling target adapter normalizes and maps runtime request sha
       engine: ' llama.cpp ',
     },
   });
-  assert.equal(schedulingTargetsEqual(normalized!, {
+  assert.equal(runtimeSchedulingTargetsEqual(normalized!, {
     capability: 'text.generate',
     targetId: 'target-chat',
     profileId: 'profile-chat',
   }), true);
-  assert.deepEqual(toRuntimeSchedulingTarget(normalized!), {
+  assert.deepEqual(toRuntimeSchedulingPeekTarget(normalized!), {
     capability: 'text.generate',
     targetId: 'target-chat',
     profileId: 'profile-chat',
@@ -92,11 +92,11 @@ test('AIConfig scheduling target adapter normalizes and maps runtime request sha
   });
 });
 
-test('AIConfig scheduling peek calls Runtime and decodes judgement states', async () => {
+test('runtime scheduling peek helper calls Runtime and decodes judgement states', async () => {
   const calls: unknown[] = [];
-  const result = await peekSchedulingBatch({
+  const result = await peekRuntimeSchedulingBatch({
     appId: 'dev.nimi.test',
-    targets: resolveAIConfigScopeSchedulingTargets(CONFIG),
+    targets: resolveRuntimeSchedulingTargetsFromAIConfig(CONFIG),
     peekScheduling: async (request) => {
       calls.push(request);
       return {
@@ -155,9 +155,9 @@ test('AIConfig scheduling peek calls Runtime and decodes judgement states', asyn
   assert.equal(result?.targetJudgements[0]?.judgement.state, 'denied');
 });
 
-test('AIConfig scheduling parser fails closed on missing Runtime aggregate judgement', () => {
+test('runtime scheduling parser fails closed on missing Runtime aggregate judgement', () => {
   assert.throws(
-    () => parseAIConfigSchedulingBatchPeekResult({ targetJudgements: [] }),
+    () => parseRuntimeSchedulingBatchPeekResult({ targetJudgements: [] }),
     /missing scheduling judgement/,
   );
 });

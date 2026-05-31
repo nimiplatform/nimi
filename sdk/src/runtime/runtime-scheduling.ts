@@ -5,7 +5,7 @@ import type {
   AISchedulingOccupancy,
   AISchedulingResourceHint,
   AISchedulingState,
-} from './ai-config.js';
+} from '../ai/ai-config.js';
 
 export type RuntimeSchedulingEvaluationTargetInput = {
   capability: string;
@@ -68,7 +68,7 @@ export type RuntimeSchedulingPeek = (
   options?: RuntimeSchedulingPeekOptions,
 ) => Promise<RuntimeSchedulingPeekResponseLike>;
 
-export type AIConfigSchedulingBatchPeekResult = {
+export type RuntimeSchedulingBatchPeekResult = {
   occupancy: AISchedulingOccupancy | null;
   aggregateJudgement: AISchedulingJudgement;
   targetJudgements: Array<{
@@ -122,7 +122,7 @@ function toRuntimeSchedulingResourceHint(
   };
 }
 
-export function resolveAIConfigScopeSchedulingTargets(
+export function resolveRuntimeSchedulingTargetsFromAIConfig(
   config: AIConfig,
 ): AISchedulingEvaluationTarget[] {
   const localRefs = config.capabilities.localProfileRefs || {};
@@ -145,7 +145,7 @@ export function resolveAIConfigScopeSchedulingTargets(
   return targets;
 }
 
-export function resolveAIConfigSchedulingTargetForCapability(
+export function resolveRuntimeSchedulingTargetForCapability(
   config: AIConfig,
   capability: string,
 ): AISchedulingEvaluationTarget | null {
@@ -162,7 +162,7 @@ export function resolveAIConfigSchedulingTargetForCapability(
   };
 }
 
-export function normalizeSchedulingTarget(
+export function normalizeRuntimeSchedulingTarget(
   target: AISchedulingEvaluationTarget | null | undefined,
 ): AISchedulingEvaluationTarget | null {
   if (!target) {
@@ -180,7 +180,7 @@ export function normalizeSchedulingTarget(
   };
 }
 
-export function schedulingTargetsEqual(
+export function runtimeSchedulingTargetsEqual(
   left: AISchedulingEvaluationTarget,
   right: AISchedulingEvaluationTarget,
 ): boolean {
@@ -189,7 +189,7 @@ export function schedulingTargetsEqual(
     && (left.profileId || null) === (right.profileId || null);
 }
 
-export function toRuntimeSchedulingTarget(
+export function toRuntimeSchedulingPeekTarget(
   target: AISchedulingEvaluationTarget,
 ): RuntimeSchedulingEvaluationTargetInput {
   return {
@@ -273,7 +273,7 @@ function parseJudgement(value: RuntimeSchedulingJudgementLike | null | undefined
 }
 
 function parseTarget(value: RuntimeSchedulingTargetJudgementLike['target']): AISchedulingEvaluationTarget {
-  const normalized = normalizeSchedulingTarget({
+  const normalized = normalizeRuntimeSchedulingTarget({
     capability: trimmed(value?.capability),
     targetId: trimmed(value?.targetId) || null,
     profileId: trimmed(value?.profileId) || null,
@@ -292,9 +292,9 @@ function parseTarget(value: RuntimeSchedulingTargetJudgementLike['target']): AIS
   return normalized;
 }
 
-export function parseAIConfigSchedulingBatchPeekResult(
+export function parseRuntimeSchedulingBatchPeekResult(
   response: RuntimeSchedulingPeekResponseLike,
-): AIConfigSchedulingBatchPeekResult {
+): RuntimeSchedulingBatchPeekResult {
   const aggregateJudgement = parseJudgement(response.aggregateJudgement);
   return {
     occupancy: parseOccupancy(response.occupancy) ?? aggregateJudgement.occupancy,
@@ -306,14 +306,14 @@ export function parseAIConfigSchedulingBatchPeekResult(
   };
 }
 
-export async function peekSchedulingBatch(input: {
+export async function peekRuntimeSchedulingBatch(input: {
   appId: string;
   targets: AISchedulingEvaluationTarget[];
   peekScheduling: RuntimeSchedulingPeek;
   options?: RuntimeSchedulingPeekOptions;
-}): Promise<AIConfigSchedulingBatchPeekResult | null> {
+}): Promise<RuntimeSchedulingBatchPeekResult | null> {
   const normalizedTargets = input.targets
-    .map((target) => normalizeSchedulingTarget(target))
+    .map((target) => normalizeRuntimeSchedulingTarget(target))
     .filter((target): target is AISchedulingEvaluationTarget => target !== null);
   if (normalizedTargets.length === 0) {
     return null;
@@ -321,19 +321,19 @@ export async function peekSchedulingBatch(input: {
   const response = await input.peekScheduling(
     {
       appId: trimmed(input.appId),
-      targets: normalizedTargets.map(toRuntimeSchedulingTarget),
+      targets: normalizedTargets.map(toRuntimeSchedulingPeekTarget),
     },
     input.options,
   );
-  return parseAIConfigSchedulingBatchPeekResult(response);
+  return parseRuntimeSchedulingBatchPeekResult(response);
 }
 
-export async function peekAggregateSchedulingJudgement(input: {
+export async function peekRuntimeAggregateSchedulingJudgement(input: {
   appId: string;
   targets: AISchedulingEvaluationTarget[];
   peekScheduling: RuntimeSchedulingPeek;
   options?: RuntimeSchedulingPeekOptions;
 }): Promise<AISchedulingJudgement | null> {
-  const batchResult = await peekSchedulingBatch(input);
+  const batchResult = await peekRuntimeSchedulingBatch(input);
   return batchResult?.aggregateJudgement ?? null;
 }

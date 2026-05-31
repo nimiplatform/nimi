@@ -27,6 +27,7 @@ const checks = [
       'sdk/src/runtime/runtime-lifecycle.ts',
       'sdk/src/runtime/types-media.ts',
       'sdk/src/runtime/runtime-media.ts',
+      'sdk/src/runtime/runtime-scheduling.ts',
       'sdk/src/ai/ai-config.ts',
       'sdk/src/ai/ai-config-diff.ts',
       'sdk/src/ai/app-ai-config.ts',

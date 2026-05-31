@@ -14,10 +14,12 @@ import type {
 } from '@nimiplatform/sdk/ai';
 import {
   createAIConfigEvidence,
-  peekSchedulingBatch,
-  resolveAIConfigSchedulingTargetForCapability,
 } from '@nimiplatform/sdk/ai';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
+import {
+  peekRuntimeSchedulingBatch,
+  resolveRuntimeSchedulingTargetForCapability,
+  type RuntimeRouteBinding,
+} from '@nimiplatform/sdk/runtime';
 import type { TesterCapabilityId } from './tester-capabilities.js';
 import { capabilityUnavailable, type TesterUnavailable, type TesterUnavailableReason } from './tester-unavailable.js';
 import { getTesterCapability } from './tester-capabilities.js';
@@ -234,7 +236,7 @@ export function resolveTesterLLMBinding(
     bindingCapabilityId,
     binding,
     model,
-    schedulingTarget: resolveAIConfigSchedulingTargetForCapability(config, bindingCapabilityId),
+    schedulingTarget: resolveRuntimeSchedulingTargetForCapability(config, bindingCapabilityId),
     metadata: {
       aiConfigScopeKind: scopeRef.kind,
       aiConfigScopeOwnerId: scopeRef.ownerId,
@@ -261,7 +263,7 @@ async function ensureSchedulingPreflight(
     return null;
   }
   try {
-    const batch = await peekSchedulingBatch({
+    const batch = await peekRuntimeSchedulingBatch({
       appId: TESTER_APP_ID,
       targets: [resolved.schedulingTarget],
       peekScheduling: (request, options) => client.runtime.ai.peekScheduling(request, options),

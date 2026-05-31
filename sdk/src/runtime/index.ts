@@ -17,6 +17,7 @@ export * from './workflow-builder.js';
 export * from './app-storage.js';
 export * from './runtime-agent-consumer-helpers.js';
 export * from './runtime-call-options.js';
+export * from './runtime-scheduling.js';
 export * from './runtime-route.js';
 export * from './runtime-route-capability-projection.js';
 export * from './runtime-route-reasoning.js';

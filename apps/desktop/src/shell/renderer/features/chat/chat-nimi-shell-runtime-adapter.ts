@@ -10,7 +10,7 @@ import {
 import {
   peekDesktopAISchedulingForEvidence,
   recordDesktopAISnapshot,
-  resolveAIConfigSchedulingTargetForCapability,
+  resolveRuntimeSchedulingTargetForCapability,
 } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { withPromptTrace } from './chat-nimi-shell-core';
 
@@ -27,7 +27,7 @@ export function createChatAiConversationRuntimeAdapter(input: {
       const runtimeEvidence = textProjection?.supported
         ? await peekDesktopAISchedulingForEvidence({
           scopeRef: input.aiConfig.scopeRef,
-          target: resolveAIConfigSchedulingTargetForCapability(input.aiConfig, 'text.generate'),
+          target: resolveRuntimeSchedulingTargetForCapability(input.aiConfig, 'text.generate'),
         })
         : null;
       const executionSnapshot = textProjection?.supported
