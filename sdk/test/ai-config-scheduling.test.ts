@@ -5,7 +5,7 @@ import type { AIConfig } from '../src/ai/index.js';
 import {
   resolveAIConfigRuntimeSchedulingTargetForCapability,
   resolveAIConfigRuntimeSchedulingTargets,
-} from '../src/runtime/index.js';
+} from '../src/ai/index.js';
 
 const CONFIG: AIConfig = {
   scopeRef: { kind: 'app', ownerId: 'dev.nimi.test' },

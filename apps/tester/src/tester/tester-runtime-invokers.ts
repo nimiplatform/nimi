@@ -13,10 +13,10 @@ import type {
 } from '@nimiplatform/sdk/ai';
 import {
   createAIConfigEvidence,
+  resolveAIConfigRuntimeSchedulingTargetForCapability,
 } from '@nimiplatform/sdk/ai';
 import {
   peekRuntimeSchedulingBatch,
-  resolveAIConfigRuntimeSchedulingTargetForCapability,
   type AISchedulingEvaluationTarget,
   type RuntimeRouteBinding,
 } from '@nimiplatform/sdk/runtime';

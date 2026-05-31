@@ -53,3 +53,12 @@ test('runtime agent memory helpers live on the runtime subpath', () => {
   assert.match(readSource(runtimeDir, 'index.ts'), /runtime-agent-memory\.js/);
   assert.match(readSource(runtimeDir, 'browser.ts'), /runtime-agent-memory\.js/);
 });
+
+test('AIConfig scheduling projection lives on the AI subpath, not runtime', () => {
+  const aiFiles = listFiles(aiDir);
+  const runtimeFiles = listFiles(runtimeDir);
+  assert.ok(aiFiles.includes('ai-config-scheduling.ts'));
+  assert.equal(runtimeFiles.includes('ai-config-scheduling.ts'), false);
+  assert.match(readSource(aiDir, 'index.ts'), /ai-config-scheduling\.js/);
+  assert.doesNotMatch(readSource(runtimeDir, 'index.ts'), /ai-config-scheduling\.js/);
+});

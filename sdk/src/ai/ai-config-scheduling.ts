@@ -1,12 +1,12 @@
-import type { AIConfig } from '../ai/index.js';
-import type { AISchedulingEvaluationTarget } from './runtime-scheduling-types.js';
+import type { AIConfig } from './ai-config.js';
+import type { AISchedulingEvaluationTarget } from '../runtime/index.js';
 
 /**
  * Project scope-owned AIConfig local bindings into Runtime scheduling targets.
  *
- * This is SDK DX over the AIConfig typed surface: it does not evaluate
- * scheduling, infer Runtime readiness, or persist execution truth. Runtime
- * remains the authority for Peek judgement materialization.
+ * This is SDK projection/DX over the AIConfig typed surface: it does not
+ * evaluate scheduling, infer Runtime readiness, or persist execution truth.
+ * Runtime remains the authority for Peek judgement materialization.
  */
 export function resolveAIConfigRuntimeSchedulingTargets(
   config: AIConfig,
