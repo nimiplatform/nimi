@@ -142,7 +142,7 @@ import { createTesterRuntimeAgentPresentationProfileProjection } from '../../tes
 import { createTesterRuntimeAgentInspectProjection } from '../../tester/tester-runtime-agent-inspect-projection';
 import { createTesterLocalRecommendationCopyProjection } from '../../tester/tester-local-recommendation-copy-projection';
 import { createTesterLocalRuntimeAssetKindProjection } from '../../tester/tester-local-runtime-asset-kind-projection';
-
+import { createTesterWorldDisplayProjection } from '../../tester/tester-world-display-projection';
 type WalletProjectionState =
   | { status: 'idle'; balances: null; error: null }
   | { status: 'loading'; balances: CommerceCurrencyBalances | null; error: null }
@@ -281,7 +281,7 @@ async function resolveTesterRealmDataSyncProjection(): Promise<string> {
   if (errors.length > 0) {
     throw new Error(errors.join(', '));
   }
-  return `${social.friends.length}/${social.blocked.length}/${world.worldview?.id ?? 'none'}`;
+  return `${social.friends.length}/${social.blocked.length}/${world.worldview?.id ?? 'none'}/${createTesterWorldDisplayProjection(world)}`;
 }
 
 const runtimeConnectorInventory = createRuntimeConnectorInventoryClient({

@@ -37,8 +37,12 @@ import {
   session,
   createInspectWorldSession,
 } from './session.js';
+import {
+  display,
+} from './display.js';
 
 export type * from './types.js';
+export * from './display.js';
 
 export {
   truth,
@@ -96,5 +100,6 @@ export function createWorldFacade(
     fixture,
     render,
     session,
+    display,
   };
 }

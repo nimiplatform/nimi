@@ -6,10 +6,14 @@ import {
   createInspectWorldRenderPlan,
   createInspectWorldSession,
   createWorldFacade,
+  display,
   normalizeWorldFixturePackage,
   projectWorldRuntimePayload,
   normalizeWorldTruthListItem,
   normalizeWorldTruthDetail,
+  toWorldDisplayData,
+  toWorldDisplayHistoryBundle,
+  toWorldDisplaySemanticBundle,
 } from '../../src/world/index.js';
 
 test('world.generate projection and runtime input stay projection-first', () => {
@@ -410,4 +414,89 @@ test('world truth list normalizes a bounded shared-discovery shape', () => {
   assert.equal(listItem?.bannerUrl, 'https://example.com/world-1.png');
   assert.equal(listItem?.computed?.time?.currentLabel, 'Late Summer');
   assert.equal(listItem?.computed?.entry?.recommendedAgents?.[0]?.name, 'Maris');
+});
+
+test('world display projection builds app-facing detail, history, and semantic views', () => {
+  const detail = toWorldDisplayData({
+    id: 'world-1',
+    name: 'Harbor District',
+    description: 'Canonical harbor.',
+    status: 'ACTIVE',
+    type: 'CREATOR',
+    level: 7,
+    agentCount: 2,
+    createdAt: '2026-04-18T00:00:00Z',
+    nativeCreationState: 'OPEN',
+    computed: {
+      time: { currentWorldTime: 'Dawn', flowRatio: 0.5 },
+      languages: { primary: 'Harbor Cant', common: ['Trade'] },
+      entry: {
+        recommendedAgents: [{
+          id: 'agent-1',
+          name: 'Maris',
+          importance: 'PRIMARY',
+          display: { role: 'Harbor Guide' },
+        }],
+      },
+      score: { scoreEwma: 88 },
+    },
+  });
+
+  assert.equal(detail.id, 'world-1');
+  assert.equal(detail.flowRatio, 0.5);
+  assert.equal(detail.recommendedAgents?.[0]?.display?.role, 'Harbor Guide');
+
+  const history = toWorldDisplayHistoryBundle({
+    items: [{
+      id: 'event-1',
+      title: 'Bridge Opened',
+      happenedAt: '2026-04-18T03:00:00Z',
+      eventType: 'primary_event',
+      locationRefs: ['bridge'],
+      characterRefs: ['agent-1'],
+      evidenceRefs: [{
+        segmentId: 'seg-1',
+        offsetStart: 1,
+        offsetEnd: 4,
+        excerpt: 'bridge opened',
+        confidence: 0.8,
+        sourceType: 'world.truth',
+      }],
+    }],
+  });
+  assert.equal(history.summary?.primaryCount, 1);
+  assert.equal(history.items[0]?.tag, 'Primary Event');
+
+  const semantic = toWorldDisplaySemanticBundle({
+    worldview: {
+      coreSystem: {
+        name: 'Harbor Order',
+        rules: [{ key: 'dock', title: 'Dock Rule', value: 'Respect the harbor.' }],
+        powerSystems: [{ name: 'Tidecraft', levels: [{ name: 'Mender' }], rules: ['tide-safe'] }],
+      },
+      languages: { languages: [{ name: 'Harbor Cant', isCommon: true }] },
+    },
+    worldviewEvents: [{ id: 'wv-event-1', eventType: 'world_update' }],
+    worldviewSnapshots: [{ id: 'snapshot-1', version: 'v1' }],
+  });
+  assert.equal(semantic.hasContent, true);
+  assert.equal(semantic.operationRules[0]?.key, 'dock');
+  assert.equal(semantic.worldviewEvents[0]?.title, 'World Update');
+});
+
+test('world display facade exposes projection helpers without owning Realm truth', () => {
+  const merged = display.mergePrimaryDetailTruth({
+    id: 'world-1',
+    name: 'Original',
+    computed: { entry: { recommendedAgents: [] } },
+  }, {
+    worldId: 'world-1',
+    title: 'Harbor District',
+    recommendedAgents: [{ agentId: 'agent-1', name: 'Maris', role: 'Guide' }],
+  });
+
+  assert.equal(merged.name, 'Harbor District');
+  assert.equal(display.toData(merged).recommendedAgents?.[0]?.display?.role, 'Guide');
+  assert.equal(display.toAuditItem({ id: 'audit-1', eventType: 'LEVEL_UP' }).label, 'Level Up');
+  assert.equal(display.toFallback({ worldId: 'world-2', title: 'Fallback' }).name, 'Fallback');
 });
