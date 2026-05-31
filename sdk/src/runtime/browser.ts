@@ -2,7 +2,10 @@ export * from './errors.js';
 export * from './types.js';
 export type * from './world-evolution-selector-read.js';
 export * from './method-ids.js';
+export * from './reason-code-messages.js';
+export * from './local-environment-dependency-states.js';
 export * from './workflow-builder.js';
+export * from './app-storage.js';
 export {
   Modal,
   ScenarioType,
@@ -229,11 +232,53 @@ export {
 export { Timestamp } from './generated/google/protobuf/timestamp.js';
 export { WorkflowStatus, WorkflowEventType, WorkflowExecutionMode } from './generated/runtime/v1/workflow.js';
 export {
+  LOCAL_RECOMMENDATION_BASELINE_IDS,
   LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,
+  LOCAL_RECOMMENDATION_FEED_CACHE_STATE_IDS,
+  LOCAL_RECOMMENDATION_FEED_SOURCE_IDS,
+  LOCAL_RECOMMENDATION_CONFIDENCE_IDS,
+  LOCAL_RECOMMENDATION_FORMAT_IDS,
+  LOCAL_RECOMMENDATION_HOST_SUPPORT_CLASS_IDS,
+  LOCAL_RECOMMENDATION_RUN_GRADE_IDS,
+  LOCAL_RECOMMENDATION_SOURCE_IDS,
+  LOCAL_RECOMMENDATION_TIER_IDS,
+  formatLocalRecommendationRepoOwner,
+  localRecommendationFeedMatchesQuery,
+  localRecommendationTierToRunGrade,
+  normalizeLocalRecommendationBaselineId,
   normalizeLocalRecommendationFeedCapabilityId,
+  normalizeLocalRecommendationFeedCacheStateId,
+  normalizeLocalRecommendationFeedSourceId,
+  normalizeLocalRecommendationConfidenceId,
+  normalizeLocalRecommendationFormatId,
+  normalizeLocalRecommendationHostSupportClassId,
+  normalizeLocalRecommendationSourceId,
+  normalizeLocalRecommendationTierId,
+  parseLocalRecommendationBaselineId,
   parseLocalRecommendationFeedCapabilityId,
+  parseLocalRecommendationFeedCacheStateId,
+  parseLocalRecommendationFeedSourceId,
+  parseLocalRecommendationConfidenceId,
+  parseLocalRecommendationFormatId,
+  parseLocalRecommendationHostSupportClassId,
+  parseLocalRecommendationSourceId,
+  parseLocalRecommendationTierId,
+  selectLocalRecommendationPrimaryEntrySize,
+  summarizeLocalRecommendationFeedCacheState,
   toLocalRecommendationFeedCapabilityRequestValue,
+  type LocalRecommendationBaselineId,
+  type LocalRecommendationFeedEntryLike,
   type LocalRecommendationFeedCapabilityId,
+  type LocalRecommendationFeedCacheStateId,
+  type LocalRecommendationFeedItemLike,
+  type LocalRecommendationFeedLike,
+  type LocalRecommendationFeedSourceId,
+  type LocalRecommendationConfidenceId,
+  type LocalRecommendationFormatId,
+  type LocalRecommendationHostSupportClassId,
+  type LocalRecommendationRunGradeId,
+  type LocalRecommendationSourceId,
+  type LocalRecommendationTierId,
 } from './local-recommendation-feed.js';
 export {
   LOCAL_RUNTIME_ASSET_KIND_IDS,
@@ -305,6 +350,8 @@ export type {
   RuntimeAppInstallJobState,
   RuntimeAppInstallSourceKind,
   RuntimeAppInstallStorage,
+  RuntimeAppStorageProjection,
+  RuntimeAppStorageState,
   RuntimeAppLifecycleJobKind,
   RuntimeAppHealthRepairAction,
   RuntimeAppHealthRepairInput,

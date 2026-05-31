@@ -2,6 +2,9 @@
 // transport — list / get / status only. Nimi App lifecycle mutation (install /
 // update / uninstall / open / healthRepair) is owned by the runtime-mediated
 // `runtime.appLifecycle` surface; this transport carries no mutation stubs.
+// App-scoped storage roots are also Runtime-owned (`GetAppStorage`), so this
+// registry transport must not project storage roots from host-scanned install
+// evidence.
 
 import type { NimiAppTransport } from './transport.js';
 import type {
@@ -182,7 +185,6 @@ function defaultStatus(
     launchReadiness: readiness,
     releaseDescriptorRef: row.releaseDescriptorRef,
     installStoragePolicyRef: row.installStoragePolicyRef,
-    storageRoots: evidence?.storageRoots,
     verificationState: evidence?.verificationState ?? (readiness === 'install-required' ? 'not-installed' : 'blocked'),
     installedVersion: evidence?.installedVersion ?? row.installedVersion,
     availableVersion: row.availableVersion,
@@ -264,17 +266,6 @@ function findInstallEvidence(
     && evidence.releaseDescriptorRef === descriptor.descriptorId
     && evidence.storagePolicyRef === descriptor.storagePolicyRef
     && evidence.sha256 === descriptor.sha256
-    && hasStorageRoots(evidence)
-  );
-}
-
-function hasStorageRoots(evidence: NimiAppInstallEvidenceRow): boolean {
-  const roots = evidence.storageRoots;
-  return Boolean(
-    roots?.releaseRoot
-    && roots.dataRoot
-    && roots.cacheRoot
-    && roots.tempRoot,
   );
 }
 

@@ -31,9 +31,12 @@ entries:
 - S-AIP-004
 - S-AIP-005
 - S-AIP-006
+- S-AIP-007
 - S-BOUNDARY-001
 - S-BOUNDARY-002
 - S-BOUNDARY-004
+- S-BOUNDARY-005
+- S-BOUNDARY-006
 - S-ERROR-001
 - S-ERROR-002
 - S-ERROR-003
@@ -80,6 +83,10 @@ entries:
 - S-SURFACE-012
 - S-SURFACE-013
 - S-SURFACE-014
+- S-SURFACE-015
+- S-SURFACE-016
+- S-SURFACE-017
+- S-SURFACE-018
 - S-TRANSPORT-001
 - S-TRANSPORT-002
 - S-TRANSPORT-003
@@ -132,6 +139,11 @@ rules:
   - sdk_kernel_consistency
   note: Authority boundary rule for world.generate projection; enforced structurally by sdk consistency gate
   evidence_requirement: required
+- rule_id: S-AIP-007
+  evidence_refs:
+  - sdk_kernel_consistency
+  note: External AI framework adapters are protocol adapters over admitted public surfaces; structural governance prevents provider-routing or agent-truth ownership drift
+  evidence_requirement: required
 - rule_id: S-BOUNDARY-001
   evidence_refs:
   - sdk_kernel_consistency
@@ -151,6 +163,18 @@ rules:
   - sdk_kernel_consistency
   - sdk_boundary_gate
   note: Structural boundary rule; boundary gate verifies no prohibited imports
+  evidence_requirement: required
+- rule_id: S-BOUNDARY-005
+  evidence_refs:
+  - sdk_kernel_consistency
+  - sdk_boundary_gate
+  note: Boundary review rule distinguishing SDK developer ergonomics from hidden truth ownership
+  evidence_requirement: required
+- rule_id: S-BOUNDARY-006
+  evidence_refs:
+  - sdk_kernel_consistency
+  - sdk_boundary_gate
+  note: Client orchestration promotion rule; durable authority must move to Runtime, Realm, Cognition, or Platform before becoming product truth
   evidence_requirement: required
 - rule_id: S-ERROR-001
   evidence_refs:
@@ -433,6 +457,26 @@ rules:
   evidence_refs:
   - sdk_kernel_consistency
   note: sdk/world is the stable world-domain subpath inside the single SDK package and must not be misread as runtime RPC parity or K-WEV renaming
+  evidence_requirement: required
+- rule_id: S-SURFACE-015
+  evidence_refs:
+  - sdk_kernel_consistency
+  note: SDK developer-experience helpers are admitted only as ergonomics over public surfaces, not platform truth ownership
+  evidence_requirement: required
+- rule_id: S-SURFACE-016
+  evidence_refs:
+  - sdk_kernel_consistency
+  note: Client-side orchestration is admitted only as non-authoritative ephemeral coordination or explicit typed requests to authority services
+  evidence_requirement: required
+- rule_id: S-SURFACE-017
+  evidence_refs:
+  - sdk_kernel_consistency
+  note: SDK helper outputs that become durable product truth must commit through the owning Runtime, Realm, or Cognition typed operation
+  evidence_requirement: required
+- rule_id: S-SURFACE-018
+  evidence_refs:
+  - sdk_kernel_consistency
+  note: External framework adapters may ease migration but must not create OpenAI-compatible runtime endpoints, shadow agent runtimes, or parallel permission/memory/session systems
   evidence_requirement: required
 - rule_id: S-TRANSPORT-001
   evidence_refs:

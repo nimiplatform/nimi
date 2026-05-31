@@ -24,6 +24,9 @@ Use this file when a new AI session needs to audit or refactor Desktop, Tester, 
 11. `.nimi/spec/sdk/kernel/nimi-app-client-contract.md`.
 12. `.nimi/spec/sdk/kernel/runtime-contract.md`.
 13. `.nimi/spec/sdk/kernel/boundary-contract.md`.
+14. `.nimi/spec/sdk/kernel/surface-contract.md`.
+15. `.nimi/spec/sdk/kernel/ai-provider-contract.md`.
+16. `.nimi/spec/sdk/kernel/runtime-agent-participation-client-contract.md`.
 
 Do not start implementation before the reading set is checked against the files touched by the task.
 
@@ -39,7 +42,9 @@ Runtime owns local product authority that requires validation, admission, fail-c
 
 Realm owns cloud canonical business truth and cross-device or multi-user product truth.
 
-SDK owns typed app-facing access to Runtime and Realm. SDK may expose projections, method IDs, schemas, decoders, transport adapters, and reason-code handling. SDK must not become a hidden truth owner.
+SDK owns typed app-facing access to Runtime and Realm. SDK may expose projections, method IDs, schemas, decoders, transport adapters, reason-code handling, developer-experience helpers, and non-authoritative client orchestration. SDK must not become a hidden truth owner.
+
+SDK developer-experience ownership is positive but bounded: request builders, stream assemblers, structured-output helpers, framework adapters, local tool-loop coordination, mock/test transports, and app-facing facade composition may live in SDK when they are explainable as composition over admitted public surfaces. Their output is ephemeral consumer state or an explicit request to Runtime / Realm / Cognition. They must not own provider/model routing, fallback policy, durable session truth, canonical memory, app lifecycle, permission grants, audit truth, or agent execution semantics.
 
 Kit owns reusable UI, shell, bridge, composition, token, accessibility, and headless product primitives. Apps should consume Kit before forking common UI or bridge behavior locally.
 
@@ -57,9 +62,12 @@ For every Desktop or Tester behavior under audit, answer these questions before 
 3. Does an SDK projection exist?
    - If yes, the app must use it.
    - If no and the concept is reusable platform truth, add or extend Runtime/SDK first, then migrate the app.
-4. Is the behavior reusable UI, shell composition, bridge plumbing, design token usage, or headless app primitive?
+4. Is the behavior reusable developer ergonomics rather than platform truth?
+   - If it is a builder, parser, stream assembler, framework adapter, test harness, local tool-loop, or ephemeral client orchestration over public surfaces, it may belong in SDK.
+   - If it persists durable truth, chooses provider/model routing, emits canonical events, writes memory/session/app lifecycle state, or enforces permissions, promote it to the owning Runtime / Realm / Cognition / Platform authority first.
+5. Is the behavior reusable UI, shell composition, bridge plumbing, design token usage, or headless app primitive?
    - If yes, prefer Kit or scaffold-managed shell infrastructure.
-5. Is the behavior truly product-specific and bounded to one app?
+6. Is the behavior truly product-specific and bounded to one app?
    - It may remain in the app only if it does not duplicate Runtime, Realm, SDK, Kit, admission, permission, or config authority.
 
 ## Desktop-Specific Audit Targets
@@ -70,6 +78,7 @@ Desktop needs extra suspicion because it historically behaved like a single priv
 - Renderer-local stores that become executable truth for runtime, model, provider, memory, capability, app lifecycle, chat authority, or permissions.
 - Tauri commands that materialize platform data without going through Runtime/SDK or an admitted OS-helper boundary.
 - Duplicate method IDs, generated client shapes, app registries, capability registries, or hardcoded platform enums.
+- App-local developer helpers that should be shared SDK ergonomics, especially repeated request builders, stream parsers, typed adapter code, structured-output repair logic, local tool-loop wrappers, or test transports.
 - UI primitives or shell behavior copied locally when Kit already owns the pattern.
 - Desktop-only implementation of a concept that Tester or a future app also needs.
 
@@ -108,7 +117,9 @@ If the candidate owner is unclear, stop at audit and produce an authority fork n
 - No direct Runtime or Realm private bypass from apps.
 - No provider/model hardcoding in app code.
 - No app-local path construction for ecosystem storage roots when Runtime/SDK can provide a projection.
-- No moving code into SDK if SDK would become the truth owner instead of a projection layer.
+- No moving code into SDK if SDK would become the truth owner instead of a projection or developer-experience layer.
+- SDK may host developer-experience helpers and non-authoritative client orchestration, but those helpers must stay ephemeral or submit explicit typed requests to Runtime / Realm / Cognition before any product truth is committed.
+- Framework adapters such as Vercel AI, LangChain, Agno, or Python bridges must expose capability gaps explicitly and must not claim unsupported Runtime semantics as successful parity.
 - No moving UI into Kit unless it is actually reusable across apps.
 - Prefer deletion of duplicated app logic over wrapping it.
 

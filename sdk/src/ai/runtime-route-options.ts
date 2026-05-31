@@ -9,7 +9,9 @@ import {
   normalizeRuntimeRouteModelRoot,
 } from './runtime-route.js';
 import {
+  LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS,
   isLocalRuntimeRunnableAssetKindId,
+  localRuntimeCapabilitiesForAssetKind,
   parseLocalRuntimeAssetKindId,
   type LocalRuntimeRunnableAssetKindId,
 } from '../runtime/local-asset-kind.js';
@@ -67,10 +69,44 @@ export type RuntimeRouteOptionsProjectionInput = {
   onLocalStatusMismatch?: (mismatch: RuntimeRouteLocalStatusMismatch) => void;
 };
 
+export type RuntimeRouteCapabilityCoverageLocalNodeInput = {
+  capability?: unknown;
+  available?: unknown;
+  provider?: unknown;
+  reasonCode?: unknown;
+};
+
+export type RuntimeRouteCapabilityCoverageLocalModelInput = {
+  status?: unknown;
+  capabilities?: readonly unknown[];
+};
+
+export type RuntimeRouteCapabilityCoverageConnectorInput = {
+  status?: unknown;
+  models?: readonly unknown[];
+  modelCapabilities?: Record<string, readonly unknown[] | undefined>;
+};
+
+export type RuntimeRouteCapabilityCoverageProjectionInput = {
+  capability: LocalRuntimeRunnableAssetKindId;
+  localNodes?: readonly RuntimeRouteCapabilityCoverageLocalNodeInput[];
+  localModels?: readonly RuntimeRouteCapabilityCoverageLocalModelInput[];
+  connectors?: readonly RuntimeRouteCapabilityCoverageConnectorInput[];
+};
+
+export type RuntimeRouteCapabilityCoverageProjection = {
+  capability: LocalRuntimeRunnableAssetKindId;
+  localAvailable: boolean;
+  cloudAvailable: boolean;
+  localProvider?: string;
+  errorReason?: string;
+};
+
 function normalizeCapabilityAlias(value: string): RuntimeCanonicalCapability | null {
   if (value === 'chat') return 'text.generate';
   if (value === 'embedding') return 'text.embed';
   if (value === 'image') return 'image.generate';
+  if (value === 'image.edit') return 'image.generate';
   if (value === 'video') return 'video.generate';
   if (value === 'world') return 'world.generate';
   if (value === 'tts') return 'audio.synthesize';
@@ -105,7 +141,17 @@ function inferCanonicalLocalEngine(
   return canonicalLocalEngine(engineLike) || canonicalLocalEngine(runtimeDefaultEngine);
 }
 
-function toLocalBinding(option: RuntimeRouteLocalOption): RuntimeRouteBinding {
+export function isRuntimeRouteLocalOptionSelectable(option: RuntimeRouteLocalOption): boolean {
+  return Boolean(String(option.localModelId || '').trim())
+    && String(option.status || '').trim().toLowerCase() !== 'removed';
+}
+
+export function runtimeRouteLocalOptionToBinding(
+  option: RuntimeRouteLocalOption,
+  input?: {
+    defaultEndpoint?: string;
+  },
+): RuntimeRouteBinding {
   const modelId = String(option.modelId || option.model || '').trim();
   return {
     source: 'local',
@@ -117,7 +163,7 @@ function toLocalBinding(option: RuntimeRouteLocalOption): RuntimeRouteBinding {
     engine: String(option.engine || '').trim() || undefined,
     adapter: option.adapter,
     providerHints: option.providerHints,
-    endpoint: String(option.endpoint || '').trim() || undefined,
+    endpoint: String(option.endpoint || input?.defaultEndpoint || '').trim() || undefined,
     goRuntimeLocalModelId: String(option.goRuntimeLocalModelId || '').trim() || undefined,
     goRuntimeStatus: String(option.goRuntimeStatus || '').trim() || undefined,
   };
@@ -338,14 +384,14 @@ function hydrateSelectedLocalBinding(
   if (bindingLocalModelId) {
     const byLocalModelId = localModels.find((item) => String(item.localModelId || '').trim() === bindingLocalModelId) || null;
     if (byLocalModelId) {
-      return toLocalBinding(byLocalModelId);
+      return runtimeRouteLocalOptionToBinding(byLocalModelId);
     }
   }
 
   const targetModelId = String(binding.modelId || binding.model || '').trim();
   const byModelId = localModels.find((item) => String(item.modelId || item.model || '').trim() === targetModelId) || null;
   if (byModelId) {
-    return toLocalBinding(byModelId);
+    return runtimeRouteLocalOptionToBinding(byModelId);
   }
 
   return {
@@ -405,6 +451,97 @@ export function normalizeRuntimeRouteCapabilityToken(value: unknown): RuntimeCan
     return normalized;
   }
   return normalizeCapabilityAlias(normalized);
+}
+
+function runtimeCanonicalCapabilitiesForRunnableAssetKind(
+  capability: LocalRuntimeRunnableAssetKindId,
+): RuntimeCanonicalCapability[] {
+  return localRuntimeCapabilitiesForAssetKind(capability)
+    .map((item) => normalizeRuntimeRouteCapabilityToken(item))
+    .filter((item): item is RuntimeCanonicalCapability => Boolean(item));
+}
+
+function evidenceCapabilitiesSupportRunnableAssetKind(
+  capabilities: readonly unknown[] | undefined,
+  capability: LocalRuntimeRunnableAssetKindId,
+): boolean {
+  const canonicalCapabilities = runtimeCanonicalCapabilitiesForRunnableAssetKind(capability);
+  return (capabilities || []).some((item) => {
+    const raw = String(item ?? '').trim().toLowerCase();
+    if (raw === capability) {
+      return true;
+    }
+    const normalized = normalizeRuntimeRouteCapabilityToken(raw);
+    return Boolean(normalized && canonicalCapabilities.includes(normalized));
+  });
+}
+
+function connectorSupportsRunnableAssetKind(
+  connector: RuntimeRouteCapabilityCoverageConnectorInput,
+  capability: LocalRuntimeRunnableAssetKindId,
+): boolean {
+  if (String(connector.status || '').trim().toLowerCase() !== 'healthy') {
+    return false;
+  }
+  const models = (connector.models || [])
+    .map((item) => String(item || '').trim())
+    .filter(Boolean);
+  if (models.length === 0) {
+    return false;
+  }
+  const modelCapabilities = connector.modelCapabilities || {};
+  return models.some((modelId) => evidenceCapabilitiesSupportRunnableAssetKind(
+    modelCapabilities[modelId],
+    capability,
+  ));
+}
+
+export function projectRuntimeRouteCapabilityCoverage(
+  input: RuntimeRouteCapabilityCoverageProjectionInput,
+): RuntimeRouteCapabilityCoverageProjection {
+  const capability = input.capability;
+  const localNode = (input.localNodes || []).find((node) => (
+    String(node.capability || '').trim().toLowerCase() === capability
+    && Boolean(node.available)
+  )) || null;
+  const hasLocalModel = (input.localModels || []).some((model) => (
+    String(model.status || '').trim().toLowerCase() === 'active'
+    && evidenceCapabilitiesSupportRunnableAssetKind(model.capabilities, capability)
+  ));
+  const localAvailable = Boolean(localNode) || hasLocalModel;
+  const cloudAvailable = (input.connectors || []).some((connector) => (
+    connectorSupportsRunnableAssetKind(connector, capability)
+  ));
+  const errorNode = !localAvailable && !cloudAvailable
+    ? (input.localNodes || []).find((node) => (
+      String(node.capability || '').trim().toLowerCase() === capability
+      && !Boolean(node.available)
+      && String(node.reasonCode || '').trim()
+    )) || null
+    : null;
+  return {
+    capability,
+    localAvailable,
+    cloudAvailable,
+    localProvider: localNode ? String(localNode.provider || '').trim() || undefined : undefined,
+    errorReason: errorNode ? String(errorNode.reasonCode || '').trim() || undefined : undefined,
+  };
+}
+
+export function projectRuntimeRouteCapabilityCoverageList(input: {
+  capabilities?: readonly LocalRuntimeRunnableAssetKindId[];
+  localNodes?: readonly RuntimeRouteCapabilityCoverageLocalNodeInput[];
+  localModels?: readonly RuntimeRouteCapabilityCoverageLocalModelInput[];
+  connectors?: readonly RuntimeRouteCapabilityCoverageConnectorInput[];
+}): RuntimeRouteCapabilityCoverageProjection[] {
+  return [...(input.capabilities || LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS)].map((capability) => (
+    projectRuntimeRouteCapabilityCoverage({
+      capability,
+      localNodes: input.localNodes,
+      localModels: input.localModels,
+      connectors: input.connectors,
+    })
+  ));
 }
 
 export function runtimeRouteModelSupportsCapability(
@@ -477,10 +614,11 @@ export function buildRuntimeRouteSelectedBinding(input: {
 
   if (selectedBinding?.source === 'local') {
     const matchedLocalModel = hydrateSelectedLocalBinding(selectedBinding, localModels);
-    if (String(matchedLocalModel.localModelId || '').trim() || localModels.some((item) => bindingKey(toLocalBinding(item)) === bindingKey(matchedLocalModel))) {
-      const exactLocal = localModels.find((item) => bindingKey(toLocalBinding(item)) === bindingKey(matchedLocalModel)) || null;
+    const matchedKey = bindingKey(matchedLocalModel);
+    const exactLocal = localModels.find((item) => bindingKey(runtimeRouteLocalOptionToBinding(item)) === matchedKey) || null;
+    if (String(matchedLocalModel.localModelId || '').trim() || exactLocal) {
       if (exactLocal) {
-        return toLocalBinding(exactLocal);
+        return runtimeRouteLocalOptionToBinding(exactLocal);
       }
     }
     const engine = inferCanonicalLocalEngine(

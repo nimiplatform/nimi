@@ -5,11 +5,14 @@ import {
   buildRuntimeRouteOptionsSnapshot,
   checkRuntimeRouteHealthWithHost,
   createRuntimeRouteLocalWarmCache,
+  projectMemoryEmbeddingRouteAvailability,
   describeRuntimeRouteWithHost,
   ensureRuntimeRouteLocalWarmWithHost,
+  isRuntimeRouteLocalOptionSelectable,
   parseRuntimeRouteOptions,
   resetRuntimeRouteLocalWarmCache,
   resolveRuntimeRouteBindingFromSnapshot,
+  runtimeRouteLocalOptionToBinding,
   runtimeRouteCallTargetFromResolvedBinding,
   selectRuntimeLocalWarmCandidateFromResolvedBinding,
   type RuntimeRouteLocalWarmMetric,
@@ -125,6 +128,107 @@ test('route options parser drops external resolvedDefault fallback truth', () =>
   assert.ok(parsed);
   assert.equal(parsed.selected, null);
   assert.equal('resolvedDefault' in parsed, false);
+});
+
+test('local route option projection produces canonical RuntimeRouteBinding evidence', () => {
+  const option = localSnapshot.local.models[0];
+  assert.ok(option);
+  assert.equal(isRuntimeRouteLocalOptionSelectable(option), true);
+  assert.equal(isRuntimeRouteLocalOptionSelectable({ ...option, status: 'removed' }), false);
+  const binding = runtimeRouteLocalOptionToBinding(option, {
+    defaultEndpoint: 'http://127.0.0.1:9999/v1',
+  });
+  assert.deepEqual({
+    source: binding.source,
+    connectorId: binding.connectorId,
+    model: binding.model,
+    modelId: binding.modelId,
+    localModelId: binding.localModelId,
+    provider: binding.provider,
+    engine: binding.engine,
+    endpoint: binding.endpoint,
+    goRuntimeLocalModelId: binding.goRuntimeLocalModelId,
+    goRuntimeStatus: binding.goRuntimeStatus,
+  }, {
+    source: 'local',
+    connectorId: '',
+    model: 'local-import/qwen3-chat',
+    modelId: 'local-import/qwen3-chat',
+    localModelId: 'local-qwen',
+    provider: 'llama',
+    engine: 'llama',
+    endpoint: 'http://127.0.0.1:1234/v1',
+    goRuntimeLocalModelId: 'local-qwen',
+    goRuntimeStatus: 'active',
+  });
+});
+
+test('memory embedding route availability projects binding intent against route options only', () => {
+  const embeddingSnapshot: RuntimeRouteOptionsSnapshot = {
+    ...localSnapshot,
+    capability: 'text.embed',
+    local: {
+      models: localSnapshot.local.models.map((model) => ({
+        ...model,
+        capabilities: ['text.embed'],
+      })),
+    },
+  };
+  assert.deepEqual(
+    projectMemoryEmbeddingRouteAvailability({
+      config: {
+        scopeRef: { kind: 'feature', ownerId: 'desktop', surfaceId: 'memory-embedding' },
+        sourceKind: 'local',
+        bindingRef: { kind: 'local', targetId: 'local-import/qwen3-chat' },
+        revisionToken: 'rev',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+      routeOptions: embeddingSnapshot,
+    }),
+    {
+      state: 'ready',
+      reason: 'local_model_active',
+      sourceKind: 'local',
+      bindingRef: { kind: 'local', targetId: 'local-import/qwen3-chat' },
+    },
+  );
+
+  const cloudProjection = projectMemoryEmbeddingRouteAvailability({
+    config: {
+      scopeRef: { kind: 'feature', ownerId: 'desktop', surfaceId: 'memory-embedding' },
+      sourceKind: 'cloud',
+      bindingRef: { kind: 'cloud', connectorId: 'connector-openai', modelId: 'gpt-5.4' },
+      revisionToken: 'rev',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    },
+    routeOptions: {
+      capability: 'text.embed',
+      selected: null,
+      local: { models: [] },
+      connectors: [{
+        id: 'connector-openai',
+        label: 'OpenAI',
+        provider: 'openai',
+        models: ['gpt-5.4'],
+      }],
+    },
+  });
+
+  assert.equal(cloudProjection.state, 'ready');
+  assert.equal(cloudProjection.reason, 'cloud_model_available');
+  assert.equal(
+    projectMemoryEmbeddingRouteAvailability({
+      config: {
+        scopeRef: { kind: 'feature', ownerId: 'desktop', surfaceId: 'memory-embedding' },
+        sourceKind: 'local',
+        bindingRef: { kind: 'local', targetId: 'local-import/qwen3-chat' },
+        revisionToken: 'rev',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+      routeOptions: localSnapshot,
+    }).reason,
+    'route_options_capability_mismatch',
+  );
 });
 
 test('resolved route projection builds cloud call target from connector evidence', () => {

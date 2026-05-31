@@ -128,7 +128,7 @@ modules:
     kind: infra
     surface_level: infra
     adapter_contract: none
-    description: Shared Tauri host glue — runtime bridge, daemon lifecycle, session logging, auth/oauth commands, runtime defaults. Delivered as the public Rust crate nimi-shell-tauri for standalone apps and as a Cargo path dependency for workspace apps, within the single kit authority.
+    description: Shared Tauri host glue — runtime bridge, daemon lifecycle, session logging, auth/oauth commands, runtime defaults, packaged Platform catalog projections, deterministic host projection record builders, and SDK-shaped host bridge mappers for Rust host materialization/verification code. Delivered as the public Rust crate nimi-shell-tauri for standalone apps and as a Cargo path dependency for workspace apps, within the single kit authority.
     dependencies: []
     peer_dependencies: []
     exports: []
@@ -142,7 +142,7 @@ modules:
     standalone_dependency: published_crate_after_wave_1_api_publication
     workspace_dependency: cargo_path_dependency
     wave_0_implementation_rename: none
-    notes: Non-npm Rust crate. Standalone apps consume the public delivery crate name nimi-shell-tauri after Wave 1 admits API/publication mechanics; workspace apps consume via Cargo path dependency. No package.json exports. Wave 0 does not rename implementation files, package manifests, crate source, package exports, or the kit.shell.tauri authority id.
+    notes: Non-npm Rust crate. Standalone apps consume the public delivery crate name nimi-shell-tauri after Wave 1 admits API/publication mechanics; workspace apps consume via Cargo path dependency. No package.json exports. Wave 0 does not rename implementation files, package manifests, crate source, package exports, or the kit.shell.tauri authority id. The platform_catalog Rust modules are generated read-only Platform catalog projections for consumers; platform_projection Rust modules provide deterministic host projection record construction/validation and SDK-shaped bridge mapping from those catalog projections. Canonical truth remains under .nimi/spec/platform/kernel/tables/**; apps remain responsible for admitted storage roots, file materialization, and app-specific command adapters.
   - id: kit.shell.renderer
     subpath: /shell/renderer
     kind: infra

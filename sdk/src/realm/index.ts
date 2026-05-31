@@ -38,7 +38,13 @@ export type { RealmModels, RealmModelName, RealmModel, RealmOperations, RealmOpe
 
 // Typed adapter exports.
 export type { AccountDataTaskStatus, RequestDataExportInput, RequestDataExportOutput, RequestAccountDeletionInput, RequestAccountDeletionOutput } from './extensions/account-data.js';
+export type { RealmBaseUrlProjectionInput, RealmRealtimeUrlProjectionInput } from './extensions/endpoint.js';
+export type { RealmMediaUrlProjectionInput } from './extensions/media-url.js';
+export type { RealmMarkNotificationsReadInputDto, RealmNotificationDto, RealmNotificationListOptions, RealmNotificationListResultDto, RealmNotificationReadProjection, RealmNotificationType, RealmNotificationsReadProjection, RealmNotificationUnreadProjection, RealmUnreadNotificationCountDto } from './extensions/notifications.js';
 export { requestDataExport, requestAccountDeletion } from './extensions/account-data.js';
+export { normalizeRealmBaseUrl, projectRealmBaseUrl, projectRealmRealtimeUrl } from './extensions/endpoint.js';
+export { resolveRealmMediaUrl } from './extensions/media-url.js';
+export { loadRealmNotificationUnreadCount, loadRealmNotifications, markRealmNotificationRead, markRealmNotificationsRead, normalizeRealmNotificationUnreadCount } from './extensions/notifications.js';
 
 // Realm client exports.
 export { Realm } from './client.js';

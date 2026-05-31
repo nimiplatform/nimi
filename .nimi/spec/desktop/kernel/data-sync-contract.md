@@ -117,10 +117,18 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 
 ## D-DSYNC-009 — Notification 数据流
 
-通知方法：`loadNotificationUnreadCount`、`loadNotifications`、`markNotificationsRead`、`markNotificationRead`。
+Notification canonical list and read-state truth belongs to Realm. Desktop
+notification surfaces must consume the SDK Realm notification helpers for
+`loadRealmNotificationUnreadCount`、`loadRealmNotifications`、
+`markRealmNotificationsRead`、`markRealmNotificationRead` rather than owning a
+Desktop data-sync flow.
 
-- 使用基础设施：上下文锁、轮询管理、错误日志。
-- `loadNotificationUnreadCount` 通过 `PollingManager` 定期轮询。
+- Desktop may own panel-specific optimistic read overrides, query invalidation,
+  filtering tabs, and user-intent wiring.
+- Desktop must not expose notification list/read mutations from the DataSync
+  facade or re-wrap `NotificationsService` as app-local platform access.
+- Polling/query cadence belongs to the consumer surface; notification truth and
+  request shape remain Realm-through-SDK.
 
 ## D-DSYNC-010 — Settings 数据流
 

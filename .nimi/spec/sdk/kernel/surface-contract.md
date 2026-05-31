@@ -204,3 +204,85 @@ Forbidden interpretations:
 - treating `@nimiplatform/sdk/world` as renderer-driver API publication
 - treating `@nimiplatform/sdk/world` as the semantic owner of `K-WEV`
   execution-evidence surfaces
+
+## S-SURFACE-015 SDK Developer Experience Layer
+
+SDK may own developer ergonomics, not platform truth.
+
+Admitted SDK developer-experience capabilities include:
+
+- typed request builders and response decoders
+- structured-output parsers and schema validation helpers
+- stream assemblers that preserve typed event branches
+- app-facing facade composition over admitted Runtime / Realm / Cognition
+  projection surfaces
+- protocol adapters such as Vercel AI SDK providers, test transports, and
+  language bridges when they consume admitted public SDK / Runtime surfaces
+- developer test harnesses and mocks whose non-production status is explicit
+
+These helpers must remain mechanically explainable as composition over admitted
+SDK public surfaces. They may reduce boilerplate and normalize caller ergonomics,
+but they must not become hidden owners of provider routing, model defaults,
+permission grants, app lifecycle, memory, session, event, audit, or durable
+domain truth.
+
+## S-SURFACE-016 Non-Authoritative Client Orchestration
+
+SDK may expose client-side orchestration helpers only when their authority
+posture is explicit and non-canonical.
+
+Allowed orchestration includes:
+
+- ephemeral chat state assembly for the current consumer process
+- local tool-loop coordination for caller-supplied tools
+- retry/backoff and stream aggregation within existing transport contracts
+- structured output retries or repair prompts when the returned value is still
+  treated as model output and not as committed platform truth
+- test-only fake Runtime / Realm transports
+
+The output of such orchestration is either ephemeral consumer state or an
+explicit request to an authoritative Runtime / Realm / Cognition service. SDK
+must not present client-orchestrated state as canonical session, memory,
+agent-event, audit, permission, provider, model, or app lifecycle truth.
+
+## S-SURFACE-017 Canonical Commit Boundary For SDK Helpers
+
+When a SDK helper produces data that a product wants to persist, publish, or use
+as platform authority, the helper must hand the data to the owning service
+through an admitted typed operation.
+
+Examples:
+
+- chat-derived memory must go through the admitted RuntimeAgentService /
+  Cognition memory policy path, not a SDK-local memory writer
+- app lifecycle state must go through Runtime app lifecycle projection, not
+  process reachability or file existence
+- Realm social or group transcript commits must go through Realm-owned typed
+  operations, not Runtime candidate output or SDK stream text
+- provider/model selection must come from Runtime route/config projection or
+  explicit caller input, not a SDK-local routing table
+
+SDK may validate, format, preview, or stage candidate data before commit. It may
+not silently commit, infer authority from helper success, or treat a successful
+local parse as an authoritative domain write.
+
+## S-SURFACE-018 Integration Adapter Admission
+
+SDK integration adapters are admitted when they translate an external developer
+framework into Nimi public surfaces without importing private implementation or
+changing authority ownership.
+
+Adapters for Vercel AI SDK, LangChain, Agno, Python, or other ecosystems must:
+
+- use public SDK / Runtime / Realm entrypoints only
+- surface capability gaps explicitly instead of emulating unsupported Runtime
+  semantics as success
+- keep framework-owned ephemeral state separate from Runtime / Realm /
+  Cognition canonical truth
+- avoid provider/model hardcoding and provider-native secret custody
+- preserve typed finish/error/usage semantics as far as the target framework
+  allows, and fail closed when a required semantic cannot be represented
+
+An adapter may provide migration convenience. It must not become an alternate
+OpenAI-compatible Runtime endpoint, a shadow agent runtime, or a parallel app
+permission / memory / session system.

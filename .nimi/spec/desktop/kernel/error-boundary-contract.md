@@ -87,7 +87,14 @@ Desktop 必须把 baseline local speech 失败至少投影为以下 bundle-aware
 
 Runtime 错误通过三层投影到 Desktop UI：
 
-**投影路径**：Runtime K-ERR ReasonCode → SDK S-ERROR 投影 → Desktop `toBridgeNimiError` 映射。
+**投影路径**：Runtime K-ERR ReasonCode → SDK S-ERROR / runtime reason-code
+message projection → Desktop bridge consumption.
+
+Desktop `toBridgeNimiError` may translate Desktop-local bridge/OS error codes,
+but it must not re-own Runtime ReasonCode message coverage. Runtime ReasonCode
+defaults are consumed from the SDK projection, and D-ERR-007 gates must validate
+that SDK projection instead of requiring Runtime reason-code literals inside
+Desktop bridge source.
 
 **关键 ReasonCode UI 映射**：
 

@@ -40,6 +40,7 @@ entries:
   - S-APP-014
   - S-APP-015
   - S-APP-016
+  - S-APP-017
 rules:
   - rule_id: S-APP-001
     evidence_refs:
@@ -112,4 +113,12 @@ rules:
     evidence_refs:
       - sdk_kernel_consistency
     note: Generated-app Runtime platform client auth helper admits exact exported names and the local-first-party / third-party-nimi-app / dev-standalone mode split. Implementation evidence lands with SDK helper and generated scaffold auth tests.
+    evidence_requirement: required
+  - rule_id: S-APP-017
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_behavioral_test
+    note: SDK app storage truth accessor is backed by Runtime GetAppStorage and must not re-derive app storage roots locally.
+    test_files:
+      - sdk/test/runtime/runtime-app-lifecycle.test.ts
     evidence_requirement: required

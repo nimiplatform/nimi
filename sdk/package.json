@@ -62,6 +62,10 @@
     "./app": {
       "types": "./dist/app/index.d.ts",
       "default": "./dist/app/index.js"
+    },
+    "./platform-catalog": {
+      "types": "./dist/platform-catalog/index.d.ts",
+      "default": "./dist/platform-catalog/index.js"
     }
   },
   "files": [

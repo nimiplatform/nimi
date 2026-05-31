@@ -22,10 +22,10 @@
 
 | 文档 | Domain | 说明 |
 |---|---|---|
-| `surface-contract.md` | `S-SURFACE-*` | SDK 子路径、导出面、Runtime 方法投影分组、World Evolution Engine logical facade placement 与 selector-read stable placement |
+| `surface-contract.md` | `S-SURFACE-*` | SDK 子路径、导出面、Runtime 方法投影分组、World Evolution Engine logical facade placement、selector-read stable placement、developer-experience layer、non-authoritative client orchestration、canonical commit boundary、integration adapter admission |
 | `transport-contract.md` | `S-TRANSPORT-*` | Runtime/Realm 传输模型、流行为边界 |
 | `error-projection.md` | `S-ERROR-*` | 错误投影、重试语义、合成码治理 |
-| `boundary-contract.md` | `S-BOUNDARY-*` | 跨包导入边界与禁止路径 |
+| `boundary-contract.md` | `S-BOUNDARY-*` | 跨包导入边界、禁止路径、developer ergonomics vs truth ownership、client orchestration promotion rule |
 | `runtime-contract.md` | `S-RUNTIME-*` | runtime 子路径连接语义、事件与重试基线、agent presentation projection boundary、以及 World Evolution Engine app-facing logical facade boundary 与 selector-read publication profile |
 | `local-environment-projection-contract.md` | `S-RUNTIME-*` | SDK typed projection boundary for Runtime-owned local environment plans, dependency jobs, selected source records, and local compute activation gates |
 | `runtime-route-contract.md` | `S-RUNTIME-*` | app-facing `runtime.route.*` typed surface 与 route metadata projection |
@@ -39,7 +39,7 @@
 | `world-evolution-engine-consumer-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 app consumer-facing API landing、selector-read stable method matrix、shared typed building blocks 与 no-leak hardcut |
 | `world-contract.md` | `S-WORLD-*` | `sdk/world` 的 public facade boundary、five-family coarse landing、world-input projection boundary、fixture package boundary、renderer orchestration boundary、world-session composition boundary |
 | `realm-contract.md` | `S-REALM-*` | realm 子路径实例隔离、刷新策略、实时边界 |
-| `ai-provider-contract.md` | `S-AIP-*` | ai-provider 子路径适配与投影约束 |
+| `ai-provider-contract.md` | `S-AIP-*` | ai-provider 子路径适配、投影约束、external AI framework adapter boundary |
 | `scope-contract.md` | `S-SCOPE-*` | scope 子路径 catalog 与边界语义 |
 | `testing-gates-contract.md` | `S-GATE-*` | SDK 门禁层次、发布同级策略 |
 | `package-governance-contract.md` | `S-PKG-*` | SDK root package metadata (`S-PKG-001`), support docs (`S-PKG-002`), release gate alignment (`S-PKG-003`), and audit evidence admission (`S-PKG-004`) |

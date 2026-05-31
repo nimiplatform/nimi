@@ -839,6 +839,11 @@ method_mappings:
     proto_method: UninstallApp
     mapping_posture: aligned
   - design_service: RuntimeAppService
+    design_method: GetAppStorage
+    proto_service: RuntimeAppService
+    proto_method: GetAppStorage
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
     design_method: GetAppInstallJob
     proto_service: RuntimeAppService
     proto_method: GetAppInstallJob

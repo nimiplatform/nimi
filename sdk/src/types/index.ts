@@ -481,6 +481,35 @@ const RETRYABLE_REASON_CODES: ReadonlySet<ReasonCodeValue> = new Set([
   ReasonCode.RUNTIME_BRIDGE_DAEMON_UNAVAILABLE,
 ]);
 
+const REALM_OFFLINE_REASON_CODES: ReadonlySet<ReasonCodeValue> = new Set([
+  ReasonCode.REALM_UNAVAILABLE,
+]);
+
+const RUNTIME_OFFLINE_REASON_CODES: ReadonlySet<ReasonCodeValue> = new Set([
+  ReasonCode.RUNTIME_UNAVAILABLE,
+  ReasonCode.RUNTIME_BRIDGE_DAEMON_UNAVAILABLE,
+]);
+
+export type OfflineReasonCodeOwner = 'realm' | 'runtime';
+
 export function isRetryableReasonCode(code: string): boolean {
   return RETRYABLE_REASON_CODES.has(code as ReasonCodeValue);
+}
+
+export function isRealmOfflineReasonCode(code: unknown): boolean {
+  return typeof code === 'string' && REALM_OFFLINE_REASON_CODES.has(code as ReasonCodeValue);
+}
+
+export function isRuntimeOfflineReasonCode(code: unknown): boolean {
+  return typeof code === 'string' && RUNTIME_OFFLINE_REASON_CODES.has(code as ReasonCodeValue);
+}
+
+export function classifyOfflineReasonCode(code: unknown): OfflineReasonCodeOwner | null {
+  if (isRealmOfflineReasonCode(code)) {
+    return 'realm';
+  }
+  if (isRuntimeOfflineReasonCode(code)) {
+    return 'runtime';
+  }
+  return null;
 }

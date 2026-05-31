@@ -36,3 +36,28 @@ runtime-owned async capability family。
 - ai-provider 不得引入 app-side provider upload / poll / fetch protocol。
 - provider-specific request shaping、connector secret ownership、以及 job
   lifecycle 继续由 runtime authority surfaces 负责。
+
+## S-AIP-007 External AI Framework Adapter Boundary
+
+`@nimiplatform/sdk/ai-provider` may host adapters for external AI framework
+provider contracts, including Vercel AI SDK and similar model-provider
+interfaces.
+
+Such adapters are protocol adapters only. They may map framework calls such as
+text generation, streaming, structured output, and caller-owned tool-loop
+coordination onto admitted Nimi Runtime / SDK surfaces. They must preserve
+`S-SURFACE-015` through `S-SURFACE-018` and `S-BOUNDARY-005` through
+`S-BOUNDARY-006`.
+
+They must not:
+
+- introduce an independent provider/model routing table
+- keep connector secrets or provider credentials outside Runtime custody
+- emulate unsupported tool-calling, JSON mode, cache, reasoning, usage, or
+  stream semantics as successful parity
+- expose a stable OpenAI-compatible Runtime endpoint
+- persist framework session, memory, or event state as Nimi canonical truth
+
+Capability gaps must be typed and visible to the caller. Framework-specific
+ergonomics are allowed only while Runtime / Realm / Cognition authority remains
+the sole source for durable product state and enforcement.

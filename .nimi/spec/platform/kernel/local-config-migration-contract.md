@@ -1,11 +1,11 @@
-# Local Config Migration And Repair Contract
+# Local Config Validation And Repair Contract
 
 > Owner Domain: `P-MIG-*`
 
 ## Scope
 
-定义 `~/.nimi` 用户本地配置文件族的跨文件 schema 迁移、修复路由、
-`schemaVersion` fail-closed 语义，以及 `nimi_data` data-root 迁移流程。
+定义 `~/.nimi` 用户本地配置文件族的 current-schema 读取、修复路由、
+`schemaVersion` fail-closed 语义，以及 `nimi_data` data-root 目录所有权/修复边界。
 
 本契约是 T10 portfolio 的 cross-cutting authority：它**不**重新拥有任何单个
 `~/.nimi` schema 文件的字段定义。每个 schema 文件的字段权威仍归其 surface owner
@@ -14,19 +14,17 @@ topic（`~/.nimi/nimi.json` → T1；`~/.nimi/runtime/config.json` /
 `~/.nimi` app registry / packages / library / grants 文件 → T4）。本契约只拥有：
 
 - 跨文件统一的 `schemaVersion` fail-closed 规则；
-- 跨文件统一的 migration framework（ordered registry + backup + atomic
-  rewrite + idempotent replay）；
+- 跨文件统一的 current-schema validation framework（无自动旧 schema upgrade）；
 - 跨文件统一的 repair 路由规则（unknown version / broken pointer →
   `repair_required` / `blocked`，never raw error、never silent recreate、
   never data orphaning）；
-- `nimi_data` data-root 迁移流程（size/impact preview、typed state machine、
-  destructive-cleanup confirmation）。
+- `nimi_data` data-root 目录所有权与 destructive-cleanup confirmation floor。
 
 Runtime `~/.nimi/runtime/config.json` 的迁移机制由 Runtime kernel 的
 `K-CFG-014` / `K-CFG-015` / `K-CFG-016` 定义并执行。本契约**不**重定义该机制；
-`~/.nimi` 配置文件族的统一框架与之**对齐**：相同的 ordered-migration、
-pre-migration backup、atomic write、idempotent replay 语义在 `P-MIG-*` 中作为
-跨文件 floor 固化，Runtime config 继续由 `K-CFG-*` 作为该文件自身的执行权威。
+`~/.nimi` 配置文件族的统一框架与之**不竞争**：Desktop 侧不执行 Runtime config
+迁移，也不提供跨文件旧 schema 自动升级。Runtime config 继续由 `K-CFG-*` 作为
+该文件自身的执行权威。
 
 不拥有：
 
@@ -46,8 +44,8 @@ pre-migration backup、atomic write、idempotent replay 语义在 `P-MIG-*` 中�
 | `~/.nimi/runtime/config.json` | T2 | Runtime config；迁移执行由 `K-CFG-014..016` 拥有 |
 | `~/.nimi/runtime/default.json` | T2 | Runtime default seed |
 | `~/.nimi/profiles/factory-index.json` | T2 | factory AIProfile index |
-| `~/.nimi/registry.json` | T4 | account apps registry projection |
-| `~/.nimi/packages.json` | T4 | installed app packages projection |
+| `~/.nimi/apps/registry.json` | T4 | account apps registry projection |
+| `~/.nimi/apps/packages.json` | T4 | installed app packages projection |
 | `~/.nimi/library.json` | T4 | account profile library projection |
 | `~/.nimi/grants.json` | T4 | permission grant projection |
 
@@ -71,43 +69,40 @@ pre-migration backup、atomic write、idempotent replay 语义在 `P-MIG-*` 中�
 该文件 owner topic 声明的当前 supported `schemaVersion`：
 
 - `schemaVersion` 等于当前 supported version → 正常读取。
-- `schemaVersion` 小于当前 supported version 且存在已登记的迁移路径 → 按
-  `P-MIG-003` 执行顺序迁移后再读取。
+- `schemaVersion` 小于当前 supported version → fail-closed，按 `P-MIG-004`
+  路由到 `repair_required`。项目未上线，Desktop 不提供旧 schema 自动升级。
 - `schemaVersion` 大于当前 supported version（未知未来版本）→ fail-closed，按
   `P-MIG-004` 路由到 `repair_required`。
-- `schemaVersion` 小于当前 supported version 且**无**已登记迁移路径 →
-  fail-closed，按 `P-MIG-004` 路由到 `repair_required`。
 
 `MUST NOT`：读取方不得对未知 `schemaVersion` 做"猜测修复"、字段补默认、降级为
 部分可用、或以 best-effort projection 当作 ready。未知 `schemaVersion` 永远是
 fail-closed-to-repair，不是 fail-open。
 
-## P-MIG-003 — Shared Migration Framework
+## P-MIG-003 — Shared Current-Schema Validation Framework
 
-`MUST`：governed config file family 必须共享同一个迁移框架，不得每个文件各自
-实现一套 schema upgrade 逻辑。该共享框架必须提供：
+`MUST`：governed config file family 必须共享同一个 current-schema validation /
+repair-routing 框架，不得每个文件各自实现一套旧 schema upgrade 逻辑。该共享框架
+必须提供：
 
-- **ordered migration registry**：每个文件族的迁移步骤按 `from_version` →
-  `to_version` 有序登记；迁移引擎按顺序逐级应用，不得跳级隐式升级。
-- **per-step migration plan**：每个迁移步骤必须声明 `from_version`、
-  `to_version`、字段级变更、默认值策略与 fail-close 条件。未知旧字段只能通过
-  显式迁移规则处理，不得静默丢弃。
-- **pre-migration backup**：迁移成功写回前，必须保留可恢复的 pre-migration
-  备份或等价回滚材料。
-- **atomic rewrite**：迁移后写回必须是原子写；写回失败时保留旧文件、终止该
-  文件进入 ordinary readiness，并暴露 typed 失败给上层。
-- **idempotent replay**：同一版本配置多次重放迁移，输出结果必须一致。
+- **current-version gate**：只接受该文件 owner topic 声明的当前
+  `schemaVersion`。
+- **no write on read**：读取、解析、版本检查、结构校验失败不得改写文件、
+  不得创建 `.bak`、不得写入默认字段。
+- **owner structural validation**：字段级 schema、pointer 校验、repair/regenerate
+  行为仍由单文件 owner 拥有；共享框架只负责 current-schema gate 与 typed repair
+  outcome。
 
-`MUST`：per-file *migration step 定义*（具体某次 `schemaVersion` 递增的字段级
-变更）由该文件的 schema-owner topic（T1 / T2 / T4）随版本 bump 一并提供并登记
-进 registry。本契约只拥有 framework 与登记约束，不预先编写他人文件的迁移步骤。
+`MUST`：若产品上线后需要真实 schema bump，必须由对应 schema owner 先提交新的
+authority 与 migration packet；在该 authority admitted 之前，旧版本一律
+fail-closed-to-repair。
 
 `MUST`：Runtime `~/.nimi/runtime/config.json` 的迁移执行继续由 `K-CFG-014` /
-`K-CFG-015` / `K-CFG-016` 拥有。本框架对该文件的约束是 alignment-only：`P-MIG-*`
-框架语义必须与 `K-CFG-*` 一致，二者不得对同一文件给出冲突的迁移执行规则。
+`K-CFG-015` / `K-CFG-016` 拥有。本框架对该文件的约束是 membership /
+alignment-only：`P-MIG-*` 不执行该文件迁移。
 
 `MUST NOT`：不得存在第二套并行的 `~/.nimi` schema upgrade 实现；不得出现
-"schema 已升级但投影仍停留旧版本"的漂移。
+Desktop 读旧版本并自动补字段、改写文件、保留 migration backup、或把旧版本当作
+ordinary ready 的行为。
 
 ## P-MIG-004 — Repair Routing For Unknown Version And Broken Pointer
 
@@ -144,7 +139,8 @@ environment 数据失去其权威 pointer，该操作必须 fail-closed，并把
 
 `MUST NOT`：missing config 文件不得通过写入一个指向新空目录的默认 pointer 来
 "恢复"，如果磁盘上已存在一个先前选定的 `nimi_data` / 数据目录——该情况必须
-进入修复流程，由 `P-MIG-007` 的迁移/重连流程处理。
+进入 blocked/repair 流程；在 data-root relocation Support/Admin capability admitted
+之前，不得提供普通迁移、重连、或 pointer rewrite。
 
 ## P-MIG-006 — `nimi_data` Directory Ownership Authority
 
@@ -163,26 +159,16 @@ environment 数据失去其权威 pointer，该操作必须 fail-closed，并把
 副作用删除 shared models、Runtime dependencies、account data 或其他 app 的
 数据。
 
-## P-MIG-007 — `nimi_data` Migration Flow
+## P-MIG-007 — `nimi_data` Relocation Requires Admitted Support/Admin Authority
 
-`MUST`：first-run 之后移动 `nimi_data` data root 必须是一个显式迁移流程，
-不是 first-run 的 casual back-button，也不是单纯改写 data-root pointer。该迁移
-流程必须包含：
+`MUST`：first-run 之后移动 `nimi_data` data root 不属于 ordinary Desktop app
+行为。若产品需要该能力，必须作为显式 Support/Admin capability 先 admitted，并
+证明其 owner、impact preview、typed state machine、pointer commit last、Runtime
+config re-sync 与 no-orphaning 语义。
 
-- **size/impact preview**：在确认前向用户展示待迁移数据规模、受影响目录
-  （按 `P-MIG-006` 的 owner 分类）与预计影响。
-- **typed migration state machine**：迁移过程必须经过 typed 状态（至少
-  `preview` → `confirmed` → `in_progress` → `verifying` → `completed`，
-  以及失败分支 `failed` / `repair_required`），不得是单步不可观测的改写。
-- **fail-closed on partial move**：迁移中途失败时，必须进入可恢复的失败状态，
-  保留既有 data root 仍可指向、不得使任一侧数据被孤立（`P-MIG-005`）。
-- **pointer commit last**：`~/.nimi/nimi.json` 的 `dataRoot` / `pointers`
-  与 Runtime config 的 `dataRootRef` 只能在数据已迁移并通过校验后、作为迁移的
-  最后一步原子提交。
-
-`MUST NOT`：迁移流程不得在数据搬运完成并校验通过之前改写 data-root pointer；
-不得在没有 preview 的情况下执行 data root 变更；不得把 data-root 变更降级为
-runtime config 的静默 re-sync。
+`MUST NOT`：普通 Desktop 设置页、renderer、或 product-control first-run path
+不得把 data-root 变更降级为 silent pointer rewrite、普通重新选择、或 Runtime
+config 的静默 re-sync。
 
 ## P-MIG-008 — Destructive Cleanup Confirmation
 
@@ -201,11 +187,12 @@ non-cache 的 user / app / account 持久数据；`cache/` / `tmp/` 类纯缓存
   对该文件只提供 governed-family 成员资格与统一 fail-closed/repair-routing
   floor，不重定义其 `state` 集合。
 - `~/.nimi/runtime/config.json` 的迁移执行仍归 `K-CFG-014..016`；本契约只
-  作为跨文件 floor 与之对齐，不重定义其执行规则。
+  作为跨文件 membership / repair floor 与之对齐，不重定义其执行规则。
 - `nimi_data` 子目录的 materialization 写入与 job 执行仍归 Runtime
-  `K-LENV-*`；本契约只拥有目录 owner/cleanup 表与 data-root 迁移流程。
+  `K-LENV-*`；本契约只拥有目录 owner/cleanup 表与 data-root relocation admission
+  floor，不提供 ordinary Desktop relocation 执行面。
 - per-file schema 字段定义仍归各 owner topic（T1 / T2 / T4）；本契约只拥有
-  跨文件 migration framework 与 repair-routing 规则。
+  跨文件 current-schema validation framework 与 repair-routing 规则。
 
 ## Fact Sources
 

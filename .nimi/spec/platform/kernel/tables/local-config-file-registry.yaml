@@ -5,9 +5,9 @@ matrix_id: platform_local_config_migration_registry
 description: >-
   Canonical membership registry for the ~/.nimi governed config file family.
   Source authority is local-config-migration-contract.md (P-MIG-001, P-MIG-003).
-  Records which ~/.nimi user-local config files share the cross-file migration
+  Records which ~/.nimi user-local config files share the cross-file validation
   framework and which authority owns each file's schema field definitions. Does
-  not define schema fields and does not author migration steps.
+  not define schema fields and does not author old-schema migration steps.
 rows:
   - config_files_1
   - config_files_2
@@ -18,10 +18,10 @@ rows:
   - config_files_7
   - config_files_8
   - every governed ~/.nimi user-local config file must declare its schema owner
-    and migration framework authority before it is admitted to ordinary
+    and current-schema validation framework authority before it is admitted to ordinary
     readiness paths
-  - per-file migration step definitions are owned by each file's schema owner
-    and registered against the shared framework per P-MIG-003
+  - old schemaVersion values fail closed to repair unless a future admitted
+    owner packet explicitly adds a migration capability
   - runtime/config.json migration execution remains owned by K-CFG-014..016;
     this registry records membership and alignment only
   - unknown future schemaVersion or broken pointer in any governed file routes
@@ -53,13 +53,13 @@ config_files:
     source_rule: P-MIG-001
 
   - config_file_id: registry_json
-    path: "~/.nimi/registry.json"
+    path: "~/.nimi/apps/registry.json"
     schema_owner: account_apps_registry
     framework_authority: P-MIG-003
     source_rule: P-MIG-001
 
   - config_file_id: packages_json
-    path: "~/.nimi/packages.json"
+    path: "~/.nimi/apps/packages.json"
     schema_owner: account_apps_packages
     framework_authority: P-MIG-003
     source_rule: P-MIG-001

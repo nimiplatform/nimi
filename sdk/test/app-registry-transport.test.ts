@@ -163,7 +163,7 @@ describe('Nimi App registry transport', () => {
     const status = await transport.status('nimi.example-app');
     assert.equal(status.launchReadiness, 'ready');
     assert.equal(status.verificationState, 'digest-verified');
-    assert.equal(status.storageRoots?.dataRoot, '/tmp/nimi/apps/nimi.example-app/data');
+    assert.equal(status.storageRoots, undefined);
   });
 
   it('is a pure read-projection transport — no lifecycle mutation methods', () => {
@@ -208,7 +208,7 @@ describe('Nimi App registry transport', () => {
     assert.equal(status.launchReadiness, 'install-required');
   });
 
-  it('does not let host install evidence mark ready without storage roots', async () => {
+  it('does not require host install evidence storage roots for readiness', async () => {
     const transport = createNimiAppRegistryTransport({
       loadRows: () => rows,
       loadReleaseDescriptors: () => descriptors,
@@ -218,7 +218,8 @@ describe('Nimi App registry transport', () => {
       }],
     });
     const status = await transport.status('nimi.example-app');
-    assert.equal(status.launchReadiness, 'install-required');
+    assert.equal(status.launchReadiness, 'ready');
+    assert.equal(status.storageRoots, undefined);
   });
 
   it('does not let host install evidence mark ready without installed version', async () => {

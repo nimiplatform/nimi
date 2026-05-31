@@ -514,9 +514,15 @@ function checkStoreSliceCount() {
 
 function checkBridgeReasonCodeCoverage() {
   const invokePath = 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/invoke.ts';
-  if (!fileExists(invokePath)) return;
+  const sdkReasonProjectionPath = 'sdk/src/runtime/reason-code-messages.ts';
+  if (!fileExists(invokePath) || !fileExists(sdkReasonProjectionPath)) return;
 
-  const content = read(invokePath);
+  const invokeContent = read(invokePath);
+  const sdkReasonProjectionContent = read(sdkReasonProjectionPath);
+
+  if (!invokeContent.includes('getRuntimeReasonCodeMessage')) {
+    fail('D-ERR-007 bridge invoke.ts must consume the SDK Runtime reason-code projection');
+  }
 
   const phase1CriticalCodes = [
     'AI_PROVIDER_TIMEOUT',
@@ -531,9 +537,16 @@ function checkBridgeReasonCodeCoverage() {
     'RUNTIME_UNAVAILABLE',
   ];
 
-  const missing = phase1CriticalCodes.filter((code) => !content.includes(code));
+  const missing = phase1CriticalCodes.filter((code) => !sdkReasonProjectionContent.includes(code));
   if (missing.length > 0) {
-    fail(`D-ERR-007 bridge invoke.ts missing Phase 1 ReasonCodes: ${missing.join(', ')}`);
+    fail(`D-ERR-007 SDK Runtime reason-code projection missing Phase 1 ReasonCodes: ${missing.join(', ')}`);
+  }
+
+  const invokeOwnedRuntimeMappings = phase1CriticalCodes.filter((code) =>
+    new RegExp(`(^|[\\s,{])${code}\\s*:`, 'm').test(invokeContent),
+  );
+  if (invokeOwnedRuntimeMappings.length > 0) {
+    fail(`D-ERR-007 bridge invoke.ts must not re-own Runtime ReasonCode mappings: ${invokeOwnedRuntimeMappings.join(', ')}`);
   }
 }
 

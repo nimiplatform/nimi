@@ -151,15 +151,6 @@ flows:
     description: Explore public agent recommendations/search, discovery feed pagination, plus raw public agent detail read used by preview and downstream display seams
     source_rule: D-DSYNC-008
 
-  - flow: notification
-    methods:
-      - loadNotificationUnreadCount
-      - loadNotifications
-      - markNotificationsRead
-      - markNotificationRead
-    description: Notification listing and read status
-    source_rule: D-DSYNC-009
-
   - flow: settings
     methods:
       - loadMySettings

@@ -17,9 +17,9 @@ const repoRoot = path.resolve(scriptDir, '..');
 
 const TARGET_GLOBS = [
   '.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml',
-  'apps/desktop/src/runtime/platform-catalog',
   'runtime/internal/services/app',
   'sdk/src/app',
+  'sdk/src/platform-catalog',
 ];
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs', '.go', '.yaml', '.yml']);

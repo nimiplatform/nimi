@@ -6,13 +6,13 @@ surfaces:
   - path: .nimi/spec/sdk/index.md
     package_subpath: "@nimiplatform/sdk"
     role: app_composition_root
-    governed_by: [S-SURFACE-001, S-SURFACE-012, S-RUNTIME-091]
-    note: Root composition surface may host World Evolution Engine app-facing logical facade candidates without implying new daemon RPC parity
+    governed_by: [S-SURFACE-001, S-SURFACE-012, S-SURFACE-015, S-SURFACE-016, S-SURFACE-017, S-SURFACE-018, S-RUNTIME-091]
+    note: Root composition surface may host World Evolution Engine app-facing logical facade candidates and SDK developer-experience facades without implying new daemon RPC parity or hidden truth ownership
   - path: .nimi/spec/sdk/runtime.md
     package_subpath: "@nimiplatform/sdk/runtime"
     role: runtime_projection
-    governed_by: [S-SURFACE-002, S-SURFACE-007, S-SURFACE-009, S-SURFACE-011, S-SURFACE-012, S-RUNTIME-091]
-    note: Shared World Evolution Engine app-facing candidate types may be projected here, but logical facades remain consumer-seam-only rather than daemon method-group parity
+    governed_by: [S-SURFACE-002, S-SURFACE-007, S-SURFACE-009, S-SURFACE-011, S-SURFACE-012, S-SURFACE-015, S-SURFACE-016, S-SURFACE-017, S-RUNTIME-091]
+    note: Shared World Evolution Engine app-facing candidate types and runtime helper ergonomics may be projected here, but logical facades remain consumer-seam-only rather than daemon method-group parity
   - path: .nimi/spec/sdk/world.md
     package_subpath: "@nimiplatform/sdk/world"
     role: world_domain_facade
@@ -21,7 +21,8 @@ surfaces:
   - path: .nimi/spec/sdk/ai-provider.md
     package_subpath: "@nimiplatform/sdk/ai-provider"
     role: ai_provider_projection
-    governed_by: [S-SURFACE-011]
+    governed_by: [S-SURFACE-011, S-SURFACE-015, S-SURFACE-016, S-SURFACE-018, S-AIP-007]
+    note: External AI framework adapters are protocol adapters over Runtime/SDK public surfaces, not provider routing or agent truth owners
   - path: .nimi/spec/sdk/realm.md
     package_subpath: "@nimiplatform/sdk/realm"
     role: realm_projection
