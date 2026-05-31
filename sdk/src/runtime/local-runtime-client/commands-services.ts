@@ -1,4 +1,5 @@
-import { parseNodeDescriptor, toProtoStruct } from '@nimiplatform/sdk/runtime';
+import { toProtoStruct } from '../helpers.js';
+import { parseNodeDescriptor } from '../local-node-service.js';
 import type {
   LocalRuntimeAuditEvent,
   LocalRuntimeAuditPayload,
@@ -6,9 +7,9 @@ import type {
   LocalRuntimeInferenceAuditPayload,
   LocalRuntimeNodeDescriptor,
   LocalRuntimeNodesCatalogListPayload,
-} from './types';
-import { parseAuditEvent } from './parsers';
-import { asRecord, requireSdkLocal } from './commands-shared';
+} from './types.js';
+import { parseAuditEvent } from './parsers.js';
+import { asRecord, requireSdkLocal } from './commands-shared.js';
 
 export async function listLocalRuntimeNodesCatalog(
   payload?: LocalRuntimeNodesCatalogListPayload,

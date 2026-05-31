@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-const runtimeTypesPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/types.ts');
-const runtimeCommandsPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands.ts');
+const runtimeTypesPath = path.resolve(process.cwd(), '../../sdk/src/runtime/local-runtime-client/types.ts');
+const runtimeCommandsPath = path.resolve(process.cwd(), '../../sdk/src/runtime/local-runtime-client/commands.ts');
 
 const runtimeTypesSource = readFileSync(runtimeTypesPath, 'utf-8');
 const runtimeCommandsSource = readFileSync(runtimeCommandsPath, 'utf-8');

@@ -5,7 +5,7 @@ import {
   parseCatalogRecommendation,
   parseGgufVariantDescriptor,
   parseAssetRecord as parseModelRecord,
-} from '../src/runtime/local-runtime/parsers.js';
+} from '@nimiplatform/sdk/runtime';
 
 test('parseCatalogRecommendation fails closed when source is missing', () => {
   const parsed = parseCatalogRecommendation({

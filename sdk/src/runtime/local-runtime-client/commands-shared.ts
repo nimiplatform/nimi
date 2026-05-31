@@ -1,15 +1,26 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
 import {
   toCanonicalLocalRuntimeAssetLookupKey,
+} from '../local-asset-id.js';
+import {
   toLocalRuntimeAssetKindRequestValue,
   toLocalRuntimeAssetStatusRequestValue,
-} from '@nimiplatform/sdk/runtime';
+} from '../local-asset-kind.js';
+import type { RuntimeLocalServiceClient } from '../types-client-interfaces.js';
 import type {
   LocalRuntimeAssetRecord,
   LocalRuntimeListAssetsPayload,
-} from './types';
+} from './types.js';
 
-type LocalClient = ReturnType<typeof getPlatformClient>['runtime']['local'];
+type LocalClient = RuntimeLocalServiceClient;
+type LocalRuntimeClientWarning = {
+  level: 'warn';
+  area: 'local-ai';
+  message: string;
+  details?: Record<string, unknown>;
+};
+
+let localClientProvider: (() => LocalClient | null) | null = null;
+let warningListener: ((warning: LocalRuntimeClientWarning) => void) | null = null;
 
 export function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -20,7 +31,7 @@ export function asRecord(value: unknown): Record<string, unknown> {
 
 export function getSdkLocal(): LocalClient | null {
   try {
-    return getPlatformClient().runtime.local;
+    return localClientProvider?.() ?? null;
   } catch {
     return null;
   }
@@ -32,6 +43,30 @@ export function requireSdkLocal(): LocalClient {
     throw new Error('Runtime local service unavailable');
   }
   return runtime;
+}
+
+export function bindLocalRuntimeServiceClientProvider(provider: () => LocalClient | null): () => void {
+  localClientProvider = provider;
+  return () => {
+    if (localClientProvider === provider) {
+      localClientProvider = null;
+    }
+  };
+}
+
+export function bindLocalRuntimeClientWarningListener(
+  listener: ((warning: LocalRuntimeClientWarning) => void) | null,
+): () => void {
+  warningListener = listener;
+  return () => {
+    if (warningListener === listener) {
+      warningListener = null;
+    }
+  };
+}
+
+export function emitLocalRuntimeClientWarning(warning: LocalRuntimeClientWarning): void {
+  warningListener?.(warning);
 }
 
 export function toAssetStatusFilter(status?: LocalRuntimeListAssetsPayload['status']): number {

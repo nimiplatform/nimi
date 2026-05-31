@@ -1,9 +1,9 @@
-import type { LocalRuntimeAssetRecord, LocalRuntimeServiceDescriptor } from './types';
+import type { LocalRuntimeAssetRecord, LocalRuntimeServiceDescriptor } from './types.js';
 import type {
   LocalRuntimeExecutionEntryDescriptor,
   LocalRuntimeExecutionStageResult,
   LocalRuntimePreflightDecision,
-} from '@nimiplatform/sdk/runtime';
+} from '../local-execution-plan.js';
 
 export type {
   LocalRuntimeDeviceProfile,
@@ -20,7 +20,7 @@ export type {
   LocalRuntimePortAvailability,
   LocalRuntimePreflightDecision,
   LocalRuntimePythonProfile,
-} from '@nimiplatform/sdk/runtime';
+} from '../local-execution-plan.js';
 
 export type LocalRuntimeExecutionApplyResult = {
   planId: string;

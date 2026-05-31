@@ -1,4 +1,4 @@
-import type { LocalRuntimeAssetRecord } from './types';
+import type { LocalRuntimeAssetRecord } from './types.js';
 import type {
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileEntryDescriptor,
@@ -7,13 +7,15 @@ import type {
   LocalRuntimeProfileExecutionBridge,
   LocalRuntimeProfileRequirementDescriptor,
   LocalRuntimeProfileTargetDescriptor,
+} from '../local-profile-manifest.js';
+import type {
   LocalRuntimeRunnableAssetKindId,
-} from '@nimiplatform/sdk/runtime';
+} from '../local-asset-kind.js';
 import type {
   LocalRuntimeExecutionApplyResult,
   LocalRuntimeExecutionPlan,
   LocalRuntimeDeviceProfile,
-} from './types-dependencies';
+} from './types-dependencies.js';
 
 export type {
   LocalRuntimeProfileDescriptor,

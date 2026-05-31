@@ -1,345 +1,41 @@
+import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  appendLocalRuntimeInferenceAudit,
-  appendLocalRuntimeAudit,
-  subscribeLocalRuntimeDownloadProgress,
-  healthLocalRuntimeAssets,
-  installLocalRuntimeVerifiedAsset,
-  importLocalRuntimeAsset,
-  importLocalRuntimeAssetFile,
-  importLocalRuntimeAssetFileUnified,
-  importLocalRuntimeAssetBundle,
-  importLocalRuntimeAssetManifest,
-  installLocalRuntimeAsset,
-  searchLocalRuntimeCatalog,
-  listLocalRuntimeRepoGgufVariants,
-  resolveLocalRuntimeInstallPlan,
-  resolveLocalRuntimeEnvironmentPlan,
-  startLocalRuntimeEnvironmentDependencyJob,
-  cancelLocalRuntimeEnvironmentDependencyJob,
-  retryLocalRuntimeEnvironmentDependencyJob,
-  repairLocalRuntimeEnvironmentDependency,
-  listLocalRuntimeEnvironmentDependencyJobs,
-  listLocalRuntimeDownloadSessions,
-  pauseLocalRuntimeDownload,
-  resumeLocalRuntimeDownload,
-  cancelLocalRuntimeDownload,
-  collectLocalRuntimeDeviceProfile,
-  getLocalRuntimeRecommendationFeed,
-  applyLocalRuntimeProfile,
-  listLocalRuntimeNodesCatalog,
-  listLocalRuntimeAssets,
-  listLocalRuntimeVerifiedAssets,
-  listLocalRuntimeAudits,
-  pickLocalRuntimeAssetManifestPath,
-  pickLocalRuntimeAssetFile,
+  bindLocalRuntimeClientWarningListener,
+  bindLocalRuntimeServiceClientProvider,
+  localRuntime as sdkLocalRuntime,
+  type LocalRuntimeFacade as SdkLocalRuntimeFacade,
+} from '@nimiplatform/sdk/runtime';
+import { emitRuntimeLog } from '../telemetry/logger';
+import {
   pickLocalRuntimeAssetDirectory,
-  removeLocalRuntimeAsset,
-  rescanLocalRuntimeAssetBundle,
-  startLocalRuntimeAsset,
-  stopLocalRuntimeAsset,
-  scanLocalRuntimeUnregisteredAssets,
-  scaffoldLocalRuntimeOrphanAsset,
-  resolveLocalRuntimeProfile,
-} from './commands';
-import type {
-  GgufVariantDescriptor,
-  LocalRuntimeCatalogRecommendation,
-  LocalRuntimeCatalogVariantDescriptor,
-  LocalRuntimeAssetKind,
-  LocalRuntimeSuggestionSource,
-  LocalRuntimeSuggestionConfidence,
-  LocalRuntimeAssetDeclaration,
-  LocalRuntimeUnregisteredAssetDescriptor,
-  LocalRuntimeAssetRecord,
-  LocalRuntimeVerifiedAssetDescriptor,
-  LocalRuntimeAuditEvent,
-  LocalRuntimeCatalogItemDescriptor,
-  LocalRuntimeCatalogResolveInstallPlanPayload,
-  LocalRuntimeCatalogSearchPayload,
-  LocalRuntimeAuditQuery,
-  LocalRuntimeProfileApplyResult,
-  LocalRuntimeProfileDescriptor,
-  LocalRuntimeProfileEntryDescriptor,
-  LocalRuntimeProfileEntryOverride,
-  LocalRuntimeProfileInstallRequest,
-  LocalRuntimeProfileInstallRequestResult,
-  LocalRuntimeProfileResolutionPlan,
-  LocalRuntimeProfileResolvePayload,
-  LocalRuntimeProfileTargetDescriptor,
-  LocalRuntimeDeviceProfile,
-  LocalRuntimeDownloadSessionSummary,
-  LocalRuntimeTransferAccepted,
-  LocalRuntimeDownloadState,
-  LocalRuntimeDownloadProgressEvent,
-  LocalRuntimeImportAssetFilePayload,
-  LocalRuntimeAssetFileImportResult,
-  LocalRuntimeAssetManifestImportResult,
-  LocalRuntimeInstallVerifiedAssetPayload,
-  LocalRuntimeInstallPlanDescriptor,
-  LocalRuntimeImportAssetPayload,
-  LocalRuntimeImportFilePayload,
-  LocalRuntimeImportBundlePayload,
-  LocalRuntimeInstallPayload,
-  LocalRuntimeProviderAdapter,
-  LocalRuntimeProviderHints,
-  LocalRuntimeServiceDescriptor,
-  LocalRuntimeNodeDescriptor,
-  LocalRuntimeExecutionEntryDescriptor,
-  LocalRuntimeExecutionPlan,
-  LocalRuntimeCapabilityMatrixEntry,
-  LocalRuntimeNodesCatalogListPayload,
-  LocalRuntimeAssetHealth,
-  LocalRuntimeAssetStatus,
-  LocalRuntimeRecommendationFeedDescriptor,
-  LocalRuntimeRecommendationFeedItemDescriptor,
-  LocalRuntimeRecommendationFeedGetPayload,
-  LocalRuntimeAuditPayload,
-  LocalRuntimeSnapshot,
-  LocalRuntimeWriteOptions,
-  LocalRuntimeImportManifestOptions,
-  LocalRuntimeListAssetsPayload,
-  LocalRuntimeListVerifiedAssetsPayload,
-  LocalRuntimeInferenceAuditPayload,
-  LocalRuntimeScaffoldAssetPayload,
-  LocalRuntimeScaffoldAssetResult,
-  LocalRuntimeScaffoldOrphanPayload,
-  LocalRuntimeRescanBundlePayload,
-  LocalRuntimeEnvironmentDependencyJob,
-  LocalRuntimeEnvironmentDependencyJobCancelPayload,
-  LocalRuntimeEnvironmentDependencyJobsPayload,
-  LocalRuntimeEnvironmentDependencyJobRetryPayload,
-  LocalRuntimeEnvironmentDependencyJobStartPayload,
-  LocalRuntimeEnvironmentDependencyRepairPayload,
-  LocalRuntimeEnvironmentPlan,
-  LocalRuntimeEnvironmentPlanDependency,
-  LocalRuntimeEnvironmentPlanPayload,
-} from './types';
-export { listLocalRuntimeAssets };
+  pickLocalRuntimeAssetFile,
+  pickLocalRuntimeAssetManifestPath,
+} from './commands-pickers';
 
-export type {
-  LocalRuntimeAssetKind,
-  LocalRuntimeSuggestionSource,
-  LocalRuntimeSuggestionConfidence,
-  LocalRuntimeAssetDeclaration,
-  LocalRuntimeUnregisteredAssetDescriptor,
-  GgufVariantDescriptor,
-  LocalRuntimeCatalogRecommendation,
-  LocalRuntimeCatalogVariantDescriptor,
-  LocalRuntimeAssetRecord,
-  LocalRuntimeVerifiedAssetDescriptor,
-  LocalRuntimeAuditEvent,
-  LocalRuntimeCatalogItemDescriptor,
-  LocalRuntimeCatalogResolveInstallPlanPayload,
-  LocalRuntimeCatalogSearchPayload,
-  LocalRuntimeAuditQuery,
-  LocalRuntimeProfileApplyResult,
-  LocalRuntimeProfileDescriptor,
-  LocalRuntimeProfileEntryDescriptor,
-  LocalRuntimeProfileEntryOverride,
-  LocalRuntimeProfileInstallRequest,
-  LocalRuntimeProfileInstallRequestResult,
-  LocalRuntimeProfileResolutionPlan,
-  LocalRuntimeProfileResolvePayload,
-  LocalRuntimeProfileTargetDescriptor,
-  LocalRuntimeDeviceProfile,
-  LocalRuntimeDownloadSessionSummary,
-  LocalRuntimeDownloadState,
-  LocalRuntimeDownloadProgressEvent,
-  LocalRuntimeImportAssetFilePayload,
-  LocalRuntimeAssetFileImportResult,
-  LocalRuntimeAssetManifestImportResult,
-  LocalRuntimeInstallVerifiedAssetPayload,
-  LocalRuntimeInstallPlanDescriptor,
-  LocalRuntimeImportAssetPayload,
-  LocalRuntimeImportFilePayload,
-  LocalRuntimeImportBundlePayload,
-  LocalRuntimeInstallPayload,
-  LocalRuntimeProviderAdapter,
-  LocalRuntimeProviderHints,
-  LocalRuntimeServiceDescriptor,
-  LocalRuntimeNodeDescriptor,
-  LocalRuntimeExecutionEntryDescriptor,
-  LocalRuntimeExecutionPlan,
-  LocalRuntimeCapabilityMatrixEntry,
-  LocalRuntimeNodesCatalogListPayload,
-  LocalRuntimeAssetHealth,
-  LocalRuntimeAssetStatus,
-  LocalRuntimeRecommendationFeedDescriptor,
-  LocalRuntimeRecommendationFeedItemDescriptor,
-  LocalRuntimeRecommendationFeedGetPayload,
-  LocalRuntimeAuditPayload,
-  LocalRuntimeSnapshot,
-  LocalRuntimeWriteOptions,
-  LocalRuntimeImportManifestOptions,
-  LocalRuntimeListAssetsPayload,
-  LocalRuntimeListVerifiedAssetsPayload,
-  LocalRuntimeScaffoldAssetPayload,
-  LocalRuntimeScaffoldAssetResult,
-  LocalRuntimeScaffoldOrphanPayload,
-  LocalRuntimeRescanBundlePayload,
-  LocalRuntimeEnvironmentDependencyJob,
-  LocalRuntimeEnvironmentDependencyJobCancelPayload,
-  LocalRuntimeEnvironmentDependencyJobsPayload,
-  LocalRuntimeEnvironmentDependencyJobRetryPayload,
-  LocalRuntimeEnvironmentDependencyJobStartPayload,
-  LocalRuntimeEnvironmentDependencyRepairPayload,
-  LocalRuntimeEnvironmentPlan,
-  LocalRuntimeEnvironmentPlanDependency,
-  LocalRuntimeEnvironmentPlanPayload,
-};
+export type * from '@nimiplatform/sdk/runtime';
+export { listLocalRuntimeAssets } from '@nimiplatform/sdk/runtime';
 
-export type LocalRuntimeFacade = {
-  listAssets: (payload?: LocalRuntimeListAssetsPayload) => Promise<LocalRuntimeAssetRecord[]>;
-  searchCatalog: (payload?: LocalRuntimeCatalogSearchPayload) => Promise<LocalRuntimeCatalogItemDescriptor[]>;
-  listRepoVariants: (repo: string) => Promise<LocalRuntimeCatalogVariantDescriptor[]>;
-  resolveInstallPlan: (payload: LocalRuntimeCatalogResolveInstallPlanPayload) => Promise<LocalRuntimeInstallPlanDescriptor>;
-  collectDeviceProfile: () => Promise<LocalRuntimeDeviceProfile>;
-  getRecommendationFeed: (
-    payload?: LocalRuntimeRecommendationFeedGetPayload,
-  ) => Promise<LocalRuntimeRecommendationFeedDescriptor>;
-  resolveProfile: (payload: LocalRuntimeProfileResolvePayload) => Promise<LocalRuntimeProfileResolutionPlan>;
-  applyProfile: (
-    plan: LocalRuntimeProfileResolutionPlan,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeProfileApplyResult>;
-  listNodesCatalog: (payload?: LocalRuntimeNodesCatalogListPayload) => Promise<LocalRuntimeNodeDescriptor[]>;
-  install: (
-    plan: LocalRuntimeInstallPlanDescriptor,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeAssetRecord>;
-  listVerifiedAssets: (
-    payload?: LocalRuntimeListVerifiedAssetsPayload,
-  ) => Promise<LocalRuntimeVerifiedAssetDescriptor[]>;
-  installVerifiedAsset: (
-    payload: LocalRuntimeInstallVerifiedAssetPayload,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeAssetRecord>;
-  listDownloads: () => Promise<LocalRuntimeDownloadSessionSummary[]>;
-  pauseDownload: (
-    installSessionId: string,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeDownloadSessionSummary>;
-  resumeDownload: (
-    installSessionId: string,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeDownloadSessionSummary>;
-  cancelDownload: (
-    installSessionId: string,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeDownloadSessionSummary>;
-  importAsset: (
-    payload: LocalRuntimeImportAssetPayload,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeAssetRecord>;
+bindLocalRuntimeServiceClientProvider(() => {
+  try {
+    return getPlatformClient().runtime.local;
+  } catch {
+    return null;
+  }
+});
+
+bindLocalRuntimeClientWarningListener((warning) => {
+  emitRuntimeLog(warning);
+});
+
+export type LocalRuntimeFacade = SdkLocalRuntimeFacade & {
   pickAssetFile: () => Promise<string | null>;
   pickAssetDirectory: () => Promise<string | null>;
-  importFile: (
-    payload: LocalRuntimeImportFilePayload,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeAssetRecord>;
-  importAssetBundle: (
-    payload: LocalRuntimeImportBundlePayload,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeTransferAccepted>;
-  remove: (
-    localAssetId: string,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeAssetRecord>;
-  start: (
-    localAssetId: string,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeAssetRecord>;
-  stop: (
-    localAssetId: string,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeAssetRecord>;
-  health: (localAssetId?: string) => Promise<LocalRuntimeAssetHealth[]>;
-  resolveEnvironmentPlan: (payload: LocalRuntimeEnvironmentPlanPayload) => Promise<LocalRuntimeEnvironmentPlan>;
-  listEnvironmentDependencyJobs: (
-    payload?: LocalRuntimeEnvironmentDependencyJobsPayload,
-  ) => Promise<LocalRuntimeEnvironmentDependencyJob[]>;
-  startEnvironmentDependencyJob: (
-    payload: LocalRuntimeEnvironmentDependencyJobStartPayload,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeEnvironmentDependencyJob>;
-  cancelEnvironmentDependencyJob: (
-    payload: LocalRuntimeEnvironmentDependencyJobCancelPayload,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeEnvironmentDependencyJob>;
-  retryEnvironmentDependencyJob: (
-    payload: LocalRuntimeEnvironmentDependencyJobRetryPayload,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeEnvironmentDependencyJob>;
-  repairEnvironmentDependency: (
-    payload: LocalRuntimeEnvironmentDependencyRepairPayload,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeEnvironmentDependencyJob>;
-  appendAudit: (payload: LocalRuntimeAuditPayload) => Promise<void>;
-  appendInferenceAudit: (payload: LocalRuntimeInferenceAuditPayload) => Promise<void>;
-  listAudits: (query?: LocalRuntimeAuditQuery) => Promise<LocalRuntimeAuditEvent[]>;
   pickAssetManifestPath: () => Promise<string | null>;
-  subscribeDownloadProgress: (
-    listener: (event: LocalRuntimeDownloadProgressEvent) => void,
-  ) => Promise<() => void>;
-  rescanAssetBundle: (
-    payload: LocalRuntimeRescanBundlePayload,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeTransferAccepted>;
-  scaffoldOrphanAsset: (
-    payload: LocalRuntimeScaffoldOrphanPayload,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeAssetRecord>;
-  scanUnregisteredAssets: () => Promise<LocalRuntimeUnregisteredAssetDescriptor[]>;
-  importAssetFile: (
-    payload: LocalRuntimeImportAssetFilePayload,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeAssetFileImportResult>;
-  importAssetManifest: (
-    manifestPath: string,
-    options?: LocalRuntimeImportManifestOptions,
-  ) => Promise<LocalRuntimeAssetManifestImportResult>;
 };
 
 export const localRuntime: LocalRuntimeFacade = {
-  listAssets: listLocalRuntimeAssets,
-  searchCatalog: searchLocalRuntimeCatalog,
-  listRepoVariants: listLocalRuntimeRepoGgufVariants,
-  resolveInstallPlan: resolveLocalRuntimeInstallPlan,
-  collectDeviceProfile: collectLocalRuntimeDeviceProfile,
-  getRecommendationFeed: getLocalRuntimeRecommendationFeed,
-  resolveProfile: resolveLocalRuntimeProfile,
-  applyProfile: applyLocalRuntimeProfile,
-  listNodesCatalog: listLocalRuntimeNodesCatalog,
-  install: installLocalRuntimeAsset,
-  listVerifiedAssets: listLocalRuntimeVerifiedAssets,
-  installVerifiedAsset: installLocalRuntimeVerifiedAsset,
-  listDownloads: listLocalRuntimeDownloadSessions,
-  pauseDownload: pauseLocalRuntimeDownload,
-  resumeDownload: resumeLocalRuntimeDownload,
-  cancelDownload: cancelLocalRuntimeDownload,
-  importAsset: importLocalRuntimeAsset,
+  ...sdkLocalRuntime,
   pickAssetFile: pickLocalRuntimeAssetFile,
   pickAssetDirectory: pickLocalRuntimeAssetDirectory,
-  importFile: importLocalRuntimeAssetFile,
-  importAssetBundle: importLocalRuntimeAssetBundle,
-  remove: removeLocalRuntimeAsset,
-  start: startLocalRuntimeAsset,
-  stop: stopLocalRuntimeAsset,
-  health: healthLocalRuntimeAssets,
-  resolveEnvironmentPlan: resolveLocalRuntimeEnvironmentPlan,
-  listEnvironmentDependencyJobs: listLocalRuntimeEnvironmentDependencyJobs,
-  startEnvironmentDependencyJob: startLocalRuntimeEnvironmentDependencyJob,
-  cancelEnvironmentDependencyJob: cancelLocalRuntimeEnvironmentDependencyJob,
-  retryEnvironmentDependencyJob: retryLocalRuntimeEnvironmentDependencyJob,
-  repairEnvironmentDependency: repairLocalRuntimeEnvironmentDependency,
-  appendAudit: appendLocalRuntimeAudit,
-  appendInferenceAudit: appendLocalRuntimeInferenceAudit,
-  listAudits: listLocalRuntimeAudits,
   pickAssetManifestPath: pickLocalRuntimeAssetManifestPath,
-  subscribeDownloadProgress: subscribeLocalRuntimeDownloadProgress,
-  rescanAssetBundle: rescanLocalRuntimeAssetBundle,
-  scaffoldOrphanAsset: scaffoldLocalRuntimeOrphanAsset,
-  scanUnregisteredAssets: scanLocalRuntimeUnregisteredAssets,
-  importAssetFile: importLocalRuntimeAssetFileUnified,
-  importAssetManifest: importLocalRuntimeAssetManifest,
 };

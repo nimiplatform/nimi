@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-const runtimeCommandsAssetsPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands-assets.ts');
+const runtimeCommandsAssetsPath = path.resolve(process.cwd(), '../../sdk/src/runtime/local-runtime-client/commands-assets.ts');
 const runtimeIndexPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/index.ts');
 const localAiBridgePath = path.resolve(process.cwd(), 'src/shell/renderer/bridge/runtime-bridge/local-ai.ts');
 const localAiBridgeParsersPath = path.resolve(process.cwd(), 'src/shell/renderer/bridge/runtime-bridge/local-ai-parsers.ts');

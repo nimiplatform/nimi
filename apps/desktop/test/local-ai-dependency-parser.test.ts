@@ -15,7 +15,7 @@ import {
   parseUnregisteredAssetDescriptor,
   normalizeAssetStatus,
   normalizeEngineRuntimeMode,
-} from '../src/runtime/local-runtime/parsers.js';
+} from '@nimiplatform/sdk/runtime';
 
 test('parseExecutionPlan normalizes device profile and selections', () => {
   const parsed = parseExecutionPlan({

@@ -1,7 +1,7 @@
 import type {
   LocalRuntimeExecutionDeclarationDescriptor,
   LocalRuntimeDeviceProfile,
-} from './types-dependencies';
+} from './types-dependencies.js';
 import type {
   LocalRecommendationFeedCapabilityId,
   LocalRecommendationBaselineId,
@@ -19,21 +19,27 @@ import type {
   LocalRecommendationSuggestedAssetProjection,
   LocalRecommendationSourceId,
   LocalRecommendationTierId,
+} from '../local-recommendation-feed.js';
+import type {
   LocalRuntimeAssetKindId,
-  LocalRuntimeEngineRuntimeModeId,
   LocalRuntimeRunnableAssetKindId,
+} from '../local-asset-kind.js';
+import type {
   LocalRuntimeEnvironmentDependencyJobProjection,
   LocalRuntimeEnvironmentPlanDependencyProjection,
   LocalRuntimeEnvironmentPlanProjection,
+} from '../local-environment-dependency-states.js';
+import type { LocalRuntimeEngineRuntimeModeId } from '../local-engine.js';
+import type {
   LocalRuntimeNodeDescriptor,
   LocalRuntimeProviderAdapter,
   LocalRuntimeProviderHints,
   LocalRuntimeServiceDescriptor,
   LocalRuntimeServiceStatus,
-} from '@nimiplatform/sdk/runtime';
+} from '../local-node-service.js';
 import type {
   LocalRuntimeProfileResolvePayload,
-} from './types-profiles';
+} from './types-profiles.js';
 
 export type LocalRuntimeAssetStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
 export type LocalRuntimeAssetKind = LocalRuntimeAssetKindId;
@@ -137,7 +143,7 @@ export type {
   LocalRuntimeProviderSpeechHints,
   LocalRuntimeServiceDescriptor,
   LocalRuntimeServiceStatus,
-} from '@nimiplatform/sdk/runtime';
+} from '../local-node-service.js';
 
 export type LocalRuntimeRecommendationSource = LocalRecommendationSourceId;
 export type LocalRuntimeRecommendationFormat = LocalRecommendationFormatId;
@@ -278,7 +284,7 @@ export type {
   LocalRuntimeExecutionStageResult,
   LocalRuntimeExecutionPlan,
   LocalRuntimeExecutionApplyResult,
-} from './types-dependencies';
+} from './types-dependencies.js';
 export type {
   LocalRuntimeProfileEntryOverride,
   LocalRuntimeProfileEntryKind,
@@ -292,7 +298,7 @@ export type {
   LocalRuntimeProfileInstallRequest,
   LocalRuntimeProfileInstallRequestResult,
   LocalRuntimeProfileExecutionBridge,
-} from './types-profiles';
+} from './types-profiles.js';
 
 export type LocalRuntimeExecutionResolvePayload = {
   targetId: string;

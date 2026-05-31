@@ -1,10 +1,10 @@
 import {
   localRuntimeCapabilitiesForAssetKind,
-  toLocalRuntimeEngineRuntimeModeRequestValue,
+} from '../local-asset-kind.js';
+import {
   toProtoStruct,
-} from '@nimiplatform/sdk/runtime';
-import { tauriInvoke } from './tauri-helpers';
-import { emitRuntimeLog } from '../telemetry/logger';
+} from '../helpers.js';
+import { toLocalRuntimeEngineRuntimeModeRequestValue } from '../local-engine.js';
 import type {
   LocalRuntimeAssetFileImportResult,
   LocalRuntimeAssetHealth,
@@ -31,7 +31,7 @@ import type {
   LocalRuntimeScaffoldOrphanPayload,
   LocalRuntimeUnregisteredAssetDescriptor,
   LocalRuntimeWriteOptions,
-} from './types';
+} from './types.js';
 import {
   assertLifecycleWriteAllowed,
   parseAssetHealth,
@@ -42,8 +42,9 @@ import {
   parseLocalRuntimeEnvironmentDependencyJob,
   parseLocalRuntimeEnvironmentPlan,
   parseUnregisteredAssetDescriptor,
-} from './parsers';
-import { asRecord, requireSdkLocal, toAssetKindFilter } from './commands-shared';
+} from './parsers.js';
+import { asRecord, requireSdkLocal, toAssetKindFilter } from './commands-shared.js';
+import { emitLocalRuntimeClientWarning } from './commands-shared.js';
 
 export async function importLocalRuntimeAssetFile(
   payload: LocalRuntimeImportFilePayload,
@@ -315,16 +316,6 @@ export async function repairLocalRuntimeEnvironmentDependency(
   return parseLocalRuntimeEnvironmentDependencyJob(asRecord(response).job);
 }
 
-export async function revealLocalRuntimeAssetInFolder(localAssetId: string): Promise<void> {
-  await tauriInvoke<void>('runtime_local_assets_reveal_in_folder', {
-    payload: { localAssetId },
-  });
-}
-
-export async function revealLocalRuntimeAssetsRootFolder(): Promise<void> {
-  await tauriInvoke<void>('runtime_local_assets_reveal_root_folder', {});
-}
-
 export async function rescanLocalRuntimeAssetBundle(
   payload: LocalRuntimeRescanBundlePayload,
   options?: LocalRuntimeWriteOptions,
@@ -356,7 +347,7 @@ export async function subscribeLocalRuntimeDownloadProgress(
       if (controller.signal.aborted) {
         return;
       }
-      emitRuntimeLog({
+      emitLocalRuntimeClientWarning({
         level: 'warn',
         area: 'local-ai',
         message: 'action:watchLocalTransfers:failed',
@@ -412,7 +403,7 @@ export async function importLocalRuntimeAssetFileUnified(
 export async function importLocalRuntimeAssetManifest(
   manifestPath: string,
   options?: LocalRuntimeImportManifestOptions,
-): Promise<import('./types').LocalRuntimeAssetManifestImportResult> {
+): Promise<import('./types.js').LocalRuntimeAssetManifestImportResult> {
   const normalizedPath = String(manifestPath || '').trim();
   if (!normalizedPath) {
     throw new Error('manifestPath is required');

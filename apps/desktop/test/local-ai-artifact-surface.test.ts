@@ -5,7 +5,7 @@ import {
   parseAssetRecord as parseArtifactRecord,
   parseAssetRecord as parseModelRecord,
   parseVerifiedAssetDescriptor as parseVerifiedArtifactDescriptor,
-} from '../src/runtime/local-runtime/parsers.js';
+} from '@nimiplatform/sdk/runtime';
 
 test('parseModelRecord decodes engineConfig struct payloads into plain objects', () => {
   const parsed = parseModelRecord({

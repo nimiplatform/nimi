@@ -10,18 +10,22 @@ import type {
   LocalRuntimeScaffoldAssetResult,
   LocalRuntimeAssetHealth,
   LocalRuntimeUnregisteredAssetDescriptor,
-} from './types';
+} from './types.js';
 import {
   parseLocalRuntimeEnvironmentDependencyJobProjection,
   parseLocalRuntimeEnvironmentPlanDependencyProjection,
   parseLocalRuntimeEnvironmentPlanProjection,
+} from '../local-environment-dependency-states.js';
+import {
   parseRuntimeLocalCatalogRecommendation,
   parseRuntimeLocalRecommendationFeedDescriptor,
   parseRuntimeLocalRecommendationFeedItem,
+} from '../local-recommendation-feed.js';
+import {
   toCanonicalLocalRuntimeAssetId,
-} from '@nimiplatform/sdk/runtime';
-import { asRecord, asString } from './parser-primitives';
-import { normalizeAssetKind, normalizeAssetStatus } from './parsers';
+} from '../local-asset-id.js';
+import { asRecord, asString } from './parser-primitives.js';
+import { normalizeAssetKind, normalizeAssetStatus } from './parsers.js';
 
 export {
   parseLocalRuntimeEnvironmentDependencyJobProjection as parseLocalRuntimeEnvironmentDependencyJob,

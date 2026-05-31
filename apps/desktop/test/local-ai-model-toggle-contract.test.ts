@@ -166,7 +166,7 @@ test('local route options preserve per-asset endpoint instead of falling back to
     readFileSync(
       path.resolve(
         process.cwd(),
-        'src/runtime/local-runtime/parsers.ts',
+        '../../sdk/src/runtime/local-runtime-client/parsers.ts',
       ),
       'utf-8',
     ),
@@ -176,7 +176,7 @@ test('local route options preserve per-asset endpoint instead of falling back to
     readFileSync(
       path.resolve(
         process.cwd(),
-        'src/runtime/local-runtime/parsers.ts',
+        '../../sdk/src/runtime/local-runtime-client/parsers.ts',
       ),
       'utf-8',
     ),
@@ -212,7 +212,7 @@ test('manual import no longer injects managed media loopback defaults and can fo
     readFileSync(
       path.resolve(
         process.cwd(),
-        'src/runtime/local-runtime/commands-assets.ts',
+        '../../sdk/src/runtime/local-runtime-client/commands-assets.ts',
       ),
       'utf-8',
     ),
@@ -310,7 +310,7 @@ test('desktop README does not document renderer-owned local provider route truth
 
 test('local model lifecycle writes route through SDK runtime service only', () => {
   const commandsAssetsSource = readFileSync(
-    path.resolve(process.cwd(), 'src/runtime/local-runtime/commands-assets.ts'),
+    path.resolve(process.cwd(), '../../sdk/src/runtime/local-runtime-client/commands-assets.ts'),
     'utf-8',
   );
   assert.doesNotMatch(tauriCommandsSource, /runtime_local_assets_start/);

@@ -8,6 +8,7 @@ import {
   buildRuntimeRouteCapabilityProjection,
   buildRuntimeRequestMetadata,
   buildRuntimeTargetCallOptions,
+  bindLocalRuntimeServiceClientProvider,
   checkRuntimeRouteProviderHealth,
   createDefaultRuntimeRouteCapabilitySelectionStore,
   findRuntimeRouteModelProfile,
@@ -48,6 +49,7 @@ import {
   isLocalRuntimeEnvironmentDependencyStartableState,
   isRuntimeAgentProjectionEvent,
   localRecommendationTierToRunGrade,
+  localRuntime,
   matchesRuntimeAgentProjectionScope,
   normalizeLocalRecommendationFeedCacheStateId,
   parseLocalRuntimeEnvironmentDependencyJobProjection,
@@ -193,6 +195,41 @@ type RuntimeProviderHealthProjectionState =
   | { status: 'loading'; health: null; error: null }
   | { status: 'ready'; health: RuntimeRouteProviderHealthProjection; error: null }
   | { status: 'error'; health: null; error: string };
+
+type LocalRuntimeFacadeProjectionState =
+  | { status: 'loading'; assetId: null; error: null }
+  | { status: 'ready'; assetId: string; error: null }
+  | { status: 'error'; assetId: null; error: string };
+
+async function resolveTesterLocalRuntimeFacadeProjection(): Promise<string> {
+  const unbind = bindLocalRuntimeServiceClientProvider(() => ({
+    async listLocalAssets() {
+      return {
+        assets: [{
+          localAssetId: 'tester-local-asset',
+          assetId: 'tester/local-facade-asset',
+          kind: 'LOCAL_ASSET_KIND_CHAT',
+          engine: 'runtime-engine',
+          entry: 'model.gguf',
+          files: ['model.gguf'],
+          license: 'apache-2.0',
+          source: { repo: 'tester/local-facade-asset', revision: 'main' },
+          hashes: {},
+          status: 'LOCAL_ASSET_STATUS_INSTALLED',
+          installedAt: '2026-05-31T00:00:00Z',
+          updatedAt: '2026-05-31T00:00:00Z',
+        }],
+        nextPageToken: '',
+      };
+    },
+  }) as never);
+  try {
+    const [asset] = await localRuntime.listAssets({ kind: 'chat' });
+    return asset?.assetId ?? 'none';
+  } finally {
+    unbind();
+  }
+}
 
 const runtimeConnectorInventory = createRuntimeConnectorInventoryClient({
   runtimeAdmin: () => getPlatformClient().domains.runtimeAdmin,
@@ -477,6 +514,27 @@ export function SettingsRoute() {
       health: null,
       error: null,
     });
+  const [localRuntimeFacadeProjection, setLocalRuntimeFacadeProjection] =
+    useState<LocalRuntimeFacadeProjectionState>({
+      status: 'loading',
+      assetId: null,
+      error: null,
+    });
+  useEffect(() => {
+    let cancelled = false;
+    void resolveTesterLocalRuntimeFacadeProjection().then((assetId) => {
+      if (!cancelled) {
+        setLocalRuntimeFacadeProjection({ status: 'ready', assetId, error: null });
+      }
+    }).catch((error: unknown) => {
+      if (!cancelled) {
+        setLocalRuntimeFacadeProjection({ status: 'error', assetId: null, error: errorMessage(error) });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   useEffect(() => {
     let cancelled = false;
     setResourceUploadProjection({ status: 'loading', summary: null, error: null });
@@ -1758,6 +1816,16 @@ export function SettingsRoute() {
         <span>Local runtime asset id projection</span>
         <StatusBadge tone="neutral">
           {localRuntimeAssetIdProjection.assetId} / {localRuntimeAssetIdProjection.lookupKey}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK local runtime facade projection</span>
+        <StatusBadge tone={localRuntimeFacadeProjection.status === 'ready' ? 'success' : localRuntimeFacadeProjection.status === 'error' ? 'danger' : 'warning'}>
+          {localRuntimeFacadeProjection.status === 'ready'
+            ? localRuntimeFacadeProjection.assetId
+            : localRuntimeFacadeProjection.status === 'error'
+              ? localRuntimeFacadeProjection.error
+              : 'checking'}
         </StatusBadge>
       </div>
       <div className="setting-row">

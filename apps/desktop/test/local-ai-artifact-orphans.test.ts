@@ -3,10 +3,11 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-const runtimeCommandsPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands-assets.ts');
+const runtimeCommandsPath = path.resolve(process.cwd(), '../../sdk/src/runtime/local-runtime-client/commands-assets.ts');
 const runtimeCommandsFacadePath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands.ts');
 const runtimeCommandPickersPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands-pickers.ts');
-const runtimeIndexPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/index.ts');
+const runtimeIndexPath = path.resolve(process.cwd(), '../../sdk/src/runtime/local-runtime-client/index.ts');
+const desktopRuntimeIndexPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/index.ts');
 const localModelCenterPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center.tsx',
@@ -36,6 +37,7 @@ const runtimeCommandsSource = readFileSync(runtimeCommandsPath, 'utf-8');
 const runtimeCommandsFacadeSource = readFileSync(runtimeCommandsFacadePath, 'utf-8');
 const runtimeCommandPickersSource = readFileSync(runtimeCommandPickersPath, 'utf-8');
 const runtimeIndexSource = readFileSync(runtimeIndexPath, 'utf-8');
+const desktopRuntimeIndexSource = readFileSync(desktopRuntimeIndexPath, 'utf-8');
 const localModelCenterImportActionsSource = readFileSync(localModelCenterImportActionsPath, 'utf-8');
 const localModelCenterSource = [
   localModelCenterPath,
@@ -62,6 +64,8 @@ test('local runtime facade exports unified asset intake methods', () => {
   assert.match(runtimeIndexSource, /importAssetManifest:\s*\(\s*manifestPath: string/);
   assert.match(runtimeIndexSource, /scanUnregisteredAssets:\s*scanLocalRuntimeUnregisteredAssets/);
   assert.match(runtimeIndexSource, /importAssetFile:\s*importLocalRuntimeAssetFile/);
+  assert.match(desktopRuntimeIndexSource, /localRuntime:\s*LocalRuntimeFacade/);
+  assert.match(desktopRuntimeIndexSource, /\.\.\.sdkLocalRuntime/);
 });
 
 test('local model center renders a unified unregistered assets review lane', () => {

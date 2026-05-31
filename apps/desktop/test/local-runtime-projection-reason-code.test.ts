@@ -3,8 +3,8 @@ import test from 'node:test';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { parseServiceDescriptor } from '@nimiplatform/sdk/runtime';
 
-import { parseAssetRecord } from '../src/runtime/local-runtime/parsers.js';
-import { parseAssetHealth } from '../src/runtime/local-runtime/parsers-runtime-events.js';
+import { parseAssetRecord } from '@nimiplatform/sdk/runtime';
+import { parseAssetHealth } from '@nimiplatform/sdk/runtime';
 
 test('local runtime parsers preserve projection reasonCode for assets, health, and services', () => {
   const asset = parseAssetRecord({

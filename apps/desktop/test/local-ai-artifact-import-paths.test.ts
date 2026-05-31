@@ -7,8 +7,8 @@ const localModelCenterSectionsPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-sections.tsx',
 );
-const runtimeCommandsPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands-assets.ts');
-const runtimeLocalTypesPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/types.ts');
+const runtimeCommandsPath = path.resolve(process.cwd(), '../../sdk/src/runtime/local-runtime-client/commands-assets.ts');
+const runtimeLocalTypesPath = path.resolve(process.cwd(), '../../sdk/src/runtime/local-runtime-client/types.ts');
 const sdkLocalAssetKindPath = path.resolve(process.cwd(), '../../sdk/src/runtime/local-asset-kind.ts');
 const runtimeHookDirPath = path.resolve(process.cwd(), 'src/runtime/hook');
 

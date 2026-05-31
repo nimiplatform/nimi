@@ -1113,6 +1113,16 @@ test('tester settings consumes SDK local runtime asset id projection', () => {
   assert.doesNotMatch(settings, /@runtime\/local-runtime\/local-id/);
 });
 
+test('tester settings consumes SDK local runtime facade DX surface', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /bindLocalRuntimeServiceClientProvider/);
+  assert.match(settings, /localRuntime\.listAssets\(\{ kind: 'chat' \}\)/);
+  assert.match(settings, /SDK local runtime facade projection/);
+  assert.match(settings, /tester\/local-facade-asset/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
+});
+
 test('tester settings consumes SDK memory embedding route availability projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
 

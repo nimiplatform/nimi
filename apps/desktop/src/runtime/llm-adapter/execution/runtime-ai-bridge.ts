@@ -4,7 +4,6 @@ import { createNimiError } from '@nimiplatform/sdk/runtime';
 import {
   buildRuntimeRequestMetadata as buildSdkRuntimeRequestMetadata,
   buildRuntimeTargetCallOptions,
-  createRuntimeTraceId,
   createRuntimeRouteLocalWarmCache,
   ensureRuntimeRouteLocalWarmWithHost,
   resetRuntimeRouteLocalWarmCache,

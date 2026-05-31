@@ -11,27 +11,42 @@ import type {
   LocalRuntimeProfileEntryDescriptor,
   LocalRuntimeProfileRequirementDescriptor,
   LocalRuntimeProfileResolutionPlan,
-} from './types';
+} from './types.js';
 import {
   normalizeLocalRuntimeAssetKindId,
   normalizeLocalRuntimeAssetStatusId,
+} from '../local-asset-kind.js';
+import {
   normalizeLocalRuntimeEngineRuntimeModeId,
+} from '../local-engine.js';
+import {
   parseLocalRuntimeProviderHints as parseSdkProviderHints,
+  parseServiceDescriptor as parseSdkServiceDescriptor,
+} from '../local-node-service.js';
+import {
   parseExecutionEntryDescriptor as parseSdkExecutionEntryDescriptor,
   parseExecutionPlan as parseSdkExecutionPlan,
   parseExecutionStageResult as parseSdkExecutionStageResult,
   parsePreflightDecision as parseSdkPreflightDecision,
-  parseServiceDescriptor as parseSdkServiceDescriptor,
+  normalizeExecutionEntryKind,
+  parseExecutionStageResult,
+  parseExecutionEntryDescriptor,
+  parseExecutionPlan,
+  parseDeviceProfile,
+  parsePreflightDecision,
+  parseExecutionSelectionRationale,
+} from '../local-execution-plan.js';
+import {
   toCanonicalLocalRuntimeAssetId,
-} from '@nimiplatform/sdk/runtime';
-import { asRecord, asString } from './parser-primitives';
-import { asPlainObject } from './parser-helpers';
-import { parseCatalogRecommendation } from './parsers-runtime-events';
-export { asRecord, asString } from './parser-primitives';
+} from '../local-asset-id.js';
+import { asRecord, asString } from './parser-primitives.js';
+import { asPlainObject } from './parser-helpers.js';
+import { parseCatalogRecommendation } from './parsers-runtime-events.js';
+export { asRecord, asString } from './parser-primitives.js';
 export {
   assertLifecycleWriteAllowed,
   normalizeCaller,
-} from './parser-helpers';
+} from './parser-helpers.js';
 export {
   normalizeExecutionEntryKind,
   parseExecutionStageResult,
@@ -40,7 +55,7 @@ export {
   parseDeviceProfile,
   parsePreflightDecision,
   parseExecutionSelectionRationale,
-} from '@nimiplatform/sdk/runtime';
+};
 export {
   normalizeDownloadState,
   parseAuditEvent,
@@ -57,7 +72,7 @@ export {
   parseRecommendationFeedDescriptor,
   parseRecommendationFeedItemDescriptor,
   parseScaffoldAssetResult,
-} from './parsers-runtime-events';
+} from './parsers-runtime-events.js';
 export function normalizeAssetStatus(value: unknown): LocalRuntimeAssetStatus {
   return normalizeLocalRuntimeAssetStatusId(value);
 }

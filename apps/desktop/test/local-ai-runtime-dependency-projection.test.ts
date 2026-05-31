@@ -23,11 +23,17 @@ const runtimeViewSource = readWorkspaceFile(
 const localRuntimeFacadeSource = readWorkspaceFile(
   'src/runtime/local-runtime/index.ts',
 );
-const localRuntimeCommandsSource = readWorkspaceFile(
-  'src/runtime/local-runtime/commands-assets.ts',
+const sdkLocalRuntimeFacadeSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../../../sdk/src/runtime/local-runtime-client/index.ts'),
+  'utf8',
 );
-const localRuntimeParsersSource = readWorkspaceFile(
-  'src/runtime/local-runtime/parsers-runtime-events.ts',
+const localRuntimeCommandsSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../../../sdk/src/runtime/local-runtime-client/commands-assets.ts'),
+  'utf8',
+);
+const localRuntimeParsersSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../../../sdk/src/runtime/local-runtime-client/parsers-runtime-events.ts'),
+  'utf8',
 );
 
 test('local model center resolves shared runtime dependency readiness before any imported model is required', () => {
@@ -86,15 +92,16 @@ test('local model center projects Runtime-owned local environment state instead 
 });
 
 test('local runtime facade exposes SDK-backed local environment projection methods', () => {
-  assert.match(localRuntimeFacadeSource, /resolveEnvironmentPlan:\s*resolveLocalRuntimeEnvironmentPlan/);
-  assert.match(localRuntimeFacadeSource, /listEnvironmentDependencyJobs:\s*listLocalRuntimeEnvironmentDependencyJobs/);
-  assert.match(localRuntimeFacadeSource, /startEnvironmentDependencyJob:\s*startLocalRuntimeEnvironmentDependencyJob/);
-  assert.match(localRuntimeFacadeSource, /cancelEnvironmentDependencyJob:\s*cancelLocalRuntimeEnvironmentDependencyJob/);
-  assert.match(localRuntimeFacadeSource, /retryEnvironmentDependencyJob:\s*retryLocalRuntimeEnvironmentDependencyJob/);
-  assert.match(localRuntimeFacadeSource, /repairEnvironmentDependency:\s*repairLocalRuntimeEnvironmentDependency/);
-  assert.doesNotMatch(localRuntimeFacadeSource, /listEnvironmentSelectedSources/);
-  assert.doesNotMatch(localRuntimeFacadeSource, /resolveEnvironmentActivationGate/);
-  assert.doesNotMatch(localRuntimeFacadeSource, /startDependencySetup/);
+  assert.match(localRuntimeFacadeSource, /\.\.\.sdkLocalRuntime/);
+  assert.match(sdkLocalRuntimeFacadeSource, /resolveEnvironmentPlan:\s*resolveLocalRuntimeEnvironmentPlan/);
+  assert.match(sdkLocalRuntimeFacadeSource, /listEnvironmentDependencyJobs:\s*listLocalRuntimeEnvironmentDependencyJobs/);
+  assert.match(sdkLocalRuntimeFacadeSource, /startEnvironmentDependencyJob:\s*startLocalRuntimeEnvironmentDependencyJob/);
+  assert.match(sdkLocalRuntimeFacadeSource, /cancelEnvironmentDependencyJob:\s*cancelLocalRuntimeEnvironmentDependencyJob/);
+  assert.match(sdkLocalRuntimeFacadeSource, /retryEnvironmentDependencyJob:\s*retryLocalRuntimeEnvironmentDependencyJob/);
+  assert.match(sdkLocalRuntimeFacadeSource, /repairEnvironmentDependency:\s*repairLocalRuntimeEnvironmentDependency/);
+  assert.doesNotMatch(sdkLocalRuntimeFacadeSource, /listEnvironmentSelectedSources/);
+  assert.doesNotMatch(sdkLocalRuntimeFacadeSource, /resolveEnvironmentActivationGate/);
+  assert.doesNotMatch(sdkLocalRuntimeFacadeSource, /startDependencySetup/);
   assert.match(localRuntimeCommandsSource, /runtime\.resolveLocalEnvironmentPlan/);
   assert.match(localRuntimeCommandsSource, /assetId:\s*String\(payload\.assetId \|\| ''\)\.trim\(\)/);
   assert.match(localRuntimeCommandsSource, /localAssetId:\s*String\(payload\.localAssetId \|\| ''\)\.trim\(\)/);
@@ -120,11 +127,11 @@ test('local runtime dependency plan and job parsers delegate projection ownershi
 });
 
 test('local runtime facade does not expose unmounted local service lifecycle controls', () => {
-  assert.doesNotMatch(localRuntimeFacadeSource, /\blistServices:/);
-  assert.doesNotMatch(localRuntimeFacadeSource, /\binstallService:/);
-  assert.doesNotMatch(localRuntimeFacadeSource, /\bstartService:/);
-  assert.doesNotMatch(localRuntimeFacadeSource, /\bstopService:/);
-  assert.doesNotMatch(localRuntimeFacadeSource, /\bhealthServices:/);
-  assert.doesNotMatch(localRuntimeFacadeSource, /\bremoveService:/);
-  assert.match(localRuntimeFacadeSource, /listNodesCatalog:\s*listLocalRuntimeNodesCatalog/);
+  assert.doesNotMatch(sdkLocalRuntimeFacadeSource, /\blistServices:/);
+  assert.doesNotMatch(sdkLocalRuntimeFacadeSource, /\binstallService:/);
+  assert.doesNotMatch(sdkLocalRuntimeFacadeSource, /\bstartService:/);
+  assert.doesNotMatch(sdkLocalRuntimeFacadeSource, /\bstopService:/);
+  assert.doesNotMatch(sdkLocalRuntimeFacadeSource, /\bhealthServices:/);
+  assert.doesNotMatch(sdkLocalRuntimeFacadeSource, /\bremoveService:/);
+  assert.match(sdkLocalRuntimeFacadeSource, /listNodesCatalog:\s*listLocalRuntimeNodesCatalog/);
 });
