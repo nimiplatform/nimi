@@ -21,9 +21,12 @@ const chatAgentHostActionsSource = () => readFileSync(
 test('desktop runtime agent presentation adapter consumes SDK request projection', () => {
   const source = runtimeAgentPresentationProfileSource();
   const chatHostActions = chatAgentHostActionsSource();
-  assert.match(source, /buildSetRuntimeAgentPresentationProfileRequest/);
-  assert.match(chatHostActions, /buildSetRuntimeAgentPresentationProfileRequest/);
+  assert.match(source, /createHostRuntimeAgentPresentationProfileSurface/);
+  assert.match(chatHostActions, /createHostRuntimeAgentPresentationProfileSurface/);
   assert.match(source, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.doesNotMatch(source, /buildSetRuntimeAgentPresentationProfileRequest/);
+  assert.doesNotMatch(chatHostActions, /buildSetRuntimeAgentPresentationProfileRequest/);
+  assert.doesNotMatch(source, /createRuntimeProtectedScopeHelper/);
   assert.doesNotMatch(source, /function toSetPresentationProfileRequest/);
   assert.doesNotMatch(chatHostActions, /defaultVoiceReference:\s*normalizeRuntimeAgentPresentationDefaultVoiceReference/);
   assert.doesNotMatch(source, /function parseLocalAgentIdentity/);

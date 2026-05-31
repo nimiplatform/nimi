@@ -3,7 +3,15 @@ import {
   type SetAgentPresentationProfileRequest,
 } from './generated/runtime/v1/agent_service.js';
 import { buildRuntimeAgentRequestContext } from './local-agent-identity.js';
+import { createRuntimeProtectedScopeHelper } from './protected-access.js';
+import { normalizeRuntimeAgentError } from './runtime-agent-inspect-projection.js';
 import { normalizeRuntimeAgentText } from './runtime-agent-inspect-projection.js';
+import type { RuntimeCallOptions, RuntimeTransportConfig } from './types.js';
+import type {
+  RuntimeAgentClient,
+  RuntimeAppAuthClient,
+  RuntimeAuthClient,
+} from './types-client-interfaces.js';
 
 export type RuntimeAgentPresentationProfileInput = {
   backendKind?: unknown;
@@ -17,6 +25,29 @@ export type RuntimeAgentPresentationProfileInput = {
 export type RuntimeAgentPresentationProfileContext = {
   appId: string;
   subjectUserId: string;
+};
+
+type Awaitable<T> = T | Promise<T>;
+
+export type RuntimeAgentPresentationProfileSurface = {
+  setPresentationProfile(agentId: string, profile: RuntimeAgentPresentationProfileInput | null): Promise<void>;
+};
+
+export type HostRuntimeAgentPresentationProfileClient = {
+  readonly appId: string;
+  readonly transport?: RuntimeTransportConfig;
+  readonly auth: Pick<RuntimeAuthClient, 'registerApp'>;
+  readonly appAuth: Pick<RuntimeAppAuthClient, 'authorizeExternalPrincipal'>;
+  readonly agent: Pick<RuntimeAgentClient, 'setPresentationProfile'>;
+};
+
+export type HostRuntimeAgentPresentationProfileSurfaceOptions = {
+  getRuntime: () => HostRuntimeAgentPresentationProfileClient;
+  getSubjectUserId: () => Awaitable<string | undefined>;
+  withScopes?: <T>(
+    scopes: readonly string[],
+    operation: (options: RuntimeCallOptions) => Promise<T>,
+  ) => Promise<T>;
 };
 
 const RUNTIME_AGENT_PRESENTATION_VOICE_REFERENCE_PREFIXES = [
@@ -93,6 +124,65 @@ export function buildSetRuntimeAgentPresentationProfileRequest(input: {
         interactionPolicyRef: normalizeRuntimeAgentText(input.profile.interactionPolicyRef),
         defaultVoiceReference: normalizeRuntimeAgentPresentationDefaultVoiceReference(input.profile.defaultVoiceReference),
       },
+    },
+  };
+}
+
+export function createHostRuntimeAgentPresentationProfileSurface(
+  options: HostRuntimeAgentPresentationProfileSurfaceOptions,
+): RuntimeAgentPresentationProfileSurface {
+  let protectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
+
+  const resolveSubjectUserId = async (): Promise<string> => {
+    const subjectUserId = normalizeRuntimeAgentText(await options.getSubjectUserId());
+    if (!subjectUserId) {
+      throw new Error('runtime agent presentation profile requires authenticated subject user id');
+    }
+    return subjectUserId;
+  };
+
+  const getProtectedAccess = () => {
+    if (protectedAccess) {
+      return protectedAccess;
+    }
+    protectedAccess = createRuntimeProtectedScopeHelper({
+      runtime: options.getRuntime(),
+      getSubjectUserId: async () => resolveSubjectUserId(),
+    });
+    return protectedAccess;
+  };
+
+  const withRuntimeAgentWrite = <T>(
+    operation: (callOptions: RuntimeCallOptions) => Promise<T>,
+  ) => (
+    options.withScopes
+      ? options.withScopes(['runtime.agent.write'], operation)
+      : getProtectedAccess().withScopes(['runtime.agent.write'], operation)
+  );
+
+  return {
+    async setPresentationProfile(agentId, profile) {
+      const normalizedAgentId = normalizeRuntimeAgentText(agentId);
+      if (!normalizedAgentId) {
+        throw new Error('AGENT_ID_REQUIRED');
+      }
+      const runtime = options.getRuntime();
+      const subjectUserId = await resolveSubjectUserId();
+      try {
+        await withRuntimeAgentWrite((callOptions) => runtime.agent.setPresentationProfile(
+          buildSetRuntimeAgentPresentationProfileRequest({
+            context: {
+              appId: runtime.appId,
+              subjectUserId,
+            },
+            agentId: normalizedAgentId,
+            profile,
+          }),
+          callOptions,
+        ));
+      } catch (error) {
+        throw normalizeRuntimeAgentError(error, 'set_runtime_agent_presentation_profile');
+      }
     },
   };
 }

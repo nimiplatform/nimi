@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   AgentPresentationBackendKind,
   buildSetRuntimeAgentPresentationProfileRequest,
+  createHostRuntimeAgentPresentationProfileSurface,
   normalizeRuntimeAgentPresentationBackendKind,
   normalizeRuntimeAgentPresentationDefaultVoiceReference,
   parseRuntimeLocalAgentIdentity,
@@ -75,4 +76,59 @@ test('runtime agent presentation profile request projection fails closed', () =>
     agentId: 'local-agent:user-1:realm-agent-1',
     profile: { backendKind: 'unknown', avatarAssetRef: 'asset://avatar/agent-1' },
   }), /AGENT_PRESENTATION_PROFILE_INVALID/);
+});
+
+test('host Runtime agent presentation profile surface submits protected Runtime mutation', async () => {
+  const calls = {
+    registerApp: 0,
+    authorizeExternalPrincipal: 0,
+    setPresentationProfile: [] as Array<Record<string, unknown>>,
+  };
+  const surface = createHostRuntimeAgentPresentationProfileSurface({
+    getRuntime: () => ({
+      appId: 'sdk-test',
+      auth: {
+        registerApp: async () => {
+          calls.registerApp += 1;
+          return { accepted: true };
+        },
+      },
+      appAuth: {
+        authorizeExternalPrincipal: async () => {
+          calls.authorizeExternalPrincipal += 1;
+          return { tokenId: 'token-id', secret: 'token-secret' };
+        },
+      },
+      agent: {
+        setPresentationProfile: async (request: Record<string, unknown>, options?: Record<string, unknown>) => {
+          calls.setPresentationProfile.push({ ...request, __options: options });
+          return {};
+        },
+      },
+    }) as never,
+    getSubjectUserId: () => 'user-1',
+  });
+
+  await surface.setPresentationProfile('local-agent:user-1:realm-agent-1', {
+    backendKind: 'vrm',
+    avatarAssetRef: 'asset://avatar/agent-1',
+    defaultVoiceReference: 'provider_voice_ref:openai:verse',
+  });
+
+  assert.equal(calls.registerApp, 1);
+  assert.equal(calls.authorizeExternalPrincipal, 1);
+  assert.equal(calls.setPresentationProfile.length, 1);
+  assert.equal(calls.setPresentationProfile[0]?.agentId, 'local-agent:user-1:realm-agent-1');
+  assert.deepEqual(calls.setPresentationProfile[0]?.context, {
+    appId: 'sdk-test',
+    subjectUserId: 'user-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'realm-agent-1',
+    localAgentRef: 'local-agent:user-1:realm-agent-1',
+  });
+  assert.equal(
+    (calls.setPresentationProfile[0]?.mutation as { oneofKind?: string }).oneofKind,
+    'profile',
+  );
+  assert.ok(calls.setPresentationProfile[0]?.__options);
 });

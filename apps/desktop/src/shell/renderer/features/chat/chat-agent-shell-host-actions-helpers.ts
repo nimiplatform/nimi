@@ -2,7 +2,7 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { uploadRealmResourceFileWithRealm } from '@nimiplatform/sdk/realm';
 import {
   asNimiError,
-  buildSetRuntimeAgentPresentationProfileRequest,
+  createHostRuntimeAgentPresentationProfileSurface,
   createRuntimeProtectedScopeHelper,
   normalizeRuntimeAgentPresentationBackendKind,
 } from '@nimiplatform/sdk/runtime';
@@ -99,20 +99,14 @@ async function syncRuntimePresentationProfile(input: {
   if (!profile || !backendKind || !avatarAssetRef) {
     return;
   }
-  const runtimeProfile = profile;
   const runtime = getPlatformClient().runtime;
   const protectedAccess = getRuntimeProtectedAccess();
-  await protectedAccess.withScopes(['runtime.agent.write'], (options) => runtime.agent.setPresentationProfile(
-    buildSetRuntimeAgentPresentationProfileRequest({
-      context: {
-        appId: input.context.appId,
-        subjectUserId: input.context.subjectUserId,
-      },
-      agentId: input.target.localAgentRef,
-      profile: runtimeProfile,
-    }),
-    options,
-  ));
+  const surface = createHostRuntimeAgentPresentationProfileSurface({
+    getRuntime: () => runtime,
+    getSubjectUserId: () => input.context.subjectUserId,
+    withScopes: (scopes, operation) => protectedAccess.withScopes(scopes, operation),
+  });
+  await surface.setPresentationProfile(input.target.localAgentRef, profile);
 }
 
 export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot): Promise<void> {
