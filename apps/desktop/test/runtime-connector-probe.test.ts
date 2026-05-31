@@ -826,8 +826,11 @@ test('sdkCreateConnector preserves explicit credentialJson for oauth-managed pro
   }
 });
 
-test('provider catalog cache expires after a bounded TTL', () => {
-  assert.match(CONNECTOR_SERVICE_SOURCE, /PROVIDER_CATALOG_CACHE_TTL_MS/);
-  assert.match(CONNECTOR_SERVICE_SOURCE, /cachedProviderCatalogAt/);
-  assert.match(CONNECTOR_SERVICE_SOURCE, /Date\.now\(\)/);
+test('connector service delegates inventory ownership to the SDK client', () => {
+  assert.match(CONNECTOR_SERVICE_SOURCE, /createRuntimeConnectorInventoryClient/);
+  assert.match(CONNECTOR_SERVICE_SOURCE, /getPlatformClient\(\)\.domains\.runtimeAdmin/);
+  assert.match(CONNECTOR_SERVICE_SOURCE, /callerId: 'runtime-config\.connector'/);
+  assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /PROVIDER_CATALOG_CACHE_TTL_MS|cachedProviderCatalogAt|pendingConnectorModels/);
+  assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /listProviderCatalog\(\{\}, CONNECTOR_CALL_OPTIONS\)/);
+  assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /listConnectorModels\(request, CONNECTOR_CALL_OPTIONS\)/);
 });
