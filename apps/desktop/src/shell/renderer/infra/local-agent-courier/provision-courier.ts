@@ -11,8 +11,8 @@ import type { JsonObject } from '@runtime/net/json';
 type LocalAgentProvisionIntentDto = RealmModel<'LocalAgentProvisionIntentDto'>;
 type LocalAgentProvisionIntentAckDto = RealmModel<'LocalAgentProvisionIntentAckDto'>;
 
-type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
-type DataSyncErrorEmitter = (action: string, error: unknown, details?: JsonObject) => void;
+type RealmCourierApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type RealmCourierErrorEmitter = (action: string, error: unknown, details?: JsonObject) => void;
 type CurrentUserReader = () => Record<string, unknown> | null;
 
 /**
@@ -186,7 +186,7 @@ export type LocalAgentProvisionCourierPassResult = {
  */
 async function deliverIntent(input: {
   intent: LocalAgentProvisionIntentDto;
-  callApi: DataSyncApiCaller;
+  callApi: RealmCourierApiCaller;
   deliverer: LocalAgentProvisionDeliverer;
 }): Promise<CourierDelivery> {
   const { intent, callApi, deliverer } = input;
@@ -232,12 +232,12 @@ async function deliverIntent(input: {
  * loopback delivery path.
  */
 export async function runLocalAgentProvisionCourierPass(input: {
-  callApi: DataSyncApiCaller;
-  emitDataSyncError: DataSyncErrorEmitter;
+  callApi: RealmCourierApiCaller;
+  emitCourierError: RealmCourierErrorEmitter;
   getCurrentUser: CurrentUserReader;
   deliverer?: LocalAgentProvisionDeliverer;
 }): Promise<LocalAgentProvisionCourierPassResult> {
-  const { callApi, emitDataSyncError, getCurrentUser } = input;
+  const { callApi, emitCourierError, getCurrentUser } = input;
   const deliverer: LocalAgentProvisionDeliverer = input.deliverer
     ?? ((intent) => deliverInitializeToLocalRuntime(intent, getCurrentUser));
   const empty: LocalAgentProvisionCourierPassResult = {
@@ -260,7 +260,7 @@ export async function runLocalAgentProvisionCourierPass(input: {
       // and the next tick / next startup retries. No desktop-local queue.
       return empty;
     }
-    emitDataSyncError('local-agent-provision-courier-pull', error);
+    emitCourierError('local-agent-provision-courier-pull', error);
     throw error;
   }
 
@@ -290,7 +290,7 @@ export async function runLocalAgentProvisionCourierPass(input: {
         // A transport/offline failure on the ack POST (or a malformed intent)
         // leaves the intent OPEN — count it deferred, do not abort the pass.
         result.deferred += 1;
-        emitDataSyncError('local-agent-provision-courier-deliver', error, {
+        emitCourierError('local-agent-provision-courier-deliver', error, {
           intentId: intent.id,
           localAgentRef: intent.localAgentRef,
         });

@@ -1,6 +1,6 @@
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 
-export class DataSyncPollingManager {
+export class ShellPollingManager {
   private readonly pollingIntervals = new Map<string, ReturnType<typeof setInterval>>();
 
   start(key: string, callback: () => void, intervalMs: number) {
@@ -10,7 +10,7 @@ export class DataSyncPollingManager {
     this.pollingIntervals.set(key, intervalId);
     emitRuntimeLog({
       level: 'info',
-      area: 'datasync-polling',
+      area: 'shell-polling',
       message: 'action:polling:start',
       flowId: `poll-${key}`,
       details: {
@@ -31,7 +31,7 @@ export class DataSyncPollingManager {
     this.pollingIntervals.delete(key);
     emitRuntimeLog({
       level: 'info',
-      area: 'datasync-polling',
+      area: 'shell-polling',
       message: 'action:polling:stop',
       flowId: `poll-${key}`,
       details: {
@@ -52,7 +52,7 @@ export class DataSyncPollingManager {
     }
     emitRuntimeLog({
       level: 'info',
-      area: 'datasync-polling',
+      area: 'shell-polling',
       message: 'action:polling:stop-all',
       flowId: 'poll-all',
       details: {

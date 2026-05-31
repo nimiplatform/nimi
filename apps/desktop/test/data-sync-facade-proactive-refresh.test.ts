@@ -27,7 +27,6 @@ test('DataSync Runtime token provider keeps tokens out of hot state and disables
   const scheduled: Array<{ callback: () => void; delayMs: number }> = [];
   const setAuthCalls: Array<{ user: Record<string, unknown> | null; token: string; refreshToken?: string }> = [];
   let clearAuthCalls = 0;
-  let stopAllPollingCalls = 0;
   let refreshCalls = 0;
 
   Realm.refreshAccessToken = async () => {
@@ -57,10 +56,6 @@ test('DataSync Runtime token provider keeps tokens out of hot state and disables
       },
       getCurrentUser: () => ({ id: 'user-1' }),
     });
-    dataSync.stopAllPolling = (() => {
-      stopAllPollingCalls += 1;
-    }) as typeof dataSync.stopAllPolling;
-
     dataSync.scheduleProactiveRefresh(makeJwt(1200));
     await (dataSync as unknown as { doProactiveRefresh(): Promise<void> }).doProactiveRefresh();
 
@@ -70,7 +65,6 @@ test('DataSync Runtime token provider keeps tokens out of hot state and disables
     assert.equal(refreshCalls, 0);
     assert.equal(setAuthCalls.length, 0);
     assert.equal(clearAuthCalls, 0);
-    assert.equal(stopAllPollingCalls, 0);
     assert.equal(scheduled.length, 0);
   } finally {
     Realm.refreshAccessToken = originalRefreshAccessToken;
@@ -86,7 +80,6 @@ test('DataSync legacy refresh path remains unavailable when Runtime provider own
   const originalClearTimeout = globalThis.clearTimeout;
 
   let clearAuthCalls = 0;
-  let stopAllPollingCalls = 0;
   const clearedTimers: unknown[] = [];
   let refreshCalls = 0;
 
@@ -112,16 +105,12 @@ test('DataSync legacy refresh path remains unavailable when Runtime provider own
       },
       getCurrentUser: () => ({ id: 'user-1' }),
     });
-    dataSync.stopAllPolling = (() => {
-      stopAllPollingCalls += 1;
-    }) as typeof dataSync.stopAllPolling;
     (dataSync as unknown as { proactiveRefreshTimer: unknown }).proactiveRefreshTimer = 'timer-handle';
 
     await (dataSync as unknown as { doProactiveRefresh(): Promise<void> }).doProactiveRefresh();
 
     assert.equal(refreshCalls, 0);
     assert.equal(clearAuthCalls, 0);
-    assert.equal(stopAllPollingCalls, 0);
     assert.deepEqual(clearedTimers, []);
     assert.equal((dataSync as unknown as { proactiveRefreshTimer: unknown }).proactiveRefreshTimer, 'timer-handle');
   } finally {
@@ -170,7 +159,6 @@ test('DataSync Runtime token provider fails Realm access closed after logout or 
 test('DataSync keeps Desktop auth projection when Runtime account token is temporarily unavailable', async () => {
   clearHotState();
   let clearAuthCalls = 0;
-  let stopAllPollingCalls = 0;
   const dataSync = new DataSync();
   dataSync.initApi({
     realmBaseUrl: 'https://realm.example',
@@ -185,17 +173,12 @@ test('DataSync keeps Desktop auth projection when Runtime account token is tempo
     },
     getCurrentUser: () => ({ id: 'user-1' }),
   });
-  dataSync.stopAllPolling = (() => {
-    stopAllPollingCalls += 1;
-  }) as typeof dataSync.stopAllPolling;
-
   await assert.rejects(
     () => dataSync.callApi((realm) => realm.unsafeRaw.request({ method: 'GET', path: '/api/protected' })),
     /Runtime account access token unavailable: runtime_unavailable/,
   );
 
   assert.equal(clearAuthCalls, 0);
-  assert.equal(stopAllPollingCalls, 0);
   const hotState = readDataSyncHotState();
   assert.equal(hotState?.accessToken, '');
   assert.equal(hotState?.refreshToken, '');
@@ -205,7 +188,6 @@ test('DataSync keeps Desktop auth projection when Runtime account token is tempo
 test('DataSync clears Desktop auth projection when Realm access requires reauthentication', async () => {
   clearHotState();
   let clearAuthCalls = 0;
-  let stopAllPollingCalls = 0;
   const dataSync = new DataSync();
   dataSync.initApi({
     realmBaseUrl: 'https://realm.example',
@@ -218,9 +200,6 @@ test('DataSync clears Desktop auth projection when Realm access requires reauthe
     },
     getCurrentUser: () => ({ id: 'user-1' }),
   });
-  dataSync.stopAllPolling = (() => {
-    stopAllPollingCalls += 1;
-  }) as typeof dataSync.stopAllPolling;
   const authRequired = Object.assign(new Error('Authentication required'), {
     reasonCode: ReasonCode.AUTH_TOKEN_EXPIRED,
     actionHint: 'refresh_realm_token_or_reauthenticate',
@@ -236,7 +215,6 @@ test('DataSync clears Desktop auth projection when Realm access requires reauthe
   );
 
   assert.equal(clearAuthCalls, 1);
-  assert.equal(stopAllPollingCalls, 1);
   const hotState = readDataSyncHotState();
   assert.equal(hotState?.accessToken, '');
   assert.equal(hotState?.refreshToken, '');
@@ -246,7 +224,6 @@ test('DataSync clears Desktop auth projection when Realm access requires reauthe
 test('DataSync clears Desktop auth projection for Realm AUTH_REQUIRED responses', async () => {
   clearHotState();
   let clearAuthCalls = 0;
-  let stopAllPollingCalls = 0;
   const lifecycle: string[] = [];
   const dataSync = new DataSync();
   dataSync.initApi({
@@ -263,10 +240,6 @@ test('DataSync clears Desktop auth projection for Realm AUTH_REQUIRED responses'
     },
     getCurrentUser: () => ({ id: 'user-1' }),
   });
-  dataSync.stopAllPolling = (() => {
-    stopAllPollingCalls += 1;
-    lifecycle.push('stopAllPolling');
-  }) as typeof dataSync.stopAllPolling;
   const authRequired = Object.assign(new Error('Authentication required'), {
     code: ReasonCode.AUTH_TOKEN_INVALID,
     reasonCode: 'AUTH_REQUIRED',
@@ -283,8 +256,7 @@ test('DataSync clears Desktop auth projection for Realm AUTH_REQUIRED responses'
   );
 
   assert.equal(clearAuthCalls, 1);
-  assert.equal(stopAllPollingCalls, 1);
-  assert.deepEqual(lifecycle, ['clearAuth:start', 'clearAuth:done', 'stopAllPolling']);
+  assert.deepEqual(lifecycle, ['clearAuth:start', 'clearAuth:done']);
   const hotState = readDataSyncHotState();
   assert.equal(hotState?.accessToken, '');
   assert.equal(hotState?.refreshToken, '');
@@ -294,7 +266,6 @@ test('DataSync clears Desktop auth projection for Realm AUTH_REQUIRED responses'
 test('DataSync keeps Desktop auth projection when Realm denies data access', async () => {
   clearHotState();
   let clearAuthCalls = 0;
-  let stopAllPollingCalls = 0;
   const dataSync = new DataSync();
   dataSync.initApi({
     realmBaseUrl: 'https://realm.example',
@@ -307,9 +278,6 @@ test('DataSync keeps Desktop auth projection when Realm denies data access', asy
     },
     getCurrentUser: () => ({ id: 'user-1' }),
   });
-  dataSync.stopAllPolling = (() => {
-    stopAllPollingCalls += 1;
-  }) as typeof dataSync.stopAllPolling;
   const dataAccessDenied = Object.assign(new Error('Forbidden'), {
     reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
     actionHint: 'check_principal_permissions_or_resource_visibility',
@@ -325,7 +293,6 @@ test('DataSync keeps Desktop auth projection when Realm denies data access', asy
   );
 
   assert.equal(clearAuthCalls, 0);
-  assert.equal(stopAllPollingCalls, 0);
   const hotState = readDataSyncHotState();
   assert.equal(hotState?.accessToken, '');
   assert.equal(hotState?.refreshToken, '');
@@ -335,7 +302,6 @@ test('DataSync keeps Desktop auth projection when Realm denies data access', asy
 test('DataSync does not treat generic AUTH_DENIED as a session lifecycle signal', async () => {
   clearHotState();
   let clearAuthCalls = 0;
-  let stopAllPollingCalls = 0;
   const dataSync = new DataSync();
   dataSync.initApi({
     realmBaseUrl: 'https://realm.example',
@@ -348,9 +314,6 @@ test('DataSync does not treat generic AUTH_DENIED as a session lifecycle signal'
     },
     getCurrentUser: () => ({ id: 'user-1' }),
   });
-  dataSync.stopAllPolling = (() => {
-    stopAllPollingCalls += 1;
-  }) as typeof dataSync.stopAllPolling;
   const genericDenied = Object.assign(new Error('Access denied'), {
     reasonCode: ReasonCode.AUTH_DENIED,
     actionHint: 'refresh_realm_token_or_reauthenticate',
@@ -366,6 +329,5 @@ test('DataSync does not treat generic AUTH_DENIED as a session lifecycle signal'
   );
 
   assert.equal(clearAuthCalls, 0);
-  assert.equal(stopAllPollingCalls, 0);
   clearHotState();
 });

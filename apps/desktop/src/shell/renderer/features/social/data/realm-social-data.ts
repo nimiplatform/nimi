@@ -1,5 +1,8 @@
 import type { JsonObject } from '@runtime/net/json';
-import { dataSync } from '@runtime/data-sync';
+import {
+  runLocalAgentProvisionCourierPass,
+  runLocalAgentTerminationCourierPass,
+} from '@renderer/infra/local-agent-courier';
 import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
 import {
   getCachedContacts,
@@ -68,7 +71,7 @@ export const realmSocialData = {
       message,
       reloadContacts: reloadSocialSnapshot,
     }).then((result) => {
-      void dataSync.runLocalAgentProvisionCourierPass().catch(() => {});
+      void runLocalAgentProvisionCourierPass().catch(() => {});
       return result;
     }),
   removeFriend: (userId: string) =>
@@ -77,7 +80,7 @@ export const realmSocialData = {
       userId,
       reloadContacts: reloadSocialSnapshot,
     }).then((result) => {
-      void dataSync.runLocalAgentTerminationCourierPass().catch(() => {});
+      void runLocalAgentTerminationCourierPass().catch(() => {});
       return result;
     }),
   rejectOrRemoveFriend: (userId: string) =>

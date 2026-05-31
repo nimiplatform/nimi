@@ -8,15 +8,15 @@ import {
   COURIER_POLL_INTERVAL_MS,
   runLocalAgentTerminationCourierPass,
   type LocalAgentTerminationDeliverer,
-} from '../src/runtime/data-sync/local-agent-termination-courier.js';
+} from '../src/shell/renderer/infra/local-agent-courier/termination-courier.js';
 
 /**
- * The courier consumes a `DataSyncApiCaller`: `<T>(task: (realm: Realm) =>
+ * The courier consumes a `RealmCourierApiCaller`: `<T>(task: (realm: Realm) =>
  * Promise<T>) => Promise<T>`. The test doubles supply only the two MeService
  * intent operations the courier actually calls; this alias names that exact
  * call shape so the structural double is cast once, at one boundary.
  */
-type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type RealmCourierApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 
 /**
  * R-SOC-008 / T6.1.2-W2 — desktop reconciliation courier.
@@ -70,7 +70,7 @@ function createBackendDouble(initial: IntentDto[]) {
   const ackCalls: AckCall[] = [];
   let listCalls = 0;
 
-  const callApi: DataSyncApiCaller = async <T>(task: (realm: Realm) => Promise<T>): Promise<T> => {
+  const callApi: RealmCourierApiCaller = async <T>(task: (realm: Realm) => Promise<T>): Promise<T> => {
     const realm = {
       services: {
         MeService: {
@@ -121,7 +121,7 @@ describe('R-SOC-008 T6.1.2-W2: courier pull + deliver + ack on success', () => {
 
     const result = await runLocalAgentTerminationCourierPass({
       callApi: backend.callApi,
-      emitDataSyncError: noopEmit,
+      emitCourierError: noopEmit,
       getCurrentUser,
       deliverer,
     });
@@ -144,7 +144,7 @@ describe('R-SOC-008 T6.1.2-W2: courier pull + deliver + ack on success', () => {
     let deliveries = 0;
     const result = await runLocalAgentTerminationCourierPass({
       callApi: backend.callApi,
-      emitDataSyncError: noopEmit,
+      emitCourierError: noopEmit,
       getCurrentUser,
       deliverer: async () => {
         deliveries += 1;
@@ -167,7 +167,7 @@ describe('R-SOC-008 T6.1.2-W2: absent-ref no-op converges', () => {
 
     const result = await runLocalAgentTerminationCourierPass({
       callApi: backend.callApi,
-      emitDataSyncError: noopEmit,
+      emitCourierError: noopEmit,
       getCurrentUser,
       deliverer,
     });
@@ -193,7 +193,7 @@ describe('R-SOC-008 T6.1.2-W2: transport/offline failure leaves the intent OPEN'
 
     const result = await runLocalAgentTerminationCourierPass({
       callApi: backend.callApi,
-      emitDataSyncError: noopEmit,
+      emitCourierError: noopEmit,
       getCurrentUser,
       deliverer,
     });
@@ -219,7 +219,7 @@ describe('R-SOC-008 T6.1.2-W2: transport/offline failure leaves the intent OPEN'
 
     const result = await runLocalAgentTerminationCourierPass({
       callApi: backend.callApi,
-      emitDataSyncError: noopEmit,
+      emitCourierError: noopEmit,
       getCurrentUser,
       deliverer,
     });
@@ -230,7 +230,7 @@ describe('R-SOC-008 T6.1.2-W2: transport/offline failure leaves the intent OPEN'
   });
 
   test('realm unreachable on pull → whole pass is a no-op, no throw', async () => {
-    const offlineCallApi: DataSyncApiCaller = async () => {
+    const offlineCallApi: RealmCourierApiCaller = async () => {
       throw createNimiError({
         message: 'realm unavailable',
         reasonCode: ReasonCode.REALM_UNAVAILABLE,
@@ -240,7 +240,7 @@ describe('R-SOC-008 T6.1.2-W2: transport/offline failure leaves the intent OPEN'
     };
     const result = await runLocalAgentTerminationCourierPass({
       callApi: offlineCallApi,
-      emitDataSyncError: noopEmit,
+      emitCourierError: noopEmit,
       getCurrentUser,
       deliverer: async () => {
         throw new Error('deliverer must not run when the pull is offline');
@@ -264,7 +264,7 @@ describe('R-SOC-008 T6.1.2-W2: typed substrate failure is acked, never synthesiz
 
     const result = await runLocalAgentTerminationCourierPass({
       callApi: backend.callApi,
-      emitDataSyncError: noopEmit,
+      emitCourierError: noopEmit,
       getCurrentUser,
       deliverer,
     });
@@ -286,7 +286,7 @@ describe('R-SOC-008 T6.1.2-W2: statelessness — re-pulls each pass, holds no qu
 
     const first = await runLocalAgentTerminationCourierPass({
       callApi: backend.callApi,
-      emitDataSyncError: noopEmit,
+      emitCourierError: noopEmit,
       getCurrentUser,
       deliverer,
     });
@@ -296,7 +296,7 @@ describe('R-SOC-008 T6.1.2-W2: statelessness — re-pulls each pass, holds no qu
     // intents were acked terminated last pass, so the backend returns none.
     const second = await runLocalAgentTerminationCourierPass({
       callApi: backend.callApi,
-      emitDataSyncError: noopEmit,
+      emitCourierError: noopEmit,
       getCurrentUser,
       deliverer,
     });
@@ -321,7 +321,7 @@ describe('R-SOC-008 T6.1.2-W2: statelessness — re-pulls each pass, holds no qu
 
     const offlinePass = await runLocalAgentTerminationCourierPass({
       callApi: backend.callApi,
-      emitDataSyncError: noopEmit,
+      emitCourierError: noopEmit,
       getCurrentUser,
       deliverer,
     });
@@ -333,7 +333,7 @@ describe('R-SOC-008 T6.1.2-W2: statelessness — re-pulls each pass, holds no qu
     runtimeUp = true;
     const onlinePass = await runLocalAgentTerminationCourierPass({
       callApi: backend.callApi,
-      emitDataSyncError: noopEmit,
+      emitCourierError: noopEmit,
       getCurrentUser,
       deliverer,
     });
@@ -360,7 +360,7 @@ describe('R-SOC-008 T6.1.2-W2: the courier owns no decision', () => {
 
     const result = await runLocalAgentTerminationCourierPass({
       callApi: backend.callApi,
-      emitDataSyncError: noopEmit,
+      emitCourierError: noopEmit,
       getCurrentUser,
       deliverer,
     });
@@ -386,7 +386,7 @@ describe('R-SOC-008 T6.1.2-W2: the courier owns no decision', () => {
     const intent = makeIntent('intent-lost-ack');
     const backend = createBackendDouble([intent]);
     let firstAck = true;
-    const callApiWithLostAck: DataSyncApiCaller = async <T>(
+    const callApiWithLostAck: RealmCourierApiCaller = async <T>(
       task: (realm: Realm) => Promise<T>,
     ): Promise<T> => {
       const realm = {
@@ -423,7 +423,7 @@ describe('R-SOC-008 T6.1.2-W2: the courier owns no decision', () => {
     // Pass 1: terminate succeeds, ack POST is lost → intent left OPEN (deferred).
     const pass1 = await runLocalAgentTerminationCourierPass({
       callApi: callApiWithLostAck,
-      emitDataSyncError: noopEmit,
+      emitCourierError: noopEmit,
       getCurrentUser,
       deliverer,
     });
@@ -432,7 +432,7 @@ describe('R-SOC-008 T6.1.2-W2: the courier owns no decision', () => {
     // Pass 2: re-pulls the still-OPEN intent, re-delivers (no-op), re-acks.
     const pass2 = await runLocalAgentTerminationCourierPass({
       callApi: callApiWithLostAck,
-      emitDataSyncError: noopEmit,
+      emitCourierError: noopEmit,
       getCurrentUser,
       deliverer,
     });

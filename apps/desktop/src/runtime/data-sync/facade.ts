@@ -19,7 +19,6 @@ import type {
 import { normalizeApiError, tryParseJsonLike } from './api-core';
 import type { PasswordAuthDebug } from './auth';
 import { readDataSyncHotState, writeDataSyncHotState } from './facade-hot-state';
-import { DataSyncPollingManager } from './polling-manager';
 import type {
   TransitDetailDto,
   TransitStatus,
@@ -27,18 +26,6 @@ import type {
 } from './flows/transit-flow';
 import { createDataSyncActions } from './facade-actions';
 import type { CreateMasterAgentInput } from './flows/social-flow';
-import {
-  COURIER_POLLING_KEY,
-  COURIER_POLL_INTERVAL_MS,
-  runLocalAgentTerminationCourierPass,
-  type LocalAgentTerminationCourierPassResult,
-} from './local-agent-termination-courier';
-import {
-  COURIER_POLLING_KEY as PROVISION_COURIER_POLLING_KEY,
-  COURIER_POLL_INTERVAL_MS as PROVISION_COURIER_POLL_INTERVAL_MS,
-  runLocalAgentProvisionCourierPass,
-  type LocalAgentProvisionCourierPassResult,
-} from './local-agent-provision-courier';
 
 type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
@@ -60,7 +47,6 @@ export class DataSync {
   private fetchImpl: FetchImpl | null = null;
   private proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   private authCallbacks: DataSyncAuthCallbacks | null = null;
-  private readonly polling = new DataSyncPollingManager();
   private readonly callApiTask = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) =>
     this.callApi(task, fallbackMessage);
   private readonly emitFacadeError = (
@@ -75,7 +61,6 @@ export class DataSync {
     setRefreshToken: (token) => this.setRefreshToken(token),
     setAuth: (user, token, refreshToken) => this.authCallbacks?.setAuth(user, token, refreshToken),
     clearAuth: () => this.authCallbacks?.clearAuth(),
-    stopAllPolling: () => this.stopAllPolling(),
     getCurrentUser: () => this.authCallbacks?.getCurrentUser() || null,
   });
 
@@ -210,7 +195,6 @@ export class DataSync {
     this.refreshToken = '';
     this.persistApiToHotState();
     this.authCallbacks?.clearAuth();
-    this.stopAllPolling();
     this.clearProactiveRefreshTimer();
   }
 
@@ -250,7 +234,6 @@ export class DataSync {
     this.refreshToken = '';
     this.persistApiToHotState();
     await this.authCallbacks?.clearAuth();
-    this.stopAllPolling();
     this.clearProactiveRefreshTimer();
   }
 
@@ -353,82 +336,6 @@ export class DataSync {
     this.persistApiToHotState();
     this.clearProactiveRefreshTimer();
   }
-  startPolling(key: string, callback: () => void, intervalMs: number) { this.polling.start(key, callback, intervalMs); }
-  stopPolling(key: string) { this.polling.stop(key); }
-  stopAllPolling() { this.polling.stopAll(); }
-
-  /**
-   * R-SOC-008 desktop reconciliation courier — run one stateless pass: pull the
-   * viewer's OPEN LocalAgentTerminationIntents, deliver runtime.agent.terminateAgent
-   * to the loopback runtime, ack the typed outcome. Pure transport; owns no
-   * decision and drives no UI state.
-   */
-  runLocalAgentTerminationCourierPass(): Promise<LocalAgentTerminationCourierPassResult> {
-    return runLocalAgentTerminationCourierPass({
-      callApi: this.callApiTask,
-      emitDataSyncError: this.emitFacadeError,
-      getCurrentUser: () => this.authCallbacks?.getCurrentUser() || null,
-    });
-  }
-
-  /**
-   * Register the ~60s courier tick so an intent created by another device or
-   * session while this device is already online still converges without a
-   * restart. `stopAllPolling()` on auth-clear / refresh-failure halts it.
-   */
-  startLocalAgentTerminationCourier() {
-    this.polling.start(
-      COURIER_POLLING_KEY,
-      () => {
-        void this.runLocalAgentTerminationCourierPass().catch(() => {
-          // Transport/offline failures are expected and already telemetered by
-          // the courier; the intent stays OPEN server-side for the next tick.
-        });
-      },
-      COURIER_POLL_INTERVAL_MS,
-    );
-  }
-
-  stopLocalAgentTerminationCourier() {
-    this.polling.stop(COURIER_POLLING_KEY);
-  }
-
-  /**
-   * R-SOC-009 desktop reconciliation courier — run one stateless pass: pull the
-   * viewer's OPEN LocalAgentProvisionIntents, deliver runtime.agent.initializeAgent
-   * to the loopback runtime, ack the typed outcome. Pure transport; owns no
-   * decision and drives no UI state.
-   */
-  runLocalAgentProvisionCourierPass(): Promise<LocalAgentProvisionCourierPassResult> {
-    return runLocalAgentProvisionCourierPass({
-      callApi: this.callApiTask,
-      emitDataSyncError: this.emitFacadeError,
-      getCurrentUser: () => this.authCallbacks?.getCurrentUser() || null,
-    });
-  }
-
-  /**
-   * Register the ~60s provision courier tick so an intent created by another
-   * device or session while this device is already online still converges
-   * without a restart. `stopAllPolling()` on auth-clear / refresh-failure halts
-   * it.
-   */
-  startLocalAgentProvisionCourier() {
-    this.polling.start(
-      PROVISION_COURIER_POLLING_KEY,
-      () => {
-        void this.runLocalAgentProvisionCourierPass().catch(() => {
-          // Transport/offline failures are expected and already telemetered by
-          // the courier; the intent stays OPEN server-side for the next tick.
-        });
-      },
-      PROVISION_COURIER_POLL_INTERVAL_MS,
-    );
-  }
-
-  stopLocalAgentProvisionCourier() {
-    this.polling.stop(PROVISION_COURIER_POLLING_KEY);
-  }
 
   scheduleProactiveRefresh(accessToken: string) {
     this.clearProactiveRefreshTimer();
@@ -505,7 +412,6 @@ export class DataSync {
   }
 
   destroy() {
-    this.stopAllPolling();
     this.clearProactiveRefreshTimer();
     this.realmBaseUrl = '';
     this.accessToken = '';

@@ -1,6 +1,13 @@
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { AppStoreState } from '@renderer/app-shell/providers/app-store';
 import { dataSync } from '@runtime/data-sync';
+import {
+  runLocalAgentProvisionCourierPass,
+  runLocalAgentTerminationCourierPass,
+  startLocalAgentProvisionCourier,
+  startLocalAgentTerminationCourier,
+  stopLocalAgentCouriers,
+} from '@renderer/infra/local-agent-courier';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 
 type AuthSnapshot = { status: string; token: string; refreshToken: string };
@@ -48,8 +55,8 @@ export function startAuthStateWatcher() {
       // device that was offline when the AgentFriend was removed — the intent
       // has stayed OPEN server-side and the loopback runtime is reachable
       // exactly when this device is online.
-      dataSync.startLocalAgentTerminationCourier();
-      void dataSync.runLocalAgentTerminationCourierPass().catch(() => {
+      startLocalAgentTerminationCourier();
+      void runLocalAgentTerminationCourierPass().catch(() => {
         // Transport/offline failures are expected and telemetered by the
         // courier; the intent stays OPEN for the periodic tick.
       });
@@ -59,15 +66,15 @@ export function startAuthStateWatcher() {
       // offline when the AgentFriend was created — the provision intent has
       // stayed OPEN server-side and the loopback runtime is reachable exactly
       // when this device is online.
-      dataSync.startLocalAgentProvisionCourier();
-      void dataSync.runLocalAgentProvisionCourierPass().catch(() => {
+      startLocalAgentProvisionCourier();
+      void runLocalAgentProvisionCourierPass().catch(() => {
         // Transport/offline failures are expected and telemetered by the
         // courier; the intent stays OPEN for the periodic tick.
       });
     } else if (auth.status === 'anonymous' && prev.status !== 'anonymous') {
       dataSync.setToken('');
       dataSync.setRefreshToken('');
-      dataSync.stopAllPolling();
+      stopLocalAgentCouriers();
       dataSync.clearProactiveRefreshTimer();
       logRendererEvent({
         level: 'info',

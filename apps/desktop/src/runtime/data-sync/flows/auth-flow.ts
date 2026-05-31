@@ -143,12 +143,10 @@ export async function registerWithPassword(
 export async function logoutWithCleanup(input: {
   callApi: DataSyncApiCaller;
   clearAuth: () => void;
-  stopAllPolling: () => void;
 }) {
   try {
     await input.callApi((realm) => realm.services.AuthService.logout({}), '登出失败');
   } finally {
     input.clearAuth();
-    input.stopAllPolling();
   }
 }

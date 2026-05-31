@@ -60,7 +60,6 @@ type CreateDataSyncActionsInput = {
   setRefreshToken: (token: string | null | undefined) => void;
   setAuth: (user: Record<string, unknown> | null | undefined, token: string, refreshToken?: string) => void;
   clearAuth: () => void;
-  stopAllPolling: () => void;
   getCurrentUser: () => Record<string, unknown> | null;
 };
 
@@ -177,7 +176,6 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       logoutWithCleanup({
         callApi: input.callApiTask,
         clearAuth: () => input.clearAuth(),
-        stopAllPolling: () => input.stopAllPolling(),
       }),
   };
 }
