@@ -59,6 +59,7 @@ import {
   parseLocalRuntimeServiceDescriptor,
   normalizeLocalRuntimeProfilesDeclaration,
   bridgeLocalRuntimeProfile,
+  buildRuntimeAgentRequestContext,
   projectRuntimeLocalAgentIdentity,
   parseRuntimeLocalRecommendationFeedDescriptor,
   parseLocalRecommendationFeedSourceId,
@@ -700,6 +701,11 @@ export function SettingsRoute() {
   const runtimeLocalAgentIdentityProjection = projectRuntimeLocalAgentIdentity({
     ownerUserId: 'tester-owner',
     realmAgentId: 'tester-realm-agent',
+  });
+  const runtimeAgentRequestContextProjection = buildRuntimeAgentRequestContext({
+    runtimeAppId: 'tester',
+    subjectUserId: 'tester-owner',
+    localAgentRef: runtimeLocalAgentIdentityProjection.localAgentRef,
   });
   const realmMediaUrlProjection = resolveRealmMediaUrl({
     realmBaseUrl: 'https://realm.example/',
@@ -1853,7 +1859,7 @@ export function SettingsRoute() {
       <div className="setting-row">
         <span>Runtime LocalAgent identity projection</span>
         <StatusBadge tone="neutral">
-          {runtimeLocalAgentIdentityProjection.localAgentRef}
+          {runtimeAgentRequestContextProjection.localAgentRef}
         </StatusBadge>
       </div>
       <div className="setting-row">

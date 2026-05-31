@@ -14,7 +14,7 @@ import type {
   MemoryEmbeddingRuntimeState,
 } from './memory-embedding-runtime.js';
 import {
-  projectRuntimeLocalAgentIdentity,
+  parseRuntimeLocalAgentIdentity,
   type RuntimeLocalAgentIdentityProjection,
 } from './local-agent-identity.js';
 
@@ -41,13 +41,7 @@ function normalizeText(value: unknown): string {
 export function projectRuntimeLocalAgentIdentityFromRef(
   localAgentRef: unknown,
 ): RuntimeLocalAgentIdentityProjection {
-  const normalized = normalizeText(localAgentRef);
-  const parts = normalized.split(':');
-  return projectRuntimeLocalAgentIdentity({
-    ownerUserId: parts.length === 3 && parts[0] === 'local-agent' ? parts[1] : '',
-    realmAgentId: parts.length === 3 && parts[0] === 'local-agent' ? parts[2] : '',
-    localAgentRef: normalized,
-  });
+  return parseRuntimeLocalAgentIdentity(localAgentRef);
 }
 
 export function buildRuntimeMemoryRequestContext(

@@ -12,10 +12,13 @@ test('runtime agent inspect adapter consumes SDK inspect projection helpers', ()
   assert.match(source, /projectRuntimeAgentInspectSnapshot/);
   assert.match(source, /projectRuntimeAgentInspectEventSummary/);
   assert.match(source, /buildRuntimeAgentStateMutations/);
+  assert.match(source, /buildRuntimeAgentRequestContext/);
   assert.match(source, /from '@nimiplatform\/sdk\/runtime'/);
   assert.doesNotMatch(source, /function formatLifecycleStatus/);
   assert.doesNotMatch(source, /function projectCanonicalMemoryInspect/);
   assert.doesNotMatch(source, /function readAgentPresentationProfile/);
+  assert.doesNotMatch(source, /function parseLocalAgentIdentity/);
+  assert.doesNotMatch(source, /function buildAgentRequestContext/);
 });
 
 const PROTO_AGENT_AUTONOMY_MODE = {

@@ -1100,11 +1100,11 @@ test('tester settings consumes SDK Runtime reason-code message projection', () =
 
 test('tester settings consumes SDK Runtime LocalAgent identity projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
-
   assert.match(settings, /projectRuntimeLocalAgentIdentity/);
+  assert.match(settings, /buildRuntimeAgentRequestContext/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Runtime LocalAgent identity projection/);
-  assert.match(settings, /runtimeLocalAgentIdentityProjection\.localAgentRef/);
+  assert.match(settings, /runtimeAgentRequestContextProjection\.localAgentRef/);
   assert.doesNotMatch(settings, /`local-agent:\$\{/);
 });
 

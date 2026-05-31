@@ -1,5 +1,6 @@
 import { ReasonCode } from '../types/index.js';
 import { createNimiError } from '../core/errors.js';
+import type { AgentRequestContext } from './generated/runtime/v1/agent_common.js';
 import type { RuntimeAgentLocalIdentity } from './types-runtime-agent-core.js';
 
 export type RuntimeLocalAgentIdentityInput = {
@@ -9,6 +10,13 @@ export type RuntimeLocalAgentIdentityInput = {
 };
 
 export type RuntimeLocalAgentIdentityProjection = RuntimeAgentLocalIdentity;
+
+export type RuntimeAgentRequestContextInput = {
+  runtimeAppId: unknown;
+  subjectUserId: unknown;
+  localAgentRef: unknown;
+  scopedBinding?: AgentRequestContext['scopedBinding'];
+};
 
 function normalizeIdentityPart(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -62,4 +70,34 @@ export function projectRuntimeLocalAgentIdentity(
     localAgentIdentityError('runtime local agent identity localAgentRef must match ownerUserId and realmAgentId');
   }
   return { ownerUserId, realmAgentId, localAgentRef };
+}
+
+export function parseRuntimeLocalAgentIdentity(localAgentRef: unknown): RuntimeLocalAgentIdentityProjection {
+  const normalized = normalizeIdentityPart(localAgentRef);
+  const parts = normalized.split(':');
+  if (parts.length !== 3 || parts[0] !== 'local-agent') {
+    localAgentIdentityError('runtime local agent identity localAgentRef is malformed');
+  }
+  return projectRuntimeLocalAgentIdentity({
+    ownerUserId: parts[1],
+    realmAgentId: parts[2],
+    localAgentRef: normalized,
+  });
+}
+
+export function buildRuntimeAgentRequestContext(input: RuntimeAgentRequestContextInput): AgentRequestContext {
+  const appId = normalizeIdentityPart(input.runtimeAppId);
+  if (!appId) {
+    localAgentIdentityError('runtime agent request context requires runtimeAppId');
+  }
+  const subjectUserId = normalizeIdentityPart(input.subjectUserId);
+  if (!subjectUserId) {
+    localAgentIdentityError('runtime agent request context requires subjectUserId');
+  }
+  return {
+    appId,
+    subjectUserId,
+    ...(input.scopedBinding ? { scopedBinding: input.scopedBinding } : {}),
+    ...parseRuntimeLocalAgentIdentity(input.localAgentRef),
+  };
 }

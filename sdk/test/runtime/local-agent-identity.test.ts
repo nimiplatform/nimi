@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  buildRuntimeAgentRequestContext,
   buildRuntimeLocalAgentRef,
   isRuntimeLocalAgentRef,
+  parseRuntimeLocalAgentIdentity,
   projectRuntimeLocalAgentIdentity,
 } from '../../src/runtime/index.js';
 import { ReasonCode } from '../../src/types/index.js';
@@ -36,6 +38,25 @@ test('runtime local agent identity validates explicit refs without inventing alt
 
   assert.equal(isRuntimeLocalAgentRef(' local-agent:owner-1:agent-1 '), true);
   assert.equal(isRuntimeLocalAgentRef('agent-1'), false);
+  assert.deepEqual(parseRuntimeLocalAgentIdentity(' local-agent:owner-1:agent-1 '), {
+    ownerUserId: 'owner-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:owner-1:agent-1',
+  });
+});
+
+test('runtime local agent identity builds agent request contexts', () => {
+  assert.deepEqual(buildRuntimeAgentRequestContext({
+    runtimeAppId: ' desktop ',
+    subjectUserId: ' user-1 ',
+    localAgentRef: 'local-agent:user-1:agent-1',
+  }), {
+    appId: 'desktop',
+    subjectUserId: 'user-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
+  });
 });
 
 test('runtime local agent identity fails closed on missing or mismatched identity parts', () => {
@@ -62,5 +83,13 @@ test('runtime local agent identity fails closed on missing or mismatched identit
       localAgentRef: 'agent-1',
     }),
     /localAgentRef is malformed/,
+  );
+  assert.throws(
+    () => buildRuntimeAgentRequestContext({
+      runtimeAppId: 'desktop',
+      subjectUserId: '',
+      localAgentRef: 'local-agent:owner-1:agent-1',
+    }),
+    /subjectUserId/,
   );
 });

@@ -2,6 +2,7 @@ import {
   AgentPresentationBackendKind,
   type SetAgentPresentationProfileRequest,
 } from './generated/runtime/v1/agent_service.js';
+import { buildRuntimeAgentRequestContext } from './local-agent-identity.js';
 import { normalizeRuntimeAgentText } from './runtime-agent-inspect-projection.js';
 
 export type RuntimeAgentPresentationProfileInput = {
@@ -16,12 +17,6 @@ export type RuntimeAgentPresentationProfileInput = {
 export type RuntimeAgentPresentationProfileContext = {
   appId: string;
   subjectUserId: string;
-};
-
-export type RuntimeLocalAgentIdentity = {
-  ownerUserId: string;
-  realmAgentId: string;
-  localAgentRef: string;
 };
 
 const RUNTIME_AGENT_PRESENTATION_VOICE_REFERENCE_PREFIXES = [
@@ -51,19 +46,6 @@ export function normalizeRuntimeAgentPresentationDefaultVoiceReference(value: un
     : '';
 }
 
-export function parseRuntimeLocalAgentIdentity(localAgentRef: unknown): RuntimeLocalAgentIdentity {
-  const normalized = normalizeRuntimeAgentText(localAgentRef);
-  const parts = normalized.split(':');
-  if (parts.length !== 3 || parts[0] !== 'local-agent' || !parts[1] || !parts[2]) {
-    throw new Error('runtime agent presentation profile requires localAgentRef formatted as local-agent:${ownerUserId}:${realmAgentId}');
-  }
-  return {
-    ownerUserId: parts[1],
-    realmAgentId: parts[2],
-    localAgentRef: normalized,
-  };
-}
-
 export function buildSetRuntimeAgentPresentationProfileRequest(input: {
   context: RuntimeAgentPresentationProfileContext;
   agentId: unknown;
@@ -78,11 +60,11 @@ export function buildSetRuntimeAgentPresentationProfileRequest(input: {
   if (!appId || !subjectUserId) {
     throw new Error('RUNTIME_AGENT_PRESENTATION_PROFILE_CONTEXT_REQUIRED');
   }
-  const context = {
-    appId,
+  const context = buildRuntimeAgentRequestContext({
+    runtimeAppId: appId,
     subjectUserId,
-    ...parseRuntimeLocalAgentIdentity(agentId),
-  };
+    localAgentRef: agentId,
+  });
   if (!input.profile) {
     return {
       context,
