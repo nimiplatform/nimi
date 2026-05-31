@@ -16,7 +16,6 @@
  * and by bootstrap/effects code, not by product-facing UI components.
  */
 import type {
-  RuntimeCanonicalCapability,
   RuntimeResolvedBinding,
   RuntimeRouteBinding,
   RuntimeRouteDescribeResult,
@@ -29,24 +28,26 @@ import type {
   AISnapshot,
 } from '@nimiplatform/sdk/ai';
 import {
+  RUNTIME_ROUTE_APP_CAPABILITIES,
+  buildRuntimeRouteCapabilityProjection,
+  buildRuntimeRouteCapabilityProjectionMap,
+  createDefaultRuntimeRouteCapabilitySelectionStore,
   createAISnapshotExecutionId,
   createAISnapshotRecord,
-  normalizeRuntimeRouteCapabilityToken,
+  toRuntimeRouteCanonicalCapability,
+  updateRuntimeRouteCapabilityBinding,
+  type BuildRuntimeRouteCapabilityProjectionInput,
+  type RuntimeRouteAppCapability,
+  type RuntimeRouteCapabilityProjection,
+  type RuntimeRouteCapabilityProjectionMap,
+  type RuntimeRouteCapabilityProjectionReasonCode,
+  type RuntimeRouteCapabilityRuntime,
+  type RuntimeRouteCapabilitySelectionStore,
 } from '@nimiplatform/sdk/ai';
 
-export const CONVERSATION_CAPABILITIES = [
-  'text.generate',
-  'text.embed',
-  'image.generate',
-  'image.edit',
-  'video.generate',
-  'audio.synthesize',
-  'audio.transcribe',
-  'voice_workflow.voice_clone',
-  'voice_workflow.voice_design',
-] as const;
+export const CONVERSATION_CAPABILITIES = RUNTIME_ROUTE_APP_CAPABILITIES;
 
-export type ConversationCapability = (typeof CONVERSATION_CAPABILITIES)[number];
+export type ConversationCapability = RuntimeRouteAppCapability;
 export const AGENT_VOICE_WORKFLOW_CAPABILITIES = [
   'voice_workflow.voice_clone',
   'voice_workflow.voice_design',
@@ -54,41 +55,18 @@ export const AGENT_VOICE_WORKFLOW_CAPABILITIES = [
 export type AgentVoiceWorkflowCapability = (typeof AGENT_VOICE_WORKFLOW_CAPABILITIES)[number];
 export type AgentVoiceWorkflowType = 'voice_clone' | 'voice_design';
 
-export function toRuntimeCanonicalCapability(capability: ConversationCapability): RuntimeCanonicalCapability {
-  const normalized = normalizeRuntimeRouteCapabilityToken(capability);
-  if (!normalized) {
-    throw new Error(`UNSUPPORTED_RUNTIME_CAPABILITY:${capability}`);
-  }
-  return normalized;
-}
+export const toRuntimeCanonicalCapability = toRuntimeRouteCanonicalCapability;
+
 export type RuntimeLocalProfileRef = {
   targetId: string;
   profileId: string;
 };
 
-export type ConversationCapabilitySelectionStore = {
-  version: number;
-  selectedBindings: Partial<Record<ConversationCapability, RuntimeRouteBinding | null>>;
-};
+export type ConversationCapabilitySelectionStore = RuntimeRouteCapabilitySelectionStore;
 
-export type ConversationCapabilityProjectionReasonCode =
-  | 'selection_missing'
-  | 'selection_cleared'
-  | 'binding_unresolved'
-  | 'route_unhealthy'
-  | 'metadata_missing'
-  | 'capability_unsupported'
-  | 'host_denied';
+export type ConversationCapabilityProjectionReasonCode = RuntimeRouteCapabilityProjectionReasonCode;
 
-export type ConversationCapabilityProjection = {
-  capability: ConversationCapability;
-  selectedBinding: RuntimeRouteBinding | null;
-  resolvedBinding: RuntimeResolvedBinding | null;
-  health: RuntimeRouteHealthResult | null;
-  metadata: RuntimeRouteDescribeResult | null;
-  supported: boolean;
-  reasonCode: ConversationCapabilityProjectionReasonCode | null;
-};
+export type ConversationCapabilityProjection = RuntimeRouteCapabilityProjection;
 
 export type AgentVoiceWorkflowProjectionMap =
   Partial<Record<AgentVoiceWorkflowCapability, ConversationCapabilityProjection | null>>;
@@ -122,106 +100,18 @@ export type ConversationExecutionSnapshot = {
   agentResolution: AgentEffectiveCapabilityResolution | null;
 };
 
-export type ConversationCapabilityProjectionMap = Partial<Record<ConversationCapability, ConversationCapabilityProjection>>;
+export type ConversationCapabilityProjectionMap = RuntimeRouteCapabilityProjectionMap;
 
-export type ConversationCapabilityRouteRuntime = {
-  resolve(input: {
-    capability: ConversationCapability;
-    binding?: RuntimeRouteBinding;
-  }): Promise<RuntimeResolvedBinding>;
-  checkHealth(input: {
-    capability: ConversationCapability;
-    binding?: RuntimeRouteBinding;
-  }): Promise<RuntimeRouteHealthResult>;
-  describe(input: {
-    capability: ConversationCapability;
-    resolvedBindingRef: string;
-  }): Promise<RuntimeRouteDescribeResult>;
-};
+export type ConversationCapabilityRouteRuntime = RuntimeRouteCapabilityRuntime;
 
-type BuildConversationCapabilityProjectionInput = {
+type BuildConversationCapabilityProjectionInput = Omit<BuildRuntimeRouteCapabilityProjectionInput, 'capability'> & {
   capability: ConversationCapability;
-  selectionStore: ConversationCapabilitySelectionStore;
-  routeRuntime?: ConversationCapabilityRouteRuntime | null;
-  hostAllowed?: boolean;
 };
-
-const CONVERSATION_CAPABILITY_SELECTION_STORE_VERSION = 1;
 
 let conversationCapabilityRouteRuntime: ConversationCapabilityRouteRuntime | null = null;
 
-function normalizeText(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-  return value as Record<string, unknown>;
-}
-
-function hasOwn(target: object, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(target, key);
-}
-
-function createProjection(
-  capability: ConversationCapability,
-  overrides: Partial<ConversationCapabilityProjection>,
-): ConversationCapabilityProjection {
-  return {
-    capability,
-    selectedBinding: null,
-    resolvedBinding: null,
-    health: null,
-    metadata: null,
-    supported: false,
-    reasonCode: null,
-    ...overrides,
-  };
-}
-
-function reasonCodeFromError(error: unknown): ConversationCapabilityProjectionReasonCode | null {
-  const record = asRecord(error);
-  const reasonCode = normalizeText(record.reasonCode) || normalizeText((error as Error | null | undefined)?.message);
-  const normalized = reasonCode.toUpperCase();
-  if (!normalized) {
-    return null;
-  }
-  if (
-    normalized.includes('HOOK_PERMISSION_DENIED')
-    || normalized.includes('ACTION_PERMISSION_DENIED')
-    || normalized.includes('SANDBOX_CAPABILITY_DENIED')
-  ) {
-    return 'host_denied';
-  }
-  if (
-    normalized.includes('AI_ROUTE_UNSUPPORTED')
-    || normalized.includes('CAPABILITY_MISSING')
-    || normalized.includes('UNSUPPORTED')
-  ) {
-    return 'capability_unsupported';
-  }
-  return null;
-}
-
-function isProjectionHealthHealthy(health: RuntimeRouteHealthResult | null): boolean {
-  if (!health) {
-    return false;
-  }
-  const status = normalizeText(health.status).toLowerCase();
-  if (status === 'unavailable' || status === 'unhealthy') {
-    return false;
-  }
-  return health.healthy !== false;
-}
-
-
 export function createDefaultConversationCapabilitySelectionStore(): ConversationCapabilitySelectionStore {
-  return {
-    version: CONVERSATION_CAPABILITY_SELECTION_STORE_VERSION,
-    selectedBindings: {},
-  };
+  return createDefaultRuntimeRouteCapabilitySelectionStore();
 }
 
 export function updateConversationCapabilityBinding(
@@ -229,16 +119,7 @@ export function updateConversationCapabilityBinding(
   capability: ConversationCapability,
   binding: RuntimeRouteBinding | null | undefined,
 ): ConversationCapabilitySelectionStore {
-  const next: ConversationCapabilitySelectionStore = {
-    version: CONVERSATION_CAPABILITY_SELECTION_STORE_VERSION,
-    selectedBindings: { ...state.selectedBindings },
-  };
-  if (binding === undefined) {
-    delete next.selectedBindings[capability];
-  } else {
-    next.selectedBindings[capability] = binding;
-  }
-  return next;
+  return updateRuntimeRouteCapabilityBinding(state, capability, binding);
 }
 
 export function setConversationCapabilityRouteRuntime(runtime: ConversationCapabilityRouteRuntime | null): void {
@@ -252,113 +133,9 @@ export function getConversationCapabilityRouteRuntime(): ConversationCapabilityR
 export async function buildConversationCapabilityProjection(
   input: BuildConversationCapabilityProjectionInput,
 ): Promise<ConversationCapabilityProjection> {
-  const routeRuntime = input.routeRuntime || conversationCapabilityRouteRuntime;
-  const hostAllowed = input.hostAllowed !== false;
-  if (!hostAllowed) {
-    return createProjection(input.capability, { reasonCode: 'host_denied' });
-  }
-
-  const selectedBindings = input.selectionStore.selectedBindings;
-  const hasSelection = hasOwn(selectedBindings, input.capability);
-  if (!hasSelection) {
-    return createProjection(input.capability, { reasonCode: 'selection_missing' });
-  }
-
-  const selectedBinding = selectedBindings[input.capability];
-  if (selectedBinding === null) {
-    return createProjection(input.capability, {
-      selectedBinding: null,
-      reasonCode: 'selection_cleared',
-    });
-  }
-
-  if (!selectedBinding) {
-    return createProjection(input.capability, { reasonCode: 'binding_unresolved' });
-  }
-
-  if (!routeRuntime) {
-    return createProjection(input.capability, {
-      selectedBinding,
-      reasonCode: 'binding_unresolved',
-    });
-  }
-
-  let resolvedBinding: RuntimeResolvedBinding;
-  try {
-    resolvedBinding = await routeRuntime.resolve({
-      capability: input.capability,
-      binding: selectedBinding,
-    });
-  } catch (error) {
-    const mappedReasonCode = reasonCodeFromError(error);
-    return createProjection(input.capability, {
-      selectedBinding,
-      reasonCode: mappedReasonCode || 'binding_unresolved',
-    });
-  }
-  if (!resolvedBinding?.resolvedBindingRef) {
-    return createProjection(input.capability, {
-      selectedBinding,
-      resolvedBinding,
-      reasonCode: 'binding_unresolved',
-    });
-  }
-
-  let health: RuntimeRouteHealthResult;
-  try {
-    health = await routeRuntime.checkHealth({
-      capability: input.capability,
-      binding: selectedBinding,
-    });
-  } catch (error) {
-    const mappedReasonCode = reasonCodeFromError(error);
-    return createProjection(input.capability, {
-      selectedBinding,
-      resolvedBinding,
-      reasonCode: mappedReasonCode || 'route_unhealthy',
-    });
-  }
-  if (!isProjectionHealthHealthy(health)) {
-    return createProjection(input.capability, {
-      selectedBinding,
-      resolvedBinding,
-      health,
-      reasonCode: 'route_unhealthy',
-    });
-  }
-
-  const expectedMetadataCapability = toRuntimeCanonicalCapability(input.capability);
-  let metadata: RuntimeRouteDescribeResult;
-  try {
-    metadata = await routeRuntime.describe({
-      capability: expectedMetadataCapability as ConversationCapability,
-      resolvedBindingRef: resolvedBinding.resolvedBindingRef,
-    });
-  } catch (error) {
-    const mappedReasonCode = reasonCodeFromError(error);
-    return createProjection(input.capability, {
-      selectedBinding,
-      resolvedBinding,
-      health,
-      reasonCode: mappedReasonCode === 'host_denied' ? 'host_denied' : 'metadata_missing',
-    });
-  }
-  if (!metadata || metadata.capability !== expectedMetadataCapability || metadata.metadataKind !== expectedMetadataCapability) {
-    return createProjection(input.capability, {
-      selectedBinding,
-      resolvedBinding,
-      health,
-      reasonCode: 'metadata_missing',
-    });
-  }
-
-  return createProjection(input.capability, {
-    selectedBinding,
-    resolvedBinding,
-    health,
-    metadata,
-    supported: true,
-    reasonCode: null,
+  return buildRuntimeRouteCapabilityProjection({
+    ...input,
+    routeRuntime: input.routeRuntime || conversationCapabilityRouteRuntime,
   });
 }
 
@@ -368,17 +145,10 @@ export async function buildConversationCapabilityProjectionMap(input: {
   hostAllowlist?: Partial<Record<ConversationCapability, boolean>>;
   capabilities?: readonly ConversationCapability[];
 }): Promise<ConversationCapabilityProjectionMap> {
-  const capabilities = input.capabilities || CONVERSATION_CAPABILITIES;
-  const entries = await Promise.all(capabilities.map(async (capability) => {
-    const projection = await buildConversationCapabilityProjection({
-      capability,
-      selectionStore: input.selectionStore,
-      routeRuntime: input.routeRuntime,
-      hostAllowed: input.hostAllowlist?.[capability] !== false,
-    });
-    return [capability, projection] as const;
-  }));
-  return Object.fromEntries(entries) as ConversationCapabilityProjectionMap;
+  return buildRuntimeRouteCapabilityProjectionMap({
+    ...input,
+    routeRuntime: input.routeRuntime || conversationCapabilityRouteRuntime,
+  });
 }
 
 export function buildAgentEffectiveCapabilityResolution(input: {
@@ -487,7 +257,7 @@ export function aiConfigFromSelectionStore(
 
 export function selectionStoreFromAIConfig(config: AIConfig): ConversationCapabilitySelectionStore {
   return {
-    version: CONVERSATION_CAPABILITY_SELECTION_STORE_VERSION,
+    version: createDefaultConversationCapabilitySelectionStore().version,
     selectedBindings: { ...config.capabilities.selectedBindings } as ConversationCapabilitySelectionStore['selectedBindings'],
   };
 }

@@ -531,7 +531,7 @@ test('toRuntimeCanonicalCapability maps image.edit to image.generate for host bo
 
 test('conversation capability canonicalization is delegated to SDK projection', () => {
   const source = readSource('src/shell/renderer/features/chat/conversation-capability.ts');
-  assert.match(source, /normalizeRuntimeRouteCapabilityToken/);
+  assert.match(source, /toRuntimeRouteCanonicalCapability/);
   assert.doesNotMatch(source, /CONVERSATION_CAPABILITY_RUNTIME_MAP/);
 });
 

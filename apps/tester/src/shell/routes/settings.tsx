@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
+  buildRuntimeRouteCapabilityProjection,
   createEmptyMemoryEmbeddingConfig,
+  createDefaultRuntimeRouteCapabilitySelectionStore,
   isRuntimeRouteLocalOptionSelectable,
   projectRuntimeRouteCapabilityCoverage,
   projectMemoryEmbeddingRouteAvailability,
   resolveRuntimeRouteReasoningConfig,
   resolveRuntimeTextRouteReasoningSupport,
   runtimeRouteLocalOptionToBinding,
+  toRuntimeRouteCanonicalCapability,
+  updateRuntimeRouteCapabilityBinding,
+  type RuntimeRouteCapabilityRuntime,
   type RuntimeResolvedBinding,
   type RuntimeRouteDescribeResult,
 } from '@nimiplatform/sdk/ai';
@@ -129,6 +134,11 @@ type CatalogProjectionState =
   | { status: 'ready'; providers: RuntimeModelCatalogProvider[]; error: null }
   | { status: 'error'; providers: RuntimeModelCatalogProvider[]; error: string };
 
+type RuntimeCapabilityProjectionState =
+  | { status: 'loading'; summary: null; error: null }
+  | { status: 'ready'; summary: { capability: string; supported: boolean; reasonCode: string }; error: null }
+  | { status: 'error'; summary: null; error: string };
+
 const runtimeConnectorInventory = createRuntimeConnectorInventoryClient({
   runtimeAdmin: () => getPlatformClient().domains.runtimeAdmin,
   callOptions: {
@@ -225,6 +235,45 @@ const runtimeModelCatalogProjection = createRuntimeModelCatalogClient({
   },
 });
 
+const testerRouteCapabilityRuntime: RuntimeRouteCapabilityRuntime = {
+  async resolve({ capability, binding }) {
+    return {
+      capability: toRuntimeRouteCanonicalCapability(capability),
+      resolvedBindingRef: `tester:${capability}:resolved`,
+      source: binding?.source || 'cloud',
+      connectorId: binding?.connectorId || 'tester-cloud',
+      provider: binding?.provider || 'tester',
+      model: binding?.model || 'tester-model',
+      modelId: binding?.modelId || binding?.model || 'tester-model',
+    };
+  },
+  async checkHealth() {
+    return {
+      healthy: true,
+      status: 'healthy',
+      detail: 'tester route ready',
+    };
+  },
+  async describe({ capability, resolvedBindingRef }) {
+    if (capability !== 'audio.synthesize') {
+      throw new Error('Tester settings only describes audio.synthesize route projection.');
+    }
+    return {
+      capability: 'audio.synthesize',
+      metadataVersion: 'v1',
+      resolvedBindingRef,
+      metadataKind: 'audio.synthesize',
+      metadata: {
+        supportedAudioFormats: ['audio/wav'],
+        defaultAudioFormat: 'audio/wav',
+        supportedTimingModes: ['none'],
+        supportsLanguage: false,
+        supportsEmotion: false,
+      },
+    };
+  },
+};
+
 const runtimeHealthCoordinatorDiagnostics = new RuntimeHealthCoordinator({
   fetchRuntimeHealth: async () => {
     throw new Error('Tester settings diagnostics do not own Runtime health truth.');
@@ -314,6 +363,11 @@ export function SettingsRoute() {
   const [catalogProjection, setCatalogProjection] = useState<CatalogProjectionState>({
     status: 'idle',
     providers: [],
+    error: null,
+  });
+  const [runtimeCapabilityProjection, setRuntimeCapabilityProjection] = useState<RuntimeCapabilityProjectionState>({
+    status: 'loading',
+    summary: null,
     error: null,
   });
   useEffect(() => {
@@ -541,6 +595,44 @@ export function SettingsRoute() {
       },
     }],
   });
+  useEffect(() => {
+    let cancelled = false;
+    const selectionStore = updateRuntimeRouteCapabilityBinding(
+      createDefaultRuntimeRouteCapabilitySelectionStore(),
+      'audio.synthesize',
+      { source: 'cloud', connectorId: 'tester-cloud', provider: 'tester', model: 'tester-tts' },
+    );
+    void buildRuntimeRouteCapabilityProjection({
+      capability: 'audio.synthesize',
+      selectionStore,
+      routeRuntime: testerRouteCapabilityRuntime,
+    }).then((projection) => {
+      if (cancelled) {
+        return;
+      }
+      setRuntimeCapabilityProjection({
+        status: 'ready',
+        summary: {
+          capability: projection.capability,
+          supported: projection.supported,
+          reasonCode: projection.reasonCode ?? 'ok',
+        },
+        error: null,
+      });
+    }).catch((error: unknown) => {
+      if (cancelled) {
+        return;
+      }
+      setRuntimeCapabilityProjection({
+        status: 'error',
+        summary: null,
+        error: errorMessage(error),
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const runtimeRouteReasoningProjection = (() => {
     const resolvedBinding: RuntimeResolvedBinding = {
       capability: 'text.generate',
@@ -1192,6 +1284,16 @@ export function SettingsRoute() {
         <span>Runtime capability coverage projection</span>
         <StatusBadge tone={runtimeCapabilityCoverageProjection.cloudAvailable ? 'success' : 'warning'}>
           {runtimeCapabilityCoverageProjection.capability}: {runtimeCapabilityCoverageProjection.cloudAvailable ? 'cloud' : 'unavailable'}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Runtime route capability projection</span>
+        <StatusBadge tone={runtimeCapabilityProjection.status === 'ready' && runtimeCapabilityProjection.summary.supported ? 'success' : runtimeCapabilityProjection.status === 'error' ? 'danger' : 'warning'}>
+          {runtimeCapabilityProjection.status === 'ready'
+            ? `${runtimeCapabilityProjection.summary.capability}: ${runtimeCapabilityProjection.summary.reasonCode}`
+            : runtimeCapabilityProjection.status === 'error'
+              ? runtimeCapabilityProjection.error
+              : 'checking'}
         </StatusBadge>
       </div>
       <div className="setting-row">

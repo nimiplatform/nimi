@@ -1063,6 +1063,18 @@ test('tester settings consumes SDK Runtime capability coverage projection', () =
   assert.doesNotMatch(settings, /connectors\.some\(\(c\) => c\.status === 'healthy'\)/);
 });
 
+test('tester settings consumes SDK Runtime route capability projection builder', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /buildRuntimeRouteCapabilityProjection/);
+  assert.match(settings, /createDefaultRuntimeRouteCapabilitySelectionStore/);
+  assert.match(settings, /updateRuntimeRouteCapabilityBinding/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/ai'/);
+  assert.match(settings, /Runtime route capability projection/);
+  assert.match(settings, /runtimeCapabilityProjection\.summary\.reasonCode/);
+  assert.doesNotMatch(settings, /function buildRuntimeRouteCapabilityProjection/);
+});
+
 test('tester settings consumes SDK Runtime health coordinator diagnostics', () => {
   const settings = read('src/shell/routes/settings.tsx');
 
