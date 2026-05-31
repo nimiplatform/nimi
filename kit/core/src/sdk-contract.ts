@@ -32,13 +32,9 @@
  *       features/model-config/src/components/model-config-capability-detail.tsx:37)
  *     - ScenarioJobStatus, ScenarioJobSubmitInput
  *       (features/generation/src/runtime.ts:3-7)
- *     - asNimiError, CatalogModelSource, ModelCatalogProviderSource,
- *       CatalogModelDetail, CatalogOverlayWarning, CatalogPricing,
- *       CatalogSourceRef, CatalogVideoGenerationCapability,
- *       CatalogVoiceEntry, CatalogWorkflowModel,
- *       CatalogModelWorkflowBinding, CatalogModelSummary,
- *       ModelCatalogProviderEntry
- *       (features/model-picker/src/runtime.ts:2-17)
+ *     - Runtime catalog projection/client types and
+ *       createRuntimeModelCatalogClient
+ *       (features/model-picker/src/runtime.ts:1-32)
  *   @nimiplatform/sdk/realm — realm typed surface
  *     - RealmServiceRegistry (chat/src/realm/types.ts:1)
  *     - RealmModel (chat/src/realm/codec.ts:1,
@@ -50,7 +46,7 @@
  *     - OAuthLoginState (auth/src/logic/auth-menu-handlers.ts:3)
  *   @nimiplatform/sdk/types — typed error envelope
  *     - NimiError (chat/src/runtime.ts:16)
- *     - ReasonCode (model-picker/src/runtime.ts:18)
+ *     - ReasonCode (reserved for kit SDK-boundary consumers)
  *   @nimiplatform/sdk/ai   — module-config authority
  *     - * (re-exports) (core/model-config/types.ts:19,
  *       core/model-config/profile-controller-core.ts:20)
@@ -119,12 +115,12 @@ export { getPlatformClient } from '@nimiplatform/sdk';
 export type { getPlatformClient as GetPlatformClientFn } from '@nimiplatform/sdk';
 
 // --- Runtime type family ----------------------------------------------------
-// `Runtime`, `ScenarioJobStatus`, `CatalogModelSource`,
-// `ModelCatalogProviderSource` are runtime values (class / enum), not
-// type-only — keep their value-side export.
+// `Runtime`, `ScenarioJobStatus`, catalog enums, and catalog client factories
+// are runtime values, not type-only — keep their value-side export.
 export {
   Runtime,
   asNimiError,
+  createRuntimeModelCatalogClient,
   ScenarioJobStatus,
   CatalogModelSource,
   ModelCatalogProviderSource,
@@ -148,6 +144,21 @@ export type {
   CatalogModelWorkflowBinding,
   CatalogModelSummary,
   ModelCatalogProviderEntry,
+  RuntimeCatalogModelDetail,
+  RuntimeCatalogModelDetailResponse,
+  RuntimeCatalogModelSource,
+  RuntimeCatalogOverlayWarning,
+  RuntimeCatalogPricing,
+  RuntimeCatalogProviderModelsResponse,
+  RuntimeCatalogSourceRef,
+  RuntimeCatalogVideoGeneration,
+  RuntimeCatalogVoiceEntry,
+  RuntimeCatalogWorkflowBinding,
+  RuntimeCatalogWorkflowModel,
+  RuntimeCatalogModelSummary,
+  RuntimeModelCatalogClient,
+  RuntimeModelCatalogProvider,
+  RuntimeModelCatalogProviderSource,
 } from '@nimiplatform/sdk/runtime';
 
 // --- Realm type family ------------------------------------------------------

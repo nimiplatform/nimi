@@ -11,6 +11,8 @@ import { pickerSelectionToBinding } from '@nimiplatform/kit/features/model-confi
 import {
   getRuntimeReasonCodeDefaultMessage,
   createRuntimeConnectorInventoryClient,
+  createRuntimeModelCatalogClient,
+  CatalogModelSource,
   isLocalRuntimeEnvironmentDependencyJobActiveState,
   isLocalRuntimeEnvironmentDependencyJobRetryableState,
   isLocalRuntimeEnvironmentDependencyJobTransferringState,
@@ -21,9 +23,12 @@ import {
   projectRuntimeLocalAgentIdentity,
   parseRuntimeLocalRecommendationFeedDescriptor,
   parseLocalRecommendationFeedSourceId,
+  ModelCatalogProviderSource,
   RuntimeHealthCoordinator,
   summarizeLocalRecommendationFeedCacheState,
   type RuntimeConnectorProjection,
+  type RuntimeModelCatalogConnectorClient,
+  type RuntimeModelCatalogProvider,
 } from '@nimiplatform/sdk/runtime';
 import { classifyOfflineReasonCode, ReasonCode } from '@nimiplatform/sdk/types';
 import {
@@ -89,6 +94,12 @@ type ConnectorProjectionState =
   | { status: 'ready'; connectors: RuntimeConnectorProjection[]; error: null }
   | { status: 'error'; connectors: RuntimeConnectorProjection[]; error: string };
 
+type CatalogProjectionState =
+  | { status: 'idle'; providers: RuntimeModelCatalogProvider[]; error: null }
+  | { status: 'loading'; providers: RuntimeModelCatalogProvider[]; error: null }
+  | { status: 'ready'; providers: RuntimeModelCatalogProvider[]; error: null }
+  | { status: 'error'; providers: RuntimeModelCatalogProvider[]; error: string };
+
 const runtimeConnectorInventory = createRuntimeConnectorInventoryClient({
   runtimeAdmin: () => getPlatformClient().domains.runtimeAdmin,
   callOptions: {
@@ -96,6 +107,90 @@ const runtimeConnectorInventory = createRuntimeConnectorInventoryClient({
     metadata: {
       callerKind: 'third-party-app' as const,
       callerId: 'tester.settings.connector-inventory',
+      surfaceId: 'tester.settings',
+    },
+  },
+});
+
+const testerRuntimeModelCatalogProviderEntry = {
+  provider: 'tester-provider',
+  version: 1,
+  catalogVersion: '2026-05-31',
+  source: ModelCatalogProviderSource.CUSTOM,
+  inventoryMode: 'static_source',
+  modelCount: 1,
+  voiceCount: 0,
+  defaultTextModel: 'tester-model',
+  capabilities: ['text.generate'],
+  hasOverlay: true,
+  customModelCount: 1,
+  overriddenModelCount: 0,
+  overlayUpdatedAt: '2026-05-31T00:00:00Z',
+  yaml: 'provider: tester-provider',
+  effectiveYaml: 'provider: tester-provider',
+  defaultEndpoint: 'https://runtime.example/v1',
+  requiresExplicitEndpoint: false,
+  runtimePlane: 'tester',
+  executionModule: 'tester',
+  managedSupported: false,
+};
+
+const testerRuntimeModelCatalogConnector = {
+  async listModelCatalogProviders() {
+    return {
+      providers: [testerRuntimeModelCatalogProviderEntry],
+    };
+  },
+  async listCatalogProviderModels() {
+    return { provider: testerRuntimeModelCatalogProviderEntry, models: [], nextPageToken: '', warnings: [] };
+  },
+  async getCatalogModelDetail() {
+    return {
+      provider: testerRuntimeModelCatalogProviderEntry,
+      model: {
+        provider: 'tester-provider',
+        modelId: 'tester-model',
+        modelType: 'text',
+        updatedAt: '2026-05-31',
+        capabilities: ['text.generate'],
+        pricing: { unit: 'request', input: 'unknown', output: 'unknown', currency: 'USD', asOf: '2026-05-31', notes: 'tester' },
+        voiceSetId: '',
+        voiceDiscoveryMode: '',
+        voiceRefKinds: [],
+        videoGeneration: undefined,
+        sourceRef: { url: 'https://runtime.example/catalog', retrievedAt: '2026-05-31', note: 'tester' },
+        source: CatalogModelSource.CUSTOM,
+        userScoped: true,
+        sourceNote: 'tester settings projection',
+        warnings: [],
+        voices: [],
+        voiceWorkflowModels: [],
+        modelWorkflowBinding: undefined,
+      },
+      warnings: [],
+    };
+  },
+  async upsertModelCatalogProvider() {
+    throw new Error('Tester settings does not mutate Runtime catalog truth.');
+  },
+  async deleteModelCatalogProvider() {
+    throw new Error('Tester settings does not mutate Runtime catalog truth.');
+  },
+  async upsertCatalogModelOverlay() {
+    throw new Error('Tester settings does not mutate Runtime catalog truth.');
+  },
+  async deleteCatalogModelOverlay() {
+    throw new Error('Tester settings does not mutate Runtime catalog truth.');
+  },
+} satisfies RuntimeModelCatalogConnectorClient;
+
+const runtimeModelCatalogProjection = createRuntimeModelCatalogClient({
+  connector: () => testerRuntimeModelCatalogConnector,
+  callOptions: {
+    timeoutMs: 5000,
+    metadata: {
+      callerKind: 'third-party-app' as const,
+      callerId: 'tester.settings.model-catalog',
       surfaceId: 'tester.settings',
     },
   },
@@ -180,6 +275,11 @@ export function SettingsRoute() {
   const [connectorProjection, setConnectorProjection] = useState<ConnectorProjectionState>({
     status: 'idle',
     connectors: [],
+    error: null,
+  });
+  const [catalogProjection, setCatalogProjection] = useState<CatalogProjectionState>({
+    status: 'idle',
+    providers: [],
     error: null,
   });
   const recommendationFeedProjection = {
@@ -466,6 +566,27 @@ export function SettingsRoute() {
       }));
     }
   };
+  const refreshCatalogProjection = async () => {
+    setCatalogProjection((current) => ({
+      status: 'loading',
+      providers: current.providers,
+      error: null,
+    }));
+    try {
+      const providers = await runtimeModelCatalogProjection.listProviders();
+      setCatalogProjection({
+        status: 'ready',
+        providers,
+        error: null,
+      });
+    } catch (error) {
+      setCatalogProjection((current) => ({
+        status: 'error',
+        providers: current.providers,
+        error: errorMessage(error),
+      }));
+    }
+  };
 
   return (
     <Surface className="panel-section" material="glass-thin" tone="panel">
@@ -652,6 +773,29 @@ export function SettingsRoute() {
             loading={connectorProjection.status === 'loading'}
             onClick={() => {
               void refreshConnectorProjection();
+            }}
+          >
+            Refresh
+          </Button>
+        </div>
+      </div>
+      <div className="setting-row">
+        <span>Runtime model catalog projection</span>
+        <div className="inline-flex items-center gap-2">
+          <StatusBadge tone={catalogProjection.status === 'error' ? 'danger' : 'info'}>
+            {catalogProjection.status === 'ready'
+              ? `${catalogProjection.providers[0]?.provider ?? 'none'} / ${catalogProjection.providers[0]?.source ?? 'unknown'}`
+              : catalogProjection.status === 'error'
+                ? catalogProjection.error
+                : 'not loaded'}
+          </StatusBadge>
+          <Button
+            type="button"
+            size="sm"
+            tone="secondary"
+            loading={catalogProjection.status === 'loading'}
+            onClick={() => {
+              void refreshCatalogProjection();
             }}
           >
             Refresh

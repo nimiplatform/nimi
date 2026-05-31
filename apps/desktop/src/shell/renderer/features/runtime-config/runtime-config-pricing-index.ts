@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  sdkListModelCatalogProviders,
-  sdkListCatalogProviderModels,
-  sdkGetCatalogModelDetail,
+  runtimeConfigCatalogClient,
   type RuntimeCatalogPricing,
 } from './runtime-config-catalog-sdk-service.js';
 
@@ -18,9 +16,9 @@ type PricingIndexState = {
 
 async function buildModelToProviderMap(): Promise<Map<string, string>> {
   const map = new Map<string, string>();
-  const providers = await sdkListModelCatalogProviders();
+  const providers = await runtimeConfigCatalogClient.listProviders();
   for (const provider of providers) {
-    const response = await sdkListCatalogProviderModels(provider.provider);
+    const response = await runtimeConfigCatalogClient.listProviderModels(provider.provider);
     for (const model of response.models) {
       if (!map.has(model.modelId)) {
         map.set(model.modelId, model.provider);
@@ -40,7 +38,7 @@ async function fetchPricingForModels(
     .map(async (modelId) => {
       const provider = modelToProvider.get(modelId)!;
       try {
-        const detail = await sdkGetCatalogModelDetail(provider, modelId);
+        const detail = await runtimeConfigCatalogClient.getModelDetail(provider, modelId);
         result.set(modelId, { provider, pricing: detail.model.pricing });
       } catch {
         // Model detail fetch failed — leave as unknown

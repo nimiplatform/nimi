@@ -9,12 +9,7 @@ import { ScrollArea } from '@nimiplatform/kit/ui';
 import { Button, Card, Input, RuntimeSelect } from './runtime-config-primitives';
 import { RuntimePageShell } from './runtime-config-page-shell';
 import {
-  sdkDeleteCatalogModelOverlay,
-  sdkDeleteModelCatalogProvider,
-  sdkListCatalogProviderModels,
-  sdkListModelCatalogProviders,
-  sdkUpsertCatalogModelOverlay,
-  sdkUpsertModelCatalogProvider,
+  runtimeConfigCatalogClient,
   type RuntimeCatalogModelDetail,
   type RuntimeCatalogModelOverlayInput,
   type RuntimeCatalogProviderModelsResponse,
@@ -152,7 +147,7 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
 
   const loadProviders = useCallback(async () => {
     try {
-      const rows = await sdkListModelCatalogProviders();
+      const rows = await runtimeConfigCatalogClient.listProviders();
       setProviders(rows);
       setSelectedProviderId((current) => (current && rows.some((row) => row.provider === current) ? current : rows[0]?.provider || ''));
     } catch (error) {
@@ -166,7 +161,7 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
     if (!provider) return;
     setLoadingModels(true);
     try {
-      const response = await sdkListCatalogProviderModels(provider);
+      const response = await runtimeConfigCatalogClient.listProviderModels(provider);
       setProviderModels(response);
       setOverlayYamlDraft(response.provider.yaml || '');
     } catch (error) {
@@ -188,7 +183,7 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
     }
     setSavingOverlayYaml(true);
     try {
-      await sdkUpsertModelCatalogProvider(selectedProvider.provider, overlayYamlDraft);
+      await runtimeConfigCatalogClient.upsertProvider(selectedProvider.provider, overlayYamlDraft);
       emitModelCatalogUpdated(selectedProvider.provider);
       await loadProviders();
       await loadProviderModels(selectedProvider.provider);
@@ -204,7 +199,7 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
     if (!selectedProvider) return;
     setSavingOverlayYaml(true);
     try {
-      await sdkDeleteModelCatalogProvider(selectedProvider.provider);
+      await runtimeConfigCatalogClient.deleteProvider(selectedProvider.provider);
       emitModelCatalogUpdated(selectedProvider.provider);
       await loadProviders();
       await loadProviderModels(selectedProvider.provider);
@@ -220,7 +215,7 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
     if (!selectedProvider) return;
     setDeletingModelId(modelId);
     try {
-      await sdkDeleteCatalogModelOverlay(selectedProvider.provider, modelId);
+      await runtimeConfigCatalogClient.deleteModelOverlay(selectedProvider.provider, modelId);
       emitModelCatalogUpdated(selectedProvider.provider);
       await loadProviders();
       await loadProviderModels(selectedProvider.provider);
@@ -273,7 +268,7 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
         modelWorkflowBinding: detail.modelWorkflowBinding as RuntimeCatalogWorkflowBinding | null,
       };
       setSavingModel(true);
-      await sdkUpsertCatalogModelOverlay(selectedProvider.provider, overlayInput);
+      await runtimeConfigCatalogClient.upsertModelOverlay(selectedProvider.provider, overlayInput);
       emitModelCatalogUpdated(selectedProvider.provider);
       setShowAddModel(false);
       await loadProviders();

@@ -954,6 +954,17 @@ test('tester settings consumes SDK Runtime connector inventory projection', () =
   assert.doesNotMatch(settings, /listProviderCatalog\(|listConnectorModels\(|ConnectorKind\.REMOTE_MANAGED/);
 });
 
+test('tester settings consumes SDK Runtime model catalog projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /createRuntimeModelCatalogClient/);
+  assert.match(settings, /runtimeModelCatalogProjection\.listProviders/);
+  assert.match(settings, /Runtime model catalog projection/);
+  assert.match(settings, /ModelCatalogProviderSource\.CUSTOM/);
+  assert.doesNotMatch(settings, /function normalizeRuntimeModelCatalogProvider/);
+  assert.doesNotMatch(settings, /runtimeJsonToProtoStruct|runtimeProtoStructToJson/);
+});
+
 test('tester settings consumes SDK Runtime reason-code message projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
 

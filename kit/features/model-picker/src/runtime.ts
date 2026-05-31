@@ -1,24 +1,35 @@
 import {
-  asNimiError,
-  CatalogModelSource,
+  createRuntimeModelCatalogClient,
   getPlatformClient,
-  ModelCatalogProviderSource,
-  ReasonCode,
   Runtime,
-  type CatalogModelDetail,
-  type CatalogOverlayWarning,
-  type CatalogPricing,
-  type CatalogSourceRef,
-  type CatalogVideoGenerationCapability,
-  type CatalogVoiceEntry,
-  type CatalogWorkflowModel,
-  type CatalogModelWorkflowBinding,
-  type CatalogModelSummary,
-  type ModelCatalogProviderEntry,
+  type RuntimeCatalogModelDetail,
+  type RuntimeCatalogModelDetailResponse,
+  type RuntimeCatalogModelSource,
+  type RuntimeCatalogModelSummary,
+  type RuntimeCatalogOverlayWarning,
+  type RuntimeCatalogProviderModelsResponse,
+  type RuntimeModelCatalogClient,
+  type RuntimeModelCatalogProvider,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useModelPicker, type UseModelPickerOptions, type UseModelPickerResult } from './headless.js';
 import type { ModelCatalogAdapter } from './types.js';
+
+export type {
+  RuntimeCatalogModelDetail,
+  RuntimeCatalogModelDetailResponse,
+  RuntimeCatalogModelSummary,
+  RuntimeCatalogOverlayWarning,
+  RuntimeCatalogPricing,
+  RuntimeCatalogProviderModelsResponse,
+  RuntimeCatalogSourceRef,
+  RuntimeCatalogVideoGeneration,
+  RuntimeCatalogVoiceEntry,
+  RuntimeCatalogWorkflowBinding,
+  RuntimeCatalogWorkflowModel,
+  RuntimeModelCatalogProvider,
+  RuntimeModelCatalogProviderSource,
+} from '@nimiplatform/kit/core/sdk-contract';
 
 const CATALOG_CALL_OPTIONS = {
   timeoutMs: 8000,
@@ -29,139 +40,7 @@ const CATALOG_CALL_OPTIONS = {
   },
 };
 
-type JsonObject = Record<string, unknown>;
-type ProtoStruct = {
-  fields: Record<string, ProtoValue>;
-};
-
-type ProtoValue =
-  | { kind: { oneofKind: 'nullValue'; nullValue: 0 } }
-  | { kind: { oneofKind: 'numberValue'; numberValue: number } }
-  | { kind: { oneofKind: 'stringValue'; stringValue: string } }
-  | { kind: { oneofKind: 'boolValue'; boolValue: boolean } }
-  | { kind: { oneofKind: 'structValue'; structValue: ProtoStruct } }
-  | { kind: { oneofKind: 'listValue'; listValue: { values: ProtoValue[] } } }
-  | { kind: { oneofKind: undefined } };
-
-export type RuntimeModelCatalogProviderSource = 'builtin' | 'custom' | 'overridden' | 'remote' | 'unknown';
-export type RuntimeModelCatalogSource = 'builtin' | 'custom' | 'overridden' | 'unknown';
-
-export type RuntimeCatalogOverlayWarning = {
-  code: string;
-  message: string;
-};
-
-export type RuntimeCatalogPricing = {
-  unit: string;
-  input: string;
-  output: string;
-  currency: string;
-  asOf: string;
-  notes: string;
-};
-
-export type RuntimeCatalogSourceRef = {
-  url: string;
-  retrievedAt: string;
-  note: string;
-};
-
-export type RuntimeCatalogVoiceEntry = {
-  voiceSetId: string;
-  provider: string;
-  voiceId: string;
-  name: string;
-  langs: string[];
-  modelIds: string[];
-  sourceRef: RuntimeCatalogSourceRef;
-};
-
-export type RuntimeCatalogWorkflowModel = {
-  workflowModelId: string;
-  workflowType: string;
-  inputContractRef: string;
-  outputPersistence: string;
-  targetModelRefs: string[];
-  langs: string[];
-  sourceRef: RuntimeCatalogSourceRef;
-};
-
-export type RuntimeCatalogWorkflowBinding = {
-  modelId: string;
-  workflowModelRefs: string[];
-  workflowTypes: string[];
-};
-
-export type RuntimeCatalogVideoGeneration = {
-  modes: string[];
-  inputRoles: Array<{ key: string; values: string[] }>;
-  limits: JsonObject;
-  optionSupports: string[];
-  optionConstraints: JsonObject;
-  outputs: { videoUrl: boolean; lastFrameUrl: boolean };
-};
-
-export type RuntimeModelCatalogProvider = {
-  provider: string;
-  version: number;
-  catalogVersion: string;
-  source: RuntimeModelCatalogProviderSource;
-  inventoryMode: string;
-  modelCount: number;
-  voiceCount: number;
-  defaultTextModel: string;
-  capabilities: string[];
-  hasOverlay: boolean;
-  customModelCount: number;
-  overriddenModelCount: number;
-  overlayUpdatedAt: string;
-  yaml: string;
-  effectiveYaml: string;
-  defaultEndpoint: string;
-  requiresExplicitEndpoint: boolean;
-  runtimePlane: string;
-  executionModule: string;
-  managedSupported: boolean;
-};
-
-export type RuntimeCatalogModelSummary = {
-  provider: string;
-  modelId: string;
-  modelType: string;
-  updatedAt: string;
-  capabilities: string[];
-  source: RuntimeModelCatalogSource;
-  userScoped: boolean;
-  sourceNote: string;
-  hasVoiceCatalog: boolean;
-  hasVideoGeneration: boolean;
-};
-
-export type RuntimeCatalogModelDetail = RuntimeCatalogModelSummary & {
-  pricing: RuntimeCatalogPricing;
-  voiceSetId: string;
-  voiceDiscoveryMode: string;
-  voiceRefKinds: string[];
-  videoGeneration: RuntimeCatalogVideoGeneration | null;
-  sourceRef: RuntimeCatalogSourceRef;
-  warnings: RuntimeCatalogOverlayWarning[];
-  voices: RuntimeCatalogVoiceEntry[];
-  voiceWorkflowModels: RuntimeCatalogWorkflowModel[];
-  modelWorkflowBinding: RuntimeCatalogWorkflowBinding | null;
-};
-
-export type RuntimeCatalogProviderModelsResponse = {
-  provider: RuntimeModelCatalogProvider;
-  models: RuntimeCatalogModelSummary[];
-  nextPageToken: string;
-  warnings: RuntimeCatalogOverlayWarning[];
-};
-
-export type RuntimeCatalogModelDetailResponse = {
-  provider: RuntimeModelCatalogProvider;
-  model: RuntimeCatalogModelDetail;
-  warnings: RuntimeCatalogOverlayWarning[];
-};
+export type RuntimeModelCatalogSource = RuntimeCatalogModelSource;
 
 export type RuntimeModelCatalogService = {
   listProviders: () => Promise<RuntimeModelCatalogProvider[]>;
@@ -169,187 +48,12 @@ export type RuntimeModelCatalogService = {
   getModelDetail: (provider: string, modelId: string) => Promise<RuntimeCatalogModelDetailResponse>;
 };
 
-function mapProviderSource(source: ModelCatalogProviderSource): RuntimeModelCatalogProviderSource {
-  if (source === ModelCatalogProviderSource.BUILTIN) return 'builtin';
-  if (source === ModelCatalogProviderSource.CUSTOM) return 'custom';
-  if (source === ModelCatalogProviderSource.OVERRIDDEN) return 'overridden';
-  if (source === ModelCatalogProviderSource.REMOTE) return 'remote';
-  return 'unknown';
-}
-
-function mapModelSource(source: CatalogModelSource): RuntimeModelCatalogSource {
-  if (source === CatalogModelSource.BUILTIN) return 'builtin';
-  if (source === CatalogModelSource.CUSTOM) return 'custom';
-  if (source === CatalogModelSource.OVERRIDDEN) return 'overridden';
-  return 'unknown';
-}
-
-function normalizeWarnings(warnings: CatalogOverlayWarning[] | undefined): RuntimeCatalogOverlayWarning[] {
-  return (warnings || []).map((warning) => ({
-    code: String(warning.code || '').trim(),
-    message: String(warning.message || '').trim(),
-  }));
-}
-
-function normalizeSourceRef(sourceRef?: CatalogSourceRef): RuntimeCatalogSourceRef {
-  return {
-    url: String(sourceRef?.url || '').trim(),
-    retrievedAt: String(sourceRef?.retrievedAt || '').trim(),
-    note: String(sourceRef?.note || '').trim(),
-  };
-}
-
-function protoStructToJson(value?: ProtoStruct): JsonObject {
-  const output: JsonObject = {};
-  for (const [key, item] of Object.entries(value?.fields || {})) {
-    output[key] = protoValueToJson(item);
-  }
-  return output;
-}
-
-function protoValueToJson(value?: ProtoValue): unknown {
-  switch (value?.kind.oneofKind) {
-    case 'boolValue':
-      return value.kind.boolValue;
-    case 'numberValue':
-      return value.kind.numberValue;
-    case 'stringValue':
-      return value.kind.stringValue;
-    case 'structValue':
-      return protoStructToJson(value.kind.structValue);
-    case 'listValue':
-      return (value.kind.listValue?.values || []).map(protoValueToJson);
-    default:
-      return null;
-  }
-}
-
-export function normalizeRuntimeModelCatalogProvider(entry: ModelCatalogProviderEntry): RuntimeModelCatalogProvider {
-  return {
-    provider: String(entry.provider || '').trim(),
-    version: Number(entry.version || 0),
-    catalogVersion: String(entry.catalogVersion || '').trim(),
-    source: mapProviderSource(entry.source),
-    inventoryMode: String(entry.inventoryMode || '').trim(),
-    modelCount: Number(entry.modelCount || 0),
-    voiceCount: Number(entry.voiceCount || 0),
-    defaultTextModel: String(entry.defaultTextModel || '').trim(),
-    capabilities: (entry.capabilities || []).map((item) => String(item || '').trim()).filter(Boolean),
-    hasOverlay: Boolean(entry.hasOverlay),
-    customModelCount: Number(entry.customModelCount || 0),
-    overriddenModelCount: Number(entry.overriddenModelCount || 0),
-    overlayUpdatedAt: String(entry.overlayUpdatedAt || '').trim(),
-    yaml: String(entry.yaml || '').trim(),
-    effectiveYaml: String(entry.effectiveYaml || '').trim(),
-    defaultEndpoint: String(entry.defaultEndpoint || '').trim(),
-    requiresExplicitEndpoint: Boolean(entry.requiresExplicitEndpoint),
-    runtimePlane: String(entry.runtimePlane || '').trim(),
-    executionModule: String(entry.executionModule || '').trim(),
-    managedSupported: Boolean(entry.managedSupported),
-  };
-}
-
-export function normalizeRuntimeCatalogModelSummary(entry: CatalogModelSummary): RuntimeCatalogModelSummary {
-  return {
-    provider: String(entry.provider || '').trim(),
-    modelId: String(entry.modelId || '').trim(),
-    modelType: String(entry.modelType || '').trim(),
-    updatedAt: String(entry.updatedAt || '').trim(),
-    capabilities: (entry.capabilities || []).map((item) => String(item || '').trim()).filter(Boolean),
-    source: mapModelSource(entry.source),
-    userScoped: Boolean(entry.userScoped),
-    sourceNote: String(entry.sourceNote || '').trim(),
-    hasVoiceCatalog: Boolean(entry.hasVoiceCatalog),
-    hasVideoGeneration: Boolean(entry.hasVideoGeneration),
-  };
-}
-
-function normalizeRuntimeModelCore(entry?: Partial<CatalogModelSummary & CatalogModelDetail>): RuntimeCatalogModelSummary {
-  return {
-    provider: String(entry?.provider || '').trim(),
-    modelId: String(entry?.modelId || '').trim(),
-    modelType: String(entry?.modelType || '').trim(),
-    updatedAt: String(entry?.updatedAt || '').trim(),
-    capabilities: (entry?.capabilities || []).map((item) => String(item || '').trim()).filter(Boolean),
-    source: mapModelSource(entry?.source || CatalogModelSource.UNSPECIFIED),
-    userScoped: Boolean(entry?.userScoped),
-    sourceNote: String(entry?.sourceNote || '').trim(),
-    hasVoiceCatalog: Boolean(entry?.hasVoiceCatalog),
-    hasVideoGeneration: Boolean(entry?.hasVideoGeneration),
-  };
-}
-
-function normalizeRuntimeVideoGeneration(video?: CatalogVideoGenerationCapability): RuntimeCatalogVideoGeneration | null {
-  if (!video) {
-    return null;
-  }
-  return {
-    modes: (video.modes || []).map((item) => String(item || '').trim()).filter(Boolean),
-    inputRoles: (video.inputRoles || []).map((item) => ({
-      key: String(item.key || '').trim(),
-      values: (item.values || []).map((value) => String(value || '').trim()).filter(Boolean),
-    })),
-    limits: protoStructToJson(video.limits as ProtoStruct | undefined),
-    optionSupports: (video.optionSupports || []).map((item) => String(item || '').trim()).filter(Boolean),
-    optionConstraints: protoStructToJson(video.optionConstraints as ProtoStruct | undefined),
-    outputs: {
-      videoUrl: Boolean(video.outputs?.videoUrl),
-      lastFrameUrl: Boolean(video.outputs?.lastFrameUrl),
-    },
-  };
-}
-
-export function normalizeRuntimeCatalogModelDetail(entry?: CatalogModelDetail): RuntimeCatalogModelDetail {
-  const summary = normalizeRuntimeModelCore(entry);
-  return {
-    ...summary,
-    pricing: {
-      unit: String(entry?.pricing?.unit || '').trim(),
-      input: String(entry?.pricing?.input || '').trim(),
-      output: String(entry?.pricing?.output || '').trim(),
-      currency: String(entry?.pricing?.currency || '').trim(),
-      asOf: String(entry?.pricing?.asOf || '').trim(),
-      notes: String(entry?.pricing?.notes || '').trim(),
-    } satisfies RuntimeCatalogPricing,
-    voiceSetId: String(entry?.voiceSetId || '').trim(),
-    voiceDiscoveryMode: String(entry?.voiceDiscoveryMode || '').trim(),
-    voiceRefKinds: (entry?.voiceRefKinds || []).map((item) => String(item || '').trim()).filter(Boolean),
-    videoGeneration: normalizeRuntimeVideoGeneration(entry?.videoGeneration),
-    sourceRef: normalizeSourceRef(entry?.sourceRef),
-    warnings: normalizeWarnings(entry?.warnings),
-    voices: (entry?.voices || []).map((voice) => ({
-      voiceSetId: String(voice.voiceSetId || '').trim(),
-      provider: String(voice.provider || '').trim(),
-      voiceId: String(voice.voiceId || '').trim(),
-      name: String(voice.name || '').trim(),
-      langs: (voice.langs || []).map((item) => String(item || '').trim()).filter(Boolean),
-      modelIds: (voice.modelIds || []).map((item) => String(item || '').trim()).filter(Boolean),
-      sourceRef: normalizeSourceRef(voice.sourceRef),
-    }) satisfies RuntimeCatalogVoiceEntry),
-    voiceWorkflowModels: (entry?.voiceWorkflowModels || []).map((workflow) => ({
-      workflowModelId: String(workflow.workflowModelId || '').trim(),
-      workflowType: String(workflow.workflowType || '').trim(),
-      inputContractRef: String(workflow.inputContractRef || '').trim(),
-      outputPersistence: String(workflow.outputPersistence || '').trim(),
-      targetModelRefs: (workflow.targetModelRefs || []).map((item) => String(item || '').trim()).filter(Boolean),
-      langs: (workflow.langs || []).map((item) => String(item || '').trim()).filter(Boolean),
-      sourceRef: normalizeSourceRef(workflow.sourceRef),
-    }) satisfies RuntimeCatalogWorkflowModel),
-    modelWorkflowBinding: entry?.modelWorkflowBinding ? ({
-      modelId: String(entry.modelWorkflowBinding.modelId || '').trim(),
-      workflowModelRefs: (entry.modelWorkflowBinding.workflowModelRefs || []).map((item) => String(item || '').trim()).filter(Boolean),
-      workflowTypes: (entry.modelWorkflowBinding.workflowTypes || []).map((item) => String(item || '').trim()).filter(Boolean),
-    } satisfies RuntimeCatalogWorkflowBinding) : null,
-  };
-}
-
 function runtimeAdmin() {
   return getPlatformClient().domains.runtimeAdmin;
 }
 
 const STALE_BEARER_ANONYMOUS_RETRY_MS = 60_000;
 let anonymousRuntime: Runtime | null = null;
-let anonymousReadUntilMs = 0;
 
 function getAnonymousRuntime(): Runtime {
   const runtime = getPlatformClient().runtime;
@@ -367,70 +71,12 @@ function getAnonymousRuntime(): Runtime {
   return anonymousRuntime;
 }
 
-function authFailedBecauseOfStaleBearer(error: unknown): boolean {
-  const normalized = asNimiError(error, {
-    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
-    actionHint: 'retry_without_stale_runtime_bearer',
-    source: 'runtime',
-  });
-  const code = typeof normalized.reasonCode === 'string' ? normalized.reasonCode.trim() : '';
-  return code === ReasonCode.AUTH_TOKEN_INVALID;
-}
-
-async function withAnonymousReadFallback<T>(
-  action: () => Promise<T>,
-  anonymousAction: (runtime: Runtime) => Promise<T>,
-): Promise<T> {
-  if (Date.now() < anonymousReadUntilMs) {
-    return anonymousAction(getAnonymousRuntime());
-  }
-  try {
-    return await action();
-  } catch (error) {
-    if (!authFailedBecauseOfStaleBearer(error)) {
-      throw error;
-    }
-    anonymousReadUntilMs = Date.now() + STALE_BEARER_ANONYMOUS_RETRY_MS;
-    return anonymousAction(getAnonymousRuntime());
-  }
-}
-
-export const runtimeModelCatalogService: RuntimeModelCatalogService = {
-  async listProviders() {
-    const response = await withAnonymousReadFallback(
-      () => runtimeAdmin().listModelCatalogProviders({}, CATALOG_CALL_OPTIONS),
-      (runtime) => runtime.connector.listModelCatalogProviders({}, CATALOG_CALL_OPTIONS),
-    );
-    return (response.providers || [])
-      .map(normalizeRuntimeModelCatalogProvider)
-      .sort((left, right) => left.provider.localeCompare(right.provider));
-  },
-  async listProviderModels(provider: string, pageSize = 500, pageToken = '') {
-    const request = { provider: provider.trim(), pageSize, pageToken };
-    const response = await withAnonymousReadFallback(
-      () => runtimeAdmin().listCatalogProviderModels(request, CATALOG_CALL_OPTIONS),
-      (runtime) => runtime.connector.listCatalogProviderModels(request, CATALOG_CALL_OPTIONS),
-    );
-    return {
-      provider: normalizeRuntimeModelCatalogProvider(response.provider || {} as ModelCatalogProviderEntry),
-      models: (response.models || []).map(normalizeRuntimeCatalogModelSummary),
-      nextPageToken: String(response.nextPageToken || '').trim(),
-      warnings: normalizeWarnings(response.warnings),
-    };
-  },
-  async getModelDetail(provider: string, modelId: string) {
-    const request = { provider: provider.trim(), modelId: modelId.trim() };
-    const response = await withAnonymousReadFallback(
-      () => runtimeAdmin().getCatalogModelDetail(request, CATALOG_CALL_OPTIONS),
-      (runtime) => runtime.connector.getCatalogModelDetail(request, CATALOG_CALL_OPTIONS),
-    );
-    return {
-      provider: normalizeRuntimeModelCatalogProvider(response.provider || {} as ModelCatalogProviderEntry),
-      model: normalizeRuntimeCatalogModelDetail(response.model),
-      warnings: normalizeWarnings(response.warnings),
-    };
-  },
-};
+export const runtimeModelCatalogService: RuntimeModelCatalogService = createRuntimeModelCatalogClient({
+  connector: runtimeAdmin,
+  readConnector: () => getAnonymousRuntime().connector,
+  callOptions: CATALOG_CALL_OPTIONS,
+  readFallbackTtlMs: STALE_BEARER_ANONYMOUS_RETRY_MS,
+}) satisfies RuntimeModelCatalogClient;
 
 export type RuntimeModelCatalogAdapterOptions = {
   provider: string;
