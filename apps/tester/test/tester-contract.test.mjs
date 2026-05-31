@@ -276,13 +276,13 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
     'ProfileConfigSection',
     'useModelConfigProfileController',
     'defaultModelConfigProfileCopy',
+    'applyAIProfileToConfig',
     'Import AIProfile JSON',
     'fail closed',
     'initialSection',
   ]) {
     assert.match(surface, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
-  assert.doesNotMatch(surface, /applyAIProfileToConfig/);
 
   // The tester wrapper injects app-scoped wiring into that surface.
   for (const required of [
@@ -1022,6 +1022,17 @@ test('tester settings consumes SDK Runtime capability coverage projection', () =
   assert.match(settings, /Runtime capability coverage projection/);
   assert.match(settings, /runtimeCapabilityCoverageProjection/);
   assert.doesNotMatch(settings, /connectors\.some\(\(c\) => c\.status === 'healthy'\)/);
+});
+
+test('tester settings consumes SDK Runtime health coordinator diagnostics', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /RuntimeHealthCoordinator/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(settings, /SDK runtime health coordinator projection/);
+  assert.match(settings, /runtimeHealthCoordinatorDiagnostics\.getSnapshot/);
+  assert.doesNotMatch(settings, /class RuntimeHealthCoordinator/);
+  assert.doesNotMatch(settings, /HEALTH_WATCHDOG_INTERVAL_MS/);
 });
 
 test('tester settings consumes SDK local route option binding projection', () => {

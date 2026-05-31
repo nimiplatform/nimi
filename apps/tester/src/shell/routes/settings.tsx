@@ -21,6 +21,7 @@ import {
   projectRuntimeLocalAgentIdentity,
   parseRuntimeLocalRecommendationFeedDescriptor,
   parseLocalRecommendationFeedSourceId,
+  RuntimeHealthCoordinator,
   summarizeLocalRecommendationFeedCacheState,
   type RuntimeConnectorProjection,
 } from '@nimiplatform/sdk/runtime';
@@ -98,6 +99,23 @@ const runtimeConnectorInventory = createRuntimeConnectorInventoryClient({
       surfaceId: 'tester.settings',
     },
   },
+});
+
+const runtimeHealthCoordinatorDiagnostics = new RuntimeHealthCoordinator({
+  fetchRuntimeHealth: async () => {
+    throw new Error('Tester settings diagnostics do not own Runtime health truth.');
+  },
+  fetchProviderHealth: async () => ({ providers: [] }),
+  subscribeRuntimeHealth: async () => ({
+    async *[Symbol.asyncIterator]() {},
+  }),
+  subscribeProviderHealth: async () => ({
+    async *[Symbol.asyncIterator]() {},
+  }),
+  subscribeRuntimeConnected: () => () => undefined,
+  subscribeRuntimeDisconnected: () => () => undefined,
+  setInterval: () => 0,
+  clearInterval: () => undefined,
 });
 
 const testerGiftCatalogProjection: RealmGiftCatalogResponse = [];
@@ -302,6 +320,7 @@ export function SettingsRoute() {
     model: 'tester-config-model',
     provider: 'tester',
   });
+  const runtimeHealthCoordinatorProjection = runtimeHealthCoordinatorDiagnostics.getSnapshot();
   const avatarVoiceCueProjection = resolveAgentVoicePlaybackCue(
     new Uint8Array([128, 208, 232, 208, 128, 48, 24, 48]),
     0.24,
@@ -687,6 +706,12 @@ export function SettingsRoute() {
         <span>Runtime capability coverage projection</span>
         <StatusBadge tone={runtimeCapabilityCoverageProjection.cloudAvailable ? 'success' : 'warning'}>
           {runtimeCapabilityCoverageProjection.capability}: {runtimeCapabilityCoverageProjection.cloudAvailable ? 'cloud' : 'unavailable'}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK runtime health coordinator projection</span>
+        <StatusBadge tone={runtimeHealthCoordinatorProjection.stale ? 'warning' : 'success'}>
+          {runtimeHealthCoordinatorProjection.started ? 'started' : 'not started'} / {runtimeHealthCoordinatorProjection.stale ? 'stale' : 'fresh'}
         </StatusBadge>
       </div>
       <div className="setting-row">
