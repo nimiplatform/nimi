@@ -10,6 +10,9 @@ test('menu bar runtime sync consumes shared coordinator state instead of direct 
   );
 
   assert.match(source, /useRuntimeHealthCoordinatorState/);
+  assert.match(source, /projectRuntimeHealthStatusName/);
+  assert.doesNotMatch(source, /function normalizeRuntimeHealthStatus/);
+  assert.doesNotMatch(source, /status === 3/);
   assert.doesNotMatch(source, /fetchRuntimeHealth/);
   assert.doesNotMatch(source, /fetchProviderHealth/);
   assert.doesNotMatch(source, /subscribeRuntimeHealth/);

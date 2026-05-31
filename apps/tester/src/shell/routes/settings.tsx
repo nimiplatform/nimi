@@ -48,10 +48,12 @@ import {
   normalizeRuntimeReasonCode,
   RuntimeHealthCoordinator,
   RuntimeHealthStatus,
+  projectRuntimeHealthStatusName,
   projectRuntimeHealthSummary,
   summarizeLocalRecommendationFeedCacheState,
   summarizeRuntimeAgentProjectionEvent,
   summarizeRuntimeAgentTimeline,
+  toIsoFromTimestamp,
   toCanonicalLocalRuntimeAssetId,
   toCanonicalLocalRuntimeAssetLookupKey,
   toProtoStruct,
@@ -739,6 +741,10 @@ export function SettingsRoute() {
     vramBytes: '0',
     sampledAt: { seconds: '1710000000', nanos: 0 },
   });
+  const runtimeHealthWireProjection = {
+    statusName: projectRuntimeHealthStatusName(RuntimeHealthStatus.READY) ?? 'unknown',
+    sampledAt: toIsoFromTimestamp({ seconds: '1710000000', nanos: 0 }) ?? 'unknown',
+  };
   const runtimeHealthCoordinatorProjection = runtimeHealthCoordinatorDiagnostics.getSnapshot();
   const runtimeAgentConsumerProjection = (() => {
     const projectionEvent = {
@@ -1397,6 +1403,12 @@ export function SettingsRoute() {
         <span>SDK runtime health summary projection</span>
         <StatusBadge tone={runtimeHealthSummaryProjection.normalizedStatus === 'healthy' ? 'success' : 'warning'}>
           {runtimeHealthSummaryProjection.normalizedStatus}: {runtimeHealthSummaryProjection.health.checkedAt}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK runtime health wire projection</span>
+        <StatusBadge tone="neutral">
+          {runtimeHealthWireProjection.statusName}: {runtimeHealthWireProjection.sampledAt}
         </StatusBadge>
       </div>
       <div className="setting-row">

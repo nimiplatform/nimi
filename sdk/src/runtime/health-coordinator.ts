@@ -5,6 +5,7 @@ import type {
   RuntimeHealthEvent,
 } from './generated/runtime/v1/audit.js';
 import { RuntimeHealthStatus } from './generated/runtime/v1/audit.js';
+import { toIsoFromTimestamp } from './helpers.js';
 
 const HEALTH_STALE_MS = 60_000;
 const HEALTH_WATCHDOG_INTERVAL_MS = 60_000;
@@ -39,6 +40,8 @@ export type RuntimeHealthCoordinatorState = {
 };
 
 export type RuntimeHealthProjectionStatus = 'healthy' | 'degraded' | 'unreachable' | 'idle';
+
+export type RuntimeHealthStatusName = 'STOPPED' | 'STARTING' | 'READY' | 'DEGRADED' | 'STOPPING';
 
 export type RuntimeHealthProjection = {
   health: {
@@ -81,14 +84,7 @@ function toErrorMessage(error: unknown, fallback: string): string {
 }
 
 function timestampToIsoString(ts?: { seconds: string; nanos: number }): string {
-  if (!ts) {
-    return new Date().toISOString();
-  }
-  const ms = Number(ts.seconds) * 1000 + Math.floor(Number(ts.nanos || 0) / 1_000_000);
-  if (Number.isNaN(ms)) {
-    return new Date().toISOString();
-  }
-  return new Date(ms).toISOString();
+  return toIsoFromTimestamp(ts) ?? new Date().toISOString();
 }
 
 export function projectRuntimeHealthStatus(status: unknown): RuntimeHealthProjectionStatus {
@@ -102,6 +98,25 @@ export function projectRuntimeHealthStatus(status: unknown): RuntimeHealthProjec
     return 'unreachable';
   }
   return 'idle';
+}
+
+export function projectRuntimeHealthStatusName(status: unknown): RuntimeHealthStatusName | undefined {
+  if (status === RuntimeHealthStatus.STOPPED) {
+    return 'STOPPED';
+  }
+  if (status === RuntimeHealthStatus.STARTING) {
+    return 'STARTING';
+  }
+  if (status === RuntimeHealthStatus.READY) {
+    return 'READY';
+  }
+  if (status === RuntimeHealthStatus.DEGRADED) {
+    return 'DEGRADED';
+  }
+  if (status === RuntimeHealthStatus.STOPPING) {
+    return 'STOPPING';
+  }
+  return undefined;
 }
 
 export function projectRuntimeHealthSummary(result: GetRuntimeHealthResponse): RuntimeHealthProjection {

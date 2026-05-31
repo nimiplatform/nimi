@@ -1,3 +1,6 @@
+import { toIsoFromTimestamp } from '@nimiplatform/sdk/runtime';
+import { formatRelativeLocaleTime } from '@renderer/i18n';
+
 export function runtimeHealthStatusLabel(status: number): string {
   switch (status) {
     case 1: return 'Stopped';
@@ -71,10 +74,7 @@ export function formatTokenCount(n: string): string {
 }
 
 export function timestampToIso(ts?: { seconds: string; nanos: number }): string {
-  if (!ts) return '-';
-  const ms = Number(ts.seconds) * 1000 + Math.floor(ts.nanos / 1_000_000);
-  if (Number.isNaN(ms)) return '-';
-  return new Date(ms).toISOString();
+  return toIsoFromTimestamp(ts) ?? '-';
 }
 
 export function structToRecord(struct?: { fields: Record<string, unknown> }): Record<string, unknown> {
@@ -98,4 +98,3 @@ export function formatNumber(n: string): string {
   if (Number.isNaN(num)) return n;
   return num.toLocaleString();
 }
-import { formatRelativeLocaleTime } from '@renderer/i18n';

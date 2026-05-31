@@ -1106,10 +1106,14 @@ test('tester settings consumes SDK Runtime health coordinator diagnostics', () =
 
   assert.match(settings, /RuntimeHealthCoordinator/);
   assert.match(settings, /RuntimeHealthStatus/);
+  assert.match(settings, /projectRuntimeHealthStatusName/);
   assert.match(settings, /projectRuntimeHealthSummary/);
+  assert.match(settings, /toIsoFromTimestamp/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /SDK runtime health summary projection/);
+  assert.match(settings, /SDK runtime health wire projection/);
   assert.match(settings, /runtimeHealthSummaryProjection\.health\.checkedAt/);
+  assert.match(settings, /runtimeHealthWireProjection\.statusName/);
   assert.match(settings, /SDK runtime health coordinator projection/);
   assert.match(settings, /runtimeHealthCoordinatorDiagnostics\.getSnapshot/);
   assert.doesNotMatch(settings, /class RuntimeHealthCoordinator/);

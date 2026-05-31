@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
+import { projectRuntimeHealthStatusName } from '@nimiplatform/sdk/runtime';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
@@ -10,15 +11,6 @@ import type { MenuBarRuntimeHealthSyncPayload } from '@renderer/bridge/runtime-b
 
 const MENU_BAR_SYNC_DEBOUNCE_MS = 250;
 export const MENU_BAR_SYNC_HEARTBEAT_MS = 10_000;
-
-function normalizeRuntimeHealthStatus(status: number | undefined): string | undefined {
-  if (status === 1) return 'STOPPED';
-  if (status === 2) return 'STARTING';
-  if (status === 3) return 'READY';
-  if (status === 4) return 'DEGRADED';
-  if (status === 5) return 'STOPPING';
-  return undefined;
-}
 
 function summarizeProviderStates(providers: Array<{ state?: unknown }>): {
   healthy: number;
@@ -60,7 +52,7 @@ export function buildMenuBarRuntimeSyncPayload(
   };
 
   if (healthState.runtimeHealth) {
-    payload.runtimeHealthStatus = normalizeRuntimeHealthStatus(healthState.runtimeHealth.status);
+    payload.runtimeHealthStatus = projectRuntimeHealthStatusName(healthState.runtimeHealth.status);
     if (healthState.runtimeHealth.reason) {
       payload.runtimeHealthReason = String(healthState.runtimeHealth.reason);
     }

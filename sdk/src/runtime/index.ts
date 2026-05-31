@@ -409,4 +409,4 @@ export type {
   RuntimeCompanionParticipationTriggerSource,
 } from './runtime-companion-participation.js';
 export type * from './generated/runtime/v1/artifact_service.js';
-export { fromProtoStruct, toProtoStruct } from './helpers.js';
+export { fromProtoStruct, toIsoFromTimestamp, toProtoStruct } from './helpers.js';

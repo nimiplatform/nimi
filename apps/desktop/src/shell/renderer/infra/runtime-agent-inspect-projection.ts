@@ -1,4 +1,4 @@
-import { asNimiError } from '@nimiplatform/sdk/runtime';
+import { asNimiError, toIsoFromTimestamp } from '@nimiplatform/sdk/runtime';
 import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { summarizeCanonicalMemoryView } from './runtime-agent-memory-records';
@@ -78,16 +78,7 @@ export function normalizeRuntimeError(error: unknown, actionHint: string) {
 }
 
 export function timestampToIso(timestamp?: { seconds: string; nanos: number }): string | null {
-  if (!timestamp) {
-    return null;
-  }
-  const seconds = Number(timestamp.seconds);
-  const nanos = Number(timestamp.nanos);
-  if (!Number.isFinite(seconds)) {
-    return null;
-  }
-  const millis = seconds * 1000 + (Number.isFinite(nanos) ? Math.floor(nanos / 1_000_000) : 0);
-  return Number.isFinite(millis) ? new Date(millis).toISOString() : null;
+  return toIsoFromTimestamp(timestamp) ?? null;
 }
 
 export function normalizeOptionalNumber(value: unknown): number | null {

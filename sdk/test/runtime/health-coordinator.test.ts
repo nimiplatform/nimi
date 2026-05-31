@@ -10,8 +10,10 @@ import type {
 import {
   RuntimeHealthCoordinator,
   RuntimeHealthStatus,
+  projectRuntimeHealthStatusName,
   projectRuntimeHealthStatus,
   projectRuntimeHealthSummary,
+  toIsoFromTimestamp,
 } from '../../src/runtime/index.js';
 
 function flushMicrotasks(): Promise<void> {
@@ -111,6 +113,12 @@ describe('RuntimeHealthCoordinator', () => {
     assert.equal(projectRuntimeHealthStatus(RuntimeHealthStatus.STOPPING), 'unreachable');
     assert.equal(projectRuntimeHealthStatus(RuntimeHealthStatus.STARTING), 'idle');
     assert.equal(projectRuntimeHealthStatus(RuntimeHealthStatus.UNSPECIFIED), 'idle');
+    assert.equal(projectRuntimeHealthStatusName(RuntimeHealthStatus.STOPPED), 'STOPPED');
+    assert.equal(projectRuntimeHealthStatusName(RuntimeHealthStatus.STARTING), 'STARTING');
+    assert.equal(projectRuntimeHealthStatusName(RuntimeHealthStatus.READY), 'READY');
+    assert.equal(projectRuntimeHealthStatusName(RuntimeHealthStatus.DEGRADED), 'DEGRADED');
+    assert.equal(projectRuntimeHealthStatusName(RuntimeHealthStatus.STOPPING), 'STOPPING');
+    assert.equal(projectRuntimeHealthStatusName(RuntimeHealthStatus.UNSPECIFIED), undefined);
 
     const ready = projectRuntimeHealthSummary(makeRuntimeHealth(RuntimeHealthStatus.READY, 'ready'));
     assert.deepEqual(ready, {
@@ -126,6 +134,9 @@ describe('RuntimeHealthCoordinator', () => {
     assert.equal(starting.normalizedStatus, 'idle');
     assert.equal(starting.health.status, 'healthy');
     assert.equal(starting.health.detail, 'runtime health idle');
+
+    assert.equal(toIsoFromTimestamp({ seconds: '1710000000', nanos: 500_000_000 }), '2024-03-09T16:00:00.500Z');
+    assert.equal(toIsoFromTimestamp({ seconds: 'abc', nanos: 0 }), undefined);
   });
 
   test('hydrates shared state once on startup', async () => {
