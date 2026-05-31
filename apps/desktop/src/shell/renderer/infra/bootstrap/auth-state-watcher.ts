@@ -1,6 +1,5 @@
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { AppStoreState } from '@renderer/app-shell/providers/app-store';
-import { dataSync } from '@runtime/data-sync';
 import {
   runLocalAgentProvisionCourierPass,
   runLocalAgentTerminationCourierPass,
@@ -38,9 +37,6 @@ export function startAuthStateWatcher() {
     prevAuth = auth;
 
     if (auth.status === 'authenticated') {
-      dataSync.setToken('');
-      dataSync.setRefreshToken('');
-      dataSync.clearProactiveRefreshTimer();
       logRendererEvent({
         level: 'info',
         area: 'auth-state-watcher',
@@ -72,14 +68,11 @@ export function startAuthStateWatcher() {
         // courier; the intent stays OPEN for the periodic tick.
       });
     } else if (auth.status === 'anonymous' && prev.status !== 'anonymous') {
-      dataSync.setToken('');
-      dataSync.setRefreshToken('');
       stopLocalAgentCouriers();
-      dataSync.clearProactiveRefreshTimer();
       logRendererEvent({
         level: 'info',
         area: 'auth-state-watcher',
-        message: 'phase:auth-cleared:datasync-reset',
+        message: 'phase:auth-cleared:local-agent-couriers-stopped',
       });
     }
   });

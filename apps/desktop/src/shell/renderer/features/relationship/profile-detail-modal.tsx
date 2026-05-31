@@ -2,7 +2,7 @@ import { realmSocialData } from '@renderer/features/social/data/realm-social-dat
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { OverlayShell } from '@nimiplatform/kit/ui';
-import { dataSync } from '@runtime/data-sync';
+import { realmAgentDetailData } from '@renderer/features/agent-detail/data/realm-agent-detail-data';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
@@ -105,7 +105,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
       }
       try {
         const result = props.profileSeed?.isAgent
-          ? await dataSync.loadAgentDetails(props.profileId)
+          ? await realmAgentDetailData.loadAgentDetails(props.profileId)
           : await realmSocialData.loadUserProfile(props.profileId);
         return toProfileData(result as ProfileSource);
       } catch (error) {

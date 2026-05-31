@@ -1,4 +1,4 @@
-import { dataSync } from '@runtime/data-sync';
+import { realmAgentDetailData } from './data/realm-agent-detail-data';
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   loadRealmAgentSocialProjection,
@@ -50,7 +50,7 @@ export async function fetchAgentDisplayDetail(agentIdentifier: string): Promise<
     return null;
   }
   const [result, socialProjection] = await Promise.all([
-    dataSync.loadAgentDetails(normalizedIdentifier),
+    realmAgentDetailData.loadAgentDetails(normalizedIdentifier),
     loadRealmAgentSocialProjection(),
   ]);
   const agentId = String(result.id || '').trim();

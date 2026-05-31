@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { uploadRealmResourceFileWithRealm } from '@nimiplatform/sdk/realm';
-import { dataSync } from '@runtime/data-sync';
+import { realmAgentCreateData } from './data/realm-agent-create-data';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollArea } from '@nimiplatform/kit/ui';
@@ -218,7 +218,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
         resolvedImageUrl = uploaded.resource.url ?? undefined;
       }
       const payload = buildRealmAgentWritePayload(input.draft, resolvedImageUrl);
-      return dataSync.createAgent({
+      return realmAgentCreateData.createAgent({
         worldId: payload.worldId,
         handle: payload.handle,
         concept: payload.concept,

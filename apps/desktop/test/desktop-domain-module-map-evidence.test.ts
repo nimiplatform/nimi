@@ -41,15 +41,16 @@ function listRepoFiles(relativePath: string): string[] {
 }
 
 const bridgeIpcSpec = readRepo('.nimi/spec/desktop/kernel/bridge-ipc-contract.md');
-const facadeActionsSource = readRepo('apps/desktop/src/runtime/data-sync/facade-actions.ts');
+const realmAgentDetailDataSource = readRepo('apps/desktop/src/shell/renderer/features/agent-detail/data/realm-agent-detail-data.ts');
+const realmAgentCreateDataSource = readRepo('apps/desktop/src/shell/renderer/features/world/data/realm-agent-create-data.ts');
 const runtimePageSource = readRepo('apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-runtime.tsx');
 const settingsPagesSource = readRepo('apps/desktop/src/shell/renderer/features/settings/settings-pages.tsx');
 
-test('Agent Detail module map resolves to live agent DataSync evidence', () => {
-  assert.match(facadeActionsSource, /from '\.\/flows\/agent-runtime-flow';/);
-  assert.match(facadeActionsSource, /from '\.\/flows\/agent-flow';/);
-  assertRepoFile('apps/desktop/src/runtime/data-sync/flows/agent-runtime-flow.ts');
-  assertRepoFile('apps/desktop/src/runtime/data-sync/flows/agent-flow.ts');
+test('Agent Detail module map resolves to live Realm feature-data evidence', () => {
+  assert.match(realmAgentDetailDataSource, /export async function loadAgentDetails/);
+  assert.match(realmAgentCreateDataSource, /export async function createMasterAgent/);
+  assertRepoFile('apps/desktop/src/shell/renderer/features/agent-detail/data/realm-agent-detail-data.ts');
+  assertRepoFile('apps/desktop/src/shell/renderer/features/world/data/realm-agent-create-data.ts');
 });
 
 test('Agent Detail reaches Agent Chat only through the friend-state LocalAgent path', () => {
@@ -88,8 +89,6 @@ test('External Agent module map admits the Access panel evidence', () => {
 });
 
 test('Home module map resolves Feed outside the retired dataSync facade', () => {
-  assert.doesNotMatch(facadeActionsSource, /post-attachment-flow/);
-  assert.doesNotMatch(facadeActionsSource, /from '\.\/flows\/feed-flow';/);
   assertRepoFile('apps/desktop/src/shell/renderer/features/social/data/post-feed-data.ts');
 });
 

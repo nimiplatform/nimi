@@ -5,7 +5,7 @@ values:
   - runtime
   - renderer-bootstrap
   - bridge
-  - datasync
+  - realm-data
   - local-ai
   - external-agent
   - auth
@@ -14,7 +14,7 @@ values:
 # Source: apps/desktop/src/runtime/telemetry/logger.ts (area field)
 #         apps/desktop/src/shell/renderer/bridge/runtime-bridge/invoke.ts (bridge area)
 #         apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts (bootstrap area)
-#         apps/desktop/src/runtime/data-sync/facade.ts (datasync area)
+#         apps/desktop/src/shell/renderer/infra/realm/realm-api.ts (realm-data area)
 
 areas:
   - area: runtime
@@ -29,8 +29,8 @@ areas:
     description: Tauri IPC invoke start/success/fail traces
     source_rule: D-TEL-005
 
-  - area: datasync
-    description: DataSync facade action errors and API call traces
+  - area: realm-data
+    description: Realm feature-data action errors and API call traces
     source_rule: D-TEL-001
 
   - area: local-ai

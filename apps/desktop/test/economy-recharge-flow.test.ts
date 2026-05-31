@@ -37,22 +37,6 @@ test('Kit commerce realm helper behaviorally calls Spark recharge APIs', async (
   assert.equal(session.url, 'https://checkout.nimi.example/session-1');
 });
 
-test('Desktop does not keep Spark recharge ownership in DataSync', () => {
-  const facadeActionsSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/runtime/data-sync/facade-actions.ts'),
-    'utf8',
-  );
-  const facadeSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/runtime/data-sync/facade.ts'),
-    'utf8',
-  );
-
-  assert.doesNotMatch(facadeActionsSource, /loadSparkPackages: async/);
-  assert.doesNotMatch(facadeActionsSource, /createSparkCheckout: async/);
-  assert.doesNotMatch(facadeSource, /loadSparkPackages\(/);
-  assert.doesNotMatch(facadeSource, /createSparkCheckout\(/);
-});
-
 test('Wallet page performs one-click Spark checkout and callback handling', () => {
   assert.match(walletPageSource, /loadRealmSparkPackages\(\)/);
   assert.match(walletPageSource, /createRealmSparkCheckout\(/);

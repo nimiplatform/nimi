@@ -66,7 +66,7 @@ function filterFeedResponse(response: FeedResponseDto): FeedResponseDto {
 
 export async function loadPostFeed(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
   input: LoadPostFeedInput,
 ): Promise<FeedResponseDto> {
   const normalized: LoadPostFeedInput = {
@@ -96,14 +96,14 @@ export async function loadPostFeed(
     );
     return filterFeedResponse(response);
   } catch (error) {
-    emitDataSyncError('load-post-feed', error, normalized);
+    emitRealmDataError('load-post-feed', error, normalized);
     throw error;
   }
 }
 
 export async function loadLikedPosts(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
   profileId: string,
   limit = 20,
   cursor?: string,
@@ -117,7 +117,7 @@ export async function loadLikedPosts(
     );
     return filterFeedResponse(response);
   } catch (error) {
-    emitDataSyncError('load-liked-posts', error, {
+    emitRealmDataError('load-liked-posts', error, {
       profileId: normalizedProfileId,
       limit,
       cursor,
@@ -128,7 +128,7 @@ export async function loadLikedPosts(
 
 export async function loadPostById(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
   postId: string,
 ): Promise<PostDto> {
   const normalizedPostId = String(postId || '').trim();
@@ -143,14 +143,14 @@ export async function loadPostById(
     }
     return post;
   } catch (error) {
-    emitDataSyncError('load-post-by-id', error, { postId: normalizedPostId });
+    emitRealmDataError('load-post-by-id', error, { postId: normalizedPostId });
     throw error;
   }
 }
 
 export async function createPost(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
   payload: CreatePostDto,
 ): Promise<PostDto> {
   try {
@@ -159,7 +159,7 @@ export async function createPost(
       'Failed to create post',
     );
   } catch (error) {
-    emitDataSyncError('create-post', error, {
+    emitRealmDataError('create-post', error, {
       attachmentCount: Array.isArray(payload.attachments) ? payload.attachments.length : 0,
       tagsCount: Array.isArray(payload.tags) ? payload.tags.length : 0,
     });
@@ -169,7 +169,7 @@ export async function createPost(
 
 export async function deletePost(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
   postId: string,
 ): Promise<void> {
   try {
@@ -178,14 +178,14 @@ export async function deletePost(
       'Failed to delete post',
     );
   } catch (error) {
-    emitDataSyncError('delete-post', error, { postId });
+    emitRealmDataError('delete-post', error, { postId });
     throw error;
   }
 }
 
 export async function updatePostVisibility(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
   postId: string,
   visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE',
 ): Promise<PostDto> {
@@ -195,7 +195,7 @@ export async function updatePostVisibility(
       'Failed to update post visibility',
     );
   } catch (error) {
-    emitDataSyncError('update-post-visibility', error, {
+    emitRealmDataError('update-post-visibility', error, {
       postId,
       visibility,
     });
@@ -205,7 +205,7 @@ export async function updatePostVisibility(
 
 export async function likePost(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
   postId: string,
 ): Promise<void> {
   try {
@@ -222,14 +222,14 @@ export async function likePost(
       getOfflineCoordinator().markRealmRestReachable(false);
       return;
     }
-    emitDataSyncError('like-post', error, { postId });
+    emitRealmDataError('like-post', error, { postId });
     throw error;
   }
 }
 
 export async function unlikePost(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
   postId: string,
 ): Promise<void> {
   try {
@@ -246,14 +246,14 @@ export async function unlikePost(
       getOfflineCoordinator().markRealmRestReachable(false);
       return;
     }
-    emitDataSyncError('unlike-post', error, { postId });
+    emitRealmDataError('unlike-post', error, { postId });
     throw error;
   }
 }
 
 export async function createReport(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
   payload: CreateReportDto,
 ): Promise<ReportResponseDto> {
   try {
@@ -262,7 +262,7 @@ export async function createReport(
       'Failed to create report',
     );
   } catch (error) {
-    emitDataSyncError('create-report', error, {
+    emitRealmDataError('create-report', error, {
       targetType: payload.targetType,
       targetId: payload.targetId,
       reason: payload.reason,

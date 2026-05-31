@@ -3,12 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-const dataSyncFacadeSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/runtime/data-sync/facade.ts'),
-  'utf8',
-);
 const worldFlowSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/runtime/data-sync/flows/world-flow.ts'),
+  path.join(import.meta.dirname, '../src/shell/renderer/features/world/data/realm-world-data.ts'),
   'utf8',
 );
 const worldDetailQueriesSource = fs.readFileSync(
@@ -36,18 +32,12 @@ const authStateWatcherSource = fs.readFileSync(
   'utf8',
 );
 
-test('desktop DataSync routes Realm calls through withRealmContextLock', () => {
-  assert.match(dataSyncFacadeSource, /withRealmContextLock/);
-  assert.match(dataSyncFacadeSource, /realmBaseUrl: this\.realmBaseUrl/);
-  assert.doesNotMatch(dataSyncFacadeSource, /private realmClient: Realm \| null = null;/);
-});
-
 test('world semantic bundle no longer fetches world detail before worldview', () => {
   const semanticBundleSection = worldFlowSource.slice(
     worldFlowSource.indexOf('export async function loadWorldSemanticBundle'),
   );
   assert.match(semanticBundleSection, /worldControllerGetWorldview/);
-  assert.doesNotMatch(semanticBundleSection, /loadWorldDetailById\(callApi, emitDataSyncError, normalizedWorldId\)/);
+  assert.doesNotMatch(semanticBundleSection, /loadWorldDetailById\(callApi, emitRealmWorldError, normalizedWorldId\)/);
   assert.doesNotMatch(semanticBundleSection, /catch\s*\{\s*return null;\s*\}/);
   assert.match(semanticBundleSection, /world: null/);
 });
@@ -69,7 +59,7 @@ test('world detail prefetch is limited to first-screen queries', () => {
 test('world detail primary query adopts sdk world truth through a bounded adapter', () => {
   assert.match(worldDetailQueriesSource, /normalizeWorldTruthDetail/);
   assert.match(worldDetailQueriesSource, /getPlatformClient\(\)\.domains\.world\.getWorldview/);
-  assert.match(worldDetailQueriesSource, /dataSync\.loadWorldDetailWithAgents/);
+  assert.match(worldDetailQueriesSource, /realmWorldData\.loadWorldDetailWithAgents/);
   assert.match(worldDetailQueriesSource, /mergeWorldPrimaryDetailTruth/);
   assert.match(worldDetailQueriesSource, /WORLD_DETAIL_WORLD_TRUTH_INVALID/);
 });

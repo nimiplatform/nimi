@@ -68,10 +68,10 @@ test('desktop auth adapter delegates post-login sync to query invalidation (no d
   assert.notEqual(webShellGuardIndex, -1, 'syncAfterLogin must guard web shell warmup');
 
   // syncAfterLogin must not call dataSync directly — query invalidation handles refetches
-  const directLoadChats = authAdapterSource.indexOf('dataSync.loadChats()', syncAfterLoginStart);
-  assert.equal(directLoadChats, -1, 'syncAfterLogin must not call dataSync.loadChats() directly');
-  const directLoadContacts = authAdapterSource.indexOf('dataSync.loadContacts()', syncAfterLoginStart);
-  assert.equal(directLoadContacts, -1, 'syncAfterLogin must not call dataSync.loadContacts() directly');
+  const directLoadChats = authAdapterSource.indexOf('realm data chat loads', syncAfterLoginStart);
+  assert.equal(directLoadChats, -1, 'syncAfterLogin must not call realm data chat loads directly');
+  const directLoadContacts = authAdapterSource.indexOf('realmSocialData.loadContacts()', syncAfterLoginStart);
+  assert.equal(directLoadContacts, -1, 'syncAfterLogin must not call realmSocialData.loadContacts() directly');
 });
 
 test('desktop runtime account browser broker waits for bootstrap before RuntimeAccountService calls', () => {

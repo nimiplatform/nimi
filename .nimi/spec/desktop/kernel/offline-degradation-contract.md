@@ -22,7 +22,7 @@ Bootstrap 阶段检测到 Runtime 不可达时执行 D-BOOT-008 错误/降级路
 
 Realm 不可达时的行为规则：
 
-- 聊天消息写入 Desktop bounded chat shell scaffold 的本地 outbox 队列（参考 D-DSYNC-003 owner map）。
+- 聊天消息写入 Desktop bounded chat shell scaffold 的本地 outbox 队列（retired DataSync owner map records this ownership boundary; current code must not depend on a DataSync facade）。
 - outbox 消息按 FIFO 顺序排列，每条消息附带 `enqueued_at` 时间戳。
 - outbox 最大容量 1000 条消息；超出后拒绝新写入并提示用户。
 - 社交操作（关注、评论、点赞）静默排队，重连后批量提交。
@@ -45,7 +45,7 @@ Runtime 和 Realm 均不可达时的行为规则：
 - 使用指数退避重连，初始间隔 1s，最大间隔 30s。
   - **适用范围**: Realm REST 断联重连 + Socket.IO 断联重连。
   - **与 D-NET-002 的区别**: D-NET-002 定义单次 HTTP 请求重试退避（120ms/900ms），本规则定义连接级别恢复退避（1s/30s），两者独立。
-- Realm 重连成功后立即触发 Desktop chat shell scaffold outbox flush（D-DSYNC-003 owner map）。
+- Realm 重连成功后立即触发 Desktop chat shell scaffold outbox flush。
 - 冲突解决策略：Last-Write-Wins（LWW）based on server timestamp。
 - outbox 消息发送失败（非网络原因）时标记为 `failed`，不重试，向用户展示失败原因。
 - Runtime 重连成功后重新初始化 SDK session（D-BOOT-004 re-bootstrap），遵循 `S-RUNTIME-070` session recovery 协议执行 `connect()` + `OpenSession()`。
@@ -65,10 +65,10 @@ Runtime 和 Realm 均不可达时的行为规则：
 
 **存储拓扑**:
 - **Zustand store** (in-memory): 运行时活跃状态，HMR 通过 globalThis 保活。
-- **Tauri IPC / DataSync 热状态** (primary persistence): 应用级持久化，支撑 D-AUTH-002、D-STATE-005。
-- **IndexedDB** (offline cache): 离线降级期间的只读缓存层，仅用于 D-OFFLINE-005 定义的缓存数据集。在线时由 DataSync 增量同步更新，不作为数据修改通道。
+- **Tauri IPC / Runtime secure custody / Realm projections** (owner persistence): app-level persistence must be owned by the admitted Runtime/Realm/IPC owner, not by renderer hot-state.
+- **IndexedDB** (offline cache): 离线降级期间的只读缓存层，仅用于 D-OFFLINE-005 定义的缓存数据集。在线时由 feature-local Realm data loaders / SDK public services refresh，不作为数据修改通道。
 
 ## Fact Sources
 
 - `tables/ipc-commands.yaml` — IPC 命令清单
-- Cross-reference: D-BOOT-008（Runtime bootstrap 失败/降级路径）, D-BOOT-012（Realm 可达性策略）, D-DSYNC-003, D-NET-006, D-NET-007
+- Cross-reference: D-BOOT-008（Runtime bootstrap 失败/降级路径）, D-BOOT-012（Realm 可达性策略）, D-NET-006, D-NET-007

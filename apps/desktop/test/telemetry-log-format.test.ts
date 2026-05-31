@@ -110,7 +110,7 @@ test('D-TEL-003: emitRuntimeLog falls back to console by log level when no logge
 
   try {
     emitRuntimeLog({
-      area: 'datasync',
+      area: 'realm-data',
       message: 'token-refresh:success',
       details: { ok: true },
     });
@@ -133,7 +133,7 @@ test('D-TEL-003: emitRuntimeLog falls back to console by log level when no logge
   }
 
   assert.equal(infoCalls.length, 1);
-  assert.equal(infoCalls[0]?.[0], '[runtime:datasync] action:token-refresh:success');
+  assert.equal(infoCalls[0]?.[0], '[runtime:realm-data] action:token-refresh:success');
   assert.deepEqual(infoCalls[0]?.[1], { ok: true });
   assert.equal(warnCalls.length, 1);
   assert.equal(warnCalls[0]?.[0], '[runtime:bridge] action:retry:retrying');

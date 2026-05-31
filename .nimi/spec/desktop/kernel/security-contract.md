@@ -19,14 +19,11 @@ Desktop 安全模型契约。定义 CSP 策略、AI 凭据委托、OAuth 安全�
 
 ## D-SEC-002 — Bearer Token 管理
 
-- Token 存储在 Zustand store `auth.token` 字段。
-- DataSync 热状态中保持 token 副本，但该热状态仅用于进程内 / HMR 连续性，不是长期持久化真源。
-- Desktop 长期持久化层固定为 `~/.nimi/auth/session.v1.json`，其中 accessToken / refreshToken 只允许以 ciphertext 形式落盘。
-- 加密密钥必须存放在 OS secure store（共享 service/account，versioned）。
-- session 文件写入必须原子替换；平台支持时要求 owner-only 权限。
-- secure-store 读取失败、ciphertext 解密失败、schema 校验失败时必须 fail-close，不得回退到明文或猜测恢复。
-- Token 更新通过 `setToken()` 同步到所有消费者。
-- Token 清除触发：logout、auth 失败、bootstrap 错误。
+- Desktop renderer may hold only a short-lived access-token projection needed to configure SDK public Realm/Runtime calls.
+- Refresh token custody, durable account session storage, refresh scheduling, and revocation reaction are Runtime account session responsibilities (`K-ACCSVC-*`).
+- Desktop must not store bearer tokens in a resurrected DataSync hot-state, Zustand persistence, IndexedDB, or app-local durable files.
+- Runtime secure custody failures and session projection failures must fail closed; Desktop must not recover by guessing, falling back to anonymous ordinary product use, or reading retired shared-session files.
+- Token clear/update is driven by Runtime account session projection events and explicit login/logout UX outcomes.
 
 ## D-SEC-003 — OAuth 安全
 

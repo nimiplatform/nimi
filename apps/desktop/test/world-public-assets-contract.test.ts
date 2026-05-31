@@ -1,43 +1,43 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { dataSync } from '../src/runtime/data-sync';
+import { realmWorldData } from '../src/shell/renderer/features/world/data/realm-world-data';
 import { fetchWorldPublicAssets } from '../src/shell/renderer/features/world/world-detail-queries';
 
-const originalLoadWorldLorebooks = dataSync.loadWorldLorebooks.bind(dataSync);
-const originalLoadWorldBindings = dataSync.loadWorldBindings.bind(dataSync);
-const originalLoadWorldScenes = dataSync.loadWorldScenes.bind(dataSync);
+const originalLoadWorldLorebooks = realmWorldData.loadWorldLorebooks.bind(realmWorldData);
+const originalLoadWorldBindings = realmWorldData.loadWorldBindings.bind(realmWorldData);
+const originalLoadWorldScenes = realmWorldData.loadWorldScenes.bind(realmWorldData);
 
-type WorldLorebookListPayload = Awaited<ReturnType<typeof dataSync.loadWorldLorebooks>>;
-type WorldBindingListPayload = Awaited<ReturnType<typeof dataSync.loadWorldBindings>>;
-type WorldSceneListPayload = Awaited<ReturnType<typeof dataSync.loadWorldScenes>>;
+type WorldLorebookListPayload = Awaited<ReturnType<typeof realmWorldData.loadWorldLorebooks>>;
+type WorldBindingListPayload = Awaited<ReturnType<typeof realmWorldData.loadWorldBindings>>;
+type WorldSceneListPayload = Awaited<ReturnType<typeof realmWorldData.loadWorldScenes>>;
 
 function stubPublicAssetLoads(input?: {
   lorebooks?: { worldId?: string; items: unknown[] };
   bindings?: { worldId?: string; items: unknown[] };
   scenes?: { worldId?: string; items: unknown[] };
 }) {
-  dataSync.loadWorldLorebooks = (async () => ({
+  realmWorldData.loadWorldLorebooks = (async () => ({
     worldId: 'world-1',
     items: [],
     ...input?.lorebooks,
-  } as unknown as WorldLorebookListPayload)) as typeof dataSync.loadWorldLorebooks;
-  dataSync.loadWorldBindings = (async () => ({
+  } as unknown as WorldLorebookListPayload)) as typeof realmWorldData.loadWorldLorebooks;
+  realmWorldData.loadWorldBindings = (async () => ({
     worldId: 'world-1',
     items: [],
     ...input?.bindings,
-  } as unknown as WorldBindingListPayload)) as typeof dataSync.loadWorldBindings;
-  dataSync.loadWorldScenes = (async () => ({
+  } as unknown as WorldBindingListPayload)) as typeof realmWorldData.loadWorldBindings;
+  realmWorldData.loadWorldScenes = (async () => ({
     worldId: 'world-1',
     items: [],
     ...input?.scenes,
-  } as unknown as WorldSceneListPayload)) as typeof dataSync.loadWorldScenes;
+  } as unknown as WorldSceneListPayload)) as typeof realmWorldData.loadWorldScenes;
 }
 
 test.after(() => {
-  dataSync.loadWorldLorebooks = originalLoadWorldLorebooks;
-  dataSync.loadWorldBindings = originalLoadWorldBindings;
-  dataSync.loadWorldScenes = originalLoadWorldScenes;
+  realmWorldData.loadWorldLorebooks = originalLoadWorldLorebooks;
+  realmWorldData.loadWorldBindings = originalLoadWorldBindings;
+  realmWorldData.loadWorldScenes = originalLoadWorldScenes;
 });
 
 test('fetchWorldPublicAssets decodes projection payloads without fallback synthesis', async () => {

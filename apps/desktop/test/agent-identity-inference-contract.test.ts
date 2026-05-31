@@ -2,8 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { loadAgentDetails } from '../src/runtime/data-sync/flows/agent-runtime-flow';
-import { searchUserByIdentifier } from '../src/runtime/data-sync/flows/social-flow';
+import { loadAgentDetails } from '../src/shell/renderer/features/agent-detail/data/realm-agent-detail-data';
 
 function readSource(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, relativePath), 'utf8');
@@ -26,49 +25,29 @@ test('product-side profile and contacts models do not infer agent identity from 
 test('product-side social and explore flows do not infer agent identity from handle prefixes', () => {
   const socialProfileFlowSource = readSource('../src/shell/renderer/features/social/data/social-snapshot.ts');
   const explorePanelSource = readSource('../src/shell/renderer/features/explore/explore-panel.tsx');
-  const agentRuntimeFlowSource = readSource('../src/runtime/data-sync/flows/agent-runtime-flow.ts');
-  const socialFlowSource = readSource('../src/runtime/data-sync/flows/social-flow.ts');
-  const handleIdentifierPath = path.join(import.meta.dirname, '../src/runtime/data-sync/flows/handle-identifier.ts');
+  const agentRuntimeFlowSource = readSource('../src/shell/renderer/features/agent-detail/data/realm-agent-detail-data.ts');
+  const handleIdentifierPath = path.join(import.meta.dirname, '../src/shell/renderer/features/agent-detail/data/handle-identifier.ts');
 
   assert.doesNotMatch(socialProfileFlowSource, /startsWith\('~'\)/);
   assert.doesNotMatch(explorePanelSource, /handle\.startsWith\('~'\)/);
   assert.match(explorePanelSource, /const isAgent = source\.isAgent === true \|\| Boolean\(agent\) \|\| Boolean\(agentProfile\)/);
   assert.equal(fs.existsSync(handleIdentifierPath), false);
   assert.doesNotMatch(agentRuntimeFlowSource, /handle-identifier/);
-  assert.doesNotMatch(socialFlowSource, /handle-identifier/);
   assert.doesNotMatch(agentRuntimeFlowSource, /buildHandleLookupCandidates/);
-  assert.doesNotMatch(socialFlowSource, /buildHandleLookupCandidates/);
 });
 
 test('loadAgentDetails rejects legacy @ and ~ prefixes', async () => {
   const callApi = async () => {
     throw new Error('UNEXPECTED_API_CALL');
   };
-  const emitDataSyncError = () => {};
+  const emitRealmDataError = () => {};
 
   await assert.rejects(
-    () => loadAgentDetails(callApi as never, emitDataSyncError, '@legacy'),
+    () => loadAgentDetails(callApi as never, emitRealmDataError, '@legacy'),
     /HANDLE_PREFIX_UNSUPPORTED/,
   );
   await assert.rejects(
-    () => loadAgentDetails(callApi as never, emitDataSyncError, '~legacy'),
+    () => loadAgentDetails(callApi as never, emitRealmDataError, '~legacy'),
     /HANDLE_PREFIX_UNSUPPORTED/,
-  );
-});
-
-test('searchUserByIdentifier strips @ and ~ prefixes and attempts lookup', async () => {
-  const callApi = async () => {
-    throw new Error('UNEXPECTED_API_CALL');
-  };
-  const isFriend = () => false;
-
-  // Prefix is stripped; lookup is attempted (API call made, not a prefix rejection)
-  await assert.rejects(
-    () => searchUserByIdentifier(callApi as never, '@legacy', isFriend),
-    /UNEXPECTED_API_CALL/,
-  );
-  await assert.rejects(
-    () => searchUserByIdentifier(callApi as never, '~legacy', isFriend),
-    /UNEXPECTED_API_CALL/,
   );
 });

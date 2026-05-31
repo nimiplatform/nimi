@@ -17,7 +17,7 @@
 > | `D-AUTH-014` | superseded | `K-BIND-006` scoped binding stale-request rejection；Runtime 拥有 revalidation 真相 |
 > | `D-AUTH-010` / `D-AUTH-011` / `D-AUTH-012` | retained | external-principal UI 仍由 Desktop 拥有，与 account session 分离 |
 >
-> Desktop 可以保留 direct Realm data calls，但只能通过 Runtime-backed short-lived access-token provider；Desktop 不得持有 refresh token、durable session、或 app-owned login truth。
+> Desktop 可以保留 feature-local Realm data calls，但只能通过 Runtime-backed short-lived access-token provider；Desktop 不得持有 refresh token、durable session、或 app-owned login truth。
 >
 > Active owner switch 与代码删除由 `K-ACCSVC-013` 约束；不得保留 dual-read / fallback。
 
@@ -46,9 +46,9 @@ Desktop 环境的长期会话真源是共享 Tauri backend auth session 存储�
 - 路径：`~/.nimi/auth/session.v1.json`。
 - 记录：`schemaVersion`、`realmBaseUrl`、`user`、`updatedAt`、`expiresAt`、`accessTokenCiphertext`、`refreshTokenCiphertext?`。
 - 获取：renderer 只通过 `auth_session_load` 读取已解密的 normalized session；`runtime_defaults` 不作为 bearer token 的长期持久化渠道。
-- 更新：登录成功、2FA 完成、OTP 完成、wallet 登录成功、SDK `onTokenRefreshed`、DataSync proactive refresh 成功后，必须立即调用 `auth_session_save` 原子覆盖整个会话。
+- 更新：登录成功、2FA 完成、OTP 完成、wallet 登录成功、SDK `onTokenRefreshed`、或 Runtime account session projection 更新后，必须立即调用 owner-defined session commit path 原子覆盖整个会话。
 - 清除：logout、refresh 失败、bootstrap unauthorized、schema/decrypt 失败时必须调用 `auth_session_clear`。
-- `DataSyncHotState` 与 Zustand store 只是进程内 / HMR 缓存，不是 desktop 长期持久化真源。
+- Realm feature-data modules and Zustand store 只是进程内 / HMR 缓存，不是 desktop 长期持久化真源。
 
 当前 first-party local consumer posture 额外固定为：
 
@@ -102,56 +102,52 @@ Runtime 对 Desktop 请求的认证路径：Desktop 持有 Realm SDK session tok
 
 ## D-AUTH-005 — Auth 事件联动
 
-DataSync 监听 `authChange` 事件：
+Desktop auth watcher listens to Runtime account-session projection events:
 
-- `isAuthenticated = true`：调用 `setToken(auth.token)`。
-- `isAuthenticated = false`：清空 token，停止所有轮询。
+- `isAuthenticated = true`：配置 SDK Platform Client 的 short-lived access-token provider / current access-token projection。
+- `isAuthenticated = false`：清空 renderer auth projection，停止 feature-local subscriptions / polling。
+- Desktop must not reintroduce a DataSync listener, token hot-state, or refresh timer as an auth owner.
 
 ## D-AUTH-006 — Token 刷新: Reactive
 
-Desktop 配置 SDK 的 `auth.refreshToken` + `auth.onTokenRefreshed` + `auth.onRefreshFailed` 回调：
+Superseded for Desktop first-party account sessions. Runtime owns reactive refresh
+through `K-ACCSVC-004`; Desktop consumes the resulting session/status projection.
 
-- SDK 收到 401 时自动尝试 `POST {baseUrl}/api/auth/refresh`（S-REALM-028）。
-- `onTokenRefreshed`：更新 DataSync 的 `accessToken`/`refreshToken`、写入热状态、同步 Store、重新调度主动刷新计时器，并立即覆写共享 `~/.nimi/auth/session.v1.json` 会话。
-- `onRefreshFailed`：清空 auth 状态（`store.clearAuth()`）、停止所有轮询、清除主动刷新计时器、清除共享 auth session，用户状态转 anonymous。
+- SDK may expose typed refresh helpers for non-authoritative developer
+  ergonomics, but Desktop must not own refresh token custody, token refresh
+  scheduling, or durable refresh results.
+- Refresh failure projection clears renderer auth projection and disables
+  authenticated Realm feature data.
 
 ## D-AUTH-007 — Token 刷新: Proactive
 
-过期前 60 秒计时器触发主动刷新：
+Superseded for Desktop first-party account sessions. Runtime owns proactive
+refresh scheduling through `K-ACCSVC-004`.
 
-- 使用 `Realm.decodeTokenExpiryUnsafe(jwt)` 计算 token 过期时间；该 helper 只解码未验证 JWT payload，用于 UX 计时提示，不得作为授权或信任判断。
-- 在 `expiresInMs - 60000` 时调度 `setTimeout`。
-- 登录成功 / `onTokenRefreshed` 回调 / `authChange` 事件后重新调度计时器。
-- logout / clearAuth 时清除计时器。
+- Desktop may decode token expiry only for non-authoritative UX display.
+- Desktop must not schedule a proactive refresh timer or persist refresh outcomes.
 
 ## D-AUTH-008 — refreshToken 持久化
 
-refreshToken 与 accessToken 对等持久化：
+Superseded for Desktop first-party account sessions. Desktop must not persist or
+cache refresh tokens.
 
-- 共享 desktop auth session 文件（`~/.nimi/auth/session.v1.json`）：加密持久化，是唯一长期真源。
-- 热状态（`DataSyncHotState.refreshToken`）：跨 HMR 保活，但不是 durable source。
-- Store（`AuthState.refreshToken`）：进程内态，不得作为长期持久化层。
-- 登录 / 注册成功后立即存储 `result.tokens.refreshToken`。
-- logout / clearAuth 清除。
+- Runtime secure custody owns refresh token storage (`K-ACCSVC-007`).
+- Renderer state may hold only the current short-lived access-token projection
+  needed by SDK public Realm calls.
 
 ## D-AUTH-009 — Token 过期检测与刷新所有权
 
-Desktop token 过期检测与刷新采用双重机制：
-
-**主动检测**（D-AUTH-007）：Desktop 计算 token 剩余有效期，在过期前 60s 触发主动刷新。此为主要的过期防护机制。
-
-**被动检测**（D-AUTH-006）：当主动刷新失败或计时器偏差导致 token 已过期时，Realm SDK 收到 401 后触发 S-REALM-028 单次刷新重试。此为兜底机制。
+Desktop token 过期检测与刷新所有权已迁移到 Runtime account session service。
 
 **所有权链**：
 
 | 层 | 职责 | 实现位置 |
 |---|---|---|
-| Desktop | 过期计时调度、刷新回调处理、auth 状态迁移 | D-AUTH-006、D-AUTH-007 |
-| Realm SDK | 401 检测、refresh endpoint 调用、single-flight 协调 | S-REALM-028、S-REALM-029 |
+| Runtime | token custody、refresh、revocation reaction、account session status projection | K-ACCSVC-004、K-ACCSVC-005、K-ACCSVC-007 |
+| SDK | typed access-token provider plumbing and public Realm/Runtime transport ergonomics | S-REALM-*、S-RUNTIME-* |
+| Desktop | renderer auth projection, login-gate UI, feature data enable/disable wiring | D-AUTH-004、D-AUTH-005 |
 | Realm Backend | token 签发、刷新、校验 | 不在 spec 管辖范围 |
-| Runtime | 仅做 token claims 校验（K-AUTHN-001~008），不参与 token 生命周期管理 | K-AUTHN-001~008 |
-
-**S-REALM-014 默认策略决策**：Desktop 使用 caller-manual 策略（S-REALM-027 function 模式 + S-REALM-028 refreshToken 回调），而非 SDK 内置 auto-refresh。此选择使 Desktop 能控制 token 持久化和 auth 状态迁移的时序。
 
 ## D-AUTH-010 — ExternalPrincipal Token UI Flow
 

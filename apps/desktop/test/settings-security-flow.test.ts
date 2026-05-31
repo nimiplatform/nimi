@@ -29,14 +29,6 @@ const performancePageSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/settings/settings-performance-page.tsx'),
   'utf8',
 );
-const dataSyncFacadeSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/runtime/data-sync/facade.ts'),
-  'utf8',
-);
-const dataSyncActionsSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/runtime/data-sync/facade-actions.ts'),
-  'utf8',
-);
 
 test('SDK Realm security helpers behaviorally call password and 2FA APIs', async () => {
   const calls: string[] = [];
@@ -88,7 +80,7 @@ test('SDK Realm security helpers behaviorally call password and 2FA APIs', async
   assert.deepEqual(disableResult, { enabled: false });
 });
 
-test('security page consumes SDK Realm security helpers instead of DataSync security flow', () => {
+test('security page consumes SDK Realm security helpers instead of Realm security helper', () => {
   assert.match(securityPageSource, /prepareRealmTwoFactor\(getPlatformClient\(\)\.realm\)/);
   assert.match(securityPageSource, /updateRealmPassword\(getPlatformClient\(\)\.realm/);
   assert.match(securityPageSource, /enableRealmTwoFactor\(getPlatformClient\(\)\.realm/);
@@ -96,7 +88,7 @@ test('security page consumes SDK Realm security helpers instead of DataSync secu
   assert.doesNotMatch(securityPageSource, /dataSync\.(prepareTwoFactor|updatePassword|enableTwoFactor|disableTwoFactor)/);
 });
 
-test('settings pages consume SDK Realm account helpers instead of DataSync settings flow', () => {
+test('settings pages consume SDK Realm account helpers instead of Realm account helper', () => {
   assert.match(notificationsPageSource, /loadRealmUserNotificationSettings\(getPlatformClient\(\)\.realm\)/);
   assert.match(notificationsPageSource, /updateRealmUserNotificationSettings\(getPlatformClient\(\)\.realm/);
   assert.match(privacyPageSource, /loadRealmUserSettings\(getPlatformClient\(\)\.realm\)/);
@@ -107,13 +99,6 @@ test('settings pages consume SDK Realm account helpers instead of DataSync setti
   assert.doesNotMatch(
     `${notificationsPageSource}\n${privacyPageSource}\n${performancePageSource}\n${accountPageSource}`,
     /dataSync\.(loadMySettings|updateMySettings|loadMyNotificationSettings|updateMyNotificationSettings|loadMyCreatorEligibility|linkOauth|unlinkOauth)/,
-  );
-});
-
-test('DataSync no longer exposes the Desktop settings/security facade', () => {
-  assert.doesNotMatch(
-    `${dataSyncFacadeSource}\n${dataSyncActionsSource}`,
-    /loadMySettings|updateMySettings|loadMyNotificationSettings|updateMyNotificationSettings|loadMyCreatorEligibility|updatePassword|prepareTwoFactor|enableTwoFactor|disableTwoFactor|linkOauth|unlinkOauth/,
   );
 });
 

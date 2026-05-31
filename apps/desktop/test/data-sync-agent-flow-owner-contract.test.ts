@@ -5,22 +5,14 @@ import test from 'node:test';
 import {
   createMasterAgent,
   loadCreatorAgents,
-} from '../src/runtime/data-sync/flows/agent-flow.js';
+} from '../src/shell/renderer/features/world/data/realm-agent-create-data.js';
 
-const socialFlowSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/runtime/data-sync/flows/social-flow.ts'),
-  'utf8',
-);
 const profileFlowSocialSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/social/data/social-snapshot.ts'),
   'utf8',
 );
 const agentFlowSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/runtime/data-sync/flows/agent-flow.ts'),
-  'utf8',
-);
-const facadeActionsSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/runtime/data-sync/facade-actions.ts'),
+  path.join(import.meta.dirname, '../src/shell/renderer/features/world/data/realm-agent-create-data.ts'),
   'utf8',
 );
 
@@ -67,9 +59,6 @@ test('creator-agent permission failures fail closed instead of returning []', as
 });
 
 test('contacts social flow no longer owns CreatorService operations', () => {
-  assert.doesNotMatch(socialFlowSource, /CreatorService/);
-  assert.doesNotMatch(socialFlowSource, /creatorControllerCreateAgent/);
-  assert.doesNotMatch(socialFlowSource, /creatorControllerListAgents/);
   assert.doesNotMatch(profileFlowSocialSource, /loadCreatorAgents/);
   assert.doesNotMatch(profileFlowSocialSource, /CreatorService/);
 });
@@ -81,15 +70,4 @@ test('agent flow does not keep contacts-local denied pseudo-success state', () =
   assert.doesNotMatch(agentFlowSource, /nimi\.data-sync\.creator-agents\.denied/);
   assert.doesNotMatch(agentFlowSource, /Developer access required[\s\S]*return \[\]/);
   assert.doesNotMatch(agentFlowSource, /Forbidden[\s\S]*return \[\]/);
-});
-
-test('facade actions route creator-agent methods through agent-flow', () => {
-  assert.match(
-    facadeActionsSource,
-    /from '\.\/flows\/agent-flow';/,
-  );
-  assert.doesNotMatch(
-    facadeActionsSource,
-    /import \{[^}]*createMasterAgent[^}]*\} from '\.\/flows\/social-flow';/,
-  );
 });

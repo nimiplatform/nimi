@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { dataSync } from '@runtime/data-sync';
+import { realmAgentDetailData } from '@renderer/features/agent-detail/data/realm-agent-detail-data';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar';
 import { toProfileData, type ProfileData, type ProfileSource } from '@renderer/features/profile/profile-model';
@@ -123,7 +123,7 @@ function ChatComposerAvatarHoverPreview(props: {
     queryKey: ['chat-composer-avatar-preview', props.kind, props.targetId],
     queryFn: async () => {
       const result = props.kind === 'agent'
-        ? await dataSync.loadAgentDetails(props.targetId)
+        ? await realmAgentDetailData.loadAgentDetails(props.targetId)
         : await realmSocialData.loadUserProfile(props.targetId);
       return result as Record<string, unknown>;
     },

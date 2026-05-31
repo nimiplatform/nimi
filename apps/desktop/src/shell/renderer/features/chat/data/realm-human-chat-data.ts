@@ -231,7 +231,7 @@ export async function loadMoreChatMessages(
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   if (!cursor) return undefined;
-  const resolvedPageSize = normalizeDataSyncPageSize(pageSize);
+  const resolvedPageSize = normalizeRealmPageSize(pageSize);
 
   try {
     const result = await service.listMessages(chatId, resolvedPageSize, cursor);
@@ -242,7 +242,7 @@ export async function loadMoreChatMessages(
   }
 }
 
-function normalizeDataSyncPageSize(pageSize: number): number {
+function normalizeRealmPageSize(pageSize: number): number {
   if (!Number.isFinite(pageSize) || pageSize <= 0) {
     return 20;
   }

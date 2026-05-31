@@ -27,7 +27,7 @@
 | `self-update-contract.md` | cross-cutting (`D-BOOT-001`, `D-IPC-002`, `D-IPC-014`, `D-IPC-015`) | packaged desktop 自更新、bundled runtime staging 与 release 真值契约 |
 | `state-contract.md` | `D-STATE-*` | Zustand slices、持久化策略、pending action lifecycle projection boundary |
 | `auth-session-contract.md` | `D-AUTH-*` | 会话生命周期、token 持久化 |
-| `data-sync-contract.md` | `D-DSYNC-*` | DataSync 业务流规则 |
+| `data-sync-contract.md` | `D-DSYNC-*` | Retired DataSync flow owner map |
 | `llm-adapter-contract.md` | `D-LLM-*` | Provider 适配与路由边界 |
 | `conversation-capability-contract.md` | `D-LLM-*` | Conversation capability selection/projection、agent overlay、execution snapshot；不拥有 resolved message / action truth |
 | `agent-chat-projection-contract.md` | `D-LLM-*` | Desktop Agent Chat projection / presentation surface：shell placement, user input handoff, Runtime/SDK projection rendering, fail-closed UI states；不拥有 Agent Chat orchestration / execution / prompt / voice workflow / media truth |

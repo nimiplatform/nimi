@@ -1,10 +1,21 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
-import type { CreateMasterAgentInput } from './social-flow';
+import { callRealmApi } from '@renderer/infra/realm/realm-api';
 
-type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type RealmAgentCreateApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
+
+export type CreateMasterAgentInput = {
+  worldId: string;
+  handle: string;
+  concept: string;
+  displayName?: string;
+  description?: string;
+  referenceImageUrl?: string;
+  dnaPrimary?: 'CARING' | 'PLAYFUL' | 'INTELLECTUAL' | 'CONFIDENT' | 'MYSTERIOUS' | 'ROMANTIC';
+  dnaSecondary?: Array<'HUMOROUS' | 'SARCASTIC' | 'GENTLE' | 'DIRECT' | 'OPTIMISTIC' | 'REALISTIC' | 'DRAMATIC' | 'PASSIONATE' | 'REBELLIOUS' | 'INNOCENT' | 'WISE' | 'ECCENTRIC'>;
+};
 
 export async function createMasterAgent(
-  callApi: DataSyncApiCaller,
+  callApi: RealmAgentCreateApiCaller,
   input: CreateMasterAgentInput,
 ): Promise<Record<string, unknown>> {
   const result = await callApi(
@@ -27,7 +38,7 @@ export async function createMasterAgent(
 let inflightCreatorAgents: Promise<Record<string, unknown>[]> | null = null;
 
 export async function loadCreatorAgents(
-  callApi: DataSyncApiCaller,
+  callApi: RealmAgentCreateApiCaller,
 ): Promise<Record<string, unknown>[]> {
   if (inflightCreatorAgents) return inflightCreatorAgents;
   const task = loadCreatorAgentsInternal(callApi).finally(() => { inflightCreatorAgents = null; });
@@ -36,7 +47,7 @@ export async function loadCreatorAgents(
 }
 
 async function loadCreatorAgentsInternal(
-  callApi: DataSyncApiCaller,
+  callApi: RealmAgentCreateApiCaller,
 ): Promise<Record<string, unknown>[]> {
   const agents = await callApi(
     (realm) => realm.services.CreatorService.creatorControllerListAgents(),
@@ -46,3 +57,10 @@ async function loadCreatorAgentsInternal(
     ? agents.map((agent) => (agent && typeof agent === 'object' ? { ...(agent as Record<string, unknown>) } : {}))
     : [];
 }
+
+export const realmAgentCreateData = {
+  createAgent: (input: CreateMasterAgentInput) =>
+    createMasterAgent(callRealmApi, input),
+  loadMyAgents: () =>
+    loadCreatorAgents(callRealmApi),
+};

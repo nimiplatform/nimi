@@ -1,5 +1,4 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
-import { dataSync } from '@runtime/data-sync';
 import {
   clearPlatformClient,
   createLocalFirstPartyRuntimePlatformClient,
@@ -530,49 +529,6 @@ export function bootstrapRuntime(): Promise<void> {
     void pingDesktopMacosSmoke('bootstrap-platform-client-done', {
       skipHeavyBootstrapForMacosSmoke,
     }).catch(() => {});
-
-    dataSync.initApi({
-      realmBaseUrl: defaults.realm.realmBaseUrl,
-      accessTokenProvider: async () => {
-        const response = await platformClient.runtime.account.getAccessToken({
-          caller: accountCaller,
-          requestedScopes: [],
-        });
-        if (!response.accepted || !response.accessToken) {
-          throw new Error(`Runtime account access token unavailable: ${String(response.accountReasonCode || response.reasonCode || 'unknown')}`);
-        }
-        return response.accessToken;
-      },
-      fetchImpl: proxyFetch,
-    });
-
-    dataSync.setAuthCallbacks({
-      setAuth: (user) => {
-        useAppStore.getState().setAuthSession(user ?? null, '', '');
-      },
-      clearAuth: async () => {
-        useAppStore.getState().clearAuthSession();
-        try {
-          await platformClient.runtime.account.logout({
-            caller: accountCaller,
-            reason: 'realm_auth_required',
-          });
-        } catch (error) {
-          logRendererEvent({
-            level: 'warn',
-            area: 'renderer-bootstrap',
-            message: 'action:runtime-account-clear-after-realm-auth-required:failed',
-            flowId,
-            details: {
-              error: safeErrorMessage(error),
-            },
-          });
-        }
-      },
-      getCurrentUser: () => {
-        return useAppStore.getState().auth.user;
-      },
-    });
 
     if (accountProjection?.accountId) {
       if (accountTokenAvailable) {

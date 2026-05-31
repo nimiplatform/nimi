@@ -3,20 +3,20 @@ import test from 'node:test';
 
 import { loadContactList, loadSocialSnapshot } from '../src/shell/renderer/features/social/data/profile-data.js';
 
-type DataSyncError = {
+type RealmDataError = {
   action: string;
   error: unknown;
   details?: Record<string, unknown>;
 };
 
-function createEmitter(errors: DataSyncError[]) {
+function createEmitter(errors: RealmDataError[]) {
   return (action: string, error: unknown, details?: Record<string, unknown>) => {
     errors.push({ action, error, details });
   };
 }
 
 test('loadContactList skips creator agents when warming the social graph', async () => {
-  const errors: DataSyncError[] = [];
+  const errors: RealmDataError[] = [];
   let creatorAgentsCalls = 0;
 
   const result = await loadContactList(
@@ -44,7 +44,7 @@ test('loadContactList skips creator agents when warming the social graph', async
 });
 
 test('loadSocialSnapshot does not list creator agents through the contacts social flow', async () => {
-  const errors: DataSyncError[] = [];
+  const errors: RealmDataError[] = [];
   let creatorAgentsCalls = 0;
 
   const result = await loadSocialSnapshot(

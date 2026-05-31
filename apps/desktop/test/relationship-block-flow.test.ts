@@ -19,7 +19,7 @@ function extractCallback(source: string, name: string): string {
   return source.slice(start, Math.min(...candidates));
 }
 
-test('profile detail modal block action waits for DataSync mutation before closing', () => {
+test('profile detail modal block action waits for Realm mutation before closing', () => {
   const section = extractCallback(profileModalSource, 'handleBlock');
 
   assert.match(section, /await dataSync\.blockUser\(\{/);

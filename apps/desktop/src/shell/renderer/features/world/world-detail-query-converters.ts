@@ -1,4 +1,4 @@
-import { dataSync } from '@runtime/data-sync';
+import { realmWorldData } from './data/realm-world-data';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { WorldTruthDetail, WorldTruthRecommendedAgent } from '@nimiplatform/sdk/world';
@@ -18,17 +18,17 @@ import type {
   WorldSemanticTimelineItem,
 } from './world-detail-types';
 type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;
-type WorldDetailWithAgentsResponse = Awaited<ReturnType<typeof dataSync.loadWorldDetailWithAgents>>;
+type WorldDetailWithAgentsResponse = Awaited<ReturnType<typeof realmWorldData.loadWorldDetailWithAgents>>;
 type WorldDetailWithAgentsDto = NonNullable<WorldDetailWithAgentsResponse>;
-type WorldSemanticBundleDto = Awaited<ReturnType<typeof dataSync.loadWorldSemanticBundle>>;
+type WorldSemanticBundleDto = Awaited<ReturnType<typeof realmWorldData.loadWorldSemanticBundle>>;
 type WorldviewDetailDto = NonNullable<WorldSemanticBundleDto['worldview']>;
 type PowerSystemDto = RealmModel<'PowerSystemDto'>;
 type PowerSystemLevelDto = RealmModel<'PowerSystemLevelDto'>;
 type PowerSystemTabooDto = RealmModel<'PowerSystemTabooDto'>;
 type SpaceRealmDto = RealmModel<'SpaceRealmDto'>;
 type WorldLanguageDto = RealmModel<'WorldLanguageDto'>;
-type PublicWorldLorebookDto = Awaited<ReturnType<typeof dataSync.loadWorldLorebooks>>['items'][number];
-type PublicBindingDto = Awaited<ReturnType<typeof dataSync.loadWorldBindings>>['items'][number];
+type PublicWorldLorebookDto = Awaited<ReturnType<typeof realmWorldData.loadWorldLorebooks>>['items'][number];
+type PublicBindingDto = Awaited<ReturnType<typeof realmWorldData.loadWorldBindings>>['items'][number];
 export type WorldPrimaryDetailRecord = WorldDetailWithAgentsDto & { worldTruth: WorldTruthDetail };
 function readString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;

@@ -1,4 +1,3 @@
-import { dataSync } from '@runtime/data-sync';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { uploadRealmResourceFileWithRealm } from '@nimiplatform/sdk/realm';
 import {

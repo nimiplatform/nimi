@@ -20,7 +20,7 @@ product readiness truth.
 - 若 bundled runtime staging / 版本校验失败，Desktop shell 必须继续 bootstrap，但将 runtime 标记为 unavailable 并暴露结构化错误。
 - 只有 source development 的 runtime 模式才允许 `go run ./cmd/nimi` / `PATH` 解析流程。
 - 只有 shell 级致命错误才进入 `D-BOOT-008` 错误路径。
-- 后续依赖：DataSync 初始化、Platform Client 初始化。
+- 后续依赖：Platform Client 初始化；认证后业务数据由 feature-local Realm data modules 触发。
 - `runtime_defaults.realm.accessToken` 仅是 operator/debug override 输入，不是 canonical persisted login source。
 
 ### Runtime JWT Config Sync
@@ -47,17 +47,21 @@ product readiness truth.
 
 使用 `D-BOOT-001` 获取的 realmBaseUrl 与 resolved bootstrap auth session 初始化 SDK 根导出的 `createPlatformClient()`。
 
-- 必须在 DataSync 初始化之前完成。
 - resolved bootstrap auth session 必须来自 Runtime account session projection
   or admitted recovery/debug override。Anonymous fallback is not ordinary product
   readiness.
 
-## D-BOOT-003 — DataSync Facade 初始化
+## D-BOOT-003 — Desktop DataSync Facade Retirement
 
-调用 `dataSync.initApi()` 注入 realm 配置和 proxy fetch 实例。
+Desktop 不再初始化 `apps/desktop/src/runtime/data-sync/**`，也不得恢复
+`dataSync.initApi()` / app-local Realm facade 作为当前平台入口。
 
-- `fetchImpl` 使用 `createProxyFetch()` 以绕过浏览器 CORS（参考 `D-IPC-004`）。
-- 热状态通过 `globalThis.__NIMI_DATA_SYNC_API_CONFIG__` 跨 HMR 持久化。
+- Realm transport/session projection must use the SDK Platform Client public
+  surface configured by `D-BOOT-002`.
+- Feature data reads/writes live in bounded Desktop feature data modules and call
+  Realm through `realm-api.ts` / SDK public Realm services.
+- No token, polling, hot-state, provider/model, or product truth may be stored in
+  a resurrected DataSync facade.
 
 ## D-BOOT-004 — Runtime Host 装配
 
@@ -68,7 +72,7 @@ product readiness truth.
 - 构建 runtime host capabilities（local LLM health check、execution kernel turn、OpenAPI context lock）。
 - 配置 speech route resolver 和 missing data capability resolver。
 - 确保 core world data capabilities 与 host-only Agent LLM data capabilities（route / memory）已注册。
-- host-only Agent chat route capability 必须遵循 `D-LLM-002` fail-close 语义；host-only Agent memory capability 必须遵循 `D-DSYNC-011` cache-only + fail-close 语义。
+- host-only Agent chat route capability 必须遵循 `D-LLM-002` fail-close 语义；host-only Agent memory capability 必须遵循 Runtime/Cognition memory authority 的 cache-only + fail-close 语义。
 - local route bootstrap / hydration / health merge 时，RuntimeLocalService local model list/status 是唯一 readiness 真源；host-local snapshot 只能补充展示元数据。
 - 当 selected local model 与 runtime authoritative local record 缺失、degraded、或状态冲突时，Desktop 可以保留原选择用于显示，但必须把 binding 视为 unavailable/not-sendable，不得继续 fail-open 发送。
 
@@ -86,7 +90,7 @@ Agent gateway/status/action surfaces when the Runtime Config UI needs them.
 ## D-BOOT-007 — Auth Session 引导
 
 > **Authority Disposition**：
-> 本规则已 superseded。Replacement authority：`K-ACCSVC-005` `GetAccountSessionStatus` / `SubscribeAccountSessionEvents`，以及 Runtime-backed short-lived access-token provider（`GetAccessToken`）。`K-ACCSVC-013` 要求 Desktop bootstrap query Runtime account state，并删除 `bootstrapAuthSession` token 交换 / 匿名回退路径与共享 auth session 写入逻辑。保留的 Desktop Realm/DataSync data client 必须通过 Runtime-issued access token 初始化，不得读取 shared auth token。
+> 本规则已 superseded。Replacement authority：`K-ACCSVC-005` `GetAccountSessionStatus` / `SubscribeAccountSessionEvents`，以及 Runtime-backed short-lived access-token provider（`GetAccessToken`）。`K-ACCSVC-013` 要求 Desktop bootstrap query Runtime account state，并删除 `bootstrapAuthSession` token 交换 / 匿名回退路径与共享 auth session 写入逻辑。保留的 Desktop Realm feature data client 必须通过 Runtime-issued access token 初始化，不得读取 shared auth token。
 
 调用 `bootstrapAuthSession` 执行 token 交换或匿名回退。
 
@@ -124,11 +128,11 @@ packaged desktop release 校验补充：
 
 ## D-BOOT-010 — 初始数据加载触发
 
-`loadInitialData()`（`D-DSYNC-000`）不在 `bootstrapRuntime()` 内同步执行。触发时机：
+Initial Realm feature-data loads 不在 `bootstrapRuntime()` 内同步执行。触发时机：
 
 - 认证状态从非 `authenticated` 转为 `authenticated` 时由应用层（auth state listener）调用。
 - 这包括 `D-BOOT-007` 成功后的首次认证，以及后续 token 刷新后的重新认证。
-- `bootstrapReady=true` 不依赖 `loadInitialData()` 完成。
+- `bootstrapReady=true` 不依赖 Realm feature-data loads 完成。
 
 ## D-BOOT-011 — Desktop 退出、Hide 与 Daemon 关闭
 
@@ -141,7 +145,7 @@ Quit path 的 daemon 生命周期行为：
 
 - **Desktop managed daemon**（D-IPC-002 `managed=true`）：Desktop 退出前调用 `runtime_bridge_stop`（D-IPC-002），等待 daemon 进入 `STOPPED` 状态。等待超时为 K-DAEMON-003 停机超时（默认 10s）+ 2s 缓冲。超时后 Desktop 强制退出，daemon 可能残留为孤儿进程。
 - **外部 daemon**（`managed=false`）：Desktop 退出不停止 daemon。daemon 由外部管理者负责生命周期。
-- **清理顺序**：停止所有轮询（D-DSYNC-000 `stopAllPolling`）→ 清除主动刷新计时器（D-AUTH-007）→ 停止 auth watcher / shell cleanup → 发送 `runtime_bridge_stop`（仅 managed）→ 退出。
+- **清理顺序**：停止 feature-local Realm subscriptions / polling → 停止 auth watcher / shell cleanup → 发送 `runtime_bridge_stop`（仅 managed）→ 退出。
 
 当 `enableMenuBarShell=false` 时，Desktop 可继续沿现有非 menu bar 退出语义执行。
 
@@ -152,7 +156,7 @@ Realm SDK `ready()` 与 Runtime SDK `ready()` 都采用 fail-close 语义（`S-R
 **策略**：Bootstrap 不显式调用 `Realm.ready()`。Realm 可达性继续通过 `D-BOOT-010` 触发的 `loadInitialData()` 中的首个业务请求（`loadCurrentUser()`）隐式验证：
 
 - `loadCurrentUser()` 成功：Realm 可达，正常流程。
-- `loadCurrentUser()` 失败（网络错误）：Realm 不可达。DataSync 通过 `emitDataSyncError` 记录错误。UI 进入降级状态——`bootstrapReady=true` 但数据为空，用户可见空列表和加载失败提示。
+- `loadCurrentUser()` 失败（网络错误）：Realm 不可达。Realm feature-data module 通过 `emitRealmDataError` 记录错误。UI 进入降级状态——`bootstrapReady=true` 但数据为空，用户可见空列表和加载失败提示。
 - 此设计意图：`bootstrapReady` 表示"应用骨架就绪"，不表示"所有后端可达"。Realm 不可达是运行时降级，不是启动失败；但一旦显式调用 `Realm.ready()`，错误必须直接暴露给调用方。
 
 **与 Runtime fail-close 的对比**：Runtime daemon 不可用在 Desktop 侧是运行时降级，不再阻断 app shell；需要 Runtime 的功能页展示 unavailable 提示并允许后续恢复。Realm 不可达同样是运行时降级，因为功能可以在恢复后补偿加载。

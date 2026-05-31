@@ -34,7 +34,7 @@ test('agent-friend-limit sources the limit from the backend projection', () => {
   const source = read('shell/renderer/features/relationship/agent-friend-limit.ts');
   // The limit is read from the backend agent-friend-limit projection,
   // not from the subscription status.
-  assert.match(source, /dataSync\.loadAgentFriendLimit\(\)/);
+  assert.match(source, /realmSocialData\.loadAgentFriendLimit\(\)/);
   assert.doesNotMatch(source, /loadSubscriptionStatus/);
 });
 
@@ -59,9 +59,9 @@ test('the AgentFriendLimit type carries no subscription-tier field', () => {
   assert.doesNotMatch(typeDecl, /'ACTIVE'|'CANCELED'|'PAST_DUE'|'PAUSED'/);
 });
 
-test('data-sync exposes a loadAgentFriendLimit projection action', () => {
+test('social Realm data exposes a loadAgentFriendLimit projection action', () => {
   const flowSource = read('shell/renderer/features/social/data/social-snapshot.ts');
+  const realmSocialDataSource = read('shell/renderer/features/social/data/realm-social-data.ts');
   assert.match(flowSource, /MeService\.getMyAgentFriendLimit\(\)/);
-  const facadeSource = read('runtime/data-sync/facade.ts');
-  assert.match(facadeSource, /loadAgentFriendLimit\(\)/);
+  assert.match(realmSocialDataSource, /loadAgentFriendLimit/);
 });

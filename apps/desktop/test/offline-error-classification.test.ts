@@ -4,13 +4,8 @@ import assert from 'node:assert/strict';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 import { isRealmOfflineError, isRuntimeOfflineError } from '../src/runtime/offline/errors.js';
-import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-
-const DATASYNC_FACADE_SOURCE = readFileSync(
-  resolve(import.meta.dirname, '../src/runtime/data-sync/facade.ts'),
-  'utf8',
-);
+import { readFileSync } from 'node:fs';
 
 describe('D-OFFLINE-001: realm offline error classification', () => {
   test('REALM_UNAVAILABLE is treated as offline', () => {
@@ -72,9 +67,13 @@ describe('D-OFFLINE-001: realm offline error classification', () => {
     assert.doesNotMatch(offlineErrorSource, /fetch failed\|failed to fetch/);
   });
 
-  test('DataSync facade projects Realm unavailable errors from its unified error outlet', () => {
-    assert.match(DATASYNC_FACADE_SOURCE, /emitDataSyncError\(action: string, error: unknown/);
-    assert.match(DATASYNC_FACADE_SOURCE, /errorFields\.reasonCode === ReasonCode\.REALM_UNAVAILABLE/);
-    assert.match(DATASYNC_FACADE_SOURCE, /getOfflineCoordinator\(\)\.markRealmRestReachable\(false\)/);
+  test('Realm data API projects Realm unavailable errors from its unified error outlet', () => {
+    const realmApiSource = readFileSync(
+      resolve(import.meta.dirname, '../src/shell/renderer/infra/realm/realm-api.ts'),
+      'utf8',
+    );
+    assert.match(realmApiSource, /emitRealmDataError/);
+    assert.match(realmApiSource, /errorFields\.reasonCode === ReasonCode\.REALM_UNAVAILABLE/);
+    assert.match(realmApiSource, /getOfflineCoordinator\(\)\.markRealmRestReachable\(false\)/);
   });
 });

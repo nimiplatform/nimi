@@ -11,10 +11,16 @@ import { isWebShellMode } from '@nimiplatform/kit/core/shell-mode';
 import { OAuthProvider, updateRealmPassword, type RealmModel } from '@nimiplatform/sdk/realm';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/browser';
-import { dataSync } from '@runtime/data-sync';
 import { bootstrapRuntime } from '@renderer/infra/bootstrap/runtime-bootstrap';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { desktopBridge } from '@renderer/bridge';
+import { createProxyFetch } from '@renderer/infra/bridge/proxy-fetch';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { callRealmApi } from '@renderer/infra/realm/realm-api';
+import {
+  configureWebRealmPlatformClient,
+  isRealmPlatformClientReady,
+} from '@renderer/infra/realm/realm-platform-session';
 import { i18n } from '@renderer/i18n';
 import {
   isExpectedAnonymousSessionError,
@@ -117,13 +123,39 @@ export function createDesktopRuntimeAccountBrowserBroker() {
 }
 
 export async function ensureAuthApiReady(): Promise<void> {
-  if (dataSync.isApiConfigured()) {
+  if (isRealmPlatformClientReady()) {
     return;
   }
   await bootstrapRuntime();
-  if (!dataSync.isApiConfigured()) {
+  if (!isRealmPlatformClientReady()) {
     throw new Error('API not initialized');
   }
+}
+
+async function configureWebAuthRealmSession(accessToken: string, refreshToken?: string): Promise<void> {
+  const defaults = useAppStore.getState().runtimeDefaults;
+  if (!defaults?.realm?.realmBaseUrl) {
+    await bootstrapRuntime();
+  }
+  const refreshedDefaults = useAppStore.getState().runtimeDefaults;
+  const realmBaseUrl = String(refreshedDefaults?.realm?.realmBaseUrl || '').trim();
+  if (!realmBaseUrl) {
+    throw new Error('API not initialized');
+  }
+  await configureWebRealmPlatformClient({
+    appId: 'nimi.web',
+    realmBaseUrl,
+    accessToken,
+    refreshToken,
+    fetchImpl: createProxyFetch(),
+    getCurrentUser: () => useAppStore.getState().auth.user,
+    setAuthSession: (user, nextAccessToken, nextRefreshToken) => {
+      useAppStore.getState().setAuthSession(user, nextAccessToken, nextRefreshToken);
+    },
+    clearAuthSession: () => {
+      useAppStore.getState().clearAuthSession();
+    },
+  });
 }
 
 export function createDesktopAuthAdapter(): AuthPlatformAdapter {
@@ -138,7 +170,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
       }
       await ensureAuthApiReady();
       return toCheckEmailResponseDto(
-        await dataSync.callApi(
+        await callRealmApi(
           (realm) => realm.services.AuthService.checkEmail({ email }),
           '',
         ),
@@ -151,7 +183,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
       }
       await ensureAuthApiReady();
       return toOAuthLoginResultDto(
-        await dataSync.callApi(
+        await callRealmApi(
           (realm) => realm.services.AuthService.passwordLogin({ identifier, password }),
           i18n.t('Auth.passwordLoginFailed', { defaultValue: 'Email sign-in failed' }),
         ),
@@ -163,7 +195,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('requestEmailOtp');
       }
       await ensureAuthApiReady();
-      return dataSync.callApi(
+      return callRealmApi(
         (realm) => realm.services.AuthService.requestEmailOtp({ email }),
         i18n.t('Auth.requestEmailOtpFailed', { defaultValue: 'Failed to send verification code' }),
       );
@@ -175,7 +207,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
       }
       await ensureAuthApiReady();
       return toOAuthLoginResultDto(
-        await dataSync.callApi(
+        await callRealmApi(
           (realm) => realm.services.AuthService.verifyEmailOtp({ email, code }),
           i18n.t('Auth.verifyEmailOtpFailed', { defaultValue: 'Failed to sign in with email code' }),
         ),
@@ -188,7 +220,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
       }
       await ensureAuthApiReady();
       return toAuthTokensDto(
-        await dataSync.callApi(
+        await callRealmApi(
           (realm) => realm.services.AuthService.verifyTwoFactor({ tempToken, code }),
           i18n.t('Auth.verifyTwoFactorFailed', { defaultValue: 'Two-factor verification failed' }),
         ),
@@ -200,7 +232,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('walletChallenge');
       }
       await ensureAuthApiReady();
-      return dataSync.callApi(
+      return callRealmApi(
         (realm) => realm.services.AuthService.walletChallenge({
           walletAddress: input.walletAddress,
           chainId: input.chainId,
@@ -216,7 +248,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
       }
       await ensureAuthApiReady();
       return toOAuthLoginResultDto(
-        await dataSync.callApi(
+        await callRealmApi(
           (realm) => realm.services.AuthService.walletLogin({
             walletAddress: input.walletAddress,
             chainId: input.chainId,
@@ -236,7 +268,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
       }
       await ensureAuthApiReady();
       return toOAuthLoginResultDto(
-        await dataSync.callApi(
+        await callRealmApi(
           (realm) => realm.services.AuthService.oauthLogin({
             provider: provider as OAuthProvider,
             accessToken,
@@ -293,14 +325,9 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
 
     applyToken: async (accessToken, refreshToken) => {
       if (isWebShellMode()) {
-        dataSync.setToken(accessToken);
-        if (refreshToken) {
-          dataSync.setRefreshToken(refreshToken);
-        }
+        await configureWebAuthRealmSession(accessToken, refreshToken);
         return;
       }
-      dataSync.setToken('');
-      dataSync.setRefreshToken('');
     },
     restoreSession: async () => localFirstPartyBlocked('restoreSession'),
     persistSession: async ({ accessToken, user }) => {

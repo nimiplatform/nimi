@@ -83,7 +83,7 @@ async function executeSocialMutation(
 
 export async function flushPendingSocialMutations(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
 ): Promise<void> {
   const manager = await getOfflineCacheManager();
   const entries = await manager.getSocialMutationEntries();
@@ -104,7 +104,7 @@ export async function flushPendingSocialMutations(
       }
       const reason = getErrorMessage(error, 'social mutation failed');
       await manager.markSocialMutationFailed(entry.id, reason);
-      emitDataSyncError('flush-social-outbox', error, {
+      emitRealmDataError('flush-social-outbox', error, {
         kind: entry.kind,
         id: entry.id,
       });

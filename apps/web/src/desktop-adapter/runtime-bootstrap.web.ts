@@ -1,20 +1,22 @@
-type DataSyncFacade = (typeof import('@desktop-public/data-sync'))['dataSync'];
 type DesktopBridgeFacade = (typeof import('@renderer/bridge'))['desktopBridge'];
 type CreateProxyFetch = (typeof import('@desktop-public/infra'))['createProxyFetch'];
 type CreateRendererFlowId = (typeof import('@desktop-public/infra'))['createRendererFlowId'];
 type LogRendererEvent = (typeof import('@desktop-public/infra'))['logRendererEvent'];
 type UseAppStore = (typeof import('@desktop-public/app-store'))['useAppStore'];
+type ConfigureWebRealmPlatformClient = (typeof import('@desktop-public/realm'))['configureWebRealmPlatformClient'];
+type CallRealmApi = (typeof import('@desktop-public/realm'))['callRealmApi'];
 type ClearPersistedAccessToken = (typeof import('@nimiplatform/kit/auth'))['clearPersistedAccessToken'];
 type LoadPersistedAuthSession = (typeof import('@nimiplatform/kit/auth'))['loadPersistedAuthSession'];
 type PersistAuthSession = (typeof import('@nimiplatform/kit/auth'))['persistAuthSession'];
 
 type RuntimeBootstrapWebDeps = {
-  dataSync: DataSyncFacade;
   desktopBridge: DesktopBridgeFacade;
   createProxyFetch: CreateProxyFetch;
   createRendererFlowId: CreateRendererFlowId;
   logRendererEvent: LogRendererEvent;
   useAppStore: UseAppStore;
+  configureWebRealmPlatformClient: ConfigureWebRealmPlatformClient;
+  callRealmApi: CallRealmApi;
   clearPersistedAccessToken: ClearPersistedAccessToken;
   loadPersistedAuthSession: LoadPersistedAuthSession;
   persistAuthSession: PersistAuthSession;
@@ -40,13 +42,13 @@ async function loadRuntimeBootstrapWebDeps(): Promise<RuntimeBootstrapWebDeps> {
 
   depsPromise = (async () => {
     const [
-      dataSyncModule,
+      realmModule,
       bridgeModule,
       infraModule,
       appStoreModule,
       authStorageModule,
     ] = await Promise.all([
-      import('@desktop-public/data-sync'),
+      import('@desktop-public/realm'),
       import('@renderer/bridge'),
       import('@desktop-public/infra'),
       import('@desktop-public/app-store'),
@@ -54,12 +56,13 @@ async function loadRuntimeBootstrapWebDeps(): Promise<RuntimeBootstrapWebDeps> {
     ]);
 
     return {
-      dataSync: dataSyncModule.dataSync,
       desktopBridge: bridgeModule.desktopBridge,
       createProxyFetch: infraModule.createProxyFetch,
       createRendererFlowId: infraModule.createRendererFlowId,
       logRendererEvent: infraModule.logRendererEvent,
       useAppStore: appStoreModule.useAppStore,
+      configureWebRealmPlatformClient: realmModule.configureWebRealmPlatformClient,
+      callRealmApi: realmModule.callRealmApi,
       clearPersistedAccessToken: authStorageModule.clearPersistedAccessToken,
       loadPersistedAuthSession: authStorageModule.loadPersistedAuthSession,
       persistAuthSession: authStorageModule.persistAuthSession,
@@ -112,13 +115,38 @@ function hasAuthenticatedSnapshot(snapshot: AuthSessionSnapshot): boolean {
   return snapshot.status === 'authenticated' && Boolean(snapshot.token);
 }
 
-function applyAuthSessionSnapshot(
+async function configureWebRealmSession(
+  deps: RuntimeBootstrapWebDeps,
+  accessToken: string,
+  refreshToken?: string,
+): Promise<void> {
+  let defaults = deps.useAppStore.getState().runtimeDefaults;
+  if (!defaults?.realm?.realmBaseUrl) {
+    defaults = await deps.desktopBridge.getRuntimeDefaults();
+    deps.useAppStore.getState().setRuntimeDefaults(defaults);
+  }
+  await deps.configureWebRealmPlatformClient({
+    appId: 'nimi.web',
+    realmBaseUrl: defaults.realm.realmBaseUrl,
+    accessToken,
+    refreshToken,
+    fetchImpl: deps.createProxyFetch(),
+    getCurrentUser: () => deps.useAppStore.getState().auth.user,
+    setAuthSession: (user, nextAccessToken, nextRefreshToken) => {
+      deps.useAppStore.getState().setAuthSession(user, nextAccessToken, nextRefreshToken);
+    },
+    clearAuthSession: () => {
+      deps.useAppStore.getState().clearAuthSession();
+    },
+  });
+}
+
+async function applyAuthSessionSnapshot(
   snapshot: AuthSessionSnapshot,
   deps: RuntimeBootstrapWebDeps,
-): void {
+): Promise<void> {
   if (hasAuthenticatedSnapshot(snapshot)) {
-    deps.dataSync.setToken(snapshot.token);
-    deps.dataSync.setRefreshToken(snapshot.refreshToken);
+    await configureWebRealmSession(deps, snapshot.token, snapshot.refreshToken);
     deps.useAppStore.getState().setAuthSession(
       snapshot.user,
       snapshot.token,
@@ -127,8 +155,7 @@ function applyAuthSessionSnapshot(
     return;
   }
 
-  deps.dataSync.setToken('');
-  deps.dataSync.setRefreshToken('');
+  await configureWebRealmSession(deps, '', '');
   deps.useAppStore.getState().clearAuthSession();
 }
 
@@ -151,11 +178,10 @@ async function bootstrapAuthSession(input: {
   if (!resolvedToken) {
     if (!input.preservePersistedAuthSession) {
       deps.clearPersistedAccessToken();
-      deps.dataSync.setToken('');
-      deps.dataSync.setRefreshToken('');
+      await configureWebRealmSession(deps, '', '');
       appStore.clearAuthSession();
     } else {
-      applyAuthSessionSnapshot(input.authSessionSnapshot, deps);
+      await applyAuthSessionSnapshot(input.authSessionSnapshot, deps);
     }
     deps.logRendererEvent({
       level: 'info',
@@ -170,11 +196,13 @@ async function bootstrapAuthSession(input: {
     return;
   }
 
-  deps.dataSync.setToken(resolvedToken);
-  deps.dataSync.setRefreshToken(resolvedRefreshToken);
+  await configureWebRealmSession(deps, resolvedToken, resolvedRefreshToken);
 
   try {
-    const user = await deps.dataSync.loadCurrentUser();
+    const user = await deps.callRealmApi(
+      (realm) => realm.services.MeService.getMe(),
+      '获取当前用户失败',
+    );
     const normalizedUser = user && typeof user === 'object'
       ? (user as Record<string, unknown>)
       : null;
@@ -203,10 +231,9 @@ async function bootstrapAuthSession(input: {
     if (!input.preservePersistedAuthSession) {
       deps.clearPersistedAccessToken();
       appStore.clearAuthSession();
-      deps.dataSync.setToken('');
-      deps.dataSync.setRefreshToken('');
+      await configureWebRealmSession(deps, '', '');
     } else {
-      applyAuthSessionSnapshot(input.authSessionSnapshot, deps);
+      await applyAuthSessionSnapshot(input.authSessionSnapshot, deps);
     }
     deps.logRendererEvent({
       level: expectedUnauthorized ? 'info' : 'warn',
@@ -255,15 +282,8 @@ export function bootstrapRuntime(): Promise<void> {
     deps.loadPersistedAuthSession();
     const accessToken = envAccessToken;
     const refreshToken = '';
-    const proxyFetch = deps.createProxyFetch();
     deps.useAppStore.getState().setRuntimeDefaults(defaults);
-
-    deps.dataSync.initApi({
-      realmBaseUrl: defaults.realm.realmBaseUrl,
-      accessToken,
-      refreshToken,
-      fetchImpl: proxyFetch,
-    });
+    await configureWebRealmSession(deps, accessToken, refreshToken);
 
     try {
       await withTimeout(
@@ -281,10 +301,9 @@ export function bootstrapRuntime(): Promise<void> {
       if (!preservePersistedAuthSession) {
         deps.clearPersistedAccessToken();
         deps.useAppStore.getState().clearAuthSession();
-        deps.dataSync.setToken('');
-        deps.dataSync.setRefreshToken('');
+        await configureWebRealmSession(deps, '', '');
       } else {
-        applyAuthSessionSnapshot(authSessionSnapshot, deps);
+        await applyAuthSessionSnapshot(authSessionSnapshot, deps);
       }
       deps.logRendererEvent({
         level: 'warn',
@@ -307,7 +326,7 @@ export function bootstrapRuntime(): Promise<void> {
       flowId,
       costMs: Number((performance.now() - startedAt).toFixed(2)),
     });
-  })().catch((error) => {
+  })().catch(async (error) => {
     const message = safeErrorMessage(error);
     if (deps) {
       deps.useAppStore.getState().setBootstrapError(message);
@@ -315,7 +334,7 @@ export function bootstrapRuntime(): Promise<void> {
       if (!preservePersistedAuthSession) {
         deps.useAppStore.getState().clearAuthSession();
       } else if (authSessionSnapshot) {
-        applyAuthSessionSnapshot(authSessionSnapshot, deps);
+        await applyAuthSessionSnapshot(authSessionSnapshot, deps);
       }
       deps.logRendererEvent({
         level: 'error',

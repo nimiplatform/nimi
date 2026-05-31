@@ -28,7 +28,6 @@ features:
     covers_bootstrap_phases:
       - runtime-defaults
       - platform-client
-      - datasync-init
       - runtime-host
       - external-agent
       - auth-session

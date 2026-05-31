@@ -22,14 +22,10 @@ describe('Realm group agent participation Desktop hardcut', () => {
 
   it('removes Desktop public direct agent message commit facade', () => {
     const flowSource = readDesktopFile('src/shell/renderer/features/chat/data/realm-group-chat-data.ts');
-    const facadeActionsSource = readDesktopFile('src/runtime/data-sync/facade-actions.ts');
-    const facadeSource = readDesktopFile('src/runtime/data-sync/facade.ts');
 
-    for (const source of [flowSource, facadeActionsSource, facadeSource]) {
-      assert.doesNotMatch(source, /sendGroupAgentMessage/);
-      assert.doesNotMatch(source, /sendGroupAgentChatMessage/);
-      assert.doesNotMatch(source, /GroupChatsService\.sendGroupAgentMessage/);
-    }
+    assert.doesNotMatch(flowSource, /sendGroupAgentMessage/);
+    assert.doesNotMatch(flowSource, /sendGroupAgentChatMessage/);
+    assert.doesNotMatch(flowSource, /GroupChatsService\.sendGroupAgentMessage/);
   });
 
   it('wires split Runtime candidate/evidence read and Realm commit facades', () => {

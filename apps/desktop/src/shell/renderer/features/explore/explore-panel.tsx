@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { dataSync } from '@runtime/data-sync';
+import { realmExploreData } from './data/realm-explore-data';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
@@ -278,7 +278,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
     queryFn: async () => {
       const tag = selectedCategory || undefined;
       const query = props.searchText.trim() || undefined;
-      return dataSync.loadExploreAgents({ tag, query, limit: PAGE_SIZE });
+      return realmExploreData.loadExploreAgents({ tag, query, limit: PAGE_SIZE });
     },
     enabled: authStatus === 'authenticated',
   });
@@ -324,8 +324,8 @@ export function ExplorePanel(props: ExplorePanelProps) {
     async (cursor: string | null) => {
       const tag = selectedCategory || undefined;
       const result = cursor
-        ? await dataSync.loadMoreExploreFeed(PAGE_SIZE, cursor, tag)
-        : await dataSync.loadExploreFeed(tag ?? null, PAGE_SIZE);
+        ? await realmExploreData.loadMoreExploreFeed(PAGE_SIZE, cursor, tag)
+        : await realmExploreData.loadExploreFeed(tag ?? null, PAGE_SIZE);
       const payload = toRecord(result);
       const items = Array.isArray(payload?.items) ? (payload.items as PostDto[]) : [];
       const page = toRecord(payload?.page);

@@ -102,7 +102,7 @@
   "logAreaRuntime": "Runtime 子系统日志",
   "logAreaRendererBootstrap": "启动序列阶段日志",
   "logAreaBridge": "Tauri IPC 调用追踪",
-  "logAreaDatasync": "DataSync facade 操作追踪",
+  "logAreaRealmData": "Realm feature-data 操作追踪",
   "logAreaHook": "Hook runtime 能力事件",
   "logAreaLocalAi": "本地 AI 模型生命周期与推理审计",
   "logAreaExternalAgent": "外部 agent 网关与令牌投影",

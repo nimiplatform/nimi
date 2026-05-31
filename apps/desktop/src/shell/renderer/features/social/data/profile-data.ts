@@ -23,70 +23,70 @@ export type { SocialContactSnapshot } from './social-snapshot';
 
 export async function loadCurrentUserProfile(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
 ) {
   try {
     return await callApi((realm) => realm.services.MeService.getMe(), '获取当前用户失败');
   } catch (error) {
-    emitDataSyncError('load-current-user', error);
+    emitRealmDataError('load-current-user', error);
     throw error;
   }
 }
 
 export async function updateCurrentUserProfile(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
   data: JsonObject,
 ) {
   try {
     return await callApi((realm) => realm.services.MeService.updateMe(data), '更新用户资料失败');
   } catch (error) {
-    emitDataSyncError('update-user-profile', error);
+    emitRealmDataError('update-user-profile', error);
     throw error;
   }
 }
 
 export async function loadContactList(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
 ): Promise<SocialContactSnapshot> {
   try {
-    return await loadMergedSocialSnapshot(callApi, emitDataSyncError);
+    return await loadMergedSocialSnapshot(callApi, emitRealmDataError);
   } catch (error) {
-    emitDataSyncError('load-contacts', error);
+    emitRealmDataError('load-contacts', error);
     throw error;
   }
 }
 
 export async function loadSocialSnapshot(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
 ): Promise<SocialContactSnapshot> {
   try {
-    return await loadMergedSocialSnapshot(callApi, emitDataSyncError);
+    return await loadMergedSocialSnapshot(callApi, emitRealmDataError);
   } catch (error) {
-    emitDataSyncError('load-social-snapshot', error);
+    emitRealmDataError('load-social-snapshot', error);
     throw error;
   }
 }
 
 export async function loadPendingFriendRequests(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
 ) {
-  return fetchPendingFriendRequests(callApi, emitDataSyncError);
+  return fetchPendingFriendRequests(callApi, emitRealmDataError);
 }
 
 export async function loadAgentFriendLimit(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
 ) {
-  return fetchAgentFriendLimit(callApi, emitDataSyncError);
+  return fetchAgentFriendLimit(callApi, emitRealmDataError);
 }
 
 export async function loadUserProfileById(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
   id: string,
 ): Promise<UserProfileDto> {
   try {
@@ -110,7 +110,7 @@ export async function loadUserProfileById(
         return cached;
       }
     }
-    emitDataSyncError('load-user-profile', error, { id });
+    emitRealmDataError('load-user-profile', error, { id });
     throw error;
   }
 }

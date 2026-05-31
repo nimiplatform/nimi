@@ -1,13 +1,15 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { JsonObject } from '@runtime/net/json';
+import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
   getOfflineCacheManager,
   getOfflineCoordinator,
   isRealmOfflineError,
 } from '@runtime/offline';
 
-type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
-type DataSyncErrorEmitter = (
+type RealmAgentDetailApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type RealmAgentDetailErrorEmitter = (
   action: string,
   error: unknown,
   details?: JsonObject,
@@ -30,12 +32,12 @@ function cacheSet(key: string, value: unknown, ttlMs: number) {
 }
 
 async function applyAgentProfileReadFilters(input: {
-  emitDataSyncError: DataSyncErrorEmitter;
+  emitRealmAgentDetailError: RealmAgentDetailErrorEmitter;
   viewerUserId?: string;
   worldId?: string;
   profile: JsonObject;
 }): Promise<JsonObject> {
-  void input.emitDataSyncError;
+  void input.emitRealmAgentDetailError;
   void input.viewerUserId;
   void input.worldId;
   return {
@@ -127,7 +129,7 @@ function extractWorldName(profile: JsonObject): string | null {
 }
 
 async function enrichAgentProfileWithWorldBanner(
-  callApi: DataSyncApiCaller,
+  callApi: RealmAgentDetailApiCaller,
   profile: JsonObject,
 ): Promise<JsonObject> {
   const existingBannerUrl = extractWorldBannerUrl(profile);
@@ -177,7 +179,7 @@ function isAgentProfile(profile: JsonObject): boolean {
 }
 
 async function getProfileByHandle(
-  callApi: DataSyncApiCaller,
+  callApi: RealmAgentDetailApiCaller,
   handleCandidate: string,
 ): Promise<JsonObject | null> {
   const normalized = toNonEmptyString(handleCandidate);
@@ -196,7 +198,7 @@ async function getProfileByHandle(
 }
 
 async function getProfileById(
-  callApi: DataSyncApiCaller,
+  callApi: RealmAgentDetailApiCaller,
   agentId: string,
 ): Promise<JsonObject | null> {
   const normalized = toNonEmptyString(agentId);
@@ -215,8 +217,8 @@ async function getProfileById(
 }
 
 export async function loadAgentDetails(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmAgentDetailApiCaller,
+  emitRealmAgentDetailError: RealmAgentDetailErrorEmitter,
   agentIdentifier: string,
   context?: {
     viewerUserId?: string;
@@ -236,7 +238,7 @@ export async function loadAgentDetails(
     const cached = cacheGet(cacheKey);
     if (cached && typeof cached === 'object') {
       return applyAgentProfileReadFilters({
-        emitDataSyncError,
+        emitRealmAgentDetailError,
         viewerUserId: context?.viewerUserId,
         worldId: context?.worldId,
         profile: cached as JsonObject,
@@ -274,7 +276,7 @@ export async function loadAgentDetails(
       await cache.syncAgentMetadata(`agent-profile:${resolvedHandle}`, enrichedProfile);
     }
     return applyAgentProfileReadFilters({
-      emitDataSyncError,
+      emitRealmAgentDetailError,
       viewerUserId: context?.viewerUserId,
       worldId: context?.worldId,
       profile: enrichedProfile,
@@ -285,14 +287,21 @@ export async function loadAgentDetails(
       if (cached) {
         getOfflineCoordinator().markCacheFallbackUsed();
         return applyAgentProfileReadFilters({
-          emitDataSyncError,
+          emitRealmAgentDetailError,
           viewerUserId: context?.viewerUserId,
           worldId: context?.worldId,
           profile: cached,
         });
       }
     }
-    emitDataSyncError('load-agent-details', error, { agentIdentifier: normalizedIdentifier });
+    emitRealmAgentDetailError('load-agent-details', error, { agentIdentifier: normalizedIdentifier });
     throw error;
   }
 }
+
+export const realmAgentDetailData = {
+  loadAgentDetails: (agentIdentifier: string) =>
+    loadAgentDetails(callRealmApi, emitRealmDataError, agentIdentifier, {
+      viewerUserId: String(useAppStore.getState().auth.user?.id || '').trim() || undefined,
+    }),
+};

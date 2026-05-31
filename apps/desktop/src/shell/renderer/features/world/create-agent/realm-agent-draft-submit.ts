@@ -2,7 +2,7 @@
  * RealmAgent creation draft → Realm write payload (T5-3 / D-EXPL-010).
  *
  * The single Realm truth write happens here, on explicit user confirm, via the
- * existing `dataSync.createAgent` → `CreatorService.creatorControllerCreateAgent`
+ * existing `realmAgentCreateData.createAgent` → `CreatorService.creatorControllerCreateAgent`
  * path. There is no Realm-side draft entity: the draft is client-side only and
  * this module is the one place that turns a reviewed draft into Realm truth.
  *

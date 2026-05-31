@@ -10,23 +10,23 @@ import {
   loadWorldHistory,
   loadWorldLorebooks,
   loadWorldSemanticBundle,
-} from '../src/runtime/data-sync/flows/world-flow.js';
+} from '../src/shell/renderer/features/world/data/realm-world-data.js';
 import { createOfflineError, getOfflineCacheManager } from '../src/runtime/offline/index.js';
 
-type DataSyncError = {
+type RealmWorldDataError = {
   action: string;
   error: unknown;
   details?: Record<string, unknown>;
 };
 
-function createEmitter(errors: DataSyncError[]) {
+function createEmitter(errors: RealmWorldDataError[]) {
   return (action: string, error: unknown, details?: Record<string, unknown>) => {
     errors.push({ action, error, details });
   };
 }
 
 test('loadMainWorld fails close on non-object payloads', async () => {
-  const errors: DataSyncError[] = [];
+  const errors: RealmWorldDataError[] = [];
 
   await assert.rejects(
     () => loadMainWorld(
@@ -65,7 +65,7 @@ test('loadMainWorld still falls back to cached world metadata for offline errors
 });
 
 test('loadWorldAgents fails close on invalid list payloads', async () => {
-  const errors: DataSyncError[] = [];
+  const errors: RealmWorldDataError[] = [];
 
   await assert.rejects(
     () => loadWorldAgents(
@@ -81,7 +81,7 @@ test('loadWorldAgents fails close on invalid list payloads', async () => {
 });
 
 test('loadWorldDetailWithAgents fails close on invalid object payloads', async () => {
-  const errors: DataSyncError[] = [];
+  const errors: RealmWorldDataError[] = [];
 
   await assert.rejects(
     () => loadWorldDetailWithAgents(
@@ -97,7 +97,7 @@ test('loadWorldDetailWithAgents fails close on invalid object payloads', async (
 });
 
 test('loadWorldDetailWithAgents fails close when the response world id does not match the request', async () => {
-  const errors: DataSyncError[] = [];
+  const errors: RealmWorldDataError[] = [];
 
   await assert.rejects(
     () => loadWorldDetailWithAgents(
@@ -113,7 +113,7 @@ test('loadWorldDetailWithAgents fails close when the response world id does not 
 });
 
 test('loadWorldDetailById fails close when the response world id does not match the request', async () => {
-  const errors: DataSyncError[] = [];
+  const errors: RealmWorldDataError[] = [];
 
   await assert.rejects(
     () => loadWorldDetailById(
@@ -129,7 +129,7 @@ test('loadWorldDetailById fails close when the response world id does not match 
 });
 
 test('loadWorldHistory fails close when the response world id does not match the request', async () => {
-  const errors: DataSyncError[] = [];
+  const errors: RealmWorldDataError[] = [];
 
   await assert.rejects(
     () => loadWorldHistory(
@@ -145,7 +145,7 @@ test('loadWorldHistory fails close when the response world id does not match the
 });
 
 test('loadWorldLorebooks fails close when the response world id does not match the request', async () => {
-  const errors: DataSyncError[] = [];
+  const errors: RealmWorldDataError[] = [];
 
   await assert.rejects(
     () => loadWorldLorebooks(
@@ -161,7 +161,7 @@ test('loadWorldLorebooks fails close when the response world id does not match t
 });
 
 test('loadWorldSemanticBundle only requests worldview and skips redundant world detail fetch', async () => {
-  const errors: DataSyncError[] = [];
+  const errors: RealmWorldDataError[] = [];
   let worldDetailCalls = 0;
   let worldviewCalls = 0;
 
@@ -198,7 +198,7 @@ test('loadWorldSemanticBundle only requests worldview and skips redundant world 
 });
 
 test('loadWorldSemanticBundle fails close when worldview loading fails', async () => {
-  const errors: DataSyncError[] = [];
+  const errors: RealmWorldDataError[] = [];
 
   await assert.rejects(
     () => loadWorldSemanticBundle(

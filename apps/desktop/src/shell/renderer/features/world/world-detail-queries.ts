@@ -5,7 +5,7 @@ import {
   type WorldTruthListItem,
   type WorldTruthDetail,
 } from '@nimiplatform/sdk/world';
-import { dataSync } from '@runtime/data-sync';
+import { realmWorldData } from './data/realm-world-data';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { buildWorldHistorySummary, mergeWorldPrimaryDetailTruth, toSemanticBundle, toWorldAuditItem, toWorldBindingItem, toWorldLorebookItem } from './world-detail-query-converters';
 import type {
@@ -20,11 +20,11 @@ import type {
   WorldSemanticData,
 } from './world-detail-types';
 import type { WorldListItem } from './world-list-model';
-type WorldDetailWithAgentsResponse = Awaited<ReturnType<typeof dataSync.loadWorldDetailWithAgents>>;
+type WorldDetailWithAgentsResponse = Awaited<ReturnType<typeof realmWorldData.loadWorldDetailWithAgents>>;
 type WorldDetailWithAgentsDto = NonNullable<WorldDetailWithAgentsResponse>;
-type WorldHistoryPayload = Awaited<ReturnType<typeof dataSync.loadWorldHistory>>;
+type WorldHistoryPayload = Awaited<ReturnType<typeof realmWorldData.loadWorldHistory>>;
 type WorldHistoryDetailDto = WorldHistoryPayload['items'][number];
-type PublicWorldSceneDto = Awaited<ReturnType<typeof dataSync.loadWorldScenes>>['items'][number];
+type PublicWorldSceneDto = Awaited<ReturnType<typeof realmWorldData.loadWorldScenes>>['items'][number];
 export type WorldPrimaryDetailRecord = WorldDetailWithAgentsDto & {
   worldTruth: WorldTruthDetail;
 };
@@ -399,7 +399,7 @@ export function worldPublicAssetsQueryKey(worldId: string) {
 export async function fetchWorldDetailWithAgents(worldId: string): Promise<WorldPrimaryDetailRecord> {
   const normalizedWorldId = normalizeWorldId(worldId);
   const [detailResponse, worldview] = await Promise.all([
-    dataSync.loadWorldDetailWithAgents(
+    realmWorldData.loadWorldDetailWithAgents(
       normalizedWorldId,
       DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT,
     ),
@@ -418,7 +418,7 @@ export async function fetchWorldDetailWithAgents(worldId: string): Promise<World
   return mergeWorldPrimaryDetailTruth(detail, worldTruth);
 }
 export async function fetchWorldHistory(worldId: string): Promise<WorldHistoryBundle> {
-  const payload = await dataSync.loadWorldHistory(normalizeWorldId(worldId));
+  const payload = await realmWorldData.loadWorldHistory(normalizeWorldId(worldId));
   const items = payload.items
     .map((item, index) => toWorldHistoryItem(item, index))
     .sort((left, right) => left.timelineSeq - right.timelineSeq || left.id.localeCompare(right.id));
@@ -428,11 +428,11 @@ export async function fetchWorldHistory(worldId: string): Promise<WorldHistoryBu
   };
 }
 export async function fetchWorldSemanticBundle(worldId: string): Promise<WorldSemanticData> {
-  const payload = await dataSync.loadWorldSemanticBundle(normalizeWorldId(worldId));
+  const payload = await realmWorldData.loadWorldSemanticBundle(normalizeWorldId(worldId));
   return toSemanticBundle(payload);
 }
 export async function fetchWorldLevelAudits(worldId: string): Promise<WorldAuditItem[]> {
-  const payload = await dataSync.loadWorldLevelAudits(normalizeWorldId(worldId), 20);
+  const payload = await realmWorldData.loadWorldLevelAudits(normalizeWorldId(worldId), 20);
   return payload.map(toWorldAuditItem);
 }
 function toWorldSceneItem(raw: PublicWorldSceneDto): WorldSceneItem {
@@ -446,9 +446,9 @@ function toWorldSceneItem(raw: PublicWorldSceneDto): WorldSceneItem {
 export async function fetchWorldPublicAssets(worldId: string): Promise<WorldPublicAssetsData> {
   const normalizedWorldId = normalizeWorldId(worldId);
   const [lorebooksPayload, bindingsPayload, scenesPayload] = await Promise.all([
-    dataSync.loadWorldLorebooks(normalizedWorldId),
-    dataSync.loadWorldBindings(normalizedWorldId),
-    dataSync.loadWorldScenes(normalizedWorldId),
+    realmWorldData.loadWorldLorebooks(normalizedWorldId),
+    realmWorldData.loadWorldBindings(normalizedWorldId),
+    realmWorldData.loadWorldScenes(normalizedWorldId),
   ]);
   return {
     lorebooks: lorebooksPayload.items.map(toWorldLorebookItem),

@@ -173,6 +173,10 @@ export async function getProductControlRecord(): Promise<ProductControlRecordPro
   unsupportedDesktopRuntime('The product control record is only available in desktop runtime');
 }
 
+export async function ensureProductControlRecordCreated(): Promise<ProductControlRecordProjection> {
+  unsupportedDesktopRuntime('The product control record is only available in desktop runtime');
+}
+
 export async function selectProductDataRoot(_dataRoot: string): Promise<ProductControlRecordProjection> {
   unsupportedDesktopRuntime('nimi_data root selection is only available in desktop runtime');
 }
@@ -265,6 +269,7 @@ export const desktopBridge = {
   setRuntimeBridgeConfig,
   getRuntimeDefaults,
   getProductControlRecord,
+  ensureProductControlRecordCreated,
   getDesktopStorageDirs,
   pickProductDataRootDirectory,
   defaultProductDataRootDirectory,

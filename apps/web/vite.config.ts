@@ -437,9 +437,6 @@ export default defineConfig(({ mode }) => {
             if (normalizedId.includes('/sdk/src/')) {
               return 'vendor-sdk-client';
             }
-            if (normalizedId.includes('/apps/desktop/src/runtime/data-sync/')) {
-              return 'desktop-runtime-shell-core';
-            }
             if (normalizedId.includes('/apps/desktop/src/runtime/local-runtime/')) {
               return 'desktop-runtime-shell-core';
             }

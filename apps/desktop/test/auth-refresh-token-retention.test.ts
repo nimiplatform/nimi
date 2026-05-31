@@ -185,9 +185,7 @@ test('auth state watcher observes Runtime projection without shared desktop sess
   assert.doesNotMatch(authStateWatcherSource, /persistSharedDesktopSession/);
   assert.doesNotMatch(authStateWatcherSource, /auth_session_save|auth_session_load|auth_session_clear/);
   assert.match(authStateWatcherSource, /message: 'phase:auth-projection-observed'/);
-  assert.match(authStateWatcherSource, /dataSync\.setToken\(''\)/);
-  assert.match(authStateWatcherSource, /dataSync\.setRefreshToken\(''\)/);
-  assert.match(authStateWatcherSource, /dataSync\.clearProactiveRefreshTimer\(\)/);
+  assert.doesNotMatch(authStateWatcherSource, /dataSync/);
 });
 
 test('desktop bootstrap reads Runtime account projection and has no shared-auth auto-login owner', () => {

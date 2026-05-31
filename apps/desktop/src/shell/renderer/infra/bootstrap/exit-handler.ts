@@ -1,4 +1,3 @@
-import { dataSync } from '@runtime/data-sync';
 import { hasTauriRuntime, listenTauri } from '@nimiplatform/kit/shell/renderer/bridge';
 import { completeMenuBarQuit, stopRuntimeBridge } from '@renderer/bridge';
 import { stopLocalAgentCouriers } from '@renderer/infra/local-agent-courier';
@@ -31,7 +30,6 @@ export function registerExitHandler(options: { managed: boolean }) {
 
     try {
       stopLocalAgentCouriers();
-      dataSync.clearProactiveRefreshTimer();
       stopAuthStateWatcher();
 
       if (options.managed) {

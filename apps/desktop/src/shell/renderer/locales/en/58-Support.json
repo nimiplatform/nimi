@@ -102,7 +102,7 @@
   "logAreaRuntime": "Runtime subsystem logs",
   "logAreaRendererBootstrap": "Bootstrap sequence phase logging",
   "logAreaBridge": "Tauri IPC invoke traces",
-  "logAreaDatasync": "DataSync facade action traces",
+  "logAreaRealmData": "Realm feature-data action traces",
   "logAreaHook": "Hook runtime capability events",
   "logAreaLocalAi": "Local AI model lifecycle and inference audit",
   "logAreaExternalAgent": "External agent gateway and token projection",

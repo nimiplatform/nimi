@@ -236,7 +236,7 @@ async function resolvePendingRequestProfiles(
 
 export async function fetchPendingFriendRequests(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
 ): Promise<PendingFriendRequestListDto> {
   try {
     return await callApi(
@@ -244,7 +244,7 @@ export async function fetchPendingFriendRequests(
       '加载好友请求失败',
     ) as PendingFriendRequestListDto;
   } catch (error) {
-    emitDataSyncError('load-friend-requests', error);
+    emitRealmDataError('load-friend-requests', error);
     throw error;
   }
 }
@@ -258,7 +258,7 @@ export async function fetchPendingFriendRequests(
  */
 export async function fetchAgentFriendLimit(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
 ): Promise<RealmModel<'AgentFriendLimitDto'>> {
   try {
     return await callApi(
@@ -266,14 +266,14 @@ export async function fetchAgentFriendLimit(
       '加载 Agent 好友配额失败',
     );
   } catch (error) {
-    emitDataSyncError('load-agent-friend-limit', error);
+    emitRealmDataError('load-agent-friend-limit', error);
     throw error;
   }
 }
 
 async function fetchBlockedUsers(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
 ): Promise<SocialContactRecord[]> {
   try {
     const response = await callApi(
@@ -304,22 +304,22 @@ async function fetchBlockedUsers(
       })
       .filter((item): item is SocialContactRecord => Boolean(item));
   } catch (error) {
-    emitDataSyncError('load-blocked-users', error);
+    emitRealmDataError('load-blocked-users', error);
     throw error;
   }
 }
 
 async function loadSocialSnapshotInternal(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
 ): Promise<SocialContactSnapshot> {
   const [friendsResult, pendingResult, blockedUsers] = await Promise.all([
     callApi(
       (realm) => realm.services.MeService.listMyFriendsWithDetails(undefined, 100),
       '加载好友失败',
     ),
-    fetchPendingFriendRequests(callApi, emitDataSyncError),
-    fetchBlockedUsers(callApi, emitDataSyncError),
+    fetchPendingFriendRequests(callApi, emitRealmDataError),
+    fetchBlockedUsers(callApi, emitRealmDataError),
   ]);
 
   const pendingReceived = await resolvePendingRequestProfiles(
@@ -351,13 +351,13 @@ const inflightSnapshots = new Map<string, Promise<SocialContactSnapshot>>();
 
 export async function loadMergedSocialSnapshot(
   callApi: RealmApiCaller,
-  emitDataSyncError: RealmDataErrorEmitter,
+  emitRealmDataError: RealmDataErrorEmitter,
 ): Promise<SocialContactSnapshot> {
   const key = 'social';
   const existing = inflightSnapshots.get(key);
   if (existing) return existing;
 
-  const task = loadSocialSnapshotInternal(callApi, emitDataSyncError)
+  const task = loadSocialSnapshotInternal(callApi, emitRealmDataError)
     .then((snapshot) => {
       const merged = mergeWithLocalContacts(snapshot);
       cachedContacts = { ...merged };

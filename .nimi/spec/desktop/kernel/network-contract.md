@@ -53,7 +53,7 @@ Desktop 网络层契约。定义代理 fetch 机制、请求重试策略、指�
 
 - 所有 HTTP 请求通过 `http_request` IPC 命令（`D-IPC-004`）转发。
 - 绕过浏览器 CORS 限制。
-- Desktop 模式的 DataSync 和 LLM 请求均使用此 fetch。
+- Desktop 模式的 Realm feature-data 和 LLM 请求均使用此 fetch when browser CORS bypass is required.
 
 ## D-NET-005 — 错误归一化
 
@@ -81,7 +81,7 @@ Socket.IO WebSocket 传输层：
 
 Kit Realm chat realtime controller 的 `syncChatEvents` 增量回填与 D-NET-006
 的 Socket.IO 实时传输操作同一数据域（聊天消息）。Desktop may wire these
-through bounded chat shell scaffold, but DataSync is not the chat authority.
+through bounded chat shell scaffold, but a Desktop DataSync facade is not the chat authority and must not be reintroduced.
 两个通道的协同规则：
 
 **主/辅通道关系**：
@@ -98,7 +98,7 @@ through bounded chat shell scaffold, but DataSync is not the chat authority.
 
 **通知轮询不受影响**：SDK Realm notification helper 的 unread-count 轮询独立于实时连接状态，始终按固定间隔执行。
 
-**跨层引用**：D-DSYNC-003（human chat owner map）、D-DSYNC-009（notification owner map）、D-NET-006（实时传输）。
+**跨层引用**：D-NET-006（实时传输）；retired DataSync owner map only records historical chat/notification extraction boundaries.
 
 ## Fact Sources
 

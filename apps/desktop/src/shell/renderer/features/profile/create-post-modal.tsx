@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { uploadRealmResourceFileWithRealm } from '@nimiplatform/sdk/realm';
 import { OverlayShell } from '@nimiplatform/kit/ui';
-import { dataSync } from '@runtime/data-sync';
+import { realmWorldData } from '@renderer/features/world/data/realm-world-data';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
@@ -191,7 +191,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
     }
     let canceled = false;
     setLoadingLocations(true);
-    void dataSync.loadWorlds()
+    void realmWorldData.loadWorlds()
       .then((payload) => {
         if (canceled) {
           return;

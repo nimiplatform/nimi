@@ -10,7 +10,7 @@
  * generation) produce a client-side draft. The draft is locally persisted so a
  * failed creation stays recoverable (D-EXPL-011). The single Realm truth write
  * happens only on the explicit confirm in the review step (D-EXPL-010), via
- * the `onConfirm` callback the parent wires to `dataSync.createAgent`.
+ * the `onConfirm` callback the parent wires to `realmAgentCreateData.createAgent`.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';

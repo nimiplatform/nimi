@@ -72,8 +72,8 @@ thread/anchor metadata 升格成递归 continuation chain 的 owner。
 
 所有 slices 通过 `create<AppStoreState>` 合并为单一 Zustand store `useAppStore`。
 
-- 不使用 middleware（无 devtools、persist）— Tauri webview 环境下 Zustand middleware 与 HMR 热替换存在兼容性问题；持久化通过 Tauri backend IPC（`D-IPC-001`）和 DataSync 热状态（`D-DSYNC-000`）实现，无需 Zustand persist middleware。
-- 热状态通过 `globalThis` 键保持 HMR 连续性（参考 `D-DSYNC-000`）。
+- 不使用 middleware（无 devtools、persist）— Tauri webview 环境下 Zustand middleware 与 HMR 热替换存在兼容性问题；持久化通过 admitted Tauri backend IPC（`D-IPC-001`）或 owner-specific Runtime/Realm projections 实现，无需 Zustand persist middleware。
+- HMR 连续性只能保存 process-local UI/projection cache，不得保存 token custody、Realm business truth、Runtime execution truth、或恢复已退休的 DataSync hot-state。
 
 ## Fact Sources
 

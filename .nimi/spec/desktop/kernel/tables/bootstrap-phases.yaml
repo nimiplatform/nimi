@@ -26,34 +26,28 @@ phases:
     source_rule: D-BOOT-002
     async: true
 
-  - phase: datasync-init
-    order: 3
-    description: Initialize DataSync facade with realm config and proxy fetch
-    source_rule: D-BOOT-003
-    async: false
-
   - phase: runtime-host
-    order: 4
+    order: 3
     description: Wire runtime host capabilities, speech route resolver, and core data capabilities
     source_rule: D-BOOT-004
     async: true
     gated_by: enableRuntimeBootstrap
 
   - phase: external-agent
-    order: 5
+    order: 4
     description: Consume Runtime-owned External Agent gateway/token/action projection; Desktop does not register action descriptors
     source_rule: D-BOOT-006
     async: true
     gated_by: enableRuntimeBootstrap
 
   - phase: auth-session
-    order: 6
+    order: 5
     description: Bootstrap authentication session (token exchange or anonymous fallback)
     source_rule: D-BOOT-007
     async: true
 
   - phase: bootstrap-ready
-    order: 7
+    order: 6
     description: Set bootstrapReady=true, clear bootstrapError, emit completion log
     source_rule: D-BOOT-008
     async: false

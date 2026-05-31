@@ -20,7 +20,7 @@ const querySource = readFileSync(QUERY_SOURCE_PATH, 'utf-8');
 const mainLayoutViewSource = readFileSync(MAIN_LAYOUT_VIEW_PATH, 'utf-8');
 
 describe('notification panel action wiring', () => {
-  test('friend request actions call the social data-sync flows', () => {
+  test('friend request actions call the social Realm data flows', () => {
     assert.match(source, /const actorId = item\.actorId;/);
     assert.match(source, /dataSync\.requestOrAcceptFriend\(actorId\)/);
     assert.match(source, /dataSync\.rejectOrRemoveFriend\(actorId\)/);

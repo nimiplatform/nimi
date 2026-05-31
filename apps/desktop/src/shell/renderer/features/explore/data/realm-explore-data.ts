@@ -1,7 +1,8 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
+import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
 
-type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
-type DataSyncErrorEmitter = (
+type RealmExploreApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type RealmExploreErrorEmitter = (
   action: string,
   error: unknown,
   details?: Record<string, unknown>,
@@ -14,8 +15,8 @@ export type LoadExploreAgentsInput = {
 };
 
 export async function loadExploreAgents(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmExploreApiCaller,
+  emitRealmExploreError: RealmExploreErrorEmitter,
   input: LoadExploreAgentsInput = {},
 ) {
   const tag = input.tag?.trim() || undefined;
@@ -43,14 +44,14 @@ export async function loadExploreAgents(
     );
     return result;
   } catch (error) {
-    emitDataSyncError('load-explore-agents', error, { tag, query, limit });
+    emitRealmExploreError('load-explore-agents', error, { tag, query, limit });
     throw error;
   }
 }
 
 export async function loadExploreFeedItems(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmExploreApiCaller,
+  emitRealmExploreError: RealmExploreErrorEmitter,
   tag: string | null,
   limit: number,
 ) {
@@ -61,14 +62,14 @@ export async function loadExploreFeedItems(
     );
     return result;
   } catch (error) {
-    emitDataSyncError('load-explore-feed', error, { tag, limit });
+    emitRealmExploreError('load-explore-feed', error, { tag, limit });
     throw error;
   }
 }
 
 export async function loadMoreExploreFeedItems(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
+  callApi: RealmExploreApiCaller,
+  emitRealmExploreError: RealmExploreErrorEmitter,
   limit: number,
   cursor?: string,
   tag?: string | null,
@@ -82,7 +83,19 @@ export async function loadMoreExploreFeedItems(
     );
     return result;
   } catch (error) {
-    emitDataSyncError('load-more-explore-feed', error, { tag, limit });
+    emitRealmExploreError('load-more-explore-feed', error, { tag, limit });
     throw error;
   }
 }
+
+export const realmExploreData = {
+  loadExploreAgents: (input: LoadExploreAgentsInput = {}) =>
+    loadExploreAgents(callRealmApi, emitRealmDataError, {
+      ...input,
+      limit: Math.min(input.limit ?? 20, 100),
+    }),
+  loadExploreFeed: (tag: string | null = null, limit = 20) =>
+    loadExploreFeedItems(callRealmApi, emitRealmDataError, tag, Math.min(limit, 100)),
+  loadMoreExploreFeed: (limit = 20, cursor?: string, tag?: string | null) =>
+    loadMoreExploreFeedItems(callRealmApi, emitRealmDataError, Math.min(limit, 100), cursor, tag),
+};

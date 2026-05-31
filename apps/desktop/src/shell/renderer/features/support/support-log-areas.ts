@@ -12,7 +12,7 @@ export type DesktopLogArea =
   | 'runtime'
   | 'renderer-bootstrap'
   | 'bridge'
-  | 'datasync'
+  | 'realm-data'
   | 'local-ai'
   | 'external-agent'
   | 'auth'
@@ -23,7 +23,7 @@ export const DESKTOP_LOG_AREAS: readonly DesktopLogArea[] = [
   'runtime',
   'renderer-bootstrap',
   'bridge',
-  'datasync',
+  'realm-data',
   'local-ai',
   'external-agent',
   'auth',
@@ -35,7 +35,7 @@ export const DESKTOP_LOG_AREA_LABEL_KEY: Record<DesktopLogArea, string> = {
   runtime: 'Support.logAreaRuntime',
   'renderer-bootstrap': 'Support.logAreaRendererBootstrap',
   bridge: 'Support.logAreaBridge',
-  datasync: 'Support.logAreaDatasync',
+  'realm-data': 'Support.logAreaRealmData',
   'local-ai': 'Support.logAreaLocalAi',
   'external-agent': 'Support.logAreaExternalAgent',
   auth: 'Support.logAreaAuth',

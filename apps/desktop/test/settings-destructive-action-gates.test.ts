@@ -9,7 +9,7 @@ function readDesktopFile(relativePath: string): string {
   return readFileSync(path.join(desktopDir, relativePath), 'utf8');
 }
 
-test('settings account deletion opens a confirmation gate before DataSync mutation', () => {
+test('settings account deletion opens a confirmation gate before Realm mutation', () => {
   const source = readDesktopFile('src/shell/renderer/features/settings/settings-data-management-page.tsx');
   const dangerZoneButtonIndex = source.indexOf('setDeleteConfirmationOpen(true)');
   const mutationIndex = source.indexOf('requestAccountDeletion(');
@@ -35,15 +35,11 @@ test('settings account deletion confirmation requires typed acknowledgement', ()
 
 test('settings account deletion consumes SDK Realm account-data helper directly', () => {
   const source = readDesktopFile('src/shell/renderer/features/settings/settings-data-management-page.tsx');
-  const facadeSource = readDesktopFile('src/runtime/data-sync/facade.ts');
-  const actionSource = readDesktopFile('src/runtime/data-sync/facade-actions.ts');
 
   assert.match(source, /requestAccountDeletion/);
   assert.match(source, /from '@nimiplatform\/sdk\/realm'/);
   assert.match(source, /getPlatformClient\(\)\.realm/);
   assert.doesNotMatch(source, /@runtime\/data-sync|dataSync\.requestAccountDeletion/);
-  assert.doesNotMatch(facadeSource, /requestAccountDeletion\(payload|requestDataExport\(payload/);
-  assert.doesNotMatch(actionSource, /requestAccountDeletion: async|requestDataExport: async/);
 });
 
 test('ordinary settings data management cannot invoke nimi_data relocation', () => {

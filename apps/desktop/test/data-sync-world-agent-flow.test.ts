@@ -4,12 +4,12 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const worldFlowSource = readFileSync(
-  resolve(import.meta.dirname, '../src/runtime/data-sync/flows/world-flow.ts'),
+  resolve(import.meta.dirname, '../src/shell/renderer/features/world/data/realm-world-data.ts'),
   'utf8',
 );
 
 const agentFlowSource = readFileSync(
-  resolve(import.meta.dirname, '../src/runtime/data-sync/flows/agent-flow.ts'),
+  resolve(import.meta.dirname, '../src/shell/renderer/features/world/data/realm-agent-create-data.ts'),
   'utf8',
 );
 
