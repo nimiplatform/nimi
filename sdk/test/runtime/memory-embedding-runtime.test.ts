@@ -7,6 +7,7 @@ import {
   buildMemoryEmbeddingAgentCoreLocator,
   buildMemoryEmbeddingBindingIntentSnapshot,
   createEmptyMemoryEmbeddingConfig,
+  createHostMemoryEmbeddingRuntimeSurface,
   memoryEmbeddingProfileIdentity,
   normalizeMemoryEmbeddingBindOutcome,
   normalizeMemoryEmbeddingCanonicalBankStatus,
@@ -188,5 +189,113 @@ test('memory embedding runtime unavailable projection preserves host binding int
       bindAllowed: false,
       cutoverAllowed: false,
     },
+  });
+});
+
+test('host memory embedding runtime surface composes Runtime calls without owning memory truth', async () => {
+  const config = {
+    ...createEmptyMemoryEmbeddingConfig(scopeRef),
+    sourceKind: 'cloud' as const,
+    bindingRef: {
+      kind: 'cloud' as const,
+      connectorId: 'cloud-connector',
+      modelId: 'embedding-model',
+    },
+    revisionToken: 'rev-runtime',
+  };
+  const calls: Array<{ method: string; request: unknown; scopes?: readonly string[] }> = [];
+  const surface = createHostMemoryEmbeddingRuntimeSurface({
+    runtime: () => ({
+      appId: 'dev.nimi.consumer',
+      memory: {
+        async inspectMemoryEmbeddingRuntime(request) {
+          calls.push({ method: 'inspect', request });
+          return {
+            bindingIntentPresent: true,
+            bindingSourceKind: 'cloud',
+            resolutionState: 'resolved',
+            canonicalBankStatus: 'bound_equivalent',
+            blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+            operationReadiness: { bindAllowed: false, cutoverAllowed: false },
+          };
+        },
+        async requestMemoryEmbeddingRuntimeBind(request) {
+          calls.push({ method: 'bind', request });
+          return {
+            outcome: 'already_bound',
+            blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+            canonicalBankStatusAfter: 'bound_equivalent',
+            pendingCutover: false,
+          };
+        },
+        async requestMemoryEmbeddingRuntimeCutover(request) {
+          calls.push({ method: 'cutover', request });
+          return {
+            outcome: 'already_current',
+            blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+            canonicalBankStatusAfter: 'bound_equivalent',
+          };
+        },
+      },
+    }),
+    getConfig: () => config,
+    getSubjectUserId: () => 'user-1',
+    withScopes: async (scopes, operation) => {
+      const result = await operation({ metadata: { caller: 'test' } });
+      calls[calls.length - 1].scopes = scopes;
+      return result;
+    },
+  });
+
+  const request = { scopeRef, targetRef: { kind: 'agent-core' as const, agentId: 'agent-1' } };
+  assert.equal((await surface.inspect(request)).resolutionState, 'resolved');
+  assert.equal((await surface.requestBind(request)).outcome, 'already_bound');
+  assert.equal((await surface.requestCutover(request)).outcome, 'already_current');
+  assert.deepEqual(calls.map((call) => call.method), ['inspect', 'bind', 'cutover']);
+  assert.deepEqual(calls.map((call) => call.scopes), [
+    ['runtime.memory.read'],
+    ['runtime.memory.write'],
+    ['runtime.memory.write'],
+  ]);
+  assert.deepEqual(
+    (calls[0].request as { context: unknown; bindingIntentSnapshot: unknown }).context,
+    { appId: 'dev.nimi.consumer', subjectUserId: 'user-1' },
+  );
+  assert.deepEqual(
+    (calls[0].request as { bindingIntentSnapshot: unknown }).bindingIntentSnapshot,
+    buildMemoryEmbeddingBindingIntentSnapshot(config),
+  );
+});
+
+test('host memory embedding runtime surface fails closed without subject user id', async () => {
+  const config = {
+    ...createEmptyMemoryEmbeddingConfig(scopeRef),
+    sourceKind: 'local' as const,
+    bindingRef: {
+      kind: 'local' as const,
+      targetId: 'local-embedding',
+    },
+  };
+  const surface = createHostMemoryEmbeddingRuntimeSurface({
+    runtime: () => {
+      throw new Error('runtime should not be called');
+    },
+    getConfig: () => config,
+    getSubjectUserId: () => '',
+    unavailableReasonCode: 'RUNTIME_UNAVAILABLE',
+  });
+  const request = { scopeRef, targetRef: { kind: 'agent-core' as const, agentId: 'agent-1' } };
+
+  assert.equal((await surface.inspect(request)).resolutionState, 'unavailable');
+  assert.deepEqual(await surface.requestBind(request), {
+    outcome: 'rejected',
+    blockedReasonCode: 'RUNTIME_UNAVAILABLE',
+    canonicalBankStatusAfter: 'unbound',
+    pendingCutover: false,
+  });
+  assert.deepEqual(await surface.requestCutover(request), {
+    outcome: 'not_ready',
+    blockedReasonCode: 'RUNTIME_UNAVAILABLE',
+    canonicalBankStatusAfter: 'unbound',
   });
 });

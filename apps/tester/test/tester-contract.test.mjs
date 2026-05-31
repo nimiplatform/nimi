@@ -1195,10 +1195,10 @@ test('tester settings consumes SDK memory embedding route availability projectio
   assert.match(settings, /projectRuntimeAgentCanonicalMemoryBankStatus/);
   assert.match(settings, /createEmptyMemoryEmbeddingConfig/);
   assert.match(settings, /createTesterMemoryEmbeddingRuntimeProjection/);
-  assert.match(runtimeProjection, /buildMemoryEmbeddingAgentCoreLocator/);
-  assert.match(runtimeProjection, /buildMemoryEmbeddingBindingIntentSnapshot/);
-  assert.match(runtimeProjection, /projectMemoryEmbeddingRuntimeState/);
-  assert.match(runtimeProjection, /projectMemoryEmbeddingBindResult/);
+  assert.match(runtimeProjection, /createHostMemoryEmbeddingRuntimeSurface/);
+  assert.match(runtimeProjection, /inspectTesterMemoryEmbeddingRuntimeProjection/);
+  assert.match(runtimeProjection, /requestMemoryEmbeddingRuntimeBind/);
+  assert.doesNotMatch(runtimeProjection, /buildMemoryEmbeddingAgentCoreLocator/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Memory embedding route projection/);
   assert.match(settings, /Runtime agent memory projection/);

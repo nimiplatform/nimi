@@ -146,13 +146,14 @@ test('desktop memory embedding service exposes fail-closed runtime state for con
   }
 });
 
-test('desktop memory embedding runtime service consumes SDK projection helpers', () => {
-  assert.match(desktopMemoryEmbeddingServiceSource, /buildMemoryEmbeddingAgentCoreLocator/);
-  assert.match(desktopMemoryEmbeddingServiceSource, /buildMemoryEmbeddingBindingIntentSnapshot/);
-  assert.match(desktopMemoryEmbeddingServiceSource, /projectMemoryEmbeddingRuntimeState/);
-  assert.match(desktopMemoryEmbeddingServiceSource, /projectMemoryEmbeddingBindResult/);
-  assert.match(desktopMemoryEmbeddingServiceSource, /projectMemoryEmbeddingCutoverResult/);
-  assert.match(desktopMemoryEmbeddingServiceSource, /projectUnavailableMemoryEmbeddingRuntimeState/);
+test('desktop memory embedding runtime service delegates Runtime composition to SDK', () => {
+  assert.match(desktopMemoryEmbeddingServiceSource, /createHostMemoryEmbeddingRuntimeSurface/);
+  assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /buildMemoryEmbeddingAgentCoreLocator/);
+  assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /buildMemoryEmbeddingBindingIntentSnapshot/);
+  assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /projectMemoryEmbeddingRuntimeState/);
+  assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /projectMemoryEmbeddingBindResult/);
+  assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /projectMemoryEmbeddingCutoverResult/);
+  assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /projectUnavailableMemoryEmbeddingRuntimeState/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /function normalizeResolutionState/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /function normalizeCanonicalBankStatus/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /function runtimeReasonCodeName/);

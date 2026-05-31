@@ -11,27 +11,17 @@ import {
   getPlatformClient,
 } from '@nimiplatform/sdk';
 import {
-  buildMemoryEmbeddingAgentCoreLocator,
-  buildMemoryEmbeddingBindingIntentSnapshot,
+  createHostMemoryEmbeddingRuntimeSurface,
   createRuntimeProtectedScopeHelper,
-  type MemoryEmbeddingBindResult,
-  type MemoryEmbeddingCutoverResult,
-  type MemoryEmbeddingRuntimeInput,
-  type MemoryEmbeddingRuntimeState,
   type MemoryEmbeddingRuntimeSurface,
   createEmptyMemoryEmbeddingConfig,
   type MemoryEmbeddingConfig,
   type MemoryEmbeddingConfigSurface,
-  projectMemoryEmbeddingBindResult,
-  projectMemoryEmbeddingCutoverResult,
-  projectMemoryEmbeddingRuntimeState,
-  projectUnavailableMemoryEmbeddingRuntimeState,
   type RuntimeCallOptions,
 } from '@nimiplatform/sdk/runtime';
 import {
   type AIScopeRef,
 } from '@nimiplatform/sdk/scope';
-import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from './app-store.js';
 import {
   listPersistedMemoryEmbeddingScopeKeys,
@@ -130,13 +120,6 @@ function getProtectedAccess() {
   return protectedAccess;
 }
 
-function toRuntimeRequestContext() {
-  return {
-    appId: getPlatformClient().runtime.appId,
-    subjectUserId: currentSubjectUserId(),
-  };
-}
-
 async function withRuntimeMemoryScopes<T>(
   scopes: readonly string[],
   operation: (options: RuntimeCallOptions) => Promise<T>,
@@ -171,69 +154,12 @@ function createMemoryEmbeddingConfigSurface(): MemoryEmbeddingConfigSurface {
 }
 
 function createMemoryEmbeddingRuntimeSurface(): MemoryEmbeddingRuntimeSurface {
-  return {
-    async inspect(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingRuntimeState> {
-      const config = getConfigForScope(input.scopeRef);
-      if (!currentSubjectUserId()) {
-        return projectUnavailableMemoryEmbeddingRuntimeState({
-          config,
-          blockedReasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
-        });
-      }
-      const runtime = getPlatformClient().runtime;
-      const result = await withRuntimeMemoryScopes(['runtime.memory.read'], (options) => runtime.memory.inspectMemoryEmbeddingRuntime({
-        context: toRuntimeRequestContext(),
-        locator: buildMemoryEmbeddingAgentCoreLocator(input.targetRef),
-        bindingIntentSnapshot: buildMemoryEmbeddingBindingIntentSnapshot(config),
-      }, options));
-      return projectMemoryEmbeddingRuntimeState(result);
-    },
-
-    async requestBind(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingBindResult> {
-      const config = getConfigForScope(input.scopeRef);
-      if (!currentSubjectUserId()) {
-        const state = projectUnavailableMemoryEmbeddingRuntimeState({
-          config,
-          blockedReasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
-        });
-        return {
-          outcome: 'rejected',
-          blockedReasonCode: state.blockedReasonCode || ReasonCode.RUNTIME_UNAVAILABLE,
-          canonicalBankStatusAfter: state.canonicalBankStatus,
-          pendingCutover: false,
-        };
-      }
-      const runtime = getPlatformClient().runtime;
-      const result = await withRuntimeMemoryScopes(['runtime.memory.write'], (options) => runtime.memory.requestMemoryEmbeddingRuntimeBind({
-        context: toRuntimeRequestContext(),
-        locator: buildMemoryEmbeddingAgentCoreLocator(input.targetRef),
-        bindingIntentSnapshot: buildMemoryEmbeddingBindingIntentSnapshot(config),
-      }, options));
-      return projectMemoryEmbeddingBindResult(result);
-    },
-
-    async requestCutover(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingCutoverResult> {
-      const config = getConfigForScope(input.scopeRef);
-      if (!currentSubjectUserId()) {
-        const state = projectUnavailableMemoryEmbeddingRuntimeState({
-          config,
-          blockedReasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
-        });
-        return {
-          outcome: 'not_ready',
-          blockedReasonCode: state.blockedReasonCode || ReasonCode.RUNTIME_UNAVAILABLE,
-          canonicalBankStatusAfter: state.canonicalBankStatus,
-        };
-      }
-      const runtime = getPlatformClient().runtime;
-      const result = await withRuntimeMemoryScopes(['runtime.memory.write'], (options) => runtime.memory.requestMemoryEmbeddingRuntimeCutover({
-        context: toRuntimeRequestContext(),
-        locator: buildMemoryEmbeddingAgentCoreLocator(input.targetRef),
-        bindingIntentSnapshot: buildMemoryEmbeddingBindingIntentSnapshot(config),
-      }, options));
-      return projectMemoryEmbeddingCutoverResult(result);
-    },
-  };
+  return createHostMemoryEmbeddingRuntimeSurface({
+    runtime: () => getPlatformClient().runtime,
+    getConfig: (scopeRef) => getConfigForScope(scopeRef),
+    getSubjectUserId: () => currentSubjectUserId(),
+    withScopes: (scopes, operation) => withRuntimeMemoryScopes(scopes, operation),
+  });
 }
 
 let singleton: DesktopMemoryEmbeddingConfigService | null = null;
