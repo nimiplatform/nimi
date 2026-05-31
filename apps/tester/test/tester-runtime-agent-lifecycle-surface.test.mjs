@@ -50,6 +50,8 @@ test('Tester consumes SDK host Runtime agent lifecycle surface as second app pro
   const projection = await importProjection();
   const result = await projection.inspectTesterRuntimeAgentLifecycleSurface();
   assert.deepEqual(result, {
+    ensuredGetCalls: 2,
+    ensuredInitializeCalls: 1,
     initialized: 'local-agent:tester-user:tester-agent',
     terminated: 'local-agent:tester-user:tester-agent',
   });

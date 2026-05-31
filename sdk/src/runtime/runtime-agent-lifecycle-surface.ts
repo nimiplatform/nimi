@@ -1,5 +1,6 @@
 import { asNimiError } from '../core/errors.js';
 import { ReasonCode } from '../types/index.js';
+import { AgentLifecycleStatus } from './generated/runtime/v1/agent_service.js';
 import { buildRuntimeAgentRequestContext } from './local-agent-identity.js';
 import { createRuntimeProtectedScopeHelper } from './protected-access.js';
 import { normalizeRuntimeAgentText } from './runtime-agent-inspect-projection.js';
@@ -15,6 +16,7 @@ type Awaitable<T> = T | Promise<T>;
 const RUNTIME_GRPC_ALREADY_EXISTS = 'RUNTIME_GRPC_ALREADY_EXISTS';
 
 export type RuntimeAgentLifecycleSurface = {
+  ensureLocalAgentInitialized(input: RuntimeAgentEnsureLocalAgentInitializedInput): Promise<void>;
   initializeLocalAgent(input: RuntimeAgentInitializeLocalAgentInput): Promise<void>;
   terminateLocalAgent(input: RuntimeAgentTerminateLocalAgentInput): Promise<void>;
 };
@@ -24,7 +26,10 @@ export type RuntimeAgentInitializeLocalAgentInput = {
   ownerUserId: unknown;
   realmAgentId: unknown;
   displayName?: unknown;
+  worldId?: unknown;
 };
+
+export type RuntimeAgentEnsureLocalAgentInitializedInput = RuntimeAgentInitializeLocalAgentInput;
 
 export type RuntimeAgentTerminateLocalAgentInput = {
   localAgentRef: unknown;
@@ -38,7 +43,7 @@ export type HostRuntimeAgentLifecycleClient = {
   readonly transport?: RuntimeTransportConfig;
   readonly auth: Pick<RuntimeAuthClient, 'registerApp'>;
   readonly appAuth: Pick<RuntimeAppAuthClient, 'authorizeExternalPrincipal'>;
-  readonly agent: Pick<RuntimeAgentClient, 'initializeAgent' | 'terminateAgent'>;
+  readonly agent: Pick<RuntimeAgentClient, 'getAgent' | 'initializeAgent' | 'terminateAgent'>;
 };
 
 export type HostRuntimeAgentLifecycleSurfaceOptions = {
@@ -56,6 +61,19 @@ function requireLifecycleText(value: unknown, code: string): string {
     throw new Error(code);
   }
   return normalized;
+}
+
+function buildLifecycleRequest(input: RuntimeAgentInitializeLocalAgentInput) {
+  const localAgentRef = requireLifecycleText(input.localAgentRef, 'LOCAL_AGENT_REF_REQUIRED');
+  const ownerUserId = requireLifecycleText(input.ownerUserId, 'OWNER_USER_ID_REQUIRED');
+  const realmAgentId = requireLifecycleText(input.realmAgentId, 'REALM_AGENT_ID_REQUIRED');
+  return {
+    localAgentRef,
+    ownerUserId,
+    realmAgentId,
+    displayName: normalizeRuntimeAgentText(input.displayName) || realmAgentId,
+    worldId: normalizeRuntimeAgentText(input.worldId),
+  };
 }
 
 export function createHostRuntimeAgentLifecycleSurface(
@@ -89,40 +107,83 @@ export function createHostRuntimeAgentLifecycleSurface(
       : getProtectedAccess().withScopes(['runtime.agent.admin'], operation)
   );
 
+  const withRuntimeAgentRead = <T>(
+    operation: (callOptions: RuntimeCallOptions) => Promise<T>,
+  ) => (
+    options.withScopes
+      ? options.withScopes(['runtime.agent.read'], operation)
+      : getProtectedAccess().withScopes(['runtime.agent.read'], operation)
+  );
+
+  const initializeWithRuntime = async (
+    input: RuntimeAgentInitializeLocalAgentInput,
+  ): Promise<void> => {
+    const runtime = options.getRuntime();
+    const request = buildLifecycleRequest(input);
+    const context = buildRuntimeAgentRequestContext({
+      runtimeAppId: runtime.appId,
+      subjectUserId: request.ownerUserId,
+      localAgentRef: request.localAgentRef,
+    });
+    try {
+      await withRuntimeAgentAdmin((callOptions) => runtime.agent.initializeAgent({
+        context,
+        agentId: '',
+        localAgentRef: request.localAgentRef,
+        ownerUserId: request.ownerUserId,
+        realmAgentId: request.realmAgentId,
+        displayName: request.displayName,
+        autonomyConfig: undefined,
+        worldId: request.worldId,
+        metadata: undefined,
+      }, callOptions));
+    } catch (error) {
+      const normalized = asNimiError(error, {
+        reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+        actionHint: 'initialize_local_agent',
+        source: 'runtime',
+      });
+      if (normalized.reasonCode === RUNTIME_GRPC_ALREADY_EXISTS) {
+        return;
+      }
+      throw error;
+    }
+  };
+
   return {
-    async initializeLocalAgent(input) {
+    async ensureLocalAgentInitialized(input) {
       const runtime = options.getRuntime();
-      const localAgentRef = requireLifecycleText(input.localAgentRef, 'LOCAL_AGENT_REF_REQUIRED');
-      const ownerUserId = requireLifecycleText(input.ownerUserId, 'OWNER_USER_ID_REQUIRED');
-      const realmAgentId = requireLifecycleText(input.realmAgentId, 'REALM_AGENT_ID_REQUIRED');
+      const request = buildLifecycleRequest(input);
       const context = buildRuntimeAgentRequestContext({
         runtimeAppId: runtime.appId,
-        subjectUserId: ownerUserId,
-        localAgentRef,
+        subjectUserId: request.ownerUserId,
+        localAgentRef: request.localAgentRef,
       });
+
       try {
-        await withRuntimeAgentAdmin((callOptions) => runtime.agent.initializeAgent({
+        const response = await withRuntimeAgentRead((callOptions) => runtime.agent.getAgent({
           context,
-          agentId: '',
-          localAgentRef,
-          ownerUserId,
-          realmAgentId,
-          displayName: normalizeRuntimeAgentText(input.displayName) || realmAgentId,
-          autonomyConfig: undefined,
-          worldId: '',
-          metadata: undefined,
+          agentId: request.localAgentRef,
         }, callOptions));
+        if (Number(response.agent?.lifecycleStatus) === AgentLifecycleStatus.ACTIVE) {
+          return;
+        }
       } catch (error) {
         const normalized = asNimiError(error, {
           reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
-          actionHint: 'initialize_local_agent',
+          actionHint: 'check_runtime_agent',
           source: 'runtime',
         });
-        if (normalized.reasonCode === RUNTIME_GRPC_ALREADY_EXISTS) {
-          return;
+        if (normalized.reasonCode !== 'RUNTIME_GRPC_NOT_FOUND') {
+          throw normalized;
         }
-        throw error;
       }
+
+      await initializeWithRuntime(input);
+    },
+
+    async initializeLocalAgent(input) {
+      await initializeWithRuntime(input);
     },
 
     async terminateLocalAgent(input) {

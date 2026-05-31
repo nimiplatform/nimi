@@ -2,8 +2,8 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { uploadRealmResourceFileWithRealm } from '@nimiplatform/sdk/realm';
 import {
   asNimiError,
+  createHostRuntimeAgentLifecycleSurface,
   createHostRuntimeAgentPresentationProfileSurface,
-  createRuntimeProtectedScopeHelper,
   normalizeRuntimeAgentPresentationBackendKind,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
@@ -32,7 +32,6 @@ import {
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import type { UseAgentConversationHostActionsInput } from './chat-agent-shell-host-actions-types';
-let runtimeProtectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
 
 export function isAbortLikeSubmitError(error: unknown): boolean {
   const message = String((error instanceof Error ? error.message : error) || '').toLowerCase();
@@ -69,18 +68,6 @@ function isRecoverableRuntimeAnchorError(error: unknown): boolean {
     || message.includes('conversation anchor agent_id mismatch');
 }
 
-function getRuntimeProtectedAccess() {
-  if (runtimeProtectedAccess) {
-    return runtimeProtectedAccess;
-  }
-  const runtime = getPlatformClient().runtime;
-  runtimeProtectedAccess = createRuntimeProtectedScopeHelper({
-    runtime,
-    getSubjectUserId: async () => requireRuntimeSubjectUserId(),
-  });
-  return runtimeProtectedAccess;
-}
-
 async function syncRuntimePresentationProfile(input: {
   target: AgentLocalTargetSnapshot;
   context: {
@@ -100,18 +87,15 @@ async function syncRuntimePresentationProfile(input: {
     return;
   }
   const runtime = getPlatformClient().runtime;
-  const protectedAccess = getRuntimeProtectedAccess();
   const surface = createHostRuntimeAgentPresentationProfileSurface({
     getRuntime: () => runtime,
     getSubjectUserId: () => input.context.subjectUserId,
-    withScopes: (scopes, operation) => protectedAccess.withScopes(scopes, operation),
   });
   await surface.setPresentationProfile(input.target.localAgentRef, profile);
 }
 
 export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot): Promise<void> {
   const runtime = getPlatformClient().runtime;
-  const protectedAccess = getRuntimeProtectedAccess();
   const subjectUserId = requireRuntimeSubjectUserId();
   const context = {
     appId: runtime.appId,
@@ -120,42 +104,17 @@ export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot)
     realmAgentId: target.realmAgentId,
     localAgentRef: target.localAgentRef,
   };
-
-  try {
-    const response = await protectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.getAgent({
-      context,
-      agentId: target.localAgentRef,
-    }, options));
-    if (Number(response.agent?.lifecycleStatus) === 2) {
-      await syncRuntimePresentationProfile({ target, context });
-      return;
-    }
-  } catch (error) {
-    const normalized = normalizeRuntimeError(error, 'check_runtime_agent');
-    if (normalized.reasonCode !== 'RUNTIME_GRPC_NOT_FOUND') {
-      throw normalized;
-    }
-  }
-
-  try {
-    await protectedAccess.withScopes(['runtime.agent.admin'], (options) => runtime.agent.initializeAgent({
-      context,
-      agentId: '',
-      localAgentRef: target.localAgentRef,
-      ownerUserId: target.ownerUserId,
-      realmAgentId: target.realmAgentId,
-      displayName: target.displayName || target.realmAgentId,
-      autonomyConfig: undefined,
-      worldId: normalizeText(target.worldId),
-      metadata: undefined,
-    }, options));
-  } catch (error) {
-    const normalized = normalizeRuntimeError(error, 'initialize_runtime_agent');
-    if (normalized.reasonCode !== 'RUNTIME_GRPC_ALREADY_EXISTS') {
-      throw normalized;
-    }
-  }
-
+  const lifecycleSurface = createHostRuntimeAgentLifecycleSurface({
+    getRuntime: () => runtime,
+    getSubjectUserId: () => subjectUserId,
+  });
+  await lifecycleSurface.ensureLocalAgentInitialized({
+    localAgentRef: target.localAgentRef,
+    ownerUserId: target.ownerUserId,
+    realmAgentId: target.realmAgentId,
+    displayName: target.displayName || target.realmAgentId,
+    worldId: normalizeText(target.worldId),
+  });
   await syncRuntimePresentationProfile({ target, context });
 }
 
@@ -181,19 +140,15 @@ async function openConversationAnchorForTarget(
   target: AgentLocalTargetSnapshot,
 ): Promise<string> {
   const runtime = getPlatformClient().runtime;
-  const protectedAccess = getRuntimeProtectedAccess();
   await ensureRuntimeAgentExists(target);
-  const snapshot = await protectedAccess.withScopes(
-    ['runtime.agent.write'],
-    (options) => runtime.agent.anchors.open({
-      localAgentRef: target.localAgentRef,
-      ownerUserId: target.ownerUserId,
-      realmAgentId: target.realmAgentId,
-      metadata: {
-        surface: 'desktop-agent-chat',
-      },
-    }, options),
-  ).catch((error) => {
+  const snapshot = await runtime.agent.anchors.open({
+    localAgentRef: target.localAgentRef,
+    ownerUserId: target.ownerUserId,
+    realmAgentId: target.realmAgentId,
+    metadata: {
+      surface: 'desktop-agent-chat',
+    },
+  }).catch((error) => {
     const normalized = normalizeRuntimeError(error, 'open_runtime_agent_anchor');
     const reasonCode = normalizeText(normalized.reasonCode) || 'RUNTIME_CALL_FAILED';
     throw new Error(
@@ -222,18 +177,14 @@ async function ensureConversationAnchorBindingUpstream(input: {
   binding: AgentConversationAnchorBinding;
 }): Promise<AgentConversationAnchorBinding | null> {
   const runtime = getPlatformClient().runtime;
-  const protectedAccess = getRuntimeProtectedAccess();
   await ensureRuntimeAgentExists(input.target);
   try {
-    await protectedAccess.withScopes(
-      ['runtime.agent.read'],
-      (options) => runtime.agent.anchors.getSnapshot({
-        localAgentRef: input.target.localAgentRef,
-        ownerUserId: input.target.ownerUserId,
-        realmAgentId: input.target.realmAgentId,
-        conversationAnchorId: input.binding.conversationAnchorId,
-      }, options),
-    );
+    await runtime.agent.anchors.getSnapshot({
+      localAgentRef: input.target.localAgentRef,
+      ownerUserId: input.target.ownerUserId,
+      realmAgentId: input.target.realmAgentId,
+      conversationAnchorId: input.binding.conversationAnchorId,
+    });
     return input.binding;
   } catch (error) {
     if (!isRecoverableRuntimeAnchorError(error)) {
