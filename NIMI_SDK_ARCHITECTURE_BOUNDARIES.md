@@ -38,9 +38,10 @@ The required core language set is:
 - Go
 - Rust
 
-Core SDK means full Runtime and full Realm public interface coverage for a
-language. A Runtime-only package, Realm-only package, or partial method package
-is not a core SDK release.
+Core SDK means generated Runtime and generated Realm public interface coverage
+plus behavior conformance for a language. A Runtime-only package, Realm-only
+package, partial method package, manifest-only package, or skeleton-only
+package is not a core SDK release.
 
 Phase 1 core-family repository layout:
 
@@ -155,7 +156,10 @@ exists.
 - release matrix definitions
 
 Each language owns only its harness binding. A language is core-ready only when
-the shared conformance matrix passes for Runtime and Realm together.
+the shared conformance matrix invokes that language's generated Runtime and
+Realm clients through fake transports and passes for Runtime and Realm together.
+Manifest parity, generated JSON count checks, and file-existence checks are not
+completion evidence.
 
 Derivative tests are separate. Adapter conformance proves external-framework
 behavior and authority boundaries, not Runtime / Realm parity.
@@ -168,19 +172,22 @@ Wave 0: Authority hardcut.
   and conformance gates.
 - Root handoff file points to spec and contains no independent authority.
 
-Wave 1: Generator and conformance foundation.
+Wave 1: Generated core and conformance foundation.
 
 - Create `sdks/generators`.
 - Create `sdks/conformance`.
 - Admit concrete conformance runners before adding them to runnable gate tables.
-- Generate Runtime method IDs, method allowlists, codec maps, contract maps,
-  Realm operation maps, Realm registries, error tables, and export manifests.
-- Add shared conformance fixtures before admitting non-TypeScript core packages.
+- Generate per-language Runtime method clients, method IDs, method allowlists,
+  codec maps, request/response contract projections, Realm operation clients,
+  Realm operation maps, Realm service registries, Realm model/schema
+  projections, error tables, and export manifests.
+- Add shared conformance fixtures and fake transports that exercise generated
+  clients before admitting non-TypeScript core packages.
 
-Wave 2: TypeScript core-family skeleton.
+Wave 2: TypeScript generated core implementation.
 
-- Create the `sdks/typescript` core-family skeleton from generated Runtime and
-  Realm core facts.
+- Create the `sdks/typescript` generated Runtime / Realm core implementation
+  from generated core facts.
 - Delete hand-maintained mechanical core maps after generated replacements
   exist in the core family.
 - Keep the current `sdk/` package active for Desktop/Web consumers and ongoing
@@ -195,13 +202,14 @@ Wave 3: Python core.
 - Implement generated Runtime and Realm core.
 - Implement Python `core-client` glue only where generation cannot express
   language runtime behavior.
-- Pass the full core conformance matrix.
+- Pass the full behavior conformance matrix through generated clients.
 - Add Agno or LangChain adapters only after Python core passes.
 
 Wave 4: Go and Rust core.
 
 - Implement generated Runtime and Realm core for Go and Rust.
-- Pass the full core conformance matrix for each language.
+- Pass the full behavior conformance matrix through generated clients for each
+  language.
 - Add derivative adapters only after core readiness.
 
 Wave 5: Derivative expansion.

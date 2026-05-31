@@ -1,0 +1,7021 @@
+{
+  "contract": "nimi.sdks.realm-core-manifest.v1",
+  "generated_by": "sdks/generators/generate.mjs",
+  "source_kind": "realm_openapi",
+  "source_state": "openapi_loaded",
+  "source_label": "env:NIMI_REALM_OPENAPI_PATH",
+  "source_paths": [
+    "config/realm-openapi-source.json"
+  ],
+  "authority_refs": [
+    ".nimi/spec/sdk/kernel/realm-contract.md"
+  ],
+  "provenance": {
+    "source_rule": "S-SURFACE-019",
+    "notes": [
+      "Realm core operation truth is derived from Realm OpenAPI when available.",
+      "Admitted Realm spec tables are used only when the configured OpenAPI file is unavailable in this worktree."
+    ]
+  },
+  "operations": [
+    {
+      "operation_id": "ackMyLocalAgentProvisionIntent",
+      "method": "POST",
+      "path": "/api/human/me/local-agent-provision-intents/{intentId}/ack",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": "#/components/schemas/LocalAgentProvisionIntentAckDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/LocalAgentProvisionIntentDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "ackMyLocalAgentTerminationIntent",
+      "method": "POST",
+      "path": "/api/human/me/local-agent-termination-intents/{intentId}/ack",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": "#/components/schemas/LocalAgentTerminationIntentAckDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/LocalAgentTerminationIntentDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "addFriend",
+      "method": "POST",
+      "path": "/api/human/accounts/{id}/friends",
+      "service": "User",
+      "tags": [
+        "User"
+      ],
+      "request_schema_ref": "#/components/schemas/AddFriendBodyDto",
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "addGroupAgent",
+      "method": "POST",
+      "path": "/api/human/group-chats/{chatId}/agents",
+      "service": "Group Chats",
+      "tags": [
+        "Group Chats"
+      ],
+      "request_schema_ref": "#/components/schemas/AddGroupAgentInputDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/GroupParticipantDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "addGroupParticipant",
+      "method": "POST",
+      "path": "/api/human/group-chats/{chatId}/participants",
+      "service": "Group Chats",
+      "tags": [
+        "Group Chats"
+      ],
+      "request_schema_ref": "#/components/schemas/AddGroupParticipantInputDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/GroupParticipantDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "AgentController_checkHandle",
+      "method": "GET",
+      "path": "/api/agent/handles/check",
+      "service": "Agents",
+      "tags": [
+        "Agents"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AgentHandleAvailabilityResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "AgentController_create",
+      "method": "POST",
+      "path": "/api/agent",
+      "service": "Agents",
+      "tags": [
+        "Agents"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateAgentDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/CreateAgentResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "AgentController_delete",
+      "method": "DELETE",
+      "path": "/api/agent/accounts/{id}",
+      "service": "Agents",
+      "tags": [
+        "Agents"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/DeleteAgentOperationResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "AgentController_getRelationships",
+      "method": "GET",
+      "path": "/api/agent/accounts/{id}/relationships",
+      "service": "Agents",
+      "tags": [
+        "Agents"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "AgentController_getVisibility",
+      "method": "GET",
+      "path": "/api/agent/accounts/{id}/visibility",
+      "service": "Agents",
+      "tags": [
+        "Agents"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AgentVisibilitySettingsDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "AgentController_makePublic",
+      "method": "POST",
+      "path": "/api/agent/accounts/{id}/public",
+      "service": "Agents",
+      "tags": [
+        "Agents"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/MakeAgentPublicResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "AgentController_removeRelationship",
+      "method": "DELETE",
+      "path": "/api/agent/accounts/{id}/relationships",
+      "service": "Agents",
+      "tags": [
+        "Agents"
+      ],
+      "request_schema_ref": "#/components/schemas/RemoveAgentRelationshipDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/DeleteRelationshipResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "AgentController_selectAvatar",
+      "method": "POST",
+      "path": "/api/agent/accounts/{id}/avatar",
+      "service": "Agents",
+      "tags": [
+        "Agents"
+      ],
+      "request_schema_ref": "#/components/schemas/SelectAvatarDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/DeleteAgentOperationResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "AgentController_setRelationship",
+      "method": "POST",
+      "path": "/api/agent/accounts/{id}/relationships",
+      "service": "Agents",
+      "tags": [
+        "Agents"
+      ],
+      "request_schema_ref": "#/components/schemas/SetAgentRelationshipDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/RelationshipResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "AgentController_updateDna",
+      "method": "PATCH",
+      "path": "/api/agent/accounts/{id}/dna",
+      "service": "Agents",
+      "tags": [
+        "Agents"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateAgentDnaDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/DeleteAgentOperationResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "AgentController_updateVisibility",
+      "method": "PATCH",
+      "path": "/api/agent/accounts/{id}/visibility",
+      "service": "Agents",
+      "tags": [
+        "Agents"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateAgentVisibilityDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AgentVisibilitySettingsDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "AgentNsfwConsentController_updateAgentConsent",
+      "method": "PUT",
+      "path": "/api/agent/accounts/{id}/visibility/nsfw-consent",
+      "service": "Agent NSFW Consent",
+      "tags": [
+        "Agent NSFW Consent"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateAgentNsfwConsentDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UpdateNsfwConsentResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "AgentRulesController_archiveRule",
+      "method": "POST",
+      "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/archive",
+      "service": "Agent Rules",
+      "tags": [
+        "Agent Rules"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AgentRuleDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "AgentRulesController_createRule",
+      "method": "POST",
+      "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules",
+      "service": "Agent Rules",
+      "tags": [
+        "Agent Rules"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateAgentRuleDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/AgentRuleDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "AgentRulesController_deprecateRule",
+      "method": "POST",
+      "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/deprecate",
+      "service": "Agent Rules",
+      "tags": [
+        "Agent Rules"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AgentRuleDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "AgentRulesController_listRules",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules",
+      "service": "Agent Rules",
+      "tags": [
+        "Agent Rules"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "AgentRulesController_updateRule",
+      "method": "PATCH",
+      "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}",
+      "service": "Agent Rules",
+      "tags": [
+        "Agent Rules"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateAgentRuleDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AgentRuleDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "archiveBundle",
+      "method": "POST",
+      "path": "/api/bundles/{bundleId}/archive",
+      "service": "Bundles",
+      "tags": [
+        "Bundles"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/BundleDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "bindEmail",
+      "method": "POST",
+      "path": "/api/auth/me/email",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": "#/components/schemas/BindEmailDto",
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "bindWallet",
+      "method": "POST",
+      "path": "/api/human/me/wallets",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": "#/components/schemas/WalletBindDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserWalletDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "blockUser",
+      "method": "POST",
+      "path": "/api/human/me/blocks/{id}",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": "#/components/schemas/BlockUserBodyDto",
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "changeEmail",
+      "method": "PATCH",
+      "path": "/api/auth/me/email",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": "#/components/schemas/ChangeEmailDto",
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "checkEmail",
+      "method": "POST",
+      "path": "/api/auth/email/check",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": "#/components/schemas/CheckEmailDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/CheckEmailResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "checkHandle",
+      "method": "GET",
+      "path": "/api/human/check-handle",
+      "service": "User",
+      "tags": [
+        "User"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/HandleAvailabilityDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "cloneAsset",
+      "method": "POST",
+      "path": "/api/assets/{assetId}/clone",
+      "service": "Assets",
+      "tags": [
+        "Assets"
+      ],
+      "request_schema_ref": "#/components/schemas/CloneAssetDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/AssetDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "commitRealmGroupMessageCandidate",
+      "method": "POST",
+      "path": "/api/human/group-chats/{chatId}/agent-message-candidate-commits",
+      "service": "Group Chats",
+      "tags": [
+        "Group Chats"
+      ],
+      "request_schema_ref": "#/components/schemas/CommitRealmGroupMessageCandidateInputDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/RealmGroupMessageCandidateCommitResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "createAsset",
+      "method": "POST",
+      "path": "/api/assets",
+      "service": "Assets",
+      "tags": [
+        "Assets"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateAssetDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/AssetDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "createAudioDirectUpload",
+      "method": "POST",
+      "path": "/api/resources/audio/direct-upload",
+      "service": "Resources",
+      "tags": [
+        "Resources"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateAudioDirectUploadDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/ResourceDirectUploadSessionDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "createBundle",
+      "method": "POST",
+      "path": "/api/bundles",
+      "service": "Bundles",
+      "tags": [
+        "Bundles"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateBundleDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/BundleDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "createGroup",
+      "method": "POST",
+      "path": "/api/human/group-chats",
+      "service": "Group Chats",
+      "tags": [
+        "Group Chats"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateGroupInputDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/GroupChatViewDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "createImageDirectUpload",
+      "method": "POST",
+      "path": "/api/resources/images/direct-upload",
+      "service": "Resources",
+      "tags": [
+        "Resources"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/ResourceDirectUploadSessionDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "createPost",
+      "method": "POST",
+      "path": "/api/world/posts",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "request_schema_ref": "#/components/schemas/CreatePostDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/PostDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "createTextResource",
+      "method": "POST",
+      "path": "/api/resources/texts",
+      "service": "Resources",
+      "tags": [
+        "Resources"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateTextResourceDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/ResourceDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "createVideoDirectUpload",
+      "method": "POST",
+      "path": "/api/resources/videos/direct-upload",
+      "service": "Resources",
+      "tags": [
+        "Resources"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/ResourceDirectUploadSessionDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "CreatorController_batchCreateAgents",
+      "method": "POST",
+      "path": "/api/creator/agents/batch-create",
+      "service": "Creator",
+      "tags": [
+        "Creator"
+      ],
+      "request_schema_ref": "#/components/schemas/BatchCreateAgentsRequestDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/BatchCreateAgentsResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "CreatorController_createAgent",
+      "method": "POST",
+      "path": "/api/creator/agents",
+      "service": "Creator",
+      "tags": [
+        "Creator"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateAgentDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/UserLiteDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "CreatorController_createKey",
+      "method": "POST",
+      "path": "/api/creator/keys",
+      "service": "Creator",
+      "tags": [
+        "Creator"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateApiKeyDto",
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "CreatorController_deleteAgent",
+      "method": "DELETE",
+      "path": "/api/creator/agents/{agentId}",
+      "service": "Creator",
+      "tags": [
+        "Creator"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "CreatorController_getAgent",
+      "method": "GET",
+      "path": "/api/creator/agents/{agentId}",
+      "service": "Creator",
+      "tags": [
+        "Creator"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/CreatorAgentResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "CreatorController_listAgents",
+      "method": "GET",
+      "path": "/api/creator/agents",
+      "service": "Creator",
+      "tags": [
+        "Creator"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "CreatorController_listKeys",
+      "method": "GET",
+      "path": "/api/creator/keys",
+      "service": "Creator",
+      "tags": [
+        "Creator"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "CreatorController_revokeKey",
+      "method": "DELETE",
+      "path": "/api/creator/keys/{id}",
+      "service": "Creator",
+      "tags": [
+        "Creator"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "CreatorController_updateAgent",
+      "method": "PATCH",
+      "path": "/api/creator/agents/{agentId}",
+      "service": "Creator",
+      "tags": [
+        "Creator"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateCreatorAgentDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/CreatorAgentResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "CreatorModsController_ingestAudit",
+      "method": "POST",
+      "path": "/api/creator/mods/control/audit/ingest",
+      "service": "Creator Mods Control Plane",
+      "tags": [
+        "Creator Mods Control Plane"
+      ],
+      "request_schema_ref": "#/components/schemas/CreatorModControlAuditIngestRequestDto",
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "CreatorModsController_issueGrant",
+      "method": "POST",
+      "path": "/api/creator/mods/control/grants/issue",
+      "service": "Creator Mods Control Plane",
+      "tags": [
+        "Creator Mods Control Plane"
+      ],
+      "request_schema_ref": "#/components/schemas/CreatorModControlGrantIssueRequestDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/CreatorModControlGrantIssueResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "CreatorModsController_queryAudit",
+      "method": "GET",
+      "path": "/api/creator/mods/control/audit/query",
+      "service": "Creator Mods Control Plane",
+      "tags": [
+        "Creator Mods Control Plane"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "CreatorModsController_revocations",
+      "method": "GET",
+      "path": "/api/creator/mods/control/revocations",
+      "service": "Creator Mods Control Plane",
+      "tags": [
+        "Creator Mods Control Plane"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "CreatorModsController_validateGrant",
+      "method": "POST",
+      "path": "/api/creator/mods/control/grants/validate",
+      "service": "Creator Mods Control Plane",
+      "tags": [
+        "Creator Mods Control Plane"
+      ],
+      "request_schema_ref": "#/components/schemas/CreatorModControlGrantValidateRequestDto",
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "CreatorModsController_verifyManifest",
+      "method": "POST",
+      "path": "/api/creator/mods/control/manifest/verify",
+      "service": "Creator Mods Control Plane",
+      "tags": [
+        "Creator Mods Control Plane"
+      ],
+      "request_schema_ref": "#/components/schemas/CreatorModControlManifestVerifyRequestDto",
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "CreatorModsController_verifySignature",
+      "method": "POST",
+      "path": "/api/creator/mods/control/signature/verify",
+      "service": "Creator Mods Control Plane",
+      "tags": [
+        "Creator Mods Control Plane"
+      ],
+      "request_schema_ref": "#/components/schemas/CreatorModControlSignatureVerifyRequestDto",
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "deletePost",
+      "method": "DELETE",
+      "path": "/api/world/posts/by-id/{id}",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "deleteResource",
+      "method": "DELETE",
+      "path": "/api/resources/{resourceId}",
+      "service": "Resources",
+      "tags": [
+        "Resources"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "disable2Fa",
+      "method": "POST",
+      "path": "/api/auth/me/2fa/disable",
+      "service": "Me2fa",
+      "tags": [
+        "Me2fa"
+      ],
+      "request_schema_ref": "#/components/schemas/Me2faVerifyDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/Me2faOperationResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_acceptGift",
+      "method": "POST",
+      "path": "/api/economy/gifts/{id}/accept",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/GiftTransactionDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_calculateWithdrawal",
+      "method": "GET",
+      "path": "/api/economy/withdrawals/calculate",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WithdrawalSummaryDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_cancelSubscription",
+      "method": "POST",
+      "path": "/api/economy/subscription/cancel",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "EconomyController_canWithdraw",
+      "method": "GET",
+      "path": "/api/economy/withdrawals/can-withdraw",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/CanWithdrawDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_createConnectDashboard",
+      "method": "POST",
+      "path": "/api/economy/connect/dashboard",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/ConnectDashboardLinkDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_createConnectOnboarding",
+      "method": "POST",
+      "path": "/api/economy/connect/onboarding",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateConnectOnboardingDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/ConnectOnboardingResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_createPortalSession",
+      "method": "POST",
+      "path": "/api/economy/subscription/portal",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": "#/components/schemas/CreatePortalSessionDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/PortalSessionDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_createSparkCheckout",
+      "method": "POST",
+      "path": "/api/economy/spark/checkout",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateSparkCheckoutDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/SparkCheckoutSessionDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_createSubscriptionCheckout",
+      "method": "POST",
+      "path": "/api/economy/subscription/checkout",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateSubscriptionCheckoutDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/SubscriptionCheckoutSessionDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_createWithdrawal",
+      "method": "POST",
+      "path": "/api/economy/withdrawals/create",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateWithdrawalDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/WithdrawalDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_getAgentOrigin",
+      "method": "GET",
+      "path": "/api/economy/revenue-share/agent-origin/{agentId}",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AgentOriginDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_getBalances",
+      "method": "GET",
+      "path": "/api/economy/balances",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/CurrencyBalancesDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_getConnectStatus",
+      "method": "GET",
+      "path": "/api/economy/connect/status",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/StripeConnectStatusDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_getGemHistory",
+      "method": "GET",
+      "path": "/api/economy/gem/history",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/CurrencyTransactionHistoryDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_getGiftCatalog",
+      "method": "GET",
+      "path": "/api/economy/gifts/catalog",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "EconomyController_getReceivedGifts",
+      "method": "GET",
+      "path": "/api/economy/gifts/received",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ReceivedGiftsResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_getRevenueShareConfig",
+      "method": "GET",
+      "path": "/api/economy/revenue-share/config",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/RevenueShareConfigDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_getSentGifts",
+      "method": "GET",
+      "path": "/api/economy/gifts/sent",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ReceivedGiftsResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_getSparkHistory",
+      "method": "GET",
+      "path": "/api/economy/spark/history",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/CurrencyTransactionHistoryDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_getSparkPackages",
+      "method": "GET",
+      "path": "/api/economy/spark/packages",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "EconomyController_getSubscription",
+      "method": "GET",
+      "path": "/api/economy/subscription",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/SubscriptionDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_getSubscriptionTiers",
+      "method": "GET",
+      "path": "/api/economy/subscription/tiers",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "EconomyController_getWithdrawal",
+      "method": "GET",
+      "path": "/api/economy/withdrawals/by-id/{id}",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WithdrawalDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_getWithdrawalConfig",
+      "method": "GET",
+      "path": "/api/economy/withdrawals/config",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WithdrawalConfigDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_getWithdrawalHistory",
+      "method": "GET",
+      "path": "/api/economy/withdrawals/history",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WithdrawalHistoryDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_previewRevenueDistribution",
+      "method": "GET",
+      "path": "/api/economy/revenue-share/preview",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/RevenueDistributionPreviewDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_rejectGift",
+      "method": "POST",
+      "path": "/api/economy/gifts/{giftId}/reject",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": "#/components/schemas/RejectGiftDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/GiftTransactionDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "EconomyController_sendGift",
+      "method": "POST",
+      "path": "/api/economy/gifts/send",
+      "service": "Economy (Currency & Gifts)",
+      "tags": [
+        "Economy (Currency & Gifts)"
+      ],
+      "request_schema_ref": "#/components/schemas/SendGiftDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/GiftTransactionDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "editGroupMessage",
+      "method": "PATCH",
+      "path": "/api/human/group-chats/{chatId}/messages/{messageId}",
+      "service": "Group Chats",
+      "tags": [
+        "Group Chats"
+      ],
+      "request_schema_ref": "#/components/schemas/EditMessageInputDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/GroupMessageViewDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "editMessage",
+      "method": "PATCH",
+      "path": "/api/human/chats/{chatId}/messages/{messageId}",
+      "service": "Human Chats",
+      "tags": [
+        "Human Chats"
+      ],
+      "request_schema_ref": "#/components/schemas/EditMessageInputDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/MessageViewDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "enable2Fa",
+      "method": "POST",
+      "path": "/api/auth/me/2fa/enable",
+      "service": "Me2fa",
+      "tags": [
+        "Me2fa"
+      ],
+      "request_schema_ref": "#/components/schemas/Me2faVerifyDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/Me2faOperationResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "ExploreController_checkStatus",
+      "method": "GET",
+      "path": "/api/explore/status",
+      "service": "Explore",
+      "tags": [
+        "Explore"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "finalizeResource",
+      "method": "POST",
+      "path": "/api/resources/{resourceId}/finalize",
+      "service": "Resources",
+      "tags": [
+        "Resources"
+      ],
+      "request_schema_ref": "#/components/schemas/FinalizeResourceDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ResourceDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getAgent",
+      "method": "GET",
+      "path": "/api/agent/accounts/{id}",
+      "service": "Agents",
+      "tags": [
+        "Agents"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserProfileDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getAgentByHandle",
+      "method": "GET",
+      "path": "/api/agent/handle/{handle}",
+      "service": "Agents",
+      "tags": [
+        "Agents"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserProfileDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getAsset",
+      "method": "GET",
+      "path": "/api/assets/{assetId}",
+      "service": "Assets",
+      "tags": [
+        "Assets"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AssetDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getAuthJwks",
+      "method": "GET",
+      "path": "/api/auth/jwks",
+      "service": "Jwks",
+      "tags": [
+        "Jwks"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "getBundle",
+      "method": "GET",
+      "path": "/api/bundles/{bundleId}",
+      "service": "Bundles",
+      "tags": [
+        "Bundles"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/BundleDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getChatById",
+      "method": "GET",
+      "path": "/api/human/chats/{chatId}",
+      "service": "Human Chats",
+      "tags": [
+        "Human Chats"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ChatViewDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getExploreFeed",
+      "method": "GET",
+      "path": "/api/explore",
+      "service": "Explore",
+      "tags": [
+        "Explore"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getGroup",
+      "method": "GET",
+      "path": "/api/human/group-chats/{chatId}",
+      "service": "Group Chats",
+      "tags": [
+        "Group Chats"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/GroupChatViewDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getHomeFeed",
+      "method": "GET",
+      "path": "/api/world/posts",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getMe",
+      "method": "GET",
+      "path": "/api/human/me",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserPrivateDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getMutualFriends",
+      "method": "GET",
+      "path": "/api/human/accounts/{id}/mutual-friends",
+      "service": "User",
+      "tags": [
+        "User"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "getMutualFriendsCount",
+      "method": "GET",
+      "path": "/api/human/accounts/{id}/mutual-friends/count",
+      "service": "User",
+      "tags": [
+        "User"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "getMyAgentFriendLimit",
+      "method": "GET",
+      "path": "/api/human/me/friends/agent-limit",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AgentFriendLimitDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getMyBlockedUsers",
+      "method": "GET",
+      "path": "/api/human/me/blocks",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "getMyCapabilities",
+      "method": "GET",
+      "path": "/api/human/me/capabilities",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserCapabilitiesDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getMyCreatorEligibility",
+      "method": "GET",
+      "path": "/api/human/me/creator-eligibility",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/CreatorEligibilityResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getMyNotificationSettings",
+      "method": "GET",
+      "path": "/api/human/me/notification-settings",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserNotificationSettingsDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getMyPendingFriendRequests",
+      "method": "GET",
+      "path": "/api/human/me/friends/pending",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "getMyPPConfig",
+      "method": "GET",
+      "path": "/api/human/me/pp-config",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/PPSlotConfigResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getMyRealmAgent",
+      "method": "GET",
+      "path": "/api/me/agents/{agentId}",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserLiteDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getMyRealmAgentSettings",
+      "method": "GET",
+      "path": "/api/me/agents/{agentId}/settings",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/OwnerAgentSettingsDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getMySettings",
+      "method": "GET",
+      "path": "/api/human/me/settings",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserSettingsDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getMyTiers",
+      "method": "GET",
+      "path": "/api/human/me/tiers",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/TierDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getMyWallets",
+      "method": "GET",
+      "path": "/api/human/me/wallets",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserWalletListResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getPost",
+      "method": "GET",
+      "path": "/api/world/posts/by-id/{id}",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/PostDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getPublicPost",
+      "method": "GET",
+      "path": "/api/world/posts/public/{id}",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/PostDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getResource",
+      "method": "GET",
+      "path": "/api/resources/{resourceId}",
+      "service": "Resources",
+      "tags": [
+        "Resources"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ResourceDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getUnreadCount",
+      "method": "GET",
+      "path": "/api/human/notifications/unread-count",
+      "service": "Notifications",
+      "tags": [
+        "Notifications"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UnreadNotificationCountDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getUser",
+      "method": "GET",
+      "path": "/api/human/accounts/{id}",
+      "service": "User",
+      "tags": [
+        "User"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserProfileDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getUserByHandle",
+      "method": "GET",
+      "path": "/api/human/handle/{handle}",
+      "service": "User",
+      "tags": [
+        "User"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserProfileDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getUserFriends",
+      "method": "GET",
+      "path": "/api/human/accounts/{id}/friends",
+      "service": "User",
+      "tags": [
+        "User"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "getWorldPosts",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/posts",
+      "service": "WorldPost",
+      "tags": [
+        "WorldPost"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getWorldScenes",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}/scenes",
+      "service": "Worlds",
+      "tags": [
+        "Worlds"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/PublicWorldSceneListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "HumanNsfwConsentController_canManageAgentNsfw",
+      "method": "GET",
+      "path": "/api/human/nsfw-consent/can-manage",
+      "service": "Human NSFW Consent",
+      "tags": [
+        "Human NSFW Consent"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/CanManageNsfwResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "HumanNsfwConsentController_checkConsent",
+      "method": "GET",
+      "path": "/api/human/nsfw-consent/check",
+      "service": "Human NSFW Consent",
+      "tags": [
+        "Human NSFW Consent"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/NsfwConsentResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "HumanNsfwConsentController_getConsentStatus",
+      "method": "GET",
+      "path": "/api/human/nsfw-consent/status",
+      "service": "Human NSFW Consent",
+      "tags": [
+        "Human NSFW Consent"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/NsfwConsentStatusResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "HumanNsfwConsentController_updateUserConsent",
+      "method": "PUT",
+      "path": "/api/human/me/settings/nsfw-consent",
+      "service": "Human NSFW Consent",
+      "tags": [
+        "Human NSFW Consent"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateUserNsfwConsentDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UpdateNsfwConsentResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "introspectSession",
+      "method": "POST",
+      "path": "/api/auth/sessions/introspect",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": "#/components/schemas/IntrospectSessionRequestDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/IntrospectSessionResponseDto"
+        },
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/IntrospectSessionErrorDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "InvitationController_generateCode",
+      "method": "POST",
+      "path": "/api/invitations",
+      "service": "Invitations",
+      "tags": [
+        "Invitations"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/InvitationCodeResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "InvitationController_listMyCodes",
+      "method": "GET",
+      "path": "/api/invitations",
+      "service": "Invitations",
+      "tags": [
+        "Invitations"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "InvitationController_verifyCode",
+      "method": "POST",
+      "path": "/api/invitations/verify",
+      "service": "Invitations",
+      "tags": [
+        "Invitations"
+      ],
+      "request_schema_ref": "#/components/schemas/VerifyInvitationCodeDto",
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "issueRuntimeRealmGrant",
+      "method": "POST",
+      "path": "/api/runtime/realm-grants/issue",
+      "service": "Runtime Realm Grants",
+      "tags": [
+        "Runtime Realm Grants"
+      ],
+      "request_schema_ref": "#/components/schemas/RuntimeRealmGrantIssueRequestDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/RuntimeRealmGrantIssueResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "likePost",
+      "method": "POST",
+      "path": "/api/world/posts/by-id/{postId}/like",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "linkOauth",
+      "method": "POST",
+      "path": "/api/auth/oauth/link",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": "#/components/schemas/OAuthLoginDto",
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "listAssets",
+      "method": "GET",
+      "path": "/api/assets",
+      "service": "Assets",
+      "tags": [
+        "Assets"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AssetListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "listBundles",
+      "method": "GET",
+      "path": "/api/bundles",
+      "service": "Bundles",
+      "tags": [
+        "Bundles"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/BundleListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "listChats",
+      "method": "GET",
+      "path": "/api/human/chats",
+      "service": "Human Chats",
+      "tags": [
+        "Human Chats"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ListChatsResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "listGroupMessages",
+      "method": "GET",
+      "path": "/api/human/group-chats/{chatId}/messages",
+      "service": "Group Chats",
+      "tags": [
+        "Group Chats"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ListGroupMessagesResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "listGroups",
+      "method": "GET",
+      "path": "/api/human/group-chats",
+      "service": "Group Chats",
+      "tags": [
+        "Group Chats"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ListGroupChatsResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "listLikedPosts",
+      "method": "GET",
+      "path": "/api/world/posts/liked",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "listMessages",
+      "method": "GET",
+      "path": "/api/human/chats/{chatId}/messages",
+      "service": "Human Chats",
+      "tags": [
+        "Human Chats"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ListMessagesResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "listMyFriendIds",
+      "method": "GET",
+      "path": "/api/human/me/friends",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "listMyFriendsWithDetails",
+      "method": "GET",
+      "path": "/api/human/me/friends/list",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/FriendProfileListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "listMyLocalAgentProvisionIntents",
+      "method": "GET",
+      "path": "/api/human/me/local-agent-provision-intents",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/LocalAgentProvisionIntentListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "listMyLocalAgentTerminationIntents",
+      "method": "GET",
+      "path": "/api/human/me/local-agent-termination-intents",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/LocalAgentTerminationIntentListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "listMyRealmAgents",
+      "method": "GET",
+      "path": "/api/me/agents",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "listNotifications",
+      "method": "GET",
+      "path": "/api/human/notifications",
+      "service": "Notifications",
+      "tags": [
+        "Notifications"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/NotificationListResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "listOnlineUsers",
+      "method": "GET",
+      "path": "/api/human/online",
+      "service": "User",
+      "tags": [
+        "User"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "listResources",
+      "method": "GET",
+      "path": "/api/resources",
+      "service": "Resources",
+      "tags": [
+        "Resources"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ResourceListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "logout",
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": "#/components/schemas/RefreshTokenDto",
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "markChatRead",
+      "method": "POST",
+      "path": "/api/human/chats/{chatId}/read",
+      "service": "Human Chats",
+      "tags": [
+        "Human Chats"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "markGroupRead",
+      "method": "POST",
+      "path": "/api/human/group-chats/{chatId}/read",
+      "service": "Group Chats",
+      "tags": [
+        "Group Chats"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "markNotificationRead",
+      "method": "POST",
+      "path": "/api/human/notifications/{notificationId}/read",
+      "service": "Notifications",
+      "tags": [
+        "Notifications"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "markNotificationsRead",
+      "method": "POST",
+      "path": "/api/human/notifications/read",
+      "service": "Notifications",
+      "tags": [
+        "Notifications"
+      ],
+      "request_schema_ref": "#/components/schemas/MarkNotificationsReadInputDto",
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "oauthAuthorize",
+      "method": "GET",
+      "path": "/api/auth/oauth/authorize",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "oauthLogin",
+      "method": "POST",
+      "path": "/api/auth/oauth/login",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": "#/components/schemas/OAuthLoginDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/OAuthLoginResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "oauthToken",
+      "method": "POST",
+      "path": "/api/auth/oauth/token",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/OAuthTokenResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "passwordLogin",
+      "method": "POST",
+      "path": "/api/auth/password/login",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": "#/components/schemas/PasswordLoginDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/OAuthLoginResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "passwordRegister",
+      "method": "POST",
+      "path": "/api/auth/password/register",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": "#/components/schemas/PasswordRegisterDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/OAuthLoginResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "prepare2Fa",
+      "method": "POST",
+      "path": "/api/auth/me/2fa/prepare",
+      "service": "Me2fa",
+      "tags": [
+        "Me2fa"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/Me2faPrepareResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "prepareBindWallet",
+      "method": "POST",
+      "path": "/api/human/me/wallets/prepare-bind",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": "#/components/schemas/WalletPrepareBindDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WalletPrepareBindResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "projectRuntimePayload",
+      "method": "POST",
+      "path": "/api/runtime/projections/project",
+      "service": "Runtime Projections",
+      "tags": [
+        "Runtime Projections"
+      ],
+      "request_schema_ref": "#/components/schemas/RuntimeProjectionRequestDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/RuntimeProjectionResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "publishBundle",
+      "method": "POST",
+      "path": "/api/bundles/{bundleId}/publish",
+      "service": "Bundles",
+      "tags": [
+        "Bundles"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/BundleDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "recallGroupMessage",
+      "method": "POST",
+      "path": "/api/human/group-chats/{chatId}/messages/{messageId}/recall",
+      "service": "Group Chats",
+      "tags": [
+        "Group Chats"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "recallMessage",
+      "method": "POST",
+      "path": "/api/human/chats/{chatId}/messages/{messageId}/recall",
+      "service": "Human Chats",
+      "tags": [
+        "Human Chats"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "refreshToken",
+      "method": "POST",
+      "path": "/api/auth/refresh",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": "#/components/schemas/RefreshTokenDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AuthTokensDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "RelationshipController_createRelationship",
+      "method": "POST",
+      "path": "/api/human/relationships",
+      "service": "Relationships (Meta-Graph)",
+      "tags": [
+        "Relationships (Meta-Graph)"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateRelationshipDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/RelationshipResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "RelationshipController_deleteRelationship",
+      "method": "DELETE",
+      "path": "/api/human/relationships/{id}",
+      "service": "Relationships (Meta-Graph)",
+      "tags": [
+        "Relationships (Meta-Graph)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/DeleteRelationshipResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "RelationshipController_getMyRelationships",
+      "method": "GET",
+      "path": "/api/human/relationships/me",
+      "service": "Relationships (Meta-Graph)",
+      "tags": [
+        "Relationships (Meta-Graph)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "RelationshipController_updateRelationship",
+      "method": "PATCH",
+      "path": "/api/human/relationships/{id}",
+      "service": "Relationships (Meta-Graph)",
+      "tags": [
+        "Relationships (Meta-Graph)"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateRelationshipDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/RelationshipResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "removeFriend",
+      "method": "DELETE",
+      "path": "/api/human/accounts/{id}/friends",
+      "service": "User",
+      "tags": [
+        "User"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "removeGroupAgent",
+      "method": "DELETE",
+      "path": "/api/human/group-chats/{chatId}/agents/{agentAccountId}",
+      "service": "Group Chats",
+      "tags": [
+        "Group Chats"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "removeGroupParticipant",
+      "method": "DELETE",
+      "path": "/api/human/group-chats/{chatId}/participants/{accountId}",
+      "service": "Group Chats",
+      "tags": [
+        "Group Chats"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "ReportController_createReport",
+      "method": "POST",
+      "path": "/api/reports",
+      "service": "Governance",
+      "tags": [
+        "Governance"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateReportDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/ReportResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "requestAccountDeletion",
+      "method": "POST",
+      "path": "/api/auth/me/account-deletion",
+      "service": "MeAccountData",
+      "tags": [
+        "MeAccountData"
+      ],
+      "request_schema_ref": "#/components/schemas/RequestAccountDeletionDto",
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "requestDataExport",
+      "method": "POST",
+      "path": "/api/auth/me/data-export",
+      "service": "MeAccountData",
+      "tags": [
+        "MeAccountData"
+      ],
+      "request_schema_ref": "#/components/schemas/RequestDataExportDto",
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "requestEmailOtp",
+      "method": "POST",
+      "path": "/api/auth/email/otp/request",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": "#/components/schemas/EmailOtpRequestDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/EmailOtpResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "ReviewController_createReview",
+      "method": "POST",
+      "path": "/api/economy/reviews",
+      "service": "Reviews (Economy/Trust)",
+      "tags": [
+        "Reviews (Economy/Trust)"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateReviewDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/ReviewDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "ReviewController_getReviews",
+      "method": "GET",
+      "path": "/api/economy/reviews",
+      "service": "Reviews (Economy/Trust)",
+      "tags": [
+        "Reviews (Economy/Trust)"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "searchHumanUsers",
+      "method": "GET",
+      "path": "/api/human/search",
+      "service": "User",
+      "tags": [
+        "User"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserSearchResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "searchIndexedUsers",
+      "method": "GET",
+      "path": "/api/search/users",
+      "service": "Search",
+      "tags": [
+        "Search"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserSearchResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "searchPosts",
+      "method": "GET",
+      "path": "/api/search/posts",
+      "service": "Search",
+      "tags": [
+        "Search"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/FeedResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "sendGroupMessage",
+      "method": "POST",
+      "path": "/api/human/group-chats/{chatId}/messages",
+      "service": "Group Chats",
+      "tags": [
+        "Group Chats"
+      ],
+      "request_schema_ref": "#/components/schemas/SendMessageInputDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/GroupMessageViewDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "sendMessage",
+      "method": "POST",
+      "path": "/api/human/chats/{chatId}/messages",
+      "service": "Human Chats",
+      "tags": [
+        "Human Chats"
+      ],
+      "request_schema_ref": "#/components/schemas/SendMessageInputDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/MessageViewDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "startChat",
+      "method": "POST",
+      "path": "/api/human/chats",
+      "service": "Human Chats",
+      "tags": [
+        "Human Chats"
+      ],
+      "request_schema_ref": "#/components/schemas/StartChatInputDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/StartChatResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "syncChatEvents",
+      "method": "GET",
+      "path": "/api/human/chats/{chatId}/sync",
+      "service": "Human Chats",
+      "tags": [
+        "Human Chats"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ChatSyncResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "syncGroupEvents",
+      "method": "GET",
+      "path": "/api/human/group-chats/{chatId}/sync",
+      "service": "Group Chats",
+      "tags": [
+        "Group Chats"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ChatSyncResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "TransitController_abandon",
+      "method": "POST",
+      "path": "/api/world/transit/{id}/abandon",
+      "service": "Transits",
+      "tags": [
+        "Transits"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/TransitDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "TransitController_complete",
+      "method": "POST",
+      "path": "/api/world/transit/{id}/complete",
+      "service": "Transits",
+      "tags": [
+        "Transits"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/TransitDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "TransitController_getActiveTransit",
+      "method": "GET",
+      "path": "/api/world/transit/active/{agentId}",
+      "service": "Transits",
+      "tags": [
+        "Transits"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/TransitDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "TransitController_getTransit",
+      "method": "GET",
+      "path": "/api/world/transit/{id}",
+      "service": "Transits",
+      "tags": [
+        "Transits"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/TransitDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "TransitController_listTransits",
+      "method": "GET",
+      "path": "/api/world/transit",
+      "service": "Transits",
+      "tags": [
+        "Transits"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "translateText",
+      "method": "POST",
+      "path": "/api/translation/translate",
+      "service": "Translation",
+      "tags": [
+        "Translation"
+      ],
+      "request_schema_ref": "#/components/schemas/TranslateRequestDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/TranslateResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "unbindWallet",
+      "method": "DELETE",
+      "path": "/api/human/me/wallets/{walletId}",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "unblockUser",
+      "method": "DELETE",
+      "path": "/api/human/me/blocks/{id}",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "unlikePost",
+      "method": "DELETE",
+      "path": "/api/world/posts/by-id/{postId}/like",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "unlinkOauth",
+      "method": "DELETE",
+      "path": "/api/auth/oauth/{provider}",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "updateAsset",
+      "method": "PATCH",
+      "path": "/api/assets/{assetId}",
+      "service": "Assets",
+      "tags": [
+        "Assets"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateAssetDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AssetDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "updateBundle",
+      "method": "PATCH",
+      "path": "/api/bundles/{bundleId}",
+      "service": "Bundles",
+      "tags": [
+        "Bundles"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateBundleDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/BundleDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "updateGroup",
+      "method": "PATCH",
+      "path": "/api/human/group-chats/{chatId}",
+      "service": "Group Chats",
+      "tags": [
+        "Group Chats"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateGroupInputDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/GroupChatViewDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "updateGroupParticipantRole",
+      "method": "PATCH",
+      "path": "/api/human/group-chats/{chatId}/participants/{accountId}",
+      "service": "Group Chats",
+      "tags": [
+        "Group Chats"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateParticipantRoleInputDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/GroupParticipantDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "updateMe",
+      "method": "PATCH",
+      "path": "/api/human/me",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateUserDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserPrivateDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "updateMyHandle",
+      "method": "PATCH",
+      "path": "/api/human/me/handle",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserPrivateDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "updateMyNotificationSettings",
+      "method": "PATCH",
+      "path": "/api/human/me/notification-settings",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateUserNotificationSettingsDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserNotificationSettingsDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "updateMyPPConfig",
+      "method": "PUT",
+      "path": "/api/human/me/pp-config",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdatePPSlotConfigDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/PPSlotConfigResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "updateMyRealmAgentSettings",
+      "method": "PATCH",
+      "path": "/api/me/agents/{agentId}/settings",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateOwnerAgentSettingsDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/OwnerAgentSettingsDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "updateMySettings",
+      "method": "PATCH",
+      "path": "/api/human/me/settings",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateUserSettingsDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserSettingsDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "updatePassword",
+      "method": "PUT",
+      "path": "/api/auth/me/password",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdatePasswordRequestDto",
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "updatePost",
+      "method": "PATCH",
+      "path": "/api/world/posts/by-id/{id}",
+      "service": "Posts",
+      "tags": [
+        "Posts"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdatePostDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/PostDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "updateResource",
+      "method": "PATCH",
+      "path": "/api/resources/{resourceId}",
+      "service": "Resources",
+      "tags": [
+        "Resources"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateResourceDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ResourceDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "V1DefaultVisibilityController_applyAgentDefaults",
+      "method": "POST",
+      "path": "/api/agent/visibility/defaults/apply/agent/{agentId}",
+      "service": "Social - V1 Default Visibility",
+      "tags": [
+        "Social - V1 Default Visibility"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "V1DefaultVisibilityController_applyUserDefaults",
+      "method": "POST",
+      "path": "/api/agent/visibility/defaults/apply/user/{userId}",
+      "service": "Social - V1 Default Visibility",
+      "tags": [
+        "Social - V1 Default Visibility"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "V1DefaultVisibilityController_getDefaultForScope",
+      "method": "GET",
+      "path": "/api/agent/visibility/defaults/defaults/{entityType}/{scope}",
+      "service": "Social - V1 Default Visibility",
+      "tags": [
+        "Social - V1 Default Visibility"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "V1DefaultVisibilityController_getDefaultVisibility",
+      "method": "GET",
+      "path": "/api/agent/visibility/defaults/defaults/{entityType}",
+      "service": "Social - V1 Default Visibility",
+      "tags": [
+        "Social - V1 Default Visibility"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "V1DefaultVisibilityController_validateAgentVisibility",
+      "method": "GET",
+      "path": "/api/agent/visibility/defaults/validate/agent/{agentId}",
+      "service": "Social - V1 Default Visibility",
+      "tags": [
+        "Social - V1 Default Visibility"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "V1DefaultVisibilityController_validateUserVisibility",
+      "method": "GET",
+      "path": "/api/agent/visibility/defaults/validate/user/{userId}",
+      "service": "Social - V1 Default Visibility",
+      "tags": [
+        "Social - V1 Default Visibility"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "verify2Fa",
+      "method": "POST",
+      "path": "/api/auth/2fa/verify",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": "#/components/schemas/Auth2faVerifyDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AuthTokensDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "verifyEmailOtp",
+      "method": "POST",
+      "path": "/api/auth/email/otp/verify",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": "#/components/schemas/EmailOtpVerifyDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/OAuthLoginResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "walletChallenge",
+      "method": "POST",
+      "path": "/api/auth/wallet/challenge",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": "#/components/schemas/WalletChallengeDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WalletChallengeResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "walletLogin",
+      "method": "POST",
+      "path": "/api/auth/wallet/login",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "request_schema_ref": "#/components/schemas/WalletLoginDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/OAuthLoginResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldControlController_appendWorldHistory",
+      "method": "POST",
+      "path": "/api/worlds/{worldId}/history/appends",
+      "service": "World Control",
+      "tags": [
+        "World Control"
+      ],
+      "request_schema_ref": "#/components/schemas/AppendWorldHistoryDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldHistoryListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldControlController_batchUpsertWorldBindings",
+      "method": "POST",
+      "path": "/api/worlds/{worldId}/bindings",
+      "service": "World Control",
+      "tags": [
+        "World Control"
+      ],
+      "request_schema_ref": "#/components/schemas/BatchUpsertBindingsDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/BindingListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldControlController_commitState",
+      "method": "POST",
+      "path": "/api/worlds/{worldId}/state/commits",
+      "service": "World Control",
+      "tags": [
+        "World Control"
+      ],
+      "request_schema_ref": "#/components/schemas/CommitWorldStateDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldStateDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldControlController_createDraft",
+      "method": "POST",
+      "path": "/api/world-drafts",
+      "service": "World Control",
+      "tags": [
+        "World Control"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateWorldDraftDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/WorldDraftDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldControlController_deleteWorldBinding",
+      "method": "DELETE",
+      "path": "/api/worlds/{worldId}/bindings/{bindingId}",
+      "service": "World Control",
+      "tags": [
+        "World Control"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "WorldControlController_getDraft",
+      "method": "GET",
+      "path": "/api/world-drafts/{draftId}",
+      "service": "World Control",
+      "tags": [
+        "World Control"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldDraftDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldControlController_getMyAccess",
+      "method": "GET",
+      "path": "/api/world-control/access/me",
+      "service": "World Control",
+      "tags": [
+        "World Control"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldAccessSummaryDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldControlController_getState",
+      "method": "GET",
+      "path": "/api/worlds/{worldId}/state",
+      "service": "World Control",
+      "tags": [
+        "World Control"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldStateDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldControlController_listDrafts",
+      "method": "GET",
+      "path": "/api/world-drafts",
+      "service": "World Control",
+      "tags": [
+        "World Control"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldDraftSummaryListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldControlController_listMyWorlds",
+      "method": "GET",
+      "path": "/api/worlds/mine",
+      "service": "World Control",
+      "tags": [
+        "World Control"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldSummaryListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldControlController_listWorldBindings",
+      "method": "GET",
+      "path": "/api/worlds/{worldId}/bindings",
+      "service": "World Control",
+      "tags": [
+        "World Control"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/BindingListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldControlController_listWorldHistory",
+      "method": "GET",
+      "path": "/api/worlds/{worldId}/history",
+      "service": "World Control",
+      "tags": [
+        "World Control"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldHistoryListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldControlController_listWorldLorebooks",
+      "method": "GET",
+      "path": "/api/worlds/{worldId}/lorebooks",
+      "service": "World Control",
+      "tags": [
+        "World Control"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldLorebookListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldControlController_publishDraft",
+      "method": "POST",
+      "path": "/api/world-drafts/{draftId}/publish",
+      "service": "World Control",
+      "tags": [
+        "World Control"
+      ],
+      "request_schema_ref": "#/components/schemas/PublishWorldDraftDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/PublishWorldDraftResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldControlController_resolveLanding",
+      "method": "GET",
+      "path": "/api/world-control/landing",
+      "service": "World Control",
+      "tags": [
+        "World Control"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldLandingDecisionDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldControlController_updateDraft",
+      "method": "PATCH",
+      "path": "/api/world-drafts/{draftId}",
+      "service": "World Control",
+      "tags": [
+        "World Control"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateWorldDraftDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldDraftDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldController_getMainWorld",
+      "method": "GET",
+      "path": "/api/world/oasis",
+      "service": "Worlds",
+      "tags": [
+        "Worlds"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldController_getWorld",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}",
+      "service": "Worlds",
+      "tags": [
+        "Worlds"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldController_getWorldAgents",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}/agents",
+      "service": "Worlds",
+      "tags": [
+        "Worlds"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "WorldController_getWorldBindings",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}/bindings",
+      "service": "Worlds",
+      "tags": [
+        "Worlds"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/PublicBindingListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldController_getWorldDetailWithAgents",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}/detail-with-agents",
+      "service": "Worlds",
+      "tags": [
+        "Worlds"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldDetailWithAgentsDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldController_getWorldHistory",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}/history",
+      "service": "Worlds",
+      "tags": [
+        "Worlds"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/PublicWorldHistoryListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldController_getWorldLevelAudits",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}/level/audits",
+      "service": "Worlds",
+      "tags": [
+        "Worlds"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "WorldController_getWorldLorebooks",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}/lorebooks",
+      "service": "Worlds",
+      "tags": [
+        "Worlds"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/PublicWorldLorebookListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldController_getWorldview",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}/worldview",
+      "service": "Worlds",
+      "tags": [
+        "Worlds"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldviewDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldController_listWorlds",
+      "method": "GET",
+      "path": "/api/world",
+      "service": "Worlds",
+      "tags": [
+        "Worlds"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "WorldController_returnToMainWorld",
+      "method": "POST",
+      "path": "/api/world/by-id/{id}/return",
+      "service": "Worlds",
+      "tags": [
+        "Worlds"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/TransitDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldController_transitToWorld",
+      "method": "POST",
+      "path": "/api/world/by-id/{id}/transit",
+      "service": "Worlds",
+      "tags": [
+        "Worlds"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateWorldTransitDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/TransitDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldRulesController_archiveRule",
+      "method": "POST",
+      "path": "/api/world/by-id/{worldId}/rules/{ruleId}/archive",
+      "service": "World Rules",
+      "tags": [
+        "World Rules"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldRuleDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldRulesController_checkPermission",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/rules/check/{action}",
+      "service": "World Rules",
+      "tags": [
+        "World Rules"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/PermissionCheckResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldRulesController_createRule",
+      "method": "POST",
+      "path": "/api/world/by-id/{worldId}/rules",
+      "service": "World Rules",
+      "tags": [
+        "World Rules"
+      ],
+      "request_schema_ref": "#/components/schemas/CreateWorldRuleDto",
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/WorldRuleDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldRulesController_deprecateRule",
+      "method": "POST",
+      "path": "/api/world/by-id/{worldId}/rules/{ruleId}/deprecate",
+      "service": "World Rules",
+      "tags": [
+        "World Rules"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldRuleDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldRulesController_getCreatorCapabilities",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/rules/capabilities",
+      "service": "World Rules",
+      "tags": [
+        "World Rules"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/CreatorCapabilitiesResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldRulesController_getRules",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/rules",
+      "service": "World Rules",
+      "tags": [
+        "World Rules"
+      ],
+      "request_schema_ref": null,
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "WorldRulesController_updateRule",
+      "method": "PATCH",
+      "path": "/api/world/by-id/{worldId}/rules/{ruleId}",
+      "service": "World Rules",
+      "tags": [
+        "World Rules"
+      ],
+      "request_schema_ref": "#/components/schemas/UpdateWorldRuleDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldRuleDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldRulesController_validateRules",
+      "method": "POST",
+      "path": "/api/world/by-id/{worldId}/rules/validate",
+      "service": "World Rules",
+      "tags": [
+        "World Rules"
+      ],
+      "request_schema_ref": "#/components/schemas/ValidateRulesDto",
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/RuleValidationResponseDto"
+        }
+      ]
+    }
+  ],
+  "operation_maps": [
+    {
+      "operation_id": "ackMyLocalAgentProvisionIntent",
+      "service": "Me",
+      "method": "POST",
+      "path": "/api/human/me/local-agent-provision-intents/{intentId}/ack"
+    },
+    {
+      "operation_id": "ackMyLocalAgentTerminationIntent",
+      "service": "Me",
+      "method": "POST",
+      "path": "/api/human/me/local-agent-termination-intents/{intentId}/ack"
+    },
+    {
+      "operation_id": "addFriend",
+      "service": "User",
+      "method": "POST",
+      "path": "/api/human/accounts/{id}/friends"
+    },
+    {
+      "operation_id": "addGroupAgent",
+      "service": "Group Chats",
+      "method": "POST",
+      "path": "/api/human/group-chats/{chatId}/agents"
+    },
+    {
+      "operation_id": "addGroupParticipant",
+      "service": "Group Chats",
+      "method": "POST",
+      "path": "/api/human/group-chats/{chatId}/participants"
+    },
+    {
+      "operation_id": "AgentController_checkHandle",
+      "service": "Agents",
+      "method": "GET",
+      "path": "/api/agent/handles/check"
+    },
+    {
+      "operation_id": "AgentController_create",
+      "service": "Agents",
+      "method": "POST",
+      "path": "/api/agent"
+    },
+    {
+      "operation_id": "AgentController_delete",
+      "service": "Agents",
+      "method": "DELETE",
+      "path": "/api/agent/accounts/{id}"
+    },
+    {
+      "operation_id": "AgentController_getRelationships",
+      "service": "Agents",
+      "method": "GET",
+      "path": "/api/agent/accounts/{id}/relationships"
+    },
+    {
+      "operation_id": "AgentController_getVisibility",
+      "service": "Agents",
+      "method": "GET",
+      "path": "/api/agent/accounts/{id}/visibility"
+    },
+    {
+      "operation_id": "AgentController_makePublic",
+      "service": "Agents",
+      "method": "POST",
+      "path": "/api/agent/accounts/{id}/public"
+    },
+    {
+      "operation_id": "AgentController_removeRelationship",
+      "service": "Agents",
+      "method": "DELETE",
+      "path": "/api/agent/accounts/{id}/relationships"
+    },
+    {
+      "operation_id": "AgentController_selectAvatar",
+      "service": "Agents",
+      "method": "POST",
+      "path": "/api/agent/accounts/{id}/avatar"
+    },
+    {
+      "operation_id": "AgentController_setRelationship",
+      "service": "Agents",
+      "method": "POST",
+      "path": "/api/agent/accounts/{id}/relationships"
+    },
+    {
+      "operation_id": "AgentController_updateDna",
+      "service": "Agents",
+      "method": "PATCH",
+      "path": "/api/agent/accounts/{id}/dna"
+    },
+    {
+      "operation_id": "AgentController_updateVisibility",
+      "service": "Agents",
+      "method": "PATCH",
+      "path": "/api/agent/accounts/{id}/visibility"
+    },
+    {
+      "operation_id": "AgentNsfwConsentController_updateAgentConsent",
+      "service": "Agent NSFW Consent",
+      "method": "PUT",
+      "path": "/api/agent/accounts/{id}/visibility/nsfw-consent"
+    },
+    {
+      "operation_id": "AgentRulesController_archiveRule",
+      "service": "Agent Rules",
+      "method": "POST",
+      "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/archive"
+    },
+    {
+      "operation_id": "AgentRulesController_createRule",
+      "service": "Agent Rules",
+      "method": "POST",
+      "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules"
+    },
+    {
+      "operation_id": "AgentRulesController_deprecateRule",
+      "service": "Agent Rules",
+      "method": "POST",
+      "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/deprecate"
+    },
+    {
+      "operation_id": "AgentRulesController_listRules",
+      "service": "Agent Rules",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules"
+    },
+    {
+      "operation_id": "AgentRulesController_updateRule",
+      "service": "Agent Rules",
+      "method": "PATCH",
+      "path": "/api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}"
+    },
+    {
+      "operation_id": "archiveBundle",
+      "service": "Bundles",
+      "method": "POST",
+      "path": "/api/bundles/{bundleId}/archive"
+    },
+    {
+      "operation_id": "bindEmail",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/me/email"
+    },
+    {
+      "operation_id": "bindWallet",
+      "service": "Me",
+      "method": "POST",
+      "path": "/api/human/me/wallets"
+    },
+    {
+      "operation_id": "blockUser",
+      "service": "Me",
+      "method": "POST",
+      "path": "/api/human/me/blocks/{id}"
+    },
+    {
+      "operation_id": "changeEmail",
+      "service": "Auth",
+      "method": "PATCH",
+      "path": "/api/auth/me/email"
+    },
+    {
+      "operation_id": "checkEmail",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/email/check"
+    },
+    {
+      "operation_id": "checkHandle",
+      "service": "User",
+      "method": "GET",
+      "path": "/api/human/check-handle"
+    },
+    {
+      "operation_id": "cloneAsset",
+      "service": "Assets",
+      "method": "POST",
+      "path": "/api/assets/{assetId}/clone"
+    },
+    {
+      "operation_id": "commitRealmGroupMessageCandidate",
+      "service": "Group Chats",
+      "method": "POST",
+      "path": "/api/human/group-chats/{chatId}/agent-message-candidate-commits"
+    },
+    {
+      "operation_id": "createAsset",
+      "service": "Assets",
+      "method": "POST",
+      "path": "/api/assets"
+    },
+    {
+      "operation_id": "createAudioDirectUpload",
+      "service": "Resources",
+      "method": "POST",
+      "path": "/api/resources/audio/direct-upload"
+    },
+    {
+      "operation_id": "createBundle",
+      "service": "Bundles",
+      "method": "POST",
+      "path": "/api/bundles"
+    },
+    {
+      "operation_id": "createGroup",
+      "service": "Group Chats",
+      "method": "POST",
+      "path": "/api/human/group-chats"
+    },
+    {
+      "operation_id": "createImageDirectUpload",
+      "service": "Resources",
+      "method": "POST",
+      "path": "/api/resources/images/direct-upload"
+    },
+    {
+      "operation_id": "createPost",
+      "service": "Posts",
+      "method": "POST",
+      "path": "/api/world/posts"
+    },
+    {
+      "operation_id": "createTextResource",
+      "service": "Resources",
+      "method": "POST",
+      "path": "/api/resources/texts"
+    },
+    {
+      "operation_id": "createVideoDirectUpload",
+      "service": "Resources",
+      "method": "POST",
+      "path": "/api/resources/videos/direct-upload"
+    },
+    {
+      "operation_id": "CreatorController_batchCreateAgents",
+      "service": "Creator",
+      "method": "POST",
+      "path": "/api/creator/agents/batch-create"
+    },
+    {
+      "operation_id": "CreatorController_createAgent",
+      "service": "Creator",
+      "method": "POST",
+      "path": "/api/creator/agents"
+    },
+    {
+      "operation_id": "CreatorController_createKey",
+      "service": "Creator",
+      "method": "POST",
+      "path": "/api/creator/keys"
+    },
+    {
+      "operation_id": "CreatorController_deleteAgent",
+      "service": "Creator",
+      "method": "DELETE",
+      "path": "/api/creator/agents/{agentId}"
+    },
+    {
+      "operation_id": "CreatorController_getAgent",
+      "service": "Creator",
+      "method": "GET",
+      "path": "/api/creator/agents/{agentId}"
+    },
+    {
+      "operation_id": "CreatorController_listAgents",
+      "service": "Creator",
+      "method": "GET",
+      "path": "/api/creator/agents"
+    },
+    {
+      "operation_id": "CreatorController_listKeys",
+      "service": "Creator",
+      "method": "GET",
+      "path": "/api/creator/keys"
+    },
+    {
+      "operation_id": "CreatorController_revokeKey",
+      "service": "Creator",
+      "method": "DELETE",
+      "path": "/api/creator/keys/{id}"
+    },
+    {
+      "operation_id": "CreatorController_updateAgent",
+      "service": "Creator",
+      "method": "PATCH",
+      "path": "/api/creator/agents/{agentId}"
+    },
+    {
+      "operation_id": "CreatorModsController_ingestAudit",
+      "service": "Creator Mods Control Plane",
+      "method": "POST",
+      "path": "/api/creator/mods/control/audit/ingest"
+    },
+    {
+      "operation_id": "CreatorModsController_issueGrant",
+      "service": "Creator Mods Control Plane",
+      "method": "POST",
+      "path": "/api/creator/mods/control/grants/issue"
+    },
+    {
+      "operation_id": "CreatorModsController_queryAudit",
+      "service": "Creator Mods Control Plane",
+      "method": "GET",
+      "path": "/api/creator/mods/control/audit/query"
+    },
+    {
+      "operation_id": "CreatorModsController_revocations",
+      "service": "Creator Mods Control Plane",
+      "method": "GET",
+      "path": "/api/creator/mods/control/revocations"
+    },
+    {
+      "operation_id": "CreatorModsController_validateGrant",
+      "service": "Creator Mods Control Plane",
+      "method": "POST",
+      "path": "/api/creator/mods/control/grants/validate"
+    },
+    {
+      "operation_id": "CreatorModsController_verifyManifest",
+      "service": "Creator Mods Control Plane",
+      "method": "POST",
+      "path": "/api/creator/mods/control/manifest/verify"
+    },
+    {
+      "operation_id": "CreatorModsController_verifySignature",
+      "service": "Creator Mods Control Plane",
+      "method": "POST",
+      "path": "/api/creator/mods/control/signature/verify"
+    },
+    {
+      "operation_id": "deletePost",
+      "service": "Posts",
+      "method": "DELETE",
+      "path": "/api/world/posts/by-id/{id}"
+    },
+    {
+      "operation_id": "deleteResource",
+      "service": "Resources",
+      "method": "DELETE",
+      "path": "/api/resources/{resourceId}"
+    },
+    {
+      "operation_id": "disable2Fa",
+      "service": "Me2fa",
+      "method": "POST",
+      "path": "/api/auth/me/2fa/disable"
+    },
+    {
+      "operation_id": "EconomyController_acceptGift",
+      "service": "Economy (Currency & Gifts)",
+      "method": "POST",
+      "path": "/api/economy/gifts/{id}/accept"
+    },
+    {
+      "operation_id": "EconomyController_calculateWithdrawal",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/withdrawals/calculate"
+    },
+    {
+      "operation_id": "EconomyController_cancelSubscription",
+      "service": "Economy (Currency & Gifts)",
+      "method": "POST",
+      "path": "/api/economy/subscription/cancel"
+    },
+    {
+      "operation_id": "EconomyController_canWithdraw",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/withdrawals/can-withdraw"
+    },
+    {
+      "operation_id": "EconomyController_createConnectDashboard",
+      "service": "Economy (Currency & Gifts)",
+      "method": "POST",
+      "path": "/api/economy/connect/dashboard"
+    },
+    {
+      "operation_id": "EconomyController_createConnectOnboarding",
+      "service": "Economy (Currency & Gifts)",
+      "method": "POST",
+      "path": "/api/economy/connect/onboarding"
+    },
+    {
+      "operation_id": "EconomyController_createPortalSession",
+      "service": "Economy (Currency & Gifts)",
+      "method": "POST",
+      "path": "/api/economy/subscription/portal"
+    },
+    {
+      "operation_id": "EconomyController_createSparkCheckout",
+      "service": "Economy (Currency & Gifts)",
+      "method": "POST",
+      "path": "/api/economy/spark/checkout"
+    },
+    {
+      "operation_id": "EconomyController_createSubscriptionCheckout",
+      "service": "Economy (Currency & Gifts)",
+      "method": "POST",
+      "path": "/api/economy/subscription/checkout"
+    },
+    {
+      "operation_id": "EconomyController_createWithdrawal",
+      "service": "Economy (Currency & Gifts)",
+      "method": "POST",
+      "path": "/api/economy/withdrawals/create"
+    },
+    {
+      "operation_id": "EconomyController_getAgentOrigin",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/revenue-share/agent-origin/{agentId}"
+    },
+    {
+      "operation_id": "EconomyController_getBalances",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/balances"
+    },
+    {
+      "operation_id": "EconomyController_getConnectStatus",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/connect/status"
+    },
+    {
+      "operation_id": "EconomyController_getGemHistory",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/gem/history"
+    },
+    {
+      "operation_id": "EconomyController_getGiftCatalog",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/gifts/catalog"
+    },
+    {
+      "operation_id": "EconomyController_getReceivedGifts",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/gifts/received"
+    },
+    {
+      "operation_id": "EconomyController_getRevenueShareConfig",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/revenue-share/config"
+    },
+    {
+      "operation_id": "EconomyController_getSentGifts",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/gifts/sent"
+    },
+    {
+      "operation_id": "EconomyController_getSparkHistory",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/spark/history"
+    },
+    {
+      "operation_id": "EconomyController_getSparkPackages",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/spark/packages"
+    },
+    {
+      "operation_id": "EconomyController_getSubscription",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/subscription"
+    },
+    {
+      "operation_id": "EconomyController_getSubscriptionTiers",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/subscription/tiers"
+    },
+    {
+      "operation_id": "EconomyController_getWithdrawal",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/withdrawals/by-id/{id}"
+    },
+    {
+      "operation_id": "EconomyController_getWithdrawalConfig",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/withdrawals/config"
+    },
+    {
+      "operation_id": "EconomyController_getWithdrawalHistory",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/withdrawals/history"
+    },
+    {
+      "operation_id": "EconomyController_previewRevenueDistribution",
+      "service": "Economy (Currency & Gifts)",
+      "method": "GET",
+      "path": "/api/economy/revenue-share/preview"
+    },
+    {
+      "operation_id": "EconomyController_rejectGift",
+      "service": "Economy (Currency & Gifts)",
+      "method": "POST",
+      "path": "/api/economy/gifts/{giftId}/reject"
+    },
+    {
+      "operation_id": "EconomyController_sendGift",
+      "service": "Economy (Currency & Gifts)",
+      "method": "POST",
+      "path": "/api/economy/gifts/send"
+    },
+    {
+      "operation_id": "editGroupMessage",
+      "service": "Group Chats",
+      "method": "PATCH",
+      "path": "/api/human/group-chats/{chatId}/messages/{messageId}"
+    },
+    {
+      "operation_id": "editMessage",
+      "service": "Human Chats",
+      "method": "PATCH",
+      "path": "/api/human/chats/{chatId}/messages/{messageId}"
+    },
+    {
+      "operation_id": "enable2Fa",
+      "service": "Me2fa",
+      "method": "POST",
+      "path": "/api/auth/me/2fa/enable"
+    },
+    {
+      "operation_id": "ExploreController_checkStatus",
+      "service": "Explore",
+      "method": "GET",
+      "path": "/api/explore/status"
+    },
+    {
+      "operation_id": "finalizeResource",
+      "service": "Resources",
+      "method": "POST",
+      "path": "/api/resources/{resourceId}/finalize"
+    },
+    {
+      "operation_id": "getAgent",
+      "service": "Agents",
+      "method": "GET",
+      "path": "/api/agent/accounts/{id}"
+    },
+    {
+      "operation_id": "getAgentByHandle",
+      "service": "Agents",
+      "method": "GET",
+      "path": "/api/agent/handle/{handle}"
+    },
+    {
+      "operation_id": "getAsset",
+      "service": "Assets",
+      "method": "GET",
+      "path": "/api/assets/{assetId}"
+    },
+    {
+      "operation_id": "getAuthJwks",
+      "service": "Jwks",
+      "method": "GET",
+      "path": "/api/auth/jwks"
+    },
+    {
+      "operation_id": "getBundle",
+      "service": "Bundles",
+      "method": "GET",
+      "path": "/api/bundles/{bundleId}"
+    },
+    {
+      "operation_id": "getChatById",
+      "service": "Human Chats",
+      "method": "GET",
+      "path": "/api/human/chats/{chatId}"
+    },
+    {
+      "operation_id": "getExploreFeed",
+      "service": "Explore",
+      "method": "GET",
+      "path": "/api/explore"
+    },
+    {
+      "operation_id": "getGroup",
+      "service": "Group Chats",
+      "method": "GET",
+      "path": "/api/human/group-chats/{chatId}"
+    },
+    {
+      "operation_id": "getHomeFeed",
+      "service": "Posts",
+      "method": "GET",
+      "path": "/api/world/posts"
+    },
+    {
+      "operation_id": "getMe",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/human/me"
+    },
+    {
+      "operation_id": "getMutualFriends",
+      "service": "User",
+      "method": "GET",
+      "path": "/api/human/accounts/{id}/mutual-friends"
+    },
+    {
+      "operation_id": "getMutualFriendsCount",
+      "service": "User",
+      "method": "GET",
+      "path": "/api/human/accounts/{id}/mutual-friends/count"
+    },
+    {
+      "operation_id": "getMyAgentFriendLimit",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/human/me/friends/agent-limit"
+    },
+    {
+      "operation_id": "getMyBlockedUsers",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/human/me/blocks"
+    },
+    {
+      "operation_id": "getMyCapabilities",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/human/me/capabilities"
+    },
+    {
+      "operation_id": "getMyCreatorEligibility",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/human/me/creator-eligibility"
+    },
+    {
+      "operation_id": "getMyNotificationSettings",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/human/me/notification-settings"
+    },
+    {
+      "operation_id": "getMyPendingFriendRequests",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/human/me/friends/pending"
+    },
+    {
+      "operation_id": "getMyPPConfig",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/human/me/pp-config"
+    },
+    {
+      "operation_id": "getMyRealmAgent",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/me/agents/{agentId}"
+    },
+    {
+      "operation_id": "getMyRealmAgentSettings",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/me/agents/{agentId}/settings"
+    },
+    {
+      "operation_id": "getMySettings",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/human/me/settings"
+    },
+    {
+      "operation_id": "getMyTiers",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/human/me/tiers"
+    },
+    {
+      "operation_id": "getMyWallets",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/human/me/wallets"
+    },
+    {
+      "operation_id": "getPost",
+      "service": "Posts",
+      "method": "GET",
+      "path": "/api/world/posts/by-id/{id}"
+    },
+    {
+      "operation_id": "getPublicPost",
+      "service": "Posts",
+      "method": "GET",
+      "path": "/api/world/posts/public/{id}"
+    },
+    {
+      "operation_id": "getResource",
+      "service": "Resources",
+      "method": "GET",
+      "path": "/api/resources/{resourceId}"
+    },
+    {
+      "operation_id": "getUnreadCount",
+      "service": "Notifications",
+      "method": "GET",
+      "path": "/api/human/notifications/unread-count"
+    },
+    {
+      "operation_id": "getUser",
+      "service": "User",
+      "method": "GET",
+      "path": "/api/human/accounts/{id}"
+    },
+    {
+      "operation_id": "getUserByHandle",
+      "service": "User",
+      "method": "GET",
+      "path": "/api/human/handle/{handle}"
+    },
+    {
+      "operation_id": "getUserFriends",
+      "service": "User",
+      "method": "GET",
+      "path": "/api/human/accounts/{id}/friends"
+    },
+    {
+      "operation_id": "getWorldPosts",
+      "service": "WorldPost",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/posts"
+    },
+    {
+      "operation_id": "getWorldScenes",
+      "service": "Worlds",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}/scenes"
+    },
+    {
+      "operation_id": "HumanNsfwConsentController_canManageAgentNsfw",
+      "service": "Human NSFW Consent",
+      "method": "GET",
+      "path": "/api/human/nsfw-consent/can-manage"
+    },
+    {
+      "operation_id": "HumanNsfwConsentController_checkConsent",
+      "service": "Human NSFW Consent",
+      "method": "GET",
+      "path": "/api/human/nsfw-consent/check"
+    },
+    {
+      "operation_id": "HumanNsfwConsentController_getConsentStatus",
+      "service": "Human NSFW Consent",
+      "method": "GET",
+      "path": "/api/human/nsfw-consent/status"
+    },
+    {
+      "operation_id": "HumanNsfwConsentController_updateUserConsent",
+      "service": "Human NSFW Consent",
+      "method": "PUT",
+      "path": "/api/human/me/settings/nsfw-consent"
+    },
+    {
+      "operation_id": "introspectSession",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/sessions/introspect"
+    },
+    {
+      "operation_id": "InvitationController_generateCode",
+      "service": "Invitations",
+      "method": "POST",
+      "path": "/api/invitations"
+    },
+    {
+      "operation_id": "InvitationController_listMyCodes",
+      "service": "Invitations",
+      "method": "GET",
+      "path": "/api/invitations"
+    },
+    {
+      "operation_id": "InvitationController_verifyCode",
+      "service": "Invitations",
+      "method": "POST",
+      "path": "/api/invitations/verify"
+    },
+    {
+      "operation_id": "issueRuntimeRealmGrant",
+      "service": "Runtime Realm Grants",
+      "method": "POST",
+      "path": "/api/runtime/realm-grants/issue"
+    },
+    {
+      "operation_id": "likePost",
+      "service": "Posts",
+      "method": "POST",
+      "path": "/api/world/posts/by-id/{postId}/like"
+    },
+    {
+      "operation_id": "linkOauth",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/oauth/link"
+    },
+    {
+      "operation_id": "listAssets",
+      "service": "Assets",
+      "method": "GET",
+      "path": "/api/assets"
+    },
+    {
+      "operation_id": "listBundles",
+      "service": "Bundles",
+      "method": "GET",
+      "path": "/api/bundles"
+    },
+    {
+      "operation_id": "listChats",
+      "service": "Human Chats",
+      "method": "GET",
+      "path": "/api/human/chats"
+    },
+    {
+      "operation_id": "listGroupMessages",
+      "service": "Group Chats",
+      "method": "GET",
+      "path": "/api/human/group-chats/{chatId}/messages"
+    },
+    {
+      "operation_id": "listGroups",
+      "service": "Group Chats",
+      "method": "GET",
+      "path": "/api/human/group-chats"
+    },
+    {
+      "operation_id": "listLikedPosts",
+      "service": "Posts",
+      "method": "GET",
+      "path": "/api/world/posts/liked"
+    },
+    {
+      "operation_id": "listMessages",
+      "service": "Human Chats",
+      "method": "GET",
+      "path": "/api/human/chats/{chatId}/messages"
+    },
+    {
+      "operation_id": "listMyFriendIds",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/human/me/friends"
+    },
+    {
+      "operation_id": "listMyFriendsWithDetails",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/human/me/friends/list"
+    },
+    {
+      "operation_id": "listMyLocalAgentProvisionIntents",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/human/me/local-agent-provision-intents"
+    },
+    {
+      "operation_id": "listMyLocalAgentTerminationIntents",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/human/me/local-agent-termination-intents"
+    },
+    {
+      "operation_id": "listMyRealmAgents",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/me/agents"
+    },
+    {
+      "operation_id": "listNotifications",
+      "service": "Notifications",
+      "method": "GET",
+      "path": "/api/human/notifications"
+    },
+    {
+      "operation_id": "listOnlineUsers",
+      "service": "User",
+      "method": "GET",
+      "path": "/api/human/online"
+    },
+    {
+      "operation_id": "listResources",
+      "service": "Resources",
+      "method": "GET",
+      "path": "/api/resources"
+    },
+    {
+      "operation_id": "logout",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/logout"
+    },
+    {
+      "operation_id": "markChatRead",
+      "service": "Human Chats",
+      "method": "POST",
+      "path": "/api/human/chats/{chatId}/read"
+    },
+    {
+      "operation_id": "markGroupRead",
+      "service": "Group Chats",
+      "method": "POST",
+      "path": "/api/human/group-chats/{chatId}/read"
+    },
+    {
+      "operation_id": "markNotificationRead",
+      "service": "Notifications",
+      "method": "POST",
+      "path": "/api/human/notifications/{notificationId}/read"
+    },
+    {
+      "operation_id": "markNotificationsRead",
+      "service": "Notifications",
+      "method": "POST",
+      "path": "/api/human/notifications/read"
+    },
+    {
+      "operation_id": "oauthAuthorize",
+      "service": "Auth",
+      "method": "GET",
+      "path": "/api/auth/oauth/authorize"
+    },
+    {
+      "operation_id": "oauthLogin",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/oauth/login"
+    },
+    {
+      "operation_id": "oauthToken",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/oauth/token"
+    },
+    {
+      "operation_id": "passwordLogin",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/password/login"
+    },
+    {
+      "operation_id": "passwordRegister",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/password/register"
+    },
+    {
+      "operation_id": "prepare2Fa",
+      "service": "Me2fa",
+      "method": "POST",
+      "path": "/api/auth/me/2fa/prepare"
+    },
+    {
+      "operation_id": "prepareBindWallet",
+      "service": "Me",
+      "method": "POST",
+      "path": "/api/human/me/wallets/prepare-bind"
+    },
+    {
+      "operation_id": "projectRuntimePayload",
+      "service": "Runtime Projections",
+      "method": "POST",
+      "path": "/api/runtime/projections/project"
+    },
+    {
+      "operation_id": "publishBundle",
+      "service": "Bundles",
+      "method": "POST",
+      "path": "/api/bundles/{bundleId}/publish"
+    },
+    {
+      "operation_id": "recallGroupMessage",
+      "service": "Group Chats",
+      "method": "POST",
+      "path": "/api/human/group-chats/{chatId}/messages/{messageId}/recall"
+    },
+    {
+      "operation_id": "recallMessage",
+      "service": "Human Chats",
+      "method": "POST",
+      "path": "/api/human/chats/{chatId}/messages/{messageId}/recall"
+    },
+    {
+      "operation_id": "refreshToken",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/refresh"
+    },
+    {
+      "operation_id": "RelationshipController_createRelationship",
+      "service": "Relationships (Meta-Graph)",
+      "method": "POST",
+      "path": "/api/human/relationships"
+    },
+    {
+      "operation_id": "RelationshipController_deleteRelationship",
+      "service": "Relationships (Meta-Graph)",
+      "method": "DELETE",
+      "path": "/api/human/relationships/{id}"
+    },
+    {
+      "operation_id": "RelationshipController_getMyRelationships",
+      "service": "Relationships (Meta-Graph)",
+      "method": "GET",
+      "path": "/api/human/relationships/me"
+    },
+    {
+      "operation_id": "RelationshipController_updateRelationship",
+      "service": "Relationships (Meta-Graph)",
+      "method": "PATCH",
+      "path": "/api/human/relationships/{id}"
+    },
+    {
+      "operation_id": "removeFriend",
+      "service": "User",
+      "method": "DELETE",
+      "path": "/api/human/accounts/{id}/friends"
+    },
+    {
+      "operation_id": "removeGroupAgent",
+      "service": "Group Chats",
+      "method": "DELETE",
+      "path": "/api/human/group-chats/{chatId}/agents/{agentAccountId}"
+    },
+    {
+      "operation_id": "removeGroupParticipant",
+      "service": "Group Chats",
+      "method": "DELETE",
+      "path": "/api/human/group-chats/{chatId}/participants/{accountId}"
+    },
+    {
+      "operation_id": "ReportController_createReport",
+      "service": "Governance",
+      "method": "POST",
+      "path": "/api/reports"
+    },
+    {
+      "operation_id": "requestAccountDeletion",
+      "service": "MeAccountData",
+      "method": "POST",
+      "path": "/api/auth/me/account-deletion"
+    },
+    {
+      "operation_id": "requestDataExport",
+      "service": "MeAccountData",
+      "method": "POST",
+      "path": "/api/auth/me/data-export"
+    },
+    {
+      "operation_id": "requestEmailOtp",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/email/otp/request"
+    },
+    {
+      "operation_id": "ReviewController_createReview",
+      "service": "Reviews (Economy/Trust)",
+      "method": "POST",
+      "path": "/api/economy/reviews"
+    },
+    {
+      "operation_id": "ReviewController_getReviews",
+      "service": "Reviews (Economy/Trust)",
+      "method": "GET",
+      "path": "/api/economy/reviews"
+    },
+    {
+      "operation_id": "searchHumanUsers",
+      "service": "User",
+      "method": "GET",
+      "path": "/api/human/search"
+    },
+    {
+      "operation_id": "searchIndexedUsers",
+      "service": "Search",
+      "method": "GET",
+      "path": "/api/search/users"
+    },
+    {
+      "operation_id": "searchPosts",
+      "service": "Search",
+      "method": "GET",
+      "path": "/api/search/posts"
+    },
+    {
+      "operation_id": "sendGroupMessage",
+      "service": "Group Chats",
+      "method": "POST",
+      "path": "/api/human/group-chats/{chatId}/messages"
+    },
+    {
+      "operation_id": "sendMessage",
+      "service": "Human Chats",
+      "method": "POST",
+      "path": "/api/human/chats/{chatId}/messages"
+    },
+    {
+      "operation_id": "startChat",
+      "service": "Human Chats",
+      "method": "POST",
+      "path": "/api/human/chats"
+    },
+    {
+      "operation_id": "syncChatEvents",
+      "service": "Human Chats",
+      "method": "GET",
+      "path": "/api/human/chats/{chatId}/sync"
+    },
+    {
+      "operation_id": "syncGroupEvents",
+      "service": "Group Chats",
+      "method": "GET",
+      "path": "/api/human/group-chats/{chatId}/sync"
+    },
+    {
+      "operation_id": "TransitController_abandon",
+      "service": "Transits",
+      "method": "POST",
+      "path": "/api/world/transit/{id}/abandon"
+    },
+    {
+      "operation_id": "TransitController_complete",
+      "service": "Transits",
+      "method": "POST",
+      "path": "/api/world/transit/{id}/complete"
+    },
+    {
+      "operation_id": "TransitController_getActiveTransit",
+      "service": "Transits",
+      "method": "GET",
+      "path": "/api/world/transit/active/{agentId}"
+    },
+    {
+      "operation_id": "TransitController_getTransit",
+      "service": "Transits",
+      "method": "GET",
+      "path": "/api/world/transit/{id}"
+    },
+    {
+      "operation_id": "TransitController_listTransits",
+      "service": "Transits",
+      "method": "GET",
+      "path": "/api/world/transit"
+    },
+    {
+      "operation_id": "translateText",
+      "service": "Translation",
+      "method": "POST",
+      "path": "/api/translation/translate"
+    },
+    {
+      "operation_id": "unbindWallet",
+      "service": "Me",
+      "method": "DELETE",
+      "path": "/api/human/me/wallets/{walletId}"
+    },
+    {
+      "operation_id": "unblockUser",
+      "service": "Me",
+      "method": "DELETE",
+      "path": "/api/human/me/blocks/{id}"
+    },
+    {
+      "operation_id": "unlikePost",
+      "service": "Posts",
+      "method": "DELETE",
+      "path": "/api/world/posts/by-id/{postId}/like"
+    },
+    {
+      "operation_id": "unlinkOauth",
+      "service": "Auth",
+      "method": "DELETE",
+      "path": "/api/auth/oauth/{provider}"
+    },
+    {
+      "operation_id": "updateAsset",
+      "service": "Assets",
+      "method": "PATCH",
+      "path": "/api/assets/{assetId}"
+    },
+    {
+      "operation_id": "updateBundle",
+      "service": "Bundles",
+      "method": "PATCH",
+      "path": "/api/bundles/{bundleId}"
+    },
+    {
+      "operation_id": "updateGroup",
+      "service": "Group Chats",
+      "method": "PATCH",
+      "path": "/api/human/group-chats/{chatId}"
+    },
+    {
+      "operation_id": "updateGroupParticipantRole",
+      "service": "Group Chats",
+      "method": "PATCH",
+      "path": "/api/human/group-chats/{chatId}/participants/{accountId}"
+    },
+    {
+      "operation_id": "updateMe",
+      "service": "Me",
+      "method": "PATCH",
+      "path": "/api/human/me"
+    },
+    {
+      "operation_id": "updateMyHandle",
+      "service": "Me",
+      "method": "PATCH",
+      "path": "/api/human/me/handle"
+    },
+    {
+      "operation_id": "updateMyNotificationSettings",
+      "service": "Me",
+      "method": "PATCH",
+      "path": "/api/human/me/notification-settings"
+    },
+    {
+      "operation_id": "updateMyPPConfig",
+      "service": "Me",
+      "method": "PUT",
+      "path": "/api/human/me/pp-config"
+    },
+    {
+      "operation_id": "updateMyRealmAgentSettings",
+      "service": "Me",
+      "method": "PATCH",
+      "path": "/api/me/agents/{agentId}/settings"
+    },
+    {
+      "operation_id": "updateMySettings",
+      "service": "Me",
+      "method": "PATCH",
+      "path": "/api/human/me/settings"
+    },
+    {
+      "operation_id": "updatePassword",
+      "service": "Auth",
+      "method": "PUT",
+      "path": "/api/auth/me/password"
+    },
+    {
+      "operation_id": "updatePost",
+      "service": "Posts",
+      "method": "PATCH",
+      "path": "/api/world/posts/by-id/{id}"
+    },
+    {
+      "operation_id": "updateResource",
+      "service": "Resources",
+      "method": "PATCH",
+      "path": "/api/resources/{resourceId}"
+    },
+    {
+      "operation_id": "V1DefaultVisibilityController_applyAgentDefaults",
+      "service": "Social - V1 Default Visibility",
+      "method": "POST",
+      "path": "/api/agent/visibility/defaults/apply/agent/{agentId}"
+    },
+    {
+      "operation_id": "V1DefaultVisibilityController_applyUserDefaults",
+      "service": "Social - V1 Default Visibility",
+      "method": "POST",
+      "path": "/api/agent/visibility/defaults/apply/user/{userId}"
+    },
+    {
+      "operation_id": "V1DefaultVisibilityController_getDefaultForScope",
+      "service": "Social - V1 Default Visibility",
+      "method": "GET",
+      "path": "/api/agent/visibility/defaults/defaults/{entityType}/{scope}"
+    },
+    {
+      "operation_id": "V1DefaultVisibilityController_getDefaultVisibility",
+      "service": "Social - V1 Default Visibility",
+      "method": "GET",
+      "path": "/api/agent/visibility/defaults/defaults/{entityType}"
+    },
+    {
+      "operation_id": "V1DefaultVisibilityController_validateAgentVisibility",
+      "service": "Social - V1 Default Visibility",
+      "method": "GET",
+      "path": "/api/agent/visibility/defaults/validate/agent/{agentId}"
+    },
+    {
+      "operation_id": "V1DefaultVisibilityController_validateUserVisibility",
+      "service": "Social - V1 Default Visibility",
+      "method": "GET",
+      "path": "/api/agent/visibility/defaults/validate/user/{userId}"
+    },
+    {
+      "operation_id": "verify2Fa",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/2fa/verify"
+    },
+    {
+      "operation_id": "verifyEmailOtp",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/email/otp/verify"
+    },
+    {
+      "operation_id": "walletChallenge",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/wallet/challenge"
+    },
+    {
+      "operation_id": "walletLogin",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/wallet/login"
+    },
+    {
+      "operation_id": "WorldControlController_appendWorldHistory",
+      "service": "World Control",
+      "method": "POST",
+      "path": "/api/worlds/{worldId}/history/appends"
+    },
+    {
+      "operation_id": "WorldControlController_batchUpsertWorldBindings",
+      "service": "World Control",
+      "method": "POST",
+      "path": "/api/worlds/{worldId}/bindings"
+    },
+    {
+      "operation_id": "WorldControlController_commitState",
+      "service": "World Control",
+      "method": "POST",
+      "path": "/api/worlds/{worldId}/state/commits"
+    },
+    {
+      "operation_id": "WorldControlController_createDraft",
+      "service": "World Control",
+      "method": "POST",
+      "path": "/api/world-drafts"
+    },
+    {
+      "operation_id": "WorldControlController_deleteWorldBinding",
+      "service": "World Control",
+      "method": "DELETE",
+      "path": "/api/worlds/{worldId}/bindings/{bindingId}"
+    },
+    {
+      "operation_id": "WorldControlController_getDraft",
+      "service": "World Control",
+      "method": "GET",
+      "path": "/api/world-drafts/{draftId}"
+    },
+    {
+      "operation_id": "WorldControlController_getMyAccess",
+      "service": "World Control",
+      "method": "GET",
+      "path": "/api/world-control/access/me"
+    },
+    {
+      "operation_id": "WorldControlController_getState",
+      "service": "World Control",
+      "method": "GET",
+      "path": "/api/worlds/{worldId}/state"
+    },
+    {
+      "operation_id": "WorldControlController_listDrafts",
+      "service": "World Control",
+      "method": "GET",
+      "path": "/api/world-drafts"
+    },
+    {
+      "operation_id": "WorldControlController_listMyWorlds",
+      "service": "World Control",
+      "method": "GET",
+      "path": "/api/worlds/mine"
+    },
+    {
+      "operation_id": "WorldControlController_listWorldBindings",
+      "service": "World Control",
+      "method": "GET",
+      "path": "/api/worlds/{worldId}/bindings"
+    },
+    {
+      "operation_id": "WorldControlController_listWorldHistory",
+      "service": "World Control",
+      "method": "GET",
+      "path": "/api/worlds/{worldId}/history"
+    },
+    {
+      "operation_id": "WorldControlController_listWorldLorebooks",
+      "service": "World Control",
+      "method": "GET",
+      "path": "/api/worlds/{worldId}/lorebooks"
+    },
+    {
+      "operation_id": "WorldControlController_publishDraft",
+      "service": "World Control",
+      "method": "POST",
+      "path": "/api/world-drafts/{draftId}/publish"
+    },
+    {
+      "operation_id": "WorldControlController_resolveLanding",
+      "service": "World Control",
+      "method": "GET",
+      "path": "/api/world-control/landing"
+    },
+    {
+      "operation_id": "WorldControlController_updateDraft",
+      "service": "World Control",
+      "method": "PATCH",
+      "path": "/api/world-drafts/{draftId}"
+    },
+    {
+      "operation_id": "WorldController_getMainWorld",
+      "service": "Worlds",
+      "method": "GET",
+      "path": "/api/world/oasis"
+    },
+    {
+      "operation_id": "WorldController_getWorld",
+      "service": "Worlds",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}"
+    },
+    {
+      "operation_id": "WorldController_getWorldAgents",
+      "service": "Worlds",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}/agents"
+    },
+    {
+      "operation_id": "WorldController_getWorldBindings",
+      "service": "Worlds",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}/bindings"
+    },
+    {
+      "operation_id": "WorldController_getWorldDetailWithAgents",
+      "service": "Worlds",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}/detail-with-agents"
+    },
+    {
+      "operation_id": "WorldController_getWorldHistory",
+      "service": "Worlds",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}/history"
+    },
+    {
+      "operation_id": "WorldController_getWorldLevelAudits",
+      "service": "Worlds",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}/level/audits"
+    },
+    {
+      "operation_id": "WorldController_getWorldLorebooks",
+      "service": "Worlds",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}/lorebooks"
+    },
+    {
+      "operation_id": "WorldController_getWorldview",
+      "service": "Worlds",
+      "method": "GET",
+      "path": "/api/world/by-id/{id}/worldview"
+    },
+    {
+      "operation_id": "WorldController_listWorlds",
+      "service": "Worlds",
+      "method": "GET",
+      "path": "/api/world"
+    },
+    {
+      "operation_id": "WorldController_returnToMainWorld",
+      "service": "Worlds",
+      "method": "POST",
+      "path": "/api/world/by-id/{id}/return"
+    },
+    {
+      "operation_id": "WorldController_transitToWorld",
+      "service": "Worlds",
+      "method": "POST",
+      "path": "/api/world/by-id/{id}/transit"
+    },
+    {
+      "operation_id": "WorldRulesController_archiveRule",
+      "service": "World Rules",
+      "method": "POST",
+      "path": "/api/world/by-id/{worldId}/rules/{ruleId}/archive"
+    },
+    {
+      "operation_id": "WorldRulesController_checkPermission",
+      "service": "World Rules",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/rules/check/{action}"
+    },
+    {
+      "operation_id": "WorldRulesController_createRule",
+      "service": "World Rules",
+      "method": "POST",
+      "path": "/api/world/by-id/{worldId}/rules"
+    },
+    {
+      "operation_id": "WorldRulesController_deprecateRule",
+      "service": "World Rules",
+      "method": "POST",
+      "path": "/api/world/by-id/{worldId}/rules/{ruleId}/deprecate"
+    },
+    {
+      "operation_id": "WorldRulesController_getCreatorCapabilities",
+      "service": "World Rules",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/rules/capabilities"
+    },
+    {
+      "operation_id": "WorldRulesController_getRules",
+      "service": "World Rules",
+      "method": "GET",
+      "path": "/api/world/by-id/{worldId}/rules"
+    },
+    {
+      "operation_id": "WorldRulesController_updateRule",
+      "service": "World Rules",
+      "method": "PATCH",
+      "path": "/api/world/by-id/{worldId}/rules/{ruleId}"
+    },
+    {
+      "operation_id": "WorldRulesController_validateRules",
+      "service": "World Rules",
+      "method": "POST",
+      "path": "/api/world/by-id/{worldId}/rules/validate"
+    }
+  ],
+  "service_registry": [
+    {
+      "name": "Agent NSFW Consent",
+      "operation_ids": [
+        "AgentNsfwConsentController_updateAgentConsent"
+      ]
+    },
+    {
+      "name": "Agent Rules",
+      "operation_ids": [
+        "AgentRulesController_archiveRule",
+        "AgentRulesController_createRule",
+        "AgentRulesController_deprecateRule",
+        "AgentRulesController_listRules",
+        "AgentRulesController_updateRule"
+      ]
+    },
+    {
+      "name": "Agents",
+      "operation_ids": [
+        "AgentController_checkHandle",
+        "AgentController_create",
+        "AgentController_delete",
+        "AgentController_getRelationships",
+        "AgentController_getVisibility",
+        "AgentController_makePublic",
+        "AgentController_removeRelationship",
+        "AgentController_selectAvatar",
+        "AgentController_setRelationship",
+        "AgentController_updateDna",
+        "AgentController_updateVisibility",
+        "getAgent",
+        "getAgentByHandle"
+      ]
+    },
+    {
+      "name": "Assets",
+      "operation_ids": [
+        "cloneAsset",
+        "createAsset",
+        "getAsset",
+        "listAssets",
+        "updateAsset"
+      ]
+    },
+    {
+      "name": "Auth",
+      "operation_ids": [
+        "bindEmail",
+        "changeEmail",
+        "checkEmail",
+        "introspectSession",
+        "linkOauth",
+        "logout",
+        "oauthAuthorize",
+        "oauthLogin",
+        "oauthToken",
+        "passwordLogin",
+        "passwordRegister",
+        "refreshToken",
+        "requestEmailOtp",
+        "unlinkOauth",
+        "updatePassword",
+        "verify2Fa",
+        "verifyEmailOtp",
+        "walletChallenge",
+        "walletLogin"
+      ]
+    },
+    {
+      "name": "Bundles",
+      "operation_ids": [
+        "archiveBundle",
+        "createBundle",
+        "getBundle",
+        "listBundles",
+        "publishBundle",
+        "updateBundle"
+      ]
+    },
+    {
+      "name": "Creator",
+      "operation_ids": [
+        "CreatorController_batchCreateAgents",
+        "CreatorController_createAgent",
+        "CreatorController_createKey",
+        "CreatorController_deleteAgent",
+        "CreatorController_getAgent",
+        "CreatorController_listAgents",
+        "CreatorController_listKeys",
+        "CreatorController_revokeKey",
+        "CreatorController_updateAgent"
+      ]
+    },
+    {
+      "name": "Creator Mods Control Plane",
+      "operation_ids": [
+        "CreatorModsController_ingestAudit",
+        "CreatorModsController_issueGrant",
+        "CreatorModsController_queryAudit",
+        "CreatorModsController_revocations",
+        "CreatorModsController_validateGrant",
+        "CreatorModsController_verifyManifest",
+        "CreatorModsController_verifySignature"
+      ]
+    },
+    {
+      "name": "Economy (Currency & Gifts)",
+      "operation_ids": [
+        "EconomyController_acceptGift",
+        "EconomyController_calculateWithdrawal",
+        "EconomyController_canWithdraw",
+        "EconomyController_cancelSubscription",
+        "EconomyController_createConnectDashboard",
+        "EconomyController_createConnectOnboarding",
+        "EconomyController_createPortalSession",
+        "EconomyController_createSparkCheckout",
+        "EconomyController_createSubscriptionCheckout",
+        "EconomyController_createWithdrawal",
+        "EconomyController_getAgentOrigin",
+        "EconomyController_getBalances",
+        "EconomyController_getConnectStatus",
+        "EconomyController_getGemHistory",
+        "EconomyController_getGiftCatalog",
+        "EconomyController_getReceivedGifts",
+        "EconomyController_getRevenueShareConfig",
+        "EconomyController_getSentGifts",
+        "EconomyController_getSparkHistory",
+        "EconomyController_getSparkPackages",
+        "EconomyController_getSubscription",
+        "EconomyController_getSubscriptionTiers",
+        "EconomyController_getWithdrawal",
+        "EconomyController_getWithdrawalConfig",
+        "EconomyController_getWithdrawalHistory",
+        "EconomyController_previewRevenueDistribution",
+        "EconomyController_rejectGift",
+        "EconomyController_sendGift"
+      ]
+    },
+    {
+      "name": "Explore",
+      "operation_ids": [
+        "ExploreController_checkStatus",
+        "getExploreFeed"
+      ]
+    },
+    {
+      "name": "Governance",
+      "operation_ids": [
+        "ReportController_createReport"
+      ]
+    },
+    {
+      "name": "Group Chats",
+      "operation_ids": [
+        "addGroupAgent",
+        "addGroupParticipant",
+        "commitRealmGroupMessageCandidate",
+        "createGroup",
+        "editGroupMessage",
+        "getGroup",
+        "listGroupMessages",
+        "listGroups",
+        "markGroupRead",
+        "recallGroupMessage",
+        "removeGroupAgent",
+        "removeGroupParticipant",
+        "sendGroupMessage",
+        "syncGroupEvents",
+        "updateGroup",
+        "updateGroupParticipantRole"
+      ]
+    },
+    {
+      "name": "Human Chats",
+      "operation_ids": [
+        "editMessage",
+        "getChatById",
+        "listChats",
+        "listMessages",
+        "markChatRead",
+        "recallMessage",
+        "sendMessage",
+        "startChat",
+        "syncChatEvents"
+      ]
+    },
+    {
+      "name": "Human NSFW Consent",
+      "operation_ids": [
+        "HumanNsfwConsentController_canManageAgentNsfw",
+        "HumanNsfwConsentController_checkConsent",
+        "HumanNsfwConsentController_getConsentStatus",
+        "HumanNsfwConsentController_updateUserConsent"
+      ]
+    },
+    {
+      "name": "Invitations",
+      "operation_ids": [
+        "InvitationController_generateCode",
+        "InvitationController_listMyCodes",
+        "InvitationController_verifyCode"
+      ]
+    },
+    {
+      "name": "Jwks",
+      "operation_ids": [
+        "getAuthJwks"
+      ]
+    },
+    {
+      "name": "Me",
+      "operation_ids": [
+        "ackMyLocalAgentProvisionIntent",
+        "ackMyLocalAgentTerminationIntent",
+        "bindWallet",
+        "blockUser",
+        "getMe",
+        "getMyAgentFriendLimit",
+        "getMyBlockedUsers",
+        "getMyCapabilities",
+        "getMyCreatorEligibility",
+        "getMyNotificationSettings",
+        "getMyPPConfig",
+        "getMyPendingFriendRequests",
+        "getMyRealmAgent",
+        "getMyRealmAgentSettings",
+        "getMySettings",
+        "getMyTiers",
+        "getMyWallets",
+        "listMyFriendIds",
+        "listMyFriendsWithDetails",
+        "listMyLocalAgentProvisionIntents",
+        "listMyLocalAgentTerminationIntents",
+        "listMyRealmAgents",
+        "prepareBindWallet",
+        "unbindWallet",
+        "unblockUser",
+        "updateMe",
+        "updateMyHandle",
+        "updateMyNotificationSettings",
+        "updateMyPPConfig",
+        "updateMyRealmAgentSettings",
+        "updateMySettings"
+      ]
+    },
+    {
+      "name": "Me2fa",
+      "operation_ids": [
+        "disable2Fa",
+        "enable2Fa",
+        "prepare2Fa"
+      ]
+    },
+    {
+      "name": "MeAccountData",
+      "operation_ids": [
+        "requestAccountDeletion",
+        "requestDataExport"
+      ]
+    },
+    {
+      "name": "Notifications",
+      "operation_ids": [
+        "getUnreadCount",
+        "listNotifications",
+        "markNotificationRead",
+        "markNotificationsRead"
+      ]
+    },
+    {
+      "name": "Posts",
+      "operation_ids": [
+        "createPost",
+        "deletePost",
+        "getHomeFeed",
+        "getPost",
+        "getPublicPost",
+        "likePost",
+        "listLikedPosts",
+        "unlikePost",
+        "updatePost"
+      ]
+    },
+    {
+      "name": "Relationships (Meta-Graph)",
+      "operation_ids": [
+        "RelationshipController_createRelationship",
+        "RelationshipController_deleteRelationship",
+        "RelationshipController_getMyRelationships",
+        "RelationshipController_updateRelationship"
+      ]
+    },
+    {
+      "name": "Resources",
+      "operation_ids": [
+        "createAudioDirectUpload",
+        "createImageDirectUpload",
+        "createTextResource",
+        "createVideoDirectUpload",
+        "deleteResource",
+        "finalizeResource",
+        "getResource",
+        "listResources",
+        "updateResource"
+      ]
+    },
+    {
+      "name": "Reviews (Economy/Trust)",
+      "operation_ids": [
+        "ReviewController_createReview",
+        "ReviewController_getReviews"
+      ]
+    },
+    {
+      "name": "Runtime Projections",
+      "operation_ids": [
+        "projectRuntimePayload"
+      ]
+    },
+    {
+      "name": "Runtime Realm Grants",
+      "operation_ids": [
+        "issueRuntimeRealmGrant"
+      ]
+    },
+    {
+      "name": "Search",
+      "operation_ids": [
+        "searchIndexedUsers",
+        "searchPosts"
+      ]
+    },
+    {
+      "name": "Social - V1 Default Visibility",
+      "operation_ids": [
+        "V1DefaultVisibilityController_applyAgentDefaults",
+        "V1DefaultVisibilityController_applyUserDefaults",
+        "V1DefaultVisibilityController_getDefaultForScope",
+        "V1DefaultVisibilityController_getDefaultVisibility",
+        "V1DefaultVisibilityController_validateAgentVisibility",
+        "V1DefaultVisibilityController_validateUserVisibility"
+      ]
+    },
+    {
+      "name": "Transits",
+      "operation_ids": [
+        "TransitController_abandon",
+        "TransitController_complete",
+        "TransitController_getActiveTransit",
+        "TransitController_getTransit",
+        "TransitController_listTransits"
+      ]
+    },
+    {
+      "name": "Translation",
+      "operation_ids": [
+        "translateText"
+      ]
+    },
+    {
+      "name": "User",
+      "operation_ids": [
+        "addFriend",
+        "checkHandle",
+        "getMutualFriends",
+        "getMutualFriendsCount",
+        "getUser",
+        "getUserByHandle",
+        "getUserFriends",
+        "listOnlineUsers",
+        "removeFriend",
+        "searchHumanUsers"
+      ]
+    },
+    {
+      "name": "World Control",
+      "operation_ids": [
+        "WorldControlController_appendWorldHistory",
+        "WorldControlController_batchUpsertWorldBindings",
+        "WorldControlController_commitState",
+        "WorldControlController_createDraft",
+        "WorldControlController_deleteWorldBinding",
+        "WorldControlController_getDraft",
+        "WorldControlController_getMyAccess",
+        "WorldControlController_getState",
+        "WorldControlController_listDrafts",
+        "WorldControlController_listMyWorlds",
+        "WorldControlController_listWorldBindings",
+        "WorldControlController_listWorldHistory",
+        "WorldControlController_listWorldLorebooks",
+        "WorldControlController_publishDraft",
+        "WorldControlController_resolveLanding",
+        "WorldControlController_updateDraft"
+      ]
+    },
+    {
+      "name": "World Rules",
+      "operation_ids": [
+        "WorldRulesController_archiveRule",
+        "WorldRulesController_checkPermission",
+        "WorldRulesController_createRule",
+        "WorldRulesController_deprecateRule",
+        "WorldRulesController_getCreatorCapabilities",
+        "WorldRulesController_getRules",
+        "WorldRulesController_updateRule",
+        "WorldRulesController_validateRules"
+      ]
+    },
+    {
+      "name": "WorldPost",
+      "operation_ids": [
+        "getWorldPosts"
+      ]
+    },
+    {
+      "name": "Worlds",
+      "operation_ids": [
+        "WorldController_getMainWorld",
+        "WorldController_getWorld",
+        "WorldController_getWorldAgents",
+        "WorldController_getWorldBindings",
+        "WorldController_getWorldDetailWithAgents",
+        "WorldController_getWorldHistory",
+        "WorldController_getWorldLevelAudits",
+        "WorldController_getWorldLorebooks",
+        "WorldController_getWorldview",
+        "WorldController_listWorlds",
+        "WorldController_returnToMainWorld",
+        "WorldController_transitToWorld",
+        "getWorldScenes"
+      ]
+    }
+  ],
+  "model_maps": [
+    {
+      "name": "AbilityDefinitionDto"
+    },
+    {
+      "name": "AccountRole"
+    },
+    {
+      "name": "AccountStatus"
+    },
+    {
+      "name": "AddFriendBodyDto"
+    },
+    {
+      "name": "AddGroupAgentInputDto"
+    },
+    {
+      "name": "AddGroupParticipantInputDto"
+    },
+    {
+      "name": "AgentAppearanceDto"
+    },
+    {
+      "name": "AgentBiologicalDto"
+    },
+    {
+      "name": "AgentCapabilitiesDto"
+    },
+    {
+      "name": "AgentCategory"
+    },
+    {
+      "name": "AgentCommunicationDto"
+    },
+    {
+      "name": "AgentDisplayDto"
+    },
+    {
+      "name": "AgentDnaDto"
+    },
+    {
+      "name": "AgentFriendLimitDto"
+    },
+    {
+      "name": "AgentHandleAvailabilityResponseDto"
+    },
+    {
+      "name": "AgentIdentityDto"
+    },
+    {
+      "name": "AgentImportance"
+    },
+    {
+      "name": "AgentMetadataDto"
+    },
+    {
+      "name": "AgentOrigin"
+    },
+    {
+      "name": "AgentOriginDto"
+    },
+    {
+      "name": "AgentOwnershipType"
+    },
+    {
+      "name": "AgentPersonalityDto"
+    },
+    {
+      "name": "AgentProfileDto"
+    },
+    {
+      "name": "AgentRelationType"
+    },
+    {
+      "name": "AgentRelationshipOtherAccountDto"
+    },
+    {
+      "name": "AgentRelationshipRecordDto"
+    },
+    {
+      "name": "AgentResponseMetadataDto"
+    },
+    {
+      "name": "AgentResponseProfileDto"
+    },
+    {
+      "name": "AgentResponseProfileStatsDto"
+    },
+    {
+      "name": "AgentResponseTierSummaryDto"
+    },
+    {
+      "name": "AgentResponseUserDto"
+    },
+    {
+      "name": "AgentRuleDto"
+    },
+    {
+      "name": "AgentRuleLayerCountDto"
+    },
+    {
+      "name": "AgentState"
+    },
+    {
+      "name": "AgentStatsDto"
+    },
+    {
+      "name": "AgentVisibilitySettingsDto"
+    },
+    {
+      "name": "AgentVoiceConfigDto"
+    },
+    {
+      "name": "AgentWakeStrategy"
+    },
+    {
+      "name": "ApiKeyType"
+    },
+    {
+      "name": "AppendWorldHistoryDto"
+    },
+    {
+      "name": "AssetDetailDto"
+    },
+    {
+      "name": "AssetListDto"
+    },
+    {
+      "name": "AttachmentDisplayKind"
+    },
+    {
+      "name": "AttachmentEnvelopeDto"
+    },
+    {
+      "name": "AttachmentReferenceDto"
+    },
+    {
+      "name": "AttachmentTargetType"
+    },
+    {
+      "name": "Auth2faVerifyDto"
+    },
+    {
+      "name": "AuthTokensDto"
+    },
+    {
+      "name": "AuthUserAgentMetadataDto"
+    },
+    {
+      "name": "AuthUserAgentProfileDto"
+    },
+    {
+      "name": "AuthUserAgentStatsDto"
+    },
+    {
+      "name": "AuthUserDto"
+    },
+    {
+      "name": "AuthUserSocialProfileDto"
+    },
+    {
+      "name": "AuthUserTierSummaryDto"
+    },
+    {
+      "name": "AuthUserWalletDto"
+    },
+    {
+      "name": "BatchCreateAgentCreatedDto"
+    },
+    {
+      "name": "BatchCreateAgentFailedDto"
+    },
+    {
+      "name": "BatchCreateAgentsRequestDto"
+    },
+    {
+      "name": "BatchCreateAgentsResponseDto"
+    },
+    {
+      "name": "BatchUpsertBindingsDto"
+    },
+    {
+      "name": "BindEmailDto"
+    },
+    {
+      "name": "BindingDetailDto"
+    },
+    {
+      "name": "BindingListDto"
+    },
+    {
+      "name": "BindingResourceDetailDto"
+    },
+    {
+      "name": "BindingUpsertDto"
+    },
+    {
+      "name": "BlockUserBodyDto"
+    },
+    {
+      "name": "BundleDetailDto"
+    },
+    {
+      "name": "BundleListDto"
+    },
+    {
+      "name": "BundleMemberDto"
+    },
+    {
+      "name": "CalendarSystemDto"
+    },
+    {
+      "name": "CanManageNsfwResponseDto"
+    },
+    {
+      "name": "CanWithdrawDto"
+    },
+    {
+      "name": "CausalityModelDto"
+    },
+    {
+      "name": "CausalityRuleDto"
+    },
+    {
+      "name": "ChangeEmailDto"
+    },
+    {
+      "name": "ChatEventEnvelopeDto"
+    },
+    {
+      "name": "ChatFriendRequestPayloadDto"
+    },
+    {
+      "name": "ChatGiftPayloadDto"
+    },
+    {
+      "name": "ChatLinkRefPayloadDto"
+    },
+    {
+      "name": "ChatPostRefPayloadDto"
+    },
+    {
+      "name": "ChatSyncResultDto"
+    },
+    {
+      "name": "ChatSyncSnapshotDto"
+    },
+    {
+      "name": "ChatTextPayloadDto"
+    },
+    {
+      "name": "ChatUserRefPayloadDto"
+    },
+    {
+      "name": "ChatViewDto"
+    },
+    {
+      "name": "CheckEmailDto"
+    },
+    {
+      "name": "CheckEmailResponseDto"
+    },
+    {
+      "name": "ClassDefinitionDto"
+    },
+    {
+      "name": "CloneAssetDto"
+    },
+    {
+      "name": "CommitRealmGroupMessageCandidateInputDto"
+    },
+    {
+      "name": "CommitWorldStateDto"
+    },
+    {
+      "name": "ConnectDashboardLinkDto"
+    },
+    {
+      "name": "ConnectOnboardingResponseDto"
+    },
+    {
+      "name": "ContentRatingString"
+    },
+    {
+      "name": "CreateAgentDto"
+    },
+    {
+      "name": "CreateAgentResponseDto"
+    },
+    {
+      "name": "CreateAgentRuleDto"
+    },
+    {
+      "name": "CreateAgentRulesDto"
+    },
+    {
+      "name": "CreateApiKeyDto"
+    },
+    {
+      "name": "CreateAssetDto"
+    },
+    {
+      "name": "CreateAudioDirectUploadDto"
+    },
+    {
+      "name": "CreateBundleDto"
+    },
+    {
+      "name": "CreateConnectOnboardingDto"
+    },
+    {
+      "name": "CreateGroupInputDto"
+    },
+    {
+      "name": "CreatePortalSessionDto"
+    },
+    {
+      "name": "CreatePostAttachmentDto"
+    },
+    {
+      "name": "CreatePostDto"
+    },
+    {
+      "name": "CreateRelationshipDto"
+    },
+    {
+      "name": "CreateReportDto"
+    },
+    {
+      "name": "CreateReviewDto"
+    },
+    {
+      "name": "CreateSparkCheckoutDto"
+    },
+    {
+      "name": "CreateSubscriptionCheckoutDto"
+    },
+    {
+      "name": "CreateTextResourceDto"
+    },
+    {
+      "name": "CreateWithdrawalDto"
+    },
+    {
+      "name": "CreateWorldDraftDto"
+    },
+    {
+      "name": "CreateWorldRuleDto"
+    },
+    {
+      "name": "CreateWorldTransitDto"
+    },
+    {
+      "name": "CreatorAgentResponseDto"
+    },
+    {
+      "name": "CreatorCapabilitiesResponseDto"
+    },
+    {
+      "name": "CreatorEligibilityResponseDto"
+    },
+    {
+      "name": "CreatorModControlAuditIngestRequestDto"
+    },
+    {
+      "name": "CreatorModControlAuditRecordDto"
+    },
+    {
+      "name": "CreatorModControlGrantIssueRequestDto"
+    },
+    {
+      "name": "CreatorModControlGrantIssueResponseDto"
+    },
+    {
+      "name": "CreatorModControlGrantValidateRequestDto"
+    },
+    {
+      "name": "CreatorModControlManifestVerifyRequestDto"
+    },
+    {
+      "name": "CreatorModControlSignatureVerifyRequestDto"
+    },
+    {
+      "name": "CurrencyBalancesDto"
+    },
+    {
+      "name": "CurrencyTransactionDto"
+    },
+    {
+      "name": "CurrencyTransactionHistoryDto"
+    },
+    {
+      "name": "CursorPageMetaDto"
+    },
+    {
+      "name": "DeleteAgentOperationResponseDto"
+    },
+    {
+      "name": "DeleteRelationshipResponseDto"
+    },
+    {
+      "name": "DnaSecondaryTrait"
+    },
+    {
+      "name": "EditMessageInputDto"
+    },
+    {
+      "name": "EmailOtpRequestDto"
+    },
+    {
+      "name": "EmailOtpResponseDto"
+    },
+    {
+      "name": "EmailOtpVerifyDto"
+    },
+    {
+      "name": "ExistenceDefinitionDto"
+    },
+    {
+      "name": "FactionDefinitionDto"
+    },
+    {
+      "name": "FactionRelationshipDto"
+    },
+    {
+      "name": "FeedPageMetaDto"
+    },
+    {
+      "name": "FeedResponseDto"
+    },
+    {
+      "name": "FinalizeResourceDto"
+    },
+    {
+      "name": "FriendProfileDto"
+    },
+    {
+      "name": "FriendProfileListDto"
+    },
+    {
+      "name": "Gender"
+    },
+    {
+      "name": "GiftCatalogItemDto"
+    },
+    {
+      "name": "GiftStatus"
+    },
+    {
+      "name": "GiftTransactionDto"
+    },
+    {
+      "name": "GiftTransactionRichDto"
+    },
+    {
+      "name": "GlossaryTermDto"
+    },
+    {
+      "name": "GroupChatViewDto"
+    },
+    {
+      "name": "GroupMessageAuthorDto"
+    },
+    {
+      "name": "GroupMessageViewDto"
+    },
+    {
+      "name": "GroupParticipantDto"
+    },
+    {
+      "name": "HandleAvailabilityDto"
+    },
+    {
+      "name": "ImportPolicyDto"
+    },
+    {
+      "name": "IntrospectSessionErrorDto"
+    },
+    {
+      "name": "IntrospectSessionRequestDto"
+    },
+    {
+      "name": "IntrospectSessionResponseDto"
+    },
+    {
+      "name": "InvitationCodeResponseDto"
+    },
+    {
+      "name": "InvitationCodeUsedByAccountDto"
+    },
+    {
+      "name": "ListChatsResultDto"
+    },
+    {
+      "name": "ListGroupChatsResultDto"
+    },
+    {
+      "name": "ListGroupMessagesResultDto"
+    },
+    {
+      "name": "ListMessagesResultDto"
+    },
+    {
+      "name": "LocalAgentProvisionIntentAckDto"
+    },
+    {
+      "name": "LocalAgentProvisionIntentAckOutcome"
+    },
+    {
+      "name": "LocalAgentProvisionIntentDto"
+    },
+    {
+      "name": "LocalAgentProvisionIntentListDto"
+    },
+    {
+      "name": "LocalAgentProvisionIntentStatus"
+    },
+    {
+      "name": "LocalAgentTerminationIntentAckDto"
+    },
+    {
+      "name": "LocalAgentTerminationIntentAckOutcome"
+    },
+    {
+      "name": "LocalAgentTerminationIntentDto"
+    },
+    {
+      "name": "LocalAgentTerminationIntentListDto"
+    },
+    {
+      "name": "LocalAgentTerminationIntentStatus"
+    },
+    {
+      "name": "LocationLandmarkDto"
+    },
+    {
+      "name": "LocationRegionDto"
+    },
+    {
+      "name": "MakeAgentPublicResponseDto"
+    },
+    {
+      "name": "MarkNotificationsReadInputDto"
+    },
+    {
+      "name": "Me2faOperationResultDto"
+    },
+    {
+      "name": "Me2faPrepareResponseDto"
+    },
+    {
+      "name": "Me2faVerifyDto"
+    },
+    {
+      "name": "MessageReplyViewDto"
+    },
+    {
+      "name": "MessageType"
+    },
+    {
+      "name": "MessageViewDto"
+    },
+    {
+      "name": "ModerationStatusString"
+    },
+    {
+      "name": "MutationActorRefDto"
+    },
+    {
+      "name": "MutationCommitEnvelopeDto"
+    },
+    {
+      "name": "MutationEvidenceRefDto"
+    },
+    {
+      "name": "NotificationActivityDto"
+    },
+    {
+      "name": "NotificationActorAgentMetadataDto"
+    },
+    {
+      "name": "NotificationActorAgentProfileDto"
+    },
+    {
+      "name": "NotificationActorAgentStatsDto"
+    },
+    {
+      "name": "NotificationActorDto"
+    },
+    {
+      "name": "NotificationActorTierSummaryDto"
+    },
+    {
+      "name": "NotificationChannelsDto"
+    },
+    {
+      "name": "NotificationDto"
+    },
+    {
+      "name": "NotificationGiftsDto"
+    },
+    {
+      "name": "NotificationListResultDto"
+    },
+    {
+      "name": "NotificationTargetDto"
+    },
+    {
+      "name": "NsfwConsentResponseDto"
+    },
+    {
+      "name": "NsfwConsentStatusResponseDto"
+    },
+    {
+      "name": "OAuthLoginDto"
+    },
+    {
+      "name": "OAuthLoginResultDto"
+    },
+    {
+      "name": "OAuthProvider"
+    },
+    {
+      "name": "OAuthTokenRequestDto"
+    },
+    {
+      "name": "OAuthTokenResponseDto"
+    },
+    {
+      "name": "OwnerAgentBoundarySettingsDto"
+    },
+    {
+      "name": "OwnerAgentCommunicationSettingsDto"
+    },
+    {
+      "name": "OwnerAgentIdentitySettingsDto"
+    },
+    {
+      "name": "OwnerAgentPersonalitySettingsDto"
+    },
+    {
+      "name": "OwnerAgentPositioningSettingsDto"
+    },
+    {
+      "name": "OwnerAgentSettingsDto"
+    },
+    {
+      "name": "PPSlotConfigDto"
+    },
+    {
+      "name": "PPSlotConfigResponseDto"
+    },
+    {
+      "name": "PPSlotItemDto"
+    },
+    {
+      "name": "PasswordLoginDto"
+    },
+    {
+      "name": "PasswordRegisterDto"
+    },
+    {
+      "name": "PermissionCheckResponseDto"
+    },
+    {
+      "name": "PortalSessionDto"
+    },
+    {
+      "name": "PostAttachmentDto"
+    },
+    {
+      "name": "PostDto"
+    },
+    {
+      "name": "PowerSystemDto"
+    },
+    {
+      "name": "PowerSystemLevelDto"
+    },
+    {
+      "name": "PowerSystemTabooDto"
+    },
+    {
+      "name": "PowerTierDto"
+    },
+    {
+      "name": "PresenceStatus"
+    },
+    {
+      "name": "PublicBindingDto"
+    },
+    {
+      "name": "PublicBindingListDto"
+    },
+    {
+      "name": "PublicBindingResourceDto"
+    },
+    {
+      "name": "PublicFilterDto"
+    },
+    {
+      "name": "PublicWorldHistoryEventDto"
+    },
+    {
+      "name": "PublicWorldHistoryListDto"
+    },
+    {
+      "name": "PublicWorldLorebookDto"
+    },
+    {
+      "name": "PublicWorldLorebookListDto"
+    },
+    {
+      "name": "PublicWorldSceneDto"
+    },
+    {
+      "name": "PublicWorldSceneListDto"
+    },
+    {
+      "name": "PublishWorldDraftDto"
+    },
+    {
+      "name": "PublishWorldDraftResultDto"
+    },
+    {
+      "name": "RealmGroupMessageCandidateCommitResultDto"
+    },
+    {
+      "name": "ReceivedGiftsResponseDto"
+    },
+    {
+      "name": "RefreshTokenDto"
+    },
+    {
+      "name": "RejectGiftDto"
+    },
+    {
+      "name": "RelationshipResponseDto"
+    },
+    {
+      "name": "RemoveAgentRelationshipDto"
+    },
+    {
+      "name": "ReportReason"
+    },
+    {
+      "name": "ReportResponseDto"
+    },
+    {
+      "name": "RequestAccountDeletionDto"
+    },
+    {
+      "name": "RequestDataExportDto"
+    },
+    {
+      "name": "ResourceAcquisitionRuleDto"
+    },
+    {
+      "name": "ResourceConsumptionRuleDto"
+    },
+    {
+      "name": "ResourceCostDto"
+    },
+    {
+      "name": "ResourceDefinitionDto"
+    },
+    {
+      "name": "ResourceDetailDto"
+    },
+    {
+      "name": "ResourceDirectUploadSessionDto"
+    },
+    {
+      "name": "ResourceListDto"
+    },
+    {
+      "name": "ResourceTypeDto"
+    },
+    {
+      "name": "RevenueDistributionPreviewDto"
+    },
+    {
+      "name": "RevenueShareConfigDto"
+    },
+    {
+      "name": "ReviewDto"
+    },
+    {
+      "name": "ReviewRating"
+    },
+    {
+      "name": "ReviewStatsDto"
+    },
+    {
+      "name": "RuleValidationResponseDto"
+    },
+    {
+      "name": "RuntimeProjectionContextEnvelopeDto"
+    },
+    {
+      "name": "RuntimeProjectionInputDto"
+    },
+    {
+      "name": "RuntimeProjectionPayloadDto"
+    },
+    {
+      "name": "RuntimeProjectionRequestDto"
+    },
+    {
+      "name": "RuntimeProjectionResolutionOutcomeDto"
+    },
+    {
+      "name": "RuntimeProjectionResponseDto"
+    },
+    {
+      "name": "RuntimeProjectionSuppressedInputDto"
+    },
+    {
+      "name": "RuntimeProjectionTraceDto"
+    },
+    {
+      "name": "RuntimeRealmGrantIssueRequestDto"
+    },
+    {
+      "name": "RuntimeRealmGrantIssueResponseDto"
+    },
+    {
+      "name": "SceneConnectionDto"
+    },
+    {
+      "name": "SceneDefinitionDto"
+    },
+    {
+      "name": "SceneTimeConfigDto"
+    },
+    {
+      "name": "SceneTimeCycleDto"
+    },
+    {
+      "name": "SceneTimePhaseDto"
+    },
+    {
+      "name": "SceneTimeSettingsDto"
+    },
+    {
+      "name": "SelectAvatarDto"
+    },
+    {
+      "name": "SendGiftDto"
+    },
+    {
+      "name": "SendMessageInputDto"
+    },
+    {
+      "name": "SetAgentRelationshipDto"
+    },
+    {
+      "name": "SocialProfileDto"
+    },
+    {
+      "name": "SpaceRealmDto"
+    },
+    {
+      "name": "SpaceTopologyDto"
+    },
+    {
+      "name": "SparkCheckoutSessionDto"
+    },
+    {
+      "name": "SparkPackageDto"
+    },
+    {
+      "name": "SpeciesDefinitionDto"
+    },
+    {
+      "name": "StartChatInputDto"
+    },
+    {
+      "name": "StartChatResultDto"
+    },
+    {
+      "name": "StripeConnectStatus"
+    },
+    {
+      "name": "StripeConnectStatusDto"
+    },
+    {
+      "name": "SubscriptionCheckoutSessionDto"
+    },
+    {
+      "name": "SubscriptionDto"
+    },
+    {
+      "name": "SubscriptionTier"
+    },
+    {
+      "name": "SubscriptionTierConfigDto"
+    },
+    {
+      "name": "TierDetailDto"
+    },
+    {
+      "name": "TimeCycleDto"
+    },
+    {
+      "name": "TimeModelDto"
+    },
+    {
+      "name": "TransitContextDto"
+    },
+    {
+      "name": "TransitDetailDto"
+    },
+    {
+      "name": "TranslateRequestDto"
+    },
+    {
+      "name": "TranslateResponseDto"
+    },
+    {
+      "name": "UnreadNotificationCountDto"
+    },
+    {
+      "name": "UpdateAgentDnaDto"
+    },
+    {
+      "name": "UpdateAgentNsfwConsentDto"
+    },
+    {
+      "name": "UpdateAgentRuleDto"
+    },
+    {
+      "name": "UpdateAgentVisibilityDto"
+    },
+    {
+      "name": "UpdateAssetDto"
+    },
+    {
+      "name": "UpdateBundleDto"
+    },
+    {
+      "name": "UpdateCreatorAgentDto"
+    },
+    {
+      "name": "UpdateGroupInputDto"
+    },
+    {
+      "name": "UpdateNsfwConsentResponseDto"
+    },
+    {
+      "name": "UpdateOwnerAgentSettingsDto"
+    },
+    {
+      "name": "UpdatePPSlotConfigDto"
+    },
+    {
+      "name": "UpdateParticipantRoleInputDto"
+    },
+    {
+      "name": "UpdatePasswordRequestDto"
+    },
+    {
+      "name": "UpdatePostDto"
+    },
+    {
+      "name": "UpdateRelationshipDto"
+    },
+    {
+      "name": "UpdateResourceDto"
+    },
+    {
+      "name": "UpdateUserDto"
+    },
+    {
+      "name": "UpdateUserNotificationSettingsDto"
+    },
+    {
+      "name": "UpdateUserNsfwConsentDto"
+    },
+    {
+      "name": "UpdateUserSettingsDto"
+    },
+    {
+      "name": "UpdateWorldDraftDto"
+    },
+    {
+      "name": "UpdateWorldRuleDto"
+    },
+    {
+      "name": "UsePolicyDto"
+    },
+    {
+      "name": "UserAgentAppearanceDto"
+    },
+    {
+      "name": "UserAgentBiologicalDto"
+    },
+    {
+      "name": "UserAgentCommunicationDto"
+    },
+    {
+      "name": "UserAgentDnaDto"
+    },
+    {
+      "name": "UserAgentIdentityDto"
+    },
+    {
+      "name": "UserAgentPersonalityDto"
+    },
+    {
+      "name": "UserAgentVoiceConfigDto"
+    },
+    {
+      "name": "UserCapabilitiesDto"
+    },
+    {
+      "name": "UserFeatureCapabilitiesDto"
+    },
+    {
+      "name": "UserLiteDto"
+    },
+    {
+      "name": "UserNotificationSettingsDto"
+    },
+    {
+      "name": "UserPrivateDto"
+    },
+    {
+      "name": "UserProfileDto"
+    },
+    {
+      "name": "UserSearchResponseDto"
+    },
+    {
+      "name": "UserSettingsDto"
+    },
+    {
+      "name": "UserStatsDto"
+    },
+    {
+      "name": "UserTierSummaryDto"
+    },
+    {
+      "name": "UserWalletDto"
+    },
+    {
+      "name": "UserWalletListResponseDto"
+    },
+    {
+      "name": "ValidateRulesDto"
+    },
+    {
+      "name": "VerificationTier"
+    },
+    {
+      "name": "VerifyInvitationCodeDto"
+    },
+    {
+      "name": "Visibility"
+    },
+    {
+      "name": "VisualGuideDto"
+    },
+    {
+      "name": "WalletBindDto"
+    },
+    {
+      "name": "WalletChallengeDto"
+    },
+    {
+      "name": "WalletChallengeResponseDto"
+    },
+    {
+      "name": "WalletLoginDto"
+    },
+    {
+      "name": "WalletPrepareBindDto"
+    },
+    {
+      "name": "WalletPrepareBindResponseDto"
+    },
+    {
+      "name": "WithdrawalConfigDto"
+    },
+    {
+      "name": "WithdrawalDto"
+    },
+    {
+      "name": "WithdrawalHistoryDto"
+    },
+    {
+      "name": "WithdrawalStatus"
+    },
+    {
+      "name": "WithdrawalSummaryDto"
+    },
+    {
+      "name": "WorldAccessRecordDto"
+    },
+    {
+      "name": "WorldAccessSummaryDto"
+    },
+    {
+      "name": "WorldAgentRuleSummaryDto"
+    },
+    {
+      "name": "WorldAgentSummaryDto"
+    },
+    {
+      "name": "WorldClockConfigDto"
+    },
+    {
+      "name": "WorldClockEraDto"
+    },
+    {
+      "name": "WorldComputedEntryDto"
+    },
+    {
+      "name": "WorldComputedLanguagesDto"
+    },
+    {
+      "name": "WorldComputedScoreDto"
+    },
+    {
+      "name": "WorldComputedTimeDto"
+    },
+    {
+      "name": "WorldDetailDto"
+    },
+    {
+      "name": "WorldDetailWithAgentsDto"
+    },
+    {
+      "name": "WorldDisplayComputedDto"
+    },
+    {
+      "name": "WorldDraftDetailDto"
+    },
+    {
+      "name": "WorldDraftHistoryBucketsDto"
+    },
+    {
+      "name": "WorldDraftHistoryDraftDto"
+    },
+    {
+      "name": "WorldDraftHistoryEventDto"
+    },
+    {
+      "name": "WorldDraftImportSourceDto"
+    },
+    {
+      "name": "WorldDraftPayloadDto"
+    },
+    {
+      "name": "WorldDraftStateDraftDto"
+    },
+    {
+      "name": "WorldDraftSummaryDto"
+    },
+    {
+      "name": "WorldDraftSummaryListDto"
+    },
+    {
+      "name": "WorldDraftTruthDraftDto"
+    },
+    {
+      "name": "WorldDraftTruthRuleDto"
+    },
+    {
+      "name": "WorldEventEvidenceRefDto"
+    },
+    {
+      "name": "WorldEventEvidenceRefInputDto"
+    },
+    {
+      "name": "WorldHistoryAppendItemDto"
+    },
+    {
+      "name": "WorldHistoryEventDto"
+    },
+    {
+      "name": "WorldHistoryListDto"
+    },
+    {
+      "name": "WorldHistoryRelatedStateRefDto"
+    },
+    {
+      "name": "WorldLandingDecisionDto"
+    },
+    {
+      "name": "WorldLanguageDto"
+    },
+    {
+      "name": "WorldLevelAuditEventDto"
+    },
+    {
+      "name": "WorldLorebookDetailDto"
+    },
+    {
+      "name": "WorldLorebookListDto"
+    },
+    {
+      "name": "WorldRecommendedAgentDto"
+    },
+    {
+      "name": "WorldRuleDto"
+    },
+    {
+      "name": "WorldRuleItemDto"
+    },
+    {
+      "name": "WorldStateDto"
+    },
+    {
+      "name": "WorldStateRecordDto"
+    },
+    {
+      "name": "WorldStateWriteDto"
+    },
+    {
+      "name": "WorldSummaryDto"
+    },
+    {
+      "name": "WorldSummaryListDto"
+    },
+    {
+      "name": "WorldTimeFormatDto"
+    },
+    {
+      "name": "WorldTruthDto"
+    },
+    {
+      "name": "WorldviewDetailDto"
+    },
+    {
+      "name": "WorldviewGlossaryDto"
+    },
+    {
+      "name": "WorldviewLanguagesDto"
+    },
+    {
+      "name": "WorldviewLocationsDto"
+    },
+    {
+      "name": "WorldviewTruthRuleSummaryDto"
+    }
+  ],
+  "property_enums": [],
+  "language": "typescript",
+  "generated_projection": "language-core-generated"
+}

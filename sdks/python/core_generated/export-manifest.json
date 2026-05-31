@@ -1,0 +1,61 @@
+{
+  "contract": "nimi.sdks.export-manifest.v1",
+  "generated_by": "sdks/generators/generate.mjs",
+  "source_kind": "sdks_generator_projection",
+  "source_paths": [
+    "proto/runtime/v1/account.proto",
+    "proto/runtime/v1/agent_common.proto",
+    "proto/runtime/v1/agent_group_message_candidate.proto",
+    "proto/runtime/v1/agent_service.proto",
+    "proto/runtime/v1/ai.proto",
+    "proto/runtime/v1/ai_scheduling.proto",
+    "proto/runtime/v1/app.proto",
+    "proto/runtime/v1/artifact_service.proto",
+    "proto/runtime/v1/audit.proto",
+    "proto/runtime/v1/auth.proto",
+    "proto/runtime/v1/cognition.proto",
+    "proto/runtime/v1/common.proto",
+    "proto/runtime/v1/connector.proto",
+    "proto/runtime/v1/delegated_control.proto",
+    "proto/runtime/v1/external_agent.proto",
+    "proto/runtime/v1/grant.proto",
+    "proto/runtime/v1/knowledge.proto",
+    "proto/runtime/v1/local_runtime.proto",
+    "proto/runtime/v1/local_runtime_engine.proto",
+    "proto/runtime/v1/local_runtime_types.proto",
+    "proto/runtime/v1/memory.proto",
+    "proto/runtime/v1/model.proto",
+    "proto/runtime/v1/voice.proto",
+    "proto/runtime/v1/workflow.proto",
+    "config/realm-openapi-source.json",
+    ".nimi/spec/sdk/kernel/tables/sdk-error-codes.yaml",
+    ".nimi/spec/sdk/kernel/surface-contract.md"
+  ],
+  "provenance": {
+    "source_rule": "S-SURFACE-019"
+  },
+  "languages": [
+    "typescript",
+    "python",
+    "go",
+    "rust"
+  ],
+  "core_families": [
+    "runtime",
+    "realm",
+    "types"
+  ],
+  "excluded_derivative_surfaces": [
+    "ai-provider",
+    "world",
+    "app",
+    "permission",
+    "ai-config",
+    "runtime-route",
+    "local-environment",
+    "external-framework-adapters"
+  ],
+  "no_forwarding_shims": true,
+  "language": "python",
+  "generated_projection": "language-core-generated"
+}

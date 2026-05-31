@@ -1,0 +1,63 @@
+{
+  "contract": "nimi.sdks.behavior-fixtures.v1",
+  "generated_by": "sdks/generators/generate.mjs",
+  "source_kind": "generated_core_manifests",
+  "source_paths": [
+    "sdks/generators/shared/generated/runtime-core.manifest.json",
+    "sdks/generators/shared/generated/realm-core.manifest.json"
+  ],
+  "cases": {
+    "runtime_unary": {
+      "method_id": "/runtime.v1.RuntimeAccountService/BeginLogin",
+      "kind": "unary",
+      "request_body": {
+        "hello": "runtime"
+      },
+      "response_body": {
+        "ok": true,
+        "source": "runtime-unary"
+      }
+    },
+    "runtime_stream": {
+      "method_id": "/runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
+      "kind": "server_stream",
+      "request_body": {
+        "hello": "stream"
+      },
+      "events": [
+        {
+          "index": 1,
+          "branch": "delta"
+        },
+        {
+          "index": 2,
+          "branch": "done"
+        }
+      ]
+    },
+    "realm_operation": {
+      "operation_id": "ackMyLocalAgentProvisionIntent",
+      "method": "POST",
+      "path": "/api/human/me/local-agent-provision-intents/{intentId}/ack",
+      "request_body": {
+        "hello": "realm"
+      },
+      "response_body": {
+        "ok": true,
+        "source": "realm-operation"
+      }
+    },
+    "metadata": {
+      "auth": {
+        "authorization": "Bearer conformance"
+      },
+      "caller": {
+        "x-nimi-caller": "sdks-conformance"
+      }
+    },
+    "timeout_ms": 1234,
+    "cancellation": {
+      "reason_code": "OPERATION_ABORTED"
+    }
+  }
+}
