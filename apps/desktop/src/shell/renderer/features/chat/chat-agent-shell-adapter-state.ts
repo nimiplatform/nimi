@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
-import { pickerSelectionToBinding } from '@nimiplatform/kit/features/model-config';
+import { pickerSelectionToBinding } from '@nimiplatform/kit/features/model-config/headless';
 import {
   findRuntimeRouteModelProfile,
   type RuntimeRouteBinding,

@@ -45,7 +45,7 @@ import {
 } from './chat-nimi-shell-core';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
-import { pickerSelectionToBinding } from '@nimiplatform/kit/features/model-config';
+import { pickerSelectionToBinding } from '@nimiplatform/kit/features/model-config/headless';
 import { useAiConversationPresentation } from './chat-nimi-shell-presentation';
 import { createChatAiConversationRuntimeAdapter } from './chat-nimi-shell-runtime-adapter';
 import { useAiConversationEffects } from './chat-nimi-shell-effects';

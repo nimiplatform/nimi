@@ -18,7 +18,7 @@ import type {
   SharedAIConfigService,
   SharedAIConfigSubscribeListener,
   SharedAIConfigUnsubscribe,
-} from '@nimiplatform/kit/features/model-config';
+} from '@nimiplatform/kit/features/model-config/headless';
 import { appId } from '../shell/auth/runtime-platform.js';
 
 export const TESTER_APP_LAB_AI_SURFACE_ID = 'app-lab';

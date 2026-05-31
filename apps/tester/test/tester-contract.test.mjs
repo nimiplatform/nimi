@@ -264,6 +264,7 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
     'previewApply',
     'apply(scopeRef',
     'saveTesterAIConfig',
+    '@nimiplatform/kit/features/model-config/headless',
   ]) {
     assert.match(store, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
