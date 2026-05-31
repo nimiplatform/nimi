@@ -121,6 +121,7 @@ export {
   Runtime,
   asNimiError,
   createRuntimeModelCatalogClient,
+  listRuntimeRouteOptions,
   ScenarioJobStatus,
   CatalogModelSource,
   ModelCatalogProviderSource,
@@ -162,6 +163,10 @@ export type {
   RuntimeAgentPresentationLipsyncFrameBatchEvent,
   RuntimeAgentPresentationVoicePlaybackRequestedEvent,
   RuntimeAgentTimelineEnvelope,
+  RuntimeCanonicalCapability,
+  RuntimeRouteOptionsClient,
+  RuntimeRouteOptionsSnapshot,
+  ListRuntimeRouteOptionsInput,
 } from '@nimiplatform/sdk/runtime';
 
 // --- Realm type family ------------------------------------------------------

@@ -851,12 +851,12 @@ test('tester model picker catalog uses runtimeAdmin connector surfaces only', ()
   const provider = read('src/tester/tester-runtime-model-provider.ts');
   const summary = read('src/tester/tester-ai-config.ts');
 
-  assert.match(provider, /listRuntimeRouteOptions/);
-  assert.match(provider, /normalizeRuntimeRouteCapabilityToken/);
+  assert.match(provider, /createRuntimeRouteModelPickerProvider/);
+  assert.match(provider, /@nimiplatform\/kit\/features\/model-picker\/runtime/);
   assert.match(provider, /getRuntimePlatformProjection/);
   assert.match(provider, /model catalog failed closed/);
-  assert.match(provider, /Unsupported Runtime capability/);
-  assert.match(provider, /createSnapshotRouteDataProvider/);
+  assert.doesNotMatch(provider, /normalizeRuntimeRouteCapabilityToken/);
+  assert.doesNotMatch(provider, /createSnapshotRouteDataProvider/);
   assert.doesNotMatch(provider, /as RuntimeCanonicalCapability/);
   assert.doesNotMatch(provider, /openai|anthropic|gemini|gpt-4|claude|mock.*success/i);
   assert.match(summary, /runtimeAdmin\.listConnectors\/listConnectorModels/);

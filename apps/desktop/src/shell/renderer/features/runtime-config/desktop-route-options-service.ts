@@ -6,6 +6,7 @@ import { loadRuntimeRouteOptions } from '@renderer/infra/bootstrap/runtime-boots
 
 export async function loadDesktopRouteOptions(
   capability: RuntimeCanonicalCapability,
+  input?: { targetId?: string },
 ): Promise<RuntimeRouteOptionsSnapshot> {
-  return loadRuntimeRouteOptions({ capability });
+  return loadRuntimeRouteOptions({ capability, targetId: input?.targetId });
 }

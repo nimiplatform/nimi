@@ -1,12 +1,9 @@
 import {
-  listRuntimeRouteOptions,
-  normalizeRuntimeRouteCapabilityToken,
-  type RuntimeRouteOptionsClient,
-} from '@nimiplatform/sdk/runtime';
-import {
-  createSnapshotRouteDataProvider,
+  createRuntimeRouteModelPickerProvider,
+  createRuntimeRouteModelPickerProviderCache,
   type RouteModelPickerDataProvider,
-} from '@nimiplatform/kit/features/model-picker';
+  type RuntimeRouteModelPickerClient,
+} from '@nimiplatform/kit/features/model-picker/runtime';
 import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
 
 // Tester model-picker data flows through the single canonical SDK projection
@@ -17,31 +14,38 @@ import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js'
 export function createTesterRuntimeModelPickerProvider(
   capability: string,
 ): RouteModelPickerDataProvider {
-  return createSnapshotRouteDataProvider(async () => {
-    const projection = await getRuntimePlatformProjection();
-    if (projection.status !== 'ready') {
-      throw new Error(projection.message || 'Runtime unavailable; model catalog failed closed.');
-    }
-    return listTesterRuntimeRouteOptions(projection.client, capability);
+  return createRuntimeRouteModelPickerProvider({
+    capability,
+    getClient: async () => {
+      const projection = await getRuntimePlatformProjection();
+      if (projection.status !== 'ready') {
+        throw new Error(projection.message || 'Runtime unavailable; model catalog failed closed.');
+      }
+      return projection.client as RuntimeRouteModelPickerClient;
+    },
+  });
+}
+
+export function createTesterRuntimeModelPickerProviderCache(): (
+  capability: string,
+) => RouteModelPickerDataProvider | null {
+  return createRuntimeRouteModelPickerProviderCache({
+    getClient: async () => {
+      const projection = await getRuntimePlatformProjection();
+      if (projection.status !== 'ready') {
+        throw new Error(projection.message || 'Runtime unavailable; model catalog failed closed.');
+      }
+      return projection.client as RuntimeRouteModelPickerClient;
+    },
   });
 }
 
 export function createTesterRuntimeModelPickerProviderFromClient(
-  client: RuntimeRouteOptionsClient,
+  client: RuntimeRouteModelPickerClient,
   capability: string,
 ): RouteModelPickerDataProvider {
-  return createSnapshotRouteDataProvider(() => listTesterRuntimeRouteOptions(client, capability));
-}
-
-function listTesterRuntimeRouteOptions(
-  client: RuntimeRouteOptionsClient,
-  capability: string,
-) {
-  const runtimeCapability = normalizeRuntimeRouteCapabilityToken(capability);
-  if (!runtimeCapability) {
-    throw new Error(`Unsupported Runtime capability: ${capability}`);
-  }
-  return listRuntimeRouteOptions(client, {
-    capability: runtimeCapability,
+  return createRuntimeRouteModelPickerProvider({
+    client,
+    capability,
   });
 }

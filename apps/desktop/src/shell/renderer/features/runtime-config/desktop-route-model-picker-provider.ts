@@ -1,31 +1,13 @@
 import {
-  createSnapshotRouteDataProvider,
+  createRuntimeRouteModelPickerProviderCache,
   type RouteModelPickerDataProvider,
-} from '@nimiplatform/kit/features/model-picker';
+} from '@nimiplatform/kit/features/model-picker/runtime';
 import { loadDesktopRouteOptions } from './desktop-route-options-service';
 
-const providerCache = new Map<string, RouteModelPickerDataProvider | null>();
+const resolveDesktopRouteModelPickerProvider = createRuntimeRouteModelPickerProviderCache({
+  loadOptions: ({ capability, targetId }) => loadDesktopRouteOptions(capability, { targetId }),
+});
 
 export function getDesktopRouteModelPickerProvider(capability: string): RouteModelPickerDataProvider | null {
-  const normalizedCapability = String(capability || '').trim();
-  if (!normalizedCapability) {
-    return null;
-  }
-
-  if (providerCache.has(normalizedCapability)) {
-    return providerCache.get(normalizedCapability) || null;
-  }
-
-  try {
-    const provider = createSnapshotRouteDataProvider(
-      () => loadDesktopRouteOptions(
-        normalizedCapability as Parameters<typeof loadDesktopRouteOptions>[0],
-      ),
-    );
-    providerCache.set(normalizedCapability, provider);
-    return provider;
-  } catch {
-    providerCache.set(normalizedCapability, null);
-    return null;
-  }
+  return resolveDesktopRouteModelPickerProvider(capability);
 }

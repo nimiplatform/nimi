@@ -1,6 +1,7 @@
 import {
   createRuntimeModelCatalogClient,
   getPlatformClient,
+  listRuntimeRouteOptions,
   Runtime,
   type RuntimeCatalogModelDetail,
   type RuntimeCatalogModelDetailResponse,
@@ -10,10 +11,17 @@ import {
   type RuntimeCatalogProviderModelsResponse,
   type RuntimeModelCatalogClient,
   type RuntimeModelCatalogProvider,
+  type RuntimeCanonicalCapability,
+  type RuntimeRouteOptionsSnapshot,
+  type RuntimeRouteOptionsClient,
+  type ListRuntimeRouteOptionsInput,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useModelPicker, type UseModelPickerOptions, type UseModelPickerResult } from './headless.js';
+import { createSnapshotRouteDataProvider, type RouteModelPickerDataProvider } from './route-data.js';
 import type { ModelCatalogAdapter } from './types.js';
+
+export type { RouteModelPickerDataProvider } from './route-data.js';
 
 export type {
   RuntimeCatalogModelDetail,
@@ -41,6 +49,100 @@ const CATALOG_CALL_OPTIONS = {
 };
 
 export type RuntimeModelCatalogSource = RuntimeCatalogModelSource;
+
+export type RuntimeRouteModelPickerClient = RuntimeRouteOptionsClient;
+
+export type RuntimeRouteModelPickerProviderOptions = {
+  capability: string;
+  client?: RuntimeRouteModelPickerClient | null;
+  getClient?: () => RuntimeRouteModelPickerClient | null | Promise<RuntimeRouteModelPickerClient | null>;
+  loadOptions?: (
+    input: ListRuntimeRouteOptionsInput,
+  ) => RuntimeRouteOptionsSnapshot | Promise<RuntimeRouteOptionsSnapshot>;
+  targetId?: string;
+  selectedBinding?: Parameters<typeof listRuntimeRouteOptions>[1]['selectedBinding'];
+  unavailableMessage?: string;
+};
+
+export type RuntimeRouteModelPickerProviderCacheOptions = Omit<
+  RuntimeRouteModelPickerProviderOptions,
+  'capability'
+>;
+
+function resolveRouteCapability(capability: string): RuntimeCanonicalCapability {
+  const normalized = String(capability || '').trim().toLowerCase();
+  if (!normalized) {
+    throw new Error('Runtime route capability is required.');
+  }
+  return normalized as RuntimeCanonicalCapability;
+}
+
+async function resolveRouteModelPickerClient(
+  input: Pick<RuntimeRouteModelPickerProviderOptions, 'client' | 'getClient' | 'unavailableMessage'>,
+): Promise<RuntimeRouteModelPickerClient> {
+  const client = input.client ?? (input.getClient ? await input.getClient() : getPlatformClient());
+  if (!client) {
+    throw new Error(input.unavailableMessage || 'Runtime route model picker client is unavailable.');
+  }
+  return client;
+}
+
+/**
+ * Create a Kit-owned route model-picker provider backed by the SDK
+ * `runtime.route.listOptions` projection. Runtime/SDK remain the source for
+ * route availability; Kit owns only the reusable picker adapter and snapshot
+ * cache consumed by apps.
+ */
+export function createRuntimeRouteModelPickerProvider(
+  input: RuntimeRouteModelPickerProviderOptions,
+): RouteModelPickerDataProvider {
+  const capability = resolveRouteCapability(input.capability);
+  return createSnapshotRouteDataProvider(async () => {
+    const optionsInput = {
+      capability,
+      targetId: input.targetId,
+      selectedBinding: input.selectedBinding,
+    };
+    if (input.loadOptions) {
+      return input.loadOptions(optionsInput);
+    }
+    const client = await resolveRouteModelPickerClient(input);
+    return listRuntimeRouteOptions(client, optionsInput);
+  });
+}
+
+/**
+ * Create a per-capability provider cache for app settings and chat surfaces.
+ * Empty capability tokens return null so apps can fail closed at the existing
+ * "no provider" UI boundary instead of keeping local cache logic. Unknown
+ * non-empty tokens still flow to SDK/Runtime, where capability support is the
+ * authoritative fail-closed decision.
+ */
+export function createRuntimeRouteModelPickerProviderCache(
+  options: RuntimeRouteModelPickerProviderCacheOptions = {},
+): (capability: string) => RouteModelPickerDataProvider | null {
+  const providerCache = new Map<string, RouteModelPickerDataProvider | null>();
+  return (capability: string): RouteModelPickerDataProvider | null => {
+    const normalized = String(capability || '').trim();
+    if (!normalized) {
+      return null;
+    }
+    if (providerCache.has(normalized)) {
+      return providerCache.get(normalized) || null;
+    }
+    try {
+      const provider = createRuntimeRouteModelPickerProvider({
+        ...options,
+        capability: normalized,
+      });
+      providerCache.set(normalized, provider);
+      return provider;
+    } catch {
+      providerCache.set(normalized, null);
+      return null;
+    }
+  };
+}
 
 export type RuntimeModelCatalogService = {
   listProviders: () => Promise<RuntimeModelCatalogProvider[]>;

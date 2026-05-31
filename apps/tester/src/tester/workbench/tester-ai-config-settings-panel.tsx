@@ -6,7 +6,7 @@ import {
   createTesterAppLabAIScopeRef,
   importTesterAIProfileJson,
 } from '../tester-ai-config-store.js';
-import { createTesterRuntimeModelPickerProvider } from '../tester-runtime-model-provider.js';
+import { createTesterRuntimeModelPickerProviderCache } from '../tester-runtime-model-provider.js';
 import { TesterAiConfigSettings } from '../../shell/ai/tester-ai-config-settings.js';
 import { testerModelConfigCopy } from '../../shell/ai/model-config-copy.js';
 
@@ -49,23 +49,14 @@ const copy: Record<string, string> = {
 export function TesterAiConfigSettingsPanel({ runtime, initialSection = null, onClose }: TesterAiConfigSettingsPanelProps) {
   const scopeRef = useMemo(() => createTesterAppLabAIScopeRef(), []);
   const service = useMemo(() => createTesterAIConfigService(), []);
-  const providerCache = useMemo(
-    () => new Map<string, ReturnType<typeof createTesterRuntimeModelPickerProvider>>(),
-    [],
-  );
+  const resolveRuntimeModelPickerProvider = useMemo(() => createTesterRuntimeModelPickerProviderCache(), []);
 
   return (
     <TesterAiConfigSettings
       scopeRef={scopeRef}
       service={service}
       enabledCapabilities={enabledCapabilities}
-      providerResolver={(capabilityId) => {
-        const cached = providerCache.get(capabilityId);
-        if (cached) return cached;
-        const provider = createTesterRuntimeModelPickerProvider(capabilityId);
-        providerCache.set(capabilityId, provider);
-        return provider;
-      }}
+      providerResolver={resolveRuntimeModelPickerProvider}
       runtimeReady={runtime?.status === 'ready'}
       runtimeDetail={runtime?.detail ?? null}
       copy={copy}
