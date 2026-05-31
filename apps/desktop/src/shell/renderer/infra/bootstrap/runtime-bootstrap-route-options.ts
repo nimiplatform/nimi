@@ -1,19 +1,23 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
-import { asNimiError, createNimiError } from '@nimiplatform/sdk/runtime';
+import {
+  getPlatformClient } from '@nimiplatform/sdk';
+import { asNimiError,
+  createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { localRuntime, type LocalRuntimeAssetRecord, type LocalRuntimeSnapshot } from '@runtime/local-runtime';
+import { localRuntime,
+  type LocalRuntimeAssetRecord,
+  type LocalRuntimeSnapshot } from '@runtime/local-runtime';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import {
-    createRuntimeRouteOptionsPlatformHostDeps,
-    listRuntimeRouteOptionsWithHost,
-    runtimeRouteLocalKindForCapability,
-    type RuntimeCanonicalCapability,
-    type RuntimeRouteHostLocalMetadata,
-    type RuntimeRouteHostOptionsDeps,
-    type RuntimeRouteOptionsClient,
-    type RuntimeRouteOptionsSnapshot,
-} from "@nimiplatform/sdk/ai";
+  createRuntimeRouteOptionsPlatformHostDeps,
+  listRuntimeRouteOptionsWithHost,
+  runtimeRouteLocalKindForCapability,
+  type RuntimeCanonicalCapability,
+  type RuntimeRouteHostLocalMetadata,
+  type RuntimeRouteHostOptionsDeps,
+  type RuntimeRouteOptionsClient,
+  type RuntimeRouteOptionsSnapshot,
+} from '@nimiplatform/sdk/runtime';
 
 const LOCAL_SNAPSHOT_TIMEOUT_MS = 3500;
 
@@ -192,7 +196,7 @@ export async function loadRuntimeRouteOptions(input: {
     const appStore = useAppStore.getState();
     const selectedBinding = input.capability === 'text.embed'
         ? undefined
-        : appStore.aiConfig.capabilities.selectedBindings[input.capability] as import('@nimiplatform/sdk/ai').RuntimeRouteBinding | null | undefined;
+        : appStore.aiConfig.capabilities.selectedBindings[input.capability] as import('@nimiplatform/sdk/runtime').RuntimeRouteBinding | null | undefined;
     const localRouteMetadataLoader = deps?.loadLocalRouteMetadata ?? loadLocalRouteMetadata;
     const platformClient = deps?.platformClient ?? getPlatformClient();
     return listRuntimeRouteOptionsWithHost({

@@ -2,7 +2,7 @@ import type { TFunction } from 'i18next';
 import {
   isRuntimeRouteCapabilityProjectionReady,
   isRuntimeRouteCapabilityProjectionSelectionRequired,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/sdk/runtime';
 import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';

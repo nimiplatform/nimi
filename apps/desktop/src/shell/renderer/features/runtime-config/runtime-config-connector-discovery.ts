@@ -1,15 +1,14 @@
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import type {
+  RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { ProviderStatusV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { localRuntime } from '@runtime/local-runtime';
 import type {
   GetRuntimeHealthResponse,
   LocalRuntimeRunnableAssetKindId,
-} from '@nimiplatform/sdk/runtime';
+  } from '@nimiplatform/sdk/runtime';
 import {
   normalizeLocalProviderAdapterId,
   type LocalProviderAdapterId,
-} from '@nimiplatform/sdk/ai';
-import {
   asNimiError,
   isLocalRuntimeRunnableAssetKindId,
   normalizeLocalRuntimeRunnableAssetKindId,

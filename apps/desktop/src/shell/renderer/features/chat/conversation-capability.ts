@@ -16,24 +16,26 @@
  * and by bootstrap/effects code, not by product-facing UI components.
  */
 import type {
-  RuntimeResolvedBinding,
-  RuntimeRouteBinding,
-  RuntimeRouteDescribeResult,
-  RuntimeRouteHealthResult,
-} from '@nimiplatform/sdk/ai';
-import type {
   AIConfig,
   AIRuntimeEvidence,
   AIScopeRef,
   AISnapshot,
 } from '@nimiplatform/sdk/ai';
 import {
+  createAISnapshotExecutionId,
+  createAISnapshotRecord,
+} from '@nimiplatform/sdk/ai';
+import type {
+  RuntimeResolvedBinding,
+  RuntimeRouteBinding,
+  RuntimeRouteDescribeResult,
+  RuntimeRouteHealthResult,
+} from '@nimiplatform/sdk/runtime';
+import {
   RUNTIME_ROUTE_APP_CAPABILITIES,
   buildRuntimeRouteCapabilityProjection,
   buildRuntimeRouteCapabilityProjectionMap,
   createDefaultRuntimeRouteCapabilitySelectionStore,
-  createAISnapshotExecutionId,
-  createAISnapshotRecord,
   toRuntimeRouteCanonicalCapability,
   updateRuntimeRouteCapabilityBinding,
   type BuildRuntimeRouteCapabilityProjectionInput,
@@ -43,7 +45,7 @@ import {
   type RuntimeRouteCapabilityProjectionReasonCode,
   type RuntimeRouteCapabilityRuntime,
   type RuntimeRouteCapabilitySelectionStore,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/sdk/runtime';
 
 export const CONVERSATION_CAPABILITIES = RUNTIME_ROUTE_APP_CAPABILITIES;
 
@@ -104,7 +106,8 @@ export type ConversationCapabilityProjectionMap = RuntimeRouteCapabilityProjecti
 
 export type ConversationCapabilityRouteRuntime = RuntimeRouteCapabilityRuntime;
 
-type BuildConversationCapabilityProjectionInput = Omit<BuildRuntimeRouteCapabilityProjectionInput, 'capability'> & {
+type BuildConversationCapabilityProjectionInput = Omit<BuildRuntimeRouteCapabilityProjectionInput,
+  'capability'> & {
   capability: ConversationCapability;
 };
 
@@ -118,8 +121,10 @@ export function updateConversationCapabilityBinding(
   state: ConversationCapabilitySelectionStore,
   capability: ConversationCapability,
   binding: RuntimeRouteBinding | null | undefined,
-): ConversationCapabilitySelectionStore {
-  return updateRuntimeRouteCapabilityBinding(state, capability, binding);
+  ): ConversationCapabilitySelectionStore {
+  return updateRuntimeRouteCapabilityBinding(state,
+  capability,
+  binding);
 }
 
 export function setConversationCapabilityRouteRuntime(runtime: ConversationCapabilityRouteRuntime | null): void {
@@ -132,22 +137,23 @@ export function getConversationCapabilityRouteRuntime(): ConversationCapabilityR
 
 export async function buildConversationCapabilityProjection(
   input: BuildConversationCapabilityProjectionInput,
-): Promise<ConversationCapabilityProjection> {
+  ): Promise<ConversationCapabilityProjection> {
   return buildRuntimeRouteCapabilityProjection({
     ...input,
-    routeRuntime: input.routeRuntime || conversationCapabilityRouteRuntime,
+  routeRuntime: input.routeRuntime || conversationCapabilityRouteRuntime,
   });
 }
 
 export async function buildConversationCapabilityProjectionMap(input: {
   selectionStore: ConversationCapabilitySelectionStore;
   routeRuntime?: ConversationCapabilityRouteRuntime | null;
-  hostAllowlist?: Partial<Record<ConversationCapability, boolean>>;
+  hostAllowlist?: Partial<Record<ConversationCapability,
+  boolean>>;
   capabilities?: readonly ConversationCapability[];
 }): Promise<ConversationCapabilityProjectionMap> {
   return buildRuntimeRouteCapabilityProjectionMap({
     ...input,
-    routeRuntime: input.routeRuntime || conversationCapabilityRouteRuntime,
+  routeRuntime: input.routeRuntime || conversationCapabilityRouteRuntime,
   });
 }
 
@@ -163,58 +169,58 @@ export function buildAgentEffectiveCapabilityResolution(input: {
   const voiceProjection = input.voiceProjection || null;
   const voiceWorkflowProjections: AgentVoiceWorkflowProjectionMap = {
     'voice_workflow.voice_clone': input.voiceWorkflowCloneProjection || null,
-    'voice_workflow.voice_design': input.voiceWorkflowDesignProjection || null,
+  'voice_workflow.voice_design': input.voiceWorkflowDesignProjection || null,
   };
   const voiceWorkflowReadyByCapability: AgentVoiceWorkflowReadyMap = {
     'voice_workflow.voice_clone': Boolean(
       voiceWorkflowProjections['voice_workflow.voice_clone']?.supported
         && voiceWorkflowProjections['voice_workflow.voice_clone']?.resolvedBinding,
-    ),
-    'voice_workflow.voice_design': Boolean(
+  ),
+  'voice_workflow.voice_design': Boolean(
       voiceWorkflowProjections['voice_workflow.voice_design']?.supported
         && voiceWorkflowProjections['voice_workflow.voice_design']?.resolvedBinding,
-    ),
+  ),
   };
   const imageReady = Boolean(imageProjection?.supported && imageProjection?.resolvedBinding);
   const voiceReady = Boolean(voiceProjection?.supported && voiceProjection?.resolvedBinding);
   if (!textProjection || !textProjection.supported) {
     return {
       ready: false,
-      textProjection,
-      imageProjection,
-      voiceProjection,
-      voiceWorkflowProjections,
-      voiceWorkflowReadyByCapability,
-      imageReady,
-      voiceReady,
-      reason: 'projection_unavailable',
-    };
+  textProjection,
+  imageProjection,
+  voiceProjection,
+  voiceWorkflowProjections,
+  voiceWorkflowReadyByCapability,
+  imageReady,
+  voiceReady,
+  reason: 'projection_unavailable',
+  };
   }
 
   if (!textProjection.resolvedBinding) {
     return {
       ready: false,
-      textProjection,
-      imageProjection,
-      voiceProjection,
-      voiceWorkflowProjections,
-      voiceWorkflowReadyByCapability,
-      imageReady,
-      voiceReady,
-      reason: 'route_unresolved',
-    };
+  textProjection,
+  imageProjection,
+  voiceProjection,
+  voiceWorkflowProjections,
+  voiceWorkflowReadyByCapability,
+  imageReady,
+  voiceReady,
+  reason: 'route_unresolved',
+  };
   }
 
   return {
     ready: true,
-    textProjection,
-    imageProjection,
-    voiceProjection,
-    voiceWorkflowProjections,
-    voiceWorkflowReadyByCapability,
-    imageReady,
-    voiceReady,
-    reason: 'ok',
+  textProjection,
+  imageProjection,
+  voiceProjection,
+  voiceWorkflowProjections,
+  voiceWorkflowReadyByCapability,
+  imageReady,
+  voiceReady,
+  reason: 'ok',
   };
 }
 
@@ -225,13 +231,13 @@ export function createConversationExecutionSnapshot(input: {
 }): ConversationExecutionSnapshot {
   return {
     executionId: createAISnapshotExecutionId(),
-    createdAt: new Date().toISOString(),
-    capability: input.capability,
-    selectedBinding: input.projection.selectedBinding,
-    resolvedBinding: input.projection.resolvedBinding,
-    health: input.projection.health,
-    metadata: input.projection.metadata,
-    agentResolution: input.agentResolution || null,
+  createdAt: new Date().toISOString(),
+  capability: input.capability,
+  selectedBinding: input.projection.selectedBinding,
+  resolvedBinding: input.projection.resolvedBinding,
+  health: input.projection.health,
+  metadata: input.projection.metadata,
+  agentResolution: input.agentResolution || null,
   };
 }
 
@@ -243,22 +249,22 @@ export function createConversationExecutionSnapshot(input: {
 export function aiConfigFromSelectionStore(
   store: ConversationCapabilitySelectionStore,
   scopeRef: AIScopeRef,
-): AIConfig {
+  ): AIConfig {
   return {
     scopeRef,
-    capabilities: {
+  capabilities: {
       selectedBindings: { ...store.selectedBindings },
-      localProfileRefs: {},
-      selectedParams: {},
-    },
-    profileOrigin: null,
+  localProfileRefs: {},
+  selectedParams: {},
+  },
+  profileOrigin: null,
   };
 }
 
 export function selectionStoreFromAIConfig(config: AIConfig): ConversationCapabilitySelectionStore {
   return {
     version: createDefaultConversationCapabilitySelectionStore().version,
-    selectedBindings: { ...config.capabilities.selectedBindings } as ConversationCapabilitySelectionStore['selectedBindings'],
+  selectedBindings: { ...config.capabilities.selectedBindings } as ConversationCapabilitySelectionStore['selectedBindings'],
   };
 }
 
@@ -276,21 +282,21 @@ export function createAISnapshot(input: {
 }): AISnapshot {
   const capabilitySlice = createConversationExecutionSnapshot({
     capability: input.capability,
-    projection: input.projection,
-    agentResolution: input.agentResolution,
+  projection: input.projection,
+  agentResolution: input.agentResolution,
   });
   return createAISnapshotRecord({
     scopeRef: input.scopeRef || input.config.scopeRef,
-    config: input.config,
-    capability: capabilitySlice.capability,
-    selectedBinding: capabilitySlice.selectedBinding,
-    resolvedBinding: capabilitySlice.resolvedBinding,
-    health: capabilitySlice.health,
-    metadata: capabilitySlice.metadata,
-    agentResolution: capabilitySlice.agentResolution,
-    runtimeEvidence: input.runtimeEvidence || null,
-    executionId: capabilitySlice.executionId,
-    createdAt: capabilitySlice.createdAt,
+  config: input.config,
+  capability: capabilitySlice.capability,
+  selectedBinding: capabilitySlice.selectedBinding,
+  resolvedBinding: capabilitySlice.resolvedBinding,
+  health: capabilitySlice.health,
+  metadata: capabilitySlice.metadata,
+  agentResolution: capabilitySlice.agentResolution,
+  runtimeEvidence: input.runtimeEvidence || null,
+  executionId: capabilitySlice.executionId,
+  createdAt: capabilitySlice.createdAt,
   });
 }
 

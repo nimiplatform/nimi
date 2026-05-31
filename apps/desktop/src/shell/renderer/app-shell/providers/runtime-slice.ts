@@ -10,7 +10,7 @@ import {
 import { getActiveScope } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
 import { bindProjectionRefreshToSurface } from '@renderer/features/chat/conversation-capability-projection';
 import { applyAIProfileToConfig } from '@nimiplatform/sdk/ai';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
 
 const RETIRED_ROUTE_RUNTIME_FIELD_KEYS = new Set([
   'provider',

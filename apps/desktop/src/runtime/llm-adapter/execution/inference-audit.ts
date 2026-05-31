@@ -3,7 +3,7 @@ import {
   isLocalRuntimeRunnableAssetKindId,
   type LocalRuntimeRunnableAssetKindId,
 } from '@nimiplatform/sdk/runtime';
-import type { LocalProviderAdapter } from '@nimiplatform/sdk/ai';
+import type { LocalProviderAdapter } from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '../../telemetry/logger';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 

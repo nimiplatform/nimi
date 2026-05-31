@@ -2,13 +2,16 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import type { InferenceRouteSource } from './inference-audit';
 import { createNimiError } from '@nimiplatform/sdk/runtime';
 import {
+  buildRuntimeRequestMetadata as buildSdkRuntimeRequestMetadata,
+  buildRuntimeTargetCallOptions,
+  createRuntimeTraceId,
   createRuntimeRouteLocalWarmCache,
   ensureRuntimeRouteLocalWarmWithHost,
   resetRuntimeRouteLocalWarmCache,
   type RuntimeResolvedBinding,
   type RuntimeRouteLocalWarmCandidate,
   type RuntimeRouteLocalWarmMetric,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { emitRuntimeLog } from '../../telemetry/logger';
 
@@ -20,10 +23,6 @@ type EnsureRuntimeLocalModelWarmInput = {
   timeoutMs?: number;
   onStateChange?: (state: 'warming' | 'ready', candidate: RuntimeRouteLocalWarmCandidate) => void;
 };
-
-export function createRuntimeTraceId(prefix = 'runtime-call'): string {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}
 
 function emitDesktopRuntimeRouteWarmMetric(metric: RuntimeRouteLocalWarmMetric): void {
   if (metric.kind === 'timing') {
@@ -95,15 +94,9 @@ export async function buildRuntimeRequestMetadata(input: {
   connectorId?: string;
   providerEndpoint?: string;
 }): Promise<Record<string, string>> {
-  const traceId = createRuntimeTraceId();
-  const metadata: Record<string, string> = {
-    traceId,
-    'x-nimi-trace-id': traceId,
-  };
-  if (String(input.connectorId || '').trim()) {
-    metadata.keySource = 'managed';
-  }
-  return metadata;
+  return buildSdkRuntimeRequestMetadata({
+    connectorId: input.connectorId,
+  });
 }
 
 export async function buildRuntimeCallOptions(input: {
@@ -124,19 +117,14 @@ export async function buildRuntimeCallOptions(input: {
   };
 }> {
   const caller = resolveCaller(input.targetId);
-  const traceId = createRuntimeTraceId();
-  const idempotencyKey = createRuntimeTraceId('runtime-idem');
-  return {
-    idempotencyKey,
+  const options = buildRuntimeTargetCallOptions({
+    targetId: input.targetId,
     timeoutMs: input.timeoutMs,
-    metadata: {
-      traceId,
-      callerKind: caller.callerKind,
-      callerId: caller.callerId,
-      surfaceId: 'desktop.renderer',
-      ...(String(input.connectorId || '').trim() ? { keySource: 'managed' as const } : {}),
-    },
-  };
+    callerKind: caller.callerKind,
+    surfaceId: 'desktop.renderer',
+    connectorId: input.connectorId,
+  });
+  return options as Awaited<ReturnType<typeof buildRuntimeCallOptions>>;
 }
 
 export async function buildRuntimeStreamOptions(
@@ -161,20 +149,15 @@ export async function buildRuntimeStreamOptions(
   };
 }> {
   const caller = resolveCaller(input.targetId);
-  const traceId = createRuntimeTraceId();
-  const idempotencyKey = createRuntimeTraceId('runtime-idem');
-  return {
-    idempotencyKey,
+  const options = buildRuntimeTargetCallOptions({
+    targetId: input.targetId,
     timeoutMs: input.timeoutMs,
+    callerKind: caller.callerKind,
+    surfaceId: 'desktop.renderer',
+    connectorId: input.connectorId,
     signal: input.signal,
-    metadata: {
-      traceId,
-      callerKind: caller.callerKind,
-      callerId: caller.callerId,
-      surfaceId: 'desktop.renderer',
-      ...(String(input.connectorId || '').trim() ? { keySource: 'managed' as const } : {}),
-    },
-  };
+  });
+  return options as Awaited<ReturnType<typeof buildRuntimeStreamOptions>>;
 }
 
 export {

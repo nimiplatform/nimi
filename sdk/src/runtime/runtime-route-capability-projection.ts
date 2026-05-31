@@ -6,7 +6,7 @@ import type {
 } from './runtime-route.js';
 import type {
   RuntimeRouteHealthResult,
-} from './types.js';
+} from './runtime-route-types.js';
 import {
   normalizeRuntimeRouteCapabilityToken,
 } from './runtime-route-options.js';

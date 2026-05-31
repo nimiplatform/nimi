@@ -1,11 +1,3 @@
-import type {
-  AIConfig,
-  AIProfile,
-  AIProfileApplyResult,
-  AIProfilePreviewResult,
-  AIScopeRef,
-  RuntimeRouteBinding,
-} from '@nimiplatform/sdk/ai';
 import {
   applyAIProfileToConfig,
   computeAIConfigDiff,
@@ -13,7 +5,13 @@ import {
   createAppAIScopeRef,
   createEmptyAIConfig,
   parseAIProfile,
+  type AIConfig,
+  type AIProfile,
+  type AIProfileApplyResult,
+  type AIProfilePreviewResult,
+  type AIScopeRef,
 } from '@nimiplatform/sdk/ai';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
 import type {
   SharedAIConfigService,
   SharedAIConfigSubscribeListener,

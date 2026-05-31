@@ -12,7 +12,7 @@ import { createNimiError } from '../runtime/errors.js';
 import { createNimiUlid } from '../runtime/ids.js';
 import { ReasonCode } from '../types/index.js';
 import type { JsonObject } from '../internal/utils.js';
-import type { RuntimeRouteBinding, RuntimeRouteOptionsSnapshot } from './runtime-route.js';
+import type { RuntimeRouteBinding, RuntimeRouteOptionsSnapshot } from '../runtime/runtime-route.js';
 
 // ---------------------------------------------------------------------------
 // AIScopeRef  (P-AISC-001)

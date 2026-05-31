@@ -2,15 +2,18 @@ import {
   createNimiError,
   type TextMessage,
   type TextStreamOutput,
-} from '@nimiplatform/sdk/runtime';
+  } from '@nimiplatform/sdk/runtime';
 import type { ConversationRuntimeTextMessage } from '@nimiplatform/kit/features/chat/headless';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   buildRuntimeStreamOptions,
   ensureRuntimeLocalModelWarm,
   getRuntimeClient,
-} from '@runtime/llm-adapter/execution/runtime-ai-bridge';
-import { runtimeRouteCallTargetFromResolvedBinding, type RuntimeResolvedBinding } from '@nimiplatform/sdk/ai';
+  } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
+import {
+  runtimeRouteCallTargetFromResolvedBinding,
+  type RuntimeResolvedBinding,
+} from '@nimiplatform/sdk/runtime';
 import {
   resolveChatThinkingConfig,
   resolveTextExecutionSnapshotThinkingSupport,

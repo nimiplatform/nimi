@@ -5,6 +5,8 @@ import {
   extractRuntimeReasonCodeFromError,
   getRuntimeReasonCodeDefaultMessage,
   getRuntimeReasonCodeMessage,
+  mapRuntimeErrorToLocalAiReasonCode,
+  mapRuntimeReasonCodeToLocalAiReasonCode,
   normalizeRuntimeReasonCode,
   RUNTIME_REASON_CODE_MESSAGE_MAP,
 } from '../../src/runtime/reason-code-messages.js';
@@ -90,4 +92,13 @@ test('runtime reason-code projection extracts structured and message-carried err
     ReasonCode.AI_PROVIDER_TIMEOUT,
   );
   assert.equal(extractRuntimeReasonCodeFromError(new Error('plain failure')), null);
+});
+
+test('runtime reason-code projection maps local AI compatibility classes', () => {
+  assert.equal(mapRuntimeReasonCodeToLocalAiReasonCode(351), ReasonCode.AI_MODALITY_NOT_SUPPORTED);
+  assert.equal(mapRuntimeReasonCodeToLocalAiReasonCode(411), ReasonCode.AI_MEDIA_OPTION_UNSUPPORTED);
+  assert.equal(mapRuntimeReasonCodeToLocalAiReasonCode(ReasonCode.AI_MODEL_NOT_READY), ReasonCode.LOCAL_AI_CAPABILITY_MISSING);
+  assert.equal(mapRuntimeReasonCodeToLocalAiReasonCode(ReasonCode.AI_PROVIDER_UNAVAILABLE), 'LOCAL_AI_SERVICE_UNREACHABLE');
+  assert.equal(mapRuntimeErrorToLocalAiReasonCode(new Error('runtime failed: AI_STREAM_BROKEN')), 'LOCAL_AI_PROVIDER_INTERNAL_ERROR');
+  assert.equal(mapRuntimeReasonCodeToLocalAiReasonCode('UNKNOWN_REASON'), null);
 });

@@ -1,4 +1,4 @@
-import type { NimiReasoningConfig } from '../runtime/types-media.js';
+import type { NimiReasoningConfig } from './types-media.js';
 import type {
   RuntimeResolvedBinding,
   RuntimeRouteDescribeResult,

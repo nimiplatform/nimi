@@ -4,7 +4,7 @@ import test from 'node:test';
 import {
   buildRuntimeRouteOptionsProjection,
   listRuntimeRouteOptionsWithHost,
-} from '../../src/ai/index.js';
+} from '../../src/runtime/index.js';
 
 test('route options projection orders local models from runtime default-rank and status evidence', () => {
   const snapshot = buildRuntimeRouteOptionsProjection({

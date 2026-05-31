@@ -15,7 +15,7 @@
  * runtime AI call.
  */
 
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
 import type { NimiRoutePolicy } from '@nimiplatform/sdk/runtime';
 import {
   buildRuntimeRequestMetadata,

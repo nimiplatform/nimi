@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -31,10 +32,10 @@ const checks = [
       'sdk/src/ai/app-ai-config.ts',
       'sdk/src/ai/i18n.ts',
       'sdk/src/ai/local-storage.ts',
-      'sdk/src/ai/runtime-route-host-facade.ts',
-      'sdk/src/ai/runtime-route-options.ts',
-      'sdk/src/ai/runtime-route.ts',
-      'sdk/src/ai/types.ts',
+      'sdk/src/runtime/runtime-route-host-facade.ts',
+      'sdk/src/runtime/runtime-route-options.ts',
+      'sdk/src/runtime/runtime-route.ts',
+      'sdk/src/runtime/runtime-route-types.ts',
     ],
   },
   {
@@ -123,8 +124,12 @@ const checks = [
 ];
 
 function runRipgrep(pattern, paths) {
+  const existingPaths = paths.filter((targetPath) => existsSync(path.join(repoRoot, targetPath)));
+  if (existingPaths.length === 0) {
+    return '';
+  }
   try {
-    return execFileSync(path.join(repoRoot, 'scripts', 'rg.sh'), ['-n', pattern, ...paths], {
+    return execFileSync(path.join(repoRoot, 'scripts', 'rg.sh'), ['-n', pattern, ...existingPaths], {
       cwd: repoRoot,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],

@@ -3,7 +3,7 @@ import {
   DEFAULT_LOCAL_PROVIDER_ADAPTER_ID,
   normalizeLocalProviderAdapterId,
   type LocalProviderAdapter,
-} from '../ai/types.js';
+} from './runtime-route-types.js';
 
 export type LocalRuntimeServiceStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
 export type LocalRuntimeServiceArtifactType = 'python-env' | 'binary' | 'attached-endpoint';

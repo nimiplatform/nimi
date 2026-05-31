@@ -146,3 +146,31 @@ export function extractRuntimeReasonCodeFromError(error: unknown): string | null
   }
   return null;
 }
+
+const RUNTIME_REASON_CODE_TO_LOCAL_AI_REASON_CODE: Readonly<Record<string, string>> = Object.freeze({
+  [ReasonCode.AI_MODEL_NOT_FOUND]: ReasonCode.AI_MODEL_NOT_FOUND,
+  [ReasonCode.AI_MODEL_NOT_READY]: ReasonCode.LOCAL_AI_CAPABILITY_MISSING,
+  [ReasonCode.AI_MODALITY_NOT_SUPPORTED]: ReasonCode.AI_MODALITY_NOT_SUPPORTED,
+  [ReasonCode.AI_MEDIA_OPTION_UNSUPPORTED]: ReasonCode.AI_MEDIA_OPTION_UNSUPPORTED,
+  [ReasonCode.AI_PROVIDER_UNAVAILABLE]: 'LOCAL_AI_SERVICE_UNREACHABLE',
+  [ReasonCode.AI_PROVIDER_TIMEOUT]: ReasonCode.LOCAL_AI_PROVIDER_TIMEOUT,
+  [ReasonCode.AI_ROUTE_UNSUPPORTED]: ReasonCode.LOCAL_AI_CAPABILITY_MISSING,
+  [ReasonCode.AI_ROUTE_FALLBACK_DENIED]: ReasonCode.LOCAL_AI_CAPABILITY_MISSING,
+  [ReasonCode.AI_INPUT_INVALID]: ReasonCode.AI_INPUT_INVALID,
+  [ReasonCode.AI_OUTPUT_INVALID]: 'LOCAL_AI_PROVIDER_INTERNAL_ERROR',
+  [ReasonCode.AI_STREAM_BROKEN]: 'LOCAL_AI_PROVIDER_INTERNAL_ERROR',
+  [ReasonCode.AI_CONTENT_FILTER_BLOCKED]: ReasonCode.LOCAL_AI_CAPABILITY_MISSING,
+});
+
+export function mapRuntimeReasonCodeToLocalAiReasonCode(reasonCode: unknown): string | null {
+  const normalized = normalizeRuntimeReasonCode(reasonCode);
+  if (!normalized) {
+    return null;
+  }
+  return RUNTIME_REASON_CODE_TO_LOCAL_AI_REASON_CODE[normalized] || null;
+}
+
+export function mapRuntimeErrorToLocalAiReasonCode(error: unknown): string | null {
+  const runtimeCode = extractRuntimeReasonCodeFromError(error);
+  return runtimeCode ? mapRuntimeReasonCodeToLocalAiReasonCode(runtimeCode) : null;
+}

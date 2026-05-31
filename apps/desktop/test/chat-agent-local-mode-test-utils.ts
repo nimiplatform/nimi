@@ -2,37 +2,40 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { clearPlatformClient, createPlatformClient } from '@nimiplatform/sdk';
-import { createNimiError, toProtoStruct } from '@nimiplatform/sdk/runtime';
+import {
+  clearPlatformClient,
+  createPlatformClient } from '@nimiplatform/sdk';
+import { createNimiError,
+  toProtoStruct } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { resetRuntimeLocalModelWarmCacheForTests } from '../src/runtime/llm-adapter/execution/runtime-ai-bridge.js';
 
 import {
   CORE_CHAT_AGENT_TARGET_ID,
   streamChatAgentRuntimeAgentTurn,
-} from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
+  } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
 import {
   resolveAgentChatRequestedMaxOutputTokens,
-} from '../src/shell/renderer/features/chat/chat-nimi-route-view.js';
+  } from '../src/shell/renderer/features/chat/chat-nimi-route-view.js';
 import { resolveAgentTurnTotalTimeoutMs } from '../src/shell/renderer/features/chat/chat-agent-timeouts.js';
 import {
   toAgentFriendTargetsFromSocialSnapshot,
-} from '../src/shell/renderer/features/chat/chat-agent-thread-model.js';
+  } from '../src/shell/renderer/features/chat/chat-agent-thread-model.js';
 import { hydrateAgentThreadBundleFromRuntimeSessionSnapshot } from '../src/shell/renderer/features/chat/chat-agent-session-hydration.js';
 import {
   resolveAgentChatThinkingSupport,
   resolveChatThinkingConfig,
-} from '../src/shell/renderer/features/chat/chat-shared-thinking.js';
+  } from '../src/shell/renderer/features/chat/chat-shared-thinking.js';
 import type { AgentLocalThreadSummary } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-types.js';
 import {
   buildAgentEffectiveCapabilityResolution,
   createAISnapshot,
-} from '../src/shell/renderer/features/chat/conversation-capability.js';
+  } from '../src/shell/renderer/features/chat/conversation-capability.js';
 import {
   createBuiltInChatAIScopeRef,
   createEmptyAIConfig as createSdkEmptyAIConfig,
-  findRuntimeRouteModelProfile,
 } from '@nimiplatform/sdk/ai';
+import { findRuntimeRouteModelProfile } from '@nimiplatform/sdk/runtime';
 
 const TEST_CHAT_SCOPE_REF = createBuiltInChatAIScopeRef('agent');
 

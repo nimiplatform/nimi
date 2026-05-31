@@ -11,7 +11,7 @@ import {
   toRuntimeRouteCanonicalCapability,
   updateRuntimeRouteCapabilityBinding,
   type RuntimeRouteCapabilityRuntime,
-} from '../../src/ai/index.js';
+} from '../../src/runtime/index.js';
 
 function createRuntime(): RuntimeRouteCapabilityRuntime {
   return {

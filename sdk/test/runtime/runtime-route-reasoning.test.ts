@@ -7,7 +7,7 @@ import {
   resolveRuntimeTextRouteReasoningSupport,
   type RuntimeResolvedBinding,
   type RuntimeRouteDescribeResult,
-} from '../../src/ai/index.js';
+} from '../../src/runtime/index.js';
 
 const resolvedBinding: RuntimeResolvedBinding = {
   capability: 'text.generate',

@@ -53,11 +53,11 @@ const runtimeConfigPanelEffectsPath = path.resolve(
 );
 const sdkRuntimeRouteOptionsPath = path.resolve(
   process.cwd(),
-  '../../sdk/src/ai/runtime-route-options.ts',
+  '../../sdk/src/runtime/runtime-route-options.ts',
 );
 const sdkRuntimeRoutePath = path.resolve(
   process.cwd(),
-  '../../sdk/src/ai/runtime-route.ts',
+  '../../sdk/src/runtime/runtime-route.ts',
 );
 const retiredRouteResolverFileName = ['runtime-bootstrap-route', 'resolvers.ts'].join('-');
 const runtimeBootstrapRouteResolversPath = path.resolve(

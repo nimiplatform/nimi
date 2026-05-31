@@ -5,12 +5,12 @@ import {
   type MutableRefObject,
   useRef,
   useState,
-} from 'react';
+  } from 'react';
 import type { TFunction } from 'i18next';
 import {
   getRuntimeRouteCapabilityProjectionIssueKind,
   isRuntimeRouteCapabilityProjectionReady,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/sdk/runtime';
 import type { AgentLocalMessageRecord } from '@renderer/bridge/runtime-bridge/types';
 import { cancelStream } from '../turns/stream-controller';
 import {

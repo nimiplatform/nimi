@@ -4,7 +4,7 @@ import {
   resolveRuntimeTextRouteReasoningSupport,
   type RuntimeRouteReasoningPreference,
   type RuntimeTextRouteReasoningSupportReason,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/sdk/runtime';
 import type { NimiReasoningConfig } from '@nimiplatform/sdk/runtime';
 import type {
   ConversationCapabilityProjection,

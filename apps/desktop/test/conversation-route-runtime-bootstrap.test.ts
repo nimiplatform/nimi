@@ -3,7 +3,7 @@ import test from 'node:test';
 import type {
   RuntimeRouteBinding,
   RuntimeRouteOptionsSnapshot,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/sdk/runtime';
 import {
   buildConversationCapabilityProjection,
   createDefaultConversationCapabilitySelectionStore,

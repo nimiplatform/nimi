@@ -2,7 +2,7 @@ import {
   listRuntimeRouteOptions,
   normalizeRuntimeRouteCapabilityToken,
   type RuntimeRouteOptionsClient,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/sdk/runtime';
 import {
   createSnapshotRouteDataProvider,
   type RouteModelPickerDataProvider,

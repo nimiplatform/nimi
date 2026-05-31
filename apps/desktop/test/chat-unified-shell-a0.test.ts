@@ -16,7 +16,7 @@ import {
   resolveAiConversationSetupStateFromProjection,
 } from '../src/shell/renderer/features/chat/chat-nimi-route-view';
 import type { ConversationCapabilityProjection } from '../src/shell/renderer/features/chat/conversation-capability';
-import type { RuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/ai';
+import type { RuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/runtime';
 
 const chatNimiRouteViewSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/chat/chat-nimi-route-view.ts'),

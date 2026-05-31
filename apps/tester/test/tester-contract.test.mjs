@@ -1101,7 +1101,7 @@ test('tester settings consumes SDK Runtime capability coverage projection', () =
   const settings = read('src/shell/routes/settings.tsx');
 
   assert.match(settings, /projectRuntimeRouteCapabilityCoverage/);
-  assert.match(settings, /from '@nimiplatform\/sdk\/ai'/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Runtime capability coverage projection/);
   assert.match(settings, /runtimeCapabilityCoverageProjection/);
   assert.doesNotMatch(settings, /connectors\.some\(\(c\) => c\.status === 'healthy'\)/);
@@ -1116,7 +1116,7 @@ test('tester settings consumes SDK Runtime route capability projection builder',
   assert.match(settings, /getRuntimeRouteCapabilityProjectionIssueKind/);
   assert.match(settings, /isRuntimeRouteCapabilityProjectionReady/);
   assert.match(settings, /updateRuntimeRouteCapabilityBinding/);
-  assert.match(settings, /from '@nimiplatform\/sdk\/ai'/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /resolveConversationRuntimeRouteSetupStateFromProjection/);
   assert.match(settings, /from '@nimiplatform\/kit\/features\/chat\/headless'/);
   assert.match(settings, /Runtime route capability projection/);
@@ -1211,7 +1211,7 @@ test('tester settings consumes SDK local route option binding projection', () =>
   assert.match(settings, /isRuntimeRouteLocalOptionSelectable/);
   assert.match(settings, /runtimeRouteLocalOptionToBinding/);
   assert.match(settings, /runtimeRouteBindingsMatch/);
-  assert.match(settings, /from '@nimiplatform\/sdk\/ai'/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Local route option projection/);
   assert.match(settings, /Runtime route binding match projection/);
   assert.doesNotMatch(settings, /source:\s*'local',\s*connectorId:\s*''/);
@@ -1222,10 +1222,27 @@ test('tester settings consumes SDK runtime route reasoning projection', () => {
 
   assert.match(settings, /resolveRuntimeTextRouteReasoningSupport/);
   assert.match(settings, /resolveRuntimeRouteReasoningConfig/);
-  assert.match(settings, /from '@nimiplatform\/sdk\/ai'/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Runtime route reasoning projection/);
   assert.match(settings, /runtimeRouteReasoningProjection\.traceMode/);
   assert.doesNotMatch(settings, /function resolveRuntimeTextRouteReasoningSupport/);
+});
+
+test('tester settings consumes SDK runtime route DX helpers from runtime surface', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /buildRuntimeTargetCallOptions/);
+  assert.match(settings, /buildRuntimeRequestMetadata/);
+  assert.match(settings, /mapRuntimeErrorToLocalAiReasonCode/);
+  assert.match(settings, /checkRuntimeRouteProviderHealth/);
+  assert.match(settings, /ModelHealthStatus/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(settings, /Runtime call options projection/);
+  assert.match(settings, /Runtime request metadata projection/);
+  assert.match(settings, /Runtime local AI reason projection/);
+  assert.match(settings, /Runtime route provider health projection/);
+  assert.doesNotMatch(settings, /function buildRuntimeTargetCallOptions/);
+  assert.doesNotMatch(settings, /function checkRuntimeRouteProviderHealth/);
 });
 
 test('tester settings consumes Kit model picker binding projection', () => {

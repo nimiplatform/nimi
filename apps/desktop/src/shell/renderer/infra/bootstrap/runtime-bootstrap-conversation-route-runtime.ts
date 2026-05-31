@@ -4,7 +4,7 @@ import {
   resolveRuntimeRouteBindingFromSnapshot,
   type RuntimeResolvedBinding,
   type RuntimeRouteBinding,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/sdk/runtime';
 import {
   type Runtime,
 } from '@nimiplatform/sdk/runtime';

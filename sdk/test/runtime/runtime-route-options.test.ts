@@ -10,7 +10,7 @@ import {
   runtimeRouteLocalKindForCapability,
   runtimeRouteLocalKindSupportsCapability,
   runtimeRouteModalityForCapability,
-} from '../../src/ai/index.js';
+} from '../../src/runtime/index.js';
 import { LocalAssetKind } from '../../src/runtime/generated/runtime/v1/local_runtime_types.js';
 
 test('runtime route local kind projection maps canonical capabilities to Runtime asset kind ids', () => {

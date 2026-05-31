@@ -1,12 +1,15 @@
-import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
-import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import {
+  realmSocialData } from '@renderer/features/social/data/realm-social-data';
+import { useCallback,
+  useMemo,
+  useSyncExternalStore } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
 import { pickerSelectionToBinding } from '@nimiplatform/kit/features/model-config/headless';
 import {
   findRuntimeRouteModelProfile,
   type RuntimeRouteBinding,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/sdk/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type {
   AgentLocalMessageRecord,

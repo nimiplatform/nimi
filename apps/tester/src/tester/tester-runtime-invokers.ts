@@ -4,13 +4,20 @@
 // translated to typed unavailable using the raw SDK error message so the
 // developer sees verbatim what Runtime returned.
 
-import { ReasonCode, type PlatformClient } from '@nimiplatform/sdk';
-import type { AIConfig, AISchedulingEvaluationTarget, RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
+import {
+  ReasonCode,
+  type PlatformClient,
+} from '@nimiplatform/sdk';
+import type {
+  AIConfig,
+  AISchedulingEvaluationTarget,
+} from '@nimiplatform/sdk/ai';
 import {
   createAIConfigEvidence,
   peekSchedulingBatch,
   resolveAIConfigSchedulingTargetForCapability,
 } from '@nimiplatform/sdk/ai';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
 import type { TesterCapabilityId } from './tester-capabilities.js';
 import { capabilityUnavailable, type TesterUnavailable, type TesterUnavailableReason } from './tester-unavailable.js';
 import { getTesterCapability } from './tester-capabilities.js';

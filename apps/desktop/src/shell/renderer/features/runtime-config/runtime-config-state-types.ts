@@ -2,8 +2,6 @@ import type { LocalRuntimeCatalogRecommendation } from '@runtime/local-runtime';
 import {
   normalizeLocalProviderAdapterId,
   type LocalProviderAdapterId,
-} from '@nimiplatform/sdk/ai';
-import {
   LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS,
   isLocalRuntimeRunnableAssetKindId,
   normalizeLocalRuntimeRunnableAssetKindId,

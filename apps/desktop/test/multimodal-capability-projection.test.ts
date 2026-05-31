@@ -8,7 +8,7 @@ import type {
   RuntimeResolvedBinding,
   RuntimeRouteDescribeResult,
   RuntimeRouteHealthResult,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/sdk/runtime';
 import {
   buildConversationCapabilityProjection,
   buildConversationCapabilityProjectionMap,

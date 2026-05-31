@@ -1,14 +1,15 @@
-import { useMemo } from 'react';
+import {
+  useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Surface,
   StatusBadge as KitStatusBadge,
   cn,
-} from '@nimiplatform/kit/ui';
+  } from '@nimiplatform/kit/ui';
 import {
   projectRuntimeRouteCapabilityCoverageList,
   type RuntimeRouteCapabilityCoverageProjection,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/sdk/runtime';
 import {
   type RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';

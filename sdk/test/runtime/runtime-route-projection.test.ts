@@ -2,10 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  projectMemoryEmbeddingRouteAvailability,
+} from '../../src/ai/index.js';
+import {
   buildRuntimeRouteOptionsSnapshot,
   checkRuntimeRouteHealthWithHost,
   createRuntimeRouteLocalWarmCache,
-  projectMemoryEmbeddingRouteAvailability,
   describeRuntimeRouteWithHost,
   ensureRuntimeRouteLocalWarmWithHost,
   isRuntimeRouteLocalOptionSelectable,
@@ -17,7 +19,7 @@ import {
   selectRuntimeLocalWarmCandidateFromResolvedBinding,
   type RuntimeRouteLocalWarmMetric,
   type RuntimeRouteOptionsSnapshot,
-} from '../../src/ai/index.js';
+} from '../../src/runtime/index.js';
 
 const localSnapshot: RuntimeRouteOptionsSnapshot = {
   capability: 'text.generate',

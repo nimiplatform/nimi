@@ -1,18 +1,16 @@
 import {
   resolveConversationRuntimeRouteSetupStateFromProjection,
   type ConversationSetupState,
-} from '@nimiplatform/kit/features/chat/headless';
+  } from '@nimiplatform/kit/features/chat/headless';
 import { summarizeBinding } from '@nimiplatform/kit/features/model-config/headless';
 import {
   isRuntimeRouteLocalOptionSelectable,
   runtimeRouteBindingsMatch,
   runtimeRouteLocalOptionToBinding,
-} from '@nimiplatform/sdk/ai';
-import type {
-  RuntimeRouteBinding,
-  RuntimeRouteModelProfile,
-  RuntimeRouteOptionsSnapshot,
-} from '@nimiplatform/sdk/ai';
+  type RuntimeRouteBinding,
+  type RuntimeRouteModelProfile,
+  type RuntimeRouteOptionsSnapshot,
+} from '@nimiplatform/sdk/runtime';
 import type { ConversationCapabilityProjection } from './conversation-capability';
 
 export type AiConversationRouteOption = {

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { projectRuntimeRouteCapabilityCoverageList } from '@nimiplatform/sdk/ai';
+import { projectRuntimeRouteCapabilityCoverageList } from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { desktopBridge } from '@renderer/bridge';
 import { Surface, StatusBadge as KitStatusBadge, Tooltip, cn } from '@nimiplatform/kit/ui';

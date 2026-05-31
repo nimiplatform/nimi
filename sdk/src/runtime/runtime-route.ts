@@ -4,7 +4,7 @@ import {
   normalizeLocalProviderAdapterId,
   type LocalProviderAdapter,
   type LocalProviderHints,
-} from './types.js';
+} from './runtime-route-types.js';
 
 export type RuntimeRouteSource = 'local' | 'cloud';
 export type RuntimeRouteModelProfileContextSource = 'provider-api' | 'template' | 'default' | 'unknown';

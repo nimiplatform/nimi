@@ -24,7 +24,7 @@ import type {
   ConversationCapability,
   ConversationCapabilityProjection,
 } from '@renderer/features/chat/conversation-capability';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
 import type { AIConfig, AIProfile } from '@nimiplatform/sdk/ai';
 
 export type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';

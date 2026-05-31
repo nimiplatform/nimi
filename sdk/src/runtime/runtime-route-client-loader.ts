@@ -1,9 +1,9 @@
 import type { PlatformClient } from '../platform-client.js';
-import { ConnectorKind } from '../runtime/index.js';
+import { ConnectorKind } from './generated/runtime/v1/connector.js';
 import {
   parseLocalRuntimeAssetKindId,
   parseLocalRuntimeAssetStatusId,
-} from '../runtime/local-asset-kind.js';
+} from './local-asset-kind.js';
 import type {
   RuntimeRouteBinding,
   RuntimeCanonicalCapability,
@@ -157,7 +157,7 @@ async function defaultListConnectorModelDescriptors(
 // (sdk/src/runtime/generated/runtime/v1/local_runtime_types.ts:61) carries `kind`
 // and `status` as numeric proto enums (LocalAssetKind / LocalAssetStatus), but
 // the route projection matches on string tokens
-// (sdk/src/ai/runtime-route-options.ts:278 `status !== 'removed'`, and
+// (sdk/src/runtime/runtime-route-options.ts:278 `status !== 'removed'`, and
 // `runtimeRouteLocalKindSupportsCapability(item.kind, …)`). This is the
 // enum->token normalization layer that pure-SDK hosts (e.g. the Tester) lacked
 // and previously had to fake; the Desktop never hits it because its Tauri local

@@ -1,23 +1,23 @@
 import type {
   ScenarioSpec,
-} from '../runtime/generated/runtime/v1/ai.js';
+} from './generated/runtime/v1/ai.js';
 import {
   ExecutionMode,
   RoutePolicy,
   ScenarioType,
-} from '../runtime/generated/runtime/v1/ai.js';
-import { toProtoStruct } from '../runtime/helpers.js';
-import { createNimiError } from '../runtime/errors.js';
+} from './generated/runtime/v1/ai.js';
+import { toProtoStruct } from './helpers.js';
+import { createNimiError } from './errors.js';
 import type {
   RuntimeAiExecuteScenarioRequestInput,
-} from '../runtime/types-runtime-modules.js';
+} from './types-runtime-modules.js';
 import type {
   RuntimeCallOptions,
   RuntimeResponseMetadataObserver,
-} from '../runtime/types.js';
+} from './types.js';
 import type {
   RuntimeRouteHealthResult,
-} from './types.js';
+} from './runtime-route-types.js';
 import { ReasonCode } from '../types/index.js';
 import {
   decodeRuntimeRouteDescribeResultFromMetadata,

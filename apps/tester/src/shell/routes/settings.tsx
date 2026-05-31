@@ -5,15 +5,22 @@ import {
   parseNimiAppBridgeProjection,
 } from '@nimiplatform/sdk/app';
 import {
-  buildRuntimeRouteCapabilityProjection,
   createEmptyMemoryEmbeddingConfig,
+  projectMemoryEmbeddingRouteAvailability,
+} from '@nimiplatform/sdk/ai';
+import {
+  buildRuntimeRouteCapabilityProjection,
+  buildRuntimeRequestMetadata,
+  buildRuntimeTargetCallOptions,
+  checkRuntimeRouteProviderHealth,
   createDefaultRuntimeRouteCapabilitySelectionStore,
   findRuntimeRouteModelProfile,
   getRuntimeRouteCapabilityProjectionIssueKind,
   isRuntimeRouteCapabilityProjectionReady,
   isRuntimeRouteLocalOptionSelectable,
+  mapRuntimeErrorToLocalAiReasonCode,
+  ModelHealthStatus,
   projectRuntimeRouteCapabilityCoverage,
-  projectMemoryEmbeddingRouteAvailability,
   resolveRuntimeRouteReasoningConfig,
   resolveRuntimeTextRouteReasoningSupport,
   runtimeRouteBindingsMatch,
@@ -21,9 +28,11 @@ import {
   toRuntimeRouteCanonicalCapability,
   updateRuntimeRouteCapabilityBinding,
   type RuntimeRouteCapabilityRuntime,
+  type RuntimeRouteProviderHealthProjection,
   type RuntimeResolvedBinding,
   type RuntimeRouteDescribeResult,
-} from '@nimiplatform/sdk/ai';
+  RuntimeReasonCode,
+} from '@nimiplatform/sdk/runtime';
 import { pickerSelectionToBinding, summarizeBinding } from '@nimiplatform/kit/features/model-config/headless';
 import { resolveConversationRuntimeRouteSetupStateFromProjection } from '@nimiplatform/kit/features/chat/headless';
 import {
@@ -180,6 +189,11 @@ type RuntimeCapabilityProjectionState =
   | { status: 'loading'; summary: null; error: null }
   | { status: 'ready'; summary: { capability: string; supported: boolean; ready: boolean; issueKind: string; reasonCode: string; setupStatus: string }; error: null }
   | { status: 'error'; summary: null; error: string };
+
+type RuntimeProviderHealthProjectionState =
+  | { status: 'loading'; health: null; error: null }
+  | { status: 'ready'; health: RuntimeRouteProviderHealthProjection; error: null }
+  | { status: 'error'; health: null; error: string };
 
 const runtimeConnectorInventory = createRuntimeConnectorInventoryClient({
   runtimeAdmin: () => getPlatformClient().domains.runtimeAdmin,
@@ -458,6 +472,12 @@ export function SettingsRoute() {
     summary: null,
     error: null,
   });
+  const [runtimeProviderHealthProjection, setRuntimeProviderHealthProjection] =
+    useState<RuntimeProviderHealthProjectionState>({
+      status: 'loading',
+      health: null,
+      error: null,
+    });
   useEffect(() => {
     let cancelled = false;
     setResourceUploadProjection({ status: 'loading', summary: null, error: null });
@@ -647,6 +667,21 @@ export function SettingsRoute() {
     assetId: toCanonicalLocalRuntimeAssetId('local/tester-model'),
     lookupKey: toCanonicalLocalRuntimeAssetLookupKey('LOCAL/Tester-Model'),
   };
+  const runtimeTargetCallOptionsProjection = buildRuntimeTargetCallOptions({
+    targetId: 'tester.settings.runtime-route',
+    timeoutMs: 5000,
+    callerKind: 'third-party-app',
+    surfaceId: 'tester.settings',
+    connectorId: 'tester-cloud',
+    createTraceId: (prefix = 'tester-runtime') => `${prefix}-trace`,
+  });
+  const runtimeRequestMetadataProjection = buildRuntimeRequestMetadata({
+    connectorId: 'tester-cloud',
+    createTraceId: (prefix = 'tester-metadata') => `${prefix}-trace`,
+  });
+  const runtimeLocalAiReasonProjection = mapRuntimeErrorToLocalAiReasonCode({
+    reasonCode: 'AI_STREAM_BROKEN',
+  }) ?? 'unknown';
   const memoryEmbeddingRouteProjection = projectMemoryEmbeddingRouteAvailability({
     config: {
       ...createEmptyMemoryEmbeddingConfig({
@@ -768,6 +803,38 @@ export function SettingsRoute() {
         summary: null,
         error: errorMessage(error),
       });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    void checkRuntimeRouteProviderHealth({
+      appId: 'dev.nimi.tester',
+      provider: 'tester',
+      capability: 'text.generate',
+      connectorId: 'tester-cloud',
+      localProviderEndpoint: 'http://127.0.0.1:19000/v1',
+      localProviderModel: 'tester-health-model',
+      checkModelHealth: async (request) => ({
+        healthy: true,
+        status: ModelHealthStatus.HEALTHY,
+        endpoint: request.endpoint,
+        modelId: request.modelId,
+        detail: 'tester runtime route provider ready',
+        actionHint: 'none',
+        reasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+      }),
+      nowIso: () => '2026-05-31T00:00:00.000Z',
+    }).then((health) => {
+      if (!cancelled) {
+        setRuntimeProviderHealthProjection({ status: 'ready', health, error: null });
+      }
+    }).catch((error: unknown) => {
+      if (!cancelled) {
+        setRuntimeProviderHealthProjection({ status: 'error', health: null, error: errorMessage(error) });
+      }
     });
     return () => {
       cancelled = true;
@@ -1665,6 +1732,24 @@ export function SettingsRoute() {
         </StatusBadge>
       </div>
       <div className="setting-row">
+        <span>Runtime call options projection</span>
+        <StatusBadge tone={runtimeTargetCallOptionsProjection.metadata.keySource === 'managed' ? 'success' : 'neutral'}>
+          {runtimeTargetCallOptionsProjection.metadata.callerId}: {runtimeTargetCallOptionsProjection.metadata.traceId}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Runtime request metadata projection</span>
+        <StatusBadge tone="neutral">
+          {runtimeRequestMetadataProjection.keySource ?? 'direct'}: {runtimeRequestMetadataProjection.traceId}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Runtime local AI reason projection</span>
+        <StatusBadge tone={runtimeLocalAiReasonProjection === 'unknown' ? 'neutral' : 'warning'}>
+          {runtimeLocalAiReasonProjection}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
         <span>Memory embedding route projection</span>
         <StatusBadge tone={memoryEmbeddingRouteProjection.state === 'ready' ? 'success' : 'warning'}>
           {memoryEmbeddingRouteProjection.sourceKind ?? 'none'}: {memoryEmbeddingRouteProjection.reason}
@@ -1710,6 +1795,16 @@ export function SettingsRoute() {
         <span>Runtime route reasoning projection</span>
         <StatusBadge tone={runtimeRouteReasoningProjection.supported ? 'success' : 'warning'}>
           {runtimeRouteReasoningProjection.reason}: {runtimeRouteReasoningProjection.traceMode}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Runtime route provider health projection</span>
+        <StatusBadge tone={runtimeProviderHealthProjection.status === 'ready' && runtimeProviderHealthProjection.health.status === 'healthy' ? 'success' : runtimeProviderHealthProjection.status === 'error' ? 'danger' : 'warning'}>
+          {runtimeProviderHealthProjection.status === 'ready'
+            ? `${runtimeProviderHealthProjection.health.model}: ${runtimeProviderHealthProjection.health.status}`
+            : runtimeProviderHealthProjection.status === 'error'
+              ? runtimeProviderHealthProjection.error
+              : 'checking'}
         </StatusBadge>
       </div>
       <div className="setting-row">

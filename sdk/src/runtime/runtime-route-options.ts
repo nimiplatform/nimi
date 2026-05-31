@@ -15,7 +15,7 @@ import {
   localRuntimeCapabilitiesForAssetKind,
   parseLocalRuntimeAssetKindId,
   type LocalRuntimeRunnableAssetKindId,
-} from '../runtime/local-asset-kind.js';
+} from './local-asset-kind.js';
 import type { JsonObject } from '../internal/utils.js';
 
 export type RuntimeRouteConnectorDescriptorProjectionInput = {

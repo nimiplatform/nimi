@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   projectMemoryEmbeddingRouteAvailability,
   type MemoryEmbeddingConfig,
-  type RuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/ai';
+import { type RuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/runtime';
 import { Surface, cn } from '@nimiplatform/kit/ui';
 import { createDesktopMemoryEmbeddingScopeRef } from '@renderer/app-shell/providers/desktop-memory-embedding-scope';
 import { getDesktopMemoryEmbeddingConfigService } from '@renderer/app-shell/providers/desktop-memory-embedding-config-service';

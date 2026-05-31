@@ -6,7 +6,7 @@ import {
   isLocalProviderAdapterId,
   LOCAL_PROVIDER_ADAPTER_IDS,
   normalizeLocalProviderAdapterId,
-} from '../../src/ai/index.js';
+} from '../../src/runtime/index.js';
 
 test('local provider adapter ids are normalized by SDK projection', () => {
   assert.deepEqual(LOCAL_PROVIDER_ADAPTER_IDS, [
