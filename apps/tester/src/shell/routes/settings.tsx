@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { getPlatformClient } from '@nimiplatform/sdk';
-import { parseNimiAppBridgeProjection } from '@nimiplatform/sdk/app';
+import {
+  parseAccountAppLibraryRecord,
+  parseNimiAppBridgeProjection,
+} from '@nimiplatform/sdk/app';
 import {
   buildRuntimeRouteCapabilityProjection,
   createEmptyMemoryEmbeddingConfig,
@@ -880,6 +883,17 @@ export function SettingsRoute() {
       verificationState: 'digest-verified',
     }],
   });
+  const accountAppLibraryProjection = parseAccountAppLibraryRecord({
+    schemaVersion: 1,
+    accountId: 'tester-account',
+    updatedAt: '2026-05-31T00:00:00Z',
+    apps: [{
+      appId: 'tester.app',
+      libraryState: 'enabled',
+      installed: true,
+      dataPolicy: 'keep_on_uninstall',
+    }],
+  });
   const runtimeAuditWireProjection = {
     callerKindName: projectRuntimeAuditCallerKindName(CallerKind.THIRD_PARTY_APP) ?? 'unknown',
     usageWindowName: projectRuntimeUsageWindowName(UsageWindow.HOUR) ?? 'unknown',
@@ -1572,6 +1586,12 @@ export function SettingsRoute() {
         <span>SDK Nimi App bridge projection</span>
         <StatusBadge tone="neutral">
           {appBridgeProjection.registryRows[0]?.appId ?? 'none'}: {appBridgeProjection.installEvidence[0]?.verificationState ?? 'none'}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK account app-library projection</span>
+        <StatusBadge tone="neutral">
+          {accountAppLibraryProjection.accountId}: {accountAppLibraryProjection.apps[0]?.libraryState ?? 'none'}
         </StatusBadge>
       </div>
       <div className="setting-row">

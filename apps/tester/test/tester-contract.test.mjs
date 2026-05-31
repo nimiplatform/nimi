@@ -1142,11 +1142,15 @@ test('tester settings consumes SDK Nimi App bridge projection parser', () => {
   const settings = read('src/shell/routes/settings.tsx');
 
   assert.match(settings, /parseNimiAppBridgeProjection/);
+  assert.match(settings, /parseAccountAppLibraryRecord/);
   assert.match(settings, /from '@nimiplatform\/sdk\/app'/);
   assert.match(settings, /SDK Nimi App bridge projection/);
+  assert.match(settings, /SDK account app-library projection/);
   assert.match(settings, /appBridgeProjection\.installEvidence/);
+  assert.match(settings, /accountAppLibraryProjection\.apps/);
   assert.doesNotMatch(settings, /apps-projection/);
   assert.doesNotMatch(settings, /ADMISSION_STATUSES|RELEASE_DESCRIPTOR_CLASSES|VERIFICATION_STATES/);
+  assert.doesNotMatch(settings, /LIBRARY_STATES|DATA_POLICIES/);
 });
 
 test('tester settings consumes SDK Runtime agent consumer projections', () => {

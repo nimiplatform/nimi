@@ -9,6 +9,11 @@ export {
   parseNimiAppBridgeRegistryRow,
   parseNimiAppBridgeReleaseDescriptorRow,
 } from './bridge-projection.js';
+export {
+  parseAccountAppLibraryRecord,
+  parseAccountAppLibraryRow,
+  parseOptionalAccountAppLibraryRecord,
+} from './account-app-library.js';
 export type { NimiAppTransport } from './transport.js';
 export type {
   AppKind,
@@ -25,6 +30,10 @@ export type {
   TrustTierId,
 } from './types.js';
 export type { NimiAppBridgeProjection } from './bridge-projection.js';
+export type {
+  AccountAppLibraryRecord,
+  AccountAppLibraryRow,
+} from './account-app-library.js';
 export type {
   NimiAppAdmissionStatus,
   NimiAppRegistrySourceRow,
