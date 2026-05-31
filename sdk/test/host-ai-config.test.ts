@@ -5,6 +5,7 @@ import {
   aiConfigScopeKeyFromRef,
   cloneAIConfig,
   createAIConfigSubscriptionRegistry,
+  createScopedAIConfigStore,
   parseAIConfig,
   parseAIConfigScopeKey,
   validateAIConfigRuntimeBindings,
@@ -119,4 +120,84 @@ test('host AIConfig subscription registry can isolate subscribers with cloned pa
     model: 'local-chat',
     modelId: 'local-chat',
   });
+});
+
+function createMemoryStorage(initial: Record<string, string> = {}) {
+  const values = new Map(Object.entries(initial));
+  return {
+    getItem(key: string) {
+      return values.get(key) ?? null;
+    },
+    setItem(key: string, value: string) {
+      values.set(key, value);
+    },
+    snapshot() {
+      return Object.fromEntries(values.entries());
+    },
+  };
+}
+
+test('scoped AIConfig store persists by host-provided scope keys and index', () => {
+  const storage = createMemoryStorage();
+  const store = createScopedAIConfigStore({
+    storage: () => storage,
+    indexKey: 'test:index',
+    configKeyForScope: (scopeKey) => `test:${scopeKey}`,
+    validateRuntimeBindings: true,
+  });
+
+  assert.equal(store.has(SCOPE), false);
+  assert.deepEqual(store.load(SCOPE), {
+    scopeRef: SCOPE,
+    capabilities: {
+      selectedBindings: {},
+      localProfileRefs: {},
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  });
+
+  const saved = store.save(CONFIG);
+  assert.deepEqual(saved, CONFIG);
+  assert.equal(store.has(SCOPE), true);
+  assert.deepEqual(store.listScopeKeys(), [aiConfigScopeKeyFromRef(SCOPE)]);
+  assert.deepEqual(store.load(SCOPE), CONFIG);
+  assert.match(storage.snapshot()['test:index'], /app:dev\.nimi\.tester:app-lab/);
+});
+
+test('scoped AIConfig store supports app-specific storage keys and memory fallback', () => {
+  const store = createScopedAIConfigStore({
+    storage: () => null,
+    configKeyForScope: () => 'single-app-key',
+    memoryFallback: true,
+  });
+
+  assert.deepEqual(store.listScopeKeys(), []);
+  store.save(CONFIG);
+  assert.deepEqual(store.listScopeKeys(), [aiConfigScopeKeyFromRef(SCOPE)]);
+  assert.deepEqual(store.load(SCOPE), CONFIG);
+});
+
+test('scoped AIConfig store fails closed on malformed runtime bindings', () => {
+  const storage = createMemoryStorage({
+    'test:app:dev.nimi.tester:app-lab': JSON.stringify({
+      ...CONFIG,
+      capabilities: {
+        selectedBindings: {
+          'text.generate': {
+            source: 'local',
+            connectorId: 'not-empty',
+            model: 'local-chat',
+          },
+        },
+      },
+    }),
+  });
+  const store = createScopedAIConfigStore({
+    storage: () => storage,
+    configKeyForScope: (scopeKey) => `test:${scopeKey}`,
+    validateRuntimeBindings: true,
+  });
+
+  assert.throws(() => store.load(SCOPE), /AIConfig binding is invalid: .*connectorId.*local/);
 });

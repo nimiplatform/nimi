@@ -5,7 +5,7 @@ import {
   parseAIScopeRefKey,
   type AIScopeRef,
 } from '../scope/ai-scope.js';
-import type { AIConfig, AIProfile } from './ai-config.js';
+import { createEmptyAIConfig, type AIConfig, type AIProfile } from './ai-config.js';
 
 export {
   encodeAIScopeRefKey as aiConfigScopeKeyFromRef,
@@ -19,9 +19,31 @@ export type AIConfigSubscriptionRegistry = {
   subscribe(scopeKey: string, callback: AIConfigSubscriptionListener): () => void;
 };
 
+export type AIConfigStorageLike = {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+};
+
 export type AIConfigParseOptions = {
   readonly scopeRef?: AIScopeRef;
   readonly validateRuntimeBindings?: boolean;
+};
+
+export type ScopedAIConfigStoreOptions = {
+  readonly storage: () => AIConfigStorageLike | null | undefined;
+  readonly indexKey?: string;
+  readonly configKeyForScope?: (scopeKey: string) => string;
+  readonly validateRuntimeBindings?: boolean;
+  readonly memoryFallback?: boolean;
+};
+
+export type ScopedAIConfigStore = {
+  readonly scopeKeyFromRef: (scopeRef: AIScopeRef) => string;
+  readonly parseScopeKey: (scopeKey: string) => AIScopeRef | null;
+  readonly has: (scopeRef: AIScopeRef) => boolean;
+  readonly load: (scopeRef: AIScopeRef) => AIConfig;
+  readonly save: (config: AIConfig) => AIConfig;
+  readonly listScopeKeys: () => string[];
 };
 
 export function cloneAIConfig(config: AIConfig): AIConfig {
@@ -169,6 +191,123 @@ export function parseAIConfig(raw: unknown, options: AIConfigParseOptions = {}):
     }
   }
   return config;
+}
+
+function parseStorageJson(raw: string | null): unknown {
+  if (!raw) {
+    return null;
+  }
+  return JSON.parse(raw);
+}
+
+function readStorageStringList(storage: AIConfigStorageLike, key: string): string[] {
+  const parsed = parseStorageJson(storage.getItem(key));
+  return Array.isArray(parsed)
+    ? parsed.filter((item): item is string => typeof item === 'string')
+    : [];
+}
+
+function writeStorageJson(storage: AIConfigStorageLike, key: string, value: unknown): void {
+  storage.setItem(key, JSON.stringify(value));
+}
+
+function createDefaultConfigKeyForScope(scopeKey: string): string {
+  return `nimi.ai-config.scope.${scopeKey}.v2`;
+}
+
+export function createScopedAIConfigStore(
+  options: ScopedAIConfigStoreOptions,
+): ScopedAIConfigStore {
+  const indexKey = options.indexKey || 'nimi.ai-config.scope-index.v2';
+  const configKeyForScope = options.configKeyForScope || createDefaultConfigKeyForScope;
+  const memoryConfigs = new Map<string, AIConfig>();
+  const memoryScopeKeys = new Set<string>();
+
+  const getStorage = () => options.storage() || null;
+  const shouldUseMemory = () => options.memoryFallback === true;
+  const parseStoredConfig = (raw: string | null, scopeRef: AIScopeRef): AIConfig | null => {
+    const parsed = parseStorageJson(raw);
+    if (!parsed) {
+      return null;
+    }
+    return parseAIConfig(parsed, {
+      scopeRef,
+      validateRuntimeBindings: options.validateRuntimeBindings,
+    });
+  };
+  const loadScopeIndex = (storage: AIConfigStorageLike): string[] =>
+    readStorageStringList(storage, indexKey);
+  const persistScopeIndex = (storage: AIConfigStorageLike, scopeKeys: string[]) => {
+    writeStorageJson(storage, indexKey, scopeKeys);
+  };
+  const ensureScopeInIndex = (storage: AIConfigStorageLike, scopeKey: string) => {
+    const index = loadScopeIndex(storage);
+    if (!index.includes(scopeKey)) {
+      persistScopeIndex(storage, [...index, scopeKey]);
+    }
+  };
+
+  return {
+    scopeKeyFromRef(scopeRef: AIScopeRef): string {
+      return encodeAIScopeRefKey(scopeRef);
+    },
+    parseScopeKey(scopeKey: string): AIScopeRef | null {
+      return parseAIScopeRefKey(scopeKey);
+    },
+    has(scopeRef: AIScopeRef): boolean {
+      const scopeKey = encodeAIScopeRefKey(scopeRef);
+      const storage = getStorage();
+      if (storage) {
+        return storage.getItem(configKeyForScope(scopeKey)) !== null
+          || loadScopeIndex(storage).includes(scopeKey);
+      }
+      return shouldUseMemory() && memoryScopeKeys.has(scopeKey);
+    },
+    load(scopeRef: AIScopeRef): AIConfig {
+      const scopeKey = encodeAIScopeRefKey(scopeRef);
+      const storage = getStorage();
+      if (storage) {
+        const parsed = parseStoredConfig(storage.getItem(configKeyForScope(scopeKey)), scopeRef);
+        return parsed || createEmptyAIConfig(scopeRef);
+      }
+      if (shouldUseMemory()) {
+        const cached = memoryConfigs.get(scopeKey);
+        if (cached) {
+          return cloneAIConfig(cached);
+        }
+        const empty = createEmptyAIConfig(scopeRef);
+        memoryConfigs.set(scopeKey, empty);
+        return cloneAIConfig(empty);
+      }
+      return createEmptyAIConfig(scopeRef);
+    },
+    save(config: AIConfig): AIConfig {
+      const normalized = cloneAIConfig(config);
+      const scopeKey = encodeAIScopeRefKey(normalized.scopeRef);
+      if (options.validateRuntimeBindings) {
+        const errors = validateAIConfigRuntimeBindings(normalized);
+        if (errors.length > 0) {
+          throw new Error(`AIConfig binding is invalid: ${errors.join('; ')}`);
+        }
+      }
+      const storage = getStorage();
+      if (storage) {
+        writeStorageJson(storage, configKeyForScope(scopeKey), normalized);
+        ensureScopeInIndex(storage, scopeKey);
+      } else if (shouldUseMemory()) {
+        memoryConfigs.set(scopeKey, normalized);
+        memoryScopeKeys.add(scopeKey);
+      }
+      return cloneAIConfig(normalized);
+    },
+    listScopeKeys(): string[] {
+      const storage = getStorage();
+      if (storage) {
+        return loadScopeIndex(storage);
+      }
+      return shouldUseMemory() ? [...memoryScopeKeys] : [];
+    },
+  };
 }
 
 export function createAIConfigSubscriptionRegistry(input: {

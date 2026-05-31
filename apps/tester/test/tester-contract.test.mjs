@@ -299,7 +299,7 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
     'AIProfile',
     'AIConfig',
     'createAppAIScopeRef',
-    'createEmptyAIConfig',
+    'createScopedAIConfigStore',
     'parseAIProfile',
     'applyAIProfileToConfig',
     'computeAIConfigDiff',

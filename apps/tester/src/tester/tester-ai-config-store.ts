@@ -1,17 +1,16 @@
 import {
   applyAIProfileToConfig,
   aiConfigScopeKeyFromRef,
-  cloneAIConfig,
   computeAIConfigDiff,
   computeAIConfigVersion,
   createAppAIScopeRef,
   createAIConfigSubscriptionRegistry,
-  createEmptyAIConfig,
-  parseAIConfig,
+  createScopedAIConfigStore,
   parseAIProfile,
   validateAIConfigRuntimeBindings,
   validateAIProfileRuntimeBindings,
   type AIConfig,
+  type AIConfigStorageLike,
   type AIProfile,
   type AIProfileApplyResult,
   type AIProfilePreviewResult,
@@ -48,7 +47,6 @@ type TesterAIProfileLibraryStore = {
   profiles: AIProfile[];
 };
 
-const memoryConfigs = new Map<string, AIConfig>();
 const configSubscriptions = createAIConfigSubscriptionRegistry({
   resolveScopeKey: (config) => scopeKey(config.scopeRef),
   cloneOnNotify: true,
@@ -67,29 +65,18 @@ function getStorage(): Storage | null {
   return resolveBrowserStorage('local');
 }
 
+const aiConfigStore = createScopedAIConfigStore({
+  storage: () => getStorage() as AIConfigStorageLike | null,
+  configKeyForScope: () => TESTER_AI_CONFIG_STORAGE_KEY,
+  validateRuntimeBindings: true,
+  memoryFallback: true,
+});
+
 function defaultProfileStore(): TesterAIProfileLibraryStore {
   return {
     schemaVersion: TESTER_AI_PROFILE_LIBRARY_SCHEMA_VERSION,
     profiles: [],
   };
-}
-
-function parseStoredConfig(raw: string, scopeRef: AIScopeRef): AIConfig {
-  try {
-    return parseAIConfig(JSON.parse(raw), {
-      scopeRef,
-      validateRuntimeBindings: true,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (message.startsWith('AIConfig binding is invalid: ')) {
-      throw new Error(`Stored ${message}`);
-    }
-    if (message === 'AIConfig schema is invalid.') {
-      throw new Error('Stored AIConfig scope does not match App Lab.');
-    }
-    throw error;
-  }
 }
 
 function parseStoredProfileLibrary(raw: string): TesterAIProfileLibraryStore {
@@ -194,42 +181,32 @@ export function importTesterAIProfileJson(rawJson: string): TesterAIProfileImpor
 }
 
 export function loadTesterAIConfig(scopeRef: AIScopeRef = createTesterAppLabAIScopeRef()): AIConfig {
-  const key = scopeKey(scopeRef);
-  const storage = getStorage();
-  if (!storage) {
-    const cached = memoryConfigs.get(key);
-    if (cached) return cloneAIConfig(cached);
-    const empty = createEmptyAIConfig(scopeRef);
-    memoryConfigs.set(key, empty);
-    return cloneAIConfig(empty);
+  try {
+    return aiConfigStore.load(scopeRef);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.startsWith('AIConfig binding is invalid: ')) {
+      throw new Error(`Stored ${message}`);
+    }
+    if (message === 'AIConfig schema is invalid.') {
+      throw new Error('Stored AIConfig scope does not match App Lab.');
+    }
+    throw error;
   }
-
-  const raw = storage.getItem(TESTER_AI_CONFIG_STORAGE_KEY);
-  if (!raw) return createEmptyAIConfig(scopeRef);
-  return parseStoredConfig(raw, scopeRef);
 }
 
 export function saveTesterAIConfig(
   next: AIConfig,
   scopeRef: AIScopeRef = createTesterAppLabAIScopeRef(),
 ): AIConfig {
-  const normalized = {
-    ...cloneAIConfig(next),
-    scopeRef,
-  };
+  const normalized = { ...next, scopeRef };
   const bindingErrors = validateAIConfigRuntimeBindings(normalized);
   if (bindingErrors.length > 0) {
     throw new Error(`AIConfig binding validation failed: ${bindingErrors.join('; ')}`);
   }
-  const key = scopeKey(scopeRef);
-  const storage = getStorage();
-  if (storage) {
-    storage.setItem(TESTER_AI_CONFIG_STORAGE_KEY, JSON.stringify(normalized));
-  } else {
-    memoryConfigs.set(key, normalized);
-  }
-  configSubscriptions.notify(normalized);
-  return cloneAIConfig(normalized);
+  const saved = aiConfigStore.save(normalized);
+  configSubscriptions.notify(saved);
+  return saved;
 }
 
 function profileById(profileId: string): AIProfile | null {
