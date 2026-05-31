@@ -22,6 +22,7 @@ export * from './runtime-agent-inspect-projection.js';
 export * from './runtime-agent-inspect-surface.js';
 export * from './runtime-agent-memory.js';
 export * from './runtime-agent-memory-surface.js';
+export * from './runtime-agent-lifecycle-surface.js';
 export * from './runtime-external-agent.js';
 export * from './runtime-agent-presentation-profile.js';
 export * from './runtime-call-options.js';

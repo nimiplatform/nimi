@@ -2,8 +2,7 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import type { Realm, RealmModel } from '@nimiplatform/sdk/realm';
 import {
   asNimiError,
-  buildRuntimeAgentRequestContext,
-  createRuntimeProtectedScopeHelper,
+  createHostRuntimeAgentLifecycleSurface,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { isRealmOfflineError, isRuntimeOfflineError } from '@renderer/infra/offline';
@@ -44,8 +43,6 @@ const COURIER_POLLING_KEY = 'local-agent-termination-courier';
 /** Bounded per-pass delivery concurrency (preflight §3.3). */
 const COURIER_DELIVERY_CONCURRENCY = 3;
 
-let runtimeProtectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
-
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -56,18 +53,6 @@ function requireCurrentUserId(getCurrentUser: CurrentUserReader): string {
     throw new Error('local-agent termination courier requires authenticated current user id');
   }
   return id;
-}
-
-function getRuntimeProtectedAccess(getCurrentUser: CurrentUserReader) {
-  if (runtimeProtectedAccess) {
-    return runtimeProtectedAccess;
-  }
-  const runtime = getPlatformClient().runtime;
-  runtimeProtectedAccess = createRuntimeProtectedScopeHelper({
-    runtime,
-    getSubjectUserId: async () => requireCurrentUserId(getCurrentUser),
-  });
-  return runtimeProtectedAccess;
 }
 
 function normalizeRuntimeError(error: unknown) {
@@ -109,27 +94,22 @@ async function deliverTerminateToLocalRuntime(
   intent: LocalAgentTerminationIntentDto,
   getCurrentUser: CurrentUserReader,
 ): Promise<void> {
-  const runtime = getPlatformClient().runtime;
-  const protectedAccess = getRuntimeProtectedAccess(getCurrentUser);
   const localAgentRef = normalizeText(intent.localAgentRef);
   const ownerUserId = normalizeText(intent.ownerUserId);
   const realmAgentId = normalizeText(intent.realmAgentId);
   if (!localAgentRef || !ownerUserId || !realmAgentId) {
     throw new Error('local-agent termination intent missing R-CHAT-016 identity fields');
   }
-  const context = buildRuntimeAgentRequestContext({
-    runtimeAppId: runtime.appId,
-    subjectUserId: ownerUserId,
-    localAgentRef,
+  const lifecycle = createHostRuntimeAgentLifecycleSurface({
+    getRuntime: () => getPlatformClient().runtime,
+    getSubjectUserId: () => requireCurrentUserId(getCurrentUser),
   });
-  await protectedAccess.withScopes(
-    ['runtime.agent.admin'],
-    (options) => runtime.agent.terminateAgent({
-      context,
-      agentId: localAgentRef,
-      reason: 'agent-friend-removal:R-SOC-008',
-    }, options),
-  );
+  await lifecycle.terminateLocalAgent({
+    localAgentRef,
+    ownerUserId,
+    realmAgentId,
+    reason: 'agent-friend-removal:R-SOC-008',
+  });
 }
 
 type CourierDelivery =

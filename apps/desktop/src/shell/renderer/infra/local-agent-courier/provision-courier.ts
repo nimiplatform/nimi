@@ -2,8 +2,7 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import type { Realm, RealmModel } from '@nimiplatform/sdk/realm';
 import {
   asNimiError,
-  buildRuntimeAgentRequestContext,
-  createRuntimeProtectedScopeHelper,
+  createHostRuntimeAgentLifecycleSurface,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { isRealmOfflineError, isRuntimeOfflineError } from '@renderer/infra/offline';
@@ -50,10 +49,6 @@ const COURIER_DELIVERY_CONCURRENCY = 3;
  * a typed idempotent no-op surfaced as this runtime gRPC code. The courier
  * treats it as a real `established` success — re-delivering a provision is safe.
  */
-const RUNTIME_GRPC_ALREADY_EXISTS = 'RUNTIME_GRPC_ALREADY_EXISTS';
-
-let runtimeProtectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
-
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -64,18 +59,6 @@ function requireCurrentUserId(getCurrentUser: CurrentUserReader): string {
     throw new Error('local-agent provision courier requires authenticated current user id');
   }
   return id;
-}
-
-function getRuntimeProtectedAccess(getCurrentUser: CurrentUserReader) {
-  if (runtimeProtectedAccess) {
-    return runtimeProtectedAccess;
-  }
-  const runtime = getPlatformClient().runtime;
-  runtimeProtectedAccess = createRuntimeProtectedScopeHelper({
-    runtime,
-    getSubjectUserId: async () => requireCurrentUserId(getCurrentUser),
-  });
-  return runtimeProtectedAccess;
 }
 
 function normalizeRuntimeError(error: unknown) {
@@ -125,42 +108,22 @@ async function deliverInitializeToLocalRuntime(
   intent: LocalAgentProvisionIntentDto,
   getCurrentUser: CurrentUserReader,
 ): Promise<void> {
-  const runtime = getPlatformClient().runtime;
-  const protectedAccess = getRuntimeProtectedAccess(getCurrentUser);
   const localAgentRef = normalizeText(intent.localAgentRef);
   const ownerUserId = normalizeText(intent.ownerUserId);
   const realmAgentId = normalizeText(intent.realmAgentId);
   if (!localAgentRef || !ownerUserId || !realmAgentId) {
     throw new Error('local-agent provision intent missing R-CHAT-016 identity fields');
   }
-  const context = buildRuntimeAgentRequestContext({
-    runtimeAppId: runtime.appId,
-    subjectUserId: ownerUserId,
-    localAgentRef,
+  const lifecycle = createHostRuntimeAgentLifecycleSurface({
+    getRuntime: () => getPlatformClient().runtime,
+    getSubjectUserId: () => requireCurrentUserId(getCurrentUser),
   });
-  try {
-    await protectedAccess.withScopes(
-      ['runtime.agent.admin'],
-      (options) => runtime.agent.initializeAgent({
-        context,
-        agentId: '',
-        localAgentRef,
-        ownerUserId,
-        realmAgentId,
-        displayName: realmAgentId,
-        autonomyConfig: undefined,
-        worldId: '',
-        metadata: undefined,
-      }, options),
-    );
-  } catch (error) {
-    // K-AGCORE-139 already-exists is a typed idempotent no-op success, not a
-    // failure — converge on it like the chat-open repair path does.
-    if (normalizeRuntimeError(error).reasonCode === RUNTIME_GRPC_ALREADY_EXISTS) {
-      return;
-    }
-    throw error;
-  }
+  await lifecycle.initializeLocalAgent({
+    localAgentRef,
+    ownerUserId,
+    realmAgentId,
+    displayName: realmAgentId,
+  });
 }
 
 type CourierDelivery =
