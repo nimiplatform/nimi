@@ -81,7 +81,7 @@ test('desktop avatar live instance parser rejects bare and mismatched localAgent
   assert.throws(() => parseDesktopAvatarLiveInstanceRecord({
     ...base,
     localAgentRef: 'agent:abc.def+1',
-  }), /local-agent:/);
+  }), /malformed/);
   assert.throws(() => parseDesktopAvatarLiveInstanceRecord({
     ...base,
     localAgentRef: 'local-agent:owner-2:agent-1',

@@ -12,7 +12,7 @@ import { clearAllAgentConversationAnchorBindings } from '@renderer/app-shell/pro
 import { getActiveScope } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
 import { refreshConversationCapabilityProjections } from '@renderer/features/chat/conversation-capability-projection';
 import { getPlatformClient } from '@nimiplatform/sdk';
-import { createRuntimeProtectedScopeHelper } from '@nimiplatform/sdk/runtime';
+import { createRuntimeProtectedScopeHelper, parseRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/browser';
 import {
   readStorageTextFrom,
@@ -342,16 +342,18 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
         getSubjectUserId: async () => subjectUserId,
       });
       const localAgentRef = String(input.agentId || '').trim();
-      const [, ownerUserId, realmAgentId] = localAgentRef.split(':');
-      if (!ownerUserId || !realmAgentId || !localAgentRef.startsWith('local-agent:')) {
+      let identity: ReturnType<typeof parseRuntimeLocalAgentIdentity>;
+      try {
+        identity = parseRuntimeLocalAgentIdentity(localAgentRef);
+      } catch {
         throw new Error('Runtime conversation anchor smoke verification requires localAgentRef formatted as local-agent:${ownerUserId}:${realmAgentId}');
       }
       await withSmokeTimeout(
         'Runtime conversation anchor smoke verification',
         protectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.anchors.getSnapshot({
-          ownerUserId,
-          realmAgentId,
-          localAgentRef,
+          ownerUserId: identity.ownerUserId,
+          realmAgentId: identity.realmAgentId,
+          localAgentRef: identity.localAgentRef,
           conversationAnchorId: input.conversationAnchorId,
         }, options)),
         SMOKE_STEP_TIMEOUT_MS,
@@ -365,8 +367,10 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
       }
       const runtime = getPlatformClient().runtime;
       const localAgentRef = String(input.agentId || '').trim();
-      const [, ownerUserId, realmAgentId] = localAgentRef.split(':');
-      if (!ownerUserId || !realmAgentId || !localAgentRef.startsWith('local-agent:')) {
+      let identity: ReturnType<typeof parseRuntimeLocalAgentIdentity>;
+      try {
+        identity = parseRuntimeLocalAgentIdentity(localAgentRef);
+      } catch {
         throw new Error('Runtime product path evidence requires localAgentRef formatted as local-agent:${ownerUserId}:${realmAgentId}');
       }
       const protectedAccess = createRuntimeProtectedScopeHelper({
@@ -376,9 +380,9 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
       const [health, snapshot] = await Promise.all([
         withSmokeTimeout('Runtime product evidence health read', runtime.health(), SMOKE_STEP_TIMEOUT_MS),
         withSmokeTimeout('Runtime product evidence anchor snapshot read', protectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.anchors.getSnapshot({
-          ownerUserId,
-          realmAgentId,
-          localAgentRef,
+          ownerUserId: identity.ownerUserId,
+          realmAgentId: identity.realmAgentId,
+          localAgentRef: identity.localAgentRef,
           conversationAnchorId: input.conversationAnchorId,
         }, options)), SMOKE_STEP_TIMEOUT_MS),
       ]);
@@ -616,17 +620,16 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
     },
     async listAvatarLiveInstances(localAgentRef: string) {
       const normalized = String(localAgentRef || '').trim();
-      const rest = normalized.startsWith('local-agent:') ? normalized.slice('local-agent:'.length) : '';
-      const separator = rest.indexOf(':');
-      if (!rest || separator <= 0 || separator === rest.length - 1) {
+      let identity: ReturnType<typeof parseRuntimeLocalAgentIdentity>;
+      try {
+        identity = parseRuntimeLocalAgentIdentity(normalized);
+      } catch {
         throw new Error('macOS smoke Avatar live-instance lookup requires localAgentRef');
       }
-      const ownerUserId = rest.slice(0, separator);
-      const realmAgentId = rest.slice(separator + 1);
       return listDesktopAvatarLiveInstances({
-        ownerUserId,
-        realmAgentId,
-        localAgentRef: normalized,
+        ownerUserId: identity.ownerUserId,
+        realmAgentId: identity.realmAgentId,
+        localAgentRef: identity.localAgentRef,
       });
     },
     async readAvatarEvidence(avatarInstanceId: string) {

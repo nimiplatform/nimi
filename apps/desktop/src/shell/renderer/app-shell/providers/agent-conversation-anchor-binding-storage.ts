@@ -4,6 +4,7 @@ import {
   resolveBrowserStorage,
   writeStorageTextTo,
 } from '@nimiplatform/kit/core/storage-json';
+import { projectRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
 
 export const AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY = 'nimi.chat.agent.anchor-bindings.v2';
 
@@ -45,7 +46,9 @@ function normalizeBinding(
   if (!ownerUserId || !realmAgentId || !localAgentRef || !conversationAnchorId) {
     return null;
   }
-  if (!localAgentRef.startsWith('local-agent:') || localAgentRef !== `local-agent:${ownerUserId}:${realmAgentId}`) {
+  try {
+    projectRuntimeLocalAgentIdentity({ ownerUserId, realmAgentId, localAgentRef });
+  } catch {
     return null;
   }
   return {

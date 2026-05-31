@@ -2,6 +2,7 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import type { Realm, RealmModel } from '@nimiplatform/sdk/realm';
 import {
   asNimiError,
+  buildRuntimeAgentRequestContext,
   createRuntimeProtectedScopeHelper,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
@@ -132,17 +133,16 @@ async function deliverInitializeToLocalRuntime(
   if (!localAgentRef || !ownerUserId || !realmAgentId) {
     throw new Error('local-agent provision intent missing R-CHAT-016 identity fields');
   }
+  const context = buildRuntimeAgentRequestContext({
+    runtimeAppId: runtime.appId,
+    subjectUserId: ownerUserId,
+    localAgentRef,
+  });
   try {
     await protectedAccess.withScopes(
       ['runtime.agent.admin'],
       (options) => runtime.agent.initializeAgent({
-        context: {
-          appId: runtime.appId,
-          subjectUserId: ownerUserId,
-          ownerUserId,
-          realmAgentId,
-          localAgentRef,
-        },
+        context,
         agentId: '',
         localAgentRef,
         ownerUserId,

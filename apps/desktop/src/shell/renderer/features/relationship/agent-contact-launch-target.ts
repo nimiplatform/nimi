@@ -1,6 +1,7 @@
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import type { ProfileData } from '@renderer/features/profile/profile-model';
 import type { ContactRecord } from './relationship-model';
+import { buildRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
 
 type AgentContactLaunchSource = {
   id: string;
@@ -43,7 +44,7 @@ export function toAgentContactLaunchTarget(
   return {
     ownerUserId,
     realmAgentId,
-    localAgentRef: `local-agent:${ownerUserId}:${realmAgentId}`,
+    localAgentRef: buildRuntimeLocalAgentRef({ ownerUserId, realmAgentId }),
     displayName: normalizeRequiredText(source.displayName, 'displayName'),
     handle: String(source.handle || '').trim(),
     avatarUrl: source.avatarUrl || null,

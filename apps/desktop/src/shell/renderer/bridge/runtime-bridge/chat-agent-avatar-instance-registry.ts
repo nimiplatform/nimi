@@ -1,5 +1,6 @@
 import { hasTauriInvoke } from './env';
 import { invokeChecked } from './invoke';
+import { projectRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
 import {
   assertRecord,
   parseOptionalString,
@@ -74,12 +75,10 @@ function validateLocalAgentRef(ownerUserId: string, realmAgentId: string, localA
   if (localAgentRef === realmAgentId) {
     throw new Error('desktop avatar instance registry localAgentRef must not be a bare realmAgentId');
   }
-  if (!localAgentRef.startsWith('local-agent:')) {
-    throw new Error('desktop avatar instance registry localAgentRef must start with local-agent:');
-  }
-  const expected = `local-agent:${ownerUserId}:${realmAgentId}`;
-  if (localAgentRef !== expected) {
-    throw new Error('desktop avatar instance registry localAgentRef must equal local-agent:${ownerUserId}:${realmAgentId}');
+  try {
+    projectRuntimeLocalAgentIdentity({ ownerUserId, realmAgentId, localAgentRef });
+  } catch (error) {
+    throw new Error(`desktop avatar instance registry localAgentRef is invalid: ${String((error as Error).message || error)}`);
   }
 }
 

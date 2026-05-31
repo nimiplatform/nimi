@@ -82,7 +82,7 @@ test('T5 acceptance: Explore exposes the three-section discovery IA with Worlds 
   // Agents section is a full discovery grid — not a truncated carousel.
   assert.match(exploreViewSource, /WorldCatalogContent/);
   assert.match(exploreViewSource, /<AgentRecommendationCard/);
-  assert.match(explorePanelSource, /dataSync\.loadExploreAgents/);
+  assert.match(explorePanelSource, /realmExploreData\.loadExploreAgents/);
   assert.doesNotMatch(explorePanelSource, /TOP_AGENTS_COUNT/);
 });
 
@@ -99,12 +99,12 @@ test('T5 acceptance: Add Friend creates the AgentFriend relation AND the idempot
     friendActionsSource.indexOf('export async function addRealmAgentFriend'),
     friendActionsSource.indexOf('export async function openRealmAgentLocalChat'),
   );
-  assert.match(addFriendBody, /dataSync\.requestOrAcceptFriend\(/);
+  assert.match(addFriendBody, /realmSocialData\.requestOrAcceptFriend\(/);
   assert.match(addFriendBody, /ensureRuntimeAgentExists\(localAgentTarget\)/);
 
   // The LocalAgent projection is keyed by the deterministic owner-scoped ref —
   // a repeated Add Friend / retry resolves the same LocalAgent (idempotent).
-  assert.match(friendActionsSource, /localAgentRef: `local-agent:\$\{ownerUserId\}:\$\{realmAgentId\}`/);
+  assert.match(friendActionsSource, /buildRuntimeLocalAgentRef\(\{ ownerUserId, realmAgentId \}\)/);
   // Add Friend never mutates RealmAgent canonical truth — it only forks a
   // Friendship row + an owner-scoped LocalAgent projection.
   assert.doesNotMatch(addFriendBody, /updateAgent|patchAgent|mutateRealmAgent/);

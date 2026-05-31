@@ -21,6 +21,7 @@ import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agen
 import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
 import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
 import type { AgentConversationSelection } from '@renderer/features/chat/chat-shell-types.js';
+import { buildRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
 
 // Minimal RealmAgent identity needed to build the deterministic localAgentRef
 // and the LocalAgent target snapshot. Sourced from the RealmAgent card / detail
@@ -50,9 +51,8 @@ function requireOwnerUserId(): string {
   return ownerUserId;
 }
 
-// Build the LocalAgent target snapshot with the deterministic
-// `localAgentRef = local-agent:${ownerUserId}:${realmAgentId}` identity
-// (Realm chat-contract R-CHAT-016 ~ R-CHAT-020).
+// Build the LocalAgent target snapshot with the deterministic Runtime local
+// agent identity (Realm chat-contract R-CHAT-016 ~ R-CHAT-020).
 function toLocalAgentTarget(
   target: RealmAgentFriendTarget,
   ownerUserId: string,
@@ -64,7 +64,7 @@ function toLocalAgentTarget(
   return {
     ownerUserId,
     realmAgentId,
-    localAgentRef: `local-agent:${ownerUserId}:${realmAgentId}`,
+    localAgentRef: buildRuntimeLocalAgentRef({ ownerUserId, realmAgentId }),
     displayName: target.displayName || realmAgentId,
     handle: target.handle || '',
     avatarUrl: target.avatarUrl ?? null,

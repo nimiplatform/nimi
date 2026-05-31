@@ -2,6 +2,7 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import type { Realm, RealmModel } from '@nimiplatform/sdk/realm';
 import {
   asNimiError,
+  buildRuntimeAgentRequestContext,
   createRuntimeProtectedScopeHelper,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
@@ -116,16 +117,15 @@ async function deliverTerminateToLocalRuntime(
   if (!localAgentRef || !ownerUserId || !realmAgentId) {
     throw new Error('local-agent termination intent missing R-CHAT-016 identity fields');
   }
+  const context = buildRuntimeAgentRequestContext({
+    runtimeAppId: runtime.appId,
+    subjectUserId: ownerUserId,
+    localAgentRef,
+  });
   await protectedAccess.withScopes(
     ['runtime.agent.admin'],
     (options) => runtime.agent.terminateAgent({
-      context: {
-        appId: runtime.appId,
-        subjectUserId: ownerUserId,
-        ownerUserId,
-        realmAgentId,
-        localAgentRef,
-      },
+      context,
       agentId: localAgentRef,
       reason: 'agent-friend-removal:R-SOC-008',
     }, options),
