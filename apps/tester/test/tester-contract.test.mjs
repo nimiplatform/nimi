@@ -1050,9 +1050,8 @@ test('tester settings consumes SDK Runtime recommendation feed parser projection
 
   assert.match(settings, /parseRuntimeLocalRecommendationFeedDescriptor/);
   assert.match(settings, /createTesterLocalRecommendationCopyProjection/);
-  assert.match(recommendationCopyProjection, /summarizeLocalCatalogRecommendation/);
-  assert.match(recommendationCopyProjection, /formatLocalRecommendationReasonLabel/);
-  assert.match(recommendationCopyProjection, /buildLocalRecommendationDetailItems/);
+  assert.match(recommendationCopyProjection, /summarizeLocalCatalogRecommendation[\s\S]*formatLocalRecommendationReasonLabel[\s\S]*buildLocalRecommendationDetailItems/);
+  assert.match(recommendationCopyProjection, /collectLocalRecommendationFeedProviders[\s\S]*countLocalRecommendationRunGrades[\s\S]*filterLocalRecommendationFeedItems[\s\S]*parseLocalRecommendationLicenseShort[\s\S]*splitLocalRecommendationFeedItems/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Runtime recommendation feed parser/);
   assert.doesNotMatch(settings, /function parseRecommendationFeedDescriptor/);

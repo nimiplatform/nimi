@@ -1848,7 +1848,7 @@ export function SettingsRoute() {
       <div className="setting-row">
         <span>Runtime recommendation projection</span>
         <StatusBadge tone="neutral">
-          {recommendationFeedProjection.source} / {recommendationFeedProjection.cacheState} / {recommendationFeedProjection.grade} / {recommendationCopyProjection.detailCount}: {recommendationCopyProjection.summary || recommendationCopyProjection.reason}
+          {recommendationFeedProjection.source} / {recommendationFeedProjection.cacheState} / {recommendationFeedProjection.grade} / {recommendationCopyProjection.detailCount} / {recommendationCopyProjection.feedSummary}: {recommendationCopyProjection.summary || recommendationCopyProjection.reason}
         </StatusBadge>
       </div>
       <div className="setting-row">

@@ -52,6 +52,9 @@ export type LocalRecommendationFeedItemLike = {
     modelId?: string;
     license?: string;
   } | null;
+  installedState?: {
+    installed?: boolean;
+  } | null;
   entries?: readonly LocalRecommendationFeedEntryLike[];
 };
 

@@ -4,12 +4,21 @@ import test from 'node:test';
 import {
   LOCAL_RECOMMENDATION_FORMAT_IDS,
   LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,
+  applyLocalRecommendationFeedFilters,
+  buildLocalRecommendationHuggingFaceUrl,
   buildLocalRecommendationDetailItems,
+  collectLocalRecommendationFeedLicenses,
+  collectLocalRecommendationFeedProviders,
+  computeLocalRecommendationVramPercentage,
+  countLocalRecommendationRunGrades,
+  filterLocalRecommendationFeedItems,
   formatLocalRecommendationBaselineLabel,
   formatLocalRecommendationConfidenceLabel,
   formatLocalRecommendationHostSupportLabel,
+  formatLocalRecommendationQuantQualityLabel,
   formatLocalRecommendationReasonLabel,
   formatLocalRecommendationRepoOwner,
+  formatLocalRecommendationRunGradeLabel,
   localRecommendationFeedMatchesQuery,
   localRecommendationTierToRunGrade,
   normalizeLocalRecommendationFeedCapabilityId,
@@ -17,6 +26,10 @@ import {
   parseLocalRecommendationFeedCacheStateId,
   parseLocalRecommendationFeedCapabilityId,
   parseLocalRecommendationFeedSourceId,
+  parseLocalRecommendationLicenseShort,
+  parseLocalRecommendationParamsFromTitle,
+  parseLocalRecommendationQuantBitsFromEntry,
+  parseLocalRecommendationQuantLevelFromEntry,
   parseLocalRecommendationFormatId,
   parseLocalRecommendationHostSupportClassId,
   parseLocalRecommendationSourceId,
@@ -24,6 +37,8 @@ import {
   parseRuntimeLocalCatalogRecommendation,
   parseRuntimeLocalRecommendationFeedDescriptor,
   selectLocalRecommendationPrimaryEntrySize,
+  sortLocalRecommendationFeedItems,
+  splitLocalRecommendationFeedItems,
   summarizeLocalCatalogRecommendation,
   summarizeLocalRecommendationFeedCacheState,
   toLocalRecommendationFeedCapabilityRequestValue,
@@ -103,6 +118,55 @@ test('local recommendation feed projection utilities preserve Runtime feed seman
   assert.equal(selectLocalRecommendationPrimaryEntrySize(item), 4);
   assert.equal(localRecommendationFeedMatchesQuery(item, 'small-chat-q4'), true);
   assert.equal(localRecommendationFeedMatchesQuery(item, 'speech'), false);
+});
+
+test('local recommendation feed view helpers stay in SDK projection', () => {
+  const rows = [
+    {
+      itemId: 'recommended',
+      title: 'Llama 3.1 8B',
+      repo: 'meta-llama/Llama-3-8B-Instruct-GGUF',
+      downloads: 20,
+      likes: 5,
+      recommendation: { tier: 'recommended', recommendedEntry: 'llama-q4.gguf' },
+      installPayload: { modelId: 'local/llama3', license: 'llama3.1' },
+      installedState: { installed: false },
+      entries: [{ entry: 'llama-q4.gguf', totalSizeBytes: 4 }],
+    },
+    {
+      itemId: 'installed',
+      title: 'Qwen 2.5 Coder 32B',
+      repo: 'qwen/qwen2.5-coder',
+      downloads: 10,
+      recommendation: { tier: 'tight' },
+      installPayload: { modelId: 'local/qwen', license: 'apache-2.0' },
+      installedState: { installed: true },
+      entries: [{ entry: 'qwen-Q5_K_M.gguf', totalSizeBytes: 12 }],
+    },
+  ];
+
+  assert.equal(formatLocalRecommendationRunGradeLabel('tight_fit'), 'Tight Fit');
+  assert.deepEqual(countLocalRecommendationRunGrades(rows).runs_great, 1);
+  assert.equal(parseLocalRecommendationParamsFromTitle(rows[0]?.title), '8B');
+  assert.equal(parseLocalRecommendationLicenseShort(rows[1]?.installPayload.license), 'Apache 2.0');
+  assert.equal(computeLocalRecommendationVramPercentage(4, 12), 33);
+  assert.deepEqual(collectLocalRecommendationFeedProviders(rows), ['Meta Llama', 'Qwen']);
+  assert.deepEqual(collectLocalRecommendationFeedLicenses(rows), ['Apache 2.0', 'Llama 3.1']);
+  assert.deepEqual(filterLocalRecommendationFeedItems(rows, 'llama-q4').map((item) => item.itemId), ['recommended']);
+  assert.deepEqual(
+    applyLocalRecommendationFeedFilters(rows, { providers: new Set(['Qwen']), grades: new Set(['tight_fit']) })
+      .map((item) => item.itemId),
+    ['installed'],
+  );
+  assert.deepEqual(sortLocalRecommendationFeedItems(rows, 'size').map((item) => item.itemId), ['recommended', 'installed']);
+  assert.deepEqual(splitLocalRecommendationFeedItems(rows).alreadyInstalled.map((item) => item.itemId), ['installed']);
+  assert.equal(parseLocalRecommendationQuantBitsFromEntry('model-Q5_K_M.gguf'), 5);
+  assert.equal(parseLocalRecommendationQuantLevelFromEntry('model-Q5_K_M.gguf'), 'Q5_K_M');
+  assert.equal(formatLocalRecommendationQuantQualityLabel(5), 'Medium-High');
+  assert.equal(
+    buildLocalRecommendationHuggingFaceUrl('meta-llama/Llama-3-8B-Instruct-GGUF'),
+    'https://huggingface.co/meta-llama/Llama-3-8B-Instruct-GGUF',
+  );
 });
 
 test('local recommendation feed copy helpers stay in the SDK projection', () => {

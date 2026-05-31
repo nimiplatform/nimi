@@ -313,6 +313,27 @@ export {
   type LocalRecommendationTierId,
 } from './local-recommendation-feed.js';
 export {
+  LOCAL_RECOMMENDATION_FEED_SORT_KEYS,
+  applyLocalRecommendationFeedFilters,
+  buildLocalRecommendationHuggingFaceUrl,
+  collectLocalRecommendationFeedLicenses,
+  collectLocalRecommendationFeedProviders,
+  computeLocalRecommendationVramPercentage,
+  countLocalRecommendationRunGrades,
+  filterLocalRecommendationFeedItems,
+  formatLocalRecommendationQuantQualityLabel,
+  formatLocalRecommendationRunGradeLabel,
+  parseLocalRecommendationLicenseShort,
+  parseLocalRecommendationParamsFromTitle,
+  parseLocalRecommendationQuantBitsFromEntry,
+  parseLocalRecommendationQuantLevelFromEntry,
+  sortLocalRecommendationFeedItems,
+  splitLocalRecommendationFeedItems,
+  type LocalRecommendationFeedFilters,
+  type LocalRecommendationFeedSections,
+  type LocalRecommendationFeedSortKey,
+} from './local-recommendation-feed-view.js';
+export {
   buildLocalRecommendationDetailItems,
   formatLocalRecommendationBaselineLabel,
   formatLocalRecommendationConfidenceLabel,
