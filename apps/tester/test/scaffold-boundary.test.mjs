@@ -4,11 +4,13 @@ import test from 'node:test';
 
 const authSource = readFileSync(new URL('../src/shell/auth/runtime-platform.ts', import.meta.url), 'utf8');
 const authGateSource = readFileSync(new URL('../src/shell/auth/auth-gate.tsx', import.meta.url), 'utf8');
+const runtimeAccountAuthSource = readFileSync(new URL('../src/shell/auth/runtime-account-auth.ts', import.meta.url), 'utf8');
 const runtimeLoginSource = readFileSync(new URL('../src/shell/auth/runtime-login-page.tsx', import.meta.url), 'utf8');
 const productSource = readFileSync(new URL('../src/shell/routes/product-area.tsx', import.meta.url), 'utf8');
 const demoSource = readFileSync(new URL('../src/shell/routes/demo-surfaces.tsx', import.meta.url), 'utf8');
 const mainSource = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
-const appSource = [authSource, runtimeLoginSource, productSource, demoSource].join('\n');
+const testerRuntimeSource = readFileSync(new URL('../src/tester/tester-runtime.ts', import.meta.url), 'utf8');
+const appSource = [authSource, runtimeLoginSource, productSource, demoSource, testerRuntimeSource].join('\n');
 const manifest = readFileSync(new URL('../nimi.app.yaml', import.meta.url), 'utf8');
 const admission = readFileSync(new URL('../ADMISSION.md', import.meta.url), 'utf8');
 
@@ -29,6 +31,9 @@ test('single login model requires runtime account login (no dev-standalone bypas
   assert.doesNotMatch(authGateSource, /runtime-developer-session/);
   assert.doesNotMatch(authSource, /VITE_NIMI_RUNTIME_DEVELOPER_SESSION/);
   assert.match(authGateSource, /loadRuntimeAccountUser/);
+  assert.match(runtimeAccountAuthSource, /validateRuntimeOAuthAuthorizationUrl/);
+  assert.match(runtimeAccountAuthSource, /from '@nimiplatform\/kit\/auth'/);
+  assert.doesNotMatch(runtimeAccountAuthSource, /desktop-runtime-oauth-url|#\/login|desktop_callback/);
 });
 
 test('renderer bootstrap installs the Kit runtime-transport bridge before render', () => {
@@ -47,6 +52,22 @@ test('renderer bootstrap installs the Kit runtime-transport bridge before render
   assert.ok(bootstrapAt < renderAt, 'bootstrap must run before render');
   // The app must not reach into the hook global itself — that is Kit-owned glue.
   assert.doesNotMatch(mainSource, /__NIMI_TAURI_RUNTIME__/);
+});
+
+test('runtime readiness consumes Kit runtime defaults bridge', () => {
+  assert.match(
+    testerRuntimeSource,
+    /import \{[^}]*getRuntimeDefaults[^}]*\} from '@nimiplatform\/kit\/shell\/renderer\/bridge'/,
+  );
+  assert.match(testerRuntimeSource, /await getRuntimeDefaults\(\)/);
+  assert.doesNotMatch(
+    testerRuntimeSource,
+    /function\s+(readEnv|resolveRealmBaseUrlFallback|readRuntimeDefaultsFallback|applyEnvOverrides)\b/,
+  );
+  assert.doesNotMatch(
+    testerRuntimeSource,
+    /deriveDefaultJwksUrl|deriveDefaultRevocationUrl|normalizeLoopbackHttpUrl/,
+  );
 });
 
 test('generated shell rejects placeholder and private Desktop imports', () => {

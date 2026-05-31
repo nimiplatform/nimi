@@ -5,8 +5,12 @@
 // developer sees verbatim what Runtime returned.
 
 import { ReasonCode, type PlatformClient } from '@nimiplatform/sdk';
-import type { AIConfig, RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
-import { createAIConfigEvidence } from '@nimiplatform/sdk/ai';
+import type { AIConfig, AISchedulingEvaluationTarget, RuntimeRouteBinding } from '@nimiplatform/sdk/ai';
+import {
+  createAIConfigEvidence,
+  peekSchedulingBatch,
+  resolveAIConfigSchedulingTargetForCapability,
+} from '@nimiplatform/sdk/ai';
 import type { TesterCapabilityId } from './tester-capabilities.js';
 import { capabilityUnavailable, type TesterUnavailable, type TesterUnavailableReason } from './tester-unavailable.js';
 import { getTesterCapability } from './tester-capabilities.js';
@@ -94,6 +98,7 @@ type ResolvedLLMBinding = {
   bindingCapabilityId: typeof TEXT_GENERATION_BINDING_CAPABILITY | typeof EMBEDDING_BINDING_CAPABILITY;
   binding: RuntimeRouteBinding;
   model: string;
+  schedulingTarget: AISchedulingEvaluationTarget | null;
   metadata: Record<string, string>;
 };
 
@@ -222,6 +227,7 @@ export function resolveTesterLLMBinding(
     bindingCapabilityId,
     binding,
     model,
+    schedulingTarget: resolveAIConfigSchedulingTargetForCapability(config, bindingCapabilityId),
     metadata: {
       aiConfigScopeKind: scopeRef.kind,
       aiConfigScopeOwnerId: scopeRef.ownerId,
@@ -237,6 +243,34 @@ export function resolveTesterLLMBinding(
       aiConfigBindingKeys: evidence.capabilityBindingKeys.join(','),
     },
   };
+}
+
+async function ensureSchedulingPreflight(
+  client: PlatformClient,
+  capabilityId: TesterCapabilityId,
+  resolved: ResolvedLLMBinding,
+): Promise<TesterUnavailable | null> {
+  if (!resolved.schedulingTarget) {
+    return null;
+  }
+  try {
+    const batch = await peekSchedulingBatch({
+      appId: TESTER_APP_ID,
+      targets: [resolved.schedulingTarget],
+      peekScheduling: (request, options) => client.runtime.ai.peekScheduling(request, options),
+    });
+    const judgement = batch?.aggregateJudgement ?? null;
+    if (judgement?.state === 'denied') {
+      return capabilityUnavailable(
+        getTesterCapability(capabilityId),
+        'runtime-call-failed',
+        `Runtime scheduling denied ${resolved.bindingCapabilityId}: ${judgement.detail || 'denied'}`,
+      );
+    }
+    return null;
+  } catch (error) {
+    return unavailableFromError(capabilityId, error);
+  }
 }
 
 function routeInput(binding: RuntimeRouteBinding, model: string): {
@@ -275,6 +309,8 @@ async function invokeTextGenerate(client: PlatformClient, input: TesterScenarioI
   }
   const resolved = resolveTesterLLMBinding('text.generate');
   if (isTesterUnavailable(resolved)) return resolved;
+  const schedulingUnavailable = await ensureSchedulingPreflight(client, 'text.generate', resolved);
+  if (schedulingUnavailable) return schedulingUnavailable;
   const route = routeInput(resolved.binding, resolved.model);
   const directedPrompt = input.directive ? `${input.directive}\n\n${prompt}` : prompt;
   try {
@@ -311,6 +347,8 @@ async function invokeChatStream(client: PlatformClient, input: TesterScenarioInp
   }
   const resolved = resolveTesterLLMBinding('chat.stream');
   if (isTesterUnavailable(resolved)) return resolved;
+  const schedulingUnavailable = await ensureSchedulingPreflight(client, 'chat.stream', resolved);
+  if (schedulingUnavailable) return schedulingUnavailable;
   const route = routeInput(resolved.binding, resolved.model);
   try {
     const opened = await client.runtime.ai.text.stream({
@@ -369,6 +407,8 @@ async function invokeEmbedding(client: PlatformClient, input: TesterScenarioInpu
   }
   const resolved = resolveTesterLLMBinding('text.embed');
   if (isTesterUnavailable(resolved)) return resolved;
+  const schedulingUnavailable = await ensureSchedulingPreflight(client, 'text.embed', resolved);
+  if (schedulingUnavailable) return schedulingUnavailable;
   const route = routeInput(resolved.binding, resolved.model);
   try {
     const output = await client.runtime.ai.embedding.generate({

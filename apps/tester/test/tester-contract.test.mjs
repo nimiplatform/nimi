@@ -159,6 +159,7 @@ test('tester UI Recipes is an industrial three-pane kit component doc', () => {
 test('tester run history is the per-capability evidence surface (no standalone Evidence module)', () => {
   const capabilities = read('src/tester/workbench/section-ai-testing.tsx');
   const historyStore = read('src/tester/tester-history.ts');
+  const appStorage = read('src/tester/tester-app-storage.ts');
   const workbench = read('src/tester/tester-workbench.tsx');
 
   // Evidence is folded into each capability's test panel as recent local runs,
@@ -170,6 +171,8 @@ test('tester run history is the per-capability evidence surface (no standalone E
   for (const helper of ['getTesterRunStatusLabel', 'getTesterRunStatusTone', 'formatTesterRunTimestamp', 'flattenTesterRunHistory']) {
     assert.match(historyStore, new RegExp(helper));
   }
+  assert.match(appStorage, /resolveRuntimeAppStorageRoots/);
+  assert.doesNotMatch(appStorage, /\.nimi|nimi\.json|runtime\/config|join\(/);
 
   // Single-level capability workspace: no app-lab / evidence / settings routes.
   assert.match(workbench, /WorkbenchView/);
@@ -279,6 +282,7 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   ]) {
     assert.match(surface, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
+  assert.doesNotMatch(surface, /applyAIProfileToConfig/);
 
   // The tester wrapper injects app-scoped wiring into that surface.
   for (const required of [
@@ -324,6 +328,9 @@ test('tester LLM invokers consume AIConfig bindings and fail closed without bind
   assert.match(invokers, /aiConfigBindingCapabilityId/);
   assert.match(invokers, /aiConfigBindingModel/);
   assert.match(invokers, /aiConfigHash/);
+  assert.match(invokers, /resolveAIConfigSchedulingTargetForCapability/);
+  assert.match(invokers, /peekSchedulingBatch/);
+  assert.match(invokers, /client\.runtime\.ai\.peekScheduling/);
 });
 
 test('tester LLM binding resolver fails closed for missing and malformed bindings', async () => {
@@ -459,7 +466,12 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
           model: 'embedding-model',
         },
       },
-      localProfileRefs: {},
+      localProfileRefs: {
+        'text.embed': {
+          targetId: 'core:runtime',
+          profileId: 'embedding-local-profile',
+        },
+      },
       selectedParams: {},
     },
     profileOrigin: {
@@ -473,6 +485,19 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
   const client = {
     runtime: {
       ai: {
+        async peekScheduling(input) {
+          captured.push({ surface: 'peekScheduling', input });
+          return {
+            occupancy: { globalUsed: 0, globalCap: 2, appUsed: 0, appCap: 1 },
+            aggregateJudgement: {
+              state: 1,
+              detail: '',
+              occupancy: { globalUsed: 0, globalCap: 2, appUsed: 0, appCap: 1 },
+              resourceWarnings: [],
+            },
+            targetJudgements: [],
+          };
+        },
         text: {
           async generate(input) {
             captured.push({ surface: 'generate', input });
@@ -530,7 +555,7 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
   });
   assert.equal(embedResult.ok, true);
 
-  assert.deepEqual(captured.map((entry) => entry.surface), ['generate', 'stream', 'embed']);
+  assert.deepEqual(captured.map((entry) => entry.surface), ['generate', 'stream', 'peekScheduling', 'embed']);
   assert.equal(captured[0].input.model, 'runtime-model');
   assert.equal(captured[0].input.connectorId, 'runtime-connector');
   assert.equal(Object.hasOwn(captured[0].input, 'connectorId'), true);
@@ -541,11 +566,16 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
   assert.equal(captured[1].input.connectorId, 'runtime-connector');
   assert.equal(Object.hasOwn(captured[1].input, 'connectorId'), true);
   assert.equal(captured[1].input.route, 'cloud');
-  assert.equal(captured[2].input.model, 'embedding-model');
-  assert.equal(captured[2].input.connectorId, undefined);
-  assert.equal(Object.hasOwn(captured[2].input, 'connectorId'), false);
-  assert.equal(captured[2].input.route, 'local');
-  assert.equal(captured[2].input.metadata.aiConfigBindingCapabilityId, 'text.embed');
+  assert.deepEqual(captured[2].input.targets, [{
+    capability: 'text.embed',
+    targetId: 'core:runtime',
+    profileId: 'embedding-local-profile',
+  }]);
+  assert.equal(captured[3].input.model, 'embedding-model');
+  assert.equal(captured[3].input.connectorId, undefined);
+  assert.equal(Object.hasOwn(captured[3].input, 'connectorId'), false);
+  assert.equal(captured[3].input.route, 'local');
+  assert.equal(captured[3].input.metadata.aiConfigBindingCapabilityId, 'text.embed');
 });
 
 test('tester local text.generate binding omits runtime connectorId payload', async () => {
@@ -566,16 +596,35 @@ test('tester local text.generate binding omits runtime connectorId payload', asy
           engine: 'runtime-local-llm',
         },
       },
-      localProfileRefs: {},
+      localProfileRefs: {
+        'text.generate': {
+          targetId: 'core:runtime',
+          profileId: 'text-local-profile',
+        },
+      },
       selectedParams: {},
     },
     profileOrigin: null,
   });
 
   let capturedInput = null;
+  let capturedSchedulingInput = null;
   const client = {
     runtime: {
       ai: {
+        async peekScheduling(input) {
+          capturedSchedulingInput = input;
+          return {
+            occupancy: { globalUsed: 0, globalCap: 2, appUsed: 0, appCap: 1 },
+            aggregateJudgement: {
+              state: 1,
+              detail: '',
+              occupancy: { globalUsed: 0, globalCap: 2, appUsed: 0, appCap: 1 },
+              resourceWarnings: [],
+            },
+            targetJudgements: [],
+          };
+        },
         text: {
           async generate(input) {
             capturedInput = input;
@@ -608,6 +657,80 @@ test('tester local text.generate binding omits runtime connectorId payload', asy
   assert.equal(capturedInput.route, 'local');
   assert.equal(capturedInput.connectorId, undefined);
   assert.equal(Object.hasOwn(capturedInput, 'connectorId'), false);
+  assert.deepEqual(capturedSchedulingInput.targets, [{
+    capability: 'text.generate',
+    targetId: 'core:runtime',
+    profileId: 'text-local-profile',
+  }]);
+});
+
+test('tester local LLM scheduling denial fails closed before Runtime execution', async () => {
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      selectedBindings: {
+        'text.generate': {
+          source: 'local',
+          connectorId: '',
+          model: 'local.chat.blocked',
+        },
+      },
+      localProfileRefs: {
+        'text.generate': {
+          targetId: 'core:runtime',
+          profileId: 'blocked-profile',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  });
+
+  let generateCalled = false;
+  const client = {
+    runtime: {
+      ai: {
+        async peekScheduling() {
+          return {
+            occupancy: { globalUsed: 1, globalCap: 1, appUsed: 1, appCap: 1 },
+            aggregateJudgement: {
+              state: 5,
+              detail: 'dependency missing',
+              occupancy: { globalUsed: 1, globalCap: 1, appUsed: 1, appCap: 1 },
+              resourceWarnings: ['dependency missing'],
+            },
+            targetJudgements: [],
+          };
+        },
+        text: {
+          async generate() {
+            generateCalled = true;
+            throw new Error('generate must not run after denied scheduling');
+          },
+          async stream() {
+            throw new Error('stream should not be called');
+          },
+        },
+        embedding: {
+          async generate() {
+            throw new Error('embedding should not be called');
+          },
+        },
+      },
+    },
+  };
+
+  const result = await invokers.invokeTesterCapability(client, 'text.generate', {
+    prompt: 'blocked',
+    scenarioId: 'blocked-scheduling',
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'runtime-call-failed');
+  assert.match(result.message, /Runtime scheduling denied text\.generate: dependency missing/);
+  assert.equal(generateCalled, false);
 });
 
 test('tester model picker consumes SDK route projection for runtime local assets and remote connectors', async () => {
@@ -698,11 +821,226 @@ test('tester model picker catalog uses runtimeAdmin connector surfaces only', ()
   const summary = read('src/tester/tester-ai-config.ts');
 
   assert.match(provider, /listRuntimeRouteOptions/);
+  assert.match(provider, /normalizeRuntimeRouteCapabilityToken/);
   assert.match(provider, /getRuntimePlatformProjection/);
   assert.match(provider, /model catalog failed closed/);
+  assert.match(provider, /Unsupported Runtime capability/);
   assert.match(provider, /createSnapshotRouteDataProvider/);
+  assert.doesNotMatch(provider, /as RuntimeCanonicalCapability/);
   assert.doesNotMatch(provider, /openai|anthropic|gemini|gpt-4|claude|mock.*success/i);
   assert.match(summary, /runtimeAdmin\.listConnectors\/listConnectorModels/);
+});
+
+test('tester settings consumes the Kit commerce realm wallet projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /loadRealmCurrencyBalances/);
+  assert.match(settings, /loadRealmGiftTransaction/);
+  assert.match(settings, /from '@nimiplatform\/kit\/features\/commerce\/realm'/);
+  assert.match(settings, /Realm wallet projection/);
+  assert.match(settings, /Realm gift transaction projection/);
+  assert.match(settings, /Spark \{walletProjection\.balances\.sparkBalance\}/);
+  assert.match(settings, /Gem \{walletProjection\.balances\.gemBalance\}/);
+  assert.match(settings, /refreshGiftTransactionProjection/);
+  assert.match(settings, /testerGiftTransactionProjectionService/);
+  assert.doesNotMatch(settings, /@runtime\/data-sync|dataSync\.loadCurrencyBalances|dataSync\.loadGiftTransaction/);
+});
+
+test('tester settings consumes the SDK Realm notification unread projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /loadRealmNotificationUnreadCount/);
+  assert.match(settings, /loadRealmNotifications/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
+  assert.match(settings, /Realm notification projection/);
+  assert.match(settings, /Realm notification list projection/);
+  assert.match(settings, /Unread \$\{notificationProjection\.unread\.total\}/);
+  assert.match(settings, /refreshNotificationListProjection/);
+  assert.match(settings, /loadRealmNotifications\(getPlatformClient\(\)\.realm/);
+  assert.doesNotMatch(settings, /@runtime\/data-sync|dataSync\.loadNotificationUnreadCount|dataSync\.loadNotifications/);
+});
+
+test('tester settings consumes the SDK Realm account-data export helper', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /requestDataExport/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
+  assert.match(settings, /Realm account-data export projection/);
+  assert.match(settings, /requestAccountDataExportProjection/);
+  assert.match(settings, /getPlatformClient\(\)\.realm/);
+  assert.doesNotMatch(settings, /@runtime\/data-sync|dataSync\.requestDataExport/);
+  assert.doesNotMatch(settings, /requestAccountDeletion/);
+});
+
+test('tester settings consumes the SDK Realm media URL projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /resolveRealmMediaUrl/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
+  assert.match(settings, /Realm media URL projection/);
+  assert.match(settings, /realmMediaUrlProjection/);
+  assert.doesNotMatch(settings, /\$\{[^}]*realmBaseUrl[^}]*\}\$\{[^}]*mediaUrl[^}]*\}/);
+  assert.doesNotMatch(settings, /new URL\([^)]*api\/resources/);
+});
+
+test('tester settings consumes the SDK Realm endpoint projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /projectRealmBaseUrl/);
+  assert.match(settings, /projectRealmRealtimeUrl/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
+  assert.match(settings, /Realm endpoint projection/);
+  assert.match(settings, /Realm realtime projection/);
+  assert.match(settings, /realmEndpointProjection/);
+  assert.match(settings, /realmRealtimeProjection/);
+  assert.doesNotMatch(settings, /function normalizeRealmBaseUrl/);
+  assert.doesNotMatch(settings, /new URL\([^)]*realmBaseUrl/);
+});
+
+test('tester settings consumes Kit Realm chat attachment primitives', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /createRealmChatResourceAttachmentPayload/);
+  assert.match(settings, /resolveRealmChatMediaUrl/);
+  assert.match(settings, /resolveRealmChatAttachmentPreviewText/);
+  assert.match(settings, /from '@nimiplatform\/kit\/features\/chat\/realm'/);
+  assert.match(settings, /Realm chat attachment projection/);
+  assert.match(settings, /realmChatAttachmentProjection/);
+  assert.doesNotMatch(settings, /function resolveCanonicalChatAttachmentRecords/);
+  assert.doesNotMatch(settings, /\$\{[^}]*realmBaseUrl[^}]*\}\$\{[^}]*url[^}]*\}/);
+});
+
+test('tester settings consumes the Kit avatar voice cue projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /resolveAgentVoicePlaybackCue/);
+  assert.match(settings, /from '@nimiplatform\/kit\/features\/avatar\/headless'/);
+  assert.match(settings, /Kit avatar voice cue projection/);
+  assert.match(settings, /avatarVoiceCueProjection\.visemeId/);
+  assert.doesNotMatch(settings, /function resolveAgentVoicePlaybackSignalFeatures/);
+  assert.doesNotMatch(settings, /zeroCrossingRate/);
+});
+
+test('tester settings consumes SDK Runtime recommendation enum projections', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /normalizeLocalRecommendationFeedCacheStateId/);
+  assert.match(settings, /parseLocalRecommendationFeedSourceId/);
+  assert.match(settings, /summarizeLocalRecommendationFeedCacheState/);
+  assert.match(settings, /localRecommendationTierToRunGrade/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(settings, /Runtime recommendation projection/);
+  assert.match(settings, /LOCAL_RECOMMENDATION_TIER_RUNNABLE/);
+  assert.doesNotMatch(settings, /switch\s*\([^)]*LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX/);
+});
+
+test('tester settings consumes SDK Runtime recommendation feed parser projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /parseRuntimeLocalRecommendationFeedDescriptor/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(settings, /Runtime recommendation feed parser/);
+  assert.doesNotMatch(settings, /function parseRecommendationFeedDescriptor/);
+  assert.doesNotMatch(settings, /new Set\([^)]*LOCAL_RECOMMENDATION/);
+});
+
+test('tester settings consumes SDK Runtime connector inventory projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /createRuntimeConnectorInventoryClient/);
+  assert.match(settings, /runtimeConnectorInventory\.listConnectors/);
+  assert.match(settings, /Runtime connector projection/);
+  assert.match(settings, /runtimeAdmin: \(\) => getPlatformClient\(\)\.domains\.runtimeAdmin/);
+  assert.doesNotMatch(settings, /listProviderCatalog\(|listConnectorModels\(|ConnectorKind\.REMOTE_MANAGED/);
+});
+
+test('tester settings consumes SDK Runtime reason-code message projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /getRuntimeReasonCodeDefaultMessage/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(settings, /ReasonCode\.AI_PROVIDER_TIMEOUT/);
+  assert.match(settings, /ReasonCode\.AI_CONNECTOR_CREDENTIAL_MISSING/);
+  assert.match(settings, /Runtime reason projection/);
+  assert.match(settings, /runtimeReasonProjection\.credentialMissing/);
+  assert.doesNotMatch(settings, /AI provider request timed out\./);
+  assert.doesNotMatch(settings, /AI connector credentials are missing\./);
+});
+
+test('tester settings consumes SDK Runtime LocalAgent identity projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /projectRuntimeLocalAgentIdentity/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(settings, /Runtime LocalAgent identity projection/);
+  assert.match(settings, /runtimeLocalAgentIdentityProjection\.localAgentRef/);
+  assert.doesNotMatch(settings, /`local-agent:\$\{/);
+});
+
+test('tester settings consumes SDK offline reason-code projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /classifyOfflineReasonCode/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/types'/);
+  assert.match(settings, /ReasonCode\.RUNTIME_UNAVAILABLE/);
+  assert.match(settings, /Offline reason projection/);
+  assert.doesNotMatch(settings, /new Set\(\[/);
+  assert.doesNotMatch(settings, /REALM_OFFLINE_REASON_CODES|RUNTIME_OFFLINE_REASON_CODES/);
+});
+
+test('tester settings consumes SDK Runtime dependency state projections', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /isLocalRuntimeEnvironmentDependencyStartableState/);
+  assert.match(settings, /isLocalRuntimeEnvironmentDependencyJobActiveState/);
+  assert.match(settings, /isLocalRuntimeEnvironmentDependencyJobRetryableState/);
+  assert.match(settings, /isLocalRuntimeEnvironmentDependencyJobTransferringState/);
+  assert.match(settings, /isLocalRuntimeEnvironmentDependencyRepairRequiredState/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(settings, /Runtime dependency state projection/);
+  assert.doesNotMatch(settings, /ACTIVE_RUNTIME_DEPENDENCY_JOB_STATES/);
+  assert.doesNotMatch(settings, /STARTABLE_RUNTIME_DEPENDENCY_STATES/);
+  assert.doesNotMatch(settings, /JOB_TRANSFERRING_STATES/);
+});
+
+test('tester settings consumes SDK memory embedding route availability projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /projectMemoryEmbeddingRouteAvailability/);
+  assert.match(settings, /createEmptyMemoryEmbeddingConfig/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/ai'/);
+  assert.match(settings, /Memory embedding route projection/);
+  assert.doesNotMatch(settings, /connector\?\.available/);
+  assert.doesNotMatch(settings, /String\(model\.status \|\| ''\)\.toLowerCase\(\) === 'active'/);
+});
+
+test('tester settings consumes SDK Runtime capability coverage projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /projectRuntimeRouteCapabilityCoverage/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/ai'/);
+  assert.match(settings, /Runtime capability coverage projection/);
+  assert.match(settings, /runtimeCapabilityCoverageProjection/);
+  assert.doesNotMatch(settings, /connectors\.some\(\(c\) => c\.status === 'healthy'\)/);
+});
+
+test('tester settings consumes SDK local route option binding projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /isRuntimeRouteLocalOptionSelectable/);
+  assert.match(settings, /runtimeRouteLocalOptionToBinding/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/ai'/);
+  assert.match(settings, /Local route option projection/);
+  assert.doesNotMatch(settings, /source:\s*'local',\s*connectorId:\s*''/);
+});
+
+test('tester settings consumes Kit model picker binding projection', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /pickerSelectionToBinding/);
+  assert.match(settings, /from '@nimiplatform\/kit\/features\/model-config'/);
+  assert.match(settings, /Model picker binding projection/);
+  assert.doesNotMatch(settings, /toRuntimeRouteBindingFromPickerSelection/);
 });
 
 test('tester app-owned Tauri commands are registered in standalone shell', () => {

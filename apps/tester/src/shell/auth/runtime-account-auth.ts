@@ -1,6 +1,10 @@
 import { getPlatformClient, type PlatformClient } from '@nimiplatform/sdk';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime';
-import type { AuthPlatformAdapter, ShellAuthDesktopBrowserAuth } from '@nimiplatform/kit/auth';
+import {
+  validateRuntimeOAuthAuthorizationUrl,
+  type AuthPlatformAdapter,
+  type ShellAuthDesktopBrowserAuth,
+} from '@nimiplatform/kit/auth';
 import { createTauriOAuthBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 import { appId, runtimeAccountLoginEnabled } from './runtime-platform.js';
 
@@ -65,7 +69,7 @@ export function createNimiAppRuntimeAccountBroker(): ShellAuthDesktopBrowserAuth
       }
       return {
         loginAttemptId: response.loginAttemptId,
-        authorizationUrl: response.oauthAuthorizationUrl,
+        authorizationUrl: validateRuntimeOAuthAuthorizationUrl(response.oauthAuthorizationUrl),
         state: response.state,
         nonce: response.nonce,
       };

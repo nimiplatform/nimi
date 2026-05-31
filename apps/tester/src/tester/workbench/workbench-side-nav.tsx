@@ -11,7 +11,7 @@ import {
   Video,
   type LucideIcon,
 } from 'lucide-react';
-import { Surface } from '@nimiplatform/kit/ui';
+import { Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { getTesterCapability, type TesterCapabilityId } from '../tester-capabilities.js';
 import { workbenchLibraryCapabilityId, workbenchNavGroups, type WorkbenchView } from './workbench-context.js';
 
@@ -69,17 +69,24 @@ export function WorkbenchSideNav({
               {group.capabilityIds.map((id) => {
                 const Icon = capabilityIcons[id];
                 const active = activeCapabilityId === id;
+                const label = getTesterCapability(id).label;
                 return (
                   <li key={id}>
-                    <button
-                      type="button"
-                      className={active ? 'workbench-side-nav__item workbench-side-nav__item--active' : 'workbench-side-nav__item'}
-                      onClick={() => onSelectCapability(id)}
-                      aria-current={active ? 'page' : undefined}
+                    <Tooltip
+                      content={label}
+                      placement="right"
+                      className="w-full"
                     >
-                      <Icon size={15} aria-hidden="true" />
-                      <span className="workbench-side-nav__item-label">{getTesterCapability(id).label}</span>
-                    </button>
+                      <button
+                        type="button"
+                        className={active ? 'workbench-side-nav__item workbench-side-nav__item--active' : 'workbench-side-nav__item'}
+                        onClick={() => onSelectCapability(id)}
+                        aria-current={active ? 'page' : undefined}
+                      >
+                        <Icon size={15} aria-hidden="true" />
+                        <span className="workbench-side-nav__item-label">{label}</span>
+                      </button>
+                    </Tooltip>
                   </li>
                 );
               })}
@@ -90,26 +97,38 @@ export function WorkbenchSideNav({
           <p className="workbench-side-nav__group-title">Library</p>
           <ul>
             <li>
-              <button
-                type="button"
-                className={view.kind === 'ui-recipes' ? 'workbench-side-nav__item workbench-side-nav__item--active' : 'workbench-side-nav__item'}
-                onClick={onSelectRecipes}
-                aria-current={view.kind === 'ui-recipes' ? 'page' : undefined}
+              <Tooltip
+                content="UI Recipes"
+                placement="right"
+                className="w-full"
               >
-                <Boxes size={15} aria-hidden="true" />
-                <span className="workbench-side-nav__item-label">UI Recipes</span>
-              </button>
+                <button
+                  type="button"
+                  className={view.kind === 'ui-recipes' ? 'workbench-side-nav__item workbench-side-nav__item--active' : 'workbench-side-nav__item'}
+                  onClick={onSelectRecipes}
+                  aria-current={view.kind === 'ui-recipes' ? 'page' : undefined}
+                >
+                  <Boxes size={15} aria-hidden="true" />
+                  <span className="workbench-side-nav__item-label">UI Recipes</span>
+                </button>
+              </Tooltip>
             </li>
             <li>
-              <button
-                type="button"
-                className={activeCapabilityId === workbenchLibraryCapabilityId ? 'workbench-side-nav__item workbench-side-nav__item--active' : 'workbench-side-nav__item'}
-                onClick={() => onSelectCapability(workbenchLibraryCapabilityId)}
-                aria-current={activeCapabilityId === workbenchLibraryCapabilityId ? 'page' : undefined}
+              <Tooltip
+                content={getTesterCapability(workbenchLibraryCapabilityId).label}
+                placement="right"
+                className="w-full"
               >
-                <Compass size={15} aria-hidden="true" />
-                <span className="workbench-side-nav__item-label">{getTesterCapability(workbenchLibraryCapabilityId).label}</span>
-              </button>
+                <button
+                  type="button"
+                  className={activeCapabilityId === workbenchLibraryCapabilityId ? 'workbench-side-nav__item workbench-side-nav__item--active' : 'workbench-side-nav__item'}
+                  onClick={() => onSelectCapability(workbenchLibraryCapabilityId)}
+                  aria-current={activeCapabilityId === workbenchLibraryCapabilityId ? 'page' : undefined}
+                >
+                  <Compass size={15} aria-hidden="true" />
+                  <span className="workbench-side-nav__item-label">{getTesterCapability(workbenchLibraryCapabilityId).label}</span>
+                </button>
+              </Tooltip>
             </li>
           </ul>
         </div>

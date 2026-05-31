@@ -22,7 +22,7 @@ import {
   type ModelConfigStatusTone,
 } from '@nimiplatform/kit/core/model-config';
 import type { RouteModelPickerDataProvider } from '@nimiplatform/kit/features/model-picker';
-import { applyAIProfileToConfig, type AIConfig, type AIScopeRef } from '@nimiplatform/sdk/ai';
+import type { AIConfig, AIScopeRef } from '@nimiplatform/sdk/ai';
 import { ChevronLeft, ChevronRight, Upload, X } from 'lucide-react';
 
 // Scaffold-managed AI config Settings surface.
@@ -189,7 +189,6 @@ export function TesterAiConfigSettings({
     scopeRef,
     aiConfigService: service,
     copy: profileCopy,
-    applyAIProfileToConfig,
     currentOrigin,
   });
 

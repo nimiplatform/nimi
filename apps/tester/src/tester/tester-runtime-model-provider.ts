@@ -1,6 +1,6 @@
 import {
   listRuntimeRouteOptions,
-  type RuntimeCanonicalCapability,
+  normalizeRuntimeRouteCapabilityToken,
   type RuntimeRouteOptionsClient,
 } from '@nimiplatform/sdk/ai';
 import {
@@ -37,7 +37,11 @@ function listTesterRuntimeRouteOptions(
   client: RuntimeRouteOptionsClient,
   capability: string,
 ) {
+  const runtimeCapability = normalizeRuntimeRouteCapabilityToken(capability);
+  if (!runtimeCapability) {
+    throw new Error(`Unsupported Runtime capability: ${capability}`);
+  }
   return listRuntimeRouteOptions(client, {
-    capability: capability as RuntimeCanonicalCapability,
+    capability: runtimeCapability,
   });
 }
