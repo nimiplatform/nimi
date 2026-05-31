@@ -26,6 +26,9 @@ const localRuntimeFacadeSource = readWorkspaceFile(
 const localRuntimeCommandsSource = readWorkspaceFile(
   'src/runtime/local-runtime/commands-assets.ts',
 );
+const localRuntimeParsersSource = readWorkspaceFile(
+  'src/runtime/local-runtime/parsers-runtime-events.ts',
+);
 
 test('local model center resolves shared runtime dependency readiness before any imported model is required', () => {
   assert.match(runtimeProjectionSources, /localRuntime\.resolveEnvironmentPlan/);
@@ -105,6 +108,15 @@ test('local runtime facade exposes SDK-backed local environment projection metho
   assert.match(localRuntimeCommandsSource, /runtime\.retryLocalEnvironmentDependencyJob/);
   assert.match(localRuntimeCommandsSource, /runtime\.repairLocalEnvironmentDependency/);
   assert.doesNotMatch(localRuntimeCommandsSource, /runtime\.startLocalRuntimeDependencySetup/);
+});
+
+test('local runtime dependency plan and job parsers delegate projection ownership to SDK', () => {
+  assert.match(localRuntimeParsersSource, /parseLocalRuntimeEnvironmentPlanProjection/);
+  assert.match(localRuntimeParsersSource, /parseLocalRuntimeEnvironmentDependencyJobProjection/);
+  assert.match(localRuntimeParsersSource, /parseLocalRuntimeEnvironmentPlanProjection as parseLocalRuntimeEnvironmentPlan/);
+  assert.doesNotMatch(localRuntimeParsersSource, /function parseLocalRuntimeEnvironmentPlan\(/);
+  assert.doesNotMatch(localRuntimeParsersSource, /function parseLocalRuntimeEnvironmentDependencyJob\(/);
+  assert.doesNotMatch(localRuntimeParsersSource, /function clampPercent\(/);
 });
 
 test('local runtime facade does not expose unmounted local service lifecycle controls', () => {

@@ -1014,6 +1014,15 @@ test('tester settings consumes SDK Runtime dependency state projections', () => 
   assert.doesNotMatch(settings, /JOB_TRANSFERRING_STATES/);
 });
 
+test('tester settings consumes SDK Runtime dependency parser projections', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /parseLocalRuntimeEnvironmentPlanProjection/);
+  assert.match(settings, /parseLocalRuntimeEnvironmentDependencyJobProjection/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(settings, /Runtime dependency parser projection/);
+});
+
 test('tester settings consumes SDK memory embedding route availability projection', () => {
   const settings = read('src/shell/routes/settings.tsx');
 

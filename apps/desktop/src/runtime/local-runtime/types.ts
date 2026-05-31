@@ -16,6 +16,9 @@ import type {
   LocalRuntimeAssetKindId,
   LocalRuntimeEngineRuntimeModeId,
   LocalRuntimeRunnableAssetKindId,
+  LocalRuntimeEnvironmentDependencyJobProjection,
+  LocalRuntimeEnvironmentPlanDependencyProjection,
+  LocalRuntimeEnvironmentPlanProjection,
 } from '@nimiplatform/sdk/runtime';
 import type {
   LocalRuntimeProfileResolvePayload,
@@ -607,33 +610,9 @@ export type LocalRuntimeTransferAccepted = {
   localModelId: string;
 };
 
-export type LocalRuntimeEnvironmentPlanDependency = {
-  dependencyFamily: string;
-  dependencyId: string;
-  required: boolean;
-  state: string;
-  sourceKind: string;
-  confirmationRequired: boolean;
-  selectedSourceRecordId?: string;
-  environmentKey: string;
-  canonicalRoot?: string;
-  reasonCode?: string;
-  detail?: string;
-};
+export type LocalRuntimeEnvironmentPlanDependency = LocalRuntimeEnvironmentPlanDependencyProjection;
 
-export type LocalRuntimeEnvironmentPlan = {
-  planId: string;
-  packId: string;
-  productLabel: string;
-  hostProfileId: string;
-  platformTuple: string;
-  runtimeDataRoot?: string;
-  consumerScope?: string;
-  cloudOnlyImpact?: string;
-  state: string;
-  reasonCode?: string;
-  dependencies: LocalRuntimeEnvironmentPlanDependency[];
-};
+export type LocalRuntimeEnvironmentPlan = LocalRuntimeEnvironmentPlanProjection;
 
 export type LocalRuntimeEnvironmentPlanPayload = {
   packId: string;
@@ -650,30 +629,7 @@ export type LocalRuntimeEnvironmentPlanPayload = {
   installLevel?: string;
 };
 
-export type LocalRuntimeEnvironmentDependencyJob = {
-  jobId: string;
-  environmentKey: string;
-  dependencyFamily: string;
-  dependencyId: string;
-  state: string;
-  sourceKind: string;
-  canonicalRoot?: string;
-  selectedSourceRecordId?: string;
-  failureDetail?: string;
-  retryable: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-  // K-RPC-025 download-progress projection. Meaningful only while the job is
-  // actively materializing (downloading / verifying); 0 for every other state.
-  // `percent` is 0..100 and is 0 when `bytesTotal` is 0 (unknown total — the
-  // consumer renders an indeterminate state). `speedBytesPerSec` / `etaSeconds`
-  // are 0 (absent) unless a rate could be computed — never fabricated.
-  bytesReceived: number;
-  bytesTotal: number;
-  percent: number;
-  speedBytesPerSec: number;
-  etaSeconds: number;
-};
+export type LocalRuntimeEnvironmentDependencyJob = LocalRuntimeEnvironmentDependencyJobProjection;
 
 export type LocalRuntimeEnvironmentDependencyJobsPayload = {
   environmentKey?: string;

@@ -12,9 +12,6 @@ import type {
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeDownloadSessionSummary,
   LocalRuntimeTransferAccepted,
-  LocalRuntimeEnvironmentDependencyJob,
-  LocalRuntimeEnvironmentPlan,
-  LocalRuntimeEnvironmentPlanDependency,
   LocalRuntimeTransferSessionKind,
   LocalRuntimeScaffoldAssetResult,
   LocalRuntimeAssetHealth,
@@ -36,10 +33,19 @@ import {
   parseLocalRecommendationConfidenceId,
   parseLocalRecommendationSourceId,
   parseLocalRecommendationTierId,
+  parseLocalRuntimeEnvironmentDependencyJobProjection,
+  parseLocalRuntimeEnvironmentPlanDependencyProjection,
+  parseLocalRuntimeEnvironmentPlanProjection,
 } from '@nimiplatform/sdk/runtime';
 import { asRecord, asString } from './parser-primitives';
 import { toCanonicalLocalId } from './local-id';
 import { normalizeAssetKind, normalizeAssetStatus } from './parsers';
+
+export {
+  parseLocalRuntimeEnvironmentDependencyJobProjection as parseLocalRuntimeEnvironmentDependencyJob,
+  parseLocalRuntimeEnvironmentPlanDependencyProjection as parseLocalRuntimeEnvironmentPlanDependency,
+  parseLocalRuntimeEnvironmentPlanProjection as parseLocalRuntimeEnvironmentPlan,
+};
 
 const RECOMMENDATION_SOURCES = new Set<LocalRuntimeCatalogRecommendation['source']>(LOCAL_RECOMMENDATION_SOURCE_IDS);
 const RECOMMENDATION_FORMATS = new Set<NonNullable<LocalRuntimeCatalogRecommendation['format']>>(LOCAL_RECOMMENDATION_FORMAT_IDS);
@@ -145,80 +151,6 @@ export function parseAssetHealth(value: unknown): LocalRuntimeAssetHealth {
     endpoint: asString(record.endpoint),
     reasonCode: asString(record.reasonCode) || undefined,
   };
-}
-
-export function parseLocalRuntimeEnvironmentPlanDependency(value: unknown): LocalRuntimeEnvironmentPlanDependency {
-  const record = asRecord(value);
-  return {
-    dependencyFamily: asString(record.dependencyFamily),
-    dependencyId: asString(record.dependencyId),
-    required: Boolean(record.required),
-    state: asString(record.state),
-    sourceKind: asString(record.sourceKind),
-    confirmationRequired: Boolean(record.confirmationRequired),
-    selectedSourceRecordId: asString(record.selectedSourceRecordId) || undefined,
-    environmentKey: asString(record.environmentKey),
-    canonicalRoot: asString(record.canonicalRoot) || undefined,
-    reasonCode: asString(record.reasonCode) || undefined,
-    detail: asString(record.detail) || undefined,
-  };
-}
-
-export function parseLocalRuntimeEnvironmentPlan(value: unknown): LocalRuntimeEnvironmentPlan {
-  const record = asRecord(value);
-  const dependencies = Array.isArray(record.dependencies)
-    ? record.dependencies.map((item) => parseLocalRuntimeEnvironmentPlanDependency(item))
-    : [];
-  return {
-    planId: asString(record.planId),
-    packId: asString(record.packId),
-    productLabel: asString(record.productLabel),
-    hostProfileId: asString(record.hostProfileId),
-    platformTuple: asString(record.platformTuple),
-    runtimeDataRoot: asString(record.runtimeDataRoot) || undefined,
-    consumerScope: asString(record.consumerScope) || undefined,
-    cloudOnlyImpact: asString(record.cloudOnlyImpact) || undefined,
-    state: asString(record.state),
-    reasonCode: asString(record.reasonCode) || undefined,
-    dependencies,
-  };
-}
-
-export function parseLocalRuntimeEnvironmentDependencyJob(value: unknown): LocalRuntimeEnvironmentDependencyJob {
-  const record = asRecord(value);
-  // K-RPC-025 progress fields. The proto int64s arrive as strings over the
-  // bridge; clamp every field to a non-negative finite number and fall back to
-  // 0 (absent) on any non-numeric value — never a fabricated estimate.
-  return {
-    jobId: asString(record.jobId),
-    environmentKey: asString(record.environmentKey),
-    dependencyFamily: asString(record.dependencyFamily),
-    dependencyId: asString(record.dependencyId),
-    state: asString(record.state),
-    sourceKind: asString(record.sourceKind),
-    canonicalRoot: asString(record.canonicalRoot) || undefined,
-    selectedSourceRecordId: asString(record.selectedSourceRecordId) || undefined,
-    failureDetail: asString(record.failureDetail) || undefined,
-    retryable: Boolean(record.retryable),
-    createdAt: asString(record.createdAt) || undefined,
-    updatedAt: asString(record.updatedAt) || undefined,
-    bytesReceived: nonNegativeNumber(record.bytesReceived),
-    bytesTotal: nonNegativeNumber(record.bytesTotal),
-    percent: clampPercent(record.percent),
-    speedBytesPerSec: nonNegativeNumber(record.speedBytesPerSec),
-    etaSeconds: nonNegativeNumber(record.etaSeconds),
-  };
-}
-
-function nonNegativeNumber(value: unknown): number {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-}
-
-function clampPercent(value: unknown): number {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
-  return parsed >= 100 ? 100 : Math.round(parsed);
 }
 
 export function parseGgufVariantDescriptor(value: unknown): GgufVariantDescriptor {

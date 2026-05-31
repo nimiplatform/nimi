@@ -12,6 +12,8 @@ import {
   isLocalRuntimeEnvironmentDependencyRepairRequiredState,
   isLocalRuntimeEnvironmentDependencyStartableState,
   isLocalRuntimeEnvironmentDependencyUnsupportedState,
+  parseLocalRuntimeEnvironmentDependencyJobProjection,
+  parseLocalRuntimeEnvironmentPlanProjection,
 } from '../../src/runtime/local-environment-dependency-states.js';
 
 test('local environment dependency state projections classify Runtime ready states', () => {
@@ -69,4 +71,65 @@ test('local environment dependency job state projections classify explicit faile
   assert.equal(isLocalRuntimeEnvironmentDependencyJobFailedState('cancelled'), false);
   assert.equal(isLocalRuntimeEnvironmentDependencyJobCancelledState('cancelled'), true);
   assert.equal(isLocalRuntimeEnvironmentDependencyJobCancelledState('failed'), false);
+});
+
+test('local environment dependency plan parser projects Runtime plan fields', () => {
+  const parsed = parseLocalRuntimeEnvironmentPlanProjection({
+    planId: 'plan-1',
+    packId: 'local-speech',
+    productLabel: 'Local Speech',
+    hostProfileId: 'macos-arm64',
+    platformTuple: 'darwin-arm64',
+    runtimeDataRoot: '/runtime/data',
+    consumerScope: 'first-run',
+    cloudOnlyImpact: 'voice disabled',
+    state: 'needs_confirmation',
+    reasonCode: 'AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED',
+    dependencies: [{
+      dependencyFamily: 'python',
+      dependencyId: 'local-speech-python',
+      required: true,
+      state: 'needs_confirmation',
+      sourceKind: 'managed_download',
+      confirmationRequired: true,
+      selectedSourceRecordId: 'source-1',
+      environmentKey: 'local-speech',
+      canonicalRoot: '/runtime/data/envs/local-speech',
+      reasonCode: 'AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED',
+      detail: 'download required',
+    }],
+  });
+
+  assert.equal(parsed.planId, 'plan-1');
+  assert.equal(parsed.dependencies[0]?.dependencyId, 'local-speech-python');
+  assert.equal(parsed.dependencies[0]?.confirmationRequired, true);
+  assert.equal(parsed.dependencies[0]?.canonicalRoot, '/runtime/data/envs/local-speech');
+});
+
+test('local environment dependency job parser clamps progress projection', () => {
+  const parsed = parseLocalRuntimeEnvironmentDependencyJobProjection({
+    jobId: 'job-1',
+    environmentKey: 'local-speech',
+    dependencyFamily: 'python',
+    dependencyId: 'local-speech-python',
+    state: 'downloading',
+    sourceKind: 'managed_download',
+    canonicalRoot: '/runtime/data/envs/local-speech',
+    selectedSourceRecordId: 'source-1',
+    failureDetail: '',
+    retryable: true,
+    createdAt: '2026-05-31T00:00:00Z',
+    updatedAt: '2026-05-31T00:01:00Z',
+    bytesReceived: '2048',
+    bytesTotal: '4096',
+    percent: 101.2,
+    speedBytesPerSec: '512',
+    etaSeconds: -5,
+  });
+
+  assert.equal(parsed.bytesReceived, 2048);
+  assert.equal(parsed.bytesTotal, 4096);
+  assert.equal(parsed.percent, 100);
+  assert.equal(parsed.speedBytesPerSec, 512);
+  assert.equal(parsed.etaSeconds, 0);
 });

@@ -20,6 +20,8 @@ import {
   isLocalRuntimeEnvironmentDependencyStartableState,
   localRecommendationTierToRunGrade,
   normalizeLocalRecommendationFeedCacheStateId,
+  parseLocalRuntimeEnvironmentDependencyJobProjection,
+  parseLocalRuntimeEnvironmentPlanProjection,
   projectRuntimeLocalAgentIdentity,
   parseRuntimeLocalRecommendationFeedDescriptor,
   parseLocalRecommendationFeedSourceId,
@@ -359,6 +361,38 @@ export function SettingsRoute() {
     jobTransferring: isLocalRuntimeEnvironmentDependencyJobTransferringState('verifying'),
     dependencyRepairRequired: isLocalRuntimeEnvironmentDependencyRepairRequiredState('repair_required'),
   };
+  const runtimeDependencyPlanProjection = parseLocalRuntimeEnvironmentPlanProjection({
+    planId: 'tester-plan',
+    packId: 'tester-local-speech',
+    productLabel: 'Tester Local Speech',
+    hostProfileId: 'tester-host',
+    platformTuple: 'darwin-arm64',
+    state: 'needs_confirmation',
+    dependencies: [{
+      dependencyFamily: 'python',
+      dependencyId: 'tester-python',
+      required: true,
+      state: 'needs_confirmation',
+      sourceKind: 'managed_download',
+      confirmationRequired: true,
+      environmentKey: 'tester-local-speech',
+      reasonCode: ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED,
+    }],
+  });
+  const runtimeDependencyJobProjection = parseLocalRuntimeEnvironmentDependencyJobProjection({
+    jobId: 'tester-job',
+    environmentKey: 'tester-local-speech',
+    dependencyFamily: 'python',
+    dependencyId: 'tester-python',
+    state: 'downloading',
+    sourceKind: 'managed_download',
+    retryable: true,
+    bytesReceived: '512',
+    bytesTotal: '1024',
+    percent: 50,
+    speedBytesPerSec: '256',
+    etaSeconds: '2',
+  });
   const memoryEmbeddingRouteProjection = projectMemoryEmbeddingRouteAvailability({
     config: {
       ...createEmptyMemoryEmbeddingConfig({
@@ -832,6 +866,14 @@ export function SettingsRoute() {
           {runtimeDependencyStateProjection.jobTransferring ? 'transferring job' : 'not transferring'}
           {' / '}
           {runtimeDependencyStateProjection.dependencyRepairRequired ? 'repair required' : 'repair clear'}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Runtime dependency parser projection</span>
+        <StatusBadge tone={runtimeDependencyPlanProjection.dependencies[0]?.confirmationRequired ? 'warning' : 'neutral'}>
+          {runtimeDependencyPlanProjection.packId}: {runtimeDependencyPlanProjection.dependencies[0]?.dependencyId ?? 'none'}
+          {' / '}
+          {runtimeDependencyJobProjection.percent}%
         </StatusBadge>
       </div>
       <div className="setting-row">
