@@ -26,8 +26,15 @@ export type RealmGiftCatalogResponse = RealmModel<'GiftCatalogItemDto'>[];
 export type RealmSendGiftInput = RealmModel<'SendGiftDto'>;
 export type RealmReceivedGiftsResponse = RealmModel<'ReceivedGiftsResponseDto'>;
 export type RealmRejectGiftInput = RealmModel<'RejectGiftDto'>;
+export type RealmCurrencyBalancesResponse = RealmModel<'CurrencyBalancesDto'>;
+
+export type CommerceCurrencyBalances = {
+  sparkBalance: number;
+  gemBalance: number;
+};
 
 export type RealmCommerceGiftService = {
+  getBalances: () => Promise<RealmCurrencyBalancesResponse>;
   listGiftCatalog: () => Promise<RealmGiftCatalogResponse>;
   sendGift: (input: RealmSendGiftInput) => Promise<void>;
   listReceivedGifts: (limit?: number, cursor?: string) => Promise<RealmReceivedGiftsResponse>;
@@ -65,6 +72,17 @@ function asString(value: unknown): string | null {
 
 function asNumber(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function asCurrencyAmount(value: unknown): number {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) && value > 0 ? value : 0;
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  }
+  return 0;
 }
 
 function normalizeGiftStatus(value: unknown): CommerceGiftStatus {
@@ -136,6 +154,16 @@ export function normalizeRealmGiftTransaction(value: unknown): CommerceGiftTrans
   };
 }
 
+export function normalizeRealmCurrencyBalances(
+  value: RealmCurrencyBalancesResponse,
+): CommerceCurrencyBalances {
+  const record = asRecord(value);
+  return {
+    sparkBalance: asCurrencyAmount(record?.sparkBalance),
+    gemBalance: asCurrencyAmount(record?.gemBalance),
+  };
+}
+
 export function normalizeRealmReceivedGiftsResponse(
   value: RealmReceivedGiftsResponse,
 ): CommerceGiftSummary[] {
@@ -184,6 +212,9 @@ async function findGiftTransactionInFeed(
 }
 
 export const realmCommerceGiftService: RealmCommerceGiftService = {
+  async getBalances() {
+    return realm().services.EconomyCurrencyGiftsService.economyControllerGetBalances();
+  },
   async listGiftCatalog() {
     return realm().services.EconomyCurrencyGiftsService.economyControllerGetGiftCatalog();
   },
@@ -213,6 +244,12 @@ export function createRealmCommerceGiftAdapter({
       await service.sendGift(input);
     },
   };
+}
+
+export async function loadRealmCurrencyBalances(
+  service: Pick<RealmCommerceGiftService, 'getBalances'> = realmCommerceGiftService,
+): Promise<CommerceCurrencyBalances> {
+  return normalizeRealmCurrencyBalances(await service.getBalances());
 }
 
 export async function loadRealmGiftTransaction(

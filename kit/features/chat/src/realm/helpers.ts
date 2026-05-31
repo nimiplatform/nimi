@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { resolveRealmMediaUrl } from '@nimiplatform/sdk/realm';
 import { normalizeRealmMessagePayload } from '../headless.js';
 import type { RealmMessageInputPayload, RealmMessageViewDto, RealmSendMessageInputDto } from './codec.js';
 import type { RealmChatEventEnvelope, RealmChatEventEnvelopeDto, RealmChatOutboxEntryLike, RealmChatRealtimeSocket, RealmChatSessionReadyPayload, RealmChatSessionState, RealmChatSessionSyncRequiredPayload, RealmChatTimelineDisplayModel, RealmChatTimelineMessage, RealmChatUploadPlaceholderLike, RealmChatViewDto, RealmListChatsResultDto, RealmListMessagesResultDto, UseRealmMessageTimelineOptions } from './types.js';
@@ -30,6 +31,29 @@ function createCanonicalTextPayload(
   content: string,
 ): Extract<RealmMessageInputPayload, { content: string }> {
   return { content };
+}
+
+type RealmAttachmentInputPayload = Extract<RealmMessageInputPayload, { attachment: unknown }>;
+
+export function extractRealmChatAttachmentTargetId(session: { resourceId?: unknown } | null | undefined): string {
+  const targetId = normalizeString(session?.resourceId);
+  if (!targetId) {
+    throw new Error('chat-attachment-target-id-required');
+  }
+  return targetId;
+}
+
+export function createRealmChatResourceAttachmentPayload(targetId: string): RealmAttachmentInputPayload {
+  const normalizedTargetId = normalizeString(targetId);
+  if (!normalizedTargetId) {
+    throw new Error('chat-attachment-target-id-required');
+  }
+  return {
+    attachment: {
+      targetType: 'RESOURCE',
+      targetId: normalizedTargetId,
+    },
+  } as RealmAttachmentInputPayload;
 }
 
 function normalizeDateString(value: unknown): string {
@@ -536,7 +560,12 @@ export function resolveRealmMessageText(message: Pick<RealmMessageViewDto, 'text
   if (payloadText) {
     return payloadText;
   }
-  const attachment = asRecord(payload?.attachment);
+  return resolveRealmChatAttachmentPreviewText(payload);
+}
+
+export function resolveRealmChatAttachmentPreviewText(payload: unknown): string {
+  const record = asRecord(payload);
+  const attachment = asRecord(record?.attachment);
   const preview = asRecord(attachment?.preview);
   const attachmentTitle = normalizeString(attachment?.title || attachment?.subtitle);
   if (attachmentTitle) {
@@ -583,16 +612,14 @@ function resolveTimelineAttachmentRecord(payload: unknown): Record<string, unkno
 
 export function resolveRealmChatMediaUrl(payload: unknown, realmBaseUrl: string): string {
   const record = asRecord(payload);
-  const attachment = resolveTimelineAttachmentRecord(payload);
-  const url = normalizeString(attachment?.url || record?.url);
+  const attachment = asRecord(record?.attachment);
+  const preview = asRecord(attachment?.preview);
+  const timelineAttachment = resolveTimelineAttachmentRecord(payload);
+  const url = normalizeString(timelineAttachment?.url || attachment?.url || preview?.url || record?.url);
   if (!url) {
     return '';
   }
-  if (url.startsWith('/')) {
-    const normalizedBaseUrl = normalizeString(realmBaseUrl).replace(/\/$/, '');
-    return normalizedBaseUrl ? `${normalizedBaseUrl}${url}` : url;
-  }
-  return url;
+  return resolveRealmMediaUrl({ realmBaseUrl, mediaUrl: url }) || '';
 }
 
 export function getRealmChatTimelineDisplayModel(

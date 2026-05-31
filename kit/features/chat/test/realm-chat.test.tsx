@@ -13,11 +13,14 @@ import {
   advanceRealmChatSessionAck,
   applyRealmRealtimeMessageToChatsResult,
   buildRealmTextMessageInput,
+  createRealmChatResourceAttachmentPayload,
   createRealmChatSessionOpenPayload,
   createRealmChatSessionState,
   createRealmChatComposerAdapter,
+  extractRealmChatAttachmentTargetId,
   getRealmChatTimelineDisplayModel,
   normalizeRealmRealtimeMessagePayload,
+  resolveRealmChatAttachmentPreviewText,
   resolveRealmChatMediaUrl,
   resolveRealmChatSyncRequest,
   rememberRealmChatSeenEvent,
@@ -668,6 +671,59 @@ describe('chat realm helpers', () => {
         },
       }, 'https://realm.example'),
     ).toBe('https://realm.example/resources/resource-preview-1');
+    expect(
+      resolveRealmChatMediaUrl({
+        attachment: {
+          displayKind: 'CARD',
+          preview: {
+            url: '/resources/resource-preview-without-kind',
+          },
+        },
+      }, 'https://realm.example'),
+    ).toBe('https://realm.example/resources/resource-preview-without-kind');
+
+    expect(
+      resolveRealmChatMediaUrl({
+        attachment: {
+          displayKind: 'IMAGE',
+          url: '/resources/resource-2',
+        },
+      }, ''),
+    ).toBe('');
+    expect(
+      resolveRealmChatMediaUrl({
+        attachment: {
+          displayKind: 'IMAGE',
+          url: 'https://cdn.example/resource-2',
+        },
+      }, ''),
+    ).toBe('https://cdn.example/resource-2');
+  });
+
+  it('shares Realm chat attachment resource payload and preview helpers', () => {
+    expect(extractRealmChatAttachmentTargetId({ resourceId: ' resource-1 ' })).toBe('resource-1');
+    expect(() => extractRealmChatAttachmentTargetId({ storageRef: 'legacy-ref' } as never)).toThrow('chat-attachment-target-id-required');
+    expect(createRealmChatResourceAttachmentPayload(' resource-1 ')).toEqual({
+      attachment: {
+        targetType: 'RESOURCE',
+        targetId: 'resource-1',
+      },
+    });
+    expect(resolveRealmChatAttachmentPreviewText({
+      attachment: {
+        title: 'Original Song',
+        displayKind: 'CARD',
+      },
+    })).toBe('Original Song');
+    expect(resolveRealmChatAttachmentPreviewText({
+      attachment: {
+        displayKind: 'CARD',
+        preview: {
+          displayKind: 'IMAGE',
+        },
+      },
+    })).toBe('Image');
+    expect(resolveRealmChatAttachmentPreviewText({ imageId: 'legacy-image' })).toBe('');
   });
 
   it('renders the default realm chat timeline UI with avatar and gift slots', async () => {

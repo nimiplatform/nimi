@@ -55,7 +55,30 @@ function readEnv(name: string): string {
   return String(importMetaEnv?.[name] || processEnv[name] || '').trim();
 }
 
+function resolveShellMode(): 'desktop' | 'web' {
+  const raw = String(readEnv('VITE_NIMI_SHELL_MODE') || '').toLowerCase();
+  if (raw === 'desktop' || raw === 'web') {
+    return raw;
+  }
+  if (typeof window === 'undefined') {
+    return 'desktop';
+  }
+  return hasTauriInvoke() ? 'desktop' : 'web';
+}
+
+function resolveBrowserOrigin(): string {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+  return String(window.location?.origin || '').trim();
+}
+
 function resolveRealmBaseUrlFallback(): string {
+  const browserOrigin = resolveBrowserOrigin();
+  // Web shells must route Realm calls through the hosting origin so reverse proxies own deployment wiring.
+  if (resolveShellMode() === 'web') {
+    return browserOrigin;
+  }
   return readEnv('NIMI_REALM_URL') || 'http://localhost:3002';
 }
 
@@ -139,7 +162,7 @@ function applyEnvOverrides(base: RuntimeDefaults): RuntimeDefaults {
 
 export async function getRuntimeDefaults(): Promise<RuntimeDefaults> {
   if (!hasTauriInvoke()) {
-    return readRuntimeDefaultsFallback();
+    return applyEnvOverrides(readRuntimeDefaultsFallback());
   }
   const defaults = await invokeChecked('runtime_defaults', {}, parseRuntimeDefaults);
   return applyEnvOverrides(defaults);

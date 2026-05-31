@@ -48,11 +48,8 @@ import type {
   RuntimeDefaults,
   DesktopStorageDirs,
   SystemResourceSnapshot,
-  NimiDataMigrationPreview,
-  NimiDataMigrationOutcome,
   NimiDataCleanupPlan,
   NimiDataCleanupOutcome,
-  NimiDataOldRootReclaimPlan,
   LogsExportResult,
   ProductControlState,
   ProductControlRecord,
@@ -77,11 +74,8 @@ export type {
   RuntimeDefaults,
   DesktopStorageDirs,
   SystemResourceSnapshot,
-  NimiDataMigrationPreview,
-  NimiDataMigrationOutcome,
   NimiDataCleanupPlan,
   NimiDataCleanupOutcome,
-  NimiDataOldRootReclaimPlan,
   LogsExportResult,
   ProductControlState,
   ProductControlRecord,
@@ -145,37 +139,16 @@ export async function subscribeDesktopUpdateState(
   unsupportedDesktopRuntime('Application update events are only available in desktop runtime');
 }
 
-// The `nimi_data` directory-ownership + migration flow (P-MIG-006/007/008) is a
-// desktop Tauri-only capability: it moves an on-disk data root and reclaims
-// directories on the host filesystem. The web shell has no nimi_data root, so
-// these fail closed rather than synthesizing a fake migration outcome.
-export async function previewNimiDataMigration(_targetRoot: string): Promise<NimiDataMigrationPreview> {
-  throw new Error('nimi_data migration is only available in desktop runtime');
-}
-
-export async function runNimiDataMigration(_targetRoot: string): Promise<NimiDataMigrationOutcome> {
-  throw new Error('nimi_data migration is only available in desktop runtime');
-}
-
+// The `nimi_data` directory cleanup surface (P-MIG-006/008) is a desktop
+// Tauri-only capability: it plans and executes host filesystem cleanup through
+// the governed owner matrix. The web shell has no nimi_data root, so cleanup
+// fails closed rather than synthesizing a fake outcome.
 export async function planNimiDataCleanup(_directory: string): Promise<NimiDataCleanupPlan> {
   throw new Error('nimi_data cleanup is only available in desktop runtime');
 }
 
 export async function executeNimiDataCleanup(
   _directory: string,
-  _confirmation?: string,
-): Promise<NimiDataCleanupOutcome> {
-  throw new Error('nimi_data cleanup is only available in desktop runtime');
-}
-
-export async function planNimiDataOldRootReclaim(
-  _oldRoot: string,
-): Promise<NimiDataOldRootReclaimPlan> {
-  throw new Error('nimi_data cleanup is only available in desktop runtime');
-}
-
-export async function reclaimNimiDataOldRoot(
-  _oldRoot: string,
   _confirmation?: string,
 ): Promise<NimiDataCleanupOutcome> {
   throw new Error('nimi_data cleanup is only available in desktop runtime');
@@ -307,12 +280,8 @@ export const desktopBridge = {
   focusMainWindow,
   syncMenuBarRuntimeHealth,
   completeMenuBarQuit,
-  previewNimiDataMigration,
-  runNimiDataMigration,
   planNimiDataCleanup,
   executeNimiDataCleanup,
-  planNimiDataOldRootReclaim,
-  reclaimNimiDataOldRoot,
   exportDesktopLogs,
   startWindowDrag,
   logRendererEvent,

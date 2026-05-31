@@ -131,6 +131,7 @@ export { handleSocialLogin as handleSocialOAuthLogin } from './logic/oauth-login
 
 export {
   performDesktopWebAuth,
+  validateRuntimeOAuthAuthorizationUrl,
   type DesktopWebAuthResult,
 } from './logic/desktop-web-auth.js';
 

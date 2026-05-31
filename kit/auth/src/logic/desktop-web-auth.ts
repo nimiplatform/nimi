@@ -17,6 +17,38 @@ export type DesktopWebAuthResult = {
   user: Record<string, unknown> | null;
 };
 
+export function validateRuntimeOAuthAuthorizationUrl(value: unknown): string {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    throw new Error('Runtime account login did not return an OAuth authorization URL');
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error('Runtime account login returned an invalid OAuth authorization URL');
+  }
+
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    throw new Error('Runtime account login returned a non-HTTP OAuth authorization URL');
+  }
+  if (parsed.hostname === 'auth.nimi.invalid') {
+    throw new Error('Runtime account login returned an unavailable OAuth authority');
+  }
+  if (parsed.hash) {
+    throw new Error('Runtime account login returned an OAuth authorization URL with a fragment');
+  }
+  if (!parsed.pathname.replace(/\/+$/, '').endsWith('/oauth/authorize')) {
+    throw new Error('Runtime account login returned a non-authorize OAuth URL');
+  }
+  if (parsed.searchParams.has('desktop_callback') || parsed.searchParams.has('desktop_state')) {
+    throw new Error('Runtime account login returned a retired desktop relay URL');
+  }
+
+  return parsed.toString();
+}
+
 /**
  * Drive the desktop web authentication handshake end-to-end:
  *
@@ -77,10 +109,7 @@ export async function performDesktopWebAuth(
     baseUrl: options.baseUrl,
     timeoutMs,
   });
-  const launchUrl = String(runtimeAttempt.authorizationUrl || '').trim();
-  if (!launchUrl) {
-    throw new Error(AUTH_COPY.desktopBrowserAuthorizationUrlMissing);
-  }
+  const launchUrl = validateRuntimeOAuthAuthorizationUrl(runtimeAttempt.authorizationUrl);
   const expectedState = String(runtimeAttempt.state || '').trim();
   if (!expectedState) {
     throw new Error(AUTH_COPY.desktopBrowserStateInvalid);

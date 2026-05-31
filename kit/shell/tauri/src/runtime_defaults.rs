@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 fn env_value(key: &str, default: &str) -> String {
@@ -8,7 +8,7 @@ fn env_value(key: &str, default: &str) -> String {
         .unwrap_or_else(|| default.to_string())
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RealmDefaults {
     pub realm_base_url: String,
@@ -20,7 +20,7 @@ pub struct RealmDefaults {
     pub jwt_audience: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeExecutionDefaults {
     pub target_type: String,
@@ -30,7 +30,7 @@ pub struct RuntimeExecutionDefaults {
     pub user_confirmed_upload: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeDefaults {
     pub realm: RealmDefaults,
@@ -113,7 +113,7 @@ pub fn runtime_defaults() -> RuntimeDefaults {
         realm: RealmDefaults {
             realm_base_url: realm_base_url.clone(),
             realtime_url: env_value("NIMI_REALTIME_URL", ""),
-            access_token: String::new(),
+            access_token: env_value("NIMI_ACCESS_TOKEN", ""),
             jwks_url,
             revocation_url,
             jwt_issuer,
@@ -240,6 +240,17 @@ mod tests {
                         "runtime_defaults must not emit retired route field {retired_key}"
                     );
                 }
+            },
+        );
+    }
+
+    #[test]
+    fn runtime_defaults_projects_env_access_token_for_shell_bootstrap_only() {
+        with_env_vars(
+            &[("NIMI_ACCESS_TOKEN", Some("runtime-defaults-token"))],
+            || {
+                let defaults = runtime_defaults();
+                assert_eq!(defaults.realm.access_token, "runtime-defaults-token");
             },
         );
     }

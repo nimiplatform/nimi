@@ -625,6 +625,7 @@ test('app source resolves from the live reference app and is packaged via prepac
   const { baseDir, manifest } = resolveAppSource();
   assert.match(baseDir, /apps[/\\]tester$/);
   assert.equal(manifest.sourceApp, 'apps/tester');
+  assert.equal(manifest.files.some((entry) => entry.path === '.gitignore'), false);
   assert.ok(manifest.files.some((entry) => entry.path === 'src/shell/auth/runtime-platform.ts' && entry.class === 'scaffold-managed glue'));
   assert.ok(manifest.files.some((entry) => entry.path === 'src/tester/tester-workbench.tsx' && entry.class === 'app-owned product code'));
 });
@@ -632,6 +633,8 @@ test('app source resolves from the live reference app and is packaged via prepac
 test('generated scaffold mechanically excludes forbidden shortcuts', () => {
   const generated = scaffold('standalone');
   try {
+    assert.match(generated.read('.gitignore'), /^node_modules\/$/m);
+    assert.match(generated.read('.gitignore'), /^\.nimi\/local\/$/m);
     const joined = [
       'src/shell/auth/runtime-platform.ts',
       'src/shell/auth/auth-gate.tsx',

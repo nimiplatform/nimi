@@ -3,7 +3,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createRealmCommerceGiftAdapter,
+  loadRealmCurrencyBalances,
   loadRealmGiftTransaction,
+  normalizeRealmCurrencyBalances,
   useRealmGiftInbox,
   type RealmCommerceGiftService,
 } from '../src/realm.js';
@@ -66,9 +68,30 @@ function Harness({
 }
 
 describe('commerce realm helpers', () => {
+  it('normalizes currency balances through the realm adapter', async () => {
+    expect(normalizeRealmCurrencyBalances({
+      sparkBalance: '42',
+      gemBalance: '7',
+    })).toEqual({
+      sparkBalance: 42,
+      gemBalance: 7,
+    });
+
+    await expect(loadRealmCurrencyBalances({
+      getBalances: async () => ({
+        sparkBalance: '5',
+        gemBalance: '3',
+      }),
+    })).resolves.toEqual({
+      sparkBalance: 5,
+      gemBalance: 3,
+    });
+  });
+
   it('normalizes gift catalog through the realm adapter', async () => {
     const adapter = createRealmCommerceGiftAdapter({
       service: {
+        getBalances: async () => ({ sparkBalance: '0', gemBalance: '0' }),
         listGiftCatalog: async () => ({
           items: [
             { id: 'rose', name: 'Rose', emoji: '🌹', sparkCost: 10 },

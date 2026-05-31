@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::avatar_launch_context::AvatarLaunchContext;
-use crate::avatar_paths::resolve_avatar_nimi_data_dir;
+use crate::avatar_paths::resolve_avatar_app_data_dir;
 
 const AVATAR_EVIDENCE_DIR: &str = "avatar-carrier-evidence";
 const AVATAR_EVIDENCE_SCHEMA_VERSION: u32 = 1;
@@ -67,7 +67,7 @@ pub struct AvatarEvidenceArtifactWriteResult {
 }
 
 fn evidence_root_dir() -> Result<PathBuf, String> {
-    let root = resolve_avatar_nimi_data_dir()?.join(AVATAR_EVIDENCE_DIR);
+    let root = resolve_avatar_app_data_dir()?.join(AVATAR_EVIDENCE_DIR);
     fs::create_dir_all(&root).map_err(|error| {
         format!(
             "failed to create avatar carrier evidence dir ({}): {error}",

@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { parseRuntimeDefaults } from '../shell/renderer/src/bridge/index.js';
+import { getRuntimeDefaults, parseRuntimeDefaults } from '../shell/renderer/src/bridge/index.js';
 
 const VALID_RUNTIME_DEFAULTS = {
   realm: {
@@ -49,5 +49,27 @@ describe('parseRuntimeDefaults', () => {
         accessToken: '',
       }),
     ).toThrow(/runtime_defaults realm payload is invalid/);
+  });
+});
+
+describe('getRuntimeDefaults', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    window.history.replaceState(null, '', '/');
+  });
+
+  it('uses the browser origin as the web shell Realm fallback outside Tauri', async () => {
+    vi.stubEnv('VITE_NIMI_SHELL_MODE', 'web');
+    window.history.replaceState(null, '', '/app');
+    const origin = window.location.origin;
+
+    const defaults = await getRuntimeDefaults();
+
+    expect(defaults.realm.realmBaseUrl).toBe(origin);
+    expect(defaults.realm.jwksUrl).toBe(`${origin}/api/auth/jwks`);
+    expect(defaults.realm.revocationUrl).toBe(
+      `${origin}/api/auth/sessions/introspect`,
+    );
+    expect(defaults.realm.jwtIssuer).toBe(origin);
   });
 });

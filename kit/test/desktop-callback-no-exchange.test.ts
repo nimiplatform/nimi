@@ -12,7 +12,10 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 
-import { performDesktopWebAuth } from '../auth/src/logic/desktop-web-auth.js';
+import {
+  performDesktopWebAuth,
+  validateRuntimeOAuthAuthorizationUrl,
+} from '../auth/src/logic/desktop-web-auth.js';
 import * as kitAuth from '../auth/src/index.js';
 
 // ---------------------------------------------------------------------------
@@ -129,6 +132,22 @@ describe('performDesktopWebAuth direct-to-loopback flow', () => {
     expect(completeCall).not.toHaveProperty('idToken');
 
     expect(result.user).toEqual({ id: 'acct-1', displayName: 'Acct 1' });
+  });
+
+  it('validates runtime-supplied authorize URLs as the shared Kit shell primitive', () => {
+    expect(validateRuntimeOAuthAuthorizationUrl(
+      'https://realm.nimi.test/api/auth/oauth/authorize?response_type=code&client_id=nimi-desktop',
+    )).toBe('https://realm.nimi.test/api/auth/oauth/authorize?response_type=code&client_id=nimi-desktop');
+    for (const value of [
+      '',
+      'file:///tmp/login',
+      'https://realm.nimi.test/api/auth/oauth/token',
+      'https://realm.nimi.test/api/auth/oauth/authorize#/login',
+      'https://realm.nimi.test/api/auth/oauth/authorize?desktop_callback=http%3A%2F%2Flocalhost',
+      'https://realm.nimi.test/api/auth/oauth/authorize?desktop_state=state',
+    ]) {
+      expect(() => validateRuntimeOAuthAuthorizationUrl(value)).toThrow(/Runtime account login/);
+    }
   });
 
   it('fails-close when runtime broker omits the authorization URL (no fallback)', async () => {

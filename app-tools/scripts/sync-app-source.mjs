@@ -49,6 +49,7 @@ const EXCLUDED_DIR_PATHS = new Set([
 // Files the generator emits structurally (identity/profile/version derived or a
 // fixed scaffold asset), so they must not also live as a verbatim snapshot copy.
 const STRUCTURED_FILE_PATHS = new Set([
+  '.gitignore',
   '.github/workflows/ci.yml',
   'package.json',
   'src-tauri/Cargo.lock',

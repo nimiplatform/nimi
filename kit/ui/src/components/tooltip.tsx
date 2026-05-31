@@ -5,12 +5,14 @@ import { cn } from '../design-tokens.js';
 export const TooltipProvider = TooltipPrimitive.Provider;
 
 const CONTENT_CLASSES =
-  'nimi-tooltip-layer nimi-tooltip-bubble z-[var(--nimi-z-tooltip)] rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-overlay)] border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-[length:var(--nimi-type-caption-size)] leading-[var(--nimi-type-caption-line-height)] shadow-[var(--nimi-elevation-floating)] animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2';
+  'nimi-tooltip-layer nimi-tooltip-bubble z-[var(--nimi-z-tooltip)] rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-overlay)] border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-[length:var(--nimi-type-caption-size)] leading-[var(--nimi-type-caption-line-height)] shadow-[var(--nimi-elevation-floating)] animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2 data-[side=right]:slide-in-from-left-2 data-[side=left]:slide-in-from-right-2';
+
+export type TooltipPlacement = 'top' | 'right' | 'bottom' | 'left';
 
 type TooltipProps = {
   children: ReactNode;
   content: ReactNode;
-  placement?: 'top' | 'bottom';
+  placement?: TooltipPlacement;
   open?: boolean;
   defaultOpen?: boolean;
   className?: string;
@@ -54,7 +56,7 @@ export function TooltipTrigger({ children, className }: { children: ReactNode; c
   );
 }
 
-export function TooltipContent({ children, className, ...rest }: { children: ReactNode; className?: string; side?: 'top' | 'bottom'; sideOffset?: number }) {
+export function TooltipContent({ children, className, ...rest }: { children: ReactNode; className?: string; side?: TooltipPlacement; sideOffset?: number }) {
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Content

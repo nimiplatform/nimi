@@ -12,6 +12,18 @@ export const SCAFFOLD_SUBMISSION_PATH = '.nimi/admission/submission.yaml';
 export const SCAFFOLD_BUILD_PROFILE_PATH = '.nimi/admission/build-profile.yaml';
 export const SUPPORTED_APP_SCAFFOLD_PROFILES = ['standalone', 'workspace-app'];
 const LOCKFILE_POLICY = 'author-install-generates-lockfile';
+const GENERATED_GITIGNORE = [
+  'node_modules/',
+  'dist/',
+  'src-tauri/target/',
+  '.env.local',
+  '.env.*.local',
+  '.nimi/local/',
+  '.turbo/',
+  '.vite/',
+  '.DS_Store',
+  '',
+].join('\n');
 const MINIMAL_TAURI_ICON_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=',
   'base64',
@@ -287,6 +299,11 @@ function buildSnapshotFiles(identity, profile, versions) {
 
 function buildStructuredFiles(identity, profile, versions) {
   const files = [
+    {
+      path: '.gitignore',
+      content: GENERATED_GITIGNORE,
+      mutationClass: 'scaffold-managed glue',
+    },
     {
       path: 'package.json',
       content: jsonFile(buildPackageJson(profile, versions, identity)),

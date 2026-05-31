@@ -1,11 +1,12 @@
 # @nimiplatform/kit
 
 The product-grade cross-app toolkit for Nimi apps. `@nimiplatform/kit`
-packages the shared UI primitives, auth flows, telemetry, shell glue, and
-feature modules that every Nimi consumer needs, so app authors do not have
-to rebuild baseline styling, interaction shells, or platform wiring. The kit
-is a reusable projection of platform-governed design and integration
-contracts; canonical semantics remain in `.nimi/spec/platform/kernel/**`.
+packages the shared UI primitives, auth flows, telemetry, shell glue,
+Platform catalog projections, and feature modules that every Nimi consumer
+needs, so app authors do not have to rebuild baseline styling, interaction
+shells, or platform wiring. The kit is a reusable projection of
+platform-governed design and integration contracts; canonical semantics remain
+in `.nimi/spec/platform/kernel/**`.
 
 ## Installation
 
@@ -114,6 +115,17 @@ import { parseCharacterCard } from '@nimiplatform/kit/core/character-card';
 ```ts
 import { invokeTauri } from '@nimiplatform/kit/shell/renderer/bridge';
 import { bootstrapAuthSession } from '@nimiplatform/kit/shell/renderer/bootstrap';
+```
+
+### Tauri shell crate
+
+```rust
+use nimi_shell_tauri::platform_catalog::ai_profile_factory;
+use nimi_shell_tauri::platform_catalog::nimi_app_registry;
+use nimi_shell_tauri::platform_projection::apps_bridge;
+use nimi_shell_tauri::platform_projection::apps_packages;
+use nimi_shell_tauri::platform_projection::apps_registry;
+use nimi_shell_tauri::platform_projection::factory_profile_index;
 ```
 
 ### Telemetry

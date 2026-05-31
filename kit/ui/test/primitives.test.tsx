@@ -315,7 +315,7 @@ test('overlay primitives emit canonical overlay slots', async () => {
           <PopoverContent>Popover</PopoverContent>
         </Popover>
         <TooltipProvider>
-          <Tooltip open content="Tip">
+          <Tooltip open content="Tip" placement="right">
             <button type="button">Hover</button>
           </Tooltip>
         </TooltipProvider>
@@ -337,6 +337,7 @@ test('overlay primitives emit canonical overlay slots', async () => {
   expect(hasClass(html, 'nimi-overlay-footer')).toBe(true);
   expect(hasClass(html, 'nimi-tooltip-layer')).toBe(true);
   expect(hasClass(html, 'nimi-tooltip-bubble')).toBe(true);
+  expect(html).toMatch(/data-side="right"/);
 });
 
 test('text field danger tone applies danger chrome and auto-sets aria-invalid', async () => {

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::avatar_instance_registry::{AvatarInstanceRegistryEntry, AvatarInstanceRuntimeIdentity};
 use crate::avatar_launch_context::AvatarLaunchContext;
-use crate::avatar_paths::resolve_avatar_nimi_data_dir;
+use crate::avatar_paths::resolve_avatar_app_data_dir;
 
 const AVATAR_INSTANCE_PROJECTION_DIR: &str = "avatar-instance-registry";
 const AVATAR_INSTANCE_PROJECTION_FILE: &str = "instances.json";
@@ -33,7 +33,7 @@ pub struct AvatarInstanceProjectionFile {
 }
 
 fn projection_root_dir() -> Result<PathBuf, String> {
-    let root = resolve_avatar_nimi_data_dir()?.join(AVATAR_INSTANCE_PROJECTION_DIR);
+    let root = resolve_avatar_app_data_dir()?.join(AVATAR_INSTANCE_PROJECTION_DIR);
     fs::create_dir_all(&root).map_err(|error| {
         format!(
             "failed to create avatar instance projection dir ({}): {error}",
