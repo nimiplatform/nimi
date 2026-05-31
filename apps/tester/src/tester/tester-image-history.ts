@@ -1,6 +1,6 @@
 import { invokeTesterCommand } from './tester-tauri.js';
 import type { TesterCapabilityId } from './tester-capabilities.js';
-import { getTesterAppStorageRoots } from './tester-app-storage.js';
+import { withTesterDataStorageRoot } from './tester-app-storage.js';
 
 export type TesterImageHistoryRecord = {
   id: string;
@@ -39,16 +39,14 @@ function parseRecords(raw: string): TesterImageHistoryRecord[] {
 }
 
 export async function loadTesterImageHistory(): Promise<TesterImageHistoryRecord[]> {
-  const roots = await getTesterAppStorageRoots();
   return parseRecords(await invokeTesterCommand<string>('tester_image_history_load', {
-    payload: { storageRoot: roots.dataRoot },
+    payload: await withTesterDataStorageRoot({}),
   }));
 }
 
 export async function saveTesterImageHistory(records: TesterImageHistoryRecord[]): Promise<void> {
-  const roots = await getTesterAppStorageRoots();
   await invokeTesterCommand('tester_image_history_save', {
-    payload: { storageRoot: roots.dataRoot, recordsJson: JSON.stringify(records.slice(0, 80)) },
+    payload: await withTesterDataStorageRoot({ recordsJson: JSON.stringify(records.slice(0, 80)) }),
   });
 }
 

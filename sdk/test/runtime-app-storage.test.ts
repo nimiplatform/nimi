@@ -7,6 +7,8 @@ import type {
   NimiAppReleaseDescriptorRow,
 } from '../src/app/index.js';
 import {
+  attachRuntimeAppDataStorageRoot,
+  attachRuntimeAppStorageRoots,
   resolveRuntimeAppActiveStorageRoots,
   resolveRuntimeAppStorageRoots,
   type RuntimeAppStorageProjection,
@@ -66,6 +68,30 @@ test('resolveRuntimeAppActiveStorageRoots returns active release roots only when
     await resolveRuntimeAppActiveStorageRoots({ appLifecycle: installRequiredLifecycle, appId }),
     undefined,
   );
+});
+
+test('attachRuntimeAppDataStorageRoot adds only the Runtime durable data root', async () => {
+  assert.deepEqual(await attachRuntimeAppDataStorageRoot({
+    appLifecycle,
+    appId,
+    payload: { threadId: 'thread-1' },
+  }), {
+    threadId: 'thread-1',
+    storageRoot: '/data/apps/nimi.example-app/data',
+  });
+});
+
+test('attachRuntimeAppStorageRoots adds Runtime data/cache/tmp roots to payloads', async () => {
+  assert.deepEqual(await attachRuntimeAppStorageRoots({
+    appLifecycle,
+    appId,
+    payload: { manifestPath: '/tmp/world-tour.json' },
+  }), {
+    manifestPath: '/tmp/world-tour.json',
+    dataRoot: '/data/apps/nimi.example-app/data',
+    cacheRoot: '/data/apps/nimi.example-app/cache',
+    tempRoot: '/data/apps/nimi.example-app/tmp',
+  });
 });
 
 test('NimiApp registry status does not project storage roots from install evidence', async () => {

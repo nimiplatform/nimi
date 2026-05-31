@@ -1,6 +1,6 @@
 import { invokeTesterCommand } from './tester-tauri.js';
 import { getTesterCapability, type TesterCapabilityId } from './tester-capabilities.js';
-import { getTesterAppStorageRoots } from './tester-app-storage.js';
+import { withTesterDataStorageRoot } from './tester-app-storage.js';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type TesterRunHistoryRecord = {
@@ -72,16 +72,14 @@ function parseHistory(raw: string): TesterRunHistory {
 }
 
 export async function loadTesterRunHistory(): Promise<TesterRunHistory> {
-  const roots = await getTesterAppStorageRoots();
   return parseHistory(await invokeTesterCommand<string>('tester_run_history_load', {
-    payload: { storageRoot: roots.dataRoot },
+    payload: await withTesterDataStorageRoot({}),
   }));
 }
 
 export async function saveTesterRunHistory(history: TesterRunHistory): Promise<void> {
-  const roots = await getTesterAppStorageRoots();
   await invokeTesterCommand('tester_run_history_save', {
-    payload: { storageRoot: roots.dataRoot, recordsJson: JSON.stringify(history) },
+    payload: await withTesterDataStorageRoot({ recordsJson: JSON.stringify(history) }),
   });
 }
 

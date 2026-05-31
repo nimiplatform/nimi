@@ -194,6 +194,8 @@ test('tester run history is the per-capability evidence surface (no standalone E
     assert.match(historyStore, new RegExp(helper));
   }
   assert.match(appStorage, /resolveRuntimeAppStorageRoots/);
+  assert.match(appStorage, /attachRuntimeAppDataStorageRoot/);
+  assert.match(appStorage, /attachRuntimeAppStorageRoots/);
   assert.doesNotMatch(appStorage, /\.nimi|nimi\.json|runtime\/config|join\(/);
 
   // Single-level capability workspace: no app-lab / evidence / settings routes.

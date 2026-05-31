@@ -16,12 +16,21 @@ export type RuntimeAppActiveStorageRoots = RuntimeAppStorageRoots & {
   releaseRoot: string;
 };
 
+export type RuntimeAppDataStorageRootPayload = {
+  storageRoot: string;
+};
+
 export type ResolveRuntimeAppStorageRootsInput = {
   appLifecycle: Pick<RuntimeAppLifecycleModule, 'storage'>;
   appId: string;
   label?: string;
   options?: RuntimeCallOptions;
 };
+
+export type AttachRuntimeAppStorageRootsInput<T extends object> =
+  ResolveRuntimeAppStorageRootsInput & {
+    payload: T;
+  };
 
 function requireNonEmptyText(value: unknown, fieldName: string): string {
   const text = typeof value === 'string' ? value.trim() : '';
@@ -82,5 +91,25 @@ export async function resolveRuntimeAppActiveStorageRoots(
     dataRoot: requireNonEmptyText(projection.durableDataRoot, 'durableDataRoot'),
     cacheRoot: requireNonEmptyText(projection.cacheRoot, 'cacheRoot'),
     tempRoot: requireNonEmptyText(projection.tempRoot, 'tempRoot'),
+  };
+}
+
+export async function attachRuntimeAppDataStorageRoot<T extends object>(
+  input: AttachRuntimeAppStorageRootsInput<T>,
+): Promise<T & RuntimeAppDataStorageRootPayload> {
+  const roots = await resolveRuntimeAppStorageRoots(input);
+  return {
+    ...input.payload,
+    storageRoot: roots.dataRoot,
+  };
+}
+
+export async function attachRuntimeAppStorageRoots<T extends object>(
+  input: AttachRuntimeAppStorageRootsInput<T>,
+): Promise<T & RuntimeAppStorageRoots> {
+  const roots = await resolveRuntimeAppStorageRoots(input);
+  return {
+    ...input.payload,
+    ...roots,
   };
 }

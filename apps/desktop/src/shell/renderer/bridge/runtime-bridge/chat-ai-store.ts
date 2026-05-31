@@ -1,5 +1,5 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
-import { resolveRuntimeAppStorageRoots } from '@nimiplatform/sdk/runtime';
+import { attachRuntimeAppDataStorageRoot } from '@nimiplatform/sdk/runtime';
 import { hasTauriInvoke } from './env';
 import { invokeChecked } from './invoke';
 import {
@@ -35,15 +35,12 @@ async function chatAiStoragePayload<T extends object>(
   input: T,
 ): Promise<T & { storageRoot: string }> {
   const runtime = getPlatformClient().runtime;
-  const roots = await resolveRuntimeAppStorageRoots({
+  return attachRuntimeAppDataStorageRoot({
     appLifecycle: runtime.appLifecycle,
     appId: runtime.appId,
     label: 'desktop Nimi Chat',
+    payload: input,
   });
-  return {
-    ...input,
-    storageRoot: roots.dataRoot,
-  };
 }
 
 export async function listThreads(): Promise<ChatAiThreadSummary[]> {

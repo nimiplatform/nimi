@@ -1,5 +1,5 @@
 import { invokeTesterCommand } from '../tester-tauri.js';
-import { getTesterAppStorageRoots, type TesterAppStorageRoots } from '../tester-app-storage.js';
+import { withTesterAppStorageRoots, type TesterAppStorageRoots } from '../tester-app-storage.js';
 
 export type ResolveWorldTourFixtureInput = {
   manifestPath?: string;
@@ -35,7 +35,7 @@ export type WorldTourRenderAcceptance = {
 };
 
 async function withStorageRoots<T extends Record<string, unknown>>(payload: T): Promise<T & TesterAppStorageRoots> {
-  return { ...payload, ...(await getTesterAppStorageRoots()) };
+  return withTesterAppStorageRoots(payload);
 }
 
 export async function resolveWorldTourFixture(payload: ResolveWorldTourFixtureInput): Promise<ResolvedWorldTourFixture> {
