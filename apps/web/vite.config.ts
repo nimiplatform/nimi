@@ -185,6 +185,10 @@ export default defineConfig(({ mode }) => {
           replacement: path.resolve(__dirname, '../../kit/shell/renderer/src/bridge'),
         },
         {
+          find: '@nimiplatform/kit/shell/renderer/bootstrap',
+          replacement: path.resolve(__dirname, '../../kit/shell/renderer/src/bootstrap'),
+        },
+        {
           find: '@nimiplatform/kit/features/avatar',
           replacement: path.resolve(__dirname, '../../kit/features/avatar/src'),
         },
