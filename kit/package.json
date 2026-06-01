@@ -81,6 +81,11 @@
       "import": "./dist/core/offline-coordinator.js",
       "default": "./dist/core/offline-coordinator.js"
     },
+    "./core/notifications": {
+      "types": "./dist/core/notifications.d.ts",
+      "import": "./dist/core/notifications.js",
+      "default": "./dist/core/notifications.js"
+    },
     "./core/runtime-capabilities": {
       "types": "./dist/core/runtime-capabilities/index.d.ts",
       "import": "./dist/core/runtime-capabilities/index.js",

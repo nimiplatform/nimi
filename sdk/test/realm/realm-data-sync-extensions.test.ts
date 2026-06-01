@@ -48,6 +48,50 @@ test('Realm social snapshot extension composes public Realm services without loc
   assert.equal(errors.length, 0);
 });
 
+test('Realm social snapshot fails closed when pending request profile loading fails', async () => {
+  const errors: Array<{ action: string; details?: Record<string, unknown> }> = [];
+  const calls: string[] = [];
+
+  await assert.rejects(
+    () => loadRealmSocialSnapshot(
+      async (task) => task({
+        services: {
+          MeService: {
+            listMyFriendsWithDetails: async () => {
+              calls.push('friends');
+              return { items: [] };
+            },
+            getMyPendingFriendRequests: async () => {
+              calls.push('pending');
+              return { received: [{ userId: 'requester-1' }], sent: [] };
+            },
+            getMyBlockedUsers: async () => {
+              calls.push('blocked');
+              return { items: [] };
+            },
+          },
+          UserService: {
+            getUser: async (userId: string) => {
+              calls.push(`user:${userId}`);
+              throw new Error('profile unavailable');
+            },
+          },
+        },
+      } as never),
+      (action, _error, details) => {
+        errors.push({ action, details });
+      },
+    ),
+    /profile unavailable/,
+  );
+
+  assert.deepEqual(calls, ['friends', 'pending', 'blocked', 'user:requester-1']);
+  assert.deepEqual(errors, [{
+    action: 'load-pending-friend-request-profile',
+    details: { userId: 'requester-1', direction: 'received' },
+  }]);
+});
+
 test('Realm world extension fail-closes world id mismatches', async () => {
   const errors: Array<{ action: string; details?: Record<string, unknown> }> = [];
 

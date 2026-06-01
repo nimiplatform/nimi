@@ -974,8 +974,12 @@ test('tester settings consumes the SDK Realm notification unread projection', ()
   assert.match(settings, /loadRealmNotifications/);
   assert.match(settings, /toRealmNotificationListProjection/);
   assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
+  assert.match(settings, /from '@nimiplatform\/kit\/core\/notifications'/);
+  assert.match(settings, /getNimiNotificationServerFilter/);
+  assert.match(settings, /getNimiNotificationCategory/);
+  assert.match(settings, /getNimiNotificationBadgeKey/);
   assert.match(settings, /Realm notification projection/);
-  assert.match(settings, /Realm notification list projection/);
+  assert.match(settings, /Realm notification list \+ Kit headless projection/);
   assert.match(settings, /Unread \$\{notificationProjection\.unread\.total\}/);
   assert.match(settings, /refreshNotificationListProjection/);
   assert.match(settings, /loadRealmNotifications\(getPlatformClient\(\)\.realm/);

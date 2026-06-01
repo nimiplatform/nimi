@@ -12,11 +12,16 @@ const notificationModelPath = resolve(rendererRoot, 'features/notification/notif
 
 test('Desktop notification surface consumes SDK Realm notification projections', () => {
   assert.match(notificationPanelSource, /from '@nimiplatform\/sdk\/realm'/);
+  assert.match(notificationPanelSource, /from '@nimiplatform\/kit\/core\/notifications'/);
   assert.match(notificationPanelSource, /toRealmNotificationListProjection/);
-  assert.match(notificationPanelSource, /getRealmNotificationCategory/);
-  assert.match(notificationPanelSource, /getRealmNotificationServerFilter/);
-  assert.match(notificationPanelSource, /getRealmNotificationBadgeKey/);
-  assert.match(notificationPanelSource, /isRealmGiftNotificationReviewable/);
+  assert.match(notificationPanelSource, /getNimiNotificationCategory/);
+  assert.match(notificationPanelSource, /getNimiNotificationServerFilter/);
+  assert.match(notificationPanelSource, /getNimiNotificationBadgeKey/);
+  assert.match(notificationPanelSource, /isNimiGiftNotificationReviewable/);
+  assert.doesNotMatch(notificationPanelSource, /getRealmNotificationCategory/);
+  assert.doesNotMatch(notificationPanelSource, /getRealmNotificationServerFilter/);
+  assert.doesNotMatch(notificationPanelSource, /getRealmNotificationBadgeKey/);
+  assert.doesNotMatch(notificationPanelSource, /isRealmGiftNotificationReviewable/);
   assert.equal(existsSync(notificationModelPath), false);
   assert.doesNotMatch(notificationPanelSource, /function toNotificationItemView/);
   assert.doesNotMatch(notificationPanelSource, /function toNotificationListView/);

@@ -1,13 +1,16 @@
 # Kit Core
 
 ## What It Is
-Pure shared logic module for shell-mode detection, env helpers, OAuth utilities, and renderer-safe storage JSON helpers.
+Pure shared logic module for shell-mode detection, env helpers, OAuth utilities,
+renderer-safe storage JSON helpers, and reusable headless notification
+presentation helpers.
 
 ## Public Surfaces
 - `@nimiplatform/kit/core/shell-mode`
 - `@nimiplatform/kit/core/oauth`
 - `@nimiplatform/kit/core/storage-json`
 - `@nimiplatform/kit/core/offline-coordinator`
+- `@nimiplatform/kit/core/notifications`
 - Current surfaces:
   - `headless`: active
   - `ui`: none
@@ -19,6 +22,8 @@ Pure shared logic module for shell-mode detection, env helpers, OAuth utilities,
 - Parameterize OAuth or capability logic without app bindings.
 - Coordinate app-shell connectivity/reconnect state without owning Runtime or
   Realm reachability truth.
+- Reuse notification filter, badge, and action-eligibility helpers without
+  putting presentation vocabulary in SDK or app-local forks.
 
 ## What Stays Outside
 - React hooks and CSS.

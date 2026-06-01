@@ -172,6 +172,7 @@ function toPendingRequestMap(items: PendingFriendRequestDto[] | undefined): Map<
 
 async function resolvePendingRequestProfiles(
   callApi: RealmSocialApiCaller,
+  emitRealmDataError: RealmSocialErrorEmitter,
   userMap: Map<string, PendingRequestMapValue>,
   direction: 'received' | 'sent',
 ): Promise<SocialContactRecord[]> {
@@ -196,20 +197,9 @@ async function resolvePendingRequestProfiles(
         isAgent,
         worldId: isAgent ? extractAgentWorldId(profile) : null,
       } as SocialContactRecord;
-    } catch {
-      return {
-        id: userId,
-        userId,
-        direction,
-        requestedAt,
-        requestMessage,
-        displayName: userId,
-        handle: '',
-        avatarUrl: null,
-        bio: null,
-        isAgent: false,
-        worldId: null,
-      } as SocialContactRecord;
+    } catch (error) {
+      emitRealmDataError('load-pending-friend-request-profile', error, { userId, direction });
+      throw error;
     }
   });
 
@@ -308,11 +298,13 @@ export async function loadRealmSocialSnapshot(
 
   const pendingReceived = await resolvePendingRequestProfiles(
     callApi,
+    emitRealmDataError,
     toPendingRequestMap(pendingResult.received),
     'received',
   );
   const pendingSent = await resolvePendingRequestProfiles(
     callApi,
+    emitRealmDataError,
     toPendingRequestMap(pendingResult.sent),
     'sent',
   );

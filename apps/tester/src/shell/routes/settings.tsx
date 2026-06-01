@@ -134,6 +134,11 @@ import {
   type RealmGiftCatalogResponse,
   type RealmReceivedGiftsResponse,
 } from '@nimiplatform/kit/features/commerce/realm';
+import {
+  getNimiNotificationBadgeKey,
+  getNimiNotificationCategory,
+  getNimiNotificationServerFilter,
+} from '@nimiplatform/kit/core/notifications';
 import { resolveAgentVoicePlaybackCue } from '@nimiplatform/kit/features/avatar/headless';
 import {
   resolveRuntimeAgentVoicePlaybackDecision,
@@ -1614,6 +1619,7 @@ export function SettingsRoute() {
       const list = await loadRealmNotifications(getPlatformClient().realm, {
         limit: 5,
         unreadOnly: false,
+        type: getNimiNotificationServerFilter('system') ?? undefined,
       });
       setNotificationListProjection({
         status: 'ready',
@@ -1760,6 +1766,24 @@ export function SettingsRoute() {
     }
   };
 
+  const notificationListStatusLabel = (() => {
+    if (notificationListProjection.status === 'ready') {
+      const firstItem = notificationListProjection.list.items[0];
+      if (!firstItem) {
+        return '0 items via system filter';
+      }
+      const itemCount = notificationListProjection.list.items.length;
+      const plural = itemCount === 1 ? '' : 's';
+      const category = getNimiNotificationCategory(firstItem.type);
+      const badgeKey = getNimiNotificationBadgeKey(firstItem);
+      return `${itemCount} item${plural}; first ${category}:${badgeKey}`;
+    }
+    if (notificationListProjection.status === 'error') {
+      return notificationListProjection.error;
+    }
+    return 'not loaded';
+  })();
+
   return (
     <Surface className="panel-section" material="glass-thin" tone="panel">
       <div className="panel-heading">
@@ -1847,14 +1871,10 @@ export function SettingsRoute() {
         </div>
       </div>
       <div className="setting-row">
-        <span>Realm notification list projection</span>
+        <span>Realm notification list + Kit headless projection</span>
         <div className="inline-flex items-center gap-2">
           <StatusBadge tone={notificationListProjection.status === 'error' ? 'danger' : 'info'}>
-            {notificationListProjection.status === 'ready'
-              ? `${notificationListProjection.list.items.length} item${notificationListProjection.list.items.length === 1 ? '' : 's'}`
-              : notificationListProjection.status === 'error'
-                ? notificationListProjection.error
-                : 'not loaded'}
+            {notificationListStatusLabel}
           </StatusBadge>
           <Button
             type="button"

@@ -13,10 +13,6 @@ export type RealmNotificationUnreadProjection = {
   byType: Record<string, number>;
 };
 
-export type RealmNotificationCategory = 'gift' | 'request' | 'mention' | 'like' | 'system';
-export type RealmNotificationFilterTab = 'all' | RealmNotificationCategory;
-export type RealmNotificationServerFilter = RealmNotificationType | null;
-
 export type RealmNotificationItemProjection = {
   id: string;
   type: RealmNotificationType;
@@ -56,24 +52,6 @@ export type RealmNotificationsReadProjection = {
 export type RealmNotificationReadProjection = {
   id: string;
 };
-
-const REQUEST_NOTIFICATION_TYPES = new Set<RealmNotificationType>([
-  'friend_request_received',
-  'friend_request_accepted',
-  'friend_request_rejected',
-]);
-
-const GIFT_NOTIFICATION_TYPES = new Set<RealmNotificationType>([
-  'gift_received',
-  'gift_status_updated',
-  'review_received',
-]);
-
-const LIKE_NOTIFICATION_TYPES = new Set<RealmNotificationType>([
-  'post_liked',
-]);
-
-const MENTION_NOTIFICATION_TYPES = new Set<RealmNotificationType>([]);
 
 function normalizeCount(value: unknown): number | null {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
@@ -120,71 +98,6 @@ export function normalizeRealmNotificationUnreadCount(
     total,
     byType: normalizeByType(record.byType),
   };
-}
-
-export function getRealmNotificationServerFilter(
-  tab: RealmNotificationFilterTab,
-): RealmNotificationServerFilter {
-  switch (tab) {
-    case 'like':
-      return 'post_liked';
-    case 'system':
-      return 'system_announcement';
-    default:
-      return null;
-  }
-}
-
-export function getRealmNotificationCategory(
-  type: RealmNotificationType,
-): RealmNotificationCategory {
-  if (REQUEST_NOTIFICATION_TYPES.has(type)) {
-    return 'request';
-  }
-  if (GIFT_NOTIFICATION_TYPES.has(type)) {
-    return 'gift';
-  }
-  if (MENTION_NOTIFICATION_TYPES.has(type)) {
-    return 'mention';
-  }
-  if (LIKE_NOTIFICATION_TYPES.has(type)) {
-    return 'like';
-  }
-  return 'system';
-}
-
-export function getRealmNotificationBadgeKey(item: RealmNotificationItemProjection): string {
-  switch (item.type) {
-    case 'friend_request_received':
-      return 'friendRequestReceived';
-    case 'friend_request_accepted':
-      return 'friendRequestAccepted';
-    case 'friend_request_rejected':
-      return 'friendRequestRejected';
-    case 'gift_received':
-      return 'giftReceived';
-    case 'gift_status_updated':
-      if (item.giftStatus === 'accepted') {
-        return 'giftAccepted';
-      }
-      if (item.giftStatus === 'rejected') {
-        return 'giftRejected';
-      }
-      return 'giftStatusUpdated';
-    case 'review_received':
-      return 'reviewReceived';
-    default:
-      return 'system';
-  }
-}
-
-export function isRealmGiftNotificationReviewable(item: RealmNotificationItemProjection): boolean {
-  return (
-    item.type === 'gift_status_updated'
-    && Boolean(item.giftTransactionId)
-    && (item.giftStatus === 'accepted' || item.giftStatus === 'rejected')
-    && !item.reviewId
-  );
 }
 
 export function toRealmNotificationItemProjection(

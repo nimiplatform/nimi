@@ -24,7 +24,9 @@ test('Realm Data domain surfaces consume SDK or Kit projections instead of app-o
   assert.doesNotMatch(groupDataSource, /GroupChatsService\./);
 
   assert.match(notificationPanelSource, /toRealmNotificationListProjection/);
-  assert.match(notificationPanelSource, /getRealmNotificationCategory/);
+  assert.match(notificationPanelSource, /@nimiplatform\/kit\/core\/notifications/);
+  assert.match(notificationPanelSource, /getNimiNotificationCategory/);
+  assert.doesNotMatch(notificationPanelSource, /getRealmNotificationCategory/);
   assert.doesNotMatch(notificationPanelSource, /NotificationsService\./);
   assert.doesNotMatch(notificationPanelSource, /function toNotificationListView/);
 

@@ -3,17 +3,12 @@ import test from 'node:test';
 
 import type { Realm } from '../src/realm/client.js';
 import {
-  getRealmNotificationBadgeKey,
-  getRealmNotificationCategory,
-  getRealmNotificationServerFilter,
-  isRealmGiftNotificationReviewable,
   loadRealmNotifications,
   loadRealmNotificationUnreadCount,
   markRealmNotificationRead,
   markRealmNotificationsRead,
   normalizeRealmNotificationUnreadCount,
   toRealmNotificationListProjection,
-  type RealmNotificationItemProjection,
 } from '../src/realm/extensions/notifications.js';
 
 type FakeRealm = {
@@ -50,30 +45,6 @@ function createFakeRealm(payload: unknown, capturedCalls: string[] = []): FakeRe
         },
       },
     },
-  };
-}
-
-function createNotificationProjection(input: Partial<RealmNotificationItemProjection> & {
-  id: string;
-  type: RealmNotificationItemProjection['type'];
-}): RealmNotificationItemProjection {
-  return {
-    id: input.id,
-    type: input.type,
-    title: input.title ?? 'Notification',
-    body: input.body ?? '',
-    createdAt: input.createdAt ?? '2026-03-15T00:00:00.000Z',
-    isRead: input.isRead ?? false,
-    actorId: input.actorId ?? 'user-2',
-    actorName: input.actorName ?? 'Actor',
-    actorHandle: input.actorHandle ?? '@actor',
-    actorAvatarUrl: input.actorAvatarUrl ?? null,
-    actorIsAgent: input.actorIsAgent ?? false,
-    giftTransactionId: input.giftTransactionId ?? null,
-    giftStatus: input.giftStatus ?? null,
-    giftMessage: input.giftMessage ?? null,
-    giftSparkCost: input.giftSparkCost ?? null,
-    reviewId: input.reviewId ?? null,
   };
 }
 
@@ -163,41 +134,6 @@ test('markRealmNotificationsRead and markRealmNotificationRead forward typed rea
     () => markRealmNotificationRead(realm, ' '),
     /REALM_NOTIFICATION_ID_REQUIRED/,
   );
-});
-
-test('notification projection classifies categories and server filters', () => {
-  assert.equal(getRealmNotificationCategory('review_received'), 'gift');
-  assert.equal(getRealmNotificationCategory('friend_request_accepted'), 'request');
-  assert.equal(getRealmNotificationCategory('friend_request_rejected'), 'request');
-  assert.equal(getRealmNotificationServerFilter('like'), 'post_liked');
-  assert.equal(getRealmNotificationServerFilter('system'), 'system_announcement');
-  assert.equal(getRealmNotificationServerFilter('gift'), null);
-});
-
-test('notification projection derives gift badges and review posture', () => {
-  assert.equal(getRealmNotificationBadgeKey(createNotificationProjection({
-    id: 'notif-1',
-    type: 'gift_status_updated',
-    giftStatus: 'accepted',
-  })), 'giftAccepted');
-  assert.equal(getRealmNotificationBadgeKey(createNotificationProjection({
-    id: 'notif-2',
-    type: 'gift_status_updated',
-    giftStatus: 'rejected',
-  })), 'giftRejected');
-  assert.equal(isRealmGiftNotificationReviewable(createNotificationProjection({
-    id: 'notif-3',
-    type: 'gift_status_updated',
-    giftTransactionId: 'gift-1',
-    giftStatus: 'accepted',
-  })), true);
-  assert.equal(isRealmGiftNotificationReviewable(createNotificationProjection({
-    id: 'notif-4',
-    type: 'gift_status_updated',
-    giftTransactionId: 'gift-2',
-    giftStatus: 'accepted',
-    reviewId: 'review-1',
-  })), false);
 });
 
 test('notification list projection normalizes actors, page cursors, and gift payload fields', () => {

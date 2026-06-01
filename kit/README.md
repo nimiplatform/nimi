@@ -50,15 +50,15 @@ extend the kit surface first when the missing behavior is cross-app.
 
 ## v0.1.0 Initial Public Surface
 
-v0.1.0 publishes 58 public subpath exports for the initial public
+v0.1.0 publishes 59 public subpath exports for the initial public
 surface:
 
 - 11 UI entries (`./ui`, `./ui/glass`, `./ui/motion`, `./ui/a11y`,
   `./ui/styles.css`, and six `./ui/themes/*` files)
 - 3 auth entries (`./auth`, `./auth/styles.css`, `./auth/native-oauth-result-page`)
-- 6 core entries (`./core/shell-mode`, `./core/oauth`,
+- 7 core entries (`./core/shell-mode`, `./core/oauth`,
   `./core/runtime-capabilities`, `./core/model-config`,
-  `./core/character-card`, `./core/sdk-contract`)
+  `./core/character-card`, `./core/notifications`, `./core/sdk-contract`)
 - 2 renderer-shell entries (`./shell/renderer/bridge`,
   `./shell/renderer/bootstrap`)
 - 2 telemetry entries (`./telemetry`, `./telemetry/error-boundary`)
@@ -106,6 +106,7 @@ import { ShellMode } from '@nimiplatform/kit/core/shell-mode';
 import { OAuthShellContract } from '@nimiplatform/kit/core/oauth';
 import { classifyCapability } from '@nimiplatform/kit/core/runtime-capabilities';
 import { parseCharacterCard } from '@nimiplatform/kit/core/character-card';
+import { getNimiNotificationBadgeKey } from '@nimiplatform/kit/core/notifications';
 ```
 
 `./core/*` modules are React-free and renderer/runtime-safe.

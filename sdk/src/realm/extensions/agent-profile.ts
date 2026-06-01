@@ -3,6 +3,7 @@ import {
   isJsonObject,
   type JsonObject,
 } from '../../internal/utils.js';
+import { ReasonCode } from '../../types/index.js';
 
 export type RealmAgentProfileApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 export type RealmAgentProfileErrorEmitter = (
@@ -37,6 +38,14 @@ function hasLegacyHandlePrefix(value: string): boolean {
 function toNullableString(value: unknown): string | null {
   const normalized = toNonEmptyString(value);
   return normalized || null;
+}
+
+function isRealmNotFoundError(error: unknown): boolean {
+  const record = toRecord(error);
+  const details = toRecord(record?.details);
+  const reasonCode = toNonEmptyString(record?.reasonCode) || toNonEmptyString(record?.reason_code);
+  const httpStatus = Number(record?.httpStatus ?? record?.status ?? details?.httpStatus ?? details?.status);
+  return reasonCode === ReasonCode.REALM_NOT_FOUND || httpStatus === 404;
 }
 
 function extractAgentWorldId(profile: JsonObject): string | null {
@@ -146,7 +155,10 @@ async function getRealmAgentProfileById(
       '按 id 加载 Agent 资料失败',
     );
     return toRecord(payload);
-  } catch {
+  } catch (error) {
+    if (!isRealmNotFoundError(error)) {
+      throw error;
+    }
     return null;
   }
 }
@@ -165,7 +177,10 @@ async function getRealmAgentProfileByHandle(
       '按 handle 加载 Agent 资料失败',
     );
     return toRecord(payload);
-  } catch {
+  } catch (error) {
+    if (!isRealmNotFoundError(error)) {
+      throw error;
+    }
     return null;
   }
 }

@@ -101,7 +101,7 @@ modules:
     kind: logic
     surface_level: logic
     adapter_contract: none
-    description: Pure-logic utilities (OAuth, env, shell-mode, Character Card V2 parsing, renderer-safe storage JSON helpers)
+    description: Pure-logic utilities (OAuth, env, shell-mode, Character Card V2 parsing, renderer-safe storage JSON helpers, and reusable notification headless presentation helpers)
     dependencies: []
     peer_dependencies: []
     exports:
@@ -110,6 +110,7 @@ modules:
       - ./core/character-card
       - ./core/storage-json
       - ./core/offline-coordinator
+      - ./core/notifications
       - ./core/sdk-contract
     headless_exports:
       - ./core/shell-mode
@@ -117,6 +118,7 @@ modules:
       - ./core/character-card
       - ./core/storage-json
       - ./core/offline-coordinator
+      - ./core/notifications
       - ./core/sdk-contract
     ui_exports: []
     reuse_entrypoints:
@@ -125,6 +127,7 @@ modules:
       - ./core/character-card
       - ./core/storage-json
       - ./core/offline-coordinator
+      - ./core/notifications
       - ./core/sdk-contract
     admission_status: active
     owner: platform

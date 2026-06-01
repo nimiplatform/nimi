@@ -3,10 +3,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { AppCardSurface, Button, ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  getRealmNotificationBadgeKey,
-  getRealmNotificationCategory,
-  getRealmNotificationServerFilter,
-  isRealmGiftNotificationReviewable,
   loadRealmNotifications,
   loadRealmNotificationUnreadCount,
   markRealmNotificationRead,
@@ -14,9 +10,15 @@ import {
   ReviewRating as ReviewRatingEnum,
   toRealmNotificationListProjection,
   type RealmModel,
-  type RealmNotificationFilterTab,
   type RealmNotificationItemProjection,
 } from '@nimiplatform/sdk/realm';
+import {
+  getNimiNotificationBadgeKey,
+  getNimiNotificationCategory,
+  getNimiNotificationServerFilter,
+  isNimiGiftNotificationReviewable,
+  type NimiNotificationFilterTab,
+} from '@nimiplatform/kit/core/notifications';
 import { useTranslation } from 'react-i18next';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import {
@@ -57,7 +59,7 @@ type PendingItemAction = {
   action: ItemActionKind;
 };
 
-type NotificationFilterTab = RealmNotificationFilterTab;
+type NotificationFilterTab = NimiNotificationFilterTab;
 type NotificationItemView = RealmNotificationItemProjection;
 
 export function NotificationPanel() {
@@ -75,7 +77,7 @@ export function NotificationPanel() {
   const [readOverrides, setReadOverrides] = useState<Record<string, true>>({});
 
   const serverFilter = useMemo(
-    () => getRealmNotificationServerFilter(activeFilter),
+    () => getNimiNotificationServerFilter(activeFilter),
     [activeFilter],
   );
   const notificationIdentityRef = useMemo(
@@ -151,7 +153,7 @@ export function NotificationPanel() {
     if (activeFilter === 'all') {
       return items;
     }
-    return items.filter((item) => getRealmNotificationCategory(item.type) === activeFilter);
+    return items.filter((item) => getNimiNotificationCategory(item.type) === activeFilter);
   }, [activeFilter, items]);
 
   const updateUnreadCount = (nextUnreadCount: number) => {
@@ -499,7 +501,7 @@ export function NotificationPanel() {
       );
     }
 
-    if (isRealmGiftNotificationReviewable(item)) {
+    if (isNimiGiftNotificationReviewable(item)) {
       return (
         <>
           <Button
@@ -641,7 +643,7 @@ export function NotificationPanel() {
         ) : null}
 
         {filteredItems.map((item) => {
-          const badgeKey = getRealmNotificationBadgeKey(item);
+          const badgeKey = getNimiNotificationBadgeKey(item);
           const itemBusy = isBusyForItem(item.id);
           const giftMessage = item.giftMessage?.trim() || '';
           const body = item.body.trim();

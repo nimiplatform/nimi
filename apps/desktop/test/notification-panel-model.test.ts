@@ -1,13 +1,15 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  getRealmNotificationBadgeKey,
-  getRealmNotificationCategory,
-  getRealmNotificationServerFilter,
-  isRealmGiftNotificationReviewable,
   toRealmNotificationListProjection,
   type RealmNotificationItemProjection,
 } from '@nimiplatform/sdk/realm';
+import {
+  getNimiNotificationBadgeKey,
+  getNimiNotificationCategory,
+  getNimiNotificationServerFilter,
+  isNimiGiftNotificationReviewable,
+} from '@nimiplatform/kit/core/notifications';
 
 function createNotificationItem(input: Partial<RealmNotificationItemProjection> & {
   id: string;
@@ -35,27 +37,27 @@ function createNotificationItem(input: Partial<RealmNotificationItemProjection> 
 
 describe('notification model mapping', () => {
   test('review notifications are classified as gifts', () => {
-    assert.equal(getRealmNotificationCategory('review_received'), 'gift');
+    assert.equal(getNimiNotificationCategory('review_received'), 'gift');
   });
 
   test('request tab includes resolved friend request notifications', () => {
-    assert.equal(getRealmNotificationCategory('friend_request_accepted'), 'request');
-    assert.equal(getRealmNotificationCategory('friend_request_rejected'), 'request');
+    assert.equal(getNimiNotificationCategory('friend_request_accepted'), 'request');
+    assert.equal(getNimiNotificationCategory('friend_request_rejected'), 'request');
   });
 
   test('server filters are only pushed down for single-type tabs', () => {
-    assert.equal(getRealmNotificationServerFilter('like'), 'post_liked');
-    assert.equal(getRealmNotificationServerFilter('system'), 'system_announcement');
-    assert.equal(getRealmNotificationServerFilter('gift'), null);
+    assert.equal(getNimiNotificationServerFilter('like'), 'post_liked');
+    assert.equal(getNimiNotificationServerFilter('system'), 'system_announcement');
+    assert.equal(getNimiNotificationServerFilter('gift'), null);
   });
 
   test('gift status badges reflect accepted and rejected payloads', () => {
-    assert.equal(getRealmNotificationBadgeKey(createNotificationItem({
+    assert.equal(getNimiNotificationBadgeKey(createNotificationItem({
       id: 'notif-1',
       type: 'gift_status_updated',
       giftStatus: 'accepted',
     })), 'giftAccepted');
-    assert.equal(getRealmNotificationBadgeKey(createNotificationItem({
+    assert.equal(getNimiNotificationBadgeKey(createNotificationItem({
       id: 'notif-2',
       type: 'gift_status_updated',
       giftStatus: 'rejected',
@@ -63,13 +65,13 @@ describe('notification model mapping', () => {
   });
 
   test('gift reviewability requires resolved gift status without existing review', () => {
-    assert.equal(isRealmGiftNotificationReviewable(createNotificationItem({
+    assert.equal(isNimiGiftNotificationReviewable(createNotificationItem({
       id: 'notif-1',
       type: 'gift_status_updated',
       giftTransactionId: 'gift-1',
       giftStatus: 'accepted',
     })), true);
-    assert.equal(isRealmGiftNotificationReviewable(createNotificationItem({
+    assert.equal(isNimiGiftNotificationReviewable(createNotificationItem({
       id: 'notif-2',
       type: 'gift_status_updated',
       giftTransactionId: 'gift-2',

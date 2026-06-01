@@ -7,6 +7,13 @@ import {
   loadRealmCreatorAgents,
 } from '../src/realm/index.js';
 
+function createRealmNotFoundError(message = 'not found') {
+  const error = new Error(message) as Error & { reasonCode?: string; httpStatus?: number };
+  error.reasonCode = 'REALM_NOT_FOUND';
+  error.httpStatus = 404;
+  return error;
+}
+
 function createCallApi(services: Record<string, unknown>) {
   return async <T>(task: (realm: { services: Record<string, unknown> }) => Promise<T>) =>
     task({ services });
@@ -67,7 +74,7 @@ test('Realm agent detail falls back from id lookup to handle lookup', async () =
       AgentsService: {
         getAgent: async (id: string) => {
           calls.push(`get-id:${id}`);
-          throw new Error('not id');
+          throw createRealmNotFoundError('not id');
         },
         getAgentByHandle: async (handle: string) => {
           calls.push(`get-handle:${handle}`);
@@ -84,6 +91,39 @@ test('Realm agent detail falls back from id lookup to handle lookup', async () =
 
   assert.deepEqual(calls, ['get-id:agent-handle', 'get-handle:agent-handle']);
   assert.equal(detail.id, 'agent-by-handle');
+});
+
+test('Realm agent detail does not hide non-not-found id lookup failures', async () => {
+  const errors: string[] = [];
+  const calls: string[] = [];
+
+  await assert.rejects(
+    () => loadRealmAgentDetails(
+      createCallApi({
+        AgentsService: {
+          getAgent: async (id: string) => {
+            calls.push(`get-id:${id}`);
+            throw new Error('realm unavailable');
+          },
+          getAgentByHandle: async (handle: string) => {
+            calls.push(`get-handle:${handle}`);
+            return { id: 'agent-by-handle', handle, isAgent: true };
+          },
+        },
+        WorldsService: {
+          worldControllerGetWorld: async () => null,
+        },
+      }) as never,
+      (action) => {
+        errors.push(action);
+      },
+      'agent-handle',
+    ),
+    /realm unavailable/,
+  );
+
+  assert.deepEqual(calls, ['get-id:agent-handle']);
+  assert.deepEqual(errors, ['load-agent-details']);
 });
 
 test('Realm creator agent helpers own list and create service calls', async () => {
