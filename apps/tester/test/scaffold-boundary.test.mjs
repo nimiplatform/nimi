@@ -73,6 +73,23 @@ test('Tauri scaffold consumes the Kit shared command-registration macro', () => 
   assert.doesNotMatch(tauriMainSource, /tauri::generate_handler!\[/);
 });
 
+test('Tauri scaffold consumes the Kit renderer entry probe', () => {
+  assert.match(
+    tauriMainSource,
+    /renderer_entry_probe::build_renderer_entry_probe_script/,
+  );
+  assert.match(
+    tauriMainSource,
+    /RendererEntryProbeScriptConfig/,
+  );
+  assert.match(
+    tauriMainSource,
+    /tester_renderer_probe_ping/,
+  );
+  assert.doesNotMatch(tauriMainSource, /desktop_macos_smoke_ping/);
+  assert.doesNotMatch(tauriMainSource, /globalRecord\.__TAURI__\?\.core\?\.invoke/);
+});
+
 test('runtime readiness consumes Kit runtime defaults and daemon bridge', () => {
   assert.match(
     testerRuntimeSource,

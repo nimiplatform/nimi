@@ -3,7 +3,10 @@ use crate::{
     chat_ai_store, desktop_agent_center_store, desktop_release, desktop_updates, local_runtime,
     menu_bar_shell,
 };
-use nimi_shell_tauri::runtime_bridge::RuntimeBridgeHostHooks;
+use nimi_shell_tauri::{
+    renderer_entry_probe::{build_renderer_entry_probe_script, RendererEntryProbeScriptConfig},
+    runtime_bridge::RuntimeBridgeHostHooks,
+};
 use std::sync::Arc;
 
 fn install_shared_runtime_bridge_hooks() {
@@ -58,99 +61,31 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
                 Some(&details),
             );
             if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
-                let probe_script = r#"
-(() => {
-  try {
-    const globalRecord = globalThis;
-    if (globalRecord.__NIMI_MACOS_SMOKE_EVAL_STARTED__) {
-      return;
-    }
-    globalRecord.__NIMI_MACOS_SMOKE_EVAL_STARTED__ = true;
-    const invoke =
-      globalRecord.__TAURI__?.core?.invoke
-      || globalRecord.__TAURI_INTERNALS__?.invoke
-      || globalRecord.__TAURI_IPC__?.invoke
-      || globalRecord.window?.__TAURI__?.core?.invoke
-      || globalRecord.window?.__TAURI_INTERNALS__?.invoke
-      || globalRecord.window?.__TAURI_IPC__?.invoke;
-    const invokeSafe = (command, payload) => {
-      if (typeof invoke !== 'function') {
-        return Promise.resolve(undefined);
-      }
-      return Promise.resolve(invoke(command, payload)).catch(() => undefined);
-    };
-    const scriptSrc =
-      globalRecord.document?.querySelector('script[type="module"]')?.src || '';
-    const details = {
-      href: globalRecord.location?.href || '',
-      readyState: globalRecord.document?.readyState || '',
-      hasRoot: Boolean(globalRecord.document?.getElementById('root')),
-      hasInvoke: typeof invoke === 'function',
-      scriptSrc,
-    };
-    if (typeof invoke === 'function') {
-      void invokeSafe('desktop_macos_smoke_ping', {
-        payload: {
-          stage: 'window-eval-probe',
-          details,
-        },
-      });
-      if (!scriptSrc) {
-        void invokeSafe('desktop_macos_smoke_report_write', {
-          payload: {
-            ok: false,
-            failedStep: 'renderer-module-script-missing',
-            steps: ['window-eval-probe'],
-            errorMessage: 'main module script src is missing',
-            route: globalRecord.location?.href || '',
-            htmlSnapshot: globalRecord.document?.documentElement?.outerHTML || '',
-          },
-        });
-        return;
-      }
-      void invokeSafe('desktop_macos_smoke_context_get')
-        .then((context) => {
-          if (!context?.enabled) {
-            return undefined;
-          }
-          if (context?.scenarioId === 'boot.anonymous.login-screen') {
-            globalRecord.localStorage?.clear?.();
-          }
-          return import(scriptSrc);
-        })
-        .then((importResult) => {
-          if (!importResult) {
-            return undefined;
-          }
-          return invokeSafe('desktop_macos_smoke_ping', {
-            payload: {
-              stage: 'window-dynamic-import-ok',
-              details: {
-                scriptSrc,
-              },
-            },
-          });
-        })
-        .catch((error) => invokeSafe('desktop_macos_smoke_report_write', {
-          payload: {
-            ok: false,
-            failedStep: 'renderer-module-import-failed',
-            steps: ['window-eval-probe', 'renderer-module-import'],
-            errorName: error?.name || '',
-            errorMessage: error?.message || String(error || 'dynamic import failed'),
-            errorStack: error?.stack || '',
-            errorCause: error?.cause ? String(error.cause) : '',
-            route: globalRecord.location?.href || '',
-            htmlSnapshot: globalRecord.document?.documentElement?.outerHTML || '',
-          },
-        }));
-    }
-  } catch (_) {
-    // no-op
-  }
-})();
-"#;
-                if let Err(error) = webview.eval(probe_script) {
+                let probe_script =
+                    match build_renderer_entry_probe_script(&RendererEntryProbeScriptConfig {
+                        started_flag: "__NIMI_MACOS_SMOKE_EVAL_STARTED__".to_string(),
+                        ping_command: "desktop_macos_smoke_ping".to_string(),
+                        report_command: "desktop_macos_smoke_report_write".to_string(),
+                        context_command: "desktop_macos_smoke_context_get".to_string(),
+                        reset_local_storage_scenario_ids: vec![
+                            "boot.anonymous.login-screen".to_string(),
+                        ],
+                    }) {
+                        Ok(script) => script,
+                        Err(error) => {
+                            let _ = super::defaults_and_commands::macos_smoke::append_macos_smoke_backend_stage(
+                                "window-page-error",
+                                Some(&json!({
+                                    "reason": "eval-probe-build-failed",
+                                    "message": error,
+                                    "url": payload.url().to_string(),
+                                    "label": webview.label(),
+                                })),
+                            );
+                            return;
+                        }
+                    };
+                if let Err(error) = webview.eval(probe_script.as_str()) {
                     let _ =
                         super::defaults_and_commands::macos_smoke::append_macos_smoke_backend_stage(
                             "window-page-error",

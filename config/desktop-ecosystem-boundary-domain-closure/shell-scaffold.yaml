@@ -1,0 +1,73 @@
+status: migrated
+date: "2026-06-01"
+domain: shell-scaffold
+authority_posture:
+  spec_status: alignment
+  authority_owner:
+    - .nimi/spec/**
+    - kit/shell/tauri
+  work_type: alignment
+  parallel_truth: forbidden
+audited_globs:
+  - apps/desktop/src-tauri/src/main_parts/**
+  - apps/desktop/src/shell/renderer/main.tsx
+  - apps/desktop/src/shell/renderer/infra/bootstrap/desktop-macos-smoke*.ts
+  - apps/tester/src-tauri/src/main.rs
+  - apps/tester/src/main.tsx
+  - kit/shell/tauri/src/**
+  - kit/shell/renderer/src/bootstrap/**
+migrated:
+  shared_owner: kit/shell/tauri/src/renderer_entry_probe.rs
+  responsibility:
+    - Tauri invoke discovery inside page-load renderer probes
+    - root and module script detection
+    - dynamic renderer module import probing
+    - missing module script reporting
+    - renderer module import failure reporting
+    - one-shot eval guarding
+  desktop_consumer:
+    - apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs
+  tester_consumer:
+    - apps/tester/src-tauri/src/main.rs
+legal_desktop_residue:
+  - path: apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs
+    rationale: Desktop keeps product-specific macOS smoke command names and scenario wiring while consuming the Kit-owned probe builder.
+  - path: apps/desktop/src-tauri/src/main_parts/defaults_and_commands/macos_smoke.rs
+    rationale: Desktop-owned macOS smoke evidence/report commands are product test harness wiring, not platform truth.
+  - path: apps/desktop/src/shell/renderer/infra/bootstrap/desktop-macos-smoke*.ts
+    rationale: Desktop-owned smoke scenarios drive product-specific chat/avatar acceptance flows.
+  - path: apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs
+    rationale: Window lifecycle setup, updater setup, menu bar setup, Desktop command registration, and deep-link routing remain app shell wiring.
+tester_proof:
+  - apps/tester/src-tauri/src/main.rs uses nimi_shell_tauri::renderer_entry_probe::build_renderer_entry_probe_script with Tester-owned command names.
+  - apps/tester/test/scaffold-boundary.test.mjs prevents Tester from consuming Desktop smoke command names or raw Tauri global probe internals.
+regression_guards:
+  - kit/shell/tauri/src/renderer_entry_probe.rs tests prove the script is app-configured, escapes values, and does not hardcode Desktop smoke commands.
+  - apps/desktop/src-tauri/src/main_parts/tests.rs proves Desktop consumes the Kit builder and does not own raw Tauri global probe internals or renderer dynamic-import orchestration.
+  - apps/tester/test/scaffold-boundary.test.mjs proves Tester consumes the Kit builder and does not import Desktop smoke command names or raw Tauri global probe internals.
+prohibited_patterns:
+  - target: apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs
+    absent:
+      - globalRecord.__TAURI__?.core?.invoke
+      - return import(scriptSrc);
+  - target: apps/tester/src-tauri/src/main.rs
+    absent:
+      - desktop_macos_smoke_ping
+verification:
+  status: passed-with-known-preexisting-rustfmt-check-noise
+  passed:
+    - cargo test --manifest-path kit/shell/tauri/Cargo.toml renderer_entry_probe
+    - cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml renderer_page_load_probe_is_kit_owned_scaffold
+    - cargo test --manifest-path apps/tester/src-tauri/Cargo.toml tester_consumes_shared_renderer_entry_probe_from_kit
+    - pnpm --filter @nimiplatform/tester exec node --test test/scaffold-boundary.test.mjs
+    - cargo check --manifest-path kit/shell/tauri/Cargo.toml
+    - cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
+    - cargo check --manifest-path apps/tester/src-tauri/Cargo.toml
+    - pnpm check:no-legacy-imports
+    - pnpm check:no-absolute-user-paths
+    - pnpm check:no-app-realm-rest-bypass
+    - git diff --check
+    - rg hardcut for absent Desktop raw probe internals
+    - rg hardcut for absent Tester Desktop smoke command
+  known_noise:
+    - cargo fmt --check reports pre-existing formatting drift in kit/shell/tauri/src/runtime_bridge/error_map.rs, mod.rs, and unary.rs; these files are outside this closure diff and were not changed.

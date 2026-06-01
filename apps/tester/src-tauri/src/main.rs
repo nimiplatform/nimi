@@ -1,8 +1,28 @@
 mod tester_storage;
 mod world_tour;
 
+fn tester_renderer_entry_probe_script() -> Result<String, String> {
+    nimi_shell_tauri::renderer_entry_probe::build_renderer_entry_probe_script(
+        &nimi_shell_tauri::renderer_entry_probe::RendererEntryProbeScriptConfig {
+            started_flag: "__NIMI_TESTER_RENDERER_PROBE_STARTED__".to_string(),
+            ping_command: "tester_renderer_probe_ping".to_string(),
+            report_command: "tester_renderer_probe_report_write".to_string(),
+            context_command: "tester_renderer_probe_context_get".to_string(),
+            reset_local_storage_scenario_ids: Vec::new(),
+        },
+    )
+}
+
 fn main() {
     tauri::Builder::default()
+        .on_page_load(|webview, payload| {
+            if !matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                return;
+            }
+            if let Ok(script) = tester_renderer_entry_probe_script() {
+                let _ = webview.eval(script.as_str());
+            }
+        })
         .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_runtime_bridge_handler![
             @with_runtime_defaults nimi_shell_tauri::runtime_defaults::runtime_defaults;
             tester_storage::tester_image_history_load,
@@ -78,6 +98,19 @@ mod tests {
             serde_json::to_string_pretty(&evidence).expect("json"),
         )
         .expect("write install evidence");
+    }
+
+    #[test]
+    fn tester_consumes_shared_renderer_entry_probe_from_kit() {
+        let script = super::tester_renderer_entry_probe_script().expect("probe script");
+
+        assert!(script.contains("__NIMI_TESTER_RENDERER_PROBE_STARTED__"));
+        assert!(script.contains("tester_renderer_probe_ping"));
+        assert!(script.contains("tester_renderer_probe_report_write"));
+        assert!(script.contains("tester_renderer_probe_context_get"));
+        assert!(script.contains("return import(scriptSrc);"));
+        let forbidden_desktop_command = ["desktop", "macos", "smoke", "ping"].join("_");
+        assert!(!script.contains(forbidden_desktop_command.as_str()));
     }
 
     #[test]

@@ -200,6 +200,32 @@ fn shared_bridge_ipc_handler_uses_kit_owned_scaffold_macro() {
 }
 
 #[test]
+fn renderer_page_load_probe_is_kit_owned_scaffold() {
+    let bootstrap_source = include_str!("app_bootstrap.rs");
+
+    assert!(
+        bootstrap_source.contains("build_renderer_entry_probe_script"),
+        "Desktop must consume the Kit-owned renderer entry probe builder"
+    );
+    assert!(
+        bootstrap_source.contains("RendererEntryProbeScriptConfig"),
+        "Desktop may configure smoke command names, but the probe script shape stays Kit-owned"
+    );
+    assert!(
+        bootstrap_source.contains("desktop_macos_smoke_ping"),
+        "Desktop keeps product-specific macOS smoke command wiring"
+    );
+    assert!(
+        !bootstrap_source.contains("globalRecord.__TAURI__?.core?.invoke"),
+        "Desktop must not handwrite Tauri global probe script internals"
+    );
+    assert!(
+        !bootstrap_source.contains("return import(scriptSrc);"),
+        "Desktop must not own renderer dynamic-import probe orchestration"
+    );
+}
+
+#[test]
 fn private_lan_http_origin_allows_common_ipv4_ranges() {
     let a = Url::parse("http://192.168.31.175/api/human/me").expect("valid url");
     let b = Url::parse("http://10.0.0.22:8080/healthz").expect("valid url");
