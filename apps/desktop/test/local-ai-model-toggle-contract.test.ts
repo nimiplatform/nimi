@@ -234,8 +234,13 @@ test('runtime route resolve uses the selected local binding and retired host-cap
   assert.equal(existsSync(runtimeBootstrapRouteResolversPath), false);
   assert.match(runtimeBootstrapRouteOptionsSource, /runtimeLocalModels,/);
   assert.match(sdkRuntimeRouteOptionsSource, /\.filter\(\(item\) => String\(item\.status \|\| ''\)\.trim\(\)\.toLowerCase\(\) !== 'removed'\)/);
-  assert.match(runtimeBootstrapConversationRouteRuntimeSource, /resolveRuntimeRouteBindingFromSnapshot/);
+  assert.match(runtimeBootstrapConversationRouteRuntimeSource, /createRuntimeRouteCapabilityRuntimeWithHost/);
+  assert.doesNotMatch(runtimeBootstrapConversationRouteRuntimeSource, /resolveRuntimeRouteBindingFromSnapshot/);
   assert.match(sdkRuntimeRouteSource, /export function resolveRuntimeRouteBindingFromSnapshot/);
+  assert.match(
+    readFileSync(path.resolve(process.cwd(), '../../sdk/src/runtime/runtime-route-capability-runtime.ts'), 'utf-8'),
+    /resolveRuntimeRouteBindingFromSnapshot/,
+  );
   assert.match(sdkRuntimeRouteSource, /endpoint: String\(binding\.endpoint \|\| binding\.localProviderEndpoint \|\| binding\.localOpenAiEndpoint \|\| ''\)\.trim\(\) \|\| undefined/);
   assert.match(sdkRuntimeRouteSource, /goRuntimeStatus: String\(binding\.goRuntimeStatus \|\| ''\)\.trim\(\) \|\| undefined/);
   assert.doesNotMatch(runtimeBootstrapConversationRouteRuntimeSource, new RegExp(['createResolveRuntime', 'Binding'].join('')));

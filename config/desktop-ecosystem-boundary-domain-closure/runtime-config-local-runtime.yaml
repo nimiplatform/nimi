@@ -1,0 +1,130 @@
+status: migrated
+date: "2026-06-01"
+domain: runtime-config-local-runtime
+authority_posture:
+  spec_status: alignment
+  authority_owner:
+    - .nimi/spec/runtime/kernel/config-contract.md
+    - .nimi/spec/sdk/kernel/runtime-contract.md
+    - sdk/src/runtime/**
+    - runtime/**
+  work_type: alignment
+  parallel_truth: forbidden
+audited_globs:
+  - apps/desktop/src/shell/renderer/features/runtime-config/**
+  - apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options.ts
+  - apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap-conversation-route-runtime.ts
+  - apps/desktop/src/runtime/local-runtime/**
+  - apps/desktop/src-tauri/src/local_runtime/**
+  - apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs
+  - apps/desktop/test/local-ai-model-toggle-contract.test.ts
+  - apps/desktop/test/local-ai-runtime-dependency-projection.test.ts
+  - apps/desktop/test/local-runtime-transfer-plane-contract.test.ts
+  - apps/desktop/test/runtime-config-provider-authority-hardcut.test.ts
+  - apps/tester/src/shell/routes/settings.tsx
+  - apps/tester/src/tester/tester-runtime-model-provider.ts
+  - apps/tester/src/tester/tester-runtime-route-capability-runtime.ts
+  - apps/tester/src/tester/tester-runtime-connector-projection.ts
+  - sdk/src/runtime/**
+migrated:
+  shared_owners:
+    - sdk/src/runtime/runtime-route.ts
+    - sdk/src/runtime/runtime-route-options.ts
+    - sdk/src/runtime/local-runtime-client/**
+    - sdk/src/runtime/runtime-connector-inventory.ts
+    - sdk/src/runtime/runtime-model-catalog.ts
+    - kit/features/model-picker/runtime
+    - kit/features/model-config
+    - kit/shell/tauri/src/runtime_local_assets.rs
+  responsibilities:
+    - Runtime route option projection and route binding resolution
+    - local runtime asset lifecycle commands and transfer plane
+    - local runtime environment dependency plan, job, and repair projections
+    - local runtime asset-kind, recommendation, and asset-id helper projections
+    - runtime connector inventory and model catalog projection
+    - provider health and reason-code projection
+    - model picker/provider catalog runtime surface
+  desktop_consumers:
+    - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-runtime-state.ts
+    - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-runtime-readiness.ts
+    - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-import-actions.ts
+    - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-local-model-center-sections.tsx
+    - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-model-center-utils.ts
+    - apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options.ts
+    - apps/desktop/src/runtime/local-runtime/index.ts
+  tester_consumers:
+    - apps/tester/src/shell/routes/settings.tsx
+    - apps/tester/src/tester/tester-runtime-model-provider.ts
+    - apps/tester/src/tester/tester-runtime-route-capability-runtime.ts
+    - apps/tester/src/tester/tester-runtime-connector-projection.ts
+legal_desktop_residue:
+  - path: apps/desktop/src/shell/renderer/features/runtime-config/**
+    rationale: Desktop owns product-specific runtime-config screens, tabs, copy, selection UI, transient import form state, and local model center presentation while delegating platform truth to SDK/Runtime/Kit surfaces.
+  - path: apps/desktop/src/runtime/local-runtime/index.ts
+    rationale: Desktop keeps a renderer facade for app ergonomics, but the facade spreads SDK local runtime projection methods and must not own service lifecycle, parsers, route truth, or storage truth.
+  - path: apps/desktop/src-tauri/src/local_runtime/commands/mod.rs
+    rationale: Desktop Tauri keeps only admitted OS picker/reveal helpers. Runtime asset lifecycle, health, transfer, dependency jobs, route selection, and audit truth are not implemented in Desktop Tauri.
+  - path: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-local-model-center-progress-cache.ts
+    rationale: Dismissed transfer-session IDs are local UI persistence only; transfer state remains Runtime-owned.
+  - path: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-panel-controller-install-actions-models.ts
+    rationale: Retained lifecycle calls are non-product maintenance wiring through SDK localRuntime with explicit caller metadata, not Desktop-owned lifecycle truth.
+tester_proof:
+  - apps/tester/test/tester-contract.test.mjs proves Tester consumes SDK Runtime model catalog, connector inventory, local runtime facade, dependency state/parser projections, recommendation feed projections, route provider health, reason-code projections, and Kit model picker/config surfaces.
+  - apps/tester/test/tester-runtime-route-capability-runtime.test.mjs proves Tester consumes SDK runtime route capability host runtime as a second app.
+  - apps/tester/test/tester-runtime-connector-projection.test.mjs proves Tester consumes SDK runtime config connector projection as a second app.
+regression_guards:
+  - apps/desktop/test/local-ai-model-toggle-contract.test.ts blocks Desktop routeSnapshot/local provider fallback, local model lifecycle Tauri ownership, removed route resolver files, and non-helper Tauri local_runtime files.
+  - apps/desktop/test/local-ai-runtime-dependency-projection.test.ts blocks Desktop file fallback and duplicated local environment dependency state machines.
+  - apps/desktop/test/local-runtime-transfer-plane-contract.test.ts blocks retired local-ai bridge progress truth and requires SDK runtime transfer APIs.
+  - apps/desktop/test/runtime-config-provider-authority-hardcut.test.ts blocks provider inference from endpoint host patterns.
+  - scripts/check-desktop-local-runtime-helper-boundary.mjs limits Desktop runtime_local_* commands to picker/reveal helpers.
+  - scripts/check-no-local-ai-private-calls.mjs blocks renderer private local_ai_* Tauri command calls.
+  - package script check:no-local-ai-tauri-commands blocks Desktop Tauri local_ai_* commands.
+  - scripts/check-desktop-no-legacy-runtime-config-path.mjs blocks retired ~/.nimi/config.json Desktop runtime config paths.
+prohibited_patterns:
+  - target: apps/desktop/src-tauri/src/local_runtime/**
+    absent_except_allowlist:
+      - runtime_local_pick_asset_manifest_path
+      - runtime_local_pick_asset_file
+      - runtime_local_pick_asset_directory
+      - runtime_local_assets_reveal_in_folder
+      - runtime_local_assets_reveal_root_folder
+  - target: apps/desktop/src/shell/renderer/**
+    absent:
+      - invoke('local_ai_
+      - invokeTauri('local_ai_
+      - runtimeFields.localProviderEndpoint
+      - runtimeFields.localOpenAiEndpoint
+      - createSnapshotRouteDataProvider
+      - normalizeRuntimeRouteCapabilityToken
+      - routeSnapshot
+  - target: apps/desktop/src-tauri/src/local_runtime/**
+    absent:
+      - RuntimeLocalService
+      - LocalAiAssetRecord
+      - runtime_managed_asset_dir
+      - mod asset_registry;
+      - mod supervisor;
+      - mod model_index;
+      - mod engine_host;
+      - mod engine_pack;
+      - mod import_validator;
+      - mod service_lifecycle;
+      - mod store;
+verification:
+  status: passed
+  passed:
+    - node YAML parse for config/desktop-ecosystem-boundary-domain-closure/runtime-config-local-runtime.yaml
+    - pnpm --filter @nimiplatform/desktop exec tsx --test test/local-ai-model-toggle-contract.test.ts test/local-ai-runtime-dependency-projection.test.ts test/local-runtime-transfer-plane-contract.test.ts test/runtime-config-provider-authority-hardcut.test.ts test/runtime-config-cloud-scope-contract.test.ts test/local-ai-artifact-import-paths.test.ts test/local-runtime-projection-reason-code.test.ts
+    - pnpm --filter @nimiplatform/tester exec node --test test/tester-runtime-route-capability-runtime.test.mjs test/tester-runtime-connector-projection.test.mjs
+    - pnpm --filter @nimiplatform/tester exec node --test test/tester-contract.test.mjs
+    - pnpm check:desktop-local-runtime-helper-boundary
+    - pnpm check:no-local-ai-private-calls
+    - pnpm check:no-local-ai-tauri-commands
+    - pnpm check:desktop-no-legacy-runtime-config-path
+    - pnpm check:no-ai-profile-provider-model-constants
+    - pnpm check:no-legacy-imports
+    - pnpm check:no-absolute-user-paths
+    - git diff --check
+    - rg hardcut for Desktop runtime_local command definitions and registrations allowlist
+    - rg hardcut for absent Desktop renderer runtime config prohibited patterns
