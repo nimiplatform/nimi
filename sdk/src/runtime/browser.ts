@@ -21,6 +21,7 @@ export * from './runtime-agent-consumer-helpers.js';
 export * from './runtime-agent-inspect-projection.js';
 export * from './runtime-agent-inspect-surface.js';
 export * from './runtime-agent-delegated-capability-surface.js';
+export * from './runtime-agent-group-message-candidate-surface.js';
 export * from './runtime-agent-memory.js';
 export * from './runtime-agent-memory-surface.js';
 export * from './runtime-agent-lifecycle-surface.js';

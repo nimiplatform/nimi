@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import test from 'node:test';
 
 import {
@@ -22,6 +24,10 @@ import {
   desktopCompanionParticipationStatusLabel,
 } from '../src/shell/renderer/features/chat/chat-agent-center-avatar-debug-workbench.js';
 import type { AgentCenterAvatarAssetModule } from '../src/shell/renderer/features/chat/chat-agent-center-avatar-config-types.js';
+
+function readWorkspaceFile(relativePath: string): string {
+  return readFileSync(resolve(import.meta.dirname, '..', relativePath), 'utf8');
+}
 
 function buildConfig(overrides: Partial<AgentCenterAvatarAssetModule> = {}): AgentCenterAvatarAssetModule {
   return {
@@ -192,4 +198,19 @@ test('desktop companion participation presentation fails visible on Runtime refu
   assert.equal(desktopCompanionParticipationStatusLabel(projection), 'Blocked');
   assert.equal(desktopCompanionParticipationRemediation(projection), 'runtime_policy_blocked');
   assert.match(desktopCompanionParticipationRemediation(null), /Refresh participation projection/);
+});
+
+test('avatar debug workbench is a SDK Runtime module consumer, not protected Runtime authority', () => {
+  const source = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-center-avatar-debug-workbench.tsx');
+
+  assert.match(source, /runtime\.avatarDebug\.snapshot/);
+  assert.match(source, /runtime\.avatarDebug\.requestProbe/);
+  assert.match(source, /runtime\.avatarDebug\.getReplay/);
+  assert.match(source, /runtime\.companionParticipation\.getProjection/);
+  assert.doesNotMatch(source, /createRuntimeProtectedScopeHelper/);
+  assert.doesNotMatch(source, /buildRuntimeAgentRequestContext/);
+  assert.doesNotMatch(source, /getAvatarDebugSnapshot\(/);
+  assert.doesNotMatch(source, /requestAvatarDebugProbe\(/);
+  assert.doesNotMatch(source, /getAvatarDebugReplay\(/);
+  assert.doesNotMatch(source, /getCompanionParticipationProjection\(/);
 });

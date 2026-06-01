@@ -31,19 +31,22 @@ describe('Realm group agent participation Desktop hardcut', () => {
   it('wires split Runtime candidate/evidence read and Realm commit facades', () => {
     const flowSource = readDesktopFile('src/shell/renderer/features/chat/data/realm-group-chat-data.ts');
 
-    assert.match(flowSource, /createRuntimeProtectedScopeHelper/);
-    assert.match(flowSource, /runtime\.agent\.createRealmGroupMessageCandidate/);
-    assert.match(flowSource, /runtime\.agent\.getRealmGroupMessageCandidateEvidence/);
-    assert.match(flowSource, /runtime\.agent\.create_realm_group_message_candidate/);
-    assert.match(flowSource, /runtime\.agent\.get_realm_group_message_candidate_evidence/);
+    assert.match(flowSource, /createHostRuntimeRealmGroupMessageCandidateSurface/);
+    assert.match(flowSource, /createCommitPayload/);
+    assert.doesNotMatch(flowSource, /createRuntimeProtectedScopeHelper/);
+    assert.doesNotMatch(flowSource, /runtime\.agent\.createRealmGroupMessageCandidate/);
+    assert.doesNotMatch(flowSource, /runtime\.agent\.getRealmGroupMessageCandidateEvidence/);
+    assert.doesNotMatch(flowSource, /runtime\.agent\.create_realm_group_message_candidate/);
+    assert.doesNotMatch(flowSource, /runtime\.agent\.get_realm_group_message_candidate_evidence/);
     assert.doesNotMatch(flowSource, /GroupChatsService\.publishRealmGroupMessageCandidateEvidence/);
     assert.match(flowSource, /GroupChatsService\.commitRealmGroupMessageCandidate/);
-    assert.match(flowSource, /candidateEvidenceRef: candidate\.candidateEvidenceRef/);
-    assert.match(flowSource, /outputCandidateRef: evidence\.outputCandidateRef/);
-    assert.match(flowSource, /assertCandidateHandleMatchesExpectedSlot/);
-    assert.match(flowSource, /assertCandidateEvidenceMatchesHandle/);
-    assert.match(flowSource, /expectedRealmGroupAgentSlotId: slot\.realmGroupAgentSlotId/);
-    assert.match(flowSource, /expectedLocalAgentRef: slot\.localAgentRef/);
+    assert.match(flowSource, /candidateCommit\.realmCommitPayload/);
+    assert.doesNotMatch(flowSource, /candidateEvidenceRef: candidate\.candidateEvidenceRef/);
+    assert.doesNotMatch(flowSource, /outputCandidateRef: evidence\.outputCandidateRef/);
+    assert.doesNotMatch(flowSource, /assertCandidateHandleMatchesExpectedSlot/);
+    assert.doesNotMatch(flowSource, /assertCandidateEvidenceMatchesHandle/);
+    assert.doesNotMatch(flowSource, /expectedRealmGroupAgentSlotId: slot\.realmGroupAgentSlotId/);
+    assert.doesNotMatch(flowSource, /expectedLocalAgentRef: slot\.localAgentRef/);
     assert.doesNotMatch(flowSource, /unsafeRaw|fetch\(|\/agent-messages|message_committed|runtime\.agent\.turn\.request/);
   });
 
