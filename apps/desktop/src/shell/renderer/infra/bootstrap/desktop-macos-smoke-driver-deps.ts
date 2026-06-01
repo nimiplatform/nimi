@@ -12,7 +12,10 @@ import { clearAllAgentConversationAnchorBindings } from '@renderer/app-shell/pro
 import { getActiveScope } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
 import { refreshConversationCapabilityProjections } from '@renderer/features/chat/conversation-capability-projection';
 import { getPlatformClient } from '@nimiplatform/sdk';
-import { createRuntimeProtectedScopeHelper, parseRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
+import {
+  createRuntimeAgentSmokeVerificationSurface,
+  parseRuntimeLocalAgentIdentity,
+} from '@nimiplatform/sdk/runtime';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/browser';
 import {
   readStorageTextFrom,
@@ -333,92 +336,22 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
     async verifyRuntimeConversationAnchor(input) {
       const auth = useAppStore.getState().auth;
       const subjectUserId = String((auth.user as Record<string, unknown> | null)?.id || '').trim();
-      if (!subjectUserId) {
-        throw new Error('cannot verify Runtime conversation anchor without authenticated subject user id');
-      }
-      const runtime = getPlatformClient().runtime;
-      const protectedAccess = createRuntimeProtectedScopeHelper({
-        runtime,
-        getSubjectUserId: async () => subjectUserId,
-      });
-      const localAgentRef = String(input.agentId || '').trim();
-      let identity: ReturnType<typeof parseRuntimeLocalAgentIdentity>;
-      try {
-        identity = parseRuntimeLocalAgentIdentity(localAgentRef);
-      } catch {
-        throw new Error('Runtime conversation anchor smoke verification requires localAgentRef formatted as local-agent:${ownerUserId}:${realmAgentId}');
-      }
-      await withSmokeTimeout(
-        'Runtime conversation anchor smoke verification',
-        protectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.anchors.getSnapshot({
-          ownerUserId: identity.ownerUserId,
-          realmAgentId: identity.realmAgentId,
-          localAgentRef: identity.localAgentRef,
-          conversationAnchorId: input.conversationAnchorId,
-        }, options)),
-        SMOKE_STEP_TIMEOUT_MS,
-      );
+      await createRuntimeAgentSmokeVerificationSurface({
+        getRuntime: () => getPlatformClient().runtime,
+        getSubjectUserId: () => subjectUserId,
+        withTimeout: withSmokeTimeout,
+        timeoutMs: SMOKE_STEP_TIMEOUT_MS,
+      }).verifyConversationAnchor(input);
     },
     async readRuntimeProductPathEvidence(input) {
       const auth = useAppStore.getState().auth;
       const subjectUserId = String((auth.user as Record<string, unknown> | null)?.id || '').trim();
-      if (!subjectUserId) {
-        throw new Error('cannot read Runtime product evidence without authenticated subject user id');
-      }
-      const runtime = getPlatformClient().runtime;
-      const localAgentRef = String(input.agentId || '').trim();
-      let identity: ReturnType<typeof parseRuntimeLocalAgentIdentity>;
-      try {
-        identity = parseRuntimeLocalAgentIdentity(localAgentRef);
-      } catch {
-        throw new Error('Runtime product path evidence requires localAgentRef formatted as local-agent:${ownerUserId}:${realmAgentId}');
-      }
-      const protectedAccess = createRuntimeProtectedScopeHelper({
-        runtime,
-        getSubjectUserId: async () => subjectUserId,
-      });
-      const [health, snapshot] = await Promise.all([
-        withSmokeTimeout('Runtime product evidence health read', runtime.health(), SMOKE_STEP_TIMEOUT_MS),
-        withSmokeTimeout('Runtime product evidence anchor snapshot read', protectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.anchors.getSnapshot({
-          ownerUserId: identity.ownerUserId,
-          realmAgentId: identity.realmAgentId,
-          localAgentRef: identity.localAgentRef,
-          conversationAnchorId: input.conversationAnchorId,
-        }, options)), SMOKE_STEP_TIMEOUT_MS),
-      ]);
-      const anchor = snapshot.anchor || null;
-      const snapshotAgentId = String(anchor?.agentId || '').trim();
-      const snapshotAnchorId = String(anchor?.conversationAnchorId || '').trim();
-      const lastTurnId = String(anchor?.lastTurnId || '').trim();
-      const activeTurnId = String(snapshot.activeTurnId || '').trim();
-      const lastMessageId = String(anchor?.lastMessageId || '').trim();
-      if (snapshotAgentId !== input.agentId || snapshotAnchorId !== input.conversationAnchorId) {
-        throw new Error(`Runtime anchor snapshot mismatch agent=${snapshotAgentId || 'missing'} anchor=${snapshotAnchorId || 'missing'}`);
-      }
-      return {
-        runtime_health: {
-          status: health.status,
-          reason: health.reason || null,
-          queue_depth: health.queueDepth,
-          active_workflows: health.activeWorkflows,
-          active_inference_jobs: health.activeInferenceJobs,
-          sampled_at: health.sampledAt || null,
-        },
-        runtime_authenticated: true,
-        runtime_auth_scopes: ['runtime.agent.read'],
-        same_anchor: true,
-        agent_id: input.agentId,
-        conversation_anchor_id: input.conversationAnchorId,
-        subject_user_id: subjectUserId,
-        anchor_snapshot: {
-          status: anchor?.status ?? null,
-          last_turn_id: lastTurnId || null,
-          active_turn_id: activeTurnId || null,
-          active_stream_id: String(snapshot.activeStreamId || '').trim() || null,
-          last_message_id: lastMessageId || null,
-        },
-        has_runtime_turn: Boolean(lastTurnId || activeTurnId || lastMessageId),
-      };
+      return createRuntimeAgentSmokeVerificationSurface({
+        getRuntime: () => getPlatformClient().runtime,
+        getSubjectUserId: () => subjectUserId,
+        withTimeout: withSmokeTimeout,
+        timeoutMs: SMOKE_STEP_TIMEOUT_MS,
+      }).readProductPathEvidence(input);
     },
     async verifyRuntimeAccountProjection() {
       const accountCaller = {

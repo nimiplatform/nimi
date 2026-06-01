@@ -119,3 +119,15 @@ test('desktop macos smoke DOM driver forwards step callbacks to the scenario run
   assert.match(driverSource, /onStepStart:\s*options\.onStepStart/);
   assert.match(driverSource, /isReportOpen:\s*options\.isReportOpen/);
 });
+
+test('desktop macos smoke driver consumes SDK Runtime smoke verification surface', () => {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const driverSource = fs.readFileSync(
+    path.join(root, 'src/shell/renderer/infra/bootstrap/desktop-macos-smoke-driver-deps.ts'),
+    'utf8',
+  );
+
+  assert.match(driverSource, /createRuntimeAgentSmokeVerificationSurface/);
+  assert.doesNotMatch(driverSource, /createRuntimeProtectedScopeHelper/);
+  assert.doesNotMatch(driverSource, /withScopes\(\['runtime\.agent\.read'\]/);
+});
