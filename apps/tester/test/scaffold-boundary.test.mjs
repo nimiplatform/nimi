@@ -32,9 +32,11 @@ test('single login model requires runtime account login (no dev-standalone bypas
   assert.doesNotMatch(authGateSource, /runtime-developer-session/);
   assert.doesNotMatch(authSource, /VITE_NIMI_RUNTIME_DEVELOPER_SESSION/);
   assert.match(authGateSource, /loadRuntimeAccountUser/);
-  assert.match(runtimeAccountAuthSource, /validateRuntimeOAuthAuthorizationUrl/);
+  assert.match(runtimeAccountAuthSource, /createRuntimeAccountBrowserBroker/);
   assert.match(runtimeAccountAuthSource, /createLocalFirstPartyRuntimeAccountCaller/);
   assert.match(runtimeAccountAuthSource, /from '@nimiplatform\/kit\/auth'/);
+  assert.doesNotMatch(runtimeAccountAuthSource, /runtime\.account\.beginLogin\(/);
+  assert.doesNotMatch(runtimeAccountAuthSource, /runtime\.account\.completeLogin\(/);
   assert.doesNotMatch(runtimeAccountAuthSource, /ACCOUNT_CALLER_MODE|deviceId:\s*['"`]local-first-party-device|mode:\s*1|appInstanceId:\s*`\$\{appId\}\.local-first-party`/);
   assert.doesNotMatch(runtimeAccountAuthSource, /desktop-runtime-oauth-url|#\/login|desktop_callback/);
 });

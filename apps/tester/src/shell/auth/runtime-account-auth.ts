@@ -4,7 +4,7 @@ import {
   createLocalFirstPartyRuntimeAccountCaller,
 } from '@nimiplatform/sdk/runtime';
 import {
-  validateRuntimeOAuthAuthorizationUrl,
+  createRuntimeAccountBrowserBroker,
   type AuthPlatformAdapter,
   type ShellAuthDesktopBrowserAuth,
 } from '@nimiplatform/kit/auth';
@@ -48,54 +48,20 @@ export async function logoutRuntimeAccount() {
 }
 
 export function createNimiAppRuntimeAccountBroker(): ShellAuthDesktopBrowserAuth['runtimeAccountBroker'] {
-  return {
-    begin: async (input) => {
-      requireRuntimeAccountLogin();
-      const response = await getPlatformClient().runtime.account.beginLogin({
-        caller: runtimeAccountCaller,
-        redirectUri: input.callbackUrl,
-        callbackOrigin: new URL(input.callbackUrl).origin,
-        requestedScopes: [],
-        ttlSeconds: Math.max(10, Math.ceil(input.timeoutMs / 1000)),
-      });
-      if (!response.accepted || !response.loginAttemptId || !response.oauthAuthorizationUrl || !response.state || !response.nonce) {
-        throw new Error(`Runtime account login could not start: ${String(response.accountReasonCode || response.reasonCode || 'unknown')}`);
-      }
-      return {
-        loginAttemptId: response.loginAttemptId,
-        authorizationUrl: validateRuntimeOAuthAuthorizationUrl(response.oauthAuthorizationUrl),
-        state: response.state,
-        nonce: response.nonce,
-      };
+  return createRuntimeAccountBrowserBroker({
+    caller: runtimeAccountCaller,
+    beforeRequest: requireRuntimeAccountLogin,
+    getClient: getPlatformClient,
+    projectUser: (projection) => {
+      const accountId = String(projection.accountId || '').trim();
+      return accountId
+        ? {
+            id: accountId,
+            displayName: String(projection.displayName || '').trim(),
+          }
+        : null;
     },
-    complete: async (input) => {
-      requireRuntimeAccountLogin();
-      const response = await getPlatformClient().runtime.account.completeLogin({
-        caller: runtimeAccountCaller,
-        loginAttemptId: input.loginAttemptId,
-        code: input.code,
-        refreshToken: '',
-        state: input.state,
-        nonce: input.nonce,
-        redirectUri: input.callbackUrl,
-        callbackOrigin: new URL(input.callbackUrl).origin,
-        uxTraceId: '',
-        sealedCompletionTicket: '',
-      });
-      if (!response.accepted) {
-        throw new Error(`Runtime account login could not complete: ${String(response.accountReasonCode || response.reasonCode || 'unknown')}`);
-      }
-      const accountId = String(response.accountProjection?.accountId || '').trim();
-      return {
-        user: accountId
-          ? {
-              id: accountId,
-              displayName: String(response.accountProjection?.displayName || '').trim(),
-            }
-          : null,
-      };
-    },
-  };
+  });
 }
 
 export function createNimiAppDesktopBrowserAuthAdapter(onLoginComplete: () => void | Promise<void>): AuthPlatformAdapter {

@@ -23,6 +23,7 @@ export type {
   ShellAuthBranding,
   ShellAuthAppearance,
   ShellAuthDesktopBrowserAuth,
+  ShellAuthDesktopBrowserAuthRuntimeBroker,
   ShellAuthCopy,
   ShellAuthTestIds,
   ShellAuthBackgroundState,
@@ -134,6 +135,12 @@ export {
   validateRuntimeOAuthAuthorizationUrl,
   type DesktopWebAuthResult,
 } from './logic/desktop-web-auth.js';
+
+export {
+  createRuntimeAccountBrowserBroker,
+  type CreateRuntimeAccountBrowserBrokerInput,
+  type RuntimeAccountBrowserBrokerClient,
+} from './logic/runtime-account-browser-broker.js';
 
 // Handlers
 export type { AuthMenuSetters } from './logic/auth-menu-handlers.js';

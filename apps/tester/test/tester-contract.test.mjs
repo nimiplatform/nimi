@@ -111,10 +111,13 @@ test('tester auth and runtime bootstrap consume Kit shell bridge primitives', ()
   assert.match(main, /installNimiShellRuntimeBridge/);
   assert.match(main, /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
   assert.match(runtimeAccountAuth, /createTauriOAuthBridge/);
+  assert.match(runtimeAccountAuth, /createRuntimeAccountBrowserBroker/);
   assert.match(runtimeAccountAuth, /createLocalFirstPartyRuntimeAccountCaller/);
   assert.match(runtimeAccountAuth, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(runtimeAccountAuth, /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
   assert.doesNotMatch(runtimeAccountAuth, /@renderer\/bridge|runtime-bridge/);
+  assert.doesNotMatch(runtimeAccountAuth, /runtime\.account\.beginLogin\(/);
+  assert.doesNotMatch(runtimeAccountAuth, /runtime\.account\.completeLogin\(/);
   assert.doesNotMatch(runtimeAccountAuth, /ACCOUNT_CALLER_MODE|deviceId:\s*['"`]local-first-party-device|mode:\s*1|appInstanceId:\s*`\$\{appId\}\.local-first-party`/);
 });
 

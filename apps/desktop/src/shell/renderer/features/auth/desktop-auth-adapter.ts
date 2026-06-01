@@ -1,9 +1,9 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import {
   clearPersistedAccessToken,
+  createRuntimeAccountBrowserBroker,
   persistAuthSessionMetadata,
   resolveSessionExpiry,
-  validateRuntimeOAuthAuthorizationUrl,
   type AuthPlatformAdapter,
 } from '@nimiplatform/kit/auth';
 import type { TauriOAuthBridge } from '@nimiplatform/kit/core/oauth';
@@ -45,76 +45,19 @@ type OAuthLoginResultDto = RealmModel<'OAuthLoginResultDto'>;
 
 const desktopRuntimeAccountCaller = createDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' });
 
-async function beginRuntimeAccountLogin(input: { callbackUrl: string; timeoutMs: number }) {
-  return getPlatformClient().runtime.account.beginLogin({
-    caller: desktopRuntimeAccountCaller,
-    redirectUri: input.callbackUrl,
-    callbackOrigin: new URL(input.callbackUrl).origin,
-    requestedScopes: [],
-    ttlSeconds: Math.max(10, Math.ceil(input.timeoutMs / 1000)),
-  });
-}
-
 export function createDesktopRuntimeAccountBrowserBroker() {
-  return {
-    begin: async (input: { callbackUrl: string; baseUrl?: string; timeoutMs: number }) => {
-      await ensureAuthApiReady();
-      const response = await beginRuntimeAccountLogin(input);
-      if (!response.accepted || !response.loginAttemptId || !response.oauthAuthorizationUrl || !response.state || !response.nonce) {
-        throw new Error(`Runtime account login could not start: ${String(response.accountReasonCode || response.reasonCode || 'unknown')}`);
-      }
-      const authorizationUrl = validateRuntimeOAuthAuthorizationUrl(response.oauthAuthorizationUrl);
-      // R-OAUTH / K-ACCSVC-008: the kit MUST drive the user agent to the
-      // realm OAuth authorize endpoint that runtime constructed (with
-      // PKCE S256 challenge bound to runtime-held verifier). Rebuilding the
-      // URL on the desktop side would re-introduce the legacy web-relay
-      // shape and de-bind PKCE.
-      return {
-        loginAttemptId: response.loginAttemptId,
-        authorizationUrl,
-        state: response.state,
-        nonce: response.nonce,
-      };
-    },
-    complete: async (input: {
-      loginAttemptId: string;
-      code: string;
-      state: string;
-      nonce: string;
-      callbackUrl: string;
-    }) => {
-      await ensureAuthApiReady();
-      // R-OAUTH / K-ACCSVC-008: only the raw OAuth `code` is admitted; the
-      // runtime exchanges with the realm and owns refresh-token custody. Kit
-      // and desktop never observe access or refresh tokens.
-      const response = await getPlatformClient().runtime.account.completeLogin({
-        caller: desktopRuntimeAccountCaller,
-        loginAttemptId: input.loginAttemptId,
-        code: input.code,
-        // R-OAUTH-008 / spec K-ACCSVC-008: refreshToken MUST be empty here.
-        // Runtime fail-closes any non-empty value with PROOF_UNSUPPORTED.
-        refreshToken: '',
-        state: input.state,
-        nonce: input.nonce,
-        redirectUri: input.callbackUrl,
-        callbackOrigin: new URL(input.callbackUrl).origin,
-        uxTraceId: '',
-        sealedCompletionTicket: '',
-      });
-      if (!response.accepted) {
-        throw new Error(`Runtime account login could not complete: ${String(response.accountReasonCode || response.reasonCode || 'unknown')}`);
-      }
-      return {
-        user: response.accountProjection?.accountId
-          ? {
-              id: response.accountProjection.accountId,
-              displayName: response.accountProjection.displayName,
-              realmEnvironmentId: response.accountProjection.realmEnvironmentId,
-            }
-          : null,
-      };
-    },
-  };
+  return createRuntimeAccountBrowserBroker({
+    caller: desktopRuntimeAccountCaller,
+    beforeRequest: ensureAuthApiReady,
+    getClient: getPlatformClient,
+    projectUser: (projection) => projection.accountId
+      ? {
+          id: projection.accountId,
+          displayName: projection.displayName,
+          realmEnvironmentId: projection.realmEnvironmentId,
+        }
+      : null,
+  });
 }
 
 export async function ensureAuthApiReady(): Promise<void> {
