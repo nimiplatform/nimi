@@ -150,6 +150,7 @@ import { createTesterWorldDisplayProjection } from '../../tester/tester-world-di
 import { loadTesterWorldEvolutionSelectorReadProjection } from '../../tester/tester-world-evolution-selector-read';
 import { loadTesterRealmSocialFeedProjection } from '../../tester/tester-realm-social-feed-projection';
 import { loadTesterRealmAgentProfileProjection } from '../../tester/tester-realm-agent-profile-projection';
+import { loadTesterRealmAuthProjection } from '../../tester/tester-realm-auth-projection';
 import { createTesterRuntimeConfigProjection } from '../../tester/tester-runtime-config-projection';
 import {
   loadTesterRuntimeRouteHostAccessProjection,
@@ -623,6 +624,9 @@ export function SettingsRoute() {
   });
   const realmAgentProfileProjection = useTypedProjection(loadTesterRealmAgentProfileProjection, {
     failClosedMessage: 'SDK Realm agent profile projection unavailable',
+  });
+  const realmAuthProjection = useTypedProjection(loadTesterRealmAuthProjection, {
+    failClosedMessage: 'SDK Realm auth projection unavailable',
   });
   useEffect(() => {
     let cancelled = false;
@@ -2091,6 +2095,16 @@ export function SettingsRoute() {
             ? `${realmAgentProfileProjection.data.agentId}/${realmAgentProfileProjection.data.creatorCount}/${realmAgentProfileProjection.data.createdOwnershipType}`
             : realmAgentProfileProjection.status === 'failed'
               ? realmAgentProfileProjection.error
+              : 'checking'}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK Realm auth projection</span>
+        <StatusBadge tone={realmAuthProjection.status === 'ready' ? 'success' : realmAuthProjection.status === 'failed' ? 'danger' : 'warning'}>
+          {realmAuthProjection.status === 'ready' && realmAuthProjection.data
+            ? `${realmAuthProjection.data.entryRoute}/${realmAuthProjection.data.passwordLoginState}/${realmAuthProjection.data.projectedLoginState}`
+            : realmAuthProjection.status === 'failed'
+              ? realmAuthProjection.error
               : 'checking'}
         </StatusBadge>
       </div>

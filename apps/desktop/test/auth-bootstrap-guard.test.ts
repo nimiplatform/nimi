@@ -6,6 +6,10 @@ const authAdapterSource = readFileSync(
   new URL('../src/shell/renderer/features/auth/desktop-auth-adapter.ts', import.meta.url),
   'utf8',
 );
+const kitRuntimeAccountBrokerSource = readFileSync(
+  new URL('../../../kit/auth/src/logic/runtime-account-browser-broker.ts', import.meta.url),
+  'utf8',
+);
 
 function assertGuardedCall(handlerName: string): void {
   const start = authAdapterSource.indexOf(`${handlerName}:`);
@@ -75,24 +79,25 @@ test('desktop auth adapter delegates post-login sync to query invalidation (no d
 });
 
 test('desktop runtime account browser broker waits for bootstrap before RuntimeAccountService calls', () => {
-  const beginStart = authAdapterSource.indexOf('begin: async (input: { callbackUrl: string; baseUrl?: string; timeoutMs: number }) => {');
-  assert.notEqual(beginStart, -1, 'browser broker begin handler must exist');
-  const beginBlock = authAdapterSource.slice(beginStart, authAdapterSource.indexOf('complete: async', beginStart));
-  assert.match(beginBlock, /await ensureAuthApiReady\(\);[\s\S]*beginRuntimeAccountLogin\(input\)/);
-  assert.match(authAdapterSource, /async function beginRuntimeAccountLogin[\s\S]*runtime\.account\.beginLogin\(\{/);
+  assert.match(authAdapterSource, /createRuntimeAccountBrowserBroker\(\{\s*caller: desktopRuntimeAccountCaller,\s*beforeRequest: ensureAuthApiReady,/s);
 
-  const completeStart = authAdapterSource.indexOf('complete: async (input: {');
+  const beginStart = kitRuntimeAccountBrokerSource.indexOf('begin: async (request) => {');
+  assert.notEqual(beginStart, -1, 'browser broker begin handler must exist');
+  const beginBlock = kitRuntimeAccountBrokerSource.slice(beginStart, kitRuntimeAccountBrokerSource.indexOf('complete: async', beginStart));
+  assert.match(beginBlock, /await input\.beforeRequest\?\.\(\);[\s\S]*runtime\.account\.beginLogin\(\{/);
+
+  const completeStart = kitRuntimeAccountBrokerSource.indexOf('complete: async (request) => {');
   assert.notEqual(completeStart, -1, 'browser broker complete handler must exist');
-  const completeBlock = authAdapterSource.slice(completeStart, authAdapterSource.indexOf('export async function ensureAuthApiReady', completeStart));
-  assert.match(completeBlock, /await ensureAuthApiReady\(\);[\s\S]*runtime\.account\.completeLogin\(\{/);
+  const completeBlock = kitRuntimeAccountBrokerSource.slice(completeStart, kitRuntimeAccountBrokerSource.indexOf('if (!response.accepted)', completeStart));
+  assert.match(completeBlock, /await input\.beforeRequest\?\.\(\);[\s\S]*runtime\.account\.completeLogin\(\{/);
 });
 
 test('desktop runtime account browser broker does not mutate Runtime account custody while starting login', () => {
-  const beginStart = authAdapterSource.indexOf('begin: async (input: { callbackUrl: string; baseUrl?: string; timeoutMs: number }) => {');
+  const beginStart = kitRuntimeAccountBrokerSource.indexOf('begin: async (request) => {');
   assert.notEqual(beginStart, -1, 'browser broker begin handler must exist');
-  const beginBlock = authAdapterSource.slice(beginStart, authAdapterSource.indexOf('complete: async', beginStart));
+  const beginBlock = kitRuntimeAccountBrokerSource.slice(beginStart, kitRuntimeAccountBrokerSource.indexOf('complete: async', beginStart));
   assert.doesNotMatch(beginBlock, /runtime\.account\.logout/);
   assert.doesNotMatch(beginBlock, /clearRuntimeAccountForReauth/);
   assert.doesNotMatch(beginBlock, /desktop_login_reauth/);
-  assert.match(beginBlock, /const response = await beginRuntimeAccountLogin\(input\)/);
+  assert.match(beginBlock, /const response = await input\.getClient\(\)\.runtime\.account\.beginLogin\(\{/);
 });

@@ -224,16 +224,13 @@ test('drift gate skips files matching .fixture. in their path', () => {
 });
 
 test('drift gate leaves boundary-preserved files unflagged (legitimate AUTH_TOKEN_INVALID routing)', () => {
-  // The three files documented in the packet as boundary-preserved must
+  // The Desktop files documented in the packet as boundary-preserved must
   // still be present in the repo and not flagged by the drift gate. We
   // confirm:
   //   1. The files exist.
-  //   2. They contain AUTH_TOKEN_INVALID references (which is fine —
-  //      that string is NOT in the forbidden_patterns set).
-  //   3. They contain none of the six forbidden patterns.
+  //   2. They contain none of the six forbidden patterns.
   const boundaryFiles = [
     'src/shell/renderer/infra/bootstrap/runtime-bootstrap-account-profile.ts',
-    'src/shell/renderer/features/auth/auth-session-utils.ts',
     'src/shell/renderer/bridge/runtime-bridge/invoke.ts',
   ];
   const desktopAbs = resolve(dirname(__filename), '..');
@@ -263,20 +260,13 @@ test('drift gate leaves boundary-preserved files unflagged (legitimate AUTH_TOKE
     );
   }
 
-  // Sanity: at least one of these references AUTH_TOKEN_INVALID — that
-  // is the legitimate routing this gate must NOT flag.
-  let foundAuthTokenInvalidReference = false;
-  for (const rel of boundaryFiles) {
-    const abs = resolve(desktopAbs, rel);
-    const content = readFileSync(abs, 'utf8');
-    if (content.includes('AUTH_TOKEN_INVALID')) {
-      foundAuthTokenInvalidReference = true;
-      break;
-    }
-  }
+  // Sanity: AUTH_TOKEN_INVALID routing lives in the SDK auth projection,
+  // not a Desktop helper.
+  const sdkAuthProjection = readFileSync(resolve(repoRoot, 'sdk/src/realm/extensions/auth.ts'), 'utf8');
+  const foundAuthTokenInvalidReference = sdkAuthProjection.includes('AUTH_TOKEN_INVALID');
   assert.ok(
     foundAuthTokenInvalidReference,
-    'expected at least one boundary file to reference AUTH_TOKEN_INVALID for routing',
+    'expected SDK auth projection to reference AUTH_TOKEN_INVALID for routing',
   );
 });
 

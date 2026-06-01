@@ -8,7 +8,23 @@ import {
 } from '@nimiplatform/kit/auth';
 import type { TauriOAuthBridge } from '@nimiplatform/kit/core/oauth';
 import { isWebShellMode } from '@nimiplatform/kit/core/shell-mode';
-import { OAuthProvider, updateRealmPassword, type RealmModel } from '@nimiplatform/sdk/realm';
+import {
+  checkRealmAuthEmail,
+  createRealmWalletChallenge,
+  isExpectedAnonymousRealmSessionError,
+  loginRealmAuthPassword,
+  loginRealmOAuth,
+  loginRealmWallet,
+  requestRealmEmailOtp,
+  toRealmAuthUserRecord,
+  updateRealmPassword,
+  verifyRealmEmailOtp,
+  verifyRealmTwoFactor,
+  type RealmAuthTokensDto,
+  type RealmCheckEmailResponseDto,
+  type RealmOAuthLoginResultDto,
+  type RealmOAuthProvider,
+} from '@nimiplatform/sdk/realm';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { createDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/browser';
@@ -23,13 +39,6 @@ import {
   isRealmPlatformClientReady,
 } from '@renderer/infra/realm/realm-platform-session';
 import { i18n } from '@renderer/i18n';
-import {
-  isExpectedAnonymousSessionError,
-  toAuthTokensDto,
-  toAuthUserRecord,
-  toCheckEmailResponseDto,
-  toOAuthLoginResultDto,
-} from './auth-session-utils.js';
 
 export const desktopOAuthBridge: TauriOAuthBridge = {
   hasTauriInvoke: () => desktopBridge.hasTauriInvoke(),
@@ -39,9 +48,9 @@ export const desktopOAuthBridge: TauriOAuthBridge = {
   focusMainWindow: () => desktopBridge.focusMainWindow(),
 };
 
-type AuthTokensDto = RealmModel<'AuthTokensDto'>;
-type CheckEmailResponseDto = RealmModel<'CheckEmailResponseDto'>;
-type OAuthLoginResultDto = RealmModel<'OAuthLoginResultDto'>;
+type AuthTokensDto = RealmAuthTokensDto;
+type CheckEmailResponseDto = RealmCheckEmailResponseDto;
+type OAuthLoginResultDto = RealmOAuthLoginResultDto;
 
 const desktopRuntimeAccountCaller = createDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' });
 
@@ -107,12 +116,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('checkEmail');
       }
       await ensureAuthApiReady();
-      return toCheckEmailResponseDto(
-        await callRealmApi(
-          (realm) => realm.services.AuthService.checkEmail({ email }),
-          '',
-        ),
-      );
+      return checkRealmAuthEmail(callRealmApi, email);
     },
 
     passwordLogin: async (identifier, password): Promise<OAuthLoginResultDto> => {
@@ -120,11 +124,11 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('passwordLogin');
       }
       await ensureAuthApiReady();
-      return toOAuthLoginResultDto(
-        await callRealmApi(
-          (realm) => realm.services.AuthService.passwordLogin({ identifier, password }),
-          i18n.t('Auth.passwordLoginFailed', { defaultValue: 'Email sign-in failed' }),
-        ),
+      return loginRealmAuthPassword(
+        callRealmApi,
+        identifier,
+        password,
+        i18n.t('Auth.passwordLoginFailed', { defaultValue: 'Email sign-in failed' }),
       );
     },
 
@@ -133,8 +137,9 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('requestEmailOtp');
       }
       await ensureAuthApiReady();
-      return callRealmApi(
-        (realm) => realm.services.AuthService.requestEmailOtp({ email }),
+      return requestRealmEmailOtp(
+        callRealmApi,
+        email,
         i18n.t('Auth.requestEmailOtpFailed', { defaultValue: 'Failed to send verification code' }),
       );
     },
@@ -144,11 +149,11 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('verifyEmailOtp');
       }
       await ensureAuthApiReady();
-      return toOAuthLoginResultDto(
-        await callRealmApi(
-          (realm) => realm.services.AuthService.verifyEmailOtp({ email, code }),
-          i18n.t('Auth.verifyEmailOtpFailed', { defaultValue: 'Failed to sign in with email code' }),
-        ),
+      return verifyRealmEmailOtp(
+        callRealmApi,
+        email,
+        code,
+        i18n.t('Auth.verifyEmailOtpFailed', { defaultValue: 'Failed to sign in with email code' }),
       );
     },
 
@@ -157,11 +162,11 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('verifyTwoFactor');
       }
       await ensureAuthApiReady();
-      return toAuthTokensDto(
-        await callRealmApi(
-          (realm) => realm.services.AuthService.verifyTwoFactor({ tempToken, code }),
-          i18n.t('Auth.verifyTwoFactorFailed', { defaultValue: 'Two-factor verification failed' }),
-        ),
+      return verifyRealmTwoFactor(
+        callRealmApi,
+        tempToken,
+        code,
+        i18n.t('Auth.verifyTwoFactorFailed', { defaultValue: 'Two-factor verification failed' }),
       );
     },
 
@@ -170,12 +175,9 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('walletChallenge');
       }
       await ensureAuthApiReady();
-      return callRealmApi(
-        (realm) => realm.services.AuthService.walletChallenge({
-          walletAddress: input.walletAddress,
-          chainId: input.chainId,
-          walletType: input.walletType,
-        }),
+      return createRealmWalletChallenge(
+        callRealmApi,
+        input,
         i18n.t('Auth.walletChallengeFailed', { defaultValue: 'Failed to get wallet challenge' }),
       );
     },
@@ -185,18 +187,10 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('walletLogin');
       }
       await ensureAuthApiReady();
-      return toOAuthLoginResultDto(
-        await callRealmApi(
-          (realm) => realm.services.AuthService.walletLogin({
-            walletAddress: input.walletAddress,
-            chainId: input.chainId,
-            nonce: input.nonce,
-            message: input.message,
-            signature: input.signature,
-            walletType: input.walletType,
-          }),
-          i18n.t('Auth.walletLoginFailed', { defaultValue: 'Wallet sign-in failed' }),
-        ),
+      return loginRealmWallet(
+        callRealmApi,
+        input,
+        i18n.t('Auth.walletLoginFailed', { defaultValue: 'Wallet sign-in failed' }),
       );
     },
 
@@ -205,14 +199,11 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('oauthLogin');
       }
       await ensureAuthApiReady();
-      return toOAuthLoginResultDto(
-        await callRealmApi(
-          (realm) => realm.services.AuthService.oauthLogin({
-            provider: provider as OAuthProvider,
-            accessToken,
-          }),
-          i18n.t('Auth.oauthLoginFailed', { defaultValue: 'OAuth sign-in failed' }),
-        ),
+      return loginRealmOAuth(
+        callRealmApi,
+        provider as RealmOAuthProvider,
+        accessToken,
+        i18n.t('Auth.oauthLoginFailed', { defaultValue: 'OAuth sign-in failed' }),
       );
     },
 
@@ -225,9 +216,9 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
       if (isWebShellMode()) {
         try {
           const user = await realmSocialData.loadCurrentUser();
-          return toAuthUserRecord(user);
+          return toRealmAuthUserRecord(user);
         } catch (error) {
-          if (isExpectedAnonymousSessionError(error)) {
+          if (isExpectedAnonymousRealmSessionError(error)) {
             return null;
           }
           throw error;
@@ -248,7 +239,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
       if (!tokenStatus.accepted || !tokenStatus.accessToken) {
         return null;
       }
-      return toAuthUserRecord({
+      return toRealmAuthUserRecord({
         id: projection.accountId,
         displayName: projection.displayName,
         realmEnvironmentId: projection.realmEnvironmentId,

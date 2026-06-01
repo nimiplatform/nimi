@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { isExpectedAnonymousSessionError, toAuthUserRecord } from '../src/shell/renderer/features/auth/auth-session-utils';
+import { isExpectedAnonymousRealmSessionError, toRealmAuthUserRecord } from '@nimiplatform/sdk/realm';
 import { confirmDialog, openExternalUrl } from '@nimiplatform/kit/shell/renderer/bridge';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
@@ -33,14 +33,14 @@ function installWindowMock(windowMock: WindowLike): () => void {
   };
 }
 
-test('auth session utils only coerce object user payloads and keep anonymous session errors explicit', () => {
-  assert.deepEqual(toAuthUserRecord({ id: 'user-1' }), { id: 'user-1' });
-  assert.equal(toAuthUserRecord(null), null);
-  assert.equal(toAuthUserRecord(['user-1']), null);
+test('SDK auth projection only coerces object user payloads and keeps anonymous session errors explicit', () => {
+  assert.deepEqual(toRealmAuthUserRecord({ id: 'user-1' }), { id: 'user-1' });
+  assert.equal(toRealmAuthUserRecord(null), null);
+  assert.equal(toRealmAuthUserRecord(['user-1']), null);
 
-  assert.equal(isExpectedAnonymousSessionError({ reasonCode: ReasonCode.AUTH_TOKEN_INVALID }), true);
-  assert.equal(isExpectedAnonymousSessionError(new Error('HTTP_401 unauthorized')), true);
-  assert.equal(isExpectedAnonymousSessionError(new Error('contract mismatch')), false);
+  assert.equal(isExpectedAnonymousRealmSessionError({ reasonCode: ReasonCode.AUTH_TOKEN_INVALID }), true);
+  assert.equal(isExpectedAnonymousRealmSessionError(new Error('HTTP_401 unauthorized')), true);
+  assert.equal(isExpectedAnonymousRealmSessionError(new Error('contract mismatch')), false);
 });
 
 test('openExternalUrl rejects non-http protocols before invoking browser APIs', async () => {

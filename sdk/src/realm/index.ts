@@ -39,6 +39,7 @@ export type { RealmModels, RealmModelName, RealmModel, RealmOperations, RealmOpe
 // Typed adapter exports.
 export type { RealmCreatorEligibilityDto, RealmOAuthLinkProjection, RealmOAuthProvider, RealmPasswordUpdateProjection, RealmTwoFactorPrepareOutput, RealmTwoFactorProjection, RealmTwoFactorVerifyInput, RealmUpdatePasswordInput, RealmUpdateUserNotificationSettingsInput, RealmUpdateUserSettingsInput, RealmUserNotificationSettingsDto, RealmUserSettingsDto } from './extensions/account-settings.js';
 export type { AccountDataTaskStatus, RequestDataExportInput, RequestDataExportOutput, RequestAccountDeletionInput, RequestAccountDeletionOutput } from './extensions/account-data.js';
+export type { RealmAuthApiCaller, RealmAuthTokensDto, RealmCheckEmailResponseDto, RealmEmailOtpRequestResult, RealmOAuthLoginResultDto, RealmWalletChallengeInput, RealmWalletChallengeResult, RealmWalletLoginInput } from './extensions/auth.js';
 export type { RealmBaseUrlProjectionInput, RealmRealtimeUrlProjectionInput } from './extensions/endpoint.js';
 export type { RealmFeedScope } from './extensions/feed.js';
 export type { RealmGroupChatListResultDto, RealmGroupChatSyncResultDto, RealmGroupChatViewDto, RealmGroupCreateInputDto, RealmGroupMessageCandidateCommitInputDto, RealmGroupMessageCandidateCommitResultDto, RealmGroupMessageListResultDto, RealmGroupMessageType, RealmGroupMessageViewDto, RealmGroupParticipantDto, RealmGroupSendMessageInputDto } from './extensions/group-chat.js';
@@ -49,6 +50,7 @@ export type { RealmSocialApiCaller, RealmSocialContactSnapshot, RealmSocialError
 export type { RealmWorldApiCaller, RealmWorldBindingListPayload, RealmWorldErrorEmitter, RealmWorldHistoryPayload, RealmWorldLorebookListPayload, RealmWorldSceneListPayload, RealmWorldSemanticBundle } from './extensions/world-data.js';
 export { disableRealmTwoFactor, enableRealmTwoFactor, linkRealmOAuth, loadRealmCreatorEligibility, loadRealmUserNotificationSettings, loadRealmUserSettings, prepareRealmTwoFactor, unlinkRealmOAuth, updateRealmPassword, updateRealmUserNotificationSettings, updateRealmUserSettings } from './extensions/account-settings.js';
 export { requestDataExport, requestAccountDeletion } from './extensions/account-data.js';
+export { checkRealmAuthEmail, createRealmWalletChallenge, isExpectedAnonymousRealmSessionError, loginRealmAuthPassword, loginRealmOAuth, loginRealmWallet, requestRealmEmailOtp, toRealmAuthTokensDto, toRealmAuthUserRecord, toRealmCheckEmailResponseDto, toRealmEmailOtpRequestResult, toRealmOAuthLoginResultDto, toRealmWalletChallengeResult, verifyRealmEmailOtp, verifyRealmTwoFactor } from './extensions/auth.js';
 export { normalizeRealmBaseUrl, projectRealmBaseUrl, projectRealmRealtimeUrl } from './extensions/endpoint.js';
 export { REALM_FEED_SCOPES, isRealmFeedScope } from './extensions/feed.js';
 export { addRealmGroupAgent, commitRealmGroupMessageCandidate, createRealmGroupChat, createRealmGroupTextMessageInput, listRealmGroupChats, loadRealmGroupChat, loadRealmGroupMessages, markRealmGroupRead, removeRealmGroupAgent, sendRealmGroupMessage, syncRealmGroupEvents } from './extensions/group-chat.js';
