@@ -148,7 +148,12 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
             artifactCount: result.output.artifactCount,
             artifactLabel: firstArtifact?.displayName || firstArtifact?.artifactId,
             mimeType: firstArtifact?.mimeType,
-            url: firstArtifact?.url,
+            // Persist only hosted (cloud) URLs in the history file. Inline local
+            // artifacts arrive as large base64 data URLs that would bloat the
+            // record store; they remain previewable in the current-session result.
+            url: firstArtifact?.url && !firstArtifact.url.startsWith('data:')
+              ? firstArtifact.url
+              : undefined,
             jobId: result.output.jobId,
             jobState: result.output.jobState,
             message: result.message,

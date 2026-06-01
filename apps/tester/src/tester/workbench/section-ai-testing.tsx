@@ -648,6 +648,36 @@ function downloadTextFile(filename: string, body: string) {
   URL.revokeObjectURL(url);
 }
 
+// File extension for a saved media artifact, derived from its MIME subtype.
+function artifactExtension(mimeType?: string): string {
+  const subtype = (mimeType || '').split('/')[1]?.split(';')[0]?.trim();
+  if (!subtype) return 'bin';
+  if (subtype === 'jpeg') return 'jpg';
+  if (subtype === 'mpeg') return 'mp3';
+  if (subtype === 'quicktime') return 'mov';
+  return subtype;
+}
+
+// Save a runtime media artifact (image / audio / video) to disk. Works for both
+// inline data URLs and hosted URLs by streaming the resource through a Blob.
+async function downloadArtifactUrl(filename: string, url: string) {
+  if (typeof document === 'undefined') return;
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch {
+    // Saving is best-effort; the inline preview remains the durable surface.
+  }
+}
+
 function CapabilityStudio({
   capability,
   runtime,
@@ -772,9 +802,17 @@ function CapabilityStudio({
 
   function handleDownload() {
     if (!currentResult?.ok) return;
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const output = currentResult.output;
+    if (output.kind === 'artifacts' && output.firstArtifact?.url) {
+      void downloadArtifactUrl(
+        `${capability.id}-${stamp}.${artifactExtension(output.firstArtifact.mimeType)}`,
+        output.firstArtifact.url,
+      );
+      return;
+    }
     const text = resultPlainText(currentResult);
     if (!text) return;
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
     downloadTextFile(`${capability.id}-${stamp}.txt`, text);
   }
 

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { buildWithTsc } from './tsc-build.mjs';
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
@@ -13,9 +13,7 @@ function buildModule() {
   if (buildDir) return buildDir;
   mkdirSync(path.join(root, '.tmp'), { recursive: true });
   buildDir = mkdtempSync(path.join(root, '.tmp', 'runtime-connector-projection-'));
-  execFileSync('pnpm', [
-    'exec',
-    'tsc',
+  buildWithTsc([
     '--outDir',
     buildDir,
     '--rootDir',

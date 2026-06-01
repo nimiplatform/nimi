@@ -479,18 +479,72 @@ async function invokeEmbedding(client: PlatformClient, input: TesterScenarioInpu
   }
 }
 
+// Normalize the runtime artifact `bytes` field into a Uint8Array regardless of
+// how the transport delivered it (typed array, ArrayBuffer, number array, an
+// index-map produced by a JSON IPC hop, or an already-base64 string).
+function normalizeArtifactBytes(bytes: unknown): Uint8Array | undefined {
+  if (bytes instanceof Uint8Array) return bytes;
+  if (bytes instanceof ArrayBuffer) return new Uint8Array(bytes);
+  if (Array.isArray(bytes)) return Uint8Array.from(bytes as number[]);
+  if (typeof bytes === 'string') {
+    if (!bytes) return undefined;
+    try {
+      const binary = atob(bytes);
+      const out = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index += 1) {
+        out[index] = binary.charCodeAt(index);
+      }
+      return out;
+    } catch {
+      return undefined;
+    }
+  }
+  if (bytes && typeof bytes === 'object') {
+    const view = bytes as { length?: unknown; [index: number]: unknown };
+    if (typeof view.length === 'number' && view.length >= 0) {
+      const out = new Uint8Array(view.length);
+      for (let index = 0; index < view.length; index += 1) {
+        out[index] = Number(view[index]) & 0xff;
+      }
+      return out;
+    }
+  }
+  return undefined;
+}
+
+// Local runtime media (image / TTS / video) returns ScenarioArtifact `bytes`
+// with an empty `uri`; only a cloud-hosted artifact carries a URL. Render the
+// inline bytes as a data URL so the cockpit can display, play, and save the
+// generated artifact instead of silently dropping it.
+function artifactBytesToDataUrl(bytes: unknown, mimeType: string): string | undefined {
+  const normalized = normalizeArtifactBytes(bytes);
+  if (!normalized || normalized.length === 0) return undefined;
+  const mime = mimeType.trim() || 'application/octet-stream';
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < normalized.length; offset += chunkSize) {
+    binary += String.fromCharCode(...normalized.subarray(offset, offset + chunkSize));
+  }
+  return `data:${mime};base64,${btoa(binary)}`;
+}
+
 function summariseArtifact(artifact: unknown) {
   if (!artifact || typeof artifact !== 'object') return undefined;
   const record = artifact as Record<string, unknown>;
   const inline = record.inline as Record<string, unknown> | undefined;
+  const mimeType = typeof record.mimeType === 'string' && record.mimeType
+    ? record.mimeType
+    : typeof inline?.mimeType === 'string' ? inline.mimeType : undefined;
+  const hostedUrl = (typeof record.uri === 'string' && record.uri.trim())
+    || (typeof record.url === 'string' && record.url.trim())
+    || '';
+  const url = hostedUrl
+    || artifactBytesToDataUrl(record.bytes ?? inline?.bytes, mimeType ?? '')
+    || undefined;
   return {
     artifactId: typeof record.artifactId === 'string' ? record.artifactId : undefined,
-    mimeType: typeof record.mimeType === 'string'
-      ? record.mimeType
-      : typeof inline?.mimeType === 'string' ? inline.mimeType : undefined,
-    url: typeof record.uri === 'string'
-      ? record.uri
-      : typeof record.url === 'string' ? record.url : undefined,
+    mimeType,
+    url,
     displayName: typeof record.displayName === 'string' ? record.displayName : undefined,
   };
 }

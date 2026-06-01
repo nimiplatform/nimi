@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { buildWithTsc } from './tsc-build.mjs';
 import { mkdirSync, mkdtempSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
@@ -12,9 +12,7 @@ function buildBehaviorModules() {
   if (behaviorBuildDir) return behaviorBuildDir;
   mkdirSync(path.join(root, '.tmp'), { recursive: true });
   behaviorBuildDir = mkdtempSync(path.join(root, '.tmp', 'runtime-agent-inspect-surface-'));
-  execFileSync('pnpm', [
-    'exec',
-    'tsc',
+  buildWithTsc([
     '--outDir',
     behaviorBuildDir,
     '--rootDir',

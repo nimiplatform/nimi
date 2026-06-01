@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { buildWithTsc } from './tsc-build.mjs';
 import path from 'node:path';
 import test from 'node:test';
 import { pathToFileURL } from 'node:url';
@@ -25,9 +25,7 @@ function buildBehaviorModules() {
   if (behaviorBuildDir) return behaviorBuildDir;
   mkdirSync(path.join(root, '.tmp'), { recursive: true });
   behaviorBuildDir = mkdtempSync(path.join(root, '.tmp', 'behavior-'));
-  execFileSync('pnpm', [
-    'exec',
-    'tsc',
+  buildWithTsc([
     '--outDir',
     behaviorBuildDir,
     '--rootDir',
@@ -695,6 +693,91 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
   assert.equal(captured[3].input.metadata.aiConfigBindingCapabilityId, 'text.embed');
   assert.equal(captured[3].input.metadata.runtimeSchedulingState, 'runnable');
   assert.equal(Object.hasOwn(captured[3].input.metadata, 'runtimeSchedulingDetail'), false);
+});
+
+test('tester surfaces inline runtime media artifact bytes as a previewable data URL', async () => {
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+
+  // Local runtime media returns ScenarioArtifact bytes with an empty uri. The
+  // cockpit must turn those bytes into a previewable/playable data URL so image
+  // and TTS results can be displayed, played, and saved end-to-end.
+  const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const wavBytes = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0x01, 0x02, 0x03, 0x04]);
+
+  const client = {
+    runtime: {
+      media: {
+        image: {
+          async generate() {
+            return {
+              job: { jobId: 'img-job-1', state: 'completed' },
+              artifacts: [{ artifactId: 'art-img', mimeType: 'image/png', uri: '', bytes: pngBytes }],
+              trace: { traceId: 'img-trace', modelResolved: 'local/z-image', routeDecision: 'local' },
+            };
+          },
+        },
+        tts: {
+          async synthesize() {
+            return {
+              job: { jobId: 'tts-job-1', state: 'completed' },
+              artifacts: [{ artifactId: 'art-tts', mimeType: 'audio/wav', uri: '', bytes: wavBytes }],
+              trace: { traceId: 'tts-trace', modelResolved: 'local/piper', routeDecision: 'local' },
+            };
+          },
+        },
+      },
+    },
+  };
+
+  const imageResult = await invokers.invokeTesterCapability(client, 'image.generate', {
+    prompt: 'a glass ui panel',
+    scenarioId: 'behavior',
+  });
+  assert.equal(imageResult.ok, true);
+  assert.equal(imageResult.output.kind, 'artifacts');
+  const imageUrl = imageResult.output.firstArtifact?.url ?? '';
+  assert.match(imageUrl, /^data:image\/png;base64,/);
+  assert.deepEqual(new Uint8Array(Buffer.from(imageUrl.split(',')[1], 'base64')), pngBytes);
+
+  const ttsResult = await invokers.invokeTesterCapability(client, 'audio.synthesize', {
+    prompt: 'hello acceptance',
+    scenarioId: 'behavior',
+  });
+  assert.equal(ttsResult.ok, true);
+  assert.equal(ttsResult.output.kind, 'artifacts');
+  const ttsUrl = ttsResult.output.firstArtifact?.url ?? '';
+  assert.match(ttsUrl, /^data:audio\/wav;base64,/);
+  assert.deepEqual(new Uint8Array(Buffer.from(ttsUrl.split(',')[1], 'base64')), wavBytes);
+});
+
+test('tester prefers a hosted artifact uri over inline bytes', async () => {
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const client = {
+    runtime: {
+      media: {
+        image: {
+          async generate() {
+            return {
+              job: { jobId: 'img-job-2', state: 'completed' },
+              artifacts: [{
+                artifactId: 'art-hosted',
+                mimeType: 'image/png',
+                uri: 'https://cdn.example/img.png',
+                bytes: new Uint8Array([1, 2, 3]),
+              }],
+              trace: { traceId: 'img-trace-2', modelResolved: 'cloud/x', routeDecision: 'cloud' },
+            };
+          },
+        },
+      },
+    },
+  };
+  const result = await invokers.invokeTesterCapability(client, 'image.generate', {
+    prompt: 'x',
+    scenarioId: 'behavior',
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.output.firstArtifact?.url, 'https://cdn.example/img.png');
 });
 
 test('tester local text.generate binding omits runtime connectorId payload', async () => {
