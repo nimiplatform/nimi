@@ -1,0 +1,155 @@
+status: migrated
+date: "2026-06-01"
+domain: kit-shared-ui-and-shell-primitives
+authority_posture:
+  spec_status: alignment
+  authority_owner:
+    - .nimi/spec/platform/kernel/kit-contract.md
+    - .nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml
+    - .nimi/spec/sdk/kernel/surface-contract.md
+    - kit/AGENTS.md
+    - kit/README.md
+    - kit/ui/README.md
+  work_type: alignment
+  parallel_truth: forbidden
+scope:
+  included:
+    - Kit UI primitives, themes, tokens, glass surfaces, controls, feedback, and scroll/surface shells.
+    - Kit shell renderer bridge and renderer bootstrap primitives consumed by apps.
+    - Kit renderer-safe telemetry and error-boundary primitives.
+    - Kit feature surfaces for chat, avatar, model-picker, model-config, generation, and commerce.
+    - Kit SDK import boundary through kit/core/src/sdk-contract.ts.
+    - Desktop app-surface consumption of reusable Kit primitives instead of app-local forwarding shells.
+    - Tester second-consumer proof through app bootstrap, component gallery, settings routes, and contract tests.
+  excluded:
+    - Desktop product-specific screen composition, route wiring, view-model assembly, and local layout CSS.
+    - Desktop Runtime Config dense panel controls that are still product-specific and do not claim Kit authority.
+    - Runtime, Realm, and SDK ownership domains already closed or tracked in their own domain records.
+audited_globs:
+  - apps/desktop/src/shell/renderer/components/**
+  - apps/desktop/src/shell/renderer/app-shell/routes/app-routes.tsx
+  - apps/desktop/src/shell/renderer/features/chat/**
+  - apps/desktop/src/shell/renderer/features/profile/posts-tab.tsx
+  - apps/desktop/src/shell/renderer/features/runtime-config/**
+  - apps/desktop/test/kit-ui-boundary.test.ts
+  - apps/desktop/test/kit-shared-primitives-domain-boundary.test.ts
+  - apps/tester/src/main.tsx
+  - apps/tester/src/dev-preview.tsx
+  - apps/tester/src/tester/kit-component-gallery.tsx
+  - apps/tester/src/tester/tester-runtime.ts
+  - apps/tester/src/tester/tester-workbench.tsx
+  - apps/tester/src/shell/routes/settings.tsx
+  - apps/tester/src/shell/ai/tester-ai-config-settings.tsx
+  - apps/tester/test/tester-contract.test.mjs
+  - apps/tester/test/scaffold-boundary.test.mjs
+  - kit/core/src/sdk-contract.ts
+  - kit/ui/**
+  - kit/features/**
+  - kit/shell/renderer/**
+  - kit/shell/tauri/**
+  - kit/telemetry/**
+migrated:
+  shared_owners:
+    - kit/ui/**
+    - kit/features/chat/**
+    - kit/features/avatar/**
+    - kit/features/model-picker/**
+    - kit/features/model-config/**
+    - kit/features/generation/**
+    - kit/features/commerce/**
+    - kit/shell/renderer/**
+    - kit/shell/tauri/**
+    - kit/telemetry/**
+    - kit/core/src/sdk-contract.ts
+  responsibilities:
+    - Kit owns reusable renderer UI primitives, design tokens, glass surfaces, shell bootstrap, shell bridge helpers, renderer-safe telemetry, and headless/product feature primitives.
+    - Kit consumes SDK surfaces only through kit/core/src/sdk-contract.ts in non-test code; individual Kit features do not bind SDK packages directly.
+    - Desktop consumes Kit for shared primitives and leaves only product-specific screen composition, user-intent wiring, and app-owned layout details in Desktop.
+    - Tester consumes the same Kit surfaces as a real second Nimi app through bootstrap, settings routes, workbench UI, and component gallery.
+  desktop_consumers:
+    - apps/desktop/src/shell/renderer/app-shell/routes/app-routes.tsx consumes AmbientBackground, ProgressIndicator, Surface, and Kit telemetry for shared app-shell status surfaces.
+    - apps/desktop/src/shell/renderer/features/chat/chat-shared-side-sheet.tsx consumes AppCardSurface, IconToggleAction, and ScrollShell from Kit UI.
+    - apps/desktop/src/shell/renderer/features/chat/chat-runtime-inspect-content.tsx consumes CanonicalRuntimeInspectSidebar from Kit chat features.
+    - apps/desktop/src/shell/renderer/features/profile/posts-tab.tsx consumes AppCardSurface and CompactAction from Kit UI.
+    - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-catalog.tsx consumes RuntimeModelPickerPanel and useRuntimeModelPickerPanel from Kit model-picker.
+    - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-profiles.tsx consumes ModelConfigAiModelHub and model-config helpers from Kit.
+  tester_consumers:
+    - apps/tester/src/main.tsx consumes NimiThemeProvider, TooltipProvider, installNimiShellRuntimeBridge, and renderer entry bootstrap helpers from Kit.
+    - apps/tester/src/dev-preview.tsx consumes Kit theme and shell surface primitives.
+    - apps/tester/src/tester/kit-component-gallery.tsx renders real Kit UI primitives for app-developer recipes.
+    - apps/tester/src/tester/tester-runtime.ts consumes Kit shell renderer bridge and bootstrap runtime helpers.
+    - apps/tester/src/tester/tester-workbench.tsx consumes Kit telemetry.
+    - apps/tester/src/shell/routes/settings.tsx consumes Kit chat, avatar, commerce, model-config, and UI surfaces.
+    - apps/tester/src/shell/ai/tester-ai-config-settings.tsx consumes Kit model-config and UI surfaces.
+legal_desktop_residue:
+  - path: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-primitives.tsx
+    rationale: Runtime Config keeps dense, page-local controls for product-specific form layout; shared model selection and model-config behavior are Kit-owned.
+  - path: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-cloud-primitives.tsx
+    rationale: Cloud page local controls remain scoped to Desktop Runtime Config composition and must not become a replacement Kit surface.
+  - path: apps/desktop/src/shell/renderer/features/chat/**
+    rationale: Desktop may compose chat product flows and view-model wiring; reusable chat shell, inspect sidebar, realm helpers, runtime setup projection, and feature primitives are Kit-owned.
+  - path: apps/desktop/src/shell/renderer/app-shell/routes/app-routes.tsx
+    rationale: Desktop owns route composition and product loading states; reusable UI primitives and telemetry are consumed from Kit.
+tester_proof:
+  - apps/tester/src/main.tsx uses Kit theme providers, shell runtime bridge install, and renderer entry bootstrap.
+  - apps/tester/src/tester/kit-component-gallery.tsx renders a non-demo app-developer gallery from real Kit UI primitives.
+  - apps/tester/src/shell/routes/settings.tsx consumes Kit model-config, chat, avatar, commerce, and UI feature surfaces in a separate product flow.
+  - apps/tester/src/shell/ai/tester-ai-config-settings.tsx consumes Kit model-config and model-picker contracts.
+  - apps/tester/test/tester-contract.test.mjs verifies Kit gallery, shell bridge bootstrap, settings model binding, avatar voice projection, and app scaffold boundaries.
+  - apps/tester/test/scaffold-boundary.test.mjs verifies Tester stays a scaffolded app consumer rather than a Desktop source fork.
+regression_guards:
+  - apps/desktop/test/kit-shared-primitives-domain-boundary.test.ts aggregates the domain hardcut for Desktop consumers, Tester proof, Kit SDK import centralization, and Kit feature boundary imports.
+  - apps/desktop/test/kit-ui-boundary.test.ts blocks Desktop local forwarding shells for Kit UI primitives.
+  - apps/tester/test/tester-contract.test.mjs verifies Tester consumption of Kit shared surfaces.
+  - apps/tester/test/scaffold-boundary.test.mjs guards Tester scaffold/app-consumer boundaries.
+prohibited_patterns:
+  - target: apps/desktop/src/shell/renderer
+    absent:
+      - "@renderer/components/(action|surface|scroll-shell|design-tokens|sidebar|tooltip)"
+  - target: apps/desktop/src/shell/renderer/components
+    absent_files:
+      - action.tsx
+      - surface.tsx
+      - scroll-shell.tsx
+      - design-tokens.ts
+      - sidebar.tsx
+      - tooltip.tsx
+  - target: kit non-test source except kit/core/src/sdk-contract.ts
+    absent:
+      - "from '@nimiplatform/sdk"
+      - "import('@nimiplatform/sdk"
+  - target: kit/features non-test source
+    absent:
+      - "apps/"
+      - "@renderer"
+      - "runtime/internal"
+      - "dataSync"
+verification:
+  status: passed
+  passed:
+    - command: node -e "const fs=require('fs'); const yaml=require('yaml'); yaml.parse(fs.readFileSync('config/desktop-ecosystem-boundary-domain-closure/kit-shared-primitives.yaml','utf8'));"
+      evidence: Kit shared-primitives closure record parses as YAML.
+    - command: pnpm --filter @nimiplatform/desktop exec tsx --test test/kit-shared-primitives-domain-boundary.test.ts test/kit-ui-boundary.test.ts
+      evidence: Desktop consumes Kit shared UI, telemetry, feature primitives, and no local Kit forwarding shells remain.
+    - command: pnpm --filter @nimiplatform/tester exec node --test test/scaffold-boundary.test.mjs test/tester-contract.test.mjs
+      evidence: Tester proves Kit shell bootstrap, Kit UI gallery, Kit model-config/chat/avatar/commerce consumers, and scaffold boundaries.
+    - command: pnpm --filter @nimiplatform/kit build
+      evidence: Kit source compiles and local dist is rebuilt so self-referenced package exports expose the SDK contract updates.
+    - command: pnpm --filter @nimiplatform/kit exec vitest run --environment jsdom ui/test/primitives.test.tsx ui/test/material-ambient.test.tsx shell/renderer/test/runtime-bridge.test.ts shell/renderer/test/bootstrap.test.ts shell/renderer/test/auth-session-bridge.test.ts test/renderer-telemetry.test.ts features/chat/test/conversation-shell-ui.test.tsx features/chat/test/realm-chat.test.tsx features/model-picker/test/runtime-model-picker.test.tsx features/model-config/test/model-config-panel.test.tsx features/model-config/test/use-model-config-profile-controller.test.tsx features/generation/test/generation-panel.test.tsx features/commerce/test/send-gift-dialog.test.tsx features/avatar/test/avatar-stage.test.tsx
+      evidence: Kit UI, shell renderer, telemetry, chat, model-picker, model-config, generation, commerce, and avatar focused suites pass.
+    - command: rg -n "from ['\"]@nimiplatform/sdk|import\\(['\"]@nimiplatform/sdk" kit -g '*.ts' -g '*.tsx' -g '!**/*.test.*' -g '!**/test/**' -g '!**/dist/**' -g '!**/generated/**' -g '!**/gen/**'
+      evidence: Only kit/core/src/sdk-contract.ts contains static SDK imports in Kit non-test source.
+    - command: rg -n "from ['\"](?:apps/|@renderer|runtime/internal)|import\\(['\"](?:apps/|@renderer|runtime/internal)|dataSync" kit/features -g '*.ts' -g '*.tsx' -g '!**/*.test.*' -g '!**/test/**' -g '!**/dist/**' -g '!**/generated/**' -g '!**/gen/**'
+      evidence: No Kit feature module imports app aliases, app sources, dataSync, or Runtime internals.
+    - command: pnpm check:nimi-kit
+      evidence: Kit registry/package/dist/canonical capability checks pass.
+    - command: pnpm check:no-legacy-imports
+      evidence: Legacy import guard passes.
+    - command: pnpm check:no-absolute-user-paths
+      evidence: Absolute user-home path guard passes.
+    - command: git diff --check
+      evidence: Patch whitespace passes.
+  command_notes:
+    - command: pnpm --filter @nimiplatform/kit exec vitest run --environment jsdom ...
+      status: failed-before-kit-dist-rebuild-then-passed
+      evidence: Initial run showed resolveRealmMediaUrl undefined through Kit self-reference because local dist was stale; pnpm --filter @nimiplatform/kit build refreshed dist, then the same focused Kit suite passed.

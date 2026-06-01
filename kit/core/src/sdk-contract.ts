@@ -44,6 +44,7 @@
  *       auth/src/logic/auth-menu-handlers.ts:2,
  *       auth/src/platform/auth-platform-adapter.ts:2)
  *     - OAuthLoginState (auth/src/logic/auth-menu-handlers.ts:3)
+ *     - resolveRealmMediaUrl (chat/src/realm/helpers.ts)
  *   @nimiplatform/sdk/types — typed error envelope
  *     - NimiError (chat/src/runtime.ts:16)
  *     - ReasonCode (reserved for kit SDK-boundary consumers)
@@ -52,6 +53,8 @@
  *       core/model-config/profile-controller-core.ts:20)
  *     - AIConfig (features/model-config/src/components/model-config-ai-model-hub.tsx:3,
  *       features/model-config/src/components/model-config-capability-detail.tsx:12)
+ *     - AIProfileApplyResult, AIProfilePreviewResult, AIScopeRef
+ *       (features/model-config/src/headless/use-model-config-profile-controller.ts)
  *
  * Authority cross-reference
  * --------------------------
@@ -174,7 +177,7 @@ export type {
   RealmServiceRegistry,
   RealmModel,
 } from '@nimiplatform/sdk/realm';
-export { OAuthLoginState } from '@nimiplatform/sdk/realm';
+export { OAuthLoginState, resolveRealmMediaUrl } from '@nimiplatform/sdk/realm';
 
 // --- Typed error envelope ---------------------------------------------------
 export type { NimiError } from '@nimiplatform/sdk/types';
@@ -190,6 +193,9 @@ export { ReasonCode } from '@nimiplatform/sdk/types';
 //     (AIConfig)
 //   - features/model-config/src/components/model-config-capability-detail.tsx
 //     (AIConfig)
+//   - features/model-config/src/headless/use-model-config-profile-controller.ts
+//     (AIConfig, AIProfile, AIProfileApplyResult, AIProfilePreviewResult,
+//      AIScopeRef)
 export type {
   AIConfig,
   AIProfile,
