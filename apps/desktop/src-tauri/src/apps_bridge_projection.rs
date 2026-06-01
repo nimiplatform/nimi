@@ -8,10 +8,11 @@
 //!
 //! T4 Fork C: `~/.nimi/apps/registry.json` is the runtime source the Apps
 //! bridge reads — the build-time `generated.ts` is retired as the bridge
-//! source. This command is the seam: it ensures the `~/.nimi` Apps registry
-//! projection is materialized from Platform catalog truth, then projects it
-//! into the exact SDK transport shapes. Package readiness is requested from
-//! Runtime `GetAppPackageReadiness`; Desktop does not scan Runtime evidence.
+//! source. This command is the seam: it invokes the Kit materializer, which
+//! writes the `~/.nimi` Apps registry projection only when absent and fails
+//! closed on repair-routed files, then projects it into the exact SDK
+//! transport shapes. Package readiness is requested from Runtime
+//! `GetAppPackageReadiness`; Desktop does not scan Runtime evidence.
 //!
 //! The release descriptors are sourced from the same packaged Platform release
 //! descriptor catalog the registry projection resolves against; they are
@@ -27,9 +28,9 @@ use nimi_shell_tauri::platform_projection::apps_packages::APPS_PACKAGES_POINTER;
 
 /// Build the Apps bridge projection.
 ///
-/// Ensures `~/.nimi/apps/registry.json` is materialized, then projects it plus
-/// the immutable Platform release descriptor catalog into the SDK transport
-/// loader shapes the Desktop Apps bridge consumes.
+/// Ensures `~/.nimi/apps/registry.json` is materialized only when absent, then
+/// projects it plus the immutable Platform release descriptor catalog into the
+/// SDK transport loader shapes the Desktop Apps bridge consumes.
 pub fn build_apps_bridge_projection() -> Result<AppsBridgeProjection, String> {
     let registry = ensure_apps_registry()?;
     let packages_path = apps_packages_pointer_path()?;

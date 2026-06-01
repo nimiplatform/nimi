@@ -1,10 +1,14 @@
 //! Pure `~/.nimi/apps/registry.json` projection rules.
 
+use crate::governed_config::{
+    read_governed_config, write_governed_json_config, ConfigReadOutcome, GovernedConfigFile,
+};
 use crate::platform_catalog::nimi_app_registry::{
     resolve_release_descriptor, PlatformNimiAppRegistryRow, PLATFORM_NIMI_APP_REGISTRY_CATALOG_ID,
     PLATFORM_NIMI_APP_REGISTRY_CATALOG_VERSION, PLATFORM_NIMI_APP_REGISTRY_ROWS,
 };
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 
 /// Supported `~/.nimi/apps/registry.json` schema version.
 pub const APPS_REGISTRY_SCHEMA_VERSION: u32 = 1;
@@ -12,6 +16,14 @@ pub const APPS_REGISTRY_SCHEMA_VERSION: u32 = 1;
 /// `~/.nimi`-relative location of the registry projection. This is the manual
 /// `~/.nimi/nimi.json` `pointers.appRegistry` value.
 pub const APPS_REGISTRY_POINTER: &str = "apps/registry.json";
+
+/// Governed config-file identity for `~/.nimi/apps/registry.json`
+/// (`local-config-file-registry.yaml` row `registry_json`).
+pub const APPS_REGISTRY_CONFIG_FILE: GovernedConfigFile = GovernedConfigFile::new(
+    "registry_json",
+    "~/.nimi/apps/registry.json",
+    APPS_REGISTRY_SCHEMA_VERSION,
+);
 
 const INSTALL_STATE_NOT_INSTALLED: &str = "not_installed";
 const INSTALL_STATE_BUNDLED: &str = "bundled";
@@ -201,13 +213,56 @@ pub fn validate_apps_registry_record(record: &AppsRegistryRecord) -> Result<(), 
     Ok(())
 }
 
+/// Read an installed Apps registry projection through the shared repair
+/// framework without mutating the file.
+pub fn read_apps_registry_projection(
+    path: &Path,
+) -> Result<ConfigReadOutcome<AppsRegistryRecord>, String> {
+    read_governed_config(&APPS_REGISTRY_CONFIG_FILE, path, |document| {
+        let record: AppsRegistryRecord = serde_json::from_value(document.clone())
+            .map_err(|error| format!("registry projection cannot be deserialized: {error}"))?;
+        validate_apps_registry_record(&record)?;
+        Ok(record)
+    })
+}
+
+/// Materialize the installed Apps registry projection if it is absent.
+///
+/// Current-schema files are returned as-is. Repair-routed files are left
+/// untouched and surfaced to the caller; this function never overwrites a
+/// faulted or future-schema projection.
+pub fn materialize_apps_registry_projection(
+    path: &Path,
+) -> Result<ConfigReadOutcome<AppsRegistryRecord>, String> {
+    match read_apps_registry_projection(path)? {
+        ConfigReadOutcome::Absent => {
+            let record = build_apps_registry_record()?;
+            write_governed_json_config(path, &record, validate_apps_registry_record)?;
+            Ok(ConfigReadOutcome::Ready(record))
+        }
+        other => Ok(other),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        build_apps_registry_record, validate_apps_registry_record, AppsRegistryRecord,
-        APPS_REGISTRY_SCHEMA_VERSION,
+        build_apps_registry_record, materialize_apps_registry_projection,
+        validate_apps_registry_record, AppsRegistryRecord, APPS_REGISTRY_SCHEMA_VERSION,
     };
+    use crate::governed_config::{ConfigReadOutcome, ConfigRepairSeverity};
     use crate::platform_catalog::nimi_app_registry::PLATFORM_NIMI_APP_REGISTRY_ROWS;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_projection_path(prefix: &str) -> std::path::PathBuf {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        std::env::temp_dir()
+            .join(format!("nimi-kit-apps-registry-{prefix}-{unique}"))
+            .join("registry.json")
+    }
 
     #[test]
     fn projection_sources_every_catalog_row_without_inventing_rows() {
@@ -250,5 +305,32 @@ mod tests {
         let raw = serde_json::to_string_pretty(&record).expect("serialize");
         let parsed: AppsRegistryRecord = serde_json::from_str(&raw).expect("deserialize");
         assert_eq!(record, parsed);
+    }
+
+    #[test]
+    fn materializer_writes_absent_projection() {
+        let path = temp_projection_path("absent");
+        let outcome = materialize_apps_registry_projection(&path).expect("materialize");
+        assert!(matches!(outcome, ConfigReadOutcome::Ready(_)));
+        assert!(path.exists());
+    }
+
+    #[test]
+    fn materializer_routes_future_schema_to_repair_without_overwrite() {
+        let path = temp_projection_path("future");
+        std::fs::create_dir_all(path.parent().expect("parent")).expect("mkdir");
+        let mut record = build_apps_registry_record().expect("record");
+        record.schema_version = 9999;
+        let future_raw = serde_json::to_string_pretty(&record).expect("json");
+        std::fs::write(&path, &future_raw).expect("write future schema");
+
+        match materialize_apps_registry_projection(&path).expect("materialize") {
+            ConfigReadOutcome::Repair { severity, reason } => {
+                assert_eq!(severity, ConfigRepairSeverity::RepairRequired);
+                assert!(reason.contains("newer than the supported version"));
+            }
+            other => panic!("expected repair_required, got {other:?}"),
+        }
+        assert_eq!(std::fs::read_to_string(&path).expect("read"), future_raw);
     }
 }

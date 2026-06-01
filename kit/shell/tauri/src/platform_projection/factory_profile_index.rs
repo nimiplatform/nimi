@@ -1,10 +1,14 @@
 //! Pure `~/.nimi/profiles/factory-index.json` projection rules.
 
+use crate::governed_config::{
+    read_governed_config, write_governed_json_config, ConfigReadOutcome, GovernedConfigFile,
+};
 use crate::platform_catalog::ai_profile_factory::{
     PlatformAIProfileFactoryRow, PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION,
     PLATFORM_AI_PROFILE_FACTORY_ROWS, PLATFORM_AI_PROFILE_SELECTION_POLICY_REF,
 };
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 
 pub const FACTORY_PROFILE_INDEX_SCHEMA_VERSION: u32 = 1;
 
@@ -12,6 +16,14 @@ const FACTORY_PROFILE_REF_PREFIX: &str = "factory-ai-profile";
 
 /// `~/.nimi`-relative location of the factory profile index projection.
 pub const FACTORY_PROFILE_INDEX_POINTER: &str = "profiles/factory-index.json";
+
+/// Governed config-file identity for `~/.nimi/profiles/factory-index.json`
+/// (`local-config-file-registry.yaml` row `factory_index_json`).
+pub const FACTORY_PROFILE_INDEX_CONFIG_FILE: GovernedConfigFile = GovernedConfigFile::new(
+    "factory_index_json",
+    "~/.nimi/profiles/factory-index.json",
+    FACTORY_PROFILE_INDEX_SCHEMA_VERSION,
+);
 
 /// One projected factory profile row.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -203,16 +215,60 @@ pub fn validate_factory_profile_index_record(
     Ok(())
 }
 
+/// Read an installed factory profile index projection through the shared
+/// repair framework without mutating the file.
+pub fn read_factory_profile_index_projection(
+    path: &Path,
+) -> Result<ConfigReadOutcome<FactoryProfileIndexRecord>, String> {
+    read_governed_config(&FACTORY_PROFILE_INDEX_CONFIG_FILE, path, |document| {
+        let record: FactoryProfileIndexRecord = serde_json::from_value(document.clone())
+            .map_err(|error| format!("factory profile index cannot be deserialized: {error}"))?;
+        validate_factory_profile_index_record(&record)?;
+        Ok(record)
+    })
+}
+
+/// Materialize the installed factory profile index projection if it is absent.
+///
+/// Current-schema files are returned as-is. Repair-routed files are left
+/// untouched and surfaced to the caller; this function never overwrites a
+/// faulted or future-schema projection.
+pub fn materialize_factory_profile_index_projection(
+    path: &Path,
+) -> Result<ConfigReadOutcome<FactoryProfileIndexRecord>, String> {
+    match read_factory_profile_index_projection(path)? {
+        ConfigReadOutcome::Absent => {
+            let record = build_factory_profile_index_record()?;
+            write_governed_json_config(path, &record, validate_factory_profile_index_record)?;
+            Ok(ConfigReadOutcome::Ready(record))
+        }
+        other => Ok(other),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        build_factory_profile_index_record, validate_factory_profile_index_record,
-        FactoryProfileIndexRecord, FACTORY_PROFILE_INDEX_SCHEMA_VERSION,
+        build_factory_profile_index_record, materialize_factory_profile_index_projection,
+        validate_factory_profile_index_record, FactoryProfileIndexRecord,
+        FACTORY_PROFILE_INDEX_SCHEMA_VERSION,
     };
+    use crate::governed_config::{ConfigReadOutcome, ConfigRepairSeverity};
     use crate::platform_catalog::ai_profile_factory::{
         PLATFORM_AI_PROFILE_FACTORY_CATALOG_VERSION, PLATFORM_AI_PROFILE_FACTORY_ROWS,
         PLATFORM_AI_PROFILE_SELECTION_POLICY_REF,
     };
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_projection_path(prefix: &str) -> std::path::PathBuf {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        std::env::temp_dir()
+            .join(format!("nimi-kit-factory-index-{prefix}-{unique}"))
+            .join("factory-index.json")
+    }
 
     #[test]
     fn projection_sources_every_catalog_row_without_inventing_rows() {
@@ -287,5 +343,32 @@ mod tests {
         let raw = serde_json::to_string_pretty(&record).expect("serialize");
         let parsed: FactoryProfileIndexRecord = serde_json::from_str(&raw).expect("deserialize");
         assert_eq!(record, parsed);
+    }
+
+    #[test]
+    fn materializer_writes_absent_projection() {
+        let path = temp_projection_path("absent");
+        let outcome = materialize_factory_profile_index_projection(&path).expect("materialize");
+        assert!(matches!(outcome, ConfigReadOutcome::Ready(_)));
+        assert!(path.exists());
+    }
+
+    #[test]
+    fn materializer_routes_future_schema_to_repair_without_overwrite() {
+        let path = temp_projection_path("future");
+        std::fs::create_dir_all(path.parent().expect("parent")).expect("mkdir");
+        let mut record = build_factory_profile_index_record().expect("record");
+        record.schema_version = 9999;
+        let future_raw = serde_json::to_string_pretty(&record).expect("json");
+        std::fs::write(&path, &future_raw).expect("write future schema");
+
+        match materialize_factory_profile_index_projection(&path).expect("materialize") {
+            ConfigReadOutcome::Repair { severity, reason } => {
+                assert_eq!(severity, ConfigRepairSeverity::RepairRequired);
+                assert!(reason.contains("newer than the supported version"));
+            }
+            other => panic!("expected repair_required, got {other:?}"),
+        }
+        assert_eq!(std::fs::read_to_string(&path).expect("read"), future_raw);
     }
 }

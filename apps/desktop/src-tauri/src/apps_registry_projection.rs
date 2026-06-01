@@ -21,23 +21,13 @@
 //! consuming bridge transport.
 
 use crate::desktop_paths::resolve_nimi_dir;
-use nimi_shell_tauri::governed_config::{
-    read_governed_config, write_governed_json_config, ConfigReadOutcome, GovernedConfigFile,
-};
+use nimi_shell_tauri::governed_config::ConfigReadOutcome;
 use nimi_shell_tauri::platform_projection::apps_registry::{
-    build_apps_registry_record, validate_apps_registry_record, AppsRegistryRecord,
-    APPS_REGISTRY_POINTER, APPS_REGISTRY_SCHEMA_VERSION,
+    build_apps_registry_record, materialize_apps_registry_projection, read_apps_registry_projection,
+    AppsRegistryRecord, APPS_REGISTRY_POINTER, APPS_REGISTRY_SCHEMA_VERSION,
 };
 use serde::Serialize;
 use std::path::PathBuf;
-
-/// Governed config-file identity for `~/.nimi/apps/registry.json`
-/// (`local-config-file-registry.yaml` row `registry_json`).
-const REGISTRY_CONFIG_FILE: GovernedConfigFile = GovernedConfigFile::new(
-    "registry_json",
-    "~/.nimi/apps/registry.json",
-    APPS_REGISTRY_SCHEMA_VERSION,
-);
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -67,12 +57,7 @@ pub fn apps_registry_path() -> Result<PathBuf, String> {
 /// file is faulted and was left intact for a guided repair.
 pub fn read_apps_registry_governed() -> Result<ConfigReadOutcome<AppsRegistryRecord>, String> {
     let path = apps_registry_path()?;
-    read_governed_config(&REGISTRY_CONFIG_FILE, &path, |document| {
-        let record: AppsRegistryRecord = serde_json::from_value(document.clone())
-            .map_err(|error| format!("registry projection cannot be deserialized: {error}"))?;
-        validate_apps_registry_record(&record)?;
-        Ok(record)
-    })
+    read_apps_registry_projection(&path)
 }
 
 /// Read the installed registry projection, if present.
@@ -89,19 +74,21 @@ pub fn read_apps_registry() -> Result<Option<AppsRegistryRecord>, String> {
     }
 }
 
-/// Regenerate `~/.nimi/apps/registry.json` from the packaged Platform Nimi App
-/// registry catalog and return the installed projection.
+/// Materialize `~/.nimi/apps/registry.json` from the packaged Platform Nimi App
+/// registry catalog only when the projection is absent.
 ///
-/// Deterministic catalog projection: it always derives the record from catalog
-/// truth and overwrites any prior projection.
+/// Current-schema files are returned as-is. Repair-routed files are surfaced as
+/// a typed error and left intact for guided repair.
 pub fn ensure_apps_registry() -> Result<AppsRegistryProjection, String> {
     let path = apps_registry_path()?;
-    let record = build_apps_registry_record()?;
-    write_governed_json_config(&path, &record, validate_apps_registry_record)?;
-    Ok(AppsRegistryProjection {
-        path: path.display().to_string(),
-        record,
-    })
+    match materialize_apps_registry_projection(&path)? {
+        ConfigReadOutcome::Ready(record) => Ok(AppsRegistryProjection {
+            path: path.display().to_string(),
+            record,
+        }),
+        ConfigReadOutcome::Absent => Err("registry projection materializer returned absent".to_string()),
+        ConfigReadOutcome::Repair { reason, .. } => Err(reason),
+    }
 }
 
 #[cfg(test)]
@@ -219,6 +206,32 @@ mod tests {
                 std::fs::read_to_string(&path).expect("read after"),
                 future_raw,
                 "the faulted file is left intact for repair"
+            );
+        });
+    }
+
+    #[test]
+    fn ensure_does_not_overwrite_future_schema_projection() {
+        let home = temp_home("ensure-future-schema");
+        with_env(&[("HOME", home.to_str())], || {
+            ensure_apps_registry().expect("ensure");
+            let path = apps_registry_path().expect("path");
+            let mut record = serde_json::from_str::<serde_json::Value>(
+                &std::fs::read_to_string(&path).expect("read"),
+            )
+            .expect("parse");
+            record
+                .as_object_mut()
+                .expect("object")
+                .insert("schemaVersion".to_string(), serde_json::json!(9999));
+            let future_raw = serde_json::to_string_pretty(&record).expect("json");
+            std::fs::write(&path, &future_raw).expect("write future schema");
+
+            let error = ensure_apps_registry().expect_err("future schema repair");
+            assert!(error.contains("newer than the supported version"));
+            assert_eq!(
+                std::fs::read_to_string(&path).expect("read after"),
+                future_raw
             );
         });
     }

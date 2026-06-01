@@ -207,6 +207,14 @@ mod tests {
             assert_eq!(selected_product_data_root().expect("selected"), root);
             assert!(root.join("models").exists());
             assert!(root.join("apps").exists());
+            assert!(
+                !home.join(".nimi").join("profiles").join("factory-index.json").exists(),
+                "product-control pointer resolution must not materialize the factory projection"
+            );
+            assert!(
+                !home.join(".nimi").join("apps").join("registry.json").exists(),
+                "product-control pointer resolution must not materialize the apps registry"
+            );
             let record = projection.record.expect("record");
             assert_eq!(
                 record.data_root.expect("data root").status,

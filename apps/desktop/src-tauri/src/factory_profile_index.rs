@@ -18,23 +18,14 @@
 //! module never writes account-scoped records.
 
 use crate::desktop_paths::resolve_nimi_dir;
-use nimi_shell_tauri::governed_config::{
-    read_governed_config, write_governed_json_config, ConfigReadOutcome, GovernedConfigFile,
-};
+use nimi_shell_tauri::governed_config::ConfigReadOutcome;
 use nimi_shell_tauri::platform_projection::factory_profile_index::{
-    build_factory_profile_index_record, validate_factory_profile_index_record,
-    FactoryProfileIndexRecord, FACTORY_PROFILE_INDEX_POINTER, FACTORY_PROFILE_INDEX_SCHEMA_VERSION,
+    build_factory_profile_index_record, materialize_factory_profile_index_projection,
+    read_factory_profile_index_projection, FactoryProfileIndexRecord,
+    FACTORY_PROFILE_INDEX_POINTER, FACTORY_PROFILE_INDEX_SCHEMA_VERSION,
 };
 use serde::Serialize;
 use std::path::PathBuf;
-
-/// Governed config-file identity for `~/.nimi/profiles/factory-index.json`
-/// (`local-config-file-registry.yaml` row `factory_index_json`).
-const FACTORY_INDEX_CONFIG_FILE: GovernedConfigFile = GovernedConfigFile::new(
-    "factory_index_json",
-    "~/.nimi/profiles/factory-index.json",
-    FACTORY_PROFILE_INDEX_SCHEMA_VERSION,
-);
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -68,12 +59,7 @@ pub fn factory_profile_index_path() -> Result<PathBuf, String> {
 pub fn read_factory_profile_index_governed(
 ) -> Result<ConfigReadOutcome<FactoryProfileIndexRecord>, String> {
     let path = factory_profile_index_path()?;
-    read_governed_config(&FACTORY_INDEX_CONFIG_FILE, &path, |document| {
-        let record: FactoryProfileIndexRecord = serde_json::from_value(document.clone())
-            .map_err(|error| format!("factory profile index cannot be deserialized: {error}"))?;
-        validate_factory_profile_index_record(&record)?;
-        Ok(record)
-    })
+    read_factory_profile_index_projection(&path)
 }
 
 /// Read the installed factory profile index projection, if present.
@@ -90,20 +76,24 @@ pub fn read_factory_profile_index() -> Result<Option<FactoryProfileIndexRecord>,
     }
 }
 
-/// Regenerate `~/.nimi/profiles/factory-index.json` from the packaged Platform
-/// factory catalog and return the installed projection.
+/// Materialize `~/.nimi/profiles/factory-index.json` from the packaged
+/// Platform factory catalog only when the projection is absent.
 ///
-/// This is a deterministic catalog projection: it always derives the record
-/// from catalog truth and overwrites any prior projection. It never reads,
-/// seeds, or restores the Account Default Profile.
+/// Current-schema files are returned as-is. Repair-routed files are surfaced as
+/// a typed error and left intact for guided repair. This never reads, seeds, or
+/// restores the Account Default Profile.
 pub fn ensure_factory_profile_index() -> Result<FactoryProfileIndexProjection, String> {
     let path = factory_profile_index_path()?;
-    let record = build_factory_profile_index_record()?;
-    write_governed_json_config(&path, &record, validate_factory_profile_index_record)?;
-    Ok(FactoryProfileIndexProjection {
-        path: path.display().to_string(),
-        record,
-    })
+    match materialize_factory_profile_index_projection(&path)? {
+        ConfigReadOutcome::Ready(record) => Ok(FactoryProfileIndexProjection {
+            path: path.display().to_string(),
+            record,
+        }),
+        ConfigReadOutcome::Absent => {
+            Err("factory profile index materializer returned absent".to_string())
+        }
+        ConfigReadOutcome::Repair { reason, .. } => Err(reason),
+    }
 }
 
 #[cfg(test)]
@@ -260,6 +250,32 @@ mod tests {
                 std::fs::read_to_string(&path).expect("read after"),
                 future_raw,
                 "the faulted file is left intact for repair"
+            );
+        });
+    }
+
+    #[test]
+    fn ensure_does_not_overwrite_future_schema_projection() {
+        let home = temp_home("ensure-future-schema");
+        with_env(&[("HOME", home.to_str())], || {
+            ensure_factory_profile_index().expect("ensure");
+            let path = factory_profile_index_path().expect("path");
+            let mut record = serde_json::from_str::<serde_json::Value>(
+                &std::fs::read_to_string(&path).expect("read"),
+            )
+            .expect("parse");
+            record
+                .as_object_mut()
+                .expect("object")
+                .insert("schemaVersion".to_string(), serde_json::json!(9999));
+            let future_raw = serde_json::to_string_pretty(&record).expect("json");
+            std::fs::write(&path, &future_raw).expect("write future schema");
+
+            let error = ensure_factory_profile_index().expect_err("future schema repair");
+            assert!(error.contains("newer than the supported version"));
+            assert_eq!(
+                std::fs::read_to_string(&path).expect("read after"),
+                future_raw
             );
         });
     }

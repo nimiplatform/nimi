@@ -124,6 +124,93 @@ mod tests {
     }
 
     #[test]
+    fn tester_consumes_shared_platform_projection_materializers_from_kit() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("nimi-tester-platform-projection-{unique}"));
+        let registry_path = dir.join("apps").join("registry.json");
+        let factory_path = dir.join("profiles").join("factory-index.json");
+
+        let registry_outcome =
+            nimi_shell_tauri::platform_projection::apps_registry::materialize_apps_registry_projection(
+                &registry_path,
+            )
+            .expect("materialize registry");
+        assert!(matches!(
+            registry_outcome,
+            nimi_shell_tauri::governed_config::ConfigReadOutcome::Ready(_)
+        ));
+        assert!(registry_path.exists());
+
+        let factory_outcome = nimi_shell_tauri::platform_projection::factory_profile_index::materialize_factory_profile_index_projection(
+            &factory_path,
+        )
+        .expect("materialize factory index");
+        assert!(matches!(
+            factory_outcome,
+            nimi_shell_tauri::governed_config::ConfigReadOutcome::Ready(_)
+        ));
+        assert!(factory_path.exists());
+
+        let future_registry_path = dir.join("apps").join("future-registry.json");
+        let mut future_registry =
+            nimi_shell_tauri::platform_projection::apps_registry::build_apps_registry_record()
+                .expect("registry record");
+        future_registry.schema_version = 9999;
+        let future_registry_raw =
+            serde_json::to_string_pretty(&future_registry).expect("registry json");
+        std::fs::write(&future_registry_path, &future_registry_raw).expect("write registry");
+
+        match nimi_shell_tauri::platform_projection::apps_registry::materialize_apps_registry_projection(
+            &future_registry_path,
+        )
+        .expect("future registry materialize")
+        {
+            nimi_shell_tauri::governed_config::ConfigReadOutcome::Repair { severity, reason } => {
+                assert_eq!(
+                    severity,
+                    nimi_shell_tauri::governed_config::ConfigRepairSeverity::RepairRequired
+                );
+                assert!(reason.contains("newer than the supported version"));
+            }
+            other => panic!("expected registry repair state, got {other:?}"),
+        }
+        assert_eq!(
+            std::fs::read_to_string(&future_registry_path).expect("read registry"),
+            future_registry_raw
+        );
+
+        let future_factory_path = dir.join("profiles").join("future-factory-index.json");
+        let mut future_factory = nimi_shell_tauri::platform_projection::factory_profile_index::build_factory_profile_index_record()
+            .expect("factory record");
+        future_factory.schema_version = 9999;
+        let future_factory_raw =
+            serde_json::to_string_pretty(&future_factory).expect("factory json");
+        std::fs::write(&future_factory_path, &future_factory_raw).expect("write factory");
+
+        match nimi_shell_tauri::platform_projection::factory_profile_index::materialize_factory_profile_index_projection(
+            &future_factory_path,
+        )
+        .expect("future factory materialize")
+        {
+            nimi_shell_tauri::governed_config::ConfigReadOutcome::Repair { severity, reason } => {
+                assert_eq!(
+                    severity,
+                    nimi_shell_tauri::governed_config::ConfigRepairSeverity::RepairRequired
+                );
+                assert!(reason.contains("newer than the supported version"));
+            }
+            other => panic!("expected factory repair state, got {other:?}"),
+        }
+        assert_eq!(
+            std::fs::read_to_string(&future_factory_path).expect("read factory"),
+            future_factory_raw
+        );
+    }
+
+    #[test]
     fn tester_consumes_shared_governed_config_repair_framework() {
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)
