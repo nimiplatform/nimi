@@ -22,6 +22,16 @@ export type NimiError = Error & {
   details?: Record<string, unknown>;
 };
 
+export type CreateOfflineNimiErrorInput = {
+  source: NimiErrorSource;
+  reasonCode: string;
+  message: string;
+  actionHint: string;
+  retryable?: boolean;
+  traceId?: string;
+  details?: Record<string, unknown>;
+};
+
 export function isNimiErrorLike(error: unknown): error is NimiError {
   if (!error || typeof error !== 'object') {
     return false;
@@ -32,6 +42,34 @@ export function isNimiErrorLike(error: unknown): error is NimiError {
     && typeof record.traceId === 'string'
     && typeof record.retryable === 'boolean'
     && typeof record.source === 'string';
+}
+
+function createOfflineTraceId(): string {
+  const cryptoLike = globalThis.crypto as { randomUUID?: () => string } | undefined;
+  if (typeof cryptoLike?.randomUUID === 'function') {
+    return `offline_${cryptoLike.randomUUID()}`;
+  }
+  const random = Math.random().toString(36).slice(2, 12);
+  const timestamp = Date.now().toString(36);
+  return `offline_${timestamp}_${random}`;
+}
+
+export function createOfflineNimiError(input: CreateOfflineNimiErrorInput): NimiError {
+  const reasonCode = String(input.reasonCode || '').trim() || 'OFFLINE_ERROR';
+  const actionHint = String(input.actionHint || '').trim() || 'retry_when_online';
+  const message = String(input.message || '').trim() || reasonCode;
+  const error = new Error(message) as NimiError;
+  error.name = 'NimiError';
+  error.code = reasonCode;
+  error.reasonCode = reasonCode;
+  error.actionHint = actionHint;
+  error.traceId = String(input.traceId || '').trim() || createOfflineTraceId();
+  error.retryable = input.retryable !== false;
+  error.source = input.source;
+  if (input.details && typeof input.details === 'object') {
+    error.details = { ...input.details };
+  }
+  return error;
 }
 
 export type VersionCompatibilityStatus = {

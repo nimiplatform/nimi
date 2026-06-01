@@ -94,7 +94,7 @@ import {
   type RuntimeModelCatalogConnectorClient,
   type RuntimeModelCatalogProvider,
 } from '@nimiplatform/sdk/runtime';
-import { classifyOfflineError, classifyOfflineReasonCode, ReasonCode } from '@nimiplatform/sdk/types';
+import { classifyOfflineError, classifyOfflineReasonCode, createOfflineNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import {
   isRealmFeedScope,
   listRealmGroupChats,
@@ -789,11 +789,12 @@ export function SettingsRoute() {
   const offlineReasonProjection = {
     reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
     owner: classifyOfflineReasonCode(ReasonCode.RUNTIME_UNAVAILABLE) ?? 'unknown',
-    errorOwner: classifyOfflineError({
+    errorOwner: classifyOfflineError(createOfflineNimiError({
       reasonCode: ReasonCode.REALM_UNAVAILABLE,
       actionHint: 'retry_realm_request',
-      retryable: true,
-    }) ?? 'unknown',
+      message: 'Realm unavailable in Tester offline projection',
+      source: 'realm',
+    })) ?? 'unknown',
   };
   const runtimeDependencyStateProjection = {
     dependencyStartable: isLocalRuntimeEnvironmentDependencyStartableState('needs_confirmation'),

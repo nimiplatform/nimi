@@ -1,0 +1,134 @@
+status: migrated
+date: "2026-06-01"
+domain: offline-typed-error-projection
+migrated_in_this_commit: true
+authority_posture:
+  spec_status: alignment
+  authority_owner:
+    - sdk/src/types/index.ts
+    - kit/core/src/offline-coordinator.ts
+    - apps/desktop/src/shell/renderer/infra/offline/**
+    - apps/tester/src/shell/routes/settings.tsx
+  work_type: alignment
+  parallel_truth: forbidden
+scope:
+  included:
+    - Offline typed NimiError envelope construction and retryable/source/trace defaults.
+    - Realm/Runtime offline reason-code classification and transport-owner projection.
+    - Desktop offline facade consumption of SDK classification and Kit coordinator.
+    - Tester settings second-consumer proof for SDK offline typed error projection.
+  excluded:
+    - Desktop IndexedDB offline cache and outbox persistence, which remain product-local data durability.
+    - Realm/Runtime transport retry internals owned by SDK Realm/Runtime clients.
+    - Product UI copy and offline-tier presentation.
+preflight_violation_inventory:
+  platform_truth:
+    - finding: Desktop infra/offline owned construction of SDK NimiError-shaped offline envelopes, including reasonCode/actionHint/retryable/source and trace defaulting.
+      evidence_before: apps/desktop/src/shell/renderer/infra/offline/errors.ts imported createNimiError and createNimiClientId from @nimiplatform/sdk/runtime.
+      disposition: migrated_to_sdk_types_createOfflineNimiError
+    - finding: Offline reason-code ownership was already in SDK types, and reconnect tier ownership was already in Kit core.
+      evidence_current:
+        - sdk/src/types/index.ts classifyOfflineError/classifyOfflineReasonCode
+        - kit/core/src/offline-coordinator.ts OfflineCoordinator
+      disposition: retained_shared_owner
+  duplicate_implementation:
+    - finding: Tester had SDK offline classification proof but no shared typed offline error envelope proof.
+      evidence_before: apps/tester/src/shell/routes/settings.tsx used classifyOfflineError over a hand-shaped object.
+      disposition: Tester now consumes createOfflineNimiError from @nimiplatform/sdk/types.
+  boundary_imports:
+    - finding: Desktop offline facade should not import SDK Runtime just to create a typed offline error or trace id.
+      disposition: apps/desktop/src/shell/renderer/infra/offline/errors.ts imports only @nimiplatform/sdk/types for offline typed errors and classifiers.
+  token_session_runtime_realm_responsibility:
+    - finding: Offline errors are transport/projection metadata, not Runtime method ownership or Realm truth.
+      disposition: SDK types owns the typed error envelope; Runtime/Realm clients own transport behavior; Desktop owns only UI/cache/outbox reactions.
+audited_globs:
+  - apps/desktop/src/shell/renderer/infra/offline/**
+  - apps/desktop/src/shell/renderer/features/**/data/*.ts
+  - apps/desktop/src/shell/renderer/infra/local-agent-courier/**
+  - apps/desktop/test/offline-*.test.ts
+  - apps/desktop/test/offline-typed-error-domain-boundary.test.ts
+  - apps/tester/src/shell/routes/settings.tsx
+  - apps/tester/test/tester-contract.test.mjs
+  - sdk/src/types/index.ts
+  - sdk/test/types.test.ts
+  - kit/core/src/offline-coordinator.ts
+  - kit/test/offline-coordinator.test.ts
+migrated:
+  shared_owners:
+    - sdk/src/types/index.ts
+    - kit/core/src/offline-coordinator.ts
+  responsibilities:
+    - SDK types owns createOfflineNimiError, NimiError-shaped offline envelope defaults, and offline reason-code classification.
+    - Kit core owns OfflineCoordinator tier/reconnect state and timer-driven reconnect coordination.
+    - Desktop consumes those shared owners and keeps only product-local cache/outbox adapters and UI reaction wiring.
+  desktop_consumers:
+    - apps/desktop/src/shell/renderer/infra/offline/errors.ts consumes createOfflineNimiError and classifyOfflineError from @nimiplatform/sdk/types.
+    - apps/desktop/src/shell/renderer/infra/offline/index.ts consumes OfflineCoordinator from @nimiplatform/kit/core/offline-coordinator.
+  tester_consumers:
+    - apps/tester/src/shell/routes/settings.tsx consumes createOfflineNimiError, classifyOfflineError, and classifyOfflineReasonCode from @nimiplatform/sdk/types.
+    - apps/tester/src/shell/auth/auth-gate.tsx consumes OfflineCoordinator from @nimiplatform/kit/core/offline-coordinator.
+legal_desktop_residue:
+  - path: apps/desktop/src/shell/renderer/infra/offline/cache-manager.ts
+    rationale: Desktop owns product-local IndexedDB cache and outbox persistence for offline UI continuity; SDK/Kit own shared classification and coordination primitives.
+  - path: apps/desktop/src/shell/renderer/infra/offline/errors.ts
+    rationale: Desktop keeps thin aliases tailored to realm/runtime transport-owner defaults; typed envelope and classification semantics are SDK-owned.
+  - path: apps/desktop/src/shell/renderer/features/**/data/*.ts
+    rationale: Desktop owns product data fallback/cache reaction wiring; Realm/Runtime service truth and offline error classification are SDK-owned.
+  - path: apps/desktop/src/shell/renderer/infra/local-agent-courier/**
+    rationale: Desktop owns local courier scheduling against local Runtime availability; offline classification and reconnect tier state are shared SDK/Kit-owned primitives.
+tester_proof:
+  - apps/tester/src/shell/routes/settings.tsx consumes SDK createOfflineNimiError and classifiers in a non-Desktop settings projection.
+  - apps/tester/test/tester-contract.test.mjs proves Tester consumes the SDK offline typed error helper and rejects local offline reason-code sets.
+  - apps/tester/src/shell/auth/auth-gate.tsx consumes Kit OfflineCoordinator in runtime-unavailable flow.
+regression_guards:
+  - apps/desktop/test/offline-typed-error-domain-boundary.test.ts blocks Desktop from importing SDK Runtime createNimiError/createNimiClientId for offline typed errors and requires Tester second-consumer proof.
+  - apps/desktop/test/offline-error-classification.test.ts blocks Desktop local offline reason-code sets and message regex classifiers.
+  - apps/desktop/test/offline-reconnect-strategy.test.ts and apps/desktop/test/offline-degradation-tier.test.ts cover Kit OfflineCoordinator behavior through Desktop bindings.
+  - sdk/test/types.test.ts covers SDK offline typed error creation and offline classification.
+  - kit/test/offline-coordinator.test.ts covers Kit coordinator tier/reconnect behavior.
+prohibited_patterns:
+  - target: apps/desktop/src/shell/renderer/infra/offline/errors.ts
+    absent:
+      - createNimiError
+      - createNimiClientId
+      - randomTraceId
+      - REALM_OFFLINE_REASON_CODES
+      - RUNTIME_OFFLINE_REASON_CODES
+      - "fetch failed|failed to fetch"
+  - target: apps/tester/src/shell/routes/settings.tsx
+    required:
+      - createOfflineNimiError
+      - classifyOfflineError
+      - classifyOfflineReasonCode
+    absent:
+      - REALM_OFFLINE_REASON_CODES
+      - RUNTIME_OFFLINE_REASON_CODES
+verification:
+  status: passed
+  passed:
+    - command: pnpm --filter @nimiplatform/sdk build
+      evidence: SDK public types export compiles into package dist before app consumer tests.
+    - command: >-
+        node -e "const fs=require('fs'); const yaml=require('yaml'); yaml.parse(fs.readFileSync('config/desktop-ecosystem-boundary-domain-closure/offline-typed-error-projection.yaml','utf8'));"
+      evidence: Offline typed error closure record parses as YAML.
+    - command: pnpm --filter @nimiplatform/sdk exec tsx --test test/types.test.ts
+      evidence: SDK typed offline error helper and offline reason-code/classification tests pass.
+    - command: >-
+        pnpm --filter @nimiplatform/desktop exec tsx --test test/offline-typed-error-domain-boundary.test.ts test/offline-error-classification.test.ts test/offline-degradation-tier.test.ts test/offline-reconnect-strategy.test.ts test/offline-outbox-manager.test.ts
+      evidence: Desktop offline typed-error domain hardcut, classification, degradation tier, reconnect strategy, and outbox/cache behavior pass.
+    - command: pnpm --filter @nimiplatform/tester exec node --test test/tester-contract.test.mjs test/scaffold-boundary.test.mjs
+      evidence: Tester consumes SDK offline typed error helper and Kit OfflineCoordinator as second app proof.
+    - command: pnpm --filter @nimiplatform/kit exec vitest run test/offline-coordinator.test.ts
+      evidence: Kit OfflineCoordinator tier/reconnect focused tests pass.
+    - command: pnpm check:no-legacy-imports
+      evidence: Legacy import guard passes.
+    - command: pnpm check:no-absolute-user-paths
+      evidence: Absolute user-home path guard passes.
+    - command: pnpm check:no-app-realm-rest-bypass
+      evidence: App Realm REST bypass guard passes.
+    - command: git diff --check
+      evidence: Patch whitespace passes.
+  command_notes:
+    - command: pnpm --filter @nimiplatform/kit exec vitest run core/test/offline-coordinator.test.ts
+      status: failed-command-path
+      evidence: Initial path was wrong; rerun with test/offline-coordinator.test.ts passed.

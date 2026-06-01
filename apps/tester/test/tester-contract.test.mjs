@@ -1147,6 +1147,8 @@ test('tester settings consumes SDK offline reason-code projection', () => {
 
   assert.match(settings, /classifyOfflineError/);
   assert.match(settings, /classifyOfflineReasonCode/);
+  assert.match(settings, /createOfflineNimiError/);
+  assert.match(settings, /classifyOfflineError\(createOfflineNimiError\(/);
   assert.match(settings, /from '@nimiplatform\/sdk\/types'/);
   assert.match(settings, /ReasonCode\.REALM_UNAVAILABLE/);
   assert.match(settings, /ReasonCode\.RUNTIME_UNAVAILABLE/);

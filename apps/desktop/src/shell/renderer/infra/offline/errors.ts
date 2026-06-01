@@ -1,15 +1,11 @@
-import { createNimiClientId, createNimiError } from '@nimiplatform/sdk/runtime';
 import {
   classifyOfflineError,
+  createOfflineNimiError,
   type NimiError,
   type NimiErrorSource,
 } from '@nimiplatform/sdk/types';
 
 export { isNimiErrorLike } from '@nimiplatform/sdk/types';
-
-function randomTraceId(): string {
-  return createNimiClientId('offline');
-}
 
 export function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
@@ -35,14 +31,11 @@ export function createOfflineError(input: {
   actionHint: string;
   retryable?: boolean;
 }): NimiError {
-  return createNimiError({
+  return createOfflineNimiError({
     message: input.message,
-    code: input.reasonCode,
     reasonCode: input.reasonCode,
     actionHint: input.actionHint,
-    traceId: randomTraceId(),
     retryable: input.retryable !== false,
     source: input.source,
-    details: {},
   });
 }

@@ -8,6 +8,7 @@ import {
   asScopeName,
   classifyOfflineError,
   classifyOfflineReasonCode,
+  createOfflineNimiError,
   isNimiErrorLike,
   isRealmOfflineErrorLike,
   isRuntimeOfflineErrorLike,
@@ -63,4 +64,27 @@ test('offline error projections prefer structured ReasonCode over retryable meta
   }), null);
   assert.equal(isRealmOfflineErrorLike(new Error('fetch failed'), { transportOwner: 'realm' }), true);
   assert.equal(isRuntimeOfflineErrorLike(new Error('daemon unavailable')), true);
+});
+
+test('createOfflineNimiError produces SDK-owned typed offline error envelopes', () => {
+  const error = createOfflineNimiError({
+    source: 'runtime',
+    reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+    message: 'runtime unavailable',
+    actionHint: 'retry_runtime_when_online',
+    retryable: false,
+    traceId: 'offline-test-trace',
+    details: { lane: 'tester' },
+  });
+
+  assert.equal(error.name, 'NimiError');
+  assert.equal(error.code, ReasonCode.RUNTIME_UNAVAILABLE);
+  assert.equal(error.reasonCode, ReasonCode.RUNTIME_UNAVAILABLE);
+  assert.equal(error.actionHint, 'retry_runtime_when_online');
+  assert.equal(error.traceId, 'offline-test-trace');
+  assert.equal(error.retryable, false);
+  assert.equal(error.source, 'runtime');
+  assert.deepEqual(error.details, { lane: 'tester' });
+  assert.equal(isNimiErrorLike(error), true);
+  assert.equal(classifyOfflineError(error), 'runtime');
 });
