@@ -309,7 +309,7 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "simplex-noise": "^4.0.3",
-    "@tanstack/react-virtual": "^3.13.25",
+    "@tanstack/react-virtual": "^3.13.26",
     "tailwind-merge": "^3.6.0",
     "three": "^0.184.0",
     "zod": "4.4.3"
@@ -334,7 +334,7 @@
     "@types/three": "^0.184.1",
     "@vitejs/plugin-react": "^5.1.4",
     "jsdom": "^28.1.0",
-    "tsx": "^4.22.3",
+    "tsx": "^4.22.4",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vitest": "^4.1.7"
