@@ -42,7 +42,6 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn with_env_vars(vars: &[(&str, Option<&str>)], run: impl FnOnce()) {
@@ -65,39 +64,6 @@ mod tests {
                 None => std::env::remove_var(&key),
             }
         }
-    }
-
-    fn write_runtime_install_evidence(
-        data_root: &Path,
-        app_id: &str,
-        version: &str,
-        verification_state: &str,
-    ) {
-        let release_root = data_root
-            .join("apps")
-            .join(app_id)
-            .join("releases")
-            .join(version);
-        let evidence_dir = release_root.join(".nimi");
-        std::fs::create_dir_all(&evidence_dir).expect("mkdir install evidence");
-        let app_root = data_root.join("apps").join(app_id);
-        let evidence = serde_json::json!({
-            "appId": app_id,
-            "releaseDescriptorRef": format!("{app_id}.bundled-with-nimi"),
-            "storagePolicyRef": "nimi-data-app-roots",
-            "installedVersion": version,
-            "sha256": "abc123",
-            "verificationState": verification_state,
-            "releaseRoot": release_root.display().to_string(),
-            "durableDataRoot": app_root.join("data").display().to_string(),
-            "cacheRoot": app_root.join("cache").display().to_string(),
-            "tempRoot": app_root.join("tmp").display().to_string()
-        });
-        std::fs::write(
-            evidence_dir.join("install-evidence.json"),
-            serde_json::to_string_pretty(&evidence).expect("json"),
-        )
-        .expect("write install evidence");
     }
 
     #[test]
@@ -137,23 +103,6 @@ mod tests {
             .apps
             .iter()
             .any(|row| row.app_id == "nimi.avatar"));
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("time")
-            .as_nanos();
-        let data_root = std::env::temp_dir().join(format!("nimi-tester-apps-packages-{unique}"));
-        write_runtime_install_evidence(&data_root, "nimi.avatar", "1.0.0", "digest-verified");
-        let package_record =
-            nimi_shell_tauri::platform_projection::apps_packages::build_apps_packages_record_from_runtime_install_evidence(
-                &data_root,
-                &app_registry,
-            )
-            .expect("apps package projection from runtime evidence");
-        assert!(package_record
-            .packages
-            .iter()
-            .any(|row| row.app_id == "nimi.avatar" && row.state == "installed"));
-
         let profile_index = nimi_shell_tauri::platform_projection::factory_profile_index::build_factory_profile_index_record()
             .expect("factory profile index projection");
         assert!(profile_index
@@ -161,21 +110,17 @@ mod tests {
             .iter()
             .any(|row| row.alias == "local-speech-ready"));
 
-        let package_row = nimi_shell_tauri::platform_projection::apps_packages::AppsPackageRow {
-            app_id: "nimi.avatar".to_string(),
-            package_ref: "nimi.avatar.bundled-with-nimi".to_string(),
-            version: "1.0.0".to_string(),
-            state: "installed".to_string(),
-            verified_at: "2026-05-31T00:00:00Z".to_string(),
-        };
         let bridge_projection =
             nimi_shell_tauri::platform_projection::apps_bridge::build_apps_bridge_projection(
                 "~/.nimi/apps/registry.json".to_string(),
                 "~/.nimi/apps/packages.json".to_string(),
-                &[package_row],
             )
             .expect("apps bridge projection");
-        assert_eq!(bridge_projection.install_evidence.len(), 1);
+        assert_eq!(
+            bridge_projection.registry_rows.len(),
+            nimi_shell_tauri::platform_catalog::nimi_app_registry::PLATFORM_NIMI_APP_REGISTRY_ROWS
+                .len()
+        );
     }
 
     #[test]

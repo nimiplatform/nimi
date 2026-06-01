@@ -24,6 +24,7 @@ const (
 	RuntimeAppService_InstallApp_FullMethodName               = "/nimi.runtime.v1.RuntimeAppService/InstallApp"
 	RuntimeAppService_UninstallApp_FullMethodName             = "/nimi.runtime.v1.RuntimeAppService/UninstallApp"
 	RuntimeAppService_GetAppStorage_FullMethodName            = "/nimi.runtime.v1.RuntimeAppService/GetAppStorage"
+	RuntimeAppService_GetAppPackageReadiness_FullMethodName   = "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness"
 	RuntimeAppService_GetAppInstallJob_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob"
 	RuntimeAppService_ListAppInstallJobs_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs"
 	RuntimeAppService_WatchAppInstallJobEvents_FullMethodName = "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents"
@@ -42,6 +43,7 @@ type RuntimeAppServiceClient interface {
 	InstallApp(ctx context.Context, in *InstallAppRequest, opts ...grpc.CallOption) (*InstallAppResponse, error)
 	UninstallApp(ctx context.Context, in *UninstallAppRequest, opts ...grpc.CallOption) (*UninstallAppResponse, error)
 	GetAppStorage(ctx context.Context, in *GetAppStorageRequest, opts ...grpc.CallOption) (*GetAppStorageResponse, error)
+	GetAppPackageReadiness(ctx context.Context, in *GetAppPackageReadinessRequest, opts ...grpc.CallOption) (*GetAppPackageReadinessResponse, error)
 	GetAppInstallJob(ctx context.Context, in *GetAppInstallJobRequest, opts ...grpc.CallOption) (*GetAppInstallJobResponse, error)
 	ListAppInstallJobs(ctx context.Context, in *ListAppInstallJobsRequest, opts ...grpc.CallOption) (*ListAppInstallJobsResponse, error)
 	WatchAppInstallJobEvents(ctx context.Context, in *WatchAppInstallJobEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AppInstallJobEvent], error)
@@ -115,6 +117,16 @@ func (c *runtimeAppServiceClient) GetAppStorage(ctx context.Context, in *GetAppS
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetAppStorageResponse)
 	err := c.cc.Invoke(ctx, RuntimeAppService_GetAppStorage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) GetAppPackageReadiness(ctx context.Context, in *GetAppPackageReadinessRequest, opts ...grpc.CallOption) (*GetAppPackageReadinessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAppPackageReadinessResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_GetAppPackageReadiness_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -200,6 +212,7 @@ type RuntimeAppServiceServer interface {
 	InstallApp(context.Context, *InstallAppRequest) (*InstallAppResponse, error)
 	UninstallApp(context.Context, *UninstallAppRequest) (*UninstallAppResponse, error)
 	GetAppStorage(context.Context, *GetAppStorageRequest) (*GetAppStorageResponse, error)
+	GetAppPackageReadiness(context.Context, *GetAppPackageReadinessRequest) (*GetAppPackageReadinessResponse, error)
 	GetAppInstallJob(context.Context, *GetAppInstallJobRequest) (*GetAppInstallJobResponse, error)
 	ListAppInstallJobs(context.Context, *ListAppInstallJobsRequest) (*ListAppInstallJobsResponse, error)
 	WatchAppInstallJobEvents(*WatchAppInstallJobEventsRequest, grpc.ServerStreamingServer[AppInstallJobEvent]) error
@@ -233,6 +246,9 @@ func (UnimplementedRuntimeAppServiceServer) UninstallApp(context.Context, *Unins
 }
 func (UnimplementedRuntimeAppServiceServer) GetAppStorage(context.Context, *GetAppStorageRequest) (*GetAppStorageResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAppStorage not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) GetAppPackageReadiness(context.Context, *GetAppPackageReadinessRequest) (*GetAppPackageReadinessResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAppPackageReadiness not implemented")
 }
 func (UnimplementedRuntimeAppServiceServer) GetAppInstallJob(context.Context, *GetAppInstallJobRequest) (*GetAppInstallJobResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAppInstallJob not implemented")
@@ -351,6 +367,24 @@ func _RuntimeAppService_GetAppStorage_Handler(srv interface{}, ctx context.Conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAppServiceServer).GetAppStorage(ctx, req.(*GetAppStorageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_GetAppPackageReadiness_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAppPackageReadinessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).GetAppPackageReadiness(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_GetAppPackageReadiness_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).GetAppPackageReadiness(ctx, req.(*GetAppPackageReadinessRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -478,6 +512,10 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAppStorage",
 			Handler:    _RuntimeAppService_GetAppStorage_Handler,
+		},
+		{
+			MethodName: "GetAppPackageReadiness",
+			Handler:    _RuntimeAppService_GetAppPackageReadiness_Handler,
 		},
 		{
 			MethodName: "GetAppInstallJob",

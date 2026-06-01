@@ -1,6 +1,4 @@
 import type {
-  NimiAppInstallEvidenceRow,
-  NimiAppInstallVerificationState,
   NimiAppReleaseDescriptorRow,
 } from './types.js';
 import type { NimiAppRegistrySourceRow } from './registry-transport.js';
@@ -10,7 +8,6 @@ export interface NimiAppBridgeProjection {
   readonly packagesPath: string;
   readonly registryRows: readonly NimiAppRegistrySourceRow[];
   readonly releaseDescriptors: readonly NimiAppReleaseDescriptorRow[];
-  readonly installEvidence: readonly NimiAppInstallEvidenceRow[];
 }
 
 function asRecord(value: unknown, label: string): Record<string, unknown> {
@@ -55,14 +52,6 @@ const ORDINARY_VISIBILITIES = new Set([
   'developer-only',
   'not-admitted-visible',
 ]);
-const VERIFICATION_STATES = new Set<NimiAppInstallVerificationState>([
-  'not-installed',
-  'digest-verified',
-  'digest-mismatch',
-  'blocked',
-  'unsupported',
-]);
-
 export function parseNimiAppBridgeRegistryRow(
   value: unknown,
   index: number,
@@ -171,34 +160,6 @@ export function parseNimiAppBridgeReleaseDescriptorRow(
   };
 }
 
-export function parseNimiAppBridgeInstallEvidenceRow(
-  value: unknown,
-  index: number,
-): NimiAppInstallEvidenceRow {
-  const record = asRecord(value, `apps_bridge_projection installEvidence[${index}]`);
-  const verificationState = requireString(
-    record.verificationState,
-    `installEvidence[${index}].verificationState`,
-  );
-  if (!VERIFICATION_STATES.has(verificationState as NimiAppInstallVerificationState)) {
-    throw new Error(`installEvidence[${index}].verificationState is invalid: ${verificationState}`);
-  }
-  return {
-    appId: requireString(record.appId, `installEvidence[${index}].appId`),
-    releaseDescriptorRef: requireString(
-      record.releaseDescriptorRef,
-      `installEvidence[${index}].releaseDescriptorRef`,
-    ),
-    storagePolicyRef: requireString(
-      record.storagePolicyRef,
-      `installEvidence[${index}].storagePolicyRef`,
-    ),
-    installedVersion: optionalString(record.installedVersion),
-    sha256: optionalString(record.sha256),
-    verificationState: verificationState as NimiAppInstallVerificationState,
-  };
-}
-
 export function parseNimiAppBridgeProjection(value: unknown): NimiAppBridgeProjection {
   const record = asRecord(value, 'apps_bridge_projection_get');
   return {
@@ -211,8 +172,5 @@ export function parseNimiAppBridgeProjection(value: unknown): NimiAppBridgeProje
       record.releaseDescriptors,
       'apps_bridge_projection releaseDescriptors',
     ).map(parseNimiAppBridgeReleaseDescriptorRow),
-    installEvidence: asArray(record.installEvidence, 'apps_bridge_projection installEvidence').map(
-      parseNimiAppBridgeInstallEvidenceRow,
-    ),
   };
 }

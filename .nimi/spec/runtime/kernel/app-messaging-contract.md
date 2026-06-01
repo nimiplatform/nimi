@@ -11,11 +11,12 @@
 3. `InstallApp` — 触发 Runtime-owned Nimi App install lifecycle（见 `K-APP-011`）
 4. `UninstallApp` — 触发 Runtime-owned Nimi App uninstall lifecycle（见 `K-APP-014`）
 5. `GetAppStorage` — 读取 app-scoped storage truth projection（见 `K-APP-022`）
-6. `GetAppInstallJob` — 读取单个 install job 的 typed projection（见 `K-APP-012`）
-7. `ListAppInstallJobs` — 列出 install job 的 typed projection（见 `K-APP-012`）
-8. `WatchAppInstallJobEvents` — 订阅 install job 进度事件流（见 `K-APP-013`）
-9. `UpdateApp` — 触发 Runtime-owned Nimi App atomic update lifecycle（见 `K-APP-015`）
-10. `HealthRepairApp` — 触发 Runtime-owned Nimi App health/repair lifecycle（见 `K-APP-016`）
+6. `GetAppPackageReadiness` — 读取 active release / install evidence package readiness projection（见 `K-APP-023`）
+7. `GetAppInstallJob` — 读取单个 install job 的 typed projection（见 `K-APP-012`）
+8. `ListAppInstallJobs` — 列出 install job 的 typed projection（见 `K-APP-012`）
+9. `WatchAppInstallJobEvents` — 订阅 install job 进度事件流（见 `K-APP-013`）
+10. `UpdateApp` — 触发 Runtime-owned Nimi App atomic update lifecycle（见 `K-APP-015`）
+11. `HealthRepairApp` — 触发 Runtime-owned Nimi App health/repair lifecycle（见 `K-APP-016`）
 
 App messaging 方法（1–2）与 app install/uninstall/update/repair lifecycle 方法
 （3–10）共用 `RuntimeAppService`，但语义独立：lifecycle 方法不承载 app-to-app
@@ -757,3 +758,29 @@ storage truth only; it does not project package install or launch readiness.
 alternate storage authority. Missing `dataRootRef`, invalid app id/path shape,
 symlink/non-directory corruption, or unsupported storage policy must fail
 closed with typed storage state/reason.
+
+## K-APP-023 App Package Readiness Truth Projection
+
+`MUST`：`GetAppPackageReadiness(app_id)` 是 Runtime-owned package readiness
+truth projection。它读取 Runtime admitted registry / release descriptor、
+selected `nimi_data` app layout、active release pointer、与
+Runtime-written `install-evidence.json`，并返回 typed
+`AppPackageReadinessProjection`：
+
+- `ready` when active release pointer resolves and install evidence is in a
+  verified state (`digest-verified` or `bundled-source`) for that active
+  release;
+- `install_required` when the app is admitted but has no active release;
+- `update_required` when the active release is verified but differs from the
+  currently bound release descriptor version;
+- `repair_required` when active pointer / evidence / digest state is missing,
+  corrupt, or not verified;
+- `blocked` when Runtime package readiness cannot be evaluated because
+  descriptor/storage authority is unavailable.
+
+`MUST NOT`：Desktop, Kit, SDK, or apps must not scan
+`<nimi_data>/apps/<app-id>/releases/*/.nimi/install-evidence.json`, parse
+Runtime install evidence, or derive package readiness from file existence as
+an alternate package authority. SDK may expose typed decoders and compose this
+projection with Platform registry/admission rows for developer ergonomics, but
+the readiness facts remain Runtime-owned.

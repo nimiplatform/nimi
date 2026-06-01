@@ -297,6 +297,31 @@ fn runtime_app_storage_response(
     ))
 }
 
+fn runtime_app_package_readiness_response(
+    payload: &RuntimeBridgeUnaryPayload,
+) -> Result<RuntimeBridgeUnaryResult, String> {
+    let request: runtime_bridge_generated::GetAppPackageReadinessRequest =
+        decode_unary_request(payload)?;
+    let app_id = request.app_id.trim();
+    Ok(encode_unary_response(
+        runtime_bridge_generated::GetAppPackageReadinessResponse {
+            projection: Some(runtime_bridge_generated::AppPackageReadinessProjection {
+                app_id: app_id.to_string(),
+                release_descriptor_ref: format!("{app_id}.bundled-with-nimi"),
+                storage_policy_ref: "nimi-data-app-roots".to_string(),
+                expected_version: "1.0.0".to_string(),
+                active_version: "1.0.0".to_string(),
+                installed_version: "1.0.0".to_string(),
+                sha256: "fixture-sha256".to_string(),
+                verification_state: "digest-verified".to_string(),
+                state: runtime_bridge_generated::AppPackageReadinessState::Ready as i32,
+                reason_code: runtime_bridge_generated::ReasonCode::ActionExecuted as i32,
+                detail: String::new(),
+            }),
+        },
+    ))
+}
+
 pub fn runtime_bridge_unary_override(
     payload: &RuntimeBridgeUnaryPayload,
 ) -> Result<Option<RuntimeBridgeUnaryResult>, String> {
@@ -333,6 +358,10 @@ pub fn runtime_bridge_unary_override(
         "/nimi.runtime.v1.RuntimeAppService/GetAppStorage" => {
             append_backend_log("runtime_app_fixture method=getAppStorage accepted=true");
             runtime_app_storage_response(payload, &manifest).map(Some)
+        }
+        "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness" => {
+            append_backend_log("runtime_app_fixture method=getAppPackageReadiness accepted=true");
+            runtime_app_package_readiness_response(payload).map(Some)
         }
         _ => Ok(None),
     }

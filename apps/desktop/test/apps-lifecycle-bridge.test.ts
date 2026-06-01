@@ -87,6 +87,20 @@ function stubModule(
         storagePolicyRef: 'nimi-data-app-roots',
       };
     },
+    async packageReadiness(input, options) {
+      record('packageReadiness')(input, options);
+      return {
+        appId: 'nimi.notes',
+        releaseDescriptorRef: 'nimi.notes.bundled-with-nimi',
+        storagePolicyRef: 'nimi-data-app-roots',
+        expectedVersion: '1.0.0',
+        activeVersion: '1.0.0',
+        installedVersion: '1.0.0',
+        verificationState: 'digest-verified',
+        state: 'ready',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
+      };
+    },
     async getJob(input, options) {
       record('getJob')(input, options);
       return installJob();

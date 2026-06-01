@@ -47,6 +47,7 @@ entries:
   - K-APP-020
   - K-APP-021
   - K-APP-022
+  - K-APP-023
   - K-CONN-001
   - K-CONN-002
   - K-CONN-003
@@ -258,6 +259,13 @@ rules:
       - runtime_go_test
       - sdk_runtime_test
     note: GetAppStorage is the Runtime-owned app storage truth projection; tests cover Runtime root projection and SDK typed client consumption.
+    evidence_requirement: required
+  - rule_id: K-APP-023
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+    note: GetAppPackageReadiness is the Runtime-owned active release / install evidence readiness projection; tests cover Runtime evidence interpretation and SDK typed client consumption.
     evidence_requirement: required
   - rule_id: K-CONN-001
     evidence_refs:

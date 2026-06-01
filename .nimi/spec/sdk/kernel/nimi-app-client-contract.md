@@ -530,6 +530,20 @@ concatenate `<nimi_data>/apps/<app-id>` as a local fallback. SDK path helpers
 may validate app-relative paths against the returned roots, but enforcement and
 storage truth remain Runtime-owned.
 
+## S-APP-018 — App Package Readiness Accessor
+
+`MUST`：SDK must expose typed app package readiness access backed by Runtime
+`GetAppPackageReadiness` (`K-APP-023`). SDK app-client status helpers may
+compose Platform registry / release descriptor rows with this Runtime
+projection to produce developer-friendly `AppLaunchReadiness`, installed
+version, available version, verification state, and reason/detail fields.
+
+`MUST NOT`：SDK must not scan Runtime-owned install-evidence files, infer
+package readiness from file existence, or treat Desktop / Kit bridge evidence
+as canonical package truth. SDK orchestration here is non-authoritative: it
+submits explicit typed requests to Runtime and maps the Runtime projection
+without hiding fail-closed states.
+
 ## Fact Sources
 
 - `.nimi/spec/sdk/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`

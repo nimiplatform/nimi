@@ -570,6 +570,7 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       installApp: unary(RuntimeMethodIds.app.installApp),
       uninstallApp: unary(RuntimeMethodIds.app.uninstallApp),
       getAppStorage: unary(RuntimeMethodIds.app.getAppStorage),
+      getAppPackageReadiness: unary(RuntimeMethodIds.app.getAppPackageReadiness),
       getAppInstallJob: unary(RuntimeMethodIds.app.getAppInstallJob),
       listAppInstallJobs: unary(RuntimeMethodIds.app.listAppInstallJobs),
       watchAppInstallJobEvents: stream(RuntimeMethodIds.app.watchAppInstallJobEvents),

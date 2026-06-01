@@ -4,7 +4,6 @@ export {
   createNimiAppRegistryTransport,
 } from './registry-transport.js';
 export {
-  parseNimiAppBridgeInstallEvidenceRow,
   parseNimiAppBridgeProjection,
   parseNimiAppBridgeRegistryRow,
   parseNimiAppBridgeReleaseDescriptorRow,
@@ -18,9 +17,10 @@ export type { NimiAppTransport } from './transport.js';
 export type {
   AppKind,
   AppLaunchReadiness,
-  NimiAppInstallEvidenceRow,
   NimiAppInstallVerificationState,
   NimiAppOrdinaryVisibility,
+  NimiAppPackageReadinessRow,
+  NimiAppPackageReadinessState,
   NimiAppReleaseDescriptorClass,
   NimiAppReleaseDescriptorRow,
   NimiAppReleaseSourceKind,

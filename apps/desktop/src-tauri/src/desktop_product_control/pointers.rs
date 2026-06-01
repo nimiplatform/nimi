@@ -23,8 +23,8 @@ fn ensure_factory_profile_index_pointer() -> Result<String, String> {
 /// - `app_registry`: regenerated `~/.nimi/apps/registry.json` projection
 ///   (`apps_registry_projection.rs`), a catalog-only derivation;
 /// - `app_packages`: the `~/.nimi/apps/packages.json` path
-///   (`apps_packages_projection.rs`); the file is materialized on demand by
-///   the Apps bridge projection seam, so only the path is advertised here.
+///   (`apps_packages_projection.rs`); Runtime `GetAppPackageReadiness` owns
+///   package readiness, so only the discoverability path is advertised here.
 pub(crate) fn resolve_product_pointers() -> Result<ProductPointersRecord, String> {
     Ok(ProductPointersRecord {
         runtime_config_path: Some(runtime_config_path()?),

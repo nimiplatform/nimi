@@ -5,7 +5,7 @@ import {
   createNimiAppRegistryTransport,
 } from '../src/app/index.js';
 import type { NimiAppRegistrySourceRow } from '../src/app/index.js';
-import type { NimiAppInstallEvidenceRow, NimiAppReleaseDescriptorRow } from '../src/app/index.js';
+import type { NimiAppPackageReadinessRow, NimiAppReleaseDescriptorRow } from '../src/app/index.js';
 
 const rows: readonly NimiAppRegistrySourceRow[] = [
   {
@@ -116,16 +116,17 @@ const descriptors: readonly NimiAppReleaseDescriptorRow[] = [
   },
 ];
 
-const verifiedExampleAppEvidence: readonly NimiAppInstallEvidenceRow[] = [
-  {
-    appId: 'nimi.example-app',
-    releaseDescriptorRef: 'nimi.example-app.bundled-with-nimi',
-    storagePolicyRef: 'nimi-data-app-roots',
-    installedVersion: 'bundled-with-current-nimi-release',
-    sha256: 'example-app-sha',
-    verificationState: 'digest-verified',
-  },
-];
+const readyExampleAppPackage: NimiAppPackageReadinessRow = {
+  appId: 'nimi.example-app',
+  releaseDescriptorRef: 'nimi.example-app.bundled-with-nimi',
+  storagePolicyRef: 'nimi-data-app-roots',
+  expectedVersion: 'bundled-with-current-nimi-release',
+  activeVersion: 'bundled-with-current-nimi-release',
+  installedVersion: 'bundled-with-current-nimi-release',
+  sha256: 'runtime-tree-sha',
+  verificationState: 'bundled-source',
+  state: 'ready',
+};
 
 describe('Nimi App registry transport', () => {
   it('projects only ordinary-visible resolved source rows into canonical SDK rows', async () => {
@@ -148,15 +149,15 @@ describe('Nimi App registry transport', () => {
     assert.equal(status.launchReadiness, 'install-required');
   });
 
-  it('maps digest-verified install evidence to ready status', async () => {
+  it('maps Runtime package readiness to ready status', async () => {
     const transport = createNimiAppRegistryTransport({
       loadRows: () => rows,
       loadReleaseDescriptors: () => descriptors,
-      loadInstallEvidence: () => verifiedExampleAppEvidence,
+      loadPackageReadiness: () => readyExampleAppPackage,
     });
     const status = await transport.status('nimi.example-app');
     assert.equal(status.launchReadiness, 'ready');
-    assert.equal(status.verificationState, 'digest-verified');
+    assert.equal(status.verificationState, 'bundled-source');
     assert.equal(status.storageRoots, undefined);
   });
 
@@ -189,51 +190,60 @@ describe('Nimi App registry transport', () => {
     await assert.rejects(transport.status('nimi.dev-tool'), NimiAppRegistryTransportError);
   });
 
-  it('does not let host install evidence mark ready without matching descriptor digest', async () => {
+  it('maps Runtime repair-required package readiness without collapsing detail', async () => {
     const transport = createNimiAppRegistryTransport({
       loadRows: () => rows,
       loadReleaseDescriptors: () => descriptors,
-      loadInstallEvidence: () => [{
-        ...verifiedExampleAppEvidence[0]!,
-        sha256: 'wrong-sha',
-      }],
+      loadPackageReadiness: () => ({
+        ...readyExampleAppPackage,
+        verificationState: 'digest-mismatch',
+        state: 'repair_required',
+        reasonCode: 'APP_OPEN_PACKAGE_NOT_VERIFIED',
+        detail: 'app install evidence is not in a verified state',
+      }),
     });
     const status = await transport.status('nimi.example-app');
-    assert.equal(status.launchReadiness, 'install-required');
+    assert.equal(status.launchReadiness, 'repair-required');
+    assert.equal(status.detail, 'app install evidence is not in a verified state');
   });
 
-  it('does not require app storage roots in host install evidence for readiness', async () => {
+  it('does not require app storage roots in Runtime package readiness for readiness', async () => {
     const transport = createNimiAppRegistryTransport({
       loadRows: () => rows,
       loadReleaseDescriptors: () => descriptors,
-      loadInstallEvidence: () => [verifiedExampleAppEvidence[0]!],
+      loadPackageReadiness: () => readyExampleAppPackage,
     });
     const status = await transport.status('nimi.example-app');
     assert.equal(status.launchReadiness, 'ready');
     assert.equal(status.storageRoots, undefined);
   });
 
-  it('does not let host install evidence mark ready without installed version', async () => {
+  it('maps Runtime install-required package readiness without claiming ready', async () => {
     const transport = createNimiAppRegistryTransport({
       loadRows: () => rows,
       loadReleaseDescriptors: () => descriptors,
-      loadInstallEvidence: () => [{
-        ...verifiedExampleAppEvidence[0]!,
+      loadPackageReadiness: () => ({
+        ...readyExampleAppPackage,
+        activeVersion: undefined,
         installedVersion: undefined,
-      }],
+        verificationState: 'not-installed',
+        state: 'install_required',
+      }),
     });
     const status = await transport.status('nimi.example-app');
     assert.equal(status.launchReadiness, 'install-required');
   });
 
-  it('maps digest-verified stale version evidence to update-required, not ready', async () => {
+  it('maps Runtime stale active package readiness to update-required, not ready', async () => {
     const transport = createNimiAppRegistryTransport({
       loadRows: () => rows,
       loadReleaseDescriptors: () => descriptors,
-      loadInstallEvidence: () => [{
-        ...verifiedExampleAppEvidence[0]!,
+      loadPackageReadiness: () => ({
+        ...readyExampleAppPackage,
         installedVersion: 'older-version',
-      }],
+        activeVersion: 'older-version',
+        state: 'update_required',
+      }),
     });
     const status = await transport.status('nimi.example-app');
     assert.equal(status.launchReadiness, 'update-required');

@@ -64,6 +64,13 @@ export type RuntimeAppStorageState =
   | 'repair_required'
   | 'storage_unavailable';
 
+export type RuntimeAppPackageReadinessState =
+  | 'ready'
+  | 'install_required'
+  | 'update_required'
+  | 'repair_required'
+  | 'blocked';
+
 /** Runtime-owned app-scoped storage truth projection (P-NAPP-015 / S-APP-011). */
 export type RuntimeAppStorageProjection = {
   appId: string;
@@ -76,6 +83,21 @@ export type RuntimeAppStorageProjection = {
   tempRoot: string;
   activeVersion?: string;
   storagePolicyRef: string;
+  reasonCode?: string;
+  detail?: string;
+};
+
+/** Runtime-owned package readiness truth projection (K-APP-023 / S-APP-018). */
+export type RuntimeAppPackageReadinessProjection = {
+  appId: string;
+  releaseDescriptorRef: string;
+  storagePolicyRef: string;
+  expectedVersion: string;
+  activeVersion?: string;
+  installedVersion?: string;
+  sha256?: string;
+  verificationState?: string;
+  state: RuntimeAppPackageReadinessState;
   reasonCode?: string;
   detail?: string;
 };
@@ -254,6 +276,11 @@ export type RuntimeAppLifecycleModule = {
     input: { appId: string },
     options?: RuntimeCallOptions,
   ): Promise<RuntimeAppStorageProjection>;
+  /** Read the Runtime-owned active release / install evidence package readiness projection. */
+  packageReadiness(
+    input: { appId: string },
+    options?: RuntimeCallOptions,
+  ): Promise<RuntimeAppPackageReadinessProjection>;
   /** Read a single lifecycle job's typed projection by id. */
   getJob(
     input: { jobId: string },

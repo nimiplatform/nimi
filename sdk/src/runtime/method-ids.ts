@@ -210,6 +210,7 @@ export const RuntimeMethodIds = {
     installApp: '/nimi.runtime.v1.RuntimeAppService/InstallApp',
     uninstallApp: '/nimi.runtime.v1.RuntimeAppService/UninstallApp',
     getAppStorage: '/nimi.runtime.v1.RuntimeAppService/GetAppStorage',
+    getAppPackageReadiness: '/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness',
     getAppInstallJob: '/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob',
     listAppInstallJobs: '/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs',
     watchAppInstallJobEvents: '/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents',

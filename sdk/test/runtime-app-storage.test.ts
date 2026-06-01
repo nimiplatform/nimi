@@ -94,18 +94,21 @@ test('attachRuntimeAppStorageRoots adds Runtime data/cache/tmp roots to payloads
   });
 });
 
-test('NimiApp registry status does not project storage roots from install evidence', async () => {
+test('NimiApp registry status does not project storage roots from Runtime package readiness', async () => {
   const client = new NimiAppClient(createNimiAppRegistryTransport({
     loadRows: () => [registryRow()],
     loadReleaseDescriptors: () => [releaseDescriptor()],
-    loadInstallEvidence: () => [{
+    loadPackageReadiness: () => ({
       appId,
       releaseDescriptorRef: `${appId}.descriptor`,
       storagePolicyRef: 'nimi-data-app-roots',
+      expectedVersion: '1.0.0',
+      activeVersion: '1.0.0',
       installedVersion: '1.0.0',
       sha256: 'a'.repeat(64),
       verificationState: 'digest-verified',
-    }],
+      state: 'ready',
+    }),
   }));
 
   const status = await client.status(appId);

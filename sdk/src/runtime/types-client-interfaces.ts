@@ -385,6 +385,8 @@ import type {
 import type {
   AppInstallJobEvent,
   AppMessageEvent,
+  GetAppPackageReadinessRequest,
+  GetAppPackageReadinessResponse,
   GetAppStorageRequest,
   GetAppStorageResponse,
   GetAppInstallJobRequest,
@@ -771,6 +773,7 @@ export type RuntimeAppClient = {
   installApp(request: InstallAppRequest, options?: RuntimeCallOptions): Promise<InstallAppResponse>;
   uninstallApp(request: UninstallAppRequest, options?: RuntimeCallOptions): Promise<UninstallAppResponse>;
   getAppStorage(request: GetAppStorageRequest, options?: RuntimeCallOptions): Promise<GetAppStorageResponse>;
+  getAppPackageReadiness(request: GetAppPackageReadinessRequest, options?: RuntimeCallOptions): Promise<GetAppPackageReadinessResponse>;
   getAppInstallJob(request: GetAppInstallJobRequest, options?: RuntimeCallOptions): Promise<GetAppInstallJobResponse>;
   listAppInstallJobs(request: ListAppInstallJobsRequest, options?: RuntimeCallOptions): Promise<ListAppInstallJobsResponse>;
   watchAppInstallJobEvents(request: WatchAppInstallJobEventsRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<AppInstallJobEvent>>;

@@ -177,6 +177,8 @@ import {
 } from '../generated/runtime/v1/connector';
 import {
   AppMessageEvent,
+  GetAppPackageReadinessRequest,
+  GetAppPackageReadinessResponse,
   GetAppStorageRequest,
   GetAppStorageResponse,
   GetAppInstallJobRequest,
@@ -552,6 +554,10 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.app.getAppStorage]: {
     requestType: GetAppStorageRequest,
     responseType: GetAppStorageResponse,
+  },
+  [RuntimeMethodIds.app.getAppPackageReadiness]: {
+    requestType: GetAppPackageReadinessRequest,
+    responseType: GetAppPackageReadinessResponse,
   },
   [RuntimeMethodIds.app.getAppInstallJob]: {
     requestType: GetAppInstallJobRequest,

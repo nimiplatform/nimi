@@ -42,14 +42,6 @@ function projectionPayload() {
       installDigestVerificationRequired: 'required',
       sourceRule: 'bundled',
     }],
-    installEvidence: [{
-      appId: 'nimi.notes',
-      releaseDescriptorRef: 'nimi.notes.bundled',
-      storagePolicyRef: 'policy.notes',
-      installedVersion: '1.0.0',
-      sha256: 'a'.repeat(64),
-      verificationState: 'digest-verified',
-    }],
   };
 }
 
@@ -58,7 +50,7 @@ test('parseNimiAppBridgeProjection decodes registry loader payloads', () => {
 
   assert.equal(parsed.registryRows[0]?.appId, 'nimi.notes');
   assert.equal(parsed.releaseDescriptors[0]?.digestAlgorithm, 'sha256');
-  assert.equal(parsed.installEvidence[0]?.verificationState, 'digest-verified');
+  assert.equal('installEvidence' in parsed, false);
 });
 
 test('parseNimiAppBridgeProjection fails closed for invalid admission values', () => {

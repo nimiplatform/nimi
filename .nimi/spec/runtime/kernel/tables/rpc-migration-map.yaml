@@ -844,6 +844,11 @@ method_mappings:
     proto_method: GetAppStorage
     mapping_posture: aligned
   - design_service: RuntimeAppService
+    design_method: GetAppPackageReadiness
+    proto_service: RuntimeAppService
+    proto_method: GetAppPackageReadiness
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
     design_method: GetAppInstallJob
     proto_service: RuntimeAppService
     proto_method: GetAppInstallJob

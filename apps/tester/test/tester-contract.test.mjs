@@ -1414,7 +1414,9 @@ test('tester settings consumes SDK Nimi App bridge projection parser', () => {
   assert.match(settings, /from '@nimiplatform\/sdk\/app'/);
   assert.match(settings, /SDK Nimi App bridge projection/);
   assert.match(settings, /SDK account app-library projection/);
-  assert.match(settings, /appBridgeProjection\.installEvidence/);
+  assert.match(settings, /appBridgeProjection\.releaseDescriptors/);
+  assert.match(settings, /appBridgeProjection\.registryRows/);
+  assert.doesNotMatch(settings, /appBridgeProjection\.installEvidence/);
   assert.match(settings, /accountAppLibraryProjection\.apps/);
   assert.doesNotMatch(settings, /apps-projection/);
   assert.doesNotMatch(settings, /ADMISSION_STATUSES|RELEASE_DESCRIPTOR_CLASSES|VERIFICATION_STATES/);

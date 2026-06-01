@@ -48,15 +48,17 @@ describe('Nimi App registry/admission domain boundary', () => {
     assert.doesNotMatch(registryProjection, /PLATFORM_NIMI_APP_REGISTRY_ROWS\s*:/);
 
     assert.match(packagesProjection, /nimi_shell_tauri::platform_projection::apps_packages/);
-    assert.match(packagesProjection, /build_apps_packages_record_from_runtime_install_evidence/);
     assert.match(packagesProjection, /validate_apps_packages_record/);
-    assert.match(packagesProjection, /selected_product_data_root/);
+    assert.match(packagesProjection, /GetAppPackageReadiness/);
+    assert.doesNotMatch(packagesProjection, /selected_product_data_root/);
+    assert.doesNotMatch(packagesProjection, /install-evidence\.json|build_apps_packages_record_from_runtime_install_evidence/);
     assert.doesNotMatch(packagesProjection, /struct\s+RuntimeInstallEvidence/);
     assert.doesNotMatch(packagesProjection, /const\s+PACKAGE_STATE_/);
     assert.doesNotMatch(packagesProjection, /package\.(?:data_root|cache_root|temp_root|install_root)/);
 
     assert.match(bridgeProjection, /ensure_apps_registry/);
-    assert.match(bridgeProjection, /ensure_apps_packages/);
+    assert.match(bridgeProjection, /GetAppPackageReadiness/);
+    assert.doesNotMatch(bridgeProjection, /ensure_apps_packages/);
     assert.match(bridgeProjection, /build_shared_apps_bridge_projection/);
     assert.doesNotMatch(bridgeProjection, /struct\s+BridgeRegistryRow/);
     assert.doesNotMatch(bridgeProjection, /struct\s+BridgeReleaseDescriptorRow/);
@@ -83,6 +85,9 @@ describe('Nimi App registry/admission domain boundary', () => {
 
     assert.match(liveBridge, /NimiAppClient/);
     assert.match(liveBridge, /createNimiAppRegistryTransport/);
+    assert.match(liveBridge, /loadPackageReadiness/);
+    assert.match(liveBridge, /runtime\.appLifecycle\.packageReadiness/);
+    assert.doesNotMatch(liveBridge, /loadInstallEvidence/);
     assert.match(liveBridge, /from '@nimiplatform\/sdk\/app'/);
 
     assert.match(panelProjection, /NimiAppClient/);

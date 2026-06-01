@@ -1368,14 +1368,6 @@ export function SettingsRoute() {
       installDigestVerificationRequired: 'required',
       sourceRule: 'tester-fixture',
     }],
-    installEvidence: [{
-      appId: 'tester.app',
-      releaseDescriptorRef: 'tester.app.descriptor',
-      storagePolicyRef: 'tester.storage',
-      installedVersion: '1.0.0',
-      sha256: 'b'.repeat(64),
-      verificationState: 'digest-verified',
-    }],
   });
   const accountAppLibraryProjection = parseAccountAppLibraryRecord({
     schemaVersion: 1,
@@ -2382,7 +2374,7 @@ export function SettingsRoute() {
       <div className="setting-row">
         <span>SDK Nimi App bridge projection</span>
         <StatusBadge tone="neutral">
-          {appBridgeProjection.registryRows[0]?.appId ?? 'none'}: {appBridgeProjection.installEvidence[0]?.verificationState ?? 'none'}
+          {appBridgeProjection.registryRows[0]?.appId ?? 'none'}: {appBridgeProjection.releaseDescriptors[0]?.version ?? 'none'}
         </StatusBadge>
       </div>
       <div className="setting-row">

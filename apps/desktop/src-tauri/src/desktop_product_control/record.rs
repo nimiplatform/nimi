@@ -81,10 +81,9 @@ pub struct ProductPointersRecord {
     /// registry projection is a read-only catalog projection, not product
     /// readiness truth. This is the manual `pointers.appRegistry` value.
     pub app_registry: Option<String>,
-    /// Discoverability pointer to `~/.nimi/apps/packages.json`, the installed
-    /// projection of Nimi App package readiness sourced from the Runtime
-    /// `appstorage` install evidence (`apps_packages_projection.rs`). This is
-    /// the manual `pointers.appPackages` value.
+    /// Discoverability pointer to `~/.nimi/apps/packages.json`. Runtime
+    /// `GetAppPackageReadiness` owns package readiness; this pointer is not a
+    /// readiness source. This is the manual `pointers.appPackages` value.
     pub app_packages: Option<String>,
 }
 

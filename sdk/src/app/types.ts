@@ -128,17 +128,29 @@ export interface NimiAppReleaseDescriptorRow {
 export type NimiAppInstallVerificationState =
   | 'not-installed'
   | 'digest-verified'
+  | 'bundled-source'
   | 'digest-mismatch'
   | 'blocked'
   | 'unsupported';
 
-export interface NimiAppInstallEvidenceRow {
+export type NimiAppPackageReadinessState =
+  | 'ready'
+  | 'install_required'
+  | 'update_required'
+  | 'repair_required'
+  | 'blocked';
+
+export interface NimiAppPackageReadinessRow {
   readonly appId: string;
   readonly releaseDescriptorRef: string;
   readonly storagePolicyRef: string;
+  readonly expectedVersion?: string;
+  readonly activeVersion?: string;
   readonly installedVersion?: string;
   readonly sha256?: string;
-  readonly verificationState: NimiAppInstallVerificationState;
+  readonly verificationState?: string;
+  readonly state: NimiAppPackageReadinessState;
+  readonly reasonCode?: string;
   readonly detail?: string;
 }
 

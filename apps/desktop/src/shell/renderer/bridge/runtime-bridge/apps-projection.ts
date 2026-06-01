@@ -17,8 +17,9 @@ export type AppsBridgeProjection = NimiAppBridgeProjection;
 /**
  * Invoke the `apps_bridge_projection_get` Tauri command.
  *
- * Ensures `~/.nimi/apps/registry.json` and `~/.nimi/apps/packages.json` are
- * materialized, then returns the SDK Nimi App transport loader payloads.
+ * Ensures `~/.nimi/apps/registry.json` is materialized, then returns the SDK
+ * Nimi App registry/descriptor loader payloads. Package readiness is read
+ * through Runtime `GetAppPackageReadiness`, not this Tauri projection.
  * Requires the Tauri runtime — the Apps bridge has no non-desktop source.
  */
 export async function getAppsBridgeProjection(): Promise<AppsBridgeProjection> {

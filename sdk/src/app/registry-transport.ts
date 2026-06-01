@@ -4,14 +4,16 @@
 // `runtime.appLifecycle` surface; this transport carries no mutation stubs.
 // App-scoped storage roots are also Runtime-owned (`GetAppStorage`), so this
 // registry transport must not project storage roots from host-scanned install
-// evidence.
+// evidence. Package readiness is Runtime-owned (`GetAppPackageReadiness`), so
+// Runtime-backed consumers pass a typed readiness loader instead of scanned
+// install evidence.
 
 import type { NimiAppTransport } from './transport.js';
 import type {
   AppKind,
   AppLaunchReadiness,
-  NimiAppInstallEvidenceRow,
   NimiAppOrdinaryVisibility,
+  NimiAppPackageReadinessRow,
   NimiAppReleaseDescriptorRow,
   NimiAppRow,
   NimiAppStatus,
@@ -44,7 +46,7 @@ export interface NimiAppRegistrySourceRow {
 export interface NimiAppRegistryTransportOptions {
   readonly loadRows: () => Promise<readonly NimiAppRegistrySourceRow[]> | readonly NimiAppRegistrySourceRow[];
   readonly loadReleaseDescriptors: () => Promise<readonly NimiAppReleaseDescriptorRow[]> | readonly NimiAppReleaseDescriptorRow[];
-  readonly loadInstallEvidence?: () => Promise<readonly NimiAppInstallEvidenceRow[]> | readonly NimiAppInstallEvidenceRow[];
+  readonly loadPackageReadiness?: (appId: string) => Promise<NimiAppPackageReadinessRow | undefined> | NimiAppPackageReadinessRow | undefined;
 }
 
 export class NimiAppRegistryTransportError extends Error {
@@ -91,10 +93,9 @@ export function createNimiAppRegistryTransport(options: NimiAppRegistryTransport
       return toClientRow(row);
     },
     async status(appId: string): Promise<NimiAppStatus> {
-      const [rows, descriptors, installEvidence] = await Promise.all([
+      const [rows, descriptors] = await Promise.all([
         loadRows(options.loadRows),
         loadReleaseDescriptors(options.loadReleaseDescriptors),
-        loadInstallEvidence(options.loadInstallEvidence),
       ]);
       const row = rows.find((candidate) => candidate.appId === appId);
       if (!row) {
@@ -106,7 +107,8 @@ export function createNimiAppRegistryTransport(options: NimiAppRegistryTransport
           `Nimi App "${appId}" is not ordinary-visible with a resolved release descriptor and storage policy`,
         );
       }
-      return defaultStatus(row, descriptors, installEvidence);
+      const packageReadiness = await loadPackageReadiness(options.loadPackageReadiness, appId);
+      return defaultStatus(row, descriptors, packageReadiness);
     },
   };
 }
@@ -141,19 +143,24 @@ async function loadReleaseDescriptors(
   }
 }
 
-async function loadInstallEvidence(
-  load: NimiAppRegistryTransportOptions['loadInstallEvidence'],
-): Promise<readonly NimiAppInstallEvidenceRow[]> {
-  if (!load) return [];
+async function loadPackageReadiness(
+  load: NimiAppRegistryTransportOptions['loadPackageReadiness'],
+  appId: string,
+): Promise<NimiAppPackageReadinessRow | undefined> {
+  if (!load) return undefined;
   try {
-    const rows = await load();
-    if (!Array.isArray(rows)) {
-      throw new NimiAppRegistryTransportError('source-error', 'Nimi App install evidence source did not return an array');
+    const projection = await load(appId);
+    if (!projection) return undefined;
+    if (projection.appId !== appId) {
+      throw new NimiAppRegistryTransportError(
+        'source-error',
+        `Nimi App package readiness source returned ${projection.appId} for ${appId}`,
+      );
     }
-    return rows;
+    return projection;
   } catch (error) {
     if (error instanceof NimiAppRegistryTransportError) throw error;
-    throw new NimiAppRegistryTransportError('source-error', 'Nimi App install evidence source failed', error);
+    throw new NimiAppRegistryTransportError('source-error', 'Nimi App package readiness source failed', error);
   }
 }
 
@@ -173,48 +180,69 @@ function toClientRow(row: NimiAppRegistrySourceRow): NimiAppRow {
 function defaultStatus(
   row: NimiAppRegistrySourceRow,
   descriptors: readonly NimiAppReleaseDescriptorRow[],
-  installEvidence: readonly NimiAppInstallEvidenceRow[],
+  packageReadiness: NimiAppPackageReadinessRow | undefined,
 ): NimiAppStatus {
   const descriptorResolution = resolveOrdinaryVisibleDescriptor(row, descriptors);
-  const evidence = descriptorResolution.descriptor
-    ? findInstallEvidence(row, descriptorResolution.descriptor, installEvidence)
-    : undefined;
-  const readiness = admissionToReadiness(row, descriptorResolution, evidence);
+  const readiness = admissionToReadiness(row, descriptorResolution, packageReadiness);
   return {
     appId: row.appId,
     launchReadiness: readiness,
     releaseDescriptorRef: row.releaseDescriptorRef,
     installStoragePolicyRef: row.installStoragePolicyRef,
-    verificationState: evidence?.verificationState ?? (readiness === 'install-required' ? 'not-installed' : 'blocked'),
-    installedVersion: evidence?.installedVersion ?? row.installedVersion,
+    verificationState: normalizeVerificationState(packageReadiness?.verificationState, readiness),
+    installedVersion: packageReadiness?.installedVersion ?? packageReadiness?.activeVersion ?? row.installedVersion,
     availableVersion: row.availableVersion,
-    detail: row.detail || defaultStatusDetail(row, readiness, descriptorResolution, evidence),
+    detail: row.detail || defaultStatusDetail(readiness, descriptorResolution, packageReadiness),
   };
+}
+
+function normalizeVerificationState(
+  value: string | undefined,
+  readiness: AppLaunchReadiness,
+): NimiAppStatus['verificationState'] {
+  switch (value) {
+    case 'digest-verified':
+    case 'bundled-source':
+    case 'digest-mismatch':
+    case 'blocked':
+    case 'unsupported':
+    case 'not-installed':
+      return value;
+    default:
+      return readiness === 'install-required' ? 'not-installed' : 'blocked';
+  }
 }
 
 function admissionToReadiness(
   row: NimiAppRegistrySourceRow,
   descriptorResolution: DescriptorResolution,
-  evidence: NimiAppInstallEvidenceRow | undefined,
+  packageReadiness: NimiAppPackageReadinessRow | undefined,
 ): AppLaunchReadiness {
   switch (row.admissionStatus) {
     case 'admitted':
       if (!descriptorResolution.ok) return 'unsupported';
-      if (!evidence) return 'install-required';
-      if (evidence.verificationState === 'digest-verified') {
-        if (!evidence.installedVersion) return 'install-required';
-        return evidence.installedVersion !== descriptorResolution.descriptor.version
-          ? 'update-required'
-          : 'ready';
-      }
-      if (evidence.verificationState === 'digest-mismatch') return 'repair-required';
-      return 'install-required';
+      if (!packageReadiness) return 'install-required';
+      return packageReadinessToReadiness(packageReadiness);
     case 'gated_by_avatar_master_gate':
       return 'blocked-by-master-gate';
     case 'pending_wave_4':
     case 'deferred':
     case 'retired':
       return 'unsupported';
+  }
+}
+
+function packageReadinessToReadiness(packageReadiness: NimiAppPackageReadinessRow): AppLaunchReadiness {
+  switch (packageReadiness.state) {
+    case 'ready':
+      return 'ready';
+    case 'install_required':
+      return 'install-required';
+    case 'update_required':
+      return 'update-required';
+    case 'repair_required':
+    case 'blocked':
+      return 'repair-required';
   }
 }
 
@@ -256,24 +284,10 @@ function isDescriptorValidForRow(
   return !isMutableSourceRef(descriptor.sourceKind, descriptor.sourceRef);
 }
 
-function findInstallEvidence(
-  row: NimiAppRegistrySourceRow,
-  descriptor: NimiAppReleaseDescriptorRow,
-  installEvidence: readonly NimiAppInstallEvidenceRow[],
-): NimiAppInstallEvidenceRow | undefined {
-  return installEvidence.find((evidence) =>
-    evidence.appId === row.appId
-    && evidence.releaseDescriptorRef === descriptor.descriptorId
-    && evidence.storagePolicyRef === descriptor.storagePolicyRef
-    && evidence.sha256 === descriptor.sha256
-  );
-}
-
 function defaultStatusDetail(
-  row: NimiAppRegistrySourceRow,
   readiness: AppLaunchReadiness,
   descriptorResolution: DescriptorResolution,
-  evidence: NimiAppInstallEvidenceRow | undefined,
+  packageReadiness: NimiAppPackageReadinessRow | undefined,
 ): string | undefined {
   if (readiness === 'unsupported') {
     return descriptorResolution.ok
@@ -283,11 +297,14 @@ function defaultStatusDetail(
   if (readiness === 'blocked-by-master-gate') {
     return 'app is blocked by master product gate';
   }
-  if (readiness === 'install-required' && !evidence) {
-    return 'descriptor resolved, but no digest-verified install evidence exists';
+  if (packageReadiness?.detail) {
+    return packageReadiness.detail;
+  }
+  if (readiness === 'install-required' && !packageReadiness) {
+    return 'descriptor resolved, but no Runtime package readiness projection exists';
   }
   if (readiness === 'repair-required') {
-    return 'installed artifact digest does not match release descriptor';
+    return 'Runtime package readiness requires repair';
   }
   return undefined;
 }

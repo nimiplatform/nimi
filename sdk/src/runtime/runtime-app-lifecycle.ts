@@ -32,6 +32,8 @@ export type {
   RuntimeAppInstallJobState,
   RuntimeAppInstallSourceKind,
   RuntimeAppInstallStorage,
+  RuntimeAppPackageReadinessProjection,
+  RuntimeAppPackageReadinessState,
   RuntimeAppStorageProjection,
   RuntimeAppStorageState,
   RuntimeAppLifecycleJobKind,
@@ -139,6 +141,7 @@ import {
   decodeAppInstallJob,
   decodeJobEvent,
   decodeOpenProjection,
+  decodePackageReadinessProjection,
   decodeStorageProjection,
   decodeUninstallResult,
 } from './runtime-app-lifecycle-decode.js';
@@ -189,6 +192,13 @@ export function createRuntimeAppLifecycleModule(input: {
         client.app.getAppStorage({ appId }, optionsValue),
       );
       return decodeStorageProjection(response.projection);
+    },
+    async packageReadiness(readinessInput, optionsValue) {
+      const appId = requireAppId(readinessInput?.appId);
+      const response = await ctx.invokeWithClient(async (client) =>
+        client.app.getAppPackageReadiness({ appId }, optionsValue),
+      );
+      return decodePackageReadinessProjection(response.projection);
     },
     async getJob(getInput, optionsValue) {
       const jobId = requireJobId(getInput?.jobId);

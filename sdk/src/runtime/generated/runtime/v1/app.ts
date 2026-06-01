@@ -224,6 +224,59 @@ export interface AppStorageProjection {
     detail: string;
 }
 /**
+ * AppPackageReadinessProjection is the Runtime-owned package readiness surface
+ * for app consumers. It projects active release + install evidence truth only;
+ * registry admission and permission gates stay in Platform/SDK projections.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AppPackageReadinessProjection
+ */
+export interface AppPackageReadinessProjection {
+    /**
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: string release_descriptor_ref = 2
+     */
+    releaseDescriptorRef: string;
+    /**
+     * @generated from protobuf field: string storage_policy_ref = 3
+     */
+    storagePolicyRef: string;
+    /**
+     * @generated from protobuf field: string expected_version = 4
+     */
+    expectedVersion: string;
+    /**
+     * @generated from protobuf field: string active_version = 5
+     */
+    activeVersion: string;
+    /**
+     * @generated from protobuf field: string installed_version = 6
+     */
+    installedVersion: string;
+    /**
+     * @generated from protobuf field: string sha256 = 7
+     */
+    sha256: string;
+    /**
+     * @generated from protobuf field: string verification_state = 8
+     */
+    verificationState: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppPackageReadinessState state = 9
+     */
+    state: AppPackageReadinessState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 10
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: string detail = 11
+     */
+    detail: string;
+}
+/**
  * AppInstallJob is the typed install job projection. It mirrors the
  * LocalEnvironmentDependencyJob shape: a stable job id, a typed state, the
  * resolved descriptor identity, a fail-closed failure detail, and a
@@ -382,6 +435,27 @@ export interface GetAppStorageResponse {
      * @generated from protobuf field: nimi.runtime.v1.AppStorageProjection projection = 1
      */
     projection?: AppStorageProjection;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAppPackageReadinessRequest
+ */
+export interface GetAppPackageReadinessRequest {
+    /**
+     * app_id resolves the admitted app's release descriptor, active release
+     * pointer, and install evidence. It never scans from an app-local source.
+     *
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAppPackageReadinessResponse
+ */
+export interface GetAppPackageReadinessResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppPackageReadinessProjection projection = 1
+     */
+    projection?: AppPackageReadinessProjection;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListAppInstallJobsRequest
@@ -966,6 +1040,40 @@ export enum AppStorageState {
      * @generated from protobuf enum value: APP_STORAGE_STATE_STORAGE_UNAVAILABLE = 4;
      */
     STORAGE_UNAVAILABLE = 4
+}
+/**
+ * AppPackageReadinessState is the Runtime-owned package readiness projection.
+ * It is separate from storage truth: it reads the active release pointer and
+ * install evidence to decide whether the currently materialized package is
+ * launchable, needs install/update/repair, or is blocked fail-closed.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.AppPackageReadinessState
+ */
+export enum AppPackageReadinessState {
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_READINESS_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_READINESS_STATE_READY = 1;
+     */
+    READY = 1,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_READINESS_STATE_INSTALL_REQUIRED = 2;
+     */
+    INSTALL_REQUIRED = 2,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_READINESS_STATE_UPDATE_REQUIRED = 3;
+     */
+    UPDATE_REQUIRED = 3,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_READINESS_STATE_REPAIR_REQUIRED = 4;
+     */
+    REPAIR_REQUIRED = 4,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_READINESS_STATE_BLOCKED = 5;
+     */
+    BLOCKED = 5
 }
 /**
  * AppOpenFlowStep is the typed Open-flow step (K-APP-017). It surfaces the
@@ -1625,6 +1733,133 @@ class AppStorageProjection$Type extends MessageType<AppStorageProjection> {
  */
 export const AppStorageProjection = new AppStorageProjection$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AppPackageReadinessProjection$Type extends MessageType<AppPackageReadinessProjection> {
+    constructor() {
+        super("nimi.runtime.v1.AppPackageReadinessProjection", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "release_descriptor_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "storage_policy_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "expected_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "active_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "installed_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "sha256", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "verification_state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AppPackageReadinessState", AppPackageReadinessState, "APP_PACKAGE_READINESS_STATE_"] },
+            { no: 10, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 11, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppPackageReadinessProjection>): AppPackageReadinessProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        message.releaseDescriptorRef = "";
+        message.storagePolicyRef = "";
+        message.expectedVersion = "";
+        message.activeVersion = "";
+        message.installedVersion = "";
+        message.sha256 = "";
+        message.verificationState = "";
+        message.state = 0;
+        message.reasonCode = 0;
+        message.detail = "";
+        if (value !== undefined)
+            reflectionMergePartial<AppPackageReadinessProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppPackageReadinessProjection): AppPackageReadinessProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                case /* string release_descriptor_ref */ 2:
+                    message.releaseDescriptorRef = reader.string();
+                    break;
+                case /* string storage_policy_ref */ 3:
+                    message.storagePolicyRef = reader.string();
+                    break;
+                case /* string expected_version */ 4:
+                    message.expectedVersion = reader.string();
+                    break;
+                case /* string active_version */ 5:
+                    message.activeVersion = reader.string();
+                    break;
+                case /* string installed_version */ 6:
+                    message.installedVersion = reader.string();
+                    break;
+                case /* string sha256 */ 7:
+                    message.sha256 = reader.string();
+                    break;
+                case /* string verification_state */ 8:
+                    message.verificationState = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AppPackageReadinessState state */ 9:
+                    message.state = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 10:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* string detail */ 11:
+                    message.detail = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppPackageReadinessProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        /* string release_descriptor_ref = 2; */
+        if (message.releaseDescriptorRef !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.releaseDescriptorRef);
+        /* string storage_policy_ref = 3; */
+        if (message.storagePolicyRef !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.storagePolicyRef);
+        /* string expected_version = 4; */
+        if (message.expectedVersion !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.expectedVersion);
+        /* string active_version = 5; */
+        if (message.activeVersion !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.activeVersion);
+        /* string installed_version = 6; */
+        if (message.installedVersion !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.installedVersion);
+        /* string sha256 = 7; */
+        if (message.sha256 !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.sha256);
+        /* string verification_state = 8; */
+        if (message.verificationState !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.verificationState);
+        /* nimi.runtime.v1.AppPackageReadinessState state = 9; */
+        if (message.state !== 0)
+            writer.tag(9, WireType.Varint).int32(message.state);
+        /* nimi.runtime.v1.ReasonCode reason_code = 10; */
+        if (message.reasonCode !== 0)
+            writer.tag(10, WireType.Varint).int32(message.reasonCode);
+        /* string detail = 11; */
+        if (message.detail !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.detail);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppPackageReadinessProjection
+ */
+export const AppPackageReadinessProjection = new AppPackageReadinessProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class AppInstallJob$Type extends MessageType<AppInstallJob> {
     constructor() {
         super("nimi.runtime.v1.AppInstallJob", [
@@ -2085,6 +2320,99 @@ class GetAppStorageResponse$Type extends MessageType<GetAppStorageResponse> {
  * @generated MessageType for protobuf message nimi.runtime.v1.GetAppStorageResponse
  */
 export const GetAppStorageResponse = new GetAppStorageResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAppPackageReadinessRequest$Type extends MessageType<GetAppPackageReadinessRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetAppPackageReadinessRequest", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetAppPackageReadinessRequest>): GetAppPackageReadinessRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetAppPackageReadinessRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAppPackageReadinessRequest): GetAppPackageReadinessRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAppPackageReadinessRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAppPackageReadinessRequest
+ */
+export const GetAppPackageReadinessRequest = new GetAppPackageReadinessRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAppPackageReadinessResponse$Type extends MessageType<GetAppPackageReadinessResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetAppPackageReadinessResponse", [
+            { no: 1, name: "projection", kind: "message", T: () => AppPackageReadinessProjection }
+        ]);
+    }
+    create(value?: PartialMessage<GetAppPackageReadinessResponse>): GetAppPackageReadinessResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetAppPackageReadinessResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAppPackageReadinessResponse): GetAppPackageReadinessResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AppPackageReadinessProjection projection */ 1:
+                    message.projection = AppPackageReadinessProjection.internalBinaryRead(reader, reader.uint32(), options, message.projection);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAppPackageReadinessResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AppPackageReadinessProjection projection = 1; */
+        if (message.projection)
+            AppPackageReadinessProjection.internalBinaryWrite(message.projection, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAppPackageReadinessResponse
+ */
+export const GetAppPackageReadinessResponse = new GetAppPackageReadinessResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ListAppInstallJobsRequest$Type extends MessageType<ListAppInstallJobsRequest> {
     constructor() {
@@ -2965,6 +3293,7 @@ export const RuntimeAppService = new ServiceType("nimi.runtime.v1.RuntimeAppServ
     { name: "InstallApp", options: {}, I: InstallAppRequest, O: InstallAppResponse },
     { name: "UninstallApp", options: {}, I: UninstallAppRequest, O: UninstallAppResponse },
     { name: "GetAppStorage", options: {}, I: GetAppStorageRequest, O: GetAppStorageResponse },
+    { name: "GetAppPackageReadiness", options: {}, I: GetAppPackageReadinessRequest, O: GetAppPackageReadinessResponse },
     { name: "GetAppInstallJob", options: {}, I: GetAppInstallJobRequest, O: GetAppInstallJobResponse },
     { name: "ListAppInstallJobs", options: {}, I: ListAppInstallJobsRequest, O: ListAppInstallJobsResponse },
     { name: "WatchAppInstallJobEvents", serverStreaming: true, options: {}, I: WatchAppInstallJobEventsRequest, O: AppInstallJobEvent },

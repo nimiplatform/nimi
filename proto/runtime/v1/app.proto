@@ -163,6 +163,19 @@ enum AppStorageState {
   APP_STORAGE_STATE_STORAGE_UNAVAILABLE = 4;
 }
 
+// AppPackageReadinessState is the Runtime-owned package readiness projection.
+// It is separate from storage truth: it reads the active release pointer and
+// install evidence to decide whether the currently materialized package is
+// launchable, needs install/update/repair, or is blocked fail-closed.
+enum AppPackageReadinessState {
+  APP_PACKAGE_READINESS_STATE_UNSPECIFIED = 0;
+  APP_PACKAGE_READINESS_STATE_READY = 1;
+  APP_PACKAGE_READINESS_STATE_INSTALL_REQUIRED = 2;
+  APP_PACKAGE_READINESS_STATE_UPDATE_REQUIRED = 3;
+  APP_PACKAGE_READINESS_STATE_REPAIR_REQUIRED = 4;
+  APP_PACKAGE_READINESS_STATE_BLOCKED = 5;
+}
+
 // AppStorageProjection is the stable Runtime-owned app storage truth surface
 // for app consumers (P-NAPP-015 / S-APP-011). data/cache/tmp are app-scoped
 // absolute roots under selected nimi_data. active_release_root is populated
@@ -177,6 +190,23 @@ message AppStorageProjection {
   string temp_root = 7;
   string active_version = 8;
   string storage_policy_ref = 9;
+  ReasonCode reason_code = 10;
+  string detail = 11;
+}
+
+// AppPackageReadinessProjection is the Runtime-owned package readiness surface
+// for app consumers. It projects active release + install evidence truth only;
+// registry admission and permission gates stay in Platform/SDK projections.
+message AppPackageReadinessProjection {
+  string app_id = 1;
+  string release_descriptor_ref = 2;
+  string storage_policy_ref = 3;
+  string expected_version = 4;
+  string active_version = 5;
+  string installed_version = 6;
+  string sha256 = 7;
+  string verification_state = 8;
+  AppPackageReadinessState state = 9;
   ReasonCode reason_code = 10;
   string detail = 11;
 }
@@ -245,6 +275,16 @@ message GetAppStorageRequest {
 
 message GetAppStorageResponse {
   AppStorageProjection projection = 1;
+}
+
+message GetAppPackageReadinessRequest {
+  // app_id resolves the admitted app's release descriptor, active release
+  // pointer, and install evidence. It never scans from an app-local source.
+  string app_id = 1;
+}
+
+message GetAppPackageReadinessResponse {
+  AppPackageReadinessProjection projection = 1;
 }
 
 message ListAppInstallJobsRequest {
@@ -453,6 +493,7 @@ service RuntimeAppService {
   rpc InstallApp(InstallAppRequest) returns (InstallAppResponse);
   rpc UninstallApp(UninstallAppRequest) returns (UninstallAppResponse);
   rpc GetAppStorage(GetAppStorageRequest) returns (GetAppStorageResponse);
+  rpc GetAppPackageReadiness(GetAppPackageReadinessRequest) returns (GetAppPackageReadinessResponse);
   rpc GetAppInstallJob(GetAppInstallJobRequest) returns (GetAppInstallJobResponse);
   rpc ListAppInstallJobs(ListAppInstallJobsRequest) returns (ListAppInstallJobsResponse);
   rpc WatchAppInstallJobEvents(WatchAppInstallJobEventsRequest) returns (stream AppInstallJobEvent);

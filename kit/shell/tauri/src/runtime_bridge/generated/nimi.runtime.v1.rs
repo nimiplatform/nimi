@@ -12683,6 +12683,34 @@ pub struct AppStorageProjection {
     #[prost(string, tag = "11")]
     pub detail: ::prost::alloc::string::String,
 }
+/// AppPackageReadinessProjection is the Runtime-owned package readiness surface
+/// for app consumers. It projects active release + install evidence truth only;
+/// registry admission and permission gates stay in Platform/SDK projections.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppPackageReadinessProjection {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub release_descriptor_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub storage_policy_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub expected_version: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub active_version: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub installed_version: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub sha256: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub verification_state: ::prost::alloc::string::String,
+    #[prost(enumeration = "AppPackageReadinessState", tag = "9")]
+    pub state: i32,
+    #[prost(enumeration = "ReasonCode", tag = "10")]
+    pub reason_code: i32,
+    #[prost(string, tag = "11")]
+    pub detail: ::prost::alloc::string::String,
+}
 /// AppInstallJob is the typed install job projection. It mirrors the
 /// LocalEnvironmentDependencyJob shape: a stable job id, a typed state, the
 /// resolved descriptor identity, a fail-closed failure detail, and a
@@ -12772,6 +12800,18 @@ pub struct GetAppStorageRequest {
 pub struct GetAppStorageResponse {
     #[prost(message, optional, tag = "1")]
     pub projection: ::core::option::Option<AppStorageProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAppPackageReadinessRequest {
+    /// app_id resolves the admitted app's release descriptor, active release
+    /// pointer, and install evidence. It never scans from an app-local source.
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAppPackageReadinessResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<AppPackageReadinessProjection>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListAppInstallJobsRequest {
@@ -13269,6 +13309,48 @@ impl AppStorageState {
         }
     }
 }
+/// AppPackageReadinessState is the Runtime-owned package readiness projection.
+/// It is separate from storage truth: it reads the active release pointer and
+/// install evidence to decide whether the currently materialized package is
+/// launchable, needs install/update/repair, or is blocked fail-closed.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppPackageReadinessState {
+    Unspecified = 0,
+    Ready = 1,
+    InstallRequired = 2,
+    UpdateRequired = 3,
+    RepairRequired = 4,
+    Blocked = 5,
+}
+impl AppPackageReadinessState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_PACKAGE_READINESS_STATE_UNSPECIFIED",
+            Self::Ready => "APP_PACKAGE_READINESS_STATE_READY",
+            Self::InstallRequired => "APP_PACKAGE_READINESS_STATE_INSTALL_REQUIRED",
+            Self::UpdateRequired => "APP_PACKAGE_READINESS_STATE_UPDATE_REQUIRED",
+            Self::RepairRequired => "APP_PACKAGE_READINESS_STATE_REPAIR_REQUIRED",
+            Self::Blocked => "APP_PACKAGE_READINESS_STATE_BLOCKED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_PACKAGE_READINESS_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_PACKAGE_READINESS_STATE_READY" => Some(Self::Ready),
+            "APP_PACKAGE_READINESS_STATE_INSTALL_REQUIRED" => Some(Self::InstallRequired),
+            "APP_PACKAGE_READINESS_STATE_UPDATE_REQUIRED" => Some(Self::UpdateRequired),
+            "APP_PACKAGE_READINESS_STATE_REPAIR_REQUIRED" => Some(Self::RepairRequired),
+            "APP_PACKAGE_READINESS_STATE_BLOCKED" => Some(Self::Blocked),
+            _ => None,
+        }
+    }
+}
 /// AppOpenFlowStep is the typed Open-flow step (K-APP-017). It surfaces the
 /// concrete checkpoint the launch is at so a failed Open names the exact step
 /// rather than a generic failure. It is never inferred.
@@ -13592,6 +13674,35 @@ pub mod runtime_app_service_client {
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new("nimi.runtime.v1.RuntimeAppService", "GetAppStorage"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_app_package_readiness(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetAppPackageReadinessRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAppPackageReadinessResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "GetAppPackageReadiness",
+                    ),
                 );
             self.inner.unary(req, path, codec).await
         }

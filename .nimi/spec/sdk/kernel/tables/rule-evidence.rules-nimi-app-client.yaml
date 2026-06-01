@@ -41,6 +41,7 @@ entries:
   - S-APP-015
   - S-APP-016
   - S-APP-017
+  - S-APP-018
 rules:
   - rule_id: S-APP-001
     evidence_refs:
@@ -121,4 +122,13 @@ rules:
     note: SDK app storage truth accessor is backed by Runtime GetAppStorage and must not re-derive app storage roots locally.
     test_files:
       - sdk/test/runtime/runtime-app-lifecycle.test.ts
+    evidence_requirement: required
+  - rule_id: S-APP-018
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_behavioral_test
+    note: SDK app package readiness accessor is backed by Runtime GetAppPackageReadiness and must not re-derive install evidence or active release truth locally.
+    test_files:
+      - sdk/test/runtime/runtime-app-lifecycle.test.ts
+      - sdk/test/app-registry-transport.test.ts
     evidence_requirement: required

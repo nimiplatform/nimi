@@ -8,6 +8,7 @@ import {
   AppLifecycleJobKind as ProtoAppLifecycleJobKind,
   AppOpenFlowStep as ProtoAppOpenFlowStep,
   AppOpenState as ProtoAppOpenState,
+  AppPackageReadinessState as ProtoAppPackageReadinessState,
   AppStorageState as ProtoAppStorageState,
 } from './generated/runtime/v1/app.js';
 import type {
@@ -16,6 +17,7 @@ import type {
   AppInstallStorageProjection as ProtoAppInstallStorageProjection,
   AppOpenProjection as ProtoAppOpenProjection,
   AppOpenScopeRef as ProtoAppOpenScopeRef,
+  AppPackageReadinessProjection as ProtoAppPackageReadinessProjection,
   AppStorageProjection as ProtoAppStorageProjection,
   AppUninstallResult as ProtoAppUninstallResult,
 } from './generated/runtime/v1/app.js';
@@ -32,6 +34,8 @@ import type {
   RuntimeAppOpenProjection,
   RuntimeAppOpenScopeRef,
   RuntimeAppOpenState,
+  RuntimeAppPackageReadinessProjection,
+  RuntimeAppPackageReadinessState,
   RuntimeAppStorageProjection,
   RuntimeAppStorageState,
   RuntimeAppUninstallResult,
@@ -234,6 +238,71 @@ export function decodeStorageProjection(
       ? { activeVersion: optionalString(projection.activeVersion) }
       : {}),
     storagePolicyRef: projection.storagePolicyRef,
+    ...(reasonCode ? { reasonCode } : {}),
+    ...(optionalString(projection.detail) ? { detail: optionalString(projection.detail) } : {}),
+  };
+}
+
+function decodePackageReadinessState(value: ProtoAppPackageReadinessState): RuntimeAppPackageReadinessState {
+  switch (value) {
+    case ProtoAppPackageReadinessState.READY:
+      return 'ready';
+    case ProtoAppPackageReadinessState.INSTALL_REQUIRED:
+      return 'install_required';
+    case ProtoAppPackageReadinessState.UPDATE_REQUIRED:
+      return 'update_required';
+    case ProtoAppPackageReadinessState.REPAIR_REQUIRED:
+      return 'repair_required';
+    case ProtoAppPackageReadinessState.BLOCKED:
+      return 'blocked';
+    default:
+      return decodeError(
+        `runtime app package readiness projection has an unspecified state: ${String(value)}`,
+        ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+      );
+  }
+}
+
+export function decodePackageReadinessProjection(
+  projection: ProtoAppPackageReadinessProjection | undefined,
+): RuntimeAppPackageReadinessProjection {
+  if (!projection) {
+    return decodeError(
+      'runtime app package readiness response is missing the projection',
+      ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    );
+  }
+  const appId = optionalString(projection.appId);
+  if (!appId) {
+    return decodeError(
+      'runtime app package readiness projection is missing an app id',
+      ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    );
+  }
+  const state = decodePackageReadinessState(projection.state);
+  const reasonCode = decodeReasonCode(projection.reasonCode as unknown as number);
+  if ((state === 'repair_required' || state === 'blocked') && !reasonCode) {
+    return decodeError(
+      `runtime app package readiness projection ${appId} is ${state} without a typed reason code`,
+      ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    );
+  }
+  return {
+    appId,
+    releaseDescriptorRef: projection.releaseDescriptorRef,
+    storagePolicyRef: projection.storagePolicyRef,
+    expectedVersion: projection.expectedVersion,
+    ...(optionalString(projection.activeVersion)
+      ? { activeVersion: optionalString(projection.activeVersion) }
+      : {}),
+    ...(optionalString(projection.installedVersion)
+      ? { installedVersion: optionalString(projection.installedVersion) }
+      : {}),
+    ...(optionalString(projection.sha256) ? { sha256: optionalString(projection.sha256) } : {}),
+    ...(optionalString(projection.verificationState)
+      ? { verificationState: optionalString(projection.verificationState) }
+      : {}),
+    state,
     ...(reasonCode ? { reasonCode } : {}),
     ...(optionalString(projection.detail) ? { detail: optionalString(projection.detail) } : {}),
   };
