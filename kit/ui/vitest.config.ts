@@ -16,6 +16,7 @@ export default defineConfig({
       { find: '@nimiplatform/kit/features/model-config', replacement: path.resolve(__dirname, '../features/model-config/src') },
       { find: '@nimiplatform/kit/features/model-picker', replacement: path.resolve(__dirname, '../features/model-picker/src') },
       { find: '@nimiplatform/kit/features/generation', replacement: path.resolve(__dirname, '../features/generation/src') },
+      { find: '@nimiplatform/kit/core/sdk-contract', replacement: path.resolve(__dirname, '../core/src/sdk-contract.ts') },
       { find: '@nimiplatform/kit/core/runtime-capabilities', replacement: path.resolve(__dirname, '../core/src/runtime-capabilities') },
       { find: '@nimiplatform/kit/core/model-config', replacement: path.resolve(__dirname, '../core/src/model-config') },
     ],

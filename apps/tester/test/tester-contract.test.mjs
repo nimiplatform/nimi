@@ -250,6 +250,7 @@ test('tester artifact history persistence is real and fail-closed', () => {
   assert.match(imageHistory, /runId\?: string/);
   assert.match(imageHistory, /kind\?: 'runtime-media'/);
   assert.match(tauri, /@nimiplatform\/kit\/shell\/renderer\/bridge/);
+  assert.match(tauri, /toShellBridgeNimiError/);
   assert.doesNotMatch(tauri, /@tauri-apps\/api\/core/);
   assert.match(imageHistory, /artifactCount\?: number/);
   assert.match(imageHistory, /traceState\?: 'captured' \| 'not-captured'/);

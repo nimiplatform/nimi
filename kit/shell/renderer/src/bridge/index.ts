@@ -8,6 +8,18 @@ export {
 export type { NimiShellRuntimeBridgeResult } from './tauri-api.js';
 export { hasTauriInvoke } from './env.js';
 export { invoke, invokeChecked, BridgeError } from './invoke.js';
+export {
+  extractShellBridgeErrorCode,
+  getShellBridgeUserMessageProjection,
+  parseShellBridgeJsonPayload,
+  toShellBridgeNimiError,
+  toShellBridgeUserMessage,
+} from './nimi-error.js';
+export type {
+  ShellBridgeNimiErrorOptions,
+  ShellBridgeStructuredError,
+  ShellBridgeUserMessageProjection,
+} from './nimi-error.js';
 export { getRuntimeDefaults } from './runtime-defaults.js';
 export {
   loadAuthSession,

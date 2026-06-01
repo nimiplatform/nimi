@@ -123,7 +123,10 @@ export type { getPlatformClient as GetPlatformClientFn } from '@nimiplatform/sdk
 export {
   Runtime,
   asNimiError,
+  createNimiError,
   createRuntimeModelCatalogClient,
+  getRuntimeReasonCodeMessage,
+  isNimiError,
   listRuntimeRouteOptions,
   ScenarioJobStatus,
   CatalogModelSource,

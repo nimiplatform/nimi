@@ -10,6 +10,10 @@ const invokeSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/invoke.ts'),
   'utf8',
 );
+const kitShellBridgeNimiErrorSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../../../kit/shell/renderer/src/bridge/nimi-error.ts'),
+  'utf8',
+);
 
 test('toBridgeNimiError maps LOCAL_LIFECYCLE_WRITE_DENIED reason code', () => {
   const error = toBridgeNimiError(new Error('LOCAL_LIFECYCLE_WRITE_DENIED: caller=sideload'));
@@ -202,9 +206,11 @@ test('bridge local speech error projection does not retain provider-specific dis
   assert.doesNotMatch(invokeSource, new RegExp(['Qwen', 'TTS'].join(' ')));
 });
 
-test('bridge runtime reason messages consume SDK projection before app-local shell errors', () => {
-  assert.match(invokeSource, /getRuntimeReasonCodeMessage/);
+test('bridge runtime reason messages consume Kit shell normalization before app translation', () => {
+  assert.match(invokeSource, /toShellBridgeNimiError/);
+  assert.match(invokeSource, /getShellBridgeUserMessageProjection/);
   assert.doesNotMatch(invokeSource, /AI_PROVIDER_TIMEOUT:\s*\{/);
-  assert.doesNotMatch(invokeSource, /AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED:\s*\{/);
-  assert.match(invokeSource, /DESKTOP_HTTP_METHOD_INVALID:\s*\{/);
+  assert.doesNotMatch(invokeSource, /DESKTOP_HTTP_METHOD_INVALID:\s*\{/);
+  assert.match(kitShellBridgeNimiErrorSource, /getRuntimeReasonCodeMessage/);
+  assert.match(kitShellBridgeNimiErrorSource, /DESKTOP_HTTP_METHOD_INVALID:\s*\{/);
 });

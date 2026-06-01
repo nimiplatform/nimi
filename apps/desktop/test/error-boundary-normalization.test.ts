@@ -20,6 +20,11 @@ const INVOKE_PATH = resolve(
   '../src/shell/renderer/bridge/runtime-bridge/invoke.ts',
 );
 const invokeSource = readFileSync(INVOKE_PATH, 'utf-8');
+const KIT_SHELL_BRIDGE_ERROR_PATH = resolve(
+  import.meta.dirname,
+  '../../../kit/shell/renderer/src/bridge/nimi-error.ts',
+);
+const kitShellBridgeErrorSource = readFileSync(KIT_SHELL_BRIDGE_ERROR_PATH, 'utf-8');
 
 describe('D-ERR-009: silent catch elimination in runtime-config install-actions', () => {
   test('D-ERR-009: runtime-config install-actions has no silent .catch(() => null) patterns', () => {
@@ -61,41 +66,41 @@ describe('D-ERR-009: silent catch elimination in runtime-config install-actions'
 });
 
 describe('D-ERR-011: toBridgeNimiError structured field extraction in invoke.ts', () => {
-  test('D-ERR-011: invoke.ts toBridgeNimiError extracts reasonCode', () => {
+  test('D-ERR-011: Kit shell bridge normalizer extracts reasonCode', () => {
     assert.match(
-      invokeSource,
+      kitShellBridgeErrorSource,
       /reasonCode/,
       'toBridgeNimiError must extract reasonCode field (D-ERR-011)',
     );
   });
 
-  test('D-ERR-011: invoke.ts toBridgeNimiError extracts actionHint', () => {
+  test('D-ERR-011: Kit shell bridge normalizer extracts actionHint', () => {
     assert.match(
-      invokeSource,
+      kitShellBridgeErrorSource,
       /actionHint/,
       'toBridgeNimiError must extract actionHint field (D-ERR-011)',
     );
   });
 
-  test('D-ERR-011: invoke.ts toBridgeNimiError extracts traceId', () => {
+  test('D-ERR-011: Kit shell bridge normalizer extracts traceId', () => {
     assert.match(
-      invokeSource,
+      kitShellBridgeErrorSource,
       /traceId/,
       'toBridgeNimiError must extract traceId field (D-ERR-011)',
     );
   });
 
-  test('D-ERR-011: invoke.ts toBridgeNimiError extracts retryable', () => {
+  test('D-ERR-011: Kit shell bridge normalizer extracts retryable', () => {
     assert.match(
-      invokeSource,
+      kitShellBridgeErrorSource,
       /retryable/,
       'toBridgeNimiError must extract retryable field (D-ERR-011)',
     );
   });
 
-  test('D-ERR-011: invoke.ts toBridgeNimiError extracts rawMessage', () => {
+  test('D-ERR-011: Kit shell bridge normalizer extracts rawMessage', () => {
     assert.match(
-      invokeSource,
+      kitShellBridgeErrorSource,
       /rawMessage/,
       'toBridgeNimiError must extract rawMessage field (D-ERR-011)',
     );
