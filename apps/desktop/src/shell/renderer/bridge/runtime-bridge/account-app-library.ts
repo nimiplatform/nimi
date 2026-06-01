@@ -21,8 +21,6 @@ import {
 import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 
-export type { AccountAppLibraryRecord } from '@nimiplatform/sdk/app';
-
 /** The lifecycle-terminal mutation the renderer requests. */
 export type AccountAppLibraryMutationKind =
   | 'installed_enabled'

@@ -25,7 +25,6 @@ import { invokeChecked } from './invoke';
 export type LibraryProfileOrigin = AccountProfileLibraryOrigin;
 export type LibraryProfile = AccountProfileLibraryProfile;
 export type LibraryIndexEntry = AccountProfileLibraryIndexEntry;
-export type { AccountProfileLibraryProjection } from '@nimiplatform/sdk/ai';
 
 function requireTauri(command: string): void {
   if (!hasTauriInvoke()) {

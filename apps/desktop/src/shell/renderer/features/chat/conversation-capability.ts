@@ -17,6 +17,13 @@
  */
 import type {
   AIConfig,
+  AIConfigCapabilities,
+  AIConfigEvidence,
+  AIConversationExecutionSlice,
+  AIProfile,
+  AIProfileCapabilityIntent,
+  AIProfileRef,
+  AIScopeKind,
   AIScopeRef,
   AISnapshot,
 } from '@nimiplatform/sdk/ai';
@@ -30,6 +37,9 @@ import type {
   RuntimeRouteDescribeResult,
   RuntimeRouteHealthResult,
   AIRuntimeEvidence,
+  AISchedulingJudgement,
+  AISchedulingOccupancy,
+  AISchedulingState,
 } from '@nimiplatform/sdk/runtime';
 import {
   RUNTIME_ROUTE_APP_CAPABILITIES,
@@ -295,7 +305,7 @@ export function createAISnapshot(input: {
   });
 }
 
-// Re-export SDK AI config types for desktop consumers
+export type ConversationAIConfig = AIConfig;
 export type {
   AIConfig,
   AIConfigCapabilities,
@@ -307,11 +317,8 @@ export type {
   AIScopeKind,
   AIScopeRef,
   AISnapshot,
-} from '@nimiplatform/sdk/ai';
-export type {
   AISchedulingJudgement,
   AISchedulingOccupancy,
   AISchedulingState,
   AIRuntimeEvidence,
-} from '@nimiplatform/sdk/runtime';
-export { applyAIProfileToConfig, createEmptyAIConfig } from '@nimiplatform/sdk/ai';
+};

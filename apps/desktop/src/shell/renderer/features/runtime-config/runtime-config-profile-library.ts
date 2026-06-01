@@ -24,7 +24,13 @@
  * no compatibility bridge.
  */
 
-import type { AIProfile } from '@nimiplatform/sdk/ai';
+import type {
+  AccountProfileLibraryIndexEntry,
+  AccountProfileLibraryOrigin,
+  AccountProfileLibraryProfile,
+  AccountProfileLibraryProjection as SdkAccountProfileLibraryProjection,
+  AIProfile,
+} from '@nimiplatform/sdk/ai';
 import { createNimiClientId } from '@nimiplatform/sdk/runtime';
 import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
@@ -34,15 +40,12 @@ import {
   exportAccountProfileLibraryProfiles,
   importAccountProfileLibraryProfiles,
   listAccountProfileLibrary,
-  type AccountProfileLibraryProjection,
 } from '@renderer/bridge/runtime-bridge/account-profile-library.js';
 
-export type {
-  AccountProfileLibraryProjection,
-  LibraryIndexEntry,
-  LibraryProfile,
-  LibraryProfileOrigin,
-} from '@renderer/bridge/runtime-bridge/account-profile-library.js';
+export type LibraryProfileOrigin = AccountProfileLibraryOrigin;
+export type LibraryProfile = AccountProfileLibraryProfile;
+export type LibraryIndexEntry = AccountProfileLibraryIndexEntry;
+export type AccountProfileLibraryProjection = SdkAccountProfileLibraryProjection;
 
 // ---------------------------------------------------------------------------
 // Read-through projection cache (a projection of Rust truth, never the store)

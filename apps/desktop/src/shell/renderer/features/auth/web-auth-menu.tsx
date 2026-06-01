@@ -17,8 +17,6 @@ import {
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
-export type { WebAuthMenuMode } from '@nimiplatform/kit/auth';
-
 export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
   const mode = props.mode || 'embedded';
   const adapter = useMemo(() => createDesktopAuthAdapter(), []);

@@ -3,10 +3,9 @@ import test from 'node:test';
 
 import {
   createAISnapshot,
-  createEmptyAIConfig,
   type ConversationCapabilityProjection,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
-import { createBuiltInChatAIScopeRef } from '@nimiplatform/sdk/ai';
+import { createBuiltInChatAIScopeRef, createEmptyAIConfig } from '@nimiplatform/sdk/ai';
 import { transcribeChatAgentVoiceRuntime } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
 
 const testScopeRef = createBuiltInChatAIScopeRef('agent');
