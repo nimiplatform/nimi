@@ -10,17 +10,17 @@ function read(relativePath: string): string {
 }
 
 test('Offline typed error preflight violation is migrated to SDK types', () => {
-  const desktopOfflineErrors = read('apps/desktop/src/shell/renderer/infra/offline/errors.ts');
+  const offlineErrorsPath = path.join(repoRoot, 'apps/desktop/src/shell/renderer/infra/offline/errors.ts');
+  const offlineIndex = read('apps/desktop/src/shell/renderer/infra/offline/index.ts');
+  const realmApi = read('apps/desktop/src/shell/renderer/infra/realm/realm-api.ts');
   const sdkTypes = read('sdk/src/types/index.ts');
 
+  assert.equal(fs.existsSync(offlineErrorsPath), false, 'Desktop must not retain offline typed-error forwarding shell');
   assert.match(sdkTypes, /export function createOfflineNimiError/);
-  assert.match(desktopOfflineErrors, /createOfflineNimiError/);
-  assert.match(desktopOfflineErrors, /classifyOfflineError/);
-
-  assert.doesNotMatch(desktopOfflineErrors, /createNimiError/);
-  assert.doesNotMatch(desktopOfflineErrors, /createNimiClientId/);
-  assert.doesNotMatch(desktopOfflineErrors, /randomTraceId/);
-  assert.doesNotMatch(desktopOfflineErrors, /REALM_OFFLINE_REASON_CODES|RUNTIME_OFFLINE_REASON_CODES/);
+  assert.match(sdkTypes, /export function getNimiErrorMessage/);
+  assert.match(sdkTypes, /export function classifyOfflineError/);
+  assert.doesNotMatch(offlineIndex, /createOfflineError|getErrorMessage|isRealmOfflineError|isRuntimeOfflineError|isNimiErrorLike/);
+  assert.match(realmApi, /isRealmOfflineErrorLike as isRealmOfflineError/);
 });
 
 test('Tester consumes SDK offline typed error helper as second app proof', () => {
@@ -32,14 +32,11 @@ test('Tester consumes SDK offline typed error helper as second app proof', () =>
   assert.match(testerContract, /createOfflineNimiError/);
 });
 
-test('Offline app surface keeps only thin Desktop aliases over SDK classification', () => {
+test('Offline app surface keeps only Desktop cache/coordinator exports', () => {
   const offlineIndex = read('apps/desktop/src/shell/renderer/infra/offline/index.ts');
-  const offlineErrors = read('apps/desktop/src/shell/renderer/infra/offline/errors.ts');
 
   assert.match(offlineIndex, /OfflineCoordinator/);
   assert.match(offlineIndex, /@nimiplatform\/kit\/core\/offline-coordinator/);
-  assert.match(offlineErrors, /export function isRealmOfflineError/);
-  assert.match(offlineErrors, /export function isRuntimeOfflineError/);
-  assert.match(offlineErrors, /classifyOfflineError\(error, \{ transportOwner: 'realm' \}\)/);
-  assert.match(offlineErrors, /classifyOfflineError\(error, \{ transportOwner: 'runtime' \}\)/);
+  assert.match(offlineIndex, /OfflineCacheManager/);
+  assert.doesNotMatch(offlineIndex, /from '.\/errors\.js'/);
 });

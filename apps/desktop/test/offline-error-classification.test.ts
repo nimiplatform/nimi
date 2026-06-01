@@ -1,79 +1,39 @@
-import { describe, test } from 'node:test';
-import assert from 'node:assert/strict';
-
-import { ReasonCode } from '@nimiplatform/sdk/types';
-
-import { isRealmOfflineError, isRuntimeOfflineError } from '../src/shell/renderer/infra/offline/errors.js';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { readFileSync } from 'node:fs';
+import assert from 'node:assert/strict';
+import { describe, test } from 'node:test';
 
-describe('D-OFFLINE-001: realm offline error classification', () => {
-  test('REALM_UNAVAILABLE is treated as offline', () => {
-    const error = Object.assign(new Error('realm unavailable'), {
-      reasonCode: ReasonCode.REALM_UNAVAILABLE,
-      actionHint: 'retry',
-      retryable: true,
-    });
-
-    assert.equal(isRealmOfflineError(error), true);
-  });
-
-  test('retryable REALM_RATE_LIMITED is not treated as offline', () => {
-    const error = Object.assign(new Error('rate limited'), {
-      reasonCode: ReasonCode.REALM_RATE_LIMITED,
-      actionHint: 'retry_later',
-      retryable: true,
-    });
-
-    assert.equal(isRealmOfflineError(error), false);
-  });
-
-  test('retryable provider errors are not treated as Runtime offline', () => {
-    const error = Object.assign(new Error('provider timed out'), {
-      reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
-      actionHint: 'retry_provider_request',
-      retryable: true,
-    });
-
-    assert.equal(isRuntimeOfflineError(error), false);
-  });
-
-  test('transport failures are treated as offline', () => {
-    assert.equal(isRealmOfflineError(new Error('fetch failed')), true);
-    assert.equal(isRealmOfflineError(new Error('network timeout while loading realm')), true);
-  });
-
-  test('fixture and HTTP gateway 503 Realm unavailable errors are treated as offline', () => {
-    const error = Object.assign(new Error('REALM_UNAVAILABLE: fixture rest offline'), {
-      reasonCode: ReasonCode.REALM_UNAVAILABLE,
-      actionHint: 'retry_realm_request',
-      retryable: true,
-    });
-
-    assert.equal(isRealmOfflineError(error), true);
-  });
-
-  test('Desktop consumes SDK offline reason-code projections instead of local Sets', () => {
-    const offlineErrorSource = readFileSync(
-      resolve(import.meta.dirname, '../src/shell/renderer/infra/offline/errors.ts'),
+describe('D-OFFLINE-001: SDK-owned offline error classification boundary', () => {
+  test('Desktop no longer owns offline error classifiers or typed error aliases', () => {
+    const offlineErrorsPath = resolve(import.meta.dirname, '../src/shell/renderer/infra/offline/errors.ts');
+    const offlineIndexSource = readFileSync(
+      resolve(import.meta.dirname, '../src/shell/renderer/infra/offline/index.ts'),
+      'utf8',
+    );
+    const sdkTypesSource = readFileSync(
+      resolve(import.meta.dirname, '../../../sdk/src/types/index.ts'),
       'utf8',
     );
 
-    assert.match(offlineErrorSource, /classifyOfflineError/);
-    assert.doesNotMatch(offlineErrorSource, /isRealmOfflineReasonCode/);
-    assert.doesNotMatch(offlineErrorSource, /isRuntimeOfflineReasonCode/);
-    assert.doesNotMatch(offlineErrorSource, /REALM_OFFLINE_REASON_CODES/);
-    assert.doesNotMatch(offlineErrorSource, /RUNTIME_OFFLINE_REASON_CODES/);
-    assert.doesNotMatch(offlineErrorSource, /fetch failed\|failed to fetch/);
+    assert.equal(existsSync(offlineErrorsPath), false);
+    assert.match(sdkTypesSource, /export function classifyOfflineError/);
+    assert.match(sdkTypesSource, /export function isRealmOfflineErrorLike/);
+    assert.match(sdkTypesSource, /export function isRuntimeOfflineErrorLike/);
+    assert.doesNotMatch(offlineIndexSource, /isRealmOfflineError|isRuntimeOfflineError|createOfflineError|getErrorMessage/);
+    assert.doesNotMatch(offlineIndexSource, /REALM_OFFLINE_REASON_CODES|RUNTIME_OFFLINE_REASON_CODES/);
   });
 
-  test('Realm data API projects Realm unavailable errors from its unified error outlet', () => {
+  test('Realm data API consumes SDK classifier and only coordinates Desktop cache state', () => {
     const realmApiSource = readFileSync(
       resolve(import.meta.dirname, '../src/shell/renderer/infra/realm/realm-api.ts'),
       'utf8',
     );
-    assert.match(realmApiSource, /emitRealmDataError/);
-    assert.match(realmApiSource, /errorFields\.reasonCode === ReasonCode\.REALM_UNAVAILABLE/);
+    assert.match(realmApiSource, /isRealmOfflineErrorLike as isRealmOfflineError/);
+    assert.match(realmApiSource, /import \{ getOfflineCoordinator \} from '@renderer\/infra\/offline'/);
     assert.match(realmApiSource, /getOfflineCoordinator\(\)\.markRealmRestReachable\(false\)/);
+    assert.doesNotMatch(
+      realmApiSource,
+      /import\s*\{[^}]*isRealmOfflineError[^}]*\}\s*from '@renderer\/infra\/offline'/s,
+    );
   });
 });

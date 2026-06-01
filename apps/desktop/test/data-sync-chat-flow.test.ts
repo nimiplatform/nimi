@@ -3,7 +3,10 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import {
+  createOfflineNimiError as createOfflineError,
+  ReasonCode,
+} from '@nimiplatform/sdk/types';
 import {
   flushPendingChatOutbox,
   loadChatList,
@@ -12,7 +15,7 @@ import {
   sendChatMessage,
   startChatWithTarget,
 } from '../src/shell/renderer/features/chat/data/realm-human-chat-data.js';
-import { createOfflineError, getOfflineCacheManager } from '../src/shell/renderer/infra/offline/index.js';
+import { getOfflineCacheManager } from '../src/shell/renderer/infra/offline/index.js';
 
 type MessageViewDto = RealmModel<'MessageViewDto'>;
 

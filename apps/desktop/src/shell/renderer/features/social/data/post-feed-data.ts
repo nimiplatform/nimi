@@ -14,9 +14,9 @@ import {
   type RealmSocialFeedApiCaller,
   type RealmSocialFeedErrorEmitter,
 } from '@nimiplatform/sdk/realm';
+import { isRealmOfflineErrorLike as isRealmOfflineError } from '@nimiplatform/sdk/types';
 import {
   getOfflineCoordinator,
-  isRealmOfflineError,
 } from '@renderer/infra/offline';
 import {
   filterBlockedPosts,

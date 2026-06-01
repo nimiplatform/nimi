@@ -5,9 +5,11 @@ import {
 } from '@nimiplatform/sdk/realm';
 import { createNimiClientId } from '@nimiplatform/sdk/runtime';
 import {
-  getErrorMessage,
+  getNimiErrorMessage as getErrorMessage,
+  isRealmOfflineErrorLike as isRealmOfflineError,
+} from '@nimiplatform/sdk/types';
+import {
   getOfflineCacheManager,
-  isRealmOfflineError,
   type PersistentSocialMutationEntry,
   type SocialMutationKind,
 } from '@renderer/infra/offline';

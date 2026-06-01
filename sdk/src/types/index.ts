@@ -721,6 +721,11 @@ function offlineErrorMessage(error: unknown): string {
   return String(error || '').trim();
 }
 
+export function getNimiErrorMessage(error: unknown, fallback: string): string {
+  const message = offlineErrorMessage(error);
+  return message || fallback;
+}
+
 export function classifyOfflineError(
   error: unknown,
   options: OfflineErrorClassificationOptions = {},

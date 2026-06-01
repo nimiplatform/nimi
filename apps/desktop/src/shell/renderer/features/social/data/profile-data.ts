@@ -8,11 +8,13 @@ import {
   updateRealmCurrentUserProfile,
   type RealmModel,
 } from '@nimiplatform/sdk/realm';
-import type { JsonObject } from '@nimiplatform/sdk/types';
+import {
+  isRealmOfflineErrorLike as isRealmOfflineError,
+  type JsonObject,
+} from '@nimiplatform/sdk/types';
 import {
   getOfflineCacheManager,
   getOfflineCoordinator,
-  isRealmOfflineError,
 } from '@renderer/infra/offline';
 import {
   fetchAgentFriendLimit,

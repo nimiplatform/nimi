@@ -1,12 +1,14 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type { Realm } from '@nimiplatform/sdk/realm';
-import { extractNimiErrorFields, ReasonCode, tryParseJsonLike } from '@nimiplatform/sdk/types';
-import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
 import {
-  getOfflineCoordinator,
-  isRealmOfflineError,
-} from '@renderer/infra/offline';
-import { normalizeApiError } from '@nimiplatform/sdk/types';
+  extractNimiErrorFields,
+  isRealmOfflineErrorLike as isRealmOfflineError,
+  normalizeApiError,
+  ReasonCode,
+  tryParseJsonLike,
+} from '@nimiplatform/sdk/types';
+import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
+import { getOfflineCoordinator } from '@renderer/infra/offline';
 
 export type RealmApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 export type RealmDataErrorEmitter = (

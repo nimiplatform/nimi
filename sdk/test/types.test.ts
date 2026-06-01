@@ -9,6 +9,7 @@ import {
   classifyOfflineError,
   classifyOfflineReasonCode,
   createOfflineNimiError,
+  getNimiErrorMessage,
   isNimiErrorLike,
   isRealmOfflineErrorLike,
   isRuntimeOfflineErrorLike,
@@ -65,6 +66,12 @@ test('offline error projections prefer structured ReasonCode over retryable meta
   }), null);
   assert.equal(isRealmOfflineErrorLike(new Error('fetch failed'), { transportOwner: 'realm' }), true);
   assert.equal(isRuntimeOfflineErrorLike(new Error('daemon unavailable')), true);
+});
+
+test('getNimiErrorMessage returns normalized error text with fallback', () => {
+  assert.equal(getNimiErrorMessage(new Error('  failed  '), 'fallback'), 'failed');
+  assert.equal(getNimiErrorMessage({ message: ' structured failure ' }, 'fallback'), 'structured failure');
+  assert.equal(getNimiErrorMessage('', 'fallback'), 'fallback');
 });
 
 test('createOfflineNimiError produces SDK-owned typed offline error envelopes', () => {

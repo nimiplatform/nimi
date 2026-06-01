@@ -5,12 +5,15 @@ import {
   realmChatService,
   type RealmChatService,
 } from '@nimiplatform/kit/features/chat/realm';
-import { isJsonObject, type JsonObject } from '@nimiplatform/sdk/types';
 import {
-  getErrorMessage,
+  getNimiErrorMessage as getErrorMessage,
+  isJsonObject,
+  isRealmOfflineErrorLike as isRealmOfflineError,
+  type JsonObject,
+} from '@nimiplatform/sdk/types';
+import {
   getOfflineCacheManager,
   getOfflineCoordinator,
-  isRealmOfflineError,
   type PersistentOutboxEntry,
 } from '@renderer/infra/offline';
 

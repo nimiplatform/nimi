@@ -3,13 +3,15 @@ import {
   type RealmAgentProfileApiCaller,
   type RealmAgentProfileErrorEmitter,
 } from '@nimiplatform/sdk/realm';
-import type { JsonObject } from '@nimiplatform/sdk/types';
+import {
+  isRealmOfflineErrorLike as isRealmOfflineError,
+  type JsonObject,
+} from '@nimiplatform/sdk/types';
 import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
   getOfflineCacheManager,
   getOfflineCoordinator,
-  isRealmOfflineError,
 } from '@renderer/infra/offline';
 
 // Module-level TTL cache for profile lookups.

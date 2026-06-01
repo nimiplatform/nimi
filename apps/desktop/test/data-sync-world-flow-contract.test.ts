@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import {
+  createOfflineNimiError as createOfflineError,
+  ReasonCode,
+} from '@nimiplatform/sdk/types';
 import {
   loadWorldDetailById,
   loadMainWorld,
@@ -11,7 +14,7 @@ import {
   loadWorldLorebooks,
   loadWorldSemanticBundle,
 } from '../src/shell/renderer/features/world/data/realm-world-data.js';
-import { createOfflineError, getOfflineCacheManager } from '../src/shell/renderer/infra/offline/index.js';
+import { getOfflineCacheManager } from '../src/shell/renderer/infra/offline/index.js';
 
 type RealmWorldDataError = {
   action: string;

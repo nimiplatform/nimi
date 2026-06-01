@@ -23,10 +23,3 @@ export {
 } from './types.js';
 export { OfflineCacheManager, getOfflineCacheManager } from './cache-manager.js';
 export { getOfflineCoordinator } from './coordinator.js';
-export {
-  createOfflineError,
-  getErrorMessage,
-  isNimiErrorLike,
-  isRealmOfflineError,
-  isRuntimeOfflineError,
-} from './errors.js';

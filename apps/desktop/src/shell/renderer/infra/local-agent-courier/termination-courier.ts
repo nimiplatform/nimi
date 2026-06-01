@@ -10,8 +10,11 @@ import {
   asNimiError,
   createHostRuntimeAgentLifecycleSurface,
 } from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
-import { isRealmOfflineError, isRuntimeOfflineError } from '@renderer/infra/offline';
+import {
+  isRealmOfflineErrorLike as isRealmOfflineError,
+  isRuntimeOfflineErrorLike as isRuntimeOfflineError,
+  ReasonCode,
+} from '@nimiplatform/sdk/types';
 import type { JsonObject } from '@nimiplatform/sdk/types';
 
 type LocalAgentTerminationIntentDto = RealmLocalAgentTerminationIntentDto;

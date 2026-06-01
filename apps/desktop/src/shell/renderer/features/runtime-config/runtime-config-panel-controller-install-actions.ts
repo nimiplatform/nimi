@@ -1,5 +1,8 @@
 import { useCallback, useMemo } from 'react';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import {
+  createOfflineNimiError as createOfflineError,
+  ReasonCode,
+} from '@nimiplatform/sdk/types';
 import {
   findLocalRuntimeProfileById,
   normalizeLocalRuntimeProfilesDeclaration,
@@ -15,7 +18,7 @@ import {
   type LocalRuntimeProfileResolutionPlan,
 } from '@nimiplatform/sdk/runtime';
 import { pickLocalRuntimeAssetManifestPath } from '@renderer/bridge/runtime-bridge/local-runtime-os-helpers';
-import { createOfflineError, getOfflineCoordinator } from '@renderer/infra/offline';
+import { getOfflineCoordinator } from '@renderer/infra/offline';
 import { i18n } from '@renderer/i18n';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import { asRecord } from './runtime-config-panel-controller-utils';
