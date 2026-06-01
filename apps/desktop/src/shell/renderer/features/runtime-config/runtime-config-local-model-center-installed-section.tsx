@@ -7,7 +7,13 @@ import type {
 } from '@nimiplatform/sdk/runtime';
 import {
   isLocalRuntimeEnvironmentDependencyJobActiveState,
+  isLocalRuntimeEnvironmentDependencyJobCancelledState,
+  isLocalRuntimeEnvironmentDependencyJobFailedState,
   isLocalRuntimeEnvironmentDependencyJobRetryableState,
+  isLocalRuntimeEnvironmentDependencyNeedsConfirmationState,
+  isLocalRuntimeEnvironmentDependencyReadyState,
+  isLocalRuntimeEnvironmentDependencyRepairRequiredState,
+  isLocalRuntimeEnvironmentDependencyUnsupportedState,
 } from '@nimiplatform/sdk/runtime';
 import { i18n } from '@renderer/i18n';
 import { RuntimeSelect } from './runtime-config-primitives';
@@ -59,15 +65,6 @@ function assetSupportsBundleRescan(asset: LocalRuntimeAssetRecord): boolean {
   return String(asset.source.repo || '').trim().toLowerCase().startsWith('file://');
 }
 
-function runtimeDependencyNeedsSetup(
-  dependency?: LocalRuntimeEnvironmentPlanDependency,
-): boolean {
-  return (
-    dependency?.state === 'needs_confirmation'
-    && dependency.confirmationRequired === true
-  );
-}
-
 function runtimeDependencyJobUpdatedAtMs(job: LocalRuntimeEnvironmentDependencyJob): number {
   const updatedAtMs = Date.parse(String(job.updatedAt || job.createdAt || ''));
   return Number.isFinite(updatedAtMs) ? updatedAtMs : 0;
@@ -79,9 +76,120 @@ function latestRuntimeDependencyJob(
   return jobs.slice().sort((left, right) => runtimeDependencyJobUpdatedAtMs(right) - runtimeDependencyJobUpdatedAtMs(left))[0];
 }
 
+function runtimeDependencyJobMatchesDependency(
+  job: LocalRuntimeEnvironmentDependencyJob,
+  dependency?: LocalRuntimeEnvironmentPlanDependency,
+): boolean {
+  if (!dependency?.environmentKey) {
+    return false;
+  }
+  return (
+    job.environmentKey === dependency.environmentKey
+    && job.dependencyFamily === dependency.dependencyFamily
+    && job.dependencyId === dependency.dependencyId
+  );
+}
+
+function runtimeDependencyCurrentState(
+  dependency?: LocalRuntimeEnvironmentPlanDependency,
+  job?: LocalRuntimeEnvironmentDependencyJob,
+): string {
+  return String(job?.state || dependency?.state || '').trim();
+}
+
+function runtimeDependencyRequiresAttention(
+  dependency?: LocalRuntimeEnvironmentPlanDependency,
+  job?: LocalRuntimeEnvironmentDependencyJob,
+): boolean {
+  if (!dependency) {
+    return false;
+  }
+  const state = runtimeDependencyCurrentState(dependency, job);
+  return !isLocalRuntimeEnvironmentDependencyReadyState(state);
+}
+
+function runtimeDependencySetupAllowed(
+  dependency?: LocalRuntimeEnvironmentPlanDependency,
+  job?: LocalRuntimeEnvironmentDependencyJob,
+): boolean {
+  if (!dependency || !dependency.confirmationRequired) {
+    return false;
+  }
+  if (job && (
+    isLocalRuntimeEnvironmentDependencyJobActiveState(job.state)
+    || isLocalRuntimeEnvironmentDependencyJobRetryableState(job.state)
+  )) {
+    return false;
+  }
+  return isLocalRuntimeEnvironmentDependencyNeedsConfirmationState(dependency.state);
+}
+
+function runtimeDependencyRepairAllowed(
+  dependency?: LocalRuntimeEnvironmentPlanDependency,
+  job?: LocalRuntimeEnvironmentDependencyJob,
+): boolean {
+  return Boolean(
+    (dependency && isLocalRuntimeEnvironmentDependencyRepairRequiredState(dependency.state))
+    || (job && isLocalRuntimeEnvironmentDependencyRepairRequiredState(job.state)),
+  );
+}
+
+function runtimeDependencyBannerTitle(
+  dependency?: LocalRuntimeEnvironmentPlanDependency,
+  job?: LocalRuntimeEnvironmentDependencyJob,
+): string {
+  const state = runtimeDependencyCurrentState(dependency, job);
+  if (isLocalRuntimeEnvironmentDependencyJobActiveState(state)) {
+    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupInProgressTitle', {
+      defaultValue: 'Local image runtime setup in progress',
+    });
+  }
+  if (isLocalRuntimeEnvironmentDependencyJobFailedState(state)) {
+    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupFailedTitle', {
+      defaultValue: 'Local image runtime setup failed',
+    });
+  }
+  if (isLocalRuntimeEnvironmentDependencyJobCancelledState(state)) {
+    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupCancelledTitle', {
+      defaultValue: 'Local image runtime setup cancelled',
+    });
+  }
+  if (isLocalRuntimeEnvironmentDependencyRepairRequiredState(state)) {
+    return i18n.t('runtimeConfig.localModelCenter.runtimeRepairRequiredTitle', {
+      defaultValue: 'Local image runtime repair required',
+    });
+  }
+  if (isLocalRuntimeEnvironmentDependencyUnsupportedState(state)) {
+    return i18n.t('runtimeConfig.localModelCenter.runtimeUnsupportedTitle', {
+      defaultValue: 'Local image runtime unsupported',
+    });
+  }
+  return i18n.t('runtimeConfig.localModelCenter.cudaRuntimeSetupTitle', {
+    defaultValue: 'Local image runtime setup',
+  });
+}
+
+function runtimeDependencyStatusDetail(
+  dependency?: LocalRuntimeEnvironmentPlanDependency,
+  job?: LocalRuntimeEnvironmentDependencyJob,
+): string {
+  const jobDetail = String(job?.failureDetail || '').trim();
+  if (jobDetail) {
+    return jobDetail;
+  }
+  const dependencyDetail = String(dependency?.detail || dependency?.reasonCode || dependency?.state || '').trim();
+  if (dependencyDetail) {
+    return dependencyDetail;
+  }
+  return i18n.t('runtimeConfig.localModelCenter.runtimeDependencyNotReady', {
+    defaultValue: 'Runtime-managed local environment dependencies are not ready.',
+  });
+}
+
 function assetHasRuntimeDependencyWarning(
   asset: LocalRuntimeAssetRecord,
   dependency?: LocalRuntimeEnvironmentPlanDependency,
+  job?: LocalRuntimeEnvironmentDependencyJob,
 ): boolean {
   const detail = String(asset.healthDetail || '').trim().toLowerCase();
   return (
@@ -90,9 +198,8 @@ function assetHasRuntimeDependencyWarning(
       (
         asset.status === 'unhealthy'
         && detail.includes('local environment activation blocked')
-        && detail.includes('needs_confirmation')
       )
-      || runtimeDependencyNeedsSetup(dependency)
+      || runtimeDependencyRequiresAttention(dependency, job)
     )
   );
 }
@@ -100,11 +207,10 @@ function assetHasRuntimeDependencyWarning(
 function runtimeDependencyDetail(
   asset: LocalRuntimeAssetRecord,
   dependency?: LocalRuntimeEnvironmentPlanDependency,
+  job?: LocalRuntimeEnvironmentDependencyJob,
 ): string {
-  if (runtimeDependencyNeedsSetup(dependency)) {
-    return i18n.t('runtimeConfig.localModelCenter.cudaModelWaitingForSetup', {
-      defaultValue: 'Waiting for local GPU support to be set up.',
-    });
+  if (runtimeDependencyRequiresAttention(dependency, job)) {
+    return runtimeDependencyStatusDetail(dependency, job);
   }
   const healthDetail = String(asset.healthDetail || '').trim();
   if (healthDetail) {
@@ -125,9 +231,15 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
   const runnableCount = props.filteredInstalledRunnableAssets.length;
   const dependencyCount = props.filteredInstalledDependencyAssets.length;
   const totalCount = runnableCount + dependencyCount;
-  const sharedRuntimeDependencyNeedsSetup = runtimeDependencyNeedsSetup(props.sharedRuntimeDependency);
-  const currentRuntimeDependencyJob = latestRuntimeDependencyJob(props.sharedRuntimeDependencyJobs);
+  const sharedRuntimeDependencyJobs = props.sharedRuntimeDependencyJobs.filter((job) => (
+    runtimeDependencyJobMatchesDependency(job, props.sharedRuntimeDependency)
+  ));
+  const currentRuntimeDependencyJob = latestRuntimeDependencyJob(sharedRuntimeDependencyJobs);
   const currentRuntimeDependencyJobState = String(currentRuntimeDependencyJob?.state || '');
+  const sharedRuntimeDependencyRequiresAttention = runtimeDependencyRequiresAttention(
+    props.sharedRuntimeDependency,
+    currentRuntimeDependencyJob,
+  );
   const canCancelRuntimeDependencyJob = Boolean(
     currentRuntimeDependencyJob?.jobId
     && isLocalRuntimeEnvironmentDependencyJobActiveState(currentRuntimeDependencyJobState),
@@ -137,13 +249,8 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
     && currentRuntimeDependencyJob.retryable
     && isLocalRuntimeEnvironmentDependencyJobRetryableState(currentRuntimeDependencyJobState),
   );
-  const canRepairRuntimeDependency = Boolean(
-    props.sharedRuntimeDependency
-    && (
-      props.sharedRuntimeDependency.state === 'repair_required'
-      || currentRuntimeDependencyJobState === 'repair_required'
-    ),
-  );
+  const canRepairRuntimeDependency = runtimeDependencyRepairAllowed(props.sharedRuntimeDependency, currentRuntimeDependencyJob);
+  const canStartRuntimeDependencySetup = runtimeDependencySetupAllowed(props.sharedRuntimeDependency, currentRuntimeDependencyJob);
 
   return (
     <div className="overflow-visible rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
@@ -184,19 +291,15 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
         </div>
       </div>
 
-      {sharedRuntimeDependencyNeedsSetup ? (
+      {sharedRuntimeDependencyRequiresAttention ? (
         <div className="border-b border-[color-mix(in_srgb,var(--nimi-status-warning)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,transparent)] px-5 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-[var(--nimi-status-warning)]">
-                {i18n.t('runtimeConfig.localModelCenter.cudaRuntimeSetupTitle', {
-                  defaultValue: 'Local image runtime setup',
-                })}
+                {runtimeDependencyBannerTitle(props.sharedRuntimeDependency, currentRuntimeDependencyJob)}
               </p>
               <p className="mt-1 text-xs leading-5 text-[color-mix(in_srgb,var(--nimi-status-warning)_82%,var(--nimi-text-secondary))]">
-                {i18n.t('runtimeConfig.localModelCenter.cudaDependencyConfirm', {
-                  defaultValue: 'This image model needs Runtime-managed local environment dependencies before it can run. They stay inside Nimi data and do not change system PATH or machine PATH.',
-                })}
+                {runtimeDependencyStatusDetail(props.sharedRuntimeDependency, currentRuntimeDependencyJob)}
               </p>
               {currentRuntimeDependencyJob ? (
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[color-mix(in_srgb,var(--nimi-status-warning)_82%,var(--nimi-text-secondary))]">
@@ -206,11 +309,6 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                       state: currentRuntimeDependencyJob.state,
                     })}
                   </span>
-                  {currentRuntimeDependencyJob.failureDetail ? (
-                    <span className="max-w-xl truncate">
-                      {currentRuntimeDependencyJob.failureDetail}
-                    </span>
-                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -245,7 +343,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                   {i18n.t('runtimeConfig.localModelCenter.repair', { defaultValue: 'Repair' })}
                 </button>
               ) : null}
-              {confirmSharedRuntimeDependencySetup ? (
+              {canStartRuntimeDependencySetup && confirmSharedRuntimeDependencySetup ? (
                 <>
                   <button
                     type="button"
@@ -266,7 +364,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                     {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
                   </button>
                 </>
-              ) : (
+              ) : canStartRuntimeDependencySetup ? (
                 <button
                   type="button"
                   onClick={() => setConfirmSharedRuntimeDependencySetup(true)}
@@ -275,7 +373,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                 >
                   {i18n.t('runtimeConfig.localModelCenter.setupDependency', { defaultValue: 'Set Up' })}
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -296,8 +394,11 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
             {props.filteredInstalledRunnableAssets.map((asset) => {
               const needsRepair = assetNeedsAttachedEndpointRepair(asset);
               const runtimeDependency = props.runtimeDependencyByAssetId[asset.localAssetId];
-              const hasRuntimeDependencyWarning = assetHasRuntimeDependencyWarning(asset, runtimeDependency);
-              const dependencyDetail = runtimeDependencyDetail(asset, runtimeDependency);
+              const runtimeDependencyJob = latestRuntimeDependencyJob(props.sharedRuntimeDependencyJobs.filter((job) => (
+                runtimeDependencyJobMatchesDependency(job, runtimeDependency)
+              )));
+              const hasRuntimeDependencyWarning = assetHasRuntimeDependencyWarning(asset, runtimeDependency, runtimeDependencyJob);
+              const dependencyDetail = runtimeDependencyDetail(asset, runtimeDependency, runtimeDependencyJob);
               const isRepairing = repairAssetId === asset.localAssetId;
               const supportsRescan = assetSupportsBundleRescan(asset);
               const unhealthyReasonSummary = asset.status === 'unhealthy'

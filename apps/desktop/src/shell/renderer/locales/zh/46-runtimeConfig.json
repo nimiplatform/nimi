@@ -994,6 +994,12 @@
     "stateCutoverConflict": "当前 Runtime 状态不为空。Runtime 已阻止自动切换，以免覆盖本地 AI 状态。",
     "cudaRuntimeSetupTitle": "可选的本地 GPU 加速",
     "cudaModelWaitingForSetup": "等待本地 GPU 运行时设置完成",
+    "runtimeDependencyNotReady": "Runtime 托管的本地环境依赖尚未就绪。",
+    "runtimeRepairRequiredTitle": "本地图像 Runtime 需要修复",
+    "runtimeSetupCancelledTitle": "本地图像 Runtime 设置已取消",
+    "runtimeSetupFailedTitle": "本地图像 Runtime 设置失败",
+    "runtimeSetupInProgressTitle": "本地图像 Runtime 正在设置",
+    "runtimeUnsupportedTitle": "本地图像 Runtime 不支持",
     "runtimeDependencyJobState": "Runtime 任务：{{state}}"
   },
   "delegation": {

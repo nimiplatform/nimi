@@ -994,6 +994,12 @@
     "stateCutoverConflict": "Active Runtime state is not empty. Runtime blocked automatic cutover to avoid overwriting local AI state.",
     "cudaRuntimeSetupTitle": "Optional local GPU acceleration",
     "cudaModelWaitingForSetup": "Waiting for local GPU support to be set up.",
+    "runtimeDependencyNotReady": "Runtime-managed local environment dependencies are not ready.",
+    "runtimeRepairRequiredTitle": "Local image runtime repair required",
+    "runtimeSetupCancelledTitle": "Local image runtime setup cancelled",
+    "runtimeSetupFailedTitle": "Local image runtime setup failed",
+    "runtimeSetupInProgressTitle": "Local image runtime setup in progress",
+    "runtimeUnsupportedTitle": "Local image runtime unsupported",
     "runtimeDependencyJobState": "Runtime job: {{state}}"
   },
   "delegation": {
