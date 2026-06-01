@@ -1,5 +1,11 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
-import type { Realm, RealmModel } from '@nimiplatform/sdk/realm';
+import {
+  ackRealmLocalAgentTerminationIntent,
+  listRealmLocalAgentTerminationIntents,
+  type RealmLocalAgentIntentApiCaller,
+  type RealmLocalAgentTerminationIntentAckDto,
+  type RealmLocalAgentTerminationIntentDto,
+} from '@nimiplatform/sdk/realm';
 import {
   asNimiError,
   createHostRuntimeAgentLifecycleSurface,
@@ -8,10 +14,10 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import { isRealmOfflineError, isRuntimeOfflineError } from '@renderer/infra/offline';
 import type { JsonObject } from '@nimiplatform/sdk/types';
 
-type LocalAgentTerminationIntentDto = RealmModel<'LocalAgentTerminationIntentDto'>;
-type LocalAgentTerminationIntentAckDto = RealmModel<'LocalAgentTerminationIntentAckDto'>;
+type LocalAgentTerminationIntentDto = RealmLocalAgentTerminationIntentDto;
+type LocalAgentTerminationIntentAckDto = RealmLocalAgentTerminationIntentAckDto;
 
-type RealmCourierApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type RealmCourierApiCaller = RealmLocalAgentIntentApiCaller;
 type RealmCourierErrorEmitter = (action: string, error: unknown, details?: JsonObject) => void;
 type CurrentUserReader = () => Record<string, unknown> | null;
 
@@ -164,10 +170,7 @@ async function deliverIntent(input: {
   // transport/offline error, the intent stays OPEN server-side (the runtime
   // delete may have happened, but K-AGCORE-141 makes a re-delivery a no-op, so
   // the next pass re-acks idempotently).
-  await callApi(
-    (realm) => realm.services.MeService.ackMyLocalAgentTerminationIntent(intent.id, ackBody),
-    '上报本地 Agent 终止结果失败',
-  );
+  await ackRealmLocalAgentTerminationIntent(callApi, intent.id, ackBody);
   return { kind: 'acked', intentId: intent.id, outcome: ackBody.outcome };
 }
 
@@ -198,11 +201,7 @@ export async function runLocalAgentTerminationCourierPass(input: {
 
   let intents: LocalAgentTerminationIntentDto[];
   try {
-    const list = await callApi(
-      (realm) => realm.services.MeService.listMyLocalAgentTerminationIntents(),
-      '拉取本地 Agent 终止意图失败',
-    );
-    intents = Array.isArray(list?.items) ? list.items : [];
+    intents = await listRealmLocalAgentTerminationIntents(callApi);
   } catch (error) {
     if (isRealmOfflineError(error)) {
       // Realm unreachable — the pass is a no-op; intents stay OPEN server-side

@@ -1242,6 +1242,7 @@ test('tester settings consumes SDK Realm data sync DX surface', () => {
   const realmSocialFeed = read('src/tester/tester-realm-social-feed-projection.ts');
   const realmAgentProfile = read('src/tester/tester-realm-agent-profile-projection.ts');
   const realmAuth = read('src/tester/tester-realm-auth-projection.ts');
+  const realmLocalAgentIntents = read('src/tester/tester-realm-local-agent-intents-projection.ts');
 
   assert.match(settings, /loadRealmSocialSnapshot/);
   assert.match(settings, /loadRealmWorldSemanticBundle/);
@@ -1273,6 +1274,13 @@ test('tester settings consumes SDK Realm data sync DX surface', () => {
   assert.match(realmAuth, /loginRealmOAuth/);
   assert.match(realmAuth, /toRealmOAuthLoginResultDto/);
   assert.match(realmAuth, /from '@nimiplatform\/sdk\/realm'/);
+  assert.match(settings, /SDK Realm local-agent intents projection/);
+  assert.match(settings, /loadTesterRealmLocalAgentIntentsProjection/);
+  assert.match(realmLocalAgentIntents, /listRealmLocalAgentProvisionIntents/);
+  assert.match(realmLocalAgentIntents, /ackRealmLocalAgentProvisionIntent/);
+  assert.match(realmLocalAgentIntents, /listRealmLocalAgentTerminationIntents/);
+  assert.match(realmLocalAgentIntents, /ackRealmLocalAgentTerminationIntent/);
+  assert.match(realmLocalAgentIntents, /from '@nimiplatform\/sdk\/realm'/);
 });
 
 test('tester settings consumes SDK memory embedding route availability projection', () => {

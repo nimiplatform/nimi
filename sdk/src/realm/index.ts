@@ -43,6 +43,7 @@ export type { RealmAuthApiCaller, RealmAuthTokensDto, RealmCheckEmailResponseDto
 export type { RealmBaseUrlProjectionInput, RealmRealtimeUrlProjectionInput } from './extensions/endpoint.js';
 export type { RealmFeedScope } from './extensions/feed.js';
 export type { RealmGroupChatListResultDto, RealmGroupChatSyncResultDto, RealmGroupChatViewDto, RealmGroupCreateInputDto, RealmGroupMessageCandidateCommitInputDto, RealmGroupMessageCandidateCommitResultDto, RealmGroupMessageListResultDto, RealmGroupMessageType, RealmGroupMessageViewDto, RealmGroupParticipantDto, RealmGroupSendMessageInputDto } from './extensions/group-chat.js';
+export type { RealmLocalAgentIntentApiCaller, RealmLocalAgentProvisionIntentAckDto, RealmLocalAgentProvisionIntentDto, RealmLocalAgentTerminationIntentAckDto, RealmLocalAgentTerminationIntentDto } from './extensions/local-agent-intents.js';
 export type { RealmMediaUrlProjectionInput } from './extensions/media-url.js';
 export type { RealmMarkNotificationsReadInputDto, RealmNotificationCategory, RealmNotificationDto, RealmNotificationFilterTab, RealmNotificationItemProjection, RealmNotificationListOptions, RealmNotificationListProjection, RealmNotificationListResultDto, RealmNotificationReadProjection, RealmNotificationServerFilter, RealmNotificationType, RealmNotificationsReadProjection, RealmNotificationUnreadProjection, RealmUnreadNotificationCountDto } from './extensions/notifications.js';
 export type { RealmResourceDetail, RealmResourceDirectUploadSession, RealmResourceFinalizeInput, RealmResourceUploadClient, RealmResourceUploadInput, RealmResourceUploadKind, RealmResourceUploadResult, RealmResourceUploadTransportMode, RealmResourceUploadWithRealmInput } from './extensions/resource-upload.js';
@@ -54,6 +55,7 @@ export { checkRealmAuthEmail, createRealmWalletChallenge, isExpectedAnonymousRea
 export { normalizeRealmBaseUrl, projectRealmBaseUrl, projectRealmRealtimeUrl } from './extensions/endpoint.js';
 export { REALM_FEED_SCOPES, isRealmFeedScope } from './extensions/feed.js';
 export { addRealmGroupAgent, commitRealmGroupMessageCandidate, createRealmGroupChat, createRealmGroupTextMessageInput, listRealmGroupChats, loadRealmGroupChat, loadRealmGroupMessages, markRealmGroupRead, removeRealmGroupAgent, sendRealmGroupMessage, syncRealmGroupEvents } from './extensions/group-chat.js';
+export { ackRealmLocalAgentProvisionIntent, ackRealmLocalAgentTerminationIntent, listRealmLocalAgentProvisionIntents, listRealmLocalAgentTerminationIntents } from './extensions/local-agent-intents.js';
 export { resolveRealmMediaUrl } from './extensions/media-url.js';
 export { getRealmNotificationBadgeKey, getRealmNotificationCategory, getRealmNotificationServerFilter, isRealmGiftNotificationReviewable, loadRealmNotificationUnreadCount, loadRealmNotifications, markRealmNotificationRead, markRealmNotificationsRead, normalizeRealmNotificationUnreadCount, toRealmNotificationItemProjection, toRealmNotificationListProjection } from './extensions/notifications.js';
 export { uploadRealmResourceFile, uploadRealmResourceFileWithRealm } from './extensions/resource-upload.js';

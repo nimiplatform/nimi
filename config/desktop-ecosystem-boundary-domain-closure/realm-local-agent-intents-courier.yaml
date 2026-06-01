@@ -1,0 +1,134 @@
+status: migrated
+date: "2026-06-01"
+domain: realm-local-agent-intents-courier
+migrated_in_this_commit: true
+authority_posture:
+  spec_status: alignment
+  authority_owner:
+    - .nimi/spec/realm/**
+    - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md
+    - .nimi/spec/sdk/kernel/nimi-app-client-contract.md
+    - sdk/src/realm/extensions/local-agent-intents.ts
+    - sdk/src/runtime/runtime-agent-lifecycle-surface.ts
+  work_type: alignment
+  parallel_truth: forbidden
+scope:
+  included:
+    - Realm local-agent provision/termination intent list and ack helper ownership.
+    - Desktop local-agent courier consumption of SDK Realm intent helpers.
+    - Tester consumption of SDK Realm local-agent intent helpers as second-app proof.
+    - Desktop production hardcut to zero direct Realm service calls.
+  excluded:
+    - Runtime Agent local lifecycle initialize/terminate execution, already owned by SDK Runtime host surfaces.
+    - Desktop courier pass scheduling, bounded delivery concurrency, offline deferral, runtime error classification, telemetry, and authenticated local Runtime delivery injection.
+preflight_violation_inventory:
+  platform_truth:
+    - finding: Desktop local-agent provision courier selected Realm MeService list/ack methods directly.
+      evidence_before:
+        - apps/desktop/src/shell/renderer/infra/local-agent-courier/provision-courier.ts called MeService.listMyLocalAgentProvisionIntents.
+        - apps/desktop/src/shell/renderer/infra/local-agent-courier/provision-courier.ts called MeService.ackMyLocalAgentProvisionIntent.
+      disposition: SDK Realm local-agent-intents extension now owns provision intent list/ack method selection.
+    - finding: Desktop local-agent termination courier selected Realm MeService list/ack methods directly.
+      evidence_before:
+        - apps/desktop/src/shell/renderer/infra/local-agent-courier/termination-courier.ts called MeService.listMyLocalAgentTerminationIntents.
+        - apps/desktop/src/shell/renderer/infra/local-agent-courier/termination-courier.ts called MeService.ackMyLocalAgentTerminationIntent.
+      disposition: SDK Realm local-agent-intents extension now owns termination intent list/ack method selection.
+  duplicate_implementation:
+    - finding: Desktop tests proved Realm intent list/ack service behavior only through app courier tests.
+      disposition: SDK owner test now covers list/ack forwarding and fail-closed behavior; Desktop tests continue to cover app-owned courier delivery/offline/idempotency orchestration.
+  boundary_imports:
+    - finding: Desktop imported generated Realm intent DTO types and held Realm method selection in the app.
+      disposition: Desktop imports SDK Realm local-agent intent helper functions and DTO types from @nimiplatform/sdk/realm.
+  token_session_runtime_realm_responsibility:
+    - finding: Durable local-agent intent list/ack truth is Realm-owned, while Runtime lifecycle execution is Runtime-owned; Desktop should only bridge this local app's Runtime host to the Realm intent stream.
+      disposition: SDK Realm owns intent method helpers; SDK Runtime owns lifecycle surfaces; Desktop retains the stateless local courier.
+audited_globs:
+  - apps/desktop/src/shell/renderer/infra/local-agent-courier/provision-courier.ts
+  - apps/desktop/src/shell/renderer/infra/local-agent-courier/termination-courier.ts
+  - apps/desktop/test/local-agent-provision-courier.test.ts
+  - apps/desktop/test/local-agent-termination-courier.test.ts
+  - apps/desktop/test/runtime-agent-domain-boundary.test.ts
+  - apps/tester/src/tester/tester-realm-local-agent-intents-projection.ts
+  - apps/tester/src/shell/routes/settings.tsx
+  - apps/tester/test/tester-contract.test.mjs
+  - sdk/src/realm/extensions/local-agent-intents.ts
+  - sdk/src/realm/index.ts
+  - sdk/test/realm-local-agent-intents-extension.test.ts
+migrated:
+  shared_owners:
+    - sdk/src/realm/extensions/local-agent-intents.ts
+  responsibilities:
+    - SDK owns Realm local-agent provision intent list and ack service method selection.
+    - SDK owns Realm local-agent termination intent list and ack service method selection.
+    - Desktop owns local courier pass orchestration, local Runtime lifecycle delivery injection, bounded concurrency, offline deferral policy, and telemetry.
+  desktop_consumers:
+    - apps/desktop/src/shell/renderer/infra/local-agent-courier/provision-courier.ts
+    - apps/desktop/src/shell/renderer/infra/local-agent-courier/termination-courier.ts
+  tester_consumers:
+    - apps/tester/src/tester/tester-realm-local-agent-intents-projection.ts
+    - apps/tester/src/shell/routes/settings.tsx
+legal_desktop_residue:
+  - path: apps/desktop/src/shell/renderer/infra/local-agent-courier/provision-courier.ts
+    rationale: Desktop hosts the local Runtime loopback and may run a stateless courier pass that delivers SDK Runtime lifecycle initialize calls; Realm intent list/ack method truth comes from SDK.
+  - path: apps/desktop/src/shell/renderer/infra/local-agent-courier/termination-courier.ts
+    rationale: Desktop hosts the local Runtime loopback and may run a stateless courier pass that delivers SDK Runtime lifecycle terminate calls; Realm intent list/ack method truth comes from SDK.
+tester_proof:
+  - apps/tester/src/tester/tester-realm-local-agent-intents-projection.ts consumes listRealmLocalAgentProvisionIntents, ackRealmLocalAgentProvisionIntent, listRealmLocalAgentTerminationIntents, and ackRealmLocalAgentTerminationIntent from @nimiplatform/sdk/realm.
+  - apps/tester/src/shell/routes/settings.tsx renders the SDK Realm local-agent intents projection in Tester settings.
+  - apps/tester/test/tester-contract.test.mjs asserts Tester consumes the SDK Realm local-agent intent helpers.
+regression_guards:
+  - sdk/test/realm-local-agent-intents-extension.test.ts covers SDK owner behavior for provision/termination list and ack forwarding plus fail-closed errors.
+  - apps/desktop/test/runtime-agent-domain-boundary.test.ts asserts Desktop couriers delegate Realm intent method selection to SDK and retain SDK Runtime lifecycle usage.
+  - apps/desktop/test/local-agent-provision-courier.test.ts covers Desktop app-owned provision courier delivery, idempotency, offline deferral, and no pseudo-success.
+  - apps/desktop/test/local-agent-termination-courier.test.ts covers Desktop app-owned termination courier delivery, idempotency, offline deferral, and no pseudo-success.
+  - apps/tester/test/tester-contract.test.mjs keeps Tester second-consumer proof.
+prohibited_patterns:
+  - target: apps/desktop/src/shell/renderer/infra/local-agent-courier
+    absent:
+      - "realm.services.MeService.listMyLocalAgentProvisionIntents"
+      - "realm.services.MeService.ackMyLocalAgentProvisionIntent"
+      - "realm.services.MeService.listMyLocalAgentTerminationIntents"
+      - "realm.services.MeService.ackMyLocalAgentTerminationIntent"
+  - target: apps/desktop/src/shell/renderer apps/desktop/src/public-web apps/desktop/src-tauri/src
+    absent:
+      - "realm.services."
+  - target: apps/desktop/src/shell/renderer/infra/local-agent-courier/provision-courier.ts
+    required:
+      - listRealmLocalAgentProvisionIntents
+      - ackRealmLocalAgentProvisionIntent
+      - createHostRuntimeAgentLifecycleSurface
+  - target: apps/desktop/src/shell/renderer/infra/local-agent-courier/termination-courier.ts
+    required:
+      - listRealmLocalAgentTerminationIntents
+      - ackRealmLocalAgentTerminationIntent
+      - createHostRuntimeAgentLifecycleSurface
+verification:
+  status: passed
+  passed:
+    - command: pnpm --filter @nimiplatform/sdk exec tsx --test test/realm-local-agent-intents-extension.test.ts
+      evidence: SDK owner tests pass for local-agent provision/termination intent list/ack helpers.
+    - command: >-
+        pnpm --filter @nimiplatform/desktop exec tsx --test test/runtime-agent-domain-boundary.test.ts test/local-agent-provision-courier.test.ts test/local-agent-termination-courier.test.ts
+      evidence: Desktop runtime-agent boundary and app-owned local courier behavior tests pass.
+    - command: pnpm --filter @nimiplatform/tester exec node --test test/tester-contract.test.mjs
+      evidence: Tester second-consumer contract passes and requires SDK Realm local-agent intent helper consumption.
+    - command: pnpm --filter @nimiplatform/sdk build
+      evidence: SDK Realm public exports compile into dist.
+    - command: pnpm --filter @nimiplatform/desktop typecheck
+      evidence: Desktop compiles against SDK Realm local-agent intent helpers.
+    - command: pnpm --filter @nimiplatform/tester typecheck
+      evidence: Tester compiles against SDK Realm local-agent intent helpers after SDK build.
+    - command: >-
+        rg -n "realm\.services\.MeService\.(listMyLocalAgent|ackMyLocalAgent)" apps/desktop/src/shell/renderer/infra/local-agent-courier apps/desktop/src/shell/renderer apps/desktop/src/public-web --glob '!**/.cache/**' --glob '!**/dist/**' --glob '!**/locales/**'
+      evidence: No audited Desktop local-agent courier direct Realm MeService list/ack method selection remains.
+    - command: >-
+        rg -n "realm\.services\.[A-Za-z0-9_]+" apps/desktop/src/shell/renderer apps/desktop/src/public-web apps/desktop/src-tauri/src --glob '!**/.cache/**' --glob '!**/dist/**' --glob '!**/locales/**' --glob '!**/gen/**'
+      evidence: No Desktop production direct Realm service calls remain.
+    - command: pnpm check:no-app-realm-rest-bypass
+      evidence: App Realm REST bypass guard passes.
+    - command: pnpm check:no-legacy-imports
+      evidence: Legacy import guard passes.
+    - command: pnpm check:no-absolute-user-paths
+      evidence: Absolute user-home path guard passes.
+    - command: git diff --check
+      evidence: Patch whitespace passes.

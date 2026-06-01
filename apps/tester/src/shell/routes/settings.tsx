@@ -151,6 +151,7 @@ import { loadTesterWorldEvolutionSelectorReadProjection } from '../../tester/tes
 import { loadTesterRealmSocialFeedProjection } from '../../tester/tester-realm-social-feed-projection';
 import { loadTesterRealmAgentProfileProjection } from '../../tester/tester-realm-agent-profile-projection';
 import { loadTesterRealmAuthProjection } from '../../tester/tester-realm-auth-projection';
+import { loadTesterRealmLocalAgentIntentsProjection } from '../../tester/tester-realm-local-agent-intents-projection';
 import { createTesterRuntimeConfigProjection } from '../../tester/tester-runtime-config-projection';
 import {
   loadTesterRuntimeRouteHostAccessProjection,
@@ -627,6 +628,9 @@ export function SettingsRoute() {
   });
   const realmAuthProjection = useTypedProjection(loadTesterRealmAuthProjection, {
     failClosedMessage: 'SDK Realm auth projection unavailable',
+  });
+  const realmLocalAgentIntentsProjection = useTypedProjection(loadTesterRealmLocalAgentIntentsProjection, {
+    failClosedMessage: 'SDK Realm local-agent intents projection unavailable',
   });
   useEffect(() => {
     let cancelled = false;
@@ -2105,6 +2109,16 @@ export function SettingsRoute() {
             ? `${realmAuthProjection.data.entryRoute}/${realmAuthProjection.data.passwordLoginState}/${realmAuthProjection.data.projectedLoginState}`
             : realmAuthProjection.status === 'failed'
               ? realmAuthProjection.error
+              : 'checking'}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK Realm local-agent intents projection</span>
+        <StatusBadge tone={realmLocalAgentIntentsProjection.status === 'ready' ? 'success' : realmLocalAgentIntentsProjection.status === 'failed' ? 'danger' : 'warning'}>
+          {realmLocalAgentIntentsProjection.status === 'ready' && realmLocalAgentIntentsProjection.data
+            ? `${realmLocalAgentIntentsProjection.data.provisionCount}/${realmLocalAgentIntentsProjection.data.terminationCount}/${realmLocalAgentIntentsProjection.data.ackedProvisionOutcome}/${realmLocalAgentIntentsProjection.data.ackedTerminationOutcome}`
+            : realmLocalAgentIntentsProjection.status === 'failed'
+              ? realmLocalAgentIntentsProjection.error
               : 'checking'}
         </StatusBadge>
       </div>
