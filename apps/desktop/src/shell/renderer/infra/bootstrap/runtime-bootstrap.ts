@@ -25,6 +25,7 @@ import { createDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtim
 import { syncRuntimeStorageConfig } from './runtime-bootstrap-local-models-sync';
 import { syncRuntimeJwtConfig } from './runtime-bootstrap-jwt-sync';
 import { syncRuntimeDeveloperRegistrationConfig } from './runtime-bootstrap-developer-registration-sync';
+import { installDesktopLocalRuntimeClientBindings } from './runtime-local-runtime-client';
 import { isDeveloperModeEnabled } from '@renderer/features/developer/developer-mode';
 import { isRuntimeConfigManualRestartRequiredError } from './runtime-bootstrap-config-errors';
 import { reconcileLocalRuntimeBootstrapState } from './runtime-bootstrap-local-ai';
@@ -270,6 +271,7 @@ async function initializeBuiltInChatScopesAfterReadyAdmission(flowId: string): P
 }
 
 export function bootstrapRuntime(): Promise<void> {
+  installDesktopLocalRuntimeClientBindings();
   bindOfflineCoordinator();
   if (rebootstrapPromise) {
     return rebootstrapPromise;

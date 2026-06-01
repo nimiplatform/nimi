@@ -3,6 +3,8 @@ import test from 'node:test';
 
 import { clearPlatformClient, createPlatformClient } from '@nimiplatform/sdk';
 import {
+  bindLocalRuntimeServiceClientProvider,
+  localRuntime,
   RuntimeMethodIds,
   ResolveProfileRequest,
   ResolveProfileResponse,
@@ -12,9 +14,6 @@ import type {
   RuntimeUnaryCall,
   RuntimeWireMessage,
 } from '@nimiplatform/sdk/runtime';
-
-import { localRuntime } from '../src/runtime/local-runtime';
-
 type CapturedRuntimeCall = RuntimeUnaryCall<RuntimeWireMessage>;
 
 function installRuntimeLocalBridge(calls: CapturedRuntimeCall[]): () => void {
@@ -71,8 +70,8 @@ function installRuntimeLocalBridge(calls: CapturedRuntimeCall[]): () => void {
   };
 }
 
-async function createRuntimeLocalPlatformClient(): Promise<void> {
-  await createPlatformClient({
+async function createRuntimeLocalPlatformClient(): Promise<() => void> {
+  const client = await createPlatformClient({
     appId: 'nimi.desktop.test',
     authMode: 'external-principal',
     realmBaseUrl: 'https://realm.test.local',
@@ -81,13 +80,15 @@ async function createRuntimeLocalPlatformClient(): Promise<void> {
     runtimeTransport: { type: 'node-grpc', endpoint: '127.0.0.1:65535' },
     realmFetchImpl: async () => new Response('{}', { status: 200 }),
   });
+  return bindLocalRuntimeServiceClientProvider(() => client.runtime.local);
 }
 
 test('resolveLocalRuntimeProfile forwards entryOverrides through SDK RuntimeLocalService', async () => {
   const calls: CapturedRuntimeCall[] = [];
   const restore = installRuntimeLocalBridge(calls);
+  let unbindLocalRuntimeProvider: (() => void) | null = null;
   try {
-    await createRuntimeLocalPlatformClient();
+    unbindLocalRuntimeProvider = await createRuntimeLocalPlatformClient();
     const plan = await localRuntime.resolveProfile({
       targetId: 'world.nimi.local-image',
       capability: 'image',
@@ -114,6 +115,7 @@ test('resolveLocalRuntimeProfile forwards entryOverrides through SDK RuntimeLoca
       { entryId: 'image-vae', localAssetId: 'asset-vae-1' },
     ]);
   } finally {
+    unbindLocalRuntimeProvider?.();
     restore();
   }
 });

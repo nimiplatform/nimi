@@ -1,0 +1,157 @@
+status: migrated
+date: "2026-06-01"
+domain: desktop-local-runtime-facade-burndown
+migrated_in_this_commit: true
+authority_posture:
+  spec_status: alignment
+  authority_owner:
+    - .nimi/spec/sdk/kernel/runtime-contract.md
+    - .nimi/spec/sdk/kernel/surface-contract.md
+    - sdk/src/runtime/local-runtime-client/**
+    - apps/desktop/src/shell/renderer/infra/bootstrap/runtime-local-runtime-client.ts
+    - apps/desktop/src/shell/renderer/bridge/runtime-bridge/local-runtime-os-helpers.ts
+    - apps/tester/src/shell/routes/settings.tsx
+  work_type: alignment
+  parallel_truth: forbidden
+scope:
+  included:
+    - Desktop localRuntime SDK facade burn-down.
+    - Direct Desktop production consumption of @nimiplatform/sdk/runtime localRuntime and types.
+    - Desktop shell-owned local runtime file picker and reveal helpers.
+    - Desktop SDK localRuntime provider/warning binding as admitted bootstrap infrastructure.
+    - Tester direct SDK localRuntime consumption as second app proof.
+  excluded:
+    - Runtime local service daemon implementation and RPC semantics.
+    - Runtime config schema, data-root authority, model routing, transfer truth, and dependency materialization truth.
+    - Tauri local_runtime command allowlist beyond existing picker/reveal helpers.
+preflight_violation_inventory:
+  platform_truth:
+    - finding: Desktop production code consumed SDK localRuntime and SDK local runtime types through apps/desktop/src/runtime/local-runtime/index.ts.
+      evidence_before:
+        - apps/desktop/src/runtime/local-runtime/index.ts re-exported @nimiplatform/sdk/runtime and spread sdkLocalRuntime into a Desktop localRuntime facade.
+        - runtime-config, bootstrap, first-run, and inference-audit code imported @runtime/local-runtime.
+      disposition: Desktop facade deleted; production code imports @nimiplatform/sdk/runtime directly.
+  duplicate_implementation:
+    - finding: Desktop carried a second renderer Tauri invoke helper for local runtime picker commands.
+      evidence_before:
+        - apps/desktop/src/runtime/local-runtime/tauri-helpers.ts read global Tauri invoke hooks.
+        - apps/desktop/src/runtime/local-runtime/commands-pickers.ts wrapped runtime_local_pick_* commands.
+      disposition: picker/reveal wrappers moved to the admitted Desktop shell bridge helper and use the existing Desktop invoke wrapper.
+  boundary_imports:
+    - finding: "@runtime/local-runtime made Runtime/SDK localRuntime authority appear Desktop-owned."
+      disposition: no production @runtime/local-runtime imports remain; app imports SDK runtime owner directly.
+  token_session_runtime_realm_responsibility:
+    - finding: The deleted facade did not own token/session/Realm truth, but its provider binding determines which Runtime local service client the SDK uses.
+      disposition: provider binding is explicit bootstrap infrastructure in runtime-local-runtime-client.ts and remains app-local only as PlatformClient wiring.
+audited_globs:
+  - apps/desktop/src/runtime/local-runtime/**
+  - apps/desktop/src/runtime/llm-adapter/execution/inference-audit.ts
+  - apps/desktop/src/shell/renderer/first-run/**
+  - apps/desktop/src/shell/renderer/infra/bootstrap/**
+  - apps/desktop/src/shell/renderer/features/runtime-config/**
+  - apps/desktop/src/shell/renderer/bridge/runtime-bridge/local-runtime-os-helpers.ts
+  - apps/desktop/test/local-ai-*.test.ts
+  - apps/desktop/test/local-runtime-transfer-plane-contract.test.ts
+  - apps/desktop/test/retired-runtime-ipc-hardcut.test.ts
+  - apps/tester/src/shell/routes/settings.tsx
+  - apps/tester/test/tester-contract.test.mjs
+  - sdk/src/runtime/local-runtime-client/**
+migrated:
+  shared_owners:
+    - sdk/src/runtime/local-runtime-client/index.ts
+    - sdk/src/runtime/local-runtime-client/commands*.ts
+    - sdk/src/runtime/local-runtime-client/parsers*.ts
+  responsibilities:
+    - SDK owns localRuntime facade methods, local runtime command wrappers, parser projections, asset/dependency/transfer/recommendation DX helpers, and public types.
+    - Desktop imports SDK localRuntime and types directly for runtime-config, first-run, bootstrap route metadata, and inference audit flows.
+    - Desktop shell bridge owns only OS picker/reveal command wrappers.
+    - Desktop bootstrap owns only SDK localRuntime provider and warning telemetry binding.
+  deleted_desktop_aliases:
+    - apps/desktop/src/runtime/local-runtime/index.ts
+    - apps/desktop/src/runtime/local-runtime/commands.ts
+    - apps/desktop/src/runtime/local-runtime/commands-pickers.ts
+    - apps/desktop/src/runtime/local-runtime/tauri-helpers.ts
+  desktop_residue:
+    - apps/desktop/src/shell/renderer/infra/bootstrap/runtime-local-runtime-client.ts binds SDK localRuntime to getPlatformClient().runtime.local and forwards SDK warnings to Kit telemetry.
+    - apps/desktop/src/shell/renderer/bridge/runtime-bridge/local-runtime-os-helpers.ts wraps runtime_local_pick_* and runtime_local_assets_reveal_* commands through the Desktop shell invoke helper.
+  tester_consumers:
+    - apps/tester/src/shell/routes/settings.tsx imports localRuntime, listRuntimeLocalAssetEntries, and bindLocalRuntimeServiceClientProvider from @nimiplatform/sdk/runtime.
+    - apps/tester/test/tester-contract.test.mjs verifies Tester direct SDK localRuntime facade consumption.
+legal_desktop_residue:
+  - path: apps/desktop/src/shell/renderer/infra/bootstrap/runtime-local-runtime-client.ts
+    rationale: Bootstrap wiring only; no localRuntime method, parser, lifecycle, route, storage, transfer, or dependency truth lives here.
+  - path: apps/desktop/src/shell/renderer/bridge/runtime-bridge/local-runtime-os-helpers.ts
+    rationale: Admitted OS helper wrapper only; picker/reveal commands return user-selected paths or reveal existing runtime-owned assets and do not decide asset lifecycle truth.
+  - path: apps/desktop/src/shell/renderer/features/runtime-config/**
+    rationale: Desktop owns product-specific runtime-config UI, state composition, user intent wiring, and copy while consuming SDK localRuntime APIs directly.
+tester_proof:
+  - apps/tester/src/shell/routes/settings.tsx binds SDK localRuntime service client provider and calls localRuntime.listAssets in a Tester settings projection.
+  - apps/tester/test/tester-contract.test.mjs asserts Tester consumes SDK localRuntime facade and rejects Desktop/private local runtime imports.
+regression_guards:
+  - apps/desktop/test/local-ai-runtime-dependency-projection.test.ts requires direct SDK localRuntime consumption and absent Desktop facade.
+  - apps/desktop/test/local-ai-artifact-orphans.test.ts requires SDK asset intake methods and Desktop shell OS picker helper only.
+  - apps/desktop/test/local-runtime-transfer-plane-contract.test.ts requires SDK transfer APIs and absent Desktop local-runtime facade.
+  - apps/desktop/test/retired-runtime-ipc-hardcut.test.ts requires the deleted Desktop local-runtime files to remain absent.
+  - apps/tester/test/tester-contract.test.mjs keeps Tester direct SDK localRuntime proof in place.
+prohibited_patterns:
+  - target: apps/desktop/src/runtime/local-runtime/index.ts
+    absent_file: true
+  - target: apps/desktop/src/runtime/local-runtime/commands.ts
+    absent_file: true
+  - target: apps/desktop/src/runtime/local-runtime/commands-pickers.ts
+    absent_file: true
+  - target: apps/desktop/src/runtime/local-runtime/tauri-helpers.ts
+    absent_file: true
+  - target: apps/desktop/src
+    absent:
+      - "@runtime/local-runtime"
+      - "from '../../../runtime/local-runtime"
+      - "from '../src/runtime/local-runtime"
+  - target: apps/desktop/src/shell/renderer/bridge/runtime-bridge/local-runtime-os-helpers.ts
+    required:
+      - runtime_local_pick_asset_manifest_path
+      - runtime_local_pick_asset_file
+      - runtime_local_pick_asset_directory
+      - runtime_local_assets_reveal_in_folder
+      - runtime_local_assets_reveal_root_folder
+    absent:
+      - "@nimiplatform/sdk/runtime"
+      - scanUnregisteredAssets
+      - importAsset
+      - resolveInstallPlan
+verification:
+  status: passed
+  passed:
+    - command: pnpm --filter @nimiplatform/sdk exec tsx --test test/runtime/runtime-local-assets.test.ts test/runtime/runtime-local-artifact-surface.test.ts
+      evidence: SDK owner tests pass for local runtime asset projection and runtime-local artifact surface behavior.
+    - command: >-
+        pnpm --filter @nimiplatform/desktop exec tsx --test test/local-ai-artifact-import-paths.test.ts test/local-ai-artifact-orphans.test.ts test/local-ai-runtime-dependency-projection.test.ts test/local-runtime-transfer-plane-contract.test.ts test/local-ai-profile-resolve-command.test.ts test/local-ai-recommendation-surface.test.ts test/retired-runtime-ipc-hardcut.test.ts
+      evidence: Desktop hardcut tests pass for deleted facade files, direct SDK localRuntime consumption, OS picker helper residue, and local runtime profile command behavior.
+    - command: pnpm --filter @nimiplatform/tester exec node --test test/tester-contract.test.mjs test/scaffold-boundary.test.mjs
+      evidence: Tester second-consumer contract and scaffold boundary tests pass.
+    - command: pnpm --filter @nimiplatform/sdk build
+      evidence: SDK runtime public exports compile into dist.
+    - command: pnpm --filter @nimiplatform/desktop typecheck
+      evidence: Desktop compiles after deleting @runtime/local-runtime facade files and importing SDK runtime directly.
+    - command: pnpm --filter @nimiplatform/tester typecheck
+      evidence: Tester compiles against SDK localRuntime exports.
+    - command: pnpm check:desktop-local-runtime-helper-boundary
+      evidence: Desktop Tauri local runtime command surface remains limited to admitted picker/reveal helpers.
+    - command: pnpm check:no-local-ai-private-calls
+      evidence: Renderer private local_ai_* command call guard passes.
+    - command: pnpm check:no-local-ai-tauri-commands
+      evidence: Desktop Tauri local_ai_* command symbol guard passes.
+    - command: pnpm check:no-legacy-imports
+      evidence: Legacy import guard passes.
+    - command: pnpm check:no-absolute-user-paths
+      evidence: Absolute user-home path guard passes.
+    - command: pnpm check:no-app-realm-rest-bypass
+      evidence: App Realm REST bypass guard passes.
+    - command: >-
+        rg -n "@runtime/local-runtime|from '../../../runtime/local-runtime|from '../src/runtime/local-runtime" apps/desktop/src apps/desktop/test --glob '!**/dist/**'
+      evidence: No prohibited local-runtime facade imports remain; command returned no matches.
+    - command: >-
+        node -e "const fs=require('fs'); const yaml=require('yaml'); for (const f of ['config/desktop-ecosystem-boundary-domain-closure/desktop-local-runtime-facade-burndown.yaml','config/desktop-ecosystem-boundary-domain-closure/runtime-config-local-runtime.yaml']) yaml.parse(fs.readFileSync(f,'utf8'));"
+      evidence: New and updated closure records parse as YAML.
+    - command: git diff --check
+      evidence: Patch whitespace passes.

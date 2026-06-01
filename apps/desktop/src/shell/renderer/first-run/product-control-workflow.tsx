@@ -6,7 +6,7 @@ import {
   selectFactoryAIProfileForFirstRun,
   type FirstRunInstallLevel,
 } from '@nimiplatform/sdk/platform-catalog';
-import { localRuntime, type LocalRuntimeDeviceProfile } from '../../../runtime/local-runtime/index.js';
+import { localRuntime, type LocalRuntimeDeviceProfile } from '@nimiplatform/sdk/runtime';
 import { desktopBridge, type ProductControlRecordProjection, type ProductControlState } from '@renderer/bridge';
 import { FirstRunFinalization } from './first-run-finalization.js';
 import {

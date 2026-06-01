@@ -4,7 +4,7 @@ import type {
   LocalRuntimeAssetRecord,
   LocalRuntimeEnvironmentDependencyJob,
   LocalRuntimeEnvironmentPlanDependency,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
 import {
   isLocalRuntimeEnvironmentDependencyJobActiveState,
   isLocalRuntimeEnvironmentDependencyJobRetryableState,

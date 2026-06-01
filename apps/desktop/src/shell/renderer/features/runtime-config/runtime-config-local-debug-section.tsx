@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { LocalRuntimeAuditEvent } from '@runtime/local-runtime';
+import type { LocalRuntimeAuditEvent } from '@nimiplatform/sdk/runtime';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea, Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
 import { formatLocaleDateTime, formatRelativeLocaleTime } from '@renderer/i18n';

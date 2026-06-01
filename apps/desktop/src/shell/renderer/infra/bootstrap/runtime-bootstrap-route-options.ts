@@ -6,7 +6,7 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { localRuntime,
   type LocalRuntimeAssetRecord,
-  type LocalRuntimeSnapshot } from '@runtime/local-runtime';
+  type LocalRuntimeSnapshot } from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
 import {
   createRuntimeRouteOptionsPlatformHostDeps,

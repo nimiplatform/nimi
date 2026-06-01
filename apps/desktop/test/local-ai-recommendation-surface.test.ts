@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type {
   LocalRuntimeVerifiedAssetDescriptor,
-} from '../src/runtime/local-runtime/index.js';
+} from '@nimiplatform/sdk/runtime';
 
 import {
   isRecommendedDescriptor,

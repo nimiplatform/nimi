@@ -20,9 +20,6 @@ const installedSectionSource = readWorkspaceFile(
 const runtimeViewSource = readWorkspaceFile(
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-runtime-view.tsx',
 );
-const localRuntimeFacadeSource = readWorkspaceFile(
-  'src/runtime/local-runtime/index.ts',
-);
 const sdkLocalRuntimeFacadeSource = fs.readFileSync(
   path.join(import.meta.dirname, '../../../sdk/src/runtime/local-runtime-client/index.ts'),
   'utf8',
@@ -92,7 +89,9 @@ test('local model center projects Runtime-owned local environment state instead 
 });
 
 test('local runtime facade exposes SDK-backed local environment projection methods', () => {
-  assert.match(localRuntimeFacadeSource, /\.\.\.sdkLocalRuntime/);
+  assert.equal(fs.existsSync(path.join(import.meta.dirname, '..', 'src/runtime/local-runtime/index.ts')), false);
+  assert.doesNotMatch(runtimeProjectionSources, /@runtime\/local-runtime/);
+  assert.match(runtimeProjectionSources, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(sdkLocalRuntimeFacadeSource, /resolveEnvironmentPlan:\s*resolveLocalRuntimeEnvironmentPlan/);
   assert.match(sdkLocalRuntimeFacadeSource, /listEnvironmentDependencyJobs:\s*listLocalRuntimeEnvironmentDependencyJobs/);
   assert.match(sdkLocalRuntimeFacadeSource, /startEnvironmentDependencyJob:\s*startLocalRuntimeEnvironmentDependencyJob/);

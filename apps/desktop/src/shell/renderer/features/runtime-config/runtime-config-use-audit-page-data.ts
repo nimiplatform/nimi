@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { localRuntime, type LocalRuntimeAuditEvent } from '@runtime/local-runtime';
+import { localRuntime, type LocalRuntimeAuditEvent } from '@nimiplatform/sdk/runtime';
 import {
   filterAuditEvents,
   summarizeAuditReasons,

@@ -7,7 +7,7 @@ import {
   type LocalRuntimeInstallPayload,
   type LocalRuntimeInstallPlanDescriptor,
   type LocalRuntimeRecommendationFeedItemDescriptor,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
 import { Button, Card } from './runtime-config-primitives';
 import {
   DownloadIcon,

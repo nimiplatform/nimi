@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   type LocalRuntimeProfileResolutionPlan,
-} from '@runtime/local-runtime';
-import { revealLocalRuntimeAssetsRootFolder } from '@runtime/local-runtime/commands';
+} from '@nimiplatform/sdk/runtime';
+import { revealLocalRuntimeAssetsRootFolder } from '@renderer/bridge/runtime-bridge/local-runtime-os-helpers';
 import {
   normalizeSelectedProfileCapability,
   type LocalModelCenterProps,

@@ -7,7 +7,7 @@ import type {
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileResolutionPlan,
   LocalRuntimeUnregisteredAssetDescriptor,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
 import type {
   RuntimeConfigStateV11,
   RuntimeSetupPageIdV11,

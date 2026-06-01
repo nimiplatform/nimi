@@ -4,7 +4,7 @@ import type {
   LocalRuntimeAssetRecord,
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeVerifiedAssetDescriptor,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
 import {
   DownloadIcon,
   FolderOpenIcon,

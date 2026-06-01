@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { localRuntime, type LocalRuntimeSnapshot } from '@runtime/local-runtime';
+import { localRuntime, type LocalRuntimeSnapshot } from '@nimiplatform/sdk/runtime';
 import { isLocalRuntimeRunnableAssetKindId } from '@nimiplatform/sdk/runtime';
 import type { Dispatch, SetStateAction } from 'react';
 import type { StatusBanner } from '@renderer/app-shell/providers/app-store';

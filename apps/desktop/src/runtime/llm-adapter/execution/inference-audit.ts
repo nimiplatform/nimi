@@ -1,4 +1,4 @@
-import { localRuntime } from '@runtime/local-runtime';
+import { localRuntime } from '@nimiplatform/sdk/runtime';
 import {
   isLocalRuntimeRunnableAssetKindId,
   type LocalRuntimeRunnableAssetKindId,

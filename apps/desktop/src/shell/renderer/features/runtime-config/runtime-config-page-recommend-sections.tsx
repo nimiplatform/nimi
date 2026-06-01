@@ -4,7 +4,7 @@ import { ScrollArea } from '@nimiplatform/kit/ui';
 import { formatRelativeLocaleTime } from '@renderer/i18n';
 import type {
   LocalRuntimeRecommendationFeedItemDescriptor,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
 import { Button } from './runtime-config-primitives';
 import { formatBytes } from './runtime-config-model-center-utils';
 import {

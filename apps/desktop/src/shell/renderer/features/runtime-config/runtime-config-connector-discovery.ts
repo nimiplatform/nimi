@@ -1,7 +1,7 @@
 import type {
   RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { ProviderStatusV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { localRuntime } from '@runtime/local-runtime';
+import { localRuntime } from '@nimiplatform/sdk/runtime';
 import type {
   GetRuntimeHealthResponse,
   LocalRuntimeRunnableAssetKindId,

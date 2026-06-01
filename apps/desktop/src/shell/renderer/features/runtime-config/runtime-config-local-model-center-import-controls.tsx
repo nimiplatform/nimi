@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import type { LocalRuntimeAssetKind } from '@runtime/local-runtime';
+import type { LocalRuntimeAssetKind } from '@nimiplatform/sdk/runtime';
 import type {
   AssetEngineOption,
 } from './runtime-config-model-center-utils';

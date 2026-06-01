@@ -4,7 +4,7 @@ import type {
   LocalRuntimeAssetRecord,
   LocalRuntimeCatalogItemDescriptor,
   LocalRuntimeVerifiedAssetDescriptor,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
 import { i18n } from '@renderer/i18n';
 import { RuntimeSelect } from './runtime-config-primitives';
 import {

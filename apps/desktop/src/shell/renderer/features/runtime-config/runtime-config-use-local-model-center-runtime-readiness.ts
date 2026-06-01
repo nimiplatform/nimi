@@ -6,7 +6,7 @@ import {
   type LocalRuntimeEnvironmentDependencyJob,
   type LocalRuntimeEnvironmentPlan,
   type LocalRuntimeEnvironmentPlanDependency,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
 import {
   isLocalRuntimeEnvironmentDependencyJobActiveState,
   isLocalRuntimeEnvironmentDependencyReadyState,

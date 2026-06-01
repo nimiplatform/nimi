@@ -6,6 +6,9 @@ import test from 'node:test';
 const workspaceRoot = path.join(import.meta.dirname, '..');
 
 function collectFiles(dir: string, predicate: (filePath: string) => boolean): string[] {
+  if (!fs.existsSync(dir)) {
+    return [];
+  }
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   const files: string[] = [];
   for (const entry of entries) {
@@ -51,4 +54,5 @@ test('wave 5 closeout: Desktop state and dependency actions go through Runtime f
   assert.match(desktopProjectionSources, /retryEnvironmentDependencyJob/);
   assert.match(desktopProjectionSources, /repairEnvironmentDependency/);
   assert.doesNotMatch(desktopProjectionSources, /startDependencySetup|startLocalRuntimeDependencySetup/);
+  assert.doesNotMatch(desktopProjectionSources, /@runtime\/local-runtime/);
 });

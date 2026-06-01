@@ -13,7 +13,8 @@ import {
   type LocalRuntimeProfileApplyResult,
   type LocalRuntimeProfileDescriptor,
   type LocalRuntimeProfileResolutionPlan,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
+import { pickLocalRuntimeAssetManifestPath } from '@renderer/bridge/runtime-bridge/local-runtime-os-helpers';
 import { createOfflineError, getOfflineCoordinator } from '@renderer/infra/offline';
 import { i18n } from '@renderer/i18n';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
@@ -362,7 +363,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   const importLocalAsset = useCallback(async () => {
     try {
       assertRuntimeWriteAllowed();
-      const manifestPath = await localRuntime.pickAssetManifestPath();
+      const manifestPath = await pickLocalRuntimeAssetManifestPath();
       if (!manifestPath) {
         return;
       }

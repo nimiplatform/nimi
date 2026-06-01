@@ -4,8 +4,12 @@ import {
   localRuntimeRunnableAssetKindForCapabilities,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { localRuntime, type LocalRuntimeAssetRecord } from '@runtime/local-runtime';
+import { localRuntime, type LocalRuntimeAssetRecord } from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
+import {
+  pickLocalRuntimeAssetFile,
+  pickLocalRuntimeAssetManifestPath,
+} from '@renderer/bridge/runtime-bridge/local-runtime-os-helpers';
 import { createOfflineError, getOfflineCoordinator } from '@renderer/infra/offline';
 import { i18n } from '@renderer/i18n';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
@@ -164,7 +168,7 @@ export function useRuntimeConfigModelManagementActions(
   const importLocalModel = useCallback(async () => {
     try {
       assertRuntimeWriteAllowed();
-      const manifestPath = await localRuntime.pickAssetManifestPath();
+      const manifestPath = await pickLocalRuntimeAssetManifestPath();
       if (!manifestPath) {
         return;
       }
@@ -194,7 +198,7 @@ export function useRuntimeConfigModelManagementActions(
   const importLocalModelFile = useCallback(async (capabilities: string[], engine?: string) => {
     try {
       assertRuntimeWriteAllowed();
-      const filePath = await localRuntime.pickAssetFile();
+      const filePath = await pickLocalRuntimeAssetFile();
       if (!filePath) {
         return;
       }

@@ -1,4 +1,4 @@
-import { localRuntime } from '../../../runtime/local-runtime/index.js';
+import { localRuntime } from '@nimiplatform/sdk/runtime';
 import type { ProductControlState } from '@renderer/bridge';
 import {
   cancelFirstRunMaterializationJob as cancelSdkFirstRunMaterializationJob,

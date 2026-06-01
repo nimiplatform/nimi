@@ -4,7 +4,7 @@ import type {
   LocalRuntimeAssetRecord,
   LocalRuntimeCatalogRecommendation,
   LocalRuntimeVerifiedAssetDescriptor,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
 import {
   LOCAL_RUNTIME_ASSET_KIND_IDS,
   LOCAL_RUNTIME_PASSIVE_ASSET_KIND_IDS,

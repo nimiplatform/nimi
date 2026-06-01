@@ -1,4 +1,4 @@
-import type { LocalRuntimeCatalogRecommendation } from '@runtime/local-runtime';
+import type { LocalRuntimeCatalogRecommendation } from '@nimiplatform/sdk/runtime';
 import {
   LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS,
   normalizeLocalRuntimeRunnableAssetKindId,

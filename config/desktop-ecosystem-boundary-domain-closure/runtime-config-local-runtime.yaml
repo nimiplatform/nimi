@@ -1,6 +1,7 @@
 status: migrated
 date: "2026-06-01"
 domain: runtime-config-local-runtime
+migrated_in_this_commit: true
 authority_posture:
   spec_status: alignment
   authority_owner:
@@ -14,7 +15,8 @@ audited_globs:
   - apps/desktop/src/shell/renderer/features/runtime-config/**
   - apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options.ts
   - apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap-conversation-route-runtime.ts
-  - apps/desktop/src/runtime/local-runtime/**
+  - apps/desktop/src/shell/renderer/infra/bootstrap/runtime-local-runtime-client.ts
+  - apps/desktop/src/shell/renderer/bridge/runtime-bridge/local-runtime-os-helpers.ts
   - apps/desktop/src-tauri/src/local_runtime/**
   - apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs
   - apps/desktop/test/local-ai-model-toggle-contract.test.ts
@@ -51,7 +53,8 @@ migrated:
     - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-local-model-center-sections.tsx
     - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-model-center-utils.ts
     - apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options.ts
-    - apps/desktop/src/runtime/local-runtime/index.ts
+    - apps/desktop/src/shell/renderer/infra/bootstrap/runtime-local-runtime-client.ts
+    - apps/desktop/src/shell/renderer/bridge/runtime-bridge/local-runtime-os-helpers.ts
   tester_consumers:
     - apps/tester/src/shell/routes/settings.tsx
     - apps/tester/src/tester/tester-runtime-model-provider.ts
@@ -60,8 +63,10 @@ migrated:
 legal_desktop_residue:
   - path: apps/desktop/src/shell/renderer/features/runtime-config/**
     rationale: Desktop owns product-specific runtime-config screens, tabs, copy, selection UI, transient import form state, and local model center presentation while delegating platform truth to SDK/Runtime/Kit surfaces.
-  - path: apps/desktop/src/runtime/local-runtime/index.ts
-    rationale: Desktop keeps a renderer facade for app ergonomics, but the facade spreads SDK local runtime projection methods and must not own service lifecycle, parsers, route truth, or storage truth.
+  - path: apps/desktop/src/shell/renderer/infra/bootstrap/runtime-local-runtime-client.ts
+    rationale: Desktop owns only bootstrap binding of the SDK localRuntime client provider to the current PlatformClient and warning telemetry sink; SDK owns all localRuntime API/projection behavior.
+  - path: apps/desktop/src/shell/renderer/bridge/runtime-bridge/local-runtime-os-helpers.ts
+    rationale: Desktop owns admitted OS picker/reveal wrappers for runtime_local_pick_* and runtime_local_assets_reveal_* Tauri commands; these helpers do not implement Runtime asset lifecycle, parsers, route truth, or storage truth.
   - path: apps/desktop/src-tauri/src/local_runtime/commands/mod.rs
     rationale: Desktop Tauri keeps only admitted OS picker/reveal helpers. Runtime asset lifecycle, health, transfer, dependency jobs, route selection, and audit truth are not implemented in Desktop Tauri.
   - path: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-local-model-center-progress-cache.ts
@@ -76,6 +81,7 @@ regression_guards:
   - apps/desktop/test/local-ai-model-toggle-contract.test.ts blocks Desktop routeSnapshot/local provider fallback, local model lifecycle Tauri ownership, removed route resolver files, and non-helper Tauri local_runtime files.
   - apps/desktop/test/local-ai-runtime-dependency-projection.test.ts blocks Desktop file fallback and duplicated local environment dependency state machines.
   - apps/desktop/test/local-runtime-transfer-plane-contract.test.ts blocks retired local-ai bridge progress truth and requires SDK runtime transfer APIs.
+  - apps/desktop/test/retired-runtime-ipc-hardcut.test.ts requires the Desktop local-runtime SDK facade files to stay physically absent.
   - apps/desktop/test/runtime-config-provider-authority-hardcut.test.ts blocks provider inference from endpoint host patterns.
   - scripts/check-desktop-local-runtime-helper-boundary.mjs limits Desktop runtime_local_* commands to picker/reveal helpers.
   - scripts/check-no-local-ai-private-calls.mjs blocks renderer private local_ai_* Tauri command calls.
@@ -91,6 +97,7 @@ prohibited_patterns:
       - runtime_local_assets_reveal_root_folder
   - target: apps/desktop/src/shell/renderer/**
     absent:
+      - "@runtime/local-runtime"
       - invoke('local_ai_
       - invokeTauri('local_ai_
       - runtimeFields.localProviderEndpoint
@@ -98,6 +105,14 @@ prohibited_patterns:
       - createSnapshotRouteDataProvider
       - normalizeRuntimeRouteCapabilityToken
       - routeSnapshot
+  - target: apps/desktop/src/runtime/local-runtime/index.ts
+    absent_file: true
+  - target: apps/desktop/src/runtime/local-runtime/commands.ts
+    absent_file: true
+  - target: apps/desktop/src/runtime/local-runtime/commands-pickers.ts
+    absent_file: true
+  - target: apps/desktop/src/runtime/local-runtime/tauri-helpers.ts
+    absent_file: true
   - target: apps/desktop/src-tauri/src/local_runtime/**
     absent:
       - RuntimeLocalService

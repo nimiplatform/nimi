@@ -7,7 +7,7 @@
 // renderer shows an explicit "device scan unavailable" line instead of
 // fabricating a device string.
 
-import type { LocalRuntimeDeviceProfile } from '../../../runtime/local-runtime/index.js';
+import type { LocalRuntimeDeviceProfile } from '@nimiplatform/sdk/runtime';
 
 const GIB = 1024 * 1024 * 1024;
 

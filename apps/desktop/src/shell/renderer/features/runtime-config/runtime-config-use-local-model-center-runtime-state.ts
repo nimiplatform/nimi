@@ -7,7 +7,7 @@ import {
   type LocalRuntimeCatalogItemDescriptor,
   type LocalRuntimeUnregisteredAssetDescriptor,
   type LocalRuntimeVerifiedAssetDescriptor,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
 import {
   defaultAssetDeclaration,
   normalizeCapabilityOption,

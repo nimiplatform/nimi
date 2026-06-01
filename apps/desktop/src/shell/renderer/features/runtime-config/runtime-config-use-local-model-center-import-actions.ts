@@ -6,7 +6,12 @@ import {
   type LocalRuntimeAssetRecord,
   type LocalRuntimeCatalogItemDescriptor,
   type LocalRuntimeDownloadProgressEvent,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
+import {
+  pickLocalRuntimeAssetDirectory,
+  pickLocalRuntimeAssetFile,
+  pickLocalRuntimeAssetManifestPath,
+} from '@renderer/bridge/runtime-bridge/local-runtime-os-helpers';
 import { i18n } from '@renderer/i18n';
 import {
   basenameFromRuntimePath,
@@ -151,7 +156,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     endpoint?: string,
   ) => {
     setAssetImportError('');
-    const filePath = await localRuntime.pickAssetFile();
+    const filePath = await pickLocalRuntimeAssetFile();
     if (!filePath) {
       return;
     }
@@ -173,7 +178,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
 
   const importPickedAssetManifest = useCallback(async (endpoint?: string) => {
     setAssetImportError('');
-    const manifestPath = await localRuntime.pickAssetManifestPath();
+    const manifestPath = await pickLocalRuntimeAssetManifestPath();
     if (!manifestPath) {
       return;
     }
@@ -192,7 +197,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     endpoint?: string,
   ) => {
     setAssetImportError('');
-    const directoryPath = await localRuntime.pickAssetDirectory();
+    const directoryPath = await pickLocalRuntimeAssetDirectory();
     if (!directoryPath) {
       return;
     }

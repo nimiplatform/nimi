@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { LocalRuntimeAssetKind, LocalRuntimeAssetRecord } from '@runtime/local-runtime';
+import type { LocalRuntimeAssetKind, LocalRuntimeAssetRecord } from '@nimiplatform/sdk/runtime';
 import { parseTimestamp } from './runtime-config-model-center-utils';
 import { filterInstalledAssets } from './runtime-config-local-model-center-helpers';
 import { isRunnableAssetKind } from './runtime-config-use-local-model-center-helpers.js';

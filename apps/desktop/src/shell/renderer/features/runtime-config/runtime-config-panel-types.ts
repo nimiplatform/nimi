@@ -13,7 +13,7 @@ import type {
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileResolutionPlan,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
 
 export type RuntimeProfileTargetDescriptor = {
   targetId: string;

@@ -11,7 +11,7 @@ import type {
   LocalRuntimeProfileEntryDescriptor,
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileResolutionPlan,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   LOCAL_RUNTIME_ENGINE_IDS,

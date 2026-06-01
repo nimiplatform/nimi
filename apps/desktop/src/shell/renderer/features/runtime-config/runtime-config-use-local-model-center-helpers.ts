@@ -1,4 +1,4 @@
-import type { LocalRuntimeAssetDeclaration, LocalRuntimeAssetKind } from '@runtime/local-runtime';
+import type { LocalRuntimeAssetDeclaration, LocalRuntimeAssetKind } from '@nimiplatform/sdk/runtime';
 import {
   LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS,
   canImportLocalRuntimeAssetDeclaration,

@@ -9,7 +9,7 @@ import type {
   GgufVariantDescriptor,
   LocalRuntimeUnregisteredAssetDescriptor,
   LocalRuntimeVerifiedAssetDescriptor,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import type {
   AssetTaskEntry,

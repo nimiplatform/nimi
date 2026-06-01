@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   localRuntime,
   type LocalRuntimeDownloadProgressEvent,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
 import {
   PROGRESS_SESSION_LIMIT,

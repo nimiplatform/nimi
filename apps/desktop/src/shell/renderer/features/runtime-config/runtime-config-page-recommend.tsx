@@ -5,7 +5,7 @@ import {
   localRuntime,
   type LocalRuntimeRecommendationFeedDescriptor,
   type LocalRuntimeRecommendationFeedItemDescriptor,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { Card } from './runtime-config-primitives';

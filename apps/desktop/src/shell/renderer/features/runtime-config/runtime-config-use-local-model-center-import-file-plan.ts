@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   type LocalRuntimeAssetDeclaration,
   type LocalRuntimeAssetKind,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
 import {
   canImportDeclaration,
 } from './runtime-config-use-local-model-center-helpers.js';

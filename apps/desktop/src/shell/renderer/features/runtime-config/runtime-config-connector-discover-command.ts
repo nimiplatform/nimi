@@ -4,7 +4,7 @@ import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeConfigStateUpdater } from './runtime-config-types';
 import { getOfflineCacheManager } from '@renderer/infra/offline';
 import { discoverLocalModelsFromEndpoint } from './runtime-config-connector-discovery';
-import { localRuntime } from '@runtime/local-runtime';
+import { localRuntime } from '@nimiplatform/sdk/runtime';
 
 export async function runDiscoverLocalModelsCommand(input: {
   state: RuntimeConfigStateV11;

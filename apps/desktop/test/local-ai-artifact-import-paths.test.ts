@@ -26,6 +26,7 @@ test('pickLocalRuntimeAssetManifestPath uses the unified Tauri manifest picker',
   const calls: TauriInvokeCall[] = [];
   const globalRecord = globalThis as Record<string, unknown>;
   const previousHook = globalRecord.__NIMI_TAURI_TEST__;
+  const previousWindow = globalRecord.window;
 
   globalRecord.__NIMI_TAURI_TEST__ = {
     invoke: async (command: string, payload?: unknown) => {
@@ -34,9 +35,12 @@ test('pickLocalRuntimeAssetManifestPath uses the unified Tauri manifest picker',
     },
     listen: async () => () => {},
   };
+  globalRecord.window = {
+    __NIMI_HTML_BOOT_ID__: 'renderer-session-local-runtime-picker-test',
+  };
 
   try {
-    const { pickLocalRuntimeAssetManifestPath } = await import('../src/runtime/local-runtime/commands');
+    const { pickLocalRuntimeAssetManifestPath } = await import('../src/shell/renderer/bridge/runtime-bridge/local-runtime-os-helpers');
     const manifestPath = await pickLocalRuntimeAssetManifestPath();
     assert.equal(manifestPath, '/tmp/runtime-models/resolved/demo/asset.manifest.json');
     assert.deepEqual(calls, [{
@@ -48,6 +52,11 @@ test('pickLocalRuntimeAssetManifestPath uses the unified Tauri manifest picker',
       delete globalRecord.__NIMI_TAURI_TEST__;
     } else {
       globalRecord.__NIMI_TAURI_TEST__ = previousHook;
+    }
+    if (typeof previousWindow === 'undefined') {
+      delete globalRecord.window;
+    } else {
+      globalRecord.window = previousWindow;
     }
   }
 });

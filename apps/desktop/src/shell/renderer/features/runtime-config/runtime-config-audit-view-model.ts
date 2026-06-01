@@ -1,5 +1,5 @@
 import { i18n } from '@renderer/i18n';
-import type { LocalRuntimeAuditEvent } from '@runtime/local-runtime';
+import type { LocalRuntimeAuditEvent } from '@nimiplatform/sdk/runtime';
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)

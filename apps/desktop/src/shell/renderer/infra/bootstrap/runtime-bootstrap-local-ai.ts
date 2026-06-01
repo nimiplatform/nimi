@@ -1,7 +1,7 @@
 import {
   localRuntime,
   type LocalRuntimeAssetRecord,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { safeErrorMessage } from './runtime-bootstrap-utils';
 

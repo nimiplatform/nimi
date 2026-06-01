@@ -1,7 +1,7 @@
 import type {
   LocalRuntimeRecommendationFeedDescriptor,
   LocalRuntimeRecommendationFeedItemDescriptor,
-} from '@runtime/local-runtime';
+} from '@nimiplatform/sdk/runtime';
 import {
   LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,
   LOCAL_RECOMMENDATION_RUN_GRADE_IDS,
