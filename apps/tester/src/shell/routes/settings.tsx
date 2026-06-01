@@ -1049,7 +1049,7 @@ export function SettingsRoute() {
     createTraceId: (prefix = 'tester-metadata') => `${prefix}-trace`,
   });
   const runtimeLocalAiReasonProjection = mapRuntimeErrorToLocalAiReasonCode({
-    reasonCode: 'AI_STREAM_BROKEN',
+    reasonCode: ReasonCode.AI_STREAM_BROKEN,
   }) ?? 'unknown';
   const memoryEmbeddingConfig = {
     ...createEmptyMemoryEmbeddingConfig({

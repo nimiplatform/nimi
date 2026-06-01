@@ -18,6 +18,7 @@ import {
   projectLocalRuntimeImageNativeConsumerScope,
   resolveLocalRuntimeImageNativeEnvironmentPlan,
 } from '../../src/runtime/local-environment-dependency-states.js';
+import { ReasonCode } from '../../src/types/index.js';
 
 test('local environment dependency state projections classify Runtime ready states', () => {
   assert.equal(isLocalRuntimeEnvironmentDependencyReadyState('ready_managed'), true);
@@ -87,7 +88,7 @@ test('local environment dependency plan parser projects Runtime plan fields', ()
     consumerScope: 'first-run',
     cloudOnlyImpact: 'voice disabled',
     state: 'needs_confirmation',
-    reasonCode: 'AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED',
+    reasonCode: ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED,
     dependencies: [{
       dependencyFamily: 'python',
       dependencyId: 'local-speech-python',
@@ -98,7 +99,7 @@ test('local environment dependency plan parser projects Runtime plan fields', ()
       selectedSourceRecordId: 'source-1',
       environmentKey: 'local-speech',
       canonicalRoot: '/runtime/data/envs/local-speech',
-      reasonCode: 'AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED',
+      reasonCode: ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED,
       detail: 'download required',
     }],
   });
