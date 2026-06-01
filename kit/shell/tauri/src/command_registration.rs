@@ -123,9 +123,9 @@ pub fn all_shell_commands() -> Vec<ShellCommandDescriptor> {
 
 #[macro_export]
 macro_rules! nimi_shell_tauri_runtime_bridge_handler {
-    ($($app_command:path),* $(,)?) => {
+    (@with_runtime_defaults $runtime_defaults:path; $($app_command:path),* $(,)?) => {
         tauri::generate_handler![
-            $crate::runtime_defaults::runtime_defaults,
+            $runtime_defaults,
             $crate::runtime_bridge::runtime_bridge_unary,
             $crate::runtime_bridge::runtime_bridge_stream_open,
             $crate::runtime_bridge::runtime_bridge_stream_close,
@@ -138,13 +138,19 @@ macro_rules! nimi_shell_tauri_runtime_bridge_handler {
             $($app_command),*
         ]
     };
+    ($($app_command:path),* $(,)?) => {
+        $crate::nimi_shell_tauri_runtime_bridge_handler![
+            @with_runtime_defaults $crate::runtime_defaults::runtime_defaults;
+            $($app_command),*
+        ]
+    };
 }
 
 #[macro_export]
 macro_rules! nimi_shell_tauri_auth_oauth_runtime_bridge_handler {
-    ($($app_command:path),* $(,)?) => {
+    (@with_runtime_defaults $runtime_defaults:path; $($app_command:path),* $(,)?) => {
         tauri::generate_handler![
-            $crate::runtime_defaults::runtime_defaults,
+            $runtime_defaults,
             $crate::auth_session_commands::auth_session_load,
             $crate::auth_session_commands::auth_session_save,
             $crate::auth_session_commands::auth_session_clear,
@@ -164,13 +170,19 @@ macro_rules! nimi_shell_tauri_auth_oauth_runtime_bridge_handler {
             $($app_command),*
         ]
     };
+    ($($app_command:path),* $(,)?) => {
+        $crate::nimi_shell_tauri_auth_oauth_runtime_bridge_handler![
+            @with_runtime_defaults $crate::runtime_defaults::runtime_defaults;
+            $($app_command),*
+        ]
+    };
 }
 
 #[macro_export]
 macro_rules! nimi_shell_tauri_oauth_runtime_bridge_handler {
-    ($($app_command:path),* $(,)?) => {
+    (@with_runtime_defaults $runtime_defaults:path; $($app_command:path),* $(,)?) => {
         tauri::generate_handler![
-            $crate::runtime_defaults::runtime_defaults,
+            $runtime_defaults,
             $crate::oauth_commands::open_external_url,
             $crate::oauth_commands::oauth_token_exchange,
             $crate::oauth_commands::oauth_listen_for_code,
@@ -187,6 +199,12 @@ macro_rules! nimi_shell_tauri_oauth_runtime_bridge_handler {
             $($app_command),*
         ]
     };
+    ($($app_command:path),* $(,)?) => {
+        $crate::nimi_shell_tauri_oauth_runtime_bridge_handler![
+            @with_runtime_defaults $crate::runtime_defaults::runtime_defaults;
+            $($app_command),*
+        ]
+    };
 }
 
 #[cfg(test)]
@@ -195,6 +213,11 @@ mod tests {
 
     #[tauri::command]
     fn test_app_command() {}
+
+    #[tauri::command]
+    fn test_runtime_defaults() -> crate::runtime_defaults::RuntimeDefaults {
+        crate::runtime_defaults::runtime_defaults()
+    }
 
     #[test]
     fn public_catalog_names_all_shell_commands() {
@@ -250,16 +273,30 @@ mod tests {
 
     #[test]
     fn scoped_generate_handler_macros_compile() {
-        let _runtime_builder = tauri::Builder::<tauri::Wry>::default()
+        let _runtime_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
+            crate::nimi_shell_tauri_runtime_bridge_handler![test_app_command],
+        );
+        let _runtime_custom_defaults_builder = tauri::Builder::<tauri::Wry>::default()
             .invoke_handler(crate::nimi_shell_tauri_runtime_bridge_handler![
+                @with_runtime_defaults test_runtime_defaults;
                 test_app_command
             ]);
-        let _oauth_builder = tauri::Builder::<tauri::Wry>::default()
+        let _oauth_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
+            crate::nimi_shell_tauri_oauth_runtime_bridge_handler![test_app_command],
+        );
+        let _oauth_custom_defaults_builder = tauri::Builder::<tauri::Wry>::default()
             .invoke_handler(crate::nimi_shell_tauri_oauth_runtime_bridge_handler![
+                @with_runtime_defaults test_runtime_defaults;
                 test_app_command
             ]);
         let _auth_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
             crate::nimi_shell_tauri_auth_oauth_runtime_bridge_handler![test_app_command],
+        );
+        let _auth_custom_defaults_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
+            crate::nimi_shell_tauri_auth_oauth_runtime_bridge_handler![
+                @with_runtime_defaults test_runtime_defaults;
+                test_app_command
+            ],
         );
     }
 }

@@ -9,6 +9,7 @@ const runtimeLoginSource = readFileSync(new URL('../src/shell/auth/runtime-login
 const productSource = readFileSync(new URL('../src/shell/routes/product-area.tsx', import.meta.url), 'utf8');
 const demoSource = readFileSync(new URL('../src/shell/routes/demo-surfaces.tsx', import.meta.url), 'utf8');
 const mainSource = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
+const tauriMainSource = readFileSync(new URL('../src-tauri/src/main.rs', import.meta.url), 'utf8');
 const testerRuntimeSource = readFileSync(new URL('../src/tester/tester-runtime.ts', import.meta.url), 'utf8');
 const appSource = [authSource, runtimeLoginSource, productSource, demoSource, testerRuntimeSource].join('\n');
 const manifest = readFileSync(new URL('../nimi.app.yaml', import.meta.url), 'utf8');
@@ -52,6 +53,18 @@ test('renderer bootstrap installs the Kit runtime-transport bridge before render
   assert.ok(bootstrapAt < renderAt, 'bootstrap must run before render');
   // The app must not reach into the hook global itself — that is Kit-owned glue.
   assert.doesNotMatch(mainSource, /__NIMI_TAURI_RUNTIME__/);
+});
+
+test('Tauri scaffold consumes the Kit shared command-registration macro', () => {
+  assert.match(
+    tauriMainSource,
+    /nimi_shell_tauri::nimi_shell_tauri_runtime_bridge_handler!\[/,
+  );
+  assert.match(
+    tauriMainSource,
+    /@with_runtime_defaults nimi_shell_tauri::runtime_defaults::runtime_defaults;/,
+  );
+  assert.doesNotMatch(tauriMainSource, /tauri::generate_handler!\[/);
 });
 
 test('runtime readiness consumes Kit runtime defaults and daemon bridge', () => {

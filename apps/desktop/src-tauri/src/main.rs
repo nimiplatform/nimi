@@ -1,9 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use nimi_shell_tauri::auth_session_commands;
-use nimi_shell_tauri::oauth_commands;
 use nimi_shell_tauri::runtime_bridge;
-use nimi_shell_tauri::session_logging;
 mod account_apps_library_commands;
 mod account_apps_projection;
 mod account_profile_library;

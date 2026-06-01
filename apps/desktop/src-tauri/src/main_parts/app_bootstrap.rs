@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
     chat_ai_store, desktop_agent_center_store, desktop_release, desktop_updates, local_runtime,
-    menu_bar_shell, runtime_bridge,
+    menu_bar_shell,
 };
 use nimi_shell_tauri::runtime_bridge::RuntimeBridgeHostHooks;
 use std::sync::Arc;
@@ -295,11 +295,8 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![
-            super::defaults_and_commands::runtime_defaults,
-            crate::auth_session_commands::auth_session_load,
-            crate::auth_session_commands::auth_session_save,
-            crate::auth_session_commands::auth_session_clear,
+        .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_auth_oauth_runtime_bridge_handler![
+            @with_runtime_defaults super::defaults_and_commands::runtime_defaults;
             desktop_release::desktop_release_info_get,
             desktop_updates::desktop_update_state_get,
             desktop_updates::desktop_update_check,
@@ -333,12 +330,9 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             crate::account_apps_library_commands::account_app_library_apply,
             super::defaults_and_commands::system_resources::get_system_resource_snapshot,
             super::defaults_and_commands::http_request,
-            crate::oauth_commands::open_external_url,
             super::defaults_and_commands::window_and_logs::desktop_avatar_launch_handoff,
             super::defaults_and_commands::window_and_logs::desktop_avatar_close_handoff,
             crate::desktop_avatar_instance_registry::commands::desktop_avatar_instance_registry_list,
-            crate::oauth_commands::oauth_token_exchange,
-            crate::oauth_commands::oauth_listen_for_code,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_context_get,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_avatar_evidence_read,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_avatar_product_local_asset_fault_apply,
@@ -346,7 +340,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_ping,
             super::defaults_and_commands::window_and_logs::confirm_dialog,
             super::defaults_and_commands::window_and_logs::confirm_private_sync,
-            crate::session_logging::log_renderer_event,
             super::defaults_and_commands::window_and_logs::focus_main_window,
             super::defaults_and_commands::window_and_logs::start_window_drag,
             menu_bar_shell::menu_bar_sync_runtime_health,
@@ -378,15 +371,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             desktop_agent_center_store::desktop_agent_center_background_validate,
             desktop_agent_center_store::desktop_agent_center_config_get,
             desktop_agent_center_store::desktop_agent_center_config_put,
-            runtime_bridge::runtime_bridge_unary,
-            runtime_bridge::runtime_bridge_stream_open,
-            runtime_bridge::runtime_bridge_stream_close,
-            runtime_bridge::runtime_bridge_status,
-            runtime_bridge::runtime_bridge_start,
-            runtime_bridge::runtime_bridge_stop,
-            runtime_bridge::runtime_bridge_restart,
-            runtime_bridge::runtime_bridge_config_get,
-            runtime_bridge::runtime_bridge_config_set,
             local_runtime::commands::runtime_local_pick_asset_manifest_path,
             local_runtime::commands::runtime_local_pick_asset_file,
             local_runtime::commands::runtime_local_pick_asset_directory,

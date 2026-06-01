@@ -155,30 +155,46 @@ fn runtime_defaults_normalizes_explicit_loopback_jwt_overrides() {
 }
 
 #[test]
-fn shared_bridge_ipc_handler_uses_kit_owned_shared_commands() {
+fn shared_bridge_ipc_handler_uses_kit_owned_scaffold_macro() {
     let bootstrap_source = include_str!("app_bootstrap.rs");
 
-    for app_local_registration in [
+    assert!(
+        bootstrap_source
+            .contains("nimi_shell_tauri::nimi_shell_tauri_auth_oauth_runtime_bridge_handler!"),
+        "Desktop must consume the Kit-owned scaffold macro for shared shell commands"
+    );
+    assert!(
+        bootstrap_source.contains(
+            "@with_runtime_defaults super::defaults_and_commands::runtime_defaults;"
+        ),
+        "Desktop may pass its E2E-aware runtime defaults wrapper, but command registration stays Kit-owned"
+    );
+
+    for hand_registered_shared_command in [
+        "crate::auth_session_commands::auth_session_load",
+        "crate::auth_session_commands::auth_session_save",
+        "crate::auth_session_commands::auth_session_clear",
+        "crate::oauth_commands::open_external_url",
+        "crate::oauth_commands::oauth_token_exchange",
+        "crate::oauth_commands::oauth_listen_for_code",
+        "crate::session_logging::log_renderer_event",
+        "runtime_bridge::runtime_bridge_unary",
+        "runtime_bridge::runtime_bridge_stream_open",
+        "runtime_bridge::runtime_bridge_stream_close",
+        "runtime_bridge::runtime_bridge_status",
+        "runtime_bridge::runtime_bridge_start",
+        "runtime_bridge::runtime_bridge_stop",
+        "runtime_bridge::runtime_bridge_restart",
+        "runtime_bridge::runtime_bridge_config_get",
+        "runtime_bridge::runtime_bridge_config_set",
         "super::defaults_and_commands::open_external_url",
         "super::defaults_and_commands::oauth_token_exchange",
         "super::defaults_and_commands::oauth_listen_for_code",
         "super::defaults_and_commands::window_and_logs::log_renderer_event",
     ] {
         assert!(
-            !bootstrap_source.contains(app_local_registration),
-            "shared bridge IPC command must not be registered from app-local handler: {app_local_registration}"
-        );
-    }
-
-    for kit_registration in [
-        "crate::oauth_commands::open_external_url",
-        "crate::oauth_commands::oauth_token_exchange",
-        "crate::oauth_commands::oauth_listen_for_code",
-        "crate::session_logging::log_renderer_event",
-    ] {
-        assert!(
-            bootstrap_source.contains(kit_registration),
-            "shared bridge IPC command must be registered from kit-owned handler: {kit_registration}"
+            !bootstrap_source.contains(hand_registered_shared_command),
+            "shared bridge IPC command must be registered through Kit scaffold macro: {hand_registered_shared_command}"
         );
     }
 }

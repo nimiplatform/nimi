@@ -4,6 +4,7 @@ mod world_tour;
 fn main() {
     tauri::Builder::default()
         .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_runtime_bridge_handler![
+            @with_runtime_defaults nimi_shell_tauri::runtime_defaults::runtime_defaults;
             tester_storage::tester_image_history_load,
             tester_storage::tester_image_history_save,
             tester_storage::tester_run_history_load,
