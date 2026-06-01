@@ -60,7 +60,7 @@ function importSpecifiers(source: string): string[] {
 test('Desktop consumes Kit shared UI, telemetry, and feature primitives for audited app surfaces', () => {
   const forbiddenComponentImports = walkSourceFiles(desktopRendererRoot).filter((filePath) => {
     const source = fs.readFileSync(filePath, 'utf8');
-    return /@renderer\/components\/(?:action|surface|scroll-shell|design-tokens|sidebar|tooltip)/.test(source);
+    return /@renderer\/components\/(?:action|surface|scroll-shell|design-tokens|sidebar|tooltip|overlay)/.test(source);
   });
 
   assert.deepEqual(
@@ -76,6 +76,7 @@ test('Desktop consumes Kit shared UI, telemetry, and feature primitives for audi
     'apps/desktop/src/shell/renderer/components/design-tokens.ts',
     'apps/desktop/src/shell/renderer/components/sidebar.tsx',
     'apps/desktop/src/shell/renderer/components/tooltip.tsx',
+    'apps/desktop/src/shell/renderer/components/overlay/index.ts',
   ]) {
     assert.equal(fs.existsSync(path.join(repoRoot, removed)), false, `${removed} must stay owned by Kit`);
   }
@@ -134,6 +135,7 @@ test('Tester is the second consumer for Kit shared primitives and shell bootstra
     'Surface',
     'ProgressIndicator',
     'TooltipProvider',
+    'OverlayShell',
   ]) {
     assert.match(gallery, new RegExp(`\\b${primitive}\\b`));
   }

@@ -31,6 +31,7 @@ test('Desktop does not retain local Kit UI forwarding shells', () => {
     'apps/desktop/src/shell/renderer/components/design-tokens.ts',
     'apps/desktop/src/shell/renderer/components/sidebar.tsx',
     'apps/desktop/src/shell/renderer/components/tooltip.tsx',
+    'apps/desktop/src/shell/renderer/components/overlay/index.ts',
   ]) {
     assert.equal(fs.existsSync(path.join(repoRoot, removed)), false, `${removed} must stay owned by Kit`);
   }
@@ -39,7 +40,7 @@ test('Desktop does not retain local Kit UI forwarding shells', () => {
 test('Desktop app-surface consumers import shared primitives from Kit', () => {
   const offenders = walkFiles(desktopRendererRoot).filter((filePath) => {
     const source = fs.readFileSync(filePath, 'utf8');
-    return /@renderer\/components\/(?:action|surface|scroll-shell|design-tokens|sidebar|tooltip)/.test(source);
+    return /@renderer\/components\/(?:action|surface|scroll-shell|design-tokens|sidebar|tooltip|overlay)/.test(source);
   });
 
   assert.deepEqual(offenders.map((filePath) => path.relative(repoRoot, filePath)), []);

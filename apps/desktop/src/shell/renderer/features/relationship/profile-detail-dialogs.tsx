@@ -1,6 +1,5 @@
-import { Button } from '@nimiplatform/kit/ui';
+import { Button, OverlayShell } from '@nimiplatform/kit/ui';
 import { i18n } from '@renderer/i18n';
-import { OverlayShell } from '@renderer/components/overlay/index.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 export function RemoveFriendConfirmDialog({

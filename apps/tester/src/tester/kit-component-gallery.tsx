@@ -19,6 +19,7 @@ import {
   LoadingSkeleton,
   NimiTabs,
   NumberStepper,
+  OverlayShell,
   PillTabs,
   Popover,
   PopoverContent,
@@ -167,6 +168,27 @@ function DialogDemo() {
           <DialogBody>Review the AIConfig diff before applying it to this capability.</DialogBody>
         </DialogContent>
       </Dialog>
+    </>
+  );
+}
+function OverlayShellDemo() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button tone="secondary" size="sm" onClick={() => setOpen(true)}>Open drawer</Button>
+      <OverlayShell
+        open={open}
+        kind="drawer"
+        size="M"
+        title="SDK projection detail"
+        footer={<Button tone="primary" size="sm" onClick={() => setOpen(false)}>Done</Button>}
+        onClose={() => setOpen(false)}
+      >
+        <div className="kit-pop">
+          <strong>Consumer-owned content</strong>
+          <span>Overlay chrome comes from Kit UI.</span>
+        </div>
+      </OverlayShell>
     </>
   );
 }
@@ -384,6 +406,21 @@ const RECIPES: Recipe[] = [
       { name: 'open', desc: 'controlled open state' },
       { name: 'onOpenChange', desc: 'open/close callback' },
       { name: 'onClose', desc: 'DialogContent dismiss handler' },
+    ],
+  },
+  {
+    id: 'overlay-shell',
+    category: 'overlays',
+    name: 'OverlayShell',
+    exportsLabel: 'OverlayShell',
+    importNames: ['OverlayShell'],
+    badge: { label: 'interactive', tone: 'info' },
+    stage: <OverlayShellDemo />,
+    snippet: '<OverlayShell open kind="drawer" size="M">…</OverlayShell>',
+    props: [
+      { name: 'kind', desc: 'dialog | drawer | popover shell chrome' },
+      { name: 'size', desc: 'admitted drawer width token' },
+      { name: 'title / footer', desc: 'consumer-supplied overlay slots' },
     ],
   },
   {

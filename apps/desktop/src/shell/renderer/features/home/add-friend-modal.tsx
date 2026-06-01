@@ -1,8 +1,7 @@
 import { useCallback, useState } from 'react';
-import { Button, IconButton } from '@nimiplatform/kit/ui';
+import { Button, IconButton, OverlayShell } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { OverlayShell } from '@renderer/components/overlay/index.js';
 
 export type PostCardAuthorPreview = {
   name: string;
