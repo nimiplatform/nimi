@@ -94,7 +94,7 @@ import {
   type RuntimeModelCatalogConnectorClient,
   type RuntimeModelCatalogProvider,
 } from '@nimiplatform/sdk/runtime';
-import { classifyOfflineError, classifyOfflineReasonCode, createOfflineNimiError, ReasonCode } from '@nimiplatform/sdk/types';
+import { classifyOfflineError, classifyOfflineReasonCode, createOfflineNimiError, extractNimiErrorFields, ReasonCode } from '@nimiplatform/sdk/types';
 import {
   isRealmFeedScope,
   listRealmGroupChats,
@@ -692,6 +692,12 @@ export function SettingsRoute() {
     credentialMissing: getRuntimeReasonCodeDefaultMessage(ReasonCode.AI_CONNECTOR_CREDENTIAL_MISSING) ?? 'unknown',
     numeric: normalizeRuntimeReasonCode(351) || 'unknown',
     extracted: extractRuntimeReasonCodeFromError(new Error('runtime failed: reason=411')) ?? 'unknown',
+    traceId: extractNimiErrorFields({
+      reason_code: ReasonCode.RUNTIME_CALL_FAILED,
+      action_hint: 'retry_runtime_call',
+      trace_id: 'tester-runtime-trace',
+      retryable: true,
+    }).traceId ?? 'unknown',
   };
   const runtimeLocalAgentIdentityProjection = projectRuntimeLocalAgentIdentity({
     ownerUserId: 'tester-owner',
@@ -1938,6 +1944,8 @@ export function SettingsRoute() {
         <span>Runtime reason projection</span>
         <StatusBadge tone="neutral">
           {runtimeReasonProjection.reasonCode}: {runtimeReasonProjection.message} / {runtimeReasonProjection.credentialMissing} / {runtimeReasonProjection.numeric} / {runtimeReasonProjection.extracted}
+          {' / '}
+          {runtimeReasonProjection.traceId}
         </StatusBadge>
       </div>
       <div className="setting-row">

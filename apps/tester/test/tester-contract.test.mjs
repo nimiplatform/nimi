@@ -1121,13 +1121,16 @@ test('tester settings consumes SDK Runtime reason-code message projection', () =
   assert.match(settings, /getRuntimeReasonCodeDefaultMessage/);
   assert.match(settings, /normalizeRuntimeReasonCode/);
   assert.match(settings, /extractRuntimeReasonCodeFromError/);
+  assert.match(settings, /extractNimiErrorFields/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/types'/);
   assert.match(settings, /ReasonCode\.AI_PROVIDER_TIMEOUT/);
   assert.match(settings, /ReasonCode\.AI_CONNECTOR_CREDENTIAL_MISSING/);
   assert.match(settings, /Runtime reason projection/);
   assert.match(settings, /runtimeReasonProjection\.credentialMissing/);
   assert.match(settings, /runtimeReasonProjection\.numeric/);
   assert.match(settings, /runtimeReasonProjection\.extracted/);
+  assert.match(settings, /runtimeReasonProjection\.traceId/);
   assert.doesNotMatch(settings, /AI provider request timed out\./);
   assert.doesNotMatch(settings, /AI connector credentials are missing\./);
 });

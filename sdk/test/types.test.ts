@@ -15,6 +15,7 @@ import {
   isRealmOfflineReasonCode,
   isRuntimeOfflineReasonCode,
   ReasonCode,
+  extractNimiErrorFields,
 } from '../src/types/index.js';
 
 test('isNimiErrorLike recognizes structured NimiError-shaped objects', () => {
@@ -87,4 +88,35 @@ test('createOfflineNimiError produces SDK-owned typed offline error envelopes', 
   assert.deepEqual(error.details, { lane: 'tester' });
   assert.equal(isNimiErrorLike(error), true);
   assert.equal(classifyOfflineError(error), 'runtime');
+});
+
+test('extractNimiErrorFields reads structured and JSON-like Nimi error metadata', () => {
+  assert.deepEqual(extractNimiErrorFields({
+    code: 'RUNTIME_CALL_FAILED',
+    reason_code: ReasonCode.RUNTIME_CALL_FAILED,
+    action_hint: 'retry_runtime_call',
+    trace_id: 'trace-structured',
+    retryable: true,
+  }), {
+    code: 'RUNTIME_CALL_FAILED',
+    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+    actionHint: 'retry_runtime_call',
+    traceId: 'trace-structured',
+    retryable: true,
+  });
+
+  assert.deepEqual(extractNimiErrorFields(new Error('plain runtime failure', {
+    cause: JSON.stringify({
+      reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+      actionHint: 'restart_runtime',
+      traceId: 'trace-cause',
+      retryable: false,
+    }),
+  })), {
+    message: 'plain runtime failure',
+    reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+    actionHint: 'restart_runtime',
+    traceId: 'trace-cause',
+    retryable: false,
+  });
 });

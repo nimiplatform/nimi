@@ -1,7 +1,6 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type { Realm } from '@nimiplatform/sdk/realm';
-import { ReasonCode, tryParseJsonLike } from '@nimiplatform/sdk/types';
-import { extractRuntimeErrorFields } from '@runtime/telemetry/error-fields';
+import { extractNimiErrorFields, ReasonCode, tryParseJsonLike } from '@nimiplatform/sdk/types';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import {
   getOfflineCoordinator,
@@ -38,7 +37,7 @@ export function emitRealmDataError(
   error: unknown,
   details: Record<string, unknown> = {},
 ): void {
-  const errorFields = extractRuntimeErrorFields(error);
+  const errorFields = extractNimiErrorFields(error);
   if (errorFields.reasonCode === ReasonCode.REALM_UNAVAILABLE || isRealmOfflineError(error)) {
     getOfflineCoordinator().markRealmRestReachable(false);
   }

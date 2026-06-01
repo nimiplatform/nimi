@@ -1,5 +1,4 @@
-import { tryParseJsonLike, type NimiError } from '@nimiplatform/sdk/types';
-import { extractRuntimeErrorFields } from '../telemetry/error-fields';
+import { extractNimiErrorFields, tryParseJsonLike, type NimiError } from '@nimiplatform/sdk/types';
 
 type ApiErrorLike = {
   status: number;
@@ -45,7 +44,7 @@ export function normalizeApiError(error: unknown, fallback = '请求失败'): Er
       data.message || data.error_description || error.message || error.statusText || fallback,
     );
     const normalized = new Error(`${code}: ${message}`) as Error & Partial<NimiError>;
-    const fields = extractRuntimeErrorFields(data);
+    const fields = extractNimiErrorFields(data);
     normalized.reasonCode = String(data.reasonCode || fields.reasonCode || code);
     normalized.actionHint = String(data.actionHint || data.action_hint || fields.actionHint || '');
     normalized.traceId = fields.traceId;

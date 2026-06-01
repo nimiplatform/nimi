@@ -1,5 +1,4 @@
-import { ReasonCode } from '@nimiplatform/sdk/types';
-import { extractRuntimeErrorFields } from '@runtime/telemetry/error-fields';
+import { extractNimiErrorFields, ReasonCode } from '@nimiplatform/sdk/types';
 import { toProfileData, type ProfileData, type ProfileSource } from '@renderer/features/profile/profile-model';
 
 export type RestrictedContactProfileSeed = {
@@ -53,7 +52,7 @@ function readStatus(value: unknown): number | null {
 }
 
 export function isPrivateProfileAccessError(error: unknown): boolean {
-  const fields = extractRuntimeErrorFields(error);
+  const fields = extractNimiErrorFields(error);
   const reasonCode = String(fields.reasonCode || '').trim().toUpperCase();
   if (reasonCode === ReasonCode.PRINCIPAL_UNAUTHORIZED) {
     return true;
