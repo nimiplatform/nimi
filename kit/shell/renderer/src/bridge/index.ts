@@ -15,7 +15,14 @@ export {
   clearAuthSession,
   watchAuthSessionChanges,
 } from './auth-session.js';
-export { getDaemonStatus, startDaemon, stopDaemon, restartDaemon } from './runtime-daemon.js';
+export {
+  getDaemonStatus,
+  startDaemon,
+  stopDaemon,
+  restartDaemon,
+  getDaemonConfig,
+  setDaemonConfig,
+} from './runtime-daemon.js';
 export {
   oauthTokenExchange,
   oauthListenForCode,
@@ -36,6 +43,8 @@ export type {
   RealmDefaults,
   RuntimeExecutionDefaults,
   RuntimeBridgeDaemonStatus,
+  RuntimeBridgeConfigGetResult,
+  RuntimeBridgeConfigSetResult,
   ConfirmDialogPayload,
   ConfirmDialogResult,
 } from './types.js';
@@ -49,5 +58,7 @@ export {
   parseRequiredString,
   parseRuntimeDefaults,
   parseRuntimeBridgeDaemonStatus,
+  parseRuntimeBridgeConfigGetResult,
+  parseRuntimeBridgeConfigSetResult,
   parseConfirmDialogResult,
 } from './types.js';

@@ -9,7 +9,7 @@
  * pre-launch product.
  */
 
-import { hasTauriInvoke } from './env';
+import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 
 /** The `P-MIG-008` cleanup impact plan for a `nimi_data` directory. */

@@ -1,27 +1,58 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { parseRuntimeDefaults } from '../src/shell/renderer/bridge/runtime-bridge/types';
 
-const runtimeDefaultsSource = readFileSync(
-  new URL('../src/shell/renderer/bridge/runtime-bridge/runtime-defaults.ts', import.meta.url),
+const runtimeBridgeSource = readFileSync(
+  new URL('../src/shell/renderer/bridge/runtime-bridge.ts', import.meta.url),
+  'utf8',
+);
+const runtimeParsersSource = readFileSync(
+  new URL('../src/shell/renderer/bridge/runtime-bridge/runtime-parsers.ts', import.meta.url),
+  'utf8',
+);
+const runtimeDaemonSource = readFileSync(
+  new URL('../src/shell/renderer/bridge/runtime-bridge/runtime-daemon.ts', import.meta.url),
   'utf8',
 );
 
-test('runtime defaults bridge is delegated to Kit', () => {
+test('runtime defaults bridge is consumed directly from Kit without Desktop forwarding shells', () => {
+  assert.equal(
+    existsSync(new URL('../src/shell/renderer/bridge/runtime-bridge/runtime-defaults.ts', import.meta.url)),
+    false,
+  );
+  assert.equal(
+    existsSync(new URL('../src/shell/renderer/bridge/runtime-bridge/env.ts', import.meta.url)),
+    false,
+  );
   assert.match(
-    runtimeDefaultsSource,
-    /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/,
+    runtimeBridgeSource,
+    /import \{[^}]*getRuntimeDefaults[^}]*hasTauriInvoke[^}]*\} from '@nimiplatform\/kit\/shell\/renderer\/bridge'/,
   );
   assert.doesNotMatch(
-    runtimeDefaultsSource,
+    runtimeBridgeSource,
     /function\s+(readEnv|resolveRealmBaseUrlFallback|readRuntimeDefaultsFallback|applyEnvOverrides)\b/,
   );
   assert.doesNotMatch(
-    runtimeDefaultsSource,
+    runtimeBridgeSource,
     /deriveDefaultJwksUrl|deriveDefaultRevocationUrl|normalizeLoopbackHttpUrl/,
   );
+});
+
+test('runtime daemon bridge config schemas and commands are Kit-owned', () => {
+  assert.match(
+    runtimeParsersSource,
+    /parseRuntimeBridgeConfigGetResult as parseSharedRuntimeBridgeConfigGetResult/,
+  );
+  assert.match(
+    runtimeParsersSource,
+    /parseRuntimeBridgeConfigSetResult as parseSharedRuntimeBridgeConfigSetResult/,
+  );
+  assert.doesNotMatch(runtimeParsersSource, /function\s+parseRuntimeBridgeConfig(Get|Set)Result\b/);
+  assert.match(runtimeDaemonSource, /getDaemonConfig/);
+  assert.match(runtimeDaemonSource, /setDaemonConfig/);
+  assert.doesNotMatch(runtimeDaemonSource, /invokeChecked\('runtime_bridge_config_(get|set)'/);
 });
 
 test('parseRuntimeDefaults requires split realm/runtime payload', () => {

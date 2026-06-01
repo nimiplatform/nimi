@@ -1,5 +1,5 @@
 import { listenTauri } from '@nimiplatform/kit/shell/renderer/bridge';
-import { hasTauriInvoke } from './env';
+import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 import {
   parseDesktopReleaseInfo,

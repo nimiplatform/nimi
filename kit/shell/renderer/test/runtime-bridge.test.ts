@@ -5,6 +5,9 @@ import {
   invokeTauri,
   listenTauri,
   installNimiShellRuntimeBridge,
+  parseRuntimeBridgeConfigGetResult,
+  parseRuntimeBridgeConfigSetResult,
+  parseRuntimeBridgeDaemonStatus,
 } from '../src/bridge/index.js';
 
 type TauriEventHandler = (event: { event?: string; id?: number; payload: unknown }) => void;
@@ -106,5 +109,56 @@ describe('installNimiShellRuntimeBridge', () => {
     expect(invokeCalls).toEqual([{ command: 'desktop_command', payload: { ok: true } }]);
     expect(listenCalls).toEqual(['menu-bar://quit-requested']);
     expect(convertTauriFileSrc('file:///tmp/avatar.vrm')).toBe('file:///tmp/avatar.vrm');
+  });
+});
+
+describe('runtime bridge daemon command payloads', () => {
+  it('parses daemon status through the shared Kit bridge contract', () => {
+    expect(parseRuntimeBridgeDaemonStatus({
+      running: true,
+      managed: true,
+      launchMode: 'runtime',
+      grpcAddr: '127.0.0.1:50051',
+      pid: 42,
+      version: '0.1.0',
+      lastError: '',
+      debugLogPath: '/tmp/runtime.log',
+    })).toEqual({
+      running: true,
+      managed: true,
+      launchMode: 'RUNTIME',
+      grpcAddr: '127.0.0.1:50051',
+      pid: 42,
+      version: '0.1.0',
+      debugLogPath: '/tmp/runtime.log',
+    });
+  });
+
+  it('parses daemon config get and set results through Kit instead of app-local schemas', () => {
+    expect(parseRuntimeBridgeConfigGetResult({
+      path: '/tmp/runtime-config.json',
+      config: { grpcAddr: '127.0.0.1:50051' },
+    })).toEqual({
+      path: '/tmp/runtime-config.json',
+      config: { grpcAddr: '127.0.0.1:50051' },
+    });
+
+    expect(parseRuntimeBridgeConfigSetResult({
+      path: '/tmp/runtime-config.json',
+      reasonCode: 'runtime_config_changed',
+      actionHint: 'restart_runtime',
+      config: { grpcAddr: '127.0.0.1:50052' },
+    })).toEqual({
+      path: '/tmp/runtime-config.json',
+      reasonCode: 'runtime_config_changed',
+      actionHint: 'restart_runtime',
+      config: { grpcAddr: '127.0.0.1:50052' },
+    });
+  });
+
+  it('fails closed when required daemon payload fields are missing', () => {
+    expect(() => parseRuntimeBridgeDaemonStatus({ running: true })).toThrow(/grpcAddr is required/);
+    expect(() => parseRuntimeBridgeConfigGetResult({ path: '/tmp/config.json' })).toThrow(/config payload/);
+    expect(() => parseRuntimeBridgeConfigSetResult({ config: {} })).toThrow(/path is required/);
   });
 });

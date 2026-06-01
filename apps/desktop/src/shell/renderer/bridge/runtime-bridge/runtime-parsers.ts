@@ -1,4 +1,9 @@
-import { parseRuntimeDefaults as parseSharedRuntimeDefaults } from '@nimiplatform/kit/shell/renderer/bridge';
+import {
+  parseRuntimeBridgeConfigGetResult as parseSharedRuntimeBridgeConfigGetResult,
+  parseRuntimeBridgeConfigSetResult as parseSharedRuntimeBridgeConfigSetResult,
+  parseRuntimeBridgeDaemonStatus as parseSharedRuntimeBridgeDaemonStatus,
+  parseRuntimeDefaults as parseSharedRuntimeDefaults,
+} from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   assertRecord,
   parseOptionalJsonObject,
@@ -14,13 +19,13 @@ import type {
   DesktopMacosSmokeAvatarEvidenceReadResult,
   DesktopMacosSmokeReportResult,
   MenuBarProviderSummary,
-  RuntimeBridgeConfigGetResult,
-  RuntimeBridgeConfigSetResult,
-  RuntimeBridgeDaemonStatus,
   SystemResourceSnapshot,
 } from './runtime-types';
 
 export const parseRuntimeDefaults = parseSharedRuntimeDefaults;
+export const parseRuntimeBridgeDaemonStatus = parseSharedRuntimeBridgeDaemonStatus;
+export const parseRuntimeBridgeConfigGetResult = parseSharedRuntimeBridgeConfigGetResult;
+export const parseRuntimeBridgeConfigSetResult = parseSharedRuntimeBridgeConfigSetResult;
 
 export function parseDesktopReleaseInfo(value: unknown): DesktopReleaseInfo {
   const record = assertRecord(value, 'desktop_release_info_get returned invalid payload');
@@ -91,44 +96,6 @@ export function parseSystemResourceSnapshot(value: unknown): SystemResourceSnaps
     temperatureCelsius: parseOptionalNumber(record.temperatureCelsius),
     capturedAtMs,
     source: parseRequiredString(record.source, 'source', 'get_system_resource_snapshot'),
-  };
-}
-
-export function parseRuntimeBridgeDaemonStatus(value: unknown): RuntimeBridgeDaemonStatus {
-  const record = assertRecord(value, 'runtime_bridge_status returned invalid payload');
-  const launchModeRaw = String(record.launchMode || '').trim().toUpperCase();
-  const launchMode = launchModeRaw === 'RUNTIME' || launchModeRaw === 'RELEASE'
-    ? launchModeRaw
-    : 'INVALID';
-  return {
-    running: Boolean(record.running),
-    managed: Boolean(record.managed),
-    launchMode,
-    grpcAddr: parseRequiredString(record.grpcAddr, 'grpcAddr', 'runtime_bridge_status'),
-    pid: parseOptionalNumber(record.pid),
-    version: parseOptionalString(record.version),
-    lastError: parseOptionalString(record.lastError),
-    debugLogPath: parseOptionalString(record.debugLogPath),
-  };
-}
-
-export function parseRuntimeBridgeConfigGetResult(value: unknown): RuntimeBridgeConfigGetResult {
-  const record = assertRecord(value, 'runtime_bridge_config_get returned invalid payload');
-  const config = assertRecord(record.config, 'runtime_bridge_config_get config payload is invalid');
-  return {
-    path: parseRequiredString(record.path, 'path', 'runtime_bridge_config_get'),
-    config,
-  };
-}
-
-export function parseRuntimeBridgeConfigSetResult(value: unknown): RuntimeBridgeConfigSetResult {
-  const record = assertRecord(value, 'runtime_bridge_config_set returned invalid payload');
-  const config = assertRecord(record.config, 'runtime_bridge_config_set config payload is invalid');
-  return {
-    path: parseRequiredString(record.path, 'path', 'runtime_bridge_config_set'),
-    reasonCode: parseOptionalString(record.reasonCode),
-    actionHint: parseOptionalString(record.actionHint),
-    config,
   };
 }
 

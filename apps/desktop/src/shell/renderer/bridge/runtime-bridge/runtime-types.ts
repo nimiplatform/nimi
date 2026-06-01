@@ -4,6 +4,9 @@ export type {
   RealmDefaults,
   RuntimeExecutionDefaults,
   RuntimeDefaults,
+  RuntimeBridgeConfigGetResult,
+  RuntimeBridgeConfigSetResult,
+  RuntimeBridgeDaemonStatus,
 } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type DesktopReleaseInfo = {
@@ -46,29 +49,6 @@ export type SystemResourceSnapshot = {
   temperatureCelsius?: number;
   capturedAtMs: number;
   source: string;
-};
-
-export type RuntimeBridgeDaemonStatus = {
-  running: boolean;
-  managed: boolean;
-  launchMode: 'RUNTIME' | 'RELEASE' | 'INVALID';
-  grpcAddr: string;
-  pid?: number;
-  version?: string;
-  lastError?: string;
-  debugLogPath?: string;
-};
-
-export type RuntimeBridgeConfigGetResult = {
-  path: string;
-  config: JsonObject;
-};
-
-export type RuntimeBridgeConfigSetResult = {
-  path: string;
-  reasonCode?: string;
-  actionHint?: string;
-  config: JsonObject;
 };
 
 export type MenuBarProviderSummary = {

@@ -1,6 +1,6 @@
 import { createNimiError } from '@nimiplatform/sdk/runtime';
+import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { assertRecord, parseOptionalJsonObject } from './shared.js';
-import { hasTauriInvoke, nativeFetch } from './env';
 import { invokeChecked } from './invoke';
 import { resolveRendererSessionTraceId } from '@nimiplatform/kit/telemetry';
 
@@ -18,6 +18,9 @@ type ProxyHttpResult = {
   headers: Record<string, string>;
   body: string;
 };
+
+const nativeFetch =
+  typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : null;
 
 function createDesktopBridgeError(reasonCode: string, message: string) {
   return createNimiError({

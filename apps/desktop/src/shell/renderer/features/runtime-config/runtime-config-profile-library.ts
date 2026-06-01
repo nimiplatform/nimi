@@ -26,7 +26,7 @@
 
 import type { AIProfile } from '@nimiplatform/sdk/ai';
 import { createNimiClientId } from '@nimiplatform/sdk/runtime';
-import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
+import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   createAccountProfileLibraryProfile,
   deleteAccountProfileLibraryProfile,

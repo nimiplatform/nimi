@@ -19,7 +19,7 @@ import {
   type AccountProfileLibraryProfile,
   type AIProfile,
 } from '@nimiplatform/sdk/ai';
-import { hasTauriInvoke } from './env';
+import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 
 export type LibraryProfileOrigin = AccountProfileLibraryOrigin;

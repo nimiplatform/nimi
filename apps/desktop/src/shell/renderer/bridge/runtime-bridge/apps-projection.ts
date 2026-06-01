@@ -9,7 +9,7 @@ import {
   parseNimiAppBridgeProjection,
   type NimiAppBridgeProjection,
 } from '@nimiplatform/sdk/app';
-import { hasTauriInvoke } from './env';
+import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 
 export type AppsBridgeProjection = NimiAppBridgeProjection;

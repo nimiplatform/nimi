@@ -1,5 +1,5 @@
 import { Suspense, lazy, type ReactNode } from 'react';
-import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
+import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { AdvBlock, AgentCenterPanel } from './chat-agent-center-panel';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 import { AgentDiagnosticsPanel } from './chat-agent-diagnostics';

@@ -1,4 +1,4 @@
-import { hasTauriInvoke } from './env';
+import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 import { invokeTauri } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { JsonObject } from './shared.js';

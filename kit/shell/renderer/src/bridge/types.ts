@@ -36,6 +36,18 @@ export type RuntimeBridgeDaemonStatus = {
   debugLogPath?: string;
 };
 
+export type RuntimeBridgeConfigGetResult = {
+  path: string;
+  config: JsonObject;
+};
+
+export type RuntimeBridgeConfigSetResult = {
+  path: string;
+  reasonCode?: string;
+  actionHint?: string;
+  config: JsonObject;
+};
+
 export type ConfirmDialogPayload = {
   title: string;
   description: string;
@@ -129,11 +141,31 @@ export function parseRuntimeBridgeDaemonStatus(value: unknown): RuntimeBridgeDae
     running: Boolean(record.running),
     managed: Boolean(record.managed),
     launchMode,
-    grpcAddr: str(record.grpcAddr),
+    grpcAddr: parseRequiredString(record.grpcAddr, 'grpcAddr', 'runtime_bridge_status'),
     pid: parseOptionalNumber(record.pid),
     version: parseOptionalString(record.version),
     lastError: parseOptionalString(record.lastError),
     debugLogPath: parseOptionalString(record.debugLogPath),
+  };
+}
+
+export function parseRuntimeBridgeConfigGetResult(value: unknown): RuntimeBridgeConfigGetResult {
+  const record = assertBridgeRecord(value, 'runtime_bridge_config_get returned invalid payload');
+  const config = assertBridgeRecord(record.config, 'runtime_bridge_config_get config payload is invalid');
+  return {
+    path: parseRequiredString(record.path, 'path', 'runtime_bridge_config_get'),
+    config,
+  };
+}
+
+export function parseRuntimeBridgeConfigSetResult(value: unknown): RuntimeBridgeConfigSetResult {
+  const record = assertBridgeRecord(value, 'runtime_bridge_config_set returned invalid payload');
+  const config = assertBridgeRecord(record.config, 'runtime_bridge_config_set config payload is invalid');
+  return {
+    path: parseRequiredString(record.path, 'path', 'runtime_bridge_config_set'),
+    reasonCode: parseOptionalString(record.reasonCode),
+    actionHint: parseOptionalString(record.actionHint),
+    config,
   };
 }
 

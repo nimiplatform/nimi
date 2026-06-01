@@ -54,12 +54,13 @@ test('renderer bootstrap installs the Kit runtime-transport bridge before render
   assert.doesNotMatch(mainSource, /__NIMI_TAURI_RUNTIME__/);
 });
 
-test('runtime readiness consumes Kit runtime defaults bridge', () => {
+test('runtime readiness consumes Kit runtime defaults and daemon bridge', () => {
   assert.match(
     testerRuntimeSource,
-    /import \{[^}]*getRuntimeDefaults[^}]*\} from '@nimiplatform\/kit\/shell\/renderer\/bridge'/,
+    /import \{[^}]*getDaemonStatus[^}]*getRuntimeDefaults[^}]*\} from '@nimiplatform\/kit\/shell\/renderer\/bridge'/,
   );
   assert.match(testerRuntimeSource, /await getRuntimeDefaults\(\)/);
+  assert.match(testerRuntimeSource, /await getDaemonStatus\(\)/);
   assert.doesNotMatch(
     testerRuntimeSource,
     /function\s+(readEnv|resolveRealmBaseUrlFallback|readRuntimeDefaultsFallback|applyEnvOverrides)\b/,

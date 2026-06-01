@@ -1,5 +1,5 @@
-import { hasTauriInvoke } from './runtime-bridge/env';
 import { logRendererEvent, toRendererLogMessage } from '@nimiplatform/kit/telemetry';
+import { getRuntimeDefaults, hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   desktopUpdateCheck,
   desktopUpdateDownload,
@@ -19,7 +19,6 @@ import {
 } from './runtime-bridge/runtime-daemon';
 import { getSystemResourceSnapshot } from './runtime-bridge/system-resources';
 import { proxyHttp } from './runtime-bridge/http';
-import { getRuntimeDefaults } from './runtime-bridge/runtime-defaults';
 import {
   admitProductReadyForUse,
   defaultProductDataRootDirectory,

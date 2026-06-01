@@ -1,13 +1,17 @@
 import { RUNTIME_BRIDGE_CONFIG_DEFAULTS } from '@nimiplatform/sdk/runtime';
-import { hasTauriInvoke } from './env';
-import { invokeChecked } from './invoke';
 import {
-  parseRuntimeBridgeConfigGetResult,
-  parseRuntimeBridgeConfigSetResult,
-  parseRuntimeBridgeDaemonStatus,
-  type RuntimeBridgeConfigGetResult,
-  type RuntimeBridgeConfigSetResult,
-  type RuntimeBridgeDaemonStatus,
+  getDaemonConfig,
+  getDaemonStatus,
+  hasTauriInvoke,
+  restartDaemon,
+  setDaemonConfig,
+  startDaemon,
+  stopDaemon,
+} from '@nimiplatform/kit/shell/renderer/bridge';
+import type {
+  RuntimeBridgeConfigGetResult,
+  RuntimeBridgeConfigSetResult,
+  RuntimeBridgeDaemonStatus,
 } from './types';
 
 function tauriUnavailableStatus(): RuntimeBridgeDaemonStatus {
@@ -24,44 +28,40 @@ export async function getRuntimeBridgeStatus(): Promise<RuntimeBridgeDaemonStatu
   if (!hasTauriInvoke()) {
     return tauriUnavailableStatus();
   }
-  return invokeChecked('runtime_bridge_status', {}, parseRuntimeBridgeDaemonStatus);
+  return getDaemonStatus();
 }
 
 export async function startRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus> {
   if (!hasTauriInvoke()) {
     throw new Error('runtime_bridge_start requires Tauri runtime');
   }
-  return invokeChecked('runtime_bridge_start', {}, parseRuntimeBridgeDaemonStatus);
+  return startDaemon();
 }
 
 export async function stopRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus> {
   if (!hasTauriInvoke()) {
     throw new Error('runtime_bridge_stop requires Tauri runtime');
   }
-  return invokeChecked('runtime_bridge_stop', {}, parseRuntimeBridgeDaemonStatus);
+  return stopDaemon();
 }
 
 export async function restartRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus> {
   if (!hasTauriInvoke()) {
     throw new Error('runtime_bridge_restart requires Tauri runtime');
   }
-  return invokeChecked('runtime_bridge_restart', {}, parseRuntimeBridgeDaemonStatus);
+  return restartDaemon();
 }
 
 export async function getRuntimeBridgeConfig(): Promise<RuntimeBridgeConfigGetResult> {
   if (!hasTauriInvoke()) {
     throw new Error('runtime_bridge_config_get requires Tauri runtime');
   }
-  return invokeChecked('runtime_bridge_config_get', {}, parseRuntimeBridgeConfigGetResult);
+  return getDaemonConfig();
 }
 
 export async function setRuntimeBridgeConfig(configJson: string): Promise<RuntimeBridgeConfigSetResult> {
   if (!hasTauriInvoke()) {
     throw new Error('runtime_bridge_config_set requires Tauri runtime');
   }
-  return invokeChecked(
-    'runtime_bridge_config_set',
-    { payload: { configJson } },
-    parseRuntimeBridgeConfigSetResult,
-  );
+  return setDaemonConfig(configJson);
 }

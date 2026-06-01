@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
+import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   buildDesktopAvatarEphemeralInstanceId,
   buildDesktopAvatarInstanceId,

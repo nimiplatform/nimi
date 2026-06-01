@@ -13,7 +13,7 @@
  * fabricates an artifact path or a pseudo-success result.
  */
 
-import { hasTauriInvoke } from './env';
+import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 
 /** Typed result of a successful log export (`D-SUP-006`). */
