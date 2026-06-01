@@ -17,7 +17,10 @@ pub use daemon_manager::RuntimeBridgeDaemonStatus;
 pub use error_map::bridge_error;
 pub use metadata::RuntimeBridgeMetadata;
 pub use stream::RuntimeBridgeStreamOpenResult;
-pub use unary::RuntimeBridgeUnaryResult;
+pub use unary::{
+    build_unary_payload, build_unary_payload_with_metadata, decode_unary_result,
+    invoke_unary_typed, invoke_unary_typed_with_metadata, RuntimeBridgeUnaryResult,
+};
 
 #[allow(clippy::all, dead_code)]
 pub mod generated {
@@ -30,6 +33,10 @@ pub mod generated_method_ids {
 
 pub const RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus";
+pub const RUNTIME_ACCOUNT_GET_ACCESS_TOKEN_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken";
+pub const RUNTIME_AUTH_REGISTER_APP_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeAuthService/RegisterApp";
 pub const RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile";
 pub const RUNTIME_LOCAL_RESOLVE_LOCAL_ENVIRONMENT_PLAN_METHOD_ID: &str =

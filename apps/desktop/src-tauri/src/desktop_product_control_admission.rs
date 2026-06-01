@@ -20,8 +20,6 @@ use crate::desktop_product_control::{
     ProductControlRecord, ProductControlRecordProjection, ProductControlState,
     ProductDataRootStatus,
 };
-use base64::Engine;
-use prost::Message;
 use std::path::Path;
 
 const RUNTIME_BASELINE_RESOLVE_METHOD_ID: &str =
@@ -586,12 +584,16 @@ impl AdmissionRuntimeResolvers for BridgeAdmissionRuntimeResolvers {
             host_profile: None,
         };
         let response: crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessResponse =
-            bridge_unary(RUNTIME_BASELINE_RESOLVE_METHOD_ID, request)
-                .await
-                .map_err(|detail| RuntimeOwnerFailure {
-                    projection_state: String::new(),
-                    detail,
-                })?;
+            crate::runtime_bridge::invoke_unary_typed(
+                RUNTIME_BASELINE_RESOLVE_METHOD_ID,
+                request,
+                Some(30_000),
+            )
+            .await
+            .map_err(|detail| RuntimeOwnerFailure {
+                projection_state: String::new(),
+                detail,
+            })?;
         if response.state.trim() != RUNTIME_BASELINE_STATE_READY {
             return Err(RuntimeOwnerFailure {
                 projection_state: response.state.trim().to_string(),
@@ -638,12 +640,16 @@ impl AdmissionRuntimeResolvers for BridgeAdmissionRuntimeResolvers {
             host_profile: None,
         };
         let response: crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceResponse =
-            bridge_unary(FIRST_RUN_EXECUTION_RESOLVE_METHOD_ID, request)
-                .await
-                .map_err(|detail| RuntimeOwnerFailure {
-                    projection_state: String::new(),
-                    detail,
-                })?;
+            crate::runtime_bridge::invoke_unary_typed(
+                FIRST_RUN_EXECUTION_RESOLVE_METHOD_ID,
+                request,
+                Some(30_000),
+            )
+            .await
+            .map_err(|detail| RuntimeOwnerFailure {
+                projection_state: String::new(),
+                detail,
+            })?;
         if response.state.trim() != FIRST_RUN_EXECUTION_STATE_READY {
             return Err(RuntimeOwnerFailure {
                 projection_state: response.state.trim().to_string(),
@@ -670,35 +676,6 @@ impl AdmissionRuntimeResolvers for BridgeAdmissionRuntimeResolvers {
             data_root_ref: evidence.data_root_ref,
         })
     }
-}
-
-/// Issue an allowlisted unary runtime-bridge call and decode the typed
-/// response. Transport / decode errors fail closed — they never rescue a
-/// contract failure.
-async fn bridge_unary<Request, Response>(
-    method_id: &str,
-    request: Request,
-) -> Result<Response, String>
-where
-    Request: Message,
-    Response: Message + Default,
-{
-    let payload = crate::runtime_bridge::RuntimeBridgeUnaryPayload {
-        method_id: method_id.to_string(),
-        request_bytes_base64: base64::engine::general_purpose::STANDARD
-            .encode(request.encode_to_vec()),
-        metadata: None,
-        authorization: None,
-        protected_access_token: None,
-        app_session: None,
-        timeout_ms: Some(30_000),
-    };
-    let result = crate::runtime_bridge::runtime_bridge_unary(payload).await?;
-    let bytes = base64::engine::general_purpose::STANDARD
-        .decode(result.response_bytes_base64.trim())
-        .map_err(|_| format!("{method_id} response could not be decoded"))?;
-    Response::decode(bytes.as_slice())
-        .map_err(|error| format!("{method_id} response was invalid: {error}"))
 }
 
 /// Tauri command `product_control_record_admit_ready_for_use`.

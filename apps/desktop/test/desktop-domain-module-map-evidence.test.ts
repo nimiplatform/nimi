@@ -38,6 +38,11 @@ function listRepoFiles(relativePath: string): string[] {
 }
 
 const bridgeIpcSpec = readRepo('.nimi/spec/desktop/kernel/bridge-ipc-contract.md');
+const gitIgnoreSource = readRepo('.gitignore');
+const productControlOperationsSource = readRepo('apps/desktop/src-tauri/src/desktop_product_control/operations.rs');
+const productControlAdmissionSource = readRepo('apps/desktop/src-tauri/src/desktop_product_control_admission.rs');
+const avatarInstanceRegistryStoreSource = readRepo('apps/desktop/src-tauri/src/desktop_avatar_instance_registry/store.rs');
+const desktopE2eFixtureSource = readRepo('apps/desktop/src-tauri/src/desktop_e2e_fixture.rs');
 const realmAgentDetailDataSource = readRepo('apps/desktop/src/shell/renderer/features/agent-detail/data/realm-agent-detail-data.ts');
 const realmAgentCreateDataSource = readRepo('apps/desktop/src/shell/renderer/features/world/data/realm-agent-create-data.ts');
 const runtimePageSource = readRepo('apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-runtime.tsx');
@@ -96,5 +101,18 @@ test('Desktop runtime bridge commands resolve through the shared Tauri shell aut
   assert.match(mainSource, /use nimi_shell_tauri::runtime_bridge;/);
   assert.doesNotMatch(mainSource, /\bmod runtime_bridge\b/);
   assert.deepEqual(listRepoFiles('apps/desktop/src-tauri/src/runtime_bridge'), []);
+  assert.doesNotMatch(gitIgnoreSource, /apps\/desktop\/src-tauri\/src\/runtime_bridge/);
+  for (const source of [
+    productControlOperationsSource,
+    productControlAdmissionSource,
+    avatarInstanceRegistryStoreSource,
+  ]) {
+    assert.doesNotMatch(source, /base64::engine::general_purpose|request_bytes_base64|response_bytes_base64/);
+  }
+  assert.match(productControlOperationsSource, /crate::runtime_bridge::invoke_unary_typed/);
+  assert.match(productControlAdmissionSource, /crate::runtime_bridge::invoke_unary_typed/);
+  assert.match(avatarInstanceRegistryStoreSource, /crate::runtime_bridge::invoke_unary_typed_with_metadata/);
+  assert.doesNotMatch(desktopE2eFixtureSource, /"\/nimi\.runtime\.v1\./);
+  assert.match(desktopE2eFixtureSource, /RUNTIME_AUTH_REGISTER_APP_METHOD_ID/);
   assertRepoFile('kit/shell/tauri/src/runtime_bridge/mod.rs');
 });

@@ -333,11 +333,11 @@ pub fn runtime_bridge_unary_override(
     }
     let projection = account_projection_from_fixture(manifest.realm_fixture.as_ref());
     match payload.method_id.trim() {
-        "/nimi.runtime.v1.RuntimeAuthService/RegisterApp" => {
+        nimi_shell_tauri::runtime_bridge::RUNTIME_AUTH_REGISTER_APP_METHOD_ID => {
             append_backend_log("runtime_auth_fixture method=registerApp accepted=true");
             runtime_register_app_response(payload).map(Some)
         }
-        "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus" => {
+        nimi_shell_tauri::runtime_bridge::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID => {
             append_backend_log(&format!(
                 "runtime_account_fixture method=getAccountSessionStatus authenticated={}",
                 projection.is_some()
@@ -346,7 +346,7 @@ pub fn runtime_bridge_unary_override(
                 runtime_account_status_response(projection),
             )))
         }
-        "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken" => {
+        nimi_shell_tauri::runtime_bridge::RUNTIME_ACCOUNT_GET_ACCESS_TOKEN_METHOD_ID => {
             append_backend_log(&format!(
                 "runtime_account_fixture method=getAccessToken accepted={}",
                 projection.is_some()
@@ -355,11 +355,11 @@ pub fn runtime_bridge_unary_override(
                 projection,
             ))))
         }
-        "/nimi.runtime.v1.RuntimeAppService/GetAppStorage" => {
+        nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_APP_STORAGE_METHOD_ID => {
             append_backend_log("runtime_app_fixture method=getAppStorage accepted=true");
             runtime_app_storage_response(payload, &manifest).map(Some)
         }
-        "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness" => {
+        nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID => {
             append_backend_log("runtime_app_fixture method=getAppPackageReadiness accepted=true");
             runtime_app_package_readiness_response(payload).map(Some)
         }
@@ -523,7 +523,8 @@ mod tests {
             developer_registration: false,
         };
         let payload = RuntimeBridgeUnaryPayload {
-            method_id: "/nimi.runtime.v1.RuntimeAuthService/RegisterApp".to_string(),
+            method_id: nimi_shell_tauri::runtime_bridge::RUNTIME_AUTH_REGISTER_APP_METHOD_ID
+                .to_string(),
             request_bytes_base64: base64::engine::general_purpose::STANDARD
                 .encode(request.encode_to_vec()),
             metadata: None,

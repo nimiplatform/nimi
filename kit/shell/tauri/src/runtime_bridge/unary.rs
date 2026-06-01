@@ -22,6 +22,84 @@ pub struct RuntimeBridgeUnaryResult {
     pub response_metadata: Option<HashMap<String, String>>,
 }
 
+pub fn build_unary_payload<Request>(
+    method_id: &str,
+    request: Request,
+    timeout_ms: Option<u64>,
+) -> RuntimeBridgeUnaryPayload
+where
+    Request: Message,
+{
+    RuntimeBridgeUnaryPayload {
+        method_id: method_id.to_string(),
+        request_bytes_base64: base64::engine::general_purpose::STANDARD
+            .encode(request.encode_to_vec()),
+        metadata: None,
+        authorization: None,
+        protected_access_token: None,
+        app_session: None,
+        timeout_ms,
+    }
+}
+
+pub fn build_unary_payload_with_metadata<Request>(
+    method_id: &str,
+    request: Request,
+    metadata: super::RuntimeBridgeMetadata,
+    timeout_ms: Option<u64>,
+) -> RuntimeBridgeUnaryPayload
+where
+    Request: Message,
+{
+    RuntimeBridgeUnaryPayload {
+        metadata: Some(metadata),
+        ..build_unary_payload(method_id, request, timeout_ms)
+    }
+}
+
+pub fn decode_unary_result<Response>(
+    method_id: &str,
+    result: &RuntimeBridgeUnaryResult,
+) -> Result<Response, String>
+where
+    Response: Message + Default,
+{
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(result.response_bytes_base64.trim())
+        .map_err(|_| format!("{method_id} response could not be decoded"))?;
+    Response::decode(bytes.as_slice())
+        .map_err(|error| format!("{method_id} response was invalid: {error}"))
+}
+
+pub async fn invoke_unary_typed<Request, Response>(
+    method_id: &str,
+    request: Request,
+    timeout_ms: Option<u64>,
+) -> Result<Response, String>
+where
+    Request: Message,
+    Response: Message + Default,
+{
+    let payload = build_unary_payload(method_id, request, timeout_ms);
+    let result = super::runtime_bridge_unary(payload).await?;
+    decode_unary_result(method_id, &result)
+}
+
+pub async fn invoke_unary_typed_with_metadata<Request, Response>(
+    method_id: &str,
+    request: Request,
+    metadata: super::RuntimeBridgeMetadata,
+    timeout_ms: Option<u64>,
+) -> Result<Response, String>
+where
+    Request: Message,
+    Response: Message + Default,
+{
+    let payload = build_unary_payload_with_metadata(method_id, request, metadata, timeout_ms);
+    let result = super::runtime_bridge_unary(payload).await?;
+    decode_unary_result(method_id, &result)
+}
+
 fn extract_response_metadata(
     response: &tonic::Response<Vec<u8>>,
 ) -> Option<HashMap<String, String>> {
@@ -62,10 +140,7 @@ fn decode_request_bytes(payload: &RuntimeBridgeUnaryPayload) -> Result<Vec<u8>, 
 }
 
 fn runtime_bridge_debug_enabled() -> bool {
-    std::env::var("NIMI_RUNTIME_BRIDGE_DEBUG")
-        .ok()
-        .as_deref()
-        == Some("1")
+    std::env::var("NIMI_RUNTIME_BRIDGE_DEBUG").ok().as_deref() == Some("1")
 }
 
 fn response_metadata_keys(response: &tonic::Response<Vec<u8>>) -> Vec<String> {
@@ -196,8 +271,14 @@ pub async fn invoke_unary(
 
 #[cfg(test)]
 mod tests {
-    use super::{decode_request_bytes, invoke_unary, validate_unary_method};
-    use crate::runtime_bridge::RuntimeBridgeUnaryPayload;
+    use base64::Engine;
+    use prost::Message;
+
+    use super::{
+        build_unary_payload, build_unary_payload_with_metadata, decode_request_bytes,
+        decode_unary_result, invoke_unary, validate_unary_method, RuntimeBridgeUnaryResult,
+    };
+    use crate::runtime_bridge::{generated, RuntimeBridgeMetadata, RuntimeBridgeUnaryPayload};
 
     fn payload(method_id: &str, request_bytes_base64: &str) -> RuntimeBridgeUnaryPayload {
         RuntimeBridgeUnaryPayload {
@@ -255,6 +336,68 @@ mod tests {
                 .map(String::as_str),
             Some("route-payload")
         );
+    }
+
+    #[test]
+    fn unary_typed_helpers_round_trip_generated_messages() {
+        let request = generated::GetAccountSessionStatusRequest { caller: None };
+        let payload = build_unary_payload(
+            "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
+            request,
+            Some(42),
+        );
+        assert_eq!(
+            payload.method_id,
+            "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus"
+        );
+        assert_eq!(payload.timeout_ms, Some(42));
+        assert_eq!(
+            payload.request_bytes_base64.trim(),
+            "",
+            "protobuf default requests encode to an empty payload"
+        );
+
+        let response = generated::GetAccountSessionStatusResponse {
+            state: generated::AccountSessionState::Authenticated as i32,
+            reason_code: generated::ReasonCode::ActionExecuted as i32,
+            ..Default::default()
+        };
+        let result = RuntimeBridgeUnaryResult {
+            response_bytes_base64: base64::engine::general_purpose::STANDARD
+                .encode(response.encode_to_vec()),
+            response_metadata: None,
+        };
+        let decoded: generated::GetAccountSessionStatusResponse = decode_unary_result(
+            "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
+            &result,
+        )
+        .expect("decode response");
+        assert_eq!(
+            decoded.state,
+            generated::AccountSessionState::Authenticated as i32
+        );
+    }
+
+    #[test]
+    fn unary_payload_helper_preserves_explicit_metadata() {
+        let payload = build_unary_payload_with_metadata(
+            "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
+            generated::GetAppStorageRequest {
+                app_id: "nimi.avatar".to_string(),
+            },
+            RuntimeBridgeMetadata {
+                app_id: Some("nimi.desktop".to_string()),
+                caller_kind: Some("desktop-core".to_string()),
+                caller_id: Some("desktop.avatar-handoff".to_string()),
+                surface_id: Some("desktop.avatar".to_string()),
+                ..Default::default()
+            },
+            Some(5_000),
+        );
+        let metadata = payload.metadata.expect("metadata");
+        assert_eq!(metadata.app_id.as_deref(), Some("nimi.desktop"));
+        assert_eq!(metadata.caller_id.as_deref(), Some("desktop.avatar-handoff"));
+        assert_eq!(payload.timeout_ms, Some(5_000));
     }
 
     #[tokio::test]

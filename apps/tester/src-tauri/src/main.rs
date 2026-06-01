@@ -257,6 +257,43 @@ mod tests {
     }
 
     #[test]
+    fn tester_consumes_shared_runtime_bridge_unary_codec_helpers() {
+        let request = nimi_shell_tauri::runtime_bridge::generated::GetAccountSessionStatusRequest {
+            caller: None,
+        };
+        let payload = nimi_shell_tauri::runtime_bridge::build_unary_payload(
+            nimi_shell_tauri::runtime_bridge::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID,
+            request,
+            Some(7_000),
+        );
+        assert_eq!(
+            payload.method_id,
+            nimi_shell_tauri::runtime_bridge::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID
+        );
+        assert_eq!(payload.timeout_ms, Some(7_000));
+        assert_eq!(
+            payload.request_bytes_base64.trim(),
+            "",
+            "protobuf default requests encode to an empty payload"
+        );
+
+        let result = nimi_shell_tauri::runtime_bridge::RuntimeBridgeUnaryResult {
+            response_bytes_base64: String::new(),
+            response_metadata: None,
+        };
+        let decoded_response: nimi_shell_tauri::runtime_bridge::generated::GetAccountSessionStatusResponse =
+            nimi_shell_tauri::runtime_bridge::decode_unary_result(
+                nimi_shell_tauri::runtime_bridge::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID,
+                &result,
+            )
+            .expect("decode response");
+        assert_eq!(
+            decoded_response.state,
+            nimi_shell_tauri::runtime_bridge::generated::AccountSessionState::Unspecified as i32
+        );
+    }
+
+    #[test]
     fn tester_consumes_shared_nimi_data_directory_primitives() {
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)

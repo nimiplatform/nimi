@@ -2,8 +2,6 @@
 //! level / setup state, the account-default-profile and built-in-AIConfig
 //! ensure paths, and the authenticated Runtime account resolution they share.
 
-use base64::Engine;
-use prost::Message;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -48,33 +46,6 @@ pub fn ensure_product_control_record_created() -> Result<ProductControlRecordPro
         }
         Err(_) => read_product_control_projection(),
     }
-}
-
-async fn runtime_bridge_unary_decode<Req, Resp>(
-    method_id: &str,
-    request: Req,
-    timeout_ms: Option<u64>,
-) -> Result<Resp, String>
-where
-    Req: Message,
-    Resp: Message + Default,
-{
-    let payload = crate::runtime_bridge::RuntimeBridgeUnaryPayload {
-        method_id: method_id.to_string(),
-        request_bytes_base64: base64::engine::general_purpose::STANDARD
-            .encode(request.encode_to_vec()),
-        metadata: None,
-        authorization: None,
-        protected_access_token: None,
-        app_session: None,
-        timeout_ms,
-    };
-    let result = crate::runtime_bridge::runtime_bridge_unary(payload).await?;
-    let bytes = base64::engine::general_purpose::STANDARD
-        .decode(result.response_bytes_base64.trim())
-        .map_err(|_| format!("{method_id} response could not be decoded"))?;
-    Resp::decode(bytes.as_slice())
-        .map_err(|error| format!("{method_id} response was invalid: {error}"))
 }
 
 pub fn select_product_data_root(path: &str) -> Result<ProductControlRecordProjection, String> {
@@ -202,7 +173,7 @@ pub fn set_first_run_install_level(
 async fn collect_first_run_device_profile(
 ) -> Result<crate::runtime_bridge::generated::LocalDeviceProfile, String> {
     let profile_response: crate::runtime_bridge::generated::CollectDeviceProfileResponse =
-        runtime_bridge_unary_decode(
+        crate::runtime_bridge::invoke_unary_typed(
             nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID,
             crate::runtime_bridge::generated::CollectDeviceProfileRequest {
                 extra_ports: Vec::new(),
@@ -262,25 +233,13 @@ pub(crate) async fn authenticated_runtime_account_id() -> Result<String, String>
     let request = crate::runtime_bridge::generated::GetAccountSessionStatusRequest {
         caller: Some(product_control_runtime_account_caller()),
     };
-    let payload = crate::runtime_bridge::RuntimeBridgeUnaryPayload {
-        method_id:
-            nimi_shell_tauri::runtime_bridge::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID
-                .to_string(),
-        request_bytes_base64: base64::engine::general_purpose::STANDARD
-            .encode(request.encode_to_vec()),
-        metadata: None,
-        authorization: None,
-        protected_access_token: None,
-        app_session: None,
-        timeout_ms: Some(10_000),
-    };
-    let result = crate::runtime_bridge::runtime_bridge_unary(payload).await?;
-    let bytes = base64::engine::general_purpose::STANDARD
-        .decode(result.response_bytes_base64.trim())
-        .map_err(|_| "RuntimeAccountService response could not be decoded".to_string())?;
-    let response =
-        crate::runtime_bridge::generated::GetAccountSessionStatusResponse::decode(bytes.as_slice())
-            .map_err(|error| format!("RuntimeAccountService response was invalid: {error}"))?;
+    let response: crate::runtime_bridge::generated::GetAccountSessionStatusResponse =
+        crate::runtime_bridge::invoke_unary_typed(
+            nimi_shell_tauri::runtime_bridge::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID,
+            request,
+            Some(10_000),
+        )
+        .await?;
     if response.state != crate::runtime_bridge::generated::AccountSessionState::Authenticated as i32
     {
         return Err("authenticated Runtime account session is required".to_string());
@@ -390,7 +349,7 @@ pub async fn read_built_in_ai_config_for_scope_init(
         .to_string();
     let account_id = authenticated_runtime_account_id().await?;
     let baseline_response: crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessResponse =
-        runtime_bridge_unary_decode(
+        crate::runtime_bridge::invoke_unary_typed(
             nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_RUNTIME_BASELINE_READINESS_METHOD_ID,
             crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessRequest {
                 runtime_baseline_ref,
@@ -506,7 +465,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
         )?;
 
     let profile_response: crate::runtime_bridge::generated::CollectDeviceProfileResponse =
-        runtime_bridge_unary_decode(
+        crate::runtime_bridge::invoke_unary_typed(
             nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID,
             crate::runtime_bridge::generated::CollectDeviceProfileRequest {
                 extra_ports: Vec::new(),
@@ -529,7 +488,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
         .map(str::to_string);
     let baseline_ref = if let Some(existing_ref) = existing_runtime_baseline_ref {
         let response: crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessResponse =
-            runtime_bridge_unary_decode(
+            crate::runtime_bridge::invoke_unary_typed(
                 nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_RUNTIME_BASELINE_READINESS_METHOD_ID,
                 crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessRequest {
                     runtime_baseline_ref: existing_ref,
@@ -551,7 +510,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
         })?
     } else {
         let response: crate::runtime_bridge::generated::MintRuntimeBaselineReadinessResponse =
-            runtime_bridge_unary_decode(
+            crate::runtime_bridge::invoke_unary_typed(
                 nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_MINT_RUNTIME_BASELINE_READINESS_METHOD_ID,
                 crate::runtime_bridge::generated::MintRuntimeBaselineReadinessRequest {
                     selected_local_factory_ai_profile_ref: selected_factory_ref.clone(),
@@ -607,7 +566,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
         .map(str::to_string);
     let execution_evidence_ref = if let Some(existing_ref) = existing_execution_evidence_ref {
         let response: crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceResponse =
-            runtime_bridge_unary_decode(
+            crate::runtime_bridge::invoke_unary_typed(
                 nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
                 crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceRequest {
                     execution_evidence_ref: existing_ref,
@@ -638,7 +597,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
             })?
     } else {
         let response: crate::runtime_bridge::generated::MintFirstRunExecutionEvidenceResponse =
-            runtime_bridge_unary_decode(
+            crate::runtime_bridge::invoke_unary_typed(
                 nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_MINT_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
                 crate::runtime_bridge::generated::MintFirstRunExecutionEvidenceRequest {
                     runtime_baseline_ref: runtime_baseline_ref.clone(),
@@ -1038,7 +997,7 @@ pub async fn reconcile_first_run_setup_state_from_runtime(
     let mut found_families: HashMap<String, bool> = HashMap::new();
     for pack_id in factory_row.local_compute_pack_refs {
         let response: crate::runtime_bridge::generated::ResolveLocalEnvironmentPlanResponse =
-            runtime_bridge_unary_decode(
+            crate::runtime_bridge::invoke_unary_typed(
                 nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_LOCAL_ENVIRONMENT_PLAN_METHOD_ID,
                 crate::runtime_bridge::generated::ResolveLocalEnvironmentPlanRequest {
                     pack_id: (*pack_id).to_string(),
@@ -1066,7 +1025,7 @@ pub async fn reconcile_first_run_setup_state_from_runtime(
             }
             found_families.insert(dependency.dependency_family.clone(), true);
             let jobs_response: crate::runtime_bridge::generated::ListLocalEnvironmentDependencyJobsResponse =
-                runtime_bridge_unary_decode(
+                crate::runtime_bridge::invoke_unary_typed(
                     nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_LIST_LOCAL_ENVIRONMENT_DEPENDENCY_JOBS_METHOD_ID,
                     crate::runtime_bridge::generated::ListLocalEnvironmentDependencyJobsRequest {
                         environment_key: dependency.environment_key.clone(),

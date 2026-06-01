@@ -85,6 +85,5 @@ venv/
 env/
 ENV/
 
-apps/desktop/src-tauri/src/runtime_bridge/generated/nimi.runtime.v1.rs
 .claude/scheduled_tasks.lock
 .playwright-cli/

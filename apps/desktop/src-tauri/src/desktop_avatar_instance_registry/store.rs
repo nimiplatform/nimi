@@ -1,6 +1,4 @@
 use super::types::{DesktopAvatarInstanceRegistryFile, DesktopAvatarInstanceRegistryRecord};
-use base64::Engine;
-use prost::Message;
 use std::fs;
 use std::path::{Path, PathBuf};
 use sysinfo::{Pid, ProcessesToUpdate, System};
@@ -73,30 +71,20 @@ pub(crate) fn avatar_app_storage_roots() -> Result<AvatarAppStorageRoots, String
         let request = crate::runtime_bridge::generated::GetAppStorageRequest {
             app_id: AVATAR_APP_ID.to_string(),
         };
-        let payload = crate::runtime_bridge::RuntimeBridgeUnaryPayload {
-            method_id: nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_APP_STORAGE_METHOD_ID
-                .to_string(),
-            request_bytes_base64: base64::engine::general_purpose::STANDARD
-                .encode(request.encode_to_vec()),
-            metadata: Some(crate::runtime_bridge::RuntimeBridgeMetadata {
-                app_id: Some("nimi.desktop".to_string()),
-                caller_kind: Some("desktop-core".to_string()),
-                caller_id: Some("desktop.avatar-handoff".to_string()),
-                surface_id: Some("desktop.avatar".to_string()),
-                ..Default::default()
-            }),
-            authorization: None,
-            protected_access_token: None,
-            app_session: None,
-            timeout_ms: Some(5_000),
-        };
-        let result = crate::runtime_bridge::runtime_bridge_unary(payload).await?;
-        let bytes = base64::engine::general_purpose::STANDARD
-            .decode(result.response_bytes_base64.trim())
-            .map_err(|_| "GetAppStorage response could not be decoded".to_string())?;
-        let response =
-            crate::runtime_bridge::generated::GetAppStorageResponse::decode(bytes.as_slice())
-                .map_err(|error| format!("GetAppStorage response was invalid: {error}"))?;
+        let response: crate::runtime_bridge::generated::GetAppStorageResponse =
+            crate::runtime_bridge::invoke_unary_typed_with_metadata(
+                nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
+                request,
+                crate::runtime_bridge::RuntimeBridgeMetadata {
+                    app_id: Some("nimi.desktop".to_string()),
+                    caller_kind: Some("desktop-core".to_string()),
+                    caller_id: Some("desktop.avatar-handoff".to_string()),
+                    surface_id: Some("desktop.avatar".to_string()),
+                    ..Default::default()
+                },
+                Some(5_000),
+            )
+            .await?;
         let projection = response
             .projection
             .ok_or_else(|| "GetAppStorage response missing projection".to_string())?;
