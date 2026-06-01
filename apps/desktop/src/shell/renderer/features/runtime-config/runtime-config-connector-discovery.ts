@@ -75,7 +75,7 @@ export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV
     providerHints: n.providerHints,
     reasonCode: n.reasonCode,
 }));
-  return { endpoint, discovered, models: normalizedModels, nodeMatrix, rawModels: models };
+  return { endpoint, discovered, models: normalizedModels, nodeMatrix };
 }
 
 export async function checkLocalHealth(): Promise<{

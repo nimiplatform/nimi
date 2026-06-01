@@ -60,7 +60,9 @@ Runtime 和 Realm 均不可达时的行为规则：
 
 - 聊天历史：最近 50 条消息/会话，最近 20 个会话。
 - Agent/World 元数据：用户已访问的 agent/world profile 缓存。
-- 模型列表：已安装模型的 manifest 缓存。
+- Runtime local model / asset inventory must be read from Runtime/SDK local asset
+  projections when Runtime is reachable. Desktop must not persist a browser or
+  IndexedDB model-manifest fallback as local readiness/capability truth.
 - 缓存使用 IndexedDB 存储。
 - 缓存无 TTL 自动过期；在线时通过 Realm 增量同步更新。
 

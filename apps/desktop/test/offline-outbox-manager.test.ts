@@ -123,7 +123,7 @@ describe('D-OFFLINE-005: memory cache behavior', () => {
     assert.equal(cached[cached.length - 1]?.id, 'msg-49');
   });
 
-  test('agent, world, and model metadata survive memory fallback round-trips', async () => {
+  test('agent and world metadata survive memory fallback round-trips', async () => {
     const manager = new OfflineCacheManager();
     await manager.open();
 
@@ -139,10 +139,6 @@ describe('D-OFFLINE-005: memory cache behavior', () => {
       id: 'world:main',
       slug: 'main',
     });
-    await manager.syncModelManifests([
-      { id: 'model-1', capability: 'text' },
-      { id: 'model-2', capability: 'speech' },
-    ]);
 
     assert.deepEqual(await manager.getCachedAgentMetadata('agent:alice'), {
       id: 'agent:alice',
@@ -156,9 +152,5 @@ describe('D-OFFLINE-005: memory cache behavior', () => {
       id: 'world:main',
       slug: 'main',
     });
-    assert.deepEqual(await manager.getCachedModelManifests(), [
-      { id: 'model-1', capability: 'text' },
-      { id: 'model-2', capability: 'speech' },
-    ]);
   });
 });

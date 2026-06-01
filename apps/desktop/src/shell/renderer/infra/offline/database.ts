@@ -7,7 +7,6 @@ export const OFFLINE_STORE_CHAT_OUTBOX = 'chat-outbox';
 export const OFFLINE_STORE_SOCIAL_OUTBOX = 'social-outbox';
 export const OFFLINE_STORE_AGENT_METADATA = 'agent-metadata';
 export const OFFLINE_STORE_WORLD_METADATA = 'world-metadata';
-export const OFFLINE_STORE_MODEL_MANIFESTS = 'model-manifests';
 
 export function hasIndexedDb(): boolean {
   return typeof indexedDB !== 'undefined';
@@ -39,9 +38,6 @@ export function openOfflineDatabase(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(OFFLINE_STORE_WORLD_METADATA)) {
         db.createObjectStore(OFFLINE_STORE_WORLD_METADATA, { keyPath: 'cacheKey' });
-      }
-      if (!db.objectStoreNames.contains(OFFLINE_STORE_MODEL_MANIFESTS)) {
-        db.createObjectStore(OFFLINE_STORE_MODEL_MANIFESTS, { keyPath: 'cacheKey' });
       }
     };
     request.onsuccess = () => resolve(request.result);

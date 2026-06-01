@@ -8,13 +8,11 @@ import {
   OFFLINE_STORE_AGENT_METADATA,
   OFFLINE_STORE_CHAT_LIST,
   OFFLINE_STORE_CHAT_MESSAGES,
-  OFFLINE_STORE_MODEL_MANIFESTS,
   OFFLINE_STORE_WORLD_METADATA,
   openOfflineDatabase,
 } from './database.js';
 
 const WORLD_LIST_CACHE_KEY = '__world-list__';
-const MODEL_MANIFEST_CACHE_KEY = '__model-manifests__';
 
 type MetadataRow = {
   cacheKey: string;
@@ -26,7 +24,6 @@ type OfflineMemoryStore = {
   chatMessages: Map<string, Map<string, JsonObject>>;
   agentMetadata: Map<string, MetadataRow>;
   worldMetadata: Map<string, MetadataRow>;
-  modelManifests: Map<string, MetadataRow>;
 };
 
 function createMemoryStore(): OfflineMemoryStore {
@@ -35,7 +32,6 @@ function createMemoryStore(): OfflineMemoryStore {
     chatMessages: new Map(),
     agentMetadata: new Map(),
     worldMetadata: new Map(),
-    modelManifests: new Map(),
   };
 }
 
@@ -265,26 +261,6 @@ export class OfflineCacheManager {
     return row && !Array.isArray(row.payload) ? row.payload as T : null;
   }
 
-  async syncModelManifests<T extends JsonObject>(payload: T[]): Promise<void> {
-    const row = toMetadataRow(MODEL_MANIFEST_CACHE_KEY, payload);
-    if (this.memory) {
-      this.ensureMemory().modelManifests.set(MODEL_MANIFEST_CACHE_KEY, row);
-      return;
-    }
-    const db = this.ensureDb();
-    const tx = db.transaction(OFFLINE_STORE_MODEL_MANIFESTS, 'readwrite');
-    tx.objectStore(OFFLINE_STORE_MODEL_MANIFESTS).put(row);
-    await this.complete(tx);
-  }
-
-  async getCachedModelManifests<T extends JsonObject>(): Promise<T[]> {
-    if (this.memory) {
-      const row = this.ensureMemory().modelManifests.get(MODEL_MANIFEST_CACHE_KEY);
-      return row && Array.isArray(row.payload) ? row.payload as T[] : [];
-    }
-    const row = await this.getByKey<MetadataRow>(OFFLINE_STORE_MODEL_MANIFESTS, MODEL_MANIFEST_CACHE_KEY);
-    return row && Array.isArray(row.payload) ? row.payload as T[] : [];
-  }
 }
 
 let offlineCacheManager: OfflineCacheManager | null = null;

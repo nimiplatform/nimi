@@ -42,7 +42,16 @@ test('Offline app surface keeps cache, outbox, and coordinator exports separated
   assert.match(offlineIndex, /OfflineCacheManager/);
   assert.match(offlineIndex, /OfflineOutboxManager/);
   assert.doesNotMatch(cacheManager, /upsertChatOutboxEntry|getChatOutboxEntries|queueSocialMutation|markSocialMutation/);
+  assert.doesNotMatch(cacheManager, /syncModelManifests|getCachedModelManifests|modelManifests/);
   assert.match(outboxManager, /upsertChatOutboxEntry/);
   assert.match(outboxManager, /queueSocialMutation/);
   assert.doesNotMatch(offlineIndex, /from '.\/errors\.js'/);
+});
+
+test('Offline cache database does not create a Runtime model manifest fallback store', () => {
+  const offlineDatabase = read('apps/desktop/src/shell/renderer/infra/offline/database.ts');
+  const discoverCommand = read('apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-connector-discover-command.ts');
+
+  assert.doesNotMatch(offlineDatabase, /model-manifests|OFFLINE_STORE_MODEL_MANIFESTS/);
+  assert.doesNotMatch(discoverCommand, /syncModelManifests|getOfflineCacheManager|runtime_model_sync_failed_during_discovery/);
 });
