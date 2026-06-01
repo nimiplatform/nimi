@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import './tester-workbench.css';
 import { createRendererFlowId, emitRuntimeLog, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createNimiClientId } from '@nimiplatform/sdk/runtime';
+import { requestWithRetry } from '@nimiplatform/sdk/types';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
 import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
 import { appendTesterRunHistory, loadTesterRunHistory, type TesterRunHistory } from './tester-history.js';
@@ -58,7 +59,10 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
 
   const refreshHistory = useCallback(async () => {
     try {
-      const next = await loadTesterRunHistory();
+      const next = await requestWithRetry({
+        executor: loadTesterRunHistory,
+        options: { maxAttempts: 2, initialDelayMs: 25, maxDelayMs: 50 },
+      });
       setHistory(next);
       setHistoryError(null);
     } catch (error) {

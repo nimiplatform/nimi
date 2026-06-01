@@ -227,8 +227,11 @@ test('tester capability runs consume Kit renderer telemetry', () => {
   const workbench = read('src/tester/tester-workbench.tsx');
 
   assert.match(workbench, /from '@nimiplatform\/kit\/telemetry'/);
+  assert.match(workbench, /from '@nimiplatform\/sdk\/types'/);
   assert.match(workbench, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(workbench, /createNimiClientId\('run'\)/);
+  assert.match(workbench, /requestWithRetry/);
+  assert.match(workbench, /executor:\s*loadTesterRunHistory/);
   assert.match(workbench, /createRendererFlowId\('tester-capability-run'\)/);
   assert.match(workbench, /logRendererEvent\(/);
   assert.match(workbench, /emitRuntimeLog/);

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getRetryDelayMs, requestWithRetry } from '../src/runtime/net/request-with-retry';
+import { getRetryDelayMs, requestWithRetry } from '@nimiplatform/sdk/types';
 
 function withMockedRandom<T>(value: number, run: () => T): T {
   const originalRandom = Math.random;

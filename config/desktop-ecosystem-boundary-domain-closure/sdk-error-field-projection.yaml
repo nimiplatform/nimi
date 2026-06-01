@@ -58,14 +58,14 @@ migrated:
     - Desktop consumes SDK extraction for API normalization, Realm data error logging, and private profile access checks.
     - Tester consumes SDK extraction in a settings Runtime reason projection as a non-Desktop app proof.
   desktop_consumers:
-    - apps/desktop/src/runtime/net/error-normalize.ts consumes extractNimiErrorFields.
+    - apps/desktop/src/runtime/net/error-normalize.ts now consumes SDK normalizeApiError, which owns extractNimiErrorFields internally after sdk-network-retry-api-normalization.
     - apps/desktop/src/shell/renderer/infra/realm/realm-api.ts consumes extractNimiErrorFields.
     - apps/desktop/src/shell/renderer/features/relationship/profile-private-state.ts consumes extractNimiErrorFields.
   tester_consumers:
     - apps/tester/src/shell/routes/settings.tsx consumes extractNimiErrorFields from @nimiplatform/sdk/types and renders the projected trace id.
 legal_desktop_residue:
   - path: apps/desktop/src/runtime/net/error-normalize.ts
-    rationale: Desktop keeps HTTP/API error normalization for its Realm bridge behavior; typed error-field parsing is SDK-owned.
+    rationale: Thin compatibility alias after sdk-network-retry-api-normalization; HTTP/API error normalization and typed error-field parsing are SDK-owned.
   - path: apps/desktop/src/shell/renderer/infra/realm/realm-api.ts
     rationale: Desktop owns Realm data error logging and offline coordinator reaction wiring; error envelope parsing is SDK-owned.
   - path: apps/desktop/src/shell/renderer/features/relationship/profile-private-state.ts
@@ -89,6 +89,7 @@ prohibited_patterns:
   - target: apps/tester/src/shell/routes/settings.tsx
     required:
       - extractNimiErrorFields
+      - "@nimiplatform/sdk/types"
       - runtimeReasonProjection.traceId
 verification:
   status: passed

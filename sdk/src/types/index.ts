@@ -11,6 +11,16 @@ export {
   parseJsonObjectResponse,
   tryParseJsonLike,
 } from './json.js';
+export {
+  getRetryDelayMs,
+  normalizeApiError,
+  requestWithRetry,
+} from './network-retry.js';
+export type {
+  RetryEvent,
+  RetryOptions,
+  RetryReasonKind,
+} from './network-retry.js';
 
 export type NimiErrorSource = 'realm' | 'runtime' | 'sdk';
 

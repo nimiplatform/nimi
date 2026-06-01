@@ -17,7 +17,8 @@ test('Nimi error field projection is migrated from Desktop runtime telemetry to 
 
   assert.match(sdkTypes, /export function extractNimiErrorFields/);
   assert.match(realmApi, /extractNimiErrorFields/);
-  assert.match(normalizeApiError, /extractNimiErrorFields/);
+  assert.match(normalizeApiError, /normalizeApiError/);
+  assert.match(normalizeApiError, /@nimiplatform\/sdk\/types/);
   assert.match(profilePrivateState, /extractNimiErrorFields/);
 
   assert.equal(fs.existsSync(path.join(repoRoot, 'apps/desktop/src/runtime/telemetry/error-fields.ts')), false);

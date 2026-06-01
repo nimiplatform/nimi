@@ -3,12 +3,12 @@ import test from 'node:test';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { requestWithRetry, type RetryEvent } from '../src/runtime/net/request-with-retry';
+import { requestWithRetry, type RetryEvent } from '@nimiplatform/sdk/types';
 
 /* ---------- source scan target ---------- */
 
 const retrySource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/runtime/net/request-with-retry.ts'),
+  path.join(import.meta.dirname, '../../../sdk/src/types/network-retry.ts'),
   'utf8',
 );
 

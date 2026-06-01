@@ -1,0 +1,127 @@
+status: migrated
+date: "2026-06-01"
+domain: sdk-network-retry-api-normalization
+migrated_in_this_commit: true
+authority_posture:
+  spec_status: alignment
+  authority_owner:
+    - sdk/src/types/network-retry.ts
+    - apps/desktop/src/runtime/net/**
+    - apps/tester/src/tester/tester-workbench.tsx
+  work_type: alignment
+  parallel_truth: forbidden
+scope:
+  included:
+    - App-facing retry delay calculation, retryable HTTP/network classification, retry lifecycle events, and exhausted/recovered event shape.
+    - App-facing API error normalization to typed Error/NimiError metadata.
+    - Desktop runtime/net compatibility aliases over SDK ownership.
+    - Tester workbench second-consumer proof for SDK requestWithRetry.
+  excluded:
+    - RealmClient internal retry options and token refresh behavior.
+    - Runtime execution, provider routing, model fallback, and session/token custody.
+    - Desktop Tauri IPC retry semantics and OS helper commands.
+preflight_violation_inventory:
+  platform_truth:
+    - finding: Desktop owned reusable retry status codes, exponential backoff, jitter, retry event discriminants, and API error normalization under apps/desktop/src/runtime/net.
+      evidence_before:
+        - apps/desktop/src/runtime/net/request-with-retry.ts implemented RETRYABLE_STATUS_CODES, getRetryDelayMs, requestWithRetry, RetryEvent, and retry exhaustion behavior.
+        - apps/desktop/src/runtime/net/error-normalize.ts implemented normalizeApiError over SDK NimiError fields.
+      disposition: migrated_to_sdk_types_network_retry
+  duplicate_implementation:
+    - finding: Tester had local fail-closed history loading but no shared retry helper consumption for transient app-facing load failures.
+      evidence_before: apps/tester/src/tester/tester-workbench.tsx called loadTesterRunHistory directly.
+      disposition: Tester now wraps loadTesterRunHistory with SDK requestWithRetry.
+  boundary_imports:
+    - finding: Desktop Realm API imported @runtime/net/error-normalize as if Desktop runtime owned shared API error normalization.
+      disposition: Desktop alias now re-exports SDK normalizeApiError; shared behavior lives in sdk/src/types/network-retry.ts.
+  token_session_runtime_realm_responsibility:
+    - finding: Retry/error normalization handles transient transport outcomes and typed metadata only; it must not refresh tokens, own auth sessions, or choose Runtime/Realm truth.
+      disposition: SDK owns app-facing DX helper; RealmClient token refresh and Runtime/Realm truth stay in their existing owners.
+audited_globs:
+  - apps/desktop/src/runtime/net/**
+  - apps/desktop/src/shell/renderer/infra/realm/realm-api.ts
+  - apps/desktop/test/network-retry-*.test.ts
+  - apps/desktop/test/retry-jitter.test.ts
+  - apps/desktop/test/sdk-error-field-projection-domain-boundary.test.ts
+  - apps/tester/src/tester/tester-workbench.tsx
+  - apps/tester/test/tester-contract.test.mjs
+  - sdk/src/types/**
+  - sdk/test/network-retry.test.ts
+  - sdk/test/types.test.ts
+migrated:
+  shared_owners:
+    - sdk/src/types/network-retry.ts
+  responsibilities:
+    - SDK types owns RetryEvent, RetryOptions, RetryReasonKind, getRetryDelayMs, requestWithRetry, and normalizeApiError.
+    - Desktop keeps only compatibility aliases for existing @runtime/net imports.
+    - Tester consumes SDK requestWithRetry in the workbench history refresh path.
+  desktop_consumers:
+    - apps/desktop/src/runtime/net/request-with-retry.ts re-exports SDK requestWithRetry/getRetryDelayMs/types.
+    - apps/desktop/src/runtime/net/error-normalize.ts re-exports SDK normalizeApiError.
+    - apps/desktop/src/shell/renderer/infra/realm/realm-api.ts continues to import normalizeApiError through the Desktop compatibility alias.
+  tester_consumers:
+    - apps/tester/src/tester/tester-workbench.tsx imports requestWithRetry from @nimiplatform/sdk/types and wraps loadTesterRunHistory.
+legal_desktop_residue:
+  - path: apps/desktop/src/runtime/net/request-with-retry.ts
+    rationale: Thin compatibility alias only; no retry policy, event shape, status-code table, or delay formula remains app-local.
+  - path: apps/desktop/src/runtime/net/error-normalize.ts
+    rationale: Thin compatibility alias only; SDK owns API error normalization and typed error metadata extraction.
+  - path: apps/desktop/src/shell/renderer/infra/realm/realm-api.ts
+    rationale: Desktop owns Realm bridge reachability/offline reaction wiring; API error normalization is SDK-owned.
+tester_proof:
+  - apps/tester/src/tester/tester-workbench.tsx consumes requestWithRetry from @nimiplatform/sdk/types.
+  - apps/tester/test/tester-contract.test.mjs verifies Tester requestWithRetry consumption and loadTesterRunHistory wrapping.
+regression_guards:
+  - apps/desktop/test/network-retry-domain-boundary.test.ts blocks Desktop app-local retry/error-normalization ownership and requires Tester proof.
+  - apps/desktop/test/network-retry-lifecycle.test.ts and apps/desktop/test/retry-jitter.test.ts verify D-NET behavior from SDK source/exports.
+  - sdk/test/network-retry.test.ts covers SDK retry delay, lifecycle events, exhausted normalization, and typed error preservation.
+  - apps/tester/test/tester-contract.test.mjs keeps Tester second-consumer proof in place.
+prohibited_patterns:
+  - target: apps/desktop/src/runtime/net/request-with-retry.ts
+    required:
+      - "@nimiplatform/sdk/types"
+      - requestWithRetry
+    absent:
+      - RETRYABLE_STATUS_CODES
+      - defaultSleepImpl
+      - Math.pow
+      - normalizeApiError(error)
+  - target: apps/desktop/src/runtime/net/error-normalize.ts
+    required:
+      - normalizeApiError
+      - "@nimiplatform/sdk/types"
+    absent:
+      - tryParseJsonLike
+      - extractNimiErrorFields
+      - function isApiErrorLike
+  - target: apps/tester/src/tester/tester-workbench.tsx
+    required:
+      - requestWithRetry
+      - "executor: loadTesterRunHistory"
+verification:
+  status: passed
+  passed:
+    - command: pnpm --filter @nimiplatform/sdk exec tsx --test test/network-retry.test.ts test/types.test.ts
+      evidence: SDK network retry/API normalization and typed error field tests pass.
+    - command: >-
+        pnpm --filter @nimiplatform/desktop exec tsx --test test/network-retry-domain-boundary.test.ts test/network-retry-lifecycle.test.ts test/retry-jitter.test.ts test/sdk-error-field-projection-domain-boundary.test.ts
+      evidence: Desktop hardcut and D-NET behavior tests pass against SDK ownership.
+    - command: pnpm --filter @nimiplatform/tester exec node --test test/tester-contract.test.mjs test/scaffold-boundary.test.mjs
+      evidence: Tester consumes SDK requestWithRetry as second app proof.
+    - command: pnpm --filter @nimiplatform/sdk build
+      evidence: SDK public types export compiles into dist.
+    - command: pnpm --filter @nimiplatform/desktop typecheck
+      evidence: Desktop compiles against SDK-owned network retry aliases.
+    - command: pnpm --filter @nimiplatform/tester typecheck
+      evidence: Tester compiles against SDK requestWithRetry.
+    - command: pnpm check:no-legacy-imports
+      evidence: Legacy import guard passes.
+    - command: pnpm check:no-absolute-user-paths
+      evidence: Absolute user-home path guard passes.
+    - command: pnpm check:no-app-realm-rest-bypass
+      evidence: App Realm REST bypass guard passes.
+    - command: >-
+        node -e "const fs=require('fs'); const yaml=require('yaml'); for (const f of ['config/desktop-ecosystem-boundary-domain-closure/sdk-network-retry-api-normalization.yaml','config/desktop-ecosystem-boundary-domain-closure/sdk-error-field-projection.yaml']) yaml.parse(fs.readFileSync(f,'utf8'));"
+      evidence: Network retry closure and adjusted SDK error-field closure parse as YAML.
+    - command: git diff --check
+      evidence: Patch whitespace passes.
