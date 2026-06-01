@@ -1,9 +1,9 @@
 {
   "version": "0.1.0",
-  "platform": "darwin-arm64",
-  "archivePath": "runtime/darwin-arm64/nimi-runtime.zip",
-  "binaryPath": "bin/nimi",
-  "sha256": "f3335a0c8074ae6e0b7d7d6a4ac21d84bdfa7a725bfcf97b65de83bad13b7916",
-  "builtAt": "2026-05-25T14:49:37.202Z",
-  "commit": "1632a9f614ea60e0431d65d14e07c9536f74753a"
+  "platform": "windows-amd64",
+  "archivePath": "runtime/windows-amd64/nimi-runtime.zip",
+  "binaryPath": "bin/nimi.exe",
+  "sha256": "72e1a26d5e3451848a8907b5b2d08ec99f45e3f538ffc04cf80355a977846f97",
+  "builtAt": "2026-06-01T05:12:15.084Z",
+  "commit": "a7c431ac787138b7bdd039f7a374a64531439b36"
 }
