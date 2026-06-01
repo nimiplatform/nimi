@@ -1,0 +1,184 @@
+status: migrated
+date: "2026-06-01"
+domain: nimi-app-admission-registry-install-projection
+authority_posture:
+  spec_status: alignment
+  authority_owner:
+    - NIMI_APP_ECOSYSTEM_BOUNDARIES.md
+    - .nimi/spec/platform/kernel/nimi-app-admission-contract.md
+    - .nimi/spec/platform/kernel/app-slice-admission-contract.md
+    - .nimi/spec/platform/kernel/tables/nimi-app-registry.yaml
+    - .nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml
+    - .nimi/spec/platform/kernel/tables/local-config-file-registry.yaml
+    - sdk/src/app/**
+    - sdk/src/runtime/runtime-app-lifecycle.ts
+    - kit/shell/tauri/src/platform_catalog/nimi_app_registry.rs
+    - kit/shell/tauri/src/platform_projection/apps_registry.rs
+    - kit/shell/tauri/src/platform_projection/apps_packages.rs
+    - kit/shell/tauri/src/platform_projection/apps_bridge.rs
+  work_type: alignment
+  parallel_truth: forbidden
+scope:
+  included:
+    - Public Nimi App admission, admitted package kind, ordinary visibility, registry rows, and release descriptor truth.
+    - '"~/.nimi/apps/registry.json" and "~/.nimi/apps/packages.json" materialization from Platform catalog truth and Runtime install evidence.'
+    - Desktop Apps bridge payload projection into SDK Nimi App transport loader shapes.
+    - Desktop Apps panel consumption of SDK NimiAppClient read projection and SDK Runtime appLifecycle jobs/storage/open/install/update/repair.
+    - Account app-library projection residue as Desktop account-scoped display/launch preference, not Nimi App admission truth.
+    - Tester as a second SDK app projection consumer.
+  excluded:
+    - Nimi App developer scaffolding CLI semantics, which are governed by the separate scaffolding/developer workflow contracts.
+    - Future public marketplace/economy expansion beyond admitted registry/release descriptor truth.
+    - Deferred canonical permission/grant fabric behind pending permission_scope_ref rows.
+audited_globs:
+  - apps/desktop/src-tauri/src/apps_registry_projection.rs
+  - apps/desktop/src-tauri/src/apps_packages_projection.rs
+  - apps/desktop/src-tauri/src/apps_bridge_projection.rs
+  - apps/desktop/src-tauri/src/account_apps_projection.rs
+  - apps/desktop/src-tauri/src/account_apps_library_commands.rs
+  - apps/desktop/src/shell/renderer/bridge/runtime-bridge/apps-projection.ts
+  - apps/desktop/src/shell/renderer/features/apps/**
+  - apps/desktop/src/shell/renderer/first-run/discovery-projection.ts
+  - apps/desktop/src/shell/renderer/first-run/library-projection.ts
+  - apps/desktop/test/apps-*.test.ts
+  - apps/desktop/test/first-run-discovery.test.ts
+  - apps/desktop/test/first-run-library-projection.test.ts
+  - apps/desktop/test/nimi-home-library-install-launch-smoke.test.ts
+  - apps/tester/src/shell/routes/settings.tsx
+  - apps/tester/src-tauri/src/main.rs
+  - apps/tester/test/tester-contract.test.mjs
+  - apps/tester/test/scaffold-boundary.test.mjs
+  - sdk/src/app/**
+  - sdk/src/runtime/runtime-app-lifecycle.ts
+  - sdk/test/app-*.test.ts
+  - sdk/test/runtime-app-storage.test.ts
+  - sdk/test/nimi-app-runtime-platform-client.test.ts
+  - kit/shell/tauri/src/platform_catalog/nimi_app_registry.rs
+  - kit/shell/tauri/src/platform_projection/apps_registry.rs
+  - kit/shell/tauri/src/platform_projection/apps_packages.rs
+  - kit/shell/tauri/src/platform_projection/apps_bridge.rs
+migrated:
+  shared_owners:
+    - .nimi/spec/platform/kernel/nimi-app-admission-contract.md
+    - .nimi/spec/platform/kernel/app-slice-admission-contract.md
+    - .nimi/spec/platform/kernel/tables/nimi-app-registry.yaml
+    - .nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml
+    - sdk/src/app/client.ts
+    - sdk/src/app/transport.ts
+    - sdk/src/app/registry-transport.ts
+    - sdk/src/app/bridge-projection.ts
+    - sdk/src/app/account-app-library.ts
+    - sdk/src/runtime/runtime-app-lifecycle.ts
+    - sdk/src/runtime/app-storage.ts
+    - kit/shell/tauri/src/platform_catalog/nimi_app_registry.rs
+    - kit/shell/tauri/src/platform_projection/apps_registry.rs
+    - kit/shell/tauri/src/platform_projection/apps_packages.rs
+    - kit/shell/tauri/src/platform_projection/apps_bridge.rs
+  responsibilities:
+    - Platform spec tables own public Nimi App admission, package kind, ordinary visibility, trust tier references, release descriptor floor, and source/admission status.
+    - Kit shell Tauri owns reusable platform catalog and projection builders for registry, packages, and bridge payloads.
+    - SDK app owns NimiAppClient read projection, registry transport filtering, bridge payload parsing, and account app-library parser.
+    - SDK Runtime owns app lifecycle mutation/read surfaces: install, uninstall, update, healthRepair, open, job projection, event watch, and storage projection.
+    - Desktop consumes these shared owners through thin host materializers and product Apps UI composition.
+  desktop_consumers:
+    - 'apps/desktop/src-tauri/src/apps_registry_projection.rs materializes "~/.nimi/apps/registry.json" with Kit registry projection builders.'
+    - 'apps/desktop/src-tauri/src/apps_packages_projection.rs materializes "~/.nimi/apps/packages.json" from selected data root and Runtime install evidence through Kit package projection builders.'
+    - apps/desktop/src-tauri/src/apps_bridge_projection.rs ensures local projections and delegates SDK-shaped bridge payload construction to Kit.
+    - apps/desktop/src/shell/renderer/bridge/runtime-bridge/apps-projection.ts invokes the shell bridge and validates the payload with SDK parseNimiAppBridgeProjection.
+    - apps/desktop/src/shell/renderer/features/apps/apps-live-bridge.ts constructs SDK NimiAppClient over SDK registry transport.
+    - apps/desktop/src/shell/renderer/features/apps/apps-panel-projection.ts composes SDK app rows/status with SDK Runtime appLifecycle jobs/storage.
+    - apps/desktop/src/shell/renderer/features/apps/apps-lifecycle-bridge.ts routes all lifecycle mutations through getPlatformClient().runtime.appLifecycle.
+  tester_consumers:
+    - apps/tester/src/shell/routes/settings.tsx consumes SDK parseNimiAppBridgeProjection and parseAccountAppLibraryRecord in a Tester settings flow.
+    - apps/tester/src-tauri/src/main.rs consumes Kit apps_bridge projection builder from a non-Desktop shell.
+    - apps/tester/test/tester-contract.test.mjs proves Tester does not fork Desktop apps projection enums or parsers.
+    - apps/tester/test/scaffold-boundary.test.mjs keeps ADMISSION as submitted app input rather than public Nimi App admission truth.
+legal_desktop_residue:
+  - path: apps/desktop/src-tauri/src/apps_registry_projection.rs
+    rationale: Desktop owns host-local materialization under "~/.nimi/apps/registry.json"; registry truth and schema validation are Platform/Kit-owned.
+  - path: apps/desktop/src-tauri/src/apps_packages_projection.rs
+    rationale: Desktop may read selected local data root and Runtime-written install evidence on the same host; package record shape and validation are Kit-owned and lifecycle truth is Runtime-owned.
+  - path: apps/desktop/src-tauri/src/apps_bridge_projection.rs
+    rationale: Desktop owns the Tauri command seam; SDK-shaped bridge construction is Kit-owned and SDK validates the renderer payload.
+  - path: apps/desktop/src-tauri/src/account_apps_projection.rs
+    rationale: Desktop owns account-scoped app-library display/launch preference projection and fail-closed local file writing; it does not admit apps or define public registry truth.
+  - path: apps/desktop/src-tauri/src/account_apps_library_commands.rs
+    rationale: Desktop owns authenticated account binding and thin command exposure for account library mutations; renderer-supplied account identity is not trusted.
+  - path: apps/desktop/src/shell/renderer/features/apps/**
+    rationale: Desktop owns product Apps panel composition, card actions, and UI state; registry/readiness/lifecycle/storage semantics come from SDK and Runtime.
+  - path: apps/desktop/src/shell/renderer/first-run/**
+    rationale: Desktop owns first-run product presentation; library/discovery data comes from injected SDK NimiAppClient projections.
+tester_proof:
+  - apps/tester/src/shell/routes/settings.tsx uses SDK app bridge and account app-library parsers in a second app.
+  - apps/tester/src-tauri/src/main.rs uses Kit apps_bridge projection from Tester shell infrastructure.
+  - apps/tester/test/tester-contract.test.mjs guards SDK app parser consumption and blocks local enum copies.
+  - apps/tester/test/scaffold-boundary.test.mjs guards Tester as a scaffolded Nimi app whose ADMISSION file is submitted input, not Platform admission truth.
+regression_guards:
+  - apps/desktop/test/nimi-app-registry-domain-boundary.test.ts blocks Desktop ownership of Nimi App admission, registry schema, release descriptor schema, bridge row shapes, lifecycle mutation, and Tester forked parsers.
+  - apps/desktop/test/apps-t4-w5-acceptance.test.ts blocks status_unavailable resurrection, pre-admission ordinary visibility leaks, and default durable-data deletion on uninstall.
+  - apps/desktop/test/apps-lifecycle-bridge.test.ts covers Runtime appLifecycle routing and fail-closed lifecycle normalization.
+  - apps/desktop/test/apps-panel-ordinary-visible-projection.test.ts covers SDK ordinary-visible projection consumption.
+  - sdk/test/app-registry-transport.test.ts covers SDK registry filtering, release descriptor validation, install evidence mapping, and read-only NimiAppClient transport posture.
+  - sdk/test/app-bridge-projection.test.ts covers SDK bridge payload parser fail-closed behavior.
+  - sdk/test/runtime-app-storage.test.ts and sdk/test/nimi-app-runtime-platform-client.test.ts cover Runtime app storage and Nimi App Runtime platform client surfaces.
+  - apps/tester/test/tester-contract.test.mjs and apps/tester/test/scaffold-boundary.test.mjs cover Tester as second consumer.
+prohibited_patterns:
+  - target: apps/desktop/src-tauri/src/apps_*_projection.rs
+    absent_or_allowlisted:
+      - pattern: struct AppsRegistryRow
+        allowlist: kit/shell/tauri/src/platform_projection/apps_registry.rs
+      - pattern: struct RuntimeInstallEvidence
+        allowlist: kit/shell/tauri/src/platform_projection/apps_packages.rs
+      - pattern: struct BridgeRegistryRow
+        allowlist: kit/shell/tauri/src/platform_projection/apps_bridge.rs
+      - pattern: struct BridgeReleaseDescriptorRow
+        allowlist: kit/shell/tauri/src/platform_projection/apps_bridge.rs
+      - pattern: struct BridgeInstallEvidenceRow
+        allowlist: kit/shell/tauri/src/platform_projection/apps_bridge.rs
+  - target: apps/desktop/src/shell/renderer/features/apps apps/desktop/src/shell/renderer/bridge/runtime-bridge
+    absent_or_allowlisted:
+      - pattern: ADMISSION_STATUSES
+        allowlist: sdk/src/app/**
+      - pattern: RELEASE_DESCRIPTOR_CLASSES
+        allowlist: sdk/src/app/**
+      - pattern: VERIFICATION_STATES
+        allowlist: sdk/src/app/**
+      - pattern: nimi-app-registry.yaml
+        allowlist: none
+      - pattern: nimi-app-release-descriptors.yaml
+        allowlist: none
+      - pattern: invokeChecked
+        allowlist: apps/desktop/src/shell/renderer/bridge/runtime-bridge/apps-projection.ts only
+  - target: sdk/src/app
+    absent_or_allowlisted:
+      - pattern: install(
+        allowlist: sdk/src/runtime/runtime-app-lifecycle.ts
+      - pattern: uninstall(
+        allowlist: sdk/src/runtime/runtime-app-lifecycle.ts
+      - pattern: open(
+        allowlist: sdk/src/runtime/runtime-app-lifecycle.ts
+verification:
+  status: passed
+  passed:
+    - command: node -e "const fs=require('fs'); const yaml=require('yaml'); yaml.parse(fs.readFileSync('config/desktop-ecosystem-boundary-domain-closure/nimi-app-registry.yaml','utf8'));"
+      evidence: Nimi App registry/admission/install projection closure record parses as YAML.
+    - command: pnpm --filter @nimiplatform/desktop exec tsx --test test/nimi-app-registry-domain-boundary.test.ts
+      evidence: New domain hardcut proves Platform/Kit/SDK/Runtime ownership, Desktop legal residue, and Tester second-consumer proof.
+    - command: pnpm --filter @nimiplatform/desktop exec tsx --test test/nimi-app-registry-domain-boundary.test.ts test/apps-t4-w5-acceptance.test.ts test/apps-lifecycle-bridge.test.ts test/apps-panel-ordinary-visible-projection.test.ts test/first-run-discovery.test.ts test/first-run-library-projection.test.ts test/nimi-home-library-install-launch-smoke.test.ts
+      evidence: Desktop Apps domain suite passes, including registry visibility, status-failure hardcut, lifecycle routing, first-run projections, and library/install/launch smoke.
+    - command: pnpm --filter @nimiplatform/sdk exec tsx --test test/app-registry-transport.test.ts test/app-bridge-projection.test.ts test/runtime-app-storage.test.ts test/nimi-app-runtime-platform-client.test.ts test/app-client.test.ts
+      evidence: SDK app read projection, bridge parser, app storage, runtime platform helper, and NimiAppClient read-only posture pass.
+    - command: pnpm --filter @nimiplatform/tester exec node --test test/tester-contract.test.mjs test/scaffold-boundary.test.mjs
+      evidence: Tester proves SDK Nimi App projection parser consumption and scaffold admission-input boundaries.
+    - command: pnpm check:no-public-mod-extension-admission
+      evidence: Public-mod and extension package kinds remain absent from Nimi App admission targets.
+    - command: pnpm check:install-gateway-no-admission-authority
+      evidence: Install gateway does not become a Nimi App admission authority.
+    - command: pnpm check:nimi-kit
+      evidence: Kit registry/package/dist/canonical capability checks pass after the Kit build step.
+    - command: pnpm check:no-legacy-imports
+      evidence: Legacy import guard passes.
+    - command: pnpm check:no-absolute-user-paths
+      evidence: Absolute user-home path guard passes.
+    - command: git diff --check
+      evidence: Patch whitespace passes.
