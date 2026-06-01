@@ -166,10 +166,6 @@ mod tests {
             package_ref: "nimi.avatar.bundled-with-nimi".to_string(),
             version: "1.0.0".to_string(),
             state: "installed".to_string(),
-            install_root: "/tmp/nimi/apps/nimi.avatar/releases/1.0.0".to_string(),
-            data_root: "/tmp/nimi/apps/nimi.avatar/data".to_string(),
-            cache_root: "/tmp/nimi/apps/nimi.avatar/cache".to_string(),
-            temp_root: "/tmp/nimi/apps/nimi.avatar/tmp".to_string(),
             verified_at: "2026-05-31T00:00:00Z".to_string(),
         };
         let bridge_projection =

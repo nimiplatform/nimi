@@ -10,6 +10,7 @@ use prost::Message;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
+use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
 const E2E_FIXTURE_PATH_ENV: &str = "NIMI_E2E_FIXTURE_PATH";
@@ -248,6 +249,54 @@ fn runtime_account_token_response(
     }
 }
 
+fn runtime_app_storage_response(
+    payload: &RuntimeBridgeUnaryPayload,
+    manifest: &DesktopE2EFixtureManifest,
+) -> Result<RuntimeBridgeUnaryResult, String> {
+    let request: runtime_bridge_generated::GetAppStorageRequest = decode_unary_request(payload)?;
+    let app_id = request.app_id.trim();
+    let data_root = manifest
+        .tauri_fixture
+        .as_ref()
+        .and_then(|fixture| fixture.product_control_record.as_ref())
+        .and_then(|record| record.data_root.as_ref())
+        .map(|record| record.path.trim().to_string())
+        .filter(|value| !value.is_empty());
+    let Some(data_root) = data_root else {
+        return Ok(encode_unary_response(
+            runtime_bridge_generated::GetAppStorageResponse {
+                projection: Some(runtime_bridge_generated::AppStorageProjection {
+                    app_id: app_id.to_string(),
+                    state: runtime_bridge_generated::AppStorageState::StorageUnavailable as i32,
+                    reason_code: runtime_bridge_generated::ReasonCode::AppInstallStorageViolation
+                        as i32,
+                    detail: "fixture product control dataRoot is missing".to_string(),
+                    ..Default::default()
+                }),
+            },
+        ));
+    };
+    let app_root = PathBuf::from(data_root).join("apps").join(app_id);
+    let release_root = app_root.join("releases").join("1.0.0");
+    Ok(encode_unary_response(
+        runtime_bridge_generated::GetAppStorageResponse {
+            projection: Some(runtime_bridge_generated::AppStorageProjection {
+                app_id: app_id.to_string(),
+                state: runtime_bridge_generated::AppStorageState::Ready as i32,
+                app_root: app_root.display().to_string(),
+                active_release_root: release_root.display().to_string(),
+                durable_data_root: app_root.join("data").display().to_string(),
+                cache_root: app_root.join("cache").display().to_string(),
+                temp_root: app_root.join("tmp").display().to_string(),
+                active_version: "1.0.0".to_string(),
+                storage_policy_ref: "nimi-data-app-roots".to_string(),
+                reason_code: runtime_bridge_generated::ReasonCode::ActionExecuted as i32,
+                detail: String::new(),
+            }),
+        },
+    ))
+}
+
 pub fn runtime_bridge_unary_override(
     payload: &RuntimeBridgeUnaryPayload,
 ) -> Result<Option<RuntimeBridgeUnaryResult>, String> {
@@ -280,6 +329,10 @@ pub fn runtime_bridge_unary_override(
             Ok(Some(encode_unary_response(runtime_account_token_response(
                 projection,
             ))))
+        }
+        "/nimi.runtime.v1.RuntimeAppService/GetAppStorage" => {
+            append_backend_log("runtime_app_fixture method=getAppStorage accepted=true");
+            runtime_app_storage_response(payload, &manifest).map(Some)
         }
         _ => Ok(None),
     }

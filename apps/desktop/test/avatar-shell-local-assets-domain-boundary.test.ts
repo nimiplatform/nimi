@@ -91,12 +91,15 @@ describe('Avatar shell/local-assets domain boundary', () => {
       'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-instance-registry.ts',
     );
 
-    assert.match(registryStore, /ensure_apps_packages/);
+    assert.match(registryStore, /GetAppStorageRequest/);
+    assert.match(registryStore, /RUNTIME_APP_GET_APP_STORAGE_METHOD_ID/);
+    assert.doesNotMatch(registryStore, /ensure_apps_packages|AppsPackageRow/);
     assert.match(registryStore, /AVATAR_APP_ID:\s*&str = "nimi\.avatar"/);
     assert.match(registryStore, /Runtime app storage projection/);
     assert.match(registryStore, /projection_is_fresh/);
     assert.match(registryStore, /is_projection_owned_by_live_process/);
-    assert.doesNotMatch(registryStore, /conversation_anchor_id|binding_id|access_token|refresh_token/);
+    assert.doesNotMatch(registryStore, /conversation_anchor_id|binding_id|refresh_token/);
+    assert.doesNotMatch(registryStore, /access_token:\s*String/);
 
     assert.match(registryTypes, /avatar_instance_id/);
     assert.match(registryTypes, /owner_user_id/);

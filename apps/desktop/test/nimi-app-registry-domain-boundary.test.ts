@@ -53,6 +53,7 @@ describe('Nimi App registry/admission domain boundary', () => {
     assert.match(packagesProjection, /selected_product_data_root/);
     assert.doesNotMatch(packagesProjection, /struct\s+RuntimeInstallEvidence/);
     assert.doesNotMatch(packagesProjection, /const\s+PACKAGE_STATE_/);
+    assert.doesNotMatch(packagesProjection, /package\.(?:data_root|cache_root|temp_root|install_root)/);
 
     assert.match(bridgeProjection, /ensure_apps_registry/);
     assert.match(bridgeProjection, /ensure_apps_packages/);
@@ -60,6 +61,7 @@ describe('Nimi App registry/admission domain boundary', () => {
     assert.doesNotMatch(bridgeProjection, /struct\s+BridgeRegistryRow/);
     assert.doesNotMatch(bridgeProjection, /struct\s+BridgeReleaseDescriptorRow/);
     assert.doesNotMatch(bridgeProjection, /struct\s+BridgeInstallEvidenceRow/);
+    assert.doesNotMatch(bridgeProjection, /storage_roots|storageRoots/);
   });
 
   it('keeps Desktop renderer Apps as SDK and Runtime consumers', () => {

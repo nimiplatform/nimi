@@ -135,16 +135,6 @@ mod tests {
                 .expect("avatar evidence");
             assert_eq!(row.verification_state, "digest-verified");
             assert_eq!(row.installed_version.as_deref(), Some("1.0.0"));
-            let roots = row.storage_roots.as_ref().expect("storage roots");
-            // The bridge projects the Runtime-written roots verbatim; it no
-            // longer re-derives the `<nimi_data>/apps` layout (`K-APP-022`).
-            assert_eq!(roots.release_root, release_root.display().to_string());
-            assert_eq!(roots.data_root, app_root.join("data").display().to_string());
-            assert_eq!(
-                roots.cache_root,
-                app_root.join("cache").display().to_string()
-            );
-            assert_eq!(roots.temp_root, app_root.join("tmp").display().to_string());
         });
     }
 }

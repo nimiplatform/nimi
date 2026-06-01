@@ -52,16 +52,6 @@ pub struct BridgeReleaseDescriptorRow {
     pub source_rule: String,
 }
 
-/// SDK `NimiAppStorageRoots`-shaped object.
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BridgeStorageRoots {
-    pub release_root: String,
-    pub data_root: String,
-    pub cache_root: String,
-    pub temp_root: String,
-}
-
 /// SDK `NimiAppInstallEvidenceRow`-shaped row for the bridge
 /// `loadInstallEvidence` loader.
 #[derive(Debug, Clone, Serialize)]
@@ -75,8 +65,6 @@ pub struct BridgeInstallEvidenceRow {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sha256: Option<String>,
     pub verification_state: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub storage_roots: Option<BridgeStorageRoots>,
 }
 
 /// The full bridge projection payload: the three SDK-shaped loader inputs.
@@ -125,12 +113,6 @@ fn project_install_evidence(package: &AppsPackageRow) -> Result<BridgeInstallEvi
         installed_version: Some(package.version.clone()),
         sha256: Some(descriptor.sha256.to_string()),
         verification_state: verification_state.to_string(),
-        storage_roots: Some(BridgeStorageRoots {
-            release_root: package.install_root.clone(),
-            data_root: package.data_root.clone(),
-            cache_root: package.cache_root.clone(),
-            temp_root: package.temp_root.clone(),
-        }),
     })
 }
 
@@ -199,10 +181,6 @@ mod tests {
             package_ref: package_ref.to_string(),
             version: "1.0.0".to_string(),
             state: "installed".to_string(),
-            install_root: "/tmp/nimi/apps/nimi.avatar/releases/1.0.0".to_string(),
-            data_root: "/tmp/nimi/apps/nimi.avatar/data".to_string(),
-            cache_root: "/tmp/nimi/apps/nimi.avatar/cache".to_string(),
-            temp_root: "/tmp/nimi/apps/nimi.avatar/tmp".to_string(),
             verified_at: "2026-05-31T00:00:00Z".to_string(),
         }
     }
@@ -227,7 +205,7 @@ mod tests {
     }
 
     #[test]
-    fn install_evidence_projects_runtime_resolved_storage_roots() {
+    fn install_evidence_projects_package_state_without_storage_roots() {
         let projection = build_apps_bridge_projection(
             "~/.nimi/apps/registry.json".to_string(),
             "~/.nimi/apps/packages.json".to_string(),
@@ -237,10 +215,6 @@ mod tests {
         let row = projection.install_evidence.first().expect("evidence");
         assert_eq!(row.app_id, "nimi.avatar");
         assert_eq!(row.verification_state, "digest-verified");
-        let roots = row.storage_roots.as_ref().expect("roots");
-        assert!(roots.data_root.ends_with("/data"));
-        assert!(roots.cache_root.ends_with("/cache"));
-        assert!(roots.temp_root.ends_with("/tmp"));
     }
 
     #[test]

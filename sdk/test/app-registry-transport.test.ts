@@ -124,12 +124,6 @@ const verifiedExampleAppEvidence: readonly NimiAppInstallEvidenceRow[] = [
     installedVersion: 'bundled-with-current-nimi-release',
     sha256: 'example-app-sha',
     verificationState: 'digest-verified',
-    storageRoots: {
-      releaseRoot: '/tmp/nimi/apps/nimi.example-app/releases/bundled-with-current-nimi-release',
-      dataRoot: '/tmp/nimi/apps/nimi.example-app/data',
-      cacheRoot: '/tmp/nimi/apps/nimi.example-app/cache',
-      tempRoot: '/tmp/nimi/apps/nimi.example-app/tmp',
-    },
   },
 ];
 
@@ -208,14 +202,11 @@ describe('Nimi App registry transport', () => {
     assert.equal(status.launchReadiness, 'install-required');
   });
 
-  it('does not require host install evidence storage roots for readiness', async () => {
+  it('does not require app storage roots in host install evidence for readiness', async () => {
     const transport = createNimiAppRegistryTransport({
       loadRows: () => rows,
       loadReleaseDescriptors: () => descriptors,
-      loadInstallEvidence: () => [{
-        ...verifiedExampleAppEvidence[0]!,
-        storageRoots: undefined,
-      }],
+      loadInstallEvidence: () => [verifiedExampleAppEvidence[0]!],
     });
     const status = await transport.status('nimi.example-app');
     assert.equal(status.launchReadiness, 'ready');

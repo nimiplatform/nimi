@@ -139,7 +139,6 @@ export interface NimiAppInstallEvidenceRow {
   readonly installedVersion?: string;
   readonly sha256?: string;
   readonly verificationState: NimiAppInstallVerificationState;
-  readonly storageRoots?: NimiAppStorageRoots;
   readonly detail?: string;
 }
 

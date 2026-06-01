@@ -27,7 +27,7 @@ use nimi_shell_tauri::platform_projection::apps_packages::{
     build_apps_packages_record_from_runtime_install_evidence, validate_apps_packages_record,
 };
 pub use nimi_shell_tauri::platform_projection::apps_packages::{
-    AppsPackageRow, AppsPackagesRecord, APPS_PACKAGES_POINTER, APPS_PACKAGES_SCHEMA_VERSION,
+    AppsPackagesRecord, APPS_PACKAGES_POINTER, APPS_PACKAGES_SCHEMA_VERSION,
 };
 use serde::Serialize;
 use std::path::PathBuf;
@@ -190,13 +190,8 @@ mod tests {
                 .expect("avatar package row");
             assert_eq!(row.version, "1.0.0");
             assert_eq!(row.state, "installed");
-            assert!(row.install_root.contains("releases"));
-            // The Runtime-resolved storage roots are projected verbatim from the
-            // install-evidence file, not re-derived from the release root.
-            assert!(row.data_root.ends_with("data"));
-            assert!(row.cache_root.ends_with("cache"));
-            assert!(row.temp_root.ends_with("tmp"));
-            assert!(row.data_root.contains("nimi.avatar"));
+            // Runtime app storage roots are intentionally not copied into the
+            // package projection; consumers must call Runtime GetAppStorage.
         });
     }
 

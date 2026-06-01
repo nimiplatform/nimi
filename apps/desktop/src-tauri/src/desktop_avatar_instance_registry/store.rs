@@ -1,5 +1,6 @@
 use super::types::{DesktopAvatarInstanceRegistryFile, DesktopAvatarInstanceRegistryRecord};
-use crate::apps_packages_projection::{ensure_apps_packages, AppsPackageRow};
+use base64::Engine;
+use prost::Message;
 use std::fs;
 use std::path::{Path, PathBuf};
 use sysinfo::{Pid, ProcessesToUpdate, System};
@@ -39,40 +40,68 @@ fn absolute_package_path(value: &str, field: &str) -> Result<PathBuf, String> {
     Ok(path)
 }
 
-fn avatar_app_storage_roots_from_package(
-    package: &AppsPackageRow,
+fn avatar_app_storage_roots_from_projection(
+    projection: &crate::runtime_bridge::generated::AppStorageProjection,
 ) -> Result<AvatarAppStorageRoots, String> {
-    if package.app_id != AVATAR_APP_ID {
+    if projection.app_id != AVATAR_APP_ID {
         return Err(format!(
             "avatar storage projection expected {AVATAR_APP_ID}, got {}",
-            package.app_id
+            projection.app_id
         ));
     }
-    if package.state != "installed" {
+    if projection.state != crate::runtime_bridge::generated::AppStorageState::Ready as i32 {
         return Err(format!(
-            "avatar storage projection requires installed package state, got {}",
-            package.state
+            "avatar storage projection requires Runtime ready state, got {}",
+            projection.state
         ));
+    }
+    if projection.active_release_root.trim().is_empty() {
+        return Err("avatar storage projection requires activeReleaseRoot".to_string());
     }
     Ok(AvatarAppStorageRoots {
-        data_root: absolute_package_path(&package.data_root, "dataRoot")?,
-        cache_root: absolute_package_path(&package.cache_root, "cacheRoot")?,
-        temp_root: absolute_package_path(&package.temp_root, "tempRoot")?,
+        data_root: absolute_package_path(&projection.durable_data_root, "dataRoot")?,
+        cache_root: absolute_package_path(&projection.cache_root, "cacheRoot")?,
+        temp_root: absolute_package_path(&projection.temp_root, "tempRoot")?,
     })
 }
 
 pub(crate) fn avatar_app_storage_roots() -> Result<AvatarAppStorageRoots, String> {
-    let packages = ensure_apps_packages()?;
-    let package = packages
-        .record
-        .packages
-        .iter()
-        .find(|package| package.app_id == AVATAR_APP_ID)
-        .ok_or_else(|| {
-            "Runtime app storage projection is missing installed package evidence for nimi.avatar"
-                .to_string()
-        })?;
-    avatar_app_storage_roots_from_package(package)
+    tauri::async_runtime::block_on(async {
+        // Runtime app storage projection is the authority for Avatar data,
+        // cache, temp, and active release roots; package projections only carry
+        // package state.
+        let request = crate::runtime_bridge::generated::GetAppStorageRequest {
+            app_id: AVATAR_APP_ID.to_string(),
+        };
+        let payload = crate::runtime_bridge::RuntimeBridgeUnaryPayload {
+            method_id: nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_APP_STORAGE_METHOD_ID
+                .to_string(),
+            request_bytes_base64: base64::engine::general_purpose::STANDARD
+                .encode(request.encode_to_vec()),
+            metadata: Some(crate::runtime_bridge::RuntimeBridgeMetadata {
+                app_id: Some("nimi.desktop".to_string()),
+                caller_kind: Some("desktop-core".to_string()),
+                caller_id: Some("desktop.avatar-handoff".to_string()),
+                surface_id: Some("desktop.avatar".to_string()),
+                ..Default::default()
+            }),
+            authorization: None,
+            protected_access_token: None,
+            app_session: None,
+            timeout_ms: Some(5_000),
+        };
+        let result = crate::runtime_bridge::runtime_bridge_unary(payload).await?;
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(result.response_bytes_base64.trim())
+            .map_err(|_| "GetAppStorage response could not be decoded".to_string())?;
+        let response =
+            crate::runtime_bridge::generated::GetAppStorageResponse::decode(bytes.as_slice())
+                .map_err(|error| format!("GetAppStorage response was invalid: {error}"))?;
+        let projection = response
+            .projection
+            .ok_or_else(|| "GetAppStorage response missing projection".to_string())?;
+        avatar_app_storage_roots_from_projection(&projection)
+    })
 }
 
 fn registry_path() -> Result<PathBuf, String> {
@@ -279,7 +308,7 @@ mod tests {
     use std::fs;
 
     use super::{
-        avatar_app_storage_roots_from_package, list_instances_from_file,
+        avatar_app_storage_roots_from_projection, list_instances_from_file,
         list_instances_from_file_at, load_registry_from_path,
         process_start_time_matches_projection, projection_is_fresh, validate_local_agent_scope,
         DesktopAvatarInstanceRegistryFile,
@@ -315,17 +344,21 @@ mod tests {
         }
     }
 
-    fn package_row() -> crate::apps_packages_projection::AppsPackageRow {
-        crate::apps_packages_projection::AppsPackageRow {
+    fn storage_projection(
+        state: crate::runtime_bridge::generated::AppStorageState,
+    ) -> crate::runtime_bridge::generated::AppStorageProjection {
+        crate::runtime_bridge::generated::AppStorageProjection {
             app_id: "nimi.avatar".to_string(),
-            package_ref: "nimi.avatar.bundled-with-nimi".to_string(),
-            version: "1.0.0".to_string(),
-            state: "installed".to_string(),
-            install_root: "/tmp/nimi-data/apps/nimi.avatar/releases/1.0.0".to_string(),
-            data_root: "/tmp/nimi-data/apps/nimi.avatar/data".to_string(),
+            state: state as i32,
+            app_root: "/tmp/nimi-data/apps/nimi.avatar".to_string(),
+            active_release_root: "/tmp/nimi-data/apps/nimi.avatar/releases/1.0.0".to_string(),
+            durable_data_root: "/tmp/nimi-data/apps/nimi.avatar/data".to_string(),
             cache_root: "/tmp/nimi-data/apps/nimi.avatar/cache".to_string(),
             temp_root: "/tmp/nimi-data/apps/nimi.avatar/tmp".to_string(),
-            verified_at: "2026-05-31T00:00:00.000Z".to_string(),
+            active_version: "1.0.0".to_string(),
+            storage_policy_ref: "nimi-data-app-roots".to_string(),
+            reason_code: crate::runtime_bridge::generated::ReasonCode::ActionExecuted as i32,
+            detail: String::new(),
         }
     }
 
@@ -366,9 +399,11 @@ mod tests {
     }
 
     #[test]
-    fn avatar_storage_roots_consume_runtime_projected_package_roots() {
-        let roots =
-            avatar_app_storage_roots_from_package(&package_row()).expect("avatar storage roots");
+    fn avatar_storage_roots_consume_runtime_storage_projection() {
+        let roots = avatar_app_storage_roots_from_projection(&storage_projection(
+            crate::runtime_bridge::generated::AppStorageState::Ready,
+        ))
+        .expect("avatar storage roots");
 
         assert_eq!(
             roots.data_root,
@@ -385,16 +420,17 @@ mod tests {
     }
 
     #[test]
-    fn avatar_storage_roots_reject_non_installed_or_relative_package_roots() {
-        let mut blocked = package_row();
-        blocked.state = "blocked".to_string();
-        assert!(avatar_app_storage_roots_from_package(&blocked)
-            .expect_err("blocked package must fail")
-            .contains("installed package state"));
+    fn avatar_storage_roots_reject_non_ready_or_relative_runtime_roots() {
+        let blocked =
+            storage_projection(crate::runtime_bridge::generated::AppStorageState::InstallRequired);
+        assert!(avatar_app_storage_roots_from_projection(&blocked)
+            .expect_err("blocked storage must fail")
+            .contains("Runtime ready state"));
 
-        let mut relative = package_row();
-        relative.data_root = "relative/avatar-data".to_string();
-        assert!(avatar_app_storage_roots_from_package(&relative)
+        let mut relative =
+            storage_projection(crate::runtime_bridge::generated::AppStorageState::Ready);
+        relative.durable_data_root = "relative/avatar-data".to_string();
+        assert!(avatar_app_storage_roots_from_projection(&relative)
             .expect_err("relative root must fail")
             .contains("absolute Runtime-projected path"));
     }

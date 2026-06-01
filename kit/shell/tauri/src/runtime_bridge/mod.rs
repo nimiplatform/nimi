@@ -44,6 +44,8 @@ pub const RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence";
 pub const RUNTIME_LOCAL_MINT_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence";
+pub const RUNTIME_APP_GET_APP_STORAGE_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeAppService/GetAppStorage";
 
 const DEFAULT_EVENT_NAMESPACE: &str = "runtime_bridge";
 

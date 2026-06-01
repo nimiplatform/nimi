@@ -23,10 +23,6 @@ pub struct AppsPackageRow {
     pub package_ref: String,
     pub version: String,
     pub state: String,
-    pub install_root: String,
-    pub data_root: String,
-    pub cache_root: String,
-    pub temp_root: String,
     pub verified_at: String,
 }
 
@@ -54,6 +50,7 @@ struct RuntimeInstallEvidence {
     #[serde(default)]
     sha256: String,
     verification_state: String,
+    #[allow(dead_code)]
     release_root: String,
     durable_data_root: String,
     cache_root: String,
@@ -121,10 +118,6 @@ fn project_evidence_file(path: &Path) -> Result<Option<AppsPackageRow>, String> 
         package_ref: evidence.release_descriptor_ref,
         version: evidence.installed_version,
         state: project_package_state(&evidence.verification_state).to_string(),
-        install_root: evidence.release_root,
-        data_root: evidence.durable_data_root,
-        cache_root: evidence.cache_root,
-        temp_root: evidence.temp_root,
         verified_at: now_iso_timestamp(),
     }))
 }
@@ -188,14 +181,10 @@ pub fn validate_apps_packages_record(record: &AppsPackagesRecord) -> Result<(), 
         if package.app_id.trim().is_empty()
             || package.package_ref.trim().is_empty()
             || package.version.trim().is_empty()
-            || package.install_root.trim().is_empty()
-            || package.data_root.trim().is_empty()
-            || package.cache_root.trim().is_empty()
-            || package.temp_root.trim().is_empty()
             || package.verified_at.trim().is_empty()
         {
             return Err(
-                "~/.nimi/apps/packages.json package row requires appId, packageRef, version, installRoot, dataRoot, cacheRoot, tempRoot, and verifiedAt"
+                "~/.nimi/apps/packages.json package row requires appId, packageRef, version, and verifiedAt"
                     .to_string(),
             );
         }
@@ -232,10 +221,6 @@ mod tests {
             package_ref: "nimi.avatar.bundled-with-nimi".to_string(),
             version: "1.0.0".to_string(),
             state: state.to_string(),
-            install_root: "/tmp/nimi/apps/nimi.avatar/releases/1.0.0".to_string(),
-            data_root: "/tmp/nimi/apps/nimi.avatar/data".to_string(),
-            cache_root: "/tmp/nimi/apps/nimi.avatar/cache".to_string(),
-            temp_root: "/tmp/nimi/apps/nimi.avatar/tmp".to_string(),
             verified_at: "2026-05-31T00:00:00Z".to_string(),
         }
     }
@@ -332,10 +317,6 @@ mod tests {
             .expect("avatar package");
         assert_eq!(row.version, "1.0.0");
         assert_eq!(row.state, "installed");
-        assert!(row.install_root.contains("releases"));
-        assert!(row.data_root.ends_with("data"));
-        assert!(row.cache_root.ends_with("cache"));
-        assert!(row.temp_root.ends_with("tmp"));
     }
 
     #[test]

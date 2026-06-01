@@ -105,12 +105,6 @@ test('NimiApp registry status does not project storage roots from install eviden
       installedVersion: '1.0.0',
       sha256: 'a'.repeat(64),
       verificationState: 'digest-verified',
-      storageRoots: {
-        releaseRoot: '/desktop-scanned/releases/1.0.0',
-        dataRoot: '/desktop-scanned/data',
-        cacheRoot: '/desktop-scanned/cache',
-        tempRoot: '/desktop-scanned/tmp',
-      },
     }],
   }));
 
