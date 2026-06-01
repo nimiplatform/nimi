@@ -192,6 +192,7 @@ describe('useModelConfigProfileController apply paths', () => {
   it('path 1 — apply-success previews then commits remote nextConfig on confirm', async () => {
     let currentConfig = baseConfig;
     const updates: AIConfig[] = [];
+    const applyBaseVersions: Array<string | undefined> = [];
     const service: SharedAIConfigService = {
       aiConfig: {
         get: () => currentConfig,
@@ -207,12 +208,15 @@ describe('useModelConfigProfileController apply paths', () => {
           currentConfig: () => currentConfig,
           profilesById: [remoteProfile],
         }),
-        apply: async () => ({
-          success: true,
-          config: appliedConfig,
-          failureReason: null,
-          probeWarnings: [],
-        }) satisfies AIProfileApplyResult,
+        apply: async (_scope, _profileId, options) => {
+          applyBaseVersions.push(options?.expectedBaseVersion);
+          return {
+            success: true,
+            config: appliedConfig,
+            failureReason: null,
+            probeWarnings: [],
+          } satisfies AIProfileApplyResult;
+        },
       },
     };
 
@@ -243,6 +247,7 @@ describe('useModelConfigProfileController apply paths', () => {
     });
 
     expect(updates).toHaveLength(1);
+    expect(applyBaseVersions).toEqual(['base-v1']);
     expect(updates[0].profileOrigin?.profileId).toBe('remote-profile');
     expect(captured.controller?.error).toBeNull();
     expect(captured.controller?.applying).toBe(false);

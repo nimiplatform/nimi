@@ -110,6 +110,7 @@ describe('useModelConfigProfileController', () => {
   it('previews before commit, then commits remote-success only on explicit confirm', async () => {
     let currentConfig = baseConfig;
     const updates: AIConfig[] = [];
+    const applyBaseVersions: Array<string | undefined> = [];
     const service: SharedAIConfigService = {
       aiConfig: {
         get: () => currentConfig,
@@ -125,12 +126,15 @@ describe('useModelConfigProfileController', () => {
           currentConfig: () => currentConfig,
           profilesById: [remoteProfile],
         }),
-        apply: async () => ({
-          success: true,
-          config: appliedConfig,
-          failureReason: null,
-          probeWarnings: [],
-        }),
+        apply: async (_scope, _profileId, options) => {
+          applyBaseVersions.push(options?.expectedBaseVersion);
+          return {
+            success: true,
+            config: appliedConfig,
+            failureReason: null,
+            probeWarnings: [],
+          };
+        },
       },
     };
 
@@ -156,6 +160,7 @@ describe('useModelConfigProfileController', () => {
       await flush();
     });
     expect(updates).toHaveLength(1);
+    expect(applyBaseVersions).toEqual(['base-v1']);
     expect(updates[0].profileOrigin?.profileId).toBe('remote-profile');
     expect(captured.controller?.preview).toBeNull();
   });

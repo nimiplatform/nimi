@@ -1,6 +1,7 @@
 import {
   aiConfigScopeKeyFromRef,
   createAppAIScopeRef,
+  computeAIConfigVersion,
   createHostAIProfileSurface,
   createAIConfigSubscriptionRegistry,
   createScopedAIConfigStore,
@@ -194,8 +195,16 @@ export function loadTesterAIConfig(scopeRef: AIScopeRef = createTesterAppLabAISc
 export function saveTesterAIConfig(
   next: AIConfig,
   scopeRef: AIScopeRef = createTesterAppLabAIScopeRef(),
+  options?: { readonly expectedBaseVersion?: string },
 ): AIConfig {
   const normalized = { ...next, scopeRef };
+  const expectedBaseVersion = options?.expectedBaseVersion?.trim();
+  if (expectedBaseVersion) {
+    const currentVersion = computeAIConfigVersion(loadTesterAIConfig(scopeRef));
+    if (currentVersion !== expectedBaseVersion) {
+      throw new Error('AIConfig CAS conflict: baseVersion is stale');
+    }
+  }
   const bindingErrors = validateAIConfigRuntimeBindings(normalized);
   if (bindingErrors.length > 0) {
     throw new Error(`AIConfig binding validation failed: ${bindingErrors.join('; ')}`);
@@ -209,7 +218,7 @@ export function createTesterAIConfigService(): SharedAIConfigService {
   const aiProfile = createHostAIProfileSurface({
     listProfiles: () => listTesterAIProfiles(),
     loadConfig: (scopeRef) => loadTesterAIConfig(scopeRef),
-    saveConfig: (scopeRef, next) => saveTesterAIConfig(next, scopeRef),
+    saveConfig: (scopeRef, next, options) => saveTesterAIConfig(next, scopeRef, options),
     missingProfileMessage: (profileId) =>
       `AIProfile ${profileId} is not in the App Lab profile library.`,
   });
@@ -233,8 +242,8 @@ export function createTesterAIConfigService(): SharedAIConfigService {
       async previewApply(scopeRef: AIScopeRef, profileId: string) {
         return aiProfile.previewApply(scopeRef, profileId);
       },
-      async apply(scopeRef: AIScopeRef, profileId: string) {
-        return aiProfile.apply(scopeRef, profileId);
+      async apply(scopeRef: AIScopeRef, profileId: string, options) {
+        return aiProfile.apply(scopeRef, profileId, options);
       },
     },
   };

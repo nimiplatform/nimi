@@ -97,9 +97,26 @@ test('Tester consumes the SDK host AIProfile surface for preview and apply', asy
     assert.equal(preview.after.capabilities.selectedBindings['text.generate'].model, 'local-chat');
     assert.match(preview.probeWarnings.join('\n'), /image\.generate/);
 
-    const apply = await service.aiProfile.apply(scopeRef, profile.profileId);
+    const apply = await service.aiProfile.apply(scopeRef, profile.profileId, {
+      expectedBaseVersion: preview.baseVersion,
+    });
     assert.equal(apply.success, true);
     assert.equal(store.loadTesterAIConfig(scopeRef).profileOrigin.profileId, profile.profileId);
+    const stalePreview = await service.aiProfile.previewApply(scopeRef, profile.profileId);
+    service.aiConfig.update(scopeRef, {
+      ...store.loadTesterAIConfig(scopeRef),
+      profileOrigin: {
+        profileId: 'external-change',
+        title: 'External Change',
+        appliedAt: 'test',
+      },
+    });
+    await assert.rejects(
+      () => service.aiProfile.apply(scopeRef, profile.profileId, {
+        expectedBaseVersion: stalePreview.baseVersion,
+      }),
+      /AIConfig CAS conflict/,
+    );
     assert.equal((await service.aiProfile.apply(scopeRef, 'missing-profile')).success, false);
   } finally {
     if (previousWindow === undefined) {

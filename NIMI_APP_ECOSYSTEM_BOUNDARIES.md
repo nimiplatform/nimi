@@ -94,10 +94,11 @@ Closed slices:
 - Tester runtime media invocation: Tester must resolve image/video/audio requests through AIConfig selected bindings and scheduling preflight. `model: "auto"` is not an app-owned executable route token.
 - Desktop Runtime Config localStorage: stored renderer state may keep UI preferences and endpoint text, but must not rehydrate local runtime inventory (`local.models` or `local.nodeMatrix`) as readiness/capability truth.
 - Desktop product-control Runtime gRPC method IDs: exact gRPC method ID strings belong to Kit shell runtime bridge constants/generated method-id infrastructure; Desktop Tauri product-control code must not hardcode them locally.
+- AIProfile preview/apply freshness: SDK owns the developer-experience seam for `previewApply` + `apply` with an optional `expectedBaseVersion`; Kit must pass `preview.baseVersion` through preview-gated confirm flows; Desktop and Tester host services remain the write authorities and must fail closed on stale CAS. Do not reclassify this seam as app-owned product truth.
 
 Known remaining authority forks:
 
-- First-run `data_root_selected` presentation still maps to the interactive Local AI phase in SDK projection to preserve current Desktop behavior. The spec table describes it as a device/environment scan step. Resolve this through `.nimi/spec/**` before changing UI semantics.
+- First-run `data_root_selected` presentation still maps to the interactive Local AI phase in SDK projection to preserve current Desktop behavior, while the spec table describes it as a device/environment scan step. Treat this as an alignment task against existing spec unless product explicitly decides that immediate install-level selection is the desired canonical behavior; only then open a spec-fork.
 - Desktop renderer still submits a setup-state transition derived from first-run materialization projection via `product_control_record_set_first_run_setup_state`. The backend rejects ready shortcuts, but durable non-ready setup-state ownership is still too renderer-shaped. A future Runtime/product-control owner slice should make the backend recompute the transition from Runtime evidence before writing `~/.nimi/nimi.json`.
 - SDK first-run materialization still infers recovery retryability from Runtime failure details. Runtime should eventually provide typed `recoveryDisposition` / `reasonCode`; SDK should filter typed fields only.
 

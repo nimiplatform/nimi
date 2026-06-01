@@ -12,6 +12,7 @@
 import type {
   AIConfig,
   AIProfile,
+  AIProfileApplyOptions,
   AIProfileApplyResult,
   AIProfilePreviewResult,
   AIProfileRef,
@@ -47,7 +48,11 @@ export interface SharedAIConfigService {
      * apply flow gates `apply` behind an explicit confirm of this preview.
      */
     previewApply(scopeRef: AIScopeRef, profileId: string): Promise<AIProfilePreviewResult>;
-    apply(scopeRef: AIScopeRef, profileId: string): Promise<AIProfileApplyResult>;
+    apply(
+      scopeRef: AIScopeRef,
+      profileId: string,
+      options?: AIProfileApplyOptions,
+    ): Promise<AIProfileApplyResult>;
   };
 }
 

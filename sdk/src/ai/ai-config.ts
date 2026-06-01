@@ -317,6 +317,15 @@ export type AIProfilePreviewResult = {
   probeWarnings: string[];
 };
 
+export type AIProfileApplyOptions = {
+  /**
+   * Optional CAS freshness guard from `previewApply.baseVersion`. Hosts remain
+   * the write authority and must fail closed when the current config no longer
+   * matches this version.
+   */
+  readonly expectedBaseVersion?: string;
+};
+
 // ---------------------------------------------------------------------------
 // SDK typed surface  (S-AICONF-001)
 
@@ -336,7 +345,11 @@ export type AIProfileSurface = {
    * subscribers, or record a snapshot. Fails closed on schema-invalid input.
    */
   previewApply(scopeRef: AIScopeRef, profileId: string): Promise<AIProfilePreviewResult>;
-  apply(scopeRef: AIScopeRef, profileId: string): Promise<AIProfileApplyResult>;
+  apply(
+    scopeRef: AIScopeRef,
+    profileId: string,
+    options?: AIProfileApplyOptions,
+  ): Promise<AIProfileApplyResult>;
   resolveLocalDependencies(profileId: string): Promise<unknown[]>;
 };
 

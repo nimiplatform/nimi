@@ -189,7 +189,7 @@ export { ReasonCode } from '@nimiplatform/sdk/types';
 // --- Module-config (kit/core/model-config + kit/features/model-config) ------
 // `@nimiplatform/sdk/ai` consumers in kit:
 //   - core/model-config/types.ts (AIConfig, AIProfile, AIProfileApplyResult,
-//     AIProfilePreviewResult, AIProfileRef, AIScopeRef)
+//     AIProfileApplyOptions, AIProfilePreviewResult, AIProfileRef, AIScopeRef)
 //   - core/model-config/profile-controller-core.ts (AIConfig, AIProfile,
 //     AIProfileApplyResult, AIProfilePreviewResult, AIProfileRef)
 //   - features/model-config/src/components/model-config-ai-model-hub.tsx
@@ -202,6 +202,7 @@ export { ReasonCode } from '@nimiplatform/sdk/types';
 export type {
   AIConfig,
   AIProfile,
+  AIProfileApplyOptions,
   AIProfileApplyResult,
   AIProfilePreviewResult,
   AIProfileRef,

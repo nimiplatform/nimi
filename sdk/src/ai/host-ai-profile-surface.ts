@@ -6,6 +6,7 @@ import {
   validateAIProfile,
   type AIConfig,
   type AIProfile,
+  type AIProfileApplyOptions,
   type AIProfileApplyResult,
   type AIProfileSurface,
   type AIProfileValidationResult,
@@ -19,7 +20,11 @@ export type HostAIProfileSurfaceOptions = {
   readonly validateProfile?: (profile: AIProfile) => AIProfileValidationResult;
   readonly loadConfig: (scopeRef: AIScopeRef) => Awaitable<AIConfig>;
   readonly hasConfig?: (scopeRef: AIScopeRef) => Awaitable<boolean>;
-  readonly saveConfig: (scopeRef: AIScopeRef, config: AIConfig) => Awaitable<AIConfig | void>;
+  readonly saveConfig: (
+    scopeRef: AIScopeRef,
+    config: AIConfig,
+    options: { readonly expectedBaseVersion: string },
+  ) => Awaitable<AIConfig | void>;
   readonly collectProbeWarnings?: (profile: AIProfile) => readonly string[];
   readonly resolveLocalDependencies?: (profileId: string) => Awaitable<unknown[]>;
   readonly missingProfileMessage?: (profileId: string) => string;
@@ -153,7 +158,11 @@ export function createHostAIProfileSurface(
       };
     },
 
-    async apply(scopeRef: AIScopeRef, profileId: string): Promise<AIProfileApplyResult> {
+    async apply(
+      scopeRef: AIScopeRef,
+      profileId: string,
+      applyOptions?: AIProfileApplyOptions,
+    ): Promise<AIProfileApplyResult> {
       const resolved = await resolveValidProfile(profileId);
       if (!resolved.ok) {
         return {
@@ -163,11 +172,13 @@ export function createHostAIProfileSurface(
           probeWarnings: resolved.probeWarnings,
         };
       }
-      const nextConfig = applyAIProfileToConfig(
-        await options.loadConfig(scopeRef),
-        resolved.profile,
-      );
-      const savedConfig = await options.saveConfig(scopeRef, nextConfig);
+      const baseConfig = await options.loadConfig(scopeRef);
+      const expectedBaseVersion =
+        applyOptions?.expectedBaseVersion?.trim() || computeAIConfigVersion(baseConfig);
+      const nextConfig = applyAIProfileToConfig(baseConfig, resolved.profile);
+      const savedConfig = await options.saveConfig(scopeRef, nextConfig, {
+        expectedBaseVersion,
+      });
       return {
         success: true,
         config: savedConfig ?? nextConfig,

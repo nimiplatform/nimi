@@ -212,7 +212,9 @@ export function useModelConfigProfileController(
     setApplying(true);
     setApplyError(null);
     const currentScopeRef = scopeRefRef.current;
-    void aiConfigService.aiProfile.apply(currentScopeRef, profileId)
+    void aiConfigService.aiProfile.apply(currentScopeRef, profileId, {
+      expectedBaseVersion: pendingPreview.baseVersion,
+    })
       .then((remoteResult: AIProfileApplyResult) => {
         const resolution = core.resolveRemoteApply({
           profileId,

@@ -61,6 +61,67 @@ test('host AIProfile surface previews without committing and reports static warn
   assert.equal(secondPreview.before?.profileOrigin?.profileId, PROFILE.profileId);
 });
 
+test('host AIProfile surface passes expected base version to the host save authority', async () => {
+  const profiles = [PROFILE];
+  let current = createEmptyAIConfig(SCOPE);
+  const expectedVersions: string[] = [];
+  const surface = createHostAIProfileSurface({
+    listProfiles: () => profiles,
+    loadConfig: () => current,
+    saveConfig: (_scopeRef, config, options) => {
+      expectedVersions.push(options.expectedBaseVersion);
+      current = config;
+      return config;
+    },
+  });
+
+  const preview = await surface.previewApply(SCOPE, PROFILE.profileId);
+  const applied = await surface.apply(SCOPE, PROFILE.profileId);
+
+  assert.equal(applied.success, true);
+  assert.deepEqual(expectedVersions, [preview.baseVersion]);
+});
+
+test('host AIProfile surface lets host fail closed on stale CAS version', async () => {
+  const profiles = [PROFILE];
+  let current = createEmptyAIConfig(SCOPE);
+  const surface = createHostAIProfileSurface({
+    listProfiles: () => profiles,
+    loadConfig: () => current,
+    saveConfig: () => {
+      throw new Error('AIConfig CAS conflict: baseVersion is stale');
+    },
+  });
+
+  await assert.rejects(
+    () => surface.apply(SCOPE, PROFILE.profileId),
+    /AIConfig CAS conflict/,
+  );
+});
+
+test('host AIProfile surface forwards preview base version to explicit apply', async () => {
+  const profiles = [PROFILE];
+  let current = createEmptyAIConfig(SCOPE);
+  const expectedVersions: string[] = [];
+  const surface = createHostAIProfileSurface({
+    listProfiles: () => profiles,
+    loadConfig: () => current,
+    saveConfig: (_scopeRef, config, options) => {
+      expectedVersions.push(options.expectedBaseVersion);
+      current = config;
+      return config;
+    },
+  });
+
+  const preview = await surface.previewApply(SCOPE, PROFILE.profileId);
+  const applied = await surface.apply(SCOPE, PROFILE.profileId, {
+    expectedBaseVersion: preview.baseVersion,
+  });
+
+  assert.equal(applied.success, true);
+  assert.deepEqual(expectedVersions, [preview.baseVersion]);
+});
+
 test('host AIProfile surface fails closed for missing and invalid profiles', async () => {
   const surface = createHostAIProfileSurface({
     listProfiles: () => [

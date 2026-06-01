@@ -10,6 +10,7 @@ import {
   applyAIProfileToConfig,
   assertAppAIScopeRef,
   createBuiltInChatAIScopeRef,
+  computeAIConfigVersion,
   createEmptyAIConfig,
   createHostAIProfileSurface,
   ensureAppFirstLaunchAIConfig as ensureAppFirstLaunchAIConfig_sdk,
@@ -139,8 +140,16 @@ function getConfigForScope(scopeRef: AIScopeRef): AIConfig {
  * This is the single write path for AIConfig. No caller outside this module
  * should write to persistence or app store directly for config mutations.
  */
-function commitConfig(config: AIConfig): void {
+function commitConfig(config: AIConfig, options?: { readonly expectedBaseVersion?: string }): void {
   const key = scopeKey(config.scopeRef);
+  const expectedBaseVersion = options?.expectedBaseVersion?.trim();
+  if (expectedBaseVersion) {
+    const current = getConfigForScope(config.scopeRef);
+    const currentVersion = computeAIConfigVersion(current);
+    if (currentVersion !== expectedBaseVersion) {
+      throw new Error('AIConfig CAS conflict: baseVersion is stale');
+    }
+  }
   persistAIConfigForScope(config);
   configByScope.set(key, config);
   materializedScopeKeys.add(key);
@@ -401,8 +410,8 @@ function createAIProfileSurface(): AIProfileSurface {
     listProfiles: () => loadPlatformAIProfileFactoryCatalog(),
     hasConfig: (scopeRef) => scopeHasPersistedConfig(scopeRef),
     loadConfig: (scopeRef) => getConfigForScope(scopeRef),
-    saveConfig: (_scopeRef, config) => {
-      commitConfig(config);
+    saveConfig: (_scopeRef, config, options) => {
+      commitConfig(config, options);
       return config;
     },
     resolveLocalDependencies: async (profileId: string): Promise<unknown[]> => {
