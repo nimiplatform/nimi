@@ -106,10 +106,11 @@ Closed slices:
 - SDK routeDecision evidence projection: Runtime owns canonical route decision evidence. SDK runtime helpers, convenience wrappers, and AI provider adapters may project Runtime-provided `CLOUD` or `LOCAL` into app-facing metadata, but missing or `UNSPECIFIED` Runtime evidence must remain absent. SDK must not synthesize `local` route truth for missing `routeDecision`, including stream finish metadata and `ai.route.decision` telemetry.
 - Kit model picker selection boundary: Kit may preview/highlight the first available model candidate for UI continuity, but it must not call `onSelectModel` or `onSelectionChange` for that candidate automatically. Committed route selection truth must come from explicit user/caller action or from Runtime/SDK selected-binding evidence. Desktop and Tester continue to write AIConfig only from explicit picker selections.
 - Kit Tauri runtime bridge metadata identity: `kit/shell/tauri` must not default missing Runtime bridge metadata to Desktop identity. Shared bridge metadata must require explicit app identity from the SDK/app caller, may derive participant/caller IDs from that explicit app ID, and must fail closed when `appId` is absent. Desktop and Tester consume the same shared bridge; app branding belongs in app/SDK metadata inputs, not Kit fallback truth.
+- Memory embedding editable config boundary: `.nimi/spec/runtime/kernel/rpc-surface.md` states that memory embedding editable config is not a `RuntimeCognitionService` public method family and that live-config read/write remains a host-local typed surface. Desktop may own the host-local adjacent config surface and persistence for binding intent; SDK owns the typed config shape/projection and Runtime private-path helpers; Runtime/Cognition own resolved state, canonical bind, rebuild, and cutover facts. Do not migrate this local editable config blindly into Runtime/Cognition unless the spec changes.
 
 Known remaining authority forks:
 
-- Desktop memory embedding config remains an authority-fork candidate: Desktop renderer-local storage currently influences embedding/provider configuration. Do not migrate blindly; confirm Cognition/Runtime ownership for memory policy and execution before coding.
+- None currently recorded in this handoff file.
 
 Continue to treat this as non-authoritative memory; if a future audit finds a conflict with `.nimi/spec/**`, the spec wins and this ledger must be corrected.
 
