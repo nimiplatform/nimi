@@ -49,7 +49,10 @@ function importSpecifiers(source: string): string[] {
   const importPattern = /(?:from\s+|import\s*\(\s*)['"]([^'"]+)['"]/g;
   let match: RegExpExecArray | null;
   while ((match = importPattern.exec(source)) !== null) {
-    specifiers.push(match[1]);
+    const specifier = match[1];
+    if (specifier) {
+      specifiers.push(specifier);
+    }
   }
   return specifiers;
 }

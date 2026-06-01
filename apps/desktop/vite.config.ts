@@ -190,6 +190,15 @@ export default defineConfig(({ mode }) => {
         '@react-three/postprocessing',
         'zustand',
         'zustand/traditional',
+        // simplex-noise is reachable only behind a dynamic import (the auth
+        // screen's particle background). If Vite discovers it after the dev
+        // server starts serving, it re-optimizes deps and bumps the optimizer
+        // browserHash. Because `server.hmr` is disabled for the Tauri webview,
+        // the client never receives the post-reoptimize full-reload, so the
+        // in-flight entry imports in main.tsx keep hitting stale `?v=` URLs and
+        // fail with "Failed to fetch dynamically imported module". Prebundling
+        // it up front keeps the first optimize pass complete and stable.
+        'simplex-noise',
       ],
     },
     resolve: {
