@@ -1,6 +1,7 @@
 import type { DesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/types';
 import type { DesktopAvatarLiveInstanceRecord } from '@renderer/bridge/runtime-bridge/chat-agent-avatar-instance-registry';
 import type { DesktopMacosSmokeAvatarEvidenceReadResult } from '@renderer/bridge/runtime-bridge/types';
+import type { AgentConversationAnchorBinding } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 
 export const SMOKE_STEP_TIMEOUT_MS = 15000;
 export const SMOKE_BOOTSTRAP_TIMEOUT_MS = 60000;
@@ -48,8 +49,8 @@ export type DesktopMacosSmokeDriverDeps = {
   clickByTestId: (id: string, timeoutMs?: number) => Promise<void>;
   clickSelector: (selector: string, timeoutMs?: number) => Promise<void>;
   setValueBySelector: (selector: string, value: string, timeoutMs?: number) => Promise<void>;
-  readLocalStorageItem: (key: string) => Promise<string | null>;
   verifyRuntimeAccountProjection: () => Promise<void>;
+  readAgentConversationAnchorBinding: (localAgentRef: string) => Promise<AgentConversationAnchorBinding | null>;
   clearAgentConversationAnchorBindings: () => Promise<void>;
   configureRuntimeTextRoute: () => Promise<void>;
   verifyRuntimeConversationAnchor: (input: { agentId: string; conversationAnchorId: string }) => Promise<void>;

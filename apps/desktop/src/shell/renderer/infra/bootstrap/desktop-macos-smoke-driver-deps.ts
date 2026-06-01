@@ -8,7 +8,10 @@ import type { DesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/t
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT } from '@renderer/features/chat/chat-agent-avatar-debug-override';
-import { clearAllAgentConversationAnchorBindings } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
+import {
+  clearAllAgentConversationAnchorBindings,
+  getAgentConversationAnchorBinding,
+} from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import { getActiveScope } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
 import { refreshConversationCapabilityProjections } from '@renderer/features/chat/conversation-capability-projection';
 import { getPlatformClient } from '@nimiplatform/sdk';
@@ -18,10 +21,6 @@ import {
   parseRuntimeLocalAgentIdentity,
 } from '@nimiplatform/sdk/runtime';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/browser';
-import {
-  readStorageTextFrom,
-  resolveBrowserStorage,
-} from '@nimiplatform/kit/core/storage-json';
 import {
   type DesktopMacosSmokeCanvasStats,
   type DesktopMacosSmokeDriverDeps,
@@ -281,13 +280,12 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
       element.dispatchEvent(new Event('input', { bubbles: true }));
       element.dispatchEvent(new Event('change', { bubbles: true }));
     },
-    async readLocalStorageItem(key: string) {
-      const result = readStorageTextFrom(resolveBrowserStorage('local'), key);
-      return result.state === 'ready' ? result.value : null;
-    },
     async clearAgentConversationAnchorBindings() {
       clearAllAgentConversationAnchorBindings();
       await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    },
+    async readAgentConversationAnchorBinding(localAgentRef: string) {
+      return getAgentConversationAnchorBinding(localAgentRef);
     },
     async configureRuntimeTextRoute() {
       const scopeRef = getActiveScope();

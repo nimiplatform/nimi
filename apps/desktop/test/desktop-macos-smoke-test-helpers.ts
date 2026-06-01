@@ -51,10 +51,10 @@ export function createBaseDriver(
     async clickByTestId() {},
     async clickSelector() {},
     async setValueBySelector() {},
-    async readLocalStorageItem() {
+    async verifyRuntimeAccountProjection() {},
+    async readAgentConversationAnchorBinding() {
       return null;
     },
-    async verifyRuntimeAccountProjection() {},
     async clearAgentConversationAnchorBindings() {},
     async configureRuntimeTextRoute() {},
     async verifyRuntimeConversationAnchor() {},

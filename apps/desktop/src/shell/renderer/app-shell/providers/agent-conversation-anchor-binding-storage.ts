@@ -1,12 +1,4 @@
-import {
-  readStorageTextFrom,
-  removeStorageKeyFrom,
-  resolveBrowserStorage,
-  writeStorageTextTo,
-} from '@nimiplatform/kit/core/storage-json';
 import { projectRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
-
-export const AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY = 'nimi.chat.agent.anchor-bindings.v2';
 
 export type AgentConversationAnchorBinding = {
   ownerUserId: string;
@@ -17,7 +9,6 @@ export type AgentConversationAnchorBinding = {
 };
 
 const anchorBindingsByLocalAgentRef = new Map<string, AgentConversationAnchorBinding>();
-let storageSnapshot = '';
 let anchorBindingVersion = 0;
 const anchorBindingListeners = new Set<() => void>();
 
@@ -67,72 +58,6 @@ function notifyAnchorBindingListeners(): void {
   }
 }
 
-function handleExternalAnchorBindingStorageChange(event: StorageEvent): void {
-  if (event.key !== AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY) {
-    return;
-  }
-  storageSnapshot = '';
-  hydrateBindingsFromStorage();
-  notifyAnchorBindingListeners();
-}
-
-function serializeBindings(): string {
-  return JSON.stringify([...anchorBindingsByLocalAgentRef.values()]);
-}
-
-function hydrateBindingsFromStorage(): void {
-  const result = readStorageTextFrom(resolveBrowserStorage('local'), AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY);
-  if (result.state !== 'ready' && result.state !== 'missing') {
-    return;
-  }
-  const raw = result.state === 'ready' ? result.value : '';
-  if (raw === storageSnapshot) {
-    return;
-  }
-  storageSnapshot = raw;
-  anchorBindingsByLocalAgentRef.clear();
-  if (!raw) {
-    return;
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return;
-  }
-  if (!Array.isArray(parsed)) {
-    return;
-  }
-  for (const entry of parsed) {
-    const binding = normalizeBinding(entry);
-    if (binding) {
-      const current = anchorBindingsByLocalAgentRef.get(binding.localAgentRef);
-      if (!current || binding.updatedAtMs >= current.updatedAtMs) {
-        anchorBindingsByLocalAgentRef.set(binding.localAgentRef, binding);
-      }
-    }
-  }
-}
-
-function persistBindingsToStorage(): void {
-  const storage = resolveBrowserStorage('local');
-  if (!storage) {
-    return;
-  }
-  const serialized = serializeBindings();
-  if (anchorBindingsByLocalAgentRef.size === 0) {
-    const result = removeStorageKeyFrom(storage, AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY);
-    if (result.state === 'removed') {
-      storageSnapshot = '';
-    }
-    return;
-  }
-  const result = writeStorageTextTo(storage, AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY, serialized);
-  if (result.state === 'saved') {
-    storageSnapshot = serialized;
-  }
-}
-
 export function getAgentConversationAnchorBinding(
   localAgentRef: string | null | undefined,
 ): AgentConversationAnchorBinding | null {
@@ -140,7 +65,6 @@ export function getAgentConversationAnchorBinding(
   if (!normalizedLocalAgentRef) {
     return null;
   }
-  hydrateBindingsFromStorage();
   return anchorBindingsByLocalAgentRef.get(normalizedLocalAgentRef) || null;
 }
 
@@ -152,7 +76,6 @@ export function persistAgentConversationAnchorBinding(
     throw new Error('agent conversation anchor binding is invalid');
   }
   anchorBindingsByLocalAgentRef.set(normalizedBinding.localAgentRef, normalizedBinding);
-  persistBindingsToStorage();
   notifyAnchorBindingListeners();
   return normalizedBinding;
 }
@@ -164,37 +87,25 @@ export function clearAgentConversationAnchorBinding(
   if (!normalizedLocalAgentRef) {
     return;
   }
-  hydrateBindingsFromStorage();
   anchorBindingsByLocalAgentRef.delete(normalizedLocalAgentRef);
-  persistBindingsToStorage();
   notifyAnchorBindingListeners();
 }
 
 export function clearAllAgentConversationAnchorBindings(): void {
-  hydrateBindingsFromStorage();
   if (anchorBindingsByLocalAgentRef.size === 0) {
     return;
   }
   anchorBindingsByLocalAgentRef.clear();
-  persistBindingsToStorage();
   notifyAnchorBindingListeners();
 }
 
 export function getAgentConversationAnchorBindingVersion(): number {
-  hydrateBindingsFromStorage();
   return anchorBindingVersion;
 }
 
 export function subscribeAgentConversationAnchorBindings(listener: () => void): () => void {
   anchorBindingListeners.add(listener);
-  const windowLike = typeof window !== 'undefined' ? window : null;
-  if (windowLike && anchorBindingListeners.size === 1) {
-    windowLike.addEventListener('storage', handleExternalAnchorBindingStorageChange);
-  }
   return () => {
     anchorBindingListeners.delete(listener);
-    if (windowLike && anchorBindingListeners.size === 0) {
-      windowLike.removeEventListener('storage', handleExternalAnchorBindingStorageChange);
-    }
   };
 }

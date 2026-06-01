@@ -17,7 +17,6 @@ import {
   waitForAvatarLocalAssetDegradedEvidence,
   waitForAvatarLive2dInteractionEvidence,
 } from './desktop-macos-smoke-avatar-evidence';
-import { AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import {
   assertStableVrmFramingSignature,
   assertStableVrmRendererMemory,
@@ -81,43 +80,30 @@ async function waitForAgentConversationAnchorBinding(
   timeoutMs = 20_000,
 ): Promise<string> {
   const deadline = Date.now() + timeoutMs;
-  let lastRaw = '';
+  let lastBinding: Awaited<ReturnType<DesktopMacosSmokeDriverDeps['readAgentConversationAnchorBinding']>> = null;
   while (Date.now() < deadline) {
-    lastRaw = await deps.readLocalStorageItem(AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY) || '';
-    if (lastRaw) {
-      try {
-        const parsed: unknown = JSON.parse(lastRaw);
-        if (Array.isArray(parsed)) {
-          const binding = parsed.find((item) => (
-            item
-            && typeof item === 'object'
-            && !Array.isArray(item)
-            && (
-              (item as Record<string, unknown>).localAgentRef === input.localAgentRef
-              || (item as Record<string, unknown>).realmAgentId === input.realmAgentId
-            )
-            && typeof (item as Record<string, unknown>).conversationAnchorId === 'string'
-            && String((item as Record<string, unknown>).conversationAnchorId).trim()
-          )) as Record<string, unknown> | undefined;
-          const anchor = typeof binding?.conversationAnchorId === 'string'
-            ? binding.conversationAnchorId.trim()
-            : '';
-          const updatedAtMs = Number(binding?.updatedAtMs || 0);
-          if (anchor && Number.isFinite(updatedAtMs) && updatedAtMs >= notBeforeMs) {
-            await deps.verifyRuntimeConversationAnchor({
-              agentId: input.localAgentRef,
-              conversationAnchorId: anchor,
-            });
-            return anchor;
-          }
-        }
-      } catch {
-        // Keep polling until the storage write is complete.
-      }
+    const binding = await deps.readAgentConversationAnchorBinding(input.localAgentRef);
+    lastBinding = binding;
+    const anchor = binding?.conversationAnchorId?.trim() || '';
+    if (
+      binding
+      && binding.localAgentRef === input.localAgentRef
+      && binding.realmAgentId === input.realmAgentId
+      && anchor
+      && binding.updatedAtMs >= notBeforeMs
+    ) {
+      await deps.verifyRuntimeConversationAnchor({
+        agentId: input.localAgentRef,
+        conversationAnchorId: anchor,
+      });
+      return anchor;
     }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
-  throw new Error(`missing explicit conversation anchor binding for ${input.localAgentRef}; storage=${lastRaw || 'empty'}`);
+  throw new Error(
+    `missing explicit conversation anchor binding for ${input.localAgentRef}`
+    + `; binding=${lastBinding ? JSON.stringify(lastBinding) : 'empty'}`,
+  );
 }
 
 async function waitForRuntimeProductPathEvidence(

@@ -5,6 +5,16 @@ import { waitForAvatarCarrierEvidence } from '../src/shell/renderer/infra/bootst
 
 const AVATAR_CARRIER_FAILURE_EVIDENCE_TIMEOUT_MS = 50;
 
+function createRuntimeVerifiedAgentAnchorBinding() {
+  return {
+    ownerUserId: 'user-e2e-primary',
+    realmAgentId: 'agent-e2e-alpha',
+    localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
+    conversationAnchorId: 'anchor-1',
+    updatedAtMs: Date.now(),
+  };
+}
+
 function createAvatarLocalAssetResolvedRecord(recordedAt = '2026-04-26T00:00:02.000Z') {
   return {
     kind: 'avatar.visual.local-asset-resolved',
@@ -481,13 +491,8 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
         has_runtime_turn: true,
       };
     },
-    async readLocalStorageItem() {
-      return JSON.stringify([{
-        threadId: 'agent-thread-1',
-        localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
-        conversationAnchorId: 'anchor-1',
-        updatedAtMs: Date.now(),
-      }]);
+    async readAgentConversationAnchorBinding() {
+      return createRuntimeVerifiedAgentAnchorBinding();
     },
     async listAvatarLiveInstances(agentId) {
       assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
@@ -722,13 +727,8 @@ test('desktop macos smoke live2d avatar local asset missing scenario requires ty
         has_runtime_turn: true,
       };
     },
-    async readLocalStorageItem() {
-      return JSON.stringify([{
-        threadId: 'agent-thread-1',
-        localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
-        conversationAnchorId: 'anchor-1',
-        updatedAtMs: Date.now(),
-      }]);
+    async readAgentConversationAnchorBinding() {
+      return createRuntimeVerifiedAgentAnchorBinding();
     },
     async listAvatarLiveInstances(agentId) {
       assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
@@ -860,13 +860,8 @@ test('desktop macos smoke live2d avatar product scenario fails without local Ava
   await assert.rejects(
     runDesktopMacosSmokeScenario('chat.live2d-avatar-product-smoke', createBaseDriver({
       avatarCarrierEvidenceTimeoutMs: AVATAR_CARRIER_FAILURE_EVIDENCE_TIMEOUT_MS,
-      async readLocalStorageItem() {
-        return JSON.stringify([{
-          threadId: 'agent-thread-1',
-          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
-          conversationAnchorId: 'anchor-1',
-          updatedAtMs: Date.now(),
-        }]);
+      async readAgentConversationAnchorBinding() {
+        return createRuntimeVerifiedAgentAnchorBinding();
       },
       async listAvatarLiveInstances(agentId) {
         assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
@@ -956,13 +951,8 @@ test('desktop macos smoke avatar carrier evidence reports pre-anchor runtime bin
   await assert.rejects(
     runDesktopMacosSmokeScenario('chat.live2d-avatar-product-smoke', createBaseDriver({
       avatarCarrierEvidenceTimeoutMs: AVATAR_CARRIER_FAILURE_EVIDENCE_TIMEOUT_MS,
-      async readLocalStorageItem() {
-        return JSON.stringify([{
-          threadId: 'agent-thread-1',
-          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
-          conversationAnchorId: 'anchor-1',
-          updatedAtMs: Date.now(),
-        }]);
+      async readAgentConversationAnchorBinding() {
+        return createRuntimeVerifiedAgentAnchorBinding();
       },
       async listAvatarLiveInstances(agentId) {
         assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
@@ -1150,13 +1140,8 @@ test('desktop macos smoke live2d avatar product scenario fails without Runtime c
   await assert.rejects(
     runDesktopMacosSmokeScenario('chat.live2d-avatar-product-smoke', createBaseDriver({
       avatarCarrierEvidenceTimeoutMs: AVATAR_CARRIER_FAILURE_EVIDENCE_TIMEOUT_MS,
-      async readLocalStorageItem() {
-        return JSON.stringify([{
-          threadId: 'agent-thread-1',
-          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
-          conversationAnchorId: 'anchor-1',
-          updatedAtMs: Date.now(),
-        }]);
+      async readAgentConversationAnchorBinding() {
+        return createRuntimeVerifiedAgentAnchorBinding();
       },
       async listAvatarLiveInstances(agentId) {
         assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');
@@ -1240,13 +1225,8 @@ test('desktop macos smoke live2d avatar product scenario fails without hit-regio
   await assert.rejects(
     runDesktopMacosSmokeScenario('chat.live2d-avatar-product-smoke', createBaseDriver({
       avatarCarrierEvidenceTimeoutMs: AVATAR_CARRIER_FAILURE_EVIDENCE_TIMEOUT_MS,
-      async readLocalStorageItem() {
-        return JSON.stringify([{
-          threadId: 'agent-thread-1',
-          localAgentRef: 'local-agent:user-e2e-primary:agent-e2e-alpha',
-          conversationAnchorId: 'anchor-1',
-          updatedAtMs: Date.now(),
-        }]);
+      async readAgentConversationAnchorBinding() {
+        return createRuntimeVerifiedAgentAnchorBinding();
       },
       async listAvatarLiveInstances(agentId) {
         assert.equal(agentId, 'local-agent:user-e2e-primary:agent-e2e-alpha');

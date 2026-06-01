@@ -247,10 +247,16 @@ export function useAgentConversationShellState(
     || selectedThreadRecord?.localAgentRef
     || input.selection.localAgentRef
     || null;
-  const activeConversationAnchorId = useMemo(
-    () => getAgentConversationAnchorBinding(activeAnchorBindingLocalAgentRef)?.conversationAnchorId || null,
-    [activeAnchorBindingLocalAgentRef, anchorBindingVersion],
-  );
+  const activeConversationAnchorId = useMemo(() => {
+    if (!activeAnchorBindingLocalAgentRef) {
+      return null;
+    }
+    const runtimeSummary = runtimeConversationSummaryByLocalAgentRef.get(activeAnchorBindingLocalAgentRef) || null;
+    if (runtimeSummary?.conversationAnchorId) {
+      return runtimeSummary.conversationAnchorId;
+    }
+    return getAgentConversationAnchorBinding(activeAnchorBindingLocalAgentRef)?.conversationAnchorId || null;
+  }, [activeAnchorBindingLocalAgentRef, anchorBindingVersion, runtimeConversationSummaryByLocalAgentRef]);
   const activeTarget = useMemo(() => {
     const threadTarget = selectedThreadRecord?.targetSnapshot || null;
     if (!threadTarget) {
