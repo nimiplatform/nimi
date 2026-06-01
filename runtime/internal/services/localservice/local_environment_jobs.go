@@ -79,6 +79,7 @@ type localEnvironmentDependencyJobResult struct {
 	VerificationEvidenceRef string
 	ActivationEnvDelta      []string
 	AuditReasonCode         string
+	FailureDetail           string
 }
 
 // localEnvironmentDependencyJobProgressReporter lets an executor publish a
@@ -214,13 +215,13 @@ func (s *Service) runLocalEnvironmentDependencyJob(ctx context.Context, jobID st
 	resultState := strings.TrimSpace(result.State)
 	switch resultState {
 	case localEnvironmentStateUnsupported:
-		unsupported, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateUnsupported, strings.TrimSpace(result.AuditReasonCode), false)
+		unsupported, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateUnsupported, localEnvironmentDependencyJobResultDetail(result), false)
 		return unsupported, nil
 	case localEnvironmentStateRepairRequired:
-		repairRequired, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateRepairRequired, strings.TrimSpace(result.AuditReasonCode), true)
+		repairRequired, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateRepairRequired, localEnvironmentDependencyJobResultDetail(result), true)
 		return repairRequired, nil
 	case localEnvironmentStateFailed:
-		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, strings.TrimSpace(result.AuditReasonCode), true)
+		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, localEnvironmentDependencyJobResultDetail(result), true)
 		return failed, nil
 	case localEnvironmentStateReadySystem, localEnvironmentStateReadyManaged:
 	default:
@@ -284,6 +285,13 @@ func (s *Service) runLocalEnvironmentDependencyJob(ctx context.Context, jobID st
 		return localEnvironmentDependencyJobState{}, errors.New("local environment dependency job not found")
 	}
 	return promoted, nil
+}
+
+func localEnvironmentDependencyJobResultDetail(result localEnvironmentDependencyJobResult) string {
+	if detail := strings.TrimSpace(result.FailureDetail); detail != "" {
+		return detail
+	}
+	return strings.TrimSpace(result.AuditReasonCode)
 }
 
 // promoteLocalEnvironmentDependencyJobReady atomically writes the
@@ -849,24 +857,139 @@ func (s *Service) prerequisiteWaitTimeout() time.Duration {
 // ready_managed, but stale / repair-required records are never consumed as
 // readiness.
 func (s *Service) waitForSelectedSourceForFamilyAndConsumer(ctx context.Context, family string, consumer string) (localEnvironmentSelectedSourceRecordState, bool) {
-	if record, ok, _ := s.readySelectedSourceForFamilyAndConsumer(family, consumer); ok {
-		return record, true
+	record, ok, _ := s.waitForSelectedSourceForFamilyAndConsumerDetail(ctx, family, consumer)
+	return record, ok
+}
+
+func (s *Service) waitForSelectedSourceForFamilyAndConsumerDetail(ctx context.Context, family string, consumer string) (localEnvironmentSelectedSourceRecordState, bool, string) {
+	if record, ok, detail := s.readySelectedSourceForFamilyAndConsumer(family, consumer); ok {
+		return record, true, detail
+	} else if job, jobOK := s.latestBlockingLocalEnvironmentDependencyJobForFamilyAndConsumer(family, consumer); jobOK {
+		return localEnvironmentSelectedSourceRecordState{}, false, localEnvironmentPrerequisiteFailureDetail(family, consumer, job, detail)
 	}
 	deadline := time.NewTimer(s.prerequisiteWaitTimeout())
 	defer deadline.Stop()
 	ticker := time.NewTicker(localEnvironmentPrerequisiteWaitPoll)
 	defer ticker.Stop()
+	lastDetail := "no selected source record for consumer"
 	for {
 		select {
 		case <-ctx.Done():
-			return localEnvironmentSelectedSourceRecordState{}, false
+			if err := ctx.Err(); err != nil {
+				return localEnvironmentSelectedSourceRecordState{}, false, err.Error()
+			}
+			return localEnvironmentSelectedSourceRecordState{}, false, "prerequisite wait cancelled"
 		case <-deadline.C:
-			return localEnvironmentSelectedSourceRecordState{}, false
+			return localEnvironmentSelectedSourceRecordState{}, false, lastDetail
 		case <-ticker.C:
-			if record, ok, _ := s.readySelectedSourceForFamilyAndConsumer(family, consumer); ok {
-				return record, true
+			if record, ok, detail := s.readySelectedSourceForFamilyAndConsumer(family, consumer); ok {
+				return record, true, detail
+			} else {
+				lastDetail = detail
+			}
+			if job, ok := s.latestBlockingLocalEnvironmentDependencyJobForFamilyAndConsumer(family, consumer); ok {
+				return localEnvironmentSelectedSourceRecordState{}, false, localEnvironmentPrerequisiteFailureDetail(family, consumer, job, lastDetail)
 			}
 		}
+	}
+}
+
+func (s *Service) latestBlockingLocalEnvironmentDependencyJobForFamilyAndConsumer(family string, consumer string) (localEnvironmentDependencyJobState, bool) {
+	trimmedFamily := strings.TrimSpace(family)
+	trimmedConsumer := strings.TrimSpace(consumer)
+	if trimmedFamily == "" {
+		return localEnvironmentDependencyJobState{}, false
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	var latest localEnvironmentDependencyJobState
+	for _, job := range s.localEnvironmentDependencyJobs {
+		if strings.TrimSpace(job.DependencyFamily) != trimmedFamily {
+			continue
+		}
+		if !localEnvironmentDependencyJobBlocksPrerequisiteWait(job.State) {
+			continue
+		}
+		if trimmedConsumer != "" && !localEnvironmentDependencyJobMatchesConsumer(job, trimmedConsumer) {
+			continue
+		}
+		if latest.JobID == "" || localEnvironmentDependencyJobNewer(job, latest) {
+			latest = job
+		}
+	}
+	return latest, latest.JobID != ""
+}
+
+func localEnvironmentDependencyJobBlocksPrerequisiteWait(state string) bool {
+	switch strings.TrimSpace(state) {
+	case localEnvironmentStateFailed, localEnvironmentStateCancelled, localEnvironmentStateUnsupported, localEnvironmentStateRepairRequired:
+		return true
+	default:
+		return false
+	}
+}
+
+func localEnvironmentDependencyJobMatchesConsumer(job localEnvironmentDependencyJobState, consumer string) bool {
+	trimmedConsumer := strings.TrimSpace(consumer)
+	if trimmedConsumer == "" {
+		return true
+	}
+	if localEnvironmentConsumerScopeFromKey(job.EnvironmentKey) == trimmedConsumer {
+		return true
+	}
+	return stringSliceContains(pythonSelectedConsumersForDependency(job.DependencyID), trimmedConsumer)
+}
+
+func localEnvironmentDependencyJobNewer(candidate localEnvironmentDependencyJobState, current localEnvironmentDependencyJobState) bool {
+	candidateUpdated := strings.TrimSpace(candidate.UpdatedAt)
+	currentUpdated := strings.TrimSpace(current.UpdatedAt)
+	if candidateUpdated != currentUpdated {
+		return candidateUpdated > currentUpdated
+	}
+	candidateCreated := strings.TrimSpace(candidate.CreatedAt)
+	currentCreated := strings.TrimSpace(current.CreatedAt)
+	if candidateCreated != currentCreated {
+		return candidateCreated > currentCreated
+	}
+	return strings.TrimSpace(candidate.JobID) > strings.TrimSpace(current.JobID)
+}
+
+func localEnvironmentPrerequisiteFailureDetail(family string, consumer string, job localEnvironmentDependencyJobState, fallback string) string {
+	detail := strings.TrimSpace(job.FailureDetail)
+	if detail == "" {
+		detail = strings.TrimSpace(fallback)
+	}
+	if detail == "" {
+		detail = "no selected source record for consumer"
+	}
+	jobID := strings.TrimSpace(job.JobID)
+	if jobID == "" {
+		jobID = "unknown"
+	}
+	consumerLabel := strings.TrimSpace(consumer)
+	if consumerLabel == "" {
+		consumerLabel = "unspecified"
+	}
+	return fmt.Sprintf("prerequisite dependency %s/%s for consumer %s is %s (job=%s): %s",
+		strings.TrimSpace(family),
+		strings.TrimSpace(job.DependencyID),
+		consumerLabel,
+		strings.TrimSpace(job.State),
+		jobID,
+		detail,
+	)
+}
+
+func failedPrerequisiteDependencyResult(detail string) localEnvironmentDependencyJobResult {
+	trimmed := strings.TrimSpace(detail)
+	if trimmed == "" {
+		trimmed = "required local environment prerequisite is not ready"
+	}
+	return localEnvironmentDependencyJobResult{
+		State:           localEnvironmentStateFailed,
+		SourceKind:      localEnvironmentSourceManaged,
+		AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_FAILED",
+		FailureDetail:   trimmed,
 	}
 }
 

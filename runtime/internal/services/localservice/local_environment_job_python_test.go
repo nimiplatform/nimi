@@ -2,7 +2,9 @@ package localservice
 
 import (
 	"context"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -218,6 +220,54 @@ func TestStartPythonPackageSetDependencyJobRequiresSelectedVenvRecord(t *testing
 	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
 	if job.GetState() != localEnvironmentStateFailed {
 		t.Fatalf("job state = %q, want failed without selected python.venv record", job.GetState())
+	}
+}
+
+func TestStartPythonPackageSetDependencyJobFailsFastWhenVenvJobFailed(t *testing.T) {
+	svc := newTestService(t)
+	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyPythonUV,
+		DependencyID:      "uv",
+		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|speech.qwen3-tts.python",
+		SourceKind:        localEnvironmentSourceManaged,
+		CanonicalRoot:     `C:\nimi\engines\uv\uv.exe`,
+		Version:           "0.11.8",
+		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
+		SelectedConsumers: []string{"speech.qwen3-tts.python"},
+	})
+	failedVenv, err := svc.startLocalEnvironmentDependencyJob(context.Background(), localEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "python.venv|local-speech-qwen3-tts.venv|host|windows/amd64|root",
+		DependencyFamily: localEnvironmentFamilyPythonVenv,
+		DependencyID:     "local-speech-qwen3-tts.venv",
+		SourceKind:       localEnvironmentSourceManaged,
+	}, nil)
+	if err != nil {
+		t.Fatalf("start failed venv seed job: %v", err)
+	}
+	if _, ok := svc.transitionLocalEnvironmentDependencyJob(failedVenv.JobID, localEnvironmentStateFailed, "uv venv failed: interpreter inspection failed", true); !ok {
+		t.Fatalf("failed to transition venv seed job")
+	}
+	svc.SetEngineManager(&mockEngineManager{})
+
+	startedAt := time.Now()
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "python.package-set|local-speech-qwen3-tts.package-set|host|windows/amd64|root",
+		DependencyFamily: localEnvironmentFamilyPythonPackageSet,
+		DependencyId:     "local-speech-qwen3-tts.package-set",
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if elapsed := time.Since(startedAt); elapsed > time.Second {
+		t.Fatalf("package-set prerequisite failure took %s, want fail-fast", elapsed)
+	}
+	if job.GetState() != localEnvironmentStateFailed {
+		t.Fatalf("job state = %q, want failed when venv prerequisite job failed", job.GetState())
+	}
+	if detail := job.GetFailureDetail(); !strings.Contains(detail, "uv venv failed") || !strings.Contains(detail, "python.venv/local-speech-qwen3-tts.venv") {
+		t.Fatalf("failure detail = %q, want upstream venv failure detail", detail)
 	}
 }
 
@@ -545,6 +595,53 @@ func TestStartModelAssetDependencyJobPromotesVerifiedSelectedSource(t *testing.T
 	}
 	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "media.diffusers.cpu" {
 		t.Fatalf("selected consumers = %v, want media.diffusers.cpu", got)
+	}
+}
+
+func TestStartModelAssetDependencyJobPromotesInstalledImportedAssetID(t *testing.T) {
+	svc := newTestService(t)
+	sourcePath := filepath.Join(t.TempDir(), "z_image_turbo-Q4_K.gguf")
+	if err := os.WriteFile(sourcePath, validImageTestGGUF(), 0o644); err != nil {
+		t.Fatalf("write image source: %v", err)
+	}
+	imported, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+		FilePath:     sourcePath,
+		Capabilities: []string{"image"},
+		Engine:       "media",
+	})
+	if err != nil {
+		t.Fatalf("ImportLocalAssetFile: %v", err)
+	}
+	model := imported.GetAsset()
+	if model == nil {
+		t.Fatal("ImportLocalAssetFile returned nil asset")
+	}
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "model.asset|asset-id:" + model.GetAssetId() + "|host|windows/amd64|root|stable-diffusion.cpp.cuda",
+		DependencyFamily: localEnvironmentFamilyModelAsset,
+		DependencyId:     "asset-id:" + model.GetAssetId(),
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("job state = %q, want ready_managed for installed imported image asset id; detail=%q", job.GetState(), job.GetFailureDetail())
+	}
+	sources, err := svc.ListLocalEnvironmentSelectedSources(context.Background(), &runtimev1.ListLocalEnvironmentSelectedSourcesRequest{
+		DependencyFamily: localEnvironmentFamilyModelAsset,
+	})
+	if err != nil {
+		t.Fatalf("ListLocalEnvironmentSelectedSources: %v", err)
+	}
+	source := sources.GetSources()[0]
+	if got := source.GetHashes()["local_asset_id"]; got != model.GetLocalAssetId() {
+		t.Fatalf("local asset hash = %q, want %q", got, model.GetLocalAssetId())
+	}
+	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "stable-diffusion.cpp.cuda" {
+		t.Fatalf("selected consumers = %v, want stable-diffusion.cpp.cuda", got)
 	}
 }
 

@@ -62,13 +62,9 @@ func (s *Service) executePythonRuntimeEnvironmentDependencyJob(ctx context.Conte
 	// selected-source record rather than failing closed when this job races
 	// ahead of the uv job. A genuinely absent uv record still fails closed once
 	// the bounded wait elapses.
-	uvRecord, ok := s.waitForSelectedSourceForFamilyAndConsumer(ctx, localEnvironmentFamilyPythonUV, consumer)
+	uvRecord, ok, detail := s.waitForSelectedSourceForFamilyAndConsumerDetail(ctx, localEnvironmentFamilyPythonUV, consumer)
 	if !ok {
-		return localEnvironmentDependencyJobResult{
-			State:           localEnvironmentStateFailed,
-			SourceKind:      localEnvironmentSourceManaged,
-			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
-		}, nil
+		return failedPrerequisiteDependencyResult(detail), nil
 	}
 	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
 	if strings.TrimSpace(uvRecord.CanonicalRoot) == "" {
@@ -125,21 +121,13 @@ func (s *Service) executePythonVenvEnvironmentDependencyJob(ctx context.Context,
 	}
 	// Prerequisite ordering (runtime authority): wait for uv then python.runtime
 	// rather than failing closed under concurrent unordered desktop Start calls.
-	uvRecord, ok := s.waitForSelectedSourceForFamilyAndConsumer(ctx, localEnvironmentFamilyPythonUV, consumer)
+	uvRecord, ok, detail := s.waitForSelectedSourceForFamilyAndConsumerDetail(ctx, localEnvironmentFamilyPythonUV, consumer)
 	if !ok {
-		return localEnvironmentDependencyJobResult{
-			State:           localEnvironmentStateFailed,
-			SourceKind:      localEnvironmentSourceManaged,
-			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
-		}, nil
+		return failedPrerequisiteDependencyResult(detail), nil
 	}
-	runtimeRecord, ok := s.waitForSelectedSourceForFamilyAndConsumer(ctx, localEnvironmentFamilyPythonRuntime, consumer)
+	runtimeRecord, ok, detail := s.waitForSelectedSourceForFamilyAndConsumerDetail(ctx, localEnvironmentFamilyPythonRuntime, consumer)
 	if !ok {
-		return localEnvironmentDependencyJobResult{
-			State:           localEnvironmentStateFailed,
-			SourceKind:      localEnvironmentSourceManaged,
-			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
-		}, nil
+		return failedPrerequisiteDependencyResult(detail), nil
 	}
 	reportLocalEnvironmentJobProgress(report, localEnvironmentStateInstalling)
 	if strings.TrimSpace(uvRecord.CanonicalRoot) == "" || strings.TrimSpace(runtimeRecord.CanonicalRoot) == "" {
@@ -198,21 +186,13 @@ func (s *Service) executePythonPackageSetEnvironmentDependencyJob(ctx context.Co
 		}, nil
 	}
 	// Prerequisite ordering (runtime authority): wait for uv then venv.
-	uvRecord, ok := s.waitForSelectedSourceForFamilyAndConsumer(ctx, localEnvironmentFamilyPythonUV, consumer)
+	uvRecord, ok, detail := s.waitForSelectedSourceForFamilyAndConsumerDetail(ctx, localEnvironmentFamilyPythonUV, consumer)
 	if !ok {
-		return localEnvironmentDependencyJobResult{
-			State:           localEnvironmentStateFailed,
-			SourceKind:      localEnvironmentSourceManaged,
-			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
-		}, nil
+		return failedPrerequisiteDependencyResult(detail), nil
 	}
-	venvRecord, ok := s.waitForSelectedSourceForFamilyAndConsumer(ctx, localEnvironmentFamilyPythonVenv, consumer)
+	venvRecord, ok, detail := s.waitForSelectedSourceForFamilyAndConsumerDetail(ctx, localEnvironmentFamilyPythonVenv, consumer)
 	if !ok {
-		return localEnvironmentDependencyJobResult{
-			State:           localEnvironmentStateFailed,
-			SourceKind:      localEnvironmentSourceManaged,
-			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
-		}, nil
+		return failedPrerequisiteDependencyResult(detail), nil
 	}
 	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
 	if strings.TrimSpace(uvRecord.CanonicalRoot) == "" || strings.TrimSpace(venvRecord.CanonicalRoot) == "" {
@@ -298,29 +278,17 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 	// Prerequisite ordering (runtime authority): wait for uv, venv, and, for a
 	// cuda consumer, the CUDA runtime, rather than failing closed under
 	// concurrent unordered desktop Start calls.
-	uvRecord, ok := s.waitForSelectedSourceForFamilyAndConsumer(ctx, localEnvironmentFamilyPythonUV, consumer)
+	uvRecord, ok, detail := s.waitForSelectedSourceForFamilyAndConsumerDetail(ctx, localEnvironmentFamilyPythonUV, consumer)
 	if !ok {
-		return localEnvironmentDependencyJobResult{
-			State:           localEnvironmentStateFailed,
-			SourceKind:      localEnvironmentSourceManaged,
-			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
-		}, nil
+		return failedPrerequisiteDependencyResult(detail), nil
 	}
-	venvRecord, ok := s.waitForSelectedSourceForFamilyAndConsumer(ctx, localEnvironmentFamilyPythonVenv, consumer)
+	venvRecord, ok, detail := s.waitForSelectedSourceForFamilyAndConsumerDetail(ctx, localEnvironmentFamilyPythonVenv, consumer)
 	if !ok {
-		return localEnvironmentDependencyJobResult{
-			State:           localEnvironmentStateFailed,
-			SourceKind:      localEnvironmentSourceManaged,
-			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
-		}, nil
+		return failedPrerequisiteDependencyResult(detail), nil
 	}
 	if strings.Contains(strings.TrimSpace(consumer), ".cuda") {
-		if _, ok := s.waitForSelectedSourceForFamilyAndConsumer(ctx, localEnvironmentFamilyCUDA, consumer); !ok {
-			return localEnvironmentDependencyJobResult{
-				State:           localEnvironmentStateFailed,
-				SourceKind:      localEnvironmentSourceManaged,
-				AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
-			}, nil
+		if _, ok, detail := s.waitForSelectedSourceForFamilyAndConsumerDetail(ctx, localEnvironmentFamilyCUDA, consumer); !ok {
+			return failedPrerequisiteDependencyResult(detail), nil
 		}
 	}
 	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)

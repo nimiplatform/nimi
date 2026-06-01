@@ -86,17 +86,20 @@ func (m *Manager) EnsurePythonPackageSetDependency(ctx context.Context, uvPath s
 	}
 	interpreterPath := managedPythonPath(trimmedVenvRoot)
 	lockHash := pythonPackageSetLockHash(manifest)
-	args := append([]string{}, manifest.ExtraArgs...)
-	if err := uvPipInstall(ctx, uvPath, interpreterPath, manifest.Packages, args...); err != nil {
-		return PythonPackageSetDependencyStatus{}, err
-	}
-	freezeOutput, err := runCommandOutput(ctx, "", nil, strings.TrimSpace(uvPath), "pip", "freeze", "--python", interpreterPath)
-	if err != nil {
-		return PythonPackageSetDependencyStatus{}, fmt.Errorf("verify python package set distributions: %w", err)
-	}
-	distributions := normalizePackageFreezeLines(freezeOutput)
-	if len(distributions) == 0 {
-		return PythonPackageSetDependencyStatus{}, fmt.Errorf("verify python package set distributions: empty installed distribution set")
+	distributions := []string(nil)
+	if pythonPackageSetHasPackages(manifest.Packages) {
+		args := append([]string{}, manifest.ExtraArgs...)
+		if err := uvPipInstall(ctx, uvPath, interpreterPath, manifest.Packages, args...); err != nil {
+			return PythonPackageSetDependencyStatus{}, err
+		}
+		freezeOutput, err := runCommandOutput(ctx, "", nil, strings.TrimSpace(uvPath), "pip", "freeze", "--python", interpreterPath)
+		if err != nil {
+			return PythonPackageSetDependencyStatus{}, fmt.Errorf("verify python package set distributions: %w", err)
+		}
+		distributions = normalizePackageFreezeLines(freezeOutput)
+		if len(distributions) == 0 {
+			return PythonPackageSetDependencyStatus{}, fmt.Errorf("verify python package set distributions: empty installed distribution set")
+		}
 	}
 	for _, probe := range manifest.ImportProbes {
 		if err := verifyPythonImportProbe(ctx, interpreterPath, probe); err != nil {
@@ -121,6 +124,15 @@ func (m *Manager) EnsurePythonPackageSetDependency(ctx context.Context, uvPath s
 		DriverScripts:          driverScripts,
 		Detail:                 "Runtime-managed Python package set verified from declared lock manifest",
 	}, nil
+}
+
+func pythonPackageSetHasPackages(packages []string) bool {
+	for _, pkg := range packages {
+		if strings.TrimSpace(pkg) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 // speechServerScriptFiles enumerates every Python file the speech engine venv

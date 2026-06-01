@@ -232,6 +232,9 @@ func (m *Manager) EnsurePythonVenvDependency(ctx context.Context, uvPath string,
 }
 
 func uvPipInstall(ctx context.Context, uvPath string, pythonPath string, packages []string, extraArgs ...string) error {
+	if !pythonPackageSetHasPackages(packages) {
+		return fmt.Errorf("uv pip install requires at least one declared package")
+	}
 	args := []string{"pip", "install", "--python", pythonPath}
 	args = append(args, extraArgs...)
 	args = append(args, packages...)

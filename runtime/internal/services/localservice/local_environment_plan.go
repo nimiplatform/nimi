@@ -181,25 +181,11 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 		}
 		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, required, hostState, platformTuple, runtimeDataRoot, consumerScope, req))
 	}
-
-	state := localEnvironmentStateReadyManaged
-	reasonCode := "LOCAL_ENVIRONMENT_PLAN_READY"
-	for _, dep := range dependencies {
-		if dep.Required && dep.State != localEnvironmentStateReadyManaged && dep.State != localEnvironmentStateReadySystem {
-			state = localEnvironmentStateNeedsConfirmation
-			reasonCode = "LOCAL_ENVIRONMENT_PLAN_REQUIRES_SETUP"
-			if dep.State == localEnvironmentStateUnsupported {
-				state = localEnvironmentStateUnsupported
-				reasonCode = "LOCAL_ENVIRONMENT_PLAN_UNSUPPORTED"
-				break
-			}
-			if dep.State == localEnvironmentStateRepairRequired {
-				state = localEnvironmentStateRepairRequired
-				reasonCode = "LOCAL_ENVIRONMENT_PLAN_REPAIR_REQUIRED"
-				break
-			}
-		}
+	for i := range dependencies {
+		dependencies[i] = s.resolveLocalEnvironmentPlanDependencyJobProjection(dependencies[i])
 	}
+
+	state, reasonCode := localEnvironmentPlanState(dependencies)
 
 	return localEnvironmentPlan{
 		PlanID:          "localenv_plan_" + shortHash(def.PackID+"|"+hostState.HostProfileID+"|"+runtimeDataRoot+"|"+consumerScope),
@@ -214,6 +200,59 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 		ReasonCode:      reasonCode,
 		Dependencies:    dependencies,
 	}
+}
+
+func (s *Service) resolveLocalEnvironmentPlanDependencyJobProjection(dep localEnvironmentPlanDependency) localEnvironmentPlanDependency {
+	if !localEnvironmentDependencyBlocksActivation(dep.State) {
+		return dep
+	}
+	job, ok := s.latestLocalEnvironmentDependencyJobForEnvironment(dep.EnvironmentKey)
+	if !ok {
+		return dep
+	}
+	switch strings.TrimSpace(job.State) {
+	case localEnvironmentStateQueued, localEnvironmentStateDownloading, localEnvironmentStateVerifying, localEnvironmentStateInstalling,
+		localEnvironmentStateRepairRequired, localEnvironmentStateFailed, localEnvironmentStateCancelled, localEnvironmentStateUnsupported:
+	default:
+		return dep
+	}
+	dep.State = strings.TrimSpace(job.State)
+	dep.ConfirmationRequired = false
+	if sourceKind := strings.TrimSpace(job.SourceKind); sourceKind != "" {
+		dep.SourceKind = sourceKind
+	}
+	dep.CanonicalRoot = strings.TrimSpace(job.CanonicalRoot)
+	dep.SelectedSourceRecordID = strings.TrimSpace(job.SelectedSourceRecordID)
+	dep.Detail = strings.TrimSpace(job.FailureDetail)
+	dep.ReasonCode = localEnvironmentActivationDependencyReason(dep.State)
+	return dep
+}
+
+func localEnvironmentPlanState(dependencies []localEnvironmentPlanDependency) (string, string) {
+	state := localEnvironmentStateReadyManaged
+	reasonCode := "LOCAL_ENVIRONMENT_PLAN_READY"
+	for _, dep := range dependencies {
+		if !dep.Required || !localEnvironmentDependencyBlocksActivation(dep.State) {
+			continue
+		}
+		if state == localEnvironmentStateReadyManaged {
+			state = localEnvironmentStateNeedsConfirmation
+			reasonCode = "LOCAL_ENVIRONMENT_PLAN_REQUIRES_SETUP"
+		}
+		switch strings.TrimSpace(dep.State) {
+		case localEnvironmentStateUnsupported:
+			return localEnvironmentStateUnsupported, "LOCAL_ENVIRONMENT_PLAN_UNSUPPORTED"
+		case localEnvironmentStateRepairRequired:
+			return localEnvironmentStateRepairRequired, "LOCAL_ENVIRONMENT_PLAN_REPAIR_REQUIRED"
+		case localEnvironmentStateFailed:
+			return localEnvironmentStateFailed, "LOCAL_ENVIRONMENT_PLAN_FAILED"
+		case localEnvironmentStateCancelled:
+			return localEnvironmentStateCancelled, "LOCAL_ENVIRONMENT_PLAN_CANCELLED"
+		case localEnvironmentStateQueued, localEnvironmentStateDownloading, localEnvironmentStateVerifying, localEnvironmentStateInstalling:
+			return dep.State, "LOCAL_ENVIRONMENT_PLAN_SETUP_IN_PROGRESS"
+		}
+	}
+	return state, reasonCode
 }
 
 func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string, req localEnvironmentPlanRequest) localEnvironmentPlanDependency {

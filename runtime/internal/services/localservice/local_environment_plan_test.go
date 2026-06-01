@@ -1,6 +1,7 @@
 package localservice
 
 import (
+	"context"
 	"log/slog"
 	"path/filepath"
 	"strings"
@@ -408,6 +409,52 @@ func TestResolveLocalEnvironmentPlanRepairRecordBlocksDependency(t *testing.T) {
 	}
 	if repairPlan.State != localEnvironmentStateRepairRequired {
 		t.Fatalf("expected plan repair_required, got %s", repairPlan.State)
+	}
+}
+
+func TestResolveLocalEnvironmentPlanProjectsLatestFailedJob(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
+	profile := localEnvironmentNvidiaProfile()
+
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-text",
+		ConsumerScope:   "llama.cpp.cuda",
+		HostProfile:     profile,
+		RuntimeDataRoot: runtimeDataRoot,
+		AssetID:         "text/test-model",
+	})
+	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeLlama)
+	job, err := svc.startLocalEnvironmentDependencyJob(context.Background(), localEnvironmentDependencyJobRequest{
+		EnvironmentKey:   dep.EnvironmentKey,
+		DependencyFamily: dep.DependencyFamily,
+		DependencyID:     dep.DependencyID,
+		SourceKind:       localEnvironmentSourceManaged,
+	}, nil)
+	if err != nil {
+		t.Fatalf("start failed job seed: %v", err)
+	}
+	if _, ok := svc.transitionLocalEnvironmentDependencyJob(job.JobID, localEnvironmentStateFailed, "backend archive verification failed", true); !ok {
+		t.Fatalf("failed to transition job")
+	}
+
+	failedPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-text",
+		ConsumerScope:   "llama.cpp.cuda",
+		HostProfile:     profile,
+		RuntimeDataRoot: runtimeDataRoot,
+		AssetID:         "text/test-model",
+	})
+	failedDep := findLocalEnvironmentDependency(t, failedPlan, localEnvironmentFamilyNativeLlama)
+	if failedDep.State != localEnvironmentStateFailed {
+		t.Fatalf("dependency state = %q, want failed: %+v", failedDep.State, failedDep)
+	}
+	if !strings.Contains(failedDep.Detail, "backend archive verification failed") {
+		t.Fatalf("dependency detail = %q, want job failure detail", failedDep.Detail)
+	}
+	if failedPlan.State != localEnvironmentStateFailed {
+		t.Fatalf("plan state = %q, want failed", failedPlan.State)
 	}
 }
 

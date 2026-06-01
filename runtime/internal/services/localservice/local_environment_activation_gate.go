@@ -106,7 +106,7 @@ func (s *Service) resolveLocalEnvironmentActivationDependency(dep localEnvironme
 		if job, ok := s.latestLocalEnvironmentDependencyJobForEnvironment(dep.EnvironmentKey); ok {
 			switch strings.TrimSpace(job.State) {
 			case localEnvironmentStateQueued, localEnvironmentStateDownloading, localEnvironmentStateVerifying, localEnvironmentStateInstalling,
-				localEnvironmentStateFailed, localEnvironmentStateCancelled, localEnvironmentStateUnsupported:
+				localEnvironmentStateRepairRequired, localEnvironmentStateFailed, localEnvironmentStateCancelled, localEnvironmentStateUnsupported:
 				dep.State = strings.TrimSpace(job.State)
 				dep.SourceKind = strings.TrimSpace(job.SourceKind)
 				dep.CanonicalRoot = strings.TrimSpace(job.CanonicalRoot)
@@ -166,7 +166,7 @@ func (s *Service) latestLocalEnvironmentDependencyJobForEnvironment(environmentK
 		if job.EnvironmentKey != key {
 			continue
 		}
-		if latest.JobID == "" || strings.Compare(job.UpdatedAt, latest.UpdatedAt) > 0 {
+		if latest.JobID == "" || localEnvironmentDependencyJobNewer(job, latest) {
 			latest = job
 		}
 	}
