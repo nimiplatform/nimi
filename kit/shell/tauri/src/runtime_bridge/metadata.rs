@@ -175,16 +175,19 @@ pub fn apply_metadata(
         SUPPORTED_PARTICIPANT_PROTOCOL_VERSION,
         "x-nimi-participant-protocol-version",
     )?;
-    let app_id = normalize(value.app_id.as_deref());
+    let app_id = normalize(value.app_id.as_deref()).ok_or_else(|| {
+        bridge_error(
+            "RUNTIME_BRIDGE_METADATA_APP_ID_REQUIRED",
+            "x-nimi-app-id",
+        )
+    })?;
     let participant_id = normalize(value.participant_id.as_deref())
-        .or_else(|| app_id.clone())
-        .unwrap_or_else(|| "nimi.desktop".to_string());
+        .unwrap_or_else(|| app_id.clone());
     let domain = normalize(value.domain.as_deref()).unwrap_or_else(|| "runtime.rpc".to_string());
     let caller_kind =
         normalize(value.caller_kind.as_deref()).unwrap_or_else(|| "third-party-app".to_string());
     let caller_id = normalize(value.caller_id.as_deref())
-        .or_else(|| app_id.clone())
-        .unwrap_or_else(|| "app:nimi.desktop".to_string());
+        .unwrap_or_else(|| app_id.clone());
     let idempotency_key = normalize(value.idempotency_key.as_deref()).unwrap_or_else(|| {
         let counter = IDEMPOTENCY_COUNTER.fetch_add(1, Ordering::Relaxed);
         let now = SystemTime::now()
@@ -205,7 +208,7 @@ pub fn apply_metadata(
     insert_metadata_value(request, "x-nimi-idempotency-key", Some(idempotency_key))?;
     insert_metadata_value(request, "x-nimi-caller-kind", Some(caller_kind))?;
     insert_metadata_value(request, "x-nimi-caller-id", Some(caller_id))?;
-    insert_metadata_value(request, "x-nimi-app-id", app_id)?;
+    insert_metadata_value(request, "x-nimi-app-id", Some(app_id))?;
     insert_metadata_value(
         request,
         "x-nimi-trace-id",
@@ -301,12 +304,39 @@ mod tests {
             .map(|value| value.to_string())
     }
 
+    fn app_metadata(app_id: &str) -> RuntimeBridgeMetadata {
+        RuntimeBridgeMetadata {
+            app_id: Some(app_id.to_string()),
+            ..RuntimeBridgeMetadata::default()
+        }
+    }
+
     #[test]
-    fn apply_metadata_populates_defaults() {
+    fn apply_metadata_requires_explicit_app_identity() {
         let mut request = Request::new(Vec::<u8>::new());
-        apply_metadata(
+        let error = apply_metadata(
             &mut request,
             None,
+            None,
+            None,
+            None,
+            "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
+        )
+        .expect_err("missing app identity should fail closed");
+
+        assert!(error.contains("RUNTIME_BRIDGE_METADATA_APP_ID_REQUIRED"));
+        assert!(read_metadata(&request, "x-nimi-app-id").is_none());
+        assert!(read_metadata(&request, "x-nimi-participant-id").is_none());
+        assert!(read_metadata(&request, "x-nimi-caller-id").is_none());
+    }
+
+    #[test]
+    fn apply_metadata_populates_protocol_defaults_from_explicit_app_identity() {
+        let mut request = Request::new(Vec::<u8>::new());
+        let metadata = app_metadata("app.example");
+        apply_metadata(
+            &mut request,
+            Some(&metadata),
             None,
             None,
             None,
@@ -329,6 +359,18 @@ mod tests {
         assert_eq!(
             read_metadata(&request, "x-nimi-caller-kind").as_deref(),
             Some("third-party-app")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-app-id").as_deref(),
+            Some("app.example")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-participant-id").as_deref(),
+            Some("app.example")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-caller-id").as_deref(),
+            Some("app.example")
         );
 
         let idempotency_key = read_metadata(&request, "x-nimi-idempotency-key")
@@ -460,7 +502,7 @@ mod tests {
 
         let metadata = RuntimeBridgeMetadata {
             extra: Some(extra),
-            ..RuntimeBridgeMetadata::default()
+            ..app_metadata("app.example")
         };
 
         let mut request = Request::new(Vec::<u8>::new());
@@ -484,7 +526,7 @@ mod tests {
 
         let metadata = RuntimeBridgeMetadata {
             extra: Some(extra),
-            ..RuntimeBridgeMetadata::default()
+            ..app_metadata("app.example")
         };
 
         let mut request = Request::new(Vec::<u8>::new());
@@ -523,6 +565,7 @@ mod tests {
     #[test]
     fn apply_metadata_includes_protected_access_token_headers() {
         let mut request = Request::new(Vec::<u8>::new());
+        let metadata = app_metadata("app.example");
         let protected_access_token = RuntimeBridgeProtectedAccessToken {
             token_id: "protected-token-id".to_string(),
             secret: "protected-token-secret".to_string(),
@@ -530,7 +573,7 @@ mod tests {
 
         apply_metadata(
             &mut request,
-            None,
+            Some(&metadata),
             None,
             Some(&protected_access_token),
             None,
@@ -551,6 +594,7 @@ mod tests {
     #[test]
     fn apply_metadata_includes_runtime_app_session_headers() {
         let mut request = Request::new(Vec::<u8>::new());
+        let metadata = app_metadata("app.example");
         let app_session = RuntimeBridgeAppSession {
             session_id: "runtime-session-id".to_string(),
             session_token: "runtime-session-token".to_string(),
@@ -558,7 +602,7 @@ mod tests {
 
         apply_metadata(
             &mut request,
-            None,
+            Some(&metadata),
             None,
             None,
             Some(&app_session),
