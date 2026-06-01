@@ -5,7 +5,11 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { MessageType, uploadRealmResourceFileWithRealm } from '@nimiplatform/sdk/realm';
 import { CanonicalComposer } from '@nimiplatform/kit/features/chat/components/canonical-composer';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
-import { createRealmChatComposerAdapter } from '@nimiplatform/kit/features/chat/realm';
+import {
+  createRealmChatComposerAdapter,
+  createRealmChatResourceAttachmentPayload,
+  extractRealmChatAttachmentTargetId,
+} from '@nimiplatform/kit/features/chat/realm';
 import { useTranslation } from 'react-i18next';
 import { sendChatMessage } from './data/realm-human-chat-data';
 import { queryClient } from '@renderer/infra/query-client/query-client';
@@ -16,7 +20,6 @@ import { toChatProfileSummary } from '../turns/message-timeline-utils.js';
 import { toProfileData } from '@renderer/features/profile/profile-model';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { createChatUploadPlaceholder, addChatUploadPlaceholder, removeChatUploadPlaceholder } from '../turns/chat-upload-placeholder-store';
-import { createCanonicalChatAttachmentPayload, extractChatAttachmentTargetId } from '../turns/chat-attachment-contract.js';
 import { mergeSentRealmChatMessageIntoCache } from '../turns/chat-send-cache.js';
 import { formatPendingAttachmentSize, appendPendingAttachment, clearPendingAttachments, type PendingAttachment } from '../turns/turn-input-attachments';
 import type { HumanChatViewDto } from './chat-human-thread-model';
@@ -128,7 +131,7 @@ export function HumanCanonicalComposer(props: {
       transportMode: 'multipartPostThenBinaryPut',
     });
     const finalizedAttachmentTargetId = String(uploaded.resource.id || '').trim()
-      || extractChatAttachmentTargetId(uploaded.session)
+      || extractRealmChatAttachmentTargetId(uploaded.session)
       || uploaded.resourceId;
     if (!finalizedAttachmentTargetId) {
       throw new Error(t('TurnInput.uploadFailed'));
@@ -136,7 +139,7 @@ export function HumanCanonicalComposer(props: {
 
     return await sendChatMessage(props.selectedChatId, '', {
       type: MessageType.ATTACHMENT,
-      payload: createCanonicalChatAttachmentPayload(finalizedAttachmentTargetId),
+      payload: createRealmChatResourceAttachmentPayload(finalizedAttachmentTargetId),
     });
   }, [props.selectedChatId, t]);
 

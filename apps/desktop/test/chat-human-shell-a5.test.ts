@@ -85,7 +85,7 @@ test('chat human shell a5: canonical human bridge projects realm data into canon
   assert.match(canonicalHumanSource, /renderMessageContent/);
   assert.match(canonicalHumanSource, /renderMessageAvatar/);
   assert.match(canonicalHumanSource, /renderMessageAccessory/);
-  assert.match(canonicalHumanSource, /resolveCanonicalChatAttachmentUrl/);
+  assert.match(canonicalHumanSource, /resolveRealmChatMediaUrl/);
   assert.match(canonicalHumanSource, /attachmentDisplayKind === 'AUDIO'/);
   assert.match(canonicalHumanSource, /new Audio\(/);
   assert.match(canonicalHumanSource, /selectedVoiceMessageId/);

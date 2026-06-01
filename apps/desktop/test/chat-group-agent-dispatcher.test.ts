@@ -39,7 +39,8 @@ describe('Realm group agent participation Desktop hardcut', () => {
     assert.doesNotMatch(flowSource, /runtime\.agent\.create_realm_group_message_candidate/);
     assert.doesNotMatch(flowSource, /runtime\.agent\.get_realm_group_message_candidate_evidence/);
     assert.doesNotMatch(flowSource, /GroupChatsService\.publishRealmGroupMessageCandidateEvidence/);
-    assert.match(flowSource, /GroupChatsService\.commitRealmGroupMessageCandidate/);
+    assert.doesNotMatch(flowSource, /GroupChatsService\./);
+    assert.match(flowSource, /commitRealmGroupMessageCandidate/);
     assert.match(flowSource, /candidateCommit\.realmCommitPayload/);
     assert.doesNotMatch(flowSource, /candidateEvidenceRef: candidate\.candidateEvidenceRef/);
     assert.doesNotMatch(flowSource, /outputCandidateRef: evidence\.outputCandidateRef/);

@@ -1,18 +1,18 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  getNotificationBadgeKey,
-  getNotificationCategory,
-  getNotificationServerFilter,
-  isGiftReviewable,
-  toNotificationListView,
-  type NotificationItemView,
-} from '../src/shell/renderer/features/notification/notification-model.js';
+  getRealmNotificationBadgeKey,
+  getRealmNotificationCategory,
+  getRealmNotificationServerFilter,
+  isRealmGiftNotificationReviewable,
+  toRealmNotificationListProjection,
+  type RealmNotificationItemProjection,
+} from '@nimiplatform/sdk/realm';
 
-function createNotificationItem(input: Partial<NotificationItemView> & {
+function createNotificationItem(input: Partial<RealmNotificationItemProjection> & {
   id: string;
-  type: NotificationItemView['type'];
-}): NotificationItemView {
+  type: RealmNotificationItemProjection['type'];
+}): RealmNotificationItemProjection {
   return {
     id: input.id,
     type: input.type,
@@ -35,27 +35,27 @@ function createNotificationItem(input: Partial<NotificationItemView> & {
 
 describe('notification model mapping', () => {
   test('review notifications are classified as gifts', () => {
-    assert.equal(getNotificationCategory('review_received'), 'gift');
+    assert.equal(getRealmNotificationCategory('review_received'), 'gift');
   });
 
   test('request tab includes resolved friend request notifications', () => {
-    assert.equal(getNotificationCategory('friend_request_accepted'), 'request');
-    assert.equal(getNotificationCategory('friend_request_rejected'), 'request');
+    assert.equal(getRealmNotificationCategory('friend_request_accepted'), 'request');
+    assert.equal(getRealmNotificationCategory('friend_request_rejected'), 'request');
   });
 
   test('server filters are only pushed down for single-type tabs', () => {
-    assert.equal(getNotificationServerFilter('like'), 'post_liked');
-    assert.equal(getNotificationServerFilter('system'), 'system_announcement');
-    assert.equal(getNotificationServerFilter('gift'), null);
+    assert.equal(getRealmNotificationServerFilter('like'), 'post_liked');
+    assert.equal(getRealmNotificationServerFilter('system'), 'system_announcement');
+    assert.equal(getRealmNotificationServerFilter('gift'), null);
   });
 
   test('gift status badges reflect accepted and rejected payloads', () => {
-    assert.equal(getNotificationBadgeKey(createNotificationItem({
+    assert.equal(getRealmNotificationBadgeKey(createNotificationItem({
       id: 'notif-1',
       type: 'gift_status_updated',
       giftStatus: 'accepted',
     })), 'giftAccepted');
-    assert.equal(getNotificationBadgeKey(createNotificationItem({
+    assert.equal(getRealmNotificationBadgeKey(createNotificationItem({
       id: 'notif-2',
       type: 'gift_status_updated',
       giftStatus: 'rejected',
@@ -63,13 +63,13 @@ describe('notification model mapping', () => {
   });
 
   test('gift reviewability requires resolved gift status without existing review', () => {
-    assert.equal(isGiftReviewable(createNotificationItem({
+    assert.equal(isRealmGiftNotificationReviewable(createNotificationItem({
       id: 'notif-1',
       type: 'gift_status_updated',
       giftTransactionId: 'gift-1',
       giftStatus: 'accepted',
     })), true);
-    assert.equal(isGiftReviewable(createNotificationItem({
+    assert.equal(isRealmGiftNotificationReviewable(createNotificationItem({
       id: 'notif-2',
       type: 'gift_status_updated',
       giftTransactionId: 'gift-2',
@@ -79,7 +79,7 @@ describe('notification model mapping', () => {
   });
 
   test('list parsing preserves page metadata and actor fallback names', () => {
-    const result = toNotificationListView({
+    const result = toRealmNotificationListProjection({
       items: [
         {
           id: 'notif-1',
@@ -105,7 +105,7 @@ describe('notification model mapping', () => {
   });
 
   test('gift payload parsing preserves message and spark amount fields', () => {
-    const result = toNotificationListView({
+    const result = toRealmNotificationListProjection({
       items: [
         {
           id: 'notif-gift',

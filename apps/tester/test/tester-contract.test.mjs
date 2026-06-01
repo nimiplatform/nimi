@@ -920,13 +920,16 @@ test('tester settings consumes the SDK Realm notification unread projection', ()
 
   assert.match(settings, /loadRealmNotificationUnreadCount/);
   assert.match(settings, /loadRealmNotifications/);
+  assert.match(settings, /toRealmNotificationListProjection/);
   assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
   assert.match(settings, /Realm notification projection/);
   assert.match(settings, /Realm notification list projection/);
   assert.match(settings, /Unread \$\{notificationProjection\.unread\.total\}/);
   assert.match(settings, /refreshNotificationListProjection/);
   assert.match(settings, /loadRealmNotifications\(getPlatformClient\(\)\.realm/);
+  assert.match(settings, /type RealmNotificationListProjection/);
   assert.doesNotMatch(settings, /@runtime\/data-sync|dataSync\.loadNotificationUnreadCount|dataSync\.loadNotifications/);
+  assert.doesNotMatch(settings, /type RealmNotificationListResultDto/);
 });
 
 test('tester settings consumes the SDK Realm account-data export helper', () => {
@@ -963,6 +966,18 @@ test('tester settings consumes the Kit Realm human chat helper', () => {
   assert.match(settings, /refreshHumanChatProjection/);
   assert.match(settings, /const chats = await listRealmChats\(20\)/);
   assert.doesNotMatch(settings, /@runtime\/data-sync|dataSync\.loadChats/);
+});
+
+test('tester settings consumes the SDK Realm group chat helper', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /listRealmGroupChats/);
+  assert.match(settings, /type RealmGroupChatListResultDto/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
+  assert.match(settings, /SDK Realm group chat projection/);
+  assert.match(settings, /refreshGroupChatProjection/);
+  assert.match(settings, /listRealmGroupChats\(getPlatformClient\(\)\.realm, 20\)/);
+  assert.doesNotMatch(settings, /@runtime\/data-sync|dataSync\.loadGroupChats/);
 });
 
 test('tester settings consumes the SDK Realm media URL projection', () => {

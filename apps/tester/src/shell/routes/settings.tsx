@@ -97,6 +97,7 @@ import {
 import { classifyOfflineError, classifyOfflineReasonCode, ReasonCode } from '@nimiplatform/sdk/types';
 import {
   isRealmFeedScope,
+  listRealmGroupChats,
   loadRealmCreatorEligibility,
   loadRealmNotificationUnreadCount,
   loadRealmNotifications,
@@ -107,11 +108,13 @@ import {
   REALM_FEED_SCOPES,
   requestDataExport,
   resolveRealmMediaUrl,
+  toRealmNotificationListProjection,
   uploadRealmResourceFileWithRealm,
   type Realm,
   type RequestDataExportOutput,
   type RealmCreatorEligibilityDto,
-  type RealmNotificationListResultDto,
+  type RealmGroupChatListResultDto,
+  type RealmNotificationListProjection,
   type RealmNotificationUnreadProjection,
 } from '@nimiplatform/sdk/realm';
 import {
@@ -164,8 +167,8 @@ type NotificationProjectionState =
 
 type NotificationListProjectionState =
   | { status: 'idle'; list: null; error: null }
-  | { status: 'loading'; list: RealmNotificationListResultDto | null; error: null }
-  | { status: 'ready'; list: RealmNotificationListResultDto; error: null }
+  | { status: 'loading'; list: RealmNotificationListProjection | null; error: null }
+  | { status: 'ready'; list: RealmNotificationListProjection; error: null }
   | { status: 'error'; list: null; error: string };
 
 type ResourceUploadProjectionState =
@@ -191,6 +194,12 @@ type HumanChatProjectionState =
   | { status: 'loading'; chats: RealmListChatsResultDto | null; error: null }
   | { status: 'ready'; chats: RealmListChatsResultDto; error: null }
   | { status: 'error'; chats: null; error: string };
+
+type GroupChatProjectionState =
+  | { status: 'idle'; groups: null; error: null }
+  | { status: 'loading'; groups: RealmGroupChatListResultDto | null; error: null }
+  | { status: 'ready'; groups: RealmGroupChatListResultDto; error: null }
+  | { status: 'error'; groups: null; error: string };
 
 type ConnectorProjectionState =
   | { status: 'idle'; connectors: RuntimeConnectorProjection[]; error: null }
@@ -564,6 +573,11 @@ export function SettingsRoute() {
   const [humanChatProjection, setHumanChatProjection] = useState<HumanChatProjectionState>({
     status: 'idle',
     chats: null,
+    error: null,
+  });
+  const [groupChatProjection, setGroupChatProjection] = useState<GroupChatProjectionState>({
+    status: 'idle',
+    groups: null,
     error: null,
   });
   const [connectorProjection, setConnectorProjection] = useState<ConnectorProjectionState>({
@@ -1517,7 +1531,7 @@ export function SettingsRoute() {
       });
       setNotificationListProjection({
         status: 'ready',
-        list,
+        list: toRealmNotificationListProjection(list, 'Tester notification', 'Unknown actor'),
         error: null,
       });
     } catch (error) {
@@ -1592,6 +1606,27 @@ export function SettingsRoute() {
       setHumanChatProjection({
         status: 'error',
         chats: null,
+        error: errorMessage(error),
+      });
+    }
+  };
+  const refreshGroupChatProjection = async () => {
+    setGroupChatProjection((current) => ({
+      status: 'loading',
+      groups: current.groups,
+      error: null,
+    }));
+    try {
+      const groups = await listRealmGroupChats(getPlatformClient().realm, 20);
+      setGroupChatProjection({
+        status: 'ready',
+        groups,
+        error: null,
+      });
+    } catch (error) {
+      setGroupChatProjection({
+        status: 'error',
+        groups: null,
         error: errorMessage(error),
       });
     }
@@ -1825,6 +1860,29 @@ export function SettingsRoute() {
             loading={humanChatProjection.status === 'loading'}
             onClick={() => {
               void refreshHumanChatProjection();
+            }}
+          >
+            Refresh
+          </Button>
+        </div>
+      </div>
+      <div className="setting-row">
+        <span>SDK Realm group chat projection</span>
+        <div className="inline-flex items-center gap-2">
+          <StatusBadge tone={groupChatProjection.status === 'error' ? 'danger' : 'info'}>
+            {groupChatProjection.status === 'ready'
+              ? `${groupChatProjection.groups.items.length} group${groupChatProjection.groups.items.length === 1 ? '' : 's'}`
+              : groupChatProjection.status === 'error'
+                ? groupChatProjection.error
+                : 'not loaded'}
+          </StatusBadge>
+          <Button
+            type="button"
+            size="sm"
+            tone="secondary"
+            loading={groupChatProjection.status === 'loading'}
+            onClick={() => {
+              void refreshGroupChatProjection();
             }}
           >
             Refresh

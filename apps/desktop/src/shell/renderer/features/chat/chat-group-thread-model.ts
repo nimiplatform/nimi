@@ -3,10 +3,12 @@ import type {
   ConversationTargetSummary,
   ConversationThreadSummary,
 } from '@nimiplatform/kit/features/chat/headless';
-import { resolveRealmMessageText } from '@nimiplatform/kit/features/chat/realm';
+import {
+  resolveRealmChatAttachmentPreviewText,
+  resolveRealmMessageText,
+} from '@nimiplatform/kit/features/chat/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { i18n } from '@renderer/i18n';
-import { resolveCanonicalChatAttachmentPreviewText } from '@renderer/features/turns/chat-attachment-contract.js';
 
 export type GroupChatViewDto = RealmModel<'GroupChatViewDto'>;
 export type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
@@ -37,7 +39,7 @@ export function getGroupChatPreview(
   if (lastMsg) {
     const resolvedText = resolveRealmMessageText(lastMsg).trim();
     if (resolvedText) return resolvedText;
-    const attachmentText = resolveCanonicalChatAttachmentPreviewText(lastMsg.payload);
+    const attachmentText = resolveRealmChatAttachmentPreviewText(lastMsg.payload);
     if (attachmentText) return attachmentText;
   }
   return noMessagesFallback;

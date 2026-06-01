@@ -1,5 +1,18 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
-import type { Realm } from '@nimiplatform/sdk/realm';
+import {
+  addRealmGroupAgent,
+  commitRealmGroupMessageCandidate,
+  createRealmGroupChat,
+  createRealmGroupTextMessageInput,
+  listRealmGroupChats,
+  loadRealmGroupChat,
+  loadRealmGroupMessages,
+  markRealmGroupRead,
+  removeRealmGroupAgent,
+  sendRealmGroupMessage,
+  syncRealmGroupEvents,
+  type Realm,
+} from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -15,7 +28,6 @@ type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 type ListGroupChatsResultDto = RealmModel<'ListGroupChatsResultDto'>;
 type ListGroupMessagesResultDto = RealmModel<'ListGroupMessagesResultDto'>;
 type RealmGroupMessageCandidateCommitResultDto = RealmModel<'RealmGroupMessageCandidateCommitResultDto'>;
-type MessageType = RealmModel<'MessageType'>;
 
 export type { GroupChatViewDto, GroupMessageViewDto };
 
@@ -50,7 +62,7 @@ export async function loadGroupChatList(
 ): Promise<ListGroupChatsResultDto> {
   try {
     const result = await callApi(
-      (realm) => realm.services.GroupChatsService.listGroups(limit),
+      (realm) => listRealmGroupChats(realm, limit),
       '加载群组列表失败',
     );
     return result;
@@ -67,7 +79,7 @@ export async function loadGroupChat(
 ): Promise<GroupChatViewDto> {
   try {
     const result = await callApi(
-      (realm) => realm.services.GroupChatsService.getGroup(chatId),
+      (realm) => loadRealmGroupChat(realm, chatId),
       '加载群组详情失败',
     );
     return result;
@@ -85,7 +97,7 @@ export async function loadGroupChatMessages(
 ): Promise<ListGroupMessagesResultDto> {
   try {
     const result = await callApi(
-      (realm) => realm.services.GroupChatsService.listGroupMessages(chatId, limit),
+      (realm) => loadRealmGroupMessages(realm, chatId, limit),
       '加载群组消息失败',
     );
     return result;
@@ -104,12 +116,11 @@ export async function sendGroupChatMessage(
   try {
     const clientMessageId = createStableClientId('cm');
     const message = await callApi(
-      (realm) => realm.services.GroupChatsService.sendGroupMessage(chatId, {
-        clientMessageId,
-        type: 'TEXT' as MessageType,
-        text: content,
-        payload: { content },
-      }),
+      (realm) => sendRealmGroupMessage(
+        realm,
+        chatId,
+        createRealmGroupTextMessageInput(content, clientMessageId),
+      ),
       '发送群组消息失败',
     );
     return message;
@@ -149,7 +160,8 @@ export async function commitRealmGroupMessageCandidateHandoff(
       idempotencyKey,
     });
     const result = await callApi(
-      (realm) => realm.services.GroupChatsService.commitRealmGroupMessageCandidate(
+      (realm) => commitRealmGroupMessageCandidate(
+        realm,
         chatId,
         candidateCommit.realmCommitPayload,
       ),
@@ -173,7 +185,7 @@ export async function markGroupChatRead(
 ) {
   try {
     await callApi(
-      (realm) => realm.services.GroupChatsService.markGroupRead(chatId),
+      (realm) => markRealmGroupRead(realm, chatId),
     );
   } catch (error) {
     emitRealmGroupChatError('mark-group-read', error, { chatId });
@@ -189,7 +201,7 @@ export async function createGroupChat(
 ) {
   try {
     const result = await callApi(
-      (realm) => realm.services.GroupChatsService.createGroup({
+      (realm) => createRealmGroupChat(realm, {
         title,
         participantIds,
         text: initialMessage || undefined,
@@ -214,7 +226,7 @@ export async function addGroupChatAgent(
 ) {
   try {
     const result = await callApi(
-      (realm) => realm.services.GroupChatsService.addGroupAgent(chatId, { agentAccountId }),
+      (realm) => addRealmGroupAgent(realm, chatId, agentAccountId),
       '添加群组 Agent 失败',
     );
     return result;
@@ -232,7 +244,7 @@ export async function removeGroupChatAgent(
 ) {
   try {
     await callApi(
-      (realm) => realm.services.GroupChatsService.removeGroupAgent(chatId, agentAccountId),
+      (realm) => removeRealmGroupAgent(realm, chatId, agentAccountId),
       '移除群组 Agent 失败',
     );
   } catch (error) {
@@ -252,7 +264,7 @@ export async function syncGroupChatEvents(
   const normalizedLimit = Number.isFinite(limit) ? Math.min(500, Math.max(1, Math.floor(limit))) : 200;
   try {
     const result = await callApi(
-      (realm) => realm.services.GroupChatsService.syncGroupEvents(chatId, normalizedLimit, normalizedAfterSeq),
+      (realm) => syncRealmGroupEvents(realm, chatId, normalizedAfterSeq, normalizedLimit),
       '同步群组事件失败',
     );
     return result;

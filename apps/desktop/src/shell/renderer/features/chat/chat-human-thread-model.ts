@@ -1,8 +1,10 @@
 import type { ConversationThreadSummary } from '@nimiplatform/kit/features/chat/headless';
-import { resolveRealmMessageText } from '@nimiplatform/kit/features/chat/realm';
+import {
+  resolveRealmChatAttachmentPreviewText,
+  resolveRealmMessageText,
+} from '@nimiplatform/kit/features/chat/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { i18n, formatLocaleDate, formatRelativeLocaleTime } from '@renderer/i18n';
-import { resolveCanonicalChatAttachmentPreviewText } from '@renderer/features/turns/chat-attachment-contract.js';
 
 export type HumanChatViewDto = RealmModel<'ChatViewDto'>;
 
@@ -26,7 +28,7 @@ export function getHumanChatPreview(
     if (resolvedText) {
       return resolvedText;
     }
-    const attachmentText = resolveCanonicalChatAttachmentPreviewText(lastMsg.payload);
+    const attachmentText = resolveRealmChatAttachmentPreviewText(lastMsg.payload);
     if (attachmentText) {
       return attachmentText;
     }

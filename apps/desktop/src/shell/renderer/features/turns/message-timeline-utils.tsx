@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
+import { resolveRealmChatMediaUrl } from '@nimiplatform/kit/features/chat/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { formatLocaleDate, i18n } from '@renderer/i18n';
-import { resolveCanonicalChatAttachmentUrl } from './chat-attachment-contract.js';
 
 type MessageViewDto = RealmModel<'MessageViewDto'>;
 
@@ -17,11 +17,11 @@ export function resolveMessageText(message: MessageViewDto): string {
 }
 
 export function resolveImageMessageUrl(message: MessageViewDto, realmBaseUrl: string): string {
-  return resolveCanonicalChatAttachmentUrl(message.payload, realmBaseUrl);
+  return resolveRealmChatMediaUrl(message.payload, realmBaseUrl);
 }
 
 export function resolveVideoMessageUrl(message: MessageViewDto, realmBaseUrl: string): string {
-  return resolveCanonicalChatAttachmentUrl(message.payload, realmBaseUrl);
+  return resolveRealmChatMediaUrl(message.payload, realmBaseUrl);
 }
 
 export function ChatMessageImage(input: {

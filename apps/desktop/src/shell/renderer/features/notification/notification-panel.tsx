@@ -3,15 +3,22 @@ import { useEffect, useMemo, useState } from 'react';
 import { Button, ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
+  getRealmNotificationBadgeKey,
+  getRealmNotificationCategory,
+  getRealmNotificationServerFilter,
+  isRealmGiftNotificationReviewable,
   loadRealmNotifications,
   loadRealmNotificationUnreadCount,
   markRealmNotificationRead,
   markRealmNotificationsRead,
+  ReviewRating as ReviewRatingEnum,
+  toRealmNotificationListProjection,
+  type RealmModel,
+  type RealmNotificationFilterTab,
+  type RealmNotificationItemProjection,
 } from '@nimiplatform/sdk/realm';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { ReviewRating as ReviewRatingEnum } from '@nimiplatform/sdk/realm';
 import {
   acceptRealmGift,
   createRealmGiftReview,
@@ -23,15 +30,6 @@ import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { i18n } from '@renderer/i18n';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-import {
-  type NotificationFilterTab,
-  type NotificationItemView,
-  getNotificationBadgeKey,
-  getNotificationCategory,
-  getNotificationServerFilter,
-  isGiftReviewable,
-  toNotificationListView,
-} from './notification-model.js';
 import {
   invalidateNotificationQueries,
   notificationQueryKeys,
@@ -60,6 +58,9 @@ type PendingItemAction = {
   action: ItemActionKind;
 };
 
+type NotificationFilterTab = RealmNotificationFilterTab;
+type NotificationItemView = RealmNotificationItemProjection;
+
 export function NotificationPanel() {
   const authStatus = useAppStore((state) => state.auth.status);
   const authUser = useAppStore((state) => state.auth.user);
@@ -75,7 +76,7 @@ export function NotificationPanel() {
   const [readOverrides, setReadOverrides] = useState<Record<string, true>>({});
 
   const serverFilter = useMemo(
-    () => getNotificationServerFilter(activeFilter),
+    () => getRealmNotificationServerFilter(activeFilter),
     [activeFilter],
   );
   const notificationIdentityRef = useMemo(
@@ -97,7 +98,7 @@ export function NotificationPanel() {
     ),
     enabled: authStatus === 'authenticated' && Boolean(notificationIdentityRef),
     getNextPageParam: (lastPage) => {
-      const parsed = toNotificationListView(
+      const parsed = toRealmNotificationListProjection(
         lastPage,
         t('NotificationPanel.title', { defaultValue: 'Notification' }),
         i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
@@ -132,7 +133,7 @@ export function NotificationPanel() {
 
     const byId = new Map<string, NotificationItemView>();
     for (const page of notificationsQuery.data.pages) {
-      const parsed = toNotificationListView(
+      const parsed = toRealmNotificationListProjection(
         page,
         t('NotificationPanel.title', { defaultValue: 'Notification' }),
         i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
@@ -151,7 +152,7 @@ export function NotificationPanel() {
     if (activeFilter === 'all') {
       return items;
     }
-    return items.filter((item) => getNotificationCategory(item.type) === activeFilter);
+    return items.filter((item) => getRealmNotificationCategory(item.type) === activeFilter);
   }, [activeFilter, items]);
 
   const updateUnreadCount = (nextUnreadCount: number) => {
@@ -499,7 +500,7 @@ export function NotificationPanel() {
       );
     }
 
-    if (isGiftReviewable(item)) {
+    if (isRealmGiftNotificationReviewable(item)) {
       return (
         <>
           <Button
@@ -641,7 +642,7 @@ export function NotificationPanel() {
         ) : null}
 
         {filteredItems.map((item) => {
-          const badgeKey = getNotificationBadgeKey(item);
+          const badgeKey = getRealmNotificationBadgeKey(item);
           const itemBusy = isBusyForItem(item.id);
           const giftMessage = item.giftMessage?.trim() || '';
           const body = item.body.trim();

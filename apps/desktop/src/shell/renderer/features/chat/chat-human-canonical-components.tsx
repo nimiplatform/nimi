@@ -33,6 +33,8 @@ import {
 } from '@nimiplatform/kit/features/chat/headless';
 import {
   getRealmChatTimelineDisplayModel,
+  resolveRealmChatAttachmentPreviewText,
+  resolveRealmChatMediaUrl,
   useRealmMessageTimeline,
   type RealmChatOutboxEntryLike,
 } from '@nimiplatform/kit/features/chat/realm';
@@ -45,10 +47,6 @@ import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { HumanChatViewDto } from './chat-human-thread-model';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
 import { useChatUploadPlaceholders } from '../turns/chat-upload-placeholder-store';
-import {
-  resolveCanonicalChatAttachmentPreviewText,
-  resolveCanonicalChatAttachmentUrl,
-} from '../turns/chat-attachment-contract.js';
 import { loadChatMessages } from './data/realm-human-chat-data';
 import { cancelStream, getStreamState, subscribeStream, type StreamState } from '../turns/stream-controller';
 export { HumanCanonicalComposer, HumanCanonicalProfileDrawer } from './chat-human-canonical-composer-profile';
@@ -119,10 +117,10 @@ function useHumanTimelineModel(selectedChatId: string | null, selectedChat: Huma
       const display = getRealmChatTimelineDisplayModel(message, currentUserId);
       const attachmentDisplayKind = resolveAttachmentDisplayKind(message.payload);
       const mediaUrl = display.isMediaMessage
-        ? resolveCanonicalChatAttachmentUrl(message.payload, realmBaseUrl) || display.localPreviewUrl || null
+        ? resolveRealmChatMediaUrl(message.payload, realmBaseUrl) || display.localPreviewUrl || null
         : null;
       const mediaLabel = display.isMediaMessage
-        ? resolveCanonicalChatAttachmentPreviewText(message.payload)
+        ? resolveRealmChatAttachmentPreviewText(message.payload)
         : '';
       return {
         id: String(message.id || message.clientMessageId || ''),
@@ -158,7 +156,7 @@ function useHumanTimelineModel(selectedChatId: string | null, selectedChat: Huma
           mediaUrl,
           mediaLabel,
           voiceUrl: attachmentDisplayKind === 'AUDIO'
-            ? resolveCanonicalChatAttachmentUrl(message.payload, realmBaseUrl) || display.localPreviewUrl || null
+            ? resolveRealmChatMediaUrl(message.payload, realmBaseUrl) || display.localPreviewUrl || null
             : null,
           voiceTranscript: display.resolvedText || '',
           mediaWidth: (message as unknown as { width?: number }).width,
