@@ -1,79 +1,34 @@
 import assert from 'node:assert/strict';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import test from 'node:test';
 
-import { toBase64, fromBase64, concatChunks } from '../src/runtime/util/encoding';
+const desktopDir = resolve(import.meta.dirname, '..');
+const repoDir = resolve(desktopDir, '../..');
+const desktopRuntimeDir = resolve(desktopDir, 'src/runtime');
 
-test('toBase64 encodes bytes correctly', () => {
-  const input = new Uint8Array([72, 101, 108, 108, 111]); // "Hello"
-  const result = toBase64(input);
-  assert.equal(result, 'SGVsbG8=');
-});
+function walkFiles(dir: string): string[] {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).flatMap((entry) => {
+    const abs = join(dir, entry);
+    return statSync(abs).isDirectory() ? walkFiles(abs) : [abs];
+  });
+}
 
-test('toBase64 handles empty input', () => {
-  const input = new Uint8Array(0);
-  const result = toBase64(input);
-  assert.equal(result, '');
-});
+function readRepo(relativePath: string): string {
+  return readFileSync(resolve(repoDir, relativePath), 'utf8');
+}
 
-test('fromBase64 decodes correctly', () => {
-  const result = fromBase64('SGVsbG8=');
-  assert.deepEqual(result, new Uint8Array([72, 101, 108, 108, 111]));
-});
+test('Desktop src/runtime residual namespace is fully retired', () => {
+  assert.deepEqual(walkFiles(desktopRuntimeDir), []);
 
-test('fromBase64 returns empty array for empty string', () => {
-  const result = fromBase64('');
-  assert.equal(result.length, 0);
-});
+  const bootstrap = readRepo('apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts');
+  const sdkWorldEvolution = readRepo('sdk/src/runtime/world-evolution-selector-read.ts');
+  const testerSettings = readRepo('apps/tester/src/shell/routes/settings.tsx');
 
-test('fromBase64 returns empty array for whitespace-only string', () => {
-  const result = fromBase64('   ');
-  assert.equal(result.length, 0);
-});
-
-test('toBase64 and fromBase64 roundtrip', () => {
-  const original = new Uint8Array([0, 1, 2, 128, 255, 42, 99]);
-  const encoded = toBase64(original);
-  const decoded = fromBase64(encoded);
-  assert.deepEqual(decoded, original);
-});
-
-test('toBase64 and fromBase64 roundtrip with large input', () => {
-  const original = new Uint8Array(1024);
-  for (let i = 0; i < original.length; i++) {
-    original[i] = i % 256;
-  }
-  const encoded = toBase64(original);
-  const decoded = fromBase64(encoded);
-  assert.deepEqual(decoded, original);
-});
-
-test('concatChunks concatenates multiple chunks', () => {
-  const chunks = [
-    new Uint8Array([1, 2, 3]),
-    new Uint8Array([4, 5]),
-    new Uint8Array([6]),
-  ];
-  const result = concatChunks(chunks);
-  assert.deepEqual(result, new Uint8Array([1, 2, 3, 4, 5, 6]));
-});
-
-test('concatChunks handles empty chunks array', () => {
-  const result = concatChunks([]);
-  assert.equal(result.length, 0);
-});
-
-test('concatChunks handles single chunk', () => {
-  const chunk = new Uint8Array([10, 20, 30]);
-  const result = concatChunks([chunk]);
-  assert.deepEqual(result, chunk);
-});
-
-test('concatChunks handles empty chunks in the middle', () => {
-  const chunks = [
-    new Uint8Array([1]),
-    new Uint8Array(0),
-    new Uint8Array([2]),
-  ];
-  const result = concatChunks(chunks);
-  assert.deepEqual(result, new Uint8Array([1, 2]));
+  assert.match(bootstrap, /createMissingWorldEvolutionSelectorReadProvider/);
+  assert.match(bootstrap, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(sdkWorldEvolution, /createMissingWorldEvolutionSelectorReadProvider/);
+  assert.match(testerSettings, /loadTesterWorldEvolutionSelectorReadProjection/);
+  assert.doesNotMatch(bootstrap, /@runtime\/world-evolution/);
 });

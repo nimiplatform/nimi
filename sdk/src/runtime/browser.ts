@@ -1,7 +1,7 @@
 export * from '../core/errors.js';
 export * from '../core/ids.js';
 export * from './types.js';
-export type * from './world-evolution-selector-read.js';
+export * from './world-evolution-selector-read.js';
 export * from './method-ids.js';
 export * from './reason-code-messages.js';
 export * from './local-environment-dependency-states.js';

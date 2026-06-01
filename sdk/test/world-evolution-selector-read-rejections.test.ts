@@ -5,6 +5,7 @@ import {
   createWorldEvolutionSelectorReadError,
   createWorldEvolutionSelectorReadFacade,
 } from '../src/internal/world-evolution-selector-read.js';
+import { createMissingWorldEvolutionSelectorReadProvider } from '../src/runtime/index.js';
 import { ReasonCode } from '../src/types/index.js';
 
 test('selector-read missing provider rejects with BOUNDARY_DENIED', async () => {
@@ -66,6 +67,26 @@ test('provider unknown failures fail closed as boundary denial', async () => {
     (error: unknown) => {
       assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.ACTION_PERMISSION_DENIED);
       assert.equal((error as { details?: { rejectionCategory?: string } }).details?.rejectionCategory, 'BOUNDARY_DENIED');
+      return true;
+    },
+  );
+});
+
+test('SDK missing world-evolution selector provider returns empty optional reads and rejects required evidence', async () => {
+  const provider = createMissingWorldEvolutionSelectorReadProvider({
+    backingBoundary: 'tester-world-evolution-selector-read',
+  });
+
+  assert.deepEqual(await provider.executionEvents.read({ worldId: 'world-1' }), []);
+  assert.deepEqual(await provider.replays.read({ worldId: 'world-1' }), []);
+  assert.deepEqual(await provider.commitRequests.read({ worldId: 'world-1' }), []);
+  await assert.rejects(
+    () => provider.checkpoints.read({ worldId: 'world-1' }),
+    (error: unknown) => {
+      const details = (error as { details?: Record<string, unknown> }).details || {};
+      assert.equal(details.rejectionCategory, 'MISSING_REQUIRED_EVIDENCE');
+      assert.equal(details.methodId, 'worldEvolution.checkpoints.read');
+      assert.equal(details.backingBoundary, 'tester-world-evolution-selector-read');
       return true;
     },
   );

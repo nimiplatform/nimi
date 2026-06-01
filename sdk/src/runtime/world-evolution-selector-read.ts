@@ -1,3 +1,6 @@
+import { createNimiError } from '../core/errors.js';
+import { ReasonCode } from '../types/index.js';
+
 export type WorldEvolutionEffectClass =
   | 'NONE'
   | 'STATE_ONLY'
@@ -226,3 +229,79 @@ export type WorldEvolutionSelectorReadErrorDetails = {
   rejectionCategory: WorldEvolutionSelectorReadRejectionCategory;
   methodId: WorldEvolutionSelectorReadMethodId;
 };
+
+export type WorldEvolutionSelectorReadProvider = {
+  executionEvents: {
+    read: (selector: WorldEvolutionExecutionEventSelector) => Promise<WorldEvolutionExecutionEventView[]>;
+  };
+  replays: {
+    read: (selector: WorldEvolutionReplaySelector) => Promise<WorldEvolutionReplayView[]>;
+  };
+  checkpoints: {
+    read: (selector: WorldEvolutionCheckpointSelector) => Promise<WorldEvolutionCheckpointView[]>;
+  };
+  supervision: {
+    read: (selector: WorldEvolutionSupervisionSelector) => Promise<WorldEvolutionSupervisionView[]>;
+  };
+  commitRequests: {
+    read: (selector: WorldEvolutionCommitRequestSelector) => Promise<WorldEvolutionCommitRequestView[]>;
+  };
+};
+
+function createMissingEvidenceError(
+  methodId: WorldEvolutionSelectorReadMethodId,
+  missingKind: string,
+  backingBoundary: string,
+): Error {
+  const rejectionCategory: WorldEvolutionSelectorReadRejectionCategory = 'MISSING_REQUIRED_EVIDENCE';
+  return createNimiError({
+    message: `runtime host does not expose ${missingKind} required by ${methodId}`,
+    reasonCode: ReasonCode.ACTION_NOT_FOUND,
+    actionHint: 'provide_world_evolution_evidence',
+    source: 'sdk',
+    details: {
+      rejectionCategory,
+      methodId,
+      backingBoundary,
+    },
+  });
+}
+
+function rejectMissingEvidence(
+  methodId: WorldEvolutionSelectorReadMethodId,
+  missingKind: string,
+  backingBoundary: string,
+): Promise<never> {
+  return Promise.reject(createMissingEvidenceError(methodId, missingKind, backingBoundary));
+}
+
+export function createMissingWorldEvolutionSelectorReadProvider(input: {
+  backingBoundary: string;
+}): WorldEvolutionSelectorReadProvider {
+  const backingBoundary = String(input.backingBoundary || '').trim() || 'runtime-host-world-evolution-selector-read';
+  return {
+    executionEvents: {
+      read: async (_selector) => [],
+    },
+    replays: {
+      read: async (_selector) => [],
+    },
+    checkpoints: {
+      read: async (_selector) => rejectMissingEvidence(
+        'worldEvolution.checkpoints.read',
+        'world evolution checkpoint evidence',
+        backingBoundary,
+      ),
+    },
+    supervision: {
+      read: async (_selector) => rejectMissingEvidence(
+        'worldEvolution.supervision.read',
+        'world evolution supervision evidence',
+        backingBoundary,
+      ),
+    },
+    commitRequests: {
+      read: async (_selector) => [],
+    },
+  };
+}

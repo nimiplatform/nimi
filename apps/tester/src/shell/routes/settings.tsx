@@ -147,6 +147,7 @@ import { createTesterRuntimeAgentInspectProjection } from '../../tester/tester-r
 import { createTesterLocalRecommendationCopyProjection } from '../../tester/tester-local-recommendation-copy-projection';
 import { createTesterLocalRuntimeAssetKindProjection } from '../../tester/tester-local-runtime-asset-kind-projection';
 import { createTesterWorldDisplayProjection } from '../../tester/tester-world-display-projection';
+import { loadTesterWorldEvolutionSelectorReadProjection } from '../../tester/tester-world-evolution-selector-read';
 import { createTesterRuntimeConfigProjection } from '../../tester/tester-runtime-config-projection';
 import {
   loadTesterRuntimeRouteHostAccessProjection,
@@ -611,6 +612,9 @@ export function SettingsRoute() {
   });
   const realmDataSyncProjection = useTypedProjection(resolveTesterRealmDataSyncProjection, {
     failClosedMessage: 'SDK Realm data sync projection unavailable',
+  });
+  const worldEvolutionSelectorReadProjection = useTypedProjection(loadTesterWorldEvolutionSelectorReadProjection, {
+    failClosedMessage: 'SDK World Evolution selector-read projection unavailable',
   });
   useEffect(() => {
     let cancelled = false;
@@ -2049,6 +2053,16 @@ export function SettingsRoute() {
             ? realmDataSyncProjection.data
             : realmDataSyncProjection.status === 'failed'
               ? realmDataSyncProjection.error
+              : 'checking'}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK World Evolution selector-read projection</span>
+        <StatusBadge tone={worldEvolutionSelectorReadProjection.status === 'ready' ? 'success' : worldEvolutionSelectorReadProjection.status === 'failed' ? 'danger' : 'warning'}>
+          {worldEvolutionSelectorReadProjection.status === 'ready' && worldEvolutionSelectorReadProjection.data
+            ? `${worldEvolutionSelectorReadProjection.data.optionalReadCount}/${worldEvolutionSelectorReadProjection.data.missingEvidenceCategory}`
+            : worldEvolutionSelectorReadProjection.status === 'failed'
+              ? worldEvolutionSelectorReadProjection.error
               : 'checking'}
         </StatusBadge>
       </div>

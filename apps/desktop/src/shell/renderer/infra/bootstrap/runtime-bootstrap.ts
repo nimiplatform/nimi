@@ -4,8 +4,8 @@ import {
   createLocalFirstPartyRuntimePlatformClient,
   unstable_attachPlatformWorldEvolutionSelectorReadProvider,
 } from '@nimiplatform/sdk';
+import { createMissingWorldEvolutionSelectorReadProvider } from '@nimiplatform/sdk/runtime';
 import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
-import { createDesktopWorldEvolutionSelectorReadAdapter } from '@runtime/world-evolution/selector-read-adapter';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { desktopBridge, toRendererLogMessage } from '@renderer/bridge';
 import { createProxyFetch } from '@renderer/infra/bridge/proxy-fetch';
@@ -510,7 +510,9 @@ export function bootstrapRuntime(): Promise<void> {
     }
     unstable_attachPlatformWorldEvolutionSelectorReadProvider(
       platformClient,
-      createDesktopWorldEvolutionSelectorReadAdapter(),
+      createMissingWorldEvolutionSelectorReadProvider({
+        backingBoundary: 'desktop-runtime-world-evolution-selector-read',
+      }),
     );
     await withBootstrapStepTimeout(
       'local runtime reconcile',

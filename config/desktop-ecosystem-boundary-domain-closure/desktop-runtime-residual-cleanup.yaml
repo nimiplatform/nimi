@@ -1,0 +1,130 @@
+status: migrated
+date: "2026-06-01"
+domain: desktop-runtime-residual-cleanup
+migrated_in_this_commit: true
+authority_posture:
+  spec_status: alignment
+  authority_owner:
+    - .nimi/spec/sdk/kernel/runtime-contract.md
+    - .nimi/spec/sdk/kernel/surface-contract.md
+    - sdk/src/runtime/world-evolution-selector-read.ts
+  work_type: alignment
+  parallel_truth: forbidden
+scope:
+  included:
+    - Full retirement of the remaining apps/desktop/src/runtime namespace.
+    - World Evolution selector-read missing-evidence provider movement to SDK Runtime.
+    - Deletion of unused Desktop runtime id and encoding helpers instead of preserving compatibility aliases.
+    - Tester consumption of the SDK World Evolution selector-read provider as second-app proof.
+  excluded:
+    - Runtime daemon World Evolution storage implementation.
+    - Product-specific Desktop bootstrap lifecycle and PlatformClient attachment mechanics.
+preflight_violation_inventory:
+  platform_truth:
+    - finding: Desktop still carried runtime/id.ts and runtime/util/encoding.ts under a platform-truth namespace with no admitted app-runtime ownership.
+      disposition: files deleted; no compatibility aliases remain.
+    - finding: Desktop owned apps/desktop/src/runtime/world-evolution/selector-read-adapter.ts, a fail-closed selector-read provider for Runtime evidence absence.
+      disposition: SDK Runtime now owns createMissingWorldEvolutionSelectorReadProvider; Desktop only attaches it during bootstrap.
+  duplicate_implementation:
+    - finding: The Desktop World Evolution selector-read adapter duplicated SDK error/reason-code semantics for missing required Runtime evidence.
+      disposition: SDK owns the missing-evidence provider and rejection details.
+  boundary_imports:
+    - finding: Desktop bootstrap imported @runtime/world-evolution/selector-read-adapter.
+      disposition: bootstrap imports createMissingWorldEvolutionSelectorReadProvider from @nimiplatform/sdk/runtime.
+  test_responsibility:
+    - finding: Desktop encoding-util.test.ts tested app-local runtime helpers after those helpers no longer had legal Desktop ownership.
+      disposition: SDK owns World Evolution selector-read behavior tests; Desktop test is now a hardcut guard proving apps/desktop/src/runtime is empty and bootstrap uses SDK.
+audited_globs:
+  - apps/desktop/src/runtime/**
+  - apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts
+  - apps/desktop/test/encoding-util.test.ts
+  - apps/desktop/test/bootstrap-reentry-contract.test.ts
+  - apps/tester/src/tester/tester-world-evolution-selector-read.ts
+  - apps/tester/src/shell/routes/settings.tsx
+  - apps/tester/test/tester-contract.test.mjs
+  - sdk/src/runtime/world-evolution-selector-read.ts
+  - sdk/src/runtime/{index,browser}.ts
+  - sdk/test/world-evolution-selector-read-rejections.test.ts
+  - sdk/test/world-evolution-selector-read-results.test.ts
+  - sdk/test/world-evolution-selector-read-validation.test.ts
+migrated:
+  shared_owners:
+    - sdk/src/runtime/world-evolution-selector-read.ts
+  responsibilities:
+    - SDK owns the public World Evolution selector-read provider type and missing required evidence provider.
+    - SDK owns optional empty-read behavior and required-evidence rejection behavior for absent World Evolution selector-read backing evidence.
+    - Desktop owns only bootstrap-time attachment of a provider to PlatformClient.
+  deleted_desktop_aliases:
+    - apps/desktop/src/runtime/id.ts
+    - apps/desktop/src/runtime/util/encoding.ts
+    - apps/desktop/src/runtime/world-evolution/selector-read-adapter.ts
+  desktop_consumers:
+    - apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts
+  tester_consumers:
+    - apps/tester/src/tester/tester-world-evolution-selector-read.ts
+    - apps/tester/src/shell/routes/settings.tsx
+legal_desktop_residue:
+  - path: apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts
+    rationale: App shell bootstrap wiring attaches a SDK-owned missing World Evolution selector-read provider to the app PlatformClient; it does not own selector-read semantics.
+  - path: apps/desktop/test/encoding-util.test.ts
+    rationale: Hardcut boundary test only; it asserts apps/desktop/src/runtime is empty and SDK/Tester owner-consumer wiring exists.
+tester_proof:
+  - apps/tester/src/tester/tester-world-evolution-selector-read.ts consumes createMissingWorldEvolutionSelectorReadProvider from @nimiplatform/sdk/runtime.
+  - apps/tester/src/shell/routes/settings.tsx renders SDK World Evolution selector-read projection.
+  - apps/tester/test/tester-contract.test.mjs asserts Tester uses the SDK Runtime provider as second-app proof.
+regression_guards:
+  - sdk/test/world-evolution-selector-read-rejections.test.ts covers SDK owner behavior for missing required evidence and fail-closed rejection categories.
+  - sdk/test/world-evolution-selector-read-results.test.ts covers SDK selector-read result shape.
+  - sdk/test/world-evolution-selector-read-validation.test.ts covers SDK selector validation.
+  - apps/desktop/test/encoding-util.test.ts asserts apps/desktop/src/runtime is retired and Desktop bootstrap imports SDK Runtime directly.
+  - apps/tester/test/tester-contract.test.mjs keeps Tester second-consumer proof.
+prohibited_patterns:
+  - target: apps/desktop/src/runtime
+    absent_files: true
+  - target: apps/desktop/src apps/desktop/test
+    absent:
+      - "@runtime/world-evolution"
+      - "from '../src/runtime/id"
+      - "from '../src/runtime/util"
+      - "createDesktopWorldEvolutionSelectorReadAdapter"
+  - target: apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts
+    required:
+      - createMissingWorldEvolutionSelectorReadProvider
+      - "@nimiplatform/sdk/runtime"
+verification:
+  status: passed
+  passed:
+    - command: >-
+        pnpm --filter @nimiplatform/sdk exec tsx --test test/world-evolution-selector-read-rejections.test.ts test/world-evolution-selector-read-results.test.ts test/world-evolution-selector-read-validation.test.ts
+      evidence: SDK owner tests pass for missing provider behavior, selector-read result shape, and selector validation.
+    - command: >-
+        pnpm --filter @nimiplatform/desktop exec tsx --test test/encoding-util.test.ts test/bootstrap-reentry-contract.test.ts
+      evidence: Desktop hardcut/bootstrap tests pass after retiring apps/desktop/src/runtime.
+    - command: pnpm --filter @nimiplatform/tester exec node --test test/tester-contract.test.mjs
+      evidence: Tester second-consumer contract passes and requires SDK World Evolution selector-read consumption.
+    - command: pnpm --filter @nimiplatform/sdk build
+      evidence: SDK Runtime public exports compile into dist.
+    - command: pnpm --filter @nimiplatform/desktop typecheck
+      evidence: Desktop compiles after deleting remaining apps/desktop/src/runtime files.
+    - command: pnpm --filter @nimiplatform/tester typecheck
+      evidence: Tester compiles against the SDK Runtime selector-read provider.
+    - command: rg --files apps/desktop/src/runtime
+      evidence: No files remain under apps/desktop/src/runtime; command returned no matches.
+    - command: >-
+        rg -n "@runtime/world-evolution|from ['\"][^'\"]*runtime/world-evolution|runtime/id|runtime/util/encoding|createDesktopWorldEvolutionSelectorReadAdapter" apps/desktop/src apps/desktop/test --glob '!**/dist/**'
+      evidence: No prohibited Desktop runtime residual imports remain; command returned no matches.
+    - command: pnpm check:no-legacy-imports
+      evidence: Legacy import guard passes.
+    - command: pnpm check:no-absolute-user-paths
+      evidence: Absolute user-home path guard passes.
+    - command: pnpm check:no-app-realm-rest-bypass
+      evidence: App Realm REST bypass guard passes.
+    - command: git diff --check
+      evidence: Patch whitespace passes.
+  command_notes:
+    - command: pnpm --filter @nimiplatform/tester exec node --test test/tester-contract.test.mjs
+      status: failed-command-ordering
+      evidence: Failed only when started in parallel before pnpm --filter @nimiplatform/sdk build completed; rerun after SDK build passed.
+    - command: pnpm --filter @nimiplatform/tester typecheck
+      status: failed-before-fix
+      evidence: Initially caught a nullable projection render in settings.tsx; fixed by guarding data before rendering and reran successfully.
