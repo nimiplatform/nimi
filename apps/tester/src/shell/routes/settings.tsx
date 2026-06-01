@@ -20,6 +20,7 @@ import {
   getRuntimeRouteCapabilityProjectionIssueKind,
   isRuntimeRouteCapabilityProjectionReady,
   isRuntimeRouteLocalOptionSelectable,
+  listRuntimeLocalAssetEntries,
   mapRuntimeErrorToLocalAiReasonCode,
   ModelHealthStatus,
   createEmptyMemoryEmbeddingConfig,
@@ -247,6 +248,25 @@ async function resolveTesterLocalRuntimeFacadeProjection(): Promise<string> {
   }) as never);
   try {
     const [asset] = await localRuntime.listAssets({ kind: 'chat' });
+    const [entry] = await listRuntimeLocalAssetEntries({
+      local: {
+        async listLocalAssets() {
+          return {
+            assets: [{
+              localAssetId: 'tester-local-asset',
+              assetId: 'tester/local-facade-asset',
+              kind: 'LOCAL_ASSET_KIND_CHAT',
+              engine: 'runtime-engine',
+              status: 'LOCAL_ASSET_STATUS_INSTALLED',
+            }],
+            nextPageToken: '',
+          };
+        },
+      },
+    } as never);
+    if (entry?.assetId !== asset?.assetId) {
+      throw new Error('tester local asset projection did not match local runtime facade asset');
+    }
     return asset?.assetId ?? 'none';
   } finally {
     unbind();

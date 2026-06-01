@@ -1,7 +1,9 @@
 import {
+  AuthorizeExternalPrincipalResponse,
+  RegisterAppResponse,
   RuntimeReasonCode,
   createEmptyMemoryEmbeddingConfig,
-  createHostMemoryEmbeddingRuntimeSurface,
+  createProtectedHostMemoryEmbeddingRuntimeSurface,
 } from '@nimiplatform/sdk/runtime';
 
 export type TesterMemoryEmbeddingRuntimeProjection = {
@@ -33,9 +35,29 @@ const testerMemoryEmbeddingConfig = {
 };
 
 export function createTesterMemoryEmbeddingRuntimeSurface() {
-  return createHostMemoryEmbeddingRuntimeSurface({
+  return createProtectedHostMemoryEmbeddingRuntimeSurface({
     runtime: () => ({
       appId: 'dev.nimi.tester',
+      auth: {
+        async registerApp() {
+          return RegisterAppResponse.create({ accepted: true });
+        },
+      },
+      appAuth: {
+        async authorizeExternalPrincipal(request) {
+          return AuthorizeExternalPrincipalResponse.create({
+            tokenId: 'tester-token',
+            secret: 'tester-secret',
+            appId: request.appId,
+            subjectUserId: request.subjectUserId,
+            externalPrincipalId: request.externalPrincipalId,
+            effectiveScopes: request.scopes,
+            policyVersion: request.policyVersion,
+            issuedScopeCatalogVersion: request.scopeCatalogVersion,
+            canDelegate: false,
+          });
+        },
+      },
       memory: {
         async inspectMemoryEmbeddingRuntime() {
           return {

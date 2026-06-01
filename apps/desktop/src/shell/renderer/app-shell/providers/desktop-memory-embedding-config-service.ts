@@ -11,13 +11,11 @@ import {
   getPlatformClient,
 } from '@nimiplatform/sdk';
 import {
-  createHostMemoryEmbeddingRuntimeSurface,
-  createRuntimeProtectedScopeHelper,
+  createProtectedHostMemoryEmbeddingRuntimeSurface,
   type MemoryEmbeddingRuntimeSurface,
   createEmptyMemoryEmbeddingConfig,
   type MemoryEmbeddingConfig,
   type MemoryEmbeddingConfigSurface,
-  type RuntimeCallOptions,
 } from '@nimiplatform/sdk/runtime';
 import {
   type AIScopeRef,
@@ -44,7 +42,6 @@ type MemoryEmbeddingSubscription = {
 let subscriptionIDCounter = 0;
 const subscriptions = new Map<number, MemoryEmbeddingSubscription>();
 const configByScope = new Map<string, MemoryEmbeddingConfig>();
-let protectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
 
 function ensureHydrated(): void {
   if (configByScope.size > 0) {
@@ -102,31 +99,6 @@ function currentSubjectUserId(): string {
   return String(user?.id || '').trim();
 }
 
-function getProtectedAccess() {
-  if (protectedAccess) {
-    return protectedAccess;
-  }
-  const runtime = getPlatformClient().runtime;
-  protectedAccess = createRuntimeProtectedScopeHelper({
-    runtime,
-    getSubjectUserId: async () => {
-      const subjectUserId = currentSubjectUserId();
-      if (!subjectUserId) {
-        throw new Error('desktop memory embedding runtime requires authenticated subject user id');
-      }
-      return subjectUserId;
-    },
-  });
-  return protectedAccess;
-}
-
-async function withRuntimeMemoryScopes<T>(
-  scopes: readonly string[],
-  operation: (options: RuntimeCallOptions) => Promise<T>,
-): Promise<T> {
-  return getProtectedAccess().withScopes(scopes, operation);
-}
-
 function createMemoryEmbeddingConfigSurface(): MemoryEmbeddingConfigSurface {
   return {
     get(scopeRef: AIScopeRef): MemoryEmbeddingConfig {
@@ -154,11 +126,10 @@ function createMemoryEmbeddingConfigSurface(): MemoryEmbeddingConfigSurface {
 }
 
 function createMemoryEmbeddingRuntimeSurface(): MemoryEmbeddingRuntimeSurface {
-  return createHostMemoryEmbeddingRuntimeSurface({
+  return createProtectedHostMemoryEmbeddingRuntimeSurface({
     runtime: () => getPlatformClient().runtime,
     getConfig: (scopeRef) => getConfigForScope(scopeRef),
     getSubjectUserId: () => currentSubjectUserId(),
-    withScopes: (scopes, operation) => withRuntimeMemoryScopes(scopes, operation),
   });
 }
 

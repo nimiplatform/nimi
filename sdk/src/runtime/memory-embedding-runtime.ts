@@ -14,7 +14,13 @@ import type {
 } from './generated/runtime/v1/memory.js';
 import { MemoryBankScope } from './generated/runtime/v1/memory.js';
 import { normalizeRuntimeReasonCode } from './reason-code-messages.js';
-import type { RuntimeCallOptions } from './types.js';
+import { createRuntimeProtectedScopeHelper } from './protected-access.js';
+import type {
+  RuntimeAppAuthClient,
+  RuntimeAuthClient,
+  RuntimeCallOptions,
+  RuntimeTransportConfig,
+} from './types.js';
 import type { RuntimeMemoryClient } from './types-client-interfaces.js';
 
 export type MemoryEmbeddingResolutionState =
@@ -99,6 +105,12 @@ type HostMemoryEmbeddingRuntimeClient = {
   >;
 };
 
+type ProtectedHostMemoryEmbeddingRuntimeClient = HostMemoryEmbeddingRuntimeClient & {
+  readonly transport?: RuntimeTransportConfig;
+  readonly auth: Pick<RuntimeAuthClient, 'registerApp'>;
+  readonly appAuth: Pick<RuntimeAppAuthClient, 'authorizeExternalPrincipal'>;
+};
+
 export type HostMemoryEmbeddingRuntimeSurfaceOptions = {
   readonly runtime: () => Awaitable<HostMemoryEmbeddingRuntimeClient>;
   readonly getConfig: (scopeRef: AIScopeRef) => Awaitable<MemoryEmbeddingConfig>;
@@ -108,6 +120,13 @@ export type HostMemoryEmbeddingRuntimeSurfaceOptions = {
     operation: (options: RuntimeCallOptions) => Promise<T>,
   ) => Promise<T>;
   readonly unavailableReasonCode?: string;
+};
+
+export type ProtectedHostMemoryEmbeddingRuntimeSurfaceOptions = Omit<
+  HostMemoryEmbeddingRuntimeSurfaceOptions,
+  'runtime' | 'withScopes'
+> & {
+  readonly runtime: () => Awaitable<ProtectedHostMemoryEmbeddingRuntimeClient>;
 };
 
 export function memoryEmbeddingRuntimeReasonCodeName(value: unknown): string | null {
@@ -420,4 +439,32 @@ export function createHostMemoryEmbeddingRuntimeSurface(
       return projectMemoryEmbeddingCutoverResult(result);
     },
   };
+}
+
+export function createProtectedHostMemoryEmbeddingRuntimeSurface(
+  options: ProtectedHostMemoryEmbeddingRuntimeSurfaceOptions,
+): MemoryEmbeddingRuntimeSurface {
+  let protectedRuntime: ProtectedHostMemoryEmbeddingRuntimeClient | null = null;
+  let protectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
+
+  async function getProtectedRuntime() {
+    if (protectedRuntime && protectedAccess) {
+      return { runtime: protectedRuntime, protectedAccess };
+    }
+    protectedRuntime = await options.runtime();
+    protectedAccess = createRuntimeProtectedScopeHelper({
+      runtime: protectedRuntime,
+      getSubjectUserId: options.getSubjectUserId,
+    });
+    return { runtime: protectedRuntime, protectedAccess };
+  }
+
+  return createHostMemoryEmbeddingRuntimeSurface({
+    ...options,
+    runtime: async () => (await getProtectedRuntime()).runtime,
+    withScopes: async (scopes, operation) => {
+      const access = await getProtectedRuntime();
+      return access.protectedAccess.withScopes(scopes, operation);
+    },
+  });
 }

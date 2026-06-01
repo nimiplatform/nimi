@@ -2,12 +2,15 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  AuthorizeExternalPrincipalResponse,
   MemoryBankScope,
+  RegisterAppResponse,
   RuntimeReasonCode,
   buildMemoryEmbeddingAgentCoreLocator,
   buildMemoryEmbeddingBindingIntentSnapshot,
   createEmptyMemoryEmbeddingConfig,
   createHostMemoryEmbeddingRuntimeSurface,
+  createProtectedHostMemoryEmbeddingRuntimeSurface,
   memoryEmbeddingProfileIdentity,
   normalizeMemoryEmbeddingBindOutcome,
   normalizeMemoryEmbeddingCanonicalBankStatus,
@@ -265,6 +268,94 @@ test('host memory embedding runtime surface composes Runtime calls without ownin
     (calls[0].request as { bindingIntentSnapshot: unknown }).bindingIntentSnapshot,
     buildMemoryEmbeddingBindingIntentSnapshot(config),
   );
+});
+
+test('protected host memory embedding runtime surface owns protected access composition', async () => {
+  const config = {
+    ...createEmptyMemoryEmbeddingConfig(scopeRef),
+    sourceKind: 'cloud' as const,
+    bindingRef: {
+      kind: 'cloud' as const,
+      connectorId: 'cloud-connector',
+      modelId: 'embedding-model',
+    },
+    revisionToken: 'rev-runtime',
+  };
+  const calls: Array<{ method: string; tokenId?: string; scopes?: readonly string[] }> = [];
+  const surface = createProtectedHostMemoryEmbeddingRuntimeSurface({
+    runtime: () => ({
+      appId: 'dev.nimi.consumer',
+      auth: {
+        registerApp: async () => RegisterAppResponse.create({ accepted: true }),
+      },
+      appAuth: {
+        authorizeExternalPrincipal: async (request) => AuthorizeExternalPrincipalResponse.create({
+          tokenId: `token-${request.scopes.join('-')}`,
+          secret: 'secret',
+          appId: request.appId,
+          subjectUserId: request.subjectUserId,
+          externalPrincipalId: request.externalPrincipalId,
+          effectiveScopes: request.scopes,
+          policyVersion: request.policyVersion,
+          issuedScopeCatalogVersion: request.scopeCatalogVersion,
+          canDelegate: false,
+        }),
+      },
+      memory: {
+        async inspectMemoryEmbeddingRuntime(_request, options) {
+          calls.push({
+            method: 'inspect',
+            tokenId: options?.protectedAccessToken?.tokenId,
+          });
+          return {
+            bindingIntentPresent: true,
+            bindingSourceKind: 'cloud',
+            resolutionState: 'resolved',
+            canonicalBankStatus: 'bound_equivalent',
+            blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+            operationReadiness: { bindAllowed: false, cutoverAllowed: false },
+          };
+        },
+        async requestMemoryEmbeddingRuntimeBind(_request, options) {
+          calls.push({
+            method: 'bind',
+            tokenId: options?.protectedAccessToken?.tokenId,
+          });
+          return {
+            outcome: 'already_bound',
+            blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+            canonicalBankStatusAfter: 'bound_equivalent',
+            pendingCutover: false,
+          };
+        },
+        async requestMemoryEmbeddingRuntimeCutover(_request, options) {
+          calls.push({
+            method: 'cutover',
+            tokenId: options?.protectedAccessToken?.tokenId,
+          });
+          return {
+            outcome: 'already_current',
+            blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+            canonicalBankStatusAfter: 'bound_equivalent',
+          };
+        },
+      },
+    }),
+    getConfig: () => config,
+    getSubjectUserId: () => 'user-1',
+  });
+
+  const request = { scopeRef, targetRef: { kind: 'agent-core' as const, agentId: 'agent-1' } };
+  await surface.inspect(request);
+  await surface.requestBind(request);
+  await surface.requestCutover(request);
+
+  assert.deepEqual(calls.map((call) => call.method), ['inspect', 'bind', 'cutover']);
+  assert.deepEqual(calls.map((call) => call.tokenId), [
+    'token-runtime.memory.read',
+    'token-runtime.memory.write',
+    'token-runtime.memory.write',
+  ]);
 });
 
 test('host memory embedding runtime surface fails closed without subject user id', async () => {

@@ -1170,6 +1170,7 @@ test('tester settings consumes SDK local runtime facade DX surface', () => {
   const settings = read('src/shell/routes/settings.tsx');
 
   assert.match(settings, /bindLocalRuntimeServiceClientProvider/);
+  assert.match(settings, /listRuntimeLocalAssetEntries/);
   assert.match(settings, /localRuntime\.listAssets\(\{ kind: 'chat' \}\)/);
   assert.match(settings, /SDK local runtime facade projection/);
   assert.match(settings, /tester\/local-facade-asset/);
@@ -1195,7 +1196,8 @@ test('tester settings consumes SDK memory embedding route availability projectio
   assert.match(settings, /projectRuntimeAgentCanonicalMemoryBankStatus/);
   assert.match(settings, /createEmptyMemoryEmbeddingConfig/);
   assert.match(settings, /createTesterMemoryEmbeddingRuntimeProjection/);
-  assert.match(runtimeProjection, /createHostMemoryEmbeddingRuntimeSurface/);
+  assert.match(runtimeProjection, /createProtectedHostMemoryEmbeddingRuntimeSurface/);
+  assert.match(runtimeProjection, /AuthorizeExternalPrincipalResponse/);
   assert.match(runtimeProjection, /inspectTesterMemoryEmbeddingRuntimeProjection/);
   assert.match(runtimeProjection, /requestMemoryEmbeddingRuntimeBind/);
   assert.doesNotMatch(runtimeProjection, /buildMemoryEmbeddingAgentCoreLocator/);

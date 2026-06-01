@@ -22,18 +22,18 @@ export function createTesterRuntimeLocalConfigProjection(): TesterRuntimeLocalCo
     normalizeRuntimeConfigLocalModelProjection({
       localModelId: 'tester-active',
       model: 'tester/active',
-      engine: 'llama',
+      engine: 'runtime-native',
       endpoint: 'http://127.0.0.1:11434/v1///',
       capabilities: ['chat'],
       status: 'active',
     }),
   ];
   const node = normalizeRuntimeConfigLocalNodeMatrixEntryProjection({
-    nodeId: 'tester-chat.llama',
+    nodeId: 'tester-chat.runtime-native',
     capability: 'chat',
     serviceId: 'tester-runtime-local',
-    provider: 'LLAMA',
-    adapter: 'llama_native_adapter',
+    provider: 'runtime-local',
+    adapter: 'media_native_adapter',
     available: true,
   });
   const preferred = pickPreferredRuntimeConfigLocalModel({ models, capability: 'chat' });

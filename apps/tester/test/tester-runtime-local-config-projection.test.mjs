@@ -52,7 +52,7 @@ test('tester consumes SDK runtime local config projection as a second app proof'
   assert.deepEqual(createTesterRuntimeLocalConfigProjection(), {
     preferredLocalModelId: 'tester-active',
     normalizedEndpoint: 'http://127.0.0.1:11434/v1',
-    nodeProvider: 'llama',
+    nodeProvider: 'runtime-local',
     nodeAvailable: true,
   });
 });

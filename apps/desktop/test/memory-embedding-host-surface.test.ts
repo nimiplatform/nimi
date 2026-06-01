@@ -147,7 +147,9 @@ test('desktop memory embedding service exposes fail-closed runtime state for con
 });
 
 test('desktop memory embedding runtime service delegates Runtime composition to SDK', () => {
-  assert.match(desktopMemoryEmbeddingServiceSource, /createHostMemoryEmbeddingRuntimeSurface/);
+  assert.match(desktopMemoryEmbeddingServiceSource, /createProtectedHostMemoryEmbeddingRuntimeSurface/);
+  assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /createRuntimeProtectedScopeHelper/);
+  assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /withRuntimeMemoryScopes/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /buildMemoryEmbeddingAgentCoreLocator/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /buildMemoryEmbeddingBindingIntentSnapshot/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /projectMemoryEmbeddingRuntimeState/);
