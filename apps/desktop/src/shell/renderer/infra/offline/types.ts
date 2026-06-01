@@ -11,8 +11,6 @@ export type PersistentOutboxEntry = {
 };
 
 export type SocialMutationKind =
-  | 'friend-add'
-  | 'friend-remove'
   | 'post-like'
   | 'post-unlike';
 

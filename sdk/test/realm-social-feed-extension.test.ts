@@ -67,24 +67,16 @@ test('Realm social feed helper fails closed and emits action context', async () 
 test('Realm social mutation executor uses canonical service calls', async () => {
   const calls: string[] = [];
   const callApi = createCallApi({
-    UserService: {
-      addFriend: async (userId: string) => { calls.push(`friend-add:${userId}`); },
-      removeFriend: async (userId: string) => { calls.push(`friend-remove:${userId}`); },
-    },
     PostsService: {
       likePost: async (postId: string) => { calls.push(`post-like:${postId}`); },
       unlikePost: async (postId: string) => { calls.push(`post-unlike:${postId}`); },
     },
   }) as never;
 
-  await executeRealmSocialMutation(callApi, { kind: 'friend-add', payload: { userId: 'user-1' } });
-  await executeRealmSocialMutation(callApi, { kind: 'friend-remove', payload: { userId: 'user-2' } });
   await executeRealmSocialMutation(callApi, { kind: 'post-like', payload: { postId: 'post-1' } });
   await executeRealmSocialMutation(callApi, { kind: 'post-unlike', payload: { postId: 'post-2' } });
 
   assert.deepEqual(calls, [
-    'friend-add:user-1',
-    'friend-remove:user-2',
     'post-like:post-1',
     'post-unlike:post-2',
   ]);

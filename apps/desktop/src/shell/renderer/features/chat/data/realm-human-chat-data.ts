@@ -14,6 +14,7 @@ import {
 import {
   getOfflineCacheManager,
   getOfflineCoordinator,
+  getOfflineOutboxManager,
   type PersistentOutboxEntry,
 } from '@renderer/infra/offline';
 
@@ -98,7 +99,7 @@ export function buildOfflineOutboxMessage(entry: PersistentOutboxEntry): Message
 }
 
 export async function countPendingChatOutboxEntries(): Promise<number> {
-  const manager = await getOfflineCacheManager();
+  const manager = await getOfflineOutboxManager();
   const entries = await manager.getChatOutboxEntries();
   return entries.filter((entry) => entry.status === 'pending').length;
 }
@@ -200,23 +201,25 @@ export async function loadChatMessages(
 ) {
   try {
     const result = await service.listMessages(chatId, limit);
-    const manager = await getOfflineCacheManager();
+    const cacheManager = await getOfflineCacheManager();
+    const outboxManager = await getOfflineOutboxManager();
     const items = Array.isArray(result?.items) ? result.items : [];
-    await manager.syncChatMessages(chatId, items);
+    await cacheManager.syncChatMessages(chatId, items);
     if (markChatRead) {
       await markChatRead(chatId);
     }
     return {
       ...result,
-      offlineOutbox: await manager.getChatOutboxEntries(chatId),
+      offlineOutbox: await outboxManager.getChatOutboxEntries(chatId),
     };
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      const manager = await getOfflineCacheManager();
+      const cacheManager = await getOfflineCacheManager();
+      const outboxManager = await getOfflineOutboxManager();
       getOfflineCoordinator().markCacheFallbackUsed();
       return {
-        items: await manager.getCachedMessages<MessageViewDto>(chatId),
-        offlineOutbox: await manager.getChatOutboxEntries(chatId),
+        items: await cacheManager.getCachedMessages<MessageViewDto>(chatId),
+        offlineOutbox: await outboxManager.getChatOutboxEntries(chatId),
       };
     }
     emitChatError('load-messages', error, { chatId });
@@ -266,7 +269,7 @@ export async function sendChatMessage(
       payload: createCanonicalTextPayload(content),
       ...options,
     };
-    const manager = await getOfflineCacheManager();
+    const manager = await getOfflineOutboxManager();
     const entry = toPersistentEntry({
       chatId,
       body: data,
@@ -279,7 +282,7 @@ export async function sendChatMessage(
     await manager.markChatOutboxSent(data.clientMessageId);
     return message;
   } catch (error) {
-    const manager = await getOfflineCacheManager();
+    const manager = await getOfflineOutboxManager();
     const existing = await manager.getChatOutboxEntry(clientMessageId);
     if (existing && isRealmOfflineError(error)) {
       await manager.upsertChatOutboxEntry({
@@ -308,7 +311,7 @@ export async function flushPendingChatOutbox(
   service: Pick<DesktopRealmHumanChatService, 'sendMessage'> = realmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ): Promise<MessageViewDto[]> {
-  const manager = await getOfflineCacheManager();
+  const manager = await getOfflineOutboxManager();
   const pending = await manager.getChatOutboxEntries(chatId);
   const flushed: MessageViewDto[] = [];
   for (const entry of pending) {

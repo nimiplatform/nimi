@@ -9,7 +9,7 @@ import {
   isRealmOfflineErrorLike as isRealmOfflineError,
 } from '@nimiplatform/sdk/types';
 import {
-  getOfflineCacheManager,
+  getOfflineOutboxManager,
   type PersistentSocialMutationEntry,
   type SocialMutationKind,
 } from '@renderer/infra/offline';
@@ -22,7 +22,7 @@ export async function queueSocialMutation(input: {
   kind: SocialMutationKind;
   payload: Record<string, unknown>;
 }): Promise<PersistentSocialMutationEntry> {
-  const manager = await getOfflineCacheManager();
+  const manager = await getOfflineOutboxManager();
   const entry: PersistentSocialMutationEntry = {
     id: createId(`social:${input.kind}`),
     kind: input.kind,
@@ -36,7 +36,7 @@ export async function queueSocialMutation(input: {
 }
 
 export async function countPendingSocialMutations(): Promise<number> {
-  const manager = await getOfflineCacheManager();
+  const manager = await getOfflineOutboxManager();
   return await manager.getPendingSocialMutationCount();
 }
 
@@ -51,7 +51,7 @@ export async function flushPendingSocialMutations(
   callApi: RealmSocialFeedApiCaller,
   emitRealmDataError: RealmSocialFeedErrorEmitter,
 ): Promise<void> {
-  const manager = await getOfflineCacheManager();
+  const manager = await getOfflineOutboxManager();
   const entries = await manager.getSocialMutationEntries();
   for (const entry of entries) {
     if (entry.status !== 'pending') {

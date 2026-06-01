@@ -22,4 +22,5 @@ export {
   OFFLINE_OUTBOX_MAX_ENTRIES,
 } from './types.js';
 export { OfflineCacheManager, getOfflineCacheManager } from './cache-manager.js';
+export { OfflineOutboxManager, getOfflineOutboxManager } from './outbox-manager.js';
 export { getOfflineCoordinator } from './coordinator.js';

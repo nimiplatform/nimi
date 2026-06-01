@@ -24,7 +24,6 @@ import {
   type RealmDataErrorEmitter,
   type SocialContactSnapshot,
 } from './social-snapshot';
-import { queueSocialMutation } from './offline-social-outbox';
 import { dispatchBlockedUsersUpdated } from './blocked-content';
 
 type UserProfileDto = RealmModel<'UserProfileDto'>;
@@ -150,12 +149,7 @@ export async function requestOrAcceptFriend(input: {
     await input.reloadContacts();
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      await queueSocialMutation({
-        kind: 'friend-add',
-        payload: { userId: input.userId },
-      });
       getOfflineCoordinator().markRealmRestReachable(false);
-      return { id: String(input.userId || ''), queued: true };
     }
     throw error;
   }
@@ -172,12 +166,7 @@ export async function removeFriend(input: {
     await input.reloadContacts();
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      await queueSocialMutation({
-        kind: 'friend-remove',
-        payload: { userId: input.userId },
-      });
       getOfflineCoordinator().markRealmRestReachable(false);
-      return;
     }
     throw error;
   }
@@ -193,12 +182,7 @@ export async function rejectOrRemoveFriend(input: {
     await input.reloadContacts();
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      await queueSocialMutation({
-        kind: 'friend-remove',
-        payload: { userId: input.userId },
-      });
       getOfflineCoordinator().markRealmRestReachable(false);
-      return { id: String(input.userId || ''), queued: true };
     }
     throw error;
   }

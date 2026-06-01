@@ -29,8 +29,6 @@ export type RealmPostFeedInput = {
 };
 
 export type RealmSocialMutationKind =
-  | 'friend-add'
-  | 'friend-remove'
   | 'post-like'
   | 'post-unlike';
 
@@ -360,16 +358,6 @@ export async function executeRealmSocialMutation(
   callApi: RealmSocialFeedApiCaller,
   entry: RealmSocialMutationExecutionInput,
 ): Promise<void> {
-  if (entry.kind === 'friend-add') {
-    const userId = normalizeText(entry.payload.userId);
-    await addRealmFriendById(callApi, userId);
-    return;
-  }
-  if (entry.kind === 'friend-remove') {
-    const userId = normalizeText(entry.payload.userId);
-    await removeRealmFriendById(callApi, userId);
-    return;
-  }
   if (entry.kind === 'post-like') {
     const postId = normalizeText(entry.payload.postId);
     await callApi(

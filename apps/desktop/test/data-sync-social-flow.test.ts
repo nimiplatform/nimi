@@ -3,14 +3,22 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
+  createOfflineNimiError,
+  ReasonCode,
+} from '@nimiplatform/sdk/types';
+import {
   blockUser,
   loadSocialSnapshot,
+  rejectOrRemoveFriend,
+  removeFriend,
+  requestOrAcceptFriend,
   unblockUser,
 } from '../src/shell/renderer/features/social/data/profile-data.js';
 import {
   getCachedContacts,
   updateCachedContacts,
 } from '../src/shell/renderer/features/social/data/social-snapshot.js';
+import { getOfflineOutboxManager } from '../src/shell/renderer/infra/offline/index.js';
 
 const profileFlowSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/social/data/profile-data.ts'),
@@ -80,6 +88,48 @@ describe('D-DSYNC-004: social flow source scanning', () => {
     assert.match(sdkRealmSocialSource, /export async function loadRealmSocialSnapshot/);
     assert.match(profileFlowSocialSource, /loadRealmSocialSnapshot/);
     assert.doesNotMatch(profileFlowSocialSource, /realm\.services\.MeService\.listMyFriendsWithDetails/);
+  });
+
+  test('D-DSYNC-004: friendship mutations fail closed offline instead of entering generic social outbox', async () => {
+    const manager = await getOfflineOutboxManager();
+    manager.close();
+    await manager.open();
+    const offline = createOfflineNimiError({
+      source: 'realm',
+      reasonCode: ReasonCode.REALM_UNAVAILABLE,
+      message: 'realm offline',
+      actionHint: 'retry',
+    });
+    const callApi = async () => {
+      throw offline;
+    };
+
+    await assert.rejects(
+      () => requestOrAcceptFriend({
+        callApi: callApi as never,
+        userId: 'agent-or-human-1',
+        reloadContacts: async () => undefined,
+      }),
+      /realm offline/,
+    );
+    await assert.rejects(
+      () => removeFriend({
+        callApi: callApi as never,
+        userId: 'agent-or-human-1',
+        reloadContacts: async () => undefined,
+      }),
+      /realm offline/,
+    );
+    await assert.rejects(
+      () => rejectOrRemoveFriend({
+        callApi: callApi as never,
+        userId: 'agent-or-human-1',
+        reloadContacts: async () => undefined,
+      }),
+      /realm offline/,
+    );
+
+    assert.equal(await manager.getPendingSocialMutationCount(), 0);
   });
 });
 

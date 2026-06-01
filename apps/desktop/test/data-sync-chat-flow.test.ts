@@ -15,7 +15,7 @@ import {
   sendChatMessage,
   startChatWithTarget,
 } from '../src/shell/renderer/features/chat/data/realm-human-chat-data.js';
-import { getOfflineCacheManager } from '../src/shell/renderer/infra/offline/index.js';
+import { getOfflineOutboxManager } from '../src/shell/renderer/infra/offline/index.js';
 
 type MessageViewDto = RealmModel<'MessageViewDto'>;
 
@@ -48,7 +48,7 @@ describe('desktop human chat scaffold source scanning', () => {
   });
 
   test('failed send queues to outbox with attempts tracking', async () => {
-    const manager = await getOfflineCacheManager();
+    const manager = await getOfflineOutboxManager();
     manager.close();
     await manager.open();
     const result = await sendChatMessage('chat-1', 'hello', {}, {
@@ -94,7 +94,7 @@ describe('desktop human chat scaffold source scanning', () => {
   });
 
   test('flushChatOutbox replays FIFO order by enqueuedAt', async () => {
-    const manager = await getOfflineCacheManager();
+    const manager = await getOfflineOutboxManager();
     manager.close();
     await manager.open();
     await manager.upsertChatOutboxEntry({

@@ -25,7 +25,8 @@ Realm 不可达时的行为规则：
 - 聊天消息写入 Desktop bounded chat shell scaffold 的本地 outbox 队列（retired DataSync owner map records this ownership boundary; current code must not depend on a DataSync facade）。
 - outbox 消息按 FIFO 顺序排列，每条消息附带 `enqueued_at` 时间戳。
 - outbox 最大容量 1000 条消息；超出后拒绝新写入并提示用户。
-- 社交操作（关注、评论、点赞）静默排队，重连后批量提交。
+- 社交 post interaction 操作（例如点赞/取消点赞）可静默排队，重连后批量提交。Friendship / AgentFriend / LocalAgent linkage 相关 mutation 不得进入 generic social outbox；离线时必须失败关闭，除非 Realm Social contract 明确提供后端持久化 intent。
+- 本地 outbox 是 Desktop shell/scaffold 的待提交 intent transport，不能表示 Realm commit success，也不能作为 Chat/Social canonical state。重放必须通过 Realm/SDK public API，只有 Realm 接受后才可删除待提交记录；非网络失败必须标记 `failed` 并停止自动重放。
 - 经济交易（充值、打赏）不得离线排队，必须在线执行。向用户展示明确提示。
 - 世界/Agent 浏览使用本地缓存数据，标记"离线模式"水印。
 
@@ -66,7 +67,8 @@ Runtime 和 Realm 均不可达时的行为规则：
 **存储拓扑**:
 - **Zustand store** (in-memory): 运行时活跃状态，HMR 通过 globalThis 保活。
 - **Tauri IPC / Runtime secure custody / Realm projections** (owner persistence): app-level persistence must be owned by the admitted Runtime/Realm/IPC owner, not by renderer hot-state.
-- **IndexedDB** (offline cache): 离线降级期间的只读缓存层，仅用于 D-OFFLINE-005 定义的缓存数据集。在线时由 feature-local Realm data loaders / SDK public services refresh，不作为数据修改通道。
+- **IndexedDB cache stores** (offline cache): 离线降级期间的只读缓存层，仅用于 D-OFFLINE-005 定义的缓存数据集。在线时由 feature-local Realm data loaders / SDK public services refresh，不作为数据修改通道。
+- **IndexedDB outbox stores** (shell/scaffold intent transport): D-OFFLINE-002 admitted outbox stores are separate from the offline cache manager. They may persist pending chat/social submit intents, but they remain non-authoritative transport records and must not be read as Realm Chat/Social truth.
 
 ## Fact Sources
 

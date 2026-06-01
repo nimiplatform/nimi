@@ -32,11 +32,17 @@ test('Tester consumes SDK offline typed error helper as second app proof', () =>
   assert.match(testerContract, /createOfflineNimiError/);
 });
 
-test('Offline app surface keeps only Desktop cache/coordinator exports', () => {
+test('Offline app surface keeps cache, outbox, and coordinator exports separated', () => {
   const offlineIndex = read('apps/desktop/src/shell/renderer/infra/offline/index.ts');
+  const cacheManager = read('apps/desktop/src/shell/renderer/infra/offline/cache-manager.ts');
+  const outboxManager = read('apps/desktop/src/shell/renderer/infra/offline/outbox-manager.ts');
 
   assert.match(offlineIndex, /OfflineCoordinator/);
   assert.match(offlineIndex, /@nimiplatform\/kit\/core\/offline-coordinator/);
   assert.match(offlineIndex, /OfflineCacheManager/);
+  assert.match(offlineIndex, /OfflineOutboxManager/);
+  assert.doesNotMatch(cacheManager, /upsertChatOutboxEntry|getChatOutboxEntries|queueSocialMutation|markSocialMutation/);
+  assert.match(outboxManager, /upsertChatOutboxEntry/);
+  assert.match(outboxManager, /queueSocialMutation/);
   assert.doesNotMatch(offlineIndex, /from '.\/errors\.js'/);
 });

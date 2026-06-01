@@ -2,10 +2,11 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { OfflineCacheManager } from '../src/shell/renderer/infra/offline/cache-manager.js';
+import { OfflineOutboxManager } from '../src/shell/renderer/infra/offline/outbox-manager.js';
 
 describe('D-OFFLINE-002: outbox queue/send/fail behavior', () => {
   test('queueOutboxEntry rejects when outbox full', async () => {
-    const manager = new OfflineCacheManager();
+    const manager = new OfflineOutboxManager();
     await manager.open();
     for (let index = 0; index < 1000; index += 1) {
       await manager.upsertChatOutboxEntry({
@@ -31,7 +32,7 @@ describe('D-OFFLINE-002: outbox queue/send/fail behavior', () => {
   });
 
   test('outbox entries stay FIFO by enqueuedAt', async () => {
-    const manager = new OfflineCacheManager();
+    const manager = new OfflineOutboxManager();
     await manager.open();
     await manager.upsertChatOutboxEntry({
       clientMessageId: 'later',
@@ -54,7 +55,7 @@ describe('D-OFFLINE-002: outbox queue/send/fail behavior', () => {
   });
 
   test('markChatOutboxSent deletes the delivered entry', async () => {
-    const manager = new OfflineCacheManager();
+    const manager = new OfflineOutboxManager();
     await manager.open();
     await manager.upsertChatOutboxEntry({
       clientMessageId: 'cm-1',
@@ -69,7 +70,7 @@ describe('D-OFFLINE-002: outbox queue/send/fail behavior', () => {
   });
 
   test('markChatOutboxFailed preserves the failed reason without retrying', async () => {
-    const manager = new OfflineCacheManager();
+    const manager = new OfflineOutboxManager();
     await manager.open();
     await manager.upsertChatOutboxEntry({
       clientMessageId: 'cm-2',
