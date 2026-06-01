@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
 function readRepo(path: string): string {
@@ -34,11 +34,14 @@ describe('Avatar shell/local-assets domain boundary', () => {
   });
 
   it('keeps Desktop visual renderer policy delegated to Kit avatar surfaces', () => {
-    const live2dFraming = readRepo(
-      'apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-framing.ts',
+    const live2dViewport = readRepo(
+      'apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-viewport.tsx',
     );
-    const vrmFraming = readRepo(
-      'apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-framing.ts',
+    const live2dCubismModel = readRepo(
+      'apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-cubism-model.ts',
+    );
+    const vrmViewport = readRepo(
+      'apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-viewport.tsx',
     );
     const voiceCapture = readRepo(
       'apps/desktop/src/shell/renderer/features/chat/chat-agent-voice-capture.ts',
@@ -49,11 +52,20 @@ describe('Avatar shell/local-assets domain boundary', () => {
     const kitAvatarReadme = readRepo('kit/features/avatar/README.md');
     const testerSettings = readRepo('apps/tester/src/shell/routes/settings.tsx');
 
-    assert.match(live2dFraming, /@nimiplatform\/kit\/features\/avatar\/live2d/);
-    assert.match(live2dFraming, /resolveAvatarLive2dFramingPolicy/);
-    assert.match(vrmFraming, /@nimiplatform\/kit\/features\/avatar\/vrm/);
-    assert.match(vrmFraming, /resolveAvatarVrmFramingPolicy/);
-    assert.match(vrmFraming, /measureAvatarVrmFramingMetrics/);
+    assert.equal(
+      existsSync(new URL('../../../apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-framing.ts', import.meta.url)),
+      false,
+    );
+    assert.equal(
+      existsSync(new URL('../../../apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-framing.ts', import.meta.url)),
+      false,
+    );
+    assert.match(live2dViewport, /@nimiplatform\/kit\/features\/avatar\/live2d/);
+    assert.match(live2dCubismModel, /resolveAvatarLive2dFramingPolicy/);
+    assert.match(vrmViewport, /@nimiplatform\/kit\/features\/avatar\/vrm/);
+    assert.match(vrmViewport, /resolveAvatarVrmFramingFromScene/);
+    assert.doesNotMatch(live2dViewport, /chat-agent-avatar-live2d-framing/);
+    assert.doesNotMatch(vrmViewport, /chat-agent-avatar-vrm-framing/);
 
     assert.match(voiceCapture, /@nimiplatform\/kit\/features\/avatar\/headless/);
     assert.match(runtimeStreamUi, /@nimiplatform\/kit\/features\/avatar\/runtime/);

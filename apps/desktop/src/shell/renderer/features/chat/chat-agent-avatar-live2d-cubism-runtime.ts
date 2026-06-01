@@ -6,8 +6,8 @@ import {
   resolveAvatarLive2dRenderMotionPose,
   type AvatarLive2dMotionSelection,
   type AvatarLive2dRenderMotionPose,
+  type AvatarLive2dFramingIntent as ChatAgentAvatarLive2dFramingIntent,
 } from '@nimiplatform/kit/features/avatar/live2d';
-import type { ChatAgentAvatarLive2dFramingIntent } from './chat-agent-avatar-live2d-framing';
 import { createOfficialLive2dCubismModelImpl } from './chat-agent-avatar-live2d-cubism-model';
 import {
   describeLive2dRuntimeError,

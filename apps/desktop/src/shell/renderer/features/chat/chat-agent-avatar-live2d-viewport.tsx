@@ -3,7 +3,7 @@ import type { AvatarLive2dViewportComponentProps } from '@nimiplatform/kit/featu
 import { cn } from '@nimiplatform/kit/ui';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createOfficialLive2dCubismModel } from './chat-agent-avatar-live2d-cubism-runtime';
-import type { ChatAgentAvatarLive2dFramingIntent } from './chat-agent-avatar-live2d-framing';
+import type { AvatarLive2dFramingIntent as ChatAgentAvatarLive2dFramingIntent } from '@nimiplatform/kit/features/avatar/live2d';
 import {
   loadChatAgentAvatarLive2dModelSource,
   resolveChatAgentAvatarLive2dViewportState,

@@ -3,7 +3,12 @@ import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import { VRMLoaderPlugin, VRMUtils, type VRM } from '@pixiv/three-vrm';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import type { AvatarVrmViewportComponentProps } from '@nimiplatform/kit/features/avatar/vrm';
+import {
+  resolveAvatarVrmFramingFromScene as resolveChatAgentAvatarVrmFramingFromScene,
+  type AvatarVrmFramingIntent as ChatAgentAvatarVrmFramingIntent,
+  type AvatarVrmFramingResult as ChatAgentAvatarVrmFramingResult,
+  type AvatarVrmViewportComponentProps,
+} from '@nimiplatform/kit/features/avatar/vrm';
 import { cn } from '@nimiplatform/kit/ui';
 import {
   parseDesktopAgentAvatarAssetRef,
@@ -12,11 +17,6 @@ import {
   resolveChatAgentAvatarVrmExpressionWeights,
   resolveChatAgentAvatarVrmViewportState,
 } from './chat-agent-avatar-vrm-viewport-state';
-import {
-  resolveChatAgentAvatarVrmFramingFromScene,
-  type ChatAgentAvatarVrmFramingIntent,
-  type ChatAgentAvatarVrmFramingResult,
-} from './chat-agent-avatar-vrm-framing';
 import type { ChatAgentAvatarAttentionState } from './chat-agent-avatar-attention-state';
 import {
   collectChatAgentAvatarVrmSceneResourceCounts,

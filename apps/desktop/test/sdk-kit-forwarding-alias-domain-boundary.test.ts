@@ -52,8 +52,6 @@ test('remaining SDK or Kit forwarding exports are explicit separate domains or p
     'apps/desktop/src/shell/renderer/bridge/runtime-bridge/shared.ts',
     'apps/desktop/src/shell/renderer/bridge/runtime-bridge.ts',
     'apps/desktop/src/shell/renderer/features/apps/apps-lifecycle-bridge.ts',
-    'apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-framing.ts',
-    'apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-framing.ts',
     'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-catalog-sdk-service.ts',
     'apps/desktop/src/shell/renderer/features/world/world-detail-types.ts',
     'apps/desktop/src/shell/renderer/first-run/runtime-materialization.ts',

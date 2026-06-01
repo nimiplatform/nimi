@@ -1,8 +1,9 @@
 import type { ChatAgentAvatarLive2dModelSource, ChatAgentAvatarLive2dViewportState } from './chat-agent-avatar-live2d-viewport-state';
-import { resolveChatAgentAvatarLive2dFramingPolicy, type ChatAgentAvatarLive2dFramingIntent } from './chat-agent-avatar-live2d-framing';
 import {
+  resolveAvatarLive2dFramingPolicy as resolveChatAgentAvatarLive2dFramingPolicy,
   resolveAvatarLive2dMotionSelection,
   resolveAvatarLive2dRenderMotionPose,
+  type AvatarLive2dFramingIntent as ChatAgentAvatarLive2dFramingIntent,
   type AvatarLive2dMotionSelection,
 } from '@nimiplatform/kit/features/avatar/live2d';
 import type {

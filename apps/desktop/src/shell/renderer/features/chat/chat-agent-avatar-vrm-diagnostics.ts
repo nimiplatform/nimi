@@ -5,7 +5,7 @@ import type {
   ChatAgentAvatarVrmViewportState,
   DesktopAgentAvatarAssetRef,
 } from './chat-agent-avatar-vrm-viewport-state';
-import type { ChatAgentAvatarVrmFramingResult } from './chat-agent-avatar-vrm-framing';
+import type { AvatarVrmFramingResult as ChatAgentAvatarVrmFramingResult } from '@nimiplatform/kit/features/avatar/vrm';
 import type {
   ChatAgentAvatarVrmResizePosture,
   ChatAgentAvatarVrmRuntimeLifecycleState,
