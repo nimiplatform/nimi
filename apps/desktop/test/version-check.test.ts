@@ -39,7 +39,10 @@ function installBrowserGlobals(): () => void {
   };
 }
 
-import { checkDaemonVersion } from '../src/shell/renderer/infra/bootstrap/version-check';
+import { existsSync } from 'node:fs';
+import { checkRuntimeDaemonVersion } from '@nimiplatform/kit/shell/renderer/bootstrap';
+
+const desktopVersion = '0.1.0';
 
 let restoreBrowserGlobals: () => void = () => {};
 
@@ -51,64 +54,75 @@ test.afterEach(() => {
   restoreBrowserGlobals();
 });
 
+test('D-IPC-009: daemon version policy is owned by Kit bootstrap', () => {
+  assert.equal(
+    existsSync(new URL('../src/shell/renderer/infra/bootstrap/version-check.ts', import.meta.url)),
+    false,
+  );
+  assert.equal(
+    existsSync(new URL('../src/shell/renderer/infra/bootstrap/runtime-bootstrap-runtime-availability.ts', import.meta.url)),
+    false,
+  );
+});
+
 test('D-IPC-009: missing version → warn severity, ok=true', () => {
-  const result = checkDaemonVersion(undefined);
+  const result = checkRuntimeDaemonVersion(undefined, desktopVersion);
   assert.equal(result.ok, true);
   assert.equal(result.severity, 'warn');
   assert.equal(result.daemonVersion, null);
 });
 
 test('D-IPC-009: major mismatch → fatal severity, ok=false', () => {
-  const result = checkDaemonVersion('1.0.0');
+  const result = checkRuntimeDaemonVersion('1.0.0', desktopVersion);
   assert.equal(result.ok, false);
   assert.equal(result.severity, 'fatal');
 });
 
 test('D-IPC-009: minor/patch mismatch → warn severity, ok=true', () => {
-  const result = checkDaemonVersion('0.2.0');
+  const result = checkRuntimeDaemonVersion('0.2.0', desktopVersion);
   assert.equal(result.ok, true);
   assert.equal(result.severity, 'warn');
 });
 
 test('D-IPC-009: exact match → none severity, ok=true', () => {
-  const result = checkDaemonVersion('0.1.0');
+  const result = checkRuntimeDaemonVersion('0.1.0', desktopVersion);
   assert.equal(result.ok, true);
   assert.equal(result.severity, 'none');
 });
 
 test('D-IPC-009: explicit desktop version source is honored', () => {
-  const result = checkDaemonVersion('0.2.0', '0.2.0');
+  const result = checkRuntimeDaemonVersion('0.2.0', '0.2.0');
   assert.equal(result.ok, true);
   assert.equal(result.severity, 'none');
-  assert.equal(result.desktopVersion, '0.2.0');
+  assert.equal(result.appVersion, '0.2.0');
 });
 
 test('D-IPC-009: v-prefix → parsed correctly', () => {
-  const result = checkDaemonVersion('v0.1.0');
+  const result = checkRuntimeDaemonVersion('v0.1.0', desktopVersion);
   assert.equal(result.ok, true);
   assert.equal(result.severity, 'none');
 });
 
 test('D-IPC-009: unparseable version → warn severity, ok=true', () => {
-  const result = checkDaemonVersion('not-a-version');
+  const result = checkRuntimeDaemonVersion('not-a-version', desktopVersion);
   assert.equal(result.ok, true);
   assert.equal(result.severity, 'warn');
 });
 
 test('D-IPC-009: packaged desktop requires exact match when strict mode is enabled', () => {
-  const result = checkDaemonVersion('0.2.0', '0.1.0', { strictExactMatch: true });
+  const result = checkRuntimeDaemonVersion('0.2.0', desktopVersion, { strictExactMatch: true });
   assert.equal(result.ok, false);
   assert.equal(result.severity, 'fatal');
 });
 
 test('D-IPC-009: packaged desktop treats missing daemon version as fatal in strict mode', () => {
-  const result = checkDaemonVersion(undefined, '0.1.0', { strictExactMatch: true });
+  const result = checkRuntimeDaemonVersion(undefined, desktopVersion, { strictExactMatch: true });
   assert.equal(result.ok, false);
   assert.equal(result.severity, 'fatal');
 });
 
 test('D-IPC-009: packaged desktop treats unparseable daemon version as fatal in strict mode', () => {
-  const result = checkDaemonVersion('not-a-version', '0.1.0', { strictExactMatch: true });
+  const result = checkRuntimeDaemonVersion('not-a-version', desktopVersion, { strictExactMatch: true });
   assert.equal(result.ok, false);
   assert.equal(result.severity, 'fatal');
 });

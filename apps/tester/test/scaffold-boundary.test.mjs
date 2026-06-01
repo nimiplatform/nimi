@@ -72,8 +72,13 @@ test('runtime readiness consumes Kit runtime defaults and daemon bridge', () => 
     testerRuntimeSource,
     /import \{[^}]*getDaemonStatus[^}]*getRuntimeDefaults[^}]*\} from '@nimiplatform\/kit\/shell\/renderer\/bridge'/,
   );
+  assert.match(
+    testerRuntimeSource,
+    /import \{[^}]*checkRuntimeDaemonVersion[^}]*\} from '@nimiplatform\/kit\/shell\/renderer\/bootstrap'/,
+  );
   assert.match(testerRuntimeSource, /await getRuntimeDefaults\(\)/);
   assert.match(testerRuntimeSource, /await getDaemonStatus\(\)/);
+  assert.match(testerRuntimeSource, /checkRuntimeDaemonVersion\(/);
   assert.doesNotMatch(
     testerRuntimeSource,
     /function\s+(readEnv|resolveRealmBaseUrlFallback|readRuntimeDefaultsFallback|applyEnvOverrides)\b/,

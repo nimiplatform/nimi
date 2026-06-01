@@ -21,14 +21,16 @@ if (typeof globalThis.sessionStorage === 'undefined') {
   };
 }
 
-import { isRuntimeDaemonReachable } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-runtime-availability';
+import { isRuntimeDaemonReachable } from '@nimiplatform/kit/shell/renderer/bootstrap';
+
+const appVersion = '0.1.0';
 
 test('runtime bridge status without a running daemon is not reachable even when version is missing', () => {
   assert.equal(
     isRuntimeDaemonReachable({
       running: false,
       version: undefined,
-    }),
+    }, { appVersion }),
     false,
   );
 });
@@ -38,7 +40,7 @@ test('runtime bridge status without a running daemon is not reachable even when 
     isRuntimeDaemonReachable({
       running: false,
       version: '0.1.0',
-    }),
+    }, { appVersion }),
     false,
   );
 });
@@ -48,7 +50,7 @@ test('running runtime daemon with a compatible version is reachable', () => {
     isRuntimeDaemonReachable({
       running: true,
       version: '0.1.0',
-    }),
+    }, { appVersion }),
     true,
   );
 });
@@ -58,7 +60,7 @@ test('running runtime daemon with a fatal version mismatch is not reachable', ()
     isRuntimeDaemonReachable({
       running: true,
       version: '1.0.0',
-    }),
+    }, { appVersion }),
     false,
   );
 });

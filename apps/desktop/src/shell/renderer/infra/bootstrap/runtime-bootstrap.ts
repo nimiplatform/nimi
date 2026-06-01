@@ -14,7 +14,13 @@ import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/teleme
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { initializeBuiltInChatScopesFromProductControl } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { getOfflineCoordinator } from '@renderer/infra/offline';
-import { safeErrorMessage } from './runtime-bootstrap-utils';
+import {
+  DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
+  checkRuntimeDaemonVersion,
+  isRuntimeDaemonReachable,
+  safeBootstrapErrorMessage,
+  withBootstrapStepTimeout,
+} from '@nimiplatform/kit/shell/renderer/bootstrap';
 import { syncRuntimeStorageConfig } from './runtime-bootstrap-local-models-sync';
 import { syncRuntimeJwtConfig } from './runtime-bootstrap-jwt-sync';
 import { syncRuntimeDeveloperRegistrationConfig } from './runtime-bootstrap-developer-registration-sync';
@@ -23,14 +29,12 @@ import { isRuntimeConfigManualRestartRequiredError } from './runtime-bootstrap-c
 import { reconcileLocalRuntimeBootstrapState } from './runtime-bootstrap-local-ai';
 import { attachOfflineCoordinatorBindings } from './runtime-bootstrap-offline';
 import { startAuthStateWatcher, stopAuthStateWatcher } from './auth-state-watcher';
-import { checkDaemonVersion } from './version-check';
 import { registerExitHandler } from './exit-handler';
-import { isRuntimeDaemonReachable } from './runtime-bootstrap-runtime-availability';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/browser';
 import { getDesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import { pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import { hydrateDesktopAccountProfile } from './runtime-bootstrap-account-profile';
-import { NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS, withBootstrapStepTimeout } from './runtime-bootstrap-step-timeout';
+import { DESKTOP_VERSION_FALLBACK } from './desktop-version';
 import {
   bindDesktopConversationCapabilityRouteRuntime,
   clearDesktopConversationCapabilityRouteRuntime,
@@ -71,7 +75,10 @@ function bindOfflineCoordinator(): void {
     },
     probeRuntimeReachability: async () => {
       const daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
-      return isRuntimeDaemonReachable(daemonStatus);
+      return isRuntimeDaemonReachable(daemonStatus, {
+        appVersion: DESKTOP_VERSION_FALLBACK,
+        logEvent: logRendererEvent,
+      });
     },
     hasPendingRealmRecoveryWork: async () => (
       await countPendingChatOutboxEntries()
@@ -138,7 +145,7 @@ async function shouldDegradeRuntimeConfigManualRestartForProductSetup(flowId: st
       message: 'phase:product-control:read-for-config-restart-gate-failed',
       flowId,
       details: {
-        error: safeErrorMessage(error),
+        error: safeBootstrapErrorMessage(error),
       },
     });
     return false;
@@ -187,7 +194,7 @@ async function shouldSkipRuntimeStorageConfigWarningForFirstRun(input: {
       message: 'phase:product-control:read-for-storage-sync-skip-failed',
       flowId: input.flowId,
       details: {
-        error: safeErrorMessage(error),
+        error: safeBootstrapErrorMessage(error),
       },
     });
     return false;
@@ -199,7 +206,7 @@ async function handleRuntimeConfigSyncError(input: {
   flowId: string;
   step: string;
 }): Promise<string | null> {
-  const message = safeErrorMessage(input.error);
+  const message = safeBootstrapErrorMessage(input.error);
   if (isRuntimeConfigManualRestartRequiredError(input.error)) {
     const degradeForProductSetup = await shouldDegradeRuntimeConfigManualRestartForProductSetup(input.flowId);
     if (!degradeForProductSetup) {
@@ -307,7 +314,7 @@ export function bootstrapRuntime(): Promise<void> {
         useAppStore.getState().setDesktopReleaseInfo(releaseInfo);
         useAppStore.getState().setDesktopReleaseError(null);
       } catch (error) {
-        const message = safeErrorMessage(error);
+        const message = safeBootstrapErrorMessage(error);
         useAppStore.getState().setDesktopReleaseInfo(null);
         useAppStore.getState().setDesktopReleaseError(message);
         logRendererEvent({
@@ -420,7 +427,7 @@ export function bootstrapRuntime(): Promise<void> {
         daemonStatus = {
           ...daemonStatus,
           running: false,
-          lastError: safeErrorMessage(error),
+        lastError: safeBootstrapErrorMessage(error),
         };
         logRendererEvent({
           level: 'warn',
@@ -433,11 +440,12 @@ export function bootstrapRuntime(): Promise<void> {
         });
       }
     }
-    const versionResult = checkDaemonVersion(
+    const versionResult = checkRuntimeDaemonVersion(
       daemonStatus.version,
-      releaseInfo?.desktopVersion,
+      releaseInfo?.desktopVersion || DESKTOP_VERSION_FALLBACK,
       {
         strictExactMatch: daemonStatus.launchMode === 'RELEASE' && !runtimeUnavailable,
+        logEvent: logRendererEvent,
       },
     );
     if (!runtimeUnavailable && !versionResult.ok) {
@@ -510,7 +518,7 @@ export function bootstrapRuntime(): Promise<void> {
     await withBootstrapStepTimeout(
       'local runtime reconcile',
       reconcileLocalRuntimeBootstrapState({ flowId }),
-      NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
+      DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
     ).catch((error) => {
       logRendererEvent({
         level: 'warn',
@@ -518,7 +526,7 @@ export function bootstrapRuntime(): Promise<void> {
         message: 'phase:local-reconcile:deferred',
         flowId,
         details: {
-          error: safeErrorMessage(error),
+          error: safeBootstrapErrorMessage(error),
         },
       });
       return {
@@ -538,7 +546,7 @@ export function bootstrapRuntime(): Promise<void> {
             accountProjection,
             flowId,
           }),
-          NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
+          DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
         ).catch((error) => {
           logRendererEvent({
             level: 'warn',
@@ -547,7 +555,7 @@ export function bootstrapRuntime(): Promise<void> {
             flowId,
             details: {
               accountId: accountProjection.accountId,
-              error: safeErrorMessage(error),
+              error: safeBootstrapErrorMessage(error),
             },
           });
         });
@@ -555,7 +563,7 @@ export function bootstrapRuntime(): Promise<void> {
       await withBootstrapStepTimeout(
         'built-in chat AIConfig init',
         initializeBuiltInChatScopesAfterReadyAdmission(flowId),
-        NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
+        DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
       ).catch((error) => {
         logRendererEvent({
           level: 'warn',
@@ -564,7 +572,7 @@ export function bootstrapRuntime(): Promise<void> {
           flowId,
           details: {
             accountId: accountProjection.accountId,
-            error: safeErrorMessage(error),
+            error: safeBootstrapErrorMessage(error),
           },
         });
       });
@@ -631,10 +639,10 @@ export function bootstrapRuntime(): Promise<void> {
       await teardownBootstrapState();
     } catch (teardownError) {
       failure = new Error(
-        `${safeErrorMessage(error)}; bootstrap teardown failed: ${safeErrorMessage(teardownError)}`,
+        `${safeBootstrapErrorMessage(error)}; bootstrap teardown failed: ${safeBootstrapErrorMessage(teardownError)}`,
       );
     }
-    const message = safeErrorMessage(failure);
+    const message = safeBootstrapErrorMessage(failure);
     useAppStore.getState().setBootstrapError(message);
     useAppStore.getState().setBootstrapReady(false);
     useAppStore.getState().clearAuthSession();

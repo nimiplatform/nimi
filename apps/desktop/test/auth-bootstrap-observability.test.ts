@@ -16,7 +16,7 @@ test('desktop bootstrap reads Runtime account projection instead of shared auth-
   assert.match(runtimeBootstrapSource, /createLocalFirstPartyRuntimePlatformClient\(/);
   assert.match(runtimeBootstrapSource, /runtime\.account\.getAccountSessionStatus\(\{/);
   assert.match(runtimeBootstrapSource, /runtime\.account\.getAccessToken\(\{/);
-  assert.match(runtimeBootstrapSource, /accessTokenProvider: async \(\) => \{/);
+  assert.doesNotMatch(runtimeBootstrapSource, /accessTokenProvider:/);
   assert.doesNotMatch(runtimeBootstrapSource, /bootstrapAuthSession\(/);
   assert.doesNotMatch(runtimeBootstrapSource, /resolvedBootstrapAuthSession/);
 });
