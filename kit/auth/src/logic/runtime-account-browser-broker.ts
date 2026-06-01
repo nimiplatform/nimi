@@ -1,7 +1,13 @@
 import type { ShellAuthDesktopBrowserAuthRuntimeBroker } from '../types/auth-types.js';
 import { validateRuntimeOAuthAuthorizationUrl } from './desktop-web-auth.js';
 
-type RuntimeAccountCaller = Record<string, unknown>;
+type RuntimeAccountCaller = {
+  appId: string;
+  appInstanceId: string;
+  deviceId: string;
+  mode: number;
+  scopes: string[];
+};
 
 type RuntimeAccountProjection = {
   accountId?: string | null;
@@ -15,15 +21,15 @@ type RuntimeAccountBeginLoginResponse = {
   oauthAuthorizationUrl?: string | null;
   state?: string | null;
   nonce?: string | null;
-  accountReasonCode?: string | null;
-  reasonCode?: string | null;
+  accountReasonCode?: unknown;
+  reasonCode?: unknown;
 };
 
 type RuntimeAccountCompleteLoginResponse = {
   accepted?: boolean;
   accountProjection?: RuntimeAccountProjection | null;
-  accountReasonCode?: string | null;
-  reasonCode?: string | null;
+  accountReasonCode?: unknown;
+  reasonCode?: unknown;
 };
 
 export type RuntimeAccountBrowserBrokerClient = {
@@ -60,7 +66,7 @@ export type CreateRuntimeAccountBrowserBrokerInput = {
   projectUser?: (projection: RuntimeAccountProjection) => Record<string, unknown> | null;
 };
 
-function normalizeReason(response: { accountReasonCode?: string | null; reasonCode?: string | null }): string {
+function normalizeReason(response: { accountReasonCode?: unknown; reasonCode?: unknown }): string {
   return String(response.accountReasonCode || response.reasonCode || 'unknown');
 }
 

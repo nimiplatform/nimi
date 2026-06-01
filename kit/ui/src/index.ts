@@ -34,3 +34,4 @@ export * from './components/dashed-add-button.js';
 export * from './components/page-detail-layout.js';
 export * from './components/timeline.js';
 export * from './components/date-picker.js';
+export * from './hooks/typed-projection.js';

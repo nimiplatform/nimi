@@ -2,6 +2,14 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { createRuntimeAccountBrowserBroker } from '../src/logic/runtime-account-browser-broker';
 
+const testCaller = {
+  appId: 'dev.nimi.test',
+  appInstanceId: 'dev.nimi.test.local-first-party',
+  deviceId: 'test-device',
+  mode: 1,
+  scopes: [],
+};
+
 describe('createRuntimeAccountBrowserBroker', () => {
   it('begins runtime account login with runtime-owned authorize URL', async () => {
     const beginLogin = vi.fn(async () => ({
@@ -15,7 +23,7 @@ describe('createRuntimeAccountBrowserBroker', () => {
     const beforeRequest = vi.fn();
 
     const broker = createRuntimeAccountBrowserBroker({
-      caller: { appId: 'dev.nimi.test' },
+      caller: testCaller,
       beforeRequest,
       requestedScopes: ['profile', 'profile', ''],
       getClient: () => ({
@@ -40,7 +48,7 @@ describe('createRuntimeAccountBrowserBroker', () => {
 
     expect(beforeRequest).toHaveBeenCalledOnce();
     expect(beginLogin).toHaveBeenCalledWith({
-      caller: { appId: 'dev.nimi.test' },
+      caller: testCaller,
       redirectUri: 'http://127.0.0.1:4100/oauth/callback',
       callbackOrigin: 'http://127.0.0.1:4100',
       requestedScopes: ['profile'],
@@ -60,7 +68,7 @@ describe('createRuntimeAccountBrowserBroker', () => {
     }));
 
     const broker = createRuntimeAccountBrowserBroker({
-      caller: { appId: 'dev.nimi.test' },
+      caller: testCaller,
       getClient: () => ({
         runtime: {
           account: {
@@ -86,7 +94,7 @@ describe('createRuntimeAccountBrowserBroker', () => {
     });
 
     expect(completeLogin).toHaveBeenCalledWith({
-      caller: { appId: 'dev.nimi.test' },
+      caller: testCaller,
       loginAttemptId: 'attempt-1',
       code: 'oauth-code',
       refreshToken: '',
@@ -101,7 +109,7 @@ describe('createRuntimeAccountBrowserBroker', () => {
 
   it('rejects retired desktop relay authorize URLs', async () => {
     const broker = createRuntimeAccountBrowserBroker({
-      caller: { appId: 'dev.nimi.test' },
+      caller: testCaller,
       getClient: () => ({
         runtime: {
           account: {

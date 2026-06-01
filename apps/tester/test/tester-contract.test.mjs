@@ -1158,6 +1158,18 @@ test('tester settings consumes SDK offline reason-code projection', () => {
   assert.doesNotMatch(settings, /REALM_OFFLINE_REASON_CODES|RUNTIME_OFFLINE_REASON_CODES/);
 });
 
+test('tester settings consumes Kit typed projection lifecycle hook', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+
+  assert.match(settings, /useTypedProjection/);
+  assert.match(settings, /from '@nimiplatform\/kit\/ui'/);
+  assert.match(settings, /useTypedProjection\(resolveTesterLocalRuntimeFacadeProjection/);
+  assert.match(settings, /useTypedProjection\(resolveTesterRealmDataSyncProjection/);
+  assert.match(settings, /localRuntimeFacadeProjection\.data/);
+  assert.match(settings, /realmDataSyncProjection\.data/);
+  assert.doesNotMatch(settings, /setLocalRuntimeFacadeProjection|setRealmDataSyncProjection/);
+});
+
 test('tester settings consumes SDK Runtime dependency state projections', () => {
   const settings = read('src/shell/routes/settings.tsx');
 

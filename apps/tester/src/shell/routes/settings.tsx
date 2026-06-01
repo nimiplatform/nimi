@@ -139,7 +139,7 @@ import {
   resolveRealmChatMediaUrl,
   type RealmListChatsResultDto,
 } from '@nimiplatform/kit/features/chat/realm';
-import { Button, ProgressIndicator, StatusBadge, Surface, Toggle } from '@nimiplatform/kit/ui';
+import { Button, ProgressIndicator, StatusBadge, Surface, Toggle, useTypedProjection } from '@nimiplatform/kit/ui';
 import { createTesterExternalAgentProjection } from '../../tester/tester-external-agent-projection';
 import { createTesterMemoryEmbeddingRuntimeProjection } from '../../tester/tester-memory-embedding-runtime-projection';
 import { createTesterRuntimeAgentPresentationProfileProjection } from '../../tester/tester-runtime-agent-presentation-profile';
@@ -222,16 +222,6 @@ type RuntimeProviderHealthProjectionState =
   | { status: 'loading'; health: null; error: null }
   | { status: 'ready'; health: RuntimeRouteProviderHealthProjection; error: null }
   | { status: 'error'; health: null; error: string };
-
-type LocalRuntimeFacadeProjectionState =
-  | { status: 'loading'; assetId: null; error: null }
-  | { status: 'ready'; assetId: string; error: null }
-  | { status: 'error'; assetId: null; error: string };
-
-type RealmDataSyncProjectionState =
-  | { status: 'loading'; summary: null; error: null }
-  | { status: 'ready'; summary: string; error: null }
-  | { status: 'error'; summary: null; error: string };
 
 async function resolveTesterLocalRuntimeFacadeProjection(): Promise<string> {
   const unbind = bindLocalRuntimeServiceClientProvider(() => ({
@@ -601,48 +591,12 @@ export function SettingsRoute() {
       health: null,
       error: null,
     });
-  const [localRuntimeFacadeProjection, setLocalRuntimeFacadeProjection] =
-    useState<LocalRuntimeFacadeProjectionState>({
-      status: 'loading',
-      assetId: null,
-      error: null,
-    });
-  const [realmDataSyncProjection, setRealmDataSyncProjection] =
-    useState<RealmDataSyncProjectionState>({
-      status: 'loading',
-      summary: null,
-      error: null,
-    });
-  useEffect(() => {
-    let cancelled = false;
-    void resolveTesterLocalRuntimeFacadeProjection().then((assetId) => {
-      if (!cancelled) {
-        setLocalRuntimeFacadeProjection({ status: 'ready', assetId, error: null });
-      }
-    }).catch((error: unknown) => {
-      if (!cancelled) {
-        setLocalRuntimeFacadeProjection({ status: 'error', assetId: null, error: errorMessage(error) });
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-  useEffect(() => {
-    let cancelled = false;
-    void resolveTesterRealmDataSyncProjection().then((summary) => {
-      if (!cancelled) {
-        setRealmDataSyncProjection({ status: 'ready', summary, error: null });
-      }
-    }).catch((error: unknown) => {
-      if (!cancelled) {
-        setRealmDataSyncProjection({ status: 'error', summary: null, error: errorMessage(error) });
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const localRuntimeFacadeProjection = useTypedProjection(resolveTesterLocalRuntimeFacadeProjection, {
+    failClosedMessage: 'SDK local runtime facade projection unavailable',
+  });
+  const realmDataSyncProjection = useTypedProjection(resolveTesterRealmDataSyncProjection, {
+    failClosedMessage: 'SDK Realm data sync projection unavailable',
+  });
   useEffect(() => {
     let cancelled = false;
     setResourceUploadProjection({ status: 'loading', summary: null, error: null });
@@ -2042,20 +1996,20 @@ export function SettingsRoute() {
       </div>
       <div className="setting-row">
         <span>SDK local runtime facade projection</span>
-        <StatusBadge tone={localRuntimeFacadeProjection.status === 'ready' ? 'success' : localRuntimeFacadeProjection.status === 'error' ? 'danger' : 'warning'}>
+        <StatusBadge tone={localRuntimeFacadeProjection.status === 'ready' ? 'success' : localRuntimeFacadeProjection.status === 'failed' ? 'danger' : 'warning'}>
           {localRuntimeFacadeProjection.status === 'ready'
-            ? localRuntimeFacadeProjection.assetId
-            : localRuntimeFacadeProjection.status === 'error'
+            ? localRuntimeFacadeProjection.data
+            : localRuntimeFacadeProjection.status === 'failed'
               ? localRuntimeFacadeProjection.error
               : 'checking'}
         </StatusBadge>
       </div>
       <div className="setting-row">
         <span>SDK Realm data sync projection</span>
-        <StatusBadge tone={realmDataSyncProjection.status === 'ready' ? 'success' : realmDataSyncProjection.status === 'error' ? 'danger' : 'warning'}>
+        <StatusBadge tone={realmDataSyncProjection.status === 'ready' ? 'success' : realmDataSyncProjection.status === 'failed' ? 'danger' : 'warning'}>
           {realmDataSyncProjection.status === 'ready'
-            ? realmDataSyncProjection.summary
-            : realmDataSyncProjection.status === 'error'
+            ? realmDataSyncProjection.data
+            : realmDataSyncProjection.status === 'failed'
               ? realmDataSyncProjection.error
               : 'checking'}
         </StatusBadge>
