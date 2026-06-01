@@ -51,10 +51,14 @@ test('renderer bootstrap installs the Kit runtime-transport bridge before render
   const bootstrapAt = mainSource.indexOf('installNimiShellRuntimeBridge()');
   const renderAt = mainSource.indexOf('.render(');
   assert.ok(bootstrapAt > -1, 'main.tsx must call installNimiShellRuntimeBridge()');
+  assert.match(mainSource, /createRendererEntryModuleLoader/);
+  assert.match(mainSource, /from '@nimiplatform\/kit\/shell\/renderer\/bootstrap'/);
+  assert.match(mainSource, /entry:tester-app/);
   assert.ok(renderAt > -1, 'main.tsx must render the app');
   assert.ok(bootstrapAt < renderAt, 'bootstrap must run before render');
   // The app must not reach into the hook global itself — that is Kit-owned glue.
   assert.doesNotMatch(mainSource, /__NIMI_TAURI_RUNTIME__/);
+  assert.doesNotMatch(mainSource, /Failed to fetch dynamically imported module|Importing a module script failed|function isRetryable/);
 });
 
 test('Tauri scaffold consumes the Kit shared command-registration macro', () => {

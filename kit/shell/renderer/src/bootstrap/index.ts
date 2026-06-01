@@ -21,6 +21,104 @@ export function safeBootstrapErrorMessage(error: unknown): string {
 }
 
 // ---------------------------------------------------------------------------
+// Renderer entry module loading
+// ---------------------------------------------------------------------------
+
+export const DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS = [80, 160, 320, 640, 1_000] as const;
+
+export type RendererEntryImportStageReporter = (
+  stage: string,
+  details?: Record<string, unknown>,
+) => void;
+
+export type RendererEntryModuleLoaderOptions = {
+  retryDelaysMs?: readonly number[];
+  reportStage?: RendererEntryImportStageReporter;
+  setTimeout?: typeof globalThis.setTimeout;
+};
+
+export type RendererEntryModuleLoader = {
+  load<T>(label: string, importer: () => Promise<T>): Promise<T>;
+};
+
+function delay(ms: number, setTimeoutImpl: typeof globalThis.setTimeout): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeoutImpl(resolve, ms);
+  });
+}
+
+export function isRetryableRendererEntryImportError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error || '');
+  return (
+    message.includes('Importing a module script failed')
+    || message.includes('Failed to fetch dynamically imported module')
+    || message.includes('Load failed')
+  );
+}
+
+export function describeRendererEntryFailureReason(reason: unknown): Record<string, unknown> {
+  if (reason instanceof Error) {
+    return {
+      message: reason.message || '',
+      name: reason.name || '',
+      stack: reason.stack || '',
+    };
+  }
+  if (reason && typeof reason === 'object') {
+    return {
+      message: String((reason as { message?: unknown }).message || ''),
+      name: String((reason as { name?: unknown }).name || ''),
+      raw: JSON.stringify(reason, (_key, value) => (
+        typeof value === 'bigint' ? value.toString() : value
+      )),
+    };
+  }
+  return {
+    message: String(reason || 'unhandled rejection'),
+  };
+}
+
+export function createRendererEntryImportError(label: string, error: unknown, attempts: number): Error {
+  const reason = error instanceof Error ? error.message : String(error || 'unknown import error');
+  const wrapped = new Error(`${label} failed after ${attempts} attempt(s): ${reason}`);
+  wrapped.name = 'RendererEntryImportError';
+  wrapped.cause = error;
+  return wrapped;
+}
+
+export function createRendererEntryModuleLoader(
+  options: RendererEntryModuleLoaderOptions = {},
+): RendererEntryModuleLoader {
+  const retryDelaysMs = options.retryDelaysMs || [];
+  const setTimeoutImpl = options.setTimeout || globalThis.setTimeout.bind(globalThis);
+
+  return {
+    async load<T>(label: string, importer: () => Promise<T>): Promise<T> {
+      let attempts = 0;
+
+      for (;;) {
+        attempts += 1;
+        try {
+          return await importer();
+        } catch (error) {
+          const retryDelay = retryDelaysMs[attempts - 1];
+          if (retryDelay === undefined || !isRetryableRendererEntryImportError(error)) {
+            throw createRendererEntryImportError(label, error, attempts);
+          }
+          options.reportStage?.('renderer-entry-import-retry', {
+            label,
+            attempt: attempts,
+            retryDelayMs: retryDelay,
+            ...describeRendererEntryFailureReason(error),
+          });
+          await delay(retryDelay, setTimeoutImpl);
+        }
+      }
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Bootstrap auth session contract
 // ---------------------------------------------------------------------------
 

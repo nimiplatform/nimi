@@ -159,6 +159,10 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
     path.join(import.meta.dirname, '../src/shell/renderer/features/auth/web-auth-menu.tsx'),
     'utf8',
   );
+  const mainSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/main.tsx'),
+    'utf8',
+  );
   const authAdapterSource = fs.readFileSync(
     path.join(import.meta.dirname, '../src/shell/renderer/features/auth/desktop-auth-adapter.ts'),
     'utf8',
@@ -188,6 +192,10 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
     'utf8',
   );
   assert.doesNotMatch(authMenuSource, /function toAuthUserRecord/);
+  assert.match(mainSource, /createRendererEntryModuleLoader/);
+  assert.match(mainSource, /describeRendererEntryFailureReason/);
+  assert.match(mainSource, /from '@nimiplatform\/kit\/shell\/renderer\/bootstrap'/);
+  assert.doesNotMatch(mainSource, /function isRetryableEntryImportError|function createEntryImportError|Failed to fetch dynamically imported module|Importing a module script failed/);
   assert.doesNotMatch(desktopTauriConfigSource, /"pubkey"\s*:\s*"dev-placeholder"/);
   assert.doesNotMatch(authAdapterSource, /as Promise</);
   for (const source of [authAdapterSource, logoutSource, runtimeBootstrapSource, smokeDriverSource]) {

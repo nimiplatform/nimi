@@ -1,58 +1,20 @@
 import React, { Suspense, lazy, type PropsWithChildren } from 'react';
 import { createRoot } from 'react-dom/client';
 import { NimiThemeProvider } from '@nimiplatform/kit/ui';
+import {
+  DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS,
+  createRendererEntryModuleLoader,
+  describeRendererEntryFailureReason,
+} from '@nimiplatform/kit/shell/renderer/bootstrap';
 import bootstrapEntryCopy from '@renderer/locales/en/26-Bootstrap.json';
 import '@renderer/styles.css';
 
-const ENTRY_IMPORT_RETRY_DELAYS_MS = import.meta.env.DEV
-    ? [80, 160, 320, 640, 1000]
-    : [];
-
-function delay(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-        window.setTimeout(resolve, ms);
-    });
-}
-
-function isRetryableEntryImportError(error: unknown): boolean {
-    const message = error instanceof Error ? error.message : String(error || '');
-    return (
-      message.includes('Importing a module script failed')
-      || message.includes('Failed to fetch dynamically imported module')
-      || message.includes('Load failed')
-    );
-}
-
-function createEntryImportError(label: string, error: unknown, attempts: number): Error {
-    const reason = error instanceof Error ? error.message : String(error || 'unknown import error');
-    const wrapped = new Error(`${label} failed after ${attempts} attempt(s): ${reason}`);
-    wrapped.name = 'EntryImportError';
-    wrapped.cause = error;
-    return wrapped;
-}
-
-async function loadEntryModule<T>(label: string, importer: () => Promise<T>): Promise<T> {
-    let attempts = 0;
-
-    for (;;) {
-        attempts += 1;
-        try {
-            return await importer();
-        } catch (error) {
-            const retryDelay = ENTRY_IMPORT_RETRY_DELAYS_MS[attempts - 1];
-            if (retryDelay === undefined || !isRetryableEntryImportError(error)) {
-                throw createEntryImportError(label, error, attempts);
-            }
-            pingSmokeAsync('renderer-entry-import-retry', {
-              label,
-              attempt: attempts,
-              retryDelayMs: retryDelay,
-              ...describeUnhandledReason(error),
-            });
-            await delay(retryDelay);
-        }
-    }
-}
+const entryModuleLoader = createRendererEntryModuleLoader({
+    retryDelaysMs: import.meta.env.DEV ? DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS : [],
+    reportStage: pingSmokeAsync,
+    setTimeout: window.setTimeout.bind(window),
+});
+const loadEntryModule = entryModuleLoader.load;
 
 async function preflightRendererAppDependencies(): Promise<void> {
     if (!import.meta.env.DEV) {
@@ -144,27 +106,7 @@ function pingSmokeAsync(event: string, payload?: Record<string, unknown>): void 
     }).catch(() => {});
 }
 
-function describeUnhandledReason(reason: unknown): Record<string, unknown> {
-    if (reason instanceof Error) {
-        return {
-          message: reason.message || '',
-          name: reason.name || '',
-          stack: reason.stack || '',
-        };
-    }
-    if (reason && typeof reason === 'object') {
-        return {
-          message: String((reason as { message?: unknown }).message || ''),
-          name: String((reason as { name?: unknown }).name || ''),
-          raw: JSON.stringify(reason, (_key, value) => (
-            typeof value === 'bigint' ? value.toString() : value
-          )),
-        };
-    }
-    return {
-      message: String(reason || 'unhandled rejection'),
-    };
-}
+const describeUnhandledReason = describeRendererEntryFailureReason;
 
 const App = lazy(async () => {
     // Start loading the App chunk immediately — in parallel with runtime

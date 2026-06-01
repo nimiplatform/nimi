@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   checkRuntimeDaemonVersion,
+  createRendererEntryModuleLoader,
+  describeRendererEntryFailureReason,
   isRuntimeDaemonReachable,
   safeBootstrapErrorMessage,
   withBootstrapStepTimeout,
@@ -49,5 +51,58 @@ describe('shell renderer bootstrap primitives', () => {
     expect(isRuntimeDaemonReachable({ running: false, version: '0.1.0' }, { appVersion: '0.1.0' })).toBe(false);
     expect(isRuntimeDaemonReachable({ running: true, version: '0.1.0' }, { appVersion: '0.1.0' })).toBe(true);
     expect(isRuntimeDaemonReachable({ running: true, version: '1.0.0' }, { appVersion: '0.1.0' })).toBe(false);
+  });
+
+  it('retries renderer entry dynamic imports with stage evidence', async () => {
+    const stages: Array<{ stage: string; details?: Record<string, unknown> }> = [];
+    let calls = 0;
+    const loader = createRendererEntryModuleLoader({
+      retryDelaysMs: [1],
+      reportStage: (stage, details) => stages.push({ stage, details }),
+      setTimeout: ((handler: TimerHandler) => {
+        if (typeof handler === 'function') {
+          handler();
+        }
+        return 0 as unknown as ReturnType<typeof setTimeout>;
+      }) as typeof setTimeout,
+    });
+
+    const result = await loader.load('entry:test', async () => {
+      calls += 1;
+      if (calls === 1) {
+        throw new Error('Failed to fetch dynamically imported module');
+      }
+      return { ok: true };
+    });
+
+    expect(result).toEqual({ ok: true });
+    expect(stages).toEqual([
+      {
+        stage: 'renderer-entry-import-retry',
+        details: expect.objectContaining({
+          label: 'entry:test',
+          attempt: 1,
+          retryDelayMs: 1,
+        }),
+      },
+    ]);
+  });
+
+  it('wraps terminal renderer entry import failures', async () => {
+    const loader = createRendererEntryModuleLoader({ retryDelaysMs: [] });
+
+    await expect(loader.load('entry:terminal', async () => {
+      throw new Error('Load failed');
+    })).rejects.toMatchObject({
+      name: 'RendererEntryImportError',
+      message: expect.stringContaining('entry:terminal failed after 1 attempt(s)'),
+    });
+  });
+
+  it('serializes renderer entry failure reasons without throwing on bigint payloads', () => {
+    expect(describeRendererEntryFailureReason({ message: 'bad', value: 1n })).toMatchObject({
+      message: 'bad',
+      raw: expect.stringContaining('"value":"1"'),
+    });
   });
 });
