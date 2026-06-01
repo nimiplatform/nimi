@@ -129,12 +129,11 @@ test('Wave 7: bridge exposes a backend-only admitProductReadyForUse request', ()
   // product-control remains the command/state authority, not the profile parser.
   assert.match(productControlBridgeSource, /parseAIProfile/);
   assert.doesNotMatch(productControlBridgeSource, /function parseAccountDefaultProfileAIProfile/);
-  // setProductFirstRunSetupState keeps ready_for_use and local_ai_ready out of
-  // its Exclude<...> input type — the renderer cannot write either state.
-  assert.match(
-    productControlBridgeSource,
-    /setProductFirstRunSetupState[\s\S]*?Exclude<ProductControlState, 'ready_for_use' \| 'local_ai_ready'/,
-  );
+  // Setup progress is reconciled by a no-payload backend command; the renderer
+  // cannot submit a product-control state string.
+  assert.match(productControlBridgeSource, /reconcileProductFirstRunSetupState/);
+  assert.match(productControlBridgeSource, /product_control_record_reconcile_first_run_setup_state/);
+  assert.doesNotMatch(productControlBridgeSource, /setProductFirstRunSetupState/);
 });
 
 test('Wave 7: first-run finalization requests admission and routes on the projection', () => {
@@ -152,7 +151,7 @@ test('Wave 7: first-run finalization requests admission and routes on the projec
 });
 
 test('Wave 7: workflow mounts the finalization branch only after local AI evidence is ready', () => {
-  // The redesigned 3-phase wizard folds the four progress states into the
+  // The redesigned 4-phase wizard folds the four progress states into the
   // Setup phase. The backend-admission FirstRunFinalization surface is still
   // mounted only at `local_ai_ready` — never earlier, never on a renderer
   // shortcut.

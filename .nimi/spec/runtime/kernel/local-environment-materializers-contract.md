@@ -105,6 +105,13 @@ Materializer projection must preserve the non-ready distinction between
 setup-required or materializable-requires-confirmation text is a projection of
 `needs_confirmation`; it is not a ready state.
 
+Terminal dependency jobs must project typed `reason_code` and
+`recovery_disposition` fields in addition to bounded diagnostic detail.
+`failure_detail` remains human/debug context only; SDK, Desktop, Tester, and
+other app consumers must not parse it to decide retry, auto-recovery, repair, or
+setup-state transitions. Runtime owns the classification of interrupted,
+manual-retry, repair-required, unsupported, and not-retryable outcomes.
+
 Local transfer records may be included as progress or diagnostic detail only.
 They must not target materializer commands, create selected source records, or
 project readiness.

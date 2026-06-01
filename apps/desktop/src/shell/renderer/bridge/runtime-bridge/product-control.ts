@@ -7,7 +7,6 @@ import {
   productControlSelectedDataRootUnavailableProjection,
   type ProductControlRecordProjection,
   type ProductControlSelectedDataRootProjection,
-  type ProductControlState,
 } from '@nimiplatform/sdk';
 import {
   parseAIProfile,
@@ -144,16 +143,26 @@ export async function prepareProductFirstRunLocalAiReady(): Promise<ProductContr
   );
 }
 
-export async function setProductFirstRunSetupState(input: {
-  state: Exclude<ProductControlState, 'ready_for_use' | 'local_ai_ready' | 'config_missing' | 'data_root_missing' | 'data_root_selected' | 'ai_environment_unconfigured' | 'not_logged_in'>;
-  reason?: string | null;
-}): Promise<ProductControlRecordProjection> {
+export async function reconcileProductFirstRunSetupState(): Promise<ProductControlRecordProjection> {
   if (!hasTauriInvoke()) {
-    throw new Error('product_control_record_set_first_run_setup_state requires Tauri runtime');
+    throw new Error('product_control_record_reconcile_first_run_setup_state requires Tauri runtime');
   }
-  return invokeChecked('product_control_record_set_first_run_setup_state', {
-    payload: input,
-  }, parseProductControlRecordProjection);
+  return invokeChecked(
+    'product_control_record_reconcile_first_run_setup_state',
+    {},
+    parseProductControlRecordProjection,
+  );
+}
+
+export async function completeProductFirstRunDeviceEnvironmentScan(): Promise<ProductControlRecordProjection> {
+  if (!hasTauriInvoke()) {
+    throw new Error('product_control_record_complete_first_run_device_environment_scan requires Tauri runtime');
+  }
+  return invokeChecked(
+    'product_control_record_complete_first_run_device_environment_scan',
+    {},
+    parseProductControlRecordProjection,
+  );
 }
 
 /** The Account Default Profile projected as a portable AIProfile payload. */

@@ -61,7 +61,8 @@ test('product-control parser and recovery mapping are total over admitted states
 
 test('product-control screen and admission projections preserve fail-closed states', () => {
   assert.deepEqual(firstRunScreenForProductControlState('data_root_missing'), { kind: 'phase', phase: 'storage' });
-  assert.deepEqual(firstRunScreenForProductControlState('data_root_selected'), { kind: 'phase', phase: 'local-ai' });
+  assert.deepEqual(firstRunScreenForProductControlState('data_root_selected'), { kind: 'phase', phase: 'device-scan' });
+  assert.deepEqual(firstRunScreenForProductControlState('ai_environment_unconfigured'), { kind: 'phase', phase: 'local-ai' });
   assert.deepEqual(firstRunScreenForProductControlState('ready_for_use'), { kind: 'terminal', screen: 'ready' });
   assert.equal(isProductControlPhaseTransient('config_missing'), true);
   assert.equal(isProductControlPhaseTransient('data_root_selected'), false);

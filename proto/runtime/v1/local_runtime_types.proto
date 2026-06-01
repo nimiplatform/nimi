@@ -550,6 +550,12 @@ message LocalEnvironmentDependencyJob {
   int32 percent = 15;
   int64 speed_bytes_per_sec = 16;
   int64 eta_seconds = 17;
+  // Runtime-owned terminal reason code for the job. Empty for in-progress
+  // states unless Runtime has a structured non-ready reason to project.
+  string reason_code = 18;
+  // Runtime-owned recovery policy projection. Consumers may filter this closed
+  // string but must not parse failure_detail for recovery semantics.
+  string recovery_disposition = 19;
 }
 
 message LocalEnvironmentActivationGate {

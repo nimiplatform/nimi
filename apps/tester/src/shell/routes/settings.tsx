@@ -67,6 +67,7 @@ import {
   normalizeLocalRecommendationFeedCacheStateId,
   parseLocalRuntimeEnvironmentDependencyJobProjection,
   parseLocalRuntimeEnvironmentPlanProjection,
+  productStateForMaterializationStatus,
   repairableFirstRunMaterializationDependencies,
   retryableInterruptedFirstRunMaterializationJobs,
   parseLocalRuntimeExecutionPlan,
@@ -579,11 +580,17 @@ function createTesterProductControlProjection() {
     error: null,
   });
   const screen = firstRunScreenForProductControlState(projection.state);
+  const dataRootSelectedScreen = firstRunScreenForProductControlState('data_root_selected');
+  const aiEnvironmentScreen = firstRunScreenForProductControlState('ai_environment_unconfigured');
   const admission = projectProductControlAdmission(projection.state);
   return {
     state: projection.state,
     degraded: isDegradedProductControlState(projection.state),
     screen: screen.kind === 'phase' ? screen.phase : screen.screen,
+    dataRootSelectedScreen:
+      dataRootSelectedScreen.kind === 'phase' ? dataRootSelectedScreen.phase : dataRootSelectedScreen.screen,
+    aiEnvironmentScreen:
+      aiEnvironmentScreen.kind === 'phase' ? aiEnvironmentScreen.phase : aiEnvironmentScreen.screen,
     admission: admission.kind,
   };
 }
@@ -907,9 +914,11 @@ export function SettingsRoute() {
     dependencyFamily: 'model.asset',
     state: 'failed',
     failureDetail: 'unexpected eof while reading body',
+    recoveryDisposition: 'auto_retry_transient',
   };
   const runtimeFirstRunMaterializationProjection = {
     status: 'failed' as const,
+    productState: productStateForMaterializationStatus('failed'),
     reason: 'runtime_materialization_job_failed',
     missingDependencyFamilies: [],
     dependencies: [{
@@ -921,6 +930,7 @@ export function SettingsRoute() {
   const runtimeFirstRunRepairProjection = {
     ...runtimeFirstRunMaterializationProjection,
     status: 'repair_required' as const,
+    productState: productStateForMaterializationStatus('repair_required'),
     reason: 'runtime_materialization_repair_required',
     dependencies: [{
       packId: runtimeDependencyPlanProjection.packId,
@@ -936,6 +946,8 @@ export function SettingsRoute() {
   const runtimeFirstRunMaterializationSummary = {
     retryableJobs: retryableInterruptedFirstRunMaterializationJobs(runtimeFirstRunMaterializationProjection).length,
     repairableDependencies: repairableFirstRunMaterializationDependencies(runtimeFirstRunRepairProjection).length,
+    productState: runtimeFirstRunMaterializationProjection.productState,
+    recoveryDisposition: runtimeFirstRunFailedJob.recoveryDisposition,
     percent: runtimeFirstRunMaterializationProgress?.percent ?? null,
   };
   const localRuntimeAssetIdProjection = { assetId: toCanonicalLocalRuntimeAssetId('local/tester-model'), lookupKey: toCanonicalLocalRuntimeAssetLookupKey('LOCAL/Tester-Model') };
@@ -2104,6 +2116,10 @@ export function SettingsRoute() {
           {' / '}
           repair {runtimeFirstRunMaterializationSummary.repairableDependencies}
           {' / '}
+          {runtimeFirstRunMaterializationSummary.productState}
+          {' / '}
+          {runtimeFirstRunMaterializationSummary.recoveryDisposition}
+          {' / '}
           {runtimeFirstRunMaterializationSummary.percent ?? 'indeterminate'}%
         </StatusBadge>
       </div>
@@ -2217,6 +2233,10 @@ export function SettingsRoute() {
         <span>SDK product-control projection</span>
         <StatusBadge tone={productControlProjection.degraded ? 'warning' : 'success'}>
           {productControlProjection.state}: {productControlProjection.screen}/{productControlProjection.admission}
+          {' / '}
+          data_root_selected={productControlProjection.dataRootSelectedScreen}
+          {' / '}
+          ai_environment_unconfigured={productControlProjection.aiEnvironmentScreen}
         </StatusBadge>
       </div>
       <div className="setting-row">

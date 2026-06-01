@@ -45,6 +45,8 @@ function dependencyJob(
       sourceKind: 'runtime-managed',
       retryable: overrides.retryable ?? true,
       failureDetail,
+      reasonCode: overrides.reasonCode ?? 'LOCAL_ENVIRONMENT_DEPENDENCY_JOB_FAILED',
+      recoveryDisposition: overrides.recoveryDisposition ?? 'manual_retry',
       bytesReceived: 0,
       bytesTotal: 0,
       percent: 0,
@@ -123,7 +125,10 @@ test('first-run materialization resume does not run before setup confirmation or
 });
 
 test('confirmed first-run setup gates SDK retryable materialization jobs', () => {
-  const interrupted = dependencyJob('LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED');
+  const interrupted = dependencyJob('LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED', {
+    reasonCode: 'LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED',
+    recoveryDisposition: 'auto_retry_transient',
+  });
   assert.deepEqual(
     retryableInterruptedFirstRunMaterializationJobs(
       'local_ai_profile_selected_environment_not_ready',

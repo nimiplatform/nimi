@@ -370,6 +370,8 @@ func localEnvironmentDependencyJobToProto(job localEnvironmentDependencyJobState
 		SelectedSourceRecordId: job.SelectedSourceRecordID,
 		FailureDetail:          job.FailureDetail,
 		Retryable:              job.Retryable,
+		ReasonCode:             job.ReasonCode,
+		RecoveryDisposition:    job.RecoveryDisposition,
 		CreatedAt:              job.CreatedAt,
 		UpdatedAt:              job.UpdatedAt,
 		// K-RPC-025 download-progress projection. The job state already zeroes

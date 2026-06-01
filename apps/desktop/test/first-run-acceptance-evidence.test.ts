@@ -167,7 +167,7 @@ test('fresh authenticated non-ready gate is first-run-only and excludes ordinary
 });
 
 test('renderer evidence: config_missing is an internal transient inside the Storage phase, not its own data-root screen', () => {
-  // The 3-phase wizard folds the fast `config_missing` system state into the
+  // The 4-phase wizard folds the fast `config_missing` system state into the
   // Storage phase as a calm transient loading affordance — it never gets its
   // own boxed data-root screen. `data_root_missing` is the first user-action
   // data-root state and presents the native folder picker (no raw absolute
@@ -187,17 +187,17 @@ test('renderer evidence: config_missing is an internal transient inside the Stor
   assert.doesNotMatch(dataRootMissing, /product-first-run-data-root-input/);
 });
 
-test('renderer evidence: data_root_selected opens the interactive Local AI phase with no blocking transient', () => {
-  // `data_root_selected` and `ai_environment_unconfigured` both render the
-  // interactive Minimal / Recommended install-level cards. The device scan is
-  // a secondary inline affordance ("Detected" line) — it never blocks the
-  // choice, so the phase is usable the moment it opens.
-  for (const state of ['data_root_selected', 'ai_environment_unconfigured'] as const) {
-    const markup = renderWorkflow(state);
-    assert.match(markup, /data-testid="first-run-phase-local-ai"/);
-    assert.match(markup, /data-testid="first-run-install-level-minimal"/);
-    assert.match(markup, /data-testid="first-run-install-level-recommended"/);
-  }
+test('renderer evidence: data_root_selected opens device scan before Local AI choice', () => {
+  const scan = renderWorkflow('data_root_selected');
+  assert.match(scan, /data-testid="first-run-phase-device-scan"/);
+  assert.match(scan, /data-testid="first-run-device-scan-retry"/);
+  assert.match(scan, /data-testid="first-run-device-scan-change-folder"/);
+  assert.doesNotMatch(scan, /data-testid="first-run-install-level-minimal"/);
+
+  const localAi = renderWorkflow('ai_environment_unconfigured');
+  assert.match(localAi, /data-testid="first-run-phase-local-ai"/);
+  assert.match(localAi, /data-testid="first-run-install-level-minimal"/);
+  assert.match(localAi, /data-testid="first-run-install-level-recommended"/);
   // The cards are driven by the admitted install-level policy — no cloud /
   // hybrid first-run rows leak into the local-only baseline.
   const choice = renderWorkflow('ai_environment_unconfigured');
@@ -350,7 +350,8 @@ test('ready_for_use has no production renderer/Tauri mark-ready shortcut and rou
   ]) {
     assert.match(desktopProductControlSource, required);
   }
-  assert.match(appRoutesSource, /projection\.state === 'ready_for_use'/);
+  assert.match(appRoutesSource, /projectProductControlAdmission\(projection\.state\)/);
+  assert.match(appRoutesSource, /decision\.kind === 'ordinary-shell'/);
   assert.match(appRoutesSource, /setActiveTab\('chat'\)/);
 });
 
@@ -382,10 +383,10 @@ test('Runtime materialization orchestration is wired through SDK/localRuntime an
   assert.doesNotMatch(sdkRuntimeMaterializationSource, /JOB_TRANSFERRING_STATES/);
   assert.doesNotMatch(firstRunSetupChecklistSource, /JOB_ACTIVE_STATES|JOB_FAILED_STATES/);
   assert.doesNotMatch(firstRunSetupChecklistSource, /'starting'|'running'|'in_progress'/);
-  assert.match(productControlWorkflowSource, /setProductFirstRunSetupState/);
+  assert.match(productControlWorkflowSource, /reconcileProductFirstRunSetupState/);
   assert.match(productControlWorkflowSource, /startFirstRunMaterialization/);
   assert.doesNotMatch(productControlWorkflowSource, /markProductReadyForUse/);
-  assert.match(productControlWorkflowSource, /canPersistSetupState/);
+  assert.doesNotMatch(productControlWorkflowSource, /setProductFirstRunSetupState/);
   assert.match(productControlWorkflowSource, /'local_ai_ready'/);
 });
 

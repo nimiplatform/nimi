@@ -95,28 +95,32 @@ func TestListLocalEnvironmentDependencyJobsProjectsTerminalStates(t *testing.T) 
 	environmentKey := "python.runtime|python.runtime|host-test|windows/amd64|" + filepath.Join(t.TempDir(), "runtime") + "|media.diffusers.cpu"
 	svc.mu.Lock()
 	svc.localEnvironmentDependencyJobs["job-cancelled"] = localEnvironmentDependencyJobState{
-		JobID:            "job-cancelled",
-		EnvironmentKey:   environmentKey,
-		DependencyFamily: localEnvironmentFamilyPythonRuntime,
-		DependencyID:     "python.runtime",
-		State:            localEnvironmentStateCancelled,
-		SourceKind:       localEnvironmentSourceManaged,
-		FailureDetail:    "cancelled by user",
-		Retryable:        false,
-		CreatedAt:        "2026-04-30T00:00:00Z",
-		UpdatedAt:        "2026-04-30T00:00:01Z",
+		JobID:               "job-cancelled",
+		EnvironmentKey:      environmentKey,
+		DependencyFamily:    localEnvironmentFamilyPythonRuntime,
+		DependencyID:        "python.runtime",
+		State:               localEnvironmentStateCancelled,
+		SourceKind:          localEnvironmentSourceManaged,
+		FailureDetail:       "cancelled by user",
+		Retryable:           false,
+		ReasonCode:          "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_CANCELLED",
+		RecoveryDisposition: localEnvironmentJobRecoveryNotRetryable,
+		CreatedAt:           "2026-04-30T00:00:00Z",
+		UpdatedAt:           "2026-04-30T00:00:01Z",
 	}
 	svc.localEnvironmentDependencyJobs["job-failed"] = localEnvironmentDependencyJobState{
-		JobID:            "job-failed",
-		EnvironmentKey:   environmentKey,
-		DependencyFamily: localEnvironmentFamilyPythonRuntime,
-		DependencyID:     "python.runtime",
-		State:            localEnvironmentStateFailed,
-		SourceKind:       localEnvironmentSourceManaged,
-		FailureDetail:    "download failed",
-		Retryable:        true,
-		CreatedAt:        "2026-04-30T00:00:02Z",
-		UpdatedAt:        "2026-04-30T00:00:03Z",
+		JobID:               "job-failed",
+		EnvironmentKey:      environmentKey,
+		DependencyFamily:    localEnvironmentFamilyPythonRuntime,
+		DependencyID:        "python.runtime",
+		State:               localEnvironmentStateFailed,
+		SourceKind:          localEnvironmentSourceManaged,
+		FailureDetail:       "download failed",
+		Retryable:           true,
+		ReasonCode:          "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_FAILED",
+		RecoveryDisposition: localEnvironmentJobRecoveryManualRetry,
+		CreatedAt:           "2026-04-30T00:00:02Z",
+		UpdatedAt:           "2026-04-30T00:00:03Z",
 	}
 	svc.mu.Unlock()
 
@@ -131,6 +135,12 @@ func TestListLocalEnvironmentDependencyJobsProjectsTerminalStates(t *testing.T) 
 	}
 	if resp.GetJobs()[0].GetState() != localEnvironmentStateFailed {
 		t.Fatalf("first job state = %q, want failed by updated_at desc", resp.GetJobs()[0].GetState())
+	}
+	if resp.GetJobs()[0].GetReasonCode() != "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_FAILED" {
+		t.Fatalf("first job reason = %q", resp.GetJobs()[0].GetReasonCode())
+	}
+	if resp.GetJobs()[0].GetRecoveryDisposition() != localEnvironmentJobRecoveryManualRetry {
+		t.Fatalf("first job recovery = %q", resp.GetJobs()[0].GetRecoveryDisposition())
 	}
 	if resp.GetJobs()[1].GetState() != localEnvironmentStateCancelled {
 		t.Fatalf("second job state = %q, want cancelled", resp.GetJobs()[1].GetState())

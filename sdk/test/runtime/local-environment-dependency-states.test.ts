@@ -118,6 +118,8 @@ test('local environment dependency job parser clamps progress projection', () =>
     selectedSourceRecordId: 'source-1',
     failureDetail: '',
     retryable: true,
+    reasonCode: 'LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED',
+    recoveryDisposition: 'auto_retry_transient',
     createdAt: '2026-05-31T00:00:00Z',
     updatedAt: '2026-05-31T00:01:00Z',
     bytesReceived: '2048',
@@ -132,4 +134,6 @@ test('local environment dependency job parser clamps progress projection', () =>
   assert.equal(parsed.percent, 100);
   assert.equal(parsed.speedBytesPerSec, 512);
   assert.equal(parsed.etaSeconds, 0);
+  assert.equal(parsed.reasonCode, 'LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED');
+  assert.equal(parsed.recoveryDisposition, 'auto_retry_transient');
 });

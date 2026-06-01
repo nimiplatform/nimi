@@ -32,6 +32,10 @@ pub const RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus";
 pub const RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile";
+pub const RUNTIME_LOCAL_RESOLVE_LOCAL_ENVIRONMENT_PLAN_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan";
+pub const RUNTIME_LOCAL_LIST_LOCAL_ENVIRONMENT_DEPENDENCY_JOBS_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs";
 pub const RUNTIME_LOCAL_RESOLVE_RUNTIME_BASELINE_READINESS_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness";
 pub const RUNTIME_LOCAL_MINT_RUNTIME_BASELINE_READINESS_METHOD_ID: &str =

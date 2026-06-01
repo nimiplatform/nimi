@@ -32,6 +32,10 @@ const productControlBridgeSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/product-control.ts'),
   'utf8',
 );
+const sdkProductControlSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../../../sdk/src/product-control.ts'),
+  'utf8',
+);
 const desktopProductControlDir = path.join(
   import.meta.dirname,
   '../src-tauri/src/desktop_product_control',
@@ -86,13 +90,13 @@ test('Nimi Home first-run selection is install-level aware and fail-closed again
 test('first-run wizard exposes data root selection, install levels, and no mark-ready shortcut', () => {
   // The redesigned wizard keeps every product-control bridge call and the
   // Minimal / Recommended install-level surface; it presents them through
-  // the 3-phase wizard instead of the prior state-dump. The forbidden
+  // the 4-phase wizard instead of the prior state-dump. The forbidden
   // mark-ready shortcut negative still holds.
   assert.match(productControlWorkflowSource, /ProductControlWorkflow/);
   assert.match(productControlWorkflowSource, /selectProductDataRoot/);
   assert.match(productControlWorkflowSource, /pickProductDataRootDirectory/);
   assert.match(productControlWorkflowSource, /setProductFirstRunInstallLevel/);
-  assert.match(productControlWorkflowSource, /setProductFirstRunSetupState/);
+  assert.match(productControlWorkflowSource, /reconcileProductFirstRunSetupState/);
   assert.match(productControlWorkflowSource, /startFirstRunMaterialization/);
   // The two admitted install levels are still the only ones presented.
   assert.match(productControlWorkflowSource, /'minimal'/);
@@ -127,9 +131,9 @@ test('config_missing is an internal transient and does not expose the data-root 
     path.join(import.meta.dirname, '../src/shell/renderer/first-run/first-run-phase-projection.ts'),
     'utf8',
   );
-  assert.match(phaseProjectionSource, /config_missing/);
   assert.match(phaseProjectionSource, /isTransientSystemState/);
-  assert.match(phaseProjectionSource, /data_root_missing/);
+  assert.match(sdkProductControlSource, /config_missing/);
+  assert.match(sdkProductControlSource, /data_root_missing/);
   // The Storage phase swaps to a transient loading affordance and hides the
   // folder-choose control when the phase is transient.
   const storagePhaseSource = fs.readFileSync(
@@ -160,7 +164,8 @@ test('product control ready_for_use has no production renderer/Tauri admission s
   assert.match(desktopProductControlSource, /ready_for_use failed owner admission verification/);
   assert.doesNotMatch(productControlBridgeSource, /markProductReadyForUse/);
   assert.doesNotMatch(productControlBridgeSource, /product_control_record_mark_ready_for_use/);
-  assert.match(productControlBridgeSource, /Exclude<ProductControlState,[^>]*'local_ai_ready'/);
+  assert.match(productControlBridgeSource, /reconcileProductFirstRunSetupState/);
+  assert.doesNotMatch(productControlBridgeSource, /setProductFirstRunSetupState/);
 });
 
 test('Desktop product control record owns selected data root; desktop paths no longer default readiness to ~/.nimi/data', () => {

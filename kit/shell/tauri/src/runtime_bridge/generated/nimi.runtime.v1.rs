@@ -6622,6 +6622,14 @@ pub struct LocalEnvironmentDependencyJob {
     pub speed_bytes_per_sec: i64,
     #[prost(int64, tag = "17")]
     pub eta_seconds: i64,
+    /// Runtime-owned terminal reason code for the job. Empty for in-progress
+    /// states unless Runtime has a structured non-ready reason to project.
+    #[prost(string, tag = "18")]
+    pub reason_code: ::prost::alloc::string::String,
+    /// Runtime-owned recovery policy projection. Consumers may filter this closed
+    /// string but must not parse failure_detail for recovery semantics.
+    #[prost(string, tag = "19")]
+    pub recovery_disposition: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalEnvironmentActivationGate {

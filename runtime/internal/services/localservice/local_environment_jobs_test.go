@@ -132,8 +132,37 @@ func TestLocalEnvironmentDependencyJobFailureDoesNotPromote(t *testing.T) {
 	if job.State != localEnvironmentStateFailed {
 		t.Fatalf("expected failed state, got %+v", job)
 	}
+	if job.ReasonCode != "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_FAILED" {
+		t.Fatalf("failed job reason = %q", job.ReasonCode)
+	}
+	if job.RecoveryDisposition != localEnvironmentJobRecoveryManualRetry {
+		t.Fatalf("failed job recovery = %q", job.RecoveryDisposition)
+	}
 	if _, ok := svc.localEnvironmentSelectedSourceRecord(req.EnvironmentKey); ok {
 		t.Fatalf("failed job must not promote selected source")
+	}
+}
+
+func TestLocalEnvironmentDependencyJobClassifiesAutoRecoveryInRuntime(t *testing.T) {
+	svc := newLocalEnvironmentJobTestService(t)
+	defer func() { svc.Close() }()
+	req := localEnvironmentJobRequestForTest(t, svc)
+
+	started, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(context.Context, localEnvironmentDependencyJobState, localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
+		return localEnvironmentDependencyJobResult{}, errors.New("download model file: unexpected EOF")
+	})
+	if err != nil {
+		t.Fatalf("start job: %v", err)
+	}
+	job := pollLocalEnvironmentDependencyJobToTerminal(t, svc, started.JobID)
+	if job.State != localEnvironmentStateFailed {
+		t.Fatalf("expected failed state, got %+v", job)
+	}
+	if job.ReasonCode != "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED" {
+		t.Fatalf("reason = %q, want interrupted", job.ReasonCode)
+	}
+	if job.RecoveryDisposition != localEnvironmentJobRecoveryAutoRetryTransient {
+		t.Fatalf("recovery = %q, want auto transient retry", job.RecoveryDisposition)
 	}
 }
 
@@ -440,6 +469,12 @@ func TestLocalEnvironmentDependencyJobCrashRecoveryFailsOrphanClosed(t *testing.
 	}
 	if restoredJob.FailureDetail != "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED" {
 		t.Fatalf("orphan failure detail = %q, want interrupted audit reason", restoredJob.FailureDetail)
+	}
+	if restoredJob.ReasonCode != "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED" {
+		t.Fatalf("orphan reason = %q, want interrupted audit reason", restoredJob.ReasonCode)
+	}
+	if restoredJob.RecoveryDisposition != localEnvironmentJobRecoveryAutoRetryTransient {
+		t.Fatalf("orphan recovery = %q, want auto transient retry", restoredJob.RecoveryDisposition)
 	}
 }
 

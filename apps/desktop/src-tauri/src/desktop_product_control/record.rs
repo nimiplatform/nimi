@@ -141,6 +141,7 @@ pub struct ProductFirstRunInstallLevelPayload {
     pub ai_profile_alias: Option<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductFirstRunSetupStatePayload {

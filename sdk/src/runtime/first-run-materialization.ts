@@ -4,6 +4,7 @@ import type {
   LocalRuntimeEnvironmentPlanProjection,
 } from './local-environment-dependency-states.js';
 import type { LocalRuntimeWriteOptions } from './local-runtime-client/types.js';
+import type { ProductControlState } from '../product-control.js';
 import {
   isLocalRuntimeEnvironmentDependencyJobActiveState,
   isLocalRuntimeEnvironmentDependencyJobCancelledState,
@@ -34,6 +35,16 @@ export type FirstRunMaterializationProfile = {
   readonly dependencyFamilyRefs: readonly string[];
   readonly materializationConfirmationRequired: boolean;
 };
+
+export type FirstRunMaterializationProductState = Extract<
+  ProductControlState,
+  | 'local_ai_profile_selected_assets_missing'
+  | 'local_ai_profile_selected_environment_not_ready'
+  | 'local_ai_assets_downloaded_environment_not_ready'
+  | 'local_ai_ready'
+  | 'repair_required'
+  | 'blocked'
+>;
 
 export type FirstRunMaterializationRuntime = {
   readonly resolveEnvironmentPlan: (input: {
@@ -74,11 +85,15 @@ export type FirstRunMaterializationDependencyProjection = {
   readonly job: LocalRuntimeEnvironmentDependencyJobProjection | null;
 };
 
-export type FirstRunMaterializationProjection = {
+export type FirstRunMaterializationBaseProjection = {
   readonly status: FirstRunMaterializationStatus;
   readonly reason: string;
   readonly missingDependencyFamilies: readonly string[];
   readonly dependencies: readonly FirstRunMaterializationDependencyProjection[];
+};
+
+export type FirstRunMaterializationProjection = FirstRunMaterializationBaseProjection & {
+  readonly productState: FirstRunMaterializationProductState;
 };
 
 export type FirstRunMaterializationInput = {
@@ -87,6 +102,27 @@ export type FirstRunMaterializationInput = {
   readonly runtimeDataRoot?: string | null;
   readonly installLevel?: string | null;
 };
+
+export function productStateForMaterializationStatus(
+  status: FirstRunMaterializationStatus,
+): FirstRunMaterializationProductState {
+  if (status === 'blocked' || status === 'unsupported') return 'blocked';
+  if (status === 'failed' || status === 'repair_required' || status === 'cancelled') {
+    return 'local_ai_profile_selected_environment_not_ready';
+  }
+  if (status === 'activation_pending') return 'local_ai_profile_selected_environment_not_ready';
+  if (status === 'local_ai_ready') return 'local_ai_ready';
+  return 'local_ai_profile_selected_assets_missing';
+}
+
+function withProductState(
+  projection: FirstRunMaterializationBaseProjection,
+): FirstRunMaterializationProjection {
+  return {
+    ...projection,
+    productState: productStateForMaterializationStatus(projection.status),
+  };
+}
 
 function normalizeState(value: string | undefined): string {
   return String(value || '').trim().toLowerCase();
@@ -221,37 +257,12 @@ function dependencyInMaterializationScope(
 }
 
 function isAutoRecoverableMaterializationFailure(job: LocalRuntimeEnvironmentDependencyJobProjection): boolean {
-  const family = normalizeState(job.dependencyFamily);
   if (
     !isLocalRuntimeEnvironmentDependencyJobFailedState(job.state)
     && !isLocalRuntimeEnvironmentDependencyJobCancelledState(job.state)
   ) return false;
   if (!job.retryable) return false;
-  const detail = normalizeState(job.failureDetail);
-  const interrupted = detail.includes('local_environment_dependency_job_interrupted')
-    || detail.includes('unexpected eof')
-    || detail.includes('client.timeout')
-    || detail.includes('context deadline exceeded')
-    || detail.includes('connection reset')
-    || detail.includes('connection refused')
-    || detail.includes('broken pipe')
-    || detail.includes('tls handshake timeout')
-    || detail.includes('timeout while reading body');
-  if (family === 'model.asset' || family === 'model.companion-asset') return interrupted;
-  if (
-    family === 'python.runtime'
-    || family === 'python.venv'
-    || family === 'python.package-set'
-    || family === 'python.torch-wheel'
-  ) {
-    return interrupted
-      || detail.includes('no virtual environment or system python installation found')
-      || detail.includes('system cannot find the path specified')
-      || detail.includes('cannot find the path specified')
-      || detail.includes('no such file or directory')
-      || detail.includes('waiting for lock on uv cache');
-  }
-  return false;
+  return normalizeState(job.recoveryDisposition) === 'auto_retry_transient';
 }
 
 export function retryableInterruptedFirstRunMaterializationJobs(
@@ -329,12 +340,12 @@ export async function resolveFirstRunMaterializationProjection(
   const foundFamilies = new Set(dependencies.map(({ dependency }) => dependency.dependencyFamily));
   const missingDependencyFamilies = requiredFamilies.filter((family) => !foundFamilies.has(family));
   const status = statusFor(missingDependencyFamilies, dependencies);
-  return {
+  return withProductState({
     status,
     reason: reasonForStatus(status, missingDependencyFamilies),
     missingDependencyFamilies,
     dependencies,
-  };
+  });
 }
 
 export async function startFirstRunMaterialization(
@@ -360,11 +371,11 @@ export async function startFirstRunMaterialization(
   ));
   const after = await resolveFirstRunMaterializationProjection(input);
   return startable.length > 0
-    ? {
+    ? withProductState({
         ...after,
         status: after.status === 'needs_confirmation' ? 'starting' : after.status,
         reason: 'runtime_materialization_jobs_started',
-      }
+      })
     : after;
 }
 

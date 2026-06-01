@@ -4,6 +4,7 @@
   "continue": "Continue",
   "steps": {
     "storage": "Storage",
+    "deviceScan": "Device",
     "localAi": "Local AI",
     "setup": "Setup"
   },
@@ -13,6 +14,17 @@
     "preparing": "Getting Nimi ready on this computer…",
     "pathPlaceholder": "No folder chosen yet",
     "chooseFolder": "Choose folder…"
+  },
+  "deviceScan": {
+    "heading": "Check this device",
+    "subheading": "Nimi checks local hardware before offering local AI setup options.",
+    "checking": "Checking device environment…",
+    "detected": "Detected: {{device}}",
+    "unavailable": "Device scan evidence is unavailable.",
+    "storageFolder": "Nimi data: {{path}}",
+    "changeFolder": "Change folder",
+    "retry": "Retry scan",
+    "continue": "Continue"
   },
   "localAi": {
     "heading": "Set up your local AI",
@@ -139,6 +151,8 @@
     "dataRootMissing": "Choose a folder for Nimi before continuing.",
     "dataRootPickFailed": "Failed to open the folder picker.",
     "dataRootRecordFailed": "Failed to record nimi_data.",
+    "deviceScanUnavailable": "Device scan evidence is required before local AI setup.",
+    "deviceScanRecordFailed": "Failed to record device scan completion.",
     "installLevelRequired": "Choose an install level to continue.",
     "installLevelNoProfile": "{{installLevel}} has no admitted local first-run AIProfile.",
     "materializationPrerequisitesMissing": "Select a first-run install level and nimi_data path before Runtime setup.",

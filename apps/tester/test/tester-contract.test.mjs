@@ -161,6 +161,10 @@ test('tester settings consumes SDK product-control projection as second consumer
   assert.match(settings, /firstRunScreenForProductControlState/);
   assert.match(settings, /projectProductControlAdmission/);
   assert.match(settings, /SDK product-control projection/);
+  assert.match(settings, /firstRunScreenForProductControlState\('data_root_selected'\)/);
+  assert.match(settings, /firstRunScreenForProductControlState\('ai_environment_unconfigured'\)/);
+  assert.match(settings, /data_root_selected=\{productControlProjection\.dataRootSelectedScreen\}/);
+  assert.match(settings, /ai_environment_unconfigured=\{productControlProjection\.aiEnvironmentScreen\}/);
 });
 
 test('tester kit gallery showcases real kit components for third-party apps', () => {
@@ -1221,6 +1225,8 @@ test('tester settings consumes SDK Runtime dependency parser and first-run mater
   const settings = read('src/shell/routes/settings.tsx');
   assert.match(settings, /parseLocalRuntimeEnvironmentPlanProjection[\s\S]*parseLocalRuntimeEnvironmentDependencyJobProjection/);
   assert.match(settings, /selectFactoryAIProfileForFirstRun[\s\S]*PLATFORM_AI_PROFILE_FACTORY_ROWS/);
+  assert.match(settings, /productStateForMaterializationStatus/);
+  assert.match(settings, /recoveryDisposition: 'auto_retry_transient'/);
   assert.match(settings, /aggregateMaterializationDownloadProgress[\s\S]*retryableInterruptedFirstRunMaterializationJobs[\s\S]*repairableFirstRunMaterializationDependencies/);
   assert.match(settings, /from '@nimiplatform\/sdk\/platform-catalog'[\s\S]*from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Runtime dependency parser projection[\s\S]*First-run materialization projection/);

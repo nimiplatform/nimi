@@ -78,7 +78,9 @@ function validateLocalAgentRef(ownerUserId: string, realmAgentId: string, localA
   try {
     projectRuntimeLocalAgentIdentity({ ownerUserId, realmAgentId, localAgentRef });
   } catch (error) {
-    throw new Error(`desktop avatar instance registry localAgentRef is invalid: ${String((error as Error).message || error)}`);
+    throw new Error(`desktop avatar instance registry localAgentRef is invalid: ${String((error as Error).message || error)}`, {
+      cause: error,
+    });
   }
 }
 

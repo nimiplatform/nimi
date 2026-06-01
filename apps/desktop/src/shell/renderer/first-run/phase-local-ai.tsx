@@ -1,11 +1,7 @@
 // First-Run Phase 2 — Local AI.
 //
-// Presents the `data_root_selected` and `ai_environment_unconfigured`
-// user-action states: the user picks an install level. The phase is
-// interactive the moment it opens — the two cards are driven by the local
-// admitted install-level policy (not the device scan), so nothing blocks the
-// choice. The "Detected" line projects real Runtime device-scan evidence,
-// loading inline in the background and failing closed when none exists.
+// Presents the `ai_environment_unconfigured` user-action state: the user picks
+// an install level after the device-scan phase has completed.
 
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -144,9 +140,7 @@ function InstallLevelCard(props: {
   );
 }
 
-/**
- * Phase 2 content — interactive the moment it opens.
- */
+/** Phase 3 content — install-level choice. */
 export function PhaseLocalAi(props: PhaseLocalAiProps): ReactElement {
   const { t } = useTranslation();
 

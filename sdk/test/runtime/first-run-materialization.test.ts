@@ -8,6 +8,7 @@ import {
 import {
   FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
   aggregateMaterializationDownloadProgress,
+  productStateForMaterializationStatus,
   repairableFirstRunMaterializationDependencies,
   resolveFirstRunMaterializationProjection,
   retryableInterruptedFirstRunMaterializationJobs,
@@ -61,6 +62,8 @@ function dependencyJob(
     dependencyId: string;
     state: string;
     retryable: boolean;
+    reasonCode: string;
+    recoveryDisposition: string;
   }> = {},
 ) {
   const dependencyFamily = overrides.dependencyFamily ?? 'model.asset';
@@ -86,6 +89,8 @@ function dependencyJob(
       sourceKind: 'runtime-managed',
       retryable: overrides.retryable ?? true,
       failureDetail,
+      reasonCode: overrides.reasonCode ?? 'LOCAL_ENVIRONMENT_DEPENDENCY_JOB_FAILED',
+      recoveryDisposition: overrides.recoveryDisposition ?? 'manual_retry',
       bytesReceived: 0,
       bytesTotal: 0,
       percent: 0,
@@ -148,6 +153,7 @@ test('first-run materialization projection resolves Runtime dependency plans wit
 
   assert.equal(projection.status, 'needs_confirmation');
   assert.equal(projection.reason, 'materialization_requires_confirmation');
+  assert.equal(projection.productState, 'local_ai_profile_selected_assets_missing');
   assert.equal(projection.dependencies[0]?.dependency.dependencyFamily, 'model.asset');
 });
 
@@ -186,6 +192,8 @@ test('first-run materialization progress and recovery helpers preserve Runtime j
     sourceKind: 'managed_download',
     retryable: true,
     failureDetail: 'unexpected eof',
+    reasonCode: 'LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED',
+    recoveryDisposition: 'auto_retry_transient',
     bytesReceived: 512,
     bytesTotal: 1024,
     percent: 50,
@@ -201,12 +209,14 @@ test('first-run materialization progress and recovery helpers preserve Runtime j
   assert.equal(progress?.percent, 50);
   assert.equal(retryableInterruptedFirstRunMaterializationJobs({
     status: 'failed',
+    productState: 'local_ai_profile_selected_environment_not_ready',
     reason: 'runtime_materialization_job_failed',
     missingDependencyFamilies: [],
     dependencies: [{ packId: 'tester-pack', dependency, job: failedJob }],
   }).length, 1);
   assert.equal(repairableFirstRunMaterializationDependencies({
     status: 'repair_required',
+    productState: 'local_ai_profile_selected_environment_not_ready',
     reason: 'runtime_materialization_repair_required',
     missingDependencyFamilies: [],
     dependencies: [{ packId: 'tester-pack', dependency: { ...dependency, state: 'repair_required' }, job: null }],
@@ -241,15 +251,25 @@ test('first-run materialization progress never fabricates a rate or percent', ()
 });
 
 test('first-run materialization retry helper admits transient Runtime failures only', () => {
-  const modelInterrupted = dependencyJob('LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED');
+  const modelInterrupted = dependencyJob('LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED', {
+    reasonCode: 'LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED',
+    recoveryDisposition: 'auto_retry_transient',
+  });
   const modelTimedOut = dependencyJob(
     'download model file "model.gguf": context deadline exceeded (Client.Timeout or context cancellation while reading body)',
-    { jobId: 'job-timeout', dependencyId: 'asset-id:timeout' },
+    {
+      jobId: 'job-timeout',
+      dependencyId: 'asset-id:timeout',
+      reasonCode: 'LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED',
+      recoveryDisposition: 'auto_retry_transient',
+    },
   );
   const pythonLock = dependencyJob('Timeout (300s) when waiting for lock on uv cache', {
     dependencyFamily: 'python.package-set',
     dependencyId: 'local-speech.package-set',
     jobId: 'job-python',
+    reasonCode: 'LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED',
+    recoveryDisposition: 'auto_retry_transient',
   });
   const hashMismatch = dependencyJob('model file "model.gguf": model file hash mismatch', {
     jobId: 'job-hash',
@@ -257,6 +277,7 @@ test('first-run materialization retry helper admits transient Runtime failures o
 
   const projection = {
     status: 'failed' as const,
+    productState: productStateForMaterializationStatus('failed'),
     reason: 'runtime_materialization_job_failed',
     missingDependencyFamilies: [],
     dependencies: [modelInterrupted, modelTimedOut, pythonLock, hashMismatch],
@@ -268,6 +289,31 @@ test('first-run materialization retry helper admits transient Runtime failures o
   assert.deepEqual(
     retryableInterruptedFirstRunMaterializationJobs({ ...projection, status: 'activation_pending' }),
     [],
+  );
+});
+
+test('first-run materialization retry helper does not parse diagnostic failure detail', () => {
+  const projection = {
+    status: 'failed' as const,
+    reason: 'runtime_materialization_job_failed',
+    missingDependencyFamilies: [],
+    dependencies: [
+      dependencyJob('LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED', {
+        jobId: 'job-diagnostic-only',
+        reasonCode: 'LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED',
+        recoveryDisposition: 'manual_retry',
+      }),
+      dependencyJob('model file hash mismatch', {
+        jobId: 'job-runtime-owned-auto',
+        reasonCode: 'LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED',
+        recoveryDisposition: 'auto_retry_transient',
+      }),
+    ],
+  };
+
+  assert.deepEqual(
+    retryableInterruptedFirstRunMaterializationJobs(projection).map((job) => job.jobId),
+    ['job-runtime-owned-auto'],
   );
 });
 
@@ -329,4 +375,5 @@ test('first-run materialization treats ready dependency projection as ready desp
     installLevel: 'minimal',
   });
   assert.equal(resolved.status, 'local_ai_ready');
+  assert.equal(resolved.productState, 'local_ai_ready');
 });

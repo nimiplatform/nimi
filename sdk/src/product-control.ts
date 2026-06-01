@@ -77,7 +77,7 @@ export interface ProductControlSelectedDataRootProjection {
   readonly error: string | null;
 }
 
-export type FirstRunPhase = 'storage' | 'local-ai' | 'setup';
+export type FirstRunPhase = 'storage' | 'device-scan' | 'local-ai' | 'setup';
 export type FirstRunTerminalScreen = 'login' | 'repair' | 'blocked' | 'ready';
 export type FirstRunScreen =
   | { readonly kind: 'phase'; readonly phase: FirstRunPhase }
@@ -88,7 +88,7 @@ export type ProductControlAdmissionProjection =
   | { readonly kind: 'login' }
   | { readonly kind: 'first-run'; readonly state: ProductControlState };
 
-export const FIRST_RUN_PHASES: readonly FirstRunPhase[] = ['storage', 'local-ai', 'setup'];
+export const FIRST_RUN_PHASES: readonly FirstRunPhase[] = ['storage', 'device-scan', 'local-ai', 'setup'];
 
 export const PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY: Record<ProductControlState, string> = {
   not_logged_in: 'Support.recoveryStateNotLoggedIn',
@@ -263,6 +263,7 @@ export function firstRunScreenForProductControlState(state: ProductControlState)
     case 'data_root_missing':
       return { kind: 'phase', phase: 'storage' };
     case 'data_root_selected':
+      return { kind: 'phase', phase: 'device-scan' };
     case 'ai_environment_unconfigured':
       return { kind: 'phase', phase: 'local-ai' };
     case 'local_ai_profile_selected_assets_missing':

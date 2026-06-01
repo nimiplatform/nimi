@@ -4,6 +4,7 @@
   "continue": "继续",
   "steps": {
     "storage": "存储",
+    "deviceScan": "设备",
     "localAi": "本地 AI",
     "setup": "设置"
   },
@@ -13,6 +14,17 @@
     "preparing": "正在为这台电脑准备 Nimi…",
     "pathPlaceholder": "尚未选择文件夹",
     "chooseFolder": "选择文件夹…"
+  },
+  "deviceScan": {
+    "heading": "检查此设备",
+    "subheading": "Nimi 会先检查本地硬件，再提供本地 AI 设置选项。",
+    "checking": "正在检查设备环境…",
+    "detected": "已检测到：{{device}}",
+    "unavailable": "设备扫描证据不可用。",
+    "storageFolder": "Nimi 数据：{{path}}",
+    "changeFolder": "更换文件夹",
+    "retry": "重试扫描",
+    "continue": "继续"
   },
   "localAi": {
     "heading": "设置你的本地 AI",
@@ -139,6 +151,8 @@
     "dataRootMissing": "请先为 Nimi 选择一个文件夹再继续。",
     "dataRootPickFailed": "打开文件夹选择器失败。",
     "dataRootRecordFailed": "记录 nimi_data 失败。",
+    "deviceScanUnavailable": "进入本地 AI 设置前需要设备扫描证据。",
+    "deviceScanRecordFailed": "记录设备扫描完成状态失败。",
     "installLevelRequired": "请选择一个安装级别以继续。",
     "installLevelNoProfile": "{{installLevel}} 没有可用的本地首次运行 AIProfile。",
     "materializationPrerequisitesMissing": "在运行时设置前，请选择首次运行安装级别和 nimi_data 路径。",

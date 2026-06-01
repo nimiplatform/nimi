@@ -95,11 +95,11 @@ function render(state: ProductControlState, override: Partial<ProductControlReco
 
 // --- Phase projection -----------------------------------------------------
 
-test('phase projection maps the 12 product-control states onto 3 phases + 3 terminal screens', () => {
+test('phase projection maps the 12 product-control states onto 4 phases + 3 terminal screens', () => {
   // The fast system states fold into a sibling phase.
   assert.deepEqual(firstRunScreenForState('config_missing'), { kind: 'phase', phase: 'storage' });
   assert.deepEqual(firstRunScreenForState('data_root_missing'), { kind: 'phase', phase: 'storage' });
-  assert.deepEqual(firstRunScreenForState('data_root_selected'), { kind: 'phase', phase: 'local-ai' });
+  assert.deepEqual(firstRunScreenForState('data_root_selected'), { kind: 'phase', phase: 'device-scan' });
   assert.deepEqual(firstRunScreenForState('ai_environment_unconfigured'), {
     kind: 'phase',
     phase: 'local-ai',
@@ -121,10 +121,10 @@ test('phase projection maps the 12 product-control states onto 3 phases + 3 term
   assert.deepEqual(firstRunScreenForState('not_logged_in'), { kind: 'terminal', screen: 'login' });
 });
 
-test('only config_missing is a phase transient; data_root_selected is interactive', () => {
+test('only config_missing is a phase transient; data_root_selected is device scan', () => {
   assert.equal(isTransientSystemState('config_missing'), true);
-  // data_root_selected is NOT transient: the Local AI phase is interactive the
-  // moment it opens and the device scan loads inline without blocking.
+  // data_root_selected is not a transient loading shell; it is the explicit
+  // device scan phase from the first-run state machine.
   assert.equal(isTransientSystemState('data_root_selected'), false);
   assert.equal(isTransientSystemState('data_root_missing'), false);
   assert.equal(isTransientSystemState('ai_environment_unconfigured'), false);
@@ -136,11 +136,17 @@ test('only config_missing is a phase transient; data_root_selected is interactiv
 // --- Step indicator -------------------------------------------------------
 
 test('step indicator highlights the phase matching the current state', () => {
-  assert.deepEqual([...FIRST_RUN_PHASES], ['storage', 'local-ai', 'setup']);
+  assert.deepEqual([...FIRST_RUN_PHASES], ['storage', 'device-scan', 'local-ai', 'setup']);
 
   const storage = render('data_root_missing');
   assert.match(storage, /data-testid="first-run-step-storage" data-active="true"/);
+  assert.match(storage, /data-testid="first-run-step-device-scan" data-active="false"/);
   assert.match(storage, /data-testid="first-run-step-local-ai" data-active="false"/);
+
+  const deviceScan = render('data_root_selected');
+  assert.match(deviceScan, /data-testid="first-run-step-device-scan" data-active="true"/);
+  assert.match(deviceScan, /data-testid="first-run-phase-device-scan"/);
+  assert.doesNotMatch(deviceScan, /first-run-install-level-minimal/);
 
   const localAi = render('ai_environment_unconfigured');
   assert.match(localAi, /data-testid="first-run-step-local-ai" data-active="true"/);

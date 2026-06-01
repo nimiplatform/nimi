@@ -12,54 +12,22 @@ import {
   type FirstRunMaterializationInput as SdkFirstRunMaterializationInput,
   type FirstRunMaterializationProjection as SdkFirstRunMaterializationProjection,
   type FirstRunMaterializationRuntime,
-  type FirstRunMaterializationStatus,
 } from '@nimiplatform/sdk/runtime';
 import type { LocalRuntimeEnvironmentPlanDependency } from '@nimiplatform/sdk/runtime';
 
 export type {
   FirstRunMaterializationDependencyProjection,
   FirstRunMaterializationDownloadProgress,
+  FirstRunMaterializationProductState,
   FirstRunMaterializationStatus,
 } from '@nimiplatform/sdk/runtime';
+export { productStateForMaterializationStatus } from '@nimiplatform/sdk/runtime';
 
-export type FirstRunMaterializationProductState = Extract<
-  ProductControlState,
-  | 'local_ai_profile_selected_assets_missing'
-  | 'local_ai_profile_selected_environment_not_ready'
-  | 'local_ai_assets_downloaded_environment_not_ready'
-  | 'local_ai_ready'
-  | 'repair_required'
-  | 'blocked'
->;
-
-export type FirstRunMaterializationProjection = SdkFirstRunMaterializationProjection & {
-  readonly productState: FirstRunMaterializationProductState;
-};
+export type FirstRunMaterializationProjection = SdkFirstRunMaterializationProjection;
 
 export type FirstRunMaterializationInput = Omit<SdkFirstRunMaterializationInput, 'runtime'> & {
   readonly runtime?: FirstRunMaterializationRuntime;
 };
-
-export function productStateForMaterializationStatus(
-  status: FirstRunMaterializationStatus,
-): FirstRunMaterializationProductState {
-  if (status === 'blocked' || status === 'unsupported') return 'blocked';
-  if (status === 'failed' || status === 'repair_required' || status === 'cancelled') {
-    return 'local_ai_profile_selected_environment_not_ready';
-  }
-  if (status === 'activation_pending') return 'local_ai_profile_selected_environment_not_ready';
-  if (status === 'local_ai_ready') return 'local_ai_ready';
-  return 'local_ai_profile_selected_assets_missing';
-}
-
-function withProductState(
-  projection: SdkFirstRunMaterializationProjection,
-): FirstRunMaterializationProjection {
-  return {
-    ...projection,
-    productState: productStateForMaterializationStatus(projection.status),
-  };
-}
 
 function materializationRuntime(
   input: FirstRunMaterializationInput,
@@ -104,37 +72,37 @@ export function repairableConfirmedFirstRunMaterializationDependencies(
 export async function resolveFirstRunMaterializationProjection(
   input: FirstRunMaterializationInput,
 ): Promise<FirstRunMaterializationProjection> {
-  return withProductState(await resolveSdkFirstRunMaterializationProjection({
+  return resolveSdkFirstRunMaterializationProjection({
     ...input,
     runtime: materializationRuntime(input),
-  }));
+  });
 }
 
 export async function startFirstRunMaterialization(
   input: FirstRunMaterializationInput & { readonly confirmed: boolean },
 ): Promise<FirstRunMaterializationProjection> {
-  return withProductState(await startSdkFirstRunMaterialization({
+  return startSdkFirstRunMaterialization({
     ...input,
     runtime: materializationRuntime(input),
-  }));
+  });
 }
 
 export async function cancelFirstRunMaterializationJob(
   input: FirstRunMaterializationInput & { readonly jobId: string },
 ): Promise<FirstRunMaterializationProjection> {
-  return withProductState(await cancelSdkFirstRunMaterializationJob({
+  return cancelSdkFirstRunMaterializationJob({
     ...input,
     runtime: materializationRuntime(input),
-  }));
+  });
 }
 
 export async function retryFirstRunMaterializationJob(
   input: FirstRunMaterializationInput & { readonly jobId: string; readonly confirmed: boolean },
 ): Promise<FirstRunMaterializationProjection> {
-  return withProductState(await retrySdkFirstRunMaterializationJob({
+  return retrySdkFirstRunMaterializationJob({
     ...input,
     runtime: materializationRuntime(input),
-  }));
+  });
 }
 
 export async function repairFirstRunMaterializationDependency(
@@ -144,8 +112,8 @@ export async function repairFirstRunMaterializationDependency(
     readonly reasonCode?: string;
   },
 ): Promise<FirstRunMaterializationProjection> {
-  return withProductState(await repairSdkFirstRunMaterializationDependency({
+  return repairSdkFirstRunMaterializationDependency({
     ...input,
     runtime: materializationRuntime(input),
-  }));
+  });
 }

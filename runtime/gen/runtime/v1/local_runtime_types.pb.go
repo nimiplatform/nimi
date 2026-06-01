@@ -4104,8 +4104,14 @@ type LocalEnvironmentDependencyJob struct {
 	Percent          int32 `protobuf:"varint,15,opt,name=percent,proto3" json:"percent,omitempty"`
 	SpeedBytesPerSec int64 `protobuf:"varint,16,opt,name=speed_bytes_per_sec,json=speedBytesPerSec,proto3" json:"speed_bytes_per_sec,omitempty"`
 	EtaSeconds       int64 `protobuf:"varint,17,opt,name=eta_seconds,json=etaSeconds,proto3" json:"eta_seconds,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Runtime-owned terminal reason code for the job. Empty for in-progress
+	// states unless Runtime has a structured non-ready reason to project.
+	ReasonCode string `protobuf:"bytes,18,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
+	// Runtime-owned recovery policy projection. Consumers may filter this closed
+	// string but must not parse failure_detail for recovery semantics.
+	RecoveryDisposition string `protobuf:"bytes,19,opt,name=recovery_disposition,json=recoveryDisposition,proto3" json:"recovery_disposition,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *LocalEnvironmentDependencyJob) Reset() {
@@ -4255,6 +4261,20 @@ func (x *LocalEnvironmentDependencyJob) GetEtaSeconds() int64 {
 		return x.EtaSeconds
 	}
 	return 0
+}
+
+func (x *LocalEnvironmentDependencyJob) GetReasonCode() string {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentDependencyJob) GetRecoveryDisposition() string {
+	if x != nil {
+		return x.RecoveryDisposition
+	}
+	return ""
 }
 
 type LocalEnvironmentActivationGate struct {
@@ -7502,7 +7522,7 @@ const file_runtime_v1_local_runtime_types_proto_rawDesc = "" +
 	"\x11audit_reason_code\x18\x10 \x01(\tR\x0fauditReasonCode\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xff\x04\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd3\x05\n" +
 	"\x1dLocalEnvironmentDependencyJob\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12'\n" +
 	"\x0fenvironment_key\x18\x02 \x01(\tR\x0eenvironmentKey\x12+\n" +
@@ -7526,7 +7546,10 @@ const file_runtime_v1_local_runtime_types_proto_rawDesc = "" +
 	"\apercent\x18\x0f \x01(\x05R\apercent\x12-\n" +
 	"\x13speed_bytes_per_sec\x18\x10 \x01(\x03R\x10speedBytesPerSec\x12\x1f\n" +
 	"\veta_seconds\x18\x11 \x01(\x03R\n" +
-	"etaSeconds\"\xe4\x02\n" +
+	"etaSeconds\x12\x1f\n" +
+	"\vreason_code\x18\x12 \x01(\tR\n" +
+	"reasonCode\x121\n" +
+	"\x14recovery_disposition\x18\x13 \x01(\tR\x13recoveryDisposition\"\xe4\x02\n" +
 	"\x1eLocalEnvironmentActivationGate\x12\x1f\n" +
 	"\vconsumer_id\x18\x01 \x01(\tR\n" +
 	"consumerId\x12\x17\n" +

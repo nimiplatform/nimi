@@ -4,10 +4,6 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { i18n } from '@renderer/i18n';
 
-function normalizeText(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
 function translateMessage(key: string, defaultValue: string): string {
   if (!i18n.isInitialized) {
     return defaultValue;

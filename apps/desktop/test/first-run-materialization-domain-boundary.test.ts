@@ -27,7 +27,12 @@ const sdkMaterializationTest = readFileSync(
 test('Desktop first-run materialization does not re-export SDK-owned materialization truth', () => {
   assert.doesNotMatch(desktopRuntimeMaterialization, /export\s+\{\s*FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE/);
   assert.doesNotMatch(desktopFirstRunIndex, /FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE/);
-  assert.match(desktopRuntimeMaterialization, /productStateForMaterializationStatus/);
+  assert.match(
+    desktopRuntimeMaterialization,
+    /productStateForMaterializationStatus[\s\S]*@nimiplatform\/sdk\/runtime/,
+  );
+  assert.doesNotMatch(desktopRuntimeMaterialization, /export function productStateForMaterializationStatus/);
+  assert.doesNotMatch(desktopRuntimeMaterialization, /function withProductState/);
   assert.match(desktopRuntimeMaterialization, /localRuntime/);
 });
 

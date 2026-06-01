@@ -31,6 +31,7 @@ import { projectSetupChecklist } from './first-run-setup-checklist.js';
 import { projectDeviceSummary } from './first-run-device-summary.js';
 import { FirstRunWizardChrome } from './first-run-wizard-chrome.js';
 import { PhaseStorage } from './phase-storage.js';
+import { PhaseDeviceScan } from './phase-device-scan.js';
 import { PhaseLocalAi } from './phase-local-ai.js';
 import { PhaseSetup } from './phase-setup.js';
 import { ScreenBlocked, ScreenReady, ScreenRepair } from './screen-terminal.js';
@@ -41,7 +42,7 @@ import { ScreenBlocked, ScreenReady, ScreenRepair } from './screen-terminal.js';
  * This is a pure presentation/projection over the product-control state
  * machine (cold-start-authority-contract P-COLD-009/014,
  * tables/first-run-state-machine.yaml). It renders the 12 spec-admitted
- * `ProductControlState` values as a guided 3-phase wizard plus 3 terminal
+ * `ProductControlState` values as a guided 4-phase wizard plus 3 terminal
  * screens — see first-run-phase-projection.ts for the mapping. It does NOT
  * own, add, collapse, or rename any state-machine state, and it never writes
  * `ready_for_use`: backend admission (P-COLD-016) is the sole authority.
@@ -55,33 +56,6 @@ type ProductControlWorkflowProps = {
   readonly projection: ProductControlRecordProjection | null;
   readonly onProjectionChange: (projection: ProductControlRecordProjection) => void;
 };
-
-/**
- * Which product-control setup states the renderer may persist via
- * `setProductFirstRunSetupState`. Mirrors the bridge's `Exclude<...>` on that
- * call: the renderer can persist Runtime-evidence progress states but never
- * `ready_for_use`, `local_ai_ready`, or the pre-setup states.
- */
-function canPersistSetupState(
-  state: ProductControlState,
-): state is Exclude<
-  ProductControlState,
-  | 'ready_for_use'
-  | 'local_ai_ready'
-  | 'config_missing'
-  | 'data_root_missing'
-  | 'data_root_selected'
-  | 'ai_environment_unconfigured'
-  | 'not_logged_in'
-> {
-  return (
-    state === 'local_ai_profile_selected_assets_missing'
-    || state === 'local_ai_profile_selected_environment_not_ready'
-    || state === 'local_ai_assets_downloaded_environment_not_ready'
-    || state === 'repair_required'
-    || state === 'blocked'
-  );
-}
 
 /**
  * Defensive surface for the `not_logged_in` terminal screen that AppRoutes'
@@ -128,6 +102,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   const [materialization, setMaterialization] = useState<FirstRunMaterializationProjection | null>(null);
   const [deviceProfile, setDeviceProfile] = useState<LocalRuntimeDeviceProfile | null>(null);
   const [deviceScanSettled, setDeviceScanSettled] = useState(false);
+  const [deviceScanAttempt, setDeviceScanAttempt] = useState(0);
   const resumingMaterializationRef = useRef(false);
   const autoRepairAttemptedKeysRef = useRef<Set<string>>(new Set());
   const autoRetryAttemptedKeysRef = useRef<Set<string>>(new Set());
@@ -231,12 +206,10 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     };
   }, []);
 
-  // Device-scan evidence for the Phase 2 "Detected:" line. The scan only feeds
-  // that secondary line — it must never block the Local AI phase, which is
-  // interactive from the local install-level catalog alone. The scan is bounded
-  // by a timeout so a hung or unavailable Runtime (e.g. a daemon that needs a
-  // restart) fails the line closed instead of leaving the phase spinning.
-  // `deviceScanSettled` flips true once the scan resolves, fails, or times out.
+  // Device-scan evidence for the spec-owned `data_root_selected` phase. The
+  // scan is bounded by a timeout so a hung or unavailable Runtime fails closed
+  // instead of leaving the phase spinning. `deviceScanSettled` flips true once
+  // the scan resolves, fails, or times out.
   useEffect(() => {
     if (!selectedDataRoot) {
       setDeviceProfile(null);
@@ -264,20 +237,18 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     return () => {
       disposed = true;
     };
-  }, [selectedDataRoot]);
+  }, [selectedDataRoot, deviceScanAttempt]);
+  const deviceSummary = useMemo(() => projectDeviceSummary(deviceProfile), [deviceProfile]);
 
   const projectMaterialization = useCallback(
     async (next: FirstRunMaterializationProjection, observedProductState?: ProductControlState): Promise<void> => {
       setMaterialization(next);
       if (
         next.productState !== observedProductState
-        && canPersistSetupState(next.productState)
+        && next.productState !== 'local_ai_ready'
       ) {
         notifyProjectionChange(
-          await desktopBridge.setProductFirstRunSetupState({
-            state: next.productState,
-            reason: next.reason,
-          }),
+          await desktopBridge.reconcileProductFirstRunSetupState(),
         );
       }
     },
@@ -557,6 +528,34 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     }
   }, [notifyProjectionChange, syncRuntimeDataRootConfig, t]);
 
+  const continueFromDeviceScan = useCallback(async (): Promise<void> => {
+    if (deviceScanSettled && !deviceSummary) {
+      setError(
+        t('FirstRun.errors.deviceScanUnavailable', {
+          defaultValue: 'Device scan evidence is required before local AI setup.',
+        }),
+      );
+      return;
+    }
+    if (!deviceScanSettled) return;
+    setPendingAction('device-scan');
+    setError(null);
+    try {
+      const next = await desktopBridge.completeProductFirstRunDeviceEnvironmentScan();
+      notifyProjectionChange(next);
+    } catch (nextError) {
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : t('FirstRun.errors.deviceScanRecordFailed', {
+              defaultValue: 'Failed to record device scan completion.',
+            }),
+      );
+    } finally {
+      setPendingAction(null);
+    }
+  }, [deviceScanSettled, deviceSummary, notifyProjectionChange, t]);
+
   // --- Phase 2: Local AI --------------------------------------------------
 
   const [draftInstallLevel, setDraftInstallLevel] = useState<FirstRunInstallLevel | null>(
@@ -769,7 +768,6 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
     () => projectSetupChecklist(state, materialization),
     [state, materialization],
   );
-  const deviceSummary = useMemo(() => projectDeviceSummary(deviceProfile), [deviceProfile]);
   const materializationReadyForFinalization = materialization?.productState === 'local_ai_ready';
 
   function renderScreen(): ReactElement {
@@ -807,6 +805,20 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
           busy={busy}
           onChooseFolder={() => void chooseDataRootFolder()}
           onContinue={() => void confirmDataRoot()}
+        />
+      );
+    }
+
+    if (screen.phase === 'device-scan') {
+      return (
+        <PhaseDeviceScan
+          deviceSummary={deviceSummary}
+          deviceScanPending={!deviceScanSettled}
+          dataRootPath={selectedDataRoot}
+          busy={busy}
+          onRetry={() => setDeviceScanAttempt((current) => current + 1)}
+          onChangeDataRoot={() => void changeDataRootFolder()}
+          onContinue={() => void continueFromDeviceScan()}
         />
       );
     }

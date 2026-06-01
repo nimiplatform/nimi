@@ -2,7 +2,7 @@
 //
 // Every phase and terminal screen renders inside this chrome: a soft diagonal
 // light gradient background, the letter-spaced uppercase "NIMI" wordmark, the
-// Support pill, the slim 3-segment step indicator, and the single centered
+// Support pill, the slim step indicator, and the single centered
 // white card. The chrome owns no product-control state; it only places the
 // phase content the wizard hands it.
 
@@ -13,12 +13,14 @@ import { FIRST_RUN_PHASES, type FirstRunPhase } from './first-run-phase-projecti
 
 const STEP_LABEL_KEYS: Record<FirstRunPhase, string> = {
   storage: 'FirstRun.steps.storage',
+  'device-scan': 'FirstRun.steps.deviceScan',
   'local-ai': 'FirstRun.steps.localAi',
   setup: 'FirstRun.steps.setup',
 };
 
 const STEP_LABEL_DEFAULTS: Record<FirstRunPhase, string> = {
   storage: 'Storage',
+  'device-scan': 'Device',
   'local-ai': 'Local AI',
   setup: 'Setup',
 };
@@ -64,7 +66,7 @@ export function FirstRunWizardChrome(props: FirstRunWizardChromeProps): ReactEle
         </div>
       </div>
 
-      {/* Slim 3-segment step indicator. */}
+      {/* Slim step indicator. */}
       <nav
         data-testid="first-run-step-indicator"
         aria-label={t('FirstRun.stepIndicatorLabel', { defaultValue: 'Setup steps' })}

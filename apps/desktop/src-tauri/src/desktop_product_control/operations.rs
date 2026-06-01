@@ -5,6 +5,7 @@
 use base64::Engine;
 use prost::Message;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use crate::desktop_paths::normalize_desktop_absolute_path;
@@ -196,6 +197,65 @@ pub fn set_first_run_install_level(
     }
     write_record(&control_path, &record)?;
     read_product_control_projection()
+}
+
+async fn collect_first_run_device_profile(
+) -> Result<crate::runtime_bridge::generated::LocalDeviceProfile, String> {
+    let profile_response: crate::runtime_bridge::generated::CollectDeviceProfileResponse =
+        runtime_bridge_unary_decode(
+            nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID,
+            crate::runtime_bridge::generated::CollectDeviceProfileRequest {
+                extra_ports: Vec::new(),
+            },
+            Some(10_000),
+        )
+        .await?;
+    let host_profile = profile_response
+        .profile
+        .ok_or_else(|| "Runtime did not return a device profile".to_string())?;
+    validate_first_run_device_profile(&host_profile)?;
+    Ok(host_profile)
+}
+
+fn validate_first_run_device_profile(
+    profile: &crate::runtime_bridge::generated::LocalDeviceProfile,
+) -> Result<(), String> {
+    if profile.os.trim().is_empty() || profile.arch.trim().is_empty() {
+        return Err("Runtime device profile must include os and arch".to_string());
+    }
+    Ok(())
+}
+
+pub(crate) fn complete_first_run_device_environment_scan_with_profile(
+    host_profile: crate::runtime_bridge::generated::LocalDeviceProfile,
+) -> Result<ProductControlRecordProjection, String> {
+    validate_first_run_device_profile(&host_profile)?;
+    let control_path = product_control_record_path()?;
+    let mut record = read_existing_record(&control_path)?.ok_or_else(|| {
+        "~/.nimi/nimi.json is missing; select nimi_data before device scan".to_string()
+    })?;
+    if selected_data_root_path(&record).is_none() {
+        return Err("selected nimi_data is required before device scan".to_string());
+    }
+    match record.state {
+        ProductControlState::DataRootSelected => {
+            record.state = ProductControlState::AiEnvironmentUnconfigured;
+        }
+        ProductControlState::AiEnvironmentUnconfigured => {}
+        _ => {
+            return Err(
+                "device environment scan can only complete after data-root selection".to_string(),
+            );
+        }
+    }
+    write_record(&control_path, &record)?;
+    read_product_control_projection()
+}
+
+pub async fn complete_first_run_device_environment_scan(
+) -> Result<ProductControlRecordProjection, String> {
+    let host_profile = collect_first_run_device_profile().await?;
+    complete_first_run_device_environment_scan_with_profile(host_profile)
 }
 
 pub(crate) async fn authenticated_runtime_account_id() -> Result<String, String> {
@@ -678,6 +738,7 @@ pub fn resolve_built_in_ai_config_refs_for_admission(
     )
 }
 
+#[allow(dead_code)]
 fn parse_first_run_setup_state(value: &str) -> Result<ProductControlState, String> {
     let quoted = serde_json::to_string(value.trim())
         .map_err(|error| format!("failed to parse first-run setup state: {error}"))?;
@@ -707,25 +768,12 @@ fn parse_first_run_setup_state(value: &str) -> Result<ProductControlState, Strin
     }
 }
 
-pub fn set_first_run_setup_state(
-    payload: ProductFirstRunSetupStatePayload,
-) -> Result<ProductControlRecordProjection, String> {
-    let setup_state = parse_first_run_setup_state(&payload.state)?;
-    let control_path = product_control_record_path()?;
-    let mut record = read_existing_record(&control_path)?.ok_or_else(|| {
-        "~/.nimi/nimi.json is missing; select nimi_data before Runtime setup state".to_string()
-    })?;
-    if selected_data_root_path(&record).is_none() {
-        return Err("selected nimi_data is required before Runtime setup state".to_string());
-    }
-    if record.first_run.install_level.as_deref().is_none() {
-        return Err("first-run install level is required before Runtime setup state".to_string());
-    }
+fn apply_first_run_setup_state(
+    record: &mut ProductControlRecord,
+    setup_state: ProductControlState,
+    reason: Option<String>,
+) {
     record.state = setup_state.clone();
-    let reason = payload
-        .reason
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty());
     if matches!(
         setup_state,
         ProductControlState::RepairRequired | ProductControlState::Blocked
@@ -740,7 +788,317 @@ pub fn set_first_run_setup_state(
     } else {
         record.repair = ProductRepairRecord::default();
     }
+}
+
+#[allow(dead_code)]
+pub(crate) fn set_first_run_setup_state(
+    payload: ProductFirstRunSetupStatePayload,
+) -> Result<ProductControlRecordProjection, String> {
+    let setup_state = parse_first_run_setup_state(&payload.state)?;
+    let control_path = product_control_record_path()?;
+    let mut record = read_existing_record(&control_path)?.ok_or_else(|| {
+        "~/.nimi/nimi.json is missing; select nimi_data before Runtime setup state".to_string()
+    })?;
+    if selected_data_root_path(&record).is_none() {
+        return Err("selected nimi_data is required before Runtime setup state".to_string());
+    }
+    if record.first_run.install_level.as_deref().is_none() {
+        return Err("first-run install level is required before Runtime setup state".to_string());
+    }
+    let reason = payload
+        .reason
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+    apply_first_run_setup_state(&mut record, setup_state, reason);
     write_record(&control_path, &record)?;
+    read_product_control_projection()
+}
+
+fn normalized_runtime_state(value: &str) -> String {
+    value.trim().to_lowercase()
+}
+
+fn local_environment_dependency_ready(state: &str) -> bool {
+    matches!(
+        normalized_runtime_state(state).as_str(),
+        "ready_managed" | "ready_system"
+    )
+}
+
+fn local_environment_dependency_needs_confirmation(
+    dependency: &crate::runtime_bridge::generated::LocalEnvironmentPlanDependency,
+) -> bool {
+    dependency.confirmation_required
+        && normalized_runtime_state(&dependency.state) == "needs_confirmation"
+}
+
+fn local_environment_dependency_repair_required(state: &str) -> bool {
+    normalized_runtime_state(state) == "repair_required"
+}
+
+fn local_environment_dependency_unsupported(state: &str) -> bool {
+    normalized_runtime_state(state) == "unsupported"
+}
+
+fn local_environment_dependency_job_active(state: &str) -> bool {
+    matches!(
+        normalized_runtime_state(state).as_str(),
+        "needs_confirmation" | "queued" | "downloading" | "verifying" | "installing"
+    )
+}
+
+fn local_environment_dependency_job_failed(state: &str) -> bool {
+    normalized_runtime_state(state) == "failed"
+}
+
+fn local_environment_dependency_job_cancelled(state: &str) -> bool {
+    normalized_runtime_state(state) == "cancelled"
+}
+
+fn local_environment_dependency_in_first_run_scope(
+    dependency: &crate::runtime_bridge::generated::LocalEnvironmentPlanDependency,
+    required_families: &[&str],
+) -> bool {
+    dependency.required
+        || required_families
+            .iter()
+            .any(|family| *family == dependency.dependency_family.trim())
+}
+
+fn latest_matching_local_environment_job(
+    dependency: &crate::runtime_bridge::generated::LocalEnvironmentPlanDependency,
+    jobs: &[crate::runtime_bridge::generated::LocalEnvironmentDependencyJob],
+) -> Option<crate::runtime_bridge::generated::LocalEnvironmentDependencyJob> {
+    let mut matches: Vec<_> = jobs
+        .iter()
+        .filter(|job| {
+            job.environment_key == dependency.environment_key
+                && job.dependency_family == dependency.dependency_family
+                && job.dependency_id == dependency.dependency_id
+        })
+        .cloned()
+        .collect();
+    matches.sort_by(|left, right| {
+        let left_key = if left.updated_at.trim().is_empty() {
+            &left.created_at
+        } else {
+            &left.updated_at
+        };
+        let right_key = if right.updated_at.trim().is_empty() {
+            &right.created_at
+        } else {
+            &right.updated_at
+        };
+        right_key.cmp(left_key)
+    });
+    matches.into_iter().next()
+}
+
+fn first_run_materialization_product_state_for_status(status: &str) -> ProductControlState {
+    match normalized_runtime_state(status).as_str() {
+        "blocked" | "unsupported" => ProductControlState::Blocked,
+        "failed" | "repair_required" | "cancelled" | "activation_pending" => {
+            ProductControlState::LocalAiProfileSelectedEnvironmentNotReady
+        }
+        "local_ai_ready" => ProductControlState::LocalAiReady,
+        _ => ProductControlState::LocalAiProfileSelectedAssetsMissing,
+    }
+}
+
+fn first_run_setup_status_from_runtime_evidence(
+    dependencies: &[(
+        crate::runtime_bridge::generated::LocalEnvironmentPlanDependency,
+        Option<crate::runtime_bridge::generated::LocalEnvironmentDependencyJob>,
+    )],
+    missing_dependency_families: &[String],
+) -> &'static str {
+    if !missing_dependency_families.is_empty() || dependencies.is_empty() {
+        return "blocked";
+    }
+    if dependencies.iter().any(|(dependency, job)| {
+        !local_environment_dependency_ready(&dependency.state)
+            && (local_environment_dependency_unsupported(&dependency.state)
+                || job
+                    .as_ref()
+                    .is_some_and(|job| local_environment_dependency_unsupported(&job.state)))
+    }) {
+        return "unsupported";
+    }
+    if dependencies.iter().any(|(dependency, job)| {
+        !local_environment_dependency_ready(&dependency.state)
+            && (local_environment_dependency_repair_required(&dependency.state)
+                || job
+                    .as_ref()
+                    .is_some_and(|job| local_environment_dependency_repair_required(&job.state)))
+    }) {
+        return "repair_required";
+    }
+    if dependencies.iter().any(|(dependency, job)| {
+        !local_environment_dependency_ready(&dependency.state)
+            && job
+                .as_ref()
+                .is_some_and(|job| local_environment_dependency_job_failed(&job.state))
+    }) {
+        return "failed";
+    }
+    if dependencies.iter().any(|(dependency, job)| {
+        !local_environment_dependency_ready(&dependency.state)
+            && job
+                .as_ref()
+                .is_some_and(|job| local_environment_dependency_job_cancelled(&job.state))
+    }) {
+        return "cancelled";
+    }
+    if dependencies.iter().any(|(dependency, job)| {
+        !local_environment_dependency_ready(&dependency.state)
+            && local_environment_dependency_needs_confirmation(dependency)
+            && job.is_none()
+    }) {
+        return "needs_confirmation";
+    }
+    if dependencies.iter().any(|(_, job)| {
+        job.as_ref()
+            .is_some_and(|job| local_environment_dependency_job_active(&job.state))
+    }) {
+        return "in_progress";
+    }
+    if dependencies
+        .iter()
+        .all(|(dependency, _)| local_environment_dependency_ready(&dependency.state))
+    {
+        return "local_ai_ready";
+    }
+    "activation_pending"
+}
+
+fn first_run_materialization_reason_for_status(
+    status: &str,
+    missing_dependency_families: &[String],
+) -> String {
+    if !missing_dependency_families.is_empty() {
+        return format!(
+            "missing_dependency_families:{}",
+            missing_dependency_families.join(",")
+        );
+    }
+    match normalized_runtime_state(status).as_str() {
+        "needs_confirmation" => "materialization_requires_confirmation",
+        "in_progress" => "runtime_materialization_jobs_in_progress",
+        "activation_pending" => "runtime_activation_gate_not_ready",
+        "local_ai_ready" => "runtime_local_ai_ready_evidence_projected",
+        "repair_required" => "runtime_materialization_repair_required",
+        "failed" => "runtime_materialization_job_failed",
+        "cancelled" => "runtime_materialization_job_cancelled",
+        "unsupported" => "runtime_materialization_unsupported",
+        "blocked" => "runtime_materialization_blocked",
+        _ => "runtime_materialization_jobs_started",
+    }
+    .to_string()
+}
+
+pub async fn reconcile_first_run_setup_state_from_runtime(
+) -> Result<ProductControlRecordProjection, String> {
+    let control_path = product_control_record_path()?;
+    let mut record = read_existing_record(&control_path)?.ok_or_else(|| {
+        "~/.nimi/nimi.json is missing; select nimi_data before Runtime setup state".to_string()
+    })?;
+    let data_root = selected_data_root_path(&record)
+        .ok_or_else(|| "selected nimi_data is required before Runtime setup state".to_string())?;
+    let install_level = record
+        .first_run
+        .install_level
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            "first-run install level is required before Runtime setup state".to_string()
+        })?
+        .to_string();
+    let ai_profile_alias = record
+        .first_run
+        .ai_profile_alias
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            "first-run aiProfileAlias is required before Runtime setup state".to_string()
+        })?
+        .to_string();
+    let factory_row =
+        nimi_shell_tauri::platform_catalog::ai_profile_factory::verify_first_run_factory_ai_profile(
+            &ai_profile_alias,
+            &install_level,
+        )?;
+    let host_profile = collect_first_run_device_profile().await?;
+    let runtime_data_root = data_root.display().to_string();
+    let mut scoped_dependencies: Vec<(
+        crate::runtime_bridge::generated::LocalEnvironmentPlanDependency,
+        Option<crate::runtime_bridge::generated::LocalEnvironmentDependencyJob>,
+    )> = Vec::new();
+    let mut found_families: HashMap<String, bool> = HashMap::new();
+    for pack_id in factory_row.local_compute_pack_refs {
+        let response: crate::runtime_bridge::generated::ResolveLocalEnvironmentPlanResponse =
+            runtime_bridge_unary_decode(
+                nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_LOCAL_ENVIRONMENT_PLAN_METHOD_ID,
+                crate::runtime_bridge::generated::ResolveLocalEnvironmentPlanRequest {
+                    pack_id: (*pack_id).to_string(),
+                    consumer_scope: "first-run".to_string(),
+                    host_profile: Some(host_profile.clone()),
+                    runtime_data_root: runtime_data_root.clone(),
+                    asset_id: String::new(),
+                    local_asset_id: String::new(),
+                    companion_asset_id: String::new(),
+                    parent_asset_id: String::new(),
+                    install_level: install_level.clone(),
+                },
+                Some(60_000),
+            )
+            .await?;
+        let plan = response
+            .plan
+            .ok_or_else(|| "Runtime did not return a local environment plan".to_string())?;
+        for dependency in plan.dependencies {
+            if !local_environment_dependency_in_first_run_scope(
+                &dependency,
+                factory_row.dependency_family_refs,
+            ) {
+                continue;
+            }
+            found_families.insert(dependency.dependency_family.clone(), true);
+            let jobs_response: crate::runtime_bridge::generated::ListLocalEnvironmentDependencyJobsResponse =
+                runtime_bridge_unary_decode(
+                    nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_LIST_LOCAL_ENVIRONMENT_DEPENDENCY_JOBS_METHOD_ID,
+                    crate::runtime_bridge::generated::ListLocalEnvironmentDependencyJobsRequest {
+                        environment_key: dependency.environment_key.clone(),
+                        state: String::new(),
+                    },
+                    Some(10_000),
+                )
+                .await?;
+            let latest_job =
+                latest_matching_local_environment_job(&dependency, &jobs_response.jobs);
+            scoped_dependencies.push((dependency, latest_job));
+        }
+    }
+    let missing_dependency_families: Vec<String> = factory_row
+        .dependency_family_refs
+        .iter()
+        .filter(|family| !found_families.contains_key(**family))
+        .map(|family| (*family).to_string())
+        .collect();
+    let status = first_run_setup_status_from_runtime_evidence(
+        &scoped_dependencies,
+        &missing_dependency_families,
+    );
+    let product_state = first_run_materialization_product_state_for_status(status);
+    if product_state == ProductControlState::LocalAiReady {
+        return read_product_control_projection();
+    }
+    let reason = first_run_materialization_reason_for_status(status, &missing_dependency_families);
+    if record.state != product_state {
+        apply_first_run_setup_state(&mut record, product_state, Some(reason));
+        write_record(&control_path, &record)?;
+    }
     read_product_control_projection()
 }
 

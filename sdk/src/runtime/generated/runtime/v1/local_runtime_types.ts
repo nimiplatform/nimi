@@ -1317,6 +1317,20 @@ export interface LocalEnvironmentDependencyJob {
      * @generated from protobuf field: int64 eta_seconds = 17
      */
     etaSeconds: string;
+    /**
+     * Runtime-owned terminal reason code for the job. Empty for in-progress
+     * states unless Runtime has a structured non-ready reason to project.
+     *
+     * @generated from protobuf field: string reason_code = 18
+     */
+    reasonCode: string;
+    /**
+     * Runtime-owned recovery policy projection. Consumers may filter this closed
+     * string but must not parse failure_detail for recovery semantics.
+     *
+     * @generated from protobuf field: string recovery_disposition = 19
+     */
+    recoveryDisposition: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalEnvironmentActivationGate
@@ -6202,7 +6216,9 @@ class LocalEnvironmentDependencyJob$Type extends MessageType<LocalEnvironmentDep
             { no: 14, name: "bytes_total", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 15, name: "percent", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 16, name: "speed_bytes_per_sec", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 17, name: "eta_seconds", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
+            { no: 17, name: "eta_seconds", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 18, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 19, name: "recovery_disposition", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalEnvironmentDependencyJob>): LocalEnvironmentDependencyJob {
@@ -6224,6 +6240,8 @@ class LocalEnvironmentDependencyJob$Type extends MessageType<LocalEnvironmentDep
         message.percent = 0;
         message.speedBytesPerSec = "0";
         message.etaSeconds = "0";
+        message.reasonCode = "";
+        message.recoveryDisposition = "";
         if (value !== undefined)
             reflectionMergePartial<LocalEnvironmentDependencyJob>(this, message, value);
         return message;
@@ -6283,6 +6301,12 @@ class LocalEnvironmentDependencyJob$Type extends MessageType<LocalEnvironmentDep
                     break;
                 case /* int64 eta_seconds */ 17:
                     message.etaSeconds = reader.int64().toString();
+                    break;
+                case /* string reason_code */ 18:
+                    message.reasonCode = reader.string();
+                    break;
+                case /* string recovery_disposition */ 19:
+                    message.recoveryDisposition = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -6347,6 +6371,12 @@ class LocalEnvironmentDependencyJob$Type extends MessageType<LocalEnvironmentDep
         /* int64 eta_seconds = 17; */
         if (message.etaSeconds !== "0")
             writer.tag(17, WireType.Varint).int64(message.etaSeconds);
+        /* string reason_code = 18; */
+        if (message.reasonCode !== "")
+            writer.tag(18, WireType.LengthDelimited).string(message.reasonCode);
+        /* string recovery_disposition = 19; */
+        if (message.recoveryDisposition !== "")
+            writer.tag(19, WireType.LengthDelimited).string(message.recoveryDisposition);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

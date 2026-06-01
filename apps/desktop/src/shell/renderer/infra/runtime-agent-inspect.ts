@@ -1,13 +1,7 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
   createHostRuntimeAgentInspectSurface,
-  type RuntimeAgentAutonomySnapshot,
-  type RuntimeAgentCanonicalMemoryInspect,
-  type RuntimeAgentInspectEventSummary,
-  type RuntimeAgentInspectSnapshot,
   type RuntimeAgentInspectSurface,
-  type RuntimeAgentPendingHookInspect,
-  type RuntimeAgentStateSnapshot,
 } from '@nimiplatform/sdk/runtime';
 
 export type {

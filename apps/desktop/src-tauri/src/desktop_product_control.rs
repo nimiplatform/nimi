@@ -91,6 +91,12 @@ pub fn product_control_record_set_first_run_install_level(
 }
 
 #[tauri::command]
+pub async fn product_control_record_complete_first_run_device_environment_scan(
+) -> Result<ProductControlRecordProjection, String> {
+    complete_first_run_device_environment_scan().await
+}
+
+#[tauri::command]
 pub async fn product_control_record_ensure_account_default_profile(
 ) -> Result<ProductControlRecordProjection, String> {
     ensure_account_default_profile_for_product_control().await
@@ -100,6 +106,12 @@ pub async fn product_control_record_ensure_account_default_profile(
 pub async fn product_control_record_prepare_first_run_local_ai_ready(
 ) -> Result<ProductControlRecordProjection, String> {
     prepare_first_run_local_ai_ready_for_product_control().await
+}
+
+#[tauri::command]
+pub async fn product_control_record_reconcile_first_run_setup_state(
+) -> Result<ProductControlRecordProjection, String> {
+    reconcile_first_run_setup_state_from_runtime().await
 }
 
 #[tauri::command]
@@ -115,16 +127,10 @@ pub async fn built_in_ai_config_for_scope_init(
     read_built_in_ai_config_for_scope_init(&payload.surface_id).await
 }
 
-#[tauri::command]
-pub fn product_control_record_set_first_run_setup_state(
-    payload: ProductFirstRunSetupStatePayload,
-) -> Result<ProductControlRecordProjection, String> {
-    set_first_run_setup_state(payload)
-}
-
 #[cfg(test)]
 mod tests {
     use super::{
+        complete_first_run_device_environment_scan_with_profile,
         ensure_product_control_record_created, product_control_record_path,
         product_control_selected_data_root_get, read_product_control_projection,
         select_product_data_root, selected_product_data_root, set_first_run_install_level,
@@ -147,6 +153,15 @@ mod tests {
     fn setup_state_literal(tail: &str) -> String {
         format!("{}{}", "local_", tail)
     }
+
+    fn collected_device_profile() -> crate::runtime_bridge::generated::LocalDeviceProfile {
+        crate::runtime_bridge::generated::LocalDeviceProfile {
+            os: "darwin".to_string(),
+            arch: "arm64".to_string(),
+            ..Default::default()
+        }
+    }
+
     #[test]
     fn missing_control_record_routes_config_missing_without_writing() {
         let home = temp_home("missing");
@@ -230,6 +245,46 @@ mod tests {
                 record.first_run.install_level.as_deref(),
                 Some("recommended")
             );
+        });
+    }
+
+    #[test]
+    fn device_environment_scan_completion_advances_after_data_root_only() {
+        let home = temp_home("device-scan");
+        with_env(&[("HOME", home.to_str())], || {
+            let missing =
+                complete_first_run_device_environment_scan_with_profile(collected_device_profile())
+                    .expect_err("missing root");
+            assert!(missing.contains("select nimi_data"));
+            let root = home.join("chosen-nimi-data");
+            select_product_data_root(root.to_str().expect("root")).expect("select root");
+
+            let projection =
+                complete_first_run_device_environment_scan_with_profile(collected_device_profile())
+                    .expect("complete scan");
+            assert_eq!(
+                projection.state,
+                ProductControlState::AiEnvironmentUnconfigured
+            );
+            let idempotent =
+                complete_first_run_device_environment_scan_with_profile(collected_device_profile())
+                    .expect("complete scan again");
+            assert_eq!(
+                idempotent.state,
+                ProductControlState::AiEnvironmentUnconfigured
+            );
+
+            set_first_run_install_level("minimal", Some("local-speech-ready".to_string()))
+                .expect("set install level");
+            set_first_run_setup_state(ProductFirstRunSetupStatePayload {
+                state: "local_ai_profile_selected_assets_missing".to_string(),
+                reason: Some("test".to_string()),
+            })
+            .expect("set setup state");
+            let invalid =
+                complete_first_run_device_environment_scan_with_profile(collected_device_profile())
+                    .expect_err("wrong state");
+            assert!(invalid.contains("can only complete after data-root selection"));
         });
     }
 

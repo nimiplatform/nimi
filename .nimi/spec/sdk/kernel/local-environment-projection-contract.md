@@ -36,6 +36,9 @@ Dependency job-control projection is dependency-first:
 - `repairLocalEnvironmentDependency` targets Runtime dependency environments and
   must not become SDK-side installer, package-manager, PATH, or source-selection
   logic.
+- Dependency job recovery helpers may filter Runtime-projected
+  `recovery_disposition` values, but must not parse `failure_detail` or
+  dependency-family names to infer auto-recovery policy.
 
 SDK must not own or infer:
 

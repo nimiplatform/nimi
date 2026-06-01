@@ -112,6 +112,8 @@ export type LocalRuntimeEnvironmentDependencyJobProjection = {
   selectedSourceRecordId?: string;
   failureDetail?: string;
   retryable: boolean;
+  reasonCode?: string;
+  recoveryDisposition?: string;
   createdAt?: string;
   updatedAt?: string;
   bytesReceived: number;
@@ -177,6 +179,8 @@ export function parseLocalRuntimeEnvironmentDependencyJobProjection(
     selectedSourceRecordId: asString(record.selectedSourceRecordId) || undefined,
     failureDetail: asString(record.failureDetail) || undefined,
     retryable: Boolean(record.retryable),
+    reasonCode: asString(record.reasonCode) || undefined,
+    recoveryDisposition: asString(record.recoveryDisposition) || undefined,
     createdAt: asString(record.createdAt) || undefined,
     updatedAt: asString(record.updatedAt) || undefined,
     bytesReceived: nonNegativeNumber(record.bytesReceived),
