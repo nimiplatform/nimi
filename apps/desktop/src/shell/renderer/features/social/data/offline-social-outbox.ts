@@ -1,4 +1,8 @@
-import type { Realm } from '@nimiplatform/sdk/realm';
+import {
+  executeRealmSocialMutation,
+  type RealmSocialFeedApiCaller,
+  type RealmSocialFeedErrorEmitter,
+} from '@nimiplatform/sdk/realm';
 import { createNimiClientId } from '@nimiplatform/sdk/runtime';
 import {
   getErrorMessage,
@@ -7,13 +11,6 @@ import {
   type PersistentSocialMutationEntry,
   type SocialMutationKind,
 } from '@renderer/infra/offline';
-
-type RealmApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
-type RealmDataErrorEmitter = (
-  action: string,
-  error: unknown,
-  details?: Record<string, unknown>,
-) => void;
 
 function createId(prefix: string): string {
   return createNimiClientId(prefix);
@@ -42,46 +39,15 @@ export async function countPendingSocialMutations(): Promise<number> {
 }
 
 async function executeSocialMutation(
-  callApi: RealmApiCaller,
+  callApi: RealmSocialFeedApiCaller,
   entry: PersistentSocialMutationEntry,
 ): Promise<void> {
-  if (entry.kind === 'friend-add') {
-    const userId = String(entry.payload.userId || '').trim();
-    await callApi(
-      (realm) => realm.services.UserService.addFriend(userId),
-      '添加好友失败',
-    );
-    return;
-  }
-  if (entry.kind === 'friend-remove') {
-    const userId = String(entry.payload.userId || '').trim();
-    await callApi(
-      (realm) => realm.services.UserService.removeFriend(userId),
-      '移除好友失败',
-    );
-    return;
-  }
-  if (entry.kind === 'post-like') {
-    const postId = String(entry.payload.postId || '').trim();
-    await callApi(
-      (realm) => realm.services.PostsService.likePost(postId),
-      '点赞失败',
-    );
-    return;
-  }
-  if (entry.kind === 'post-unlike') {
-    const postId = String(entry.payload.postId || '').trim();
-    await callApi(
-      (realm) => realm.services.PostsService.unlikePost(postId),
-      '取消点赞失败',
-    );
-    return;
-  }
+  return executeRealmSocialMutation(callApi, entry);
 }
 
 export async function flushPendingSocialMutations(
-  callApi: RealmApiCaller,
-  emitRealmDataError: RealmDataErrorEmitter,
+  callApi: RealmSocialFeedApiCaller,
+  emitRealmDataError: RealmSocialFeedErrorEmitter,
 ): Promise<void> {
   const manager = await getOfflineCacheManager();
   const entries = await manager.getSocialMutationEntries();

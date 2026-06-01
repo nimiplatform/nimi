@@ -1,5 +1,19 @@
-import type { Realm } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
+import {
+  buildEmptyRealmPostFeedResponse,
+  createRealmPost,
+  createRealmReport,
+  deleteRealmPost,
+  likeRealmPost,
+  loadRealmLikedPosts,
+  loadRealmPostById,
+  loadRealmPostFeed,
+  unlikeRealmPost,
+  updateRealmPostVisibility,
+  type RealmPostFeedInput,
+  type RealmSocialFeedApiCaller,
+  type RealmSocialFeedErrorEmitter,
+} from '@nimiplatform/sdk/realm';
 import {
   getOfflineCoordinator,
   isRealmOfflineError,
@@ -13,17 +27,9 @@ import { queueSocialMutation } from './offline-social-outbox';
 
 type CreateReportDto = RealmModel<'CreateReportDto'>;
 type CreatePostDto = RealmModel<'CreatePostDto'>;
-type FeedPageMetaDto = RealmModel<'FeedPageMetaDto'>;
 type FeedResponseDto = RealmModel<'FeedResponseDto'>;
 type PostDto = RealmModel<'PostDto'>;
 type ReportResponseDto = RealmModel<'ReportResponseDto'>;
-
-type RealmApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
-type RealmDataErrorEmitter = (
-  action: string,
-  error: unknown,
-  details?: Record<string, unknown>,
-) => void;
 
 /**
  * Canonical Realm feed scopes (Realm R-FEED-005, Desktop D-HOMEFEED-004).
@@ -32,30 +38,7 @@ type RealmDataErrorEmitter = (
  */
 export type PostFeedScope = 'personal' | 'friends' | 'agent_activity';
 
-export type LoadPostFeedInput = {
-  visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
-  worldId?: string;
-  authorId?: string;
-  limit?: number;
-  cursor?: string;
-  scope?: PostFeedScope;
-};
-
-function buildEmptyFeedResponse(input: {
-  cursor?: string;
-  limit?: number;
-}): FeedResponseDto {
-  const page: FeedPageMetaDto = {
-    cursor: input.cursor ?? null,
-    limit: input.limit,
-    nextCursor: null,
-  };
-
-  return {
-    items: [],
-    page,
-  };
-}
+export type LoadPostFeedInput = RealmPostFeedInput;
 
 function filterFeedResponse(response: FeedResponseDto): FeedResponseDto {
   return {
@@ -65,8 +48,8 @@ function filterFeedResponse(response: FeedResponseDto): FeedResponseDto {
 }
 
 export async function loadPostFeed(
-  callApi: RealmApiCaller,
-  emitRealmDataError: RealmDataErrorEmitter,
+  callApi: RealmSocialFeedApiCaller,
+  emitRealmDataError: RealmSocialFeedErrorEmitter,
   input: LoadPostFeedInput,
 ): Promise<FeedResponseDto> {
   const normalized: LoadPostFeedInput = {
@@ -79,140 +62,68 @@ export async function loadPostFeed(
   };
 
   if (normalized.authorId && isBlockedUser(normalized.authorId)) {
-    return buildEmptyFeedResponse(normalized);
+    return buildEmptyRealmPostFeedResponse(normalized);
   }
 
-  try {
-    const response = await callApi(
-      (realm) => realm.services.PostsService.getHomeFeed(
-        normalized.visibility,
-        normalized.worldId,
-        normalized.authorId,
-        normalized.limit,
-        normalized.cursor,
-        normalized.scope,
-      ),
-      'Failed to load posts',
-    );
-    return filterFeedResponse(response);
-  } catch (error) {
-    emitRealmDataError('load-post-feed', error, normalized);
-    throw error;
-  }
+  const response = await loadRealmPostFeed(callApi, emitRealmDataError, normalized);
+  return filterFeedResponse(response);
 }
 
 export async function loadLikedPosts(
-  callApi: RealmApiCaller,
-  emitRealmDataError: RealmDataErrorEmitter,
+  callApi: RealmSocialFeedApiCaller,
+  emitRealmDataError: RealmSocialFeedErrorEmitter,
   profileId: string,
   limit = 20,
   cursor?: string,
 ): Promise<FeedResponseDto> {
-  const normalizedProfileId = String(profileId || '').trim();
-
-  try {
-    const response = await callApi(
-      (realm) => realm.services.PostsService.listLikedPosts(undefined, limit, cursor, normalizedProfileId),
-      'Failed to load liked posts',
-    );
-    return filterFeedResponse(response);
-  } catch (error) {
-    emitRealmDataError('load-liked-posts', error, {
-      profileId: normalizedProfileId,
-      limit,
-      cursor,
-    });
-    throw error;
-  }
+  const response = await loadRealmLikedPosts(callApi, emitRealmDataError, profileId, limit, cursor);
+  return filterFeedResponse(response);
 }
 
 export async function loadPostById(
-  callApi: RealmApiCaller,
-  emitRealmDataError: RealmDataErrorEmitter,
+  callApi: RealmSocialFeedApiCaller,
+  emitRealmDataError: RealmSocialFeedErrorEmitter,
   postId: string,
 ): Promise<PostDto> {
-  const normalizedPostId = String(postId || '').trim();
-
-  try {
-    const post = await callApi(
-      (realm) => realm.services.PostsService.getPost(normalizedPostId),
-      'Failed to load post',
-    );
-    if (isPostHiddenByBlockedAuthor(post)) {
-      throw new Error('This post is unavailable because you blocked the author.');
-    }
-    return post;
-  } catch (error) {
-    emitRealmDataError('load-post-by-id', error, { postId: normalizedPostId });
-    throw error;
+  const post = await loadRealmPostById(callApi, emitRealmDataError, postId);
+  if (isPostHiddenByBlockedAuthor(post)) {
+    throw new Error('This post is unavailable because you blocked the author.');
   }
+  return post;
 }
 
 export async function createPost(
-  callApi: RealmApiCaller,
-  emitRealmDataError: RealmDataErrorEmitter,
+  callApi: RealmSocialFeedApiCaller,
+  emitRealmDataError: RealmSocialFeedErrorEmitter,
   payload: CreatePostDto,
 ): Promise<PostDto> {
-  try {
-    return await callApi(
-      (realm) => realm.services.PostsService.createPost(payload),
-      'Failed to create post',
-    );
-  } catch (error) {
-    emitRealmDataError('create-post', error, {
-      attachmentCount: Array.isArray(payload.attachments) ? payload.attachments.length : 0,
-      tagsCount: Array.isArray(payload.tags) ? payload.tags.length : 0,
-    });
-    throw error;
-  }
+  return createRealmPost(callApi, emitRealmDataError, payload);
 }
 
 export async function deletePost(
-  callApi: RealmApiCaller,
-  emitRealmDataError: RealmDataErrorEmitter,
+  callApi: RealmSocialFeedApiCaller,
+  emitRealmDataError: RealmSocialFeedErrorEmitter,
   postId: string,
 ): Promise<void> {
-  try {
-    await callApi(
-      (realm) => realm.services.PostsService.deletePost(postId),
-      'Failed to delete post',
-    );
-  } catch (error) {
-    emitRealmDataError('delete-post', error, { postId });
-    throw error;
-  }
+  return deleteRealmPost(callApi, emitRealmDataError, postId);
 }
 
 export async function updatePostVisibility(
-  callApi: RealmApiCaller,
-  emitRealmDataError: RealmDataErrorEmitter,
+  callApi: RealmSocialFeedApiCaller,
+  emitRealmDataError: RealmSocialFeedErrorEmitter,
   postId: string,
   visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE',
 ): Promise<PostDto> {
-  try {
-    return await callApi(
-      (realm) => realm.services.PostsService.updatePost(postId, { visibility }),
-      'Failed to update post visibility',
-    );
-  } catch (error) {
-    emitRealmDataError('update-post-visibility', error, {
-      postId,
-      visibility,
-    });
-    throw error;
-  }
+  return updateRealmPostVisibility(callApi, emitRealmDataError, postId, visibility);
 }
 
 export async function likePost(
-  callApi: RealmApiCaller,
-  emitRealmDataError: RealmDataErrorEmitter,
+  callApi: RealmSocialFeedApiCaller,
+  emitRealmDataError: RealmSocialFeedErrorEmitter,
   postId: string,
 ): Promise<void> {
   try {
-    await callApi(
-      (realm) => realm.services.PostsService.likePost(postId),
-      'Failed to like post',
-    );
+    await likeRealmPost(callApi, emitRealmDataError, postId);
   } catch (error) {
     if (isRealmOfflineError(error)) {
       await queueSocialMutation({
@@ -222,21 +133,17 @@ export async function likePost(
       getOfflineCoordinator().markRealmRestReachable(false);
       return;
     }
-    emitRealmDataError('like-post', error, { postId });
     throw error;
   }
 }
 
 export async function unlikePost(
-  callApi: RealmApiCaller,
-  emitRealmDataError: RealmDataErrorEmitter,
+  callApi: RealmSocialFeedApiCaller,
+  emitRealmDataError: RealmSocialFeedErrorEmitter,
   postId: string,
 ): Promise<void> {
   try {
-    await callApi(
-      (realm) => realm.services.PostsService.unlikePost(postId),
-      'Failed to unlike post',
-    );
+    await unlikeRealmPost(callApi, emitRealmDataError, postId);
   } catch (error) {
     if (isRealmOfflineError(error)) {
       await queueSocialMutation({
@@ -246,27 +153,14 @@ export async function unlikePost(
       getOfflineCoordinator().markRealmRestReachable(false);
       return;
     }
-    emitRealmDataError('unlike-post', error, { postId });
     throw error;
   }
 }
 
 export async function createReport(
-  callApi: RealmApiCaller,
-  emitRealmDataError: RealmDataErrorEmitter,
+  callApi: RealmSocialFeedApiCaller,
+  emitRealmDataError: RealmSocialFeedErrorEmitter,
   payload: CreateReportDto,
 ): Promise<ReportResponseDto> {
-  try {
-    return await callApi(
-      (realm) => realm.services.GovernanceService.reportControllerCreateReport(payload),
-      'Failed to create report',
-    );
-  } catch (error) {
-    emitRealmDataError('create-report', error, {
-      targetType: payload.targetType,
-      targetId: payload.targetId,
-      reason: payload.reason,
-    });
-    throw error;
-  }
+  return createRealmReport(callApi, emitRealmDataError, payload);
 }

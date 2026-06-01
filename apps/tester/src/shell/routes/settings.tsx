@@ -148,6 +148,7 @@ import { createTesterLocalRecommendationCopyProjection } from '../../tester/test
 import { createTesterLocalRuntimeAssetKindProjection } from '../../tester/tester-local-runtime-asset-kind-projection';
 import { createTesterWorldDisplayProjection } from '../../tester/tester-world-display-projection';
 import { loadTesterWorldEvolutionSelectorReadProjection } from '../../tester/tester-world-evolution-selector-read';
+import { loadTesterRealmSocialFeedProjection } from '../../tester/tester-realm-social-feed-projection';
 import { createTesterRuntimeConfigProjection } from '../../tester/tester-runtime-config-projection';
 import {
   loadTesterRuntimeRouteHostAccessProjection,
@@ -615,6 +616,9 @@ export function SettingsRoute() {
   });
   const worldEvolutionSelectorReadProjection = useTypedProjection(loadTesterWorldEvolutionSelectorReadProjection, {
     failClosedMessage: 'SDK World Evolution selector-read projection unavailable',
+  });
+  const realmSocialFeedProjection = useTypedProjection(loadTesterRealmSocialFeedProjection, {
+    failClosedMessage: 'SDK Realm social/feed projection unavailable',
   });
   useEffect(() => {
     let cancelled = false;
@@ -2063,6 +2067,16 @@ export function SettingsRoute() {
             ? `${worldEvolutionSelectorReadProjection.data.optionalReadCount}/${worldEvolutionSelectorReadProjection.data.missingEvidenceCategory}`
             : worldEvolutionSelectorReadProjection.status === 'failed'
               ? worldEvolutionSelectorReadProjection.error
+              : 'checking'}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK Realm social/feed projection</span>
+        <StatusBadge tone={realmSocialFeedProjection.status === 'ready' ? 'success' : realmSocialFeedProjection.status === 'failed' ? 'danger' : 'warning'}>
+          {realmSocialFeedProjection.status === 'ready' && realmSocialFeedProjection.data
+            ? `${realmSocialFeedProjection.data.postScope}/${realmSocialFeedProjection.data.exploreCursor}/${realmSocialFeedProjection.data.mutationCount}`
+            : realmSocialFeedProjection.status === 'failed'
+              ? realmSocialFeedProjection.error
               : 'checking'}
         </StatusBadge>
       </div>

@@ -1,4 +1,13 @@
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import {
+  addRealmFriendById,
+  blockRealmUser,
+  loadRealmCurrentUserProfile,
+  loadRealmUserProfileById,
+  removeRealmFriendById,
+  unblockRealmUser,
+  updateRealmCurrentUserProfile,
+  type RealmModel,
+} from '@nimiplatform/sdk/realm';
 import type { JsonObject } from '@nimiplatform/sdk/types';
 import {
   getOfflineCacheManager,
@@ -6,7 +15,6 @@ import {
   isRealmOfflineError,
 } from '@renderer/infra/offline';
 import {
-  enrichProfileWithWorldBanner,
   fetchAgentFriendLimit,
   fetchPendingFriendRequests,
   loadMergedSocialSnapshot,
@@ -25,12 +33,7 @@ export async function loadCurrentUserProfile(
   callApi: RealmApiCaller,
   emitRealmDataError: RealmDataErrorEmitter,
 ) {
-  try {
-    return await callApi((realm) => realm.services.MeService.getMe(), '获取当前用户失败');
-  } catch (error) {
-    emitRealmDataError('load-current-user', error);
-    throw error;
-  }
+  return loadRealmCurrentUserProfile(callApi, emitRealmDataError);
 }
 
 export async function updateCurrentUserProfile(
@@ -38,12 +41,7 @@ export async function updateCurrentUserProfile(
   emitRealmDataError: RealmDataErrorEmitter,
   data: JsonObject,
 ) {
-  try {
-    return await callApi((realm) => realm.services.MeService.updateMe(data), '更新用户资料失败');
-  } catch (error) {
-    emitRealmDataError('update-user-profile', error);
-    throw error;
-  }
+  return updateRealmCurrentUserProfile(callApi, emitRealmDataError, data);
 }
 
 export async function loadContactList(
@@ -89,28 +87,21 @@ export async function loadUserProfileById(
   emitRealmDataError: RealmDataErrorEmitter,
   id: string,
 ): Promise<UserProfileDto> {
+  const normalizedId = String(id || '').trim();
   try {
-    const profile = await callApi(
-      (realm) => realm.services.UserService.getUser(id),
-      '获取用户资料失败',
-    );
-    if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
-      return profile as UserProfileDto;
-    }
-    const enriched = await enrichProfileWithWorldBanner(callApi, profile as JsonObject);
+    const enriched = await loadRealmUserProfileById(callApi, emitRealmDataError, normalizedId);
     const cache = await getOfflineCacheManager();
-    await cache.syncAgentMetadata(`user:${id}`, enriched);
+    await cache.syncAgentMetadata(`user:${normalizedId}`, enriched);
     return enriched;
   } catch (error) {
     if (isRealmOfflineError(error)) {
       const cache = await getOfflineCacheManager();
-      const cached = await cache.getCachedAgentMetadata<UserProfileDto>(`user:${id}`);
+      const cached = await cache.getCachedAgentMetadata<UserProfileDto>(`user:${normalizedId}`);
       if (cached) {
         getOfflineCoordinator().markCacheFallbackUsed();
         return cached;
       }
     }
-    emitRealmDataError('load-user-profile', error, { id });
     throw error;
   }
 }
@@ -123,11 +114,7 @@ export async function addFriendById(
   if (!userId) {
     throw new Error('用户ID不能为空');
   }
-  await callApi(
-    (realm) => realm.services.UserService.addFriend(userId, message ? { requestMessage: message } : undefined),
-    '添加好友失败',
-  );
-  return { id: userId };
+  return addRealmFriendById(callApi, userId, message);
 }
 
 export async function removeFriendById(
@@ -137,10 +124,7 @@ export async function removeFriendById(
   if (!userId) {
     throw new Error('用户ID不能为空');
   }
-  await callApi(
-    (realm) => realm.services.UserService.removeFriend(userId),
-    '删除好友失败',
-  );
+  await removeRealmFriendById(callApi, userId);
 }
 
 export async function addFriendByIdentifier(input: {
@@ -229,14 +213,11 @@ export async function blockUser(
     throw new Error('用户ID不能为空');
   }
 
-  await callApi(
-    (realm) => realm.services.MeService.blockUser(contactId),
-    '拉黑用户失败',
-  );
+  const result = await blockRealmUser(callApi, contactId);
 
   await reloadContacts();
   dispatchBlockedUsersUpdated();
-  return { id: contactId };
+  return result;
 }
 
 export async function unblockUser(
@@ -249,12 +230,9 @@ export async function unblockUser(
     throw new Error('用户ID不能为空');
   }
 
-  await callApi(
-    (realm) => realm.services.MeService.unblockUser(contactId),
-    '取消拉黑失败',
-  );
+  const result = await unblockRealmUser(callApi, contactId);
 
   await reloadContacts();
   dispatchBlockedUsersUpdated();
-  return { id: contactId };
+  return result;
 }

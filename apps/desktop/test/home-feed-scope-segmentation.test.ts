@@ -2,112 +2,27 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
-import {
-  loadPostFeed,
-  type PostFeedScope,
-} from '../src/shell/renderer/features/social/data/post-feed-data';
-
-type PostDto = RealmModel<'PostDto'>;
-
 function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
 }
 
-function createRealm(getHomeFeed: (...args: unknown[]) => Promise<unknown>) {
-  return {
-    services: {
-      PostsService: { getHomeFeed },
-    },
-  } as never;
-}
-
-function createPost(id: string, authorId: string): PostDto {
-  return {
-    id,
-    authorId,
-    author: { id: authorId },
-    createdAt: '2026-05-21T00:00:00.000Z',
-    visibility: 'PUBLIC',
-    attachments: [],
-  } as unknown as PostDto;
-}
-
-const CANONICAL_SCOPES: readonly PostFeedScope[] = ['personal', 'friends', 'agent_activity'];
-
-// D-HOMEFEED-004 / D-HOMEFEED-006 / R-FEED-005: each of the three canonical
-// feed scopes must be forwarded verbatim through the SDK typed Realm feed
-// projection. The renderer never infers scope membership client-side.
-test('loadPostFeed forwards each canonical scope as the SDK getHomeFeed scope arg', async () => {
-  for (const scope of CANONICAL_SCOPES) {
-    let observedScope: unknown = '<<unset>>';
-
-    const feed = await loadPostFeed(
-      async (task) =>
-        task(createRealm(async (...args: unknown[]) => {
-          // getHomeFeed(visibility, worldId, authorId, limit, cursor, scope)
-          observedScope = args[5];
-          return {
-            items: [createPost(`post-${scope}`, `author-${scope}`)],
-            page: { cursor: null, limit: 15, nextCursor: null },
-          };
-        })),
-      () => undefined,
-      { scope, limit: 15 },
-    );
-
-    assert.equal(observedScope, scope, `scope ${scope} must reach the SDK getHomeFeed call`);
-    assert.deepEqual(feed.items.map((item) => item.id), [`post-${scope}`]);
-  }
-});
-
-test('loadPostFeed forwards the cursor for scope-keyed pagination (R-FEED-006)', async () => {
-  let observedCursor: unknown = '<<unset>>';
-  let observedScope: unknown = '<<unset>>';
-
-  await loadPostFeed(
-    async (task) =>
-      task(createRealm(async (...args: unknown[]) => {
-        observedCursor = args[4];
-        observedScope = args[5];
-        return {
-          items: [],
-          page: { cursor: 'cursor-page-2', limit: 15, nextCursor: null },
-        };
-      })),
-    () => undefined,
-    { scope: 'agent_activity', limit: 15, cursor: 'cursor-page-2' },
-  );
-
-  assert.equal(observedCursor, 'cursor-page-2');
-  assert.equal(observedScope, 'agent_activity');
-});
-
-test('loadPostFeed fails closed when the typed feed projection throws — no synthetic feed', async () => {
-  const errors: Array<{ action: string }> = [];
-
-  await assert.rejects(
-    () =>
-      loadPostFeed(
-        async (task) =>
-          task(createRealm(async () => {
-            throw new Error('realm feed projection unavailable');
-          })),
-        (action) => {
-          errors.push({ action });
-        },
-        { scope: 'friends', limit: 15 },
-      ),
-    /realm feed projection unavailable/,
-  );
-  assert.deepEqual(errors, [{ action: 'load-post-feed' }]);
-});
-
 const homeViewSource = readWorkspaceFile('src/shell/renderer/features/home/home-view.tsx');
 const homeFeedControlsSource = readWorkspaceFile('src/shell/renderer/features/home/home-feed-controls.tsx');
+const postFeedDataSource = readWorkspaceFile('src/shell/renderer/features/social/data/post-feed-data.ts');
+const sdkSocialFeedSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../../../sdk/src/realm/extensions/social-feed.ts'),
+  'utf8',
+);
 const mainLayoutViewSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
 const mainLayoutTitlebarContentSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-titlebar-content.tsx');
 const mainLayoutTopBarSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx');
+
+test('Desktop post feed delegates Realm service scope and pagination behavior to SDK', () => {
+  assert.match(postFeedDataSource, /loadRealmPostFeed/);
+  assert.match(postFeedDataSource, /from '@nimiplatform\/sdk\/realm'/);
+  assert.doesNotMatch(postFeedDataSource, /realm\.services\.PostsService\.getHomeFeed/);
+  assert.match(sdkSocialFeedSource, /getHomeFeed\([\s\S]*normalized\.scope/);
+});
 
 test('Home feed controls present exactly the three canonical feed scopes (D-HOMEFEED-004)', () => {
   assert.match(homeFeedControlsSource, /REALM_FEED_SCOPES/);
