@@ -29,15 +29,19 @@ test('desktop does not keep a Tauri External Agent gateway or token ledger', () 
 });
 
 test('external agent renderer bridge does not subscribe to action request bypass events', () => {
-  const runtimeBridgeSource = readDesktopFile('src/runtime/external-agent/index.ts');
+  assert.equal(
+    existsSync(path.join(desktopDir, 'src/runtime/external-agent/index.ts')),
+    false,
+  );
   assert.equal(
     existsSync(path.join(desktopDir, 'src/shell/renderer/bridge/runtime-bridge/external-agent.ts')),
     false,
   );
 
-  assert.doesNotMatch(runtimeBridgeSource, /external-agent:\/\/action-request/);
-  assert.doesNotMatch(runtimeBridgeSource, /listenTauri/);
-  assert.doesNotMatch(runtimeBridgeSource, /hookRuntime\.(dryRunAction|verifyAction|commitAction)/);
+  const desktopSource = readRepoFile('apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-external-agent-access.tsx');
+  assert.doesNotMatch(desktopSource, /external-agent:\/\/action-request/);
+  assert.doesNotMatch(desktopSource, /listenTauri/);
+  assert.doesNotMatch(desktopSource, /hookRuntime\.(dryRunAction|verifyAction|commitAction)/);
 });
 
 test('external agent gateway status is Runtime-owned and fail-closed until registry exists', () => {

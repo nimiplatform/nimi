@@ -1,14 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 const bootstrapSource = readFileSync(
   new URL('../src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts', import.meta.url),
-  'utf8',
-);
-
-const externalAgentSource = readFileSync(
-  new URL('../src/runtime/external-agent/index.ts', import.meta.url),
   'utf8',
 );
 
@@ -69,9 +64,10 @@ test('fresh first-run storage sync skip does not surface a runtime config warnin
   assert.match(bootstrapSource, /if \(warning\) bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning \?\? warning/);
 });
 
-test('external agent runtime facade has no desktop action bridge residue', () => {
+test('external agent runtime facade is deleted with no desktop action bridge residue', () => {
+  assert.equal(existsSync(new URL('../src/runtime/external-agent/index.ts', import.meta.url)), false);
   assert.doesNotMatch(
-    externalAgentSource,
+    bootstrapSource,
     /stopExternalAgentActionBridge|syncedActionHash|actionRegistryResyncQueued|resyncExternalAgentActionDescriptors|external_agent_sync_action_descriptors/,
     'desktop must not own external agent action bridge or action descriptor sync',
   );

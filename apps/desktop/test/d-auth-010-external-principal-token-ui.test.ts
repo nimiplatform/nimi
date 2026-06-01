@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
-import * as externalAgentRuntime from '../src/runtime/external-agent';
+import { createHostRuntimeExternalAgentAccessSurface } from '@nimiplatform/sdk/runtime';
 
 const EXTERNAL_AGENT_UI_PATH = resolve(
   import.meta.dirname,
@@ -11,20 +11,18 @@ const EXTERNAL_AGENT_UI_PATH = resolve(
 );
 const externalAgentUiSource = readFileSync(EXTERNAL_AGENT_UI_PATH, 'utf8');
 
-test('D-AUTH-010: external principal token runtime exports stay available', () => {
-  assert.equal(typeof externalAgentRuntime.issueExternalAgentToken, 'function');
-  assert.equal(typeof externalAgentRuntime.revokeExternalAgentToken, 'function');
-  assert.equal(typeof externalAgentRuntime.listExternalAgentTokens, 'function');
-  assert.equal(typeof externalAgentRuntime.getExternalAgentGatewayStatus, 'function');
+test('D-AUTH-010: external principal token SDK Runtime surface stays available', () => {
+  assert.equal(typeof createHostRuntimeExternalAgentAccessSurface, 'function');
 });
 
 test('D-AUTH-010: external principal token UI flow preserves required structure', () => {
-  assert.match(externalAgentUiSource, /const status = await getExternalAgentGatewayStatus\(\);/);
-  assert.match(externalAgentUiSource, /const rows = await listExternalAgentTokens\(\);/);
+  assert.match(externalAgentUiSource, /createHostRuntimeExternalAgentAccessSurface/);
+  assert.match(externalAgentUiSource, /const status = await externalAgentAccess\.getGatewayStatus\(\);/);
+  assert.match(externalAgentUiSource, /const rows = await externalAgentAccess\.listTokens\(\);/);
   assert.match(externalAgentUiSource, /setGatewayStatus\(\{/);
   assert.match(externalAgentUiSource, /enabled: Boolean\(status\.enabled\)/);
   assert.match(externalAgentUiSource, /setIssuedToken\(issued\.token\);/);
-  assert.match(externalAgentUiSource, /await revokeExternalAgentToken\(resolvedTokenId\);/);
+  assert.match(externalAgentUiSource, /await externalAgentAccess\.revokeToken\(resolvedTokenId\);/);
   assert.match(externalAgentUiSource, /setIssuedToken\(''\);/);
   assert.match(externalAgentUiSource, /const canIssue = gatewayStatus\.enabled\s*&& !gatewayStatus\.loading\s*&& \(gatewayStatus\.actionCount \?\? 0\) > 0;/);
   assert.match(externalAgentUiSource, /const ttlIsPositiveInteger =/);

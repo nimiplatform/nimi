@@ -5,6 +5,7 @@ import type {
   ExternalAgentIssueTokenResponse,
   ExternalAgentTokenRecord as RuntimeExternalAgentTokenRecord,
 } from './generated/runtime/v1/external_agent.js';
+import type { RuntimeExternalAgentClient } from './types-client-interfaces.js';
 
 export type ExternalAgentTokenMode = 'delegated' | 'autonomous';
 
@@ -47,6 +48,31 @@ export type ExternalAgentGatewayStatusProjection = {
   actionCount: number;
   status?: string;
   reasonCode?: string;
+};
+
+export type ExternalAgentIssueTokenPayload = {
+  principalId: string;
+  mode: ExternalAgentTokenMode;
+  subjectAccountId: string;
+  actions: string[];
+  scopes?: ExternalAgentActionScopeProjection[];
+  ttlSeconds?: number;
+};
+
+export type RuntimeExternalAgentAccessSurface = {
+  issueToken(payload: ExternalAgentIssueTokenPayload): Promise<ExternalAgentIssueTokenProjection>;
+  revokeToken(tokenId: string): Promise<void>;
+  listTokens(): Promise<ExternalAgentTokenLedgerRecord[]>;
+  getGatewayStatus(): Promise<ExternalAgentGatewayStatusProjection>;
+};
+
+export type HostRuntimeExternalAgentAccessSurfaceOptions = {
+  getRuntime: () => {
+    externalAgent: Pick<
+      RuntimeExternalAgentClient,
+      'issueToken' | 'revokeToken' | 'listTokens' | 'getGatewayStatus'
+    >;
+  };
 };
 
 function normalizeText(value: unknown): string {
@@ -177,5 +203,42 @@ export function projectExternalAgentGatewayStatus(
     actionCount: Number.isFinite(Number(result.actionCount)) ? Number(result.actionCount) : 0,
     ...(status ? { status } : {}),
     ...(reasonCode ? { reasonCode } : {}),
+  };
+}
+
+export function createHostRuntimeExternalAgentAccessSurface(
+  options: HostRuntimeExternalAgentAccessSurfaceOptions,
+): RuntimeExternalAgentAccessSurface {
+  const getExternalAgent = () => options.getRuntime().externalAgent;
+  return {
+    async issueToken(payload) {
+      const result = await getExternalAgent().issueToken({
+        principalId: payload.principalId,
+        mode: payload.mode,
+        subjectAccountId: payload.subjectAccountId,
+        actions: payload.actions,
+        scopes: (payload.scopes || []).map((scope) => ({
+          actionId: scope.actionId,
+          ops: scope.ops,
+        })),
+        ttlSeconds: payload.ttlSeconds || 0,
+      });
+      return projectExternalAgentIssueTokenResult(result);
+    },
+    async revokeToken(tokenId) {
+      await getExternalAgent().revokeToken({ tokenId });
+    },
+    async listTokens() {
+      const result = await getExternalAgent().listTokens({
+        pageSize: 0,
+        pageToken: '',
+        includeRevoked: false,
+      });
+      return projectExternalAgentTokenLedger(result.tokens);
+    },
+    async getGatewayStatus() {
+      const result = await getExternalAgent().getGatewayStatus({});
+      return projectExternalAgentGatewayStatus(result);
+    },
   };
 }

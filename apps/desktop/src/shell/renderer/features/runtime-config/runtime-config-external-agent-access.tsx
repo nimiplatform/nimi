@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Surface, cn } from '@nimiplatform/kit/ui';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  getExternalAgentGatewayStatus,
-  issueExternalAgentToken,
-  listExternalAgentTokens,
-  revokeExternalAgentToken,
-  type ExternalAgentTokenRecord,
-} from '@runtime/external-agent';
+  createHostRuntimeExternalAgentAccessSurface,
+  type ExternalAgentTokenLedgerRecord,
+} from '@nimiplatform/sdk/runtime';
+import { Surface, cn } from '@nimiplatform/kit/ui';
 import { Button, Input, RuntimeSelect } from './runtime-config-primitives';
 import {
   CheckIcon,
@@ -32,6 +30,10 @@ import {
   type TokenMode,
 } from './runtime-config-external-agent-access-model';
 
+const externalAgentAccess = createHostRuntimeExternalAgentAccessSurface({
+  getRuntime: () => getPlatformClient().runtime,
+});
+
 export function ExternalAgentAccessPanel() {
   const { t } = useTranslation();
   const [gatewayStatus, setGatewayStatus] = useState<GatewayStatusParsed>({
@@ -54,7 +56,7 @@ export function ExternalAgentAccessPanel() {
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [tokens, setTokens] = useState<ExternalAgentTokenRecord[]>([]);
+  const [tokens, setTokens] = useState<ExternalAgentTokenLedgerRecord[]>([]);
   const [copiedToken, setCopiedToken] = useState(false);
   const [copiedBindAddress, setCopiedBindAddress] = useState(false);
   const [filter, setFilter] = useState<TokenFilter>('all');
@@ -70,8 +72,8 @@ export function ExternalAgentAccessPanel() {
   const refreshGateway = async () => {
     setRefreshing(true);
     try {
-      const status = await getExternalAgentGatewayStatus();
-      const rows = await listExternalAgentTokens();
+      const status = await externalAgentAccess.getGatewayStatus();
+      const rows = await externalAgentAccess.listTokens();
       setGatewayStatus({
         enabled: Boolean(status.enabled),
         loading: false,
@@ -122,7 +124,7 @@ export function ExternalAgentAccessPanel() {
           setErrorMessage(t('runtimeConfig.eaa.actionScopesRequired', { defaultValue: 'At least one action scope is required.' }));
           return;
         }
-        const issued = await issueExternalAgentToken({
+        const issued = await externalAgentAccess.issueToken({
           principalId,
           mode,
           subjectAccountId,
@@ -147,7 +149,7 @@ export function ExternalAgentAccessPanel() {
       setBusy(true);
       setErrorMessage('');
       try {
-        await revokeExternalAgentToken(resolvedTokenId);
+        await externalAgentAccess.revokeToken(resolvedTokenId);
         setIssuedToken('');
         if (resolvedTokenId === tokenId) {
           setTokenId('');

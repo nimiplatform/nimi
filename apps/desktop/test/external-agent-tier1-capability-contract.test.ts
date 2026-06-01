@@ -14,7 +14,11 @@ test('desktop does not own external agent local AI action descriptors', () => {
     existsSync(path.join(desktopDir, 'src/runtime/external-agent/local-ai-actions.ts')),
     false,
   );
-  const source = readDesktopFile('src/runtime/external-agent/index.ts');
+  assert.equal(
+    existsSync(path.join(desktopDir, 'src/runtime/external-agent/index.ts')),
+    false,
+  );
+  const source = readDesktopFile('src/shell/renderer/features/runtime-config/runtime-config-external-agent-access.tsx');
   assert.doesNotMatch(source, /localAIActionDescriptors/);
   assert.doesNotMatch(source, /runtime\.local-ai\.models\./);
   assert.doesNotMatch(source, /external_agent_sync_action_descriptors/);

@@ -10,7 +10,8 @@ function readDesktopFile(relativePath: string): string {
 }
 
 test('external agent runtime bridge no longer parses app-local lifecycle execution requests', () => {
-  const source = readDesktopFile('src/runtime/external-agent/index.ts');
+  assert.equal(existsSync(path.join(desktopDir, 'src/runtime/external-agent/index.ts')), false);
+  const source = readDesktopFile('src/shell/renderer/features/runtime-config/runtime-config-external-agent-access.tsx');
   assert.doesNotMatch(source, /function parseActionPhase/);
   assert.doesNotMatch(source, /parseExecutionRequest/);
   assert.doesNotMatch(source, /root\.dryRun\s*\?\s*'dry-run'\s*:\s*'commit'/);

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
@@ -15,18 +15,20 @@ function readRepoFile(relativePath: string): string {
 }
 
 test('external agent token ledger uses SDK Runtime projection instead of Tauri evidence', () => {
-  const source = readDesktopFile('src/runtime/external-agent/index.ts');
+  const sdkSource = readRepoFile('sdk/src/runtime/runtime-external-agent.ts');
+  const uiSource = readDesktopFile('src/shell/renderer/features/runtime-config/runtime-config-external-agent-access.tsx');
 
-  assert.match(source, /getPlatformClient\(\)\.runtime\.externalAgent\.listTokens/);
-  assert.match(source, /projectExternalAgentTokenLedger/);
-  assert.match(source, /projectExternalAgentIssueTokenResult/);
-  assert.match(source, /projectExternalAgentGatewayStatus/);
-  assert.match(source, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.match(source, /EXTERNAL_AGENT_TOKEN_LEDGER_INVALID_RESPONSE/);
-  assert.doesNotMatch(source, /tauriInvoke/);
-  assert.doesNotMatch(source, /external_agent_list_tokens/);
-  assert.doesNotMatch(source, /function parseExternalAgentTokenRecord/);
-  assert.doesNotMatch(source, /function toIsoFromTimestamp/);
+  assert.equal(existsSync(resolve(desktopDir, 'src/runtime/external-agent/index.ts')), false);
+  assert.match(sdkSource, /createHostRuntimeExternalAgentAccessSurface/);
+  assert.match(sdkSource, /projectExternalAgentTokenLedger/);
+  assert.match(sdkSource, /projectExternalAgentIssueTokenResult/);
+  assert.match(sdkSource, /projectExternalAgentGatewayStatus/);
+  assert.match(sdkSource, /EXTERNAL_AGENT_TOKEN_LEDGER_INVALID_RESPONSE/);
+  assert.match(uiSource, /createHostRuntimeExternalAgentAccessSurface/);
+  assert.match(uiSource, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.doesNotMatch(uiSource, /@runtime\/external-agent/);
+  assert.doesNotMatch(uiSource, /tauriInvoke/);
+  assert.doesNotMatch(uiSource, /external_agent_list_tokens/);
 });
 
 test('Runtime External Agent service fails closed while action registry is empty', () => {
