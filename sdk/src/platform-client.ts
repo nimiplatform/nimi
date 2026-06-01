@@ -9,7 +9,8 @@ import { Realm } from './realm/client.js';
 import type { RealmTokenRefreshResult } from './realm/client-types.js';
 import type { RealmServiceArgs, RealmServiceResult } from './realm/generated/type-helpers.js';
 import { asNimiError, createNimiError } from './core/errors.js';
-import { AccountCallerMode, AccountSessionState } from './runtime/generated/runtime/v1/account.js';
+import { AccountSessionState } from './runtime/generated/runtime/v1/account.js';
+import { createLocalFirstPartyRuntimeAccountCaller } from './runtime/runtime-account-caller.js';
 import { Runtime } from './runtime/runtime.js';
 import type { ListConnectorsRequest, ListConnectorsResponse } from './runtime/generated/runtime/v1/connector.js';
 import type { RuntimeCallOptions } from './runtime/types.js';
@@ -38,7 +39,7 @@ type RealmServices = Realm['services'];
 type RuntimeConnectorModule = Runtime['connector'];
 type RuntimeAuditModule = Runtime['audit'];
 type ListConnectorsInput = ListConnectorsRequest;
-type PlatformRuntimeAccountCaller = { appId: string; appInstanceId: string; deviceId: string; mode: AccountCallerMode; scopes: string[] };
+type PlatformRuntimeAccountCaller = ReturnType<typeof createLocalFirstPartyRuntimeAccountCaller>;
 type AuthPasswordLoginBody = RealmServiceArgs<'AuthService', 'passwordLogin'>[0];
 type AuthPasswordLoginInput = { identifier?: string; email?: string; password: AuthPasswordLoginBody['password'] };
 type AuthPasswordLoginResult = RealmServiceResult<'AuthService', 'passwordLogin'>;
@@ -377,13 +378,7 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
     });
   }
 
-  const accountCaller = {
-    appId,
-    appInstanceId: `${appId}.local-first-party`,
-    deviceId: 'local-first-party-device',
-    mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
-    scopes: [],
-  };
+  const accountCaller = createLocalFirstPartyRuntimeAccountCaller({ appId });
   const runtimeDefaults = isLocalFirstPartyRuntime
     ? {
       ...(input.runtimeDefaults || {}),

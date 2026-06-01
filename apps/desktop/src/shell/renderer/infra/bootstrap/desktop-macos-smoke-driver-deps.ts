@@ -13,6 +13,7 @@ import { getActiveScope } from '@renderer/features/chat/chat-shared-active-ai-co
 import { refreshConversationCapabilityProjections } from '@renderer/features/chat/conversation-capability-projection';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
+  createDesktopShellRuntimeAccountCaller,
   createRuntimeAgentSmokeVerificationSurface,
   parseRuntimeLocalAgentIdentity,
 } from '@nimiplatform/sdk/runtime';
@@ -354,13 +355,7 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
       }).readProductPathEvidence(input);
     },
     async verifyRuntimeAccountProjection() {
-      const accountCaller = {
-        appId: 'nimi.desktop',
-        appInstanceId: 'nimi.desktop.local-first-party',
-        deviceId: 'desktop-shell',
-        mode: 2,
-        scopes: [],
-      };
+      const accountCaller = createDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' });
       const logout = await withSmokeTimeout(
         'Runtime account product-smoke logout reset',
         getPlatformClient().runtime.account.logout({

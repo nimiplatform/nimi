@@ -10,6 +10,7 @@ import type { TauriOAuthBridge } from '@nimiplatform/kit/core/oauth';
 import { isWebShellMode } from '@nimiplatform/kit/core/shell-mode';
 import { OAuthProvider, updateRealmPassword, type RealmModel } from '@nimiplatform/sdk/realm';
 import { getPlatformClient } from '@nimiplatform/sdk';
+import { createDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/browser';
 import { bootstrapRuntime } from '@renderer/infra/bootstrap/runtime-bootstrap';
 import { queryClient } from '@renderer/infra/query-client/query-client';
@@ -42,13 +43,7 @@ type AuthTokensDto = RealmModel<'AuthTokensDto'>;
 type CheckEmailResponseDto = RealmModel<'CheckEmailResponseDto'>;
 type OAuthLoginResultDto = RealmModel<'OAuthLoginResultDto'>;
 
-const desktopRuntimeAccountCaller = {
-  appId: 'nimi.desktop',
-  appInstanceId: 'nimi.desktop.local-first-party',
-  deviceId: 'desktop-shell',
-  mode: 2,
-  scopes: [],
-};
+const desktopRuntimeAccountCaller = createDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' });
 
 async function beginRuntimeAccountLogin(input: { callbackUrl: string; timeoutMs: number }) {
   return getPlatformClient().runtime.account.beginLogin({
@@ -297,13 +292,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
       }
       await ensureAuthApiReady();
       const response = await getPlatformClient().runtime.account.getAccountSessionStatus({
-        caller: {
-          appId: 'nimi.desktop',
-          appInstanceId: 'nimi.desktop.local-first-party',
-          deviceId: 'desktop-shell',
-          mode: 2,
-          scopes: [],
-        },
+        caller: desktopRuntimeAccountCaller,
       });
       const projection = response.accountProjection;
       if (response.state !== AccountSessionState.AUTHENTICATED || !projection?.accountId) {

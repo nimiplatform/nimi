@@ -264,6 +264,25 @@ mod tests {
     }
 
     #[test]
+    fn tester_consumes_shared_runtime_account_caller_projection() {
+        let caller =
+            nimi_shell_tauri::runtime_account_caller::local_first_party_runtime_account_caller(
+                "app.nimi.tester",
+            )
+            .expect("caller");
+
+        assert_eq!(caller.app_id, "app.nimi.tester");
+        assert_eq!(caller.app_instance_id, "app.nimi.tester.local-first-party");
+        assert_eq!(caller.device_id, "local-first-party-device");
+        assert_eq!(
+            caller.mode,
+            nimi_shell_tauri::runtime_bridge::generated::AccountCallerMode::LocalFirstPartyApp
+                as i32
+        );
+        assert!(caller.scopes.is_empty());
+    }
+
+    #[test]
     fn tester_consumes_shared_nimi_data_directory_primitives() {
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)

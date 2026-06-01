@@ -235,13 +235,8 @@ pub(crate) async fn authenticated_runtime_account_id() -> Result<String, String>
 }
 
 fn product_control_runtime_account_caller() -> crate::runtime_bridge::generated::AccountCaller {
-    crate::runtime_bridge::generated::AccountCaller {
-        app_id: "nimi.desktop".to_string(),
-        app_instance_id: "nimi.desktop.local-first-party".to_string(),
-        device_id: "desktop-shell".to_string(),
-        mode: crate::runtime_bridge::generated::AccountCallerMode::DesktopShell as i32,
-        scopes: Vec::new(),
-    }
+    nimi_shell_tauri::runtime_account_caller::desktop_shell_runtime_account_caller("nimi.desktop")
+        .expect("desktop shell runtime account caller")
 }
 
 pub async fn ensure_account_default_profile_for_product_control(

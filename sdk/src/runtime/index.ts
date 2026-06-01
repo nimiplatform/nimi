@@ -27,6 +27,7 @@ export * from './runtime-agent-memory.js';
 export * from './runtime-agent-memory-surface.js';
 export * from './runtime-agent-lifecycle-surface.js';
 export * from './runtime-agent-smoke-verification.js';
+export * from './runtime-account-caller.js';
 export * from './runtime-external-agent.js';
 export * from './runtime-agent-presentation-profile.js';
 export * from './runtime-call-options.js';
@@ -248,6 +249,7 @@ export { CallerKind } from './generated/runtime/v1/common.js';
 export { ReasonCode as RuntimeReasonCode, ExternalPrincipalType } from './generated/runtime/v1/common.js';
 export type { WorkspaceBindingAttachment } from './generated/runtime/v1/common.js';
 export {
+  AccountCallerMode,
   AccountSessionState,
   GetAccessTokenResponse,
   GetAccountSessionStatusResponse,

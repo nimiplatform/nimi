@@ -20,6 +20,7 @@ pub mod nimi_data_directory;
 pub mod oauth_commands;
 pub mod platform_catalog;
 pub mod platform_projection;
+pub mod runtime_account_caller;
 pub mod runtime_app_storage;
 pub mod runtime_bridge;
 pub mod runtime_defaults;

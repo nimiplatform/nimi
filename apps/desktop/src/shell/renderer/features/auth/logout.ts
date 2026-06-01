@@ -3,6 +3,7 @@ import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { clearPersistedAccessToken } from '@nimiplatform/kit/auth';
 import { getPlatformClient } from '@nimiplatform/sdk';
+import { createDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import { i18n } from '@renderer/i18n';
 import { clearAllStreams } from '@renderer/features/turns/stream-controller';
 
@@ -31,13 +32,7 @@ type LogoutDependencies = {
 const defaultLogoutDependencies: LogoutDependencies = {
   logout: async () => {
     await getPlatformClient().runtime.account.logout({
-      caller: {
-        appId: 'nimi.desktop',
-        appInstanceId: 'nimi.desktop.local-first-party',
-        deviceId: 'desktop-shell',
-        mode: 2,
-        scopes: [],
-      },
+      caller: createDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' }),
       reason: 'desktop_logout',
     });
   },

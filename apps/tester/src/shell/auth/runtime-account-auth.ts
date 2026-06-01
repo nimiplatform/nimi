@@ -1,5 +1,8 @@
 import { getPlatformClient, type PlatformClient } from '@nimiplatform/sdk';
-import { AccountSessionState } from '@nimiplatform/sdk/runtime';
+import {
+  AccountSessionState,
+  createLocalFirstPartyRuntimeAccountCaller,
+} from '@nimiplatform/sdk/runtime';
 import {
   validateRuntimeOAuthAuthorizationUrl,
   type AuthPlatformAdapter,
@@ -8,16 +11,7 @@ import {
 import { createTauriOAuthBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 import { appId, runtimeAccountLoginEnabled } from './runtime-platform.js';
 
-const DEVICE_ID = 'local-first-party-device';
-const ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP = 1;
-
-export const runtimeAccountCaller = {
-  appId,
-  appInstanceId: `${appId}.local-first-party`,
-  deviceId: DEVICE_ID,
-  mode: ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
-  scopes: [] as string[],
-};
+export const runtimeAccountCaller = createLocalFirstPartyRuntimeAccountCaller({ appId });
 
 export const nimiAppTauriOAuthBridge = createTauriOAuthBridge();
 

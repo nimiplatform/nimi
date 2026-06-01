@@ -163,8 +163,20 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
     path.join(import.meta.dirname, '../src/shell/renderer/features/auth/desktop-auth-adapter.ts'),
     'utf8',
   );
+  const logoutSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/features/auth/logout.ts'),
+    'utf8',
+  );
   const bootstrapAuthSource = fs.readFileSync(
     path.join(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-auth.ts'),
+    'utf8',
+  );
+  const runtimeBootstrapSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts'),
+    'utf8',
+  );
+  const smokeDriverSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/desktop-macos-smoke-driver-deps.ts'),
     'utf8',
   );
   const sessionLoggingSource = fs.readFileSync(
@@ -178,6 +190,13 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
   assert.doesNotMatch(authMenuSource, /function toAuthUserRecord/);
   assert.doesNotMatch(desktopTauriConfigSource, /"pubkey"\s*:\s*"dev-placeholder"/);
   assert.doesNotMatch(authAdapterSource, /as Promise</);
+  for (const source of [authAdapterSource, logoutSource, runtimeBootstrapSource, smokeDriverSource]) {
+    assert.match(source, /createDesktopShellRuntimeAccountCaller/);
+    assert.doesNotMatch(source, /appInstanceId:\s*['"`]nimi\.desktop\.local-first-party/);
+    assert.doesNotMatch(source, /deviceId:\s*['"`]desktop-shell/);
+    assert.doesNotMatch(source, /mode:\s*2/);
+    assert.doesNotMatch(source, /scopes:\s*\[\]/);
+  }
   assert.doesNotMatch(authAdapterSource, /发送验证码失败|验证码登录失败|2FA 验证失败|获取钱包签名挑战失败|钱包登录失败|OAuth 登录失败/);
   assert.match(bootstrapAuthSource, /RuntimeAccountService owns local account truth/);
   assert.doesNotMatch(bootstrapAuthSource, /auth_session_load|auth_session_save|auth_session_clear/);

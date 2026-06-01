@@ -21,6 +21,7 @@ import {
   safeBootstrapErrorMessage,
   withBootstrapStepTimeout,
 } from '@nimiplatform/kit/shell/renderer/bootstrap';
+import { createDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import { syncRuntimeStorageConfig } from './runtime-bootstrap-local-models-sync';
 import { syncRuntimeJwtConfig } from './runtime-bootstrap-jwt-sync';
 import { syncRuntimeDeveloperRegistrationConfig } from './runtime-bootstrap-developer-registration-sync';
@@ -468,13 +469,7 @@ export function bootstrapRuntime(): Promise<void> {
       },
     });
     bindDesktopConversationCapabilityRouteRuntime();
-    const accountCaller = {
-      appId: 'nimi.desktop',
-      appInstanceId: 'nimi.desktop.local-first-party',
-      deviceId: 'desktop-shell',
-      mode: 2,
-      scopes: [],
-    };
+    const accountCaller = createDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' });
     const accountStatus = await platformClient.runtime.account.getAccountSessionStatus({
       caller: accountCaller,
     });
