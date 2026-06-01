@@ -1,0 +1,165 @@
+status: migrated
+date: "2026-06-01"
+domain: ai-profile-config-and-first-run-evidence
+authority_posture:
+  spec_status: alignment
+  authority_owner:
+    - .nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md
+    - .nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml
+    - .nimi/spec/platform/kernel/tables/local-config-file-registry.yaml
+    - .nimi/spec/desktop/kernel/ai-profile-config-contract.md
+    - .nimi/spec/sdk/kernel/ai-config-surface-contract.md
+    - sdk/src/ai/**
+    - sdk/src/platform-catalog/**
+    - kit/features/model-config/**
+    - kit/shell/tauri/src/platform_catalog/ai_profile_factory.rs
+    - kit/shell/tauri/src/platform_projection/factory_profile_index.rs
+  work_type: alignment
+  parallel_truth: forbidden
+scope:
+  included:
+    - Platform factory AIProfile catalog and first-run selection policy.
+    - SDK AIProfile, AIConfig, apply preview, host AIProfile surface, account profile parsing, and platform-catalog projections.
+    - Kit model-config preview-gated controller and UI.
+    - Kit shell Tauri factory profile catalog/projection helpers.
+    - Desktop first-run built-in AIConfig evidence placement for desktop.chat.nimi and desktop.chat.agent.
+    - Desktop Account Default Profile and account-local profile library file family.
+    - Tester AIProfile/AIConfig second-consumer flow.
+  excluded:
+    - Runtime materialization, dependency jobs, route feasibility, and local asset readiness; closed under runtime-config-local-runtime.
+    - Chat mode active-scope switching and Runtime Agent behavior; closed under runtime-agent or existing chat scope hardcuts.
+    - Product-local UI storage; closed under product-local-state.
+audited_globs:
+  - .nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md
+  - .nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml
+  - .nimi/spec/platform/kernel/tables/local-config-file-registry.yaml
+  - .nimi/spec/desktop/kernel/ai-profile-config-contract.md
+  - .nimi/spec/sdk/kernel/ai-config-surface-contract.md
+  - apps/desktop/src-tauri/src/desktop_ai_config_library.rs
+  - apps/desktop/src-tauri/src/desktop_ai_config_library/**
+  - apps/desktop/src-tauri/src/account_profile_library.rs
+  - apps/desktop/src-tauri/src/account_profile_library/**
+  - apps/desktop/src-tauri/src/account_profile_library_files.rs
+  - apps/desktop/src-tauri/src/account_profile_library_files/**
+  - apps/desktop/src-tauri/src/factory_profile_index.rs
+  - apps/desktop/src-tauri/src/desktop_product_control.rs
+  - apps/desktop/src-tauri/src/desktop_product_control/**
+  - apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs
+  - apps/desktop/src/shell/renderer/bridge/runtime-bridge/product-control.ts
+  - apps/desktop/src/shell/renderer/bridge/runtime-bridge/account-profile-library.ts
+  - apps/desktop/src/shell/renderer/first-run/**
+  - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-profiles.tsx
+  - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-profile-library.ts
+  - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-profile-library-panel.tsx
+  - apps/desktop/src/shell/renderer/features/chat/chat-shared-settings-panel.tsx
+  - apps/desktop/test/ai-profile-config-domain-boundary.test.ts
+  - apps/desktop/test/built-in-ai-config-evidence.test.ts
+  - apps/desktop/test/runtime-config-profile-apply-validation.test.ts
+  - apps/desktop/test/first-run-local-baseline-authority.test.ts
+  - apps/desktop/test/first-run-acceptance-evidence.test.ts
+  - apps/desktop/test/app-first-launch-ai-config.test.ts
+  - apps/tester/src/tester/tester-ai-config-store.ts
+  - apps/tester/src/shell/routes/settings.tsx
+  - apps/tester/test/tester-ai-profile-surface.test.mjs
+  - apps/tester/test/tester-contract.test.mjs
+  - sdk/src/ai/**
+  - sdk/src/platform-catalog/**
+  - sdk/src/runtime/first-run-materialization.ts
+  - sdk/test/ai-profile-library.test.ts
+  - sdk/test/host-ai-profile-surface.test.ts
+  - sdk/test/runtime/first-run-materialization.test.ts
+  - kit/features/model-config/**
+  - kit/shell/tauri/src/platform_catalog/ai_profile_factory.rs
+  - kit/shell/tauri/src/platform_projection/factory_profile_index.rs
+migrated:
+  shared_owners:
+    - .nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md
+    - .nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml
+    - sdk/src/platform-catalog/**
+    - sdk/src/ai/**
+    - sdk/src/runtime/first-run-materialization.ts
+    - kit/features/model-config/**
+    - kit/shell/tauri/src/platform_catalog/ai_profile_factory.rs
+    - kit/shell/tauri/src/platform_projection/factory_profile_index.rs
+  responsibilities:
+    - Platform owns the factory AIProfile catalog and deterministic selection policy.
+    - SDK owns app-facing AIProfile/AIConfig parsing, validation, host AIProfile surface, profile apply preview/apply helpers, and platform-catalog projections.
+    - Kit owns preview-gated model-config UI/controller behavior.
+    - Runtime owns materialization/readiness evidence consumed by first-run, not factory selection semantics.
+    - Desktop owns only admitted host placement for durable built-in AIConfig evidence and account-local profile-library files.
+  desktop_consumers:
+    - apps/desktop/src/shell/renderer/first-run/product-control-workflow.tsx consumes SDK platform-catalog first-run selection.
+    - apps/desktop/src-tauri/src/factory_profile_index.rs consumes Kit shell Tauri factory profile projection helpers.
+    - apps/desktop/src-tauri/src/desktop_ai_config_library.rs verifies selected factory AIProfile rows through Kit shell Tauri catalog helpers and writes host evidence for canonical built-in chat scopes.
+    - apps/desktop/src-tauri/src/account_profile_library.rs seeds Account Default Profile content from admitted Platform factory catalog rows.
+    - apps/desktop/src/shell/renderer/bridge/runtime-bridge/account-profile-library.ts parses account profile library payloads through SDK AI helpers.
+    - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-profiles.tsx consumes SDK AI types/helpers and Kit model-config preview-gated controller.
+  tester_consumers:
+    - apps/tester/src/tester/tester-ai-config-store.ts consumes SDK host AIProfile surface, AIProfile parser, and Kit storage helpers.
+    - apps/tester/src/shell/routes/settings.tsx consumes SDK platform-catalog and Runtime first-run materialization projections plus Kit model-config headless helpers.
+    - apps/tester/test/tester-ai-profile-surface.test.mjs proves preview/apply behavior through Tester as the second app consumer.
+    - apps/tester/test/tester-contract.test.mjs verifies Tester settings consume Kit model-config and SDK AIProfile surfaces.
+legal_desktop_residue:
+  - path: apps/desktop/src-tauri/src/desktop_ai_config_library.rs
+    rationale: Desktop host placement writes and verifies durable evidence for the two canonical built-in Desktop chat scopes; Platform/SDK/Runtime own profile/catalog/config/readiness semantics.
+  - path: apps/desktop/src-tauri/src/account_profile_library.rs
+    rationale: Account Default Profile is an account-local governed file family under ~/.nimi; Desktop host may place and verify the local record while sourcing profile content from Platform factory policy and SDK-compatible AIProfile payload shape.
+  - path: apps/desktop/src-tauri/src/account_profile_library_files.rs
+    rationale: Editable profile library CRUD is a local file-family surface and must not mutate scope-bound AIConfig; explicit Kit/SDK apply remains separate.
+  - path: apps/desktop/src-tauri/src/factory_profile_index.rs
+    rationale: Desktop may materialize the governed ~/.nimi/profiles/factory-index.json projection by calling Kit shell Tauri projection helpers; it does not define catalog rows.
+  - path: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-profiles.tsx
+    rationale: Desktop owns product-specific profile management composition and copy; apply/preview behavior is Kit/SDK-owned.
+tester_proof:
+  - apps/tester/test/tester-ai-profile-surface.test.mjs verifies Tester imports, previews, applies, and fail-closes AIProfile payloads through SDK host AIProfile surface.
+  - apps/tester/test/tester-contract.test.mjs verifies Tester settings consume Kit model-config and SDK platform-catalog/runtime materialization projections.
+  - apps/tester/src/tester/tester-ai-config-store.ts is a separate app-owned store over SDK/Kit surfaces, not a Desktop source fork.
+regression_guards:
+  - apps/desktop/test/ai-profile-config-domain-boundary.test.ts aggregates the domain hardcut across Platform catalog, SDK/Kit surfaces, Desktop host placement, account profile library, and Tester proof.
+  - apps/desktop/test/built-in-ai-config-evidence.test.ts guards D-AIPC-013 built-in evidence fields, canonical scopes, atomic writes, product-control admission, and renderer readiness gating.
+  - apps/desktop/test/runtime-config-profile-apply-validation.test.ts guards preview-gated Kit profile apply and separates account profile library CRUD from AIConfig apply.
+  - apps/desktop/test/first-run-local-baseline-authority.test.ts and apps/desktop/test/first-run-acceptance-evidence.test.ts guard first-run local baseline policy and Runtime materialization boundaries.
+  - apps/desktop/test/app-first-launch-ai-config.test.ts guards first-party app first-launch AIConfig initialization semantics.
+  - scripts/check-no-ai-profile-provider-model-constants.mjs blocks provider/model constants in factory AIProfile consumer paths.
+  - scripts/check-no-fourth-ai-default-owner-surface.mjs blocks renamed fourth AI default owner surfaces.
+prohibited_patterns:
+  - target: apps/desktop/src-tauri/src/factory_profile_index.rs
+    absent:
+      - "PlatformAIProfileFactoryRow {"
+  - target: apps/desktop/src-tauri/src/desktop_ai_config_library.rs apps/desktop/src-tauri/src/account_profile_library.rs apps/desktop/src/shell/renderer/first-run apps/desktop/src/shell/renderer/features/runtime-config apps/desktop/src/shell/renderer/features/chat
+    absent:
+      - "provider/model default constants outside admitted AIProfile/AIConfig authority"
+  - target: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-profile-library.ts
+    absent:
+      - "aiConfig"
+      - "aiProfile.apply"
+  - target: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-profiles.tsx
+    absent:
+      - "aiConfigService.aiProfile.apply("
+      - "aiConfigService.aiConfig.update("
+  - target: apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs
+    absent:
+      - "product_control_record_ensure_built_in_ai_config"
+verification:
+  status: passed
+  passed:
+    - command: node -e "const fs=require('fs'); const yaml=require('yaml'); yaml.parse(fs.readFileSync('config/desktop-ecosystem-boundary-domain-closure/ai-profile-config.yaml','utf8'));"
+      evidence: AIProfile config closure record parses as YAML.
+    - command: pnpm --filter @nimiplatform/desktop exec tsx --test test/ai-profile-config-domain-boundary.test.ts test/built-in-ai-config-evidence.test.ts test/runtime-config-profile-apply-validation.test.ts test/first-run-local-baseline-authority.test.ts test/first-run-acceptance-evidence.test.ts test/app-first-launch-ai-config.test.ts
+      evidence: Desktop domain hardcut, built-in AIConfig evidence, preview-gated profile apply, first-run local baseline, first-run materialization/admission, and app first-launch AIConfig tests pass.
+    - command: pnpm --filter @nimiplatform/tester exec node --test test/tester-ai-profile-surface.test.mjs test/tester-contract.test.mjs
+      evidence: Tester proves SDK host AIProfile preview/apply behavior and Kit/SDK AIProfile consumption in Settings.
+    - command: pnpm --filter @nimiplatform/sdk exec tsx --test test/ai-profile-library.test.ts test/host-ai-profile-surface.test.ts test/runtime/first-run-materialization.test.ts test/host-ai-config.test.ts
+      evidence: SDK AIProfile parsing, host AIProfile surface, first-run materialization projection, and scoped host AIConfig behavior pass.
+    - command: pnpm --filter @nimiplatform/kit exec vitest run --environment jsdom features/model-config/test/model-config-panel.test.tsx features/model-config/test/use-model-config-profile-controller.test.tsx features/model-config/test/profile-controller-core.test.ts
+      evidence: Kit model-config UI/controller/profile core tests pass for preview-gated apply behavior.
+    - command: pnpm check:no-ai-profile-provider-model-constants
+      evidence: Factory AIProfile consumer paths contain no provider/model default constants outside admitted authority.
+    - command: pnpm check:no-fourth-ai-default-owner-surface
+      evidence: No renamed fourth AI default owner surface exists in active spec/code.
+    - command: pnpm check:no-legacy-imports
+      evidence: Legacy import guard passes.
+    - command: pnpm check:no-absolute-user-paths
+      evidence: Absolute user-home path guard passes.
+    - command: git diff --check
+      evidence: Patch whitespace passes.
