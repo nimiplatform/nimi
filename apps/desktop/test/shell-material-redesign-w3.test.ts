@@ -33,7 +33,7 @@ test('W3 route redesign: home and explore adopt route-shell material hosts', () 
 
 test('W3 route redesign: notification and profile consume glass route shells', () => {
   assert.match(notificationPanelSource, /<Surface[\s\S]*tone="panel"[\s\S]*material="glass-regular"[\s\S]*NotificationPanel\.title/);
-  assert.match(notificationPanelSource, /<DesktopCardSurface[\s\S]*key=\{item\.id\}[\s\S]*kind="promoted-glass"/);
+  assert.match(notificationPanelSource, /<AppCardSurface[\s\S]*key=\{item\.id\}[\s\S]*kind="promoted-glass"/);
   assert.doesNotMatch(notificationPanelSource, /className="flex min-h-0 flex-1 flex-col bg-white"/u);
 
   assert.match(profilePanelSource, /<Surface[\s\S]*tone="panel"[\s\S]*material="glass-regular"[\s\S]*<ProfileDetailView/);

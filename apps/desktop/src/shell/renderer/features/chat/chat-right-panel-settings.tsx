@@ -2,9 +2,8 @@
 // (.nimi/spec/desktop/kernel/tables/renderer-design-surfaces.yaml, D-SHELL-030).
 // No runtime consumer today; chat modes use `chat-shared-side-sheet.tsx` + `chat-shared-settings-panel.tsx`.
 import type { ReactNode } from 'react';
-import { ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
+import { IconToggleAction, ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
-import { DesktopIconToggleAction } from '@renderer/components/action';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ChatRightColumnCard } from './chat-shared-right-column-primitives';
 
@@ -53,7 +52,7 @@ export function ChatRightPanelSettings(props: ChatRightPanelSettingsProps) {
               : t('Chat.voiceSessionHandsFreeHint', { defaultValue: 'Foreground hands-free stays inside this thread only.' })}
             placement="top"
           >
-            <DesktopIconToggleAction
+            <IconToggleAction
               icon={(
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
@@ -79,7 +78,7 @@ export function ChatRightPanelSettings(props: ChatRightPanelSettingsProps) {
                 : t('Chat.thinkingTooltipOff', { defaultValue: 'Thinking disabled — click to enable' })}
             placement="top"
           >
-            <DesktopIconToggleAction
+            <IconToggleAction
               icon={(
               <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
                 <path d="M5.5 13.5V12a3.5 3.5 0 0 1-1.73-6.55A4 4 0 0 1 11.5 4a3.5 3.5 0 0 1 .77 6.91V13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
@@ -96,7 +95,7 @@ export function ChatRightPanelSettings(props: ChatRightPanelSettingsProps) {
           </Tooltip>
         ) : null}
         <div className="flex-1" />
-        <DesktopIconToggleAction
+        <IconToggleAction
           icon={(
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
@@ -112,7 +111,7 @@ export function ChatRightPanelSettings(props: ChatRightPanelSettingsProps) {
         />
         {props.onToggleFold ? (
           <Tooltip content={t('Chat.togglePanel', { defaultValue: 'Toggle panel' })} placement="top">
-            <DesktopIconToggleAction
+            <IconToggleAction
               icon={(
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2" />

@@ -1,8 +1,6 @@
-import { cn } from '@nimiplatform/kit/ui';
+import { AppCardSurface, cn, CompactAction } from '@nimiplatform/kit/ui';
 import type { ConversationThreadSummary } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
-import { DesktopCompactAction } from '@renderer/components/action';
-import { DesktopCardSurface } from '@renderer/components/surface';
 import { ChatSideSheet } from './chat-shared-side-sheet';
 
 function formatRelativeTime(dateStr: string): string {
@@ -47,7 +45,7 @@ function SessionThreadItem({
   onSelect: () => void;
 }) {
   return (
-    <DesktopCardSurface
+    <AppCardSurface
       kind="operational-solid"
       as="div"
       className={cn(
@@ -74,7 +72,7 @@ function SessionThreadItem({
           </div>
         </div>
       </button>
-    </DesktopCardSurface>
+    </AppCardSurface>
   );
 }
 
@@ -88,7 +86,7 @@ export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
       subtitle={props.subtitle || t('Chat.nimiModeSubtitle', { defaultValue: 'Nimi threads and summaries' })}
       onClose={props.onClose}
       footer={(
-        <DesktopCompactAction
+        <CompactAction
           tone="primary"
           fullWidth
           onClick={props.onCreateThread}
@@ -100,7 +98,7 @@ export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
           {t('Chat.newConversation', { defaultValue: 'New conversation' })}
-        </DesktopCompactAction>
+        </CompactAction>
       )}
     >
       <div className="px-4 py-4">

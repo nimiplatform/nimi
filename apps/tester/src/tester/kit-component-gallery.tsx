@@ -1,8 +1,10 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import {
   Avatar,
+  AppCardSurface,
   Button,
   Checkbox,
+  CompactAction,
   ConfirmDialog,
   Dialog,
   DialogBody,
@@ -10,7 +12,9 @@ import {
   DialogHeader,
   EmptyState,
   FieldShell,
+  FieldTrigger,
   IconButton,
+  IconToggleAction,
   InlineAlert,
   LoadingSkeleton,
   NimiTabs,
@@ -21,6 +25,7 @@ import {
   PopoverTrigger,
   ProgressIndicator,
   ScrollArea,
+  ScrollShell,
   SearchField,
   SegmentedControl,
   SelectField,
@@ -245,6 +250,34 @@ const RECIPES: Recipe[] = [
       { name: 'size', desc: 'sm | md | lg' },
       { name: 'loading', desc: 'disables the action and shows a spinner' },
       { name: 'leadingIcon', desc: 'ReactNode rendered before the label' },
+    ],
+  },
+  {
+    id: 'app-actions',
+    category: 'actions',
+    name: 'App surface actions',
+    exportsLabel: 'AppCardSurface, CompactAction, IconToggleAction, FieldTrigger, ScrollShell',
+    importNames: ['AppCardSurface', 'CompactAction', 'IconToggleAction', 'FieldTrigger', 'ScrollShell'],
+    badge: { label: 'app shell', tone: 'success' },
+    wide: true,
+    stage: (
+      <AppCardSurface kind="promoted-glass" className="kit-surface-sample">
+        <div className="flex flex-wrap items-center gap-2">
+          <CompactAction tone="primary">Apply</CompactAction>
+          <CompactAction tone="danger">Reset</CompactAction>
+          <IconToggleAction aria-label="Pin panel" icon={<Check size={14} />} active />
+        </div>
+        <FieldTrigger className="mt-3">Runtime route · text.generate</FieldTrigger>
+        <ScrollShell className="mt-3 max-h-16 text-xs text-[var(--nimi-text-secondary)]">
+          Shared app surfaces stay in Kit so Desktop, Tester, and future apps consume the same primitive.
+        </ScrollShell>
+      </AppCardSurface>
+    ),
+    snippet: '<AppCardSurface kind="promoted-glass"><CompactAction tone="primary">Apply</CompactAction></AppCardSurface>',
+    props: [
+      { name: 'kind', desc: 'promoted-glass | operational-solid app surface recipe' },
+      { name: 'tone', desc: 'neutral | primary | danger compact action tone' },
+      { name: 'activeTone', desc: 'primary | danger icon toggle active state' },
     ],
   },
   // Inputs

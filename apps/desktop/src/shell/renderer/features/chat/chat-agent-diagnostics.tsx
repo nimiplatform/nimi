@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { DesktopCompactAction } from '@renderer/components/action';
-import { DesktopCardSurface } from '@renderer/components/surface';
+import { AppCardSurface, CompactAction } from '@nimiplatform/kit/ui';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import type {
   RuntimeAgentInspectEventSummary,
@@ -65,7 +64,7 @@ function DiagnosticsSectionCard(props: {
   children: ReactNode;
 }) {
   return (
-    <DesktopCardSurface kind="operational-solid" as="div" className="space-y-3 px-3.5 py-3">
+    <AppCardSurface kind="operational-solid" as="div" className="space-y-3 px-3.5 py-3">
       <div className="space-y-1">
         <h4 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
           {props.title}
@@ -75,7 +74,7 @@ function DiagnosticsSectionCard(props: {
         ) : null}
       </div>
       {props.children}
-    </DesktopCardSurface>
+    </AppCardSurface>
   );
 }
 
@@ -95,15 +94,15 @@ function RuntimeInspectActionButton(props: {
   tone?: 'neutral' | 'primary' | 'danger';
 }) {
   return (
-    <DesktopCompactAction onClick={props.onClick} disabled={props.disabled} tone={props.tone}>
+    <CompactAction onClick={props.onClick} disabled={props.disabled} tone={props.tone}>
       {props.label}
-    </DesktopCompactAction>
+    </CompactAction>
   );
 }
 
 /**
  * Ghost-red action used for destructive recovery operations (Clear context, Clear override).
- * Same height as DesktopCompactAction but tertiary-weight so the primary "Apply X" stays the
+ * Same height as CompactAction but tertiary-weight so the primary "Apply X" stays the
  * single visual focus per section.
  */
 function DiagnosticsDangerGhostButton(props: {
@@ -323,14 +322,14 @@ export function AgentDiagnosticsPanel(props: {
           Clear Dyadic are flat red-text links — no bg/border — so destructive recovery doesn't
           compete visually with Apply. Matches the Advanced page Runtime State reference. */}
       <div className="flex flex-wrap items-center gap-3 pt-1">
-        <DesktopCompactAction
+        <CompactAction
           type="button"
           onClick={() => props.onUpdateRuntimeState?.({ statusText, worldId, userId })}
           disabled={!props.onUpdateRuntimeState || mutationPending || !runtimeStateDirty}
           tone="primary"
         >
           {t('Chat.agentDiagnosticsApplyRuntimeState', { defaultValue: 'Apply runtime state' })}
-        </DesktopCompactAction>
+        </CompactAction>
         <button
           type="button"
           onClick={() => props.onClearWorldContext?.()}
@@ -427,7 +426,7 @@ export function AgentDiagnosticsPanel(props: {
             {t('Chat.disableAgentAutonomyTitle', { defaultValue: 'Disable autonomy' })}
           </button>
         ) : (
-          <DesktopCompactAction
+          <CompactAction
             type="button"
             onClick={() => props.onEnableAutonomy?.()}
             disabled={
@@ -438,7 +437,7 @@ export function AgentDiagnosticsPanel(props: {
             tone="primary"
           >
             {t('Chat.agentDiagnosticsEnableAutonomy', { defaultValue: 'Enable Autonomy' })}
-          </DesktopCompactAction>
+          </CompactAction>
         )}
       </div>
       {runtimeStateInspect.pendingHooks.length > 0 ? (
@@ -586,14 +585,14 @@ export function AgentDiagnosticsPanel(props: {
               </DiagnosticsFieldLabel>
             </div>
             <div className="flex flex-wrap items-center gap-3 pt-1">
-              <DesktopCompactAction
+              <CompactAction
                 type="button"
                 onClick={() => props.onUpdateRuntimeState?.({ statusText, worldId, userId })}
                 disabled={!props.onUpdateRuntimeState || mutationPending || !runtimeStateDirty}
                 tone="primary"
               >
                 {t('Chat.agentDiagnosticsApplyRuntimeState', { defaultValue: 'Apply runtime state' })}
-              </DesktopCompactAction>
+              </CompactAction>
               <button
                 type="button"
                 onClick={() => props.onClearWorldContext?.()}
@@ -687,7 +686,7 @@ export function AgentDiagnosticsPanel(props: {
                   {t('Chat.disableAgentAutonomyTitle', { defaultValue: 'Disable autonomy' })}
                 </button>
               ) : (
-                <DesktopCompactAction
+                <CompactAction
                   type="button"
                   onClick={() => props.onEnableAutonomy?.()}
                   disabled={
@@ -698,7 +697,7 @@ export function AgentDiagnosticsPanel(props: {
                   tone="primary"
                 >
                   {t('Chat.agentDiagnosticsEnableAutonomy', { defaultValue: 'Enable Autonomy' })}
-                </DesktopCompactAction>
+                </CompactAction>
               )}
               <RuntimeInspectActionButton
                 label={t('Chat.agentDiagnosticsRefreshInspect', { defaultValue: 'Refresh inspect' })}

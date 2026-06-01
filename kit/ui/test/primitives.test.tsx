@@ -51,7 +51,13 @@ import {
   ActionMenu,
   Slider,
   BackLink,
+  AppCardSurface,
   PageDetailLayout,
+  CompactAction,
+  FieldTrigger,
+  IconToggleAction,
+  ScrollShell,
+  STATE_TONE_CLASS,
   Timeline,
   TimelineDivider,
   TimelineGroup,
@@ -189,6 +195,27 @@ test('surface, button, field, and status primitives render', () => {
   expect(hasClass(html, 'nimi-status-badge--success')).toBe(true);
   expect(hasClass(html, 'nimi-status-badge--dot')).toBe(true);
   expect(hasClass(html, 'nimi-status-badge__dot')).toBe(true);
+});
+
+test('app surface primitives render canonical shared classes', () => {
+  const html = renderToStaticMarkup(
+    <AppCardSurface kind="promoted-glass" interactive active>
+      <CompactAction tone="primary" fullWidth>Run</CompactAction>
+      <IconToggleAction icon={<span />} active aria-label="Toggle" />
+      <FieldTrigger>Choose route</FieldTrigger>
+      <ScrollShell>Scrollable body</ScrollShell>
+    </AppCardSurface>,
+  );
+
+  expect(html).toMatch(/data-nimi-app-card-surface="promoted-glass"/);
+  expect(html).toMatch(/Run/);
+  expect(html).toMatch(/Toggle/);
+  expect(html).toMatch(/Choose route/);
+  expect(html).toMatch(/Scrollable body/);
+  expect(hasClass(html, 'nimi-surface--interactive')).toBe(true);
+  expect(hasClass(html, 'nimi-surface--active')).toBe(true);
+  expect(STATE_TONE_CLASS.selected).toMatch(/nimi-surface-active/);
+  expect(STATE_TONE_CLASS.danger).toMatch(/nimi-status-danger/);
 });
 
 test('shared control and feedback primitives render canonical slots', () => {

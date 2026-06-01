@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
-import { ScrollArea } from '@nimiplatform/kit/ui';
+import { IconToggleAction, ScrollArea } from '@nimiplatform/kit/ui';
 import { parseRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
-import { DesktopIconToggleAction } from '@renderer/components/action';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import {
   ProfileDetailModal,
@@ -549,7 +548,7 @@ export function ChatRelationshipRail({
       </ScrollArea>
       <div className="mt-2 flex w-full shrink-0 flex-col items-center gap-2 border-t border-white/70 px-1 pb-1 pt-3">
         {showNimiThreadToggle ? (
-          <DesktopIconToggleAction
+          <IconToggleAction
             icon={(
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -564,7 +563,7 @@ export function ChatRelationshipRail({
             className="h-10 w-10 rounded-2xl"
           />
         ) : null}
-        <DesktopIconToggleAction
+        <IconToggleAction
           icon={(
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />

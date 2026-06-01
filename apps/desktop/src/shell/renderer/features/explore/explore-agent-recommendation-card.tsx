@@ -1,6 +1,6 @@
 import { useMemo, type CSSProperties, type MouseEvent } from 'react';
 import { i18n } from '@renderer/i18n';
-import { DesktopCardSurface } from '@renderer/components/surface';
+import { AppCardSurface } from '@nimiplatform/kit/ui';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ExploreAgentCardData } from './explore-cards';
@@ -174,7 +174,7 @@ export function AgentRecommendationCard({
   };
   const pillLabel = primaryAction.label;
   return (
-    <DesktopCardSurface
+    <AppCardSurface
       kind="promoted-glass"
       className="group relative flex h-full w-full min-w-0 cursor-pointer flex-col gap-3.5 overflow-hidden p-4 transition-all duration-200"
       style={{ background: palette.background }}
@@ -353,6 +353,6 @@ export function AgentRecommendationCard({
           {pillLabel}
         </button>
       </div>
-    </DesktopCardSurface>
+    </AppCardSurface>
   );
 }

@@ -1,7 +1,5 @@
 import { useCallback } from 'react';
-import { cn } from '@nimiplatform/kit/ui';
-import { DesktopCompactAction } from '@renderer/components/action';
-import { DesktopCardSurface } from '@renderer/components/surface';
+import { AppCardSurface, cn, CompactAction } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { confirmDialog } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { CanonicalMemoryBankStatus } from '@renderer/infra/runtime-agent-memory';
@@ -80,7 +78,7 @@ export function ChatAgentCognitionPanel(props: ChatAgentCognitionPanelProps) {
   return (
     <div className="flex shrink-0 flex-col gap-4">
       {showMemoryCard ? (
-        <DesktopCardSurface
+        <AppCardSurface
           kind="operational-solid"
           as="section"
           data-testid={E2E_IDS.chatMemoryModeCard}
@@ -110,7 +108,7 @@ export function ChatAgentCognitionPanel(props: ChatAgentCognitionPanelProps) {
           </div>
           {props.memoryStatus?.mode === 'baseline' && allowMemoryUpgrade ? (
             <div className="mt-5 flex flex-col gap-2">
-              <DesktopCompactAction
+              <CompactAction
                 data-testid={E2E_IDS.chatMemoryModeUpgradeButton}
                 disabled={props.disabled || props.memoryLoading || !props.onUpgradeStandardMemory}
                 onClick={handleUpgradeStandardMemory}
@@ -118,10 +116,10 @@ export function ChatAgentCognitionPanel(props: ChatAgentCognitionPanelProps) {
                 fullWidth
               >
                 {t('Chat.memoryModeUpgradeAction', { defaultValue: 'Upgrade to Standard memory' })}
-              </DesktopCompactAction>
+              </CompactAction>
             </div>
           ) : null}
-        </DesktopCardSurface>
+        </AppCardSurface>
       ) : null}
     </div>
   );

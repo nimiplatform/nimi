@@ -1,6 +1,5 @@
 import type { HTMLAttributes, ReactNode } from 'react';
-import { cn } from '@nimiplatform/kit/ui';
-import { DesktopCardSurface } from '@renderer/components/surface';
+import { AppCardSurface, cn } from '@nimiplatform/kit/ui';
 
 export function ChatRightColumn(props: {
   children: ReactNode;
@@ -27,14 +26,14 @@ export function ChatRightColumnCard(props: {
   cardKey: 'primary' | 'status' | 'diagnostic' | 'settings';
 }) {
   return (
-    <DesktopCardSurface
+    <AppCardSurface
       kind="promoted-glass"
       as="section"
       className={cn('min-h-0 overflow-hidden', props.className)}
       data-chat-right-card={props.cardKey}
     >
       {props.children}
-    </DesktopCardSurface>
+    </AppCardSurface>
   );
 }
 

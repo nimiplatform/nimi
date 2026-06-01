@@ -1,13 +1,13 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  AppCardSurface,
   Button as KitButton,
   SettingsPageShell as KitSettingsPageShell,
   SettingsSectionTitle as KitSettingsSectionTitle,
   StatusBadge as KitStatusBadge,
   cn,
 } from '@nimiplatform/kit/ui';
-import { DesktopCardSurface } from '@renderer/components/surface';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 /* ------------------------------------------------------------------ */
@@ -24,7 +24,7 @@ export function Card({
   style?: CSSProperties;
 }) {
   return (
-    <DesktopCardSurface
+    <AppCardSurface
       kind="operational-solid"
       className={cn(
         className,
@@ -32,7 +32,7 @@ export function Card({
       style={style}
     >
       {children}
-    </DesktopCardSurface>
+    </AppCardSurface>
   );
 }
 

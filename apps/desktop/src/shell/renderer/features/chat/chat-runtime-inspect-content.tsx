@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { DesktopCardSurface } from '@renderer/components/surface';
+import { AppCardSurface } from '@nimiplatform/kit/ui';
 import { CanonicalRuntimeInspectSidebar } from '@nimiplatform/kit/features/chat/components/canonical-runtime-inspect-sidebar';
 import {
   type CanonicalRuntimeInspectPanelKey,
@@ -24,7 +24,7 @@ export function RuntimeInspectCard(props: {
   detail?: ReactNode;
 }) {
   return (
-    <DesktopCardSurface kind="operational-solid" as="div" className="px-3 py-3">
+    <AppCardSurface kind="operational-solid" as="div" className="px-3 py-3">
       <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">
         {props.label}
       </div>
@@ -36,15 +36,15 @@ export function RuntimeInspectCard(props: {
           {props.detail}
         </div>
       ) : null}
-    </DesktopCardSurface>
+    </AppCardSurface>
   );
 }
 
 export function RuntimeInspectUnsupportedNote(props: { label: string }) {
   return (
-    <DesktopCardSurface kind="operational-solid" as="div" className="border-dashed px-3 py-4 text-center text-[11px] text-gray-500">
+    <AppCardSurface kind="operational-solid" as="div" className="border-dashed px-3 py-4 text-center text-[11px] text-gray-500">
       {props.label}
-    </DesktopCardSurface>
+    </AppCardSurface>
   );
 }
 

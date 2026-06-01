@@ -13,30 +13,26 @@ const profileCollectionsSource = readWorkspaceFile('src/shell/renderer/features/
 const profileGiftsSource = readWorkspaceFile('src/shell/renderer/features/profile/gifts-tab.tsx');
 const profileFeedWithPreviewSource = readWorkspaceFile('src/shell/renderer/features/profile/post-feed-with-media-preview.tsx');
 
-test('W2 contacts/profile convergence: admitted profile tabs consume shared desktop surface and action primitives', () => {
-  assert.match(profilePostsSource, /import \{ DesktopCompactAction \} from '@renderer\/components\/action';/);
-  assert.match(profilePostsSource, /import \{ DesktopCardSurface \} from '@renderer\/components\/surface';/);
-  assert.match(profilePostsSource, /<DesktopCardSurface kind="promoted-glass"/);
-  assert.match(profilePostsSource, /<DesktopCompactAction tone="danger"/);
+test('W2 contacts/profile convergence: admitted profile tabs consume kit surface and action primitives', () => {
+  assert.match(profilePostsSource, /import \{ AppCardSurface, CompactAction \} from '@nimiplatform\/kit\/ui';/);
+  assert.match(profilePostsSource, /<AppCardSurface kind="promoted-glass"/);
+  assert.match(profilePostsSource, /<CompactAction tone="danger"/);
 
-  assert.match(profileLikesSource, /import \{ DesktopCompactAction \} from '@renderer\/components\/action';/);
-  assert.match(profileLikesSource, /import \{ DesktopCardSurface \} from '@renderer\/components\/surface';/);
-  assert.match(profileLikesSource, /<DesktopCardSurface kind="promoted-glass"/);
-  assert.match(profileLikesSource, /<DesktopCompactAction tone="danger"/);
+  assert.match(profileLikesSource, /import \{ AppCardSurface, CompactAction \} from '@nimiplatform\/kit\/ui';/);
+  assert.match(profileLikesSource, /<AppCardSurface kind="promoted-glass"/);
+  assert.match(profileLikesSource, /<CompactAction tone="danger"/);
 
-  assert.match(profileCollectionsSource, /import \{ DesktopCardSurface \} from '@renderer\/components\/surface';/);
-  assert.match(profileCollectionsSource, /<DesktopCardSurface kind="promoted-glass"/);
-  assert.doesNotMatch(profileCollectionsSource, /DesktopCompactAction/);
+  assert.match(profileCollectionsSource, /import \{ AppCardSurface \} from '@nimiplatform\/kit\/ui';/);
+  assert.match(profileCollectionsSource, /<AppCardSurface kind="promoted-glass"/);
+  assert.doesNotMatch(profileCollectionsSource, /CompactAction/);
 
-  assert.match(profileGiftsSource, /import \{ DesktopCompactAction \} from '@renderer\/components\/action';/);
-  assert.match(profileGiftsSource, /import \{ DesktopCardSurface \} from '@renderer\/components\/surface';/);
-  assert.match(profileGiftsSource, /<DesktopCardSurface kind="promoted-glass"/);
-  assert.match(profileGiftsSource, /<DesktopCompactAction[\s\S]*tone="primary"/);
+  assert.match(profileGiftsSource, /import \{ AppCardSurface, CompactAction, OverlayShell, ScrollArea \} from '@nimiplatform\/kit\/ui';/);
+  assert.match(profileGiftsSource, /<AppCardSurface kind="promoted-glass"/);
+  assert.match(profileGiftsSource, /<CompactAction[\s\S]*tone="primary"/);
 });
 
-test('W2 profile convergence: helper cohort uses shared desktop contracts without reopening hero exception', () => {
-  assert.match(profileFeedWithPreviewSource, /import \{ DesktopCompactAction \} from '@renderer\/components\/action';/);
-  assert.match(profileFeedWithPreviewSource, /import \{ DesktopCardSurface \} from '@renderer\/components\/surface';/);
+test('W2 profile convergence: helper cohort uses kit contracts without reopening hero exception', () => {
+  assert.match(profileFeedWithPreviewSource, /import \{ AppCardSurface, CompactAction \} from '@nimiplatform\/kit\/ui';/);
   assert.match(profileFeedWithPreviewSource, /ring-\[length:var\(--nimi-focus-ring-width\)\] ring-\[var\(--nimi-focus-ring-color\)\] ring-offset-4 ring-offset-\[var\(--nimi-surface-canvas\)\]/);
   assert.doesNotMatch(profileFeedWithPreviewSource, /ring-\[color:color-mix/);
 });

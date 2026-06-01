@@ -3,8 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { BLOCKED_USERS_UPDATED_EVENT } from '@renderer/features/social/data/blocked-content';
-import { DesktopCompactAction } from '@renderer/components/action';
-import { DesktopCardSurface } from '@renderer/components/surface';
+import { AppCardSurface, CompactAction } from '@nimiplatform/kit/ui';
 import { PostFeedWithMediaPreview } from './post-feed-with-media-preview.js';
 
 type PostDto = RealmModel<'PostDto'>;
@@ -29,7 +28,7 @@ function toErrorMessage(error: unknown, fallback: string): string {
 
 function PostSkeleton() {
   return (
-    <DesktopCardSurface kind="promoted-glass" as="div" className="animate-pulse p-5">
+    <AppCardSurface kind="promoted-glass" as="div" className="animate-pulse p-5">
       <div className="flex items-start gap-3">
         <div className="h-10 w-10 rounded-full bg-gray-200" />
         <div className="flex-1 space-y-2">
@@ -38,7 +37,7 @@ function PostSkeleton() {
         </div>
       </div>
       <div className="mt-4 h-56 rounded-2xl bg-gray-100" />
-    </DesktopCardSurface>
+    </AppCardSurface>
   );
 }
 
@@ -180,12 +179,12 @@ export function PostsTab({ profileId, layout = 'grid', blockedContent = false }:
 
   if (loadError && posts.length === 0) {
     return (
-      <DesktopCardSurface kind="operational-solid" as="div" className="p-4 text-sm text-red-700">
+      <AppCardSurface kind="operational-solid" as="div" className="p-4 text-sm text-red-700">
         <p>{loadError}</p>
-        <DesktopCompactAction tone="danger" onClick={() => { void fetchPosts(null); }} className="mt-3">
+        <CompactAction tone="danger" onClick={() => { void fetchPosts(null); }} className="mt-3">
           {t('Common.retry')}
-        </DesktopCompactAction>
-      </DesktopCardSurface>
+        </CompactAction>
+      </AppCardSurface>
     );
   }
 

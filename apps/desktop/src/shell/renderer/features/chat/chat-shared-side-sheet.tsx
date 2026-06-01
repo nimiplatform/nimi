@@ -1,10 +1,7 @@
 import type { ReactNode } from 'react';
-import { cn } from '@nimiplatform/kit/ui';
+import { AppCardSurface, cn, IconToggleAction, ScrollShell } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
-import { DesktopIconToggleAction } from '@renderer/components/action';
-import { DesktopCardSurface } from '@renderer/components/surface';
 import { EntityAvatar } from '@renderer/components/entity-avatar';
-import { ScrollShell } from '@renderer/components/scroll-shell';
 
 export type ChatSideSheetProps = {
   title: ReactNode;
@@ -41,7 +38,7 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
       className={cn('mr-2 flex min-h-0 shrink-0', widthClassName, props.className)}
       data-chat-shared-side-sheet={props.sheetKey}
     >
-      <DesktopCardSurface
+      <AppCardSurface
         kind="promoted-glass"
         as="section"
         className="flex min-h-0 flex-1 flex-col overflow-hidden"
@@ -92,7 +89,7 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
               </>
             )}
           </div>
-          <DesktopIconToggleAction
+          <IconToggleAction
             icon={(
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -117,7 +114,7 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
             {props.footer}
           </div>
         ) : null}
-      </DesktopCardSurface>
+      </AppCardSurface>
     </aside>
   );
 }

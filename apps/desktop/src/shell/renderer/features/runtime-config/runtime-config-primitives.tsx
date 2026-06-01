@@ -2,12 +2,12 @@ import { type ReactNode } from 'react';
 import { i18n } from '@renderer/i18n';
 
 import {
+  AppCardSurface,
   Button as KitButton,
   TextField,
   SelectField as KitSelectField,
   cn,
 } from '@nimiplatform/kit/ui';
-import { DesktopCardSurface } from '@renderer/components/surface';
 import {
   statusTextV11,
   type ProviderStatusV11,
@@ -21,12 +21,12 @@ export function Card({
   className?: string;
 }) {
   return (
-    <DesktopCardSurface
+    <AppCardSurface
       kind="operational-solid"
       className={cn(className)}
     >
       {children}
-    </DesktopCardSurface>
+    </AppCardSurface>
   );
 }
 

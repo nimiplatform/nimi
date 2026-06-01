@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { DesktopCompactAction } from '@renderer/components/action';
-import { DesktopCardSurface } from '@renderer/components/surface';
+import { AppCardSurface, CompactAction } from '@nimiplatform/kit/ui';
 import { PostCard } from '@renderer/features/home/post-card';
 import { usePostCardActionAdapter } from '@renderer/features/home/post-card-action-adapter';
 
@@ -130,12 +129,12 @@ export function PostFeedWithMediaPreview({
           ) : null}
         </section>
         {loadError ? (
-          <DesktopCardSurface kind="operational-solid" as="div" className="px-4 py-3 text-xs text-red-700">
+          <AppCardSurface kind="operational-solid" as="div" className="px-4 py-3 text-xs text-red-700">
             <p>{loadError}</p>
-            <DesktopCompactAction tone="danger" onClick={onRetryLoadMore} className="mt-2">
+            <CompactAction tone="danger" onClick={onRetryLoadMore} className="mt-2">
               {retryLabel}
-            </DesktopCompactAction>
-          </DesktopCardSurface>
+            </CompactAction>
+          </AppCardSurface>
         ) : null}
         <div ref={loadMoreRef} className="h-1" />
       </div>
@@ -190,12 +189,12 @@ export function PostFeedWithMediaPreview({
       ) : null}
 
       {loadError ? (
-        <DesktopCardSurface kind="operational-solid" as="div" className="px-4 py-3 text-xs text-red-700">
+        <AppCardSurface kind="operational-solid" as="div" className="px-4 py-3 text-xs text-red-700">
           <p>{loadError}</p>
-          <DesktopCompactAction tone="danger" onClick={onRetryLoadMore} className="mt-2">
+          <CompactAction tone="danger" onClick={onRetryLoadMore} className="mt-2">
             {retryLabel}
-          </DesktopCompactAction>
-        </DesktopCardSurface>
+          </CompactAction>
+        </AppCardSurface>
       ) : null}
       <div ref={loadMoreRef} className="h-1" />
     </div>

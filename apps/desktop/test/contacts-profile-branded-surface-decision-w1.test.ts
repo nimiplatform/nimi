@@ -31,10 +31,10 @@ test('W1 shared profile branded decision: hero shell is the only admitted contro
 });
 
 test('W1 shared profile branded decision: feed cards are frozen as converging cohorts, not branded exceptions', () => {
-  assert.match(profilePostsSource, /DesktopCardSurface|rounded-\[24px\]/);
-  assert.match(profileLikesSource, /DesktopCardSurface|rounded-\[24px\]/);
-  assert.match(profileCollectionsSource, /DesktopCardSurface|rounded-\[24px\]/);
-  assert.match(profileGiftsSource, /DesktopCardSurface|rounded-\[24px\]|#4ECCA3/);
+  assert.match(profilePostsSource, /AppCardSurface|rounded-\[24px\]/);
+  assert.match(profileLikesSource, /AppCardSurface|rounded-\[24px\]/);
+  assert.match(profileCollectionsSource, /AppCardSurface|rounded-\[24px\]/);
+  assert.match(profileGiftsSource, /AppCardSurface|rounded-\[24px\]|#4ECCA3/);
   assert.doesNotMatch(desktopSurfacesSpec, /id: contacts\.friend_requests\.cards/);
   assert.match(desktopSurfacesSpec, /id: profile\.posts\.cards[\s\S]*surface_profile: secondary[\s\S]*exception_policy: none[\s\S]*source_rule: D-SHELL-032/);
   assert.match(desktopSurfacesSpec, /id: profile\.likes\.cards[\s\S]*surface_profile: secondary[\s\S]*exception_policy: none[\s\S]*source_rule: D-SHELL-032/);

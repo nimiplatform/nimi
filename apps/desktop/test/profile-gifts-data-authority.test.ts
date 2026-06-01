@@ -21,6 +21,6 @@ test('profile gifts tab declares unavailable gift data instead of mock state', (
   assert.match(giftsTabSource, /Profile\.Gifts\.requirementSupporters/);
   assert.match(giftsTabSource, /Profile\.Gifts\.requirementBalance/);
   assert.match(giftsTabSource, /dataTestId=\{E2E_IDS\.profileTopSupportersDialog\}/);
-  assert.match(giftsTabSource, /<DesktopCardSurface kind="promoted-glass"/);
-  assert.match(giftsTabSource, /<DesktopCompactAction[\s\S]*tone="primary"/);
+  assert.match(giftsTabSource, /<AppCardSurface kind="promoted-glass"/);
+  assert.match(giftsTabSource, /<CompactAction[\s\S]*tone="primary"/);
 });

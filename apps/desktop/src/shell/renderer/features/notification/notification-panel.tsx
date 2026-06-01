@@ -1,6 +1,6 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useEffect, useMemo, useState } from 'react';
-import { Button, ScrollArea, Surface } from '@nimiplatform/kit/ui';
+import { AppCardSurface, Button, ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
   getRealmNotificationBadgeKey,
@@ -25,7 +25,6 @@ import {
   rejectRealmGift,
 } from '@nimiplatform/kit/features/commerce/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { DesktopCardSurface } from '@renderer/components/surface';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { i18n } from '@renderer/i18n';
@@ -552,12 +551,12 @@ export function NotificationPanel() {
   if (authStatus !== 'authenticated') {
     return (
       <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 px-5 pb-5 pt-4">
-        <DesktopCardSurface
+        <AppCardSurface
           kind="promoted-glass"
           className="flex flex-1 items-center justify-center rounded-[2rem] border-white/60 text-sm text-[var(--nimi-text-secondary)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
         >
           {t('NotificationPanel.loginRequired')}
-        </DesktopCardSurface>
+        </AppCardSurface>
       </div>
     );
   }
@@ -617,20 +616,20 @@ export function NotificationPanel() {
         contentClassName="mx-auto w-full max-w-4xl space-y-3 px-1 py-5"
       >
         {notificationsQuery.isPending && items.length === 0 ? (
-          <DesktopCardSurface kind="promoted-glass" className="p-8 text-center text-sm text-[var(--nimi-text-secondary)]">
+          <AppCardSurface kind="promoted-glass" className="p-8 text-center text-sm text-[var(--nimi-text-secondary)]">
             <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-mint-200 border-t-mint-500" />
             {t('NotificationPanel.loading', { defaultValue: 'Loading notifications...' })}
-          </DesktopCardSurface>
+          </AppCardSurface>
         ) : null}
 
         {notificationsQuery.isError && items.length === 0 ? (
-          <DesktopCardSurface kind="promoted-glass" className="border-red-200/70 p-8 text-center text-sm text-red-700">
+          <AppCardSurface kind="promoted-glass" className="border-red-200/70 p-8 text-center text-sm text-red-700">
             {t('NotificationPanel.loadError', { defaultValue: 'Failed to load notifications' })}
-          </DesktopCardSurface>
+          </AppCardSurface>
         ) : null}
 
         {!notificationsQuery.isPending && !notificationsQuery.isError && filteredItems.length === 0 ? (
-          <DesktopCardSurface kind="promoted-glass" className="p-8 text-center text-sm text-[var(--nimi-text-secondary)]">
+          <AppCardSurface kind="promoted-glass" className="p-8 text-center text-sm text-[var(--nimi-text-secondary)]">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)] text-[var(--nimi-action-primary-bg)]">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -638,7 +637,7 @@ export function NotificationPanel() {
               </svg>
             </div>
             {t('NotificationPanel.empty', { defaultValue: 'No notifications' })}
-          </DesktopCardSurface>
+          </AppCardSurface>
         ) : null}
 
         {filteredItems.map((item) => {
@@ -654,7 +653,7 @@ export function NotificationPanel() {
           );
 
           return (
-            <DesktopCardSurface
+            <AppCardSurface
               key={item.id}
               onClick={() => {
                 if (!itemBusy) {
@@ -744,7 +743,7 @@ export function NotificationPanel() {
                   </div>
                 </div>
               </div>
-            </DesktopCardSurface>
+            </AppCardSurface>
           );
         })}
 

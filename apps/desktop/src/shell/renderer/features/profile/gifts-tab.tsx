@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { OverlayShell, ScrollArea } from '@nimiplatform/kit/ui';
-import { DesktopCompactAction } from '@renderer/components/action';
-import { DesktopCardSurface } from '@renderer/components/surface';
+import { AppCardSurface, CompactAction, OverlayShell, ScrollArea } from '@nimiplatform/kit/ui';
 import { i18n } from '@renderer/i18n';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
@@ -98,9 +96,9 @@ function TopSupportersModal({
         </div>
       </ScrollArea>
       <div className="flex justify-end border-t border-gray-100 bg-gray-50 px-6 py-4">
-        <DesktopCompactAction onClick={onClose} tone="primary">
+        <CompactAction onClick={onClose} tone="primary">
           {i18n.t('Common.close', { defaultValue: 'Close' })}
-        </DesktopCompactAction>
+        </CompactAction>
       </div>
     </OverlayShell>
   );
@@ -111,7 +109,7 @@ export function GiftsTab() {
 
   return (
     <div className="space-y-6">
-      <DesktopCardSurface kind="promoted-glass" as="div" className="p-6">
+      <AppCardSurface kind="promoted-glass" as="div" className="p-6">
         <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
           <div className="flex min-w-0 items-start gap-4">
             <GiftDataGlyph />
@@ -126,20 +124,20 @@ export function GiftsTab() {
               </p>
             </div>
           </div>
-          <DesktopCompactAction
+          <CompactAction
             onClick={() => setShowSupportersModal(true)}
             tone="primary"
           >
             {i18n.t('Profile.Gifts.viewDataStatus', { defaultValue: 'View data status' })}
-          </DesktopCompactAction>
+          </CompactAction>
         </div>
-      </DesktopCardSurface>
+      </AppCardSurface>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {DATA_REQUIREMENTS.map((key) => (
-          <DesktopCardSurface key={key} kind="promoted-glass" as="div" className="p-5">
+          <AppCardSurface key={key} kind="promoted-glass" as="div" className="p-5">
             <p className="text-sm leading-relaxed text-gray-700">{i18n.t(key)}</p>
-          </DesktopCardSurface>
+          </AppCardSurface>
         ))}
       </div>
 

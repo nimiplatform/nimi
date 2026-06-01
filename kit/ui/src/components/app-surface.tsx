@@ -1,9 +1,59 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
-import { Button, IconButton, cn } from '@nimiplatform/kit/ui';
+import type { ButtonHTMLAttributes, CSSProperties, ElementType, HTMLAttributes, ReactNode } from 'react';
+import { cn } from '../design-tokens.js';
+import { Button, IconButton } from './button.js';
+import { Surface } from './surface.js';
 
-type DesktopCompactActionTone = 'neutral' | 'primary' | 'danger';
+export type AppCardSurfaceKind = 'promoted-glass' | 'operational-solid';
 
-function toButtonTone(tone: DesktopCompactActionTone) {
+const APP_CARD_SURFACE_CLASS: Record<AppCardSurfaceKind, string> = {
+  'promoted-glass': 'rounded-2xl border-white/60 bg-[var(--nimi-surface-card-promoted-glass-elevated)] shadow-[0_14px_34px_rgba(15,23,42,0.05)]',
+  'operational-solid': 'rounded-2xl border-[color:var(--nimi-border-subtle)] bg-[var(--nimi-surface-card-operational-solid-elevated)] shadow-[0_10px_22px_rgba(15,23,42,0.04)]',
+};
+
+type AppCardSurfaceProps = {
+  kind?: AppCardSurfaceKind;
+  as?: ElementType;
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+  interactive?: boolean;
+  active?: boolean;
+} & Omit<HTMLAttributes<HTMLElement>, 'children' | 'className' | 'style'>;
+
+export function AppCardSurface(props: AppCardSurfaceProps) {
+  const {
+    kind = 'operational-solid',
+    as = 'section',
+    children,
+    className,
+    style,
+    interactive = false,
+    active = false,
+    ...domProps
+  } = props;
+
+  return (
+    <Surface
+      {...domProps}
+      as={as}
+      tone="card"
+      material={kind === 'promoted-glass' ? 'glass-regular' : 'solid'}
+      elevation="base"
+      padding="none"
+      interactive={interactive}
+      active={active}
+      data-nimi-app-card-surface={kind}
+      className={cn(APP_CARD_SURFACE_CLASS[kind], className)}
+      style={style}
+    >
+      {children}
+    </Surface>
+  );
+}
+
+export type CompactActionTone = 'neutral' | 'primary' | 'danger';
+
+function toButtonTone(tone: CompactActionTone) {
   if (tone === 'primary') {
     return 'primary' as const;
   }
@@ -13,10 +63,10 @@ function toButtonTone(tone: DesktopCompactActionTone) {
   return 'secondary' as const;
 }
 
-export function DesktopCompactAction(
+export function CompactAction(
   props: ButtonHTMLAttributes<HTMLButtonElement> & {
     children: ReactNode;
-    tone?: DesktopCompactActionTone;
+    tone?: CompactActionTone;
     fullWidth?: boolean;
   },
 ) {
@@ -40,7 +90,7 @@ export function DesktopCompactAction(
   );
 }
 
-export function DesktopIconToggleAction(
+export function IconToggleAction(
   props: ButtonHTMLAttributes<HTMLButtonElement> & {
     icon: ReactNode;
     active?: boolean;
@@ -72,7 +122,7 @@ export function DesktopIconToggleAction(
   );
 }
 
-export function DesktopFieldTrigger(
+export function FieldTrigger(
   props: ButtonHTMLAttributes<HTMLButtonElement> & {
     children: ReactNode;
   },
@@ -95,3 +145,21 @@ export function DesktopFieldTrigger(
     </button>
   );
 }
+
+export type ScrollShellProps = HTMLAttributes<HTMLDivElement>;
+
+export function ScrollShell({ className, ...props }: ScrollShellProps) {
+  return (
+    <div
+      {...props}
+      className={cn('min-h-0 overflow-y-auto overscroll-contain', className)}
+    />
+  );
+}
+
+export type StateTone = 'selected' | 'danger';
+
+export const STATE_TONE_CLASS: Record<StateTone, string> = {
+  selected: 'bg-[var(--nimi-surface-active)]',
+  danger: 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_var(--nimi-opacity-subtle-fill),transparent)]',
+};

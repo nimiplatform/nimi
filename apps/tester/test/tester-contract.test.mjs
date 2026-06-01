@@ -131,6 +131,11 @@ test('tester kit gallery showcases real kit components for third-party apps', ()
   for (const required of [
     'Button',
     'IconButton',
+    'AppCardSurface',
+    'CompactAction',
+    'IconToggleAction',
+    'FieldTrigger',
+    'ScrollShell',
     'TextField',
     'TextareaField',
     'SelectField',

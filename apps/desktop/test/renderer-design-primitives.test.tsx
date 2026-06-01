@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
-import { Button, IconButton, SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell, Surface } from '@nimiplatform/kit/ui';
+import { Button, IconButton, SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell, Surface, STATE_TONE_CLASS } from '@nimiplatform/kit/ui';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { STATE_TONE_CLASS } from '../src/shell/renderer/components/design-tokens.js';
 
 test('surface renders with tone and elevation', () => {
   const markup = renderToStaticMarkup(
