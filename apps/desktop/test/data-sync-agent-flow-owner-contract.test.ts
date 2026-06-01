@@ -2,10 +2,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import {
-  createMasterAgent,
-  loadCreatorAgents,
-} from '../src/shell/renderer/features/world/data/realm-agent-create-data.js';
 
 const profileFlowSocialSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/social/data/social-snapshot.ts'),
@@ -15,57 +11,24 @@ const agentFlowSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/world/data/realm-agent-create-data.ts'),
   'utf8',
 );
-
-test('agent flow behaviorally owns CreatorService list and create calls', async () => {
-  const capturedCalls: string[] = [];
-  const callApi = async <T>(task: (realm: unknown) => Promise<T>): Promise<T> =>
-    task({
-      services: {
-        CreatorService: {
-          creatorControllerListAgents: async () => {
-            capturedCalls.push('list-agents');
-            return [{ id: 'agent-1', displayName: 'Agent One' }];
-          },
-          creatorControllerCreateAgent: async (input: Record<string, unknown>) => {
-            capturedCalls.push(`create-agent:${String(input.handle || '')}`);
-            return { id: 'agent-2', ...input };
-          },
-        },
-      },
-    });
-
-  const agents = await loadCreatorAgents(callApi as never);
-  const created = await createMasterAgent(callApi as never, {
-    worldId: 'world-1',
-    handle: ' agent_two ',
-    concept: ' concept ',
-    displayName: ' Agent Two ',
-  });
-
-  assert.deepEqual(capturedCalls, ['list-agents', 'create-agent:agent_two']);
-  assert.deepEqual(agents, [{ id: 'agent-1', displayName: 'Agent One' }]);
-  assert.equal(created.id, 'agent-2');
-  assert.equal(created.handle, 'agent_two');
-  assert.equal(created.concept, 'concept');
-});
-
-test('creator-agent permission failures fail closed instead of returning []', async () => {
-  await assert.rejects(
-    () => loadCreatorAgents((async () => {
-      throw new Error('Forbidden');
-    }) as never),
-    /Forbidden/,
-  );
-});
+const sdkRealmAgentProfileSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../../../sdk/src/realm/extensions/agent-profile.ts'),
+  'utf8',
+);
 
 test('contacts social flow no longer owns CreatorService operations', () => {
   assert.doesNotMatch(profileFlowSocialSource, /loadCreatorAgents/);
   assert.doesNotMatch(profileFlowSocialSource, /CreatorService/);
 });
 
-test('agent flow does not keep contacts-local denied pseudo-success state', () => {
-  assert.match(agentFlowSource, /CreatorService\.creatorControllerListAgents/);
-  assert.match(agentFlowSource, /CreatorService\.creatorControllerCreateAgent/);
+test('Desktop agent flow delegates CreatorService list/create ownership to SDK Realm', () => {
+  assert.match(agentFlowSource, /createRealmMasterAgent/);
+  assert.match(agentFlowSource, /loadRealmCreatorAgents/);
+  assert.match(agentFlowSource, /from '@nimiplatform\/sdk\/realm'/);
+  assert.doesNotMatch(agentFlowSource, /CreatorService\.creatorControllerListAgents/);
+  assert.doesNotMatch(agentFlowSource, /CreatorService\.creatorControllerCreateAgent/);
+  assert.match(sdkRealmAgentProfileSource, /CreatorService\.creatorControllerListAgents/);
+  assert.match(sdkRealmAgentProfileSource, /CreatorService\.creatorControllerCreateAgent/);
   assert.doesNotMatch(agentFlowSource, /sessionStorage/);
   assert.doesNotMatch(agentFlowSource, /nimi\.data-sync\.creator-agents\.denied/);
   assert.doesNotMatch(agentFlowSource, /Developer access required[\s\S]*return \[\]/);

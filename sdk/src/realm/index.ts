@@ -58,6 +58,8 @@ export { uploadRealmResourceFile, uploadRealmResourceFileWithRealm } from './ext
 export { enrichRealmProfileWithWorldBanner, fetchRealmAgentFriendLimit, fetchRealmPendingFriendRequests, loadRealmSocialSnapshot } from './extensions/social-snapshot.js';
 export { addRealmFriendById, blockRealmUser, buildEmptyRealmPostFeedResponse, createRealmPost, createRealmReport, deleteRealmPost, executeRealmSocialMutation, likeRealmPost, loadRealmCurrentUserProfile, loadRealmExploreAgents, loadRealmExploreFeedItems, loadRealmLikedPosts, loadRealmPostById, loadRealmPostFeed, loadRealmUserProfileById, removeRealmFriendById, unblockRealmUser, unlikeRealmPost, updateRealmCurrentUserProfile, updateRealmPostVisibility } from './extensions/social-feed.js';
 export type { LoadRealmExploreAgentsInput, RealmPostFeedInput, RealmSocialFeedApiCaller, RealmSocialFeedErrorEmitter, RealmSocialMutationExecutionInput, RealmSocialMutationKind } from './extensions/social-feed.js';
+export { createRealmMasterAgent, enrichRealmAgentProfileWithWorldBanner, loadRealmAgentDetails, loadRealmCreatorAgents } from './extensions/agent-profile.js';
+export type { CreateRealmMasterAgentInput, RealmAgentProfileApiCaller, RealmAgentProfileErrorEmitter } from './extensions/agent-profile.js';
 export { buildRealmWorldDetailWithAgentsCacheKey, loadRealmMainWorld, loadRealmWorldAgents, loadRealmWorldBindings, loadRealmWorldDetailById, loadRealmWorldDetailWithAgents, loadRealmWorldHistory, loadRealmWorldLevelAudits, loadRealmWorldList, loadRealmWorldLorebooks, loadRealmWorldScenes, loadRealmWorldSemanticBundle } from './extensions/world-data.js';
 
 // Realm client exports.

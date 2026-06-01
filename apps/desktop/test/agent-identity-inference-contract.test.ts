@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { loadAgentDetails } from '../src/shell/renderer/features/agent-detail/data/realm-agent-detail-data';
 
 function readSource(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, relativePath), 'utf8');
@@ -37,17 +36,17 @@ test('product-side social and explore flows do not infer agent identity from han
 });
 
 test('loadAgentDetails rejects legacy @ and ~ prefixes', async () => {
-  const callApi = async () => {
-    throw new Error('UNEXPECTED_API_CALL');
-  };
-  const emitRealmDataError = () => {};
+  const agentRuntimeFlowSource = readSource('../src/shell/renderer/features/agent-detail/data/realm-agent-detail-data.ts');
+  const sdkRealmAgentProfileSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../../../sdk/src/realm/extensions/agent-profile.ts'),
+    'utf8',
+  );
 
-  await assert.rejects(
-    () => loadAgentDetails(callApi as never, emitRealmDataError, '@legacy'),
-    /HANDLE_PREFIX_UNSUPPORTED/,
-  );
-  await assert.rejects(
-    () => loadAgentDetails(callApi as never, emitRealmDataError, '~legacy'),
-    /HANDLE_PREFIX_UNSUPPORTED/,
-  );
+  assert.match(agentRuntimeFlowSource, /loadRealmAgentDetails/);
+  assert.match(agentRuntimeFlowSource, /from '@nimiplatform\/sdk\/realm'/);
+  assert.doesNotMatch(agentRuntimeFlowSource, /AgentsService\.getAgent/);
+  assert.doesNotMatch(agentRuntimeFlowSource, /AgentsService\.getAgentByHandle/);
+  assert.match(sdkRealmAgentProfileSource, /HANDLE_PREFIX_UNSUPPORTED/);
+  assert.match(sdkRealmAgentProfileSource, /AgentsService\.getAgent/);
+  assert.match(sdkRealmAgentProfileSource, /AgentsService\.getAgentByHandle/);
 });

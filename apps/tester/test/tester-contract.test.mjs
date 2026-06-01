@@ -1240,6 +1240,7 @@ test('tester settings consumes SDK Realm data sync DX surface', () => {
   const worldDisplayProjection = read('src/tester/tester-world-display-projection.ts');
   const worldEvolutionSelectorRead = read('src/tester/tester-world-evolution-selector-read.ts');
   const realmSocialFeed = read('src/tester/tester-realm-social-feed-projection.ts');
+  const realmAgentProfile = read('src/tester/tester-realm-agent-profile-projection.ts');
 
   assert.match(settings, /loadRealmSocialSnapshot/);
   assert.match(settings, /loadRealmWorldSemanticBundle/);
@@ -1258,6 +1259,12 @@ test('tester settings consumes SDK Realm data sync DX surface', () => {
   assert.match(realmSocialFeed, /loadRealmExploreFeedItems/);
   assert.match(realmSocialFeed, /executeRealmSocialMutation/);
   assert.match(realmSocialFeed, /from '@nimiplatform\/sdk\/realm'/);
+  assert.match(settings, /SDK Realm agent profile projection/);
+  assert.match(settings, /loadTesterRealmAgentProfileProjection/);
+  assert.match(realmAgentProfile, /loadRealmAgentDetails/);
+  assert.match(realmAgentProfile, /loadRealmCreatorAgents/);
+  assert.match(realmAgentProfile, /createRealmMasterAgent/);
+  assert.match(realmAgentProfile, /from '@nimiplatform\/sdk\/realm'/);
 });
 
 test('tester settings consumes SDK memory embedding route availability projection', () => {

@@ -1,4 +1,8 @@
-import type { Realm } from '@nimiplatform/sdk/realm';
+import {
+  loadRealmAgentDetails,
+  type RealmAgentProfileApiCaller,
+  type RealmAgentProfileErrorEmitter,
+} from '@nimiplatform/sdk/realm';
 import type { JsonObject } from '@nimiplatform/sdk/types';
 import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -7,13 +11,6 @@ import {
   getOfflineCoordinator,
   isRealmOfflineError,
 } from '@renderer/infra/offline';
-
-type RealmAgentDetailApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
-type RealmAgentDetailErrorEmitter = (
-  action: string,
-  error: unknown,
-  details?: JsonObject,
-) => void;
 
 // Module-level TTL cache for profile lookups.
 const profileCache = new Map<string, { value: unknown; expiresAt: number }>();
@@ -32,7 +29,7 @@ function cacheSet(key: string, value: unknown, ttlMs: number) {
 }
 
 async function applyAgentProfileReadFilters(input: {
-  emitRealmAgentDetailError: RealmAgentDetailErrorEmitter;
+  emitRealmAgentDetailError: RealmAgentProfileErrorEmitter;
   viewerUserId?: string;
   worldId?: string;
   profile: JsonObject;
@@ -45,180 +42,13 @@ async function applyAgentProfileReadFilters(input: {
   };
 }
 
-function toRecord(value: unknown): JsonObject | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-  return value as JsonObject;
-}
-
 function toNonEmptyString(value: unknown): string {
   return String(value || '').trim();
 }
 
-function hasLegacyHandlePrefix(value: string): boolean {
-  return value.startsWith('@') || value.startsWith('~');
-}
-
-function toNullableString(value: unknown): string | null {
-  const normalized = toNonEmptyString(value);
-  return normalized || null;
-}
-
-function extractAgentWorldId(profile: JsonObject): string | null {
-  const direct = toNonEmptyString(profile.worldId);
-  if (direct) {
-    return direct;
-  }
-
-  const agent = toRecord(profile.agent);
-  const fromAgent = toNonEmptyString(agent?.worldId);
-  if (fromAgent) {
-    return fromAgent;
-  }
-
-  const agentProfile = toRecord(profile.agentProfile);
-  const fromAgentProfile = toNonEmptyString(agentProfile?.worldId);
-  if (fromAgentProfile) {
-    return fromAgentProfile;
-  }
-
-  return null;
-}
-
-function extractWorldBannerUrl(profile: JsonObject): string | null {
-  const direct = toNonEmptyString(profile.worldBannerUrl);
-  if (direct) {
-    return direct;
-  }
-
-  const world = toRecord(profile.world);
-  const fromWorld = toNonEmptyString(world?.bannerUrl);
-  if (fromWorld) {
-    return fromWorld;
-  }
-
-  const agentProfile = toRecord(profile.agentProfile);
-  const fromAgentProfile = toNonEmptyString(agentProfile?.worldBannerUrl);
-  if (fromAgentProfile) {
-    return fromAgentProfile;
-  }
-
-  return null;
-}
-
-function extractWorldName(profile: JsonObject): string | null {
-  const direct = toNonEmptyString(profile.worldName);
-  if (direct) {
-    return direct;
-  }
-
-  const world = toRecord(profile.world);
-  const fromWorld = toNonEmptyString(world?.name);
-  if (fromWorld) {
-    return fromWorld;
-  }
-
-  const agentProfile = toRecord(profile.agentProfile);
-  const fromAgentProfile = toNonEmptyString(agentProfile?.worldName);
-  if (fromAgentProfile) {
-    return fromAgentProfile;
-  }
-
-  return null;
-}
-
-async function enrichAgentProfileWithWorldBanner(
-  callApi: RealmAgentDetailApiCaller,
-  profile: JsonObject,
-): Promise<JsonObject> {
-  const existingBannerUrl = extractWorldBannerUrl(profile);
-  const existingWorldName = extractWorldName(profile);
-  if (existingBannerUrl && existingWorldName) {
-    return profile;
-  }
-
-  const worldId = extractAgentWorldId(profile);
-  if (!worldId) {
-    return profile;
-  }
-
-  try {
-    const world = await callApi(
-      (realm) => realm.services.WorldsService.worldControllerGetWorld(worldId),
-      'Failed to load world detail',
-    );
-    const worldRecord = toRecord(world);
-    if (!worldRecord) {
-      return profile;
-    }
-
-    return {
-      ...profile,
-      worldName: existingWorldName || toNullableString(worldRecord.name),
-      worldBannerUrl: existingBannerUrl || toNullableString(worldRecord.bannerUrl),
-      world: {
-        ...(toRecord(profile.world) || {}),
-        ...worldRecord,
-        bannerUrl: existingBannerUrl || toNullableString(worldRecord.bannerUrl),
-      },
-    };
-  } catch {
-    return profile;
-  }
-}
-
-function isAgentProfile(profile: JsonObject): boolean {
-  if (profile.isAgent === true) {
-    return true;
-  }
-  if (toRecord(profile.agent) || toRecord(profile.agentProfile)) {
-    return true;
-  }
-  return false;
-}
-
-async function getProfileByHandle(
-  callApi: RealmAgentDetailApiCaller,
-  handleCandidate: string,
-): Promise<JsonObject | null> {
-  const normalized = toNonEmptyString(handleCandidate);
-  if (!normalized) {
-    return null;
-  }
-  try {
-    const payload = await callApi(
-      (realm) => realm.services.AgentsService.getAgentByHandle(normalized),
-      '按 handle 加载 Agent 资料失败',
-    );
-    return toRecord(payload);
-  } catch {
-    return null;
-  }
-}
-
-async function getProfileById(
-  callApi: RealmAgentDetailApiCaller,
-  agentId: string,
-): Promise<JsonObject | null> {
-  const normalized = toNonEmptyString(agentId);
-  if (!normalized) {
-    return null;
-  }
-  try {
-    const payload = await callApi(
-      (realm) => realm.services.AgentsService.getAgent(normalized),
-      '按 id 加载 Agent 资料失败',
-    );
-    return toRecord(payload);
-  } catch {
-    return null;
-  }
-}
-
 export async function loadAgentDetails(
-  callApi: RealmAgentDetailApiCaller,
-  emitRealmAgentDetailError: RealmAgentDetailErrorEmitter,
+  callApi: RealmAgentProfileApiCaller,
+  emitRealmAgentDetailError: RealmAgentProfileErrorEmitter,
   agentIdentifier: string,
   context?: {
     viewerUserId?: string;
@@ -226,12 +56,6 @@ export async function loadAgentDetails(
   },
 ) {
   const normalizedIdentifier = toNonEmptyString(agentIdentifier);
-  if (!normalizedIdentifier) {
-    throw new Error('AGENT_ID_REQUIRED');
-  }
-  if (hasLegacyHandlePrefix(normalizedIdentifier)) {
-    throw new Error('HANDLE_PREFIX_UNSUPPORTED');
-  }
 
   try {
     const cacheKey = `agent-profile:${normalizedIdentifier}`;
@@ -245,18 +69,11 @@ export async function loadAgentDetails(
       });
     }
 
-    let profile: JsonObject | null = null;
-
-    profile = await getProfileById(callApi, normalizedIdentifier);
-    if (!profile) {
-      profile = await getProfileByHandle(callApi, normalizedIdentifier);
-    }
-
-    if (!profile || !isAgentProfile(profile)) {
-      throw new Error('AGENT_PROFILE_NOT_FOUND');
-    }
-
-    const enrichedProfile = await enrichAgentProfileWithWorldBanner(callApi, profile);
+    const enrichedProfile = await loadRealmAgentDetails(
+      callApi,
+      () => undefined,
+      normalizedIdentifier,
+    );
 
     const resolvedId = toNonEmptyString(enrichedProfile.id);
     if (resolvedId) {

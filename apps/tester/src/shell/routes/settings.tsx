@@ -149,6 +149,7 @@ import { createTesterLocalRuntimeAssetKindProjection } from '../../tester/tester
 import { createTesterWorldDisplayProjection } from '../../tester/tester-world-display-projection';
 import { loadTesterWorldEvolutionSelectorReadProjection } from '../../tester/tester-world-evolution-selector-read';
 import { loadTesterRealmSocialFeedProjection } from '../../tester/tester-realm-social-feed-projection';
+import { loadTesterRealmAgentProfileProjection } from '../../tester/tester-realm-agent-profile-projection';
 import { createTesterRuntimeConfigProjection } from '../../tester/tester-runtime-config-projection';
 import {
   loadTesterRuntimeRouteHostAccessProjection,
@@ -619,6 +620,9 @@ export function SettingsRoute() {
   });
   const realmSocialFeedProjection = useTypedProjection(loadTesterRealmSocialFeedProjection, {
     failClosedMessage: 'SDK Realm social/feed projection unavailable',
+  });
+  const realmAgentProfileProjection = useTypedProjection(loadTesterRealmAgentProfileProjection, {
+    failClosedMessage: 'SDK Realm agent profile projection unavailable',
   });
   useEffect(() => {
     let cancelled = false;
@@ -2077,6 +2081,16 @@ export function SettingsRoute() {
             ? `${realmSocialFeedProjection.data.postScope}/${realmSocialFeedProjection.data.exploreCursor}/${realmSocialFeedProjection.data.mutationCount}`
             : realmSocialFeedProjection.status === 'failed'
               ? realmSocialFeedProjection.error
+              : 'checking'}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK Realm agent profile projection</span>
+        <StatusBadge tone={realmAgentProfileProjection.status === 'ready' ? 'success' : realmAgentProfileProjection.status === 'failed' ? 'danger' : 'warning'}>
+          {realmAgentProfileProjection.status === 'ready' && realmAgentProfileProjection.data
+            ? `${realmAgentProfileProjection.data.agentId}/${realmAgentProfileProjection.data.creatorCount}/${realmAgentProfileProjection.data.createdOwnershipType}`
+            : realmAgentProfileProjection.status === 'failed'
+              ? realmAgentProfileProjection.error
               : 'checking'}
         </StatusBadge>
       </div>
