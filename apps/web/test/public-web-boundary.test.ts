@@ -1,0 +1,95 @@
+import assert from 'node:assert/strict';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import path from 'node:path';
+import test from 'node:test';
+
+const repoRoot = path.resolve(import.meta.dirname, '../../..');
+const webRoot = path.join(repoRoot, 'apps/web');
+const desktopPublicRoot = path.join(repoRoot, 'apps/desktop/src/public-web');
+const webSrcRoot = path.join(webRoot, 'src');
+
+const admittedPublicWebFiles = new Set([
+  'app/index.ts',
+  'app-store/index.ts',
+  'bridge.ts',
+  'i18n/index.ts',
+  'infra/index.ts',
+  'realm/index.ts',
+  'styles.css',
+]);
+
+const admittedWebAdapterDirectImports = new Map<string, Set<string>>([
+  ['src/desktop-adapter/runtime-bootstrap.web.ts', new Set(['@renderer/bridge'])],
+]);
+
+function walkFiles(root: string): string[] {
+  return readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
+    const absolute = path.join(root, entry.name);
+    if (entry.isDirectory()) {
+      return walkFiles(absolute);
+    }
+    return [absolute];
+  });
+}
+
+function importSpecifiers(source: string): string[] {
+  const specifiers: string[] = [];
+  const importPattern = /(?:from\s+|import\s*\(\s*)['"]([^'"]+)['"]/g;
+  let match: RegExpExecArray | null;
+  while ((match = importPattern.exec(source)) !== null) {
+    specifiers.push(match[1] || '');
+  }
+  return specifiers.filter(Boolean);
+}
+
+test('desktop public-web facade is the admitted web shell boundary', () => {
+  const actual = walkFiles(desktopPublicRoot)
+    .filter((absolute) => statSync(absolute).isFile())
+    .map((absolute) => path.relative(desktopPublicRoot, absolute).split(path.sep).join('/'))
+    .sort();
+
+  assert.deepEqual(actual, [...admittedPublicWebFiles].sort());
+
+  for (const relativePath of actual) {
+    const source = readFileSync(path.join(desktopPublicRoot, relativePath), 'utf8');
+    assert.match(source, /Desktop public-for-web boundary/);
+    assert.doesNotMatch(source, /runtime\/internal|runtime\/cmd|src-tauri|@runtime\//);
+  }
+});
+
+test('web source imports desktop renderer only through public-web or admitted adapters', () => {
+  const offenders: string[] = [];
+  for (const absolute of walkFiles(webSrcRoot)) {
+    if (!/\.(?:ts|tsx)$/.test(absolute)) {
+      continue;
+    }
+    const relativePath = path.relative(webRoot, absolute).split(path.sep).join('/');
+    const allowedDirectImports = admittedWebAdapterDirectImports.get(relativePath) || new Set<string>();
+    const specifiers = importSpecifiers(readFileSync(absolute, 'utf8'));
+    for (const specifier of specifiers) {
+      const isDesktopPrivate = specifier.startsWith('@renderer/') || specifier.startsWith('@runtime/');
+      if (isDesktopPrivate && !allowedDirectImports.has(specifier)) {
+        offenders.push(`${relativePath}: ${specifier}`);
+      }
+      assert.ok(
+        !specifier.includes('../desktop/src/'),
+        `${relativePath} must not import Desktop source by relative path: ${specifier}`,
+      );
+    }
+  }
+
+  assert.deepEqual(offenders, []);
+});
+
+test('web documents and config keep the public-web contract explicit', () => {
+  const agents = readFileSync(path.join(webRoot, 'AGENTS.md'), 'utf8');
+  const readme = readFileSync(path.join(webRoot, 'README.md'), 'utf8');
+  const viteConfig = readFileSync(path.join(webRoot, 'vite.config.ts'), 'utf8');
+
+  assert.match(agents, /@desktop-public\/\*/);
+  assert.match(readme, /Desktop public-for-web boundary/);
+  assert.match(viteConfig, /find: '@desktop-public'/);
+  assert.match(viteConfig, /@nimiplatform\\\/kit\\\/telemetry/);
+  assert.match(viteConfig, /kit\/telemetry\/src\/telemetry\/index\.ts/);
+  assert.ok(existsSync(path.join(desktopPublicRoot, 'realm/index.ts')));
+});
