@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import './tester-workbench.css';
-import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
+import { createRendererFlowId, emitRuntimeLog, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createNimiClientId } from '@nimiplatform/sdk/runtime';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
 import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
@@ -62,7 +62,14 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
       setHistory(next);
       setHistoryError(null);
     } catch (error) {
-      setHistoryError(error instanceof Error ? error.message : String(error || 'History load failed.'));
+      const message = error instanceof Error ? error.message : String(error || 'History load failed.');
+      setHistoryError(message);
+      emitRuntimeLog({
+        level: 'warn',
+        area: 'tester-history',
+        message: 'history-load-failed',
+        details: { error: message },
+      });
     }
   }, []);
 

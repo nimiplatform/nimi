@@ -231,7 +231,9 @@ test('tester capability runs consume Kit renderer telemetry', () => {
   assert.match(workbench, /createNimiClientId\('run'\)/);
   assert.match(workbench, /createRendererFlowId\('tester-capability-run'\)/);
   assert.match(workbench, /logRendererEvent\(/);
+  assert.match(workbench, /emitRuntimeLog/);
   assert.match(workbench, /action:tester-capability-run:recorded/);
+  assert.match(workbench, /history-load-failed/);
   assert.doesNotMatch(workbench, /runtime-bridge\/logging|@renderer\/.*telemetry/);
   assert.doesNotMatch(workbench, /Math\.random\(\)/);
 });

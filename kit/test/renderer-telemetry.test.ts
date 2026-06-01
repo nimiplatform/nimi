@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { emitRendererLog, logRendererEvent, toRendererLogMessage } from '../telemetry/src/telemetry/emit.js';
+import { emitRuntimeLog, setRuntimeLogger, toRuntimeLogMessage } from '../telemetry/src/telemetry/runtime-log.js';
 import {
   getRendererDebugLogsForTest,
   resetRendererDebugBufferForTest,
@@ -27,6 +28,7 @@ afterEach(() => {
   delete testGlobal().__NIMI_TAURI_TEST__;
   resetRendererDebugBufferForTest();
   resetRendererSessionTraceIdForTest();
+  setRuntimeLogger(null);
   vi.restoreAllMocks();
 });
 
@@ -105,5 +107,32 @@ describe('kit renderer telemetry', () => {
       details?: { authorization?: string };
     };
     expect(record.details?.authorization).toBe('[REDACTED]');
+  });
+
+  test('normalizes runtime log messages through the shared telemetry sink', () => {
+    expect(toRuntimeLogMessage('phase:ready')).toBe('phase:ready');
+    expect(toRuntimeLogMessage('invoke-start:http_request')).toBe('action:invoke-start:http_request');
+    expect(toRuntimeLogMessage('')).toBe('action:runtime-log:empty-message');
+
+    const captured: Array<Record<string, unknown>> = [];
+    setRuntimeLogger((payload) => {
+      captured.push(payload as Record<string, unknown>);
+    });
+
+    emitRuntimeLog({
+      area: 'bridge',
+      message: 'invoke-start:http_request',
+      details: { requestId: 'req-1' },
+    });
+    emitRuntimeLog({
+      area: '',
+      message: '',
+    });
+
+    expect(captured).toHaveLength(2);
+    expect(captured[0]?.message).toBe('action:invoke-start:http_request');
+    expect(captured[0]?.area).toBe('bridge');
+    expect(captured[1]?.message).toBe('action:runtime-log:empty-message');
+    expect(captured[1]?.area).toBe('runtime');
   });
 });
