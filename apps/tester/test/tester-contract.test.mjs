@@ -1219,8 +1219,10 @@ test('tester settings consumes SDK Runtime dependency state projections', () => 
   assert.match(settings, /isLocalRuntimeEnvironmentDependencyJobRetryableState/);
   assert.match(settings, /isLocalRuntimeEnvironmentDependencyJobTransferringState/);
   assert.match(settings, /isLocalRuntimeEnvironmentDependencyRepairRequiredState/);
+  assert.match(settings, /buildLocalRuntimeImageNativeEnvironmentPlanPayload/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Runtime dependency state projection/);
+  assert.match(settings, /SDK local image runtime dependency projection/);
   assert.doesNotMatch(settings, /ACTIVE_RUNTIME_DEPENDENCY_JOB_STATES/);
   assert.doesNotMatch(settings, /STARTABLE_RUNTIME_DEPENDENCY_STATES/);
   assert.doesNotMatch(settings, /JOB_TRANSFERRING_STATES/);

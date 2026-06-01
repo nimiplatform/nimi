@@ -8,8 +8,11 @@ import {
   isDegradedProductControlState,
   isProductControlPhaseTransient,
   isRepairRoutedProductControlState,
+  parseProductControlSelectedDataRootProjection,
   parseProductControlRecordProjection,
   productControlRecordUnavailableProjection,
+  productControlSelectedDataRootUnavailableProjection,
+  projectProductControlStorageDirs,
   projectProductControlAdmission,
   type ProductControlState,
 } from '../src/index.js';
@@ -86,4 +89,63 @@ test('product-control unsupported projections remain fail-closed with explicit e
   assert.equal(projection.exists, false);
   assert.equal(projection.state, 'config_missing');
   assert.match(projection.error || '', /requires Tauri runtime/);
+});
+
+test('product-control storage dirs project platform storage layout without app-local path truth', () => {
+  const projection = parseProductControlSelectedDataRootProjection({
+    path: '/tmp/home/.nimi/nimi.json',
+    exists: true,
+    state: 'ready_for_use',
+    dataRoot: {
+      path: '/tmp/nimi-data/',
+      status: 'ready',
+      selectedAt: '2026-01-01T00:00:00.000Z',
+      verifiedAt: '2026-01-01T00:00:00.000Z',
+      selectedAtUnixMs: 1,
+      verifiedAtUnixMs: 1,
+    },
+    error: null,
+  });
+
+  assert.deepEqual(projectProductControlStorageDirs(projection), {
+    nimiDir: '/tmp/home/.nimi',
+    nimiDataDir: '/tmp/nimi-data/',
+    mediaCacheDir: '/tmp/nimi-data/cache/media',
+    logsDir: '/tmp/nimi-data/logs',
+    localModelsDir: '/tmp/nimi-data/models',
+    localRuntimeStatePath: '/tmp/home/.nimi/runtime/local-state.json',
+  });
+});
+
+test('product-control storage dirs preserve Windows separators and fail closed when unselected', () => {
+  const windowsProjection = parseProductControlSelectedDataRootProjection({
+    path: 'C:\\Users\\eric\\.nimi\\nimi.json',
+    exists: true,
+    state: 'data_root_selected',
+    dataRoot: {
+      path: 'D:\\NimiData\\',
+      status: 'selected',
+      selectedAt: '2026-01-01T00:00:00.000Z',
+      verifiedAt: '2026-01-01T00:00:00.000Z',
+      selectedAtUnixMs: 1,
+      verifiedAtUnixMs: 1,
+    },
+    error: null,
+  });
+
+  assert.deepEqual(projectProductControlStorageDirs(windowsProjection), {
+    nimiDir: 'C:\\Users\\eric\\.nimi',
+    nimiDataDir: 'D:\\NimiData\\',
+    mediaCacheDir: 'D:\\NimiData\\cache\\media',
+    logsDir: 'D:\\NimiData\\logs',
+    localModelsDir: 'D:\\NimiData\\models',
+    localRuntimeStatePath: 'C:\\Users\\eric\\.nimi\\runtime\\local-state.json',
+  });
+
+  assert.throws(
+    () => projectProductControlStorageDirs(
+      productControlSelectedDataRootUnavailableProjection('product_control_selected_data_root_get requires Tauri runtime'),
+    ),
+    /requires Tauri runtime/,
+  );
 });

@@ -217,6 +217,7 @@ function storageDirs(overrides: Partial<DesktopStorageDirs> = {}): DesktopStorag
     nimiDir: '/Users/eric/.nimi',
     nimiDataDir: '/Users/eric/Nimi',
     mediaCacheDir: '/Users/eric/Nimi/cache/media',
+    logsDir: '/Users/eric/Nimi/logs',
     localModelsDir: '/Users/eric/Nimi/models',
     localRuntimeStatePath: '/Users/eric/.nimi/runtime/local-state.json',
     ...overrides,

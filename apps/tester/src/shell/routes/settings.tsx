@@ -3,6 +3,7 @@ import {
   firstRunScreenForProductControlState,
   isDegradedProductControlState,
   parseProductControlRecordProjection,
+  projectProductControlStorageDirs,
   projectProductControlAdmission,
   type ProductControlState,
   getPlatformClient,
@@ -67,6 +68,7 @@ import {
   normalizeLocalRecommendationFeedCacheStateId,
   parseLocalRuntimeEnvironmentDependencyJobProjection,
   parseLocalRuntimeEnvironmentPlanProjection,
+  buildLocalRuntimeImageNativeEnvironmentPlanPayload,
   productStateForMaterializationStatus,
   repairableFirstRunMaterializationDependencies,
   retryableInterruptedFirstRunMaterializationJobs,
@@ -588,6 +590,13 @@ function createTesterProductControlProjection() {
   const dataRootSelectedScreen = firstRunScreenForProductControlState('data_root_selected');
   const aiEnvironmentScreen = firstRunScreenForProductControlState('ai_environment_unconfigured');
   const admission = projectProductControlAdmission(projection.state);
+  const storageDirs = projectProductControlStorageDirs({
+    path: projection.path,
+    exists: projection.exists,
+    state: projection.state,
+    dataRoot: projection.record?.dataRoot ?? null,
+    error: projection.error,
+  });
   return {
     state: projection.state,
     degraded: isDegradedProductControlState(projection.state),
@@ -597,6 +606,7 @@ function createTesterProductControlProjection() {
     aiEnvironmentScreen:
       aiEnvironmentScreen.kind === 'phase' ? aiEnvironmentScreen.phase : aiEnvironmentScreen.screen,
     admission: admission.kind,
+    storageDirs,
   };
 }
 
@@ -1077,6 +1087,10 @@ export function SettingsRoute() {
     localModelId: 'tester-local-embedding',
   });
   const productControlProjection = createTesterProductControlProjection();
+  const localRuntimeImageNativeEnvironmentPlanPayload = buildLocalRuntimeImageNativeEnvironmentPlanPayload(
+    { assetId: 'tester-image-asset', localAssetId: 'tester-local-image-asset' },
+    { os: 'linux', arch: 'x64', gpu: { vendor: 'nvidia' } },
+  );
   const runtimeCapabilityCoverageProjection = projectRuntimeRouteCapabilityCoverage({
     capability: 'image',
     localNodes: [],
@@ -2257,6 +2271,16 @@ export function SettingsRoute() {
           data_root_selected={productControlProjection.dataRootSelectedScreen}
           {' / '}
           ai_environment_unconfigured={productControlProjection.aiEnvironmentScreen}
+          {' / '}
+          models={productControlProjection.storageDirs.localModelsDir}
+          {' / '}
+          logs={productControlProjection.storageDirs.logsDir}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK local image runtime dependency projection</span>
+        <StatusBadge tone="neutral">
+          {localRuntimeImageNativeEnvironmentPlanPayload.packId}: {localRuntimeImageNativeEnvironmentPlanPayload.consumerScope}
         </StatusBadge>
       </div>
       <div className="setting-row">

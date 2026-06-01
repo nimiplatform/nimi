@@ -2,9 +2,8 @@
  * Support `logs` sub-area (`D-SUP-006`).
  *
  * Provides log viewing affordances over the `tables/log-areas.yaml` log areas
- * and the `<nimi_data>/logs/` directory (`P-MIG-006` `logs` row, owner
- * `runtime_product_support`). The directory path is derived from the typed
- * desktop storage projection.
+ * and the SDK-projected `<nimi_data>/logs/` directory (`P-MIG-006` `logs` row,
+ * owner `runtime_product_support`).
  *
  * Log EXPORT (`D-SUP-006` "用户可定位的导出工件"): the export action invokes the
  * typed `desktop_logs_export` command, which bundles `<nimi_data>/logs/` into a
@@ -38,14 +37,6 @@ import { DESKTOP_LOG_AREAS, DESKTOP_LOG_AREA_LABEL_KEY } from './support-log-are
  * fails closed honestly when the command returns a typed error.
  */
 const LOG_EXPORT_IPC_AVAILABLE = true;
-
-function deriveLogsDirectory(nimiDataDir: string): string {
-  const trimmed = nimiDataDir.trim();
-  if (!trimmed) return '';
-  const separator = trimmed.includes('\\') ? '\\' : '/';
-  const normalized = trimmed.endsWith(separator) ? trimmed.slice(0, -1) : trimmed;
-  return `${normalized}${separator}logs`;
-}
 
 async function loadLogsProjection(): Promise<DesktopStorageDirs> {
   return desktopBridge.getDesktopStorageDirs();
@@ -162,8 +153,6 @@ export function SupportLogsSection() {
     );
   }
 
-  const logsDirectory = deriveLogsDirectory(projection.data.nimiDataDir);
-
   return (
     <SupportSectionShell
       title={t('Support.logsTitle')}
@@ -178,7 +167,7 @@ export function SupportLogsSection() {
         <div className="divide-y divide-[var(--nimi-border-subtle)]">
           <SupportInfoRow
             label={t('Support.logsDirectoryLabel')}
-            value={logsDirectory || t('Support.valueUnknown')}
+            value={projection.data.logsDir || t('Support.valueUnknown')}
           />
         </div>
       </SupportCard>

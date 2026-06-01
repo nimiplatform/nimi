@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   localRuntime,
   type LocalRuntimeAssetRecord,
-  type LocalRuntimeDeviceProfile,
   type LocalRuntimeEnvironmentDependencyJob,
   type LocalRuntimeEnvironmentPlan,
   type LocalRuntimeEnvironmentPlanDependency,
@@ -11,6 +10,7 @@ import {
   isLocalRuntimeEnvironmentDependencyJobActiveState,
   isLocalRuntimeEnvironmentDependencyReadyState,
   isLocalRuntimeEnvironmentDependencyStartableState,
+  resolveLocalRuntimeImageNativeEnvironmentPlan,
 } from '@nimiplatform/sdk/runtime';
 
 type RuntimeDependencyInput = {
@@ -18,19 +18,6 @@ type RuntimeDependencyInput = {
   refreshAssetInventorySections: () => Promise<void>;
   setAssetBusy: (busy: boolean) => void;
 };
-
-function imageConsumerScopeForDevice(profile: LocalRuntimeDeviceProfile | undefined): string {
-  const os = String(profile?.os || '').trim().toLowerCase();
-  const arch = String(profile?.arch || '').trim().toLowerCase();
-  const vendor = String(profile?.gpu.vendor || '').trim().toLowerCase();
-  if (os === 'darwin' && arch === 'arm64' && vendor === 'apple') {
-    return 'stable-diffusion.cpp.metal';
-  }
-  if (vendor === 'nvidia') {
-    return 'stable-diffusion.cpp.cuda';
-  }
-  return 'stable-diffusion.cpp.cpu';
-}
 
 function firstImageAsset(assets: LocalRuntimeAssetRecord[]): LocalRuntimeAssetRecord | undefined {
   return assets.find((asset) => asset.kind === 'image');
@@ -91,12 +78,9 @@ export function useLocalModelCenterRuntimeDependencies({
           consumerScope: 'desktop.local-model-center',
         });
       }
-      const profile = await localRuntime.collectDeviceProfile();
-      return localRuntime.resolveEnvironmentPlan({
-        packId: 'local-image-native',
-        consumerScope: imageConsumerScopeForDevice(profile),
-        assetId: imageAsset.assetId,
-        localAssetId: imageAsset.localAssetId,
+      return resolveLocalRuntimeImageNativeEnvironmentPlan({
+        runtime: localRuntime,
+        asset: imageAsset,
       });
     };
     void resolvePlan().then((dependency) => {
@@ -215,12 +199,9 @@ export function useLocalModelCenterRuntimeDependencies({
     }
     setAssetBusy(true);
     try {
-      const profile = await localRuntime.collectDeviceProfile();
-      const plan = await localRuntime.resolveEnvironmentPlan({
-        packId: 'local-image-native',
-        consumerScope: imageConsumerScopeForDevice(profile),
-        assetId: asset.assetId,
-        localAssetId: asset.localAssetId,
+      const plan = await resolveLocalRuntimeImageNativeEnvironmentPlan({
+        runtime: localRuntime,
+        asset,
       });
       const jobGroups = await Promise.all(plan.dependencies
         .filter((dependency) => dependency.environmentKey)

@@ -77,6 +77,15 @@ export interface ProductControlSelectedDataRootProjection {
   readonly error: string | null;
 }
 
+export interface ProductControlStorageDirsProjection {
+  readonly nimiDir: string;
+  readonly nimiDataDir: string;
+  readonly mediaCacheDir: string;
+  readonly logsDir: string;
+  readonly localModelsDir: string;
+  readonly localRuntimeStatePath: string;
+}
+
 export type FirstRunPhase = 'storage' | 'device-scan' | 'local-ai' | 'setup';
 export type FirstRunTerminalScreen = 'login' | 'repair' | 'blocked' | 'ready';
 export type FirstRunScreen =
@@ -120,6 +129,28 @@ function asRecord(value: unknown, label: string): Record<string, unknown> {
 
 function parseOptionalString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null;
+}
+
+function pathSeparator(path: string): '/' | '\\' {
+  return path.includes('\\') ? '\\' : '/';
+}
+
+function trimTrailingSeparator(path: string): string {
+  return path.replace(/[\\/]+$/, '');
+}
+
+function joinProjectionPath(base: string, ...parts: string[]): string {
+  const separator = pathSeparator(base);
+  const trimmedBase = trimTrailingSeparator(base);
+  return [trimmedBase, ...parts.map((part) => String(part || '').replace(/^[\\/]+|[\\/]+$/g, ''))]
+    .filter(Boolean)
+    .join(separator);
+}
+
+function dirnameProjectionPath(path: string): string {
+  const normalized = trimTrailingSeparator(path.trim());
+  const index = Math.max(normalized.lastIndexOf('/'), normalized.lastIndexOf('\\'));
+  return index > 0 ? normalized.slice(0, index) : '';
 }
 
 export function isProductControlState(value: unknown): value is ProductControlState {
@@ -254,6 +285,25 @@ export function productControlSelectedDataRootUnavailableProjection(
     state: 'config_missing',
     dataRoot: null,
     error,
+  };
+}
+
+export function projectProductControlStorageDirs(
+  projection: ProductControlSelectedDataRootProjection,
+): ProductControlStorageDirsProjection {
+  const nimiDir = dirnameProjectionPath(projection.path || '');
+  const dataRoot = projection.dataRoot?.path?.trim() || '';
+  if (!nimiDir || !dataRoot) {
+    throw new Error(projection.error || 'product-control storage dirs require a selected data root');
+  }
+
+  return {
+    nimiDir,
+    nimiDataDir: dataRoot,
+    mediaCacheDir: joinProjectionPath(dataRoot, 'cache', 'media'),
+    logsDir: joinProjectionPath(dataRoot, 'logs'),
+    localModelsDir: joinProjectionPath(dataRoot, 'models'),
+    localRuntimeStatePath: joinProjectionPath(nimiDir, 'runtime', 'local-state.json'),
   };
 }
 

@@ -36,8 +36,8 @@ const localRuntimeParsersSource = fs.readFileSync(
 test('local model center resolves shared runtime dependency readiness before any imported model is required', () => {
   assert.match(runtimeProjectionSources, /localRuntime\.resolveEnvironmentPlan/);
   assert.match(runtimeProjectionSources, /packId:\s*'local-gpu-support'/);
-  assert.match(runtimeProjectionSources, /packId:\s*'local-image-native'/);
   assert.match(runtimeProjectionSources, /consumerScope:\s*'desktop\.local-model-center'/);
+  assert.match(runtimeProjectionSources, /resolveLocalRuntimeImageNativeEnvironmentPlan/);
   assert.match(runtimeProjectionSources, /sharedRuntimeEnvironmentPlan/);
   assert.match(runtimeProjectionSources, /sharedRuntimeDependency/);
   assert.match(runtimeProjectionSources, /sharedRuntimeDependencyJobs/);
@@ -50,8 +50,8 @@ test('local model center resolves shared runtime dependency readiness before any
   assert.doesNotMatch(runtimeReadinessSource, /STARTABLE_RUNTIME_DEPENDENCY_STATES/);
   assert.doesNotMatch(runtimeReadinessSource, /localRuntime\.startDependencySetup/);
   assert.doesNotMatch(runtimeReadinessSource, /localRuntime\.resolveDependency/);
-  assert.match(runtimeReadinessSource, /imageConsumerScopeForDevice/);
-  assert.match(runtimeReadinessSource, /localAssetId:\s*asset\.localAssetId/);
+  assert.doesNotMatch(runtimeReadinessSource, /stable-diffusion\.cpp/);
+  assert.match(runtimeReadinessSource, /asset,\s*\}/);
   assert.match(runtimeReadinessSource, /prepareAssetRuntimeDependencies/);
   assert.match(runtimeProjectionSources, /runtimeDependencyByAssetId/);
 });

@@ -323,7 +323,9 @@ test('installed unhealthy assets surface runtime health detail in the model list
 });
 
 test('runtime local lifecycle controller remains available only as non-product maintenance surface', () => {
-  assert.match(controllerSource, /from ['"]@runtime\/local-runtime['"]/);
+  assert.match(controllerSource, /from ['"]@nimiplatform\/sdk\/runtime['"]/);
+  assert.doesNotMatch(controllerSource, /from ['"]@runtime\/local-runtime['"]/);
+  assert.doesNotMatch(controllerSource, /from ['"]runtime\/internal/);
   assert.doesNotMatch(controllerSource, /from ['"]@renderer\/bridge\/runtime-bridge\/local-ai['"]/);
   assert.match(controllerSource, /localRuntime\.start\(localModelId, \{ caller: 'core' \}\)/);
   assert.match(controllerSource, /localRuntime\.stop\(localModelId, \{ caller: 'core' \}\)/);

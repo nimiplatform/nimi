@@ -12,8 +12,11 @@ import {
   isLocalRuntimeEnvironmentDependencyRepairRequiredState,
   isLocalRuntimeEnvironmentDependencyStartableState,
   isLocalRuntimeEnvironmentDependencyUnsupportedState,
+  buildLocalRuntimeImageNativeEnvironmentPlanPayload,
   parseLocalRuntimeEnvironmentDependencyJobProjection,
   parseLocalRuntimeEnvironmentPlanProjection,
+  projectLocalRuntimeImageNativeConsumerScope,
+  resolveLocalRuntimeImageNativeEnvironmentPlan,
 } from '../../src/runtime/local-environment-dependency-states.js';
 
 test('local environment dependency state projections classify Runtime ready states', () => {
@@ -104,6 +107,62 @@ test('local environment dependency plan parser projects Runtime plan fields', ()
   assert.equal(parsed.dependencies[0]?.dependencyId, 'local-speech-python');
   assert.equal(parsed.dependencies[0]?.confirmationRequired, true);
   assert.equal(parsed.dependencies[0]?.canonicalRoot, '/runtime/data/envs/local-speech');
+});
+
+test('local image native environment plan helper projects device profile into typed Runtime request', async () => {
+  assert.equal(
+    projectLocalRuntimeImageNativeConsumerScope({ os: 'darwin', arch: 'arm64', gpu: { vendor: 'apple' } }),
+    'stable-diffusion.cpp.metal',
+  );
+  assert.equal(
+    projectLocalRuntimeImageNativeConsumerScope({ os: 'linux', arch: 'x64', gpu: { vendor: 'nvidia' } }),
+    'stable-diffusion.cpp.cuda',
+  );
+  assert.equal(projectLocalRuntimeImageNativeConsumerScope({ os: 'linux', arch: 'x64' }), 'stable-diffusion.cpp.cpu');
+
+  assert.deepEqual(
+    buildLocalRuntimeImageNativeEnvironmentPlanPayload(
+      { assetId: 'asset-1', localAssetId: 'local-asset-1' },
+      { os: 'linux', arch: 'x64', gpu: { vendor: 'nvidia' } },
+    ),
+    {
+      packId: 'local-image-native',
+      consumerScope: 'stable-diffusion.cpp.cuda',
+      assetId: 'asset-1',
+      localAssetId: 'local-asset-1',
+    },
+  );
+
+  const calls: unknown[] = [];
+  const plan = await resolveLocalRuntimeImageNativeEnvironmentPlan({
+    asset: { assetId: 'asset-2', localAssetId: 'local-asset-2' },
+    runtime: {
+      async collectDeviceProfile() {
+        return { os: 'darwin', arch: 'arm64', gpu: { vendor: 'apple' } };
+      },
+      async resolveEnvironmentPlan(payload) {
+        calls.push(payload);
+        return parseLocalRuntimeEnvironmentPlanProjection({
+          planId: 'plan-image-native',
+          packId: payload.packId,
+          productLabel: 'Local Image Native',
+          hostProfileId: 'macos-arm64',
+          platformTuple: 'darwin-arm64',
+          consumerScope: payload.consumerScope,
+          state: 'ready',
+          dependencies: [],
+        });
+      },
+    },
+  });
+
+  assert.deepEqual(calls, [{
+    packId: 'local-image-native',
+    consumerScope: 'stable-diffusion.cpp.metal',
+    assetId: 'asset-2',
+    localAssetId: 'local-asset-2',
+  }]);
+  assert.equal(plan.consumerScope, 'stable-diffusion.cpp.metal');
 });
 
 test('local environment dependency job parser clamps progress projection', () => {

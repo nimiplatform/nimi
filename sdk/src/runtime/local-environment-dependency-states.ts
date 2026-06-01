@@ -101,6 +101,70 @@ export type LocalRuntimeEnvironmentPlanProjection = {
   dependencies: LocalRuntimeEnvironmentPlanDependencyProjection[];
 };
 
+export type LocalRuntimeImageNativeDeviceProfileInput = {
+  os?: string;
+  arch?: string;
+  gpu?: {
+    vendor?: string;
+  };
+};
+
+export type LocalRuntimeImageNativeAssetInput = {
+  assetId?: string;
+  localAssetId?: string;
+};
+
+export type LocalRuntimeImageNativeEnvironmentPlanPayload = {
+  packId: 'local-image-native';
+  consumerScope: string;
+  assetId?: string;
+  localAssetId?: string;
+};
+
+export type LocalRuntimeImageNativeEnvironmentPlanRuntime = {
+  collectDeviceProfile: () => Promise<LocalRuntimeImageNativeDeviceProfileInput | undefined>;
+  resolveEnvironmentPlan: (
+    payload: LocalRuntimeImageNativeEnvironmentPlanPayload,
+  ) => Promise<LocalRuntimeEnvironmentPlanProjection>;
+};
+
+export function projectLocalRuntimeImageNativeConsumerScope(
+  profile: LocalRuntimeImageNativeDeviceProfileInput | undefined,
+): string {
+  const os = asString(profile?.os).toLowerCase();
+  const arch = asString(profile?.arch).toLowerCase();
+  const vendor = asString(profile?.gpu?.vendor).toLowerCase();
+  if (os === 'darwin' && arch === 'arm64' && vendor === 'apple') {
+    return 'stable-diffusion.cpp.metal';
+  }
+  if (vendor === 'nvidia') {
+    return 'stable-diffusion.cpp.cuda';
+  }
+  return 'stable-diffusion.cpp.cpu';
+}
+
+export function buildLocalRuntimeImageNativeEnvironmentPlanPayload(
+  asset: LocalRuntimeImageNativeAssetInput,
+  profile: LocalRuntimeImageNativeDeviceProfileInput | undefined,
+): LocalRuntimeImageNativeEnvironmentPlanPayload {
+  return {
+    packId: 'local-image-native',
+    consumerScope: projectLocalRuntimeImageNativeConsumerScope(profile),
+    assetId: asString(asset.assetId) || undefined,
+    localAssetId: asString(asset.localAssetId) || undefined,
+  };
+}
+
+export async function resolveLocalRuntimeImageNativeEnvironmentPlan(input: {
+  runtime: LocalRuntimeImageNativeEnvironmentPlanRuntime;
+  asset: LocalRuntimeImageNativeAssetInput;
+}): Promise<LocalRuntimeEnvironmentPlanProjection> {
+  const profile = await input.runtime.collectDeviceProfile();
+  return input.runtime.resolveEnvironmentPlan(
+    buildLocalRuntimeImageNativeEnvironmentPlanPayload(input.asset, profile),
+  );
+}
+
 export type LocalRuntimeEnvironmentDependencyJobProjection = {
   jobId: string;
   environmentKey: string;
