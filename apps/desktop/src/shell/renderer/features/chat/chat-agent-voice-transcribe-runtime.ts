@@ -3,9 +3,9 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
-  buildRuntimeRequestMetadata,
-  getRuntimeClient,
-} from '@runtime/llm-adapter/execution/runtime-ai-bridge';
+  desktopRuntimeRouteAccess,
+  getDesktopRuntimeClient,
+} from '@renderer/infra/runtime-route-host-access';
 import type {
   AgentRuntimeResolvedBinding,
   ChatAgentTranscribeRuntimeInvokeDeps,
@@ -41,7 +41,7 @@ export async function transcribeChatAgentVoiceRuntime(
   }
   const slice = resolveExecutionSlice(input.transcribeExecutionSnapshot, 'audio.transcribe');
   const resolved = slice.resolvedBinding as AgentRuntimeResolvedBinding;
-  const metadata = await (deps.buildRuntimeRequestMetadataImpl || buildRuntimeRequestMetadata)({
+  const metadata = await (deps.buildRuntimeRequestMetadataImpl || desktopRuntimeRouteAccess.buildRequestMetadata)({
     source: resolved.source,
     connectorId: normalizeText(resolved.connectorId) || undefined,
     providerEndpoint: normalizeText(resolved.endpoint)
@@ -49,7 +49,7 @@ export async function transcribeChatAgentVoiceRuntime(
       || normalizeText(resolved.localOpenAiEndpoint)
       || undefined,
   });
-  const response = await (deps.getRuntimeClientImpl || getRuntimeClient)().media.stt.transcribe({
+  const response = await (deps.getRuntimeClientImpl || getDesktopRuntimeClient)().media.stt.transcribe({
     model: requireValue(
       resolved.modelId || resolved.model || resolved.localModelId,
       ReasonCode.AI_INPUT_INVALID,

@@ -1,161 +1,26 @@
 import assert from 'node:assert/strict';
-import test, { mock } from 'node:test';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import test from 'node:test';
 
-import {
-  ModelHealthStatus,
-  type CheckModelHealthRequest,
-  type CheckModelHealthResponse,
-} from '@nimiplatform/sdk/runtime';
+const desktopDir = resolve(import.meta.dirname, '..');
+const repoDir = resolve(desktopDir, '../..');
 
-import { checkLocalLlmHealth } from '../src/runtime/llm-adapter/execution/health-check';
-
-function healthResponse(overrides: Partial<CheckModelHealthResponse> = {}): CheckModelHealthResponse {
-  return {
-    healthy: true,
-    reasonCode: 0,
-    actionHint: '',
-    status: ModelHealthStatus.HEALTHY,
-    detail: '',
-    endpoint: '',
-    modelId: '',
-    ...overrides,
-  };
+function readRepo(relativePath: string): string {
+  return readFileSync(resolve(repoDir, relativePath), 'utf8');
 }
 
-test('local health delegates endpoint/model readiness to Runtime model health', async () => {
-  const requests: CheckModelHealthRequest[] = [];
-  const runtimeModelHealth = mock.fn(async (request: CheckModelHealthRequest) => {
-    requests.push(request);
-    return healthResponse({
-      endpoint: 'http://127.0.0.1:8321/v1',
-      modelId: 'media/z_image_turbo',
-    });
-  });
+test('LLM health check behavior is SDK-owned and Desktop consumes configured host access', () => {
+  assert.equal(existsSync(resolve(desktopDir, 'src/runtime/llm-adapter/execution/health-check.ts')), false);
 
-  const result = await checkLocalLlmHealth({
-    provider: 'media',
-    capability: 'image.generate',
-    localProviderEndpoint: 'http://127.0.0.1:8321/v1',
-    localProviderModel: 'media/z_image_turbo',
-    goRuntimeLocalModelId: 'local-z-image',
-    runtimeModelHealth,
-  });
+  const sdkSurface = readRepo('sdk/src/runtime/runtime-route-host-access.ts');
+  const desktopAccess = readRepo('apps/desktop/src/shell/renderer/infra/runtime-route-host-access.ts');
+  const bootstrap = readRepo('apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap-conversation-route-runtime.ts');
 
-  assert.equal(runtimeModelHealth.mock.callCount(), 1);
-  assert.deepEqual(requests[0], {
-    appId: 'nimi.desktop',
-    modelId: 'media/z_image_turbo',
-    localAssetId: 'local-z-image',
-    capability: 'image.generate',
-    provider: 'media',
-    endpoint: 'http://127.0.0.1:8321/v1',
-  });
-  assert.equal(result.status, 'healthy');
-  assert.equal(result.endpoint, 'http://127.0.0.1:8321/v1');
-  assert.equal(result.model, 'media/z_image_turbo');
-  assert.equal(result.provider, 'media');
-  assert.equal(result.detail, '');
-});
-
-test('local asset health can be requested without a Desktop endpoint probe', async () => {
-  const requests: CheckModelHealthRequest[] = [];
-  const runtimeModelHealth = mock.fn(async (request: CheckModelHealthRequest) => {
-    requests.push(request);
-    return healthResponse({
-      status: ModelHealthStatus.DEGRADED,
-      healthy: false,
-      actionHint: 'warm local model',
-      endpoint: 'http://127.0.0.1:1234/v1',
-      modelId: 'llama3',
-    });
-  });
-
-  const result = await checkLocalLlmHealth({
-    provider: 'llama',
-    localProviderModel: 'llama3',
-    localModelId: 'local-llama',
-    runtimeModelHealth,
-  });
-
-  assert.equal(runtimeModelHealth.mock.callCount(), 1);
-  assert.equal(requests[0]!.endpoint, '');
-  assert.equal(requests[0]!.localAssetId, 'local-llama');
-  assert.equal(result.status, 'degraded');
-  assert.equal(result.detail, 'warm local model');
-  assert.equal(result.endpoint, 'http://127.0.0.1:1234/v1');
-});
-
-test('Runtime unsupported health maps to unsupported provider health with detail', async () => {
-  const runtimeModelHealth = mock.fn(async () => healthResponse({
-    healthy: false,
-    status: ModelHealthStatus.UNSUPPORTED,
-    detail: 'plane=local-supervised; local workflow health requires capability-scoped readiness',
-  }));
-
-  const result = await checkLocalLlmHealth({
-    provider: 'speech',
-    capability: 'voice_workflow.voice_design',
-    localProviderEndpoint: 'http://127.0.0.1:8330/v1',
-    localProviderModel: 'speech/qwen3-tts',
-    runtimeModelHealth,
-  });
-
-  assert.equal(result.status, 'unsupported');
-  assert.match(result.detail, /plane=local-supervised/);
-  assert.match(result.detail, /capability-scoped readiness/);
-});
-
-test('Runtime unreachable health maps to unreachable provider health', async () => {
-  const runtimeModelHealth = mock.fn(async () => healthResponse({
-    healthy: false,
-    status: ModelHealthStatus.UNREACHABLE,
-    detail: 'catalog probe failed: connect refused',
-  }));
-
-  const result = await checkLocalLlmHealth({
-    provider: 'speech',
-    localProviderEndpoint: 'http://127.0.0.1:8330/v1',
-    runtimeModelHealth,
-  });
-
-  assert.equal(result.status, 'unreachable');
-  assert.equal(result.detail, 'catalog probe failed: connect refused');
-});
-
-test('Runtime health errors fail closed as unreachable', async () => {
-  const runtimeModelHealth = mock.fn(async () => {
-    throw new Error('runtime unavailable');
-  });
-
-  const result = await checkLocalLlmHealth({
-    provider: 'llama',
-    localProviderEndpoint: 'http://127.0.0.1:1234/v1',
-    localProviderModel: 'llama3',
-    runtimeModelHealth,
-  });
-
-  assert.equal(runtimeModelHealth.mock.callCount(), 1);
-  assert.equal(result.status, 'unreachable');
-  assert.match(result.detail, /runtime unavailable/);
-});
-
-test('no endpoint/model/connector stays unsupported without a Runtime health call', async () => {
-  const runtimeModelHealth = mock.fn(async () => healthResponse());
-  const result = await checkLocalLlmHealth({
-    provider: 'openai',
-    runtimeModelHealth,
-  });
-
-  assert.equal(runtimeModelHealth.mock.callCount(), 0);
-  assert.equal(result.status, 'unsupported');
-  assert.equal(result.endpoint, null);
-  assert.ok(result.detail.includes('no endpoint or connector'));
-});
-
-test('provider remains empty when caller omitted it', async () => {
-  const result = await checkLocalLlmHealth({
-    provider: '',
-  });
-
-  assert.equal(result.provider, '');
+  assert.match(sdkSurface, /createHostRuntimeRouteAccessSurface/);
+  assert.match(sdkSurface, /checkRuntimeRouteProviderHealth/);
+  assert.match(desktopAccess, /createHostRuntimeRouteAccessSurface/);
+  assert.match(desktopAccess, /appId:\s*'nimi\.desktop'/);
+  assert.match(bootstrap, /desktopRuntimeRouteAccess\.checkLocalHealth/);
+  assert.doesNotMatch(bootstrap, /@runtime\/llm-adapter/);
 });

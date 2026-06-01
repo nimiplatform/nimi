@@ -60,7 +60,7 @@ test('desktop bootstrap route runtime resolves local import text routes through 
   let capturedScenarioRequest: Record<string, unknown> | null = null;
   const routeRuntime = createDesktopConversationCapabilityRouteRuntime({
     loadRuntimeRouteOptions: async () => createSnapshot(selectedLocalBinding),
-    checkLocalLlmHealth: async (input) => {
+    checkRuntimeRouteHealth: async (input) => {
       capturedHealthInput = input as Record<string, unknown>;
       return {
         provider: 'llama',
@@ -164,7 +164,7 @@ test('desktop bootstrap route runtime does not hydrate a selected local binding 
   };
   const routeRuntime = createDesktopConversationCapabilityRouteRuntime({
     loadRuntimeRouteOptions: async () => createSnapshot(otherLocalBinding),
-    checkLocalLlmHealth: async () => ({
+    checkRuntimeRouteHealth: async () => ({
       provider: 'llama',
       endpoint: null,
       model: '',
@@ -206,7 +206,7 @@ test('desktop bootstrap binds and clears the shared conversation route runtime',
 
   bindDesktopConversationCapabilityRouteRuntime({
     loadRuntimeRouteOptions: async () => createSnapshot(selectedLocalBinding),
-    checkLocalLlmHealth: async () => ({
+    checkRuntimeRouteHealth: async () => ({
       provider: 'llama',
       endpoint: null,
       model: 'local-import/gemma-4-26B-A4B-it-Q8_0',

@@ -8,7 +8,9 @@ import {
 import { createNimiError,
   toProtoStruct } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { resetRuntimeLocalModelWarmCacheForTests } from '../src/runtime/llm-adapter/execution/runtime-ai-bridge.js';
+import {
+  resetDesktopRuntimeRouteLocalWarmCacheForTests as resetRuntimeLocalModelWarmCacheForTests,
+} from '../src/shell/renderer/infra/runtime-route-host-access.js';
 
 import {
   CORE_CHAT_AGENT_TARGET_ID,

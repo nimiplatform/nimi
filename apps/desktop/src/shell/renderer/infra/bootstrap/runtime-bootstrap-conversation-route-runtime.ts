@@ -8,12 +8,9 @@ import {
   type ConversationCapabilityRouteRuntime,
 } from '@renderer/features/chat/conversation-capability';
 import {
-  buildRuntimeCallOptions,
-  getRuntimeClient,
-} from '@runtime/llm-adapter/execution/runtime-ai-bridge';
-import {
-  checkLocalLlmHealth,
-} from '@runtime/llm-adapter/execution/health-check';
+  desktopRuntimeRouteAccess,
+  getDesktopRuntimeClient,
+} from '@renderer/infra/runtime-route-host-access';
 import {
   loadRuntimeRouteOptions,
 } from './runtime-bootstrap-route-options';
@@ -22,16 +19,16 @@ type RuntimeClient = Pick<Runtime, 'appId' | 'ai'>;
 
 type DesktopConversationCapabilityRouteRuntimeDeps = {
   loadRuntimeRouteOptions: typeof loadRuntimeRouteOptions;
-  checkLocalLlmHealth: typeof checkLocalLlmHealth;
-  buildRuntimeCallOptions: typeof buildRuntimeCallOptions;
+  checkRuntimeRouteHealth: typeof desktopRuntimeRouteAccess.checkLocalHealth;
+  buildRuntimeCallOptions: typeof desktopRuntimeRouteAccess.buildCallOptions;
   getRuntimeClient: () => RuntimeClient;
 };
 
 const DEFAULT_DEPS: DesktopConversationCapabilityRouteRuntimeDeps = {
   loadRuntimeRouteOptions,
-  checkLocalLlmHealth,
-  buildRuntimeCallOptions,
-  getRuntimeClient,
+  checkRuntimeRouteHealth: desktopRuntimeRouteAccess.checkLocalHealth,
+  buildRuntimeCallOptions: desktopRuntimeRouteAccess.buildCallOptions,
+  getRuntimeClient: getDesktopRuntimeClient,
 };
 
 export function createDesktopConversationCapabilityRouteRuntime(
@@ -43,7 +40,7 @@ export function createDesktopConversationCapabilityRouteRuntime(
       capability: toRuntimeCanonicalCapability(input.capability),
       targetId: input.targetId,
     }),
-    checkHealth: deps.checkLocalLlmHealth,
+    checkHealth: deps.checkRuntimeRouteHealth,
     describeTargetId: 'core.chat.agent',
     buildDescribeCallOptions: deps.buildRuntimeCallOptions,
     getDescribeHost: () => {

@@ -148,6 +148,10 @@ import { createTesterLocalRecommendationCopyProjection } from '../../tester/test
 import { createTesterLocalRuntimeAssetKindProjection } from '../../tester/tester-local-runtime-asset-kind-projection';
 import { createTesterWorldDisplayProjection } from '../../tester/tester-world-display-projection';
 import { createTesterRuntimeConfigProjection } from '../../tester/tester-runtime-config-projection';
+import {
+  loadTesterRuntimeRouteHostAccessProjection,
+  type TesterRuntimeRouteHostAccessProjection,
+} from '../../tester/tester-runtime-route-host-access';
 type WalletProjectionState =
   | { status: 'idle'; balances: null; error: null }
   | { status: 'loading'; balances: CommerceCurrencyBalances | null; error: null }
@@ -222,6 +226,11 @@ type RuntimeProviderHealthProjectionState =
   | { status: 'loading'; health: null; error: null }
   | { status: 'ready'; health: RuntimeRouteProviderHealthProjection; error: null }
   | { status: 'error'; health: null; error: string };
+
+type RuntimeRouteHostAccessProjectionState =
+  | { status: 'loading'; projection: null; error: null }
+  | { status: 'ready'; projection: TesterRuntimeRouteHostAccessProjection; error: null }
+  | { status: 'error'; projection: null; error: string };
 
 async function resolveTesterLocalRuntimeFacadeProjection(): Promise<string> {
   const unbind = bindLocalRuntimeServiceClientProvider(() => ({
@@ -589,6 +598,12 @@ export function SettingsRoute() {
     useState<RuntimeProviderHealthProjectionState>({
       status: 'loading',
       health: null,
+      error: null,
+    });
+  const [runtimeRouteHostAccessProjection, setRuntimeRouteHostAccessProjection] =
+    useState<RuntimeRouteHostAccessProjectionState>({
+      status: 'loading',
+      projection: null,
       error: null,
     });
   const localRuntimeFacadeProjection = useTypedProjection(resolveTesterLocalRuntimeFacadeProjection, {
@@ -1045,6 +1060,21 @@ export function SettingsRoute() {
     }).catch((error: unknown) => {
       if (!cancelled) {
         setRuntimeProviderHealthProjection({ status: 'error', health: null, error: errorMessage(error) });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    void loadTesterRuntimeRouteHostAccessProjection().then((projection) => {
+      if (!cancelled) {
+        setRuntimeRouteHostAccessProjection({ status: 'ready', projection, error: null });
+      }
+    }).catch((error: unknown) => {
+      if (!cancelled) {
+        setRuntimeRouteHostAccessProjection({ status: 'error', projection: null, error: errorMessage(error) });
       }
     });
     return () => {
@@ -2032,6 +2062,16 @@ export function SettingsRoute() {
         <span>Runtime request metadata projection</span>
         <StatusBadge tone="neutral">
           {runtimeRequestMetadataProjection.keySource ?? 'direct'}: {runtimeRequestMetadataProjection.traceId}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Runtime route host access projection</span>
+        <StatusBadge tone={runtimeRouteHostAccessProjection.status === 'ready' ? 'success' : runtimeRouteHostAccessProjection.status === 'error' ? 'danger' : 'warning'}>
+          {runtimeRouteHostAccessProjection.status === 'ready'
+            ? `${runtimeRouteHostAccessProjection.projection.callerId}: ${runtimeRouteHostAccessProjection.projection.keySource}/${runtimeRouteHostAccessProjection.projection.healthStatus}`
+            : runtimeRouteHostAccessProjection.status === 'error'
+              ? runtimeRouteHostAccessProjection.error
+              : 'checking'}
         </StatusBadge>
       </div>
       <div className="setting-row">

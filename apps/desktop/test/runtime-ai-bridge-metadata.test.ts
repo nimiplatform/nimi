@@ -1,76 +1,27 @@
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import test from 'node:test';
 
-type TauriInvokeCall = {
-  command: string;
-  payload: unknown;
-};
+const desktopDir = resolve(import.meta.dirname, '..');
+const repoDir = resolve(desktopDir, '../..');
 
-test('runtime ai bridge metadata remains managed only for cloud requests', async () => {
-  const calls: TauriInvokeCall[] = [];
-  const globalRecord = globalThis as Record<string, unknown>;
-  const previousTauri = globalRecord.__NIMI_TAURI_TEST__;
+function readRepo(relativePath: string): string {
+  return readFileSync(resolve(repoDir, relativePath), 'utf8');
+}
 
-  globalRecord.__NIMI_TAURI_TEST__ = {
-    invoke: async (command: string, payload?: unknown) => {
-      calls.push({ command, payload });
-      return null;
-    },
-  };
+test('runtime AI bridge metadata helper is migrated to SDK host route access', () => {
+  assert.equal(existsSync(resolve(desktopDir, 'src/runtime/llm-adapter/execution/runtime-ai-bridge.ts')), false);
 
-  try {
-    const runtimeAiBridge = await import('../src/runtime/llm-adapter/execution/runtime-ai-bridge');
-    const metadata = await runtimeAiBridge.buildRuntimeRequestMetadata({
-      source: 'cloud',
-      connectorId: 'connector-test',
-      providerEndpoint: 'https://example.invalid/v1',
-    });
-    assert.equal(metadata.keySource, 'managed');
-    assert.equal(typeof metadata.traceId, 'string');
-    assert.ok(String(metadata.traceId || '').trim().length > 0);
-    assert.equal(metadata['x-nimi-trace-id'], metadata.traceId);
+  const sdkSurface = readRepo('sdk/src/runtime/runtime-route-host-access.ts');
+  const sdkTest = readRepo('sdk/test/runtime/runtime-route-host-access.test.ts');
+  const desktopAccess = readRepo('apps/desktop/src/shell/renderer/infra/runtime-route-host-access.ts');
 
-    const callOptions = await runtimeAiBridge.buildRuntimeCallOptions({
-      targetId: 'runtime.metadata',
-      timeoutMs: 10_000,
-      source: 'cloud',
-      connectorId: 'connector-test',
-      providerEndpoint: 'https://example.invalid/v1',
-    });
-    assert.equal(callOptions.metadata.callerKind, 'desktop-core');
-    assert.equal(callOptions.metadata.callerId, 'target:runtime.metadata');
-    assert.equal(callOptions.metadata.surfaceId, 'desktop.renderer');
-    assert.equal(callOptions.metadata.keySource, 'managed');
-    assert.equal(typeof callOptions.metadata.traceId, 'string');
-    assert.ok(callOptions.metadata.traceId.length > 0);
-    assert.equal(typeof callOptions.idempotencyKey, 'string');
-    assert.ok(callOptions.idempotencyKey.length > 0);
-
-    const streamOptions = await runtimeAiBridge.buildRuntimeStreamOptions({
-      targetId: 'runtime.metadata',
-      timeoutMs: 10_000,
-      source: 'cloud',
-      connectorId: 'connector-test',
-      providerEndpoint: 'https://example.invalid/v1',
-    });
-    assert.equal(streamOptions.metadata.callerKind, 'desktop-core');
-    assert.equal(streamOptions.metadata.callerId, 'target:runtime.metadata');
-    assert.equal(streamOptions.metadata.surfaceId, 'desktop.renderer');
-    assert.equal(streamOptions.metadata.keySource, 'managed');
-    assert.equal(typeof streamOptions.metadata.traceId, 'string');
-    assert.ok(streamOptions.metadata.traceId.length > 0);
-    assert.equal(typeof streamOptions.idempotencyKey, 'string');
-    assert.ok(streamOptions.idempotencyKey.length > 0);
-
-    assert.equal(
-      calls.some((call) => call.command.startsWith('credential')),
-      false,
-    );
-  } finally {
-    if (typeof previousTauri === 'undefined') {
-      delete globalRecord.__NIMI_TAURI_TEST__;
-    } else {
-      globalRecord.__NIMI_TAURI_TEST__ = previousTauri;
-    }
-  }
+  assert.match(sdkSurface, /buildRequestMetadata/);
+  assert.match(sdkSurface, /buildCallOptions/);
+  assert.match(sdkSurface, /buildStreamOptions/);
+  assert.match(sdkTest, /builds managed metadata/);
+  assert.match(desktopAccess, /surfaceId:\s*'desktop\.renderer'/);
+  assert.match(desktopAccess, /callerKind:\s*'desktop-core'/);
+  assert.doesNotMatch(desktopAccess, /@runtime\/llm-adapter/);
 });

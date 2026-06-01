@@ -1404,10 +1404,12 @@ test('tester settings consumes SDK runtime route reasoning projection', () => {
 });
 
 test('tester settings consumes SDK runtime route DX helpers from runtime surface', () => {
-  const settings = read('src/shell/routes/settings.tsx'); const runtimeConfigProjection = read('src/tester/tester-runtime-config-projection.ts');
+  const settings = read('src/shell/routes/settings.tsx'); const runtimeConfigProjection = read('src/tester/tester-runtime-config-projection.ts'); const runtimeRouteHostAccess = read('src/tester/tester-runtime-route-host-access.ts');
 
   assert.match(settings, /buildRuntimeTargetCallOptions/);
   assert.match(settings, /buildRuntimeRequestMetadata/);
+  assert.match(settings, /loadTesterRuntimeRouteHostAccessProjection/);
+  assert.match(settings, /Runtime route host access projection/);
   assert.match(settings, /mapRuntimeErrorToLocalAiReasonCode/);
   assert.match(settings, /checkRuntimeRouteProviderHealth/);
   assert.match(settings, /ModelHealthStatus/);
@@ -1417,7 +1419,7 @@ test('tester settings consumes SDK runtime route DX helpers from runtime surface
   assert.match(settings, /Runtime local AI reason projection/);
   assert.match(settings, /Runtime route provider health projection/);
   assert.doesNotMatch(settings, /function buildRuntimeTargetCallOptions/);
-  assert.doesNotMatch(settings, /function checkRuntimeRouteProviderHealth/); [/mergeRuntimeBridgeDataRootConfig/, /mergeRuntimeBridgeRealmJwtConfig/, /mergeRuntimeBridgeDeveloperRegistrationConfig/, /from '@nimiplatform\/sdk\/runtime'/].forEach((pattern) => assert.match(runtimeConfigProjection, pattern));
+  assert.doesNotMatch(settings, /function checkRuntimeRouteProviderHealth/); [/createHostRuntimeRouteAccessSurface/, /buildCallOptions/, /checkLocalHealth/, /from '@nimiplatform\/sdk\/runtime'/].forEach((pattern) => assert.match(runtimeRouteHostAccess, pattern)); [/mergeRuntimeBridgeDataRootConfig/, /mergeRuntimeBridgeRealmJwtConfig/, /mergeRuntimeBridgeDeveloperRegistrationConfig/, /from '@nimiplatform\/sdk\/runtime'/].forEach((pattern) => assert.match(runtimeConfigProjection, pattern));
 });
 
 test('tester settings consumes Kit model picker binding projection', () => {

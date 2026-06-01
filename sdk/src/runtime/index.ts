@@ -43,6 +43,7 @@ export * from './runtime-route-capability-projection.js';
 export * from './runtime-route-capability-runtime.js';
 export * from './runtime-route-reasoning.js';
 export * from './runtime-route-host-facade.js';
+export * from './runtime-route-host-access.js';
 export * from './runtime-route-client-loader.js';
 export * from './runtime-route-options.js';
 export * from './runtime-route-types.js';

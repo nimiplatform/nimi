@@ -1,60 +1,24 @@
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import test from 'node:test';
 
-import { ReasonCode } from '@nimiplatform/sdk/types';
-import {
-  extractRuntimeReasonCode,
-  toLocalRuntimeReasonCode,
-} from '../src/runtime/llm-adapter/execution/runtime-ai-bridge';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+const desktopDir = resolve(import.meta.dirname, '..');
+const repoDir = resolve(desktopDir, '../..');
 
-test('runtime ai bridge keeps model-not-found reason distinguishable', () => {
-  const mapped = toLocalRuntimeReasonCode({
-    reasonCode: ReasonCode.AI_MODEL_NOT_FOUND,
-    actionHint: 'switch_model',
-    traceId: 'trace-1',
-    retryable: false,
-    source: 'runtime',
-  });
-  assert.equal(mapped, ReasonCode.AI_MODEL_NOT_FOUND);
-});
+function readRepo(relativePath: string): string {
+  return readFileSync(resolve(repoDir, relativePath), 'utf8');
+}
 
-test('runtime ai bridge maps modality and media option numeric reason codes', () => {
-  assert.equal(extractRuntimeReasonCode(new Error('rpc error reason=351')), 'AI_MODALITY_NOT_SUPPORTED');
-  assert.equal(extractRuntimeReasonCode(new Error('rpc error reason=411')), 'AI_MEDIA_OPTION_UNSUPPORTED');
-  assert.equal(extractRuntimeReasonCode(new Error('rpc error reason=561')), 'AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED');
-});
+test('Runtime reason-code parsing is SDK-owned with no Desktop bridge wrapper', () => {
+  assert.equal(existsSync(resolve(desktopDir, 'src/runtime/llm-adapter/execution/runtime-ai-bridge-output.ts')), false);
 
-test('runtime ai bridge keeps media-option reason distinguishable', () => {
-  const mapped = toLocalRuntimeReasonCode({
-    reasonCode: ReasonCode.AI_MEDIA_OPTION_UNSUPPORTED,
-    actionHint: 'adjust_tts_voice_or_audio_options',
-    traceId: 'trace-2',
-    retryable: false,
-    source: 'runtime',
-  });
-  assert.equal(mapped, ReasonCode.AI_MEDIA_OPTION_UNSUPPORTED);
-});
+  const sdkReasonMessages = readRepo('sdk/src/runtime/reason-code-messages.ts');
+  const sdkReasonTest = readRepo('sdk/test/runtime/reason-code-messages.test.ts');
+  const testerSettings = readRepo('apps/tester/src/shell/routes/settings.tsx');
 
-test('runtime ai bridge keeps generic AI_INPUT_INVALID distinguishable', () => {
-  const mapped = toLocalRuntimeReasonCode({
-    reasonCode: ReasonCode.AI_INPUT_INVALID,
-    actionHint: 'check_input_and_extensions',
-    traceId: 'trace-3',
-    retryable: false,
-    source: 'runtime',
-  });
-  assert.equal(mapped, ReasonCode.AI_INPUT_INVALID);
-});
-
-test('runtime ai bridge delegates Runtime reason-code parsing to SDK', () => {
-  const source = readFileSync(
-    resolve(import.meta.dirname, '../src/runtime/llm-adapter/execution/runtime-ai-bridge-output.ts'),
-    'utf8',
-  );
-
-  assert.match(source, /extractRuntimeReasonCodeFromError/);
-  assert.doesNotMatch(source, /AI_REASON_CODE_NUMERIC/);
-  assert.doesNotMatch(source, /reason=351/);
+  assert.match(sdkReasonMessages, /extractRuntimeReasonCodeFromError/);
+  assert.match(sdkReasonMessages, /mapRuntimeErrorToLocalAiReasonCode/);
+  assert.match(sdkReasonTest, /reason=351/);
+  assert.match(testerSettings, /extractRuntimeReasonCodeFromError/);
 });

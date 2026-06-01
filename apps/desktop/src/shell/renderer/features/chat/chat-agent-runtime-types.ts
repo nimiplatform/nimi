@@ -1,7 +1,9 @@
 import type {
-  buildRuntimeRequestMetadata,
-  getRuntimeClient,
-} from '@runtime/llm-adapter/execution/runtime-ai-bridge';
+  RuntimeRouteHostAccessSurface,
+} from '@nimiplatform/sdk/runtime';
+import type {
+  getDesktopRuntimeClient,
+} from '@renderer/infra/runtime-route-host-access';
 import type {
   AISnapshot,
   ConversationExecutionSnapshot,
@@ -27,8 +29,8 @@ export type ChatAgentTranscribeRuntimeInvokeResult = {
 };
 
 export type ChatAgentTranscribeRuntimeInvokeDeps = {
-  buildRuntimeRequestMetadataImpl?: typeof buildRuntimeRequestMetadata;
-  getRuntimeClientImpl?: typeof getRuntimeClient;
+  buildRuntimeRequestMetadataImpl?: RuntimeRouteHostAccessSurface['buildRequestMetadata'];
+  getRuntimeClientImpl?: typeof getDesktopRuntimeClient;
 };
 
 export const CORE_CHAT_AGENT_TARGET_ID = 'core.chat-agent';

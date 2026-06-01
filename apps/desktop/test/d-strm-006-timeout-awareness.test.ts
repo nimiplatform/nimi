@@ -4,12 +4,14 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 import {
+  RUNTIME_TEXT_GENERATE_TIMEOUT_MS,
+} from '@nimiplatform/sdk/runtime';
+import {
   STREAM_FIRST_PACKET_TIMEOUT_MS,
   STREAM_SPEECH_TOTAL_TIMEOUT_MS,
   STREAM_TEXT_TOTAL_TIMEOUT_MS,
   STREAM_VIDEO_TOTAL_TIMEOUT_MS,
 } from '../src/shell/renderer/features/turns/stream-controller';
-import { TEXT_GENERATE_TIMEOUT_MS } from '../src/runtime/llm-adapter/execution/types';
 
 const SPEC_TIMEOUTS_PATH = resolve(
   import.meta.dirname,
@@ -33,7 +35,7 @@ function readSpecTimeout(operation: string): number {
 }
 
 test('D-STRM-006: Desktop-owned timeout constants match K-DAEMON-008 defaults', () => {
-  assert.equal(TEXT_GENERATE_TIMEOUT_MS, readSpecTimeout('ExecuteScenario_text_generate'));
+  assert.equal(RUNTIME_TEXT_GENERATE_TIMEOUT_MS, readSpecTimeout('ExecuteScenario_text_generate'));
   assert.equal(STREAM_FIRST_PACKET_TIMEOUT_MS, readSpecTimeout('StreamScenario_first_packet'));
   assert.equal(STREAM_TEXT_TOTAL_TIMEOUT_MS, readSpecTimeout('StreamScenario_total'));
   assert.equal(STREAM_SPEECH_TOTAL_TIMEOUT_MS, readSpecTimeout('StreamScenario_speech_synthesize'));

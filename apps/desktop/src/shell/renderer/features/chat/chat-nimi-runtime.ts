@@ -1,15 +1,15 @@
 import {
   createNimiError,
+  RUNTIME_TEXT_GENERATE_TIMEOUT_MS,
   type TextMessage,
   type TextStreamOutput,
   } from '@nimiplatform/sdk/runtime';
 import type { ConversationRuntimeTextMessage } from '@nimiplatform/kit/features/chat/headless';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
-  buildRuntimeStreamOptions,
-  ensureRuntimeLocalModelWarm,
-  getRuntimeClient,
-  } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
+  desktopRuntimeRouteAccess,
+  getDesktopRuntimeClient,
+} from '@renderer/infra/runtime-route-host-access';
 import {
   runtimeRouteCallTargetFromResolvedBinding,
   type RuntimeResolvedBinding,
@@ -106,15 +106,15 @@ export async function streamChatAiRuntime(
 ): Promise<ChatAiRuntimeStreamResult> {
   const executionInput = await (deps.resolveTextExecutionInputImpl || resolveRuntimeTextExecutionInput)(input);
   const resolved = runtimeRouteCallTargetFromResolvedBinding(executionInput.resolvedBinding);
-  const timeoutMs = 120_000;
+  const timeoutMs = RUNTIME_TEXT_GENERATE_TIMEOUT_MS;
 
-  await ensureRuntimeLocalModelWarm({
+  await desktopRuntimeRouteAccess.ensureLocalModelWarm({
     targetId: executionInput.targetId,
     resolvedBinding: executionInput.resolvedBinding,
     timeoutMs,
   });
 
-  const callOptions = await buildRuntimeStreamOptions({
+  const callOptions = await desktopRuntimeRouteAccess.buildStreamOptions({
     targetId: executionInput.targetId,
     timeoutMs,
     signal: input.signal,
@@ -122,7 +122,7 @@ export async function streamChatAiRuntime(
     connectorId: resolved.connectorId,
     providerEndpoint: resolved.endpoint,
   });
-  const streamOutput = await getRuntimeClient().ai.text.stream({
+  const streamOutput = await getDesktopRuntimeClient().ai.text.stream({
     model: resolved.modelId,
     route: resolved.source,
     connectorId: resolved.connectorId,
@@ -134,7 +134,7 @@ export async function streamChatAiRuntime(
     ),
     timeoutMs: callOptions.timeoutMs,
     signal: callOptions.signal,
-    metadata: callOptions.metadata,
+    metadata: callOptions.metadata as unknown as Record<string, string>,
   });
 
   return {

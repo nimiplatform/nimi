@@ -18,9 +18,9 @@
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
 import type { NimiRoutePolicy } from '@nimiplatform/sdk/runtime';
 import {
-  buildRuntimeRequestMetadata,
-  getRuntimeClient,
-} from '@runtime/llm-adapter/execution/runtime-ai-bridge.js';
+  desktopRuntimeRouteAccess,
+  getDesktopRuntimeClient,
+} from '@renderer/infra/runtime-route-host-access.js';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service.js';
 import {
   createEmptyDraft,
@@ -199,7 +199,7 @@ export async function generateRealmAgentDraft(
 
   let result: { text?: string };
   try {
-    result = await getRuntimeClient().ai.text.generate({
+    result = await getDesktopRuntimeClient().ai.text.generate({
       model: binding.modelId || binding.model,
       input: `Concept: ${description}`,
       system: buildSystemPrompt(),
@@ -208,7 +208,7 @@ export async function generateRealmAgentDraft(
       maxTokens: 1024,
       temperature: 0.8,
       timeoutMs: AI_GENERATION_TIMEOUT_MS,
-      metadata: await buildRuntimeRequestMetadata({
+      metadata: await desktopRuntimeRouteAccess.buildRequestMetadata({
         source: route,
         connectorId: binding.connectorId || undefined,
         providerEndpoint: binding.endpoint || undefined,
