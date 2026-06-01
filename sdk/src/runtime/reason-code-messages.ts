@@ -1,4 +1,5 @@
 import { ReasonCode } from '../types/index.js';
+import { asNimiError, type CreateNimiErrorInput } from '../core/errors.js';
 import { ReasonCode as RuntimeReasonCode } from './generated/runtime/v1/common.js';
 
 export type RuntimeReasonCodeMessageProjection = {
@@ -81,6 +82,110 @@ export function getRuntimeReasonCodeMessage(reasonCode: unknown): RuntimeReasonC
 
 export function getRuntimeReasonCodeDefaultMessage(reasonCode: unknown): string | null {
   return getRuntimeReasonCodeMessage(reasonCode)?.defaultMessage || null;
+}
+
+export type RuntimeUserFacingErrorProjection = {
+  code: string;
+  message: string;
+};
+
+export type RuntimeReasonCodeMessageResolver = (
+  reasonCode: string,
+  defaultMessage: string,
+) => string | null | undefined;
+
+export type RuntimeUserFacingErrorOptions = {
+  fallbackMessage: string;
+  resolveReasonCodeMessage?: RuntimeReasonCodeMessageResolver;
+};
+
+const RUNTIME_CALL_ERROR_DEFAULTS = Object.freeze({
+  reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+  actionHint: 'retry_or_check_runtime_status',
+  source: 'runtime',
+} as const);
+
+function normalizeRuntimeErrorText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function resolveRuntimeErrorReasonCodeMessage(
+  reasonCode: string,
+  resolveReasonCodeMessage?: RuntimeReasonCodeMessageResolver,
+): string | null {
+  const entry = getRuntimeReasonCodeMessage(reasonCode);
+  if (!entry) {
+    return null;
+  }
+  const resolved = resolveReasonCodeMessage?.(entry.reasonCode, entry.defaultMessage);
+  return normalizeRuntimeErrorText(resolved) || entry.defaultMessage;
+}
+
+function shouldUseRuntimeErrorRawMessage(
+  rawMessage: string,
+  actionHint: string,
+  fallbackMessage: string,
+): boolean {
+  if (!rawMessage) {
+    return false;
+  }
+  const normalizedRaw = rawMessage.toLowerCase();
+  if (actionHint && normalizedRaw === actionHint.toLowerCase()) {
+    return false;
+  }
+  return normalizedRaw !== 'runtime call failed'
+    && normalizedRaw !== fallbackMessage.toLowerCase();
+}
+
+export function asRuntimeCallNimiError(
+  error: unknown,
+  defaults: Partial<CreateNimiErrorInput> = {},
+) {
+  return asNimiError(error, {
+    ...RUNTIME_CALL_ERROR_DEFAULTS,
+    ...defaults,
+  });
+}
+
+export function formatRuntimeNimiErrorDetail(
+  error: unknown,
+  defaults: Partial<CreateNimiErrorInput> = {},
+): string {
+  const normalized = asRuntimeCallNimiError(error, defaults);
+  const traceSuffix = normalized.traceId
+    ? `, traceId=${normalized.traceId}`
+    : '';
+  return `${normalized.message} (reasonCode=${normalized.reasonCode}${traceSuffix})`;
+}
+
+export function formatRuntimeNimiErrorBanner(
+  label: string,
+  error: unknown,
+  defaults: Partial<CreateNimiErrorInput> = {},
+): string {
+  return `${label}: ${formatRuntimeNimiErrorDetail(error, defaults)}`;
+}
+
+export function toRuntimeUserFacingError(
+  error: unknown,
+  options: RuntimeUserFacingErrorOptions,
+): RuntimeUserFacingErrorProjection {
+  const normalized = asNimiError(error);
+  const fallbackMessage = normalizeRuntimeErrorText(options.fallbackMessage) || 'Runtime call failed';
+  const code = normalizeRuntimeReasonCode(normalized.reasonCode) || ReasonCode.RUNTIME_CALL_FAILED;
+  const rawMessage = normalizeRuntimeErrorText(normalized.message);
+  const actionHint = normalizeRuntimeErrorText(normalized.actionHint);
+  const reasonCodeMessage = resolveRuntimeErrorReasonCodeMessage(
+    code,
+    options.resolveReasonCodeMessage,
+  );
+
+  return {
+    code,
+    message: shouldUseRuntimeErrorRawMessage(rawMessage, actionHint, fallbackMessage)
+      ? rawMessage
+      : (reasonCodeMessage || rawMessage || fallbackMessage),
+  };
 }
 
 function asRuntimeReasonRecord(value: unknown): Record<string, unknown> {

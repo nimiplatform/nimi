@@ -1,9 +1,12 @@
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
+import {
+  formatRuntimeNimiErrorBanner as formatRuntimeConfigErrorBanner,
+  formatRuntimeNimiErrorDetail as formatRuntimeConfigErrorDetail,
+} from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeConfigStateUpdater } from './runtime-config-types';
 import { discoverConnectorModelsAndHealth } from './runtime-config-connector-discovery';
-import { formatRuntimeConfigErrorBanner, formatRuntimeConfigErrorDetail } from './runtime-config-connector-error';
 
 function connectorTestFailureKind(status: string): StatusBanner['kind'] {
   return status === 'degraded' ? 'warning' : 'error';

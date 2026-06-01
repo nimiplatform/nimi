@@ -3,85 +3,47 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { createNimiError } from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
-
-import { toChatAgentRuntimeError } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
-import { toChatAiRuntimeError } from '../src/shell/renderer/features/chat/chat-nimi-runtime.js';
-
-test('chat runtime error message prefers reason-code copy over raw action hints', () => {
-  const timeoutError = createNimiError({
-    message: 'retry stream request',
-    reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
-    actionHint: 'retry stream request',
-    source: 'runtime',
-  });
-
-  assert.deepEqual(toChatAiRuntimeError(timeoutError), {
-    code: ReasonCode.AI_PROVIDER_TIMEOUT,
-    message: 'AI provider request timed out.',
-  });
-
-  const brokenStreamError = createNimiError({
-    message: 'retry stream request',
-    reasonCode: ReasonCode.AI_STREAM_BROKEN,
-    actionHint: 'retry stream request',
-    source: 'runtime',
-  });
-
-  assert.deepEqual(toChatAgentRuntimeError(brokenStreamError), {
-    code: ReasonCode.AI_STREAM_BROKEN,
-    message: 'AI streaming response was interrupted.',
-  });
-});
-
-test('chat runtime error message keeps readable provider messages when present', () => {
-  const error = createNimiError({
-    message: 'Upstream provider rejected the request body.',
-    reasonCode: ReasonCode.AI_PROVIDER_INTERNAL,
-    actionHint: 'retry stream request',
-    source: 'runtime',
-  });
-
-  assert.deepEqual(toChatAiRuntimeError(error), {
-    code: ReasonCode.AI_PROVIDER_INTERNAL,
-    message: 'Upstream provider rejected the request body.',
-  });
-});
-
-test('chat runtime error message maps local speech bundle reasons to user-facing copy', () => {
-  const speechError = createNimiError({
-    message: 'runtime call failed',
-    reasonCode: ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED,
-    actionHint: 'confirm_download',
-    source: 'runtime',
-  });
-
-  assert.deepEqual(toChatAiRuntimeError(speechError), {
-    code: ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED,
-    message: 'Local Speech requires explicit download confirmation before continuing.',
-  });
-
-  const degradedSpeechError = createNimiError({
-    message: 'runtime call failed',
-    reasonCode: ReasonCode.AI_LOCAL_SPEECH_BUNDLE_DEGRADED,
-    actionHint: 'repair_local_speech',
-    source: 'runtime',
-  });
-
-  assert.deepEqual(toChatAgentRuntimeError(degradedSpeechError), {
-    code: ReasonCode.AI_LOCAL_SPEECH_BUNDLE_DEGRADED,
-    message: 'Local Speech is degraded and must be repaired before continuing.',
-  });
-});
-
-test('chat runtime error message consumes SDK reason-code message projection', () => {
+test('chat runtime error message delegates behavior to SDK runtime projection', () => {
   const source = fs.readFileSync(
     path.join(import.meta.dirname, '../src/shell/renderer/features/chat/chat-runtime-error-message.ts'),
     'utf8',
   );
+  const sdkSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../../../sdk/src/runtime/reason-code-messages.ts'),
+    'utf8',
+  );
 
   assert.match(source, /getRuntimeReasonCodeMessage/);
+  assert.match(source, /toRuntimeUserFacingError/);
   assert.doesNotMatch(source, /CHAT_RUNTIME_REASON_MESSAGE_MAP/);
+  assert.doesNotMatch(source, /shouldUseRawMessage/);
   assert.doesNotMatch(source, /AI_PROVIDER_TIMEOUT:\s*\{/);
+  assert.match(sdkSource, /export function toRuntimeUserFacingError/);
+  assert.match(sdkSource, /shouldUseRuntimeErrorRawMessage/);
+});
+
+test('runtime config error formatting does not retain a Desktop helper owner', () => {
+  const helperPath = path.join(
+    import.meta.dirname,
+    '../src/shell/renderer/features/runtime-config/runtime-config-connector-error.ts',
+  );
+  const providerCommands = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-provider-commands.ts'),
+    'utf8',
+  );
+  const connectorTestCommand = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-connector-test-command.ts'),
+    'utf8',
+  );
+  const cloudPage = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-page-cloud.tsx'),
+    'utf8',
+  );
+
+  assert.equal(fs.existsSync(helperPath), false);
+  for (const source of [providerCommands, connectorTestCommand, cloudPage]) {
+    assert.match(source, /from '@nimiplatform\/sdk\/runtime'/);
+    assert.match(source, /formatRuntimeNimiErrorBanner|formatRuntimeNimiErrorDetail/);
+    assert.doesNotMatch(source, /runtime-config-connector-error/);
+  }
 });

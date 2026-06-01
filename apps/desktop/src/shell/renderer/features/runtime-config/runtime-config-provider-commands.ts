@@ -9,7 +9,9 @@ import {
 } from './runtime-config-connector-test-command';
 import { runDiscoverLocalModelsCommand } from './runtime-config-connector-discover-command';
 import { runLocalHealthCheckCommand } from './runtime-config-connector-health-command';
-import { formatRuntimeConfigErrorBanner } from './runtime-config-connector-error';
+import {
+  formatRuntimeNimiErrorBanner as formatRuntimeConfigErrorBanner,
+} from '@nimiplatform/sdk/runtime';
 
 export async function discoverLocalModelsCommand(input: DiscoverProviderCommandContext) {
   if (!input.state || input.discovering) return;

@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getPlatformClient } from '@nimiplatform/sdk';
-import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
+import {
+  formatRuntimeNimiErrorBanner as formatRuntimeConfigErrorBanner,
+  type ProviderCatalogEntry,
+} from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { DEFAULT_CONNECTOR_ENDPOINT_V11, getVendorLabelV11, randomIdV11, type ApiVendor } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { connectorAuthProfileForId, defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, sdkCreateConnector, sdkDeleteConnector, sdkListConnectors, sdkListProviderCatalog, sdkUpdateConnector, vendorToProvider } from './runtime-config-connector-sdk-service';
 import { addConnectorToState, removeSelectedConnector, replaceConnectorsInState, updateConnectorField } from './runtime-config-connector-actions';
-import { formatRuntimeConfigErrorBanner } from './runtime-config-connector-error';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { Card as PrimitiveCard, RuntimeSelect, StatusBadge, renderModelChips } from './runtime-config-primitives';
 import { ScrollArea } from '@nimiplatform/kit/ui';

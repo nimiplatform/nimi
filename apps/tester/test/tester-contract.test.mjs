@@ -1125,6 +1125,7 @@ test('tester settings consumes SDK Runtime reason-code message projection', () =
   const settings = read('src/shell/routes/settings.tsx');
 
   assert.match(settings, /getRuntimeReasonCodeDefaultMessage/);
+  assert.match(settings, /toRuntimeUserFacingError/);
   assert.match(settings, /normalizeRuntimeReasonCode/);
   assert.match(settings, /extractRuntimeReasonCodeFromError/);
   assert.match(settings, /extractNimiErrorFields/);
@@ -1136,6 +1137,7 @@ test('tester settings consumes SDK Runtime reason-code message projection', () =
   assert.match(settings, /runtimeReasonProjection\.credentialMissing/);
   assert.match(settings, /runtimeReasonProjection\.numeric/);
   assert.match(settings, /runtimeReasonProjection\.extracted/);
+  assert.match(settings, /runtimeReasonProjection\.presented/);
   assert.match(settings, /runtimeReasonProjection\.traceId/);
   assert.doesNotMatch(settings, /AI provider request timed out\./);
   assert.doesNotMatch(settings, /AI connector credentials are missing\./);

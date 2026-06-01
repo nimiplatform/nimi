@@ -89,6 +89,7 @@ import {
   toCanonicalLocalRuntimeAssetId,
   toCanonicalLocalRuntimeAssetLookupKey,
   toProtoStruct,
+  toRuntimeUserFacingError,
   type RuntimeConnectorProjection,
   type RuntimeAgentConsumeEvent,
   type RuntimeModelCatalogConnectorClient,
@@ -727,6 +728,16 @@ export function SettingsRoute() {
     credentialMissing: getRuntimeReasonCodeDefaultMessage(ReasonCode.AI_CONNECTOR_CREDENTIAL_MISSING) ?? 'unknown',
     numeric: normalizeRuntimeReasonCode(351) || 'unknown',
     extracted: extractRuntimeReasonCodeFromError(new Error('runtime failed: reason=411')) ?? 'unknown',
+    presented: toRuntimeUserFacingError({
+      reasonCode: ReasonCode.AI_STREAM_BROKEN,
+      actionHint: 'retry stream request',
+      message: 'retry stream request',
+      traceId: 'tester-runtime-user-facing',
+      retryable: true,
+      source: 'runtime',
+    }, {
+      fallbackMessage: 'Tester runtime call failed',
+    }).message,
     traceId: extractNimiErrorFields({
       reason_code: ReasonCode.RUNTIME_CALL_FAILED,
       action_hint: 'retry_runtime_call',
@@ -1993,7 +2004,7 @@ export function SettingsRoute() {
       <div className="setting-row">
         <span>Runtime reason projection</span>
         <StatusBadge tone="neutral">
-          {runtimeReasonProjection.reasonCode}: {runtimeReasonProjection.message} / {runtimeReasonProjection.credentialMissing} / {runtimeReasonProjection.numeric} / {runtimeReasonProjection.extracted}
+          {runtimeReasonProjection.reasonCode}: {runtimeReasonProjection.message} / {runtimeReasonProjection.credentialMissing} / {runtimeReasonProjection.numeric} / {runtimeReasonProjection.extracted} / {runtimeReasonProjection.presented}
           {' / '}
           {runtimeReasonProjection.traceId}
         </StatusBadge>

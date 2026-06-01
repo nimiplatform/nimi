@@ -26,7 +26,10 @@
 //     and state are read straight from the SDK typed projection.
 
 import { getPlatformClient } from '@nimiplatform/sdk';
-import { asNimiError } from '@nimiplatform/sdk/runtime';
+import {
+  asRuntimeCallNimiError,
+  formatRuntimeNimiErrorDetail,
+} from '@nimiplatform/sdk/runtime';
 import type {
   RuntimeAppHealthRepairInput,
   RuntimeAppInstallInput,
@@ -40,7 +43,7 @@ import type {
   RuntimeAppUninstallResult,
   RuntimeAppUpdateInput,
 } from '@nimiplatform/sdk/runtime';
-import { ReasonCode, type NimiError } from '@nimiplatform/sdk/types';
+import type { NimiError } from '@nimiplatform/sdk/types';
 
 // Re-export the SDK typed projections so the Apps surface (T4-W4) consumes a
 // single bridge entrypoint without reaching into `@nimiplatform/sdk/runtime`
@@ -110,11 +113,7 @@ function appLifecycleModule(): RuntimeAppLifecycleModule {
  * synthesized result.
  */
 export function asAppLifecycleNimiError(error: unknown): NimiError {
-  return asNimiError(error, {
-    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
-    actionHint: 'retry_or_check_runtime_status',
-    source: 'runtime',
-  });
+  return asRuntimeCallNimiError(error);
 }
 
 /**
@@ -123,9 +122,7 @@ export function asAppLifecycleNimiError(error: unknown): NimiError {
  * distinct fail-closed reasons into a generic message.
  */
 export function formatAppLifecycleErrorDetail(error: unknown): string {
-  const normalized = asAppLifecycleNimiError(error);
-  const traceSuffix = normalized.traceId ? `, traceId=${normalized.traceId}` : '';
-  return `${normalized.message} (reasonCode=${normalized.reasonCode}${traceSuffix})`;
+  return formatRuntimeNimiErrorDetail(error);
 }
 
 /**

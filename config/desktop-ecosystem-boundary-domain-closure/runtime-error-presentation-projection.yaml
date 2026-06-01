@@ -1,0 +1,112 @@
+status: migrated
+date: "2026-06-01"
+domain: runtime-error-presentation-projection
+closure_result:
+  kind: sdk_runtime_error_presentation_projection
+  migrated_in_this_commit: true
+  production_code_changed_in_this_commit: true
+  refactor_progress_credit: true
+authority_posture:
+  spec_status: alignment
+  authority_owner:
+    - sdk/src/runtime/reason-code-messages.ts
+    - sdk/test/runtime/reason-code-messages.test.ts
+  work_type: alignment
+  parallel_truth: forbidden
+scope:
+  included:
+    - sdk/src/runtime/reason-code-messages.ts
+    - sdk/test/runtime/reason-code-messages.test.ts
+    - apps/desktop/src/shell/renderer/features/chat/chat-runtime-error-message.ts
+    - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-connector-error.ts
+    - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-provider-commands.ts
+    - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-connector-test-command.ts
+    - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-cloud.tsx
+    - apps/desktop/src/shell/renderer/features/apps/apps-lifecycle-bridge.ts
+    - apps/desktop/test/chat-runtime-error-message.test.ts
+    - apps/tester/src/shell/routes/settings.tsx
+    - apps/tester/test/tester-contract.test.mjs
+  excluded:
+    - Runtime-owned reason-code enum definitions and transport error creation.
+    - Product-specific Desktop chat fallback labels and i18n lookup keys.
+preflight_violation_inventory:
+  platform_truth:
+    - finding: Desktop normalized SDK/runtime errors into reason-code, message, trace-id, and user-facing projection locally.
+      disposition: added SDK runtime error presentation helpers and moved shared projection behavior there.
+  duplicate_implementation:
+    - finding: Desktop runtime-config and app-lifecycle surfaces duplicated single-line NimiError detail formatting.
+      disposition: Desktop consumers now call SDK formatRuntimeNimiErrorDetail/formatRuntimeNimiErrorBanner/asRuntimeCallNimiError.
+    - finding: Desktop chat tests owned fallback-vs-reason-code copy behavior that belongs with SDK reason-code projection.
+      disposition: behavior assertions moved to SDK runtime reason-code owner tests; Desktop keeps boundary/source hardcuts.
+  boundary_imports:
+    - finding: Desktop had a local runtime-config-connector-error production helper standing between app code and SDK runtime projection.
+      disposition: deleted the helper and imported SDK owner functions directly from @nimiplatform/sdk/runtime.
+  token_session_runtime_realm_responsibility:
+    - finding: no token/session/durable Runtime or Realm state changed; this domain changes SDK-owned client projection only.
+      disposition: not applicable.
+migrated:
+  sdk_owner:
+    - path: sdk/src/runtime/reason-code-messages.ts
+      responsibility: Runtime reason-code default messages, runtime reason-code extraction, local-AI reason mapping, NimiError detail/banner formatting, and user-facing runtime error projection.
+    - path: sdk/test/runtime/reason-code-messages.test.ts
+      responsibility: Owner behavior coverage for reason-code copy, raw provider message preservation, local speech copy, translated app copy hook, trace-id detail formatting, and RUNTIME_CALL_FAILED defaulting.
+  desktop_consumers:
+    - apps/desktop/src/shell/renderer/features/chat/chat-runtime-error-message.ts delegates projection behavior to toRuntimeUserFacingError and keeps only i18n resolver glue.
+    - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-provider-commands.ts imports SDK banner formatting directly.
+    - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-connector-test-command.ts imports SDK detail/banner formatting directly.
+    - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-cloud.tsx imports SDK banner formatting directly.
+    - apps/desktop/src/shell/renderer/features/apps/apps-lifecycle-bridge.ts delegates NimiError normalization/detail formatting to SDK helpers.
+  tester_consumers:
+    - apps/tester/src/shell/routes/settings.tsx consumes toRuntimeUserFacingError from @nimiplatform/sdk/runtime as second app proof.
+desktop_app_owned_residue:
+  - path: apps/desktop/src/shell/renderer/features/chat/chat-runtime-error-message.ts
+    rationale: Desktop owns product-specific chat fallback labels and i18n translation lookup; SDK owns error projection behavior.
+  - path: apps/desktop/src/shell/renderer/features/apps/apps-lifecycle-bridge.ts
+    rationale: Desktop owns Apps surface lifecycle metadata and bridge shape; SDK owns runtime error normalization/detail formatting.
+tester_proof:
+  - apps/tester/src/shell/routes/settings.tsx imports toRuntimeUserFacingError and renders runtimeReasonProjection.presented.
+  - apps/tester/test/tester-contract.test.mjs asserts Tester consumes the SDK runtime user-facing error helper.
+regression_guards:
+  - sdk/test/runtime/reason-code-messages.test.ts owns behavior coverage for runtime user-facing error and NimiError detail projection.
+  - apps/desktop/test/chat-runtime-error-message.test.ts asserts Desktop delegates to SDK and the deleted runtime-config helper stays absent.
+prohibited_patterns:
+  - target: apps/desktop/src/shell/renderer/features/runtime-config
+    absent:
+      - "runtime-config-connector-error"
+  - target: apps/desktop/src/shell/renderer/features/chat/chat-runtime-error-message.ts
+    absent:
+      - "shouldUseRawMessage"
+      - "CHAT_RUNTIME_REASON_MESSAGE_MAP"
+verification:
+  status: passed
+  commands:
+    - command: node -e "const fs=require('fs'); const yaml=require('yaml'); yaml.parse(fs.readFileSync('config/desktop-ecosystem-boundary-domain-closure/runtime-error-presentation-projection.yaml','utf8'));"
+      result: passed
+    - command: pnpm --filter @nimiplatform/sdk exec tsx --test test/runtime/reason-code-messages.test.ts
+      result: passed
+      evidence: 13 SDK owner tests passed.
+    - command: pnpm --filter @nimiplatform/desktop exec tsx --test test/chat-runtime-error-message.test.ts test/apps-lifecycle-bridge.test.ts
+      result: passed
+      evidence: 16 Desktop boundary/compat tests passed.
+    - command: pnpm --filter @nimiplatform/tester exec node --test test/tester-contract.test.mjs
+      result: passed
+      evidence: 62 Tester contract tests passed, including toRuntimeUserFacingError second-consumer proof.
+    - command: pnpm --filter @nimiplatform/sdk build
+      result: passed
+      evidence: SDK dist regenerated locally so package-export typechecks see the new runtime helper.
+    - command: pnpm --filter @nimiplatform/sdk lint
+      result: passed
+    - command: pnpm --filter @nimiplatform/desktop typecheck
+      result: passed
+    - command: pnpm --filter @nimiplatform/tester typecheck
+      result: passed
+    - command: rg -n "runtime-config-connector-error" apps/desktop/src/shell/renderer/features/runtime-config --glob '!**/generated/**' --glob '!**/.cache/**'
+      result: passed_no_matches
+    - command: rg -n "shouldUseRawMessage|CHAT_RUNTIME_REASON_MESSAGE_MAP|AI_PROVIDER_TIMEOUT:\\s*\\{" apps/desktop/src/shell/renderer/features/chat/chat-runtime-error-message.ts
+      result: passed_no_matches
+    - command: pnpm check:no-legacy-imports
+      result: passed
+    - command: pnpm check:no-absolute-user-paths
+      result: passed
+    - command: git diff --check
+      result: passed
