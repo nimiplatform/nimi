@@ -1,0 +1,133 @@
+status: legalized
+date: "2026-06-01"
+domain: product-local-state
+authority_posture:
+  spec_status: alignment
+  authority_owner:
+    - .nimi/spec/runtime/kernel/config-contract.md
+    - .nimi/spec/platform/kernel/tables/nimi-data-directory-ownership.yaml
+    - sdk/src/ai/host-ai-config.ts
+    - sdk/src/runtime/runtime-app-storage.ts
+    - kit/core/src/storage-json.ts
+  work_type: alignment
+  parallel_truth: forbidden
+scope:
+  included:
+    - Desktop renderer product-local localStorage preferences and UI selection state
+    - Desktop Runtime Config panel UI-only persisted state after Runtime truth is stripped
+    - Desktop scoped AIConfig persistence as SDK store consumption
+    - Desktop hard cuts for agent behavior storage and saved-post local storage
+    - Tester product-local preference and prompt-draft persistence as second consumer of Kit storage helpers
+    - Runtime app-storage root projection as second proof that app storage roots are Runtime/SDK-owned
+  excluded:
+    - Runtime data root selection and managed roots, already closed under runtime-config-local-runtime.
+    - Realm account, social, settings, resource, and notification truth, already closed under realm-data.
+audited_globs:
+  - apps/desktop/src/shell/renderer/features/settings/settings-storage.ts
+  - apps/desktop/src/shell/renderer/features/settings/settings-device-preferences.ts
+  - apps/desktop/src/shell/renderer/features/settings/settings-data-management-page.tsx
+  - apps/desktop/src/shell/renderer/features/chat/chat-settings-storage.ts
+  - apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx
+  - apps/desktop/src/shell/renderer/features/developer/developer-tools-storage.ts
+  - apps/desktop/src/shell/renderer/features/support/support-storage.ts
+  - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-storage-persist.ts
+  - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-storage-normalize.ts
+  - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-local-model-center-progress-cache.ts
+  - apps/desktop/src/shell/renderer/app-shell/providers/desktop-ai-config-storage.ts
+  - apps/desktop/src/shell/renderer/i18n/index.ts
+  - apps/desktop/test/*storage*.test.ts
+  - apps/desktop/test/*preference*.test.ts
+  - apps/desktop/test/*runtime-config*.test.ts
+  - apps/tester/src/tester/tester-preferences.ts
+  - apps/tester/src/tester/tester-ai-config-store.ts
+  - apps/tester/src/tester/tester-app-storage.ts
+  - apps/tester/test/tester-preferences.test.mjs
+  - apps/tester/test/tester-contract.test.mjs
+  - kit/core/src/storage-json.ts
+  - kit/test/storage-json.test.ts
+  - sdk/src/ai/host-ai-config.ts
+  - sdk/test/host-ai-config.test.ts
+  - sdk/test/runtime-app-storage.test.ts
+legalized:
+  shared_owners:
+    - kit/core/src/storage-json.ts
+    - sdk/src/ai/host-ai-config.ts
+    - sdk/src/runtime/runtime-app-storage.ts
+  responsibilities:
+    - Kit owns renderer-safe browser storage access mechanics, parse/write/remove status, and unavailable/corrupt/read-error handling.
+    - SDK owns scoped AIConfig store mechanics, scope key encoding, config normalization, and Runtime binding validation.
+    - SDK Runtime owns app storage root projections; apps must not construct platform app storage roots locally.
+  desktop_app_owned:
+    - path: apps/desktop/src/shell/renderer/features/settings/settings-storage.ts
+      rationale: Settings selected section, selected target id, and device performance preferences are product-local UI state; storage mechanics are Kit-owned.
+    - path: apps/desktop/src/shell/renderer/features/settings/settings-device-preferences.ts
+      rationale: Appearance and download preferences are device-local product preferences with typed fail-closed projection; they do not define Runtime/Realm truth.
+    - path: apps/desktop/src/shell/renderer/features/chat/chat-settings-storage.ts
+      rationale: Chat thinking preference is a user UI preference; agent behavior durable storage is hard-cut and Runtime Agent truth stays Runtime-owned.
+    - path: apps/desktop/src/shell/renderer/features/developer/developer-tools-storage.ts
+      rationale: Developer Tools selected section is product-local UI state only.
+    - path: apps/desktop/src/shell/renderer/features/support/support-storage.ts
+      rationale: Support selected section is product-local UI state only.
+    - path: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-storage-persist.ts
+      rationale: Runtime Config may persist panel UI state only; connectors, selectedConnectorId, local model inventory, node matrix, status, and secrets are stripped because Runtime/bridge config owns platform truth.
+    - path: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-local-model-center-progress-cache.ts
+      rationale: Dismissed import session ids are UI suppression state; import/session truth remains Runtime-owned.
+    - path: apps/desktop/src/shell/renderer/app-shell/providers/desktop-ai-config-storage.ts
+      rationale: Desktop injects browser storage into SDK scoped AIConfig store; SDK owns scope keying and config normalization, Runtime owns route/capability truth.
+    - path: apps/desktop/src/shell/renderer/i18n/index.ts
+      rationale: Locale selection is product-local UI preference.
+tester_proof:
+  - apps/tester/src/tester/tester-preferences.ts consumes Kit storage-json for app-owned Tester workbench preferences and prompt drafts.
+  - apps/tester/src/tester/tester-ai-config-store.ts injects Kit storage-json into SDK scoped AIConfig store.
+  - apps/tester/src/tester/tester-app-storage.ts consumes SDK Runtime app storage root projection instead of constructing roots locally.
+  - apps/tester/test/tester-preferences.test.mjs verifies versioned localStorage behavior and corrupt-state handling for Tester preferences and prompt drafts.
+  - apps/tester/test/tester-contract.test.mjs verifies Tester product-local persistence consumes Kit storage helpers and Runtime app-storage projection.
+regression_guards:
+  - apps/desktop/test/product-local-state-domain-boundary.test.ts blocks direct browser storage access in Desktop product-local storage modules and requires Kit/SDK ownership boundaries.
+  - apps/desktop/test/settings-device-preferences.test.ts verifies device-local preference projections, defaults, fail-closed corrupt states, and Settings secondary-surface posture.
+  - apps/desktop/test/runtime-config-persist-secretless.test.ts blocks Runtime Config from persisting connector selection or secrets into localStorage.
+  - apps/desktop/test/runtime-config-read-fail-no-writeback.test.ts prevents failed reads from silently rewriting Runtime Config storage.
+  - apps/desktop/test/chat-agent-behavior-storage-hardcut.test.ts blocks durable renderer storage for Runtime Agent behavior settings.
+  - apps/desktop/test/saved-post-storage-hardcut.test.ts blocks saved-post local storage resurrection.
+  - apps/desktop/test/chat-agent-anchor-binding-storage.test.ts verifies the remaining agent anchor binding storage is product-local binding cache, not transcript truth.
+  - apps/desktop/test/ai-config-multi-scope.test.ts and apps/desktop/test/chat-unified-shell-a2.test.ts verify Desktop AIConfig is scoped and no legacy single-key store remains.
+  - apps/tester/test/tester-preferences.test.mjs and apps/tester/test/tester-contract.test.mjs prove Tester second-consumer behavior.
+  - kit/test/storage-json.test.ts proves shared storage helper behavior.
+  - sdk/test/host-ai-config.test.ts proves SDK scoped AIConfig store behavior.
+  - sdk/test/runtime-app-storage.test.ts proves SDK Runtime app-storage projection behavior.
+prohibited_patterns:
+  - target: apps/desktop/src/shell/renderer apps/tester/src kit/core sdk/src
+    absent:
+      - "\\b(?:globalThis\\.)?(?:window\\.)?(?:localStorage|sessionStorage)\\."
+  - target: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-storage-persist.ts
+    absent:
+      - tokenApiKey
+      - localOpenAiApiKey
+      - selectedConnectorId
+      - connectors:
+  - target: apps/desktop/src/shell/renderer/features/chat
+    absent:
+      - AGENT_CHAT_BEHAVIOR_SETTINGS_STORAGE_KEY
+      - persistStoredAgentChatExperienceSettings
+      - loadStoredAgentChatExperienceSettings
+verification:
+  status: passed
+  passed:
+    - command: node -e "const fs=require('fs'); const yaml=require('yaml'); yaml.parse(fs.readFileSync('config/desktop-ecosystem-boundary-domain-closure/product-local-state.yaml','utf8'));"
+      evidence: Product Local State closure record parses as YAML.
+    - command: pnpm --filter @nimiplatform/desktop exec tsx --test test/product-local-state-domain-boundary.test.ts test/settings-device-preferences.test.ts test/runtime-config-persist-secretless.test.ts test/runtime-config-read-fail-no-writeback.test.ts test/chat-agent-behavior-storage-hardcut.test.ts test/saved-post-storage-hardcut.test.ts test/chat-agent-anchor-binding-storage.test.ts test/ai-config-multi-scope.test.ts test/chat-unified-shell-a2.test.ts
+      evidence: Desktop product-local state/storage hardcuts, typed device preferences, Runtime Config secretless persistence, agent behavior storage hard cut, saved-post hard cut, anchor binding cache, and scoped AIConfig pass.
+    - command: pnpm --filter @nimiplatform/tester exec node --test test/tester-preferences.test.mjs test/tester-contract.test.mjs
+      evidence: Tester product-local preferences/prompt drafts and Tester second-consumer contract pass.
+    - command: pnpm --filter @nimiplatform/kit exec vitest run test/storage-json.test.ts
+      evidence: Kit shared storage-json helper behavior passes.
+    - command: pnpm --filter @nimiplatform/sdk exec tsx --test test/host-ai-config.test.ts test/runtime-app-storage.test.ts
+      evidence: SDK scoped AIConfig store and Runtime app-storage root projections pass.
+    - command: rg -n "\\b(?:globalThis\\.)?(?:window\\.)?(?:localStorage|sessionStorage)\\." apps/desktop/src/shell/renderer apps/tester/src kit/core sdk/src -g '!**/generated/**' -g '!**/gen/**'
+      evidence: No direct browser storage property access remains in audited source; apps consume Kit/SDK helpers.
+    - command: git diff --check
+      evidence: Patch whitespace passes.
+  command_notes:
+    - command: pnpm --filter @nimiplatform/sdk exec tsx --test test/host-ai-config.test.ts test/runtime-app-storage.test.ts
+      status: failed-sandbox-ipc-then-passed-with-approval
+      evidence: sandbox run failed with EPERM on tsx IPC pipe; rerun outside sandbox passed.
