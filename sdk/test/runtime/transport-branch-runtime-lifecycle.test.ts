@@ -464,7 +464,7 @@ test('runtime-convenience: toRuntimeGenerateResult handles missing trace fields'
   assert.equal(result.text, 'result');
   assert.equal(result.traceId, '');
   assert.equal(result.modelResolved, '');
-  assert.equal(result.routeDecision, 'local');
+  assert.equal(result.routeDecision, undefined);
 });
 
 // ---------------------------------------------------------------------------

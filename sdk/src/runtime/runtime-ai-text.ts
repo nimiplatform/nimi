@@ -107,11 +107,13 @@ export async function runtimeGenerateText(
     routeDecision: response.routeDecision,
   });
 
-  ctx.emitTelemetry('ai.route.decision', {
-    route: trace.routeDecision || 'local',
-    model: modelId,
-    traceId: trace.traceId,
-  });
+  if (trace.routeDecision) {
+    ctx.emitTelemetry('ai.route.decision', {
+      route: trace.routeDecision,
+      model: modelId,
+      traceId: trace.traceId,
+    });
+  }
 
   return {
     text: extractGenerateText(response.output),
@@ -191,7 +193,7 @@ export async function runtimeStreamText(
   const wrapped: AsyncIterable<TextStreamOutput['stream'] extends AsyncIterable<infer Part> ? Part : never> = {
     async *[Symbol.asyncIterator]() {
       let streamModelResolved = '';
-      let streamRouteDecision: RoutePolicy = RoutePolicy.LOCAL;
+      let streamRouteDecision: RoutePolicy | undefined = undefined;
       let streamUsage: unknown = undefined;
 
       yield { type: 'start' as const };
@@ -201,14 +203,16 @@ export async function runtimeStreamText(
           const started = event.payload.started;
           streamModelResolved = normalizeText(started.modelResolved);
           const routeDecision = Number(started.routeDecision);
-          streamRouteDecision = routeDecision === RoutePolicy.CLOUD
-            ? RoutePolicy.CLOUD
-            : RoutePolicy.LOCAL;
-          ctxRef.emitTelemetry('ai.route.decision', {
-            route: fromRoutePolicy(streamRouteDecision),
-            model: streamModelResolved || modelId,
-            traceId: normalizeText(event.traceId) || undefined,
-          });
+          streamRouteDecision = routeDecision === RoutePolicy.CLOUD || routeDecision === RoutePolicy.LOCAL
+            ? routeDecision
+            : undefined;
+          if (streamRouteDecision !== undefined) {
+            ctxRef.emitTelemetry('ai.route.decision', {
+              route: fromRoutePolicy(streamRouteDecision),
+              model: streamModelResolved || modelId,
+              traceId: normalizeText(event.traceId) || undefined,
+            });
+          }
           continue;
         }
         case 'delta': {
@@ -352,11 +356,13 @@ export async function runtimeGenerateEmbedding(
     routeDecision: response.routeDecision,
   });
 
-  ctx.emitTelemetry('ai.route.decision', {
-    route: trace.routeDecision || 'local',
-    model: modelId,
-    traceId: trace.traceId,
-  });
+  if (trace.routeDecision) {
+    ctx.emitTelemetry('ai.route.decision', {
+      route: trace.routeDecision,
+      model: modelId,
+      traceId: trace.traceId,
+    });
+  }
 
   return {
     vectors: extractEmbeddingVectors(response.output),

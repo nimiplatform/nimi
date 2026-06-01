@@ -40,7 +40,7 @@ export type RuntimeGenerateResult = {
   finishReason: NimiFinishReason | string;
   traceId: string;
   modelResolved: string;
-  routeDecision: AiRoutePolicy;
+  routeDecision?: AiRoutePolicy;
 };
 
 export type RuntimeStreamInput = RuntimeGenerateInput & {
@@ -59,7 +59,7 @@ export type RuntimeStreamChunk =
     finishReason: NimiFinishReason | string;
     traceId: string;
     modelResolved: string;
-    routeDecision: AiRoutePolicy;
+    routeDecision?: AiRoutePolicy;
   }
   | { type: 'error'; error: NimiError };
 
@@ -227,7 +227,7 @@ export function toRuntimeGenerateResult(output: TextGenerateOutput): RuntimeGene
     finishReason: output.finishReason,
     traceId: String(output.trace.traceId || ''),
     modelResolved: String(output.trace.modelResolved || ''),
-    routeDecision: output.trace.routeDecision || 'local',
+    routeDecision: output.trace.routeDecision,
   };
 }
 
@@ -259,7 +259,7 @@ function mapStreamPart(part: TextStreamPart): RuntimeStreamChunk | null {
       finishReason: part.finishReason,
       traceId: String(part.trace.traceId || ''),
       modelResolved: String(part.trace.modelResolved || ''),
-      routeDecision: part.trace.routeDecision || 'local',
+      routeDecision: part.trace.routeDecision,
     };
   }
   if (part.type === 'error') {

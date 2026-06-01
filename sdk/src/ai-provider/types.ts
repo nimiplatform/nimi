@@ -124,7 +124,7 @@ export type NimiRuntimeTranscriptionModel = {
   }): Promise<{
     text: string;
     traceId: string;
-    routeDecision: AiRoutePolicy;
+    routeDecision?: AiRoutePolicy;
     modelResolved: string;
   }>;
 };
@@ -134,7 +134,7 @@ export type NimiArtifact = {
   mimeType: string;
   bytes: Uint8Array;
   traceId: string;
-  routeDecision: AiRoutePolicy;
+  routeDecision?: AiRoutePolicy;
   modelResolved: string;
 };
 

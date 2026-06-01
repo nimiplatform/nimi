@@ -2,7 +2,7 @@ import type { RuntimeCallOptions } from '../runtime/browser.js';
 import { createNimiError } from '../core/errors.js';
 import { ReasonCode, type AiRoutePolicy } from '../types/index.js';
 import { normalizeText } from '../internal/utils.js';
-import { ROUTE_POLICY_CLOUD, type RuntimeDefaults } from './types.js';
+import { ROUTE_POLICY_CLOUD, ROUTE_POLICY_LOCAL, type RuntimeDefaults } from './types.js';
 
 export function ensureText(value: unknown, fieldName: string): string {
   const normalized = normalizeText(value);
@@ -17,8 +17,15 @@ export function ensureText(value: unknown, fieldName: string): string {
   return normalized;
 }
 
-export function fromRouteDecision(value: unknown): AiRoutePolicy {
-  return Number(value) === ROUTE_POLICY_CLOUD ? 'cloud' : 'local';
+export function fromRouteDecision(value: unknown): AiRoutePolicy | undefined {
+  const routeDecision = Number(value);
+  if (routeDecision === ROUTE_POLICY_CLOUD) {
+    return 'cloud';
+  }
+  if (routeDecision === ROUTE_POLICY_LOCAL) {
+    return 'local';
+  }
+  return undefined;
 }
 
 export function concatChunks(chunks: Uint8Array[]): Uint8Array {

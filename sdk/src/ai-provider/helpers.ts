@@ -80,10 +80,11 @@ export function toProviderMetadata(input: {
   routeDecision?: unknown;
   modelResolved?: string;
 }): SharedV3ProviderMetadata {
+  const routeDecision = fromRouteDecision(input.routeDecision);
   return {
     nimi: {
       traceId: normalizeText(input.traceId) || undefined,
-      routeDecision: fromRouteDecision(input.routeDecision),
+      ...(routeDecision ? { routeDecision } : {}),
       modelResolved: normalizeText(input.modelResolved) || undefined,
     },
   };

@@ -163,7 +163,7 @@ export function createLanguageModelImpl(
                 type: 'stream-start',
                 warnings: [],
               });
-              let streamRouteDecision = resolveRoutePolicy(defaults.routePolicy);
+              let streamRouteDecision: number | undefined = undefined;
               let streamModelResolved = modelId;
               let streamUsage: UsageStats | undefined = undefined;
 
@@ -171,7 +171,10 @@ export function createLanguageModelImpl(
                 switch (event.payload.oneofKind) {
                 case 'started': {
                   const started = event.payload.started;
-                  streamRouteDecision = Number(started.routeDecision) || streamRouteDecision;
+                  const startedRouteDecision = Number(started.routeDecision);
+                  streamRouteDecision = startedRouteDecision === RoutePolicy.CLOUD || startedRouteDecision === RoutePolicy.LOCAL
+                    ? startedRouteDecision
+                    : streamRouteDecision;
                   streamModelResolved = normalizeText(started.modelResolved) || streamModelResolved;
                   continue;
                 }
@@ -253,9 +256,7 @@ export function createLanguageModelImpl(
                     usage: toUsage(resolveStreamUsage(streamUsage, event.payload.completed.usage)),
                     providerMetadata: toProviderMetadata({
                       traceId: normalizeText(event.traceId) || undefined,
-                      routeDecision: streamRouteDecision === RoutePolicy.CLOUD
-                        ? RoutePolicy.CLOUD
-                        : RoutePolicy.LOCAL,
+                      routeDecision: streamRouteDecision,
                       modelResolved: streamModelResolved,
                     }),
                   });

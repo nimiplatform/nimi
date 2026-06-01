@@ -328,6 +328,7 @@ test('createNimiAiProvider text streaming falls back to completed usage when the
   const parts: Array<{
     type?: string;
     usage?: { inputTokens?: { total?: number }; outputTokens?: { total?: number } };
+    providerMetadata?: { nimi?: { routeDecision?: string } };
   }> = [];
   while (true) {
     const next = await reader.read();
@@ -387,12 +388,16 @@ test('createNimiAiProvider text streaming returns empty usage totals when the st
     parts.push(next.value as {
       type?: string;
       usage?: { inputTokens?: { total?: number }; outputTokens?: { total?: number } };
+      providerMetadata?: { nimi?: { routeDecision?: string } };
     });
   }
 
   assert.ok(parts.some((part) => part.type === 'finish'
     && part.usage?.inputTokens?.total === undefined
     && part.usage?.outputTokens?.total === undefined));
+  assert.ok(parts.some((part) => part.type === 'finish'
+    && part.providerMetadata?.nimi
+    && !('routeDecision' in part.providerMetadata.nimi)));
 });
 
 test('createNimiAiProvider stream interruption requires explicit resubscribe', async () => {

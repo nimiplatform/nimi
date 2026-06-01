@@ -127,6 +127,17 @@ export function fromRoutePolicy(value: RoutePolicy): NimiRoutePolicy {
   return value === RoutePolicy.CLOUD ? 'cloud' : 'local';
 }
 
+export function fromRouteDecision(value: unknown): NimiRoutePolicy | undefined {
+  const routeDecision = Number(value);
+  if (routeDecision === RoutePolicy.CLOUD) {
+    return 'cloud';
+  }
+  if (routeDecision === RoutePolicy.LOCAL) {
+    return 'local';
+  }
+  return undefined;
+}
+
 export function toFinishReason(value: FinishReason): NimiFinishReason {
   switch (value) {
     case FinishReason.LENGTH:
@@ -174,10 +185,11 @@ export function toTraceInfo(input: {
   modelResolved?: unknown;
   routeDecision?: unknown;
 }): NimiTraceInfo {
+  const routeDecision = fromRouteDecision(input.routeDecision);
   return {
     traceId: normalizeText(input.traceId) || undefined,
     modelResolved: normalizeText(input.modelResolved) || undefined,
-    routeDecision: Number(input.routeDecision) === RoutePolicy.CLOUD ? 'cloud' : 'local',
+    ...(routeDecision ? { routeDecision } : {}),
   };
 }
 

@@ -103,10 +103,15 @@ Closed slices:
 - Realm agent/social read-model fail-closed behavior: SDK may fall back from agent ID lookup to handle lookup only for explicit Realm not-found responses; non-404 Realm failures must propagate. Pending friend-request profile resolution must fail closed instead of fabricating placeholder social contacts. World banner enrichment remains additive SDK DX and may return the original profile, but it must not be treated as canonical world truth by apps.
 - Desktop Agent Chat anchor binding: Runtime owns durable Agent anchor/session truth. Desktop may keep an in-memory same-renderer binding only to bridge the just-opened anchor before Runtime conversation summaries refresh; it must prefer Runtime summaries when present and must not persist or hydrate `localAgentRef -> conversationAnchorId` from browser storage. Smoke tests may inspect the in-memory binding and must verify the Runtime anchor through SDK smoke verification before accepting it.
 - Desktop offline cache/outbox split: Realm owns Chat/Social commit truth. D-OFFLINE admits a Desktop shell/scaffold outbox only as a pending intent transport; it is not Realm truth and must flush through Realm/SDK public APIs. `OfflineCacheManager` is restricted to D-OFFLINE-005 read-model caches; chat/post-interaction pending mutation storage belongs to `OfflineOutboxManager`. Generic social outbox must not carry Friendship, AgentFriend, LocalAgent provision, or LocalAgent termination intent; those mutations fail closed offline unless Realm Social provides a backend-authored durable intent. Do not put durable mutation queue methods back on the cache manager or a revived DataSync facade.
+- SDK routeDecision evidence projection: Runtime owns canonical route decision evidence. SDK runtime helpers, convenience wrappers, and AI provider adapters may project Runtime-provided `CLOUD` or `LOCAL` into app-facing metadata, but missing or `UNSPECIFIED` Runtime evidence must remain absent. SDK must not synthesize `local` route truth for missing `routeDecision`, including stream finish metadata and `ai.route.decision` telemetry.
 
 Known remaining authority forks:
 
-- None recorded in this handoff file after the first-run materialization and notification headless slices. Continue to treat this as non-authoritative memory; if a future audit finds a conflict with `.nimi/spec/**`, the spec wins and this ledger must be corrected.
+- Desktop memory embedding config remains an authority-fork candidate: Desktop renderer-local storage currently influences embedding/provider configuration. Do not migrate blindly; confirm Cognition/Runtime ownership for memory policy and execution before coding.
+- Kit model picker auto-selection remains an open P1/P2 review item: reusable UI must not silently commit the first available model as product route truth. The caller, SDK projection, or Runtime evidence must own any committed selection.
+- Kit Tauri runtime bridge metadata defaults remain an open scaffold review item: shared bridge helpers must not bake Desktop identity as generic app truth.
+
+Continue to treat this as non-authoritative memory; if a future audit finds a conflict with `.nimi/spec/**`, the spec wins and this ledger must be corrected.
 
 ## Dual-App Proof Rule
 

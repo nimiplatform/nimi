@@ -32,7 +32,7 @@ import { normalizeRuntimeReasonCode } from '../runtime/reason-code-messages.js';
 type ScenarioJobExecution = {
   artifacts: NimiArtifact[];
   traceId: string;
-  routeDecision: AiRoutePolicy;
+  routeDecision?: AiRoutePolicy;
   modelResolved: string;
   output?: ScenarioOutput;
 };
@@ -196,7 +196,7 @@ export async function collectArtifacts(stream: AsyncIterable<unknown>): Promise<
     mimeType: string;
     chunks: Uint8Array[];
     traceId: string;
-    routeDecision: AiRoutePolicy;
+    routeDecision?: AiRoutePolicy;
     modelResolved: string;
   }>();
 
@@ -208,7 +208,6 @@ export async function collectArtifacts(stream: AsyncIterable<unknown>): Promise<
       mimeType: '',
       chunks: [],
       traceId: '',
-      routeDecision: 'local' as const,
       modelResolved: '',
     };
 
@@ -232,7 +231,10 @@ export async function collectArtifacts(stream: AsyncIterable<unknown>): Promise<
       state.modelResolved = modelResolved;
     }
 
-    state.routeDecision = fromRouteDecision(chunk.routeDecision);
+    const routeDecision = fromRouteDecision(chunk.routeDecision);
+    if (routeDecision) {
+      state.routeDecision = routeDecision;
+    }
 
     const bytes = chunk.chunk;
     if (bytes instanceof Uint8Array) {
@@ -252,7 +254,6 @@ export async function collectArtifacts(stream: AsyncIterable<unknown>): Promise<
         mimeType: '',
         bytes: new Uint8Array(0),
         traceId: '',
-        routeDecision: 'local' as const,
         modelResolved: '',
       };
     }
