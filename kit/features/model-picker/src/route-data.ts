@@ -18,7 +18,7 @@
  *   <RouteModelPickerPanel {...state.panelProps} />
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useModelPicker, type UseModelPickerResult } from './hooks/use-model-picker.js';
 import type { ModelCatalogAdapter } from './types.js';
 import type { RouteModelPickerPanelProps, RouteModelPickerSource } from './components/route-model-picker-panel.js';
@@ -541,16 +541,6 @@ export function useRouteModelPickerData({
       modelLabel,
     };
   }, [localModels, availableModels, selectedConnectorProvider]);
-
-  // Sync initial auto-selection to callback when models first become available
-  // (e.g. only one model → auto-selected but user never clicks)
-  const initialSyncedRef = useRef(false);
-  useEffect(() => {
-    if (!loading && activeModel && !initialSyncedRef.current) {
-      initialSyncedRef.current = true;
-      onSelectionChange?.(buildSelection({ source, connectorId, model: activeModel }));
-    }
-  }, [loading, activeModel, source, connectorId, onSelectionChange, buildSelection]);
 
   const handleSelectModel = useCallback((id: string) => {
     if (id && id !== model) {

@@ -168,11 +168,7 @@ export function useModelPicker<TModel>({
     if (selectedId === undefined) {
       setInternalSelectedId(nextSelectedId);
     }
-    if (nextSelectedId !== currentSelectedId) {
-      const model = models.find((item) => adapter.getId(item) === nextSelectedId) || null;
-      onSelectModel?.(nextSelectedId, model);
-    }
-  }, [adapter, currentSelectedId, models, onSelectModel, selectedId]);
+  }, [adapter, currentSelectedId, models, selectedId]);
 
   const selectModel = useCallback((id: string) => {
     const model = models.find((item) => adapter.getId(item) === id) || null;

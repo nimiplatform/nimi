@@ -1,8 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { act, createElement } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createSnapshotRouteDataProvider,
   type RouteOptionsSnapshot,
+  type UseRouteModelPickerDataResult,
+  useRouteModelPickerData,
 } from '../src/route-data.js';
+
+(
+  globalThis as typeof globalThis & {
+    IS_REACT_ACT_ENVIRONMENT?: boolean;
+  }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 // ---------------------------------------------------------------------------
 // createSnapshotRouteDataProvider
@@ -20,6 +30,27 @@ function makeSnapshot(overrides?: Partial<RouteOptionsSnapshot>): RouteOptionsSn
     ...overrides,
   };
 }
+
+function flush() {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
+}
+
+let root: Root | null = null;
+let container: HTMLDivElement | null = null;
+
+afterEach(async () => {
+  if (root) {
+    await act(async () => {
+      root?.unmount();
+      await flush();
+    });
+  }
+  container?.remove();
+  root = null;
+  container = null;
+});
 
 describe('createSnapshotRouteDataProvider', () => {
   it('maps snapshot local models to RouteLocalModel list', async () => {
@@ -228,5 +259,65 @@ describe('createSnapshotRouteDataProvider', () => {
 
     expect(fetchCount).toBe(2);
     expect(connectors).toHaveLength(1);
+  });
+});
+
+describe('useRouteModelPickerData', () => {
+  it('previews the first available model without committing route selection truth', async () => {
+    const provider = createSnapshotRouteDataProvider(async () => makeSnapshot({
+      local: {
+        models: [
+          {
+            localModelId: 'local-qwen',
+            model: 'qwen3',
+            modelId: 'qwen3',
+            engine: 'llama',
+            provider: 'llama',
+            status: 'active',
+            capabilities: ['text.generate'],
+          },
+        ],
+      },
+    }));
+    const onSelectionChange = vi.fn();
+    const latestState: { current: UseRouteModelPickerDataResult | null } = { current: null };
+
+    function Harness() {
+      latestState.current = useRouteModelPickerData({
+        provider,
+        capability: 'text.generate',
+        onSelectionChange,
+      });
+      return null;
+    }
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(createElement(Harness));
+      await flush();
+      await flush();
+    });
+
+    expect(latestState.current).not.toBeNull();
+    const loadedState = latestState.current as UseRouteModelPickerDataResult;
+    expect(loadedState.selection.model).toBe('');
+    expect(loadedState.pickerState.selectedId).toBe('local-qwen');
+    expect(onSelectionChange).not.toHaveBeenCalled();
+
+    await act(async () => {
+      loadedState.pickerState.selectModel('local-qwen');
+      await flush();
+    });
+
+    expect(onSelectionChange).toHaveBeenCalledTimes(1);
+    expect(onSelectionChange).toHaveBeenCalledWith(expect.objectContaining({
+      source: 'local',
+      model: 'local-qwen',
+      localModelId: 'local-qwen',
+      modelId: 'qwen3',
+    }));
   });
 });
