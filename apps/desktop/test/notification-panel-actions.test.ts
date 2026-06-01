@@ -22,8 +22,9 @@ const mainLayoutViewSource = readFileSync(MAIN_LAYOUT_VIEW_PATH, 'utf-8');
 describe('notification panel action wiring', () => {
   test('friend request actions call the social Realm data flows', () => {
     assert.match(source, /const actorId = item\.actorId;/);
-    assert.match(source, /dataSync\.requestOrAcceptFriend\(actorId\)/);
-    assert.match(source, /dataSync\.rejectOrRemoveFriend\(actorId\)/);
+    assert.match(source, /realmSocialData\.requestOrAcceptFriend\(actorId\)/);
+    assert.match(source, /realmSocialData\.rejectOrRemoveFriend\(actorId\)/);
+    assert.doesNotMatch(source, /dataSync\./);
   });
 
   test('gift actions use Kit commerce Realm helpers', () => {
