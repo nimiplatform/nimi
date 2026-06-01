@@ -1,0 +1,9 @@
+app_id: nimi.storybook
+display_name: Storybook
+profile: standalone
+manifest_role: submitted-input
+permissions:
+  declared_nimi_api_scopes:
+    - scope: app.local.drafts
+      qualifier: app-local-drafts
+      purpose: Store app-owned Storybook projects, truth packages, runs, transcripts, and feedback memory locally during authoring and play.
