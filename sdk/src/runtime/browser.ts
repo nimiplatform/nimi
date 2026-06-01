@@ -1,4 +1,5 @@
 export * from '../core/errors.js';
+export * from '../core/ids.js';
 export * from './types.js';
 export type * from './world-evolution-selector-read.js';
 export * from './method-ids.js';
@@ -25,6 +26,8 @@ export * from './runtime-agent-group-message-candidate-surface.js';
 export * from './runtime-agent-memory.js';
 export * from './runtime-agent-memory-surface.js';
 export * from './runtime-agent-lifecycle-surface.js';
+export * from './runtime-agent-smoke-verification.js';
+export * from './runtime-account-caller.js';
 export * from './runtime-external-agent.js';
 export * from './runtime-agent-presentation-profile.js';
 export * from './runtime-call-options.js';
@@ -32,9 +35,12 @@ export * from './runtime-scheduling-types.js';
 export * from './runtime-scheduling.js';
 export * from './ai-config-scheduling.js';
 export * from './ai-execution-evidence.js';
+export * from './memory-embedding-config.js';
 export * from './memory-embedding-runtime.js';
+export * from './memory-embedding-route-availability.js';
 export * from './runtime-route.js';
 export * from './runtime-route-capability-projection.js';
+export * from './runtime-route-capability-runtime.js';
 export * from './runtime-route-reasoning.js';
 export * from './runtime-route-host-facade.js';
 export * from './runtime-route-client-loader.js';
@@ -42,6 +48,8 @@ export * from './runtime-route-options.js';
 export * from './runtime-route-types.js';
 export * from './runtime-route-provider-health.js';
 export * from './runtime-local-assets.js';
+export * from './runtime-config-local-projection.js';
+export * from './runtime-config-connector-projection.js';
 export {
   Modal,
   ScenarioType,
@@ -103,10 +111,15 @@ export {
   buildRuntimeBridgeConfigWithLocalEndpoint,
   buildRuntimeBridgeLoopbackEndpoint,
   extractRuntimeBridgeEndpointPort,
+  mergeRuntimeBridgeDataRootConfig,
+  mergeRuntimeBridgeDeveloperRegistrationConfig,
+  mergeRuntimeBridgeRealmJwtConfig,
   normalizeRuntimeBridgeEndpoint,
   projectRuntimeBridgeLocalEndpoint,
   serializeRuntimeBridgeLocalEndpointProjection,
   type RuntimeBridgeConfigJson,
+  type RuntimeBridgeConfigProjectionResult,
+  type RuntimeBridgeRealmConfigDefaults,
 } from './runtime-bridge-config-projection.js';
 export {
   AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
@@ -141,8 +154,11 @@ export {
   AgentAutonomyMode,
   AgentExecutionState,
   AgentPresentationBackendKind,
+  AvatarDebugEventFamily,
   AvatarDebugProbeKind,
   AvatarDebugProbeStatus,
+  AvatarDebugReplayRedactionState,
+  AvatarDebugReplayVisibility,
   AvatarDebugRequestedBy,
   CompanionParticipationStatus,
   CompanionParticipationSurfaceKind,
@@ -233,6 +249,8 @@ export {
   AccountCallerMode,
   AccountSessionState,
   AccountReasonCode,
+  GetAccessTokenResponse,
+  GetAccountSessionStatusResponse,
   RefreshAccountSessionResponse,
   ScopedAppBindingPurpose,
   ScopedAppBindingState,
@@ -240,21 +258,7 @@ export {
   WorkspaceBindingState,
   WorkspaceMembershipState,
 } from './generated/runtime/v1/account.js';
-export type {
-  AccountCaller,
-  AccountProjection,
-  ScopedAppBindingRelation,
-  WorkspaceBindingRelation,
-  WorkspaceMembershipProjection,
-  IssueScopedAppBindingRequest,
-  IssueScopedAppBindingResponse,
-  RevokeScopedAppBindingRequest,
-  RevokeScopedAppBindingResponse,
-  IssueWorkspaceBindingRequest,
-  IssueWorkspaceBindingResponse,
-  RevokeWorkspaceBindingRequest,
-  RevokeWorkspaceBindingResponse,
-} from './generated/runtime/v1/account.js';
+export type * from './generated/runtime/v1/account.js';
 export {
   ExternalProofType,
   AppMode,
@@ -301,21 +305,32 @@ export {
   parseLocalRecommendationHostSupportClassId,
   parseLocalRecommendationSourceId,
   parseLocalRecommendationTierId,
+  parseRuntimeLocalCatalogRecommendation,
+  parseRuntimeLocalRecommendationFeedDescriptor,
+  parseRuntimeLocalRecommendationFeedItem,
   selectLocalRecommendationPrimaryEntrySize,
   summarizeLocalRecommendationFeedCacheState,
   toLocalRecommendationFeedCapabilityRequestValue,
+  type LocalRecommendationActionStateProjection,
   type LocalRecommendationBaselineId,
+  type LocalRecommendationCatalogProjection,
   type LocalRecommendationFeedEntryLike,
+  type LocalRecommendationFeedEntryProjection,
   type LocalRecommendationFeedCapabilityId,
   type LocalRecommendationFeedCacheStateId,
   type LocalRecommendationFeedItemLike,
+  type LocalRecommendationFeedItemProjection,
   type LocalRecommendationFeedLike,
+  type LocalRecommendationFeedProjection,
   type LocalRecommendationFeedSourceId,
   type LocalRecommendationConfidenceId,
   type LocalRecommendationFormatId,
   type LocalRecommendationHostSupportClassId,
+  type LocalRecommendationInstallPayloadProjection,
+  type LocalRecommendationInstalledStateProjection,
   type LocalRecommendationRunGradeId,
   type LocalRecommendationSourceId,
+  type LocalRecommendationSuggestedAssetProjection,
   type LocalRecommendationTierId,
 } from './local-recommendation-feed.js';
 export {
@@ -409,6 +424,39 @@ export { createRuntimeClient } from './core/client.js';
 export { createRuntimeProtectedScopeHelper } from './protected-access.js';
 export { fromProtoStruct, toIsoFromTimestamp, toProtoStruct } from './helpers.js';
 export { Runtime } from './runtime.js';
+export {
+  ResolveProfileRequest,
+  ResolveProfileResponse,
+} from './generated/runtime/v1/local_runtime.js';
+export type {
+  RuntimeGenerateInput,
+  RuntimeGenerateResult,
+  RuntimePrompt,
+  RuntimeStreamChunk,
+  RuntimeStreamInput,
+} from './runtime-convenience.js';
+export {
+  fetchRealmGrant,
+  buildRuntimeAuthMetadata,
+  createRuntimeRealmBridgeHelpers,
+} from './runtime-realm-bridge.js';
+export {
+  buildMusicIterationExtensions,
+  buildLocalProfileExtensions,
+} from './runtime-media.js';
+export type {
+  RuntimeArtifactsModule,
+  RuntimeArtifactsReadBytesInput,
+  RuntimeArtifactsReadBytesResult,
+} from './runtime-artifacts.js';
+export type {
+  RuntimeAvatarDebugListProbeResultsRequest,
+  RuntimeAvatarDebugModule,
+  RuntimeAvatarDebugReplayRequest,
+  RuntimeAvatarDebugRequestProbeRequest,
+  RuntimeAvatarDebugSnapshotRequest,
+} from './runtime-avatar-debug.js';
+export type * from './generated/runtime/v1/artifact_service.js';
 export {
   decodeCompanionParticipationProjection,
 } from './runtime-companion-participation.js';
