@@ -53,7 +53,7 @@ test('Gate 7: Desktop root route is guarded by auth and product ready_for_use', 
   // the actual root admission code path instead.
   assert.match(appRoutesSource, /if \(authStatus === 'anonymous'\) \{\s*navigate\('\/login', \{ replace: true \}\);/);
   assert.match(appRoutesSource, /desktopBridge\.getProductControlRecord\(\)/);
-  assert.match(appRoutesSource, /projection\.state === 'ready_for_use'/);
+  assert.match(appRoutesSource, /projectProductControlAdmission\(projection\.state\)/);
   assert.ok(appRoutesSource.includes('<Route path="/" element={<DesktopOrdinaryShellGate />} />'));
 });
 
@@ -85,7 +85,7 @@ test('Gate 7: ordinary shell admission stays gated strictly on backend ready_for
   // verdict; the Wave 8 self-contained test below (deriveOrdinaryShellAdmission
   // across all 12 spec states) pins the invariant; this assertion pins the
   // source-level ready-only mapping.
-  assert.match(appRoutesSource, /projection\.state === 'ready_for_use'\s*\)\s*\{\s*setAdmission\('ready'\)/);
+  assert.match(appRoutesSource, /decision\.kind === 'ordinary-shell'\s*\)\s*\{\s*setAdmission\('ready'\)/);
   assert.doesNotMatch(appRoutesSource, /state === 'local_ai_ready'\s*\?\s*'ready'/);
   // The safety valve against a stale persisted `not_logged_in` is an
   // explicit `admitProductReadyForUse` request — the only path that can
@@ -122,7 +122,7 @@ test('Wave 7: bridge exposes a backend-only admitProductReadyForUse request', ()
   // The renderer requests admission; the backend admission op is the sole
   // authority that writes ready_for_use (cold-start P-COLD-016).
   assert.match(productControlBridgeSource, /export async function admitProductReadyForUse\(\): Promise<ProductControlRecordProjection>/);
-  assert.match(productControlBridgeSource, /invokeChecked\('product_control_record_admit_ready_for_use', \{\}, parseProjection\)/);
+  assert.match(productControlBridgeSource, /invokeChecked\('product_control_record_admit_ready_for_use', \{\}, parseProductControlRecordProjection\)/);
   // Fails closed when the Tauri runtime is unavailable.
   assert.match(productControlBridgeSource, /product_control_record_admit_ready_for_use requires Tauri runtime/);
   // Account Default Profile payload decoding is shared SDK AIProfile parsing;
@@ -222,7 +222,7 @@ test('Wave 8: a fabricated renderer/localStorage ready_for_use never mounts Read
   // The derivation rule under test must be the one shipped in source. Wave 1
   // expanded the ternary into an if/else over four verdicts, but
   // `ready_for_use` remains the only state that produces `'ready'`.
-  assert.match(appRoutesSource, /projection\.state === 'ready_for_use'\s*\)\s*\{\s*setAdmission\('ready'\)/);
+  assert.match(appRoutesSource, /decision\.kind === 'ordinary-shell'\s*\)\s*\{\s*setAdmission\('ready'\)/);
 
   const fabricatedReadyProjection = {
     path: '',

@@ -20,7 +20,7 @@ export type {
   ProductControlState,
   ProductControlRecord,
   ProductControlRecordProjection,
-} from '../shell/renderer/bridge/runtime-bridge/product-control';
+} from '@nimiplatform/sdk';
 
 export type { DesktopStorageDirs } from '../shell/renderer/bridge/runtime-bridge/desktop-storage';
 

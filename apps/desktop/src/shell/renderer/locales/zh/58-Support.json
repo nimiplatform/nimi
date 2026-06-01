@@ -146,6 +146,10 @@
     "title": "本地环境仍需修复",
     "body": "打开修复以完成受管本地环境的准备。"
   },
+  "recoveryStateLocalAiAssetsDownloadedEnvironmentNotReady": {
+    "title": "本地模型已下载",
+    "body": "打开修复以完成受管本地环境的启动与校验。"
+  },
   "recoveryStateLocalAiReady": {
     "title": "本地 AI 环境已就绪",
     "body": "本地 AI 资产与环境已就绪；从修复完成剩余设置。"

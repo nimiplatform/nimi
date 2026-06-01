@@ -48,10 +48,10 @@ pub(crate) fn runtime_config_path() -> Option<PathBuf> {
         return Some(expand_home_path(value.as_str()));
     }
     if let Some(Ok(nimi_dir)) = resolve_nimi_dir_hook() {
-        return Some(nimi_dir.join("config.json"));
+        return Some(nimi_dir.join("runtime").join("config.json"));
     }
     let home = read_non_empty_env("HOME")?;
-    Some(PathBuf::from(home).join(".nimi/config.json"))
+    Some(PathBuf::from(home).join(".nimi/runtime/config.json"))
 }
 
 pub(super) fn read_non_empty_env(name: &str) -> Option<String> {

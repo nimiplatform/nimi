@@ -141,6 +141,28 @@ test('tester runtime unavailable flow consumes Kit offline coordinator', () => {
   assert.match(unavailablePage, /Offline tier: \{offlineTier\}/);
 });
 
+test('tester runtime media invokers use AIConfig bindings instead of executable auto routing', () => {
+  const invokers = read('src/tester/tester-runtime-invokers.ts');
+  assert.doesNotMatch(invokers, /model:\s*['"]auto['"]/);
+  for (const capability of [
+    'image.generate',
+    'video.generate',
+    'audio.synthesize',
+    'audio.transcribe',
+    'speech.bundle',
+  ]) {
+    assert.match(invokers, new RegExp(`resolveTesterLLMBinding\\('${capability}'\\)`));
+  }
+});
+
+test('tester settings consumes SDK product-control projection as second consumer proof', () => {
+  const settings = read('src/shell/routes/settings.tsx');
+  assert.match(settings, /parseProductControlRecordProjection/);
+  assert.match(settings, /firstRunScreenForProductControlState/);
+  assert.match(settings, /projectProductControlAdmission/);
+  assert.match(settings, /SDK product-control projection/);
+});
+
 test('tester kit gallery showcases real kit components for third-party apps', () => {
   const gallery = read('src/tester/kit-component-gallery.tsx');
   for (const required of [

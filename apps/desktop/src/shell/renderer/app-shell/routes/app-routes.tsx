@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import { useTranslation } from 'react-i18next';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { AmbientBackground, ProgressIndicator, Surface } from '@nimiplatform/kit/ui';
+import { projectProductControlAdmission, type ProductControlState } from '@nimiplatform/sdk';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { desktopBridge } from '@renderer/bridge';
@@ -269,13 +270,14 @@ function useDesktopOrdinaryShellAdmission(
     let cancelled = false;
     let admissionRequested = false;
 
-    const projectVerdict = (projection: { state: string }) => {
+    const projectVerdict = (projection: { state: ProductControlState }) => {
       if (cancelled) return;
-      if (projection.state === 'ready_for_use') {
+      const decision = projectProductControlAdmission(projection.state);
+      if (decision.kind === 'ordinary-shell') {
         setAdmission('ready');
         return;
       }
-      if (projection.state === 'not_logged_in') {
+      if (decision.kind === 'login') {
         // Only happens when the persisted record's last write was a failed
         // admission. The renderer cannot rescue this by reading harder; it
         // must request a fresh backend admission once. If the admission

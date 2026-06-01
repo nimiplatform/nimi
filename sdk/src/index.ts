@@ -20,3 +20,4 @@ export type {
 export { withRealmContextLock } from './realm/context-lock.js';
 export type { RealmContextInput } from './realm/context-lock.js';
 export * from './ai/index.js';
+export * from './product-control.js';

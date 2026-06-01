@@ -20,6 +20,7 @@ import {
   projectAIRuntimeEvidenceMetadata,
   resolveAIConfigRuntimeSchedulingTargetForCapability,
   type AISchedulingEvaluationTarget,
+  type RuntimeRouteAppCapability,
   type RuntimeRouteBinding,
 } from '@nimiplatform/sdk/runtime';
 import type { TesterCapabilityId } from './tester-capabilities.js';
@@ -102,11 +103,11 @@ export type TesterTypedSuccess = {
 export type TesterInvocationResult = TesterTypedSuccess | TesterUnavailable;
 
 const TESTER_APP_ID = 'dev.nimi.tester';
-const TEXT_GENERATION_BINDING_CAPABILITY = 'text.generate';
-const EMBEDDING_BINDING_CAPABILITY = 'text.embed';
+const TEXT_GENERATION_BINDING_CAPABILITY: RuntimeRouteAppCapability = 'text.generate';
+const EMBEDDING_BINDING_CAPABILITY: RuntimeRouteAppCapability = 'text.embed';
 
 type ResolvedLLMBinding = {
-  bindingCapabilityId: typeof TEXT_GENERATION_BINDING_CAPABILITY | typeof EMBEDDING_BINDING_CAPABILITY;
+  bindingCapabilityId: RuntimeRouteAppCapability;
   binding: RuntimeRouteBinding;
   model: string;
   schedulingTarget: AISchedulingEvaluationTarget | null;
@@ -188,6 +189,17 @@ function bindingCapabilityFor(capabilityId: TesterCapabilityId): ResolvedLLMBind
   }
   if (capabilityId === 'text.embed') {
     return EMBEDDING_BINDING_CAPABILITY;
+  }
+  if (capabilityId === 'speech.bundle') {
+    return 'audio.synthesize';
+  }
+  if (
+    capabilityId === 'image.generate'
+    || capabilityId === 'video.generate'
+    || capabilityId === 'audio.synthesize'
+    || capabilityId === 'audio.transcribe'
+  ) {
+    return capabilityId;
   }
   return null;
 }
@@ -499,11 +511,19 @@ async function invokeImageGenerate(client: PlatformClient, input: TesterScenario
   if (!prompt) {
     return unavailableFromValidation('image.generate', 'Scenario prompt is empty — supply an image prompt before running image.generate.');
   }
+  const resolved = resolveTesterLLMBinding('image.generate');
+  if (isTesterUnavailable(resolved)) return resolved;
+  const schedulingPreflight = await ensureSchedulingPreflight(client, 'image.generate', resolved);
+  if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
+  const route = routeInput(resolved.binding, resolved.model);
   try {
     const output = await client.runtime.media.image.generate({
-      model: 'auto',
+      ...route,
       prompt,
-      metadata: buildMetadata('dev.nimi.tester.media.image.generate'),
+      metadata: buildMetadata('dev.nimi.tester.media.image.generate', {
+        ...resolved.metadata,
+        ...schedulingPreflight.evidenceMetadata,
+      }),
     });
     const job = summariseJob(output.job);
     return {
@@ -530,13 +550,21 @@ async function invokeVideoGenerate(client: PlatformClient, input: TesterScenario
   if (!prompt) {
     return unavailableFromValidation('video.generate', 'Scenario prompt is empty — supply a video prompt before running video.generate.');
   }
+  const resolved = resolveTesterLLMBinding('video.generate');
+  if (isTesterUnavailable(resolved)) return resolved;
+  const schedulingPreflight = await ensureSchedulingPreflight(client, 'video.generate', resolved);
+  if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
+  const route = routeInput(resolved.binding, resolved.model);
   try {
     const output = await client.runtime.media.video.generate({
       mode: 't2v',
-      model: 'auto',
+      ...route,
       prompt,
       content: [{ type: 'text', role: 'prompt', text: prompt }],
-      metadata: buildMetadata('dev.nimi.tester.media.video.generate'),
+      metadata: buildMetadata('dev.nimi.tester.media.video.generate', {
+        ...resolved.metadata,
+        ...schedulingPreflight.evidenceMetadata,
+      }),
     });
     const job = summariseJob(output.job);
     return {
@@ -563,11 +591,19 @@ async function invokeSpeechSynthesize(client: PlatformClient, input: TesterScena
   if (!prompt) {
     return unavailableFromValidation('audio.synthesize', 'Scenario prompt is empty — supply the text to synthesize before running audio.synthesize.');
   }
+  const resolved = resolveTesterLLMBinding('audio.synthesize');
+  if (isTesterUnavailable(resolved)) return resolved;
+  const schedulingPreflight = await ensureSchedulingPreflight(client, 'audio.synthesize', resolved);
+  if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
+  const route = routeInput(resolved.binding, resolved.model);
   try {
     const output = await client.runtime.media.tts.synthesize({
-      model: 'auto',
+      ...route,
       text: prompt,
-      metadata: buildMetadata('dev.nimi.tester.media.tts.synthesize'),
+      metadata: buildMetadata('dev.nimi.tester.media.tts.synthesize', {
+        ...resolved.metadata,
+        ...schedulingPreflight.evidenceMetadata,
+      }),
     });
     const job = summariseJob(output.job);
     return {
@@ -597,11 +633,19 @@ async function invokeSpeechTranscribe(client: PlatformClient, input: TesterScena
       'audio.transcribe requires the scenario field to contain an http(s):// or file:// URL pointing at the audio asset.',
     );
   }
+  const resolved = resolveTesterLLMBinding('audio.transcribe');
+  if (isTesterUnavailable(resolved)) return resolved;
+  const schedulingPreflight = await ensureSchedulingPreflight(client, 'audio.transcribe', resolved);
+  if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
+  const route = routeInput(resolved.binding, resolved.model);
   try {
     const output = await client.runtime.media.stt.transcribe({
-      model: 'auto',
+      ...route,
       audio: { kind: 'url', url },
-      metadata: buildMetadata('dev.nimi.tester.media.stt.transcribe'),
+      metadata: buildMetadata('dev.nimi.tester.media.stt.transcribe', {
+        ...resolved.metadata,
+        ...schedulingPreflight.evidenceMetadata,
+      }),
     });
     const job = summariseJob(output.job);
     return {
@@ -624,10 +668,18 @@ async function invokeSpeechTranscribe(client: PlatformClient, input: TesterScena
 }
 
 async function invokeSpeechBundle(client: PlatformClient, _input: TesterScenarioInput): Promise<TesterInvocationResult> {
+  const resolved = resolveTesterLLMBinding('speech.bundle');
+  if (isTesterUnavailable(resolved)) return resolved;
+  const schedulingPreflight = await ensureSchedulingPreflight(client, 'speech.bundle', resolved);
+  if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
+  const route = routeInput(resolved.binding, resolved.model);
   try {
     const output = await client.runtime.media.tts.listVoices({
-      model: 'auto',
-      metadata: buildMetadata('dev.nimi.tester.media.tts.list-voices'),
+      ...route,
+      metadata: buildMetadata('dev.nimi.tester.media.tts.list-voices', {
+        ...resolved.metadata,
+        ...schedulingPreflight.evidenceMetadata,
+      }),
     });
     return {
       ok: true,

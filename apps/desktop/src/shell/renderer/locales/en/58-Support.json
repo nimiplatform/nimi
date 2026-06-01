@@ -146,6 +146,10 @@
     "title": "The local environment still needs repair",
     "body": "Open repair to finish preparing the managed local environment."
   },
+  "recoveryStateLocalAiAssetsDownloadedEnvironmentNotReady": {
+    "title": "Local models are downloaded",
+    "body": "Open repair to finish starting and verifying the managed local environment."
+  },
   "recoveryStateLocalAiReady": {
     "title": "The local AI environment is ready",
     "body": "Local AI assets and environment are ready; finish any remaining setup from repair."

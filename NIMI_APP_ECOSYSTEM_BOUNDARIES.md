@@ -82,6 +82,25 @@ Desktop needs extra suspicion because it historically behaved like a single priv
 - UI primitives or shell behavior copied locally when Kit already owns the pattern.
 - Desktop-only implementation of a concept that Tester or a future app also needs.
 
+## Closed Audit Ledger
+
+Use this ledger to avoid re-reviewing already-closed domains as fresh drift. Treat it as handoff memory only; `.nimi/spec/**` remains the authority.
+
+Closed slices:
+
+- Product-control typed projection: `ProductControlState`, product-control record parsers, first-run screen projection, admission projection, and recovery classification are SDK projection/DX responsibilities. Desktop consumes them through its bridge and first-run/support adapters; Tester consumes them in Settings diagnostics. Do not reclassify these helpers as app-owned unless the spec changes.
+- Runtime config path: Kit shell bridge must resolve Runtime config at `~/.nimi/runtime/config.json` unless `NIMI_RUNTIME_CONFIG_PATH` is explicitly set. Root `~/.nimi/config.json` is not an active fallback truth path.
+- Nimi data root: Kit `desktop_paths::resolve_nimi_data_dir` must fail closed without an admitted host data-root hook. Silent `~/.nimi/data` defaulting and `~/.nimi/desktop-paths.json` reads are legacy drift, not scaffold truth.
+- Tester runtime media invocation: Tester must resolve image/video/audio requests through AIConfig selected bindings and scheduling preflight. `model: "auto"` is not an app-owned executable route token.
+- Desktop Runtime Config localStorage: stored renderer state may keep UI preferences and endpoint text, but must not rehydrate local runtime inventory (`local.models` or `local.nodeMatrix`) as readiness/capability truth.
+- Desktop product-control Runtime gRPC method IDs: exact gRPC method ID strings belong to Kit shell runtime bridge constants/generated method-id infrastructure; Desktop Tauri product-control code must not hardcode them locally.
+
+Known remaining authority forks:
+
+- First-run `data_root_selected` presentation still maps to the interactive Local AI phase in SDK projection to preserve current Desktop behavior. The spec table describes it as a device/environment scan step. Resolve this through `.nimi/spec/**` before changing UI semantics.
+- Desktop renderer still submits a setup-state transition derived from first-run materialization projection via `product_control_record_set_first_run_setup_state`. The backend rejects ready shortcuts, but durable non-ready setup-state ownership is still too renderer-shaped. A future Runtime/product-control owner slice should make the backend recompute the transition from Runtime evidence before writing `~/.nimi/nimi.json`.
+- SDK first-run materialization still infers recovery retryability from Runtime failure details. Runtime should eventually provide typed `recoveryDisposition` / `reasonCode`; SDK should filter typed fields only.
+
 ## Dual-App Proof Rule
 
 When extracting a Desktop responsibility into Runtime, SDK, or Kit, prove it through two consumers:

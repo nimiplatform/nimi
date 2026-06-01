@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { getPlatformClient } from '@nimiplatform/sdk';
+import {
+  firstRunScreenForProductControlState,
+  isDegradedProductControlState,
+  parseProductControlRecordProjection,
+  projectProductControlAdmission,
+  type ProductControlState,
+  getPlatformClient,
+} from '@nimiplatform/sdk';
 import {
   PLATFORM_AI_PROFILE_FACTORY_ROWS,
   selectFactoryAIProfileForFirstRun,
@@ -537,6 +544,50 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || 'Realm projection unavailable');
 }
 
+function createTesterProductControlProjection() {
+  const state: ProductControlState = 'local_ai_assets_downloaded_environment_not_ready';
+  const projection = parseProductControlRecordProjection({
+    path: '/tester/.nimi/nimi.json',
+    exists: true,
+    state,
+    record: {
+      schemaVersion: 1,
+      installId: 'tester-install',
+      productVersion: 'tester',
+      state,
+      dataRoot: {
+        path: '/tester/nimi-data',
+        status: 'selected',
+        selectedAt: '2026-06-01T00:00:00.000Z',
+        verifiedAt: '2026-06-01T00:00:00.000Z',
+        selectedAtUnixMs: 1,
+        verifiedAtUnixMs: 1,
+      },
+      firstRun: {
+        installLevel: 'recommended',
+        aiProfileAlias: 'recommended',
+        completed: false,
+        builtInAiConfigRefs: [],
+      },
+      pointers: {
+        runtimeConfigPath: '/tester/.nimi/runtime/config.json',
+      },
+      repair: {
+        required: false,
+      },
+    },
+    error: null,
+  });
+  const screen = firstRunScreenForProductControlState(projection.state);
+  const admission = projectProductControlAdmission(projection.state);
+  return {
+    state: projection.state,
+    degraded: isDegradedProductControlState(projection.state),
+    screen: screen.kind === 'phase' ? screen.phase : screen.screen,
+    admission: admission.kind,
+  };
+}
+
 export function SettingsRoute() {
   const [localDrafts, setLocalDrafts] = useState(true);
   const [evidenceMode, setEvidenceMode] = useState(false);
@@ -1008,6 +1059,7 @@ export function SettingsRoute() {
     model: 'local/tester-embedding',
     localModelId: 'tester-local-embedding',
   });
+  const productControlProjection = createTesterProductControlProjection();
   const runtimeCapabilityCoverageProjection = projectRuntimeRouteCapabilityCoverage({
     capability: 'image',
     localNodes: [],
@@ -2159,6 +2211,12 @@ export function SettingsRoute() {
         <span>Runtime local AI reason projection</span>
         <StatusBadge tone={runtimeLocalAiReasonProjection === 'unknown' ? 'neutral' : 'warning'}>
           {runtimeLocalAiReasonProjection}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK product-control projection</span>
+        <StatusBadge tone={productControlProjection.degraded ? 'warning' : 'success'}>
+          {productControlProjection.state}: {productControlProjection.screen}/{productControlProjection.admission}
         </StatusBadge>
       </div>
       <div className="setting-row">

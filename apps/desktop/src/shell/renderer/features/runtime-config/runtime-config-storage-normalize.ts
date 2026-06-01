@@ -2,8 +2,6 @@ import {
   DEFAULT_LOCAL_ENDPOINT_V11,
   normalizeCapabilityV11,
   normalizeEndpointV11,
-  normalizeLocalModelV11,
-  normalizeLocalNodeMatrixEntryV11,
   normalizePageIdV11,
   normalizeSourceV11,
   normalizeUiModeV11,
@@ -25,27 +23,12 @@ function normalizeLocalFromAny(
     DEFAULT_LOCAL_ENDPOINT_V11,
   );
 
-  const rawModels = Array.isArray(rawLocalRecord.models)
-    ? rawLocalRecord.models
-    : [];
-  const models = rawModels
-    .map((item) => parseOptionalJsonObject(item))
-    .filter((item): item is JsonObject => Boolean(item))
-    .map((item) => normalizeLocalModelV11(item as Partial<RuntimeConfigStateV11['local']['models'][number]>));
-  const rawNodeMatrix = Array.isArray(rawLocalRecord.nodeMatrix)
-    ? rawLocalRecord.nodeMatrix
-    : [];
-  const nodeMatrix = rawNodeMatrix
-    .map((item) => parseOptionalJsonObject(item))
-    .filter((item): item is JsonObject => Boolean(item))
-    .map((item) => normalizeLocalNodeMatrixEntryV11(item as Partial<RuntimeConfigStateV11['local']['nodeMatrix'][number]>));
-
   return {
     ...fallback.local,
     ...(rawLocal || {}),
     endpoint,
-    models: models.length > 0 ? models : fallback.local.models,
-    nodeMatrix: nodeMatrix.length > 0 ? nodeMatrix : fallback.local.nodeMatrix,
+    models: [],
+    nodeMatrix: [],
   };
 }
 

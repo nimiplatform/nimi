@@ -203,7 +203,9 @@ pub(crate) async fn authenticated_runtime_account_id() -> Result<String, String>
         caller: Some(product_control_runtime_account_caller()),
     };
     let payload = crate::runtime_bridge::RuntimeBridgeUnaryPayload {
-        method_id: "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus".to_string(),
+        method_id:
+            nimi_shell_tauri::runtime_bridge::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID
+                .to_string(),
         request_bytes_base64: base64::engine::general_purpose::STANDARD
             .encode(request.encode_to_vec()),
         metadata: None,
@@ -329,7 +331,7 @@ pub async fn read_built_in_ai_config_for_scope_init(
     let account_id = authenticated_runtime_account_id().await?;
     let baseline_response: crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessResponse =
         runtime_bridge_unary_decode(
-            "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
+            nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_RUNTIME_BASELINE_READINESS_METHOD_ID,
             crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessRequest {
                 runtime_baseline_ref,
                 host_profile: None,
@@ -445,7 +447,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
 
     let profile_response: crate::runtime_bridge::generated::CollectDeviceProfileResponse =
         runtime_bridge_unary_decode(
-            "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
+            nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID,
             crate::runtime_bridge::generated::CollectDeviceProfileRequest {
                 extra_ports: Vec::new(),
             },
@@ -468,7 +470,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
     let baseline_ref = if let Some(existing_ref) = existing_runtime_baseline_ref {
         let response: crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessResponse =
             runtime_bridge_unary_decode(
-                "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
+                nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_RUNTIME_BASELINE_READINESS_METHOD_ID,
                 crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessRequest {
                     runtime_baseline_ref: existing_ref,
                     host_profile: Some(host_profile.clone()),
@@ -490,7 +492,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
     } else {
         let response: crate::runtime_bridge::generated::MintRuntimeBaselineReadinessResponse =
             runtime_bridge_unary_decode(
-                "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
+                nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_MINT_RUNTIME_BASELINE_READINESS_METHOD_ID,
                 crate::runtime_bridge::generated::MintRuntimeBaselineReadinessRequest {
                     selected_local_factory_ai_profile_ref: selected_factory_ref.clone(),
                     install_level: install_level.clone(),
@@ -546,7 +548,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
     let execution_evidence_ref = if let Some(existing_ref) = existing_execution_evidence_ref {
         let response: crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceResponse =
             runtime_bridge_unary_decode(
-                "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence",
+                nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
                 crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceRequest {
                     execution_evidence_ref: existing_ref,
                     expected_runtime_baseline_ref: runtime_baseline_ref.clone(),
@@ -577,7 +579,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
     } else {
         let response: crate::runtime_bridge::generated::MintFirstRunExecutionEvidenceResponse =
             runtime_bridge_unary_decode(
-                "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
+                nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_MINT_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
                 crate::runtime_bridge::generated::MintFirstRunExecutionEvidenceRequest {
                     runtime_baseline_ref: runtime_baseline_ref.clone(),
                     selected_local_factory_ai_profile_ref: selected_factory_ref,

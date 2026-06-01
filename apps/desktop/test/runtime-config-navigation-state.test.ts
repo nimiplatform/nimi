@@ -209,16 +209,10 @@ test('normalizeStoredStateV11: accepts v12 snapshots and preserves local provide
   };
 
   const result = normalizeStoredStateV11(stored as never);
-  const providerHints = result.local.nodeMatrix[0]?.providerHints as {
-    nimiMedia?: { preferredAdapter?: string };
-    extra?: { runtime_support_class?: string };
-  } | undefined;
   assert.equal(result.version, 12);
-  assert.equal(result.local.models[0]?.engine, 'nimi_media');
-  assert.equal(result.local.nodeMatrix[0]?.provider, 'nimi_media');
-  assert.equal(result.local.nodeMatrix[0]?.serviceId, 'svc-nimi-media');
-  assert.equal(providerHints?.nimiMedia?.preferredAdapter, 'nimi_media_native_adapter');
-  assert.equal(providerHints?.extra?.runtime_support_class, 'attached_only');
+  assert.deepEqual(result.local.models, []);
+  assert.deepEqual(result.local.nodeMatrix, []);
+  assert.equal(result.local.endpoint, 'http://127.0.0.1:8321/v1');
 });
 
 test('normalizeStoredStateV11: connectors always empty (bridge is source of truth)', () => {

@@ -28,6 +28,19 @@ pub mod generated_method_ids {
     include!("generated/method_ids.rs");
 }
 
+pub const RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus";
+pub const RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile";
+pub const RUNTIME_LOCAL_RESOLVE_RUNTIME_BASELINE_READINESS_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness";
+pub const RUNTIME_LOCAL_MINT_RUNTIME_BASELINE_READINESS_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness";
+pub const RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence";
+pub const RUNTIME_LOCAL_MINT_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence";
+
 const DEFAULT_EVENT_NAMESPACE: &str = "runtime_bridge";
 
 type StatusOverrideHook =
@@ -378,10 +391,8 @@ mod tests {
         // RuntimeLocalService resolve RPCs through the desktop runtime bridge.
         // They must pass the allowlist or the bridge fails them closed with
         // RUNTIME_BRIDGE_METHOD_FORBIDDEN.
-        let baseline =
-            "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness";
-        let execution =
-            "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence";
+        let baseline = "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness";
+        let execution = "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence";
         assert!(is_allowlisted_method(baseline));
         assert!(is_allowlisted_method(execution));
         // Both are unary resolve calls, not streams.

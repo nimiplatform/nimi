@@ -41,7 +41,7 @@ fn runtime_config_path_defaults_to_new_location() {
         || {
             std::env::remove_var("NIMI_RUNTIME_CONFIG_PATH");
             let path = runtime_config_path().expect("runtime config path");
-            assert_eq!(path, home.join(".nimi/config.json"));
+            assert_eq!(path, home.join(".nimi/runtime/config.json"));
         },
     );
     let _ = fs::remove_dir_all(home);
@@ -84,6 +84,37 @@ fn grpc_addr_reads_flat_runtime_config_schema() {
             fs::write(path, r#"{"schemaVersion":1,"grpcAddr":"127.0.0.1:50001"}"#)
                 .expect("write config");
             assert_eq!(grpc_addr(), "127.0.0.1:50001");
+        },
+    );
+    let _ = fs::remove_dir_all(home);
+}
+
+#[test]
+fn grpc_addr_ignores_root_config_json() {
+    let _guard = test_guard();
+    let home = make_temp_dir("grpc-root-config-ignored");
+    with_env(
+        &[
+            ("HOME", home.to_str()),
+            ("NIMI_RUNTIME_CONFIG_PATH", None),
+            ("NIMI_RUNTIME_GRPC_ADDR", None),
+        ],
+        || {
+            std::env::remove_var("NIMI_RUNTIME_CONFIG_PATH");
+            std::env::remove_var("NIMI_RUNTIME_GRPC_ADDR");
+            let root_path = home.join(".nimi").join("config.json");
+            fs::create_dir_all(root_path.parent().expect("config parent"))
+                .expect("create config parent");
+            fs::write(
+                root_path,
+                r#"{"schemaVersion":1,"grpcAddr":"127.0.0.1:50001"}"#,
+            )
+            .expect("write root config");
+            assert_eq!(
+                runtime_config_path().expect("runtime config path"),
+                home.join(".nimi/runtime/config.json")
+            );
+            assert_eq!(grpc_addr(), DEFAULT_GRPC_ADDR);
         },
     );
     let _ = fs::remove_dir_all(home);

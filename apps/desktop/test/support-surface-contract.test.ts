@@ -19,6 +19,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
+import { PRODUCT_CONTROL_STATES } from '@nimiplatform/sdk';
 import {
   SUPPORT_SECTION_IDS,
   SUPPORT_DEGRADED_REACHABLE_SECTIONS,
@@ -201,15 +202,7 @@ test('D-SUP-006: the log-areas projection matches the kernel closed enum', () =>
 });
 
 test('D-SUP-007: recovery copy mapping is total and uses the copy floor', () => {
-  const productControl = readDesktop(
-    'src/shell/renderer/bridge/runtime-bridge/product-control.ts',
-  );
-  // Every ProductControlState in the typed enum has a copy-floor key.
-  const enumStates = [...productControl.matchAll(/^\s{2}\|\s*'([a-z_]+)'/gm)]
-    .map((m) => m[1])
-    .filter((value): value is string => typeof value === 'string');
-  assert.ok(enumStates.length >= 12, 'expected the full product-control state enum');
-  for (const state of enumStates) {
+  for (const state of PRODUCT_CONTROL_STATES) {
     assert.ok(
       Object.prototype.hasOwnProperty.call(RECOVERY_STATE_COPY_KEY, state),
       `recovery copy key missing for state: ${state}`,

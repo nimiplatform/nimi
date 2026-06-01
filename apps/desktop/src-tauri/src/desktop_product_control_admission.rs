@@ -25,9 +25,9 @@ use prost::Message;
 use std::path::Path;
 
 const RUNTIME_BASELINE_RESOLVE_METHOD_ID: &str =
-    "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness";
+    nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_RUNTIME_BASELINE_READINESS_METHOD_ID;
 const FIRST_RUN_EXECUTION_RESOLVE_METHOD_ID: &str =
-    "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence";
+    nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID;
 
 /// `state == "ready"` is the only accepted Runtime baseline readiness state
 /// (`K-LENV-ACT-011`).

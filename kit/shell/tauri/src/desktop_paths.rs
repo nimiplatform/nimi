@@ -1,16 +1,7 @@
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
 const NIMI_DIR_NAME: &str = ".nimi";
-const NIMI_DATA_DIR_NAME: &str = "data";
-const DESKTOP_PATHS_CONFIG_FILE: &str = "desktop-paths.json";
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-struct DesktopPathsConfigFile {
-    nimi_data_dir: Option<String>,
-}
 
 fn normalize_absolute_path(path: &Path) -> PathBuf {
     let mut normalized = PathBuf::new();
@@ -35,48 +26,18 @@ pub fn resolve_nimi_dir() -> Result<PathBuf, String> {
     Ok(dir)
 }
 
-fn desktop_paths_config_path() -> Result<PathBuf, String> {
-    Ok(resolve_nimi_dir()?.join(DESKTOP_PATHS_CONFIG_FILE))
-}
-
-fn read_desktop_paths_config() -> Result<DesktopPathsConfigFile, String> {
-    let path = desktop_paths_config_path()?;
-    if !path.exists() {
-        return Ok(DesktopPathsConfigFile::default());
-    }
-    let raw = fs::read_to_string(&path).map_err(|error| {
-        format!(
-            "failed to read desktop paths config ({}): {error}",
-            path.display()
-        )
-    })?;
-    serde_json::from_str::<DesktopPathsConfigFile>(&raw).map_err(|error| {
-        format!(
-            "failed to parse desktop paths config ({}): {error}",
-            path.display()
-        )
-    })
-}
-
-fn default_nimi_data_dir() -> Result<PathBuf, String> {
-    Ok(resolve_nimi_dir()?.join(NIMI_DATA_DIR_NAME))
-}
-
 pub fn resolve_nimi_data_dir() -> Result<PathBuf, String> {
-    let configured = read_desktop_paths_config()?
-        .nimi_data_dir
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty());
-    let path = match configured {
-        Some(value) => {
-            let path = PathBuf::from(value);
-            if !path.is_absolute() {
-                return Err("nimi_data_dir must be an absolute path".to_string());
-            }
-            normalize_absolute_path(&path)
-        }
-        None => default_nimi_data_dir()?,
+    let Some(hook_result) = crate::runtime_bridge::resolve_nimi_data_dir_hook() else {
+        return Err(
+            "resolve_nimi_data_dir requires an admitted host data-root hook; no default ~/.nimi/data fallback is allowed"
+                .to_string(),
+        );
     };
+    let path = hook_result?;
+    if !path.is_absolute() {
+        return Err("admitted nimi_data_dir hook returned a non-absolute path".to_string());
+    }
+    let path = normalize_absolute_path(&path);
     fs::create_dir_all(&path).map_err(|error| {
         format!(
             "failed to create nimi_data_dir ({}): {error}",
@@ -84,4 +45,46 @@ pub fn resolve_nimi_data_dir() -> Result<PathBuf, String> {
         )
     })?;
     Ok(path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{resolve_nimi_data_dir, resolve_nimi_dir};
+    use crate::test_support::with_env;
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn make_temp_dir(prefix: &str) -> PathBuf {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "nimi-kit-desktop-paths-{}-{}-{}",
+            prefix,
+            std::process::id(),
+            now
+        ));
+        fs::create_dir_all(&dir).expect("create temp dir");
+        dir
+    }
+
+    #[test]
+    fn resolve_nimi_data_dir_has_no_silent_default() {
+        let home = make_temp_dir("no-default");
+        with_env(&[("HOME", home.to_str())], || {
+            let root = resolve_nimi_dir().expect("nimi dir");
+            fs::write(
+                root.join("desktop-paths.json"),
+                r#"{"nimiDataDir":"/tmp/legacy-nimi-data"}"#,
+            )
+            .expect("write legacy desktop paths");
+
+            let err = resolve_nimi_data_dir().expect_err("missing host hook");
+            assert!(err.contains("requires an admitted host data-root hook"));
+            assert!(!home.join(".nimi").join("data").exists());
+        });
+        let _ = fs::remove_dir_all(home);
+    }
 }
