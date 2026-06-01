@@ -12,19 +12,19 @@ function read(relativePath: string): string {
 test('Nimi error field projection is migrated from Desktop runtime telemetry to SDK types', () => {
   const sdkTypes = read('sdk/src/types/index.ts');
   const realmApi = read('apps/desktop/src/shell/renderer/infra/realm/realm-api.ts');
-  const normalizeApiError = read('apps/desktop/src/runtime/net/error-normalize.ts');
   const profilePrivateState = read('apps/desktop/src/shell/renderer/features/relationship/profile-private-state.ts');
 
   assert.match(sdkTypes, /export function extractNimiErrorFields/);
   assert.match(realmApi, /extractNimiErrorFields/);
-  assert.match(normalizeApiError, /normalizeApiError/);
-  assert.match(normalizeApiError, /@nimiplatform\/sdk\/types/);
+  assert.match(realmApi, /normalizeApiError/);
+  assert.match(realmApi, /from '@nimiplatform\/sdk\/types'/);
   assert.match(profilePrivateState, /extractNimiErrorFields/);
 
   assert.equal(fs.existsSync(path.join(repoRoot, 'apps/desktop/src/runtime/telemetry/error-fields.ts')), false);
+  assert.equal(fs.existsSync(path.join(repoRoot, 'apps/desktop/src/runtime/net/error-normalize.ts')), false);
   assert.doesNotMatch(realmApi, /@runtime\/telemetry\/error-fields/);
+  assert.doesNotMatch(realmApi, /@runtime\/net\/error-normalize/);
   assert.doesNotMatch(profilePrivateState, /@runtime\/telemetry\/error-fields/);
-  assert.doesNotMatch(normalizeApiError, /telemetry\/error-fields/);
 });
 
 test('Tester consumes SDK Nimi error field projection as second app proof', () => {

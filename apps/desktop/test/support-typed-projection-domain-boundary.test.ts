@@ -12,7 +12,6 @@ function read(relativePath: string): string {
 test('Support typed projection lifecycle migrated to Kit UI', () => {
   const kitHook = read('kit/ui/src/hooks/typed-projection.ts');
   const kitIndex = read('kit/ui/src/index.ts');
-  const desktopSupportProjection = read('apps/desktop/src/shell/renderer/features/support/support-projection.ts');
 
   assert.match(kitIndex, /hooks\/typed-projection/);
   assert.match(kitHook, /export function useTypedProjection/);
@@ -22,12 +21,13 @@ test('Support typed projection lifecycle migrated to Kit UI', () => {
   assert.doesNotMatch(kitHook, /from ['"].*apps\//);
   assert.doesNotMatch(kitHook, /@renderer|@runtime|@nimiplatform\/sdk/);
 
-  assert.match(desktopSupportProjection, /from '@nimiplatform\/kit\/ui'/);
-  assert.match(desktopSupportProjection, /useTypedProjection as useSupportProjection/);
-  assert.doesNotMatch(desktopSupportProjection, /useState|useEffect|useRef|function useSupportProjection/);
+  assert.equal(
+    fs.existsSync(path.join(repoRoot, 'apps/desktop/src/shell/renderer/features/support/support-projection.ts')),
+    false,
+  );
 });
 
-test('Desktop Support consumes the shared projection hook through a thin alias only', () => {
+test('Desktop Support consumes the shared projection hook directly from Kit UI', () => {
   for (const file of [
     'apps/desktop/src/shell/renderer/features/support/support-diagnostics-section.tsx',
     'apps/desktop/src/shell/renderer/features/support/support-logs-section.tsx',
@@ -35,7 +35,9 @@ test('Desktop Support consumes the shared projection hook through a thin alias o
     'apps/desktop/src/shell/renderer/features/support/support-recovery-section.tsx',
   ]) {
     const source = read(file);
-    assert.match(source, /useSupportProjection/);
+    assert.match(source, /useTypedProjection as useSupportProjection/);
+    assert.match(source, /from '@nimiplatform\/kit\/ui'/);
+    assert.doesNotMatch(source, /support-projection/);
     assert.match(source, /SupportFailClosed/);
   }
 });

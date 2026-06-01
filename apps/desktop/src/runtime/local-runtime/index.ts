@@ -5,7 +5,7 @@ import {
   localRuntime as sdkLocalRuntime,
   type LocalRuntimeFacade as SdkLocalRuntimeFacade,
 } from '@nimiplatform/sdk/runtime';
-import { emitRuntimeLog } from '../telemetry/logger';
+import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
 import {
   pickLocalRuntimeAssetDirectory,
   pickLocalRuntimeAssetFile,

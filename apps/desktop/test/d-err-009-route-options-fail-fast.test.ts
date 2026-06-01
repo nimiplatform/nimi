@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { setRuntimeLogger } from '../src/runtime/telemetry/logger.js';
+import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
 import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store.js';
 import { clearPlatformClient, createPlatformClient } from '@nimiplatform/sdk';
 import { createBuiltInChatAIScopeRef, createEmptyAIConfig } from '@nimiplatform/sdk/ai';

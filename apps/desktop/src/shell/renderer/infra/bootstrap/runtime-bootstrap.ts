@@ -4,7 +4,7 @@ import {
   createLocalFirstPartyRuntimePlatformClient,
   unstable_attachPlatformWorldEvolutionSelectorReadProvider,
 } from '@nimiplatform/sdk';
-import { setRuntimeLogger } from '@runtime/telemetry/logger';
+import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
 import { createDesktopWorldEvolutionSelectorReadAdapter } from '@runtime/world-evolution/selector-read-adapter';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { desktopBridge, toRendererLogMessage } from '@renderer/bridge';

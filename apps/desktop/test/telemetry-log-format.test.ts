@@ -9,10 +9,9 @@ import {
 } from '../../../kit/telemetry/src/telemetry/debug-buffer.js';
 import { resetRendererEmitStateForTest } from '../../../kit/telemetry/src/telemetry/emit.js';
 import {
-  createRendererFlowId,
   resetRendererSessionTraceIdForTest,
 } from '../../../kit/telemetry/src/telemetry/session-trace.js';
-import { emitRuntimeLog, setRuntimeLogger } from '../src/runtime/telemetry/logger.js';
+import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
 
 type TauriInvoke = (command: string, payload?: unknown) => Promise<unknown>;
 type ForwardedRendererLog = {
@@ -73,89 +72,6 @@ test.beforeEach(() => {
 
 test.afterEach(() => {
   clearTelemetryTestState();
-});
-
-test('D-TEL-002: emitRuntimeLog normalizes messages before forwarding to the injected logger', () => {
-  const captured: Array<Record<string, unknown>> = [];
-  setRuntimeLogger((payload) => {
-    captured.push(payload as Record<string, unknown>);
-  });
-
-  emitRuntimeLog({
-    area: 'bridge',
-    message: 'invoke-start:http_request',
-    details: { requestId: 'req-1' },
-  });
-  emitRuntimeLog({
-    area: 'bridge',
-    message: '',
-  });
-
-  assert.equal(captured.length, 2);
-  assert.equal(captured[0]?.message, 'action:invoke-start:http_request');
-  assert.equal(captured[0]?.area, 'bridge');
-  assert.equal(captured[1]?.message, 'action:runtime-log:empty-message');
-});
-
-test('D-TEL-003: emitRuntimeLog falls back to console by log level when no logger is injected', () => {
-  const infoCalls: unknown[][] = [];
-  const warnCalls: unknown[][] = [];
-  const errorCalls: unknown[][] = [];
-  const previousInfo = console.info;
-  const previousWarn = console.warn;
-  const previousError = console.error;
-  console.info = (...args: unknown[]) => {
-    infoCalls.push(args);
-  };
-  console.warn = (...args: unknown[]) => {
-    warnCalls.push(args);
-  };
-  console.error = (...args: unknown[]) => {
-    errorCalls.push(args);
-  };
-
-  try {
-    emitRuntimeLog({
-      area: 'realm-data',
-      message: 'token-refresh:success',
-      details: { ok: true },
-    });
-    emitRuntimeLog({
-      level: 'warn',
-      area: 'bridge',
-      message: 'retry:retrying',
-      details: { attempt: 2 },
-    });
-    emitRuntimeLog({
-      level: 'error',
-      area: 'bridge',
-      message: 'retry:retry_exhausted',
-      details: { reasonCode: ReasonCode.RUNTIME_UNAVAILABLE },
-    });
-  } finally {
-    console.info = previousInfo;
-    console.warn = previousWarn;
-    console.error = previousError;
-  }
-
-  assert.equal(infoCalls.length, 1);
-  assert.equal(infoCalls[0]?.[0], '[runtime:realm-data] action:token-refresh:success');
-  assert.deepEqual(infoCalls[0]?.[1], { ok: true });
-  assert.equal(warnCalls.length, 1);
-  assert.equal(warnCalls[0]?.[0], '[runtime:bridge] action:retry:retrying');
-  assert.deepEqual(warnCalls[0]?.[1], { attempt: 2 });
-  assert.equal(errorCalls.length, 1);
-  assert.equal(errorCalls[0]?.[0], '[runtime:bridge] action:retry:retry_exhausted');
-  assert.deepEqual(errorCalls[0]?.[1], { reasonCode: ReasonCode.RUNTIME_UNAVAILABLE });
-});
-
-test('D-TEL-004: createRendererFlowId uses the real exported formatter and yields unique IDs', () => {
-  const flowId = createRendererFlowId('test-flow');
-  const ids = Array.from({ length: 20 }, () => createRendererFlowId('uniq'));
-  const unique = new Set(ids);
-
-  assert.match(flowId, /^test-flow-[0-9a-f]+$/, `expected secure prefixed flow ID, got ${flowId}`);
-  assert.equal(unique.size, ids.length, 'flow IDs must be unique across repeated calls');
 });
 
 test('D-TEL-005: invoke emits start and success traces with a stable invokeId', async () => {

@@ -12,7 +12,7 @@ function read(relativePath: string): string {
 test('Runtime log formatter and injected sink migrated to Kit telemetry', () => {
   const kitTelemetryIndex = read('kit/telemetry/src/telemetry/index.ts');
   const kitRuntimeLog = read('kit/telemetry/src/telemetry/runtime-log.ts');
-  const desktopLogger = read('apps/desktop/src/runtime/telemetry/logger.ts');
+  const runtimeBootstrap = read('apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts');
 
   assert.match(kitTelemetryIndex, /runtime-log/);
   assert.match(kitRuntimeLog, /export function emitRuntimeLog/);
@@ -20,10 +20,9 @@ test('Runtime log formatter and injected sink migrated to Kit telemetry', () => 
   assert.match(kitRuntimeLog, /export function toRuntimeLogMessage/);
   assert.doesNotMatch(kitRuntimeLog, /@renderer|@runtime|apps\//);
 
-  assert.match(desktopLogger, /from '@nimiplatform\/kit\/telemetry'/);
-  assert.match(desktopLogger, /emitRuntimeLog/);
-  assert.match(desktopLogger, /setRuntimeLogger/);
-  assert.doesNotMatch(desktopLogger, /let runtimeLogger|function fallbackConsoleLog|function normalizeRuntimeLogMessage/);
+  assert.equal(fs.existsSync(path.join(repoRoot, 'apps/desktop/src/runtime/telemetry/logger.ts')), false);
+  assert.match(runtimeBootstrap, /from '@nimiplatform\/kit\/telemetry'/);
+  assert.match(runtimeBootstrap, /setRuntimeLogger/);
 });
 
 test('Tester consumes Kit runtime telemetry as second app proof', () => {

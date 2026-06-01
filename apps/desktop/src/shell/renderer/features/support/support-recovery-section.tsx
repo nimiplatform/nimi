@@ -11,7 +11,7 @@
 
 import { useTranslation } from 'react-i18next';
 import { desktopBridge, type ProductControlRecordProjection } from '@renderer/bridge';
-import { useSupportProjection } from './support-projection.js';
+import { useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
 import {
   SupportCard,
   SupportFailClosed,

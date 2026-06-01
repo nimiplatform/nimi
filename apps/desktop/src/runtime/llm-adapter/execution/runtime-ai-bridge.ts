@@ -12,7 +12,7 @@ import {
   type RuntimeRouteLocalWarmMetric,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { emitRuntimeLog } from '../../telemetry/logger';
+import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
 
 const runtimeRouteLocalWarmCache = createRuntimeRouteLocalWarmCache();
 

@@ -4,7 +4,7 @@ import {
   type LocalRuntimeRunnableAssetKindId,
 } from '@nimiplatform/sdk/runtime';
 import type { LocalProviderAdapter } from '@nimiplatform/sdk/runtime';
-import { emitRuntimeLog } from '../../telemetry/logger';
+import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export type InferenceRouteSource = 'local' | 'cloud';

@@ -3,7 +3,7 @@ import {
   localRuntime,
   type LocalRuntimeDownloadProgressEvent,
 } from '@runtime/local-runtime';
-import { emitRuntimeLog } from '@runtime/telemetry/logger';
+import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
 import {
   PROGRESS_SESSION_LIMIT,
   type ProgressSessionState,

@@ -51,7 +51,7 @@ import {
   rollbackOptimisticUserProjection,
   toFallbackThreadRecord,
 } from './chat-agent-shell-host-actions-submit-helpers';
-import type { RuntimeLogMessage } from '@runtime/telemetry/logger';
+import type { RuntimeLogMessage } from '@nimiplatform/kit/telemetry';
 import type {
   ActiveSubmitRegistryRef,
   AgentConversationSubmitPayload,

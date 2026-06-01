@@ -7,7 +7,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { localRuntime,
   type LocalRuntimeAssetRecord,
   type LocalRuntimeSnapshot } from '@runtime/local-runtime';
-import { emitRuntimeLog } from '@runtime/telemetry/logger';
+import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
 import {
   createRuntimeRouteOptionsPlatformHostDeps,
   listRuntimeRouteOptionsWithHost,

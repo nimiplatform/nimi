@@ -14,7 +14,7 @@ import {
   type RuntimeBridgeDaemonStatus,
   type SystemResourceSnapshot,
 } from '@renderer/bridge';
-import { useSupportProjection } from './support-projection.js';
+import { useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
 import {
   SupportCard,
   SupportFailClosed,

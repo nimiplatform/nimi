@@ -6,7 +6,6 @@ authority_posture:
   spec_status: alignment
   authority_owner:
     - sdk/src/types/index.ts
-    - apps/desktop/src/runtime/net/error-normalize.ts
     - apps/desktop/src/shell/renderer/infra/realm/realm-api.ts
     - apps/desktop/src/shell/renderer/features/relationship/profile-private-state.ts
     - apps/tester/src/shell/routes/settings.tsx
@@ -40,7 +39,6 @@ preflight_violation_inventory:
       disposition: SDK types owns app-facing envelope parsing; Runtime/Realm remain authoritative for emitted reason codes and session truth.
 audited_globs:
   - apps/desktop/src/runtime/telemetry/**
-  - apps/desktop/src/runtime/net/error-normalize.ts
   - apps/desktop/src/shell/renderer/infra/realm/**
   - apps/desktop/src/shell/renderer/features/relationship/profile-private-state.ts
   - apps/desktop/test/sdk-error-field-projection-domain-boundary.test.ts
@@ -58,14 +56,12 @@ migrated:
     - Desktop consumes SDK extraction for API normalization, Realm data error logging, and private profile access checks.
     - Tester consumes SDK extraction in a settings Runtime reason projection as a non-Desktop app proof.
   desktop_consumers:
-    - apps/desktop/src/runtime/net/error-normalize.ts now consumes SDK normalizeApiError, which owns extractNimiErrorFields internally after sdk-network-retry-api-normalization.
+    - apps/desktop/src/shell/renderer/infra/realm/realm-api.ts imports normalizeApiError and extractNimiErrorFields directly from @nimiplatform/sdk/types.
     - apps/desktop/src/shell/renderer/infra/realm/realm-api.ts consumes extractNimiErrorFields.
     - apps/desktop/src/shell/renderer/features/relationship/profile-private-state.ts consumes extractNimiErrorFields.
   tester_consumers:
     - apps/tester/src/shell/routes/settings.tsx consumes extractNimiErrorFields from @nimiplatform/sdk/types and renders the projected trace id.
 legal_desktop_residue:
-  - path: apps/desktop/src/runtime/net/error-normalize.ts
-    rationale: Thin compatibility alias after sdk-network-retry-api-normalization; HTTP/API error normalization and typed error-field parsing are SDK-owned.
   - path: apps/desktop/src/shell/renderer/infra/realm/realm-api.ts
     rationale: Desktop owns Realm data error logging and offline coordinator reaction wiring; error envelope parsing is SDK-owned.
   - path: apps/desktop/src/shell/renderer/features/relationship/profile-private-state.ts
@@ -86,6 +82,15 @@ prohibited_patterns:
       - "@runtime/telemetry/error-fields"
   - target: apps/desktop/src/runtime/telemetry/error-fields.ts
     absent_file: true
+  - target: apps/desktop/src/runtime/net/error-normalize.ts
+    absent_file: true
+  - target: apps/desktop/src/shell/renderer/infra/realm/realm-api.ts
+    required:
+      - normalizeApiError
+      - extractNimiErrorFields
+      - "@nimiplatform/sdk/types"
+    absent:
+      - "@runtime/net/error-normalize"
   - target: apps/tester/src/shell/routes/settings.tsx
     required:
       - extractNimiErrorFields

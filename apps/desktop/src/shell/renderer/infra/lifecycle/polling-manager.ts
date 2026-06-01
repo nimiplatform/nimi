@@ -1,4 +1,4 @@
-import { emitRuntimeLog } from '@runtime/telemetry/logger';
+import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
 
 export class ShellPollingManager {
   private readonly pollingIntervals = new Map<string, ReturnType<typeof setInterval>>();

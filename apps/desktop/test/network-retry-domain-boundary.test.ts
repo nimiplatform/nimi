@@ -11,17 +11,17 @@ function read(relativePath: string): string {
 
 test('Network retry and API error normalization migrated to SDK types', () => {
   const sdkNetworkRetry = read('sdk/src/types/network-retry.ts');
-  const desktopRetry = read('apps/desktop/src/runtime/net/request-with-retry.ts');
-  const desktopNormalize = read('apps/desktop/src/runtime/net/error-normalize.ts');
+  const realmApi = read('apps/desktop/src/shell/renderer/infra/realm/realm-api.ts');
 
   assert.match(sdkNetworkRetry, /export async function requestWithRetry/);
   assert.match(sdkNetworkRetry, /export function normalizeApiError/);
   assert.match(sdkNetworkRetry, /RETRYABLE_STATUS_CODES\s*=\s*new Set/);
-  assert.match(desktopRetry, /from '@nimiplatform\/sdk\/types'/);
-  assert.match(desktopNormalize, /from '@nimiplatform\/sdk\/types'/);
+  assert.match(realmApi, /normalizeApiError/);
+  assert.match(realmApi, /from '@nimiplatform\/sdk\/types'/);
 
-  assert.doesNotMatch(desktopRetry, /RETRYABLE_STATUS_CODES|Math\.pow|defaultSleepImpl|normalizeApiError\(error\)/);
-  assert.doesNotMatch(desktopNormalize, /tryParseJsonLike|extractNimiErrorFields|function isApiErrorLike/);
+  assert.equal(fs.existsSync(path.join(repoRoot, 'apps/desktop/src/runtime/net/request-with-retry.ts')), false);
+  assert.equal(fs.existsSync(path.join(repoRoot, 'apps/desktop/src/runtime/net/error-normalize.ts')), false);
+  assert.doesNotMatch(realmApi, /@runtime\/net/);
 });
 
 test('Tester consumes SDK requestWithRetry as second app proof', () => {
