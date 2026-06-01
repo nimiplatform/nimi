@@ -38,7 +38,6 @@ export {
   selectFactoryAIProfileForFirstRun,
 } from '@nimiplatform/sdk/platform-catalog';
 export {
-  FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
   cancelFirstRunMaterializationJob,
   productStateForMaterializationStatus,
   repairFirstRunMaterializationDependency,

@@ -16,7 +16,6 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import type { LocalRuntimeEnvironmentPlanDependency } from '@nimiplatform/sdk/runtime';
 
-export { FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE } from '@nimiplatform/sdk/runtime';
 export type {
   FirstRunMaterializationDependencyProjection,
   FirstRunMaterializationDownloadProgress,

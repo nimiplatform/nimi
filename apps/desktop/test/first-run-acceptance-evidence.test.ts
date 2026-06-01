@@ -9,9 +9,9 @@ import {
   PLATFORM_AI_PROFILE_FACTORY_ROWS,
   type PlatformAIProfileFactoryRow,
 } from '@nimiplatform/sdk/platform-catalog';
+import { FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE } from '@nimiplatform/sdk/runtime';
 import { ProductControlWorkflow } from '../src/shell/renderer/first-run/product-control-workflow.js';
 import {
-  FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
   resolveFirstRunMaterializationProjection,
   startFirstRunMaterialization,
   type FirstRunMaterializationInput,

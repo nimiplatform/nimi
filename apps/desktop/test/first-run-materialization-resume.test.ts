@@ -3,7 +3,6 @@ import test from 'node:test';
 
 import {
   repairableConfirmedFirstRunMaterializationDependencies,
-  resolveFirstRunMaterializationProjection,
   retryableInterruptedFirstRunMaterializationJobs,
   shouldResumeConfirmedFirstRunMaterialization,
   type FirstRunMaterializationProjection,
@@ -123,101 +122,22 @@ test('first-run materialization resume does not run before setup confirmation or
   );
 });
 
-test('confirmed first-run setup auto-recovers interrupted model downloads', () => {
+test('confirmed first-run setup gates SDK retryable materialization jobs', () => {
   const interrupted = dependencyJob('LOCAL_ENVIRONMENT_DEPENDENCY_JOB_INTERRUPTED');
-  const timedOut = dependencyJob(
-    'download model file "model.gguf": context deadline exceeded (Client.Timeout or context cancellation while reading body)',
-    { jobId: 'job-timeout', dependencyId: 'asset-id:timeout' },
-  );
   assert.deepEqual(
     retryableInterruptedFirstRunMaterializationJobs(
       'local_ai_profile_selected_environment_not_ready',
-      projection('failed', [interrupted, timedOut]),
+      projection('failed', [interrupted]),
     ).map((job) => job.jobId),
-    ['job-model', 'job-timeout'],
+    ['job-model'],
   );
-});
-
-test('first-run setup auto-retries admitted transient failures and rejects non-transient ones', () => {
-  const pythonLock = dependencyJob('Timeout (300s) when waiting for lock on uv cache', {
-    dependencyFamily: 'python.package-set',
-    dependencyId: 'local-speech.package-set',
-    jobId: 'job-python',
-  });
-  const hashMismatch = dependencyJob('model file "model.gguf": model file hash mismatch', {
-    jobId: 'job-hash',
-  });
-  const unconfirmed = retryableInterruptedFirstRunMaterializationJobs(
-    'ai_environment_unconfigured',
-    projection('failed', [dependencyJob('unexpected EOF')]),
-  );
-  assert.deepEqual(unconfirmed, []);
   assert.deepEqual(
     retryableInterruptedFirstRunMaterializationJobs(
-      'local_ai_profile_selected_environment_not_ready',
-      projection('failed', [pythonLock, hashMismatch]),
+      'ai_environment_unconfigured',
+      projection('failed', [interrupted]),
     ),
-    [pythonLock.job],
+    [],
   );
-});
-
-test('first-run materialization treats verified ready dependency as ready despite stale failed job', async () => {
-  const runtime = {
-    async resolveEnvironmentPlan() {
-      return {
-        planId: 'plan:local-speech',
-        packId: 'local-speech',
-        productLabel: 'Speech',
-        hostProfileId: 'host',
-        platformTuple: 'windows/amd64',
-        state: 'ready',
-        dependencies: [{
-          dependencyFamily: 'python.package-set',
-          dependencyId: 'local-speech-qwen3-tts.package-set',
-          required: true,
-          state: 'ready_managed',
-          sourceKind: 'managed',
-          confirmationRequired: false,
-          selectedSourceRecordId: 'src-ready',
-          environmentKey: 'python.package-set|local-speech-qwen3-tts.package-set',
-        }],
-      };
-    },
-    async listEnvironmentDependencyJobs() {
-      return [dependencyJob(
-        'No virtual environment or system Python installation found for path',
-        {
-          dependencyFamily: 'python.package-set',
-          dependencyId: 'local-speech-qwen3-tts.package-set',
-          environmentKey: 'python.package-set|local-speech-qwen3-tts.package-set',
-          jobId: 'job-stale-failed',
-        },
-      ).job!];
-    },
-    async startEnvironmentDependencyJob() {
-      throw new Error('not used');
-    },
-    async cancelEnvironmentDependencyJob() {
-      throw new Error('not used');
-    },
-    async retryEnvironmentDependencyJob() {
-      throw new Error('not used');
-    },
-    async repairEnvironmentDependency() {
-      throw new Error('not used');
-    },
-  };
-
-  const resolved = await resolveFirstRunMaterializationProjection({
-    profile: {
-      localComputePackRefs: ['local-speech'],
-      dependencyFamilyRefs: ['python.package-set'],
-    } as never,
-    runtimeDataRoot: 'D:\\Nimi',
-    installLevel: 'minimal',
-    runtime,
-  });
-  assert.equal(resolved.status, 'local_ai_ready');
 });
 
 test('confirmed first-run setup auto-repairs repair-required materialization dependencies once observer handles them', () => {

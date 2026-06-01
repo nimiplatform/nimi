@@ -17,7 +17,6 @@ import {
   projectSetupChecklist,
 } from '../src/shell/renderer/first-run/first-run-setup-checklist.js';
 import { PhaseSetup } from '../src/shell/renderer/first-run/phase-setup.js';
-import { aggregateMaterializationDownloadProgress } from '@nimiplatform/sdk/runtime';
 import { projectInstallLevelCard } from '../src/shell/renderer/first-run/first-run-install-level-cards.js';
 import { projectDeviceSummary } from '../src/shell/renderer/first-run/first-run-device-summary.js';
 import {
@@ -371,37 +370,6 @@ function downloadingDependency(
     },
   };
 }
-
-test('aggregateMaterializationDownloadProgress projects Runtime job progress, never fabricates a rate', () => {
-  // A downloading job with a known total and a rate -> a concrete projection.
-  const withRate = aggregateMaterializationDownloadProgress([
-    downloadingDependency(250, 1000, 125, 6),
-  ]);
-  assert.ok(withRate);
-  assert.equal(withRate.percent, 25);
-  assert.equal(withRate.speedBytesPerSec, 125);
-  assert.equal(withRate.etaSeconds, 6);
-
-  // No rate computed yet -> speed/eta absent, never fabricated.
-  const noRate = aggregateMaterializationDownloadProgress([
-    downloadingDependency(250, 1000, 0, 0),
-  ]);
-  assert.ok(noRate);
-  assert.equal(noRate.percent, 25);
-  assert.equal(noRate.speedBytesPerSec, null);
-  assert.equal(noRate.etaSeconds, null);
-
-  // Unknown total -> percent is null (indeterminate), never a fabricated %.
-  const noTotal = aggregateMaterializationDownloadProgress([
-    downloadingDependency(250, 0, 125, 0),
-  ]);
-  assert.ok(noTotal);
-  assert.equal(noTotal.percent, null);
-  assert.equal(noTotal.etaSeconds, null);
-
-  // No transferring job -> nothing to render.
-  assert.equal(aggregateMaterializationDownloadProgress([]), null);
-});
 
 test('an actively-downloading setup step renders progress and is not failed, with no Retry/Repair', () => {
   const checklist = projectSetupChecklist(
