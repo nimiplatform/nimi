@@ -55,6 +55,9 @@ func (s *Service) checkManagedSupervisedImageHealthWithReason(ctx context.Contex
 			return s.setManagedSupervisedImageUnhealthy(model, gate.Detail)
 		}
 	}
+	if gate, ok := s.resolveManagedImageProfileActivationGate(model, selection); ok && gate.State != localEnvironmentActivationStateReady {
+		return s.setManagedSupervisedImageUnhealthy(model, gate.Detail)
+	}
 	if _, _, err := s.ensureManagedLocalModelBundleReady(ctx, model); err != nil {
 		return s.setManagedSupervisedImageUnhealthy(model, managedLocalModelBundleFailureDetail(err))
 	}
@@ -95,6 +98,49 @@ func (s *Service) checkManagedSupervisedImageHealthWithReason(ctx context.Contex
 	}
 	s.resetModelRecovery(localAssetID)
 	return modelHealth(activated), nil
+}
+
+func (s *Service) resolveManagedImageProfileActivationGate(model *runtimev1.LocalAssetRecord, selection engine.ImageSupervisedMatrixSelection) (localEnvironmentConsumerActivationGate, bool) {
+	if model == nil || !selection.Matched || selection.Conflict || selection.Entry == nil {
+		return localEnvironmentConsumerActivationGate{}, false
+	}
+	localAssetID := strings.TrimSpace(model.GetLocalAssetId())
+	if localAssetID == "" {
+		return localEnvironmentConsumerActivationGate{}, false
+	}
+	cached, ok := s.cachedManagedMediaImageProfile(localAssetID)
+	if !ok || !cached.MaterializationResolved {
+		return localEnvironmentConsumerActivationGate{}, false
+	}
+	consumerID, ok := managedImageConsumerIDForMatrixEntry(selection.Entry)
+	if !ok {
+		return localEnvironmentConsumerActivationGate{
+			ConsumerID: strings.TrimSpace(selection.Entry.EntryID),
+			State:      localEnvironmentActivationStateUnsupported,
+			ReasonCode: localEnvironmentActivationReasonConsumerUnsupported,
+			Detail:     "managed image selection has no admitted local environment consumer: " + strings.TrimSpace(selection.Entry.EntryID),
+		}, true
+	}
+	return s.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
+		ConsumerID:   consumerID,
+		AssetID:      model.GetAssetId(),
+		LocalAssetID: localAssetID,
+	}), true
+}
+
+func managedImageConsumerIDForMatrixEntry(entry *engine.ImageSupervisedMatrixEntry) (string, bool) {
+	if entry == nil {
+		return "", false
+	}
+	switch strings.ToLower(strings.TrimSpace(entry.GPUVendor)) {
+	case "apple":
+		if strings.EqualFold(strings.TrimSpace(entry.OS), "darwin") && strings.EqualFold(strings.TrimSpace(entry.Arch), "arm64") {
+			return "stable-diffusion.cpp.metal", true
+		}
+	case "nvidia":
+		return stableDiffusionCUDAConsumerID, true
+	}
+	return "stable-diffusion.cpp.cpu", true
 }
 
 type managedImagePreflightResult struct {

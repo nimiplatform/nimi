@@ -156,6 +156,12 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 	// directly: a nil request HostProfile would zero the resolver's RAM budget
 	// and fail-close every cpu variant even on a capable host.
 	modelResolution := s.resolvePlanModelAssetDependencies(def, hostState, platformTuple, runtimeDataRoot, req, profile)
+	for family, deps := range s.resolveCachedProfileModelAssetDependencies(def, hostState, platformTuple, runtimeDataRoot, consumerScope, req) {
+		if modelResolution == nil {
+			modelResolution = make(map[string][]localEnvironmentPlanDependency, 1)
+		}
+		modelResolution[family] = deps
+	}
 
 	dependencies := make([]localEnvironmentPlanDependency, 0, len(def.RequiredDependencyFamilies)+len(def.OptionalDependencyFamilies))
 	for _, family := range def.RequiredDependencyFamilies {
@@ -258,6 +264,89 @@ func localEnvironmentPlanState(dependencies []localEnvironmentPlanDependency) (s
 func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string, req localEnvironmentPlanRequest) localEnvironmentPlanDependency {
 	dependencyID := s.localEnvironmentDependencyID(def.PackID, family, req)
 	return s.resolveLocalEnvironmentDependencyWithID(def, family, dependencyID, required, hostState, platformTuple, runtimeDataRoot, consumerScope)
+}
+
+func (s *Service) resolveCachedProfileModelAssetDependencies(
+	def localComputePackDefinition,
+	hostState localEnvironmentHostProfileState,
+	platformTuple string,
+	runtimeDataRoot string,
+	consumerScope string,
+	req localEnvironmentPlanRequest,
+) map[string][]localEnvironmentPlanDependency {
+	if def.PackID != "local-image-native" {
+		return nil
+	}
+	if strings.TrimSpace(req.InstallLevel) != "" || strings.TrimSpace(req.CompanionAssetID) != "" {
+		return nil
+	}
+	if strings.TrimSpace(req.LocalAssetID) == "" && strings.TrimSpace(req.AssetID) == "" {
+		return nil
+	}
+	cached, ok := s.cachedManagedMediaImageProfile(req.LocalAssetID)
+	if !ok || !cached.MaterializationResolved {
+		return map[string][]localEnvironmentPlanDependency{
+			localEnvironmentFamilyModelCompanion: {
+				localEnvironmentImageProfileBindingsRequiredDependency(def, hostState, platformTuple, runtimeDataRoot, consumerScope, req),
+			},
+		}
+	}
+	companionDeps := make([]localEnvironmentPlanDependency, 0)
+	for _, binding := range cached.MaterializationBindings {
+		if strings.TrimSpace(binding.CompanionAssetID) == "" {
+			continue
+		}
+		companionReq := req
+		companionReq.AssetID = ""
+		companionReq.LocalAssetID = ""
+		companionReq.CompanionAssetID = strings.TrimSpace(binding.CompanionAssetID)
+		companionReq.ParentAssetID = strings.TrimSpace(binding.ParentAssetID)
+		if companionReq.ParentAssetID == "" {
+			companionReq.ParentAssetID = strings.TrimSpace(req.AssetID)
+		}
+		companionDeps = append(companionDeps, s.resolveLocalEnvironmentDependency(
+			def,
+			localEnvironmentFamilyModelCompanion,
+			planModelFamilyRequired(def, localEnvironmentFamilyModelCompanion),
+			hostState,
+			platformTuple,
+			runtimeDataRoot,
+			consumerScope,
+			companionReq,
+		))
+	}
+	return map[string][]localEnvironmentPlanDependency{
+		localEnvironmentFamilyModelCompanion: companionDeps,
+	}
+}
+
+func localEnvironmentImageProfileBindingsRequiredDependency(
+	def localComputePackDefinition,
+	hostState localEnvironmentHostProfileState,
+	platformTuple string,
+	runtimeDataRoot string,
+	consumerScope string,
+	req localEnvironmentPlanRequest,
+) localEnvironmentPlanDependency {
+	identity := strings.TrimSpace(req.LocalAssetID)
+	if identity == "" {
+		identity = strings.TrimSpace(req.AssetID)
+	}
+	if identity == "" {
+		identity = "unknown"
+	}
+	dependencyID := "image-profile-bindings:" + identity
+	return localEnvironmentPlanDependency{
+		DependencyFamily:     localEnvironmentFamilyModelCompanion,
+		DependencyID:         dependencyID,
+		Required:             planModelFamilyRequired(def, localEnvironmentFamilyModelCompanion),
+		State:                localEnvironmentStateUnsupported,
+		SourceKind:           localEnvironmentSourceUnavailable,
+		ConfirmationRequired: false,
+		EnvironmentKey:       localEnvironmentKey(localEnvironmentFamilyModelCompanion, dependencyID, hostState.HostProfileID, platformTuple, runtimeDataRoot),
+		ReasonCode:           "LOCAL_ENVIRONMENT_IMAGE_PROFILE_BINDINGS_REQUIRED",
+		Detail:               "image profile materialization bindings are required before resolving companion assets; supply runtime profile_entries for this image model",
+	}
 }
 
 func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDefinition, family string, dependencyID string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string) localEnvironmentPlanDependency {

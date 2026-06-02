@@ -20,8 +20,10 @@ import (
 const managedImageLoadTimeout = 45 * time.Second
 
 type managedImageProfileState struct {
-	Alias   string
-	Profile map[string]any
+	Alias                   string
+	Profile                 map[string]any
+	MaterializationResolved bool
+	MaterializationBindings []managedMediaProfileMaterializationBinding
 }
 
 type managedImageLoadedState struct {
@@ -41,6 +43,16 @@ type managedImageLoadInflight struct {
 }
 
 func (s *Service) cacheManagedMediaImageProfile(localAssetID string, alias string, profile map[string]any) {
+	s.cacheManagedMediaImageProfileResolution(localAssetID, alias, profile, false, nil)
+}
+
+func (s *Service) cacheManagedMediaImageProfileResolution(
+	localAssetID string,
+	alias string,
+	profile map[string]any,
+	materializationResolved bool,
+	bindings []managedMediaProfileMaterializationBinding,
+) {
 	id := strings.TrimSpace(localAssetID)
 	if s == nil || id == "" || len(profile) == 0 {
 		return
@@ -51,8 +63,10 @@ func (s *Service) cacheManagedMediaImageProfile(localAssetID string, alias strin
 		s.managedImageProfiles = make(map[string]managedImageProfileState)
 	}
 	s.managedImageProfiles[id] = managedImageProfileState{
-		Alias:   strings.TrimSpace(alias),
-		Profile: cloneAnyMap(profile),
+		Alias:                   strings.TrimSpace(alias),
+		Profile:                 cloneAnyMap(profile),
+		MaterializationResolved: materializationResolved,
+		MaterializationBindings: cloneManagedMediaProfileMaterializationBindings(bindings),
 	}
 }
 
@@ -68,8 +82,10 @@ func (s *Service) cachedManagedMediaImageProfile(localAssetID string) (managedIm
 		return managedImageProfileState{}, false
 	}
 	return managedImageProfileState{
-		Alias:   state.Alias,
-		Profile: cloneAnyMap(state.Profile),
+		Alias:                   state.Alias,
+		Profile:                 cloneAnyMap(state.Profile),
+		MaterializationResolved: state.MaterializationResolved,
+		MaterializationBindings: cloneManagedMediaProfileMaterializationBindings(state.MaterializationBindings),
 	}, true
 }
 

@@ -21,6 +21,37 @@ const (
 	managedMediaWorkflowProfileOverridesKey = "profile_overrides"
 )
 
+type managedMediaProfileSlotAsset struct {
+	EngineSlot string
+	Asset      *runtimev1.LocalAssetRecord
+	Path       string
+}
+
+type managedMediaProfileSlotResolution struct {
+	ModelPath  string
+	MainAsset  *runtimev1.LocalAssetRecord
+	SlotPaths  map[string]string
+	SlotAssets []managedMediaProfileSlotAsset
+}
+
+type managedMediaProfileMaterializationBinding struct {
+	AssetID          string
+	LocalAssetID     string
+	CompanionKind    string
+	EngineSlot       string
+	CompanionAssetID string
+	ParentAssetID    string
+}
+
+func cloneManagedMediaProfileMaterializationBindings(bindings []managedMediaProfileMaterializationBinding) []managedMediaProfileMaterializationBinding {
+	if len(bindings) == 0 {
+		return nil
+	}
+	out := make([]managedMediaProfileMaterializationBinding, len(bindings))
+	copy(out, bindings)
+	return out
+}
+
 // resolveProfileSlots resolves main model path and passive engine slot paths
 // from the given profile entries for a specific capability. Entries without
 // engineSlot whose assetKind matches the capability produce the main runnable
@@ -39,9 +70,10 @@ func (s *Service) resolveProfileSlots(
 	capability string,
 	overrides map[string]string,
 	allowUnhealthyMainLocalAssetID string,
-) (string, map[string]string, error) {
-	var modelPath string
-	engineSlots := make(map[string]string)
+) (managedMediaProfileSlotResolution, error) {
+	resolution := managedMediaProfileSlotResolution{
+		SlotPaths: make(map[string]string),
+	}
 
 	for _, entry := range entries {
 		if entry == nil {
@@ -66,7 +98,7 @@ func (s *Service) resolveProfileSlots(
 		entryKind := entry.GetAssetKind()
 		if slot == "" {
 			if !assetKindMatchesCapability(entryKind, capability) {
-				return "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING, grpcerr.ReasonOptions{
+				return managedMediaProfileSlotResolution{}, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING, grpcerr.ReasonOptions{
 					Message:    fmt.Sprintf("profile entry %q kind %s must declare engineSlot", entryID, entryKind.String()),
 					ActionHint: "declare_profile_slot",
 				})
@@ -75,8 +107,8 @@ func (s *Service) resolveProfileSlots(
 			if !assetKindMatchesCapability(entryKind, capability) {
 				continue
 			}
-			if modelPath != "" {
-				return "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			if resolution.ModelPath != "" {
+				return managedMediaProfileSlotResolution{}, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
 					Message:    fmt.Sprintf("ambiguous: multiple main models for capability %q", capability),
 					ActionHint: "narrow_profile_entries",
 				})
@@ -88,32 +120,33 @@ func (s *Service) resolveProfileSlots(
 				installed = s.findInstalledAssetForProfileEntry(entry)
 			}
 			if installed == nil {
-				return "", nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+				return managedMediaProfileSlotResolution{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 			}
 			if !profileEntryInstalledMainAssetUsable(installed, allowUnhealthyMainLocalAssetID) {
-				return "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+				return managedMediaProfileSlotResolution{}, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
 					Message:    fmt.Sprintf("main asset %q is not in a usable status", installed.GetLocalAssetId()),
 					ActionHint: "inspect_local_runtime_model_health",
 				})
 			}
 			resolved, err := s.resolveManagedAssetEntryPath(installed)
 			if err != nil {
-				return "", nil, err
+				return managedMediaProfileSlotResolution{}, err
 			}
-			modelPath = resolved
+			resolution.ModelPath = resolved
+			resolution.MainAsset = installed
 			continue
 		}
 
 		// Slot-bound dependency: any non-main asset may bind an engineSlot,
 		// including chat assets used as text encoders (for example llm_path).
 		if assetKindMatchesCapability(entryKind, capability) {
-			return "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_FORBIDDEN, grpcerr.ReasonOptions{
+			return managedMediaProfileSlotResolution{}, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_FORBIDDEN, grpcerr.ReasonOptions{
 				Message:    fmt.Sprintf("main asset entry %q kind %s cannot declare engineSlot %q", entryID, entryKind.String(), slot),
 				ActionHint: "remove_profile_slot",
 			})
 		}
-		if _, exists := engineSlots[slot]; exists {
-			return "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_PROFILE_SLOT_CONFLICT, grpcerr.ReasonOptions{
+		if _, exists := resolution.SlotPaths[slot]; exists {
+			return managedMediaProfileSlotResolution{}, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_PROFILE_SLOT_CONFLICT, grpcerr.ReasonOptions{
 				Message:    fmt.Sprintf("duplicate engineSlot binding %q in profile entries", slot),
 				ActionHint: "dedupe_profile_slot_bindings",
 			})
@@ -125,28 +158,33 @@ func (s *Service) resolveProfileSlots(
 			installed = s.findInstalledAssetForProfileEntry(entry)
 		}
 		if installed == nil {
-			return "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING, grpcerr.ReasonOptions{
+			return managedMediaProfileSlotResolution{}, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING, grpcerr.ReasonOptions{
 				Message:    fmt.Sprintf("slot %q asset is not installed", slot),
 				ActionHint: "install_profile_slot_asset",
 			})
 		}
 		if !profileEntryInstalledAssetUsable(installed) {
-			return "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING, grpcerr.ReasonOptions{
+			return managedMediaProfileSlotResolution{}, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING, grpcerr.ReasonOptions{
 				Message:    fmt.Sprintf("slot %q asset %q is not in a usable status", slot, installed.GetLocalAssetId()),
 				ActionHint: "inspect_profile_slot_asset",
 			})
 		}
 		resolved, err := s.resolveManagedAssetEntryPath(installed)
 		if err != nil {
-			return "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING, grpcerr.ReasonOptions{
+			return managedMediaProfileSlotResolution{}, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING, grpcerr.ReasonOptions{
 				Message:    fmt.Sprintf("slot %q asset path is unavailable: %v", slot, err),
 				ActionHint: "inspect_profile_slot_asset",
 			})
 		}
-		engineSlots[slot] = resolved
+		resolution.SlotPaths[slot] = resolved
+		resolution.SlotAssets = append(resolution.SlotAssets, managedMediaProfileSlotAsset{
+			EngineSlot: slot,
+			Asset:      installed,
+			Path:       resolved,
+		})
 	}
 
-	return modelPath, engineSlots, nil
+	return resolution, nil
 }
 
 func profileEntryInstalledAssetUsable(asset *runtimev1.LocalAssetRecord) bool {
@@ -308,16 +346,42 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 
 	var modelPath string
 	slotPaths := map[string]string{}
+	materializationBindings := []managedMediaProfileMaterializationBinding{}
+	materializationResolved := false
 
 	if len(profileEntries) > 0 {
-		resolved, slots, resolveErr := s.resolveProfileSlots(profileEntries, "image", entryOverrides, model.GetLocalAssetId())
+		resolved, resolveErr := s.resolveProfileSlots(profileEntries, "image", entryOverrides, model.GetLocalAssetId())
 		if resolveErr != nil {
 			return "", nil, nil, resolveErr
 		}
-		if resolved != "" {
-			modelPath = resolved
+		materializationResolved = true
+		if resolved.ModelPath != "" {
+			modelPath = resolved.ModelPath
 		}
-		slotPaths = slots
+		slotPaths = resolved.SlotPaths
+		mainAsset := resolved.MainAsset
+		if mainAsset == nil {
+			mainAsset = model
+		}
+		parentAssetID := strings.TrimSpace(mainAsset.GetAssetId())
+		materializationBindings = append(materializationBindings, managedMediaProfileMaterializationBinding{
+			AssetID:      parentAssetID,
+			LocalAssetID: strings.TrimSpace(mainAsset.GetLocalAssetId()),
+		})
+		for _, slotAsset := range resolved.SlotAssets {
+			if slotAsset.Asset == nil {
+				continue
+			}
+			companionKind, _ := localAssetKindToken(effectiveAssetKind(slotAsset.Asset.GetKind(), slotAsset.Asset.GetCapabilities()))
+			materializationBindings = append(materializationBindings, managedMediaProfileMaterializationBinding{
+				AssetID:          parentAssetID,
+				LocalAssetID:     strings.TrimSpace(mainAsset.GetLocalAssetId()),
+				CompanionKind:    companionKind,
+				EngineSlot:       strings.TrimSpace(slotAsset.EngineSlot),
+				CompanionAssetID: strings.TrimSpace(slotAsset.Asset.GetAssetId()),
+				ParentAssetID:    parentAssetID,
+			})
+		}
 	}
 
 	// Fail-close: profile entries must supply the main model path for image workflow.
@@ -365,7 +429,7 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 	sum := sha256.Sum256(canonical)
 	alias := "nimi-img-" + hex.EncodeToString(sum[:8])
 	profile["name"] = alias
-	s.cacheManagedMediaImageProfile(model.GetLocalAssetId(), alias, profile)
+	s.cacheManagedMediaImageProfileResolution(model.GetLocalAssetId(), alias, profile, materializationResolved, materializationBindings)
 
 	return alias, profile, managedMediaForwardedExtensions(scenarioExtensions), nil
 }

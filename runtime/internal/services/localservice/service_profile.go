@@ -39,12 +39,12 @@ func profileEntryMatchesCapability(entry *runtimev1.LocalProfileEntryDescriptor,
 	if entry == nil {
 		return false
 	}
-	capabilityFilter := strings.TrimSpace(capability)
+	capabilityFilter := normalizeLocalCapabilityToken(capability)
 	if capabilityFilter == "" {
 		return true
 	}
-	entryCapability := strings.TrimSpace(entry.GetCapability())
-	return entryCapability == "" || strings.EqualFold(entryCapability, capabilityFilter)
+	entryCapability := normalizeLocalCapabilityToken(entry.GetCapability())
+	return entryCapability == "" || entryCapability == capabilityFilter
 }
 
 func profileEntryIsAsset(entry *runtimev1.LocalProfileEntryDescriptor) bool {
@@ -62,7 +62,7 @@ func profileEntryUsesCanonicalImageResolution(entry *runtimev1.LocalProfileEntry
 	if entry.GetAssetKind() == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE {
 		return true
 	}
-	return strings.EqualFold(strings.TrimSpace(entry.GetCapability()), "image")
+	return normalizeLocalCapabilityToken(entry.GetCapability()) == "image.generate"
 }
 
 func assetKindMatchesCapability(kind runtimev1.LocalAssetKind, capability string) bool {

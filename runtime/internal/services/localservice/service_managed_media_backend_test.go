@@ -107,7 +107,7 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 			{
 				EntryId:    "vae-slot",
 				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-				Capability: "image",
+				Capability: "image.generate",
 				AssetId:    "z_image_ae",
 				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
 				Engine:     "media",
@@ -116,7 +116,7 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 			{
 				EntryId:    "llm-slot",
 				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
-				Capability: "image",
+				Capability: "image.generate",
 				AssetId:    "qwen3_4b_companion",
 				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
 				Engine:     "llama",
@@ -165,6 +165,50 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	}
 	if _, exists := forwarded["entry_overrides"]; exists {
 		t.Fatalf("entry_overrides should not be forwarded: %#v", forwarded)
+	}
+	cached, ok := svc.cachedManagedMediaImageProfile(modelResp.GetLocalAssetId())
+	if !ok || !cached.MaterializationResolved {
+		t.Fatalf("expected image profile materialization bindings to be cached, got ok=%v state=%+v", ok, cached)
+	}
+	if len(cached.MaterializationBindings) != 3 {
+		t.Fatalf("expected main + two companion materialization bindings, got %+v", cached.MaterializationBindings)
+	}
+	companionIDs := map[string]string{}
+	for _, binding := range cached.MaterializationBindings {
+		if binding.CompanionAssetID != "" {
+			companionIDs[binding.EngineSlot] = binding.CompanionAssetID + "|" + binding.ParentAssetID
+		}
+	}
+	if got := companionIDs["vae_path"]; got != "z_image_ae|z_image_turbo" {
+		t.Fatalf("unexpected vae materialization binding: %+v", cached.MaterializationBindings)
+	}
+	if got := companionIDs["llm_path"]; got != "qwen3_4b_companion|z_image_turbo" {
+		t.Fatalf("unexpected llm materialization binding: %+v", cached.MaterializationBindings)
+	}
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:        "local-image-native",
+		ConsumerScope: "stable-diffusion.cpp.metal",
+		AssetID:       modelResp.GetAssetId(),
+		LocalAssetID:  modelResp.GetLocalAssetId(),
+	})
+	companionDeps := []localEnvironmentPlanDependency{}
+	for _, dep := range plan.Dependencies {
+		if dep.DependencyFamily == localEnvironmentFamilyModelCompanion {
+			companionDeps = append(companionDeps, dep)
+		}
+	}
+	if len(companionDeps) != 2 {
+		t.Fatalf("expected cached profile to expand two companion dependencies, got %+v", companionDeps)
+	}
+	depIDs := map[string]bool{}
+	for _, dep := range companionDeps {
+		depIDs[dep.DependencyID] = true
+	}
+	if !depIDs["asset-id:z_image_ae|parent-asset-id:z_image_turbo"] {
+		t.Fatalf("missing vae companion dependency: %+v", companionDeps)
+	}
+	if !depIDs["asset-id:qwen3_4b_companion|parent-asset-id:z_image_turbo"] {
+		t.Fatalf("missing llm companion dependency: %+v", companionDeps)
 	}
 }
 
