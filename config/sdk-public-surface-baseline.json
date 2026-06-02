@@ -4,6 +4,7 @@
   "packageExports": [
     ".",
     "./ai",
+    "./ai-app",
     "./ai-provider",
     "./app",
     "./platform-catalog",
@@ -46,6 +47,17 @@
         "export * from './host-ai-config.js';",
         "export * from './host-ai-profile-surface.js';",
         "export * from './i18n.js';"
+      ]
+    },
+    {
+      "exportKey": "./ai-app",
+      "source": "sdk/src/ai-app/index.ts",
+      "exports": [
+        "export * from './session-loop.js';",
+        "export * from './structured-output.js';",
+        "export * from './text-generate.js';",
+        "export * from './text-turn.js';",
+        "export * from './tools.js';"
       ]
     },
     {

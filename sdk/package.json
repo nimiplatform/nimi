@@ -47,6 +47,10 @@
       "types": "./dist/ai/index.d.ts",
       "default": "./dist/ai/index.js"
     },
+    "./ai-app": {
+      "types": "./dist/ai-app/index.d.ts",
+      "default": "./dist/ai-app/index.js"
+    },
     "./scope": {
       "types": "./dist/scope/index.d.ts",
       "default": "./dist/scope/index.js"

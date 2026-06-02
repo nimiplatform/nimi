@@ -1,9 +1,11 @@
-import type { RuntimeAiSubmitScenarioJobRequestInput } from '../runtime/browser.js';
-import { asNimiError, createNimiError } from '../core/errors.js';
+import {
+  runRuntimeAiScenarioJob,
+  type RuntimeAiSubmitScenarioJobRequestInput,
+} from '../runtime/browser.js';
+import { asNimiError } from '../core/errors.js';
 import type {
   Value as ProtoValue,
 } from '../runtime/generated/google/protobuf/struct.js';
-import { Struct as ProtoStruct } from '../runtime/generated/google/protobuf/struct.js';
 import { ReasonCode, type AiRoutePolicy } from '../types/index.js';
 import {
   type NimiArtifact,
@@ -13,21 +15,14 @@ import {
 import { asRecord, normalizeText } from '../internal/utils.js';
 import {
   concatChunks,
-  ensureText,
   fromRouteDecision,
   toCallOptions,
 } from './helpers-shared.js';
 import {
-  type CancelScenarioJobRequest,
   ExecutionMode,
-  type GetScenarioArtifactsRequest,
-  type GetScenarioJobRequest,
-  type ScenarioJob,
-  ScenarioJobStatus,
   type ScenarioArtifact,
   type ScenarioOutput,
 } from '../runtime/generated/runtime/v1/ai.js';
-import { normalizeRuntimeReasonCode } from '../runtime/reason-code-messages.js';
 
 type ScenarioJobExecution = {
   artifacts: NimiArtifact[];
@@ -36,40 +31,6 @@ type ScenarioJobExecution = {
   modelResolved: string;
   output?: ScenarioOutput;
 };
-
-function ensureScenarioJobReasonCode(value: unknown): string {
-  const reasonCode = normalizeRuntimeReasonCode(value);
-  if (reasonCode) {
-    return reasonCode;
-  }
-  throw createNimiError({
-    message: 'scenario job response missing reasonCode',
-    reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
-    actionHint: 'regenerate_runtime_proto_and_sdk',
-    source: 'runtime',
-  });
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
-function nextPollDelayMs(attempt: number): number {
-  return Math.min(2_000, 250 * Math.max(1, attempt));
-}
-
-function scenarioJobReasonDetails(job: ScenarioJob | null | undefined): Record<string, unknown> | undefined {
-  const metadata = job?.reasonMetadata;
-  if (!metadata || typeof metadata !== 'object') {
-    return undefined;
-  }
-  const json = ProtoStruct.toJson(metadata as Parameters<typeof ProtoStruct.toJson>[0]);
-  return json && typeof json === 'object' && !Array.isArray(json)
-    ? json as Record<string, unknown>
-    : undefined;
-}
 
 export async function executeScenarioJob(
   runtime: RuntimeForAiProvider,
@@ -83,110 +44,39 @@ export async function executeScenarioJob(
     executionMode: Number(request.executionMode || ExecutionMode.ASYNC_JOB),
     extensions: Array.isArray(request.extensions) ? request.extensions : [],
   };
-  const submitResponse = await runtime.ai.submitScenarioJob(
-    submitRequest,
-    toCallOptions(defaults, {
+  const execution = await runRuntimeAiScenarioJob({
+    ai: runtime.ai,
+    request: submitRequest,
+    callOptions: toCallOptions(defaults, {
       timeoutMs,
       metadata: undefined,
     }),
-  );
-  const initialJob = submitResponse.job;
-  const jobId = ensureText(initialJob?.jobId, 'jobId');
-  const startedAt = Date.now();
-  const maxWaitMs = timeoutMs > 0 ? timeoutMs : 120000;
-  let cancelIssued = false;
-  let pollAttempt = 0;
-  const cancelRemoteJob = async (reason: string) => {
-    if (cancelIssued) {
-      return;
-    }
-    cancelIssued = true;
-    try {
-      const cancelRequest: CancelScenarioJobRequest = {
-        jobId,
-        reason,
-      };
-      await runtime.ai.cancelScenarioJob(
-        cancelRequest,
-        toCallOptions(defaults, { timeoutMs }),
-      );
-    } catch {
-      // ignore cancel errors and preserve original failure reason
-    }
-  };
+    signal,
+    timeoutMs,
+  });
+  const traceId = normalizeText(execution.traceId) || normalizeText(execution.job.traceId);
+  const routeDecision = fromRouteDecision(execution.job.routeDecision);
+  const modelResolved = normalizeText(execution.job.modelResolved) || normalizeText(request.head?.modelId);
 
-  while (true) {
-    if (signal?.aborted) {
-      await cancelRemoteJob('aborted_by_abort_signal');
-      throw createNimiError({
-        message: 'scenario job aborted',
-        reasonCode: ReasonCode.OPERATION_ABORTED,
-        actionHint: 'retry_scenario_job_request',
-        source: 'sdk',
-      });
-    }
-
-    const jobRequest: GetScenarioJobRequest = { jobId };
-    const jobResponse = await runtime.ai.getScenarioJob(jobRequest, toCallOptions(defaults, { timeoutMs }));
-    const job = jobResponse.job;
-    const status = Number(job?.status || 0);
-    if (status === ScenarioJobStatus.COMPLETED) {
-      const artifactsRequest: GetScenarioArtifactsRequest = { jobId };
-      const artifactsResponse = await runtime.ai.getScenarioArtifacts(artifactsRequest, toCallOptions(defaults, { timeoutMs }));
-      const artifacts = Array.isArray(artifactsResponse.artifacts)
-        ? artifactsResponse.artifacts
-        : [];
-      const traceId = normalizeText(artifactsResponse.traceId) || normalizeText(job?.traceId);
-      const routeDecision = fromRouteDecision(job?.routeDecision);
-      const modelResolved = normalizeText(job?.modelResolved) || normalizeText(request.head?.modelId);
-
+  return {
+    artifacts: execution.artifacts.map((item: ScenarioArtifact) => {
+      const bytes = item.bytes instanceof Uint8Array
+        ? item.bytes
+        : new Uint8Array(0);
       return {
-        artifacts: artifacts.map((item: ScenarioArtifact) => {
-          const bytes = item.bytes instanceof Uint8Array
-            ? item.bytes
-            : new Uint8Array(0);
-          return {
-            artifactId: normalizeText(item.artifactId),
-            mimeType: normalizeText(item.mimeType),
-            bytes,
-            traceId,
-            routeDecision,
-            modelResolved,
-          };
-        }),
+        artifactId: normalizeText(item.artifactId),
+        mimeType: normalizeText(item.mimeType),
+        bytes,
         traceId,
         routeDecision,
         modelResolved,
-        output: artifactsResponse.output,
       };
-    }
-    if (
-      status === ScenarioJobStatus.FAILED
-      || status === ScenarioJobStatus.CANCELED
-      || status === ScenarioJobStatus.TIMEOUT
-    ) {
-      const reasonCode = ensureScenarioJobReasonCode(job?.reasonCode);
-      throw createNimiError({
-        message: normalizeText(job?.reasonDetail) || `scenario job failed: ${reasonCode}`,
-        reasonCode,
-        actionHint: 'retry_scenario_job_request',
-        traceId: normalizeText(job?.traceId),
-        source: 'runtime',
-        details: scenarioJobReasonDetails(job),
-      });
-    }
-    if ((Date.now() - startedAt) > maxWaitMs) {
-      await cancelRemoteJob('aborted_by_sdk_timeout');
-      throw createNimiError({
-        message: 'scenario job timeout',
-        reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
-        actionHint: 'retry_scenario_job_request',
-        source: 'runtime',
-      });
-    }
-    pollAttempt += 1;
-    await sleep(nextPollDelayMs(pollAttempt));
-  }
+    }),
+    traceId,
+    routeDecision,
+    modelResolved,
+    output: execution.output,
+  };
 }
 
 export async function collectArtifacts(stream: AsyncIterable<unknown>): Promise<NimiArtifact[]> {

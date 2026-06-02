@@ -18,3 +18,21 @@ export {
   runtimeSubmitScenarioJobForMedia,
   runtimeWaitForScenarioJobCompletion,
 } from './runtime-media-jobs.js';
+export {
+  isRuntimeMediaScenarioJobTerminalStatus,
+  runRuntimeAiScenarioJob,
+  runRuntimeMediaGenerationJob,
+} from './runtime-media-generation-job-runner.js';
+export type {
+  RuntimeAiScenarioJobResult,
+  RuntimeAiScenarioJobRunnerInput,
+  RuntimeAiScenarioJobsModule,
+  RuntimeMediaGenerationJob,
+  RuntimeMediaGenerationJobResult,
+  RuntimeMediaGenerationJobRunnerInput,
+  RuntimeMediaGenerationJobsModule,
+  RuntimeMediaGenerationSubmitRequest,
+  RuntimeMediaScenarioArtifact,
+  RuntimeScenarioArtifact,
+  RuntimeScenarioJob,
+} from './runtime-media-generation-job-runner.js';
