@@ -2,44 +2,105 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { PermissionClient, PermissionClientError } from '../src/scope/permission/index.js';
 import type {
-  GrantRequest,
   GrantRequestAccepted,
+  GrantSpec,
   GrantStatus,
+  PermissionGrantEvent,
+  PermissionStatusSnapshot,
   PermissionTransport,
 } from '../src/scope/permission/index.js';
+import type { AIScopeRef } from '../src/scope/index.js';
+
+const scopeRef: AIScopeRef = { kind: 'app', ownerId: 'tester.app', surfaceId: 'settings' };
+
+const permissionScope = {
+  appId: 'tester.app',
+  scopeFamily: 'account' as const,
+  scopeName: 'account.read',
+};
+
+function status(state: GrantStatus['state'] = 'granted', grantId = 'grant-1'): GrantStatus {
+  return {
+    scopeRef,
+    grant: {
+      grantId,
+      permissionScope,
+      subjectUserId: 'user-1',
+    },
+    state,
+    issuedAt: '2026-05-17T00:00:00Z',
+  };
+}
 
 class StubTransport implements PermissionTransport {
+  readonly calls: string[] = [];
+
   constructor(
     private readonly behavior: {
-      readonly status?: GrantStatus | Error | null;
+      readonly list?: readonly GrantStatus[] | Error | null;
+      readonly get?: GrantStatus | Error | null;
       readonly request?: GrantRequestAccepted | Error | null;
+      readonly revoke?: GrantStatus | Error | null;
+      readonly status?: PermissionStatusSnapshot | Error | null;
+      readonly subscribe?: PermissionGrantEvent | Error | null;
     } = {},
   ) {}
 
-  async getGrantStatus(grantId: string): Promise<GrantStatus> {
-    if (this.behavior.status instanceof Error) throw this.behavior.status;
-    if (this.behavior.status === null) return null as unknown as GrantStatus;
-    if (this.behavior.status !== undefined) return this.behavior.status;
-    return {
-      grant: { grantId, appId: 'avatar', subjectUserId: 'user-1', scopeKey: 'avatar.mood.read' },
-      state: 'granted',
-      issuedAt: '2026-05-17T00:00:00Z',
+  async list(inputScopeRef: AIScopeRef): Promise<readonly GrantStatus[]> {
+    this.calls.push(`list:${inputScopeRef.ownerId}`);
+    if (this.behavior.list instanceof Error) throw this.behavior.list;
+    if (this.behavior.list === null) return null as unknown as GrantStatus[];
+    return this.behavior.list ?? [status()];
+  }
+
+  async get(inputScopeRef: AIScopeRef, grantId: string): Promise<GrantStatus> {
+    this.calls.push(`get:${inputScopeRef.ownerId}:${grantId}`);
+    if (this.behavior.get instanceof Error) throw this.behavior.get;
+    if (this.behavior.get === null) return null as unknown as GrantStatus;
+    return this.behavior.get ?? status('granted', grantId);
+  }
+
+  async request(inputScopeRef: AIScopeRef, _grantSpec: GrantSpec): Promise<GrantRequestAccepted> {
+    this.calls.push(`request:${inputScopeRef.ownerId}`);
+    if (this.behavior.request instanceof Error) throw this.behavior.request;
+    if (this.behavior.request === null) return null as unknown as GrantRequestAccepted;
+    return this.behavior.request ?? { scopeRef: inputScopeRef, accepted: true, grantId: 'grant-1', state: 'pending' };
+  }
+
+  async revoke(inputScopeRef: AIScopeRef, grantId: string): Promise<GrantStatus> {
+    this.calls.push(`revoke:${inputScopeRef.ownerId}:${grantId}`);
+    if (this.behavior.revoke instanceof Error) throw this.behavior.revoke;
+    if (this.behavior.revoke === null) return null as unknown as GrantStatus;
+    return this.behavior.revoke ?? status('revoked', grantId);
+  }
+
+  subscribe(inputScopeRef: AIScopeRef, callback: (event: PermissionGrantEvent) => void): () => void {
+    this.calls.push(`subscribe:${inputScopeRef.ownerId}`);
+    if (this.behavior.subscribe instanceof Error) throw this.behavior.subscribe;
+    if (this.behavior.subscribe !== null) {
+      callback(this.behavior.subscribe ?? { scopeRef: inputScopeRef, grant: status('granted') });
+    }
+    return () => {
+      this.calls.push(`unsubscribe:${inputScopeRef.ownerId}`);
     };
   }
 
-  async requestGrant(_request: GrantRequest): Promise<GrantRequestAccepted> {
-    if (this.behavior.request instanceof Error) throw this.behavior.request;
-    if (this.behavior.request === null) return null as unknown as GrantRequestAccepted;
-    if (this.behavior.request !== undefined) return this.behavior.request;
-    return { accepted: true, grantId: 'grant-1', state: 'pending' };
+  async status(inputScopeRef: AIScopeRef): Promise<PermissionStatusSnapshot> {
+    this.calls.push(`status:${inputScopeRef.ownerId}`);
+    if (this.behavior.status instanceof Error) throw this.behavior.status;
+    if (this.behavior.status === null) return null as unknown as PermissionStatusSnapshot;
+    return this.behavior.status ?? {
+      scopeRef: inputScopeRef,
+      grants: [status()],
+      generatedAt: '2026-05-17T00:00:00Z',
+    };
   }
 }
 
-const sampleRequest: GrantRequest = {
-  appId: 'example-app',
+const sampleGrantSpec: GrantSpec = {
+  permissionScope,
   subjectUserId: 'user-1',
-  scopeKey: 'avatar.mood.read',
-  reason: 'Example App dashboard projection',
+  reason: 'Tester Settings permission diagnostics',
 };
 
 describe('PermissionClient', () => {
@@ -47,109 +108,148 @@ describe('PermissionClient', () => {
     assert.throws(() => new PermissionClient(null as unknown as PermissionTransport), PermissionClientError);
   });
 
-  it('getGrantStatus returns canonical status', async () => {
+  it('list requires explicit AIScopeRef and returns canonical statuses', async () => {
     const client = new PermissionClient(new StubTransport());
-    const status = await client.getGrantStatus('grant-1');
-    assert.equal(status.state, 'granted');
-    assert.equal(status.grant.grantId, 'grant-1');
+    const grants = await client.list(scopeRef);
+    assert.equal(grants[0]?.state, 'granted');
+    assert.equal(grants[0]?.scopeRef.ownerId, 'tester.app');
+    await assert.rejects(client.list(null as unknown as AIScopeRef), PermissionClientError);
   });
 
-  it('getGrantStatus rejects missing grantId', async () => {
-    const client = new PermissionClient(new StubTransport());
-    await assert.rejects(client.getGrantStatus(''), PermissionClientError);
-  });
-
-  it('getGrantStatus rejects non-canonical state', async () => {
-    const bad: GrantStatus = {
-      grant: { grantId: 'g', appId: 'a', subjectUserId: 's', scopeKey: 'k' },
-      state: 'maybe-granted' as 'granted',
-    };
-    const client = new PermissionClient(new StubTransport({ status: bad }));
-    await assert.rejects(client.getGrantStatus('g'), (err: unknown) => {
-      assert.ok(err instanceof PermissionClientError);
-      assert.equal((err as PermissionClientError).code, 'non-canonical-response');
-      return true;
-    });
-  });
-
-  it('getGrantStatus accepts all canonical grant states', async () => {
+  it('get requires scopeRef + grantId and accepts all canonical states', async () => {
     const states: GrantStatus['state'][] = [
       'pending', 'granted', 'denied', 'expired', 'revoked', 'superseded',
     ];
     for (const state of states) {
-      const status: GrantStatus = {
-        grant: { grantId: 'g', appId: 'a', subjectUserId: 's', scopeKey: 'k' },
-        state,
-      };
-      const client = new PermissionClient(new StubTransport({ status }));
-      const result = await client.getGrantStatus('g');
+      const client = new PermissionClient(new StubTransport({ get: status(state, `grant-${state}`) }));
+      const result = await client.get(scopeRef, `grant-${state}`);
       assert.equal(result.state, state);
     }
+    await assert.rejects(new PermissionClient(new StubTransport()).get(scopeRef, ''), PermissionClientError);
   });
 
-  it('getGrantStatus rejects response missing grant', async () => {
-    const bad = { state: 'granted' } as unknown as GrantStatus;
-    const client = new PermissionClient(new StubTransport({ status: bad }));
-    await assert.rejects(client.getGrantStatus('g'), PermissionClientError);
-  });
-
-  it('getGrantStatus wraps transport errors', async () => {
-    const client = new PermissionClient(new StubTransport({ status: new Error('boom') }));
-    await assert.rejects(client.getGrantStatus('g'), (err: unknown) => {
+  it('get rejects non-canonical response state and wraps transport errors', async () => {
+    const bad = status('granted');
+    const client = new PermissionClient(new StubTransport({
+      get: { ...bad, state: 'maybe-granted' as 'granted' },
+    }));
+    await assert.rejects(client.get(scopeRef, 'g'), (err: unknown) => {
       assert.ok(err instanceof PermissionClientError);
-      assert.equal((err as PermissionClientError).code, 'transport-error');
+      assert.equal((err as PermissionClientError).code, 'non-canonical-response');
       return true;
     });
+    await assert.rejects(
+      new PermissionClient(new StubTransport({ get: new Error('boom') })).get(scopeRef, 'g'),
+      (err: unknown) => {
+        assert.ok(err instanceof PermissionClientError);
+        assert.equal((err as PermissionClientError).code, 'transport-error');
+        return true;
+      },
+    );
   });
 
-  it('requestGrant returns accepted with pending state', async () => {
+  it('request requires scopeRef + grantSpec and returns pending accepted projection', async () => {
     const client = new PermissionClient(new StubTransport());
-    const result = await client.requestGrant(sampleRequest);
+    const result = await client.request(scopeRef, sampleGrantSpec);
     assert.equal(result.accepted, true);
     assert.equal(result.state, 'pending');
+    assert.equal(result.scopeRef.ownerId, 'tester.app');
+    await assert.rejects(client.request(scopeRef, { ...sampleGrantSpec, reason: '' }), PermissionClientError);
   });
 
-  it('requestGrant rejects missing appId', async () => {
-    const client = new PermissionClient(new StubTransport());
-    await assert.rejects(client.requestGrant({ ...sampleRequest, appId: '' }), PermissionClientError);
+  it('request rejects non-canonical permission scope names before transport', async () => {
+    const transport = new StubTransport();
+    const client = new PermissionClient(transport);
+    await assert.rejects(
+      client.request(scopeRef, {
+        ...sampleGrantSpec,
+        permissionScope: { ...permissionScope, scopeName: 'account.open-ended' as 'account.read' },
+      }),
+      (err: unknown) => {
+        assert.ok(err instanceof PermissionClientError);
+        assert.equal((err as PermissionClientError).code, 'non-canonical-response');
+        return true;
+      },
+    );
+    assert.deepEqual(transport.calls, []);
   });
 
-  it('requestGrant rejects missing scopeKey', async () => {
-    const client = new PermissionClient(new StubTransport());
-    await assert.rejects(client.requestGrant({ ...sampleRequest, scopeKey: '' }), PermissionClientError);
-  });
-
-  it('requestGrant rejects missing subjectUserId', async () => {
-    const client = new PermissionClient(new StubTransport());
-    await assert.rejects(client.requestGrant({ ...sampleRequest, subjectUserId: '' }), PermissionClientError);
-  });
-
-  it('requestGrant rejects missing reason', async () => {
-    const client = new PermissionClient(new StubTransport());
-    await assert.rejects(client.requestGrant({ ...sampleRequest, reason: '' }), PermissionClientError);
-  });
-
-  it('requestGrant rejects response with non-canonical state', async () => {
-    const bad: GrantRequestAccepted = { accepted: true, grantId: 'g', state: 'granted' as 'pending' };
-    const client = new PermissionClient(new StubTransport({ request: bad }));
-    await assert.rejects(client.requestGrant(sampleRequest), (err: unknown) => {
+  it('request rejects non-pending accepted response', async () => {
+    const client = new PermissionClient(new StubTransport({
+      request: { scopeRef, accepted: true, grantId: 'g', state: 'granted' as 'pending' },
+    }));
+    await assert.rejects(client.request(scopeRef, sampleGrantSpec), (err: unknown) => {
       assert.ok(err instanceof PermissionClientError);
       assert.equal((err as PermissionClientError).code, 'non-canonical-response');
       return true;
     });
   });
 
-  it('requestGrant wraps transport errors', async () => {
-    const client = new PermissionClient(new StubTransport({ request: new Error('boom') }));
-    await assert.rejects(client.requestGrant(sampleRequest), (err: unknown) => {
+  it('revoke returns canonical revoked status', async () => {
+    const client = new PermissionClient(new StubTransport());
+    const revoked = await client.revoke(scopeRef, 'grant-1');
+    assert.equal(revoked.state, 'revoked');
+  });
+
+  it('subscribe validates lifecycle events and returns unsubscribe', () => {
+    const transport = new StubTransport();
+    const client = new PermissionClient(transport);
+    const events: PermissionGrantEvent[] = [];
+    const unsubscribe = client.subscribe(scopeRef, (event) => {
+      events.push(event);
+    });
+    assert.equal(events[0]?.grant.state, 'granted');
+    unsubscribe();
+    assert.deepEqual(transport.calls, ['subscribe:tester.app', 'unsubscribe:tester.app']);
+  });
+
+  it('status returns a scoped grant snapshot', async () => {
+    const client = new PermissionClient(new StubTransport());
+    const snapshot = await client.status(scopeRef);
+    assert.equal(snapshot.scopeRef.ownerId, 'tester.app');
+    assert.equal(snapshot.grants[0]?.grant.permissionScope.scopeName, 'account.read');
+  });
+
+  it('rejects responses scoped to a different AIScopeRef', async () => {
+    const client = new PermissionClient(new StubTransport({
+      list: [{ ...status(), scopeRef: { kind: 'app', ownerId: 'other.app' } }],
+    }));
+    await assert.rejects(client.list(scopeRef), (err: unknown) => {
       assert.ok(err instanceof PermissionClientError);
-      assert.equal((err as PermissionClientError).code, 'transport-error');
+      assert.equal((err as PermissionClientError).code, 'non-canonical-response');
       return true;
     });
   });
 
-  it('requestGrant rejects null response', async () => {
-    const client = new PermissionClient(new StubTransport({ request: null }));
-    await assert.rejects(client.requestGrant(sampleRequest), PermissionClientError);
+  it('rejects non-canonical permission scope families', async () => {
+    const client = new PermissionClient(new StubTransport());
+    await assert.rejects(
+      client.request(scopeRef, {
+        ...sampleGrantSpec,
+        permissionScope: { ...permissionScope, scopeFamily: 'open-ended' as 'account' },
+      }),
+      (err: unknown) => {
+        assert.ok(err instanceof PermissionClientError);
+        assert.equal((err as PermissionClientError).code, 'non-canonical-response');
+        return true;
+      },
+    );
+  });
+
+  it('rejects non-canonical permission scope names in transport responses', async () => {
+    const client = new PermissionClient(new StubTransport({
+      get: {
+        ...status('granted', 'grant-bad-scope'),
+        grant: {
+          ...status('granted', 'grant-bad-scope').grant,
+          permissionScope: { ...permissionScope, scopeName: 'open.scope' as 'account.read' },
+        },
+      },
+    }));
+    await assert.rejects(client.get(scopeRef, 'grant-bad-scope'), (err: unknown) => {
+      assert.ok(err instanceof PermissionClientError);
+      assert.equal((err as PermissionClientError).code, 'non-canonical-response');
+      return true;
+    });
   });
 });

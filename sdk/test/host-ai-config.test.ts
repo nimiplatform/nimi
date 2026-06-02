@@ -178,6 +178,18 @@ test('scoped AIConfig store supports app-specific storage keys and memory fallba
   assert.deepEqual(store.load(SCOPE), CONFIG);
 });
 
+test('scoped AIConfig store fails closed without storage or explicit memory fallback', () => {
+  const store = createScopedAIConfigStore({
+    storage: () => null,
+  });
+
+  assert.throws(
+    () => store.save(CONFIG),
+    /AIConfig store save requires host storage or explicit memoryFallback=true/,
+  );
+  assert.deepEqual(store.listScopeKeys(), []);
+});
+
 test('scoped AIConfig store fails closed on malformed runtime bindings', () => {
   const storage = createMemoryStorage({
     'test:app:dev.nimi.tester:app-lab': JSON.stringify({

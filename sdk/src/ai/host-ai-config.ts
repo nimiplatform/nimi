@@ -297,6 +297,10 @@ export function createScopedAIConfigStore(
       } else if (shouldUseMemory()) {
         memoryConfigs.set(scopeKey, normalized);
         memoryScopeKeys.add(scopeKey);
+      } else {
+        throw new Error(
+          'AIConfig store save requires host storage or explicit memoryFallback=true',
+        );
       }
       return cloneAIConfig(normalized);
     },

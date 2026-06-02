@@ -43,14 +43,14 @@ describe('chat runtime helpers', () => {
   it('submits runtime chat requests with kit metadata defaults', async () => {
     const runtime = makeGenerateRuntime();
     const result = await submitRuntimeChat(runtime, {
-      model: 'auto',
+      model: 'runtime-selected-chat',
       input: 'Hello runtime',
       route: 'cloud',
     });
 
     expect(result.text).toBe('Generated reply');
     expect(runtime.ai.text.generate).toHaveBeenCalledWith({
-      model: 'auto',
+      model: 'runtime-selected-chat',
       input: 'Hello runtime',
       route: 'cloud',
       metadata: {
@@ -71,7 +71,7 @@ describe('chat runtime helpers', () => {
     const onDelta = vi.fn();
 
     const result = await streamRuntimeChatResponse(runtime, {
-      model: 'auto',
+      model: 'runtime-selected-chat',
       input: 'Hi',
       route: 'cloud',
     }, { onDelta });
@@ -95,7 +95,7 @@ describe('chat runtime helpers', () => {
       runtime,
       mode: 'stream',
       resolveRequest: ({ text }) => ({
-        model: 'auto',
+        model: 'runtime-selected-chat',
         input: [
           { role: 'user', content: text },
         ],
@@ -135,7 +135,7 @@ describe('chat runtime helpers', () => {
     const adapter = createRuntimeChatComposerAdapter<{ id: string }>({
       runtime,
       mode: 'generate',
-      model: 'auto',
+      model: 'runtime-selected-chat',
       route: 'cloud',
     });
 
@@ -143,5 +143,36 @@ describe('chat runtime helpers', () => {
       text: 'Prompt me',
       attachments: [{ id: 'att-1' }],
     })).rejects.toThrow('runtime chat adapter requires resolveInput or resolveRequest when attachments are present');
+  });
+
+  it('fails closed when a composer request lacks an explicit model', async () => {
+    const runtime = makeGenerateRuntime();
+    const adapter = createRuntimeChatComposerAdapter({
+      runtime,
+      mode: 'generate',
+      route: 'cloud',
+    });
+
+    await expect(adapter.submit({
+      text: 'Prompt me',
+      attachments: [],
+    })).rejects.toThrow('runtime chat adapter requires an explicit model or resolveRequest');
+    expect(runtime.ai.text.generate).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when a composer request uses auto as a pseudo-model', async () => {
+    const runtime = makeGenerateRuntime();
+    const adapter = createRuntimeChatComposerAdapter({
+      runtime,
+      mode: 'generate',
+      model: 'auto',
+      route: 'cloud',
+    });
+
+    await expect(adapter.submit({
+      text: 'Prompt me',
+      attachments: [],
+    })).rejects.toThrow('runtime chat adapter requires a concrete Runtime model, not auto');
+    expect(runtime.ai.text.generate).not.toHaveBeenCalled();
   });
 });

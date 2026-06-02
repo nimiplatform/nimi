@@ -61,7 +61,7 @@
       "source": "sdk/src/app/index.ts",
       "exports": [
         "export type { AccountAppLibraryRecord, AccountAppLibraryRow, } from './account-app-library.js';",
-        "export type { AppKind, AppLaunchReadiness, NimiAppInstallEvidenceRow, NimiAppInstallVerificationState, NimiAppOrdinaryVisibility, NimiAppReleaseDescriptorClass, NimiAppReleaseDescriptorRow, NimiAppReleaseSourceKind, NimiAppRow, NimiAppStatus, NimiAppStorageRoots, TrustTierId, } from './types.js';",
+        "export type { AppKind, AppLaunchReadiness, NimiAppInstallVerificationState, NimiAppOrdinaryVisibility, NimiAppPackageReadinessRow, NimiAppPackageReadinessState, NimiAppReleaseDescriptorClass, NimiAppReleaseDescriptorRow, NimiAppReleaseSourceKind, NimiAppRow, NimiAppStatus, NimiAppStorageRoots, TrustTierId, } from './types.js';",
         "export type { NimiAppAdmissionStatus, NimiAppRegistrySourceRow, NimiAppRegistryTransportOptions, } from './registry-transport.js';",
         "export type { NimiAppBridgeProjection} from './bridge-projection.js';",
         "export type { NimiAppTransport} from './transport.js';",
@@ -69,7 +69,7 @@
         "export { NimiAppClient, NimiAppClientError} from './client.js';",
         "export { NimiAppRegistryTransportError, createNimiAppRegistryTransport, } from './registry-transport.js';",
         "export { parseAccountAppLibraryRecord, parseAccountAppLibraryRow, parseOptionalAccountAppLibraryRecord, } from './account-app-library.js';",
-        "export { parseNimiAppBridgeInstallEvidenceRow, parseNimiAppBridgeProjection, parseNimiAppBridgeRegistryRow, parseNimiAppBridgeReleaseDescriptorRow, } from './bridge-projection.js';"
+        "export { parseNimiAppBridgeProjection, parseNimiAppBridgeRegistryRow, parseNimiAppBridgeReleaseDescriptorRow, } from './bridge-projection.js';"
       ]
     },
     {
@@ -408,9 +408,9 @@
       "exportKey": "./scope/permission",
       "source": "sdk/src/scope/permission/index.ts",
       "exports": [
-        "export type { GrantRef, GrantRequest, GrantRequestAccepted, GrantState, GrantStatus, } from './types.js';",
+        "export type { GrantRef, GrantRequestAccepted, GrantState, GrantSpec, GrantStatus, PermissionGrantEvent, PermissionScopeFamily, PermissionScopeName, PermissionScopeRef, PermissionStatusSnapshot, PermissionUnsubscribe, } from './types.js';",
         "export type { PermissionTransport} from './transport.js';",
-        "export { CANONICAL_GRANT_STATES, isCanonicalGrantState} from './types.js';",
+        "export { CANONICAL_GRANT_STATES, CANONICAL_PERMISSION_SCOPE_FAMILIES, CANONICAL_PERMISSION_SCOPE_NAMES, isCanonicalGrantState, isCanonicalPermissionScopeFamily, isCanonicalPermissionScopeName, } from './types.js';",
         "export { PermissionClient, PermissionClientError} from './client.js';"
       ]
     },

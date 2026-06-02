@@ -13,6 +13,7 @@ import { createNimiUlid } from '../core/ids.js';
 import { ReasonCode } from '../types/index.js';
 import type { JsonObject } from '../internal/utils.js';
 import {
+  areAIScopeRefsEqual,
   assertBuiltInChatAIScopeRef,
   builtInChatAIScopeRefs,
   type AIScopeRef,
@@ -369,7 +370,7 @@ export type AIConfigSurface = {
 
 /** Execution snapshot record/read operations. */
 export type AISnapshotSurface = {
-  record(scopeRef: AIScopeRef, snapshot: AISnapshot): void;
+  record(snapshot: AISnapshot): void;
   get(executionId: string): AISnapshot | null;
   getLatest(scopeRef: AIScopeRef): AISnapshot | null;
 };
@@ -457,10 +458,19 @@ export function createAISnapshotRecord(input: {
 }): AISnapshot {
   const executionId = String(input.executionId || '').trim() || createAISnapshotExecutionId();
   const createdAt = String(input.createdAt || '').trim() || new Date().toISOString();
+  const scopeRef = input.scopeRef || input.config.scopeRef;
+  if (!areAIScopeRefsEqual(scopeRef, input.config.scopeRef)) {
+    throw createNimiError({
+      message: 'AISnapshot scopeRef must match the embedded AIConfig scopeRef',
+      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+      actionHint: 'record_snapshot_with_matching_ai_config_scope',
+      source: 'sdk',
+    });
+  }
 
   return {
     executionId,
-    scopeRef: input.scopeRef || input.config.scopeRef,
+    scopeRef,
     configEvidence: createAIConfigEvidence(input.config),
     conversationCapabilitySlice: {
       executionId,

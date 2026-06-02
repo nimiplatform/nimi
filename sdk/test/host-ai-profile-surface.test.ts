@@ -152,3 +152,29 @@ test('AIProfile schema probe warnings are deterministic and host agnostic', () =
     'Capability "image.generate" has no model binding; it will not be executable until configured.',
   ]);
 });
+
+test('host AIProfile surface fails closed when local dependency resolver is not configured', async () => {
+  const surface = createHostAIProfileSurface({
+    listProfiles: () => [PROFILE],
+    loadConfig: () => createEmptyAIConfig(SCOPE),
+    saveConfig: (_scopeRef, config) => config,
+  });
+
+  await assert.rejects(
+    () => surface.resolveLocalDependencies(PROFILE.profileId),
+    /AIProfile local dependency resolver is not configured/,
+  );
+});
+
+test('host AIProfile surface delegates local dependency resolution when configured', async () => {
+  const surface = createHostAIProfileSurface({
+    listProfiles: () => [PROFILE],
+    loadConfig: () => createEmptyAIConfig(SCOPE),
+    saveConfig: (_scopeRef, config) => config,
+    resolveLocalDependencies: async (profileId) => [{ profileId, kind: 'local-model' }],
+  });
+
+  assert.deepEqual(await surface.resolveLocalDependencies(PROFILE.profileId), [
+    { profileId: PROFILE.profileId, kind: 'local-model' },
+  ]);
+});

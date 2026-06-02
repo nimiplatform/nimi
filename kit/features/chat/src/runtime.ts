@@ -404,8 +404,9 @@ function resolveRuntimeChatRequest<TAttachment>(
     throw new Error('runtime chat adapter requires resolveInput or resolveRequest when attachments are present');
   }
 
+  const model = normalizeRequiredRuntimeModel(options.model);
   return {
-    model: options.model || 'auto',
+    model,
     input: options.resolveInput ? options.resolveInput(input) : (options.input ?? input.text),
     system: options.system,
     subjectUserId: options.subjectUserId,
@@ -418,6 +419,17 @@ function resolveRuntimeChatRequest<TAttachment>(
     metadata: options.metadata,
     signal: options.mode === 'stream' ? options.signal : undefined,
   };
+}
+
+function normalizeRequiredRuntimeModel(model: string | undefined): string {
+  const normalized = model?.trim();
+  if (!normalized) {
+    throw new Error('runtime chat adapter requires an explicit model or resolveRequest');
+  }
+  if (normalized === 'auto') {
+    throw new Error('runtime chat adapter requires a concrete Runtime model, not auto');
+  }
+  return normalized;
 }
 
 function withDefaultRuntimeChatMetadata<T extends RuntimeChatRequest | RuntimeChatStreamRequest>(request: T): T {

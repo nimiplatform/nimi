@@ -260,8 +260,9 @@ async function* normalizeConversationRuntimeStream(
 }
 
 function toSdkTextStreamRequest(request: ConversationRuntimeTextRequest): TextStreamInput {
+  const model = normalizeRequiredRuntimeModel(request.model);
   return {
-    model: request.model || 'auto',
+    model,
     input: request.messages.map(toSdkTextMessage),
     system: normalizeNullableText(request.systemPrompt) || undefined,
     route: request.route,
@@ -275,6 +276,17 @@ function toSdkTextStreamRequest(request: ConversationRuntimeTextRequest): TextSt
     metadata: request.metadata,
     signal: request.signal,
   };
+}
+
+function normalizeRequiredRuntimeModel(model: string | undefined): string {
+  const normalized = normalizeNullableText(model);
+  if (!normalized) {
+    throw new Error('conversation runtime request requires an explicit model');
+  }
+  if (normalized === 'auto') {
+    throw new Error('conversation runtime request requires a concrete Runtime model, not auto');
+  }
+  return normalized;
 }
 
 function toSdkTextMessage(message: ConversationRuntimeTextMessage): TextMessage {

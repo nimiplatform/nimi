@@ -188,9 +188,10 @@ export function createHostAIProfileSurface(
     },
 
     async resolveLocalDependencies(profileId: string): Promise<unknown[]> {
-      return options.resolveLocalDependencies
-        ? options.resolveLocalDependencies(profileId)
-        : [];
+      if (!options.resolveLocalDependencies) {
+        throw new Error('AIProfile local dependency resolver is not configured');
+      }
+      return options.resolveLocalDependencies(profileId);
     },
   };
 }

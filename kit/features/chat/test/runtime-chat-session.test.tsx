@@ -49,7 +49,7 @@ function Harness({ runtime, onReady }: HarnessProps) {
   const session = useRuntimeChatSession({
     runtime,
     resolveRequest: ({ messages }) => ({
-      model: 'auto',
+      model: 'runtime-selected-chat',
       input: messages.map((message) => ({
         role: message.role,
         content: message.content,

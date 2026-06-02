@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { TextStreamPart } from '@nimiplatform/sdk/runtime';
+import type { Runtime, TextStreamPart } from '@nimiplatform/sdk/runtime';
 import {
   buildConversationHistoryWindow,
   ConversationOrchestrationRegistry,
@@ -13,6 +13,7 @@ import type {
   ConversationTurnInput,
 } from '../src/headless.js';
 import {
+  createSdkConversationRuntimeAdapter,
   createSimpleAiConversationProvider,
   normalizeConversationRuntimeTextStreamPart,
 } from '../src/runtime.js';
@@ -118,6 +119,45 @@ describe('chat orchestration primitives', () => {
       },
     ]);
   });
+
+  it('fails closed before Runtime execution when sdk adapter request lacks an explicit model', async () => {
+    const runtime = {
+      ai: {
+        text: {
+          stream: vi.fn(),
+        },
+      },
+    } as unknown as Runtime;
+    const adapter = createSdkConversationRuntimeAdapter(runtime);
+
+    await expect(adapter.streamText({
+      modeId: 'simple-ai',
+      threadId: 'thread-1',
+      turnId: 'turn-1',
+      messages: [{ role: 'user', text: 'Hello' }],
+    })).rejects.toThrow('conversation runtime request requires an explicit model');
+    expect(runtime.ai.text.stream).not.toHaveBeenCalled();
+  });
+
+  it('fails closed before Runtime execution when sdk adapter request uses auto as a pseudo-model', async () => {
+    const runtime = {
+      ai: {
+        text: {
+          stream: vi.fn(),
+        },
+      },
+    } as unknown as Runtime;
+    const adapter = createSdkConversationRuntimeAdapter(runtime);
+
+    await expect(adapter.streamText({
+      modeId: 'simple-ai',
+      threadId: 'thread-1',
+      turnId: 'turn-1',
+      model: 'auto',
+      messages: [{ role: 'user', text: 'Hello' }],
+    })).rejects.toThrow('conversation runtime request requires a concrete Runtime model, not auto');
+    expect(runtime.ai.text.stream).not.toHaveBeenCalled();
+  });
 });
 
 describe('simple-ai conversation provider', () => {
@@ -145,7 +185,7 @@ describe('simple-ai conversation provider', () => {
       runtimeAdapter,
       resolveSystemPrompt: () => 'desktop-app-preset',
       resolveRuntimeRequest: () => ({
-        model: 'auto',
+        model: 'runtime-selected-chat',
         route: 'cloud',
         reasoning: {
           mode: 'on',
