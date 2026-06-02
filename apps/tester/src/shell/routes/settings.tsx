@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   firstRunScreenForProductControlState,
   isDegradedProductControlState,
-  parseProductControlRecordProjection,
+  parseProductControlProjectionJson,
   projectProductControlStorageDirs,
   projectProductControlAdmission,
   type ProductControlState,
@@ -16,6 +16,8 @@ import {
   parseAccountAppLibraryRecord,
   parseNimiAppBridgeProjection,
 } from '@nimiplatform/sdk/app';
+import type { AIScopeRef } from '@nimiplatform/sdk/scope';
+import { PermissionClient, type PermissionTransport } from '@nimiplatform/sdk/scope/permission';
 import {
   buildRuntimeRouteCapabilityProjection,
   aggregateMaterializationDownloadProgress,
@@ -302,6 +304,67 @@ async function resolveTesterLocalRuntimeFacadeProjection(): Promise<string> {
   }
 }
 
+async function resolveTesterPermissionClientProjection(): Promise<{ scopeOwner: string; grantCount: number; firstState: string }> {
+  const scopeRef: AIScopeRef = { kind: 'app', ownerId: 'tester.app', surfaceId: 'settings' };
+  const permissionScope = {
+    appId: 'tester.app',
+    scopeFamily: 'account' as const,
+    scopeName: 'account.read',
+  };
+  const grant = {
+    scopeRef,
+    grant: {
+      grantId: 'tester-settings-grant',
+      permissionScope,
+      subjectUserId: 'tester-user',
+    },
+    state: 'granted' as const,
+  };
+  const transport: PermissionTransport = {
+    async list(inputScopeRef) {
+      return [{ ...grant, scopeRef: inputScopeRef }];
+    },
+    async get(inputScopeRef, grantId) {
+      return { ...grant, scopeRef: inputScopeRef, grant: { ...grant.grant, grantId } };
+    },
+    async request(inputScopeRef) {
+      return {
+        scopeRef: inputScopeRef,
+        accepted: true,
+        grantId: 'tester-settings-pending-grant',
+        state: 'pending',
+      };
+    },
+    async revoke(inputScopeRef, grantId) {
+      return {
+        ...grant,
+        scopeRef: inputScopeRef,
+        grant: { ...grant.grant, grantId },
+        state: 'revoked',
+      };
+    },
+    subscribe(inputScopeRef, callback) {
+      callback({ scopeRef: inputScopeRef, grant: { ...grant, scopeRef: inputScopeRef } });
+      return () => {};
+    },
+    async status(inputScopeRef) {
+      return {
+        scopeRef: inputScopeRef,
+        grants: [{ ...grant, scopeRef: inputScopeRef }],
+        generatedAt: '2026-06-01T00:00:00Z',
+      };
+    },
+  };
+  const client = new PermissionClient(transport);
+  const snapshot = await client.status(scopeRef);
+  const grants = await client.list(scopeRef);
+  return {
+    scopeOwner: snapshot.scopeRef.ownerId,
+    grantCount: grants.length,
+    firstState: snapshot.grants[0]?.state ?? 'none',
+  };
+}
+
 async function resolveTesterRealmDataSyncProjection(): Promise<string> {
   const callRealm = async <T,>(task: (realm: Realm) => Promise<T>): Promise<T> => task({
     services: {
@@ -554,37 +617,39 @@ function errorMessage(error: unknown): string {
 
 function createTesterProductControlProjection() {
   const state: ProductControlState = 'local_ai_assets_downloaded_environment_not_ready';
-  const projection = parseProductControlRecordProjection({
-    path: '/tester/.nimi/nimi.json',
-    exists: true,
-    state,
-    record: {
-      schemaVersion: 1,
-      installId: 'tester-install',
-      productVersion: 'tester',
+  const projection = parseProductControlProjectionJson({
+    json: JSON.stringify({
+      path: '/tester/.nimi/nimi.json',
+      exists: true,
       state,
-      dataRoot: {
-        path: '/tester/nimi-data',
-        status: 'selected',
-        selectedAt: '2026-06-01T00:00:00.000Z',
-        verifiedAt: '2026-06-01T00:00:00.000Z',
-        selectedAtUnixMs: 1,
-        verifiedAtUnixMs: 1,
+      record: {
+        schemaVersion: 1,
+        installId: 'tester-install',
+        productVersion: 'tester',
+        state,
+        dataRoot: {
+          path: '/tester/nimi-data',
+          status: 'selected',
+          selectedAt: '2026-06-01T00:00:00.000Z',
+          verifiedAt: '2026-06-01T00:00:00.000Z',
+          selectedAtUnixMs: 1,
+          verifiedAtUnixMs: 1,
+        },
+        firstRun: {
+          installLevel: 'recommended',
+          aiProfileAlias: 'recommended',
+          completed: false,
+          builtInAiConfigRefs: [],
+        },
+        pointers: {
+          runtimeConfigPath: '/tester/.nimi/runtime/config.json',
+        },
+        repair: {
+          required: false,
+        },
       },
-      firstRun: {
-        installLevel: 'recommended',
-        aiProfileAlias: 'recommended',
-        completed: false,
-        builtInAiConfigRefs: [],
-      },
-      pointers: {
-        runtimeConfigPath: '/tester/.nimi/runtime/config.json',
-      },
-      repair: {
-        required: false,
-      },
-    },
-    error: null,
+      error: null,
+    }),
   });
   const screen = firstRunScreenForProductControlState(projection.state);
   const dataRootSelectedScreen = firstRunScreenForProductControlState('data_root_selected');
@@ -687,6 +752,9 @@ export function SettingsRoute() {
     });
   const localRuntimeFacadeProjection = useTypedProjection(resolveTesterLocalRuntimeFacadeProjection, {
     failClosedMessage: 'SDK local runtime facade projection unavailable',
+  });
+  const permissionClientProjection = useTypedProjection(resolveTesterPermissionClientProjection, {
+    failClosedMessage: 'SDK permission client projection unavailable',
   });
   const realmDataSyncProjection = useTypedProjection(resolveTesterRealmDataSyncProjection, {
     failClosedMessage: 'SDK Realm data sync projection unavailable',
@@ -2381,6 +2449,14 @@ export function SettingsRoute() {
         <span>SDK account app-library projection</span>
         <StatusBadge tone="neutral">
           {accountAppLibraryProjection.accountId}: {accountAppLibraryProjection.apps[0]?.libraryState ?? 'none'}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>SDK permission client projection</span>
+        <StatusBadge tone={permissionClientProjection.status === 'ready' ? 'success' : permissionClientProjection.status === 'failed' ? 'danger' : 'warning'}>
+          {permissionClientProjection.status === 'ready' && permissionClientProjection.data
+            ? `${permissionClientProjection.data.scopeOwner}: ${permissionClientProjection.data.firstState} (${permissionClientProjection.data.grantCount})`
+            : permissionClientProjection.error ?? 'loading'}
         </StatusBadge>
       </div>
       <div className="setting-row">

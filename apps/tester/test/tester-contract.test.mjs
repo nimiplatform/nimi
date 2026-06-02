@@ -157,7 +157,7 @@ test('tester runtime media invokers use AIConfig bindings instead of executable 
 
 test('tester settings consumes SDK product-control projection as second consumer proof', () => {
   const settings = read('src/shell/routes/settings.tsx');
-  assert.match(settings, /parseProductControlRecordProjection/);
+  assert.match(settings, /parseProductControlProjectionJson/);
   assert.match(settings, /firstRunScreenForProductControlState/);
   assert.match(settings, /projectProductControlAdmission/);
   assert.match(settings, /SDK product-control projection/);
@@ -1414,10 +1414,14 @@ test('tester settings consumes SDK Nimi App bridge projection parser', () => {
   assert.match(settings, /from '@nimiplatform\/sdk\/app'/);
   assert.match(settings, /SDK Nimi App bridge projection/);
   assert.match(settings, /SDK account app-library projection/);
+  assert.match(settings, /SDK permission client projection/);
   assert.match(settings, /appBridgeProjection\.releaseDescriptors/);
   assert.match(settings, /appBridgeProjection\.registryRows/);
   assert.doesNotMatch(settings, /appBridgeProjection\.installEvidence/);
   assert.match(settings, /accountAppLibraryProjection\.apps/);
+  assert.match(settings, /new PermissionClient\(transport\)/);
+  assert.match(settings, /client\.status\(scopeRef\)/);
+  assert.match(settings, /client\.list\(scopeRef\)/);
   assert.doesNotMatch(settings, /apps-projection/);
   assert.doesNotMatch(settings, /ADMISSION_STATUSES|RELEASE_DESCRIPTOR_CLASSES|VERIFICATION_STATES/);
   assert.doesNotMatch(settings, /LIBRARY_STATES|DATA_POLICIES/);
