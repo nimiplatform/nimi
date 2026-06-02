@@ -35,6 +35,10 @@ Runtime 子路径公开方法集合由 `runtime-method-groups.yaml` 约束，必
 - that agent projection may additionally project runtime-owned
   persistent `AgentPresentationProfile`
 - canonical agent memory 的 app-facing mutation 统一经该 runtime-owned agent projection
+- canonical agent memory bank status/bind 的 app-facing helper may be SDK
+  DX/projection only when it delegates to `runtime.agent.*`; it must not
+  combine memory embedding config, inspect state, or `GetBank` as a second
+  status authority
 - `runtime.memory.*` 不得被 app 误用为 canonical agent memory 直写捷径
 - current-thread avatar interaction state must stay above runtime and must not be promoted into a new `runtime.avatar.*` truth surface
 
@@ -43,6 +47,19 @@ Runtime 子路径公开方法集合由 `runtime-method-groups.yaml` 约束，必
 media convenience 也必须遵守同一原则：新增 ergonomic API 只能封装既有 `ScenarioJob` + artifact 主链，不得引入新的推理语义或绕过 runtime 校验。`runtime.media.music.iterate()` 属于允许的薄投影，必须复用 `MUSIC_GENERATE` 与 `nimi.scenario.music_generate.request` 扩展面。
 
 Runtime image helper `buildLocalProfileExtensions()` 仅用于编码 `entry_overrides` 与 `profile_overrides` 到既有 runtime request extension；Runtime music helper `buildMusicIterationExtensions()` 仅作为低层 extension builder。两者不是新的推理 owner，也不替代 `runtime.media.music.iterate()` 的官方主路径。
+
+Runtime AI session-loop helpers are not Runtime daemon method projections. SDK
+may expose generic app AI loop DX under `S-SURFACE-020`, but those helpers must
+compose admitted Runtime AI consume surfaces rather than adding ordinary
+product-session methods to `RuntimeAiService` or recording app chat-history
+helpers in `runtime-method-groups.yaml`.
+
+`RuntimeAiService` remains the execution owner for AI consume, provider/model
+routing, readiness, jobs, artifacts, audit/fail-closed enforcement, and typed
+scenario output. It does not own ordinary app product `thread`, `message`,
+`draft`, or session-history truth by default. Runtime-owned chat session truth
+is admitted only through `RuntimeAgentService` Agent lifecycle or another
+explicit Runtime authority rule.
 
 已知 method id 的低层调用必须通过 `Runtime.call()` 与 method-id contract map 绑定；`runtime.raw` 兼容别名不再是允许的公开 surface。
 

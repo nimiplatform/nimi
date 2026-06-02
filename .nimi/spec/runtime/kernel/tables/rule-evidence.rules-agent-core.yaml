@@ -33,6 +33,7 @@ entries:
   - K-AGCORE-006a
   - K-AGCORE-006b
   - K-AGCORE-006c
+  - K-AGCORE-006d
   - K-AGCORE-007
   - K-AGCORE-008
   - K-AGCORE-009
@@ -190,6 +191,11 @@ rules:
   - rule_id: K-AGCORE-006c
     evidence_refs: []
     evidence_requirement: deferred
+  - rule_id: K-AGCORE-006d
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Agent Chat lifecycle authority is explicitly non-equivalent to ordinary app AI session-loop product truth.
+    evidence_requirement: required
   - rule_id: K-AGCORE-007
     evidence_refs: []
     evidence_requirement: deferred

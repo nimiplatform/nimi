@@ -35,13 +35,15 @@ SDK AI config surface 固定分为以下 logical operation 类别：
   typed adjacent live config family
 - memory embedding 是第一类 admitted adjacent live config
 - 对 memory embedding，host-facing logical family 至少允许：
-  - `memoryEmbeddingConfig.get(scopeRef)` — 读取当前 user-editable config intent
-  - `memoryEmbeddingConfig.update(scopeRef, patch)` — 更新 user-editable config
-    intent
-  - `memoryEmbeddingConfig.subscribe(scopeRef, callback)` — 订阅该 adjacent
-    config 的 host-local 变化
-- 该 family 只拥有 host-local editable config truth；不得返回或持久化 resolved
-  embedding profile、bank bind result、migration state、或 cutover outcome
+  - `memoryEmbeddingConfig.get(input)` — 读取 Runtime-owned 当前 binding
+    intent；`input` 必须包含 explicit runtime target identity
+  - `memoryEmbeddingConfig.update(input, config)` — 向 Runtime 提交 explicit
+    user intent；SDK 只构造 typed request，不持久化 intent
+  - `memoryEmbeddingConfig.subscribe(input, callback)` — 订阅 SDK consumer
+    lifecycle 内的非权威刷新通知；不得伪装为 Runtime event stream
+- 该 family 不拥有 host-local editable config truth；不得返回或持久化 resolved
+  embedding profile、bank bind result、migration state、或 cutover outcome。Durable
+  binding intent authority belongs to Runtime memory per `K-MEM-006b`.
 
 ### Runtime-owned memory state / operation projection
 
@@ -62,6 +64,9 @@ SDK AI config surface 固定分为以下 logical operation 类别：
   runtime-private typed path，但不得被解释成新增 daemon public method family
 - 其 runtime-side logical owner 对齐 `K-MEM-006b` 的 runtime-private memory
   embedding operation family；host facade 不得私自扩展第二套 product semantics
+- SDK 不得要求 host 提供同步 durable config reader，不得把 Desktop localStorage /
+  Tester fixture / renderer store 当作 canonical binding intent input；ephemeral test
+  harness 可以 mock Runtime methods，但必须保留 request/response shape。
 
 ### Probe
 

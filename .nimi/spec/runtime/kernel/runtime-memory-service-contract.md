@@ -221,14 +221,25 @@ operation family。
 
 最小 logical operations 固定为：
 
+- `GetMemoryEmbeddingBindingIntent`
+- `SetMemoryEmbeddingBindingIntent`
 - `InspectMemoryEmbeddingState`
 - `RequestCanonicalMemoryEmbeddingBind`
 - `RequestMemoryEmbeddingCutover`
 
 固定规则：
 
+- memory embedding binding intent 是 Runtime-owned durable local memory
+  authority，按 explicit `MemoryBankLocator` 归属；Desktop / Web / Tester
+  不得通过 localStorage、renderer store、app-local config file、或每次请求夹带的
+  snapshot 持久化或重放该 intent
+- `GetMemoryEmbeddingBindingIntent` 必须只返回 Runtime 持久化的当前 intent；
+  未配置时返回 typed absent state，不得合成默认 provider / model
+- `SetMemoryEmbeddingBindingIntent` 必须 normalize 并持久化 explicit cloud/local
+  binding intent；空 intent 表示 explicit clear；非法 source / binding 组合必须
+  fail-close，不得 silently coerce 到另一个 provider/model
 - `InspectMemoryEmbeddingState` 必须返回 typed runtime contract data，至少覆盖：
-  - 当前 host-provided binding intent 的 resolution verdict
+  - 当前 Runtime-owned binding intent 的 resolution verdict
   - resolved embedding profile identity 或 fail-close unavailable result
   - 当前 canonical bank binding status
   - 是否存在 rebuild / generation / cutover pending state

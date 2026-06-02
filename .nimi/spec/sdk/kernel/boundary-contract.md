@@ -58,3 +58,49 @@ Until promoted, the helper must remain documented as non-authoritative,
 ephemeral, and caller-owned. If a product needs the helper's result as durable
 truth, the SDK must submit that result through an admitted typed Runtime /
 Realm / Cognition operation instead of persisting it locally.
+
+## S-BOUNDARY-007 Agent Lifecycle Chat vs App AI Session Loop
+
+Boundary reviews must distinguish Runtime Agent lifecycle chat from ordinary app
+AI session loops.
+
+Runtime Agent lifecycle chat is not a generic SDK client loop. It belongs to
+Runtime when the behavior depends on any of:
+
+- agent lifecycle, identity, state, autonomy, hooks, or presentation posture
+- Runtime-owned `ConversationAnchor`
+- Runtime Agent memory policy or canonical memory admission
+- Runtime Agent turn planning, action existence, APML / message-action
+  validation, voice/media workflow execution, or agent event emission
+- `runtime.agent` app-message seam or `RuntimeAgentService` projection truth
+
+Ordinary app AI session loops are not Runtime-owned merely because they use an
+LLM, stream tokens, keep conversation history, call tools, or expose a chat UI.
+They may use SDK DX primitives under `S-SURFACE-020` and Runtime AI consume
+surfaces, while the durable product session truth remains with the app or Realm
+unless a separate Runtime / Cognition / Platform authority rule admits it.
+
+SDK helpers must therefore be rejected only when they become a hidden authority,
+not when they coordinate an ephemeral AI turn. Conversely, Runtime placement
+must be rejected for ordinary product chat history unless the session is tied to
+Runtime Agent lifecycle or another explicit Runtime authority domain.
+
+Runtime Agent lifecycle chat may still have SDK developer-experience helpers
+over public Runtime Agent surfaces. Under `S-SURFACE-021`, SDK can own
+request-id correlation, public consume-event stream assembly, abort-to-interrupt
+wiring, and terminal snapshot recovery as non-authoritative client
+orchestration. Those helpers are allowed only because Runtime remains the
+authority for agent execution, memory policy, turn planning, terminal evidence,
+and app-message projection truth.
+
+Runtime scenario jobs may also have SDK developer-experience helpers over public
+Runtime job surfaces. Under `S-SURFACE-022`, SDK can own
+submit/subscribe/get/getArtifacts consumer orchestration for `runtime.media`
+jobs, low-level submit/get/cancel/artifact consumer orchestration for
+`runtime.ai` scenario jobs used by SDK provider/framework adapters, fallback
+polling when a public job stream ends before terminal evidence, abort-to-cancel
+wiring, and typed fixture transports. Those helpers are allowed only because
+Runtime remains the authority for scenario job lifecycle, provider/model
+routing, execution, readiness, artifacts, reason codes, audit, and fail-closed
+enforcement. SDK must fail closed unless Runtime reports `COMPLETED` before
+artifacts are treated as a successful scenario result.

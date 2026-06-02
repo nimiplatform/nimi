@@ -9,6 +9,7 @@ entries:
   - families_4
   - families_5
   - families_6
+  - families_7
 families:
   - family: HOOK_INTENT
     source_rule: K-AGCORE-006
@@ -26,6 +27,10 @@ families:
     source_rule: K-AGCORE-006
     mutable_by_app: false
     description: Typed agent-facing recall/result family projected from retained runtime-private memory depth into RuntimeAgentService reads.
+  - family: CANONICAL_MEMORY_BANK_STATUS
+    source_rule: K-AGCORE-004
+    mutable_by_app: false
+    description: Runtime-owned app-facing canonical memory bank mode/status projection and bind admissibility for a validated local agent.
   - family: CONSTRAINED_STATE_MUTATION
     source_rule: K-AGCORE-006
     mutable_by_app: true

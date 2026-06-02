@@ -10,6 +10,7 @@ Current `sdk/` TypeScript package public SDK subpaths are fixed to:
 - `@nimiplatform/sdk/runtime`
 - `@nimiplatform/sdk/world`
 - `@nimiplatform/sdk/ai-provider`
+- `@nimiplatform/sdk/ai-app`
 - `@nimiplatform/sdk/realm`
 - `@nimiplatform/sdk/scope`
 - `@nimiplatform/sdk/types`
@@ -67,6 +68,11 @@ surface 必须维持 runtime-owned authority cut：
 - app-facing canonical agent control plane and canonical agent memory write path
   must remain unified on that runtime-owned agent projection, rather than
   drifting back to direct Realm memory mutation or provider-native memory API
+- SDK may expose typed request builders and projections for
+  `runtime.agent.getAgentCanonicalMemoryBankStatus` and
+  `runtime.agent.requestAgentCanonicalMemoryBankBind`, but must not synthesize
+  canonical bank mode/status from memory embedding editable config,
+  runtime-private inspect state, or raw `GetBank`
 - `@nimiplatform/sdk/realm` 不再承载 canonical agent-memory public helper；runtime-era app path 只能消费 `runtime.agent.*`
 
 ## S-SURFACE-003 Runtime SDK 禁用旧接口名
@@ -361,3 +367,155 @@ by a later rule. Excluded surfaces include `@nimiplatform/sdk/ai-provider`,
 `@nimiplatform/sdk/world`, app clients, permission clients, AI config helpers,
 runtime route helpers, local environment helpers, external framework adapters,
 and other developer-experience surfaces.
+
+## S-SURFACE-020 App AI Session Loop DX Surface
+
+SDK may expose reusable app-facing AI session-loop primitives under
+`@nimiplatform/sdk/ai-app` for products that build ChatGPT-like, Codex-like,
+domain-assistant, simulation-assistant, or simple LLM-consumption features
+outside Runtime Agent lifecycle.
+
+Admitted primitives include:
+
+- session-turn request builders over admitted Runtime AI consume surfaces
+- single-turn text generate runners that submit an explicit typed Runtime
+  request and return the Runtime output plus optional structured-output parse
+  / repair results
+- single-turn text stream runners that submit an explicit typed Runtime request
+  and return ephemeral stream / completion / repair events, including the
+  original Runtime stream part when a caller needs typed adapter callbacks
+- typed conversation history window builders
+- stream assemblers that preserve text, reasoning, tool-call, finish, error,
+  usage, and trace branches
+- local tool-loop coordination for caller-supplied tools
+- tool descriptors, tool selection, approval-required markers,
+  external-execution-required markers, stop-after-call flags, visible-result
+  flags, and fail-closed tool-call result envelopes
+- structured-output schema helpers, response parsers, and visible repair flows
+- ephemeral session state reducers for optimistic UI and in-process recovery
+- mock Runtime transports, fixture runners, and test harnesses for consumer
+  apps
+- framework adapters that map external AI-loop concepts onto Nimi public
+  Runtime / SDK surfaces without changing authority ownership
+
+This surface is developer-experience infrastructure only. It must not:
+
+- persist product session, thread, message, draft, memory, event, audit, or
+  permission truth
+- create a Runtime `AiConversation` or generic daemon chat-history authority for
+  ordinary app product sessions
+- infer provider/model routing, fallback policy, capability readiness, or
+  default models
+- write canonical memory, knowledge, agent state, Realm records, or account
+  state
+- treat local tool-loop completion, structured-output parse success, or stream
+  finish as a committed product write unless the caller explicitly commits the
+  result to the owning app / Realm / Runtime / Cognition surface
+
+Durable product session ownership remains with the consumer product owner:
+
+- app-local when the session is app-specific, local, and not cross-device truth
+- Realm when the session is cloud canonical, social, account-scoped,
+  cross-device, or multi-user business truth
+- Runtime only when the session is part of Runtime-owned Agent lifecycle or
+  another explicitly admitted Runtime authority domain
+
+The string `chat`, `conversation`, or `session` is not sufficient evidence for
+Runtime placement. Placement follows the underlying authority: Agent lifecycle
+chat belongs to Runtime; ordinary app AI session loops consume Runtime AI but
+do not become Runtime truth by default.
+
+## S-SURFACE-021 Runtime Agent Turn Consumer DX Surface
+
+SDK may expose reusable Runtime Agent turn consumer helpers under
+`@nimiplatform/sdk/runtime` when they are thin developer-experience
+orchestration over the admitted public `runtime.agent.turns` surface.
+
+Admitted primitives include:
+
+- typed `RuntimeAgentTurnRequest` runners that subscribe to
+  `runtime.agent.turns`, submit the explicit caller-provided turn request, and
+  interrupt the same turn on caller abort
+- event queues and stream assemblers for `runtime.agent.turn.*`,
+  `runtime.agent.presentation.*`, `runtime.agent.state.*`, and
+  `runtime.agent.hook.*` consume events
+- request-id / committed-message correlation for ignoring backlog events on the
+  same conversation anchor
+- terminal snapshot recovery that calls the public
+  `runtime.agent.turns.getSessionSnapshot` projection and replays typed
+  synthetic consume events only when Runtime reports terminal turn evidence
+- typed session snapshot transcript parsers that accept replayable transcript
+  entries only when Runtime provides the required replay envelope
+  (`id`, `status`, `kind`, `created_at`, `updated_at`) and preserve Runtime
+  parent linkage without app-local derivation
+- non-authoritative diagnostics, timeline summaries, projection summaries, and
+  metadata callbacks for app UI/debug consumers
+- fixture runners and mock `RuntimeAgentTurnsModule` harnesses for second-app
+  consumer tests
+
+This surface is SDK DX/client-orchestration only. It must not:
+
+- create, plan, validate, or execute Runtime Agent turns
+- infer agent identity, conversation-anchor truth, memory policy, autonomy,
+  hooks, presentation posture, APML/message-action existence, voice/media
+  workflow truth, provider/model routing, readiness, audit, or permissions
+- synthesize terminal success when Runtime has not emitted or exposed terminal
+  turn evidence
+- persist transcript, session, message, memory, or event truth
+- synthesize Agent Chat replay transcript identity, status, kind, timestamps,
+  or parent bindings when Runtime omits them
+- bypass `runtime.agent.turns.*` admitted transport or Runtime Agent service
+  projections
+
+Runtime remains the authority for Agent lifecycle chat. Apps may use SDK turn
+consumer helpers to render Runtime-owned Agent Chat projections, but product
+screens own only user intent, UI metadata callbacks, view-model composition,
+and ephemeral renderer state.
+
+## S-SURFACE-022 Runtime Scenario Job Consumer DX Surface
+
+SDK may expose reusable Runtime scenario job consumer helpers under
+`@nimiplatform/sdk/runtime` when they are thin developer-experience
+orchestration over admitted public Runtime job surfaces.
+
+Admitted primitives include:
+
+- typed runners that submit an explicit caller-provided
+  `ScenarioJobSubmitInput` through `runtime.media.jobs.submit`
+- typed runners that submit an explicit caller-provided
+  `RuntimeAiSubmitScenarioJobRequestInput` through
+  `runtime.ai.submitScenarioJob` for SDK provider/framework adapters
+- job-event stream consumption through `runtime.media.jobs.subscribe`
+- terminal recovery through `runtime.media.jobs.get` when the Runtime event
+  stream ends before terminal job evidence is observed
+- low-level status recovery through `runtime.ai.getScenarioJob` for Runtime AI
+  scenario jobs that do not expose a public event stream
+- artifact collection through `runtime.media.jobs.getArtifacts` only after
+  Runtime reports `COMPLETED`
+- artifact collection through `runtime.ai.getScenarioArtifacts` only after
+  Runtime reports `COMPLETED`
+- abort-to-cancel wiring that calls `runtime.media.jobs.cancel` for the same
+  Runtime job, or `runtime.ai.cancelScenarioJob` for the same Runtime AI
+  scenario job, and preserves the caller abort as an SDK error path
+- non-authoritative status projections, update callbacks, fixture job modules,
+  and mock job transports for app and Kit tests
+
+This surface is SDK DX/client-orchestration only. It must not:
+
+- create, validate, execute, schedule, or materialize scenario jobs
+- infer provider/model routing, fallback policy, capability readiness,
+  provider health, artifact truth, audit truth, or permissions
+- synthesize terminal success when Runtime has not reported `COMPLETED`
+- fetch artifacts for failed, canceled, timed-out, or nonterminal jobs as if
+  the product scenario succeeded
+- persist product generation history, asset ownership, Realm records, local
+  files, or renderer state
+- bypass the admitted public Runtime job surfaces
+
+Runtime remains the authority for scenario job lifecycle, provider/model
+routing, execution, readiness, artifacts, reason codes, audit, and fail-closed
+enforcement. Kit may use this SDK runner to render reusable generation panels,
+but Kit owns only UI/headless state mapping and app consumers own any product
+history, review, save, or commit behavior. SDK ai-provider adapters may use the
+same Runtime AI scenario job runner, but adapters own only framework request and
+response mapping, not job lifecycle truth.

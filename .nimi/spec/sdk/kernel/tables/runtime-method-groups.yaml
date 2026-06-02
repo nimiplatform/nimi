@@ -361,6 +361,8 @@ groups:
       - Recall
       - History
       - DeleteMemory
+      - GetMemoryEmbeddingRuntimeIntent
+      - SetMemoryEmbeddingRuntimeIntent
       - InspectMemoryEmbeddingRuntime
       - RequestMemoryEmbeddingRuntimeBind
       - RequestMemoryEmbeddingRuntimeCutover
@@ -417,5 +419,7 @@ groups:
       - CancelHook
       - QueryAgentMemory
       - WriteAgentMemory
+      - GetAgentCanonicalMemoryBankStatus
+      - RequestAgentCanonicalMemoryBankBind
       - SubscribeAgentEvents
     source_rule: S-SURFACE-002

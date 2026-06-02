@@ -98,6 +98,10 @@ surfaces:
   - methods_85
   - methods_86
   - methods_87
+  - methods_88
+  - methods_89
+  - methods_90
+  - methods_91
 description: Agent, AI, realtime, and cognition posture entries.
 services:
   - RuntimeAgentService
@@ -342,6 +346,20 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus
+    posture: anonymous_read
+    rationale: runtime-owned canonical agent memory bank status read; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-004
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind
+    posture: anonymous_read
+    rationale: runtime-owned canonical agent memory bank bind request; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-004
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents
     posture: anonymous_read
     rationale: agent event stream; no JWT validation
@@ -513,6 +531,20 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent
+    posture: protected_or_scoped_binding_read
+    rationale: runtime-owned memory embedding binding intent projection requires runtime.memory.read capability
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-MEM-006b
+  - method_id: /nimi.runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent
+    posture: protected_or_scoped_binding_write
+    rationale: runtime-owned memory embedding binding intent mutation requires runtime.memory.write capability
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-MEM-006b
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime
     posture: protected_or_scoped_binding_read
     rationale: runtime-owned memory embedding readiness and canonical bank state projection requires runtime.memory.read capability

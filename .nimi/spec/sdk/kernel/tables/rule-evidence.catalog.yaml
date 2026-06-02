@@ -34,6 +34,7 @@ entries:
   - sdk_generated_type_quality_gate
   - sdk_mod_hardcut_gate
   - sdk_runtime_stable_ai_output_gate
+  - sdk_consumer_smoke
 sdk_behavioral_test:
   type: test_gate
   command: pnpm --filter @nimiplatform/sdk test
@@ -84,3 +85,8 @@ sdk_runtime_stable_ai_output_gate:
   command: pnpm check:runtime-stable-ai-output-typing
   path: scripts/check-runtime-stable-ai-output-typing.mjs
   description: Stable runtime AI product surfaces must consume typed ScenarioOutput and ScenarioStreamDelta contracts without Struct/record reparsing.
+sdk_consumer_smoke:
+  type: test_gate
+  command: pnpm check:sdk-consumer-smoke
+  path: scripts/check-sdk-consumer-smoke.mjs
+  description: Packaged SDK consumer smoke test proving public exports typecheck in standalone and workspace Nimi app consumers.

@@ -176,6 +176,45 @@ Desktop may preserve only the current renderer-session in-memory display state;
 after reload or restart, it must fail closed until Runtime / SDK projection is
 available.
 
+### Ordinary Nimi Chat Session Boundary
+
+Ordinary Nimi Chat is distinct from Desktop Agent Chat.
+
+Agent Chat is Runtime Agent lifecycle projection. Ordinary Nimi Chat is an app
+product feature that consumes Runtime AI execution and SDK AI session-loop
+developer-experience primitives.
+
+Fixed rules:
+
+- Desktop may own ordinary Nimi Chat product session persistence for
+  app-specific `thread`, `message`, and `draft` records when the product does
+  not require Realm cloud/cross-device/social truth.
+- The Desktop `chat_ai_*` Tauri command family may remain admitted only as this
+  ordinary Nimi Chat local product session store. It must not be reused for
+  Agent Chat transcript, Runtime Agent turn, action, voice, memory, lifecycle,
+  or conversation-anchor recovery.
+- Ordinary Nimi Chat persistence must not store provider/model routing,
+  fallback policy, capability readiness, Runtime job authority, canonical
+  memory, permission grants, audit events, or app lifecycle truth.
+- Ordinary Nimi Chat execution must consume admitted Runtime / SDK public
+  surfaces for AI execution, route/readiness projection, streaming, structured
+  output, and scheduling checks.
+- Reusable turn-loop, stream assembly, local tool-loop, structured-output, and
+  mock/test transport helpers must be promoted to SDK DX surfaces when another
+  app needs the same behavior. Desktop keeps only product-specific session
+  policy, UI wiring, and local product persistence.
+- If ordinary Nimi Chat becomes cloud canonical, social, account-scoped,
+  cross-device, or multi-user product truth, ownership must move to Realm or
+  another admitted product authority before Desktop syncs or commits it.
+- If ordinary Nimi Chat needs canonical memory or knowledge commits, those
+  commits must go through admitted Cognition / Runtime memory policy surfaces;
+  Desktop session persistence and SDK loop helpers may only stage or preview
+  candidates.
+
+This rule is a non-equivalence boundary: the presence of a chat UI, token
+stream, local conversation history, or tool loop does not make the feature
+Runtime Agent Chat.
+
 ## D-LLM-026 — Adjacent Authority Boundaries
 
 Adjacent owner boundaries are fixed:
@@ -198,6 +237,8 @@ Adjacent owner boundaries are fixed:
   Desktop stream consumption mechanics, cancellation display, and retry UX.
 - `.nimi/spec/desktop/kernel/state-contract.md` owns only Desktop UI state
   persistence mechanics, not Agent Chat execution truth.
+- Ordinary Nimi Chat product session persistence is governed by `D-LLM-107`;
+  it is not evidence that Desktop may own Agent Chat or Runtime AI authority.
 
 ## Fact Sources
 

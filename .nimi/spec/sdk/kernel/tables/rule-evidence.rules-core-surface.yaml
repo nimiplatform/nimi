@@ -37,6 +37,7 @@ entries:
 - S-BOUNDARY-004
 - S-BOUNDARY-005
 - S-BOUNDARY-006
+- S-BOUNDARY-007
 - S-ERROR-001
 - S-ERROR-002
 - S-ERROR-003
@@ -89,6 +90,9 @@ entries:
 - S-SURFACE-017
 - S-SURFACE-018
 - S-SURFACE-019
+- S-SURFACE-020
+- S-SURFACE-021
+- S-SURFACE-022
 - S-TRANSPORT-001
 - S-TRANSPORT-002
 - S-TRANSPORT-003
@@ -177,6 +181,12 @@ rules:
   - sdk_kernel_consistency
   - sdk_boundary_gate
   note: Client orchestration promotion rule; durable authority must move to Runtime, Realm, Cognition, or Platform before becoming product truth
+  evidence_requirement: required
+- rule_id: S-BOUNDARY-007
+  evidence_refs:
+  - sdk_kernel_consistency
+  - sdk_boundary_gate
+  note: Boundary gate must distinguish Runtime Agent lifecycle chat from ordinary app AI session-loop DX.
   evidence_requirement: required
 - rule_id: S-ERROR-001
   evidence_refs:
@@ -489,6 +499,36 @@ rules:
   evidence_refs:
   - sdk_kernel_consistency
   note: Phase 1 cross-language core family targets sdks/ while current sdk/ remains the active TypeScript package for existing app consumers
+  evidence_requirement: required
+- rule_id: S-SURFACE-020
+  evidence_refs:
+  - sdk_kernel_consistency
+  - sdk_boundary_gate
+  note: Generic app AI session-loop primitives are SDK DX only and must not become product session, provider/model, memory, event, audit, or Runtime Agent truth.
+  evidence_requirement: required
+- rule_id: S-SURFACE-021
+  evidence_refs:
+  - sdk_behavioral_test
+  - sdk_boundary_gate
+  - sdk_consumer_smoke
+  note: Runtime Agent turn consumer helpers are SDK DX over public runtime.agent.turns; Desktop and Tester consume the runner without owning Runtime Agent turn state machines.
+  test_files:
+  - sdk/test/runtime-agent-turn-runner.test.ts
+  - apps/desktop/test/runtime-agent-domain-boundary.test.ts
+  - apps/tester/test/tester-contract.test.mjs
+  evidence_requirement: required
+- rule_id: S-SURFACE-022
+  evidence_refs:
+  - sdk_behavioral_test
+  - sdk_boundary_gate
+  - sdk_consumer_smoke
+  note: Runtime scenario job consumer helpers are SDK DX over public runtime.media.jobs and runtime.ai scenario jobs; ai-provider consumes the runtime.ai runner for framework mapping, Kit consumes the media runner for UI state, and Tester consumes the media runner as a separate diagnostic projection.
+  test_files:
+  - sdk/test/runtime-media-generation-job-runner.test.ts
+  - sdk/test/ai-provider/helpers-scenario.test.ts
+  - sdk/test/ai-provider/provider-scenario.test.ts
+  - kit/features/generation/test/runtime-generation.test.tsx
+  - apps/tester/test/tester-contract.test.mjs
   evidence_requirement: required
 - rule_id: S-TRANSPORT-001
   evidence_refs:

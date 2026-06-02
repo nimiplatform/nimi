@@ -78,6 +78,8 @@ It decides:
 - which canonical class applies
 - which bank scope may be written
 - which memory layers may be recalled for agent execution
+- which app-facing canonical memory bank mode/status is exposed
+- whether a canonical agent memory bank bind request is admitted
 
 Fixed rules:
 
@@ -86,6 +88,10 @@ Fixed rules:
 - `RuntimeCognitionService` serves the runtime-facing overlap slice, while
   retained runtime-private memory depth stores canonical truth; in both cases
   `RuntimeAgentService` owns semantic admission
+- app-facing canonical memory bank status and bind must go through
+  `RuntimeAgentService`; SDK/apps must not compose canonical bank mode from
+  editable host config, runtime-private embedding inspect state, or raw
+  `GetBank` projections
 
 ## K-AGCORE-005 App Consumer Boundary
 
@@ -135,6 +141,8 @@ Apps may not:
 - `CancelHook`
 - `QueryAgentMemory`
 - `WriteAgentMemory`
+- `GetAgentCanonicalMemoryBankStatus`
+- `RequestAgentCanonicalMemoryBankBind`
 - `SubscribeAgentEvents`
 
 Primary semantic outputs on this surface must use Nimi-owned typed messages:
@@ -232,8 +240,9 @@ Runtime-owned Agent Chat transcript messages.
 Fixed rules:
 
 - every transcript entry projected by `GetPublicChatSessionSnapshot` must carry
-  Runtime-owned replay identity fields (`id`, `created_at`, `updated_at`) when
-  the Runtime session has enough anchor/session state to derive them
+  Runtime-owned replay identity fields (`id`, `created_at`, `updated_at`).
+  If Runtime cannot produce those fields, the transcript entry is not
+  replayable and SDK/app consumers must fail closed instead of deriving them.
 - transcript entry `status` and `kind` are projection metadata, not model
   output truth; text transcript entries default to `status=complete` and
   `kind=text`
@@ -244,8 +253,9 @@ Fixed rules:
   until Runtime stores per-message timestamps directly; apps may display them
   but must not reinterpret them as provider event time
 - richer fields such as reasoning text, trace id, media/artifact metadata,
-  error state, and parent linkage remain optional projection fields and may only
-  be trusted when Runtime projects them
+  error state, and parent linkage may only be trusted when Runtime projects
+  them. Parent linkage for ordinary text assistant replies is Runtime-owned
+  replay metadata, not an app-local adjacency inference.
 - this envelope does not admit Desktop-local transcript persistence; it exists
   to let apps replay Runtime session snapshots without fabricating transcript
   identity locally
@@ -253,6 +263,38 @@ Fixed rules:
   storage. If Runtime is unavailable, apps may retain in-memory display state for
   the current renderer session, but restart recovery must come from Runtime
   snapshots, not from Desktop-local transcript stores.
+
+## K-AGCORE-006d Agent Chat Non-Equivalence Boundary
+
+Runtime Agent Chat authority is scoped to Runtime Agent lifecycle. It must not
+be generalized into a daemon-owned product chat-history service for ordinary
+apps.
+
+Agent Chat belongs to `RuntimeAgentService` because it consumes and mutates
+agent-owned lifecycle state: explicit `agent_id`, runtime-owned
+`ConversationAnchor`, agent memory policy, turn planning, presentation/action
+projection, voice/media workflow execution, and agent event emission.
+
+Fixed rules:
+
+- Runtime Agent Chat session / transcript replay remains Runtime-owned.
+- `runtime.agent` app-message traffic is a reserved Agent Chat consume seam, not
+  a generic app chat bus.
+- `RuntimeAiService` owns AI execution, provider/model routing, readiness,
+  jobs, artifacts, and fail-closed enforcement; it does not own ordinary app
+  product session, thread, message, or draft truth by default.
+- Generic ChatGPT-like, Codex-like, domain-assistant, or simple LLM
+  product-session history must not be added to Runtime solely because it uses
+  Runtime AI consume.
+- Reusable non-authoritative app AI session-loop support belongs in SDK DX
+  surfaces; durable product session truth belongs to the owning app or Realm
+  unless a later Runtime / Cognition / Platform rule explicitly admits it.
+
+Any proposal for a new Runtime-owned AI conversation/session store outside
+Agent lifecycle must include a separate authority rule naming the lifecycle,
+security, data-correctness, audit, or cross-app invariant that requires Runtime
+ownership. Absent that rule, ordinary app AI session persistence remains outside
+Runtime.
 
 ## K-AGCORE-007 Token Budget Authority
 

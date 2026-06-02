@@ -979,6 +979,16 @@ method_mappings:
     proto_method: SubscribeMemoryEvents
     mapping_posture: aligned
   - design_service: RuntimeCognitionService
+    design_method: GetMemoryEmbeddingRuntimeIntent
+    proto_service: RuntimeCognitionService
+    proto_method: GetMemoryEmbeddingRuntimeIntent
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: SetMemoryEmbeddingRuntimeIntent
+    proto_service: RuntimeCognitionService
+    proto_method: SetMemoryEmbeddingRuntimeIntent
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
     design_method: InspectMemoryEmbeddingRuntime
     proto_service: RuntimeCognitionService
     proto_method: InspectMemoryEmbeddingRuntime
@@ -1172,6 +1182,16 @@ method_mappings:
     design_method: WriteAgentMemory
     proto_service: RuntimeAgentService
     proto_method: WriteAgentMemory
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetAgentCanonicalMemoryBankStatus
+    proto_service: RuntimeAgentService
+    proto_method: GetAgentCanonicalMemoryBankStatus
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: RequestAgentCanonicalMemoryBankBind
+    proto_service: RuntimeAgentService
+    proto_method: RequestAgentCanonicalMemoryBankBind
     mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: SetAgentPresentationProfile

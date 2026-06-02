@@ -410,11 +410,16 @@ name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
 21. `CancelHook`
 22. `QueryAgentMemory`
 23. `WriteAgentMemory`
-24. `SubscribeAgentEvents`
+24. `GetAgentCanonicalMemoryBankStatus`
+25. `RequestAgentCanonicalMemoryBankBind`
+26. `SubscribeAgentEvents`
 
 固定约束：
 
 - agent canonical memory write policy 固定由 RuntimeAgentService 拥有
+- agent canonical memory bank status/bind 的 app-facing projection 固定由
+  `RuntimeAgentService` 拥有；SDK/app 不得从 memory embedding config、
+  runtime-private inspect state、或 raw `GetBank` 组合 canonical bank mode
 - apps 可以控制与消费 agent，但不得拥有 renderer-local agent truth
 - proactive life scheduling 通过 typed HookIntent + host-owned admission 执行
 - hook trigger detail、agent memory recall result、以及 failure/reschedule/budget-related agent events 必须使用 typed runtime messages，而不是自由 JSON payload
@@ -435,11 +440,11 @@ name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
 最小 access matrix：
 
 - `InitializeAgent` / `TerminateAgent`：`runtime.agent.admin`
-- `GetAgent` / `ListAgents` / `GetConversationAnchorSnapshot` / `ListAgentConversationSummaries` / `ResolveAvatarLiveInstanceBinding` / `GetPublicChatSessionSnapshot` / `GetAgentState` / `ListPendingHooks` / `QueryAgentMemory` / `SubscribeAgentEvents`：`runtime.agent.read`
+- `GetAgent` / `ListAgents` / `GetConversationAnchorSnapshot` / `ListAgentConversationSummaries` / `ResolveAvatarLiveInstanceBinding` / `GetPublicChatSessionSnapshot` / `GetAgentState` / `ListPendingHooks` / `QueryAgentMemory` / `GetAgentCanonicalMemoryBankStatus` / `SubscribeAgentEvents`：`runtime.agent.read`
 - `GetCompanionParticipationProjection` / `OpenCompanionParticipationReplay`：`runtime.agent.companion_participation.read`
 - `OpenConversationAnchor` / `RegisterAvatarLiveInstanceBinding`：`runtime.agent.write`
 - `RequestCompanionParticipation` / `CancelCompanionParticipation`：`runtime.agent.companion_participation.write`
-- `UpdateAgentState` / `WriteAgentMemory` / `CancelHook`：`runtime.agent.write`
+- `UpdateAgentState` / `WriteAgentMemory` / `RequestAgentCanonicalMemoryBankBind` / `CancelHook`：`runtime.agent.write`
 - `EnableAutonomy` / `DisableAutonomy` / `SetAutonomyConfig`：`runtime.agent.autonomy.write`
 
 ## K-RPC-004c RuntimeAppService reserved `runtime.agent` chat access matrix
