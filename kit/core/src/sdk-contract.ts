@@ -30,7 +30,8 @@
  *       features/model-config/src/types.ts:2,
  *       features/model-config/src/components/audio-synthesize-params-editor.tsx:2,
  *       features/model-config/src/components/model-config-capability-detail.tsx:37)
- *     - ScenarioJobStatus, ScenarioJobSubmitInput
+ *     - ScenarioJobStatus, ScenarioJobSubmitInput,
+ *       runRuntimeMediaGenerationJob, RuntimeMediaGenerationJob*
  *       (features/generation/src/runtime.ts:3-7)
  *     - Runtime catalog projection/client types and
  *       createRuntimeModelCatalogClient
@@ -55,6 +56,11 @@
  *       features/model-config/src/components/model-config-capability-detail.tsx:12)
  *     - AIProfileApplyResult, AIProfilePreviewResult, AIScopeRef
  *       (features/model-config/src/headless/use-model-config-profile-controller.ts)
+ *   @nimiplatform/sdk/ai-app — app AI developer experience
+ *     - runAppAiTextTurn and AppAiTextTurnEvent
+ *       (features/chat/src/runtime/orchestration.ts)
+ *     - buildAppAiHistoryWindow and history budget helpers
+ *       (features/chat/src/orchestration/history-window.ts)
  *
  * Authority cross-reference
  * --------------------------
@@ -77,6 +83,12 @@
  *  - Kit module-config has both type and value SDK surfaces from
  *    `@nimiplatform/sdk/ai`; we re-export the whole sub-path for
  *    that one consumer to match its existing star-import shape.
+ *  - Kit chat uses `@nimiplatform/sdk/ai-app` only for non-authoritative
+ *    text-turn stream assembly; Kit maps the resulting events into
+ *    reusable conversation headless events.
+ *  - Kit generation uses `@nimiplatform/sdk/runtime` only for
+ *    non-authoritative media scenario job consumption; Kit maps the
+ *    resulting Runtime job projection into reusable generation UI state.
  *
  * Dynamic-import boundary (wave-c carry-forward concern 1)
  * --------------------------------------------------------
@@ -128,6 +140,7 @@ export {
   getRuntimeReasonCodeMessage,
   isNimiError,
   listRuntimeRouteOptions,
+  runRuntimeMediaGenerationJob,
   ScenarioJobStatus,
   CatalogModelSource,
   ModelCatalogProviderSource,
@@ -138,9 +151,15 @@ export type {
   TextMessage,
   TextMessageContentPart,
   TextStreamInput,
+  TextStreamOutput,
   TextStreamPart,
   SpeechVoiceReference,
   ScenarioJobSubmitInput,
+  RuntimeMediaGenerationJob,
+  RuntimeMediaGenerationJobResult,
+  RuntimeMediaGenerationJobsModule,
+  RuntimeMediaGenerationSubmitRequest,
+  RuntimeMediaScenarioArtifact,
   CatalogModelDetail,
   CatalogOverlayWarning,
   CatalogPricing,
@@ -208,3 +227,22 @@ export type {
   AIProfileRef,
   AIScopeRef,
 } from '@nimiplatform/sdk/ai';
+
+// --- App AI developer-experience primitives --------------------------------
+export {
+  APP_AI_SESSION_COMPLETION_RESERVE,
+  APP_AI_SESSION_HISTORY_BUDGET,
+  buildAppAiHistoryWindow,
+  estimateAppAiHistoryMessageChars,
+  estimateAppAiHistoryTokenCountFromChars,
+  measureAppAiHistoryWindowBudget,
+  runAppAiTextTurn,
+} from '@nimiplatform/sdk/ai-app';
+export type {
+  AppAiHistoryTokenCounter,
+  AppAiHistoryWindowBudget,
+  AppAiHistoryWindowMessage,
+  AppAiHistoryWindowResult,
+  AppAiTextTurnEvent,
+  AppAiTextTurnRuntime,
+} from '@nimiplatform/sdk/ai-app';

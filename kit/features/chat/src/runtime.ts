@@ -6,6 +6,7 @@ import {
 } from 'react';
 import {
   getPlatformClient,
+  runAppAiTextTurn,
   type Runtime,
   type TextGenerateInput,
   type TextGenerateOutput,
@@ -21,7 +22,6 @@ export type {
 export {
   createSdkConversationRuntimeAdapter,
   createSimpleAiConversationProvider,
-  normalizeConversationRuntimeTextStreamPart,
 } from './runtime/orchestration.js';
 
 const DEFAULT_RUNTIME_CHAT_METADATA = {
@@ -149,34 +149,47 @@ export async function streamRuntimeChatResponse(
   request: RuntimeChatStreamRequest,
   handlers: RuntimeChatStreamHandlers = {},
 ): Promise<RuntimeChatStreamResult> {
-  const output = await runtime.ai.text.stream(withDefaultRuntimeChatMetadata(request));
-  let fullText = '';
-  let finish: RuntimeChatFinishPart | null = null;
-
-  for await (const part of output.stream) {
-    if (part.type === 'delta') {
-      fullText += part.text;
-      handlers.onDelta?.(part.text, part);
-      continue;
-    }
-    if (part.type === 'finish') {
-      finish = part;
-      const result = { text: fullText, finish };
-      handlers.onFinish?.(result, part);
-      return result;
-    }
-    if (part.type === 'error') {
-      const error = toRuntimeChatError(part.error);
-      handlers.onError?.(error, part);
-      throw error;
+  for await (const event of runAppAiTextTurn({
+    runtime: {
+      streamText: (nextRequest) => runtime.ai.text.stream(withDefaultRuntimeChatMetadata(nextRequest)),
+    },
+    request,
+  })) {
+    switch (event.type) {
+      case 'turn-started':
+      case 'reasoning-delta':
+      case 'structured-output-parsed':
+      case 'structured-output-repair-required':
+        break;
+      case 'text-delta':
+        handlers.onDelta?.(event.textDelta, event.runtimePart);
+        break;
+      case 'turn-completed': {
+        if (!event.runtimePart) {
+          throw new Error('runtime chat stream completed without a Runtime finish part');
+        }
+        const result = {
+          text: event.snapshot.text,
+          finish: event.runtimePart,
+        };
+        handlers.onFinish?.(result, event.runtimePart);
+        return result;
+      }
+      case 'turn-failed': {
+        const error = toRuntimeChatError(
+          event.runtimePart?.error
+            || (event.error.cause instanceof Error ? event.error.cause : event.error.message),
+        );
+        handlers.onError?.(error, event.runtimePart ?? null);
+        throw error;
+      }
+      case 'turn-canceled':
+        throw createAbortError();
+      default:
+        assertNever(event);
     }
   }
-
-  const result = { text: fullText, finish };
-  if (fullText.length > 0) {
-    handlers.onFinish?.(result, null);
-  }
-  return result;
+  throw new Error('runtime chat stream ended without a terminal event');
 }
 
 export async function streamPlatformChatResponse(
@@ -492,9 +505,19 @@ function isAbortLikeError(error: unknown): boolean {
   return false;
 }
 
+function createAbortError(): Error {
+  const error = new Error('Aborted');
+  error.name = 'AbortError';
+  return error;
+}
+
 function createRuntimeChatSessionMessageId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
   return `chat-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function assertNever(value: never): never {
+  throw new Error(`Unhandled runtime chat event: ${JSON.stringify(value)}`);
 }

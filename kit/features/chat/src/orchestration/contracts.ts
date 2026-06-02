@@ -1,4 +1,7 @@
-import type { TextMessageContentPart } from '@nimiplatform/kit/core/sdk-contract';
+import type {
+  TextMessageContentPart,
+  TextStreamOutput,
+} from '@nimiplatform/kit/core/sdk-contract';
 import type { ConversationMessageRole } from '../types.js';
 
 export const CONVERSATION_ORCHESTRATION_MODE_IDS = [
@@ -89,26 +92,10 @@ export type ConversationTurnError = {
   retriable?: boolean;
 };
 
-export type ConversationRuntimeTextStreamPart =
-  | { type: 'start' }
-  | { type: 'reasoning-delta'; textDelta: string }
-  | { type: 'text-delta'; textDelta: string }
-  | {
-    type: 'finish';
-    finishReason: string;
-    usage?: ConversationRuntimeUsage;
-    trace?: ConversationRuntimeTrace;
-  }
-  | {
-    type: 'error';
-    error: ConversationTurnError;
-    trace?: ConversationRuntimeTrace;
-  };
-
 export interface ConversationRuntimeAdapter {
   streamText: (
     request: ConversationRuntimeTextRequest,
-  ) => Promise<{ stream: AsyncIterable<ConversationRuntimeTextStreamPart> }>;
+  ) => Promise<TextStreamOutput>;
 }
 
 export type ConversationContinuityLoadInput = {

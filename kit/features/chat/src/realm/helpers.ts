@@ -1,7 +1,11 @@
 import { useMemo } from 'react';
 import { resolveRealmMediaUrl } from '@nimiplatform/kit/core/sdk-contract';
-import { normalizeRealmMessagePayload } from '../headless.js';
-import type { RealmMessageInputPayload, RealmMessageViewDto, RealmSendMessageInputDto } from './codec.js';
+import {
+  normalizeRealmMessagePayload,
+  type RealmMessageInputPayload,
+  type RealmMessageViewDto,
+  type RealmSendMessageInputDto,
+} from './codec.js';
 import type { RealmChatEventEnvelope, RealmChatEventEnvelopeDto, RealmChatOutboxEntryLike, RealmChatRealtimeSocket, RealmChatSessionReadyPayload, RealmChatSessionState, RealmChatSessionSyncRequiredPayload, RealmChatTimelineDisplayModel, RealmChatTimelineMessage, RealmChatUploadPlaceholderLike, RealmChatViewDto, RealmListChatsResultDto, RealmListMessagesResultDto, UseRealmMessageTimelineOptions } from './types.js';
 
 function normalizeText(value: string): string {

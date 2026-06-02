@@ -82,6 +82,21 @@ describe('chat runtime helpers', () => {
     expect(result.finish?.type).toBe('finish');
   });
 
+  it('fails closed when a runtime stream ends without finish', async () => {
+    const runtime = makeStreamRuntime([
+      { type: 'start' },
+      { type: 'delta', text: 'partial' },
+    ]);
+    const onFinish = vi.fn();
+
+    await expect(streamRuntimeChatResponse(runtime, {
+      model: 'runtime-selected-chat',
+      input: 'Hi',
+      route: 'cloud',
+    }, { onFinish })).rejects.toThrow('Runtime text stream ended without a terminal finish event');
+    expect(onFinish).not.toHaveBeenCalled();
+  });
+
   it('creates a streaming composer adapter that resolves request overrides and emits chunk callbacks', async () => {
     const runtime = makeStreamRuntime([
       { type: 'start' },

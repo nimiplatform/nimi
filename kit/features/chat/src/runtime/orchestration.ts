@@ -2,14 +2,17 @@ import type {
   Runtime,
   TextMessage,
   TextStreamInput,
-  TextStreamPart,
+} from '@nimiplatform/kit/core/sdk-contract';
+import {
+  runAppAiTextTurn,
+  type AppAiTextTurnEvent,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type {
   ConversationOrchestrationProvider,
   ConversationRuntimeAdapter,
   ConversationRuntimeTextMessage,
   ConversationRuntimeTextRequest,
-  ConversationRuntimeTextStreamPart,
+  ConversationRuntimeTrace,
   ConversationTurnError,
   ConversationTurnEvent,
   ConversationTurnHistoryMessage,
@@ -88,106 +91,35 @@ export function createSimpleAiConversationProvider(
         })
         : {};
 
-      yield {
-        type: 'turn-started',
+      const request = toSdkTextStreamRequest({
         modeId: 'simple-ai',
         threadId: input.threadId,
         turnId: input.turnId,
-      };
+        messages,
+        systemPrompt,
+        signal: input.signal,
+        ...runtimeRequest,
+      });
 
-      let outputText = '';
-      let reasoningText = '';
-      let terminalEventSeen = false;
-
-      try {
-        const runtimeResult = await options.runtimeAdapter.streamText({
-          modeId: 'simple-ai',
-          threadId: input.threadId,
-          turnId: input.turnId,
-          messages,
-          systemPrompt,
-          signal: input.signal,
-          ...runtimeRequest,
-        });
-
-        for await (const part of runtimeResult.stream) {
-          switch (part.type) {
-            case 'start':
-              break;
-            case 'reasoning-delta':
-              reasoningText += part.textDelta;
-              yield {
-                type: 'reasoning-delta',
-                turnId: input.turnId,
-                textDelta: part.textDelta,
-              };
-              break;
-            case 'text-delta':
-              outputText += part.textDelta;
-              yield {
-                type: 'text-delta',
-                turnId: input.turnId,
-                textDelta: part.textDelta,
-              };
-              break;
-            case 'finish':
-              terminalEventSeen = true;
-              yield {
-                type: 'turn-completed',
-                turnId: input.turnId,
-                outputText,
-                reasoningText: reasoningText || undefined,
-                finishReason: part.finishReason,
-                usage: part.usage,
-                trace: part.trace,
-              };
-              break;
-            case 'error':
-              terminalEventSeen = true;
-              yield {
-                type: 'turn-failed',
-                turnId: input.turnId,
-                error: part.error,
-                outputText: outputText || undefined,
-                reasoningText: reasoningText || undefined,
-                trace: part.trace,
-              };
-              break;
-            default:
-              assertNever(part);
-          }
-        }
-
-        if (!terminalEventSeen) {
-          yield {
-            type: 'turn-failed',
+      for await (const event of runAppAiTextTurn({
+        runtime: {
+          streamText: (nextRequest) => options.runtimeAdapter.streamText({
+            ...nextRequest,
+            modeId: 'simple-ai',
+            threadId: input.threadId,
             turnId: input.turnId,
-            error: {
-              code: 'STREAM_TERMINATED_WITHOUT_TERMINAL_EVENT',
-              message: 'conversation runtime stream ended without a terminal event',
-            },
-            outputText: outputText || undefined,
-            reasoningText: reasoningText || undefined,
-          };
+            messages,
+            systemPrompt,
+          }),
+        },
+        request,
+        threadId: input.threadId,
+        turnId: input.turnId,
+      })) {
+        const conversationEvent = toConversationTurnEvent(event, input);
+        if (conversationEvent) {
+          yield conversationEvent;
         }
-      } catch (error) {
-        if (isAbortLikeError(error) || input.signal?.aborted) {
-          yield {
-            type: 'turn-canceled',
-            turnId: input.turnId,
-            scope: 'turn',
-            outputText: outputText || undefined,
-            reasoningText: reasoningText || undefined,
-          };
-          return;
-        }
-        yield {
-          type: 'turn-failed',
-          turnId: input.turnId,
-          error: toConversationTurnError(error),
-          outputText: outputText || undefined,
-          reasoningText: reasoningText || undefined,
-        };
       }
     },
   };
@@ -200,63 +132,100 @@ export function createSdkConversationRuntimeAdapter(runtime?: Runtime): Conversa
   return {
     async streamText(request) {
       const resolvedRuntimeClient = await runtimeClient;
-      const streamOutput = await resolvedRuntimeClient.ai.text.stream(toSdkTextStreamRequest(request));
-      return {
-        stream: normalizeConversationRuntimeStream(streamOutput.stream),
-      };
+      return resolvedRuntimeClient.ai.text.stream(toSdkTextStreamRequest(request));
     },
   };
 }
 
-export function normalizeConversationRuntimeTextStreamPart(
-  part: TextStreamPart,
-): ConversationRuntimeTextStreamPart {
-  switch (part.type) {
-    case 'start':
-      return { type: 'start' };
+function toConversationTurnEvent(
+  event: AppAiTextTurnEvent,
+  input: ConversationTurnInput,
+): ConversationTurnEvent | null {
+  switch (event.type) {
+    case 'turn-started':
+      return {
+        type: 'turn-started',
+        modeId: 'simple-ai',
+        threadId: input.threadId,
+        turnId: input.turnId,
+      };
     case 'reasoning-delta':
       return {
         type: 'reasoning-delta',
-        textDelta: part.text,
+        turnId: input.turnId,
+        textDelta: event.textDelta,
       };
-    case 'delta':
+    case 'text-delta':
       return {
         type: 'text-delta',
-        textDelta: part.text,
+        turnId: input.turnId,
+        textDelta: event.textDelta,
       };
-    case 'finish':
+    case 'structured-output-parsed':
+    case 'structured-output-repair-required':
+      return null;
+    case 'turn-completed':
       return {
-        type: 'finish',
-        finishReason: part.finishReason,
-        usage: part.usage,
-        trace: {
-          traceId: normalizeNullableText(part.trace.traceId),
-          modelResolved: normalizeNullableText(part.trace.modelResolved),
-          routeDecision: normalizeNullableText(part.trace.routeDecision),
-        },
+        type: 'turn-completed',
+        turnId: input.turnId,
+        outputText: event.snapshot.text,
+        reasoningText: event.snapshot.reasoningText || undefined,
+        finishReason: event.snapshot.finishReason,
+        usage: event.snapshot.usage,
+        trace: toConversationRuntimeTrace(event.snapshot.trace),
       };
-    case 'error':
+    case 'turn-failed':
       return {
-        type: 'error',
-        error: {
-          code: normalizeNullableText(part.error.reasonCode) || 'RUNTIME_CALL_FAILED',
-          message: normalizeNullableText(part.error.message) || 'conversation runtime stream failed',
-        },
-        trace: {
-          traceId: normalizeNullableText(part.error.traceId),
-        },
+        type: 'turn-failed',
+        turnId: input.turnId,
+        error: toConversationTurnError(event.error),
+        outputText: event.snapshot.text || undefined,
+        reasoningText: event.snapshot.reasoningText || undefined,
+        finishReason: event.snapshot.finishReason,
+        usage: event.snapshot.usage,
+        trace: toConversationRuntimeTrace(event.snapshot.trace, event.error.cause),
+      };
+    case 'turn-canceled':
+      return {
+        type: 'turn-canceled',
+        turnId: input.turnId,
+        scope: 'turn',
+        outputText: event.snapshot.text || undefined,
+        reasoningText: event.snapshot.reasoningText || undefined,
+        finishReason: event.snapshot.finishReason,
+        usage: event.snapshot.usage,
+        trace: toConversationRuntimeTrace(event.snapshot.trace),
       };
     default:
-      return assertNever(part);
+      return assertNever(event);
   }
 }
 
-async function* normalizeConversationRuntimeStream(
-  stream: AsyncIterable<TextStreamPart>,
-): AsyncIterable<ConversationRuntimeTextStreamPart> {
-  for await (const part of stream) {
-    yield normalizeConversationRuntimeTextStreamPart(part);
-  }
+function toConversationRuntimeTrace(
+  trace: unknown,
+  errorCause?: unknown,
+): ConversationRuntimeTrace | undefined {
+  const traceRecord = toRecord(trace);
+  const errorRecord = toRecord(errorCause);
+  const traceId = normalizeNullableText(traceRecord?.traceId) || normalizeNullableText(errorRecord?.traceId);
+  const promptTraceId = normalizeNullableText(traceRecord?.promptTraceId)
+    || normalizeNullableText(errorRecord?.promptTraceId);
+  const modelResolved = normalizeNullableText(traceRecord?.modelResolved);
+  const routeDecision = normalizeNullableText(traceRecord?.routeDecision);
+  return traceId || promptTraceId || modelResolved || routeDecision
+    ? {
+      ...(traceId ? { traceId } : {}),
+      ...(promptTraceId ? { promptTraceId } : {}),
+      ...(modelResolved ? { modelResolved } : {}),
+      ...(routeDecision ? { routeDecision } : {}),
+    }
+    : undefined;
+}
+
+function toRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object'
+    ? value as Record<string, unknown>
+    : null;
 }
 
 function toSdkTextStreamRequest(request: ConversationRuntimeTextRequest): TextStreamInput {
@@ -338,19 +307,6 @@ function normalizeText(value: unknown): string {
 function normalizeNullableText(value: unknown): string | null {
   const normalized = normalizeText(value);
   return normalized || null;
-}
-
-function isAbortLikeError(error: unknown): boolean {
-  if (!error) {
-    return false;
-  }
-  if (typeof DOMException !== 'undefined' && error instanceof DOMException) {
-    return error.name === 'AbortError';
-  }
-  if (error instanceof Error) {
-    return error.name === 'AbortError' || error.message === 'Aborted';
-  }
-  return false;
 }
 
 function assertNever(value: never): never {

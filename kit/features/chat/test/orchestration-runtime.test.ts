@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Runtime, TextStreamPart } from '@nimiplatform/sdk/runtime';
+import type {
+  Runtime,
+  TextStreamOutput,
+  TextStreamPart,
+} from '@nimiplatform/sdk/runtime';
 import {
   buildConversationHistoryWindow,
   ConversationOrchestrationRegistry,
@@ -15,7 +19,6 @@ import type {
 import {
   createSdkConversationRuntimeAdapter,
   createSimpleAiConversationProvider,
-  normalizeConversationRuntimeTextStreamPart,
 } from '../src/runtime.js';
 
 async function collectEvents(stream: AsyncIterable<ConversationTurnEvent>): Promise<ConversationTurnEvent[]> {
@@ -24,6 +27,42 @@ async function collectEvents(stream: AsyncIterable<ConversationTurnEvent>): Prom
     events.push(event);
   }
   return events;
+}
+
+function sdkStream(parts: readonly TextStreamPart[]): TextStreamOutput {
+  return {
+    stream: (async function* () {
+      for (const part of parts) {
+        yield part;
+      }
+    })(),
+  };
+}
+
+function sdkStreamError(input: {
+  reasonCode: string;
+  message: string;
+  traceId?: string;
+}): TextStreamPart {
+  const error = new Error(input.message) as Error & {
+    code: string;
+    reasonCode: string;
+    actionHint: string;
+    traceId: string;
+    retryable: boolean;
+    source: 'runtime';
+  };
+  error.name = input.reasonCode;
+  error.code = input.reasonCode;
+  error.reasonCode = input.reasonCode;
+  error.actionHint = 'inspect_runtime_stream';
+  error.traceId = input.traceId || '';
+  error.retryable = false;
+  error.source = 'runtime';
+  return {
+    type: 'error',
+    error,
+  };
 }
 
 function createTurnInput(overrides: Partial<ConversationTurnInput> = {}): ConversationTurnInput {
@@ -94,32 +133,6 @@ describe('chat orchestration primitives', () => {
     expect(result.trimmedCount).toBe(1);
   });
 
-  it('normalizes sdk stream parts into orchestration stream parts', () => {
-    const parts: TextStreamPart[] = [
-      { type: 'start' },
-      { type: 'reasoning-delta', text: 'thinking' },
-      { type: 'delta', text: 'answer' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { inputTokens: 3, outputTokens: 2, totalTokens: 5 },
-        trace: { traceId: 'trace-1', modelResolved: 'gpt', routeDecision: 'cloud' },
-      },
-    ];
-
-    expect(parts.map((part) => normalizeConversationRuntimeTextStreamPart(part))).toEqual([
-      { type: 'start' },
-      { type: 'reasoning-delta', textDelta: 'thinking' },
-      { type: 'text-delta', textDelta: 'answer' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { inputTokens: 3, outputTokens: 2, totalTokens: 5 },
-        trace: { traceId: 'trace-1', modelResolved: 'gpt', routeDecision: 'cloud' },
-      },
-    ]);
-  });
-
   it('fails closed before Runtime execution when sdk adapter request lacks an explicit model', async () => {
     const runtime = {
       ai: {
@@ -166,19 +179,20 @@ describe('simple-ai conversation provider', () => {
     const runtimeAdapter: ConversationRuntimeAdapter = {
       streamText: vi.fn(async (request) => {
         capturedRequest = request;
-        return {
-          stream: (async function* () {
-            yield { type: 'start' as const };
-            yield { type: 'reasoning-delta' as const, textDelta: 'private-thought' };
-            yield { type: 'text-delta' as const, textDelta: 'public-answer' };
-            yield {
-              type: 'finish' as const,
-              finishReason: 'stop',
-              usage: { inputTokens: 10, outputTokens: 4, totalTokens: 14 },
-              trace: { traceId: 'trace-1', promptTraceId: 'prompt-1' },
-            };
-          })(),
-        };
+        return sdkStream([
+          { type: 'start' },
+          { type: 'reasoning-delta', text: 'private-thought' },
+          { type: 'delta', text: 'public-answer' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: { inputTokens: 10, outputTokens: 4, totalTokens: 14 },
+            trace: { traceId: 'trace-1', promptTraceId: 'prompt-1' } as Extract<
+              TextStreamPart,
+              { type: 'finish' }
+            >['trace'],
+          },
+        ]);
       }),
     };
     const provider = createSimpleAiConversationProvider({
@@ -242,6 +256,9 @@ describe('simple-ai conversation provider', () => {
     };
     const provider = createSimpleAiConversationProvider({
       runtimeAdapter,
+      resolveRuntimeRequest: () => ({
+        model: 'runtime-selected-chat',
+      }),
     });
 
     const events = await collectEvents(provider.runTurn(createTurnInput()));
@@ -263,23 +280,21 @@ describe('simple-ai conversation provider', () => {
 
   it('emits turn-failed when the runtime returns a structured error part', async () => {
     const runtimeAdapter: ConversationRuntimeAdapter = {
-      streamText: vi.fn(async () => ({
-        stream: (async function* () {
-          yield { type: 'start' as const };
-          yield { type: 'text-delta' as const, textDelta: 'partial' };
-          yield {
-            type: 'error' as const,
-            error: {
-              code: 'AI_INPUT_INVALID',
-              message: 'request is invalid',
-            },
-            trace: { traceId: 'trace-2' },
-          };
-        })(),
-      })),
+      streamText: vi.fn(async () => sdkStream([
+        { type: 'start' },
+        { type: 'delta', text: 'partial' },
+        sdkStreamError({
+          reasonCode: 'AI_INPUT_INVALID',
+          message: 'request is invalid',
+          traceId: 'trace-2',
+        }),
+      ])),
     };
     const provider = createSimpleAiConversationProvider({
       runtimeAdapter,
+      resolveRuntimeRequest: () => ({
+        model: 'runtime-selected-chat',
+      }),
     });
 
     const events = await collectEvents(provider.runTurn(createTurnInput()));

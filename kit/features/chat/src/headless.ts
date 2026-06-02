@@ -41,7 +41,6 @@ export type {
   ConversationThreadSummary,
   ConversationViewMode,
 } from './types.js';
-export { normalizeRealmMessagePayload } from './realm/codec.js';
 export { useChatComposer } from './hooks/use-chat-composer.js';
 export type {
   ConversationBeatModality,
@@ -57,7 +56,6 @@ export type {
   ConversationRuntimeAdapter,
   ConversationRuntimeTextMessage,
   ConversationRuntimeTextRequest,
-  ConversationRuntimeTextStreamPart,
   ConversationRuntimeTrace,
   ConversationRuntimeUsage,
   ConversationTurnError,

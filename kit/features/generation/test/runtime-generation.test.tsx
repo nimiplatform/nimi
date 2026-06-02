@@ -8,7 +8,6 @@ import {
   type RuntimeScenarioJob,
   scenarioJobStatusLabel,
   scenarioJobStatusToGenerationStatus,
-  submitRuntimeGenerationJobAndWait,
   useRuntimeGenerationPanel,
 } from '../src/runtime.js';
 import { RuntimeGenerationPanel } from '../src/ui.js';
@@ -110,37 +109,6 @@ describe('generation runtime helpers', () => {
     const buffer = copyArtifactBytesToArrayBuffer(new Uint8Array([1, 2, 3]));
     expect(buffer).toBeInstanceOf(ArrayBuffer);
     expect(Array.from(new Uint8Array(buffer!))).toEqual([1, 2, 3]);
-  });
-
-  it('submits, subscribes, polls if needed, and resolves artifacts', async () => {
-    const completedJob = makeJob(ScenarioJobStatus.COMPLETED);
-    const artifact = { artifactId: 'artifact-1' } as RuntimeScenarioArtifact;
-    const runtime = makeMockRuntime({
-      subscribeEvents: [{ job: makeJob(ScenarioJobStatus.RUNNING) }, { job: completedJob }],
-      artifacts: [artifact],
-    });
-    const onUpdate = vi.fn();
-
-    const result = await submitRuntimeGenerationJobAndWait(runtime, { modal: 'music', input: { model: 'music-model', prompt: 'test' } }, onUpdate);
-
-    expect(runtime.media.jobs.submit).toHaveBeenCalledOnce();
-    expect(runtime.media.jobs.subscribe).toHaveBeenCalledWith('job-1');
-    expect(runtime.media.jobs.getArtifacts).toHaveBeenCalledWith('job-1');
-    expect(result.job.status).toBe(ScenarioJobStatus.COMPLETED);
-    expect(result.artifacts).toEqual([artifact]);
-    expect(onUpdate).toHaveBeenCalledTimes(3);
-  });
-
-  it('falls back to polling when stream does not reach terminal state', async () => {
-    const runtime = makeMockRuntime({
-      subscribeEvents: [{ job: makeJob(ScenarioJobStatus.RUNNING) }],
-      getJob: makeJob(ScenarioJobStatus.COMPLETED),
-    });
-
-    const result = await submitRuntimeGenerationJobAndWait(runtime, { modal: 'music', input: { model: 'music-model', prompt: 'test' } }, vi.fn());
-
-    expect(runtime.media.jobs.get).toHaveBeenCalledWith('job-1');
-    expect(result.job.status).toBe(ScenarioJobStatus.COMPLETED);
   });
 
   it('binds runtime job updates into the default runtime generation panel', async () => {

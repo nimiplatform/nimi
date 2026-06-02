@@ -1,31 +1,22 @@
 import { useCallback, useState } from 'react';
 import {
   getPlatformClient,
+  runRuntimeMediaGenerationJob,
   ScenarioJobStatus,
   type Runtime,
-  type ScenarioJobSubmitInput,
+  type RuntimeMediaGenerationJob,
+  type RuntimeMediaGenerationJobResult,
+  type RuntimeMediaGenerationSubmitRequest,
+  type RuntimeMediaScenarioArtifact,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { useGenerationPanel, type UseGenerationPanelResult } from './hooks/use-generation-panel.js';
 import type { GenerationRunItem } from './types.js';
-export type RuntimeGenerationSubmitRequest = ScenarioJobSubmitInput;
-export type RuntimeScenarioJob = {
-  jobId: string;
-  status: ScenarioJobStatus;
-  reasonDetail?: string | null;
-  progressPercent?: number | null;
-};
-export type RuntimeScenarioArtifact = {
-  artifactId?: string;
-  mimeType?: string;
-  text?: string;
-  bytes?: Uint8Array;
-};
+export type RuntimeGenerationSubmitRequest = RuntimeMediaGenerationSubmitRequest;
+export type RuntimeScenarioJob = RuntimeMediaGenerationJob;
+export type RuntimeScenarioArtifact = RuntimeMediaScenarioArtifact;
 export type RuntimeGenerationMappedStatus = 'pending' | 'running' | 'completed' | 'failed' | 'timeout' | 'canceled';
 
-export type RuntimeGenerationJobResult = {
-  job: RuntimeScenarioJob;
-  artifacts: RuntimeScenarioArtifact[];
-};
+export type RuntimeGenerationJobResult = RuntimeMediaGenerationJobResult;
 
 export type RuntimeGenerationRequestContext<TInput> = {
   input: TInput;
@@ -115,46 +106,6 @@ export function scenarioJobStatusLabel(status: ScenarioJobStatus): string {
   }
 }
 
-export async function submitRuntimeGenerationJobAndWait(
-  runtime: Runtime,
-  request: RuntimeGenerationSubmitRequest,
-  onUpdate: (job: RuntimeScenarioJob) => void,
-): Promise<RuntimeGenerationJobResult> {
-  const submitted = await runtime.media.jobs.submit(request);
-  onUpdate(submitted);
-
-  const events = await runtime.media.jobs.subscribe(submitted.jobId);
-  let terminalJob = submitted;
-  for await (const event of events) {
-    if (!event.job) {
-      continue;
-    }
-    terminalJob = event.job;
-    onUpdate(event.job);
-    if (isTerminalScenarioJobStatus(event.job.status)) {
-      break;
-    }
-  }
-
-  if (!isTerminalScenarioJobStatus(terminalJob.status)) {
-    terminalJob = await runtime.media.jobs.get(submitted.jobId);
-    onUpdate(terminalJob);
-  }
-
-  const artifacts = await runtime.media.jobs.getArtifacts(submitted.jobId);
-  return {
-    job: terminalJob,
-    artifacts: artifacts.artifacts,
-  };
-}
-
-export async function submitPlatformGenerationJobAndWait(
-  request: RuntimeGenerationSubmitRequest,
-  onUpdate: (job: RuntimeScenarioJob) => void,
-): Promise<RuntimeGenerationJobResult> {
-  return submitRuntimeGenerationJobAndWait(getPlatformClient().runtime, request, onUpdate);
-}
-
 export function useRuntimeGenerationPanel<TInput>({
   runtime,
   input,
@@ -206,10 +157,14 @@ export function useRuntimeGenerationPanel<TInput>({
         let result: RuntimeGenerationJobResult | null = null;
 
         try {
-          result = await submitRuntimeGenerationJobAndWait(resolvedRuntime, request, (job) => {
-            latestJob = job;
-            upsertStatusItem(job);
-            onJobUpdate?.({ input: nextInput, job });
+          result = await runRuntimeMediaGenerationJob({
+            jobs: resolvedRuntime.media.jobs,
+            request,
+            onJobUpdate: (job) => {
+              latestJob = job;
+              upsertStatusItem(job);
+              onJobUpdate?.({ input: nextInput, job });
+            },
           });
           setLatestResult(result);
           await onCompleted?.(result, requestContext);
@@ -245,11 +200,4 @@ export function copyArtifactBytesToArrayBuffer(bytes: Uint8Array | undefined): A
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
   return buffer;
-}
-
-function isTerminalScenarioJobStatus(status: ScenarioJobStatus): boolean {
-  return status === ScenarioJobStatus.COMPLETED
-    || status === ScenarioJobStatus.FAILED
-    || status === ScenarioJobStatus.CANCELED
-    || status === ScenarioJobStatus.TIMEOUT;
 }
