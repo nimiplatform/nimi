@@ -168,6 +168,7 @@ func agentScopedBankProjectionPurgeHook(bankLocatorKeys []string) persistTxHook 
 		{"truth_source", "bank_locator_key"},
 		{"memory_review_commit", "bank_locator_key"},
 		{"memory_review_checkpoint", "bank_locator_key"},
+		{"memory_embedding_intent", "locator_key"},
 	}
 	args := stringsSliceToAny(keys)
 	placeholders := sqlPlaceholders(len(keys))

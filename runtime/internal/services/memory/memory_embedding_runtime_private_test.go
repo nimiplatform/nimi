@@ -26,7 +26,14 @@ func newMemoryEmbeddingRuntimePrivateService(t *testing.T) *Service {
 }
 
 func newMemoryEmbeddingRuntimePrivateServiceAtPath(path string) (*Service, error) {
-	return New(nil, config.Config{LocalStatePath: path})
+	svc, err := New(nil, config.Config{LocalStatePath: path})
+	if err != nil {
+		return nil, err
+	}
+	svc.SetMemoryEmbeddingTargetAuthorizer(func(context.Context, *runtimev1.MemoryRequestContext, *runtimev1.MemoryBankLocator) error {
+		return nil
+	})
+	return svc, nil
 }
 
 func testMemoryEmbeddingLocator(agentID string) *runtimev1.MemoryBankLocator {
@@ -85,6 +92,16 @@ func testCloudBindingSnapshot(connectorID string, modelID string) *MemoryEmbeddi
 	}
 }
 
+func setMemoryEmbeddingIntentForTest(t *testing.T, svc *Service, locator *runtimev1.MemoryBankLocator, intent *MemoryEmbeddingBindingIntentSnapshot) {
+	t.Helper()
+	if _, err := svc.SetMemoryEmbeddingBindingIntent(context.Background(), SetMemoryEmbeddingBindingIntentRequest{
+		Locator:       locator,
+		BindingIntent: intent,
+	}); err != nil {
+		t.Fatalf("SetMemoryEmbeddingBindingIntent: %v", err)
+	}
+}
+
 func TestInspectMemoryEmbeddingStateMissingWhenIntentAbsent(t *testing.T) {
 	t.Parallel()
 
@@ -123,10 +140,10 @@ func TestInspectMemoryEmbeddingStateReportsEquivalentBoundProfile(t *testing.T) 
 	if _, err := svc.BindCanonicalBankEmbeddingProfile(ctx, locator); err != nil {
 		t.Fatalf("BindCanonicalBankEmbeddingProfile: %v", err)
 	}
+	setMemoryEmbeddingIntentForTest(t, svc, locator, testLocalBindingSnapshot("local/embed-alpha"))
 
 	state, err := svc.InspectMemoryEmbeddingState(ctx, InspectMemoryEmbeddingStateRequest{
-		Locator:               locator,
-		BindingIntentSnapshot: testLocalBindingSnapshot("local/embed-alpha"),
+		Locator: locator,
 	})
 	if err != nil {
 		t.Fatalf("InspectMemoryEmbeddingState: %v", err)
@@ -149,10 +166,10 @@ func TestRequestCanonicalMemoryEmbeddingBindBindsUnboundCanonicalBank(t *testing
 	svc := newMemoryEmbeddingRuntimePrivateService(t)
 	locator := testMemoryEmbeddingLocator("agent-bind-runtime-private")
 	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-bind"))
+	setMemoryEmbeddingIntentForTest(t, svc, locator, testLocalBindingSnapshot("local/embed-bind"))
 
 	result, err := svc.RequestCanonicalMemoryEmbeddingBind(ctx, RequestCanonicalMemoryEmbeddingBindRequest{
-		Locator:               locator,
-		BindingIntentSnapshot: testLocalBindingSnapshot("local/embed-bind"),
+		Locator: locator,
 	})
 	if err != nil {
 		t.Fatalf("RequestCanonicalMemoryEmbeddingBind: %v", err)
@@ -189,10 +206,10 @@ func TestRequestCanonicalMemoryEmbeddingBindStagesProfileMismatch(t *testing.T) 
 		t.Fatalf("BindCanonicalBankEmbeddingProfile(old): %v", err)
 	}
 	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-new"))
+	setMemoryEmbeddingIntentForTest(t, svc, locator, testLocalBindingSnapshot("local/embed-new"))
 
 	result, err := svc.RequestCanonicalMemoryEmbeddingBind(ctx, RequestCanonicalMemoryEmbeddingBindRequest{
-		Locator:               locator,
-		BindingIntentSnapshot: testLocalBindingSnapshot("local/embed-new"),
+		Locator: locator,
 	})
 	if err != nil {
 		t.Fatalf("RequestCanonicalMemoryEmbeddingBind: %v", err)
@@ -244,10 +261,10 @@ func TestRequestCanonicalMemoryEmbeddingBindUsesRuntimeResolverProfile(t *testin
 			BlockedReasonCode: runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
 		}
 	})
+	setMemoryEmbeddingIntentForTest(t, svc, locator, testCloudBindingSnapshot("conn-gemini", "gemini-embedding-001"))
 
 	result, err := svc.RequestCanonicalMemoryEmbeddingBind(ctx, RequestCanonicalMemoryEmbeddingBindRequest{
-		Locator:               locator,
-		BindingIntentSnapshot: testCloudBindingSnapshot("conn-gemini", "gemini-embedding-001"),
+		Locator: locator,
 	})
 	if err != nil {
 		t.Fatalf("RequestCanonicalMemoryEmbeddingBind: %v", err)
@@ -281,10 +298,10 @@ func TestRequestCanonicalMemoryEmbeddingBindStagesRebuildOnProfileMismatch(t *te
 		t.Fatalf("BindCanonicalBankEmbeddingProfile(old): %v", err)
 	}
 	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-new"))
+	setMemoryEmbeddingIntentForTest(t, svc, locator, testLocalBindingSnapshot("local/embed-new"))
 
 	result, err := svc.RequestCanonicalMemoryEmbeddingBind(ctx, RequestCanonicalMemoryEmbeddingBindRequest{
-		Locator:               locator,
-		BindingIntentSnapshot: testLocalBindingSnapshot("local/embed-new"),
+		Locator: locator,
 	})
 	if err != nil {
 		t.Fatalf("RequestCanonicalMemoryEmbeddingBind: %v", err)
@@ -300,8 +317,7 @@ func TestRequestCanonicalMemoryEmbeddingBindStagesRebuildOnProfileMismatch(t *te
 	}
 
 	state, err := svc.InspectMemoryEmbeddingState(ctx, InspectMemoryEmbeddingStateRequest{
-		Locator:               locator,
-		BindingIntentSnapshot: testLocalBindingSnapshot("local/embed-new"),
+		Locator: locator,
 	})
 	if err != nil {
 		t.Fatalf("InspectMemoryEmbeddingState: %v", err)
@@ -347,9 +363,9 @@ func TestRequestMemoryEmbeddingCutoverCommitsStagedProfile(t *testing.T) {
 		t.Fatalf("BindCanonicalBankEmbeddingProfile(old): %v", err)
 	}
 	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-new"))
+	setMemoryEmbeddingIntentForTest(t, svc, locator, testLocalBindingSnapshot("local/embed-new"))
 	if _, err := svc.RequestCanonicalMemoryEmbeddingBind(ctx, RequestCanonicalMemoryEmbeddingBindRequest{
-		Locator:               locator,
-		BindingIntentSnapshot: testLocalBindingSnapshot("local/embed-new"),
+		Locator: locator,
 	}); err != nil {
 		t.Fatalf("RequestCanonicalMemoryEmbeddingBind(stage): %v", err)
 	}
@@ -364,8 +380,7 @@ func TestRequestMemoryEmbeddingCutoverCommitsStagedProfile(t *testing.T) {
 	}
 
 	result, err := svc.RequestMemoryEmbeddingCutover(ctx, RequestMemoryEmbeddingCutoverRequest{
-		Locator:               locator,
-		BindingIntentSnapshot: testLocalBindingSnapshot("local/embed-new"),
+		Locator: locator,
 	})
 	if err != nil {
 		t.Fatalf("RequestMemoryEmbeddingCutover: %v", err)
@@ -416,9 +431,9 @@ func TestPendingMemoryEmbeddingCutoverPersistsAcrossRestart(t *testing.T) {
 		t.Fatalf("BindCanonicalBankEmbeddingProfile(old): %v", err)
 	}
 	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-new"))
+	setMemoryEmbeddingIntentForTest(t, svc, locator, testLocalBindingSnapshot("local/embed-new"))
 	if _, err := svc.RequestCanonicalMemoryEmbeddingBind(ctx, RequestCanonicalMemoryEmbeddingBindRequest{
-		Locator:               locator,
-		BindingIntentSnapshot: testLocalBindingSnapshot("local/embed-new"),
+		Locator: locator,
 	}); err != nil {
 		t.Fatalf("RequestCanonicalMemoryEmbeddingBind(stage): %v", err)
 	}
@@ -434,8 +449,7 @@ func TestPendingMemoryEmbeddingCutoverPersistsAcrossRestart(t *testing.T) {
 	setManagedEmbeddingProfileForTest(restarted, testManagedEmbeddingProfile("local/embed-new"))
 
 	state, err := restarted.InspectMemoryEmbeddingState(ctx, InspectMemoryEmbeddingStateRequest{
-		Locator:               locator,
-		BindingIntentSnapshot: testLocalBindingSnapshot("local/embed-new"),
+		Locator: locator,
 	})
 	if err != nil {
 		t.Fatalf("InspectMemoryEmbeddingState(restarted): %v", err)
@@ -508,16 +522,15 @@ func TestRequestMemoryEmbeddingCutoverReportsNotReadyWhenRebuildReadinessFails(t
 		}
 		return out, nil
 	})
+	setMemoryEmbeddingIntentForTest(t, svc, locator, testLocalBindingSnapshot("local/embed-new"))
 	if _, err := svc.RequestCanonicalMemoryEmbeddingBind(ctx, RequestCanonicalMemoryEmbeddingBindRequest{
-		Locator:               locator,
-		BindingIntentSnapshot: testLocalBindingSnapshot("local/embed-new"),
+		Locator: locator,
 	}); err != nil {
 		t.Fatalf("RequestCanonicalMemoryEmbeddingBind(stage): %v", err)
 	}
 
 	result, err := svc.RequestMemoryEmbeddingCutover(ctx, RequestMemoryEmbeddingCutoverRequest{
-		Locator:               locator,
-		BindingIntentSnapshot: testLocalBindingSnapshot("local/embed-new"),
+		Locator: locator,
 	})
 	if err != nil {
 		t.Fatalf("RequestMemoryEmbeddingCutover: %v", err)
@@ -533,8 +546,7 @@ func TestRequestMemoryEmbeddingCutoverReportsNotReadyWhenRebuildReadinessFails(t
 	}
 
 	state, err := svc.inspectMemoryEmbeddingState(ctx, InspectMemoryEmbeddingStateRequest{
-		Locator:               locator,
-		BindingIntentSnapshot: testLocalBindingSnapshot("local/embed-new"),
+		Locator: locator,
 	}, false)
 	if err != nil {
 		t.Fatalf("inspectMemoryEmbeddingState: %v", err)

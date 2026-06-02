@@ -1,16 +1,20 @@
-import type { AIScopeRef } from '../scope/ai-scope.js';
 import { ReasonCode } from '../types/index.js';
 import type {
   MemoryEmbeddingConfig,
+  MemoryEmbeddingConfigInput,
+  MemoryEmbeddingConfigSurface,
   MemoryEmbeddingSourceKind,
+  MemoryEmbeddingRuntimeTargetRef,
 } from './memory-embedding-config.js';
 import type {
+  GetMemoryEmbeddingRuntimeIntentResponse,
   InspectMemoryEmbeddingRuntimeResponse,
   MemoryBankLocator,
   MemoryEmbeddingBindingIntentSnapshot,
   MemoryEmbeddingProfile,
   RequestMemoryEmbeddingRuntimeBindResponse,
   RequestMemoryEmbeddingRuntimeCutoverResponse,
+  SetMemoryEmbeddingRuntimeIntentResponse,
 } from './generated/runtime/v1/memory.js';
 import { MemoryBankScope } from './generated/runtime/v1/memory.js';
 import { normalizeRuntimeReasonCode } from './reason-code-messages.js';
@@ -50,15 +54,8 @@ export type MemoryEmbeddingRuntimeState = {
   traceId?: string;
 };
 
-export type MemoryEmbeddingRuntimeTargetRef = {
-  kind: 'agent-core';
-  agentId: string;
-};
-
-export type MemoryEmbeddingRuntimeInput = {
-  scopeRef: AIScopeRef;
-  targetRef: MemoryEmbeddingRuntimeTargetRef;
-};
+export type { MemoryEmbeddingRuntimeTargetRef };
+export type MemoryEmbeddingRuntimeInput = MemoryEmbeddingConfigInput;
 
 export type MemoryEmbeddingBindOutcome =
   | 'bound'
@@ -105,6 +102,15 @@ type HostMemoryEmbeddingRuntimeClient = {
   >;
 };
 
+type HostMemoryEmbeddingConfigClient = {
+  readonly appId: string;
+  readonly memory: Pick<
+    RuntimeMemoryClient,
+    | 'getMemoryEmbeddingRuntimeIntent'
+    | 'setMemoryEmbeddingRuntimeIntent'
+  >;
+};
+
 type ProtectedHostMemoryEmbeddingRuntimeClient = HostMemoryEmbeddingRuntimeClient & {
   readonly transport?: RuntimeTransportConfig;
   readonly auth: Pick<RuntimeAuthClient, 'registerApp'>;
@@ -113,7 +119,6 @@ type ProtectedHostMemoryEmbeddingRuntimeClient = HostMemoryEmbeddingRuntimeClien
 
 export type HostMemoryEmbeddingRuntimeSurfaceOptions = {
   readonly runtime: () => Awaitable<HostMemoryEmbeddingRuntimeClient>;
-  readonly getConfig: (scopeRef: AIScopeRef) => Awaitable<MemoryEmbeddingConfig>;
   readonly getSubjectUserId: () => Awaitable<string>;
   readonly withScopes?: <T>(
     scopes: readonly string[],
@@ -122,11 +127,33 @@ export type HostMemoryEmbeddingRuntimeSurfaceOptions = {
   readonly unavailableReasonCode?: string;
 };
 
+export type HostMemoryEmbeddingConfigSurfaceOptions = {
+  readonly runtime: () => Awaitable<HostMemoryEmbeddingConfigClient>;
+  readonly getSubjectUserId: () => Awaitable<string>;
+  readonly withScopes?: <T>(
+    scopes: readonly string[],
+    operation: (options: RuntimeCallOptions) => Promise<T>,
+  ) => Promise<T>;
+};
+
 export type ProtectedHostMemoryEmbeddingRuntimeSurfaceOptions = Omit<
   HostMemoryEmbeddingRuntimeSurfaceOptions,
   'runtime' | 'withScopes'
 > & {
   readonly runtime: () => Awaitable<ProtectedHostMemoryEmbeddingRuntimeClient>;
+};
+
+type ProtectedHostMemoryEmbeddingConfigClient = HostMemoryEmbeddingConfigClient & {
+  readonly transport?: RuntimeTransportConfig;
+  readonly auth: Pick<RuntimeAuthClient, 'registerApp'>;
+  readonly appAuth: Pick<RuntimeAppAuthClient, 'authorizeExternalPrincipal'>;
+};
+
+export type ProtectedHostMemoryEmbeddingConfigSurfaceOptions = Omit<
+  HostMemoryEmbeddingConfigSurfaceOptions,
+  'runtime' | 'withScopes'
+> & {
+  readonly runtime: () => Awaitable<ProtectedHostMemoryEmbeddingConfigClient>;
 };
 
 export function memoryEmbeddingRuntimeReasonCodeName(value: unknown): string | null {
@@ -179,9 +206,59 @@ export function buildMemoryEmbeddingAgentCoreLocator(
     owner: {
       oneofKind: 'agentCore',
       agentCore: {
-        agentId: String(targetRef.agentId || '').trim(),
+        agentId: String(targetRef.localAgentRef || '').trim(),
       },
     },
+  };
+}
+
+export function projectMemoryEmbeddingConfigFromRuntimeIntent(
+  input: MemoryEmbeddingConfigInput,
+  result: GetMemoryEmbeddingRuntimeIntentResponse | SetMemoryEmbeddingRuntimeIntentResponse,
+): MemoryEmbeddingConfig {
+  const now = new Date().toISOString();
+  const intent = result.bindingIntent;
+  if (!intent || !('bindingIntentPresent' in result ? result.bindingIntentPresent : true)) {
+    return {
+      scopeRef: input.scopeRef,
+      sourceKind: null,
+      bindingRef: null,
+      revisionToken: now,
+      updatedAt: now,
+    };
+  }
+  const sourceKind = normalizeMemoryEmbeddingSourceKind(intent.sourceKind);
+  if (sourceKind === 'cloud' && intent.cloudBinding) {
+    return {
+      scopeRef: input.scopeRef,
+      sourceKind,
+      bindingRef: {
+        kind: 'cloud',
+        connectorId: String(intent.cloudBinding.connectorId || '').trim(),
+        modelId: String(intent.cloudBinding.modelId || '').trim(),
+      },
+      revisionToken: String(intent.revisionToken || '').trim() || now,
+      updatedAt: now,
+    };
+  }
+  if (sourceKind === 'local' && intent.localBinding) {
+    return {
+      scopeRef: input.scopeRef,
+      sourceKind,
+      bindingRef: {
+        kind: 'local',
+        targetId: String(intent.localBinding.targetId || '').trim(),
+      },
+      revisionToken: String(intent.revisionToken || '').trim() || now,
+      updatedAt: now,
+    };
+  }
+  return {
+    scopeRef: input.scopeRef,
+    sourceKind: null,
+    bindingRef: null,
+    revisionToken: now,
+    updatedAt: now,
   };
 }
 
@@ -284,19 +361,15 @@ export function projectMemoryEmbeddingCutoverResult(
 }
 
 export function projectUnavailableMemoryEmbeddingRuntimeState(
-  input: {
-    config: MemoryEmbeddingConfig;
-    blockedReasonCode: string;
-  },
+  input: { blockedReasonCode: string },
 ): MemoryEmbeddingRuntimeState {
-  const bindingIntentPresent = Boolean(input.config.sourceKind && input.config.bindingRef);
   return {
-    bindingIntentPresent,
-    bindingSourceKind: bindingIntentPresent ? input.config.sourceKind : null,
-    resolutionState: bindingIntentPresent ? 'unavailable' : 'missing',
+    bindingIntentPresent: false,
+    bindingSourceKind: null,
+    resolutionState: 'unavailable',
     resolvedProfileIdentity: null,
     canonicalBankStatus: 'unbound',
-    blockedReasonCode: bindingIntentPresent ? input.blockedReasonCode : null,
+    blockedReasonCode: input.blockedReasonCode,
     operationReadiness: {
       bindAllowed: false,
       cutoverAllowed: false,
@@ -313,7 +386,12 @@ function memoryEmbeddingRuntimeUnavailableReason(input: HostMemoryEmbeddingRunti
 }
 
 async function callWithMemoryEmbeddingScopes<T>(
-  input: HostMemoryEmbeddingRuntimeSurfaceOptions,
+  input: {
+    withScopes?: <R>(
+      scopes: readonly string[],
+      operation: (options: RuntimeCallOptions) => Promise<R>,
+    ) => Promise<R>;
+  },
   scopes: readonly string[],
   operation: (options: RuntimeCallOptions) => Promise<T>,
 ): Promise<T> {
@@ -321,7 +399,6 @@ async function callWithMemoryEmbeddingScopes<T>(
 }
 
 function projectUnavailableMemoryEmbeddingBindResult(input: {
-  config: MemoryEmbeddingConfig;
   blockedReasonCode: string;
 }): MemoryEmbeddingBindResult {
   const state = projectUnavailableMemoryEmbeddingRuntimeState(input);
@@ -334,7 +411,6 @@ function projectUnavailableMemoryEmbeddingBindResult(input: {
 }
 
 function projectUnavailableMemoryEmbeddingCutoverResult(input: {
-  config: MemoryEmbeddingConfig;
   blockedReasonCode: string;
 }): MemoryEmbeddingCutoverResult {
   const state = projectUnavailableMemoryEmbeddingRuntimeState(input);
@@ -348,22 +424,19 @@ function projectUnavailableMemoryEmbeddingCutoverResult(input: {
 export function createHostMemoryEmbeddingRuntimeSurface(
   options: HostMemoryEmbeddingRuntimeSurfaceOptions,
 ): MemoryEmbeddingRuntimeSurface {
-  async function resolveRuntimeContext(scopeRef: AIScopeRef): Promise<
-    | { ok: true; config: MemoryEmbeddingConfig; runtime: HostMemoryEmbeddingRuntimeClient; subjectUserId: string }
-    | { ok: false; config: MemoryEmbeddingConfig; blockedReasonCode: string }
+  async function resolveRuntimeContext(): Promise<
+    | { ok: true; runtime: HostMemoryEmbeddingRuntimeClient; subjectUserId: string }
+    | { ok: false; blockedReasonCode: string }
   > {
-    const config = await options.getConfig(scopeRef);
     const subjectUserId = trimText(await options.getSubjectUserId());
     if (!subjectUserId) {
       return {
         ok: false,
-        config,
         blockedReasonCode: memoryEmbeddingRuntimeUnavailableReason(options),
       };
     }
     return {
       ok: true,
-      config,
       runtime: await options.runtime(),
       subjectUserId,
     };
@@ -371,10 +444,9 @@ export function createHostMemoryEmbeddingRuntimeSurface(
 
   return {
     async inspect(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingRuntimeState> {
-      const context = await resolveRuntimeContext(input.scopeRef);
+      const context = await resolveRuntimeContext();
       if (!context.ok) {
         return projectUnavailableMemoryEmbeddingRuntimeState({
-          config: context.config,
           blockedReasonCode: context.blockedReasonCode,
         });
       }
@@ -387,17 +459,15 @@ export function createHostMemoryEmbeddingRuntimeSurface(
             subjectUserId: context.subjectUserId,
           },
           locator: buildMemoryEmbeddingAgentCoreLocator(input.targetRef),
-          bindingIntentSnapshot: buildMemoryEmbeddingBindingIntentSnapshot(context.config),
         }, callOptions),
       );
       return projectMemoryEmbeddingRuntimeState(result);
     },
 
     async requestBind(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingBindResult> {
-      const context = await resolveRuntimeContext(input.scopeRef);
+      const context = await resolveRuntimeContext();
       if (!context.ok) {
         return projectUnavailableMemoryEmbeddingBindResult({
-          config: context.config,
           blockedReasonCode: context.blockedReasonCode,
         });
       }
@@ -410,17 +480,15 @@ export function createHostMemoryEmbeddingRuntimeSurface(
             subjectUserId: context.subjectUserId,
           },
           locator: buildMemoryEmbeddingAgentCoreLocator(input.targetRef),
-          bindingIntentSnapshot: buildMemoryEmbeddingBindingIntentSnapshot(context.config),
         }, callOptions),
       );
       return projectMemoryEmbeddingBindResult(result);
     },
 
     async requestCutover(input: MemoryEmbeddingRuntimeInput): Promise<MemoryEmbeddingCutoverResult> {
-      const context = await resolveRuntimeContext(input.scopeRef);
+      const context = await resolveRuntimeContext();
       if (!context.ok) {
         return projectUnavailableMemoryEmbeddingCutoverResult({
-          config: context.config,
           blockedReasonCode: context.blockedReasonCode,
         });
       }
@@ -433,10 +501,90 @@ export function createHostMemoryEmbeddingRuntimeSurface(
             subjectUserId: context.subjectUserId,
           },
           locator: buildMemoryEmbeddingAgentCoreLocator(input.targetRef),
-          bindingIntentSnapshot: buildMemoryEmbeddingBindingIntentSnapshot(context.config),
         }, callOptions),
       );
       return projectMemoryEmbeddingCutoverResult(result);
+    },
+  };
+}
+
+export function createHostMemoryEmbeddingConfigSurface(
+  options: HostMemoryEmbeddingConfigSurfaceOptions,
+): MemoryEmbeddingConfigSurface {
+  const subscriptions = new Map<string, Set<(config: MemoryEmbeddingConfig) => void>>();
+
+  async function resolveRuntimeContext(): Promise<{ runtime: HostMemoryEmbeddingConfigClient; subjectUserId: string }> {
+    const subjectUserId = trimText(await options.getSubjectUserId());
+    if (!subjectUserId) {
+      throw new Error('memory embedding config requires authenticated subject user id');
+    }
+    return {
+      runtime: await options.runtime(),
+      subjectUserId,
+    };
+  }
+
+  function subscriptionKey(input: MemoryEmbeddingConfigInput): string {
+    return `${input.scopeRef.kind}:${input.scopeRef.ownerId}:${input.scopeRef.surfaceId || ''}:${input.targetRef.kind}:${input.targetRef.localAgentRef}`;
+  }
+
+  function notify(input: MemoryEmbeddingConfigInput, config: MemoryEmbeddingConfig): void {
+    const callbacks = subscriptions.get(subscriptionKey(input));
+    if (!callbacks) {
+      return;
+    }
+    for (const callback of callbacks) {
+      callback(config);
+    }
+  }
+
+  return {
+    async get(input: MemoryEmbeddingConfigInput): Promise<MemoryEmbeddingConfig> {
+      const context = await resolveRuntimeContext();
+      const result = await callWithMemoryEmbeddingScopes(
+        options,
+        ['runtime.memory.read'],
+        (callOptions) => context.runtime.memory.getMemoryEmbeddingRuntimeIntent({
+          context: {
+            appId: context.runtime.appId,
+            subjectUserId: context.subjectUserId,
+          },
+          locator: buildMemoryEmbeddingAgentCoreLocator(input.targetRef),
+        }, callOptions),
+      );
+      return projectMemoryEmbeddingConfigFromRuntimeIntent(input, result);
+    },
+
+    async update(input: MemoryEmbeddingConfigInput, config: MemoryEmbeddingConfig): Promise<MemoryEmbeddingConfig> {
+      const context = await resolveRuntimeContext();
+      const result = await callWithMemoryEmbeddingScopes(
+        options,
+        ['runtime.memory.write'],
+        (callOptions) => context.runtime.memory.setMemoryEmbeddingRuntimeIntent({
+          context: {
+            appId: context.runtime.appId,
+            subjectUserId: context.subjectUserId,
+          },
+          locator: buildMemoryEmbeddingAgentCoreLocator(input.targetRef),
+          bindingIntent: buildMemoryEmbeddingBindingIntentSnapshot(config),
+        }, callOptions),
+      );
+      const projected = projectMemoryEmbeddingConfigFromRuntimeIntent(input, result);
+      notify(input, projected);
+      return projected;
+    },
+
+    subscribe(input: MemoryEmbeddingConfigInput, callback: (config: MemoryEmbeddingConfig) => void): () => void {
+      const key = subscriptionKey(input);
+      const callbacks = subscriptions.get(key) || new Set<(config: MemoryEmbeddingConfig) => void>();
+      callbacks.add(callback);
+      subscriptions.set(key, callbacks);
+      return () => {
+        callbacks.delete(callback);
+        if (callbacks.size === 0) {
+          subscriptions.delete(key);
+        }
+      };
     },
   };
 }
@@ -460,6 +608,34 @@ export function createProtectedHostMemoryEmbeddingRuntimeSurface(
   }
 
   return createHostMemoryEmbeddingRuntimeSurface({
+    ...options,
+    runtime: async () => (await getProtectedRuntime()).runtime,
+    withScopes: async (scopes, operation) => {
+      const access = await getProtectedRuntime();
+      return access.protectedAccess.withScopes(scopes, operation);
+    },
+  });
+}
+
+export function createProtectedHostMemoryEmbeddingConfigSurface(
+  options: ProtectedHostMemoryEmbeddingConfigSurfaceOptions,
+) {
+  let protectedRuntime: ProtectedHostMemoryEmbeddingConfigClient | null = null;
+  let protectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
+
+  async function getProtectedRuntime() {
+    if (protectedRuntime && protectedAccess) {
+      return { runtime: protectedRuntime, protectedAccess };
+    }
+    protectedRuntime = await options.runtime();
+    protectedAccess = createRuntimeProtectedScopeHelper({
+      runtime: protectedRuntime,
+      getSubjectUserId: options.getSubjectUserId,
+    });
+    return { runtime: protectedRuntime, protectedAccess };
+  }
+
+  return createHostMemoryEmbeddingConfigSurface({
     ...options,
     runtime: async () => (await getProtectedRuntime()).runtime,
     withScopes: async (scopes, operation) => {

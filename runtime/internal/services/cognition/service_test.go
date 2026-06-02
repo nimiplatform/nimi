@@ -187,10 +187,16 @@ func TestRuntimeCognitionMemoryEmbeddingRuntimeProjectionBindsAndCutovers(t *tes
 	newProfile := testRuntimeEmbeddingProfile("local/embed-new")
 
 	memorySvc.SetManagedEmbeddingProfile(oldProfile)
+	if _, err := svc.SetMemoryEmbeddingRuntimeIntent(ctx, &runtimev1.SetMemoryEmbeddingRuntimeIntentRequest{
+		Context:       &runtimev1.MemoryRequestContext{AppId: "desktop"},
+		Locator:       locator,
+		BindingIntent: testRuntimeLocalEmbeddingIntent("local/embed-old"),
+	}); err != nil {
+		t.Fatalf("SetMemoryEmbeddingRuntimeIntent(old): %v", err)
+	}
 	bindResp, err := svc.RequestMemoryEmbeddingRuntimeBind(ctx, &runtimev1.RequestMemoryEmbeddingRuntimeBindRequest{
-		Context:               &runtimev1.MemoryRequestContext{AppId: "desktop"},
-		Locator:               locator,
-		BindingIntentSnapshot: testRuntimeLocalEmbeddingIntent("local/embed-old"),
+		Context: &runtimev1.MemoryRequestContext{AppId: "desktop"},
+		Locator: locator,
 	})
 	if err != nil {
 		t.Fatalf("RequestMemoryEmbeddingRuntimeBind(old): %v", err)
@@ -203,9 +209,8 @@ func TestRuntimeCognitionMemoryEmbeddingRuntimeProjectionBindsAndCutovers(t *tes
 	}
 
 	inspectResp, err := svc.InspectMemoryEmbeddingRuntime(ctx, &runtimev1.InspectMemoryEmbeddingRuntimeRequest{
-		Context:               &runtimev1.MemoryRequestContext{AppId: "desktop"},
-		Locator:               locator,
-		BindingIntentSnapshot: testRuntimeLocalEmbeddingIntent("local/embed-old"),
+		Context: &runtimev1.MemoryRequestContext{AppId: "desktop"},
+		Locator: locator,
 	})
 	if err != nil {
 		t.Fatalf("InspectMemoryEmbeddingRuntime(old): %v", err)
@@ -218,10 +223,16 @@ func TestRuntimeCognitionMemoryEmbeddingRuntimeProjectionBindsAndCutovers(t *tes
 	}
 
 	memorySvc.SetManagedEmbeddingProfile(newProfile)
+	if _, err := svc.SetMemoryEmbeddingRuntimeIntent(ctx, &runtimev1.SetMemoryEmbeddingRuntimeIntentRequest{
+		Context:       &runtimev1.MemoryRequestContext{AppId: "desktop"},
+		Locator:       locator,
+		BindingIntent: testRuntimeLocalEmbeddingIntent("local/embed-new"),
+	}); err != nil {
+		t.Fatalf("SetMemoryEmbeddingRuntimeIntent(new): %v", err)
+	}
 	stageResp, err := svc.RequestMemoryEmbeddingRuntimeBind(ctx, &runtimev1.RequestMemoryEmbeddingRuntimeBindRequest{
-		Context:               &runtimev1.MemoryRequestContext{AppId: "desktop"},
-		Locator:               locator,
-		BindingIntentSnapshot: testRuntimeLocalEmbeddingIntent("local/embed-new"),
+		Context: &runtimev1.MemoryRequestContext{AppId: "desktop"},
+		Locator: locator,
 	})
 	if err != nil {
 		t.Fatalf("RequestMemoryEmbeddingRuntimeBind(new): %v", err)
@@ -234,9 +245,8 @@ func TestRuntimeCognitionMemoryEmbeddingRuntimeProjectionBindsAndCutovers(t *tes
 	}
 
 	cutoverResp, err := svc.RequestMemoryEmbeddingRuntimeCutover(ctx, &runtimev1.RequestMemoryEmbeddingRuntimeCutoverRequest{
-		Context:               &runtimev1.MemoryRequestContext{AppId: "desktop"},
-		Locator:               locator,
-		BindingIntentSnapshot: testRuntimeLocalEmbeddingIntent("local/embed-new"),
+		Context: &runtimev1.MemoryRequestContext{AppId: "desktop"},
+		Locator: locator,
 	})
 	if err != nil {
 		t.Fatalf("RequestMemoryEmbeddingRuntimeCutover: %v", err)
@@ -393,6 +403,9 @@ func newTestService(t *testing.T) (*Service, *memoryservice.Service, func()) {
 	if err != nil {
 		t.Fatalf("memoryservice.New: %v", err)
 	}
+	memorySvc.SetMemoryEmbeddingTargetAuthorizer(func(context.Context, *runtimev1.MemoryRequestContext, *runtimev1.MemoryBankLocator) error {
+		return nil
+	})
 	setMemoryEmbeddingVectorExecutorForTest(memorySvc)
 	authorizer := NewAccountKnowledgeAuthorizer(logger)
 	svc, err := New(logger, cfg, memorySvc, authorizer)

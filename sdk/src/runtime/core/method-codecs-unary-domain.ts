@@ -44,6 +44,8 @@ import {
   DeleteMemoryResponse,
   GetBankRequest,
   GetBankResponse,
+  GetMemoryEmbeddingRuntimeIntentRequest,
+  GetMemoryEmbeddingRuntimeIntentResponse,
   HistoryRequest,
   HistoryResponse,
   InspectMemoryEmbeddingRuntimeRequest,
@@ -58,6 +60,8 @@ import {
   RequestMemoryEmbeddingRuntimeCutoverResponse,
   RetainRequest,
   RetainResponse,
+  SetMemoryEmbeddingRuntimeIntentRequest,
+  SetMemoryEmbeddingRuntimeIntentResponse,
 } from '../generated/runtime/v1/memory';
 import {
   CancelHookRequest,
@@ -68,6 +72,8 @@ import {
   DisableAutonomyResponse,
   EnableAutonomyRequest,
   EnableAutonomyResponse,
+  GetAgentCanonicalMemoryBankStatusRequest,
+  GetAgentCanonicalMemoryBankStatusResponse,
   GetAgentRequest,
   GetAgentResponse,
   GetAgentStateRequest,
@@ -102,6 +108,8 @@ import {
   ResolveAvatarLiveInstanceBindingResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
+  RequestAgentCanonicalMemoryBankBindRequest,
+  RequestAgentCanonicalMemoryBankBindResponse,
   RequestAvatarDebugProbeRequest,
   RequestAvatarDebugProbeResponse,
   RequestCompanionParticipationRequest,
@@ -373,6 +381,14 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
     requestType: DeleteMemoryRequest,
     responseType: DeleteMemoryResponse,
   },
+  [RuntimeMethodIds.memory.getMemoryEmbeddingRuntimeIntent]: {
+    requestType: GetMemoryEmbeddingRuntimeIntentRequest,
+    responseType: GetMemoryEmbeddingRuntimeIntentResponse,
+  },
+  [RuntimeMethodIds.memory.setMemoryEmbeddingRuntimeIntent]: {
+    requestType: SetMemoryEmbeddingRuntimeIntentRequest,
+    responseType: SetMemoryEmbeddingRuntimeIntentResponse,
+  },
   [RuntimeMethodIds.memory.inspectMemoryEmbeddingRuntime]: {
     requestType: InspectMemoryEmbeddingRuntimeRequest,
     responseType: InspectMemoryEmbeddingRuntimeResponse,
@@ -540,6 +556,14 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.agent.writeMemory]: {
     requestType: WriteAgentMemoryRequest,
     responseType: WriteAgentMemoryResponse,
+  },
+  [RuntimeMethodIds.agent.getAgentCanonicalMemoryBankStatus]: {
+    requestType: GetAgentCanonicalMemoryBankStatusRequest,
+    responseType: GetAgentCanonicalMemoryBankStatusResponse,
+  },
+  [RuntimeMethodIds.agent.requestAgentCanonicalMemoryBankBind]: {
+    requestType: RequestAgentCanonicalMemoryBankBindRequest,
+    responseType: RequestAgentCanonicalMemoryBankBindResponse,
   },
   [RuntimeMethodIds.app.sendAppMessage]: {
     requestType: SendAppMessageRequest,

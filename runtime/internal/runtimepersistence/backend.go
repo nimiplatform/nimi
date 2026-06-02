@@ -284,6 +284,12 @@ func (b *Backend) ensureSchema() error {
 			enqueued_at TEXT NOT NULL,
 			item_json TEXT NOT NULL
 		)`,
+		`CREATE TABLE IF NOT EXISTS memory_embedding_intent (
+			locator_key TEXT PRIMARY KEY,
+			locator_json TEXT NOT NULL,
+			intent_json TEXT NOT NULL,
+			updated_at TEXT NOT NULL
+		)`,
 		`CREATE TABLE IF NOT EXISTS memory_narrative (
 			narrative_id TEXT PRIMARY KEY,
 			bank_locator_key TEXT NOT NULL,

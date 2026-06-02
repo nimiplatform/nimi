@@ -426,10 +426,31 @@ message SubscribeMemoryEventsRequest {
   string cursor = 4;
 }
 
+message GetMemoryEmbeddingRuntimeIntentRequest {
+  MemoryRequestContext context = 1;
+  MemoryBankLocator locator = 2;
+}
+
+message GetMemoryEmbeddingRuntimeIntentResponse {
+  bool binding_intent_present = 1;
+  MemoryEmbeddingBindingIntentSnapshot binding_intent = 2;
+}
+
+message SetMemoryEmbeddingRuntimeIntentRequest {
+  MemoryRequestContext context = 1;
+  MemoryBankLocator locator = 2;
+  // Omit or send an empty binding_intent to clear the Runtime-owned binding intent.
+  MemoryEmbeddingBindingIntentSnapshot binding_intent = 3;
+}
+
+message SetMemoryEmbeddingRuntimeIntentResponse {
+  bool accepted = 1;
+  MemoryEmbeddingBindingIntentSnapshot binding_intent = 2;
+}
+
 message InspectMemoryEmbeddingRuntimeRequest {
   MemoryRequestContext context = 1;
   MemoryBankLocator locator = 2;
-  MemoryEmbeddingBindingIntentSnapshot binding_intent_snapshot = 3;
 }
 
 message InspectMemoryEmbeddingRuntimeResponse {
@@ -445,7 +466,6 @@ message InspectMemoryEmbeddingRuntimeResponse {
 message RequestMemoryEmbeddingRuntimeBindRequest {
   MemoryRequestContext context = 1;
   MemoryBankLocator locator = 2;
-  MemoryEmbeddingBindingIntentSnapshot binding_intent_snapshot = 3;
 }
 
 message RequestMemoryEmbeddingRuntimeBindResponse {
@@ -458,7 +478,6 @@ message RequestMemoryEmbeddingRuntimeBindResponse {
 message RequestMemoryEmbeddingRuntimeCutoverRequest {
   MemoryRequestContext context = 1;
   MemoryBankLocator locator = 2;
-  MemoryEmbeddingBindingIntentSnapshot binding_intent_snapshot = 3;
 }
 
 message RequestMemoryEmbeddingRuntimeCutoverResponse {

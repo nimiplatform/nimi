@@ -18,6 +18,14 @@ export type RuntimeAgentMessage = {
   metadata?: Record<string, unknown>;
 };
 
+export type RuntimeAgentTranscriptMessage = RuntimeAgentMessage & {
+  id: string;
+  status: NonNullable<RuntimeAgentMessage['status']>;
+  kind: NonNullable<RuntimeAgentMessage['kind']>;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type RuntimeAgentExecutionBinding = {
   route: NimiRoutePolicy;
   modelId: string;
@@ -147,7 +155,7 @@ export type RuntimeAgentSessionSnapshot = {
   subjectUserId?: string;
   sessionStatus?: string;
   transcriptMessageCount?: number;
-  transcript?: RuntimeAgentMessage[];
+  transcript?: RuntimeAgentTranscriptMessage[];
   executionBinding?: RuntimeAgentExecutionBinding;
   systemPrompt?: string;
   maxOutputTokens?: number;

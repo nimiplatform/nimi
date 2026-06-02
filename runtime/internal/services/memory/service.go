@@ -84,6 +84,7 @@ type MemoryEmbeddingResolvedProfile struct {
 
 type MemoryEmbeddingProfileResolver func(context.Context, *MemoryEmbeddingBindingIntentSnapshot) MemoryEmbeddingResolvedProfile
 type MemoryEmbeddingVectorExecutor func(context.Context, *runtimev1.MemoryEmbeddingProfile, []string) ([][]float64, error)
+type MemoryEmbeddingTargetAuthorizer func(context.Context, *runtimev1.MemoryRequestContext, *runtimev1.MemoryBankLocator) error
 
 type Service struct {
 	logger    *slog.Logger
@@ -111,6 +112,7 @@ type Service struct {
 	acceleratorCleanupCooldown time.Duration
 	runtimeEmbeddingResolver   MemoryEmbeddingProfileResolver
 	runtimeEmbeddingExecutor   MemoryEmbeddingVectorExecutor
+	embeddingTargetAuthorizer  MemoryEmbeddingTargetAuthorizer
 }
 
 func New(logger *slog.Logger, cfg config.Config) (*Service, error) {

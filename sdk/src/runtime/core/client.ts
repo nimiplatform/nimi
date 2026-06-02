@@ -20,6 +20,8 @@ import {
 import {
   CancelCompanionParticipationRequest,
   CancelCompanionParticipationResponse,
+  GetAgentCanonicalMemoryBankStatusRequest,
+  GetAgentCanonicalMemoryBankStatusResponse,
   GetAvatarDebugReplayRequest,
   GetAvatarDebugReplayResponse,
   GetAvatarDebugSnapshotRequest,
@@ -42,6 +44,8 @@ import {
   RegisterAvatarLiveInstanceBindingResponse,
   ResolveAvatarLiveInstanceBindingRequest,
   ResolveAvatarLiveInstanceBindingResponse,
+  RequestAgentCanonicalMemoryBankBindRequest,
+  RequestAgentCanonicalMemoryBankBindResponse,
   RequestAvatarDebugProbeRequest,
   RequestAvatarDebugProbeResponse,
   RequestCompanionParticipationRequest,
@@ -452,6 +456,8 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       recall: unary(RuntimeMethodIds.memory.recall),
       history: unary(RuntimeMethodIds.memory.history),
       deleteMemory: unary(RuntimeMethodIds.memory.deleteMemory),
+      getMemoryEmbeddingRuntimeIntent: unary(RuntimeMethodIds.memory.getMemoryEmbeddingRuntimeIntent),
+      setMemoryEmbeddingRuntimeIntent: unary(RuntimeMethodIds.memory.setMemoryEmbeddingRuntimeIntent),
       inspectMemoryEmbeddingRuntime: unary(RuntimeMethodIds.memory.inspectMemoryEmbeddingRuntime),
       requestMemoryEmbeddingRuntimeBind: unary(RuntimeMethodIds.memory.requestMemoryEmbeddingRuntimeBind),
       requestMemoryEmbeddingRuntimeCutover: unary(RuntimeMethodIds.memory.requestMemoryEmbeddingRuntimeCutover),
@@ -572,6 +578,14 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       cancelHook: unary(RuntimeMethodIds.agent.cancelHook),
       queryMemory: unary(RuntimeMethodIds.agent.queryMemory),
       writeMemory: unary(RuntimeMethodIds.agent.writeMemory),
+      getAgentCanonicalMemoryBankStatus: customUnary(RuntimeMethodIds.agent.getAgentCanonicalMemoryBankStatus, {
+        requestType: GetAgentCanonicalMemoryBankStatusRequest,
+        responseType: GetAgentCanonicalMemoryBankStatusResponse,
+      }),
+      requestAgentCanonicalMemoryBankBind: customUnary(RuntimeMethodIds.agent.requestAgentCanonicalMemoryBankBind, {
+        requestType: RequestAgentCanonicalMemoryBankBindRequest,
+        responseType: RequestAgentCanonicalMemoryBankBindResponse,
+      }),
       subscribeEvents: stream(RuntimeMethodIds.agent.subscribeEvents),
     },
     app: {

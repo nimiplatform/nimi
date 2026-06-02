@@ -551,6 +551,39 @@ message WriteAgentMemoryResponse {
   repeated CanonicalMemoryView accepted = 1;
   repeated CanonicalMemoryRejection rejected = 2;
 }
+enum AgentCanonicalMemoryBankMode {
+  AGENT_CANONICAL_MEMORY_BANK_MODE_UNSPECIFIED = 0;
+  AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE = 1;
+  AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD = 2;
+  AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE = 3;
+}
+message AgentCanonicalMemoryBankStatus {
+  AgentCanonicalMemoryBankMode mode = 1;
+  string bank_id = 2;
+  MemoryEmbeddingProfile embedding_profile = 3;
+  string binding_source_kind = 4;
+  ReasonCode blocked_reason_code = 5;
+  bool pending_cutover = 6;
+  string canonical_bank_status = 7;
+  bool bind_allowed = 8;
+  bool cutover_allowed = 9;
+}
+message GetAgentCanonicalMemoryBankStatusRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+}
+message GetAgentCanonicalMemoryBankStatusResponse {
+  AgentCanonicalMemoryBankStatus status = 1;
+}
+message RequestAgentCanonicalMemoryBankBindRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+}
+message RequestAgentCanonicalMemoryBankBindResponse {
+  AgentCanonicalMemoryBankStatus status = 1;
+  string outcome = 2;
+  ReasonCode blocked_reason_code = 3;
+}
 message SubscribeAgentEventsRequest {
   AgentRequestContext context = 1;
   string agent_id = 2;
@@ -820,5 +853,7 @@ service RuntimeAgentService {
   rpc ExecuteDelegatedCapability(ExecuteDelegatedCapabilityRequest) returns (ExecuteDelegatedCapabilityResponse);
   rpc QueryAgentMemory(QueryAgentMemoryRequest) returns (QueryAgentMemoryResponse);
   rpc WriteAgentMemory(WriteAgentMemoryRequest) returns (WriteAgentMemoryResponse);
+  rpc GetAgentCanonicalMemoryBankStatus(GetAgentCanonicalMemoryBankStatusRequest) returns (GetAgentCanonicalMemoryBankStatusResponse);
+  rpc RequestAgentCanonicalMemoryBankBind(RequestAgentCanonicalMemoryBankBindRequest) returns (RequestAgentCanonicalMemoryBankBindResponse);
   rpc SubscribeAgentEvents(SubscribeAgentEventsRequest) returns (stream AgentEvent);
 }

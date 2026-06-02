@@ -76,6 +76,21 @@ func (s *Service) runtimeEmbeddingVectorExecutor() MemoryEmbeddingVectorExecutor
 	return s.runtimeEmbeddingExecutor
 }
 
+func (s *Service) SetMemoryEmbeddingTargetAuthorizer(authorizer MemoryEmbeddingTargetAuthorizer) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	s.embeddingTargetAuthorizer = authorizer
+	s.mu.Unlock()
+}
+
+func (s *Service) memoryEmbeddingTargetAuthorizer() MemoryEmbeddingTargetAuthorizer {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.embeddingTargetAuthorizer
+}
+
 func (s *Service) EnsurePublicBankEmbeddingAvailability(bank *runtimev1.MemoryBank) error {
 	if bank == nil {
 		return status.Error(codes.InvalidArgument, "memory bank is required")

@@ -239,8 +239,9 @@ func publicChatMessageEnvelopePayloads(input []*runtimev1.ChatMessage, anchorID 
 	out := make([]any, 0, len(payloads))
 	for index, item := range payloads {
 		timestamp := publicChatTranscriptMessageTimestamp(createdAt, updatedAt, index)
-		out = append(out, map[string]any{
-			"id":         publicChatTranscriptMessageID(anchorID, index),
+		messageID := publicChatTranscriptMessageID(anchorID, index)
+		payload := map[string]any{
+			"id":         messageID,
 			"role":       item.Role,
 			"content":    item.Content,
 			"name":       item.Name,
@@ -248,7 +249,11 @@ func publicChatMessageEnvelopePayloads(input []*runtimev1.ChatMessage, anchorID 
 			"kind":       "text",
 			"created_at": timestamp,
 			"updated_at": timestamp,
-		})
+		}
+		if item.Role == "assistant" && index > 0 && payloads[index-1].Role == "user" {
+			payload["parent_message_id"] = publicChatTranscriptMessageID(anchorID, index-1)
+		}
+		out = append(out, payload)
 	}
 	return out
 }

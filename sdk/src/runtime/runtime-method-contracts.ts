@@ -167,6 +167,8 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.memory.recall]: RuntimeClientMethodContract<'memory', 'recall'>;
   [RuntimeMethodIds.memory.history]: RuntimeClientMethodContract<'memory', 'history'>;
   [RuntimeMethodIds.memory.deleteMemory]: RuntimeClientMethodContract<'memory', 'deleteMemory'>;
+  [RuntimeMethodIds.memory.getMemoryEmbeddingRuntimeIntent]: RuntimeClientMethodContract<'memory', 'getMemoryEmbeddingRuntimeIntent'>;
+  [RuntimeMethodIds.memory.setMemoryEmbeddingRuntimeIntent]: RuntimeClientMethodContract<'memory', 'setMemoryEmbeddingRuntimeIntent'>;
   [RuntimeMethodIds.memory.inspectMemoryEmbeddingRuntime]: RuntimeClientMethodContract<'memory', 'inspectMemoryEmbeddingRuntime'>;
   [RuntimeMethodIds.memory.requestMemoryEmbeddingRuntimeBind]: RuntimeClientMethodContract<'memory', 'requestMemoryEmbeddingRuntimeBind'>;
   [RuntimeMethodIds.memory.requestMemoryEmbeddingRuntimeCutover]: RuntimeClientMethodContract<'memory', 'requestMemoryEmbeddingRuntimeCutover'>;
@@ -209,6 +211,8 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.agent.cancelHook]: RuntimeClientMethodContract<'agent', 'cancelHook'>;
   [RuntimeMethodIds.agent.queryMemory]: RuntimeClientMethodContract<'agent', 'queryMemory'>;
   [RuntimeMethodIds.agent.writeMemory]: RuntimeClientMethodContract<'agent', 'writeMemory'>;
+  [RuntimeMethodIds.agent.getAgentCanonicalMemoryBankStatus]: RuntimeClientMethodContract<'agent', 'getAgentCanonicalMemoryBankStatus'>;
+  [RuntimeMethodIds.agent.requestAgentCanonicalMemoryBankBind]: RuntimeClientMethodContract<'agent', 'requestAgentCanonicalMemoryBankBind'>;
   [RuntimeMethodIds.app.sendAppMessage]: RuntimeClientMethodContract<'app', 'sendAppMessage'>;
   [RuntimeMethodIds.app.installApp]: RuntimeClientMethodContract<'app', 'installApp'>;
   [RuntimeMethodIds.app.uninstallApp]: RuntimeClientMethodContract<'app', 'uninstallApp'>;

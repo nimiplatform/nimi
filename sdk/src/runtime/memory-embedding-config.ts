@@ -27,10 +27,20 @@ export type MemoryEmbeddingConfig = {
   updatedAt: string;
 };
 
+export type MemoryEmbeddingRuntimeTargetRef = {
+  kind: 'agent-core';
+  localAgentRef: string;
+};
+
+export type MemoryEmbeddingConfigInput = {
+  scopeRef: AIScopeRef;
+  targetRef: MemoryEmbeddingRuntimeTargetRef;
+};
+
 export type MemoryEmbeddingConfigSurface = {
-  get(scopeRef: AIScopeRef): MemoryEmbeddingConfig;
-  update(scopeRef: AIScopeRef, config: MemoryEmbeddingConfig): void;
-  subscribe(scopeRef: AIScopeRef, callback: (config: MemoryEmbeddingConfig) => void): () => void;
+  get(input: MemoryEmbeddingConfigInput): Promise<MemoryEmbeddingConfig>;
+  update(input: MemoryEmbeddingConfigInput, config: MemoryEmbeddingConfig): Promise<MemoryEmbeddingConfig>;
+  subscribe(input: MemoryEmbeddingConfigInput, callback: (config: MemoryEmbeddingConfig) => void): () => void;
 };
 
 function assertExplicitAIScopeRef(scopeRef: AIScopeRef | null | undefined): AIScopeRef {

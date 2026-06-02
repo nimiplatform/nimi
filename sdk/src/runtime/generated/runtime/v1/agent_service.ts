@@ -34,6 +34,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { MemoryEmbeddingProfile } from "./memory";
 import { NarrativeRecallHit } from "./memory";
 import { MemoryRecordKind } from "./memory";
 import { Ack } from "./common";
@@ -1557,6 +1558,99 @@ export interface WriteAgentMemoryResponse {
     rejected: CanonicalMemoryRejection[];
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.AgentCanonicalMemoryBankStatus
+ */
+export interface AgentCanonicalMemoryBankStatus {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentCanonicalMemoryBankMode mode = 1
+     */
+    mode: AgentCanonicalMemoryBankMode;
+    /**
+     * @generated from protobuf field: string bank_id = 2
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MemoryEmbeddingProfile embedding_profile = 3
+     */
+    embeddingProfile?: MemoryEmbeddingProfile;
+    /**
+     * @generated from protobuf field: string binding_source_kind = 4
+     */
+    bindingSourceKind: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode blocked_reason_code = 5
+     */
+    blockedReasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: bool pending_cutover = 6
+     */
+    pendingCutover: boolean;
+    /**
+     * @generated from protobuf field: string canonical_bank_status = 7
+     */
+    canonicalBankStatus: string;
+    /**
+     * @generated from protobuf field: bool bind_allowed = 8
+     */
+    bindAllowed: boolean;
+    /**
+     * @generated from protobuf field: bool cutover_allowed = 9
+     */
+    cutoverAllowed: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusRequest
+ */
+export interface GetAgentCanonicalMemoryBankStatusRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusResponse
+ */
+export interface GetAgentCanonicalMemoryBankStatusResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentCanonicalMemoryBankStatus status = 1
+     */
+    status?: AgentCanonicalMemoryBankStatus;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindRequest
+ */
+export interface RequestAgentCanonicalMemoryBankBindRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindResponse
+ */
+export interface RequestAgentCanonicalMemoryBankBindResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentCanonicalMemoryBankStatus status = 1
+     */
+    status?: AgentCanonicalMemoryBankStatus;
+    /**
+     * @generated from protobuf field: string outcome = 2
+     */
+    outcome: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode blocked_reason_code = 3
+     */
+    blockedReasonCode: ReasonCode;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.SubscribeAgentEventsRequest
  */
 export interface SubscribeAgentEventsRequest {
@@ -2885,6 +2979,27 @@ export enum ConversationAnchorStatus {
      * @generated from protobuf enum value: CONVERSATION_ANCHOR_STATUS_CLOSED = 2;
      */
     CLOSED = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AgentCanonicalMemoryBankMode
+ */
+export enum AgentCanonicalMemoryBankMode {
+    /**
+     * @generated from protobuf enum value: AGENT_CANONICAL_MEMORY_BANK_MODE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE = 1;
+     */
+    BASELINE = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD = 2;
+     */
+    STANDARD = 2,
+    /**
+     * @generated from protobuf enum value: AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE = 3;
+     */
+    UNAVAILABLE = 3
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.CompanionParticipationSurfaceKind
@@ -7589,6 +7704,332 @@ class WriteAgentMemoryResponse$Type extends MessageType<WriteAgentMemoryResponse
  */
 export const WriteAgentMemoryResponse = new WriteAgentMemoryResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AgentCanonicalMemoryBankStatus$Type extends MessageType<AgentCanonicalMemoryBankStatus> {
+    constructor() {
+        super("nimi.runtime.v1.AgentCanonicalMemoryBankStatus", [
+            { no: 1, name: "mode", kind: "enum", T: () => ["nimi.runtime.v1.AgentCanonicalMemoryBankMode", AgentCanonicalMemoryBankMode, "AGENT_CANONICAL_MEMORY_BANK_MODE_"] },
+            { no: 2, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "embedding_profile", kind: "message", T: () => MemoryEmbeddingProfile },
+            { no: 4, name: "binding_source_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "blocked_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 6, name: "pending_cutover", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "canonical_bank_status", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "bind_allowed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 9, name: "cutover_allowed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AgentCanonicalMemoryBankStatus>): AgentCanonicalMemoryBankStatus {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.mode = 0;
+        message.bankId = "";
+        message.bindingSourceKind = "";
+        message.blockedReasonCode = 0;
+        message.pendingCutover = false;
+        message.canonicalBankStatus = "";
+        message.bindAllowed = false;
+        message.cutoverAllowed = false;
+        if (value !== undefined)
+            reflectionMergePartial<AgentCanonicalMemoryBankStatus>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentCanonicalMemoryBankStatus): AgentCanonicalMemoryBankStatus {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentCanonicalMemoryBankMode mode */ 1:
+                    message.mode = reader.int32();
+                    break;
+                case /* string bank_id */ 2:
+                    message.bankId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.MemoryEmbeddingProfile embedding_profile */ 3:
+                    message.embeddingProfile = MemoryEmbeddingProfile.internalBinaryRead(reader, reader.uint32(), options, message.embeddingProfile);
+                    break;
+                case /* string binding_source_kind */ 4:
+                    message.bindingSourceKind = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode blocked_reason_code */ 5:
+                    message.blockedReasonCode = reader.int32();
+                    break;
+                case /* bool pending_cutover */ 6:
+                    message.pendingCutover = reader.bool();
+                    break;
+                case /* string canonical_bank_status */ 7:
+                    message.canonicalBankStatus = reader.string();
+                    break;
+                case /* bool bind_allowed */ 8:
+                    message.bindAllowed = reader.bool();
+                    break;
+                case /* bool cutover_allowed */ 9:
+                    message.cutoverAllowed = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentCanonicalMemoryBankStatus, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentCanonicalMemoryBankMode mode = 1; */
+        if (message.mode !== 0)
+            writer.tag(1, WireType.Varint).int32(message.mode);
+        /* string bank_id = 2; */
+        if (message.bankId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bankId);
+        /* nimi.runtime.v1.MemoryEmbeddingProfile embedding_profile = 3; */
+        if (message.embeddingProfile)
+            MemoryEmbeddingProfile.internalBinaryWrite(message.embeddingProfile, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* string binding_source_kind = 4; */
+        if (message.bindingSourceKind !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.bindingSourceKind);
+        /* nimi.runtime.v1.ReasonCode blocked_reason_code = 5; */
+        if (message.blockedReasonCode !== 0)
+            writer.tag(5, WireType.Varint).int32(message.blockedReasonCode);
+        /* bool pending_cutover = 6; */
+        if (message.pendingCutover !== false)
+            writer.tag(6, WireType.Varint).bool(message.pendingCutover);
+        /* string canonical_bank_status = 7; */
+        if (message.canonicalBankStatus !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.canonicalBankStatus);
+        /* bool bind_allowed = 8; */
+        if (message.bindAllowed !== false)
+            writer.tag(8, WireType.Varint).bool(message.bindAllowed);
+        /* bool cutover_allowed = 9; */
+        if (message.cutoverAllowed !== false)
+            writer.tag(9, WireType.Varint).bool(message.cutoverAllowed);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentCanonicalMemoryBankStatus
+ */
+export const AgentCanonicalMemoryBankStatus = new AgentCanonicalMemoryBankStatus$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAgentCanonicalMemoryBankStatusRequest$Type extends MessageType<GetAgentCanonicalMemoryBankStatusRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetAgentCanonicalMemoryBankStatusRequest>): GetAgentCanonicalMemoryBankStatusRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetAgentCanonicalMemoryBankStatusRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAgentCanonicalMemoryBankStatusRequest): GetAgentCanonicalMemoryBankStatusRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAgentCanonicalMemoryBankStatusRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusRequest
+ */
+export const GetAgentCanonicalMemoryBankStatusRequest = new GetAgentCanonicalMemoryBankStatusRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAgentCanonicalMemoryBankStatusResponse$Type extends MessageType<GetAgentCanonicalMemoryBankStatusResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusResponse", [
+            { no: 1, name: "status", kind: "message", T: () => AgentCanonicalMemoryBankStatus }
+        ]);
+    }
+    create(value?: PartialMessage<GetAgentCanonicalMemoryBankStatusResponse>): GetAgentCanonicalMemoryBankStatusResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetAgentCanonicalMemoryBankStatusResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAgentCanonicalMemoryBankStatusResponse): GetAgentCanonicalMemoryBankStatusResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentCanonicalMemoryBankStatus status */ 1:
+                    message.status = AgentCanonicalMemoryBankStatus.internalBinaryRead(reader, reader.uint32(), options, message.status);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAgentCanonicalMemoryBankStatusResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentCanonicalMemoryBankStatus status = 1; */
+        if (message.status)
+            AgentCanonicalMemoryBankStatus.internalBinaryWrite(message.status, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAgentCanonicalMemoryBankStatusResponse
+ */
+export const GetAgentCanonicalMemoryBankStatusResponse = new GetAgentCanonicalMemoryBankStatusResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RequestAgentCanonicalMemoryBankBindRequest$Type extends MessageType<RequestAgentCanonicalMemoryBankBindRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RequestAgentCanonicalMemoryBankBindRequest>): RequestAgentCanonicalMemoryBankBindRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        if (value !== undefined)
+            reflectionMergePartial<RequestAgentCanonicalMemoryBankBindRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RequestAgentCanonicalMemoryBankBindRequest): RequestAgentCanonicalMemoryBankBindRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RequestAgentCanonicalMemoryBankBindRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindRequest
+ */
+export const RequestAgentCanonicalMemoryBankBindRequest = new RequestAgentCanonicalMemoryBankBindRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RequestAgentCanonicalMemoryBankBindResponse$Type extends MessageType<RequestAgentCanonicalMemoryBankBindResponse> {
+    constructor() {
+        super("nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindResponse", [
+            { no: 1, name: "status", kind: "message", T: () => AgentCanonicalMemoryBankStatus },
+            { no: 2, name: "outcome", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "blocked_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<RequestAgentCanonicalMemoryBankBindResponse>): RequestAgentCanonicalMemoryBankBindResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.outcome = "";
+        message.blockedReasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<RequestAgentCanonicalMemoryBankBindResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RequestAgentCanonicalMemoryBankBindResponse): RequestAgentCanonicalMemoryBankBindResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentCanonicalMemoryBankStatus status */ 1:
+                    message.status = AgentCanonicalMemoryBankStatus.internalBinaryRead(reader, reader.uint32(), options, message.status);
+                    break;
+                case /* string outcome */ 2:
+                    message.outcome = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode blocked_reason_code */ 3:
+                    message.blockedReasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RequestAgentCanonicalMemoryBankBindResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentCanonicalMemoryBankStatus status = 1; */
+        if (message.status)
+            AgentCanonicalMemoryBankStatus.internalBinaryWrite(message.status, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string outcome = 2; */
+        if (message.outcome !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.outcome);
+        /* nimi.runtime.v1.ReasonCode blocked_reason_code = 3; */
+        if (message.blockedReasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.blockedReasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindResponse
+ */
+export const RequestAgentCanonicalMemoryBankBindResponse = new RequestAgentCanonicalMemoryBankBindResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class SubscribeAgentEventsRequest$Type extends MessageType<SubscribeAgentEventsRequest> {
     constructor() {
         super("nimi.runtime.v1.SubscribeAgentEventsRequest", [
@@ -10242,5 +10683,7 @@ export const RuntimeAgentService = new ServiceType("nimi.runtime.v1.RuntimeAgent
     { name: "ExecuteDelegatedCapability", options: {}, I: ExecuteDelegatedCapabilityRequest, O: ExecuteDelegatedCapabilityResponse },
     { name: "QueryAgentMemory", options: {}, I: QueryAgentMemoryRequest, O: QueryAgentMemoryResponse },
     { name: "WriteAgentMemory", options: {}, I: WriteAgentMemoryRequest, O: WriteAgentMemoryResponse },
+    { name: "GetAgentCanonicalMemoryBankStatus", options: {}, I: GetAgentCanonicalMemoryBankStatusRequest, O: GetAgentCanonicalMemoryBankStatusResponse },
+    { name: "RequestAgentCanonicalMemoryBankBind", options: {}, I: RequestAgentCanonicalMemoryBankBindRequest, O: RequestAgentCanonicalMemoryBankBindResponse },
     { name: "SubscribeAgentEvents", serverStreaming: true, options: {}, I: SubscribeAgentEventsRequest, O: AgentEvent }
 ]);

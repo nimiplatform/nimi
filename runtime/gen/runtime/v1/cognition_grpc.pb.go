@@ -28,6 +28,8 @@ const (
 	RuntimeCognitionService_History_FullMethodName                              = "/nimi.runtime.v1.RuntimeCognitionService/History"
 	RuntimeCognitionService_DeleteMemory_FullMethodName                         = "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory"
 	RuntimeCognitionService_SubscribeMemoryEvents_FullMethodName                = "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents"
+	RuntimeCognitionService_GetMemoryEmbeddingRuntimeIntent_FullMethodName      = "/nimi.runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent"
+	RuntimeCognitionService_SetMemoryEmbeddingRuntimeIntent_FullMethodName      = "/nimi.runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent"
 	RuntimeCognitionService_InspectMemoryEmbeddingRuntime_FullMethodName        = "/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime"
 	RuntimeCognitionService_RequestMemoryEmbeddingRuntimeBind_FullMethodName    = "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind"
 	RuntimeCognitionService_RequestMemoryEmbeddingRuntimeCutover_FullMethodName = "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover"
@@ -63,6 +65,8 @@ type RuntimeCognitionServiceClient interface {
 	History(ctx context.Context, in *HistoryRequest, opts ...grpc.CallOption) (*HistoryResponse, error)
 	DeleteMemory(ctx context.Context, in *DeleteMemoryRequest, opts ...grpc.CallOption) (*DeleteMemoryResponse, error)
 	SubscribeMemoryEvents(ctx context.Context, in *SubscribeMemoryEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[MemoryEvent], error)
+	GetMemoryEmbeddingRuntimeIntent(ctx context.Context, in *GetMemoryEmbeddingRuntimeIntentRequest, opts ...grpc.CallOption) (*GetMemoryEmbeddingRuntimeIntentResponse, error)
+	SetMemoryEmbeddingRuntimeIntent(ctx context.Context, in *SetMemoryEmbeddingRuntimeIntentRequest, opts ...grpc.CallOption) (*SetMemoryEmbeddingRuntimeIntentResponse, error)
 	InspectMemoryEmbeddingRuntime(ctx context.Context, in *InspectMemoryEmbeddingRuntimeRequest, opts ...grpc.CallOption) (*InspectMemoryEmbeddingRuntimeResponse, error)
 	RequestMemoryEmbeddingRuntimeBind(ctx context.Context, in *RequestMemoryEmbeddingRuntimeBindRequest, opts ...grpc.CallOption) (*RequestMemoryEmbeddingRuntimeBindResponse, error)
 	RequestMemoryEmbeddingRuntimeCutover(ctx context.Context, in *RequestMemoryEmbeddingRuntimeCutoverRequest, opts ...grpc.CallOption) (*RequestMemoryEmbeddingRuntimeCutoverResponse, error)
@@ -191,6 +195,26 @@ func (c *runtimeCognitionServiceClient) SubscribeMemoryEvents(ctx context.Contex
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeCognitionService_SubscribeMemoryEventsClient = grpc.ServerStreamingClient[MemoryEvent]
+
+func (c *runtimeCognitionServiceClient) GetMemoryEmbeddingRuntimeIntent(ctx context.Context, in *GetMemoryEmbeddingRuntimeIntentRequest, opts ...grpc.CallOption) (*GetMemoryEmbeddingRuntimeIntentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetMemoryEmbeddingRuntimeIntentResponse)
+	err := c.cc.Invoke(ctx, RuntimeCognitionService_GetMemoryEmbeddingRuntimeIntent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeCognitionServiceClient) SetMemoryEmbeddingRuntimeIntent(ctx context.Context, in *SetMemoryEmbeddingRuntimeIntentRequest, opts ...grpc.CallOption) (*SetMemoryEmbeddingRuntimeIntentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetMemoryEmbeddingRuntimeIntentResponse)
+	err := c.cc.Invoke(ctx, RuntimeCognitionService_SetMemoryEmbeddingRuntimeIntent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 func (c *runtimeCognitionServiceClient) InspectMemoryEmbeddingRuntime(ctx context.Context, in *InspectMemoryEmbeddingRuntimeRequest, opts ...grpc.CallOption) (*InspectMemoryEmbeddingRuntimeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -405,6 +429,8 @@ type RuntimeCognitionServiceServer interface {
 	History(context.Context, *HistoryRequest) (*HistoryResponse, error)
 	DeleteMemory(context.Context, *DeleteMemoryRequest) (*DeleteMemoryResponse, error)
 	SubscribeMemoryEvents(*SubscribeMemoryEventsRequest, grpc.ServerStreamingServer[MemoryEvent]) error
+	GetMemoryEmbeddingRuntimeIntent(context.Context, *GetMemoryEmbeddingRuntimeIntentRequest) (*GetMemoryEmbeddingRuntimeIntentResponse, error)
+	SetMemoryEmbeddingRuntimeIntent(context.Context, *SetMemoryEmbeddingRuntimeIntentRequest) (*SetMemoryEmbeddingRuntimeIntentResponse, error)
 	InspectMemoryEmbeddingRuntime(context.Context, *InspectMemoryEmbeddingRuntimeRequest) (*InspectMemoryEmbeddingRuntimeResponse, error)
 	RequestMemoryEmbeddingRuntimeBind(context.Context, *RequestMemoryEmbeddingRuntimeBindRequest) (*RequestMemoryEmbeddingRuntimeBindResponse, error)
 	RequestMemoryEmbeddingRuntimeCutover(context.Context, *RequestMemoryEmbeddingRuntimeCutoverRequest) (*RequestMemoryEmbeddingRuntimeCutoverResponse, error)
@@ -460,6 +486,12 @@ func (UnimplementedRuntimeCognitionServiceServer) DeleteMemory(context.Context, 
 }
 func (UnimplementedRuntimeCognitionServiceServer) SubscribeMemoryEvents(*SubscribeMemoryEventsRequest, grpc.ServerStreamingServer[MemoryEvent]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeMemoryEvents not implemented")
+}
+func (UnimplementedRuntimeCognitionServiceServer) GetMemoryEmbeddingRuntimeIntent(context.Context, *GetMemoryEmbeddingRuntimeIntentRequest) (*GetMemoryEmbeddingRuntimeIntentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetMemoryEmbeddingRuntimeIntent not implemented")
+}
+func (UnimplementedRuntimeCognitionServiceServer) SetMemoryEmbeddingRuntimeIntent(context.Context, *SetMemoryEmbeddingRuntimeIntentRequest) (*SetMemoryEmbeddingRuntimeIntentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetMemoryEmbeddingRuntimeIntent not implemented")
 }
 func (UnimplementedRuntimeCognitionServiceServer) InspectMemoryEmbeddingRuntime(context.Context, *InspectMemoryEmbeddingRuntimeRequest) (*InspectMemoryEmbeddingRuntimeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method InspectMemoryEmbeddingRuntime not implemented")
@@ -695,6 +727,42 @@ func _RuntimeCognitionService_SubscribeMemoryEvents_Handler(srv interface{}, str
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeCognitionService_SubscribeMemoryEventsServer = grpc.ServerStreamingServer[MemoryEvent]
+
+func _RuntimeCognitionService_GetMemoryEmbeddingRuntimeIntent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMemoryEmbeddingRuntimeIntentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeCognitionServiceServer).GetMemoryEmbeddingRuntimeIntent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeCognitionService_GetMemoryEmbeddingRuntimeIntent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeCognitionServiceServer).GetMemoryEmbeddingRuntimeIntent(ctx, req.(*GetMemoryEmbeddingRuntimeIntentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeCognitionService_SetMemoryEmbeddingRuntimeIntent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetMemoryEmbeddingRuntimeIntentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeCognitionServiceServer).SetMemoryEmbeddingRuntimeIntent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeCognitionService_SetMemoryEmbeddingRuntimeIntent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeCognitionServiceServer).SetMemoryEmbeddingRuntimeIntent(ctx, req.(*SetMemoryEmbeddingRuntimeIntentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
 
 func _RuntimeCognitionService_InspectMemoryEmbeddingRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(InspectMemoryEmbeddingRuntimeRequest)
@@ -1094,6 +1162,14 @@ var RuntimeCognitionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteMemory",
 			Handler:    _RuntimeCognitionService_DeleteMemory_Handler,
+		},
+		{
+			MethodName: "GetMemoryEmbeddingRuntimeIntent",
+			Handler:    _RuntimeCognitionService_GetMemoryEmbeddingRuntimeIntent_Handler,
+		},
+		{
+			MethodName: "SetMemoryEmbeddingRuntimeIntent",
+			Handler:    _RuntimeCognitionService_SetMemoryEmbeddingRuntimeIntent_Handler,
 		},
 		{
 			MethodName: "InspectMemoryEmbeddingRuntime",

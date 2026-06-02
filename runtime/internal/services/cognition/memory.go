@@ -191,8 +191,8 @@ func (s *Service) DeleteMemory(ctx context.Context, req *runtimev1.DeleteMemoryR
 
 func (s *Service) InspectMemoryEmbeddingRuntime(ctx context.Context, req *runtimev1.InspectMemoryEmbeddingRuntimeRequest) (*runtimev1.InspectMemoryEmbeddingRuntimeResponse, error) {
 	state, err := s.memorySvc.InspectMemoryEmbeddingState(ctx, memoryservice.InspectMemoryEmbeddingStateRequest{
-		Locator:               cloneMemoryLocator(req.GetLocator()),
-		BindingIntentSnapshot: memoryEmbeddingIntentSnapshotFromProto(req.GetBindingIntentSnapshot()),
+		Context: req.GetContext(),
+		Locator: cloneMemoryLocator(req.GetLocator()),
 	})
 	if err != nil {
 		return nil, err
@@ -213,8 +213,8 @@ func (s *Service) InspectMemoryEmbeddingRuntime(ctx context.Context, req *runtim
 
 func (s *Service) RequestMemoryEmbeddingRuntimeBind(ctx context.Context, req *runtimev1.RequestMemoryEmbeddingRuntimeBindRequest) (*runtimev1.RequestMemoryEmbeddingRuntimeBindResponse, error) {
 	result, err := s.memorySvc.RequestCanonicalMemoryEmbeddingBind(ctx, memoryservice.RequestCanonicalMemoryEmbeddingBindRequest{
-		Locator:               cloneMemoryLocator(req.GetLocator()),
-		BindingIntentSnapshot: memoryEmbeddingIntentSnapshotFromProto(req.GetBindingIntentSnapshot()),
+		Context: req.GetContext(),
+		Locator: cloneMemoryLocator(req.GetLocator()),
 	})
 	if err != nil {
 		return nil, err
@@ -229,8 +229,8 @@ func (s *Service) RequestMemoryEmbeddingRuntimeBind(ctx context.Context, req *ru
 
 func (s *Service) RequestMemoryEmbeddingRuntimeCutover(ctx context.Context, req *runtimev1.RequestMemoryEmbeddingRuntimeCutoverRequest) (*runtimev1.RequestMemoryEmbeddingRuntimeCutoverResponse, error) {
 	result, err := s.memorySvc.RequestMemoryEmbeddingCutover(ctx, memoryservice.RequestMemoryEmbeddingCutoverRequest{
-		Locator:               cloneMemoryLocator(req.GetLocator()),
-		BindingIntentSnapshot: memoryEmbeddingIntentSnapshotFromProto(req.GetBindingIntentSnapshot()),
+		Context: req.GetContext(),
+		Locator: cloneMemoryLocator(req.GetLocator()),
 	})
 	if err != nil {
 		return nil, err
@@ -239,6 +239,35 @@ func (s *Service) RequestMemoryEmbeddingRuntimeCutover(ctx context.Context, req 
 		Outcome:                  strings.TrimSpace(result.Outcome),
 		BlockedReasonCode:        result.BlockedReasonCode,
 		CanonicalBankStatusAfter: strings.TrimSpace(result.CanonicalBankStatusAfter),
+	}, nil
+}
+
+func (s *Service) GetMemoryEmbeddingRuntimeIntent(ctx context.Context, req *runtimev1.GetMemoryEmbeddingRuntimeIntentRequest) (*runtimev1.GetMemoryEmbeddingRuntimeIntentResponse, error) {
+	result, err := s.memorySvc.GetMemoryEmbeddingBindingIntent(ctx, memoryservice.GetMemoryEmbeddingBindingIntentRequest{
+		Context: req.GetContext(),
+		Locator: cloneMemoryLocator(req.GetLocator()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.GetMemoryEmbeddingRuntimeIntentResponse{
+		BindingIntentPresent: result.BindingIntentPresent,
+		BindingIntent:        memoryEmbeddingIntentSnapshotToProto(result.BindingIntent),
+	}, nil
+}
+
+func (s *Service) SetMemoryEmbeddingRuntimeIntent(ctx context.Context, req *runtimev1.SetMemoryEmbeddingRuntimeIntentRequest) (*runtimev1.SetMemoryEmbeddingRuntimeIntentResponse, error) {
+	result, err := s.memorySvc.SetMemoryEmbeddingBindingIntent(ctx, memoryservice.SetMemoryEmbeddingBindingIntentRequest{
+		Context:       req.GetContext(),
+		Locator:       cloneMemoryLocator(req.GetLocator()),
+		BindingIntent: memoryEmbeddingIntentSnapshotFromProto(req.GetBindingIntent()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.SetMemoryEmbeddingRuntimeIntentResponse{
+		Accepted:      result.Accepted,
+		BindingIntent: memoryEmbeddingIntentSnapshotToProto(result.BindingIntent),
 	}, nil
 }
 
@@ -267,6 +296,28 @@ func memoryEmbeddingIntentSnapshotFromProto(input *runtimev1.MemoryEmbeddingBind
 		}(),
 		RevisionToken: strings.TrimSpace(input.GetRevisionToken()),
 	}
+}
+
+func memoryEmbeddingIntentSnapshotToProto(input *memoryservice.MemoryEmbeddingBindingIntentSnapshot) *runtimev1.MemoryEmbeddingBindingIntentSnapshot {
+	if input == nil {
+		return nil
+	}
+	out := &runtimev1.MemoryEmbeddingBindingIntentSnapshot{
+		SourceKind:    strings.TrimSpace(string(input.SourceKind)),
+		RevisionToken: strings.TrimSpace(input.RevisionToken),
+	}
+	if input.CloudBinding != nil {
+		out.CloudBinding = &runtimev1.MemoryEmbeddingCloudBindingRef{
+			ConnectorId: strings.TrimSpace(input.CloudBinding.ConnectorID),
+			ModelId:     strings.TrimSpace(input.CloudBinding.ModelID),
+		}
+	}
+	if input.LocalBinding != nil {
+		out.LocalBinding = &runtimev1.MemoryEmbeddingLocalBindingRef{
+			TargetId: strings.TrimSpace(input.LocalBinding.LocalModelID),
+		}
+	}
+	return out
 }
 
 func cloneMemoryEmbeddingProfile(value *runtimev1.MemoryEmbeddingProfile) *runtimev1.MemoryEmbeddingProfile {

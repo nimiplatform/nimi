@@ -310,6 +310,13 @@ func cloneLocator(input *runtimev1.MemoryBankLocator) *runtimev1.MemoryBankLocat
 	return proto.Clone(input).(*runtimev1.MemoryBankLocator)
 }
 
+func cloneMemoryEmbeddingProfile(input *runtimev1.MemoryEmbeddingProfile) *runtimev1.MemoryEmbeddingProfile {
+	if input == nil {
+		return nil
+	}
+	return proto.Clone(input).(*runtimev1.MemoryEmbeddingProfile)
+}
+
 func cloneCanonicalMemoryViews(input []*runtimev1.CanonicalMemoryView) []*runtimev1.CanonicalMemoryView {
 	out := make([]*runtimev1.CanonicalMemoryView, 0, len(input))
 	for _, item := range input {

@@ -42,6 +42,10 @@ import { RequestMemoryEmbeddingRuntimeBindResponse } from "./memory";
 import { RequestMemoryEmbeddingRuntimeBindRequest } from "./memory";
 import { InspectMemoryEmbeddingRuntimeResponse } from "./memory";
 import { InspectMemoryEmbeddingRuntimeRequest } from "./memory";
+import { SetMemoryEmbeddingRuntimeIntentResponse } from "./memory";
+import { SetMemoryEmbeddingRuntimeIntentRequest } from "./memory";
+import { GetMemoryEmbeddingRuntimeIntentResponse } from "./memory";
+import { GetMemoryEmbeddingRuntimeIntentRequest } from "./memory";
 import { MemoryEvent } from "./memory";
 import { SubscribeMemoryEventsRequest } from "./memory";
 import { DeleteMemoryResponse } from "./memory";
@@ -74,6 +78,8 @@ export const RuntimeCognitionService = new ServiceType("nimi.runtime.v1.RuntimeC
     { name: "History", options: {}, I: HistoryRequest, O: HistoryResponse },
     { name: "DeleteMemory", options: {}, I: DeleteMemoryRequest, O: DeleteMemoryResponse },
     { name: "SubscribeMemoryEvents", serverStreaming: true, options: {}, I: SubscribeMemoryEventsRequest, O: MemoryEvent },
+    { name: "GetMemoryEmbeddingRuntimeIntent", options: {}, I: GetMemoryEmbeddingRuntimeIntentRequest, O: GetMemoryEmbeddingRuntimeIntentResponse },
+    { name: "SetMemoryEmbeddingRuntimeIntent", options: {}, I: SetMemoryEmbeddingRuntimeIntentRequest, O: SetMemoryEmbeddingRuntimeIntentResponse },
     { name: "InspectMemoryEmbeddingRuntime", options: {}, I: InspectMemoryEmbeddingRuntimeRequest, O: InspectMemoryEmbeddingRuntimeResponse },
     { name: "RequestMemoryEmbeddingRuntimeBind", options: {}, I: RequestMemoryEmbeddingRuntimeBindRequest, O: RequestMemoryEmbeddingRuntimeBindResponse },
     { name: "RequestMemoryEmbeddingRuntimeCutover", options: {}, I: RequestMemoryEmbeddingRuntimeCutoverRequest, O: RequestMemoryEmbeddingRuntimeCutoverResponse },

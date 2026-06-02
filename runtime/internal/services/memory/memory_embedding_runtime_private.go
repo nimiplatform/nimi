@@ -50,13 +50,13 @@ type MemoryEmbeddingRuntimePrivateState struct {
 }
 
 type InspectMemoryEmbeddingStateRequest struct {
-	Locator               *runtimev1.MemoryBankLocator
-	BindingIntentSnapshot *MemoryEmbeddingBindingIntentSnapshot
+	Context *runtimev1.MemoryRequestContext
+	Locator *runtimev1.MemoryBankLocator
 }
 
 type RequestCanonicalMemoryEmbeddingBindRequest struct {
-	Locator               *runtimev1.MemoryBankLocator
-	BindingIntentSnapshot *MemoryEmbeddingBindingIntentSnapshot
+	Context *runtimev1.MemoryRequestContext
+	Locator *runtimev1.MemoryBankLocator
 }
 
 type RequestCanonicalMemoryEmbeddingBindResult struct {
@@ -67,8 +67,8 @@ type RequestCanonicalMemoryEmbeddingBindResult struct {
 }
 
 type RequestMemoryEmbeddingCutoverRequest struct {
-	Locator               *runtimev1.MemoryBankLocator
-	BindingIntentSnapshot *MemoryEmbeddingBindingIntentSnapshot
+	Context *runtimev1.MemoryRequestContext
+	Locator *runtimev1.MemoryBankLocator
 }
 
 type RequestMemoryEmbeddingCutoverResult struct {
@@ -352,10 +352,18 @@ func (s *Service) ensurePendingEmbeddingCutoverReady(ctx context.Context, locato
 }
 
 func (s *Service) inspectMemoryEmbeddingState(ctx context.Context, req InspectMemoryEmbeddingStateRequest, evaluateReadiness bool) (*MemoryEmbeddingRuntimePrivateState, error) {
-	if err := validateMemoryEmbeddingLocator(req.Locator); err != nil {
+	if err := s.authorizeMemoryEmbeddingTarget(ctx, req.Context, req.Locator); err != nil {
 		return nil, err
 	}
-	resolvedProfile, resolutionState, blockedReasonCode := s.resolveMemoryEmbeddingProfile(ctx, req.BindingIntentSnapshot)
+	intent, err := s.GetMemoryEmbeddingBindingIntent(ctx, GetMemoryEmbeddingBindingIntentRequest{
+		Context: req.Context,
+		Locator: cloneLocator(req.Locator),
+	})
+	if err != nil {
+		return nil, err
+	}
+	bindingIntent := intent.BindingIntent
+	resolvedProfile, resolutionState, blockedReasonCode := s.resolveMemoryEmbeddingProfile(ctx, bindingIntent)
 	bankState, err := s.bankForLocator(req.Locator)
 	if err != nil && status.Code(err) != codes.NotFound {
 		return nil, err
@@ -386,11 +394,11 @@ func (s *Service) inspectMemoryEmbeddingState(ctx context.Context, req InspectMe
 		(canonicalBankStatus == memoryEmbeddingCanonicalBankStatusUnbound || canonicalBankStatus == memoryEmbeddingCanonicalBankStatusBoundProfileMismatch)
 	cutoverAllowed := resolutionState == memoryEmbeddingResolutionStateResolved && canonicalBankStatus == memoryEmbeddingCanonicalBankStatusCutoverReady
 	bindingSourceKind := MemoryEmbeddingBindingSourceKindUnspecified
-	if req.BindingIntentSnapshot != nil {
-		bindingSourceKind = normalizeMemoryEmbeddingSourceKind(req.BindingIntentSnapshot.SourceKind)
+	if bindingIntent != nil {
+		bindingSourceKind = normalizeMemoryEmbeddingSourceKind(bindingIntent.SourceKind)
 	}
 	return &MemoryEmbeddingRuntimePrivateState{
-		BindingIntentPresent:    bindingIntentPresent(req.BindingIntentSnapshot),
+		BindingIntentPresent:    bindingIntentPresent(bindingIntent),
 		BindingSourceKind:       bindingSourceKind,
 		ResolutionState:         resolutionState,
 		ResolvedProfileIdentity: cloneEmbeddingProfile(resolvedProfile),
@@ -408,12 +416,19 @@ func (s *Service) InspectMemoryEmbeddingState(ctx context.Context, req InspectMe
 }
 
 func (s *Service) RequestCanonicalMemoryEmbeddingBind(ctx context.Context, req RequestCanonicalMemoryEmbeddingBindRequest) (*RequestCanonicalMemoryEmbeddingBindResult, error) {
-	if err := validateMemoryEmbeddingLocator(req.Locator); err != nil {
+	if err := s.authorizeMemoryEmbeddingTarget(ctx, req.Context, req.Locator); err != nil {
+		return nil, err
+	}
+	intent, err := s.GetMemoryEmbeddingBindingIntent(ctx, GetMemoryEmbeddingBindingIntentRequest{
+		Context: req.Context,
+		Locator: cloneLocator(req.Locator),
+	})
+	if err != nil {
 		return nil, err
 	}
 	state, err := s.InspectMemoryEmbeddingState(ctx, InspectMemoryEmbeddingStateRequest{
-		Locator:               cloneLocator(req.Locator),
-		BindingIntentSnapshot: cloneMemoryEmbeddingIntentSnapshot(req.BindingIntentSnapshot),
+		Context: req.Context,
+		Locator: cloneLocator(req.Locator),
 	})
 	if err != nil {
 		return nil, err
@@ -455,8 +470,8 @@ func (s *Service) RequestCanonicalMemoryEmbeddingBind(ctx context.Context, req R
 	}
 	if state.CanonicalBankStatus == memoryEmbeddingCanonicalBankStatusBoundProfileMismatch {
 		revisionToken := ""
-		if req.BindingIntentSnapshot != nil {
-			revisionToken = strings.TrimSpace(req.BindingIntentSnapshot.RevisionToken)
+		if intent.BindingIntent != nil {
+			revisionToken = strings.TrimSpace(intent.BindingIntent.RevisionToken)
 		}
 		if _, err := s.StageCanonicalBankEmbeddingCutover(ctx, cloneLocator(req.Locator), state.ResolvedProfileIdentity, revisionToken); err != nil {
 			return nil, err
@@ -498,12 +513,12 @@ func (s *Service) RequestCanonicalMemoryEmbeddingBind(ctx context.Context, req R
 }
 
 func (s *Service) RequestMemoryEmbeddingCutover(ctx context.Context, req RequestMemoryEmbeddingCutoverRequest) (*RequestMemoryEmbeddingCutoverResult, error) {
-	if err := validateMemoryEmbeddingLocator(req.Locator); err != nil {
+	if err := s.authorizeMemoryEmbeddingTarget(ctx, req.Context, req.Locator); err != nil {
 		return nil, err
 	}
 	state, err := s.InspectMemoryEmbeddingState(ctx, InspectMemoryEmbeddingStateRequest{
-		Locator:               cloneLocator(req.Locator),
-		BindingIntentSnapshot: cloneMemoryEmbeddingIntentSnapshot(req.BindingIntentSnapshot),
+		Context: req.Context,
+		Locator: cloneLocator(req.Locator),
 	})
 	if err != nil {
 		return nil, err
@@ -530,8 +545,8 @@ func (s *Service) RequestMemoryEmbeddingCutover(ctx context.Context, req Request
 			return nil, err
 		}
 		state, err = s.inspectMemoryEmbeddingState(ctx, InspectMemoryEmbeddingStateRequest{
-			Locator:               cloneLocator(req.Locator),
-			BindingIntentSnapshot: cloneMemoryEmbeddingIntentSnapshot(req.BindingIntentSnapshot),
+			Context: req.Context,
+			Locator: cloneLocator(req.Locator),
 		}, false)
 		if err != nil {
 			return nil, err

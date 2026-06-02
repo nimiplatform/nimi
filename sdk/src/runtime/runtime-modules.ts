@@ -270,6 +270,8 @@ const MEMORY_METHODS = [
   'recall',
   'history',
   'deleteMemory',
+  'getMemoryEmbeddingRuntimeIntent',
+  'setMemoryEmbeddingRuntimeIntent',
   'inspectMemoryEmbeddingRuntime',
   'requestMemoryEmbeddingRuntimeBind',
   'requestMemoryEmbeddingRuntimeCutover',
@@ -316,6 +318,8 @@ const AGENT_METHODS = [
   'cancelHook',
   'queryMemory',
   'writeMemory',
+  'getAgentCanonicalMemoryBankStatus',
+  'requestAgentCanonicalMemoryBankBind',
   'subscribeEvents',
 ] as const satisfies readonly RuntimePassthroughMethod<RuntimeAgentClient>[];
 

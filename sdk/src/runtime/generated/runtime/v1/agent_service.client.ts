@@ -8,6 +8,10 @@ import { RuntimeAgentService } from "./agent_service";
 import type { AgentEvent } from "./agent_service";
 import type { SubscribeAgentEventsRequest } from "./agent_service";
 import type { ServerStreamingCall } from "@protobuf-ts/runtime-rpc";
+import type { RequestAgentCanonicalMemoryBankBindResponse } from "./agent_service";
+import type { RequestAgentCanonicalMemoryBankBindRequest } from "./agent_service";
+import type { GetAgentCanonicalMemoryBankStatusResponse } from "./agent_service";
+import type { GetAgentCanonicalMemoryBankStatusRequest } from "./agent_service";
 import type { WriteAgentMemoryResponse } from "./agent_service";
 import type { WriteAgentMemoryRequest } from "./agent_service";
 import type { QueryAgentMemoryResponse } from "./agent_service";
@@ -249,6 +253,14 @@ export interface IRuntimeAgentServiceClient {
      * @generated from protobuf rpc: WriteAgentMemory
      */
     writeAgentMemory(input: WriteAgentMemoryRequest, options?: RpcOptions): UnaryCall<WriteAgentMemoryRequest, WriteAgentMemoryResponse>;
+    /**
+     * @generated from protobuf rpc: GetAgentCanonicalMemoryBankStatus
+     */
+    getAgentCanonicalMemoryBankStatus(input: GetAgentCanonicalMemoryBankStatusRequest, options?: RpcOptions): UnaryCall<GetAgentCanonicalMemoryBankStatusRequest, GetAgentCanonicalMemoryBankStatusResponse>;
+    /**
+     * @generated from protobuf rpc: RequestAgentCanonicalMemoryBankBind
+     */
+    requestAgentCanonicalMemoryBankBind(input: RequestAgentCanonicalMemoryBankBindRequest, options?: RpcOptions): UnaryCall<RequestAgentCanonicalMemoryBankBindRequest, RequestAgentCanonicalMemoryBankBindResponse>;
     /**
      * @generated from protobuf rpc: SubscribeAgentEvents
      */
@@ -537,10 +549,24 @@ export class RuntimeAgentServiceClient implements IRuntimeAgentServiceClient, Se
         return stackIntercept<WriteAgentMemoryRequest, WriteAgentMemoryResponse>("unary", this._transport, method, opt, input);
     }
     /**
+     * @generated from protobuf rpc: GetAgentCanonicalMemoryBankStatus
+     */
+    getAgentCanonicalMemoryBankStatus(input: GetAgentCanonicalMemoryBankStatusRequest, options?: RpcOptions): UnaryCall<GetAgentCanonicalMemoryBankStatusRequest, GetAgentCanonicalMemoryBankStatusResponse> {
+        const method = this.methods[39], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GetAgentCanonicalMemoryBankStatusRequest, GetAgentCanonicalMemoryBankStatusResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: RequestAgentCanonicalMemoryBankBind
+     */
+    requestAgentCanonicalMemoryBankBind(input: RequestAgentCanonicalMemoryBankBindRequest, options?: RpcOptions): UnaryCall<RequestAgentCanonicalMemoryBankBindRequest, RequestAgentCanonicalMemoryBankBindResponse> {
+        const method = this.methods[40], opt = this._transport.mergeOptions(options);
+        return stackIntercept<RequestAgentCanonicalMemoryBankBindRequest, RequestAgentCanonicalMemoryBankBindResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
      * @generated from protobuf rpc: SubscribeAgentEvents
      */
     subscribeAgentEvents(input: SubscribeAgentEventsRequest, options?: RpcOptions): ServerStreamingCall<SubscribeAgentEventsRequest, AgentEvent> {
-        const method = this.methods[39], opt = this._transport.mergeOptions(options);
+        const method = this.methods[41], opt = this._transport.mergeOptions(options);
         return stackIntercept<SubscribeAgentEventsRequest, AgentEvent>("serverStreaming", this._transport, method, opt, input);
     }
 }

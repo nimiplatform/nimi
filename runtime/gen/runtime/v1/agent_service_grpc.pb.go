@@ -58,6 +58,8 @@ const (
 	RuntimeAgentService_ExecuteDelegatedCapability_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability"
 	RuntimeAgentService_QueryAgentMemory_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory"
 	RuntimeAgentService_WriteAgentMemory_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory"
+	RuntimeAgentService_GetAgentCanonicalMemoryBankStatus_FullMethodName     = "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus"
+	RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_FullMethodName   = "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind"
 	RuntimeAgentService_SubscribeAgentEvents_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
 )
 
@@ -104,6 +106,8 @@ type RuntimeAgentServiceClient interface {
 	ExecuteDelegatedCapability(ctx context.Context, in *ExecuteDelegatedCapabilityRequest, opts ...grpc.CallOption) (*ExecuteDelegatedCapabilityResponse, error)
 	QueryAgentMemory(ctx context.Context, in *QueryAgentMemoryRequest, opts ...grpc.CallOption) (*QueryAgentMemoryResponse, error)
 	WriteAgentMemory(ctx context.Context, in *WriteAgentMemoryRequest, opts ...grpc.CallOption) (*WriteAgentMemoryResponse, error)
+	GetAgentCanonicalMemoryBankStatus(ctx context.Context, in *GetAgentCanonicalMemoryBankStatusRequest, opts ...grpc.CallOption) (*GetAgentCanonicalMemoryBankStatusResponse, error)
+	RequestAgentCanonicalMemoryBankBind(ctx context.Context, in *RequestAgentCanonicalMemoryBankBindRequest, opts ...grpc.CallOption) (*RequestAgentCanonicalMemoryBankBindResponse, error)
 	SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error)
 }
 
@@ -505,6 +509,26 @@ func (c *runtimeAgentServiceClient) WriteAgentMemory(ctx context.Context, in *Wr
 	return out, nil
 }
 
+func (c *runtimeAgentServiceClient) GetAgentCanonicalMemoryBankStatus(ctx context.Context, in *GetAgentCanonicalMemoryBankStatusRequest, opts ...grpc.CallOption) (*GetAgentCanonicalMemoryBankStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAgentCanonicalMemoryBankStatusResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetAgentCanonicalMemoryBankStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) RequestAgentCanonicalMemoryBankBind(ctx context.Context, in *RequestAgentCanonicalMemoryBankBindRequest, opts ...grpc.CallOption) (*RequestAgentCanonicalMemoryBankBindResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RequestAgentCanonicalMemoryBankBindResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAgentServiceClient) SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[0], RuntimeAgentService_SubscribeAgentEvents_FullMethodName, cOpts...)
@@ -567,6 +591,8 @@ type RuntimeAgentServiceServer interface {
 	ExecuteDelegatedCapability(context.Context, *ExecuteDelegatedCapabilityRequest) (*ExecuteDelegatedCapabilityResponse, error)
 	QueryAgentMemory(context.Context, *QueryAgentMemoryRequest) (*QueryAgentMemoryResponse, error)
 	WriteAgentMemory(context.Context, *WriteAgentMemoryRequest) (*WriteAgentMemoryResponse, error)
+	GetAgentCanonicalMemoryBankStatus(context.Context, *GetAgentCanonicalMemoryBankStatusRequest) (*GetAgentCanonicalMemoryBankStatusResponse, error)
+	RequestAgentCanonicalMemoryBankBind(context.Context, *RequestAgentCanonicalMemoryBankBindRequest) (*RequestAgentCanonicalMemoryBankBindResponse, error)
 	SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error
 }
 
@@ -693,6 +719,12 @@ func (UnimplementedRuntimeAgentServiceServer) QueryAgentMemory(context.Context, 
 }
 func (UnimplementedRuntimeAgentServiceServer) WriteAgentMemory(context.Context, *WriteAgentMemoryRequest) (*WriteAgentMemoryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method WriteAgentMemory not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) GetAgentCanonicalMemoryBankStatus(context.Context, *GetAgentCanonicalMemoryBankStatusRequest) (*GetAgentCanonicalMemoryBankStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAgentCanonicalMemoryBankStatus not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) RequestAgentCanonicalMemoryBankBind(context.Context, *RequestAgentCanonicalMemoryBankBindRequest) (*RequestAgentCanonicalMemoryBankBindResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RequestAgentCanonicalMemoryBankBind not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeAgentEvents not implemented")
@@ -1419,6 +1451,42 @@ func _RuntimeAgentService_WriteAgentMemory_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAgentService_GetAgentCanonicalMemoryBankStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAgentCanonicalMemoryBankStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).GetAgentCanonicalMemoryBankStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_GetAgentCanonicalMemoryBankStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).GetAgentCanonicalMemoryBankStatus(ctx, req.(*GetAgentCanonicalMemoryBankStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestAgentCanonicalMemoryBankBindRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).RequestAgentCanonicalMemoryBankBind(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).RequestAgentCanonicalMemoryBankBind(ctx, req.(*RequestAgentCanonicalMemoryBankBindRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAgentService_SubscribeAgentEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(SubscribeAgentEventsRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -1592,6 +1660,14 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "WriteAgentMemory",
 			Handler:    _RuntimeAgentService_WriteAgentMemory_Handler,
+		},
+		{
+			MethodName: "GetAgentCanonicalMemoryBankStatus",
+			Handler:    _RuntimeAgentService_GetAgentCanonicalMemoryBankStatus_Handler,
+		},
+		{
+			MethodName: "RequestAgentCanonicalMemoryBankBind",
+			Handler:    _RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

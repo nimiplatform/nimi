@@ -37,6 +37,8 @@ var readOnlyMethods = map[string]bool{
 	"/nimi.runtime.v1.RuntimeCognitionService/ListBanks":                         true,
 	"/nimi.runtime.v1.RuntimeCognitionService/Recall":                            true,
 	"/nimi.runtime.v1.RuntimeCognitionService/History":                           true,
+	"/nimi.runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent":   true,
+	"/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime":     true,
 	"/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents":             true,
 	"/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank":                  true,
 	"/nimi.runtime.v1.RuntimeCognitionService/ListKnowledgeBanks":                true,

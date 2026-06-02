@@ -2,6 +2,8 @@ import type {
   AgentEvent,
   CancelCompanionParticipationRequest,
   CancelCompanionParticipationResponse,
+  GetAgentCanonicalMemoryBankStatusRequest,
+  GetAgentCanonicalMemoryBankStatusResponse,
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
   GetCompanionParticipationProjectionRequest,
@@ -20,6 +22,8 @@ import type {
   ResolveAvatarLiveInstanceBindingResponse,
   RequestCompanionParticipationRequest,
   RequestCompanionParticipationResponse,
+  RequestAgentCanonicalMemoryBankBindRequest,
+  RequestAgentCanonicalMemoryBankBindResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
   SetAgentPresentationProfileRequest,
@@ -75,6 +79,12 @@ const runtimeMemoryUnaryResult = runtime.call(RuntimeMethodIds.memory.createBank
 const rawAgentUnaryResult = raw.call(RuntimeMethodIds.agent.queryMemory, {} as QueryAgentMemoryRequest);
 const rawAgentStreamResult = raw.call(RuntimeMethodIds.agent.subscribeEvents, {} as SubscribeAgentEventsRequest);
 const runtimeAgentUnaryResult = runtime.call(RuntimeMethodIds.agent.writeMemory, {} as WriteAgentMemoryRequest);
+const runtimeAgentCanonicalMemoryStatusResult = runtime.agent.getAgentCanonicalMemoryBankStatus(
+  {} as GetAgentCanonicalMemoryBankStatusRequest,
+);
+const runtimeAgentCanonicalMemoryBindResult = runtime.agent.requestAgentCanonicalMemoryBankBind(
+  {} as RequestAgentCanonicalMemoryBankBindRequest,
+);
 const runtimeAgentPresentationResult = runtime.call(
   RuntimeMethodIds.agent.setPresentationProfile,
   {} as SetAgentPresentationProfileRequest,
@@ -207,6 +217,14 @@ type _GuardRuntimeAgentCreateRealmGroupMessageCandidateResult = Assert<IsEqual<
 type _GuardRuntimeAgentGetRealmGroupMessageCandidateEvidenceResult = Assert<IsEqual<
   Awaited<typeof runtimeAgentGetRealmGroupMessageCandidateEvidenceResult>,
   GetRealmGroupMessageCandidateEvidenceResponse
+>>;
+type _GuardRuntimeAgentCanonicalMemoryStatusResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentCanonicalMemoryStatusResult>,
+  GetAgentCanonicalMemoryBankStatusResponse
+>>;
+type _GuardRuntimeAgentCanonicalMemoryBindResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentCanonicalMemoryBindResult>,
+  RequestAgentCanonicalMemoryBankBindResponse
 >>;
 type _GuardRuntimeAgentDelegatedSnapshotResult = Assert<IsEqual<
   Awaited<typeof runtimeAgentDelegatedSnapshotResult>,

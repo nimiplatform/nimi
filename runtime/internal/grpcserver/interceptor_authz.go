@@ -153,6 +153,10 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.memory.read", true
 	case "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory":
 		return "runtime.memory.write", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent":
+		return "runtime.memory.read", true
+	case "/nimi.runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent":
+		return "runtime.memory.write", true
 	case "/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime":
 		return "runtime.memory.read", true
 	case "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind":
@@ -266,6 +270,10 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 	case "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory":
 		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory":
+		return "runtime.agent.write", true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus":
+		return "runtime.agent.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind":
 		return "runtime.agent.write", true
 	case "/nimi.runtime.v1.RuntimeAppService/SendAppMessage":
 		message, ok := req.(*runtimev1.SendAppMessageRequest)

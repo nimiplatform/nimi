@@ -19,6 +19,8 @@ export * from './model-catalog.js';
 export * from './workflow-builder.js';
 export * from './app-storage.js';
 export * from './runtime-agent-consumer-helpers.js';
+export * from './runtime-agent-turn-runner.js';
+export * from './runtime-media-generation-job-runner.js';
 export * from './runtime-agent-inspect-projection.js';
 export * from './runtime-agent-inspect-surface.js';
 export * from './runtime-agent-delegated-capability-surface.js';
@@ -60,6 +62,12 @@ export {
   StreamEventType,
   ScenarioJobStatus,
   ScenarioJobEventType,
+} from './generated/runtime/v1/ai.js';
+export type {
+  ScenarioArtifact,
+  ScenarioJob,
+  ScenarioJobEvent,
+  ScenarioOutput,
 } from './generated/runtime/v1/ai.js';
 export { ModelHealthStatus, ModelStatus } from './generated/runtime/v1/model.js';
 export type {
@@ -151,6 +159,7 @@ export {
   MemoryReplicationOutcome,
 } from './generated/runtime/v1/memory.js';
 export {
+  AgentCanonicalMemoryBankMode,
   AgentEventType,
   AgentAutonomyMode,
   AgentExecutionState,

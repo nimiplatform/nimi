@@ -4125,18 +4125,234 @@ func (x *SubscribeMemoryEventsRequest) GetCursor() string {
 	return ""
 }
 
+type GetMemoryEmbeddingRuntimeIntentRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Context       *MemoryRequestContext  `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	Locator       *MemoryBankLocator     `protobuf:"bytes,2,opt,name=locator,proto3" json:"locator,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetMemoryEmbeddingRuntimeIntentRequest) Reset() {
+	*x = GetMemoryEmbeddingRuntimeIntentRequest{}
+	mi := &file_runtime_v1_memory_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetMemoryEmbeddingRuntimeIntentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMemoryEmbeddingRuntimeIntentRequest) ProtoMessage() {}
+
+func (x *GetMemoryEmbeddingRuntimeIntentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_memory_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMemoryEmbeddingRuntimeIntentRequest.ProtoReflect.Descriptor instead.
+func (*GetMemoryEmbeddingRuntimeIntentRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{52}
+}
+
+func (x *GetMemoryEmbeddingRuntimeIntentRequest) GetContext() *MemoryRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *GetMemoryEmbeddingRuntimeIntentRequest) GetLocator() *MemoryBankLocator {
+	if x != nil {
+		return x.Locator
+	}
+	return nil
+}
+
+type GetMemoryEmbeddingRuntimeIntentResponse struct {
+	state                protoimpl.MessageState                `protogen:"open.v1"`
+	BindingIntentPresent bool                                  `protobuf:"varint,1,opt,name=binding_intent_present,json=bindingIntentPresent,proto3" json:"binding_intent_present,omitempty"`
+	BindingIntent        *MemoryEmbeddingBindingIntentSnapshot `protobuf:"bytes,2,opt,name=binding_intent,json=bindingIntent,proto3" json:"binding_intent,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *GetMemoryEmbeddingRuntimeIntentResponse) Reset() {
+	*x = GetMemoryEmbeddingRuntimeIntentResponse{}
+	mi := &file_runtime_v1_memory_proto_msgTypes[53]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetMemoryEmbeddingRuntimeIntentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMemoryEmbeddingRuntimeIntentResponse) ProtoMessage() {}
+
+func (x *GetMemoryEmbeddingRuntimeIntentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_memory_proto_msgTypes[53]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMemoryEmbeddingRuntimeIntentResponse.ProtoReflect.Descriptor instead.
+func (*GetMemoryEmbeddingRuntimeIntentResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{53}
+}
+
+func (x *GetMemoryEmbeddingRuntimeIntentResponse) GetBindingIntentPresent() bool {
+	if x != nil {
+		return x.BindingIntentPresent
+	}
+	return false
+}
+
+func (x *GetMemoryEmbeddingRuntimeIntentResponse) GetBindingIntent() *MemoryEmbeddingBindingIntentSnapshot {
+	if x != nil {
+		return x.BindingIntent
+	}
+	return nil
+}
+
+type SetMemoryEmbeddingRuntimeIntentRequest struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Context *MemoryRequestContext  `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	Locator *MemoryBankLocator     `protobuf:"bytes,2,opt,name=locator,proto3" json:"locator,omitempty"`
+	// Omit or send an empty binding_intent to clear the Runtime-owned binding intent.
+	BindingIntent *MemoryEmbeddingBindingIntentSnapshot `protobuf:"bytes,3,opt,name=binding_intent,json=bindingIntent,proto3" json:"binding_intent,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetMemoryEmbeddingRuntimeIntentRequest) Reset() {
+	*x = SetMemoryEmbeddingRuntimeIntentRequest{}
+	mi := &file_runtime_v1_memory_proto_msgTypes[54]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetMemoryEmbeddingRuntimeIntentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetMemoryEmbeddingRuntimeIntentRequest) ProtoMessage() {}
+
+func (x *SetMemoryEmbeddingRuntimeIntentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_memory_proto_msgTypes[54]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetMemoryEmbeddingRuntimeIntentRequest.ProtoReflect.Descriptor instead.
+func (*SetMemoryEmbeddingRuntimeIntentRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{54}
+}
+
+func (x *SetMemoryEmbeddingRuntimeIntentRequest) GetContext() *MemoryRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *SetMemoryEmbeddingRuntimeIntentRequest) GetLocator() *MemoryBankLocator {
+	if x != nil {
+		return x.Locator
+	}
+	return nil
+}
+
+func (x *SetMemoryEmbeddingRuntimeIntentRequest) GetBindingIntent() *MemoryEmbeddingBindingIntentSnapshot {
+	if x != nil {
+		return x.BindingIntent
+	}
+	return nil
+}
+
+type SetMemoryEmbeddingRuntimeIntentResponse struct {
+	state         protoimpl.MessageState                `protogen:"open.v1"`
+	Accepted      bool                                  `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	BindingIntent *MemoryEmbeddingBindingIntentSnapshot `protobuf:"bytes,2,opt,name=binding_intent,json=bindingIntent,proto3" json:"binding_intent,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetMemoryEmbeddingRuntimeIntentResponse) Reset() {
+	*x = SetMemoryEmbeddingRuntimeIntentResponse{}
+	mi := &file_runtime_v1_memory_proto_msgTypes[55]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetMemoryEmbeddingRuntimeIntentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetMemoryEmbeddingRuntimeIntentResponse) ProtoMessage() {}
+
+func (x *SetMemoryEmbeddingRuntimeIntentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_memory_proto_msgTypes[55]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetMemoryEmbeddingRuntimeIntentResponse.ProtoReflect.Descriptor instead.
+func (*SetMemoryEmbeddingRuntimeIntentResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{55}
+}
+
+func (x *SetMemoryEmbeddingRuntimeIntentResponse) GetAccepted() bool {
+	if x != nil {
+		return x.Accepted
+	}
+	return false
+}
+
+func (x *SetMemoryEmbeddingRuntimeIntentResponse) GetBindingIntent() *MemoryEmbeddingBindingIntentSnapshot {
+	if x != nil {
+		return x.BindingIntent
+	}
+	return nil
+}
+
 type InspectMemoryEmbeddingRuntimeRequest struct {
-	state                 protoimpl.MessageState                `protogen:"open.v1"`
-	Context               *MemoryRequestContext                 `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	Locator               *MemoryBankLocator                    `protobuf:"bytes,2,opt,name=locator,proto3" json:"locator,omitempty"`
-	BindingIntentSnapshot *MemoryEmbeddingBindingIntentSnapshot `protobuf:"bytes,3,opt,name=binding_intent_snapshot,json=bindingIntentSnapshot,proto3" json:"binding_intent_snapshot,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Context       *MemoryRequestContext  `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	Locator       *MemoryBankLocator     `protobuf:"bytes,2,opt,name=locator,proto3" json:"locator,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *InspectMemoryEmbeddingRuntimeRequest) Reset() {
 	*x = InspectMemoryEmbeddingRuntimeRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[52]
+	mi := &file_runtime_v1_memory_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4148,7 +4364,7 @@ func (x *InspectMemoryEmbeddingRuntimeRequest) String() string {
 func (*InspectMemoryEmbeddingRuntimeRequest) ProtoMessage() {}
 
 func (x *InspectMemoryEmbeddingRuntimeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[52]
+	mi := &file_runtime_v1_memory_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4161,7 +4377,7 @@ func (x *InspectMemoryEmbeddingRuntimeRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use InspectMemoryEmbeddingRuntimeRequest.ProtoReflect.Descriptor instead.
 func (*InspectMemoryEmbeddingRuntimeRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{52}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *InspectMemoryEmbeddingRuntimeRequest) GetContext() *MemoryRequestContext {
@@ -4174,13 +4390,6 @@ func (x *InspectMemoryEmbeddingRuntimeRequest) GetContext() *MemoryRequestContex
 func (x *InspectMemoryEmbeddingRuntimeRequest) GetLocator() *MemoryBankLocator {
 	if x != nil {
 		return x.Locator
-	}
-	return nil
-}
-
-func (x *InspectMemoryEmbeddingRuntimeRequest) GetBindingIntentSnapshot() *MemoryEmbeddingBindingIntentSnapshot {
-	if x != nil {
-		return x.BindingIntentSnapshot
 	}
 	return nil
 }
@@ -4200,7 +4409,7 @@ type InspectMemoryEmbeddingRuntimeResponse struct {
 
 func (x *InspectMemoryEmbeddingRuntimeResponse) Reset() {
 	*x = InspectMemoryEmbeddingRuntimeResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[53]
+	mi := &file_runtime_v1_memory_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4212,7 +4421,7 @@ func (x *InspectMemoryEmbeddingRuntimeResponse) String() string {
 func (*InspectMemoryEmbeddingRuntimeResponse) ProtoMessage() {}
 
 func (x *InspectMemoryEmbeddingRuntimeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[53]
+	mi := &file_runtime_v1_memory_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4225,7 +4434,7 @@ func (x *InspectMemoryEmbeddingRuntimeResponse) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use InspectMemoryEmbeddingRuntimeResponse.ProtoReflect.Descriptor instead.
 func (*InspectMemoryEmbeddingRuntimeResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{53}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *InspectMemoryEmbeddingRuntimeResponse) GetBindingIntentPresent() bool {
@@ -4278,17 +4487,16 @@ func (x *InspectMemoryEmbeddingRuntimeResponse) GetOperationReadiness() *MemoryE
 }
 
 type RequestMemoryEmbeddingRuntimeBindRequest struct {
-	state                 protoimpl.MessageState                `protogen:"open.v1"`
-	Context               *MemoryRequestContext                 `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	Locator               *MemoryBankLocator                    `protobuf:"bytes,2,opt,name=locator,proto3" json:"locator,omitempty"`
-	BindingIntentSnapshot *MemoryEmbeddingBindingIntentSnapshot `protobuf:"bytes,3,opt,name=binding_intent_snapshot,json=bindingIntentSnapshot,proto3" json:"binding_intent_snapshot,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Context       *MemoryRequestContext  `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	Locator       *MemoryBankLocator     `protobuf:"bytes,2,opt,name=locator,proto3" json:"locator,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RequestMemoryEmbeddingRuntimeBindRequest) Reset() {
 	*x = RequestMemoryEmbeddingRuntimeBindRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[54]
+	mi := &file_runtime_v1_memory_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4300,7 +4508,7 @@ func (x *RequestMemoryEmbeddingRuntimeBindRequest) String() string {
 func (*RequestMemoryEmbeddingRuntimeBindRequest) ProtoMessage() {}
 
 func (x *RequestMemoryEmbeddingRuntimeBindRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[54]
+	mi := &file_runtime_v1_memory_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4313,7 +4521,7 @@ func (x *RequestMemoryEmbeddingRuntimeBindRequest) ProtoReflect() protoreflect.M
 
 // Deprecated: Use RequestMemoryEmbeddingRuntimeBindRequest.ProtoReflect.Descriptor instead.
 func (*RequestMemoryEmbeddingRuntimeBindRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{54}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *RequestMemoryEmbeddingRuntimeBindRequest) GetContext() *MemoryRequestContext {
@@ -4330,13 +4538,6 @@ func (x *RequestMemoryEmbeddingRuntimeBindRequest) GetLocator() *MemoryBankLocat
 	return nil
 }
 
-func (x *RequestMemoryEmbeddingRuntimeBindRequest) GetBindingIntentSnapshot() *MemoryEmbeddingBindingIntentSnapshot {
-	if x != nil {
-		return x.BindingIntentSnapshot
-	}
-	return nil
-}
-
 type RequestMemoryEmbeddingRuntimeBindResponse struct {
 	state                    protoimpl.MessageState `protogen:"open.v1"`
 	Outcome                  string                 `protobuf:"bytes,1,opt,name=outcome,proto3" json:"outcome,omitempty"`
@@ -4349,7 +4550,7 @@ type RequestMemoryEmbeddingRuntimeBindResponse struct {
 
 func (x *RequestMemoryEmbeddingRuntimeBindResponse) Reset() {
 	*x = RequestMemoryEmbeddingRuntimeBindResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[55]
+	mi := &file_runtime_v1_memory_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4361,7 +4562,7 @@ func (x *RequestMemoryEmbeddingRuntimeBindResponse) String() string {
 func (*RequestMemoryEmbeddingRuntimeBindResponse) ProtoMessage() {}
 
 func (x *RequestMemoryEmbeddingRuntimeBindResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[55]
+	mi := &file_runtime_v1_memory_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4374,7 +4575,7 @@ func (x *RequestMemoryEmbeddingRuntimeBindResponse) ProtoReflect() protoreflect.
 
 // Deprecated: Use RequestMemoryEmbeddingRuntimeBindResponse.ProtoReflect.Descriptor instead.
 func (*RequestMemoryEmbeddingRuntimeBindResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{55}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *RequestMemoryEmbeddingRuntimeBindResponse) GetOutcome() string {
@@ -4406,17 +4607,16 @@ func (x *RequestMemoryEmbeddingRuntimeBindResponse) GetPendingCutover() bool {
 }
 
 type RequestMemoryEmbeddingRuntimeCutoverRequest struct {
-	state                 protoimpl.MessageState                `protogen:"open.v1"`
-	Context               *MemoryRequestContext                 `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	Locator               *MemoryBankLocator                    `protobuf:"bytes,2,opt,name=locator,proto3" json:"locator,omitempty"`
-	BindingIntentSnapshot *MemoryEmbeddingBindingIntentSnapshot `protobuf:"bytes,3,opt,name=binding_intent_snapshot,json=bindingIntentSnapshot,proto3" json:"binding_intent_snapshot,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Context       *MemoryRequestContext  `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	Locator       *MemoryBankLocator     `protobuf:"bytes,2,opt,name=locator,proto3" json:"locator,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RequestMemoryEmbeddingRuntimeCutoverRequest) Reset() {
 	*x = RequestMemoryEmbeddingRuntimeCutoverRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[56]
+	mi := &file_runtime_v1_memory_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4428,7 +4628,7 @@ func (x *RequestMemoryEmbeddingRuntimeCutoverRequest) String() string {
 func (*RequestMemoryEmbeddingRuntimeCutoverRequest) ProtoMessage() {}
 
 func (x *RequestMemoryEmbeddingRuntimeCutoverRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[56]
+	mi := &file_runtime_v1_memory_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4441,7 +4641,7 @@ func (x *RequestMemoryEmbeddingRuntimeCutoverRequest) ProtoReflect() protoreflec
 
 // Deprecated: Use RequestMemoryEmbeddingRuntimeCutoverRequest.ProtoReflect.Descriptor instead.
 func (*RequestMemoryEmbeddingRuntimeCutoverRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{56}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *RequestMemoryEmbeddingRuntimeCutoverRequest) GetContext() *MemoryRequestContext {
@@ -4458,13 +4658,6 @@ func (x *RequestMemoryEmbeddingRuntimeCutoverRequest) GetLocator() *MemoryBankLo
 	return nil
 }
 
-func (x *RequestMemoryEmbeddingRuntimeCutoverRequest) GetBindingIntentSnapshot() *MemoryEmbeddingBindingIntentSnapshot {
-	if x != nil {
-		return x.BindingIntentSnapshot
-	}
-	return nil
-}
-
 type RequestMemoryEmbeddingRuntimeCutoverResponse struct {
 	state                    protoimpl.MessageState `protogen:"open.v1"`
 	Outcome                  string                 `protobuf:"bytes,1,opt,name=outcome,proto3" json:"outcome,omitempty"`
@@ -4476,7 +4669,7 @@ type RequestMemoryEmbeddingRuntimeCutoverResponse struct {
 
 func (x *RequestMemoryEmbeddingRuntimeCutoverResponse) Reset() {
 	*x = RequestMemoryEmbeddingRuntimeCutoverResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[57]
+	mi := &file_runtime_v1_memory_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4488,7 +4681,7 @@ func (x *RequestMemoryEmbeddingRuntimeCutoverResponse) String() string {
 func (*RequestMemoryEmbeddingRuntimeCutoverResponse) ProtoMessage() {}
 
 func (x *RequestMemoryEmbeddingRuntimeCutoverResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[57]
+	mi := &file_runtime_v1_memory_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4501,7 +4694,7 @@ func (x *RequestMemoryEmbeddingRuntimeCutoverResponse) ProtoReflect() protorefle
 
 // Deprecated: Use RequestMemoryEmbeddingRuntimeCutoverResponse.ProtoReflect.Descriptor instead.
 func (*RequestMemoryEmbeddingRuntimeCutoverResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{57}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *RequestMemoryEmbeddingRuntimeCutoverResponse) GetOutcome() string {
@@ -4820,11 +5013,23 @@ const file_runtime_v1_memory_proto_rawDesc = "" +
 	"\acontext\x18\x01 \x01(\v2%.nimi.runtime.v1.MemoryRequestContextR\acontext\x12E\n" +
 	"\rscope_filters\x18\x02 \x03(\x0e2 .nimi.runtime.v1.MemoryBankScopeR\fscopeFilters\x12K\n" +
 	"\rowner_filters\x18\x03 \x03(\v2&.nimi.runtime.v1.MemoryBankOwnerFilterR\fownerFilters\x12\x16\n" +
-	"\x06cursor\x18\x04 \x01(\tR\x06cursor\"\x94\x02\n" +
+	"\x06cursor\x18\x04 \x01(\tR\x06cursor\"\xa7\x01\n" +
+	"&GetMemoryEmbeddingRuntimeIntentRequest\x12?\n" +
+	"\acontext\x18\x01 \x01(\v2%.nimi.runtime.v1.MemoryRequestContextR\acontext\x12<\n" +
+	"\alocator\x18\x02 \x01(\v2\".nimi.runtime.v1.MemoryBankLocatorR\alocator\"\xbd\x01\n" +
+	"'GetMemoryEmbeddingRuntimeIntentResponse\x124\n" +
+	"\x16binding_intent_present\x18\x01 \x01(\bR\x14bindingIntentPresent\x12\\\n" +
+	"\x0ebinding_intent\x18\x02 \x01(\v25.nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshotR\rbindingIntent\"\x85\x02\n" +
+	"&SetMemoryEmbeddingRuntimeIntentRequest\x12?\n" +
+	"\acontext\x18\x01 \x01(\v2%.nimi.runtime.v1.MemoryRequestContextR\acontext\x12<\n" +
+	"\alocator\x18\x02 \x01(\v2\".nimi.runtime.v1.MemoryBankLocatorR\alocator\x12\\\n" +
+	"\x0ebinding_intent\x18\x03 \x01(\v25.nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshotR\rbindingIntent\"\xa3\x01\n" +
+	"'SetMemoryEmbeddingRuntimeIntentResponse\x12\x1a\n" +
+	"\baccepted\x18\x01 \x01(\bR\baccepted\x12\\\n" +
+	"\x0ebinding_intent\x18\x02 \x01(\v25.nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshotR\rbindingIntent\"\xa5\x01\n" +
 	"$InspectMemoryEmbeddingRuntimeRequest\x12?\n" +
 	"\acontext\x18\x01 \x01(\v2%.nimi.runtime.v1.MemoryRequestContextR\acontext\x12<\n" +
-	"\alocator\x18\x02 \x01(\v2\".nimi.runtime.v1.MemoryBankLocatorR\alocator\x12m\n" +
-	"\x17binding_intent_snapshot\x18\x03 \x01(\v25.nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshotR\x15bindingIntentSnapshot\"\xf2\x03\n" +
+	"\alocator\x18\x02 \x01(\v2\".nimi.runtime.v1.MemoryBankLocatorR\alocator\"\xf2\x03\n" +
 	"%InspectMemoryEmbeddingRuntimeResponse\x124\n" +
 	"\x16binding_intent_present\x18\x01 \x01(\bR\x14bindingIntentPresent\x12.\n" +
 	"\x13binding_source_kind\x18\x02 \x01(\tR\x11bindingSourceKind\x12)\n" +
@@ -4832,20 +5037,18 @@ const file_runtime_v1_memory_proto_rawDesc = "" +
 	"\x10resolved_profile\x18\x04 \x01(\v2'.nimi.runtime.v1.MemoryEmbeddingProfileR\x0fresolvedProfile\x122\n" +
 	"\x15canonical_bank_status\x18\x05 \x01(\tR\x13canonicalBankStatus\x12K\n" +
 	"\x13blocked_reason_code\x18\x06 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\x11blockedReasonCode\x12c\n" +
-	"\x13operation_readiness\x18\a \x01(\v22.nimi.runtime.v1.MemoryEmbeddingOperationReadinessR\x12operationReadiness\"\x98\x02\n" +
+	"\x13operation_readiness\x18\a \x01(\v22.nimi.runtime.v1.MemoryEmbeddingOperationReadinessR\x12operationReadiness\"\xa9\x01\n" +
 	"(RequestMemoryEmbeddingRuntimeBindRequest\x12?\n" +
 	"\acontext\x18\x01 \x01(\v2%.nimi.runtime.v1.MemoryRequestContextR\acontext\x12<\n" +
-	"\alocator\x18\x02 \x01(\v2\".nimi.runtime.v1.MemoryBankLocatorR\alocator\x12m\n" +
-	"\x17binding_intent_snapshot\x18\x03 \x01(\v25.nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshotR\x15bindingIntentSnapshot\"\xfa\x01\n" +
+	"\alocator\x18\x02 \x01(\v2\".nimi.runtime.v1.MemoryBankLocatorR\alocator\"\xfa\x01\n" +
 	")RequestMemoryEmbeddingRuntimeBindResponse\x12\x18\n" +
 	"\aoutcome\x18\x01 \x01(\tR\aoutcome\x12K\n" +
 	"\x13blocked_reason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\x11blockedReasonCode\x12=\n" +
 	"\x1bcanonical_bank_status_after\x18\x03 \x01(\tR\x18canonicalBankStatusAfter\x12'\n" +
-	"\x0fpending_cutover\x18\x04 \x01(\bR\x0ependingCutover\"\x9b\x02\n" +
+	"\x0fpending_cutover\x18\x04 \x01(\bR\x0ependingCutover\"\xac\x01\n" +
 	"+RequestMemoryEmbeddingRuntimeCutoverRequest\x12?\n" +
 	"\acontext\x18\x01 \x01(\v2%.nimi.runtime.v1.MemoryRequestContextR\acontext\x12<\n" +
-	"\alocator\x18\x02 \x01(\v2\".nimi.runtime.v1.MemoryBankLocatorR\alocator\x12m\n" +
-	"\x17binding_intent_snapshot\x18\x03 \x01(\v25.nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshotR\x15bindingIntentSnapshot\"\xd4\x01\n" +
+	"\alocator\x18\x02 \x01(\v2\".nimi.runtime.v1.MemoryBankLocatorR\alocator\"\xd4\x01\n" +
 	",RequestMemoryEmbeddingRuntimeCutoverResponse\x12\x18\n" +
 	"\aoutcome\x18\x01 \x01(\tR\aoutcome\x12K\n" +
 	"\x13blocked_reason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\x11blockedReasonCode\x12=\n" +
@@ -4904,7 +5107,7 @@ func file_runtime_v1_memory_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_memory_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
-var file_runtime_v1_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 58)
+var file_runtime_v1_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 62)
 var file_runtime_v1_memory_proto_goTypes = []any{
 	(MemoryBankScope)(0),                                 // 0: nimi.runtime.v1.MemoryBankScope
 	(MemoryRecordKind)(0),                                // 1: nimi.runtime.v1.MemoryRecordKind
@@ -4965,16 +5168,20 @@ var file_runtime_v1_memory_proto_goTypes = []any{
 	(*DeleteMemoryRequest)(nil),                          // 56: nimi.runtime.v1.DeleteMemoryRequest
 	(*DeleteMemoryResponse)(nil),                         // 57: nimi.runtime.v1.DeleteMemoryResponse
 	(*SubscribeMemoryEventsRequest)(nil),                 // 58: nimi.runtime.v1.SubscribeMemoryEventsRequest
-	(*InspectMemoryEmbeddingRuntimeRequest)(nil),         // 59: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest
-	(*InspectMemoryEmbeddingRuntimeResponse)(nil),        // 60: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse
-	(*RequestMemoryEmbeddingRuntimeBindRequest)(nil),     // 61: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest
-	(*RequestMemoryEmbeddingRuntimeBindResponse)(nil),    // 62: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindResponse
-	(*RequestMemoryEmbeddingRuntimeCutoverRequest)(nil),  // 63: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest
-	(*RequestMemoryEmbeddingRuntimeCutoverResponse)(nil), // 64: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverResponse
-	(*structpb.Struct)(nil),                              // 65: google.protobuf.Struct
-	(*timestamppb.Timestamp)(nil),                        // 66: google.protobuf.Timestamp
-	(*Ack)(nil),                                          // 67: nimi.runtime.v1.Ack
-	(ReasonCode)(0),                                      // 68: nimi.runtime.v1.ReasonCode
+	(*GetMemoryEmbeddingRuntimeIntentRequest)(nil),       // 59: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentRequest
+	(*GetMemoryEmbeddingRuntimeIntentResponse)(nil),      // 60: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentResponse
+	(*SetMemoryEmbeddingRuntimeIntentRequest)(nil),       // 61: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest
+	(*SetMemoryEmbeddingRuntimeIntentResponse)(nil),      // 62: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentResponse
+	(*InspectMemoryEmbeddingRuntimeRequest)(nil),         // 63: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest
+	(*InspectMemoryEmbeddingRuntimeResponse)(nil),        // 64: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse
+	(*RequestMemoryEmbeddingRuntimeBindRequest)(nil),     // 65: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest
+	(*RequestMemoryEmbeddingRuntimeBindResponse)(nil),    // 66: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindResponse
+	(*RequestMemoryEmbeddingRuntimeCutoverRequest)(nil),  // 67: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest
+	(*RequestMemoryEmbeddingRuntimeCutoverResponse)(nil), // 68: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverResponse
+	(*structpb.Struct)(nil),                              // 69: google.protobuf.Struct
+	(*timestamppb.Timestamp)(nil),                        // 70: google.protobuf.Timestamp
+	(*Ack)(nil),                                          // 71: nimi.runtime.v1.Ack
+	(ReasonCode)(0),                                      // 72: nimi.runtime.v1.ReasonCode
 }
 var file_runtime_v1_memory_proto_depIdxs = []int32{
 	0,   // 0: nimi.runtime.v1.MemoryBankLocator.scope:type_name -> nimi.runtime.v1.MemoryBankScope
@@ -4996,24 +5203,24 @@ var file_runtime_v1_memory_proto_depIdxs = []int32{
 	18,  // 16: nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot.local_binding:type_name -> nimi.runtime.v1.MemoryEmbeddingLocalBindingRef
 	13,  // 17: nimi.runtime.v1.MemoryBank.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
 	16,  // 18: nimi.runtime.v1.MemoryBank.embedding_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
-	65,  // 19: nimi.runtime.v1.MemoryBank.metadata:type_name -> google.protobuf.Struct
-	66,  // 20: nimi.runtime.v1.MemoryBank.created_at:type_name -> google.protobuf.Timestamp
-	66,  // 21: nimi.runtime.v1.MemoryBank.updated_at:type_name -> google.protobuf.Timestamp
-	66,  // 22: nimi.runtime.v1.MemoryProvenance.committed_at:type_name -> google.protobuf.Timestamp
-	66,  // 23: nimi.runtime.v1.EpisodicMemoryRecord.occurred_at:type_name -> google.protobuf.Timestamp
-	66,  // 24: nimi.runtime.v1.ObservationalMemoryRecord.observed_at:type_name -> google.protobuf.Timestamp
+	69,  // 19: nimi.runtime.v1.MemoryBank.metadata:type_name -> google.protobuf.Struct
+	70,  // 20: nimi.runtime.v1.MemoryBank.created_at:type_name -> google.protobuf.Timestamp
+	70,  // 21: nimi.runtime.v1.MemoryBank.updated_at:type_name -> google.protobuf.Timestamp
+	70,  // 22: nimi.runtime.v1.MemoryProvenance.committed_at:type_name -> google.protobuf.Timestamp
+	70,  // 23: nimi.runtime.v1.EpisodicMemoryRecord.occurred_at:type_name -> google.protobuf.Timestamp
+	70,  // 24: nimi.runtime.v1.ObservationalMemoryRecord.observed_at:type_name -> google.protobuf.Timestamp
 	1,   // 25: nimi.runtime.v1.MemoryRecordInput.kind:type_name -> nimi.runtime.v1.MemoryRecordKind
 	2,   // 26: nimi.runtime.v1.MemoryRecordInput.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
 	22,  // 27: nimi.runtime.v1.MemoryRecordInput.provenance:type_name -> nimi.runtime.v1.MemoryProvenance
-	65,  // 28: nimi.runtime.v1.MemoryRecordInput.metadata:type_name -> google.protobuf.Struct
-	65,  // 29: nimi.runtime.v1.MemoryRecordInput.extensions:type_name -> google.protobuf.Struct
+	69,  // 28: nimi.runtime.v1.MemoryRecordInput.metadata:type_name -> google.protobuf.Struct
+	69,  // 29: nimi.runtime.v1.MemoryRecordInput.extensions:type_name -> google.protobuf.Struct
 	23,  // 30: nimi.runtime.v1.MemoryRecordInput.episodic:type_name -> nimi.runtime.v1.EpisodicMemoryRecord
 	24,  // 31: nimi.runtime.v1.MemoryRecordInput.semantic:type_name -> nimi.runtime.v1.SemanticMemoryRecord
 	25,  // 32: nimi.runtime.v1.MemoryRecordInput.observational:type_name -> nimi.runtime.v1.ObservationalMemoryRecord
-	66,  // 33: nimi.runtime.v1.MemoryReplicationPending.enqueued_at:type_name -> google.protobuf.Timestamp
-	66,  // 34: nimi.runtime.v1.MemoryReplicationSynced.synced_at:type_name -> google.protobuf.Timestamp
-	66,  // 35: nimi.runtime.v1.MemoryReplicationConflict.detected_at:type_name -> google.protobuf.Timestamp
-	66,  // 36: nimi.runtime.v1.MemoryInvalidation.invalidated_at:type_name -> google.protobuf.Timestamp
+	70,  // 33: nimi.runtime.v1.MemoryReplicationPending.enqueued_at:type_name -> google.protobuf.Timestamp
+	70,  // 34: nimi.runtime.v1.MemoryReplicationSynced.synced_at:type_name -> google.protobuf.Timestamp
+	70,  // 35: nimi.runtime.v1.MemoryReplicationConflict.detected_at:type_name -> google.protobuf.Timestamp
+	70,  // 36: nimi.runtime.v1.MemoryInvalidation.invalidated_at:type_name -> google.protobuf.Timestamp
 	5,   // 37: nimi.runtime.v1.MemoryReplicationState.outcome:type_name -> nimi.runtime.v1.MemoryReplicationOutcome
 	27,  // 38: nimi.runtime.v1.MemoryReplicationState.pending:type_name -> nimi.runtime.v1.MemoryReplicationPending
 	28,  // 39: nimi.runtime.v1.MemoryReplicationState.synced:type_name -> nimi.runtime.v1.MemoryReplicationSynced
@@ -5024,30 +5231,30 @@ var file_runtime_v1_memory_proto_depIdxs = []int32{
 	2,   // 44: nimi.runtime.v1.MemoryRecord.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
 	22,  // 45: nimi.runtime.v1.MemoryRecord.provenance:type_name -> nimi.runtime.v1.MemoryProvenance
 	31,  // 46: nimi.runtime.v1.MemoryRecord.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
-	65,  // 47: nimi.runtime.v1.MemoryRecord.metadata:type_name -> google.protobuf.Struct
-	65,  // 48: nimi.runtime.v1.MemoryRecord.extensions:type_name -> google.protobuf.Struct
+	69,  // 47: nimi.runtime.v1.MemoryRecord.metadata:type_name -> google.protobuf.Struct
+	69,  // 48: nimi.runtime.v1.MemoryRecord.extensions:type_name -> google.protobuf.Struct
 	23,  // 49: nimi.runtime.v1.MemoryRecord.episodic:type_name -> nimi.runtime.v1.EpisodicMemoryRecord
 	24,  // 50: nimi.runtime.v1.MemoryRecord.semantic:type_name -> nimi.runtime.v1.SemanticMemoryRecord
 	25,  // 51: nimi.runtime.v1.MemoryRecord.observational:type_name -> nimi.runtime.v1.ObservationalMemoryRecord
-	66,  // 52: nimi.runtime.v1.MemoryRecord.created_at:type_name -> google.protobuf.Timestamp
-	66,  // 53: nimi.runtime.v1.MemoryRecord.updated_at:type_name -> google.protobuf.Timestamp
+	70,  // 52: nimi.runtime.v1.MemoryRecord.created_at:type_name -> google.protobuf.Timestamp
+	70,  // 53: nimi.runtime.v1.MemoryRecord.updated_at:type_name -> google.protobuf.Timestamp
 	1,   // 54: nimi.runtime.v1.MemoryRecallQuery.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
-	66,  // 55: nimi.runtime.v1.MemoryRecallQuery.start_time:type_name -> google.protobuf.Timestamp
-	66,  // 56: nimi.runtime.v1.MemoryRecallQuery.end_time:type_name -> google.protobuf.Timestamp
+	70,  // 55: nimi.runtime.v1.MemoryRecallQuery.start_time:type_name -> google.protobuf.Timestamp
+	70,  // 56: nimi.runtime.v1.MemoryRecallQuery.end_time:type_name -> google.protobuf.Timestamp
 	2,   // 57: nimi.runtime.v1.MemoryRecallQuery.canonical_classes:type_name -> nimi.runtime.v1.MemoryCanonicalClass
 	1,   // 58: nimi.runtime.v1.MemoryHistoryQuery.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
-	66,  // 59: nimi.runtime.v1.MemoryHistoryQuery.start_time:type_name -> google.protobuf.Timestamp
-	66,  // 60: nimi.runtime.v1.MemoryHistoryQuery.end_time:type_name -> google.protobuf.Timestamp
+	70,  // 59: nimi.runtime.v1.MemoryHistoryQuery.start_time:type_name -> google.protobuf.Timestamp
+	70,  // 60: nimi.runtime.v1.MemoryHistoryQuery.end_time:type_name -> google.protobuf.Timestamp
 	32,  // 61: nimi.runtime.v1.MemoryRecallHit.record:type_name -> nimi.runtime.v1.MemoryRecord
 	1,   // 62: nimi.runtime.v1.MemoryReflectionRequest.source_kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
-	66,  // 63: nimi.runtime.v1.MemoryReflectionRequest.start_time:type_name -> google.protobuf.Timestamp
-	66,  // 64: nimi.runtime.v1.MemoryReflectionRequest.end_time:type_name -> google.protobuf.Timestamp
+	70,  // 63: nimi.runtime.v1.MemoryReflectionRequest.start_time:type_name -> google.protobuf.Timestamp
+	70,  // 64: nimi.runtime.v1.MemoryReflectionRequest.end_time:type_name -> google.protobuf.Timestamp
 	32,  // 65: nimi.runtime.v1.MemoryReflectionResult.created_records:type_name -> nimi.runtime.v1.MemoryRecord
-	66,  // 66: nimi.runtime.v1.MemoryReflectionResult.completed_at:type_name -> google.protobuf.Timestamp
+	70,  // 66: nimi.runtime.v1.MemoryReflectionResult.completed_at:type_name -> google.protobuf.Timestamp
 	31,  // 67: nimi.runtime.v1.MemoryReplicationObservedDetail.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
 	6,   // 68: nimi.runtime.v1.MemoryEvent.event_type:type_name -> nimi.runtime.v1.MemoryEventType
 	13,  // 69: nimi.runtime.v1.MemoryEvent.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	66,  // 70: nimi.runtime.v1.MemoryEvent.timestamp:type_name -> google.protobuf.Timestamp
+	70,  // 70: nimi.runtime.v1.MemoryEvent.timestamp:type_name -> google.protobuf.Timestamp
 	21,  // 71: nimi.runtime.v1.MemoryEvent.bank_created:type_name -> nimi.runtime.v1.MemoryBank
 	21,  // 72: nimi.runtime.v1.MemoryEvent.bank_deleted:type_name -> nimi.runtime.v1.MemoryBank
 	32,  // 73: nimi.runtime.v1.MemoryEvent.record_retained:type_name -> nimi.runtime.v1.MemoryRecord
@@ -5057,7 +5264,7 @@ var file_runtime_v1_memory_proto_depIdxs = []int32{
 	7,   // 77: nimi.runtime.v1.CreateBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
 	14,  // 78: nimi.runtime.v1.CreateBankRequest.locator:type_name -> nimi.runtime.v1.PublicMemoryBankLocator
 	16,  // 79: nimi.runtime.v1.CreateBankRequest.embedding_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
-	65,  // 80: nimi.runtime.v1.CreateBankRequest.metadata:type_name -> google.protobuf.Struct
+	69,  // 80: nimi.runtime.v1.CreateBankRequest.metadata:type_name -> google.protobuf.Struct
 	21,  // 81: nimi.runtime.v1.CreateBankResponse.bank:type_name -> nimi.runtime.v1.MemoryBank
 	7,   // 82: nimi.runtime.v1.GetBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
 	13,  // 83: nimi.runtime.v1.GetBankRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
@@ -5068,7 +5275,7 @@ var file_runtime_v1_memory_proto_depIdxs = []int32{
 	21,  // 88: nimi.runtime.v1.ListBanksResponse.banks:type_name -> nimi.runtime.v1.MemoryBank
 	7,   // 89: nimi.runtime.v1.DeleteBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
 	14,  // 90: nimi.runtime.v1.DeleteBankRequest.locator:type_name -> nimi.runtime.v1.PublicMemoryBankLocator
-	67,  // 91: nimi.runtime.v1.DeleteBankResponse.ack:type_name -> nimi.runtime.v1.Ack
+	71,  // 91: nimi.runtime.v1.DeleteBankResponse.ack:type_name -> nimi.runtime.v1.Ack
 	7,   // 92: nimi.runtime.v1.RetainRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
 	13,  // 93: nimi.runtime.v1.RetainRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
 	26,  // 94: nimi.runtime.v1.RetainRequest.records:type_name -> nimi.runtime.v1.MemoryRecordInput
@@ -5084,29 +5291,33 @@ var file_runtime_v1_memory_proto_depIdxs = []int32{
 	32,  // 104: nimi.runtime.v1.HistoryResponse.records:type_name -> nimi.runtime.v1.MemoryRecord
 	7,   // 105: nimi.runtime.v1.DeleteMemoryRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
 	13,  // 106: nimi.runtime.v1.DeleteMemoryRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	67,  // 107: nimi.runtime.v1.DeleteMemoryResponse.ack:type_name -> nimi.runtime.v1.Ack
+	71,  // 107: nimi.runtime.v1.DeleteMemoryResponse.ack:type_name -> nimi.runtime.v1.Ack
 	7,   // 108: nimi.runtime.v1.SubscribeMemoryEventsRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
 	0,   // 109: nimi.runtime.v1.SubscribeMemoryEventsRequest.scope_filters:type_name -> nimi.runtime.v1.MemoryBankScope
 	15,  // 110: nimi.runtime.v1.SubscribeMemoryEventsRequest.owner_filters:type_name -> nimi.runtime.v1.MemoryBankOwnerFilter
-	7,   // 111: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 112: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
-	19,  // 113: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest.binding_intent_snapshot:type_name -> nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
-	16,  // 114: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.resolved_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
-	68,  // 115: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	20,  // 116: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.operation_readiness:type_name -> nimi.runtime.v1.MemoryEmbeddingOperationReadiness
-	7,   // 117: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 118: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
-	19,  // 119: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest.binding_intent_snapshot:type_name -> nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
-	68,  // 120: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	7,   // 121: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 122: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
-	19,  // 123: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest.binding_intent_snapshot:type_name -> nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
-	68,  // 124: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	125, // [125:125] is the sub-list for method output_type
-	125, // [125:125] is the sub-list for method input_type
-	125, // [125:125] is the sub-list for extension type_name
-	125, // [125:125] is the sub-list for extension extendee
-	0,   // [0:125] is the sub-list for field type_name
+	7,   // 111: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 112: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
+	19,  // 113: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentResponse.binding_intent:type_name -> nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
+	7,   // 114: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 115: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
+	19,  // 116: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest.binding_intent:type_name -> nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
+	19,  // 117: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentResponse.binding_intent:type_name -> nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
+	7,   // 118: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 119: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
+	16,  // 120: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.resolved_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
+	72,  // 121: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	20,  // 122: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.operation_readiness:type_name -> nimi.runtime.v1.MemoryEmbeddingOperationReadiness
+	7,   // 123: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 124: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
+	72,  // 125: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	7,   // 126: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 127: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
+	72,  // 128: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	129, // [129:129] is the sub-list for method output_type
+	129, // [129:129] is the sub-list for method input_type
+	129, // [129:129] is the sub-list for extension type_name
+	129, // [129:129] is the sub-list for extension extendee
+	0,   // [0:129] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_memory_proto_init() }
@@ -5163,7 +5374,7 @@ func file_runtime_v1_memory_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_memory_proto_rawDesc), len(file_runtime_v1_memory_proto_rawDesc)),
 			NumEnums:      7,
-			NumMessages:   58,
+			NumMessages:   62,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -24,7 +24,7 @@ var File_runtime_v1_cognition_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_cognition_proto_rawDesc = "" +
 	"\n" +
-	"\x1aruntime/v1/cognition.proto\x12\x0fnimi.runtime.v1\x1a\x1aruntime/v1/knowledge.proto\x1a\x17runtime/v1/memory.proto2\xa2\x16\n" +
+	"\x1aruntime/v1/cognition.proto\x12\x0fnimi.runtime.v1\x1a\x1aruntime/v1/knowledge.proto\x1a\x17runtime/v1/memory.proto2\xd0\x18\n" +
 	"\x17RuntimeCognitionService\x12U\n" +
 	"\n" +
 	"CreateBank\x12\".nimi.runtime.v1.CreateBankRequest\x1a#.nimi.runtime.v1.CreateBankResponse\x12L\n" +
@@ -36,7 +36,9 @@ const file_runtime_v1_cognition_proto_rawDesc = "" +
 	"\x06Recall\x12\x1e.nimi.runtime.v1.RecallRequest\x1a\x1f.nimi.runtime.v1.RecallResponse\x12L\n" +
 	"\aHistory\x12\x1f.nimi.runtime.v1.HistoryRequest\x1a .nimi.runtime.v1.HistoryResponse\x12[\n" +
 	"\fDeleteMemory\x12$.nimi.runtime.v1.DeleteMemoryRequest\x1a%.nimi.runtime.v1.DeleteMemoryResponse\x12f\n" +
-	"\x15SubscribeMemoryEvents\x12-.nimi.runtime.v1.SubscribeMemoryEventsRequest\x1a\x1c.nimi.runtime.v1.MemoryEvent0\x01\x12\x8e\x01\n" +
+	"\x15SubscribeMemoryEvents\x12-.nimi.runtime.v1.SubscribeMemoryEventsRequest\x1a\x1c.nimi.runtime.v1.MemoryEvent0\x01\x12\x94\x01\n" +
+	"\x1fGetMemoryEmbeddingRuntimeIntent\x127.nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentRequest\x1a8.nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentResponse\x12\x94\x01\n" +
+	"\x1fSetMemoryEmbeddingRuntimeIntent\x127.nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest\x1a8.nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentResponse\x12\x8e\x01\n" +
 	"\x1dInspectMemoryEmbeddingRuntime\x125.nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest\x1a6.nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse\x12\x9a\x01\n" +
 	"!RequestMemoryEmbeddingRuntimeBind\x129.nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest\x1a:.nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindResponse\x12\xa3\x01\n" +
 	"$RequestMemoryEmbeddingRuntimeCutover\x12<.nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest\x1a=.nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverResponse\x12p\n" +
@@ -70,55 +72,59 @@ var file_runtime_v1_cognition_proto_goTypes = []any{
 	(*HistoryRequest)(nil),                               // 6: nimi.runtime.v1.HistoryRequest
 	(*DeleteMemoryRequest)(nil),                          // 7: nimi.runtime.v1.DeleteMemoryRequest
 	(*SubscribeMemoryEventsRequest)(nil),                 // 8: nimi.runtime.v1.SubscribeMemoryEventsRequest
-	(*InspectMemoryEmbeddingRuntimeRequest)(nil),         // 9: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest
-	(*RequestMemoryEmbeddingRuntimeBindRequest)(nil),     // 10: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest
-	(*RequestMemoryEmbeddingRuntimeCutoverRequest)(nil),  // 11: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest
-	(*CreateKnowledgeBankRequest)(nil),                   // 12: nimi.runtime.v1.CreateKnowledgeBankRequest
-	(*GetKnowledgeBankRequest)(nil),                      // 13: nimi.runtime.v1.GetKnowledgeBankRequest
-	(*ListKnowledgeBanksRequest)(nil),                    // 14: nimi.runtime.v1.ListKnowledgeBanksRequest
-	(*DeleteKnowledgeBankRequest)(nil),                   // 15: nimi.runtime.v1.DeleteKnowledgeBankRequest
-	(*PutPageRequest)(nil),                               // 16: nimi.runtime.v1.PutPageRequest
-	(*GetPageRequest)(nil),                               // 17: nimi.runtime.v1.GetPageRequest
-	(*ListPagesRequest)(nil),                             // 18: nimi.runtime.v1.ListPagesRequest
-	(*DeletePageRequest)(nil),                            // 19: nimi.runtime.v1.DeletePageRequest
-	(*SearchKeywordRequest)(nil),                         // 20: nimi.runtime.v1.SearchKeywordRequest
-	(*SearchHybridRequest)(nil),                          // 21: nimi.runtime.v1.SearchHybridRequest
-	(*AddLinkRequest)(nil),                               // 22: nimi.runtime.v1.AddLinkRequest
-	(*RemoveLinkRequest)(nil),                            // 23: nimi.runtime.v1.RemoveLinkRequest
-	(*ListLinksRequest)(nil),                             // 24: nimi.runtime.v1.ListLinksRequest
-	(*ListBacklinksRequest)(nil),                         // 25: nimi.runtime.v1.ListBacklinksRequest
-	(*TraverseGraphRequest)(nil),                         // 26: nimi.runtime.v1.TraverseGraphRequest
-	(*IngestDocumentRequest)(nil),                        // 27: nimi.runtime.v1.IngestDocumentRequest
-	(*GetIngestTaskRequest)(nil),                         // 28: nimi.runtime.v1.GetIngestTaskRequest
-	(*CreateBankResponse)(nil),                           // 29: nimi.runtime.v1.CreateBankResponse
-	(*GetBankResponse)(nil),                              // 30: nimi.runtime.v1.GetBankResponse
-	(*ListBanksResponse)(nil),                            // 31: nimi.runtime.v1.ListBanksResponse
-	(*DeleteBankResponse)(nil),                           // 32: nimi.runtime.v1.DeleteBankResponse
-	(*RetainResponse)(nil),                               // 33: nimi.runtime.v1.RetainResponse
-	(*RecallResponse)(nil),                               // 34: nimi.runtime.v1.RecallResponse
-	(*HistoryResponse)(nil),                              // 35: nimi.runtime.v1.HistoryResponse
-	(*DeleteMemoryResponse)(nil),                         // 36: nimi.runtime.v1.DeleteMemoryResponse
-	(*MemoryEvent)(nil),                                  // 37: nimi.runtime.v1.MemoryEvent
-	(*InspectMemoryEmbeddingRuntimeResponse)(nil),        // 38: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse
-	(*RequestMemoryEmbeddingRuntimeBindResponse)(nil),    // 39: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindResponse
-	(*RequestMemoryEmbeddingRuntimeCutoverResponse)(nil), // 40: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverResponse
-	(*CreateKnowledgeBankResponse)(nil),                  // 41: nimi.runtime.v1.CreateKnowledgeBankResponse
-	(*GetKnowledgeBankResponse)(nil),                     // 42: nimi.runtime.v1.GetKnowledgeBankResponse
-	(*ListKnowledgeBanksResponse)(nil),                   // 43: nimi.runtime.v1.ListKnowledgeBanksResponse
-	(*DeleteKnowledgeBankResponse)(nil),                  // 44: nimi.runtime.v1.DeleteKnowledgeBankResponse
-	(*PutPageResponse)(nil),                              // 45: nimi.runtime.v1.PutPageResponse
-	(*GetPageResponse)(nil),                              // 46: nimi.runtime.v1.GetPageResponse
-	(*ListPagesResponse)(nil),                            // 47: nimi.runtime.v1.ListPagesResponse
-	(*DeletePageResponse)(nil),                           // 48: nimi.runtime.v1.DeletePageResponse
-	(*SearchKeywordResponse)(nil),                        // 49: nimi.runtime.v1.SearchKeywordResponse
-	(*SearchHybridResponse)(nil),                         // 50: nimi.runtime.v1.SearchHybridResponse
-	(*AddLinkResponse)(nil),                              // 51: nimi.runtime.v1.AddLinkResponse
-	(*RemoveLinkResponse)(nil),                           // 52: nimi.runtime.v1.RemoveLinkResponse
-	(*ListLinksResponse)(nil),                            // 53: nimi.runtime.v1.ListLinksResponse
-	(*ListBacklinksResponse)(nil),                        // 54: nimi.runtime.v1.ListBacklinksResponse
-	(*TraverseGraphResponse)(nil),                        // 55: nimi.runtime.v1.TraverseGraphResponse
-	(*IngestDocumentResponse)(nil),                       // 56: nimi.runtime.v1.IngestDocumentResponse
-	(*GetIngestTaskResponse)(nil),                        // 57: nimi.runtime.v1.GetIngestTaskResponse
+	(*GetMemoryEmbeddingRuntimeIntentRequest)(nil),       // 9: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentRequest
+	(*SetMemoryEmbeddingRuntimeIntentRequest)(nil),       // 10: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest
+	(*InspectMemoryEmbeddingRuntimeRequest)(nil),         // 11: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest
+	(*RequestMemoryEmbeddingRuntimeBindRequest)(nil),     // 12: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest
+	(*RequestMemoryEmbeddingRuntimeCutoverRequest)(nil),  // 13: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest
+	(*CreateKnowledgeBankRequest)(nil),                   // 14: nimi.runtime.v1.CreateKnowledgeBankRequest
+	(*GetKnowledgeBankRequest)(nil),                      // 15: nimi.runtime.v1.GetKnowledgeBankRequest
+	(*ListKnowledgeBanksRequest)(nil),                    // 16: nimi.runtime.v1.ListKnowledgeBanksRequest
+	(*DeleteKnowledgeBankRequest)(nil),                   // 17: nimi.runtime.v1.DeleteKnowledgeBankRequest
+	(*PutPageRequest)(nil),                               // 18: nimi.runtime.v1.PutPageRequest
+	(*GetPageRequest)(nil),                               // 19: nimi.runtime.v1.GetPageRequest
+	(*ListPagesRequest)(nil),                             // 20: nimi.runtime.v1.ListPagesRequest
+	(*DeletePageRequest)(nil),                            // 21: nimi.runtime.v1.DeletePageRequest
+	(*SearchKeywordRequest)(nil),                         // 22: nimi.runtime.v1.SearchKeywordRequest
+	(*SearchHybridRequest)(nil),                          // 23: nimi.runtime.v1.SearchHybridRequest
+	(*AddLinkRequest)(nil),                               // 24: nimi.runtime.v1.AddLinkRequest
+	(*RemoveLinkRequest)(nil),                            // 25: nimi.runtime.v1.RemoveLinkRequest
+	(*ListLinksRequest)(nil),                             // 26: nimi.runtime.v1.ListLinksRequest
+	(*ListBacklinksRequest)(nil),                         // 27: nimi.runtime.v1.ListBacklinksRequest
+	(*TraverseGraphRequest)(nil),                         // 28: nimi.runtime.v1.TraverseGraphRequest
+	(*IngestDocumentRequest)(nil),                        // 29: nimi.runtime.v1.IngestDocumentRequest
+	(*GetIngestTaskRequest)(nil),                         // 30: nimi.runtime.v1.GetIngestTaskRequest
+	(*CreateBankResponse)(nil),                           // 31: nimi.runtime.v1.CreateBankResponse
+	(*GetBankResponse)(nil),                              // 32: nimi.runtime.v1.GetBankResponse
+	(*ListBanksResponse)(nil),                            // 33: nimi.runtime.v1.ListBanksResponse
+	(*DeleteBankResponse)(nil),                           // 34: nimi.runtime.v1.DeleteBankResponse
+	(*RetainResponse)(nil),                               // 35: nimi.runtime.v1.RetainResponse
+	(*RecallResponse)(nil),                               // 36: nimi.runtime.v1.RecallResponse
+	(*HistoryResponse)(nil),                              // 37: nimi.runtime.v1.HistoryResponse
+	(*DeleteMemoryResponse)(nil),                         // 38: nimi.runtime.v1.DeleteMemoryResponse
+	(*MemoryEvent)(nil),                                  // 39: nimi.runtime.v1.MemoryEvent
+	(*GetMemoryEmbeddingRuntimeIntentResponse)(nil),      // 40: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentResponse
+	(*SetMemoryEmbeddingRuntimeIntentResponse)(nil),      // 41: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentResponse
+	(*InspectMemoryEmbeddingRuntimeResponse)(nil),        // 42: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse
+	(*RequestMemoryEmbeddingRuntimeBindResponse)(nil),    // 43: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindResponse
+	(*RequestMemoryEmbeddingRuntimeCutoverResponse)(nil), // 44: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverResponse
+	(*CreateKnowledgeBankResponse)(nil),                  // 45: nimi.runtime.v1.CreateKnowledgeBankResponse
+	(*GetKnowledgeBankResponse)(nil),                     // 46: nimi.runtime.v1.GetKnowledgeBankResponse
+	(*ListKnowledgeBanksResponse)(nil),                   // 47: nimi.runtime.v1.ListKnowledgeBanksResponse
+	(*DeleteKnowledgeBankResponse)(nil),                  // 48: nimi.runtime.v1.DeleteKnowledgeBankResponse
+	(*PutPageResponse)(nil),                              // 49: nimi.runtime.v1.PutPageResponse
+	(*GetPageResponse)(nil),                              // 50: nimi.runtime.v1.GetPageResponse
+	(*ListPagesResponse)(nil),                            // 51: nimi.runtime.v1.ListPagesResponse
+	(*DeletePageResponse)(nil),                           // 52: nimi.runtime.v1.DeletePageResponse
+	(*SearchKeywordResponse)(nil),                        // 53: nimi.runtime.v1.SearchKeywordResponse
+	(*SearchHybridResponse)(nil),                         // 54: nimi.runtime.v1.SearchHybridResponse
+	(*AddLinkResponse)(nil),                              // 55: nimi.runtime.v1.AddLinkResponse
+	(*RemoveLinkResponse)(nil),                           // 56: nimi.runtime.v1.RemoveLinkResponse
+	(*ListLinksResponse)(nil),                            // 57: nimi.runtime.v1.ListLinksResponse
+	(*ListBacklinksResponse)(nil),                        // 58: nimi.runtime.v1.ListBacklinksResponse
+	(*TraverseGraphResponse)(nil),                        // 59: nimi.runtime.v1.TraverseGraphResponse
+	(*IngestDocumentResponse)(nil),                       // 60: nimi.runtime.v1.IngestDocumentResponse
+	(*GetIngestTaskResponse)(nil),                        // 61: nimi.runtime.v1.GetIngestTaskResponse
 }
 var file_runtime_v1_cognition_proto_depIdxs = []int32{
 	0,  // 0: nimi.runtime.v1.RuntimeCognitionService.CreateBank:input_type -> nimi.runtime.v1.CreateBankRequest
@@ -130,57 +136,61 @@ var file_runtime_v1_cognition_proto_depIdxs = []int32{
 	6,  // 6: nimi.runtime.v1.RuntimeCognitionService.History:input_type -> nimi.runtime.v1.HistoryRequest
 	7,  // 7: nimi.runtime.v1.RuntimeCognitionService.DeleteMemory:input_type -> nimi.runtime.v1.DeleteMemoryRequest
 	8,  // 8: nimi.runtime.v1.RuntimeCognitionService.SubscribeMemoryEvents:input_type -> nimi.runtime.v1.SubscribeMemoryEventsRequest
-	9,  // 9: nimi.runtime.v1.RuntimeCognitionService.InspectMemoryEmbeddingRuntime:input_type -> nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest
-	10, // 10: nimi.runtime.v1.RuntimeCognitionService.RequestMemoryEmbeddingRuntimeBind:input_type -> nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest
-	11, // 11: nimi.runtime.v1.RuntimeCognitionService.RequestMemoryEmbeddingRuntimeCutover:input_type -> nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest
-	12, // 12: nimi.runtime.v1.RuntimeCognitionService.CreateKnowledgeBank:input_type -> nimi.runtime.v1.CreateKnowledgeBankRequest
-	13, // 13: nimi.runtime.v1.RuntimeCognitionService.GetKnowledgeBank:input_type -> nimi.runtime.v1.GetKnowledgeBankRequest
-	14, // 14: nimi.runtime.v1.RuntimeCognitionService.ListKnowledgeBanks:input_type -> nimi.runtime.v1.ListKnowledgeBanksRequest
-	15, // 15: nimi.runtime.v1.RuntimeCognitionService.DeleteKnowledgeBank:input_type -> nimi.runtime.v1.DeleteKnowledgeBankRequest
-	16, // 16: nimi.runtime.v1.RuntimeCognitionService.PutPage:input_type -> nimi.runtime.v1.PutPageRequest
-	17, // 17: nimi.runtime.v1.RuntimeCognitionService.GetPage:input_type -> nimi.runtime.v1.GetPageRequest
-	18, // 18: nimi.runtime.v1.RuntimeCognitionService.ListPages:input_type -> nimi.runtime.v1.ListPagesRequest
-	19, // 19: nimi.runtime.v1.RuntimeCognitionService.DeletePage:input_type -> nimi.runtime.v1.DeletePageRequest
-	20, // 20: nimi.runtime.v1.RuntimeCognitionService.SearchKeyword:input_type -> nimi.runtime.v1.SearchKeywordRequest
-	21, // 21: nimi.runtime.v1.RuntimeCognitionService.SearchHybrid:input_type -> nimi.runtime.v1.SearchHybridRequest
-	22, // 22: nimi.runtime.v1.RuntimeCognitionService.AddLink:input_type -> nimi.runtime.v1.AddLinkRequest
-	23, // 23: nimi.runtime.v1.RuntimeCognitionService.RemoveLink:input_type -> nimi.runtime.v1.RemoveLinkRequest
-	24, // 24: nimi.runtime.v1.RuntimeCognitionService.ListLinks:input_type -> nimi.runtime.v1.ListLinksRequest
-	25, // 25: nimi.runtime.v1.RuntimeCognitionService.ListBacklinks:input_type -> nimi.runtime.v1.ListBacklinksRequest
-	26, // 26: nimi.runtime.v1.RuntimeCognitionService.TraverseGraph:input_type -> nimi.runtime.v1.TraverseGraphRequest
-	27, // 27: nimi.runtime.v1.RuntimeCognitionService.IngestDocument:input_type -> nimi.runtime.v1.IngestDocumentRequest
-	28, // 28: nimi.runtime.v1.RuntimeCognitionService.GetIngestTask:input_type -> nimi.runtime.v1.GetIngestTaskRequest
-	29, // 29: nimi.runtime.v1.RuntimeCognitionService.CreateBank:output_type -> nimi.runtime.v1.CreateBankResponse
-	30, // 30: nimi.runtime.v1.RuntimeCognitionService.GetBank:output_type -> nimi.runtime.v1.GetBankResponse
-	31, // 31: nimi.runtime.v1.RuntimeCognitionService.ListBanks:output_type -> nimi.runtime.v1.ListBanksResponse
-	32, // 32: nimi.runtime.v1.RuntimeCognitionService.DeleteBank:output_type -> nimi.runtime.v1.DeleteBankResponse
-	33, // 33: nimi.runtime.v1.RuntimeCognitionService.Retain:output_type -> nimi.runtime.v1.RetainResponse
-	34, // 34: nimi.runtime.v1.RuntimeCognitionService.Recall:output_type -> nimi.runtime.v1.RecallResponse
-	35, // 35: nimi.runtime.v1.RuntimeCognitionService.History:output_type -> nimi.runtime.v1.HistoryResponse
-	36, // 36: nimi.runtime.v1.RuntimeCognitionService.DeleteMemory:output_type -> nimi.runtime.v1.DeleteMemoryResponse
-	37, // 37: nimi.runtime.v1.RuntimeCognitionService.SubscribeMemoryEvents:output_type -> nimi.runtime.v1.MemoryEvent
-	38, // 38: nimi.runtime.v1.RuntimeCognitionService.InspectMemoryEmbeddingRuntime:output_type -> nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse
-	39, // 39: nimi.runtime.v1.RuntimeCognitionService.RequestMemoryEmbeddingRuntimeBind:output_type -> nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindResponse
-	40, // 40: nimi.runtime.v1.RuntimeCognitionService.RequestMemoryEmbeddingRuntimeCutover:output_type -> nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverResponse
-	41, // 41: nimi.runtime.v1.RuntimeCognitionService.CreateKnowledgeBank:output_type -> nimi.runtime.v1.CreateKnowledgeBankResponse
-	42, // 42: nimi.runtime.v1.RuntimeCognitionService.GetKnowledgeBank:output_type -> nimi.runtime.v1.GetKnowledgeBankResponse
-	43, // 43: nimi.runtime.v1.RuntimeCognitionService.ListKnowledgeBanks:output_type -> nimi.runtime.v1.ListKnowledgeBanksResponse
-	44, // 44: nimi.runtime.v1.RuntimeCognitionService.DeleteKnowledgeBank:output_type -> nimi.runtime.v1.DeleteKnowledgeBankResponse
-	45, // 45: nimi.runtime.v1.RuntimeCognitionService.PutPage:output_type -> nimi.runtime.v1.PutPageResponse
-	46, // 46: nimi.runtime.v1.RuntimeCognitionService.GetPage:output_type -> nimi.runtime.v1.GetPageResponse
-	47, // 47: nimi.runtime.v1.RuntimeCognitionService.ListPages:output_type -> nimi.runtime.v1.ListPagesResponse
-	48, // 48: nimi.runtime.v1.RuntimeCognitionService.DeletePage:output_type -> nimi.runtime.v1.DeletePageResponse
-	49, // 49: nimi.runtime.v1.RuntimeCognitionService.SearchKeyword:output_type -> nimi.runtime.v1.SearchKeywordResponse
-	50, // 50: nimi.runtime.v1.RuntimeCognitionService.SearchHybrid:output_type -> nimi.runtime.v1.SearchHybridResponse
-	51, // 51: nimi.runtime.v1.RuntimeCognitionService.AddLink:output_type -> nimi.runtime.v1.AddLinkResponse
-	52, // 52: nimi.runtime.v1.RuntimeCognitionService.RemoveLink:output_type -> nimi.runtime.v1.RemoveLinkResponse
-	53, // 53: nimi.runtime.v1.RuntimeCognitionService.ListLinks:output_type -> nimi.runtime.v1.ListLinksResponse
-	54, // 54: nimi.runtime.v1.RuntimeCognitionService.ListBacklinks:output_type -> nimi.runtime.v1.ListBacklinksResponse
-	55, // 55: nimi.runtime.v1.RuntimeCognitionService.TraverseGraph:output_type -> nimi.runtime.v1.TraverseGraphResponse
-	56, // 56: nimi.runtime.v1.RuntimeCognitionService.IngestDocument:output_type -> nimi.runtime.v1.IngestDocumentResponse
-	57, // 57: nimi.runtime.v1.RuntimeCognitionService.GetIngestTask:output_type -> nimi.runtime.v1.GetIngestTaskResponse
-	29, // [29:58] is the sub-list for method output_type
-	0,  // [0:29] is the sub-list for method input_type
+	9,  // 9: nimi.runtime.v1.RuntimeCognitionService.GetMemoryEmbeddingRuntimeIntent:input_type -> nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentRequest
+	10, // 10: nimi.runtime.v1.RuntimeCognitionService.SetMemoryEmbeddingRuntimeIntent:input_type -> nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest
+	11, // 11: nimi.runtime.v1.RuntimeCognitionService.InspectMemoryEmbeddingRuntime:input_type -> nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest
+	12, // 12: nimi.runtime.v1.RuntimeCognitionService.RequestMemoryEmbeddingRuntimeBind:input_type -> nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest
+	13, // 13: nimi.runtime.v1.RuntimeCognitionService.RequestMemoryEmbeddingRuntimeCutover:input_type -> nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest
+	14, // 14: nimi.runtime.v1.RuntimeCognitionService.CreateKnowledgeBank:input_type -> nimi.runtime.v1.CreateKnowledgeBankRequest
+	15, // 15: nimi.runtime.v1.RuntimeCognitionService.GetKnowledgeBank:input_type -> nimi.runtime.v1.GetKnowledgeBankRequest
+	16, // 16: nimi.runtime.v1.RuntimeCognitionService.ListKnowledgeBanks:input_type -> nimi.runtime.v1.ListKnowledgeBanksRequest
+	17, // 17: nimi.runtime.v1.RuntimeCognitionService.DeleteKnowledgeBank:input_type -> nimi.runtime.v1.DeleteKnowledgeBankRequest
+	18, // 18: nimi.runtime.v1.RuntimeCognitionService.PutPage:input_type -> nimi.runtime.v1.PutPageRequest
+	19, // 19: nimi.runtime.v1.RuntimeCognitionService.GetPage:input_type -> nimi.runtime.v1.GetPageRequest
+	20, // 20: nimi.runtime.v1.RuntimeCognitionService.ListPages:input_type -> nimi.runtime.v1.ListPagesRequest
+	21, // 21: nimi.runtime.v1.RuntimeCognitionService.DeletePage:input_type -> nimi.runtime.v1.DeletePageRequest
+	22, // 22: nimi.runtime.v1.RuntimeCognitionService.SearchKeyword:input_type -> nimi.runtime.v1.SearchKeywordRequest
+	23, // 23: nimi.runtime.v1.RuntimeCognitionService.SearchHybrid:input_type -> nimi.runtime.v1.SearchHybridRequest
+	24, // 24: nimi.runtime.v1.RuntimeCognitionService.AddLink:input_type -> nimi.runtime.v1.AddLinkRequest
+	25, // 25: nimi.runtime.v1.RuntimeCognitionService.RemoveLink:input_type -> nimi.runtime.v1.RemoveLinkRequest
+	26, // 26: nimi.runtime.v1.RuntimeCognitionService.ListLinks:input_type -> nimi.runtime.v1.ListLinksRequest
+	27, // 27: nimi.runtime.v1.RuntimeCognitionService.ListBacklinks:input_type -> nimi.runtime.v1.ListBacklinksRequest
+	28, // 28: nimi.runtime.v1.RuntimeCognitionService.TraverseGraph:input_type -> nimi.runtime.v1.TraverseGraphRequest
+	29, // 29: nimi.runtime.v1.RuntimeCognitionService.IngestDocument:input_type -> nimi.runtime.v1.IngestDocumentRequest
+	30, // 30: nimi.runtime.v1.RuntimeCognitionService.GetIngestTask:input_type -> nimi.runtime.v1.GetIngestTaskRequest
+	31, // 31: nimi.runtime.v1.RuntimeCognitionService.CreateBank:output_type -> nimi.runtime.v1.CreateBankResponse
+	32, // 32: nimi.runtime.v1.RuntimeCognitionService.GetBank:output_type -> nimi.runtime.v1.GetBankResponse
+	33, // 33: nimi.runtime.v1.RuntimeCognitionService.ListBanks:output_type -> nimi.runtime.v1.ListBanksResponse
+	34, // 34: nimi.runtime.v1.RuntimeCognitionService.DeleteBank:output_type -> nimi.runtime.v1.DeleteBankResponse
+	35, // 35: nimi.runtime.v1.RuntimeCognitionService.Retain:output_type -> nimi.runtime.v1.RetainResponse
+	36, // 36: nimi.runtime.v1.RuntimeCognitionService.Recall:output_type -> nimi.runtime.v1.RecallResponse
+	37, // 37: nimi.runtime.v1.RuntimeCognitionService.History:output_type -> nimi.runtime.v1.HistoryResponse
+	38, // 38: nimi.runtime.v1.RuntimeCognitionService.DeleteMemory:output_type -> nimi.runtime.v1.DeleteMemoryResponse
+	39, // 39: nimi.runtime.v1.RuntimeCognitionService.SubscribeMemoryEvents:output_type -> nimi.runtime.v1.MemoryEvent
+	40, // 40: nimi.runtime.v1.RuntimeCognitionService.GetMemoryEmbeddingRuntimeIntent:output_type -> nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentResponse
+	41, // 41: nimi.runtime.v1.RuntimeCognitionService.SetMemoryEmbeddingRuntimeIntent:output_type -> nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentResponse
+	42, // 42: nimi.runtime.v1.RuntimeCognitionService.InspectMemoryEmbeddingRuntime:output_type -> nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse
+	43, // 43: nimi.runtime.v1.RuntimeCognitionService.RequestMemoryEmbeddingRuntimeBind:output_type -> nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindResponse
+	44, // 44: nimi.runtime.v1.RuntimeCognitionService.RequestMemoryEmbeddingRuntimeCutover:output_type -> nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverResponse
+	45, // 45: nimi.runtime.v1.RuntimeCognitionService.CreateKnowledgeBank:output_type -> nimi.runtime.v1.CreateKnowledgeBankResponse
+	46, // 46: nimi.runtime.v1.RuntimeCognitionService.GetKnowledgeBank:output_type -> nimi.runtime.v1.GetKnowledgeBankResponse
+	47, // 47: nimi.runtime.v1.RuntimeCognitionService.ListKnowledgeBanks:output_type -> nimi.runtime.v1.ListKnowledgeBanksResponse
+	48, // 48: nimi.runtime.v1.RuntimeCognitionService.DeleteKnowledgeBank:output_type -> nimi.runtime.v1.DeleteKnowledgeBankResponse
+	49, // 49: nimi.runtime.v1.RuntimeCognitionService.PutPage:output_type -> nimi.runtime.v1.PutPageResponse
+	50, // 50: nimi.runtime.v1.RuntimeCognitionService.GetPage:output_type -> nimi.runtime.v1.GetPageResponse
+	51, // 51: nimi.runtime.v1.RuntimeCognitionService.ListPages:output_type -> nimi.runtime.v1.ListPagesResponse
+	52, // 52: nimi.runtime.v1.RuntimeCognitionService.DeletePage:output_type -> nimi.runtime.v1.DeletePageResponse
+	53, // 53: nimi.runtime.v1.RuntimeCognitionService.SearchKeyword:output_type -> nimi.runtime.v1.SearchKeywordResponse
+	54, // 54: nimi.runtime.v1.RuntimeCognitionService.SearchHybrid:output_type -> nimi.runtime.v1.SearchHybridResponse
+	55, // 55: nimi.runtime.v1.RuntimeCognitionService.AddLink:output_type -> nimi.runtime.v1.AddLinkResponse
+	56, // 56: nimi.runtime.v1.RuntimeCognitionService.RemoveLink:output_type -> nimi.runtime.v1.RemoveLinkResponse
+	57, // 57: nimi.runtime.v1.RuntimeCognitionService.ListLinks:output_type -> nimi.runtime.v1.ListLinksResponse
+	58, // 58: nimi.runtime.v1.RuntimeCognitionService.ListBacklinks:output_type -> nimi.runtime.v1.ListBacklinksResponse
+	59, // 59: nimi.runtime.v1.RuntimeCognitionService.TraverseGraph:output_type -> nimi.runtime.v1.TraverseGraphResponse
+	60, // 60: nimi.runtime.v1.RuntimeCognitionService.IngestDocument:output_type -> nimi.runtime.v1.IngestDocumentResponse
+	61, // 61: nimi.runtime.v1.RuntimeCognitionService.GetIngestTask:output_type -> nimi.runtime.v1.GetIngestTaskResponse
+	31, // [31:62] is the sub-list for method output_type
+	0,  // [0:31] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name

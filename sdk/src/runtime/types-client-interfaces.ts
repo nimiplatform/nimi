@@ -290,6 +290,8 @@ import type {
   DeleteMemoryResponse,
   GetBankRequest,
   GetBankResponse,
+  GetMemoryEmbeddingRuntimeIntentRequest,
+  GetMemoryEmbeddingRuntimeIntentResponse,
   HistoryRequest,
   HistoryResponse,
   InspectMemoryEmbeddingRuntimeRequest,
@@ -304,6 +306,8 @@ import type {
   RequestMemoryEmbeddingRuntimeCutoverResponse,
   RetainRequest,
   RetainResponse,
+  SetMemoryEmbeddingRuntimeIntentRequest,
+  SetMemoryEmbeddingRuntimeIntentResponse,
   SubscribeMemoryEventsRequest,
   MemoryEvent,
 } from './generated/runtime/v1/memory';
@@ -322,6 +326,8 @@ import type {
   EnableAutonomyResponse,
   GetAgentRequest,
   GetAgentResponse,
+  GetAgentCanonicalMemoryBankStatusRequest,
+  GetAgentCanonicalMemoryBankStatusResponse,
   GetAgentStateRequest,
   GetAgentStateResponse,
   GetAvatarDebugReplayRequest,
@@ -350,6 +356,8 @@ import type {
   GetPublicChatSessionSnapshotResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
+  RequestAgentCanonicalMemoryBankBindRequest,
+  RequestAgentCanonicalMemoryBankBindResponse,
   RequestAvatarDebugProbeRequest,
   RequestAvatarDebugProbeResponse,
   RequestCompanionParticipationRequest,
@@ -588,6 +596,8 @@ export type RuntimeMemoryClient = {
   recall(request: RecallRequest, options?: RuntimeCallOptions): Promise<RecallResponse>;
   history(request: HistoryRequest, options?: RuntimeCallOptions): Promise<HistoryResponse>;
   deleteMemory(request: DeleteMemoryRequest, options?: RuntimeCallOptions): Promise<DeleteMemoryResponse>;
+  getMemoryEmbeddingRuntimeIntent(request: GetMemoryEmbeddingRuntimeIntentRequest, options?: RuntimeCallOptions): Promise<GetMemoryEmbeddingRuntimeIntentResponse>;
+  setMemoryEmbeddingRuntimeIntent(request: SetMemoryEmbeddingRuntimeIntentRequest, options?: RuntimeCallOptions): Promise<SetMemoryEmbeddingRuntimeIntentResponse>;
   inspectMemoryEmbeddingRuntime(request: InspectMemoryEmbeddingRuntimeRequest, options?: RuntimeCallOptions): Promise<InspectMemoryEmbeddingRuntimeResponse>;
   requestMemoryEmbeddingRuntimeBind(request: RequestMemoryEmbeddingRuntimeBindRequest, options?: RuntimeCallOptions): Promise<RequestMemoryEmbeddingRuntimeBindResponse>;
   requestMemoryEmbeddingRuntimeCutover(request: RequestMemoryEmbeddingRuntimeCutoverRequest, options?: RuntimeCallOptions): Promise<RequestMemoryEmbeddingRuntimeCutoverResponse>;
@@ -715,6 +725,14 @@ export type RuntimeAgentClient = {
   cancelHook(request: CancelHookRequest, options?: RuntimeCallOptions): Promise<CancelHookResponse>;
   queryMemory(request: QueryAgentMemoryRequest, options?: RuntimeCallOptions): Promise<QueryAgentMemoryResponse>;
   writeMemory(request: WriteAgentMemoryRequest, options?: RuntimeCallOptions): Promise<WriteAgentMemoryResponse>;
+  getAgentCanonicalMemoryBankStatus(
+    request: GetAgentCanonicalMemoryBankStatusRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<GetAgentCanonicalMemoryBankStatusResponse>;
+  requestAgentCanonicalMemoryBankBind(
+    request: RequestAgentCanonicalMemoryBankBindRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<RequestAgentCanonicalMemoryBankBindResponse>;
   subscribeEvents(
     request: SubscribeAgentEventsRequest,
     options?: RuntimeStreamCallOptions,
