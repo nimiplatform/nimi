@@ -9,12 +9,12 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
 const SOURCE_ROOTS = [
-  'apps/desktop/src/runtime/llm-adapter',
-  'apps/desktop/src/shell/renderer/features/runtime-config/domain/provider-connectors',
+  'apps/desktop/src/shell/renderer',
+  'apps/desktop/src/public-web',
 ];
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx']);
-const SKIP_DIRS = new Set(['node_modules', 'dist', '.git']);
+const SKIP_DIRS = new Set(['node_modules', 'dist', '.git', '.cache', 'assets']);
 
 const BANNED_PATTERNS = [
   {
