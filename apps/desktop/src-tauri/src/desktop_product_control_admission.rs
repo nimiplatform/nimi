@@ -1,41 +1,48 @@
-//! Backend `AdmitProductReadyForUse` operation (`P-COLD-016`).
+//! Desktop bridge adapter for Runtime `AdmitProductReadyForUse` (`P-COLD-016`).
 //!
-//! This is the only path that may transition `~/.nimi/nimi.json` to
-//! `ready_for_use`. It composes the four first-run evidence owners in the
-//! canonical `P-COLD-016` order, then atomically writes `ready_for_use`. Any
-//! owner failure routes the record to the earliest affected non-ready
-//! product-control state (the per-ref `failure_projection` in
-//! `product-control-record-schema.yaml`).
+//! Runtime owns the only production transition of `~/.nimi/nimi.json` to
+//! `ready_for_use`. This module resolves Desktop-owned host evidence and submits
+//! it to Runtime; the test-only verifier below mirrors the historical
+//! `P-COLD-016` composition to keep fixture coverage aligned with Runtime.
 //!
 //! The renderer cannot reach this operation with refs or state — it only
-//! triggers admission. Every evidence ref is re-resolved through its canonical
-//! owner/verifier here; the recorded fields are never trusted as valid.
+//! triggers admission. Production evidence refs are re-resolved through Runtime
+//! or the Desktop host-evidence verifier before they are submitted.
 //!
 //! Verification boundary: this module composes owner verifiers; it must not
 //! re-implement the verify logic of the wave-3/4/5/10 owner modules.
 
 use crate::desktop_product_control::{
-    authenticated_runtime_account_id, now_iso_timestamp, product_control_record_path,
-    read_existing_record, read_product_control_projection, selected_data_root_path, write_record,
-    ProductControlRecord, ProductControlRecordProjection, ProductControlState,
+    authenticated_runtime_account_id, selected_data_root_path, ProductControlRecordProjection,
+};
+#[cfg(test)]
+use crate::desktop_product_control::{
+    now_iso_timestamp, product_control_record_path, read_existing_record,
+    read_product_control_projection, write_record, ProductControlRecord, ProductControlState,
     ProductDataRootStatus,
 };
+#[cfg(test)]
 use std::path::Path;
 
+#[allow(dead_code)]
 const RUNTIME_BASELINE_RESOLVE_METHOD_ID: &str =
     nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_RUNTIME_BASELINE_READINESS_METHOD_ID;
+#[allow(dead_code)]
 const FIRST_RUN_EXECUTION_RESOLVE_METHOD_ID: &str =
     nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID;
 
 /// `state == "ready"` is the only accepted Runtime baseline readiness state
 /// (`K-LENV-ACT-011`).
+#[allow(dead_code)]
 const RUNTIME_BASELINE_STATE_READY: &str = "ready";
 /// `state == LocalAiReady` is the only accepted first-run execution
 /// evidence state (`K-AIEXEC-007`).
+#[allow(dead_code)]
 const FIRST_RUN_EXECUTION_STATE_READY: &str = concat!("local_", "ai_ready");
 
 /// Resolved Runtime baseline readiness evidence accepted by admission step 5.
 #[derive(Debug, Clone)]
+#[cfg(test)]
 pub struct RuntimeBaselineResolution {
     pub runtime_baseline_ref: String,
     pub selected_local_factory_ai_profile_ref: String,
@@ -46,6 +53,7 @@ pub struct RuntimeBaselineResolution {
 
 /// Resolved first-run execution evidence accepted by admission step 7.
 #[derive(Debug, Clone)]
+#[cfg(test)]
 pub struct ExecutionEvidenceResolution {
     pub execution_evidence_ref: String,
     pub selected_local_factory_ai_profile_ref: String,
@@ -63,6 +71,7 @@ pub struct ExecutionEvidenceResolution {
 /// session (step 2), Runtime baseline readiness (step 5), and Runtime baseline
 /// execution evidence (step 7).
 #[allow(async_fn_in_trait)]
+#[cfg(test)]
 pub trait AdmissionRuntimeResolvers {
     /// Step 2 — resolve the authenticated Runtime account id through
     /// `RuntimeAccountService`. An `Err` means no authenticated session.
@@ -89,6 +98,7 @@ pub trait AdmissionRuntimeResolvers {
 
 /// A Runtime owner resolution failure plus the projection state it reported.
 #[derive(Debug, Clone)]
+#[cfg(test)]
 pub struct RuntimeOwnerFailure {
     /// Resolver-reported projection state (e.g. `repair_required`,
     /// `LocalAiProfileSelectedEnvironmentNotReady`, runtime `LocalAiBlocked`).
@@ -100,6 +110,7 @@ pub struct RuntimeOwnerFailure {
 /// The product-control state an admission step failure routes the record to,
 /// mirroring the per-ref `failure_projection` in
 /// `product-control-record-schema.yaml`.
+#[cfg(test)]
 fn map_runtime_baseline_failure(failure: &RuntimeOwnerFailure) -> ProductControlState {
     // runtimeBaselineRef.failure_projection routes to
     // LocalAiProfileSelectedEnvironmentNotReady or RepairRequired.
@@ -111,6 +122,7 @@ fn map_runtime_baseline_failure(failure: &RuntimeOwnerFailure) -> ProductControl
 }
 
 /// executionEvidenceRef.failure_projection routes to LocalAiReady or Blocked.
+#[cfg(test)]
 fn map_execution_evidence_failure(failure: &RuntimeOwnerFailure) -> ProductControlState {
     match failure.projection_state.trim() {
         arm if arm == "blocked" || arm == concat!("local_", "ai_blocked") => {
@@ -120,6 +132,7 @@ fn map_execution_evidence_failure(failure: &RuntimeOwnerFailure) -> ProductContr
     }
 }
 
+#[cfg(test)]
 fn first_run_factory_profile_ref(install_level: &str) -> String {
     format!(
         "aiprofile/nimi.first-run.local-factory.{}@1",
@@ -128,6 +141,7 @@ fn first_run_factory_profile_ref(install_level: &str) -> String {
 }
 
 /// Outcome of admission composition before the record write.
+#[cfg(test)]
 enum AdmissionComposition {
     /// All four owners verified; the values needed for the atomic ready write.
     Ready(Box<ReadyAdmissionEvidence>),
@@ -140,6 +154,7 @@ enum AdmissionComposition {
 }
 
 /// Owner-verified evidence composed for the atomic `ready_for_use` write.
+#[cfg(test)]
 struct ReadyAdmissionEvidence {
     /// Backend-derived from the verified Account Default Profile evidence.
     baseline_profile_ref: String,
@@ -151,7 +166,7 @@ struct ReadyAdmissionEvidence {
     execution_evidence_ref: String,
 }
 
-/// `AdmitProductReadyForUse` — the backend admission operation (`P-COLD-016`).
+/// Test-only mirror of the old backend admission operation (`P-COLD-016`).
 ///
 /// Composes the four first-run evidence owners in canonical order and, on full
 /// success, atomically writes `ready_for_use` to `~/.nimi/nimi.json` with
@@ -159,6 +174,7 @@ struct ReadyAdmissionEvidence {
 /// is written at the earliest affected non-ready state. Re-running on an
 /// already-`ready_for_use` record re-resolves every owner: all valid yields a
 /// no-op success, any invalid routes to the failed owner's state.
+#[cfg(test)]
 pub async fn admit_product_ready_for_use<R: AdmissionRuntimeResolvers>(
     resolvers: &R,
 ) -> Result<ProductControlRecordProjection, String> {
@@ -188,6 +204,7 @@ pub async fn admit_product_ready_for_use<R: AdmissionRuntimeResolvers>(
 }
 
 /// Compose the 8-step `P-COLD-016` admission sequence.
+#[cfg(test)]
 async fn compose_admission<R: AdmissionRuntimeResolvers>(
     record: &ProductControlRecord,
     resolvers: &R,
@@ -518,6 +535,7 @@ async fn compose_admission<R: AdmissionRuntimeResolvers>(
 /// Apply the owner-verified ready evidence to the record for the atomic
 /// `ready_for_use` write (`record_write_rules`: atomic, `firstRun.completed`,
 /// `completedAt`).
+#[cfg(test)]
 fn apply_ready_evidence(record: &mut ProductControlRecord, evidence: &ReadyAdmissionEvidence) {
     record.state = ProductControlState::ReadyForUse;
     record.first_run.completed = true;
@@ -540,6 +558,7 @@ fn apply_ready_evidence(record: &mut ProductControlRecord, evidence: &ReadyAdmis
 /// after a failed admission step. The original record is reused; only the
 /// state, the repair record, and (for repair/blocked) the data-root status are
 /// updated. Failed admission never persists `ready_for_use`.
+#[cfg(test)]
 fn route_failed_record(
     control_path: &Path,
     mut record: ProductControlRecord,
@@ -568,8 +587,11 @@ fn route_failed_record(
 /// Production [`AdmissionRuntimeResolvers`] backed by the desktop runtime
 /// bridge. Both Runtime owner resolutions are cross-process unary calls
 /// through the allowlisted `RuntimeLocalService` resolve methods.
+#[allow(dead_code)]
+#[cfg(test)]
 pub struct BridgeAdmissionRuntimeResolvers;
 
+#[cfg(test)]
 impl AdmissionRuntimeResolvers for BridgeAdmissionRuntimeResolvers {
     async fn resolve_authenticated_account_id(&self) -> Result<String, String> {
         authenticated_runtime_account_id().await
@@ -680,17 +702,85 @@ impl AdmissionRuntimeResolvers for BridgeAdmissionRuntimeResolvers {
 
 /// Tauri command `product_control_record_admit_ready_for_use`.
 ///
-/// The renderer-facing trigger for backend ready admission. The renderer
-/// supplies no refs and no state — admission composes and re-verifies every
-/// owner evidence ref itself (`P-COLD-016`). The renderer can only request
-/// admission and read the resulting [`ProductControlRecordProjection`]:
-/// success projects `ready_for_use`; any owner failure projects the earliest
-/// affected non-ready state plus the failure error. Wave-7 consumes this
-/// stable command name and projection shape.
+/// Runtime owns product-control admission and the only `ready_for_use` write.
+/// Desktop resolves its host-owned evidence and submits that explicit evidence
+/// to Runtime; Runtime re-resolves Runtime-owned evidence and commits the
+/// product-control state machine.
 #[tauri::command]
 pub async fn product_control_record_admit_ready_for_use(
 ) -> Result<ProductControlRecordProjection, String> {
-    admit_product_ready_for_use(&BridgeAdmissionRuntimeResolvers).await
+    let projection = crate::desktop_product_control::product_control_record_get().await?;
+    let record = projection
+        .record
+        .ok_or_else(|| "product-control record is required before ready admission".to_string())?;
+    let data_root = selected_data_root_path(&record)
+        .ok_or_else(|| "selected nimi_data is required before ready admission".to_string())?;
+    let account_id = authenticated_runtime_account_id().await?;
+    let account_ref = record
+        .first_run
+        .account_default_profile_ref
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "accountDefaultProfileRef is required before ready admission".to_string())?;
+    let account_evidence = crate::account_profile_library::verify_account_default_profile_ref(
+        &data_root,
+        &account_id,
+        account_ref,
+    )?;
+    let runtime_baseline_ref = record
+        .first_run
+        .runtime_baseline_ref
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "runtimeBaselineRef is required before ready admission".to_string())?;
+    let baseline_response: crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessResponse =
+        crate::runtime_bridge::invoke_unary_typed(
+            RUNTIME_BASELINE_RESOLVE_METHOD_ID,
+            crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessRequest {
+                runtime_baseline_ref: runtime_baseline_ref.to_string(),
+                host_profile: None,
+            },
+            Some(30_000),
+        )
+        .await?;
+    if baseline_response.state.trim() != RUNTIME_BASELINE_STATE_READY {
+        return Err(format!(
+            "runtimeBaselineRef did not resolve ready (state={}, reason={})",
+            baseline_response.state.trim(),
+            baseline_response.reason_code.trim()
+        ));
+    }
+    let baseline_ref = baseline_response
+        .r#ref
+        .ok_or_else(|| "Runtime baseline readiness response had no evidence ref".to_string())?;
+    let baseline_bindings =
+        crate::desktop_ai_config_library::runtime_capability_bindings_from_baseline_ref(
+            &baseline_ref,
+        )?;
+    let built_in_ai_config_set =
+        crate::desktop_product_control::resolve_built_in_ai_config_refs_for_admission(
+            &data_root,
+            &account_id,
+            &record.first_run.built_in_ai_config_refs,
+            Some(&baseline_bindings),
+        )?;
+    let response: crate::runtime_bridge::generated::ProductControlProjectionJson =
+        crate::runtime_bridge::invoke_unary_typed(
+            nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_ADMIT_PRODUCT_CONTROL_READY_FOR_USE_METHOD_ID,
+            crate::runtime_bridge::generated::AdmitProductControlReadyForUseRequest {
+                account_default_profile_evidence_json: serde_json::to_string(&account_evidence)
+                    .map_err(|error| format!("serialize account profile evidence: {error}"))?,
+                built_in_ai_config_evidence_json: serde_json::to_string(&built_in_ai_config_set)
+                    .map_err(|error| format!("serialize built-in AIConfig evidence: {error}"))?,
+            },
+            Some(30_000),
+        )
+        .await?;
+    serde_json::from_str::<ProductControlRecordProjection>(&response.json).map_err(|error| {
+        format!("Runtime product-control admission projection was invalid: {error}")
+    })
 }
 
 #[cfg(test)]

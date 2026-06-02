@@ -39,6 +39,10 @@ pub(crate) fn allow_http_request_origin_with_history(
     true
 }
 
+pub(crate) fn is_authorized_http_origin_allowed(origin: &str, allowed: &HashSet<String>) -> bool {
+    allowed.contains(origin)
+}
+
 fn allow_http_request_origin(origin: &str) -> bool {
     let limiter = HTTP_REQUEST_RATE_LIMITER.get_or_init(|| Mutex::new(HashMap::new()));
     let now = SystemTime::now()
@@ -90,8 +94,9 @@ pub(crate) async fn http_request(
     let origin = normalize_origin(&url)?;
     let allowed = allowed_http_origins();
 
-    // Allow all HTTPS origins (matches CSP connect-src 'self' https:).
-    // HTTP origins require explicit allow-list or LAN private IP targets.
+    // HTTP origins require explicit allow-list or LAN private IP targets. HTTPS
+    // origins may be proxied only without renderer-supplied Authorization unless
+    // they are an admitted Runtime/Realm origin.
     let is_https = url.scheme() == "https";
     if !is_https && !allowed.contains(&origin) && !is_private_lan_http_origin(&url) {
         let allowed_list = allowed.iter().cloned().collect::<Vec<_>>();
@@ -120,6 +125,35 @@ pub(crate) async fn http_request(
         return Err(format!(
             "目标地址不在允许列表：{origin}。允许列表：{}",
             allowed_list.join(", ")
+        ));
+    }
+    let has_authorization = payload
+        .authorization
+        .as_deref()
+        .map(str::trim)
+        .is_some_and(|value| !value.is_empty());
+    if has_authorization && !is_authorized_http_origin_allowed(&origin, &allowed) {
+        let allowed_list = allowed.iter().cloned().collect::<Vec<_>>();
+        append_diag_log_entry(
+            "http-request",
+            "warn",
+            "http_request",
+            "request:blocked-authorization-origin",
+            diag_session_id.as_deref(),
+            None,
+            None,
+            json!({
+                "method": method.to_string(),
+                "url": url.as_str(),
+                "origin": origin,
+                "allowedOrigins": allowed_list,
+            }),
+        );
+        return Err(crate::runtime_bridge::bridge_error(
+            "DESKTOP_HTTP_AUTH_ORIGIN_BLOCKED",
+            &format!(
+                "Authorization is only allowed for admitted Runtime or Realm origins: {origin}"
+            ),
         ));
     }
     if !allow_http_request_origin(&origin) {

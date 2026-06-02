@@ -28,7 +28,7 @@ test('account menu renders only a real email and never synthesizes a nimi.app ad
 test('desktop bootstrap merges Realm profile fields without moving profile ownership into Runtime account projection', () => {
   assert.match(runtimeBootstrapSource, /hydrateDesktopAccountProfile/);
   assert.match(runtimeBootstrapAccountProfileSource, /function mergeRuntimeAccountProjectionWithRealmProfile/);
-  assert.match(runtimeBootstrapAccountProfileSource, /const realmProfile: unknown = await dataSync\.loadCurrentUser\(\);/);
+  assert.match(runtimeBootstrapAccountProfileSource, /const realmProfile: unknown = await realmSocialData\.loadCurrentUser\(\);/);
   assert.doesNotMatch(runtimeBootstrapAccountProfileSource, /isReauthenticationRequiredError/);
   assert.doesNotMatch(runtimeBootstrapAccountProfileSource, /onReauthenticationRequired/);
   assert.doesNotMatch(runtimeBootstrapSource, /desktop_bootstrap_reauth_required/);

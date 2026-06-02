@@ -263,7 +263,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             crate::desktop_logs_export::desktop_logs_export,
             crate::apps_bridge_projection::apps_bridge_projection_get,
             crate::account_apps_library_commands::account_app_library_get,
-            crate::account_apps_library_commands::account_app_library_apply,
             super::defaults_and_commands::system_resources::get_system_resource_snapshot,
             super::defaults_and_commands::http_request,
             super::defaults_and_commands::window_and_logs::desktop_avatar_launch_handoff,

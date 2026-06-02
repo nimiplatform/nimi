@@ -77,7 +77,7 @@ test('desktop update event subscription rejects missing unsubscribe', async () =
   try {
     await assert.rejects(
       () => subscribeDesktopUpdateState(() => {}),
-      /did not return unsubscribe/,
+      { message: /did not return an unsubscribe function/ },
     );
   } finally {
     resetTauriRuntime();

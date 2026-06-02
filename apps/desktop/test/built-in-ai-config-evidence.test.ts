@@ -127,7 +127,15 @@ test('product control materializes built-in AIConfig refs inside first-run final
   );
   assert.match(
     desktopProductControlSource,
-    /record\.first_run\.built_in_ai_config_refs = evidence_set\.refs\(\)/,
+    /ensure_built_in_ai_config_evidence_set/,
+  );
+  assert.match(
+    desktopProductControlSource,
+    /RecordProductControlFirstRunLocalAiReadyEvidenceRequest/,
+  );
+  assert.match(
+    desktopProductControlSource,
+    /built_in_ai_config_evidence_json: to_json\(&evidence_set, "built-in AIConfig evidence"\)\?/,
   );
   // wave-6 resolve/verify seam exists and does NOT write ready_for_use.
   assert.match(

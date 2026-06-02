@@ -18,8 +18,12 @@
 //!   - generic chat scope, omitted scope, localStorage/string-only refs, and a
 //!     partial one-of-two set never satisfy ready admission;
 //!   - apply/verify failure for either canonical scope fails first-run closed;
-//!   - no provider/model/connector identifiers are hardcoded — capability
-//!     intent is sourced only from the admitted factory `AIProfile` row.
+//!   - capability intent is sourced only from the admitted factory `AIProfile`
+//!     row;
+//!   - executable model/provider values are copied only from the Runtime-owned
+//!     baseline readiness ref. The fixed first-run Runtime consumer ids below
+//!     are evidence lookup keys for K-LENV-ACT-011, not Desktop-owned routing
+//!     policy.
 
 use nimi_shell_tauri::platform_catalog::ai_profile_factory::{
     verify_first_run_factory_ai_profile, PlatformAIProfileFactoryRow,

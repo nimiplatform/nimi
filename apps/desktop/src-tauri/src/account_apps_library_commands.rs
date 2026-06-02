@@ -1,64 +1,32 @@
-//! Tauri commands for the account app-library projection (`library.json`).
+//! Tauri command for reading the Runtime-owned account app-library projection.
 //!
-//! T4-W4 Fork D (D1): the desktop Tauri layer owns the `library.json` writer.
-//! These commands are the renderer's ONLY read/write path to the account
-//! app-library projection (`~/.nimi/accounts/<account-id>/apps/library.json`).
-//! `account_apps_projection.rs` owns the schema, the fail-closed governed
-//! reader, and the mutation writer; this module is the thin command seam.
+//! Runtime resolves the authenticated account binding server-side; it is never
+//! accepted from the renderer, because a renderer-provided binding is not
+//! trusted.
 //!
-//! The authenticated `account_id` is resolved server-side from the Runtime
-//! account session (`authenticated_runtime_account_id`); it is never accepted
-//! from the renderer — a renderer-provided account binding is not trusted.
-//!
-//! The writer is driven by the desktop Apps surface on an observed terminal
-//! `RuntimeAppInstallJob` frame (install -> `installed`, uninstall ->
-//! `uninstalled`). The runtime stays the package/job truth owner; this writer
-//! only projects the account-scoped library/launch preference.
+//! Runtime app lifecycle terminal handling owns account-library writes and
+//! governed reads. Desktop remains a bridge consumer here and must not resolve
+//! account-scoped projection files.
 
-use crate::account_apps_projection::{
-    apply_account_app_library_mutation, read_account_app_library, AccountAppLibraryMutation,
-    AccountAppLibraryRecord,
-};
-use crate::desktop_product_control::authenticated_runtime_account_id;
-use serde::Deserialize;
+use serde::Serialize;
 
-/// The library mutation kind a renderer command requests. Mirrors
-/// `AccountAppLibraryMutation`; the renderer never names a raw library state.
-#[derive(Debug, Clone, Copy, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AccountAppLibraryMutationKind {
-    /// A terminal `installed` install/update/repair job.
-    InstalledEnabled,
-    /// A terminal `uninstalled` job that removed the release only.
-    UninstalledKeepRecord,
-    /// A confirmed destructive "Delete app data" flow.
-    RemovedFromLibrary,
-}
-
-impl From<AccountAppLibraryMutationKind> for AccountAppLibraryMutation {
-    fn from(value: AccountAppLibraryMutationKind) -> Self {
-        match value {
-            AccountAppLibraryMutationKind::InstalledEnabled => {
-                AccountAppLibraryMutation::InstalledEnabled
-            }
-            AccountAppLibraryMutationKind::UninstalledKeepRecord => {
-                AccountAppLibraryMutation::UninstalledKeepRecord
-            }
-            AccountAppLibraryMutationKind::RemovedFromLibrary => {
-                AccountAppLibraryMutation::RemovedFromLibrary
-            }
-        }
-    }
-}
-
-/// Payload for `account_app_library_apply`.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-pub struct AccountAppLibraryApplyPayload {
-    /// The admitted Nimi App id whose library row the mutation targets.
+pub struct AccountAppLibraryRow {
     pub app_id: String,
-    /// The lifecycle-terminal mutation to apply.
-    pub mutation: AccountAppLibraryMutationKind,
+    pub library_state: String,
+    pub installed: bool,
+    pub last_opened_at: Option<String>,
+    pub data_policy: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountAppLibraryRecord {
+    pub schema_version: u32,
+    pub account_id: String,
+    pub updated_at: String,
+    pub apps: Vec<AccountAppLibraryRow>,
 }
 
 /// Read the account app-library projection.
@@ -68,17 +36,40 @@ pub struct AccountAppLibraryApplyPayload {
 /// typed repair reason.
 #[tauri::command]
 pub async fn account_app_library_get() -> Result<Option<AccountAppLibraryRecord>, String> {
-    let account_id = authenticated_runtime_account_id().await?;
-    read_account_app_library(&account_id)
+    let response: crate::runtime_bridge::generated::GetAccountAppLibraryResponse =
+        crate::runtime_bridge::invoke_unary_typed(
+            nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_ACCOUNT_APP_LIBRARY_METHOD_ID,
+            crate::runtime_bridge::generated::GetAccountAppLibraryRequest {},
+            Some(10_000),
+        )
+        .await?;
+    if !response.exists {
+        return Ok(None);
+    }
+    response
+        .record
+        .map(account_app_library_record_from_runtime)
+        .map(Some)
+        .ok_or_else(|| "Runtime account app-library response missing record".to_string())
 }
 
-/// Apply an install / uninstall / remove mutation to one app's library row and
-/// return the committed record. Fail-closed: a faulted existing file is not
-/// overwritten.
-#[tauri::command]
-pub async fn account_app_library_apply(
-    payload: AccountAppLibraryApplyPayload,
-) -> Result<AccountAppLibraryRecord, String> {
-    let account_id = authenticated_runtime_account_id().await?;
-    apply_account_app_library_mutation(&account_id, &payload.app_id, payload.mutation.into())
+fn account_app_library_record_from_runtime(
+    record: crate::runtime_bridge::generated::AccountAppLibraryRecord,
+) -> AccountAppLibraryRecord {
+    AccountAppLibraryRecord {
+        schema_version: record.schema_version,
+        account_id: record.account_id,
+        updated_at: record.updated_at,
+        apps: record
+            .apps
+            .into_iter()
+            .map(|row| AccountAppLibraryRow {
+                app_id: row.app_id,
+                library_state: row.library_state,
+                installed: row.installed,
+                last_opened_at: Some(row.last_opened_at).filter(|value| !value.trim().is_empty()),
+                data_policy: row.data_policy,
+            })
+            .collect(),
+    }
 }

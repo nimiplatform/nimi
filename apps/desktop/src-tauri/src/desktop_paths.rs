@@ -56,7 +56,16 @@ pub fn resolve_nimi_dir() -> Result<PathBuf, String> {
 }
 
 pub fn resolve_nimi_data_dir() -> Result<PathBuf, String> {
-    crate::desktop_product_control::selected_product_data_root()
+    #[cfg(test)]
+    {
+        crate::desktop_product_control::selected_product_data_root()
+    }
+    #[cfg(not(test))]
+    {
+        tauri::async_runtime::block_on(async {
+            crate::desktop_product_control::runtime_selected_product_data_root().await
+        })
+    }
 }
 
 /// Resolves the OS-conventional `nimi_data` location *proposed* to the user

@@ -60,8 +60,8 @@ test('the AgentFriendLimit type carries no subscription-tier field', () => {
 });
 
 test('social Realm data exposes a loadAgentFriendLimit projection action', () => {
-  const flowSource = read('shell/renderer/features/social/data/social-snapshot.ts');
+  const flowSource = read('shell/renderer/features/social/data/profile-data.ts');
   const realmSocialDataSource = read('shell/renderer/features/social/data/realm-social-data.ts');
-  assert.match(flowSource, /MeService\.getMyAgentFriendLimit\(\)/);
+  assert.match(flowSource, /fetchAgentFriendLimit\(callApi, emitRealmDataError\)/);
   assert.match(realmSocialDataSource, /loadAgentFriendLimit/);
 });

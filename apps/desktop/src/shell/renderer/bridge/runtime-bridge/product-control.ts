@@ -231,13 +231,11 @@ export async function getBuiltInAIConfigForScopeInit(
 }
 
 /**
- * Requests backend admission of the first-run transition into `ready_for_use`.
+ * Requests Runtime product-control admission of `ready_for_use`.
  *
- * The backend admission op is the ONLY authority that may write `ready_for_use`
- * (cold-start-authority-contract P-COLD-016). The renderer only requests this
- * transition and displays the returned projection. On success the projection
- * carries `state: 'ready_for_use'` with the full record; on failure it carries
- * the earliest-failed `state`, a non-null `error`, and `record: null`.
+ * The legacy Desktop command name is retained as a shell bridge seam, but
+ * Desktop no longer writes admission; the backend submits Desktop-owned host
+ * evidence to Runtime, and Runtime commits or routes the product-control state.
  */
 export async function admitProductReadyForUse(): Promise<ProductControlRecordProjection> {
   if (!hasTauriInvoke()) {

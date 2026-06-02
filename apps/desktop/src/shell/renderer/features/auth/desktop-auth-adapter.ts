@@ -281,8 +281,8 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return;
       }
 
-      // Direct dataSync calls removed — query invalidation triggers
-      // React Query refetches which call the dataSync methods once each.
+      // Query invalidation is enough here; each feature refetches through its
+      // Realm/SDK read surface.
       await Promise.allSettled([
         queryClient.invalidateQueries({ queryKey: ['chats'] }),
         queryClient.invalidateQueries({ queryKey: ['contacts'] }),

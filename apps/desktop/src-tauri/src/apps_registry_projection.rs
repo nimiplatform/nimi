@@ -23,8 +23,9 @@
 use crate::desktop_paths::resolve_nimi_dir;
 use nimi_shell_tauri::governed_config::ConfigReadOutcome;
 use nimi_shell_tauri::platform_projection::apps_registry::{
-    build_apps_registry_record, materialize_apps_registry_projection, read_apps_registry_projection,
-    AppsRegistryRecord, APPS_REGISTRY_POINTER, APPS_REGISTRY_SCHEMA_VERSION,
+    build_apps_registry_record, materialize_apps_registry_projection,
+    read_apps_registry_projection, AppsRegistryRecord, APPS_REGISTRY_POINTER,
+    APPS_REGISTRY_SCHEMA_VERSION,
 };
 use serde::Serialize;
 use std::path::PathBuf;
@@ -86,7 +87,9 @@ pub fn ensure_apps_registry() -> Result<AppsRegistryProjection, String> {
             path: path.display().to_string(),
             record,
         }),
-        ConfigReadOutcome::Absent => Err("registry projection materializer returned absent".to_string()),
+        ConfigReadOutcome::Absent => {
+            Err("registry projection materializer returned absent".to_string())
+        }
         ConfigReadOutcome::Repair { reason, .. } => Err(reason),
     }
 }

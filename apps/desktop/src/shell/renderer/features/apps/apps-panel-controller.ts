@@ -20,13 +20,7 @@ import {
   formatAppLifecycleErrorDetail,
   type DesktopAppLifecycleBridge,
   type RuntimeAppInstallJob,
-  type RuntimeAppInstallJobEvent,
 } from './apps-lifecycle-bridge.js';
-import {
-  desktopAppLibraryBridge,
-  type AccountAppLibraryMutationKind,
-  type DesktopAppLibraryBridge,
-} from '@renderer/bridge/runtime-bridge/account-app-library.js';
 import type { AppCardActionId } from './apps-card-actions.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 import { projectAppsPanel, type DesktopAppsPanelProjection } from './apps-panel-projection.js';
@@ -68,18 +62,15 @@ export type AppsPanelController = AppsPanelState & AppsPanelActions;
 
 interface AppsPanelControllerDeps {
   readonly lifecycle?: DesktopAppLifecycleBridge;
-  readonly library?: DesktopAppLibraryBridge;
   readonly buildLiveBridge?: typeof createDesktopAppsLiveBridge;
 }
 
 /**
  * The Apps panel controller hook. `deps` is injectable for tests; production
- * uses the Apps registry bridge (`NimiAppClient`), the W2d lifecycle bridge, and
- * the W4 account app-library bridge.
+ * uses the Apps registry bridge (`NimiAppClient`) and the W2d lifecycle bridge.
  */
 export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): AppsPanelController {
   const lifecycle = deps.lifecycle ?? desktopAppLifecycleBridge;
-  const library = deps.library ?? desktopAppLibraryBridge;
   const buildLiveBridge = deps.buildLiveBridge ?? createDesktopAppsLiveBridge;
   const liveBridge = useMemo(() => buildLiveBridge(), [buildLiveBridge]);
 
@@ -138,13 +129,8 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
   // stream on every click when there is no install/update/uninstall work to
   // observe. Each typed frame re-projects the panel so
   // `installing`/`uninstalling` progress and terminal states stay live, with
-  // no renderer-local job store. A terminal `installed` / `uninstalled` frame
-  // also drives the `library.json` writer (Fork D).
-  //
-  // A renderer-local `Set` of job ids whose library mutation already ran keeps
-  // the writer idempotent across repeated terminal frames; it is bookkeeping
-  // for the runtime-owned job stream, not a parallel job truth.
-  const appliedLibraryJobsRef = useRef<Set<string>>(new Set());
+  // no renderer-local job store. Runtime lifecycle terminal handling owns
+  // account-library writes; this renderer stream is a consumer only.
   useEffect(() => {
     if (!activeJobIdsKey) {
       return;
@@ -155,17 +141,8 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
       try {
         const stream = await lifecycle.watchJobEvents({ signal: controller.signal });
         for await (const event of stream) {
+          void event;
           if (stopped) break;
-          void applyTerminalLibraryMutation(
-            library,
-            event,
-            appliedLibraryJobsRef.current,
-          ).catch((error: unknown) => {
-            // A library-writer failure is reported but never blocks the panel.
-            if (!stopped) {
-              setActionError(formatAppLifecycleErrorDetail(error));
-            }
-          });
           void reload({ includeJobs: true });
         }
       } catch (error) {
@@ -180,7 +157,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
       stopped = true;
       controller.abort();
     };
-  }, [activeJobIdsKey, lifecycle, library, reload]);
+  }, [activeJobIdsKey, lifecycle, reload]);
 
   const performAction = useCallback(
     async (appId: string, action: AppCardActionId): Promise<void> => {
@@ -188,15 +165,6 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
       setBusyAppId(appId);
       try {
         await routeCardAction(lifecycle, appId, action);
-        // The destructive "Delete app data" flow removes the app from the
-        // account library. Install/uninstall library mutations are driven by
-        // the terminal job frame in the watch effect; the destructive removal
-        // is applied here because only the controller knows the data-delete
-        // intent (the job kind alone cannot distinguish it from a plain
-        // uninstall).
-        if (action === 'delete_app_data') {
-          await library.apply({ appId, mutation: 'removed_from_library' });
-        }
         await reload({ includeJobs: true });
       } catch (error) {
         setActionError(formatAppLifecycleErrorDetail(error));
@@ -204,7 +172,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
         setBusyAppId((current) => (current === appId ? null : current));
       }
     },
-    [lifecycle, library, reload],
+    [lifecycle, reload],
   );
 
   const runCardAction = useCallback(
@@ -254,54 +222,6 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
 
 function isActiveJob(job: RuntimeAppInstallJob): boolean {
   return job.state === 'queued' || job.state === 'in_progress';
-}
-
-/**
- * Map a terminal `RuntimeAppInstallJob` event to its `library.json` mutation
- * and apply it once. Install/update/repair jobs that reach `installed` mark
- * the app installed+enabled; an `uninstall` job that reaches `uninstalled`
- * marks the package not-installed while keeping the account library record
- * (manual `#### Uninstall And Data`). A non-terminal frame, or a job whose
- * mutation already ran, is a no-op.
- *
- * `applied` is the renderer-local set of already-mutated job ids — bookkeeping
- * over the runtime-owned job stream, keeping the writer idempotent.
- */
-export async function applyTerminalLibraryMutation(
-  library: DesktopAppLibraryBridge,
-  event: RuntimeAppInstallJobEvent,
-  applied: Set<string>,
-): Promise<void> {
-  const mutation = terminalLibraryMutation(event.job);
-  if (!mutation) {
-    return;
-  }
-  if (applied.has(event.job.jobId)) {
-    return;
-  }
-  applied.add(event.job.jobId);
-  await library.apply({ appId: event.job.appId, mutation });
-}
-
-/**
- * The `library.json` mutation a terminal job implies, or `undefined` for a
- * non-terminal / failed / cancelled job (those do not change library state).
- *
- * A confirmed destructive "Delete app data" uninstall still reaches
- * `uninstalled` here and maps to `uninstalled_keep_record`; the controller
- * separately applies `removed_from_library` for that flow because the job
- * kind cannot carry the data-delete intent.
- */
-function terminalLibraryMutation(
-  job: RuntimeAppInstallJob,
-): AccountAppLibraryMutationKind | undefined {
-  if (job.state === 'installed' && job.kind !== 'uninstall') {
-    return 'installed_enabled';
-  }
-  if (job.state === 'uninstalled' && job.kind === 'uninstall') {
-    return 'uninstalled_keep_record';
-  }
-  return undefined;
 }
 
 /** Build the canonical app-launch AIScopeRef for an Open action. */

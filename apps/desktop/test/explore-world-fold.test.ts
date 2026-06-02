@@ -37,7 +37,7 @@ test('Explore fold mounts complete Worlds catalog under Explore', () => {
 });
 
 test('Explore fold keeps RealmAgent discovery as Explore-owned discovery without direct RealmAgent chat', () => {
-  assert.match(explorePanelSource, /dataSync\.loadExploreAgents/);
+  assert.match(explorePanelSource, /realmExploreData\.loadExploreAgents/);
   assert.match(exploreViewSource, /data-testid="explore-agents-section"/);
   assert.match(exploreViewSource, /<AgentRecommendationCard/);
   assert.match(agentRecommendationCardSource, /worldName/);

@@ -22,8 +22,8 @@ pub(crate) use nimi_shell_tauri::runtime_defaults::RuntimeDefaults;
 use app_bootstrap::normalize_runtime_config_page_id;
 #[cfg(test)]
 use defaults_and_commands::{
-    allow_http_request_origin_with_history, runtime_defaults, HTTP_REQUEST_RATE_LIMIT_BURST,
-    HTTP_REQUEST_RATE_LIMIT_WINDOW,
+    allow_http_request_origin_with_history, is_authorized_http_origin_allowed, runtime_defaults,
+    HTTP_REQUEST_RATE_LIMIT_BURST, HTTP_REQUEST_RATE_LIMIT_WINDOW,
 };
 use env_http::{
     allowed_http_origins, is_private_lan_http_origin, is_sensitive_key, load_dotenv_files,

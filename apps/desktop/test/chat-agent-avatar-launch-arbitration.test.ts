@@ -280,6 +280,18 @@ test('start_with_chat is actuated only by the launch-arbitration gate (single ac
   assert.deepEqual(offenders, [], 'start_with_chat launch source must originate only from the actuation site');
 });
 
+test('start_with_chat condition 6 is not inferred from local readiness', () => {
+  const controlsSource = readFileSync(
+    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts'),
+    'utf8',
+  );
+  assert.match(controlsSource, /No admitted projection exists/u);
+  assert.doesNotMatch(
+    controlsSource,
+    /avatarHandoffReady\s*&&\s*avatarRuntimeAccountReady[\s\S]{0,120}'authorized'/u,
+  );
+});
+
 test('start_with_chat launch keeps the D-LLM-072 payload triple and does not widen it', () => {
   const controlsSource = readFileSync(
     join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts'),

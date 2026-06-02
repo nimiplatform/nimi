@@ -41,9 +41,7 @@ test('agent hard-cut residues stay confined to explicit host-private and rejecti
   );
   assert.deepEqual(
     findFilesContaining(/HANDLE_PREFIX_UNSUPPORTED/),
-    [
-      'src/shell/renderer/features/agent-detail/data/realm-agent-detail-data.ts',
-    ],
+    [],
   );
 });
 

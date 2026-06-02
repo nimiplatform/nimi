@@ -527,11 +527,8 @@ function createAIConfigSurface(): AIConfigSurface {
 
 function createAISnapshotSurface(): AISnapshotSurface {
   return {
-    record(scopeRef: AIScopeRef, snapshot: AISnapshot): void {
-      storeSnapshot(snapshotStore, {
-        ...snapshot,
-        scopeRef,
-      });
+    record(snapshot: AISnapshot): void {
+      storeSnapshot(snapshotStore, snapshot);
     },
 
     get(executionId: string): AISnapshot | null {
@@ -582,7 +579,7 @@ export function bindDesktopAIConfigAppStore(
  * Called by submit/execution paths after snapshot creation.
  */
 export function recordDesktopAISnapshot(snapshot: AISnapshot): void {
-  getDesktopAIConfigService().aiSnapshot.record(snapshot.scopeRef, snapshot);
+  getDesktopAIConfigService().aiSnapshot.record(snapshot);
 }
 
 // ---------------------------------------------------------------------------

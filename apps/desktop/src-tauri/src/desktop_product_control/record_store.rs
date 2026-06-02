@@ -2,16 +2,24 @@
 //! persistence, and the selected `nimi_data` data-root layout.
 
 use crate::desktop_paths::normalize_desktop_absolute_path;
+#[cfg(test)]
 use std::fs;
-use std::path::{Path, PathBuf};
+#[cfg(test)]
+use std::path::Path;
+use std::path::PathBuf;
 
+#[cfg(test)]
 use super::paths::{new_install_id, now_unix_ms, product_version};
+#[cfg(test)]
 use super::pointers::resolve_product_pointers;
+use super::record::ProductControlRecord;
+#[cfg(test)]
 use super::record::{
-    ProductControlRecord, ProductControlState, ProductDataRootStatus, ProductFirstRunRecord,
-    ProductRepairRecord, PRODUCT_CONTROL_SCHEMA_VERSION,
+    ProductControlState, ProductDataRootStatus, ProductFirstRunRecord, ProductRepairRecord,
+    PRODUCT_CONTROL_SCHEMA_VERSION,
 };
 
+#[cfg(test)]
 pub(crate) fn empty_record(state: ProductControlState) -> Result<ProductControlRecord, String> {
     Ok(ProductControlRecord {
         schema_version: PRODUCT_CONTROL_SCHEMA_VERSION,
@@ -25,6 +33,7 @@ pub(crate) fn empty_record(state: ProductControlState) -> Result<ProductControlR
     })
 }
 
+#[cfg(test)]
 pub(crate) fn read_existing_record(path: &Path) -> Result<Option<ProductControlRecord>, String> {
     if !path.exists() {
         return Ok(None);
@@ -49,6 +58,7 @@ pub(crate) fn read_existing_record(path: &Path) -> Result<Option<ProductControlR
 /// four owners, P-COLD-016). A `ready_for_use` record with populated-but-
 /// unverified refs, or a direct file edit, still fails closed to a non-ready
 /// state because the refs never resolve through their owners.
+#[cfg(test)]
 fn validate_record(record: &ProductControlRecord) -> Result<(), String> {
     if record.schema_version != PRODUCT_CONTROL_SCHEMA_VERSION {
         return Err(format!(
@@ -82,6 +92,14 @@ fn validate_record(record: &ProductControlRecord) -> Result<(), String> {
             );
         }
     }
+    if let Some(install_level) = record.first_run.install_level.as_deref() {
+        if !matches!(install_level.trim(), "minimal" | "recommended") {
+            return Err(
+                "~/.nimi/nimi.json firstRun.installLevel must be minimal or recommended"
+                    .to_string(),
+            );
+        }
+    }
     if matches!(record.state, ProductControlState::ReadyForUse) {
         validate_ready_for_use_shape(record)?;
     }
@@ -93,6 +111,7 @@ fn validate_record(record: &ProductControlRecord) -> Result<(), String> {
 ///
 /// This guarantees a `ready_for_use` record is structurally complete before it
 /// is admitted for owner re-verification; it never asserts the refs are valid.
+#[cfg(test)]
 fn validate_ready_for_use_shape(record: &ProductControlRecord) -> Result<(), String> {
     let data_root = record
         .data_root
@@ -163,6 +182,7 @@ pub(crate) fn selected_data_root_path(record: &ProductControlRecord) -> Option<P
     Some(normalize_desktop_absolute_path(&path))
 }
 
+#[cfg(test)]
 pub(crate) fn write_record(path: &Path, record: &ProductControlRecord) -> Result<(), String> {
     validate_record(record)?;
     if let Some(parent) = path.parent() {
@@ -191,6 +211,7 @@ pub(crate) fn write_record(path: &Path, record: &ProductControlRecord) -> Result
 /// first-level directories declared in the `nimi_data` directory ownership
 /// matrix (`tables/nimi-data-directory-ownership.yaml`), so the on-disk layout
 /// can never drift from the kernel ownership table.
+#[cfg(test)]
 pub(crate) fn ensure_data_root_layout(path: &Path) -> Result<(), String> {
     crate::nimi_data_directory::enforce_data_root_layout(path)
 }

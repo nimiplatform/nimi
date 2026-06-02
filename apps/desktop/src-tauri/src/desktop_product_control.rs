@@ -7,47 +7,115 @@
 //! `desktop_product_control_admission` module.
 
 mod operations;
+#[cfg(test)]
 mod paths;
+#[cfg(test)]
 mod pointers;
+#[cfg(test)]
 mod projection;
+#[cfg(test)]
 mod ready_verification;
 mod record;
 mod record_store;
 
 pub use operations::*;
+#[cfg(test)]
 pub use paths::*;
+#[cfg(test)]
 pub use projection::*;
 pub use record::*;
 pub(crate) use record_store::*;
 
+async fn invoke_product_control_projection_json<Request>(
+    method_id: &str,
+    request: Request,
+    timeout_ms: Option<u64>,
+) -> Result<ProductControlRecordProjection, String>
+where
+    Request: prost::Message + Default,
+{
+    let response: crate::runtime_bridge::generated::ProductControlProjectionJson =
+        crate::runtime_bridge::invoke_unary_typed(method_id, request, timeout_ms).await?;
+    serde_json::from_str::<ProductControlRecordProjection>(&response.json)
+        .map_err(|error| format!("Runtime product-control projection decode failed: {error}"))
+}
+
+async fn invoke_product_control_selected_data_root_json<Request>(
+    method_id: &str,
+    request: Request,
+    timeout_ms: Option<u64>,
+) -> Result<ProductControlSelectedDataRootProjection, String>
+where
+    Request: prost::Message + Default,
+{
+    let response: crate::runtime_bridge::generated::ProductControlProjectionJson =
+        crate::runtime_bridge::invoke_unary_typed(method_id, request, timeout_ms).await?;
+    serde_json::from_str::<ProductControlSelectedDataRootProjection>(&response.json).map_err(
+        |error| format!("Runtime product-control selected-data-root decode failed: {error}"),
+    )
+}
+
 #[tauri::command]
 pub async fn product_control_record_get() -> Result<ProductControlRecordProjection, String> {
-    let projection = read_product_control_projection()?;
-    if matches!(projection.state, ProductControlState::ReadyForUse) {
-        return crate::desktop_product_control_admission::admit_product_ready_for_use(
-            &crate::desktop_product_control_admission::BridgeAdmissionRuntimeResolvers,
-        )
-        .await;
-    }
-    Ok(projection)
+    invoke_product_control_projection_json(
+        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_GET_PRODUCT_CONTROL_RECORD_METHOD_ID,
+        crate::runtime_bridge::generated::GetProductControlRecordRequest {},
+        Some(10_000),
+    )
+    .await
 }
 
 #[tauri::command]
-pub fn product_control_selected_data_root_get(
+pub async fn product_control_selected_data_root_get(
 ) -> Result<ProductControlSelectedDataRootProjection, String> {
-    read_selected_product_data_root_projection()
+    invoke_product_control_selected_data_root_json(
+        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_GET_PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD_ID,
+        crate::runtime_bridge::generated::GetProductControlSelectedDataRootRequest {},
+        Some(10_000),
+    )
+    .await
+}
+
+pub(crate) async fn runtime_selected_product_data_root() -> Result<std::path::PathBuf, String> {
+    let projection = product_control_selected_data_root_get().await?;
+    let data_root = projection.data_root.ok_or_else(|| {
+        projection.error.unwrap_or_else(|| {
+            "selected nimi_data is required before this Desktop operation".to_string()
+        })
+    })?;
+    let path = std::path::PathBuf::from(data_root.path.trim());
+    if !path.is_absolute() {
+        return Err(format!(
+            "Runtime selected nimi_data path must be absolute, got: {}",
+            path.display()
+        ));
+    }
+    Ok(path)
 }
 
 #[tauri::command]
-pub fn product_control_record_ensure_created() -> Result<ProductControlRecordProjection, String> {
-    ensure_product_control_record_created()
+pub async fn product_control_record_ensure_created(
+) -> Result<ProductControlRecordProjection, String> {
+    invoke_product_control_projection_json(
+        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_ENSURE_PRODUCT_CONTROL_RECORD_CREATED_METHOD_ID,
+        crate::runtime_bridge::generated::EnsureProductControlRecordCreatedRequest {},
+        Some(10_000),
+    )
+    .await
 }
 
 #[tauri::command]
-pub fn product_control_record_select_data_root(
+pub async fn product_control_record_select_data_root(
     payload: ProductDataRootSelectPayload,
 ) -> Result<ProductControlRecordProjection, String> {
-    select_product_data_root(&payload.data_root)
+    invoke_product_control_projection_json(
+        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_SELECT_PRODUCT_CONTROL_DATA_ROOT_METHOD_ID,
+        crate::runtime_bridge::generated::SelectProductControlDataRootRequest {
+            data_root: payload.data_root,
+        },
+        Some(30_000),
+    )
+    .await
 }
 
 /// Opens the OS native directory picker so the first-run Storage phase can
@@ -84,16 +152,29 @@ pub fn product_control_default_data_root_directory() -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn product_control_record_set_first_run_install_level(
+pub async fn product_control_record_set_first_run_install_level(
     payload: ProductFirstRunInstallLevelPayload,
 ) -> Result<ProductControlRecordProjection, String> {
-    set_first_run_install_level(&payload.install_level, payload.ai_profile_alias)
+    invoke_product_control_projection_json(
+        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_SET_PRODUCT_CONTROL_FIRST_RUN_INSTALL_LEVEL_METHOD_ID,
+        crate::runtime_bridge::generated::SetProductControlFirstRunInstallLevelRequest {
+            install_level: payload.install_level,
+            ai_profile_alias: payload.ai_profile_alias.unwrap_or_default(),
+        },
+        Some(10_000),
+    )
+    .await
 }
 
 #[tauri::command]
 pub async fn product_control_record_complete_first_run_device_environment_scan(
 ) -> Result<ProductControlRecordProjection, String> {
-    complete_first_run_device_environment_scan().await
+    invoke_product_control_projection_json(
+        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_COMPLETE_PRODUCT_CONTROL_FIRST_RUN_DEVICE_ENVIRONMENT_SCAN_METHOD_ID,
+        crate::runtime_bridge::generated::CompleteProductControlFirstRunDeviceEnvironmentScanRequest {},
+        Some(10_000),
+    )
+    .await
 }
 
 #[tauri::command]
@@ -132,7 +213,7 @@ mod tests {
     use super::{
         complete_first_run_device_environment_scan_with_profile,
         ensure_product_control_record_created, product_control_record_path,
-        product_control_selected_data_root_get, read_product_control_projection,
+        read_product_control_projection, read_selected_product_data_root_projection,
         select_product_data_root, selected_product_data_root, set_first_run_install_level,
         set_first_run_setup_state, ProductControlState, ProductFirstRunSetupStatePayload,
     };
@@ -208,11 +289,19 @@ mod tests {
             assert!(root.join("models").exists());
             assert!(root.join("apps").exists());
             assert!(
-                !home.join(".nimi").join("profiles").join("factory-index.json").exists(),
+                !home
+                    .join(".nimi")
+                    .join("profiles")
+                    .join("factory-index.json")
+                    .exists(),
                 "product-control pointer resolution must not materialize the factory projection"
             );
             assert!(
-                !home.join(".nimi").join("apps").join("registry.json").exists(),
+                !home
+                    .join(".nimi")
+                    .join("apps")
+                    .join("registry.json")
+                    .exists(),
                 "product-control pointer resolution must not materialize the apps registry"
             );
             let record = projection.record.expect("record");
@@ -450,6 +539,48 @@ mod tests {
     }
 
     #[test]
+    fn invalid_existing_install_level_routes_repair_required_without_overwrite() {
+        let home = temp_home("invalid-install-level");
+        let root = home.join("chosen-nimi-data");
+        with_env(&[("HOME", home.to_str())], || {
+            select_product_data_root(root.to_str().expect("root")).expect("select root");
+            set_first_run_install_level("minimal", Some("local-speech-ready".to_string()))
+                .expect("install level");
+            let control_path = product_control_record_path().expect("path");
+            let mut record = serde_json::from_str::<serde_json::Value>(
+                &std::fs::read_to_string(&control_path).expect("read record"),
+            )
+            .expect("parse record");
+            record
+                .as_object_mut()
+                .expect("object")
+                .get_mut("firstRun")
+                .expect("firstRun")
+                .as_object_mut()
+                .expect("firstRun object")
+                .insert(
+                    "installLevel".to_string(),
+                    serde_json::Value::String("cloud-first".to_string()),
+                );
+            let corrupt_raw = serde_json::to_string_pretty(&record).expect("json");
+            std::fs::write(&control_path, &corrupt_raw).expect("write corrupt install level");
+
+            let projection = read_product_control_projection().expect("projection");
+            assert_eq!(projection.state, ProductControlState::RepairRequired);
+            assert!(projection.record.is_none());
+            assert!(projection
+                .error
+                .clone()
+                .unwrap_or_default()
+                .contains("firstRun.installLevel"));
+            assert_eq!(
+                std::fs::read_to_string(&control_path).expect("read after"),
+                corrupt_raw
+            );
+        });
+    }
+
+    #[test]
     fn fabricated_ready_for_use_record_fails_closed_without_owner_verification() {
         let home = temp_home("ready");
         with_env(&[("HOME", home.to_str())], || {
@@ -533,7 +664,7 @@ mod tests {
             assert_ne!(entry_projection.state, ProductControlState::ReadyForUse);
             assert!(entry_projection.record.is_none());
 
-            let selected = product_control_selected_data_root_get().expect("selected root");
+            let selected = read_selected_product_data_root_projection().expect("selected root");
             assert_eq!(selected.state, ProductControlState::ReadyForUse);
             assert_eq!(
                 selected.data_root.expect("data root").path,

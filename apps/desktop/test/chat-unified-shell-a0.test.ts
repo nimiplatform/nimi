@@ -195,7 +195,7 @@ test('A0 AI route options derive from runtime.route.listOptions snapshot, not ru
 test('A0 AI route options consume SDK local route option projections', () => {
   assert.match(chatNimiRouteViewSource, /isRuntimeRouteLocalOptionSelectable/);
   assert.match(chatNimiRouteViewSource, /runtimeRouteLocalOptionToBinding/);
-  assert.match(chatNimiRouteViewSource, /from '@nimiplatform\/sdk\/ai'/);
+  assert.match(chatNimiRouteViewSource, /from '@nimiplatform\/sdk\/runtime'/);
   assert.doesNotMatch(chatNimiRouteViewSource, /normalizeText\(model\.status\)\.toLowerCase\(\) !== 'removed'/);
   assert.doesNotMatch(chatNimiRouteViewSource, /source:\s*'local',\s*connectorId:\s*''/);
 });

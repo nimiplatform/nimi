@@ -425,14 +425,11 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
     })),
     [avatarLiveInstancesQuery.data],
   );
-  // D-LLM-105 condition 6 — typed Runtime projection authorization. The verdict
-  // is derived only from the typed account projection + Tauri runtime bridge
-  // readiness, never from a configuration record or prior same-agent traffic.
-  // It stays `unknown` while either typed input is still resolving.
+  // D-LLM-105 condition 6 requires a typed Runtime authorization projection.
+  // No admitted projection exists in this hook yet, so start_with_chat fails
+  // closed instead of inferring authorization from account or bridge readiness.
   const avatarRuntimeProjectionAuthorization
-    = avatarHandoffReady && avatarRuntimeAccountReady
-      ? 'authorized' as const
-      : input.accountId === null
+    = input.accountId === null
         ? 'unauthorized' as const
         : 'unknown' as const;
 

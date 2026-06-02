@@ -15,9 +15,11 @@ test('renderer entry never mounts the root with a null Suspense fallback', () =>
   const source = readRendererMain();
 
   assert.match(source, /class EntryErrorBoundary extends React\.Component/);
-  assert.match(source, /function loadEntryModule<T>/);
+  assert.match(source, /createRendererEntryModuleLoader/);
+  assert.match(source, /const loadEntryModule = entryModuleLoader\.load;/);
   assert.match(source, /function preflightRendererAppDependencies/);
-  assert.match(source, /renderer-entry-import-retry/);
+  assert.match(source, /DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS/);
+  assert.match(source, /describeRendererEntryFailureReason/);
   assert.match(source, /entry:renderer-app/);
   assert.match(source, /entry:app-routes/);
   assert.match(source, /entry:sdk-ai/);

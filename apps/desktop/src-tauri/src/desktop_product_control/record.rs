@@ -107,7 +107,7 @@ pub struct ProductControlRecord {
     pub repair: ProductRepairRecord,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductControlRecordProjection {
     pub path: String,
@@ -117,7 +117,7 @@ pub struct ProductControlRecordProjection {
     pub error: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductControlSelectedDataRootProjection {
     pub path: String,

@@ -1,7 +1,8 @@
 use super::env_http::load_dotenv_file_preserve_env;
 use super::{
-    allow_http_request_origin_with_history, allowed_http_origins, is_private_lan_http_origin,
-    normalize_http_method, normalize_origin, normalize_runtime_config_page_id, runtime_defaults,
+    allow_http_request_origin_with_history, allowed_http_origins,
+    is_authorized_http_origin_allowed, is_private_lan_http_origin, normalize_http_method,
+    normalize_origin, normalize_runtime_config_page_id, runtime_defaults,
     HTTP_REQUEST_RATE_LIMIT_BURST, HTTP_REQUEST_RATE_LIMIT_WINDOW,
 };
 use crate::test_support::with_env;
@@ -11,6 +12,14 @@ use std::collections::VecDeque;
 use std::fs;
 use std::path::PathBuf;
 use std::time::Duration;
+
+fn run_async<F: std::future::Future<Output = ()>>(future: F) {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("build test runtime")
+        .block_on(future);
+}
 
 #[test]
 fn normalize_origin_keeps_scheme_host_and_default_port() {
@@ -259,6 +268,53 @@ fn http_request_rate_limit_enforces_burst_and_prunes_old_entries() {
         &mut history,
         HTTP_REQUEST_RATE_LIMIT_WINDOW + Duration::from_secs(1),
     ));
+}
+
+#[test]
+fn http_authorization_origin_policy_only_allows_configured_origins() {
+    let allowed = allowed_http_origins();
+    assert!(is_authorized_http_origin_allowed(
+        "http://localhost:3002",
+        &allowed
+    ));
+    assert!(!is_authorized_http_origin_allowed(
+        "https://api.openai.com:443",
+        &allowed
+    ));
+    assert!(!is_authorized_http_origin_allowed(
+        "http://192.168.31.175:80",
+        &allowed
+    ));
+}
+
+#[test]
+fn http_request_rejects_authorization_for_unadmitted_https_before_network() {
+    with_env(
+        &[
+            ("NIMI_REALM_URL", Some("http://localhost:3002")),
+            ("NIMI_E2E_FIXTURE_PATH", None),
+        ],
+        || {
+            run_async(async {
+                let result =
+                    super::defaults_and_commands::http_request(super::HttpRequestPayload {
+                        url: "https://api.openai.com/v1/models".to_string(),
+                        method: Some("GET".to_string()),
+                        headers: None,
+                        authorization: Some("Bearer must-not-leave-renderer".to_string()),
+                        body: None,
+                        diagnostic_session_id: None,
+                    })
+                    .await;
+
+                let error = result.expect_err("request should fail before network dispatch");
+                assert!(
+                    error.contains("DESKTOP_HTTP_AUTH_ORIGIN_BLOCKED"),
+                    "expected structured auth-origin block, got {error}"
+                );
+            });
+        },
+    );
 }
 
 #[test]

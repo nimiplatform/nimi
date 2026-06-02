@@ -22,7 +22,7 @@ function extractCallback(source: string, name: string): string {
 test('profile detail modal block action waits for Realm mutation before closing', () => {
   const section = extractCallback(profileModalSource, 'handleBlock');
 
-  assert.match(section, /await dataSync\.blockUser\(\{/);
+  assert.match(section, /await realmSocialData\.blockUser\(\{/);
   assert.match(section, /await Promise\.all\(\[/);
   assert.doesNotMatch(section, /setBlockedUsers/);
   assert.doesNotMatch(section, /newMap\.set\(profile\.id/);
@@ -43,7 +43,7 @@ test('profile detail modal remove-friend action opens a confirmation gate before
   assert.match(modalRenderSection, /onRemove=\{!isBlockedProfile && profile\.isFriend \? \(\) => setRemoveConfirmOpen\(true\) : undefined\}/);
   assert.doesNotMatch(modalRenderSection, /dataSync\.removeFriend/);
   assert.match(modalRemoveSection, /setRemoveMutationPending\(true\)/);
-  assert.match(modalRemoveSection, /await dataSync\.removeFriend\(profile\.id\)/);
+  assert.match(modalRemoveSection, /await realmSocialData\.removeFriend\(profile\.id\)/);
   assert.match(modalRemoveSection, /setRemoveConfirmOpen\(false\)/);
   assert.match(modalRemoveSection, /props\.onClose\(\)/);
 });

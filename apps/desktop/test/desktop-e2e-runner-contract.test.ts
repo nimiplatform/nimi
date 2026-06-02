@@ -125,8 +125,8 @@ test('core navigation smoke waits for the authenticated rail before tab assertio
 });
 
 test('desktop E2E fixture owns RuntimeAccount projection through runtime bridge unary overrides', () => {
-  assert.match(desktopE2eFixtureSource, /RuntimeAccountService\/GetAccountSessionStatus/);
-  assert.match(desktopE2eFixtureSource, /RuntimeAccountService\/GetAccessToken/);
-  assert.match(desktopE2eFixtureSource, /AccountSessionState::Authenticated/);
-  assert.match(desktopE2eFixtureSource, /AccountSessionState::Anonymous/);
+  assert.match(desktopE2eFixtureSource, /RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID/);
+  assert.match(desktopE2eFixtureSource, /RUNTIME_ACCOUNT_GET_ACCESS_TOKEN_METHOD_ID/);
+  assert.match(desktopE2eFixtureSource, /AccountSessionState::Authenticated as i32/);
+  assert.match(desktopE2eFixtureSource, /AccountSessionState::Anonymous as i32/);
 });

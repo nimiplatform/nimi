@@ -113,18 +113,25 @@ const INVOKE_PATH = path.resolve(
   import.meta.dirname ?? __dirname,
   '../src/shell/renderer/bridge/runtime-bridge/invoke.ts',
 );
+const KIT_NIMI_ERROR_PATH = path.resolve(
+  import.meta.dirname ?? __dirname,
+  '../../../kit/shell/renderer/src/bridge/nimi-error.ts',
+);
 const invokeSource = fs.readFileSync(INVOKE_PATH, 'utf-8');
+const kitNimiErrorSource = fs.readFileSync(KIT_NIMI_ERROR_PATH, 'utf-8');
 
-test('D-SEC-006: bridge error code map includes LOCAL_AI_IMPORT_HASH_MISMATCH', () => {
+test('D-SEC-006: Kit bridge error code map includes LOCAL_AI_IMPORT_HASH_MISMATCH', () => {
+  assert.match(invokeSource, /toShellBridgeNimiError/);
   assert.ok(
-    invokeSource.includes('LOCAL_AI_IMPORT_HASH_MISMATCH'),
-    'invoke.ts BRIDGE_ERROR_CODE_MAP must include LOCAL_AI_IMPORT_HASH_MISMATCH',
+    kitNimiErrorSource.includes('LOCAL_AI_IMPORT_HASH_MISMATCH'),
+    'Kit SHELL_BRIDGE_ERROR_CODE_MAP must include LOCAL_AI_IMPORT_HASH_MISMATCH',
   );
 });
 
-test('D-SEC-006: bridge error code map includes LOCAL_AI_MODEL_HASHES_EMPTY', () => {
+test('D-SEC-006: Kit bridge error code map includes LOCAL_AI_MODEL_HASHES_EMPTY', () => {
+  assert.match(invokeSource, /toShellBridgeNimiError/);
   assert.ok(
-    invokeSource.includes('LOCAL_AI_MODEL_HASHES_EMPTY'),
-    'invoke.ts BRIDGE_ERROR_CODE_MAP must include LOCAL_AI_MODEL_HASHES_EMPTY',
+    kitNimiErrorSource.includes('LOCAL_AI_MODEL_HASHES_EMPTY'),
+    'Kit SHELL_BRIDGE_ERROR_CODE_MAP must include LOCAL_AI_MODEL_HASHES_EMPTY',
   );
 });

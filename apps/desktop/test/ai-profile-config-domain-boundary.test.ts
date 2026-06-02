@@ -26,6 +26,7 @@ test('factory AIProfile catalog and first-run selection stay Platform/SDK-owned'
   const sdkGeneratedCatalog = read('sdk/src/platform-catalog/generated.ts');
   const sdkFirstRunSelection = read('sdk/src/platform-catalog/first-run.ts');
   const shellTauriCatalog = read('kit/shell/tauri/src/platform_catalog/ai_profile_factory.rs');
+  const shellTauriFactoryProjection = read('kit/shell/tauri/src/platform_projection/factory_profile_index.rs');
   const desktopFactoryIndex = read('apps/desktop/src-tauri/src/factory_profile_index.rs');
   const firstRunWorkflow = read('apps/desktop/src/shell/renderer/first-run/product-control-workflow.tsx');
 
@@ -39,8 +40,9 @@ test('factory AIProfile catalog and first-run selection stay Platform/SDK-owned'
 
   assert.match(shellTauriCatalog, /Source: \.nimi\/spec\/platform\/kernel\/tables\/ai-profile-factory-catalog\.yaml/);
   assert.match(shellTauriCatalog, /verify_first_run_factory_ai_profile/);
+  assert.match(shellTauriFactoryProjection, /validate_factory_profile_index_record/);
   assert.match(desktopFactoryIndex, /build_factory_profile_index_record/);
-  assert.match(desktopFactoryIndex, /validate_factory_profile_index_record/);
+  assert.match(desktopFactoryIndex, /materialize_factory_profile_index_projection/);
   assert.doesNotMatch(desktopFactoryIndex, /PlatformAIProfileFactoryRow\s*\{/);
 
   assert.match(firstRunWorkflow, /from '@nimiplatform\/sdk\/platform-catalog'/);
@@ -79,7 +81,8 @@ test('built-in first-run AIConfig evidence is Desktop host placement over canoni
   assert.match(desktopAiConfigLibrary, /with_extension\(format!\("json\.tmp/);
   assert.match(desktopAiConfigLibrary, /fs::rename\(&tmp_path, path\)/);
 
-  assert.match(productControl, /record\.first_run\.built_in_ai_config_refs = evidence_set\.refs\(\)/);
+  assert.match(productControl, /RUNTIME_LOCAL_RECORD_PRODUCT_CONTROL_FIRST_RUN_LOCAL_AI_READY_EVIDENCE_METHOD_ID/);
+  assert.match(productControl, /built_in_ai_config_evidence_json: to_json\(&evidence_set/);
   assert.match(productControl, /resolve_built_in_ai_config_refs_for_admission/);
   assert.match(productControl, /string-only ref/);
   assert.match(productControl, /recorded set is partial/);
@@ -111,7 +114,7 @@ test('Account Default Profile library is account-local evidence, not scope AICon
   const profilePage = read('apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-profiles.tsx');
   const profileLibraryStore = read('apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-profile-library.ts');
 
-  assert.match(localConfigRegistry, /schema_owner: account_profile_library/);
+  assert.doesNotMatch(localConfigRegistry, /schema_owner: account_profile_library/);
   assert.match(policy, /Account Default Profile 是 account-scoped local AI profile library default/);
 
   assert.match(accountProfileLibrary, /account_default_profile_path/);

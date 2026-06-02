@@ -43,7 +43,8 @@ describe('Nimi App registry/admission domain boundary', () => {
 
     assert.match(registryProjection, /nimi_shell_tauri::platform_projection::apps_registry/);
     assert.match(registryProjection, /build_apps_registry_record/);
-    assert.match(registryProjection, /validate_apps_registry_record/);
+    assert.match(registryProjection, /materialize_apps_registry_projection/);
+    assert.match(registryProjection, /read_apps_registry_projection/);
     assert.doesNotMatch(registryProjection, /struct\s+AppsRegistryRow/);
     assert.doesNotMatch(registryProjection, /PLATFORM_NIMI_APP_REGISTRY_ROWS\s*:/);
 
@@ -101,17 +102,24 @@ describe('Nimi App registry/admission domain boundary', () => {
     assert.match(lifecycleBridge, /never returns a fabricated "success" job/);
   });
 
-  it('keeps account app-library residue local to Desktop account projection, not admission truth', () => {
+  it('keeps account app-library reads behind Runtime, not Desktop account projection truth', () => {
     const accountProjection = readRepo('apps/desktop/src-tauri/src/account_apps_projection.rs');
     const accountCommands = readRepo('apps/desktop/src-tauri/src/account_apps_library_commands.rs');
+    const appBootstrap = readRepo('apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs');
+    const appsPanelController = readRepo('apps/desktop/src/shell/renderer/features/apps/apps-panel-controller.ts');
 
-    assert.match(accountProjection, /account app-library projection/);
-    assert.match(accountProjection, /read_account_app_library_governed/);
-    assert.match(accountProjection, /apply_account_app_library_mutation/);
-    assert.match(accountCommands, /authenticated_runtime_account_id/);
+    assert.match(accountProjection, /Runtime app lifecycle owns account app-library reads\/writes/);
+    assert.match(accountCommands, /RUNTIME_APP_GET_ACCOUNT_APP_LIBRARY_METHOD_ID/);
+    assert.match(accountCommands, /invoke_unary_typed/);
+    assert.doesNotMatch(accountProjection, /read_account_app_library|account_app_library_path|ACCOUNT_APP_LIBRARY_SCHEMA_VERSION/);
+    assert.doesNotMatch(accountCommands, /authenticated_runtime_account_id/);
+    assert.doesNotMatch(accountCommands, /account_app_library_get\([^)]*account_id/i);
+    assert.doesNotMatch(accountProjection, /apply_account_app_library_mutation|AccountAppLibraryMutation|write_app_library_record/);
+    assert.doesNotMatch(accountCommands, /account_app_library_apply/);
+    assert.doesNotMatch(appBootstrap, /account_app_library_apply/);
+    assert.doesNotMatch(appsPanelController, /desktopAppLibraryBridge\.apply|AccountAppLibraryMutationKind/);
     assert.doesNotMatch(accountProjection, /PLATFORM_NIMI_APP_REGISTRY_ROWS/);
     assert.doesNotMatch(accountProjection, /nimi-app-registry\.yaml/);
-    assert.doesNotMatch(accountCommands, /account_id:\s*String/);
   });
 
   it('proves Tester is a second SDK consumer, not a Desktop projection fork', () => {

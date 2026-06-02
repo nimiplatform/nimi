@@ -50,8 +50,8 @@ pub struct LogsExportResult {
 /// and reveals the artifact. Fails closed on every typed error path.
 #[tauri::command]
 pub async fn desktop_logs_export() -> Result<LogsExportResult, String> {
-    tauri::async_runtime::spawn_blocking(|| {
-        let data_root = crate::desktop_product_control::selected_product_data_root()?;
+    let data_root = crate::desktop_product_control::runtime_selected_product_data_root().await?;
+    tauri::async_runtime::spawn_blocking(move || {
         let logs_dir = data_root.join(LOGS_DIR_NAME);
         let downloads_dir = resolve_downloads_dir()?;
         let result = export_logs_archive(&logs_dir, &downloads_dir)?;

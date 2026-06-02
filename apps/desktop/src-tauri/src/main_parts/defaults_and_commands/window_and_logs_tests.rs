@@ -4,6 +4,8 @@ use super::{
     ConfirmDialogPayload, DesktopAvatarCloseHandoffPayload, DesktopAvatarLaunchHandoffPayload,
 };
 use crate::test_support::test_guard;
+use nimi_shell_tauri::runtime_bridge::RuntimeBridgeHostHooks;
+use std::sync::Arc;
 use std::time::Duration;
 use std::{fs, path::PathBuf};
 
@@ -283,6 +285,13 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         "NIMI_E2E_BACKEND_LOG_PATH",
         fixture_dir.join("backend.log").as_os_str(),
     );
+    let _ =
+        nimi_shell_tauri::runtime_bridge::set_runtime_bridge_host_hooks(RuntimeBridgeHostHooks {
+            unary_override: Some(Arc::new(|payload| {
+                crate::desktop_e2e_fixture::runtime_bridge_unary_override(payload)
+            })),
+            ..Default::default()
+        });
     crate::apps_registry_projection::ensure_apps_registry().expect("ensure app registry");
 
     let pairs = avatar_runtime_env_pairs().expect("avatar env pairs");

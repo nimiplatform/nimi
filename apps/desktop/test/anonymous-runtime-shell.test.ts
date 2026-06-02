@@ -28,7 +28,7 @@ test('Gate 7 ready entry: desktop router gates root ordinary shell', () => {
   // no-deps effect), which is what tripped the Electron throttle when
   // paired with LoginPage's reverse-Navigate.
   assert.match(appRoutesSource, /if \(authStatus === 'anonymous'\) \{\s*navigate\('\/login', \{ replace: true \}\);/);
-  assert.match(appRoutesSource, /projection\.state === 'ready_for_use'/);
+  assert.match(appRoutesSource, /const decision = projectProductControlAdmission\(projection\.state\);/);
   assert.ok(appRoutesSource.includes('<Route path="/" element={<DesktopOrdinaryShellGate />} />'));
   assert.match(appRoutesSource, /path="\/login"/);
   assert.match(appRoutesSource, /<Route path="\*" element={<Navigate to="\/" replace \/>} \/>/);
@@ -36,7 +36,7 @@ test('Gate 7 ready entry: desktop router gates root ordinary shell', () => {
 
 test('Gate 7 ready entry: root gate consumes product control readiness', () => {
   assert.match(appRoutesSource, /desktopBridge\.getProductControlRecord\(\)/);
-  assert.match(appRoutesSource, /projection\.state === 'ready_for_use'/);
+  assert.match(appRoutesSource, /const decision = projectProductControlAdmission\(projection\.state\);/);
   assert.match(appRoutesSource, /<DesktopFirstRunGate onReadyForUse=\{\(\) => setFirstRunReady\(true\)\} \/>/);
 });
 

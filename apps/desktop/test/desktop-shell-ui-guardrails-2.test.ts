@@ -63,7 +63,7 @@ test('add friend modal forwards the typed greeting message to the add-friend act
   assert.match(addFriendModalSource, /onAddFriend: \(message\?: string\) => Promise<void>/);
   assert.match(addFriendModalSource, /await onAddFriend\(message\.trim\(\) \|\| undefined\)/);
   assert.match(postCardSource, /actionAdapter\.requestOrAcceptFriend\(authorId, message\)/);
-  assert.match(postCardActionAdapterSource, /dataSync\.requestOrAcceptFriend\(authorId, message\)/);
+  assert.match(postCardActionAdapterSource, /realmSocialData\.requestOrAcceptFriend\(authorId, message\)/);
 });
 
 test('profile detail modal remains decoupled from seed-only profile fetching', () => {

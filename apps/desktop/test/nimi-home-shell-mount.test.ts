@@ -40,7 +40,7 @@ test('Home feed surface presents the Realm post feed and Create Post affordance'
 });
 
 // D-HOMEFEED-006: the Home feed surface consumes the SDK-typed Realm feed
-// projection through dataSync, not a renderer-local raw fetch.
+// projection through the Desktop Realm data adapter, not a renderer-local raw fetch.
 test('Home feed surface consumes the SDK-typed Realm feed projection', () => {
-  assert.match(homeViewSource, /dataSync\.loadPostFeed/);
+  assert.match(homeViewSource, /realmSocialData\.loadPostFeed/);
 });

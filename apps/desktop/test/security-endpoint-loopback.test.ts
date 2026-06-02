@@ -25,9 +25,14 @@ const INVOKE_PATH = path.resolve(
   import.meta.dirname ?? __dirname,
   '../src/shell/renderer/bridge/runtime-bridge/invoke.ts',
 );
+const KIT_NIMI_ERROR_PATH = path.resolve(
+  import.meta.dirname ?? __dirname,
+  '../../../kit/shell/renderer/src/bridge/nimi-error.ts',
+);
 
 const rustLocalRuntimePackageSource = fs.readFileSync(RUST_LOCAL_RUNTIME_MOD_PATH, 'utf-8');
 const invokeSource = fs.readFileSync(INVOKE_PATH, 'utf-8');
+const kitNimiErrorSource = fs.readFileSync(KIT_NIMI_ERROR_PATH, 'utf-8');
 
 // ---------------------------------------------------------------------------
 // D-SEC-001: failure produces LOCAL_AI_ENDPOINT_NOT_LOOPBACK error (behavioral)
@@ -65,9 +70,10 @@ test('D-SEC-001: Desktop Tauri local runtime does not keep endpoint validation t
 // Source-scan confirmation: TypeScript bridge error map includes the code
 // ---------------------------------------------------------------------------
 
-test('D-SEC-001: bridge error code map includes LOCAL_AI_ENDPOINT_NOT_LOOPBACK', () => {
+test('D-SEC-001: Kit bridge error code map includes LOCAL_AI_ENDPOINT_NOT_LOOPBACK', () => {
+  assert.match(invokeSource, /toShellBridgeNimiError/);
   assert.ok(
-    invokeSource.includes('LOCAL_AI_ENDPOINT_NOT_LOOPBACK'),
-    'invoke.ts BRIDGE_ERROR_CODE_MAP must include LOCAL_AI_ENDPOINT_NOT_LOOPBACK',
+    kitNimiErrorSource.includes('LOCAL_AI_ENDPOINT_NOT_LOOPBACK'),
+    'Kit SHELL_BRIDGE_ERROR_CODE_MAP must include LOCAL_AI_ENDPOINT_NOT_LOOPBACK',
   );
 });

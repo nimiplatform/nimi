@@ -2,23 +2,31 @@
 //! level / setup state, the account-default-profile and built-in-AIConfig
 //! ensure paths, and the authenticated Runtime account resolution they share.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+#[cfg(test)]
 use crate::desktop_paths::normalize_desktop_absolute_path;
 
-use super::paths::{now_iso_timestamp, now_unix_ms, product_control_record_path};
+#[cfg(test)]
+use super::paths::product_control_record_path;
+#[cfg(test)]
+use super::paths::{now_iso_timestamp, now_unix_ms};
+#[cfg(test)]
 use super::pointers::resolve_product_pointers;
+#[cfg(test)]
 use super::projection::read_product_control_projection;
+use super::record::{ProductControlRecord, ProductControlRecordProjection, ProductControlState};
+#[cfg(test)]
 use super::record::{
-    ProductControlRecord, ProductControlRecordProjection, ProductControlState,
     ProductDataRootRecord, ProductDataRootStatus, ProductFirstRunRecord,
     ProductFirstRunSetupStatePayload, ProductRepairRecord,
 };
+use super::record_store::selected_data_root_path;
+#[cfg(test)]
 use super::record_store::{
-    empty_record, ensure_data_root_layout, read_existing_record, selected_data_root_path,
-    write_record,
+    empty_record, ensure_data_root_layout, read_existing_record, write_record,
 };
 
 #[derive(Debug, Clone, Deserialize)]
@@ -27,6 +35,25 @@ pub struct ProductBuiltInAiConfigScopePayload {
     pub surface_id: String,
 }
 
+fn to_json<T: Serialize>(value: &T, label: &str) -> Result<String, String> {
+    serde_json::to_string(value).map_err(|error| format!("serialize {label}: {error}"))
+}
+
+async fn runtime_product_control_record_for(action: &str) -> Result<ProductControlRecord, String> {
+    let projection = super::product_control_record_get().await?;
+    projection.record.ok_or_else(|| {
+        projection
+            .error
+            .unwrap_or_else(|| format!("product-control record is required before {action}"))
+    })
+}
+
+fn selected_data_root_for(record: &ProductControlRecord, action: &str) -> Result<PathBuf, String> {
+    selected_data_root_path(record)
+        .ok_or_else(|| format!("selected nimi_data is required before {action}"))
+}
+
+#[cfg(test)]
 pub fn ensure_product_control_record_created() -> Result<ProductControlRecordProjection, String> {
     let control_path = product_control_record_path()?;
     match read_existing_record(&control_path) {
@@ -48,6 +75,7 @@ pub fn ensure_product_control_record_created() -> Result<ProductControlRecordPro
     }
 }
 
+#[cfg(test)]
 pub fn select_product_data_root(path: &str) -> Result<ProductControlRecordProjection, String> {
     let trimmed = path.trim();
     if trimmed.is_empty() {
@@ -84,6 +112,7 @@ pub fn select_product_data_root(path: &str) -> Result<ProductControlRecordProjec
     read_product_control_projection()
 }
 
+#[cfg(test)]
 fn ensure_first_run_data_root_selection_allowed(
     record: &ProductControlRecord,
 ) -> Result<(), String> {
@@ -127,6 +156,7 @@ fn ensure_first_run_data_root_selection_allowed(
     Ok(())
 }
 
+#[cfg(test)]
 pub fn set_first_run_install_level(
     install_level: &str,
     ai_profile_alias: Option<String>,
@@ -197,6 +227,7 @@ fn validate_first_run_device_profile(
     Ok(())
 }
 
+#[cfg(test)]
 pub(crate) fn complete_first_run_device_environment_scan_with_profile(
     host_profile: crate::runtime_bridge::generated::LocalDeviceProfile,
 ) -> Result<ProductControlRecordProjection, String> {
@@ -221,12 +252,6 @@ pub(crate) fn complete_first_run_device_environment_scan_with_profile(
     }
     write_record(&control_path, &record)?;
     read_product_control_projection()
-}
-
-pub async fn complete_first_run_device_environment_scan(
-) -> Result<ProductControlRecordProjection, String> {
-    let host_profile = collect_first_run_device_profile().await?;
-    complete_first_run_device_environment_scan_with_profile(host_profile)
 }
 
 pub(crate) async fn authenticated_runtime_account_id() -> Result<String, String> {
@@ -262,13 +287,8 @@ fn product_control_runtime_account_caller() -> crate::runtime_bridge::generated:
 
 pub async fn ensure_account_default_profile_for_product_control(
 ) -> Result<ProductControlRecordProjection, String> {
-    let control_path = product_control_record_path()?;
-    let mut record = read_existing_record(&control_path)?.ok_or_else(|| {
-        "~/.nimi/nimi.json is missing; select nimi_data before Account Default Profile".to_string()
-    })?;
-    let data_root = selected_data_root_path(&record).ok_or_else(|| {
-        "selected nimi_data is required before Account Default Profile".to_string()
-    })?;
+    let record = runtime_product_control_record_for("Account Default Profile").await?;
+    let data_root = selected_data_root_for(&record, "Account Default Profile")?;
     let install_level = record
         .first_run
         .install_level
@@ -300,10 +320,14 @@ pub async fn ensure_account_default_profile_for_product_control(
         &ai_profile_alias,
         &install_level,
     )?;
-    record.first_run.account_default_profile_ref =
-        Some(evidence.account_default_profile_ref.clone());
-    write_record(&control_path, &record)?;
-    read_product_control_projection()
+    super::invoke_product_control_projection_json(
+        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RECORD_PRODUCT_CONTROL_ACCOUNT_DEFAULT_PROFILE_EVIDENCE_METHOD_ID,
+        crate::runtime_bridge::generated::RecordProductControlAccountDefaultProfileEvidenceRequest {
+            account_default_profile_evidence_json: to_json(&evidence, "Account Default Profile evidence")?,
+        },
+        Some(10_000),
+    )
+    .await
 }
 
 /// Read + verify the Account Default Profile and project it as a portable
@@ -317,13 +341,8 @@ pub async fn ensure_account_default_profile_for_product_control(
 /// app-local state.
 pub async fn read_account_default_profile_for_scope_init(
 ) -> Result<crate::account_profile_library::AccountDefaultProfileAIProfile, String> {
-    let control_path = product_control_record_path()?;
-    let record = read_existing_record(&control_path)?.ok_or_else(|| {
-        "~/.nimi/nimi.json is missing; select nimi_data before Account Default Profile".to_string()
-    })?;
-    let data_root = selected_data_root_path(&record).ok_or_else(|| {
-        "selected nimi_data is required before Account Default Profile".to_string()
-    })?;
+    let record = runtime_product_control_record_for("Account Default Profile").await?;
+    let data_root = selected_data_root_for(&record, "Account Default Profile")?;
     let account_id = authenticated_runtime_account_id().await?;
     crate::account_profile_library::read_account_default_profile_ai_profile(&data_root, &account_id)
 }
@@ -331,12 +350,8 @@ pub async fn read_account_default_profile_for_scope_init(
 pub async fn read_built_in_ai_config_for_scope_init(
     surface_id: &str,
 ) -> Result<crate::desktop_ai_config_library::BuiltInAiConfigForScopeInit, String> {
-    let control_path = product_control_record_path()?;
-    let mut record = read_existing_record(&control_path)?.ok_or_else(|| {
-        "~/.nimi/nimi.json is missing; select nimi_data before built-in AIConfig".to_string()
-    })?;
-    let data_root = selected_data_root_path(&record)
-        .ok_or_else(|| "selected nimi_data is required before built-in AIConfig".to_string())?;
+    let record = runtime_product_control_record_for("built-in AIConfig").await?;
+    let data_root = selected_data_root_for(&record, "built-in AIConfig")?;
     let runtime_baseline_ref = record
         .first_run
         .runtime_baseline_ref
@@ -409,13 +424,11 @@ pub async fn read_built_in_ai_config_for_scope_init(
         &install_level,
         &baseline_bindings,
     )?;
-    record.first_run.built_in_ai_config_refs = evidence_set.refs();
-    write_record(&control_path, &record)?;
     crate::desktop_ai_config_library::read_built_in_ai_config_for_scope_init(
         &data_root,
         &account_id,
         surface_id,
-        &record.first_run.built_in_ai_config_refs,
+        &evidence_set.refs(),
         &baseline_bindings,
     )
 }
@@ -431,12 +444,8 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
 ) -> Result<ProductControlRecordProjection, String> {
     ensure_account_default_profile_for_product_control().await?;
 
-    let control_path = product_control_record_path()?;
-    let mut record = read_existing_record(&control_path)?.ok_or_else(|| {
-        "~/.nimi/nimi.json is missing; select nimi_data before local AI finalization".to_string()
-    })?;
-    let data_root = selected_data_root_path(&record)
-        .ok_or_else(|| "selected nimi_data is required before local AI finalization".to_string())?;
+    let record = runtime_product_control_record_for("local AI finalization").await?;
+    let data_root = selected_data_root_for(&record, "local AI finalization")?;
     let account_id = authenticated_runtime_account_id().await?;
     let install_level = record
         .first_run
@@ -550,9 +559,6 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
         &install_level,
         &baseline_bindings,
     )?;
-    record.first_run.runtime_baseline_ref = Some(runtime_baseline_ref.clone());
-    record.first_run.built_in_ai_config_refs = evidence_set.refs();
-    write_record(&control_path, &record)?;
     let recommended_capabilities = recommended_first_run_capabilities(factory_row, &install_level);
 
     let expected_execution_state =
@@ -630,18 +636,16 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
             })?
     };
 
-    record.first_run.runtime_baseline_ref = Some(runtime_baseline_ref);
-    record.first_run.built_in_ai_config_refs = evidence_set.refs();
-    record.first_run.execution_evidence_ref = Some(execution_evidence_ref);
-    record.state = ProductControlState::LocalAiReady;
-    if let Some(data_root) = record.data_root.as_mut() {
-        data_root.status = ProductDataRootStatus::Ready;
-        data_root.verified_at = now_iso_timestamp();
-        data_root.verified_at_unix_ms = now_unix_ms();
-    }
-    record.repair = ProductRepairRecord::default();
-    write_record(&control_path, &record)?;
-    read_product_control_projection()
+    super::invoke_product_control_projection_json(
+        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RECORD_PRODUCT_CONTROL_FIRST_RUN_LOCAL_AI_READY_EVIDENCE_METHOD_ID,
+        crate::runtime_bridge::generated::RecordProductControlFirstRunLocalAiReadyEvidenceRequest {
+            runtime_baseline_ref,
+            built_in_ai_config_evidence_json: to_json(&evidence_set, "built-in AIConfig evidence")?,
+            execution_evidence_ref,
+        },
+        Some(30_000),
+    )
+    .await
 }
 
 fn recommended_first_run_capabilities(
@@ -698,6 +702,7 @@ pub fn resolve_built_in_ai_config_refs_for_admission(
 }
 
 #[allow(dead_code)]
+#[cfg(test)]
 fn parse_first_run_setup_state(value: &str) -> Result<ProductControlState, String> {
     let quoted = serde_json::to_string(value.trim())
         .map_err(|error| format!("failed to parse first-run setup state: {error}"))?;
@@ -727,6 +732,7 @@ fn parse_first_run_setup_state(value: &str) -> Result<ProductControlState, Strin
     }
 }
 
+#[cfg(test)]
 fn apply_first_run_setup_state(
     record: &mut ProductControlRecord,
     setup_state: ProductControlState,
@@ -749,7 +755,7 @@ fn apply_first_run_setup_state(
     }
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub(crate) fn set_first_run_setup_state(
     payload: ProductFirstRunSetupStatePayload,
 ) -> Result<ProductControlRecordProjection, String> {
@@ -957,12 +963,8 @@ fn first_run_materialization_reason_for_status(
 
 pub async fn reconcile_first_run_setup_state_from_runtime(
 ) -> Result<ProductControlRecordProjection, String> {
-    let control_path = product_control_record_path()?;
-    let mut record = read_existing_record(&control_path)?.ok_or_else(|| {
-        "~/.nimi/nimi.json is missing; select nimi_data before Runtime setup state".to_string()
-    })?;
-    let data_root = selected_data_root_path(&record)
-        .ok_or_else(|| "selected nimi_data is required before Runtime setup state".to_string())?;
+    let record = runtime_product_control_record_for("Runtime setup state").await?;
+    let data_root = selected_data_root_for(&record, "Runtime setup state")?;
     let install_level = record
         .first_run
         .install_level
@@ -1051,14 +1053,22 @@ pub async fn reconcile_first_run_setup_state_from_runtime(
     );
     let product_state = first_run_materialization_product_state_for_status(status);
     if product_state == ProductControlState::LocalAiReady {
-        return read_product_control_projection();
+        return super::product_control_record_get().await;
     }
     let reason = first_run_materialization_reason_for_status(status, &missing_dependency_families);
-    if record.state != product_state {
-        apply_first_run_setup_state(&mut record, product_state, Some(reason));
-        write_record(&control_path, &record)?;
+    if record.state == product_state {
+        return super::product_control_record_get().await;
     }
-    read_product_control_projection()
+    let state = product_control_state_wire_value(product_state)?;
+    super::invoke_product_control_projection_json(
+        nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RECONCILE_PRODUCT_CONTROL_FIRST_RUN_SETUP_STATE_METHOD_ID,
+        crate::runtime_bridge::generated::ReconcileProductControlFirstRunSetupStateRequest {
+            state,
+            reason,
+        },
+        Some(10_000),
+    )
+    .await
 }
 
 #[cfg(test)]

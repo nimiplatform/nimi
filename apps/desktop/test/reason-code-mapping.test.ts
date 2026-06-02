@@ -66,9 +66,11 @@ for (const code of phase1CriticalCodes) {
 }
 
 test('D-ERR-007: Desktop bridge consumes SDK reason projection instead of re-owning Phase 1 reason map', () => {
-  assert.match(invokeSource, /getRuntimeReasonCodeMessage/);
+  assert.match(invokeSource, /toShellBridgeNimiError/);
+  assert.match(invokeSource, /getShellBridgeUserMessageProjection/);
+  assert.doesNotMatch(invokeSource, /getRuntimeReasonCodeMessage/);
   assert.doesNotMatch(invokeSource, /AI_PROVIDER_TIMEOUT:\s*\{/);
-  assert.match(invokeSource, /DESKTOP_HTTP_METHOD_INVALID:\s*\{/);
+  assert.doesNotMatch(invokeSource, /DESKTOP_HTTP_METHOD_INVALID:\s*\{/);
 });
 
 test('D-ERR-007: Phase 2 codes excluded (GRANT_*, WORKFLOW_*, APP_MESSAGE_*, SCRIPT_*)', () => {

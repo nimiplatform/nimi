@@ -322,6 +322,30 @@ fn runtime_app_package_readiness_response(
     ))
 }
 
+fn runtime_account_app_library_response(
+    projection: Option<runtime_bridge_generated::AccountProjection>,
+) -> Result<RuntimeBridgeUnaryResult, String> {
+    let Some(projection) = projection else {
+        return Err(crate::runtime_bridge::bridge_error(
+            "PRINCIPAL_UNAUTHORIZED",
+            "fixture account projection is missing",
+        ));
+    };
+    Ok(encode_unary_response(
+        runtime_bridge_generated::GetAccountAppLibraryResponse {
+            exists: true,
+            record: Some(runtime_bridge_generated::AccountAppLibraryRecord {
+                schema_version: 1,
+                account_id: projection.account_id,
+                updated_at: "2026-01-01T00:00:00.000Z".to_string(),
+                apps: Vec::new(),
+            }),
+            reason_code: runtime_bridge_generated::ReasonCode::ActionExecuted as i32,
+            detail: String::new(),
+        },
+    ))
+}
+
 pub fn runtime_bridge_unary_override(
     payload: &RuntimeBridgeUnaryPayload,
 ) -> Result<Option<RuntimeBridgeUnaryResult>, String> {
@@ -358,6 +382,13 @@ pub fn runtime_bridge_unary_override(
         nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_APP_STORAGE_METHOD_ID => {
             append_backend_log("runtime_app_fixture method=getAppStorage accepted=true");
             runtime_app_storage_response(payload, &manifest).map(Some)
+        }
+        nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_ACCOUNT_APP_LIBRARY_METHOD_ID => {
+            append_backend_log(&format!(
+                "runtime_app_fixture method=getAccountAppLibrary authenticated={}",
+                projection.is_some()
+            ));
+            runtime_account_app_library_response(projection).map(Some)
         }
         nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID => {
             append_backend_log("runtime_app_fixture method=getAppPackageReadiness accepted=true");

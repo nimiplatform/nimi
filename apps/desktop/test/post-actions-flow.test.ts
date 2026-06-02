@@ -21,10 +21,10 @@ const postCardUiSource = fs.readFileSync(
 );
 
 test('post card action adapter uses real like/unlike/report/visibility APIs', () => {
-  assert.match(postCardActionAdapterSource, /dataSync\.likePost\(/);
-  assert.match(postCardActionAdapterSource, /dataSync\.unlikePost\(/);
-  assert.match(postCardActionAdapterSource, /dataSync\.createReport\(/);
-  assert.match(postCardActionAdapterSource, /dataSync\.updatePostVisibility\(/);
+  assert.match(postCardActionAdapterSource, /realmSocialData\.likePost\(/);
+  assert.match(postCardActionAdapterSource, /realmSocialData\.unlikePost\(/);
+  assert.match(postCardActionAdapterSource, /realmSocialData\.createReport\(/);
+  assert.match(postCardActionAdapterSource, /realmSocialData\.updatePostVisibility\(/);
   assert.match(postCardSource, /actionAdapter\.likePost\(/);
   assert.match(postCardSource, /actionAdapter\.unlikePost\(/);
   assert.match(postCardSource, /actionAdapter\.createReport\(/);
