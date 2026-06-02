@@ -39,6 +39,10 @@ func (s *Service) UpdateApp(ctx context.Context, req *runtimev1.UpdateAppRequest
 	if err != nil {
 		return nil, installResolveError(err)
 	}
+	accountID, accountErr := s.resolveAuthenticatedAccountIDForAppLifecycle(ctx)
+	if accountErr != nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
 	plan, planErr := s.installRuntime.plan(descriptor)
 	if planErr != nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_INSTALL_STORAGE_VIOLATION)
@@ -71,7 +75,7 @@ func (s *Service) UpdateApp(ctx context.Context, req *runtimev1.UpdateAppRequest
 		sourceKind:      installSourceKind(descriptor),
 		storage:         storageProjectionFromPlan(plan),
 	})
-	go s.runLifecycleJob(job.GetJobId(), descriptor, runtimev1.AppLifecycleJobKind_APP_LIFECYCLE_JOB_KIND_UPDATE)
+	go s.runLifecycleJob(job.GetJobId(), descriptor, runtimev1.AppLifecycleJobKind_APP_LIFECYCLE_JOB_KIND_UPDATE, accountID)
 	return &runtimev1.UpdateAppResponse{Job: job}, nil
 }
 
@@ -166,6 +170,10 @@ func (s *Service) healthRepairRetry(ctx context.Context, appID string, jobID str
 	if err != nil {
 		return nil, installResolveError(err)
 	}
+	accountID, accountErr := s.resolveAuthenticatedAccountIDForAppLifecycle(ctx)
+	if accountErr != nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
 	plan, planErr := s.installRuntime.plan(descriptor)
 	var storage *runtimev1.AppInstallStorageProjection
 	if planErr == nil {
@@ -188,7 +196,7 @@ func (s *Service) healthRepairRetry(ctx context.Context, appID string, jobID str
 		failed := s.installJobs.markFailed(job.GetJobId(), runtimev1.ReasonCode_APP_INSTALL_STORAGE_VIOLATION, planErr.Error())
 		return &runtimev1.HealthRepairAppResponse{Job: orJob(failed, job)}, nil
 	}
-	go s.runLifecycleJob(job.GetJobId(), descriptor, kind)
+	go s.runLifecycleJob(job.GetJobId(), descriptor, kind, accountID)
 	if s.logger != nil {
 		s.logger.Info("app lifecycle job retried", "prior_job_id", priorJob.GetJobId(), "job_id", job.GetJobId(), "app_id", appID, "kind", kind.String())
 	}
@@ -204,6 +212,10 @@ func (s *Service) healthRepairRematerialize(ctx context.Context, appID string, k
 	_, descriptor, err := s.installRuntime.resolveDescriptor(appID)
 	if err != nil {
 		return nil, installResolveError(err)
+	}
+	accountID, accountErr := s.resolveAuthenticatedAccountIDForAppLifecycle(ctx)
+	if accountErr != nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
 	plan, planErr := s.installRuntime.plan(descriptor)
 	if planErr != nil {
@@ -231,7 +243,7 @@ func (s *Service) healthRepairRematerialize(ctx context.Context, appID string, k
 		sourceKind:      installSourceKind(descriptor),
 		storage:         storageProjectionFromPlan(plan),
 	})
-	go s.runLifecycleJob(job.GetJobId(), descriptor, kind)
+	go s.runLifecycleJob(job.GetJobId(), descriptor, kind, accountID)
 	if s.logger != nil {
 		s.logger.Info("app lifecycle repair job started", "job_id", job.GetJobId(), "app_id", appID, "kind", kind.String())
 	}

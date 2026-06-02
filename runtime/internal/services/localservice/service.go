@@ -2,8 +2,10 @@ package localservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -46,6 +48,10 @@ type EngineManager interface {
 // EngineInfo holds engine status data returned by the manager.
 type EngineInfo = engine.EngineInfoDTO
 
+type RuntimeAccountProjectionProvider interface {
+	AuthenticatedRuntimeProjection(context.Context) (*runtimev1.AccountProjection, bool)
+}
+
 // Service implements RuntimeLocalService with persisted local state.
 type Service struct {
 	runtimev1.UnimplementedRuntimeLocalServiceServer
@@ -53,8 +59,10 @@ type Service struct {
 	logger                         *slog.Logger
 	auditStore                     *auditlog.Store
 	localProviderCatalog           *catalog.LocalProviderCatalog
+	runtimeAccountProvider         RuntimeAccountProjectionProvider
 	stateStorePath                 string
 	localAuditCap                  int
+	productVersion                 string
 	localModelsPath                string
 	managedLlamaModelsConfigPath   string
 	managedLlamaEnabled            bool
@@ -227,6 +235,29 @@ func (s *Service) effectiveLocalAuditCapacity() int {
 		return defaultLocalAuditCapacity
 	}
 	return capacity
+}
+
+func (s *Service) SetProductVersion(version string) error {
+	if s == nil {
+		return errors.New("local service is nil")
+	}
+	trimmed := strings.TrimSpace(version)
+	if trimmed == "" {
+		return errors.New("Runtime product version is required")
+	}
+	s.mu.Lock()
+	s.productVersion = trimmed
+	s.mu.Unlock()
+	return nil
+}
+
+func (s *Service) SetRuntimeAccountProjectionProvider(provider RuntimeAccountProjectionProvider) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	s.runtimeAccountProvider = provider
+	s.mu.Unlock()
 }
 
 func (s *Service) SetLocalModelKeepAlive(duration time.Duration) {

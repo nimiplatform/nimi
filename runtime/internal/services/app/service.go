@@ -8,6 +8,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
@@ -34,6 +35,23 @@ type sessionValidator interface {
 
 type scopedBindingValidator interface {
 	ValidateScopedBinding(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool)
+}
+
+// OpenAppReadinessDecision is a typed fail-closed decision returned by the
+// canonical launch-readiness verifier. It is a carrier only; it does not own
+// account-library or permission truth.
+type OpenAppReadinessDecision struct {
+	Allowed bool
+	Detail  string
+}
+
+// OpenAppReadinessVerifier verifies the OpenApp gates whose truth is owned by
+// admitted account-library and permission authorities. Runtime OpenApp consumes
+// this verifier and fails closed when it is absent; it must not infer grant
+// state from package or registry structure.
+type OpenAppReadinessVerifier interface {
+	VerifyOpenAccountLibrary(ctx context.Context, app appregistrycatalog.App) (OpenAppReadinessDecision, error)
+	VerifyOpenPermissions(ctx context.Context, app appregistrycatalog.App) (OpenAppReadinessDecision, error)
 }
 
 type Option func(*Service)
@@ -67,6 +85,9 @@ type Service struct {
 	installJobs        *installJobManager
 	installRuntime     *installRuntime
 	appStorageDataRoot string
+	openReadiness      OpenAppReadinessVerifier
+	accountProjection  runtimeAccountProjectionProvider
+	accountLibrary     *accountAppLibraryStore
 }
 
 func WithSessionValidator(validator sessionValidator) Option {
@@ -107,6 +128,27 @@ func WithAppStorageDataRoot(dataRootRef string) Option {
 	}
 }
 
+// WithOpenAppReadinessVerifier injects the canonical account-library/permission
+// verifier consumed by K-APP-017. Without this verifier, OpenApp blocks at the
+// account-library step instead of treating missing authority as success.
+func WithOpenAppReadinessVerifier(verifier OpenAppReadinessVerifier) Option {
+	return func(s *Service) {
+		s.openReadiness = verifier
+	}
+}
+
+func WithRuntimeAccountProjectionProvider(provider runtimeAccountProjectionProvider) Option {
+	return func(s *Service) {
+		s.accountProjection = provider
+	}
+}
+
+func WithAccountAppLibraryStoreForTest(store *accountAppLibraryStore) Option {
+	return func(s *Service) {
+		s.accountLibrary = store
+	}
+}
+
 func New(logger *slog.Logger, opts ...Option) *Service {
 	svc := &Service{
 		logger:            logger,
@@ -120,6 +162,9 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 		if opt != nil {
 			opt(svc)
 		}
+	}
+	if svc.accountLibrary == nil {
+		svc.accountLibrary = newAccountAppLibraryStore(defaultNimiDir)
 	}
 	svc.installJobs = newInstallJobManager(svc.now)
 	return svc

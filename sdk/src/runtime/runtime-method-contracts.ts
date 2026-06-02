@@ -99,6 +99,16 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.local.repairLocalEnvironmentDependency]: RuntimeClientMethodContract<'local', 'repairLocalEnvironmentDependency'>;
   [RuntimeMethodIds.local.resolveLocalStateReconciliation]: RuntimeClientMethodContract<'local', 'resolveLocalStateReconciliation'>;
   [RuntimeMethodIds.local.executeLocalStateCutover]: RuntimeClientMethodContract<'local', 'executeLocalStateCutover'>;
+  [RuntimeMethodIds.local.getProductControlRecord]: RuntimeClientMethodContract<'local', 'getProductControlRecord'>;
+  [RuntimeMethodIds.local.getProductControlSelectedDataRoot]: RuntimeClientMethodContract<'local', 'getProductControlSelectedDataRoot'>;
+  [RuntimeMethodIds.local.ensureProductControlRecordCreated]: RuntimeClientMethodContract<'local', 'ensureProductControlRecordCreated'>;
+  [RuntimeMethodIds.local.selectProductControlDataRoot]: RuntimeClientMethodContract<'local', 'selectProductControlDataRoot'>;
+  [RuntimeMethodIds.local.setProductControlFirstRunInstallLevel]: RuntimeClientMethodContract<'local', 'setProductControlFirstRunInstallLevel'>;
+  [RuntimeMethodIds.local.completeProductControlFirstRunDeviceEnvironmentScan]: RuntimeClientMethodContract<'local', 'completeProductControlFirstRunDeviceEnvironmentScan'>;
+  [RuntimeMethodIds.local.admitProductControlReadyForUse]: RuntimeClientMethodContract<'local', 'admitProductControlReadyForUse'>;
+  [RuntimeMethodIds.local.recordProductControlAccountDefaultProfileEvidence]: RuntimeClientMethodContract<'local', 'recordProductControlAccountDefaultProfileEvidence'>;
+  [RuntimeMethodIds.local.recordProductControlFirstRunLocalAiReadyEvidence]: RuntimeClientMethodContract<'local', 'recordProductControlFirstRunLocalAiReadyEvidence'>;
+  [RuntimeMethodIds.local.reconcileProductControlFirstRunSetupState]: RuntimeClientMethodContract<'local', 'reconcileProductControlFirstRunSetupState'>;
   [RuntimeMethodIds.local.collectDeviceProfile]: RuntimeClientMethodContract<'local', 'collectDeviceProfile'>;
   [RuntimeMethodIds.local.resolveProfile]: RuntimeClientMethodContract<'local', 'resolveProfile'>;
   [RuntimeMethodIds.local.applyProfile]: RuntimeClientMethodContract<'local', 'applyProfile'>;
@@ -203,6 +213,7 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.app.installApp]: RuntimeClientMethodContract<'app', 'installApp'>;
   [RuntimeMethodIds.app.uninstallApp]: RuntimeClientMethodContract<'app', 'uninstallApp'>;
   [RuntimeMethodIds.app.getAppStorage]: RuntimeClientMethodContract<'app', 'getAppStorage'>;
+  [RuntimeMethodIds.app.getAccountAppLibrary]: RuntimeClientMethodContract<'app', 'getAccountAppLibrary'>;
   [RuntimeMethodIds.app.getAppPackageReadiness]: RuntimeClientMethodContract<'app', 'getAppPackageReadiness'>;
   [RuntimeMethodIds.app.getAppInstallJob]: RuntimeClientMethodContract<'app', 'getAppInstallJob'>;
   [RuntimeMethodIds.app.listAppInstallJobs]: RuntimeClientMethodContract<'app', 'listAppInstallJobs'>;

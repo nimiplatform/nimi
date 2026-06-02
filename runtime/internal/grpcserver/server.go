@@ -190,6 +190,10 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	if err != nil {
 		return nil, fmt.Errorf("init local service: %w", err)
 	}
+	if err := localSvc.SetProductVersion(version); err != nil {
+		return nil, fmt.Errorf("init local service product version: %w", err)
+	}
+	localSvc.SetRuntimeAccountProjectionProvider(accountSvc)
 	modelSvc.SetLocalModelLister(localSvc)
 	runtimev1.RegisterRuntimeLocalServiceServer(g, localSvc)
 	aiSvc.SetLocalModelLister(localSvc)
@@ -346,6 +350,8 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		appservice.WithScopedBindingValidator(accountSvc),
 		appservice.WithAppStorageDataRoot(cfg.DataRootRef),
 		appservice.WithInstallRuntime(appInstallRuntime),
+		appservice.WithRuntimeAccountProjectionProvider(accountSvc),
+		appservice.WithOpenAppReadinessVerifier(appservice.NewAccountProjectionOpenAppReadinessVerifier(accountSvc)),
 	)
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
 	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)

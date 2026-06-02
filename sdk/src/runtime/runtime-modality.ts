@@ -97,6 +97,13 @@ function requireTypedMediaArtifacts(
   });
 }
 
+function runtimeRouteDecision(value: unknown): RoutePolicy {
+  const routeDecision = Number(value);
+  return routeDecision === RoutePolicy.CLOUD || routeDecision === RoutePolicy.LOCAL
+    ? routeDecision
+    : RoutePolicy.UNSPECIFIED;
+}
+
 export async function runtimeGenerateImage(
   ctx: RuntimeInternalContext,
   input: ImageGenerateInput,
@@ -408,7 +415,7 @@ export async function runtimeStreamSpeechSynthesis(
   return {
     async *[Symbol.asyncIterator](): AsyncIterator<ArtifactChunk> {
       let streamModelResolved = fallbackModel;
-      let streamRouteDecision = request.head.routePolicy || RoutePolicy.UNSPECIFIED;
+      let streamRouteDecision = RoutePolicy.UNSPECIFIED;
       let streamMimeType = '';
       let sawArtifactChunk = false;
       let streamUsage: ArtifactChunk['usage'] | undefined = undefined;
@@ -417,7 +424,7 @@ export async function runtimeStreamSpeechSynthesis(
           case 'started': {
             const started = event.payload.started;
             streamModelResolved = normalizeText(started.modelResolved) || fallbackModel;
-            streamRouteDecision = started.routeDecision || request.head.routePolicy || RoutePolicy.UNSPECIFIED;
+            streamRouteDecision = runtimeRouteDecision(started.routeDecision);
             continue;
           }
           case 'delta': {
@@ -516,7 +523,7 @@ export function streamArtifactsFromMediaOutput(
   },
 ): AsyncIterable<ArtifactChunk> {
   const chunkSize = 64 * 1024;
-  const routeDecision = output.job.routeDecision || RoutePolicy.UNSPECIFIED;
+  const routeDecision = runtimeRouteDecision(output.job.routeDecision);
   const modelResolved = normalizeText(output.job.modelResolved);
   const traceId = normalizeText(output.trace.traceId || output.job.traceId);
   const usage = output.job.usage;

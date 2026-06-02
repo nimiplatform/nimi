@@ -51,8 +51,30 @@ pub const RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence";
 pub const RUNTIME_LOCAL_MINT_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence";
+pub const RUNTIME_LOCAL_GET_PRODUCT_CONTROL_RECORD_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord";
+pub const RUNTIME_LOCAL_GET_PRODUCT_CONTROL_SELECTED_DATA_ROOT_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot";
+pub const RUNTIME_LOCAL_ENSURE_PRODUCT_CONTROL_RECORD_CREATED_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated";
+pub const RUNTIME_LOCAL_SELECT_PRODUCT_CONTROL_DATA_ROOT_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot";
+pub const RUNTIME_LOCAL_SET_PRODUCT_CONTROL_FIRST_RUN_INSTALL_LEVEL_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel";
+pub const RUNTIME_LOCAL_COMPLETE_PRODUCT_CONTROL_FIRST_RUN_DEVICE_ENVIRONMENT_SCAN_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan";
+pub const RUNTIME_LOCAL_ADMIT_PRODUCT_CONTROL_READY_FOR_USE_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse";
+pub const RUNTIME_LOCAL_RECORD_PRODUCT_CONTROL_ACCOUNT_DEFAULT_PROFILE_EVIDENCE_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence";
+pub const RUNTIME_LOCAL_RECORD_PRODUCT_CONTROL_FIRST_RUN_LOCAL_AI_READY_EVIDENCE_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence";
+pub const RUNTIME_LOCAL_RECONCILE_PRODUCT_CONTROL_FIRST_RUN_SETUP_STATE_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState";
 pub const RUNTIME_APP_GET_APP_STORAGE_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeAppService/GetAppStorage";
+pub const RUNTIME_APP_GET_ACCOUNT_APP_LIBRARY_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary";
 pub const RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness";
 

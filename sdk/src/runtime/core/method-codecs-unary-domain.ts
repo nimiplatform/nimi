@@ -177,6 +177,8 @@ import {
 } from '../generated/runtime/v1/connector';
 import {
   AppMessageEvent,
+  GetAccountAppLibraryRequest,
+  GetAccountAppLibraryResponse,
   GetAppPackageReadinessRequest,
   GetAppPackageReadinessResponse,
   GetAppStorageRequest,
@@ -554,6 +556,10 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.app.getAppStorage]: {
     requestType: GetAppStorageRequest,
     responseType: GetAppStorageResponse,
+  },
+  [RuntimeMethodIds.app.getAccountAppLibrary]: {
+    requestType: GetAccountAppLibraryRequest,
+    responseType: GetAccountAppLibraryResponse,
   },
   [RuntimeMethodIds.app.getAppPackageReadiness]: {
     requestType: GetAppPackageReadinessRequest,

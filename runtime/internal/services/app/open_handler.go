@@ -100,11 +100,12 @@ func (s *Service) OpenApp(ctx context.Context, req *runtimev1.OpenAppRequest) (*
 		return openBlockedResponse(appID, scope, *packageErr), nil
 	}
 
-	// Step 3 — verify the account app-library state. The account app-library
-	// projection is desktop-local (T4 Fork D); at the Runtime layer the
-	// library checkpoint is satisfied once the app resolves as an admitted,
-	// installed, verified package. Runtime does not gate launch on a
-	// desktop-local file it does not own.
+	// Step 3 — verify the account app-library state. Runtime consumes an
+	// admitted verifier and fails closed when that authority is absent; it never
+	// treats the verified package as a substitute for account-library truth.
+	if libraryErr := s.verifyOpenAccountLibrary(ctx, app); libraryErr != nil {
+		return openBlockedResponse(appID, scope, *libraryErr), nil
+	}
 
 	// Step 4 — verify the durable app-data root is resolvable and uncorrupted.
 	if dataErr := verifyOpenAppData(plan); dataErr != nil {
@@ -114,7 +115,7 @@ func (s *Service) OpenApp(ctx context.Context, req *runtimev1.OpenAppRequest) (*
 	// Step 5 — verify the app permissions are granted or promptable. The
 	// declared registry permission scope refs must be structurally complete;
 	// a malformed permission scope ref fails closed.
-	if permErr := verifyOpenPermissions(app); permErr != nil {
+	if permErr := s.verifyOpenPermissions(ctx, app); permErr != nil {
 		return openBlockedResponse(appID, scope, *permErr), nil
 	}
 
@@ -333,7 +334,35 @@ func verifyOpenAppData(plan appstorage.Plan) *openBlocked {
 // structurally complete. A registry row that declares a permission scope with
 // a missing family/name fails the Open flow closed — launch never proceeds
 // against an unresolvable permission declaration.
-func verifyOpenPermissions(app appregistrycatalog.App) *openBlocked {
+func (s *Service) verifyOpenAccountLibrary(ctx context.Context, app appregistrycatalog.App) *openBlocked {
+	if s.openReadiness == nil {
+		e := blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_LIBRARY,
+			runtimev1.ReasonCode_APP_OPEN_LIBRARY_STATE_INVALID,
+			"Runtime OpenApp account-library verifier is not configured",
+		)
+		return &e
+	}
+	decision, err := s.openReadiness.VerifyOpenAccountLibrary(ctx, app)
+	if err != nil || !decision.Allowed {
+		detail := strings.TrimSpace(decision.Detail)
+		if detail == "" && err != nil {
+			detail = err.Error()
+		}
+		if detail == "" {
+			detail = "account app-library state is not launchable"
+		}
+		e := blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_LIBRARY,
+			runtimev1.ReasonCode_APP_OPEN_LIBRARY_STATE_INVALID,
+			detail,
+		)
+		return &e
+	}
+	return nil
+}
+
+func (s *Service) verifyOpenPermissions(ctx context.Context, app appregistrycatalog.App) *openBlocked {
 	for _, scope := range app.PermissionScopeRefs {
 		if strings.TrimSpace(scope.ScopeFamily) == "" || strings.TrimSpace(scope.ScopeName) == "" {
 			e := blocked(
@@ -351,6 +380,33 @@ func verifyOpenPermissions(app appregistrycatalog.App) *openBlocked {
 			)
 			return &e
 		}
+	}
+	if len(app.PermissionScopeRefs) == 0 {
+		return nil
+	}
+	if s.openReadiness == nil {
+		e := blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS,
+			runtimev1.ReasonCode_APP_OPEN_PERMISSION_NOT_GRANTED,
+			"Runtime OpenApp permission verifier is not configured",
+		)
+		return &e
+	}
+	decision, err := s.openReadiness.VerifyOpenPermissions(ctx, app)
+	if err != nil || !decision.Allowed {
+		detail := strings.TrimSpace(decision.Detail)
+		if detail == "" && err != nil {
+			detail = err.Error()
+		}
+		if detail == "" {
+			detail = "app permissions are not granted or promptable"
+		}
+		e := blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS,
+			runtimev1.ReasonCode_APP_OPEN_PERMISSION_NOT_GRANTED,
+			detail,
+		)
+		return &e
 	}
 	return nil
 }

@@ -53,6 +53,58 @@ func TestUninstallAppEmitsWatchableUninstallJob(t *testing.T) {
 	}
 }
 
+func TestUninstallAppUpdatesRuntimeOwnedAccountLibraryProjection(t *testing.T) {
+	svc, _ := newBundledInstallService(t)
+	installBundledAppForOpen(t, svc)
+
+	resp, err := svc.UninstallApp(context.Background(), &runtimev1.UninstallAppRequest{AppId: "nimi.example-app"})
+	if err != nil {
+		t.Fatalf("UninstallApp: %v", err)
+	}
+	if resp.GetJob().GetState() != runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_UNINSTALLED {
+		t.Fatalf("job state = %v detail=%q, want UNINSTALLED", resp.GetJob().GetState(), resp.GetJob().GetFailureDetail())
+	}
+	record, err := svc.accountLibrary.readOrEmpty("account_1")
+	if err != nil {
+		t.Fatalf("read account library: %v", err)
+	}
+	if len(record.Apps) != 1 {
+		t.Fatalf("library apps = %d, want 1", len(record.Apps))
+	}
+	row := record.Apps[0]
+	if row.AppID != "nimi.example-app" || row.LibraryState != accountAppLibraryStateEnabled || row.Installed {
+		t.Fatalf("unexpected account library row after uninstall: %+v", row)
+	}
+}
+
+func TestUninstallAppDestructiveDeleteRemovesRuntimeOwnedAccountLibraryRow(t *testing.T) {
+	svc, _ := newBundledInstallService(t)
+	installBundledAppForOpen(t, svc)
+
+	resp, err := svc.UninstallApp(context.Background(), &runtimev1.UninstallAppRequest{
+		AppId:                          "nimi.example-app",
+		DeleteDurableData:              true,
+		DestructiveDataDeleteConfirmed: true,
+	})
+	if err != nil {
+		t.Fatalf("UninstallApp: %v", err)
+	}
+	if resp.GetJob().GetState() != runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_UNINSTALLED {
+		t.Fatalf("job state = %v detail=%q, want UNINSTALLED", resp.GetJob().GetState(), resp.GetJob().GetFailureDetail())
+	}
+	record, err := svc.accountLibrary.readOrEmpty("account_1")
+	if err != nil {
+		t.Fatalf("read account library: %v", err)
+	}
+	if len(record.Apps) != 1 {
+		t.Fatalf("library apps = %d, want 1", len(record.Apps))
+	}
+	row := record.Apps[0]
+	if row.AppID != "nimi.example-app" || row.LibraryState != accountAppLibraryStateRemoved || row.Installed {
+		t.Fatalf("unexpected account library row after destructive uninstall: %+v", row)
+	}
+}
+
 // TestUninstallJobWatchStreamCarriesUninstallKind proves the WatchAppInstallJob
 // progress stream carries the uninstall job frames so the `uninstalling` card
 // state has a live source.

@@ -19,62 +19,72 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeLocalService_ListLocalAssets_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets"
-	RuntimeLocalService_ListVerifiedAssets_FullMethodName                    = "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets"
-	RuntimeLocalService_InstallVerifiedAsset_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset"
-	RuntimeLocalService_ImportLocalAsset_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset"
-	RuntimeLocalService_ImportLocalAssetFile_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile"
-	RuntimeLocalService_ScanUnregisteredAssets_FullMethodName                = "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets"
-	RuntimeLocalService_ScaffoldOrphanAsset_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset"
-	RuntimeLocalService_ImportLocalAssetBundle_FullMethodName                = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle"
-	RuntimeLocalService_RescanLocalAssetBundle_FullMethodName                = "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle"
-	RuntimeLocalService_RemoveLocalAsset_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset"
-	RuntimeLocalService_SearchCatalogModels_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels"
-	RuntimeLocalService_ListCatalogVariants_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants"
-	RuntimeLocalService_GetRecommendationFeed_FullMethodName                 = "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed"
-	RuntimeLocalService_ResolveModelInstallPlan_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan"
-	RuntimeLocalService_InstallModelFromPlan_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan"
-	RuntimeLocalService_StartLocalAsset_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset"
-	RuntimeLocalService_StopLocalAsset_FullMethodName                        = "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset"
-	RuntimeLocalService_CheckLocalAssetHealth_FullMethodName                 = "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth"
-	RuntimeLocalService_WarmLocalAsset_FullMethodName                        = "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset"
-	RuntimeLocalService_ListLocalTransfers_FullMethodName                    = "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers"
-	RuntimeLocalService_PauseLocalTransfer_FullMethodName                    = "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer"
-	RuntimeLocalService_ResumeLocalTransfer_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer"
-	RuntimeLocalService_CancelLocalTransfer_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer"
-	RuntimeLocalService_WatchLocalTransfers_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers"
-	RuntimeLocalService_ResolveLocalEnvironmentPlan_FullMethodName           = "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan"
-	RuntimeLocalService_ListLocalEnvironmentSelectedSources_FullMethodName   = "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources"
-	RuntimeLocalService_ListLocalEnvironmentDependencyJobs_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs"
-	RuntimeLocalService_ResolveLocalEnvironmentActivationGate_FullMethodName = "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate"
-	RuntimeLocalService_MintRuntimeBaselineReadiness_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness"
-	RuntimeLocalService_ResolveRuntimeBaselineReadiness_FullMethodName       = "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness"
-	RuntimeLocalService_MintFirstRunExecutionEvidence_FullMethodName         = "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence"
-	RuntimeLocalService_ResolveFirstRunExecutionEvidence_FullMethodName      = "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence"
-	RuntimeLocalService_StartLocalEnvironmentDependencyJob_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob"
-	RuntimeLocalService_CancelLocalEnvironmentDependencyJob_FullMethodName   = "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob"
-	RuntimeLocalService_RetryLocalEnvironmentDependencyJob_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob"
-	RuntimeLocalService_RepairLocalEnvironmentDependency_FullMethodName      = "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency"
-	RuntimeLocalService_ResolveLocalStateReconciliation_FullMethodName       = "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation"
-	RuntimeLocalService_ExecuteLocalStateCutover_FullMethodName              = "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover"
-	RuntimeLocalService_CollectDeviceProfile_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile"
-	RuntimeLocalService_ResolveProfile_FullMethodName                        = "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile"
-	RuntimeLocalService_ApplyProfile_FullMethodName                          = "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile"
-	RuntimeLocalService_ListLocalServices_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/ListLocalServices"
-	RuntimeLocalService_InstallLocalService_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/InstallLocalService"
-	RuntimeLocalService_StartLocalService_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/StartLocalService"
-	RuntimeLocalService_StopLocalService_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/StopLocalService"
-	RuntimeLocalService_CheckLocalServiceHealth_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth"
-	RuntimeLocalService_RemoveLocalService_FullMethodName                    = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalService"
-	RuntimeLocalService_ListNodeCatalog_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog"
-	RuntimeLocalService_ListLocalAudits_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits"
-	RuntimeLocalService_AppendInferenceAudit_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit"
-	RuntimeLocalService_AppendRuntimeAudit_FullMethodName                    = "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit"
-	RuntimeLocalService_ListEngines_FullMethodName                           = "/nimi.runtime.v1.RuntimeLocalService/ListEngines"
-	RuntimeLocalService_EnsureEngine_FullMethodName                          = "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine"
-	RuntimeLocalService_StartEngine_FullMethodName                           = "/nimi.runtime.v1.RuntimeLocalService/StartEngine"
-	RuntimeLocalService_StopEngine_FullMethodName                            = "/nimi.runtime.v1.RuntimeLocalService/StopEngine"
-	RuntimeLocalService_GetEngineStatus_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus"
+	RuntimeLocalService_ListLocalAssets_FullMethodName                                     = "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets"
+	RuntimeLocalService_ListVerifiedAssets_FullMethodName                                  = "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets"
+	RuntimeLocalService_InstallVerifiedAsset_FullMethodName                                = "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset"
+	RuntimeLocalService_ImportLocalAsset_FullMethodName                                    = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset"
+	RuntimeLocalService_ImportLocalAssetFile_FullMethodName                                = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile"
+	RuntimeLocalService_ScanUnregisteredAssets_FullMethodName                              = "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets"
+	RuntimeLocalService_ScaffoldOrphanAsset_FullMethodName                                 = "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset"
+	RuntimeLocalService_ImportLocalAssetBundle_FullMethodName                              = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle"
+	RuntimeLocalService_RescanLocalAssetBundle_FullMethodName                              = "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle"
+	RuntimeLocalService_RemoveLocalAsset_FullMethodName                                    = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset"
+	RuntimeLocalService_SearchCatalogModels_FullMethodName                                 = "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels"
+	RuntimeLocalService_ListCatalogVariants_FullMethodName                                 = "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants"
+	RuntimeLocalService_GetRecommendationFeed_FullMethodName                               = "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed"
+	RuntimeLocalService_ResolveModelInstallPlan_FullMethodName                             = "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan"
+	RuntimeLocalService_InstallModelFromPlan_FullMethodName                                = "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan"
+	RuntimeLocalService_StartLocalAsset_FullMethodName                                     = "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset"
+	RuntimeLocalService_StopLocalAsset_FullMethodName                                      = "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset"
+	RuntimeLocalService_CheckLocalAssetHealth_FullMethodName                               = "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth"
+	RuntimeLocalService_WarmLocalAsset_FullMethodName                                      = "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset"
+	RuntimeLocalService_ListLocalTransfers_FullMethodName                                  = "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers"
+	RuntimeLocalService_PauseLocalTransfer_FullMethodName                                  = "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer"
+	RuntimeLocalService_ResumeLocalTransfer_FullMethodName                                 = "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer"
+	RuntimeLocalService_CancelLocalTransfer_FullMethodName                                 = "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer"
+	RuntimeLocalService_WatchLocalTransfers_FullMethodName                                 = "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers"
+	RuntimeLocalService_ResolveLocalEnvironmentPlan_FullMethodName                         = "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan"
+	RuntimeLocalService_ListLocalEnvironmentSelectedSources_FullMethodName                 = "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources"
+	RuntimeLocalService_ListLocalEnvironmentDependencyJobs_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs"
+	RuntimeLocalService_ResolveLocalEnvironmentActivationGate_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate"
+	RuntimeLocalService_MintRuntimeBaselineReadiness_FullMethodName                        = "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness"
+	RuntimeLocalService_ResolveRuntimeBaselineReadiness_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness"
+	RuntimeLocalService_MintFirstRunExecutionEvidence_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence"
+	RuntimeLocalService_ResolveFirstRunExecutionEvidence_FullMethodName                    = "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence"
+	RuntimeLocalService_StartLocalEnvironmentDependencyJob_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob"
+	RuntimeLocalService_CancelLocalEnvironmentDependencyJob_FullMethodName                 = "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob"
+	RuntimeLocalService_RetryLocalEnvironmentDependencyJob_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob"
+	RuntimeLocalService_RepairLocalEnvironmentDependency_FullMethodName                    = "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency"
+	RuntimeLocalService_ResolveLocalStateReconciliation_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation"
+	RuntimeLocalService_ExecuteLocalStateCutover_FullMethodName                            = "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover"
+	RuntimeLocalService_GetProductControlRecord_FullMethodName                             = "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord"
+	RuntimeLocalService_GetProductControlSelectedDataRoot_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot"
+	RuntimeLocalService_EnsureProductControlRecordCreated_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated"
+	RuntimeLocalService_SelectProductControlDataRoot_FullMethodName                        = "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot"
+	RuntimeLocalService_SetProductControlFirstRunInstallLevel_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel"
+	RuntimeLocalService_CompleteProductControlFirstRunDeviceEnvironmentScan_FullMethodName = "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan"
+	RuntimeLocalService_AdmitProductControlReadyForUse_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse"
+	RuntimeLocalService_RecordProductControlAccountDefaultProfileEvidence_FullMethodName   = "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence"
+	RuntimeLocalService_RecordProductControlFirstRunLocalAiReadyEvidence_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence"
+	RuntimeLocalService_ReconcileProductControlFirstRunSetupState_FullMethodName           = "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState"
+	RuntimeLocalService_CollectDeviceProfile_FullMethodName                                = "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile"
+	RuntimeLocalService_ResolveProfile_FullMethodName                                      = "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile"
+	RuntimeLocalService_ApplyProfile_FullMethodName                                        = "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile"
+	RuntimeLocalService_ListLocalServices_FullMethodName                                   = "/nimi.runtime.v1.RuntimeLocalService/ListLocalServices"
+	RuntimeLocalService_InstallLocalService_FullMethodName                                 = "/nimi.runtime.v1.RuntimeLocalService/InstallLocalService"
+	RuntimeLocalService_StartLocalService_FullMethodName                                   = "/nimi.runtime.v1.RuntimeLocalService/StartLocalService"
+	RuntimeLocalService_StopLocalService_FullMethodName                                    = "/nimi.runtime.v1.RuntimeLocalService/StopLocalService"
+	RuntimeLocalService_CheckLocalServiceHealth_FullMethodName                             = "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth"
+	RuntimeLocalService_RemoveLocalService_FullMethodName                                  = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalService"
+	RuntimeLocalService_ListNodeCatalog_FullMethodName                                     = "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog"
+	RuntimeLocalService_ListLocalAudits_FullMethodName                                     = "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits"
+	RuntimeLocalService_AppendInferenceAudit_FullMethodName                                = "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit"
+	RuntimeLocalService_AppendRuntimeAudit_FullMethodName                                  = "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit"
+	RuntimeLocalService_ListEngines_FullMethodName                                         = "/nimi.runtime.v1.RuntimeLocalService/ListEngines"
+	RuntimeLocalService_EnsureEngine_FullMethodName                                        = "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine"
+	RuntimeLocalService_StartEngine_FullMethodName                                         = "/nimi.runtime.v1.RuntimeLocalService/StartEngine"
+	RuntimeLocalService_StopEngine_FullMethodName                                          = "/nimi.runtime.v1.RuntimeLocalService/StopEngine"
+	RuntimeLocalService_GetEngineStatus_FullMethodName                                     = "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus"
 )
 
 // RuntimeLocalServiceClient is the client API for RuntimeLocalService service.
@@ -125,6 +135,17 @@ type RuntimeLocalServiceClient interface {
 	// Runtime-owned local state reconciliation
 	ResolveLocalStateReconciliation(ctx context.Context, in *ResolveLocalStateReconciliationRequest, opts ...grpc.CallOption) (*ResolveLocalStateReconciliationResponse, error)
 	ExecuteLocalStateCutover(ctx context.Context, in *ExecuteLocalStateCutoverRequest, opts ...grpc.CallOption) (*ExecuteLocalStateCutoverResponse, error)
+	// Runtime-owned product-control record
+	GetProductControlRecord(ctx context.Context, in *GetProductControlRecordRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
+	GetProductControlSelectedDataRoot(ctx context.Context, in *GetProductControlSelectedDataRootRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
+	EnsureProductControlRecordCreated(ctx context.Context, in *EnsureProductControlRecordCreatedRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
+	SelectProductControlDataRoot(ctx context.Context, in *SelectProductControlDataRootRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
+	SetProductControlFirstRunInstallLevel(ctx context.Context, in *SetProductControlFirstRunInstallLevelRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
+	CompleteProductControlFirstRunDeviceEnvironmentScan(ctx context.Context, in *CompleteProductControlFirstRunDeviceEnvironmentScanRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
+	AdmitProductControlReadyForUse(ctx context.Context, in *AdmitProductControlReadyForUseRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
+	RecordProductControlAccountDefaultProfileEvidence(ctx context.Context, in *RecordProductControlAccountDefaultProfileEvidenceRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
+	RecordProductControlFirstRunLocalAiReadyEvidence(ctx context.Context, in *RecordProductControlFirstRunLocalAiReadyEvidenceRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
+	ReconcileProductControlFirstRunSetupState(ctx context.Context, in *ReconcileProductControlFirstRunSetupStateRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
 	// Device
 	CollectDeviceProfile(ctx context.Context, in *CollectDeviceProfileRequest, opts ...grpc.CallOption) (*CollectDeviceProfileResponse, error)
 	// Profile
@@ -548,6 +569,106 @@ func (c *runtimeLocalServiceClient) ExecuteLocalStateCutover(ctx context.Context
 	return out, nil
 }
 
+func (c *runtimeLocalServiceClient) GetProductControlRecord(ctx context.Context, in *GetProductControlRecordRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProductControlProjectionJson)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_GetProductControlRecord_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) GetProductControlSelectedDataRoot(ctx context.Context, in *GetProductControlSelectedDataRootRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProductControlProjectionJson)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_GetProductControlSelectedDataRoot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) EnsureProductControlRecordCreated(ctx context.Context, in *EnsureProductControlRecordCreatedRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProductControlProjectionJson)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_EnsureProductControlRecordCreated_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) SelectProductControlDataRoot(ctx context.Context, in *SelectProductControlDataRootRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProductControlProjectionJson)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_SelectProductControlDataRoot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) SetProductControlFirstRunInstallLevel(ctx context.Context, in *SetProductControlFirstRunInstallLevelRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProductControlProjectionJson)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_SetProductControlFirstRunInstallLevel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) CompleteProductControlFirstRunDeviceEnvironmentScan(ctx context.Context, in *CompleteProductControlFirstRunDeviceEnvironmentScanRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProductControlProjectionJson)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_CompleteProductControlFirstRunDeviceEnvironmentScan_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) AdmitProductControlReadyForUse(ctx context.Context, in *AdmitProductControlReadyForUseRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProductControlProjectionJson)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_AdmitProductControlReadyForUse_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) RecordProductControlAccountDefaultProfileEvidence(ctx context.Context, in *RecordProductControlAccountDefaultProfileEvidenceRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProductControlProjectionJson)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_RecordProductControlAccountDefaultProfileEvidence_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) RecordProductControlFirstRunLocalAiReadyEvidence(ctx context.Context, in *RecordProductControlFirstRunLocalAiReadyEvidenceRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProductControlProjectionJson)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_RecordProductControlFirstRunLocalAiReadyEvidence_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ReconcileProductControlFirstRunSetupState(ctx context.Context, in *ReconcileProductControlFirstRunSetupStateRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProductControlProjectionJson)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ReconcileProductControlFirstRunSetupState_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeLocalServiceClient) CollectDeviceProfile(ctx context.Context, in *CollectDeviceProfileRequest, opts ...grpc.CallOption) (*CollectDeviceProfileResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CollectDeviceProfileResponse)
@@ -776,6 +897,17 @@ type RuntimeLocalServiceServer interface {
 	// Runtime-owned local state reconciliation
 	ResolveLocalStateReconciliation(context.Context, *ResolveLocalStateReconciliationRequest) (*ResolveLocalStateReconciliationResponse, error)
 	ExecuteLocalStateCutover(context.Context, *ExecuteLocalStateCutoverRequest) (*ExecuteLocalStateCutoverResponse, error)
+	// Runtime-owned product-control record
+	GetProductControlRecord(context.Context, *GetProductControlRecordRequest) (*ProductControlProjectionJson, error)
+	GetProductControlSelectedDataRoot(context.Context, *GetProductControlSelectedDataRootRequest) (*ProductControlProjectionJson, error)
+	EnsureProductControlRecordCreated(context.Context, *EnsureProductControlRecordCreatedRequest) (*ProductControlProjectionJson, error)
+	SelectProductControlDataRoot(context.Context, *SelectProductControlDataRootRequest) (*ProductControlProjectionJson, error)
+	SetProductControlFirstRunInstallLevel(context.Context, *SetProductControlFirstRunInstallLevelRequest) (*ProductControlProjectionJson, error)
+	CompleteProductControlFirstRunDeviceEnvironmentScan(context.Context, *CompleteProductControlFirstRunDeviceEnvironmentScanRequest) (*ProductControlProjectionJson, error)
+	AdmitProductControlReadyForUse(context.Context, *AdmitProductControlReadyForUseRequest) (*ProductControlProjectionJson, error)
+	RecordProductControlAccountDefaultProfileEvidence(context.Context, *RecordProductControlAccountDefaultProfileEvidenceRequest) (*ProductControlProjectionJson, error)
+	RecordProductControlFirstRunLocalAiReadyEvidence(context.Context, *RecordProductControlFirstRunLocalAiReadyEvidenceRequest) (*ProductControlProjectionJson, error)
+	ReconcileProductControlFirstRunSetupState(context.Context, *ReconcileProductControlFirstRunSetupStateRequest) (*ProductControlProjectionJson, error)
 	// Device
 	CollectDeviceProfile(context.Context, *CollectDeviceProfileRequest) (*CollectDeviceProfileResponse, error)
 	// Profile
@@ -922,6 +1054,36 @@ func (UnimplementedRuntimeLocalServiceServer) ResolveLocalStateReconciliation(co
 }
 func (UnimplementedRuntimeLocalServiceServer) ExecuteLocalStateCutover(context.Context, *ExecuteLocalStateCutoverRequest) (*ExecuteLocalStateCutoverResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ExecuteLocalStateCutover not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) GetProductControlRecord(context.Context, *GetProductControlRecordRequest) (*ProductControlProjectionJson, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetProductControlRecord not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) GetProductControlSelectedDataRoot(context.Context, *GetProductControlSelectedDataRootRequest) (*ProductControlProjectionJson, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetProductControlSelectedDataRoot not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) EnsureProductControlRecordCreated(context.Context, *EnsureProductControlRecordCreatedRequest) (*ProductControlProjectionJson, error) {
+	return nil, status.Error(codes.Unimplemented, "method EnsureProductControlRecordCreated not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) SelectProductControlDataRoot(context.Context, *SelectProductControlDataRootRequest) (*ProductControlProjectionJson, error) {
+	return nil, status.Error(codes.Unimplemented, "method SelectProductControlDataRoot not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) SetProductControlFirstRunInstallLevel(context.Context, *SetProductControlFirstRunInstallLevelRequest) (*ProductControlProjectionJson, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetProductControlFirstRunInstallLevel not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) CompleteProductControlFirstRunDeviceEnvironmentScan(context.Context, *CompleteProductControlFirstRunDeviceEnvironmentScanRequest) (*ProductControlProjectionJson, error) {
+	return nil, status.Error(codes.Unimplemented, "method CompleteProductControlFirstRunDeviceEnvironmentScan not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) AdmitProductControlReadyForUse(context.Context, *AdmitProductControlReadyForUseRequest) (*ProductControlProjectionJson, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdmitProductControlReadyForUse not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) RecordProductControlAccountDefaultProfileEvidence(context.Context, *RecordProductControlAccountDefaultProfileEvidenceRequest) (*ProductControlProjectionJson, error) {
+	return nil, status.Error(codes.Unimplemented, "method RecordProductControlAccountDefaultProfileEvidence not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) RecordProductControlFirstRunLocalAiReadyEvidence(context.Context, *RecordProductControlFirstRunLocalAiReadyEvidenceRequest) (*ProductControlProjectionJson, error) {
+	return nil, status.Error(codes.Unimplemented, "method RecordProductControlFirstRunLocalAiReadyEvidence not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ReconcileProductControlFirstRunSetupState(context.Context, *ReconcileProductControlFirstRunSetupStateRequest) (*ProductControlProjectionJson, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReconcileProductControlFirstRunSetupState not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) CollectDeviceProfile(context.Context, *CollectDeviceProfileRequest) (*CollectDeviceProfileResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CollectDeviceProfile not implemented")
@@ -1674,6 +1836,186 @@ func _RuntimeLocalService_ExecuteLocalStateCutover_Handler(srv interface{}, ctx 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeLocalService_GetProductControlRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProductControlRecordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).GetProductControlRecord(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_GetProductControlRecord_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).GetProductControlRecord(ctx, req.(*GetProductControlRecordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_GetProductControlSelectedDataRoot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProductControlSelectedDataRootRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).GetProductControlSelectedDataRoot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_GetProductControlSelectedDataRoot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).GetProductControlSelectedDataRoot(ctx, req.(*GetProductControlSelectedDataRootRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_EnsureProductControlRecordCreated_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EnsureProductControlRecordCreatedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).EnsureProductControlRecordCreated(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_EnsureProductControlRecordCreated_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).EnsureProductControlRecordCreated(ctx, req.(*EnsureProductControlRecordCreatedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_SelectProductControlDataRoot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SelectProductControlDataRootRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).SelectProductControlDataRoot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_SelectProductControlDataRoot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).SelectProductControlDataRoot(ctx, req.(*SelectProductControlDataRootRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_SetProductControlFirstRunInstallLevel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetProductControlFirstRunInstallLevelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).SetProductControlFirstRunInstallLevel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_SetProductControlFirstRunInstallLevel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).SetProductControlFirstRunInstallLevel(ctx, req.(*SetProductControlFirstRunInstallLevelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_CompleteProductControlFirstRunDeviceEnvironmentScan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompleteProductControlFirstRunDeviceEnvironmentScanRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).CompleteProductControlFirstRunDeviceEnvironmentScan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_CompleteProductControlFirstRunDeviceEnvironmentScan_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).CompleteProductControlFirstRunDeviceEnvironmentScan(ctx, req.(*CompleteProductControlFirstRunDeviceEnvironmentScanRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_AdmitProductControlReadyForUse_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdmitProductControlReadyForUseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).AdmitProductControlReadyForUse(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_AdmitProductControlReadyForUse_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).AdmitProductControlReadyForUse(ctx, req.(*AdmitProductControlReadyForUseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_RecordProductControlAccountDefaultProfileEvidence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RecordProductControlAccountDefaultProfileEvidenceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).RecordProductControlAccountDefaultProfileEvidence(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_RecordProductControlAccountDefaultProfileEvidence_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).RecordProductControlAccountDefaultProfileEvidence(ctx, req.(*RecordProductControlAccountDefaultProfileEvidenceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_RecordProductControlFirstRunLocalAiReadyEvidence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RecordProductControlFirstRunLocalAiReadyEvidenceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).RecordProductControlFirstRunLocalAiReadyEvidence(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_RecordProductControlFirstRunLocalAiReadyEvidence_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).RecordProductControlFirstRunLocalAiReadyEvidence(ctx, req.(*RecordProductControlFirstRunLocalAiReadyEvidenceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ReconcileProductControlFirstRunSetupState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReconcileProductControlFirstRunSetupStateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ReconcileProductControlFirstRunSetupState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ReconcileProductControlFirstRunSetupState_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ReconcileProductControlFirstRunSetupState(ctx, req.(*ReconcileProductControlFirstRunSetupStateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeLocalService_CollectDeviceProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CollectDeviceProfileRequest)
 	if err := dec(in); err != nil {
@@ -2152,6 +2494,46 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ExecuteLocalStateCutover",
 			Handler:    _RuntimeLocalService_ExecuteLocalStateCutover_Handler,
+		},
+		{
+			MethodName: "GetProductControlRecord",
+			Handler:    _RuntimeLocalService_GetProductControlRecord_Handler,
+		},
+		{
+			MethodName: "GetProductControlSelectedDataRoot",
+			Handler:    _RuntimeLocalService_GetProductControlSelectedDataRoot_Handler,
+		},
+		{
+			MethodName: "EnsureProductControlRecordCreated",
+			Handler:    _RuntimeLocalService_EnsureProductControlRecordCreated_Handler,
+		},
+		{
+			MethodName: "SelectProductControlDataRoot",
+			Handler:    _RuntimeLocalService_SelectProductControlDataRoot_Handler,
+		},
+		{
+			MethodName: "SetProductControlFirstRunInstallLevel",
+			Handler:    _RuntimeLocalService_SetProductControlFirstRunInstallLevel_Handler,
+		},
+		{
+			MethodName: "CompleteProductControlFirstRunDeviceEnvironmentScan",
+			Handler:    _RuntimeLocalService_CompleteProductControlFirstRunDeviceEnvironmentScan_Handler,
+		},
+		{
+			MethodName: "AdmitProductControlReadyForUse",
+			Handler:    _RuntimeLocalService_AdmitProductControlReadyForUse_Handler,
+		},
+		{
+			MethodName: "RecordProductControlAccountDefaultProfileEvidence",
+			Handler:    _RuntimeLocalService_RecordProductControlAccountDefaultProfileEvidence_Handler,
+		},
+		{
+			MethodName: "RecordProductControlFirstRunLocalAiReadyEvidence",
+			Handler:    _RuntimeLocalService_RecordProductControlFirstRunLocalAiReadyEvidence_Handler,
+		},
+		{
+			MethodName: "ReconcileProductControlFirstRunSetupState",
+			Handler:    _RuntimeLocalService_ReconcileProductControlFirstRunSetupState_Handler,
 		},
 		{
 			MethodName: "CollectDeviceProfile",

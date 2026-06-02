@@ -16,6 +16,7 @@ import {
   RegisterAppResponse,
 } from '../../src/runtime/generated/runtime/v1/auth';
 import {
+  GetAccountAppLibraryResponse,
   SendAppMessageResponse,
 } from '../../src/runtime/generated/runtime/v1/app';
 import {
@@ -385,6 +386,51 @@ test('tauri-ipc app unary request includes runtime app session', async () => {
       sessionId: 'runtime-session-id',
       sessionToken: 'runtime-session-token',
     });
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('tauri-ipc account app-library read sends no renderer account id', async () => {
+  let capturedPayload: Record<string, unknown> | null = null;
+  const restoreTauri = installTauriRuntime({
+    core: {
+      invoke: async (command: string, payload?: unknown) => {
+        if (command === 'runtime_bridge_unary') {
+          capturedPayload = unwrapTauriInvokePayload(payload);
+          return {
+            responseBytesBase64: Buffer.from(
+              GetAccountAppLibraryResponse.toBinary(
+                GetAccountAppLibraryResponse.create({
+                  exists: false,
+                  reasonCode: 1,
+                }),
+              ),
+            ).toString('base64'),
+          };
+        }
+        throw new Error(`unexpected command ${command}`);
+      },
+    },
+  });
+
+  try {
+    const client = createRuntimeClient({
+      ...runtimeConfig,
+      transport: {
+        type: 'tauri-ipc',
+        commandNamespace: 'runtime_bridge',
+        eventNamespace: 'runtime_bridge',
+      },
+    });
+
+    const response = await client.app.getAccountAppLibrary({});
+
+    assert.equal(response.exists, false);
+    assert.ok(capturedPayload);
+    assert.equal(capturedPayload.methodId, RuntimeMethodIds.app.getAccountAppLibrary);
+    assert.equal(JSON.stringify(capturedPayload).includes('accountId'), false);
+    assert.equal(JSON.stringify(capturedPayload).includes('account_id'), false);
   } finally {
     restoreTauri();
   }

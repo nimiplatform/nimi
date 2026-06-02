@@ -714,6 +714,59 @@ message AppendRuntimeAuditRequest {
   google.protobuf.Struct payload = 4;
 }
 
+// === Runtime-owned product-control record (`~/.nimi/nimi.json`) ===
+
+// ProductControlProjectionJson carries the product-control projection as
+// canonical camelCase JSON. The Runtime owns the record read/write/admission
+// state machine; SDK/app clients parse this projection through the public
+// product-control schema helpers instead of reading local files.
+message ProductControlProjectionJson {
+  string json = 1;
+}
+
+message GetProductControlRecordRequest {}
+
+message GetProductControlSelectedDataRootRequest {}
+
+message EnsureProductControlRecordCreatedRequest {}
+
+message SelectProductControlDataRootRequest {
+  string data_root = 1;
+}
+
+message SetProductControlFirstRunInstallLevelRequest {
+  string install_level = 1;
+  string ai_profile_alias = 2;
+}
+
+message CompleteProductControlFirstRunDeviceEnvironmentScanRequest {}
+
+message AdmitProductControlReadyForUseRequest {
+  // JSON projection emitted by the Account Default Profile owner/verifier.
+  string account_default_profile_evidence_json = 1;
+  // JSON projection emitted by the built-in AIConfig owner/verifier.
+  string built_in_ai_config_evidence_json = 2;
+}
+
+message RecordProductControlAccountDefaultProfileEvidenceRequest {
+  // JSON projection emitted by the Account Default Profile owner/verifier.
+  string account_default_profile_evidence_json = 1;
+}
+
+message RecordProductControlFirstRunLocalAiReadyEvidenceRequest {
+  string runtime_baseline_ref = 1;
+  // JSON projection emitted by the built-in AIConfig owner/verifier.
+  string built_in_ai_config_evidence_json = 2;
+  string execution_evidence_ref = 3;
+}
+
+message ReconcileProductControlFirstRunSetupStateRequest {
+  // A non-ready first-run setup state derived from Runtime materialization
+  // evidence. Runtime validates the vocabulary and owns the record write.
+  string state = 1;
+  string reason = 2;
+}
+
 // === Service Definition ===
 
 service RuntimeLocalService {
@@ -766,6 +819,18 @@ service RuntimeLocalService {
   // Runtime-owned local state reconciliation
   rpc ResolveLocalStateReconciliation(ResolveLocalStateReconciliationRequest) returns (ResolveLocalStateReconciliationResponse);
   rpc ExecuteLocalStateCutover(ExecuteLocalStateCutoverRequest) returns (ExecuteLocalStateCutoverResponse);
+
+  // Runtime-owned product-control record
+  rpc GetProductControlRecord(GetProductControlRecordRequest) returns (ProductControlProjectionJson);
+  rpc GetProductControlSelectedDataRoot(GetProductControlSelectedDataRootRequest) returns (ProductControlProjectionJson);
+  rpc EnsureProductControlRecordCreated(EnsureProductControlRecordCreatedRequest) returns (ProductControlProjectionJson);
+  rpc SelectProductControlDataRoot(SelectProductControlDataRootRequest) returns (ProductControlProjectionJson);
+  rpc SetProductControlFirstRunInstallLevel(SetProductControlFirstRunInstallLevelRequest) returns (ProductControlProjectionJson);
+  rpc CompleteProductControlFirstRunDeviceEnvironmentScan(CompleteProductControlFirstRunDeviceEnvironmentScanRequest) returns (ProductControlProjectionJson);
+  rpc AdmitProductControlReadyForUse(AdmitProductControlReadyForUseRequest) returns (ProductControlProjectionJson);
+  rpc RecordProductControlAccountDefaultProfileEvidence(RecordProductControlAccountDefaultProfileEvidenceRequest) returns (ProductControlProjectionJson);
+  rpc RecordProductControlFirstRunLocalAiReadyEvidence(RecordProductControlFirstRunLocalAiReadyEvidenceRequest) returns (ProductControlProjectionJson);
+  rpc ReconcileProductControlFirstRunSetupState(ReconcileProductControlFirstRunSetupStateRequest) returns (ProductControlProjectionJson);
 
   // Device
   rpc CollectDeviceProfile(CollectDeviceProfileRequest) returns (CollectDeviceProfileResponse);

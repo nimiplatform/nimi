@@ -243,6 +243,15 @@ export function parseProductControlRecordProjection(value: unknown): ProductCont
   };
 }
 
+export function parseProductControlProjectionJson(value: unknown): ProductControlRecordProjection {
+  const envelope = asRecord(value, 'RuntimeLocalService.ProductControlProjectionJson');
+  const raw = String(envelope.json || '').trim();
+  if (!raw) {
+    throw new Error('Runtime product-control projection json is required');
+  }
+  return parseProductControlRecordProjection(JSON.parse(raw));
+}
+
 export function parseProductControlSelectedDataRootProjection(
   value: unknown,
 ): ProductControlSelectedDataRootProjection {
@@ -264,6 +273,17 @@ export function parseProductControlSelectedDataRootProjection(
       : null,
     error: parseOptionalString(record.error),
   };
+}
+
+export function parseProductControlSelectedDataRootProjectionJson(
+  value: unknown,
+): ProductControlSelectedDataRootProjection {
+  const envelope = asRecord(value, 'RuntimeLocalService.ProductControlProjectionJson');
+  const raw = String(envelope.json || '').trim();
+  if (!raw) {
+    throw new Error('Runtime product-control selected-data-root projection json is required');
+  }
+  return parseProductControlSelectedDataRootProjection(JSON.parse(raw));
 }
 
 export function productControlRecordUnavailableProjection(error: string): ProductControlRecordProjection {

@@ -20,6 +20,7 @@ lint:
       - runtime/v1/common.proto
       - runtime/v1/connector.proto
       - runtime/v1/delegated_control.proto
+      - runtime/v1/external_agent.proto
       - runtime/v1/grant.proto
       - runtime/v1/knowledge.proto
       - runtime/v1/local_runtime.proto
@@ -42,15 +43,19 @@ lint:
       - runtime/v1/audit.proto
       - runtime/v1/auth.proto
       - runtime/v1/cognition.proto
+      - runtime/v1/external_agent.proto
       - runtime/v1/grant.proto
       - runtime/v1/knowledge.proto
       - runtime/v1/local_runtime.proto
       - runtime/v1/memory.proto
       - runtime/v1/model.proto
       - runtime/v1/workflow.proto
+    RPC_REQUEST_STANDARD_NAME:
+      - runtime/v1/external_agent.proto
     RPC_REQUEST_RESPONSE_UNIQUE:
       - runtime/v1/auth.proto
       - runtime/v1/cognition.proto
+      - runtime/v1/external_agent.proto
       - runtime/v1/grant.proto
       - runtime/v1/knowledge.proto
       - runtime/v1/local_runtime.proto

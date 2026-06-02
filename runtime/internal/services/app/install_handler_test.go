@@ -84,6 +84,34 @@ apps:
 	return registry
 }
 
+func bundledRegistryWithPermission(t *testing.T) *appregistrycatalog.Registry {
+	t.Helper()
+	body := `version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: test_nimi_app_registry
+apps:
+  - app_id: nimi.example-app
+    display_label: Example App
+    publisher: nimi-first-party
+    trust_tier_ref: nimi-first-party
+    package_kind: nimi-app
+    runtime_registration_mode: app-managed
+    permission_scope_ref:
+      - { appId: nimi.example-app, scopeFamily: account, scopeName: account.read }
+    ordinary_visibility: ordinary-visible
+    release_descriptor_ref: nimi.example-app.bundled-with-nimi
+    install_storage_policy_ref: nimi-data-app-roots
+    admission_status: admitted
+    source_rule: P-NAPP-011
+`
+	registry, err := appregistrycatalog.LoadRegistry(stringReader(body))
+	if err != nil {
+		t.Fatalf("load registry with permission: %v", err)
+	}
+	return registry
+}
+
 func bundledReleaseCatalog(t *testing.T) *appreleasecatalog.Catalog {
 	t.Helper()
 	body := `version: 1
@@ -141,6 +169,16 @@ func stringReader(s string) *os.File {
 
 func newBundledInstallService(t *testing.T) (*Service, string) {
 	t.Helper()
+	return newBundledInstallServiceWithOpenReadiness(t, allowOpenReadinessVerifier{})
+}
+
+func newBundledInstallServiceWithOpenReadiness(t *testing.T, verifier OpenAppReadinessVerifier) (*Service, string) {
+	t.Helper()
+	return newBundledInstallServiceWithRegistry(t, bundledRegistry(t), verifier)
+}
+
+func newBundledInstallServiceWithRegistry(t *testing.T, registry *appregistrycatalog.Registry, verifier OpenAppReadinessVerifier) (*Service, string) {
+	t.Helper()
 	dataRoot := t.TempDir()
 	bundledRoot := t.TempDir()
 	appArtifact := filepath.Join(bundledRoot, "nimi.example-app")
@@ -151,7 +189,7 @@ func newBundledInstallService(t *testing.T) (*Service, string) {
 		t.Fatalf("write bundled manifest: %v", err)
 	}
 	runtime, err := NewInstallRuntime(
-		bundledRegistry(t),
+		registry,
 		bundledReleaseCatalog(t),
 		dataRoot,
 		bundledRoot,
@@ -161,7 +199,16 @@ func newBundledInstallService(t *testing.T) (*Service, string) {
 	if err != nil {
 		t.Fatalf("NewInstallRuntime: %v", err)
 	}
-	svc := New(testLogger(), WithInstallRuntime(runtime))
+	nimiDir := filepath.Join(t.TempDir(), ".nimi")
+	svc := New(testLogger(),
+		WithInstallRuntime(runtime),
+		WithOpenAppReadinessVerifier(verifier),
+		WithRuntimeAccountProjectionProvider(testRuntimeAccountProjectionProvider{
+			projection: &runtimev1.AccountProjection{AccountId: "account_1"},
+			ok:         true,
+		}),
+		WithAccountAppLibraryStoreForTest(newAccountAppLibraryStoreForTest(nimiDir)),
+	)
 	return svc, dataRoot
 }
 
@@ -197,6 +244,29 @@ func TestInstallAppBundledReachesInstalled(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(job.GetStorage().GetReleaseRoot(), "manifest.json")); err != nil {
 		t.Fatalf("expected materialized release payload: %v", err)
+	}
+}
+
+func TestInstallAppWritesRuntimeOwnedAccountLibraryProjection(t *testing.T) {
+	svc, _ := newBundledInstallService(t)
+	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.example-app", Confirmed: true})
+	if err != nil {
+		t.Fatalf("InstallApp: %v", err)
+	}
+	job := waitForTerminalJob(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_INSTALLED {
+		t.Fatalf("install job state = %v detail=%q, want INSTALLED", job.GetState(), job.GetFailureDetail())
+	}
+	record, err := svc.accountLibrary.readOrEmpty("account_1")
+	if err != nil {
+		t.Fatalf("read account library: %v", err)
+	}
+	if len(record.Apps) != 1 {
+		t.Fatalf("library apps = %d, want 1", len(record.Apps))
+	}
+	row := record.Apps[0]
+	if row.AppID != "nimi.example-app" || row.LibraryState != accountAppLibraryStateEnabled || !row.Installed {
+		t.Fatalf("unexpected account library row: %+v", row)
 	}
 }
 

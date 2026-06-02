@@ -8,6 +8,8 @@ import {
   isDegradedProductControlState,
   isProductControlPhaseTransient,
   isRepairRoutedProductControlState,
+  parseProductControlProjectionJson,
+  parseProductControlSelectedDataRootProjectionJson,
   parseProductControlSelectedDataRootProjection,
   parseProductControlRecordProjection,
   productControlRecordUnavailableProjection,
@@ -60,6 +62,31 @@ test('product-control parser and recovery mapping are total over admitted states
     assert.equal(typeof PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY[state], 'string');
     assert.ok(PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY[state].startsWith('Support.'));
   }
+});
+
+test('product-control parser consumes Runtime JSON projection envelopes', () => {
+  const projection = parseProductControlProjectionJson({
+    json: JSON.stringify(record('data_root_missing')),
+  });
+  assert.equal(projection.state, 'data_root_missing');
+
+  const selected = parseProductControlSelectedDataRootProjectionJson({
+    json: JSON.stringify({
+      path: '/tmp/home/.nimi/nimi.json',
+      exists: true,
+      state: 'data_root_selected',
+      dataRoot: {
+        path: '/tmp/nimi-data',
+        status: 'selected',
+        selectedAt: '2026-06-02T00:00:00.000Z',
+        verifiedAt: '2026-06-02T00:00:00.000Z',
+        selectedAtUnixMs: 1,
+        verifiedAtUnixMs: 1,
+      },
+      error: null,
+    }),
+  });
+  assert.equal(selected.dataRoot?.path, '/tmp/nimi-data');
 });
 
 test('product-control screen and admission projections preserve fail-closed states', () => {

@@ -167,9 +167,17 @@ func appPackageReadinessFromBase(
 	reason runtimev1.ReasonCode,
 	detail string,
 ) *runtimev1.AppPackageReadinessProjection {
-	projection := *base
-	projection.State = state
-	projection.ReasonCode = reason
-	projection.Detail = detail
-	return &projection
+	return &runtimev1.AppPackageReadinessProjection{
+		AppId:                base.GetAppId(),
+		ReleaseDescriptorRef: base.GetReleaseDescriptorRef(),
+		StoragePolicyRef:     base.GetStoragePolicyRef(),
+		ExpectedVersion:      base.GetExpectedVersion(),
+		ActiveVersion:        base.GetActiveVersion(),
+		InstalledVersion:     base.GetInstalledVersion(),
+		Sha256:               base.GetSha256(),
+		VerificationState:    base.GetVerificationState(),
+		State:                state,
+		ReasonCode:           reason,
+		Detail:               detail,
+	}
 }

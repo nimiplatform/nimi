@@ -346,8 +346,8 @@ func materializeRecommendationFeed(
 	sort.SliceStable(items, func(i, j int) bool {
 		leftRank := sourceRank[strings.ToLower(strings.TrimSpace(items[i].GetRepo()))]
 		rightRank := sourceRank[strings.ToLower(strings.TrimSpace(items[j].GetRepo()))]
-		leftKey := recommendationSortKey(items[i].GetRecommendation(), items[i].GetVerified(), leftRank)
-		rightKey := recommendationSortKey(items[j].GetRecommendation(), items[j].GetVerified(), rightRank)
+		leftKey := recommendationFeedItemSortKey(items[i], leftRank)
+		rightKey := recommendationFeedItemSortKey(items[j], rightRank)
 		if leftKey != rightKey {
 			return leftKey.less(rightKey)
 		}
@@ -367,6 +367,7 @@ type recommendationRank struct {
 	host       int
 	confidence int
 	verified   int
+	sizeBytes  int64
 	sourceRank int
 }
 
@@ -382,6 +383,9 @@ func (r recommendationRank) less(other recommendationRank) bool {
 	}
 	if r.verified != other.verified {
 		return r.verified < other.verified
+	}
+	if r.sizeBytes != other.sizeBytes {
+		return r.sizeBytes < other.sizeBytes
 	}
 	return r.sourceRank < other.sourceRank
 }
@@ -420,7 +424,25 @@ func recommendationSortKey(recommendation *runtimev1.LocalCatalogRecommendation,
 	if verified {
 		verifiedRank = 0
 	}
-	return recommendationRank{tier: tierRank, host: hostRank, confidence: confidenceRank, verified: verifiedRank, sourceRank: sourceRank}
+	return recommendationRank{tier: tierRank, host: hostRank, confidence: confidenceRank, verified: verifiedRank, sizeBytes: 0, sourceRank: sourceRank}
+}
+
+func recommendationFeedItemSortKey(item *runtimev1.LocalRecommendationFeedItemDescriptor, sourceRank int) recommendationRank {
+	key := recommendationSortKey(item.GetRecommendation(), item.GetVerified(), sourceRank)
+	key.sizeBytes = recommendationFeedItemSmallestEntrySize(item)
+	return key
+}
+
+func recommendationFeedItemSmallestEntrySize(item *runtimev1.LocalRecommendationFeedItemDescriptor) int64 {
+	const unknownSizeRank = int64(1 << 62)
+	best := unknownSizeRank
+	for _, entry := range item.GetEntries() {
+		size := entry.GetTotalSizeBytes()
+		if size > 0 && size < best {
+			best = size
+		}
+	}
+	return best
 }
 
 func buildRecommendationFeedItem(

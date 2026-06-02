@@ -1,0 +1,189 @@
+package app
+
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
+)
+
+type testRuntimeAccountProjectionProvider struct {
+	projection *runtimev1.AccountProjection
+	ok         bool
+}
+
+func (p testRuntimeAccountProjectionProvider) AuthenticatedRuntimeProjection(context.Context) (*runtimev1.AccountProjection, bool) {
+	return p.projection, p.ok
+}
+
+func newProjectionOpenReadinessVerifierForTest(t *testing.T, accountID string) (OpenAppReadinessVerifier, string) {
+	t.Helper()
+	nimiDir := filepath.Join(t.TempDir(), ".nimi")
+	verifier := NewAccountProjectionOpenAppReadinessVerifier(
+		testRuntimeAccountProjectionProvider{
+			projection: &runtimev1.AccountProjection{AccountId: accountID},
+			ok:         true,
+		},
+		WithOpenAppReadinessNimiDirForTest(nimiDir),
+		WithOpenAppReadinessClockForTest(func() time.Time {
+			return time.Date(2026, 6, 2, 0, 0, 0, 0, time.UTC)
+		}),
+	)
+	return verifier, nimiDir
+}
+
+func writeRuntimeProjectionJSON(t *testing.T, path string, body string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("mkdir projection dir: %v", err)
+	}
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatalf("write projection: %v", err)
+	}
+}
+
+func runtimeProjectionAccountSegment(accountID string) string {
+	return accountPathSegment(accountID)
+}
+
+func TestOpenAppReadinessVerifierAllowsEnabledInstalledAppAndGrantedPermissions(t *testing.T) {
+	verifier, nimiDir := newProjectionOpenReadinessVerifierForTest(t, "account/one")
+	accountDir := filepath.Join(nimiDir, "accounts", runtimeProjectionAccountSegment("account/one"))
+	writeRuntimeProjectionJSON(t, filepath.Join(accountDir, "apps", "library.json"), `{
+  "schemaVersion": 1,
+  "accountId": "account/one",
+  "updatedAt": "2026-06-02T00:00:00.000Z",
+  "apps": [{
+    "appId": "nimi.example-app",
+    "libraryState": "enabled",
+    "installed": true,
+    "lastOpenedAt": null,
+    "dataPolicy": "keep_on_uninstall"
+  }]
+}`)
+	writeRuntimeProjectionJSON(t, filepath.Join(accountDir, "permissions", "grants.json"), `{
+  "schemaVersion": 1,
+  "accountId": "account/one",
+  "updatedAt": "2026-06-02T00:00:00.000Z",
+  "grants": [{
+    "grantId": "grant-1",
+    "subject": "nimi.example-app",
+    "scope": "account.session.read",
+    "state": "granted",
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "expiresAt": null
+  }]
+}`)
+	app := appregistrycatalog.App{
+		AppID: "nimi.example-app",
+		PermissionScopeRefs: []appregistrycatalog.PermissionScopeRef{{
+			AppID:       "nimi.example-app",
+			ScopeFamily: "account",
+			ScopeName:   "account.session.read",
+		}},
+	}
+	library, err := verifier.VerifyOpenAccountLibrary(context.Background(), app)
+	if err != nil {
+		t.Fatalf("VerifyOpenAccountLibrary: %v", err)
+	}
+	if !library.Allowed {
+		t.Fatalf("library gate blocked: %+v", library)
+	}
+	permissions, err := verifier.VerifyOpenPermissions(context.Background(), app)
+	if err != nil {
+		t.Fatalf("VerifyOpenPermissions: %v", err)
+	}
+	if !permissions.Allowed {
+		t.Fatalf("permission gate blocked: %+v", permissions)
+	}
+}
+
+func TestOpenAppReadinessVerifierFailsClosedOnMissingLibraryAndExpiredGrant(t *testing.T) {
+	verifier, nimiDir := newProjectionOpenReadinessVerifierForTest(t, "account_1")
+	app := appregistrycatalog.App{
+		AppID: "nimi.example-app",
+		PermissionScopeRefs: []appregistrycatalog.PermissionScopeRef{{
+			AppID:       "nimi.example-app",
+			ScopeFamily: "account",
+			ScopeName:   "account.session.read",
+		}},
+	}
+	library, err := verifier.VerifyOpenAccountLibrary(context.Background(), app)
+	if err != nil {
+		t.Fatalf("VerifyOpenAccountLibrary: %v", err)
+	}
+	if library.Allowed || !strings.Contains(library.Detail, "missing") {
+		t.Fatalf("expected missing library fail-closed decision, got %+v", library)
+	}
+
+	accountDir := filepath.Join(nimiDir, "accounts", runtimeProjectionAccountSegment("account_1"))
+	writeRuntimeProjectionJSON(t, filepath.Join(accountDir, "permissions", "grants.json"), `{
+  "schemaVersion": 1,
+  "accountId": "account_1",
+  "updatedAt": "2026-06-02T00:00:00.000Z",
+  "grants": [{
+    "grantId": "grant-1",
+    "subject": "nimi.example-app",
+    "scope": "account.session.read",
+    "state": "granted",
+    "createdAt": "2026-06-01T00:00:00.000Z",
+    "expiresAt": "2026-06-01T00:00:00.000Z"
+  }]
+}`)
+	permissions, err := verifier.VerifyOpenPermissions(context.Background(), app)
+	if err != nil {
+		t.Fatalf("VerifyOpenPermissions: %v", err)
+	}
+	if permissions.Allowed || !strings.Contains(permissions.Detail, "expired") {
+		t.Fatalf("expected expired grant fail-closed decision, got %+v", permissions)
+	}
+}
+
+func TestOpenAppReadinessVerifierFailsClosedForQualifiedScopeUntilProjectionCarriesQualifier(t *testing.T) {
+	verifier, nimiDir := newProjectionOpenReadinessVerifierForTest(t, "account_1")
+	accountDir := filepath.Join(nimiDir, "accounts", runtimeProjectionAccountSegment("account_1"))
+	writeRuntimeProjectionJSON(t, filepath.Join(accountDir, "permissions", "grants.json"), `{
+  "schemaVersion": 1,
+  "accountId": "account_1",
+  "updatedAt": "2026-06-02T00:00:00.000Z",
+  "grants": [{
+    "grantId": "grant-1",
+    "subject": "nimi.example-app",
+    "scope": "memory.read.bounded",
+    "state": "granted",
+    "createdAt": "2026-06-02T00:00:00.000Z",
+    "expiresAt": null
+  }]
+}`)
+	decision, err := verifier.VerifyOpenPermissions(context.Background(), appregistrycatalog.App{
+		AppID: "nimi.example-app",
+		PermissionScopeRefs: []appregistrycatalog.PermissionScopeRef{{
+			AppID:       "nimi.example-app",
+			ScopeFamily: "memory",
+			ScopeName:   "memory.read.bounded",
+			Qualifier:   "persona-scoped",
+		}},
+	})
+	if err != nil {
+		t.Fatalf("VerifyOpenPermissions: %v", err)
+	}
+	if decision.Allowed || !strings.Contains(decision.Detail, "qualifier persona-scoped") {
+		t.Fatalf("expected qualified scope to fail closed, got %+v", decision)
+	}
+}
+
+func TestOpenAppReadinessVerifierRequiresAuthenticatedRuntimeAccount(t *testing.T) {
+	verifier := NewAccountProjectionOpenAppReadinessVerifier(testRuntimeAccountProjectionProvider{})
+	decision, err := verifier.VerifyOpenAccountLibrary(context.Background(), appregistrycatalog.App{AppID: "nimi.example-app"})
+	if err != nil {
+		t.Fatalf("VerifyOpenAccountLibrary: %v", err)
+	}
+	if decision.Allowed || !strings.Contains(decision.Detail, "authenticated Runtime account session") {
+		t.Fatalf("expected authenticated account fail-closed decision, got %+v", decision)
+	}
+}

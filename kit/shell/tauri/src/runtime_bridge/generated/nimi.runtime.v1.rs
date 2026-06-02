@@ -8977,6 +8977,69 @@ pub struct AppendRuntimeAuditRequest {
     #[prost(message, optional, tag = "4")]
     pub payload: ::core::option::Option<::prost_types::Struct>,
 }
+/// ProductControlProjectionJson carries the product-control projection as
+/// canonical camelCase JSON. The Runtime owns the record read/write/admission
+/// state machine; SDK/app clients parse this projection through the public
+/// product-control schema helpers instead of reading local files.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ProductControlProjectionJson {
+    #[prost(string, tag = "1")]
+    pub json: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetProductControlRecordRequest {}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetProductControlSelectedDataRootRequest {}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct EnsureProductControlRecordCreatedRequest {}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SelectProductControlDataRootRequest {
+    #[prost(string, tag = "1")]
+    pub data_root: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetProductControlFirstRunInstallLevelRequest {
+    #[prost(string, tag = "1")]
+    pub install_level: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub ai_profile_alias: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CompleteProductControlFirstRunDeviceEnvironmentScanRequest {}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AdmitProductControlReadyForUseRequest {
+    /// JSON projection emitted by the Account Default Profile owner/verifier.
+    #[prost(string, tag = "1")]
+    pub account_default_profile_evidence_json: ::prost::alloc::string::String,
+    /// JSON projection emitted by the built-in AIConfig owner/verifier.
+    #[prost(string, tag = "2")]
+    pub built_in_ai_config_evidence_json: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RecordProductControlAccountDefaultProfileEvidenceRequest {
+    /// JSON projection emitted by the Account Default Profile owner/verifier.
+    #[prost(string, tag = "1")]
+    pub account_default_profile_evidence_json: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RecordProductControlFirstRunLocalAiReadyEvidenceRequest {
+    #[prost(string, tag = "1")]
+    pub runtime_baseline_ref: ::prost::alloc::string::String,
+    /// JSON projection emitted by the built-in AIConfig owner/verifier.
+    #[prost(string, tag = "2")]
+    pub built_in_ai_config_evidence_json: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub execution_evidence_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReconcileProductControlFirstRunSetupStateRequest {
+    /// A non-ready first-run setup state derived from Runtime materialization
+    /// evidence. Runtime validates the vocabulary and owns the record write.
+    #[prost(string, tag = "1")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub reason: ::prost::alloc::string::String,
+}
 /// Generated client implementations.
 pub mod runtime_local_service_client {
     #![allow(
@@ -10192,6 +10255,313 @@ pub mod runtime_local_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeLocalService",
                         "ExecuteLocalStateCutover",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Runtime-owned product-control record
+        pub async fn get_product_control_record(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetProductControlRecordRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ProductControlProjectionJson>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "GetProductControlRecord",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_product_control_selected_data_root(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetProductControlSelectedDataRootRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ProductControlProjectionJson>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "GetProductControlSelectedDataRoot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn ensure_product_control_record_created(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::EnsureProductControlRecordCreatedRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ProductControlProjectionJson>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "EnsureProductControlRecordCreated",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn select_product_control_data_root(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SelectProductControlDataRootRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ProductControlProjectionJson>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "SelectProductControlDataRoot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn set_product_control_first_run_install_level(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::SetProductControlFirstRunInstallLevelRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ProductControlProjectionJson>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "SetProductControlFirstRunInstallLevel",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn complete_product_control_first_run_device_environment_scan(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::CompleteProductControlFirstRunDeviceEnvironmentScanRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ProductControlProjectionJson>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "CompleteProductControlFirstRunDeviceEnvironmentScan",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn admit_product_control_ready_for_use(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::AdmitProductControlReadyForUseRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ProductControlProjectionJson>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "AdmitProductControlReadyForUse",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn record_product_control_account_default_profile_evidence(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::RecordProductControlAccountDefaultProfileEvidenceRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ProductControlProjectionJson>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "RecordProductControlAccountDefaultProfileEvidence",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn record_product_control_first_run_local_ai_ready_evidence(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::RecordProductControlFirstRunLocalAiReadyEvidenceRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ProductControlProjectionJson>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "RecordProductControlFirstRunLocalAiReadyEvidence",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn reconcile_product_control_first_run_setup_state(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ReconcileProductControlFirstRunSetupStateRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ProductControlProjectionJson>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ReconcileProductControlFirstRunSetupState",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -12801,6 +13171,47 @@ pub struct GetAppStorageResponse {
     #[prost(message, optional, tag = "1")]
     pub projection: ::core::option::Option<AppStorageProjection>,
 }
+/// AccountAppLibraryRow is one Runtime-owned account app-library projection row.
+/// Runtime app lifecycle writes this projection; app consumers read it through
+/// GetAccountAppLibrary rather than resolving account-scoped files.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AccountAppLibraryRow {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub library_state: ::prost::alloc::string::String,
+    #[prost(bool, tag = "3")]
+    pub installed: bool,
+    #[prost(string, tag = "4")]
+    pub last_opened_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub data_policy: ::prost::alloc::string::String,
+}
+/// AccountAppLibraryRecord is the account-scoped app-library projection.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AccountAppLibraryRecord {
+    #[prost(uint32, tag = "1")]
+    pub schema_version: u32,
+    #[prost(string, tag = "2")]
+    pub account_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub updated_at: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "4")]
+    pub apps: ::prost::alloc::vec::Vec<AccountAppLibraryRow>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAccountAppLibraryRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetAccountAppLibraryResponse {
+    #[prost(bool, tag = "1")]
+    pub exists: bool,
+    #[prost(message, optional, tag = "2")]
+    pub record: ::core::option::Option<AccountAppLibraryRecord>,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+    #[prost(string, tag = "4")]
+    pub detail: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetAppPackageReadinessRequest {
     /// app_id resolves the admitted app's release descriptor, active release
@@ -13674,6 +14085,35 @@ pub mod runtime_app_service_client {
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new("nimi.runtime.v1.RuntimeAppService", "GetAppStorage"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_account_app_library(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetAccountAppLibraryRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAccountAppLibraryResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "GetAccountAppLibrary",
+                    ),
                 );
             self.inner.unary(req, path, codec).await
         }

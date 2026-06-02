@@ -3,6 +3,7 @@ import { Ack } from '../generated/runtime/v1/common';
 import {
   ApplyProfileRequest,
   ApplyProfileResponse,
+  AdmitProductControlReadyForUseRequest,
   AppendInferenceAuditRequest,
   AppendRuntimeAuditRequest,
   CancelLocalEnvironmentDependencyJobRequest,
@@ -13,8 +14,12 @@ import {
   CheckLocalServiceHealthResponse,
   CollectDeviceProfileRequest,
   CollectDeviceProfileResponse,
+  CompleteProductControlFirstRunDeviceEnvironmentScanRequest,
+  EnsureProductControlRecordCreatedRequest,
   GetRecommendationFeedRequest,
   GetRecommendationFeedResponse,
+  GetProductControlRecordRequest,
+  GetProductControlSelectedDataRootRequest,
   CancelLocalTransferRequest,
   CancelLocalTransferResponse,
   ImportLocalAssetRequest,
@@ -49,6 +54,10 @@ import {
   ListVerifiedAssetsResponse,
   PauseLocalTransferRequest,
   PauseLocalTransferResponse,
+  ProductControlProjectionJson,
+  ReconcileProductControlFirstRunSetupStateRequest,
+  RecordProductControlAccountDefaultProfileEvidenceRequest,
+  RecordProductControlFirstRunLocalAiReadyEvidenceRequest,
   RemoveLocalAssetRequest,
   RemoveLocalAssetResponse,
   RemoveLocalServiceRequest,
@@ -83,6 +92,8 @@ import {
   ScaffoldOrphanAssetResponse,
   SearchCatalogModelsRequest,
   SearchCatalogModelsResponse,
+  SelectProductControlDataRootRequest,
+  SetProductControlFirstRunInstallLevelRequest,
   StartLocalAssetRequest,
   StartLocalAssetResponse,
   StartLocalEnvironmentDependencyJobRequest,
@@ -306,6 +317,46 @@ export const runtimeUnaryMethodCodecsLocal: Partial<RuntimeUnaryMethodCodecMap> 
   [RuntimeMethodIds.local.resolveFirstRunExecutionEvidence]: {
     requestType: ResolveFirstRunExecutionEvidenceRequest,
     responseType: ResolveFirstRunExecutionEvidenceResponse,
+  },
+  [RuntimeMethodIds.local.getProductControlRecord]: {
+    requestType: GetProductControlRecordRequest,
+    responseType: ProductControlProjectionJson,
+  },
+  [RuntimeMethodIds.local.getProductControlSelectedDataRoot]: {
+    requestType: GetProductControlSelectedDataRootRequest,
+    responseType: ProductControlProjectionJson,
+  },
+  [RuntimeMethodIds.local.ensureProductControlRecordCreated]: {
+    requestType: EnsureProductControlRecordCreatedRequest,
+    responseType: ProductControlProjectionJson,
+  },
+  [RuntimeMethodIds.local.selectProductControlDataRoot]: {
+    requestType: SelectProductControlDataRootRequest,
+    responseType: ProductControlProjectionJson,
+  },
+  [RuntimeMethodIds.local.setProductControlFirstRunInstallLevel]: {
+    requestType: SetProductControlFirstRunInstallLevelRequest,
+    responseType: ProductControlProjectionJson,
+  },
+  [RuntimeMethodIds.local.completeProductControlFirstRunDeviceEnvironmentScan]: {
+    requestType: CompleteProductControlFirstRunDeviceEnvironmentScanRequest,
+    responseType: ProductControlProjectionJson,
+  },
+  [RuntimeMethodIds.local.admitProductControlReadyForUse]: {
+    requestType: AdmitProductControlReadyForUseRequest,
+    responseType: ProductControlProjectionJson,
+  },
+  [RuntimeMethodIds.local.recordProductControlAccountDefaultProfileEvidence]: {
+    requestType: RecordProductControlAccountDefaultProfileEvidenceRequest,
+    responseType: ProductControlProjectionJson,
+  },
+  [RuntimeMethodIds.local.recordProductControlFirstRunLocalAiReadyEvidence]: {
+    requestType: RecordProductControlFirstRunLocalAiReadyEvidenceRequest,
+    responseType: ProductControlProjectionJson,
+  },
+  [RuntimeMethodIds.local.reconcileProductControlFirstRunSetupState]: {
+    requestType: ReconcileProductControlFirstRunSetupStateRequest,
+    responseType: ProductControlProjectionJson,
   },
   [RuntimeMethodIds.local.startLocalEnvironmentDependencyJob]: {
     requestType: StartLocalEnvironmentDependencyJobRequest,

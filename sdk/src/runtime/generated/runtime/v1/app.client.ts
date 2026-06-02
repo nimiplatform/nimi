@@ -19,6 +19,8 @@ import type { GetAppInstallJobResponse } from "./app";
 import type { GetAppInstallJobRequest } from "./app";
 import type { GetAppPackageReadinessResponse } from "./app";
 import type { GetAppPackageReadinessRequest } from "./app";
+import type { GetAccountAppLibraryResponse } from "./app";
+import type { GetAccountAppLibraryRequest } from "./app";
 import type { GetAppStorageResponse } from "./app";
 import type { GetAppStorageRequest } from "./app";
 import type { UninstallAppResponse } from "./app";
@@ -59,6 +61,10 @@ export interface IRuntimeAppServiceClient {
      * @generated from protobuf rpc: GetAppStorage
      */
     getAppStorage(input: GetAppStorageRequest, options?: RpcOptions): UnaryCall<GetAppStorageRequest, GetAppStorageResponse>;
+    /**
+     * @generated from protobuf rpc: GetAccountAppLibrary
+     */
+    getAccountAppLibrary(input: GetAccountAppLibraryRequest, options?: RpcOptions): UnaryCall<GetAccountAppLibraryRequest, GetAccountAppLibraryResponse>;
     /**
      * @generated from protobuf rpc: GetAppPackageReadiness
      */
@@ -141,31 +147,38 @@ export class RuntimeAppServiceClient implements IRuntimeAppServiceClient, Servic
         return stackIntercept<GetAppStorageRequest, GetAppStorageResponse>("unary", this._transport, method, opt, input);
     }
     /**
+     * @generated from protobuf rpc: GetAccountAppLibrary
+     */
+    getAccountAppLibrary(input: GetAccountAppLibraryRequest, options?: RpcOptions): UnaryCall<GetAccountAppLibraryRequest, GetAccountAppLibraryResponse> {
+        const method = this.methods[5], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GetAccountAppLibraryRequest, GetAccountAppLibraryResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
      * @generated from protobuf rpc: GetAppPackageReadiness
      */
     getAppPackageReadiness(input: GetAppPackageReadinessRequest, options?: RpcOptions): UnaryCall<GetAppPackageReadinessRequest, GetAppPackageReadinessResponse> {
-        const method = this.methods[5], opt = this._transport.mergeOptions(options);
+        const method = this.methods[6], opt = this._transport.mergeOptions(options);
         return stackIntercept<GetAppPackageReadinessRequest, GetAppPackageReadinessResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: GetAppInstallJob
      */
     getAppInstallJob(input: GetAppInstallJobRequest, options?: RpcOptions): UnaryCall<GetAppInstallJobRequest, GetAppInstallJobResponse> {
-        const method = this.methods[6], opt = this._transport.mergeOptions(options);
+        const method = this.methods[7], opt = this._transport.mergeOptions(options);
         return stackIntercept<GetAppInstallJobRequest, GetAppInstallJobResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: ListAppInstallJobs
      */
     listAppInstallJobs(input: ListAppInstallJobsRequest, options?: RpcOptions): UnaryCall<ListAppInstallJobsRequest, ListAppInstallJobsResponse> {
-        const method = this.methods[7], opt = this._transport.mergeOptions(options);
+        const method = this.methods[8], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListAppInstallJobsRequest, ListAppInstallJobsResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: WatchAppInstallJobEvents
      */
     watchAppInstallJobEvents(input: WatchAppInstallJobEventsRequest, options?: RpcOptions): ServerStreamingCall<WatchAppInstallJobEventsRequest, AppInstallJobEvent> {
-        const method = this.methods[8], opt = this._transport.mergeOptions(options);
+        const method = this.methods[9], opt = this._transport.mergeOptions(options);
         return stackIntercept<WatchAppInstallJobEventsRequest, AppInstallJobEvent>("serverStreaming", this._transport, method, opt, input);
     }
     /**
@@ -174,14 +187,14 @@ export class RuntimeAppServiceClient implements IRuntimeAppServiceClient, Servic
      * @generated from protobuf rpc: UpdateApp
      */
     updateApp(input: UpdateAppRequest, options?: RpcOptions): UnaryCall<UpdateAppRequest, UpdateAppResponse> {
-        const method = this.methods[9], opt = this._transport.mergeOptions(options);
+        const method = this.methods[10], opt = this._transport.mergeOptions(options);
         return stackIntercept<UpdateAppRequest, UpdateAppResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: HealthRepairApp
      */
     healthRepairApp(input: HealthRepairAppRequest, options?: RpcOptions): UnaryCall<HealthRepairAppRequest, HealthRepairAppResponse> {
-        const method = this.methods[10], opt = this._transport.mergeOptions(options);
+        const method = this.methods[11], opt = this._transport.mergeOptions(options);
         return stackIntercept<HealthRepairAppRequest, HealthRepairAppResponse>("unary", this._transport, method, opt, input);
     }
     /**
@@ -192,7 +205,7 @@ export class RuntimeAppServiceClient implements IRuntimeAppServiceClient, Servic
      * @generated from protobuf rpc: OpenApp
      */
     openApp(input: OpenAppRequest, options?: RpcOptions): UnaryCall<OpenAppRequest, OpenAppResponse> {
-        const method = this.methods[11], opt = this._transport.mergeOptions(options);
+        const method = this.methods[12], opt = this._transport.mergeOptions(options);
         return stackIntercept<OpenAppRequest, OpenAppResponse>("unary", this._transport, method, opt, input);
     }
 }

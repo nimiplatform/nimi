@@ -297,10 +297,10 @@ test('runtimeStreamSpeechSynthesis: timeoutMs uses input then ctx fallback', asy
 });
 
 // ---------------------------------------------------------------------------
-// runtimeStreamSpeechSynthesis: started without routeDecision falls back
+// runtimeStreamSpeechSynthesis: started without routeDecision remains unspecified
 // ---------------------------------------------------------------------------
 
-test('runtimeStreamSpeechSynthesis: started event without routeDecision uses head routePolicy', async () => {
+test('runtimeStreamSpeechSynthesis: started event without routeDecision stays unspecified', async () => {
   const ctx = createMockCtx({
     invokeWithClient: async (op) => op({
       ai: {
@@ -337,6 +337,6 @@ test('runtimeStreamSpeechSynthesis: started event without routeDecision uses hea
     chunks.push(chunk);
   }
 
-  // routeDecision should fall back to the request's routePolicy (LOCAL since route is unset)
-  assert.equal(chunks[0]!.routeDecision, RoutePolicy.LOCAL);
+  assert.equal(chunks[0]!.routeDecision, RoutePolicy.UNSPECIFIED);
+  assert.equal(chunks[1]!.routeDecision, RoutePolicy.UNSPECIFIED);
 });

@@ -37,6 +37,10 @@ func (s *Service) InstallApp(ctx context.Context, req *runtimev1.InstallAppReque
 	if err != nil {
 		return nil, installResolveError(err)
 	}
+	accountID, accountErr := s.resolveAuthenticatedAccountIDForAppLifecycle(ctx)
+	if accountErr != nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
 
 	if existing := s.installJobs.activeJobForApp(appID); existing != nil {
 		return &runtimev1.InstallAppResponse{Job: existing}, nil
@@ -61,7 +65,7 @@ func (s *Service) InstallApp(ctx context.Context, req *runtimev1.InstallAppReque
 		return &runtimev1.InstallAppResponse{Job: orJob(failed, job)}, nil
 	}
 
-	go s.runLifecycleJob(job.GetJobId(), descriptor, runtimev1.AppLifecycleJobKind_APP_LIFECYCLE_JOB_KIND_INSTALL)
+	go s.runLifecycleJob(job.GetJobId(), descriptor, runtimev1.AppLifecycleJobKind_APP_LIFECYCLE_JOB_KIND_INSTALL, accountID)
 	return &runtimev1.InstallAppResponse{Job: job}, nil
 }
 
@@ -86,7 +90,7 @@ func (o installObserver) ArtifactVerified(artifact appinstallgateway.VerifiedArt
 // interrupt it. It fails closed: a digest/manifest/storage/swap violation marks
 // the job FAILED with a typed reason and never as success; a cancelled job is
 // marked CANCELLED and never as success.
-func (s *Service) runLifecycleJob(jobID string, descriptor appreleasecatalog.Descriptor, kind runtimev1.AppLifecycleJobKind) {
+func (s *Service) runLifecycleJob(jobID string, descriptor appreleasecatalog.Descriptor, kind runtimev1.AppLifecycleJobKind, accountID string) {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.installJobs.registerCancel(jobID, cancel)
 	defer func() {
@@ -121,6 +125,13 @@ func (s *Service) runLifecycleJob(jobID string, descriptor appreleasecatalog.Des
 		return
 	}
 	storage := storageProjectionFromPlan(installed.Plan)
+	if err := s.applyAccountAppLibraryLifecycleMutation(accountID, descriptor.AppID, accountAppLibraryMutationInstalledEnabled); err != nil {
+		s.installJobs.markFailed(jobID, runtimev1.ReasonCode_APP_INSTALL_INTERNAL, err.Error())
+		if s.logger != nil {
+			s.logger.Warn("account app-library mutation failed", "job_id", jobID, "app_id", descriptor.AppID, "kind", kind.String(), "error", err)
+		}
+		return
+	}
 	s.installJobs.markInstalled(jobID, installed.Artifact.Version, installed.Artifact.SHA256, installed.Artifact.Bytes, storage)
 	if s.logger != nil {
 		s.logger.Info("app lifecycle job completed", "job_id", jobID, "app_id", descriptor.AppID, "kind", kind.String(), "version", installed.Artifact.Version)
@@ -203,6 +214,10 @@ func (s *Service) UninstallApp(ctx context.Context, req *runtimev1.UninstallAppR
 	if err != nil {
 		return nil, installResolveError(err)
 	}
+	accountID, accountErr := s.resolveAuthenticatedAccountIDForAppLifecycle(ctx)
+	if accountErr != nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
 	plan, err := s.installRuntime.plan(descriptor)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_INSTALL_STORAGE_VIOLATION)
@@ -239,6 +254,18 @@ func (s *Service) UninstallApp(ctx context.Context, req *runtimev1.UninstallAppR
 		failed := s.installJobs.markFailed(job.GetJobId(), reason, uninstallErr.Error())
 		if s.logger != nil {
 			s.logger.Warn("app uninstall job failed", "job_id", job.GetJobId(), "app_id", appID, "reason", reason.String(), "error", uninstallErr)
+		}
+		return &runtimev1.UninstallAppResponse{Job: orJob(failed, job)}, nil
+	}
+
+	mutation := accountAppLibraryMutationUninstalledKeepRecord
+	if req.GetDeleteDurableData() {
+		mutation = accountAppLibraryMutationRemovedFromLibrary
+	}
+	if err := s.applyAccountAppLibraryLifecycleMutation(accountID, appID, mutation); err != nil {
+		failed := s.installJobs.markFailed(job.GetJobId(), runtimev1.ReasonCode_APP_INSTALL_INTERNAL, err.Error())
+		if s.logger != nil {
+			s.logger.Warn("account app-library mutation failed", "job_id", job.GetJobId(), "app_id", appID, "error", err)
 		}
 		return &runtimev1.UninstallAppResponse{Job: orJob(failed, job)}, nil
 	}

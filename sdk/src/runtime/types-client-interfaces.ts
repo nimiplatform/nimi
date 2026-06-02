@@ -123,6 +123,7 @@ import type {
 import type {
   ApplyProfileRequest,
   ApplyProfileResponse,
+  AdmitProductControlReadyForUseRequest,
   AppendInferenceAuditRequest,
   AppendRuntimeAuditRequest,
   CancelLocalEnvironmentDependencyJobRequest,
@@ -135,10 +136,14 @@ import type {
   CheckLocalServiceHealthResponse,
   CollectDeviceProfileRequest,
   CollectDeviceProfileResponse,
+  CompleteProductControlFirstRunDeviceEnvironmentScanRequest,
   ExecuteLocalStateCutoverRequest,
   ExecuteLocalStateCutoverResponse,
+  EnsureProductControlRecordCreatedRequest,
   GetRecommendationFeedRequest,
   GetRecommendationFeedResponse,
+  GetProductControlRecordRequest,
+  GetProductControlSelectedDataRootRequest,
   ImportLocalAssetRequest,
   ImportLocalAssetResponse,
   ImportLocalAssetFileRequest,
@@ -172,6 +177,10 @@ import type {
   PauseLocalTransferResponse,
   ListVerifiedAssetsRequest,
   ListVerifiedAssetsResponse,
+  ProductControlProjectionJson,
+  ReconcileProductControlFirstRunSetupStateRequest,
+  RecordProductControlAccountDefaultProfileEvidenceRequest,
+  RecordProductControlFirstRunLocalAiReadyEvidenceRequest,
   RemoveLocalAssetRequest,
   RemoveLocalAssetResponse,
   RemoveLocalServiceRequest,
@@ -208,6 +217,8 @@ import type {
   ResolveModelInstallPlanResponse,
   SearchCatalogModelsRequest,
   SearchCatalogModelsResponse,
+  SelectProductControlDataRootRequest,
+  SetProductControlFirstRunInstallLevelRequest,
   StartLocalAssetRequest,
   StartLocalAssetResponse,
   StartLocalEnvironmentDependencyJobRequest,
@@ -385,6 +396,8 @@ import type {
 import type {
   AppInstallJobEvent,
   AppMessageEvent,
+  GetAccountAppLibraryRequest,
+  GetAccountAppLibraryResponse,
   GetAppPackageReadinessRequest,
   GetAppPackageReadinessResponse,
   GetAppStorageRequest,
@@ -747,6 +760,16 @@ export type RuntimeLocalServiceClient = {
   repairLocalEnvironmentDependency(request: RepairLocalEnvironmentDependencyRequest, options?: RuntimeCallOptions): Promise<RepairLocalEnvironmentDependencyResponse>;
   resolveLocalStateReconciliation(request: ResolveLocalStateReconciliationRequest, options?: RuntimeCallOptions): Promise<ResolveLocalStateReconciliationResponse>;
   executeLocalStateCutover(request: ExecuteLocalStateCutoverRequest, options?: RuntimeCallOptions): Promise<ExecuteLocalStateCutoverResponse>;
+  getProductControlRecord(request: GetProductControlRecordRequest, options?: RuntimeCallOptions): Promise<ProductControlProjectionJson>;
+  getProductControlSelectedDataRoot(request: GetProductControlSelectedDataRootRequest, options?: RuntimeCallOptions): Promise<ProductControlProjectionJson>;
+  ensureProductControlRecordCreated(request: EnsureProductControlRecordCreatedRequest, options?: RuntimeCallOptions): Promise<ProductControlProjectionJson>;
+  selectProductControlDataRoot(request: SelectProductControlDataRootRequest, options?: RuntimeCallOptions): Promise<ProductControlProjectionJson>;
+  setProductControlFirstRunInstallLevel(request: SetProductControlFirstRunInstallLevelRequest, options?: RuntimeCallOptions): Promise<ProductControlProjectionJson>;
+  completeProductControlFirstRunDeviceEnvironmentScan(request: CompleteProductControlFirstRunDeviceEnvironmentScanRequest, options?: RuntimeCallOptions): Promise<ProductControlProjectionJson>;
+  admitProductControlReadyForUse(request: AdmitProductControlReadyForUseRequest, options?: RuntimeCallOptions): Promise<ProductControlProjectionJson>;
+  recordProductControlAccountDefaultProfileEvidence(request: RecordProductControlAccountDefaultProfileEvidenceRequest, options?: RuntimeCallOptions): Promise<ProductControlProjectionJson>;
+  recordProductControlFirstRunLocalAiReadyEvidence(request: RecordProductControlFirstRunLocalAiReadyEvidenceRequest, options?: RuntimeCallOptions): Promise<ProductControlProjectionJson>;
+  reconcileProductControlFirstRunSetupState(request: ReconcileProductControlFirstRunSetupStateRequest, options?: RuntimeCallOptions): Promise<ProductControlProjectionJson>;
   collectDeviceProfile(request: CollectDeviceProfileRequest, options?: RuntimeCallOptions): Promise<CollectDeviceProfileResponse>;
   resolveProfile(request: ResolveProfileRequest, options?: RuntimeCallOptions): Promise<ResolveProfileResponse>;
   applyProfile(request: ApplyProfileRequest, options?: RuntimeCallOptions): Promise<ApplyProfileResponse>;
@@ -773,6 +796,7 @@ export type RuntimeAppClient = {
   installApp(request: InstallAppRequest, options?: RuntimeCallOptions): Promise<InstallAppResponse>;
   uninstallApp(request: UninstallAppRequest, options?: RuntimeCallOptions): Promise<UninstallAppResponse>;
   getAppStorage(request: GetAppStorageRequest, options?: RuntimeCallOptions): Promise<GetAppStorageResponse>;
+  getAccountAppLibrary(request: GetAccountAppLibraryRequest, options?: RuntimeCallOptions): Promise<GetAccountAppLibraryResponse>;
   getAppPackageReadiness(request: GetAppPackageReadinessRequest, options?: RuntimeCallOptions): Promise<GetAppPackageReadinessResponse>;
   getAppInstallJob(request: GetAppInstallJobRequest, options?: RuntimeCallOptions): Promise<GetAppInstallJobResponse>;
   listAppInstallJobs(request: ListAppInstallJobsRequest, options?: RuntimeCallOptions): Promise<ListAppInstallJobsResponse>;

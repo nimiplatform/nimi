@@ -4,10 +4,35 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 )
+
+type allowOpenReadinessVerifier struct{}
+
+func (allowOpenReadinessVerifier) VerifyOpenAccountLibrary(context.Context, appregistrycatalog.App) (OpenAppReadinessDecision, error) {
+	return OpenAppReadinessDecision{Allowed: true}, nil
+}
+
+func (allowOpenReadinessVerifier) VerifyOpenPermissions(context.Context, appregistrycatalog.App) (OpenAppReadinessDecision, error) {
+	return OpenAppReadinessDecision{Allowed: true}, nil
+}
+
+type testOpenReadinessVerifier struct {
+	library    OpenAppReadinessDecision
+	permission OpenAppReadinessDecision
+}
+
+func (v testOpenReadinessVerifier) VerifyOpenAccountLibrary(context.Context, appregistrycatalog.App) (OpenAppReadinessDecision, error) {
+	return v.library, nil
+}
+
+func (v testOpenReadinessVerifier) VerifyOpenPermissions(context.Context, appregistrycatalog.App) (OpenAppReadinessDecision, error) {
+	return v.permission, nil
+}
 
 // installBundledAppForOpen installs the bundled fixture app so the Open flow
 // has a verified, active release to launch.
@@ -56,6 +81,80 @@ func TestOpenAppLaunchesInstalledApp(t *testing.T) {
 	}
 	if proj.GetActiveVersion() == "" {
 		t.Fatal("expected resolved active version")
+	}
+}
+
+func TestOpenAppFailsClosedWithoutAccountLibraryVerifier(t *testing.T) {
+	svc, _ := newBundledInstallServiceWithOpenReadiness(t, nil)
+	installBundledAppForOpen(t, svc)
+
+	resp, err := svc.OpenApp(context.Background(), &runtimev1.OpenAppRequest{
+		AppId: "nimi.example-app",
+		Scope: appOpenScope("nimi.example-app"),
+	})
+	if err != nil {
+		t.Fatalf("OpenApp: %v", err)
+	}
+	proj := resp.GetProjection()
+	if proj.GetState() != runtimev1.AppOpenState_APP_OPEN_STATE_BLOCKED || proj.GetLaunched() {
+		t.Fatalf("expected blocked open, got state=%v launched=%v", proj.GetState(), proj.GetLaunched())
+	}
+	if proj.GetReachedStep() != runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_LIBRARY {
+		t.Fatalf("reached step = %v, want VERIFY_LIBRARY", proj.GetReachedStep())
+	}
+	if proj.GetReasonCode() != runtimev1.ReasonCode_APP_OPEN_LIBRARY_STATE_INVALID {
+		t.Fatalf("reason code = %v, want APP_OPEN_LIBRARY_STATE_INVALID", proj.GetReasonCode())
+	}
+}
+
+func TestOpenAppFailsClosedWhenAccountLibraryVerifierBlocks(t *testing.T) {
+	svc, _ := newBundledInstallServiceWithOpenReadiness(t, testOpenReadinessVerifier{
+		library: OpenAppReadinessDecision{Allowed: false, Detail: "library row is removed"},
+	})
+	installBundledAppForOpen(t, svc)
+
+	resp, err := svc.OpenApp(context.Background(), &runtimev1.OpenAppRequest{
+		AppId: "nimi.example-app",
+		Scope: appOpenScope("nimi.example-app"),
+	})
+	if err != nil {
+		t.Fatalf("OpenApp: %v", err)
+	}
+	proj := resp.GetProjection()
+	if proj.GetReachedStep() != runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_LIBRARY {
+		t.Fatalf("reached step = %v, want VERIFY_LIBRARY", proj.GetReachedStep())
+	}
+	if proj.GetReasonCode() != runtimev1.ReasonCode_APP_OPEN_LIBRARY_STATE_INVALID {
+		t.Fatalf("reason code = %v, want APP_OPEN_LIBRARY_STATE_INVALID", proj.GetReasonCode())
+	}
+	if !strings.Contains(proj.GetDetail(), "library row is removed") {
+		t.Fatalf("detail = %q, want verifier detail", proj.GetDetail())
+	}
+}
+
+func TestOpenAppFailsClosedWhenPermissionVerifierBlocks(t *testing.T) {
+	svc, _ := newBundledInstallServiceWithRegistry(t, bundledRegistryWithPermission(t), testOpenReadinessVerifier{
+		library:    OpenAppReadinessDecision{Allowed: true},
+		permission: OpenAppReadinessDecision{Allowed: false, Detail: "grant is revoked"},
+	})
+	installBundledAppForOpen(t, svc)
+
+	resp, err := svc.OpenApp(context.Background(), &runtimev1.OpenAppRequest{
+		AppId: "nimi.example-app",
+		Scope: appOpenScope("nimi.example-app"),
+	})
+	if err != nil {
+		t.Fatalf("OpenApp: %v", err)
+	}
+	proj := resp.GetProjection()
+	if proj.GetReachedStep() != runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS {
+		t.Fatalf("reached step = %v, want VERIFY_PERMISSIONS", proj.GetReachedStep())
+	}
+	if proj.GetReasonCode() != runtimev1.ReasonCode_APP_OPEN_PERMISSION_NOT_GRANTED {
+		t.Fatalf("reason code = %v, want APP_OPEN_PERMISSION_NOT_GRANTED", proj.GetReasonCode())
+	}
+	if !strings.Contains(proj.GetDetail(), "grant is revoked") {
+		t.Fatalf("detail = %q, want verifier detail", proj.GetDetail())
 	}
 }
 

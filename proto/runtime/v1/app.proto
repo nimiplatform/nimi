@@ -277,6 +277,35 @@ message GetAppStorageResponse {
   AppStorageProjection projection = 1;
 }
 
+// AccountAppLibraryRow is one Runtime-owned account app-library projection row.
+// Runtime app lifecycle writes this projection; app consumers read it through
+// GetAccountAppLibrary rather than resolving account-scoped files.
+message AccountAppLibraryRow {
+  string app_id = 1;
+  string library_state = 2;
+  bool installed = 3;
+  string last_opened_at = 4;
+  string data_policy = 5;
+}
+
+// AccountAppLibraryRecord is the account-scoped app-library projection.
+message AccountAppLibraryRecord {
+  uint32 schema_version = 1;
+  string account_id = 2;
+  string updated_at = 3;
+  repeated AccountAppLibraryRow apps = 4;
+}
+
+message GetAccountAppLibraryRequest {
+}
+
+message GetAccountAppLibraryResponse {
+  bool exists = 1;
+  AccountAppLibraryRecord record = 2;
+  ReasonCode reason_code = 3;
+  string detail = 4;
+}
+
 message GetAppPackageReadinessRequest {
   // app_id resolves the admitted app's release descriptor, active release
   // pointer, and install evidence. It never scans from an app-local source.
@@ -493,6 +522,7 @@ service RuntimeAppService {
   rpc InstallApp(InstallAppRequest) returns (InstallAppResponse);
   rpc UninstallApp(UninstallAppRequest) returns (UninstallAppResponse);
   rpc GetAppStorage(GetAppStorageRequest) returns (GetAppStorageResponse);
+  rpc GetAccountAppLibrary(GetAccountAppLibraryRequest) returns (GetAccountAppLibraryResponse);
   rpc GetAppPackageReadiness(GetAppPackageReadinessRequest) returns (GetAppPackageReadinessResponse);
   rpc GetAppInstallJob(GetAppInstallJobRequest) returns (GetAppInstallJobResponse);
   rpc ListAppInstallJobs(ListAppInstallJobsRequest) returns (ListAppInstallJobsResponse);
