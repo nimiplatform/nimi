@@ -171,7 +171,16 @@ test('Kit non-test code routes static SDK imports through the SDK contract bound
 
   const realmHelpers = read('kit/features/chat/src/realm/helpers.ts');
   assert.match(realmHelpers, /from '@nimiplatform\/kit\/core\/sdk-contract'/);
+  assert.match(realmHelpers, /from '\.\/codec\.js'/);
+  assert.doesNotMatch(realmHelpers, /from '\.\.\/headless\.js'/);
   assert.doesNotMatch(realmHelpers, /from '@nimiplatform\/sdk\/realm'/);
+
+  const chatHeadless = read('kit/features/chat/src/headless.ts');
+  assert.doesNotMatch(chatHeadless, /realm\/codec/);
+  assert.doesNotMatch(chatHeadless, /normalizeRealmMessagePayload/);
+
+  const chatRealm = read('kit/features/chat/src/realm.ts');
+  assert.match(chatRealm, /normalizeRealmMessagePayload/);
 });
 
 test('Kit feature modules do not import app or Runtime private boundaries', () => {

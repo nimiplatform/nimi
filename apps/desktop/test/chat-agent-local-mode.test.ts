@@ -5,6 +5,13 @@ import {
   toAgentFriendTargetsFromSocialSnapshot,
   hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
 } from './chat-agent-local-mode-test-utils.js';
+import type { RuntimeAgentSessionSnapshot } from '@nimiplatform/sdk/runtime';
+
+function transcriptWithoutRuntimeReplayEnvelope(
+  messages: readonly { role: 'user' | 'assistant'; content: string }[],
+): RuntimeAgentSessionSnapshot['transcript'] {
+  return messages as unknown as RuntimeAgentSessionSnapshot['transcript'];
+}
 
 test('agent local mode filters social snapshot to agent friends and fails close on broken agent targets', () => {
   const targets = toAgentFriendTargetsFromSocialSnapshot({
@@ -125,10 +132,10 @@ test('agent session hydration does not replace missing local bundle with text-on
     bundle: null,
     conversationAnchorId: 'anchor-1',
     snapshot: {
-      transcript: [
+      transcript: transcriptWithoutRuntimeReplayEnvelope([
         { role: 'user', content: 'hello' },
         { role: 'assistant', content: 'hi there' },
-      ],
+      ]),
       transcriptMessageCount: 2,
     },
     nowMs: 5000,
@@ -187,6 +194,7 @@ test('agent session hydration can rebuild missing local bundle from Runtime repl
           kind: 'text',
           createdAt: '1970-01-01T00:00:05.001Z',
           updatedAt: '1970-01-01T00:00:05.001Z',
+          parentMessageId: 'anchor-1:transcript:0',
           traceId: 'trace-runtime-1',
           reasoningText: 'runtime reasoning',
         },
@@ -222,6 +230,70 @@ test('agent session hydration can rebuild missing local bundle from Runtime repl
   assert.equal(hydrated?.thread.lastMessageAtMs, 5001);
   assert.equal(hydrated?.messages[1]?.traceId, 'trace-runtime-1');
   assert.equal(hydrated?.messages[1]?.reasoningText, 'runtime reasoning');
+});
+
+test('agent session hydration rejects missing replay envelope even when local bundle exists', () => {
+  const thread = {
+    id: 'thread-1',
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    localAgentRef: 'local-agent:user-1:agent-1',
+    title: 'Agent One',
+    createdAtMs: 1000,
+    updatedAtMs: 1000,
+    lastMessageAtMs: 1001,
+    targetSnapshot: {
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
+      displayName: 'Agent One',
+      handle: 'agent-one',
+      avatarUrl: null,
+      presentationProfile: null,
+      worldId: null,
+      worldName: null,
+      bio: null,
+      ownershipType: null,
+      greeting: null,
+      builtinDocsContext: null,
+    },
+  };
+
+  const hydrated = hydrateAgentThreadBundleFromRuntimeSessionSnapshot({
+    thread,
+    bundle: {
+      thread,
+      messages: [{
+        id: 'local-user-1',
+        threadId: 'thread-1',
+        role: 'user',
+        status: 'complete',
+        kind: 'text',
+        contentText: 'hello',
+        reasoningText: null,
+        error: null,
+        traceId: null,
+        parentMessageId: null,
+        mediaUrl: null,
+        mediaMimeType: null,
+        artifactId: null,
+        metadataJson: null,
+        createdAtMs: 1001,
+        updatedAtMs: 1001,
+      }],
+    },
+    conversationAnchorId: 'anchor-1',
+    snapshot: {
+      transcript: transcriptWithoutRuntimeReplayEnvelope([
+        { role: 'user', content: 'hello' },
+        { role: 'assistant', content: 'runtime changed but has no envelope' },
+      ]),
+      transcriptMessageCount: 2,
+    },
+    nowMs: 5000,
+  });
+
+  assert.equal(hydrated, null);
 });
 
 test('agent session hydration preserves local pending projections over runtime snapshot replay', () => {
@@ -276,10 +348,10 @@ test('agent session hydration preserves local pending projections over runtime s
     },
     conversationAnchorId: 'anchor-1',
     snapshot: {
-      transcript: [
+      transcript: transcriptWithoutRuntimeReplayEnvelope([
         { role: 'user', content: 'hello' },
         { role: 'assistant', content: 'hi there' },
-      ],
+      ]),
       transcriptMessageCount: 2,
     },
     nowMs: 5000,
@@ -378,10 +450,10 @@ test('agent session hydration does not drop committed assistant text when failed
     },
     conversationAnchorId: 'anchor-1',
     snapshot: {
-      transcript: [
+      transcript: transcriptWithoutRuntimeReplayEnvelope([
         { role: 'user', content: 'hello' },
         { role: 'user', content: 'today weather?' },
-      ],
+      ]),
       transcriptMessageCount: 2,
       lastTurn: {
         turnId: 'turn-failed',
@@ -486,10 +558,10 @@ test('agent session hydration preserves committed assistant image projection whe
     },
     conversationAnchorId: 'anchor-1',
     snapshot: {
-      transcript: [
+      transcript: transcriptWithoutRuntimeReplayEnvelope([
         { role: 'user', content: 'hello' },
         { role: 'assistant', content: 'hi there' },
-      ],
+      ]),
       transcriptMessageCount: 2,
     },
     nowMs: 5000,

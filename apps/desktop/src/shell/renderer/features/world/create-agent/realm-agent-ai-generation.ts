@@ -15,6 +15,7 @@
  * runtime AI call.
  */
 
+import { runAppAiTextGenerate } from '@nimiplatform/sdk/ai-app';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
 import type { NimiRoutePolicy } from '@nimiplatform/sdk/runtime';
 import {
@@ -65,25 +66,15 @@ function resolveTextBinding(): RuntimeRouteBinding | null {
   return binding && typeof binding === 'object' ? binding : null;
 }
 
-function extractJsonObject(text: string): Record<string, unknown> | null {
-  const trimmed = text.trim();
-  const start = trimmed.indexOf('{');
-  const end = trimmed.lastIndexOf('}');
-  if (start < 0 || end <= start) {
-    return null;
-  }
-  try {
-    const parsed = JSON.parse(trimmed.slice(start, end + 1));
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
-      : null;
-  } catch {
-    return null;
-  }
-}
-
 function asTrimmedString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function validateGenerationObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('RealmAgent generation output must be a JSON object.');
+  }
+  return value as Record<string, unknown>;
 }
 
 function deriveHandle(raw: string, displayName: string): string {
@@ -197,9 +188,11 @@ export async function generateRealmAgentDraft(
 
   const route = (binding.source === 'cloud' ? 'cloud' : 'local') as NimiRoutePolicy;
 
-  let result: { text?: string };
-  try {
-    result = await getDesktopRuntimeClient().ai.text.generate({
+  const result = await runAppAiTextGenerate<Record<string, unknown>>({
+    runtime: {
+      generateText: (request) => getDesktopRuntimeClient().ai.text.generate(request),
+    },
+    request: {
       model: binding.modelId || binding.model,
       input: `Concept: ${description}`,
       system: buildSystemPrompt(),
@@ -213,13 +206,24 @@ export async function generateRealmAgentDraft(
         connectorId: binding.connectorId || undefined,
         providerEndpoint: binding.endpoint || undefined,
       }),
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'AI generation failed.';
-    return { ok: false, error: message };
+    },
+    structuredOutput: {
+      validate: validateGenerationObject,
+      expect: 'object',
+      repairInstruction: 'Return one JSON object with the RealmAgent draft fields only.',
+    },
+  });
+  if (!result.ok) {
+    if (result.error.code !== 'STRUCTURED_OUTPUT_VALIDATION_FAILED') {
+      return { ok: false, error: result.error.message || 'AI generation failed.' };
+    }
+    return {
+      ok: false,
+      error: 'AI generation did not return a usable candidate. Try again or refine the concept.',
+    };
   }
 
-  const obj = extractJsonObject(String(result.text || ''));
+  const obj = result.structuredOutput?.value;
   if (!obj) {
     return {
       ok: false,

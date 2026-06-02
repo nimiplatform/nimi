@@ -1,5 +1,4 @@
 import type { ConversationRuntimeAdapter } from '@nimiplatform/kit/features/chat/headless';
-import { normalizeConversationRuntimeTextStreamPart } from '@nimiplatform/kit/features/chat/runtime';
 import type { ChatThinkingPreference } from './chat-shared-thinking';
 import { streamChatAiRuntime } from './chat-nimi-runtime';
 import {
@@ -53,10 +52,7 @@ export function createChatAiConversationRuntimeAdapter(input: {
       return {
         stream: (async function* () {
           for await (const part of runtimeResult.stream) {
-            yield withPromptTrace(
-              normalizeConversationRuntimeTextStreamPart(part),
-              runtimeResult.promptTraceId,
-            );
+            yield withPromptTrace(part, runtimeResult.promptTraceId);
           }
         })(),
       };

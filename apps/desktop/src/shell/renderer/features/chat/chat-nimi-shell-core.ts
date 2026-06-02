@@ -1,8 +1,9 @@
-import type {
-  ConversationRuntimeTextStreamPart,
-  ConversationTurnError,
-  ConversationTurnHistoryMessage,
-} from '@nimiplatform/kit/features/chat/headless';
+import type { ConversationTurnError } from '@nimiplatform/kit/features/chat/headless';
+import {
+  buildAppAiSessionHistoryMessages,
+  type AppAiSessionHistoryMessage,
+} from '@nimiplatform/sdk/ai-app';
+import type { TextStreamPart } from '@nimiplatform/sdk/runtime';
 import type {
   ChatAiDraftRecord,
   ChatAiMessageRecord,
@@ -103,29 +104,14 @@ export function isEmptyPendingAssistantMessage(
 
 export function toConversationHistoryMessages(
   messages: readonly ChatAiMessageRecord[],
-): ConversationTurnHistoryMessage[] {
-  return messages.flatMap((message) => {
-    if (message.status !== 'complete') {
-      return [];
-    }
-    const viewModel = toConversationMessageViewModel(message);
-    const text = normalizeText(viewModel.text);
-    if (!text) {
-      return [];
-    }
-    if (
-      message.role !== 'system'
-      && message.role !== 'user'
-      && message.role !== 'assistant'
-      && message.role !== 'tool'
-    ) {
-      return [];
-    }
-    return [{
-      id: message.id,
-      role: message.role,
-      text: message.role === 'assistant' ? stripBeatActionEnvelopeIfPresent(text) : text,
-    }];
+): AppAiSessionHistoryMessage[] {
+  return buildAppAiSessionHistoryMessages({
+    messages,
+    isCommitted: (message) => message.status === 'complete',
+    getId: (message) => message.id,
+    getRole: (message) => message.role,
+    getText: (message) => toConversationMessageViewModel(message).text,
+    mapAssistantText: (text) => stripBeatActionEnvelopeIfPresent(text),
   });
 }
 
@@ -143,17 +129,30 @@ export function toStructuredProviderError(error: ConversationTurnError): Error {
 }
 
 export function withPromptTrace(
-  part: ConversationRuntimeTextStreamPart,
+  part: TextStreamPart,
   promptTraceId: string,
-): ConversationRuntimeTextStreamPart {
+): TextStreamPart {
   if (part.type !== 'finish' && part.type !== 'error') {
     return part;
+  }
+  const normalizedPromptTraceId = normalizeText(promptTraceId);
+  if (part.type === 'error') {
+    return {
+      ...part,
+      error: Object.assign(part.error, {
+        promptTraceId: normalizedPromptTraceId
+          || (part.error as typeof part.error & { promptTraceId?: string | null }).promptTraceId
+          || null,
+      }) as typeof part.error,
+    };
   }
   return {
     ...part,
     trace: {
       ...(part.trace || {}),
-      promptTraceId: normalizeText(promptTraceId) || part.trace?.promptTraceId || null,
-    },
+      promptTraceId: normalizedPromptTraceId
+        || (part.trace as typeof part.trace & { promptTraceId?: string | null }).promptTraceId
+        || null,
+    } as typeof part.trace,
   };
 }

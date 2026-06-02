@@ -48,7 +48,7 @@ test('Tester consumes SDK host memory embedding runtime surface as second app pr
   const projection = await importProjection();
   const result = await projection.inspectTesterMemoryEmbeddingRuntimeProjection();
   assert.deepEqual(result, {
-    agentId: 'tester-agent',
+    agentId: 'local-agent:tester-user:tester-agent',
     sourceKind: 'cloud',
     resolutionState: 'resolved',
     bindOutcome: 'already_bound',

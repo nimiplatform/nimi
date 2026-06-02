@@ -17,7 +17,12 @@ import {
   parseNimiAppBridgeProjection,
 } from '@nimiplatform/sdk/app';
 import type { AIScopeRef } from '@nimiplatform/sdk/scope';
-import { PermissionClient, type PermissionTransport } from '@nimiplatform/sdk/scope/permission';
+import {
+  PermissionClient,
+  type GrantStatus,
+  type PermissionScopeRef,
+  type PermissionTransport,
+} from '@nimiplatform/sdk/scope/permission';
 import {
   buildRuntimeRouteCapabilityProjection,
   aggregateMaterializationDownloadProgress,
@@ -33,6 +38,7 @@ import {
   listRuntimeLocalAssetEntries,
   mapRuntimeErrorToLocalAiReasonCode,
   ModelHealthStatus,
+  AgentCanonicalMemoryBankMode,
   createEmptyMemoryEmbeddingConfig,
   projectMemoryEmbeddingRouteAvailability,
   projectRuntimeAgentCanonicalMemoryBankStatus,
@@ -162,6 +168,14 @@ import { createTesterExternalAgentProjection } from '../../tester/tester-externa
 import { createTesterMemoryEmbeddingRuntimeProjection } from '../../tester/tester-memory-embedding-runtime-projection';
 import { createTesterRuntimeAgentPresentationProfileProjection } from '../../tester/tester-runtime-agent-presentation-profile';
 import { createTesterRuntimeAgentInspectProjection } from '../../tester/tester-runtime-agent-inspect-projection';
+import {
+  inspectTesterRuntimeAgentTurnRunnerProjection,
+  type TesterRuntimeAgentTurnRunnerProjection,
+} from '../../tester/tester-runtime-agent-turn-runner';
+import {
+  inspectTesterRuntimeMediaGenerationRunnerProjection,
+  type TesterRuntimeMediaGenerationRunnerProjection,
+} from '../../tester/tester-runtime-media-generation-runner';
 import { createTesterLocalRecommendationCopyProjection } from '../../tester/tester-local-recommendation-copy-projection';
 import { createTesterLocalRuntimeAssetKindProjection } from '../../tester/tester-local-runtime-asset-kind-projection';
 import { createTesterWorldDisplayProjection } from '../../tester/tester-world-display-projection';
@@ -255,6 +269,16 @@ type RuntimeRouteHostAccessProjectionState =
   | { status: 'ready'; projection: TesterRuntimeRouteHostAccessProjection; error: null }
   | { status: 'error'; projection: null; error: string };
 
+type RuntimeAgentTurnRunnerProjectionState =
+  | { status: 'loading'; projection: null; error: null }
+  | { status: 'ready'; projection: TesterRuntimeAgentTurnRunnerProjection; error: null }
+  | { status: 'error'; projection: null; error: string };
+
+type RuntimeMediaGenerationRunnerProjectionState =
+  | { status: 'loading'; projection: null; error: null }
+  | { status: 'ready'; projection: TesterRuntimeMediaGenerationRunnerProjection; error: null }
+  | { status: 'error'; projection: null; error: string };
+
 async function resolveTesterLocalRuntimeFacadeProjection(): Promise<string> {
   const unbind = bindLocalRuntimeServiceClientProvider(() => ({
     async listLocalAssets() {
@@ -306,12 +330,12 @@ async function resolveTesterLocalRuntimeFacadeProjection(): Promise<string> {
 
 async function resolveTesterPermissionClientProjection(): Promise<{ scopeOwner: string; grantCount: number; firstState: string }> {
   const scopeRef: AIScopeRef = { kind: 'app', ownerId: 'tester.app', surfaceId: 'settings' };
-  const permissionScope = {
+  const permissionScope: PermissionScopeRef = {
     appId: 'tester.app',
-    scopeFamily: 'account' as const,
+    scopeFamily: 'account',
     scopeName: 'account.read',
   };
-  const grant = {
+  const grant: GrantStatus = {
     scopeRef,
     grant: {
       grantId: 'tester-settings-grant',
@@ -750,6 +774,18 @@ export function SettingsRoute() {
       projection: null,
       error: null,
     });
+  const [runtimeAgentTurnRunnerProjection, setRuntimeAgentTurnRunnerProjection] =
+    useState<RuntimeAgentTurnRunnerProjectionState>({
+      status: 'loading',
+      projection: null,
+      error: null,
+    });
+  const [runtimeMediaGenerationRunnerProjection, setRuntimeMediaGenerationRunnerProjection] =
+    useState<RuntimeMediaGenerationRunnerProjectionState>({
+      status: 'loading',
+      projection: null,
+      error: null,
+    });
   const localRuntimeFacadeProjection = useTypedProjection(resolveTesterLocalRuntimeFacadeProjection, {
     failClosedMessage: 'SDK local runtime facade projection unavailable',
   });
@@ -774,6 +810,42 @@ export function SettingsRoute() {
   const realmLocalAgentIntentsProjection = useTypedProjection(loadTesterRealmLocalAgentIntentsProjection, {
     failClosedMessage: 'SDK Realm local-agent intents projection unavailable',
   });
+  useEffect(() => {
+    let cancelled = false;
+    setRuntimeAgentTurnRunnerProjection({ status: 'loading', projection: null, error: null });
+    void inspectTesterRuntimeAgentTurnRunnerProjection().then((projection) => {
+      if (cancelled) {
+        return;
+      }
+      setRuntimeAgentTurnRunnerProjection({ status: 'ready', projection, error: null });
+    }).catch((error: unknown) => {
+      if (cancelled) {
+        return;
+      }
+      setRuntimeAgentTurnRunnerProjection({ status: 'error', projection: null, error: errorMessage(error) });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    setRuntimeMediaGenerationRunnerProjection({ status: 'loading', projection: null, error: null });
+    void inspectTesterRuntimeMediaGenerationRunnerProjection().then((projection) => {
+      if (cancelled) {
+        return;
+      }
+      setRuntimeMediaGenerationRunnerProjection({ status: 'ready', projection, error: null });
+    }).catch((error: unknown) => {
+      if (cancelled) {
+        return;
+      }
+      setRuntimeMediaGenerationRunnerProjection({ status: 'error', projection: null, error: errorMessage(error) });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   useEffect(() => {
     let cancelled = false;
     setResourceUploadProjection({ status: 'loading', summary: null, error: null });
@@ -1079,33 +1151,22 @@ export function SettingsRoute() {
     },
   });
   const runtimeAgentMemoryProjection = projectRuntimeAgentCanonicalMemoryBankStatus({
-    config: memoryEmbeddingConfig,
-    bank: {
-      bankId: 'tester-agent-bank',
-      displayName: 'Tester Agent Memory',
-      canonicalAgentScope: true,
-      publicApiWritable: false,
-      embeddingProfile: {
-        provider: 'tester',
-        modelId: 'tester-embedding',
-        version: 'v1',
-        dimension: 768,
-        distanceMetric: 1,
-        migrationPolicy: 1,
-      },
+    mode: AgentCanonicalMemoryBankMode.STANDARD,
+    bankId: 'tester-agent-bank',
+    embeddingProfile: {
+      provider: 'tester',
+      modelId: 'tester-embedding',
+      version: 'v1',
+      dimension: 768,
+      distanceMetric: 1,
+      migrationPolicy: 1,
     },
-    state: {
-      bindingIntentPresent: true,
-      bindingSourceKind: 'cloud',
-      resolutionState: 'resolved',
-      resolvedProfileIdentity: 'tester:tester-embedding:v1',
-      canonicalBankStatus: 'bound_equivalent',
-      blockedReasonCode: null,
-      operationReadiness: {
-        bindAllowed: false,
-        cutoverAllowed: false,
-      },
-    },
+    bindingSourceKind: 'cloud',
+    blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+    pendingCutover: false,
+    canonicalBankStatus: 'bound_equivalent',
+    bindAllowed: false,
+    cutoverAllowed: false,
   });
   const memoryEmbeddingRuntimeProjection = createTesterMemoryEmbeddingRuntimeProjection();
   const runtimeAgentInspectProjection = createTesterRuntimeAgentInspectProjection();
@@ -2481,6 +2542,22 @@ export function SettingsRoute() {
           {runtimeAgentConsumerProjection.recoveryEventCount}
           {' / '}
           {runtimeAgentConsumerProjection.terminalEventName}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Runtime agent turn runner projection</span>
+        <StatusBadge tone={runtimeAgentTurnRunnerProjection.status === 'ready' && runtimeAgentTurnRunnerProjection.projection.ignoredBacklog ? 'success' : 'warning'}>
+          {runtimeAgentTurnRunnerProjection.status === 'ready'
+            ? `${runtimeAgentTurnRunnerProjection.projection.sealedMessageId} / ${runtimeAgentTurnRunnerProjection.projection.outputText}`
+            : runtimeAgentTurnRunnerProjection.status}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Runtime media generation runner projection</span>
+        <StatusBadge tone={runtimeMediaGenerationRunnerProjection.status === 'ready' && runtimeMediaGenerationRunnerProjection.projection.artifactCount === 1 ? 'success' : 'warning'}>
+          {runtimeMediaGenerationRunnerProjection.status === 'ready'
+            ? `${runtimeMediaGenerationRunnerProjection.projection.finalStatus} / artifacts=${runtimeMediaGenerationRunnerProjection.projection.artifactCount} / polls=${runtimeMediaGenerationRunnerProjection.projection.fallbackPollCount}`
+            : runtimeMediaGenerationRunnerProjection.status}
         </StatusBadge>
       </div>
       <div className="setting-row">

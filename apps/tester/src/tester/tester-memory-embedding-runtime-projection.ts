@@ -2,7 +2,9 @@ import {
   AuthorizeExternalPrincipalResponse,
   RegisterAppResponse,
   RuntimeReasonCode,
+  buildMemoryEmbeddingBindingIntentSnapshot,
   createEmptyMemoryEmbeddingConfig,
+  createProtectedHostMemoryEmbeddingConfigSurface,
   createProtectedHostMemoryEmbeddingRuntimeSurface,
 } from '@nimiplatform/sdk/runtime';
 
@@ -21,7 +23,7 @@ const TESTER_MEMORY_EMBEDDING_SCOPE_REF = {
 
 const TESTER_MEMORY_EMBEDDING_TARGET_REF = {
   kind: 'agent-core' as const,
-  agentId: 'tester-agent',
+  localAgentRef: 'local-agent:tester-user:tester-agent',
 };
 
 const testerMemoryEmbeddingConfig = {
@@ -35,60 +37,98 @@ const testerMemoryEmbeddingConfig = {
 };
 
 export function createTesterMemoryEmbeddingRuntimeSurface() {
-  return createProtectedHostMemoryEmbeddingRuntimeSurface({
-    runtime: () => ({
-      appId: 'dev.nimi.tester',
-      auth: {
-        async registerApp() {
-          return RegisterAppResponse.create({ accepted: true });
-        },
+  let bindingIntent = buildMemoryEmbeddingBindingIntentSnapshot(testerMemoryEmbeddingConfig);
+  const runtime = {
+    appId: 'dev.nimi.tester',
+    auth: {
+      async registerApp() {
+        return RegisterAppResponse.create({ accepted: true });
       },
-      appAuth: {
-        async authorizeExternalPrincipal(request) {
-          return AuthorizeExternalPrincipalResponse.create({
-            tokenId: 'tester-token',
-            secret: 'tester-secret',
-            appId: request.appId,
-            subjectUserId: request.subjectUserId,
-            externalPrincipalId: request.externalPrincipalId,
-            effectiveScopes: request.scopes,
-            policyVersion: request.policyVersion,
-            issuedScopeCatalogVersion: request.scopeCatalogVersion,
-            canDelegate: false,
-          });
-        },
+    },
+    appAuth: {
+      async authorizeExternalPrincipal(request: {
+        scopes: string[];
+        appId: string;
+        subjectUserId: string;
+        externalPrincipalId: string;
+        policyVersion: string;
+        scopeCatalogVersion: string;
+      }) {
+        return AuthorizeExternalPrincipalResponse.create({
+          tokenId: 'tester-token',
+          secret: 'tester-secret',
+          appId: request.appId,
+          subjectUserId: request.subjectUserId,
+          externalPrincipalId: request.externalPrincipalId,
+          effectiveScopes: request.scopes,
+          policyVersion: request.policyVersion,
+          issuedScopeCatalogVersion: request.scopeCatalogVersion,
+          canDelegate: false,
+        });
       },
-      memory: {
-        async inspectMemoryEmbeddingRuntime() {
-          return {
-            bindingIntentPresent: true,
-            bindingSourceKind: 'cloud',
-            resolutionState: 'resolved',
-            canonicalBankStatus: 'bound_equivalent',
-            blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
-            operationReadiness: { bindAllowed: false, cutoverAllowed: false },
-          };
-        },
-        async requestMemoryEmbeddingRuntimeBind() {
-          return {
-            outcome: 'already_bound',
-            blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
-            canonicalBankStatusAfter: 'bound_equivalent',
-            pendingCutover: false,
-          };
-        },
-        async requestMemoryEmbeddingRuntimeCutover() {
-          return {
-            outcome: 'already_current',
-            blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
-            canonicalBankStatusAfter: 'bound_equivalent',
-          };
-        },
+    },
+    memory: {
+      async getMemoryEmbeddingRuntimeIntent() {
+        return {
+          bindingIntentPresent: Boolean(bindingIntent),
+          bindingIntent,
+        };
       },
+      async setMemoryEmbeddingRuntimeIntent(request: {
+        bindingIntent?: typeof bindingIntent;
+      }) {
+        bindingIntent = request.bindingIntent;
+        return {
+          accepted: true,
+          bindingIntentPresent: Boolean(bindingIntent),
+          bindingIntent,
+        };
+      },
+      async inspectMemoryEmbeddingRuntime() {
+        return {
+          bindingIntentPresent: Boolean(bindingIntent),
+          bindingSourceKind: bindingIntent?.sourceKind || '',
+          resolutionState: bindingIntent ? 'resolved' : 'missing',
+          canonicalBankStatus: 'bound_equivalent',
+          blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+          operationReadiness: { bindAllowed: false, cutoverAllowed: false },
+        };
+      },
+      async requestMemoryEmbeddingRuntimeBind() {
+        return {
+          outcome: bindingIntent ? 'already_bound' : 'rejected',
+          blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+          canonicalBankStatusAfter: bindingIntent ? 'bound_equivalent' : 'unbound',
+          pendingCutover: false,
+        };
+      },
+      async requestMemoryEmbeddingRuntimeCutover() {
+        return {
+          outcome: bindingIntent ? 'already_current' : 'not_ready',
+          blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+          canonicalBankStatusAfter: bindingIntent ? 'bound_equivalent' : 'unbound',
+        };
+      },
+    },
+  };
+  return {
+    memoryEmbeddingConfig: createProtectedHostMemoryEmbeddingConfigSurface({
+      runtime: () => runtime,
+      getSubjectUserId: () => 'tester-user',
     }),
-    getConfig: () => testerMemoryEmbeddingConfig,
-    getSubjectUserId: () => 'tester-user',
-  });
+    memoryEmbeddingRuntime: createProtectedHostMemoryEmbeddingRuntimeSurface({
+      runtime: () => runtime,
+      getSubjectUserId: () => 'tester-user',
+    }),
+  };
+}
+
+export function createTesterMemoryEmbeddingRuntimeOnlySurface() {
+  return createTesterMemoryEmbeddingRuntimeSurface().memoryEmbeddingRuntime;
+}
+
+export function createTesterMemoryEmbeddingConfigSurface() {
+  return createTesterMemoryEmbeddingRuntimeSurface().memoryEmbeddingConfig;
 }
 
 export async function inspectTesterMemoryEmbeddingRuntimeProjection(): Promise<TesterMemoryEmbeddingRuntimeProjection> {
@@ -97,10 +137,11 @@ export async function inspectTesterMemoryEmbeddingRuntimeProjection(): Promise<T
     scopeRef: TESTER_MEMORY_EMBEDDING_SCOPE_REF,
     targetRef: TESTER_MEMORY_EMBEDDING_TARGET_REF,
   };
-  const state = await surface.inspect(input);
-  const bind = await surface.requestBind(input);
+  await surface.memoryEmbeddingConfig.update(input, testerMemoryEmbeddingConfig);
+  const state = await surface.memoryEmbeddingRuntime.inspect(input);
+  const bind = await surface.memoryEmbeddingRuntime.requestBind(input);
   return {
-    agentId: TESTER_MEMORY_EMBEDDING_TARGET_REF.agentId,
+    agentId: TESTER_MEMORY_EMBEDDING_TARGET_REF.localAgentRef,
     sourceKind: state.bindingSourceKind ?? 'none',
     resolutionState: state.resolutionState,
     bindOutcome: bind.outcome,
@@ -109,7 +150,7 @@ export async function inspectTesterMemoryEmbeddingRuntimeProjection(): Promise<T
 
 export function createTesterMemoryEmbeddingRuntimeProjection(): TesterMemoryEmbeddingRuntimeProjection {
   return {
-    agentId: TESTER_MEMORY_EMBEDDING_TARGET_REF.agentId,
+    agentId: TESTER_MEMORY_EMBEDDING_TARGET_REF.localAgentRef,
     sourceKind: 'cloud',
     resolutionState: 'resolved',
     bindOutcome: 'already_bound',

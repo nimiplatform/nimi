@@ -15,6 +15,11 @@ import {
   createAIConfigEvidence,
 } from '@nimiplatform/sdk/ai';
 import {
+  runAppAiTextGenerate,
+  runAppAiTextTurn,
+  type AppAiTextTurnEvent,
+} from '@nimiplatform/sdk/ai-app';
+import {
   createAIRuntimeEvidence,
   peekRuntimeSchedulingBatch,
   projectAIRuntimeEvidenceMetadata,
@@ -28,6 +33,11 @@ import { capabilityUnavailable, type TesterUnavailable, type TesterUnavailableRe
 import { getTesterCapability } from './tester-capabilities.js';
 import { loadTesterAIConfig } from './tester-ai-config-store.js';
 import { buildMultimodalInput, type MediaAttachment } from './tester-multimodal-input.js';
+
+type TesterChatStreamTerminalEvent = Extract<
+  AppAiTextTurnEvent,
+  { type: 'turn-completed' | 'turn-failed' | 'turn-canceled' }
+>;
 
 export type TesterScenarioInput = {
   prompt: string;
@@ -347,34 +357,39 @@ async function invokeTextGenerate(client: PlatformClient, input: TesterScenarioI
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
   const route = routeInput(resolved.binding, resolved.model);
   const directedPrompt = input.directive ? `${input.directive}\n\n${prompt}` : prompt;
-  try {
-    const output = await client.runtime.ai.text.generate({
+  const result = await runAppAiTextGenerate({
+    runtime: {
+      generateText: (request) => client.runtime.ai.text.generate(request),
+    },
+    request: {
       ...route,
       input: buildMultimodalInput(directedPrompt, input.attachments ?? []),
       metadata: buildMetadata('dev.nimi.tester.ai.text.generate', {
         ...resolved.metadata,
         ...schedulingPreflight.evidenceMetadata,
       }),
-    });
-    return {
-      ok: true,
-      capabilityId: 'text.generate',
-      capabilityLabel: getTesterCapability('text.generate').label,
-      message: `Runtime accepted the prompt and returned ${output.text.length} characters.`,
-      output: {
-        kind: 'text',
-        text: output.text,
-        finishReason: output.finishReason,
-        inputTokens: output.usage?.inputTokens,
-        outputTokens: output.usage?.outputTokens,
-        totalTokens: output.usage?.totalTokens,
-        streamed: false,
-      },
-      trace: pickTrace(output.trace),
-    };
-  } catch (error) {
-    return unavailableFromError('text.generate', error);
+    },
+  });
+  if (result.ok === false) {
+    return unavailableFromError('text.generate', result.error.cause ?? result.error);
   }
+  const output = result.output;
+  return {
+    ok: true,
+    capabilityId: 'text.generate',
+    capabilityLabel: getTesterCapability('text.generate').label,
+    message: `Runtime accepted the prompt and returned ${result.text.length} characters.`,
+    output: {
+      kind: 'text',
+      text: result.text,
+      finishReason: output.finishReason,
+      inputTokens: output.usage?.inputTokens,
+      outputTokens: output.usage?.outputTokens,
+      totalTokens: output.usage?.totalTokens,
+      streamed: false,
+    },
+    trace: pickTrace(output.trace),
+  };
 }
 
 async function invokeChatStream(client: PlatformClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
@@ -388,52 +403,66 @@ async function invokeChatStream(client: PlatformClient, input: TesterScenarioInp
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
   const route = routeInput(resolved.binding, resolved.model);
   try {
-    const opened = await client.runtime.ai.text.stream({
-      ...route,
-      input: input.attachments && input.attachments.length
-        ? buildMultimodalInput(prompt, input.attachments)
-        : [{ role: 'user', content: prompt }],
-      metadata: buildMetadata('dev.nimi.tester.ai.chat.stream', {
-        ...resolved.metadata,
-        ...schedulingPreflight.evidenceMetadata,
-      }),
-    });
-    let aggregated = '';
-    let finishReason = 'stop';
-    let trace: TesterTrace | undefined;
-    let usage: { inputTokens?: number; outputTokens?: number; totalTokens?: number } = {};
-    for await (const part of opened.stream) {
-      if (part.type === 'delta') {
-        aggregated += part.text;
-        input.onPartial?.(aggregated);
-      } else if (part.type === 'reasoning-delta') {
-        // discard reasoning trace for the cockpit; surfaced via trace summary if available
-      } else if (part.type === 'finish') {
-        finishReason = part.finishReason;
-        usage = part.usage || {};
-        trace = pickTrace(part.trace);
-      } else if (part.type === 'error') {
-        // Forward the typed NimiError verbatim so its reasonCode survives the
-        // classifier; wrapping it in a bare Error would erase the reasonCode and
-        // misclassify auth failures as generic runtime-call-failed.
-        return unavailableFromError('chat.stream', part.error);
+    let terminalEvent: TesterChatStreamTerminalEvent | null = null;
+    for await (const event of runAppAiTextTurn({
+      runtime: {
+        streamText: (request) => client.runtime.ai.text.stream(request),
+      },
+      request: {
+        ...route,
+        input: input.attachments && input.attachments.length
+          ? buildMultimodalInput(prompt, input.attachments)
+          : [{ role: 'user', content: prompt }],
+        metadata: buildMetadata('dev.nimi.tester.ai.chat.stream', {
+          ...resolved.metadata,
+          ...schedulingPreflight.evidenceMetadata,
+        }),
+      },
+      turnId: input.scenarioId,
+      threadId: 'tester-chat-stream',
+    })) {
+      if (event.type === 'text-delta') {
+        input.onPartial?.(event.snapshot.text);
       }
+      if (
+        event.type === 'turn-completed'
+        || event.type === 'turn-failed'
+        || event.type === 'turn-canceled'
+      ) {
+        terminalEvent = event;
+      }
+    }
+    if (!terminalEvent) {
+      return unavailableFromError('chat.stream', new Error('Runtime text stream ended without a terminal finish event.'));
+    }
+    if (terminalEvent.type === 'turn-failed') {
+      // Forward the typed NimiError verbatim so its reasonCode survives the
+      // classifier; wrapping it in a bare Error would erase the reasonCode and
+      // misclassify auth failures as generic runtime-call-failed.
+      return unavailableFromError('chat.stream', terminalEvent.snapshot.error ?? terminalEvent.error);
+    }
+    if (terminalEvent.type === 'turn-canceled') {
+      return unavailableFromError('chat.stream', new Error('Runtime text stream was canceled before completion.'));
+    }
+    const assembled = terminalEvent.snapshot;
+    if (assembled.terminal !== 'completed') {
+      return unavailableFromError('chat.stream', new Error('Runtime text stream ended without a terminal finish event.'));
     }
     return {
       ok: true,
       capabilityId: 'chat.stream',
       capabilityLabel: getTesterCapability('chat.stream').label,
-      message: `Stream completed with ${aggregated.length} characters (finishReason=${finishReason}).`,
+      message: `Stream completed with ${assembled.text.length} characters (finishReason=${assembled.finishReason || 'stop'}).`,
       output: {
         kind: 'text',
-        text: aggregated,
-        finishReason,
-        inputTokens: usage.inputTokens,
-        outputTokens: usage.outputTokens,
-        totalTokens: usage.totalTokens,
+        text: assembled.text,
+        finishReason: String(assembled.finishReason || 'stop'),
+        inputTokens: assembled.usage?.inputTokens,
+        outputTokens: assembled.usage?.outputTokens,
+        totalTokens: assembled.usage?.totalTokens,
         streamed: true,
       },
-      trace,
+      trace: pickTrace(assembled.trace),
     };
   } catch (error) {
     return unavailableFromError('chat.stream', error);

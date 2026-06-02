@@ -1,7 +1,7 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { createNimiClientId } from '@nimiplatform/sdk/runtime';
-import { normalizeRealmMessagePayload } from '@nimiplatform/kit/features/chat/headless';
 import {
+  normalizeRealmMessagePayload,
   realmChatService,
   type RealmChatService,
 } from '@nimiplatform/kit/features/chat/realm';

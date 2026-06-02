@@ -1,155 +1,90 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
-  MemoryBankScope,
-  type MemoryEmbeddingConfig,
-  type MemoryEmbeddingConfigSurface,
-  type MemoryEmbeddingRuntimeSurface,
+  AgentCanonicalMemoryBankMode,
+  RuntimeReasonCode,
 } from '@nimiplatform/sdk/runtime';
 import {
   createRuntimeAgentMemoryAdapter,
 } from '../src/shell/renderer/infra/runtime-agent-memory';
-import { createDesktopMemoryEmbeddingScopeRef } from '../src/shell/renderer/app-shell/providers/desktop-memory-embedding-scope';
 
 const LOCAL_AGENT_REF = 'local-agent:user-1:agent-1';
 
-function createRuntimeMock() {
-  const calls = {
-    registerApp: [] as Array<Record<string, unknown>>,
-    authorizeExternalPrincipal: [] as Array<Record<string, unknown>>,
-    getBank: [] as Array<Record<string, unknown>>,
-  };
-
-  const runtime = {
-    appId: 'desktop-test',
-    auth: {
-      registerApp: async (input: Record<string, unknown>) => {
-        calls.registerApp.push(input);
-        return { accepted: true };
-      },
-    },
-    appAuth: {
-      authorizeExternalPrincipal: async (input: Record<string, unknown>) => {
-        calls.authorizeExternalPrincipal.push(input);
-        return {
-          tokenId: 'protected-token-id',
-          secret: 'protected-token-secret',
-        };
-      },
-    },
-    memory: {
-      getBank: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
-        calls.getBank.push({ ...input, __options: options });
-        return {
-          bank: {
-            bankId: 'bank-agent-1',
-            locator: {
-              scope: MemoryBankScope.AGENT_CORE,
-              owner: {
-                oneofKind: 'agentCore',
-                agent: {
-                  agentId: LOCAL_AGENT_REF,
-                },
-              },
-            },
-            embeddingProfile: {
-              provider: 'local',
-              modelId: 'local/embed-alpha',
-            },
-          },
-        };
-      },
-    },
-  };
-
-  return { runtime, calls };
-}
-
-function createMemoryEmbeddingServiceMock(input?: {
-  config?: Partial<MemoryEmbeddingConfig>;
-  inspect?: MemoryEmbeddingRuntimeSurface['inspect'];
-  requestBind?: MemoryEmbeddingRuntimeSurface['requestBind'];
-  requestCutover?: MemoryEmbeddingRuntimeSurface['requestCutover'];
+function runtimeStatus(input: {
+  mode: AgentCanonicalMemoryBankMode;
+  bankId?: string;
+  modelId?: string;
+  bindingSourceKind?: string;
+  pendingCutover?: boolean;
+  canonicalBankStatus?: string;
+  bindAllowed?: boolean;
 }) {
-  const scopeRef = createDesktopMemoryEmbeddingScopeRef();
-  let config: MemoryEmbeddingConfig = {
-    scopeRef,
-    sourceKind: null,
-    bindingRef: null,
-    revisionToken: 'rev-1',
-    updatedAt: '2026-04-12T00:00:00.000Z',
-    ...input?.config,
-  };
-  const memoryEmbeddingConfig: MemoryEmbeddingConfigSurface = {
-    get: () => config,
-    update: (_scopeRef: typeof scopeRef, next: MemoryEmbeddingConfig) => {
-      config = { ...next, scopeRef: next.scopeRef || scopeRef };
-    },
-    subscribe: () => () => {},
-  };
-  const memoryEmbeddingRuntime: MemoryEmbeddingRuntimeSurface = {
-    inspect: input?.inspect ?? (async () => ({
-      bindingIntentPresent: false,
-      bindingSourceKind: null,
-      resolutionState: 'missing',
-      resolvedProfileIdentity: null,
-      canonicalBankStatus: 'unbound',
-      blockedReasonCode: null,
-      operationReadiness: {
-        bindAllowed: false,
-        cutoverAllowed: false,
-      },
-    })),
-    requestBind: input?.requestBind ?? (async () => ({
-      outcome: 'rejected',
-      blockedReasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
-      canonicalBankStatusAfter: 'unbound',
-      pendingCutover: false,
-    })),
-    requestCutover: input?.requestCutover ?? (async () => ({
-      outcome: 'not_ready',
-      blockedReasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
-      canonicalBankStatusAfter: 'unbound',
-    })),
-  };
   return {
-    service: {
-      memoryEmbeddingConfig,
-      memoryEmbeddingRuntime,
-    },
-    getConfig: () => config,
+    mode: input.mode,
+    bankId: input.bankId ?? '',
+    embeddingProfile: input.modelId
+      ? {
+        provider: 'local',
+        modelId: input.modelId,
+        version: 'v1',
+        dimension: 768,
+        distanceMetric: 1,
+        migrationPolicy: 1,
+      }
+      : undefined,
+    bindingSourceKind: input.bindingSourceKind ?? '',
+    blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+    pendingCutover: input.pendingCutover ?? false,
+    canonicalBankStatus: input.canonicalBankStatus ?? 'unbound',
+    bindAllowed: input.bindAllowed ?? false,
+    cutoverAllowed: false,
   };
 }
 
-test('runtime agent memory adapter maps canonical bank status to standard, baseline, and unavailable', async () => {
-  const { runtime, calls } = createRuntimeMock();
-  const standardService = createMemoryEmbeddingServiceMock({
-    config: {
-      sourceKind: 'cloud',
-      bindingRef: {
-        kind: 'cloud',
-        connectorId: 'conn-1',
-        modelId: 'gemini-embedding-001',
+function createRuntimeMock(statuses: Array<ReturnType<typeof runtimeStatus>>) {
+  const calls = {
+    getStatus: [] as Array<Record<string, unknown>>,
+    bind: [] as Array<Record<string, unknown>>,
+  };
+  let index = 0;
+  const currentStatus = () => statuses[Math.min(index, statuses.length - 1)];
+  return {
+    calls,
+    runtime: {
+      appId: 'desktop-test',
+      agent: {
+        getAgentCanonicalMemoryBankStatus: async (input: Record<string, unknown>) => {
+          calls.getStatus.push(input);
+          return { status: currentStatus() };
+        },
+        requestAgentCanonicalMemoryBankBind: async (input: Record<string, unknown>) => {
+          calls.bind.push(input);
+          index += 1;
+          return {
+            status: currentStatus(),
+            outcome: 'bound',
+            blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+          };
+        },
       },
     },
-    inspect: async () => ({
-      bindingIntentPresent: true,
+  };
+}
+
+test('runtime agent memory adapter consumes Runtime Agent canonical bank status', async () => {
+  const { runtime, calls } = createRuntimeMock([
+    runtimeStatus({
+      mode: AgentCanonicalMemoryBankMode.STANDARD,
+      bankId: 'bank-agent-1',
+      modelId: 'local/embed-alpha',
       bindingSourceKind: 'cloud',
-      resolutionState: 'resolved',
-      resolvedProfileIdentity: 'google:gemini-embedding-001:conn-1',
+      pendingCutover: true,
       canonicalBankStatus: 'rebuild_pending',
-      blockedReasonCode: null,
-      operationReadiness: {
-        bindAllowed: false,
-        cutoverAllowed: false,
-      },
     }),
-  });
+  ]);
   const adapter = createRuntimeAgentMemoryAdapter({
     getRuntime: () => runtime as never,
     getSubjectUserId: () => 'user-1',
-    getMemoryEmbeddingConfigService: () => standardService.service,
   });
 
   const standard = await adapter.getCanonicalBankStatus(LOCAL_AGENT_REF);
@@ -160,135 +95,42 @@ test('runtime agent memory adapter maps canonical bank status to standard, basel
     bindingSourceKind: 'cloud',
     blockedReasonCode: undefined,
     pendingCutover: true,
+    canonicalBankStatus: 'rebuild_pending',
+    bindAllowed: false,
+    cutoverAllowed: false,
   });
-  assert.equal(calls.getBank.length, 1);
-
-  runtime.memory.getBank = async () => ({
-    bank: {
-      bankId: 'bank-agent-1',
-      locator: {
-        scope: MemoryBankScope.AGENT_CORE,
-        owner: {
-          oneofKind: 'agentCore',
-          agent: {
-            agentId: LOCAL_AGENT_REF,
-          },
-        },
-      },
-      embeddingProfile: {
-        provider: '',
-        modelId: '',
-      },
+  assert.equal(calls.getStatus.length, 1);
+  assert.deepEqual(calls.getStatus[0], {
+    agentId: LOCAL_AGENT_REF,
+    context: {
+      appId: 'desktop-test',
+      subjectUserId: 'user-1',
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: LOCAL_AGENT_REF,
     },
-  });
-  const baselineService = createMemoryEmbeddingServiceMock({
-    config: {
-      sourceKind: 'cloud',
-      bindingRef: {
-        kind: 'cloud',
-        connectorId: 'conn-1',
-        modelId: 'gemini-embedding-001',
-      },
-    },
-    inspect: async () => ({
-      bindingIntentPresent: true,
-      bindingSourceKind: 'cloud',
-      resolutionState: 'resolved',
-      resolvedProfileIdentity: 'google:gemini-embedding-001:conn-1',
-      canonicalBankStatus: 'unbound',
-      blockedReasonCode: null,
-      operationReadiness: {
-        bindAllowed: true,
-        cutoverAllowed: false,
-      },
-    }),
-  });
-  const baselineAdapter = createRuntimeAgentMemoryAdapter({
-    getRuntime: () => runtime as never,
-    getSubjectUserId: () => 'user-1',
-    getMemoryEmbeddingConfigService: () => baselineService.service,
-  });
-  const baseline = await baselineAdapter.getCanonicalBankStatus(LOCAL_AGENT_REF);
-  assert.deepEqual(baseline, {
-    mode: 'baseline',
-    bankId: 'bank-agent-1',
-    bindingSourceKind: 'cloud',
-  });
-
-  const unavailableService = createMemoryEmbeddingServiceMock({
-    inspect: async () => ({
-      bindingIntentPresent: false,
-      bindingSourceKind: null,
-      resolutionState: 'missing',
-      resolvedProfileIdentity: null,
-      canonicalBankStatus: 'unbound',
-      blockedReasonCode: null,
-      operationReadiness: {
-        bindAllowed: false,
-        cutoverAllowed: false,
-      },
-    }),
-  });
-  const unavailableAdapter = createRuntimeAgentMemoryAdapter({
-    getRuntime: () => runtime as never,
-    getSubjectUserId: () => 'user-1',
-    getMemoryEmbeddingConfigService: () => unavailableService.service,
-  });
-  const unavailable = await unavailableAdapter.getCanonicalBankStatus(LOCAL_AGENT_REF);
-  assert.deepEqual(unavailable, {
-    mode: 'unavailable',
-    bankId: 'bank-agent-1',
-    bindingSourceKind: undefined,
-    blockedReasonCode: undefined,
   });
 });
 
-test('runtime agent memory adapter binds canonical bank standard through the memory embedding runtime surface', async () => {
-  const { runtime } = createRuntimeMock();
-  const bindCalls: Array<Record<string, unknown>> = [];
-  const cutoverCalls: Array<Record<string, unknown>> = [];
-  const service = createMemoryEmbeddingServiceMock({
-    config: {
-      sourceKind: 'local',
-      bindingRef: {
-        kind: 'local',
-        targetId: 'local/embed-alpha',
-      },
-    },
-    inspect: async () => ({
-      bindingIntentPresent: true,
+test('runtime agent memory adapter binds through Runtime Agent without app-side intent checks', async () => {
+  const { runtime, calls } = createRuntimeMock([
+    runtimeStatus({
+      mode: AgentCanonicalMemoryBankMode.BASELINE,
+      bankId: 'bank-agent-1',
       bindingSourceKind: 'local',
-      resolutionState: 'resolved',
-      resolvedProfileIdentity: 'local:local/embed-alpha:local-embed-1',
-      canonicalBankStatus: 'bound_equivalent',
-      blockedReasonCode: null,
-      operationReadiness: {
-        bindAllowed: false,
-        cutoverAllowed: false,
-      },
+      bindAllowed: true,
     }),
-    requestBind: async (payload: Parameters<MemoryEmbeddingRuntimeSurface['requestBind']>[0]) => {
-      bindCalls.push(payload as unknown as Record<string, unknown>);
-      return {
-        outcome: 'staged_rebuild',
-        blockedReasonCode: null,
-        canonicalBankStatusAfter: 'cutover_ready',
-        pendingCutover: true,
-      };
-    },
-    requestCutover: async (payload: Parameters<MemoryEmbeddingRuntimeSurface['requestCutover']>[0]) => {
-      cutoverCalls.push(payload as unknown as Record<string, unknown>);
-      return {
-        outcome: 'cutover_committed',
-        blockedReasonCode: null,
-        canonicalBankStatusAfter: 'bound_equivalent',
-      };
-    },
-  });
+    runtimeStatus({
+      mode: AgentCanonicalMemoryBankMode.STANDARD,
+      bankId: 'bank-agent-1',
+      modelId: 'local/embed-alpha',
+      bindingSourceKind: 'local',
+      canonicalBankStatus: 'bound_equivalent',
+    }),
+  ]);
   const adapter = createRuntimeAgentMemoryAdapter({
     getRuntime: () => runtime as never,
     getSubjectUserId: () => 'user-1',
-    getMemoryEmbeddingConfigService: () => service.service,
   });
 
   const result = await adapter.bindCanonicalBankStandard(LOCAL_AGENT_REF);
@@ -299,27 +141,9 @@ test('runtime agent memory adapter binds canonical bank standard through the mem
     bindingSourceKind: 'local',
     blockedReasonCode: undefined,
     pendingCutover: false,
+    canonicalBankStatus: 'bound_equivalent',
+    bindAllowed: false,
+    cutoverAllowed: false,
   });
-  assert.equal(bindCalls.length, 1);
-  assert.equal(cutoverCalls.length, 1);
-  assert.deepEqual(service.getConfig().bindingRef, {
-    kind: 'local',
-    targetId: 'local/embed-alpha',
-  });
-});
-
-test('runtime agent memory adapter requires explicit binding intent before standard bind', async () => {
-  const { runtime } = createRuntimeMock();
-  const service = createMemoryEmbeddingServiceMock();
-  const adapter = createRuntimeAgentMemoryAdapter({
-    getRuntime: () => runtime as never,
-    getSubjectUserId: () => 'user-1',
-    getMemoryEmbeddingConfigService: () => service.service,
-  });
-
-  await assert.rejects(
-    () => adapter.bindCanonicalBankStandard(LOCAL_AGENT_REF),
-    /MEMORY_EMBEDDING_BINDING_INTENT_REQUIRED/,
-  );
-  assert.equal(service.getConfig().bindingRef, null);
+  assert.equal(calls.bind.length, 1);
 });

@@ -16,7 +16,8 @@ test('Runtime Agent domain stays on SDK and Kit shared surfaces', () => {
   const provisionCourier = read('apps/desktop/src/shell/renderer/infra/local-agent-courier/provision-courier.ts');
   const terminationCourier = read('apps/desktop/src/shell/renderer/infra/local-agent-courier/termination-courier.ts');
   const sdkLocalAgentIntents = read('sdk/src/realm/extensions/local-agent-intents.ts');
-  const streamConsumer = read('apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-agent-stream-consumer.ts');
+  const streamRunner = read('sdk/src/runtime/runtime-agent-turn-runner.ts');
+  const streamAdapter = read('apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-agent.ts');
   const inspectContent = read('apps/desktop/src/shell/renderer/features/chat/chat-runtime-inspect-content.tsx');
   const runtimeStreamUi = read('apps/desktop/src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.tsx');
 
@@ -51,15 +52,18 @@ test('Runtime Agent domain stays on SDK and Kit shared surfaces', () => {
     assert.doesNotMatch(source, /\/nimi\.runtime\.v1\.RuntimeAgentService/);
   });
 
-  assert.match(streamConsumer, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(streamAdapter, /runRuntimeAgentTurn/);
+  assert.match(streamAdapter, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.doesNotMatch(streamAdapter, /recoverRuntimeAgentTerminalSnapshot/);
+  assert.doesNotMatch(streamAdapter, /summarizeRuntimeAgentTimeline/);
   [
     'recoverRuntimeAgentTerminalSnapshot',
     'summarizeRuntimeAgentProjectionEvent',
     'summarizeRuntimeAgentTimeline',
     'matchesRuntimeAgentProjectionScope',
   ].forEach((name) => {
-    assert.match(streamConsumer, new RegExp(`\\b${name}\\b`));
-    assert.doesNotMatch(streamConsumer, new RegExp(`function ${name}\\b`));
+    assert.match(streamRunner, new RegExp(`\\b${name}\\b`));
+    assert.doesNotMatch(streamAdapter, new RegExp(`function ${name}\\b`));
   });
 
   [

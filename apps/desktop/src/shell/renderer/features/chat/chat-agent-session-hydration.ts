@@ -1,5 +1,6 @@
 import type {
   RuntimeAgentMessage,
+  RuntimeAgentTranscriptMessage,
   RuntimeAgentSessionSnapshot,
 } from '@nimiplatform/sdk/runtime';
 import type {
@@ -44,33 +45,35 @@ function parseIsoTimestampMs(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function toMessageStatus(value: unknown): AgentLocalMessageRecord['status'] {
+function toMessageStatus(value: unknown): AgentLocalMessageRecord['status'] | null {
   const normalized = normalizeText(value);
   if (normalized === 'pending' || normalized === 'complete' || normalized === 'error') {
     return normalized;
   }
-  return 'complete';
+  return null;
 }
 
-function toMessageKind(value: unknown): AgentLocalMessageRecord['kind'] {
+function toMessageKind(value: unknown): AgentLocalMessageRecord['kind'] | null {
   const normalized = normalizeText(value);
-  if (normalized === 'image' || normalized === 'voice') {
+  if (normalized === 'text' || normalized === 'image' || normalized === 'voice') {
     return normalized;
   }
-  return 'text';
+  return null;
 }
 
 function hasRuntimeReplayEnvelope(message: RuntimeAgentMessage | null | undefined): boolean {
   return Boolean(
     normalizeText(message?.id)
-    && normalizeText(message?.status)
-    && normalizeText(message?.kind)
+    && toMessageStatus(message?.status)
+    && toMessageKind(message?.kind)
     && parseIsoTimestampMs(message?.createdAt) !== null
     && parseIsoTimestampMs(message?.updatedAt) !== null,
   );
 }
 
-function transcriptHasRuntimeReplayEnvelope(transcript: readonly RuntimeAgentMessage[]): boolean {
+function transcriptHasRuntimeReplayEnvelope(
+  transcript: readonly RuntimeAgentMessage[],
+): transcript is readonly RuntimeAgentTranscriptMessage[] {
   const replayMessages = transcript.filter(isTranscriptTextMessage);
   return replayMessages.length > 0 && replayMessages.every(hasRuntimeReplayEnvelope);
 }
@@ -78,9 +81,8 @@ function transcriptHasRuntimeReplayEnvelope(transcript: readonly RuntimeAgentMes
 function toHydratedMessageRecord(input: {
   threadId: string;
   conversationAnchorId: string;
-  transcript: readonly RuntimeAgentMessage[];
+  transcript: readonly RuntimeAgentTranscriptMessage[];
   index: number;
-  createdAtMs: number;
 }): AgentLocalMessageRecord | null {
   const message = input.transcript[input.index];
   if (!message) {
@@ -94,25 +96,24 @@ function toHydratedMessageRecord(input: {
   ) {
     return null;
   }
-  const previous = input.index > 0 ? input.transcript[input.index - 1] : null;
-  const parentMessageId = role === 'assistant'
-    && previous
-    && normalizeText(previous.role) === 'user'
-      ? normalizeText(previous.id) || `${input.conversationAnchorId}:session:${input.index - 1}`
-      : null;
-  const createdAtMs = parseIsoTimestampMs(message.createdAt) ?? input.createdAtMs;
-  const updatedAtMs = parseIsoTimestampMs(message.updatedAt) ?? createdAtMs;
+  const status = toMessageStatus(message.status);
+  const kind = toMessageKind(message.kind);
+  const createdAtMs = parseIsoTimestampMs(message.createdAt);
+  const updatedAtMs = parseIsoTimestampMs(message.updatedAt);
+  if (!status || !kind || createdAtMs === null || updatedAtMs === null) {
+    return null;
+  }
   return {
-    id: normalizeText(message.id) || `${input.conversationAnchorId}:session:${input.index}`,
+    id: message.id,
     threadId: input.threadId,
     role,
-    status: toMessageStatus(message.status),
-    kind: toMessageKind(message.kind),
+    status,
+    kind,
     contentText,
     reasoningText: normalizeText(message.reasoningText) || null,
     error: null,
     traceId: normalizeText(message.traceId) || null,
-    parentMessageId: normalizeText(message.parentMessageId) || parentMessageId,
+    parentMessageId: normalizeText(message.parentMessageId) || null,
     mediaUrl: normalizeText(message.mediaUrl) || null,
     mediaMimeType: normalizeText(message.mediaMimeType) || null,
     artifactId: normalizeText(message.artifactId) || null,
@@ -125,17 +126,15 @@ function toHydratedMessageRecord(input: {
 function buildHydratedMessages(input: {
   threadId: string;
   conversationAnchorId: string;
-  transcript: readonly RuntimeAgentMessage[];
+  transcript: readonly RuntimeAgentTranscriptMessage[];
   nowMs: number;
 }): AgentLocalMessageRecord[] {
-  const baseCreatedAtMs = input.nowMs - Math.max(input.transcript.length - 1, 0);
   return input.transcript.flatMap((message, index) => {
     const hydrated = toHydratedMessageRecord({
       threadId: input.threadId,
       conversationAnchorId: input.conversationAnchorId,
       transcript: input.transcript,
       index,
-      createdAtMs: baseCreatedAtMs + index,
     });
     return hydrated ? [hydrated] : [];
   });
@@ -227,7 +226,7 @@ export function hydrateAgentThreadBundleFromRuntimeSessionSnapshot(input: {
   if (!conversationAnchorId || transcript.length === 0) {
     return null;
   }
-  if (!input.bundle && !transcriptHasRuntimeReplayEnvelope(transcript)) {
+  if (!transcriptHasRuntimeReplayEnvelope(transcript)) {
     return null;
   }
   if (input.bundle?.messages.some((message) => message.status === 'pending')) {

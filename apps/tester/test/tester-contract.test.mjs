@@ -296,14 +296,26 @@ test('tester chat.stream surfaces live deltas through the SDK stream (no fabrica
   const capabilities = read('src/tester/workbench/section-ai-testing.tsx');
 
   // The live-delta callback is threaded from the chat.stream SDK loop, through
-  // runTesterCapability, into the capability panel — only accumulated SDK deltas
-  // are surfaced (no app-fabricated streaming text).
+  // runTesterCapability, into the capability panel. The accumulated text now
+  // comes from the shared SDK app AI text-turn runner, not a Tester-local
+  // stream reducer.
   assert.match(invokers, /onPartial\?: \(accumulatedText: string\) => void/);
-  assert.match(invokers, /aggregated \+= part\.text;\s*\n\s*input\.onPartial\?\.\(aggregated\)/);
+  assert.match(invokers, /from '@nimiplatform\/sdk\/ai-app'/);
+  assert.match(invokers, /runAppAiTextTurn/);
+  assert.match(invokers, /event\.type === 'text-delta'/);
+  assert.match(invokers, /input\.onPartial\?\.\(event\.snapshot\.text\)/);
+  assert.doesNotMatch(invokers, /aggregated \+= part\.text/);
   assert.match(runtime, /onPartial: input\.onPartial/);
   assert.match(capabilities, /onPartial: isStreaming \? setStreamingText : undefined/);
   assert.match(capabilities, /capability\.id === 'chat\.stream'/);
   assert.match(capabilities, /streamingText=\{streamingText\}/);
+});
+
+test('tester text.generate consumes SDK app AI text generate helper', () => {
+  const invokers = read('src/tester/tester-runtime-invokers.ts');
+  assert.match(invokers, /from '@nimiplatform\/sdk\/ai-app'/);
+  assert.match(invokers, /runAppAiTextGenerate/);
+  assert.match(invokers, /generateText: \(request\) => client\.runtime\.ai\.text\.generate\(request\)/);
 });
 
 test('tester multimodal image input shapes the admitted SDK input (no app transport)', () => {
@@ -697,6 +709,28 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
 
 test('tester surfaces inline runtime media artifact bytes as a previewable data URL', async () => {
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      selectedBindings: {
+        'image.generate': {
+          source: 'local',
+          connectorId: '',
+          model: 'local.image.test',
+        },
+        'audio.synthesize': {
+          source: 'local',
+          connectorId: '',
+          model: 'local.tts.test',
+        },
+      },
+      localProfileRefs: {},
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  });
 
   // Local runtime media returns ScenarioArtifact bytes with an empty uri. The
   // cockpit must turn those bytes into a previewable/playable data URL so image
@@ -706,6 +740,19 @@ test('tester surfaces inline runtime media artifact bytes as a previewable data 
 
   const client = {
     runtime: {
+      ai: {
+        async peekScheduling() {
+          return {
+            aggregateJudgement: {
+              state: 1,
+              detail: '',
+              occupancy: { globalUsed: 0, globalCap: 2, appUsed: 0, appCap: 1 },
+              resourceWarnings: [],
+            },
+            targetJudgements: [],
+          };
+        },
+      },
       media: {
         image: {
           async generate() {
@@ -752,6 +799,23 @@ test('tester surfaces inline runtime media artifact bytes as a previewable data 
 
 test('tester prefers a hosted artifact uri over inline bytes', async () => {
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      selectedBindings: {
+        'image.generate': {
+          source: 'cloud',
+          connectorId: 'runtime-image-connector',
+          model: 'cloud.image.test',
+        },
+      },
+      localProfileRefs: {},
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  });
   const client = {
     runtime: {
       media: {
@@ -1512,14 +1576,26 @@ test('tester settings consumes SDK Nimi App bridge projection parser', () => {
 
 test('tester settings consumes SDK Runtime agent consumer projections', () => {
   const settings = read('src/shell/routes/settings.tsx');
+  const helper = read('src/tester/tester-runtime-agent-turn-runner.ts');
+  const mediaHelper = read('src/tester/tester-runtime-media-generation-runner.ts');
 
   assert.match(settings, /buildRuntimeAgentSnapshotRecoveryEvents/);
   assert.match(settings, /summarizeRuntimeAgentProjectionEvent/);
   assert.match(settings, /summarizeRuntimeAgentTimeline/);
   assert.match(settings, /matchesRuntimeAgentProjectionScope/);
+  assert.match(settings, /inspectTesterRuntimeAgentTurnRunnerProjection/);
+  assert.match(settings, /inspectTesterRuntimeMediaGenerationRunnerProjection/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Runtime agent consumer projection/);
+  assert.match(settings, /Runtime agent turn runner projection/);
+  assert.match(settings, /Runtime media generation runner projection/);
   assert.match(settings, /runtimeAgentConsumerProjection\.terminalEventName/);
+  assert.match(settings, /runtimeAgentTurnRunnerProjection\.projection\.sealedMessageId/);
+  assert.match(settings, /runtimeMediaGenerationRunnerProjection\.projection\.artifactCount/);
+  assert.match(helper, /runRuntimeAgentTurn/);
+  assert.match(helper, /RuntimeAgentTurnsModule/);
+  assert.match(mediaHelper, /runRuntimeMediaGenerationJob/);
+  assert.match(mediaHelper, /RuntimeMediaGenerationJobsModule/);
   assert.doesNotMatch(settings, /function buildRuntimeAgentSnapshotRecoveryEvents/);
   assert.doesNotMatch(settings, /function summarizeRuntimeAgentTimeline/);
 });

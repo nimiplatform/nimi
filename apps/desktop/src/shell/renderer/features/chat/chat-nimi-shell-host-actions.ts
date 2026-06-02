@@ -13,6 +13,13 @@ import {
   type ChatAiThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import { chatAiStoreClient } from '@renderer/bridge/runtime-bridge/chat-ai-store';
+import {
+  appendAppAiSessionReasoningDelta,
+  appendAppAiSessionTextDelta,
+  completeAppAiSessionText,
+  createAppAiSessionTextAccumulator,
+  failAppAiSessionText,
+} from '@nimiplatform/sdk/ai-app';
 import { createNimiClientId } from '@nimiplatform/sdk/runtime';
 import { toChatAiRuntimeError } from './chat-nimi-runtime';
 import {
@@ -281,12 +288,9 @@ export function useAiConversationHostActions(
 
     input.currentDraftTextRef.current = '';
     input.setSubmittingThreadId(effectiveThreadId);
-    let streamedText = '';
-    let streamedReasoningText = '';
+    let sessionTurn = createAppAiSessionTextAccumulator();
     let runtimeTraceId: string | null = null;
     let promptTraceId = '';
-    let terminalError: ConversationTurnError | null = null;
-    let completionEvent: Extract<ConversationTurnEvent, { type: 'turn-completed' }> | null = null;
     let userMessagePersisted = false;
     let recoveredMissingThread: boolean;
     let threadPersisted = !(
@@ -362,23 +366,26 @@ export function useAiConversationHostActions(
         matchConversationTurnEvent(event, {
           'turn-started': () => undefined,
           'reasoning-delta': (nextEvent) => {
-            streamedReasoningText += nextEvent.textDelta;
+            sessionTurn = appendAppAiSessionReasoningDelta(sessionTurn, nextEvent.textDelta);
             feedStreamEvent(effectiveThreadId, {
               type: 'reasoning_delta',
               textDelta: nextEvent.textDelta,
             });
           },
           'text-delta': (nextEvent) => {
-            streamedText += nextEvent.textDelta;
+            sessionTurn = appendAppAiSessionTextDelta(sessionTurn, nextEvent.textDelta);
             feedStreamEvent(effectiveThreadId, {
               type: 'text_delta',
               textDelta: nextEvent.textDelta,
             });
           },
           'turn-completed': (nextEvent) => {
-            completionEvent = nextEvent;
-            streamedText = nextEvent.outputText;
-            streamedReasoningText = normalizeReasoningText(nextEvent.reasoningText) || streamedReasoningText;
+            sessionTurn = completeAppAiSessionText(sessionTurn, {
+              text: nextEvent.outputText,
+              reasoningText: normalizeReasoningText(nextEvent.reasoningText),
+              finishReason: nextEvent.finishReason,
+              usage: nextEvent.usage,
+            });
             runtimeTraceId = (nextEvent.trace?.traceId || '').trim() || runtimeTraceId;
             promptTraceId = (nextEvent.trace?.promptTraceId || '').trim() || promptTraceId;
             feedStreamEvent(effectiveThreadId, {
@@ -389,9 +396,13 @@ export function useAiConversationHostActions(
             });
           },
           'turn-failed': (nextEvent) => {
-            terminalError = nextEvent.error;
-            streamedText = (nextEvent.outputText || '').trim() || streamedText;
-            streamedReasoningText = normalizeReasoningText(nextEvent.reasoningText) || streamedReasoningText;
+            sessionTurn = failAppAiSessionText(sessionTurn, {
+              error: nextEvent.error,
+              text: nextEvent.outputText,
+              reasoningText: normalizeReasoningText(nextEvent.reasoningText),
+              finishReason: nextEvent.finishReason,
+              usage: nextEvent.usage,
+            });
             runtimeTraceId = (nextEvent.trace?.traceId || '').trim() || runtimeTraceId;
             promptTraceId = (nextEvent.trace?.promptTraceId || '').trim() || promptTraceId;
           },
@@ -420,16 +431,16 @@ export function useAiConversationHostActions(
           },
         });
       }
-      if (terminalError) {
-        throw toStructuredProviderError(terminalError);
+      if (sessionTurn.terminal === 'failed') {
+        throw toStructuredProviderError(sessionTurn.error as ConversationTurnError);
       }
-      if (!completionEvent) {
+      if (sessionTurn.terminal !== 'completed') {
         throw new Error('simple-ai provider completed without a terminal event');
       }
 
       const completedState = getStreamState(effectiveThreadId);
-      const finalText = stripBeatActionEnvelopeIfPresent(completedState.partialText || streamedText);
-      const finalReasoningText = completedState.partialReasoningText || streamedReasoningText;
+      const finalText = stripBeatActionEnvelopeIfPresent(completedState.partialText || sessionTurn.text);
+      const finalReasoningText = completedState.partialReasoningText || sessionTurn.reasoningText;
 
       const assistantMessage = await chatAiStoreClient.updateMessage({
         id: assistantMessageId,
@@ -460,8 +471,8 @@ export function useAiConversationHostActions(
       syncAiThreadSelectionState(effectiveThreadId);
     } catch (error) {
       const streamSnapshot = getStreamState(effectiveThreadId);
-      const partialText = streamSnapshot.partialText || streamedText;
-      const partialReasoningText = streamSnapshot.partialReasoningText || streamedReasoningText;
+      const partialText = streamSnapshot.partialText || sessionTurn.text;
+      const partialReasoningText = streamSnapshot.partialReasoningText || sessionTurn.reasoningText;
       const runtimeError = streamSnapshot.cancelSource === 'user'
         ? {
           code: 'OPERATION_ABORTED',

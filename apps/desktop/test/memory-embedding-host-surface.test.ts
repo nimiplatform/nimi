@@ -4,10 +4,10 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
-  createAppAIScopeRef,
-  type AIScopeRef,
-} from '@nimiplatform/sdk/ai';
-import {
+  AuthorizeExternalPrincipalResponse,
+  RegisterAppResponse,
+  RuntimeReasonCode,
+  buildMemoryEmbeddingBindingIntentSnapshot,
   createEmptyMemoryEmbeddingConfig,
   type MemoryEmbeddingConfig,
 } from '@nimiplatform/sdk/runtime';
@@ -18,136 +18,134 @@ const desktopMemoryEmbeddingServiceSource = readFileSync(
   'utf-8',
 );
 
-function createStorageMock(): Storage {
-  const store = new Map<string, string>();
-  return {
-    getItem: (key: string) => store.get(key) ?? null,
-    setItem: (key: string, value: string) => {
-      store.set(key, value);
+test('desktop memory embedding service composes Runtime-owned intent through SDK surfaces', async () => {
+  const { createDesktopMemoryEmbeddingConfigService } = await import(
+    '../src/shell/renderer/app-shell/providers/desktop-memory-embedding-config-service.js'
+  );
+  const calls: Array<{ method: string; request: Record<string, unknown> }> = [];
+  let intent: ReturnType<typeof buildMemoryEmbeddingBindingIntentSnapshot>;
+  const runtime = {
+    appId: 'desktop-test',
+    auth: {
+      registerApp: async () => RegisterAppResponse.create({ accepted: true }),
     },
-    removeItem: (key: string) => {
-      store.delete(key);
+    appAuth: {
+      authorizeExternalPrincipal: async (request: {
+        scopes: string[];
+        appId?: string;
+        subjectUserId?: string;
+        externalPrincipalId?: string;
+        policyVersion?: string;
+        issuedScopeCatalogVersion?: string;
+      }) => AuthorizeExternalPrincipalResponse.create({
+        tokenId: `token-${request.scopes.join('-')}`,
+        secret: 'secret',
+        appId: request.appId,
+        subjectUserId: request.subjectUserId,
+        externalPrincipalId: request.externalPrincipalId,
+        effectiveScopes: request.scopes,
+        policyVersion: request.policyVersion,
+        issuedScopeCatalogVersion: request.issuedScopeCatalogVersion,
+        canDelegate: false,
+      }),
     },
-    clear: () => {
-      store.clear();
-    },
-    key: (index: number) => Array.from(store.keys())[index] ?? null,
-    get length() {
-      return store.size;
+    memory: {
+      async getMemoryEmbeddingRuntimeIntent(request: Record<string, unknown>) {
+        calls.push({ method: 'get', request });
+        return {
+          bindingIntentPresent: Boolean(intent),
+          bindingIntent: intent,
+        };
+      },
+      async setMemoryEmbeddingRuntimeIntent(request: Record<string, unknown>) {
+        calls.push({ method: 'set', request });
+        intent = request.bindingIntent as typeof intent;
+        return {
+          bindingIntentPresent: Boolean(intent),
+          bindingIntent: intent,
+        };
+      },
+      async inspectMemoryEmbeddingRuntime(request: Record<string, unknown>) {
+        calls.push({ method: 'inspect', request });
+        return {
+          bindingIntentPresent: Boolean(intent),
+          bindingSourceKind: intent?.sourceKind || '',
+          resolutionState: intent ? 'resolved' : 'missing',
+          canonicalBankStatus: 'bound_equivalent',
+          blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+          operationReadiness: { bindAllowed: false, cutoverAllowed: false },
+        };
+      },
+      async requestMemoryEmbeddingRuntimeBind(request: Record<string, unknown>) {
+        calls.push({ method: 'bind', request });
+        return {
+          outcome: 'already_bound',
+          blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+          canonicalBankStatusAfter: 'bound_equivalent',
+          pendingCutover: false,
+        };
+      },
+      async requestMemoryEmbeddingRuntimeCutover(request: Record<string, unknown>) {
+        calls.push({ method: 'cutover', request });
+        return {
+          outcome: 'already_current',
+          blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+          canonicalBankStatusAfter: 'bound_equivalent',
+        };
+      },
     },
   };
-}
-
-async function loadMemoryEmbeddingModules() {
-  const storage = await import('../src/shell/renderer/app-shell/providers/desktop-memory-embedding-config-storage.js');
-  const service = await import('../src/shell/renderer/app-shell/providers/desktop-memory-embedding-config-service.js');
-  return {
-    ...storage,
-    ...service,
+  const service = createDesktopMemoryEmbeddingConfigService({
+    getRuntime: () => runtime as never,
+    getSubjectUserId: () => 'user-1',
+  });
+  const scopeRef = createDesktopMemoryEmbeddingScopeRef();
+  const request = {
+    scopeRef,
+    targetRef: {
+      kind: 'agent-core' as const,
+      localAgentRef: 'local-agent:user-1:agent-local-1',
+    },
   };
-}
-
-test('desktop memory embedding storage round-trips adjacent config by scope', async () => {
-  const previousLocalStorage = globalThis.localStorage;
-  Object.defineProperty(globalThis, 'localStorage', {
-    configurable: true,
-    value: createStorageMock(),
+  const updates: MemoryEmbeddingConfig[] = [];
+  const unsubscribe = service.memoryEmbeddingConfig.subscribe(request, (config) => {
+    updates.push(config);
   });
-
-  try {
-    const {
-      loadMemoryEmbeddingConfigForScope,
-      persistMemoryEmbeddingConfigForScope,
-      listPersistedMemoryEmbeddingScopeKeys,
-      scopeKeyFromRef,
-    } = await loadMemoryEmbeddingModules();
-    const scopeRef = createAppAIScopeRef('world.nimi.desktop.memory.storage');
-    const config: MemoryEmbeddingConfig = {
-      ...createEmptyMemoryEmbeddingConfig(scopeRef),
-      sourceKind: 'cloud',
-      bindingRef: {
-        kind: 'cloud',
-        connectorId: 'conn-memory',
-        modelId: 'gemini-embedding-001',
-      },
-    };
-
-    persistMemoryEmbeddingConfigForScope(config);
-
-    const restored = loadMemoryEmbeddingConfigForScope(scopeRef);
-    assert.deepEqual(restored.scopeRef, scopeRef);
-    assert.equal(restored.sourceKind, 'cloud');
-    assert.deepEqual(restored.bindingRef, config.bindingRef);
-    assert.deepEqual(listPersistedMemoryEmbeddingScopeKeys(), [scopeKeyFromRef(scopeRef)]);
-  } finally {
-    Object.defineProperty(globalThis, 'localStorage', {
-      configurable: true,
-      value: previousLocalStorage,
-    });
-  }
-});
-
-test('desktop memory embedding service exposes fail-closed runtime state for configured scope', async () => {
-  const previousLocalStorage = globalThis.localStorage;
-  Object.defineProperty(globalThis, 'localStorage', {
-    configurable: true,
-    value: createStorageMock(),
-  });
-
-  try {
-    const { getDesktopMemoryEmbeddingConfigService } = await loadMemoryEmbeddingModules();
-    const service = getDesktopMemoryEmbeddingConfigService();
-    const scopeRef: AIScopeRef = createDesktopMemoryEmbeddingScopeRef();
-    const request = {
-      scopeRef,
-      targetRef: {
-        kind: 'agent-core' as const,
-        agentId: 'agent-local-1',
-      },
-    };
-    const updates: MemoryEmbeddingConfig[] = [];
-
-    const unsubscribe = service.memoryEmbeddingConfig.subscribe(scopeRef, (config) => {
-      updates.push(config);
-    });
-    service.memoryEmbeddingConfig.update(scopeRef, {
-      ...createEmptyMemoryEmbeddingConfig(scopeRef),
-      sourceKind: 'local',
-      bindingRef: {
-        kind: 'local',
-        targetId: 'nomic-embed-local',
-      },
-    });
-
-    const config = service.memoryEmbeddingConfig.get(scopeRef);
-    const inspect = await service.memoryEmbeddingRuntime.inspect(request);
-    const bind = await service.memoryEmbeddingRuntime.requestBind(request);
-    const cutover = await service.memoryEmbeddingRuntime.requestCutover(request);
-    unsubscribe();
-
-    assert.equal(updates.length, 1);
-    assert.equal(config.sourceKind, 'local');
-    assert.deepEqual(config.bindingRef, {
+  const committed = await service.memoryEmbeddingConfig.update(request, {
+    ...createEmptyMemoryEmbeddingConfig(scopeRef),
+    sourceKind: 'local',
+    bindingRef: {
       kind: 'local',
       targetId: 'nomic-embed-local',
-    });
-    assert.equal(inspect.bindingIntentPresent, true);
-    assert.equal(inspect.bindingSourceKind, 'local');
-    assert.equal(inspect.resolutionState, 'unavailable');
-    assert.equal(inspect.canonicalBankStatus, 'unbound');
-    assert.equal(bind.outcome, 'rejected');
-    assert.equal(bind.pendingCutover, false);
-    assert.equal(cutover.outcome, 'not_ready');
-  } finally {
-    Object.defineProperty(globalThis, 'localStorage', {
-      configurable: true,
-      value: previousLocalStorage,
-    });
-  }
+    },
+  });
+  const config = await service.memoryEmbeddingConfig.get(request);
+  const inspect = await service.memoryEmbeddingRuntime.inspect(request);
+  const bind = await service.memoryEmbeddingRuntime.requestBind(request);
+  const cutover = await service.memoryEmbeddingRuntime.requestCutover(request);
+  unsubscribe();
+
+  assert.equal(updates.length, 1);
+  assert.equal(committed.sourceKind, 'local');
+  assert.deepEqual(config.bindingRef, {
+    kind: 'local',
+    targetId: 'nomic-embed-local',
+  });
+  assert.equal(inspect.bindingIntentPresent, true);
+  assert.equal(inspect.bindingSourceKind, 'local');
+  assert.equal(inspect.resolutionState, 'resolved');
+  assert.equal(bind.outcome, 'already_bound');
+  assert.equal(bind.pendingCutover, false);
+  assert.equal(cutover.outcome, 'already_current');
+  assert.deepEqual(calls.map((call) => call.method), ['set', 'get', 'inspect', 'bind', 'cutover']);
+  assert.equal('bindingIntentSnapshot' in calls[2]!.request, false);
 });
 
 test('desktop memory embedding runtime service delegates Runtime composition to SDK', () => {
+  assert.match(desktopMemoryEmbeddingServiceSource, /createProtectedHostMemoryEmbeddingConfigSurface/);
   assert.match(desktopMemoryEmbeddingServiceSource, /createProtectedHostMemoryEmbeddingRuntimeSurface/);
+  assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /localStorage/);
+  assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /desktop-memory-embedding-config-storage/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /createRuntimeProtectedScopeHelper/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /withRuntimeMemoryScopes/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /buildMemoryEmbeddingAgentCoreLocator/);

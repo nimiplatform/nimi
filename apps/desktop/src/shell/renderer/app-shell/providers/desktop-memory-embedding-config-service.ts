@@ -1,156 +1,63 @@
 /**
- * Shared Desktop host memory-embedding adjacent config service.
+ * Shared Desktop memory-embedding Runtime surface.
  *
- * This service owns the host-local adjacent config truth and exposes a
- * fail-closed runtime-facing logical surface. Runtime readiness, bind, and
- * cutover facts are projected through SDK runtime.memory methods backed by
- * RuntimeCognitionService.
+ * Desktop does not own memory embedding binding intent. It composes SDK
+ * protected surfaces over RuntimeCognitionService so durable intent, inspect,
+ * bind, and cutover all go through Runtime.
  */
 
 import {
   getPlatformClient,
 } from '@nimiplatform/sdk';
 import {
+  createProtectedHostMemoryEmbeddingConfigSurface,
   createProtectedHostMemoryEmbeddingRuntimeSurface,
   type MemoryEmbeddingRuntimeSurface,
-  createEmptyMemoryEmbeddingConfig,
-  type MemoryEmbeddingConfig,
   type MemoryEmbeddingConfigSurface,
 } from '@nimiplatform/sdk/runtime';
-import {
-  type AIScopeRef,
-} from '@nimiplatform/sdk/scope';
-import { useAppStore } from './app-store.js';
-import {
-  listPersistedMemoryEmbeddingScopeKeys,
-  loadMemoryEmbeddingConfigForScope,
-  parseMemoryEmbeddingScopeKey,
-  persistMemoryEmbeddingConfigForScope,
-  scopeKeyFromRef,
-} from './desktop-memory-embedding-config-storage.js';
 
 export type DesktopMemoryEmbeddingConfigService = {
   memoryEmbeddingConfig: MemoryEmbeddingConfigSurface;
   memoryEmbeddingRuntime: MemoryEmbeddingRuntimeSurface;
 };
 
-type MemoryEmbeddingSubscription = {
-  scopeKey: string;
-  callback: (config: MemoryEmbeddingConfig) => void;
+type RuntimeClient = ReturnType<typeof getPlatformClient>['runtime'];
+
+type DesktopMemoryEmbeddingConfigServiceDeps = {
+  getRuntime?: () => RuntimeClient;
+  getSubjectUserId?: () => string | Promise<string>;
 };
 
-let subscriptionIDCounter = 0;
-const subscriptions = new Map<number, MemoryEmbeddingSubscription>();
-const configByScope = new Map<string, MemoryEmbeddingConfig>();
-
-function ensureHydrated(): void {
-  if (configByScope.size > 0) {
-    return;
-  }
-  const keys = listPersistedMemoryEmbeddingScopeKeys();
-  for (const key of keys) {
-    const ref = parseMemoryEmbeddingScopeKey(key);
-    if (!ref) {
-      continue;
-    }
-    configByScope.set(key, loadMemoryEmbeddingConfigForScope(ref));
-  }
-}
-
-function getConfigForScope(scopeRef: AIScopeRef): MemoryEmbeddingConfig {
-  ensureHydrated();
-  const key = scopeKeyFromRef(scopeRef);
-  const existing = configByScope.get(key);
-  if (existing) {
-    return existing;
-  }
-  const loaded = loadMemoryEmbeddingConfigForScope(scopeRef);
-  configByScope.set(key, loaded);
-  return loaded;
-}
-
-function notifySubscribers(config: MemoryEmbeddingConfig): void {
-  const key = scopeKeyFromRef(config.scopeRef);
-  for (const subscription of subscriptions.values()) {
-    if (subscription.scopeKey !== key) {
-      continue;
-    }
-    try {
-      subscription.callback(config);
-    } catch {
-      // Subscriber failures must not break host-local owner behavior.
-    }
-  }
-}
-
-function commitConfig(config: MemoryEmbeddingConfig): void {
-  const committed: MemoryEmbeddingConfig = {
-    ...config,
-    revisionToken: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  configByScope.set(scopeKeyFromRef(committed.scopeRef), committed);
-  persistMemoryEmbeddingConfigForScope(committed);
-  notifySubscribers(committed);
-}
-
-function currentSubjectUserId(): string {
+async function currentSubjectUserId(): Promise<string> {
+  const { useAppStore } = await import('./app-store.js');
   const user = useAppStore.getState().auth.user as Record<string, unknown> | null;
   return String(user?.id || '').trim();
 }
 
-function createMemoryEmbeddingConfigSurface(): MemoryEmbeddingConfigSurface {
-  return {
-    get(scopeRef: AIScopeRef): MemoryEmbeddingConfig {
-      return getConfigForScope(scopeRef);
-    },
-
-    update(scopeRef: AIScopeRef, config: MemoryEmbeddingConfig): void {
-      commitConfig({
-        ...config,
-        scopeRef,
-      });
-    },
-
-    subscribe(scopeRef: AIScopeRef, callback: (config: MemoryEmbeddingConfig) => void): () => void {
-      const id = ++subscriptionIDCounter;
-      subscriptions.set(id, {
-        scopeKey: scopeKeyFromRef(scopeRef),
-        callback,
-      });
-      return () => {
-        subscriptions.delete(id);
-      };
-    },
-  };
-}
-
-function createMemoryEmbeddingRuntimeSurface(): MemoryEmbeddingRuntimeSurface {
-  return createProtectedHostMemoryEmbeddingRuntimeSurface({
-    runtime: () => getPlatformClient().runtime,
-    getConfig: (scopeRef) => getConfigForScope(scopeRef),
-    getSubjectUserId: () => currentSubjectUserId(),
+export function createDesktopMemoryEmbeddingConfigService(
+  deps: DesktopMemoryEmbeddingConfigServiceDeps = {},
+): DesktopMemoryEmbeddingConfigService {
+  const getRuntime = deps.getRuntime ?? (() => getPlatformClient().runtime);
+  const getSubjectUserId = deps.getSubjectUserId ?? currentSubjectUserId;
+  const configSurface = createProtectedHostMemoryEmbeddingConfigSurface({
+    runtime: getRuntime,
+    getSubjectUserId,
   });
+  const runtimeSurface = createProtectedHostMemoryEmbeddingRuntimeSurface({
+    runtime: getRuntime,
+    getSubjectUserId,
+  });
+  return {
+    memoryEmbeddingConfig: configSurface,
+    memoryEmbeddingRuntime: runtimeSurface,
+  };
 }
 
 let singleton: DesktopMemoryEmbeddingConfigService | null = null;
 
 export function getDesktopMemoryEmbeddingConfigService(): DesktopMemoryEmbeddingConfigService {
   if (!singleton) {
-    singleton = {
-      memoryEmbeddingConfig: createMemoryEmbeddingConfigSurface(),
-      memoryEmbeddingRuntime: createMemoryEmbeddingRuntimeSurface(),
-    };
+    singleton = createDesktopMemoryEmbeddingConfigService();
   }
   return singleton;
-}
-
-export function seedEmptyDesktopMemoryEmbeddingConfig(scopeRef: AIScopeRef): MemoryEmbeddingConfig {
-  const current = getConfigForScope(scopeRef);
-  if (current.sourceKind || current.bindingRef) {
-    return current;
-  }
-  const empty = createEmptyMemoryEmbeddingConfig(scopeRef);
-  configByScope.set(scopeKeyFromRef(scopeRef), empty);
-  return empty;
 }

@@ -42,6 +42,10 @@ const firstRunGatePanelSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/nimi-home/first-run-gate-panel.tsx'),
   'utf8',
 );
+const productControlAdmissionSource = readFileSync(
+  resolve(import.meta.dirname, '../src-tauri/src/desktop_product_control_admission.rs'),
+  'utf8',
+);
 
 test('Gate 7: Desktop root route is guarded by auth and product ready_for_use', () => {
   assert.match(appRoutesSource, /function DesktopOrdinaryShellGate/);
@@ -134,6 +138,15 @@ test('Wave 7: bridge exposes a backend-only admitProductReadyForUse request', ()
   assert.match(productControlBridgeSource, /reconcileProductFirstRunSetupState/);
   assert.match(productControlBridgeSource, /product_control_record_reconcile_first_run_setup_state/);
   assert.doesNotMatch(productControlBridgeSource, /setProductFirstRunSetupState/);
+});
+
+test('Wave 7: Desktop admission adapter does not mirror Runtime ready authority in tests', () => {
+  assert.match(productControlAdmissionSource, /RUNTIME_LOCAL_ADMIT_PRODUCT_CONTROL_READY_FOR_USE_METHOD_ID/);
+  assert.match(productControlAdmissionSource, /AdmitProductControlReadyForUseRequest/);
+  assert.doesNotMatch(productControlAdmissionSource, /AdmissionRuntimeResolvers/);
+  assert.doesNotMatch(productControlAdmissionSource, /compose_admission/);
+  assert.doesNotMatch(productControlAdmissionSource, /ReadyAdmissionEvidence/);
+  assert.doesNotMatch(productControlAdmissionSource, /#\[cfg\(test\)\]/);
 });
 
 test('Wave 7: first-run finalization requests admission and routes on the projection', () => {

@@ -1,22 +1,17 @@
 import {
-  useEffect,
   useMemo,
-  useState } from 'react';
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  type MemoryEmbeddingConfig,
-} from '@nimiplatform/sdk/runtime';
-import {
+  createEmptyMemoryEmbeddingConfig,
   projectMemoryEmbeddingRouteAvailability,
+  type MemoryEmbeddingConfig,
   type RuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/runtime';
 import { Surface, cn } from '@nimiplatform/kit/ui';
 import { createDesktopMemoryEmbeddingScopeRef } from '@renderer/app-shell/providers/desktop-memory-embedding-scope';
-import { getDesktopMemoryEmbeddingConfigService } from '@renderer/app-shell/providers/desktop-memory-embedding-config-service';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
-import { loadRuntimeRouteOptions } from '@renderer/infra/bootstrap/runtime-bootstrap-route-options';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
-import { RuntimeSelect } from './runtime-config-primitives';
 
 const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
 const TOKEN_TEXT_SECONDARY = 'text-[var(--nimi-text-secondary)]';
@@ -44,266 +39,137 @@ type RuntimeConfigMemoryEmbeddingSectionProps = {
   state: RuntimeConfigStateV11;
 };
 
-type CloudConnectorOption = {
-  connectorId: string;
+type MemoryEmbeddingRouteCandidate = {
+  id: string;
   label: string;
-  models: string[];
+  detail: string;
+  tone: AvailabilityTone;
+  state: string;
 };
 
-function savedConfigLabel(config: MemoryEmbeddingConfig): string {
-  if (!config.sourceKind || !config.bindingRef) {
-    return 'Not configured';
+function buildCloudCandidateConfig(
+  base: MemoryEmbeddingConfig,
+  connectorId: string,
+  modelId: string,
+): MemoryEmbeddingConfig {
+  return {
+    ...base,
+    sourceKind: 'cloud',
+    bindingRef: {
+      kind: 'cloud',
+      connectorId,
+      modelId,
+    },
+  };
+}
+
+function buildLocalCandidateConfig(base: MemoryEmbeddingConfig, targetId: string): MemoryEmbeddingConfig {
+  return {
+    ...base,
+    sourceKind: 'local',
+    bindingRef: {
+      kind: 'local',
+      targetId,
+    },
+  };
+}
+
+function candidateTone(state: string): AvailabilityTone {
+  if (state === 'ready') {
+    return 'success';
   }
-  if (config.sourceKind === 'cloud' && config.bindingRef.kind === 'cloud') {
-    return `${config.bindingRef.connectorId} / ${config.bindingRef.modelId}`;
+  if (state === 'blocked' || state === 'unavailable') {
+    return 'warning';
   }
-  if (config.sourceKind === 'local' && config.bindingRef.kind === 'local') {
-    return config.bindingRef.targetId;
+  return 'neutral';
+}
+
+function buildCandidates(
+  scopeConfig: MemoryEmbeddingConfig,
+  routeOptions: RuntimeRouteOptionsSnapshot | null,
+): MemoryEmbeddingRouteCandidate[] {
+  if (!routeOptions) {
+    return [];
   }
-  return 'Not configured';
+  const cloud = routeOptions.connectors.flatMap((connector) => (
+    connector.models.map((modelId) => {
+      const projection = projectMemoryEmbeddingRouteAvailability({
+        config: buildCloudCandidateConfig(scopeConfig, connector.id, modelId),
+        routeOptions,
+      });
+      return {
+        id: `cloud:${connector.id}:${modelId}`,
+        label: connector.label || connector.id,
+        detail: modelId,
+        tone: candidateTone(projection.state),
+        state: projection.state,
+      };
+    })
+  ));
+  const local = routeOptions.local.models.map((model) => {
+    const projection = projectMemoryEmbeddingRouteAvailability({
+      config: buildLocalCandidateConfig(scopeConfig, model.model),
+      routeOptions,
+    });
+    return {
+      id: `local:${model.model}`,
+      label: model.label || model.model,
+      detail: model.status || 'local',
+      tone: candidateTone(projection.state),
+      state: projection.state,
+    };
+  });
+  return [...cloud, ...local];
 }
 
 export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEmbeddingSectionProps) {
   const { t } = useTranslation();
   const scopeRef = useMemo(() => createDesktopMemoryEmbeddingScopeRef(), []);
-  const memoryEmbeddingService = useMemo(() => getDesktopMemoryEmbeddingConfigService(), []);
-  const [config, setConfig] = useState(() => memoryEmbeddingService.memoryEmbeddingConfig.get(scopeRef));
-  const [routeOptions, setRouteOptions] = useState<RuntimeRouteOptionsSnapshot | null>(null);
-  const [routeOptionsError, setRouteOptionsError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setConfig(memoryEmbeddingService.memoryEmbeddingConfig.get(scopeRef));
-    return memoryEmbeddingService.memoryEmbeddingConfig.subscribe(scopeRef, (next) => {
-      setConfig(next);
-    });
-  }, [memoryEmbeddingService, scopeRef]);
-
-  useEffect(() => {
-    let cancelled = false;
-    void loadRuntimeRouteOptions({ capability: 'text.embed' })
-      .then((snapshot) => {
-        if (cancelled) return;
-        setRouteOptions(snapshot);
-        setRouteOptionsError(null);
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        setRouteOptions(null);
-        setRouteOptionsError(error instanceof Error ? error.message : String(error || 'Failed to load route options.'));
-      });
-    return () => {
-      cancelled = true;
+  const scopeConfig = useMemo(() => createEmptyMemoryEmbeddingConfig(scopeRef), [scopeRef]);
+  const routeOptions = useMemo<RuntimeRouteOptionsSnapshot>(() => {
+    return {
+      capability: 'text.embed',
+      selected: null,
+      local: {
+        models: props.state.local.models.map((model) => ({
+          localModelId: model.localModelId || model.model,
+          label: model.model,
+          engine: model.engine,
+          model: model.model,
+          modelId: model.model,
+          endpoint: model.endpoint,
+          status: model.status,
+          capabilities: model.capabilities,
+        })),
+      },
+      connectors: props.state.connectors.map((connector) => ({
+        id: connector.id,
+        label: connector.label,
+        vendor: connector.vendor,
+        provider: connector.provider,
+        models: connector.models,
+        modelCapabilities: connector.modelCapabilities,
+      })),
     };
   }, [props.state.connectors, props.state.local.models]);
 
-  const localEmbeddingOptions = useMemo(() => {
-    const options = (routeOptions?.local.models || [])
-      .map((model) => ({
-        value: model.model,
-        label: model.label || model.model,
-        status: model.status,
-      }));
-    if (config.sourceKind === 'local' && config.bindingRef?.kind === 'local') {
-      const saved = config.bindingRef.targetId;
-      if (saved && !options.some((option) => option.value === saved)) {
-        options.unshift({
-          value: saved,
-          label: `${saved} (${t('runtimeConfig.memory.savedButUnavailable', { defaultValue: 'saved, unavailable' })})`,
-          status: undefined,
-        });
-      }
-    }
-    return options;
-  }, [config.bindingRef, config.sourceKind, routeOptions, t]);
-
-  const cloudConnectorOptions = useMemo<CloudConnectorOption[]>(() => {
-    const options = (routeOptions?.connectors || [])
-      .map((connector) => ({
-        connectorId: connector.id,
-        label: connector.label,
-        models: [...connector.models],
-      }))
-      .filter((connector) => connector.models.length > 0);
-    if (config.sourceKind === 'cloud' && config.bindingRef?.kind === 'cloud') {
-      const savedConnectorId = config.bindingRef.connectorId;
-      const savedModelId = config.bindingRef.modelId;
-      const existing = options.find((option) => option.connectorId === savedConnectorId);
-      if (existing && !existing.models.includes(savedModelId)) {
-        existing.models.unshift(savedModelId);
-      } else if (!existing && savedConnectorId && savedModelId) {
-        options.unshift({
-          connectorId: savedConnectorId,
-          label: `${savedConnectorId} (${t('runtimeConfig.memory.savedButUnavailable', { defaultValue: 'saved, unavailable' })})`,
-          models: [savedModelId],
-        });
-      }
-    }
-    return options;
-  }, [config.bindingRef, config.sourceKind, routeOptions, t]);
-
-  const selectedCloudConnectorId = config.sourceKind === 'cloud' && config.bindingRef?.kind === 'cloud'
-    ? config.bindingRef.connectorId
-    : '';
-  const selectedCloudConnector = cloudConnectorOptions.find((option) => option.connectorId === selectedCloudConnectorId) || null;
-  const cloudModelOptions = useMemo(() => {
-    return (selectedCloudConnector?.models || []).map((modelId) => ({
-      value: modelId,
-      label: modelId,
-    }));
-  }, [selectedCloudConnector]);
-
-  const availability = useMemo<{
-    tone: AvailabilityTone;
-    label: string;
-    hint: string;
-  }>(() => {
-    if (!config.sourceKind || !config.bindingRef) {
-      return {
-        tone: routeOptionsError ? 'warning' : 'neutral',
-        label: t('runtimeConfig.memory.notConfigured', { defaultValue: 'Not configured' }),
-        hint: routeOptionsError || t('runtimeConfig.memory.notConfiguredHint', {
-          defaultValue: 'Choose a cloud connector or an active local embedding model. Chat memory upgrades will use this source.',
-        }),
-      };
-    }
-    const projected = projectMemoryEmbeddingRouteAvailability({ config, routeOptions });
-    if (config.sourceKind === 'cloud' && config.bindingRef.kind === 'cloud') {
-      if (projected.state === 'ready') {
-        return {
-          tone: 'success',
-          label: t('runtimeConfig.memory.ready', { defaultValue: 'Ready' }),
-          hint: t('runtimeConfig.memory.cloudReadyHint', {
-            defaultValue: 'Cloud memory embedding is configured and the selected connector advertises text.embed support.',
-          }),
-        };
-      }
-      return {
-        tone: 'warning',
-        label: t('runtimeConfig.memory.unavailable', { defaultValue: 'Unavailable' }),
-        hint: t('runtimeConfig.memory.cloudUnavailableHint', {
-          defaultValue: 'The saved cloud connector or model is no longer healthy, or it no longer exposes text.embed.',
-        }),
-      };
-    }
-    if (config.sourceKind === 'local' && config.bindingRef.kind === 'local') {
-      return projected.state === 'ready'
-        ? {
-            tone: 'success',
-            label: t('runtimeConfig.memory.ready', { defaultValue: 'Ready' }),
-            hint: t('runtimeConfig.memory.localReadyHint', {
-              defaultValue: 'A local embedding model is active and ready for future chat memory upgrades.',
-            }),
-          }
-        : {
-            tone: 'warning',
-            label: t('runtimeConfig.memory.unavailable', { defaultValue: 'Unavailable' }),
-            hint: t('runtimeConfig.memory.localUnavailableHint', {
-              defaultValue: 'The saved local embedding target is no longer active. Start or install an embedding model first.',
-            }),
-          };
-    }
-    return {
-      tone: 'neutral',
-      label: t('runtimeConfig.memory.notConfigured', { defaultValue: 'Not configured' }),
-      hint: t('runtimeConfig.memory.notConfiguredHint', {
-        defaultValue: 'Choose a cloud connector or an active local embedding model. Chat memory upgrades will use this source.',
-      }),
-    };
-  }, [config, routeOptions, routeOptionsError, t]);
-
-  const commitConfig = (next: MemoryEmbeddingConfig) => {
-    memoryEmbeddingService.memoryEmbeddingConfig.update(scopeRef, next);
-  };
-
-  const handleSourceKindChange = (value: string) => {
-    if (value === 'cloud') {
-      const firstConnector = cloudConnectorOptions[0] || null;
-      const firstModel = firstConnector?.models[0] || '';
-      commitConfig({
-        ...config,
-        scopeRef,
-        sourceKind: 'cloud',
-        bindingRef: firstConnector && firstModel
-          ? {
-              kind: 'cloud',
-              connectorId: firstConnector.connectorId,
-              modelId: firstModel,
-            }
-          : null,
-      });
-      return;
-    }
-    if (value === 'local') {
-      const firstLocal = localEmbeddingOptions[0]?.value || '';
-      commitConfig({
-        ...config,
-        scopeRef,
-        sourceKind: 'local',
-        bindingRef: firstLocal
-          ? {
-              kind: 'local',
-              targetId: firstLocal,
-            }
-          : null,
-      });
-      return;
-    }
-    commitConfig({
-      ...config,
-      scopeRef,
-      sourceKind: null,
-      bindingRef: null,
-    });
-  };
-
-  const handleCloudConnectorChange = (connectorId: string) => {
-    const connector = cloudConnectorOptions.find((option) => option.connectorId === connectorId) || null;
-    const modelId = connector?.models[0] || '';
-    commitConfig({
-      ...config,
-      scopeRef,
-      sourceKind: 'cloud',
-      bindingRef: connector && modelId
-        ? {
-            kind: 'cloud',
-            connectorId,
-            modelId,
-          }
-        : null,
-    });
-  };
-
-  const handleCloudModelChange = (modelId: string) => {
-    if (!selectedCloudConnector) {
-      return;
-    }
-    commitConfig({
-      ...config,
-      scopeRef,
-      sourceKind: 'cloud',
-      bindingRef: {
-        kind: 'cloud',
-        connectorId: selectedCloudConnector.connectorId,
-        modelId,
-      },
-    });
-  };
-
-  const handleLocalTargetChange = (targetId: string) => {
-    commitConfig({
-      ...config,
-      scopeRef,
-      sourceKind: 'local',
-      bindingRef: targetId
-        ? {
-            kind: 'local',
-            targetId,
-          }
-        : null,
-    });
-  };
-
-  const badgeStyle = AVAILABILITY_BADGE_CLASS[availability.tone];
+  const candidates = useMemo(
+    () => buildCandidates(scopeConfig, routeOptions),
+    [routeOptions, scopeConfig],
+  );
+  const readyCount = candidates.filter((candidate) => candidate.tone === 'success').length;
+  const badgeTone: AvailabilityTone = readyCount > 0
+      ? 'success'
+      : candidates.length > 0
+        ? 'warning'
+        : 'neutral';
+  const badgeStyle = AVAILABILITY_BADGE_CLASS[badgeTone];
+  const badgeLabel = readyCount > 0
+      ? t('runtimeConfig.memory.ready', { defaultValue: 'Ready' })
+      : t('runtimeConfig.memory.notConfigured', { defaultValue: 'Not configured' });
+  const hint = t('runtimeConfig.memory.scopeHint', {
+    defaultValue: 'Memory embedding binding intent is saved per agent by Runtime when you explicitly upgrade an agent memory bank.',
+  });
 
   return (
     <section>
@@ -311,90 +177,57 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
         {t('runtimeConfig.memory.sectionTitle', { defaultValue: 'Memory Embedding' })}
       </SectionTitle>
       <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'mt-3 p-5')}>
-        {/* Header: title + availability badge */}
         <div className="flex items-center justify-between gap-3">
           <h3 className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>
-            {t('runtimeConfig.memory.sourceBindingTitle', { defaultValue: 'Embedding Source' })}
+            {t('runtimeConfig.memory.sourceBindingTitle', { defaultValue: 'Embedding Source Availability' })}
           </h3>
           <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium', badgeStyle.pill)}>
             <span className={cn('h-1.5 w-1.5 rounded-full', badgeStyle.dot)} />
-            {availability.label}
+            {badgeLabel}
           </span>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,200px)_minmax(0,1fr)_minmax(0,1fr)]">
-          <div>
-            <label className={cn('mb-1.5 block text-sm font-medium', TOKEN_TEXT_SECONDARY)}>
-              {t('runtimeConfig.memory.sourceKind', { defaultValue: 'Source' })}
-            </label>
-            <RuntimeSelect
-              value={config.sourceKind || ''}
-              onChange={handleSourceKindChange}
-              options={[
-                { value: '', label: t('runtimeConfig.memory.sourceUnset', { defaultValue: 'Not configured' }) },
-                { value: 'cloud', label: t('runtimeConfig.memory.sourceCloud', { defaultValue: 'Cloud connector' }) },
-                { value: 'local', label: t('runtimeConfig.memory.sourceLocal', { defaultValue: 'Local model' }) },
-              ]}
-            />
-          </div>
-
-          {config.sourceKind === 'cloud' ? (
-            <>
-              <div>
-                <label className={cn('mb-1.5 block text-sm font-medium', TOKEN_TEXT_SECONDARY)}>
-                  {t('runtimeConfig.memory.connector', { defaultValue: 'Connector' })}
-                </label>
-                <RuntimeSelect
-                  value={selectedCloudConnectorId}
-                  onChange={handleCloudConnectorChange}
-                  options={cloudConnectorOptions.map((option) => ({
-                    value: option.connectorId,
-                    label: option.label,
-                  }))}
-                  placeholder={t('runtimeConfig.memory.noCloudConnector', { defaultValue: 'No healthy embedding connector' })}
-                />
+        <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {candidates.length > 0 ? candidates.slice(0, 6).map((candidate) => {
+            const style = AVAILABILITY_BADGE_CLASS[candidate.tone];
+            return (
+              <div
+                key={candidate.id}
+                className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/60 p-4"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className={cn('truncate text-sm font-medium', TOKEN_TEXT_PRIMARY)}>{candidate.label}</p>
+                  <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium', style.pill)}>
+                    {candidate.state}
+                  </span>
+                </div>
+                <p className={cn('mt-1 truncate font-mono text-xs', TOKEN_TEXT_SECONDARY)}>{candidate.detail}</p>
               </div>
-              <div>
-                <label className={cn('mb-1.5 block text-sm font-medium', TOKEN_TEXT_SECONDARY)}>
-                  {t('runtimeConfig.memory.model', { defaultValue: 'Embedding model' })}
-                </label>
-                <RuntimeSelect
-                  value={config.bindingRef?.kind === 'cloud' ? config.bindingRef.modelId : ''}
-                  onChange={handleCloudModelChange}
-                  options={cloudModelOptions}
-                  placeholder={t('runtimeConfig.memory.noCloudModel', { defaultValue: 'No embedding model discovered' })}
-                />
-              </div>
-            </>
-          ) : config.sourceKind === 'local' ? (
-            <div className="lg:col-span-2">
-              <label className={cn('mb-1.5 block text-sm font-medium', TOKEN_TEXT_SECONDARY)}>
-                {t('runtimeConfig.memory.localTarget', { defaultValue: 'Local embedding model' })}
-              </label>
-              <RuntimeSelect
-                value={config.bindingRef?.kind === 'local' ? config.bindingRef.targetId : ''}
-                onChange={handleLocalTargetChange}
-                options={localEmbeddingOptions}
-                placeholder={t('runtimeConfig.memory.noLocalModel', { defaultValue: 'No active local embedding model' })}
-              />
+            );
+          }) : (
+            <div className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/60 p-4 lg:col-span-2">
+              <p className={cn('text-sm font-medium', TOKEN_TEXT_PRIMARY)}>
+                {t('runtimeConfig.memory.notConfigured', { defaultValue: 'Not configured' })}
+              </p>
+              <p className={cn('mt-1 text-xs', TOKEN_TEXT_SECONDARY)}>
+                {t('runtimeConfig.memory.notConfiguredHint', {
+                  defaultValue: 'No Runtime text.embed route is currently available.',
+                })}
+              </p>
             </div>
-          ) : null}
+          )}
         </div>
 
-        {/* Current selection — inset panel matching Overview meta pattern */}
         <div className="mt-5 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/60 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className={cn('text-[10px] font-medium uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>
-              {t('runtimeConfig.memory.currentSelection', { defaultValue: 'Current selection' })}
+              {t('runtimeConfig.memory.currentSelection', { defaultValue: 'Runtime-owned intent' })}
             </p>
-            <p className={cn('font-mono text-sm', TOKEN_TEXT_PRIMARY)}>{savedConfigLabel(config)}</p>
+            <p className={cn('font-mono text-sm', TOKEN_TEXT_PRIMARY)}>
+              {readyCount}/{candidates.length}
+            </p>
           </div>
-          <p className={cn('mt-2 text-xs', TOKEN_TEXT_SECONDARY)}>{availability.hint}</p>
-          <p className={cn('mt-2 text-[11px]', TOKEN_TEXT_MUTED)}>
-            {t('runtimeConfig.memory.scopeHint', {
-              defaultValue: 'This is scope-level config for chat. Existing agents still move to Standard memory only when you explicitly trigger upgrade in chat.',
-            })}
-          </p>
+          <p className={cn('mt-2 text-xs', TOKEN_TEXT_SECONDARY)}>{hint}</p>
         </div>
       </Surface>
     </section>

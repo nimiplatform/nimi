@@ -1,5 +1,5 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
-import { asNimiError, createNimiClientId } from '@nimiplatform/sdk/runtime';
+import { createNimiClientId, runRuntimeAgentTurn } from '@nimiplatform/sdk/runtime';
 import type {
   AgentRuntimeChatTurnRequest,
   AgentRuntimeChatTurnStreamPart,
@@ -9,13 +9,13 @@ import {
   resolveChatThinkingConfig,
   resolveTextExecutionSnapshotThinkingSupport,
 } from './chat-shared-thinking';
-import { createRuntimeAgentEventQueue } from './chat-agent-runtime-agent-stream';
 import {
-  nowMs,
+  buildRuntimeAgentDiagnostics,
+  resolveRuntimeTrace,
   safeLogRuntimeAgentEvent,
   safeLogRuntimeAgentTiming,
+  toDebugMetadata,
 } from './chat-agent-runtime-agent-utils';
-import { createRuntimeAgentTurnStream } from './chat-agent-runtime-agent-stream-consumer';
 
 export async function streamChatAgentRuntimeAgentTurn(
   request: AgentRuntimeChatTurnRequest,
@@ -41,58 +41,6 @@ export async function streamChatAgentRuntimeAgentTurn(
     realmAgentId: request.realmAgentId,
     localAgentRef: request.localAgentRef,
   };
-  const subscribeStartedAt = nowMs();
-  const subscribed = await runtime.agent.turns.subscribe({
-    ...localIdentity,
-    conversationAnchorId: request.conversationAnchorId,
-    includeAgentEvents: false,
-  });
-  safeLogRuntimeAgentTiming({
-    stage: 'desktop.runtime_agent.subscribe_ms',
-    startedAt: subscribeStartedAt,
-    details: {
-      localAgentRef: request.localAgentRef,
-      conversationAnchorId: request.conversationAnchorId,
-      threadId: request.threadId,
-      requestId,
-    },
-  });
-  safeLogRuntimeAgentEvent({
-    level: 'info',
-    area: 'agent-chat-runtime',
-    message: 'action:runtime-agent-turn:subscribed',
-    details: {
-      localAgentRef: request.localAgentRef,
-      conversationAnchorId: request.conversationAnchorId,
-      threadId: request.threadId,
-      requestId,
-    },
-  });
-
-  let requestSubmitted = false;
-  let interruptRequested = false;
-  const runtimeTurnRef = { turnId: '', streamId: '' };
-  const acceptedRequestIds = new Set<string>([requestId]);
-  const eventQueue = createRuntimeAgentEventQueue(subscribed);
-
-  const requestInterrupt = () => {
-    if (interruptRequested || !requestSubmitted) {
-      return;
-    }
-    interruptRequested = true;
-    void runtime.agent.turns.interrupt({
-      ...localIdentity,
-      conversationAnchorId: request.conversationAnchorId,
-      ...(normalizeText(runtimeTurnRef.turnId) ? { turnId: runtimeTurnRef.turnId } : {}),
-      reason: 'desktop_agent_chat_abort',
-    }).catch(() => undefined);
-  };
-  const cleanupSubscription = () => {
-    request.signal?.removeEventListener('abort', requestInterrupt);
-    eventQueue.stop();
-  };
-
-  request.signal?.addEventListener('abort', requestInterrupt, { once: true });
 
   const requestPayloadBase = {
     ...localIdentity,
@@ -127,68 +75,65 @@ export async function streamChatAgentRuntimeAgentTurn(
     })(),
   };
 
-  let requestResponse: { messageId?: string } | void;
-  const requestStartedAt = nowMs();
-  try {
-    requestResponse = await runtime.agent.turns.request({
-      ...requestPayloadBase,
-      requestId,
-    });
-  } catch (error) {
-    cleanupSubscription();
-    throw asNimiError(error, { source: 'runtime' });
-  }
-  const requestMessageId = normalizeText(requestResponse && typeof requestResponse === 'object' ? requestResponse.messageId : '');
-  if (requestMessageId) {
-    acceptedRequestIds.add(requestMessageId);
-  }
-  requestSubmitted = true;
-  safeLogRuntimeAgentTiming({
-    stage: 'desktop.runtime_agent.request_ack_ms',
-    startedAt: requestStartedAt,
-    details: {
-      localAgentRef: request.localAgentRef,
-      conversationAnchorId: request.conversationAnchorId,
-      threadId: request.threadId,
-      requestId,
-      requestMessageId,
-      route,
-      modelId,
-      connectorId: connectorId || null,
-    },
-  });
-  safeLogRuntimeAgentEvent({
-    level: 'info',
-    area: 'agent-chat-runtime',
-    message: 'action:runtime-agent-turn:request-acked',
-    details: {
-      localAgentRef: request.localAgentRef,
-      conversationAnchorId: request.conversationAnchorId,
-      threadId: request.threadId,
-      requestId,
-      requestMessageId,
-      route,
-      modelId,
-      connectorId: connectorId || null,
-    },
-  });
-
-  return createRuntimeAgentTurnStream({
-    acceptedRequestIds,
-    cleanupSubscription,
-    connectorId,
-    eventQueue,
-    modelId,
-    querySnapshot: () => runtime.agent.turns.getSessionSnapshot({
+  return runRuntimeAgentTurn({
+    turns: runtime.agent.turns,
+    subscribe: {
       ...localIdentity,
       conversationAnchorId: request.conversationAnchorId,
+      includeAgentEvents: false,
+    },
+    request: {
+      ...requestPayloadBase,
       requestId,
-    }),
-    request,
-    requestId,
-    requestMessageId,
+    },
+    signal: request.signal,
+    interruptReason: 'desktop_agent_chat_abort',
     route,
-    runtimeTurnRef,
+    modelId,
+    connectorId,
+    logEvent: safeLogRuntimeAgentEvent,
+    logTiming: (event) => {
+      const stageByRunnerStage = {
+        subscribe: 'desktop.runtime_agent.subscribe_ms',
+        request_ack: 'desktop.runtime_agent.request_ack_ms',
+        accepted_to_started: 'desktop.runtime_agent.accepted_to_started_ms',
+        started_to_first_delta: 'desktop.runtime_agent.started_to_first_delta_ms',
+        message_committed_to_message_sealed: 'desktop.runtime_agent.message_committed_to_message_sealed_ms',
+        completed_to_ui_done: 'desktop.runtime_agent.completed_to_ui_done_ms',
+      } as const;
+      safeLogRuntimeAgentTiming({
+        stage: stageByRunnerStage[event.stage],
+        startedAt: event.startedAt,
+        details: event.details,
+      });
+    },
+    resolveTrace: resolveRuntimeTrace,
+    buildMetadata: (input) => toDebugMetadata({
+      prompt: normalizeText(request.userText),
+      systemPrompt: null,
+      conversationAnchorId: request.conversationAnchorId,
+      runtimeTurnId: input.runtimeTurnId,
+      runtimeStreamId: input.runtimeStreamId,
+      route,
+      modelId,
+      connectorId,
+      trace: input.trace,
+      envelope: input.envelope,
+      latestTimeline: input.latestTimeline || null,
+    }),
+    buildDiagnostics: (input) => buildRuntimeAgentDiagnostics({
+      conversationAnchorId: request.conversationAnchorId,
+      runtimeTurnId: input.runtimeTurnId,
+      runtimeStreamId: input.runtimeStreamId,
+      route,
+      modelId,
+      connectorId,
+      trace: input.trace,
+      extra: {
+        ...(input.runtimeTurnTimelines.length > 0 ? { runtimeTurnTimelines: [...input.runtimeTurnTimelines] } : {}),
+        ...(input.runtimeProjectionEvents.length > 0 ? { runtimeProjectionEvents: [...input.runtimeProjectionEvents] } : {}),
+        ...(input.extra || {}),
+      },
+    }),
   });
-
 }
