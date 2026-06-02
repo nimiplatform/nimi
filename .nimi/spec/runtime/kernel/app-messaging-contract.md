@@ -11,16 +11,19 @@
 3. `InstallApp` — 触发 Runtime-owned Nimi App install lifecycle（见 `K-APP-011`）
 4. `UninstallApp` — 触发 Runtime-owned Nimi App uninstall lifecycle（见 `K-APP-014`）
 5. `GetAppStorage` — 读取 app-scoped storage truth projection（见 `K-APP-022`）
-6. `GetAppPackageReadiness` — 读取 active release / install evidence package readiness projection（见 `K-APP-023`）
-7. `GetAppInstallJob` — 读取单个 install job 的 typed projection（见 `K-APP-012`）
-8. `ListAppInstallJobs` — 列出 install job 的 typed projection（见 `K-APP-012`）
-9. `WatchAppInstallJobEvents` — 订阅 install job 进度事件流（见 `K-APP-013`）
-10. `UpdateApp` — 触发 Runtime-owned Nimi App atomic update lifecycle（见 `K-APP-015`）
-11. `HealthRepairApp` — 触发 Runtime-owned Nimi App health/repair lifecycle（见 `K-APP-016`）
+6. `GetAccountAppLibrary` — 读取 authenticated account app-library truth projection（见 `K-APP-024`）
+7. `GetAppPackageReadiness` — 读取 active release / install evidence package readiness projection（见 `K-APP-023`）
+8. `GetAppInstallJob` — 读取单个 install job 的 typed projection（见 `K-APP-012`）
+9. `ListAppInstallJobs` — 列出 install job 的 typed projection（见 `K-APP-012`）
+10. `WatchAppInstallJobEvents` — 订阅 install job 进度事件流（见 `K-APP-013`）
+11. `UpdateApp` — 触发 Runtime-owned Nimi App atomic update lifecycle（见 `K-APP-015`）
+12. `HealthRepairApp` — 触发 Runtime-owned Nimi App health/repair lifecycle（见 `K-APP-016`）
+13. `OpenApp` — 触发 Runtime-owned Nimi App launch/open flow（见 `K-APP-017`）
 
 App messaging 方法（1–2）与 app install/uninstall/update/repair lifecycle 方法
-（3–10）共用 `RuntimeAppService`，但语义独立：lifecycle 方法不承载 app-to-app
-message broker 语义，messaging 方法不承载 install/uninstall/update/repair 语义。
+（3–13）共用 `RuntimeAppService`，但语义独立：lifecycle / projection 方法不承载
+app-to-app message broker 语义，messaging 方法不承载 install/uninstall/update/repair/open
+语义。
 
 ## K-APP-002 SendAppMessage 语义
 
@@ -784,3 +787,21 @@ Runtime install evidence, or derive package readiness from file existence as
 an alternate package authority. SDK may expose typed decoders and compose this
 projection with Platform registry/admission rows for developer ergonomics, but
 the readiness facts remain Runtime-owned.
+
+## K-APP-024 Account App-Library Truth Projection
+
+`MUST`：`GetAccountAppLibrary()` 是 Runtime-owned authenticated account
+app-library truth projection。Runtime resolves the account id from the current
+authenticated Runtime account projection; the request must not accept a renderer-
+or app-supplied `account_id`.
+
+`MUST`：the response distinguishes an absent projection (`exists=false`) from a
+present, validated `AccountAppLibraryRecord`. Corrupt JSON, unsupported schema,
+account-id mismatch, invalid row state, or invalid data policy must fail closed
+with `APP_OPEN_LIBRARY_STATE_INVALID`.
+
+`MUST NOT`：Desktop, SDK, Kit, or apps must not read
+`~/.nimi/accounts/<account-id>/apps/library.json`, derive the authenticated
+account directory, or expose a mutation path as an alternate library authority.
+SDK may expose typed request/response helpers and decoders over this Runtime
+surface, but Runtime remains the writer and validator.

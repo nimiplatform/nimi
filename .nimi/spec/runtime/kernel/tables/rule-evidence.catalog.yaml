@@ -22,6 +22,7 @@ entries:
   - runtime_kernel_consistency
   - runtime_go_test
   - sdk_runtime_test
+  - desktop_boundary_test
   - runtime_go_lint
   - runtime_proto_linkage
   - runtime_provider_checks
@@ -50,6 +51,13 @@ sdk_runtime_test:
   description: >-
     SDK runtime projection tests verifying generated Runtime RPC method
     coverage, auth posture classification, and typed client surfaces.
+desktop_boundary_test:
+  type: test_gate
+  command: pnpm --filter @nimiplatform/desktop test
+  path: apps/desktop/test
+  description: >-
+    Desktop app-boundary tests verifying Runtime projections are consumed through
+    SDK/Kit-facing surfaces without Desktop-local platform truth.
 runtime_go_lint:
   type: lint_gate
   command: cd runtime && golangci-lint run ./...

@@ -267,6 +267,14 @@ rules:
       - sdk_runtime_test
     note: GetAppPackageReadiness is the Runtime-owned active release / install evidence readiness projection; tests cover Runtime evidence interpretation and SDK typed client consumption.
     evidence_requirement: required
+  - rule_id: K-APP-024
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+      - desktop_boundary_test
+    note: GetAccountAppLibrary is the Runtime-owned authenticated account app-library truth projection; tests cover Runtime validation and Desktop/SDK consumption without Desktop-local file reads.
+    evidence_requirement: required
   - rule_id: K-CONN-001
     evidence_refs:
       - runtime_kernel_consistency

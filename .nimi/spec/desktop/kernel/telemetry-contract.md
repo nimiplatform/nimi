@@ -68,7 +68,7 @@ Renderer 日志通过 IPC 转发到 Tauri backend：
 
 - 重试事件：`action:retry:retrying`、`action:retry:recovered`、`action:retry:retry_exhausted`。
 - 日志级别：retrying=warn、recovered=info、exhausted=error。
-- 来源：`request-with-retry.ts` 中的 `requestWithRetry` 函数。
+- 来源：SDK `sdk/src/types/network-retry.ts` 中的 shared retry helper。
 
 ## D-TEL-008 — 全局 trace_id 传播
 

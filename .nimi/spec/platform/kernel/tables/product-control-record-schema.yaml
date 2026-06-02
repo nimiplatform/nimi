@@ -42,7 +42,7 @@ invariants:
 ready_admission:
   source_rule: P-COLD-016
   logical_operation: AdmitProductReadyForUse
-  owner: platform_product_control_backend
+  owner: runtime_product_control_service
   writable_record: ~/.nimi/nimi.json
   caller_boundary:
     allowed_callers:

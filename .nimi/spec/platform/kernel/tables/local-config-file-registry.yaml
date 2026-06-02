@@ -30,7 +30,7 @@ rows:
 config_files:
   - config_file_id: nimi_json
     path: "~/.nimi/nimi.json"
-    schema_owner: desktop_product_control
+    schema_owner: runtime_product_control_service
     framework_authority: P-MIG-003
     source_rule: P-MIG-001
 
@@ -65,13 +65,13 @@ config_files:
     source_rule: P-MIG-001
 
   - config_file_id: library_json
-    path: "~/.nimi/library.json"
-    schema_owner: account_profile_library
+    path: "~/.nimi/accounts/<account-id>/apps/library.json"
+    schema_owner: account_app_library_projection
     framework_authority: P-MIG-003
     source_rule: P-MIG-001
 
   - config_file_id: grants_json
-    path: "~/.nimi/grants.json"
+    path: "~/.nimi/accounts/<account-id>/permissions/grants.json"
     schema_owner: permission_grant_projection
     framework_authority: P-MIG-003
     source_rule: P-MIG-001

@@ -132,3 +132,12 @@ rules:
       - sdk/test/runtime/runtime-app-lifecycle.test.ts
       - sdk/test/app-registry-transport.test.ts
     evidence_requirement: required
+  - rule_id: S-APP-019
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_behavioral_test
+    note: SDK account app-library accessor is backed by Runtime GetAccountAppLibrary and must not read account-scoped projection files locally.
+    test_files:
+      - sdk/test/runtime/runtime-app-lifecycle.test.ts
+      - sdk/test/account-app-library.test.ts
+    evidence_requirement: required

@@ -194,6 +194,26 @@ services:
         type: unary
       - name: ResolveFirstRunExecutionEvidence
         type: unary
+      - name: GetProductControlRecord
+        type: unary
+      - name: GetProductControlSelectedDataRoot
+        type: unary
+      - name: EnsureProductControlRecordCreated
+        type: unary
+      - name: SelectProductControlDataRoot
+        type: unary
+      - name: SetProductControlFirstRunInstallLevel
+        type: unary
+      - name: CompleteProductControlFirstRunDeviceEnvironmentScan
+        type: unary
+      - name: AdmitProductControlReadyForUse
+        type: unary
+      - name: RecordProductControlAccountDefaultProfileEvidence
+        type: unary
+      - name: RecordProductControlFirstRunLocalAiReadyEvidence
+        type: unary
+      - name: ReconcileProductControlFirstRunSetupState
+        type: unary
       - name: ResolveLocalStateReconciliation
         type: unary
       - name: ExecuteLocalStateCutover
@@ -386,6 +406,8 @@ services:
       - name: UninstallApp
         type: unary
       - name: GetAppStorage
+        type: unary
+      - name: GetAccountAppLibrary
         type: unary
       - name: GetAppPackageReadiness
         type: unary

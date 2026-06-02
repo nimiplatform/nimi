@@ -345,17 +345,45 @@ registered_command_families:
     match:
       exact:
         - product_control_record_get
+        - product_control_selected_data_root_get
+        - product_control_record_ensure_created
         - product_control_record_select_data_root
+        - product_control_record_complete_first_run_device_environment_scan
         - product_control_record_set_first_run_install_level
+        - product_control_record_admit_ready_for_use
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: runtime-product-control-bridge
+    execution_class: request_response_async
+    remediation_required: false
+    admitted_risks:
+      - runtime_bridge_block_on
+      - std_fs
+    source_rule: D-GATE-094
+
+  - family: product_control_os_helpers
+    match:
+      exact:
+        - product_control_pick_data_root_directory
+        - product_control_default_data_root_directory
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-bounded-os-helper
+    execution_class: bounded_blocking_with_admission
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - native_dialog
+    source_rule: D-GATE-094
+
+  - family: product_control_desktop_host_evidence
+    match:
+      exact:
         - product_control_record_ensure_account_default_profile
         - product_control_record_prepare_first_run_local_ai_ready
-        - product_control_record_set_first_run_setup_state
-        - product_control_record_admit_ready_for_use
-        - product_control_default_data_root_directory
+        - product_control_record_reconcile_first_run_setup_state
         - account_default_profile_for_scope_init
         - built_in_ai_config_for_scope_init
     origin_crate: apps/desktop/src-tauri
-    owner_domain: desktop-product-control
+    owner_domain: desktop-host-ai-config-product-evidence
     execution_class: request_response_async
     remediation_required: false
     admitted_risks:
@@ -421,9 +449,10 @@ registered_command_families:
 
   - family: account_app_library
     match:
-      prefix: account_app_library_
+      exact:
+        - account_app_library_get
     origin_crate: apps/desktop/src-tauri
-    owner_domain: desktop-account-app-library
+    owner_domain: runtime-account-app-library-projection
     execution_class: request_response_async
     remediation_required: false
     admitted_risks:

@@ -544,6 +544,19 @@ as canonical package truth. SDK orchestration here is non-authoritative: it
 submits explicit typed requests to Runtime and maps the Runtime projection
 without hiding fail-closed states.
 
+## S-APP-019 — Account App-Library Truth Accessor
+
+`MUST`：SDK may expose typed app-facing access, request builders, response
+parsers, and decoders for Runtime `GetAccountAppLibrary` (`K-APP-024`). The
+Runtime request carries no app- or renderer-supplied `account_id`; Runtime
+resolves the authenticated account binding and validates the projection.
+
+`MUST NOT`：SDK must not read
+`~/.nimi/accounts/<account-id>/apps/library.json`, infer account directories,
+or convert absent/corrupt library state into success. SDK helpers may preserve
+the explicit `exists=false` response and parse present records, but Runtime
+owns account app-library validation, writes, and fail-closed reason codes.
+
 ## Fact Sources
 
 - `.nimi/spec/sdk/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`

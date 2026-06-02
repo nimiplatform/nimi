@@ -80,7 +80,7 @@ schema 与 `P-PERM-007` 的 `permission_scope_ref` schema 对齐：
 ```
 {
   appId: string,
-  scopeFamily: 'account' | 'data' | 'agent' | 'ai_spend' | 'memory' | 'knowledge' | 'notification' | 'file_device' | 'audit' | 'default_experience',
+  scopeFamily: 'account' | 'data' | 'agent' | 'ai_spend' | 'memory' | 'knowledge' | 'notification' | 'file_device' | 'audit' | 'ai_profile',
   scopeName: <one of P-PERM-002 enum entries>,
   qualifier?: string
 }

@@ -77,6 +77,16 @@ surfaces:
   - methods_65
   - methods_66
   - methods_67
+  - methods_68
+  - methods_69
+  - methods_70
+  - methods_71
+  - methods_72
+  - methods_73
+  - methods_74
+  - methods_75
+  - methods_76
+  - methods_77
 description: Local runtime, connector, and model posture entries.
 services:
   - RuntimeLocalService
@@ -376,6 +386,66 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence
     posture: anonymous_read
     rationale: first-run baseline execution evidence resolution; local desktop runtime; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord
+    posture: anonymous_read
+    rationale: product-control readiness projection; local product record read with Runtime owner-evidence verification, no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot
+    posture: anonymous_read
+    rationale: selected data-root projection; local product record read, no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated
+    posture: anonymous_read
+    rationale: local product-control record initialization; no JWT validation, no Realm subject binding
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot
+    posture: anonymous_read
+    rationale: local first-run data-root selection; no JWT validation, no Realm subject binding
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel
+    posture: anonymous_read
+    rationale: local first-run install-level selection; no JWT validation, no Realm subject binding
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan
+    posture: anonymous_read
+    rationale: local device profile scan and product-control state update; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse
+    posture: anonymous_read
+    rationale: local product ready admission composes Runtime/account/AIConfig evidence via explicit owner projections; no JWT validation at the RPC interceptor
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence
+    posture: anonymous_read
+    rationale: local product-control evidence recording consumes explicit account profile evidence; no JWT validation at the RPC interceptor
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence
+    posture: anonymous_read
+    rationale: local product-control evidence recording consumes Runtime baseline and execution evidence; no JWT validation at the RPC interceptor
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState
+    posture: anonymous_read
+    rationale: local first-run setup state reconciliation; no JWT validation, no Realm subject binding
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001

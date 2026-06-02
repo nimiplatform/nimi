@@ -249,7 +249,7 @@ function checkAppTabsConsistency() {
 }
 
 function checkRetryStatusCodesConsistency() {
-  const retryPath = 'apps/desktop/src/runtime/net/request-with-retry.ts';
+  const retryPath = 'sdk/src/types/network-retry.ts';
   if (!fileExists(retryPath)) {
     fail(`source file not found: ${retryPath}`);
     return;
@@ -475,12 +475,12 @@ function checkNoLegacyStoreImports() {
 }
 
 function checkRetryJitterPresence() {
-  const retryPath = 'apps/desktop/src/runtime/net/request-with-retry.ts';
+  const retryPath = 'sdk/src/types/network-retry.ts';
   if (!fileExists(retryPath)) return;
 
   const content = read(retryPath);
   if (!content.includes('Math.random')) {
-    fail('D-NET-002 violation: request-with-retry.ts missing jitter (Math.random)');
+    fail('D-NET-002 violation: sdk/src/types/network-retry.ts missing jitter (Math.random)');
   }
 }
 
@@ -515,13 +515,18 @@ function checkStoreSliceCount() {
 function checkBridgeReasonCodeCoverage() {
   const invokePath = 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/invoke.ts';
   const sdkReasonProjectionPath = 'sdk/src/runtime/reason-code-messages.ts';
-  if (!fileExists(invokePath) || !fileExists(sdkReasonProjectionPath)) return;
+  const kitBridgeProjectionPath = 'kit/shell/renderer/src/bridge/nimi-error.ts';
+  if (!fileExists(invokePath) || !fileExists(sdkReasonProjectionPath) || !fileExists(kitBridgeProjectionPath)) return;
 
   const invokeContent = read(invokePath);
   const sdkReasonProjectionContent = read(sdkReasonProjectionPath);
+  const kitBridgeProjectionContent = read(kitBridgeProjectionPath);
 
-  if (!invokeContent.includes('getRuntimeReasonCodeMessage')) {
-    fail('D-ERR-007 bridge invoke.ts must consume the SDK Runtime reason-code projection');
+  if (!invokeContent.includes('getShellBridgeUserMessageProjection')) {
+    fail('D-ERR-007 bridge invoke.ts must consume the Kit shell bridge reason projection');
+  }
+  if (!kitBridgeProjectionContent.includes('getRuntimeReasonCodeMessage')) {
+    fail('D-ERR-007 Kit shell bridge must consume the SDK Runtime reason-code projection');
   }
 
   const phase1CriticalCodes = [
@@ -554,10 +559,7 @@ function checkLocalRuntimeIpcConsistency() {
   const tablePath = '.nimi/spec/desktop/kernel/tables/ipc-commands.yaml';
   const rustPath = 'apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs';
   const tsPaths = [
-    'apps/desktop/src/runtime/local-runtime/commands.ts',
-    'apps/desktop/src/runtime/local-runtime/commands-assets.ts',
-    'apps/desktop/src/runtime/local-runtime/commands-services.ts',
-    'apps/desktop/src/runtime/local-runtime/commands-pickers.ts',
+    'apps/desktop/src/shell/renderer/bridge/runtime-bridge/local-runtime-os-helpers.ts',
   ];
   if (!fileExists(tablePath) || !fileExists(rustPath) || tsPaths.some((rel) => !fileExists(rel))) {
     fail(`local-runtime IPC parity inputs missing: ${[tablePath, rustPath, ...tsPaths].filter((rel) => !fileExists(rel)).join(', ')}`);
@@ -586,6 +588,7 @@ function checkLocalRuntimeIpcConsistency() {
       ...content.matchAll(/\binvokeLocalAiCommand(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
       ...content.matchAll(/\binvokeLocalRuntimeCommand(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
       ...content.matchAll(/\btauriInvoke(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
+      ...content.matchAll(/\binvokeChecked(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
       // SDK-bridged commands declare coverage via comment markers (not direct Tauri invoke).
       ...content.matchAll(/^\s*\/\/\s+(runtime_local_[a-z0-9_]+)\s*$/gmu),
     ];

@@ -10,7 +10,7 @@ values:
   - "503"
   - "504"
 # Desktop Retryable HTTP Status Codes
-# Source: apps/desktop/src/runtime/net/request-with-retry.ts (RETRYABLE_STATUS_CODES)
+# Source: sdk/src/types/network-retry.ts (RETRYABLE_STATUS_CODES)
 
 codes:
   - code: 408

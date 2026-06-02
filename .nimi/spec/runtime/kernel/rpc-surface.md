@@ -172,6 +172,30 @@ Tier 1 的读写边界固定如下：
 40. `StopEngine`
 41. `GetEngineStatus`
 
+**Tier 5 — product-control record (`~/.nimi/nimi.json`)：**
+
+43. `GetProductControlRecord`
+44. `GetProductControlSelectedDataRoot`
+45. `EnsureProductControlRecordCreated`
+46. `SelectProductControlDataRoot`
+47. `SetProductControlFirstRunInstallLevel`
+48. `CompleteProductControlFirstRunDeviceEnvironmentScan`
+49. `AdmitProductControlReadyForUse`
+50. `RecordProductControlAccountDefaultProfileEvidence`
+51. `RecordProductControlFirstRunLocalAiReadyEvidence`
+52. `ReconcileProductControlFirstRunSetupState`
+
+`RuntimeLocalService` owns the product-control record state-machine surface for
+ordinary first-run setup. Desktop may expose bounded OS helpers such as a native
+directory picker and default-path proposal, but record read/write, data-root
+layout materialization, install-level validation, device-scan completion, and
+every product-control record mutation through first-run setup/admission must go
+through these Runtime methods. For Desktop-owned host evidence
+(`accountDefaultProfileRef`, `builtInAiConfigRefs`), Desktop may submit explicit
+backend-verified evidence JSON, but Runtime owns the authenticated account
+check, Runtime baseline/execution re-resolution, failure routing, intermediate
+state writes, and the atomic `ready_for_use` product-control record write.
+
 Runtime-managed shared accelerator dependency jobs are admitted under
 `RuntimeLocalService` as the authority surface for supervised local engine
 dependency materialization. For Windows NVIDIA CUDA accelerator dependencies,

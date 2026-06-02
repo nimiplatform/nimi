@@ -46,8 +46,8 @@ Runtime `~/.nimi/runtime/config.json` 的迁移机制由 Runtime kernel 的
 | `~/.nimi/profiles/factory-index.json` | T2 | factory AIProfile index |
 | `~/.nimi/apps/registry.json` | T4 | account apps registry projection |
 | `~/.nimi/apps/packages.json` | T4 | installed app packages projection |
-| `~/.nimi/library.json` | T4 | account profile library projection |
-| `~/.nimi/grants.json` | T4 | permission grant projection |
+| `~/.nimi/accounts/<account-id>/apps/library.json` | T4 | account app-library projection |
+| `~/.nimi/accounts/<account-id>/permissions/grants.json` | T4 | account-scoped permission grant projection |
 
 `MUST`：本族的成员清单与每个成员的 schema-owner topic 由本契约 canonical
 固化于上表，并由 `tables/local-config-file-registry.yaml` 作为结构化事实源

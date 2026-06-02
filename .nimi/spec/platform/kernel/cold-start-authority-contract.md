@@ -195,11 +195,13 @@ record and required evidence fields.
 
 ## P-COLD-016 — Product Ready Admission Evidence Composition
 
-`MUST`：transition to `ready_for_use` is admitted only by the local
-product-control backend admission operation defined in
+`MUST`：transition to `ready_for_use` is admitted only by the Runtime-owned
+product-control service operation defined in
 `tables/product-control-record-schema.yaml`. The renderer may request or display
 finalization, but it cannot write `ready_for_use`, mint evidence refs, or
-declare refs valid.
+declare refs valid. Desktop shell may provide bounded OS helpers such as native
+directory picking, but product-control validation, readiness admission, and
+`~/.nimi/nimi.json` writes belong to Runtime.
 
 Admission composes evidence in this order:
 

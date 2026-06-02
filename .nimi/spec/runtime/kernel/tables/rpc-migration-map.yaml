@@ -259,6 +259,56 @@ method_mappings:
     proto_method: ImportLocalAsset
     mapping_posture: aligned
   - design_service: RuntimeLocalService
+    design_method: GetProductControlRecord
+    proto_service: RuntimeLocalService
+    proto_method: GetProductControlRecord
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: GetProductControlSelectedDataRoot
+    proto_service: RuntimeLocalService
+    proto_method: GetProductControlSelectedDataRoot
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: EnsureProductControlRecordCreated
+    proto_service: RuntimeLocalService
+    proto_method: EnsureProductControlRecordCreated
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: SelectProductControlDataRoot
+    proto_service: RuntimeLocalService
+    proto_method: SelectProductControlDataRoot
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: SetProductControlFirstRunInstallLevel
+    proto_service: RuntimeLocalService
+    proto_method: SetProductControlFirstRunInstallLevel
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: CompleteProductControlFirstRunDeviceEnvironmentScan
+    proto_service: RuntimeLocalService
+    proto_method: CompleteProductControlFirstRunDeviceEnvironmentScan
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: AdmitProductControlReadyForUse
+    proto_service: RuntimeLocalService
+    proto_method: AdmitProductControlReadyForUse
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: RecordProductControlAccountDefaultProfileEvidence
+    proto_service: RuntimeLocalService
+    proto_method: RecordProductControlAccountDefaultProfileEvidence
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: RecordProductControlFirstRunLocalAiReadyEvidence
+    proto_service: RuntimeLocalService
+    proto_method: RecordProductControlFirstRunLocalAiReadyEvidence
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ReconcileProductControlFirstRunSetupState
+    proto_service: RuntimeLocalService
+    proto_method: ReconcileProductControlFirstRunSetupState
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
     design_method: ImportLocalAssetFile
     proto_service: RuntimeLocalService
     proto_method: ImportLocalAssetFile
@@ -842,6 +892,11 @@ method_mappings:
     design_method: GetAppStorage
     proto_service: RuntimeAppService
     proto_method: GetAppStorage
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: GetAccountAppLibrary
+    proto_service: RuntimeAppService
+    proto_method: GetAccountAppLibrary
     mapping_posture: aligned
   - design_service: RuntimeAppService
     design_method: GetAppPackageReadiness
