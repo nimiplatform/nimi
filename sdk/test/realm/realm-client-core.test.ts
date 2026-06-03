@@ -155,6 +155,41 @@ test('Realm unsafeRaw.request only returns typed data through explicit parsing',
   }
 });
 
+test('Realm emits request.success after successful HTTP responses', async () => {
+  const originalFetch = globalThis.fetch;
+  const events: Array<{ method: string; path: string; httpStatus?: number }> = [];
+
+  globalThis.fetch = (async (): Promise<Response> => {
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+      },
+    });
+  }) as typeof globalThis.fetch;
+
+  try {
+    const realm = new Realm({
+      baseUrl: 'https://realm-request-success.nimi.ai',
+      auth: { mode: 'external_principal', accessToken: 'success-token' },
+    });
+    realm.events.on('request.success', (event) => {
+      events.push(event);
+    });
+
+    await realm.unsafeRaw.request({ method: 'GET', path: '/api/ok' });
+
+    assert.equal(events.length, 1);
+    assert.equal(events[0]?.method, 'GET');
+    assert.equal(events[0]?.path, '/api/ok');
+    assert.equal(events[0]?.httpStatus, 200);
+    assert.equal(realm.state().status, 'ready');
+    assert.ok(realm.state().lastReadyAt);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('Realm services facade uses instance config (no global OpenAPI mutation)', async () => {
   const originalFetch = globalThis.fetch;
   const calls: string[] = [];

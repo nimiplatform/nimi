@@ -12,6 +12,7 @@ import {
 import type {
   RealmAuthOptions,
   RealmConnectionState,
+  RealmEventPayloadMap,
   RealmEventsModule,
   RealmOptions,
   RealmResponseParser,
@@ -33,15 +34,19 @@ import {
   resolveBaseUrl,
 } from './client-helpers.js';
 import {
+  REALM_HTTP_METHODS,
+  encodePathValue,
+  getOpenApiMethod,
+  hasOwn,
+  readErrorResponseBodyWithDiagnostics,
+  resolvePositiveTimeoutMs,
+} from './client-request-utils.js';
+import {
   executeGeneratedRealmRefreshToken,
   parseRealmRefreshResult,
 } from './client-refresh.js';
 import { assertNoAuthRealmEndpointAllowed } from './no-auth-allowlist.js';
 import { assertExternalPrincipalRefreshMode, assertRealmAuthCustodyMode } from './auth-custody.js';
-
-type RealmEventPayloadMap = {
-  error: { error: NimiError; at: string };
-};
 
 type OpenApiClient = ReturnType<typeof createClient<paths>>;
 
@@ -49,64 +54,6 @@ const DEFAULT_RETRY_STATUSES = [429, 502, 503, 504];
 const DEFAULT_RETRY_MAX_RETRIES = 2;
 const DEFAULT_RETRY_BACKOFF_MS = 1000;
 const DEFAULT_RETRY_MAX_BACKOFF_MS = 10000;
-const REALM_HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'] as const;
-
-function hasOwn(value: object, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(value, key);
-}
-
-function encodePathValue(value: string | number): string {
-  return encodeURIComponent(String(value));
-}
-
-function resolvePositiveTimeoutMs(value: unknown, fallback: number): number {
-  const raw = value ?? fallback;
-  const timeoutMs = Number(raw);
-  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
-    throw createNimiError({
-      message: 'realm timeoutMs must be a positive finite number',
-      reasonCode: ReasonCode.SDK_REALM_CONFIG_INVALID,
-      actionHint: 'set_positive_realm_timeout_ms',
-      source: 'sdk',
-    });
-  }
-  return timeoutMs;
-}
-
-async function readErrorResponseBodyWithDiagnostics(
-  response: Response,
-): Promise<{ body: JsonObject; details: JsonObject }> {
-  try {
-    return {
-      body: readErrorBody(await response.text()),
-      details: {},
-    };
-  } catch (error) {
-    return {
-      body: {},
-      details: {
-        responseBodyReadable: false,
-        responseBodyReadError: error instanceof Error ? error.message : String(error || 'unknown error'),
-      },
-    };
-  }
-}
-
-type RealmHttpMethod = (typeof REALM_HTTP_METHODS)[number];
-
-function getOpenApiMethod(
-  client: Record<string, unknown>,
-  methodName: string,
-): ((url: string, options?: Record<string, unknown>) => Promise<unknown>) | null {
-  if (!REALM_HTTP_METHODS.includes(methodName as RealmHttpMethod)) {
-    return null;
-  }
-  const candidate = client[methodName];
-  if (typeof candidate !== 'function') {
-    return null;
-  }
-  return candidate as (url: string, options?: Record<string, unknown>) => Promise<unknown>;
-}
 
 export class Realm {
   readonly services: RealmServiceRegistry;
@@ -447,18 +394,24 @@ export class Realm {
             }
 
             if (hasValue(dataPayload)) {
+              this.#emitRequestSuccess(methodName, path, response.status);
               return dataPayload;
             }
 
             if (response.status === 204) {
+              this.#emitRequestSuccess(methodName, path, response.status);
               return undefined;
             }
 
             const contentType = normalizeText(response.headers.get('content-type')).toLowerCase();
             if (contentType.includes('application/json')) {
-              return await response.json();
+              const json = await response.json();
+              this.#emitRequestSuccess(methodName, path, response.status);
+              return json;
             }
-            return await response.text();
+            const text = await response.text();
+            this.#emitRequestSuccess(methodName, path, response.status);
+            return text;
           }
 
           if (hasValue(errorPayload)) {
@@ -466,9 +419,11 @@ export class Realm {
           }
 
           if (hasValue(dataPayload)) {
+            this.#emitRequestSuccess(methodName, path);
             return dataPayload;
           }
 
+          this.#emitRequestSuccess(methodName, path);
           return responseTuple;
         } finally {
           timeoutController?.signal.removeEventListener('abort', onTimeoutAbort);
@@ -731,6 +686,24 @@ export class Realm {
       name,
       at: nowIso(),
       data,
+    });
+  }
+
+  #emitRequestSuccess(method: string, path: string, httpStatus?: number): void {
+    const at = nowIso();
+    if (this.#state.status !== 'closed' && this.#state.status !== 'closing') {
+      this.#state = { ...this.#state, status: 'ready', lastReadyAt: at };
+    }
+    this.#eventBus.emit('request.success', {
+      method,
+      path,
+      at,
+      httpStatus,
+    });
+    this.#emitTelemetry('realm.request.success', {
+      method,
+      path,
+      httpStatus,
     });
   }
 }

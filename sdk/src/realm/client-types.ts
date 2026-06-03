@@ -17,6 +17,18 @@ export type RealmTelemetryEvent = {
   data?: JsonObject;
 };
 
+export type RealmRequestSuccessEvent = {
+  method: string;
+  path: string;
+  at: string;
+  httpStatus?: number;
+};
+
+export type RealmEventPayloadMap = {
+  error: { error: NimiError; at: string };
+  'request.success': RealmRequestSuccessEvent;
+};
+
 export type RealmTokenRefreshResult = {
   accessToken: string;
   refreshToken?: string;
@@ -69,6 +81,12 @@ export type RealmUnsafeRawModule = {
 export type RealmServiceRegistry = RealmGeneratedServiceRegistry;
 
 export type RealmEventsModule = {
-  on(name: 'error', handler: (event: { error: NimiError; at: string }) => void): () => void;
-  once(name: 'error', handler: (event: { error: NimiError; at: string }) => void): () => void;
+  on<Name extends keyof RealmEventPayloadMap & string>(
+    name: Name,
+    handler: (event: RealmEventPayloadMap[Name]) => void,
+  ): () => void;
+  once<Name extends keyof RealmEventPayloadMap & string>(
+    name: Name,
+    handler: (event: RealmEventPayloadMap[Name]) => void,
+  ): () => void;
 };

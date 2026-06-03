@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   normalizeAssetStatus,
+  parseAssetHealth,
   parseAssetRecord,
   parseCatalogItemDescriptor,
   parseCatalogRecommendation,
@@ -10,6 +11,7 @@ import {
   parseInstallPlanDescriptor,
   parseUnregisteredAssetDescriptor,
 } from '../../src/runtime/index.js';
+import { ReasonCode } from '../../src/types/index.js';
 
 test('parseCatalogRecommendation fails closed when source is missing or invalid', () => {
   assert.equal(parseCatalogRecommendation({
@@ -71,6 +73,35 @@ test('parseAssetRecord keeps recommendation inputs without synthesizing complete
   });
 
   assert.deepEqual(parsed.files, []);
+});
+
+test('local runtime asset parsers preserve projection reasonCode evidence', () => {
+  const asset = parseAssetRecord({
+    localAssetId: 'speech-asset',
+    assetId: 'speech/qwen3tts',
+    kind: 'tts',
+    engine: 'speech',
+    entry: 'model.bin',
+    files: ['model.bin'],
+    license: 'apache-2.0',
+    source: { repo: 'Qwen/Qwen3-TTS', revision: 'main' },
+    hashes: {},
+    status: 'unhealthy',
+    installedAt: '2026-04-17T00:00:00Z',
+    updatedAt: '2026-04-17T00:00:00Z',
+    healthDetail: 'speech probe missing expected model',
+    reasonCode: ReasonCode.AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED,
+  });
+  assert.equal(asset.reasonCode, ReasonCode.AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED);
+
+  const health = parseAssetHealth({
+    localAssetId: 'speech-asset',
+    status: 'unhealthy',
+    detail: 'speech probe missing required capability',
+    endpoint: 'http://127.0.0.1:8330/v1',
+    reasonCode: ReasonCode.AI_LOCAL_SPEECH_BUNDLE_DEGRADED,
+  });
+  assert.equal(health.reasonCode, ReasonCode.AI_LOCAL_SPEECH_BUNDLE_DEGRADED);
 });
 
 test('parseUnregisteredAssetDescriptor only accepts assetKind-based declarations', () => {

@@ -43,7 +43,6 @@ import type { RuntimeInternalContext } from './internal-context.js';
 import {
   PHASE2_AUDIT_METHOD_IDS,
   PHASE2_MODULE_KEYS,
-  RUNTIME_METHOD_LOOKUP,
 } from './runtime-method-lookup.js';
 import { SDK_RUNTIME_MAJOR_VERSION } from './runtime-defaults.js';
 import {
@@ -59,7 +58,6 @@ import {
   createAppAuthClient,
   createAppClient,
   createMediaModule,
-  createRawModule,
   createRuntimeEventsModule,
   createScopeClient,
   emitAuthTokenIssuedEvent,
@@ -106,7 +104,6 @@ import {
   resolveRuntimeSubjectUserId,
   wrapModeDStream,
 } from './runtime-guards.js';
-import { runtimeRawCall } from './runtime-raw-call.js';
 import { closeRuntime, connectRuntime, readyRuntime } from './runtime-lifecycle.js';
 import { FallbackPolicy } from './generated/runtime/v1/ai.js';
 import {
@@ -117,6 +114,7 @@ import {
   type RuntimeStreamChunk,
   type RuntimeStreamInput,
 } from './runtime-convenience.js';
+import { createRuntimeUnsafeRawModule } from './runtime-unsafe-raw.js';
 
 function hasOwn(value: object, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(value, key);
@@ -385,33 +383,8 @@ export class Runtime {
 
     this.media = createMediaModule(ctx);
 
-    const rawCall: RuntimeUnsafeRawModule['call'] = (
-      methodId: string,
-      inputValue: unknown,
-      optionsValue?: RuntimeCallOptions | RuntimeStreamCallOptions,
-    ) => runtimeRawCall({
-      methodId,
-      request: inputValue,
-      options: optionsValue,
-      methodLookup: RUNTIME_METHOD_LOOKUP,
+    const unsafeRaw = createRuntimeUnsafeRawModule({
       assertMethodAvailable: (moduleKey, methodKey) => this.#assertMethodAvailable(moduleKey, methodKey),
-      invokeWithClient: (operation) => this.#invokeWithClient(operation),
-      createMethodNotAllowlistedError: (missingMethodId) => createNimiError({
-        message: `runtime method is not allowlisted: ${missingMethodId}`,
-        reasonCode: ReasonCode.SDK_RUNTIME_CODEC_MISSING,
-        actionHint: 'use_runtime_method_ids',
-        source: 'sdk',
-      }),
-      createMethodNotImplementedError: (moduleKey, methodKey) => createNimiError({
-        message: `${moduleKey}.${methodKey} is not implemented`,
-        reasonCode: ReasonCode.SDK_RUNTIME_CODEC_MISSING,
-        actionHint: 'check_runtime_method_mapping',
-        source: 'sdk',
-      }),
-    });
-
-    const unsafeRaw = createRawModule({
-      rawCall,
       invokeWithClient: (operation) => this.#invokeWithClient(operation),
     });
     this.unsafeRaw = unsafeRaw;
