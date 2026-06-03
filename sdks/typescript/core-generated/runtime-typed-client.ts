@@ -15,6 +15,7 @@ export type AccountEventType = "ACCOUNT_EVENT_TYPE_UNSPECIFIED" | "ACCOUNT_EVENT
 export type AccountReasonCode = "ACCOUNT_REASON_CODE_UNSPECIFIED" | "ACCOUNT_REASON_CODE_ACTION_EXECUTED" | "ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED" | "ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE" | "ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE" | "ACCOUNT_REASON_CODE_PROOF_EXPIRED" | "ACCOUNT_REASON_CODE_PROOF_MISMATCHED" | "ACCOUNT_REASON_CODE_PROOF_CONSUMED" | "ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED" | "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED" | "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED" | "ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY" | "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND" | "ACCOUNT_REASON_CODE_BINDING_STALE" | "ACCOUNT_REASON_CODE_BINDING_REPLAY" | "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE";
 export type AccountSessionState = "ACCOUNT_SESSION_STATE_UNSPECIFIED" | "ACCOUNT_SESSION_STATE_ANONYMOUS" | "ACCOUNT_SESSION_STATE_LOGIN_PENDING" | "ACCOUNT_SESSION_STATE_AUTHENTICATED" | "ACCOUNT_SESSION_STATE_REFRESH_PENDING" | "ACCOUNT_SESSION_STATE_EXPIRED" | "ACCOUNT_SESSION_STATE_REAUTH_REQUIRED" | "ACCOUNT_SESSION_STATE_SWITCHING" | "ACCOUNT_SESSION_STATE_LOGGING_OUT" | "ACCOUNT_SESSION_STATE_UNAVAILABLE";
 export type AgentAutonomyMode = "AGENT_AUTONOMY_MODE_UNSPECIFIED" | "AGENT_AUTONOMY_MODE_OFF" | "AGENT_AUTONOMY_MODE_LOW" | "AGENT_AUTONOMY_MODE_MEDIUM" | "AGENT_AUTONOMY_MODE_HIGH";
+export type AgentCanonicalMemoryBankMode = "AGENT_CANONICAL_MEMORY_BANK_MODE_UNSPECIFIED" | "AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE" | "AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD" | "AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE";
 export type AgentEventType = "AGENT_EVENT_TYPE_UNSPECIFIED" | "AGENT_EVENT_TYPE_LIFECYCLE" | "AGENT_EVENT_TYPE_HOOK" | "AGENT_EVENT_TYPE_MEMORY" | "AGENT_EVENT_TYPE_BUDGET" | "AGENT_EVENT_TYPE_REPLICATION" | "AGENT_EVENT_TYPE_STATE" | "AGENT_EVENT_TYPE_PRESENTATION" | "AGENT_EVENT_TYPE_AVATAR_DEBUG";
 export type AgentExecutionState = "AGENT_EXECUTION_STATE_UNSPECIFIED" | "AGENT_EXECUTION_STATE_IDLE" | "AGENT_EXECUTION_STATE_CHAT_ACTIVE" | "AGENT_EXECUTION_STATE_LIFE_PENDING" | "AGENT_EXECUTION_STATE_LIFE_RUNNING" | "AGENT_EXECUTION_STATE_SUSPENDED";
 export type AgentLifecycleStatus = "AGENT_LIFECYCLE_STATUS_UNSPECIFIED" | "AGENT_LIFECYCLE_STATUS_INITIALIZING" | "AGENT_LIFECYCLE_STATUS_ACTIVE" | "AGENT_LIFECYCLE_STATUS_SUSPENDED" | "AGENT_LIFECYCLE_STATUS_TERMINATING" | "AGENT_LIFECYCLE_STATUS_TERMINATED";
@@ -31,6 +32,7 @@ export type AppMessageEventType = "APP_MESSAGE_EVENT_TYPE_UNSPECIFIED" | "APP_ME
 export type AppMode = "APP_MODE_UNSPECIFIED" | "APP_MODE_LITE" | "APP_MODE_CORE_ONLY" | "APP_MODE_FULL";
 export type AppOpenFlowStep = "APP_OPEN_FLOW_STEP_UNSPECIFIED" | "APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY" | "APP_OPEN_FLOW_STEP_VERIFY_PACKAGE" | "APP_OPEN_FLOW_STEP_VERIFY_LIBRARY" | "APP_OPEN_FLOW_STEP_VERIFY_APP_DATA" | "APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS" | "APP_OPEN_FLOW_STEP_ENSURE_AICONFIG" | "APP_OPEN_FLOW_STEP_VALIDATE_MANIFEST" | "APP_OPEN_FLOW_STEP_LAUNCH";
 export type AppOpenState = "APP_OPEN_STATE_UNSPECIFIED" | "APP_OPEN_STATE_LAUNCHED" | "APP_OPEN_STATE_BLOCKED";
+export type AppPackageReadinessState = "APP_PACKAGE_READINESS_STATE_UNSPECIFIED" | "APP_PACKAGE_READINESS_STATE_READY" | "APP_PACKAGE_READINESS_STATE_INSTALL_REQUIRED" | "APP_PACKAGE_READINESS_STATE_UPDATE_REQUIRED" | "APP_PACKAGE_READINESS_STATE_REPAIR_REQUIRED" | "APP_PACKAGE_READINESS_STATE_BLOCKED";
 export type AppStorageState = "APP_STORAGE_STATE_UNSPECIFIED" | "APP_STORAGE_STATE_READY" | "APP_STORAGE_STATE_INSTALL_REQUIRED" | "APP_STORAGE_STATE_REPAIR_REQUIRED" | "APP_STORAGE_STATE_STORAGE_UNAVAILABLE";
 export type AuthorizationPreset = "AUTHORIZATION_PRESET_UNSPECIFIED" | "AUTHORIZATION_PRESET_READ_ONLY" | "AUTHORIZATION_PRESET_FULL" | "AUTHORIZATION_PRESET_DELEGATE";
 export type AvatarDebugEventFamily = "AVATAR_DEBUG_EVENT_FAMILY_UNSPECIFIED";
@@ -164,6 +166,19 @@ export interface AIProviderSubHealth {
   readonly last_changed_at?: string;
   readonly last_checked_at?: string;
 }
+export interface AccountAppLibraryRecord {
+  readonly schema_version?: number;
+  readonly account_id?: string;
+  readonly updated_at?: string;
+  readonly apps?: readonly AccountAppLibraryRow[];
+}
+export interface AccountAppLibraryRow {
+  readonly app_id?: string;
+  readonly library_state?: string;
+  readonly installed?: boolean;
+  readonly last_opened_at?: string;
+  readonly data_policy?: string;
+}
 export interface AccountCaller {
   readonly app_id?: string;
   readonly app_instance_id?: string;
@@ -206,6 +221,10 @@ export interface AddLinkRequest {
 export interface AddLinkResponse {
   readonly link?: KnowledgeLink;
 }
+export interface AdmitProductControlReadyForUseRequest {
+  readonly account_default_profile_evidence_json?: string;
+  readonly built_in_ai_config_evidence_json?: string;
+}
 export interface AgentAutonomyConfig {
   readonly daily_token_budget?: number;
   readonly max_tokens_per_hook?: number;
@@ -232,6 +251,17 @@ export interface AgentBudgetEventDetail {
   readonly budget_exhausted?: boolean;
   readonly remaining_tokens?: number;
   readonly window_started_at?: string;
+}
+export interface AgentCanonicalMemoryBankStatus {
+  readonly mode?: AgentCanonicalMemoryBankMode;
+  readonly bank_id?: string;
+  readonly embedding_profile?: MemoryEmbeddingProfile;
+  readonly binding_source_kind?: string;
+  readonly blocked_reason_code?: ReasonCode;
+  readonly pending_cutover?: boolean;
+  readonly canonical_bank_status?: string;
+  readonly bind_allowed?: boolean;
+  readonly cutover_allowed?: boolean;
 }
 export interface AgentConversationSummary {
   readonly anchor?: ConversationAnchor;
@@ -555,6 +585,19 @@ export interface AppOpenScopeRef {
   readonly kind?: string;
   readonly owner_id?: string;
   readonly surface_id?: string;
+}
+export interface AppPackageReadinessProjection {
+  readonly app_id?: string;
+  readonly release_descriptor_ref?: string;
+  readonly storage_policy_ref?: string;
+  readonly expected_version?: string;
+  readonly active_version?: string;
+  readonly installed_version?: string;
+  readonly sha256?: string;
+  readonly verification_state?: string;
+  readonly state?: AppPackageReadinessState;
+  readonly reason_code?: ReasonCode;
+  readonly detail?: string;
 }
 export interface AppPrivateBankOwner {
   readonly account_id?: string;
@@ -1040,6 +1083,9 @@ export interface CompleteLoginResponse {
   readonly account_reason_code?: AccountReasonCode;
   readonly production_inert?: boolean;
 }
+export interface CompleteProductControlFirstRunDeviceEnvironmentScanRequest {
+
+}
 export interface Connector {
   readonly connector_id?: string;
   readonly kind?: ConnectorKind;
@@ -1304,6 +1350,9 @@ export interface EnsureEngineRequest {
 export interface EnsureEngineResponse {
   readonly engine?: LocalEngineDescriptor;
 }
+export interface EnsureProductControlRecordCreatedRequest {
+
+}
 export interface EpisodicMemoryRecord {
   readonly summary?: string;
   readonly occurred_at?: string;
@@ -1477,6 +1526,15 @@ export interface GetAccessTokenResponse {
   readonly account_reason_code?: AccountReasonCode;
   readonly production_inert?: boolean;
 }
+export interface GetAccountAppLibraryRequest {
+
+}
+export interface GetAccountAppLibraryResponse {
+  readonly exists?: boolean;
+  readonly record?: AccountAppLibraryRecord;
+  readonly reason_code?: ReasonCode;
+  readonly detail?: string;
+}
 export interface GetAccountSessionStatusRequest {
   readonly caller?: AccountCaller;
 }
@@ -1486,6 +1544,13 @@ export interface GetAccountSessionStatusResponse {
   readonly reason_code?: ReasonCode;
   readonly account_reason_code?: AccountReasonCode;
   readonly production_inert?: boolean;
+}
+export interface GetAgentCanonicalMemoryBankStatusRequest {
+  readonly context?: AgentRequestContext;
+  readonly agent_id?: string;
+}
+export interface GetAgentCanonicalMemoryBankStatusResponse {
+  readonly status?: AgentCanonicalMemoryBankStatus;
 }
 export interface GetAgentRequest {
   readonly context?: AgentRequestContext;
@@ -1506,6 +1571,12 @@ export interface GetAppInstallJobRequest {
 }
 export interface GetAppInstallJobResponse {
   readonly job?: AppInstallJob;
+}
+export interface GetAppPackageReadinessRequest {
+  readonly app_id?: string;
+}
+export interface GetAppPackageReadinessResponse {
+  readonly projection?: AppPackageReadinessProjection;
 }
 export interface GetAppStorageRequest {
   readonly app_id?: string;
@@ -1617,6 +1688,14 @@ export interface GetKnowledgeBankRequest {
 export interface GetKnowledgeBankResponse {
   readonly bank?: KnowledgeBank;
 }
+export interface GetMemoryEmbeddingRuntimeIntentRequest {
+  readonly context?: MemoryRequestContext;
+  readonly locator?: MemoryBankLocator;
+}
+export interface GetMemoryEmbeddingRuntimeIntentResponse {
+  readonly binding_intent_present?: boolean;
+  readonly binding_intent?: MemoryEmbeddingBindingIntentSnapshot;
+}
 export interface GetPageRequest {
   readonly context?: KnowledgeRequestContext;
   readonly bank_id?: string;
@@ -1625,6 +1704,12 @@ export interface GetPageRequest {
 }
 export interface GetPageResponse {
   readonly page?: KnowledgePage;
+}
+export interface GetProductControlRecordRequest {
+
+}
+export interface GetProductControlSelectedDataRootRequest {
+
 }
 export interface GetPublicChatSessionSnapshotRequest {
   readonly context?: AgentRequestContext;
@@ -1837,7 +1922,6 @@ export interface InitializeAgentResponse {
 export interface InspectMemoryEmbeddingRuntimeRequest {
   readonly context?: MemoryRequestContext;
   readonly locator?: MemoryBankLocator;
-  readonly binding_intent_snapshot?: MemoryEmbeddingBindingIntentSnapshot;
 }
 export interface InspectMemoryEmbeddingRuntimeResponse {
   readonly binding_intent_present?: boolean;
@@ -2528,6 +2612,8 @@ export interface LocalEnvironmentDependencyJob {
   readonly percent?: number;
   readonly speed_bytes_per_sec?: number;
   readonly eta_seconds?: number;
+  readonly reason_code?: string;
+  readonly recovery_disposition?: string;
 }
 export interface LocalEnvironmentPlan {
   readonly plan_id?: string;
@@ -3381,6 +3467,9 @@ export interface PendingHook {
   readonly scheduled_for?: string;
   readonly admitted_at?: string;
 }
+export interface ProductControlProjectionJson {
+  readonly json?: string;
+}
 export interface ProfileEntryOverride {
   readonly entry_id?: string;
   readonly local_asset_id?: string;
@@ -3558,6 +3647,17 @@ export interface RecallResponse {
   readonly hits?: readonly MemoryRecallHit[];
   readonly narrative_hits?: readonly NarrativeRecallHit[];
 }
+export interface ReconcileProductControlFirstRunSetupStateRequest {
+
+}
+export interface RecordProductControlAccountDefaultProfileEvidenceRequest {
+  readonly account_default_profile_evidence_json?: string;
+}
+export interface RecordProductControlFirstRunLocalAiReadyEvidenceRequest {
+  readonly runtime_baseline_ref?: string;
+  readonly built_in_ai_config_evidence_json?: string;
+  readonly execution_evidence_ref?: string;
+}
 export interface RefreshAccountSessionRequest {
   readonly caller?: AccountCaller;
 }
@@ -3649,6 +3749,15 @@ export interface RepairLocalEnvironmentDependencyRequest {
 export interface RepairLocalEnvironmentDependencyResponse {
   readonly job?: LocalEnvironmentDependencyJob;
 }
+export interface RequestAgentCanonicalMemoryBankBindRequest {
+  readonly context?: AgentRequestContext;
+  readonly agent_id?: string;
+}
+export interface RequestAgentCanonicalMemoryBankBindResponse {
+  readonly status?: AgentCanonicalMemoryBankStatus;
+  readonly outcome?: string;
+  readonly blocked_reason_code?: ReasonCode;
+}
 export interface RequestAvatarDebugProbeRequest {
   readonly context?: AgentRequestContext;
   readonly agent_id?: string;
@@ -3686,7 +3795,6 @@ export interface RequestCompanionParticipationResponse {
 export interface RequestMemoryEmbeddingRuntimeBindRequest {
   readonly context?: MemoryRequestContext;
   readonly locator?: MemoryBankLocator;
-  readonly binding_intent_snapshot?: MemoryEmbeddingBindingIntentSnapshot;
 }
 export interface RequestMemoryEmbeddingRuntimeBindResponse {
   readonly outcome?: string;
@@ -3697,7 +3805,6 @@ export interface RequestMemoryEmbeddingRuntimeBindResponse {
 export interface RequestMemoryEmbeddingRuntimeCutoverRequest {
   readonly context?: MemoryRequestContext;
   readonly locator?: MemoryBankLocator;
-  readonly binding_intent_snapshot?: MemoryEmbeddingBindingIntentSnapshot;
 }
 export interface RequestMemoryEmbeddingRuntimeCutoverResponse {
   readonly outcome?: string;
@@ -4131,6 +4238,9 @@ export interface SearchKeywordResponse {
   readonly hits?: readonly KnowledgeKeywordHit[];
   readonly reason_code?: ReasonCode;
 }
+export interface SelectProductControlDataRootRequest {
+  readonly data_root?: string;
+}
 export interface SemanticMemoryRecord {
   readonly subject?: string;
   readonly predicate?: string;
@@ -4177,6 +4287,19 @@ export interface SetDelegatedProviderStateRequest {
 }
 export interface SetDelegatedProviderStateResponse {
   readonly provider_profile?: DelegatedProviderProfile;
+}
+export interface SetMemoryEmbeddingRuntimeIntentRequest {
+  readonly context?: MemoryRequestContext;
+  readonly locator?: MemoryBankLocator;
+  readonly binding_intent?: MemoryEmbeddingBindingIntentSnapshot;
+}
+export interface SetMemoryEmbeddingRuntimeIntentResponse {
+  readonly accepted?: boolean;
+  readonly binding_intent?: MemoryEmbeddingBindingIntentSnapshot;
+}
+export interface SetProductControlFirstRunInstallLevelRequest {
+  readonly install_level?: string;
+  readonly ai_profile_alias?: string;
 }
 export interface SpeechAlignment {
   readonly unit?: SpeechAlignmentUnit;
@@ -5022,6 +5145,16 @@ export class RuntimeTypedClient {
     });
   }
 
+  async getAgentCanonicalMemoryBankStatus(request: GetAgentCanonicalMemoryBankStatusRequest, options: RuntimeTypedCallOptions = {}): Promise<GetAgentCanonicalMemoryBankStatusResponse> {
+    return this.core.unary<GetAgentCanonicalMemoryBankStatusResponse, GetAgentCanonicalMemoryBankStatusRequest>({
+      methodId: "/runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
   async getAgentState(request: GetAgentStateRequest, options: RuntimeTypedCallOptions = {}): Promise<GetAgentStateResponse> {
     return this.core.unary<GetAgentStateResponse, GetAgentStateRequest>({
       methodId: "/runtime.v1.RuntimeAgentService/GetAgentState",
@@ -5225,6 +5358,16 @@ export class RuntimeTypedClient {
   async registerAvatarLiveInstanceBinding(request: RegisterAvatarLiveInstanceBindingRequest, options: RuntimeTypedCallOptions = {}): Promise<RegisterAvatarLiveInstanceBindingResponse> {
     return this.core.unary<RegisterAvatarLiveInstanceBindingResponse, RegisterAvatarLiveInstanceBindingRequest>({
       methodId: "/runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async requestAgentCanonicalMemoryBankBind(request: RequestAgentCanonicalMemoryBankBindRequest, options: RuntimeTypedCallOptions = {}): Promise<RequestAgentCanonicalMemoryBankBindResponse> {
+    return this.core.unary<RequestAgentCanonicalMemoryBankBindResponse, RequestAgentCanonicalMemoryBankBindRequest>({
+      methodId: "/runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -5528,9 +5671,29 @@ export class RuntimeTypedClient {
     });
   }
 
+  async getAccountAppLibrary(request: GetAccountAppLibraryRequest, options: RuntimeTypedCallOptions = {}): Promise<GetAccountAppLibraryResponse> {
+    return this.core.unary<GetAccountAppLibraryResponse, GetAccountAppLibraryRequest>({
+      methodId: "/runtime.v1.RuntimeAppService/GetAccountAppLibrary",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
   async getAppInstallJob(request: GetAppInstallJobRequest, options: RuntimeTypedCallOptions = {}): Promise<GetAppInstallJobResponse> {
     return this.core.unary<GetAppInstallJobResponse, GetAppInstallJobRequest>({
       methodId: "/runtime.v1.RuntimeAppService/GetAppInstallJob",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async getAppPackageReadiness(request: GetAppPackageReadinessRequest, options: RuntimeTypedCallOptions = {}): Promise<GetAppPackageReadinessResponse> {
+    return this.core.unary<GetAppPackageReadinessResponse, GetAppPackageReadinessRequest>({
+      methodId: "/runtime.v1.RuntimeAppService/GetAppPackageReadiness",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -5888,6 +6051,16 @@ export class RuntimeTypedClient {
     });
   }
 
+  async getMemoryEmbeddingRuntimeIntent(request: GetMemoryEmbeddingRuntimeIntentRequest, options: RuntimeTypedCallOptions = {}): Promise<GetMemoryEmbeddingRuntimeIntentResponse> {
+    return this.core.unary<GetMemoryEmbeddingRuntimeIntentResponse, GetMemoryEmbeddingRuntimeIntentRequest>({
+      methodId: "/runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
   async getPage(request: GetPageRequest, options: RuntimeTypedCallOptions = {}): Promise<GetPageResponse> {
     return this.core.unary<GetPageResponse, GetPageRequest>({
       methodId: "/runtime.v1.RuntimeCognitionService/GetPage",
@@ -6051,6 +6224,16 @@ export class RuntimeTypedClient {
   async searchKeyword(request: SearchKeywordRequest, options: RuntimeTypedCallOptions = {}): Promise<SearchKeywordResponse> {
     return this.core.unary<SearchKeywordResponse, SearchKeywordRequest>({
       methodId: "/runtime.v1.RuntimeCognitionService/SearchKeyword",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async setMemoryEmbeddingRuntimeIntent(request: SetMemoryEmbeddingRuntimeIntentRequest, options: RuntimeTypedCallOptions = {}): Promise<SetMemoryEmbeddingRuntimeIntentResponse> {
+    return this.core.unary<SetMemoryEmbeddingRuntimeIntentResponse, SetMemoryEmbeddingRuntimeIntentRequest>({
+      methodId: "/runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -6318,6 +6501,16 @@ export class RuntimeTypedClient {
     });
   }
 
+  async admitProductControlReadyForUse(request: AdmitProductControlReadyForUseRequest, options: RuntimeTypedCallOptions = {}): Promise<ProductControlProjectionJson> {
+    return this.core.unary<ProductControlProjectionJson, AdmitProductControlReadyForUseRequest>({
+      methodId: "/runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
   async appendInferenceAudit(request: AppendInferenceAuditRequest, options: RuntimeTypedCallOptions = {}): Promise<Ack> {
     return this.core.unary<Ack, AppendInferenceAuditRequest>({
       methodId: "/runtime.v1.RuntimeLocalService/AppendInferenceAudit",
@@ -6398,9 +6591,29 @@ export class RuntimeTypedClient {
     });
   }
 
+  async completeProductControlFirstRunDeviceEnvironmentScan(request: CompleteProductControlFirstRunDeviceEnvironmentScanRequest, options: RuntimeTypedCallOptions = {}): Promise<ProductControlProjectionJson> {
+    return this.core.unary<ProductControlProjectionJson, CompleteProductControlFirstRunDeviceEnvironmentScanRequest>({
+      methodId: "/runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
   async ensureEngine(request: EnsureEngineRequest, options: RuntimeTypedCallOptions = {}): Promise<EnsureEngineResponse> {
     return this.core.unary<EnsureEngineResponse, EnsureEngineRequest>({
       methodId: "/runtime.v1.RuntimeLocalService/EnsureEngine",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async ensureProductControlRecordCreated(request: EnsureProductControlRecordCreatedRequest, options: RuntimeTypedCallOptions = {}): Promise<ProductControlProjectionJson> {
+    return this.core.unary<ProductControlProjectionJson, EnsureProductControlRecordCreatedRequest>({
+      methodId: "/runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -6421,6 +6634,26 @@ export class RuntimeTypedClient {
   async getEngineStatus(request: GetEngineStatusRequest, options: RuntimeTypedCallOptions = {}): Promise<GetEngineStatusResponse> {
     return this.core.unary<GetEngineStatusResponse, GetEngineStatusRequest>({
       methodId: "/runtime.v1.RuntimeLocalService/GetEngineStatus",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async getProductControlRecord(request: GetProductControlRecordRequest, options: RuntimeTypedCallOptions = {}): Promise<ProductControlProjectionJson> {
+    return this.core.unary<ProductControlProjectionJson, GetProductControlRecordRequest>({
+      methodId: "/runtime.v1.RuntimeLocalService/GetProductControlRecord",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async getProductControlSelectedDataRoot(request: GetProductControlSelectedDataRootRequest, options: RuntimeTypedCallOptions = {}): Promise<ProductControlProjectionJson> {
+    return this.core.unary<ProductControlProjectionJson, GetProductControlSelectedDataRootRequest>({
+      methodId: "/runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -6628,6 +6861,36 @@ export class RuntimeTypedClient {
     });
   }
 
+  async reconcileProductControlFirstRunSetupState(request: ReconcileProductControlFirstRunSetupStateRequest, options: RuntimeTypedCallOptions = {}): Promise<ProductControlProjectionJson> {
+    return this.core.unary<ProductControlProjectionJson, ReconcileProductControlFirstRunSetupStateRequest>({
+      methodId: "/runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async recordProductControlAccountDefaultProfileEvidence(request: RecordProductControlAccountDefaultProfileEvidenceRequest, options: RuntimeTypedCallOptions = {}): Promise<ProductControlProjectionJson> {
+    return this.core.unary<ProductControlProjectionJson, RecordProductControlAccountDefaultProfileEvidenceRequest>({
+      methodId: "/runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async recordProductControlFirstRunLocalAiReadyEvidence(request: RecordProductControlFirstRunLocalAiReadyEvidenceRequest, options: RuntimeTypedCallOptions = {}): Promise<ProductControlProjectionJson> {
+    return this.core.unary<ProductControlProjectionJson, RecordProductControlFirstRunLocalAiReadyEvidenceRequest>({
+      methodId: "/runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
   async removeLocalAsset(request: RemoveLocalAssetRequest, options: RuntimeTypedCallOptions = {}): Promise<RemoveLocalAssetResponse> {
     return this.core.unary<RemoveLocalAssetResponse, RemoveLocalAssetRequest>({
       methodId: "/runtime.v1.RuntimeLocalService/RemoveLocalAsset",
@@ -6781,6 +7044,26 @@ export class RuntimeTypedClient {
   async searchCatalogModels(request: SearchCatalogModelsRequest, options: RuntimeTypedCallOptions = {}): Promise<SearchCatalogModelsResponse> {
     return this.core.unary<SearchCatalogModelsResponse, SearchCatalogModelsRequest>({
       methodId: "/runtime.v1.RuntimeLocalService/SearchCatalogModels",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async selectProductControlDataRoot(request: SelectProductControlDataRootRequest, options: RuntimeTypedCallOptions = {}): Promise<ProductControlProjectionJson> {
+    return this.core.unary<ProductControlProjectionJson, SelectProductControlDataRootRequest>({
+      methodId: "/runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async setProductControlFirstRunInstallLevel(request: SetProductControlFirstRunInstallLevelRequest, options: RuntimeTypedCallOptions = {}): Promise<ProductControlProjectionJson> {
+    return this.core.unary<ProductControlProjectionJson, SetProductControlFirstRunInstallLevelRequest>({
+      methodId: "/runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

@@ -79,6 +79,9 @@ export interface SubscribeAppMessagesRequest {
      */
     subjectUserId: string;
     /**
+     * Cursor replay is not admitted by K-APP-007. Runtime rejects non-empty
+     * cursor values with INVALID_ARGUMENT + PROTOCOL_ENVELOPE_INVALID.
+     *
      * @generated from protobuf field: string cursor = 3
      */
     cursor: string;

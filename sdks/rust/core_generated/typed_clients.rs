@@ -130,6 +130,20 @@ impl Default for AgentAutonomyMode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentCanonicalMemoryBankMode {
+    AGENTCANONICALMEMORYBANKMODEUNSPECIFIED,
+    AGENTCANONICALMEMORYBANKMODEBASELINE,
+    AGENTCANONICALMEMORYBANKMODESTANDARD,
+    AGENTCANONICALMEMORYBANKMODEUNAVAILABLE,
+}
+
+impl Default for AgentCanonicalMemoryBankMode {
+    fn default() -> Self {
+        Self::AGENTCANONICALMEMORYBANKMODEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentEventType {
     AGENTEVENTTYPEUNSPECIFIED,
     AGENTEVENTTYPELIFECYCLE,
@@ -379,6 +393,22 @@ pub enum AppOpenState {
 impl Default for AppOpenState {
     fn default() -> Self {
         Self::APPOPENSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AppPackageReadinessState {
+    APPPACKAGEREADINESSSTATEUNSPECIFIED,
+    APPPACKAGEREADINESSSTATEREADY,
+    APPPACKAGEREADINESSSTATEINSTALLREQUIRED,
+    APPPACKAGEREADINESSSTATEUPDATEREQUIRED,
+    APPPACKAGEREADINESSSTATEREPAIRREQUIRED,
+    APPPACKAGEREADINESSSTATEBLOCKED,
+}
+
+impl Default for AppPackageReadinessState {
+    fn default() -> Self {
+        Self::APPPACKAGEREADINESSSTATEUNSPECIFIED
     }
 }
 
@@ -2207,6 +2237,65 @@ impl AIProviderSubHealth {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountAppLibraryRecord {
+    pub schema_version: Option<u32>,
+    pub account_id: Option<String>,
+    pub updated_at: Option<String>,
+    pub apps: Vec<Box<AccountAppLibraryRow>>,
+}
+
+impl AccountAppLibraryRecord {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.schema_version { pairs.push(format!("schema_version={}", value)); }
+        if let Some(value) = &self.account_id { pairs.push(format!("account_id={}", value)); }
+        if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.schema_version = pairs.get("schema_version").and_then(|value| value.parse().ok());
+        out.account_id = pairs.get("account_id").cloned();
+        out.updated_at = pairs.get("updated_at").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountAppLibraryRow {
+    pub app_id: Option<String>,
+    pub library_state: Option<String>,
+    pub installed: Option<bool>,
+    pub last_opened_at: Option<String>,
+    pub data_policy: Option<String>,
+}
+
+impl AccountAppLibraryRow {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
+        if let Some(value) = &self.library_state { pairs.push(format!("library_state={}", value)); }
+        if let Some(value) = &self.installed { pairs.push(format!("installed={}", value)); }
+        if let Some(value) = &self.last_opened_at { pairs.push(format!("last_opened_at={}", value)); }
+        if let Some(value) = &self.data_policy { pairs.push(format!("data_policy={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.app_id = pairs.get("app_id").cloned();
+        out.library_state = pairs.get("library_state").cloned();
+        out.installed = pairs.get("installed").and_then(|value| value.parse().ok());
+        out.last_opened_at = pairs.get("last_opened_at").cloned();
+        out.data_policy = pairs.get("data_policy").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AccountCaller {
     pub app_id: Option<String>,
     pub app_instance_id: Option<String>,
@@ -2377,6 +2466,29 @@ impl AddLinkResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AdmitProductControlReadyForUseRequest {
+    pub account_default_profile_evidence_json: Option<String>,
+    pub built_in_ai_config_evidence_json: Option<String>,
+}
+
+impl AdmitProductControlReadyForUseRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.account_default_profile_evidence_json { pairs.push(format!("account_default_profile_evidence_json={}", value)); }
+        if let Some(value) = &self.built_in_ai_config_evidence_json { pairs.push(format!("built_in_ai_config_evidence_json={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.account_default_profile_evidence_json = pairs.get("account_default_profile_evidence_json").cloned();
+        out.built_in_ai_config_evidence_json = pairs.get("built_in_ai_config_evidence_json").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AgentAutonomyConfig {
     pub daily_token_budget: Option<i64>,
     pub max_tokens_per_hook: Option<i64>,
@@ -2484,6 +2596,46 @@ impl AgentBudgetEventDetail {
         out.budget_exhausted = pairs.get("budget_exhausted").and_then(|value| value.parse().ok());
         out.remaining_tokens = pairs.get("remaining_tokens").and_then(|value| value.parse().ok());
         out.window_started_at = pairs.get("window_started_at").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentCanonicalMemoryBankStatus {
+    pub mode: Option<AgentCanonicalMemoryBankMode>,
+    pub bank_id: Option<String>,
+    pub embedding_profile: Option<Box<MemoryEmbeddingProfile>>,
+    pub binding_source_kind: Option<String>,
+    pub blocked_reason_code: Option<ReasonCode>,
+    pub pending_cutover: Option<bool>,
+    pub canonical_bank_status: Option<String>,
+    pub bind_allowed: Option<bool>,
+    pub cutover_allowed: Option<bool>,
+}
+
+impl AgentCanonicalMemoryBankStatus {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.mode { pairs.push(format!("mode={:?}", value)); }
+        if let Some(value) = &self.bank_id { pairs.push(format!("bank_id={}", value)); }
+        if let Some(value) = &self.binding_source_kind { pairs.push(format!("binding_source_kind={}", value)); }
+        if let Some(value) = &self.blocked_reason_code { pairs.push(format!("blocked_reason_code={:?}", value)); }
+        if let Some(value) = &self.pending_cutover { pairs.push(format!("pending_cutover={}", value)); }
+        if let Some(value) = &self.canonical_bank_status { pairs.push(format!("canonical_bank_status={}", value)); }
+        if let Some(value) = &self.bind_allowed { pairs.push(format!("bind_allowed={}", value)); }
+        if let Some(value) = &self.cutover_allowed { pairs.push(format!("cutover_allowed={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.bank_id = pairs.get("bank_id").cloned();
+        out.binding_source_kind = pairs.get("binding_source_kind").cloned();
+        out.pending_cutover = pairs.get("pending_cutover").and_then(|value| value.parse().ok());
+        out.canonical_bank_status = pairs.get("canonical_bank_status").cloned();
+        out.bind_allowed = pairs.get("bind_allowed").and_then(|value| value.parse().ok());
+        out.cutover_allowed = pairs.get("cutover_allowed").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -3754,6 +3906,54 @@ impl AppOpenScopeRef {
         out.kind = pairs.get("kind").cloned();
         out.owner_id = pairs.get("owner_id").cloned();
         out.surface_id = pairs.get("surface_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppPackageReadinessProjection {
+    pub app_id: Option<String>,
+    pub release_descriptor_ref: Option<String>,
+    pub storage_policy_ref: Option<String>,
+    pub expected_version: Option<String>,
+    pub active_version: Option<String>,
+    pub installed_version: Option<String>,
+    pub sha256: Option<String>,
+    pub verification_state: Option<String>,
+    pub state: Option<AppPackageReadinessState>,
+    pub reason_code: Option<ReasonCode>,
+    pub detail: Option<String>,
+}
+
+impl AppPackageReadinessProjection {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
+        if let Some(value) = &self.release_descriptor_ref { pairs.push(format!("release_descriptor_ref={}", value)); }
+        if let Some(value) = &self.storage_policy_ref { pairs.push(format!("storage_policy_ref={}", value)); }
+        if let Some(value) = &self.expected_version { pairs.push(format!("expected_version={}", value)); }
+        if let Some(value) = &self.active_version { pairs.push(format!("active_version={}", value)); }
+        if let Some(value) = &self.installed_version { pairs.push(format!("installed_version={}", value)); }
+        if let Some(value) = &self.sha256 { pairs.push(format!("sha256={}", value)); }
+        if let Some(value) = &self.verification_state { pairs.push(format!("verification_state={}", value)); }
+        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.app_id = pairs.get("app_id").cloned();
+        out.release_descriptor_ref = pairs.get("release_descriptor_ref").cloned();
+        out.storage_policy_ref = pairs.get("storage_policy_ref").cloned();
+        out.expected_version = pairs.get("expected_version").cloned();
+        out.active_version = pairs.get("active_version").cloned();
+        out.installed_version = pairs.get("installed_version").cloned();
+        out.sha256 = pairs.get("sha256").cloned();
+        out.verification_state = pairs.get("verification_state").cloned();
+        out.detail = pairs.get("detail").cloned();
         out
     }
 }
@@ -5735,6 +5935,22 @@ impl CompleteLoginResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CompleteProductControlFirstRunDeviceEnvironmentScanRequest {
+
+}
+
+impl CompleteProductControlFirstRunDeviceEnvironmentScanRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Connector {
     pub connector_id: Option<String>,
     pub kind: Option<ConnectorKind>,
@@ -6859,6 +7075,22 @@ impl EnsureEngineResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct EnsureProductControlRecordCreatedRequest {
+
+}
+
+impl EnsureProductControlRecordCreatedRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct EpisodicMemoryRecord {
     pub summary: Option<String>,
     pub occurred_at: Option<String>,
@@ -7568,6 +7800,48 @@ impl GetAccessTokenResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAccountAppLibraryRequest {
+
+}
+
+impl GetAccountAppLibraryRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAccountAppLibraryResponse {
+    pub exists: Option<bool>,
+    pub record: Option<Box<AccountAppLibraryRecord>>,
+    pub reason_code: Option<ReasonCode>,
+    pub detail: Option<String>,
+}
+
+impl GetAccountAppLibraryResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.exists { pairs.push(format!("exists={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.exists = pairs.get("exists").and_then(|value| value.parse().ok());
+        out.detail = pairs.get("detail").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetAccountSessionStatusRequest {
     pub caller: Option<Box<AccountCaller>>,
 }
@@ -7607,6 +7881,43 @@ impl GetAccountSessionStatusResponse {
         let mut out = Self::default();
         out.production_inert = pairs.get("production_inert").and_then(|value| value.parse().ok());
         out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAgentCanonicalMemoryBankStatusRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub agent_id: Option<String>,
+}
+
+impl GetAgentCanonicalMemoryBankStatusRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.agent_id = pairs.get("agent_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAgentCanonicalMemoryBankStatusResponse {
+    pub status: Option<Box<AgentCanonicalMemoryBankStatus>>,
+}
+
+impl GetAgentCanonicalMemoryBankStatusResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
     }
 }
 
@@ -7710,6 +8021,42 @@ pub struct GetAppInstallJobResponse {
 }
 
 impl GetAppInstallJobResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAppPackageReadinessRequest {
+    pub app_id: Option<String>,
+}
+
+impl GetAppPackageReadinessRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.app_id = pairs.get("app_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAppPackageReadinessResponse {
+    pub projection: Option<Box<AppPackageReadinessProjection>>,
+}
+
+impl GetAppPackageReadinessResponse {
     pub fn to_transport(&self) -> Vec<u8> {
         Vec::new()
     }
@@ -8253,6 +8600,44 @@ impl GetKnowledgeBankResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetMemoryEmbeddingRuntimeIntentRequest {
+    pub context: Option<Box<MemoryRequestContext>>,
+    pub locator: Option<Box<MemoryBankLocator>>,
+}
+
+impl GetMemoryEmbeddingRuntimeIntentRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetMemoryEmbeddingRuntimeIntentResponse {
+    pub binding_intent_present: Option<bool>,
+    pub binding_intent: Option<Box<MemoryEmbeddingBindingIntentSnapshot>>,
+}
+
+impl GetMemoryEmbeddingRuntimeIntentResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.binding_intent_present { pairs.push(format!("binding_intent_present={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.binding_intent_present = pairs.get("binding_intent_present").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetPageRequest {
     pub context: Option<Box<KnowledgeRequestContext>>,
     pub bank_id: Option<String>,
@@ -8285,6 +8670,38 @@ pub struct GetPageResponse {
 }
 
 impl GetPageResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetProductControlRecordRequest {
+
+}
+
+impl GetProductControlRecordRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetProductControlSelectedDataRootRequest {
+
+}
+
+impl GetProductControlSelectedDataRootRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         Vec::new()
     }
@@ -9236,7 +9653,6 @@ impl InitializeAgentResponse {
 pub struct InspectMemoryEmbeddingRuntimeRequest {
     pub context: Option<Box<MemoryRequestContext>>,
     pub locator: Option<Box<MemoryBankLocator>>,
-    pub binding_intent_snapshot: Option<Box<MemoryEmbeddingBindingIntentSnapshot>>,
 }
 
 impl InspectMemoryEmbeddingRuntimeRequest {
@@ -12152,6 +12568,8 @@ pub struct LocalEnvironmentDependencyJob {
     pub percent: Option<i32>,
     pub speed_bytes_per_sec: Option<i64>,
     pub eta_seconds: Option<i64>,
+    pub reason_code: Option<String>,
+    pub recovery_disposition: Option<String>,
 }
 
 impl LocalEnvironmentDependencyJob {
@@ -12174,6 +12592,8 @@ impl LocalEnvironmentDependencyJob {
         if let Some(value) = &self.percent { pairs.push(format!("percent={}", value)); }
         if let Some(value) = &self.speed_bytes_per_sec { pairs.push(format!("speed_bytes_per_sec={}", value)); }
         if let Some(value) = &self.eta_seconds { pairs.push(format!("eta_seconds={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
+        if let Some(value) = &self.recovery_disposition { pairs.push(format!("recovery_disposition={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -12197,6 +12617,8 @@ impl LocalEnvironmentDependencyJob {
         out.percent = pairs.get("percent").and_then(|value| value.parse().ok());
         out.speed_bytes_per_sec = pairs.get("speed_bytes_per_sec").and_then(|value| value.parse().ok());
         out.eta_seconds = pairs.get("eta_seconds").and_then(|value| value.parse().ok());
+        out.reason_code = pairs.get("reason_code").cloned();
+        out.recovery_disposition = pairs.get("recovery_disposition").cloned();
         out
     }
 }
@@ -15482,6 +15904,26 @@ impl PendingHook {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ProductControlProjectionJson {
+    pub json: Option<String>,
+}
+
+impl ProductControlProjectionJson {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.json { pairs.push(format!("json={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.json = pairs.get("json").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ProfileEntryOverride {
     pub entry_id: Option<String>,
     pub local_asset_id: Option<String>,
@@ -16228,6 +16670,68 @@ impl RecallResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReconcileProductControlFirstRunSetupStateRequest {
+
+}
+
+impl ReconcileProductControlFirstRunSetupStateRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RecordProductControlAccountDefaultProfileEvidenceRequest {
+    pub account_default_profile_evidence_json: Option<String>,
+}
+
+impl RecordProductControlAccountDefaultProfileEvidenceRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.account_default_profile_evidence_json { pairs.push(format!("account_default_profile_evidence_json={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.account_default_profile_evidence_json = pairs.get("account_default_profile_evidence_json").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RecordProductControlFirstRunLocalAiReadyEvidenceRequest {
+    pub runtime_baseline_ref: Option<String>,
+    pub built_in_ai_config_evidence_json: Option<String>,
+    pub execution_evidence_ref: Option<String>,
+}
+
+impl RecordProductControlFirstRunLocalAiReadyEvidenceRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.runtime_baseline_ref { pairs.push(format!("runtime_baseline_ref={}", value)); }
+        if let Some(value) = &self.built_in_ai_config_evidence_json { pairs.push(format!("built_in_ai_config_evidence_json={}", value)); }
+        if let Some(value) = &self.execution_evidence_ref { pairs.push(format!("execution_evidence_ref={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.runtime_baseline_ref = pairs.get("runtime_baseline_ref").cloned();
+        out.built_in_ai_config_evidence_json = pairs.get("built_in_ai_config_evidence_json").cloned();
+        out.execution_evidence_ref = pairs.get("execution_evidence_ref").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RefreshAccountSessionRequest {
     pub caller: Option<Box<AccountCaller>>,
 }
@@ -16666,6 +17170,50 @@ impl RepairLocalEnvironmentDependencyResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RequestAgentCanonicalMemoryBankBindRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub agent_id: Option<String>,
+}
+
+impl RequestAgentCanonicalMemoryBankBindRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.agent_id = pairs.get("agent_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RequestAgentCanonicalMemoryBankBindResponse {
+    pub status: Option<Box<AgentCanonicalMemoryBankStatus>>,
+    pub outcome: Option<String>,
+    pub blocked_reason_code: Option<ReasonCode>,
+}
+
+impl RequestAgentCanonicalMemoryBankBindResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.outcome { pairs.push(format!("outcome={}", value)); }
+        if let Some(value) = &self.blocked_reason_code { pairs.push(format!("blocked_reason_code={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.outcome = pairs.get("outcome").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RequestAvatarDebugProbeRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub agent_id: Option<String>,
@@ -16795,7 +17343,6 @@ impl RequestCompanionParticipationResponse {
 pub struct RequestMemoryEmbeddingRuntimeBindRequest {
     pub context: Option<Box<MemoryRequestContext>>,
     pub locator: Option<Box<MemoryBankLocator>>,
-    pub binding_intent_snapshot: Option<Box<MemoryEmbeddingBindingIntentSnapshot>>,
 }
 
 impl RequestMemoryEmbeddingRuntimeBindRequest {
@@ -16841,7 +17388,6 @@ impl RequestMemoryEmbeddingRuntimeBindResponse {
 pub struct RequestMemoryEmbeddingRuntimeCutoverRequest {
     pub context: Option<Box<MemoryRequestContext>>,
     pub locator: Option<Box<MemoryBankLocator>>,
-    pub binding_intent_snapshot: Option<Box<MemoryEmbeddingBindingIntentSnapshot>>,
 }
 
 impl RequestMemoryEmbeddingRuntimeCutoverRequest {
@@ -18648,6 +19194,26 @@ impl SearchKeywordResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct SelectProductControlDataRootRequest {
+    pub data_root: Option<String>,
+}
+
+impl SelectProductControlDataRootRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.data_root { pairs.push(format!("data_root={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.data_root = pairs.get("data_root").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SemanticMemoryRecord {
     pub subject: Option<String>,
     pub predicate: Option<String>,
@@ -18854,6 +19420,68 @@ impl SetDelegatedProviderStateResponse {
     pub fn from_transport(raw: &[u8]) -> Self {
         let _ = raw;
         Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SetMemoryEmbeddingRuntimeIntentRequest {
+    pub context: Option<Box<MemoryRequestContext>>,
+    pub locator: Option<Box<MemoryBankLocator>>,
+    pub binding_intent: Option<Box<MemoryEmbeddingBindingIntentSnapshot>>,
+}
+
+impl SetMemoryEmbeddingRuntimeIntentRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SetMemoryEmbeddingRuntimeIntentResponse {
+    pub accepted: Option<bool>,
+    pub binding_intent: Option<Box<MemoryEmbeddingBindingIntentSnapshot>>,
+}
+
+impl SetMemoryEmbeddingRuntimeIntentResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SetProductControlFirstRunInstallLevelRequest {
+    pub install_level: Option<String>,
+    pub ai_profile_alias: Option<String>,
+}
+
+impl SetProductControlFirstRunInstallLevelRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.install_level { pairs.push(format!("install_level={}", value)); }
+        if let Some(value) = &self.ai_profile_alias { pairs.push(format!("ai_profile_alias={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.install_level = pairs.get("install_level").cloned();
+        out.ai_profile_alias = pairs.get("ai_profile_alias").cloned();
+        out
     }
 }
 
@@ -21739,6 +22367,18 @@ impl From<Vec<u8>> for AIProviderSubHealth {
     }
 }
 
+impl From<Vec<u8>> for AccountAppLibraryRecord {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AccountAppLibraryRow {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for AccountCaller {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -21775,6 +22415,12 @@ impl From<Vec<u8>> for AddLinkResponse {
     }
 }
 
+impl From<Vec<u8>> for AdmitProductControlReadyForUseRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for AgentAutonomyConfig {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -21794,6 +22440,12 @@ impl From<Vec<u8>> for AgentAvatarDebugEventDetail {
 }
 
 impl From<Vec<u8>> for AgentBudgetEventDetail {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AgentCanonicalMemoryBankStatus {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -22028,6 +22680,12 @@ impl From<Vec<u8>> for AppOpenProjection {
 }
 
 impl From<Vec<u8>> for AppOpenScopeRef {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AppPackageReadinessProjection {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -22435,6 +23093,12 @@ impl From<Vec<u8>> for CompleteLoginResponse {
     }
 }
 
+impl From<Vec<u8>> for CompleteProductControlFirstRunDeviceEnvironmentScanRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for Connector {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -22693,6 +23357,12 @@ impl From<Vec<u8>> for EnsureEngineResponse {
     }
 }
 
+impl From<Vec<u8>> for EnsureProductControlRecordCreatedRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for EpisodicMemoryRecord {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -22837,6 +23507,18 @@ impl From<Vec<u8>> for GetAccessTokenResponse {
     }
 }
 
+impl From<Vec<u8>> for GetAccountAppLibraryRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetAccountAppLibraryResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for GetAccountSessionStatusRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -22844,6 +23526,18 @@ impl From<Vec<u8>> for GetAccountSessionStatusRequest {
 }
 
 impl From<Vec<u8>> for GetAccountSessionStatusResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetAgentCanonicalMemoryBankStatusRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetAgentCanonicalMemoryBankStatusResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -22880,6 +23574,18 @@ impl From<Vec<u8>> for GetAppInstallJobRequest {
 }
 
 impl From<Vec<u8>> for GetAppInstallJobResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetAppPackageReadinessRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetAppPackageReadinessResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -23041,6 +23747,18 @@ impl From<Vec<u8>> for GetKnowledgeBankResponse {
     }
 }
 
+impl From<Vec<u8>> for GetMemoryEmbeddingRuntimeIntentRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetMemoryEmbeddingRuntimeIntentResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for GetPageRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -23048,6 +23766,18 @@ impl From<Vec<u8>> for GetPageRequest {
 }
 
 impl From<Vec<u8>> for GetPageResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetProductControlRecordRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetProductControlSelectedDataRootRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -24559,6 +25289,12 @@ impl From<Vec<u8>> for PendingHook {
     }
 }
 
+impl From<Vec<u8>> for ProductControlProjectionJson {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ProfileEntryOverride {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -24721,6 +25457,24 @@ impl From<Vec<u8>> for RecallResponse {
     }
 }
 
+impl From<Vec<u8>> for ReconcileProductControlFirstRunSetupStateRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RecordProductControlAccountDefaultProfileEvidenceRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RecordProductControlFirstRunLocalAiReadyEvidenceRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for RefreshAccountSessionRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -24830,6 +25584,18 @@ impl From<Vec<u8>> for RepairLocalEnvironmentDependencyRequest {
 }
 
 impl From<Vec<u8>> for RepairLocalEnvironmentDependencyResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RequestAgentCanonicalMemoryBankBindRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RequestAgentCanonicalMemoryBankBindResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -25285,6 +26051,12 @@ impl From<Vec<u8>> for SearchKeywordResponse {
     }
 }
 
+impl From<Vec<u8>> for SelectProductControlDataRootRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for SemanticMemoryRecord {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -25334,6 +26106,24 @@ impl From<Vec<u8>> for SetDelegatedProviderStateRequest {
 }
 
 impl From<Vec<u8>> for SetDelegatedProviderStateResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for SetMemoryEmbeddingRuntimeIntentRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for SetMemoryEmbeddingRuntimeIntentResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for SetProductControlFirstRunInstallLevelRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -26233,6 +27023,16 @@ where
         Ok(GetAgentResponse::from_transport(&raw))
     }
 
+    pub fn get_agent_canonical_memory_bank_status(&self, request: GetAgentCanonicalMemoryBankStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAgentCanonicalMemoryBankStatusResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GetAgentCanonicalMemoryBankStatusResponse::from_transport(&raw))
+    }
+
     pub fn get_agent_state(&self, request: GetAgentStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAgentStateResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/runtime.v1.RuntimeAgentService/GetAgentState".to_string(),
@@ -26441,6 +27241,16 @@ where
             timeout,
         })?;
         Ok(RegisterAvatarLiveInstanceBindingResponse::from_transport(&raw))
+    }
+
+    pub fn request_agent_canonical_memory_bank_bind(&self, request: RequestAgentCanonicalMemoryBankBindRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestAgentCanonicalMemoryBankBindResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RequestAgentCanonicalMemoryBankBindResponse::from_transport(&raw))
     }
 
     pub fn request_avatar_debug_probe(&self, request: RequestAvatarDebugProbeRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestAvatarDebugProbeResponse, T::Error> {
@@ -26749,6 +27559,16 @@ where
         panic!("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /runtime.v1.RuntimeAiService/UploadArtifact");
     }
 
+    pub fn get_account_app_library(&self, request: GetAccountAppLibraryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAccountAppLibraryResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/runtime.v1.RuntimeAppService/GetAccountAppLibrary".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GetAccountAppLibraryResponse::from_transport(&raw))
+    }
+
     pub fn get_app_install_job(&self, request: GetAppInstallJobRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAppInstallJobResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/runtime.v1.RuntimeAppService/GetAppInstallJob".to_string(),
@@ -26757,6 +27577,16 @@ where
             timeout,
         })?;
         Ok(GetAppInstallJobResponse::from_transport(&raw))
+    }
+
+    pub fn get_app_package_readiness(&self, request: GetAppPackageReadinessRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAppPackageReadinessResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/runtime.v1.RuntimeAppService/GetAppPackageReadiness".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GetAppPackageReadinessResponse::from_transport(&raw))
     }
 
     pub fn get_app_storage(&self, request: GetAppStorageRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAppStorageResponse, T::Error> {
@@ -27124,6 +27954,16 @@ where
         Ok(GetKnowledgeBankResponse::from_transport(&raw))
     }
 
+    pub fn get_memory_embedding_runtime_intent(&self, request: GetMemoryEmbeddingRuntimeIntentRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetMemoryEmbeddingRuntimeIntentResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GetMemoryEmbeddingRuntimeIntentResponse::from_transport(&raw))
+    }
+
     pub fn get_page(&self, request: GetPageRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetPageResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/runtime.v1.RuntimeCognitionService/GetPage".to_string(),
@@ -27292,6 +28132,16 @@ where
             timeout,
         })?;
         Ok(SearchKeywordResponse::from_transport(&raw))
+    }
+
+    pub fn set_memory_embedding_runtime_intent(&self, request: SetMemoryEmbeddingRuntimeIntentRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SetMemoryEmbeddingRuntimeIntentResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(SetMemoryEmbeddingRuntimeIntentResponse::from_transport(&raw))
     }
 
     pub fn subscribe_memory_events(&self, request: SubscribeMemoryEventsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, MemoryEvent>, T::Error>
@@ -27557,6 +28407,16 @@ where
         Ok(ValidateAppAccessTokenResponse::from_transport(&raw))
     }
 
+    pub fn admit_product_control_ready_for_use(&self, request: AdmitProductControlReadyForUseRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ProductControlProjectionJson::from_transport(&raw))
+    }
+
     pub fn append_inference_audit(&self, request: AppendInferenceAuditRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Ack, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/runtime.v1.RuntimeLocalService/AppendInferenceAudit".to_string(),
@@ -27637,6 +28497,16 @@ where
         Ok(CollectDeviceProfileResponse::from_transport(&raw))
     }
 
+    pub fn complete_product_control_first_run_device_environment_scan(&self, request: CompleteProductControlFirstRunDeviceEnvironmentScanRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ProductControlProjectionJson::from_transport(&raw))
+    }
+
     pub fn ensure_engine(&self, request: EnsureEngineRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<EnsureEngineResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/runtime.v1.RuntimeLocalService/EnsureEngine".to_string(),
@@ -27645,6 +28515,16 @@ where
             timeout,
         })?;
         Ok(EnsureEngineResponse::from_transport(&raw))
+    }
+
+    pub fn ensure_product_control_record_created(&self, request: EnsureProductControlRecordCreatedRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ProductControlProjectionJson::from_transport(&raw))
     }
 
     pub fn execute_local_state_cutover(&self, request: ExecuteLocalStateCutoverRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ExecuteLocalStateCutoverResponse, T::Error> {
@@ -27665,6 +28545,26 @@ where
             timeout,
         })?;
         Ok(GetEngineStatusResponse::from_transport(&raw))
+    }
+
+    pub fn get_product_control_record(&self, request: GetProductControlRecordRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/runtime.v1.RuntimeLocalService/GetProductControlRecord".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ProductControlProjectionJson::from_transport(&raw))
+    }
+
+    pub fn get_product_control_selected_data_root(&self, request: GetProductControlSelectedDataRootRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ProductControlProjectionJson::from_transport(&raw))
     }
 
     pub fn get_recommendation_feed(&self, request: GetRecommendationFeedRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetRecommendationFeedResponse, T::Error> {
@@ -27867,6 +28767,36 @@ where
         Ok(PauseLocalTransferResponse::from_transport(&raw))
     }
 
+    pub fn reconcile_product_control_first_run_setup_state(&self, request: ReconcileProductControlFirstRunSetupStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ProductControlProjectionJson::from_transport(&raw))
+    }
+
+    pub fn record_product_control_account_default_profile_evidence(&self, request: RecordProductControlAccountDefaultProfileEvidenceRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ProductControlProjectionJson::from_transport(&raw))
+    }
+
+    pub fn record_product_control_first_run_local_ai_ready_evidence(&self, request: RecordProductControlFirstRunLocalAiReadyEvidenceRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ProductControlProjectionJson::from_transport(&raw))
+    }
+
     pub fn remove_local_asset(&self, request: RemoveLocalAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveLocalAssetResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/runtime.v1.RuntimeLocalService/RemoveLocalAsset".to_string(),
@@ -28025,6 +28955,26 @@ where
             timeout,
         })?;
         Ok(SearchCatalogModelsResponse::from_transport(&raw))
+    }
+
+    pub fn select_product_control_data_root(&self, request: SelectProductControlDataRootRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/runtime.v1.RuntimeLocalService/SelectProductControlDataRoot".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ProductControlProjectionJson::from_transport(&raw))
+    }
+
+    pub fn set_product_control_first_run_install_level(&self, request: SetProductControlFirstRunInstallLevelRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ProductControlProjectionJson::from_transport(&raw))
     }
 
     pub fn start_engine(&self, request: StartEngineRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<StartEngineResponse, T::Error> {

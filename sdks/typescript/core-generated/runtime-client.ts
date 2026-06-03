@@ -167,6 +167,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAgentResponse"
   },
   {
+    "methodId": "/runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
+    "service": "RuntimeAgentService",
+    "method": "GetAgentCanonicalMemoryBankStatus",
+    "kind": "unary",
+    "requestType": "GetAgentCanonicalMemoryBankStatusRequest",
+    "responseType": "GetAgentCanonicalMemoryBankStatusResponse"
+  },
+  {
     "methodId": "/runtime.v1.RuntimeAgentService/GetAgentState",
     "service": "RuntimeAgentService",
     "method": "GetAgentState",
@@ -333,6 +341,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "RegisterAvatarLiveInstanceBindingRequest",
     "responseType": "RegisterAvatarLiveInstanceBindingResponse"
+  },
+  {
+    "methodId": "/runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
+    "service": "RuntimeAgentService",
+    "method": "RequestAgentCanonicalMemoryBankBind",
+    "kind": "unary",
+    "requestType": "RequestAgentCanonicalMemoryBankBindRequest",
+    "responseType": "RequestAgentCanonicalMemoryBankBindResponse"
   },
   {
     "methodId": "/runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
@@ -575,12 +591,28 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "UploadArtifactResponse"
   },
   {
+    "methodId": "/runtime.v1.RuntimeAppService/GetAccountAppLibrary",
+    "service": "RuntimeAppService",
+    "method": "GetAccountAppLibrary",
+    "kind": "unary",
+    "requestType": "GetAccountAppLibraryRequest",
+    "responseType": "GetAccountAppLibraryResponse"
+  },
+  {
     "methodId": "/runtime.v1.RuntimeAppService/GetAppInstallJob",
     "service": "RuntimeAppService",
     "method": "GetAppInstallJob",
     "kind": "unary",
     "requestType": "GetAppInstallJobRequest",
     "responseType": "GetAppInstallJobResponse"
+  },
+  {
+    "methodId": "/runtime.v1.RuntimeAppService/GetAppPackageReadiness",
+    "service": "RuntimeAppService",
+    "method": "GetAppPackageReadiness",
+    "kind": "unary",
+    "requestType": "GetAppPackageReadinessRequest",
+    "responseType": "GetAppPackageReadinessResponse"
   },
   {
     "methodId": "/runtime.v1.RuntimeAppService/GetAppStorage",
@@ -863,6 +895,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetKnowledgeBankResponse"
   },
   {
+    "methodId": "/runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent",
+    "service": "RuntimeCognitionService",
+    "method": "GetMemoryEmbeddingRuntimeIntent",
+    "kind": "unary",
+    "requestType": "GetMemoryEmbeddingRuntimeIntentRequest",
+    "responseType": "GetMemoryEmbeddingRuntimeIntentResponse"
+  },
+  {
     "methodId": "/runtime.v1.RuntimeCognitionService/GetPage",
     "service": "RuntimeCognitionService",
     "method": "GetPage",
@@ -997,6 +1037,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "SearchKeywordRequest",
     "responseType": "SearchKeywordResponse"
+  },
+  {
+    "methodId": "/runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent",
+    "service": "RuntimeCognitionService",
+    "method": "SetMemoryEmbeddingRuntimeIntent",
+    "kind": "unary",
+    "requestType": "SetMemoryEmbeddingRuntimeIntentRequest",
+    "responseType": "SetMemoryEmbeddingRuntimeIntentResponse"
   },
   {
     "methodId": "/runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
@@ -1207,6 +1255,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ValidateAppAccessTokenResponse"
   },
   {
+    "methodId": "/runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
+    "service": "RuntimeLocalService",
+    "method": "AdmitProductControlReadyForUse",
+    "kind": "unary",
+    "requestType": "AdmitProductControlReadyForUseRequest",
+    "responseType": "ProductControlProjectionJson"
+  },
+  {
     "methodId": "/runtime.v1.RuntimeLocalService/AppendInferenceAudit",
     "service": "RuntimeLocalService",
     "method": "AppendInferenceAudit",
@@ -1271,12 +1327,28 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CollectDeviceProfileResponse"
   },
   {
+    "methodId": "/runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
+    "service": "RuntimeLocalService",
+    "method": "CompleteProductControlFirstRunDeviceEnvironmentScan",
+    "kind": "unary",
+    "requestType": "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
+    "responseType": "ProductControlProjectionJson"
+  },
+  {
     "methodId": "/runtime.v1.RuntimeLocalService/EnsureEngine",
     "service": "RuntimeLocalService",
     "method": "EnsureEngine",
     "kind": "unary",
     "requestType": "EnsureEngineRequest",
     "responseType": "EnsureEngineResponse"
+  },
+  {
+    "methodId": "/runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
+    "service": "RuntimeLocalService",
+    "method": "EnsureProductControlRecordCreated",
+    "kind": "unary",
+    "requestType": "EnsureProductControlRecordCreatedRequest",
+    "responseType": "ProductControlProjectionJson"
   },
   {
     "methodId": "/runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover",
@@ -1293,6 +1365,22 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "GetEngineStatusRequest",
     "responseType": "GetEngineStatusResponse"
+  },
+  {
+    "methodId": "/runtime.v1.RuntimeLocalService/GetProductControlRecord",
+    "service": "RuntimeLocalService",
+    "method": "GetProductControlRecord",
+    "kind": "unary",
+    "requestType": "GetProductControlRecordRequest",
+    "responseType": "ProductControlProjectionJson"
+  },
+  {
+    "methodId": "/runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
+    "service": "RuntimeLocalService",
+    "method": "GetProductControlSelectedDataRoot",
+    "kind": "unary",
+    "requestType": "GetProductControlSelectedDataRootRequest",
+    "responseType": "ProductControlProjectionJson"
   },
   {
     "methodId": "/runtime.v1.RuntimeLocalService/GetRecommendationFeed",
@@ -1455,6 +1543,30 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "PauseLocalTransferResponse"
   },
   {
+    "methodId": "/runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
+    "service": "RuntimeLocalService",
+    "method": "ReconcileProductControlFirstRunSetupState",
+    "kind": "unary",
+    "requestType": "ReconcileProductControlFirstRunSetupStateRequest",
+    "responseType": "ProductControlProjectionJson"
+  },
+  {
+    "methodId": "/runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
+    "service": "RuntimeLocalService",
+    "method": "RecordProductControlAccountDefaultProfileEvidence",
+    "kind": "unary",
+    "requestType": "RecordProductControlAccountDefaultProfileEvidenceRequest",
+    "responseType": "ProductControlProjectionJson"
+  },
+  {
+    "methodId": "/runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
+    "service": "RuntimeLocalService",
+    "method": "RecordProductControlFirstRunLocalAiReadyEvidence",
+    "kind": "unary",
+    "requestType": "RecordProductControlFirstRunLocalAiReadyEvidenceRequest",
+    "responseType": "ProductControlProjectionJson"
+  },
+  {
     "methodId": "/runtime.v1.RuntimeLocalService/RemoveLocalAsset",
     "service": "RuntimeLocalService",
     "method": "RemoveLocalAsset",
@@ -1581,6 +1693,22 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "SearchCatalogModelsRequest",
     "responseType": "SearchCatalogModelsResponse"
+  },
+  {
+    "methodId": "/runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
+    "service": "RuntimeLocalService",
+    "method": "SelectProductControlDataRoot",
+    "kind": "unary",
+    "requestType": "SelectProductControlDataRootRequest",
+    "responseType": "ProductControlProjectionJson"
+  },
+  {
+    "methodId": "/runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
+    "service": "RuntimeLocalService",
+    "method": "SetProductControlFirstRunInstallLevel",
+    "kind": "unary",
+    "requestType": "SetProductControlFirstRunInstallLevelRequest",
+    "responseType": "ProductControlProjectionJson"
   },
   {
     "methodId": "/runtime.v1.RuntimeLocalService/StartEngine",

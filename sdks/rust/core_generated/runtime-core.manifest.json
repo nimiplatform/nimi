@@ -21,8 +21,11 @@
     "proto/runtime/v1/grant.proto",
     "proto/runtime/v1/knowledge.proto",
     "proto/runtime/v1/local_runtime.proto",
+    "proto/runtime/v1/local_runtime_asset_catalog.proto",
+    "proto/runtime/v1/local_runtime_device_environment.proto",
     "proto/runtime/v1/local_runtime_engine.proto",
-    "proto/runtime/v1/local_runtime_types.proto",
+    "proto/runtime/v1/local_runtime_execution_profile.proto",
+    "proto/runtime/v1/local_runtime_recommendation.proto",
     "proto/runtime/v1/memory.proto",
     "proto/runtime/v1/model.proto",
     "proto/runtime/v1/voice.proto",
@@ -506,6 +509,24 @@
           "response_stream": false
         },
         {
+          "name": "GetAgentCanonicalMemoryBankStatus",
+          "method_id": "/runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
+          "kind": "unary",
+          "request_type": "GetAgentCanonicalMemoryBankStatusRequest",
+          "response_type": "GetAgentCanonicalMemoryBankStatusResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "RequestAgentCanonicalMemoryBankBind",
+          "method_id": "/runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
+          "kind": "unary",
+          "request_type": "RequestAgentCanonicalMemoryBankBindRequest",
+          "response_type": "RequestAgentCanonicalMemoryBankBindResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "SubscribeAgentEvents",
           "method_id": "/runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
           "kind": "server_stream",
@@ -736,6 +757,24 @@
           "kind": "unary",
           "request_type": "GetAppStorageRequest",
           "response_type": "GetAppStorageResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetAccountAppLibrary",
+          "method_id": "/runtime.v1.RuntimeAppService/GetAccountAppLibrary",
+          "kind": "unary",
+          "request_type": "GetAccountAppLibraryRequest",
+          "response_type": "GetAccountAppLibraryResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetAppPackageReadiness",
+          "method_id": "/runtime.v1.RuntimeAppService/GetAppPackageReadiness",
+          "kind": "unary",
+          "request_type": "GetAppPackageReadinessRequest",
+          "response_type": "GetAppPackageReadinessResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -1032,6 +1071,24 @@
           "response_type": "MemoryEvent",
           "request_stream": false,
           "response_stream": true
+        },
+        {
+          "name": "GetMemoryEmbeddingRuntimeIntent",
+          "method_id": "/runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent",
+          "kind": "unary",
+          "request_type": "GetMemoryEmbeddingRuntimeIntentRequest",
+          "response_type": "GetMemoryEmbeddingRuntimeIntentResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "SetMemoryEmbeddingRuntimeIntent",
+          "method_id": "/runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent",
+          "kind": "unary",
+          "request_type": "SetMemoryEmbeddingRuntimeIntentRequest",
+          "response_type": "SetMemoryEmbeddingRuntimeIntentResponse",
+          "request_stream": false,
+          "response_stream": false
         },
         {
           "name": "InspectMemoryEmbeddingRuntime",
@@ -1796,6 +1853,96 @@
           "response_stream": false
         },
         {
+          "name": "GetProductControlRecord",
+          "method_id": "/runtime.v1.RuntimeLocalService/GetProductControlRecord",
+          "kind": "unary",
+          "request_type": "GetProductControlRecordRequest",
+          "response_type": "ProductControlProjectionJson",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetProductControlSelectedDataRoot",
+          "method_id": "/runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
+          "kind": "unary",
+          "request_type": "GetProductControlSelectedDataRootRequest",
+          "response_type": "ProductControlProjectionJson",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "EnsureProductControlRecordCreated",
+          "method_id": "/runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
+          "kind": "unary",
+          "request_type": "EnsureProductControlRecordCreatedRequest",
+          "response_type": "ProductControlProjectionJson",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "SelectProductControlDataRoot",
+          "method_id": "/runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
+          "kind": "unary",
+          "request_type": "SelectProductControlDataRootRequest",
+          "response_type": "ProductControlProjectionJson",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "SetProductControlFirstRunInstallLevel",
+          "method_id": "/runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
+          "kind": "unary",
+          "request_type": "SetProductControlFirstRunInstallLevelRequest",
+          "response_type": "ProductControlProjectionJson",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "CompleteProductControlFirstRunDeviceEnvironmentScan",
+          "method_id": "/runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
+          "kind": "unary",
+          "request_type": "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
+          "response_type": "ProductControlProjectionJson",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "AdmitProductControlReadyForUse",
+          "method_id": "/runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
+          "kind": "unary",
+          "request_type": "AdmitProductControlReadyForUseRequest",
+          "response_type": "ProductControlProjectionJson",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "RecordProductControlAccountDefaultProfileEvidence",
+          "method_id": "/runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
+          "kind": "unary",
+          "request_type": "RecordProductControlAccountDefaultProfileEvidenceRequest",
+          "response_type": "ProductControlProjectionJson",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "RecordProductControlFirstRunLocalAiReadyEvidence",
+          "method_id": "/runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
+          "kind": "unary",
+          "request_type": "RecordProductControlFirstRunLocalAiReadyEvidenceRequest",
+          "response_type": "ProductControlProjectionJson",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ReconcileProductControlFirstRunSetupState",
+          "method_id": "/runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
+          "kind": "unary",
+          "request_type": "ReconcileProductControlFirstRunSetupStateRequest",
+          "response_type": "ProductControlProjectionJson",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "CollectDeviceProfile",
           "method_id": "/runtime.v1.RuntimeLocalService/CollectDeviceProfile",
           "kind": "unary",
@@ -2064,6 +2211,7 @@
     "/runtime.v1.RuntimeAgentService/EnableAutonomy",
     "/runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
     "/runtime.v1.RuntimeAgentService/GetAgent",
+    "/runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
     "/runtime.v1.RuntimeAgentService/GetAgentState",
     "/runtime.v1.RuntimeAgentService/GetAvatarDebugReplay",
     "/runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot",
@@ -2085,6 +2233,7 @@
     "/runtime.v1.RuntimeAgentService/OpenConversationAnchor",
     "/runtime.v1.RuntimeAgentService/QueryAgentMemory",
     "/runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
+    "/runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
     "/runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
     "/runtime.v1.RuntimeAgentService/RequestCompanionParticipation",
     "/runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding",
@@ -2115,7 +2264,9 @@
     "/runtime.v1.RuntimeAiService/SubmitScenarioJob",
     "/runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
     "/runtime.v1.RuntimeAiService/UploadArtifact",
+    "/runtime.v1.RuntimeAppService/GetAccountAppLibrary",
     "/runtime.v1.RuntimeAppService/GetAppInstallJob",
+    "/runtime.v1.RuntimeAppService/GetAppPackageReadiness",
     "/runtime.v1.RuntimeAppService/GetAppStorage",
     "/runtime.v1.RuntimeAppService/HealthRepairApp",
     "/runtime.v1.RuntimeAppService/InstallApp",
@@ -2151,6 +2302,7 @@
     "/runtime.v1.RuntimeCognitionService/GetBank",
     "/runtime.v1.RuntimeCognitionService/GetIngestTask",
     "/runtime.v1.RuntimeCognitionService/GetKnowledgeBank",
+    "/runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent",
     "/runtime.v1.RuntimeCognitionService/GetPage",
     "/runtime.v1.RuntimeCognitionService/History",
     "/runtime.v1.RuntimeCognitionService/IngestDocument",
@@ -2168,6 +2320,7 @@
     "/runtime.v1.RuntimeCognitionService/Retain",
     "/runtime.v1.RuntimeCognitionService/SearchHybrid",
     "/runtime.v1.RuntimeCognitionService/SearchKeyword",
+    "/runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent",
     "/runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
     "/runtime.v1.RuntimeCognitionService/TraverseGraph",
     "/runtime.v1.RuntimeConnectorService/CreateConnector",
@@ -2194,6 +2347,7 @@
     "/runtime.v1.RuntimeGrantService/ListTokenChain",
     "/runtime.v1.RuntimeGrantService/RevokeAppAccessToken",
     "/runtime.v1.RuntimeGrantService/ValidateAppAccessToken",
+    "/runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
     "/runtime.v1.RuntimeLocalService/AppendInferenceAudit",
     "/runtime.v1.RuntimeLocalService/AppendRuntimeAudit",
     "/runtime.v1.RuntimeLocalService/ApplyProfile",
@@ -2202,9 +2356,13 @@
     "/runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
     "/runtime.v1.RuntimeLocalService/CheckLocalServiceHealth",
     "/runtime.v1.RuntimeLocalService/CollectDeviceProfile",
+    "/runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
     "/runtime.v1.RuntimeLocalService/EnsureEngine",
+    "/runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
     "/runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover",
     "/runtime.v1.RuntimeLocalService/GetEngineStatus",
+    "/runtime.v1.RuntimeLocalService/GetProductControlRecord",
+    "/runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
     "/runtime.v1.RuntimeLocalService/GetRecommendationFeed",
     "/runtime.v1.RuntimeLocalService/ImportLocalAsset",
     "/runtime.v1.RuntimeLocalService/ImportLocalAssetBundle",
@@ -2225,6 +2383,9 @@
     "/runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
     "/runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
     "/runtime.v1.RuntimeLocalService/PauseLocalTransfer",
+    "/runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
+    "/runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
+    "/runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
     "/runtime.v1.RuntimeLocalService/RemoveLocalAsset",
     "/runtime.v1.RuntimeLocalService/RemoveLocalService",
     "/runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency",
@@ -2241,6 +2402,8 @@
     "/runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset",
     "/runtime.v1.RuntimeLocalService/ScanUnregisteredAssets",
     "/runtime.v1.RuntimeLocalService/SearchCatalogModels",
+    "/runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
+    "/runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
     "/runtime.v1.RuntimeLocalService/StartEngine",
     "/runtime.v1.RuntimeLocalService/StartLocalAsset",
     "/runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
@@ -2413,6 +2576,14 @@
       "response_type": "GetAgentResponse"
     },
     {
+      "method_id": "/runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
+      "service": "RuntimeAgentService",
+      "method": "GetAgentCanonicalMemoryBankStatus",
+      "kind": "unary",
+      "request_type": "GetAgentCanonicalMemoryBankStatusRequest",
+      "response_type": "GetAgentCanonicalMemoryBankStatusResponse"
+    },
+    {
       "method_id": "/runtime.v1.RuntimeAgentService/GetAgentState",
       "service": "RuntimeAgentService",
       "method": "GetAgentState",
@@ -2579,6 +2750,14 @@
       "kind": "unary",
       "request_type": "RegisterAvatarLiveInstanceBindingRequest",
       "response_type": "RegisterAvatarLiveInstanceBindingResponse"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
+      "service": "RuntimeAgentService",
+      "method": "RequestAgentCanonicalMemoryBankBind",
+      "kind": "unary",
+      "request_type": "RequestAgentCanonicalMemoryBankBindRequest",
+      "response_type": "RequestAgentCanonicalMemoryBankBindResponse"
     },
     {
       "method_id": "/runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
@@ -2821,12 +3000,28 @@
       "response_type": "UploadArtifactResponse"
     },
     {
+      "method_id": "/runtime.v1.RuntimeAppService/GetAccountAppLibrary",
+      "service": "RuntimeAppService",
+      "method": "GetAccountAppLibrary",
+      "kind": "unary",
+      "request_type": "GetAccountAppLibraryRequest",
+      "response_type": "GetAccountAppLibraryResponse"
+    },
+    {
       "method_id": "/runtime.v1.RuntimeAppService/GetAppInstallJob",
       "service": "RuntimeAppService",
       "method": "GetAppInstallJob",
       "kind": "unary",
       "request_type": "GetAppInstallJobRequest",
       "response_type": "GetAppInstallJobResponse"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeAppService/GetAppPackageReadiness",
+      "service": "RuntimeAppService",
+      "method": "GetAppPackageReadiness",
+      "kind": "unary",
+      "request_type": "GetAppPackageReadinessRequest",
+      "response_type": "GetAppPackageReadinessResponse"
     },
     {
       "method_id": "/runtime.v1.RuntimeAppService/GetAppStorage",
@@ -3109,6 +3304,14 @@
       "response_type": "GetKnowledgeBankResponse"
     },
     {
+      "method_id": "/runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent",
+      "service": "RuntimeCognitionService",
+      "method": "GetMemoryEmbeddingRuntimeIntent",
+      "kind": "unary",
+      "request_type": "GetMemoryEmbeddingRuntimeIntentRequest",
+      "response_type": "GetMemoryEmbeddingRuntimeIntentResponse"
+    },
+    {
       "method_id": "/runtime.v1.RuntimeCognitionService/GetPage",
       "service": "RuntimeCognitionService",
       "method": "GetPage",
@@ -3243,6 +3446,14 @@
       "kind": "unary",
       "request_type": "SearchKeywordRequest",
       "response_type": "SearchKeywordResponse"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent",
+      "service": "RuntimeCognitionService",
+      "method": "SetMemoryEmbeddingRuntimeIntent",
+      "kind": "unary",
+      "request_type": "SetMemoryEmbeddingRuntimeIntentRequest",
+      "response_type": "SetMemoryEmbeddingRuntimeIntentResponse"
     },
     {
       "method_id": "/runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
@@ -3453,6 +3664,14 @@
       "response_type": "ValidateAppAccessTokenResponse"
     },
     {
+      "method_id": "/runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
+      "service": "RuntimeLocalService",
+      "method": "AdmitProductControlReadyForUse",
+      "kind": "unary",
+      "request_type": "AdmitProductControlReadyForUseRequest",
+      "response_type": "ProductControlProjectionJson"
+    },
+    {
       "method_id": "/runtime.v1.RuntimeLocalService/AppendInferenceAudit",
       "service": "RuntimeLocalService",
       "method": "AppendInferenceAudit",
@@ -3517,12 +3736,28 @@
       "response_type": "CollectDeviceProfileResponse"
     },
     {
+      "method_id": "/runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
+      "service": "RuntimeLocalService",
+      "method": "CompleteProductControlFirstRunDeviceEnvironmentScan",
+      "kind": "unary",
+      "request_type": "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
+      "response_type": "ProductControlProjectionJson"
+    },
+    {
       "method_id": "/runtime.v1.RuntimeLocalService/EnsureEngine",
       "service": "RuntimeLocalService",
       "method": "EnsureEngine",
       "kind": "unary",
       "request_type": "EnsureEngineRequest",
       "response_type": "EnsureEngineResponse"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
+      "service": "RuntimeLocalService",
+      "method": "EnsureProductControlRecordCreated",
+      "kind": "unary",
+      "request_type": "EnsureProductControlRecordCreatedRequest",
+      "response_type": "ProductControlProjectionJson"
     },
     {
       "method_id": "/runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover",
@@ -3539,6 +3774,22 @@
       "kind": "unary",
       "request_type": "GetEngineStatusRequest",
       "response_type": "GetEngineStatusResponse"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeLocalService/GetProductControlRecord",
+      "service": "RuntimeLocalService",
+      "method": "GetProductControlRecord",
+      "kind": "unary",
+      "request_type": "GetProductControlRecordRequest",
+      "response_type": "ProductControlProjectionJson"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
+      "service": "RuntimeLocalService",
+      "method": "GetProductControlSelectedDataRoot",
+      "kind": "unary",
+      "request_type": "GetProductControlSelectedDataRootRequest",
+      "response_type": "ProductControlProjectionJson"
     },
     {
       "method_id": "/runtime.v1.RuntimeLocalService/GetRecommendationFeed",
@@ -3701,6 +3952,30 @@
       "response_type": "PauseLocalTransferResponse"
     },
     {
+      "method_id": "/runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
+      "service": "RuntimeLocalService",
+      "method": "ReconcileProductControlFirstRunSetupState",
+      "kind": "unary",
+      "request_type": "ReconcileProductControlFirstRunSetupStateRequest",
+      "response_type": "ProductControlProjectionJson"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
+      "service": "RuntimeLocalService",
+      "method": "RecordProductControlAccountDefaultProfileEvidence",
+      "kind": "unary",
+      "request_type": "RecordProductControlAccountDefaultProfileEvidenceRequest",
+      "response_type": "ProductControlProjectionJson"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
+      "service": "RuntimeLocalService",
+      "method": "RecordProductControlFirstRunLocalAiReadyEvidence",
+      "kind": "unary",
+      "request_type": "RecordProductControlFirstRunLocalAiReadyEvidenceRequest",
+      "response_type": "ProductControlProjectionJson"
+    },
+    {
       "method_id": "/runtime.v1.RuntimeLocalService/RemoveLocalAsset",
       "service": "RuntimeLocalService",
       "method": "RemoveLocalAsset",
@@ -3827,6 +4102,22 @@
       "kind": "unary",
       "request_type": "SearchCatalogModelsRequest",
       "response_type": "SearchCatalogModelsResponse"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
+      "service": "RuntimeLocalService",
+      "method": "SelectProductControlDataRoot",
+      "kind": "unary",
+      "request_type": "SelectProductControlDataRootRequest",
+      "response_type": "ProductControlProjectionJson"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
+      "service": "RuntimeLocalService",
+      "method": "SetProductControlFirstRunInstallLevel",
+      "kind": "unary",
+      "request_type": "SetProductControlFirstRunInstallLevelRequest",
+      "response_type": "ProductControlProjectionJson"
     },
     {
       "method_id": "/runtime.v1.RuntimeLocalService/StartEngine",
@@ -4119,6 +4410,14 @@
       "response_type": "GetAgentResponse"
     },
     {
+      "method_id": "/runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
+      "service": "RuntimeAgentService",
+      "method": "GetAgentCanonicalMemoryBankStatus",
+      "kind": "unary",
+      "request_type": "GetAgentCanonicalMemoryBankStatusRequest",
+      "response_type": "GetAgentCanonicalMemoryBankStatusResponse"
+    },
+    {
       "method_id": "/runtime.v1.RuntimeAgentService/GetAgentState",
       "service": "RuntimeAgentService",
       "method": "GetAgentState",
@@ -4285,6 +4584,14 @@
       "kind": "unary",
       "request_type": "RegisterAvatarLiveInstanceBindingRequest",
       "response_type": "RegisterAvatarLiveInstanceBindingResponse"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
+      "service": "RuntimeAgentService",
+      "method": "RequestAgentCanonicalMemoryBankBind",
+      "kind": "unary",
+      "request_type": "RequestAgentCanonicalMemoryBankBindRequest",
+      "response_type": "RequestAgentCanonicalMemoryBankBindResponse"
     },
     {
       "method_id": "/runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
@@ -4527,12 +4834,28 @@
       "response_type": "UploadArtifactResponse"
     },
     {
+      "method_id": "/runtime.v1.RuntimeAppService/GetAccountAppLibrary",
+      "service": "RuntimeAppService",
+      "method": "GetAccountAppLibrary",
+      "kind": "unary",
+      "request_type": "GetAccountAppLibraryRequest",
+      "response_type": "GetAccountAppLibraryResponse"
+    },
+    {
       "method_id": "/runtime.v1.RuntimeAppService/GetAppInstallJob",
       "service": "RuntimeAppService",
       "method": "GetAppInstallJob",
       "kind": "unary",
       "request_type": "GetAppInstallJobRequest",
       "response_type": "GetAppInstallJobResponse"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeAppService/GetAppPackageReadiness",
+      "service": "RuntimeAppService",
+      "method": "GetAppPackageReadiness",
+      "kind": "unary",
+      "request_type": "GetAppPackageReadinessRequest",
+      "response_type": "GetAppPackageReadinessResponse"
     },
     {
       "method_id": "/runtime.v1.RuntimeAppService/GetAppStorage",
@@ -4815,6 +5138,14 @@
       "response_type": "GetKnowledgeBankResponse"
     },
     {
+      "method_id": "/runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent",
+      "service": "RuntimeCognitionService",
+      "method": "GetMemoryEmbeddingRuntimeIntent",
+      "kind": "unary",
+      "request_type": "GetMemoryEmbeddingRuntimeIntentRequest",
+      "response_type": "GetMemoryEmbeddingRuntimeIntentResponse"
+    },
+    {
       "method_id": "/runtime.v1.RuntimeCognitionService/GetPage",
       "service": "RuntimeCognitionService",
       "method": "GetPage",
@@ -4949,6 +5280,14 @@
       "kind": "unary",
       "request_type": "SearchKeywordRequest",
       "response_type": "SearchKeywordResponse"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent",
+      "service": "RuntimeCognitionService",
+      "method": "SetMemoryEmbeddingRuntimeIntent",
+      "kind": "unary",
+      "request_type": "SetMemoryEmbeddingRuntimeIntentRequest",
+      "response_type": "SetMemoryEmbeddingRuntimeIntentResponse"
     },
     {
       "method_id": "/runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
@@ -5159,6 +5498,14 @@
       "response_type": "ValidateAppAccessTokenResponse"
     },
     {
+      "method_id": "/runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
+      "service": "RuntimeLocalService",
+      "method": "AdmitProductControlReadyForUse",
+      "kind": "unary",
+      "request_type": "AdmitProductControlReadyForUseRequest",
+      "response_type": "ProductControlProjectionJson"
+    },
+    {
       "method_id": "/runtime.v1.RuntimeLocalService/AppendInferenceAudit",
       "service": "RuntimeLocalService",
       "method": "AppendInferenceAudit",
@@ -5223,12 +5570,28 @@
       "response_type": "CollectDeviceProfileResponse"
     },
     {
+      "method_id": "/runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
+      "service": "RuntimeLocalService",
+      "method": "CompleteProductControlFirstRunDeviceEnvironmentScan",
+      "kind": "unary",
+      "request_type": "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
+      "response_type": "ProductControlProjectionJson"
+    },
+    {
       "method_id": "/runtime.v1.RuntimeLocalService/EnsureEngine",
       "service": "RuntimeLocalService",
       "method": "EnsureEngine",
       "kind": "unary",
       "request_type": "EnsureEngineRequest",
       "response_type": "EnsureEngineResponse"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
+      "service": "RuntimeLocalService",
+      "method": "EnsureProductControlRecordCreated",
+      "kind": "unary",
+      "request_type": "EnsureProductControlRecordCreatedRequest",
+      "response_type": "ProductControlProjectionJson"
     },
     {
       "method_id": "/runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover",
@@ -5245,6 +5608,22 @@
       "kind": "unary",
       "request_type": "GetEngineStatusRequest",
       "response_type": "GetEngineStatusResponse"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeLocalService/GetProductControlRecord",
+      "service": "RuntimeLocalService",
+      "method": "GetProductControlRecord",
+      "kind": "unary",
+      "request_type": "GetProductControlRecordRequest",
+      "response_type": "ProductControlProjectionJson"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
+      "service": "RuntimeLocalService",
+      "method": "GetProductControlSelectedDataRoot",
+      "kind": "unary",
+      "request_type": "GetProductControlSelectedDataRootRequest",
+      "response_type": "ProductControlProjectionJson"
     },
     {
       "method_id": "/runtime.v1.RuntimeLocalService/GetRecommendationFeed",
@@ -5407,6 +5786,30 @@
       "response_type": "PauseLocalTransferResponse"
     },
     {
+      "method_id": "/runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
+      "service": "RuntimeLocalService",
+      "method": "ReconcileProductControlFirstRunSetupState",
+      "kind": "unary",
+      "request_type": "ReconcileProductControlFirstRunSetupStateRequest",
+      "response_type": "ProductControlProjectionJson"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
+      "service": "RuntimeLocalService",
+      "method": "RecordProductControlAccountDefaultProfileEvidence",
+      "kind": "unary",
+      "request_type": "RecordProductControlAccountDefaultProfileEvidenceRequest",
+      "response_type": "ProductControlProjectionJson"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
+      "service": "RuntimeLocalService",
+      "method": "RecordProductControlFirstRunLocalAiReadyEvidence",
+      "kind": "unary",
+      "request_type": "RecordProductControlFirstRunLocalAiReadyEvidenceRequest",
+      "response_type": "ProductControlProjectionJson"
+    },
+    {
       "method_id": "/runtime.v1.RuntimeLocalService/RemoveLocalAsset",
       "service": "RuntimeLocalService",
       "method": "RemoveLocalAsset",
@@ -5533,6 +5936,22 @@
       "kind": "unary",
       "request_type": "SearchCatalogModelsRequest",
       "response_type": "SearchCatalogModelsResponse"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
+      "service": "RuntimeLocalService",
+      "method": "SelectProductControlDataRoot",
+      "kind": "unary",
+      "request_type": "SelectProductControlDataRootRequest",
+      "response_type": "ProductControlProjectionJson"
+    },
+    {
+      "method_id": "/runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
+      "service": "RuntimeLocalService",
+      "method": "SetProductControlFirstRunInstallLevel",
+      "kind": "unary",
+      "request_type": "SetProductControlFirstRunInstallLevelRequest",
+      "response_type": "ProductControlProjectionJson"
     },
     {
       "method_id": "/runtime.v1.RuntimeLocalService/StartEngine",
@@ -5676,16 +6095,20 @@
       "AIProviderHealthEvent",
       "AIProviderHealthSnapshot",
       "AIProviderSubHealth",
+      "AccountAppLibraryRecord",
+      "AccountAppLibraryRow",
       "AccountCaller",
       "AccountProjection",
       "AccountSessionEvent",
       "Ack",
       "AddLinkRequest",
       "AddLinkResponse",
+      "AdmitProductControlReadyForUseRequest",
       "AgentAutonomyConfig",
       "AgentAutonomyState",
       "AgentAvatarDebugEventDetail",
       "AgentBudgetEventDetail",
+      "AgentCanonicalMemoryBankStatus",
       "AgentConversationSummary",
       "AgentCoreBankOwner",
       "AgentDyadicBankOwner",
@@ -5725,6 +6148,7 @@
       "AppModeManifest",
       "AppOpenProjection",
       "AppOpenScopeRef",
+      "AppPackageReadinessProjection",
       "AppPrivateBankOwner",
       "AppStorageProjection",
       "AppUninstallResult",
@@ -5792,6 +6216,7 @@
       "CompanionParticipationProjection",
       "CompleteLoginRequest",
       "CompleteLoginResponse",
+      "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
       "Connector",
       "ConnectorModelDescriptor",
       "ConsentRef",
@@ -5835,6 +6260,7 @@
       "EnableAutonomyResponse",
       "EnsureEngineRequest",
       "EnsureEngineResponse",
+      "EnsureProductControlRecordCreatedRequest",
       "EpisodicMemoryRecord",
       "ErrorInfo",
       "ExecuteDelegatedCapabilityRequest",
@@ -5859,14 +6285,20 @@
       "ExtractNodeConfig",
       "GetAccessTokenRequest",
       "GetAccessTokenResponse",
+      "GetAccountAppLibraryRequest",
+      "GetAccountAppLibraryResponse",
       "GetAccountSessionStatusRequest",
       "GetAccountSessionStatusResponse",
+      "GetAgentCanonicalMemoryBankStatusRequest",
+      "GetAgentCanonicalMemoryBankStatusResponse",
       "GetAgentRequest",
       "GetAgentResponse",
       "GetAgentStateRequest",
       "GetAgentStateResponse",
       "GetAppInstallJobRequest",
       "GetAppInstallJobResponse",
+      "GetAppPackageReadinessRequest",
+      "GetAppPackageReadinessResponse",
       "GetAppStorageRequest",
       "GetAppStorageResponse",
       "GetAvatarDebugReplayRequest",
@@ -5893,8 +6325,12 @@
       "GetIngestTaskResponse",
       "GetKnowledgeBankRequest",
       "GetKnowledgeBankResponse",
+      "GetMemoryEmbeddingRuntimeIntentRequest",
+      "GetMemoryEmbeddingRuntimeIntentResponse",
       "GetPageRequest",
       "GetPageResponse",
+      "GetProductControlRecordRequest",
+      "GetProductControlSelectedDataRootRequest",
       "GetPublicChatSessionSnapshotRequest",
       "GetPublicChatSessionSnapshotResponse",
       "GetRealmGroupMessageCandidateEvidenceRequest",
@@ -6146,6 +6582,7 @@
       "PeekSchedulingRequest",
       "PeekSchedulingResponse",
       "PendingHook",
+      "ProductControlProjectionJson",
       "ProfileEntryOverride",
       "ProviderCatalogEntry",
       "PublicKnowledgeBankLocator",
@@ -6173,6 +6610,9 @@
       "ReasoningStreamDelta",
       "RecallRequest",
       "RecallResponse",
+      "ReconcileProductControlFirstRunSetupStateRequest",
+      "RecordProductControlAccountDefaultProfileEvidenceRequest",
+      "RecordProductControlFirstRunLocalAiReadyEvidenceRequest",
       "RefreshAccountSessionRequest",
       "RefreshAccountSessionResponse",
       "RefreshSessionRequest",
@@ -6192,6 +6632,8 @@
       "RemoveModelRequest",
       "RepairLocalEnvironmentDependencyRequest",
       "RepairLocalEnvironmentDependencyResponse",
+      "RequestAgentCanonicalMemoryBankBindRequest",
+      "RequestAgentCanonicalMemoryBankBindResponse",
       "RequestAvatarDebugProbeRequest",
       "RequestAvatarDebugProbeResponse",
       "RequestCompanionParticipationRequest",
@@ -6267,6 +6709,7 @@
       "SearchHybridResponse",
       "SearchKeywordRequest",
       "SearchKeywordResponse",
+      "SelectProductControlDataRootRequest",
       "SemanticMemoryRecord",
       "SendAppMessageRequest",
       "SendAppMessageResponse",
@@ -6276,6 +6719,9 @@
       "SetAutonomyConfigResponse",
       "SetDelegatedProviderStateRequest",
       "SetDelegatedProviderStateResponse",
+      "SetMemoryEmbeddingRuntimeIntentRequest",
+      "SetMemoryEmbeddingRuntimeIntentResponse",
+      "SetProductControlFirstRunInstallLevelRequest",
       "SpeechAlignment",
       "SpeechAlignmentToken",
       "SpeechSynthesizeResult",
@@ -6397,6 +6843,7 @@
       "AccountReasonCode",
       "AccountSessionState",
       "AgentAutonomyMode",
+      "AgentCanonicalMemoryBankMode",
       "AgentEventType",
       "AgentExecutionState",
       "AgentLifecycleStatus",
@@ -6413,6 +6860,7 @@
       "AppMode",
       "AppOpenFlowStep",
       "AppOpenState",
+      "AppPackageReadinessState",
       "AppStorageState",
       "AuthorizationPreset",
       "AvatarDebugEventFamily",
@@ -6520,6 +6968,81 @@
       "WorldRelation"
     ],
     "message_schemas": [
+      {
+        "name": "AccountAppLibraryRecord",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "account_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "updated_at",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "apps",
+            "type": "AccountAppLibraryRow",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AccountAppLibraryRow",
+        "fields": [
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "library_state",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "installed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "last_opened_at",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "data_policy",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
       {
         "name": "AccountCaller",
         "fields": [
@@ -6767,6 +7290,26 @@
         "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
+        "name": "AdmitProductControlReadyForUseRequest",
+        "fields": [
+          {
+            "name": "account_default_profile_evidence_json",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "built_in_ai_config_evidence_json",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
         "name": "AgentAutonomyConfig",
         "fields": [
           {
@@ -6919,6 +7462,75 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "AgentCanonicalMemoryBankStatus",
+        "fields": [
+          {
+            "name": "mode",
+            "type": "AgentCanonicalMemoryBankMode",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "bank_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "embedding_profile",
+            "type": "MemoryEmbeddingProfile",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "binding_source_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "blocked_reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "pending_cutover",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "canonical_bank_status",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "bind_allowed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "cutover_allowed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 9
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -9215,6 +9827,89 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppPackageReadinessProjection",
+        "fields": [
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "release_descriptor_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "storage_policy_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "expected_version",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "active_version",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "installed_version",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "sha256",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "verification_state",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "state",
+            "type": "AppPackageReadinessState",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "detail",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 11
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -11867,6 +12562,11 @@
         "source_file": "proto/runtime/v1/account.proto"
       },
       {
+        "name": "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
         "name": "Connector",
         "fields": [
           {
@@ -13372,6 +14072,11 @@
         "source_file": "proto/runtime/v1/local_runtime_engine.proto"
       },
       {
+        "name": "EnsureProductControlRecordCreatedRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
         "name": "EpisodicMemoryRecord",
         "fields": [
           {
@@ -13773,7 +14478,7 @@
             "number": 11
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "ExecutionEvidenceRef",
@@ -13863,7 +14568,7 @@
             "number": 12
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "ExecutionSchedulingJudgement",
@@ -13904,7 +14609,7 @@
             "number": 5
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "ExportAuditEventsRequest",
@@ -14383,6 +15088,45 @@
         "source_file": "proto/runtime/v1/account.proto"
       },
       {
+        "name": "GetAccountAppLibraryRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "GetAccountAppLibraryResponse",
+        "fields": [
+          {
+            "name": "exists",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "record",
+            "type": "AccountAppLibraryRecord",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "detail",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "GetAccountSessionStatusRequest",
         "fields": [
           {
@@ -14435,6 +15179,39 @@
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "GetAgentCanonicalMemoryBankStatusRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "AgentRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "agent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "GetAgentCanonicalMemoryBankStatusResponse",
+        "fields": [
+          {
+            "name": "status",
+            "type": "AgentCanonicalMemoryBankStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "GetAgentRequest",
@@ -14521,6 +15298,32 @@
           {
             "name": "job",
             "type": "AppInstallJob",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "GetAppPackageReadinessRequest",
+        "fields": [
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "GetAppPackageReadinessResponse",
+        "fields": [
+          {
+            "name": "projection",
+            "type": "AppPackageReadinessProjection",
             "repeated": false,
             "optional": false,
             "number": 1
@@ -15091,6 +15894,46 @@
         "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
+        "name": "GetMemoryEmbeddingRuntimeIntentRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "MemoryRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "locator",
+            "type": "MemoryBankLocator",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/memory.proto"
+      },
+      {
+        "name": "GetMemoryEmbeddingRuntimeIntentResponse",
+        "fields": [
+          {
+            "name": "binding_intent_present",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "binding_intent",
+            "type": "MemoryEmbeddingBindingIntentSnapshot",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/memory.proto"
+      },
+      {
         "name": "GetPageRequest",
         "fields": [
           {
@@ -15136,6 +15979,16 @@
           }
         ],
         "source_file": "proto/runtime/v1/knowledge.proto"
+      },
+      {
+        "name": "GetProductControlRecordRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "GetProductControlSelectedDataRootRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
         "name": "GetPublicChatSessionSnapshotRequest",
@@ -16281,13 +17134,6 @@
             "repeated": false,
             "optional": false,
             "number": 2
-          },
-          {
-            "name": "binding_intent_snapshot",
-            "type": "MemoryEmbeddingBindingIntentSnapshot",
-            "repeated": false,
-            "optional": false,
-            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/memory.proto"
@@ -19187,7 +20033,7 @@
             "number": 5
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalAssetRecord",
@@ -19383,7 +20229,7 @@
             "number": 40
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalAssetSource",
@@ -19403,7 +20249,7 @@
             "number": 2
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalAuditEvent",
@@ -19514,7 +20360,7 @@
             "number": 15
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalAuditTimeRange",
@@ -19534,7 +20380,7 @@
             "number": 2
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalCatalogModelDescriptor",
@@ -19716,7 +20562,7 @@
             "number": 25
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalCatalogRecommendation",
@@ -19799,7 +20645,7 @@
             "number": 11
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalCatalogVariantDescriptor",
@@ -19916,7 +20762,7 @@
             "number": 9
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "LocalEngineDescriptor",
@@ -20061,7 +20907,7 @@
             "number": 7
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "LocalEnvironmentDependencyJob",
@@ -20184,9 +21030,23 @@
             "repeated": false,
             "optional": false,
             "number": 17
+          },
+          {
+            "name": "reason_code",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 18
+          },
+          {
+            "name": "recovery_disposition",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 19
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "LocalEnvironmentPlan",
@@ -20269,7 +21129,7 @@
             "number": 11
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "LocalEnvironmentPlanDependency",
@@ -20352,7 +21212,7 @@
             "number": 11
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "LocalEnvironmentSelectedSourceRecord",
@@ -20471,7 +21331,7 @@
             "number": 16
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "LocalExecutionAlternativeDescriptor",
@@ -20498,7 +21358,7 @@
             "number": 3
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalExecutionApplyResult",
@@ -20581,7 +21441,7 @@
             "number": 11
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalExecutionDeclarationDescriptor",
@@ -20616,7 +21476,7 @@
             "number": 4
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalExecutionEntryDescriptor",
@@ -20713,7 +21573,7 @@
             "number": 14
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalExecutionOptionDescriptor",
@@ -20782,7 +21642,7 @@
             "number": 10
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalExecutionPlan",
@@ -20851,7 +21711,7 @@
             "number": 9
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalExecutionSelectionRationale",
@@ -20885,7 +21745,7 @@
             "number": 4
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalExecutionStageResult",
@@ -20919,7 +21779,7 @@
             "number": 4
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalGpuProfile",
@@ -20967,7 +21827,7 @@
             "number": 6
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "LocalHostRequirements",
@@ -21001,7 +21861,7 @@
             "number": 4
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalInstallPlanDescriptor",
@@ -21155,7 +22015,7 @@
             "number": 21
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalNodeDescriptor",
@@ -21273,7 +22133,7 @@
             "number": 16
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalNpuProfile",
@@ -21314,7 +22174,7 @@
             "number": 5
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "LocalPortAvailability",
@@ -21334,7 +22194,7 @@
             "number": 2
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "LocalPreflightDecision",
@@ -21382,7 +22242,7 @@
             "number": 6
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalProfileApplyResult",
@@ -21437,7 +22297,7 @@
             "number": 7
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalProfileDescriptor",
@@ -21492,7 +22352,7 @@
             "number": 7
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalProfileEntryDescriptor",
@@ -21617,7 +22477,7 @@
             "number": 22
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalProfileRequirementDescriptor",
@@ -21651,7 +22511,7 @@
             "number": 4
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalProfileResolutionPlan",
@@ -21734,7 +22594,7 @@
             "number": 12
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalProviderHints",
@@ -21776,7 +22636,7 @@
             "number": 10
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalProviderHintsLlama",
@@ -21803,7 +22663,7 @@
             "number": 3
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalProviderHintsMedia",
@@ -21872,7 +22732,7 @@
             "number": 9
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalProviderHintsSidecar",
@@ -21892,7 +22752,7 @@
             "number": 2
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalProviderHintsSpeech",
@@ -21947,7 +22807,7 @@
             "number": 7
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalPythonProfile",
@@ -21967,7 +22827,7 @@
             "number": 2
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "LocalRecommendationActionState",
@@ -21994,7 +22854,7 @@
             "number": 3
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalRecommendationFeedDescriptor",
@@ -22035,7 +22895,7 @@
             "number": 5
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalRecommendationFeedEntryDescriptor",
@@ -22083,7 +22943,7 @@
             "number": 6
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalRecommendationFeedItemDescriptor",
@@ -22222,7 +23082,7 @@
             "number": 19
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalRecommendationInstalledState",
@@ -22249,7 +23109,7 @@
             "number": 3
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalRecommendationInstallPayload",
@@ -22340,7 +23200,7 @@
             "number": 12
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalServiceDescriptor",
@@ -22430,7 +23290,7 @@
             "number": 12
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalStateReconciliationPlan",
@@ -22610,7 +23470,7 @@
             "number": 4
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalTransferProgressEvent",
@@ -22866,7 +23726,7 @@
             "number": 4
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalUnregisteredAssetDescriptor",
@@ -22935,7 +23795,7 @@
             "number": 9
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "LocalVerifiedAssetDescriptor",
@@ -23117,7 +23977,7 @@
             "number": 28
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LogoutRequest",
@@ -25351,6 +26211,19 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "ProductControlProjectionJson",
+        "fields": [
+          {
+            "name": "json",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
         "name": "ProfileEntryOverride",
         "fields": [
           {
@@ -25368,7 +26241,7 @@
             "number": 2
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_execution_profile.proto"
       },
       {
         "name": "ProviderCatalogEntry",
@@ -26374,6 +27247,51 @@
         "source_file": "proto/runtime/v1/memory.proto"
       },
       {
+        "name": "ReconcileProductControlFirstRunSetupStateRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "RecordProductControlAccountDefaultProfileEvidenceRequest",
+        "fields": [
+          {
+            "name": "account_default_profile_evidence_json",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "RecordProductControlFirstRunLocalAiReadyEvidenceRequest",
+        "fields": [
+          {
+            "name": "runtime_baseline_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "built_in_ai_config_evidence_json",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "execution_evidence_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
         "name": "RefreshAccountSessionRequest",
         "fields": [
           {
@@ -26859,6 +27777,53 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
+        "name": "RequestAgentCanonicalMemoryBankBindRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "AgentRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "agent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "RequestAgentCanonicalMemoryBankBindResponse",
+        "fields": [
+          {
+            "name": "status",
+            "type": "AgentCanonicalMemoryBankStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "outcome",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "blocked_reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "RequestAvatarDebugProbeRequest",
         "fields": [
           {
@@ -27080,13 +28045,6 @@
             "repeated": false,
             "optional": false,
             "number": 2
-          },
-          {
-            "name": "binding_intent_snapshot",
-            "type": "MemoryEmbeddingBindingIntentSnapshot",
-            "repeated": false,
-            "optional": false,
-            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/memory.proto"
@@ -27141,13 +28099,6 @@
             "repeated": false,
             "optional": false,
             "number": 2
-          },
-          {
-            "name": "binding_intent_snapshot",
-            "type": "MemoryEmbeddingBindingIntentSnapshot",
-            "repeated": false,
-            "optional": false,
-            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/memory.proto"
@@ -28091,7 +29042,7 @@
             "number": 6
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "RuntimeBaselineActivationDependencyEvidence",
@@ -28153,7 +29104,7 @@
             "number": 8
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "RuntimeBaselineConsumerBinding",
@@ -28263,7 +29214,7 @@
             "number": 11
           }
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "RuntimeHealthEvent",
@@ -29627,6 +30578,19 @@
         "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
+        "name": "SelectProductControlDataRootRequest",
+        "fields": [
+          {
+            "name": "data_root",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
         "name": "SemanticMemoryRecord",
         "fields": [
           {
@@ -29882,6 +30846,73 @@
           }
         ],
         "source_file": "proto/runtime/v1/delegated_control.proto"
+      },
+      {
+        "name": "SetMemoryEmbeddingRuntimeIntentRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "MemoryRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "locator",
+            "type": "MemoryBankLocator",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "binding_intent",
+            "type": "MemoryEmbeddingBindingIntentSnapshot",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/memory.proto"
+      },
+      {
+        "name": "SetMemoryEmbeddingRuntimeIntentResponse",
+        "fields": [
+          {
+            "name": "accepted",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "binding_intent",
+            "type": "MemoryEmbeddingBindingIntentSnapshot",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/memory.proto"
+      },
+      {
+        "name": "SetProductControlFirstRunInstallLevelRequest",
+        "fields": [
+          {
+            "name": "install_level",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "ai_profile_alias",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
         "name": "SpeechAlignment",
@@ -33593,6 +34624,16 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "AgentCanonicalMemoryBankMode",
+        "values": [
+          "AGENT_CANONICAL_MEMORY_BANK_MODE_UNSPECIFIED",
+          "AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE",
+          "AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD",
+          "AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE"
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "AgentEventType",
         "values": [
           "AGENT_EVENT_TYPE_UNSPECIFIED",
@@ -33778,6 +34819,18 @@
           "APP_OPEN_STATE_UNSPECIFIED",
           "APP_OPEN_STATE_LAUNCHED",
           "APP_OPEN_STATE_BLOCKED"
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppPackageReadinessState",
+        "values": [
+          "APP_PACKAGE_READINESS_STATE_UNSPECIFIED",
+          "APP_PACKAGE_READINESS_STATE_READY",
+          "APP_PACKAGE_READINESS_STATE_INSTALL_REQUIRED",
+          "APP_PACKAGE_READINESS_STATE_UPDATE_REQUIRED",
+          "APP_PACKAGE_READINESS_STATE_REPAIR_REQUIRED",
+          "APP_PACKAGE_READINESS_STATE_BLOCKED"
         ],
         "source_file": "proto/runtime/v1/app.proto"
       },
@@ -34114,7 +35167,7 @@
           "GPU_MEMORY_MODEL_DISCRETE",
           "GPU_MEMORY_MODEL_UNIFIED"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
         "name": "HookAdmissionState",
@@ -34184,7 +35237,7 @@
           "LOCAL_ASSET_KIND_CONTROLNET",
           "LOCAL_ASSET_KIND_AUXILIARY"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalAssetStatus",
@@ -34195,7 +35248,7 @@
           "LOCAL_ASSET_STATUS_UNHEALTHY",
           "LOCAL_ASSET_STATUS_REMOVED"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalBundleState",
@@ -34207,7 +35260,7 @@
           "LOCAL_BUNDLE_STATE_INVALID",
           "LOCAL_BUNDLE_STATE_REMOVED"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalConnectorCategory",
@@ -34229,7 +35282,7 @@
           "LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED",
           "LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalEngineStatus",
@@ -34250,7 +35303,7 @@
           "LOCAL_EXECUTION_ENTRY_KIND_SERVICE",
           "LOCAL_EXECUTION_ENTRY_KIND_NODE"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalHostSupportClass",
@@ -34260,7 +35313,7 @@
           "LOCAL_HOST_SUPPORT_CLASS_ATTACHED_ONLY",
           "LOCAL_HOST_SUPPORT_CLASS_UNSUPPORTED"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalProfileEntryKind",
@@ -34270,7 +35323,7 @@
           "LOCAL_PROFILE_ENTRY_KIND_NODE",
           "LOCAL_PROFILE_ENTRY_KIND_ASSET"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalRecommendationBaseline",
@@ -34279,7 +35332,7 @@
           "LOCAL_RECOMMENDATION_BASELINE_IMAGE_DEFAULT_V1",
           "LOCAL_RECOMMENDATION_BASELINE_VIDEO_DEFAULT_V1"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalRecommendationConfidence",
@@ -34289,7 +35342,7 @@
           "LOCAL_RECOMMENDATION_CONFIDENCE_MEDIUM",
           "LOCAL_RECOMMENDATION_CONFIDENCE_LOW"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalRecommendationFeedCacheState",
@@ -34299,7 +35352,7 @@
           "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_STALE",
           "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_EMPTY"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalRecommendationFeedCapability",
@@ -34309,7 +35362,7 @@
           "LOCAL_RECOMMENDATION_FEED_CAPABILITY_IMAGE",
           "LOCAL_RECOMMENDATION_FEED_CAPABILITY_VIDEO"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalRecommendationFeedSource",
@@ -34317,7 +35370,7 @@
           "LOCAL_RECOMMENDATION_FEED_SOURCE_UNSPECIFIED",
           "LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalRecommendationFormat",
@@ -34326,7 +35379,7 @@
           "LOCAL_RECOMMENDATION_FORMAT_GGUF",
           "LOCAL_RECOMMENDATION_FORMAT_SAFETENSORS"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalRecommendationSource",
@@ -34335,7 +35388,7 @@
           "LOCAL_RECOMMENDATION_SOURCE_LLMFIT",
           "LOCAL_RECOMMENDATION_SOURCE_MEDIA_FIT"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalRecommendationTier",
@@ -34346,7 +35399,7 @@
           "LOCAL_RECOMMENDATION_TIER_TIGHT",
           "LOCAL_RECOMMENDATION_TIER_NOT_RECOMMENDED"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalServiceStatus",
@@ -34357,7 +35410,7 @@
           "LOCAL_SERVICE_STATUS_UNHEALTHY",
           "LOCAL_SERVICE_STATUS_REMOVED"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "LocalWarmState",
@@ -34368,7 +35421,7 @@
           "LOCAL_WARM_STATE_READY",
           "LOCAL_WARM_STATE_FAILED"
         ],
-        "source_file": "proto/runtime/v1/local_runtime_types.proto"
+        "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
         "name": "MemoryBankScope",

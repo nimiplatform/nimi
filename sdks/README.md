@@ -23,11 +23,12 @@ node sdks/generators/generate.mjs
 node sdks/generators/generate.mjs --check
 ```
 
-Realm OpenAPI resolution uses `config/realm-openapi-source.json`. If the
-configured relative source is not present in a worktree, set
-`NIMI_REALM_OPENAPI_PATH` to the OpenAPI file before running the generator.
-Generated provenance records the environment source label, not the absolute
-path.
+Realm OpenAPI resolution uses `config/realm-openapi-source.json`, with relative
+paths resolved from the repo root. If that source is not present in a worktree,
+set `NIMI_REALM_OPENAPI_PATH` to the canonical OpenAPI file before running the
+generator. Realm typed-client generation fails closed when OpenAPI is
+unavailable; spec fallback records are not sufficient schema authority for
+generated Realm clients.
 
 Conformance:
 

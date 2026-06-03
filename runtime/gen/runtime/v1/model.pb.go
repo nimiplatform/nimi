@@ -828,7 +828,7 @@ var File_runtime_v1_model_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_model_proto_rawDesc = "" +
 	"\n" +
-	"\x16runtime/v1/model.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17runtime/v1/common.proto\x1a$runtime/v1/local_runtime_types.proto\"\x8f\x04\n" +
+	"\x16runtime/v1/model.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17runtime/v1/common.proto\x1a,runtime/v1/local_runtime_asset_catalog.proto\"\x8f\x04\n" +
 	"\x16ModelCapabilityProfile\x124\n" +
 	"\x16supports_text_generate\x18\x01 \x01(\bR\x14supportsTextGenerate\x120\n" +
 	"\x14supports_text_stream\x18\x02 \x01(\bR\x12supportsTextStream\x12-\n" +
@@ -975,7 +975,7 @@ func file_runtime_v1_model_proto_init() {
 		return
 	}
 	file_runtime_v1_common_proto_init()
-	file_runtime_v1_local_runtime_types_proto_init()
+	file_runtime_v1_local_runtime_asset_catalog_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

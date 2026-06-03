@@ -1,0 +1,726 @@
+import { generatedBy, writeText } from './context.mjs';
+import {
+  goOpenApiFieldType,
+  goOpenApiType,
+  goProtoType,
+  goZeroExpr,
+  lowerCamelCase,
+  openApiSuccessSchema,
+  pascalCase,
+  protoTypeKind,
+  pyFieldName,
+  pyOpenApiType,
+  pyProtoType,
+  quote,
+  realmOperationTypeBase,
+  rustDefaultExpr,
+  rustFieldName,
+  rustOpenApiFieldType,
+  rustOpenApiType,
+  rustProtoType,
+  runtimeEnumSchemas,
+  runtimeMessageSchemas,
+  snakeCase,
+  tsOpenApiType,
+  tsPropertyName,
+  tsProtoType,
+  uniqueRuntimeMessageTypes,
+} from './types.mjs';
+
+export function writeTypedClients(runtime, realm) {
+  writeTypescriptTypedClients(runtime, realm);
+  writePythonTypedClients(runtime, realm);
+  writeGoTypedClients(runtime, realm);
+  writeRustTypedClients(runtime, realm);
+}
+
+function writeTypescriptTypedClients(runtime, realm) {
+  const runtimeEnums = runtimeEnumSchemas(runtime)
+    .map((schema) => `export type ${schema.name} = ${schema.values.length ? schema.values.map(quote).join(' | ') : 'string'};`)
+    .join('\n');
+  const runtimeTypes = runtimeMessageSchemas(runtime)
+    .map((schema) => {
+      const fields = schema.fields.map((field) => `  readonly ${tsPropertyName(field.name)}?: ${tsProtoType(field, runtime)};`).join('\n');
+      return `export interface ${schema.name} {\n${fields}\n}`;
+    })
+    .join('\n');
+  const runtimeMethods = runtime.codec_maps.map((method) => {
+    const name = lowerCamelCase(method.method);
+    const descriptorId = quote(method.method_id);
+    if (method.kind === 'unary') {
+      return `  async ${name}(request: ${method.request_type}, options: RuntimeTypedCallOptions = {}): Promise<${method.response_type}> {
+    return this.core.unary<${method.response_type}, ${method.request_type}>({
+      methodId: ${descriptorId},
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }`;
+    }
+    if (method.kind === 'server_stream') {
+      return `  ${name}(request: ${method.request_type}, options: RuntimeTypedCallOptions = {}): AsyncIterable<${method.response_type}> {
+    return this.core.serverStream<${method.response_type}, ${method.request_type}>({
+      methodId: ${descriptorId},
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }`;
+    }
+    return `  async ${name}(_request: ${method.request_type}, _options: RuntimeTypedCallOptions = {}): Promise<${method.response_type}> {
+    throw Object.assign(new Error(${quote(`Runtime method kind is not supported by the unary/server-stream core transport: ${method.method_id}`)}), {
+      code: 'SDK_RUNTIME_METHOD_UNAVAILABLE',
+    });
+  }`;
+  }).join('\n\n');
+  const realmModels = (realm.model_schemas || []).map((model) => {
+    if (model.schema.kind !== 'object') {
+      return `export type ${model.name} = ${tsOpenApiType(model.schema)};`;
+    }
+    const fields = model.schema.properties.map((property) => `  readonly ${tsPropertyName(property.name)}${property.required ? '' : '?'}: ${tsOpenApiType(property.schema)};`).join('\n');
+    return `export interface ${model.name} {\n${fields}\n}`;
+  }).join('\n');
+  const realmTypes = realm.operations.map((operation) => {
+    const base = realmOperationTypeBase(operation.operation_id);
+    const pathFields = (operation.path_parameters || []).map((parameter) => `    readonly ${tsPropertyName(parameter.name)}${parameter.required ? '' : '?'}: ${tsOpenApiType(parameter.schema)};`).join('\n');
+    const queryFields = (operation.query_parameters || []).map((parameter) => `    readonly ${tsPropertyName(parameter.name)}${parameter.required ? '' : '?'}: ${tsOpenApiType(parameter.schema)};`).join('\n');
+    const headerFields = (operation.header_parameters || []).map((parameter) => `    readonly ${JSON.stringify(parameter.name)}${parameter.required ? '' : '?'}: ${tsOpenApiType(parameter.schema)};`).join('\n');
+    return `export interface ${base}Request {
+  readonly path: {
+${pathFields}
+  };
+  readonly query?: {
+${queryFields}
+  };
+  readonly headers?: {
+${headerFields}
+  };
+  readonly body${operation.request_schema.kind === 'unknown' ? '?' : ''}: ${tsOpenApiType(operation.request_schema)};
+}
+export type ${base}Response = ${tsOpenApiType(openApiSuccessSchema(operation))};`;
+  }).join('\n');
+  const realmMethods = realm.operations.map((operation) => {
+    const base = realmOperationTypeBase(operation.operation_id);
+    return `  async ${lowerCamelCase(operation.operation_id)}(request: ${base}Request, options: RealmTypedCallOptions = {}): Promise<${base}Response> {
+    return this.core.unary<${base}Response, ${base}Request>({
+      methodId: ${quote(operation.operation_id)},
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }`;
+  }).join('\n\n');
+  writeText('sdks/typescript/core-generated/runtime-typed-client.ts', `// @generated by ${generatedBy}
+// DO NOT EDIT MANUALLY.
+
+import { CoreClient } from '../core-client';
+import type { CoreMetadata } from '../types';
+
+export interface RuntimeTypedCallOptions {
+  readonly metadata?: CoreMetadata;
+  readonly timeoutMs?: number;
+  readonly signal?: AbortSignal;
+}
+
+${runtimeEnums}
+
+${runtimeTypes}
+
+export class RuntimeTypedClient {
+  constructor(private readonly core: CoreClient) {}
+
+${runtimeMethods}
+}
+`);
+  writeText('sdks/typescript/core-generated/realm-typed-client.ts', `// @generated by ${generatedBy}
+// DO NOT EDIT MANUALLY.
+
+import { CoreClient } from '../core-client';
+import type { CoreMetadata } from '../types';
+export interface RealmTypedCallOptions {
+  readonly metadata?: CoreMetadata;
+  readonly timeoutMs?: number;
+  readonly signal?: AbortSignal;
+}
+
+${realmModels}
+
+${realmTypes}
+
+export class RealmTypedClient {
+  constructor(private readonly core: CoreClient) {}
+
+${realmMethods}
+}
+`);
+}
+
+function writePythonTypedClients(runtime, realm) {
+  const runtimeEnums = runtimeEnumSchemas(runtime)
+    .map((schema) => `${schema.name} = Literal[${schema.values.length ? schema.values.map(quote).join(', ') : '"__unspecified__"'}]`)
+    .join('\n');
+  const runtimeTypes = runtimeMessageSchemas(runtime)
+    .map((schema) => {
+      const fields = schema.fields.map((field) => {
+        const type = pyProtoType(field, runtime);
+        if (field.type === 'map') return `    ${pyFieldName(field.name)}: ${type} = field(default_factory=dict)`;
+        if (field.repeated) return `    ${pyFieldName(field.name)}: ${type} = field(default_factory=tuple)`;
+        return `    ${pyFieldName(field.name)}: ${type} | None = None`;
+      }).join('\n') || '    pass';
+      return `@dataclass(frozen=True)
+class ${schema.name}:
+${fields}`;
+    })
+    .join('\n\n');
+  const runtimeMethods = runtime.codec_maps.map((method) => {
+    const name = snakeCase(method.method);
+    if (method.kind === 'unary') {
+      return `    async def ${name}(self, request: ${method.request_type}, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ${method.response_type}:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id=${quote(method.method_id)}, body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(${method.response_type}, raw)`;
+    }
+    if (method.kind === 'server_stream') {
+      return `    def ${name}(self, request: ${method.request_type}, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[${method.response_type}]:
+        return self._stream(${quote(method.method_id)}, _model_body(request), ${method.response_type}, metadata=metadata, timeout_ms=timeout_ms)`;
+    }
+    return `    async def ${name}(self, request: ${method.request_type}, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ${method.response_type}:
+        raise RuntimeError(${quote(`SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: ${method.method_id}`)})`;
+  }).join('\n\n');
+  const realmModels = (realm.model_schemas || []).map((model) => {
+    if (model.schema.kind !== 'object') return `${model.name} = ${pyOpenApiType(model.schema)}`;
+    const fields = model.schema.properties.map((property) => {
+      const type = pyOpenApiType(property.schema);
+      if (property.schema.kind === 'array') return `    ${pyFieldName(property.name)}: ${type} = field(default_factory=tuple)`;
+      if (property.schema.kind === 'object') return `    ${pyFieldName(property.name)}: ${type} = field(default_factory=dict)`;
+      return `    ${pyFieldName(property.name)}: ${type} | None = None`;
+    }).join('\n') || '    pass';
+    return `@dataclass(frozen=True)
+class ${model.name}:
+${fields}`;
+  }).join('\n\n');
+  const realmTypes = realm.operations.map((operation) => {
+    const base = realmOperationTypeBase(operation.operation_id);
+    const pathFields = (operation.path_parameters || []).map((parameter) => `    ${pyFieldName(parameter.name)}: ${pyOpenApiType(parameter.schema)}${parameter.required ? '' : ' | None = None'}`).join('\n') || '    pass';
+    const queryFields = (operation.query_parameters || []).map((parameter) => `    ${pyFieldName(parameter.name)}: ${pyOpenApiType(parameter.schema)} | None = None`).join('\n') || '    pass';
+    const headerFields = (operation.header_parameters || []).map((parameter) => `    ${snakeCase(parameter.name)}: ${pyOpenApiType(parameter.schema)} | None = None`).join('\n') || '    pass';
+    return `@dataclass(frozen=True)
+class ${base}Path:
+${pathFields}
+
+
+@dataclass(frozen=True)
+class ${base}Query:
+${queryFields}
+
+
+@dataclass(frozen=True)
+class ${base}Headers:
+${headerFields}
+
+
+@dataclass(frozen=True)
+class ${base}Request:
+    path: ${base}Path
+    query: ${base}Query | None = None
+    headers: ${base}Headers | None = None
+    body: ${pyOpenApiType(operation.request_schema)} | None = None`;
+  }).join('\n\n');
+  const realmMethods = realm.operations.map((operation) => {
+    const base = realmOperationTypeBase(operation.operation_id);
+    return `    async def ${snakeCase(operation.operation_id)}(self, request: ${base}Request, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ${base}Response:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id=${quote(operation.operation_id)}, body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(${pyOpenApiType(openApiSuccessSchema(operation))}, raw)`;
+  }).join('\n\n');
+  writeText('sdks/python/core_generated/runtime_typed_client.py', `# @generated by ${generatedBy}
+# DO NOT EDIT MANUALLY.
+
+from __future__ import annotations
+from collections.abc import AsyncIterator, Mapping
+from dataclasses import asdict, dataclass, field, fields, is_dataclass
+from typing import Literal, TypeVar
+
+from sdks.python.core_client import CoreClient
+from sdks.python.types import CoreStreamRequest, CoreUnaryRequest
+
+_T = TypeVar("_T")
+
+
+def _model_body(value: object) -> object:
+    if value is None:
+        return {}
+    if is_dataclass(value):
+        return asdict(value)
+    if isinstance(value, Mapping):
+        return dict(value)
+    return value
+
+
+def _decode_model(model_type: type[_T], value: object) -> _T:
+    if not is_dataclass(model_type):
+        return value  # type: ignore[return-value]
+    source = dict(value) if isinstance(value, Mapping) else {}
+    names = {field.name for field in fields(model_type)}
+    return model_type(**{key: val for key, val in source.items() if key in names})
+
+
+${runtimeEnums}
+
+${runtimeTypes}
+
+
+class RuntimeTypedClient:
+    def __init__(self, core: CoreClient) -> None:
+        self._core = core
+
+    async def _stream(self, method_id: str, body: object, response_type: type[_T], *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[_T]:
+        async for event in self._core.server_stream(CoreStreamRequest(method_id=method_id, body=body, metadata=metadata, timeout_ms=timeout_ms)):
+            yield _decode_model(response_type, event)
+
+${runtimeMethods}
+`);
+  writeText('sdks/python/core_generated/realm_typed_client.py', `# @generated by ${generatedBy}
+# DO NOT EDIT MANUALLY.
+
+from __future__ import annotations
+from collections.abc import Mapping
+from dataclasses import asdict, dataclass, field, fields, is_dataclass
+from typing import Literal
+
+from sdks.python.core_client import CoreClient
+from sdks.python.types import CoreUnaryRequest
+
+
+def _model_body(value: object) -> object:
+    if value is None:
+        return {}
+    if is_dataclass(value):
+        return asdict(value)
+    if isinstance(value, Mapping):
+        return dict(value)
+    return value
+
+
+def _decode_model(model_type, value: object):
+    if not is_dataclass(model_type):
+        return value
+    source = dict(value) if isinstance(value, Mapping) else {}
+    names = {field.name for field in fields(model_type)}
+    return model_type(**{key: val for key, val in source.items() if key in names})
+
+
+${realmModels}
+
+${realmTypes}
+
+
+class RealmTypedClient:
+    def __init__(self, core: CoreClient) -> None:
+        self._core = core
+
+${realmMethods}
+`);
+}
+
+function writeGoTypedClients(runtime, realm) {
+  const runtimeEnums = runtimeEnumSchemas(runtime)
+    .map((schema) => `type ${schema.name} string\n\nconst (\n${schema.values.map((value) => `	${pascalCase(value)} ${schema.name} = ${quote(value)}`).join('\n')}\n)`)
+    .join('\n\n');
+  const runtimeTypes = runtimeMessageSchemas(runtime)
+    .map((schema) => {
+      const fields = schema.fields.map((field) => `	${pascalCase(field.name)} ${goProtoType(field, runtime)} \`json:"${field.name},omitempty"\``).join('\n');
+      return `type ${schema.name} struct {\n${fields}\n}`;
+    })
+    .join('\n\n');
+  const runtimeMethods = runtime.codec_maps.map((method) => {
+    if (method.kind === 'unary') {
+      return `func (c RuntimeTypedClient) ${pascalCase(method.method)}(ctx context.Context, request ${method.request_type}, metadata sdkstypes.CoreMetadata, timeoutMS int64) (${method.response_type}, error) {
+	raw, err := c.callTyped(ctx, ${quote(method.method_id)}, request, metadata, timeoutMS)
+	if err != nil {
+		return ${method.response_type}{}, err
+	}
+	return decodeTypedResponse[${method.response_type}](raw)
+}`;
+    }
+    if (method.kind === 'server_stream') {
+      return `func (c RuntimeTypedClient) ${pascalCase(method.method)}(ctx context.Context, request ${method.request_type}, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[${method.response_type}], error) {
+	reader, err := c.streamTyped(ctx, ${quote(method.method_id)}, request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[${method.response_type}]{reader: reader}, nil
+}`;
+    }
+    return `func (c RuntimeTypedClient) ${pascalCase(method.method)}(context.Context, ${method.request_type}, sdkstypes.CoreMetadata, int64) (${method.response_type}, error) {
+	return ${method.response_type}{}, fmt.Errorf("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: ${method.method_id}")
+}`;
+  }).join('\n\n');
+  const realmModels = (realm.model_schemas || []).map((model) => {
+    if (model.schema.kind !== 'object') return `type ${model.name} ${goOpenApiType(model.schema)}`;
+    const fields = model.schema.properties.map((property) => `	${pascalCase(property.name)} ${goOpenApiFieldType(property.schema)} \`json:"${property.name},omitempty"\``).join('\n');
+    return `type ${model.name} struct {\n${fields}\n}`;
+  }).join('\n\n');
+  const realmTypes = realm.operations.map((operation) => {
+    const base = realmOperationTypeBase(operation.operation_id);
+    const pathFields = (operation.path_parameters || []).map((parameter) => `	${pascalCase(parameter.name)} ${goOpenApiType(parameter.schema)} \`json:"${parameter.name},omitempty"\``).join('\n');
+    const queryFields = (operation.query_parameters || []).map((parameter) => `	${pascalCase(parameter.name)} ${goOpenApiType(parameter.schema)} \`json:"${parameter.name},omitempty"\``).join('\n');
+    const headerFields = (operation.header_parameters || []).map((parameter) => `	${pascalCase(parameter.name)} ${goOpenApiType(parameter.schema)} \`json:"${parameter.name},omitempty"\``).join('\n');
+    return `type ${base}Path struct {\n${pathFields}\n}
+
+type ${base}Query struct {\n${queryFields}\n}
+
+type ${base}Headers struct {\n${headerFields}\n}
+
+type ${base}Request struct {
+	Path    ${base}Path \`json:"path,omitempty"\`
+	Query   ${base}Query \`json:"query,omitempty"\`
+	Headers ${base}Headers \`json:"headers,omitempty"\`
+	Body    ${goOpenApiType(operation.request_schema)} \`json:"body,omitempty"\`
+}`;
+  }).join('\n\n');
+  const realmMethods = realm.operations.map((operation) => {
+    const base = realmOperationTypeBase(operation.operation_id);
+    const responseType = goOpenApiType(openApiSuccessSchema(operation));
+    return `func (c RealmTypedClient) ${pascalCase(operation.operation_id)}(ctx context.Context, request ${base}Request, metadata sdkstypes.CoreMetadata, timeoutMS int64) (${responseType}, error) {
+	raw, err := c.operationTyped(ctx, ${quote(operation.operation_id)}, request, metadata, timeoutMS)
+	if err != nil {
+		return ${goZeroExpr(responseType)}, err
+	}
+	return decodeTypedResponse[${responseType}](raw)
+}`;
+  }).join('\n\n');
+  writeText('sdks/go/coregenerated/typed_clients.go', `// Code generated by ${generatedBy}; DO NOT EDIT.
+
+package coregenerated
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+
+	"github.com/nimiplatform/nimi/sdks/go/coreclient"
+	sdkstypes "github.com/nimiplatform/nimi/sdks/go/types"
+)
+
+${runtimeEnums}
+
+${runtimeTypes}
+
+type RuntimeTypedClient struct {
+	core coreclient.Client
+}
+
+func NewRuntimeTypedClient(core coreclient.Client) RuntimeTypedClient {
+	return RuntimeTypedClient{core: core}
+}
+
+func (c RuntimeTypedClient) callTyped(ctx context.Context, methodID string, request any, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]byte, error) {
+	encoded, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+	return c.core.Unary(ctx, sdkstypes.CoreUnaryRequest{Context: ctx, MethodID: methodID, Metadata: metadata, Body: encoded, TimeoutMS: timeoutMS})
+}
+
+func (c RuntimeTypedClient) streamTyped(ctx context.Context, methodID string, request any, metadata sdkstypes.CoreMetadata, timeoutMS int64) (coreclient.StreamReader, error) {
+	encoded, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+	return c.core.ServerStream(ctx, sdkstypes.CoreStreamRequest{Context: ctx, MethodID: methodID, Metadata: metadata, Body: encoded, TimeoutMS: timeoutMS})
+}
+
+type RuntimeTypedStream[T any] struct {
+	reader coreclient.StreamReader
+}
+
+func (s *RuntimeTypedStream[T]) Recv(ctx context.Context) (T, error) {
+	raw, err := s.reader.Recv(ctx)
+	if err != nil {
+		var zero T
+		return zero, err
+	}
+	return decodeTypedResponse[T](raw)
+}
+
+func (s *RuntimeTypedStream[T]) Close() error {
+	return s.reader.Close()
+}
+
+func decodeTypedResponse[T any](raw []byte) (T, error) {
+	var out T
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return out, err
+	}
+	return out, nil
+}
+
+${runtimeMethods}
+
+${realmModels}
+
+${realmTypes}
+
+type RealmTypedClient struct {
+	core coreclient.Client
+}
+
+func NewRealmTypedClient(core coreclient.Client) RealmTypedClient {
+	return RealmTypedClient{core: core}
+}
+
+func (c RealmTypedClient) operationTyped(ctx context.Context, operationID string, request any, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]byte, error) {
+	encoded, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+	return c.core.Unary(ctx, sdkstypes.CoreUnaryRequest{Context: ctx, MethodID: operationID, Metadata: metadata, Body: encoded, TimeoutMS: timeoutMS})
+}
+
+${realmMethods}
+`);
+}
+
+function writeRustTypedClients(runtime, realm) {
+  const runtimeEnums = runtimeEnumSchemas(runtime)
+    .map((schema) => {
+      const variants = schema.values.map((value) => `    ${pascalCase(value)},`).join('\n') || '    Unspecified,';
+      const defaultVariant = schema.values[0] ? pascalCase(schema.values[0]) : 'Unspecified';
+      return `#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ${schema.name} {
+${variants}
+}
+
+impl Default for ${schema.name} {
+    fn default() -> Self {
+        Self::${defaultVariant}
+    }
+}`;
+    })
+    .join('\n\n');
+  const runtimeTypes = runtimeMessageSchemas(runtime)
+    .map((schema) => {
+      const fields = schema.fields.map((field) => `    pub ${rustFieldName(field.name)}: ${rustProtoType(field, runtime)},`).join('\n');
+      const encoders = schema.fields.map((field) => {
+        if (field.repeated || field.type === 'map') return '';
+        const kind = protoTypeKind(field.type, runtime);
+        if (field.type === 'string' || field.type === 'google.protobuf.Timestamp' || field.type === 'google.protobuf.Duration') return `        if let Some(value) = &self.${rustFieldName(field.name)} { pairs.push(format!("${field.name}={}", value)); }`;
+        if (['bool', 'int32', 'int64', 'uint32', 'uint64', 'sint32', 'sint64', 'fixed32', 'fixed64', 'sfixed32', 'sfixed64', 'float', 'double'].includes(field.type)) return `        if let Some(value) = &self.${rustFieldName(field.name)} { pairs.push(format!("${field.name}={}", value)); }`;
+        if (kind === 'enum') return `        if let Some(value) = &self.${rustFieldName(field.name)} { pairs.push(format!("${field.name}={:?}", value)); }`;
+        return '';
+      }).filter(Boolean).join('\n');
+      const decoders = schema.fields.map((field) => {
+        if (field.repeated || field.type === 'map') return '';
+        if (field.type === 'string' || field.type === 'google.protobuf.Timestamp' || field.type === 'google.protobuf.Duration') return `        out.${rustFieldName(field.name)} = pairs.get("${field.name}").cloned();`;
+        if (field.type === 'bool') return `        out.${rustFieldName(field.name)} = pairs.get("${field.name}").and_then(|value| value.parse().ok());`;
+        if (['int32', 'int64', 'uint32', 'uint64', 'sint32', 'sint64', 'fixed32', 'fixed64', 'sfixed32', 'sfixed64', 'float', 'double'].includes(field.type)) return `        out.${rustFieldName(field.name)} = pairs.get("${field.name}").and_then(|value| value.parse().ok());`;
+        return '';
+      }).filter(Boolean).join('\n');
+      const toTransportBody = encoders
+        ? `        let mut pairs: Vec<String> = Vec::new();
+${encoders}
+        pairs.join(";").into_bytes()`
+        : '        Vec::new()';
+      const fromTransportBody = decoders
+        ? `        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+${decoders}
+        out`
+        : `        let _ = raw;
+        Self::default()`;
+      return `#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ${schema.name} {
+${fields}
+}
+
+impl ${schema.name} {
+    pub fn to_transport(&self) -> Vec<u8> {
+${toTransportBody}
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+${fromTransportBody}
+    }
+}`;
+    })
+    .join('\n\n');
+  const runtimeMethods = runtime.codec_maps.map((method) => {
+    const name = snakeCase(method.method);
+    if (method.kind === 'unary') {
+      return `    pub fn ${name}(&self, request: ${method.request_type}, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<${method.response_type}, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: ${quote(method.method_id)}.to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(${method.response_type}::from_transport(&raw))
+    }`;
+    }
+    if (method.kind === 'server_stream') {
+      return `    pub fn ${name}(&self, request: ${method.request_type}, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, ${method.response_type}>, T::Error>
+    where
+        T::Stream: CoreTypedStream,
+    {
+        let inner = self.core.server_stream(CoreStreamRequest {
+            method_id: ${quote(method.method_id)}.to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
+    }`;
+    }
+    return `    pub fn ${name}(&self, _request: ${method.request_type}, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<${method.response_type}, T::Error> {
+        panic!("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: ${method.method_id}");
+    }`;
+  }).join('\n\n');
+  const realmModels = (realm.model_schemas || []).map((model) => {
+    if (model.schema.kind !== 'object') return `pub type ${model.name} = ${rustOpenApiType(model.schema)};`;
+    const fields = model.schema.properties.map((property) => `    pub ${rustFieldName(snakeCase(property.name))}: ${rustOpenApiFieldType(property.schema)},`).join('\n');
+    return `#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ${model.name} {\n${fields}\n}`;
+  }).join('\n\n');
+  const realmTypes = realm.operations.map((operation) => {
+    const base = realmOperationTypeBase(operation.operation_id);
+    const pathFields = (operation.path_parameters || []).map((parameter) => `    pub ${rustFieldName(snakeCase(parameter.name))}: ${rustOpenApiType(parameter.schema)},`).join('\n');
+    const queryFields = (operation.query_parameters || []).map((parameter) => `    pub ${rustFieldName(snakeCase(parameter.name))}: Option<${rustOpenApiType(parameter.schema)}>,`).join('\n');
+    const headerFields = (operation.header_parameters || []).map((parameter) => `    pub ${rustFieldName(snakeCase(parameter.name))}: Option<${rustOpenApiType(parameter.schema)}>,`).join('\n');
+    return `#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ${base}Path {\n${pathFields}\n}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ${base}Query {\n${queryFields}\n}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ${base}Headers {\n${headerFields}\n}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ${base}Request {
+    pub path: ${base}Path,
+    pub query: ${base}Query,
+    pub headers: ${base}Headers,
+    pub body: ${rustOpenApiType(operation.request_schema)},
+}`;
+  }).join('\n\n');
+  const realmMethods = realm.operations.map((operation) => {
+    const base = realmOperationTypeBase(operation.operation_id);
+    const responseType = rustOpenApiType(openApiSuccessSchema(operation));
+    return `    pub fn ${snakeCase(operation.operation_id)}(&self, request: ${base}Request, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<${responseType}, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: ${quote(operation.operation_id)}.to_string(),
+            metadata,
+            body: format!("{:?}", request).into_bytes(),
+            timeout,
+        })?;
+        let _ = raw;
+        Ok(${rustDefaultExpr(responseType)})
+    }`;
+  }).join('\n\n');
+  writeText('sdks/rust/core_generated/typed_clients.rs', `// @generated by ${generatedBy}
+// DO NOT EDIT MANUALLY.
+
+use std::collections::BTreeMap;
+
+use crate::core_client::{CoreClient, CoreTransport};
+use crate::types::{CoreMetadata, CoreStreamRequest, CoreUnaryRequest};
+
+fn parse_pairs(raw: &[u8]) -> BTreeMap<String, String> {
+    let text = String::from_utf8_lossy(raw);
+    let mut out = BTreeMap::new();
+    for pair in text.split(';') {
+        if pair.is_empty() {
+            continue;
+        }
+        if let Some((key, value)) = pair.split_once('=') {
+            out.insert(key.to_string(), value.to_string());
+        }
+    }
+    out
+}
+
+${runtimeEnums}
+
+${runtimeTypes}
+
+pub trait CoreTypedStream {
+    fn recv_typed_payload(&mut self) -> Option<Vec<u8>>;
+}
+
+pub struct RuntimeTypedStream<S, R>
+where
+    S: CoreTypedStream,
+{
+    inner: S,
+    _response: std::marker::PhantomData<R>,
+}
+
+impl<S, R> RuntimeTypedStream<S, R>
+where
+    S: CoreTypedStream,
+    R: From<Vec<u8>>,
+{
+    pub fn recv(&mut self) -> Option<R> {
+        self.inner.recv_typed_payload().map(R::from)
+    }
+}
+
+${uniqueRuntimeMessageTypes(runtime).map((name) => `impl From<Vec<u8>> for ${name} {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}`).join('\n\n')}
+
+pub struct RuntimeTypedClient<T, A>
+where
+    T: CoreTransport,
+    A: Fn() -> CoreMetadata,
+{
+    core: CoreClient<T, A>,
+}
+
+impl<T, A> RuntimeTypedClient<T, A>
+where
+    T: CoreTransport,
+    A: Fn() -> CoreMetadata,
+{
+    pub fn new(core: CoreClient<T, A>) -> Self {
+        Self { core }
+    }
+
+${runtimeMethods}
+}
+
+${realmModels}
+
+${realmTypes}
+
+pub struct RealmTypedClient<T, A>
+where
+    T: CoreTransport,
+    A: Fn() -> CoreMetadata,
+{
+    core: CoreClient<T, A>,
+}
+
+impl<T, A> RealmTypedClient<T, A>
+where
+    T: CoreTransport,
+    A: Fn() -> CoreMetadata,
+{
+    pub fn new(core: CoreClient<T, A>) -> Self {
+        Self { core }
+    }
+
+${realmMethods}
+}
+`);
+}

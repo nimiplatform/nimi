@@ -160,6 +160,14 @@ RUNTIME_METHODS = [
     "response_type": "GetAgentResponse"
   },
   {
+    "method_id": "/runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
+    "service": "RuntimeAgentService",
+    "method": "GetAgentCanonicalMemoryBankStatus",
+    "kind": "unary",
+    "request_type": "GetAgentCanonicalMemoryBankStatusRequest",
+    "response_type": "GetAgentCanonicalMemoryBankStatusResponse"
+  },
+  {
     "method_id": "/runtime.v1.RuntimeAgentService/GetAgentState",
     "service": "RuntimeAgentService",
     "method": "GetAgentState",
@@ -326,6 +334,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "RegisterAvatarLiveInstanceBindingRequest",
     "response_type": "RegisterAvatarLiveInstanceBindingResponse"
+  },
+  {
+    "method_id": "/runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
+    "service": "RuntimeAgentService",
+    "method": "RequestAgentCanonicalMemoryBankBind",
+    "kind": "unary",
+    "request_type": "RequestAgentCanonicalMemoryBankBindRequest",
+    "response_type": "RequestAgentCanonicalMemoryBankBindResponse"
   },
   {
     "method_id": "/runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
@@ -568,12 +584,28 @@ RUNTIME_METHODS = [
     "response_type": "UploadArtifactResponse"
   },
   {
+    "method_id": "/runtime.v1.RuntimeAppService/GetAccountAppLibrary",
+    "service": "RuntimeAppService",
+    "method": "GetAccountAppLibrary",
+    "kind": "unary",
+    "request_type": "GetAccountAppLibraryRequest",
+    "response_type": "GetAccountAppLibraryResponse"
+  },
+  {
     "method_id": "/runtime.v1.RuntimeAppService/GetAppInstallJob",
     "service": "RuntimeAppService",
     "method": "GetAppInstallJob",
     "kind": "unary",
     "request_type": "GetAppInstallJobRequest",
     "response_type": "GetAppInstallJobResponse"
+  },
+  {
+    "method_id": "/runtime.v1.RuntimeAppService/GetAppPackageReadiness",
+    "service": "RuntimeAppService",
+    "method": "GetAppPackageReadiness",
+    "kind": "unary",
+    "request_type": "GetAppPackageReadinessRequest",
+    "response_type": "GetAppPackageReadinessResponse"
   },
   {
     "method_id": "/runtime.v1.RuntimeAppService/GetAppStorage",
@@ -856,6 +888,14 @@ RUNTIME_METHODS = [
     "response_type": "GetKnowledgeBankResponse"
   },
   {
+    "method_id": "/runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent",
+    "service": "RuntimeCognitionService",
+    "method": "GetMemoryEmbeddingRuntimeIntent",
+    "kind": "unary",
+    "request_type": "GetMemoryEmbeddingRuntimeIntentRequest",
+    "response_type": "GetMemoryEmbeddingRuntimeIntentResponse"
+  },
+  {
     "method_id": "/runtime.v1.RuntimeCognitionService/GetPage",
     "service": "RuntimeCognitionService",
     "method": "GetPage",
@@ -990,6 +1030,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "SearchKeywordRequest",
     "response_type": "SearchKeywordResponse"
+  },
+  {
+    "method_id": "/runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent",
+    "service": "RuntimeCognitionService",
+    "method": "SetMemoryEmbeddingRuntimeIntent",
+    "kind": "unary",
+    "request_type": "SetMemoryEmbeddingRuntimeIntentRequest",
+    "response_type": "SetMemoryEmbeddingRuntimeIntentResponse"
   },
   {
     "method_id": "/runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
@@ -1200,6 +1248,14 @@ RUNTIME_METHODS = [
     "response_type": "ValidateAppAccessTokenResponse"
   },
   {
+    "method_id": "/runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
+    "service": "RuntimeLocalService",
+    "method": "AdmitProductControlReadyForUse",
+    "kind": "unary",
+    "request_type": "AdmitProductControlReadyForUseRequest",
+    "response_type": "ProductControlProjectionJson"
+  },
+  {
     "method_id": "/runtime.v1.RuntimeLocalService/AppendInferenceAudit",
     "service": "RuntimeLocalService",
     "method": "AppendInferenceAudit",
@@ -1264,12 +1320,28 @@ RUNTIME_METHODS = [
     "response_type": "CollectDeviceProfileResponse"
   },
   {
+    "method_id": "/runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
+    "service": "RuntimeLocalService",
+    "method": "CompleteProductControlFirstRunDeviceEnvironmentScan",
+    "kind": "unary",
+    "request_type": "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
+    "response_type": "ProductControlProjectionJson"
+  },
+  {
     "method_id": "/runtime.v1.RuntimeLocalService/EnsureEngine",
     "service": "RuntimeLocalService",
     "method": "EnsureEngine",
     "kind": "unary",
     "request_type": "EnsureEngineRequest",
     "response_type": "EnsureEngineResponse"
+  },
+  {
+    "method_id": "/runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
+    "service": "RuntimeLocalService",
+    "method": "EnsureProductControlRecordCreated",
+    "kind": "unary",
+    "request_type": "EnsureProductControlRecordCreatedRequest",
+    "response_type": "ProductControlProjectionJson"
   },
   {
     "method_id": "/runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover",
@@ -1286,6 +1358,22 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "GetEngineStatusRequest",
     "response_type": "GetEngineStatusResponse"
+  },
+  {
+    "method_id": "/runtime.v1.RuntimeLocalService/GetProductControlRecord",
+    "service": "RuntimeLocalService",
+    "method": "GetProductControlRecord",
+    "kind": "unary",
+    "request_type": "GetProductControlRecordRequest",
+    "response_type": "ProductControlProjectionJson"
+  },
+  {
+    "method_id": "/runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
+    "service": "RuntimeLocalService",
+    "method": "GetProductControlSelectedDataRoot",
+    "kind": "unary",
+    "request_type": "GetProductControlSelectedDataRootRequest",
+    "response_type": "ProductControlProjectionJson"
   },
   {
     "method_id": "/runtime.v1.RuntimeLocalService/GetRecommendationFeed",
@@ -1448,6 +1536,30 @@ RUNTIME_METHODS = [
     "response_type": "PauseLocalTransferResponse"
   },
   {
+    "method_id": "/runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
+    "service": "RuntimeLocalService",
+    "method": "ReconcileProductControlFirstRunSetupState",
+    "kind": "unary",
+    "request_type": "ReconcileProductControlFirstRunSetupStateRequest",
+    "response_type": "ProductControlProjectionJson"
+  },
+  {
+    "method_id": "/runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
+    "service": "RuntimeLocalService",
+    "method": "RecordProductControlAccountDefaultProfileEvidence",
+    "kind": "unary",
+    "request_type": "RecordProductControlAccountDefaultProfileEvidenceRequest",
+    "response_type": "ProductControlProjectionJson"
+  },
+  {
+    "method_id": "/runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
+    "service": "RuntimeLocalService",
+    "method": "RecordProductControlFirstRunLocalAiReadyEvidence",
+    "kind": "unary",
+    "request_type": "RecordProductControlFirstRunLocalAiReadyEvidenceRequest",
+    "response_type": "ProductControlProjectionJson"
+  },
+  {
     "method_id": "/runtime.v1.RuntimeLocalService/RemoveLocalAsset",
     "service": "RuntimeLocalService",
     "method": "RemoveLocalAsset",
@@ -1574,6 +1686,22 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "SearchCatalogModelsRequest",
     "response_type": "SearchCatalogModelsResponse"
+  },
+  {
+    "method_id": "/runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
+    "service": "RuntimeLocalService",
+    "method": "SelectProductControlDataRoot",
+    "kind": "unary",
+    "request_type": "SelectProductControlDataRootRequest",
+    "response_type": "ProductControlProjectionJson"
+  },
+  {
+    "method_id": "/runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
+    "service": "RuntimeLocalService",
+    "method": "SetProductControlFirstRunInstallLevel",
+    "kind": "unary",
+    "request_type": "SetProductControlFirstRunInstallLevelRequest",
+    "response_type": "ProductControlProjectionJson"
   },
   {
     "method_id": "/runtime.v1.RuntimeLocalService/StartEngine",

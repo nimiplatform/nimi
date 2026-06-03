@@ -6757,12 +6757,11 @@ func (x *RecordProductControlFirstRunLocalAiReadyEvidenceRequest) GetExecutionEv
 	return ""
 }
 
+// ReconcileProductControlFirstRunSetupStateRequest is intentionally empty:
+// Runtime derives the first-run setup state from Runtime-owned materialization
+// and activation evidence, then owns the product-control record write.
 type ReconcileProductControlFirstRunSetupStateRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// A non-ready first-run setup state derived from Runtime materialization
-	// evidence. Runtime validates the vocabulary and owns the record write.
-	State         string `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
-	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6797,25 +6796,11 @@ func (*ReconcileProductControlFirstRunSetupStateRequest) Descriptor() ([]byte, [
 	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{114}
 }
 
-func (x *ReconcileProductControlFirstRunSetupStateRequest) GetState() string {
-	if x != nil {
-		return x.State
-	}
-	return ""
-}
-
-func (x *ReconcileProductControlFirstRunSetupStateRequest) GetReason() string {
-	if x != nil {
-		return x.Reason
-	}
-	return ""
-}
-
 var File_runtime_v1_local_runtime_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\n" +
-	"\x1eruntime/v1/local_runtime.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x17runtime/v1/common.proto\x1a%runtime/v1/local_runtime_engine.proto\x1a$runtime/v1/local_runtime_types.proto\"\x83\x02\n" +
+	"\x1eruntime/v1/local_runtime.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x17runtime/v1/common.proto\x1a,runtime/v1/local_runtime_asset_catalog.proto\x1a1runtime/v1/local_runtime_device_environment.proto\x1a%runtime/v1/local_runtime_engine.proto\x1a0runtime/v1/local_runtime_execution_profile.proto\x1a-runtime/v1/local_runtime_recommendation.proto\"\x83\x02\n" +
 	"\x16ListLocalAssetsRequest\x12F\n" +
 	"\rstatus_filter\x18\x01 \x01(\x0e2!.nimi.runtime.v1.LocalAssetStatusR\fstatusFilter\x12@\n" +
 	"\vkind_filter\x18\x02 \x01(\x0e2\x1f.nimi.runtime.v1.LocalAssetKindR\n" +
@@ -7317,10 +7302,8 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"7RecordProductControlFirstRunLocalAiReadyEvidenceRequest\x120\n" +
 	"\x14runtime_baseline_ref\x18\x01 \x01(\tR\x12runtimeBaselineRef\x12E\n" +
 	" built_in_ai_config_evidence_json\x18\x02 \x01(\tR\x1bbuiltInAiConfigEvidenceJson\x124\n" +
-	"\x16execution_evidence_ref\x18\x03 \x01(\tR\x14executionEvidenceRef\"`\n" +
-	"0ReconcileProductControlFirstRunSetupStateRequest\x12\x14\n" +
-	"\x05state\x18\x01 \x01(\tR\x05state\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason2\xa5@\n" +
+	"\x16execution_evidence_ref\x18\x03 \x01(\tR\x14executionEvidenceRef\"2\n" +
+	"0ReconcileProductControlFirstRunSetupStateRequest2\xa5@\n" +
 	"\x13RuntimeLocalService\x12d\n" +
 	"\x0fListLocalAssets\x12'.nimi.runtime.v1.ListLocalAssetsRequest\x1a(.nimi.runtime.v1.ListLocalAssetsResponse\x12m\n" +
 	"\x12ListVerifiedAssets\x12*.nimi.runtime.v1.ListVerifiedAssetsRequest\x1a+.nimi.runtime.v1.ListVerifiedAssetsResponse\x12s\n" +
@@ -7777,8 +7760,11 @@ func file_runtime_v1_local_runtime_proto_init() {
 		return
 	}
 	file_runtime_v1_common_proto_init()
+	file_runtime_v1_local_runtime_asset_catalog_proto_init()
+	file_runtime_v1_local_runtime_device_environment_proto_init()
 	file_runtime_v1_local_runtime_engine_proto_init()
-	file_runtime_v1_local_runtime_types_proto_init()
+	file_runtime_v1_local_runtime_execution_profile_proto_init()
+	file_runtime_v1_local_runtime_recommendation_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

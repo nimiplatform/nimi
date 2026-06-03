@@ -1,0 +1,275 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/struct.proto";
+import "runtime/v1/common.proto";
+
+// === Asset Kind & Status (unified from Model + Artifact) ===
+
+enum LocalAssetKind {
+  LOCAL_ASSET_KIND_UNSPECIFIED = 0;
+
+  // Runnable kinds
+  LOCAL_ASSET_KIND_CHAT       = 1;
+  LOCAL_ASSET_KIND_IMAGE      = 2;
+  LOCAL_ASSET_KIND_VIDEO      = 3;
+  LOCAL_ASSET_KIND_TTS        = 4;
+  LOCAL_ASSET_KIND_STT        = 5;
+  LOCAL_ASSET_KIND_EMBEDDING  = 6;
+
+  // Passive kinds
+  LOCAL_ASSET_KIND_VAE        = 10;
+  LOCAL_ASSET_KIND_CLIP       = 11;
+  LOCAL_ASSET_KIND_LORA       = 12;
+  LOCAL_ASSET_KIND_CONTROLNET = 13;
+  LOCAL_ASSET_KIND_AUXILIARY   = 14;
+}
+
+enum LocalAssetStatus {
+  LOCAL_ASSET_STATUS_UNSPECIFIED = 0;
+  LOCAL_ASSET_STATUS_INSTALLED  = 1;
+  LOCAL_ASSET_STATUS_ACTIVE     = 2;
+  LOCAL_ASSET_STATUS_UNHEALTHY  = 3;
+  LOCAL_ASSET_STATUS_REMOVED    = 4;
+}
+
+enum LocalServiceStatus {
+  LOCAL_SERVICE_STATUS_UNSPECIFIED = 0;
+  LOCAL_SERVICE_STATUS_INSTALLED  = 1;
+  LOCAL_SERVICE_STATUS_ACTIVE     = 2;
+  LOCAL_SERVICE_STATUS_UNHEALTHY  = 3;
+  LOCAL_SERVICE_STATUS_REMOVED    = 4;
+}
+
+enum LocalEngineRuntimeMode {
+  LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED       = 0;
+  LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED        = 1;
+  LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT = 2;
+}
+
+enum LocalBundleState {
+  LOCAL_BUNDLE_STATE_UNSPECIFIED = 0;
+  LOCAL_BUNDLE_STATE_RESOLVING  = 1;
+  LOCAL_BUNDLE_STATE_READY      = 2;
+  LOCAL_BUNDLE_STATE_DEGRADED   = 3;
+  LOCAL_BUNDLE_STATE_INVALID    = 4;
+  LOCAL_BUNDLE_STATE_REMOVED    = 5;
+}
+
+enum LocalWarmState {
+  LOCAL_WARM_STATE_UNSPECIFIED = 0;
+  LOCAL_WARM_STATE_COLD        = 1;
+  LOCAL_WARM_STATE_WARMING     = 2;
+  LOCAL_WARM_STATE_READY       = 3;
+  LOCAL_WARM_STATE_FAILED      = 4;
+}
+
+enum LocalExecutionEntryKind {
+  LOCAL_EXECUTION_ENTRY_KIND_UNSPECIFIED = 0;
+  LOCAL_EXECUTION_ENTRY_KIND_MODEL      = 1;
+  LOCAL_EXECUTION_ENTRY_KIND_SERVICE    = 2;
+  LOCAL_EXECUTION_ENTRY_KIND_NODE       = 3;
+  reserved 4;
+  reserved "LOCAL_EXECUTION_ENTRY_KIND_WORKFLOW";
+}
+
+enum LocalProfileEntryKind {
+  LOCAL_PROFILE_ENTRY_KIND_UNSPECIFIED = 0;
+  reserved 1, 2;
+  reserved "LOCAL_PROFILE_ENTRY_KIND_MODEL", "LOCAL_PROFILE_ENTRY_KIND_ARTIFACT";
+  LOCAL_PROFILE_ENTRY_KIND_SERVICE = 3;
+  LOCAL_PROFILE_ENTRY_KIND_NODE    = 4;
+  LOCAL_PROFILE_ENTRY_KIND_ASSET   = 5;
+}
+
+// === Source ===
+
+message LocalAssetSource {
+  string repo     = 1;
+  string revision = 2;
+}
+
+// === Host Requirements ===
+
+message LocalHostRequirements {
+  bool gpu_required            = 1;
+  bool python_runtime_required = 2;
+  repeated string supported_platforms = 3;
+  repeated string required_backends   = 4;
+}
+
+// === Unified Asset Record ===
+
+message LocalAssetRecord {
+  string local_asset_id        = 1;
+  string asset_id              = 2;
+  LocalAssetKind kind          = 3;
+  string engine                = 4;
+  string entry                 = 5;
+  repeated string files        = 6;
+  string license               = 7;
+  LocalAssetSource source      = 8;
+  map<string, string> hashes   = 9;
+  LocalAssetStatus status      = 10;
+  string installed_at          = 11;
+  string updated_at            = 12;
+  string health_detail         = 13;
+
+  // Runnable-only fields
+  repeated string capabilities         = 20;
+  string logical_model_id              = 21;
+  string family                        = 22;
+  repeated string artifact_roles       = 23;
+  string preferred_engine              = 24;
+  repeated string fallback_engines     = 25;
+  LocalBundleState bundle_state        = 26;
+  LocalWarmState warm_state            = 27;
+  LocalHostRequirements host_requirements = 28;
+  string local_invoke_profile_id       = 29;
+  google.protobuf.Struct engine_config = 30;
+  string endpoint                      = 31;
+  ReasonCode reason_code               = 32;
+
+  // Passive-only fields
+  google.protobuf.Struct metadata = 40;
+}
+
+message LocalAssetHealth {
+  string local_asset_id  = 1;
+  LocalAssetStatus status = 2;
+  string detail          = 3;
+  string endpoint        = 4;
+  ReasonCode reason_code = 5;
+}
+
+// === Verified Asset Descriptor (unified from Model + Artifact) ===
+
+message LocalVerifiedAssetDescriptor {
+  string template_id           = 1;
+  string title                 = 2;
+  string description           = 3;
+  string asset_id              = 4;
+  LocalAssetKind kind          = 5;
+  string engine                = 6;
+  string entry                 = 7;
+  repeated string files        = 8;
+  string license               = 9;
+  string repo                  = 10;
+  string revision              = 11;
+  map<string, string> hashes   = 12;
+  int32 file_count             = 13;
+  int64 total_size_bytes       = 14;
+  repeated string tags         = 15;
+  google.protobuf.Struct metadata = 16;
+
+  // Runnable-only fields
+  string install_kind                      = 20;
+  string logical_model_id                  = 21;
+  repeated string capabilities             = 22;
+  repeated string artifact_roles           = 23;
+  string preferred_engine                  = 24;
+  repeated string fallback_engines         = 25;
+  google.protobuf.Struct engine_config     = 26;
+  string endpoint                          = 27;
+  LocalHostRequirements host_requirements  = 28;
+}
+
+// === Provider Hints ===
+
+message LocalProviderHintsLlama {
+  string backend             = 1;
+  string preferred_adapter   = 2;
+  string multimodal_projector = 3;
+}
+
+message LocalProviderHintsMedia {
+  string backend            = 1;
+  string preferred_adapter  = 2;
+  string family             = 3;
+  string image_driver       = 4;
+  string video_driver       = 5;
+  string device             = 6;
+  string fallback_driver    = 7;
+  string fallback_reason    = 8;
+  string policy_gate        = 9;
+}
+
+message LocalProviderHintsSpeech {
+  string backend                = 1;
+  string preferred_adapter      = 2;
+  string family                 = 3;
+  string driver                 = 4;
+  string device                 = 5;
+  string voice_workflow_driver  = 6;
+  string policy_gate            = 7;
+}
+
+message LocalProviderHintsSidecar {
+  string preferred_adapter = 1;
+  string backend           = 2;
+}
+
+message LocalProviderHints {
+  LocalProviderHintsLlama llama    = 1;
+  LocalProviderHintsMedia media    = 2;
+  LocalProviderHintsSpeech speech  = 3;
+  LocalProviderHintsSidecar sidecar = 4;
+  map<string, string> extra        = 10;
+}
+
+// === Catalog & Install Plan ===
+
+message LocalCatalogModelDescriptor {
+  string item_id                        = 1;
+  string source                         = 2;
+  string title                          = 3;
+  string description                    = 4;
+  string model_id                       = 5;
+  string repo                           = 6;
+  string revision                       = 7;
+  string template_id                    = 8;
+  repeated string capabilities          = 9;
+  string engine                         = 10;
+  LocalEngineRuntimeMode engine_runtime_mode = 11;
+  string install_kind                   = 12;
+  bool install_available                = 13;
+  string endpoint                       = 14;
+  LocalProviderHints provider_hints     = 15;
+  string entry                          = 16;
+  repeated string files                 = 17;
+  string license                        = 18;
+  map<string, string> hashes            = 19;
+  repeated string tags                  = 20;
+  int64 downloads                       = 21;
+  int64 likes                           = 22;
+  string last_modified                  = 23;
+  bool verified                         = 24;
+  google.protobuf.Struct engine_config  = 25;
+}
+
+message LocalInstallPlanDescriptor {
+  string plan_id                              = 1;
+  string item_id                              = 2;
+  string source                               = 3;
+  string template_id                          = 4;
+  string model_id                             = 5;
+  string repo                                 = 6;
+  string revision                             = 7;
+  repeated string capabilities                = 8;
+  string engine                               = 9;
+  LocalEngineRuntimeMode engine_runtime_mode  = 10;
+  string install_kind                         = 11;
+  bool install_available                      = 12;
+  string endpoint                             = 13;
+  LocalProviderHints provider_hints           = 14;
+  string entry                                = 15;
+  repeated string files                       = 16;
+  string license                              = 17;
+  map<string, string> hashes                  = 18;
+  repeated string warnings                    = 19;
+  string reason_code                          = 20;
+  google.protobuf.Struct engine_config        = 21;
+}

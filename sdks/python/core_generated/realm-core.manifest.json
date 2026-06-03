@@ -3,7 +3,7 @@
   "generated_by": "sdks/generators/generate.mjs",
   "source_kind": "realm_openapi",
   "source_state": "openapi_loaded",
-  "source_label": "env:NIMI_REALM_OPENAPI_PATH",
+  "source_label": "../nimi-backend/api-nimi.yaml",
   "source_paths": [
     "config/realm-openapi-source.json"
   ],

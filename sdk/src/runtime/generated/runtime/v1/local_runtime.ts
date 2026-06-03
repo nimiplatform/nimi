@@ -23,32 +23,32 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { LocalAuditEvent } from "./local_runtime_types";
-import { LocalAuditTimeRange } from "./local_runtime_types";
-import { LocalNodeDescriptor } from "./local_runtime_types";
-import { LocalServiceDescriptor } from "./local_runtime_types";
-import { LocalServiceStatus } from "./local_runtime_types";
-import { LocalProfileApplyResult } from "./local_runtime_types";
-import { LocalProfileResolutionPlan } from "./local_runtime_types";
-import { ProfileEntryOverride } from "./local_runtime_types";
-import { LocalProfileDescriptor } from "./local_runtime_types";
-import { ExecutionEvidenceRef } from "./local_runtime_types";
-import { RuntimeBaselineReadinessRef } from "./local_runtime_types";
-import { LocalEnvironmentActivationGate } from "./local_runtime_types";
-import { LocalEnvironmentDependencyJob } from "./local_runtime_types";
-import { LocalEnvironmentSelectedSourceRecord } from "./local_runtime_types";
-import { LocalEnvironmentPlan } from "./local_runtime_types";
-import { LocalDeviceProfile } from "./local_runtime_types";
-import { LocalUnregisteredAssetDescriptor } from "./local_runtime_types";
-import { LocalAssetHealth } from "./local_runtime_types";
-import { LocalInstallPlanDescriptor } from "./local_runtime_types";
-import { LocalRecommendationFeedDescriptor } from "./local_runtime_types";
-import { LocalCatalogModelDescriptor } from "./local_runtime_types";
+import { LocalAuditEvent } from "./local_runtime_execution_profile";
+import { LocalAuditTimeRange } from "./local_runtime_execution_profile";
+import { LocalNodeDescriptor } from "./local_runtime_execution_profile";
+import { LocalServiceDescriptor } from "./local_runtime_execution_profile";
+import { LocalServiceStatus } from "./local_runtime_asset_catalog";
+import { LocalProfileApplyResult } from "./local_runtime_execution_profile";
+import { LocalProfileResolutionPlan } from "./local_runtime_execution_profile";
+import { ProfileEntryOverride } from "./local_runtime_execution_profile";
+import { LocalProfileDescriptor } from "./local_runtime_execution_profile";
+import { ExecutionEvidenceRef } from "./local_runtime_device_environment";
+import { RuntimeBaselineReadinessRef } from "./local_runtime_device_environment";
+import { LocalEnvironmentActivationGate } from "./local_runtime_device_environment";
+import { LocalEnvironmentDependencyJob } from "./local_runtime_device_environment";
+import { LocalEnvironmentSelectedSourceRecord } from "./local_runtime_device_environment";
+import { LocalEnvironmentPlan } from "./local_runtime_device_environment";
+import { LocalDeviceProfile } from "./local_runtime_device_environment";
+import { LocalUnregisteredAssetDescriptor } from "./local_runtime_execution_profile";
+import { LocalAssetHealth } from "./local_runtime_asset_catalog";
+import { LocalInstallPlanDescriptor } from "./local_runtime_asset_catalog";
+import { LocalRecommendationFeedDescriptor } from "./local_runtime_recommendation";
+import { LocalCatalogModelDescriptor } from "./local_runtime_asset_catalog";
 import { Struct } from "../../google/protobuf/struct";
-import { LocalVerifiedAssetDescriptor } from "./local_runtime_types";
-import { LocalAssetRecord } from "./local_runtime_types";
-import { LocalAssetKind } from "./local_runtime_types";
-import { LocalAssetStatus } from "./local_runtime_types";
+import { LocalVerifiedAssetDescriptor } from "./local_runtime_asset_catalog";
+import { LocalAssetRecord } from "./local_runtime_asset_catalog";
+import { LocalAssetKind } from "./local_runtime_asset_catalog";
+import { LocalAssetStatus } from "./local_runtime_asset_catalog";
 // === Asset CRUD (unified from Model + Artifact) ===
 
 /**
@@ -2019,20 +2019,13 @@ export interface RecordProductControlFirstRunLocalAiReadyEvidenceRequest {
     executionEvidenceRef: string;
 }
 /**
+ * ReconcileProductControlFirstRunSetupStateRequest is intentionally empty:
+ * Runtime derives the first-run setup state from Runtime-owned materialization
+ * and activation evidence, then owns the product-control record write.
+ *
  * @generated from protobuf message nimi.runtime.v1.ReconcileProductControlFirstRunSetupStateRequest
  */
 export interface ReconcileProductControlFirstRunSetupStateRequest {
-    /**
-     * A non-ready first-run setup state derived from Runtime materialization
-     * evidence. Runtime validates the vocabulary and owns the record write.
-     *
-     * @generated from protobuf field: string state = 1
-     */
-    state: string;
-    /**
-     * @generated from protobuf field: string reason = 2
-     */
-    reason: string;
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class ListLocalAssetsRequest$Type extends MessageType<ListLocalAssetsRequest> {
@@ -9017,15 +9010,10 @@ export const RecordProductControlFirstRunLocalAiReadyEvidenceRequest = new Recor
 // @generated message type with reflection information, may provide speed optimized methods
 class ReconcileProductControlFirstRunSetupStateRequest$Type extends MessageType<ReconcileProductControlFirstRunSetupStateRequest> {
     constructor() {
-        super("nimi.runtime.v1.ReconcileProductControlFirstRunSetupStateRequest", [
-            { no: 1, name: "state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
+        super("nimi.runtime.v1.ReconcileProductControlFirstRunSetupStateRequest", []);
     }
     create(value?: PartialMessage<ReconcileProductControlFirstRunSetupStateRequest>): ReconcileProductControlFirstRunSetupStateRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.state = "";
-        message.reason = "";
         if (value !== undefined)
             reflectionMergePartial<ReconcileProductControlFirstRunSetupStateRequest>(this, message, value);
         return message;
@@ -9035,12 +9023,6 @@ class ReconcileProductControlFirstRunSetupStateRequest$Type extends MessageType<
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string state */ 1:
-                    message.state = reader.string();
-                    break;
-                case /* string reason */ 2:
-                    message.reason = reader.string();
-                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -9053,12 +9035,6 @@ class ReconcileProductControlFirstRunSetupStateRequest$Type extends MessageType<
         return message;
     }
     internalBinaryWrite(message: ReconcileProductControlFirstRunSetupStateRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string state = 1; */
-        if (message.state !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.state);
-        /* string reason = 2; */
-        if (message.reason !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.reason);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

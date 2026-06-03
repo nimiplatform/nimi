@@ -188,7 +188,10 @@ function checkLocalPaginationAndAuditFields() {
   const rel = 'proto/runtime/v1/local_runtime package';
   const content = [
     read('proto/runtime/v1/local_runtime.proto'),
-    read('proto/runtime/v1/local_runtime_types.proto'),
+    read('proto/runtime/v1/local_runtime_asset_catalog.proto'),
+    read('proto/runtime/v1/local_runtime_recommendation.proto'),
+    read('proto/runtime/v1/local_runtime_device_environment.proto'),
+    read('proto/runtime/v1/local_runtime_execution_profile.proto'),
   ].join('\n');
 
   const localAssetRecord = getProtoMessageBlock(content, 'LocalAssetRecord', rel);

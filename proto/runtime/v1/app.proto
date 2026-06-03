@@ -34,6 +34,8 @@ message SendAppMessageResponse {
 message SubscribeAppMessagesRequest {
   string app_id = 1;
   string subject_user_id = 2;
+  // Cursor replay is not admitted by K-APP-007. Runtime rejects non-empty
+  // cursor values with INVALID_ARGUMENT + PROTOCOL_ENVELOPE_INVALID.
   string cursor = 3;
   repeated string from_app_ids = 4;
   ScopedRuntimeBindingAttachment scoped_binding = 5;

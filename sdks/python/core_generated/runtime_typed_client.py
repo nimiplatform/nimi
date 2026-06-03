@@ -35,6 +35,7 @@ AccountEventType = Literal["ACCOUNT_EVENT_TYPE_UNSPECIFIED", "ACCOUNT_EVENT_TYPE
 AccountReasonCode = Literal["ACCOUNT_REASON_CODE_UNSPECIFIED", "ACCOUNT_REASON_CODE_ACTION_EXECUTED", "ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED", "ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE", "ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE", "ACCOUNT_REASON_CODE_PROOF_EXPIRED", "ACCOUNT_REASON_CODE_PROOF_MISMATCHED", "ACCOUNT_REASON_CODE_PROOF_CONSUMED", "ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED", "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED", "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED", "ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY", "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND", "ACCOUNT_REASON_CODE_BINDING_STALE", "ACCOUNT_REASON_CODE_BINDING_REPLAY", "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE"]
 AccountSessionState = Literal["ACCOUNT_SESSION_STATE_UNSPECIFIED", "ACCOUNT_SESSION_STATE_ANONYMOUS", "ACCOUNT_SESSION_STATE_LOGIN_PENDING", "ACCOUNT_SESSION_STATE_AUTHENTICATED", "ACCOUNT_SESSION_STATE_REFRESH_PENDING", "ACCOUNT_SESSION_STATE_EXPIRED", "ACCOUNT_SESSION_STATE_REAUTH_REQUIRED", "ACCOUNT_SESSION_STATE_SWITCHING", "ACCOUNT_SESSION_STATE_LOGGING_OUT", "ACCOUNT_SESSION_STATE_UNAVAILABLE"]
 AgentAutonomyMode = Literal["AGENT_AUTONOMY_MODE_UNSPECIFIED", "AGENT_AUTONOMY_MODE_OFF", "AGENT_AUTONOMY_MODE_LOW", "AGENT_AUTONOMY_MODE_MEDIUM", "AGENT_AUTONOMY_MODE_HIGH"]
+AgentCanonicalMemoryBankMode = Literal["AGENT_CANONICAL_MEMORY_BANK_MODE_UNSPECIFIED", "AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE", "AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD", "AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE"]
 AgentEventType = Literal["AGENT_EVENT_TYPE_UNSPECIFIED", "AGENT_EVENT_TYPE_LIFECYCLE", "AGENT_EVENT_TYPE_HOOK", "AGENT_EVENT_TYPE_MEMORY", "AGENT_EVENT_TYPE_BUDGET", "AGENT_EVENT_TYPE_REPLICATION", "AGENT_EVENT_TYPE_STATE", "AGENT_EVENT_TYPE_PRESENTATION", "AGENT_EVENT_TYPE_AVATAR_DEBUG"]
 AgentExecutionState = Literal["AGENT_EXECUTION_STATE_UNSPECIFIED", "AGENT_EXECUTION_STATE_IDLE", "AGENT_EXECUTION_STATE_CHAT_ACTIVE", "AGENT_EXECUTION_STATE_LIFE_PENDING", "AGENT_EXECUTION_STATE_LIFE_RUNNING", "AGENT_EXECUTION_STATE_SUSPENDED"]
 AgentLifecycleStatus = Literal["AGENT_LIFECYCLE_STATUS_UNSPECIFIED", "AGENT_LIFECYCLE_STATUS_INITIALIZING", "AGENT_LIFECYCLE_STATUS_ACTIVE", "AGENT_LIFECYCLE_STATUS_SUSPENDED", "AGENT_LIFECYCLE_STATUS_TERMINATING", "AGENT_LIFECYCLE_STATUS_TERMINATED"]
@@ -51,6 +52,7 @@ AppMessageEventType = Literal["APP_MESSAGE_EVENT_TYPE_UNSPECIFIED", "APP_MESSAGE
 AppMode = Literal["APP_MODE_UNSPECIFIED", "APP_MODE_LITE", "APP_MODE_CORE_ONLY", "APP_MODE_FULL"]
 AppOpenFlowStep = Literal["APP_OPEN_FLOW_STEP_UNSPECIFIED", "APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY", "APP_OPEN_FLOW_STEP_VERIFY_PACKAGE", "APP_OPEN_FLOW_STEP_VERIFY_LIBRARY", "APP_OPEN_FLOW_STEP_VERIFY_APP_DATA", "APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS", "APP_OPEN_FLOW_STEP_ENSURE_AICONFIG", "APP_OPEN_FLOW_STEP_VALIDATE_MANIFEST", "APP_OPEN_FLOW_STEP_LAUNCH"]
 AppOpenState = Literal["APP_OPEN_STATE_UNSPECIFIED", "APP_OPEN_STATE_LAUNCHED", "APP_OPEN_STATE_BLOCKED"]
+AppPackageReadinessState = Literal["APP_PACKAGE_READINESS_STATE_UNSPECIFIED", "APP_PACKAGE_READINESS_STATE_READY", "APP_PACKAGE_READINESS_STATE_INSTALL_REQUIRED", "APP_PACKAGE_READINESS_STATE_UPDATE_REQUIRED", "APP_PACKAGE_READINESS_STATE_REPAIR_REQUIRED", "APP_PACKAGE_READINESS_STATE_BLOCKED"]
 AppStorageState = Literal["APP_STORAGE_STATE_UNSPECIFIED", "APP_STORAGE_STATE_READY", "APP_STORAGE_STATE_INSTALL_REQUIRED", "APP_STORAGE_STATE_REPAIR_REQUIRED", "APP_STORAGE_STATE_STORAGE_UNAVAILABLE"]
 AuthorizationPreset = Literal["AUTHORIZATION_PRESET_UNSPECIFIED", "AUTHORIZATION_PRESET_READ_ONLY", "AUTHORIZATION_PRESET_FULL", "AUTHORIZATION_PRESET_DELEGATE"]
 AvatarDebugEventFamily = Literal["AVATAR_DEBUG_EVENT_FAMILY_UNSPECIFIED"]
@@ -188,6 +190,21 @@ class AIProviderSubHealth:
     last_checked_at: str | None = None
 
 @dataclass(frozen=True)
+class AccountAppLibraryRecord:
+    schema_version: int | None = None
+    account_id: str | None = None
+    updated_at: str | None = None
+    apps: tuple[AccountAppLibraryRow, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class AccountAppLibraryRow:
+    app_id: str | None = None
+    library_state: str | None = None
+    installed: bool | None = None
+    last_opened_at: str | None = None
+    data_policy: str | None = None
+
+@dataclass(frozen=True)
 class AccountCaller:
     app_id: str | None = None
     app_instance_id: str | None = None
@@ -236,6 +253,11 @@ class AddLinkResponse:
     link: KnowledgeLink | None = None
 
 @dataclass(frozen=True)
+class AdmitProductControlReadyForUseRequest:
+    account_default_profile_evidence_json: str | None = None
+    built_in_ai_config_evidence_json: str | None = None
+
+@dataclass(frozen=True)
 class AgentAutonomyConfig:
     daily_token_budget: int | None = None
     max_tokens_per_hook: int | None = None
@@ -265,6 +287,18 @@ class AgentBudgetEventDetail:
     budget_exhausted: bool | None = None
     remaining_tokens: int | None = None
     window_started_at: str | None = None
+
+@dataclass(frozen=True)
+class AgentCanonicalMemoryBankStatus:
+    mode: AgentCanonicalMemoryBankMode | None = None
+    bank_id: str | None = None
+    embedding_profile: MemoryEmbeddingProfile | None = None
+    binding_source_kind: str | None = None
+    blocked_reason_code: ReasonCode | None = None
+    pending_cutover: bool | None = None
+    canonical_bank_status: str | None = None
+    bind_allowed: bool | None = None
+    cutover_allowed: bool | None = None
 
 @dataclass(frozen=True)
 class AgentConversationSummary:
@@ -627,6 +661,20 @@ class AppOpenScopeRef:
     kind: str | None = None
     owner_id: str | None = None
     surface_id: str | None = None
+
+@dataclass(frozen=True)
+class AppPackageReadinessProjection:
+    app_id: str | None = None
+    release_descriptor_ref: str | None = None
+    storage_policy_ref: str | None = None
+    expected_version: str | None = None
+    active_version: str | None = None
+    installed_version: str | None = None
+    sha256: str | None = None
+    verification_state: str | None = None
+    state: AppPackageReadinessState | None = None
+    reason_code: ReasonCode | None = None
+    detail: str | None = None
 
 @dataclass(frozen=True)
 class AppPrivateBankOwner:
@@ -1180,6 +1228,10 @@ class CompleteLoginResponse:
     production_inert: bool | None = None
 
 @dataclass(frozen=True)
+class CompleteProductControlFirstRunDeviceEnvironmentScanRequest:
+    pass
+
+@dataclass(frozen=True)
 class Connector:
     connector_id: str | None = None
     kind: ConnectorKind | None = None
@@ -1487,6 +1539,10 @@ class EnsureEngineResponse:
     engine: LocalEngineDescriptor | None = None
 
 @dataclass(frozen=True)
+class EnsureProductControlRecordCreatedRequest:
+    pass
+
+@dataclass(frozen=True)
 class EpisodicMemoryRecord:
     summary: str | None = None
     occurred_at: str | None = None
@@ -1684,6 +1740,17 @@ class GetAccessTokenResponse:
     production_inert: bool | None = None
 
 @dataclass(frozen=True)
+class GetAccountAppLibraryRequest:
+    pass
+
+@dataclass(frozen=True)
+class GetAccountAppLibraryResponse:
+    exists: bool | None = None
+    record: AccountAppLibraryRecord | None = None
+    reason_code: ReasonCode | None = None
+    detail: str | None = None
+
+@dataclass(frozen=True)
 class GetAccountSessionStatusRequest:
     caller: AccountCaller | None = None
 
@@ -1694,6 +1761,15 @@ class GetAccountSessionStatusResponse:
     reason_code: ReasonCode | None = None
     account_reason_code: AccountReasonCode | None = None
     production_inert: bool | None = None
+
+@dataclass(frozen=True)
+class GetAgentCanonicalMemoryBankStatusRequest:
+    context: AgentRequestContext | None = None
+    agent_id: str | None = None
+
+@dataclass(frozen=True)
+class GetAgentCanonicalMemoryBankStatusResponse:
+    status: AgentCanonicalMemoryBankStatus | None = None
 
 @dataclass(frozen=True)
 class GetAgentRequest:
@@ -1720,6 +1796,14 @@ class GetAppInstallJobRequest:
 @dataclass(frozen=True)
 class GetAppInstallJobResponse:
     job: AppInstallJob | None = None
+
+@dataclass(frozen=True)
+class GetAppPackageReadinessRequest:
+    app_id: str | None = None
+
+@dataclass(frozen=True)
+class GetAppPackageReadinessResponse:
+    projection: AppPackageReadinessProjection | None = None
 
 @dataclass(frozen=True)
 class GetAppStorageRequest:
@@ -1858,6 +1942,16 @@ class GetKnowledgeBankResponse:
     bank: KnowledgeBank | None = None
 
 @dataclass(frozen=True)
+class GetMemoryEmbeddingRuntimeIntentRequest:
+    context: MemoryRequestContext | None = None
+    locator: MemoryBankLocator | None = None
+
+@dataclass(frozen=True)
+class GetMemoryEmbeddingRuntimeIntentResponse:
+    binding_intent_present: bool | None = None
+    binding_intent: MemoryEmbeddingBindingIntentSnapshot | None = None
+
+@dataclass(frozen=True)
 class GetPageRequest:
     context: KnowledgeRequestContext | None = None
     bank_id: str | None = None
@@ -1867,6 +1961,14 @@ class GetPageRequest:
 @dataclass(frozen=True)
 class GetPageResponse:
     page: KnowledgePage | None = None
+
+@dataclass(frozen=True)
+class GetProductControlRecordRequest:
+    pass
+
+@dataclass(frozen=True)
+class GetProductControlSelectedDataRootRequest:
+    pass
 
 @dataclass(frozen=True)
 class GetPublicChatSessionSnapshotRequest:
@@ -2119,7 +2221,6 @@ class InitializeAgentResponse:
 class InspectMemoryEmbeddingRuntimeRequest:
     context: MemoryRequestContext | None = None
     locator: MemoryBankLocator | None = None
-    binding_intent_snapshot: MemoryEmbeddingBindingIntentSnapshot | None = None
 
 @dataclass(frozen=True)
 class InspectMemoryEmbeddingRuntimeResponse:
@@ -2921,6 +3022,8 @@ class LocalEnvironmentDependencyJob:
     percent: int | None = None
     speed_bytes_per_sec: int | None = None
     eta_seconds: int | None = None
+    reason_code: str | None = None
+    recovery_disposition: str | None = None
 
 @dataclass(frozen=True)
 class LocalEnvironmentPlan:
@@ -3875,6 +3978,10 @@ class PendingHook:
     admitted_at: str | None = None
 
 @dataclass(frozen=True)
+class ProductControlProjectionJson:
+    json: str | None = None
+
+@dataclass(frozen=True)
 class ProfileEntryOverride:
     entry_id: str | None = None
     local_asset_id: str | None = None
@@ -4079,6 +4186,20 @@ class RecallResponse:
     narrative_hits: tuple[NarrativeRecallHit, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
+class ReconcileProductControlFirstRunSetupStateRequest:
+    pass
+
+@dataclass(frozen=True)
+class RecordProductControlAccountDefaultProfileEvidenceRequest:
+    account_default_profile_evidence_json: str | None = None
+
+@dataclass(frozen=True)
+class RecordProductControlFirstRunLocalAiReadyEvidenceRequest:
+    runtime_baseline_ref: str | None = None
+    built_in_ai_config_evidence_json: str | None = None
+    execution_evidence_ref: str | None = None
+
+@dataclass(frozen=True)
 class RefreshAccountSessionRequest:
     caller: AccountCaller | None = None
 
@@ -4189,6 +4310,17 @@ class RepairLocalEnvironmentDependencyResponse:
     job: LocalEnvironmentDependencyJob | None = None
 
 @dataclass(frozen=True)
+class RequestAgentCanonicalMemoryBankBindRequest:
+    context: AgentRequestContext | None = None
+    agent_id: str | None = None
+
+@dataclass(frozen=True)
+class RequestAgentCanonicalMemoryBankBindResponse:
+    status: AgentCanonicalMemoryBankStatus | None = None
+    outcome: str | None = None
+    blocked_reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
 class RequestAvatarDebugProbeRequest:
     context: AgentRequestContext | None = None
     agent_id: str | None = None
@@ -4230,7 +4362,6 @@ class RequestCompanionParticipationResponse:
 class RequestMemoryEmbeddingRuntimeBindRequest:
     context: MemoryRequestContext | None = None
     locator: MemoryBankLocator | None = None
-    binding_intent_snapshot: MemoryEmbeddingBindingIntentSnapshot | None = None
 
 @dataclass(frozen=True)
 class RequestMemoryEmbeddingRuntimeBindResponse:
@@ -4243,7 +4374,6 @@ class RequestMemoryEmbeddingRuntimeBindResponse:
 class RequestMemoryEmbeddingRuntimeCutoverRequest:
     context: MemoryRequestContext | None = None
     locator: MemoryBankLocator | None = None
-    binding_intent_snapshot: MemoryEmbeddingBindingIntentSnapshot | None = None
 
 @dataclass(frozen=True)
 class RequestMemoryEmbeddingRuntimeCutoverResponse:
@@ -4746,6 +4876,10 @@ class SearchKeywordResponse:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
+class SelectProductControlDataRootRequest:
+    data_root: str | None = None
+
+@dataclass(frozen=True)
 class SemanticMemoryRecord:
     subject: str | None = None
     predicate: str | None = None
@@ -4800,6 +4934,22 @@ class SetDelegatedProviderStateRequest:
 @dataclass(frozen=True)
 class SetDelegatedProviderStateResponse:
     provider_profile: DelegatedProviderProfile | None = None
+
+@dataclass(frozen=True)
+class SetMemoryEmbeddingRuntimeIntentRequest:
+    context: MemoryRequestContext | None = None
+    locator: MemoryBankLocator | None = None
+    binding_intent: MemoryEmbeddingBindingIntentSnapshot | None = None
+
+@dataclass(frozen=True)
+class SetMemoryEmbeddingRuntimeIntentResponse:
+    accepted: bool | None = None
+    binding_intent: MemoryEmbeddingBindingIntentSnapshot | None = None
+
+@dataclass(frozen=True)
+class SetProductControlFirstRunInstallLevelRequest:
+    install_level: str | None = None
+    ai_profile_alias: str | None = None
 
 @dataclass(frozen=True)
 class SpeechAlignment:
@@ -5649,6 +5799,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/GetAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAgentResponse, raw)
 
+    async def get_agent_canonical_memory_bank_status(self, request: GetAgentCanonicalMemoryBankStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentCanonicalMemoryBankStatusResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetAgentCanonicalMemoryBankStatusResponse, raw)
+
     async def get_agent_state(self, request: GetAgentStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentStateResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/GetAgentState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAgentStateResponse, raw)
@@ -5732,6 +5886,10 @@ class RuntimeTypedClient:
     async def register_avatar_live_instance_binding(self, request: RegisterAvatarLiveInstanceBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RegisterAvatarLiveInstanceBindingResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RegisterAvatarLiveInstanceBindingResponse, raw)
+
+    async def request_agent_canonical_memory_bank_bind(self, request: RequestAgentCanonicalMemoryBankBindRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RequestAgentCanonicalMemoryBankBindResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RequestAgentCanonicalMemoryBankBindResponse, raw)
 
     async def request_avatar_debug_probe(self, request: RequestAvatarDebugProbeRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RequestAvatarDebugProbeResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -5848,9 +6006,17 @@ class RuntimeTypedClient:
     async def upload_artifact(self, request: UploadArtifactRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UploadArtifactResponse:
         raise RuntimeError("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /runtime.v1.RuntimeAiService/UploadArtifact")
 
+    async def get_account_app_library(self, request: GetAccountAppLibraryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAccountAppLibraryResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAppService/GetAccountAppLibrary", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetAccountAppLibraryResponse, raw)
+
     async def get_app_install_job(self, request: GetAppInstallJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAppInstallJobResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAppService/GetAppInstallJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAppInstallJobResponse, raw)
+
+    async def get_app_package_readiness(self, request: GetAppPackageReadinessRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAppPackageReadinessResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAppService/GetAppPackageReadiness", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetAppPackageReadinessResponse, raw)
 
     async def get_app_storage(self, request: GetAppStorageRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAppStorageResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAppService/GetAppStorage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -5987,6 +6153,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/GetKnowledgeBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetKnowledgeBankResponse, raw)
 
+    async def get_memory_embedding_runtime_intent(self, request: GetMemoryEmbeddingRuntimeIntentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetMemoryEmbeddingRuntimeIntentResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetMemoryEmbeddingRuntimeIntentResponse, raw)
+
     async def get_page(self, request: GetPageRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetPageResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/GetPage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetPageResponse, raw)
@@ -6054,6 +6224,10 @@ class RuntimeTypedClient:
     async def search_keyword(self, request: SearchKeywordRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SearchKeywordResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/SearchKeyword", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SearchKeywordResponse, raw)
+
+    async def set_memory_embedding_runtime_intent(self, request: SetMemoryEmbeddingRuntimeIntentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SetMemoryEmbeddingRuntimeIntentResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(SetMemoryEmbeddingRuntimeIntentResponse, raw)
 
     def subscribe_memory_events(self, request: SubscribeMemoryEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[MemoryEvent]:
         return self._stream("/runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents", _model_body(request), MemoryEvent, metadata=metadata, timeout_ms=timeout_ms)
@@ -6158,6 +6332,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeGrantService/ValidateAppAccessToken", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ValidateAppAccessTokenResponse, raw)
 
+    async def admit_product_control_ready_for_use(self, request: AdmitProductControlReadyForUseRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ProductControlProjectionJson, raw)
+
     async def append_inference_audit(self, request: AppendInferenceAuditRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> Ack:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/AppendInferenceAudit", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Ack, raw)
@@ -6190,9 +6368,17 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/CollectDeviceProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CollectDeviceProfileResponse, raw)
 
+    async def complete_product_control_first_run_device_environment_scan(self, request: CompleteProductControlFirstRunDeviceEnvironmentScanRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ProductControlProjectionJson, raw)
+
     async def ensure_engine(self, request: EnsureEngineRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> EnsureEngineResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/EnsureEngine", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(EnsureEngineResponse, raw)
+
+    async def ensure_product_control_record_created(self, request: EnsureProductControlRecordCreatedRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ProductControlProjectionJson, raw)
 
     async def execute_local_state_cutover(self, request: ExecuteLocalStateCutoverRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ExecuteLocalStateCutoverResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6201,6 +6387,14 @@ class RuntimeTypedClient:
     async def get_engine_status(self, request: GetEngineStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetEngineStatusResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/GetEngineStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetEngineStatusResponse, raw)
+
+    async def get_product_control_record(self, request: GetProductControlRecordRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/GetProductControlRecord", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ProductControlProjectionJson, raw)
+
+    async def get_product_control_selected_data_root(self, request: GetProductControlSelectedDataRootRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ProductControlProjectionJson, raw)
 
     async def get_recommendation_feed(self, request: GetRecommendationFeedRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetRecommendationFeedResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/GetRecommendationFeed", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6282,6 +6476,18 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/PauseLocalTransfer", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PauseLocalTransferResponse, raw)
 
+    async def reconcile_product_control_first_run_setup_state(self, request: ReconcileProductControlFirstRunSetupStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ProductControlProjectionJson, raw)
+
+    async def record_product_control_account_default_profile_evidence(self, request: RecordProductControlAccountDefaultProfileEvidenceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ProductControlProjectionJson, raw)
+
+    async def record_product_control_first_run_local_ai_ready_evidence(self, request: RecordProductControlFirstRunLocalAiReadyEvidenceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ProductControlProjectionJson, raw)
+
     async def remove_local_asset(self, request: RemoveLocalAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RemoveLocalAssetResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/RemoveLocalAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RemoveLocalAssetResponse, raw)
@@ -6345,6 +6551,14 @@ class RuntimeTypedClient:
     async def search_catalog_models(self, request: SearchCatalogModelsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SearchCatalogModelsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/SearchCatalogModels", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SearchCatalogModelsResponse, raw)
+
+    async def select_product_control_data_root(self, request: SelectProductControlDataRootRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/SelectProductControlDataRoot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ProductControlProjectionJson, raw)
+
+    async def set_product_control_first_run_install_level(self, request: SetProductControlFirstRunInstallLevelRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ProductControlProjectionJson, raw)
 
     async def start_engine(self, request: StartEngineRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> StartEngineResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/StartEngine", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

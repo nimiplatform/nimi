@@ -823,9 +823,11 @@ func (x *SendAppMessageResponse) GetReasonCode() ReasonCode {
 }
 
 type SubscribeAppMessagesRequest struct {
-	state         protoimpl.MessageState          `protogen:"open.v1"`
-	AppId         string                          `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	SubjectUserId string                          `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	SubjectUserId string                 `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
+	// Cursor replay is not admitted by K-APP-007. Runtime rejects non-empty
+	// cursor values with INVALID_ARGUMENT + PROTOCOL_ENVELOPE_INVALID.
 	Cursor        string                          `protobuf:"bytes,3,opt,name=cursor,proto3" json:"cursor,omitempty"`
 	FromAppIds    []string                        `protobuf:"bytes,4,rep,name=from_app_ids,json=fromAppIds,proto3" json:"from_app_ids,omitempty"`
 	ScopedBinding *ScopedRuntimeBindingAttachment `protobuf:"bytes,5,opt,name=scoped_binding,json=scopedBinding,proto3" json:"scoped_binding,omitempty"`

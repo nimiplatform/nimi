@@ -95,6 +95,15 @@ const (
 	AGENTAUTONOMYMODEHIGH AgentAutonomyMode = "AGENT_AUTONOMY_MODE_HIGH"
 )
 
+type AgentCanonicalMemoryBankMode string
+
+const (
+	AGENTCANONICALMEMORYBANKMODEUNSPECIFIED AgentCanonicalMemoryBankMode = "AGENT_CANONICAL_MEMORY_BANK_MODE_UNSPECIFIED"
+	AGENTCANONICALMEMORYBANKMODEBASELINE AgentCanonicalMemoryBankMode = "AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE"
+	AGENTCANONICALMEMORYBANKMODESTANDARD AgentCanonicalMemoryBankMode = "AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD"
+	AGENTCANONICALMEMORYBANKMODEUNAVAILABLE AgentCanonicalMemoryBankMode = "AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE"
+)
+
 type AgentEventType string
 
 const (
@@ -266,6 +275,17 @@ const (
 	APPOPENSTATEUNSPECIFIED AppOpenState = "APP_OPEN_STATE_UNSPECIFIED"
 	APPOPENSTATELAUNCHED AppOpenState = "APP_OPEN_STATE_LAUNCHED"
 	APPOPENSTATEBLOCKED AppOpenState = "APP_OPEN_STATE_BLOCKED"
+)
+
+type AppPackageReadinessState string
+
+const (
+	APPPACKAGEREADINESSSTATEUNSPECIFIED AppPackageReadinessState = "APP_PACKAGE_READINESS_STATE_UNSPECIFIED"
+	APPPACKAGEREADINESSSTATEREADY AppPackageReadinessState = "APP_PACKAGE_READINESS_STATE_READY"
+	APPPACKAGEREADINESSSTATEINSTALLREQUIRED AppPackageReadinessState = "APP_PACKAGE_READINESS_STATE_INSTALL_REQUIRED"
+	APPPACKAGEREADINESSSTATEUPDATEREQUIRED AppPackageReadinessState = "APP_PACKAGE_READINESS_STATE_UPDATE_REQUIRED"
+	APPPACKAGEREADINESSSTATEREPAIRREQUIRED AppPackageReadinessState = "APP_PACKAGE_READINESS_STATE_REPAIR_REQUIRED"
+	APPPACKAGEREADINESSSTATEBLOCKED AppPackageReadinessState = "APP_PACKAGE_READINESS_STATE_BLOCKED"
 )
 
 type AppStorageState string
@@ -1487,6 +1507,21 @@ type AIProviderSubHealth struct {
 	LastCheckedAt string `json:"last_checked_at,omitempty"`
 }
 
+type AccountAppLibraryRecord struct {
+	SchemaVersion uint32 `json:"schema_version,omitempty"`
+	AccountId string `json:"account_id,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+	Apps []AccountAppLibraryRow `json:"apps,omitempty"`
+}
+
+type AccountAppLibraryRow struct {
+	AppId string `json:"app_id,omitempty"`
+	LibraryState string `json:"library_state,omitempty"`
+	Installed bool `json:"installed,omitempty"`
+	LastOpenedAt string `json:"last_opened_at,omitempty"`
+	DataPolicy string `json:"data_policy,omitempty"`
+}
+
 type AccountCaller struct {
 	AppId string `json:"app_id,omitempty"`
 	AppInstanceId string `json:"app_instance_id,omitempty"`
@@ -1535,6 +1570,11 @@ type AddLinkResponse struct {
 	Link *KnowledgeLink `json:"link,omitempty"`
 }
 
+type AdmitProductControlReadyForUseRequest struct {
+	AccountDefaultProfileEvidenceJson string `json:"account_default_profile_evidence_json,omitempty"`
+	BuiltInAiConfigEvidenceJson string `json:"built_in_ai_config_evidence_json,omitempty"`
+}
+
 type AgentAutonomyConfig struct {
 	DailyTokenBudget int64 `json:"daily_token_budget,omitempty"`
 	MaxTokensPerHook int64 `json:"max_tokens_per_hook,omitempty"`
@@ -1564,6 +1604,18 @@ type AgentBudgetEventDetail struct {
 	BudgetExhausted bool `json:"budget_exhausted,omitempty"`
 	RemainingTokens int64 `json:"remaining_tokens,omitempty"`
 	WindowStartedAt string `json:"window_started_at,omitempty"`
+}
+
+type AgentCanonicalMemoryBankStatus struct {
+	Mode AgentCanonicalMemoryBankMode `json:"mode,omitempty"`
+	BankId string `json:"bank_id,omitempty"`
+	EmbeddingProfile *MemoryEmbeddingProfile `json:"embedding_profile,omitempty"`
+	BindingSourceKind string `json:"binding_source_kind,omitempty"`
+	BlockedReasonCode ReasonCode `json:"blocked_reason_code,omitempty"`
+	PendingCutover bool `json:"pending_cutover,omitempty"`
+	CanonicalBankStatus string `json:"canonical_bank_status,omitempty"`
+	BindAllowed bool `json:"bind_allowed,omitempty"`
+	CutoverAllowed bool `json:"cutover_allowed,omitempty"`
 }
 
 type AgentConversationSummary struct {
@@ -1926,6 +1978,20 @@ type AppOpenScopeRef struct {
 	Kind string `json:"kind,omitempty"`
 	OwnerId string `json:"owner_id,omitempty"`
 	SurfaceId string `json:"surface_id,omitempty"`
+}
+
+type AppPackageReadinessProjection struct {
+	AppId string `json:"app_id,omitempty"`
+	ReleaseDescriptorRef string `json:"release_descriptor_ref,omitempty"`
+	StoragePolicyRef string `json:"storage_policy_ref,omitempty"`
+	ExpectedVersion string `json:"expected_version,omitempty"`
+	ActiveVersion string `json:"active_version,omitempty"`
+	InstalledVersion string `json:"installed_version,omitempty"`
+	Sha256 string `json:"sha256,omitempty"`
+	VerificationState string `json:"verification_state,omitempty"`
+	State AppPackageReadinessState `json:"state,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	Detail string `json:"detail,omitempty"`
 }
 
 type AppPrivateBankOwner struct {
@@ -2479,6 +2545,10 @@ type CompleteLoginResponse struct {
 	ProductionInert bool `json:"production_inert,omitempty"`
 }
 
+type CompleteProductControlFirstRunDeviceEnvironmentScanRequest struct {
+
+}
+
 type Connector struct {
 	ConnectorId string `json:"connector_id,omitempty"`
 	Kind ConnectorKind `json:"kind,omitempty"`
@@ -2786,6 +2856,10 @@ type EnsureEngineResponse struct {
 	Engine *LocalEngineDescriptor `json:"engine,omitempty"`
 }
 
+type EnsureProductControlRecordCreatedRequest struct {
+
+}
+
 type EpisodicMemoryRecord struct {
 	Summary string `json:"summary,omitempty"`
 	OccurredAt string `json:"occurred_at,omitempty"`
@@ -2983,6 +3057,17 @@ type GetAccessTokenResponse struct {
 	ProductionInert bool `json:"production_inert,omitempty"`
 }
 
+type GetAccountAppLibraryRequest struct {
+
+}
+
+type GetAccountAppLibraryResponse struct {
+	Exists bool `json:"exists,omitempty"`
+	Record *AccountAppLibraryRecord `json:"record,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	Detail string `json:"detail,omitempty"`
+}
+
 type GetAccountSessionStatusRequest struct {
 	Caller *AccountCaller `json:"caller,omitempty"`
 }
@@ -2993,6 +3078,15 @@ type GetAccountSessionStatusResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 	AccountReasonCode AccountReasonCode `json:"account_reason_code,omitempty"`
 	ProductionInert bool `json:"production_inert,omitempty"`
+}
+
+type GetAgentCanonicalMemoryBankStatusRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	AgentId string `json:"agent_id,omitempty"`
+}
+
+type GetAgentCanonicalMemoryBankStatusResponse struct {
+	Status *AgentCanonicalMemoryBankStatus `json:"status,omitempty"`
 }
 
 type GetAgentRequest struct {
@@ -3019,6 +3113,14 @@ type GetAppInstallJobRequest struct {
 
 type GetAppInstallJobResponse struct {
 	Job *AppInstallJob `json:"job,omitempty"`
+}
+
+type GetAppPackageReadinessRequest struct {
+	AppId string `json:"app_id,omitempty"`
+}
+
+type GetAppPackageReadinessResponse struct {
+	Projection *AppPackageReadinessProjection `json:"projection,omitempty"`
 }
 
 type GetAppStorageRequest struct {
@@ -3157,6 +3259,16 @@ type GetKnowledgeBankResponse struct {
 	Bank *KnowledgeBank `json:"bank,omitempty"`
 }
 
+type GetMemoryEmbeddingRuntimeIntentRequest struct {
+	Context *MemoryRequestContext `json:"context,omitempty"`
+	Locator *MemoryBankLocator `json:"locator,omitempty"`
+}
+
+type GetMemoryEmbeddingRuntimeIntentResponse struct {
+	BindingIntentPresent bool `json:"binding_intent_present,omitempty"`
+	BindingIntent *MemoryEmbeddingBindingIntentSnapshot `json:"binding_intent,omitempty"`
+}
+
 type GetPageRequest struct {
 	Context *KnowledgeRequestContext `json:"context,omitempty"`
 	BankId string `json:"bank_id,omitempty"`
@@ -3166,6 +3278,14 @@ type GetPageRequest struct {
 
 type GetPageResponse struct {
 	Page *KnowledgePage `json:"page,omitempty"`
+}
+
+type GetProductControlRecordRequest struct {
+
+}
+
+type GetProductControlSelectedDataRootRequest struct {
+
 }
 
 type GetPublicChatSessionSnapshotRequest struct {
@@ -3418,7 +3538,6 @@ type InitializeAgentResponse struct {
 type InspectMemoryEmbeddingRuntimeRequest struct {
 	Context *MemoryRequestContext `json:"context,omitempty"`
 	Locator *MemoryBankLocator `json:"locator,omitempty"`
-	BindingIntentSnapshot *MemoryEmbeddingBindingIntentSnapshot `json:"binding_intent_snapshot,omitempty"`
 }
 
 type InspectMemoryEmbeddingRuntimeResponse struct {
@@ -4220,6 +4339,8 @@ type LocalEnvironmentDependencyJob struct {
 	Percent int32 `json:"percent,omitempty"`
 	SpeedBytesPerSec int64 `json:"speed_bytes_per_sec,omitempty"`
 	EtaSeconds int64 `json:"eta_seconds,omitempty"`
+	ReasonCode string `json:"reason_code,omitempty"`
+	RecoveryDisposition string `json:"recovery_disposition,omitempty"`
 }
 
 type LocalEnvironmentPlan struct {
@@ -5174,6 +5295,10 @@ type PendingHook struct {
 	AdmittedAt string `json:"admitted_at,omitempty"`
 }
 
+type ProductControlProjectionJson struct {
+	Json string `json:"json,omitempty"`
+}
+
 type ProfileEntryOverride struct {
 	EntryId string `json:"entry_id,omitempty"`
 	LocalAssetId string `json:"local_asset_id,omitempty"`
@@ -5378,6 +5503,20 @@ type RecallResponse struct {
 	NarrativeHits []NarrativeRecallHit `json:"narrative_hits,omitempty"`
 }
 
+type ReconcileProductControlFirstRunSetupStateRequest struct {
+
+}
+
+type RecordProductControlAccountDefaultProfileEvidenceRequest struct {
+	AccountDefaultProfileEvidenceJson string `json:"account_default_profile_evidence_json,omitempty"`
+}
+
+type RecordProductControlFirstRunLocalAiReadyEvidenceRequest struct {
+	RuntimeBaselineRef string `json:"runtime_baseline_ref,omitempty"`
+	BuiltInAiConfigEvidenceJson string `json:"built_in_ai_config_evidence_json,omitempty"`
+	ExecutionEvidenceRef string `json:"execution_evidence_ref,omitempty"`
+}
+
 type RefreshAccountSessionRequest struct {
 	Caller *AccountCaller `json:"caller,omitempty"`
 }
@@ -5488,6 +5627,17 @@ type RepairLocalEnvironmentDependencyResponse struct {
 	Job *LocalEnvironmentDependencyJob `json:"job,omitempty"`
 }
 
+type RequestAgentCanonicalMemoryBankBindRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	AgentId string `json:"agent_id,omitempty"`
+}
+
+type RequestAgentCanonicalMemoryBankBindResponse struct {
+	Status *AgentCanonicalMemoryBankStatus `json:"status,omitempty"`
+	Outcome string `json:"outcome,omitempty"`
+	BlockedReasonCode ReasonCode `json:"blocked_reason_code,omitempty"`
+}
+
 type RequestAvatarDebugProbeRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	AgentId string `json:"agent_id,omitempty"`
@@ -5529,7 +5679,6 @@ type RequestCompanionParticipationResponse struct {
 type RequestMemoryEmbeddingRuntimeBindRequest struct {
 	Context *MemoryRequestContext `json:"context,omitempty"`
 	Locator *MemoryBankLocator `json:"locator,omitempty"`
-	BindingIntentSnapshot *MemoryEmbeddingBindingIntentSnapshot `json:"binding_intent_snapshot,omitempty"`
 }
 
 type RequestMemoryEmbeddingRuntimeBindResponse struct {
@@ -5542,7 +5691,6 @@ type RequestMemoryEmbeddingRuntimeBindResponse struct {
 type RequestMemoryEmbeddingRuntimeCutoverRequest struct {
 	Context *MemoryRequestContext `json:"context,omitempty"`
 	Locator *MemoryBankLocator `json:"locator,omitempty"`
-	BindingIntentSnapshot *MemoryEmbeddingBindingIntentSnapshot `json:"binding_intent_snapshot,omitempty"`
 }
 
 type RequestMemoryEmbeddingRuntimeCutoverResponse struct {
@@ -6045,6 +6193,10 @@ type SearchKeywordResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
+type SelectProductControlDataRootRequest struct {
+	DataRoot string `json:"data_root,omitempty"`
+}
+
 type SemanticMemoryRecord struct {
 	Subject string `json:"subject,omitempty"`
 	Predicate string `json:"predicate,omitempty"`
@@ -6099,6 +6251,22 @@ type SetDelegatedProviderStateRequest struct {
 
 type SetDelegatedProviderStateResponse struct {
 	ProviderProfile *DelegatedProviderProfile `json:"provider_profile,omitempty"`
+}
+
+type SetMemoryEmbeddingRuntimeIntentRequest struct {
+	Context *MemoryRequestContext `json:"context,omitempty"`
+	Locator *MemoryBankLocator `json:"locator,omitempty"`
+	BindingIntent *MemoryEmbeddingBindingIntentSnapshot `json:"binding_intent,omitempty"`
+}
+
+type SetMemoryEmbeddingRuntimeIntentResponse struct {
+	Accepted bool `json:"accepted,omitempty"`
+	BindingIntent *MemoryEmbeddingBindingIntentSnapshot `json:"binding_intent,omitempty"`
+}
+
+type SetProductControlFirstRunInstallLevelRequest struct {
+	InstallLevel string `json:"install_level,omitempty"`
+	AiProfileAlias string `json:"ai_profile_alias,omitempty"`
 }
 
 type SpeechAlignment struct {
@@ -7066,6 +7234,14 @@ func (c RuntimeTypedClient) GetAgent(ctx context.Context, request GetAgentReques
 	return decodeTypedResponse[GetAgentResponse](raw)
 }
 
+func (c RuntimeTypedClient) GetAgentCanonicalMemoryBankStatus(ctx context.Context, request GetAgentCanonicalMemoryBankStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentCanonicalMemoryBankStatusResponse, error) {
+	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus", request, metadata, timeoutMS)
+	if err != nil {
+		return GetAgentCanonicalMemoryBankStatusResponse{}, err
+	}
+	return decodeTypedResponse[GetAgentCanonicalMemoryBankStatusResponse](raw)
+}
+
 func (c RuntimeTypedClient) GetAgentState(ctx context.Context, request GetAgentStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentStateResponse, error) {
 	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/GetAgentState", request, metadata, timeoutMS)
 	if err != nil {
@@ -7232,6 +7408,14 @@ func (c RuntimeTypedClient) RegisterAvatarLiveInstanceBinding(ctx context.Contex
 		return RegisterAvatarLiveInstanceBindingResponse{}, err
 	}
 	return decodeTypedResponse[RegisterAvatarLiveInstanceBindingResponse](raw)
+}
+
+func (c RuntimeTypedClient) RequestAgentCanonicalMemoryBankBind(ctx context.Context, request RequestAgentCanonicalMemoryBankBindRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestAgentCanonicalMemoryBankBindResponse, error) {
+	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind", request, metadata, timeoutMS)
+	if err != nil {
+		return RequestAgentCanonicalMemoryBankBindResponse{}, err
+	}
+	return decodeTypedResponse[RequestAgentCanonicalMemoryBankBindResponse](raw)
 }
 
 func (c RuntimeTypedClient) RequestAvatarDebugProbe(ctx context.Context, request RequestAvatarDebugProbeRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestAvatarDebugProbeResponse, error) {
@@ -7470,12 +7654,28 @@ func (c RuntimeTypedClient) UploadArtifact(context.Context, UploadArtifactReques
 	return UploadArtifactResponse{}, fmt.Errorf("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /runtime.v1.RuntimeAiService/UploadArtifact")
 }
 
+func (c RuntimeTypedClient) GetAccountAppLibrary(ctx context.Context, request GetAccountAppLibraryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAccountAppLibraryResponse, error) {
+	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAppService/GetAccountAppLibrary", request, metadata, timeoutMS)
+	if err != nil {
+		return GetAccountAppLibraryResponse{}, err
+	}
+	return decodeTypedResponse[GetAccountAppLibraryResponse](raw)
+}
+
 func (c RuntimeTypedClient) GetAppInstallJob(ctx context.Context, request GetAppInstallJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppInstallJobResponse, error) {
 	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAppService/GetAppInstallJob", request, metadata, timeoutMS)
 	if err != nil {
 		return GetAppInstallJobResponse{}, err
 	}
 	return decodeTypedResponse[GetAppInstallJobResponse](raw)
+}
+
+func (c RuntimeTypedClient) GetAppPackageReadiness(ctx context.Context, request GetAppPackageReadinessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppPackageReadinessResponse, error) {
+	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAppService/GetAppPackageReadiness", request, metadata, timeoutMS)
+	if err != nil {
+		return GetAppPackageReadinessResponse{}, err
+	}
+	return decodeTypedResponse[GetAppPackageReadinessResponse](raw)
 }
 
 func (c RuntimeTypedClient) GetAppStorage(ctx context.Context, request GetAppStorageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppStorageResponse, error) {
@@ -7758,6 +7958,14 @@ func (c RuntimeTypedClient) GetKnowledgeBank(ctx context.Context, request GetKno
 	return decodeTypedResponse[GetKnowledgeBankResponse](raw)
 }
 
+func (c RuntimeTypedClient) GetMemoryEmbeddingRuntimeIntent(ctx context.Context, request GetMemoryEmbeddingRuntimeIntentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetMemoryEmbeddingRuntimeIntentResponse, error) {
+	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent", request, metadata, timeoutMS)
+	if err != nil {
+		return GetMemoryEmbeddingRuntimeIntentResponse{}, err
+	}
+	return decodeTypedResponse[GetMemoryEmbeddingRuntimeIntentResponse](raw)
+}
+
 func (c RuntimeTypedClient) GetPage(ctx context.Context, request GetPageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetPageResponse, error) {
 	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/GetPage", request, metadata, timeoutMS)
 	if err != nil {
@@ -7892,6 +8100,14 @@ func (c RuntimeTypedClient) SearchKeyword(ctx context.Context, request SearchKey
 		return SearchKeywordResponse{}, err
 	}
 	return decodeTypedResponse[SearchKeywordResponse](raw)
+}
+
+func (c RuntimeTypedClient) SetMemoryEmbeddingRuntimeIntent(ctx context.Context, request SetMemoryEmbeddingRuntimeIntentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetMemoryEmbeddingRuntimeIntentResponse, error) {
+	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent", request, metadata, timeoutMS)
+	if err != nil {
+		return SetMemoryEmbeddingRuntimeIntentResponse{}, err
+	}
+	return decodeTypedResponse[SetMemoryEmbeddingRuntimeIntentResponse](raw)
 }
 
 func (c RuntimeTypedClient) SubscribeMemoryEvents(ctx context.Context, request SubscribeMemoryEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[MemoryEvent], error) {
@@ -8102,6 +8318,14 @@ func (c RuntimeTypedClient) ValidateAppAccessToken(ctx context.Context, request 
 	return decodeTypedResponse[ValidateAppAccessTokenResponse](raw)
 }
 
+func (c RuntimeTypedClient) AdmitProductControlReadyForUse(ctx context.Context, request AdmitProductControlReadyForUseRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
+	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse", request, metadata, timeoutMS)
+	if err != nil {
+		return ProductControlProjectionJson{}, err
+	}
+	return decodeTypedResponse[ProductControlProjectionJson](raw)
+}
+
 func (c RuntimeTypedClient) AppendInferenceAudit(ctx context.Context, request AppendInferenceAuditRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
 	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/AppendInferenceAudit", request, metadata, timeoutMS)
 	if err != nil {
@@ -8166,12 +8390,28 @@ func (c RuntimeTypedClient) CollectDeviceProfile(ctx context.Context, request Co
 	return decodeTypedResponse[CollectDeviceProfileResponse](raw)
 }
 
+func (c RuntimeTypedClient) CompleteProductControlFirstRunDeviceEnvironmentScan(ctx context.Context, request CompleteProductControlFirstRunDeviceEnvironmentScanRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
+	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan", request, metadata, timeoutMS)
+	if err != nil {
+		return ProductControlProjectionJson{}, err
+	}
+	return decodeTypedResponse[ProductControlProjectionJson](raw)
+}
+
 func (c RuntimeTypedClient) EnsureEngine(ctx context.Context, request EnsureEngineRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (EnsureEngineResponse, error) {
 	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/EnsureEngine", request, metadata, timeoutMS)
 	if err != nil {
 		return EnsureEngineResponse{}, err
 	}
 	return decodeTypedResponse[EnsureEngineResponse](raw)
+}
+
+func (c RuntimeTypedClient) EnsureProductControlRecordCreated(ctx context.Context, request EnsureProductControlRecordCreatedRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
+	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated", request, metadata, timeoutMS)
+	if err != nil {
+		return ProductControlProjectionJson{}, err
+	}
+	return decodeTypedResponse[ProductControlProjectionJson](raw)
 }
 
 func (c RuntimeTypedClient) ExecuteLocalStateCutover(ctx context.Context, request ExecuteLocalStateCutoverRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExecuteLocalStateCutoverResponse, error) {
@@ -8188,6 +8428,22 @@ func (c RuntimeTypedClient) GetEngineStatus(ctx context.Context, request GetEngi
 		return GetEngineStatusResponse{}, err
 	}
 	return decodeTypedResponse[GetEngineStatusResponse](raw)
+}
+
+func (c RuntimeTypedClient) GetProductControlRecord(ctx context.Context, request GetProductControlRecordRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
+	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/GetProductControlRecord", request, metadata, timeoutMS)
+	if err != nil {
+		return ProductControlProjectionJson{}, err
+	}
+	return decodeTypedResponse[ProductControlProjectionJson](raw)
+}
+
+func (c RuntimeTypedClient) GetProductControlSelectedDataRoot(ctx context.Context, request GetProductControlSelectedDataRootRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
+	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot", request, metadata, timeoutMS)
+	if err != nil {
+		return ProductControlProjectionJson{}, err
+	}
+	return decodeTypedResponse[ProductControlProjectionJson](raw)
 }
 
 func (c RuntimeTypedClient) GetRecommendationFeed(ctx context.Context, request GetRecommendationFeedRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetRecommendationFeedResponse, error) {
@@ -8350,6 +8606,30 @@ func (c RuntimeTypedClient) PauseLocalTransfer(ctx context.Context, request Paus
 	return decodeTypedResponse[PauseLocalTransferResponse](raw)
 }
 
+func (c RuntimeTypedClient) ReconcileProductControlFirstRunSetupState(ctx context.Context, request ReconcileProductControlFirstRunSetupStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
+	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState", request, metadata, timeoutMS)
+	if err != nil {
+		return ProductControlProjectionJson{}, err
+	}
+	return decodeTypedResponse[ProductControlProjectionJson](raw)
+}
+
+func (c RuntimeTypedClient) RecordProductControlAccountDefaultProfileEvidence(ctx context.Context, request RecordProductControlAccountDefaultProfileEvidenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
+	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence", request, metadata, timeoutMS)
+	if err != nil {
+		return ProductControlProjectionJson{}, err
+	}
+	return decodeTypedResponse[ProductControlProjectionJson](raw)
+}
+
+func (c RuntimeTypedClient) RecordProductControlFirstRunLocalAiReadyEvidence(ctx context.Context, request RecordProductControlFirstRunLocalAiReadyEvidenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
+	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence", request, metadata, timeoutMS)
+	if err != nil {
+		return ProductControlProjectionJson{}, err
+	}
+	return decodeTypedResponse[ProductControlProjectionJson](raw)
+}
+
 func (c RuntimeTypedClient) RemoveLocalAsset(ctx context.Context, request RemoveLocalAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RemoveLocalAssetResponse, error) {
 	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/RemoveLocalAsset", request, metadata, timeoutMS)
 	if err != nil {
@@ -8476,6 +8756,22 @@ func (c RuntimeTypedClient) SearchCatalogModels(ctx context.Context, request Sea
 		return SearchCatalogModelsResponse{}, err
 	}
 	return decodeTypedResponse[SearchCatalogModelsResponse](raw)
+}
+
+func (c RuntimeTypedClient) SelectProductControlDataRoot(ctx context.Context, request SelectProductControlDataRootRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
+	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/SelectProductControlDataRoot", request, metadata, timeoutMS)
+	if err != nil {
+		return ProductControlProjectionJson{}, err
+	}
+	return decodeTypedResponse[ProductControlProjectionJson](raw)
+}
+
+func (c RuntimeTypedClient) SetProductControlFirstRunInstallLevel(ctx context.Context, request SetProductControlFirstRunInstallLevelRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
+	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel", request, metadata, timeoutMS)
+	if err != nil {
+		return ProductControlProjectionJson{}, err
+	}
+	return decodeTypedResponse[ProductControlProjectionJson](raw)
 }
 
 func (c RuntimeTypedClient) StartEngine(ctx context.Context, request StartEngineRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartEngineResponse, error) {

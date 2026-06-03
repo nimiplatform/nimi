@@ -14,9 +14,9 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { ReasonCode } from "./common";
-import { LocalHostRequirements } from "./local_runtime_types";
-import { LocalWarmState } from "./local_runtime_types";
-import { LocalBundleState } from "./local_runtime_types";
+import { LocalHostRequirements } from "./local_runtime_asset_catalog";
+import { LocalWarmState } from "./local_runtime_asset_catalog";
+import { LocalBundleState } from "./local_runtime_asset_catalog";
 import { Timestamp } from "../../google/protobuf/timestamp";
 /**
  * @generated from protobuf message nimi.runtime.v1.ModelCapabilityProfile
