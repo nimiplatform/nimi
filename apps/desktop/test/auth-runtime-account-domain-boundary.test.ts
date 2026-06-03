@@ -29,10 +29,8 @@ function listSourceFiles(root: string): string[] {
 
 test('Auth/OAuth preflight inventory has a real migration point closed in Kit', () => {
   const desktopAuthAdapter = read('apps/desktop/src/shell/renderer/features/auth/desktop-auth-adapter.ts');
-  const testerRuntimeAccountAuth = read('apps/tester/src/shell/auth/runtime-account-auth.ts');
 
   assert.match(desktopAuthAdapter, /createRuntimeAccountBrowserBroker/);
-  assert.match(testerRuntimeAccountAuth, /createRuntimeAccountBrowserBroker/);
 
   assert.doesNotMatch(desktopAuthAdapter, /runtime\.account\.beginLogin\(/);
   assert.doesNotMatch(desktopAuthAdapter, /runtime\.account\.completeLogin\(/);
@@ -42,9 +40,6 @@ test('Auth/OAuth preflight inventory has a real migration point closed in Kit', 
   assert.match(desktopAuthAdapter, /loginRealmAuthPassword/);
   assert.match(desktopAuthAdapter, /verifyRealmEmailOtp/);
   assert.match(desktopAuthAdapter, /loginRealmOAuth/);
-  assert.doesNotMatch(testerRuntimeAccountAuth, /runtime\.account\.beginLogin\(/);
-  assert.doesNotMatch(testerRuntimeAccountAuth, /runtime\.account\.completeLogin\(/);
-  assert.doesNotMatch(testerRuntimeAccountAuth, /validateRuntimeOAuthAuthorizationUrl/);
 });
 
 test('Desktop auth DTO projection is owned by SDK Realm auth extension', () => {
@@ -69,15 +64,4 @@ test('Desktop has no app-local Runtime account browser broker except admitted pr
   assert.deepEqual(offenders, [
     'apps/desktop/src/shell/renderer/infra/bootstrap/desktop-macos-smoke-driver-deps.ts',
   ]);
-});
-
-test('Tester consumes the shared Runtime account browser broker as second app proof', () => {
-  const scaffoldBoundary = read('apps/tester/test/scaffold-boundary.test.mjs');
-  const testerContract = read('apps/tester/test/tester-contract.test.mjs');
-  const testerRuntimeAccountAuth = read('apps/tester/src/shell/auth/runtime-account-auth.ts');
-
-  assert.match(scaffoldBoundary, /createRuntimeAccountBrowserBroker/);
-  assert.match(testerContract, /createRuntimeAccountBrowserBroker/);
-  assert.match(testerRuntimeAccountAuth, /from '@nimiplatform\/kit\/auth'/);
-  assert.doesNotMatch(testerRuntimeAccountAuth, /desktop-runtime-oauth-url|#\/login|desktop_callback/);
 });

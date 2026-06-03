@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { readTesterSettingsSurface } from './helpers/read-tester-settings-surface';
 
 const repoRoot = path.resolve(import.meta.dirname, '../../..');
 
@@ -135,22 +134,12 @@ test('Account Default Profile library is account-local evidence, not scope AICon
   assert.doesNotMatch(profileLibraryStore, /aiProfile\.apply/);
 });
 
-test('Desktop and Tester consume SDK and Kit AIProfile surfaces as apps', () => {
+test('Desktop consumes SDK and Kit AIProfile surfaces as an app', () => {
   const desktopProfilePage = read('apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-profiles.tsx');
   const desktopChatSettings = read('apps/desktop/src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
-  const testerStore = read('apps/tester/src/tester/tester-ai-config-store.ts');
-  const testerSettings = readTesterSettingsSurface(repoRoot);
-  const testerContract = read('apps/tester/test/tester-contract.test.mjs');
-  const testerAiProfileSurface = read('apps/tester/test/tester-ai-profile-surface.test.mjs');
 
   assert.match(desktopProfilePage, /from '@nimiplatform\/sdk\/ai'/);
   assert.match(desktopProfilePage, /from '@nimiplatform\/kit\/features\/model-config'/);
   assert.doesNotMatch(desktopProfilePage, /applyAIProfileToConfig/);
   assert.match(desktopChatSettings, /from '@nimiplatform\/kit\/features\/model-config'/);
-
-  assert.match(testerStore, /createHostAIProfileSurface/);
-  assert.match(testerStore, /parseAIProfile/);
-  assert.match(testerSettings, /from '@nimiplatform\/kit\/features\/model-config\/headless'/);
-  assert.match(testerContract, /tester AI config is the Kit model-config surface in Settings with real SDK AIProfiles/);
-  assert.match(testerAiProfileSurface, /Tester consumes the SDK host AIProfile surface for preview and apply/);
 });

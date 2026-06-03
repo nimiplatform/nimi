@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { readTesterSettingsSurface } from './helpers/read-tester-settings-surface';
 
 const repoRoot = path.join(import.meta.dirname, '../../..');
 
@@ -24,16 +23,4 @@ test('Nimi error field projection is migrated from Desktop runtime telemetry to 
   assert.doesNotMatch(realmApi, /@runtime\/telemetry\/error-fields/);
   assert.doesNotMatch(realmApi, /@runtime\/net\/error-normalize/);
   assert.doesNotMatch(profilePrivateState, /@runtime\/telemetry\/error-fields/);
-});
-
-test('Tester consumes SDK Nimi error field projection as second app proof', () => {
-  const settings = readTesterSettingsSurface(repoRoot);
-  const testerSettingsContract = read('apps/tester/test/tester-settings-surface.test.mjs');
-
-  assert.match(settings, /extractNimiErrorFields/);
-  assert.match(settings, /from '@nimiplatform\/sdk\/types'/);
-  assert.match(settings, /reason_code:\s*ReasonCode\.RUNTIME_CALL_FAILED/);
-  assert.match(settings, /trace_id:\s*'tester-runtime-trace'/);
-  assert.match(settings, /runtimeReasonProjection\.traceId/);
-  assert.match(testerSettingsContract, /extractNimiErrorFields/);
 });

@@ -19,13 +19,3 @@ test('Network retry and API error normalization migrated to SDK types', () => {
   assert.equal(fs.existsSync(path.join(repoRoot, 'apps/desktop/src/runtime/net/error-normalize.ts')), false);
   assert.doesNotMatch(realmApi, /@runtime\/net/);
 });
-
-test('Tester consumes SDK requestWithRetry as second app proof', () => {
-  const workbench = read('apps/tester/src/tester/tester-workbench.tsx');
-  const testerContract = read('apps/tester/test/tester-contract.test.mjs');
-
-  assert.match(workbench, /requestWithRetry/);
-  assert.match(workbench, /from '@nimiplatform\/sdk\/types'/);
-  assert.match(workbench, /executor:\s*loadTesterRunHistory/);
-  assert.match(testerContract, /requestWithRetry/);
-});

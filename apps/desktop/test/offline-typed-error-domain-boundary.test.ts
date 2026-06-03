@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { readTesterSettingsSurface } from './helpers/read-tester-settings-surface';
 
 const repoRoot = path.join(import.meta.dirname, '../../..');
 
@@ -18,15 +17,6 @@ test('Offline typed error preflight violation is migrated to SDK types', () => {
   assert.equal(fs.existsSync(offlineErrorsPath), false, 'Desktop must not retain offline typed-error forwarding shell');
   assert.doesNotMatch(offlineIndex, /createOfflineError|getErrorMessage|isRealmOfflineError|isRuntimeOfflineError|isNimiErrorLike/);
   assert.match(realmApi, /isRealmOfflineErrorLike as isRealmOfflineError/);
-});
-
-test('Tester consumes SDK offline typed error helper as second app proof', () => {
-  const testerSettings = readTesterSettingsSurface(repoRoot);
-  const testerSettingsContract = read('apps/tester/test/tester-settings-surface.test.mjs');
-
-  assert.match(testerSettings, /createOfflineNimiError/);
-  assert.match(testerSettings, /classifyOfflineError\(createOfflineNimiError\(/);
-  assert.match(testerSettingsContract, /createOfflineNimiError/);
 });
 
 test('Offline app surface keeps cache, outbox, and coordinator exports separated', () => {

@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
-import { readTesterSettingsSurface } from './helpers/read-tester-settings-surface';
 
 function readRepo(path: string): string {
   return readFileSync(new URL(`../../../${path}`, import.meta.url), 'utf8');
@@ -50,10 +49,6 @@ describe('Avatar shell/local-assets domain boundary', () => {
     const runtimeStreamUi = readRepo(
       'apps/desktop/src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.tsx',
     );
-    const testerSettings = readTesterSettingsSurface(new URL('../../..', import.meta.url));
-    const testerRealmKitProjections = readRepo(
-      'apps/tester/src/shell/routes/settings/realm-kit-projections.ts',
-    );
 
     assert.equal(
       existsSync(new URL('../../../apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-framing.ts', import.meta.url)),
@@ -72,12 +67,6 @@ describe('Avatar shell/local-assets domain boundary', () => {
 
     assert.match(voiceCapture, /@nimiplatform\/kit\/features\/avatar\/headless/);
     assert.match(runtimeStreamUi, /@nimiplatform\/kit\/features\/avatar\/runtime/);
-
-    assert.match(testerSettings, /@nimiplatform\/kit\/features\/avatar\/headless/);
-    assert.match(testerRealmKitProjections, /@nimiplatform\/kit\/features\/avatar\/headless/);
-    assert.match(testerRealmKitProjections, /@nimiplatform\/sdk\/runtime/);
-    assert.match(testerRealmKitProjections, /resolveRuntimeAgentVoicePlaybackDecision/);
-    assert.doesNotMatch(testerSettings, /apps\/desktop/);
   });
 
   it('keeps Desktop live instance registry as Runtime app-storage projection consumer', () => {

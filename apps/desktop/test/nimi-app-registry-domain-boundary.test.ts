@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
-import { readTesterSettingsSurface } from './helpers/read-tester-settings-surface';
 
 function readRepo(path: string): string {
   return readFileSync(new URL(`../../../${path}`, import.meta.url), 'utf8');
@@ -123,22 +122,6 @@ describe('Nimi App registry/admission domain boundary', () => {
     assert.doesNotMatch(appsPanelController, /desktopAppLibraryBridge\.apply|AccountAppLibraryMutationKind/);
     assert.doesNotMatch(accountProjection, /PLATFORM_NIMI_APP_REGISTRY_ROWS/);
     assert.doesNotMatch(accountProjection, /nimi-app-registry\.yaml/);
-  });
-
-  it('proves Tester is a second SDK consumer, not a Desktop projection fork', () => {
-    const testerSettings = readTesterSettingsSurface(new URL('../../..', import.meta.url));
-    const testerSettingsContract = readRepo('apps/tester/test/tester-settings-surface.test.mjs');
-    const testerScaffoldContract = readRepo('apps/tester/test/scaffold-boundary.test.mjs');
-    const testerTauriMain = readRepo('apps/tester/src-tauri/src/main.rs');
-
-    assert.match(testerSettings, /parseNimiAppBridgeProjection/);
-    assert.match(testerSettings, /parseAccountAppLibraryRecord/);
-    assert.match(testerSettings, /from '@nimiplatform\/sdk\/app'/);
-    assert.match(testerSettingsContract, /tester settings consumes SDK Nimi App bridge projection parser/);
-    assert.match(testerScaffoldContract, /ADMISSION\.md/);
-    assert.doesNotMatch(testerSettings, /ADMISSION_STATUSES|RELEASE_DESCRIPTOR_CLASSES|VERIFICATION_STATES/);
-    assert.doesNotMatch(testerSettings, /apps\/desktop/);
-    assert.match(testerTauriMain, /nimi_shell_tauri::platform_projection::apps_bridge/);
   });
 
 });

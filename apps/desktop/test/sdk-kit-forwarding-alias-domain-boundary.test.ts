@@ -73,7 +73,7 @@ test('remaining SDK or Kit forwarding exports are explicit separate domains or p
   assert.deepEqual([...actual].sort(), [...allowed].sort());
 });
 
-test('SDK and Kit helper consumers import owner surfaces directly', () => {
+test('Desktop SDK and Kit helper consumers import owner surfaces directly', () => {
   const conversationCapability = readFileSync(
     path.join(desktopSrcRoot, 'shell/renderer/features/chat/conversation-capability.ts'),
     'utf8',
@@ -82,14 +82,8 @@ test('SDK and Kit helper consumers import owner surfaces directly', () => {
     path.join(desktopSrcRoot, 'shell/renderer/features/runtime-config/runtime-config-profile-library.ts'),
     'utf8',
   );
-  const testerSettings = readFileSync(
-    path.join(repoRoot, 'apps/tester/src/shell/ai/tester-ai-config-settings.tsx'),
-    'utf8',
-  );
 
   assert.doesNotMatch(conversationCapability, /export\s+\{\s*applyAIProfileToConfig/);
   assert.doesNotMatch(conversationCapability, /createEmptyAIConfig\s*\}\s+from '@nimiplatform\/sdk\/ai'/);
   assert.match(runtimeConfigProfileLibrary, /AccountProfileLibraryProjection as SdkAccountProfileLibraryProjection/);
-  assert.match(testerSettings, /from '@nimiplatform\/sdk\/ai'/);
-  assert.doesNotMatch(testerSettings, /applyAIProfileToConfig/);
 });

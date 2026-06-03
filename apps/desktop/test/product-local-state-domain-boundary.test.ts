@@ -58,21 +58,3 @@ test('Desktop local storage residue stays product-local and secretless', () => {
   assert.doesNotMatch(agentShellAdapter, /persistStoredAgentChatExperienceSettings/);
   assert.doesNotMatch(agentShellAdapter, /\b(?:globalThis\.)?(?:window\.)?(?:localStorage|sessionStorage)\./);
 });
-
-test('Tester proves product-local persistence through the same Kit helper boundary', () => {
-  const testerPreferences = read('apps/tester/src/tester/tester-preferences.ts');
-  const testerAiConfigStore = read('apps/tester/src/tester/tester-ai-config-store.ts');
-  const testerContract = read('apps/tester/test/tester-contract.test.mjs');
-
-  assert.match(testerPreferences, /from '@nimiplatform\/kit\/core\/storage-json'/);
-  assert.match(testerPreferences, /readStorageJsonFrom/);
-  assert.match(testerPreferences, /writeStorageJsonTo/);
-  assert.match(testerPreferences, /removeStorageKeyFrom/);
-  assert.doesNotMatch(testerPreferences, /JSON\.parse\(raw\)/);
-  assert.doesNotMatch(testerPreferences, /JSON\.stringify\(normalized\)/);
-
-  assert.match(testerAiConfigStore, /from '@nimiplatform\/kit\/core\/storage-json'/);
-  assert.match(testerAiConfigStore, /createScopedAIConfigStore/);
-  assert.match(testerAiConfigStore, /createScopedAISnapshotStore/);
-  assert.match(testerContract, /tester product-local persistence consumes Kit core storage helpers/);
-});
