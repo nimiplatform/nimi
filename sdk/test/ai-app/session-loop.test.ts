@@ -5,7 +5,7 @@ import {
   assembleAppAiSessionRuntimeTextStream,
   buildAppAiSessionHistoryMessages,
 } from '../../src/ai-app/index.js';
-import type { NimiError } from '../../src/types/index.js';
+import { ReasonCode, type NimiError } from '../../src/types/index.js';
 import type { TextStreamPart } from '../../src/runtime/index.js';
 
 type SourceMessage = {
@@ -74,8 +74,8 @@ test('app AI session runtime text stream assembler accumulates text, reasoning, 
 
 test('app AI session runtime text stream assembler preserves typed stream errors', async () => {
   const error = Object.assign(new Error('denied'), {
-    code: 'PRINCIPAL_UNAUTHORIZED',
-    reasonCode: 'PRINCIPAL_UNAUTHORIZED',
+    code: ReasonCode.PRINCIPAL_UNAUTHORIZED,
+    reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
     actionHint: 'login',
     traceId: 'trace-error',
     retryable: false,

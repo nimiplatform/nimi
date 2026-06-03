@@ -4,13 +4,13 @@ import type { RuntimeCallOptions } from './types.js';
 import {
   runtimeRouteCallTargetFromResolvedBinding,
   selectRuntimeLocalWarmCandidateFromResolvedBinding,
-} from './runtime-route.js';
+} from './runtime-route-binding.js';
 import type {
   RuntimeRouteExecutionCallTarget,
   RuntimeRouteLocalWarmAssetEvidence,
   RuntimeRouteLocalWarmCandidate,
   RuntimeResolvedBinding,
-} from './runtime-route.js';
+} from './runtime-route-core.js';
 import type { JsonObject } from '../internal/utils.js';
 
 export const RUNTIME_ROUTE_LOCAL_WARM_DEFAULT_TIMEOUT_MS = 60_000;

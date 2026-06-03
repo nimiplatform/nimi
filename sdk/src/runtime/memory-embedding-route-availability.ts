@@ -3,7 +3,7 @@ import type {
   MemoryEmbeddingConfig,
   MemoryEmbeddingSourceKind,
 } from './memory-embedding-config.js';
-import type { RuntimeRouteOptionsSnapshot } from './runtime-route.js';
+import type { RuntimeRouteOptionsSnapshot } from './runtime-route-core.js';
 
 export type MemoryEmbeddingRouteAvailabilityState =
   | 'unconfigured'

@@ -112,7 +112,7 @@
     "check:no-legacy-cloud-provider-keys": "node scripts/check-no-legacy-cloud-provider-keys.mjs",
     "check:desktop-local-runtime-helper-boundary": "node scripts/check-desktop-local-runtime-helper-boundary.mjs",
     "check:no-local-ai-private-calls": "node scripts/check-no-local-ai-private-calls.mjs",
-    "check:no-local-ai-tauri-commands": "if ./scripts/rg.sh -n \"\\blocal_ai_[a-z0-9_]+\\b\" apps/desktop/src-tauri/src --glob '*.rs' --glob '!**/generated/**'; then echo \"desktop tauri local_ai_* command symbols are forbidden; use runtime bridge APIs\" && exit 1; else exit 0; fi",
+    "check:no-local-ai-tauri-commands": "node scripts/check-no-local-ai-tauri-commands.mjs",
     "check:desktop-no-legacy-runtime-config-path": "node scripts/check-desktop-no-legacy-runtime-config-path.mjs",
     "check:no-nimid-doc-invocation": "if ./scripts/rg.sh -n \"go run \\./cmd/nimid\" docs README.md runtime/README.md; then echo \"legacy daemon invocation go run ./cmd/nimid is forbidden in docs; use go run ./cmd/nimi serve\" && exit 1; else exit 0; fi",
     "check:no-nimid-source": "if ./scripts/rg.sh -n \"cmd/nimid|\\bnimid\\b\" runtime sdk README.md CHANGELOG.md | ./scripts/rg.sh -v \"check:no-nimid-source\" | ./scripts/rg.sh -v \"check:no-nimid-doc-invocation\"; then echo \"legacy nimid entry/symbol is forbidden; use go run ./cmd/nimi serve\" && exit 1; else exit 0; fi",

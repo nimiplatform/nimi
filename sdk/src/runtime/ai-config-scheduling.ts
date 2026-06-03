@@ -1,4 +1,4 @@
-import type { RuntimeRouteBinding } from './runtime-route.js';
+import type { RuntimeRouteBinding } from './runtime-route-core.js';
 import type { AISchedulingEvaluationTarget } from './runtime-scheduling-types.js';
 
 export type RuntimeSchedulingAIConfigLocalProfileRef = {

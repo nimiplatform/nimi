@@ -6,6 +6,7 @@ import {
   type AppAiTextGenerateRuntime,
 } from '../../src/ai-app/index.js';
 import type { TextGenerateOutput } from '../../src/runtime/index.js';
+import { ReasonCode } from '../../src/types/index.js';
 
 type MingScore = {
   stability: number;
@@ -130,7 +131,7 @@ test('app AI text generate can surface optional structured output repair without
 
 test('app AI text generate preserves Runtime typed errors', async () => {
   const error = Object.assign(new Error('provider denied'), {
-    reasonCode: 'PRINCIPAL_UNAUTHORIZED',
+    reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
   });
   const runtime: AppAiTextGenerateRuntime = {
     async generateText() {
@@ -150,6 +151,6 @@ test('app AI text generate preserves Runtime typed errors', async () => {
   if (result.ok) {
     throw new Error('expected failure');
   }
-  assert.equal(result.error.code, 'PRINCIPAL_UNAUTHORIZED');
+  assert.equal(result.error.code, ReasonCode.PRINCIPAL_UNAUTHORIZED);
   assert.equal(result.error.cause, error);
 });

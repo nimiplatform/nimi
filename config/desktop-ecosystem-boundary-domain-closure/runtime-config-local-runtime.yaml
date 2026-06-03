@@ -30,7 +30,9 @@ audited_globs:
   - sdk/src/runtime/**
 migrated:
   shared_owners:
-    - sdk/src/runtime/runtime-route.ts
+    - sdk/src/runtime/runtime-route-core.ts
+    - sdk/src/runtime/runtime-route-binding.ts
+    - sdk/src/runtime/runtime-route-parsers.ts
     - sdk/src/runtime/runtime-route-options.ts
     - sdk/src/runtime/local-runtime-client/**
     - sdk/src/runtime/runtime-connector-inventory.ts

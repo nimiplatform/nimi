@@ -2,7 +2,7 @@ import type { NimiReasoningConfig } from './types-media.js';
 import type {
   RuntimeResolvedBinding,
   RuntimeRouteDescribeResult,
-} from './runtime-route.js';
+} from './runtime-route-core.js';
 
 export type RuntimeRouteReasoningPreference = 'off' | 'on';
 

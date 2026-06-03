@@ -9,6 +9,7 @@ import {
   type RuntimeMediaGenerationJobsModule,
   type RuntimeMediaScenarioArtifact,
 } from '../src/runtime/index.js';
+import { ReasonCode } from '../src/types/index.js';
 
 function makeJob(status: ScenarioJobStatus, jobId = 'job-1'): RuntimeMediaGenerationJob {
   return { jobId, status } as RuntimeMediaGenerationJob;
@@ -135,7 +136,7 @@ test('Runtime media generation runner fails closed on terminal Runtime failure',
     subscribeEvents: [{
       job: {
         ...makeJob(ScenarioJobStatus.FAILED),
-        reasonCode: 'AI_PROVIDER_UNAVAILABLE' as never,
+        reasonCode: ReasonCode.AI_PROVIDER_UNAVAILABLE as never,
         reasonDetail: 'provider unavailable',
       },
     }],

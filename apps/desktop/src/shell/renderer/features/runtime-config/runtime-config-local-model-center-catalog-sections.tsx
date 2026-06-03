@@ -1,4 +1,5 @@
 import { i18n } from '@renderer/i18n';
+import { Surface } from '@nimiplatform/kit/ui';
 import { toCanonicalLocalRuntimeAssetLookupKey } from '@nimiplatform/sdk/runtime';
 import type {
   LocalRuntimeAssetRecord,
@@ -89,7 +90,7 @@ function AssetRequirementBadges(props: AssetRequirementBadgesProps) {
                   props.onInstallAsset(asset.templateId);
                 }}
                 disabled={props.assetBusy || pending}
-                className="rounded-full bg-white/80 px-1.5 py-0.5 text-[10px] font-medium text-[var(--nimi-status-warning)] hover:bg-white disabled:opacity-50"
+                className="rounded-full bg-[var(--nimi-surface-overlay)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--nimi-status-warning)] hover:bg-[var(--nimi-surface-card)] disabled:opacity-50"
               >
                 {pending
                   ? i18n.t('runtimeConfig.localModelCenter.installing', { defaultValue: 'Installing...' })
@@ -115,7 +116,7 @@ type VerifiedAssetsSectionProps = {
 
 function LocalModelCenterVerifiedAssetsSection(props: VerifiedAssetsSectionProps) {
   return (
-    <div className="rounded-xl border border-[var(--nimi-border-subtle)] bg-white p-4 shadow-sm">
+    <Surface tone="card" elevation="base" padding="none" className="rounded-xl p-4 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <FolderOpenIcon className="h-4 w-4 text-[var(--nimi-text-muted)]" />
@@ -187,7 +188,7 @@ function LocalModelCenterVerifiedAssetsSection(props: VerifiedAssetsSectionProps
           </p>
         </div>
       )}
-    </div>
+    </Surface>
   );
 }
 
@@ -238,7 +239,7 @@ function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionPro
               : i18n.t('runtimeConfig.localModelCenter.measuringThroughput', { defaultValue: 'Measuring throughput...' });
 
         return (
-          <div key={event.installSessionId} className="rounded-2xl bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.035)] ring-1 ring-black/[0.04]">
+          <div key={event.installSessionId} className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]">
             <div className="mb-2 flex items-center gap-3">
               <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${isFailed ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] text-[var(--nimi-action-primary-bg)]'}`}>
                 <DownloadIcon className="h-4 w-4" />
@@ -325,7 +326,7 @@ function LocalModelCenterActiveImportsSection(props: ActiveImportsSectionProps) 
             : i18n.t('runtimeConfig.localModelCenter.processingLocalImport', { defaultValue: 'Processing local import...' });
 
         return (
-          <div key={event.installSessionId} className="rounded-2xl bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.035)] ring-1 ring-black/[0.04]">
+          <div key={event.installSessionId} className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]">
             <div className="mb-2 flex items-center gap-3">
               <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${isFailed ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]'}`}>
                 <FolderOpenIcon className="h-4 w-4" />
@@ -408,7 +409,7 @@ function LocalModelCenterAssetTasksSection(props: AssetTasksSectionProps) {
           const isFailed = task.state === 'failed';
           const pendingRetry = props.pendingTemplateIds.includes(task.templateId);
           return (
-            <div key={`asset-task-${task.templateId}`} className="rounded-2xl bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.035)] ring-1 ring-black/[0.04]">
+            <div key={`asset-task-${task.templateId}`} className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]">
               <div className="flex items-center gap-3">
                 <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
                   isFailed ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : isRunning ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]' : 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]'
@@ -437,7 +438,7 @@ function LocalModelCenterAssetTasksSection(props: AssetTasksSectionProps) {
                     type="button"
                     onClick={() => props.onRetryTask(task.templateId)}
                     disabled={pendingRetry}
-                    className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] disabled:opacity-50"
+                    className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[var(--nimi-surface-card)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] disabled:opacity-50"
                   >
                     {pendingRetry
                       ? i18n.t('runtimeConfig.localModelCenter.retrying', { defaultValue: 'Retrying...' })
@@ -473,7 +474,7 @@ function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
   }
 
   return (
-    <div className="rounded-xl border border-[var(--nimi-border-subtle)] bg-white p-4 shadow-sm">
+    <Surface tone="card" elevation="base" padding="none" className="rounded-xl p-4 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <StarIcon className="h-4 w-4 text-[var(--nimi-status-warning)]" />
@@ -532,7 +533,7 @@ function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
           );
         })}
       </div>
-    </div>
+    </Surface>
   );
 }
 

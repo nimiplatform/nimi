@@ -296,7 +296,7 @@ func (s *Service) resolveRecommendationRemoteFeed(ctx context.Context, capabilit
 	return nil, runtimev1.LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_EMPTY
 }
 
-func fetchRecommendationLeaderboard(ctx context.Context, baseURL string, capability string, pageSize int) (*remoteLeaderboardResponse, error) {
+func fetchRecommendationLeaderboard(ctx context.Context, baseURL string, capability string, pageSize int) (feedResponse *remoteLeaderboardResponse, err error) {
 	parsed, err := url.Parse(strings.TrimRight(baseURL, "/") + "/leaderboard")
 	if err != nil {
 		return nil, err
@@ -317,7 +317,12 @@ func fetchRecommendationLeaderboard(ctx context.Context, baseURL string, capabil
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		closeErr := resp.Body.Close()
+		if err == nil && closeErr != nil {
+			err = closeErr
+		}
+	}()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("model index status %d", resp.StatusCode)
 	}

@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   getRetryDelayMs,
   normalizeApiError,
+  ReasonCode,
   requestWithRetry,
   type RetryEvent,
 } from '../src/types/index.js';
@@ -56,7 +57,7 @@ test('SDK network retry normalizes exhausted API errors', async () => {
           throw {
             status: 502,
             body: JSON.stringify({
-              reason_code: 'RUNTIME_UNAVAILABLE',
+              reason_code: ReasonCode.RUNTIME_UNAVAILABLE,
               action_hint: 'retry_runtime',
               trace_id: 'trace-retry',
               message: 'runtime unavailable',
@@ -68,7 +69,7 @@ test('SDK network retry normalizes exhausted API errors', async () => {
         onRetryEvent: (event) => events.push(event),
       }),
     (error: unknown) => {
-      assert.equal((error as { reasonCode?: string }).reasonCode, 'RUNTIME_UNAVAILABLE');
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.RUNTIME_UNAVAILABLE);
       assert.equal((error as { actionHint?: string }).actionHint, 'retry_runtime');
       assert.equal((error as { traceId?: string }).traceId, 'trace-retry');
       return true;
@@ -83,7 +84,7 @@ test('SDK normalizeApiError preserves existing Error and typed NimiError objects
   assert.equal(normalizeApiError(existing), existing);
 
   const nimiError = Object.assign(new Error('offline'), {
-    reasonCode: 'RUNTIME_UNAVAILABLE',
+    reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
     actionHint: 'retry',
   });
   assert.equal(normalizeApiError(nimiError), nimiError);

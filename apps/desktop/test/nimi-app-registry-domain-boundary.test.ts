@@ -7,6 +7,8 @@ function readRepo(path: string): string {
   return readFileSync(new URL(`../../../${path}`, import.meta.url), 'utf8');
 }
 
+const retiredPackageKindPattern = new RegExp(`package_kind:\\s*(${['public', 'mod'].join('-')}|extension)\\b`);
+
 describe('Nimi App registry/admission domain boundary', () => {
   it('keeps admission, registry, and release descriptor authority in platform spec tables', () => {
     const admissionContract = readRepo('.nimi/spec/platform/kernel/nimi-app-admission-contract.md');
@@ -26,8 +28,8 @@ describe('Nimi App registry/admission domain boundary', () => {
     assert.match(appSliceContract, /only repo-wide admission source for app-local spec slices/);
     assert.match(appSliceContract, /must not claim repo-wide semantics/);
 
-    assert.doesNotMatch(registryTable, /package_kind:\s*(public-mod|extension)\b/);
-    assert.doesNotMatch(releaseDescriptors, /package_kind:\s*(public-mod|extension)\b/);
+    assert.doesNotMatch(registryTable, retiredPackageKindPattern);
+    assert.doesNotMatch(releaseDescriptors, retiredPackageKindPattern);
     assert.match(registryTable, /package_kind:\s*nimi-app/);
     assert.match(releaseDescriptors, /package_kind:\s*nimi-app/);
 

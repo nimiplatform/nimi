@@ -7,6 +7,7 @@ import {
   type AppAiTextTurnRuntime,
 } from '../../src/ai-app/index.js';
 import type { TextStreamPart } from '../../src/runtime/index.js';
+import { ReasonCode } from '../../src/types/index.js';
 
 type MingScore = {
   stability: number;
@@ -151,7 +152,7 @@ test('app AI text turn fails closed and emits a visible repair request for requi
 
 test('app AI text turn preserves runtime errors and partial text', async () => {
   const error = Object.assign(new Error('provider denied'), {
-    reasonCode: 'PRINCIPAL_UNAUTHORIZED',
+    reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
     traceId: 'trace-denied',
   });
   const events: AppAiTextTurnEvent[] = [];
@@ -173,7 +174,7 @@ test('app AI text turn preserves runtime errors and partial text', async () => {
   if (!failed || failed.type !== 'turn-failed') {
     throw new Error('expected turn-failed');
   }
-  assert.equal(failed.error.code, 'PRINCIPAL_UNAUTHORIZED');
+  assert.equal(failed.error.code, ReasonCode.PRINCIPAL_UNAUTHORIZED);
   assert.equal(failed.snapshot.text, 'partial');
   assert.equal(failed.runtimePart?.type, 'error');
   assert.equal(failed.runtimePart?.error, error);

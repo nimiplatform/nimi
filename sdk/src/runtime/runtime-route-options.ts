@@ -5,10 +5,10 @@ import type {
   RuntimeRouteLocalOption,
   RuntimeRouteModelProfile,
   RuntimeRouteOptionsSnapshot,
-} from './runtime-route.js';
+} from './runtime-route-core.js';
 import {
   normalizeRuntimeRouteModelRoot,
-} from './runtime-route.js';
+} from './runtime-route-core.js';
 import {
   normalizeRuntimeCapabilityToken,
   runtimeCanonicalCapabilityToAssetKind,

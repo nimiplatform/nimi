@@ -1,5 +1,5 @@
 import type { AISchedulingJudgement } from './runtime-scheduling-types.js';
-import type { RuntimeRouteBinding } from './runtime-route.js';
+import type { RuntimeRouteBinding } from './runtime-route-core.js';
 import { RoutePolicy, ScenarioType } from './generated/runtime/v1/ai.js';
 
 // Runtime-owned execution evidence slice embedded by AIConfig/AISnapshot.

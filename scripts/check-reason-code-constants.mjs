@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
-const reasonCodeFile = path.join(repoRoot, 'sdk/src/types/index.ts');
+const reasonCodeFile = path.join(repoRoot, 'sdk/src/types/reason-code.ts');
 
 const CODE_VALUE_PATTERN = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/;
 const SOURCE_ROOTS = [

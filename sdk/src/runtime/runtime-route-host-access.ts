@@ -11,7 +11,7 @@ import {
   type RuntimeResolvedBinding,
   type RuntimeRouteLocalWarmCandidate,
   type RuntimeRouteSource,
-} from './runtime-route.js';
+} from './runtime-route-core.js';
 import {
   createRuntimeRouteLocalWarmCache,
   ensureRuntimeRouteLocalWarmWithHost,

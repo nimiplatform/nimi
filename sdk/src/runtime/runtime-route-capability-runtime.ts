@@ -1,9 +1,11 @@
 import {
   resolveRuntimeRouteBindingFromSnapshot,
-  type RuntimeResolvedBinding,
-  type RuntimeRouteBinding,
-  type RuntimeRouteOptionsSnapshot,
-} from './runtime-route.js';
+} from './runtime-route-binding.js';
+import type {
+  RuntimeResolvedBinding,
+  RuntimeRouteBinding,
+  RuntimeRouteOptionsSnapshot,
+} from './runtime-route-core.js';
 import {
   checkRuntimeRouteHealthWithHost,
   describeRuntimeRouteWithHost,

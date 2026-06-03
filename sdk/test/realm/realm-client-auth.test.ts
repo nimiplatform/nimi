@@ -91,10 +91,13 @@ test('Realm static refresh requires explicit external_principal mode', async () 
 
 test('Realm refresh requests are bound through the generated AuthService operation', () => {
   const clientSource = readSdkSource('src/realm/client.ts');
+  const refreshSource = readSdkSource('src/realm/client-refresh.ts');
 
-  assert.match(clientSource, /createRealmServiceRegistry/);
-  assert.match(clientSource, /AuthService\.refreshToken/);
+  assert.match(clientSource, /executeGeneratedRealmRefreshToken/);
   assert.doesNotMatch(clientSource, /\/api\/auth\/refresh/);
+  assert.match(refreshSource, /createRealmServiceRegistry/);
+  assert.match(refreshSource, /AuthService\.refreshToken/);
+  assert.doesNotMatch(refreshSource, /\/api\/auth\/refresh/);
 });
 
 test('Realm 401 with refreshToken triggers refresh then retries successfully', async () => {

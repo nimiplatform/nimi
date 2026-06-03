@@ -3,7 +3,7 @@ import type {
   RuntimeResolvedBinding,
   RuntimeRouteBinding,
   RuntimeRouteDescribeResult,
-} from './runtime-route.js';
+} from './runtime-route-core.js';
 import type {
   RuntimeRouteHealthResult,
 } from './runtime-route-types.js';

@@ -8,7 +8,7 @@ import type {
   RuntimeRouteBinding,
   RuntimeCanonicalCapability,
   RuntimeRouteOptionsSnapshot,
-} from './runtime-route.js';
+} from './runtime-route-core.js';
 import type {
   RuntimeRouteConnectorModelDescriptorProjectionInput,
   RuntimeRouteLocalAssetProjectionInput,

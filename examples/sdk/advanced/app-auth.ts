@@ -38,6 +38,7 @@ await runtime.auth.registerApp(
     deviceId: 'local-device',
     appVersion: '0.1.0',
     capabilities: ['runtime.ai.generate', 'runtime.model.list'],
+    developerRegistration: false,
     modeManifest: {
       appMode: AppMode.FULL,
       runtimeRequired: true,
