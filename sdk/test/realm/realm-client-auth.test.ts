@@ -1,10 +1,18 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 
 import { Realm } from '../../src/realm/index.js';
 import { asNimiError } from '../../src/runtime/index.js';
 import { ReasonCode } from '../../src/types/index.js';
 import { resolveFetchHeaders, resolveFetchUrl } from './realm-client-test-helpers.js';
+
+const sdkRoot = path.resolve(import.meta.dirname, '../..');
+
+function readSdkSource(relativePath: string): string {
+  return fs.readFileSync(path.join(sdkRoot, relativePath), 'utf8');
+}
 
 test('Realm rejects direct token auth without an explicit custody mode', () => {
   assert.throws(
@@ -79,6 +87,14 @@ test('Realm static refresh requires explicit external_principal mode', async () 
       return true;
     },
   );
+});
+
+test('Realm refresh requests are bound through the generated AuthService operation', () => {
+  const clientSource = readSdkSource('src/realm/client.ts');
+
+  assert.match(clientSource, /createRealmServiceRegistry/);
+  assert.match(clientSource, /AuthService\.refreshToken/);
+  assert.doesNotMatch(clientSource, /\/api\/auth\/refresh/);
 });
 
 test('Realm 401 with refreshToken triggers refresh then retries successfully', async () => {

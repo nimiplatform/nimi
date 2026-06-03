@@ -98,6 +98,21 @@ test('service registry forwards bodies for body operations', async () => {
   assert.deepEqual(seenInputs[0]?.body, payload);
 });
 
+test('service registry exposes the generated AuthService refreshToken operation', async () => {
+  const seenInputs: RealmRawRequestInput[] = [];
+  const registry = createRealmServiceRegistry(async (input) => {
+    seenInputs.push(input);
+    return { tokens: { accessToken: 'next-access-token' } };
+  });
+
+  await registry.AuthService.refreshToken({ refreshToken: 'refresh-token' });
+
+  assert.equal(seenInputs.length, 1);
+  assert.equal(seenInputs[0]?.method, 'POST');
+  assert.equal(seenInputs[0]?.path, '/api/auth/refresh');
+  assert.deepEqual(seenInputs[0]?.body, { refreshToken: 'refresh-token' });
+});
+
 test('service registry throws when required path params are missing', async () => {
   const registry = createRealmServiceRegistry(async () => ({ ok: true }));
 

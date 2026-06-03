@@ -3,7 +3,7 @@ import { createEventBus } from '../internal/event-bus.js';
 import type { JsonObject } from '../internal/utils.js';
 import { ReasonCode } from '../types/index.js';
 import { asNimiError, createNimiError } from '../core/errors.js';
-import type { NimiError } from '../types/index.js';
+import type { NimiError, ReasonCodeValue } from '../types/index.js';
 import type { paths } from './generated/schema.js';
 import {
   createRealmServiceRegistry,
@@ -68,6 +68,66 @@ function parseRefreshExpiresIn(value: unknown): number | undefined {
     return Number.isFinite(parsed) ? parsed : undefined;
   }
   return undefined;
+}
+
+async function executeGeneratedRealmRefreshToken(input: {
+  baseUrl: string;
+  refreshToken: string;
+  fetchImpl?: RealmOptions['fetchImpl'];
+  mapError: (response: Response) => Promise<Error> | Error;
+}): Promise<unknown> {
+  const fetchFn = input.fetchImpl || globalThis.fetch.bind(globalThis);
+  const registry = createRealmServiceRegistry(async (request) => {
+    const url = new URL(`${input.baseUrl}${request.path}`);
+    if (request.query) {
+      for (const [key, value] of Object.entries(request.query)) {
+        if (value !== undefined && value !== null) {
+          url.searchParams.set(key, String(value));
+        }
+      }
+    }
+    const response = await fetchFn(url, {
+      method: request.method,
+      headers: {
+        ...(request.body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...(request.headers || {}),
+      },
+      body: request.body === undefined ? undefined : JSON.stringify(request.body),
+      signal: request.signal,
+    });
+    if (!response.ok) {
+      throw await input.mapError(response);
+    }
+    return response.json();
+  });
+
+  return registry.AuthService.refreshToken({ refreshToken: input.refreshToken });
+}
+
+function parseRealmRefreshResult(
+  payload: unknown,
+  missingAccessToken: {
+    message: string;
+    reasonCode: ReasonCodeValue;
+    actionHint: string;
+  },
+): RealmTokenRefreshResult {
+  const payloadRecord = asRecord(payload);
+  const tokens = asRecord(payloadRecord.tokens || payloadRecord);
+  const accessToken = normalizeText(tokens.accessToken || payloadRecord.accessToken);
+  if (!accessToken) {
+    throw createNimiError({
+      message: missingAccessToken.message,
+      reasonCode: missingAccessToken.reasonCode,
+      actionHint: missingAccessToken.actionHint,
+      source: 'realm',
+    });
+  }
+  return {
+    accessToken,
+    refreshToken: normalizeText(tokens.refreshToken || payloadRecord.refreshToken) || undefined,
+    expiresIn: parseRefreshExpiresIn(tokens.expiresIn ?? payloadRecord.expiresIn),
+  };
 }
 
 function resolvePositiveTimeoutMs(value: unknown, fallback: number): number {
@@ -270,16 +330,11 @@ export class Realm {
       });
     }
 
-    const fetchFn = input.fetchImpl || globalThis.fetch.bind(globalThis);
-    const response = await fetchFn(`${baseUrl}/api/auth/refresh`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ refreshToken }),
-    });
-    if (!response.ok) {
-      throw createNimiError({
+    const payload = await executeGeneratedRealmRefreshToken({
+      baseUrl,
+      refreshToken,
+      fetchImpl: input.fetchImpl,
+      mapError: (response) => createNimiError({
         message: `realm refresh failed: ${response.status}`,
         reasonCode: ReasonCode.REALM_UNAVAILABLE,
         actionHint: 'check_realm_refresh_token',
@@ -287,27 +342,13 @@ export class Realm {
         details: {
           httpStatus: response.status,
         },
-      });
-    }
-
-    const payload = asRecord(await response.json());
-    const tokens = asRecord(payload.tokens);
-    const accessToken = normalizeText(tokens.accessToken || payload.accessToken);
-    if (!accessToken) {
-      throw createNimiError({
-        message: 'realm refresh response missing accessToken',
-        reasonCode: ReasonCode.REALM_UNAVAILABLE,
-        actionHint: 'check_realm_refresh_response',
-        source: 'realm',
-      });
-    }
-    const nextRefreshToken = normalizeText(tokens.refreshToken || payload.refreshToken);
-    const expiresIn = parseRefreshExpiresIn(tokens.expiresIn ?? payload.expiresIn);
-    return {
-      accessToken,
-      refreshToken: nextRefreshToken || undefined,
-      expiresIn,
-    };
+      }),
+    });
+    return parseRealmRefreshResult(payload, {
+      message: 'realm refresh response missing accessToken',
+      reasonCode: ReasonCode.REALM_UNAVAILABLE,
+      actionHint: 'check_realm_refresh_response',
+    });
   }
 
   async #requestUnknown(input: RealmRawRequestInput): Promise<unknown> {
@@ -579,47 +620,32 @@ export class Realm {
       });
     }
 
-    const fetchFn = this.#options.fetchImpl || globalThis.fetch.bind(globalThis);
-    const response = await fetchFn(`${this.baseUrl}/api/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
+    const data = await executeGeneratedRealmRefreshToken({
+      baseUrl: this.baseUrl,
+      refreshToken,
+      fetchImpl: this.#options.fetchImpl,
+      mapError: async (response) => {
+        const { body, details: readDetails } = await readErrorResponseBodyWithDiagnostics(response);
+        const mapped = extractResponseReasonCode(body, response);
+        return createNimiError({
+          message: mapped.message || 'token refresh failed',
+          code: mapped.code,
+          reasonCode: mapped.reasonCode,
+          actionHint: mapped.actionHint,
+          traceId: mapped.traceId || undefined,
+          source: 'realm',
+          details: {
+            ...mapped.details,
+            ...readDetails,
+          },
+        });
+      },
     });
-
-    if (!response.ok) {
-      const { body, details: readDetails } = await readErrorResponseBodyWithDiagnostics(response);
-      const mapped = extractResponseReasonCode(body, response);
-      throw createNimiError({
-        message: mapped.message || 'token refresh failed',
-        code: mapped.code,
-        reasonCode: mapped.reasonCode,
-        actionHint: mapped.actionHint,
-        traceId: mapped.traceId || undefined,
-        source: 'realm',
-        details: {
-          ...mapped.details,
-          ...readDetails,
-        },
-      });
-    }
-
-    const data = asRecord(await response.json());
-    const tokens = asRecord(data.tokens || data);
-    const accessToken = normalizeText(tokens.accessToken);
-    if (!accessToken) {
-      throw createNimiError({
-        message: 'refresh response missing accessToken',
-        reasonCode: ReasonCode.AUTH_DENIED,
-        actionHint: 'reauthenticate',
-        source: 'realm',
-      });
-    }
-
-    return {
-      accessToken,
-      refreshToken: normalizeText(tokens.refreshToken) || undefined,
-      expiresIn: parseRefreshExpiresIn(tokens.expiresIn),
-    };
+    return parseRealmRefreshResult(data, {
+      message: 'refresh response missing accessToken',
+      reasonCode: ReasonCode.AUTH_DENIED,
+      actionHint: 'reauthenticate',
+    });
   }
 
   async #attemptRefresh(): Promise<RealmTokenRefreshResult> {
