@@ -23,12 +23,7 @@ import {
   withBootstrapStepTimeout,
 } from '@nimiplatform/kit/shell/renderer/bootstrap';
 import { createDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
-import { syncRuntimeStorageConfig } from './runtime-bootstrap-local-models-sync';
-import { syncRuntimeJwtConfig } from './runtime-bootstrap-jwt-sync';
-import { syncRuntimeDeveloperRegistrationConfig } from './runtime-bootstrap-developer-registration-sync';
 import { installDesktopLocalRuntimeClientBindings } from './runtime-local-runtime-client';
-import { isDeveloperModeEnabled } from '@renderer/features/developer/developer-mode';
-import { isRuntimeConfigManualRestartRequiredError } from './runtime-bootstrap-config-errors';
 import { reconcileLocalRuntimeBootstrapState } from './runtime-bootstrap-local-ai';
 import { attachOfflineCoordinatorBindings } from './runtime-bootstrap-offline';
 import { startAuthStateWatcher, stopAuthStateWatcher } from './auth-state-watcher';
@@ -46,6 +41,10 @@ import {
   countPendingChatOutboxEntries,
   flushPendingChatOutbox,
 } from '@renderer/features/chat/data/realm-human-chat-data';
+import {
+  runtimeDaemonUnavailable,
+  syncDesktopRuntimeBootstrapConfig,
+} from './runtime-bootstrap-config-sync';
 
 let bootstrapPromise: Promise<void> | null = null;
 let rebootstrapPromise: Promise<void> | null = null;
@@ -129,124 +128,6 @@ export function rebootstrapRuntime(): Promise<void> {
     rebootstrapPromise = null;
   });
   return rebootstrapPromise;
-}
-
-function runtimeDaemonUnavailable(status: { running: boolean; lastError?: string }): boolean {
-  return !status.running;
-}
-
-async function shouldDegradeRuntimeConfigManualRestartForProductSetup(flowId: string): Promise<boolean> {
-  if (!desktopBridge.hasTauriInvoke()) {
-    return false;
-  }
-  try {
-    const projection = await desktopBridge.getProductControlRecord();
-    return projection.state !== 'ready_for_use';
-  } catch (error) {
-    logRendererEvent({
-      level: 'warn',
-      area: 'renderer-bootstrap',
-      message: 'phase:product-control:read-for-config-restart-gate-failed',
-      flowId,
-      details: {
-        error: safeBootstrapErrorMessage(error),
-      },
-    });
-    return false;
-  }
-}
-
-function isFirstRunDataRootSelectionPendingMessage(message: string): boolean {
-  return message.includes('selected nimi_data is not ready')
-    || message.includes('first-run data-root selection has not initialized product control')
-    || message.includes('has no selected absolute dataRoot.path');
-}
-
-async function shouldSkipRuntimeStorageConfigWarningForFirstRun(input: {
-  errorMessage: string;
-  flowId: string;
-  step: string;
-}): Promise<boolean> {
-  if (
-    input.step !== 'runtime local storage config sync'
-    || !desktopBridge.hasTauriInvoke()
-    || !isFirstRunDataRootSelectionPendingMessage(input.errorMessage)
-  ) {
-    return false;
-  }
-  try {
-    const projection = await desktopBridge.getProductControlRecord();
-    const pendingFirstRunDataRoot =
-      projection.state === 'config_missing' || projection.state === 'data_root_missing';
-    if (pendingFirstRunDataRoot) {
-      logRendererEvent({
-        level: 'info',
-        area: 'renderer-bootstrap',
-        message: 'phase:runtime-config-sync:skipped-first-run-data-root',
-        flowId: input.flowId,
-        details: {
-          step: input.step,
-          productControlState: projection.state,
-        },
-      });
-    }
-    return pendingFirstRunDataRoot;
-  } catch (error) {
-    logRendererEvent({
-      level: 'warn',
-      area: 'renderer-bootstrap',
-      message: 'phase:product-control:read-for-storage-sync-skip-failed',
-      flowId: input.flowId,
-      details: {
-        error: safeBootstrapErrorMessage(error),
-      },
-    });
-    return false;
-  }
-}
-
-async function handleRuntimeConfigSyncError(input: {
-  error: unknown;
-  flowId: string;
-  step: string;
-}): Promise<string | null> {
-  const message = safeBootstrapErrorMessage(input.error);
-  if (isRuntimeConfigManualRestartRequiredError(input.error)) {
-    const degradeForProductSetup = await shouldDegradeRuntimeConfigManualRestartForProductSetup(input.flowId);
-    if (!degradeForProductSetup) {
-      throw input.error;
-    }
-    logRendererEvent({
-      level: 'warn',
-      area: 'renderer-bootstrap',
-      message: 'phase:runtime-config-sync:degraded',
-      flowId: input.flowId,
-      details: {
-        error: message,
-        step: input.step,
-        productStateReady: false,
-      },
-    });
-    return message;
-  }
-  if (await shouldSkipRuntimeStorageConfigWarningForFirstRun({
-    errorMessage: message,
-    flowId: input.flowId,
-    step: input.step,
-  })) {
-    return null;
-  }
-  logRendererEvent({
-    level: 'warn',
-    area: 'renderer-bootstrap',
-    message: 'phase:runtime-config-sync:degraded',
-    flowId: input.flowId,
-    details: {
-      error: message,
-      step: input.step,
-    },
-  });
-  return message;
 }
 
 async function teardownBootstrapState(): Promise<void> {
@@ -339,77 +220,15 @@ export function bootstrapRuntime(): Promise<void> {
     const defaults = await desktopBridge.getRuntimeDefaults();
     useAppStore.getState().setRuntimeDefaults(defaults);
     let daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
-    let runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
-    let bootstrapRuntimeConfigWarning: string | null = null;
-    if (desktopBridge.hasTauriInvoke()) {
-      try {
-        daemonStatus = await syncRuntimeJwtConfig({
-          daemonStatus,
-          realmDefaults: defaults.realm,
-          bridge: {
-            getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
-            setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
-            restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
-          },
-        });
-        runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
-      } catch (error) {
-        const warning = await handleRuntimeConfigSyncError({
-          error,
-          flowId,
-          step: 'runtime account auth config sync',
-        });
-        if (warning) bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning ?? warning;
-      }
-      try {
-        const preserveMacosSmokeRuntimeStatePath =
-          macosSmokeContext.scenarioId === 'chat.live2d-avatar-product-smoke';
-        // On a fresh install the user has not yet selected nimi_data, so
-        // `getDesktopStorageDirs` fails closed here; the first-run Storage
-        // phase re-runs `syncRuntimeStorageConfig` after `selectProductDataRoot`
-        // so the runtime config carries the data root before materialization.
-        daemonStatus = await syncRuntimeStorageConfig({
-          daemonStatus,
-          preserveLocalRuntimeStatePath: preserveMacosSmokeRuntimeStatePath,
-          bridge: {
-            getRuntimeBridgeStatus: () => desktopBridge.getRuntimeBridgeStatus(),
-            getDesktopStorageDirs: () => desktopBridge.getDesktopStorageDirs(),
-            getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
-            setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
-            restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
-          },
-        });
-        runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
-      } catch (error) {
-        const warning = await handleRuntimeConfigSyncError({
-          error,
-          flowId,
-          step: 'runtime local storage config sync',
-        });
-        if (warning) bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning ?? warning;
-      }
-      try {
-        // Local app testing (K-AUTHSVC-014): mirror the discoverable Developer
-        // Mode switch (D-DEV-002) into the runtime developer-registration gate.
-        daemonStatus = await syncRuntimeDeveloperRegistrationConfig({
-          daemonStatus,
-          enabled: isDeveloperModeEnabled(),
-          bridge: {
-            getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
-            setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
-            restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
-          },
-        });
-        runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
-      } catch (error) {
-        const warning = await handleRuntimeConfigSyncError({
-          error,
-          flowId,
-          step: 'runtime developer-registration config sync',
-        });
-        if (warning) bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning ?? warning;
-      }
-    }
+    const configSync = await syncDesktopRuntimeBootstrapConfig({
+      daemonStatus,
+      realmDefaults: defaults.realm,
+      flowId,
+      preserveLocalRuntimeStatePath: macosSmokeContext.scenarioId === 'chat.live2d-avatar-product-smoke',
+    });
+    daemonStatus = configSync.daemonStatus;
+    let runtimeUnavailable = configSync.runtimeUnavailable;
+    const bootstrapRuntimeConfigWarning = configSync.bootstrapRuntimeConfigWarning;
     if (desktopBridge.hasTauriInvoke() && runtimeUnavailable) {
       try {
         daemonStatus = await desktopBridge.startRuntimeBridge();
@@ -434,7 +253,7 @@ export function bootstrapRuntime(): Promise<void> {
         daemonStatus = {
           ...daemonStatus,
           running: false,
-        lastError: safeBootstrapErrorMessage(error),
+          lastError: safeBootstrapErrorMessage(error),
         };
         logRendererEvent({
           level: 'warn',

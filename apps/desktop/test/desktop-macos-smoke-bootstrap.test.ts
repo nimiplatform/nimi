@@ -81,8 +81,8 @@ test('desktop macos smoke renderer sources include mounted ping markers', () => 
     path.join(root, 'src/shell/renderer/infra/bootstrap/desktop-macos-smoke.ts'),
     'utf8',
   );
-  const live2dViewportSource = fs.readFileSync(
-    path.join(root, 'src/shell/renderer/features/chat/chat-agent-avatar-live2d-viewport.tsx'),
+  const live2dRuntimeHookSource = fs.readFileSync(
+    path.join(root, 'src/shell/renderer/features/chat/chat-agent-avatar-live2d-runtime-hook.ts'),
     'utf8',
   );
 
@@ -101,8 +101,8 @@ test('desktop macos smoke renderer sources include mounted ping markers', () => 
   assert.match(bootstrapSource, /smoke-context-load-failed/);
   assert.match(bootstrapSource, /bootstrap-timeout-before-ready/);
   assert.match(bootstrapSource, /bootstrap-error-screen/);
-  assert.match(live2dViewportSource, /webglcontextrestored/);
-  assert.match(live2dViewportSource, /action:live2d-model-rebuilt/);
+  assert.match(live2dRuntimeHookSource, /webglcontextrestored/);
+  assert.match(live2dRuntimeHookSource, /action:live2d-model-rebuilt/);
 });
 
 test('desktop macos smoke builds fixture-enabled app bundles explicitly', () => {

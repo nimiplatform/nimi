@@ -34,8 +34,18 @@ const finalizationSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/first-run/first-run-finalization.tsx'),
   'utf8',
 );
-const workflowSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/first-run/product-control-workflow.tsx'),
+const workflowSource = [
+  readFileSync(
+    resolve(import.meta.dirname, '../src/shell/renderer/first-run/product-control-workflow.tsx'),
+    'utf8',
+  ),
+  readFileSync(
+    resolve(import.meta.dirname, '../src/shell/renderer/first-run/product-control-workflow-screen.tsx'),
+    'utf8',
+  ),
+].join('\n');
+const reconcilingScreenSource = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/first-run/first-run-reconciling-screen.tsx'),
   'utf8',
 );
 const firstRunGatePanelSource = readFileSync(
@@ -169,8 +179,11 @@ test('Wave 7: workflow mounts the finalization branch only after local AI eviden
   // mounted only at `local_ai_ready` — never earlier, never on a renderer
   // shortcut.
   assert.match(workflowSource, /materializationReadyForFinalization/);
-  assert.match(workflowSource, /state === 'local_ai_ready' \|\| materializationReadyForFinalization/);
-  assert.match(workflowSource, /<FirstRunFinalization projection=\{projection\}/);
+  assert.match(
+    workflowSource,
+    /(?:props\.)?state === 'local_ai_ready' \|\| (?:props\.)?materializationReadyForFinalization/,
+  );
+  assert.match(workflowSource, /<FirstRunFinalization projection=\{(?:props\.)?projection\}/);
   // The Setup-phase checklist projects the real materialization progression
   // and folds `local_ai_ready` as the active `finalize` sub-step rather than
   // re-rendering raw materialization rows.
@@ -344,7 +357,7 @@ test('Wave 1 route-admission single-point: LoginPage and ProductControlWorkflow 
   // The defensive surface for the not-logged-in terminal screen renders an
   // inert placeholder (so a leak past the admission gate fails closed to a
   // loading state rather than a route loop).
-  assert.match(workflowSource, /first-run-screen-reconciling/);
+  assert.match(reconcilingScreenSource, /first-run-screen-reconciling/);
   // AppRoutes' single post-login handoff is an imperative navigate inside
   // an effect (fires once per authStatus/location transition) — not a
   // render-time <Navigate> in LoginPage.

@@ -6,6 +6,10 @@ const bootstrapSource = readFileSync(
   new URL('../src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts', import.meta.url),
   'utf8',
 );
+const bootstrapConfigSyncSource = readFileSync(
+  new URL('../src/shell/renderer/infra/bootstrap/runtime-bootstrap-config-sync.ts', import.meta.url),
+  'utf8',
+);
 
 test('bootstrap re-entry is queued instead of resetting bootstrapPromise inline', () => {
   assert.ok(
@@ -58,10 +62,10 @@ test('bootstrap failure performs teardown before auth reset and surfaces cleanup
 });
 
 test('fresh first-run storage sync skip does not surface a runtime config warning', () => {
-  assert.match(bootstrapSource, /isFirstRunDataRootSelectionPendingMessage/);
-  assert.match(bootstrapSource, /phase:runtime-config-sync:skipped-first-run-data-root/);
-  assert.match(bootstrapSource, /projection\.state === 'config_missing' \|\| projection\.state === 'data_root_missing'/);
-  assert.match(bootstrapSource, /if \(warning\) bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning \?\? warning/);
+  assert.match(bootstrapConfigSyncSource, /isFirstRunDataRootSelectionPendingMessage/);
+  assert.match(bootstrapConfigSyncSource, /phase:runtime-config-sync:skipped-first-run-data-root/);
+  assert.match(bootstrapConfigSyncSource, /projection\.state === 'config_missing' \|\| projection\.state === 'data_root_missing'/);
+  assert.match(bootstrapConfigSyncSource, /if \(warning\) bootstrapRuntimeConfigWarning = bootstrapRuntimeConfigWarning \?\? warning/);
 });
 
 test('external agent runtime facade is deleted with no desktop action bridge residue', () => {
