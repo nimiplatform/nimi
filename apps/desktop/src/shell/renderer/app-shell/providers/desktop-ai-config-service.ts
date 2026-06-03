@@ -8,12 +8,10 @@
 
 import {
   applyAIProfileToConfig,
-  assertAppAIScopeRef,
   createBuiltInChatAIScopeRef,
   computeAIConfigVersion,
   createEmptyAIConfig,
   createHostAIProfileSurface,
-  ensureAppFirstLaunchAIConfig as ensureAppFirstLaunchAIConfig_sdk,
   validateAIProfile,
   type AIConfig,
   type AIConfigProbeResult,
@@ -25,8 +23,6 @@ import {
   type AIScopeRef,
   type AISnapshot,
   type AISnapshotSurface,
-  type AppFirstLaunchAIConfigResult,
-  type AppManifestRequirementGap,
   createAIConfigSubscriptionRegistry,
 } from '@nimiplatform/sdk/ai';
 import type {
@@ -58,6 +54,11 @@ import {
 } from '@renderer/bridge/runtime-bridge/product-control.js';
 
 import { createDesktopAISnapshotStore } from './desktop-ai-config-snapshot-store.js';
+import {
+  ensureDesktopAppFirstLaunchAIConfig,
+  type EnsureAppFirstLaunchAIConfigDepsOverride,
+  type EnsureAppFirstLaunchAIConfigInput,
+} from './desktop-ai-config-first-launch.js';
 
 import {
   normalizeRuntimeSchedulingTarget,
@@ -254,76 +255,6 @@ export function initializeBuiltInChatScopesFromProductControl(): Promise<void> {
 // ---------------------------------------------------------------------------
 
 /**
- * Resolve an app's recommended factory `AIProfile` from its registry-row
- * `ai_profile_selection_ref` (`P-NAPP-002` / `P-NAPP-003`, `P-AIPS-009`).
- *
- * The ref is a factory `AIProfile` alias / profileId admitted in
- * `tables/ai-profile-factory-catalog.yaml`; it is matched against the packaged
- * factory catalog projection. An undeclared (`null`/blank) or unresolvable ref
- * yields `null` so first-launch init falls back to the Account Default Profile.
- */
-function resolveRecommendedFactoryProfile(
-  recommendedProfileRef: string | null | undefined,
-): AIProfile | null {
-  const ref = String(recommendedProfileRef || '').trim();
-  if (!ref) {
-    return null;
-  }
-  return loadPlatformAIProfileFactoryCatalog().find((profile) => profile.profileId === ref) ?? null;
-}
-
-/**
- * Input for `ensureAppFirstLaunchAIConfig`.
- *
- * The caller (the app Open / launch path) owns scope construction and the
- * registry-row recommended-profile ref. `surfaceId` is an optional
- * app-manifest-declared AI feature surface id (`P-AISC-007`).
- */
-export interface EnsureAppFirstLaunchAIConfigInput {
-  /** Admitted Nimi App `app_id` (dot-separated namespace identity). */
-  readonly appId: string;
-  /** Optional app-manifest-declared stable AI feature surface id. */
-  readonly surfaceId?: string;
-  /**
-   * The app registry row `ai_profile_selection_ref`. Pass the value from the
-   * Nimi App registry projection; `null`/omitted when the app declares no
-   * recommended profile, which routes init to the Account Default Profile.
-   */
-  readonly recommendedProfileRef?: string | null;
-  /**
-   * Whether the app validates its manifest requirements as satisfied by the
-   * recommended profile. Defaults to `true` when a recommended profile is
-   * resolvable; pass `false` to force the Account Default Profile fallback
-   * when the app's manifest requirements are not met by the recommended one.
-   */
-  readonly recommendedProfileManifestSatisfied?: boolean;
-  /**
-   * Optional manifest validation of the materialized AIConfig. Returns the
-   * unmet requirement gaps (empty when satisfied). Unmet gaps surface as a
-   * typed setup/repair plan; the config is never mutated to force a pass.
-   */
-  readonly validateManifestRequirements?: (
-    scopeRef: AIScopeRef,
-    config: AIConfig,
-  ) => Promise<AppManifestRequirementGap[]> | AppManifestRequirementGap[];
-}
-
-/**
- * Test seam for `ensureAppFirstLaunchAIConfig`. Production callers omit this;
- * the defaults wire the real factory catalog and the Tauri-backed Account
- * Default Profile resolver. Tests inject stubs to exercise the init branches
- * without the Tauri layer.
- */
-export interface EnsureAppFirstLaunchAIConfigDepsOverride {
-  /** Resolve a recommended factory `AIProfile` from a registry-row ref. */
-  readonly resolveRecommendedFactoryProfile?: (
-    recommendedProfileRef: string | null | undefined,
-  ) => AIProfile | null;
-  /** Resolve the Account Default Profile as a portable `AIProfile`. */
-  readonly resolveAccountDefaultProfile?: () => Promise<AIProfile | null> | AIProfile | null;
-}
-
-/**
  * Initialize a Nimi App's per-app AIConfig on first launch (S-AICONF-009).
  *
  * Wires the host-agnostic SDK helper `ensureAppFirstLaunchAIConfig` to the
@@ -347,58 +278,12 @@ export interface EnsureAppFirstLaunchAIConfigDepsOverride {
 export async function ensureAppFirstLaunchAIConfig(
   input: EnsureAppFirstLaunchAIConfigInput,
   deps?: EnsureAppFirstLaunchAIConfigDepsOverride,
-): Promise<AppFirstLaunchAIConfigResult> {
-  // Canonical P-AISC-007 app-launch scope — explicit, never inferred.
-  const scopeRef = assertAppAIScopeRef(
-    input.surfaceId
-      ? { kind: 'app', ownerId: input.appId, surfaceId: input.surfaceId }
-      : { kind: 'app', ownerId: input.appId },
-  );
-
-  const resolveRecommended =
-    deps?.resolveRecommendedFactoryProfile ?? resolveRecommendedFactoryProfile;
-  const resolveAccountDefault =
-    deps?.resolveAccountDefaultProfile
-    ?? (async (): Promise<AIProfile> => {
-      const accountDefaultProfile = await getAccountDefaultProfileForScopeInit();
-      return {
-        profileId: accountDefaultProfile.profileId,
-        title: accountDefaultProfile.title,
-        description: accountDefaultProfile.description,
-        tags: [...accountDefaultProfile.tags],
-        capabilities: accountDefaultProfile.capabilities as AIProfile['capabilities'],
-      };
-    });
-
-  return ensureAppFirstLaunchAIConfig_sdk({
-    scopeRef,
-    // Existing per-app AIConfig lookup: a persisted config short-circuits to
-    // `already-initialized` with no write.
-    getExistingAppAIConfig: (ref) =>
-      scopeHasPersistedConfig(ref) ? getConfigForScope(ref) : null,
-    // Recommended profile from the app registry row ai_profile_selection_ref.
-    resolveRecommendedProfile: (_ref) => {
-      const profile = resolveRecommended(input.recommendedProfileRef);
-      if (!profile) {
-        return null;
-      }
-      return {
-        profile,
-        manifestSatisfied: input.recommendedProfileManifestSatisfied !== false,
-      };
-    },
-    // Account Default Profile (P-AIPS-013) — verified durable default.json.
-    resolveAccountDefaultProfile: resolveAccountDefault,
-    // Host apply authority: the single AIConfig write path (commitConfig).
-    applyHostAiConfig: (ref, config) => {
-      const committed: AIConfig = { ...config, scopeRef: ref };
-      commitConfig(committed);
-      return committed;
-    },
-    ...(input.validateManifestRequirements
-      ? { validateManifestRequirements: input.validateManifestRequirements }
-      : {}),
-  });
+): ReturnType<typeof ensureDesktopAppFirstLaunchAIConfig> {
+  return ensureDesktopAppFirstLaunchAIConfig(input, {
+    scopeHasPersistedConfig,
+    getConfigForScope,
+    commitConfig,
+  }, deps);
 }
 
 // ---------------------------------------------------------------------------
@@ -590,6 +475,10 @@ export {
   resolveAIConfigRuntimeSchedulingTargetForCapability,
   resolveAIConfigRuntimeSchedulingTargets,
 } from './desktop-ai-config-scheduling.js';
+export type {
+  EnsureAppFirstLaunchAIConfigDepsOverride,
+  EnsureAppFirstLaunchAIConfigInput,
+} from './desktop-ai-config-first-launch.js';
 
 /**
  * Peek scheduling judgement for snapshot evidence capture.

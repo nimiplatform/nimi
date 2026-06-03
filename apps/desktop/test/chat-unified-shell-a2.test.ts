@@ -27,7 +27,10 @@ const chatHumanModeContentSource = readWorkspaceFile('src/shell/renderer/feature
 const chatGroupModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-mode-content.tsx');
 const chatSidebarTargetsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-sidebar-targets.ts');
 const chatSettingsPanelSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
-const mainLayoutViewSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
+const mainLayoutViewSource = [
+  readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-view.tsx'),
+  readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-panel-stack.tsx'),
+].join('\n');
 
 test('chat unified shell a2: main layout mounts the dedicated chat page host', () => {
   assert.match(mainLayoutViewSource, /@renderer\/features\/chat\/chat-page/);

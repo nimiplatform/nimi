@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import logoImage from '../../assets/logo.svg';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -24,9 +24,9 @@ import {
   isDeveloperModeEnabled,
   subscribeDeveloperMode,
 } from '@renderer/features/developer/developer-mode';
-import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '@renderer/features/world/world-detail-route-state';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { DesktopReleaseStrip } from './desktop-release-strip';
+import { MainLayoutPanelStack } from './main-layout-panel-stack';
 import { MainLayoutTopBar } from './main-layout-topbar';
 import { MainLayoutSettingsMenu, type SettingsSubmenuItemId } from './main-layout-settings-menu';
 import { MainLayoutTitlebarContent } from './main-layout-titlebar-content';
@@ -42,66 +42,6 @@ import {
 } from './navigation-config';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
-const ChatPage = lazy(async () => {
-  const mod = await import('@renderer/features/chat/chat-page');
-  return { default: mod.ChatPage };
-});
-const ExplorePanel = lazy(async () => {
-  const mod = await import('@renderer/features/explore/explore-panel');
-  return { default: mod.ExplorePanel };
-});
-const AppsPanel = lazy(async () => {
-  const mod = await import('@renderer/features/apps/apps-panel');
-  return { default: mod.AppsPanel };
-});
-const SettingsPanelBody = lazy(async () => {
-  const mod = await import('@renderer/features/settings/settings-panel-body');
-  return { default: mod.SettingsPanelBody };
-});
-const SupportPanel = lazy(async () => {
-  const mod = await import('@renderer/features/support/support-panel');
-  return { default: mod.SupportPanel };
-});
-const RuntimeConfigPanelBody = lazy(async () => {
-  const mod = await import('@renderer/features/runtime-config/runtime-config-panel-view');
-  return { default: mod.RuntimeConfigPanelBody };
-});
-const NotificationPanel = lazy(async () => {
-  const mod = await import('@renderer/features/notification/notification-panel');
-  return { default: mod.NotificationPanel };
-});
-const GiftInboxPanel = lazy(async () => {
-  const mod = await import('@renderer/features/economy/gift-inbox-panel');
-  return { default: mod.GiftInboxPanel };
-});
-const ProfilePanel = lazy(async () => {
-  const mod = await import('@renderer/features/profile/profile-panel');
-  return { default: mod.ProfilePanel };
-});
-const AgentDetailPanel = lazy(async () => {
-  const mod = await import('@renderer/features/agent-detail/agent-detail-panel');
-  return { default: mod.AgentDetailPanel };
-});
-const WorldDetailPanel = lazy(async () => {
-  const mod = await loadWorldDetailPanelModule();
-  return { default: mod.WorldDetailActivePanel };
-});
-const HomePanel = lazy(async () => {
-  const mod = await import('@renderer/features/home/home-panel');
-  return { default: mod.HomePanel };
-});
-const DeveloperToolsPanel = lazy(async () => {
-  const mod = await import('@renderer/features/developer/developer-tools-panel');
-  return { default: mod.DeveloperToolsPanel };
-});
-const PrivacyPolicyView = lazy(async () => {
-  const mod = await import('@renderer/features/legal/privacy-policy-view');
-  return { default: mod.PrivacyPolicyView };
-});
-const TermsOfServiceView = lazy(async () => {
-  const mod = await import('@renderer/features/legal/terms-of-service-view');
-  return { default: mod.TermsOfServiceView };
-});
 /** Track window focus so polling queries can pause when the app is not focused. */
 function useWindowFocused(): boolean {
   const [focused, setFocused] = useState(() => typeof document !== 'undefined' && document.hasFocus());
@@ -470,115 +410,16 @@ export function MainLayoutView(props: MainLayoutViewProps) {
           <DesktopReleaseStrip />
           <StatusBanner />
 
-          {/* Runtime panel — keep-alive: mounted once, then toggled via CSS.
-              Own Suspense so other lazy tabs never tear it down. */}
-          {runtimeEverMounted ? (
-            <Suspense fallback={<div className="flex min-h-0 flex-1" />}>
-              <div
-                data-testid={E2E_IDS.panel('runtime')}
-                className="flex min-h-0 flex-1 flex-col"
-                style={{ display: runtimeActive ? undefined : 'none' }}
-              >
-                <RuntimeConfigPanelBody />
-              </div>
-            </Suspense>
-          ) : null}
-
-          <Suspense fallback={props.activeTab === 'world-detail' ? <WorldDetailRouteLoading /> : <div className="flex min-h-0 flex-1" />}>
-            {props.activeTab === 'home' ? (
-              <div data-testid={E2E_IDS.panel('home')} className="flex min-h-0 flex-1 flex-col">
-                <HomePanel
-                  createPostRequestKey={homeCreatePostRequestKey}
-                  feedScope={homeFeedScope}
-                />
-              </div>
-            ) : null}
-
-            {props.activeTab === 'chat' ? (
-              <div data-testid={E2E_IDS.panel('chat')} className="flex min-h-0 flex-1">
-                <ChatPage />
-              </div>
-            ) : null}
-
-            {props.activeTab === 'explore' ? (
-              <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col">
-                <ExplorePanel
-                  activeSection={exploreActiveSection}
-                  searchText={exploreSearchText}
-                />
-              </div>
-            ) : null}
-
-            {props.activeTab === 'apps' ? (
-              <div data-testid={E2E_IDS.panel('apps')} className="flex min-h-0 flex-1 flex-col">
-                <AppsPanel />
-              </div>
-            ) : null}
-
-            {props.activeTab === 'notification' ? (
-              <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 flex-col">
-                <NotificationPanel />
-              </div>
-            ) : null}
-
-            {props.activeTab === 'gift-inbox' ? (
-              <div data-testid={E2E_IDS.panel('gift-inbox')} className="flex min-h-0 flex-1 flex-col">
-                <GiftInboxPanel />
-              </div>
-            ) : null}
-
-            {props.activeTab === 'settings' ? (
-              <div data-testid={E2E_IDS.panel('settings')} className="flex min-h-0 flex-1 flex-col">
-                <SettingsPanelBody />
-              </div>
-            ) : null}
-
-            {props.activeTab === 'support' ? (
-              <div data-testid={E2E_IDS.panel('support')} className="flex min-h-0 flex-1 flex-col">
-                <SupportPanel />
-              </div>
-            ) : null}
-
-            {props.activeTab === 'profile' ? (
-              <div data-testid={E2E_IDS.panel('profile')} className="flex min-h-0 flex-1 flex-col">
-                <ProfilePanel />
-              </div>
-            ) : null}
-
-            {props.activeTab === 'agent-detail' ? (
-              <div data-testid={E2E_IDS.panel('agent-detail')} className="flex min-h-0 flex-1 flex-col">
-                <AgentDetailPanel />
-              </div>
-            ) : null}
-
-            {props.activeTab === 'world-detail' ? (
-              <div data-testid={E2E_IDS.panel('world-detail')} className="flex min-h-0 flex-1 flex-col">
-                <WorldDetailPanel />
-              </div>
-            ) : null}
-
-            {/* D-DEV-001 / D-DEV-007: the Developer Tools surface is mounted
-                only when admitted Developer Mode is on. It is default-invisible
-                and never an ordinary primary nav tab. */}
-            {props.activeTab === 'developer-tools' && developerModeEnabled ? (
-              <div data-testid={E2E_IDS.panel('developer-tools')} className="flex min-h-0 flex-1 flex-col">
-                <DeveloperToolsPanel />
-              </div>
-            ) : null}
-
-            {props.activeTab === 'privacy-policy' ? (
-              <div data-testid={E2E_IDS.panel('privacy-policy')} className="flex min-h-0 flex-1 flex-col">
-                <PrivacyPolicyView />
-              </div>
-            ) : null}
-
-            {props.activeTab === 'terms-of-service' ? (
-              <div data-testid={E2E_IDS.panel('terms-of-service')} className="flex min-h-0 flex-1 flex-col">
-                <TermsOfServiceView />
-              </div>
-            ) : null}
-          </Suspense>
-
+          <MainLayoutPanelStack
+            activeTab={props.activeTab}
+            developerModeEnabled={developerModeEnabled}
+            exploreActiveSection={exploreActiveSection}
+            exploreSearchText={exploreSearchText}
+            homeCreatePostRequestKey={homeCreatePostRequestKey}
+            homeFeedScope={homeFeedScope}
+            runtimeActive={runtimeActive}
+            runtimeEverMounted={runtimeEverMounted}
+          />
         </div>
       </div>
 

@@ -91,7 +91,10 @@ test('D-SUP-001: Support is reachable from the account-area menu', () => {
 });
 
 test('D-SUP-001: the Support panel mounts when the support tab is active', () => {
-  const layoutView = readDesktop('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
+  const layoutView = [
+    readDesktop('src/shell/renderer/app-shell/layouts/main-layout-view.tsx'),
+    readDesktop('src/shell/renderer/app-shell/layouts/main-layout-panel-stack.tsx'),
+  ].join('\n');
   assert.match(layoutView, /activeTab === 'support'/);
   assert.match(layoutView, /<SupportPanel \/>/);
   assert.match(layoutView, /features\/support\/support-panel/);

@@ -3,10 +3,16 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
-const mainLayoutViewSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/app-shell/layouts/main-layout-view.tsx'),
-  'utf8',
-);
+const mainLayoutViewSource = [
+  readFileSync(
+    resolve(import.meta.dirname, '../src/shell/renderer/app-shell/layouts/main-layout-view.tsx'),
+    'utf8',
+  ),
+  readFileSync(
+    resolve(import.meta.dirname, '../src/shell/renderer/app-shell/layouts/main-layout-panel-stack.tsx'),
+    'utf8',
+  ),
+].join('\n');
 const uiSliceSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/app-shell/providers/ui-slice.ts'),
   'utf8',

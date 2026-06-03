@@ -7,6 +7,10 @@ const MAIN_LAYOUT_VIEW_SOURCE = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/app-shell/layouts/main-layout-view.tsx'),
   'utf8',
 );
+const MAIN_LAYOUT_PANEL_STACK_SOURCE = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/app-shell/layouts/main-layout-panel-stack.tsx'),
+  'utf8',
+);
 const APP_ROUTES_SOURCE = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/app-shell/routes/app-routes.tsx'),
   'utf8',
@@ -58,10 +62,10 @@ test('default desktop route keeps the main layout behind a lazy startup boundary
 
 test('default chat route stays behind a second-stage lazy module during desktop startup', () => {
   assert.match(
-    MAIN_LAYOUT_VIEW_SOURCE,
+    MAIN_LAYOUT_PANEL_STACK_SOURCE,
     /const ChatPage = lazy\(async \(\) => \{\s*const mod = await import\('@renderer\/features\/chat\/chat-page'\)/s,
   );
-  assert.doesNotMatch(MAIN_LAYOUT_VIEW_SOURCE, /import \{ ChatPage \} from '@renderer\/features\/chat\/chat-page'/);
+  assert.doesNotMatch(MAIN_LAYOUT_PANEL_STACK_SOURCE, /import \{ ChatPage \} from '@renderer\/features\/chat\/chat-page'/);
 });
 
 test('non-critical shell side effects do not block main layout import', () => {
