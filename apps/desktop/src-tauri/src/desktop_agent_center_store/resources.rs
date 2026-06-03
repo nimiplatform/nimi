@@ -1,8 +1,9 @@
+use super::run_agent_center_resource_blocking;
 use super::store::{
-    agent_center_dir, desktop_agent_center_config_get, desktop_agent_center_config_put,
-    local_scope_path_segment, validate_background_id, validate_live2d_adapter_manifest_ref,
-    validate_local_agent_scope, validate_local_asset_id, validate_normalized_id,
-    validate_utc_timestamp, LocalAgentScope,
+    agent_center_dir, desktop_agent_center_config_get_blocking,
+    desktop_agent_center_config_put_blocking, local_scope_path_segment, validate_background_id,
+    validate_live2d_adapter_manifest_ref, validate_local_agent_scope, validate_local_asset_id,
+    validate_normalized_id, validate_utc_timestamp, LocalAgentScope,
 };
 use super::types::*;
 use chrono::{Duration, Utc};
@@ -25,25 +26,11 @@ const MAX_BACKGROUND_BYTES: u64 = 20_971_520;
 const MAX_BACKGROUND_PIXELS: u32 = 8_192;
 const VALIDATION_FILE_NAME: &str = "validation.json";
 const MANIFEST_FILE_NAME: &str = "manifest.json";
-const CAPABILITY_PROFILE_FILE_NAME: &str = "capability-profile.json";
 const LIVE2D_ADAPTER_FILE_NAME: &str = "live2d-adapter.json";
 const LIVE2D_ADAPTER_CUSTODY_FILE_NAME: &str = "custody.json";
 const OPERATIONS_FILE_NAME: &str = "agent-center-local-resources.jsonl";
 const OPERATION_RETENTION_DAYS: i64 = 30;
 const QUARANTINE_RETENTION_DAYS: i64 = 7;
-
-async fn run_agent_center_resource_blocking<T, F>(
-    operation: &'static str,
-    task: F,
-) -> Result<T, String>
-where
-    T: Send + 'static,
-    F: FnOnce() -> Result<T, String> + Send + 'static,
-{
-    tauri::async_runtime::spawn_blocking(task)
-        .await
-        .map_err(|error| format!("{operation} background worker failed: {error}"))?
-}
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]

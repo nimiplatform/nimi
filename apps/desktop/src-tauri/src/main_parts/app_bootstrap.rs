@@ -10,30 +10,48 @@ use nimi_shell_tauri::{
 use std::sync::Arc;
 
 fn install_shared_runtime_bridge_hooks() {
-    let _ =
-        nimi_shell_tauri::runtime_bridge::set_runtime_bridge_host_hooks(RuntimeBridgeHostHooks {
-            status_override: Some(Arc::new(|| {
-                crate::desktop_e2e_fixture::runtime_bridge_status_override()
-            })),
-            unary_override: Some(Arc::new(|payload| {
-                crate::desktop_e2e_fixture::runtime_bridge_unary_override(payload)
-            })),
-            sync_daemon_status: Some(Arc::new(|app, status| {
-                crate::menu_bar_shell::sync_daemon_status(app, status);
-            })),
-            set_action_in_flight: Some(Arc::new(|app, action| {
-                crate::menu_bar_shell::set_action_in_flight(app, action);
-            })),
-            staged_runtime_binary_path: Some(Arc::new(|| {
-                crate::desktop_release::staged_runtime_binary_path()
-            })),
-            runtime_last_error: Some(Arc::new(|| crate::desktop_release::runtime_last_error())),
-            current_release_version: Some(Arc::new(|| {
-                crate::desktop_release::current_release_version()
-            })),
-            resolve_nimi_dir: Some(Arc::new(crate::desktop_paths::resolve_nimi_dir)),
-            resolve_nimi_data_dir: Some(Arc::new(crate::desktop_paths::resolve_nimi_data_dir)),
-        });
+    let hooks = RuntimeBridgeHostHooks {
+        status_override: {
+            #[cfg(any(test, feature = "desktop-e2e-fixture"))]
+            {
+                Some(Arc::new(|| {
+                    crate::desktop_e2e_fixture::runtime_bridge_status_override()
+                }))
+            }
+            #[cfg(not(any(test, feature = "desktop-e2e-fixture")))]
+            {
+                None
+            }
+        },
+        unary_override: {
+            #[cfg(any(test, feature = "desktop-e2e-fixture"))]
+            {
+                Some(Arc::new(|payload| {
+                    crate::desktop_e2e_fixture::runtime_bridge_unary_override(payload)
+                }))
+            }
+            #[cfg(not(any(test, feature = "desktop-e2e-fixture")))]
+            {
+                None
+            }
+        },
+        sync_daemon_status: Some(Arc::new(|app, status| {
+            crate::menu_bar_shell::sync_daemon_status(app, status);
+        })),
+        set_action_in_flight: Some(Arc::new(|app, action| {
+            crate::menu_bar_shell::set_action_in_flight(app, action);
+        })),
+        staged_runtime_binary_path: Some(Arc::new(|| {
+            crate::desktop_release::staged_runtime_binary_path()
+        })),
+        runtime_last_error: Some(Arc::new(|| crate::desktop_release::runtime_last_error())),
+        current_release_version: Some(Arc::new(|| {
+            crate::desktop_release::current_release_version()
+        })),
+        resolve_nimi_dir: Some(Arc::new(crate::desktop_paths::resolve_nimi_dir)),
+        resolve_nimi_data_dir: Some(Arc::new(crate::desktop_paths::resolve_nimi_data_dir)),
+    };
+    let _ = nimi_shell_tauri::runtime_bridge::set_runtime_bridge_host_hooks(hooks);
 }
 
 fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {

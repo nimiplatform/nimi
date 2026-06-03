@@ -6,12 +6,15 @@ pub(super) fn select_imported_live2d_adapter_manifest(
     local_asset_id: &str,
     manifest_ref: &str,
 ) -> Result<(), String> {
-    let mut config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
-        account_id: account_id.to_string(),
-        owner_user_id: scope.owner_user_id.clone(),
-        realm_agent_id: scope.realm_agent_id.clone(),
-        local_agent_ref: scope.local_agent_ref.clone(),
-    })?;
+    let mut config = desktop_agent_center_config_get_blocking(
+        account_id,
+        DesktopAgentCenterConfigScopePayload {
+            account_id: account_id.to_string(),
+            owner_user_id: scope.owner_user_id.clone(),
+            realm_agent_id: scope.realm_agent_id.clone(),
+            local_agent_ref: scope.local_agent_ref.clone(),
+        },
+    )?;
     if config.modules.avatar_asset.backend_kind != AgentCenterAvatarBackendKind::Live2d
         || config
             .modules
@@ -33,13 +36,16 @@ pub(super) fn select_imported_live2d_adapter_manifest(
         source: AgentCenterAvatarConfigProvenanceSource::ImportValidation,
         evidence_ref: manifest_ref.to_string(),
     };
-    desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
-        account_id: account_id.to_string(),
-        owner_user_id: scope.owner_user_id.clone(),
-        realm_agent_id: scope.realm_agent_id.clone(),
-        local_agent_ref: scope.local_agent_ref.clone(),
-        config,
-    })?;
+    desktop_agent_center_config_put_blocking(
+        account_id,
+        DesktopAgentCenterConfigPutPayload {
+            account_id: account_id.to_string(),
+            owner_user_id: scope.owner_user_id.clone(),
+            realm_agent_id: scope.realm_agent_id.clone(),
+            local_agent_ref: scope.local_agent_ref.clone(),
+            config,
+        },
+    )?;
     Ok(())
 }
 
@@ -48,20 +54,26 @@ pub(super) fn select_imported_background(
     scope: &LocalAgentScope,
     background_asset_id: &str,
 ) -> Result<(), String> {
-    let mut config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
-        account_id: account_id.to_string(),
-        owner_user_id: scope.owner_user_id.clone(),
-        realm_agent_id: scope.realm_agent_id.clone(),
-        local_agent_ref: scope.local_agent_ref.clone(),
-    })?;
+    let mut config = desktop_agent_center_config_get_blocking(
+        account_id,
+        DesktopAgentCenterConfigScopePayload {
+            account_id: account_id.to_string(),
+            owner_user_id: scope.owner_user_id.clone(),
+            realm_agent_id: scope.realm_agent_id.clone(),
+            local_agent_ref: scope.local_agent_ref.clone(),
+        },
+    )?;
     config.modules.appearance.background_asset_id = Some(background_asset_id.to_string());
-    desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
-        account_id: account_id.to_string(),
-        owner_user_id: scope.owner_user_id.clone(),
-        realm_agent_id: scope.realm_agent_id.clone(),
-        local_agent_ref: scope.local_agent_ref.clone(),
-        config,
-    })?;
+    desktop_agent_center_config_put_blocking(
+        account_id,
+        DesktopAgentCenterConfigPutPayload {
+            account_id: account_id.to_string(),
+            owner_user_id: scope.owner_user_id.clone(),
+            realm_agent_id: scope.realm_agent_id.clone(),
+            local_agent_ref: scope.local_agent_ref.clone(),
+            config,
+        },
+    )?;
     Ok(())
 }
 
@@ -70,21 +82,27 @@ pub(super) fn clear_selected_background(
     scope: &LocalAgentScope,
     background_asset_id: &str,
 ) -> Result<(), String> {
-    let mut config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
-        account_id: account_id.to_string(),
-        owner_user_id: scope.owner_user_id.clone(),
-        realm_agent_id: scope.realm_agent_id.clone(),
-        local_agent_ref: scope.local_agent_ref.clone(),
-    })?;
-    if config.modules.appearance.background_asset_id.as_deref() == Some(background_asset_id) {
-        config.modules.appearance.background_asset_id = None;
-        desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
+    let mut config = desktop_agent_center_config_get_blocking(
+        account_id,
+        DesktopAgentCenterConfigScopePayload {
             account_id: account_id.to_string(),
             owner_user_id: scope.owner_user_id.clone(),
             realm_agent_id: scope.realm_agent_id.clone(),
             local_agent_ref: scope.local_agent_ref.clone(),
-            config,
-        })?;
+        },
+    )?;
+    if config.modules.appearance.background_asset_id.as_deref() == Some(background_asset_id) {
+        config.modules.appearance.background_asset_id = None;
+        desktop_agent_center_config_put_blocking(
+            account_id,
+            DesktopAgentCenterConfigPutPayload {
+                account_id: account_id.to_string(),
+                owner_user_id: scope.owner_user_id.clone(),
+                realm_agent_id: scope.realm_agent_id.clone(),
+                local_agent_ref: scope.local_agent_ref.clone(),
+                config,
+            },
+        )?;
     }
     Ok(())
 }
@@ -93,6 +111,9 @@ pub(super) fn clear_selected_background(
 pub(crate) async fn desktop_agent_center_background_import(
     payload: DesktopAgentCenterBackgroundImportPayload,
 ) -> Result<DesktopAgentCenterBackgroundImportResult, String> {
+    let account_id = crate::desktop_agent_center_store::active_agent_center_account_id().await?;
+    let mut payload = payload;
+    payload.account_id = account_id;
     run_agent_center_resource_blocking("desktop_agent_center_background_import", move || {
         desktop_agent_center_background_import_blocking(payload)
     })
@@ -290,6 +311,9 @@ pub(crate) fn desktop_agent_center_background_import_blocking(
 pub(crate) async fn desktop_agent_center_live2d_adapter_manifest_import(
     payload: DesktopAgentCenterLive2dAdapterManifestImportPayload,
 ) -> Result<DesktopAgentCenterLive2dAdapterManifestImportResult, String> {
+    let account_id = crate::desktop_agent_center_store::active_agent_center_account_id().await?;
+    let mut payload = payload;
+    payload.account_id = account_id;
     run_agent_center_resource_blocking(
         "desktop_agent_center_live2d_adapter_manifest_import",
         move || desktop_agent_center_live2d_adapter_manifest_import_blocking(payload),

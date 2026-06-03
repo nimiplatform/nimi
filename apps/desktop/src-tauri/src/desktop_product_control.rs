@@ -215,7 +215,7 @@ mod tests {
         ensure_product_control_record_created, product_control_record_path,
         read_product_control_projection, read_selected_product_data_root_projection,
         select_product_data_root, selected_product_data_root, set_first_run_install_level,
-        set_first_run_setup_state, ProductControlState, ProductFirstRunSetupStatePayload,
+        ProductControlState,
     };
     use crate::test_support::with_env;
     use std::path::PathBuf;
@@ -229,10 +229,6 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("nimi-product-control-{prefix}-{unique}"));
         std::fs::create_dir_all(&dir).expect("create temp home");
         dir
-    }
-
-    fn setup_state_literal(tail: &str) -> String {
-        format!("{}{}", "local_", tail)
     }
 
     fn collected_device_profile() -> crate::runtime_bridge::generated::LocalDeviceProfile {
@@ -373,11 +369,12 @@ mod tests {
 
             set_first_run_install_level("minimal", Some("local-speech-ready".to_string()))
                 .expect("set install level");
-            set_first_run_setup_state(ProductFirstRunSetupStatePayload {
-                state: "local_ai_profile_selected_assets_missing".to_string(),
-                reason: Some("test".to_string()),
-            })
-            .expect("set setup state");
+            let control_path = product_control_record_path().expect("path");
+            let mut record = super::read_existing_record(&control_path)
+                .expect("read")
+                .expect("record");
+            record.state = ProductControlState::LocalAiProfileSelectedAssetsMissing;
+            super::write_record(&control_path, &record).expect("write setup fixture");
             let invalid =
                 complete_first_run_device_environment_scan_with_profile(collected_device_profile())
                     .expect_err("wrong state");
@@ -446,46 +443,6 @@ mod tests {
                 std::fs::read_to_string(&control_path).expect("read after"),
                 raw
             );
-        });
-    }
-
-    #[test]
-    fn setup_state_requires_install_level_and_never_marks_ready() {
-        let home = temp_home("setup-state");
-        let root = home.join("chosen-nimi-data");
-        with_env(&[("HOME", home.to_str())], || {
-            select_product_data_root(root.to_str().expect("root")).expect("select root");
-            let setup_state = setup_state_literal("ai_profile_selected_assets_missing");
-            let missing_install_level =
-                set_first_run_setup_state(ProductFirstRunSetupStatePayload {
-                    state: setup_state.clone(),
-                    reason: None,
-                })
-                .expect_err("missing install level");
-            assert!(missing_install_level.contains("install level"));
-            set_first_run_install_level("minimal", Some("local-speech-ready".to_string()))
-                .expect("install level");
-            let projection = set_first_run_setup_state(ProductFirstRunSetupStatePayload {
-                state: setup_state,
-                reason: Some("runtime_jobs_started".to_string()),
-            })
-            .expect("setup state");
-            assert_eq!(
-                projection.state,
-                ProductControlState::LocalAiProfileSelectedAssetsMissing
-            );
-            let ready_err = set_first_run_setup_state(ProductFirstRunSetupStatePayload {
-                state: "ready_for_use".to_string(),
-                reason: None,
-            })
-            .expect_err("ready shortcut");
-            assert!(ready_err.contains("cannot mark ready_for_use"));
-            let local_ready = set_first_run_setup_state(ProductFirstRunSetupStatePayload {
-                state: setup_state_literal("ai_ready"),
-                reason: None,
-            })
-            .expect_err("local ready shortcut");
-            assert!(local_ready.contains("cannot mark local AI ready"));
         });
     }
 

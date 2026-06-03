@@ -180,6 +180,9 @@ pub(super) fn validate_background_manifest(
 pub(crate) async fn desktop_agent_center_background_validate(
     payload: DesktopAgentCenterBackgroundValidatePayload,
 ) -> Result<AgentCenterBackgroundValidationResult, String> {
+    let account_id = crate::desktop_agent_center_store::active_agent_center_account_id().await?;
+    let mut payload = payload;
+    payload.account_id = account_id;
     run_agent_center_resource_blocking("desktop_agent_center_background_validate", move || {
         desktop_agent_center_background_validate_blocking(payload)
     })
@@ -222,6 +225,9 @@ pub(crate) fn desktop_agent_center_background_validate_blocking(
 pub(crate) async fn desktop_agent_center_background_asset_get(
     payload: DesktopAgentCenterBackgroundValidatePayload,
 ) -> Result<DesktopAgentCenterBackgroundAssetResult, String> {
+    let account_id = crate::desktop_agent_center_store::active_agent_center_account_id().await?;
+    let mut payload = payload;
+    payload.account_id = account_id;
     run_agent_center_resource_blocking("desktop_agent_center_background_asset_get", move || {
         desktop_agent_center_background_asset_get_blocking(payload)
     })

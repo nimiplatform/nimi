@@ -20,10 +20,10 @@
 //!   - apply/verify failure for either canonical scope fails first-run closed;
 //!   - capability intent is sourced only from the admitted factory `AIProfile`
 //!     row;
-//!   - executable model/provider values are copied only from the Runtime-owned
-//!     baseline readiness ref. The fixed first-run Runtime consumer ids below
-//!     are evidence lookup keys for K-LENV-ACT-011, not Desktop-owned routing
-//!     policy.
+//!   - executable model/provider values are projected only from Runtime-owned
+//!     executionEvidenceRef capability proof through the shared Tauri shell
+//!     projection helper; Desktop does not infer provider, engine, consumer, or
+//!     route policy from runtimeBaselineRef internals.
 
 use nimi_shell_tauri::platform_catalog::ai_profile_factory::{
     verify_first_run_factory_ai_profile, PlatformAIProfileFactoryRow,
@@ -31,7 +31,6 @@ use nimi_shell_tauri::platform_catalog::ai_profile_factory::{
     PLATFORM_AI_PROFILE_SELECTION_POLICY_REF,
 };
 use serde::Serialize;
-use serde_json::json;
 use std::fs;
 use std::path::Path;
 
@@ -41,12 +40,6 @@ const BUILT_IN_AI_CONFIG_WRITER_IDENTITY: &str = "desktop_host_ai_config_service
 const BUILT_IN_AI_CONFIG_SCOPE_KIND: &str = "feature";
 const BUILT_IN_AI_CONFIG_SCOPE_OWNER_ID: &str = "desktop.chat";
 const BUILT_IN_AI_CONFIG_APPLY_SOURCE: &str = "desktop_host_first_run_built_in_ai_config";
-const TEXT_GENERATE_CAPABILITY: &str = "text.generate";
-const AUDIO_TRANSCRIBE_CAPABILITY: &str = "audio.transcribe";
-const AUDIO_SYNTHESIZE_CAPABILITY: &str = "audio.synthesize";
-const FIRST_RUN_TEXT_CONSUMER_ID: &str = "llama.cpp.cpu";
-const FIRST_RUN_STT_CONSUMER_ID: &str = "speech.qwen3-asr.python";
-const FIRST_RUN_TTS_CONSUMER_ID: &str = "speech.qwen3-tts.python";
 
 /// The two canonical first-run built-in chat surface ids (`P-AISC-006`).
 const BUILT_IN_CHAT_SURFACE_IDS: &[&str] = &["nimi", "agent"];
@@ -135,89 +128,16 @@ fn ai_profile_ref_from_row(
     })
 }
 
-fn consumer_evidence_from_baseline_ref<'a>(
-    baseline: &'a crate::runtime_bridge::generated::RuntimeBaselineReadinessRef,
-    consumer_id: &str,
-) -> Result<&'a crate::runtime_bridge::generated::RuntimeBaselineActivationConsumerEvidence, String>
-{
-    baseline
-        .activation_ready_responses
-        .iter()
-        .find(|item| item.consumer_id.trim() == consumer_id)
-        .ok_or_else(|| {
-            format!("Runtime baseline evidence is missing the first-run consumer {consumer_id}")
-        })
-}
-
-fn local_binding_from_baseline_consumer(
-    baseline: &crate::runtime_bridge::generated::RuntimeBaselineReadinessRef,
-    consumer_id: &str,
-    engine: &str,
-    provider: &str,
-) -> Result<serde_json::Value, String> {
-    let consumer = consumer_evidence_from_baseline_ref(baseline, consumer_id)?;
-    let bound_asset_id = consumer.bound_asset_id.trim();
-    if bound_asset_id.is_empty() {
-        return Err(format!(
-            "Runtime baseline consumer {consumer_id} is missing bound_asset_id"
-        ));
-    }
-    let runtime_baseline_ref = baseline.runtime_baseline_ref.trim();
-    if runtime_baseline_ref.is_empty() {
-        return Err("Runtime baseline evidence is missing runtimeBaselineRef".to_string());
-    }
-    Ok(json!({
-        "source": "local",
-        "connectorId": "",
-        "model": bound_asset_id,
-        "modelId": bound_asset_id,
-        "localModelId": bound_asset_id,
-        "provider": provider,
-        "engine": engine,
-        "goRuntimeLocalModelId": bound_asset_id,
-        "runtimeBaselineRef": runtime_baseline_ref,
-        "runtimeConsumerId": consumer.consumer_id.trim(),
-    }))
-}
-
-pub fn runtime_text_generate_binding_from_baseline_ref(
-    baseline: &crate::runtime_bridge::generated::RuntimeBaselineReadinessRef,
-) -> Result<serde_json::Value, String> {
-    local_binding_from_baseline_consumer(
-        baseline,
-        FIRST_RUN_TEXT_CONSUMER_ID,
-        FIRST_RUN_TEXT_CONSUMER_ID,
-        "local",
-    )
-}
-
-pub fn runtime_capability_bindings_from_baseline_ref(
-    baseline: &crate::runtime_bridge::generated::RuntimeBaselineReadinessRef,
+pub fn runtime_capability_bindings_from_execution_evidence_ref(
+    evidence: &crate::runtime_bridge::generated::ExecutionEvidenceRef,
 ) -> Result<Vec<BuiltInAiConfigCapability>, String> {
-    let mut bindings = vec![
-        BuiltInAiConfigCapability {
-            capability: TEXT_GENERATE_CAPABILITY.to_string(),
-            binding: runtime_text_generate_binding_from_baseline_ref(baseline)?,
-        },
-        BuiltInAiConfigCapability {
-            capability: AUDIO_TRANSCRIBE_CAPABILITY.to_string(),
-            binding: local_binding_from_baseline_consumer(
-                baseline,
-                FIRST_RUN_STT_CONSUMER_ID,
-                "speech",
-                "speech",
-            )?,
-        },
-        BuiltInAiConfigCapability {
-            capability: AUDIO_SYNTHESIZE_CAPABILITY.to_string(),
-            binding: local_binding_from_baseline_consumer(
-                baseline,
-                FIRST_RUN_TTS_CONSUMER_ID,
-                "speech",
-                "speech",
-            )?,
-        },
-    ];
+    let mut bindings = nimi_shell_tauri::runtime_ai_config_projection::project_first_run_execution_evidence_to_ai_config_bindings(evidence)?
+        .into_iter()
+        .map(|item| BuiltInAiConfigCapability {
+            capability: item.capability,
+            binding: item.binding,
+        })
+        .collect::<Vec<_>>();
     bindings.sort_by(|a, b| a.capability.cmp(&b.capability));
     Ok(bindings)
 }
@@ -355,7 +275,7 @@ fn verify_record_fields(
             .unwrap_or(&serde_json::Value::Null);
             if recorded != &expected.binding {
                 return Err(format!(
-                    "built-in AIConfig {} binding does not match Runtime baseline evidence",
+                    "built-in AIConfig {} binding does not match Runtime execution evidence",
                     expected.capability
                 ));
             }

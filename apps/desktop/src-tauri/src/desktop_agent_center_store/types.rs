@@ -104,7 +104,7 @@ pub(crate) struct DesktopAgentCenterLive2dAdapterManifestImportResult {
 pub(crate) struct DesktopAgentCenterAvatarAssetImportResult {
     pub local_asset_id: String,
     pub backend_kind: AgentCenterAvatarBackendKind,
-    pub backend_capability_profile_ref: String,
+    pub backend_capability_profile_ref: Option<String>,
     pub selected: bool,
     pub manifest_sha256: String,
     pub asset_bytes: u64,
@@ -119,7 +119,7 @@ pub(crate) struct DesktopAgentCenterAvatarAssetRecord {
     pub backend_kind: AgentCenterAvatarBackendKind,
     pub display_name: String,
     pub source_label: String,
-    pub backend_capability_profile_ref: String,
+    pub backend_capability_profile_ref: Option<String>,
     pub asset_bytes: u64,
     pub file_count: usize,
     pub imported_at: String,
@@ -337,10 +337,6 @@ pub(crate) struct AgentCenterLocalConfigModules {
 pub(crate) struct AgentCenterLocalConfig {
     pub schema_version: u8,
     pub config_kind: String,
-    pub account_id: String,
-    pub owner_user_id: String,
-    pub realm_agent_id: String,
-    pub local_agent_ref: String,
     pub modules: AgentCenterLocalConfigModules,
 }
 

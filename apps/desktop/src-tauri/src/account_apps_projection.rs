@@ -3,8 +3,8 @@
 //!
 //! Product owners (product manual):
 //! - `grants.json`: permission/grant projection consumer. The canonical
-//!   permission/grant authority is the deferred wave-4 permission fabric
-//!   (`permission_scope_ref` is `pending_wave_4` in the registry table). T4
+//!   permission/grant authority is the deferred permission fabric
+//!   (`permission_scope_ref` is `permission_fabric_pending` in the registry table). T4
 //!   owns only the projection schema + a fail-closed reader (T4 Fork B). This
 //!   module does NOT implement a canonical grant service; it reads a projection
 //!   and fails closed when it is stale, missing, or inconsistent.

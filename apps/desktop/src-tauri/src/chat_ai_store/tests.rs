@@ -40,12 +40,67 @@ fn chat_ai_db_path(storage_root: &std::path::Path) -> PathBuf {
     storage_root.join("chat-ai").join("main.db")
 }
 
+fn storage_projection(
+    app_id: &str,
+    state: crate::runtime_bridge::generated::AppStorageState,
+    data_root: &std::path::Path,
+) -> crate::runtime_bridge::generated::AppStorageProjection {
+    crate::runtime_bridge::generated::AppStorageProjection {
+        app_id: app_id.to_string(),
+        state: state as i32,
+        durable_data_root: data_root.to_string_lossy().to_string(),
+        ..Default::default()
+    }
+}
+
 fn open_test_conn(storage_root: &std::path::Path) -> Connection {
     let path = chat_ai_db_path(storage_root);
     fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
     let conn = Connection::open(&path).expect("open");
     super::schema::init_schema(&conn).expect("init schema");
     conn
+}
+
+#[test]
+fn chat_ai_storage_root_accepts_only_runtime_ready_desktop_projection() {
+    let storage_root = temp_home("storage-projection");
+    let projection = storage_projection(
+        "nimi.desktop",
+        crate::runtime_bridge::generated::AppStorageState::Ready,
+        &storage_root,
+    );
+    assert_eq!(
+        chat_ai_data_root_from_projection(&projection).expect("data root"),
+        storage_root.to_string_lossy().to_string()
+    );
+
+    let wrong_app = storage_projection(
+        "nimi.tester",
+        crate::runtime_bridge::generated::AppStorageState::Ready,
+        &storage_root,
+    );
+    assert!(chat_ai_data_root_from_projection(&wrong_app)
+        .expect_err("wrong app rejected")
+        .contains("expected nimi.desktop"));
+
+    let unavailable = storage_projection(
+        "nimi.desktop",
+        crate::runtime_bridge::generated::AppStorageState::StorageUnavailable,
+        &storage_root,
+    );
+    assert!(chat_ai_data_root_from_projection(&unavailable)
+        .expect_err("non-ready rejected")
+        .contains("requires Runtime ready state"));
+
+    let relative = crate::runtime_bridge::generated::AppStorageProjection {
+        app_id: "nimi.desktop".to_string(),
+        state: crate::runtime_bridge::generated::AppStorageState::Ready as i32,
+        durable_data_root: "relative/data".to_string(),
+        ..Default::default()
+    };
+    assert!(chat_ai_data_root_from_projection(&relative)
+        .expect_err("relative root rejected")
+        .contains("absolute Runtime-projected path"));
 }
 
 #[test]

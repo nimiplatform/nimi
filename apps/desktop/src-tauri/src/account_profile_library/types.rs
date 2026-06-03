@@ -116,3 +116,20 @@ pub struct AccountDefaultProfileEvidence {
     pub profile_payload_hash: String,
     pub factory_provenance_hash: String,
 }
+
+/// The Account Default Profile projected as a portable AIProfile-shaped
+/// payload, for the AIConfig scope-init rule.
+///
+/// Carries the same `profileId` / `title` / `description` / `tags` /
+/// `capabilities` shape as the SDK `AIProfile` template. It is the verified
+/// content of the durable `default.json` record; the renderer never
+/// reconstructs it from realm session or app-local state.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountDefaultProfileAIProfile {
+    pub profile_id: String,
+    pub title: String,
+    pub description: String,
+    pub tags: Vec<String>,
+    pub capabilities: serde_json::Map<String, serde_json::Value>,
+}

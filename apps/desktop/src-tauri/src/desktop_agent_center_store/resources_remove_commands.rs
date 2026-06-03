@@ -4,6 +4,9 @@ use super::*;
 pub(crate) async fn desktop_agent_center_background_remove(
     payload: DesktopAgentCenterBackgroundRemovePayload,
 ) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
+    let account_id = crate::desktop_agent_center_store::active_agent_center_account_id().await?;
+    let mut payload = payload;
+    payload.account_id = account_id;
     run_agent_center_resource_blocking("desktop_agent_center_background_remove", move || {
         desktop_agent_center_background_remove_blocking(payload)
     })
@@ -73,6 +76,9 @@ pub(crate) fn desktop_agent_center_background_remove_blocking(
 pub(crate) async fn desktop_agent_center_agent_local_resources_remove(
     payload: DesktopAgentCenterAgentLocalResourcesRemovePayload,
 ) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
+    let account_id = crate::desktop_agent_center_store::active_agent_center_account_id().await?;
+    let mut payload = payload;
+    payload.account_id = account_id;
     run_agent_center_resource_blocking(
         "desktop_agent_center_agent_local_resources_remove",
         move || desktop_agent_center_agent_local_resources_remove_blocking(payload),
@@ -96,6 +102,9 @@ pub(crate) fn desktop_agent_center_agent_local_resources_remove_blocking(
 pub(crate) async fn desktop_agent_center_account_local_resources_remove(
     payload: DesktopAgentCenterAccountLocalResourcesRemovePayload,
 ) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
+    let account_id = crate::desktop_agent_center_store::active_agent_center_account_id().await?;
+    let mut payload = payload;
+    payload.account_id = account_id;
     run_agent_center_resource_blocking(
         "desktop_agent_center_account_local_resources_remove",
         move || desktop_agent_center_account_local_resources_remove_blocking(payload),

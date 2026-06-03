@@ -175,9 +175,15 @@ fn avatar_runtime_env_pairs() -> Result<Vec<(&'static str, String)>, String> {
         "NIMI_RUNTIME_LOCK_PATH",
         "NIMI_RUNTIME_ACCOUNT_CUSTODY_PARTITION",
         "NIMI_RUNTIME_BRIDGE_DEBUG",
-        "NIMI_E2E_FIXTURE_PATH",
-        "NIMI_E2E_BACKEND_LOG_PATH",
     ] {
+        if let Ok(value) = std::env::var(key) {
+            if !value.trim().is_empty() {
+                pairs.push((key, value));
+            }
+        }
+    }
+    #[cfg(any(test, feature = "desktop-e2e-fixture"))]
+    for key in ["NIMI_E2E_FIXTURE_PATH", "NIMI_E2E_BACKEND_LOG_PATH"] {
         if let Ok(value) = std::env::var(key) {
             if !value.trim().is_empty() {
                 pairs.push((key, value));

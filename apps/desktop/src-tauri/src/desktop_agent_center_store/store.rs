@@ -1,3 +1,4 @@
+use super::run_agent_center_resource_blocking;
 use super::types::*;
 use chrono::DateTime;
 use sha2::{Digest, Sha256};
@@ -185,12 +186,6 @@ fn validate_agent_center_config(config: &AgentCenterLocalConfig) -> Result<(), S
     if config.config_kind != AGENT_CENTER_CONFIG_KIND {
         return Err("config_kind must be agent_center_local_config".to_string());
     }
-    validate_normalized_id(&config.account_id, "account_id")?;
-    validate_local_agent_scope(
-        &config.owner_user_id,
-        &config.realm_agent_id,
-        &config.local_agent_ref,
-    )?;
 
     validate_module_version(
         config.modules.appearance.schema_version,
@@ -314,14 +309,10 @@ fn validate_agent_center_config(config: &AgentCenterLocalConfig) -> Result<(), S
     Ok(())
 }
 
-fn default_config(account_id: String, scope: LocalAgentScope) -> AgentCenterLocalConfig {
+fn default_config() -> AgentCenterLocalConfig {
     AgentCenterLocalConfig {
         schema_version: AGENT_CENTER_CONFIG_SCHEMA_VERSION,
         config_kind: AGENT_CENTER_CONFIG_KIND.to_string(),
-        account_id,
-        owner_user_id: scope.owner_user_id,
-        realm_agent_id: scope.realm_agent_id,
-        local_agent_ref: scope.local_agent_ref,
         modules: AgentCenterLocalConfigModules {
             appearance: AgentCenterAppearanceModule {
                 schema_version: AGENT_CENTER_CONFIG_SCHEMA_VERSION,
@@ -435,14 +426,15 @@ fn atomic_write_json(path: &Path, config: &AgentCenterLocalConfig) -> Result<(),
     })
 }
 
-#[tauri::command]
-pub(crate) fn desktop_agent_center_config_get(
+pub(crate) fn desktop_agent_center_config_get_blocking(
+    account_id: &str,
     payload: DesktopAgentCenterConfigScopePayload,
 ) -> Result<AgentCenterLocalConfig, String> {
-    let (account_id, scope) = scope_from_payload(&payload)?;
+    let (_renderer_account_id, scope) = scope_from_payload(&payload)?;
+    let account_id = validate_normalized_id(account_id, "accountId")?;
     let path = config_path(&account_id, &scope.local_agent_ref)?;
     if !path.exists() {
-        return Ok(default_config(account_id, scope));
+        return Ok(default_config());
     }
     let raw = fs::read_to_string(&path).map_err(|error| {
         format!(
@@ -457,43 +449,49 @@ pub(crate) fn desktop_agent_center_config_get(
         )
     })?;
     validate_agent_center_config(&config)?;
-    if config.account_id != account_id
-        || config.owner_user_id != scope.owner_user_id
-        || config.realm_agent_id != scope.realm_agent_id
-        || config.local_agent_ref != scope.local_agent_ref
-    {
-        return Err(
-            "Agent Center config scope does not match requested account/localAgentRef".to_string(),
-        );
-    }
     Ok(config)
 }
 
 #[tauri::command]
-pub(crate) fn desktop_agent_center_config_put(
+pub(crate) async fn desktop_agent_center_config_get(
+    payload: DesktopAgentCenterConfigScopePayload,
+) -> Result<AgentCenterLocalConfig, String> {
+    let account_id = super::active_agent_center_account_id().await?;
+    run_agent_center_resource_blocking("desktop_agent_center_config_get", move || {
+        desktop_agent_center_config_get_blocking(&account_id, payload)
+    })
+    .await
+}
+
+pub(crate) fn desktop_agent_center_config_put_blocking(
+    account_id: &str,
     payload: DesktopAgentCenterConfigPutPayload,
 ) -> Result<AgentCenterLocalConfig, String> {
-    let (account_id, scope) = scope_from_payload(&DesktopAgentCenterConfigScopePayload {
-        account_id: payload.account_id,
-        owner_user_id: payload.owner_user_id,
-        realm_agent_id: payload.realm_agent_id,
-        local_agent_ref: payload.local_agent_ref,
-    })?;
-    if payload.config.account_id != account_id
-        || payload.config.owner_user_id != scope.owner_user_id
-        || payload.config.realm_agent_id != scope.realm_agent_id
-        || payload.config.local_agent_ref != scope.local_agent_ref
-    {
-        return Err(
-            "Agent Center config scope does not match payload account/localAgentRef".to_string(),
-        );
-    }
+    let (_renderer_account_id, scope) =
+        scope_from_payload(&DesktopAgentCenterConfigScopePayload {
+            account_id: payload.account_id,
+            owner_user_id: payload.owner_user_id,
+            realm_agent_id: payload.realm_agent_id,
+            local_agent_ref: payload.local_agent_ref,
+        })?;
+    let account_id = validate_normalized_id(account_id, "accountId")?;
     validate_agent_center_config(&payload.config)?;
     let dir = agent_center_dir(&account_id, &scope.local_agent_ref)?;
     let _lock = acquire_write_lock(&dir)?;
     let path = dir.join(CONFIG_FILE_NAME);
     atomic_write_json(&path, &payload.config)?;
     Ok(payload.config)
+}
+
+#[tauri::command]
+pub(crate) async fn desktop_agent_center_config_put(
+    payload: DesktopAgentCenterConfigPutPayload,
+) -> Result<AgentCenterLocalConfig, String> {
+    let account_id = super::active_agent_center_account_id().await?;
+    run_agent_center_resource_blocking("desktop_agent_center_config_put", move || {
+        desktop_agent_center_config_put_blocking(&account_id, payload)
+    })
+    .await
 }
 
 #[cfg(test)]
@@ -519,11 +517,6 @@ mod tests {
         "local-agent:owner_1:agent_1".to_string()
     }
 
-    fn local_scope() -> LocalAgentScope {
-        validate_local_agent_scope(&owner_user_id(), &realm_agent_id(), &local_agent_ref())
-            .expect("local scope")
-    }
-
     fn scope_payload() -> DesktopAgentCenterConfigScopePayload {
         DesktopAgentCenterConfigScopePayload {
             account_id: "account_1".to_string(),
@@ -534,7 +527,7 @@ mod tests {
     }
 
     fn valid_config() -> AgentCenterLocalConfig {
-        let mut config = default_config("account_1".to_string(), local_scope());
+        let mut config = default_config();
         config.modules.avatar_asset.local_avatar_asset_ref =
             Some("live2d_ab12cd34ef56".to_string());
         config.modules.avatar_asset.backend_kind = AgentCenterAvatarBackendKind::Live2d;
@@ -562,7 +555,8 @@ mod tests {
     fn missing_config_returns_default_without_creating_file() {
         let home = temp_home("default");
         with_product_data_home(&home, || {
-            let config = desktop_agent_center_config_get(scope_payload()).expect("default config");
+            let config = desktop_agent_center_config_get_blocking("account_1", scope_payload())
+                .expect("default config");
             assert_eq!(config.config_kind, AGENT_CENTER_CONFIG_KIND);
             assert!(config.modules.avatar_asset.local_avatar_asset_ref.is_none());
             assert!(!home
@@ -579,15 +573,19 @@ mod tests {
         let home = temp_home("persist");
         with_product_data_home(&home, || {
             let config = valid_config();
-            desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
-                account_id: "account_1".to_string(),
-                owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
-                local_agent_ref: local_agent_ref(),
-                config,
-            })
+            desktop_agent_center_config_put_blocking(
+                "account_1",
+                DesktopAgentCenterConfigPutPayload {
+                    account_id: "account_1".to_string(),
+                    owner_user_id: owner_user_id(),
+                    realm_agent_id: realm_agent_id(),
+                    local_agent_ref: local_agent_ref(),
+                    config,
+                },
+            )
             .expect("put config");
-            let loaded = desktop_agent_center_config_get(scope_payload()).expect("get config");
+            let loaded = desktop_agent_center_config_get_blocking("account_1", scope_payload())
+                .expect("get config");
             assert_eq!(
                 loaded
                     .modules
@@ -607,13 +605,16 @@ mod tests {
             config.modules.avatar_asset.local_avatar_asset_ref =
                 Some("live2d_ab12cd34ef56".to_string());
             config.modules.avatar_asset.backend_kind = AgentCenterAvatarBackendKind::Vrm;
-            let err = desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
-                account_id: "account_1".to_string(),
-                owner_user_id: owner_user_id(),
-                realm_agent_id: realm_agent_id(),
-                local_agent_ref: local_agent_ref(),
-                config,
-            })
+            let err = desktop_agent_center_config_put_blocking(
+                "account_1",
+                DesktopAgentCenterConfigPutPayload {
+                    account_id: "account_1".to_string(),
+                    owner_user_id: owner_user_id(),
+                    realm_agent_id: realm_agent_id(),
+                    local_agent_ref: local_agent_ref(),
+                    config,
+                },
+            )
             .expect_err("backend mismatch rejected");
             assert!(err.contains("backend_kind must match local Avatar asset id prefix"));
         });
@@ -623,15 +624,18 @@ mod tests {
     fn put_rejects_scope_mismatch() {
         let home = temp_home("scope");
         with_product_data_home(&home, || {
-            let err = desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
-                account_id: "account_1".to_string(),
-                owner_user_id: owner_user_id(),
-                realm_agent_id: "agent_2".to_string(),
-                local_agent_ref: "local-agent:owner_1:agent_2".to_string(),
-                config: valid_config(),
-            })
+            let err = desktop_agent_center_config_put_blocking(
+                "account_1",
+                DesktopAgentCenterConfigPutPayload {
+                    account_id: "account_1".to_string(),
+                    owner_user_id: owner_user_id(),
+                    realm_agent_id: "agent_2".to_string(),
+                    local_agent_ref: local_agent_ref(),
+                    config: valid_config(),
+                },
+            )
             .expect_err("scope mismatch");
-            assert!(err.contains("scope"));
+            assert!(err.contains("localAgentRef"));
         });
     }
 
@@ -679,7 +683,7 @@ mod tests {
                 }"#,
             )
             .expect("write corrupt config");
-            let err = desktop_agent_center_config_get(scope_payload())
+            let err = desktop_agent_center_config_get_blocking("account_1", scope_payload())
                 .expect_err("unknown field rejected");
             assert!(err.contains("runtime_profile") || err.contains("unknown field"));
         });

@@ -69,15 +69,84 @@ function lineOf(source, index) {
   return source.slice(0, index).split('\n').length;
 }
 
-function parseGenerateHandlerCommands(source, rel) {
-  const marker = 'tauri::generate_handler!';
-  const markerIndex = source.indexOf(marker);
-  if (markerIndex < 0) {
-    throw new Error(`${rel} missing ${marker}`);
+function maskRangePreserveLines(source, start, end) {
+  return `${source.slice(0, start)}${source
+    .slice(start, end)
+    .replace(/[^\n]/gu, ' ')}${source.slice(end)}`;
+}
+
+function findClosingBrace(source, openIndex) {
+  let depth = 0;
+  let state = 'code';
+  for (let i = openIndex; i < source.length; i += 1) {
+    const ch = source[i];
+    const next = source[i + 1];
+    if (state === 'line_comment') {
+      if (ch === '\n') state = 'code';
+      continue;
+    }
+    if (state === 'block_comment') {
+      if (ch === '*' && next === '/') {
+        state = 'code';
+        i += 1;
+      }
+      continue;
+    }
+    if (state === 'string') {
+      if (ch === '\\') i += 1;
+      else if (ch === '"') state = 'code';
+      continue;
+    }
+    if (state === 'char') {
+      if (ch === '\\') i += 1;
+      else if (ch === "'") state = 'code';
+      continue;
+    }
+    if (ch === '/' && next === '/') {
+      state = 'line_comment';
+      i += 1;
+      continue;
+    }
+    if (ch === '/' && next === '*') {
+      state = 'block_comment';
+      i += 1;
+      continue;
+    }
+    if (ch === '"') {
+      state = 'string';
+      continue;
+    }
+    if (ch === "'") {
+      state = 'char';
+      continue;
+    }
+    if (ch === '{') depth += 1;
+    if (ch === '}') {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
   }
+  return -1;
+}
+
+function maskCfgTestModules(source) {
+  let masked = source;
+  const pattern = /#\s*\[\s*cfg\s*\(\s*test\s*\)\s*\]\s*mod\s+[A-Za-z0-9_]+\s*\{/gu;
+  let match;
+  while ((match = pattern.exec(masked)) !== null) {
+    const openIndex = masked.indexOf('{', match.index);
+    const closeIndex = findClosingBrace(masked, openIndex);
+    if (closeIndex < 0) continue;
+    masked = maskRangePreserveLines(masked, match.index, closeIndex + 1);
+    pattern.lastIndex = closeIndex + 1;
+  }
+  return masked;
+}
+
+function extractBracketBodyAfterMarker(source, marker, markerIndex, rel, label) {
   const openIndex = source.indexOf('[', markerIndex + marker.length);
   if (openIndex < 0) {
-    throw new Error(`${rel} missing generate_handler opening bracket`);
+    throw new Error(`${rel} missing ${label} opening bracket`);
   }
 
   let depth = 0;
@@ -145,10 +214,13 @@ function parseGenerateHandlerCommands(source, rel) {
   }
 
   if (closeIndex < 0) {
-    throw new Error(`${rel} generate_handler bracket parse did not close`);
+    throw new Error(`${rel} ${label} bracket parse did not close`);
   }
 
-  const body = source.slice(openIndex + 1, closeIndex);
+  return source.slice(openIndex + 1, closeIndex);
+}
+
+function parseCommandRefs(body, rel, context) {
   const withoutComments = body
     .replace(/\/\*[\s\S]*?\*\//gu, '')
     .replace(/\/\/.*$/gmu, '');
@@ -156,13 +228,86 @@ function parseGenerateHandlerCommands(source, rel) {
   for (const raw of withoutComments.split(',')) {
     const ref = raw.trim();
     if (!ref) continue;
+    if (ref === '*' || ref.startsWith('$runtime_defaults') || ref.startsWith('$(')) continue;
     const match = ref.match(/(?:^|::)([a-z][a-z0-9_]*)$/u);
     if (!match) {
-      throw new Error(`${rel} contains unparsable generate_handler entry: ${ref}`);
+      throw new Error(`${rel} contains unparsable ${context} entry: ${ref}`);
     }
     commands.push({ name: match[1], ref });
   }
   return commands;
+}
+
+function parseGenerateHandlerBody(source, markerIndex, rel) {
+  const marker = 'tauri::generate_handler!';
+  return parseCommandRefs(
+    extractBracketBodyAfterMarker(source, marker, markerIndex, rel, 'generate_handler'),
+    rel,
+    'generate_handler',
+  );
+}
+
+function parseKitMacroBuiltins(macroName) {
+  const rel = 'kit/shell/tauri/src/command_registration.rs';
+  const source = read(rel);
+  const marker = `macro_rules! ${macroName}`;
+  const macroIndex = source.indexOf(marker);
+  if (macroIndex < 0) {
+    throw new Error(`${rel} missing ${marker}`);
+  }
+  const generateMarker = 'tauri::generate_handler!';
+  const handlerIndex = source.indexOf(generateMarker, macroIndex);
+  if (handlerIndex < 0) {
+    throw new Error(`${rel} ${macroName} missing ${generateMarker}`);
+  }
+  return parseGenerateHandlerBody(source, handlerIndex, rel).filter(
+    (command) => command.name !== 'runtime_defaults',
+  );
+}
+
+function parseKitHandlerInvocation(source, rel, macroName, markerIndex) {
+  const marker = `nimi_shell_tauri::${macroName}!`;
+  const body = extractBracketBodyAfterMarker(source, marker, markerIndex, rel, macroName);
+  const runtimeDefaultsMatch = body.match(/@with_runtime_defaults\s+([^;]+);/u);
+  const runtimeDefaultsRef = runtimeDefaultsMatch
+    ? runtimeDefaultsMatch[1].trim()
+    : 'nimi_shell_tauri::runtime_defaults::runtime_defaults';
+  const runtimeDefaultsName = runtimeDefaultsRef.match(/(?:^|::)([a-z][a-z0-9_]*)$/u)?.[1];
+  if (!runtimeDefaultsName) {
+    throw new Error(`${rel} contains unparsable runtime defaults entry: ${runtimeDefaultsRef}`);
+  }
+  const appCommandBody = runtimeDefaultsMatch
+    ? body.slice(runtimeDefaultsMatch.index + runtimeDefaultsMatch[0].length)
+    : body;
+  const appCommands = parseCommandRefs(appCommandBody, rel, macroName);
+  return [
+    { name: runtimeDefaultsName, ref: runtimeDefaultsRef },
+    ...parseKitMacroBuiltins(macroName),
+    ...appCommands,
+  ];
+}
+
+function parseGenerateHandlerCommands(source, rel) {
+  const directMarker = 'tauri::generate_handler!';
+  const directIndex = source.indexOf(directMarker);
+  if (directIndex >= 0) {
+    return parseGenerateHandlerBody(source, directIndex, rel);
+  }
+
+  const kitMacros = [
+    'nimi_shell_tauri_auth_oauth_runtime_bridge_handler',
+    'nimi_shell_tauri_oauth_runtime_bridge_handler',
+    'nimi_shell_tauri_runtime_bridge_handler',
+  ];
+  for (const macroName of kitMacros) {
+    const marker = `nimi_shell_tauri::${macroName}!`;
+    const markerIndex = source.indexOf(marker);
+    if (markerIndex >= 0) {
+      return parseKitHandlerInvocation(source, rel, macroName, markerIndex);
+    }
+  }
+
+  throw new Error(`${rel} missing tauri::generate_handler! or admitted Kit shell handler macro`);
 }
 
 function extractFunctionBody(source, fnIndex) {
@@ -228,7 +373,7 @@ function scanAnnotatedCommands(scanRoots) {
     const rootAbs = path.join(repoRoot, rootRel);
     for (const fileAbs of walk(rootAbs)) {
       const rel = path.relative(repoRoot, fileAbs).split(path.sep).join('/');
-      const source = fs.readFileSync(fileAbs, 'utf8');
+      const source = maskCfgTestModules(fs.readFileSync(fileAbs, 'utf8'));
       let match;
       while ((match = commandPattern.exec(source)) !== null) {
         const body = extractFunctionBody(source, match.index);
@@ -282,7 +427,6 @@ function validateTable(table) {
   const families = Array.isArray(table?.registered_command_families) ? table.registered_command_families : [];
   if (families.length === 0) fail(`${tableRel} registered_command_families must not be empty`);
   const dormant = Array.isArray(table?.dormant_command_families) ? table.dormant_command_families : [];
-  if (dormant.length === 0) fail(`${tableRel} dormant_command_families must not be empty`);
 
   for (const entry of families) {
     const family = String(entry?.family || '').trim() || '<unnamed>';

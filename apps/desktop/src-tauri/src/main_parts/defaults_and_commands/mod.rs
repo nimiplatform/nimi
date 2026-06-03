@@ -94,11 +94,13 @@ pub(crate) async fn http_request(
     let origin = normalize_origin(&url)?;
     let allowed = allowed_http_origins();
 
-    // HTTP origins require explicit allow-list or LAN private IP targets. HTTPS
-    // origins may be proxied only without renderer-supplied Authorization unless
-    // they are an admitted Runtime/Realm origin.
-    let is_https = url.scheme() == "https";
-    if !is_https && !allowed.contains(&origin) && !is_private_lan_http_origin(&url) {
+    let connector_auth_acquisition_allowed = is_connector_auth_acquisition_request_allowed(
+        payload.connector_auth_profile_id.as_deref(),
+        payload.connector_auth_purpose.as_deref(),
+        &url,
+        &method,
+    );
+    if !allowed.contains(&origin) && !connector_auth_acquisition_allowed {
         let allowed_list = allowed.iter().cloned().collect::<Vec<_>>();
         eprintln!(
             "[http] × {} {} blocked origin={} allowed={}",
@@ -120,10 +122,12 @@ pub(crate) async fn http_request(
                 "url": url.as_str(),
                 "origin": origin,
                 "allowedOrigins": allowed_list,
+                "connectorAuthProfileId": payload.connector_auth_profile_id.as_deref(),
+                "connectorAuthPurpose": payload.connector_auth_purpose.as_deref(),
             }),
         );
         return Err(format!(
-            "目标地址不在允许列表：{origin}。允许列表：{}",
+            "目标地址未被 Desktop shell network admission 允许：{origin}。允许列表：{}",
             allowed_list.join(", ")
         ));
     }

@@ -259,6 +259,8 @@ async function buildApplication() {
     'src-tauri/tauri.conf.json',
     '--no-bundle',
     '--ci',
+    '--features',
+    'desktop-e2e-fixture',
   ]);
 }
 

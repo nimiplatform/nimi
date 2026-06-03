@@ -1,8 +1,8 @@
 use super::env_http::load_dotenv_file_preserve_env;
 use super::{
     allow_http_request_origin_with_history, allowed_http_origins,
-    is_authorized_http_origin_allowed, is_private_lan_http_origin, normalize_http_method,
-    normalize_origin, normalize_runtime_config_page_id, runtime_defaults,
+    is_authorized_http_origin_allowed, is_connector_auth_acquisition_request_allowed,
+    normalize_http_method, normalize_origin, normalize_runtime_config_page_id, runtime_defaults,
     HTTP_REQUEST_RATE_LIMIT_BURST, HTTP_REQUEST_RATE_LIMIT_WINDOW,
 };
 use crate::test_support::with_env;
@@ -235,23 +235,6 @@ fn renderer_page_load_probe_is_kit_owned_scaffold() {
 }
 
 #[test]
-fn private_lan_http_origin_allows_common_ipv4_ranges() {
-    let a = Url::parse("http://192.168.31.175/api/human/me").expect("valid url");
-    let b = Url::parse("http://10.0.0.22:8080/healthz").expect("valid url");
-    let c = Url::parse("http://172.16.5.9:3002/api").expect("valid url");
-    let d = Url::parse("http://172.31.255.10:9000/api").expect("valid url");
-    let e = Url::parse("http://172.32.0.1:3002/api").expect("valid url");
-    let f = Url::parse("http://8.8.8.8:80/").expect("valid url");
-
-    assert!(is_private_lan_http_origin(&a));
-    assert!(is_private_lan_http_origin(&b));
-    assert!(is_private_lan_http_origin(&c));
-    assert!(is_private_lan_http_origin(&d));
-    assert!(!is_private_lan_http_origin(&e));
-    assert!(!is_private_lan_http_origin(&f));
-}
-
-#[test]
 fn http_request_rate_limit_enforces_burst_and_prunes_old_entries() {
     let mut history = VecDeque::new();
     for i in 0..HTTP_REQUEST_RATE_LIMIT_BURST {
@@ -267,6 +250,46 @@ fn http_request_rate_limit_enforces_burst_and_prunes_old_entries() {
     assert!(allow_http_request_origin_with_history(
         &mut history,
         HTTP_REQUEST_RATE_LIMIT_WINDOW + Duration::from_secs(1),
+    ));
+}
+
+#[test]
+fn connector_auth_acquisition_policy_only_allows_exact_profile_endpoints() {
+    let device_authorization =
+        Url::parse("https://auth.openai.com/api/accounts/deviceauth/usercode").expect("valid url");
+    let device_token =
+        Url::parse("https://auth.openai.com/api/accounts/deviceauth/token").expect("valid url");
+    let foreign = Url::parse("https://api.openai.com/v1/models").expect("valid url");
+
+    assert!(is_connector_auth_acquisition_request_allowed(
+        Some("openai_codex"),
+        Some("device_authorization"),
+        &device_authorization,
+        &reqwest::Method::POST,
+    ));
+    assert!(is_connector_auth_acquisition_request_allowed(
+        Some("openai_codex"),
+        Some("device_token"),
+        &device_token,
+        &reqwest::Method::POST,
+    ));
+    assert!(!is_connector_auth_acquisition_request_allowed(
+        Some("openai_codex"),
+        Some("device_authorization"),
+        &device_authorization,
+        &reqwest::Method::GET,
+    ));
+    assert!(!is_connector_auth_acquisition_request_allowed(
+        Some("openai_codex"),
+        Some("device_token"),
+        &device_authorization,
+        &reqwest::Method::POST,
+    ));
+    assert!(!is_connector_auth_acquisition_request_allowed(
+        Some("openai_codex"),
+        Some("device_authorization"),
+        &foreign,
+        &reqwest::Method::POST,
     ));
 }
 
@@ -288,6 +311,38 @@ fn http_authorization_origin_policy_only_allows_configured_origins() {
 }
 
 #[test]
+fn http_request_rejects_unadmitted_https_without_authorization_before_network() {
+    with_env(
+        &[
+            ("NIMI_REALM_URL", Some("http://localhost:3002")),
+            ("NIMI_E2E_FIXTURE_PATH", None),
+        ],
+        || {
+            run_async(async {
+                let result =
+                    super::defaults_and_commands::http_request(super::HttpRequestPayload {
+                        url: "https://api.third-party.example/v1/data".to_string(),
+                        method: Some("GET".to_string()),
+                        headers: None,
+                        authorization: None,
+                        body: None,
+                        diagnostic_session_id: None,
+                        connector_auth_profile_id: None,
+                        connector_auth_purpose: None,
+                    })
+                    .await;
+
+                let error = result.expect_err("request should fail before network dispatch");
+                assert!(
+                    error.contains("Desktop shell network admission"),
+                    "expected shell network admission block, got {error}"
+                );
+            });
+        },
+    );
+}
+
+#[test]
 fn http_request_rejects_authorization_for_unadmitted_https_before_network() {
     with_env(
         &[
@@ -298,12 +353,14 @@ fn http_request_rejects_authorization_for_unadmitted_https_before_network() {
             run_async(async {
                 let result =
                     super::defaults_and_commands::http_request(super::HttpRequestPayload {
-                        url: "https://api.openai.com/v1/models".to_string(),
-                        method: Some("GET".to_string()),
+                        url: "https://auth.openai.com/api/accounts/deviceauth/usercode".to_string(),
+                        method: Some("POST".to_string()),
                         headers: None,
                         authorization: Some("Bearer must-not-leave-renderer".to_string()),
-                        body: None,
+                        body: Some(r#"{"client_id":"fixture"}"#.to_string()),
                         diagnostic_session_id: None,
+                        connector_auth_profile_id: Some("openai_codex".to_string()),
+                        connector_auth_purpose: Some("device_authorization".to_string()),
                     })
                     .await;
 

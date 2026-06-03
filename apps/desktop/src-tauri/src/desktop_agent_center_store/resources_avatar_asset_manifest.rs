@@ -45,21 +45,6 @@ pub(crate) struct AvatarAssetManifestImport {
     pub(crate) source_fingerprint: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub(crate) struct AvatarCapabilityProfile {
-    pub(crate) schema_version: u8,
-    pub(crate) profile_ref: String,
-    pub(crate) local_asset_id: String,
-    pub(crate) backend_kind: String,
-    pub(crate) evidence_ref: String,
-    pub(crate) file_count: usize,
-    pub(crate) asset_bytes: u64,
-    pub(crate) generated_motion_supported: bool,
-    pub(crate) embedded_live2d_adapter_manifest: bool,
-    pub(crate) imported_at: String,
-}
-
 pub(super) fn avatar_backend_kind_label(
     kind: AgentCenterAvatarBackendKind,
 ) -> Result<&'static str, String> {
@@ -148,7 +133,6 @@ pub(super) fn validate_avatar_asset_manifest(
     asset_root: &Path,
     expected_local_asset_id: &str,
     expected_kind: AgentCenterAvatarBackendKind,
-    expected_capability_profile_ref: &str,
 ) -> AgentCenterAvatarAssetValidationResult {
     let mut errors = Vec::<AgentCenterValidationIssue>::new();
     let kind_label = match avatar_backend_kind_label(expected_kind) {
@@ -157,7 +141,7 @@ pub(super) fn validate_avatar_asset_manifest(
             return avatar_asset_validation_result(
                 Some(expected_local_asset_id.to_string()),
                 Some(expected_kind),
-                Some(expected_capability_profile_ref.to_string()),
+                None,
                 AgentCenterAvatarAssetValidationStatus::UnsupportedBackend,
                 vec![error(
                     "unsupported_backend",
@@ -175,7 +159,7 @@ pub(super) fn validate_avatar_asset_manifest(
             return avatar_asset_validation_result(
                 Some(expected_local_asset_id.to_string()),
                 Some(expected_kind),
-                Some(expected_capability_profile_ref.to_string()),
+                None,
                 AgentCenterAvatarAssetValidationStatus::AssetMissing,
                 vec![error(
                     "avatar_asset_missing",
@@ -192,7 +176,7 @@ pub(super) fn validate_avatar_asset_manifest(
             return avatar_asset_validation_result(
                 Some(expected_local_asset_id.to_string()),
                 Some(expected_kind),
-                Some(expected_capability_profile_ref.to_string()),
+                None,
                 AgentCenterAvatarAssetValidationStatus::InvalidManifest,
                 vec![error(
                     "avatar_asset_manifest_invalid",
@@ -367,67 +351,11 @@ pub(super) fn validate_avatar_asset_manifest(
         ));
     }
 
-    let profile_path = asset_root.join(CAPABILITY_PROFILE_FILE_NAME);
-    match fs::read_to_string(&profile_path)
-        .map_err(|source| {
-            error(
-                "missing_required_file",
-                &format!("Avatar capability profile is missing: {source}"),
-                Some(CAPABILITY_PROFILE_FILE_NAME.to_string()),
-            )
-        })
-        .and_then(|raw| {
-            serde_json::from_str::<AvatarCapabilityProfile>(&raw).map_err(|source| {
-                error(
-                    "avatar_asset_manifest_invalid",
-                    &format!("Avatar capability profile is malformed: {source}"),
-                    Some(CAPABILITY_PROFILE_FILE_NAME.to_string()),
-                )
-            })
-        }) {
-        Ok(profile) => {
-            if profile.schema_version != 1 {
-                errors.push(error(
-                    "avatar_asset_manifest_invalid",
-                    "capability profile schema_version must be 1.",
-                    Some("capability-profile.schema_version".to_string()),
-                ));
-            }
-            if profile.profile_ref != expected_capability_profile_ref {
-                errors.push(error(
-                    "avatar_asset_manifest_invalid",
-                    "capability profile ref must match selected backend evidence.",
-                    Some("capability-profile.profile_ref".to_string()),
-                ));
-            }
-            if profile.local_asset_id != expected_local_asset_id {
-                errors.push(error(
-                    "avatar_asset_manifest_invalid",
-                    "capability profile local_asset_id must match selected asset.",
-                    Some("capability-profile.local_asset_id".to_string()),
-                ));
-            }
-            if profile.backend_kind != kind_label {
-                errors.push(error(
-                    "avatar_asset_manifest_invalid",
-                    "capability profile backend_kind must match selected backend.",
-                    Some("capability-profile.backend_kind".to_string()),
-                ));
-            }
-        }
-        Err(mut issue) => {
-            if issue.code == "missing_required_file" {
-                issue.code = "missing_entry".to_string();
-            }
-            errors.push(issue);
-        }
-    }
-
     if errors.is_empty() {
         avatar_asset_validation_result(
             Some(expected_local_asset_id.to_string()),
             Some(expected_kind),
-            Some(expected_capability_profile_ref.to_string()),
+            None,
             AgentCenterAvatarAssetValidationStatus::Valid,
             vec![],
             vec![],
@@ -437,7 +365,7 @@ pub(super) fn validate_avatar_asset_manifest(
         avatar_asset_validation_result(
             Some(expected_local_asset_id.to_string()),
             Some(expected_kind),
-            Some(expected_capability_profile_ref.to_string()),
+            None,
             status,
             errors,
             vec![],

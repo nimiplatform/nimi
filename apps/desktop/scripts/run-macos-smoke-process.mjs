@@ -54,6 +54,8 @@ export async function buildApplication() {
     '--bundles',
     'app',
     '--no-sign',
+    '--features',
+    'desktop-e2e-fixture',
   ]);
 }
 

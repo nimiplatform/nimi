@@ -179,9 +179,7 @@ fn imports_live2d_avatar_asset_transactionally_and_selects_it() {
 
         assert!(result.local_asset_id.starts_with("live2d_"));
         assert_eq!(result.backend_kind, AgentCenterAvatarBackendKind::Live2d);
-        assert!(result
-            .backend_capability_profile_ref
-            .starts_with("avatar_profile_live2d_"));
+        assert!(result.backend_capability_profile_ref.is_none());
         assert_eq!(result.file_count, 4);
         let dir = avatar_asset_dir(
             "account_1",
@@ -191,15 +189,18 @@ fn imports_live2d_avatar_asset_transactionally_and_selects_it() {
         )
         .expect("avatar asset dir");
         assert!(dir.join(MANIFEST_FILE_NAME).exists());
-        assert!(dir.join(CAPABILITY_PROFILE_FILE_NAME).exists());
+        assert!(!dir.join("capability-profile.json").exists());
         assert!(dir.join("files/ren.model3.json").exists());
         assert!(dir.join("files/nimi/live2d-adapter.json").exists());
-        let config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
-            account_id: "account_1".to_string(),
-            owner_user_id: owner_user_id(),
-            realm_agent_id: realm_agent_id(),
-            local_agent_ref: local_agent_ref(),
-        })
+        let config = desktop_agent_center_config_get_blocking(
+            "account_1",
+            DesktopAgentCenterConfigScopePayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+            },
+        )
         .expect("config");
         assert_eq!(
             config
@@ -215,7 +216,7 @@ fn imports_live2d_avatar_asset_transactionally_and_selects_it() {
                 .avatar_asset
                 .backend_capability_profile_ref
                 .as_deref(),
-            Some(result.backend_capability_profile_ref.as_str())
+            None
         );
         assert_eq!(
             config.modules.avatar_asset.live2d_adapter_manifest_source,
@@ -241,6 +242,7 @@ fn imports_live2d_avatar_asset_transactionally_and_selects_it() {
             validation.local_asset_id.as_deref(),
             Some(result.local_asset_id.as_str())
         );
+        assert!(validation.backend_capability_profile_ref.is_none());
         assert!(dir.join(VALIDATION_FILE_NAME).exists());
     });
 }
@@ -314,9 +316,7 @@ fn imports_vrm_avatar_asset_transactionally_and_selects_it() {
 
         assert!(result.local_asset_id.starts_with("vrm_"));
         assert_eq!(result.backend_kind, AgentCenterAvatarBackendKind::Vrm);
-        assert!(result
-            .backend_capability_profile_ref
-            .starts_with("avatar_profile_vrm_"));
+        assert!(result.backend_capability_profile_ref.is_none());
         let dir = avatar_asset_dir(
             "account_1",
             &local_agent_ref(),
@@ -325,17 +325,20 @@ fn imports_vrm_avatar_asset_transactionally_and_selects_it() {
         )
         .expect("avatar asset dir");
         assert!(dir.join(MANIFEST_FILE_NAME).exists());
-        assert!(dir.join(CAPABILITY_PROFILE_FILE_NAME).exists());
+        assert!(!dir.join("capability-profile.json").exists());
         assert!(dir.join("files/ren.vrm").exists());
         assert!(dir
             .join("files/vrm-motion-presets/idle_subtle.vrma")
             .exists());
-        let config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
-            account_id: "account_1".to_string(),
-            owner_user_id: owner_user_id(),
-            realm_agent_id: realm_agent_id(),
-            local_agent_ref: local_agent_ref(),
-        })
+        let config = desktop_agent_center_config_get_blocking(
+            "account_1",
+            DesktopAgentCenterConfigScopePayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+            },
+        )
         .expect("config");
         assert_eq!(
             config
@@ -441,7 +444,7 @@ fn lists_avatar_asset_library_and_switches_existing_selection() {
                 .avatar_asset
                 .backend_capability_profile_ref
                 .as_deref(),
-            Some(vrm.backend_capability_profile_ref.as_str())
+            None
         );
         assert_eq!(
             config.modules.avatar_asset.live2d_adapter_manifest_source,
@@ -492,12 +495,15 @@ fn removes_selected_avatar_asset_by_clearing_config_and_quarantining_directory()
 
         assert!(result.quarantined);
         assert!(!package_root.exists());
-        let config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
-            account_id: "account_1".to_string(),
-            owner_user_id: owner_user_id(),
-            realm_agent_id: realm_agent_id(),
-            local_agent_ref: local_agent_ref(),
-        })
+        let config = desktop_agent_center_config_get_blocking(
+            "account_1",
+            DesktopAgentCenterConfigScopePayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+            },
+        )
         .expect("config");
         assert!(config.modules.avatar_asset.local_avatar_asset_ref.is_none());
         assert!(config
@@ -544,12 +550,15 @@ fn imports_background_transactionally_and_selects_it() {
         assert!(dir.join(MANIFEST_FILE_NAME).exists());
         assert!(dir.join(VALIDATION_FILE_NAME).exists());
         assert!(dir.join("image.png").exists());
-        let config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
-            account_id: "account_1".to_string(),
-            owner_user_id: owner_user_id(),
-            realm_agent_id: realm_agent_id(),
-            local_agent_ref: local_agent_ref(),
-        })
+        let config = desktop_agent_center_config_get_blocking(
+            "account_1",
+            DesktopAgentCenterConfigScopePayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+            },
+        )
         .expect("config");
         assert_eq!(
             config.modules.appearance.background_asset_id.as_deref(),
@@ -594,14 +603,16 @@ fn same_realm_agent_id_does_not_share_agent_center_resources_across_owners() {
         )
         .expect("owner one import");
 
-        let owner_two_config =
-            desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
+        let owner_two_config = desktop_agent_center_config_get_blocking(
+            "account_1",
+            DesktopAgentCenterConfigScopePayload {
                 account_id: "account_1".to_string(),
                 owner_user_id: owner_user_id_two(),
                 realm_agent_id: realm_agent_id(),
                 local_agent_ref: local_agent_ref_two(),
-            })
-            .expect("owner two config");
+            },
+        )
+        .expect("owner two config");
 
         assert!(owner_two_config
             .modules
@@ -647,12 +658,15 @@ fn removes_selected_background_by_clearing_config_and_quarantining_directory() {
 
         assert!(result.quarantined);
         assert!(!background_root.exists());
-        let config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
-            account_id: "account_1".to_string(),
-            owner_user_id: owner_user_id(),
-            realm_agent_id: realm_agent_id(),
-            local_agent_ref: local_agent_ref(),
-        })
+        let config = desktop_agent_center_config_get_blocking(
+            "account_1",
+            DesktopAgentCenterConfigScopePayload {
+                account_id: "account_1".to_string(),
+                owner_user_id: owner_user_id(),
+                realm_agent_id: realm_agent_id(),
+                local_agent_ref: local_agent_ref(),
+            },
+        )
         .expect("config");
         assert!(config.modules.appearance.background_asset_id.is_none());
         assert!(home

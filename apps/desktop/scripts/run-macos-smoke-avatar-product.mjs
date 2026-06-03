@@ -385,10 +385,6 @@ export function seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPacka
     .update(path.resolve(avatarProductLive2dPackage.packageRoot))
     .digest('hex')
     .slice(0, 12);
-  const profileHash = crypto.createHash('sha256')
-    .update(`${localAgentRef}:${avatarProductLive2dPackage.packageRoot}`)
-    .digest('hex')
-    .slice(0, 12);
   const dataDir = resolveNimiDataDir(productControlRecord);
   const localAssetId = `live2d_${packageHash}`;
   const packageDir = path.join(
@@ -421,7 +417,6 @@ export function seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPacka
   const entrySha256 = sha256FileHex(entryPath);
   const adapterManifestBytes = fs.statSync(adapterManifestPath).size;
   const adapterManifestSha256 = sha256FileHex(adapterManifestPath);
-  const profileRef = `avatar_profile_live2d_${profileHash}`;
   const manifestFiles = [
     {
       path: entryFile,
@@ -456,9 +451,7 @@ export function seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPacka
     },
     capabilities: {
       backend_kind: 'live2d',
-      generated_motion_supported: false,
       embedded_live2d_adapter_manifest: true,
-      capability_profile_ref: profileRef,
     },
     import: {
       imported_at: new Date().toISOString(),
@@ -466,19 +459,6 @@ export function seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPacka
       source_fingerprint: crypto.createHash('sha256').update(entrySha256).digest('hex'),
     },
   });
-  writeJson(path.join(packageDir, 'capability-profile.json'), {
-    schema_version: 1,
-    profile_ref: profileRef,
-    local_asset_id: localAssetId,
-    backend_kind: 'live2d',
-    evidence_ref: localAssetId,
-    file_count: manifestFiles.length,
-    asset_bytes: manifestFiles.reduce((sum, file) => sum + file.bytes, 0),
-    generated_motion_supported: false,
-    embedded_live2d_adapter_manifest: true,
-    imported_at: new Date().toISOString(),
-  });
-
   const config = {
     schema_version: 1,
     config_kind: 'agent_center_local_config',
@@ -500,7 +480,7 @@ export function seedAvatarProductSmokeAgentCenterConfig(avatarProductLive2dPacka
         live2d_adapter_manifest_ref: null,
         avatar_instance_policy: 'reuse_active_instance',
         backend_kind: 'live2d',
-        backend_capability_profile_ref: profileRef,
+        backend_capability_profile_ref: null,
         generated_motion_provider_policy: 'require_profile_support',
         launch_mode: 'manual',
         debug_profile: 'strict_backend_evidence',

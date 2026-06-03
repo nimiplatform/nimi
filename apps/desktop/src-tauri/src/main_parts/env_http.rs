@@ -151,33 +151,38 @@ pub(super) fn allowed_http_origins() -> HashSet<String> {
     origins
 }
 
-pub(super) fn is_private_lan_http_origin(url: &Url) -> bool {
-    if url.scheme() != "http" {
+pub(super) fn is_connector_auth_acquisition_request_allowed(
+    profile_id: Option<&str>,
+    purpose: Option<&str>,
+    url: &Url,
+    method: &Method,
+) -> bool {
+    if method.as_str() != "POST" {
         return false;
     }
 
-    let Some(host) = url.host_str() else {
+    let profile_id = profile_id
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or_default();
+    let purpose = purpose
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or_default();
+    if profile_id.is_empty() || purpose.is_empty() {
         return false;
-    };
-
-    let Ok(ip) = host.parse::<std::net::IpAddr>() else {
-        return false;
-    };
-
-    match ip {
-        std::net::IpAddr::V4(addr) => {
-            let octets = addr.octets();
-            // RFC1918 private IPv4 ranges.
-            octets[0] == 10
-                || (octets[0] == 172 && (16..=31).contains(&octets[1]))
-                || (octets[0] == 192 && octets[1] == 168)
-        }
-        std::net::IpAddr::V6(addr) => {
-            let first = addr.segments()[0];
-            // Unique local (fc00::/7) and link-local (fe80::/10).
-            (first & 0xfe00) == 0xfc00 || (first & 0xffc0) == 0xfe80
-        }
     }
+
+    super::connector_auth_acquisition_profiles_generated::CONNECTOR_AUTH_ACQUISITION_PROFILES
+        .iter()
+        .find(|profile| profile.profile_id == profile_id)
+        .and_then(|profile| match purpose {
+            "device_authorization" => Some(profile.device_authorization_url),
+            "device_token" => Some(profile.device_token_url),
+            _ => None,
+        })
+        .and_then(|allowed_url| Url::parse(allowed_url).ok())
+        .is_some_and(|allowed_url| allowed_url == *url)
 }
 
 pub(super) fn sanitize_headers(

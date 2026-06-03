@@ -1,6 +1,7 @@
 use super::{
     built_in_ai_config_path, compute_config_content_hash, data_root_ref, ensure_built_in_ai_config,
-    ensure_built_in_ai_config_evidence_set, runtime_capability_bindings_from_baseline_ref,
+    ensure_built_in_ai_config_evidence_set,
+    runtime_capability_bindings_from_execution_evidence_ref,
     verify_built_in_ai_config_evidence_set, verify_built_in_ai_config_ref, BuiltInAiConfigRecord,
 };
 use std::path::{Path, PathBuf};
@@ -21,6 +22,9 @@ fn text_binding() -> serde_json::Value {
         "goRuntimeLocalModelId": "asset-id:gemma-test",
         "runtimeBaselineRef": "runtime-baseline:test",
         "runtimeConsumerId": "llama.cpp.cpu",
+        "runtimeExecutionEvidenceRef": "execution_evidence_test",
+        "runtimeLocalRouteTarget": "local",
+        "runtimeExecutionTraceId": "trace:llama.cpp.cpu",
     })
 }
 
@@ -32,10 +36,13 @@ fn stt_binding() -> serde_json::Value {
         "modelId": "asset-id:asr-test",
         "localModelId": "asset-id:asr-test",
         "provider": "speech",
-        "engine": "speech",
+        "engine": "speech.qwen3-asr.python",
         "goRuntimeLocalModelId": "asset-id:asr-test",
         "runtimeBaselineRef": "runtime-baseline:test",
         "runtimeConsumerId": "speech.qwen3-asr.python",
+        "runtimeExecutionEvidenceRef": "execution_evidence_test",
+        "runtimeLocalRouteTarget": "speech",
+        "runtimeExecutionTraceId": "trace:speech.qwen3-asr.python",
     })
 }
 
@@ -47,10 +54,13 @@ fn tts_binding() -> serde_json::Value {
         "modelId": "asset-id:tts-test",
         "localModelId": "asset-id:tts-test",
         "provider": "speech",
-        "engine": "speech",
+        "engine": "speech.qwen3-tts.python",
         "goRuntimeLocalModelId": "asset-id:tts-test",
         "runtimeBaselineRef": "runtime-baseline:test",
         "runtimeConsumerId": "speech.qwen3-tts.python",
+        "runtimeExecutionEvidenceRef": "execution_evidence_test",
+        "runtimeLocalRouteTarget": "speech",
+        "runtimeExecutionTraceId": "trace:speech.qwen3-tts.python",
     })
 }
 
@@ -71,43 +81,71 @@ fn baseline_bindings() -> Vec<super::BuiltInAiConfigCapability> {
     ]
 }
 
-fn runtime_baseline_consumer(
+fn runtime_execution_proof(
+    capability: &str,
+    scenario_type: crate::runtime_bridge::generated::ScenarioType,
     consumer_id: &str,
     bound_asset_id: &str,
-) -> crate::runtime_bridge::generated::RuntimeBaselineActivationConsumerEvidence {
-    crate::runtime_bridge::generated::RuntimeBaselineActivationConsumerEvidence {
-        consumer_id: consumer_id.to_string(),
-        pack_id: format!("pack:{consumer_id}"),
-        activation_state: "ready".to_string(),
-        reason_code: "ACTION_EXECUTED".to_string(),
-        dependencies: Vec::new(),
+    local_route_target: &str,
+) -> crate::runtime_bridge::generated::ExecutionBaselineCapabilityProof {
+    crate::runtime_bridge::generated::ExecutionBaselineCapabilityProof {
+        capability: capability.to_string(),
+        scenario_type: scenario_type as i32,
+        bound_consumer_id: consumer_id.to_string(),
         bound_asset_id: bound_asset_id.to_string(),
+        local_route_target: local_route_target.to_string(),
+        route_policy: crate::runtime_bridge::generated::RoutePolicy::Local as i32,
+        model_resolved: bound_asset_id.to_string(),
+        terminal_result: "local_executed".to_string(),
+        reason_code: "FIRST_RUN_EXECUTION_EVIDENCE_READY".to_string(),
+        trace_id: format!("trace:{consumer_id}"),
+        executed_at: "2026-01-01T00:00:00Z".to_string(),
     }
 }
 
-fn runtime_baseline_ref(
-    consumers: Vec<crate::runtime_bridge::generated::RuntimeBaselineActivationConsumerEvidence>,
-) -> crate::runtime_bridge::generated::RuntimeBaselineReadinessRef {
-    crate::runtime_bridge::generated::RuntimeBaselineReadinessRef {
-        runtime_baseline_ref: "runtime-baseline:test".to_string(),
+fn runtime_execution_evidence_ref(
+    proofs: Vec<crate::runtime_bridge::generated::ExecutionBaselineCapabilityProof>,
+) -> crate::runtime_bridge::generated::ExecutionEvidenceRef {
+    crate::runtime_bridge::generated::ExecutionEvidenceRef {
+        execution_evidence_ref: "execution_evidence_test".to_string(),
         selected_local_factory_ai_profile_ref: format!("factory:{ALIAS}"),
         install_level: LEVEL.to_string(),
-        runtime_data_root_or_data_root_ref: "data-root:test".to_string(),
-        required_dependency_families: Vec::new(),
-        selected_source_record_ids: Vec::new(),
-        activation_ready_responses: consumers,
-        materialization_or_system_source_verification_evidence: Vec::new(),
+        runtime_baseline_ref: "runtime-baseline:test".to_string(),
+        data_root_ref: "data-root:test".to_string(),
+        local_execution_target_evidence: Vec::new(),
+        selected_baseline_capability_proof: proofs,
+        submit_specific_scheduling_judgement: None,
+        terminal_result: "local_ai_ready".to_string(),
         observed_at: "2026-01-01T00:00:00Z".to_string(),
-        runtime_verifier_identity: "runtime-local-service".to_string(),
         runtime_audit_sequence: Vec::new(),
+        runtime_verifier_identity: "runtime-local-service".to_string(),
     }
 }
 
-fn ready_runtime_baseline_ref() -> crate::runtime_bridge::generated::RuntimeBaselineReadinessRef {
-    runtime_baseline_ref(vec![
-        runtime_baseline_consumer("llama.cpp.cpu", "asset-id:gemma-test"),
-        runtime_baseline_consumer("speech.qwen3-asr.python", "asset-id:asr-test"),
-        runtime_baseline_consumer("speech.qwen3-tts.python", "asset-id:tts-test"),
+fn ready_runtime_execution_evidence_ref() -> crate::runtime_bridge::generated::ExecutionEvidenceRef
+{
+    runtime_execution_evidence_ref(vec![
+        runtime_execution_proof(
+            "local_text_chat_execution",
+            crate::runtime_bridge::generated::ScenarioType::TextGenerate,
+            "llama.cpp.cpu",
+            "asset-id:gemma-test",
+            "local",
+        ),
+        runtime_execution_proof(
+            "local_basic_stt_execution",
+            crate::runtime_bridge::generated::ScenarioType::SpeechTranscribe,
+            "speech.qwen3-asr.python",
+            "asset-id:asr-test",
+            "speech",
+        ),
+        runtime_execution_proof(
+            "local_basic_tts_execution",
+            crate::runtime_bridge::generated::ScenarioType::SpeechSynthesize,
+            "speech.qwen3-tts.python",
+            "asset-id:tts-test",
+            "speech",
+        ),
     ])
 }
 
@@ -241,25 +279,27 @@ fn committed_built_in_config_is_full_materialized_for_factory_capability_set() {
 }
 
 #[test]
-fn runtime_baseline_consumer_ids_are_required_evidence_lookup_keys() {
-    let bindings = runtime_capability_bindings_from_baseline_ref(&ready_runtime_baseline_ref())
-        .expect("complete Runtime baseline projects Desktop built-in bindings");
+fn runtime_execution_proofs_are_required_binding_projection_inputs() {
+    let bindings = runtime_capability_bindings_from_execution_evidence_ref(
+        &ready_runtime_execution_evidence_ref(),
+    )
+    .expect("complete Runtime execution proof projects Desktop built-in bindings");
     assert_eq!(bindings, baseline_bindings());
 
-    for (missing_consumer, expected) in [
-        ("llama.cpp.cpu", "llama.cpp.cpu"),
-        ("speech.qwen3-asr.python", "speech.qwen3-asr.python"),
-        ("speech.qwen3-tts.python", "speech.qwen3-tts.python"),
+    for (missing_capability, expected) in [
+        ("local_text_chat_execution", "text.generate"),
+        ("local_basic_stt_execution", "audio.transcribe"),
+        ("local_basic_tts_execution", "audio.synthesize"),
     ] {
-        let baseline = runtime_baseline_ref(
-            ready_runtime_baseline_ref()
-                .activation_ready_responses
+        let evidence = runtime_execution_evidence_ref(
+            ready_runtime_execution_evidence_ref()
+                .selected_baseline_capability_proof
                 .into_iter()
-                .filter(|consumer| consumer.consumer_id != missing_consumer)
+                .filter(|proof| proof.capability != missing_capability)
                 .collect(),
         );
-        let error = runtime_capability_bindings_from_baseline_ref(&baseline)
-            .expect_err("missing required Runtime baseline consumer must fail closed");
+        let error = runtime_capability_bindings_from_execution_evidence_ref(&evidence)
+            .expect_err("missing required Runtime execution proof must fail closed");
         assert!(error.contains(expected), "{error}");
     }
 }

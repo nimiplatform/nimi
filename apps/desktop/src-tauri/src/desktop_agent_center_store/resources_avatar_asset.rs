@@ -21,18 +21,6 @@ fn avatar_asset_kind_from_id(local_asset_id: &str) -> Result<AgentCenterAvatarBa
     Err("localAssetId must start with live2d_ or vrm_".to_string())
 }
 
-fn capability_profile_ref_for_asset(
-    kind: AgentCenterAvatarBackendKind,
-    local_asset_id: &str,
-) -> Result<String, String> {
-    let prefix = avatar_asset_kind_prefix(kind)?;
-    let Some(suffix) = local_asset_id.strip_prefix(&format!("{prefix}_")) else {
-        return Err("localAssetId prefix must match backend kind".to_string());
-    };
-    let profile_ref = format!("avatar_profile_{prefix}_{suffix}");
-    validate_normalized_id(&profile_ref, "backendCapabilityProfileRef")
-}
-
 fn read_avatar_asset_manifest(asset_dir: &Path) -> Result<AvatarAssetManifest, String> {
     let manifest_path = asset_dir.join(MANIFEST_FILE_NAME);
     let raw = fs::read_to_string(&manifest_path).map_err(|error| {
@@ -57,8 +45,7 @@ fn avatar_asset_record_from_dir(
     selected_local_asset_id: Option<&str>,
 ) -> Result<DesktopAgentCenterAvatarAssetRecord, String> {
     let asset_dir = avatar_asset_dir(account_id, &scope.local_agent_ref, kind, local_asset_id)?;
-    let profile_ref = capability_profile_ref_for_asset(kind, local_asset_id)?;
-    let validation = validate_avatar_asset_manifest(&asset_dir, local_asset_id, kind, &profile_ref);
+    let validation = validate_avatar_asset_manifest(&asset_dir, local_asset_id, kind);
     write_avatar_asset_validation_sidecar(&asset_dir, &validation)?;
     let manifest = read_avatar_asset_manifest(&asset_dir)?;
     Ok(DesktopAgentCenterAvatarAssetRecord {
@@ -66,7 +53,7 @@ fn avatar_asset_record_from_dir(
         backend_kind: kind,
         display_name: manifest.display_name,
         source_label: manifest.import.source_label,
-        backend_capability_profile_ref: profile_ref,
+        backend_capability_profile_ref: None,
         asset_bytes: manifest.files.iter().map(|file| file.bytes).sum(),
         file_count: manifest.files.len(),
         imported_at: manifest.import.imported_at,
@@ -80,20 +67,21 @@ fn select_imported_avatar_asset(
     scope: &LocalAgentScope,
     kind: AgentCenterAvatarBackendKind,
     local_asset_id: &str,
-    capability_profile_ref: &str,
     evidence_ref: &str,
     embedded_live2d_adapter_manifest: bool,
 ) -> Result<(), String> {
-    let mut config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
-        account_id: account_id.to_string(),
-        owner_user_id: scope.owner_user_id.clone(),
-        realm_agent_id: scope.realm_agent_id.clone(),
-        local_agent_ref: scope.local_agent_ref.clone(),
-    })?;
+    let mut config = desktop_agent_center_config_get_blocking(
+        account_id,
+        DesktopAgentCenterConfigScopePayload {
+            account_id: account_id.to_string(),
+            owner_user_id: scope.owner_user_id.clone(),
+            realm_agent_id: scope.realm_agent_id.clone(),
+            local_agent_ref: scope.local_agent_ref.clone(),
+        },
+    )?;
     config.modules.avatar_asset.local_avatar_asset_ref = Some(local_asset_id.to_string());
     config.modules.avatar_asset.backend_kind = kind;
-    config.modules.avatar_asset.backend_capability_profile_ref =
-        Some(capability_profile_ref.to_string());
+    config.modules.avatar_asset.backend_capability_profile_ref = None;
     config.modules.avatar_asset.live2d_adapter_manifest_ref = None;
     config.modules.avatar_asset.live2d_adapter_manifest_source =
         if kind == AgentCenterAvatarBackendKind::Live2d && embedded_live2d_adapter_manifest {
@@ -107,13 +95,16 @@ fn select_imported_avatar_asset(
         source: AgentCenterAvatarConfigProvenanceSource::ImportValidation,
         evidence_ref: evidence_ref.to_string(),
     };
-    desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
-        account_id: account_id.to_string(),
-        owner_user_id: scope.owner_user_id.clone(),
-        realm_agent_id: scope.realm_agent_id.clone(),
-        local_agent_ref: scope.local_agent_ref.clone(),
-        config,
-    })?;
+    desktop_agent_center_config_put_blocking(
+        account_id,
+        DesktopAgentCenterConfigPutPayload {
+            account_id: account_id.to_string(),
+            owner_user_id: scope.owner_user_id.clone(),
+            realm_agent_id: scope.realm_agent_id.clone(),
+            local_agent_ref: scope.local_agent_ref.clone(),
+            config,
+        },
+    )?;
     Ok(())
 }
 
@@ -123,12 +114,11 @@ fn select_existing_avatar_asset(
     local_asset_id: &str,
 ) -> Result<AgentCenterLocalConfig, String> {
     let kind = avatar_asset_kind_from_id(local_asset_id)?;
-    let profile_ref = capability_profile_ref_for_asset(kind, local_asset_id)?;
     let asset_dir = avatar_asset_dir(account_id, &scope.local_agent_ref, kind, local_asset_id)?;
     if !asset_dir.exists() {
         return Err("selected local Avatar asset directory is missing".to_string());
     }
-    let validation = validate_avatar_asset_manifest(&asset_dir, local_asset_id, kind, &profile_ref);
+    let validation = validate_avatar_asset_manifest(&asset_dir, local_asset_id, kind);
     write_avatar_asset_validation_sidecar(&asset_dir, &validation)?;
     if validation.status != AgentCenterAvatarAssetValidationStatus::Valid {
         return Err(format!(
@@ -147,7 +137,6 @@ fn select_existing_avatar_asset(
         scope,
         kind,
         local_asset_id,
-        &profile_ref,
         local_asset_id,
         embedded_live2d_adapter_manifest,
     )?;
@@ -160,12 +149,15 @@ fn select_existing_avatar_asset(
         "completed",
         "user_selected_existing",
     )?;
-    desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
-        account_id: account_id.to_string(),
-        owner_user_id: scope.owner_user_id.clone(),
-        realm_agent_id: scope.realm_agent_id.clone(),
-        local_agent_ref: scope.local_agent_ref.clone(),
-    })
+    desktop_agent_center_config_get_blocking(
+        account_id,
+        DesktopAgentCenterConfigScopePayload {
+            account_id: account_id.to_string(),
+            owner_user_id: scope.owner_user_id.clone(),
+            realm_agent_id: scope.realm_agent_id.clone(),
+            local_agent_ref: scope.local_agent_ref.clone(),
+        },
+    )
 }
 
 fn clear_selected_avatar_asset(
@@ -173,12 +165,15 @@ fn clear_selected_avatar_asset(
     scope: &LocalAgentScope,
     local_asset_id: &str,
 ) -> Result<(), String> {
-    let mut config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
-        account_id: account_id.to_string(),
-        owner_user_id: scope.owner_user_id.clone(),
-        realm_agent_id: scope.realm_agent_id.clone(),
-        local_agent_ref: scope.local_agent_ref.clone(),
-    })?;
+    let mut config = desktop_agent_center_config_get_blocking(
+        account_id,
+        DesktopAgentCenterConfigScopePayload {
+            account_id: account_id.to_string(),
+            owner_user_id: scope.owner_user_id.clone(),
+            realm_agent_id: scope.realm_agent_id.clone(),
+            local_agent_ref: scope.local_agent_ref.clone(),
+        },
+    )?;
     if config
         .modules
         .avatar_asset
@@ -197,13 +192,16 @@ fn clear_selected_avatar_asset(
             source: AgentCenterAvatarConfigProvenanceSource::UserSelection,
             evidence_ref: "agent-center-avatar-asset-cleared".to_string(),
         };
-        desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
-            account_id: account_id.to_string(),
-            owner_user_id: scope.owner_user_id.clone(),
-            realm_agent_id: scope.realm_agent_id.clone(),
-            local_agent_ref: scope.local_agent_ref.clone(),
-            config,
-        })?;
+        desktop_agent_center_config_put_blocking(
+            account_id,
+            DesktopAgentCenterConfigPutPayload {
+                account_id: account_id.to_string(),
+                owner_user_id: scope.owner_user_id.clone(),
+                realm_agent_id: scope.realm_agent_id.clone(),
+                local_agent_ref: scope.local_agent_ref.clone(),
+                config,
+            },
+        )?;
     }
     Ok(())
 }
@@ -212,6 +210,9 @@ fn clear_selected_avatar_asset(
 pub(crate) async fn desktop_agent_center_avatar_asset_validate(
     payload: DesktopAgentCenterAvatarAssetValidatePayload,
 ) -> Result<AgentCenterAvatarAssetValidationResult, String> {
+    let account_id = crate::desktop_agent_center_store::active_agent_center_account_id().await?;
+    let mut payload = payload;
+    payload.account_id = account_id;
     run_agent_center_resource_blocking("desktop_agent_center_avatar_asset_validate", move || {
         desktop_agent_center_avatar_asset_validate_blocking(payload)
     })
@@ -227,12 +228,15 @@ pub(crate) fn desktop_agent_center_avatar_asset_validate_blocking(
         &payload.realm_agent_id,
         &payload.local_agent_ref,
     )?;
-    let config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
-        account_id: account_id.clone(),
-        owner_user_id: scope.owner_user_id.clone(),
-        realm_agent_id: scope.realm_agent_id.clone(),
-        local_agent_ref: scope.local_agent_ref.clone(),
-    })?;
+    let config = desktop_agent_center_config_get_blocking(
+        &account_id,
+        DesktopAgentCenterConfigScopePayload {
+            account_id: account_id.clone(),
+            owner_user_id: scope.owner_user_id.clone(),
+            realm_agent_id: scope.realm_agent_id.clone(),
+            local_agent_ref: scope.local_agent_ref.clone(),
+        },
+    )?;
     let avatar = config.modules.avatar_asset;
     let local_asset_id = match avatar.local_avatar_asset_ref {
         Some(value) => value,
@@ -252,29 +256,11 @@ pub(crate) fn desktop_agent_center_avatar_asset_validate_blocking(
         }
     };
     validate_local_asset_id(&local_asset_id, "localAssetId")?;
-    let profile_ref = match avatar.backend_capability_profile_ref {
-        Some(value) => value,
-        None => {
-            return Ok(avatar_asset_validation_result(
-                Some(local_asset_id),
-                Some(avatar.backend_kind),
-                None,
-                AgentCenterAvatarAssetValidationStatus::SelectionMissing,
-                vec![error(
-                    "selection_missing",
-                    "Selected Avatar asset is missing backend capability evidence.",
-                    Some("modules.avatar_asset.backend_capability_profile_ref".to_string()),
-                )],
-                vec![],
-            ));
-        }
-    };
-    validate_normalized_id(&profile_ref, "backendCapabilityProfileRef")?;
     if avatar.backend_kind == AgentCenterAvatarBackendKind::Future {
         return Ok(avatar_asset_validation_result(
             Some(local_asset_id),
             Some(avatar.backend_kind),
-            Some(profile_ref),
+            avatar.backend_capability_profile_ref,
             AgentCenterAvatarAssetValidationStatus::UnsupportedBackend,
             vec![error(
                 "unsupported_backend",
@@ -294,7 +280,7 @@ pub(crate) fn desktop_agent_center_avatar_asset_validate_blocking(
         return Ok(avatar_asset_validation_result(
             Some(local_asset_id),
             Some(avatar.backend_kind),
-            Some(profile_ref),
+            avatar.backend_capability_profile_ref,
             AgentCenterAvatarAssetValidationStatus::AssetMissing,
             vec![error(
                 "avatar_asset_missing",
@@ -304,12 +290,7 @@ pub(crate) fn desktop_agent_center_avatar_asset_validate_blocking(
             vec![],
         ));
     }
-    let result = validate_avatar_asset_manifest(
-        &asset_dir,
-        &local_asset_id,
-        avatar.backend_kind,
-        &profile_ref,
-    );
+    let result = validate_avatar_asset_manifest(&asset_dir, &local_asset_id, avatar.backend_kind);
     write_avatar_asset_validation_sidecar(&asset_dir, &result)?;
     Ok(result)
 }
@@ -318,6 +299,9 @@ pub(crate) fn desktop_agent_center_avatar_asset_validate_blocking(
 pub(crate) async fn desktop_agent_center_avatar_asset_list(
     payload: DesktopAgentCenterConfigScopePayload,
 ) -> Result<DesktopAgentCenterAvatarAssetListResult, String> {
+    let account_id = crate::desktop_agent_center_store::active_agent_center_account_id().await?;
+    let mut payload = payload;
+    payload.account_id = account_id;
     run_agent_center_resource_blocking("desktop_agent_center_avatar_asset_list", move || {
         desktop_agent_center_avatar_asset_list_blocking(payload)
     })
@@ -333,12 +317,15 @@ pub(crate) fn desktop_agent_center_avatar_asset_list_blocking(
         &payload.realm_agent_id,
         &payload.local_agent_ref,
     )?;
-    let config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
-        account_id: account_id.clone(),
-        owner_user_id: scope.owner_user_id.clone(),
-        realm_agent_id: scope.realm_agent_id.clone(),
-        local_agent_ref: scope.local_agent_ref.clone(),
-    })?;
+    let config = desktop_agent_center_config_get_blocking(
+        &account_id,
+        DesktopAgentCenterConfigScopePayload {
+            account_id: account_id.clone(),
+            owner_user_id: scope.owner_user_id.clone(),
+            realm_agent_id: scope.realm_agent_id.clone(),
+            local_agent_ref: scope.local_agent_ref.clone(),
+        },
+    )?;
     let selected_local_asset_id = config.modules.avatar_asset.local_avatar_asset_ref.clone();
     let packages_dir = agent_center_dir(&account_id, &scope.local_agent_ref)?
         .join("modules")
@@ -408,6 +395,9 @@ pub(crate) fn desktop_agent_center_avatar_asset_list_blocking(
 pub(crate) async fn desktop_agent_center_avatar_asset_select(
     payload: DesktopAgentCenterAvatarAssetSelectPayload,
 ) -> Result<AgentCenterLocalConfig, String> {
+    let account_id = crate::desktop_agent_center_store::active_agent_center_account_id().await?;
+    let mut payload = payload;
+    payload.account_id = account_id;
     run_agent_center_resource_blocking("desktop_agent_center_avatar_asset_select", move || {
         desktop_agent_center_avatar_asset_select_blocking(payload)
     })
@@ -457,6 +447,9 @@ pub(crate) fn desktop_agent_center_avatar_asset_pick_vrm_source() -> Result<Opti
 pub(crate) async fn desktop_agent_center_avatar_asset_import(
     payload: DesktopAgentCenterAvatarAssetImportPayload,
 ) -> Result<DesktopAgentCenterAvatarAssetImportResult, String> {
+    let account_id = crate::desktop_agent_center_store::active_agent_center_account_id().await?;
+    let mut payload = payload;
+    payload.account_id = account_id;
     run_agent_center_resource_blocking("desktop_agent_center_avatar_asset_import", move || {
         desktop_agent_center_avatar_asset_import_blocking(payload)
     })
@@ -486,8 +479,6 @@ pub(crate) fn desktop_agent_center_avatar_asset_import_blocking(
     let prefix = avatar_asset_kind_prefix(kind)?;
     let local_asset_id = format!("{prefix}_{}", &content_digest[..12]);
     validate_local_asset_id(&local_asset_id, "localAssetId")?;
-    let capability_profile_ref = format!("avatar_profile_{prefix}_{}", &content_digest[..12]);
-    validate_normalized_id(&capability_profile_ref, "backendCapabilityProfileRef")?;
     let imported_at = checked_at();
     let selected = payload.select.unwrap_or(true);
     let display_name = safe_display_name(payload.display_name, &source)?;
@@ -495,10 +486,6 @@ pub(crate) fn desktop_agent_center_avatar_asset_import_blocking(
         && files
             .iter()
             .any(|file| file.asset_path == "files/nimi/live2d-adapter.json");
-    let generated_motion_supported = kind == AgentCenterAvatarBackendKind::Vrm
-        && files
-            .iter()
-            .any(|file| file.asset_path.starts_with("files/vrm-motion-presets/"));
     let final_dir = avatar_asset_dir(&account_id, &scope.local_agent_ref, kind, &local_asset_id)?;
 
     if final_dir.exists() {
@@ -508,7 +495,6 @@ pub(crate) fn desktop_agent_center_avatar_asset_import_blocking(
                 &scope,
                 kind,
                 &local_asset_id,
-                &capability_profile_ref,
                 &local_asset_id,
                 embedded_live2d_adapter_manifest,
             )?;
@@ -530,7 +516,7 @@ pub(crate) fn desktop_agent_center_avatar_asset_import_blocking(
         return Ok(DesktopAgentCenterAvatarAssetImportResult {
             local_asset_id,
             backend_kind: kind,
-            backend_capability_profile_ref: capability_profile_ref,
+            backend_capability_profile_ref: None,
             selected,
             manifest_sha256,
             asset_bytes,
@@ -604,9 +590,7 @@ pub(crate) fn desktop_agent_center_avatar_asset_import_blocking(
             },
             capabilities: serde_json::json!({
                 "backend_kind": kind_label,
-                "generated_motion_supported": generated_motion_supported,
                 "embedded_live2d_adapter_manifest": embedded_live2d_adapter_manifest,
-                "capability_profile_ref": capability_profile_ref,
             }),
             import: AvatarAssetManifestImport {
                 imported_at: imported_at.clone(),
@@ -620,19 +604,6 @@ pub(crate) fn desktop_agent_center_avatar_asset_import_blocking(
         if manifest_meta.len() > MAX_AVATAR_ASSET_MANIFEST_BYTES {
             return Err("avatar asset manifest exceeds the fixed byte cap".to_string());
         }
-        let profile = AvatarCapabilityProfile {
-            schema_version: 1,
-            profile_ref: capability_profile_ref.clone(),
-            local_asset_id: local_asset_id.clone(),
-            backend_kind: kind_label.to_string(),
-            evidence_ref: local_asset_id.clone(),
-            file_count: files.len(),
-            asset_bytes,
-            generated_motion_supported,
-            embedded_live2d_adapter_manifest,
-            imported_at: imported_at.clone(),
-        };
-        write_json_pretty(&staging_dir.join(CAPABILITY_PROFILE_FILE_NAME), &profile)?;
         let parent = final_dir
             .parent()
             .ok_or_else(|| "avatar asset final path has no parent".to_string())?;
@@ -666,7 +637,6 @@ pub(crate) fn desktop_agent_center_avatar_asset_import_blocking(
             &scope,
             kind,
             &local_asset_id,
-            &capability_profile_ref,
             &local_asset_id,
             embedded_live2d_adapter_manifest,
         )?;
@@ -688,7 +658,7 @@ pub(crate) fn desktop_agent_center_avatar_asset_import_blocking(
     Ok(DesktopAgentCenterAvatarAssetImportResult {
         local_asset_id,
         backend_kind: kind,
-        backend_capability_profile_ref: capability_profile_ref,
+        backend_capability_profile_ref: None,
         selected,
         manifest_sha256,
         asset_bytes,
@@ -701,6 +671,9 @@ pub(crate) fn desktop_agent_center_avatar_asset_import_blocking(
 pub(crate) async fn desktop_agent_center_avatar_asset_remove(
     payload: DesktopAgentCenterAvatarAssetRemovePayload,
 ) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
+    let account_id = crate::desktop_agent_center_store::active_agent_center_account_id().await?;
+    let mut payload = payload;
+    payload.account_id = account_id;
     run_agent_center_resource_blocking("desktop_agent_center_avatar_asset_remove", move || {
         desktop_agent_center_avatar_asset_remove_blocking(payload)
     })

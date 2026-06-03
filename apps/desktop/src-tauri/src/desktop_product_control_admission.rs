@@ -8,9 +8,9 @@ use crate::desktop_product_control::{
     authenticated_runtime_account_id, selected_data_root_path, ProductControlRecordProjection,
 };
 
-const RUNTIME_BASELINE_RESOLVE_METHOD_ID: &str =
-    nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_RUNTIME_BASELINE_READINESS_METHOD_ID;
-const RUNTIME_BASELINE_STATE_READY: &str = "ready";
+const RUNTIME_EXECUTION_RESOLVE_METHOD_ID: &str =
+    nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID;
+const RUNTIME_EXECUTION_STATE_READY: &str = "local_ai_ready";
 
 /// Tauri command `product_control_record_admit_ready_for_use`.
 ///
@@ -48,29 +48,46 @@ pub async fn product_control_record_admit_ready_for_use(
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .ok_or_else(|| "runtimeBaselineRef is required before ready admission".to_string())?;
-    let baseline_response: crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessResponse =
+    let install_level = record
+        .first_run
+        .install_level
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "installLevel is required before ready admission".to_string())?;
+    let execution_evidence_ref = record
+        .first_run
+        .execution_evidence_ref
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "executionEvidenceRef is required before ready admission".to_string())?;
+    let execution_response: crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceResponse =
         crate::runtime_bridge::invoke_unary_typed(
-            RUNTIME_BASELINE_RESOLVE_METHOD_ID,
-            crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessRequest {
-                runtime_baseline_ref: runtime_baseline_ref.to_string(),
+            RUNTIME_EXECUTION_RESOLVE_METHOD_ID,
+            crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceRequest {
+                execution_evidence_ref: execution_evidence_ref.to_string(),
+                expected_runtime_baseline_ref: runtime_baseline_ref.to_string(),
+                expected_data_root_ref: data_root.display().to_string(),
+                expected_install_level: install_level.to_string(),
                 host_profile: None,
             },
             Some(30_000),
         )
         .await?;
-    if baseline_response.state.trim() != RUNTIME_BASELINE_STATE_READY {
+    if execution_response.state.trim() != RUNTIME_EXECUTION_STATE_READY {
         return Err(format!(
-            "runtimeBaselineRef did not resolve ready (state={}, reason={})",
-            baseline_response.state.trim(),
-            baseline_response.reason_code.trim()
+            "executionEvidenceRef did not resolve local_ai_ready (state={}, reason={})",
+            execution_response.state.trim(),
+            execution_response.reason_code.trim()
         ));
     }
-    let baseline_ref = baseline_response
+    let execution_ref = execution_response
         .r#ref
-        .ok_or_else(|| "Runtime baseline readiness response had no evidence ref".to_string())?;
+        .ok_or_else(|| "Runtime execution evidence response had no evidence ref".to_string())?;
     let baseline_bindings =
-        crate::desktop_ai_config_library::runtime_capability_bindings_from_baseline_ref(
-            &baseline_ref,
+        crate::desktop_ai_config_library::runtime_capability_bindings_from_execution_evidence_ref(
+            &execution_ref,
         )?;
     let built_in_ai_config_set =
         crate::desktop_product_control::resolve_built_in_ai_config_refs_for_admission(
