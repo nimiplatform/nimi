@@ -5,7 +5,7 @@ import type {
   RuntimeClientDefaults,
   RuntimeOptions,
   RuntimeTransportConfig,
-} from './runtime/types.js';
+} from './runtime/index.js';
 
 type PlatformSessionUser = JsonObject | null;
 

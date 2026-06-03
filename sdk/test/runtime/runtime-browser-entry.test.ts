@@ -27,3 +27,20 @@ test('runtime entry exports delegated control enum values for Desktop controls',
   assert.equal(runtimeIndex.DelegatedApprovalDecision.APPROVE, 1);
   assert.equal(runtimeIndex.DelegatedTransportKind.STDIO_COMMAND, 1);
 });
+
+test('runtime and browser runtime value exports stay aligned except Node transport', () => {
+  const allowedRuntimeOnly = new Set([
+    'createNodeGrpcTransport',
+    'setNodeGrpcBridge',
+  ]);
+  const runtimeOnly = Object.keys(runtimeIndex)
+    .filter((name) => !(name in runtimeBrowser))
+    .filter((name) => !allowedRuntimeOnly.has(name))
+    .sort();
+  const browserOnly = Object.keys(runtimeBrowser)
+    .filter((name) => !(name in runtimeIndex))
+    .sort();
+
+  assert.deepEqual(runtimeOnly, []);
+  assert.deepEqual(browserOnly, []);
+});

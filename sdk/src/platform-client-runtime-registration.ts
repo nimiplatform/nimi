@@ -1,6 +1,5 @@
 import { createNimiError } from './core/errors.js';
-import { AppMode, WorldRelation } from './runtime/generated/runtime/v1/auth.js';
-import type { Runtime } from './runtime/runtime.js';
+import { AppMode, WorldRelation, type Runtime } from './runtime/index.js';
 import { ReasonCode } from './types/index.js';
 
 type RuntimeResolver = () => Runtime;

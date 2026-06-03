@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { promises as fs } from 'node:fs';
+import { existsSync, promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +9,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const sdkRoot = path.join(repoRoot, 'sdk');
 const baselinePath = path.join(repoRoot, 'config', 'sdk-public-surface-baseline.json');
+const expandLocalReexportsMarker = 'sdk-public-surface-snapshot: expand-local-reexports';
 
 function normalizeExportStatement(statement) {
   return statement
@@ -53,6 +54,39 @@ function collectExportStatements(source) {
   }
 
   return exports.sort();
+}
+
+function resolveLocalTsSource(fromSourcePath, specifier) {
+  if (!specifier.startsWith('.')) return null;
+
+  const resolved = path.resolve(path.dirname(fromSourcePath), specifier);
+  const candidates = specifier.endsWith('.js')
+    ? [resolved.replace(/\.js$/, '.ts')]
+    : [`${resolved}.ts`, path.join(resolved, 'index.ts')];
+
+  return candidates.find((candidate) => candidate.startsWith(sdkRoot) && existsSync(candidate)) || null;
+}
+
+async function collectExpandedExportStatements(sourcePath, source) {
+  if (!source.includes(expandLocalReexportsMarker)) return null;
+
+  const expanded = [];
+  for (const statement of collectExportStatements(source)) {
+    const starReexport = statement.match(/^export\s+\*\s+from ['"]([^'"]+)['"];$/);
+    const typeStarReexport = statement.match(/^export\s+type\s+\*\s+from ['"]([^'"]+)['"];$/);
+    const specifier = starReexport?.[1] || typeStarReexport?.[1];
+    const localSourcePath = specifier ? resolveLocalTsSource(sourcePath, specifier) : null;
+
+    if (!localSourcePath) {
+      expanded.push(statement);
+      continue;
+    }
+
+    const localSource = await fs.readFile(localSourcePath, 'utf8');
+    expanded.push(...collectExportStatements(localSource));
+  }
+
+  return [...new Set(expanded)].sort();
 }
 
 function sourcePathForExportTarget(target) {
@@ -106,11 +140,16 @@ async function buildSnapshot() {
     }
 
     const source = await fs.readFile(sourcePath, 'utf8');
-    entryPoints.push({
+    const entryPoint = {
       exportKey,
       source: path.relative(repoRoot, sourcePath).replaceAll(path.sep, '/'),
       exports: collectExportStatements(source),
-    });
+    };
+    const expandedExports = await collectExpandedExportStatements(sourcePath, source);
+    if (expandedExports) {
+      entryPoint.expandedExports = expandedExports;
+    }
+    entryPoints.push(entryPoint);
   }
 
   return {

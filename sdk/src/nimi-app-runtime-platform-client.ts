@@ -1,6 +1,6 @@
 import type { RealmFetchImpl } from './realm/client-types.js';
 import { createNimiError } from './core/errors.js';
-import type { RuntimeClientDefaults, RuntimeOptions, RuntimeTransportConfig } from './runtime/types.js';
+import type { RuntimeClientDefaults, RuntimeOptions, RuntimeTransportConfig } from './runtime/index.js';
 import { ReasonCode, type ReasonCodeValue } from './types/index.js';
 import {
   createLocalFirstPartyRuntimePlatformClient,

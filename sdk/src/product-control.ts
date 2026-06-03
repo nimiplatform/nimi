@@ -1,5 +1,4 @@
-import type { RuntimeCallOptions } from './runtime/types.js';
-import type { RuntimeLocalServiceClient } from './runtime/types-client-interfaces.js';
+import type { RuntimeCallOptions, RuntimeLocalServiceClient } from './runtime/index.js';
 
 export const PRODUCT_CONTROL_STATES = [
   'not_logged_in',

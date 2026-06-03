@@ -1,6 +1,6 @@
 import { asRecord, normalizeText } from './internal/utils.js';
 import { createNimiError } from './core/errors.js';
-import { Runtime } from './runtime/runtime.js';
+import { Runtime } from './runtime/index.js';
 import { ReasonCode } from './types/index.js';
 
 export const DEFAULT_PLATFORM_APP_ID = 'nimi.app';

@@ -4,7 +4,7 @@ import { asNimiError, createNimiError } from '../core/errors.js';
 import type {
   WorldEvolutionSelectorReadMethodId,
   WorldEvolutionSelectorReadRejectionCategory,
-} from '../runtime/world-evolution-selector-read.js';
+} from '../runtime/index.js';
 import { ReasonCode } from '../types/index.js';
 import type { RejectionInput } from './world-evolution-selector-read-types.js';
 

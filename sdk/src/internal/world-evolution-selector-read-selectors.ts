@@ -6,7 +6,7 @@ import type {
   WorldEvolutionMatchMode,
   WorldEvolutionReplaySelector,
   WorldEvolutionSupervisionSelector,
-} from '../runtime/world-evolution-selector-read.js';
+} from '../runtime/index.js';
 import { createSelectorReadError } from './world-evolution-selector-read-errors.js';
 import {
   assertNoUnexpectedKeys,

@@ -9,7 +9,7 @@ import type {
   WorldEvolutionReplaySelector,
   WorldEvolutionSupervisionReadResult,
   WorldEvolutionSupervisionSelector,
-} from '../runtime/world-evolution-selector-read.js';
+} from '../runtime/index.js';
 import { createSelectorReadError, normalizeProviderError } from './world-evolution-selector-read-errors.js';
 import { validateCheckpointSelector, validateCommitSelector, validateExecutionSelector, validateReplaySelector, validateSupervisionSelector } from './world-evolution-selector-read-selectors.js';
 import { ensureArray } from './world-evolution-selector-read-shared.js';

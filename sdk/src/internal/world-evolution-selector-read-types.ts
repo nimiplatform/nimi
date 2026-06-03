@@ -12,7 +12,7 @@ import type {
   WorldEvolutionSelectorReadRejectionCategory,
   WorldEvolutionSupervisionReadResult,
   WorldEvolutionSupervisionSelector,
-} from '../runtime/world-evolution-selector-read.js';
+} from '../runtime/index.js';
 
 export type ProviderMatches<T> = Promise<T[] | ReadonlyArray<T>>;
 

@@ -1,9 +1,9 @@
-import type { ScenarioJob } from '../runtime/generated/runtime/v1/ai.js';
 import type {
   NimiRoutePolicy,
+  ScenarioJob,
   WorldGenerateConditioningInput,
   WorldGenerateInput,
-} from '../runtime/types-media.js';
+} from '../runtime/index.js';
 
 export type WorldTruthAnchor = {
   worldId: string;

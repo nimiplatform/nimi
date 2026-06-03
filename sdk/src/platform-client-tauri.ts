@@ -1,4 +1,4 @@
-import type { RuntimeTransportConfig } from './runtime/types.js';
+import type { RuntimeTransportConfig } from './runtime/index.js';
 
 export function detectTauriTransport(): RuntimeTransportConfig | null {
   const globalRecord = globalThis as {

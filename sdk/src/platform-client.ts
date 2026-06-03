@@ -9,12 +9,15 @@ import { Realm } from './realm/client.js';
 import type { RealmTokenRefreshResult } from './realm/client-types.js';
 import type { RealmServiceArgs, RealmServiceResult } from './realm/generated/type-helpers.js';
 import { asNimiError, createNimiError } from './core/errors.js';
-import { AccountSessionState } from './runtime/generated/runtime/v1/account.js';
-import { createLocalFirstPartyRuntimeAccountCaller } from './runtime/runtime-account-caller.js';
-import { Runtime } from './runtime/runtime.js';
-import type { ListConnectorsRequest, ListConnectorsResponse } from './runtime/generated/runtime/v1/connector.js';
-import type { RuntimeCallOptions } from './runtime/types.js';
+import {
+  AccountSessionState,
+  createLocalFirstPartyRuntimeAccountCaller,
+  Runtime,
+} from './runtime/index.js';
 import type {
+  ListConnectorsRequest,
+  ListConnectorsResponse,
+  RuntimeCallOptions,
   WorldEvolutionCheckpointReadResult,
   WorldEvolutionCheckpointSelector,
   WorldEvolutionCommitRequestReadResult,
@@ -25,7 +28,7 @@ import type {
   WorldEvolutionReplaySelector,
   WorldEvolutionSupervisionReadResult,
   WorldEvolutionSupervisionSelector,
-} from './runtime/world-evolution-selector-read.js';
+} from './runtime/index.js';
 import { ReasonCode } from './types/index.js';
 import { detectTauriTransport } from './platform-client-tauri.js';
 import { createRuntimeFullAppRegistration } from './platform-client-runtime-registration.js';

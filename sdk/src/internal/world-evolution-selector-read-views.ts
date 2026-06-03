@@ -6,7 +6,7 @@ import type {
   WorldEvolutionReplayView,
   WorldEvolutionSelectorReadMethodId,
   WorldEvolutionSupervisionView,
-} from '../runtime/world-evolution-selector-read.js';
+} from '../runtime/index.js';
 import { createSelectorReadError } from './world-evolution-selector-read-errors.js';
 import {
   assertAllowedViewKeys,

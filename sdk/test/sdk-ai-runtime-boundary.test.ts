@@ -7,6 +7,8 @@ const aiDir = new URL('../src/ai/', import.meta.url);
 const aiAppDir = new URL('../src/ai-app/', import.meta.url);
 const aiProviderDir = new URL('../src/ai-provider/', import.meta.url);
 const runtimeDir = new URL('../src/runtime/', import.meta.url);
+const sdkSrcDir = new URL('../src/', import.meta.url);
+const worldDir = new URL('../src/world/', import.meta.url);
 
 function listFiles(dir: URL): string[] {
   const root = dir.pathname;
@@ -45,10 +47,11 @@ test('sdk ai subpath does not host runtime implementation helpers', () => {
   }
 });
 
-test('sdk ai-app and ai-provider consume Runtime through public subpaths only', () => {
+test('sdk ai-app, ai-provider, and world consume Runtime through public subpaths only', () => {
   const checkedDirs = [
     { dir: aiAppDir, label: 'ai-app' },
     { dir: aiProviderDir, label: 'ai-provider' },
+    { dir: worldDir, label: 'world' },
   ];
   for (const entry of checkedDirs) {
     for (const file of listFiles(entry.dir)) {
@@ -60,6 +63,26 @@ test('sdk ai-app and ai-provider consume Runtime through public subpaths only', 
       );
     }
   }
+});
+
+test('non-runtime SDK source consumes Runtime through public runtime entries only', () => {
+  const offenders: string[] = [];
+  for (const file of listFiles(sdkSrcDir)) {
+    if (file.startsWith('runtime/')) {
+      continue;
+    }
+    const source = readSource(sdkSrcDir, file);
+    if (/from ['"][^'"]*runtime\/generated\//.test(source)) {
+      offenders.push(`${file}: runtime/generated`);
+      continue;
+    }
+    const runtimeInternalImport = source.match(/from ['"](?:\.\.?\/)+runtime\/(?!index\.js['"]|browser\.js['"])[^'"]+['"]/g);
+    if (runtimeInternalImport) {
+      offenders.push(...runtimeInternalImport.map((item) => `${file}: ${item}`));
+    }
+  }
+
+  assert.deepEqual(offenders.sort(), []);
 });
 
 test('sdk ai subpath does not host generic storage helpers', () => {

@@ -9,7 +9,7 @@ import type {
   WorldEvolutionSelectorReadRejectionCategory,
   WorldEvolutionSupervisionOutcome,
   WorldEvolutionEvidenceRef,
-} from '../runtime/world-evolution-selector-read.js';
+} from '../runtime/index.js';
 import { createSelectorReadError } from './world-evolution-selector-read-errors.js';
 
 const EXECUTION_STAGES = new Set<WorldEvolutionExecutionStage>([
