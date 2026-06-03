@@ -75,14 +75,14 @@ describe('Kit offline coordinator', () => {
     expect(manager.getCurrentTier()).toBe('L0');
   });
 
-  it('emits typed tier-change reasons without owning connectivity truth', () => {
+  it('emits typed tier-change reasons from REST and Runtime reachability', () => {
     const changes: OfflineTierChange[] = [];
     manager.onChange((change) => changes.push(change));
     manager.start();
-    monitor.setRealmSocketConnected(false);
+    monitor.setRealmRestReachable(false);
     monitor.setRuntimeReachable(false);
     monitor.setRuntimeReachable(true);
-    monitor.setRealmSocketConnected(true);
+    monitor.setRealmRestReachable(true);
 
     expect(changes.map((change) => change.reason)).toEqual([
       'realm_offline',
@@ -115,13 +115,15 @@ describe('Kit offline coordinator', () => {
     expect(coordinator.getTier()).toBe('L0');
   });
 
-  it('treats socket disconnect as L1 until the socket reconnects', () => {
+  it('tracks socket reachability without projecting Realm REST offline', () => {
     manager.start();
     monitor.setRealmSocketConnected(false);
-    expect(manager.getCurrentTier()).toBe('L1');
+    expect(manager.getCurrentTier()).toBe('L0');
+    expect(monitor.getStatus().realm.socketReachable).toBe(false);
 
     monitor.setRealmSocketConnected(true);
     expect(manager.getCurrentTier()).toBe('L0');
+    expect(monitor.getStatus().realm.socketReachable).toBe(true);
   });
 
   it('keeps L2 when runtime is unreachable regardless of Realm state', () => {
@@ -179,7 +181,7 @@ describe('Kit offline coordinator', () => {
     expect(timer.nextDelay()).toBe(1000);
   });
 
-  it('socket disconnect schedules reconnect without projecting REST-only success', async () => {
+  it('socket disconnect does not surface Cloud offline when REST remains reachable', async () => {
     const timer = new FakeTimer();
     const coordinator = new OfflineCoordinator({ timer });
     const reconnects: string[] = [];
@@ -193,17 +195,13 @@ describe('Kit offline coordinator', () => {
 
     coordinator.markRealmSocketReachable(false);
     await flushAsyncWork();
-    expect(coordinator.getTier()).toBe('L1');
-    expect(timer.nextDelay()).toBe(1000);
-
-    expect(await timer.runNext()).toBe(1000);
+    expect(coordinator.getTier()).toBe('L0');
+    expect(timer.nextDelay()).toBeNull();
     expect(reconnects.length).toBe(0);
-    expect(coordinator.getTier()).toBe('L1');
-    expect(timer.nextDelay()).toBe(2000);
 
     coordinator.markRealmSocketReachable(true);
     await flushAsyncWork();
-    expect(reconnects.length).toBe(1);
+    expect(reconnects.length).toBe(0);
     expect(coordinator.getTier()).toBe('L0');
     expect(timer.pendingCount()).toBe(0);
   });
@@ -224,20 +222,27 @@ describe('Kit offline coordinator', () => {
   it('cache fallback forces realm reconnect scheduling when cache needs recovery', async () => {
     const timer = new FakeTimer();
     const coordinator = new OfflineCoordinator({ timer });
+    let probeCount = 0;
     coordinator.configureReconnectHandlers({
       hasPendingRealmRecoveryWork: async () => false,
-      probeRealmReachability: async () => false,
+      probeRealmReachability: async () => {
+        probeCount += 1;
+        return probeCount >= 2;
+      },
     });
-
-    coordinator.markRealmSocketReachable(false);
-    await flushAsyncWork();
-    expect(timer.nextDelay()).toBe(1000);
-    await timer.runNext();
-    expect(timer.nextDelay()).toBe(2000);
 
     coordinator.markCacheFallbackUsed();
     await flushAsyncWork();
-    expect(timer.pendingCount()).toBe(1);
+    expect(coordinator.getTier()).toBe('L1');
+    expect(timer.nextDelay()).toBe(1000);
+
+    await timer.runNext();
+    expect(timer.nextDelay()).toBe(2000);
+
+    await timer.runNext();
+    await flushAsyncWork();
+    expect(coordinator.getTier()).toBe('L0');
+    expect(timer.pendingCount()).toBe(0);
   });
 
   it('runtime reconnect backoff doubles on failure and resets after success', async () => {

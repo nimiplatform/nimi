@@ -12,6 +12,8 @@ import {
 import {
   advanceRealmChatSessionAck,
   applyRealmRealtimeMessageToChatsResult,
+  applyRealmRealtimeMessageUpdateToChatsResult,
+  applyRealmRealtimeMessageUpdateToMessagesResult,
   buildRealmTextMessageInput,
   createRealmChatResourceAttachmentPayload,
   createRealmChatSessionOpenPayload,
@@ -19,6 +21,7 @@ import {
   createRealmChatComposerAdapter,
   extractRealmChatAttachmentTargetId,
   getRealmChatTimelineDisplayModel,
+  mergeRealmRealtimeMessageIntoMessagesResult,
   normalizeRealmRealtimeMessagePayload,
   resolveRealmChatAttachmentPreviewText,
   resolveRealmChatMediaUrl,
@@ -326,6 +329,28 @@ describe('chat realm helpers', () => {
     const seen = new Map<string, number>();
     expect(rememberRealmChatSeenEvent(seen, 'chat:event:1')).toBe(false);
     expect(rememberRealmChatSeenEvent(seen, 'chat:event:1')).toBe(true);
+  });
+
+  it('rejects unknown realtime message types and accepts canonical message types', () => {
+    expect(normalizeRealmRealtimeMessagePayload({
+      id: 'msg-unsupported',
+      chatId: 'chat-1',
+      senderId: 'user-1',
+      type: 'UNSUPPORTED',
+      createdAt: '2026-03-21T00:00:00.000Z',
+      isRead: false,
+      payload: null,
+    })).toBeNull();
+
+    expect(normalizeRealmRealtimeMessagePayload({
+      id: 'msg-text',
+      chatId: 'chat-1',
+      senderId: 'user-1',
+      type: 'TEXT',
+      createdAt: '2026-03-21T00:00:00.000Z',
+      isRead: false,
+      payload: null,
+    })?.type).toBe('TEXT');
   });
 
   it('merges realtime messages into chat list state', () => {
@@ -765,6 +790,69 @@ describe('chat realm helpers', () => {
       },
     })).toBe('Image');
     expect(resolveRealmChatAttachmentPreviewText({ imageId: 'legacy-image' })).toBe('');
+  });
+
+  it('resolves canonical attachment urls and nested previews without legacy ids', () => {
+    expect(resolveRealmChatMediaUrl({
+      attachment: { url: 'https://cdn.example.com/media.mp4' },
+      imageId: 'legacy-image',
+    }, '')).toBe('https://cdn.example.com/media.mp4');
+    expect(resolveRealmChatMediaUrl({
+      attachment: { url: '/resources/resource-1' },
+    }, 'https://realm.example.com/')).toBe('https://realm.example.com/resources/resource-1');
+    expect(resolveRealmChatMediaUrl({
+      attachment: {
+        displayKind: 'CARD',
+        preview: { url: '/resources/resource-preview-1' },
+      },
+    }, 'https://realm.example.com/')).toBe('https://realm.example.com/resources/resource-preview-1');
+    expect(resolveRealmChatMediaUrl({ imageId: 'legacy-image' }, 'https://realm.example.com')).toBe('');
+    expect(resolveRealmChatMediaUrl({ videoId: 'legacy-video' }, 'https://realm.example.com')).toBe('');
+  });
+
+  it('keeps newer realtime message evidence during conflict handling', () => {
+    const newer = {
+      id: 'msg-1',
+      chatId: 'chat-1',
+      senderId: 'user-1',
+      type: 'TEXT',
+      text: 'new state',
+      isRead: true,
+      createdAt: '2026-03-10T10:00:00.000Z',
+      clientMessageId: 'cm-1',
+    };
+    const older = {
+      ...newer,
+      text: 'stale replay',
+      isRead: false,
+      createdAt: '2026-03-10T09:59:00.000Z',
+    };
+
+    expect(mergeRealmRealtimeMessageIntoMessagesResult({
+      items: [newer],
+      nextBefore: null,
+      nextAfter: null,
+    }, older).items[0]?.text).toBe('new state');
+
+    expect(applyRealmRealtimeMessageUpdateToMessagesResult({
+      items: [newer],
+      nextBefore: null,
+      nextAfter: null,
+    }, older)?.items[0]?.isRead).toBe(true);
+
+    expect(applyRealmRealtimeMessageUpdateToChatsResult({
+      current: {
+        items: [{
+          id: 'chat-1',
+          lastMessage: newer,
+          lastMessageAt: newer.createdAt,
+          unreadCount: 0,
+        }],
+        nextCursor: null,
+      },
+      chatId: 'chat-1',
+      message: older,
+    }).data?.items[0]?.lastMessage?.text).toBe('new state');
   });
 
   it('renders the default realm chat timeline UI with avatar and gift slots', async () => {

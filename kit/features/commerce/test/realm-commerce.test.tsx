@@ -3,12 +3,18 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createRealmCommerceGiftAdapter,
+  createRealmSparkCheckout,
   loadRealmCurrencyBalances,
   loadRealmGiftTransaction,
+  loadRealmSparkPackages,
   normalizeRealmCurrencyBalances,
   useRealmGiftInbox,
   type RealmCommerceGiftService,
 } from '../src/realm.js';
+import {
+  normalizeCommerceGiftCatalog,
+  resolveSelectedGiftId,
+} from '../src/headless.js';
 
 (
   globalThis as typeof globalThis & {
@@ -109,6 +115,59 @@ describe('commerce realm helpers', () => {
     await expect(adapter.listGiftCatalog()).resolves.toEqual([
       { id: 'rose', name: 'Rose', emoji: '🌹', iconUrl: null, sparkCost: 10 },
     ]);
+  });
+
+  it('normalizes gift catalog item payloads and selection fallback', () => {
+    expect(normalizeCommerceGiftCatalog([
+      { id: 'rose', name: 'Rose', sparkCost: '25', emoji: '🌹' },
+      { id: 'coffee', sparkCost: 10 },
+    ])).toEqual([
+      { id: 'rose', name: 'Rose', sparkCost: 25, emoji: '🌹', iconUrl: null },
+      { id: 'coffee', name: 'coffee', sparkCost: 10, emoji: '🎁', iconUrl: null },
+    ]);
+    expect(normalizeCommerceGiftCatalog({
+      items: [{ id: 'rocket', name: 'Rocket', sparkCost: '100', iconUrl: 'https://nimi.test/rocket.png' }],
+    })).toEqual([{
+      id: 'rocket',
+      name: 'Rocket',
+      sparkCost: 100,
+      emoji: '🎁',
+      iconUrl: 'https://nimi.test/rocket.png',
+    }]);
+
+    const items = normalizeCommerceGiftCatalog([
+      { id: '', name: 'Invalid', sparkCost: '25' },
+      { id: 'missing-cost', name: 'Invalid' },
+      { id: 'good', name: 'Valid', sparkCost: '12.5', emoji: '🎁' },
+    ]);
+    expect(items).toEqual([
+      { id: 'good', name: 'Valid', sparkCost: 12.5, emoji: '🎁', iconUrl: null },
+    ]);
+    expect(resolveSelectedGiftId(items, 'missing')).toBe('good');
+    expect(resolveSelectedGiftId([], 'good')).toBe('');
+  });
+
+  it('calls Spark recharge APIs through the realm helper surface', async () => {
+    const capturedCalls: string[] = [];
+    const service = {
+      listSparkPackages: async () => {
+        capturedCalls.push('list-packages');
+        return [{ id: 'pkg-1', label: 'Starter', sparkAmount: 100, usdPrice: 1.99, popular: true }];
+      },
+      createSparkCheckout: async (input: Record<string, unknown>) => {
+        capturedCalls.push(`checkout:${String(input.packageId || '')}`);
+        return { sessionId: 'session-1', url: 'https://checkout.nimi.example/session-1' };
+      },
+    } as unknown as RealmCommerceGiftService;
+
+    await expect(loadRealmSparkPackages(service)).resolves.toEqual([
+      { id: 'pkg-1', label: 'Starter', sparkAmount: 100, usdPrice: 1.99, popular: true },
+    ]);
+    await expect(createRealmSparkCheckout({ packageId: 'pkg-1' } as never, service)).resolves.toEqual({
+      sessionId: 'session-1',
+      url: 'https://checkout.nimi.example/session-1',
+    });
+    expect(capturedCalls).toEqual(['list-packages', 'checkout:pkg-1']);
   });
 
   it('loads gift detail by searching received then sent feeds', async () => {

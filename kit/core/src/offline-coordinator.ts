@@ -138,7 +138,7 @@ export class OfflineStateManager {
     const { realm, runtime } = this.monitor.getStatus();
     const nextTier: OfflineTier = !runtime.reachable
       ? 'L2'
-      : !realm.restReachable || !realm.socketReachable
+      : !realm.restReachable
         ? 'L1'
         : 'L0';
 
@@ -240,9 +240,7 @@ export class OfflineCoordinator {
 
   markCacheFallbackUsed(): void {
     this.cacheFallbackActive = true;
-    if (this.getTier() === 'L1') {
-      void this.scheduleRealmReconnect();
-    }
+    this.markRealmRestReachable(false);
   }
 
   markRuntimeReachable(reachable: boolean): void {
@@ -265,6 +263,11 @@ export class OfflineCoordinator {
     this.monitor.setRealmRestReachable(reachable);
     if (!reachable && !wasReachable) {
       void this.scheduleRealmReconnect();
+    }
+    if (reachable) {
+      this.cacheFallbackActive = false;
+      this.clearRealmReconnectTimer();
+      this.realmReconnectDelayMs = OFFLINE_RECONNECT_INITIAL_DELAY_MS;
     }
   }
 

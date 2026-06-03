@@ -37,7 +37,15 @@ describe('shell renderer bootstrap primitives', () => {
       ok: true,
       severity: 'warn',
     });
+    expect(checkRuntimeDaemonVersion('0.0.0-dev', '0.1.0')).toMatchObject({
+      ok: true,
+      severity: 'none',
+    });
     expect(checkRuntimeDaemonVersion('0.2.0', '0.1.0', { strictExactMatch: true })).toMatchObject({
+      ok: false,
+      severity: 'fatal',
+    });
+    expect(checkRuntimeDaemonVersion('0.0.0-dev', '0.1.0', { strictExactMatch: true })).toMatchObject({
       ok: false,
       severity: 'fatal',
     });

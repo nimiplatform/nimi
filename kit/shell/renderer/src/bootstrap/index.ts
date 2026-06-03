@@ -286,6 +286,10 @@ function parseSemver(version: string): { major: number; minor: number; patch: nu
   };
 }
 
+function isDevelopmentVersion(version: string): boolean {
+  return /(?:^|[.-])dev(?:[.-]|$)/i.test(String(version || '').trim());
+}
+
 function emitVersionCheckEvent(
   logEvent: BootstrapLogEventSink | undefined,
   event: Omit<BootstrapLogEvent, 'area'>,
@@ -361,6 +365,20 @@ export function checkRuntimeDaemonVersion(
   }
 
   if (daemonParsed.minor !== appParsed.minor || daemonParsed.patch !== appParsed.patch) {
+    if (!strictExactMatch && isDevelopmentVersion(daemonVersion)) {
+      emitVersionCheckEvent(options.logEvent, {
+        level: 'info',
+        message: 'phase:version-check:dev-version-drift',
+        details: { daemonVersion, appVersion, strictExactMatch },
+      });
+      return {
+        ok: true,
+        daemonVersion,
+        appVersion,
+        severity: 'none',
+        message: `Development daemon version drift accepted: daemon=${daemonVersion}, app=${appVersion}`,
+      };
+    }
     emitVersionCheckEvent(options.logEvent, {
       level: strictExactMatch ? 'error' : 'warn',
       message: strictExactMatch
