@@ -100,6 +100,15 @@ export {
   ConversationOrchestrationRegistry,
   ConversationProviderNotRegisteredError,
 } from './orchestration/registry.js';
+export type {
+  CanonicalTranscriptMessageGroup,
+  CanonicalTranscriptMessageGroupItem,
+  CanonicalTranscriptMessagePosition,
+} from './headless/transcript-groups.js';
+export {
+  buildCanonicalTranscriptGroups,
+  buildCanonicalTranscriptMessageGroups,
+} from './headless/transcript-groups.js';
 export { CONVERSATION_MODES } from './types.js';
 import type {
   ConversationComposerAdapter,

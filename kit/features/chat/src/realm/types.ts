@@ -126,6 +126,7 @@ export type UseRealmChatRealtimeControllerOptions = {
   authStatus: string;
   authToken?: string | null;
   fallbackToken?: string | null;
+  resolveAuthToken?: () => Promise<string | null | undefined> | string | null | undefined;
   realtimeBaseUrl?: string | null;
   selectedChatId: string | null;
   currentUserId: string;

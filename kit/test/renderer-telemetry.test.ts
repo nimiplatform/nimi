@@ -7,6 +7,7 @@ import {
   resetRendererDebugBufferForTest,
   sanitizeLogDetails,
 } from '../telemetry/src/telemetry/debug-buffer.js';
+import { shouldForwardRendererLogLevel } from '../telemetry/src/telemetry/env.js';
 import {
   createRendererFlowId,
   resetRendererSessionTraceIdForTest,
@@ -33,6 +34,13 @@ afterEach(() => {
 });
 
 describe('kit renderer telemetry', () => {
+  test('forwards warn and error by default while dropping verbose levels', () => {
+    expect(shouldForwardRendererLogLevel('warn')).toBe(true);
+    expect(shouldForwardRendererLogLevel('error')).toBe(true);
+    expect(shouldForwardRendererLogLevel('info')).toBe(false);
+    expect(shouldForwardRendererLogLevel('debug')).toBe(false);
+  });
+
   test('normalizes messages and creates secure flow IDs', () => {
     expect(toRendererLogMessage('capability-run')).toBe('action:capability-run');
     expect(toRendererLogMessage('phase:ready')).toBe('phase:ready');
@@ -107,6 +115,29 @@ describe('kit renderer telemetry', () => {
       details?: { authorization?: string };
     };
     expect(record.details?.authorization).toBe('[REDACTED]');
+  });
+
+  test('preserves upstream traceId as a top-level renderer payload field', () => {
+    logRendererEvent({
+      level: 'info',
+      area: 'runtime',
+      message: 'action:trace-preserve',
+      traceId: 'trace-upstream-001',
+      flowId: 'flow-local-001',
+      details: {
+        operation: 'upstream-error-log',
+      },
+    });
+
+    const record = getRendererDebugLogsForTest()[0] as {
+      traceId?: string;
+      flowId?: string;
+      details?: { traceId?: string; operation?: string };
+    };
+    expect(record.traceId).toBe('trace-upstream-001');
+    expect(record.flowId).toBe('flow-local-001');
+    expect(record.details?.traceId).toBeUndefined();
+    expect(record.details?.operation).toBe('upstream-error-log');
   });
 
   test('normalizes runtime log messages through the shared telemetry sink', () => {

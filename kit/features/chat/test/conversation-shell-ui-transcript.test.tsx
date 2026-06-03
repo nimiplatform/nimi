@@ -179,9 +179,61 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     expect(container.textContent).toContain('Queued');
     expect(container.textContent).toContain('Streaming Footer');
     expect(container.querySelector('[data-canonical-stage-scroll-root="true"]')).not.toBeNull();
-  });
+	  });
 
-  it('renders voice bubbles and canonical right sidebar shell', async () => {
+	  it('renders group sender labels and avatar slots from canonical transcript props', async () => {
+	    container = document.createElement('div');
+	    document.body.appendChild(container);
+	    root = createRoot(container);
+
+	    await act(async () => {
+	      root?.render(
+	        <CanonicalTranscriptView
+	          messages={[
+	            {
+	              id: 'agent-1',
+	              sessionId: 'group-1',
+	              targetId: 'group:salvage',
+	              source: 'group',
+	              role: 'agent',
+	              text: 'I can help.',
+	              createdAt: '2026-04-05T00:00:00.000Z',
+	              kind: 'text',
+	              senderName: 'CuiCui',
+	              senderKind: 'agent',
+	            },
+	            {
+	              id: 'agent-2',
+	              sessionId: 'group-1',
+	              targetId: 'group:salvage',
+	              source: 'group',
+	              role: 'agent',
+	              text: 'Route plotted.',
+	              createdAt: '2026-04-05T00:00:30.000Z',
+	              kind: 'text',
+	              senderName: 'CuiCui',
+	              senderKind: 'agent',
+	            },
+	          ]}
+	          renderMessageAvatar={(message, context) => (
+	            <span data-testid={`avatar-${message.id}`} data-position={context.position}>
+	              avatar
+	            </span>
+	          )}
+	        />,
+	      );
+	      await flush();
+	    });
+
+	    const senderLabels = Array.from(container.querySelectorAll('[data-canonical-sender-label="true"]'));
+	    expect(senderLabels).toHaveLength(1);
+	    expect(senderLabels[0]?.textContent).toBe('CuiCui');
+	    expect(senderLabels[0]?.getAttribute('data-canonical-sender-kind')).toBe('agent');
+	    expect(container.querySelector('[data-testid="avatar-agent-1"]')).not.toBeNull();
+	    expect(container.querySelector('[data-testid="avatar-agent-2"]')).not.toBeNull();
+	  });
+
+	  it('renders voice bubbles and canonical right sidebar shell', async () => {
     const onPlayVoiceMessage = vi.fn();
     container = document.createElement('div');
     document.body.appendChild(container);

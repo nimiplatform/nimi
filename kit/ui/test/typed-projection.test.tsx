@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { act, type ReactElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, expect, test } from 'vitest';
@@ -104,4 +106,17 @@ test('useTypedProjection uses the fail-closed fallback for empty errors', async 
   expect(snapshots.at(-1)?.status).toBe('failed');
   expect(snapshots.at(-1)?.data).toBeNull();
   expect(snapshots.at(-1)?.error).toBe('typed projection unavailable');
+});
+
+test('useTypedProjection is exported as a Kit UI primitive without app or SDK ownership', () => {
+  const hookSource = readFileSync(resolve(import.meta.dirname, '../src/hooks/typed-projection.ts'), 'utf8');
+  const indexSource = readFileSync(resolve(import.meta.dirname, '../src/index.ts'), 'utf8');
+
+  expect(indexSource).toMatch(/hooks\/typed-projection/);
+  expect(hookSource).toMatch(/export function useTypedProjection/);
+  expect(hookSource).toMatch(/status: 'failed'/);
+  expect(hookSource).toMatch(/data: null/);
+  expect(hookSource).toMatch(/useRef\(load\)/);
+  expect(hookSource).not.toMatch(/from ['"].*apps\//);
+  expect(hookSource).not.toMatch(/@renderer|@runtime|@nimiplatform\/sdk/);
 });

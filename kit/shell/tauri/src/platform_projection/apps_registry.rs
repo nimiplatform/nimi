@@ -91,7 +91,7 @@ fn project_install_state(row: &PlatformNimiAppRegistryRow) -> Result<&'static st
                 Ok(INSTALL_STATE_NOT_INSTALLED)
             }
         }
-        "gated_by_avatar_master_gate" | "pending_wave_4" | "deferred" | "retired" => {
+        "gated_by_avatar_master_gate" | "permission_fabric_pending" | "deferred" | "retired" => {
             Ok(INSTALL_STATE_BLOCKED)
         }
         other => Err(format!(

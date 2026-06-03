@@ -36,7 +36,7 @@ export type UseAuthFlowConfig = {
   /** Auth user from app store */
   authUser?: Record<string, unknown> | null;
   /** Set auth session in app store */
-  setAuthSession?: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;
+  setAuthSession?: (user: Record<string, unknown> | null, token: string) => void;
   /** Set status banner in app store */
   setStatusBanner?: (banner: { kind: string; message: string } | null) => void;
 };
@@ -151,7 +151,7 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     setTwoFactorCode,
     setTwoFactorReturnView,
     setStatusBanner: (banner) => statusBannerSetterRef.current(banner),
-    setAuthSession: (user, token, refreshToken) => authSessionSetterRef.current(user, token, refreshToken),
+    setAuthSession: (user, token) => authSessionSetterRef.current(user, token),
   }), []);
 
   // OTP countdown timer

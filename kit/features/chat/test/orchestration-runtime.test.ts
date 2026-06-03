@@ -246,6 +246,74 @@ describe('simple-ai conversation provider', () => {
     });
   });
 
+  it('lets apps resolve current user runtime content without owning the provider loop', async () => {
+    let capturedRequest: unknown = null;
+    const runtimeAdapter: ConversationRuntimeAdapter = {
+      streamText: vi.fn(async (request) => {
+        capturedRequest = request;
+        return sdkStream([
+          { type: 'start' },
+          { type: 'delta', text: 'vision-answer' },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: { inputTokens: 4, outputTokens: 2, totalTokens: 6 },
+            trace: { traceId: 'trace-vision' } as Extract<
+              TextStreamPart,
+              { type: 'finish' }
+            >['trace'],
+          },
+        ]);
+      }),
+    };
+    const provider = createSimpleAiConversationProvider({
+      runtimeAdapter,
+      resolveRuntimeUserMessage: (_input, context) => ({
+        role: 'user',
+        text: context.normalizedUserText,
+        content: [
+          { type: 'image_url', imageUrl: 'data:image/png;base64,ZmFrZQ==' },
+          { type: 'text', text: context.normalizedUserText },
+        ],
+        name: null,
+      }),
+      resolveRuntimeRequest: () => ({
+        model: 'runtime-selected-chat',
+      }),
+    });
+
+    const events = await collectEvents(provider.runTurn(createTurnInput({
+      userMessage: {
+        id: 'msg-user-vision',
+        text: 'Read the image',
+        attachments: [{ kind: 'image' }],
+      },
+      history: [],
+    })));
+
+    expect(capturedRequest).toEqual(expect.objectContaining({
+      messages: [
+        {
+          role: 'user',
+          text: 'Read the image',
+          content: [
+            { type: 'image_url', imageUrl: 'data:image/png;base64,ZmFrZQ==' },
+            { type: 'text', text: 'Read the image' },
+          ],
+          name: null,
+        },
+      ],
+    }));
+    expect(events.find((event) => event.type === 'turn-completed')).toEqual({
+      type: 'turn-completed',
+      turnId: 'turn-1',
+      outputText: 'vision-answer',
+      finishReason: 'stop',
+      usage: { inputTokens: 4, outputTokens: 2, totalTokens: 6 },
+      trace: { traceId: 'trace-vision' },
+    });
+  });
+
   it('emits turn-canceled when the runtime aborts mid-turn', async () => {
     const runtimeAdapter: ConversationRuntimeAdapter = {
       streamText: vi.fn(async () => {

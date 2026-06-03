@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
@@ -50,5 +52,25 @@ describe('DesktopShellAuthPage', () => {
 
     expect(props.appearance?.shellClassName).toContain('justify-center');
     expect(props.appearance?.shellClassName).not.toContain('pointer-events-none');
+  });
+
+  it('keeps scoped theme routing enabled', () => {
+    const shellAuthPageSource = readFileSync(
+      path.join(process.cwd(), 'auth/src/components/shell-auth-page.tsx'),
+      'utf8',
+    );
+
+    expect(shellAuthPageSource).toContain('data-shell-auth-theme={appearance.theme}');
+  });
+
+  it('keeps the desktop scoped palette on canonical ambient mesh tokens', () => {
+    const shellAuthThemeSource = readFileSync(
+      path.join(process.cwd(), 'auth/src/theme/auth-theme.css'),
+      'utf8',
+    );
+
+    expect(shellAuthThemeSource).toContain(".nimi-shell-auth-root[data-shell-auth-theme='desktop']");
+    expect(shellAuthThemeSource).toContain('var(--nimi-ambient-mesh-base-start)');
+    expect(shellAuthThemeSource).not.toMatch(/relay-dark/u);
   });
 });

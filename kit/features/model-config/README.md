@@ -47,7 +47,8 @@ This module owns the following shared Nimi app surfaces:
   kit never persists AIConfig and never fabricates a placeholder apply
   result. `SharedAIConfigService` is the host-owned persistence seam.
 - Runtime route provider creation, capability health/projection logic, and
-  `applyAIProfileToConfig` schema authority; those remain SDK / runtime owned.
+  AIProfile-to-AIConfig materialization; those remain SDK / host-service owned.
+  Kit consumers inject `SharedAIConfigService`, not a raw schema applier.
 - Scheduling preflight / banners (K-SCHED-*). Consumers pass scheduling UX via
   the hub `footer` slot if needed.
 - App navigation, scope selection, and `AIScopeRef` ownership.
@@ -88,10 +89,9 @@ This module owns the following shared Nimi app surfaces:
 
 ## Current Consumers
 
-Wave 1 ships the expanded kit surface; consumer migration (wave 2 / 3 / 4)
-admits desktop chat and app workbenches as canonical consumers of the hub.
-Until those waves complete, the previous `ModelConfigPanel` entry remains
-available for existing callers.
+Desktop chat/profile settings and Tester app settings consume the shared hub
+through `AppModelConfigSurface` + `SharedAIConfigService`. App-specific code
+owns scope selection, profile library editing, provider resolution, and copy.
 
 ## Verification
 

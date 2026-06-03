@@ -6,112 +6,17 @@ import type {
   CanonicalMessageAvatarSlot,
   CanonicalMessageContentSlot,
   CanonicalMessageRenderContext,
-  CanonicalTranscriptGroup,
   ConversationCanonicalMessage,
 } from '../types.js';
+import {
+  buildCanonicalTranscriptMessageGroups,
+  type CanonicalTranscriptMessageGroupItem,
+} from '../headless/transcript-groups.js';
 import { CanonicalMessageBubble } from './canonical-message-bubble.js';
 import { CanonicalTypingBubble } from './canonical-typing-bubble.js';
 import { CANONICAL_STAGE_SURFACE_WIDTH_CLASS } from './canonical-conversation-pane.js';
 
-type MessageVisualPosition = 'single' | 'start' | 'middle' | 'end';
-
-type MessageVisualItem = {
-  message: ConversationCanonicalMessage;
-  groupIndex: number;
-  indexInGroup: number;
-  groupSize: number;
-  isGroupStart: boolean;
-  isGroupEnd: boolean;
-  position: MessageVisualPosition;
-  showAvatar: boolean;
-  showTimestamp: boolean;
-};
-
-type MessageVisualGroup = {
-  groupIndex: number;
-  role: ConversationCanonicalMessage['role'];
-  items: MessageVisualItem[];
-};
-
-const GROUP_BREAK_GAP_MS = 180_000;
-
-function resolveTimestampMs(value: string | undefined): number {
-  if (!value) {
-    return 0;
-  }
-  const parsed = Date.parse(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function toPosition(groupSize: number, indexInGroup: number): MessageVisualPosition {
-  if (groupSize <= 1) {
-    return 'single';
-  }
-  if (indexInGroup === 0) {
-    return 'start';
-  }
-  if (indexInGroup === groupSize - 1) {
-    return 'end';
-  }
-  return 'middle';
-}
-
-function shouldStartNewGroup(
-  previous: ConversationCanonicalMessage | null,
-  current: ConversationCanonicalMessage,
-): boolean {
-  if (!previous) {
-    return true;
-  }
-  if (previous.role !== current.role) {
-    return true;
-  }
-  if (previous.kind === 'streaming' || current.kind === 'streaming') {
-    return true;
-  }
-  return Math.abs(resolveTimestampMs(current.createdAt) - resolveTimestampMs(previous.createdAt)) > GROUP_BREAK_GAP_MS;
-}
-
-function buildMessageVisualGroups(messages: readonly ConversationCanonicalMessage[]): MessageVisualGroup[] {
-  const groups: MessageVisualGroup[] = [];
-  let currentMessages: ConversationCanonicalMessage[] = [];
-  let previous: ConversationCanonicalMessage | null = null;
-  let groupIndex = 0;
-
-  const pushGroup = () => {
-    if (currentMessages.length === 0) {
-      return;
-    }
-    const items = currentMessages.map((message, indexInGroup) => ({
-      message,
-      groupIndex,
-      indexInGroup,
-      groupSize: currentMessages.length,
-      isGroupStart: indexInGroup === 0,
-      isGroupEnd: indexInGroup === currentMessages.length - 1,
-      position: toPosition(currentMessages.length, indexInGroup),
-      showAvatar: currentMessages.length === 1 || indexInGroup === 0 || indexInGroup === currentMessages.length - 1,
-      showTimestamp: indexInGroup === currentMessages.length - 1,
-    }));
-    groups.push({
-      groupIndex,
-      role: currentMessages[0]?.role || 'assistant',
-      items,
-    });
-    currentMessages = [];
-    groupIndex += 1;
-  };
-
-  for (const message of messages) {
-    if (shouldStartNewGroup(previous, message)) {
-      pushGroup();
-    }
-    currentMessages.push(message);
-    previous = message;
-  }
-  pushGroup();
-  return groups;
-}
+type MessageVisualItem = CanonicalTranscriptMessageGroupItem;
 
 function toRenderContext(input: {
   item: MessageVisualItem;
@@ -170,7 +75,7 @@ type TranscriptVirtualItem =
   | { type: 'message'; key: string; item: MessageVisualItem; focused: boolean; isGroupStart: boolean };
 
 function buildFlatVirtualItems(messages: readonly ConversationCanonicalMessage[]): TranscriptVirtualItem[] {
-  const groups = buildMessageVisualGroups(messages);
+  const groups = buildCanonicalTranscriptMessageGroups(messages);
   const focusGroupIndex = groups.length > 0 && groups[groups.length - 1]?.role === 'assistant'
     ? groups[groups.length - 1]?.groupIndex ?? -1
     : -1;
@@ -238,9 +143,11 @@ function renderMessageItem(
   return (
     <div className={showSenderLabel ? 'space-y-1' : undefined}>
       {showSenderLabel ? (
-        <div
-          className={cn(
-            'pl-10 text-[11px] font-medium tracking-[0.01em]',
+	        <div
+	          data-canonical-sender-label="true"
+	          data-canonical-sender-kind={virtualItem.item.message.senderKind || 'unknown'}
+	          className={cn(
+	            'pl-10 text-[11px] font-medium tracking-[0.01em]',
             virtualItem.item.message.senderKind === 'agent'
               ? 'text-violet-600'
               : 'text-slate-500',
@@ -347,20 +254,7 @@ const TranscriptMessageGroups = memo(function TranscriptMessageGroups(props: Tra
   return <NonVirtualizedTranscript {...props} />;
 });
 
-export function buildCanonicalTranscriptGroups(
-  messages: readonly ConversationCanonicalMessage[],
-): readonly CanonicalTranscriptGroup[] {
-  const visualGroups = buildMessageVisualGroups(messages);
-  const focusGroupIndex = visualGroups.length > 0 && visualGroups[visualGroups.length - 1]?.role === 'assistant'
-    ? visualGroups[visualGroups.length - 1]?.groupIndex ?? -1
-    : -1;
-  return visualGroups.map((group) => ({
-    groupIndex: group.groupIndex,
-    role: group.role,
-    focused: group.groupIndex === focusGroupIndex,
-    messages: group.items.map((item) => item.message),
-  }));
-}
+export { buildCanonicalTranscriptGroups } from '../headless/transcript-groups.js';
 
 export type CanonicalTranscriptViewProps = {
   messages: readonly ConversationCanonicalMessage[];

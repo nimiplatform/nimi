@@ -26,4 +26,4 @@
 ## Cross-Feature And SDK Edges
 - Admitted one-way feature edges: chat consumes avatar; model-config consumes model-picker. Reverse edges are forbidden without explicit admission here.
 - All static `@nimiplatform/sdk*` imports in kit non-test code route through `kit/core/src/sdk-contract.ts`.
-- The admitted dynamic SDK boundary is the chat runtime adapter importing `@nimiplatform/kit/core/sdk-contract`; new SDK consumption adds a re-export to `kit/core/src/sdk-contract.ts`.
+- The admitted dynamic SDK boundary is the chat app-AI runtime adapter importing `@nimiplatform/kit/core/sdk-contract`; new SDK consumption adds a re-export to `kit/core/src/sdk-contract.ts`.

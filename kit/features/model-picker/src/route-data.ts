@@ -19,6 +19,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { runtimeRouteCapabilitiesMatch } from '@nimiplatform/kit/core/sdk-contract';
 import { useModelPicker, type UseModelPickerResult } from './hooks/use-model-picker.js';
 import type { ModelCatalogAdapter } from './types.js';
 import type { RouteModelPickerPanelProps, RouteModelPickerSource } from './components/route-model-picker-panel.js';
@@ -288,38 +289,6 @@ export type RouteModelPickerSelection = {
 };
 
 // ---------------------------------------------------------------------------
-// Capability alias mapping
-// ---------------------------------------------------------------------------
-// Runtime daemons may report capabilities using different naming conventions
-// (e.g. 'chat' vs 'text.generate'). This map ensures filtering matches both.
-
-const CAPABILITY_ALIASES: Record<string, readonly string[]> = {
-  'text.generate': ['text.generate', 'chat'],
-  'chat': ['text.generate', 'chat'],
-  'image.generate': ['image.generate', 'image'],
-  'image.edit': ['image.edit', 'image.generate', 'image'],
-  'image': ['image.generate', 'image.edit', 'image'],
-  'audio.generate': ['audio.generate', 'music', 'audio'],
-  'music': ['audio.generate', 'music', 'audio'],
-  'audio.synthesize': ['audio.synthesize', 'tts'],
-  'tts': ['audio.synthesize', 'tts'],
-  'audio.transcribe': ['audio.transcribe', 'stt'],
-  'stt': ['audio.transcribe', 'stt'],
-  'voice_workflow.voice_clone': ['voice_workflow.voice_clone', 'audio.synthesize', 'tts'],
-  'voice_workflow.voice_design': ['voice_workflow.voice_design', 'audio.synthesize', 'tts'],
-  'video.generate': ['video.generate', 'video'],
-  'video': ['video.generate', 'video'],
-};
-
-function matchesCapability(modelCapabilities: readonly string[], filter: string): boolean {
-  const aliases = CAPABILITY_ALIASES[filter];
-  if (aliases) {
-    return aliases.some((alias) => modelCapabilities.includes(alias));
-  }
-  return modelCapabilities.includes(filter);
-}
-
-// ---------------------------------------------------------------------------
 // Hook options and result
 // ---------------------------------------------------------------------------
 
@@ -488,7 +457,7 @@ export function useRouteModelPickerData({
   const availableModels: readonly RouteDisplayModel[] = useMemo(() => {
     if (source === 'local') {
       const filtered = capability
-        ? localModels.filter((m) => matchesCapability(m.capabilities, capability))
+        ? localModels.filter((m) => runtimeRouteCapabilitiesMatch(m.capabilities, capability))
         : localModels;
       return filtered.map((m) => ({
         id: m.localModelId,
@@ -498,7 +467,7 @@ export function useRouteModelPickerData({
     }
     const models = connectorModelsMap[connectorId] ?? [];
     const filtered = capability
-      ? models.filter((m) => m.available && matchesCapability(m.capabilities, capability))
+      ? models.filter((m) => m.available && runtimeRouteCapabilitiesMatch(m.capabilities, capability))
       : models.filter((m) => m.available);
     return filtered.map((m) => ({
       id: m.modelId,

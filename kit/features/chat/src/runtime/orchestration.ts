@@ -39,6 +39,12 @@ export type SimpleAiConversationProviderOptions = {
   historyBudget?: Partial<ConversationHistoryBudget>;
   countTokens?: ConversationTokenCounter;
   resolveSystemPrompt?: (input: ConversationTurnInput) => string | null | undefined;
+  resolveRuntimeUserMessage?: (
+    input: ConversationTurnInput,
+    context: {
+      normalizedUserText: string;
+    },
+  ) => ConversationRuntimeTextMessage;
   resolveRuntimeRequest?: (
     input: ConversationTurnInput,
     context: {
@@ -75,13 +81,19 @@ export function createSimpleAiConversationProvider(
       const systemPrompt = normalizeNullableText(
         options.resolveSystemPrompt ? options.resolveSystemPrompt(input) : input.systemPrompt,
       );
-      const messages: ConversationRuntimeTextMessage[] = [
-        ...historyWindow.map(toRuntimeTextMessage),
-        {
-          role: 'user',
+      const userRuntimeMessage = options.resolveRuntimeUserMessage
+        ? normalizeRuntimeUserMessage(
+          options.resolveRuntimeUserMessage(input, { normalizedUserText }),
+          normalizedUserText,
+        )
+        : {
+          role: 'user' as const,
           text: normalizedUserText,
           name: null,
-        },
+        };
+      const messages: ConversationRuntimeTextMessage[] = [
+        ...historyWindow.map(toRuntimeTextMessage),
+        userRuntimeMessage,
       ];
       const runtimeRequest = options.resolveRuntimeRequest
         ? options.resolveRuntimeRequest(input, {
@@ -272,6 +284,25 @@ function toRuntimeTextMessage(
   return {
     role: message.role,
     text: normalizeText(message.text),
+    name: normalizeNullableText(message.name),
+  };
+}
+
+function normalizeRuntimeUserMessage(
+  message: ConversationRuntimeTextMessage,
+  fallbackText: string,
+): ConversationRuntimeTextMessage {
+  if (message.role !== 'user') {
+    throw new Error('simple-ai runtime user message resolver must return a user message');
+  }
+  const text = normalizeText(message.text) || fallbackText;
+  if (!text) {
+    throw new Error('simple-ai runtime user message resolver returned an empty message');
+  }
+  return {
+    ...message,
+    role: 'user',
+    text,
     name: normalizeNullableText(message.name),
   };
 }

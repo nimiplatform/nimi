@@ -6,12 +6,15 @@ import {
 } from 'react';
 import {
   getPlatformClient,
-  runAppAiTextTurn,
+  streamAppAiChatResponse as streamSdkAppAiChatResponse,
+  submitAppAiChat as submitSdkAppAiChat,
+  type AppAiChatMetadataDefaults,
+  type AppAiChatPrompt,
+  type AppAiChatRequest,
+  type AppAiChatStreamRequest,
+  type AppAiChatStreamResult,
   type Runtime,
-  type TextGenerateInput,
   type TextGenerateOutput,
-  type TextMessage,
-  type TextStreamInput,
   type TextStreamPart,
   type NimiError,
 } from '@nimiplatform/kit/core/sdk-contract';
@@ -24,20 +27,14 @@ export {
   createSimpleAiConversationProvider,
 } from './runtime/orchestration.js';
 
-const DEFAULT_RUNTIME_CHAT_METADATA = {
+const KIT_APP_AI_CHAT_METADATA: AppAiChatMetadataDefaults = {
   callerKind: 'third-party-app',
-  callerId: 'nimi-kit.chat.runtime',
+  callerId: 'nimi-kit.chat.app-ai',
   surfaceId: 'kit.features.chat',
 } as const;
 
-export type RuntimeChatRequest = TextGenerateInput;
-export type RuntimeChatStreamRequest = TextStreamInput;
-export type RuntimeChatPrompt = string | TextMessage[];
-export type RuntimeChatDeltaPart = Extract<TextStreamPart, { type: 'delta' }>;
-export type RuntimeChatFinishPart = Extract<TextStreamPart, { type: 'finish' }>;
-export type RuntimeChatErrorPart = Extract<TextStreamPart, { type: 'error' }>;
-export type RuntimeChatError = NimiError | Error;
-export type RuntimeChatSessionMessage = {
+export type AppAiChatError = NimiError | Error;
+export type AppAiChatSessionMessage = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
@@ -46,18 +43,7 @@ export type RuntimeChatSessionMessage = {
   error?: string;
 };
 
-export type RuntimeChatStreamResult = {
-  text: string;
-  finish: RuntimeChatFinishPart | null;
-};
-
-export type RuntimeChatStreamHandlers = {
-  onDelta?: (text: string, part: RuntimeChatDeltaPart) => void;
-  onFinish?: (result: RuntimeChatStreamResult, part: RuntimeChatFinishPart | null) => void;
-  onError?: (error: RuntimeChatError, part: RuntimeChatErrorPart | null) => void;
-};
-
-export type RuntimeChatComposerResponse =
+export type AppAiChatComposerResponse =
   | {
     mode: 'generate';
     text: string;
@@ -66,163 +52,100 @@ export type RuntimeChatComposerResponse =
   | {
     mode: 'stream';
     text: string;
-    result: RuntimeChatStreamResult;
+    result: AppAiChatStreamResult;
   };
 
-export type RuntimeChatSessionSendInput = {
+export type AppAiChatSessionSendInput = {
   prompt: string;
   displayPrompt?: string;
   resolveRequest?: (
-    context: RuntimeChatSessionResolveRequestContext,
-  ) => RuntimeChatStreamRequest;
+    context: AppAiChatSessionResolveRequestContext,
+  ) => AppAiChatStreamRequest;
 };
 
-export type RuntimeChatSessionResolveRequestContext = {
+export type AppAiChatSessionResolveRequestContext = {
   prompt: string;
   displayPrompt: string;
-  messages: readonly RuntimeChatSessionMessage[];
+  messages: readonly AppAiChatSessionMessage[];
 };
 
-export type UseRuntimeChatSessionOptions = {
+export type UseAppAiChatSessionOptions = {
   runtime?: Runtime;
-  initialMessages?: readonly RuntimeChatSessionMessage[];
+  initialMessages?: readonly AppAiChatSessionMessage[];
   resolveRequest: (
-    context: RuntimeChatSessionResolveRequestContext,
-  ) => RuntimeChatStreamRequest;
-  onMessagesChange?: (messages: readonly RuntimeChatSessionMessage[]) => void;
-  onError?: (error: RuntimeChatError) => void;
+    context: AppAiChatSessionResolveRequestContext,
+  ) => AppAiChatStreamRequest;
+  onMessagesChange?: (messages: readonly AppAiChatSessionMessage[]) => void;
+  onError?: (error: AppAiChatError) => void;
 };
 
-export type UseRuntimeChatSessionResult = {
-  messages: readonly RuntimeChatSessionMessage[];
+export type UseAppAiChatSessionResult = {
+  messages: readonly AppAiChatSessionMessage[];
   isStreaming: boolean;
   canCancel: boolean;
   error: string | null;
-  sendPrompt: (input: string | RuntimeChatSessionSendInput) => Promise<void>;
+  sendPrompt: (input: string | AppAiChatSessionSendInput) => Promise<void>;
   cancelCurrent: () => void;
-  resetMessages: (messages?: readonly RuntimeChatSessionMessage[]) => void;
-  setMessages: (messages: readonly RuntimeChatSessionMessage[]) => void;
+  resetMessages: (messages?: readonly AppAiChatSessionMessage[]) => void;
+  setMessages: (messages: readonly AppAiChatSessionMessage[]) => void;
   clearError: () => void;
 };
 
-export type RuntimeChatComposerAdapterOptions<TAttachment = never> = {
+export type AppAiChatComposerAdapterOptions<TAttachment = never> = {
   runtime?: Runtime;
   mode?: 'generate' | 'stream';
   model?: string;
-  input?: RuntimeChatPrompt;
+  input?: AppAiChatPrompt;
   system?: string;
   subjectUserId?: string;
   temperature?: number;
   topP?: number;
   maxTokens?: number;
-  route?: TextGenerateInput['route'];
+  route?: AppAiChatRequest['route'];
   timeoutMs?: number;
   connectorId?: string;
-  metadata?: TextGenerateInput['metadata'];
+  metadata?: AppAiChatRequest['metadata'];
   signal?: AbortSignal;
   resolveRequest?: (
     input: ChatComposerSubmitInput<TAttachment>,
-  ) => RuntimeChatRequest | RuntimeChatStreamRequest;
-  resolveInput?: (input: ChatComposerSubmitInput<TAttachment>) => RuntimeChatPrompt;
+  ) => AppAiChatRequest | AppAiChatStreamRequest;
+  resolveInput?: (input: ChatComposerSubmitInput<TAttachment>) => AppAiChatPrompt;
   onChunk?: (part: TextStreamPart, input: ChatComposerSubmitInput<TAttachment>) => void;
   onResponse?: (
-    response: RuntimeChatComposerResponse,
+    response: AppAiChatComposerResponse,
     input: ChatComposerSubmitInput<TAttachment>,
   ) => Promise<void> | void;
 };
 
-export async function submitRuntimeChat(
-  runtime: Runtime,
-  request: RuntimeChatRequest,
-): Promise<TextGenerateOutput> {
-  return runtime.ai.text.generate(withDefaultRuntimeChatMetadata(request));
-}
-
-export async function submitPlatformChat(
-  request: RuntimeChatRequest,
-): Promise<TextGenerateOutput> {
-  return submitRuntimeChat(getPlatformClient().runtime, request);
-}
-
-export async function streamRuntimeChatResponse(
-  runtime: Runtime,
-  request: RuntimeChatStreamRequest,
-  handlers: RuntimeChatStreamHandlers = {},
-): Promise<RuntimeChatStreamResult> {
-  for await (const event of runAppAiTextTurn({
-    runtime: {
-      streamText: (nextRequest) => runtime.ai.text.stream(withDefaultRuntimeChatMetadata(nextRequest)),
-    },
-    request,
-  })) {
-    switch (event.type) {
-      case 'turn-started':
-      case 'reasoning-delta':
-      case 'structured-output-parsed':
-      case 'structured-output-repair-required':
-        break;
-      case 'text-delta':
-        handlers.onDelta?.(event.textDelta, event.runtimePart);
-        break;
-      case 'turn-completed': {
-        if (!event.runtimePart) {
-          throw new Error('runtime chat stream completed without a Runtime finish part');
-        }
-        const result = {
-          text: event.snapshot.text,
-          finish: event.runtimePart,
-        };
-        handlers.onFinish?.(result, event.runtimePart);
-        return result;
-      }
-      case 'turn-failed': {
-        const error = toRuntimeChatError(
-          event.runtimePart?.error
-            || (event.error.cause instanceof Error ? event.error.cause : event.error.message),
-        );
-        handlers.onError?.(error, event.runtimePart ?? null);
-        throw error;
-      }
-      case 'turn-canceled':
-        throw createAbortError();
-      default:
-        assertNever(event);
-    }
-  }
-  throw new Error('runtime chat stream ended without a terminal event');
-}
-
-export async function streamPlatformChatResponse(
-  request: RuntimeChatStreamRequest,
-  handlers: RuntimeChatStreamHandlers = {},
-): Promise<RuntimeChatStreamResult> {
-  return streamRuntimeChatResponse(getPlatformClient().runtime, request, handlers);
-}
-
-export function createRuntimeChatComposerAdapter<TAttachment = never>(
-  options: RuntimeChatComposerAdapterOptions<TAttachment> = {},
+export function createAppAiChatComposerAdapter<TAttachment = never>(
+  options: AppAiChatComposerAdapterOptions<TAttachment> = {},
 ): ChatComposerAdapter<TAttachment> {
   return {
     submit: async (input) => {
       const runtime = options.runtime ?? getPlatformClient().runtime;
-      const request = resolveRuntimeChatRequest(input, options);
+      const request = resolveAppAiChatRequest(input, options);
 
       if (options.mode === 'stream') {
-        const result = await streamRuntimeChatResponse(runtime, request as RuntimeChatStreamRequest, {
-          onDelta: (_text, part) => {
-            options.onChunk?.(part, input);
-          },
-          onFinish: (_result, part) => {
-            if (part) {
+        const result = await streamSdkAppAiChatResponse(
+          runtime,
+          request as AppAiChatStreamRequest,
+          {
+            onDelta: (_text, part) => {
               options.onChunk?.(part, input);
-            }
+            },
+            onFinish: (_result, part) => {
+              if (part) {
+                options.onChunk?.(part, input);
+              }
+            },
+            onError: (_error, part) => {
+              if (part) {
+                options.onChunk?.(part, input);
+              }
+            },
           },
-          onError: (_error, part) => {
-            if (part) {
-              options.onChunk?.(part, input);
-            }
-          },
-        });
+          { metadataDefaults: KIT_APP_AI_CHAT_METADATA },
+        );
 
         await options.onResponse?.({
           mode: 'stream',
@@ -232,7 +155,11 @@ export function createRuntimeChatComposerAdapter<TAttachment = never>(
         return;
       }
 
-      const result = await submitRuntimeChat(runtime, request);
+      const result = await submitSdkAppAiChat(
+        runtime,
+        request,
+        { metadataDefaults: KIT_APP_AI_CHAT_METADATA },
+      );
       await options.onResponse?.({
         mode: 'generate',
         text: result.text,
@@ -242,15 +169,15 @@ export function createRuntimeChatComposerAdapter<TAttachment = never>(
   };
 }
 
-export function useRuntimeChatSession({
+export function useAppAiChatSession({
   runtime,
   initialMessages = [],
   resolveRequest,
   onMessagesChange,
   onError,
-}: UseRuntimeChatSessionOptions): UseRuntimeChatSessionResult {
+}: UseAppAiChatSessionOptions): UseAppAiChatSessionResult {
   const runtimeClient = runtime ?? getPlatformClient().runtime;
-  const [messages, setMessagesState] = useState<readonly RuntimeChatSessionMessage[]>(initialMessages);
+  const [messages, setMessagesState] = useState<readonly AppAiChatSessionMessage[]>(initialMessages);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesRef = useRef(messages);
@@ -259,8 +186,8 @@ export function useRuntimeChatSession({
 
   const commitMessages = useCallback((
     next:
-      | readonly RuntimeChatSessionMessage[]
-      | ((current: readonly RuntimeChatSessionMessage[]) => readonly RuntimeChatSessionMessage[]),
+      | readonly AppAiChatSessionMessage[]
+      | ((current: readonly AppAiChatSessionMessage[]) => readonly AppAiChatSessionMessage[]),
   ) => {
     setMessagesState((current) => {
       const resolved = typeof next === 'function' ? next(current) : next;
@@ -282,7 +209,7 @@ export function useRuntimeChatSession({
     setError(null);
   }, []);
 
-  const resetMessages = useCallback((nextMessages: readonly RuntimeChatSessionMessage[] = []) => {
+  const resetMessages = useCallback((nextMessages: readonly AppAiChatSessionMessage[] = []) => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
     commitMessages([...nextMessages]);
@@ -295,22 +222,22 @@ export function useRuntimeChatSession({
     abortControllerRef.current?.abort();
   }, []);
 
-  const sendPrompt = useCallback(async (input: string | RuntimeChatSessionSendInput) => {
+  const sendPrompt = useCallback(async (input: string | AppAiChatSessionSendInput) => {
     const payload = typeof input === 'string' ? { prompt: input } : input;
     const prompt = String(payload.prompt || '').trim();
     if (!prompt || isStreamingRef.current) {
       return;
     }
 
-    const userMessage: RuntimeChatSessionMessage = {
-      id: createRuntimeChatSessionMessageId(),
+    const userMessage: AppAiChatSessionMessage = {
+      id: createAppAiChatSessionMessageId(),
       role: 'user',
       content: String(payload.displayPrompt || prompt).trim() || prompt,
       timestamp: new Date().toISOString(),
       status: 'complete',
     };
-    const assistantMessageId = createRuntimeChatSessionMessageId();
-    const assistantPlaceholder: RuntimeChatSessionMessage = {
+    const assistantMessageId = createAppAiChatSessionMessageId();
+    const assistantPlaceholder: AppAiChatSessionMessage = {
       id: assistantMessageId,
       role: 'assistant',
       content: '',
@@ -332,21 +259,26 @@ export function useRuntimeChatSession({
         displayPrompt: userMessage.content,
         messages: nextMessages,
       });
-      const requestWithSignal = withRuntimeChatAbortSignal(request, abortController.signal);
+      const requestWithSignal = withAppAiChatAbortSignal(request, abortController.signal);
 
-      const result = await streamRuntimeChatResponse(runtimeClient, requestWithSignal, {
-        onDelta: (text) => {
-          commitMessages((current) => current.map((message) => (
-            message.id === assistantMessageId
-              ? {
-                ...message,
-                content: message.content + text,
-                status: 'streaming',
-              }
-              : message
-          )));
+      const result = await streamSdkAppAiChatResponse(
+        runtimeClient,
+        requestWithSignal,
+        {
+          onDelta: (text) => {
+            commitMessages((current) => current.map((message) => (
+              message.id === assistantMessageId
+                ? {
+                  ...message,
+                  content: message.content + text,
+                  status: 'streaming',
+                }
+                : message
+            )));
+          },
         },
-      });
+        { metadataDefaults: KIT_APP_AI_CHAT_METADATA },
+      );
 
       commitMessages((current) => current.map((message) => (
         message.id === assistantMessageId
@@ -371,8 +303,8 @@ export function useRuntimeChatSession({
         )));
         return;
       }
-      const resolvedError = toRuntimeChatError(nextError instanceof Error ? nextError : String(nextError));
-      const errorMessage = resolvedError.message || 'runtime chat stream failed';
+      const resolvedError = toAppAiChatError(nextError instanceof Error ? nextError : String(nextError));
+      const errorMessage = resolvedError.message || 'app AI chat stream failed';
       setError(errorMessage);
       commitMessages((current) => current.map((message) => (
         message.id === assistantMessageId
@@ -405,19 +337,19 @@ export function useRuntimeChatSession({
   };
 }
 
-function resolveRuntimeChatRequest<TAttachment>(
+function resolveAppAiChatRequest<TAttachment>(
   input: ChatComposerSubmitInput<TAttachment>,
-  options: RuntimeChatComposerAdapterOptions<TAttachment>,
-): RuntimeChatRequest | RuntimeChatStreamRequest {
+  options: AppAiChatComposerAdapterOptions<TAttachment>,
+): AppAiChatRequest | AppAiChatStreamRequest {
   if (options.resolveRequest) {
     return options.resolveRequest(input);
   }
 
   if (input.attachments.length > 0 && !options.resolveInput) {
-    throw new Error('runtime chat adapter requires resolveInput or resolveRequest when attachments are present');
+    throw new Error('app AI chat adapter requires resolveInput or resolveRequest when attachments are present');
   }
 
-  const model = normalizeRequiredRuntimeModel(options.model);
+  const model = normalizeRequiredAppAiModel(options.model);
   return {
     model,
     input: options.resolveInput ? options.resolveInput(input) : (options.input ?? input.text),
@@ -434,35 +366,25 @@ function resolveRuntimeChatRequest<TAttachment>(
   };
 }
 
-function normalizeRequiredRuntimeModel(model: string | undefined): string {
+function normalizeRequiredAppAiModel(model: string | undefined): string {
   const normalized = model?.trim();
   if (!normalized) {
-    throw new Error('runtime chat adapter requires an explicit model or resolveRequest');
+    throw new Error('app AI chat adapter requires an explicit model or resolveRequest');
   }
   if (normalized === 'auto') {
-    throw new Error('runtime chat adapter requires a concrete Runtime model, not auto');
+    throw new Error('app AI chat adapter requires a concrete Runtime model, not auto');
   }
   return normalized;
 }
 
-function withDefaultRuntimeChatMetadata<T extends RuntimeChatRequest | RuntimeChatStreamRequest>(request: T): T {
-  return {
-    ...request,
-    metadata: {
-      ...DEFAULT_RUNTIME_CHAT_METADATA,
-      ...(request.metadata || {}),
-    },
-  };
-}
-
-function toRuntimeChatError(error: NimiError | Error | string): RuntimeChatError {
+function toAppAiChatError(error: NimiError | Error | string): AppAiChatError {
   if (error instanceof Error) {
     return error;
   }
-  return new Error(String(error || 'runtime chat stream failed'));
+  return new Error(String(error || 'app AI chat stream failed'));
 }
 
-function withRuntimeChatAbortSignal<T extends RuntimeChatStreamRequest>(request: T, signal: AbortSignal): T {
+function withAppAiChatAbortSignal<T extends AppAiChatStreamRequest>(request: T, signal: AbortSignal): T {
   return {
     ...request,
     signal: combineAbortSignals(request.signal, signal),
@@ -505,19 +427,9 @@ function isAbortLikeError(error: unknown): boolean {
   return false;
 }
 
-function createAbortError(): Error {
-  const error = new Error('Aborted');
-  error.name = 'AbortError';
-  return error;
-}
-
-function createRuntimeChatSessionMessageId(): string {
+function createAppAiChatSessionMessageId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
   return `chat-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function assertNever(value: never): never {
-  throw new Error(`Unhandled runtime chat event: ${JSON.stringify(value)}`);
 }

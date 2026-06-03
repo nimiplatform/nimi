@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
-  AIConfig,
   AIProfile,
   AIProfileApplyResult,
   AIProfilePreviewResult,
@@ -19,18 +18,10 @@ import type {
   ModelConfigProfilePreview,
 } from '../types.js';
 
-/**
- * Host-injected applier bridging D-AIPC-005 AIProfile → AIConfig transition.
- * The canonical implementation lives in the host sdk (`applyAIProfileToConfig`);
- * kit/features must not import it directly to preserve the adapter boundary.
- */
-export type ApplyAIProfileToConfigFn = (config: AIConfig, profile: AIProfile) => AIConfig;
-
 export interface UseModelConfigProfileControllerInput {
   readonly scopeRef: AIScopeRef;
   readonly aiConfigService: SharedAIConfigService;
   readonly copy: ModelConfigProfileCopy;
-  readonly applyAIProfileToConfig: ApplyAIProfileToConfigFn;
   readonly userProfilesSource?: UserProfilesSource;
   readonly currentOrigin: {
     profileId: string;

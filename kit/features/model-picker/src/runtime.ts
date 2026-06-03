@@ -2,7 +2,6 @@ import {
   createRuntimeModelCatalogClient,
   getPlatformClient,
   listRuntimeRouteOptions,
-  Runtime,
   type RuntimeCatalogModelDetail,
   type RuntimeCatalogModelDetailResponse,
   type RuntimeCatalogModelSource,
@@ -154,30 +153,9 @@ function runtimeAdmin() {
   return getPlatformClient().domains.runtimeAdmin;
 }
 
-const STALE_BEARER_ANONYMOUS_RETRY_MS = 60_000;
-let anonymousRuntime: Runtime | null = null;
-
-function getAnonymousRuntime(): Runtime {
-  const runtime = getPlatformClient().runtime;
-  if (
-    anonymousRuntime
-    && anonymousRuntime.appId === runtime.appId
-    && anonymousRuntime.transport === runtime.transport
-  ) {
-    return anonymousRuntime;
-  }
-  anonymousRuntime = new Runtime({
-    appId: runtime.appId,
-    transport: runtime.transport,
-  });
-  return anonymousRuntime;
-}
-
 export const runtimeModelCatalogService: RuntimeModelCatalogService = createRuntimeModelCatalogClient({
   connector: runtimeAdmin,
-  readConnector: () => getAnonymousRuntime().connector,
   callOptions: CATALOG_CALL_OPTIONS,
-  readFallbackTtlMs: STALE_BEARER_ANONYMOUS_RETRY_MS,
 }) satisfies RuntimeModelCatalogClient;
 
 export type RuntimeModelCatalogAdapterOptions = {

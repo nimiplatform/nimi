@@ -1,8 +1,8 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { RuntimeChatPanel } from '../src/ui.js';
-import type { UseRuntimeChatSessionResult } from '../src/runtime.js';
+import { AppAiChatPanel } from '../src/ui.js';
+import type { UseAppAiChatSessionResult } from '../src/runtime.js';
 
 (
   globalThis as typeof globalThis & {
@@ -37,7 +37,7 @@ afterEach(async () => {
   container = null;
 });
 
-function makeSession(overrides: Partial<UseRuntimeChatSessionResult> = {}): UseRuntimeChatSessionResult {
+function makeSession(overrides: Partial<UseAppAiChatSessionResult> = {}): UseAppAiChatSessionResult {
   return {
     messages: [],
     isStreaming: false,
@@ -52,7 +52,7 @@ function makeSession(overrides: Partial<UseRuntimeChatSessionResult> = {}): UseR
   };
 }
 
-describe('RuntimeChatPanel', () => {
+describe('AppAiChatPanel', () => {
   it('sends prompt content through the session', async () => {
     const session = makeSession();
     container = document.createElement('div');
@@ -60,7 +60,7 @@ describe('RuntimeChatPanel', () => {
     root = createRoot(container);
 
     await act(async () => {
-      root?.render(<RuntimeChatPanel session={session} />);
+      root?.render(<AppAiChatPanel session={session} />);
       await flush();
     });
 
@@ -97,7 +97,7 @@ describe('RuntimeChatPanel', () => {
     root = createRoot(container);
 
     await act(async () => {
-      root?.render(<RuntimeChatPanel session={session} cancelLabel="Stop" />);
+      root?.render(<AppAiChatPanel session={session} cancelLabel="Stop" />);
       await flush();
     });
 
@@ -127,7 +127,7 @@ describe('RuntimeChatPanel', () => {
     root = createRoot(container);
 
     await act(async () => {
-      root?.render(<RuntimeChatPanel session={session} />);
+      root?.render(<AppAiChatPanel session={session} />);
       await flush();
     });
 

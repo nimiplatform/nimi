@@ -1,4 +1,6 @@
 import { act } from 'react';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, expect, test } from 'vitest';
@@ -216,6 +218,30 @@ test('app surface primitives render canonical shared classes', () => {
   expect(hasClass(html, 'nimi-surface--active')).toBe(true);
   expect(STATE_TONE_CLASS.selected).toMatch(/nimi-surface-active/);
   expect(STATE_TONE_CLASS.danger).toMatch(/nimi-status-danger/);
+});
+
+test('app surface source keeps promoted and operational card kinds plus action entry points', () => {
+  const source = readFileSync(path.join(process.cwd(), 'ui/src/components/app-surface.tsx'), 'utf8');
+
+  expect(source).toMatch(/type AppCardSurfaceKind = 'promoted-glass' \| 'operational-solid'/);
+  expect(source).toMatch(/material=\{kind === 'promoted-glass' \? 'glass-regular' : 'solid'\}/);
+  expect(source).toMatch(/data-nimi-app-card-surface=\{kind\}/);
+  expect(source).toMatch(/interactive\?: boolean;/);
+  expect(source).toMatch(/active\?: boolean;/);
+  expect(source).toMatch(/interactive=\{interactive\}/);
+  expect(source).toMatch(/active=\{active\}/);
+  expect(source).toMatch(/export function CompactAction/);
+  expect(source).toMatch(/export function IconToggleAction/);
+  expect(source).toMatch(/export function FieldTrigger/);
+});
+
+test('dialog source keeps data-testid passthrough and panel style support', () => {
+  const source = readFileSync(path.join(process.cwd(), 'ui/src/components/dialog.tsx'), 'utf8');
+
+  expect(source).toMatch(/data-testid=\{dataTestId\}/);
+  expect(source).toMatch(/panelStyle\?: CSSProperties/);
+  expect(source).toMatch(/\.\.\.panelStyle/);
+  expect(source).toMatch(/style=\{mergedPanelStyle\}/);
 });
 
 test('shared control and feedback primitives render canonical slots', () => {

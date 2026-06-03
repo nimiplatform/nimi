@@ -1,12 +1,12 @@
 import { useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Button, Surface, TextareaField, cn } from '@nimiplatform/kit/ui';
 import type {
-  RuntimeChatSessionMessage,
-  UseRuntimeChatSessionResult,
+  AppAiChatSessionMessage,
+  UseAppAiChatSessionResult,
 } from '../runtime.js';
 
-export type RuntimeChatPanelProps = {
-  session: UseRuntimeChatSessionResult;
+export type AppAiChatPanelProps = {
+  session: UseAppAiChatSessionResult;
   className?: string;
   messagesClassName?: string;
   composerClassName?: string;
@@ -19,7 +19,7 @@ export type RuntimeChatPanelProps = {
   actions?: ReactNode;
   onReset?: () => void;
   showMessageStatus?: boolean;
-  formatMessageStatus?: (message: RuntimeChatSessionMessage) => string | null;
+  formatMessageStatus?: (message: AppAiChatSessionMessage) => string | null;
   messageListClassName?: string;
   messageRowClassName?: string;
   userMessageRowClassName?: string;
@@ -28,10 +28,10 @@ export type RuntimeChatPanelProps = {
   userMessageBubbleClassName?: string;
   assistantMessageBubbleClassName?: string;
   messageStatusClassName?: string;
-  renderMessage?: (message: RuntimeChatSessionMessage, index: number) => ReactNode;
+  renderMessage?: (message: AppAiChatSessionMessage, index: number) => ReactNode;
 };
 
-function defaultFormatMessageStatus(message: RuntimeChatSessionMessage): string | null {
+function defaultFormatMessageStatus(message: AppAiChatSessionMessage): string | null {
   if (message.status === 'streaming') {
     return 'Streaming...';
   }
@@ -44,7 +44,7 @@ function defaultFormatMessageStatus(message: RuntimeChatSessionMessage): string 
   return null;
 }
 
-export function RuntimeChatPanel({
+export function AppAiChatPanel({
   session,
   className,
   messagesClassName,
@@ -68,7 +68,7 @@ export function RuntimeChatPanel({
   assistantMessageBubbleClassName,
   messageStatusClassName,
   renderMessage,
-}: RuntimeChatPanelProps) {
+}: AppAiChatPanelProps) {
   const [input, setInput] = useState('');
   const { messages, isStreaming, canCancel, sendPrompt, cancelCurrent, resetMessages } = session;
   const resolvedMessagesClassName = messagesClassName ?? 'h-80';

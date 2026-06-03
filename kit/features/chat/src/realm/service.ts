@@ -7,7 +7,6 @@ import {
 import type { RealmMessageViewDto, RealmSendMessageInputDto } from './codec.js';
 import {
   advanceRealmChatSessionAck,
-  buildRealmTextMessageInput,
   createRealmChatSessionOpenPayload,
   createRealmChatSessionState,
   getRealmReplayMaxSeq,
@@ -17,7 +16,8 @@ import {
   parseRealmSocketChatEvent,
   rememberRealmChatSeenEvent,
   resolveRealmChatSyncRequest,
-} from './helpers.js';
+} from './events.js';
+import { buildRealmTextMessageInput } from './messages.js';
 import type {
   RealmChatComposerAdapter,
   RealmChatComposerAdapterOptions,
@@ -215,6 +215,7 @@ export function useRealmChatRealtimeController({
   authStatus,
   authToken,
   fallbackToken,
+  resolveAuthToken,
   realtimeBaseUrl,
   selectedChatId,
   currentUserId,
@@ -287,18 +288,12 @@ export function useRealmChatRealtimeController({
   }, [currentUserId]);
 
   useEffect(() => {
-    const normalizedToken = normalizeString(authToken || fallbackToken || '');
-    if (authStatus !== 'authenticated' || !normalizedToken || !realtimeBaseUrl) {
+    if (authStatus !== 'authenticated' || !realtimeBaseUrl) {
       return undefined;
     }
 
-    const socket = callbacksRef.current.createSocket({
-      baseUrl: realtimeBaseUrl,
-      token: normalizedToken,
-      socketPath,
-    });
-    socketRef.current = socket;
     let disposed = false;
+    let socket: RealmChatRealtimeSocket | null = null;
     const isSocketActive = () => !disposed && socketRef.current === socket;
     const setSession = (nextSession: RealmChatSessionState | null) => {
       sessionRef.current = nextSession;
@@ -343,6 +338,10 @@ export function useRealmChatRealtimeController({
     };
 
     const onSyncRequired = (payload: unknown) => {
+      const activeSocket = socket;
+      if (!activeSocket) {
+        return;
+      }
       const nextSync = resolveRealmChatSyncRequest({
         payload: parseRealmChatSyncRequiredPayload(payload),
         selectedChatId: selectedChatIdRef.current,
@@ -381,7 +380,7 @@ export function useRealmChatRealtimeController({
                 ...sessionRef.current,
                 lastAckSeq: replayMaxSeq,
               });
-              socket.emit('chat:event.ack', {
+              activeSocket.emit('chat:event.ack', {
                 chatId: nextSync.chatId,
                 sessionId: sessionRef.current.sessionId,
                 ackSeq: replayMaxSeq,
@@ -439,29 +438,46 @@ export function useRealmChatRealtimeController({
       }
     };
 
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
-    socket.on('chat:session.ready', onSessionReady);
-    socket.on('chat:event', onChatEvent);
-    socket.on('chat:session.sync_required', onSyncRequired);
-    socket.on('notif:new', onNotification);
+    const attachSocket = async () => {
+      const immediateToken = normalizeString(authToken || fallbackToken || '');
+      const resolvedToken = immediateToken || normalizeString(await resolveAuthToken?.());
+      if (disposed || !resolvedToken) {
+        return;
+      }
+      socket = callbacksRef.current.createSocket({
+        baseUrl: realtimeBaseUrl,
+        token: resolvedToken,
+        socketPath,
+      });
+      socketRef.current = socket;
+      socket.on('connect', onConnect);
+      socket.on('disconnect', onDisconnect);
+      socket.on('chat:session.ready', onSessionReady);
+      socket.on('chat:event', onChatEvent);
+      socket.on('chat:session.sync_required', onSyncRequired);
+      socket.on('notif:new', onNotification);
+    };
+
+    void attachSocket();
 
     return () => {
       disposed = true;
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
-      socket.off('chat:session.ready', onSessionReady);
-      socket.off('chat:event', onChatEvent);
-      socket.off('chat:session.sync_required', onSyncRequired);
-      socket.off('notif:new', onNotification);
-      socket.disconnect();
-      if (socketRef.current === socket) {
-        socketRef.current = null;
+      if (socket) {
+        socket.off('connect', onConnect);
+        socket.off('disconnect', onDisconnect);
+        socket.off('chat:session.ready', onSessionReady);
+        socket.off('chat:event', onChatEvent);
+        socket.off('chat:session.sync_required', onSyncRequired);
+        socket.off('notif:new', onNotification);
+        socket.disconnect();
+        if (socketRef.current === socket) {
+          socketRef.current = null;
+        }
       }
       seenEventsRef.current.clear();
       setSession(null);
     };
-  }, [authStatus, authToken, fallbackToken, realtimeBaseUrl, socketPath]);
+  }, [authStatus, authToken, fallbackToken, realtimeBaseUrl, resolveAuthToken, socketPath]);
 
   useEffect(() => {
     openRealmChatSessionOnSocket(socketRef.current, sessionRef.current, selectedChatId);

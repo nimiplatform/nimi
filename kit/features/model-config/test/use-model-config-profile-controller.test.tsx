@@ -110,13 +110,6 @@ function userSource(profiles: AIProfile[]): UserProfilesSource {
   return { list: () => profiles };
 }
 
-function applyAIProfileToConfigStub(config: AIConfig, profile: AIProfile): AIConfig {
-  return {
-    ...config,
-    profileOrigin: { profileId: profile.profileId, title: profile.title, appliedAt: 'stub' },
-  };
-}
-
 type HarnessProps = {
   service: SharedAIConfigService;
   userProfilesSource?: UserProfilesSource;
@@ -130,7 +123,6 @@ function Harness(props: HarnessProps) {
     aiConfigService: props.service,
     copy,
     currentOrigin: null,
-    applyAIProfileToConfig: applyAIProfileToConfigStub,
     userProfilesSource: props.userProfilesSource,
   });
   props.captured.controller = controller;
@@ -147,7 +139,6 @@ function InlineSourceHarness(props: { service: SharedAIConfigService; tick: numb
     aiConfigService: props.service,
     copy,
     currentOrigin: null,
-    applyAIProfileToConfig: applyAIProfileToConfigStub,
     userProfilesSource: { list: () => [localUserProfile] },
   });
   return <div data-tick={props.tick} />;

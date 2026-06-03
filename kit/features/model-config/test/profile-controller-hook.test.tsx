@@ -96,7 +96,6 @@ function HookHarness(props: {
     aiConfigService: props.service,
     copy,
     currentOrigin: null,
-    applyAIProfileToConfig: (config) => config,
   });
   props.captured.controller = controller;
   return (

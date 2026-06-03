@@ -138,18 +138,28 @@ function RealtimeHarness({
   socket,
   onApplyChatEvent,
   onSyncChatEvents,
+  authToken = 'token-1',
+  resolveAuthToken,
+  onCreateSocket,
 }: {
   socket: FakeRealmChatSocket;
   onApplyChatEvent: NonNullable<UseRealmChatRealtimeControllerOptions['applyChatEvent']>;
   onSyncChatEvents: UseRealmChatRealtimeControllerOptions['syncChatEvents'];
+  authToken?: string | null;
+  resolveAuthToken?: UseRealmChatRealtimeControllerOptions['resolveAuthToken'];
+  onCreateSocket?: (input: { baseUrl: string; token: string; socketPath?: string }) => void;
 }) {
   useRealmChatRealtimeController({
     authStatus: 'authenticated',
-    authToken: 'token-1',
+    authToken,
+    resolveAuthToken,
     realtimeBaseUrl: 'https://realm.example.com',
     selectedChatId: 'chat-1',
     currentUserId: 'user-1',
-    createSocket: () => socket,
+    createSocket: (input) => {
+      onCreateSocket?.(input);
+      return socket;
+    },
     onSocketReachableChange: () => {},
     flushChatOutbox: async () => {},
     flushSocialOutbox: async () => {},
@@ -516,6 +526,37 @@ describe('chat realm helpers', () => {
       },
     });
     expect(syncChatEvents).toHaveBeenCalledWith('chat-1', 4, 200);
+  });
+
+  it('resolves realm realtime auth token just before socket creation', async () => {
+    const socket = new FakeRealmChatSocket();
+    const createdTokens: string[] = [];
+    const resolveAuthToken = vi.fn(async () => 'resolved-token-1');
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <RealtimeHarness
+          socket={socket}
+          authToken={null}
+          resolveAuthToken={resolveAuthToken}
+          onCreateSocket={({ token }) => createdTokens.push(token)}
+          onApplyChatEvent={() => {}}
+          onSyncChatEvents={async () => ({
+            events: [],
+            highWatermarkSeq: 0,
+            mode: 'delta',
+          })}
+        />,
+      );
+      await flush();
+    });
+
+    expect(resolveAuthToken).toHaveBeenCalledTimes(1);
+    expect(createdTokens).toEqual(['resolved-token-1']);
   });
 
   it('merges remote, offline, and upload placeholder messages for timeline state', async () => {

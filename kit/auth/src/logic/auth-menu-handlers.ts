@@ -34,7 +34,7 @@ export type AuthMenuSetters = {
   setTwoFactorCode: (code: string) => void;
   setTwoFactorReturnView: (view: AuthView) => void;
   setStatusBanner: (banner: { kind: string; message: string } | null) => void;
-  setAuthSession: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;
+  setAuthSession: (user: Record<string, unknown> | null, token: string) => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -59,7 +59,7 @@ export async function applyTokens(
     : null;
 
   await adapter.applyToken(accessToken, refreshToken || undefined);
-  setters.setAuthSession(user, accessToken, refreshToken || undefined);
+  setters.setAuthSession(user, accessToken);
   await adapter.persistSession?.({
     accessToken,
     refreshToken,

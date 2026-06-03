@@ -1,128 +1,83 @@
 /**
  * `@nimiplatform/kit/core/sdk-contract`
  *
- * SDK ↔ kit boundary contract (wave-b fork F3 formalization).
+ * SDK to Kit boundary contract.
  *
- * Goal
- * ----
- * Every kit-to-SDK consumption boundary references this file, never
- * `@nimiplatform/sdk*` directly. If the upstream SDK breaks the
- * shape kit depends on, the breakage surfaces as a compile-time
- * error here, not deep in feature code. This is the single audit
- * surface for kit's SDK coupling.
+ * Purpose
+ * -------
+ * Every Kit-to-SDK consumption boundary references this file, never
+ * `@nimiplatform/sdk*` directly from Kit feature code. If the upstream SDK
+ * changes a shape Kit depends on, the breakage surfaces at this contract file
+ * instead of being scattered through feature modules.
  *
- * Audited inventory (wave-a kit-audit-report.md §SDK consumption
- * summary by sub-module = 28 unique import sites across 5 admitted
- * S-SURFACE-001 sub-paths):
+ * This file is not platform authority. SDK public surface admission remains in
+ * `.nimi/spec/sdk/kernel/surface-contract.md`; Runtime, Realm, and AI execution
+ * authority remains in their owning specs and services. This file is the Kit
+ * package-local SDK coupling surface.
+ *
+ * Active SDK surfaces consumed by Kit
+ * -----------------------------------
  *
  *   @nimiplatform/sdk          — root facade
- *     - getPlatformClient (kit/features/chat/src/runtime.ts:1,
- *       kit/features/chat/src/realm/service.ts:1,
- *       kit/features/commerce/src/realm.ts:1,
- *       kit/features/generation/src/runtime.ts:1,
- *       kit/features/model-picker/src/runtime.ts:1)
+ *     - getPlatformClient
  *   @nimiplatform/sdk/runtime — runtime type family
- *     - Runtime, TextGenerateInput, TextGenerateOutput, TextMessage,
- *       TextStreamInput, TextStreamPart  (chat/src/runtime.ts:8-15,
- *       chat/src/runtime/orchestration.ts:6)
- *     - TextMessageContentPart (chat/src/orchestration/contracts.ts:1)
- *     - SpeechVoiceReference (core/model-config/types.ts:20,
- *       features/model-config/src/types.ts:2,
- *       features/model-config/src/components/audio-synthesize-params-editor.tsx:2,
- *       features/model-config/src/components/model-config-capability-detail.tsx:37)
- *     - ScenarioJobStatus, ScenarioJobSubmitInput,
- *       runRuntimeMediaGenerationJob, RuntimeMediaGenerationJob*
- *       (features/generation/src/runtime.ts:3-7)
+ *     - Runtime, text generation/streaming types, media scenario job helpers,
+ *       route/model catalog projections, reason-code helpers, and local route
+ *       option projections
  *     - Runtime catalog projection/client types and
  *       createRuntimeModelCatalogClient
  *       (features/model-picker/src/runtime.ts:1-32)
  *   @nimiplatform/sdk/realm — realm typed surface
- *     - RealmServiceRegistry (chat/src/realm/types.ts:1)
- *     - RealmModel (chat/src/realm/codec.ts:1,
- *       commerce/src/realm.ts:2,
- *       auth/src/hooks/use-auth-flow.ts:2,
- *       auth/src/logic/auth-email-flow.ts:1,
- *       auth/src/logic/auth-menu-handlers.ts:2,
- *       auth/src/platform/auth-platform-adapter.ts:2)
- *     - OAuthLoginState (auth/src/logic/auth-menu-handlers.ts:3)
+ *     - RealmServiceRegistry, RealmModel, and auth/realm helper values
  *     - resolveRealmMediaUrl (chat/src/realm/helpers.ts)
  *   @nimiplatform/sdk/types — typed error envelope
- *     - NimiError (chat/src/runtime.ts:16)
- *     - ReasonCode (reserved for kit SDK-boundary consumers)
- *   @nimiplatform/sdk/ai   — module-config authority
- *     - * (re-exports) (core/model-config/types.ts:19,
- *       core/model-config/profile-controller-core.ts:20)
- *     - AIConfig (features/model-config/src/components/model-config-ai-model-hub.tsx:3,
- *       features/model-config/src/components/model-config-capability-detail.tsx:12)
- *     - AIProfileApplyResult, AIProfilePreviewResult, AIScopeRef
- *       (features/model-config/src/headless/use-model-config-profile-controller.ts)
+ *     - NimiError and ReasonCode
+ *   @nimiplatform/sdk/ai   — module-config projection and profile DX
+ *     - AIConfig, AIProfile, apply/preview result types, and AIScopeRef
  *   @nimiplatform/sdk/ai-app — app AI developer experience
- *     - runAppAiTextTurn and AppAiTextTurnEvent
- *       (features/chat/src/runtime/orchestration.ts)
+ *     - submitAppAiChat, streamAppAiChatResponse,
+ *       runAppAiTextTurn, streamAppAiTextResponse, and event/handler types
  *     - buildAppAiHistoryWindow and history budget helpers
- *       (features/chat/src/orchestration/history-window.ts)
- *
- * Authority cross-reference
- * --------------------------
- *  S-SURFACE-001 admittance: `.nimi/spec/sdk/kernel/surface-contract.md`
- *  lines 9-16. All 5 sub-paths consumed by kit are admitted; kit does
- *  not consume `/world`, `/ai-provider`, or `/scope` (3 of 8 admitted
- *  sub-paths intentionally unused).
- *
- *  Runtime escape hatch (`new Runtime({ appId, transport })` at
- *  kit/features/model-picker/src/runtime.ts:363) is documented at
- *  `.nimi/spec/sdk/kernel/runtime-contract.md:7`. The `Runtime`
- *  re-export below is the canonical contract for that escape hatch.
  *
  * Re-export strategy
  * ------------------
  *  - Type-only re-exports keep this file React-free + runtime-safe
  *    (kit/core hard boundary preserved).
  *  - The single value re-export `getPlatformClient` is the SDK root
- *    facade entrypoint; everything else is `export type`.
+ *    facade entrypoint.
+ *  - Runtime classes, enums, error helpers, catalog client factories, and
+ *    app-AI helper functions are value exports because Kit feature code invokes
+ *    them directly.
  *  - Kit module-config has both type and value SDK surfaces from
  *    `@nimiplatform/sdk/ai`; we re-export the whole sub-path for
  *    that one consumer to match its existing star-import shape.
  *  - Kit chat uses `@nimiplatform/sdk/ai-app` only for non-authoritative
- *    text-turn stream assembly; Kit maps the resulting events into
- *    reusable conversation headless events.
+ *    app-AI text generate/stream helpers and text-turn stream assembly; Kit
+ *    maps the resulting events into reusable conversation headless events.
  *  - Kit generation uses `@nimiplatform/sdk/runtime` only for
  *    non-authoritative media scenario job consumption; Kit maps the
  *    resulting Runtime job projection into reusable generation UI state.
  *
- * Dynamic-import boundary (wave-c carry-forward concern 1)
- * --------------------------------------------------------
- *  `kit/features/chat/src/runtime/orchestration.ts:199` lazy-loads
- *  the SDK root facade to defer the platform-client wiring cost
- *  until the runtime adapter is actually invoked. It routes through
- *  `import('@nimiplatform/kit/core/sdk-contract')` so the
- *  dynamic-import path is bounded by this contract surface. There is
- *  no other admitted dynamic SDK import inside kit; new dynamic
- *  imports must target this file or be admitted here explicitly.
+ * Dynamic-import rule
+ * -------------------
+ *  Kit chat may lazy-load this contract file to defer platform-client wiring
+ *  until the runtime adapter is invoked. New dynamic SDK imports inside Kit
+ *  must target this file or be admitted explicitly before implementation.
  *
- * Cross-feature edges (wave-c carry-forward concern 2)
- * ----------------------------------------------------
+ * Admitted cross-feature edges
+ * ----------------------------
  *  The `chat → avatar` cross-feature dependency is admitted as a
  *  documented one-way feature composition (avatar headless surface
  *  consumed by chat domain types and the canonical character rail
- *  component). Importing-file count: 2.
- *    - kit/features/chat/src/types.ts:2
- *    - kit/features/chat/src/components/canonical-character-rail.tsx:8
+ *  component).
  *  The `model-config → model-picker` cross-feature dependency is
  *  retained as a documented one-way feature composition as well.
- *  Both edges are part of the v1.0.0 public-surface contract; future
- *  audits keep them documented here unless the edge is removed.
  *
- * Counting vocabulary (wave-c carry-forward concern 3)
- * ----------------------------------------------------
- *  Audits of SDK consumption MUST distinguish three counts:
- *    - importing-file count: number of consumer files (e.g. 21 for
- *      static `@nimiplatform/sdk*` consumers prior to wave-b).
- *    - import-statement count: number of `from '@nimiplatform/sdk*'`
- *      statements (e.g. 28 unique sites in wave-a inventory).
- *    - export-statement count: number of `export` declarations in
- *      this file (the single-boundary surface).
- *  Each count answers a different question; do not conflate them.
+ * Review rule
+ * -----------
+ *  New Kit SDK consumption must add or reuse exports here, keep feature modules
+ *  free of direct `@nimiplatform/sdk*` imports, and update the relevant Kit
+ *  boundary tests.
  */
 
 // --- Root facade ------------------------------------------------------------
@@ -140,6 +95,7 @@ export {
   getRuntimeReasonCodeMessage,
   isNimiError,
   listRuntimeRouteOptions,
+  runtimeRouteCapabilitiesMatch,
   runRuntimeMediaGenerationJob,
   ScenarioJobStatus,
   CatalogModelSource,
@@ -237,12 +193,34 @@ export {
   estimateAppAiHistoryTokenCountFromChars,
   measureAppAiHistoryWindowBudget,
   runAppAiTextTurn,
+  streamAppAiTextResponse,
+  streamAppAiChatResponse,
+  submitAppAiChat,
+  withDefaultAppAiChatMetadata,
 } from '@nimiplatform/sdk/ai-app';
 export type {
+  AppAiChatDeltaPart,
+  AppAiChatErrorPart,
+  AppAiChatFinishPart,
+  AppAiChatMetadataDefaults,
+  AppAiChatPrompt,
+  AppAiChatRequest,
+  AppAiChatRuntimeOptions,
+  AppAiChatStreamHandlers,
+  AppAiChatStreamRequest,
+  AppAiChatStreamResult,
+  AppAiChatStreamSnapshot,
   AppAiHistoryTokenCounter,
   AppAiHistoryWindowBudget,
   AppAiHistoryWindowMessage,
   AppAiHistoryWindowResult,
+  AppAiTextStreamDeltaPart,
+  AppAiTextStreamErrorPart,
+  AppAiTextStreamFinishPart,
+  AppAiTextStreamResponseHandlers,
+  AppAiTextStreamResponseResult,
+  AppAiTextStreamResponseRuntime,
+  AppAiTextStreamResponseSnapshot,
   AppAiTextTurnEvent,
   AppAiTextTurnRuntime,
 } from '@nimiplatform/sdk/ai-app';

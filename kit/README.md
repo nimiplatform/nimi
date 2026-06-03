@@ -48,17 +48,19 @@ adapter code, check this README, the target module README, and
 existing `@nimiplatform/kit` export when it covers the baseline behavior;
 extend the kit surface first when the missing behavior is cross-app.
 
-## v0.1.0 Initial Public Surface
+## Current Public Surface
 
-v0.1.0 publishes 59 public subpath exports for the initial public
-surface:
+The current package publishes 58 public subpath exports through
+`kit/package.json`:
 
-- 11 UI entries (`./ui`, `./ui/glass`, `./ui/motion`, `./ui/a11y`,
-  `./ui/styles.css`, and six `./ui/themes/*` files)
+- 8 UI entries (`./ui`, `./ui/glass`, `./ui/motion`, `./ui/a11y`,
+  `./ui/styles.css`, `./ui/themes/light.css`, `./ui/themes/dark.css`,
+  and `./ui/themes/nimi-accent.css`)
 - 3 auth entries (`./auth`, `./auth/styles.css`, `./auth/native-oauth-result-page`)
-- 7 core entries (`./core/shell-mode`, `./core/oauth`,
-  `./core/runtime-capabilities`, `./core/model-config`,
-  `./core/character-card`, `./core/notifications`, `./core/sdk-contract`)
+- 9 core entries (`./core/shell-mode`, `./core/oauth`,
+  `./core/storage-json`, `./core/offline-coordinator`,
+  `./core/notifications`, `./core/runtime-capabilities`,
+  `./core/model-config`, `./core/character-card`, `./core/sdk-contract`)
 - 2 renderer-shell entries (`./shell/renderer/bridge`,
   `./shell/renderer/bootstrap`)
 - 2 telemetry entries (`./telemetry`, `./telemetry/error-boundary`)
@@ -66,8 +68,9 @@ surface:
   `./features/model-picker`, `./features/model-config`,
   `./features/generation`, and `./features/commerce`
 
-The complete inventory is enumerated in
-`.nimi/topics/ongoing/2026-05-23-nimi-kit-component-library-standardization/kit-public-surface-inventory.yaml`.
+The complete npm subpath inventory is the `exports` object in
+`kit/package.json`. Platform registry guidance remains in
+`.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`.
 
 ## Import Patterns by Sub-module
 
@@ -139,7 +142,7 @@ import { ShellErrorBoundary } from '@nimiplatform/kit/telemetry/error-boundary';
 ### Features
 
 ```ts
-import { useRuntimeChatSession } from '@nimiplatform/kit/features/chat/runtime';
+import { useAppAiChatSession } from '@nimiplatform/kit/features/chat/runtime';
 import { useRealmChatComposer } from '@nimiplatform/kit/features/chat/realm';
 import { CanonicalConversationShell } from '@nimiplatform/kit/features/chat/components/canonical-conversation-shell';
 import { AvatarStage } from '@nimiplatform/kit/features/avatar';
@@ -200,8 +203,8 @@ property names — extend by adding scoped overlays.
 
 ## Contributing
 
-See `kit/AGENTS.md` for module boundaries, semver discipline, counting
-vocabulary for SDK-coupling audits, and verification commands.
+See `kit/AGENTS.md` for module boundaries, semver discipline, SDK
+contract boundary rules, and verification commands.
 
 ## Verification
 

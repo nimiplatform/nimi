@@ -723,12 +723,13 @@ describe('conversation shell ui', () => {
           }}
           onSelectTarget={() => undefined}
           viewMode="chat"
-          onViewModeChange={() => undefined}
-          hideTargetPane
-          hideCharacterRail
-          sceneBackground={<div data-test-scene-background="true">Scene Background</div>}
-          transcriptProps={{
-            content: <div>Transcript body</div>,
+	          onViewModeChange={() => undefined}
+	          hideTargetPane
+	          hideCharacterRail
+	          chrome="transparent"
+	          sceneBackground={<div data-test-scene-background="true">Scene Background</div>}
+	          transcriptProps={{
+	            content: <div>Transcript body</div>,
           }}
           composer={<div>Composer</div>}
         />,
@@ -736,8 +737,9 @@ describe('conversation shell ui', () => {
       await flush();
     });
 
-    expect(container.querySelector('[data-conversation-scene-background="true"]')).not.toBeNull();
-    expect(container.querySelector('[data-test-scene-background="true"]')).not.toBeNull();
-    expect(container.textContent).toContain('Scene Background');
-  });
+	    expect(container.querySelector('[data-conversation-scene-background="true"]')).not.toBeNull();
+	    expect(container.querySelector('[data-conversation-shell-chrome="transparent"]')).not.toBeNull();
+	    expect(container.querySelector('[data-test-scene-background="true"]')).not.toBeNull();
+	    expect(container.textContent).toContain('Scene Background');
+	  });
 });

@@ -97,7 +97,7 @@ export type ShellAuthSession = {
   authError?: string | null;
   authToken?: string | null;
   authUser?: Record<string, unknown> | null;
-  setAuthSession?: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;
+  setAuthSession?: (user: Record<string, unknown> | null, token: string) => void;
   setStatusBanner?: (banner: { kind: string; message: string } | null) => void;
 };
 

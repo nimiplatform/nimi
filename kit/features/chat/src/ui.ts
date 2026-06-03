@@ -81,8 +81,8 @@ export type {
   RealmChatTimelineGiftRenderInput,
   RealmChatTimelineProps,
 } from './components/realm-chat-timeline.js';
-export { RuntimeChatPanel } from './components/runtime-chat-panel.js';
-export type { RuntimeChatPanelProps } from './components/runtime-chat-panel.js';
+export { AppAiChatPanel } from './components/app-ai-chat-panel.js';
+export type { AppAiChatPanelProps } from './components/app-ai-chat-panel.js';
 export { RpContentRenderer } from './components/rp-content-renderer.js';
 export type { RpContentRendererProps } from './components/rp-content-renderer.js';
 export { parseRpSegments, hasRpContent } from './utils/rp-content-parser.js';

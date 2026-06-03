@@ -24,6 +24,7 @@ describe('shell bridge Nimi error normalization', () => {
     expect(error.message).toBe('provider timeout');
     expect(error.details?.provider).toBe('test');
     expect(error.details?.userMessage).toBe('AI provider request timed out.');
+    expect(error.details?.rawMessage).toContain('AI_PROVIDER_TIMEOUT');
   });
 
   test('maps shell bridge reason codes before generic fallback', () => {
@@ -63,5 +64,34 @@ describe('shell bridge Nimi error normalization', () => {
     expect(error.details?.userMessage).toBe(
       'BridgeErrors.codes.LOCAL_LIFECYCLE_WRITE_DENIED => The current source is not allowed to perform local model lifecycle writes.',
     );
+  });
+
+  test('maps local runtime security and integrity bridge codes', () => {
+    expect(
+      getShellBridgeUserMessageProjection(
+        new Error('LOCAL_AI_ENDPOINT_NOT_LOOPBACK: endpoint host must be loopback'),
+      ),
+    ).toEqual({
+      key: 'BridgeErrors.codes.LOCAL_AI_ENDPOINT_NOT_LOOPBACK',
+      defaultValue: 'The local runtime endpoint only supports localhost, 127.0.0.1, or [::1].',
+    });
+
+    expect(
+      getShellBridgeUserMessageProjection(
+        new Error('LOCAL_AI_IMPORT_HASH_MISMATCH: hash mismatch for model.gguf'),
+      ),
+    ).toEqual({
+      key: 'BridgeErrors.codes.LOCAL_AI_IMPORT_HASH_MISMATCH',
+      defaultValue: 'Model file verification failed. Confirm the file is intact and try again.',
+    });
+
+    expect(
+      getShellBridgeUserMessageProjection(
+        new Error('LOCAL_AI_MODEL_HASHES_EMPTY: hashes are empty'),
+      ),
+    ).toEqual({
+      key: 'BridgeErrors.codes.LOCAL_AI_MODEL_HASHES_EMPTY',
+      defaultValue: 'The model has not completed integrity verification and cannot be started.',
+    });
   });
 });

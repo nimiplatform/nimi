@@ -3,8 +3,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Runtime, TextStreamPart } from '@nimiplatform/sdk/runtime';
 import {
-  useRuntimeChatSession,
-  type RuntimeChatSessionMessage,
+  useAppAiChatSession,
+  type AppAiChatSessionMessage,
 } from '../src/runtime.js';
 
 (
@@ -40,13 +40,13 @@ type HarnessProps = {
   runtime: Runtime;
   onReady: (api: {
     sendPrompt: (input: string) => Promise<void>;
-    resetMessages: (messages?: readonly RuntimeChatSessionMessage[]) => void;
+    resetMessages: (messages?: readonly AppAiChatSessionMessage[]) => void;
     cancelCurrent: () => void;
   }) => void;
 };
 
 function Harness({ runtime, onReady }: HarnessProps) {
-  const session = useRuntimeChatSession({
+  const session = useAppAiChatSession({
     runtime,
     resolveRequest: ({ messages }) => ({
       model: 'runtime-selected-chat',
@@ -97,7 +97,7 @@ afterEach(async () => {
   container = null;
 });
 
-describe('useRuntimeChatSession', () => {
+describe('useAppAiChatSession', () => {
   it('appends user and assistant messages and resolves streamed text', async () => {
     const runtime = makeStreamRuntime([
       { type: 'start' },
@@ -191,7 +191,7 @@ describe('useRuntimeChatSession', () => {
     } as unknown as Runtime;
     let api: {
       sendPrompt: (input: string) => Promise<void>;
-      resetMessages: (messages?: readonly RuntimeChatSessionMessage[]) => void;
+      resetMessages: (messages?: readonly AppAiChatSessionMessage[]) => void;
       cancelCurrent: () => void;
     } | undefined;
 
@@ -250,7 +250,7 @@ describe('useRuntimeChatSession', () => {
     } as unknown as Runtime;
     let api: {
       sendPrompt: (input: string) => Promise<void>;
-      resetMessages: (messages?: readonly RuntimeChatSessionMessage[]) => void;
+      resetMessages: (messages?: readonly AppAiChatSessionMessage[]) => void;
       cancelCurrent: () => void;
     } | undefined;
 

@@ -8,6 +8,7 @@ import {
   handleEmailLogin,
   handleSetPasswordAfterOtp,
 } from '../auth/src/logic/auth-menu-handlers.js';
+import { handleVerifyEmailOtp } from '../auth/src/logic/auth-menu-handlers-ext.js';
 
 function createEvent(): FormEvent {
   return {
@@ -21,11 +22,13 @@ function createSetters() {
     view: string | null;
     authSessionCalls: number;
     pendingTokensCleared: boolean;
+    pendingTokensValue: unknown;
   } = {
     loginError: null,
     view: null,
     authSessionCalls: 0,
     pendingTokensCleared: false,
+    pendingTokensValue: null,
   };
   const setters: AuthMenuSetters = {
     setView: (view) => {
@@ -37,6 +40,7 @@ function createSetters() {
     },
     setPendingTokens: (tokens) => {
       state.pendingTokensCleared = tokens === null;
+      state.pendingTokensValue = tokens;
     },
     setOtpCode: () => undefined,
     setOtpResendCountdown: () => undefined,
@@ -126,6 +130,39 @@ describe('auth menu handlers', () => {
     expect(state.loginError).toBeNull();
     expect(state.authSessionCalls).toBe(1);
     expect(state.pendingTokensCleared).toBe(true);
+  });
+
+  it('routes OTP users without passwords through password setup before login finalization', async () => {
+    const { state, setters } = createSetters();
+    const tokens = {
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      user: {
+        id: 'user-1',
+        hasPassword: false,
+      },
+    };
+    const applyTokenCalls: Array<[string, string | undefined]> = [];
+    const adapter = createAdapter({
+      verifyEmailOtp: async () => ({ tokens }) as never,
+      applyToken: async (accessToken, refreshToken) => {
+        applyTokenCalls.push([accessToken, refreshToken]);
+      },
+    });
+
+    await handleVerifyEmailOtp(
+      createEvent(),
+      ' user@example.com ',
+      '123456',
+      setters,
+      adapter,
+    );
+
+    expect(applyTokenCalls).toEqual([['access-token', 'refresh-token']]);
+    expect(state.pendingTokensValue).toBe(tokens);
+    expect(state.view).toBe('email_set_password');
+    expect(state.authSessionCalls).toBe(0);
+    expect(state.loginError).toBeNull();
   });
 
   it('tells the user to sign in directly when password setup succeeds but login finalization fails', async () => {

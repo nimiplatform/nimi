@@ -107,6 +107,59 @@ describe('createRuntimeAccountBrowserBroker', () => {
     });
   });
 
+  it('awaits the caller preflight before RuntimeAccountService requests', async () => {
+    const order: string[] = [];
+    const beginLogin = vi.fn(async () => {
+      order.push('begin');
+      return {
+        accepted: true,
+        loginAttemptId: 'attempt-1',
+        oauthAuthorizationUrl: 'https://realm.nimi.test/api/auth/oauth/authorize?client_id=app',
+        state: 'state-1',
+        nonce: 'nonce-1',
+      };
+    });
+    const completeLogin = vi.fn(async () => {
+      order.push('complete');
+      return {
+        accepted: true,
+        accountProjection: {
+          accountId: 'acct-1',
+        },
+      };
+    });
+    const beforeRequest = vi.fn(async () => {
+      order.push('before');
+    });
+
+    const broker = createRuntimeAccountBrowserBroker({
+      caller: testCaller,
+      beforeRequest,
+      getClient: () => ({
+        runtime: {
+          account: {
+            beginLogin,
+            completeLogin,
+          },
+        },
+      }),
+    });
+
+    await broker.begin({
+      callbackUrl: 'http://127.0.0.1:4100/oauth/callback',
+      timeoutMs: 12_500,
+    });
+    await broker.complete({
+      loginAttemptId: 'attempt-1',
+      code: 'oauth-code',
+      state: 'state-1',
+      nonce: 'nonce-1',
+      callbackUrl: 'http://127.0.0.1:4100/oauth/callback',
+    });
+
+    expect(order).toEqual(['before', 'begin', 'before', 'complete']);
+  });
+
   it('rejects retired desktop relay authorize URLs', async () => {
     const broker = createRuntimeAccountBrowserBroker({
       caller: testCaller,
