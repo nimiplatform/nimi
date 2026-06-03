@@ -221,7 +221,7 @@ export function SettingsRoute() {
   useEffect(() => {
     let cancelled = false;
     void checkRuntimeRouteProviderHealth({
-      appId: 'dev.nimi.tester',
+      appId: 'nimi.tester',
       provider: 'tester',
       capability: 'text.generate',
       connectorId: 'tester-cloud',

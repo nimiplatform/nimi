@@ -27,7 +27,7 @@ export function createTesterRuntimeAgentMemorySurface() {
   };
   return createHostRuntimeAgentMemorySurface({
     getRuntime: () => ({
-      appId: 'dev.nimi.tester',
+      appId: 'nimi.tester',
       agent: {
         getAgentCanonicalMemoryBankStatus: async () => ({ status }),
         requestAgentCanonicalMemoryBankBind: async () => ({

@@ -38,7 +38,7 @@ const versions = {
 };
 
 const REFERENCE_IDENTITY_LITERALS = [
-  'dev.nimi.tester',
+  'nimi.tester',
   '@nimiplatform/tester',
   'ai.nimi.apps.nimi.tester',
   'nimiapp-tester-shell',
@@ -251,6 +251,47 @@ test('standalone scaffold forks the reference app with rewritten identity', () =
     assert.doesNotMatch(ci, /cache: pnpm/);
   } finally {
     generated.cleanup();
+  }
+});
+
+test('app id maps losslessly to the Tauri bundle identifier', () => {
+  const generated = scaffold('standalone', {
+    appId: 'acme-widget',
+    title: 'Acme Widget',
+    packageName: 'acme-widget',
+  });
+  try {
+    assert.match(generated.read('nimi.app.yaml'), /app_id: acme-widget/);
+    assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /appId = 'acme-widget'/);
+    const tauri = JSON.parse(generated.read('src-tauri/tauri.conf.json'));
+    assert.equal(tauri.identifier, 'ai.nimi.apps.acme-widget');
+  } finally {
+    generated.cleanup();
+  }
+});
+
+test('app id rejects lossy underscore identity', () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-scaffold-invalid-app-id-'));
+  try {
+    assert.throws(
+      () => createAppScaffold({
+        cwd: tempRoot,
+        options: {
+          dir: path.join(tempRoot, 'app'),
+          profile: 'standalone',
+          appId: 'acme_widget',
+          title: 'Acme Widget',
+          packageName: 'acme-widget',
+        },
+        versions,
+        createFileTree,
+        ensureDirEmptyOrMissing: () => {},
+        mkdirSync,
+      }),
+      /Invalid app id: acme_widget/,
+    );
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
   }
 });
 

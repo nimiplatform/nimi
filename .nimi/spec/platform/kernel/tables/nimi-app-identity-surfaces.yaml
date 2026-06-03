@@ -1,0 +1,94 @@
+version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_nimi_app_identity_surfaces
+source_rule: P-NAPP-012
+entries:
+  - canonical app_id is the single app identity used by Platform admission, Runtime caller eligibility, SDK appId, app storage roots, and audit filters
+  - tauri_identifier is derived only as ai.nimi.apps.<app_id>
+  - tauri_identifier is OS bundle/signing/update identity only and must not be used as Runtime or Platform app identity
+  - developer/testing posture must not be encoded into app_id
+
+identity_schema:
+  owner: platform_nimi_app_identity_surfaces
+  fields:
+    - source_root
+    - product_surface
+    - canonical_app_id
+    - sdk_app_id
+    - runtime_app_id
+    - runtime_caller_mode
+    - tauri_identifier
+    - tauri_identifier_required
+    - npm_package
+    - product_status
+    - source_rule
+  app_id_pattern: "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$"
+  tauri_identifier_prefix: ai.nimi.apps
+  tauri_identifier_derivation: "ai.nimi.apps.<canonical_app_id>"
+  invariants:
+    - sdk_app_id must equal canonical_app_id
+    - runtime_app_id must equal canonical_app_id
+    - tauri_identifier must equal ai.nimi.apps.<canonical_app_id> when tauri_identifier_required is true
+    - active source must not use app.nimi.* or dev.nimi.* as app identity
+
+apps:
+  - source_root: apps/desktop
+    product_surface: desktop-shell
+    canonical_app_id: nimi.desktop
+    sdk_app_id: nimi.desktop
+    runtime_app_id: nimi.desktop
+    runtime_caller_mode: desktop-shell
+    tauri_identifier: ai.nimi.apps.nimi.desktop
+    tauri_identifier_required: true
+    npm_package: "@nimiplatform/desktop"
+    product_status: first-party-shell
+    source_rule: P-NAPP-012
+
+  - source_root: apps/web
+    product_surface: web-shell
+    canonical_app_id: nimi.web
+    sdk_app_id: nimi.web
+    runtime_app_id: nimi.web
+    runtime_caller_mode: web-cloud-adapter
+    tauri_identifier: null
+    tauri_identifier_required: false
+    npm_package: "@nimiplatform/web"
+    product_status: first-party-web
+    source_rule: P-NAPP-012
+
+  - source_root: apps/avatar
+    product_surface: avatar-local-first-party-app
+    canonical_app_id: nimi.avatar
+    sdk_app_id: nimi.avatar
+    runtime_app_id: nimi.avatar
+    runtime_caller_mode: local-first-party
+    tauri_identifier: ai.nimi.apps.nimi.avatar
+    tauri_identifier_required: true
+    npm_package: "@nimiplatform/avatar"
+    product_status: first-party-nimi-app
+    source_rule: P-NAPP-012
+
+  - source_root: apps/storybook
+    product_surface: developer-authored-reference-app
+    canonical_app_id: nimi.storybook
+    sdk_app_id: nimi.storybook
+    runtime_app_id: nimi.storybook
+    runtime_caller_mode: local-first-party
+    tauri_identifier: ai.nimi.apps.nimi.storybook
+    tauri_identifier_required: true
+    npm_package: "@nimiplatform/storybook"
+    product_status: developer-submitted-app
+    source_rule: P-NAPP-012
+
+  - source_root: apps/tester
+    product_surface: scaffold-reference-tester-app
+    canonical_app_id: nimi.tester
+    sdk_app_id: nimi.tester
+    runtime_app_id: nimi.tester
+    runtime_caller_mode: local-first-party
+    tauri_identifier: ai.nimi.apps.nimi.tester
+    tauri_identifier_required: true
+    npm_package: "@nimiplatform/tester"
+    product_status: developer-test-reference
+    source_rule: P-NAPP-012

@@ -26,7 +26,7 @@ export type TesterRuntimeAgentInspectProjection = {
 export function createTesterRuntimeAgentInspectSurface() {
   return createHostRuntimeAgentInspectSurface({
     getRuntime: () => ({
-      appId: 'dev.nimi.tester',
+      appId: 'nimi.tester',
       auth: {
         async registerApp() {
           return { accepted: true };

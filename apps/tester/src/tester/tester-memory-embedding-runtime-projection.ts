@@ -39,7 +39,7 @@ const testerMemoryEmbeddingConfig = {
 export function createTesterMemoryEmbeddingRuntimeSurface() {
   let bindingIntent = buildMemoryEmbeddingBindingIntentSnapshot(testerMemoryEmbeddingConfig);
   const runtime = {
-    appId: 'dev.nimi.tester',
+    appId: 'nimi.tester',
     auth: {
       async registerApp() {
         return RegisterAppResponse.create({ accepted: true });

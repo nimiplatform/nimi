@@ -18,7 +18,7 @@ export async function inspectTesterRuntimeAgentLifecycleSurface(): Promise<{
   let agentExists = false;
   const surface = createHostRuntimeAgentLifecycleSurface({
     getRuntime: () => ({
-      appId: 'dev.nimi.tester',
+      appId: 'nimi.tester',
       auth: {
         registerApp: async () => ({ accepted: true }),
       },

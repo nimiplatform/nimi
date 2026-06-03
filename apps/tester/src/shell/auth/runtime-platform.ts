@@ -1,6 +1,6 @@
 import { createNimiAppRuntimePlatformClient, type NimiAppAuthMode, type NimiAppAuthProjection } from '@nimiplatform/sdk';
 
-export const appId = 'dev.nimi.tester';
+export const appId = 'nimi.tester';
 export const appTitle = 'Nimi Tester';
 export const scaffoldProfile = 'standalone' as const;
 export const runtimeAccountLoginEnabled = true;

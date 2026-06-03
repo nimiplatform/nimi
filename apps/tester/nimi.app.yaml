@@ -1,4 +1,4 @@
-app_id: dev.nimi.tester
+app_id: nimi.tester
 display_name: Nimi Tester
 profile: standalone
 manifest_role: submitted-input

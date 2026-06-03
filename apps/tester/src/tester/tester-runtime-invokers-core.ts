@@ -114,7 +114,7 @@ export type TesterTypedSuccess = {
 export type TesterInvocationResult = TesterTypedSuccess | TesterUnavailable;
 type ConversationTurnCompletedEvent = Extract<ConversationTurnEvent, { type: 'turn-completed' }>;
 
-const TESTER_APP_ID = 'dev.nimi.tester';
+const TESTER_APP_ID = 'nimi.tester';
 const TEXT_GENERATION_BINDING_CAPABILITY: RuntimeRouteAppCapability = 'text.generate';
 const EMBEDDING_BINDING_CAPABILITY: RuntimeRouteAppCapability = 'text.embed';
 
@@ -403,7 +403,7 @@ export async function invokeTextGenerate(client: PlatformClient, input: TesterSc
     request: {
       ...route,
       input: buildMultimodalInput(directedPrompt, input.attachments ?? []),
-      metadata: buildMetadata('dev.nimi.tester.ai.text.generate', {
+      metadata: buildMetadata('nimi.tester.ai.text.generate', {
         ...resolved.metadata,
         ...schedulingPreflight.evidenceMetadata,
       }),
@@ -448,7 +448,7 @@ export async function invokeChatStream(client: PlatformClient, input: TesterScen
       resolveRuntimeUserMessage: () => buildChatRuntimeUserMessage(prompt, input.attachments ?? []),
       resolveRuntimeRequest: () => ({
         ...route,
-        metadata: buildMetadata('dev.nimi.tester.ai.chat.stream', {
+        metadata: buildMetadata('nimi.tester.ai.chat.stream', {
           ...resolved.metadata,
           ...schedulingPreflight.evidenceMetadata,
         }),
@@ -528,7 +528,7 @@ export async function invokeEmbedding(client: PlatformClient, input: TesterScena
     const output = await client.runtime.ai.embedding.generate({
       ...route,
       input: prompt,
-      metadata: buildMetadata('dev.nimi.tester.ai.embedding.generate', {
+      metadata: buildMetadata('nimi.tester.ai.embedding.generate', {
         ...resolved.metadata,
         ...schedulingPreflight.evidenceMetadata,
       }),

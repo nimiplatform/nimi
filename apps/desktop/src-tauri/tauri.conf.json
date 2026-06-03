@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Nimi Desktop Runtime",
   "version": "0.1.0",
-  "identifier": "app.nimi.desktop",
+  "identifier": "ai.nimi.apps.nimi.desktop",
   "build": {
     "beforeDevCommand": "pnpm --filter @nimiplatform/desktop run dev:renderer",
     "beforeBuildCommand": "pnpm --filter @nimiplatform/desktop run build:renderer",

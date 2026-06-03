@@ -66,7 +66,7 @@ function createFakePlatformClient() {
           return {
             accepted: true,
             loginAttemptId: 'attempt-1',
-            oauthAuthorizationUrl: 'https://realm.nimi.test/api/auth/oauth/authorize?client_id=dev.nimi.tester',
+            oauthAuthorizationUrl: 'https://realm.nimi.test/api/auth/oauth/authorize?client_id=nimi.tester',
             state: 'state-1',
             nonce: 'nonce-1',
           };
@@ -129,7 +129,7 @@ test('Tester auth flow consumes RuntimeAccountService without app-owned token cu
   });
   assert.deepEqual(beginResult, {
     loginAttemptId: 'attempt-1',
-    authorizationUrl: 'https://realm.nimi.test/api/auth/oauth/authorize?client_id=dev.nimi.tester',
+    authorizationUrl: 'https://realm.nimi.test/api/auth/oauth/authorize?client_id=nimi.tester',
     state: 'state-1',
     nonce: 'nonce-1',
   });

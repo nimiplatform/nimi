@@ -35,6 +35,7 @@ entries:
 - P-NAPP-009
 - P-NAPP-010
 - P-NAPP-011
+- P-NAPP-012
 - P-NAPP-013
 - P-NAPP-014
 - P-NAPP-015
@@ -128,6 +129,14 @@ rules:
   evidence_requirement: structural_required
   evidence_scope_note: structural only; first-party seed enforcement is registry consumer
     validation and Avatar productization master gate consumer validation
+- rule_id: P-NAPP-012
+  evidence_refs:
+  - platform_kernel_consistency
+  - app_identity_surface_gate
+  evidence_requirement: structural_required
+  evidence_scope_note: structural plus repository guard; `check:app-identity-surfaces`
+    validates active app identity table rows against manifests, Runtime appId
+    projections, Tauri identifiers, and app-tools scaffold identity derivation
 - rule_id: P-NAPP-013
   evidence_refs:
   - platform_kernel_consistency

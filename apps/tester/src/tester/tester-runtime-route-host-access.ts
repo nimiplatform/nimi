@@ -15,7 +15,7 @@ export type TesterRuntimeRouteHostAccessProjection = {
 export async function loadTesterRuntimeRouteHostAccessProjection(): Promise<TesterRuntimeRouteHostAccessProjection> {
   const surface = createHostRuntimeRouteAccessSurface({
     getRuntime: () => ({
-      appId: 'dev.nimi.tester',
+      appId: 'nimi.tester',
       ai: {},
       media: {},
       local: {

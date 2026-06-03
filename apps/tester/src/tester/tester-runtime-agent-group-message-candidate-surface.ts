@@ -14,7 +14,7 @@ export async function inspectTesterRuntimeAgentGroupMessageCandidateSurface(): P
   const scopes: string[] = [];
   const surface = createHostRuntimeRealmGroupMessageCandidateSurface({
     getRuntime: () => ({
-      appId: 'dev.nimi.tester',
+      appId: 'nimi.tester',
       auth: {
         registerApp: async () => ({ accepted: true }),
       },

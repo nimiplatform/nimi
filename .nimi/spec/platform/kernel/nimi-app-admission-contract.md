@@ -157,6 +157,41 @@ nimi-app。
 其余 `first-party-hardcut-scope-ledger.md` 中的 deferred app scopes
 暂不进入 active seed registry，除非后续 owner admission 显式恢复。
 
+## P-NAPP-012 — App Identity Surface Mapping
+
+`MUST`：Platform owns the canonical Nimi app identity surface. The canonical
+identity is `app_id`; it is the only app identity used for Platform admission,
+Runtime registration eligibility, permission scope ownership, app storage roots,
+audit filtering, and SDK `appId` parameters. Current app identity facts are
+recorded in `tables/nimi-app-identity-surfaces.yaml`.
+
+`MUST`：`app_id` is lowercase and dot-separated. A segment must start and end
+with an ASCII lowercase letter or digit and may contain internal lowercase
+letters, digits, or hyphens. Underscore is not admitted because OS bundle
+identifier derivation would otherwise be lossy.
+
+`MUST`：Runtime-facing app caller identity must use the same canonical `app_id`
+as SDK-facing `appId`. Runtime may derive `app_instance_id` and device identity
+for a caller mode, but those derived fields do not create a second app id and
+must not be used as Platform admission truth.
+
+`MUST`：Tauri `identifier` is an OS bundle/signing/update identifier only. It
+must be derived from canonical `app_id` as:
+
+```text
+ai.nimi.apps.<app_id>
+```
+
+The `ai.nimi.apps` prefix is the reverse-DNS namespace for the `nimi.ai`
+product-owned application bundle namespace; it is not an AI capability,
+provider, or model identifier.
+
+`MUST NOT`：active app source, scaffold state, Runtime caller tests, or Tauri
+configuration may use `app.nimi.*`, `dev.nimi.*`, or any other side namespace
+as an active app identity surface. Developer/testing posture belongs in
+admission status, visibility, developer registration, build profile, or local
+Runtime configuration; it must not be encoded into canonical `app_id`.
+
 ## P-NAPP-013 — Third-Party Admission Path
 
 `MUST`：early third-party app admission may begin as a GitHub PR into the

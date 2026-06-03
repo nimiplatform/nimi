@@ -77,7 +77,7 @@ function normalizeExplicitAppId(input) {
   const normalized = String(input || '')
     .trim()
     .toLowerCase();
-  if (!/^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$/.test(normalized)) {
+  if (!/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$/.test(normalized)) {
     throw new Error(`Invalid app id: ${input}`);
   }
   return normalized;
@@ -146,10 +146,10 @@ function appSlugFromAppId(appId) {
 function tauriIdentifierFromAppId(appId) {
   const suffix = String(appId || DEFAULT_APP_ID)
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '.')
+    .replace(/[^a-z0-9.-]+/g, '.')
     .replace(/^\.+|\.+$/g, '')
     .replace(/\.+/g, '.');
-  return `ai.nimi.apps.${suffix || DEFAULT_APP_ID.replace(/-/g, '.')}`;
+  return `ai.nimi.apps.${suffix || DEFAULT_APP_ID}`;
 }
 
 function deriveScaffoldDevPort(appId) {

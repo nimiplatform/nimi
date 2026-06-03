@@ -328,12 +328,12 @@ mod tests {
     fn tester_consumes_shared_runtime_account_caller_projection() {
         let caller =
             nimi_shell_tauri::runtime_account_caller::local_first_party_runtime_account_caller(
-                "app.nimi.tester",
+                "nimi.tester",
             )
             .expect("caller");
 
-        assert_eq!(caller.app_id, "app.nimi.tester");
-        assert_eq!(caller.app_instance_id, "app.nimi.tester.local-first-party");
+        assert_eq!(caller.app_id, "nimi.tester");
+        assert_eq!(caller.app_instance_id, "nimi.tester.local-first-party");
         assert_eq!(caller.device_id, "local-first-party-device");
         assert_eq!(
             caller.mode,

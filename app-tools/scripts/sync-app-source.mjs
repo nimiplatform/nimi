@@ -62,7 +62,7 @@ const SOURCE_IDENTITY = {
   tauriIdentifier: 'ai.nimi.apps.nimi.tester',
   packageName: '@nimiplatform/tester',
   cargoPackageName: 'nimiapp-tester-shell',
-  appId: 'dev.nimi.tester',
+  appId: 'nimi.tester',
   appTitle: 'Nimi Tester',
   appSlug: 'nimi-tester',
   devPort: '1468',

@@ -15,7 +15,7 @@ export async function inspectTesterRuntimeAgentDelegatedCapabilitySurface(): Pro
 }> {
   const surface = createHostRuntimeAgentDelegatedCapabilitySurface({
     getRuntime: () => ({
-      appId: 'dev.nimi.tester',
+      appId: 'nimi.tester',
       auth: {
         registerApp: async () => ({ accepted: true }),
       },

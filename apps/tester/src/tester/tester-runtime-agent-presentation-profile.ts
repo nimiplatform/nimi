@@ -35,7 +35,7 @@ export function createTesterRuntimeAgentPresentationProfileProjection(): TesterR
 export function createTesterRuntimeAgentPresentationProfileSurface() {
   return createHostRuntimeAgentPresentationProfileSurface({
     getRuntime: () => ({
-      appId: 'dev.nimi.tester',
+      appId: 'nimi.tester',
       auth: {
         registerApp: async () => ({ accepted: true }),
       },

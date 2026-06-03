@@ -107,7 +107,7 @@ export async function invokeImageGenerate(client: PlatformClient, input: TesterS
     const output = await client.runtime.media.image.generate({
       ...route,
       prompt,
-      metadata: buildMetadata('dev.nimi.tester.media.image.generate', {
+      metadata: buildMetadata('nimi.tester.media.image.generate', {
         ...resolved.metadata,
         ...schedulingPreflight.evidenceMetadata,
       }),
@@ -148,7 +148,7 @@ export async function invokeVideoGenerate(client: PlatformClient, input: TesterS
       ...route,
       prompt,
       content: [{ type: 'text', role: 'prompt', text: prompt }],
-      metadata: buildMetadata('dev.nimi.tester.media.video.generate', {
+      metadata: buildMetadata('nimi.tester.media.video.generate', {
         ...resolved.metadata,
         ...schedulingPreflight.evidenceMetadata,
       }),
@@ -187,7 +187,7 @@ export async function invokeSpeechSynthesize(client: PlatformClient, input: Test
     const output = await client.runtime.media.tts.synthesize({
       ...route,
       text: prompt,
-      metadata: buildMetadata('dev.nimi.tester.media.tts.synthesize', {
+      metadata: buildMetadata('nimi.tester.media.tts.synthesize', {
         ...resolved.metadata,
         ...schedulingPreflight.evidenceMetadata,
       }),
@@ -229,7 +229,7 @@ export async function invokeSpeechTranscribe(client: PlatformClient, input: Test
     const output = await client.runtime.media.stt.transcribe({
       ...route,
       audio: { kind: 'url', url },
-      metadata: buildMetadata('dev.nimi.tester.media.stt.transcribe', {
+      metadata: buildMetadata('nimi.tester.media.stt.transcribe', {
         ...resolved.metadata,
         ...schedulingPreflight.evidenceMetadata,
       }),
@@ -263,7 +263,7 @@ export async function invokeSpeechBundle(client: PlatformClient, _input: TesterS
   try {
     const output = await client.runtime.media.tts.listVoices({
       ...route,
-      metadata: buildMetadata('dev.nimi.tester.media.tts.list-voices', {
+      metadata: buildMetadata('nimi.tester.media.tts.list-voices', {
         ...resolved.metadata,
         ...schedulingPreflight.evidenceMetadata,
       }),

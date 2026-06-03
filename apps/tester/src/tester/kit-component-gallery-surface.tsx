@@ -313,7 +313,7 @@ export const RECIPES: Recipe[] = [
     wide: true,
     stage: (
       <>
-        <FieldShell label="App identity"><TextField defaultValue="dev.nimi.tester" leading={<Search size={14} />} /></FieldShell>
+        <FieldShell label="App identity"><TextField defaultValue="nimi.tester" leading={<Search size={14} />} /></FieldShell>
         <FieldShell label="Capability route">
           <SelectField
             defaultValue="text.generate"

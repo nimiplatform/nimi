@@ -7,7 +7,7 @@
 - **App name (Chinese)**: 阿凡达
 - **App name (English)**: Nimi Avatar
 - **Runtime app ID**: `nimi.avatar`
-- **Tauri bundle identifier**: `app.nimi.avatar`
+- **Tauri bundle identifier**: `ai.nimi.apps.nimi.avatar`
 - **One-line**: 桌面悬浮 embodiment carrier，agent 的视觉化身；通过 NAS handler 把 agent semantics 投影到当前 backend branch。
 - **Status**: Productization gate active. Wave 0 spec admit complete; Wave 1 surface composition implementation done; Wave 2 i18n + design tokens 工业化 done; Wave 3 lipsync end-to-end done (orchestrator + live2d/lipsync-bridge split + ParamMouthForm opt-in + audio time anchor + e2e fixture test); Wave 4 window + settings 工业化 done (window-bounds-policy.yaml admitted + dynamic resize wired + drag region limited to embodiment-stage + settings popover + Tauri visible-area constraint + cargo unit tests). Real runtime/SDK consume path is primary; mock is explicit fixture-only.
 

@@ -28,6 +28,7 @@ entries:
   - nimi_ui_lib_drift
   - nimi_kit_gate
   - app_slice_admission_gate
+  - app_identity_surface_gate
   - audit_evidence_root_gate
   - package_authority_admission_gate
   - canonical_capability_catalog_gate
@@ -61,6 +62,12 @@ app_slice_admission_gate:
   command: node scripts/check-platform-spec-kernel-consistency.mjs
   path: scripts/check-platform-spec-kernel-consistency.mjs
   description: Platform kernel gate validating app-slice admission rows, authority roots, evidence roots, and source rule linkage.
+app_identity_surface_gate:
+  type: static_gate
+  evidence_type: structural
+  command: pnpm check:app-identity-surfaces
+  path: scripts/check-app-identity-surfaces.mjs
+  description: Repository guard validating active app identity table rows against manifests, SDK/Runtime appId surfaces, Tauri bundle identifiers, app-tools reference identity, and forbidden side namespaces.
 audit_evidence_root_gate:
   type: static_gate
   evidence_type: structural
