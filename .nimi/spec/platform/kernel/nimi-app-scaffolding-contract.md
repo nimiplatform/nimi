@@ -30,7 +30,8 @@ cited below.
   `nimi-app update` authoring command semantics;
 - the local-evidence acceptance harness role for this scaffolding contract;
 - the A5 dependency that default scaffold content must not import
-  `kit/features/model-test` until a kit-owned follow-up closes.
+  `kit/features/model-test` until the Kit feature authority is admitted and
+  its implementation/evidence obligations are closed.
 
 `P-SCAF-*` DOES NOT OWN:
 
@@ -239,7 +240,7 @@ repository's `.nimi/**` boundaries and must preserve the package/host
 projection distinction.
 
 `MUST NOT`: scaffolding must not promote concrete installer evidence,
-package-owned projections, local execution artifacts, or generated app topic
+package-owned projections, local execution artifacts, or generated app lifecycle
 reports into semantic truth unless an admitted `nimicoding` admission flow
 produces that projection.
 
@@ -277,15 +278,16 @@ substitute for the `P-NAPP-013` PR admission path. App-slice admission does not
 substitute for public Nimi App admission, and public Nimi App admission does
 not substitute for app-slice audit authority (`P-NAPP-010`).
 
-## P-SCAF-013 — A5 Model-Test Follow-Up Dependency
+## P-SCAF-013 — A5 Model-Test Admission Dependency
 
 `MUST`: ST-L1-1 default scaffold content must not import default
 `kit/features/model-test` content until Kit admits that feature surface and
 closes its implementation/evidence obligations.
 
-`MUST`: before that follow-up closes, scaffold examples may use only already
-admitted SDK/kit/Runtime surfaces or app-owned placeholder product areas that
-do not claim model-test feature availability.
+`MUST`: before the Kit feature authority is admitted and its
+implementation/evidence obligations are closed, scaffold examples may use only
+already admitted SDK/kit/Runtime surfaces or app-owned placeholder product areas
+that do not claim model-test feature availability.
 
 `MUST NOT`: scaffolding must not fabricate a shipped `kit/features/model-test`
 export, edit kit source/package files through scaffolding, or treat a planned

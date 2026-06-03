@@ -428,25 +428,25 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
     note: Later implementation status rule for Avatar debug projection; closure evidence is owned by
-      downstream waves.
+      the owning implementation authority.
     evidence_requirement: deferred
   - rule_id: K-AGCORE-061
     evidence_refs:
       - runtime_kernel_consistency
     note: Runtime agent participation authority admitted as contract/table truth; implementation
-      evidence is owned by downstream participation waves.
+      evidence is owned by Runtime participation implementation authority.
     evidence_requirement: deferred
   - rule_id: K-AGCORE-062
     evidence_refs:
       - runtime_kernel_consistency
     note: Runtime agent participation non-canonical candidate posture admitted as contract/table truth;
-      implementation evidence is owned by downstream participation waves.
+      implementation evidence is owned by Runtime participation implementation authority.
     evidence_requirement: deferred
   - rule_id: K-AGCORE-063
     evidence_refs:
       - runtime_kernel_consistency
     note: Runtime agent participation axis registry admitted as contract/table truth; implementation
-      evidence is owned by downstream participation waves.
+      evidence is owned by Runtime participation implementation authority.
     evidence_requirement: deferred
   - rule_id: K-AGCORE-064
     evidence_refs:

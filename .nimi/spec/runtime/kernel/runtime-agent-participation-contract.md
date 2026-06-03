@@ -550,7 +550,7 @@ External-entry alignment must be audited with negative gates for:
 - direct MCP clients outside Runtime delegated adapter paths
 - direct A2A clients outside a future admitted Runtime adapter
 - raw protocol payload public participation fields
-- `K-DELEG-*` rule redefinition in participation waves
+- `K-DELEG-*` rule redefinition in participation authority
 - fake external server success
 
 Matches in `K-DELEG-*` contracts, generated docs, or explicit prohibition text
@@ -603,8 +603,8 @@ Fixed posture:
 - app-local world agent execution authority is forbidden
 - output remains a `WORLD_EVENT_CANDIDATE`
 - Runtime direct world truth commit is forbidden
-- memory/cognition/canonical-chat writes remain forbidden until a later
-  promotion wave admits them
+- memory/cognition/canonical-chat writes remain forbidden until future
+  promotion authority admits them
 
 ## K-AGCORE-097 Scenario Sandbox Future Seam
 
@@ -618,15 +618,15 @@ transcript storage, ScenarioJob execution, or custom prompt APIs.
 
 Fixed posture:
 
-- the pending Scenario Sandbox topic remains product-domain pressure, not active
-  implementation
+- the pending Scenario Sandbox product requirement remains product-domain
+  pressure, not active implementation
 - `K-JOB-*` may be referenced only as existing ScenarioJob lifecycle authority
 - public raw scenario prompt blobs and custom prompt APIs are forbidden
 - app-local scenario agent execution authority is forbidden
 - output remains a `SCENARIO_TURN_CANDIDATE`
 - Runtime direct scenario transcript/run/replay commit is forbidden
-- memory/cognition/canonical-chat writes remain forbidden until a later
-  promotion wave admits them
+- memory/cognition/canonical-chat writes remain forbidden until future
+  promotion authority admits them
 
 ## K-AGCORE-098 Domain Truth Separation
 
@@ -672,7 +672,7 @@ Domain future seams must be audited with negative gates for:
 - fake world/scenario product success
 - memory/cognition/canonical-chat writes before promotion admission
 
-Matches in Runtime/Realm kernel contracts, generated docs, pending-topic notes,
+Matches in Runtime/Realm kernel contracts, generated docs, pending requirement notes,
 or explicit prohibition text are allowed evidence only when they preserve domain
 truth ownership and do not create product implementation support.
 

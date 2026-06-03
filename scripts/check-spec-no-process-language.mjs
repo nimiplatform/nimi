@@ -25,12 +25,17 @@ const BANNED_PATTERNS = [
     pattern: /\bSource:\s*topic\b/u,
   },
   {
+    label: 'topic proposal provenance',
+    pattern: /\b(?:migrated from topic proposal|topic proposal)\b/u,
+  },
+  {
     label: 'topic-local evidence wording',
     pattern: /\btopic-local\b/u,
   },
   {
     label: 'topic preflight/process wording',
-    pattern: /\b(?:current topic|topic preflight|topic-internal|candidate-wave-plan|candidate wave plan)\b/u,
+    pattern:
+      /\b(?:current topic|topic preflight|topic-internal|topic result record|candidate-wave-plan|candidate wave plan)\b/u,
   },
   {
     label: 'child-topic evidence wording',
@@ -53,10 +58,43 @@ const BANNED_PATTERNS = [
     pattern: /\b(?:cleanup|implementation|future|later|acceptance|remediation|proof)\s+waves?\b/u,
   },
   {
+    label: 'owner implementation wave wording',
+    pattern: /\b(?:downstream|participation|admission|firewall|SDK|sdk)\s+waves?\b/u,
+  },
+  {
+    label: 'topic-as-authority wording',
+    pattern:
+      /\b(?:owner|schema-owner|admitting|admission|same|separate|current|follow-up)\s+topic\b|\btopic\s+(?:scope|owns|owned)\b/u,
+  },
+  {
+    label: 'pending-topic process wording',
+    pattern: /\bpending[- ]topic\b/u,
+  },
+  {
+    label: 'process closeout provenance',
+    pattern: /\b(?:Exec Pack|exec pack)\b|\bwave closeout\b/u,
+  },
+  {
+    label: 'promotion wave wording',
+    pattern: /\bpromotion wave\b/u,
+  },
+  {
+    label: 'process field leaked into spec',
+    pattern: /\b(?:contract_only_until_later_wave|pending_wave)\b/u,
+  },
+  {
     label: 'implementation evidence scheduling wording',
-    pattern: /\bevidence\s+lands\s+with\b/u,
+    pattern: /\b(?:evidence|implementation)\s+lands\s+with\b/u,
   },
 ];
+
+function isAllowedMachineIdentity(relPath, label, text) {
+  return (
+    relPath === '.nimi/spec/high-risk-admissions.yaml'
+    && label === 'wave-numbered implementation/admission language'
+    && text.startsWith('packet_id:')
+  );
+}
 
 async function walk(dir) {
   const output = [];
@@ -97,11 +135,15 @@ async function main() {
           continue;
         }
         const line = lineNumber(content, index);
+        const text = String(lines[line - 1] ?? '').trim();
+        if (isAllowedMachineIdentity(relPath, label, text)) {
+          continue;
+        }
         violations.push({
           relPath,
           line,
           label,
-          text: String(lines[line - 1] ?? '').trim(),
+          text,
         });
       }
     }

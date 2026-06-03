@@ -38,7 +38,7 @@ guards 与 docs active references 已移除。
 重新出现。任何复活 Mod / Hook / runtime-mod / SDK mod surface 的提案必须
 重新通过显式 admission，并不得复用 retired 文件、路径或命名作为兼容层。
 
-`MUST`：retirement closeout audit 必须确认 parent workspace active
+`MUST`：retirement audit 必须确认 parent workspace active
 `nimi-mods` references 已清理或经 admitted allowlist 处置；历史归档与本地
 审计证据只可作为追溯材料，不得成为 active authority。
 

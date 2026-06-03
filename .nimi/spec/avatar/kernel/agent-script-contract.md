@@ -1,7 +1,7 @@
 # Agent Script Contract — NimiAgentScript (NAS) 1.0
 > **App**: `@nimiplatform/avatar`
 > **Authority**: Avatar kernel contract
-> **Status**: Baseline locked 2026-04-21 (migrated from topic proposal 议题 4b)
+> **Status**: Active NAS 1.0 authority
 > **Upstream platform refs**:
 > - [APML model-facing wire authority](.nimi/spec/runtime/kernel/agent-output-wire-contract.md)
 > - [Runtime presentation/activity projection seam](.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)

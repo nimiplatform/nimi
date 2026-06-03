@@ -162,7 +162,7 @@ consume/probe 时解出最小执行凭据子集”，而不是“拥有第三方
 - runtime 可以按 `provider_auth_profile` 为执行请求派生 provider-native
   headers，但不得因此把 provider-specific payload schema 提升为新的 proto
   truth
-- runtime 在当前 topic scope 内不拥有 browser/device-code login、refresh
+- runtime 在当前 admitted connector scope 内不拥有 browser/device-code login、refresh
   orchestration、或 token rotation 持久化语义；这些不属于 connector consume
   contract
 - managed OAuth payload 若无法解出执行 token，probe 与 consume 必须返回

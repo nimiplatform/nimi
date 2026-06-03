@@ -9,7 +9,7 @@
 
 本契约是 T10 portfolio 的 cross-cutting authority：它**不**重新拥有任何单个
 `~/.nimi` schema 文件的字段定义。每个 schema 文件的字段权威仍归其 surface owner
-topic（`~/.nimi/nimi.json` → T1；`~/.nimi/runtime/config.json` /
+authority family（`~/.nimi/nimi.json` → T1；`~/.nimi/runtime/config.json` /
 `~/.nimi/profiles/factory-index.json` / `~/.nimi/runtime/default.json` → T2；
 `~/.nimi` app registry / packages / library / grants 文件 → T4）。本契约只拥有：
 
@@ -38,7 +38,7 @@ Runtime `~/.nimi/runtime/config.json` 的迁移机制由 Runtime kernel 的
 
 本契约统辖的 `~/.nimi` 用户本地配置文件族（"sibling config files"）：
 
-| File | Schema field owner topic | Notes |
+| File | Schema field owner authority | Notes |
 |---|---|---|
 | `~/.nimi/nimi.json` | T1 | product-control record；`P-COLD-009` |
 | `~/.nimi/runtime/config.json` | T2 | Runtime config；迁移执行由 `K-CFG-014..016` 拥有 |
@@ -49,7 +49,7 @@ Runtime `~/.nimi/runtime/config.json` 的迁移机制由 Runtime kernel 的
 | `~/.nimi/accounts/<account-id>/apps/library.json` | T4 | account app-library projection |
 | `~/.nimi/accounts/<account-id>/permissions/grants.json` | T4 | account-scoped permission grant projection |
 
-`MUST`：本族的成员清单与每个成员的 schema-owner topic 由本契约 canonical
+`MUST`：本族的成员清单与每个成员的 schema-owner authority 由本契约 canonical
 固化于上表，并由 `tables/local-config-file-registry.yaml` 作为结构化事实源
 镜像。新增 `~/.nimi` 顶层用户本地配置文件，必须同时在上表与该表登记，否则该文件
 不得被视为 governed config 并不得进入 ordinary readiness 路径。
@@ -66,7 +66,7 @@ Runtime `~/.nimi/runtime/config.json` 的迁移机制由 Runtime kernel 的
 ## P-MIG-002 — `schemaVersion` Fail-Closed Read
 
 `MUST`：读取 governed config 文件时，读取方必须先比较文件 `schemaVersion` 与
-该文件 owner topic 声明的当前 supported `schemaVersion`：
+该文件 owner authority 声明的当前 supported `schemaVersion`：
 
 - `schemaVersion` 等于当前 supported version → 正常读取。
 - `schemaVersion` 小于当前 supported version → fail-closed，按 `P-MIG-004`
@@ -84,7 +84,7 @@ fail-closed-to-repair，不是 fail-open。
 repair-routing 框架，不得每个文件各自实现一套旧 schema upgrade 逻辑。该共享框架
 必须提供：
 
-- **current-version gate**：只接受该文件 owner topic 声明的当前
+- **current-version gate**：只接受该文件 owner authority 声明的当前
   `schemaVersion`。
 - **no write on read**：读取、解析、版本检查、结构校验失败不得改写文件、
   不得创建 `.bak`、不得写入默认字段。
@@ -191,7 +191,7 @@ non-cache 的 user / app / account 持久数据；`cache/` / `tmp/` 类纯缓存
 - `nimi_data` 子目录的 materialization 写入与 job 执行仍归 Runtime
   `K-LENV-*`；本契约只拥有目录 owner/cleanup 表与 data-root relocation admission
   floor，不提供 ordinary Desktop relocation 执行面。
-- per-file schema 字段定义仍归各 owner topic（T1 / T2 / T4）；本契约只拥有
+- per-file schema 字段定义仍归各 owner authority family（T1 / T2 / T4）；本契约只拥有
   跨文件 current-schema validation framework 与 repair-routing 规则。
 
 ## Fact Sources

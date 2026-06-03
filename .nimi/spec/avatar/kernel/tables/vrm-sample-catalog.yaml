@@ -61,7 +61,7 @@ constraints:
       for every catalog sample id and must reject unknown ids.
   - description: >
       Adding a non-CC0/non-MIT sample requires an explicit product/legal
-      disposition in the admitting topic before the sample can close acceptance.
+      disposition in admitted authority before the sample can close acceptance.
   - description: >
       A sample cannot close visual or smoke proof unless its fetched payload is
       at least `expected_min_bytes` and parses as binary glTF/VRM in the

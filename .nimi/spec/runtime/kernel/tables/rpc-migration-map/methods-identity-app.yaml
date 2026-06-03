@@ -6,6 +6,13 @@ generated: false
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_rpc_design_proto_mapping
+surfaces:
+  - RuntimeAuthService
+  - RuntimeGrantService
+  - RuntimeExternalAgentService
+  - RuntimeAccountService
+  - RuntimeAppService
+  - method_mappings
 services:
   - RuntimeAuthService
   - RuntimeGrantService

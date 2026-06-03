@@ -117,8 +117,8 @@ text.
   chrome).
 
 The enforcement script (`check:ui-contrast-matrix`) is **not** authored
-by this contract. It is Phase 3a work under the same topic. This
-contract fixes the threshold; Phase 3a implements the CI gate.
+by this contract. It requires a separate admitted implementation authority.
+This contract fixes the threshold; that authority implements the CI gate.
 
 ## 4. Admitted Exceptions
 
@@ -132,7 +132,7 @@ Phase 3a or later phases. Any exception filed here MUST include:
 - the rationale for the exception (typically: a signature visual where
   degraded contrast is visually critical and the surface is not a
   text-carrying surface)
-- the admission topic ID and date
+- the admission authority ID and date
 
 Exceptions are not backward-compatible retroactive relaxations of the
 contract; they are narrow, named carve-outs with fixed scope. The

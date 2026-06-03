@@ -72,8 +72,9 @@ per run, conforming to schema `release-gate-evidence/v1`:
 }
 ```
 
-`SHOULD`: Document is ingestible by `nimicoding topic result record
---kind preflight --from <path>`.
+`SHOULD`: Document remains machine-ingestible by local evidence recording
+tooling. That tooling is operational infrastructure and does not own
+release-gate authority.
 
 `MUST`: Schema field rename or removal is breaking and requires a
 contract revision plus downstream consumer migration. Schema field
@@ -295,7 +296,7 @@ P0-equivalent; `tier: nightly` is P2-equivalent;
 axis on registry rows would double-encode information already
 present in `tiers:`. Therefore: omitted. If a future audit shows
 that the tier model cannot distinguish P0 from P1 for some gate,
-a `P-RELG-PRIORITY-*` rule may be added through a separate topic.
+a `P-RELG-PRIORITY-*` rule may be added through a separate authority update.
 
 ### P-GOV-020 (governance task naming `OSG-<Priority>-NN`)
 

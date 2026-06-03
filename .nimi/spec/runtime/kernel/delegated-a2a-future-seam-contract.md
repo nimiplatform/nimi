@@ -14,7 +14,7 @@ Runtime. Any production A2A implementation requires a new admitted packet before
 code, dependency, runtime registration, UI claim, or integration fixture lands.
 
 MCP remains the only production delegated protocol adapter admitted by this
-topic.
+contract.
 
 ## K-DELEG-121 A2A Adapter Non-Authority
 

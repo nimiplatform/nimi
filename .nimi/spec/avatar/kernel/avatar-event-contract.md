@@ -31,7 +31,7 @@ The active Avatar event surface covers the multi-backend BackendBranch carrier a
   (Live2D-specific) to `model_kind` (`'live2d' | 'vrm'`) + `backend_meta`
   (open object).
 - `lipsync_frame_batch` consume references are removed (avatar-side hard-cut;
-  platform-side emit deprecation is a separate topic). Synthetic-audio mime
+  platform-side emit deprecation requires separate admitted authority). Synthetic-audio mime
   triggers `avatar.lipsync.silent { silent_reason: 'synthetic_audio' }` —
   no decode, no mouth movement.
 - `avatar.lipsync.frame` per-frame event is **deprecated** as a public surface.

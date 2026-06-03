@@ -60,8 +60,8 @@ Replay outcome values are fixed to:
 - `BLOCKED_BY_POLICY`
 - `INVALID_LINEAGE`
 
-`PARTIAL_MISSING_EVIDENCE` and `INVALID_LINEAGE` are failures for wave closeout
-when replay is required evidence.
+`PARTIAL_MISSING_EVIDENCE` and `INVALID_LINEAGE` are failures whenever replay
+is required evidence.
 
 ## K-DELEG-089 Delegation Audit Domain
 

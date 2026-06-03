@@ -6,6 +6,11 @@ generated: false
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_rpc_design_proto_mapping
+surfaces:
+  - AIService
+  - RuntimeAiRealtimeService
+  - ConnectorService
+  - method_mappings
 services:
   - AIService
   - RuntimeAiRealtimeService

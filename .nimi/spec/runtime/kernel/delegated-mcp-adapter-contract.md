@@ -14,7 +14,7 @@ and quarantined evidence creation.
 
 MCP wire objects do not become public Runtime ontology. Runtime must normalize
 MCP data into `K-DELEG-001` through `K-DELEG-099` contracts before a later
-firewall wave can admit it to model context, projection, or action paths.
+firewall authority can admit it to model context, projection, or action paths.
 
 ## K-DELEG-101 Official SDK Adapter Dependency
 

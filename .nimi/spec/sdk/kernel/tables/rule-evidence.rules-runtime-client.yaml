@@ -81,6 +81,7 @@ entries:
 - S-RUNTIME-116
 - S-RUNTIME-117
 - S-RUNTIME-118
+- S-RUNTIME-123
 - S-RUNTIME-201
 - S-RUNTIME-202
 - S-RUNTIME-203
@@ -443,6 +444,11 @@ rules:
   - sdk_kernel_consistency
   note: Avatar control consumer no-bypass rule admitted as SDK contract truth.
   evidence_requirement: required
+- rule_id: S-RUNTIME-123
+  evidence_refs:
+  - sdk_kernel_consistency
+  note: Local Runtime transfer state projection admitted as SDK contract truth over Runtime LocalService lifecycle state.
+  evidence_requirement: required
 - rule_id: S-RUNTIME-201
   evidence_refs:
   - sdk_kernel_consistency
@@ -496,7 +502,7 @@ rules:
 - rule_id: S-RUNTIME-211
   evidence_refs:
   - sdk_kernel_consistency
-  note: Runtime Agent Participation SDK client boundary admitted as typed contract/table truth; implementation evidence is owned by downstream SDK waves.
+  note: Runtime Agent Participation SDK client boundary admitted as typed contract/table truth; implementation evidence is owned by SDK implementation authority.
   evidence_requirement: required
 - rule_id: S-RUNTIME-212
   evidence_refs:

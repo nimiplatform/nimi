@@ -487,7 +487,7 @@ drift check：
 - SDK 不得为 `readBytes` 暴露 fallback / retry-on-decode-failure 旋钮（K-ERR-003 / S-RUNTIME-085 同 posture）。
 - SDK readBytes mime prefix check 必须 case-insensitive；不得 exact-match。
 
-## S-RUNTIME-112 Local Runtime Transfer State Projection
+## S-RUNTIME-123 Local Runtime Transfer State Projection
 
 > Upstream Runtime authority: `K-LOCAL-024`（`local-category-capability.md`）。
 

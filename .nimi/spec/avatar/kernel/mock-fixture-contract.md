@@ -378,7 +378,7 @@ Five seed scenarios 定义在 `tables/scenario-catalog.yaml`，驱动 explicit f
 - Schema version bump：`version: "2"` 时新建 `v2 scenario loader`，v1 向前兼容一个 phase 后废弃
 - 新增 scenario → 更新 `tables/scenario-catalog.yaml`
 - 删除 scenario → 同上，且 integration test 对应 case 移除
-- Exec Pack 2 closeout keeps this contract as dev/test tooling authority only
+- This contract remains dev/test tooling authority only.
 
 ---
 

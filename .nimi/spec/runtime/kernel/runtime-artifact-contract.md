@@ -79,8 +79,8 @@ under `source_rule: K-AGCORE-053`. Numeric values 600..604:
 - `ARTIFACT_NOT_FOUND` (601): id not in runtime storage (gc / never created /
   cross-runtime)
 - `ARTIFACT_TOO_LARGE` (602): artifact exists but exceeds inline retrieval
-  limit (32 MiB hard ceiling for this admission; chunked retrieval is reserved
-  for follow-up)
+  limit (32 MiB hard ceiling for this admission; chunked retrieval requires
+  future authority)
 - `ARTIFACT_FORBIDDEN` (603): caller has no read permission (multi-tenant scope
   violation; reserved — current single-runtime deployment never returns this)
 - `ARTIFACT_MIME_MISMATCH` (604): SDK-side check; client passed
@@ -96,8 +96,9 @@ string).
 ### Size Cap
 
 inline retrieval is hard-capped at 32 MiB. Larger artifacts return
-`ARTIFACT_TOO_LARGE` even though the bytes exist. This admission does not
-include chunked retrieval; a follow-up topic owns it.
+`ARTIFACT_TOO_LARGE` even though the bytes exist. This contract does not
+admit chunked retrieval; chunked retrieval requires a future authority update
+before implementation.
 
 ### Caching
 
@@ -138,7 +139,7 @@ media result projection / voice asset library).
 - inline size cap 32 MiB is hard; larger artifacts must fail-close
   `ARTIFACT_TOO_LARGE` (no silent truncation).
 
-## Out of Scope (handled by follow-up platform topics)
+## Out of Scope (requires future authority)
 
 - artifact governance: TTL / GC / quota enforcement
 - multi-tenant artifact ACL

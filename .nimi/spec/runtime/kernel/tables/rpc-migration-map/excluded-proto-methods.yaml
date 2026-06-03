@@ -6,6 +6,9 @@ generated: false
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_rpc_design_proto_mapping
+surfaces:
+  - RuntimeAiService
+  - excluded_proto_methods
 excluded_count: 1
 excluded_proto_methods:
   - proto_service: RuntimeAiService

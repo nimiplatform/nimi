@@ -13,7 +13,7 @@ rows:
   - external_principal_product_domain_commit
   - app_desktop_avatar_mod_direct_protocol_client
   - side_audit_store
-  - protocol_rule_rewrite_in_participation_wave
+  - protocol_rule_rewrite_in_participation_authority
   - required_order
   - pre_verdict_consumption
   - missing_verdict_policy
@@ -107,7 +107,7 @@ boundary_invariants:
   external_principal_product_domain_commit: forbidden
   app_desktop_avatar_mod_direct_protocol_client: forbidden
   side_audit_store: forbidden
-  protocol_rule_rewrite_in_participation_wave: forbidden
+  protocol_rule_rewrite_in_participation_authority: forbidden
 gateway_chain:
   source_rule: K-AGCORE-093
   required_order:

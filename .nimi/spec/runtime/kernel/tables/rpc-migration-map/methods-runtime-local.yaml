@@ -6,6 +6,9 @@ generated: false
 table_family: protocol_surface
 owner: runtime
 protocol_id: runtime_rpc_design_proto_mapping
+surfaces:
+  - RuntimeLocalService
+  - method_mappings
 services:
   - RuntimeLocalService
 method_count: 66

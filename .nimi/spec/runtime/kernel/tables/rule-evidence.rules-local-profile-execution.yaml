@@ -122,7 +122,7 @@ rules:
   - rule_id: K-AIEXEC-007
     evidence_refs: []
     evidence_requirement: deferred
-    evidence_scope_note: structural only; first-run baseline execution evidence verifier implementation lands with product first-run admission waves
+    evidence_scope_note: structural only; first-run baseline execution evidence verifier implementation is owned by product first-run admission authority
   - rule_id: K-LENG-024
     evidence_refs:
       - runtime_kernel_consistency
